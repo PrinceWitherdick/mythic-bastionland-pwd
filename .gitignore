@@ -1,0 +1,13 @@
+# Source books are copyrighted and never belong in the repo
+*.pdf
+
+node_modules/
+dist/
+coverage/
+*.bak
+*.log
+
+# Local tooling
+/.claude/settings.local.json
+.DS_Store
+Thumbs.db

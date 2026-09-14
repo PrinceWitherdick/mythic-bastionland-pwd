@@ -1,0 +1,790 @@
+/*
+ * Fonts, colour tokens, and the Knight and item sheets. Chat cards and
+ * dialogs are in chat.css.
+ *
+ * The sheets paint their own parchment and ink, like the printed sheet, so they
+ * look the same in Foundry's light and dark themes. Foundry's theme variables
+ * are overridden on the page so native inputs and checkboxes follow suit.
+ */
+
+@font-face {
+	font-family: "Bastionland Display";
+	src: url("../assets/fonts/UnifrakturCook-Bold.ttf") format("truetype");
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Bastionland Body";
+	src: url("../assets/fonts/IMFellEnglish-Regular.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Bastionland Body";
+	src: url("../assets/fonts/IMFellEnglish-Italic.ttf") format("truetype");
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Bastionland Caps";
+	src: url("../assets/fonts/IMFellEnglishSC-Regular.ttf") format("truetype");
+	font-display: swap;
+}
+
+/*
+ * IM Fell only has old-style figures, so "11" reads as "II" in a score box.
+ * Digits come from EB Garamond instead. These faces must follow the IM Fell
+ * ones: for overlapping faces the browser tries the last declared first.
+ */
+@font-face {
+	font-family: "Bastionland Body";
+	src: url("../assets/fonts/EBGaramond-Figures.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	unicode-range: U+0030-0039;
+}
+
+@font-face {
+	font-family: "Bastionland Caps";
+	src: url("../assets/fonts/EBGaramond-Figures.ttf") format("truetype");
+	font-display: swap;
+	unicode-range: U+0030-0039;
+}
+
+:root {
+	--bastionland-paper: #efe8d8;
+	--bastionland-paper-deep: #e3d9c3;
+	--bastionland-ink: #231f1a;
+	--bastionland-ink-soft: #5a5046;
+	--bastionland-rule: #8a7d6a;
+	--bastionland-blood: #8b1e1e;
+	--bastionland-verdigris: #2f6150;
+	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
+	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
+	--bastionland-font-caps: "Bastionland Caps", Georgia, "Times New Roman", serif;
+}
+
+/* ---------------------------------------------------------------- */
+/* Window and page                                                  */
+/* ---------------------------------------------------------------- */
+
+.bastionland-sheet .window-content,
+.bastionland-item .window-content {
+	padding: 0;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-page {
+	--input-background-color: var(--bastionland-paper);
+	--input-text-color: var(--bastionland-ink);
+	--input-border-color: var(--bastionland-rule);
+	--input-placeholder-color: var(--bastionland-ink-soft);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+	--checkbox-background-color: var(--bastionland-paper);
+	--checkbox-checked-color: var(--bastionland-ink);
+	--checkbox-checkmark-color: var(--bastionland-paper);
+	--checkbox-disabled-color: var(--bastionland-rule);
+	--button-background-color: var(--bastionland-paper-deep);
+	--button-border-color: var(--bastionland-ink);
+	--button-text-color: var(--bastionland-ink);
+	--button-hover-background-color: var(--bastionland-ink);
+	--button-hover-border-color: var(--bastionland-ink);
+	--button-hover-text-color: var(--bastionland-paper);
+	--button-focus-outline-color: var(--bastionland-verdigris);
+
+	container-type: inline-size;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1.25rem 1.5rem 1.5rem;
+	overflow-y: auto;
+	background:
+		radial-gradient(ellipse at top left, rgb(255 255 255 / 0.35), transparent 60%),
+		var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	color-scheme: light;
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+	font-variant-numeric: lining-nums;
+	line-height: 1.35;
+}
+
+/* Text-like buttons: strip Foundry's button chrome, then style each below. */
+.bastionland-page :where(
+	.bastionland-score__name,
+	.bastionland-choice,
+	.bastionland-condition,
+	.bastionland-icon,
+	.bastionland-item__name,
+	.bastionland-item__equip,
+	.bastionland-feat,
+	.bastionland-add
+) {
+	appearance: none;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.bastionland-page button:disabled {
+	cursor: default;
+}
+
+.bastionland-page button:focus-visible {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 2px;
+}
+
+.bastionland-heading {
+	margin: 0 0 0.3rem;
+	padding: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.35rem;
+	font-weight: normal;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.bastionland-heading--small {
+	font-size: 1.05rem;
+}
+
+.bastionland-hint {
+	margin: 0.25rem 0 0;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+}
+
+.bastionland-icon {
+	display: inline-grid;
+	flex: none;
+	place-items: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.8rem;
+	text-align: center;
+}
+
+.bastionland-icon:hover {
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+}
+
+/* ---------------------------------------------------------------- */
+/* Header: the lines to fill in, and the heraldic shield            */
+/* ---------------------------------------------------------------- */
+
+.bastionland-header {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 9rem;
+	gap: 1rem;
+	align-items: center;
+}
+
+.bastionland-title {
+	margin: 0 0 0.35rem;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 2.3rem;
+	font-weight: normal;
+	line-height: 1;
+	text-align: center;
+}
+
+.bastionland-line {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.4rem;
+	margin: 0.2rem 0;
+}
+
+.bastionland-script {
+	font-size: 1.15rem;
+	font-style: italic;
+	white-space: nowrap;
+}
+
+.bastionland-page .bastionland-blank {
+	flex: 1 1 10rem;
+	min-width: 0;
+	max-width: 18rem;
+	height: auto;
+	padding: 0 0.2rem;
+	border: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.15rem;
+}
+
+.bastionland-page .bastionland-blank--short {
+	flex: 0 1 7rem;
+	text-align: center;
+}
+
+.bastionland-page .bastionland-blank:focus {
+	border-bottom: 1px solid var(--bastionland-ink);
+	outline: none;
+	background: var(--bastionland-paper-deep);
+	box-shadow: none;
+}
+
+.bastionland-heraldry {
+	justify-self: end;
+	width: 144px;
+	height: 170px;
+	margin: 0;
+	padding: 4px;
+	background: var(--bastionland-ink);
+	clip-path: path("M0 8 Q72 -6 144 8 V72 C144 118 110 150 72 170 C34 150 0 118 0 72 Z");
+}
+
+.bastionland-heraldry img {
+	display: block;
+	width: 136px;
+	height: 162px;
+	border: none;
+	background: var(--bastionland-paper);
+	object-fit: cover;
+	clip-path: path("M0 7 Q68 -5 136 7 V68 C136 112 104 142 68 162 C32 142 0 112 0 68 Z");
+}
+
+.bastionland-heraldry img[data-action] {
+	cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- */
+/* Toolbar                                                          */
+/* ---------------------------------------------------------------- */
+
+.bastionland-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.5rem 0;
+	border-block: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-toolbar button {
+	display: inline-flex;
+	flex: 1 1 8rem;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	height: 2.1rem;
+	padding: 0 0.75rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 3px;
+	background: var(--bastionland-paper-deep);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+}
+
+.bastionland-toolbar button:hover {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+/* ---------------------------------------------------------------- */
+/* Two columns, collapsing to one in a narrow window                */
+/* ---------------------------------------------------------------- */
+
+.bastionland-columns {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	gap: 1.25rem 2rem;
+}
+
+.bastionland-column {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+	min-width: 0;
+}
+
+@container (max-width: 640px) {
+	.bastionland-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.bastionland-header {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.bastionland-heraldry {
+		justify-self: center;
+		order: -1;
+	}
+}
+
+/* ---------------------------------------------------------------- */
+/* Virtues, Guard and Glory: solid box for current, dotted for max  */
+/* ---------------------------------------------------------------- */
+
+.bastionland-scores {
+	display: grid;
+	grid-template-columns: auto 4rem 3.4rem;
+	align-items: center;
+	justify-content: start;
+	gap: 0.35rem 0.4rem;
+}
+
+.bastionland-score {
+	display: contents;
+}
+
+.bastionland-score__name {
+	display: flex;
+	align-items: baseline;
+	min-width: 8rem;
+	padding-right: 0.5rem;
+}
+
+.bastionland-score__abbr {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.7rem;
+	font-weight: bold;
+	line-height: 1;
+}
+
+.bastionland-score__tail {
+	font-size: 1rem;
+}
+
+.bastionland-score__die {
+	align-self: center;
+	margin-left: auto;
+	padding-left: 0.4rem;
+	font-size: 0.85rem;
+	opacity: 0.4;
+}
+
+.bastionland-score__name:hover .bastionland-score__die,
+.bastionland-score__name:focus-visible .bastionland-score__die {
+	opacity: 1;
+}
+
+.bastionland-score__name--word {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.6rem;
+	line-height: 1;
+	cursor: default;
+}
+
+.bastionland-page .bastionland-box {
+	width: 4rem;
+	height: 3.1rem;
+	padding: 0;
+	border: 3px solid var(--bastionland-ink);
+	border-radius: 0.6rem;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.7rem;
+	text-align: center;
+	-moz-appearance: textfield;
+}
+
+.bastionland-page .bastionland-box--max {
+	width: 3.4rem;
+	height: 2.7rem;
+	border: 2px dotted var(--bastionland-rule);
+	color: var(--bastionland-ink-soft);
+	font-size: 1.25rem;
+}
+
+.bastionland-page .bastionland-box:focus {
+	border-color: var(--bastionland-verdigris);
+	outline: none;
+	box-shadow: none;
+}
+
+/* The boxes are too small for number spinners. */
+.bastionland-box::-webkit-inner-spin-button,
+.bastionland-box::-webkit-outer-spin-button {
+	margin: 0;
+	-webkit-appearance: none;
+}
+
+/* ---------------------------------------------------------------- */
+/* Age and Rank: the current one is circled, as on paper            */
+/* ---------------------------------------------------------------- */
+
+.bastionland-pair {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 1.5rem;
+}
+
+.bastionland-choices {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-choice {
+	padding: 0 0.4rem;
+	border: 1.5px solid transparent;
+	border-radius: 999px;
+	color: var(--bastionland-ink-soft);
+	font-size: 1.1rem;
+	font-style: italic;
+}
+
+.bastionland-choice:not(:disabled, .bastionland-choice--static):hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-choice.is-active {
+	border-color: var(--bastionland-ink);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-choice--static {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+}
+
+.bastionland-choice__glory {
+	font-size: 0.8rem;
+	font-style: normal;
+	opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- */
+/* Conditions                                                       */
+/* ---------------------------------------------------------------- */
+
+.bastionland-conditions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-condition {
+	display: inline-block;
+	padding: 0.05rem 0.6rem;
+	border: 1px dashed var(--bastionland-rule);
+	border-radius: 999px;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.95rem;
+}
+
+.bastionland-condition.is-derived {
+	font-style: italic;
+	cursor: help;
+}
+
+.bastionland-condition.is-active {
+	border: 1px solid var(--bastionland-blood);
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
+}
+
+/* ---------------------------------------------------------------- */
+/* Recovery and Oath                                                */
+/* ---------------------------------------------------------------- */
+
+.bastionland-recovery {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	margin: 0;
+	padding: 0;
+	font-size: 0.95rem;
+	list-style: none;
+}
+
+.bastionland-recovery li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.bastionland-oath {
+	text-align: center;
+}
+
+.bastionland-oath p {
+	margin: 0.1rem 0;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.25rem;
+}
+
+/* ---------------------------------------------------------------- */
+/* Property, Ability, Passion and Scars                             */
+/* ---------------------------------------------------------------- */
+
+.bastionland-block__header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.bastionland-armour {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.15rem;
+}
+
+.bastionland-items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-item {
+	padding: 0.2rem 0;
+	border-bottom: 1px dotted var(--bastionland-rule);
+}
+
+.bastionland-item__line {
+	display: flex;
+	align-items: baseline;
+	gap: 0.35rem;
+}
+
+.bastionland-item__equip {
+	flex: none;
+	color: var(--bastionland-rule);
+	font-size: 0.8rem;
+}
+
+.bastionland-item__equip.is-active {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-item__name {
+	font-size: 1.05rem;
+	font-weight: bold;
+}
+
+.bastionland-item__name:hover {
+	text-decoration: underline;
+}
+
+.bastionland-items--prose .bastionland-item__name {
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-item__tags {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-item__controls {
+	display: flex;
+	gap: 0.1rem;
+	margin-left: auto;
+	opacity: 0;
+	transition: opacity 120ms;
+}
+
+.bastionland-item:is(:hover, :focus-within) .bastionland-item__controls {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.bastionland-item__controls {
+		opacity: 1;
+	}
+}
+
+.bastionland-item__description {
+	font-size: 0.92rem;
+}
+
+.bastionland-item__description > :first-child {
+	margin-top: 0;
+}
+
+.bastionland-item__description > :last-child {
+	margin-bottom: 0;
+}
+
+.bastionland-empty {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.9rem;
+	font-style: italic;
+}
+
+.bastionland-adds {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.9rem;
+	margin-top: 0.3rem;
+}
+
+.bastionland-add {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+}
+
+.bastionland-add:hover {
+	color: var(--bastionland-ink);
+	text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------- */
+/* Feats and Gambits                                                */
+/* ---------------------------------------------------------------- */
+
+.bastionland-feats,
+.bastionland-gambits {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0;
+	font-size: 0.95rem;
+	list-style: none;
+}
+
+.bastionland-feat {
+	border-bottom: 1px solid var(--bastionland-rule);
+	font-family: var(--bastionland-font-caps);
+	font-weight: bold;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-feat:not(:disabled):hover {
+	border-bottom-color: currentcolor;
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-feat__cost {
+	display: block;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+	font-style: italic;
+}
+
+/* ---------------------------------------------------------------- */
+/* Rich text                                                        */
+/* ---------------------------------------------------------------- */
+
+.bastionland-page prose-mirror,
+.bastionland-page .editor-content {
+	display: block;
+	min-height: 6rem;
+	padding: 0.4rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.25);
+	color: var(--bastionland-ink);
+}
+
+/* ---------------------------------------------------------------- */
+/* Item sheet                                                       */
+/* ---------------------------------------------------------------- */
+
+.bastionland-page--item {
+	gap: 0.75rem;
+	padding: 1rem 1.25rem;
+}
+
+.bastionland-item-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.bastionland-item-header__img {
+	flex: none;
+	width: 64px;
+	height: 64px;
+	border: 2px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper-deep);
+	object-fit: cover;
+}
+
+.bastionland-item-header__img[data-action] {
+	cursor: pointer;
+}
+
+.bastionland-item-header__text {
+	flex: 1;
+	min-width: 0;
+}
+
+.bastionland-page .bastionland-item-header__name {
+	width: 100%;
+	height: auto;
+	padding: 0;
+	border: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.8rem;
+}
+
+.bastionland-item-header__type {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-page .form-group label {
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+}
+
+.bastionland-page .hint {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-qualities {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.25rem 1rem;
+	margin: 0;
+	padding: 0.4rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+}

@@ -1,0 +1,13 @@
+<section class="bastionland-card bastionland-card--damage is-{{outcomeKey}}">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.damage.title"}}</h3>
+	</header>
+	<p class="bastionland-card__text">{{dealt}}</p>
+	{{#if guardLine}}
+	<p class="bastionland-card__text">{{guardLine}}</p>
+	{{/if}}
+	{{#if vigourLine}}
+	<p class="bastionland-card__text">{{vigourLine}}</p>
+	{{/if}}
+	<p class="bastionland-card__outcome">{{outcome}}</p>
+</section>

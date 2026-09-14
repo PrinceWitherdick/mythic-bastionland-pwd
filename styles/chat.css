@@ -1,0 +1,237 @@
+/*
+ * Chat cards and roll dialogs. Fonts and colour tokens are declared in
+ * mythic-bastionland.css. Cards paint their own parchment so they read the
+ * same in Foundry's light and dark themes; dialogs keep Foundry's theme.
+ */
+
+.bastionland-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 0.5rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 14px;
+	font-variant-numeric: lining-nums;
+	line-height: 1.35;
+}
+
+.bastionland-card p {
+	margin: 0;
+}
+
+.bastionland-card__header {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-card__title {
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.5rem;
+	font-weight: normal;
+	line-height: 1.1;
+}
+
+.bastionland-card__tagline {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+.bastionland-card__roll {
+	display: inline-grid;
+	place-items: center;
+	min-width: 1.6rem;
+	height: 1.6rem;
+	margin-right: 0.2rem;
+	border-radius: 50%;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-family: var(--bastionland-font-body);
+	font-size: 0.9rem;
+	vertical-align: middle;
+}
+
+.bastionland-card__outcome {
+	font-weight: bold;
+}
+
+.bastionland-card__hint {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85em;
+}
+
+.bastionland-card__warning {
+	color: var(--bastionland-blood);
+	font-size: 0.85em;
+}
+
+.bastionland-card__location {
+	font-family: var(--bastionland-font-caps);
+	letter-spacing: 0.04em;
+}
+
+.bastionland-card__damage {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-card__damage strong {
+	font-family: var(--bastionland-font-body);
+	font-size: 1.8rem;
+	line-height: 1;
+}
+
+.bastionland-card--damage.is-mortal .bastionland-card__outcome,
+.bastionland-card--damage.is-slain .bastionland-card__outcome {
+	color: var(--bastionland-blood);
+}
+
+/* Save result, shared by Saves, Feats and Smite */
+
+.bastionland-save {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	grid-template-areas:
+		"label die"
+		"target result";
+	align-items: center;
+	column-gap: 0.5rem;
+	padding: 0.35rem 0.5rem;
+	border-left: 4px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-save__label {
+	grid-area: label;
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-save__die {
+	grid-area: die;
+	justify-self: end;
+	font-size: 1.6rem;
+	line-height: 1;
+}
+
+.bastionland-save__target {
+	grid-area: target;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85em;
+}
+
+.bastionland-save__result {
+	grid-area: result;
+	justify-self: end;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.bastionland-save.is-pass {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+.bastionland-save.is-pass .bastionland-save__result {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-save.is-fail {
+	border-left-color: var(--bastionland-blood);
+}
+
+.bastionland-save.is-fail .bastionland-save__result {
+	color: var(--bastionland-blood);
+}
+
+/* Attack dice: the highest is inked in, Gambit dice are solid, Strong Gambit dice get a double rule */
+
+.bastionland-dice {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-die {
+	display: grid;
+	justify-items: center;
+	min-width: 3.2rem;
+	padding: 0.25rem 0.35rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-die.is-gambit {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-die.is-strong {
+	border: 3px double var(--bastionland-ink);
+}
+
+.bastionland-die.is-highest {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-die__result {
+	font-size: 1.4rem;
+	line-height: 1;
+}
+
+.bastionland-die__faces {
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.8rem;
+}
+
+.bastionland-die__label {
+	max-width: 6rem;
+	overflow: hidden;
+	font-size: 0.7rem;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Dialogs and shared form bits */
+
+.bastionland-dialog .bastionland-dialog__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-dialog fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.bastionland-check {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-check__label {
+	flex: 1;
+}
+
+.bastionland-tag {
+	font-size: 0.85em;
+	opacity: 0.8;
+}

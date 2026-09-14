@@ -1,0 +1,17 @@
+<div class="bastionland-dialog__body">
+	<div class="form-group">
+		<label for="bastionland-scar-die">{{localize "bastionland.scarRoll.die"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-scar-die" name="die">
+				{{#each dice}}
+				<option value="{{faces}}" {{#if selected}}selected{{/if}}>d{{faces}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="apply" checked>
+		<span class="bastionland-check__label">{{localize "bastionland.scarRoll.apply"}}</span>
+	</label>
+</div>

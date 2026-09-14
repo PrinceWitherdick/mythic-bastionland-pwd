@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json.schemastore.org/foundryvtt-system-manifest.json",
+  "id": "mythic-bastionland-pwd",
+  "title": "Mythic Bastionland",
+  "description": "<p>An unofficial system for playing Mythic Bastionland, the Arthurian-inspired game of Knights, Seers and Myths by Chris McDowall. Knights get a sheet modelled on the official one, with rollable Saves, Feats that track Fatigue, an Attack roller, Damage that follows the book's order of Guard, Scars, Wounds and Mortal Wounds, and the Scar table.</p>",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.363"
+  },
+  "authors": [
+    {
+      "name": "PrinceWitherdick"
+    }
+  ],
+  "esmodules": [
+    "mythic-bastionland.js"
+  ],
+  "styles": [
+    "styles/mythic-bastionland.css",
+    "styles/chat.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "knight": {
+        "htmlFields": ["notes"]
+      }
+    },
+    "Item": {
+      "weapon": {
+        "htmlFields": ["description"]
+      },
+      "armour": {
+        "htmlFields": ["description"]
+      },
+      "gear": {
+        "htmlFields": ["description"]
+      },
+      "ability": {
+        "htmlFields": ["description"]
+      },
+      "passion": {
+        "htmlFields": ["description"]
+      },
+      "scar": {
+        "htmlFields": ["description"]
+      }
+    }
+  },
+  "primaryTokenAttribute": "guard",
+  "secondaryTokenAttribute": "virtues.vig",
+  "socket": true
+}

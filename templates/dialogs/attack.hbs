@@ -1,0 +1,40 @@
+<div class="bastionland-dialog__body">
+	<fieldset>
+		<legend>{{localize "bastionland.attack.weapons"}}</legend>
+		{{#each sources}}
+		<label class="bastionland-check">
+			<input type="checkbox" name="source.{{id}}" checked>
+			<span class="bastionland-check__label">{{name}}</span>
+			<span class="bastionland-tag">{{damage}}{{#if ranged}} · {{localize "bastionland.item.ranged"}}{{/if}}</span>
+		</label>
+		{{else}}
+		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
+		{{/each}}
+	</fieldset>
+
+	<div class="form-group">
+		<label for="bastionland-attack-bonus">{{localize "bastionland.attack.bonus"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-attack-bonus" type="text" name="bonus" placeholder="d8" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.attack.bonusHint"}}</p>
+	</div>
+
+	<div class="form-group">
+		<label for="bastionland-attack-smite">{{localize "bastionland.feats.smite.name"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-attack-smite" name="smite" {{disabled smiteDisabled}}>
+				<option value="">—</option>
+				<option value="d12">{{localize "bastionland.attack.smite"}}</option>
+				<option value="blast">{{localize "bastionland.attack.blast"}}</option>
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.attack.smiteHint"}}</p>
+	</div>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="impaired" {{checked impaired}}>
+		<span class="bastionland-check__label">{{localize "bastionland.conditions.impaired.label"}}</span>
+	</label>
+	<p class="hint">{{localize "bastionland.attack.impaired"}}</p>
+</div>

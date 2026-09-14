@@ -1,0 +1,27 @@
+<div class="bastionland-dialog__body">
+	<div class="form-group">
+		<label for="bastionland-damage-amount">{{localize "bastionland.damage.amount"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-damage-amount" type="number" name="damage" value="0" min="0" step="1" autofocus>
+		</div>
+		<p class="hint">{{localize "bastionland.damage.amountHint"}}</p>
+	</div>
+
+	<div class="form-group">
+		<label for="bastionland-damage-armour">{{localize "bastionland.damage.armour"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-damage-armour" type="number" name="armour" value="{{armour}}" min="0" step="1">
+		</div>
+	</div>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="ignoreArmour">
+		<span class="bastionland-check__label">{{localize "bastionland.damage.ignoreArmour"}}</span>
+	</label>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="exposed" {{checked exposed}}>
+		<span class="bastionland-check__label">{{localize "bastionland.damage.exposed"}}</span>
+	</label>
+	<p class="hint">{{localize "bastionland.damage.exposedHint"}}</p>
+</div>

@@ -1,0 +1,86 @@
+<div class="bastionland-page bastionland-page--item">
+	<header class="bastionland-item-header">
+		<img class="bastionland-item-header__img" src="{{item.img}}" alt="" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		<div class="bastionland-item-header__text">
+			<input class="bastionland-item-header__name" type="text" name="name" value="{{item.name}}" aria-label="{{typeLabel}}" autocomplete="off">
+			<p class="bastionland-item-header__type">{{typeLabel}}</p>
+		</div>
+	</header>
+
+	{{#if isWeapon}}
+	<div class="form-group">
+		<label for="{{rootId}}-damage">{{localize "bastionland.item.damage"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-damage" type="text" name="system.damage" value="{{system.damage}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.item.damageHint"}}</p>
+	</div>
+	<fieldset class="bastionland-qualities">
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.heftyHint'}}">
+			<input type="checkbox" name="system.hefty" {{checked system.hefty}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.hefty"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.longHint'}}">
+			<input type="checkbox" name="system.long" {{checked system.long}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.long"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.slowHint'}}">
+			<input type="checkbox" name="system.slow" {{checked system.slow}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.slow"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.rangedHint'}}">
+			<input type="checkbox" name="system.ranged" {{checked system.ranged}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.ranged"}}</span>
+		</label>
+	</fieldset>
+	{{/if}}
+
+	{{#if isArmour}}
+	<div class="form-group">
+		<label for="{{rootId}}-kind">{{localize "bastionland.item.kind"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-kind" name="system.kind">
+				{{selectOptions kindOptions selected=system.kind}}
+			</select>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="{{rootId}}-armour">{{localize "bastionland.item.armour"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-armour" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="{{rootId}}-attack-die">{{localize "bastionland.item.attackDie"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-attack-die" type="text" name="system.damage" value="{{system.damage}}" placeholder="d4" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.item.attackDieHint"}}</p>
+	</div>
+	{{/if}}
+
+	{{#if (or isWeapon isArmour)}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="system.equipped" {{checked system.equipped}}>
+		<span class="bastionland-check__label">{{localize "bastionland.item.equipped"}}</span>
+	</label>
+	{{/if}}
+
+	{{#if isScar}}
+	<div class="form-group">
+		<label for="{{rootId}}-roll">{{localize "bastionland.item.scarRoll"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-roll" type="number" name="system.roll" value="{{system.roll}}" min="1" max="12" step="1">
+		</div>
+	</div>
+	{{/if}}
+
+	<section class="bastionland-item-description">
+		<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.item.description"}}</h2>
+		{{#if editable}}
+		<prose-mirror name="system.description" value="{{system.description}}" document-uuid="{{item.uuid}}" toggled="true">{{{enrichedDescription}}}</prose-mirror>
+		{{else}}
+		<div class="editor-content">{{{enrichedDescription}}}</div>
+		{{/if}}
+	</section>
+</div>

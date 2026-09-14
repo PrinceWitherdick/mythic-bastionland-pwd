@@ -1,0 +1,35 @@
+<section class="bastionland-card bastionland-card--attack">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.attack.title"}}</h3>
+	</header>
+
+	{{#if smite}}
+	<p class="bastionland-card__tagline">{{smite.name}}: {{smite.tagline}}</p>
+	{{> "bastionland.save-result" save=smite.save}}
+	<p class="bastionland-card__outcome">{{smite.outcome}}</p>
+	{{/if}}
+
+	<ol class="bastionland-dice">
+		{{#each dice}}
+		<li class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}">
+			<span class="bastionland-die__result">{{result}}</span>
+			<span class="bastionland-die__faces">d{{faces}}</span>
+			<span class="bastionland-die__label">{{label}}</span>
+		</li>
+		{{/each}}
+	</ol>
+
+	<p class="bastionland-card__damage">
+		<span>{{localize "bastionland.attack.highest"}}</span>
+		<strong>{{highest}}</strong>
+	</p>
+	<p class="bastionland-card__hint">{{localize "bastionland.attack.damageNote"}}</p>
+	<p class="bastionland-card__hint">{{gambitDice}}{{#if strongDice}} · {{strongDice}}{{/if}}</p>
+
+	{{#if impaired}}
+	<p class="bastionland-card__warning">{{localize "bastionland.attack.impaired"}}</p>
+	{{/if}}
+	{{#if blast}}
+	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.blast"}}</strong>: {{localize "bastionland.attack.blastHint"}}</p>
+	{{/if}}
+</section>

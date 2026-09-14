@@ -1,0 +1,337 @@
+{
+  "TYPES": {
+    "Actor": {
+      "knight": "Knight"
+    },
+    "Item": {
+      "weapon": "Weapon",
+      "armour": "Armour",
+      "gear": "Gear",
+      "ability": "Ability",
+      "passion": "Passion",
+      "scar": "Scar"
+    }
+  },
+  "bastionland": {
+    "sheet": {
+      "title": "Mythic Bastionland",
+      "named": "They were named",
+      "knownAs": "Known as the",
+      "knight": "Knight",
+      "fate": "Their ultimate fate was",
+      "knightedBy": "Knighted by",
+      "heraldry": "Heraldry",
+      "chronicle": "Chronicle",
+      "current": "Current",
+      "maximum": "Maximum",
+      "toNextRank": "{needed} more Glory to {rank}",
+      "worthiest": "Worthy of the City Quest",
+      "add": "Add {type}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "equip": "Worn or wielded",
+      "empty": "Nothing yet. Drag an item here or add one.",
+      "attack": "Attack",
+      "takeDamage": "Take Damage",
+      "rest": "Rest",
+      "rollScar": "Roll Scar",
+      "armour": "Armour",
+      "rollSave": "Roll a {virtue} Save"
+    },
+    "virtues": {
+      "vig": {
+        "abbr": "VIG",
+        "tail": "our",
+        "label": "Vigour",
+        "hint": "Strong limbs, firm hands, powerful lungs."
+      },
+      "cla": {
+        "abbr": "CLA",
+        "tail": "rity",
+        "label": "Clarity",
+        "hint": "Keen instinct, lucid mind, shrewd eyes."
+      },
+      "spi": {
+        "abbr": "SPI",
+        "tail": "rit",
+        "label": "Spirit",
+        "hint": "Charming tongue, iron will, fierce heart."
+      }
+    },
+    "guard": {
+      "label": "Guard",
+      "abbr": "GD",
+      "hint": "Your skill at avoiding Wounds."
+    },
+    "glory": {
+      "label": "Glory"
+    },
+    "age": {
+      "label": "Age",
+      "young": "Young",
+      "mature": "Mature",
+      "old": "Old"
+    },
+    "rank": {
+      "label": "Rank",
+      "errant": "Knight Errant",
+      "gallant": "Knight Gallant",
+      "tenant": "Knight Tenant",
+      "dominant": "Knight Dominant",
+      "radiant": "Knight Radiant"
+    },
+    "conditions": {
+      "label": "Conditions",
+      "fatigued": {
+        "label": "Fatigued",
+        "hint": "Cannot perform Feats until they rest."
+      },
+      "exhausted": {
+        "label": "Exhausted",
+        "hint": "At VIG 0 you cannot Attack if you have moved this turn."
+      },
+      "exposed": {
+        "label": "Exposed",
+        "hint": "Treated as having 0GD. CLA 0 also leaves you Exposed."
+      },
+      "impaired": {
+        "label": "Impaired",
+        "hint": "At SPI 0 your Attacks roll a single d4 only."
+      },
+      "mortalWound": {
+        "label": "Mortal Wound",
+        "hint": "Down and dying. They die if left untended for an hour, but can be patched up in a few moments."
+      }
+    },
+    "recovery": {
+      "label": "Recovery",
+      "vig": "Hospitality or consume Sustenance",
+      "cla": "Seer’s guidance or consume Stimulant",
+      "spi": "Indulge passion or consume Sacrament",
+      "guard": "A moment’s calm and rest",
+      "guardLabel": "GD/Fatigue",
+      "restore": "Restore {virtue}",
+      "restored": "{virtue} restored to {value}.",
+      "rested": "A moment’s calm: GD restored to {value} and Fatigue removed."
+    },
+    "oath": {
+      "label": "Oath",
+      "line1": "Seek the Myths",
+      "line2": "Honour the Seers",
+      "line3": "Protect the Realm"
+    },
+    "property": {
+      "label": "Property"
+    },
+    "ability": {
+      "label": "Ability"
+    },
+    "passion": {
+      "label": "Passion"
+    },
+    "feats": {
+      "label": "Feats",
+      "smite": {
+        "name": "Smite",
+        "tagline": "Release your righteous fury",
+        "summary": "+d12 or Blast to a melee attack.",
+        "use": "Use before rolling a melee Attack. The Attack gains either +d12 or Blast."
+      },
+      "focus": {
+        "name": "Focus",
+        "tagline": "Create an opening to exploit",
+        "summary": "Perform a Gambit without using a die.",
+        "use": "Use after rolling an Attack. Perform a Gambit without using a die."
+      },
+      "deny": {
+        "name": "Deny",
+        "tagline": "Rebuff an attack before it lands",
+        "summary": "Discard a damage die rolled against you or a nearby Ally.",
+        "use": "Use after an Attack roll against you or an ally within arm’s reach. Discard one Attack die from the roll."
+      },
+      "saveOrFatigue": "{virtue} Save or become Fatigued.",
+      "alreadyFatigued": "{name} is Fatigued and cannot perform Feats until they rest.",
+      "becameFatigued": "Fatigued until they rest.",
+      "avoidedFatigue": "Avoids Fatigue."
+    },
+    "gambits": {
+      "label": "Gambits",
+      "bolster": "<strong>Bolster</strong> the attack for +1 total damage",
+      "move": "<strong>Move</strong> after the attack",
+      "repel": "<strong>Repel</strong> a foe away from you",
+      "stop": "<strong>Stop</strong> a foe from moving next turn",
+      "impair": "<strong>Impair</strong> a weapon on their next turn",
+      "trap": "<strong>Trap</strong> a shield until your next turn",
+      "dismount": "<strong>Dismount</strong> a foe",
+      "other": "<strong>Other effect</strong> of a similar level of impact",
+      "hint": "Discard Attack dice of 4 or higher, one per Gambit. Foes get a VIG Save against all but Bolster and Move.",
+      "strong": "<strong>Strong Gambit</strong>: a melee die of 8+ also grants No Save or a Greater effect."
+    },
+    "save": {
+      "title": "{virtue} Save",
+      "pass": "Pass",
+      "fail": "Fail",
+      "target": "Needs {value} or less"
+    },
+    "attack": {
+      "title": "Attack",
+      "weapons": "Weapons and shields",
+      "noWeapons": "Nothing is worn or wielded, so this Attack is unarmed and Impaired.",
+      "bonus": "Bonus dice",
+      "bonusHint": "From useful information, shrewd preparations, or a tactical advantage. +d8 is typical.",
+      "smite": "Smite for +d12",
+      "smiteHint": "A VIG Save follows to avoid Fatigue.",
+      "blast": "Blast",
+      "blastHint": "Roll separately against everybody in the area.",
+      "ranged": "Ranged",
+      "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
+      "roll": "Roll Attack",
+      "highest": "Highest die",
+      "damageNote": "Before Deny and Gambits. Spend dice of 4+ on Gambits, then the highest die left is the Damage.",
+      "gambitDice": "Dice for Gambits: {count}",
+      "strongDice": "Dice for Strong Gambits: {count}",
+      "unarmed": "Unarmed"
+    },
+    "damage": {
+      "title": "Take Damage",
+      "amount": "Damage",
+      "amountHint": "The highest die left after Gambits, plus any Bolster.",
+      "armour": "Armour",
+      "ignoreArmour": "Ignore Armour",
+      "exposed": "Exposed",
+      "exposedHint": "Act as if at 0GD.",
+      "apply": "Apply",
+      "dealt": "{dealt} Damage after Armour {armour}",
+      "guardLine": "GD {from} → {to}",
+      "vigourLine": "VIG {from} → {to}",
+      "outcomes": {
+        "none": "The blow is turned aside. No Damage.",
+        "evaded": "Evades the Attack.",
+        "scar": "Left at exactly 0GD. Roll a Scar with the die that caused it.",
+        "wounded": "Wounded.",
+        "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
+        "slain": "Slain."
+      }
+    },
+    "scarRoll": {
+      "title": "Roll Scar",
+      "die": "The die that caused the Scar",
+      "apply": "Record the Scar and apply its Virtue Loss and immediate GD increase",
+      "roll": "Roll",
+      "lost": "Loses {amount} {virtue}.",
+      "guardRaised": "Max GD rises by {amount} to {value}."
+    },
+    "scars": {
+      "label": "Scars",
+      "distress": {
+        "name": "Distress",
+        "flavour": "A lucky escape",
+        "effect": "Lose d6 SPI."
+      },
+      "disfigurement": {
+        "name": "Disfigurement",
+        "flavour": "A permanent mark",
+        "effect": "Roll d6 for where. If your max GD is 2 or less, increase it by d6.",
+        "detail": {
+          "1": "Eye",
+          "2": "Cheek",
+          "3": "Neck",
+          "4": "Torso",
+          "5": "Nose",
+          "6": "Jaw"
+        }
+      },
+      "smash": {
+        "name": "Smash",
+        "flavour": "A sudden spray of blood",
+        "effect": "Lose d6 VIG."
+      },
+      "stun": {
+        "name": "Stun",
+        "flavour": "Pain drowns the senses",
+        "effect": "Lose d6 CLA. If your max GD is 4 or less, increase it by d6."
+      },
+      "rupture": {
+        "name": "Rupture",
+        "flavour": "Innards pierced and compressed",
+        "effect": "Lose 2d6 VIG."
+      },
+      "gouge": {
+        "name": "Gouge",
+        "flavour": "Flesh torn from bone",
+        "effect": "When you get stitched up, if your max GD is 6 or less, increase it by d6."
+      },
+      "concussion": {
+        "name": "Concussion",
+        "flavour": "A heavy blow numbs the mind",
+        "effect": "Lose 2d6 CLA."
+      },
+      "tear": {
+        "name": "Tear",
+        "flavour": "Something taken in violent struggle",
+        "effect": "Roll d6 for what. When you get patched up, if your max GD is 8 or less, increase it by d6.",
+        "detail": {
+          "1": "Nose",
+          "2": "Ear",
+          "3": "Finger",
+          "4": "Thumb",
+          "5": "Eye",
+          "6": "Chunk of Scalp"
+        }
+      },
+      "agony": {
+        "name": "Agony",
+        "flavour": "With a crack, a torturous break",
+        "effect": "Lose 2d6 SPI."
+      },
+      "mutilation": {
+        "name": "Mutilation",
+        "flavour": "A limb rendered lost or useless",
+        "effect": "Roll d6 for which. By next Season you have a prosthetic or have learned to get by, and if your max GD is 10 or less, increase it by d6.",
+        "detail": {
+          "1": "Leg",
+          "2": "Leg",
+          "3": "Shield Arm",
+          "4": "Shield Arm",
+          "5": "Sword Arm",
+          "6": "Sword Arm"
+        }
+      },
+      "doom": {
+        "name": "Doom",
+        "flavour": "A cheated death haunts you",
+        "effect": "If you take a Mortal Wound this Season you are Slain instead."
+      },
+      "humiliation": {
+        "name": "Humiliation",
+        "flavour": "A most dolorous stroke",
+        "effect": "When you achieve revenge, if your max GD is 12 or less, increase it by d6."
+      }
+    },
+    "item": {
+      "description": "Description",
+      "damage": "Damage dice",
+      "damageHint": "For example d8 or 2d6.",
+      "hefty": "Hefty",
+      "heftyHint": "One hand. Only one Hefty item can be wielded at once.",
+      "long": "Long",
+      "longHint": "Both hands. Impaired in confined environments.",
+      "slow": "Slow",
+      "slowHint": "Cannot be used if the wielder moved this turn. Also Long.",
+      "ranged": "Ranged",
+      "rangedHint": "Cannot be used if the wielder began their turn engaged in melee.",
+      "equipped": "Worn or wielded",
+      "kind": "Type",
+      "armour": "Armour",
+      "attackDie": "Attack die",
+      "attackDieHint": "Shields strike for d4. Leave blank for armour that never attacks.",
+      "scarRoll": "Scar table result",
+      "kinds": {
+        "coat": "Coat",
+        "plates": "Plates",
+        "helm": "Helm",
+        "shield": "Shield"
+      }
+    }
+  }
+}
