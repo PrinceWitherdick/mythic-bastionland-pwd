@@ -21,11 +21,13 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 
 ## Development
 
-This folder is the system. Foundry loads it through a directory junction:
+The repository is the system folder. Clone it into your Foundry data folder's `systems` directory, then restart Foundry after editing `system.json`:
 
-```powershell
-New-Item -ItemType Junction -Path "Z:\Foundry\FoundryVTT\Data\systems\mythic-bastionland-pwd" -Target "Z:\Work\mythic-bastionland-pwd"
+```sh
+git clone https://github.com/PrinceWitherdick/mythic-bastionland-pwd.git "<Foundry data>/Data/systems/mythic-bastionland-pwd"
 ```
+
+Foundry serves every file in a system folder to connected players, so keep source books and other private files outside it.
 
 ```sh
 npm install
