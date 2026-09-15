@@ -36,6 +36,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Roll Surprise:** a GM picks it from the Combat Tracker's encounter menu (the ⋮ button) and ticks everybody who wasn't readied for combat. Each rolls a CLA Save, and one card shows who misses the first turn.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
+- **Remedies:** mark a gear item as a Remedy for a Virtue, and a flask button appears beside it. Using it asks who's present, restores that Virtue to each of them, and uses the Remedy up.
 - **Steed:** drag an NPC from the Actors tab onto the Knight sheet to ride it. When its weapons include a trample, the Attack dialog offers a mounted charge that adds the trample dice. A **Dismount** Gambit rolls the d6 being dismounted causes and adds it to the dice; take the Gambit back if the target Saves.
 - **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats, and a new Age doesn't give them Glory. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
@@ -116,7 +117,12 @@ Until you import the icons from your Blank Realm PDF (below), the map uses simpl
 The system ships none of the book's art or text either. A GM who owns the PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
-2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, and the Spark Tables. Choose Knight and Choose from Book fill characters in from it.
+2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, and the Spark Tables.
+3. When a GM runs it, everything listed in Arms & Goods, People & Realms and Warfare goes into two world compendiums, **Arms & Goods** and **Beasts, Hirelings & Warbands**, each kind in its own folder:
+   - weapons (one for each example a line names, so Hefty Weapons gives a spear, a mace and an axe), armour, tools, Remedies and poisons;
+   - beasts, hirelings, Warbands, and structures, ships and siege towers, as NPCs.
+
+   Bows, slings and siege artillery are marked ranged, which the book leaves unsaid. Hirelings print only GD, so theirs keep the default Virtues with a note to roll d12+d6. Running the import again replaces what's in both compendiums. Choose Knight and Choose from Book fill characters in from it.
 
 Run the macro again with the Blank Realm PDF that comes with the book to bring in its map legend: the twelve terrain icons, the four Holdings and the six Landmarks. They're saved to `mythic-bastionland-art/realm/` with their white made see-through, beside an `index.json`. New Realms use them, and every Realm Scene already in the world switches to them. As on the Realm Sheet, each terrain icon is drawn inside its hex, and a Holding takes the place of its hex's terrain.
 

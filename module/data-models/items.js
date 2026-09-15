@@ -1,4 +1,5 @@
 import { ARMOUR_KINDS } from "../config.js";
+import { VIRTUES } from "../rules/virtues.js";
 import { countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -55,8 +56,16 @@ export class ArmourModel extends DescribedModel {
 	}
 }
 
-/** Anything else a Knight carries: tools, remedies, steeds, oddities. */
-export class GearModel extends DescribedModel {}
+/** Anything else a Knight carries: tools, Remedies, poisons, oddities. */
+export class GearModel extends DescribedModel {
+	static defineSchema() {
+		return {
+			...super.defineSchema(),
+			// A Remedy restores this Virtue to everybody present, and is used up (p9). Blank for anything else.
+			remedy: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...VIRTUES] })
+		};
+	}
+}
 
 /** A Knight's unique talent. */
 export class AbilityModel extends DescribedModel {}

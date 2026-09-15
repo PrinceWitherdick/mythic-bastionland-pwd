@@ -51,6 +51,18 @@
 	</fieldset>
 	{{/if}}
 
+	{{#if isGear}}
+	<div class="form-group">
+		<label for="{{rootId}}-remedy">{{localize "bastionland.item.remedy"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-remedy" name="system.remedy">
+				{{selectOptions remedyOptions selected=system.remedy}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.item.remedyHint"}}</p>
+	</div>
+	{{/if}}
+
 	{{#if isArmour}}
 	<div class="form-group">
 		<label for="{{rootId}}-kind">{{localize "bastionland.item.kind"}}</label>

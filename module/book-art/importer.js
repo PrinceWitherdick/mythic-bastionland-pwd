@@ -23,6 +23,17 @@ import {
 	titleFromItems,
 	withArticle
 } from "../rules/book-art.js";
+import {
+	GOODS_ACTOR_KINDS,
+	GOODS_ITEM_KINDS,
+	GOODS_KIND,
+	GOODS_KIND_PAGES,
+	GOODS_KINDS,
+	GOODS_PAGES,
+	RARITIES,
+	goodsDocuments,
+	goodsFromPages
+} from "../rules/arms-and-goods.js";
 import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -33,6 +44,12 @@ import { showImportReport } from "./report.js";
 
 /** Stops a second import starting while one is under way. */
 let running = false;
+
+/** The world compendiums filled from Arms & Goods, by what they hold. */
+const GOODS_PACKS = Object.freeze({
+	items: Object.freeze({ name: "bastionland-arms-and-goods", type: "Item", kinds: GOODS_ITEM_KINDS }),
+	actors: Object.freeze({ name: "bastionland-beasts-and-hirelings", type: "Actor", kinds: GOODS_ACTOR_KINDS })
+});
 
 /**
  * Save every Knight's and Seer's portrait and every Myth's illustration from
@@ -190,6 +207,9 @@ async function extractArt(pdf, OPS) {
 	progress.update({ message: t("bookArt.readingSpark") });
 	const spark = await readSparkTables(pdf, problems);
 
+	progress.update({ message: t("bookArt.readingGoods") });
+	const goods = await readGoods(pdf, problems);
+
 	progress.update({ message: t("bookArt.writingIndex") });
 	const index = buildIndex({
 		entries,
@@ -200,9 +220,21 @@ async function extractArt(pdf, OPS) {
 		systemVersion: game.system.version
 	});
 	const indexPath = await uploadFile(ART_ROOT, new File([JSON.stringify(index, null, "\t")], INDEX_FILE, { type: "application/json" }));
+
+	progress.update({ message: t("bookArt.fillingGoods") });
+	let goodsLine;
+	if (!game.user.isGM) goodsLine = t("bookArt.report.goodsNotGM");
+	else {
+		try {
+			goodsLine = t("bookArt.report.goods", await fillGoodsPacks(goods));
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
+			goodsLine = t("bookArt.report.goodsFailed");
+		}
+	}
 	progress.update({ pct: 1 });
 
-	await showReport(index, indexPath);
+	await showReport(index, indexPath, goodsLine);
 	return index;
 }
 
@@ -222,6 +254,75 @@ async function readPageText(pdf, number, parse = (items) => items) {
 		console.error(`${SYSTEM_ID} | Couldn't read page ${number}`, error);
 		return null;
 	}
+}
+
+/**
+ * Read Warfare, Arms & Goods and People & Realms, reporting any kind of thing
+ * none of which could be read.
+ * @param {object} pdf
+ * @param {object[]} problems Added to.
+ * @returns {Promise<Record<string, object[]>>} From goodsFromPages.
+ */
+async function readGoods(pdf, problems) {
+	const pages = [];
+	for (const number of GOODS_PAGES) {
+		const items = await readPageText(pdf, number);
+		if (items) pages.push(items);
+	}
+	const goods = goodsFromPages(pages);
+	for (const kind of GOODS_KINDS) {
+		if (!goods[kind].length) problems.push({ kind: GOODS_KIND, roll: t(`goods.folders.${kind}`), page: GOODS_KIND_PAGES[kind], reason: "goodsKind" });
+	}
+	return goods;
+}
+
+/**
+ * Put everything read from Arms & Goods into two world compendiums, one of
+ * items and one of NPCs, each kind in its own folder. Running the import again
+ * replaces what an earlier import put there. GMs only.
+ * @param {Record<string, object[]>} goods
+ * @returns {Promise<{items: number, actors: number, itemsPack: string, actorsPack: string}>}
+ */
+async function fillGoodsPacks(goods) {
+	const documents = goodsDocuments(goods, {
+		rarities: Object.fromEntries(RARITIES.map((key) => [key, t(`goods.rarities.${key}`)])),
+		siege: t("goods.siege"),
+		poison: (rarity) => t("goods.poison", { rarity: rarity ? t(`goods.rarities.${rarity}`) : "" }).trim(),
+		rollVirtues: t("goods.rollVirtues"),
+		attack: t("attack.title")
+	});
+	const labels = { items: t("goods.itemsPack"), actors: t("goods.actorsPack") };
+
+	const counts = {};
+	for (const [group, { name, type, kinds }] of Object.entries(GOODS_PACKS)) {
+		const folders = kinds.map((kind) => ({ name: t(`goods.folders.${kind}`), documents: documents[group][kind] }));
+		await fillPack({ name, type, label: labels[group] }, folders);
+		counts[group] = folders.reduce((count, folder) => count + folder.documents.length, 0);
+	}
+	return { ...counts, itemsPack: labels.items, actorsPack: labels.actors };
+}
+
+/**
+ * Empty a world compendium, creating it first if needed, then fill it folder by folder.
+ * @param {{name: string, type: string, label: string}} metadata
+ * @param {{name: string, documents: object[]}[]} folders
+ */
+async function fillPack({ name, type, label }, folders) {
+	const { CompendiumCollection } = foundry.documents.collections;
+	const pack = game.packs.get(`world.${name}`) ?? await CompendiumCollection.createCompendium({ name, label, type });
+	const operation = { pack: pack.collection };
+	const documentClass = foundry.utils.getDocumentClass(type);
+	const folderClass = foundry.utils.getDocumentClass("Folder");
+
+	const index = await pack.getIndex();
+	if (index.size) await documentClass.deleteDocuments(index.map((entry) => entry._id), operation);
+	const oldFolders = pack.folders.map((folder) => folder.id);
+	if (oldFolders.length) await folderClass.deleteDocuments(oldFolders, operation);
+
+	const filled = folders.map((folder, index) => ({ ...folder, sort: (index + 1) * 100 })).filter((folder) => folder.documents.length);
+	if (!filled.length) return;
+	const created = await folderClass.createDocuments(filled.map((folder) => ({ name: folder.name, type, sort: folder.sort })), operation);
+	await documentClass.createDocuments(filled.flatMap((folder, index) => folder.documents.map((data) => ({ ...data, folder: created[index].id }))), operation);
 }
 
 /**
@@ -307,8 +408,9 @@ async function readSparkTables(pdf, problems) {
 /**
  * @param {object} index
  * @param {string|null} indexPath
+ * @param {string|null} [goodsLine] What became of Arms & Goods.
  */
-async function showReport(index, indexPath) {
+async function showReport(index, indexPath, goodsLine = null) {
 	const label = (kind) => t(`bookArt.kinds.${kind}`);
 	const listOf = (kind) => index[KIND_FOLDERS[kind]];
 	const counts = [
@@ -325,8 +427,9 @@ async function showReport(index, indexPath) {
 		t("bookArt.report.sparkRead", {
 			read: index.spark.reduce((count, page) => count + page.tables.length, 0),
 			total: SPARK_PAGES.length * SPARK_TABLES_PER_PAGE
-		})
-	];
+		}),
+		goodsLine
+	].filter(Boolean);
 	const unnamed = KINDS.flatMap((kind) => listOf(kind)
 		.filter((entry) => entry.path && !entry.name)
 		.map((entry) => t("bookArt.report.unnamedEntry", { kind: label(kind), roll: entry.roll, page: entry.page })));

@@ -186,6 +186,12 @@
       "clear": "No longer ride this steed",
       "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat."
     },
+    "remedy": {
+      "use": "Use Remedy ({virtue})",
+      "intro": "Tick everybody present. Each has their {virtue} restored, and the Remedy is used up.",
+      "tagline": "A Remedy used",
+      "hint": "Using a Remedy takes a whole Phase. The Virtue is restored before any Omens or other encounters."
+    },
     "ability": {
       "label": "Ability"
     },
@@ -549,6 +555,29 @@
       "succession": "Succession: a ruler usually names their successor, though some Realms leave it to a conclave of Seers or Knights-Elector. Whoever it is faces some resistance.",
       "notes": "Court & Notes"
     },
+    "goods": {
+      "itemsPack": "Arms & Goods",
+      "actorsPack": "Beasts, Hirelings & Warbands",
+      "folders": {
+        "weapons": "Weapons",
+        "armour": "Armour",
+        "tools": "Tools",
+        "remedies": "Remedies",
+        "poisons": "Poisons",
+        "beasts": "Beasts",
+        "hirelings": "Hirelings",
+        "warbands": "Warbands",
+        "structures": "Structures, Ships & Siege"
+      },
+      "rarities": {
+        "common": "Common",
+        "uncommon": "Uncommon",
+        "rare": "Rare"
+      },
+      "siege": "Siege engine",
+      "poison": "{rarity} Poison",
+      "rollVirtues": "Roll their Virtues on d12+d6."
+    },
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
@@ -869,6 +898,10 @@
       "ignoresArmourHint": "Damage isn’t reduced by the target’s Armour.",
       "trample": "Trample",
       "trampleHint": "A steed’s trample. Its rider adds it to their Attack when charging enemies on foot.",
+      "remedy": "Remedy for",
+      "remedyHint": "When used, restores this Virtue to everybody present, and is used up.",
+      "notRemedy": "Not a Remedy",
+      "remedyTag": "Remedy, {virtue}",
       "equipped": "Worn or wielded",
       "kind": "Type",
       "armour": "Armour",
@@ -958,7 +991,7 @@
     },
     "bookArt": {
       "title": "Import Book Art",
-      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables.",
+      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
       "choose": "Rulebook or Blank Realm PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
@@ -973,6 +1006,8 @@
       "layoutMismatch": "The first Knight’s pages don’t have the pictures this import looks for, so this may be a different edition. Import anyway?",
       "progress": "Import Book Art: reading page {page} of {last}",
       "readingSpark": "Import Book Art: reading the Spark Tables",
+      "readingGoods": "Import Book Art: reading Arms & Goods",
+      "fillingGoods": "Import Book Art: filling the Arms & Goods compendiums",
       "writingIndex": "Import Book Art: writing the index",
       "packMissing": "Import Book Art couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
       "kinds": {
@@ -980,6 +1015,7 @@
         "seer": "Seer",
         "myth": "Myth",
         "spark": "Spark Table",
+        "goods": "Arms & Goods:",
         "terrain": "Terrain",
         "holding": "Holding",
         "landmark": "Landmark"
@@ -996,6 +1032,9 @@
         "saved": "{kind} art: {saved} of {total} saved",
         "textRead": "{kind} text: {read} of {total} read",
         "sparkRead": "Spark Tables: {read} of {total} read",
+        "goods": "Arms & Goods: {items} items in the {itemsPack} compendium, and {actors} beasts, hirelings, Warbands and structures in {actorsPack}",
+        "goodsNotGM": "Arms & Goods were read, but only a GM can fill their compendiums. Run the import again as a GM.",
+        "goodsFailed": "The Arms & Goods compendiums couldn’t be filled. If either is locked, unlock it and run the import again.",
         "index": "Index saved to {path}.",
         "indexFailed": "The index couldn’t be saved, so the pictures can’t be looked up by roll. Run the import again.",
         "unnamed": "Saved without a name, because the page’s title couldn’t be read:",
@@ -1013,7 +1052,8 @@
           "mythText": "the Omens or Cast couldn’t be read, so the NPC chooser won’t list them",
           "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in",
           "sparkText": "its rows couldn’t be read, so it’s left out of the Spark Tables",
-          "sparkPage": "no Spark Tables could be read from the page"
+          "sparkPage": "no Spark Tables could be read from the page",
+          "goodsKind": "none could be read, so the compendium goes without them"
         }
       }
     },

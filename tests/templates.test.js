@@ -14,6 +14,7 @@ import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/ru
 import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
+import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
@@ -89,6 +90,9 @@ describe("localization", () => {
 		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
 		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),
 		`bookArt.kinds.${SPARK_KIND}`,
+		`bookArt.kinds.${GOODS_KIND}`,
+		...GOODS_KINDS.map((kind) => `goods.folders.${kind}`),
+		...RARITIES.map((rarity) => `goods.rarities.${rarity}`),
 		...partsOf("domain.council", COUNCIL_SEATS, ["label", "hint"]),
 		...partsOf("domain.crises", CRISES, ["name", "flavour", "resolution"]),
 		...CRISIS_RESULTS.map((result) => `domain.results.crisis.${result}`),

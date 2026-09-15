@@ -11,6 +11,11 @@
 		{{/if}}
 		{{#if @root.editable}}
 		<span class="bastionland-item__controls">
+			{{#if remedyLabel}}
+			<button type="button" class="bastionland-icon" data-action="useRemedy" data-tooltip="{{remedyLabel}}" aria-label="{{remedyLabel}}">
+				<i class="fa-solid fa-flask" inert></i>
+			</button>
+			{{/if}}
 			{{#if pending}}
 			<button type="button" class="bastionland-icon" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
 				<i class="fa-solid fa-hand-holding-medical" inert></i>

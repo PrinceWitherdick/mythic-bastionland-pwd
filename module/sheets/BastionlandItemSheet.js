@@ -1,4 +1,6 @@
+import { t } from "../chat/cards.js";
 import { ARMOUR_KINDS } from "../config.js";
+import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -33,7 +35,9 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			isWeapon: item.type === "weapon",
 			isArmour: item.type === "armour",
 			isScar: item.type === "scar",
+			isGear: item.type === "gear",
 			kindOptions: Object.fromEntries(ARMOUR_KINDS.map((key) => [key, game.i18n.localize(`bastionland.item.kinds.${key}`)])),
+			remedyOptions: { "": t("item.notRemedy"), ...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.label`)])) },
 			enrichedDescription: await foundry.applications.ux.TextEditor.implementation.enrichHTML(item.system.description, {
 				secrets: item.isOwner,
 				relativeTo: item

@@ -45,7 +45,7 @@ export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["my
  * Why an entry needs a second look. `extra` still saves the largest match and
  * the text reasons still save the picture; the rest leave the picture out.
  */
-export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage"]);
+export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind"]);
 
 /** The kind a problem reading the Spark Tables is reported under. */
 export const SPARK_KIND = "spark";
@@ -244,7 +244,7 @@ const BASELINE_TOLERANCE = 2;
  * @returns {{y: number, size: number, text: string, runs: ReturnType<typeof textRuns>}[]}
  *   `size` is the line's largest font size.
  */
-function textLines(items) {
+export function textLines(items) {
 	const lines = [];
 	for (const run of textRuns(items).sort((a, b) => b.y - a.y)) {
 		const line = lines.at(-1);

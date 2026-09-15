@@ -2,7 +2,7 @@ import { attack } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat } from "../actions/feats.js";
-import { rest, restoreVirtue } from "../actions/recovery.js";
+import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
 import { t } from "../chat/cards.js";
@@ -41,7 +41,8 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			createItem: BastionlandActorSheet.#onCreateItem,
 			editItem: BastionlandActorSheet.#onEditItem,
 			deleteItem: BastionlandActorSheet.#onDeleteItem,
-			toggleEquipped: BastionlandActorSheet.#onToggleEquipped
+			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
+			useRemedy: BastionlandActorSheet.#onUseRemedy
 		}
 	};
 
@@ -115,6 +116,7 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			tags: itemTags(item),
 			equippable: typeof item.system.equipped === "boolean",
 			equipped: item.system.equipped,
+			remedyLabel: item.system.remedy ? t("remedy.use", { virtue: t(`virtues.${item.system.remedy}.abbr`) }) : null,
 			description: await this._enrich(item.system.description)
 		})));
 	}
@@ -196,6 +198,11 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 		const item = this.#itemFrom(target);
 		return item?.update({ "system.equipped": !item.system.equipped });
 	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onUseRemedy(_event, target) {
+		return useRemedy(this.actor, this.#itemFrom(target));
+	}
 }
 
 /**
@@ -217,6 +224,8 @@ function itemTags(item) {
 				system.damage,
 				`A${system.armour}`
 			].filter(Boolean);
+		case "gear":
+			return system.remedy ? [t("item.remedyTag", { virtue: t(`virtues.${system.remedy}.abbr`) })] : [];
 		default:
 			return [];
 	}

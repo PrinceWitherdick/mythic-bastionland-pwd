@@ -1,4 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
+import { VIRTUES } from "../rules/virtues.js";
+import { chooseCompany } from "./time.js";
 
 /**
  * A moment's calm and rest: GD returns to full and Fatigue is removed
@@ -26,4 +28,36 @@ export async function restoreVirtue(actor, virtue) {
 		icon: "fa-solid fa-heart-pulse",
 		text: t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
 	});
+}
+
+/**
+ * Use a Remedy (p9): everybody present has its Virtue restored, and the Remedy
+ * is used up.
+ * @param {Actor} actor Whoever carries it.
+ * @param {Item|undefined} item
+ * @returns {Promise<object[]|null>}
+ */
+export async function useRemedy(actor, item) {
+	const virtue = item?.system.remedy;
+	if (!VIRTUES.includes(virtue)) return null;
+
+	const abbr = t(`virtues.${virtue}.abbr`);
+	const company = await chooseCompany({
+		title: item.name,
+		icon: "fa-solid fa-flask",
+		intro: t("remedy.intro", { virtue: abbr }),
+		ok: t("remedy.use", { virtue: abbr }),
+		present: [actor]
+	});
+	if (!company?.length) return null;
+
+	const name = item.name;
+	const entries = await Promise.all(company.map(async ({ actor: member }) => {
+		const value = member.system.virtues[virtue].max;
+		await member.update({ [`system.virtues.${virtue}.value`]: value });
+		return { name: member.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] };
+	}));
+	await item.delete();
+	await postCard(actor, "report", { title: name, tagline: t("remedy.tagline"), entries, hint: t("remedy.hint") });
+	return entries;
 }
