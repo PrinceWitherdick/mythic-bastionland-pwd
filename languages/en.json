@@ -594,6 +594,76 @@
         "combat": "Combat"
       }
     },
+    "sites": {
+      "title": "Sites",
+      "hint": "Map a Site the way the book does: points on the corners and centre of a hexagon, joined by routes between neighbours. The same seed and counts always draw the same Site.",
+      "name": "Name",
+      "defaultName": "Site {seed}",
+      "seed": "Seed",
+      "reroll": "Roll a new seed",
+      "pointsHeading": "Points",
+      "routesHeading": "Routes",
+      "entrancesHeading": "Entrances",
+      "entrance": "Entrance",
+      "hiddenEntrance": "Hidden entrance",
+      "presetsHeading": "Start from",
+      "presets": {
+        "book": "The book’s Site",
+        "burial": "A sealed burial complex"
+      },
+      "points": {
+        "feature": {
+          "label": "Feature",
+          "plural": "Features",
+          "hint": "Gives information or sets the mood."
+        },
+        "danger": {
+          "label": "Danger",
+          "plural": "Dangers",
+          "hint": "To be navigated carefully."
+        },
+        "treasure": {
+          "label": "Treasure",
+          "plural": "Treasures",
+          "hint": "A useful or valuable find."
+        }
+      },
+      "routes": {
+        "open": {
+          "plural": "Open",
+          "hint": "A straightforward path between points.",
+          "to": "open to {number}"
+        },
+        "closed": {
+          "plural": "Closed",
+          "hint": "Something blocks the way, so creative thinking is required.",
+          "to": "closed to {number}"
+        },
+        "hidden": {
+          "plural": "Hidden",
+          "hint": "Only found by exploring the points at either end, or through local knowledge.",
+          "to": "hidden to {number}"
+        }
+      },
+      "entranceHere": "entrance",
+      "hiddenEntranceHere": "hidden entrance",
+      "noRoutes": "no routes",
+      "keyHeading": "Key",
+      "empty": "There are no points to map.",
+      "diagram": "Map of {name}",
+      "tagline": "A Site, seed {seed}",
+      "journalHint": "Describe what’s found at each point beneath its entry.",
+      "post": "Post to chat",
+      "save": "Save as Journal",
+      "saved": "{name} saved to the Journal.",
+      "problems": {
+        "noPoints": "A Site needs at least one point.",
+        "tooManyPoints": "A hexagon has room for {used} points, not {asked}.",
+        "tooFewRoutes": "Every point must be reachable, so there are {used} routes, not {asked}. The extra ones are open.",
+        "tooManyRoutes": "Only {used} routes fit between neighbouring points, not {asked}.",
+        "hiddenEntrance": "With only one point, there’s nowhere else to put the hidden entrance."
+      }
+    },
     "refereeRolls": {
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",

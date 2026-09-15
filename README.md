@@ -69,7 +69,7 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 
 ### Referee tools
 
-GMs get three buttons at the top of the Roll Tables tab:
+GMs get four buttons at the top of the Roll Tables tab:
 
 - **Referee Rolls:** roll a d6 on one of the book's quick tables and post the result: the Luck Roll, Passage of Time, Unresolved Situation, Travelling Blind, Dire Weather and Local Mood.
 - **Spark Tables:** after Import Book Art, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
@@ -81,6 +81,7 @@ GMs get three buttons at the top of the Roll Tables tab:
   - **Hardship** takes d6 from a Virtue for everybody ticked: SPI for night travel, CLA for no proper sleep, and VIG for Winter cold or going without supplies.
   - Clicking a Season or Phase, or changing the Age or Day, sets the calendar by hand without any of that. In Winter the Wilderness Roll card reminds the GM of the cold and dire weather.
   - **Glory** awards 1 Glory to each Knight ticked for a Myth resolved, a tournament won or a battle won, and says when a Knight reaches a new Rank. Squires are left out.
+- **Sites:** map a Site the way the book does, with features, dangers and treasure on a hexagon joined by open, closed and hidden routes, and an entrance and hidden entrance. Change the counts or start from the burial complex, and the same seed always draws the same Site. Post the map to chat for GMs, or save it as a Journal entry with a numbered key to fill in.
 - **Doom and other Scars that wait:** a Doom Scar lasts the Season it was taken in, and while it does, a Mortal Wound Slays instead. Gouge, Tear and Humiliation get a settle button on the Knight sheet for the Referee to press when the Knight is stitched up, patched up or avenged.
 - **Growing older:** changing a Knight's Age to Mature or Old offers to reroll each Virtue on d12+d6, keeping the higher when becoming Mature and the lower when becoming Old.
 

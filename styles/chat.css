@@ -384,3 +384,14 @@
 	border-left: 3px solid var(--bastionland-rule);
 	font-style: italic;
 }
+
+/* Site */
+
+.bastionland-card__site {
+	display: block;
+	width: 100%;
+	max-width: 320px;
+	height: auto;
+	margin: 0 auto;
+	border: none;
+}

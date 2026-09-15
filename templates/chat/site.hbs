@@ -1,0 +1,15 @@
+<section class="bastionland-card bastionland-card--site">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{name}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	<img class="bastionland-card__site" src="{{image}}" alt="{{label}}" width="{{size}}" height="{{size}}">
+	<ol class="bastionland-card__list">
+		{{#each points}}
+		<li><span class="bastionland-card__roll">{{number}}</span> <strong>{{kindLabel}}</strong>{{#if entrances}} · {{entrances}}{{/if}}: {{routes}}</li>
+		{{/each}}
+	</ol>
+	{{#each problems}}
+	<p class="bastionland-card__warning">{{this}}</p>
+	{{/each}}
+</section>

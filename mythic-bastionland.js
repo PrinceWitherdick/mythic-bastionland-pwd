@@ -6,6 +6,7 @@ import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
+import { openSitesPanel } from "./module/apps/SitesPanel.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
@@ -49,7 +50,8 @@ const ITEM_MODELS = {
 const REFEREE_TOOLS = [
 	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
 	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
-	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel }
+	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel },
+	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.title", open: openSitesPanel }
 ];
 
 Hooks.once("init", () => {
@@ -127,6 +129,7 @@ Hooks.once("init", () => {
 		rollRefereeTable,
 		openSparkTables,
 		openTimePanel,
+		openSitesPanel,
 		awardGlory,
 		getCalendar
 	});

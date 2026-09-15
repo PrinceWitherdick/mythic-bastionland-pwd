@@ -74,7 +74,8 @@
 .bastionland-item .window-content,
 .bastionland-chooser-window .window-content,
 .bastionland-spark-window .window-content,
-.bastionland-time-window .window-content {
+.bastionland-time-window .window-content,
+.bastionland-sites-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -1023,6 +1024,115 @@
 	outline-offset: -1.5px;
 	color: var(--bastionland-blood);
 	font-weight: bold;
+}
+
+/* ---------------------------------------------------------------- */
+/* Sites: points and routes on a hexagon, drawn beside the counts   */
+/* ---------------------------------------------------------------- */
+
+.bastionland-sites {
+	gap: 0.75rem;
+}
+
+.bastionland-sites .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-sites__layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+	align-items: start;
+	gap: 1rem 1.5rem;
+}
+
+@container (max-width: 560px) {
+	.bastionland-sites__layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bastionland-sites__fields {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	align-items: center;
+	gap: 0.4rem 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.bastionland-sites__seed {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.bastionland-sites__counts {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.3rem 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.bastionland-sites__count {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.15rem;
+}
+
+.bastionland-sites__count label {
+	cursor: help;
+}
+
+/* Smaller than a Virtue's box, since six sit in a narrow column. */
+.bastionland-page .bastionland-sites__count .bastionland-box {
+	width: 3.4rem;
+	height: 2.5rem;
+	font-size: 1.35rem;
+}
+
+.bastionland-sites .bastionland-check {
+	margin-bottom: 0.2rem;
+}
+
+.bastionland-sites__diagram {
+	margin: 0;
+}
+
+.bastionland-sites__diagram svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-sites__problems {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: var(--bastionland-blood);
+	font-size: 0.9rem;
+}
+
+.bastionland-sites__key {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-sites__number {
+	display: inline-grid;
+	place-items: center;
+	min-width: 1.6rem;
+	height: 1.6rem;
+	margin-right: 0.2rem;
+	border-radius: 50%;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-size: 0.9rem;
+	vertical-align: middle;
 }
 
 /* ---------------------------------------------------------------- */
