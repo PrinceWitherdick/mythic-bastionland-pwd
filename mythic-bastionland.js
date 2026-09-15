@@ -9,6 +9,7 @@ import {
 } from "./module/data-models/items.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
+import { registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 
 const ITEM_MODELS = {
@@ -40,4 +41,11 @@ Hooks.once("init", () => {
 	foundry.applications.handlebars.loadTemplates({
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
 	});
+
+	// Sheets left open come back where they were after a reload.
+	registerSheetRestore();
+});
+
+Hooks.once("ready", async () => {
+	await restoreOpenSheets();
 });

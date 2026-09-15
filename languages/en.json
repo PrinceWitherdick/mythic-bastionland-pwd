@@ -332,6 +332,12 @@
         "helm": "Helm",
         "shield": "Shield"
       }
+    },
+    "settings": {
+      "restoreOpenSheets": {
+        "name": "Reopen Sheets on Reload",
+        "hint": "Reopen the Knight, item and journal sheets you had open, where you left them, when you reload Foundry. Only affects this browser."
+      }
     }
   }
 }

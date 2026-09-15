@@ -35,9 +35,15 @@ describe("localization", () => {
 	const templateKeys = templates.flatMap((file) =>
 		[...readFileSync(file, "utf8").matchAll(/["'](bastionland\.[\w.]+)["']/g)].map((match) => match[1]));
 
-	// Keys passed to the t/localize/format shorthands, which add the prefix.
-	const scriptKeys = scripts.flatMap((file) =>
-		[...readFileSync(file, "utf8").matchAll(/\b(?:t|localize|format)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`));
+	// Keys passed to the t/localize/format shorthands, which add the prefix, and
+	// full keys quoted in scripts, such as a setting's name.
+	const scriptKeys = scripts.flatMap((file) => {
+		const source = readFileSync(file, "utf8");
+		return [
+			...[...source.matchAll(/\b(?:t|localize|format)\(\s*"([\w.]+)"/g)].map((match) => `bastionland.${match[1]}`),
+			...[...source.matchAll(/["'](bastionland\.[\w.]+)["']/g)].map((match) => match[1])
+		];
+	});
 
 	// Keys built at runtime from the rule tables.
 	const builtKeys = [

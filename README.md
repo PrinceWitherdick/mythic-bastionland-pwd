@@ -18,6 +18,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
+- **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
 ## Development
 

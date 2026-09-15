@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { SYSTEM_ID } from "../module/system-id.js";
 
 const root = join(import.meta.dirname, "..");
 
@@ -41,9 +42,14 @@ function installFoundryStubs() {
 		}
 	};
 	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} } };
-	globalThis.Hooks = { once: (name, callback) => { hooks[name] = callback; } };
+	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, system: {}, user: { isGM: false } };
+	globalThis.Hooks = {
+		once: (name, callback) => { hooks[name] = callback; },
+		on: (name, callback) => { hooks[name] = callback; }
+	};
 	globalThis.Actor = class Actor {};
 	globalThis.Item = class Item {};
+	globalThis.window = { addEventListener: vi.fn() };
 	return hooks;
 }
 
@@ -63,6 +69,17 @@ describe("system boot", () => {
 	it("loads the entry module and registers an init hook", () => {
 		expect(entry).toBeDefined();
 		expect(hooks.init).toBeTypeOf("function");
+	});
+
+	it("registers Reopen Sheets on Reload for each browser and follows open sheets", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "restoreOpenSheets", expect.objectContaining({
+			scope: "client",
+			config: true,
+			type: Boolean,
+			default: true
+		}));
+		expect(hooks.renderActorSheetV2).toBeTypeOf("function");
+		expect(window.addEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
 	});
 
 	it("registers a data model for every document type in system.json", async () => {
