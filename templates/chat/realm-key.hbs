@@ -1,0 +1,31 @@
+<section class="bastionland-card bastionland-card--realm-key">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		<p class="bastionland-card__tagline">{{localize "bastionland.realm.key.tagline" seed=seed}}</p>
+	</header>
+
+	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.myths"}}</h4>
+	<ul class="bastionland-card__list">
+		{{#each myths}}
+		<li><strong>{{number}}</strong> {{name}} <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=page}}, {{where}}</span></li>
+		{{/each}}
+	</ul>
+
+	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.holdings"}}</h4>
+	<ul class="bastionland-card__list">
+		{{#each holdings}}
+		<li>{{name}}{{#if seat}} <em>{{localize "bastionland.realm.key.seat"}}</em>{{/if}} <span class="bastionland-card__hint">{{where}}</span></li>
+		{{/each}}
+	</ul>
+
+	{{#if sanctums.length}}
+	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.sanctums"}}</h4>
+	<ul class="bastionland-card__list">
+		{{#each sanctums}}
+		<li>{{name}} <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=page}}, {{where}}</span></li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
+	<p class="bastionland-card__hint">{{localize "bastionland.realm.key.counts" landmarks=landmarks barriers=barriers}}</p>
+</section>

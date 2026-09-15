@@ -5,6 +5,7 @@ import globals from "globals";
 // still fails lint instead of passing as an unknown browser global.
 const foundryGlobals = {
 	Actor: "readonly",
+	canvas: "readonly",
 	ChatMessage: "readonly",
 	CONFIG: "readonly",
 	CONST: "readonly",
@@ -14,6 +15,7 @@ const foundryGlobals = {
 	Handlebars: "readonly",
 	Hooks: "readonly",
 	Item: "readonly",
+	PIXI: "readonly",
 	Roll: "readonly",
 	ui: "readonly"
 };

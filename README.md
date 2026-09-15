@@ -20,6 +20,34 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
+### The Realm
+
+The Realm is a Foundry Scene, so everybody sees the same map and moves their own Knight on it:
+
+- **New Realm:** a GM button in the Scenes tab. Give the Realm a name and a seed, and it's rolled the way Creating a Realm describes onto a Scene of 12 by 12 hexes:
+  - clusters of terrain and a river crossing the map;
+  - four Holdings a good distance apart, one of them the Seat of Power;
+  - six numbered Myths in remote hexes;
+  - three or four of each Landmark;
+  - Barriers on one sixth as many hex edges as there are hexes.
+
+  The same seed rolls the same Realm.
+- **What players see:** the terrain, the river and the Holdings. Myths, Landmarks and Barriers are hidden Tiles and Drawings, which GMs see faded and can reveal with the eye on the Tile or Drawing HUD.
+  - Leave hidden Tiles unlocked: Foundry hides a hidden, locked Tile from GMs too.
+  - Like hidden Tokens, hidden parts of the Realm are still sent to every player's browser, and so are the GMs' Realm cards. A player sees a Wilderness Roll only as the GM rolling privately.
+- **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import Book Art where it has been run.
+- **Barriers:** a Token can't move across a Barrier, even one nobody has found yet, or off the edge of the map. Moving around one a hex at a time works. A GM with Foundry's Unconstrained Movement turned on passes through.
+- **Hex readout:** on a Realm Scene everybody sees the hex under the pointer named at the top of the screen, with its terrain and whatever they can see in it.
+- **Realm tools:** GMs get a Realm group in the scene controls on a Realm Scene.
+  - **Inspect hexes:** click a hex to open its panel. It holds the hex's terrain and whatever is in the hex: a Holding's style, name and Seat of Power; a Myth's number, roll and Omens seen; a Landmark's type, name and, for a Sanctum, its Seer. It also has a button to reveal a hidden thing, the hex's six Barriers, and a Wilderness Roll made there.
+  - **Paint terrain:** pick a terrain in the palette, then click or drag across hexes. Alt-click a hex to pick up its terrain.
+  - **Barriers:** click a hex edge to add or remove a Barrier, and Shift-click to reveal or hide it.
+  - **Wilderness Roll:** select the Company's Tokens and press it. A Holding's hex needs no roll, and a Myth's own hex gives its next Omen. Otherwise choose travelling or camping, and the d6 is rolled: a random Myth's Omen, the nearest Myth's, or the hex's Landmark, which is revealed. The Myth's count of Omens seen goes up, and a card only GMs see names the Myth and the Omen, quoting it if Import Book Art has been run.
+  - **Tidy the Realm:** snaps icons back to the middle of their hexes, unlocks hidden Tiles, lays the river and Barrier lines again, and lists anything it can't put right.
+  - **Reroll the Realm:** rolls a new Realm onto the same Scene. Tokens and anything else on the Scene stay.
+
+Until you import the icons from your Blank Realm PDF (below), the map uses simple placeholders drawn for this system, not the book's art.
+
 ## Development
 
 The repository is the system folder. Clone it into your Foundry data folder's `systems` directory, then restart Foundry after editing `system.json`:
@@ -49,6 +77,7 @@ The layout:
 
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
+- `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
 - `assets/realm/` holds the Realm's placeholder pictures, drawn by `node scripts/realm-placeholders.js`. Run it again after changing the Realm's terrain, Holding or Landmark lists.

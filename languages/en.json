@@ -333,6 +333,171 @@
         "shield": "Shield"
       }
     },
+    "realm": {
+      "newRealm": "New Realm",
+      "units": "Hex",
+      "hex": "Column {col}, Row {row}",
+      "dialog": {
+        "title": "New Realm",
+        "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
+        "name": "Name",
+        "defaultName": "The Realm",
+        "seed": "Seed",
+        "seedHint": "The same seed rolls the same Realm.",
+        "secretHint": "Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until you reveal them.",
+        "create": "Roll the Realm"
+      },
+      "key": {
+        "tagline": "Realm Key for seed {seed}. Only GMs see this.",
+        "myths": "Myths",
+        "holdings": "Holdings",
+        "sanctums": "Seers at the Sanctums",
+        "seat": "Seat of Power",
+        "unnamedMyth": "Myth {roll}",
+        "unnamedSeer": "The Seer of Knight {roll}",
+        "page": "page {page}",
+        "counts": "{landmarks} Landmarks and {barriers} Barriers, all hidden."
+      },
+      "movement": {
+        "barrier": "A Barrier blocks the way.",
+        "offMap": "That’s past the edge of the Realm."
+      },
+      "controls": {
+        "title": "Realm"
+      },
+      "tools": {
+        "inspect": "Inspect hexes",
+        "terrain": "Paint terrain",
+        "barrier": "Barriers",
+        "wilderness": "Wilderness Roll",
+        "tidy": "Tidy the Realm",
+        "reroll": "Reroll the Realm"
+      },
+      "readout": {
+        "seat": "{name}, Seat of Power",
+        "myth": "Myth {number}",
+        "hiddenMyth": "Myth {number} (hidden)",
+        "hidden": "{name} (hidden)"
+      },
+      "wilderness": {
+        "title": "Wilderness Roll",
+        "notRealm": "The Wilderness Roll works on a Realm Scene.",
+        "noToken": "Select the Company’s Tokens first.",
+        "split": "The Company is spread over more than one hex, so the roll is for {hex}, where most of them stand.",
+        "chooseMode": "How does the Company end this Phase at {hex}?",
+        "modes": {
+          "travel": "Travelling",
+          "camp": "Camping outdoors"
+        },
+        "results": {
+          "holding": "A Holding isn’t Wilderness, so there’s no roll.",
+          "mythHex": "In the Myth’s own hex, its next Omen shows without a roll.",
+          "randomOmen": "An Omen from a Myth chosen at random.",
+          "nearestOmen": "An Omen from the nearest Myth.",
+          "landmark": "The hex’s Landmark.",
+          "allClear": "All clear.",
+          "noMyths": "This Realm has no Myths, so all is quiet."
+        },
+        "omen": "Omen {omen} of {count}",
+        "omensComplete": "All of its Omens have been seen.",
+        "tied": "Myths {numbers} are equally near, so a roll chose between them.",
+        "seer": "Home to {seer}, page {page}",
+        "revealed": "Now revealed on the map."
+      },
+      "tidy": {
+        "problem": "{problem} at {key}",
+        "problems": "The Realm has {count} things to look at: {list}",
+        "done": "The Realm is tidy again.",
+        "clean": "The Realm was already tidy."
+      },
+      "reroll": {
+        "title": "Reroll the Realm?",
+        "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay."
+      },
+      "problems": {
+        "terrain": "A hex with no terrain",
+        "offMap": "Something off the map",
+        "crowded": "More than one thing in a hex",
+        "river": "A gap in the river",
+        "edge": "A Barrier between hexes that don’t touch",
+        "duplicate": "A duplicate",
+        "number": "A Myth numbered outside 1 to 6",
+        "roll": "A roll off the table",
+        "omen": "An Omen count outside 0 to 6",
+        "style": "A Holding of no known style",
+        "type": "A Landmark of no known type",
+        "seat": "Not exactly one Seat of Power"
+      },
+      "panel": {
+        "title": "Realm",
+        "missing": "This Scene isn’t a Realm any more.",
+        "brushHint": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain.",
+        "terrain": "Terrain",
+        "feature": "In this hex",
+        "kinds": {
+          "none": "Nothing",
+          "holding": "Holding",
+          "myth": "Myth",
+          "landmark": "Landmark"
+        },
+        "style": "Style",
+        "name": "Name",
+        "number": "Number",
+        "mythRoll": "Myth rolled",
+        "seerRoll": "Seer rolled",
+        "roll": "Roll",
+        "reference": "{name}, page {page}",
+        "omensSeen": "Omens seen: {omen} of {count}",
+        "omenLess": "One fewer Omen seen",
+        "omenMore": "One more Omen seen",
+        "revealed": "Revealed to players",
+        "hidden": "Hidden from players",
+        "type": "Type",
+        "barriers": "Barriers",
+        "barrier": {
+          "none": "None",
+          "hidden": "Hidden",
+          "revealed": "Revealed"
+        },
+        "wildernessHere": "Wilderness Roll here"
+      },
+      "directions": {
+        "southeast": "South-east",
+        "south": "South",
+        "southwest": "South-west",
+        "northwest": "North-west",
+        "north": "North",
+        "northeast": "North-east"
+      },
+      "terrain": {
+        "marsh": "Marsh",
+        "heath": "Heath",
+        "crag": "Crag",
+        "peaks": "Peaks",
+        "forest": "Forest",
+        "valley": "Valley",
+        "hills": "Hills",
+        "meadow": "Meadow",
+        "bog": "Bog",
+        "lake": "Lake",
+        "glade": "Glade",
+        "plains": "Plains"
+      },
+      "holdings": {
+        "castle": "Castle",
+        "town": "Town",
+        "fortress": "Fortress",
+        "tower": "Tower"
+      },
+      "landmarks": {
+        "dwelling": "Dwelling",
+        "sanctum": "Sanctum",
+        "monument": "Monument",
+        "hazard": "Hazard",
+        "curse": "Curse",
+        "ruin": "Ruin"
+      }
+    },
     "settings": {
       "restoreOpenSheets": {
         "name": "Reopen Sheets on Reload",

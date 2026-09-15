@@ -788,3 +788,140 @@
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 }
+
+/* The New Knight and New NPC buttons beside Create Actor, and New Realm beside Create Scene. */
+.bastionland-new-knight,
+.bastionland-new-npc,
+.bastionland-new-realm {
+	flex: 1;
+}
+
+/* The hex under the pointer on a Realm Scene. */
+.bastionland-hex-readout {
+	position: fixed;
+	top: 0.6rem;
+	left: 50%;
+	z-index: 60;
+	max-width: min(40rem, 70vw);
+	padding: 0.2rem 0.7rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 0.95rem;
+	pointer-events: none;
+	transform: translateX(-50%);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The Realm's Hex panel and terrain palette. */
+.bastionland-realm-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.5rem 0.6rem;
+}
+
+.bastionland-realm-panel__heading {
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.5rem;
+	font-weight: normal;
+}
+
+.bastionland-realm-panel__hint {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85em;
+}
+
+.bastionland-realm-panel__feature {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0.4rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-realm-panel .form-fields input[type="number"] {
+	flex: 0 0 3.2rem;
+	width: 3.2rem;
+}
+
+.bastionland-realm-panel__row {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bastionland-realm-panel__row span {
+	flex: 1;
+}
+
+.bastionland-realm-panel__barriers {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.3rem;
+	margin: 0;
+	padding: 0.4rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-realm-panel__barriers legend {
+	grid-column: 1 / -1;
+}
+
+.bastionland-realm-panel__edge {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.3rem;
+	font-size: 0.85em;
+}
+
+.bastionland-realm-panel__edge.is-hidden strong {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-realm-panel__edge.is-revealed strong {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-realm-panel__palette {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.3rem;
+}
+
+.bastionland-realm-panel__swatch {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.4rem;
+	padding: 0.2rem 0.35rem;
+}
+
+.bastionland-realm-panel__swatch img {
+	width: 2.2rem;
+	height: auto;
+	border: none;
+}
+
+.bastionland-realm-panel__swatch.is-active {
+	outline: 2px solid var(--bastionland-verdigris);
+}
+
+.bastionland-realm-panel__problems {
+	margin: 0;
+	padding-left: 1.1rem;
+	color: var(--bastionland-blood);
+	font-size: 0.85em;
+}

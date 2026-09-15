@@ -1,0 +1,39 @@
+<section class="bastionland-card bastionland-card--wilderness">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.realm.wilderness.title"}}</h3>
+		<p class="bastionland-card__tagline">{{hex}}{{#if terrain}}, {{terrain}}{{/if}}{{#if mode}}. {{mode}}{{/if}}</p>
+	</header>
+
+	<p>{{#if d6}}<span class="bastionland-card__roll">{{d6}}</span> {{/if}}<span class="bastionland-card__outcome">{{result}}</span></p>
+
+	{{#if myth}}
+	<div class="bastionland-card__myth">
+		{{#if myth.img}}
+		<img class="bastionland-card__art" src="{{myth.img}}" alt="">
+		{{/if}}
+		<p><strong>{{myth.number}}. {{myth.name}}</strong> <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=myth.page}}</span></p>
+		{{#if myth.complete}}
+		<p class="bastionland-card__hint">{{localize "bastionland.realm.wilderness.omensComplete"}}</p>
+		{{else}}
+		<p class="bastionland-card__location">{{myth.omen}}</p>
+		{{#if myth.omenText}}
+		<p class="bastionland-card__quote">{{myth.omenText}}</p>
+		{{/if}}
+		{{/if}}
+	</div>
+	{{/if}}
+
+	{{#if tied}}
+	<p class="bastionland-card__hint">{{tied}}</p>
+	{{/if}}
+
+	{{#if landmark}}
+	<p><strong>{{landmark.type}}</strong>{{#if landmark.name}}: {{landmark.name}}{{/if}}</p>
+	{{#if landmark.seer}}
+	<p class="bastionland-card__hint">{{landmark.seer}}</p>
+	{{/if}}
+	{{#if landmark.revealed}}
+	<p class="bastionland-card__hint">{{localize "bastionland.realm.wilderness.revealed"}}</p>
+	{{/if}}
+	{{/if}}
+</section>

@@ -235,3 +235,44 @@
 	font-size: 0.85em;
 	opacity: 0.8;
 }
+
+/* Realm Key */
+
+.bastionland-card__heading {
+	margin: 0.2rem 0 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	font-weight: bold;
+}
+
+.bastionland-card__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Wilderness Roll */
+
+.bastionland-card__myth {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.bastionland-card__art {
+	width: 100%;
+	max-height: 7rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: cover;
+}
+
+.bastionland-card__quote {
+	padding-left: 0.5rem;
+	border-left: 3px solid var(--bastionland-rule);
+	font-style: italic;
+}

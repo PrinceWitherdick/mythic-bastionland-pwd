@@ -4,6 +4,11 @@ import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, PROPERTY_TYPES } from "../module/config.js";
 import { RANKS } from "../module/rules/glory.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
+import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
+import { DIRECTIONS } from "../module/rules/realm-geometry.js";
+import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
+import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 
@@ -23,6 +28,9 @@ function walk(dir, extension) {
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 const templates = walk(join(root, "templates"), ".hbs");
 const scripts = [...walk(join(root, "module"), ".js"), join(root, "mythic-bastionland.js")];
+
+/** @returns {string[]} Keys for each part of each entry, such as "npc.scales.warband.label". */
+const partsOf = (prefix, keys, parts) => keys.flatMap((key) => parts.map((part) => `${prefix}.${key}.${part}`));
 
 describe("templates", () => {
 	it.each(templates.map((file) => [relative(root, file), file]))("%s compiles", (_name, file) => {
@@ -51,15 +59,25 @@ describe("localization", () => {
 		...VIRTUES.map((key) => `recovery.${key}`),
 		...AGES.map((key) => `age.${key}`),
 		...RANKS.map((rank) => `rank.${rank.key}`),
-		...["fatigued", "exposed", "mortalWound", "exhausted", "impaired"]
-			.flatMap((key) => [`conditions.${key}.label`, `conditions.${key}.hint`]),
-		...FEATS.flatMap((feat) => ["name", "tagline", "summary", "use"].map((part) => `feats.${feat.key}.${part}`)),
+		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
+		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
 		...GAMBITS.map((key) => `gambits.${key}`),
-		...SCARS.flatMap((scar) => ["name", "flavour", "effect"].map((part) => `scars.${scar.key}.${part}`)),
+		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),
 		...ARMOUR_KINDS.map((key) => `item.kinds.${key}`),
 		...["hefty", "long", "slow", "ranged"].map((key) => `item.${key}`),
-		...["none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`)
+		...["none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
+		...TERRAIN.map((key) => `realm.terrain.${key}`),
+		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
+		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
+		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
+		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
+		...REALM_PROBLEMS.map((reason) => `realm.problems.${reason}`),
+		...WILDERNESS_MODES.map((mode) => `realm.wilderness.modes.${mode}`),
+		...WILDERNESS_RESULTS.map((result) => `realm.wilderness.results.${result}`),
+		...["none", ...FEATURE_KINDS].map((kind) => `realm.panel.kinds.${kind}`),
+		...BARRIER_STATES.map((state) => `realm.panel.barrier.${state}`),
+		...DIRECTIONS.map((direction) => `realm.directions.${direction}`)
 	].map((key) => `bastionland.${key}`);
 
 	const typeKeys = [

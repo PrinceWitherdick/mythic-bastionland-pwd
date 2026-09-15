@@ -34,14 +34,24 @@ function installFoundryStubs() {
 			}
 		},
 		applications: {
-			api: { HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
+			api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
 			apps: { DocumentSheetConfig: { registerSheet: vi.fn() } },
 			handlebars: { loadTemplates: vi.fn(), renderTemplate: vi.fn() },
 			sheets: { ActorSheetV2: class {}, ItemSheetV2: class {} },
 			ux: { TextEditor: { implementation: {} } }
+		},
+		canvas: {
+			layers: {
+				InteractionLayer: class {
+					static get layerOptions() {
+						return { name: "", zIndex: 0 };
+					}
+				}
+			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} } };
+	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {
 		once: (name, callback) => { hooks[name] = callback; },
@@ -109,6 +119,56 @@ describe("system boot", () => {
 		for (const path of Object.values(partials)) {
 			expect(existsSync(fileForTemplate(path)), path).toBe(true);
 		}
+	});
+
+	it("gives GMs the Realm tools, but only on a Realm Scene", async () => {
+		const { REALM_BUTTONS, REALM_TOOLS } = await import("../module/rules/realm.js");
+		const { realm } = CONFIG.Canvas.layers;
+		expect(realm.group).toBe("interface");
+		expect(realm.layerClass.layerOptions.name).toBe("realm");
+		expect(hooks.canvasReady).toBeTypeOf("function");
+
+		const realmScene = { flags: { [SYSTEM_ID]: { realm: { size: 160, cols: 12, rows: 12 } } } };
+		game.user.isGM = true;
+		canvas.scene = { flags: {} };
+		expect(realm.layerClass.prepareSceneControls()).toBeNull();
+
+		canvas.scene = realmScene;
+		const control = realm.layerClass.prepareSceneControls();
+		expect(control).toMatchObject({ name: "realm", layer: "realm", activeTool: "inspect" });
+		expect(Object.keys(control.tools)).toEqual([...REALM_TOOLS]);
+		for (const name of REALM_BUTTONS) expect(control.tools[name].button).toBe(true);
+
+		game.user.isGM = false;
+		expect(realm.layerClass.prepareSceneControls()).toBeNull();
+		canvas.scene = null;
+	});
+
+	it("adds New Realm to the Scenes directory only for GMs, and checks Token moves on Realm Scenes", () => {
+		const header = () => {
+			const buttons = [];
+			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
+		};
+		const element = (actions) => ({ querySelector: (selector) => (selector === ".header-actions" ? actions : null) });
+
+		const refused = header();
+		game.user.isGM = false;
+		hooks.renderSceneDirectory({}, element(refused));
+		expect(refused.buttons).toHaveLength(0);
+
+		const allowed = header();
+		game.user.isGM = true;
+		globalThis.document = {
+			createElement: (tag) => ({ tag, append() {}, addEventListener() {} })
+		};
+		globalThis.game.i18n = { localize: (key) => key };
+		hooks.renderSceneDirectory({}, element(allowed));
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-new-realm"]);
+		game.user.isGM = false;
+		delete globalThis.document;
+
+		expect(hooks.preMoveToken).toBeTypeOf("function");
+		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
 	});
 });
 

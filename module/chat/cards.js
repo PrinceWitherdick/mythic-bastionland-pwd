@@ -5,22 +5,24 @@ import { templatePath } from "../system-id.js";
  * dice animations and roll tooltips work, and the user's chosen message mode
  * (public, private, blind, self) is respected.
  *
- * @param {Actor} actor
+ * @param {Actor|null} actor Null for a card from the user themself, such as the GM's Realm cards.
  * @param {string} template  Name of a file in templates/chat, without extension.
  * @param {object} context   Data for the template.
  * @param {object} [options]
  * @param {Roll[]} [options.rolls]
+ * @param {string} [options.mode] A message mode such as "gm", used instead of the user's choice.
  * @returns {Promise<ChatMessage>}
  */
-export async function postCard(actor, template, context, { rolls = [] } = {}) {
+export async function postCard(actor, template, context, { rolls = [], mode } = {}) {
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath(`chat/${template}.hbs`), context);
 	const data = {
-		speaker: ChatMessage.implementation.getSpeaker({ actor }),
+		// Without an actor, Foundry would speak for whichever Token is selected.
+		speaker: actor ? ChatMessage.implementation.getSpeaker({ actor }) : { alias: game.user.name },
 		content,
 		rolls
 	};
 	if (rolls.length) data.sound = CONFIG.sounds.dice;
-	ChatMessage.implementation.applyMode(data, game.settings.get("core", "messageMode"));
+	ChatMessage.implementation.applyMode(data, mode ?? game.settings.get("core", "messageMode"));
 	return ChatMessage.implementation.create(data);
 }
 

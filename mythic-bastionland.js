@@ -1,3 +1,7 @@
+import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
+import { wildernessRoll } from "./module/actions/wilderness.js";
+import { RealmLayer } from "./module/canvas/RealmLayer.js";
+import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import {
 	AbilityModel,
@@ -44,8 +48,17 @@ Hooks.once("init", () => {
 
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
+
+	// Realm Scenes: the GM's Realm tools, Barriers that stop Tokens, and the hex readout.
+	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
+	registerRealmHooks();
+
+	// Macros reach the system through here.
+	game.system.api = Object.freeze({ newRealm, wildernessRoll });
 });
 
 Hooks.once("ready", async () => {
 	await restoreOpenSheets();
 });
+
+Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));
