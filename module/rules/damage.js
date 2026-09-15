@@ -16,6 +16,17 @@
  */
 
 /**
+ * Doom (Scar 11): a Mortal Wound taken in the Season the Scar was, Slays instead.
+ * @param {DamageResult} result
+ * @param {number} vigourBefore The target's VIG before the Attack.
+ * @returns {DamageResult & {doom?: boolean}} `doom` marks a result Doom changed.
+ */
+export function applyDoom(result, vigourBefore) {
+	if (result.outcome !== "mortal") return result;
+	return { ...result, vigour: 0, vigourLoss: vigourBefore, outcome: "slain", doom: true };
+}
+
+/**
  * Apply one Attack's Damage to a target.
  *
  * Armour is subtracted first. What remains comes off GD: any GD left means the

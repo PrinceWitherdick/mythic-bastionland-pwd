@@ -74,6 +74,15 @@
 	font-size: 0.85em;
 }
 
+.bastionland-card__entries {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 .bastionland-card__tally {
 	display: flex;
 	flex-wrap: wrap;
@@ -244,6 +253,20 @@
 
 .bastionland-referee-rolls .form-footer button {
 	flex: 1 1 40%;
+}
+
+.bastionland-company__member {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-company__member .bastionland-check {
+	flex: 1;
+}
+
+.bastionland-company__member select {
+	flex: 0 0 9rem;
 }
 
 .bastionland-check {

@@ -1,9 +1,12 @@
-import { rollScar } from "../actions/scars.js";
+import { getCalendar } from "../actions/calendar.js";
+import { resolveScar, rollScar } from "../actions/scars.js";
 import { knightSquire, takeSquire } from "../actions/squires.js";
+import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
+import { isDoomed, isScarPending } from "../rules/scars.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 
@@ -14,6 +17,7 @@ export class KnightSheet extends BastionlandActorSheet {
 		actions: {
 			chooseKnight: KnightSheet.#onChooseKnight,
 			rollScar: KnightSheet.#onRollScar,
+			settleScar: KnightSheet.#onSettleScar,
 			setAge: KnightSheet.#onSetAge,
 			takeSquire: KnightSheet.#onTakeSquire,
 			knightSquire: KnightSheet.#onKnightSquire,
@@ -41,6 +45,7 @@ export class KnightSheet extends BastionlandActorSheet {
 			this._prepareItems("passion"),
 			this._prepareItems("scar")
 		]);
+		const calendar = getCalendar();
 		const squire = this.#squire();
 
 		return Object.assign(context, {
@@ -62,7 +67,15 @@ export class KnightSheet extends BastionlandActorSheet {
 			property,
 			abilities,
 			passions,
-			scars,
+			// A Scar still waiting on its GD increase can be settled, and Doom is marked while it lasts.
+			scars: scars.map((row) => {
+				const { system: scar } = this.actor.items.get(row.id);
+				return {
+					...row,
+					pending: isScarPending(scar),
+					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : row.tags
+				};
+			}),
 			gambits: GAMBITS.map((key) => t(`gambits.${key}`))
 		});
 	}
@@ -109,8 +122,13 @@ export class KnightSheet extends BastionlandActorSheet {
 	}
 
 	/** @this {KnightSheet} */
+	static #onSettleScar(_event, target) {
+		return resolveScar(this.actor, this.actor.items.get(target.closest("[data-item-id]")?.dataset.itemId));
+	}
+
+	/** @this {KnightSheet} */
 	static #onSetAge(_event, target) {
-		return this.actor.update({ "system.age": target.dataset.age });
+		return changeAge(this.actor, target.dataset.age);
 	}
 
 	/** @this {KnightSheet} */

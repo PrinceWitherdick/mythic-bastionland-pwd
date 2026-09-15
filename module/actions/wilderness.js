@@ -11,6 +11,7 @@ import {
 	wildernessSituation
 } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { getCalendar } from "./calendar.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -103,14 +104,15 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null } = {}) 
 	if (revealLandmark) updates.push({ _id: outcome.landmark.id, hidden: false });
 	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
 
-	await postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark }), { rolls, mode: "gm" });
+	const winter = getCalendar().season === "winter";
+	await postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter }), { rolls, mode: "gm" });
 	return outcome;
 }
 
 /**
  * @returns {object} What the Wilderness card shows.
  */
-function cardContext({ index, realm, g, where, mode, outcome, revealLandmark }) {
+function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter }) {
 	const terrain = terrainAt(realm, g, where);
 
 	let myth = null;
@@ -146,6 +148,7 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark }) 
 		result: t(`realm.wilderness.results.${outcome.result}`),
 		myth,
 		tied: outcome.tied ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
-		landmark
+		landmark,
+		winter: winter ? t("time.winterReminder") : null
 	};
 }

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { nextRank, rankForGlory } from "../../module/rules/glory.js";
+import { changeGlory, nextRank, rankForGlory } from "../../module/rules/glory.js";
+
+describe("changeGlory", () => {
+	it("adds Glory and names a Rank newly reached", () => {
+		expect(changeGlory(2, 1)).toEqual({ from: 2, to: 3, rank: "gallant" });
+		expect(changeGlory(3, 1)).toEqual({ from: 3, to: 4, rank: null });
+	});
+
+	it("names the Rank a Knight falls back to, and never goes below 0", () => {
+		expect(changeGlory(6, -1)).toEqual({ from: 6, to: 5, rank: "gallant" });
+		expect(changeGlory(0, -1)).toEqual({ from: 0, to: 0, rank: null });
+	});
+});
 
 describe("rankForGlory", () => {
 	it.each([

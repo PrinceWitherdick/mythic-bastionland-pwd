@@ -1,3 +1,5 @@
+import { templatePath } from "../system-id.js";
+
 /**
  * Add a button to a directory's header, beside Foundry's own. Callers decide
  * who gets one.
@@ -41,6 +43,29 @@ export async function confirmDialog({ title, icon, message }) {
 		rejectClose: false
 	});
 	return confirmed === true;
+}
+
+/**
+ * Ask for a form's worth of answers.
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} options.icon     Font Awesome classes.
+ * @param {string} options.template Name of a file in templates/dialogs, without extension.
+ * @param {object} options.context  Data for the template.
+ * @param {{label: string, icon?: string}} options.ok
+ * @param {object} [options.rest]   Anything else DialogV2.input takes, such as `render`.
+ * @returns {Promise<object|null>} The form data, or null if closed.
+ */
+export async function inputDialog({ title, icon, template, context, ok, ...rest }) {
+	const content = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
+	return foundry.applications.api.DialogV2.input({
+		window: { title, icon },
+		classes: ["bastionland-dialog"],
+		content,
+		ok: { icon: "fa-solid fa-check", ...ok },
+		rejectClose: false,
+		...rest
+	});
 }
 
 /**

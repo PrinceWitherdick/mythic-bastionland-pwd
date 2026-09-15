@@ -65,7 +65,11 @@ export class ScarModel extends DescribedModel {
 	static defineSchema() {
 		return {
 			...super.defineSchema(),
-			roll: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: 12, initial: null })
+			roll: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: 12, initial: null }),
+			// A GD increase that waited on something later has been rolled, or found not to apply.
+			resolved: new fields.BooleanField({ initial: false }),
+			// The Age and Season it was taken in, such as "2-winter", which Doom lasts.
+			season: textField()
 		};
 	}
 }

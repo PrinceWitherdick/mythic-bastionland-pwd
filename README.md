@@ -19,7 +19,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
-- **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
+- **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats, and a new Age doesn't give them Glory. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
 ### NPCs
@@ -37,10 +37,20 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 
 ### Referee tools
 
-GMs get two buttons at the top of the Roll Tables tab:
+GMs get three buttons at the top of the Roll Tables tab:
 
 - **Referee Rolls:** roll a d6 on one of the book's quick tables and post the result: the Luck Roll, Passage of Time, Unresolved Situation, Travelling Blind, Dire Weather and Local Mood.
 - **Spark Tables:** after Import Book Art, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
+- **Time:** the world's calendar of Age, Season, Day and Phase, and what moves it on:
+  - **Next Phase** posts the new Phase, with a reminder of what it costs, such as lost sleep each Morning.
+  - **Turn the Season** asks which Knights take part, and each picks a pursuit (Pilgrimage, Courtesy or Service). They have their Virtues restored, and a Mutilation Scar settles, raising max GD by d6 if it's 10 or less.
+  - **Turn the Age** does the same with Duty, Succession or Legacy, and each Knight also gains 1 Glory. An Old Knight loses d12 VIG, and dies peacefully at 0. The new Age begins in Spring.
+  - **Passage of Time** and **Unresolved Situation** roll those tables.
+  - **Hardship** takes d6 from a Virtue for everybody ticked: SPI for night travel, CLA for no proper sleep, and VIG for Winter cold or going without supplies.
+  - Clicking a Season or Phase, or changing the Age or Day, sets the calendar by hand without any of that. In Winter the Wilderness Roll card reminds the GM of the cold and dire weather.
+  - **Glory** awards 1 Glory to each Knight ticked for a Myth resolved, a tournament won or a battle won, and says when a Knight reaches a new Rank. Squires are left out.
+- **Doom and other Scars that wait:** a Doom Scar lasts the Season it was taken in, and while it does, a Mortal Wound Slays instead. Gouge, Tear and Humiliation get a settle button on the Knight sheet for the Referee to press when the Knight is stitched up, patched up or avenged.
+- **Growing older:** changing a Knight's Age to Mature or Old offers to reroll each Virtue on d12+d6, keeping the higher when becoming Mature and the lower when becoming Old.
 
 ### The Realm
 

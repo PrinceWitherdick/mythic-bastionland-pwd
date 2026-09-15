@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { resolveDamage } from "../../module/rules/damage.js";
+import { applyDoom, resolveDamage } from "../../module/rules/damage.js";
+
+describe("applyDoom", () => {
+	it("turns a Mortal Wound into Slain", () => {
+		const mortal = resolveDamage({ damage: 4, guard: 0, vigour: 6 });
+		expect(applyDoom(mortal, 6)).toMatchObject({ vigour: 0, vigourLoss: 6, outcome: "slain", doom: true });
+	});
+
+	it("leaves every other outcome alone", () => {
+		const wounded = resolveDamage({ damage: 1, guard: 0, vigour: 10 });
+		expect(applyDoom(wounded, 10)).toBe(wounded);
+	});
+});
 
 describe("resolveDamage", () => {
 	it("subtracts Armour before touching GD", () => {

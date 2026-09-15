@@ -140,6 +140,9 @@ describe("system boot", () => {
 		expect(game.system.api.openRefereeRolls).toBeTypeOf("function");
 		expect(game.system.api.rollRefereeTable).toBeTypeOf("function");
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
+		expect(game.system.api.openTimePanel).toBeTypeOf("function");
+		expect(game.system.api.awardGlory).toBeTypeOf("function");
+		expect(game.system.api.getCalendar).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
 	});
 
@@ -193,7 +196,16 @@ describe("system boot", () => {
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
 	});
 
-	it("adds Referee Rolls and Spark Tables to the Roll Tables directory only for GMs", () => {
+	it("keeps the world's calendar in a hidden world setting", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "calendar", expect.objectContaining({
+			scope: "world",
+			config: false,
+			type: Object,
+			default: { age: 1, season: "spring", day: 1, phase: "morning" }
+		}));
+	});
+
+	it("adds Referee Rolls, Spark Tables and Time to the Roll Tables directory only for GMs", () => {
 		const header = () => {
 			const buttons = [];
 			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
@@ -212,7 +224,7 @@ describe("system boot", () => {
 		};
 		globalThis.game.i18n = { localize: (key) => key };
 		hooks.renderRollTableDirectory({}, element(allowed));
-		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables"]);
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables", "bastionland-time"]);
 		game.user.isGM = false;
 		delete globalThis.document;
 	});

@@ -73,7 +73,8 @@
 .bastionland-sheet .window-content,
 .bastionland-item .window-content,
 .bastionland-chooser-window .window-content,
-.bastionland-spark-window .window-content {
+.bastionland-spark-window .window-content,
+.bastionland-time-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -896,6 +897,39 @@
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;
 	object-fit: cover;
+}
+
+/* ---------------------------------------------------------------- */
+/* Time: the calendar, and what moves it on                         */
+/* ---------------------------------------------------------------- */
+
+.bastionland-time {
+	gap: 0.75rem;
+}
+
+.bastionland-time .bastionland-chooser__name {
+	margin: 0;
+}
+
+.bastionland-time__fields {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.bastionland-time__fields .bastionland-box {
+	width: 4rem;
+}
+
+.bastionland-time__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
 /* ---------------------------------------------------------------- */

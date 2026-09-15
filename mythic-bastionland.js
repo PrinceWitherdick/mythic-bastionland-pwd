@@ -1,9 +1,12 @@
+import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.js";
+import { awardGlory } from "./module/actions/glory.js";
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
+import { openTimePanel } from "./module/apps/TimePanel.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -38,7 +41,8 @@ const ITEM_MODELS = {
 /** The Referee's tools GMs get in the Roll Tables directory, in order. */
 const REFEREE_TOOLS = [
 	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
-	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables }
+	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
+	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel }
 ];
 
 Hooks.once("init", () => {
@@ -76,6 +80,9 @@ Hooks.once("init", () => {
 
 	registerBookArtSettings();
 
+	// The world's calendar of Ages, Seasons, Days and Phases.
+	registerCalendarSetting();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -92,7 +99,10 @@ Hooks.once("init", () => {
 		wildernessRoll,
 		openRefereeRolls,
 		rollRefereeTable,
-		openSparkTables
+		openSparkTables,
+		openTimePanel,
+		awardGlory,
+		getCalendar
 	});
 });
 

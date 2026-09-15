@@ -1,6 +1,8 @@
 import { postCard, t } from "../chat/cards.js";
-import { resolveDamage } from "../rules/damage.js";
+import { applyDoom, resolveDamage } from "../rules/damage.js";
+import { isDoomed } from "../rules/scars.js";
 import { templatePath } from "../system-id.js";
+import { getCalendar } from "./calendar.js";
 
 /** Outcomes a Warband meets differently: a Mortal Wound routs it, and 0 VIG wipes it out (p11). */
 const WARBAND_OUTCOMES = Object.freeze(["mortal", "slain"]);
@@ -35,7 +37,7 @@ export async function takeDamage(actor) {
 
 	const appliedArmour = data.ignoreArmour ? 0 : Math.max(0, Number(data.armour) || 0);
 	const before = { guard: actor.system.guard.value, vigour: actor.system.virtues.vig.value };
-	const result = resolveDamage({
+	let result = resolveDamage({
 		damage: Math.max(0, Number(data.damage) || 0),
 		armour: appliedArmour,
 		guard: before.guard,
@@ -43,6 +45,8 @@ export async function takeDamage(actor) {
 		exposed: Boolean(data.exposed),
 		immune: requirements.some(({ key }) => !data[`harm-${key}`])
 	});
+	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
+	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
 
 	const update = {
 		"system.guard.value": result.guard,
@@ -57,7 +61,7 @@ export async function takeDamage(actor) {
 		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour: appliedArmour }),
 		guardLine: result.guardLoss ? t("damage.guardLine", { from: before.guard, to: result.guard }) : null,
 		vigourLine: result.vigourLoss ? t("damage.vigourLine", { from: before.vigour, to: result.vigour }) : null,
-		outcome: t(`damage.${outcomes}.${result.outcome}`)
+		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`)
 	});
 
 	return result;

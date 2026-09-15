@@ -26,6 +26,27 @@ export function rankForGlory(glory) {
 }
 
 /**
+ * Glory By Other Means (p6), besides a new Age: a Myth resolved, for every
+ * Knight who played a part; a tournament won before significant spectators;
+ * and a battle large enough to be remembered in history, for every Knight on
+ * the victorious side. Duels and jousts stake Glory between two Knights.
+ */
+export const GLORY_AWARDS = Object.freeze(["myth", "tournament", "battle"]);
+
+/**
+ * Add or take away Glory, which never falls below 0.
+ * @param {number} glory
+ * @param {number} amount Such as 1 for a Myth resolved, or -1 for a duel lost.
+ * @returns {{from: number, to: number, rank: string|null}} `rank` is the key of a Rank newly reached or fallen to, else null.
+ */
+export function changeGlory(glory, amount) {
+	const from = Math.max(0, Math.trunc(Number(glory)) || 0);
+	const to = Math.max(0, from + (Math.trunc(Number(amount)) || 0));
+	const rank = rankForGlory(to);
+	return { from, to, rank: rank === rankForGlory(from) ? null : rank };
+}
+
+/**
  * How far a Knight is from their next Rank.
  * @param {number} glory
  * @returns {{key: string, needed: number}|null} Null once Knight-Radiant.

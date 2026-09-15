@@ -1,0 +1,27 @@
+<div class="bastionland-dialog__body">
+	<p>{{intro}}</p>
+	<fieldset>
+		<legend>{{localize "bastionland.time.company"}}</legend>
+		{{#each members}}
+		<div class="bastionland-company__member">
+			<label class="bastionland-check">
+				<input type="checkbox" name="include-{{index}}" {{checked included}}>
+				<span class="bastionland-check__label">{{name}}</span>
+			</label>
+			{{#if ../pursuits.length}}
+			<select name="pursuit-{{index}}" aria-label="{{localize 'bastionland.time.pursuit'}}">
+				<option value="">—</option>
+				{{#each ../pursuits}}
+				<option value="{{key}}">{{label}}</option>
+				{{/each}}
+			</select>
+			{{/if}}
+		</div>
+		{{else}}
+		<p class="hint">{{localize "bastionland.time.noCompany"}}</p>
+		{{/each}}
+	</fieldset>
+	{{#each pursuits}}
+	<p class="hint"><strong>{{label}}</strong>: {{hint}}</p>
+	{{/each}}
+</div>

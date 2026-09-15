@@ -66,7 +66,29 @@
       "hint": "Your skill at avoiding Wounds."
     },
     "glory": {
-      "label": "Glory"
+      "label": "Glory",
+      "title": "Glory",
+      "award": "Award Glory",
+      "rank": "Rank is now {rank}.",
+      "squire": "A Squire can’t gain Glory.",
+      "nobody": "Nobody was ticked, so no Glory is awarded.",
+      "awards": {
+        "myth": {
+          "label": "Myth Resolved",
+          "intro": "Tick every Knight who played a part in the Myth. Each gains 1 Glory.",
+          "hint": "When the group feels that a Myth has reached a conclusion of any type."
+        },
+        "tournament": {
+          "label": "Tournament Won",
+          "intro": "Tick the winning Knight. They gain 1 Glory.",
+          "hint": "Only a tournament with significant spectators and spectacle grants Glory."
+        },
+        "battle": {
+          "label": "Battle Won",
+          "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
+          "hint": "Only a battle large enough to be remembered in history grants Glory."
+        }
+      }
     },
     "squire": {
       "label": "Squire",
@@ -217,6 +239,108 @@
       "breaks": "Routs or surrenders.",
       "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI."
     },
+    "time": {
+      "title": "Time",
+      "now": "Age {age}, {season}, day {day}, {phase}",
+      "age": "Age",
+      "day": "Day",
+      "season": "Season",
+      "phase": "Phase",
+      "setByHand": "Click a Season or Phase, or change the Age or Day, to set the calendar by hand. Only the buttons below carry out what happens between Seasons and Ages.",
+      "phases": {
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "night": "Night"
+      },
+      "phaseHints": {
+        "morning": "Sunrise to noon. Anybody who didn’t get proper sleep loses d6 CLA, and anybody deprived of essential needs loses d6 VIG.",
+        "afternoon": "Noon to sunset.",
+        "night": "Sunset to sunrise. Travelling or exploring at night costs d6 SPI each, and without a guide and light the Company travels blind."
+      },
+      "seasons": {
+        "spring": "Spring",
+        "harvest": "Harvest",
+        "winter": "Winter"
+      },
+      "nextPhase": "Next Phase",
+      "turnSeason": "Turn the Season",
+      "turnAge": "Turn the Age",
+      "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
+      "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
+      "company": "Who takes part",
+      "pursuit": "Pursuit",
+      "noCompany": "There are no Knights in this world yet, and no Tokens are selected.",
+      "pursuits": {
+        "pilgrimage": {
+          "label": "Pilgrimage",
+          "hint": "Learn about an unknown part of the Realm."
+        },
+        "courtesy": {
+          "label": "Courtesy",
+          "hint": "Establish a new contact or earn a favour."
+        },
+        "service": {
+          "label": "Service",
+          "hint": "Make a small improvement to the Realm."
+        },
+        "duty": {
+          "label": "Duty",
+          "hint": "Make a significant improvement to the Realm."
+        },
+        "succession": {
+          "label": "Succession",
+          "hint": "Establish a successor, or have them Knighted."
+        },
+        "legacy": {
+          "label": "Legacy",
+          "hint": "Your successor gains half of your current Glory."
+        }
+      },
+      "seasonTurned": "{season} Begins",
+      "ageTurned": "Age {age} Begins",
+      "restored": "Virtues restored.",
+      "glory": "Glory {from} → {to}.",
+      "oldAge": "Old age: loses {amount} VIG, max VIG {from} → {to}.",
+      "diesPeacefully": "At VIG 0, they die peacefully.",
+      "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
+      "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
+      "hardship": {
+        "title": "Hardship",
+        "intro": "Tick everybody who suffers it.",
+        "roll": "Roll Losses",
+        "lost": "Loses {amount} {virtue}: {from} → {to}.",
+        "none": "Nobody was ticked, so nobody loses anything.",
+        "notDamage": "Virtue Loss isn’t Damage, so it can’t Mortally Wound or Slay.",
+        "kinds": {
+          "night": {
+            "label": "Night travel",
+            "hint": "Travelling or exploring at night costs d6 SPI each."
+          },
+          "sleep": {
+            "label": "No proper sleep",
+            "hint": "Each morning, all who didn’t get proper sleep the day before lose d6 CLA."
+          },
+          "winter": {
+            "label": "Winter cold",
+            "hint": "Camping, or travelling at night, in Winter costs d6 VIG each."
+          },
+          "supplies": {
+            "label": "Deprived",
+            "hint": "Each morning without essential needs met, the Company each lose d6 VIG."
+          }
+        }
+      },
+      "aging": {
+        "title": "Growing Older",
+        "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
+        "roll": "Roll Virtues",
+        "skip": "Just change Age",
+        "mature": "Becoming Mature keeps the higher",
+        "old": "Becoming Old keeps the lower",
+        "line": "{age} {virtue}",
+        "value": "rolled {rolled}, {from} → {to}"
+      }
+    },
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
@@ -327,6 +451,7 @@
       "ignoreArmour": "Ignore Armour",
       "exposed": "Exposed",
       "exposedHint": "Act as if at 0GD.",
+      "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
       "apply": "Apply",
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
@@ -361,7 +486,11 @@
       "apply": "Record the Scar and apply its Virtue Loss and immediate GD increase",
       "roll": "Roll",
       "lost": "Loses {amount} {virtue}.",
-      "guardRaised": "Max GD rises by {amount} to {value}."
+      "guardRaised": "Max GD rises by {amount} to {value}.",
+      "settle": "Settle this Scar: roll its GD increase now its moment has come",
+      "settledRaise": "{name} settles: max GD rises by {amount} to {value}.",
+      "settledNoRaise": "{name} settles, but max GD is already above {limit}, so it doesn’t rise.",
+      "doomActive": "this Season"
     },
     "scars": {
       "label": "Scars",
