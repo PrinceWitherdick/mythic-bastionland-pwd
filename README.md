@@ -19,6 +19,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
+- **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
 ### NPCs

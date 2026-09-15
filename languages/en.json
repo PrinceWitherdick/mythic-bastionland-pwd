@@ -68,6 +68,38 @@
     "glory": {
       "label": "Glory"
     },
+    "squire": {
+      "label": "Squire",
+      "take": "Take a Squire",
+      "empty": "Small Companies of 2 Knights or fewer may give each Knight a Squire. Take one, or drag a Squire here from the Actors tab.",
+      "serves": "Squire to {name}",
+      "servesNobody": "A Squire who serves no Knight. Drag this Squire onto a Knight’s sheet.",
+      "clear": "No longer linked",
+      "hint": "An apprentice, not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
+      "noFeats": "Squires can’t perform Feats until they are Knighted.",
+      "knight": "Knight this Squire",
+      "name": "Squire to {knight}",
+      "pony": "{name}’s Pony",
+      "title": "A Squire",
+      "tagline": "{name} serves {knight}",
+      "equipmentRoll": "Equipment, d6 showing {roll}",
+      "largeTitle": "A Large Company",
+      "largeCompany": "Only Companies of 2 Knights or fewer may give each Knight a Squire, and this one has {count}. Take a Squire anyway?",
+      "cantCreate": "Taking a Squire creates them and their pony, so it needs a user who is allowed to create actors.",
+      "knightConfirmTitle": "Knight This Squire?",
+      "knightConfirm": "{name} becomes a Knight, gaining d6 in each Virtue. From then on they can gain Glory and perform Feats.",
+      "knightedTitle": "Knighted",
+      "knightedTagline": "{name} is a Squire no longer",
+      "knightedValue": "+{gain}, {from} → {to}",
+      "equipment": {
+        "cudgel": "Cudgel",
+        "axe": "Axe",
+        "hatchet": "Hatchet",
+        "shortbow": "Shortbow",
+        "shield": "Shield",
+        "javelins": "Three javelins"
+      }
+    },
     "age": {
       "label": "Age",
       "young": "Young",
@@ -124,6 +156,9 @@
     },
     "property": {
       "label": "Property"
+    },
+    "steed": {
+      "label": "Steed"
     },
     "ability": {
       "label": "Ability"

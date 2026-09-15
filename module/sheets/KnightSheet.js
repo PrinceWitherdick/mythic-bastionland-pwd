@@ -1,4 +1,5 @@
 import { rollScar } from "../actions/scars.js";
+import { knightSquire, takeSquire } from "../actions/squires.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
@@ -13,7 +14,11 @@ export class KnightSheet extends BastionlandActorSheet {
 		actions: {
 			chooseKnight: KnightSheet.#onChooseKnight,
 			rollScar: KnightSheet.#onRollScar,
-			setAge: KnightSheet.#onSetAge
+			setAge: KnightSheet.#onSetAge,
+			takeSquire: KnightSheet.#onTakeSquire,
+			knightSquire: KnightSheet.#onKnightSquire,
+			openSquire: KnightSheet.#onOpenSquire,
+			clearSquire: KnightSheet.#onClearSquire
 		}
 	};
 
@@ -36,8 +41,13 @@ export class KnightSheet extends BastionlandActorSheet {
 			this._prepareItems("passion"),
 			this._prepareItems("scar")
 		]);
+		const squire = this.#squire();
 
 		return Object.assign(context, {
+			isSquire: system.isSquire,
+			// A Knight's Squire, or the Knight a Squire serves.
+			squire: squire && { name: system.isSquire ? t("squire.serves", { name: squire.name }) : squire.name, img: squire.img },
+			squireEmpty: t(system.isSquire ? "squire.servesNobody" : "squire.empty"),
 			ages: AGES.map((key) => ({ key, label: t(`age.${key}`), active: system.age === key })),
 			ranks: RANKS.map((rank) => ({
 				key: rank.key,
@@ -57,6 +67,33 @@ export class KnightSheet extends BastionlandActorSheet {
 		});
 	}
 
+	/**
+	 * @param {string} uuid
+	 * @returns {Actor|null} The actor, if it still exists.
+	 */
+	static #linked(uuid) {
+		const actor = uuid ? fromUuidSync(uuid) : null;
+		return actor?.documentName === "Actor" ? actor : null;
+	}
+
+	/** @returns {Actor|null} A Knight's Squire, or the Knight a Squire serves, if they still exist. */
+	#squire() {
+		const { system } = this.actor;
+		return KnightSheet.#linked(system.isSquire ? system.serves : system.squire);
+	}
+
+	/**
+	 * Dropping a Squire makes them this Knight's Squire.
+	 * @override
+	 */
+	async _onDropActor(_event, actor) {
+		if (!this.isEditable || actor.uuid === this.actor.uuid) return null;
+		if (actor.type !== "knight" || !actor.system.isSquire || this.actor.system.isSquire) return null;
+		await this.actor.update({ "system.squire": actor.uuid });
+		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
+		return actor;
+	}
+
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
@@ -74,5 +111,25 @@ export class KnightSheet extends BastionlandActorSheet {
 	/** @this {KnightSheet} */
 	static #onSetAge(_event, target) {
 		return this.actor.update({ "system.age": target.dataset.age });
+	}
+
+	/** @this {KnightSheet} */
+	static #onTakeSquire() {
+		return takeSquire(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onKnightSquire() {
+		return knightSquire(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenSquire() {
+		return this.#squire()?.sheet.render({ force: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onClearSquire() {
+		return this.actor.update({ [this.actor.system.isSquire ? "system.serves" : "system.squire"]: "" });
 	}
 }

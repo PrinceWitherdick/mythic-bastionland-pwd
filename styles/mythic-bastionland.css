@@ -880,6 +880,25 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* Steed on the Knight sheet                                        */
+/* ---------------------------------------------------------------- */
+
+.bastionland-steed {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-steed__img {
+	flex: none;
+	width: 2.5rem;
+	height: 2.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	object-fit: cover;
+}
+
+/* ---------------------------------------------------------------- */
 /* Spark Tables: a page of nine tables, the way the book sets them  */
 /* ---------------------------------------------------------------- */
 

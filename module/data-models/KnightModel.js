@@ -1,7 +1,7 @@
 import { AGES } from "../config.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { conditionsFor } from "../rules/virtues.js";
-import { characterFields, countField, textField } from "./fields.js";
+import { booleanField, characterFields, countField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -16,6 +16,13 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			// "Their ultimate fate was ___"
 			fate: textField(),
 			age: new fields.StringField({ required: true, initial: AGES[0], choices: AGES }),
+			// The UUID of the NPC this Knight rides, whose trample joins a mounted charge.
+			steed: textField(),
+			// A Squire is not yet a Knight, so cannot gain Glory or perform Feats (p7).
+			isSquire: booleanField(),
+			// A Knight's Squire, or the Knight a Squire serves, by UUID.
+			squire: textField(),
+			serves: textField(),
 			...characterFields(),
 			glory: countField()
 		};
@@ -31,10 +38,18 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 	}
 
 	/**
-	 * Every Knight knows the three Feats (p7).
+	 * Every Knight knows the three Feats (p7). A Squire isn't a Knight yet.
 	 * @returns {boolean}
 	 */
 	knowsFeat() {
-		return true;
+		return !this.isSquire;
+	}
+
+	/**
+	 * Squires cannot gain Glory (p7).
+	 * @returns {boolean}
+	 */
+	get gainsGlory() {
+		return !this.isSquire;
 	}
 }

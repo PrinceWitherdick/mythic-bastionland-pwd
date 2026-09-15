@@ -6,6 +6,7 @@ import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_T
 import { KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { RANKS } from "../module/rules/glory.js";
+import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
@@ -64,6 +65,7 @@ describe("localization", () => {
 		...VIRTUES.map((key) => `recovery.${key}`),
 		...AGES.map((key) => `age.${key}`),
 		...RANKS.map((rank) => `rank.${rank.key}`),
+		...SQUIRE_EQUIPMENT.map(({ key }) => `squire.equipment.${key}`),
 		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
 		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
 		...GAMBITS.map((key) => `gambits.${key}`),

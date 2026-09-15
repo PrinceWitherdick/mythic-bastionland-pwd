@@ -27,7 +27,11 @@
 
 	{{#if editable}}
 	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.sheet.title'}}">
+		{{#if isSquire}}
+		<button type="button" data-action="knightSquire"><i class="fa-solid fa-khanda" inert></i> {{localize "bastionland.squire.knight"}}</button>
+		{{else}}
 		<button type="button" data-action="chooseKnight"><i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.sheet.chooseKnight"}}</button>
+		{{/if}}
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>
 		<button type="button" data-action="rollScar"><i class="fa-solid fa-bone-break" inert></i> {{localize "bastionland.sheet.rollScar"}}</button>
@@ -40,10 +44,12 @@
 			<section class="bastionland-scores">
 				{{> "bastionland.virtue-scores"}}
 
+				{{#unless isSquire}}
 				<div class="bastionland-score">
 					<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-glory">{{localize "bastionland.glory.label"}}</label>
 					<input id="{{rootId}}-glory" class="bastionland-box" type="number" name="system.glory" value="{{system.glory}}" min="0" step="1">
 				</div>
+				{{/unless}}
 			</section>
 
 			<div class="bastionland-pair">
@@ -60,6 +66,9 @@
 
 				<section class="bastionland-block">
 					<h2 class="bastionland-heading">{{localize "bastionland.rank.label"}}</h2>
+					{{#if isSquire}}
+					<p class="bastionland-hint">{{localize "bastionland.squire.hint"}}</p>
+					{{else}}
 					<ul class="bastionland-choices">
 						{{#each ranks}}
 						<li class="bastionland-choice bastionland-choice--static{{#if active}} is-active{{/if}}">
@@ -68,6 +77,7 @@
 						{{/each}}
 					</ul>
 					<p class="bastionland-hint">{{nextRank}}</p>
+					{{/if}}
 				</section>
 			</div>
 
@@ -133,6 +143,28 @@
 			</section>
 
 			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.squire.label"}}</h2>
+				{{#if squire}}
+				<div class="bastionland-steed">
+					<img class="bastionland-steed__img" src="{{squire.img}}" alt="">
+					<button type="button" class="bastionland-item__name" data-action="openSquire">{{squire.name}}</button>
+					{{#if editable}}
+					<button type="button" class="bastionland-icon" data-action="clearSquire" data-tooltip="{{localize 'bastionland.squire.clear'}}" aria-label="{{localize 'bastionland.squire.clear'}}">
+						<i class="fa-solid fa-xmark" inert></i>
+					</button>
+					{{/if}}
+				</div>
+				{{else}}
+				<p class="bastionland-empty">{{squireEmpty}}</p>
+				{{#if editable}}{{#unless isSquire}}
+				<div class="bastionland-adds">
+					<button type="button" class="bastionland-button" data-action="takeSquire"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.squire.take"}}</button>
+				</div>
+				{{/unless}}{{/if}}
+				{{/if}}
+			</section>
+
+			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.ability.label"}}</h2>
 				<ul class="bastionland-items bastionland-items--prose">
 					{{#each abilities}}
@@ -158,7 +190,11 @@
 
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.feats.label"}}</h2>
+				{{#if isSquire}}
+				<p class="bastionland-hint">{{localize "bastionland.squire.noFeats"}}</p>
+				{{else}}
 				{{> "bastionland.feat-list"}}
+				{{/if}}
 			</section>
 
 			<section class="bastionland-block">

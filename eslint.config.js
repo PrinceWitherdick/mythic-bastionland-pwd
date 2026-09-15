@@ -11,6 +11,7 @@ const foundryGlobals = {
 	CONST: "readonly",
 	foundry: "readonly",
 	fromUuid: "readonly",
+	fromUuidSync: "readonly",
 	game: "readonly",
 	Handlebars: "readonly",
 	Hooks: "readonly",
