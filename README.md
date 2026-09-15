@@ -28,6 +28,10 @@ The first milestone is the **Knight** character sheet, laid out after the offici
   - **Gambits:** whoever rolled clicks a die of 4+ to spend it on a Gambit, choosing No Save or a Greater effect for a melee die of 8+. Clicking a spent die takes the Gambit back. **Focus** performs a Gambit without a die, after its CLA Save.
   - **Damage:** the card keeps the Damage up to date, the highest die left plus Bolster. Each Feat can be used once per Attack by each combatant.
   - **Apply Damage:** the GM, or whoever owns a target, opens Take Damage for each target with the Damage, ignore Armour and Blast already filled in. A Scar outcome opens Roll Scar with the die that caused it. The card is then settled.
+- **Duel:** target the one Token you've agreed to fight and press Duel on the sheet. Choose a duel or a joust, whether two Knights stake Glory, and whether it's bloodless. A duel card follows the fight:
+  - Each duelist presses Attack as normal. The dialog offers to make it part of the duel, which targets the other duelist and holds back the Damage. Both can Deny, Focus and declare Gambits on their cards.
+  - Once both have rolled, a GM, or whoever owns both, presses **Resolve Both Attacks**. Both Damages are read before either lands, so they happen at the same time. A bloodless duel leaves no Scars.
+  - Press the victor's button, or No victor, to end it. With Glory staked, the victor gains 1 and the loser loses 1.
 - **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain. Protective cover adds a point of Armour against a ranged Attack, and a shieldwall adds a point against any.
 - **Roll Surprise:** a GM picks it from the Combat Tracker's encounter menu (the ⋮ button) and ticks everybody who wasn't readied for combat. Each rolls a CLA Save, and one card shows who misses the first turn.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
@@ -44,8 +48,9 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Attacks and gear:** weapons, armour and gear items. Weapons can also be Blast or ignore Armour.
 - **Feats:** off by default, since only some of the Cast can perform one. Mark the ones this character can.
 - **Warbands:** set the scale to Warband and a Mortal Wound routs them, SPI 0 breaks them and VIG 0 wipes them out. Take Damage asks whether the Attack was Blast or large-scale, since nothing else harms them, and their Attacks on individuals get +d12 and Blast.
+- **Leading from the front:** a Warband's Attack dialog lists individuals to lead it: the selected Tokens, your character and the Knights you can see. The leader's worn and wielded Attack dice join the roll. Until the leader's next turn in combat, Damage that gets past the Warband's Armour opens Take Damage for the leader too. The NPC sheet shows who leads the Warband.
 - **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed.
-- **Morale:** rolls the SPI Save to stand rather than rout or surrender.
+- **Morale:** rolls the SPI Save to stand rather than rout or surrender. The Damage card offers the roll when an NPC is Wounded, or when a Warband's VIG falls to half. In combat, once half of an NPC side is down, GMs get a card to roll the group: once on a leader's SPI if organised, or for each member standing. Knights are never asked.
 - **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 

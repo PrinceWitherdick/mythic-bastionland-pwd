@@ -20,6 +20,8 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			scale: new fields.StringField({ required: true, initial: NPC_SCALES[0], choices: NPC_SCALES }),
 			// Counts as a structure: only fire, siege weapons and suitably large creatures harm it (p11).
 			structure: booleanField(),
+			// The UUID of whoever leads this Warband from the front, sharing its Damage until their next turn (p11).
+			leader: textField(),
 			// Feats are for Knights, but some of the Cast "Can Focus" or "Can Deny".
 			feats: new fields.SchemaField(Object.fromEntries(FEATS.map(({ key }) => [key, booleanField()])))
 		};

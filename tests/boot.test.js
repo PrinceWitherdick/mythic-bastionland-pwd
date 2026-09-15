@@ -131,7 +131,12 @@ describe("system boot", () => {
 	it("wires up Attack cards and lets players ask the GM to record changes on them", () => {
 		expect(hooks.renderChatMessageHTML).toBeTypeOf("function");
 		expect(CONFIG.queries[`${SYSTEM_ID}.changeAttack`]).toBeTypeOf("function");
+		expect(CONFIG.queries[`${SYSTEM_ID}.changeDuel`]).toBeTypeOf("function");
 		expect(() => hooks.renderChatMessageHTML({ flags: {} }, { querySelector: () => null, querySelectorAll: () => [] })).not.toThrow();
+	});
+
+	it("follows combat turns, so a Warband's leader stops sharing its Damage", () => {
+		expect(hooks.combatTurnChange).toBeTypeOf("function");
 	});
 
 	it("registers the hidden book art setting and hands the importer and choosers to macros", () => {

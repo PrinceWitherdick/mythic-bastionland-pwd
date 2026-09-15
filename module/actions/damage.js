@@ -1,13 +1,19 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
+import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { attackDamage } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
+import { moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
 import { getCalendar } from "./calendar.js";
 import { rollScar } from "./scars.js";
 
-/** Outcomes a Warband meets differently: a Mortal Wound routs it, and 0 VIG wipes it out (p11). */
-const WARBAND_OUTCOMES = Object.freeze(["mortal", "slain"]);
+/**
+ * Outcomes that take somebody out of the fight, which can leave their side at
+ * half its number. A Warband meets them differently: a Mortal Wound routs it,
+ * and 0 VIG wipes it out (p11).
+ */
+const DOWN_OUTCOMES = Object.freeze(["mortal", "slain"]);
 
 /** Outcomes worded for a ship or structure, which holds or is destroyed (p11). */
 const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
@@ -75,16 +81,29 @@ export async function takeDamage(actor, { damage = 0, ignoreArmour = false, rang
 	await actor.update(update);
 
 	let outcomes = "outcomes";
-	if (warband && WARBAND_OUTCOMES.includes(result.outcome)) outcomes = "warbandOutcomes";
+	if (warband && DOWN_OUTCOMES.includes(result.outcome)) outcomes = "warbandOutcomes";
 	else if (actor.system.structure && STRUCTURE_OUTCOMES.includes(result.outcome)) outcomes = "structureOutcomes";
+	const trigger = moraleTrigger({
+		outcome: result.outcome,
+		vigourBefore: before.vigour,
+		vigourAfter: result.vigour,
+		vigourMax: actor.system.virtues.vig.max,
+		// Squires are Knights too, and Morale doesn't affect player characters.
+		playerCharacter: actor.type === "knight",
+		structure: Boolean(actor.system.structure),
+		warband
+	});
 	await postCard(actor, "damage", {
 		outcomeKey: result.outcome,
 		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour: appliedArmour }),
 		guardLine: result.guardLoss ? t("damage.guardLine", { from: before.guard, to: result.guard }) : null,
 		vigourLine: result.vigourLoss ? t("damage.vigourLine", { from: before.vigour, to: result.vigour }) : null,
-		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`)
+		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`),
+		morale: moralePrompt(actor, trigger)
 	});
 
+	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
+	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
 	return result;
 }
 
@@ -107,4 +126,21 @@ export async function takeAttack(actor, attack, { scars = true } = {}) {
 	});
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces });
 	return result;
+}
+
+/**
+ * Whoever leads a Warband from the front suffers the same Damage it does
+ * (p11), so they take what got past its Armour without their own.
+ * @param {Actor} warband
+ * @param {number} dealt
+ */
+async function shareWithLeader(warband, dealt) {
+	const leader = fromUuidSync(warband.system.leader);
+	if (!leader?.system?.virtues) return;
+	if (!leader.isOwner) {
+		await postCard(warband, "note", { icon: "fa-solid fa-flag", text: t("damage.leaderShares", { name: leader.name, warband: warband.name, damage: dealt }) });
+		return;
+	}
+	const result = await takeDamage(leader, { damage: dealt, ignoreArmour: true });
+	if (result?.outcome === "scar") await rollScar(leader);
 }

@@ -1,5 +1,6 @@
 import { attack } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
+import { challengeToDuel } from "../actions/duel.js";
 import { performFeat } from "../actions/feats.js";
 import { rest, restoreVirtue } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
@@ -32,6 +33,7 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			rollSave: BastionlandActorSheet.#onRollSave,
 			performFeat: BastionlandActorSheet.#onPerformFeat,
 			attack: BastionlandActorSheet.#onAttack,
+			duel: BastionlandActorSheet.#onDuel,
 			takeDamage: BastionlandActorSheet.#onTakeDamage,
 			rest: BastionlandActorSheet.#onRest,
 			restore: BastionlandActorSheet.#onRestore,
@@ -142,6 +144,11 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	/** @this {BastionlandActorSheet} */
 	static #onAttack() {
 		return attack(this.actor);
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onDuel() {
+		return challengeToDuel(this.actor);
 	}
 
 	/** @this {BastionlandActorSheet} */

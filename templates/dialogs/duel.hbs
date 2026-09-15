@@ -1,0 +1,25 @@
+<div class="bastionland-dialog__body">
+	<p>{{intro}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.duel.kind"}}</legend>
+		{{#each kinds}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="radio" name="kind" value="{{key}}" {{checked selected}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="stake" {{disabled stakeLocked}}>
+		<span class="bastionland-check__label">{{localize "bastionland.duel.stake"}}</span>
+	</label>
+	<p class="hint">{{stakeHint}}</p>
+
+	<label class="bastionland-check">
+		<input type="checkbox" name="bloodless">
+		<span class="bastionland-check__label">{{localize "bastionland.duel.bloodless"}}</span>
+	</label>
+	<p class="hint">{{localize "bastionland.duel.bloodlessHint"}}</p>
+</div>

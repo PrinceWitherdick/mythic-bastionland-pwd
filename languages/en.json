@@ -251,7 +251,80 @@
       "title": "Morale",
       "holds": "Holds firm.",
       "breaks": "Routs or surrenders.",
-      "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI."
+      "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI.",
+      "roll": "Roll Morale",
+      "gone": "That character no longer exists.",
+      "notOwner": "Only a GM or {name}’s owner can roll their Morale.",
+      "triggers": {
+        "wounded": "{name} is Wounded, and must pass a SPI Save to avoid rout or surrender.",
+        "halved": "{name} has lost half its number, and must pass a SPI Save to avoid rout or surrender."
+      },
+      "group": {
+        "title": "Wavering Morale",
+        "intro": "{down} of {count} on this side are down. The rest must pass a SPI Save to avoid rout or surrender.",
+        "standing": "Still standing:",
+        "leader": "Who leads them",
+        "noneStanding": "Nobody you control in this group is still standing.",
+        "orders": {
+          "organised": {
+            "label": "Organised",
+            "hint": "An organised group rolls once, on its leader’s SPI."
+          },
+          "disorganised": {
+            "label": "Disorganised",
+            "hint": "A disorganised group rolls for each individual, on their own SPI."
+          }
+        }
+      }
+    },
+    "duel": {
+      "title": "Duel",
+      "buttonHint": "Target the one Token you’ve agreed to duel, then press this.",
+      "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
+      "intro": "{name} and {opponent} agree to fight. They fight as normal, but their Attacks are rolled and resolved at the same time, including the effects of Gambits, and both can use Feats before they’re resolved.",
+      "kind": "Kind",
+      "kinds": {
+        "duel": {
+          "label": "Duel",
+          "hint": "Two combatants who mutually agree to fight."
+        },
+        "joust": {
+          "label": "Joust",
+          "hint": "A duel fought mounted."
+        }
+      },
+      "stake": "Stake Glory",
+      "stakeHint": "In a public duel or joust, Knights may stake Glory against a willing opponent. The victor gains 1 Glory, and the loser loses 1.",
+      "stakeKnightsOnly": "Only two Knights can stake Glory, and a Squire isn’t a Knight yet.",
+      "bloodless": "Bloodless",
+      "bloodlessHint": "Training, or a duel that isn’t to the death. Scars only come from real, deadly combat, so it leaves none.",
+      "start": "Begin",
+      "versus": "{first} against {second}",
+      "rolled": "Attack rolled",
+      "waiting": "Yet to Attack",
+      "exchanges": "Exchanges resolved: {count}",
+      "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1.",
+      "bloodlessNote": "Bloodless: a blow that would cause a Scar leaves none.",
+      "howTo": "Each duelist presses Attack on their sheet, then uses Feats and declares Gambits on their card. A GM, or whoever owns both, then resolves the two Attacks together.",
+      "resolve": "Resolve Both Attacks",
+      "wins": "{name} wins",
+      "noVictor": "No victor",
+      "won": "{name} is the victor.",
+      "endedNoVictor": "The duel ends without a victor.",
+      "attackIn": "Part of the {kind} with {name}",
+      "attackHint": "Targets the other duelist, and holds the Damage back until both Attacks are in.",
+      "heldForDuel": "Part of a duel: the Damage is applied from the duel card, together with the other Attack.",
+      "notReady": "Both duelists need to roll their Attack first.",
+      "gone": "One of the duelists no longer exists.",
+      "attackGone": "One of the duel’s Attack cards has been deleted.",
+      "cantResolve": "Only a GM, or somebody who owns both duelists, can resolve their Attacks.",
+      "cantEnd": "Only a GM, or somebody who owns both duelists, can end the duel.",
+      "noScar": "{name} would take a Scar, but a bloodless duel leaves none.",
+      "endConfirmTitle": "End the Duel?",
+      "endConfirm": "{outcome} This can’t be undone.",
+      "endTitle": "Glory Staked",
+      "needsGM": "A GM needs to be logged in to change somebody else’s duel card.",
+      "changeRefused": "The duel card changed before that could be recorded."
     },
     "surprise": {
       "title": "Roll Surprise",
@@ -595,6 +668,10 @@
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
       "againstIndividualsHint": "A Warband’s Attack on individuals gets +d12 and causes Blast Damage.",
+      "leader": "Led from the front by",
+      "leaderNone": "Nobody",
+      "leaderHint": "One individual within the Warband adds their Attack dice to its roll, and suffers the same Damage the Warband does until their next turn. Select their Token to list them.",
+      "ledBy": "{name} leads from the front, suffering the same Damage as the Warband until their next turn.",
       "roll": "Roll Attack",
       "against": "Against {names}",
       "damage": "Damage",
@@ -643,6 +720,7 @@
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
       "vigourLine": "VIG {from} → {to}",
+      "leaderShares": "{name} leads {warband} from the front, so suffers the same {damage} Damage. Apply it from their sheet.",
       "harm": {
         "warband": {
           "label": "A Blast or large-scale Attack",
@@ -832,6 +910,11 @@
           "label": "Wiped Out",
           "hint": "At VIG 0 a Warband is wiped out entirely."
         }
+      },
+      "leader": {
+        "label": "Led from the front by {name}, who suffers the same Damage until their next turn.",
+        "missing": "somebody no longer here",
+        "clear": "Nobody leads from the front"
       },
       "structure": "Counts as a structure",
       "structureHint": "Only fire, siege weapons or suitably large creatures can harm it.",

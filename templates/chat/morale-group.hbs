@@ -1,0 +1,15 @@
+<section class="bastionland-card bastionland-card--morale">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.morale.group.title"}}</h3>
+		<p class="bastionland-card__tagline">{{intro}}</p>
+	</header>
+	{{#if standing.length}}
+	<p class="bastionland-card__text">{{localize "bastionland.morale.group.standing"}} {{#each standing}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}</p>
+	{{/if}}
+	<div class="bastionland-card__actions">
+		{{#each orders}}
+		<button type="button" data-morale-group="{{key}}" data-tooltip="{{hint}}"><i class="fa-solid fa-flag" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	<p class="bastionland-card__hint">{{localize "bastionland.morale.hint"}}</p>
+</section>

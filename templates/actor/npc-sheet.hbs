@@ -12,6 +12,7 @@
 		<button type="button" data-action="chooseNpc"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.npc.chooseNpc"}}</button>
 		<button type="button" data-action="pasteStatBlock"><i class="fa-solid fa-paste" inert></i> {{localize "bastionland.npc.pasteStatBlock"}}</button>
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
+		<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> {{localize "bastionland.duel.title"}}</button>
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>
 		<button type="button" data-action="rollMorale"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.morale.title"}}</button>
 		<button type="button" data-action="rest"><i class="fa-solid fa-mug-hot" inert></i> {{localize "bastionland.sheet.rest"}}</button>
@@ -55,6 +56,16 @@
 					</li>
 					{{/each}}
 				</ul>
+				{{#if leader}}
+				<p class="bastionland-steed">
+					<span class="bastionland-hint">{{leader}}</span>
+					{{#if editable}}
+					<button type="button" class="bastionland-icon" data-action="clearLeader" data-tooltip="{{localize 'bastionland.npc.leader.clear'}}" aria-label="{{localize 'bastionland.npc.leader.clear'}}">
+						<i class="fa-solid fa-xmark" inert></i>
+					</button>
+					{{/if}}
+				</p>
+				{{/if}}
 			</section>
 
 			<section class="bastionland-block">

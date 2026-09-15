@@ -58,6 +58,9 @@
 	{{#if blast}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.blast"}}</strong>: {{localize "bastionland.attack.blastHint"}}</p>
 	{{/if}}
+	{{#if leader}}
+	<p class="bastionland-card__hint">{{leader}}</p>
+	{{/if}}
 	{{#if ignoresArmour}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.item.ignoresArmour"}}</strong>: {{localize "bastionland.item.ignoresArmourHint"}}</p>
 	{{/if}}
@@ -70,7 +73,12 @@
 		{{#unless impaired}}
 		<button type="button" data-attack-action="focus"><i class="fa-solid fa-eye"></i> {{localize "bastionland.feats.focus.name"}}</button>
 		{{/unless}}
+		{{#unless duel}}
 		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+		{{/unless}}
 	</div>
+	{{#if duel}}
+	<p class="bastionland-card__hint">{{localize "bastionland.duel.heldForDuel"}}</p>
+	{{/if}}
 	{{/if}}
 </section>

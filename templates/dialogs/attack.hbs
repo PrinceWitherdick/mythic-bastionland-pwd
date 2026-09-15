@@ -1,4 +1,11 @@
 <div class="bastionland-dialog__body">
+	{{#if duel}}
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.duel.attackHint'}}">
+		<input type="checkbox" name="duel" checked>
+		<span class="bastionland-check__label">{{duel}}</span>
+	</label>
+	{{/if}}
+
 	<fieldset>
 		<legend>{{localize "bastionland.attack.weapons"}}</legend>
 		{{#each sources}}
@@ -73,6 +80,19 @@
 		<span class="bastionland-check__label">{{localize "bastionland.attack.againstIndividuals"}}</span>
 	</label>
 	<p class="hint">{{localize "bastionland.attack.againstIndividualsHint"}}</p>
+
+	<div class="form-group">
+		<label for="bastionland-attack-leader">{{localize "bastionland.attack.leader"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-attack-leader" name="leader">
+				<option value="">{{localize "bastionland.attack.leaderNone"}}</option>
+				{{#each leaders}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.attack.leaderHint"}}</p>
+	</div>
 	{{/if}}
 
 	<label class="bastionland-check">

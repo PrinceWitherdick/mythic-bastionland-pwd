@@ -22,7 +22,8 @@ export class NpcSheet extends BastionlandActorSheet {
 			pasteStatBlock: NpcSheet.#onPasteStatBlock,
 			rollMorale: NpcSheet.#onRollMorale,
 			setScale: NpcSheet.#onSetScale,
-			toggleFeat: NpcSheet.#onToggleFeat
+			toggleFeat: NpcSheet.#onToggleFeat,
+			clearLeader: NpcSheet.#onClearLeader
 		}
 	};
 
@@ -55,6 +56,7 @@ export class NpcSheet extends BastionlandActorSheet {
 					hint: t(`npc.warband.${key}.hint`)
 				}))
 				: [],
+			leader: system.warband && system.leader ? t("npc.leader.label", { name: fromUuidSync(system.leader)?.name ?? t("npc.leader.missing") }) : null,
 			featChoices: FEATS.map(({ key }) => ({ key, label: t(`feats.${key}.name`), active: system.feats[key] })),
 			addTypes: ADDED_TYPES.map((type) => ({ type, label: game.i18n.localize(`TYPES.Item.${type}`) })),
 			items: await this._prepareItems()
@@ -85,6 +87,11 @@ export class NpcSheet extends BastionlandActorSheet {
 		const { scale } = target.dataset;
 		if (!NPC_SCALES.includes(scale)) return;
 		return this.actor.update({ "system.scale": scale });
+	}
+
+	/** @this {NpcSheet} */
+	static #onClearLeader() {
+		return this.actor.update({ "system.leader": "" });
 	}
 
 	/** @this {NpcSheet} */

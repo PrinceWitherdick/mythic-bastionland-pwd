@@ -13,7 +13,9 @@ import {
 	UNSAVED_GAMBITS
 } from "../rules/attack.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { openDuelFor, saveDuelChange } from "./duel.js";
 import { featContext, resolveFeat } from "./feats.js";
+import { leaderCandidates } from "./leading.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample"]);
@@ -135,6 +137,9 @@ export async function attack(actor) {
 	const { conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 
+	const leaders = warband ? leaderCandidates(actor) : [];
+	const duel = openDuelFor(actor);
+
 	const data = await inputDialog({
 		title: t("attack.title"),
 		icon: "fa-solid fa-swords",
@@ -146,13 +151,15 @@ export async function attack(actor) {
 				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · ")
 			})),
 			moved: movedThisTurn(actor),
-			// Somebody with a steed is taken to be riding it, but may have dismounted.
-			mounted: Boolean(actor.system.steed),
+			// Somebody with a steed is taken to be riding it, but may have dismounted. A joust is fought mounted.
+			mounted: Boolean(actor.system.steed) || duel?.duel.kind === "joust",
+			duel: duel && t("duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
 			charge: mount && t("attack.charge", { steed: mount.steed.name, dice: mount.trample.map((item) => item.system.damage).join(" + ") }),
 			exhausted: conditions.exhausted,
 			impaired: conditions.impaired,
 			smiteDisabled: conditions.fatigued || conditions.impaired || !sources.length || !actor.system.knowsFeat("smite"),
-			warband
+			warband,
+			leaders: leaders.map((leader) => ({ uuid: leader.uuid, name: leader.name, selected: leader.uuid === actor.system.leader }))
 		},
 		ok: { label: t("attack.roll"), icon: "fa-solid fa-dice" },
 		render: (_event, dialog) => watchWielding(dialog, actor, sources)
@@ -166,14 +173,21 @@ export async function attack(actor) {
 		return null;
 	}
 	const chosen = check.usable.map((index) => picked[index]);
+	// Leading from the front adds the leader's Attack dice to the Warband's roll (p11).
+	const leader = leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
 	// What rolls, each group's dice labelled with the item or whoever brings them.
 	const weaponGroups = [
 		{ items: chosen, label: null },
-		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name }
+		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name },
+		{ items: leader ? attackSources(leader) : [], label: leader?.name }
 	];
 	const weaponItems = weaponGroups.flatMap(({ items }) => items);
 	const weaponDice = weaponGroups.flatMap(({ items, label }) =>
 		items.flatMap((item) => parseDice(item.system.damage).map((faces) => ({ faces, label: label ?? item.name }))));
+	// They share the Warband's Damage until their next turn, so the Warband remembers who leads it,
+	// and forgets a leader who no longer does.
+	const leaderUuid = leader?.uuid ?? "";
+	if (warband && actor.isOwner && actor.system.leader !== leaderUuid) await actor.update({ "system.leader": leaderUuid });
 	const impaired = Boolean(choice.impaired) || check.impaired || !weaponDice.length;
 	// A Warband's Attack on individuals gets +d12 and Blast (Warfare, p11).
 	const againstIndividuals = warband && Boolean(choice.againstIndividuals);
@@ -199,7 +213,9 @@ export async function attack(actor) {
 		: [...weaponDice, ...bonusDice];
 
 	const blast = smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
-	const targets = currentTargets();
+	// An Attack in a duel is against the other duelist, whatever else is targeted.
+	const inDuel = duel && choice.duel ? duel : null;
+	const targets = inDuel?.opponent.token ? [{ uuid: inDuel.opponent.token, name: inDuel.opponent.name }] : currentTargets();
 	// Blast attacks target everybody in their area, rolling each separately (p8).
 	const groups = blast && targets.length > 1 ? targets.map((target) => [target]) : [targets];
 
@@ -216,7 +232,9 @@ export async function attack(actor) {
 		ignoresArmour: chosen.some((item) => item.system.ignoresArmour),
 		// A Warband's Attack is large-scale, so it can harm another Warband.
 		largeScale: warband,
+		leader: leader ? { uuid: leader.uuid, name: leader.name } : null,
 		smite: smite?.feat ?? null,
+		duel: inDuel?.message.id ?? null,
 		gambits: [],
 		feats: [],
 		appliedTo: []
@@ -234,6 +252,7 @@ export async function attack(actor) {
 			flags: { [SYSTEM_ID]: { attack: state } }
 		}));
 	}
+	if (inDuel && messages.length) await saveDuelChange(inDuel.message, { type: "attack", actor: actor.uuid, message: messages[0].id });
 	return messages;
 }
 
@@ -289,6 +308,10 @@ export function attackCardContext(attack) {
 		confined: Boolean(attack.confined),
 		blast: attack.blast,
 		ignoresArmour: attack.ignoresArmour,
+		// Cards rolled before leading from the front have no leader.
+		leader: attack.leader ? t("attack.ledBy", { name: attack.leader.name }) : null,
+		// A duel's Attacks are applied together from the duel card.
+		duel: Boolean(attack.duel),
 		settled,
 		appliedTo: settled ? t("attack.applied", { names: attack.appliedTo.join(", ") }) : null
 	};

@@ -15,6 +15,9 @@ import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { t } from "./module/chat/cards.js";
+import { registerMoraleCards } from "./module/chat/morale-card.js";
+import { registerDuelCards } from "./module/chat/duel-card.js";
+import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
@@ -95,6 +98,15 @@ Hooks.once("init", () => {
 
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();
+
+	// Damage cards and group prompts roll Wavering Morale.
+	registerMoraleCards();
+
+	// Duel cards resolve both duelists' Attacks together, and settle Glory staked on them.
+	registerDuelCards();
+
+	// A Warband's leader stops sharing its Damage when their next turn starts.
+	registerLeadingHooks();
 
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();

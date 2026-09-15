@@ -17,6 +17,8 @@ import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
+import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
+import { DUEL_KINDS } from "../module/rules/duel.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
 import { VIRTUES } from "../module/rules/virtues.js";
@@ -76,6 +78,9 @@ describe("localization", () => {
 		...STRONG_GAMBITS.map((key) => `attack.strong.${key}`),
 		...SET_ASIDE_REASONS.map((key) => `attack.setAside.${key}`),
 		...ATTACK_REFUSALS.map((key) => `attack.refusals.${key}`),
+		...MORALE_TRIGGERS.map((key) => `morale.triggers.${key}`),
+		...partsOf("duel.kinds", DUEL_KINDS, ["label", "hint"]),
+		...partsOf("morale.group.orders", GROUP_ORDER, ["label", "hint"]),
 		...REFEREE_TABLES.flatMap(({ key, results }) => [
 			`refereeRolls.tables.${key}.name`,
 			`refereeRolls.tables.${key}.hint`,

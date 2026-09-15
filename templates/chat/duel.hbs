@@ -1,0 +1,35 @@
+<section class="bastionland-card bastionland-card--duel{{#if ended}} is-settled{{/if}}">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+
+	{{#unless ended}}
+	<ul class="bastionland-card__entries">
+		{{#each duelists}}
+		<li><strong>{{name}}</strong> <span class="bastionland-tag">{{status}}</span></li>
+		{{/each}}
+	</ul>
+	{{/unless}}
+	{{#if exchanges}}
+	<p class="bastionland-card__hint">{{exchanges}}</p>
+	{{/if}}
+	{{#each notes}}
+	<p class="bastionland-card__hint">{{this}}</p>
+	{{/each}}
+
+	{{#if ended}}
+	<p class="bastionland-card__outcome">{{outcome}}</p>
+	{{else}}
+	<p class="bastionland-card__hint">{{localize "bastionland.duel.howTo"}}</p>
+	<div class="bastionland-card__actions">
+		<button type="button" data-duel-action="resolve" {{disabled resolveLocked}}><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.duel.resolve"}}</button>
+	</div>
+	<div class="bastionland-card__actions">
+		{{#each duelists}}
+		<button type="button" data-duel-action="end" data-victor="{{uuid}}"><i class="fa-solid fa-crown" inert></i> {{wins}}</button>
+		{{/each}}
+		<button type="button" data-duel-action="end" data-victor=""><i class="fa-solid fa-handshake" inert></i> {{localize "bastionland.duel.noVictor"}}</button>
+	</div>
+	{{/if}}
+</section>
