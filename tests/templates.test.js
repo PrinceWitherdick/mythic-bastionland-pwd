@@ -3,10 +3,12 @@ import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, PROPERTY_TYPES } from "../module/config.js";
+import { KINDS, PROBLEM_REASONS } from "../module/rules/book-art.js";
 import { RANKS } from "../module/rules/glory.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
+import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
@@ -67,10 +69,14 @@ describe("localization", () => {
 		...ARMOUR_KINDS.map((key) => `item.kinds.${key}`),
 		...["hefty", "long", "slow", "ranged"].map((key) => `item.${key}`),
 		...["none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
+		...KINDS.map((kind) => `bookArt.kinds.${kind}`),
+		...PROBLEM_REASONS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...TERRAIN.map((key) => `realm.terrain.${key}`),
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
+		...REALM_ICON_KINDS.map((kind) => `bookArt.kinds.${kind}`),
+		...REALM_ICON_PROBLEMS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
 		...REALM_PROBLEMS.map((reason) => `realm.problems.${reason}`),
 		...WILDERNESS_MODES.map((mode) => `realm.wilderness.modes.${mode}`),

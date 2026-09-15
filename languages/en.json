@@ -333,6 +333,62 @@
         "shield": "Shield"
       }
     },
+    "bookArt": {
+      "title": "Import Book Art",
+      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, and each Myth’s Omens and Cast.",
+      "choose": "Rulebook or Blank Realm PDF",
+      "chooseHint": "The file is read in your browser and never uploaded.",
+      "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
+      "start": "Import",
+      "noFile": "Choose a PDF first.",
+      "notReady": "Import Book Art can run once the world has finished loading.",
+      "running": "Import Book Art is already running.",
+      "noPermission": "Import Book Art saves files, so it needs a user who is allowed to upload files.",
+      "unreadable": "{name} couldn’t be opened as a PDF.",
+      "mismatchTitle": "A Different Edition?",
+      "pageMismatch": "This PDF has {pages} pages, but the rulebook this import was made for has {expected}. Pictures may be missing or mixed up. Import anyway?",
+      "layoutMismatch": "The first Knight’s pages don’t have the pictures this import looks for, so this may be a different edition. Import anyway?",
+      "progress": "Import Book Art: reading page {page} of {last}",
+      "writingIndex": "Import Book Art: writing the index",
+      "packMissing": "Import Book Art couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
+      "kinds": {
+        "knight": "Knight",
+        "seer": "Seer",
+        "myth": "Myth",
+        "terrain": "Terrain",
+        "holding": "Holding",
+        "landmark": "Landmark"
+      },
+      "realm": {
+        "intro": "Or choose the Blank Realm PDF, and the terrain, Holding and Landmark icons on its map legend are saved for Realm Scenes.",
+        "progress": "Import Book Art: saving the Realm icons",
+        "refreshed": "Realm Scenes given the new icons: {count}",
+        "problem": "{icon}: {reason}",
+        "reportTitle": "Realm Icons Imported"
+      },
+      "report": {
+        "title": "Book Art Imported",
+        "saved": "{kind} art: {saved} of {total} saved",
+        "textRead": "{kind} text: {read} of {total} read",
+        "index": "Index saved to {path}.",
+        "indexFailed": "The index couldn’t be saved, so the pictures can’t be looked up by roll. Run the import again.",
+        "unnamed": "Saved without a name, because the page’s title couldn’t be read:",
+        "unnamedEntry": "{kind} {roll}, page {page}",
+        "problems": "Needs a look:",
+        "problem": "{kind} {roll}, page {page}: {reason}",
+        "none": "Every picture was found and saved.",
+        "close": "Close",
+        "reasons": {
+          "notFound": "no matching picture on the page",
+          "extra": "more than one picture matched, so the largest was saved",
+          "decode": "the picture couldn’t be read",
+          "upload": "the server didn’t accept the file",
+          "text": "the Knight’s Property, Ability or Passion couldn’t be read, so the chooser won’t fill them in",
+          "mythText": "the Omens or Cast couldn’t be read, so the NPC chooser won’t list them",
+          "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in"
+        }
+      }
+    },
     "realm": {
       "newRealm": "New Realm",
       "units": "Hex",

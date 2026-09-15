@@ -121,6 +121,19 @@ describe("system boot", () => {
 		}
 	});
 
+	it("registers the hidden book art setting and hands the importer to macros", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "bookArtMacroSeeded", expect.objectContaining({
+			scope: "world",
+			config: false,
+			type: Boolean,
+			default: false
+		}));
+		expect(game.system.api.importBookArt).toBeTypeOf("function");
+		expect(game.system.api.newRealm).toBeTypeOf("function");
+		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
+		expect(Object.isFrozen(game.system.api)).toBe(true);
+	});
+
 	it("gives GMs the Realm tools, but only on a Realm Scene", async () => {
 		const { REALM_BUTTONS, REALM_TOOLS } = await import("../module/rules/realm.js");
 		const { realm } = CONFIG.Canvas.layers;
@@ -169,6 +182,11 @@ describe("system boot", () => {
 
 		expect(hooks.preMoveToken).toBeTypeOf("function");
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
+	});
+
+	it("leaves the Macro Directory alone for players when the world is ready", async () => {
+		expect(hooks.ready).toBeTypeOf("function");
+		await expect(hooks.ready()).resolves.toBeUndefined();
 	});
 });
 

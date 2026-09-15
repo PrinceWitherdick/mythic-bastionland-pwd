@@ -1,0 +1,53 @@
+import { t } from "../chat/cards.js";
+import { MACROS_PACK, SYSTEM_ID } from "../system-id.js";
+
+/** Import Book Art keeps this id in the compendium and in each world. */
+export const IMPORT_MACRO_ID = "mbImportBookArt1";
+
+/** Set once a world has been given its copy of the macro. */
+export const MACRO_SEEDED_SETTING = "bookArtMacroSeeded";
+
+/** Register the settings Import Book Art relies on. Called during init. */
+export function registerBookArtSettings() {
+	game.settings.register(SYSTEM_ID, MACRO_SEEDED_SETTING, {
+		scope: "world",
+		config: false,
+		type: Boolean,
+		default: false
+	});
+}
+
+/**
+ * Give the world its own copy of Import Book Art, once. A GM who deletes the
+ * copy keeps it deleted. While the copy exists, its script and icon follow the
+ * compendium so a system update reaches it, but a GM's rename is kept.
+ * Only the active GM does this, so two GMs never both create it.
+ */
+export async function ensureImportMacro() {
+	if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
+
+	const pack = game.packs.get(MACROS_PACK);
+	const source = await pack?.getDocument(IMPORT_MACRO_ID).catch(() => null);
+	if (!source) {
+		// Foundry quietly creates an empty compendium when its database was never built.
+		ui.notifications.warn(t("bookArt.packMissing"));
+		return;
+	}
+
+	const existing = game.macros.get(IMPORT_MACRO_ID);
+	if (existing) {
+		const update = {};
+		if (existing.command !== source.command) update.command = source.command;
+		if (existing.img !== source.img) update.img = source.img;
+		if (!foundry.utils.isEmpty(update)) await existing.update(update);
+		return;
+	}
+
+	if (game.settings.get(SYSTEM_ID, MACRO_SEEDED_SETTING)) return;
+
+	// Created directly rather than through importFromCompendium, which also
+	// switches the sidebar to the Macro Directory.
+	const data = game.macros.fromCompendium(source, { keepId: true });
+	await CONFIG.Macro.documentClass.create(data, { keepId: true });
+	await game.settings.set(SYSTEM_ID, MACRO_SEEDED_SETTING, true);
+}

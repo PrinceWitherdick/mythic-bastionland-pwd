@@ -1,5 +1,7 @@
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
+import { importBookArt } from "./module/book-art/importer.js";
+import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
@@ -46,6 +48,8 @@ Hooks.once("init", () => {
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
 	});
 
+	registerBookArtSettings();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -53,12 +57,12 @@ Hooks.once("init", () => {
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
 	registerRealmHooks();
 
-	// Macros reach the system through here.
-	game.system.api = Object.freeze({ newRealm, wildernessRoll });
+	// Macros reach the system through here, such as Import Book Art.
+	game.system.api = Object.freeze({ importBookArt, newRealm, wildernessRoll });
 });
 
 Hooks.once("ready", async () => {
-	await restoreOpenSheets();
+	await Promise.all([restoreOpenSheets(), ensureImportMacro()]);
 });
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));

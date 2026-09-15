@@ -1,0 +1,33 @@
+<div class="bastionland-dialog__body bastionland-book-art-report">
+	<ul>
+		{{#each counts}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
+
+	{{#if indexPath}}
+	<p>{{localize "bastionland.bookArt.report.index" path=indexPath}}</p>
+	{{else}}
+	<p>{{localize "bastionland.bookArt.report.indexFailed"}}</p>
+	{{/if}}
+
+	{{#if unnamed.length}}
+	<p>{{localize "bastionland.bookArt.report.unnamed"}}</p>
+	<ul>
+		{{#each unnamed}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
+	{{#if problems.length}}
+	<p>{{localize "bastionland.bookArt.report.problems"}}</p>
+	<ul>
+		{{#each problems}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
+	{{else}}
+	<p>{{localize "bastionland.bookArt.report.none"}}</p>
+	{{/if}}
+</div>

@@ -48,6 +48,17 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
 
 Until you import the icons from your Blank Realm PDF (below), the map uses simple placeholders drawn for this system, not the book's art.
 
+### Art and text from your own book
+
+The system ships none of the book's art or text either. A GM who owns the PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
+
+1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
+2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, and each Myth's Omens and Cast. Choose Knight and Choose from Book fill characters in from it.
+
+Run the macro again with the Blank Realm PDF that comes with the book to bring in its map legend: the twelve terrain icons, the four Holdings and the six Landmarks. They're saved to `mythic-bastionland-art/realm/` with their white made see-through, beside an `index.json`. New Realms use them, and every Realm Scene already in the world switches to them. As on the Realm Sheet, each terrain icon is drawn inside its hex, and a Holding takes the place of its hex's terrain.
+
+Running the import again replaces the files. It needs a user who is allowed to upload files, and like anything in the data folder, the pictures and the index can be fetched by anyone who can reach your Foundry server.
+
 ## Development
 
 The repository is the system folder. Clone it into your Foundry data folder's `systems` directory, then restart Foundry after editing `system.json`:
@@ -77,6 +88,7 @@ The layout:
 
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
+- `module/book-art/` reads a rulebook PDF you own and saves its art and text, for Import Book Art.
 - `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
