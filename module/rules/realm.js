@@ -1,0 +1,208 @@
+/**
+ * What a Realm holds (Creating a Realm p14), and the checks every Realm tool
+ * shares. Plain data and functions, so they can be tested without Foundry.
+ * Names for each key live under `bastionland.realm`.
+ */
+import { isDie, rollLabel, spreadPages } from "./book-art.js";
+import { hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+
+export const REALM_VERSION = 1;
+
+/** The flag key a Realm's Scene and documents carry under the system's scope. */
+export const REALM_FLAG = "realm";
+
+/** Terrain in the Realm Sheet's d12 order. */
+export const TERRAIN = Object.freeze([
+	"marsh", "heath", "crag", "peaks", "forest", "valley", "hills", "meadow", "bog", "lake", "glade", "plains"
+]);
+
+/** The d12 result for Lake. */
+export const LAKE = TERRAIN.indexOf("lake") + 1;
+
+export const HOLDING_STYLES = Object.freeze(["castle", "town", "fortress", "tower"]);
+
+export const LANDMARK_TYPES = Object.freeze(["dwelling", "sanctum", "monument", "hazard", "curse", "ruin"]);
+
+export const HOLDING_COUNT = 4;
+
+export const MYTH_COUNT = 6;
+
+export const OMEN_COUNT = 6;
+
+/** "A typical Realm has 3 or 4 of each type of Landmark." */
+export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
+
+/** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll"]);
+
+/** The Realm tools that act at once rather than waiting for a click on the map. */
+export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll"]);
+
+/** Why part of a Realm needs a second look. */
+export const REALM_PROBLEMS = Object.freeze([
+	"terrain", "offMap", "crowded", "river", "edge", "duplicate", "number", "roll", "omen", "style", "type", "seat"
+]);
+
+/**
+ * "Place a number of Barriers equal to one sixth of your total Hexes."
+ * @param {{cols: number, rows: number}} g
+ * @returns {number}
+ */
+export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
+
+/** @typedef {{col: number, row: number}} Hex */
+
+/**
+ * @typedef {object} Realm
+ * @property {number} cols
+ * @property {number} rows
+ * @property {string|null} seed
+ * @property {number[]} terrain   One entry per hex in `hexIndex` order: 1-12, or 0 where unset.
+ * @property {Hex[]} river         Source to mouth, each hex beside the one before.
+ * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string}[]} holdings
+ * @property {{id: string|null, hex: Hex, number: number, d6: number, d12: number, omen: number, revealed: boolean}[]} myths
+ * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
+ *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
+ * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
+ */
+
+/**
+ * @param {{cols: number, rows: number}} g
+ * @param {string|null} [seed]
+ * @returns {Realm}
+ */
+export function emptyRealm(g, seed = null) {
+	return {
+		cols: g.cols,
+		rows: g.rows,
+		seed,
+		terrain: new Array(g.cols * g.rows).fill(0),
+		river: [],
+		holdings: [],
+		myths: [],
+		landmarks: [],
+		barriers: []
+	};
+}
+
+/**
+ * @param {Realm} realm
+ * @param {object} g
+ * @param {Hex} hex
+ * @returns {number} 1-12, or 0 off the Realm or where unset.
+ */
+export const terrainAt = (realm, g, hex) => (inRealm(g, hex) ? realm.terrain[hexIndex(g, hex)] ?? 0 : 0);
+
+/**
+ * @param {Realm} realm
+ * @param {Hex} hex
+ * @returns {{holding: object|null, myth: object|null, landmark: object|null}}
+ */
+export function featureAt(realm, hex) {
+	const on = (list) => list.find((item) => sameHex(item.hex, hex)) ?? null;
+	return { holding: on(realm.holdings), myth: on(realm.myths), landmark: on(realm.landmarks) };
+}
+
+/**
+ * What someone looking at a hex can see of it. Players see a Myth or Landmark
+ * only once it's revealed.
+ * @param {Realm} realm
+ * @param {object} g
+ * @param {Hex} hex
+ * @param {object} [options]
+ * @param {boolean} [options.showHidden] For GMs.
+ * @returns {{hex: Hex, terrain: string|null, holding: {style: string, name: string, seat: boolean}|null,
+ *   myth: {number: number, revealed: boolean}|null, landmark: {type: string, name: string, revealed: boolean}|null}}
+ */
+export function hexSummary(realm, g, hex, { showHidden = false } = {}) {
+	const { holding, myth, landmark } = featureAt(realm, hex);
+	const terrain = terrainAt(realm, g, hex);
+	return {
+		hex,
+		terrain: terrain ? TERRAIN[terrain - 1] ?? null : null,
+		holding: holding ? { style: holding.style, name: holding.name ?? "", seat: Boolean(holding.seat) } : null,
+		myth: myth && (showHidden || myth.revealed) ? { number: myth.number, revealed: Boolean(myth.revealed) } : null,
+		landmark: landmark && (showHidden || landmark.revealed) ? { type: landmark.type, name: landmark.name ?? "", revealed: Boolean(landmark.revealed) } : null
+	};
+}
+
+/**
+ * @param {{d6: number, d12: number}} roll A Myth's roll on the Myths table (p27).
+ * @returns {{roll: string, page: number}}
+ */
+export const mythReference = ({ d6, d12 }) => ({ roll: rollLabel(d6, d12), page: spreadPages(d6, d12).myth });
+
+/**
+ * @param {{d6: number, d12: number}} roll A Sanctum's roll on the Knights table (p26), whose page shows the Seer.
+ * @returns {{roll: string, page: number}}
+ */
+export const seerReference = ({ d6, d12 }) => ({ roll: rollLabel(d6, d12), page: spreadPages(d6, d12).knight });
+
+/**
+ * Everything about a Realm that doesn't fit the rules above, for Tidy and the
+ * Hex panel to point out. Nothing here is fatal: the map still works.
+ * @param {Realm} realm
+ * @param {object} g
+ * @returns {{kind: string, reason: string, key: string}[]} `key` names the hex, edge or number concerned.
+ */
+export function validateRealm(realm, g) {
+	const problems = [];
+	const report = (kind, reason, key) => problems.push({ kind, reason, key: String(key) });
+
+	realm.terrain.forEach((terrain, index) => {
+		if (!isDie(terrain, TERRAIN.length)) report("terrain", "terrain", hexKey({ col: (index % g.cols) + 1, row: Math.floor(index / g.cols) + 1 }));
+	});
+
+	const riverSeen = new Set();
+	realm.river.forEach((hex, index) => {
+		const key = hexKey(hex);
+		if (!inRealm(g, hex)) report("river", "offMap", key);
+		else if (riverSeen.has(key)) report("river", "duplicate", key);
+		else if (index > 0 && hexDistance(realm.river[index - 1], hex) !== 1) report("river", "river", key);
+		riverSeen.add(key);
+	});
+
+	const featuresOnHex = new Map();
+	const place = (kind, hex) => {
+		const key = hexKey(hex);
+		if (!inRealm(g, hex)) report(kind, "offMap", key);
+		featuresOnHex.set(key, (featuresOnHex.get(key) ?? 0) + 1);
+	};
+
+	for (const holding of realm.holdings) {
+		place("holding", holding.hex);
+		if (!HOLDING_STYLES.includes(holding.style)) report("holding", "style", hexKey(holding.hex));
+	}
+	const seats = realm.holdings.filter((holding) => holding.seat).length;
+	if (realm.holdings.length && seats !== 1) report("holding", "seat", seats);
+
+	const numbers = new Set();
+	for (const myth of realm.myths) {
+		place("myth", myth.hex);
+		if (!isDie(myth.number, MYTH_COUNT)) report("myth", "number", myth.number);
+		else if (numbers.has(myth.number)) report("myth", "duplicate", myth.number);
+		numbers.add(myth.number);
+		if (!isDie(myth.d6, 6) || !isDie(myth.d12, 12)) report("myth", "roll", myth.number);
+		if (!Number.isInteger(myth.omen) || myth.omen < 0 || myth.omen > OMEN_COUNT) report("myth", "omen", myth.number);
+	}
+
+	for (const landmark of realm.landmarks) {
+		place("landmark", landmark.hex);
+		if (!LANDMARK_TYPES.includes(landmark.type)) report("landmark", "type", hexKey(landmark.hex));
+		if (landmark.seer && (!isDie(landmark.seer.d6, 6) || !isDie(landmark.seer.d12, 12))) report("landmark", "roll", hexKey(landmark.hex));
+	}
+
+	for (const [key, count] of featuresOnHex) {
+		if (count > 1) report("hex", "crowded", key);
+	}
+
+	const edges = new Set();
+	for (const { edge } of realm.barriers) {
+		const hexes = parseEdgeKey(edge);
+		if (!hexes || !hexes.every((hex) => inRealm(g, hex))) report("barrier", "edge", edge);
+		else if (edges.has(edge)) report("barrier", "duplicate", edge);
+		edges.add(edge);
+	}
+
+	return problems;
+}

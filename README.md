@@ -50,6 +50,7 @@ The layout:
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
+- `assets/realm/` holds the Realm's placeholder pictures, drawn by `node scripts/realm-placeholders.js`. Run it again after changing the Realm's terrain, Holding or Landmark lists.
 
 The system id lives only in `module/system-id.js`. Lint rejects the id spelled out anywhere else.
 
