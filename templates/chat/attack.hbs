@@ -1,6 +1,9 @@
-<section class="bastionland-card bastionland-card--attack">
+<section class="bastionland-card bastionland-card--attack{{#if settled}} is-settled{{/if}}">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{localize "bastionland.attack.title"}}</h3>
+		{{#if targets}}
+		<p class="bastionland-card__tagline">{{targets}}</p>
+		{{/if}}
 	</header>
 
 	{{#if smite}}
@@ -11,28 +14,63 @@
 
 	<ol class="bastionland-dice">
 		{{#each dice}}
-		<li class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}">
-			<span class="bastionland-die__result">{{result}}</span>
-			<span class="bastionland-die__faces">d{{faces}}</span>
-			<span class="bastionland-die__label">{{label}}</span>
+		<li>
+			<button type="button" class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}{{#if spent}} is-spent{{/if}}" data-attack-action="gambit" data-die="{{index}}" {{disabled locked}}>
+				<span class="bastionland-die__result">{{result}}</span>
+				<span class="bastionland-die__faces">d{{faces}}</span>
+				<span class="bastionland-die__label">{{label}}</span>
+			</button>
 		</li>
 		{{/each}}
 	</ol>
 
+	{{#if gambits.length}}
+	<ul class="bastionland-card__gambits">
+		{{#each gambits}}
+		<li>
+			<strong>{{name}}</strong>
+			<span class="bastionland-tag">{{source}}{{#if strong}} · {{strong}}{{/if}}</span>
+			{{#if save}}<span class="bastionland-card__hint">{{save}}</span>{{/if}}
+			{{#if bonus}}<span class="bastionland-card__hint">{{bonus}}</span>{{/if}}
+		</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
 	<p class="bastionland-card__damage">
-		<span>{{localize "bastionland.attack.highest"}}</span>
-		<strong>{{highest}}</strong>
+		<span>{{localize "bastionland.attack.damage"}}</span>
+		<strong>{{damage}}</strong>
 	</p>
+	{{#if breakdown}}
+	<p class="bastionland-card__hint">{{breakdown}}</p>
+	{{/if}}
+	{{#unless settled}}
 	<p class="bastionland-card__hint">{{localize "bastionland.attack.damageNote"}}</p>
 	<p class="bastionland-card__hint">{{gambitDice}}{{#if strongDice}} · {{strongDice}}{{/if}}</p>
+	{{/unless}}
 
+	{{#each setAside}}
+	<p class="bastionland-card__warning">{{this}}</p>
+	{{/each}}
 	{{#if impaired}}
-	<p class="bastionland-card__warning">{{localize "bastionland.attack.impaired"}}</p>
+	<p class="bastionland-card__warning">{{#if confined}}{{localize "bastionland.attack.confinedImpaired"}}{{else}}{{localize "bastionland.attack.impaired"}}{{/if}}</p>
 	{{/if}}
 	{{#if blast}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.blast"}}</strong>: {{localize "bastionland.attack.blastHint"}}</p>
 	{{/if}}
 	{{#if ignoresArmour}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.item.ignoresArmour"}}</strong>: {{localize "bastionland.item.ignoresArmourHint"}}</p>
+	{{/if}}
+
+	{{#if settled}}
+	<p class="bastionland-card__outcome">{{appliedTo}}</p>
+	{{else}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-attack-action="deny"><i class="fa-solid fa-shield-halved"></i> {{localize "bastionland.feats.deny.name"}}</button>
+		{{#unless impaired}}
+		<button type="button" data-attack-action="focus"><i class="fa-solid fa-eye"></i> {{localize "bastionland.feats.focus.name"}}</button>
+		{{/unless}}
+		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+	</div>
 	{{/if}}
 </section>

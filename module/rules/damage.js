@@ -4,7 +4,7 @@
  */
 
 /**
- * @typedef {"unharmed"|"none"|"evaded"|"scar"|"wounded"|"mortal"|"slain"} DamageOutcome
+ * @typedef {"unharmed"|"none"|"evaded"|"scar"|"wounded"|"mortal"|"slain"|"destroyed"} DamageOutcome
  *
  * @typedef {object} DamageResult
  * @property {number} dealt       Damage left after Armour.
@@ -14,6 +14,23 @@
  * @property {number} vigourLoss
  * @property {DamageOutcome} outcome
  */
+
+/**
+ * The Armour an Attack is reduced by. Protective cover adds a point against
+ * ranged Attacks (p10), and so does a shieldwall of 3 or more allies all
+ * bearing shields (p10). An Attack that ignores Armour ignores those too.
+ * @param {object} args
+ * @param {number} [args.armour=0]      The target's own total Armour.
+ * @param {boolean} [args.ignoreArmour]
+ * @param {boolean} [args.cover]        Behind protective cover.
+ * @param {boolean} [args.ranged]       The Attack is ranged.
+ * @param {boolean} [args.shieldwall]   Part of a shieldwall.
+ * @returns {number}
+ */
+export function armourAgainst({ armour = 0, ignoreArmour = false, cover = false, ranged = false, shieldwall = false }) {
+	if (ignoreArmour) return 0;
+	return Math.max(0, Math.trunc(Number(armour)) || 0) + (cover && ranged ? 1 : 0) + (shieldwall ? 1 : 0);
+}
 
 /**
  * Doom (Scar 11): a Mortal Wound taken in the Season the Scar was, Slays instead.
@@ -43,14 +60,21 @@ export function applyDoom(result, vigourBefore) {
  *                                    Their real GD is left untouched.
  * @param {boolean} [args.immune]     The Attack can't harm the target at all, as an
  *                                    individual's Attack can't harm a Warband (p11).
+ * @param {boolean} [args.structure]  Ships and structures are destroyed at 0GD (p11),
+ *                                    and have no VIG to lose.
  * @returns {DamageResult}
  */
-export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false }) {
+export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false, structure = false }) {
 	const dealt = Math.max(0, Math.trunc(damage) - Math.max(0, Math.trunc(armour)));
 	const unchanged = { dealt, guard, vigour, guardLoss: 0, vigourLoss: 0 };
 
 	if (immune) return { ...unchanged, dealt: 0, outcome: "unharmed" };
 	if (dealt === 0) return { ...unchanged, outcome: "none" };
+
+	if (structure) {
+		if (dealt < guard) return { ...unchanged, guard: guard - dealt, guardLoss: dealt, outcome: "evaded" };
+		return { ...unchanged, guard: 0, guardLoss: guard, outcome: "destroyed" };
+	}
 
 	const effectiveGuard = exposed ? 0 : guard;
 

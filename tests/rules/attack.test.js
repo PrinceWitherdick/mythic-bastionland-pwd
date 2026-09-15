@@ -1,5 +1,77 @@
 import { describe, expect, it } from "vitest";
-import { buildAttackPool, parseDice, summarizeAttack } from "../../module/rules/attack.js";
+import {
+	attackDamage,
+	buildAttackPool,
+	canFundGambit,
+	canFundStrongGambit,
+	changeAttack,
+	checkWielding,
+	heldAs,
+	isDieSpent,
+	parseDice,
+	sortDice,
+	summarizeAttack
+} from "../../module/rules/attack.js";
+
+describe("checkWielding", () => {
+	const mace = { hefty: true };
+	const shield = {};
+	const longbow = { slow: true, ranged: true };
+	const shortbow = { long: true, ranged: true };
+	const poleaxe = { long: true };
+
+	// The worked example on p8: a mace (d8) and a shield (d4).
+	it("lets a Knight wield a Hefty weapon and a shield", () => {
+		expect(checkWielding([mace, shield], { hands: true })).toEqual({ refusal: null, usable: [0, 1], setAside: [], impaired: false });
+	});
+
+	it("sets a Slow weapon aside after moving", () => {
+		expect(checkWielding([longbow], { moved: true })).toMatchObject({ usable: [], setAside: [{ index: 0, reason: "slow" }] });
+		expect(checkWielding([longbow]).usable).toEqual([0]);
+	});
+
+	it("sets a purely ranged weapon aside when the turn began engaged in melee", () => {
+		const check = checkWielding([shortbow, { hefty: true }], { engaged: true });
+		expect(check).toMatchObject({ usable: [1], setAside: [{ index: 0, reason: "ranged" }] });
+	});
+
+	it("refuses an Exhausted Attack after moving, but not before", () => {
+		expect(checkWielding([mace], { exhausted: true, moved: true }).refusal).toBe("exhausted");
+		expect(checkWielding([mace], { exhausted: true }).refusal).toBeNull();
+	});
+
+	it("holds a Knight to one Hefty item", () => {
+		expect(checkWielding([mace, { hefty: true }], { hands: true }).refusal).toBe("hefty");
+		expect(checkWielding([mace, { hefty: true }]).refusal).toBeNull();
+	});
+
+	it("keeps a Knight's Long weapon in both hands", () => {
+		expect(checkWielding([poleaxe, shield], { hands: true }).refusal).toBe("long");
+		expect(checkWielding([longbow, { hefty: true }], { hands: true }).refusal).toBe("long");
+		expect(checkWielding([poleaxe], { hands: true }).refusal).toBeNull();
+	});
+
+	it("counts a lance as Hefty rather than Long when mounted, so it goes with a shield", () => {
+		const lance = { long: true, heftyMounted: true };
+		expect(checkWielding([lance, shield], { hands: true }).refusal).toBe("long");
+		expect(checkWielding([lance, shield], { hands: true, mounted: true }).refusal).toBeNull();
+		expect(checkWielding([lance, mace], { hands: true, mounted: true }).refusal).toBe("hefty");
+		expect(checkWielding([lance], { confined: true, mounted: true }).impaired).toBe(false);
+		expect(heldAs(lance, true)).toEqual({ hefty: true, long: false });
+		expect(heldAs(poleaxe, true)).toEqual({ hefty: false, long: true });
+	});
+
+	it("refuses an Attack on the turn its attacker charged a spearwall", () => {
+		expect(checkWielding([mace], { spearwall: true }).refusal).toBe("spearwall");
+		expect(checkWielding([mace], { exhausted: true, moved: true, spearwall: true }).refusal).toBe("exhausted");
+	});
+
+	it("Impairs a Long weapon in a confined space, unless it's set aside", () => {
+		expect(checkWielding([poleaxe], { confined: true }).impaired).toBe(true);
+		expect(checkWielding([mace], { confined: true }).impaired).toBe(false);
+		expect(checkWielding([longbow], { confined: true, moved: true }).impaired).toBe(false);
+	});
+});
 
 describe("parseDice", () => {
 	it.each([
@@ -53,5 +125,126 @@ describe("summarizeAttack", () => {
 
 	it("handles an empty roll", () => {
 		expect(summarizeAttack([])).toEqual({ highest: 0, gambitDice: 0, strongDice: 0 });
+	});
+});
+
+/** An Attack card's state straight after rolling these faces and results. */
+const rolled = (pairs, extra = {}) => ({
+	dice: sortDice(pairs.map(([faces, result]) => ({ faces, result, label: `d${faces}`, deniedBy: null }))),
+	melee: true,
+	impaired: false,
+	gambits: [],
+	feats: [],
+	appliedTo: [],
+	...extra
+});
+
+describe("sortDice", () => {
+	it("puts the highest result first, and the larger die first between equals", () => {
+		const dice = sortDice([{ faces: 6, result: 5 }, { faces: 8, result: 7 }, { faces: 10, result: 5 }]);
+		expect(dice.map((die) => `d${die.faces}:${die.result}`)).toEqual(["d8:7", "d10:5", "d6:5"]);
+	});
+});
+
+describe("attackDamage", () => {
+	// The worked example on p8: d8 7, d4 3, d6 1 and d6 5, with the 5 spent to Bolster.
+	it("takes the highest die left and adds Bolster", () => {
+		let attack = rolled([[8, 7], [4, 3], [6, 1], [6, 5]]);
+		const five = attack.dice.findIndex((die) => die.result === 5);
+		attack = changeAttack(attack, { type: "gambit", die: five, key: "bolster" });
+		expect(attackDamage(attack)).toMatchObject({ highest: 7, bolster: 1, damage: 8, faces: 8 });
+	});
+
+	it("falls to the next die when the highest is spent, and names that die for a Scar", () => {
+		const attack = changeAttack(rolled([[10, 9], [6, 4]]), { type: "deny", die: 0, actor: "Actor.a", name: "Ser A" });
+		expect(attackDamage(attack)).toMatchObject({ highest: 4, damage: 4, die: 1, faces: 6 });
+	});
+
+	it("leaves only Bolster once every die is gone", () => {
+		const attack = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "bolster" });
+		expect(attackDamage(attack)).toMatchObject({ highest: 0, bolster: 1, damage: 1, die: null, faces: null });
+	});
+});
+
+describe("changeAttack", () => {
+	it("spends only unspent dice of 4 or higher on Gambits", () => {
+		const attack = rolled([[8, 6], [6, 3]]);
+		expect(canFundGambit(attack, 1)).toBe(false);
+		expect(changeAttack(attack, { type: "gambit", die: 1, key: "repel" })).toBeNull();
+
+		const spent = changeAttack(attack, { type: "gambit", die: 0, key: "repel" });
+		expect(isDieSpent(spent, 0)).toBe(true);
+		expect(changeAttack(spent, { type: "gambit", die: 0, key: "trap" })).toBeNull();
+	});
+
+	it("refuses Gambits the book doesn't have", () => {
+		expect(changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "fireball" })).toBeNull();
+	});
+
+	it("keeps a Strong Gambit only for a melee die of 8 or higher", () => {
+		const melee = rolled([[10, 9], [8, 5]]);
+		expect(canFundStrongGambit(melee, 0)).toBe(true);
+		expect(changeAttack(melee, { type: "gambit", die: 0, key: "repel", strong: "noSave" }).gambits[0].strong).toBe("noSave");
+		expect(changeAttack(melee, { type: "gambit", die: 1, key: "repel", strong: "noSave" }).gambits[0].strong).toBeNull();
+
+		const ranged = rolled([[10, 9]], { melee: false });
+		expect(canFundStrongGambit(ranged, 0)).toBe(false);
+		expect(changeAttack(ranged, { type: "gambit", die: 0, key: "stop", strong: "greater" }).gambits[0].strong).toBeNull();
+	});
+
+	it("takes a Gambit back and frees its die", () => {
+		const spent = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "move" });
+		const withdrawn = changeAttack(spent, { type: "withdraw", die: 0 });
+		expect(withdrawn.gambits).toEqual([]);
+		expect(isDieSpent(withdrawn, 0)).toBe(false);
+		expect(changeAttack(withdrawn, { type: "withdraw", die: 0 })).toBeNull();
+	});
+
+	it("performs a Focus Gambit without a die, once per combatant and never when Impaired", () => {
+		const focused = changeAttack(rolled([[8, 2]]), { type: "focus", key: "bolster", actor: "Actor.k" });
+		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null }]);
+		expect(attackDamage(focused).damage).toBe(3);
+		expect(changeAttack(focused, { type: "withdraw", die: null })).toBeNull();
+		expect(changeAttack(focused, { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
+		expect(changeAttack(rolled([[4, 2]], { impaired: true }), { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
+	});
+
+	it("adds a Dismount's d6 to the dice, and takes it away with the Gambit", () => {
+		const attack = rolled([[8, 5], [6, 2]]);
+		const dismounted = changeAttack(attack, { type: "gambit", die: 0, key: "dismount", bonus: 6 });
+		expect(dismounted.gambits[0].bonus).toBe(6);
+		expect(attackDamage(dismounted)).toMatchObject({ highest: 6, damage: 6, die: null, faces: 6 });
+		expect(attackDamage(changeAttack(dismounted, { type: "withdraw", die: 0 }))).toMatchObject({ highest: 5, faces: 8 });
+
+		const low = changeAttack(rolled([[10, 9], [8, 5]]), { type: "gambit", die: 1, key: "dismount", bonus: 2 });
+		expect(attackDamage(low)).toMatchObject({ highest: 9, die: 0, faces: 10 });
+	});
+
+	it("keeps a bonus die only for Dismount, and only one a d6 can show", () => {
+		expect(changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "repel", bonus: 5 }).gambits[0].bonus).toBeNull();
+		expect(changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "dismount", bonus: 9 }).gambits[0].bonus).toBeNull();
+		expect(changeAttack(rolled([[8, 2]]), { type: "focus", key: "dismount", actor: "Actor.k", bonus: 4 }).gambits[0].bonus).toBe(4);
+	});
+
+	it("Denies any unspent die, low or high, once per combatant", () => {
+		const attack = rolled([[8, 7], [6, 2]]);
+		const denied = changeAttack(attack, { type: "deny", die: 1, actor: "Actor.a", name: "Ser A" });
+		expect(denied.dice[1].deniedBy).toBe("Ser A");
+		expect(changeAttack(denied, { type: "deny", die: 0, actor: "Actor.a", name: "Ser A" })).toBeNull();
+		expect(changeAttack(denied, { type: "deny", die: 0, actor: "Actor.b", name: "Ser B" }).dice[0].deniedBy).toBe("Ser B");
+		expect(changeAttack(denied, { type: "deny", die: 1, actor: "Actor.b", name: "Ser B" })).toBeNull();
+	});
+
+	it("settles once the Damage is applied", () => {
+		const settled = changeAttack(rolled([[8, 6]]), { type: "applied", names: ["Goblin"] });
+		expect(settled.appliedTo).toEqual(["Goblin"]);
+		expect(changeAttack(settled, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
+		expect(changeAttack(settled, { type: "applied", names: ["Goblin"] })).toBeNull();
+		expect(changeAttack(rolled([[8, 6]]), { type: "applied", names: [] })).toBeNull();
+	});
+
+	it("ignores unknown changes", () => {
+		expect(changeAttack(rolled([[8, 6]]), { type: "reroll" })).toBeNull();
+		expect(changeAttack(rolled([[8, 6]]), null)).toBeNull();
 	});
 });

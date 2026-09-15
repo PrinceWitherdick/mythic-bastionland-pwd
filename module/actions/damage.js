@@ -1,41 +1,59 @@
+import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { applyDoom, resolveDamage } from "../rules/damage.js";
+import { attackDamage } from "../rules/attack.js";
+import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { isDoomed } from "../rules/scars.js";
-import { templatePath } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
+import { rollScar } from "./scars.js";
 
 /** Outcomes a Warband meets differently: a Mortal Wound routs it, and 0 VIG wipes it out (p11). */
 const WARBAND_OUTCOMES = Object.freeze(["mortal", "slain"]);
+
+/** Outcomes worded for a ship or structure, which holds or is destroyed (p11). */
+const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
 
 /**
  * Ask how much Damage an Attack dealt, apply it to GD and VIG in the book's
  * order, and post what happened. A Warband or a structure is only harmed by
  * the kinds of Attack that can reach it, so the dialog asks about those too.
  * @param {Actor} actor
+ * @param {object} [preset] What an Attack card already knows, filled into the dialog.
+ * @param {number} [preset.damage]
+ * @param {boolean} [preset.ignoreArmour]
+ * @param {boolean|null} [preset.ranged] Whether the Attack is ranged. Cover only counts against ranged
+ *                                       Attacks, so a known melee Attack doesn't offer it.
+ * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
+ * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeDamage(actor) {
+export async function takeDamage(actor, { damage = 0, ignoreArmour = false, ranged = null, harm = {} } = {}) {
 	const { armour, conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 	const requirements = [warband && "warband", actor.system.structure && "structure"]
 		.filter(Boolean)
-		.map((key) => ({ key, label: t(`damage.harm.${key}.label`), hint: t(`damage.harm.${key}.hint`) }));
+		.map((key) => ({
+			key,
+			label: t(`damage.harm.${key}.label`),
+			hint: t(`damage.harm.${key}.hint`),
+			checked: Boolean(harm[key])
+		}));
 
-	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/damage.hbs"), {
-		armour,
-		exposed: conditions.exposed,
-		requirements
-	});
-
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("damage.title"), icon: "fa-solid fa-heart-crack" },
-		classes: ["bastionland-dialog"],
-		content,
-		ok: { label: t("damage.apply"), icon: "fa-solid fa-check" },
-		rejectClose: false
+	const data = await inputDialog({
+		title: t("damage.title"),
+		icon: "fa-solid fa-heart-crack",
+		template: "damage",
+		context: { damage, armour, ignoreArmour, offerCover: ranged !== false, exposed: conditions.exposed, requirements },
+		ok: { label: t("damage.apply") }
 	});
 	if (!data) return null;
 
-	const appliedArmour = data.ignoreArmour ? 0 : Math.max(0, Number(data.armour) || 0);
+	const appliedArmour = armourAgainst({
+		armour: data.armour,
+		ignoreArmour: Boolean(data.ignoreArmour),
+		cover: Boolean(data.cover),
+		// Opened by hand, the box itself says the Attack was ranged.
+		ranged: ranged !== false,
+		shieldwall: Boolean(data.shieldwall)
+	});
 	const before = { guard: actor.system.guard.value, vigour: actor.system.virtues.vig.value };
 	let result = resolveDamage({
 		damage: Math.max(0, Number(data.damage) || 0),
@@ -43,7 +61,8 @@ export async function takeDamage(actor) {
 		guard: before.guard,
 		vigour: before.vigour,
 		exposed: Boolean(data.exposed),
-		immune: requirements.some(({ key }) => !data[`harm-${key}`])
+		immune: requirements.some(({ key }) => !data[`harm-${key}`]),
+		structure: Boolean(actor.system.structure)
 	});
 	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
 	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
@@ -55,7 +74,9 @@ export async function takeDamage(actor) {
 	if (result.outcome === "mortal") update["system.mortalWound"] = true;
 	await actor.update(update);
 
-	const outcomes = warband && WARBAND_OUTCOMES.includes(result.outcome) ? "warbandOutcomes" : "outcomes";
+	let outcomes = "outcomes";
+	if (warband && WARBAND_OUTCOMES.includes(result.outcome)) outcomes = "warbandOutcomes";
+	else if (actor.system.structure && STRUCTURE_OUTCOMES.includes(result.outcome)) outcomes = "structureOutcomes";
 	await postCard(actor, "damage", {
 		outcomeKey: result.outcome,
 		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour: appliedArmour }),
@@ -64,5 +85,26 @@ export async function takeDamage(actor) {
 		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`)
 	});
 
+	return result;
+}
+
+/**
+ * Take the Damage of an Attack card, then roll a Scar with the die that caused it.
+ * @param {Actor} actor
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {object} [options]
+ * @param {boolean} [options.scars=true] False where Scars can't be gained, such as a bloodless duel.
+ * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
+ */
+export async function takeAttack(actor, attack, { scars = true } = {}) {
+	const { damage, faces } = attackDamage(attack);
+	const result = await takeDamage(actor, {
+		damage,
+		ignoreArmour: attack.ignoresArmour,
+		ranged: !attack.melee,
+		// Only Blast or large-scale Attacks harm a Warband (p11).
+		harm: { warband: attack.blast || attack.largeScale }
+	});
+	if (scars && result?.outcome === "scar") await rollScar(actor, { faces });
 	return result;
 }

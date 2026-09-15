@@ -18,6 +18,8 @@ export class KnightSheet extends BastionlandActorSheet {
 			chooseKnight: KnightSheet.#onChooseKnight,
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
+			openSteed: KnightSheet.#onOpenSteed,
+			clearSteed: KnightSheet.#onClearSteed,
 			setAge: KnightSheet.#onSetAge,
 			takeSquire: KnightSheet.#onTakeSquire,
 			knightSquire: KnightSheet.#onKnightSquire,
@@ -46,6 +48,7 @@ export class KnightSheet extends BastionlandActorSheet {
 			this._prepareItems("scar")
 		]);
 		const calendar = getCalendar();
+		const steed = this.#steed();
 		const squire = this.#squire();
 
 		return Object.assign(context, {
@@ -76,6 +79,14 @@ export class KnightSheet extends BastionlandActorSheet {
 					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : row.tags
 				};
 			}),
+			steed: steed && {
+				name: steed.name,
+				img: steed.img,
+				trample: steed.items
+					.filter((item) => item.type === "weapon" && item.system.trample)
+					.map((item) => `${item.name} ${item.system.damage}`)
+					.join(", ")
+			},
 			gambits: GAMBITS.map((key) => t(`gambits.${key}`))
 		});
 	}
@@ -89,6 +100,11 @@ export class KnightSheet extends BastionlandActorSheet {
 		return actor?.documentName === "Actor" ? actor : null;
 	}
 
+	/** @returns {Actor|null} The steed this Knight rides, if it still exists. */
+	#steed() {
+		return KnightSheet.#linked(this.actor.system.steed);
+	}
+
 	/** @returns {Actor|null} A Knight's Squire, or the Knight a Squire serves, if they still exist. */
 	#squire() {
 		const { system } = this.actor;
@@ -96,12 +112,22 @@ export class KnightSheet extends BastionlandActorSheet {
 	}
 
 	/**
-	 * Dropping a Squire makes them this Knight's Squire.
+	 * Dropping an NPC from the Actors tab makes it the Knight's steed, and
+	 * dropping a Squire makes them this Knight's Squire.
 	 * @override
 	 */
 	async _onDropActor(_event, actor) {
 		if (!this.isEditable || actor.uuid === this.actor.uuid) return null;
-		if (actor.type !== "knight" || !actor.system.isSquire || this.actor.system.isSquire) return null;
+		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
+		if (actor.type !== "npc" && !squire) return null;
+		if (actor.pack) {
+			ui.notifications.warn(t("steed.fromDirectory"));
+			return null;
+		}
+		if (!squire) {
+			await this.actor.update({ "system.steed": actor.uuid });
+			return actor;
+		}
 		await this.actor.update({ "system.squire": actor.uuid });
 		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
 		return actor;
@@ -110,6 +136,16 @@ export class KnightSheet extends BastionlandActorSheet {
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
+
+	/** @this {KnightSheet} */
+	static #onOpenSteed() {
+		return this.#steed()?.sheet.render({ force: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onClearSteed() {
+		return this.actor.update({ "system.steed": "" });
+	}
 
 	/** @this {KnightSheet} */
 	static #onChooseKnight() {

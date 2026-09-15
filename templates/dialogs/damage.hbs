@@ -2,7 +2,7 @@
 	<div class="form-group">
 		<label for="bastionland-damage-amount">{{localize "bastionland.damage.amount"}}</label>
 		<div class="form-fields">
-			<input id="bastionland-damage-amount" type="number" name="damage" value="0" min="0" step="1" autofocus>
+			<input id="bastionland-damage-amount" type="number" name="damage" value="{{damage}}" min="0" step="1" autofocus>
 		</div>
 		<p class="hint">{{localize "bastionland.damage.amountHint"}}</p>
 	</div>
@@ -15,8 +15,20 @@
 	</div>
 
 	<label class="bastionland-check">
-		<input type="checkbox" name="ignoreArmour">
+		<input type="checkbox" name="ignoreArmour" {{checked ignoreArmour}}>
 		<span class="bastionland-check__label">{{localize "bastionland.damage.ignoreArmour"}}</span>
+	</label>
+
+	{{#if offerCover}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="cover">
+		<span class="bastionland-check__label">{{localize "bastionland.damage.cover"}}</span>
+	</label>
+	{{/if}}
+
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.damage.shieldwallHint'}}">
+		<input type="checkbox" name="shieldwall">
+		<span class="bastionland-check__label">{{localize "bastionland.damage.shieldwall"}}</span>
 	</label>
 
 	<label class="bastionland-check">
@@ -27,7 +39,7 @@
 
 	{{#each requirements}}
 	<label class="bastionland-check">
-		<input type="checkbox" name="harm-{{key}}">
+		<input type="checkbox" name="harm-{{key}}" {{checked checked}}>
 		<span class="bastionland-check__label">{{label}}</span>
 	</label>
 	<p class="hint">{{hint}}</p>

@@ -2,6 +2,7 @@ import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.
 import { awardGlory } from "./module/actions/glory.js";
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
@@ -12,6 +13,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
+import { registerAttackCards } from "./module/chat/attack-card.js";
 import { t } from "./module/chat/cards.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
@@ -91,6 +93,9 @@ Hooks.once("init", () => {
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
 
+	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
+	registerAttackCards();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -105,6 +110,7 @@ Hooks.once("init", () => {
 		openNpcChooser,
 		newRealm,
 		wildernessRoll,
+		rollSurprise,
 		openRefereeRolls,
 		rollRefereeTable,
 		openSparkTables,
@@ -113,6 +119,9 @@ Hooks.once("init", () => {
 		getCalendar
 	});
 });
+
+// Roll Surprise sits in the Combat Tracker's encounter menu.
+Hooks.on("getCombatContextOptions", addSurpriseOption);
 
 Hooks.once("ready", async () => {
 	await Promise.all([restoreOpenSheets(), ensureImportMacro()]);

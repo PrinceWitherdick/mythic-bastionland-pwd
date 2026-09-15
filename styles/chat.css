@@ -194,11 +194,28 @@
 	display: grid;
 	justify-items: center;
 	min-width: 3.2rem;
+	height: auto;
+	margin: 0;
 	padding: 0.25rem 0.35rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;
 	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-ink-soft);
+	font: inherit;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.bastionland-die:disabled {
+	cursor: default;
+}
+
+.bastionland-die.is-spent {
+	opacity: 0.6;
+}
+
+.bastionland-die.is-spent .bastionland-die__result {
+	text-decoration: line-through;
 }
 
 .bastionland-die.is-gambit {
@@ -230,6 +247,35 @@
 	font-size: 0.7rem;
 	text-align: center;
 	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bastionland-card__gambits {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-card__gambits .bastionland-card__hint {
+	display: block;
+}
+
+.bastionland-card__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.bastionland-card__actions button {
+	flex: 1;
+	margin: 0;
+	border: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
 	white-space: nowrap;
 }
 
@@ -267,6 +313,13 @@
 
 .bastionland-company__member select {
 	flex: 0 0 9rem;
+}
+
+.bastionland-dialog__problems {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: var(--bastionland-blood);
+	font-size: 0.9em;
 }
 
 .bastionland-check {

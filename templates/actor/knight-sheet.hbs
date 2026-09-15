@@ -143,6 +143,26 @@
 			</section>
 
 			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.steed.label"}}</h2>
+				{{#if steed}}
+				<div class="bastionland-steed">
+					<img class="bastionland-steed__img" src="{{steed.img}}" alt="">
+					<button type="button" class="bastionland-item__name" data-action="openSteed">{{steed.name}}</button>
+					{{#if steed.trample}}
+					<span class="bastionland-item__tags">({{steed.trample}})</span>
+					{{/if}}
+					{{#if editable}}
+					<button type="button" class="bastionland-icon" data-action="clearSteed" data-tooltip="{{localize 'bastionland.steed.clear'}}" aria-label="{{localize 'bastionland.steed.clear'}}">
+						<i class="fa-solid fa-xmark" inert></i>
+					</button>
+					{{/if}}
+				</div>
+				{{else}}
+				<p class="bastionland-empty">{{localize "bastionland.steed.empty"}}</p>
+				{{/if}}
+			</section>
+
+			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.squire.label"}}</h2>
 				{{#if squire}}
 				<div class="bastionland-steed">

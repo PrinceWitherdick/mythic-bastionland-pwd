@@ -1,0 +1,23 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{localize "bastionland.feats.deny.use"}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.attack.denier"}}</legend>
+		{{#each deniers}}
+		<label class="bastionland-check">
+			<input type="radio" name="denier" value="{{uuid}}" {{checked @first}}>
+			<span class="bastionland-check__label">{{name}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+
+	<fieldset>
+		<legend>{{localize "bastionland.attack.denyDie"}}</legend>
+		{{#each dice}}
+		<label class="bastionland-check">
+			<input type="radio" name="die" value="{{index}}" {{checked (eq index ../highest)}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+</div>

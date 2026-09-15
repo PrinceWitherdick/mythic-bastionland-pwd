@@ -5,12 +5,47 @@
 		<label class="bastionland-check">
 			<input type="checkbox" name="source.{{id}}" checked>
 			<span class="bastionland-check__label">{{name}}</span>
-			<span class="bastionland-tag">{{damage}}{{#if ranged}} · {{localize "bastionland.item.ranged"}}{{/if}}{{#if blast}} · {{localize "bastionland.item.blast"}}{{/if}}</span>
+			<span class="bastionland-tag">{{tags}}</span>
 		</label>
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
 		{{/each}}
 	</fieldset>
+
+	<fieldset>
+		<legend>{{localize "bastionland.attack.situation"}}</legend>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.movedHint'}}">
+			<input type="checkbox" name="moved" {{checked moved}}>
+			<span class="bastionland-check__label">{{localize "bastionland.attack.moved"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.engagedHint'}}">
+			<input type="checkbox" name="engaged">
+			<span class="bastionland-check__label">{{localize "bastionland.attack.engaged"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.confinedHint'}}">
+			<input type="checkbox" name="confined">
+			<span class="bastionland-check__label">{{localize "bastionland.attack.confined"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.mountedHint'}}">
+			<input type="checkbox" name="mounted" {{checked mounted}}>
+			<span class="bastionland-check__label">{{localize "bastionland.attack.mounted"}}</span>
+		</label>
+		{{#if charge}}
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.chargeHint'}}">
+			<input type="checkbox" name="charge">
+			<span class="bastionland-check__label">{{charge}}</span>
+		</label>
+		{{/if}}
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.spearwallHint'}}">
+			<input type="checkbox" name="spearwall">
+			<span class="bastionland-check__label">{{localize "bastionland.attack.spearwall"}}</span>
+		</label>
+		{{#if exhausted}}
+		<p class="hint">{{localize "bastionland.conditions.exhausted.hint"}}</p>
+		{{/if}}
+	</fieldset>
+
+	<ul class="bastionland-dialog__problems" data-wielding-problems hidden></ul>
 
 	<div class="form-group">
 		<label for="bastionland-attack-bonus">{{localize "bastionland.attack.bonus"}}</label>

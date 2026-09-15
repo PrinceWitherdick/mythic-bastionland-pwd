@@ -1,0 +1,31 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{source}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.gambits.label"}}</legend>
+		{{#each gambits}}
+		<label class="bastionland-check">
+			<input type="radio" name="gambit" value="{{key}}" {{checked @first}}>
+			<span class="bastionland-check__label">{{{label}}}</span>
+		</label>
+		{{/each}}
+		<p class="hint">{{localize "bastionland.gambits.hint"}}</p>
+	</fieldset>
+
+	{{#if strong}}
+	<fieldset>
+		<legend>{{localize "bastionland.attack.strongGambit"}}</legend>
+		<label class="bastionland-check">
+			<input type="radio" name="strong" value="" checked>
+			<span class="bastionland-check__label">{{localize "bastionland.attack.strongNone"}}</span>
+		</label>
+		{{#each strong}}
+		<label class="bastionland-check">
+			<input type="radio" name="strong" value="{{key}}">
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+		<p class="hint">{{{localize "bastionland.gambits.strong"}}}</p>
+	</fieldset>
+	{{/if}}
+</div>

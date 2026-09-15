@@ -28,6 +28,10 @@
 			<input type="checkbox" name="system.slow" {{checked system.slow}}>
 			<span class="bastionland-check__label">{{localize "bastionland.item.slow"}}</span>
 		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.heftyMountedHint'}}">
+			<input type="checkbox" name="system.heftyMounted" {{checked system.heftyMounted}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.heftyMounted"}}</span>
+		</label>
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.rangedHint'}}">
 			<input type="checkbox" name="system.ranged" {{checked system.ranged}}>
 			<span class="bastionland-check__label">{{localize "bastionland.item.ranged"}}</span>
@@ -39,6 +43,10 @@
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.ignoresArmourHint'}}">
 			<input type="checkbox" name="system.ignoresArmour" {{checked system.ignoresArmour}}>
 			<span class="bastionland-check__label">{{localize "bastionland.item.ignoresArmour"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.trampleHint'}}">
+			<input type="checkbox" name="system.trample" {{checked system.trample}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.trample"}}</span>
 		</label>
 	</fieldset>
 	{{/if}}

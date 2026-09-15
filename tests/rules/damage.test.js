@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDoom, resolveDamage } from "../../module/rules/damage.js";
+import { applyDoom, armourAgainst, resolveDamage } from "../../module/rules/damage.js";
 
 describe("applyDoom", () => {
 	it("turns a Mortal Wound into Slain", () => {
@@ -10,6 +10,28 @@ describe("applyDoom", () => {
 	it("leaves every other outcome alone", () => {
 		const wounded = resolveDamage({ damage: 1, guard: 0, vigour: 10 });
 		expect(applyDoom(wounded, 10)).toBe(wounded);
+	});
+});
+
+describe("armourAgainst", () => {
+	it("adds a point for cover only against ranged Attacks", () => {
+		expect(armourAgainst({ armour: 2, cover: true, ranged: true })).toBe(3);
+		expect(armourAgainst({ armour: 2, cover: true, ranged: false })).toBe(2);
+	});
+
+	it("adds a point for a shieldwall", () => {
+		expect(armourAgainst({ armour: 1, shieldwall: true })).toBe(2);
+		expect(armourAgainst({ armour: 1, shieldwall: true, cover: true, ranged: true })).toBe(3);
+	});
+
+	it("ignores Armour, cover and shieldwall together", () => {
+		expect(armourAgainst({ armour: 3, ignoreArmour: true, cover: true, ranged: true, shieldwall: true })).toBe(0);
+	});
+
+	it("reads typed Armour as a whole number no lower than 0", () => {
+		expect(armourAgainst({ armour: "2" })).toBe(2);
+		expect(armourAgainst({ armour: -4 })).toBe(0);
+		expect(armourAgainst({ armour: "" })).toBe(0);
 	});
 });
 
@@ -59,6 +81,13 @@ describe("resolveDamage", () => {
 	it("treats an Exposed target as having 0GD without spending their GD", () => {
 		const result = resolveDamage({ damage: 2, guard: 5, vigour: 10, exposed: true });
 		expect(result).toMatchObject({ guard: 5, guardLoss: 0, vigour: 8, outcome: "wounded" });
+	});
+
+	// Wood and Stone (p11): ships and structures are destroyed at 0GD.
+	it("wears down a structure's GD and destroys it at 0, never touching VIG", () => {
+		expect(resolveDamage({ damage: 3, armour: 1, guard: 5, vigour: 10, structure: true })).toMatchObject({ guard: 3, vigour: 10, outcome: "evaded" });
+		expect(resolveDamage({ damage: 5, guard: 5, vigour: 10, structure: true })).toMatchObject({ guard: 0, guardLoss: 5, vigour: 10, vigourLoss: 0, outcome: "destroyed" });
+		expect(resolveDamage({ damage: 12, guard: 5, vigour: 10, structure: true }).outcome).toBe("destroyed");
 	});
 
 	// Warfare (p11): individual Attacks don't harm a Warband, nor ordinary ones a structure.

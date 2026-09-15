@@ -203,7 +203,7 @@ function itemTags(item) {
 
 	switch (item.type) {
 		case "weapon":
-			return [system.damage, ...qualities("hefty", "long", "slow", "ranged", "blast", "ignoresArmour")];
+			return [system.damage, ...qualities("hefty", "long", "slow", "heftyMounted", "ranged", "blast", "ignoresArmour", "trample")];
 		case "armour":
 			return [
 				t(`item.kinds.${system.kind}`),

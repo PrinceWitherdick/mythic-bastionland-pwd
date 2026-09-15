@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	countsAsHeftyMounted,
 	featsNamed,
 	npcFromStatBlock,
 	parseArmour,
@@ -95,6 +96,16 @@ describe("parseAttacks", () => {
 		expect(parseAttacks("flight, lash (d6)")).toMatchObject({ attacks: [{ name: "lash" }], rest: "flight" });
 	});
 
+	it("reads a weapon that counts as Hefty when mounted", () => {
+		expect(parseAttacks("Tilting pole (d10 long, count as hefty if mounted)").attacks[0]).toMatchObject({
+			qualities: ["long", "heftyMounted"],
+			note: ""
+		});
+		expect(countsAsHeftyMounted("counts as hefty when mounted")).toBe(true);
+		expect(countsAsHeftyMounted("count as hefty when braced")).toBe(false);
+		expect(countsAsHeftyMounted(null)).toBe(false);
+	});
+
 	it("keeps a name that reads as one list", () => {
 		expect(parseAttacks("Nipping, pecking, and flapping (d4)").attacks[0].name).toBe("Nipping, pecking, and flapping");
 	});
@@ -150,6 +161,8 @@ describe("npcFromStatBlock", () => {
 					ranged: false,
 					blast: false,
 					ignoresArmour: false,
+					trample: false,
+					heftyMounted: false,
 					description: "<p>+d6 vs the unlit</p>"
 				}
 			},

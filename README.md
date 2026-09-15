@@ -15,10 +15,24 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Conditions:** Fatigued, Exposed and Mortal Wound are marked by hand. Exhausted (VIG 0), Impaired (SPI 0) and Exposed from CLA 0 follow from the Virtues.
 - **Property, Ability, Passion and Scars:** stored as items, created on the sheet or dragged on. Worn armour adds up to the Knight's Armour.
 - **Feats:** Smite, Focus and Deny roll their Save and mark Fatigue on a failure. A Fatigued Knight can't use them.
-- **Attack:** pick weapons and shields, add bonus dice or Smite, then roll everything together. The chat card shows the highest die and which dice can pay for Gambits and Strong Gambits. Impaired and unarmed Attacks roll a single d4.
-- **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain.
+- **Attack:** target the Tokens you're attacking, pick weapons and shields, add bonus dice or Smite, then roll everything together. Impaired and unarmed Attacks roll a single d4. A Blast against several targets rolls separately for each, one card apiece. The dialog also asks about the turn, and holds the Attack to the rules for wielding weapons:
+  - **Moved this turn** is ticked for you when the Token has moved this turn in combat. A Slow weapon can't be used after moving, and an Exhausted character can't Attack at all.
+  - **Began the turn engaged in melee** leaves purely ranged weapons out of the roll.
+  - **In a confined space** Impairs an Attack with a Long weapon.
+  - A Knight can wield only one Hefty item, and a Long weapon on its own. NPCs aren't held to this, since stat blocks list a creature's attacks without saying how it holds them.
+  - **Mounted** is ticked for anybody with a steed. A weapon marked Hefty if mounted, such as the lance, then counts as Hefty rather than Long, so it can go with a shield.
+  - **Charged a spearwall this turn** refuses the Attack, since enemies of a spearwall can't Attack on the turn they charge it.
+
+  Problems show in the dialog as you tick boxes, and anything left out of the roll is noted on the card. The chat card then takes the Attack through the book's steps:
+  - **Deny:** the target or an ally selects their Token, presses Deny, picks a die to discard and rolls the SPI Save. A player can Deny on somebody else's card while a GM is logged in.
+  - **Gambits:** whoever rolled clicks a die of 4+ to spend it on a Gambit, choosing No Save or a Greater effect for a melee die of 8+. Clicking a spent die takes the Gambit back. **Focus** performs a Gambit without a die, after its CLA Save.
+  - **Damage:** the card keeps the Damage up to date, the highest die left plus Bolster. Each Feat can be used once per Attack by each combatant.
+  - **Apply Damage:** the GM, or whoever owns a target, opens Take Damage for each target with the Damage, ignore Armour and Blast already filled in. A Scar outcome opens Roll Scar with the die that caused it. The card is then settled.
+- **Take Damage:** applies Armour, then GD, then VIG, and reports Evade, Scar, Wound, Mortal Wound or Slain. Protective cover adds a point of Armour against a ranged Attack, and a shieldwall adds a point against any.
+- **Roll Surprise:** a GM picks it from the Combat Tracker's encounter menu (the ⋮ button) and ticks everybody who wasn't readied for combat. Each rolls a CLA Save, and one card shows who misses the first turn.
 - **Roll Scar:** re-rolls the die that caused the Scar, rolls where it landed, applies any Virtue Loss or immediate GD increase, and records the Scar.
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
+- **Steed:** drag an NPC from the Actors tab onto the Knight sheet to ride it. When its weapons include a trample, the Attack dialog offers a mounted charge that adds the trample dice. A **Dismount** Gambit rolls the d6 being dismounted causes and adds it to the dice; take the Gambit back if the target Saves.
 - **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats, and a new Age doesn't give them Glory. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
@@ -30,7 +44,7 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Attacks and gear:** weapons, armour and gear items. Weapons can also be Blast or ignore Armour.
 - **Feats:** off by default, since only some of the Cast can perform one. Mark the ones this character can.
 - **Warbands:** set the scale to Warband and a Mortal Wound routs them, SPI 0 breaks them and VIG 0 wipes them out. Take Damage asks whether the Attack was Blast or large-scale, since nothing else harms them, and their Attacks on individuals get +d12 and Blast.
-- **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature.
+- **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed.
 - **Morale:** rolls the SPI Save to stand rather than rout or surrender.
 - **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.

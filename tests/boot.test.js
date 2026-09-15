@@ -51,7 +51,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, queries: {} };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {
@@ -128,6 +128,12 @@ describe("system boot", () => {
 		}
 	});
 
+	it("wires up Attack cards and lets players ask the GM to record changes on them", () => {
+		expect(hooks.renderChatMessageHTML).toBeTypeOf("function");
+		expect(CONFIG.queries[`${SYSTEM_ID}.changeAttack`]).toBeTypeOf("function");
+		expect(() => hooks.renderChatMessageHTML({ flags: {} }, { querySelector: () => null, querySelectorAll: () => [] })).not.toThrow();
+	});
+
 	it("registers the hidden book art setting and hands the importer and choosers to macros", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "bookArtMacroSeeded", expect.objectContaining({
 			scope: "world",
@@ -140,6 +146,7 @@ describe("system boot", () => {
 		expect(game.system.api.openNpcChooser).toBeTypeOf("function");
 		expect(game.system.api.newRealm).toBeTypeOf("function");
 		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
+		expect(game.system.api.rollSurprise).toBeTypeOf("function");
 		expect(game.system.api.openRefereeRolls).toBeTypeOf("function");
 		expect(game.system.api.rollRefereeTable).toBeTypeOf("function");
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
@@ -147,6 +154,20 @@ describe("system boot", () => {
 		expect(game.system.api.awardGlory).toBeTypeOf("function");
 		expect(game.system.api.getCalendar).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
+	});
+
+	it("offers Roll Surprise to GMs in the Combat Tracker's encounter menu", () => {
+		const options = [];
+		const tracker = { viewed: { combatants: { size: 2 } } };
+		hooks.getCombatContextOptions(tracker, options);
+		expect(options).toHaveLength(1);
+		expect(options[0].label).toBe("bastionland.surprise.title");
+
+		game.user.isGM = true;
+		expect(options[0].visible()).toBe(true);
+		tracker.viewed = null;
+		expect(options[0].visible()).toBe(false);
+		game.user.isGM = false;
 	});
 
 	it("gives GMs the Realm tools, but only on a Realm Scene", async () => {

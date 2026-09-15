@@ -181,7 +181,10 @@
       "label": "Property"
     },
     "steed": {
-      "label": "Steed"
+      "label": "Steed",
+      "empty": "Drag an NPC from the Actors tab here to ride it. Its trample joins a mounted charge.",
+      "clear": "No longer ride this steed",
+      "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat."
     },
     "ability": {
       "label": "Ability"
@@ -226,7 +229,17 @@
       "dismount": "<strong>Dismount</strong> a foe",
       "other": "<strong>Other effect</strong> of a similar level of impact",
       "hint": "Discard Attack dice of 4 or higher, one per Gambit. Foes get a VIG Save against all but Bolster and Move.",
-      "strong": "<strong>Strong Gambit</strong>: a melee die of 8+ also grants No Save or a Greater effect."
+      "strong": "<strong>Strong Gambit</strong>: a melee die of 8+ also grants No Save or a Greater effect.",
+      "names": {
+        "bolster": "Bolster",
+        "move": "Move",
+        "repel": "Repel",
+        "stop": "Stop",
+        "impair": "Impair",
+        "trap": "Trap",
+        "dismount": "Dismount",
+        "other": "Other effect"
+      }
     },
     "save": {
       "title": "{virtue} Save",
@@ -239,6 +252,19 @@
       "holds": "Holds firm.",
       "breaks": "Routs or surrenders.",
       "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI."
+    },
+    "surprise": {
+      "title": "Roll Surprise",
+      "cardTitle": "Surprise",
+      "tagline": "Caught unready for combat",
+      "intro": "Tick everybody who wasn’t readied for combat. Each makes a CLA Save or misses the first turn.",
+      "unready": "Not readied for combat",
+      "hint": "Players normally take the first turn, discussing their plan and acting in any order they wish.",
+      "roll": "Roll Saves",
+      "acts": "Ready in time.",
+      "misses": "Misses the first turn.",
+      "noCombatants": "This encounter has nobody in it yet.",
+      "nobody": "Nobody was caught unready, so there’s nothing to roll."
     },
     "time": {
       "title": "Time",
@@ -542,15 +568,64 @@
       "blast": "Blast",
       "blastHint": "Roll separately against everybody in the area.",
       "ranged": "Ranged",
+      "situation": "This turn",
+      "moved": "Moved this turn",
+      "movedHint": "Ticked when the Token has moved this turn in combat. Slow weapons can’t be used after moving, and an Exhausted character can’t Attack.",
+      "engaged": "Began the turn engaged in melee",
+      "engagedHint": "Purely ranged weapons can’t be used.",
+      "confined": "In a confined space",
+      "confinedHint": "Long weapons are Impaired.",
+      "mounted": "Mounted",
+      "mountedHint": "A lance counts as Hefty rather than Long on horseback, so it can be wielded with a shield.",
+      "spearwall": "Charged a spearwall this turn",
+      "spearwallHint": "3 or more allies in a wall formation, all bearing spears or similar. Enemies can’t Attack on the turn they charge it.",
+      "charge": "Charging on {steed} at enemies on foot (+{dice})",
+      "chargeHint": "A steed’s trample joins the Attack when charging enemies on foot. It doesn’t work against a spearwall.",
+      "confinedImpaired": "A Long weapon in a confined space is Impaired: it rolls a single d4 and gains no bonus dice or Feats.",
+      "setAside": {
+        "slow": "{name} is Slow, so it can’t be used after moving.",
+        "ranged": "{name} is purely ranged, so it can’t be used after beginning the turn engaged in melee."
+      },
+      "refusals": {
+        "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
+        "spearwall": "Enemies of a spearwall can’t Attack on the turn they charge it.",
+        "hefty": "Only one Hefty item can be wielded at once.",
+        "long": "A Long weapon needs both hands, so it can’t be wielded with anything else."
+      },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
       "againstIndividualsHint": "A Warband’s Attack on individuals gets +d12 and causes Blast Damage.",
       "roll": "Roll Attack",
-      "highest": "Highest die",
-      "damageNote": "Before Deny and Gambits. Spend dice of 4+ on Gambits, then the highest die left is the Damage.",
+      "against": "Against {names}",
+      "damage": "Damage",
+      "breakdown": "Highest die {highest}, plus {bolster} from Bolster",
+      "damageNote": "Deny first, then click a die of 4+ to spend it on a Gambit. Click a spent die to take its Gambit back. The highest die left is the Damage.",
       "gambitDice": "Dice for Gambits: {count}",
       "strongDice": "Dice for Strong Gambits: {count}",
-      "unarmed": "Unarmed"
+      "unarmed": "Unarmed",
+      "deniedBy": "Denied by {name}",
+      "dieSource": "d{faces} showing {result}",
+      "dieChoice": "d{faces} showing {result} ({label})",
+      "saveToIgnore": "The target may make a VIG Save to ignore it.",
+      "dismounted": "Being dismounted adds a d6 showing {result} to the dice. Take the Gambit back if they Save.",
+      "strongGambit": "Strong Gambit",
+      "strongNone": "None",
+      "strong": {
+        "noSave": "No Save",
+        "greater": "Greater effect"
+      },
+      "declare": "Declare",
+      "denier": "Who Denies",
+      "denyDie": "The die to discard",
+      "apply": "Apply Damage",
+      "applied": "Damage applied to {names}.",
+      "noDenier": "Select the Token of whoever Denies, or give your User a character.",
+      "featUsed": "{name} has already used {feat} on this Attack.",
+      "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
+      "targetsGone": "The Tokens this Attack targeted are gone.",
+      "cantApply": "Only a GM or the target’s owner can apply this Damage.",
+      "needsGM": "A GM needs to be logged in to change somebody else’s Attack card.",
+      "changeRefused": "The Attack card changed before that could be recorded."
     },
     "damage": {
       "title": "Take Damage",
@@ -558,6 +633,9 @@
       "amountHint": "The highest die left after Gambits, plus any Bolster.",
       "armour": "Armour",
       "ignoreArmour": "Ignore Armour",
+      "cover": "Behind protective cover, against a ranged Attack (+1 Armour)",
+      "shieldwall": "In a shieldwall (+1 Armour)",
+      "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
       "exposed": "Exposed",
       "exposedHint": "Act as if at 0GD.",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
@@ -582,11 +660,16 @@
         "scar": "Left at exactly 0GD. Roll a Scar with the die that caused it.",
         "wounded": "Wounded.",
         "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
-        "slain": "Slain."
+        "slain": "Slain.",
+        "destroyed": "Destroyed."
       },
       "warbandOutcomes": {
         "mortal": "Routed from the battle.",
         "slain": "Wiped out entirely."
+      },
+      "structureOutcomes": {
+        "evaded": "Holds, for now.",
+        "destroyed": "Destroyed at 0GD. Recovering GD takes a day of repairs."
       }
     },
     "scarRoll": {
@@ -698,12 +781,16 @@
       "longHint": "Both hands. Impaired in confined environments.",
       "slow": "Slow",
       "slowHint": "Cannot be used if the wielder moved this turn. Also Long.",
+      "heftyMounted": "Hefty if mounted",
+      "heftyMountedHint": "Counts as Hefty rather than Long when the wielder is mounted, as a lance does.",
       "ranged": "Ranged",
       "rangedHint": "Cannot be used if the wielder began their turn engaged in melee.",
       "blast": "Blast",
       "blastHint": "Attacks everybody in the area, rolled separately for each.",
       "ignoresArmour": "Ignores Armour",
       "ignoresArmourHint": "Damage isn’t reduced by the target’s Armour.",
+      "trample": "Trample",
+      "trampleHint": "A steed’s trample. Its rider adds it to their Attack when charging enemies on foot.",
       "equipped": "Worn or wielded",
       "kind": "Type",
       "armour": "Armour",

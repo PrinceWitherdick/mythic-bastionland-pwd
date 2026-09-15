@@ -11,7 +11,7 @@
  * Import Book Art and a stat block pasted onto a sheet read the same way.
  */
 import { FEATS, NPC_SCALES } from "../config.js";
-import { escapeHTML, logicalLines } from "./text.js";
+import { capitalise, escapeHTML, logicalLines } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 
 const STAT_LINE = /VIG\s*(\d+)\s*,\s*CLA\s*(\d+)\s*,\s*SPI\s*(\d+)\s*,\s*(\d+)\s*GD\b[\s,.;]*/i;
@@ -141,8 +141,18 @@ const QUALITIES = Object.freeze({
 	slow: /^slow$/i,
 	ranged: /^ranged$/i,
 	blast: /^blast$/i,
-	ignoresArmour: /^ignor(?:e|es|ing) armou?r$/i
+	ignoresArmour: /^ignor(?:e|es|ing) armou?r$/i,
+	// A steed's charge, as in "charger (d8 trample)".
+	trample: /^trample$/i,
+	// A lance, "d10 long, count as hefty if mounted" (p12).
+	heftyMounted: /^counts?\s+as\s+hefty\s+(?:if|when)\s+mounted$/i
 });
+
+/**
+ * @param {string} text Such as a weapon's note.
+ * @returns {boolean} Whether it says the weapon counts as Hefty when mounted, as a lance does.
+ */
+export const countsAsHeftyMounted = (text) => /\bcounts?\s+as\s+hefty\s+(?:if|when)\s+mounted\b/i.test(String(text ?? ""));
 
 const qualityOf = (words) => Object.keys(QUALITIES).find((key) => QUALITIES[key].test(words.trim())) ?? null;
 
@@ -160,7 +170,7 @@ function readAttackDetails(inner) {
 	let remainder = dice[2];
 	// More dice and qualities only, as in "d6+d6" or "d12 slow". Anything
 	// else, such as "+d10 vs the guilty", is a situation worth noting instead.
-	if (/^(?:\s*\+\s*\d*d\d+|\s*(?:hefty|long|slow|ranged|blast))*\s*$/i.test(remainder)) {
+	if (/^(?:\s*\+\s*\d*d\d+|\s*(?:hefty|long|slow|ranged|blast|trample))*\s*$/i.test(remainder)) {
 		for (const extra of remainder.matchAll(/\+\s*(\d*d\d+)/gi)) details.damage += `+${extra[1].toLowerCase()}`;
 		remainder = remainder.replace(/\+\s*\d*d\d+/gi, "");
 	}
@@ -251,8 +261,6 @@ export function featsNamed(text) {
 
 /** "Count as a structure", "treat as structure", or Armour that is "(structure)". */
 const STRUCTURE = /\b(?:counts?|treat(?:ed)?)\s+as\s+(?:a\s+)?structure\b|\(structure\)/i;
-
-const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
  * Actor data for an NPC from a stat block. Scores the stat block doesn't give

@@ -23,6 +23,10 @@ export class WeaponModel extends DescribedModel {
 			// Cast attacks such as a sweep (d12 blast) or a scream that ignores armour.
 			blast: new fields.BooleanField({ initial: false }),
 			ignoresArmour: new fields.BooleanField({ initial: false }),
+			// A steed's trample, added to its rider's dice when charging enemies on foot (p10).
+			trample: new fields.BooleanField({ initial: false }),
+			// A lance counts as Hefty rather than Long when its wielder is mounted (p12).
+			heftyMounted: new fields.BooleanField({ initial: false }),
 			equipped: new fields.BooleanField({ initial: true })
 		};
 	}

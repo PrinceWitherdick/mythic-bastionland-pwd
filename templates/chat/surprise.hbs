@@ -1,0 +1,16 @@
+<section class="bastionland-card bastionland-card--surprise">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{localize "bastionland.surprise.cardTitle"}}</h3>
+		<p class="bastionland-card__tagline">{{localize "bastionland.surprise.tagline"}}</p>
+	</header>
+	<ul class="bastionland-card__entries">
+		{{#each entries}}
+		<li>
+			<strong>{{name}}</strong>
+			{{> "bastionland.save-result" save=save}}
+			<p class="bastionland-card__outcome">{{outcome}}</p>
+		</li>
+		{{/each}}
+	</ul>
+	<p class="bastionland-card__hint">{{localize "bastionland.surprise.hint"}}</p>
+</section>

@@ -10,6 +10,7 @@ import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
+import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
 import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
@@ -71,7 +72,10 @@ describe("localization", () => {
 		...SQUIRE_EQUIPMENT.map(({ key }) => `squire.equipment.${key}`),
 		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
 		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
-		...GAMBITS.map((key) => `gambits.${key}`),
+		...GAMBITS.flatMap((key) => [`gambits.${key}`, `gambits.names.${key}`]),
+		...STRONG_GAMBITS.map((key) => `attack.strong.${key}`),
+		...SET_ASIDE_REASONS.map((key) => `attack.setAside.${key}`),
+		...ATTACK_REFUSALS.map((key) => `attack.refusals.${key}`),
 		...REFEREE_TABLES.flatMap(({ key, results }) => [
 			`refereeRolls.tables.${key}.name`,
 			`refereeRolls.tables.${key}.hint`,
@@ -93,9 +97,10 @@ describe("localization", () => {
 		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),
 		...ARMOUR_KINDS.map((key) => `item.kinds.${key}`),
-		...["hefty", "long", "slow", "ranged", "blast", "ignoresArmour"].map((key) => `item.${key}`),
-		...["unharmed", "none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
+		...["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "ignoresArmour", "trample"].map((key) => `item.${key}`),
+		...["unharmed", "none", "evaded", "scar", "wounded", "mortal", "slain", "destroyed"].map((key) => `damage.outcomes.${key}`),
 		...["mortal", "slain"].map((key) => `damage.warbandOutcomes.${key}`),
+		...["evaded", "destroyed"].map((key) => `damage.structureOutcomes.${key}`),
 		...partsOf("damage.harm", ["warband", "structure"], ["label", "hint"]),
 		...partsOf("npc.scales", NPC_SCALES, ["label", "hint"]),
 		...partsOf("npc.warband", ["routed", "broken", "wipedOut"], ["label", "hint"]),

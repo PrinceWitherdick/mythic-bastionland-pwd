@@ -1,0 +1,13 @@
+<div class="bastionland-dialog__body">
+	<p>{{localize "bastionland.surprise.intro"}}</p>
+	<fieldset>
+		<legend>{{localize "bastionland.surprise.unready"}}</legend>
+		{{#each combatants}}
+		<label class="bastionland-check">
+			<input type="checkbox" name="unready-{{index}}">
+			<span class="bastionland-check__label">{{name}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	<p class="hint">{{localize "bastionland.surprise.hint"}}</p>
+</div>
