@@ -3,13 +3,15 @@ import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
-import { KINDS, PROBLEM_REASONS } from "../module/rules/book-art.js";
+import { KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { RANKS } from "../module/rules/glory.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
+import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
+import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
@@ -65,6 +67,14 @@ describe("localization", () => {
 		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
 		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
 		...GAMBITS.map((key) => `gambits.${key}`),
+		...REFEREE_TABLES.flatMap(({ key, results }) => [
+			`refereeRolls.tables.${key}.name`,
+			`refereeRolls.tables.${key}.hint`,
+			...results.map((result) => `refereeRolls.tables.${key}.results.${result}`)
+		]),
+		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
+		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),
+		`bookArt.kinds.${SPARK_KIND}`,
 		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),
 		...ARMOUR_KINDS.map((key) => `item.kinds.${key}`),

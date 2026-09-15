@@ -182,6 +182,87 @@
       "breaks": "Routs or surrenders.",
       "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI."
     },
+    "spark": {
+      "title": "Spark Tables",
+      "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
+      "reference": "page {page}",
+      "rollTable": "Roll on {name}",
+      "tagline": "{page} Spark Table, page {number}",
+      "noIndex": "Run the Import Book Art macro with your rulebook to bring in the Spark Tables.",
+      "noText": "Run Import Book Art again with your rulebook to bring in the Spark Tables.",
+      "pageMissing": "The Spark Tables on this page couldn’t be read. Import Book Art’s report says why.",
+      "pages": {
+        "nature": "Nature",
+        "civilisation": "Civilisation",
+        "people": "People",
+        "combat": "Combat"
+      }
+    },
+    "refereeRolls": {
+      "title": "Referee Rolls",
+      "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
+      "page": "page {page}",
+      "sides": {
+        "left": "left",
+        "right": "right"
+      },
+      "tables": {
+        "luck": {
+          "name": "Luck Roll",
+          "hint": "When you need to consult the whims of fate.",
+          "results": {
+            "crisis": "Crisis: something bad, right away.",
+            "problem": "Problem: something that could turn bad.",
+            "blessing": "Blessing: a welcome result."
+          }
+        },
+        "passage": {
+          "name": "Passage of Time",
+          "hint": "At the end of a session, when it isn’t clear how much time should pass.",
+          "results": {
+            "now": "The Season or Age turns now.",
+            "afterNextSession": "The Season or Age turns after the next session.",
+            "continues": "The Season or Age carries on."
+          }
+        },
+        "unresolved": {
+          "name": "Unresolved Situation",
+          "hint": "For an important situation still unresolved as the Season or Age turns.",
+          "results": {
+            "worst": "It goes as badly as it possibly could.",
+            "worse": "It gets worse.",
+            "better": "It gets better."
+          }
+        },
+        "blind": {
+          "name": "Travelling Blind",
+          "hint": "When travellers without a proper sense of direction, or shrouded by darkness or mist, try to move to a new Hex.",
+          "results": {
+            "circleBack": "They circle back to where they started.",
+            "drift": "They drift a Hex to the {side}.",
+            "asPlanned": "They progress as planned."
+          }
+        },
+        "weather": {
+          "name": "Dire Weather",
+          "hint": "At the start of each Phase in lands at the mercy of dire weather, as most Realms are in Winter.",
+          "results": {
+            "dire": "Dire weather: nobody can leave the Hex or get proper sleep.",
+            "looming": "A looming threat. Rolled twice in a row, it’s dire weather.",
+            "fine": "Fine weather for travel."
+          }
+        },
+        "mood": {
+          "name": "Local Mood",
+          "hint": "On arriving in a Holding.",
+          "results": {
+            "woe": "Troubled by a looming or recent woe.",
+            "decline": "A sense of things in decline.",
+            "fine": "A fine mood, and all seems well enough."
+          }
+        }
+      }
+    },
     "attack": {
       "title": "Attack",
       "weapons": "Weapons and shields",
@@ -434,7 +515,7 @@
     },
     "bookArt": {
       "title": "Import Book Art",
-      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, and each Myth’s Omens and Cast.",
+      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables.",
       "choose": "Rulebook or Blank Realm PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
@@ -448,12 +529,14 @@
       "pageMismatch": "This PDF has {pages} pages, but the rulebook this import was made for has {expected}. Pictures may be missing or mixed up. Import anyway?",
       "layoutMismatch": "The first Knight’s pages don’t have the pictures this import looks for, so this may be a different edition. Import anyway?",
       "progress": "Import Book Art: reading page {page} of {last}",
+      "readingSpark": "Import Book Art: reading the Spark Tables",
       "writingIndex": "Import Book Art: writing the index",
       "packMissing": "Import Book Art couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
       "kinds": {
         "knight": "Knight",
         "seer": "Seer",
         "myth": "Myth",
+        "spark": "Spark Table",
         "terrain": "Terrain",
         "holding": "Holding",
         "landmark": "Landmark"
@@ -469,6 +552,7 @@
         "title": "Book Art Imported",
         "saved": "{kind} art: {saved} of {total} saved",
         "textRead": "{kind} text: {read} of {total} read",
+        "sparkRead": "Spark Tables: {read} of {total} read",
         "index": "Index saved to {path}.",
         "indexFailed": "The index couldn’t be saved, so the pictures can’t be looked up by roll. Run the import again.",
         "unnamed": "Saved without a name, because the page’s title couldn’t be read:",
@@ -484,7 +568,9 @@
           "upload": "the server didn’t accept the file",
           "text": "the Knight’s Property, Ability or Passion couldn’t be read, so the chooser won’t fill them in",
           "mythText": "the Omens or Cast couldn’t be read, so the NPC chooser won’t list them",
-          "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in"
+          "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in",
+          "sparkText": "its rows couldn’t be read, so it’s left out of the Spark Tables",
+          "sparkPage": "no Spark Tables could be read from the page"
         }
       }
     },

@@ -2,7 +2,7 @@ import { applyNpcData, npcData } from "../actions/npc.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { NPC_SOURCES } from "../config.js";
-import { INDEX_VERSION, spreads } from "../rules/book-art.js";
+import { MYTH_TEXT_VERSION, spreads } from "../rules/book-art.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
@@ -57,7 +57,7 @@ export class NpcChooser extends BastionlandChooser {
 
 		let notice = null;
 		if (!this.index) notice = t("npcChooser.noIndex");
-		else if ((this.index.version ?? 0) < INDEX_VERSION) notice = t("npcChooser.noText");
+		else if ((this.index.version ?? 0) < MYTH_TEXT_VERSION) notice = t("npcChooser.noText");
 
 		return Object.assign(context, {
 			notice,

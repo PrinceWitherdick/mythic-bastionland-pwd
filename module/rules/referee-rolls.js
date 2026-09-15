@@ -1,0 +1,45 @@
+/**
+ * The Referee's d6 tables: the Luck Roll (Refereeing p16), Passage of Time and
+ * Unresolved Situations (Time p17), and Travelling Blind, Dire Weather and
+ * Local Mood (Travel p18). Every one reads 1 as the worst, 2-3 as middling and
+ * 4-6 as the best, so each table is just its three results in that order.
+ * Wording lives in the language file under `bastionland.refereeRolls.tables`.
+ * Pure, so it can be tested without Foundry.
+ */
+
+/** Tables in book order, with the page each is printed on. */
+export const REFEREE_TABLES = Object.freeze([
+	{ key: "luck", page: 16, results: ["crisis", "problem", "blessing"] },
+	{ key: "passage", page: 17, results: ["now", "afterNextSession", "continues"] },
+	{ key: "unresolved", page: 17, results: ["worst", "worse", "better"] },
+	{ key: "blind", page: 18, results: ["circleBack", "drift", "asPlanned"] },
+	{ key: "weather", page: 18, results: ["dire", "looming", "fine"] },
+	{ key: "mood", page: 18, results: ["woe", "decline", "fine"] }
+].map((table) => Object.freeze({ ...table, results: Object.freeze(table.results) })));
+
+/** Which way Travelling Blind drifts: a Hex to the left on a 2, to the right on a 3. */
+export const DRIFT_SIDES = Object.freeze(["left", "right"]);
+
+/**
+ * @param {number} d6
+ * @returns {0|1|2} Which of a table's results the roll gives: 1, 2-3 or 4-6.
+ */
+export function d6Band(d6) {
+	if (!Number.isInteger(d6) || d6 < 1 || d6 > 6) throw new RangeError(`${d6} isn't a d6 roll`);
+	if (d6 === 1) return 0;
+	return d6 <= 3 ? 1 : 2;
+}
+
+/**
+ * Read a d6 on one of the Referee's tables.
+ * @param {string} key One of REFEREE_TABLES.
+ * @param {number} d6
+ * @returns {{result: string, side: string|null}|null} `side` is where Travelling Blind drifts.
+ *   Null for a table that doesn't exist.
+ */
+export function readRefereeTable(key, d6) {
+	const table = REFEREE_TABLES.find((candidate) => candidate.key === key);
+	if (!table) return null;
+	const result = table.results[d6Band(d6)];
+	return { result, side: result === "drift" ? DRIFT_SIDES[d6 - 2] : null };
+}

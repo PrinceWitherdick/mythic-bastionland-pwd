@@ -8,15 +8,21 @@
  * with a picture of the Seer who knighted them, and a Myth facing it.
  */
 import { parseStatLine } from "./stat-blocks.js";
-import { joinLines, logicalLines } from "./text.js";
+import { cleanText, joinLines, logicalLines } from "./text.js";
 
 /** Top-level folder under Foundry's Data path, outside any system or world. */
 export const ART_ROOT = "mythic-bastionland-art";
 
 export const INDEX_FILE = "index.json";
 
-/** 2 added each Knight's Property, Ability and Passion. 3 added each Myth's Omens and Cast, and each Seer's stats. */
-export const INDEX_VERSION = 3;
+/**
+ * 2 added each Knight's Property, Ability and Passion. 3 added each Myth's
+ * Omens and Cast, and each Seer's stats. 4 added the Spark Tables.
+ */
+export const INDEX_VERSION = 4;
+
+/** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
+export const MYTH_TEXT_VERSION = 3;
 
 /** Page count of the PDF the layout below was measured against. */
 export const EXPECTED_PAGES = 212;
@@ -39,7 +45,10 @@ export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["my
  * Why an entry needs a second look. `extra` still saves the largest match and
  * the text reasons still save the picture; the rest leave the picture out.
  */
-export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText"]);
+export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage"]);
+
+/** The kind a problem reading the Spark Tables is reported under. */
+export const SPARK_KIND = "spark";
 
 /** Which problem reports that a kind's text couldn't be read. */
 export const TEXT_REASONS = Object.freeze({ knight: "text", seer: "seerText", myth: "mythText" });
@@ -149,7 +158,7 @@ export function pickPageArt(role, images) {
  * @param {object[]} items From `page.getTextContent()`.
  * @returns {{str: string, size: number, x: number, y: number, width: number, font: string|null}[]}
  */
-function textRuns(items) {
+export function textRuns(items) {
 	return items
 		.filter((item) => typeof item.str === "string" && item.str.trim())
 		.map(({ str, transform: [, , c, d, x, y], width, fontName }) => ({
@@ -161,6 +170,12 @@ function textRuns(items) {
 			font: fontName ?? null
 		}));
 }
+
+/**
+ * @param {{x: number, width: number}} run From `textRuns`.
+ * @returns {number} Where its middle falls across the page.
+ */
+export const runMiddle = (run) => run.x + run.width / 2;
 
 /**
  * Join runs into one line of text, top line first. pdf.js can split a word
@@ -182,7 +197,7 @@ function joinRuns(runs) {
 		text += run.str;
 		previous = run;
 	}
-	return text.normalize("NFKC").replace(/\s+/g, " ").trim();
+	return cleanText(text);
 }
 
 const cleanName = (text) => (text && text.length <= NAME_MAX_LENGTH && NAME_PATTERN.test(text) ? text : null);
@@ -355,8 +370,7 @@ export function mythTextFromItems(items) {
 	const castHeading = heading("cast");
 	if (!omensHeading || !castHeading) return null;
 
-	const middle = (run) => run.x + run.width / 2;
-	const split = (middle(omensHeading) + middle(castHeading)) / 2;
+	const split = (runMiddle(omensHeading) + runMiddle(castHeading)) / 2;
 	const top = Math.min(omensHeading.y, castHeading.y) - BASELINE_TOLERANCE;
 	const bottom = promptsTop(textLines(items)) + BASELINE_TOLERANCE;
 	const column = (inColumn) => textLines(items.filter((item) => {
@@ -528,12 +542,14 @@ export function hasPageText(kind, entry) {
  * @param {object} data
  * @param {object[]} data.entries From indexEntry.
  * @param {object[]} [data.problems] `{kind, roll, page, reason}`.
+ * @param {{key: string, page: number, name: string|null, tables: object[]}[]} [data.spark]
+ *   Each page of Spark Tables, from sparkTablesFromItems.
  * @param {number} data.pdfPages
  * @param {string} data.importedAt ISO timestamp.
  * @param {string} data.systemVersion
  * @returns {object}
  */
-export function buildIndex({ entries, problems = [], pdfPages, importedAt, systemVersion }) {
+export function buildIndex({ entries, problems = [], spark = [], pdfPages, importedAt, systemVersion }) {
 	const index = { version: INDEX_VERSION, systemVersion, importedAt, pdfPages, root: ART_ROOT };
 	for (const kind of KINDS) {
 		index[KIND_FOLDERS[kind]] = entries
@@ -541,6 +557,7 @@ export function buildIndex({ entries, problems = [], pdfPages, importedAt, syste
 			.sort((a, b) => a.d6 - b.d6 || a.d12 - b.d12)
 			.map(({ kind: _kind, ...entry }) => entry);
 	}
+	index.spark = spark;
 	index.problems = problems;
 	return index;
 }

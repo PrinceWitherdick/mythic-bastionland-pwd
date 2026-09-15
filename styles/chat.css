@@ -238,6 +238,14 @@
 	gap: 0.25rem;
 }
 
+.bastionland-referee-rolls .form-footer {
+	flex-wrap: wrap;
+}
+
+.bastionland-referee-rolls .form-footer button {
+	flex: 1 1 40%;
+}
+
 .bastionland-check {
 	display: flex;
 	align-items: center;

@@ -72,7 +72,8 @@
 
 .bastionland-sheet .window-content,
 .bastionland-item .window-content,
-.bastionland-chooser-window .window-content {
+.bastionland-chooser-window .window-content,
+.bastionland-spark-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -876,6 +877,84 @@
 .bastionland-condition--feat.is-active {
 	border-color: var(--bastionland-verdigris);
 	background: var(--bastionland-verdigris);
+}
+
+/* ---------------------------------------------------------------- */
+/* Spark Tables: a page of nine tables, the way the book sets them  */
+/* ---------------------------------------------------------------- */
+
+.bastionland-spark {
+	gap: 0.75rem;
+	overflow: hidden;
+}
+
+.bastionland-spark__header .bastionland-choices--inline {
+	margin-bottom: 0;
+}
+
+.bastionland-spark__grid {
+	display: grid;
+	flex: 1;
+	grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+	align-content: start;
+	gap: 1rem 1.25rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0 0.25rem 0 0;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.bastionland-spark__table-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-spark__table-header .bastionland-heading {
+	margin: 0;
+}
+
+.bastionland-spark__table table {
+	width: 100%;
+	margin: 0;
+	border: none;
+	border-collapse: collapse;
+	background: none;
+	font-size: 0.9rem;
+}
+
+.bastionland-spark__table thead th {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.8rem;
+	font-weight: normal;
+	text-align: left;
+}
+
+.bastionland-spark__table th,
+.bastionland-spark__table td {
+	padding: 0.05rem 0.3rem;
+	border: none;
+}
+
+.bastionland-spark__table tbody tr:nth-child(odd) {
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-spark__table tbody th {
+	width: 1.6rem;
+	color: var(--bastionland-ink-soft);
+	font-weight: normal;
+	text-align: right;
+}
+
+.bastionland-spark__table td.is-rolled {
+	outline: 1.5px solid var(--bastionland-blood);
+	outline-offset: -1.5px;
+	color: var(--bastionland-blood);
+	font-weight: bold;
 }
 
 /* ---------------------------------------------------------------- */

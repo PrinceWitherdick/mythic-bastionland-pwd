@@ -1,11 +1,15 @@
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
+import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
+import { openSparkTables } from "./module/apps/SparkTables.js";
+import { addDirectoryButton } from "./module/apps/ui.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
+import { t } from "./module/chat/cards.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
 import {
@@ -30,6 +34,12 @@ const ITEM_MODELS = {
 	passion: PassionModel,
 	scar: ScarModel
 };
+
+/** The Referee's tools GMs get in the Roll Tables directory, in order. */
+const REFEREE_TOOLS = [
+	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
+	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables }
+];
 
 Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
@@ -74,7 +84,16 @@ Hooks.once("init", () => {
 	registerRealmHooks();
 
 	// Macros reach the system through here, such as Import Book Art.
-	game.system.api = Object.freeze({ importBookArt, openKnightChooser, openNpcChooser, newRealm, wildernessRoll });
+	game.system.api = Object.freeze({
+		importBookArt,
+		openKnightChooser,
+		openNpcChooser,
+		newRealm,
+		wildernessRoll,
+		openRefereeRolls,
+		rollRefereeTable,
+		openSparkTables
+	});
 });
 
 Hooks.once("ready", async () => {
@@ -87,3 +106,8 @@ Hooks.on("renderActorDirectory", (_directory, element) => {
 });
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));
+
+Hooks.on("renderRollTableDirectory", (_directory, element) => {
+	if (!game.user.isGM) return;
+	for (const { label, open, ...button } of REFEREE_TOOLS) addDirectoryButton(element, { ...button, label: t(label), onClick: () => open() });
+});

@@ -1,0 +1,12 @@
+<section class="bastionland-card bastionland-card--spark">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{name}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	<p class="bastionland-card__outcome">{{prompt}}</p>
+	<ul class="bastionland-card__entries">
+		{{#each results}}
+		<li><span class="bastionland-card__roll">{{roll}}</span> {{column}}: {{entry}}</li>
+		{{/each}}
+	</ul>
+</section>

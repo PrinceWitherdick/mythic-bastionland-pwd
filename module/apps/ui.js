@@ -42,3 +42,17 @@ export async function confirmDialog({ title, icon, message }) {
 	});
 	return confirmed === true;
 }
+
+/**
+ * @param {typeof foundry.applications.api.ApplicationV2} AppClass
+ * @returns {() => foundry.applications.api.ApplicationV2} Opens the one window of
+ *   that kind, bringing it forward if it's already open.
+ */
+export function singletonOpener(AppClass) {
+	let app = null;
+	return () => {
+		app ??= new AppClass();
+		app.render({ force: true });
+		return app;
+	};
+}

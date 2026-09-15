@@ -14,6 +14,18 @@ export const escapeHTML = (text) => String(text)
 	.replaceAll("\"", "&quot;");
 
 /**
+ * @param {string} text
+ * @returns {string} The text with its first letter capitalised.
+ */
+export const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * @param {string} text As pdf.js read it.
+ * @returns {string} Normalised, with each run of whitespace a single space.
+ */
+export const cleanText = (text) => text.normalize("NFKC").replace(/\s+/g, " ").trim();
+
+/**
  * Join a wrapped line to the text before it, keeping a hyphen that split a word.
  * @param {string} before
  * @param {string} after

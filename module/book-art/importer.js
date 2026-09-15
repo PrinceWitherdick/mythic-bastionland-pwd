@@ -7,6 +7,7 @@ import {
 	KINDS,
 	KIND_FOLDERS,
 	PAGE_KINDS,
+	SPARK_KIND,
 	TEXT_REASONS,
 	artDirectories,
 	artFile,
@@ -23,6 +24,7 @@ import {
 	withArticle
 } from "../rules/book-art.js";
 import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons.js";
+import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { imageFormat, listPageImages, openPdf, saveImage } from "./pdf.js";
@@ -185,10 +187,14 @@ async function extractArt(pdf, OPS) {
 		problems.push(...result.problems);
 	}
 
+	progress.update({ message: t("bookArt.readingSpark") });
+	const spark = await readSparkTables(pdf, problems);
+
 	progress.update({ message: t("bookArt.writingIndex") });
 	const index = buildIndex({
 		entries,
 		problems,
+		spark,
 		pdfPages: pdf.numPages,
 		importedAt: new Date().toISOString(),
 		systemVersion: game.system.version
@@ -198,6 +204,24 @@ async function extractArt(pdf, OPS) {
 
 	await showReport(index, indexPath);
 	return index;
+}
+
+/**
+ * Read the text on one page, logging a page that can't be read.
+ * @param {object} pdf
+ * @param {number} number
+ * @param {(items: object[]) => T} [parse] Given the page's text items.
+ * @returns {Promise<T|null>} Null past the end of the PDF or on an error.
+ * @template T
+ */
+async function readPageText(pdf, number, parse = (items) => items) {
+	if (number > pdf.numPages) return null;
+	try {
+		return await withPage(pdf, number, async (page) => parse((await page.getTextContent()).items));
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | Couldn't read page ${number}`, error);
+		return null;
+	}
 }
 
 /**
@@ -258,6 +282,29 @@ async function savePageArt(pdf, OPS, spread, role, number, format) {
 }
 
 /**
+ * Read each page of Spark Tables, reporting a page with none and any table
+ * whose rows couldn't be read.
+ * @param {object} pdf
+ * @param {object[]} problems Added to.
+ * @returns {Promise<object[]>} One entry per page that had tables.
+ */
+async function readSparkTables(pdf, problems) {
+	const spark = [];
+	for (const { key, page: number } of SPARK_PAGES) {
+		const report = (roll, reason) => problems.push({ kind: SPARK_KIND, roll, page: number, reason });
+		const read = await readPageText(pdf, number, sparkTablesFromItems);
+		const name = read?.name || t(`spark.pages.${key}`);
+		if (!read?.tables.length) {
+			report(name, "sparkPage");
+			continue;
+		}
+		for (const unread of read.unread) report(unread, "sparkText");
+		spark.push({ key, page: number, name, tables: read.tables });
+	}
+	return spark;
+}
+
+/**
  * @param {object} index
  * @param {string|null} indexPath
  */
@@ -274,7 +321,11 @@ async function showReport(index, indexPath) {
 			kind: label(kind),
 			read: listOf(kind).filter((entry) => hasPageText(kind, entry)).length,
 			total: listOf(kind).length
-		}))
+		})),
+		t("bookArt.report.sparkRead", {
+			read: index.spark.reduce((count, page) => count + page.tables.length, 0),
+			total: SPARK_PAGES.length * SPARK_TABLES_PER_PAGE
+		})
 	];
 	const unnamed = KINDS.flatMap((kind) => listOf(kind)
 		.filter((entry) => entry.path && !entry.name)

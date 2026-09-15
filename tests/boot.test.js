@@ -137,6 +137,9 @@ describe("system boot", () => {
 		expect(game.system.api.openNpcChooser).toBeTypeOf("function");
 		expect(game.system.api.newRealm).toBeTypeOf("function");
 		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
+		expect(game.system.api.openRefereeRolls).toBeTypeOf("function");
+		expect(game.system.api.rollRefereeTable).toBeTypeOf("function");
+		expect(game.system.api.openSparkTables).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
 	});
 
@@ -188,6 +191,30 @@ describe("system boot", () => {
 
 		expect(hooks.preMoveToken).toBeTypeOf("function");
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
+	});
+
+	it("adds Referee Rolls and Spark Tables to the Roll Tables directory only for GMs", () => {
+		const header = () => {
+			const buttons = [];
+			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
+		};
+		const element = (actions) => ({ querySelector: (selector) => (selector === ".header-actions" ? actions : null) });
+
+		const refused = header();
+		game.user.isGM = false;
+		hooks.renderRollTableDirectory({}, element(refused));
+		expect(refused.buttons).toHaveLength(0);
+
+		const allowed = header();
+		game.user.isGM = true;
+		globalThis.document = {
+			createElement: (tag) => ({ tag, append() {}, addEventListener() {} })
+		};
+		globalThis.game.i18n = { localize: (key) => key };
+		hooks.renderRollTableDirectory({}, element(allowed));
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables"]);
+		game.user.isGM = false;
+		delete globalThis.document;
 	});
 
 	it("adds New Knight and New NPC to the Actors directory only for users who can create actors", () => {

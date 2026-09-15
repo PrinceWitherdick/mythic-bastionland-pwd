@@ -34,6 +34,13 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 
+### Referee tools
+
+GMs get two buttons at the top of the Roll Tables tab:
+
+- **Referee Rolls:** roll a d6 on one of the book's quick tables and post the result: the Luck Roll, Passage of Time, Unresolved Situation, Travelling Blind, Dire Weather and Local Mood.
+- **Spark Tables:** after Import Book Art, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
+
 ### The Realm
 
 The Realm is a Foundry Scene, so everybody sees the same map and moves their own Knight on it:
@@ -67,7 +74,7 @@ Until you import the icons from your Blank Realm PDF (below), the map uses simpl
 The system ships none of the book's art or text either. A GM who owns the PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
-2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, and each Myth's Omens and Cast. Choose Knight and Choose from Book fill characters in from it.
+2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, and the Spark Tables. Choose Knight and Choose from Book fill characters in from it.
 
 Run the macro again with the Blank Realm PDF that comes with the book to bring in its map legend: the twelve terrain icons, the four Holdings and the six Landmarks. They're saved to `mythic-bastionland-art/realm/` with their white made see-through, beside an `index.json`. New Realms use them, and every Realm Scene already in the world switches to them. As on the Realm Sheet, each terrain icon is drawn inside its hex, and a Holding takes the place of its hex's terrain.
 
