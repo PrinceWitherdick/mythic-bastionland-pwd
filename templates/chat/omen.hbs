@@ -1,0 +1,20 @@
+<section class="bastionland-card bastionland-card--omen">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		{{#if tagline}}
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+		{{/if}}
+	</header>
+	<div class="bastionland-card__myth">
+		{{#if img}}
+		<img class="bastionland-card__art" src="{{img}}" alt="">
+		{{/if}}
+		<p class="bastionland-card__location">{{omen}}</p>
+		{{#if text}}
+		<p class="bastionland-card__quote">{{text}}</p>
+		{{/if}}
+	</div>
+	{{#if hint}}
+	<p class="bastionland-card__hint">{{hint}}</p>
+	{{/if}}
+</section>

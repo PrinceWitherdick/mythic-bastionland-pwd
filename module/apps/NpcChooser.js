@@ -2,11 +2,15 @@ import { applyNpcData, npcData } from "../actions/npc.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { NPC_SOURCES } from "../config.js";
-import { MYTH_TEXT_VERSION, spreads } from "../rules/book-art.js";
+import { CITY_QUEST_TEXT_VERSION, MYTH_TEXT_VERSION, spreads } from "../rules/book-art.js";
+import { CITY_QUEST_PAGES } from "../rules/city-quest.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { addDirectoryButton, confirmDialog } from "./ui.js";
+
+/** Stands in for a roll, since the City Quest isn't on the d6-then-d12 table. */
+const CITY_QUEST_ROLL = "city";
 
 /**
  * A stat line the way the book prints one, such as "VIG 12, CLA 9, SPI 14, 5GD".
@@ -55,12 +59,16 @@ export class NpcChooser extends BastionlandChooser {
 		const rows = this.#rows();
 		const selected = rows.find((row) => row.roll === this.roll);
 
+		const city = this.#source === "cityQuest";
 		let notice = null;
 		if (!this.index) notice = t("npcChooser.noIndex");
 		else if ((this.index.version ?? 0) < MYTH_TEXT_VERSION) notice = t("npcChooser.noText");
+		else if (city && (this.index.version ?? 0) < CITY_QUEST_TEXT_VERSION) notice = t("npcChooser.noCityQuest");
 
 		return Object.assign(context, {
 			notice,
+			// The City Quest is one page, so it has no d6 pages to turn.
+			single: city,
 			sources: NPC_SOURCES.map((key) => ({ key, label: t(`npcChooser.sources.${key}`), active: key === this.#source })),
 			cards: rows.filter((row) => row.d6 === this.group).map((row) => ({
 				roll: row.roll,
@@ -71,7 +79,7 @@ export class NpcChooser extends BastionlandChooser {
 			})),
 			selected: selected && {
 				name: selected.name,
-				reference: t("npcChooser.reference", { roll: selected.roll, page: selected.page }),
+				reference: city ? t("realm.key.page", { page: selected.page }) : t("npcChooser.reference", { roll: selected.roll, page: selected.page }),
 				img: selected.entry?.path ?? null,
 				omens: selected.entry?.omens ?? [],
 				castNote: selected.entry?.castNote || null,
@@ -91,6 +99,17 @@ export class NpcChooser extends BastionlandChooser {
 	 * @returns {{d6: number, d12: number, roll: string, page: number, name: string, entry: object|null}[]}
 	 */
 	#rows() {
+		if (this.#source === "cityQuest") {
+			const quest = this.index?.cityQuest ?? null;
+			return [{
+				d6: this.group,
+				d12: "",
+				roll: CITY_QUEST_ROLL,
+				page: CITY_QUEST_PAGES.cast,
+				name: t("npcChooser.unnamed.cityQuest"),
+				entry: quest && { omens: quest.omens ?? [], cast: quest.cast ?? [], castNote: quest.castNote ?? "" }
+			}];
+		}
 		const seers = this.#source === "seers";
 		return spreads().map(({ d6, d12, roll, knightPage, mythPage }) => {
 			const entry = findByRoll(this.index?.[this.#source], roll);
@@ -106,12 +125,12 @@ export class NpcChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * The stat blocks a row offers: a Myth's Cast, or the Seer themselves.
+	 * The stat blocks a row offers: a Myth's or the City Quest's Cast, or the Seer themselves.
 	 * @returns {{name: string, stats: object|null, lines: string[]}[]}
 	 */
 	#people({ name, entry }) {
 		if (!entry) return [];
-		if (this.#source === "myths") return entry.cast ?? [];
+		if (this.#source !== "seers") return entry.cast ?? [];
 		return entry.stats || entry.lines?.length ? [{ name, stats: entry.stats, lines: entry.lines ?? [] }] : [];
 	}
 
@@ -124,7 +143,8 @@ export class NpcChooser extends BastionlandChooser {
 		const { source } = target.dataset;
 		if (!NPC_SOURCES.includes(source) || source === this.#source) return;
 		this.#source = source;
-		this.roll = null;
+		// The City Quest has only the one entry, so it's picked straight away.
+		this.roll = source === "cityQuest" ? CITY_QUEST_ROLL : null;
 		return this.render();
 	}
 

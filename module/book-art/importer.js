@@ -2,6 +2,7 @@ import { confirmDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import {
 	ART_ROOT,
+	CITY_QUEST_KIND,
 	EXPECTED_PAGES,
 	INDEX_FILE,
 	KINDS,
@@ -34,6 +35,7 @@ import {
 	goodsDocuments,
 	goodsFromPages
 } from "../rules/arms-and-goods.js";
+import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOmensFromItems } from "../rules/city-quest.js";
 import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -207,6 +209,9 @@ async function extractArt(pdf, OPS) {
 	progress.update({ message: t("bookArt.readingSpark") });
 	const spark = await readSparkTables(pdf, problems);
 
+	progress.update({ message: t("bookArt.readingCityQuest") });
+	const cityQuest = await readCityQuest(pdf, problems);
+
 	progress.update({ message: t("bookArt.readingGoods") });
 	const goods = await readGoods(pdf, problems);
 
@@ -215,6 +220,7 @@ async function extractArt(pdf, OPS) {
 		entries,
 		problems,
 		spark,
+		cityQuest,
 		pdfPages: pdf.numPages,
 		importedAt: new Date().toISOString(),
 		systemVersion: game.system.version
@@ -406,6 +412,25 @@ async function readSparkTables(pdf, problems) {
 }
 
 /**
+ * Read the City Quest's Omens and Cast, reporting either part that couldn't be read.
+ * @param {object} pdf
+ * @param {object[]} problems Added to.
+ * @returns {Promise<{omens: string[]|null, cast: object[]|null, castNote: string}>}
+ */
+async function readCityQuest(pdf, problems) {
+	const read = async (part, parse) => {
+		const number = CITY_QUEST_PAGES[part];
+		const result = await readPageText(pdf, number, parse);
+		if (!result) problems.push({ kind: CITY_QUEST_KIND, roll: t(`bookArt.cityQuestParts.${part}`), page: number, reason: "cityQuestText" });
+		return result;
+	};
+
+	const omens = await read("omens", cityQuestOmensFromItems);
+	const cast = await read("cast", cityQuestCastFromItems);
+	return { omens, cast: cast?.cast ?? null, castNote: cast?.castNote ?? "" };
+}
+
+/**
  * @param {object} index
  * @param {string|null} indexPath
  * @param {string|null} [goodsLine] What became of Arms & Goods.
@@ -427,6 +452,11 @@ async function showReport(index, indexPath, goodsLine = null) {
 		t("bookArt.report.sparkRead", {
 			read: index.spark.reduce((count, page) => count + page.tables.length, 0),
 			total: SPARK_PAGES.length * SPARK_TABLES_PER_PAGE
+		}),
+		t("bookArt.report.cityQuestRead", {
+			omens: index.cityQuest?.omens?.length ?? 0,
+			total: CITY_OMEN_COUNT,
+			cast: index.cityQuest?.cast?.length ?? 0
 		}),
 		goodsLine
 	].filter(Boolean);

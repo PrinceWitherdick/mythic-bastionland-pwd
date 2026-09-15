@@ -1,0 +1,67 @@
+<div class="bastionland-page bastionland-myths">
+	<p class="bastionland-hint">{{localize "bastionland.myths.hint"}}</p>
+
+	{{#if realms.length}}
+	<div class="form-group">
+		<label for="{{rootId}}-scene">{{localize "bastionland.myths.realm"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-scene" name="scene">
+				{{#each realms}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+
+	{{#each myths}}
+	<section class="bastionland-block bastionland-myths__myth" data-number="{{number}}">
+		<header class="bastionland-myths__header">
+			{{#if img}}
+			<img class="bastionland-myths__art" src="{{img}}" alt="">
+			{{/if}}
+			<div>
+				<h2 class="bastionland-heading">{{number}}. {{name}}</h2>
+				<p class="bastionland-hint">{{reference}} · {{seen}}{{#if hidden}} · {{localize "bastionland.realm.panel.hidden"}}{{/if}}</p>
+			</div>
+		</header>
+		<ol class="bastionland-myths__omens">
+			{{#each omens}}
+			<li class="{{#if seen}}is-seen{{/if}}{{#if next}} is-next{{/if}}">{{text}}</li>
+			{{/each}}
+		</ol>
+		<nav class="bastionland-toolbar" aria-label="{{name}}">
+			<button type="button" data-action="omenStep" data-step="-1" {{disabled noneSeen}} aria-label="{{localize 'bastionland.realm.panel.omenLess'}}" data-tooltip="{{localize 'bastionland.realm.panel.omenLess'}}"><i class="fa-solid fa-minus" inert></i></button>
+			<button type="button" data-action="nextOmen" {{disabled complete}}><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.myths.nextOmen"}}</button>
+			<button type="button" data-action="mythResolved" data-tooltip="{{localize 'bastionland.glory.awards.myth.hint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.glory.awards.myth.label"}}</button>
+		</nav>
+	</section>
+	{{else}}
+	<p class="bastionland-empty">{{localize "bastionland.myths.noMyths"}}</p>
+	{{/each}}
+	{{else}}
+	<p class="bastionland-empty">{{localize "bastionland.myths.noRealm"}}</p>
+	{{/if}}
+
+	<section class="bastionland-block bastionland-myths__city">
+		<h2 class="bastionland-heading">{{localize "bastionland.cityQuest.title"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.cityQuest.hint"}}</p>
+		{{#if cityQuest.missingText}}
+		<p class="bastionland-hint">{{localize "bastionland.cityQuest.noText"}}</p>
+		{{/if}}
+		<p>{{cityQuest.seen}}</p>
+		{{#unless cityQuest.empty}}
+		<ol class="bastionland-myths__omens bastionland-myths__omens--city">
+			{{#each cityQuest.omens}}
+			<li class="is-seen"><strong>{{number}}.</strong> {{text}}</li>
+			{{/each}}
+		</ol>
+		{{/unless}}
+		{{#if cityQuest.over}}
+		<p class="bastionland-card__outcome">{{localize "bastionland.cityQuest.over"}}</p>
+		{{/if}}
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.cityQuest.title'}}">
+			<button type="button" data-action="rollCityOmen" {{disabled cityQuest.over}}><i class="fa-solid fa-dice-d20" inert></i> {{localize "bastionland.cityQuest.roll"}}</button>
+			<button type="button" data-action="resetCityQuest" {{disabled cityQuest.empty}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.cityQuest.reset"}}</button>
+		</nav>
+	</section>
+</div>

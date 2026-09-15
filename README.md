@@ -52,7 +52,7 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Leading from the front:** a Warband's Attack dialog lists individuals to lead it: the selected Tokens, your character and the Knights you can see. The leader's worn and wielded Attack dice join the roll. Until the leader's next turn in combat, Damage that gets past the Warband's Armour opens Take Damage for the leader too. The NPC sheet shows who leads the Warband.
 - **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed.
 - **Morale:** rolls the SPI Save to stand rather than rout or surrender. The Damage card offers the roll when an NPC is Wounded, or when a Warband's VIG falls to half. In combat, once half of an NPC side is down, GMs get a card to roll the group: once on a leader's SPI if organised, or for each member standing. Knights are never asked.
-- **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
+- **Choose from Book:** after Import Book Art, browse the Myths, the Seers and the City Quest, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 
 ### Domains
@@ -69,7 +69,7 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 
 ### Referee tools
 
-GMs get four buttons at the top of the Roll Tables tab:
+GMs get five buttons at the top of the Roll Tables tab:
 
 - **Referee Rolls:** roll a d6 on one of the book's quick tables and post the result: the Luck Roll, Passage of Time, Unresolved Situation, Travelling Blind, Dire Weather and Local Mood.
 - **Spark Tables:** after Import Book Art, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
@@ -81,6 +81,7 @@ GMs get four buttons at the top of the Roll Tables tab:
   - **Hardship** takes d6 from a Virtue for everybody ticked: SPI for night travel, CLA for no proper sleep, and VIG for Winter cold or going without supplies.
   - Clicking a Season or Phase, or changing the Age or Day, sets the calendar by hand without any of that. In Winter the Wilderness Roll card reminds the GM of the cold and dire weather.
   - **Glory** awards 1 Glory to each Knight ticked for a Myth resolved, a tournament won or a battle won, and says when a Knight reaches a new Rank. Squires are left out.
+- **Myths:** each Myth in a Realm Scene with its six Omens, quoted after Import Book Art, and the ones seen so far marked. **Next Omen** counts one more and shows it to GMs, and **Myth Resolved** awards the Glory. The same window tracks the City Quest: **Roll an Omen of the City** rolls d12 plus those already encountered, skipping duplicates, and says when the Quest ends. The Wilderness Roll card reminds GMs of it on a random Myth's Omen once a player's Knight is Knight-Radiant.
 - **Sites:** map a Site the way the book does, with features, dangers and treasure on a hexagon joined by open, closed and hidden routes, and an entrance and hidden entrance. Change the counts or start from the burial complex, and the same seed always draws the same Site. Post the map to chat for GMs, or save it as a Journal entry with a numbered key to fill in.
 - **Doom and other Scars that wait:** a Doom Scar lasts the Season it was taken in, and while it does, a Mortal Wound Slays instead. Gouge, Tear and Humiliation get a settle button on the Knight sheet for the Referee to press when the Knight is stitched up, patched up or avenged.
 - **Growing older:** changing a Knight's Age to Mature or Old offers to reroll each Virtue on d12+d6, keeping the higher when becoming Mature and the lower when becoming Old.
@@ -118,7 +119,7 @@ Until you import the icons from your Blank Realm PDF (below), the map uses simpl
 The system ships none of the book's art or text either. A GM who owns the PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
-2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, and the Spark Tables.
+2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, and the City Quest's Omens and Cast.
 3. When a GM runs it, everything listed in Arms & Goods, People & Realms and Warfare goes into two world compendiums, **Arms & Goods** and **Beasts, Hirelings & Warbands**, each kind in its own folder:
    - weapons (one for each example a line names, so Hefty Weapons gives a spear, a mace and an axe), armour, tools, Remedies and poisons;
    - beasts, hirelings, Warbands, and structures, ships and siege towers, as NPCs.

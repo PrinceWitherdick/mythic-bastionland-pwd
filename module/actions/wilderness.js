@@ -27,6 +27,9 @@ function findCompany(scene, g) {
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
 }
 
+/** @returns {boolean} Whether any player's Knight is a Knight-Radiant, worthy of the City Quest. */
+const worthyOfCityQuest = () => game.actors.some((actor) => actor.type === "knight" && actor.hasPlayerOwner && actor.system.rank === "radiant");
+
 /**
  * Ask whether the Company ends a travelling Phase or makes camp.
  * @param {{col: number, row: number}} hex
@@ -149,6 +152,8 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		myth,
 		tied: outcome.tied ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
 		landmark,
+		// A Company worthy of the City Quest meets an Omen of the City in place of a random Myth's (p172).
+		cityQuest: outcome.result === "randomOmen" && worthyOfCityQuest() ? t("cityQuest.wildernessHint") : null,
 		winter: winter ? t("time.winterReminder") : null
 	};
 }

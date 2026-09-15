@@ -381,6 +381,19 @@ describe("buildIndex", () => {
 		expect(index.knights[0]).not.toHaveProperty("kind");
 		expect(index.knights[0]).toMatchObject({ property: null, ability: null, passion: null });
 		expect(index.myths[0]).not.toHaveProperty("property");
+		expect(index.cityQuest).toBeNull();
+	});
+
+	it("keeps the City Quest's Omens and Cast", () => {
+		const cityQuest = {
+			page: { omens: 172, cast: 173 },
+			omens: ["A heron made of copper wire."],
+			cast: [{ name: "Clockwork Heron", stats: { vig: 6, cla: 6, spi: 6, guard: 2 }, lines: ["Beak (d6)"] }],
+			castNote: "Wound up at dusk."
+		};
+		const index = buildIndex({ entries: [], cityQuest, pdfPages: 212, importedAt: "2026-01-01T00:00:00.000Z", systemVersion: "0.1.0" });
+		expect(index).toMatchObject({ version: INDEX_VERSION, cityQuest });
+		expect(buildIndex({ entries: [], cityQuest: { ...cityQuest, omens: null }, pdfPages: 212 }).cityQuest.omens).toBeNull();
 	});
 
 	it("keeps the text read from each kind's page", () => {

@@ -75,7 +75,8 @@
 .bastionland-chooser-window .window-content,
 .bastionland-spark-window .window-content,
 .bastionland-time-window .window-content,
-.bastionland-sites-window .window-content {
+.bastionland-sites-window .window-content,
+.bastionland-myths-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -1022,6 +1023,54 @@
 .bastionland-spark__table td.is-rolled {
 	outline: 1.5px solid var(--bastionland-blood);
 	outline-offset: -1.5px;
+	color: var(--bastionland-blood);
+	font-weight: bold;
+}
+
+/* ---------------------------------------------------------------- */
+/* Myths: each Myth's Omens, and the Omens of the City              */
+/* ---------------------------------------------------------------- */
+
+.bastionland-myths {
+	gap: 0.75rem;
+}
+
+.bastionland-myths__header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.bastionland-myths__header .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-myths__art {
+	flex: none;
+	width: 6rem;
+	height: 3.5rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: cover;
+}
+
+.bastionland-myths__omens {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0.4rem 0;
+	padding-left: 1.4rem;
+}
+
+.bastionland-myths__omens--city {
+	padding-left: 0;
+	list-style: none;
+}
+
+.bastionland-myths__omens li.is-seen {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-myths__omens li.is-next {
 	color: var(--bastionland-blood);
 	font-weight: bold;
 }

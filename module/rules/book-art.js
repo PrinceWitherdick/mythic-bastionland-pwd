@@ -17,12 +17,16 @@ export const INDEX_FILE = "index.json";
 
 /**
  * 2 added each Knight's Property, Ability and Passion. 3 added each Myth's
- * Omens and Cast, and each Seer's stats. 4 added the Spark Tables.
+ * Omens and Cast, and each Seer's stats. 4 added the Spark Tables. 5 added
+ * the City Quest's Omens and Cast.
  */
-export const INDEX_VERSION = 4;
+export const INDEX_VERSION = 5;
 
 /** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
 export const MYTH_TEXT_VERSION = 3;
+
+/** The first index version with the City Quest's Omens and Cast. */
+export const CITY_QUEST_TEXT_VERSION = 5;
 
 /** Page count of the PDF the layout below was measured against. */
 export const EXPECTED_PAGES = 212;
@@ -45,10 +49,13 @@ export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["my
  * Why an entry needs a second look. `extra` still saves the largest match and
  * the text reasons still save the picture; the rest leave the picture out.
  */
-export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind"]);
+export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind", "cityQuestText"]);
 
 /** The kind a problem reading the Spark Tables is reported under. */
 export const SPARK_KIND = "spark";
+
+/** The kind a problem reading the City Quest is reported under. */
+export const CITY_QUEST_KIND = "cityQuest";
 
 /** Which problem reports that a kind's text couldn't be read. */
 export const TEXT_REASONS = Object.freeze({ knight: "text", seer: "seerText", myth: "mythText" });
@@ -236,7 +243,7 @@ export function seerNameFromItems(items) {
 }
 
 /** Runs this close to the same baseline share a line, such as small capitals within a sentence. */
-const BASELINE_TOLERANCE = 2;
+export const BASELINE_TOLERANCE = 2;
 
 /**
  * The page's text as lines, top to bottom.
@@ -415,7 +422,7 @@ function bodyFont(lines) {
  * @param {ReturnType<typeof textLines>} lines The Cast column.
  * @returns {{cast: CastEntry[], castNote: string}}
  */
-function readCast(lines) {
+export function readCast(lines) {
 	const tableAt = lines.findIndex((line) => line.size < CAST_MIN_SIZE);
 	const castLines = tableAt < 0 ? lines : lines.slice(0, tableAt);
 	const body = bodyFont(castLines);
@@ -544,12 +551,14 @@ export function hasPageText(kind, entry) {
  * @param {object[]} [data.problems] `{kind, roll, page, reason}`.
  * @param {{key: string, page: number, name: string|null, tables: object[]}[]} [data.spark]
  *   Each page of Spark Tables, from sparkTablesFromItems.
+ * @param {{omens: string[]|null, cast: CastEntry[]|null, castNote: string}|null} [data.cityQuest]
+ *   The City Quest's Omens and Cast, each null when unread, and any note beneath the Cast.
  * @param {number} data.pdfPages
  * @param {string} data.importedAt ISO timestamp.
  * @param {string} data.systemVersion
  * @returns {object}
  */
-export function buildIndex({ entries, problems = [], spark = [], pdfPages, importedAt, systemVersion }) {
+export function buildIndex({ entries, problems = [], spark = [], cityQuest = null, pdfPages, importedAt, systemVersion }) {
 	const index = { version: INDEX_VERSION, systemVersion, importedAt, pdfPages, root: ART_ROOT };
 	for (const kind of KINDS) {
 		index[KIND_FOLDERS[kind]] = entries
@@ -558,6 +567,7 @@ export function buildIndex({ entries, problems = [], spark = [], pdfPages, impor
 			.map(({ kind: _kind, ...entry }) => entry);
 	}
 	index.spark = spark;
+	index.cityQuest = cityQuest;
 	index.problems = problems;
 	return index;
 }

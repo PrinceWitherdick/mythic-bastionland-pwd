@@ -22,8 +22,8 @@ export const FEATS = Object.freeze([
 /** An NPC is one person or creature, or a Warband of two dozen or so fighting as one (Warfare, p11). */
 export const NPC_SCALES = Object.freeze(["individual", "warband"]);
 
-/** What the NPC chooser lists: each Myth with its Cast, and each Seer. Keys of the art index. */
-export const NPC_SOURCES = Object.freeze(["myths", "seers"]);
+/** What the NPC chooser lists: each Myth with its Cast, each Seer, and the City Quest's Cast. Keys of the art index. */
+export const NPC_SOURCES = Object.freeze(["myths", "seers", "cityQuest"]);
 
 /** Gambits in the order the character sheet prints them. */
 export const GAMBITS = Object.freeze(["bolster", "move", "repel", "stop", "impair", "trap", "dismount", "other"]);

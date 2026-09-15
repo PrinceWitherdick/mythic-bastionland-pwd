@@ -3,7 +3,7 @@ import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
-import { KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
+import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
@@ -96,6 +96,8 @@ describe("localization", () => {
 		...SITE_PROBLEMS.map((reason) => `sites.problems.${reason}`),
 		`bookArt.kinds.${SPARK_KIND}`,
 		`bookArt.kinds.${GOODS_KIND}`,
+		`bookArt.kinds.${CITY_QUEST_KIND}`,
+		...["omens", "cast"].map((part) => `bookArt.cityQuestParts.${part}`),
 		...GOODS_KINDS.map((kind) => `goods.folders.${kind}`),
 		...RARITIES.map((rarity) => `goods.rarities.${rarity}`),
 		...partsOf("domain.council", COUNCIL_SEATS, ["label", "hint"]),

@@ -594,6 +594,30 @@
         "combat": "Combat"
       }
     },
+    "myths": {
+      "title": "Myths",
+      "hint": "Each Myth in the Realm with its six Omens, the ones seen so far marked. The Realm’s Hex panel and the Wilderness Roll count the same Omens.",
+      "realm": "Realm",
+      "noRealm": "There’s no Realm Scene yet. Use New Realm in the Scenes tab to roll one.",
+      "noMyths": "This Realm has no Myths.",
+      "omenNumber": "Omen {number}",
+      "nextOmen": "Next Omen"
+    },
+    "cityQuest": {
+      "title": "The City Quest",
+      "hint": "A Company worthy of the City Quest meets an Omen of the City instead of a random Myth’s Omen when the Wilderness Roll is a 1. Roll d12 plus the Omens of the City already encountered, taking the next one down the list for a duplicate.",
+      "noText": "Run Import Book Art again to quote the Omens of the City here.",
+      "seen": "Omens of the City encountered: {count}. The City Quest ends after Omen {end} or higher.",
+      "roll": "Roll an Omen of the City",
+      "rolled": "d12 showing {roll}, plus {count} already encountered",
+      "omen": "Omen {omen} of {count}",
+      "ends": "Omen 18 or higher: after this Omen, the City Quest ends.",
+      "over": "The City Quest has ended.",
+      "reset": "Start Over",
+      "resetTitle": "Start the City Quest Over?",
+      "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
+      "wildernessHint": "A Company worthy of the City Quest encounters an Omen of the City instead. Roll it from the Myths window."
+    },
     "sites": {
       "title": "Sites",
       "hint": "Map a Site the way the book does: points on the corners and centre of a hexagon, joined by routes between neighbours. The same seed and counts always draw the same Site.",
@@ -1041,12 +1065,15 @@
       "newNpc": "New NPC",
       "sources": {
         "myths": "Myths",
-        "seers": "Seers"
+        "seers": "Seers",
+        "cityQuest": "City Quest"
       },
       "unnamed": {
         "myths": "Myth {roll}",
-        "seers": "Seer {roll}"
+        "seers": "Seer {roll}",
+        "cityQuest": "The City Quest"
       },
+      "noCityQuest": "Run Import Book Art again to bring in the City Quest’s Omens and Cast.",
       "noIndex": "Run the Import Book Art macro to see each Myth’s Cast and each Seer here.",
       "noText": "Run Import Book Art again to bring in each Myth’s Omens and Cast and each Seer’s Virtues.",
       "reference": "{roll}, page {page}",
@@ -1077,6 +1104,11 @@
       "progress": "Import Book Art: reading page {page} of {last}",
       "readingSpark": "Import Book Art: reading the Spark Tables",
       "readingGoods": "Import Book Art: reading Arms & Goods",
+      "readingCityQuest": "Import Book Art: reading the City Quest",
+      "cityQuestParts": {
+        "omens": "Omens",
+        "cast": "Cast"
+      },
       "fillingGoods": "Import Book Art: filling the Arms & Goods compendiums",
       "writingIndex": "Import Book Art: writing the index",
       "packMissing": "Import Book Art couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
@@ -1086,6 +1118,7 @@
         "myth": "Myth",
         "spark": "Spark Table",
         "goods": "Arms & Goods:",
+        "cityQuest": "City Quest",
         "terrain": "Terrain",
         "holding": "Holding",
         "landmark": "Landmark"
@@ -1102,6 +1135,7 @@
         "saved": "{kind} art: {saved} of {total} saved",
         "textRead": "{kind} text: {read} of {total} read",
         "sparkRead": "Spark Tables: {read} of {total} read",
+        "cityQuestRead": "City Quest: {omens} of {total} Omens and {cast} of the Cast read",
         "goods": "Arms & Goods: {items} items in the {itemsPack} compendium, and {actors} beasts, hirelings, Warbands and structures in {actorsPack}",
         "goodsNotGM": "Arms & Goods were read, but only a GM can fill their compendiums. Run the import again as a GM.",
         "goodsFailed": "The Arms & Goods compendiums couldn’t be filled. If either is locked, unlock it and run the import again.",
@@ -1123,7 +1157,8 @@
           "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in",
           "sparkText": "its rows couldn’t be read, so it’s left out of the Spark Tables",
           "sparkPage": "no Spark Tables could be read from the page",
-          "goodsKind": "none could be read, so the compendium goes without them"
+          "goodsKind": "none could be read, so the compendium goes without them",
+          "cityQuestText": "they couldn’t be read, so the City Quest goes without them"
         }
       }
     },

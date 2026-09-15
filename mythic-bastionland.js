@@ -1,5 +1,7 @@
 import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.js";
+import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
+import { openMythsPanel } from "./module/apps/MythsPanel.js";
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
@@ -51,7 +53,8 @@ const REFEREE_TOOLS = [
 	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
 	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
 	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel },
-	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.title", open: openSitesPanel }
+	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.title", open: openSitesPanel },
+	{ className: "bastionland-myths", icon: "fa-solid fa-dragon", label: "myths.title", open: openMythsPanel }
 ];
 
 Hooks.once("init", () => {
@@ -98,6 +101,9 @@ Hooks.once("init", () => {
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
 
+	// The Omens of the City the Company has encountered.
+	registerCityQuestSetting();
+
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();
 
@@ -130,6 +136,8 @@ Hooks.once("init", () => {
 		openSparkTables,
 		openTimePanel,
 		openSitesPanel,
+		openMythsPanel,
+		rollCityOmen,
 		awardGlory,
 		getCalendar
 	});

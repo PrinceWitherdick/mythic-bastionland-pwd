@@ -157,6 +157,8 @@ describe("system boot", () => {
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
 		expect(game.system.api.openSitesPanel).toBeTypeOf("function");
+		expect(game.system.api.openMythsPanel).toBeTypeOf("function");
+		expect(game.system.api.rollCityOmen).toBeTypeOf("function");
 		expect(game.system.api.awardGlory).toBeTypeOf("function");
 		expect(game.system.api.getCalendar).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
@@ -235,7 +237,16 @@ describe("system boot", () => {
 		}));
 	});
 
-	it("adds Referee Rolls, Spark Tables, Time and Sites to the Roll Tables directory only for GMs", () => {
+	it("remembers the Omens of the City in a hidden world setting", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "cityQuest", expect.objectContaining({
+			scope: "world",
+			config: false,
+			type: Object,
+			default: { seen: [] }
+		}));
+	});
+
+	it("adds Referee Rolls, Spark Tables, Time, Sites and Myths to the Roll Tables directory only for GMs", () => {
 		const header = () => {
 			const buttons = [];
 			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
@@ -254,7 +265,7 @@ describe("system boot", () => {
 		};
 		globalThis.game.i18n = { localize: (key) => key };
 		hooks.renderRollTableDirectory({}, element(allowed));
-		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables", "bastionland-time", "bastionland-sites"]);
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables", "bastionland-time", "bastionland-sites", "bastionland-myths"]);
 		game.user.isGM = false;
 		delete globalThis.document;
 	});
