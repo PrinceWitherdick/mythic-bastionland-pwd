@@ -1,0 +1,342 @@
+/**
+ * NPC stat blocks, as the book prints them for each Myth's Cast and each Seer:
+ *
+ *     Name, Epithet
+ *     VIG 12, CLA 9, SPI 14, 5GD
+ *     A2 (what the Armour is)
+ *     Weapon (d8 hefty, anything else about it) or other weapon (d6 blast)
+ *     Special rules, what they want, what they're like.
+ *
+ * Some give only GD, such as a thing that counts as a structure. Pure, so
+ * Import Book Art and a stat block pasted onto a sheet read the same way.
+ */
+import { FEATS, NPC_SCALES } from "../config.js";
+import { escapeHTML, logicalLines } from "./text.js";
+import { VIRTUES, clampVirtue } from "./virtues.js";
+
+const STAT_LINE = /VIG\s*(\d+)\s*,\s*CLA\s*(\d+)\s*,\s*SPI\s*(\d+)\s*,\s*(\d+)\s*GD\b[\s,.;]*/i;
+const GUARD_ONLY = /^(\d+)\s*GD\b[\s,.;]*/i;
+
+/**
+ * @typedef {object} Stats
+ * @property {number|null} vig  Null when the stat block gives only GD.
+ * @property {number|null} cla
+ * @property {number|null} spi
+ * @property {number} guard
+ */
+
+/**
+ * Read "VIG 12, CLA 9, SPI 14, 5GD", or just "5GD", at the start of a line.
+ * @param {string} text
+ * @returns {{stats: Stats, rest: string}|null} `rest` is anything after the stats on the same line.
+ */
+export function parseStatLine(text) {
+	const line = String(text ?? "").trim();
+	const full = STAT_LINE.exec(line);
+	if (full?.index === 0) {
+		const [whole, vig, cla, spi, guard] = full;
+		return {
+			stats: { vig: clampVirtue(vig), cla: clampVirtue(cla), spi: clampVirtue(spi), guard: Number(guard) },
+			rest: line.slice(whole.length).trim()
+		};
+	}
+	const guardOnly = GUARD_ONLY.exec(line);
+	if (!guardOnly) return null;
+	return {
+		stats: { vig: null, cla: null, spi: null, guard: Number(guardOnly[1]) },
+		rest: line.slice(guardOnly[0].length).trim()
+	};
+}
+
+/**
+ * "The Wyvern, That Foul Twisted Reptile" is named "The Wyvern", with the rest
+ * as their epithet.
+ * @param {string} full
+ * @returns {{name: string, epithet: string}}
+ */
+export function splitCastName(full) {
+	const text = String(full ?? "").replace(/\s+/g, " ").trim();
+	const comma = text.indexOf(",");
+	if (comma < 0) return { name: text, epithet: "" };
+	return { name: text.slice(0, comma).trim(), epithet: text.slice(comma + 1).trim() };
+}
+
+/**
+ * @param {string} text
+ * @returns {string[]} The text split at commas outside parentheses.
+ */
+function splitTopLevel(text) {
+	const parts = [];
+	let depth = 0;
+	let start = 0;
+	for (let index = 0; index < text.length; index++) {
+		const character = text[index];
+		if (character === "(") depth++;
+		else if (character === ")") depth = Math.max(0, depth - 1);
+		else if (character === "," && depth === 0) {
+			parts.push(text.slice(start, index));
+			start = index + 1;
+		}
+	}
+	parts.push(text.slice(start));
+	return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+/**
+ * @param {string} text
+ * @returns {{open: number, close: number, inner: string}[]} Each outermost parenthesis.
+ */
+function parentheticals(text) {
+	const groups = [];
+	let depth = 0;
+	let open = -1;
+	for (let index = 0; index < text.length; index++) {
+		if (text[index] === "(") {
+			if (depth === 0) open = index;
+			depth++;
+		} else if (text[index] === ")" && depth > 0) {
+			depth--;
+			if (depth === 0) groups.push({ open, close: index, inner: text.slice(open + 1, index) });
+		}
+	}
+	return groups;
+}
+
+const ARMOUR = /^(?:or\s+)?A(\d+)\b\s*(.*)$/i;
+
+/**
+ * Armour at the start of a line: "A3 (what it is)", or more than one value,
+ * such as "A2 in flight, A4 on ground (why)".
+ * @param {string} line
+ * @returns {{armour: number, note: string, rest: string}|null} The first value
+ *   counts. `rest` is what follows the Armour on the line, such as an attack.
+ */
+export function parseArmour(line) {
+	const parts = splitTopLevel(String(line ?? ""));
+	if (!/^A\d/.test(parts[0] ?? "")) return null;
+	const end = parts.findIndex((part) => !ARMOUR.test(part));
+	const armourParts = end < 0 ? parts : parts.slice(0, end);
+	const rest = end < 0 ? [] : parts.slice(end);
+
+	// Text after the Armour's parenthesis, or after a full stop, starts something
+	// else, as in "A1 (mail). Can Focus." or "A3. Treat as a structure."
+	const last = armourParts.at(-1);
+	const group = parentheticals(last)[0];
+	const endsAt = group ? group.close + 1 : last.search(/[.;]/);
+	const after = endsAt > 0 ? last.slice(endsAt).replace(/^[\s.,;]+/, "") : "";
+	if (after) {
+		rest.unshift(after);
+		armourParts[armourParts.length - 1] = last.slice(0, endsAt).trim();
+	}
+
+	const [, value, described] = ARMOUR.exec(armourParts[0]);
+	const note = armourParts.length === 1 ? (/^\((.*)\)$/.exec(described)?.[1] ?? described) : armourParts.join(", ");
+	return { armour: Number(value), note: note.trim(), rest: rest.join(", ") };
+}
+
+/** Weapon qualities an attack's parenthesis can name. */
+const QUALITIES = Object.freeze({
+	hefty: /^hefty$/i,
+	long: /^long$/i,
+	slow: /^slow$/i,
+	ranged: /^ranged$/i,
+	blast: /^blast$/i,
+	ignoresArmour: /^ignor(?:e|es|ing) armou?r$/i
+});
+
+const qualityOf = (words) => Object.keys(QUALITIES).find((key) => QUALITIES[key].test(words.trim())) ?? null;
+
+/**
+ * Read the inside of an attack's parenthesis, such as "2d10 long, +d10 vs the
+ * guilty". Returns null when it doesn't start with dice.
+ * @param {string} inner
+ */
+function readAttackDetails(inner) {
+	const [first, ...others] = splitTopLevel(inner);
+	const dice = /^(\d*d\d+)\s*(.*)$/i.exec(first ?? "");
+	if (!dice) return null;
+
+	const details = { damage: dice[1].toLowerCase(), qualities: new Set(), notes: [] };
+	let remainder = dice[2];
+	// More dice and qualities only, as in "d6+d6" or "d12 slow". Anything
+	// else, such as "+d10 vs the guilty", is a situation worth noting instead.
+	if (/^(?:\s*\+\s*\d*d\d+|\s*(?:hefty|long|slow|ranged|blast))*\s*$/i.test(remainder)) {
+		for (const extra of remainder.matchAll(/\+\s*(\d*d\d+)/gi)) details.damage += `+${extra[1].toLowerCase()}`;
+		remainder = remainder.replace(/\+\s*\d*d\d+/gi, "");
+	}
+	const words = remainder.trim().split(/\s+/).filter(Boolean);
+	while (words.length && qualityOf(words[0])) details.qualities.add(qualityOf(words.shift()));
+	if (words.length) details.notes.push(words.join(" "));
+
+	for (const other of others) {
+		const quality = qualityOf(other);
+		if (quality) details.qualities.add(quality);
+		else details.notes.push(other);
+	}
+	return details;
+}
+
+const LEADING_JOINER = /^[\s,;.]*(?:(?:or|and)\b)?[\s,;.]*/i;
+
+/**
+ * Where an attack's name starts in the text before its parenthesis. After a
+ * comma a new name begins, unless it reads as one list, such as "Yapping,
+ * biting, and scratching".
+ * @param {string} before The text between the previous parenthesis and this one.
+ * @returns {number}
+ */
+function nameStartIn(before) {
+	const comma = before.lastIndexOf(",");
+	const from = comma < 0 || /^\s*(?:and|or)\s/i.test(before.slice(comma + 1)) ? 0 : comma + 1;
+	return from + before.slice(from).match(LEADING_JOINER)[0].length;
+}
+
+/**
+ * @typedef {object} ParsedAttack
+ * @property {string} name   As printed, or "" when the attack has no name.
+ * @property {string} damage e.g. "2d10".
+ * @property {string[]} qualities Keys of QUALITIES.
+ * @property {string} note   Anything else in the parenthesis.
+ */
+
+/**
+ * Find the attacks on a line: a name followed by a parenthesis that starts
+ * with dice, such as "Crush (2d12) or sweep (d12 blast)".
+ * @param {string} line
+ * @returns {{attacks: ParsedAttack[], rest: string}} `rest` is the line's other text.
+ */
+export function parseAttacks(line) {
+	const text = String(line ?? "");
+	const attacks = [];
+	const leftovers = [];
+	let cursor = 0;
+	let previousClose = 0;
+
+	for (const group of parentheticals(text)) {
+		const details = readAttackDetails(group.inner);
+		if (details) {
+			const nameStart = previousClose + nameStartIn(text.slice(previousClose, group.open));
+			leftovers.push(text.slice(cursor, nameStart));
+			attacks.push({
+				name: text.slice(nameStart, group.open).trim(),
+				damage: details.damage,
+				qualities: [...details.qualities],
+				note: details.notes.join(", ")
+			});
+			cursor = group.close + 1;
+		}
+		previousClose = group.close + 1;
+	}
+	leftovers.push(text.slice(cursor));
+
+	const rest = leftovers
+		.map((piece) => piece.replace(LEADING_JOINER, "").replace(/[\s,;]+$/, "").trim())
+		.filter((piece) => /\p{L}/u.test(piece))
+		.join(", ");
+	return { attacks, rest };
+}
+
+const FEAT_NAMES = FEATS.map(({ key }) => key).join("|");
+const FEAT_NAME = new RegExp(FEAT_NAMES, "gi");
+const FEAT_LIST = new RegExp(`\\bcan\\s+((?:${FEAT_NAMES})(?:\\s*(?:,|and|or)\\s*(?:${FEAT_NAMES}))*)\\b`, "i");
+
+/**
+ * @param {string} text
+ * @returns {string[]} Feats a line says the character can perform, such as "Can Focus."
+ */
+export function featsNamed(text) {
+	const list = FEAT_LIST.exec(String(text ?? ""))?.[1] ?? "";
+	return [...list.matchAll(FEAT_NAME)].map((match) => match[0].toLowerCase());
+}
+
+/** "Count as a structure", "treat as structure", or Armour that is "(structure)". */
+const STRUCTURE = /\b(?:counts?|treat(?:ed)?)\s+as\s+(?:a\s+)?structure\b|\(structure\)/i;
+
+const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * Actor data for an NPC from a stat block. Scores the stat block doesn't give
+ * are left out, so a new NPC keeps its defaults and an existing one its own.
+ * A Cast entry named as a Warband, such as "Ghostly Riders, Warband", is one.
+ * @param {object} block
+ * @param {string|null} block.name  As printed, such as "The Wyvern, That Foul Twisted Reptile".
+ * @param {Stats|null} [block.stats]
+ * @param {string[]} [block.lines] What follows the stats, one written line each.
+ * @param {object} [options]
+ * @param {string} [options.attackName] Names an attack printed without one.
+ * @returns {{name: string, system: object, items: object[]}}
+ */
+export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackName = "Attack" } = {}) {
+	const { name: shortName, epithet } = splitCastName(name);
+	const track = (value) => ({ value, max: value });
+	const system = {
+		epithet,
+		armour: 0,
+		armourNote: "",
+		scale: /\bwarband\b/i.test(name ?? "") ? "warband" : NPC_SCALES[0],
+		structure: false,
+		feats: Object.fromEntries(FEATS.map(({ key }) => [key, false])),
+		notes: ""
+	};
+	const virtues = Object.fromEntries(VIRTUES.filter((key) => Number.isInteger(stats?.[key])).map((key) => [key, track(stats[key])]));
+	if (Object.keys(virtues).length) system.virtues = virtues;
+	if (Number.isInteger(stats?.guard)) system.guard = track(stats.guard);
+
+	const items = [];
+	const notes = [];
+	let armourRead = false;
+	for (const line of lines) {
+		if (STRUCTURE.test(line)) system.structure = true;
+
+		let text = line;
+		const armour = armourRead ? null : parseArmour(text);
+		if (armour) {
+			armourRead = true;
+			system.armour = armour.armour;
+			system.armourNote = armour.note;
+			text = armour.rest;
+		}
+		if (!text) continue;
+
+		const { attacks, rest } = parseAttacks(text);
+		for (const attack of attacks) items.push(weaponData(attack, attackName));
+		if (!rest) continue;
+		notes.push(rest);
+		for (const feat of featsNamed(rest)) system.feats[feat] = true;
+	}
+
+	system.notes = notes.map((note) => `<p>${escapeHTML(note)}</p>`).join("");
+	return { name: shortName, system, items };
+}
+
+/**
+ * @param {ParsedAttack} attack
+ * @param {string} fallbackName
+ * @returns {object} Weapon item data.
+ */
+function weaponData(attack, fallbackName) {
+	const system = { damage: attack.damage, equipped: true };
+	for (const key of Object.keys(QUALITIES)) system[key] = attack.qualities.includes(key);
+	system.description = attack.note ? `<p>${escapeHTML(capitalise(attack.note))}</p>` : "";
+	return { type: "weapon", name: capitalise(attack.name) || fallbackName, system };
+}
+
+/**
+ * Read a stat block pasted as plain text, such as one copied out of a PDF. The
+ * full stat line is found wherever it is; anything before it is the name.
+ * @param {string} text
+ * @returns {{name: string|null, stats: Stats, lines: string[]}|null} Null without a stat line.
+ */
+export function statBlockFromText(text) {
+	const printed = String(text ?? "").split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+	for (const [index, line] of printed.entries()) {
+		const match = STAT_LINE.exec(line);
+		if (!match) continue;
+		const parsed = parseStatLine(line.slice(match.index));
+		const nameParts = [...printed.slice(0, index), line.slice(0, match.index).trim()].filter(Boolean);
+		const after = printed.slice(index + 1);
+		if (parsed.rest) after.unshift(parsed.rest);
+		return { name: nameParts.join(" ") || null, stats: parsed.stats, lines: logicalLines(after) };
+	}
+	return null;
+}

@@ -46,7 +46,7 @@ The built packs aren't committed, because Foundry rewrites them whenever a world
 
 The layout:
 
-- `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested.
+- `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
