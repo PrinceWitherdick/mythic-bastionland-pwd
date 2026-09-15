@@ -4,6 +4,7 @@ import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, PROPERTY_TYPES } from "../module/config.js";
 import { KINDS, PROBLEM_REASONS } from "../module/rules/book-art.js";
+import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { RANKS } from "../module/rules/glory.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
@@ -71,6 +72,8 @@ describe("localization", () => {
 		...["none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
 		...KINDS.map((kind) => `bookArt.kinds.${kind}`),
 		...PROBLEM_REASONS.map((reason) => `bookArt.report.reasons.${reason}`),
+		...partsOf("chooser.starts", STARTS.map((start) => start.key), ["label", "summary"]),
+		...STANDARD_KIT.map((item) => `chooser.kit.${item.key}`),
 		...TERRAIN.map((key) => `realm.terrain.${key}`),
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),

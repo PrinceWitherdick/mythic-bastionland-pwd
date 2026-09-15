@@ -4,7 +4,7 @@
  *
  * The sheets paint their own parchment and ink, like the printed sheet, so they
  * look the same in Foundry's light and dark themes. Foundry's theme variables
- * are overridden on the page so native inputs and checkboxes follow suit.
+ * are overridden on each native text field, select and button so they follow suit.
  */
 
 @font-face {
@@ -71,30 +71,14 @@
 /* ---------------------------------------------------------------- */
 
 .bastionland-sheet .window-content,
-.bastionland-item .window-content {
+.bastionland-item .window-content,
+.bastionland-chooser-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
 }
 
 .bastionland-page {
-	--input-background-color: var(--bastionland-paper);
-	--input-text-color: var(--bastionland-ink);
-	--input-border-color: var(--bastionland-rule);
-	--input-placeholder-color: var(--bastionland-ink-soft);
-	--input-focus-outline-color: var(--bastionland-verdigris);
-	--checkbox-background-color: var(--bastionland-paper);
-	--checkbox-checked-color: var(--bastionland-ink);
-	--checkbox-checkmark-color: var(--bastionland-paper);
-	--checkbox-disabled-color: var(--bastionland-rule);
-	--button-background-color: var(--bastionland-paper-deep);
-	--button-border-color: var(--bastionland-ink);
-	--button-text-color: var(--bastionland-ink);
-	--button-hover-background-color: var(--bastionland-ink);
-	--button-hover-border-color: var(--bastionland-ink);
-	--button-hover-text-color: var(--bastionland-paper);
-	--button-focus-outline-color: var(--bastionland-verdigris);
-
 	container-type: inline-size;
 	display: flex;
 	flex: 1;
@@ -113,6 +97,25 @@
 	line-height: 1.35;
 }
 
+/* Foundry sets its theme's colours on each control rather than letting them inherit, so they're overridden there. */
+.bastionland-page :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+	--input-background-color: var(--bastionland-paper);
+	--input-text-color: var(--bastionland-ink);
+	--input-border-color: var(--bastionland-rule);
+	--input-placeholder-color: var(--bastionland-ink-soft);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+}
+
+.bastionland-page :is(button, a.button) {
+	--button-background-color: var(--bastionland-paper-deep);
+	--button-border-color: var(--bastionland-ink);
+	--button-text-color: var(--bastionland-ink);
+	--button-hover-background-color: var(--bastionland-ink);
+	--button-hover-border-color: var(--bastionland-ink);
+	--button-hover-text-color: var(--bastionland-paper);
+	--button-focus-outline-color: var(--bastionland-verdigris);
+}
+
 /* Text-like buttons: strip Foundry's button chrome, then style each below. */
 .bastionland-page :where(
 	.bastionland-score__name,
@@ -122,7 +125,10 @@
 	.bastionland-item__name,
 	.bastionland-item__equip,
 	.bastionland-feat,
-	.bastionland-add
+	.bastionland-add,
+	.bastionland-chooser__start,
+	.bastionland-chooser__group,
+	.bastionland-chooser__card
 ) {
 	appearance: none;
 	width: auto;
@@ -270,6 +276,8 @@
 	border: none;
 	background: var(--bastionland-paper);
 	object-fit: cover;
+	/* Tall pictures, such as imported Knight portraits, keep their heads in the shield. */
+	object-position: top;
 	clip-path: path("M0 7 Q68 -5 136 7 V68 C136 112 104 142 68 162 C32 142 0 112 0 68 Z");
 }
 
@@ -289,7 +297,8 @@
 	border-block: 1px solid var(--bastionland-rule);
 }
 
-.bastionland-toolbar button {
+.bastionland-toolbar button,
+.bastionland-page .bastionland-button {
 	display: inline-flex;
 	flex: 1 1 8rem;
 	align-items: center;
@@ -306,9 +315,14 @@
 	font-size: 1rem;
 }
 
-.bastionland-toolbar button:hover {
+.bastionland-toolbar button:hover,
+.bastionland-page .bastionland-button:not(:disabled):hover {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
+}
+
+.bastionland-page .bastionland-button:disabled {
+	opacity: 0.5;
 }
 
 /* ---------------------------------------------------------------- */
@@ -789,6 +803,297 @@
 	border-radius: 3px;
 }
 
+/* ---------------------------------------------------------------- */
+/* Knight chooser: steps, a d6 page of Knights, and the chosen one  */
+/* ---------------------------------------------------------------- */
+
+.bastionland-chooser {
+	gap: 0.75rem;
+	overflow: hidden;
+}
+
+.bastionland-chooser__notice {
+	margin: 0;
+	padding: 0.4rem 0.6rem;
+	border-left: 3px solid var(--bastionland-blood);
+	background: var(--bastionland-paper-deep);
+	font-size: 0.95rem;
+}
+
+.bastionland-chooser__layout {
+	display: grid;
+	flex: 1;
+	grid-template-columns: 15rem minmax(0, 1fr) minmax(0, 1.35fr);
+	gap: 1.25rem;
+	min-height: 0;
+}
+
+.bastionland-chooser__steps,
+.bastionland-chooser__browse {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	min-height: 0;
+}
+
+.bastionland-chooser__steps {
+	overflow-y: auto;
+}
+
+.bastionland-chooser__starts {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-page .bastionland-chooser__start {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.1rem;
+	width: 100%;
+	padding: 0.35rem 0.5rem;
+	border: 1px dashed var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-page .bastionland-chooser__start.is-active {
+	border: 1px solid var(--bastionland-ink);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-chooser__start-name {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+}
+
+.bastionland-chooser__start-summary {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+}
+
+.bastionland-chooser__scores {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.4rem;
+	margin-bottom: 0.5rem;
+}
+
+.bastionland-chooser__score {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.15rem;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+}
+
+.bastionland-page .bastionland-chooser__score .bastionland-box {
+	width: 100%;
+	height: 2.6rem;
+	font-size: 1.4rem;
+}
+
+.bastionland-chooser__groups {
+	display: flex;
+	gap: 0.3rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-page .bastionland-chooser__group {
+	display: grid;
+	place-items: center;
+	width: 2.2rem;
+	height: 2.2rem;
+	border: 1.5px solid var(--bastionland-rule);
+	border-radius: 6px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.2rem;
+	text-align: center;
+}
+
+.bastionland-page .bastionland-chooser__group.is-active {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-chooser__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+	align-content: start;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.bastionland-page .bastionland-chooser__card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	width: 100%;
+	padding: 0.3rem;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.bastionland-page .bastionland-chooser__card:hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-chooser__card.is-selected {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-chooser__card.is-taken .bastionland-chooser__thumb {
+	opacity: 0.45;
+}
+
+.bastionland-chooser__card-roll {
+	position: absolute;
+	top: 0.4rem;
+	left: 0.4rem;
+	display: grid;
+	place-items: center;
+	min-width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-size: 0.8rem;
+}
+
+.bastionland-chooser__thumb {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	aspect-ratio: 3 / 5;
+	border: none;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rule);
+	font-size: 1.6rem;
+	object-fit: cover;
+	object-position: top;
+}
+
+.bastionland-chooser__card-name {
+	font-size: 0.85rem;
+	line-height: 1.15;
+}
+
+.bastionland-chooser__taken {
+	margin: 0;
+	color: var(--bastionland-blood);
+	font-size: 0.8rem;
+	font-style: italic;
+}
+
+.bastionland-chooser__detail {
+	display: grid;
+	grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+	align-content: start;
+	gap: 1rem;
+	overflow-y: auto;
+}
+
+.bastionland-chooser__detail > .bastionland-empty {
+	grid-column: 1 / -1;
+}
+
+.bastionland-chooser__portrait {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	aspect-ratio: 465 / 1094;
+	margin: 0;
+	border: 1px solid var(--bastionland-ink);
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rule);
+	font-size: 2rem;
+}
+
+.bastionland-chooser__portrait img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: none;
+	object-fit: cover;
+}
+
+.bastionland-chooser__text p {
+	margin: 0 0 0.5rem;
+	font-size: 0.95rem;
+}
+
+.bastionland-chooser__reference {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-chooser__name {
+	margin: 0 0 0.4rem;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 2rem;
+	font-weight: normal;
+	line-height: 1.05;
+}
+
+.bastionland-chooser__property {
+	margin: 0 0 0.6rem;
+	padding-left: 1.1rem;
+	font-size: 0.95rem;
+}
+
+.bastionland-chooser__seer {
+	grid-column: 1 / -1;
+}
+
+.bastionland-chooser__seer img {
+	display: block;
+	width: 100%;
+	max-width: 36rem;
+	border: none;
+}
+
+.bastionland-chooser__seer p {
+	margin: 0.3rem 0 0;
+	font-size: 0.95rem;
+}
+
+.bastionland-chooser__footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 0.6rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-chooser__footer .bastionland-button {
+	flex: 0 1 16rem;
+}
+
+@container (max-width: 860px) {
+	.bastionland-chooser {
+		overflow-y: auto;
+	}
+
+	.bastionland-chooser__layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 /* The New Knight and New NPC buttons beside Create Actor, and New Realm beside Create Scene. */
 .bastionland-new-knight,
 .bastionland-new-npc,
@@ -924,4 +1229,49 @@
 	padding-left: 1.1rem;
 	color: var(--bastionland-blood);
 	font-size: 0.85em;
+}
+
+/* ---------------------------------------------------------------- */
+/* Art preview: a larger copy of hovered art (module/apps/art-preview.js) */
+/* ---------------------------------------------------------------- */
+
+/* On <body> and fixed, so the scrolling panes it comes from can't clip it. */
+.bastionland-art-preview {
+	position: fixed;
+	display: grid;
+	justify-items: center;
+	gap: 0.3rem;
+	width: max-content;
+	padding: 0.4rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 4px;
+	background: var(--bastionland-paper);
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	pointer-events: none;
+	animation: bastionland-art-preview-in 120ms ease-out;
+}
+
+/* The script sizes the image; these limits match it, in case it can't. */
+.bastionland-art-preview img {
+	display: block;
+	max-width: min(60vw, 560px);
+	max-height: min(80vh, 640px);
+	border: none;
+	object-fit: contain;
+}
+
+@keyframes bastionland-art-preview-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bastionland-art-preview {
+		animation: none;
+	}
 }

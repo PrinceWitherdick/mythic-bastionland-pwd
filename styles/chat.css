@@ -74,6 +74,22 @@
 	font-size: 0.85em;
 }
 
+.bastionland-card__tally {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.2rem 0.9rem;
+	margin: 0;
+	padding: 0;
+	font-family: var(--bastionland-font-caps);
+	list-style: none;
+}
+
+.bastionland-card__tally strong {
+	font-family: var(--bastionland-font-body);
+	font-size: 1.4rem;
+	line-height: 1;
+}
+
 .bastionland-card__location {
 	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.04em;

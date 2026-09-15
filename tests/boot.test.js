@@ -121,7 +121,7 @@ describe("system boot", () => {
 		}
 	});
 
-	it("registers the hidden book art setting and hands the importer to macros", () => {
+	it("registers the hidden book art setting and hands the importer and choosers to macros", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "bookArtMacroSeeded", expect.objectContaining({
 			scope: "world",
 			config: false,
@@ -129,6 +129,7 @@ describe("system boot", () => {
 			default: false
 		}));
 		expect(game.system.api.importBookArt).toBeTypeOf("function");
+		expect(game.system.api.openKnightChooser).toBeTypeOf("function");
 		expect(game.system.api.newRealm).toBeTypeOf("function");
 		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
@@ -182,6 +183,29 @@ describe("system boot", () => {
 
 		expect(hooks.preMoveToken).toBeTypeOf("function");
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
+	});
+
+	it("adds New Knight to the Actors directory only for users who can create actors", () => {
+		const header = () => {
+			const buttons = [];
+			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
+		};
+		const element = (actions) => ({ querySelector: (selector) => (selector === ".header-actions" ? actions : null) });
+
+		const refused = header();
+		game.user.can = () => false;
+		hooks.renderActorDirectory({}, element(refused));
+		expect(refused.buttons).toHaveLength(0);
+
+		const allowed = header();
+		game.user.can = (permission) => permission === "ACTOR_CREATE";
+		globalThis.document = {
+			createElement: (tag) => ({ tag, append() {}, addEventListener() {} })
+		};
+		globalThis.game.i18n = { localize: (key) => key };
+		hooks.renderActorDirectory({}, element(allowed));
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-new-knight"]);
+		delete globalThis.document;
 	});
 
 	it("leaves the Macro Directory alone for players when the world is ready", async () => {

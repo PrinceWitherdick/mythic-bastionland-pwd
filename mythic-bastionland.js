@@ -1,5 +1,6 @@
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
+import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -58,11 +59,15 @@ Hooks.once("init", () => {
 	registerRealmHooks();
 
 	// Macros reach the system through here, such as Import Book Art.
-	game.system.api = Object.freeze({ importBookArt, newRealm, wildernessRoll });
+	game.system.api = Object.freeze({ importBookArt, openKnightChooser, newRealm, wildernessRoll });
 });
 
 Hooks.once("ready", async () => {
 	await Promise.all([restoreOpenSheets(), ensureImportMacro()]);
+});
+
+Hooks.on("renderActorDirectory", (_directory, element) => {
+	addNewKnightButton(element);
 });
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));

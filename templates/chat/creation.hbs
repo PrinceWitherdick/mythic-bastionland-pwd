@@ -1,0 +1,21 @@
+<section class="bastionland-card bastionland-card--creation">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		{{#if tagline}}
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+		{{/if}}
+	</header>
+	{{#if lines.length}}
+	<ul class="bastionland-card__tally">
+		{{#each lines}}
+		<li><span>{{label}}</span> <strong>{{value}}</strong></li>
+		{{/each}}
+	</ul>
+	{{/if}}
+	{{#if note}}
+	<p class="bastionland-card__hint">{{note}}</p>
+	{{/if}}
+	{{#if warning}}
+	<p class="bastionland-card__warning">{{warning}}</p>
+	{{/if}}
+</section>

@@ -36,7 +36,8 @@
       "rest": "Rest",
       "rollScar": "Roll Scar",
       "armour": "Armour",
-      "rollSave": "Roll a {virtue} Save"
+      "rollSave": "Roll a {virtue} Save",
+      "chooseKnight": "Choose Knight"
     },
     "virtues": {
       "vig": {
@@ -387,6 +388,54 @@
           "mythText": "the Omens or Cast couldn’t be read, so the NPC chooser won’t list them",
           "seerText": "the Seer’s Virtues and traits couldn’t be read, so the NPC chooser won’t fill them in"
         }
+      }
+    },
+    "chooser": {
+      "title": "Choose a Knight",
+      "titleFor": "Choose a Knight for {name}",
+      "newKnight": "New Knight",
+      "noIndex": "Run the Import Book Art macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
+      "noText": "Run Import Book Art again to bring in each Knight’s Property, Ability and Passion.",
+      "start": "Start",
+      "starts": {
+        "wanderer": {
+          "label": "Wanderer",
+          "summary": "Young Knights-Errant. Virtues d12+d6, GD d6."
+        },
+        "courtier": {
+          "label": "Courtier",
+          "summary": "Mature Knights-Gallant with a place in Court. Virtues d12+6, GD 2d6."
+        },
+        "ruler": {
+          "label": "Ruler",
+          "summary": "Mature Knights-Tenant, one ruling a Holding. Virtues d12+6, GD d6+6."
+        }
+      },
+      "scores": "Virtues and Guard",
+      "rollScores": "Roll Virtues and GD",
+      "scoresHint": "Rolls VIG, CLA and SPI in order, then GD, with the Start’s dice. Change a result by hand if you need to.",
+      "knight": "Knight",
+      "rollKnight": "Roll d6 and d12",
+      "knightHint": "Read the d6 first, then the d12. Or pick a Knight. Generally each player should have a different one.",
+      "unnamed": "Knight {roll}",
+      "reference": "{roll}, page {page}",
+      "takenBy": "Already {name}’s Knight",
+      "noSelection": "Roll or pick a Knight to see them here.",
+      "create": "Create Knight",
+      "apply": "Apply to {name}",
+      "confirmTitle": "Replace This Knight?",
+      "confirm": "{name} becomes {knight}. Their Property, Ability and Passion are replaced, along with the picture in their shield, their Age, Glory and anything rolled here. Scars and the Chronicle are kept.",
+      "kit": {
+        "dagger": "Dagger",
+        "torches": "Torches",
+        "rope": "Rope",
+        "rations": "Dry rations",
+        "camping": "Camping gear"
+      },
+      "card": {
+        "scores": "Virtues and Guard",
+        "knightRoll": "{d6} on the d6, {d12} on the d12",
+        "knightedBy": "Knighted by {seer}"
       }
     },
     "realm": {

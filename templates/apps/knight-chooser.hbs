@@ -1,0 +1,131 @@
+<div class="bastionland-page bastionland-chooser">
+	{{#if notice}}
+	<p class="bastionland-chooser__notice">{{notice}}</p>
+	{{/if}}
+
+	<div class="bastionland-chooser__layout">
+		<div class="bastionland-chooser__steps">
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.chooser.start"}}</h2>
+				<ul class="bastionland-chooser__starts">
+					{{#each starts}}
+					<li>
+						<button type="button" class="bastionland-chooser__start{{#if active}} is-active{{/if}}" data-action="setStart" data-start="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+							<span class="bastionland-chooser__start-name">{{label}}</span>
+							<span class="bastionland-chooser__start-summary">{{summary}}</span>
+						</button>
+					</li>
+					{{/each}}
+				</ul>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.chooser.scores"}}</h2>
+				<div class="bastionland-chooser__scores">
+					{{#each scores}}
+					<label class="bastionland-chooser__score">
+						<span>{{abbr}}</span>
+						<input class="bastionland-box" type="number" name="{{key}}" value="{{value}}" min="0" {{#if max}}max="{{max}}"{{/if}} step="1">
+					</label>
+					{{/each}}
+				</div>
+				<button type="button" class="bastionland-button" data-action="rollScores">
+					<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollScores"}}
+				</button>
+				<p class="bastionland-hint">{{localize "bastionland.chooser.scoresHint"}}</p>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.chooser.knight"}}</h2>
+				<button type="button" class="bastionland-button" data-action="rollKnight">
+					<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollKnight"}}
+				</button>
+				<p class="bastionland-hint">{{localize "bastionland.chooser.knightHint"}}</p>
+			</section>
+		</div>
+
+		<section class="bastionland-chooser__browse" aria-label="{{localize 'bastionland.chooser.knight'}}">
+			<ul class="bastionland-chooser__groups">
+				{{#each groups}}
+				<li>
+					<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
+				</li>
+				{{/each}}
+			</ul>
+			<ul class="bastionland-chooser__grid">
+				{{#each cards}}
+				<li>
+					<button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if takenBy}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
+						<span class="bastionland-chooser__card-roll">{{d12}}</span>
+						{{#if img}}
+						<img class="bastionland-chooser__thumb" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
+						{{else}}
+						<span class="bastionland-chooser__thumb is-empty"><i class="fa-solid fa-chess-knight" inert></i></span>
+						{{/if}}
+						<span class="bastionland-chooser__card-name">{{name}}</span>
+						{{#if takenBy}}
+						<span class="bastionland-chooser__taken">{{takenBy}}</span>
+						{{/if}}
+					</button>
+				</li>
+				{{/each}}
+			</ul>
+		</section>
+
+		<section class="bastionland-chooser__detail">
+			{{#with selected}}
+			<figure class="bastionland-chooser__portrait">
+				{{#if img}}
+				<img src="{{img}}" alt="{{name}}">
+				{{else}}
+				<span class="is-empty"><i class="fa-solid fa-chess-knight" inert></i></span>
+				{{/if}}
+			</figure>
+			<div class="bastionland-chooser__text">
+				<p class="bastionland-chooser__reference">{{reference}}</p>
+				<h2 class="bastionland-chooser__name">{{name}}</h2>
+				{{#if takenBy}}
+				<p class="bastionland-chooser__taken">{{takenBy}}</p>
+				{{/if}}
+
+				{{#if property}}
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.property.label"}}</h3>
+				<ul class="bastionland-chooser__property">
+					{{#each property}}
+					<li>{{this}}</li>
+					{{/each}}
+				</ul>
+				{{/if}}
+
+				{{#if ability}}
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ability.label"}}: {{ability.name}}</h3>
+				<p>{{ability.text}}</p>
+				{{/if}}
+
+				{{#if passion}}
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.passion.label"}}: {{passion.name}}</h3>
+				<p>{{passion.text}}</p>
+				{{/if}}
+			</div>
+
+			{{#if seer}}
+			<div class="bastionland-chooser__seer">
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.sheet.knightedBy"}}</h3>
+				{{#if seer.img}}
+				<img src="{{seer.img}}" alt="{{seer.name}}">
+				{{/if}}
+				<p>{{seer.name}}</p>
+			</div>
+			{{/if}}
+			{{else}}
+			<p class="bastionland-empty">{{localize "bastionland.chooser.noSelection"}}</p>
+			{{/with}}
+		</section>
+	</div>
+
+	<footer class="bastionland-chooser__footer">
+		<button type="button" class="bastionland-button" data-action="apply" {{#unless selected}}disabled{{/unless}}>
+			<i class="fa-solid fa-check" inert></i> {{applyLabel}}
+		</button>
+	</footer>
+</div>

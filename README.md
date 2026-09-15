@@ -8,7 +8,8 @@ Requires Foundry VTT v14.
 
 The first milestone is the **Knight** character sheet, laid out after the official printed sheet:
 
-- **Identity:** name, "Known as the ___ Knight", the Seer who knighted them, their ultimate fate, and heraldry shown in the shield.
+- **Identity:** name, "Known as the ___ Knight", the Seer who knighted them, their ultimate fate, and a picture shown in the shield.
+- **Choose Knight:** make a Knight the way the book does. Pick a Start (Wanderer, Courtier or Ruler), roll Virtues and GD with its dice, then roll d6 and d12 for the Knight or pick one from the list. Knights other characters already are get marked. Applying sets Age, Glory, the rolled scores, Known as and Knighted by, puts the Knight's portrait in the shield, and adds their Property, Ability and Passion along with the dagger, torches, rope, dry rations and camping gear every Knight carries. Rolls go to chat. Open it from the sheet's toolbar, or use **New Knight** in the Actors tab to create a Knight from scratch.
 - **Virtues and Guard:** VIG, CLA and SPI with current and maximum values, capped at 0–19. Click a Virtue to roll a Save (d20 equal or under).
 - **Glory, Age and Rank:** Rank is worked out from Glory (0 / 3 / 6 / 9 / 12), and the sheet shows how far off the next Rank is.
 - **Conditions:** Fatigued, Exposed and Mortal Wound are marked by hand. Exhausted (VIG 0), Impaired (SPI 0) and Exposed from CLA 0 follow from the Virtues.
@@ -89,6 +90,7 @@ The layout:
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
 - `module/book-art/` reads a rulebook PDF you own and saves its art and text, for Import Book Art.
+- `module/apps/` holds windows other than sheets, such as the Knight and NPC choosers.
 - `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
