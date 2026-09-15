@@ -43,6 +43,9 @@
     "Actor": {
       "knight": {
         "htmlFields": ["notes"]
+      },
+      "npc": {
+        "htmlFields": ["notes"]
       }
     },
     "Item": {

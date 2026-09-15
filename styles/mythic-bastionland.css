@@ -804,6 +804,81 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* NPC sheet: a stat block with room to play it                     */
+/* ---------------------------------------------------------------- */
+
+.bastionland-npc-header {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+}
+
+.bastionland-npc-header__img {
+	flex: none;
+	width: 96px;
+	height: 96px;
+	border: 2px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper-deep);
+	object-fit: cover;
+	object-position: top;
+}
+
+.bastionland-npc-header__img[data-action] {
+	cursor: pointer;
+}
+
+.bastionland-npc-header__text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.3rem;
+	min-width: 0;
+}
+
+.bastionland-page .bastionland-npc-header__name {
+	width: 100%;
+	height: auto;
+	padding: 0;
+	border: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 2.1rem;
+	line-height: 1.15;
+}
+
+.bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-armour-note) {
+	flex: none;
+	width: 100%;
+	max-width: none;
+}
+
+.bastionland-page .bastionland-npc-header__epithet {
+	font-style: italic;
+}
+
+.bastionland-page .bastionland-npc-armour-note {
+	margin-top: -0.6rem;
+	font-size: 1rem;
+}
+
+.bastionland-choices--inline {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin-bottom: 0.3rem;
+}
+
+.bastionland-condition--feat.is-active {
+	border-color: var(--bastionland-verdigris);
+	background: var(--bastionland-verdigris);
+}
+
+/* ---------------------------------------------------------------- */
 /* Knight chooser: steps, a d6 page of Knights, and the chosen one  */
 /* ---------------------------------------------------------------- */
 
@@ -1229,6 +1304,88 @@
 	padding-left: 1.1rem;
 	color: var(--bastionland-blood);
 	font-size: 0.85em;
+}
+
+/* ---------------------------------------------------------------- */
+/* NPC chooser: Myths and Seers, and the stat blocks read from them */
+/* ---------------------------------------------------------------- */
+
+.bastionland-chooser__layout--npc {
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+}
+
+.bastionland-chooser__grid--wide {
+	grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}
+
+.bastionland-chooser__thumb--wide {
+	aspect-ratio: 2 / 1;
+	object-position: center;
+}
+
+.bastionland-page .bastionland-npc-chooser__detail {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.bastionland-npc-chooser__art {
+	display: block;
+	width: 100%;
+	border: 1px solid var(--bastionland-ink);
+}
+
+.bastionland-npc-chooser__omens summary {
+	cursor: pointer;
+}
+
+.bastionland-npc-chooser__omens ol {
+	margin: 0.3rem 0 0;
+	padding-left: 1.4rem;
+	font-size: 0.95rem;
+}
+
+.bastionland-npc-chooser__people {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-npc-chooser__person {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	padding: 0.5rem 0.7rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: rgb(255 255 255 / 0.25);
+}
+
+.bastionland-npc-chooser__person p {
+	margin: 0;
+	font-size: 0.95rem;
+}
+
+.bastionland-npc-chooser__person-name {
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.2rem;
+	font-weight: normal;
+}
+
+.bastionland-npc-chooser__stats {
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-page .bastionland-npc-chooser__person .bastionland-button {
+	flex: none;
+	align-self: flex-end;
+	margin-top: 0.3rem;
 }
 
 /* ---------------------------------------------------------------- */

@@ -24,4 +24,12 @@
 		<span class="bastionland-check__label">{{localize "bastionland.damage.exposed"}}</span>
 	</label>
 	<p class="hint">{{localize "bastionland.damage.exposedHint"}}</p>
+
+	{{#each requirements}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="harm-{{key}}">
+		<span class="bastionland-check__label">{{label}}</span>
+	</label>
+	<p class="hint">{{hint}}</p>
+	{{/each}}
 </div>

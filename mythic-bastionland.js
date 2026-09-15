@@ -1,11 +1,13 @@
 import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
+import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
+import { NpcModel } from "./module/data-models/NpcModel.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -16,6 +18,7 @@ import {
 } from "./module/data-models/items.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
+import { NpcSheet } from "./module/sheets/NpcSheet.js";
 import { registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 
@@ -30,6 +33,7 @@ const ITEM_MODELS = {
 
 Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
+	CONFIG.Actor.dataModels.npc = NpcModel;
 	Object.assign(CONFIG.Item.dataModels, ITEM_MODELS);
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
@@ -40,6 +44,11 @@ Hooks.once("init", () => {
 	});
 	DocumentSheetConfig.registerSheet(Item, SYSTEM_ID, BastionlandItemSheet, {
 		types: Object.keys(ITEM_MODELS),
+		makeDefault: true,
+		label: "bastionland.sheet.title"
+	});
+	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, NpcSheet, {
+		types: ["npc"],
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});
@@ -65,7 +74,7 @@ Hooks.once("init", () => {
 	registerRealmHooks();
 
 	// Macros reach the system through here, such as Import Book Art.
-	game.system.api = Object.freeze({ importBookArt, openKnightChooser, newRealm, wildernessRoll });
+	game.system.api = Object.freeze({ importBookArt, openKnightChooser, openNpcChooser, newRealm, wildernessRoll });
 });
 
 Hooks.once("ready", async () => {
@@ -74,6 +83,7 @@ Hooks.once("ready", async () => {
 
 Hooks.on("renderActorDirectory", (_directory, element) => {
 	addNewKnightButton(element);
+	addNewNpcButton(element);
 });
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));

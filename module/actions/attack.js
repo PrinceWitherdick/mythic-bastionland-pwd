@@ -27,16 +27,19 @@ function attackSources(actor) {
 export async function attack(actor) {
 	const sources = attackSources(actor);
 	const { conditions } = actor.system;
+	const warband = actor.system.scale === "warband";
 
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/attack.hbs"), {
 		sources: sources.map((item) => ({
 			id: item.id,
 			name: item.name,
 			damage: item.system.damage,
-			ranged: item.system.ranged
+			ranged: item.system.ranged,
+			blast: item.system.blast
 		})),
 		impaired: conditions.impaired,
-		smiteDisabled: conditions.fatigued || conditions.impaired || !sources.length
+		smiteDisabled: conditions.fatigued || conditions.impaired || !sources.length || !actor.system.knowsFeat("smite"),
+		warband
 	});
 
 	const data = await foundry.applications.api.DialogV2.input({
@@ -52,6 +55,8 @@ export async function attack(actor) {
 	const chosen = sources.filter((item) => choice.source?.[item.id]);
 	const weaponDice = chosen.flatMap((item) => parseDice(item.system.damage).map((faces) => ({ faces, label: item.name })));
 	const impaired = Boolean(choice.impaired) || !weaponDice.length;
+	// A Warband's Attack on individuals gets +d12 and Blast (Warfare, p11).
+	const againstIndividuals = warband && Boolean(choice.againstIndividuals);
 
 	// Smite is declared before rolling, and Impaired attacks cannot benefit from Feats.
 	let smite = null;
@@ -62,6 +67,7 @@ export async function attack(actor) {
 
 	const bonusDice = parseDice(choice.bonus).map((faces) => ({ faces, label: t("attack.bonus") }));
 	if (smite?.mode === "d12") bonusDice.push({ faces: 12, label: t("feats.smite.name") });
+	if (againstIndividuals) bonusDice.push({ faces: 12, label: t("npc.scales.warband.label") });
 
 	const pool = buildAttackPool({
 		sources: chosen.map((item) => item.system.damage),
@@ -98,7 +104,8 @@ export async function attack(actor) {
 		gambitDice: t("attack.gambitDice", { count: summary.gambitDice }),
 		strongDice: melee ? t("attack.strongDice", { count: summary.strongDice }) : null,
 		impaired: pool.impaired,
-		blast: smite?.mode === "blast",
+		blast: smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast),
+		ignoresArmour: chosen.some((item) => item.system.ignoresArmour),
 		smite: smite?.feat ?? null
 	}, { rolls: smite ? [smite.roll, roll] : [roll] });
 

@@ -13,6 +13,12 @@ export async function resolveFeat(actor, key) {
 	const feat = FEATS.find((candidate) => candidate.key === key);
 	if (!feat) return null;
 
+	// Knights know every Feat. Of everybody else, only those who "Can" perform one do.
+	if (!actor.system.knowsFeat(key)) {
+		ui.notifications.warn(t("feats.notKnown", { name: actor.name, feat: t(`feats.${key}.name`) }));
+		return null;
+	}
+
 	if (actor.system.fatigued) {
 		ui.notifications.warn(t("feats.alreadyFatigued", { name: actor.name }));
 		return null;

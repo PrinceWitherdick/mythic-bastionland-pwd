@@ -1,0 +1,103 @@
+<div class="bastionland-page bastionland-page--npc">
+	<header class="bastionland-npc-header">
+		<img class="bastionland-npc-header__img" src="{{actor.img}}" alt="{{actor.name}}" {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		<div class="bastionland-npc-header__text">
+			<input class="bastionland-npc-header__name" type="text" name="name" value="{{actor.name}}" aria-label="{{localize 'bastionland.npc.name'}}" autocomplete="off" spellcheck="false">
+			<input class="bastionland-blank bastionland-npc-header__epithet" type="text" name="system.epithet" value="{{system.epithet}}" placeholder="{{localize 'bastionland.npc.epithet'}}" aria-label="{{localize 'bastionland.npc.epithet'}}" autocomplete="off">
+		</div>
+	</header>
+
+	{{#if editable}}
+	<nav class="bastionland-toolbar" aria-label="{{actor.name}}">
+		<button type="button" data-action="chooseNpc"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.npc.chooseNpc"}}</button>
+		<button type="button" data-action="pasteStatBlock"><i class="fa-solid fa-paste" inert></i> {{localize "bastionland.npc.pasteStatBlock"}}</button>
+		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
+		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>
+		<button type="button" data-action="rollMorale"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.morale.title"}}</button>
+		<button type="button" data-action="rest"><i class="fa-solid fa-mug-hot" inert></i> {{localize "bastionland.sheet.rest"}}</button>
+	</nav>
+	{{/if}}
+
+	<div class="bastionland-columns">
+		<div class="bastionland-column">
+			<section class="bastionland-scores">
+				{{> "bastionland.virtue-scores"}}
+
+				<div class="bastionland-score">
+					<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-armour">{{localize "bastionland.sheet.armour"}}</label>
+					<input id="{{rootId}}-armour" class="bastionland-box" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
+				</div>
+			</section>
+			<input class="bastionland-blank bastionland-npc-armour-note" type="text" name="system.armourNote" value="{{system.armourNote}}" placeholder="{{localize 'bastionland.npc.armourNote'}}" aria-label="{{localize 'bastionland.npc.armourNote'}}" autocomplete="off">
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.scale"}}</h2>
+				<ul class="bastionland-choices bastionland-choices--inline">
+					{{#each scales}}
+					<li>
+						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setScale" data-scale="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.structureHint'}}">
+					<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
+					<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
+				</label>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
+				<ul class="bastionland-conditions">
+					{{> "bastionland.condition-items"}}
+					{{#each warbandStates}}
+					<li>
+						<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
+					</li>
+					{{/each}}
+				</ul>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.feats.label"}}</h2>
+				<ul class="bastionland-conditions">
+					{{#each featChoices}}
+					<li>
+						<button type="button" class="bastionland-condition bastionland-condition--feat{{#if active}} is-active{{/if}}" data-action="toggleFeat" data-feat="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				<p class="bastionland-hint">{{localize "bastionland.npc.featsHint"}}</p>
+				{{#if feats.length}}
+				{{> "bastionland.feat-list"}}
+				{{/if}}
+			</section>
+		</div>
+
+		<div class="bastionland-column">
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.npc.items"}}</h2>
+				<ul class="bastionland-items">
+					{{#each items}}
+					{{> "bastionland.item-row"}}
+					{{else}}
+					<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
+					{{/each}}
+				</ul>
+				<div class="bastionland-adds">
+					{{#each addTypes}}
+					{{> "bastionland.add-item"}}
+					{{/each}}
+				</div>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.npc.notes"}}</h2>
+				{{#if editable}}
+				<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
+				{{else}}
+				<div class="editor-content">{{{enrichedNotes}}}</div>
+				{{/if}}
+			</section>
+		</div>
+	</div>
+</div>

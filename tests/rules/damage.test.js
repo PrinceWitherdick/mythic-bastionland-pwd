@@ -48,4 +48,10 @@ describe("resolveDamage", () => {
 		const result = resolveDamage({ damage: 2, guard: 5, vigour: 10, exposed: true });
 		expect(result).toMatchObject({ guard: 5, guardLoss: 0, vigour: 8, outcome: "wounded" });
 	});
+
+	// Warfare (p11): individual Attacks don't harm a Warband, nor ordinary ones a structure.
+	it("leaves a target the Attack can't harm untouched", () => {
+		const result = resolveDamage({ damage: 12, guard: 3, vigour: 10, immune: true });
+		expect(result).toEqual({ dealt: 0, guard: 3, vigour: 10, guardLoss: 0, vigourLoss: 0, outcome: "unharmed" });
+	});
 });

@@ -2,7 +2,9 @@
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{localize "bastionland.damage.title"}}</h3>
 	</header>
+	{{#if dealt}}
 	<p class="bastionland-card__text">{{dealt}}</p>
+	{{/if}}
 	{{#if guardLine}}
 	<p class="bastionland-card__text">{{guardLine}}</p>
 	{{/if}}

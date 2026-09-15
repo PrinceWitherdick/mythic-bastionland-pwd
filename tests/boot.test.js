@@ -98,16 +98,19 @@ describe("system boot", () => {
 		expect(Object.keys(CONFIG.Item.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.Item).sort());
 	});
 
-	it("registers the Knight and item sheets as defaults", () => {
+	it("registers the Knight, NPC and item sheets as defaults", () => {
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
-		const [[actorClass, , knightSheet, knightOptions], [itemClass, , itemSheet, itemOptions]] = registerSheet.mock.calls;
+		const registered = (documentClass, type) => registerSheet.mock.calls
+			.find(([registeredClass, , , options]) => registeredClass === documentClass && options.types.includes(type));
+		const [, , knightSheet, knightOptions] = registered(Actor, "knight");
+		const [, , npcSheet, npcOptions] = registered(Actor, "npc");
+		const [, , itemSheet, itemOptions] = registered(Item, "weapon");
 
-		expect(actorClass).toBe(Actor);
 		expect(knightOptions).toMatchObject({ types: ["knight"], makeDefault: true });
-		expect(itemClass).toBe(Item);
+		expect(npcOptions).toMatchObject({ types: ["npc"], makeDefault: true });
 		expect(itemOptions.types.sort()).toEqual(Object.keys(CONFIG.Item.dataModels).sort());
 
-		for (const sheet of [knightSheet, itemSheet]) {
+		for (const sheet of [knightSheet, npcSheet, itemSheet]) {
 			for (const part of Object.values(sheet.PARTS)) {
 				expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
 			}
@@ -131,6 +134,7 @@ describe("system boot", () => {
 		}));
 		expect(game.system.api.importBookArt).toBeTypeOf("function");
 		expect(game.system.api.openKnightChooser).toBeTypeOf("function");
+		expect(game.system.api.openNpcChooser).toBeTypeOf("function");
 		expect(game.system.api.newRealm).toBeTypeOf("function");
 		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
 		expect(Object.isFrozen(game.system.api)).toBe(true);
@@ -186,7 +190,7 @@ describe("system boot", () => {
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
 	});
 
-	it("adds New Knight to the Actors directory only for users who can create actors", () => {
+	it("adds New Knight and New NPC to the Actors directory only for users who can create actors", () => {
 		const header = () => {
 			const buttons = [];
 			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
@@ -205,7 +209,7 @@ describe("system boot", () => {
 		};
 		globalThis.game.i18n = { localize: (key) => key };
 		hooks.renderActorDirectory({}, element(allowed));
-		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-new-knight"]);
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-new-knight", "bastionland-new-npc"]);
 		delete globalThis.document;
 	});
 
@@ -261,6 +265,41 @@ describe("KnightModel", () => {
 		const vig = schema.virtues.fields.vig.fields;
 		expect(vig.value.options.max).toBe(19);
 		expect(vig.max.options.max).toBe(19);
+	});
+});
+
+describe("NpcModel", () => {
+	const npc = (state) => {
+		const { npc: NpcModel } = CONFIG.Actor.dataModels;
+		const model = Object.assign(new NpcModel(), {
+			scale: "individual",
+			fatigued: false,
+			exposed: false,
+			mortalWound: false,
+			virtues: { vig: { value: 10 }, cla: { value: 10 }, spi: { value: 10 } },
+			feats: { smite: false, focus: false, deny: false },
+			...state
+		});
+		model.prepareDerivedData();
+		return model;
+	};
+
+	it("follows a Warband's rout, break and wipe-out from its Mortal Wound, SPI and VIG", () => {
+		const warband = npc({ scale: "warband", mortalWound: true, virtues: { vig: { value: 0 }, cla: { value: 4 }, spi: { value: 0 } } });
+		expect(warband.warband).toEqual({ routed: true, broken: true, wipedOut: true });
+		expect(warband.conditions).toMatchObject({ exhausted: true, impaired: true, mortalWound: true });
+		expect(npc({}).warband).toBeNull();
+	});
+
+	it("knows only the Feats it is marked with", () => {
+		const model = npc({ feats: { smite: false, focus: true, deny: false } });
+		expect(model.knowsFeat("focus")).toBe(true);
+		expect(model.knowsFeat("smite")).toBe(false);
+	});
+
+	it("offers only the scales the rules have", () => {
+		const schema = CONFIG.Actor.dataModels.npc.defineSchema();
+		expect(schema.scale.options.choices).toEqual(["individual", "warband"]);
 	});
 });
 

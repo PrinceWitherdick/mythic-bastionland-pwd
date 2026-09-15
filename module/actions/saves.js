@@ -47,3 +47,19 @@ export async function rollSave(actor, virtue) {
 	await postCard(actor, "save", { save: saveContext(save) }, { rolls: [save.roll] });
 	return save;
 }
+
+/**
+ * Roll Morale: a SPI Save to stand rather than rout or surrender (Wavering
+ * Morale, p10).
+ * @param {Actor} actor
+ * @returns {Promise<SaveResult>}
+ */
+export async function rollMorale(actor) {
+	const save = await evaluateSave(actor, "spi");
+	await postCard(actor, "save", {
+		save: { ...saveContext(save), label: t("morale.title") },
+		outcome: t(save.passed ? "morale.holds" : "morale.breaks"),
+		hint: t("morale.hint")
+	}, { rolls: [save.roll] });
+	return save;
+}

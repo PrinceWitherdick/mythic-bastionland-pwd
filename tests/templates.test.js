@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
-import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, PROPERTY_TYPES } from "../module/config.js";
+import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
 import { KINDS, PROBLEM_REASONS } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { RANKS } from "../module/rules/glory.js";
@@ -68,8 +68,13 @@ describe("localization", () => {
 		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),
 		...ARMOUR_KINDS.map((key) => `item.kinds.${key}`),
-		...["hefty", "long", "slow", "ranged"].map((key) => `item.${key}`),
-		...["none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
+		...["hefty", "long", "slow", "ranged", "blast", "ignoresArmour"].map((key) => `item.${key}`),
+		...["unharmed", "none", "evaded", "scar", "wounded", "mortal", "slain"].map((key) => `damage.outcomes.${key}`),
+		...["mortal", "slain"].map((key) => `damage.warbandOutcomes.${key}`),
+		...partsOf("damage.harm", ["warband", "structure"], ["label", "hint"]),
+		...partsOf("npc.scales", NPC_SCALES, ["label", "hint"]),
+		...partsOf("npc.warband", ["routed", "broken", "wipedOut"], ["label", "hint"]),
+		...NPC_SOURCES.flatMap((key) => [`npcChooser.sources.${key}`, `npcChooser.unnamed.${key}`]),
 		...KINDS.map((kind) => `bookArt.kinds.${kind}`),
 		...PROBLEM_REASONS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...partsOf("chooser.starts", STARTS.map((start) => start.key), ["label", "summary"]),

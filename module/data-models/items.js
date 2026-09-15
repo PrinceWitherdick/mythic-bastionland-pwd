@@ -20,6 +20,9 @@ export class WeaponModel extends DescribedModel {
 			long: new fields.BooleanField({ initial: false }),
 			slow: new fields.BooleanField({ initial: false }),
 			ranged: new fields.BooleanField({ initial: false }),
+			// Cast attacks such as a sweep (d12 blast) or a scream that ignores armour.
+			blast: new fields.BooleanField({ initial: false }),
+			ignoresArmour: new fields.BooleanField({ initial: false }),
 			equipped: new fields.BooleanField({ initial: true })
 		};
 	}

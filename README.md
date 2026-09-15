@@ -21,6 +21,19 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Recovery:** Rest restores GD and clears Fatigue. Each Virtue has its own restore button next to its recovery method.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
+### NPCs
+
+The **NPC** sheet is laid out like the stat blocks the book prints for each Myth's Cast and each Seer, for anybody who isn't a player's Knight:
+
+- **Stats:** name and epithet, VIG, CLA and SPI, GD, and Armour with a note on what it is. Saves, Attack, Take Damage and Rest work as they do for Knights.
+- **Attacks and gear:** weapons, armour and gear items. Weapons can also be Blast or ignore Armour.
+- **Feats:** off by default, since only some of the Cast can perform one. Mark the ones this character can.
+- **Warbands:** set the scale to Warband and a Mortal Wound routs them, SPI 0 breaks them and VIG 0 wipes them out. Take Damage asks whether the Attack was Blast or large-scale, since nothing else harms them, and their Attacks on individuals get +d12 and Blast.
+- **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature.
+- **Morale:** rolls the SPI Save to stand rather than rout or surrender.
+- **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
+- **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
+
 ### The Realm
 
 The Realm is a Foundry Scene, so everybody sees the same map and moves their own Knight on it:

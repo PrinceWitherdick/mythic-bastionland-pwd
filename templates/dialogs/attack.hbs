@@ -5,7 +5,7 @@
 		<label class="bastionland-check">
 			<input type="checkbox" name="source.{{id}}" checked>
 			<span class="bastionland-check__label">{{name}}</span>
-			<span class="bastionland-tag">{{damage}}{{#if ranged}} · {{localize "bastionland.item.ranged"}}{{/if}}</span>
+			<span class="bastionland-tag">{{damage}}{{#if ranged}} · {{localize "bastionland.item.ranged"}}{{/if}}{{#if blast}} · {{localize "bastionland.item.blast"}}{{/if}}</span>
 		</label>
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
@@ -31,6 +31,14 @@
 		</div>
 		<p class="hint">{{localize "bastionland.attack.smiteHint"}}</p>
 	</div>
+
+	{{#if warband}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="againstIndividuals" checked>
+		<span class="bastionland-check__label">{{localize "bastionland.attack.againstIndividuals"}}</span>
+	</label>
+	<p class="hint">{{localize "bastionland.attack.againstIndividualsHint"}}</p>
+	{{/if}}
 
 	<label class="bastionland-check">
 		<input type="checkbox" name="impaired" {{checked impaired}}>

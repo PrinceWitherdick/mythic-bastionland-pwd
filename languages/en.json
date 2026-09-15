@@ -1,7 +1,8 @@
 {
   "TYPES": {
     "Actor": {
-      "knight": "Knight"
+      "knight": "Knight",
+      "npc": "NPC"
     },
     "Item": {
       "weapon": "Weapon",
@@ -152,6 +153,7 @@
       },
       "saveOrFatigue": "{virtue} Save or become Fatigued.",
       "alreadyFatigued": "{name} is Fatigued and cannot perform Feats until they rest.",
+      "notKnown": "{name} can’t perform {feat}.",
       "becameFatigued": "Fatigued until they rest.",
       "avoidedFatigue": "Avoids Fatigue."
     },
@@ -174,6 +176,12 @@
       "fail": "Fail",
       "target": "Needs {value} or less"
     },
+    "morale": {
+      "title": "Morale",
+      "holds": "Holds firm.",
+      "breaks": "Routs or surrenders.",
+      "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI."
+    },
     "attack": {
       "title": "Attack",
       "weapons": "Weapons and shields",
@@ -186,6 +194,8 @@
       "blastHint": "Roll separately against everybody in the area.",
       "ranged": "Ranged",
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
+      "againstIndividuals": "Against individuals",
+      "againstIndividualsHint": "A Warband’s Attack on individuals gets +d12 and causes Blast Damage.",
       "roll": "Roll Attack",
       "highest": "Highest die",
       "damageNote": "Before Deny and Gambits. Spend dice of 4+ on Gambits, then the highest die left is the Damage.",
@@ -205,13 +215,28 @@
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
       "vigourLine": "VIG {from} → {to}",
+      "harm": {
+        "warband": {
+          "label": "A Blast or large-scale Attack",
+          "hint": "Individual Attacks don’t harm a Warband."
+        },
+        "structure": {
+          "label": "Fire, a siege weapon or a suitably large creature",
+          "hint": "Nothing else harms a structure."
+        }
+      },
       "outcomes": {
+        "unharmed": "The Attack can’t harm them.",
         "none": "The blow is turned aside. No Damage.",
         "evaded": "Evades the Attack.",
         "scar": "Left at exactly 0GD. Roll a Scar with the die that caused it.",
         "wounded": "Wounded.",
         "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
         "slain": "Slain."
+      },
+      "warbandOutcomes": {
+        "mortal": "Routed from the battle.",
+        "slain": "Wiped out entirely."
       }
     },
     "scarRoll": {
@@ -321,6 +346,10 @@
       "slowHint": "Cannot be used if the wielder moved this turn. Also Long.",
       "ranged": "Ranged",
       "rangedHint": "Cannot be used if the wielder began their turn engaged in melee.",
+      "blast": "Blast",
+      "blastHint": "Attacks everybody in the area, rolled separately for each.",
+      "ignoresArmour": "Ignores Armour",
+      "ignoresArmourHint": "Damage isn’t reduced by the target’s Armour.",
       "equipped": "Worn or wielded",
       "kind": "Type",
       "armour": "Armour",
@@ -333,6 +362,75 @@
         "helm": "Helm",
         "shield": "Shield"
       }
+    },
+    "npc": {
+      "name": "Name",
+      "epithet": "Epithet",
+      "armourNote": "What their Armour is",
+      "scale": "Scale",
+      "scales": {
+        "individual": {
+          "label": "Individual",
+          "hint": "One person, beast or thing."
+        },
+        "warband": {
+          "label": "Warband",
+          "hint": "Two-dozen or so fighting as one. Only Blast or large-scale Attacks harm them, and their Attacks on individuals get +d12 and Blast."
+        }
+      },
+      "warband": {
+        "routed": {
+          "label": "Routed",
+          "hint": "A Mortal Wound routs a Warband from the battle."
+        },
+        "broken": {
+          "label": "Broken",
+          "hint": "At SPI 0 a Warband is broken, acting only in its own interest."
+        },
+        "wipedOut": {
+          "label": "Wiped Out",
+          "hint": "At VIG 0 a Warband is wiped out entirely."
+        }
+      },
+      "structure": "Counts as a structure",
+      "structureHint": "Only fire, siege weapons or suitably large creatures can harm it.",
+      "featsHint": "Feats are for Knights, but some of the Cast can perform one. Mark the ones this character can.",
+      "items": "Attacks & Gear",
+      "notes": "Traits & Notes",
+      "chooseNpc": "Choose from Book",
+      "pasteStatBlock": "Paste Stat Block",
+      "paste": {
+        "title": "Paste Stat Block",
+        "intro": "Paste a stat block, such as one copied from the rulebook. It replaces this NPC’s name, Virtues, GD, Armour, Feats and notes, and swaps their weapons for its attacks.",
+        "placeholder": "Name, Epithet\nVIG 10, CLA 10, SPI 10, 3GD\nA1 (what their Armour is)\nWeapon (d8 hefty)\nAnything else about them.",
+        "hint": "Only the VIG, CLA, SPI and GD line is needed. Text above it becomes the name.",
+        "apply": "Apply",
+        "noStats": "No stat line found. It should read like VIG 10, CLA 10, SPI 10, 3GD."
+      }
+    },
+    "npcChooser": {
+      "title": "Choose an NPC",
+      "titleFor": "Choose an NPC for {name}",
+      "newNpc": "New NPC",
+      "sources": {
+        "myths": "Myths",
+        "seers": "Seers"
+      },
+      "unnamed": {
+        "myths": "Myth {roll}",
+        "seers": "Seer {roll}"
+      },
+      "noIndex": "Run the Import Book Art macro to see each Myth’s Cast and each Seer here.",
+      "noText": "Run Import Book Art again to bring in each Myth’s Omens and Cast and each Seer’s Virtues.",
+      "reference": "{roll}, page {page}",
+      "omens": "Omens",
+      "noPeople": "No stat blocks were read from this page.",
+      "noSelection": "Pick a Myth or a Seer to see them here.",
+      "create": "Create NPC",
+      "apply": "Apply to {name}",
+      "created": "{name} added to the Actors directory.",
+      "confirmTitle": "Replace This NPC?",
+      "confirm": "{name} becomes {npc}. Their name, picture, Virtues, GD, Armour, Feats and notes are replaced, and their weapons are swapped for these attacks. Other items are kept."
     },
     "bookArt": {
       "title": "Import Book Art",

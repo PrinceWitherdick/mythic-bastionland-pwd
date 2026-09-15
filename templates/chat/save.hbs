@@ -1,3 +1,9 @@
 <section class="bastionland-card">
 	{{> "bastionland.save-result" save=save}}
+	{{#if outcome}}
+	<p class="bastionland-card__outcome">{{outcome}}</p>
+	{{/if}}
+	{{#if hint}}
+	<p class="bastionland-card__hint">{{hint}}</p>
+	{{/if}}
 </section>

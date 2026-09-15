@@ -131,11 +131,13 @@
 .bastionland-save__label {
 	grid-area: label;
 	font-family: var(--bastionland-font-caps);
+	font-size: 1.2em;
+	font-weight: bold;
 }
 
 .bastionland-save__die {
 	grid-area: die;
-	justify-self: end;
+	justify-self: center;
 	font-size: 1.6rem;
 	line-height: 1;
 }
@@ -143,12 +145,11 @@
 .bastionland-save__target {
 	grid-area: target;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85em;
 }
 
 .bastionland-save__result {
 	grid-area: result;
-	justify-self: end;
+	justify-self: center;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
 }

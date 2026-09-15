@@ -4,7 +4,7 @@
  */
 
 /**
- * @typedef {"none"|"evaded"|"scar"|"wounded"|"mortal"|"slain"} DamageOutcome
+ * @typedef {"unharmed"|"none"|"evaded"|"scar"|"wounded"|"mortal"|"slain"} DamageOutcome
  *
  * @typedef {object} DamageResult
  * @property {number} dealt       Damage left after Armour.
@@ -30,12 +30,15 @@
  * @param {number} args.vigour        The target's current VIG.
  * @param {boolean} [args.exposed]    Exposed targets act as if they have 0GD.
  *                                    Their real GD is left untouched.
+ * @param {boolean} [args.immune]     The Attack can't harm the target at all, as an
+ *                                    individual's Attack can't harm a Warband (p11).
  * @returns {DamageResult}
  */
-export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false }) {
+export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false }) {
 	const dealt = Math.max(0, Math.trunc(damage) - Math.max(0, Math.trunc(armour)));
 	const unchanged = { dealt, guard, vigour, guardLoss: 0, vigourLoss: 0 };
 
+	if (immune) return { ...unchanged, dealt: 0, outcome: "unharmed" };
 	if (dealt === 0) return { ...unchanged, outcome: "none" };
 
 	const effectiveGuard = exposed ? 0 : guard;
