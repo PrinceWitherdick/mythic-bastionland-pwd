@@ -107,9 +107,12 @@ export function placeFeature(realm, g, hex, feature) {
 
 		case "landmark": {
 			const type = LANDMARK_TYPES.includes(feature.type) ? feature.type : here.landmark?.type ?? LANDMARK_TYPES[0];
+			// The Hex panel sends a Seer roll one die at a time, so half a roll is kept, with the other die as it was or 1.
+			const before = here.landmark?.seer ?? null;
+			const rolled = { d6: isDie(feature.seer?.d6, 6), d12: isDie(feature.seer?.d12, 12) };
 			const seer = type !== "sanctum" ? null
-				: feature.seer && isDie(feature.seer.d6, 6) && isDie(feature.seer.d12, 12) ? { d6: feature.seer.d6, d12: feature.seer.d12 }
-					: here.landmark?.seer ?? null;
+				: rolled.d6 || rolled.d12 ? { d6: rolled.d6 ? feature.seer.d6 : before?.d6 ?? 1, d12: rolled.d12 ? feature.seer.d12 : before?.d12 ?? 1 }
+					: before;
 			next.landmarks.push({
 				id: here.landmark?.id ?? null,
 				hex: { ...hex },

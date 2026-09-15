@@ -414,7 +414,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
  * The match key an existing document answers to.
  * @returns {string|null}
  */
-function existingMatch(g, kind, data) {
+function existingMatch(g, kind, data, replacing) {
 	const flag = realmFlag(data);
 	if (!flag) return null;
 	if (kind === "drawing") return flag.kind === "barrier" ? `edge:${flag.edge}` : null;
@@ -425,9 +425,10 @@ function existingMatch(g, kind, data) {
 		}
 		case "river": return `river:${flag.index}`;
 		case "seat": return "seat";
+		// An icon dragged off the map isn't in the Realm, so it's left for the GM rather than deleted with its Omens.
 		case "holding":
 		case "myth":
-		case "landmark": return `id:${data._id}`;
+		case "landmark": return replacing || hexAt(g, data) ? `id:${data._id}` : null;
 		default: return null;
 	}
 }
@@ -468,15 +469,17 @@ function changesFor(existing, desired) {
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
  * @param {{tiles?: object[], drawings?: object[]}} existing Source data, each with `_id`.
+ * @param {object} [options]
+ * @param {boolean} [options.replacing] The Realm replaces the Scene's old one, so icons off the map go too.
  * @returns {{Tile: {create: object[], update: object[], delete: string[]}, Drawing: {create: object[], update: object[], delete: string[]}}}
  */
-export function planRealmSync(realm, g, textures, existing) {
+export function planRealmSync(realm, g, textures, existing, { replacing = false } = {}) {
 	const desired = realmDocuments(realm, g, textures);
 	const plan = (wanted, current, kind) => {
 		const byMatch = new Map();
 		const deletions = [];
 		for (const data of current) {
-			const match = existingMatch(g, kind, data);
+			const match = existingMatch(g, kind, data, replacing);
 			if (!match) continue;
 			if (byMatch.has(match)) deletions.push(data._id);
 			else byMatch.set(match, data);

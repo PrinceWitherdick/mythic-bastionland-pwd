@@ -185,6 +185,20 @@ describe("planRealmSync", () => {
 		expect(plan.Tile.create).toEqual([]);
 	});
 
+	it("leaves an icon dragged off the map where it is, for Tidy to report", () => {
+		const { snapshot } = onScene();
+		const myth = snapshot.tiles.find((tile) => flagOf(tile).kind === "myth");
+		Object.assign(myth, { x: g.width + 500, y: g.height + 500 });
+		const { realm, problems } = realmFromDocuments(snapshot, g);
+		expect(problems).toContainEqual(expect.objectContaining({ kind: "myth", reason: "offMap" }));
+		const plan = planRealmSync(realm, g, textures, snapshot);
+		expect(plan.Tile.delete).toEqual([]);
+		expect(plan.Tile.update.map(({ _id }) => _id)).not.toContain(myth._id);
+
+		const rerolled = generateRealm({ seed: "rerolled", geometry: g });
+		expect(planRealmSync(rerolled, g, textures, snapshot, { replacing: true }).Tile.delete).toContain(myth._id);
+	});
+
 	it("only changes pictures when icons are imported", () => {
 		const { snapshot } = onScene();
 		const { realm } = realmFromDocuments(snapshot, g);

@@ -98,6 +98,13 @@ describe("editFeature", () => {
 		expect(featureAt(editFeature(sampleRealm(), g, hex(9, 9), { seer: { d6: 6 } }), hex(9, 9)).landmark.seer).toEqual({ d6: 6, d12: 5 });
 	});
 
+	it("keeps half a Seer roll typed for a Sanctum that has no Seer yet", () => {
+		const sanctum = editFeature(placeFeature(sampleRealm(), g, hex(3, 3), { kind: "landmark", type: "sanctum" }), g, hex(3, 3), { seer: { d6: 3 } });
+		expect(featureAt(sanctum, hex(3, 3)).landmark.seer).toEqual({ d6: 3, d12: 1 });
+		expect(featureAt(editFeature(sanctum, g, hex(3, 3), { seer: { d12: 7 } }), hex(3, 3)).landmark.seer).toEqual({ d6: 3, d12: 7 });
+		expect(featureAt(editFeature(sampleRealm(), g, hex(9, 9), { seer: { d6: 0 } }), hex(9, 9)).landmark.seer).toEqual({ d6: 4, d12: 5 });
+	});
+
 	it("leaves an empty hex alone", () => {
 		const realm = sampleRealm();
 		expect(editFeature(realm, g, hex(4, 4), { name: "Nowhere" })).toBe(realm);

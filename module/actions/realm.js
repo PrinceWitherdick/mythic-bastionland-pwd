@@ -96,10 +96,11 @@ function queueRealmWrite(write) {
  * @param {object} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
+ * @param {object} [options] Passed to planRealmSync.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function writeRealm(scene, realm, g, textures) {
-	const plan = planRealmSync(realm, g, textures, existingDocuments(scene));
+async function writeRealm(scene, realm, g, textures, options) {
+	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), options);
 	if (!planChanges(plan)) return false;
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
@@ -197,7 +198,7 @@ export async function rerollRealm(scene) {
 	const realm = generateRealm({ seed: randomSeed(), geometry: g });
 	const textures = realmTextures(await loadRealmIcons());
 	await queueRealmWrite(async () => {
-		await writeRealm(scene, realm, g, textures);
+		await writeRealm(scene, realm, g, textures, { replacing: true });
 		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
 	});
 	await postRealmKey(scene);
