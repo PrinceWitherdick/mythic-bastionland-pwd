@@ -6,10 +6,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "pack": "node scripts/pack.js",
+    "unpack": "node scripts/unpack.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@foundryvtt/foundryvtt-cli": "^3.0.4",
     "eslint": "^10.10.0",
     "globals": "^17.11.0",
     "handlebars": "^4.7.9",

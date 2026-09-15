@@ -1,6 +1,11 @@
 # Source books are copyrighted and never belong in the repo
 *.pdf
 
+# Compiled compendium packs. Foundry rewrites and locks these while a world is
+# open, so only their sources in packs/src are kept; npm run pack builds them.
+/packs/*
+!/packs/src/
+
 node_modules/
 dist/
 coverage/

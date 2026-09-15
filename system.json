@@ -27,6 +27,18 @@
       "path": "languages/en.json"
     }
   ],
+  "packs": [
+    {
+      "name": "macros",
+      "label": "Mythic Bastionland Macros",
+      "path": "packs/macros",
+      "type": "Macro",
+      "ownership": {
+        "PLAYER": "NONE",
+        "ASSISTANT": "OWNER"
+      }
+    }
+  ],
   "documentTypes": {
     "Actor": {
       "knight": {

@@ -35,11 +35,21 @@ npm test        # rules, templates, and localization keys
 npm run lint
 ```
 
+Compendium packs are built from the JSON in `packs/src`. Build them before the first launch, and again after changing `packs/src`. Foundry must be closed or at the Setup screen, because it locks a pack while a world is open:
+
+```sh
+npm run pack    # packs/src into packs
+npm run unpack  # packs back into packs/src, after editing a compendium inside Foundry
+```
+
+The built packs aren't committed, because Foundry rewrites them whenever a world is opened.
+
 The layout:
 
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
 - `module/sheets/` and `templates/` hold the sheets.
+- `packs/src/` holds the compendium sources.
 
 The system id lives only in `module/system-id.js`. Lint rejects the id spelled out anywhere else.
 

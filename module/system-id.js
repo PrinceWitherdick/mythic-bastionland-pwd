@@ -14,3 +14,13 @@ export const SYSTEM_PATH = `systems/${SYSTEM_ID}`;
  * @returns {string}
  */
 export const templatePath = (path) => `${SYSTEM_PATH}/templates/${path}`;
+
+/**
+ * Id of a compendium declared in system.json.
+ * @param {string} name The pack's `name`.
+ * @returns {string}
+ */
+export const packId = (name) => `${SYSTEM_ID}.${name}`;
+
+/** The Macro compendium that holds Import Book Art. */
+export const MACROS_PACK = packId("macros");
