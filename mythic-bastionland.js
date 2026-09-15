@@ -44,8 +44,14 @@ Hooks.once("init", () => {
 		label: "bastionland.sheet.title"
 	});
 
-	// Partials used inside chat cards, which render outside any sheet.
+	// Partials shared by the Knight and NPC sheets, and used inside chat cards,
+	// which render outside any sheet.
 	foundry.applications.handlebars.loadTemplates({
+		"bastionland.item-row": templatePath("actor/parts/item-row.hbs"),
+		"bastionland.add-item": templatePath("actor/parts/add-item.hbs"),
+		"bastionland.virtue-scores": templatePath("actor/parts/virtue-scores.hbs"),
+		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
+		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
 	});
 

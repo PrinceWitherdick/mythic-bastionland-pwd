@@ -114,8 +114,9 @@ describe("system boot", () => {
 		}
 	});
 
-	it("preloads chat partials that exist on disk", () => {
+	it("preloads partials that exist on disk", () => {
 		const [[partials]] = foundry.applications.handlebars.loadTemplates.mock.calls;
+		expect(Object.keys(partials)).toEqual(expect.arrayContaining(["bastionland.item-row", "bastionland.add-item", "bastionland.save-result"]));
 		for (const path of Object.values(partials)) {
 			expect(existsSync(fileForTemplate(path)), path).toBe(true);
 		}
@@ -238,6 +239,7 @@ describe("KnightModel", () => {
 			impaired: true,
 			mortalWound: false
 		});
+		expect(model.knowsFeat("deny")).toBe(true);
 	});
 
 	it("is Exposed at CLA 0 even when not marked", () => {

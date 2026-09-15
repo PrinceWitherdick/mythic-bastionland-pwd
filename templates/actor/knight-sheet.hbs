@@ -1,40 +1,3 @@
-{{#*inline "bastionland-item-row"}}
-<li class="bastionland-item draggable" data-item-id="{{id}}">
-	<div class="bastionland-item__line">
-		{{#if equippable}}
-		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}" data-action="toggleEquipped" data-tooltip="{{localize 'bastionland.sheet.equip'}}" aria-label="{{localize 'bastionland.sheet.equip'}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
-			<i class="fa-solid fa-hand-fist" inert></i>
-		</button>
-		{{/if}}
-		<button type="button" class="bastionland-item__name" data-action="editItem">{{name}}</button>
-		{{#if tags.length}}
-		<span class="bastionland-item__tags">({{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})</span>
-		{{/if}}
-		{{#if @root.editable}}
-		<span class="bastionland-item__controls">
-			<button type="button" class="bastionland-icon" data-action="editItem" data-tooltip="{{localize 'bastionland.sheet.edit'}}" aria-label="{{localize 'bastionland.sheet.edit'}}">
-				<i class="fa-solid fa-pen" inert></i>
-			</button>
-			<button type="button" class="bastionland-icon" data-action="deleteItem" data-tooltip="{{localize 'bastionland.sheet.delete'}}" aria-label="{{localize 'bastionland.sheet.delete'}}">
-				<i class="fa-solid fa-trash" inert></i>
-			</button>
-		</span>
-		{{/if}}
-	</div>
-	{{#if description}}
-	<div class="bastionland-item__description">{{{description}}}</div>
-	{{/if}}
-</li>
-{{/inline}}
-
-{{#*inline "bastionland-add-button"}}
-{{#if @root.editable}}
-<button type="button" class="bastionland-add" data-action="createItem" data-type="{{type}}">
-	<i class="fa-solid fa-plus" inert></i> {{label}}
-</button>
-{{/if}}
-{{/inline}}
-
 <div class="bastionland-page">
 	<header class="bastionland-header">
 		<div class="bastionland-header__text">
@@ -57,13 +20,14 @@
 				<input id="{{rootId}}-fate" class="bastionland-blank" type="text" name="system.fate" value="{{system.fate}}" autocomplete="off">
 			</p>
 		</div>
-		<figure class="bastionland-heraldry" data-tooltip="{{localize 'bastionland.sheet.heraldry'}}">
-			<img src="{{actor.img}}" alt="{{localize 'bastionland.sheet.heraldry'}}" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		<figure class="bastionland-heraldry" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.heraldry'}}"{{/unless}}>
+			<img src="{{actor.img}}" alt="{{localize 'bastionland.sheet.heraldry'}}" {{#if hasArt}}data-name="{{localize 'bastionland.sheet.heraldry'}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
 		</figure>
 	</header>
 
 	{{#if editable}}
 	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.sheet.title'}}">
+		<button type="button" data-action="chooseKnight"><i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.sheet.chooseKnight"}}</button>
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>
 		<button type="button" data-action="rollScar"><i class="fa-solid fa-bone-break" inert></i> {{localize "bastionland.sheet.rollScar"}}</button>
@@ -74,22 +38,7 @@
 	<div class="bastionland-columns">
 		<div class="bastionland-column">
 			<section class="bastionland-scores">
-				{{#each virtues}}
-				<div class="bastionland-score">
-					<button type="button" class="bastionland-score__name" data-action="rollSave" data-virtue="{{key}}" data-tooltip="{{hint}}" aria-label="{{rollLabel}}">
-						<span class="bastionland-score__abbr">{{abbr}}</span><span class="bastionland-score__tail">{{tail}}</span>
-						<i class="bastionland-score__die fa-solid fa-dice-d20" inert></i>
-					</button>
-					<input class="bastionland-box" type="number" name="system.virtues.{{key}}.value" value="{{value}}" min="0" max="19" step="1" aria-label="{{label}} {{localize 'bastionland.sheet.current'}}">
-					<input class="bastionland-box bastionland-box--max" type="number" name="system.virtues.{{key}}.max" value="{{max}}" min="0" max="19" step="1" aria-label="{{label}} {{localize 'bastionland.sheet.maximum'}}">
-				</div>
-				{{/each}}
-
-				<div class="bastionland-score">
-					<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.guard.hint'}}">{{localize "bastionland.guard.label"}}</span>
-					<input class="bastionland-box" type="number" name="system.guard.value" value="{{system.guard.value}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.current'}}">
-					<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
-				</div>
+				{{> "bastionland.virtue-scores"}}
 
 				<div class="bastionland-score">
 					<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-glory">{{localize "bastionland.glory.label"}}</label>
@@ -125,15 +74,7 @@
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
 				<ul class="bastionland-conditions">
-					{{#each conditions}}
-					<li>
-						{{#if toggle}}
-						<button type="button" class="bastionland-condition{{#if active}} is-active{{/if}}" data-action="toggleCondition" data-condition="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-						{{else}}
-						<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
-						{{/if}}
-					</li>
-					{{/each}}
+					{{> "bastionland.condition-items"}}
 				</ul>
 			</section>
 
@@ -179,14 +120,14 @@
 				</header>
 				<ul class="bastionland-items">
 					{{#each property}}
-					{{> bastionland-item-row}}
+					{{> "bastionland.item-row"}}
 					{{else}}
 					<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
 					{{/each}}
 				</ul>
 				<div class="bastionland-adds">
 					{{#each propertyTypes}}
-					{{> bastionland-add-button}}
+					{{> "bastionland.add-item"}}
 					{{/each}}
 				</div>
 			</section>
@@ -195,11 +136,11 @@
 				<h2 class="bastionland-heading">{{localize "bastionland.ability.label"}}</h2>
 				<ul class="bastionland-items bastionland-items--prose">
 					{{#each abilities}}
-					{{> bastionland-item-row}}
+					{{> "bastionland.item-row"}}
 					{{/each}}
 				</ul>
 				<div class="bastionland-adds">
-					{{> bastionland-add-button type="ability" label=(localize "TYPES.Item.ability")}}
+					{{> "bastionland.add-item" type="ability" label=(localize "TYPES.Item.ability")}}
 				</div>
 			</section>
 
@@ -207,25 +148,17 @@
 				<h2 class="bastionland-heading">{{localize "bastionland.passion.label"}}</h2>
 				<ul class="bastionland-items bastionland-items--prose">
 					{{#each passions}}
-					{{> bastionland-item-row}}
+					{{> "bastionland.item-row"}}
 					{{/each}}
 				</ul>
 				<div class="bastionland-adds">
-					{{> bastionland-add-button type="passion" label=(localize "TYPES.Item.passion")}}
+					{{> "bastionland.add-item" type="passion" label=(localize "TYPES.Item.passion")}}
 				</div>
 			</section>
 
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.feats.label"}}</h2>
-				<ul class="bastionland-feats">
-					{{#each feats}}
-					<li>
-						<button type="button" class="bastionland-feat" data-action="performFeat" data-feat="{{key}}" {{#unless @root.editable}}disabled{{/unless}}>{{name}}</button>
-						– {{summary}}
-						<span class="bastionland-feat__cost">{{cost}}</span>
-					</li>
-					{{/each}}
-				</ul>
+				{{> "bastionland.feat-list"}}
 			</section>
 
 			<section class="bastionland-block">
@@ -243,7 +176,7 @@
 				<h2 class="bastionland-heading">{{localize "bastionland.scars.label"}}</h2>
 				<ul class="bastionland-items bastionland-items--prose">
 					{{#each scars}}
-					{{> bastionland-item-row}}
+					{{> "bastionland.item-row"}}
 					{{/each}}
 				</ul>
 			</section>

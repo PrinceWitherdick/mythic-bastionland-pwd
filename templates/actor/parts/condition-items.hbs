@@ -1,0 +1,9 @@
+{{#each conditions}}
+<li>
+	{{#if toggle}}
+	<button type="button" class="bastionland-condition{{#if active}} is-active{{/if}}" data-action="toggleCondition" data-condition="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+	{{else}}
+	<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
+	{{/if}}
+</li>
+{{/each}}

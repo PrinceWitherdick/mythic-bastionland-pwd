@@ -21,6 +21,26 @@ export function clampVirtue(value) {
 }
 
 /**
+ * Conditions marked by hand, and those that follow from a Virtue at 0
+ * (Harm & Scars, p9): Exhausted at VIG 0, Exposed at CLA 0, Impaired at SPI 0.
+ * @param {object} character
+ * @param {Record<string, {value: number}>} character.virtues
+ * @param {boolean} character.fatigued
+ * @param {boolean} character.exposed     Caught with their guard down.
+ * @param {boolean} character.mortalWound
+ * @returns {{fatigued: boolean, exhausted: boolean, exposed: boolean, impaired: boolean, mortalWound: boolean}}
+ */
+export function conditionsFor({ virtues, fatigued, exposed, mortalWound }) {
+	return {
+		fatigued,
+		exhausted: virtues.vig.value === 0,
+		exposed: exposed || virtues.cla.value === 0,
+		impaired: virtues.spi.value === 0,
+		mortalWound
+	};
+}
+
+/**
  * A Save passes when the d20 shows a number equal to or below the Virtue.
  * @param {number} roll   The d20 result.
  * @param {number} virtue The current value of the Virtue being tested.

@@ -1,0 +1,26 @@
+<li class="bastionland-item draggable" data-item-id="{{id}}">
+	<div class="bastionland-item__line">
+		{{#if equippable}}
+		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}" data-action="toggleEquipped" data-tooltip="{{localize 'bastionland.sheet.equip'}}" aria-label="{{localize 'bastionland.sheet.equip'}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
+			<i class="fa-solid fa-hand-fist" inert></i>
+		</button>
+		{{/if}}
+		<button type="button" class="bastionland-item__name" data-action="editItem">{{name}}</button>
+		{{#if tags.length}}
+		<span class="bastionland-item__tags">({{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})</span>
+		{{/if}}
+		{{#if @root.editable}}
+		<span class="bastionland-item__controls">
+			<button type="button" class="bastionland-icon" data-action="editItem" data-tooltip="{{localize 'bastionland.sheet.edit'}}" aria-label="{{localize 'bastionland.sheet.edit'}}">
+				<i class="fa-solid fa-pen" inert></i>
+			</button>
+			<button type="button" class="bastionland-icon" data-action="deleteItem" data-tooltip="{{localize 'bastionland.sheet.delete'}}" aria-label="{{localize 'bastionland.sheet.delete'}}">
+				<i class="fa-solid fa-trash" inert></i>
+			</button>
+		</span>
+		{{/if}}
+	</div>
+	{{#if description}}
+	<div class="bastionland-item__description">{{{description}}}</div>
+	{{/if}}
+</li>

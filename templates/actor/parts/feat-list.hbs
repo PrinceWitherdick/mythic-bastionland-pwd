@@ -1,0 +1,9 @@
+<ul class="bastionland-feats">
+	{{#each feats}}
+	<li>
+		<button type="button" class="bastionland-feat" data-action="performFeat" data-feat="{{key}}" {{#unless @root.editable}}disabled{{/unless}}>{{name}}</button>
+		– {{summary}}
+		<span class="bastionland-feat__cost">{{cost}}</span>
+	</li>
+	{{/each}}
+</ul>

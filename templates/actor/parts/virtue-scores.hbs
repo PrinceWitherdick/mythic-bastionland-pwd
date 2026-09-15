@@ -1,0 +1,16 @@
+{{#each virtues}}
+<div class="bastionland-score">
+	<button type="button" class="bastionland-score__name" data-action="rollSave" data-virtue="{{key}}" data-tooltip="{{hint}}" aria-label="{{rollLabel}}">
+		<span class="bastionland-score__abbr">{{abbr}}</span><span class="bastionland-score__tail">{{tail}}</span>
+		<i class="bastionland-score__die fa-solid fa-dice-d20" inert></i>
+	</button>
+	<input class="bastionland-box" type="number" name="system.virtues.{{key}}.value" value="{{value}}" min="0" max="19" step="1" aria-label="{{label}} {{localize 'bastionland.sheet.current'}}">
+	<input class="bastionland-box bastionland-box--max" type="number" name="system.virtues.{{key}}.max" value="{{max}}" min="0" max="19" step="1" aria-label="{{label}} {{localize 'bastionland.sheet.maximum'}}">
+</div>
+{{/each}}
+
+<div class="bastionland-score">
+	<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.guard.hint'}}">{{localize "bastionland.guard.label"}}</span>
+	<input class="bastionland-box" type="number" name="system.guard.value" value="{{system.guard.value}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.current'}}">
+	<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
+</div>

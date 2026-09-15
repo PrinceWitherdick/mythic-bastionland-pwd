@@ -1,3 +1,5 @@
+import { VIRTUES, VIRTUE_MAX } from "../rules/virtues.js";
+
 const fields = foundry.data.fields;
 
 /**
@@ -32,4 +34,25 @@ export function textField() {
 /** Rich text edited with ProseMirror. */
 export function htmlField() {
 	return new fields.HTMLField({ required: true, blank: true, initial: "" });
+}
+
+/** A box that starts unticked. */
+export function booleanField() {
+	return new fields.BooleanField({ initial: false });
+}
+
+/**
+ * What every character has, Knight or NPC: Virtues, GD, the conditions marked
+ * by hand, and notes. `conditionsFor` derives the rest from these.
+ */
+export function characterFields() {
+	return {
+		virtues: new fields.SchemaField(Object.fromEntries(VIRTUES.map((key) => [key, trackField({ initial: 10, max: VIRTUE_MAX })]))),
+		guard: trackField({ initial: 3 }),
+		fatigued: booleanField(),
+		// Caught with their guard down. CLA 0 also Exposes, but that is derived.
+		exposed: booleanField(),
+		mortalWound: booleanField(),
+		notes: htmlField()
+	};
 }
