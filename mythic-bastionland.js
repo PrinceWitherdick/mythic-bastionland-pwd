@@ -13,6 +13,7 @@ import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/ma
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { t } from "./module/chat/cards.js";
+import { DomainModel } from "./module/data-models/DomainModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
 import {
@@ -24,6 +25,7 @@ import {
 	WeaponModel
 } from "./module/data-models/items.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
+import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
 import { registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
@@ -48,6 +50,7 @@ const REFEREE_TOOLS = [
 Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
 	CONFIG.Actor.dataModels.npc = NpcModel;
+	CONFIG.Actor.dataModels.domain = DomainModel;
 	Object.assign(CONFIG.Item.dataModels, ITEM_MODELS);
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
@@ -63,6 +66,11 @@ Hooks.once("init", () => {
 	});
 	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, NpcSheet, {
 		types: ["npc"],
+		makeDefault: true,
+		label: "bastionland.sheet.title"
+	});
+	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, DomainSheet, {
+		types: ["domain"],
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});

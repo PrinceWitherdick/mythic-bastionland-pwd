@@ -881,6 +881,21 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* Domain sheet                                                     */
+/* ---------------------------------------------------------------- */
+
+.bastionland-domain__seats {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0.3rem 0.75rem;
+}
+
+.bastionland-domain__field {
+	width: 100%;
+}
+
+/* ---------------------------------------------------------------- */
 /* Steed on the Knight sheet                                        */
 /* ---------------------------------------------------------------- */
 

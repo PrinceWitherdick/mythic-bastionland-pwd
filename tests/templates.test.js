@@ -13,6 +13,7 @@ import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
+import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
@@ -79,6 +80,11 @@ describe("localization", () => {
 		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
 		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),
 		`bookArt.kinds.${SPARK_KIND}`,
+		...partsOf("domain.council", COUNCIL_SEATS, ["label", "hint"]),
+		...partsOf("domain.crises", CRISES, ["name", "flavour", "resolution"]),
+		...CRISIS_RESULTS.map((result) => `domain.results.crisis.${result}`),
+		...COLLECTION_RESULTS.map((result) => `domain.results.collections.${result}`),
+		...DRAMA_RESULTS.map((result) => `domain.results.drama.${result}`),
 		...PHASES.flatMap((key) => [`time.phases.${key}`, `time.phaseHints.${key}`]),
 		...SEASONS.map((key) => `time.seasons.${key}`),
 		...partsOf("time.pursuits", [...SEASON_PURSUITS, ...AGE_PURSUITS], ["label", "hint"]),

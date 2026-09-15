@@ -18,6 +18,7 @@ import {
 } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
+import { settleDomains } from "./dominion.js";
 import { gloryLines } from "./glory.js";
 import { settleScar } from "./scars.js";
 
@@ -149,7 +150,8 @@ export async function advancePhase() {
 }
 
 /**
- * Turn the Season or the Age: the Company takes part. GMs only.
+ * Turn the Season or the Age: the Company takes part, then every Domain due
+ * for misrule falls into it. GMs only.
  * @param {object} options
  * @param {boolean} options.newAge
  * @param {(calendar: object) => object} options.next  Moves the calendar on.
@@ -169,11 +171,12 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned }) 
 
 	await setCalendar(after);
 	const { rolls, entries } = await passTime(company, { newAge });
+	const domains = await settleDomains();
 	await postCard(null, "report", {
 		title: turned(after),
 		tagline: calendarLabel(after),
-		entries,
-		hint: t("time.unresolvedHint")
+		entries: [...entries, ...domains.entries],
+		hint: [t("time.unresolvedHint"), domains.hint].filter(Boolean).join(" ")
 	}, { rolls });
 	return after;
 }

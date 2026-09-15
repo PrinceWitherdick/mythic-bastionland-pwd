@@ -26,6 +26,7 @@ function installFoundryStubs() {
 		abstract: { TypeDataModel },
 		data: {
 			fields: {
+				ArrayField: Field,
 				BooleanField: Field,
 				HTMLField: Field,
 				NumberField: Field,
@@ -104,13 +105,15 @@ describe("system boot", () => {
 			.find(([registeredClass, , , options]) => registeredClass === documentClass && options.types.includes(type));
 		const [, , knightSheet, knightOptions] = registered(Actor, "knight");
 		const [, , npcSheet, npcOptions] = registered(Actor, "npc");
+		const [, , domainSheet, domainOptions] = registered(Actor, "domain");
 		const [, , itemSheet, itemOptions] = registered(Item, "weapon");
 
 		expect(knightOptions).toMatchObject({ types: ["knight"], makeDefault: true });
 		expect(npcOptions).toMatchObject({ types: ["npc"], makeDefault: true });
+		expect(domainOptions).toMatchObject({ types: ["domain"], makeDefault: true });
 		expect(itemOptions.types.sort()).toEqual(Object.keys(CONFIG.Item.dataModels).sort());
 
-		for (const sheet of [knightSheet, npcSheet, itemSheet]) {
+		for (const sheet of [knightSheet, npcSheet, domainSheet, itemSheet]) {
 			for (const part of Object.values(sheet.PARTS)) {
 				expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
 			}
@@ -339,6 +342,23 @@ describe("NpcModel", () => {
 	it("offers only the scales the rules have", () => {
 		const schema = CONFIG.Actor.dataModels.npc.defineSchema();
 		expect(schema.scale.options.choices).toEqual(["individual", "warband"]);
+	});
+});
+
+describe("DomainModel", () => {
+	it("musters by the Holding's standing and warns of misrule before it falls", () => {
+		const { domain: DomainModel } = CONFIG.Actor.dataModels;
+		const domain = (state) => {
+			const model = Object.assign(new DomainModel(), { seat: false, crises: [], misrule: false, ...state });
+			model.prepareDerivedData();
+			return model;
+		};
+
+		expect(domain({ seat: true }).muster).toBe(3);
+		expect(domain({}).muster).toBe(2);
+		expect(domain({ crises: ["chaos", "debt", "panic"] }).misruleDue).toBe(true);
+		expect(domain({ crises: ["chaos", "debt", "panic"], misrule: true }).misruleDue).toBe(false);
+		expect(domain({ crises: ["chaos"] }).misruleDue).toBe(false);
 	});
 });
 

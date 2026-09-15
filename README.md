@@ -35,6 +35,18 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Choose from Book:** after Import Book Art, browse the Myths and Seers, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 
+### Domains
+
+A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authority), made with Create Actor in the Actors tab:
+
+- **The Holding:** its name and picture, whether it's the Seat of Power, and who rules it.
+- **Council:** the Steward, Marshal, Sheriff, Envoy and the Circle, with what each seat does.
+- **Crises:** the Crises the Domain faces, each with how it's resolved and a button to resolve it. **Add Crisis** gives it one the Referee chooses, such as one a failed task brings.
+- **Crisis Roll:** a Calamity adds two Crises, and a Dilemma asks which of two to take. The sheet shows whether it's been rolled this Season. A Crisis rolled that the Domain already faces passes to the next on the list.
+- **Misrule:** the sheet warns at 3 unresolved Crises, and turning the Season or Age in the Time window puts every Domain still at 3 or more into misrule.
+- **Increased Collections** and **Drama in Court** roll their tables. Drama in Court also rolls the Drama Spark Table when Import Book Art has brought it in.
+- **Authority:** how many Warbands the Domain can muster, with reminders of grand designs and succession.
+
 ### Referee tools
 
 GMs get three buttons at the top of the Roll Tables tab:

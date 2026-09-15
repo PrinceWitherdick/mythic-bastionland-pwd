@@ -2,7 +2,8 @@
   "TYPES": {
     "Actor": {
       "knight": "Knight",
-      "npc": "NPC"
+      "npc": "NPC",
+      "domain": "Domain"
     },
     "Item": {
       "weapon": "Weapon",
@@ -340,6 +341,114 @@
         "line": "{age} {virtue}",
         "value": "rolled {rolled}, {from} → {to}"
       }
+    },
+    "domain": {
+      "seat": "Seat of Power",
+      "seatHint": "The Holding of the ruler of the whole Realm, facing the same problems on a larger scale.",
+      "ruler": "Ruler",
+      "rulerPlaceholder": "Who rules here",
+      "council": {
+        "label": "Council",
+        "hint": "Council members can be given tasks lasting a Phase, a Week or a Season. They’re handled as normal actions, and failure usually brings a Crisis. Seats can be granted and revoked, but the scorned rarely go quietly.",
+        "steward": {
+          "label": "Steward",
+          "hint": "Rules in your absence, carrying your authority and the key to the treasury."
+        },
+        "marshal": {
+          "label": "Marshal",
+          "hint": "Trains and equips soldiers, and musters them in times of war."
+        },
+        "sheriff": {
+          "label": "Sheriff",
+          "hint": "Watches for threats within the Realm, and within your own walls."
+        },
+        "envoy": {
+          "label": "Envoy",
+          "hint": "Manages neighbours, and gives hospitality to visitors."
+        },
+        "circle": {
+          "label": "The Circle",
+          "hint": "Worthy visiting Knights invited to sit alongside the Council as equals."
+        }
+      },
+      "crisesLabel": "Crises",
+      "noCrises": "No Crises. Times are good.",
+      "crises": {
+        "chaos": {
+          "name": "Chaos",
+          "flavour": "lawlessness in the land",
+          "resolution": "Resolved by enforcing a sense of justice."
+        },
+        "debt": {
+          "name": "Debt",
+          "flavour": "dire need of coffer and coin",
+          "resolution": "Resolved by restocking the treasury."
+        },
+        "famine": {
+          "name": "Famine",
+          "flavour": "empty plates, empty fields",
+          "resolution": "Resolved by getting food into the stores."
+        },
+        "misery": {
+          "name": "Misery",
+          "flavour": "Vassals question why they toil",
+          "resolution": "Resolved by raising the spirits of the people."
+        },
+        "panic": {
+          "name": "Panic",
+          "flavour": "the weak tremble with unease",
+          "resolution": "Resolved by making the Vassals feel safe."
+        },
+        "doubt": {
+          "name": "Doubt",
+          "flavour": "seeds of betrayal against you",
+          "resolution": "Resolved by asserting your authority to rule."
+        }
+      },
+      "crisisRoll": "Crisis Roll",
+      "crisisRollHint": "Roll at the start of each Season, or on returning from a long absence.",
+      "rolledThisSeason": "The Crisis Roll has been made this Season ({season}).",
+      "notRolledThisSeason": "The Crisis Roll hasn’t been made this Season yet ({season}).",
+      "addCrisis": "Add Crisis",
+      "addCrisisIntro": "Which Crisis does {name} face?",
+      "allCrises": "{name} already faces every Crisis.",
+      "resolve": "Resolve this Crisis",
+      "resolved": "{crisis} is resolved in {name}.",
+      "results": {
+        "crisis": {
+          "calamity": "Calamity: two Crises at once.",
+          "dilemma": "Dilemma: a choice between two Crises.",
+          "prosperity": "Prosperity: times are good."
+        },
+        "collections": {
+          "misrule": "Immediate misrule.",
+          "crisis": "The coffers are filled, but a Crisis comes with it.",
+          "willing": "The Vassals pay willingly, mostly."
+        },
+        "drama": {
+          "personal": "You are personally involved.",
+          "association": "You are involved by association.",
+          "uninvolved": "You are not involved."
+        }
+      },
+      "dilemmaTitle": "Dilemma",
+      "dilemmaIntro": "{name} must take on one of these Crises.",
+      "dilemmaOpen": "No choice was made between {options}. Add the one chosen from the sheet.",
+      "misrule": "Misrule",
+      "misruleHint": "Vassals revolt, Knights leave, and pretenders move in on their claims.",
+      "misruleDue": "{count} unresolved Crises: if the Season ends like this, the Domain falls into misrule.",
+      "fellIntoMisrule": "The Season ended with {count} unresolved Crises, and the Domain falls into misrule.",
+      "seasonHint": "Make the Crisis Roll for each Domain from its sheet.",
+      "collections": "Increased Collections",
+      "collectionsHint": "A Steward squeezes more from the Vassals for a war or a great project.",
+      "drama": "Drama in Court",
+      "dramaHint": "Every Season brings some drama. Roll to see how the ruler is involved.",
+      "dramaPrompt": "Drama Spark Table: {prompt}",
+      "authority": "Authority",
+      "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
+      "designs": "Grand designs: work on existing buildings is done by next Season, a new building takes a Season, and grand projects such as castles and roads take an Age.",
+      "succession": "Succession: a ruler usually names their successor, though some Realms leave it to a conclave of Seers or Knights-Elector. Whoever it is faces some resistance.",
+      "notes": "Court & Notes"
     },
     "spark": {
       "title": "Spark Tables",
