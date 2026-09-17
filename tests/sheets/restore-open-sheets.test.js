@@ -6,6 +6,7 @@ let docs;
 let unloadListeners;
 let registerSheetRestore;
 let restoreOpenSheets;
+let registerRestorableWindow;
 
 const fire = (hook, sheet) => (hooks[hook] ?? []).forEach((callback) => callback(sheet));
 const unload = () => unloadListeners.forEach((listener) => listener());
@@ -48,7 +49,7 @@ beforeEach(async () => {
 
 	// The list of open sheets lives in the module, so each test gets a fresh copy.
 	vi.resetModules();
-	({ registerSheetRestore, restoreOpenSheets } = await import("../../module/sheets/restore-open-sheets.js"));
+	({ registerRestorableWindow, registerSheetRestore, restoreOpenSheets } = await import("../../module/sheets/restore-open-sheets.js"));
 	registerSheetRestore();
 });
 
@@ -217,5 +218,44 @@ describe("reopening sheets", () => {
 		await restoring;
 		await vi.advanceTimersByTimeAsync(500);
 		expect(Object.keys(savedHere())).toEqual(["Actor.first", "Actor.second"]);
+	});
+});
+
+describe("windows that aren't sheets", () => {
+	const fakeWindow = () => {
+		const app = { position: { left: 40, top: 30, width: 900, height: 820, zIndex: 120 }, minimized: false, minimize: vi.fn() };
+		app.render = vi.fn(async () => app);
+		return app;
+	};
+
+	it("saves a registered window under its key while it's open", () => {
+		registerRestorableWindow("rulebook", "BookReader", () => null);
+		const app = fakeWindow();
+		fire("renderBookReader", app);
+		vi.advanceTimersByTime(500);
+		expect(savedHere()).toEqual({ "window:rulebook": { left: 40, top: 30, width: 900, height: 820, zIndex: 120 } });
+		fire("closeBookReader", app);
+		vi.advanceTimersByTime(500);
+		expect(savedHere()).toEqual({});
+	});
+
+	it("reopens it where it was, among the sheets in front-to-back order", async () => {
+		const app = fakeWindow();
+		const opened = [];
+		app.render.mockImplementation(async () => opened.push("window:rulebook"));
+		fakeSheet("Actor.front").render.mockImplementation(async () => opened.push("Actor.front"));
+		registerRestorableWindow("rulebook", "BookReader", () => app);
+		settings.openSheets = { "world-a": { "Actor.front": { zIndex: 110 }, "window:rulebook": { left: 7, top: 8, zIndex: 101 } } };
+		await restoreOpenSheets();
+		expect(app.render).toHaveBeenCalledWith({ force: true, position: { left: 7, top: 8 } });
+		expect(opened).toEqual(["window:rulebook", "Actor.front"]);
+	});
+
+	it("leaves it shut when it says it can't open", async () => {
+		registerRestorableWindow("rulebook", "BookReader", () => null);
+		settings.openSheets = { "world-a": { "window:rulebook": { left: 7, top: 8 } } };
+		await restoreOpenSheets();
+		vi.advanceTimersByTime(500);
+		expect(savedHere()).toEqual({});
 	});
 });
