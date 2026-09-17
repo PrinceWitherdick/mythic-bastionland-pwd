@@ -143,6 +143,13 @@ Hooks.once("init", () => {
 	});
 });
 
+// Tokens keep facing the same way when moved around the map, unless the GM turns
+// Token Automatic Rotation back on. Core registers the setting after init.
+Hooks.once("setup", () => {
+	const autoRotate = game.settings.settings.get("core.tokenAutoRotate");
+	if (autoRotate) autoRotate.default = false;
+});
+
 // Roll Surprise sits in the Combat Tracker's encounter menu.
 Hooks.on("getCombatContextOptions", addSurpriseOption);
 

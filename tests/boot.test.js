@@ -164,6 +164,14 @@ describe("system boot", () => {
 		expect(Object.isFrozen(game.system.api)).toBe(true);
 	});
 
+	it("turns Token Automatic Rotation off by default once core registers it", () => {
+		const autoRotate = { default: true };
+		game.settings.settings = new Map([["core.tokenAutoRotate", autoRotate]]);
+		hooks.setup();
+		expect(autoRotate.default).toBe(false);
+		delete game.settings.settings;
+	});
+
 	it("offers Roll Surprise to GMs in the Combat Tracker's encounter menu", () => {
 		const options = [];
 		const tracker = { viewed: { combatants: { size: 2 } } };
