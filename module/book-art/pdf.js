@@ -1,5 +1,4 @@
-import { WEBP_QUALITY, rgbaPixels } from "../rules/book-art.js";
-import { imageBox, trackImageTransforms } from "../rules/realm-icons.js";
+import { WEBP_QUALITY, paintedImages, rgbaPixels } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { uploadFile } from "./files.js";
 
@@ -50,14 +49,11 @@ export async function openPdf(file) {
  * list, so nothing has to be decoded to tell the art from the backgrounds.
  * @param {object} page A pdf.js page.
  * @param {object} OPS  pdf.js operator codes.
- * @param {object} [options]
- * @param {boolean} [options.boxes] Also give where each picture lands on the page, from imageBox.
- * @returns {Promise<{key: string|null, width: number, height: number, inline?: object, box?: object}[]>}
+ * @returns {Promise<{key: string|null, width: number, height: number, inline?: object}[]>}
  */
-export async function listPageImages(page, OPS, { boxes = false } = {}) {
+export async function listPageImages(page, OPS) {
 	const { fnArray, argsArray } = await page.getOperatorList();
-	return trackImageTransforms(fnArray, argsArray, OPS)
-		.map(({ matrix, ...image }) => (boxes ? { ...image, box: imageBox(matrix, page.view) } : image));
+	return paintedImages(fnArray, argsArray, OPS);
 }
 
 /**
@@ -84,16 +80,15 @@ function resolveImage(page, image) {
 
 /**
  * @param {object} image Decoded pixels from resolveImage.
- * @param {(pixels: Uint8ClampedArray) => Uint8ClampedArray} [transform] Changes the RGBA pixels before drawing.
  * @returns {HTMLCanvasElement|null} Null when pdf.js used a pixel layout this can't read.
  */
-function imageToCanvas(image, transform = (pixels) => pixels) {
+function imageToCanvas(image) {
 	const pixels = rgbaPixels(image);
 	if (!pixels) return null;
 	const canvas = document.createElement("canvas");
 	canvas.width = image.width;
 	canvas.height = image.height;
-	canvas.getContext("2d").putImageData(new ImageData(transform(pixels), image.width, image.height), 0, 0);
+	canvas.getContext("2d").putImageData(new ImageData(pixels, image.width, image.height), 0, 0);
 	return canvas;
 }
 
@@ -146,13 +141,12 @@ function cropSquare(source, { x, y, size }) {
  * @param {ImageTarget[]} targets
  * @param {object} options
  * @param {{type: string}} options.format From imageFormat.
- * @param {(pixels: Uint8ClampedArray) => Uint8ClampedArray} [options.transform] Changes the pixels first.
  * @returns {Promise<{path?: string, reason?: string}[]>} One for each target.
  */
-export async function saveImages(page, image, targets, { format, transform }) {
+export async function saveImages(page, image, targets, { format }) {
 	let canvas = null;
 	try {
-		canvas = imageToCanvas(await resolveImage(page, image), transform);
+		canvas = imageToCanvas(await resolveImage(page, image));
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't read the picture for ${targets[0]?.fileName}`, error);
 	}
@@ -185,18 +179,6 @@ export async function saveImages(page, image, targets, { format, transform }) {
 		freeCanvas(canvas);
 	}
 	return results;
-}
-
-/**
- * Decode, encode and upload one picture from listPageImages.
- * @param {object} page
- * @param {object} image
- * @param {ImageTarget & {format: {type: string}, transform?: Function}} target
- * @returns {Promise<{path?: string, reason?: string}>}
- */
-export async function saveImage(page, image, { format, transform, ...target }) {
-	const [saved] = await saveImages(page, image, [target], { format, transform });
-	return saved;
 }
 
 /**

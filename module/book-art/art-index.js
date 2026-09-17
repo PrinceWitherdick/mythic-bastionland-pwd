@@ -1,7 +1,6 @@
 import { t } from "../chat/cards.js";
 import { ART_ROOT, INDEX_FILE } from "../rules/book-art.js";
 import { mythReference, seerReference } from "../rules/realm.js";
-import { REALM_ICON_DIR, REALM_INDEX_FILE } from "../rules/realm-icons.js";
 
 /**
  * Fetch a JSON file Import Book Art wrote. The browser asks the server each
@@ -24,13 +23,6 @@ async function loadJson(path) {
  * @returns {Promise<object|null>}
  */
 export const loadArtIndex = () => loadJson(`${ART_ROOT}/${INDEX_FILE}`);
-
-/**
- * The index of Realm icons Import Book Art saves from the Blank Realm PDF, or
- * null if it hasn't been imported.
- * @returns {Promise<object|null>}
- */
-export const loadRealmIcons = () => loadJson(`${REALM_ICON_DIR}/${REALM_INDEX_FILE}`);
 
 /**
  * @param {object[]|undefined} list One of the art index's lists, such as `myths`.

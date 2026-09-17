@@ -590,6 +590,23 @@ export function buildIndex({ entries, problems = [], spark = [], cityQuest = nul
 }
 
 /**
+ * Every picture a page paints, in drawing order, from pdf.js's operator list.
+ * Pictures inside forms are listed too, as the list runs through them.
+ * @param {number[]} fnArray From `page.getOperatorList()`.
+ * @param {any[]} argsArray
+ * @param {object} OPS pdf.js operator codes.
+ * @returns {{key: string|null, width: number, height: number, inline?: object}[]}
+ */
+export function paintedImages(fnArray, argsArray, OPS) {
+	return fnArray.flatMap((fn, index) => {
+		const args = argsArray[index];
+		if (fn === OPS.paintImageXObject) return [{ key: args[0], width: args[1], height: args[2] }];
+		if (fn === OPS.paintInlineImageXObject) return [{ key: null, width: args[0].width, height: args[0].height, inline: args[0] }];
+		return [];
+	});
+}
+
+/**
  * Pixels ready for `ImageData`, keeping any transparency. pdf.js hands back
  * RGBA for images with a soft mask and RGB for the rest.
  * @param {{width: number, height: number, data: Uint8ClampedArray, kind?: number}} image

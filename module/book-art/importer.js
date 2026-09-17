@@ -36,13 +36,11 @@ import {
 	goodsFromPages
 } from "../rules/arms-and-goods.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOmensFromItems } from "../rules/city-quest.js";
-import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
-import { importRealmIcons } from "./realm-import.js";
 import { showImportReport } from "./report.js";
 
 /** Stops a second import starting while one is under way. */
@@ -120,14 +118,6 @@ async function importFrom(file) {
 
 	const { pdf, OPS } = opened;
 	try {
-		// The Blank Realm PDF is a few pages whose first carries the map legend's icons.
-		if (pdf.numPages <= REALM_SHEET_MAX_PAGES) {
-			const icons = await withPage(pdf, 1, async (page) => {
-				const images = await listPageImages(page, OPS, { boxes: true });
-				return looksLikeRealmSheet(images) ? importRealmIcons(pdf, page, images, file) : undefined;
-			});
-			if (icons !== undefined) return icons;
-		}
 		if (!(await looksLikeTheRulebook(pdf, OPS))) return null;
 		return await extractArt(pdf, OPS);
 	} finally {

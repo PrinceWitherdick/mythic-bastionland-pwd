@@ -192,7 +192,7 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
-	{ key: "realmPicturesMoved", run: moveRealmPictures }
+	{ key: "realmSheetPictures", run: moveRealmPictures }
 ]);
 
 Hooks.once("ready", async () => {

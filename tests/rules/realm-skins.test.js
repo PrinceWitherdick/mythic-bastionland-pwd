@@ -4,11 +4,9 @@ import { TERRAIN } from "../../module/rules/realm.js";
 import {
 	REALM_CUSTOM_DIR,
 	REALM_PALETTES,
-	REALM_PICTURES,
 	REALM_SKINS,
 	customPictureName,
 	defaultRealmLook,
-	drawRealmSet,
 	matchCustomFiles,
 	normaliseRealmLook,
 	paletteSwatches,
@@ -23,13 +21,13 @@ describe("colour sets", () => {
 		expect(mix("#102030", "#102030", 0.7)).toBe("#102030");
 	});
 
-	it("gives each a tint for every terrain, and falls back to Parchment", () => {
+	it("gives each a tint for every terrain, and falls back to the Blank Realm's own", () => {
 		for (const palette of REALM_PALETTES) {
 			expect(palette.terrain).toHaveLength(TERRAIN.length);
 			expect(palette.solid).toHaveLength(TERRAIN.length);
 			expect(paletteSwatches(palette.key)).toHaveLength(6);
 		}
-		expect(realmPalette("nonsense").key).toBe("parchment");
+		expect(realmPalette("nonsense").key).toBe("blank");
 		expect(sceneColours("parchment")).toEqual({ paper: "#efe8d8", grid: "#a89f90", barrier: "#8b1e1e" });
 	});
 
@@ -40,36 +38,23 @@ describe("colour sets", () => {
 	});
 });
 
-describe("drawRealmSet", () => {
-	it.each(REALM_SKINS)("draws every picture for %s", (skin) => {
-		const files = drawRealmSet(skin, "heraldic");
-		expect(Object.keys(files).sort()).toEqual(REALM_PICTURES.map((name) => `${name}.svg`).sort());
-		for (const content of Object.values(files)) {
-			expect(content).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*>.*<\/svg>\n$/s);
-			expect(content).not.toMatch(/undefined|NaN/);
-		}
-	});
-
-	it("draws each colour set in its own colours", () => {
-		expect(drawRealmSet("classic", "midnight")["myth-1.svg"]).toContain("#e8dcc0");
-		expect(drawRealmSet("classic", "parchment")["myth-1.svg"]).not.toContain("#e8dcc0");
-	});
-
+describe("realmSetDir", () => {
 	it("serves each set from its own folder", () => {
+		expect(REALM_SKINS[0]).toBe("sheet");
 		expect(realmSetDir("woodcut", "ochre")).toBe("systems/mythic-bastionland-pwd/assets/realm/woodcut/ochre");
-		expect(realmSetDir("nope", "nope")).toBe("systems/mythic-bastionland-pwd/assets/realm/classic/parchment");
+		expect(realmSetDir("nope", "nope")).toBe("systems/mythic-bastionland-pwd/assets/realm/sheet/blank");
 	});
 });
 
 describe("normaliseRealmLook", () => {
 	it("fills in the default for anything missing or unknown", () => {
 		expect(normaliseRealmLook(null)).toEqual(defaultRealmLook());
-		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: 0, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-05": "", seat: "b.png" } } }))
-			.toEqual({ skin: "classic", palette: "parchment", bookIcons: false, custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } } });
+		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: true, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-05": "", seat: "b.png" } } }))
+			.toEqual({ skin: "sheet", palette: "blank", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } } });
 	});
 
 	it("keeps a look that's already sound", () => {
-		const look = { skin: "atlas", palette: "ashen", bookIcons: true, custom: { folder: `${REALM_CUSTOM_DIR}`, terrainFit: "icon", files: { "myth-2": "x.webp" } } };
+		const look = { skin: "atlas", palette: "ashen", custom: { folder: `${REALM_CUSTOM_DIR}`, terrainFit: "icon", files: { "myth-2": "x.webp" } } };
 		expect(normaliseRealmLook(look)).toEqual(look);
 	});
 });

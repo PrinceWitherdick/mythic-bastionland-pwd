@@ -2337,12 +2337,6 @@
 	flex: 1;
 }
 
-.bastionland-realm-appearance__check {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
 .bastionland-realm-appearance__buttons {
 	display: flex;
 	flex-wrap: wrap;
@@ -2407,12 +2401,8 @@
 	bottom: 0;
 	padding: 0 0.2rem;
 	border-radius: 3px;
-	background: var(--bastionland-ink);
+	background: var(--bastionland-verdigris);
 	color: var(--bastionland-paper);
 	font-size: 0.6rem;
 	line-height: 1.2;
-}
-
-.bastionland-realm-appearance__group figcaption.is-own {
-	background: var(--bastionland-verdigris);
 }

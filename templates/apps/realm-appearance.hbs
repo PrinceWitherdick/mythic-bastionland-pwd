@@ -32,12 +32,6 @@
 
 	<section class="bastionland-realm-appearance__section">
 		<h3>{{localize "bastionland.realm.look.pictures"}}</h3>
-		<label class="bastionland-realm-appearance__check">
-			<input type="checkbox" name="bookIcons" {{#if bookIcons}}checked{{/if}} {{#unless bookImported}}disabled{{/unless}}>
-			<span>{{localize "bastionland.realm.look.bookIcons"}}</span>
-		</label>
-		{{#unless bookImported}}<p class="hint">{{localize "bastionland.realm.look.bookMissing"}}</p>{{/unless}}
-
 		<p class="hint">{{localize "bastionland.realm.look.ownIntro"}}</p>
 		<div class="bastionland-realm-appearance__buttons">
 			<input type="file" accept="image/*" multiple hidden>
@@ -88,7 +82,7 @@
 				{{#each pictures}}
 				<figure title="{{label}}">
 					<img src="{{src}}" alt="{{label}}">
-					{{#if tag}}<figcaption class="is-{{tag}}">{{tagLabel}}</figcaption>{{/if}}
+					{{#if own}}<figcaption class="is-own">{{localize "bastionland.realm.look.tags.own"}}</figcaption>{{/if}}
 				</figure>
 				{{/each}}
 			</div>

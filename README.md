@@ -1,6 +1,6 @@
 # Mythic Bastionland for Foundry VTT
 
-An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet.
+An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet, and none of its art beyond the map legend of the free Blank Realm sheet.
 
 Requires Foundry VTT v14.
 
@@ -113,11 +113,11 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - **Tidy the Realm:** snaps icons back to the middle of their hexes, unlocks hidden Tiles, lays the river and Barrier lines again, and lists anything it can't put right.
   - **Reroll the Realm:** rolls a new Realm onto the same Scene. Tokens and anything else on the Scene stay.
 
-Until you import the icons from your Blank Realm PDF (below), the map uses simple placeholders drawn for this system, not the book's art.
+The map looks like the Realm Sheets: the terrain, Holdings and Landmarks from the legend of the Blank Realm sheet, traced so they stay sharp however far you zoom, in white hexes ruled in grey. Rivers are inked as the Realm Sheets draw them, and Myths are numbered in the red pen the sheet marks Landmarks in. As on the sheet, a Holding takes the place of its hex's terrain. **Realm Appearance**, under Configure Settings, offers other skins and sets of colours, and takes pictures of your own.
 
 ### Art and text from your own book
 
-The system ships none of the book's art or text either. A GM who owns the PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
+Beyond the Blank Realm's legend, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
 2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, and the City Quest's Omens and Cast.
@@ -126,8 +126,6 @@ The system ships none of the book's art or text either. A GM who owns the PDF ca
    - beasts, hirelings, Warbands, and structures, ships and siege towers, as NPCs.
 
    Bows, slings and siege artillery are marked ranged, which the book leaves unsaid. Hirelings print only GD, so theirs keep the default Virtues with a note to roll d12+d6. Running the import again replaces what's in both compendiums. Choose Knight and Choose from Book fill characters in from it.
-
-Run the macro again with the Blank Realm PDF that comes with the book to bring in its map legend: the twelve terrain icons, the four Holdings and the six Landmarks. They're saved to `mythic-bastionland-art/realm/` with their white made see-through, beside an `index.json`. New Realms use them, and every Realm Scene already in the world switches to them. As on the Realm Sheet, each terrain icon is drawn inside its hex, and a Holding takes the place of its hex's terrain.
 
 Running the import again replaces the files. It needs a user who is allowed to upload files, and like anything in the data folder, the pictures and the index can be fetched by anyone who can reach your Foundry server.
 
@@ -165,7 +163,7 @@ The layout:
 - `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
-- `assets/realm/` holds the Realm's placeholder pictures, drawn by `node scripts/realm-placeholders.js`. Run it again after changing the Realm's terrain, Holding or Landmark lists.
+- `assets/realm/` holds the Realm's pictures, every skin in every colour set, drawn by `node scripts/realm-placeholders.js` from `scripts/lib/realm-drawings.js`. Run it again after changing a skin, a colour set, or the Realm's terrain, Holding or Landmark lists. The Blank Realm skin is drawn from the sheet's legend, traced into `scripts/data/realm-sheet-art.json` by `python scripts/realm-sheet-art.py <Blank Realm PDF>`, which needs PyMuPDF, numpy and potracer. Tracing again is only needed if the sheet changes.
 - `assets/heraldry/charges/` holds the heraldry painter's charges and their credits, built by `npm run charges` from the `CHARGES` list in `module/rules/heraldry-charges.js`. It fetches each drawing from the Book of Traceable Heraldic Art once, keeps it in `node_modules/.cache`, and cleans it down to the two colours the painter tints. Pass `-- --refresh` to fetch them again. A new drawing must come from a public-domain source; the tests hold a list of the sources checked so far.
 
 The system id lives only in `module/system-id.js`. Lint rejects the id spelled out anywhere else.
@@ -174,4 +172,5 @@ The system id lives only in `module/system-id.js`. Lint rejects the id spelled o
 
 - Fonts: [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) by Igino Marini, [UnifrakturCook](https://fonts.google.com/specimen/UnifrakturCook), and the digits from [EB Garamond](https://fonts.google.com/specimen/EB+Garamond), all under the SIL Open Font License (see `assets/fonts/licenses`).
 - Heraldic charges: adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto, using only drawings after public-domain books. They are shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings only. Each drawing's entry, source, original artist and adapter are listed in `assets/heraldry/charges/CREDITS.md`, and each file carries its own credit.
+- Realm terrain, Holdings and Landmarks: traced from the map legend of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. Each picture carries the credit.
 - Mythic Bastionland © Chris McDowall, Bastionland Press.

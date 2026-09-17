@@ -1,14 +1,16 @@
 /**
- * Draws the pictures a Realm uses until the GM imports the icons from their
- * own Blank Realm PDF or gives their own: every skin in every colour set, each
- * in its own folder. They are simple originals, not the book's art. Run after
- * changing the Realm tables or realm-skins.js:
+ * Draws the pictures a Realm uses, unless the GM gives their own: every skin in
+ * every colour set, each in its own folder. The Blank Realm skin is drawn from
+ * the sheet's legend as traced by realm-sheet-art.py; the other skins are
+ * simple originals. Run after changing the Realm tables, the colour sets in
+ * realm-skins.js, or lib/realm-drawings.js:
  *
  *   node scripts/realm-placeholders.js
  */
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { REALM_PALETTES, REALM_SKINS, drawRealmSet } from "../module/rules/realm-skins.js";
+import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
+import { drawRealmSet } from "./lib/realm-drawings.js";
 
 const out = join(import.meta.dirname, "..", "assets", "realm");
 const written = new Set();

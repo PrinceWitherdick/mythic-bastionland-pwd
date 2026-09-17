@@ -14,7 +14,6 @@ import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
-import { REALM_ICON_KINDS, REALM_ICON_PROBLEMS } from "../module/rules/realm-icons.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { POINT_KINDS, ROUTE_KINDS, SITE_PRESETS, SITE_PROBLEMS } from "../module/rules/sites.js";
@@ -136,14 +135,11 @@ describe("localization", () => {
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
-		...REALM_ICON_KINDS.map((kind) => `bookArt.kinds.${kind}`),
-		...REALM_ICON_PROBLEMS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
 		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),
 		...REALM_PALETTES.map(({ key }) => `realm.look.palettes.${key}`),
 		...RIVER_SHAPES.map((shape) => `realm.look.rivers.${shape}`),
 		...TERRAIN_FITS.map((fit) => `realm.look.fits.${fit}`),
-		...["own", "book"].map((tag) => `realm.look.tags.${tag}`),
 		...REALM_PROBLEMS.map((reason) => `realm.problems.${reason}`),
 		...WILDERNESS_MODES.map((mode) => `realm.wilderness.modes.${mode}`),
 		...WILDERNESS_RESULTS.map((result) => `realm.wilderness.results.${result}`),

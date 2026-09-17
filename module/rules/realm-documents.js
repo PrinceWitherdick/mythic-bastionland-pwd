@@ -11,7 +11,7 @@
  */
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
-import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours } from "./realm-skins.js";
+import { HOLDINGS_REPLACE_TERRAIN, PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours } from "./realm-skins.js";
 import {
 	DIRECTIONS,
 	GRID_HEXEVENQ,
@@ -50,35 +50,30 @@ const round = (value) => Math.round(value * 100) / 100;
 
 /**
  * The picture for each part of the map, and the colours of the Scene itself.
- * Each picture is the GM's own where they've given one, otherwise the icon
- * imported from their Blank Realm PDF where there is one and the look uses
- * them, otherwise the look's skin in its colour set.
- * @param {object|null} [icons] The realm icon index written by Import Book Art.
+ * Each picture is the GM's own where they've given one, otherwise the look's
+ * skin in its colour set.
  * @param {import("./realm-skins.js").RealmLook|null} [look] The world's Realm look. Omit for the default.
- * @returns {{terrain: Record<number, {src: string, icon: boolean}>, holding: Record<string, {src: string}>,
+ * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean}>, holding: Record<string, {src: string}>,
  *   landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>, seat: {src: string},
  *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string}}} A terrain
- *   picture is an `icon` when it's drawn inside its hex, as the Blank Realm's are, rather than filling the hex.
+ *   picture is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a
+ *   Holding in its hex takes its place, as on the Blank Realm sheet.
  */
-export function realmTextures(icons = null, look = null) {
-	const { skin, palette, bookIcons, custom } = normaliseRealmLook(look);
+export function realmTextures(look = null) {
+	const { skin, palette, custom } = normaliseRealmLook(look);
 	const dir = realmSetDir(skin, palette);
-	const imported = (list, keyOf) => new Map((bookIcons ? list ?? [] : []).filter((entry) => entry?.path).map((entry) => [keyOf(entry), entry]));
-	const terrain = imported(icons?.terrain, (entry) => entry.terrain);
-	const holdings = imported(icons?.holdings, (entry) => entry.style);
-	const landmarks = imported(icons?.landmarks, (entry) => entry.type);
-	const picture = (name, book) => ({ src: custom.files[name] ?? book ?? `${dir}/${name}.svg` });
+	const picture = (name) => ({ src: custom.files[name] ?? `${dir}/${name}.svg` });
 
 	return {
 		terrain: Object.fromEntries(TERRAIN.map((key, index) => {
 			const name = PICTURE_NAME.terrain(index + 1);
 			const own = custom.files[name];
-			const book = terrain.get(index + 1)?.path;
-			if (own) return [index + 1, { src: own, icon: custom.terrainFit === "icon" }];
-			return [index + 1, book ? { src: book, icon: true } : { src: `${dir}/${name}.svg`, icon: false }];
+			if (!own) return [index + 1, { src: `${dir}/${name}.svg`, icon: false, givesWay: HOLDINGS_REPLACE_TERRAIN.includes(skin) }];
+			const icon = custom.terrainFit === "icon";
+			return [index + 1, { src: own, icon, givesWay: icon }];
 		})),
-		holding: Object.fromEntries(HOLDING_STYLES.map((style) => [style, picture(PICTURE_NAME.holding(style), holdings.get(style)?.path)])),
-		landmark: Object.fromEntries(LANDMARK_TYPES.map((type) => [type, picture(PICTURE_NAME.landmark(type), landmarks.get(type)?.path)])),
+		holding: Object.fromEntries(HOLDING_STYLES.map((style) => [style, picture(PICTURE_NAME.holding(style))])),
+		landmark: Object.fromEntries(LANDMARK_TYPES.map((type) => [type, picture(PICTURE_NAME.landmark(type))])),
 		myth: Object.fromEntries(Array.from({ length: MYTH_COUNT }, (_, index) => [index + 1, picture(PICTURE_NAME.myth(index + 1))])),
 		seat: picture(PICTURE_NAME.seat),
 		river: Object.fromEntries(RIVER_SHAPES.map((shape) => [shape, picture(PICTURE_NAME.river(shape))])),
@@ -214,7 +209,7 @@ function barrierDrawing(g, { edge, revealed }, colour) {
 export function realmDocuments(realm, g, textures) {
 	const tiles = [];
 
-	// An imported terrain icon is drawn inside its hex, and gives way to a Holding there, as on the Realm Sheet.
+	// A terrain picture of the GM's own may sit inside its hex. Some give way to a Holding there, as on the Blank Realm sheet.
 	const holdingHexes = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	for (const hex of allHexes(g)) {
 		const terrain = realm.terrain[hexIndex(g, hex)];
@@ -228,7 +223,7 @@ export function realmDocuments(realm, g, textures) {
 				width: g.hexWidth * scale,
 				height: g.size * scale,
 				texture: { src: picture.src, fit: picture.icon ? "contain" : "fill" },
-				alpha: picture.icon && holdingHexes.has(hexKey(hex)) ? 0 : 1,
+				alpha: picture.givesWay && holdingHexes.has(hexKey(hex)) ? 0 : 1,
 				sort: REALM_SORT.terrain,
 				locked: true,
 				flag: { kind: "terrain", terrain }

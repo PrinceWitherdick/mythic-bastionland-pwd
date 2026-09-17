@@ -13,6 +13,7 @@ import {
 	knightTextFromItems,
 	mythTextFromItems,
 	pickPageArt,
+	paintedImages,
 	rgbaPixels,
 	rollLabel,
 	seerNameFromItems,
@@ -429,6 +430,20 @@ describe("hasPageText", () => {
 		expect(hasPageText("myth", { cast: [{ name: "Moth Swarm" }] })).toBe(true);
 		expect(hasPageText("myth", { cast: [] })).toBe(false);
 		expect(hasPageText("myth", null)).toBe(false);
+	});
+});
+
+describe("paintedImages", () => {
+	it("lists the pictures a page paints, in order, inline ones with their pixels", () => {
+		const OPS = { save: 1, transform: 3, paintImageXObject: 6, paintInlineImageXObject: 7 };
+		const inline = { width: 8, height: 4, data: new Uint8ClampedArray(96) };
+		const fnArray = [1, 3, 6, 7, 6];
+		const argsArray = [null, [50, 0, 0, 40, 100, 200], ["img_p0_1", 197, 166], [inline], ["g_d0_img_p1_2", 1225, 1585]];
+		expect(paintedImages(fnArray, argsArray, OPS)).toEqual([
+			{ key: "img_p0_1", width: 197, height: 166 },
+			{ key: null, width: 8, height: 4, inline },
+			{ key: "g_d0_img_p1_2", width: 1225, height: 1585 }
+		]);
 	});
 });
 

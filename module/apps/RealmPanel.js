@@ -1,6 +1,6 @@
 import { editRealm, getRealm, getRealmLook, sceneGeometry } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
-import { loadArtIndex, loadRealmIcons, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import {
 	HOLDING_STYLES,
@@ -75,9 +75,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {"hex"|"terrain"} */
 	mode = "hex";
 
-	/** Undefined until loaded, null when never imported. */
-	#icons;
-
 	#index;
 
 	/** @override */
@@ -93,7 +90,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		if (this.#icons === undefined) this.#icons = await loadRealmIcons();
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 
 		const scene = this.scene;
@@ -103,7 +99,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { realm } = entry;
 
 		if (this.mode === "terrain" || !this.hex) {
-			const textures = realmTextures(this.#icons, getRealmLook());
+			const textures = realmTextures(getRealmLook());
 			return Object.assign(context, {
 				terrainMode: true,
 				terrains: TERRAIN.map((key, index) => ({

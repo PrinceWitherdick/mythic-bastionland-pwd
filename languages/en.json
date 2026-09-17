@@ -1216,7 +1216,7 @@
     "bookArt": {
       "title": "Import Book Art",
       "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
-      "choose": "Rulebook or Blank Realm PDF",
+      "choose": "Rulebook PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
       "start": "Import",
@@ -1245,17 +1245,7 @@
         "myth": "Myth",
         "spark": "Spark Table",
         "goods": "Arms & Goods:",
-        "cityQuest": "City Quest",
-        "terrain": "Terrain",
-        "holding": "Holding",
-        "landmark": "Landmark"
-      },
-      "realm": {
-        "intro": "Or choose the Blank Realm PDF, and the terrain, Holding and Landmark icons on its map legend are saved for Realm Scenes.",
-        "progress": "Import Book Art: saving the Realm icons",
-        "refreshed": "Realm Scenes given the new icons: {count}",
-        "problem": "{icon}: {reason}",
-        "reportTitle": "Realm Icons Imported"
+        "cityQuest": "City Quest"
       },
       "report": {
         "title": "Book Art Imported",
@@ -1518,9 +1508,13 @@
         "features": "Holdings, Landmarks and Myths",
         "river": "River",
         "skins": {
+          "sheet": {
+            "label": "Blank Realm",
+            "hint": "The Blank Realm sheet’s own inked terrain, Holdings and Landmarks, with rivers as the Realm Sheets draw them."
+          },
           "classic": {
-            "label": "Realm Sheet",
-            "hint": "Pale hexes and lettered roundels, like the Blank Realm."
+            "label": "Roundels",
+            "hint": "Pale hexes, fine marks and lettered roundels."
           },
           "woodcut": {
             "label": "Woodcut",
@@ -1536,6 +1530,7 @@
           }
         },
         "palettes": {
+          "blank": "Ink on White",
           "parchment": "Parchment",
           "verdigris": "Verdigris & Brass",
           "heraldic": "Azure & Gules",
@@ -1555,12 +1550,9 @@
         },
         "terrainFit": "Your terrain",
         "tags": {
-          "own": "Yours",
-          "book": "Book"
+          "own": "Yours"
         },
-        "bookIcons": "Use the icons imported from the Blank Realm PDF for terrain, Holdings and Landmarks",
-        "bookMissing": "Run Import Book Art on the Blank Realm PDF to use its icons.",
-        "ownIntro": "Or use pictures of your own. Name each file after the picture it replaces, such as forest.png or holding-castle.webp. Any picture you don’t give comes from the skin.",
+        "ownIntro": "Use pictures of your own. Name each file after the picture it replaces, such as forest.png or holding-castle.webp. Any picture you don’t give comes from the skin.",
         "upload": "Upload pictures",
         "chooseFolder": "Use a folder",
         "rescan": "Look again",

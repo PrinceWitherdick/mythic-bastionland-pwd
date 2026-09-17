@@ -1,5 +1,4 @@
 import { REALM_LOOK_HOOK, getRealmLook, setRealmLook } from "../actions/realm.js";
-import { loadRealmIcons } from "../book-art/art-index.js";
 import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { ART_ROOT } from "../rules/book-art.js";
@@ -11,7 +10,6 @@ import {
 	REALM_PALETTES,
 	REALM_PICTURES,
 	REALM_SKINS,
-	REALM_SKIN_ROOT,
 	TERRAIN_FITS,
 	customPictureName,
 	defaultRealmLook,
@@ -31,9 +29,9 @@ const SAMPLES = Object.freeze(["terrain-05", "holding-castle", "landmark-sanctum
 const sameLook = (a, b) => JSON.stringify(normaliseRealmLook(a)) === JSON.stringify(normaliseRealmLook(b));
 
 /**
- * The GM's window for how Realm Scenes look: a skin, a colour set, whether the
- * icons from their Blank Realm PDF are used, and pictures of their own. Choices
- * are tried out in the preview, and reach the Scenes when applied.
+ * The GM's window for how Realm Scenes look: a skin, a colour set, and
+ * pictures of their own. Choices are tried out in the preview, and reach the
+ * Scenes when applied.
  */
 export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -62,24 +60,16 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** The look being tried out. */
 	#draft = getRealmLook();
 
-	/** Undefined until loaded, null when the Blank Realm PDF was never imported. */
-	#icons;
-
 	/** @type {number|null} */
 	#hook = null;
 
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		if (this.#icons === undefined) this.#icons = await loadRealmIcons();
 		const draft = this.#draft;
-		const textures = realmTextures(this.#icons, draft);
+		const textures = realmTextures(draft);
 		const { files } = draft.custom;
-		// A picture that is neither the GM's own nor the skin's came from the Blank Realm PDF.
-		const picture = (name, src, label) => {
-			const tag = files[name] ? "own" : src.startsWith(REALM_SKIN_ROOT) ? null : "book";
-			return { src, label, tag, tagLabel: tag && t(`realm.look.tags.${tag}`) };
-		};
+		const picture = (name, src, label) => ({ src, label, own: Boolean(files[name]) });
 		const found = REALM_PICTURES.filter((name) => files[name]);
 
 		return Object.assign(context, {
@@ -96,8 +86,6 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 				active: key === draft.palette,
 				swatches: paletteSwatches(key)
 			})),
-			bookImported: Boolean(this.#icons),
-			bookIcons: draft.bookIcons,
 			custom: {
 				folder: draft.custom.folder,
 				fits: TERRAIN_FITS.map((value) => ({ value, label: t(`realm.look.fits.${value}`), selected: value === draft.custom.terrainFit })),
@@ -207,11 +195,9 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 
 	/** @this {RealmAppearance} */
-	static #onChangeForm(event, form, formData) {
-		const { bookIcons, terrainFit } = formData.object;
-		// A disabled box isn't submitted, so keep what was chosen until the book is imported.
-		const keepIcons = form.elements.bookIcons?.disabled;
-		this.#change({ bookIcons: keepIcons ? this.#draft.bookIcons : Boolean(bookIcons), custom: { ...this.#draft.custom, terrainFit } });
+	static #onChangeForm(_event, _form, formData) {
+		const { terrainFit } = formData.object;
+		this.#change({ custom: { ...this.#draft.custom, terrainFit } });
 	}
 
 	/** @this {RealmAppearance} */

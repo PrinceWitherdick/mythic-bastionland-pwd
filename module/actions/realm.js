@@ -1,5 +1,5 @@
 import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
-import { loadArtIndex, loadRealmIcons, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { randomSeed } from "../rules/random.js";
 import { REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
@@ -50,12 +50,13 @@ export async function setRealmLook(look) {
 	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, normaliseRealmLook(look));
 }
 
-/** @returns {Promise<ReturnType<typeof realmTextures>>} The pictures and colours Realm Scenes use now. */
-export const currentRealmTextures = async () => realmTextures(await loadRealmIcons(), getRealmLook());
+/** @returns {ReturnType<typeof realmTextures>} The pictures and colours Realm Scenes use now. */
+export const currentRealmTextures = () => realmTextures(getRealmLook());
 
 /**
- * A world setup step: bring Realm Scenes made before the pictures moved into a
- * folder for each skin and colour set up to date.
+ * A world setup step: bring Realm Scenes made before the pictures last changed
+ * up to date, such as when the Blank Realm's own became the default look. Give
+ * the step a new key to run it again.
  */
 export async function moveRealmPictures() {
 	await refreshRealmScenes();
@@ -174,14 +175,12 @@ async function paintRealmScene(scene, { paper, grid }) {
 }
 
 /**
- * Bring every Realm Scene in the world up to date with the icons and the
- * Realm look, such as after the Blank Realm PDF is imported.
- * @param {object|null} [icons] The Realm icon index. Omit to load it.
+ * Bring every Realm Scene in the world up to date with the Realm look.
  * @returns {Promise<number>} How many Scenes changed.
  */
-export async function refreshRealmScenes(icons) {
+export async function refreshRealmScenes() {
 	if (!game.user.isGM) return 0;
-	const textures = realmTextures(icons === undefined ? await loadRealmIcons() : icons, getRealmLook());
+	const textures = currentRealmTextures();
 	return queueRealmWrite(async () => {
 		let changed = 0;
 		for (const scene of game.scenes.filter((candidate) => isRealmScene(candidate))) {
@@ -203,7 +202,7 @@ export async function refreshRealmScenes(icons) {
 export async function editRealm(scene, edit) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
-		const textures = await currentRealmTextures();
+		const textures = currentRealmTextures();
 		const g = sceneGeometry(scene);
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
@@ -227,7 +226,7 @@ const PROBLEMS_SHOWN = 5;
 export async function syncRealmScene(scene, { report = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	const g = sceneGeometry(scene);
-	const textures = await currentRealmTextures();
+	const textures = currentRealmTextures();
 	const { realm, problems: readProblems, changed } = await queueRealmWrite(async () => {
 		const read = getRealm(scene);
 		return { ...read, changed: await writeRealm(scene, read.realm, g, textures) };
@@ -261,7 +260,7 @@ export async function rerollRealm(scene) {
 
 	const g = sceneGeometry(scene);
 	const realm = generateRealm({ seed: randomSeed(), geometry: g });
-	const textures = await currentRealmTextures();
+	const textures = currentRealmTextures();
 	await queueRealmWrite(async () => {
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
@@ -321,7 +320,7 @@ export async function newRealm() {
 async function createRealmScene({ name, seed }) {
 	const geometry = realmGeometry();
 	const realm = generateRealm({ seed, geometry });
-	const textures = await currentRealmTextures();
+	const textures = currentRealmTextures();
 	const data = realmSceneData({ name, realm, geometry, textures, units: t("realm.units") });
 
 	const scene = await CONFIG.Scene.documentClass.create(data);

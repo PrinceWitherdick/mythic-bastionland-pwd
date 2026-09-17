@@ -35,55 +35,34 @@ function onScene(seed = "documents", textures = realmTextures()) {
 }
 
 describe("realmTextures", () => {
-	it("uses the system's placeholders until icons are imported", () => {
+	it("draws the Blank Realm sheet's own pictures, in its colours, by default", () => {
 		const textures = realmTextures();
-		expect(textures.terrain[1].src).toMatch(/assets\/realm\/classic\/parchment\/terrain-01\.svg$/);
-		expect(textures.terrain[12].icon).toBe(false);
-		expect(textures.holding.tower.src).toMatch(/holding-tower\.svg$/);
+		expect(textures.terrain[1].src).toMatch(/assets\/realm\/sheet\/blank\/terrain-01\.svg$/);
+		// Its terrain fills the hex, but gives way to a Holding, as on the sheet.
+		expect(textures.terrain[12]).toMatchObject({ icon: false, givesWay: true });
+		expect(textures.holding.tower.src).toMatch(/sheet\/blank\/holding-tower\.svg$/);
 		expect(textures.landmark.curse.src).toMatch(/landmark-curse\.svg$/);
 		expect(textures.myth[6].src).toMatch(/myth-6\.svg$/);
 		expect(textures.river.bend.src).toMatch(/river-bend\.svg$/);
+		expect(textures.colours).toEqual({ paper: "#ffffff", grid: "#bfbfbf", barrier: "#f93333" });
 	});
-
-	it("prefers imported icons, and falls back where one wasn't saved", () => {
-		const textures = realmTextures({
-			terrain: [{ terrain: 3, path: "art/terrain-03.webp" }, { terrain: 4, path: null }],
-			holdings: [{ style: "town", path: "art/holding-town.webp" }],
-			landmarks: [{ type: "ruin", path: "art/landmark-ruin.webp" }]
-		});
-		expect(textures.terrain[3]).toEqual({ src: "art/terrain-03.webp", icon: true });
-		expect(textures.terrain[4].src).toMatch(/terrain-04\.svg$/);
-		expect(textures.holding.town.src).toBe("art/holding-town.webp");
-		expect(textures.landmark.ruin.src).toBe("art/landmark-ruin.webp");
-	});
-
-	const imported = {
-		terrain: [{ terrain: 5, path: "art/terrain-05.webp" }],
-		holdings: [{ style: "town", path: "art/holding-town.webp" }],
-		landmarks: []
-	};
 
 	it("draws in the look's skin and colour set", () => {
-		const textures = realmTextures(null, { skin: "seal", palette: "midnight" });
-		expect(textures.terrain[5]).toEqual({ src: expect.stringMatching(/assets\/realm\/seal\/midnight\/terrain-05\.svg$/), icon: false });
+		const textures = realmTextures({ skin: "seal", palette: "midnight" });
+		expect(textures.terrain[5]).toEqual({ src: expect.stringMatching(/assets\/realm\/seal\/midnight\/terrain-05\.svg$/), icon: false, givesWay: false });
 		expect(textures.myth[2].src).toMatch(/seal\/midnight\/myth-2\.svg$/);
 		expect(textures.colours).toEqual({ paper: "#1d2230", grid: "#4b5368", barrier: "#d8a24a" });
 	});
 
-	it("leaves the imported icons out when the look doesn't use them", () => {
-		const textures = realmTextures(imported, { skin: "woodcut", bookIcons: false });
-		expect(textures.terrain[5].src).toMatch(/woodcut\/parchment\/terrain-05\.svg$/);
-		expect(textures.holding.town.src).toMatch(/woodcut\/parchment\/holding-town\.svg$/);
-	});
-
-	it("puts the GM's own pictures before imported icons and the skin", () => {
-		const look = { custom: { terrainFit: "icon", files: { "terrain-05": "mine/forest.png", "holding-town": "mine/town.png", seat: "mine/crown.png" } } };
-		const textures = realmTextures(imported, look);
-		expect(textures.terrain[5]).toEqual({ src: "mine/forest.png", icon: true });
+	it("puts the GM's own pictures before the skin's", () => {
+		const look = { skin: "woodcut", custom: { terrainFit: "icon", files: { "terrain-05": "mine/forest.png", "holding-town": "mine/town.png", seat: "mine/crown.png" } } };
+		const textures = realmTextures(look);
+		expect(textures.terrain[5]).toEqual({ src: "mine/forest.png", icon: true, givesWay: true });
+		expect(textures.terrain[6].src).toMatch(/woodcut\/blank\/terrain-06\.svg$/);
 		expect(textures.holding.town.src).toBe("mine/town.png");
 		expect(textures.seat.src).toBe("mine/crown.png");
-		expect(textures.holding.castle.src).toMatch(/classic\/parchment\/holding-castle\.svg$/);
-		expect(realmTextures(null, { custom: { files: { "terrain-01": "mine/marsh.png" } } }).terrain[1].icon).toBe(false);
+		expect(textures.holding.castle.src).toMatch(/woodcut\/blank\/holding-castle\.svg$/);
+		expect(realmTextures({ custom: { files: { "terrain-01": "mine/marsh.png" } } }).terrain[1]).toMatchObject({ icon: false, givesWay: false });
 	});
 });
 
@@ -91,7 +70,7 @@ describe("realmSceneData", () => {
 	it("paints the Scene and its Barriers in the look's colours", () => {
 		const { key, paper, rule, accent } = REALM_PALETTES.at(-1);
 		const realm = generateRealm({ seed: "colours", geometry: g });
-		const data = realmSceneData({ name: "Night", realm, geometry: g, textures: realmTextures(null, { palette: key }) });
+		const data = realmSceneData({ name: "Night", realm, geometry: g, textures: realmTextures({ palette: key }) });
 		expect(data.grid.color).toBe(rule);
 		expect(data.levels[0].background.color).toBe(paper);
 		expect(data.drawings.length).toBeGreaterThan(0);
@@ -108,8 +87,8 @@ describe("realmSceneData", () => {
 			padding: 0,
 			tokenVision: false,
 			fog: { mode: 0 },
-			grid: { type: 5, size: 160, color: "#a89f90", alpha: GRID_ALPHA, distance: 1, units: "Hex" },
-			levels: [{ _id: LEVEL_ID, background: { color: "#efe8d8" } }],
+			grid: { type: 5, size: 160, color: "#bfbfbf", alpha: GRID_ALPHA, distance: 1, units: "Hex" },
+			levels: [{ _id: LEVEL_ID, background: { color: "#ffffff" } }],
 			initialLevel: LEVEL_ID
 		});
 		expect(flagOf(scene)).toMatchObject({ version: 1, seed: "documents", size: 160, cols: 12, rows: 12, river: realm.river.map(hexKey) });
@@ -122,8 +101,9 @@ describe("realmSceneData", () => {
 		expect(first).toMatchObject({ width: 185, height: 160, locked: true, hidden: false, alpha: 1, sort: REALM_SORT.terrain });
 	});
 
-	it("draws imported terrain inside its hex, and leaves a Holding's hex to the Holding", () => {
-		const icons = realmTextures({ terrain: TERRAIN.map((_, index) => ({ terrain: index + 1, path: `art/terrain-${index + 1}.webp` })) });
+	it("draws the GM's own terrain inside its hex when asked, and leaves a Holding's hex to the Holding", () => {
+		const files = Object.fromEntries(TERRAIN.map((key, index) => [`terrain-${String(index + 1).padStart(2, "0")}`, `mine/${key}.png`]));
+		const icons = realmTextures({ skin: "classic", custom: { terrainFit: "icon", files } });
 		const tiles = realmDocuments(realm, g, icons).tiles.map(({ data }) => data).filter((tile) => flagOf(tile).kind === "terrain");
 		const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 		for (const tile of tiles) {
@@ -131,6 +111,17 @@ describe("realmSceneData", () => {
 			expect(tile.alpha).toBe(holdings.has(hexKey(hexAt(g, tile))) ? 0 : 1);
 		}
 		expect(tiles.filter((tile) => tile.alpha === 0)).toHaveLength(realm.holdings.length);
+	});
+
+	it("fills each hex with the Blank Realm's terrain, which also leaves a Holding's hex to the Holding", () => {
+		const tiles = scene.tiles.filter((tile) => flagOf(tile).kind === "terrain");
+		const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
+		for (const tile of tiles) {
+			expect(tile).toMatchObject({ width: Math.round(g.hexWidth), height: g.size, texture: { fit: "fill" } });
+			expect(tile.alpha).toBe(holdings.has(hexKey(hexAt(g, tile))) ? 0 : 1);
+		}
+		const classic = realmDocuments(realm, g, realmTextures({ skin: "classic" })).tiles.filter(({ data }) => flagOf(data).kind === "terrain");
+		expect(classic.every(({ data }) => data.alpha === 1)).toBe(true);
 	});
 
 	it("hides Myths and Landmarks without locking them, since a hidden locked Tile disappears for the GM too", () => {
@@ -236,14 +227,11 @@ describe("planRealmSync", () => {
 		expect(planRealmSync(rerolled, g, textures, snapshot, { replacing: true }).Tile.delete).toContain(myth._id);
 	});
 
-	it("only changes pictures when icons are imported", () => {
+	it("only changes pictures when the look changes", () => {
 		const { snapshot } = onScene();
 		const { realm } = realmFromDocuments(snapshot, g);
-		const imported = realmTextures({
-			terrain: [{ terrain: realm.terrain[0], path: "art/terrain.webp" }],
-			holdings: [{ style: realm.holdings[0].style, path: "art/holding.webp" }]
-		});
-		const plan = planRealmSync(realm, g, imported, snapshot);
+		const woodcut = realmTextures({ skin: "woodcut", palette: "ochre" });
+		const plan = planRealmSync(realm, g, woodcut, snapshot);
 		expect(plan.Tile.create).toEqual([]);
 		expect(plan.Tile.delete).toEqual([]);
 		expect(plan.Tile.update.length).toBeGreaterThan(0);

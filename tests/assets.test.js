@@ -3,8 +3,9 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
-import { REALM_PALETTES, REALM_SKINS, drawRealmSet } from "../module/rules/realm-skins.js";
+import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
+import { drawRealmSet } from "../scripts/lib/realm-drawings.js";
 
 const root = join(import.meta.dirname, "..");
 
@@ -14,7 +15,7 @@ const fileFor = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
 describe("Realm pictures", () => {
 	const looks = REALM_SKINS.flatMap((skin) => REALM_PALETTES.map(({ key }) => ({ skin, palette: key })));
 	const paths = looks.flatMap((look) => {
-		const textures = realmTextures(null, look);
+		const textures = realmTextures(look);
 		return [
 			...Object.values(textures.terrain),
 			...Object.values(textures.holding),
