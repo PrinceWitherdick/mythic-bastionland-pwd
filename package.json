@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "pack": "node scripts/pack.js",
-    "unpack": "node scripts/unpack.js"
+    "unpack": "node scripts/unpack.js",
+    "charges": "node scripts/heraldry-charges.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -16,6 +17,7 @@
     "eslint": "^10.10.0",
     "globals": "^17.11.0",
     "handlebars": "^4.7.9",
+    "svgo": "4.1.0",
     "vitest": "^4.1.11"
   }
 }

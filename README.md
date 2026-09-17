@@ -165,10 +165,12 @@ The layout:
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.
 - `assets/realm/` holds the Realm's placeholder pictures, drawn by `node scripts/realm-placeholders.js`. Run it again after changing the Realm's terrain, Holding or Landmark lists.
+- `assets/heraldry/charges/` holds the heraldry painter's charges and their credits, built by `npm run charges` from the `CHARGES` list in `module/rules/heraldry-charges.js`. It fetches each drawing from the Book of Traceable Heraldic Art once, keeps it in `node_modules/.cache`, and cleans it down to the two colours the painter tints. Pass `-- --refresh` to fetch them again. A new drawing must come from a public-domain source; the tests hold a list of the sources checked so far.
 
 The system id lives only in `module/system-id.js`. Lint rejects the id spelled out anywhere else.
 
 ## Credits
 
 - Fonts: [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) by Igino Marini, [UnifrakturCook](https://fonts.google.com/specimen/UnifrakturCook), and the digits from [EB Garamond](https://fonts.google.com/specimen/EB+Garamond), all under the SIL Open Font License (see `assets/fonts/licenses`).
+- Heraldic charges: adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto, using only drawings after public-domain books. They are shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings only. Each drawing's entry, source, original artist and adapter are listed in `assets/heraldry/charges/CREDITS.md`, and each file carries its own credit.
 - Mythic Bastionland © Chris McDowall, Bastionland Press.
