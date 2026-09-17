@@ -81,3 +81,15 @@ export function singletonOpener(AppClass) {
 		return app;
 	};
 }
+
+/**
+ * Open the computer's own file dialog for a window's file input. Cleared
+ * first, so choosing the same files again still counts as a choice.
+ * @param {HTMLElement} element The window.
+ */
+export function chooseLocalFiles(element) {
+	const input = element.querySelector("input[type=file]");
+	if (!input) return;
+	input.value = "";
+	input.click();
+}

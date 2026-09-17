@@ -37,7 +37,12 @@ import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
-import { registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
+import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
+import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
+import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
+import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
+import { registerRulebookShare } from "./module/rulebook/share.js";
+import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 
@@ -124,6 +129,18 @@ Hooks.once("init", () => {
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
+	// The GM's own copy of the rulebook, read in Foundry's PDF viewer, with a
+	// hotkey, Show Players, and the book reopening after a reload.
+	registerRulebookSettings();
+	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
+	registerRulebookShare();
+	game.keybindings.register(SYSTEM_ID, "openRulebook", {
+		name: "bastionland.rulebook.keybinding.name",
+		hint: "bastionland.rulebook.keybinding.hint",
+		editable: [{ key: "KeyB" }],
+		onDown: () => toggleRulebook()
+	});
+
 	// Realm Scenes: the GM's Realm tools, Barriers that stop Tokens, and the hex readout.
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
 	registerRealmHooks();
@@ -144,7 +161,10 @@ Hooks.once("init", () => {
 		openMythsPanel,
 		rollCityOmen,
 		awardGlory,
-		getCalendar
+		getCalendar,
+		openRulebook,
+		openRulebookSetup,
+		toggleRulebook
 	});
 });
 
@@ -160,6 +180,7 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 
 /** One-time work for each world, run in this order by the active GM. */
 const WORLD_SETUP = Object.freeze([
+	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders }
 ]);
 
@@ -167,7 +188,7 @@ Hooks.once("ready", async () => {
 	await Promise.all([
 		restoreOpenSheets(),
 		ensureImportMacro(),
-		runWorldSetup(WORLD_SETUP)
+		runWorldSetup(WORLD_SETUP).then(ensureRulebookHotbar)
 	]);
 });
 
@@ -175,6 +196,21 @@ Hooks.on("renderActorDirectory", (_directory, element) => {
 	addNewKnightButton(element);
 	addNewNpcButton(element);
 });
+
+// The rulebook sits in the Journal directory, for GMs and for players the GM offers it to.
+Hooks.on("renderJournalDirectory", (_directory, element) => {
+	const canSetUp = canKeepRulebook() && !hasRulebook();
+	if (!canSetUp && !(hasRulebook() && canReadRulebook())) return;
+	addDirectoryButton(element, {
+		className: "bastionland-rulebook",
+		icon: "fa-solid fa-book",
+		label: t("rulebook.open"),
+		onClick: () => openRulebook() ?? openRulebookSetup()
+	});
+});
+
+// Redrawn so the button follows the book being set, forgotten, or offered to players.
+Hooks.on(RULEBOOK_HOOK, () => ui.journal?.render());
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));
 

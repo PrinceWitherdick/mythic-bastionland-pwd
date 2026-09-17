@@ -3,7 +3,8 @@
  * uploads a file by hand.
  */
 
-const filePicker = () => foundry.applications.apps.FilePicker.implementation;
+/** @returns {typeof FilePicker} The FilePicker class in use, which a module may have replaced. */
+export const filePicker = () => foundry.applications.apps.FilePicker.implementation;
 
 /**
  * Create folders in order, parents first. Foundry throws when a folder is

@@ -1,0 +1,33 @@
+<div class="bastionland-page bastionland-rulebook-setup">
+	<p>{{localize "bastionland.rulebook.setup.intro"}}</p>
+
+	<div class="bastionland-rulebook-setup__current">
+		{{#if path}}
+		<p><strong>{{localize "bastionland.rulebook.setup.current"}}</strong> <code>{{path}}</code></p>
+		{{else}}
+		<p class="hint">{{localize "bastionland.rulebook.setup.none"}}</p>
+		{{/if}}
+	</div>
+
+	<div class="bastionland-rulebook-setup__buttons">
+		<input type="file" accept="application/pdf,.pdf" hidden>
+		<button type="button" data-action="choose" {{#unless canKeep}}disabled{{/unless}}>
+			<i class="fa-solid fa-file-arrow-up" inert></i> {{localize "bastionland.rulebook.setup.choose"}}
+		</button>
+		<button type="button" data-action="browse" {{#unless canBrowse}}disabled{{/unless}}>
+			<i class="fa-solid fa-folder-open" inert></i> {{localize "bastionland.rulebook.setup.browse"}}
+		</button>
+		{{#if path}}
+		<button type="button" data-action="read">
+			<i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.rulebook.setup.read"}}
+		</button>
+		<button type="button" data-action="forget">
+			<i class="fa-solid fa-link-slash" inert></i> {{localize "bastionland.rulebook.setup.forget"}}
+		</button>
+		{{/if}}
+	</div>
+
+	<p class="hint">{{localize "bastionland.rulebook.setup.copyHint" dir=dir}}</p>
+	<p class="hint">{{localize "bastionland.rulebook.setup.whoCanRead"}}</p>
+	<p class="hint">{{localize "bastionland.rulebook.setup.hotkey"}}</p>
+</div>

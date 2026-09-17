@@ -1383,7 +1383,46 @@
     "settings": {
       "restoreOpenSheets": {
         "name": "Reopen Sheets on Reload",
-        "hint": "Reopen the Knight, item and journal sheets you had open, where you left them, when you reload Foundry. Only affects this browser."
+        "hint": "Reopen the Knight, item and journal sheets and the rulebook you had open, where you left them, when you reload Foundry. Only affects this browser."
+      }
+    },
+    "rulebook": {
+      "title": "Mythic Bastionland",
+      "open": "Rulebook",
+      "openTab": "Open in a New Tab",
+      "showPlayers": "Show This Page to Players",
+      "shownPlayers": "Showed page {page} to the players.",
+      "nobodyToShow": "No one else is signed in to show the page to.",
+      "stillOpening": "The rulebook is still opening.",
+      "noCopy": "The GM hasn’t given this world a copy of the rulebook yet.",
+      "otherEdition": "This PDF has {pages} pages, but the rulebook this system’s page numbers come from has {expected}, so a jump to a page may land in the wrong place.",
+      "notPdf": "That file doesn’t look like a PDF. It’s been saved anyway, in case it is one.",
+      "copying": "Copying the rulebook into the world…",
+      "copied": "The rulebook is ready to read.",
+      "copyFailed": "The rulebook couldn’t be copied into the world. Check that you’re allowed to upload files and that there’s space.",
+      "keepFailed": "The rulebook was copied in, but the world couldn’t record where it went.",
+      "keybinding": {
+        "name": "Open the Rulebook",
+        "hint": "Open the rulebook, or close it when it’s already in front."
+      },
+      "settings": {
+        "forPlayers": {
+          "name": "Let Players Open the Rulebook",
+          "hint": "Players get the Rulebook button and hotkey too. Pages the GM shows them open either way."
+        }
+      },
+      "setup": {
+        "title": "Your Rulebook",
+        "intro": "Point this world at your own copy of the Mythic Bastionland PDF to read it in Foundry’s PDF viewer, with its chapters, search and page links.",
+        "current": "Reading from",
+        "none": "No rulebook yet.",
+        "choose": "Choose a File on This Computer",
+        "browse": "Browse the Server",
+        "read": "Read It",
+        "forget": "Forget It",
+        "copyHint": "A file chosen from this computer is copied to {dir} in your Foundry data folder, so it’s still there next session. Forgetting it leaves the file there.",
+        "whoCanRead": "Foundry serves everything in its data folder to anyone signed into the world who knows the path, so treat the copy as shared with your table.",
+        "hotkey": "Press B to open or close the rulebook. Change the key under Configure Controls."
       }
     }
   }

@@ -53,7 +53,7 @@ function installFoundryStubs() {
 	};
 	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, queries: {} };
 	globalThis.canvas = { scene: null };
-	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, system: {}, user: { isGM: false } };
+	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {
 		once: (name, callback) => { hooks[name] = callback; },
 		on: (name, callback) => { hooks[name] = callback; }
@@ -164,8 +164,25 @@ describe("system boot", () => {
 		expect(Object.isFrozen(game.system.api)).toBe(true);
 	});
 
-	it("remembers the one-time setup each world has had", () => {
+	it("gives the rulebook a hotkey, its settings, and a way in for macros", () => {
+		expect(game.keybindings.register).toHaveBeenCalledWith(SYSTEM_ID, "openRulebook", expect.objectContaining({
+			editable: [{ key: "KeyB" }],
+			onDown: expect.any(Function)
+		}));
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "rulebookPdf", expect.objectContaining({ scope: "world", config: false, type: String }));
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "rulebookForPlayers", expect.objectContaining({ scope: "world", config: true, default: false }));
+		expect(hooks.renderBookReader).toBeTypeOf("function");
+		expect(CONFIG.queries[`${SYSTEM_ID}.showRulebookPage`]).toBeTypeOf("function");
+		expect(hooks.renderJournalDirectory).toBeTypeOf("function");
+		expect(game.system.api.openRulebook).toBeTypeOf("function");
+		expect(game.system.api.openRulebookSetup).toBeTypeOf("function");
+		expect(game.system.api.toggleRulebook).toBeTypeOf("function");
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "worldSetupDone", expect.objectContaining({ scope: "world", config: false, type: Object }));
+	});
+
+	it("keeps a query from a player from opening the rulebook", async () => {
+		const query = CONFIG.queries[`${SYSTEM_ID}.showRulebookPage`];
+		await expect(query({ page: 12 }, { user: { isGM: false } })).resolves.toBe(false);
 	});
 
 	it("turns Token Automatic Rotation off by default once core registers it", () => {
