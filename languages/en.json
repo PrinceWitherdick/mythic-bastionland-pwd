@@ -1253,7 +1253,8 @@
         "barrier": "Barriers",
         "wilderness": "Wilderness Roll",
         "tidy": "Tidy the Realm",
-        "reroll": "Reroll the Realm"
+        "reroll": "Reroll the Realm",
+        "appearance": "Realm Appearance"
       },
       "readout": {
         "seat": "{name}, Seat of Power",
@@ -1378,6 +1379,76 @@
         "hazard": "Hazard",
         "curse": "Curse",
         "ruin": "Ruin"
+      },
+      "look": {
+        "title": "Realm Appearance",
+        "open": "Choose the look",
+        "hint": "Choose how Realm Scenes are drawn: a skin, a set of colours, and pictures of your own.",
+        "intro": "Try a skin and a set of colours below, then apply them. Every Realm Scene in the world is redrawn, with its paper, hex lines and Barriers in the new colours. Nothing about the Realm itself changes.",
+        "skin": "Skin",
+        "palette": "Colours",
+        "pictures": "Pictures",
+        "preview": "Preview",
+        "features": "Holdings, Landmarks and Myths",
+        "river": "River",
+        "skins": {
+          "classic": {
+            "label": "Realm Sheet",
+            "hint": "Pale hexes and lettered roundels, like the Blank Realm."
+          },
+          "woodcut": {
+            "label": "Woodcut",
+            "hint": "Bold lines, shields for Holdings and Myths, signs for Landmarks."
+          },
+          "atlas": {
+            "label": "Surveyor’s Atlas",
+            "hint": "Soft washes, fine marks and silhouettes."
+          },
+          "seal": {
+            "label": "Wax Seal",
+            "hint": "Strong colours and sealing-wax badges."
+          }
+        },
+        "palettes": {
+          "parchment": "Parchment",
+          "verdigris": "Verdigris & Brass",
+          "heraldic": "Azure & Gules",
+          "ochre": "Ochre & Oxblood",
+          "ashen": "Ash & Iron",
+          "midnight": "Candlelit Night"
+        },
+        "rivers": {
+          "straight": "Straight",
+          "bend": "Bend",
+          "sharp": "Sharp bend",
+          "end": "Spring"
+        },
+        "fits": {
+          "hex": "Terrain pictures fill their hex",
+          "icon": "Terrain pictures sit inside their hex"
+        },
+        "terrainFit": "Your terrain",
+        "tags": {
+          "own": "Yours",
+          "book": "Book"
+        },
+        "bookIcons": "Use the icons imported from the Blank Realm PDF for terrain, Holdings and Landmarks",
+        "bookMissing": "Run Import Book Art on the Blank Realm PDF to use its icons.",
+        "ownIntro": "Or use pictures of your own. Name each file after the picture it replaces, such as forest.png or holding-castle.webp. Any picture you don’t give comes from the skin.",
+        "upload": "Upload pictures",
+        "chooseFolder": "Use a folder",
+        "rescan": "Look again",
+        "clear": "Stop using mine",
+        "found": "{found} of {total} pictures found in",
+        "namesSummary": "File names to use",
+        "namesHint": "Uploaded pictures are saved to {dir}. Terrain can also be named by its terrain, such as marsh or terrain-marsh; Holdings and Landmarks by their kind alone, such as tower or ruin. Any image type works. Ticked names are found.",
+        "ignored": "{count} files weren’t uploaded: their names don’t match a Realm picture.",
+        "uploadFailed": "{count} pictures couldn’t be uploaded.",
+        "browseFailed": "Couldn’t look in {folder}.",
+        "scanned": "Found {count} of {total} Realm pictures in {folder}.",
+        "reset": "Back to the default",
+        "apply": "Apply to Realms",
+        "applied": "Realm Scenes are being redrawn in the new look."
       }
     },
     "settings": {

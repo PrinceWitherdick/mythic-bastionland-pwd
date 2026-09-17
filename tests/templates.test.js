@@ -7,7 +7,8 @@ import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/r
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, TERRAIN } from "../module/rules/realm.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
@@ -132,6 +133,11 @@ describe("localization", () => {
 		...REALM_ICON_KINDS.map((kind) => `bookArt.kinds.${kind}`),
 		...REALM_ICON_PROBLEMS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
+		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),
+		...REALM_PALETTES.map(({ key }) => `realm.look.palettes.${key}`),
+		...RIVER_SHAPES.map((shape) => `realm.look.rivers.${shape}`),
+		...TERRAIN_FITS.map((fit) => `realm.look.fits.${fit}`),
+		...["own", "book"].map((tag) => `realm.look.tags.${tag}`),
 		...REALM_PROBLEMS.map((reason) => `realm.problems.${reason}`),
 		...WILDERNESS_MODES.map((mode) => `realm.wilderness.modes.${mode}`),
 		...WILDERNESS_RESULTS.map((result) => `realm.wilderness.results.${result}`),

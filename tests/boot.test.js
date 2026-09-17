@@ -53,7 +53,7 @@ function installFoundryStubs() {
 	};
 	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, queries: {} };
 	globalThis.canvas = { scene: null };
-	globalThis.game = { settings: { register: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false } };
+	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {
 		once: (name, callback) => { hooks[name] = callback; },
 		on: (name, callback) => { hooks[name] = callback; }

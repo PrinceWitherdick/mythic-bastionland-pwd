@@ -1,4 +1,4 @@
-import { editRealm, getRealm, sceneGeometry } from "../actions/realm.js";
+import { editRealm, getRealm, getRealmLook, sceneGeometry } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, loadRealmIcons, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -103,7 +103,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { realm } = entry;
 
 		if (this.mode === "terrain" || !this.hex) {
-			const textures = realmTextures(this.#icons);
+			const textures = realmTextures(this.#icons, getRealmLook());
 			return Object.assign(context, {
 				terrainMode: true,
 				terrains: TERRAIN.map((key, index) => ({

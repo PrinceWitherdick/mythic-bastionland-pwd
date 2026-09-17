@@ -4,6 +4,7 @@ import { postCard, t } from "../chat/cards.js";
 import { randomSeed } from "../rules/random.js";
 import { REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
 import {
+	LEVEL_ID,
 	planChanges,
 	planRealmSync,
 	realmFlag,
@@ -12,9 +13,53 @@ import {
 	realmSceneFlag,
 	realmTextures
 } from "../rules/realm-documents.js";
+import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
 import { generateRealm } from "../rules/realm-generator.js";
 import { realmGeometry } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+
+/** The world's choice of skin, colour set and pictures for Realm Scenes. */
+export const REALM_LOOK_SETTING = "realmLook";
+
+/** Called on every client when the Realm look changes. */
+export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
+
+/** Register the Realm look settings. Called during init. */
+export function registerRealmSettings() {
+	game.settings.register(SYSTEM_ID, REALM_LOOK_SETTING, {
+		scope: "world",
+		config: false,
+		type: Object,
+		default: defaultRealmLook(),
+		onChange: () => {
+			// One GM repaints the Scenes; everyone else sees the documents change.
+			if (game.users.activeGM?.isSelf) refreshRealmScenes();
+			Hooks.callAll(REALM_LOOK_HOOK, getRealmLook());
+		}
+	});
+}
+
+/** @returns {import("../rules/realm-skins.js").RealmLook} */
+export const getRealmLook = () => normaliseRealmLook(game.settings.get(SYSTEM_ID, REALM_LOOK_SETTING));
+
+/**
+ * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @returns {Promise<void>} Every Realm Scene is repainted once the setting lands.
+ */
+export async function setRealmLook(look) {
+	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, normaliseRealmLook(look));
+}
+
+/** @returns {Promise<ReturnType<typeof realmTextures>>} The pictures and colours Realm Scenes use now. */
+export const currentRealmTextures = async () => realmTextures(await loadRealmIcons(), getRealmLook());
+
+/**
+ * A world setup step: bring Realm Scenes made before the pictures moved into a
+ * folder for each skin and colour set up to date.
+ */
+export async function moveRealmPictures() {
+	await refreshRealmScenes();
+}
 
 /** Realms read from their Scenes, by Scene id, until one of their documents changes. */
 const realms = new Map();
@@ -111,18 +156,38 @@ async function writeRealm(scene, realm, g, textures, options) {
 }
 
 /**
- * Bring every Realm Scene in the world up to date with the icons, such as
- * after the Blank Realm PDF is imported.
+ * Give a Realm Scene the paper and hex lines of its colour set.
+ * @param {Scene} scene
+ * @param {{paper: string, grid: string}} colours
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+async function paintRealmScene(scene, { paper, grid }) {
+	const same = (a, b) => String(a ?? "").toLowerCase() === String(b).toLowerCase();
+	const changes = {};
+	if (!same(scene._source.grid?.color, grid)) changes["grid.color"] = grid;
+	const level = scene.levels?.get(LEVEL_ID) ?? scene.levels?.contents[0];
+	if (level && !same(level._source.background?.color, paper)) changes.levels = [{ _id: level.id, background: { color: paper } }];
+	if (foundry.utils.isEmpty(changes)) return false;
+	// One write, so every client redraws the Scene once.
+	await scene.update(changes);
+	return true;
+}
+
+/**
+ * Bring every Realm Scene in the world up to date with the icons and the
+ * Realm look, such as after the Blank Realm PDF is imported.
  * @param {object|null} [icons] The Realm icon index. Omit to load it.
  * @returns {Promise<number>} How many Scenes changed.
  */
 export async function refreshRealmScenes(icons) {
 	if (!game.user.isGM) return 0;
-	const textures = realmTextures(icons === undefined ? await loadRealmIcons() : icons);
+	const textures = realmTextures(icons === undefined ? await loadRealmIcons() : icons, getRealmLook());
 	return queueRealmWrite(async () => {
 		let changed = 0;
 		for (const scene of game.scenes.filter((candidate) => isRealmScene(candidate))) {
-			if (await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures)) changed++;
+			const documents = await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures);
+			const colours = await paintRealmScene(scene, textures.colours);
+			if (documents || colours) changed++;
 		}
 		return changed;
 	});
@@ -138,7 +203,7 @@ export async function refreshRealmScenes(icons) {
 export async function editRealm(scene, edit) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
-		const textures = realmTextures(await loadRealmIcons());
+		const textures = await currentRealmTextures();
 		const g = sceneGeometry(scene);
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
@@ -162,7 +227,7 @@ const PROBLEMS_SHOWN = 5;
 export async function syncRealmScene(scene, { report = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	const g = sceneGeometry(scene);
-	const textures = realmTextures(await loadRealmIcons());
+	const textures = await currentRealmTextures();
 	const { realm, problems: readProblems, changed } = await queueRealmWrite(async () => {
 		const read = getRealm(scene);
 		return { ...read, changed: await writeRealm(scene, read.realm, g, textures) };
@@ -196,7 +261,7 @@ export async function rerollRealm(scene) {
 
 	const g = sceneGeometry(scene);
 	const realm = generateRealm({ seed: randomSeed(), geometry: g });
-	const textures = realmTextures(await loadRealmIcons());
+	const textures = await currentRealmTextures();
 	await queueRealmWrite(async () => {
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
@@ -256,7 +321,7 @@ export async function newRealm() {
 async function createRealmScene({ name, seed }) {
 	const geometry = realmGeometry();
 	const realm = generateRealm({ seed, geometry });
-	const textures = realmTextures(await loadRealmIcons());
+	const textures = await currentRealmTextures();
 	const data = realmSceneData({ name, realm, geometry, textures, units: t("realm.units") });
 
 	const scene = await CONFIG.Scene.documentClass.create(data);

@@ -29,14 +29,17 @@ export const MYTH_COUNT = 6;
 
 export const OMEN_COUNT = 6;
 
+/** River pieces, each drawn from the hex's south edge: straight across, a gentle bend, a sharp bend, or a spring. */
+export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end"]);
+
 /** "A typical Realm has 3 or 4 of each type of Landmark." */
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll", "appearance"]);
 
 /** The Realm tools that act at once rather than waiting for a click on the map. */
-export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll"]);
+export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll", "appearance"]);
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([

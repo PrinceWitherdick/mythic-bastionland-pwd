@@ -2,12 +2,13 @@ import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
-import { addNewRealmButton, newRealm } from "./module/actions/realm.js";
+import { addNewRealmButton, moveRealmPictures, newRealm, registerRealmSettings } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
+import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
 import { openSitesPanel } from "./module/apps/SitesPanel.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
@@ -145,12 +146,17 @@ Hooks.once("init", () => {
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
 	registerRealmHooks();
 
+	// How Realm Scenes are drawn: a skin, a set of colours, and the GM's own pictures.
+	registerRealmSettings();
+	registerRealmAppearanceMenu();
+
 	// Macros reach the system through here, such as Import Book Art.
 	game.system.api = Object.freeze({
 		importBookArt,
 		openKnightChooser,
 		openNpcChooser,
 		newRealm,
+		openRealmAppearance,
 		wildernessRoll,
 		rollSurprise,
 		openRefereeRolls,
@@ -181,7 +187,8 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 /** One-time work for each world, run in this order by the active GM. */
 const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
-	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders }
+	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
+	{ key: "realmPicturesMoved", run: moveRealmPictures }
 ]);
 
 Hooks.once("ready", async () => {

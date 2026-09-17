@@ -78,7 +78,8 @@
 .bastionland-sites-window .window-content,
 .bastionland-myths-window .window-content,
 .bastionland-rulebook-window .window-content,
-.bastionland-rulebook-setup-window .window-content {
+.bastionland-rulebook-setup-window .window-content,
+.bastionland-realm-appearance-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -1770,6 +1771,162 @@
 	flex: 1 1 12rem;
 }
 
-.bastionland-rulebook-setup code {
+.bastionland-rulebook-setup code,
+.bastionland-realm-appearance code {
 	overflow-wrap: anywhere;
+}
+
+/* Realm Appearance: skins, colour sets and the GM's own pictures. */
+.bastionland-realm-appearance {
+	gap: 0.75rem;
+}
+
+.bastionland-realm-appearance__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.bastionland-realm-appearance__section h3 {
+	margin: 0;
+	border-bottom: 1px solid var(--bastionland-rule);
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-realm-appearance p {
+	margin: 0;
+}
+
+.bastionland-realm-appearance__skins,
+.bastionland-realm-appearance__palettes {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+	gap: 0.4rem;
+}
+
+.bastionland-realm-appearance__skin,
+.bastionland-realm-appearance__palette {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.25rem;
+	height: auto;
+	padding: 0.35rem;
+	text-align: left;
+	white-space: normal;
+	line-height: 1.2;
+}
+
+.bastionland-realm-appearance__skin .hint {
+	font-size: 0.8em;
+}
+
+.bastionland-realm-appearance__skin.is-active,
+.bastionland-realm-appearance__palette.is-active {
+	outline: 3px solid var(--bastionland-verdigris);
+	outline-offset: -1px;
+}
+
+.bastionland-realm-appearance__samples {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.15rem;
+}
+
+.bastionland-realm-appearance__samples img {
+	width: 2rem;
+	height: 2rem;
+	border: none;
+	object-fit: contain;
+}
+
+.bastionland-realm-appearance__swatches {
+	display: flex;
+	height: 1.1rem;
+	border: 1px solid var(--bastionland-ink);
+}
+
+.bastionland-realm-appearance__swatches span {
+	flex: 1;
+}
+
+.bastionland-realm-appearance__check {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-realm-appearance__buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.bastionland-realm-appearance__buttons button {
+	flex: 1 1 10rem;
+}
+
+.bastionland-realm-appearance__names ul {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+	gap: 0.1rem 0.5rem;
+	margin: 0.3rem 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.85em;
+}
+
+.bastionland-realm-appearance__names li.is-found::before {
+	content: "\2713  ";
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-appearance__preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-realm-appearance__group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.bastionland-realm-appearance__group figure {
+	position: relative;
+	margin: 0;
+}
+
+.bastionland-realm-appearance__group img {
+	display: block;
+	width: 2.6rem;
+	height: 2.6rem;
+	border: none;
+	object-fit: contain;
+}
+
+.bastionland-realm-appearance__group.is-hexes img {
+	width: 3.5rem;
+	height: 3.03rem;
+}
+
+.bastionland-realm-appearance__group figcaption {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	padding: 0 0.2rem;
+	border-radius: 3px;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-size: 0.6rem;
+	line-height: 1.2;
+}
+
+.bastionland-realm-appearance__group figcaption.is-own {
+	background: var(--bastionland-verdigris);
 }

@@ -9,8 +9,9 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
-import { SYSTEM_ID, SYSTEM_PATH } from "../system-id.js";
-import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, TERRAIN, emptyRealm } from "./realm.js";
+import { SYSTEM_ID } from "../system-id.js";
+import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
+import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours } from "./realm-skins.js";
 import {
 	DIRECTIONS,
 	GRID_HEXEVENQ,
@@ -37,57 +38,51 @@ export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 
 /** The Level every Realm Scene is built on. */
 export const LEVEL_ID = "defaultLevel0000";
 
-/** The Realm Sheet's paper, as `--bastionland-paper`. */
-export const PAPER = "#efe8d8";
-
-const BARRIER_COLOUR = "#8b1e1e";
-
 const BARRIER_WIDTH = 10;
-
-/** The hex lines ruled across a Realm, as on the Realm Sheet. */
-export const GRID_COLOUR = "#a89f90";
 
 export const GRID_ALPHA = 0.6;
 
-/** River pieces, each drawn from the hex's south edge: straight across, a gentle bend, a sharp bend, or a spring. */
-export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end"]);
-
 /** Where the Seat of Power badge sits, from the Holding's centre, in hex heights. */
 const SEAT_OFFSET = Object.freeze({ x: 0.42, y: -0.3 });
-
-const PLACEHOLDERS = `${SYSTEM_PATH}/assets/realm`;
 
 /** Positions are compared to the hundredth of a pixel, so a rebuilt Realm doesn't rewrite itself. */
 const round = (value) => Math.round(value * 100) / 100;
 
 /**
- * The picture for each part of the map: the icons imported from the GM's Blank
- * Realm PDF where there are any, otherwise the system's own placeholders.
+ * The picture for each part of the map, and the colours of the Scene itself.
+ * Each picture is the GM's own where they've given one, otherwise the icon
+ * imported from their Blank Realm PDF where there is one and the look uses
+ * them, otherwise the look's skin in its colour set.
  * @param {object|null} [icons] The realm icon index written by Import Book Art.
+ * @param {import("./realm-skins.js").RealmLook|null} [look] The world's Realm look. Omit for the default.
  * @returns {{terrain: Record<number, {src: string, icon: boolean}>, holding: Record<string, {src: string}>,
  *   landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>, seat: {src: string},
- *   river: Record<string, {src: string}>}} A terrain picture is an `icon` when it's drawn inside its hex, as the
- *   Blank Realm's are, rather than filling the hex as the placeholders do.
+ *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string}}} A terrain
+ *   picture is an `icon` when it's drawn inside its hex, as the Blank Realm's are, rather than filling the hex.
  */
-export function realmTextures(icons = null) {
-	const imported = (list, keyOf) => new Map((list ?? []).filter((entry) => entry?.path).map((entry) => [keyOf(entry), entry]));
+export function realmTextures(icons = null, look = null) {
+	const { skin, palette, bookIcons, custom } = normaliseRealmLook(look);
+	const dir = realmSetDir(skin, palette);
+	const imported = (list, keyOf) => new Map((bookIcons ? list ?? [] : []).filter((entry) => entry?.path).map((entry) => [keyOf(entry), entry]));
 	const terrain = imported(icons?.terrain, (entry) => entry.terrain);
 	const holdings = imported(icons?.holdings, (entry) => entry.style);
 	const landmarks = imported(icons?.landmarks, (entry) => entry.type);
-	const pad = (number) => String(number).padStart(2, "0");
+	const picture = (name, book) => ({ src: custom.files[name] ?? book ?? `${dir}/${name}.svg` });
 
 	return {
 		terrain: Object.fromEntries(TERRAIN.map((key, index) => {
-			const entry = terrain.get(index + 1);
-			return [index + 1, entry
-				? { src: entry.path, icon: true }
-				: { src: `${PLACEHOLDERS}/terrain-${pad(index + 1)}.svg`, icon: false }];
+			const name = PICTURE_NAME.terrain(index + 1);
+			const own = custom.files[name];
+			const book = terrain.get(index + 1)?.path;
+			if (own) return [index + 1, { src: own, icon: custom.terrainFit === "icon" }];
+			return [index + 1, book ? { src: book, icon: true } : { src: `${dir}/${name}.svg`, icon: false }];
 		})),
-		holding: Object.fromEntries(HOLDING_STYLES.map((style) => [style, { src: holdings.get(style)?.path ?? `${PLACEHOLDERS}/holding-${style}.svg` }])),
-		landmark: Object.fromEntries(LANDMARK_TYPES.map((type) => [type, { src: landmarks.get(type)?.path ?? `${PLACEHOLDERS}/landmark-${type}.svg` }])),
-		myth: Object.fromEntries(Array.from({ length: MYTH_COUNT }, (_, index) => [index + 1, { src: `${PLACEHOLDERS}/myth-${index + 1}.svg` }])),
-		seat: { src: `${PLACEHOLDERS}/seat.svg` },
-		river: Object.fromEntries(RIVER_SHAPES.map((shape) => [shape, { src: `${PLACEHOLDERS}/river-${shape}.svg` }]))
+		holding: Object.fromEntries(HOLDING_STYLES.map((style) => [style, picture(PICTURE_NAME.holding(style), holdings.get(style)?.path)])),
+		landmark: Object.fromEntries(LANDMARK_TYPES.map((type) => [type, picture(PICTURE_NAME.landmark(type), landmarks.get(type)?.path)])),
+		myth: Object.fromEntries(Array.from({ length: MYTH_COUNT }, (_, index) => [index + 1, picture(PICTURE_NAME.myth(index + 1))])),
+		seat: picture(PICTURE_NAME.seat),
+		river: Object.fromEntries(RIVER_SHAPES.map((shape) => [shape, picture(PICTURE_NAME.river(shape))])),
+		colours: sceneColours(palette)
 	};
 }
 
@@ -182,7 +177,7 @@ export const realmSceneFlag = (realm, g) => ({
  * @param {string} edge
  * @returns {object|null} Drawing data for a Barrier's line along its edge.
  */
-function barrierDrawing(g, { edge, revealed }) {
+function barrierDrawing(g, { edge, revealed }, colour) {
 	const segment = edgeSegment(g, edge);
 	if (!segment) return null;
 	const from = { x: round(segment.from.x), y: round(segment.from.y) };
@@ -198,7 +193,7 @@ function barrierDrawing(g, { edge, revealed }) {
 		// Foundry keeps a shape's size in whole pixels; given any other way, every Tidy would write it again.
 		shape: { type: "p", width: Math.round(Math.abs(to.x - from.x)), height: Math.round(Math.abs(to.y - from.y)), points: [round(from.x - x), round(from.y - y), round(to.x - x), round(to.y - y)] },
 		strokeWidth: BARRIER_WIDTH,
-		strokeColor: BARRIER_COLOUR,
+		strokeColor: colour,
 		strokeAlpha: 1,
 		fillType: 0,
 		fillAlpha: 0,
@@ -313,7 +308,7 @@ export function realmDocuments(realm, g, textures) {
 	}
 
 	const drawings = realm.barriers.flatMap((barrier) => {
-		const data = barrierDrawing(g, barrier);
+		const data = barrierDrawing(g, barrier, textures.colours.barrier);
 		return data ? [{ match: `edge:${barrier.edge}`, data }] : [];
 	});
 
@@ -340,8 +335,8 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		padding: 0,
 		tokenVision: false,
 		fog: { mode: 0 },
-		grid: { type: GRID_HEXEVENQ, size: g.size, style: "solidLines", thickness: 2, color: GRID_COLOUR, alpha: GRID_ALPHA, distance: 1, units },
-		levels: [{ _id: LEVEL_ID, name, background: { color: PAPER } }],
+		grid: { type: GRID_HEXEVENQ, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
+		levels: [{ _id: LEVEL_ID, name, background: { color: textures.colours.paper } }],
 		initialLevel: LEVEL_ID,
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: 0.5 },
 		tiles: tiles.map((tile) => tile.data),

@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
-import { LAKE, REALM_FLAG, TERRAIN } from "../../module/rules/realm.js";
+import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
+import { REALM_PALETTES } from "../../module/rules/realm-skins.js";
 import {
 	GRID_ALPHA,
-	GRID_COLOUR,
 	ICON_SCALE,
 	LEVEL_ID,
-	PAPER,
 	REALM_SORT,
-	RIVER_SHAPES,
 	isRealmDocument,
 	planChanges,
 	planRealmSync,
@@ -39,7 +37,7 @@ function onScene(seed = "documents", textures = realmTextures()) {
 describe("realmTextures", () => {
 	it("uses the system's placeholders until icons are imported", () => {
 		const textures = realmTextures();
-		expect(textures.terrain[1].src).toMatch(/assets\/realm\/terrain-01\.svg$/);
+		expect(textures.terrain[1].src).toMatch(/assets\/realm\/classic\/parchment\/terrain-01\.svg$/);
 		expect(textures.terrain[12].icon).toBe(false);
 		expect(textures.holding.tower.src).toMatch(/holding-tower\.svg$/);
 		expect(textures.landmark.curse.src).toMatch(/landmark-curse\.svg$/);
@@ -58,9 +56,48 @@ describe("realmTextures", () => {
 		expect(textures.holding.town.src).toBe("art/holding-town.webp");
 		expect(textures.landmark.ruin.src).toBe("art/landmark-ruin.webp");
 	});
+
+	const imported = {
+		terrain: [{ terrain: 5, path: "art/terrain-05.webp" }],
+		holdings: [{ style: "town", path: "art/holding-town.webp" }],
+		landmarks: []
+	};
+
+	it("draws in the look's skin and colour set", () => {
+		const textures = realmTextures(null, { skin: "seal", palette: "midnight" });
+		expect(textures.terrain[5]).toEqual({ src: expect.stringMatching(/assets\/realm\/seal\/midnight\/terrain-05\.svg$/), icon: false });
+		expect(textures.myth[2].src).toMatch(/seal\/midnight\/myth-2\.svg$/);
+		expect(textures.colours).toEqual({ paper: "#1d2230", grid: "#4b5368", barrier: "#d8a24a" });
+	});
+
+	it("leaves the imported icons out when the look doesn't use them", () => {
+		const textures = realmTextures(imported, { skin: "woodcut", bookIcons: false });
+		expect(textures.terrain[5].src).toMatch(/woodcut\/parchment\/terrain-05\.svg$/);
+		expect(textures.holding.town.src).toMatch(/woodcut\/parchment\/holding-town\.svg$/);
+	});
+
+	it("puts the GM's own pictures before imported icons and the skin", () => {
+		const look = { custom: { terrainFit: "icon", files: { "terrain-05": "mine/forest.png", "holding-town": "mine/town.png", seat: "mine/crown.png" } } };
+		const textures = realmTextures(imported, look);
+		expect(textures.terrain[5]).toEqual({ src: "mine/forest.png", icon: true });
+		expect(textures.holding.town.src).toBe("mine/town.png");
+		expect(textures.seat.src).toBe("mine/crown.png");
+		expect(textures.holding.castle.src).toMatch(/classic\/parchment\/holding-castle\.svg$/);
+		expect(realmTextures(null, { custom: { files: { "terrain-01": "mine/marsh.png" } } }).terrain[1].icon).toBe(false);
+	});
 });
 
 describe("realmSceneData", () => {
+	it("paints the Scene and its Barriers in the look's colours", () => {
+		const { key, paper, rule, accent } = REALM_PALETTES.at(-1);
+		const realm = generateRealm({ seed: "colours", geometry: g });
+		const data = realmSceneData({ name: "Night", realm, geometry: g, textures: realmTextures(null, { palette: key }) });
+		expect(data.grid.color).toBe(rule);
+		expect(data.levels[0].background.color).toBe(paper);
+		expect(data.drawings.length).toBeGreaterThan(0);
+		expect(data.drawings.every((drawing) => drawing.strokeColor === accent)).toBe(true);
+	});
+
 	const { realm, scene } = onScene();
 
 	it("builds a Scene that lines up with Foundry's even-column hex grid", () => {
@@ -71,8 +108,8 @@ describe("realmSceneData", () => {
 			padding: 0,
 			tokenVision: false,
 			fog: { mode: 0 },
-			grid: { type: 5, size: 160, color: GRID_COLOUR, alpha: GRID_ALPHA, distance: 1, units: "Hex" },
-			levels: [{ _id: LEVEL_ID, background: { color: PAPER } }],
+			grid: { type: 5, size: 160, color: "#a89f90", alpha: GRID_ALPHA, distance: 1, units: "Hex" },
+			levels: [{ _id: LEVEL_ID, background: { color: "#efe8d8" } }],
 			initialLevel: LEVEL_ID
 		});
 		expect(flagOf(scene)).toMatchObject({ version: 1, seed: "documents", size: 160, cols: 12, rows: 12, river: realm.river.map(hexKey) });

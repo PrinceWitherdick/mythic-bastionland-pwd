@@ -1,5 +1,6 @@
 import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, syncRealmScene } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
+import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, refreshRealmPanel } from "../apps/RealmPanel.js";
 import { REALM_BUTTONS, REALM_TOOLS, terrainAt } from "../rules/realm.js";
 import { barrierState, paintTerrain, setBarrier } from "../rules/realm-edits.js";
@@ -18,7 +19,8 @@ const TOOL_ICONS = Object.freeze({
 	barrier: "fa-solid fa-road-barrier",
 	wilderness: "fa-solid fa-tree",
 	tidy: "fa-solid fa-broom",
-	reroll: "fa-solid fa-dice"
+	reroll: "fa-solid fa-dice",
+	appearance: "fa-solid fa-palette"
 });
 
 /**
@@ -95,6 +97,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (name === "wilderness") return wildernessRoll({ scene });
 		if (name === "tidy") return syncRealmScene(scene, { report: true });
 		if (name === "reroll") return rerollRealm(scene);
+		if (name === "appearance") return openRealmAppearance();
 		return null;
 	}
 
