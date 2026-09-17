@@ -576,7 +576,8 @@
       },
       "siege": "Siege engine",
       "poison": "{rarity} Poison",
-      "rollVirtues": "Roll their Virtues on d12+d6."
+      "rollVirtues": "Roll their Virtues on d12+d6.",
+      "foldersSeeded": "Arms & Goods: added {items} items to the Items directory and {actors} beasts, hirelings, Warbands and structures to the Actors directory."
     },
     "spark": {
       "title": "Spark Tables",
@@ -1139,6 +1140,8 @@
         "goods": "Arms & Goods: {items} items in the {itemsPack} compendium, and {actors} beasts, hirelings, Warbands and structures in {actorsPack}",
         "goodsNotGM": "Arms & Goods were read, but only a GM can fill their compendiums. Run the import again as a GM.",
         "goodsFailed": "The Arms & Goods compendiums couldn’t be filled. If either is locked, unlock it and run the import again.",
+        "goodsFolders": "Arms & Goods copied into the world: {items} new items and {actors} new NPCs, in folders named for each compendium",
+        "goodsFoldersFailed": "Arms & Goods couldn’t be copied into the Items and Actors directories. Run the import again.",
         "knightTokens": "Knight tokens: {actors} Knights and {tokens} tokens on scenes now show the square cut around the Knight’s face",
         "knightTokensFailed": "Existing Knights couldn’t be given their square tokens. Run the import again.",
         "index": "Index saved to {path}.",

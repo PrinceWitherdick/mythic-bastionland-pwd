@@ -27,8 +27,6 @@ import {
 } from "../rules/book-art.js";
 import { portraitTokens, tokenCrop } from "../rules/knight-tokens.js";
 import {
-	GOODS_ACTOR_KINDS,
-	GOODS_ITEM_KINDS,
 	GOODS_KIND,
 	GOODS_KIND_PAGES,
 	GOODS_KINDS,
@@ -42,18 +40,13 @@ import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ensureDirectories, uploadFile } from "./files.js";
+import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
 import { importRealmIcons } from "./realm-import.js";
 import { showImportReport } from "./report.js";
 
 /** Stops a second import starting while one is under way. */
 let running = false;
-
-/** The world compendiums filled from Arms & Goods, by what they hold. */
-const GOODS_PACKS = Object.freeze({
-	items: Object.freeze({ name: "bastionland-arms-and-goods", type: "Item", kinds: GOODS_ITEM_KINDS }),
-	actors: Object.freeze({ name: "bastionland-beasts-and-hirelings", type: "Actor", kinds: GOODS_ACTOR_KINDS })
-});
 
 /**
  * Save every Knight's and Seer's portrait and every Myth's illustration from
@@ -235,6 +228,12 @@ async function extractArt(pdf, OPS) {
 	else {
 		try {
 			goodsLines.push(t("bookArt.report.goods", await fillGoodsPacks(goods)));
+			try {
+				goodsLines.push(t("bookArt.report.goodsFolders", await copyGoodsToWorld()));
+			} catch (error) {
+				console.error(`${SYSTEM_ID} | Couldn't copy Arms & Goods into the world`, error);
+				goodsLines.push(t("bookArt.report.goodsFoldersFailed"));
+			}
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
 			goodsLines.push(t("bookArt.report.goodsFailed"));
@@ -309,7 +308,7 @@ async function fillGoodsPacks(goods) {
 		rollVirtues: t("goods.rollVirtues"),
 		attack: t("attack.title")
 	});
-	const labels = { items: t("goods.itemsPack"), actors: t("goods.actorsPack") };
+	const labels = Object.fromEntries(Object.entries(GOODS_PACKS).map(([group, { label }]) => [group, t(label)]));
 
 	const counts = {};
 	for (const [group, { name, type, kinds }] of Object.entries(GOODS_PACKS)) {

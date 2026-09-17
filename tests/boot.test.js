@@ -164,6 +164,10 @@ describe("system boot", () => {
 		expect(Object.isFrozen(game.system.api)).toBe(true);
 	});
 
+	it("remembers the one-time setup each world has had", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "worldSetupDone", expect.objectContaining({ scope: "world", config: false, type: Object }));
+	});
+
 	it("turns Token Automatic Rotation off by default once core registers it", () => {
 		const autoRotate = { default: true };
 		game.settings.settings = new Map([["core.tokenAutoRotate", autoRotate]]);

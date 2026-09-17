@@ -12,6 +12,7 @@ import { openSitesPanel } from "./module/apps/SitesPanel.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
+import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -38,6 +39,7 @@ import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
 import { registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
+import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -98,6 +100,9 @@ Hooks.once("init", () => {
 
 	registerBookArtSettings();
 
+	// Remembers the one-time setup each world has had.
+	registerWorldSetup();
+
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
 
@@ -153,8 +158,17 @@ Hooks.once("setup", () => {
 // Roll Surprise sits in the Combat Tracker's encounter menu.
 Hooks.on("getCombatContextOptions", addSurpriseOption);
 
+/** One-time work for each world, run in this order by the active GM. */
+const WORLD_SETUP = Object.freeze([
+	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders }
+]);
+
 Hooks.once("ready", async () => {
-	await Promise.all([restoreOpenSheets(), ensureImportMacro()]);
+	await Promise.all([
+		restoreOpenSheets(),
+		ensureImportMacro(),
+		runWorldSetup(WORLD_SETUP)
+	]);
 });
 
 Hooks.on("renderActorDirectory", (_directory, element) => {
