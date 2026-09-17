@@ -23,6 +23,7 @@
       "fate": "Their ultimate fate was",
       "knightedBy": "Knighted by",
       "heraldry": "Heraldry",
+      "portrait": "Portrait",
       "chronicle": "Chronicle",
       "current": "Current",
       "maximum": "Maximum",
@@ -40,6 +41,126 @@
       "armour": "Armour",
       "rollSave": "Roll a {virtue} Save",
       "chooseKnight": "Choose Knight"
+    },
+    "heraldry": {
+      "title": "Heraldry of {name}",
+      "paint": "Paint heraldry",
+      "toolbar": "Painting tools",
+      "tools": {
+        "brush": "Brush",
+        "line": "Line",
+        "fill": "Fill",
+        "eraser": "Eraser",
+        "eyedropper": "Eyedropper"
+      },
+      "lineHint": "Drag from one end to the other. Hold Shift to keep it level, upright or diagonal.",
+      "eyedropperHint": "Click the shield to take a colour from it. Alt-click does the same with any tool.",
+      "recentColors": "Recent colours",
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "clear": "Clear the shield",
+      "canvas": "The shield. Paint inside it.",
+      "tincturesLabel": "Tinctures",
+      "tinctures": {
+        "or": {
+          "label": "Or",
+          "hint": "Gold"
+        },
+        "argent": {
+          "label": "Argent",
+          "hint": "Silver"
+        },
+        "gules": {
+          "label": "Gules",
+          "hint": "Red"
+        },
+        "azure": {
+          "label": "Azure",
+          "hint": "Blue"
+        },
+        "vert": {
+          "label": "Vert",
+          "hint": "Green"
+        },
+        "purpure": {
+          "label": "Purpure",
+          "hint": "Purple"
+        },
+        "sable": {
+          "label": "Sable",
+          "hint": "Black"
+        },
+        "tenne": {
+          "label": "Tenné",
+          "hint": "Tawny orange"
+        },
+        "sanguine": {
+          "label": "Sanguine",
+          "hint": "Blood red"
+        },
+        "murrey": {
+          "label": "Murrey",
+          "hint": "Mulberry"
+        }
+      },
+      "divisionsLabel": "Divide the shield",
+      "divisionsHint": "Pick a division, then click a part of the shield to paint it, and the parts matching it, in the colour in hand.",
+      "divisions": {
+        "perPale": "Per Pale",
+        "perBend": "Per Bend",
+        "quarterly": "Quarterly",
+        "tiercedInPale": "Tierced in Pale",
+        "perPall": "Per Pall",
+        "perChevron": "Per Chevron",
+        "barry": "Barry",
+        "perFess": "Per Fess",
+        "paly": "Paly",
+        "perPile": "Per Pile",
+        "perBendSinister": "Per Bend Sinister",
+        "gyronny": "Gyronny"
+      },
+      "otherColor": "Other colour",
+      "size": "Brush size",
+      "uploadImage": "Upload an image",
+      "download": "Download",
+      "downloadHint": "Save this design to your computer, to upload again later.",
+      "downloadFailed": "The design could not be turned into a file to download.",
+      "chooseImage": "Browse files",
+      "placing": {
+        "title": "Placing a picture",
+        "hint": "Drag it to move it. Scroll over it, or use the slider, to change its size. Place it to paint it in.",
+        "size": "Picture size",
+        "fit": "Fit",
+        "fill": "Fill",
+        "place": "Place",
+        "discard": "Discard",
+        "flip": "Flip"
+      },
+      "charges": {
+        "open": "Add a charge",
+        "openHint": "Place a lion, a tower, a star or another charge on the shield, in the colour in hand.",
+        "title": "Charges",
+        "back": "Back",
+        "hint": "Click a charge to place it on the shield in the colour in hand.",
+        "group": "Show",
+        "tooltip": "{name}, after {source}",
+        "tincture": "Recolour it",
+        "credit": "Drawn after public-domain heraldry books by Mathghamhain Ua Ruadháin for the Book of Traceable Heraldic Art. © 2016–2023 Matthew Simon Ryan Cavalletto, CC BY-SA 4.0.",
+        "groups": {
+          "beasts": "Beasts",
+          "birds": "Birds",
+          "monsters": "Monsters",
+          "arms": "Arms and armour",
+          "castles": "Castles and crowns",
+          "heavens": "Sun, moon and stars",
+          "plants": "Plants",
+          "symbols": "Crosses and symbols"
+        }
+      },
+      "cancel": "Cancel",
+      "save": "Save",
+      "unreadable": "That picture couldn’t be loaded onto the shield.",
+      "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the GM to let you upload files."
     },
     "virtues": {
       "vig": {

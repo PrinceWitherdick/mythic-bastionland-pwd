@@ -9,6 +9,7 @@ Requires Foundry VTT v14.
 The first milestone is the **Knight** character sheet, laid out after the official printed sheet:
 
 - **Identity:** name, "Known as the ___ Knight", the Seer who knighted them, their ultimate fate, and a picture shown in the shield.
+- **Heraldry:** click the shield to paint it with the tinctures and divisions of heraldry, or place a picture of your own. **Add a charge** offers 215 lions, towers, wyverns, crosses and more, drawn after public-domain heraldry books. A charge arrives in the colour in hand; pick a tincture while placing it to recolour it, and **Flip** to face it the other way. On a black charge the lines lighten so its detail still shows.
 - **Choose Knight:** make a Knight the way the book does. Pick a Start (Wanderer, Courtier or Ruler), roll Virtues and GD with its dice, then roll d6 and d12 for the Knight or pick one from the list. Knights other characters already are get marked. Applying sets Age, Glory, the rolled scores, Known as and Knighted by, puts the Knight's portrait in the shield, and adds their Property, Ability and Passion along with the dagger, torches, rope, dry rations and camping gear every Knight carries. Rolls go to chat. Open it from the sheet's toolbar, or use **New Knight** in the Actors tab to create a Knight from scratch.
 - **Virtues and Guard:** VIG, CLA and SPI with current and maximum values, capped at 0–19. Click a Virtue to roll a Save (d20 equal or under).
 - **Glory, Age and Rank:** Rank is worked out from Glory (0 / 3 / 6 / 9 / 12), and the sheet shows how far off the next Rank is.

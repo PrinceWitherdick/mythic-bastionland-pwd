@@ -61,6 +61,10 @@ function installFoundryStubs() {
 	globalThis.Actor = class Actor {};
 	globalThis.Item = class Item {};
 	globalThis.window = { addEventListener: vi.fn() };
+	globalThis.document = {
+		body: { append: vi.fn() },
+		createElement: () => ({ innerHTML: "", firstElementChild: {} })
+	};
 	return hooks;
 }
 
@@ -91,6 +95,10 @@ describe("system boot", () => {
 		}));
 		expect(hooks.renderActorSheetV2).toBeTypeOf("function");
 		expect(window.addEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
+	});
+
+	it("puts the shield's clip paths on the page", () => {
+		expect(document.body.append).toHaveBeenCalledOnce();
 	});
 
 	it("registers a data model for every document type in system.json", async () => {
@@ -367,6 +375,11 @@ describe("KnightModel", () => {
 		model.prepareDerivedData();
 
 		expect(model.conditions.exposed).toBe(true);
+	});
+
+	it("keeps painted heraldry as text that starts blank", () => {
+		const schema = CONFIG.Actor.dataModels.knight.defineSchema();
+		expect(schema.heraldry.options).toMatchObject({ blank: true, initial: "" });
 	});
 
 	it("caps Virtues at 19 in the schema", () => {

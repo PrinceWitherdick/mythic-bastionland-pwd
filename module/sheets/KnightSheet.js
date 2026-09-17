@@ -24,7 +24,8 @@ export class KnightSheet extends BastionlandActorSheet {
 			takeSquire: KnightSheet.#onTakeSquire,
 			knightSquire: KnightSheet.#onKnightSquire,
 			openSquire: KnightSheet.#onOpenSquire,
-			clearSquire: KnightSheet.#onClearSquire
+			clearSquire: KnightSheet.#onClearSquire,
+			paintHeraldry: KnightSheet.#onPaintHeraldry
 		}
 	};
 
@@ -35,7 +36,7 @@ export class KnightSheet extends BastionlandActorSheet {
 		}
 	};
 
-	static PREVIEWED_ART = ".bastionland-heraldry img[data-name]";
+	static PREVIEWED_ART = ".bastionland-portrait img[data-name]";
 
 	/** @override */
 	async _prepareContext(options) {
@@ -180,6 +181,13 @@ export class KnightSheet extends BastionlandActorSheet {
 	/** @this {KnightSheet} */
 	static #onOpenSquire() {
 		return this.#squire()?.sheet.render({ force: true });
+	}
+
+	/** @this {KnightSheet} */
+	static async #onPaintHeraldry() {
+		// Loaded on first use: the painter and its gallery of charges are large, and most sessions never open them.
+		const { openHeraldryPainter } = await import("../apps/HeraldryPainter.js");
+		return openHeraldryPainter(this.actor);
 	}
 
 	/** @this {KnightSheet} */

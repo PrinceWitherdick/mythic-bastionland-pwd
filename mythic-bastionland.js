@@ -9,6 +9,7 @@ import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
+import { installShieldClips } from "./module/apps/shield-clips.js";
 import { openSitesPanel } from "./module/apps/SitesPanel.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
@@ -129,6 +130,9 @@ Hooks.once("init", () => {
 
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
+
+	// The outline the sheet and the heraldry painter clip the shield to.
+	installShieldClips();
 
 	// The GM's own copy of the rulebook, read in Foundry's PDF viewer, with a
 	// hotkey, Show Players, and the book reopening after a reload.

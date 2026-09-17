@@ -1,5 +1,8 @@
 <div class="bastionland-page">
 	<header class="bastionland-header">
+		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		</figure>
 		<div class="bastionland-header__text">
 			<h1 class="bastionland-title">{{localize "bastionland.sheet.title"}}</h1>
 			<p class="bastionland-line">
@@ -20,8 +23,16 @@
 				<input id="{{rootId}}-fate" class="bastionland-blank" type="text" name="system.fate" value="{{system.fate}}" autocomplete="off">
 			</p>
 		</div>
-		<figure class="bastionland-heraldry" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.heraldry'}}"{{/unless}}>
-			<img src="{{actor.img}}" alt="{{localize 'bastionland.sheet.heraldry'}}" {{#if hasArt}}data-name="{{localize 'bastionland.sheet.heraldry'}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		<figure class="bastionland-heraldry" data-tooltip="{{localize (ifThen editable 'bastionland.heraldry.paint' 'bastionland.sheet.heraldry')}}">
+			{{#if editable}}
+			<button type="button" class="bastionland-heraldry__field" data-action="paintHeraldry" aria-label="{{localize 'bastionland.heraldry.paint'}}">
+				{{#if system.heraldry}}<img src="{{system.heraldry}}" alt="">{{/if}}
+			</button>
+			{{else}}
+			<span class="bastionland-heraldry__field">
+				{{#if system.heraldry}}<img src="{{system.heraldry}}" alt="{{localize 'bastionland.sheet.heraldry'}}">{{/if}}
+			</span>
+			{{/if}}
 		</figure>
 	</header>
 

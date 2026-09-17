@@ -15,6 +15,8 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			seer: textField(),
 			// "Their ultimate fate was ___"
 			fate: textField(),
+			// The shield painted at the top of the sheet: an uploaded file's path, or a data URL for users who can't upload.
+			heraldry: textField(),
 			age: new fields.StringField({ required: true, initial: AGES[0], choices: AGES }),
 			// The UUID of the NPC this Knight rides, whose trample joins a mounted charge.
 			steed: textField(),

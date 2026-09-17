@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	BRUSH,
@@ -172,6 +174,20 @@ describe("the shield's outline", () => {
 		expect(outline.width).toBe(SHIELD_WIDTH + SHIELD_BORDER * 2);
 		expect(outline.height).toBe(SHIELD_HEIGHT + SHIELD_BORDER * 2);
 		expect(SHIELD_OUTLINE_PATH).toMatch(new RegExp(`^M0 \\d+ Q${outline.width / 2} -?\\d+ ${outline.width} `));
+	});
+
+	it("clips the sheet's and the painter's shields with the same paths", () => {
+		const css = readFileSync(join(import.meta.dirname, "../../styles/mythic-bastionland.css"), "utf8");
+		for (const id of Object.keys(SHIELD_CLIPS)) expect(css.match(new RegExp(`clip-path: url\\(#${id}\\)`, "g"))).toHaveLength(2);
+		expect(css).not.toContain("clip-path: path(");
+	});
+
+	it("sets the margin behind the border on the sheet, and at twice the size in the painter", () => {
+		const css = readFileSync(join(import.meta.dirname, "../../styles/mythic-bastionland.css"), "utf8");
+		expect(css).toContain(`width: calc(100% + ${PAINT_MARGIN * 2}px)`);
+		expect(css).toContain(`top: -${PAINT_MARGIN}px`);
+		expect(css).toContain(`width: calc(100% + ${PAINT_MARGIN * 4}px)`);
+		expect(css).toContain(`top: -${PAINT_MARGIN * 2}px`);
 	});
 });
 

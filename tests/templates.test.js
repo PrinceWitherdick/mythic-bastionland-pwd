@@ -6,6 +6,8 @@ import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_T
 import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
+import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
+import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
@@ -74,6 +76,10 @@ describe("localization", () => {
 		...AGES.map((key) => `age.${key}`),
 		...RANKS.map((rank) => `rank.${rank.key}`),
 		...partsOf("glory.awards", GLORY_AWARDS, ["label", "intro", "hint"]),
+		...partsOf("heraldry.tinctures", TINCTURES.map(({ key }) => key), ["label", "hint"]),
+		...PAINT_TOOLS.map((tool) => `heraldry.tools.${tool}`),
+		...DIVISIONS.map(({ key }) => `heraldry.divisions.${key}`),
+		...CHARGE_GROUPS.map((group) => `heraldry.charges.groups.${group}`),
 		...SQUIRE_EQUIPMENT.map(({ key }) => `squire.equipment.${key}`),
 		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
 		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
