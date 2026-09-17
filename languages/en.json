@@ -25,6 +25,11 @@
       "heraldry": "Heraldry",
       "portrait": "Portrait",
       "chronicle": "Chronicle",
+      "tabs": {
+        "label": "Sheet pages",
+        "knight": "Knight",
+        "chronicle": "Chronicle"
+      },
       "current": "Current",
       "maximum": "Maximum",
       "toNextRank": "{needed} more Glory to {rank}",

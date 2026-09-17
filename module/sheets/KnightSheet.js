@@ -9,10 +9,12 @@ import { RANKS } from "../rules/glory.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { placeTabRail, stampRailSide } from "./tab-rail.js";
 
 /** The Knight character sheet, laid out after the official printed sheet. */
 export class KnightSheet extends BastionlandActorSheet {
 	static DEFAULT_OPTIONS = {
+		classes: ["bastionland-has-tab-rail"],
 		position: { width: 860, height: 920 },
 		actions: {
 			chooseKnight: KnightSheet.#onChooseKnight,
@@ -30,9 +32,21 @@ export class KnightSheet extends BastionlandActorSheet {
 	};
 
 	static PARTS = {
+		tabs: { template: templatePath("actor/tab-rail.hbs") },
 		sheet: {
 			template: templatePath("actor/knight-sheet.hbs"),
 			scrollable: [""]
+		}
+	};
+
+	/** The sheet's pages, picked from the rail hung off the window's edge. */
+	static TABS = {
+		primary: {
+			initial: "knight",
+			tabs: [
+				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight" },
+				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" }
+			]
 		}
 	};
 
@@ -88,9 +102,34 @@ export class KnightSheet extends BastionlandActorSheet {
 					.map((item) => `${item.name} ${item.system.damage}`)
 					.join(", ")
 			},
-			gambits: GAMBITS.map((key) => t(`gambits.${key}`))
+			gambits: GAMBITS.map((key) => t(`gambits.${key}`)),
+			gambitsOpen: this.#gambitsOpen
 		});
 	}
+
+	/**
+	 * The Gambits reference is folded away until wanted, and stays as the
+	 * player left it when the sheet redraws.
+	 * @override
+	 */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		const gambits = this.element.querySelector(".bastionland-gambits-reference");
+		gambits?.addEventListener("toggle", () => (this.#gambitsOpen = gambits.open));
+		placeTabRail(this.element, ".bastionland-header");
+	}
+
+	/**
+	 * The rail changes sides when the window is dragged near the screen's edge.
+	 * @override
+	 */
+	_onPosition(position) {
+		super._onPosition(position);
+		stampRailSide(this.element, position);
+	}
+
+	/** Whether the Gambits reference is unfolded. */
+	#gambitsOpen = false;
 
 	/**
 	 * @param {string} uuid

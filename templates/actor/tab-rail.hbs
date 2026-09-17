@@ -1,0 +1,8 @@
+{{!-- A sheet's pages, as a column of icon tabs hung off the window's edge; see module/sheets/tab-rail.js. --}}
+<nav class="tabs bastionland-tab-rail" aria-label="{{localize 'bastionland.sheet.tabs.label'}}">
+	{{#each tabs}}
+	<button type="button" class="bastionland-tab-rail__item {{cssClass}}" data-action="tab" data-group="{{group}}" data-tab="{{id}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" aria-label="{{localize label}}" data-tooltip="{{localize label}}" data-tooltip-direction="LEFT">
+		<i class="{{icon}}" inert></i>
+	</button>
+	{{/each}}
+</nav>

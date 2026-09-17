@@ -1068,6 +1068,14 @@
 /* Feats and Gambits                                                */
 /* ---------------------------------------------------------------- */
 
+.bastionland-gambits-reference summary {
+	cursor: pointer;
+}
+
+.bastionland-gambits-reference:not([open]) summary {
+	margin-bottom: 0;
+}
+
 .bastionland-feats,
 .bastionland-gambits {
 	display: flex;
@@ -1097,6 +1105,106 @@
 	color: var(--bastionland-ink-soft);
 	font-size: 0.85rem;
 	font-style: italic;
+}
+
+/* ---------------------------------------------------------------- */
+/* Page tabs                                                        */
+/* ---------------------------------------------------------------- */
+
+/*
+ * The rail hangs outside the window's right edge, below the sheet's header.
+ * It sits in the window's content, but `.window-content` isn't positioned, so
+ * the rail is placed against the frame and escapes the content's clipping.
+ * The frame stops clipping so the rail can show. module/sheets/tab-rail.js
+ * measures where it starts.
+ */
+.bastionland-sheet.bastionland-has-tab-rail {
+	overflow: visible;
+}
+
+.bastionland-sheet.bastionland-has-tab-rail > .window-content {
+	border-radius: 0 0 5px 5px;
+}
+
+.bastionland-sheet > .window-content > nav.bastionland-tab-rail {
+	position: absolute;
+	top: var(--bastionland-rail-top, 150px);
+	left: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	box-sizing: border-box;
+	height: auto;
+	max-height: max(96px, calc(100% - var(--bastionland-rail-top, 150px)));
+	margin: 0;
+	padding: 5px;
+	overflow: hidden auto;
+	border: 2px solid var(--bastionland-rule);
+	border-left: none;
+	border-radius: 0 8px 8px 0;
+	background: var(--bastionland-paper);
+	box-shadow: 3px 3px 8px rgb(0 0 0 / 0.3);
+	scrollbar-width: none;
+}
+
+/* Mirrored onto the left edge when the window is too near the right of the screen. */
+.bastionland-sheet.bastionland-tab-rail-left > .window-content > nav.bastionland-tab-rail {
+	right: 100%;
+	left: auto;
+	border-right: none;
+	border-left: 2px solid var(--bastionland-rule);
+	border-radius: 8px 0 0 8px;
+	box-shadow: -3px 3px 8px rgb(0 0 0 / 0.3);
+}
+
+.bastionland-sheet > .window-content > nav.bastionland-tab-rail .bastionland-tab-rail__item {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 5px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--bastionland-ink-soft);
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.12s, color 0.12s;
+}
+
+.bastionland-sheet > .window-content > nav.bastionland-tab-rail .bastionland-tab-rail__item:is(:hover, :focus-visible) {
+	background: rgb(138 125 106 / 0.22);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-sheet > .window-content > nav.bastionland-tab-rail .bastionland-tab-rail__item.active {
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
+}
+
+/* Space for the scrollbar is kept on every page, so a page that doesn't scroll doesn't shift sideways. */
+.bastionland-page--tabbed {
+	scrollbar-gutter: stable;
+}
+
+/* The Chronicle fills the page below the header, down to the bottom of the window. */
+.bastionland-page > .tab.active[data-tab="chronicle"],
+.bastionland-chronicle {
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: column;
+}
+
+.bastionland-page .bastionland-chronicle prose-mirror,
+.bastionland-page .bastionland-chronicle > .editor-content {
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: column;
+	min-height: 12rem;
 }
 
 /* ---------------------------------------------------------------- */
