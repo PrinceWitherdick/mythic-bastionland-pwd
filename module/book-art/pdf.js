@@ -113,36 +113,90 @@ function freeCanvas(canvas) {
  * @param {number} [quality]
  * @returns {Promise<Blob|null>}
  */
-function canvasToBlob(canvas, type, quality) {
+export function canvasToBlob(canvas, type, quality) {
 	return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+/**
+ * @param {HTMLCanvasElement} source
+ * @param {{x: number, y: number, size: number}} crop In pixels.
+ * @returns {HTMLCanvasElement} A square cut from the canvas.
+ */
+function cropSquare(source, { x, y, size }) {
+	const canvas = document.createElement("canvas");
+	canvas.width = size;
+	canvas.height = size;
+	canvas.getContext("2d").drawImage(source, x, y, size, size, 0, 0, size, size);
+	return canvas;
+}
+
+/**
+ * @typedef {object} ImageTarget
+ * @property {string} dir      Folder under Data.
+ * @property {string} fileName
+ * @property {{x: number, y: number, size: number}} [crop] Saves only this square of the picture.
+ */
+
+/**
+ * Decode one picture from listPageImages once, then encode and upload it to
+ * each target in turn, such as a portrait and the token cut from it. Once one
+ * fails, the targets after it are skipped and left empty.
+ * @param {object} page
+ * @param {object} image
+ * @param {ImageTarget[]} targets
+ * @param {object} options
+ * @param {{type: string}} options.format From imageFormat.
+ * @param {(pixels: Uint8ClampedArray) => Uint8ClampedArray} [options.transform] Changes the pixels first.
+ * @returns {Promise<{path?: string, reason?: string}[]>} One for each target.
+ */
+export async function saveImages(page, image, targets, { format, transform }) {
+	let canvas = null;
+	try {
+		canvas = imageToCanvas(await resolveImage(page, image), transform);
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | Couldn't read the picture for ${targets[0]?.fileName}`, error);
+	}
+
+	const results = [];
+	try {
+		for (const { dir, fileName, crop } of targets) {
+			if (results.some((result) => result.reason)) {
+				results.push({});
+				continue;
+			}
+			let piece = null;
+			let blob = null;
+			try {
+				piece = canvas && crop ? cropSquare(canvas, crop) : canvas;
+				if (piece) blob = await canvasToBlob(piece, format.type, WEBP_QUALITY);
+			} catch (error) {
+				console.error(`${SYSTEM_ID} | Couldn't read the picture for ${fileName}`, error);
+			} finally {
+				if (piece !== canvas) freeCanvas(piece);
+			}
+			if (!blob) {
+				results.push({ reason: "decode" });
+				continue;
+			}
+			const path = await uploadFile(dir, new File([blob], fileName, { type: format.type }));
+			results.push(path ? { path } : { reason: "upload" });
+		}
+	} finally {
+		freeCanvas(canvas);
+	}
+	return results;
 }
 
 /**
  * Decode, encode and upload one picture from listPageImages.
  * @param {object} page
  * @param {object} image
- * @param {object} target
- * @param {string} target.dir      Folder under Data.
- * @param {string} target.fileName
- * @param {{type: string}} target.format From imageFormat.
- * @param {(pixels: Uint8ClampedArray) => Uint8ClampedArray} [target.transform] Changes the pixels first.
+ * @param {ImageTarget & {format: {type: string}, transform?: Function}} target
  * @returns {Promise<{path?: string, reason?: string}>}
  */
-export async function saveImage(page, image, { dir, fileName, format, transform }) {
-	let canvas = null;
-	let blob = null;
-	try {
-		canvas = imageToCanvas(await resolveImage(page, image), transform);
-		if (canvas) blob = await canvasToBlob(canvas, format.type, WEBP_QUALITY);
-	} catch (error) {
-		console.error(`${SYSTEM_ID} | Couldn't read the picture for ${fileName}`, error);
-	} finally {
-		freeCanvas(canvas);
-	}
-	if (!blob) return { reason: "decode" };
-
-	const path = await uploadFile(dir, new File([blob], fileName, { type: format.type }));
-	return path ? { path } : { reason: "upload" };
+export async function saveImage(page, image, { format, transform, ...target }) {
+	const [saved] = await saveImages(page, image, [target], { format, transform });
+	return saved;
 }
 
 /**

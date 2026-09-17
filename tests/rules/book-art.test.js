@@ -21,6 +21,7 @@ import {
 	spreadPages,
 	spreads,
 	titleFromItems,
+	tokenFile,
 	withArticle
 } from "../../module/rules/book-art.js";
 
@@ -348,7 +349,16 @@ describe("names and files", () => {
 			file: "knights/1-01-lantern-warden.webp"
 		});
 		expect(artFile("seer", 6, 12, null, "png").file).toBe("seers/6-12-seer.png");
-		expect(artDirectories()).toEqual([ART_ROOT, `${ART_ROOT}/knights`, `${ART_ROOT}/seers`, `${ART_ROOT}/myths`]);
+		expect(artDirectories()).toEqual([ART_ROOT, `${ART_ROOT}/knights`, `${ART_ROOT}/seers`, `${ART_ROOT}/myths`, `${ART_ROOT}/knight-tokens`]);
+	});
+
+	it("names a Knight's token like their portrait, in its own folder", () => {
+		expect(tokenFile(1, 1, "The Lantern Warden")).toEqual({
+			dir: `${ART_ROOT}/knight-tokens`,
+			fileName: "1-01-lantern-warden.webp",
+			file: "knight-tokens/1-01-lantern-warden.webp"
+		});
+		expect(tokenFile(6, 12, null, "png").file).toBe("knight-tokens/6-12-knight.png");
 	});
 });
 
@@ -379,7 +389,8 @@ describe("buildIndex", () => {
 			castNote: null
 		});
 		expect(index.knights[0]).not.toHaveProperty("kind");
-		expect(index.knights[0]).toMatchObject({ property: null, ability: null, passion: null });
+		expect(index.knights[0]).toMatchObject({ token: null, property: null, ability: null, passion: null });
+		expect(index.myths[0]).not.toHaveProperty("token");
 		expect(index.myths[0]).not.toHaveProperty("property");
 		expect(index.cityQuest).toBeNull();
 	});

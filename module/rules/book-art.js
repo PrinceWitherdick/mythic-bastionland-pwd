@@ -18,9 +18,9 @@ export const INDEX_FILE = "index.json";
 /**
  * 2 added each Knight's Property, Ability and Passion. 3 added each Myth's
  * Omens and Cast, and each Seer's stats. 4 added the Spark Tables. 5 added
- * the City Quest's Omens and Cast.
+ * the City Quest's Omens and Cast. 6 added each Knight's square token.
  */
-export const INDEX_VERSION = 5;
+export const INDEX_VERSION = 6;
 
 /** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
 export const MYTH_TEXT_VERSION = 3;
@@ -41,6 +41,9 @@ export const WEBP_QUALITY = 0.9;
 export const KINDS = Object.freeze(["knight", "seer", "myth"]);
 
 export const KIND_FOLDERS = Object.freeze({ knight: "knights", seer: "seers", myth: "myths" });
+
+/** Where the square tokens cut from Knight portraits are saved. */
+const TOKEN_FOLDER = "knight-tokens";
 
 /** The art found on each page of a spread. */
 export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["myth"] });
@@ -483,7 +486,7 @@ export function slugify(name) {
 
 /** @returns {string[]} Every folder the importer writes to, parents first. */
 export function artDirectories() {
-	return [ART_ROOT, ...KINDS.map((kind) => `${ART_ROOT}/${KIND_FOLDERS[kind]}`)];
+	return [ART_ROOT, ...KINDS.map((kind) => `${ART_ROOT}/${KIND_FOLDERS[kind]}`), `${ART_ROOT}/${TOKEN_FOLDER}`];
 }
 
 /**
@@ -502,18 +505,32 @@ export function artFile(kind, d6, d12, name, extension = "webp") {
 }
 
 /**
+ * Where a Knight's square token is saved, named like their portrait.
+ * @param {number} d6
+ * @param {number} d12
+ * @param {string|null} name
+ * @param {string} [extension]
+ * @returns {{dir: string, fileName: string, file: string}} `file` is relative to ART_ROOT.
+ */
+export function tokenFile(d6, d12, name, extension = "webp") {
+	const { fileName } = artFile("knight", d6, d12, name, extension);
+	return { dir: `${ART_ROOT}/${TOKEN_FOLDER}`, fileName, file: `${TOKEN_FOLDER}/${fileName}` };
+}
+
+/**
  * One picture's line in the index. `path` is null when it wasn't saved. Each
  * kind also carries the text read from its page, null when unread: a Knight's
  * Property, Ability and Passion, a Seer's stats, and a Myth's Omens and Cast.
+ * A Knight's `token` is the path of the square cut from their portrait.
  * @param {object} entry
  * @param {object|null} [entry.text] From knightTextFromItems, seerTextFromItems or mythTextFromItems.
  * @returns {object}
  */
-export function indexEntry({ kind, d6, d12, page, name = null, file, path = null, width = null, height = null, text = null }) {
+export function indexEntry({ kind, d6, d12, page, name = null, file, path = null, width = null, height = null, token = null, text = null }) {
 	const entry = { kind, d6, d12, roll: rollLabel(d6, d12), page, name, file, path, width, height };
 	switch (kind) {
 		case "knight":
-			return { ...entry, property: text?.property ?? null, ability: text?.ability ?? null, passion: text?.passion ?? null };
+			return { ...entry, token, property: text?.property ?? null, ability: text?.ability ?? null, passion: text?.passion ?? null };
 		case "seer":
 			return { ...entry, stats: text?.stats ?? null, lines: text?.lines ?? null };
 		case "myth":

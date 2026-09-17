@@ -17,6 +17,7 @@ const lantern = {
 	roll: "1-01",
 	name: "The Lantern Knight",
 	path: "mythic-bastionland-art/knights/1-01-lantern-knight.webp",
+	token: "mythic-bastionland-art/knight-tokens/1-01-lantern-knight.webp",
 	property: ["Hooked lamp (d8 hefty), coat (A1)", "Grumbling mule (VIG 9, GD 2)"],
 	ability: { name: "Snuff Out", text: "Put out every flame you can see <at once>." },
 	passion: { name: "Vigil", text: "Restore SPI when you keep watch all night." }
@@ -83,7 +84,8 @@ describe("knightUpdate", () => {
 			"system.guard.max": 7,
 			"system.knightType": "Lantern",
 			"system.seer": "The Glass Seer",
-			img: lantern.path
+			img: lantern.path,
+			"prototypeToken.texture.src": lantern.token
 		});
 	});
 
@@ -91,6 +93,13 @@ describe("knightUpdate", () => {
 		const update = knightUpdate({ start: startFor("wanderer"), knight: { roll: "1-02", name: "The Bell Knight", path: null } });
 		expect(update).toMatchObject({ "system.knightType": "Bell", "system.seer": "" });
 		expect(update).not.toHaveProperty("img");
+		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
+	});
+
+	it("leaves the token to follow the portrait when an older import saved no square", () => {
+		const update = knightUpdate({ start: startFor("wanderer"), knight: { ...lantern, token: undefined } });
+		expect(update.img).toBe(lantern.path);
+		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
 	});
 
 	it("leaves out what wasn't rolled or chosen", () => {

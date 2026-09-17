@@ -22,8 +22,10 @@ import {
 	seerTextFromItems,
 	spreads,
 	titleFromItems,
+	tokenFile,
 	withArticle
 } from "../rules/book-art.js";
+import { portraitTokens, tokenCrop } from "../rules/knight-tokens.js";
 import {
 	GOODS_ACTOR_KINDS,
 	GOODS_ITEM_KINDS,
@@ -40,7 +42,7 @@ import { REALM_SHEET_MAX_PAGES, looksLikeRealmSheet } from "../rules/realm-icons
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ensureDirectories, uploadFile } from "./files.js";
-import { imageFormat, listPageImages, openPdf, saveImage } from "./pdf.js";
+import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
 import { importRealmIcons } from "./realm-import.js";
 import { showImportReport } from "./report.js";
 
@@ -228,19 +230,29 @@ async function extractArt(pdf, OPS) {
 	const indexPath = await uploadFile(ART_ROOT, new File([JSON.stringify(index, null, "\t")], INDEX_FILE, { type: "application/json" }));
 
 	progress.update({ message: t("bookArt.fillingGoods") });
-	let goodsLine;
-	if (!game.user.isGM) goodsLine = t("bookArt.report.goodsNotGM");
+	const goodsLines = [];
+	if (!game.user.isGM) goodsLines.push(t("bookArt.report.goodsNotGM"));
 	else {
 		try {
-			goodsLine = t("bookArt.report.goods", await fillGoodsPacks(goods));
+			goodsLines.push(t("bookArt.report.goods", await fillGoodsPacks(goods)));
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
-			goodsLine = t("bookArt.report.goodsFailed");
+			goodsLines.push(t("bookArt.report.goodsFailed"));
+		}
+	}
+	let tokensLine = null;
+	if (game.user.isGM) {
+		try {
+			const changed = await useSquareTokens(index);
+			if (changed.actors || changed.tokens) tokensLine = t("bookArt.report.knightTokens", changed);
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't give existing Knights their square tokens`, error);
+			tokensLine = t("bookArt.report.knightTokensFailed");
 		}
 	}
 	progress.update({ pct: 1 });
 
-	await showReport(index, indexPath, goodsLine);
+	await showReport(index, indexPath, [...goodsLines, tokensLine]);
 	return index;
 }
 
@@ -332,6 +344,31 @@ async function fillPack({ name, type, label }, folders) {
 }
 
 /**
+ * Swap each Knight's portrait for its square token wherever a token still
+ * shows the portrait: Knights' prototype tokens, and Knight tokens already
+ * on a scene. Token art chosen by hand is left alone. GMs only.
+ * @param {object} index
+ * @returns {Promise<{actors: number, tokens: number}>} How many of each changed.
+ */
+async function useSquareTokens(index) {
+	const squares = portraitTokens(index.knights);
+	if (!squares.size) return { actors: 0, tokens: 0 };
+
+	const actorUpdates = game.actors
+		.filter((actor) => actor.type === "knight" && squares.has(actor.prototypeToken.texture.src))
+		.map((actor) => ({ _id: actor.id, "prototypeToken.texture.src": squares.get(actor.prototypeToken.texture.src) }));
+	if (actorUpdates.length) await Actor.implementation.updateDocuments(actorUpdates);
+
+	const sceneUpdates = game.scenes
+		.map((scene) => [scene, scene.tokens
+			.filter((token) => token.actor?.type === "knight" && squares.has(token.texture.src))
+			.map((token) => ({ _id: token.id, "texture.src": squares.get(token.texture.src) }))])
+		.filter(([, updates]) => updates.length);
+	await Promise.all(sceneUpdates.map(([scene, updates]) => scene.updateEmbeddedDocuments("Token", updates)));
+	return { actors: actorUpdates.length, tokens: sceneUpdates.reduce((sum, [, updates]) => sum + updates.length, 0) };
+}
+
+/**
  * Save the art on one page of a spread and read its text. Every kind the page
  * should hold gets an entry, saved or not, so a roll always finds its line in
  * the index.
@@ -358,8 +395,12 @@ async function savePageArt(pdf, OPS, spread, role, number, format) {
 			for (const kind of PAGE_KINDS[role]) {
 				const image = art[kind];
 				const { dir, fileName, file } = artFile(kind, d6, d12, names[kind], format.extension);
-				const saved = image ? await saveImage(page, image, { dir, fileName, format }) : {};
+				// A Knight's token is cut from their portrait, decoded once for both.
+				const targets = [{ dir, fileName }];
+				if (image && kind === "knight") targets.push({ ...tokenFile(d6, d12, names[kind], format.extension), crop: tokenCrop(image, roll) });
+				const [saved = {}, token = {}] = image ? await saveImages(page, image, targets, { format }) : [];
 				if (saved.reason) report(kind, saved.reason);
+				if (token.reason) report(kind, token.reason);
 				const entry = indexEntry({
 					kind,
 					d6,
@@ -370,6 +411,7 @@ async function savePageArt(pdf, OPS, spread, role, number, format) {
 					path: saved.path,
 					width: image?.width,
 					height: image?.height,
+					token: token.path,
 					text: pageText[kind]
 				});
 				if (!hasPageText(kind, entry)) report(kind, TEXT_REASONS[kind]);
@@ -433,9 +475,9 @@ async function readCityQuest(pdf, problems) {
 /**
  * @param {object} index
  * @param {string|null} indexPath
- * @param {string|null} [goodsLine] What became of Arms & Goods.
+ * @param {string[]} [goodsLines] What became of Arms & Goods.
  */
-async function showReport(index, indexPath, goodsLine = null) {
+async function showReport(index, indexPath, goodsLines = []) {
 	const label = (kind) => t(`bookArt.kinds.${kind}`);
 	const listOf = (kind) => index[KIND_FOLDERS[kind]];
 	const counts = [
@@ -458,7 +500,7 @@ async function showReport(index, indexPath, goodsLine = null) {
 			total: CITY_OMEN_COUNT,
 			cast: index.cityQuest?.cast?.length ?? 0
 		}),
-		goodsLine
+		...goodsLines
 	].filter(Boolean);
 	const unnamed = KINDS.flatMap((kind) => listOf(kind)
 		.filter((entry) => entry.path && !entry.name)

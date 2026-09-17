@@ -71,8 +71,8 @@ export function takenKnights(knights, entries, exceptId = null) {
 /**
  * The actor update for the choices made. Virtues and GD are only set once
  * rolled, and each sets both its current and maximum value. The Knight's
- * portrait becomes the actor's picture, shown in the sheet's shield, but only
- * when one was imported.
+ * portrait becomes the actor's picture, and the square cut around their face
+ * becomes their token, but only when those were imported.
  * @param {object} choice
  * @param {object} choice.start              From STARTS.
  * @param {Record<string, number|null>} [choice.virtues]
@@ -97,6 +97,7 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 		update["system.knightType"] = knightTypeFromName(knight.name);
 		update["system.seer"] = seer?.name ?? "";
 		if (knight.path) update.img = knight.path;
+		if (knight.token) update["prototypeToken.texture.src"] = knight.token;
 	}
 	return update;
 }
