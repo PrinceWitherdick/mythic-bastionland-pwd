@@ -5,6 +5,9 @@
 		</figure>
 		<div class="bastionland-header__text">
 			<h1 class="bastionland-title">{{localize "bastionland.sheet.title"}}</h1>
+			<button type="button" class="bastionland-icon bastionland-knighthood-help" data-action="showKnighthood" data-tooltip="{{localize 'bastionland.knighthood.hint'}}" aria-label="{{localize 'bastionland.knighthood.button'}}">
+				<i class="fa-solid fa-circle-question" inert></i>
+			</button>
 			<p class="bastionland-line">
 				<label class="bastionland-script" for="{{rootId}}-name">{{localize "bastionland.sheet.named"}}</label>
 				<input id="{{rootId}}-name" class="bastionland-blank" type="text" name="name" value="{{actor.name}}" autocomplete="off" spellcheck="false">
@@ -52,7 +55,7 @@
 
 					{{#unless isSquire}}
 					<div class="bastionland-score">
-						<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-glory">{{localize "bastionland.glory.label"}}</label>
+						<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-glory" data-tooltip="{{localize 'bastionland.glory.hint'}}">{{localize "bastionland.glory.label"}}</label>
 						<input id="{{rootId}}-glory" class="bastionland-box" type="number" name="system.glory" value="{{system.glory}}" min="0" step="1">
 					</div>
 					{{/unless}}
@@ -71,17 +74,18 @@
 					</section>
 
 					<section class="bastionland-block">
-						<h2 class="bastionland-heading">{{localize "bastionland.rank.label"}}</h2>
+						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.rank.hint'}}">{{localize "bastionland.rank.label"}}</h2>
 						{{#if isSquire}}
 						<p class="bastionland-hint">{{localize "bastionland.squire.hint"}}</p>
 						{{else}}
 						<ul class="bastionland-choices">
 							{{#each ranks}}
-							<li class="bastionland-choice bastionland-choice--static{{#if active}} is-active{{/if}}">
+							<li class="bastionland-choice bastionland-choice--static{{#if active}} is-active{{/if}}" data-tooltip="{{worthy}}">
 								{{label}} <span class="bastionland-choice__glory">{{glory}}</span>
 							</li>
 							{{/each}}
 						</ul>
+						<p class="bastionland-hint bastionland-worthy">{{worthyOf}}</p>
 						<p class="bastionland-hint">{{nextRank}}</p>
 						{{/if}}
 					</section>
@@ -122,7 +126,7 @@
 			<div class="bastionland-column">
 				<section class="bastionland-block">
 					<header class="bastionland-block__header">
-						<h2 class="bastionland-heading">{{localize "bastionland.property.label"}}</h2>
+						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.property.hint'}}">{{localize "bastionland.property.label"}}</h2>
 						<span class="bastionland-armour" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
 							<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 						</span>
@@ -162,7 +166,7 @@
 				</section>
 
 				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.squire.label"}}</h2>
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.squire.rules'}}">{{localize "bastionland.squire.label"}}</h2>
 					{{#if squire}}
 					<div class="bastionland-steed">
 						<img class="bastionland-steed__img" src="{{squire.img}}" alt="">
@@ -210,7 +214,7 @@
 				{{!-- A Squire's sheet leaves these out unless they carry one already. --}}
 				{{#if (or abilities.length canAddAbility)}}
 				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.ability.label"}}</h2>
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.ability.hint'}}">{{localize "bastionland.ability.label"}}</h2>
 					<ul class="bastionland-items bastionland-items--prose">
 						{{#each abilities}}
 						{{> "bastionland.item-row"}}
@@ -226,7 +230,7 @@
 
 				{{#if (or passions.length canAddPassion)}}
 				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.passion.label"}}</h2>
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.passion.hint'}}">{{localize "bastionland.passion.label"}}</h2>
 					<ul class="bastionland-items bastionland-items--prose">
 						{{#each passions}}
 						{{> "bastionland.item-row"}}
@@ -257,7 +261,7 @@
 
 			{{!-- Feats and Gambits share a grid row so their headings line up. --}}
 			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.feats.label"}}</h2>
+				<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.feats.knightHint'}}">{{localize "bastionland.feats.label"}}</h2>
 				{{#if isSquire}}
 				<p class="bastionland-hint">{{localize "bastionland.squire.noFeats"}}</p>
 				{{else}}
@@ -282,7 +286,7 @@
 			</section>
 
 			<section class="bastionland-oath">
-				<h2 class="bastionland-heading">{{localize "bastionland.oath.label"}}</h2>
+				<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.oath.hint'}}">{{localize "bastionland.oath.label"}}</h2>
 				<p>{{localize "bastionland.oath.line1"}}</p>
 				<p>{{localize "bastionland.oath.line2"}}</p>
 				<p>{{localize "bastionland.oath.line3"}}</p>

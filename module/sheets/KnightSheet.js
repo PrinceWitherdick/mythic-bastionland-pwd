@@ -1,6 +1,7 @@
 import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
 import { postGambit } from "../actions/gambits.js";
+import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
@@ -36,7 +37,8 @@ export class KnightSheet extends BastionlandActorSheet {
 			openSuccessor: KnightSheet.#onOpenSuccessor,
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
-			openDomain: KnightSheet.#onOpenDomain
+			openDomain: KnightSheet.#onOpenDomain,
+			showKnighthood: KnightSheet.#onShowKnighthood
 		}
 	};
 
@@ -96,8 +98,10 @@ export class KnightSheet extends BastionlandActorSheet {
 				key: rank.key,
 				glory: rank.glory,
 				label: t(`rank.${rank.key}`),
+				worthy: t(`rank.worthy.${rank.key}`),
 				active: system.rank === rank.key
 			})),
+			worthyOf: system.rank ? t(`rank.worthy.${system.rank}`) : "",
 			nextRank: system.nextRank
 				? t("sheet.toNextRank", { needed: system.nextRank.needed, rank: t(`rank.${system.nextRank.key}`) })
 				: t("sheet.worthiest"),
@@ -292,6 +296,11 @@ export class KnightSheet extends BastionlandActorSheet {
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onShowKnighthood() {
+		return openKnighthood(this.actor);
 	}
 
 	/** @this {KnightSheet} */

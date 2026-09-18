@@ -580,3 +580,92 @@
 	background: linear-gradient(160deg, #f4f8fb, #c6d6e4);
 }
 
+/*
+ * The Knighthood page (p7) and Glory (p6), opened from the "?" on a Knight's
+ * sheet. Its headings keep the sheets' rubric rather than the dialogs' ink.
+ */
+.bastionland-dialog .bastionland-knighthood {
+	gap: 1rem;
+}
+
+.bastionland-knighthood__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.bastionland-dialog .dialog-content .bastionland-knighthood .bastionland-heading {
+	margin: 0;
+	color: var(--bastionland-rubric);
+	font-size: 1.05rem;
+}
+
+.bastionland-knighthood__lede {
+	font-style: italic;
+}
+
+.bastionland-knighthood__terms {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.15rem 0.8rem;
+	margin: 0;
+}
+
+.bastionland-knighthood__terms :is(dt, dd) {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-knighthood__terms dt {
+	font-family: var(--bastionland-font-caps);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-knighthood__terms dd {
+	margin: 0;
+}
+
+.bastionland-knighthood__list {
+	margin: 0;
+	padding-left: 1.2rem;
+}
+
+.bastionland-knighthood__table {
+	width: 100%;
+	margin: 0;
+	border: none;
+	border-collapse: collapse;
+	background: none;
+}
+
+.bastionland-knighthood__table :is(thead, tr, th, td) {
+	border: none;
+	background: none;
+	color: var(--bastionland-ink);
+	text-shadow: none;
+}
+
+.bastionland-knighthood__table :is(th, td) {
+	padding: 0.15rem 0.4rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+	background: none;
+	text-align: left;
+}
+
+.bastionland-knighthood__table th {
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-knighthood__table tr.is-active td {
+	color: var(--bastionland-rubric);
+	font-weight: bold;
+}
+
+.bastionland-knighthood__glory {
+	width: 2rem;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}

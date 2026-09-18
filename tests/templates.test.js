@@ -79,6 +79,7 @@ describe("localization", () => {
 		...VIRTUES.map((key) => `recovery.${key}`),
 		...AGES.map((key) => `age.${key}`),
 		...RANKS.map((rank) => `rank.${rank.key}`),
+		...RANKS.map((rank) => `rank.worthy.${rank.key}`),
 		...partsOf("glory.awards", GLORY_AWARDS, ["label", "intro", "hint"]),
 		...partsOf("heraldry.tinctures", TINCTURES.map(({ key }) => key), ["label", "hint"]),
 		...PAINT_TOOLS.map((tool) => `heraldry.tools.${tool}`),

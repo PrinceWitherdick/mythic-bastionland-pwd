@@ -199,6 +199,7 @@
     "glory": {
       "label": "Glory",
       "title": "Glory",
+      "hint": "Won when a Myth you played a part in is resolved, by a staked duel or joust, a tournament, a battle remembered in history, or when a new Age begins.",
       "award": "Award Glory",
       "rank": "Rank is now {rank}.",
       "squire": "A Squire can’t gain Glory.",
@@ -241,6 +242,7 @@
     "squire": {
       "label": "Squire",
       "take": "Take a Squire",
+      "rules": "An apprentice with 2d6 in each Virtue and 1GD, riding a pony (VIG 7, CLA 7, SPI 2, 2GD) and carrying a dagger (d6) and a d6 roll of extra equipment. Not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
       "empty": "Small Companies of 2 Knights or fewer may give each Knight a Squire. Take one, or drag a Squire here from the Actors tab.",
       "serves": "Squire to {name}",
       "servesNobody": "A Squire who serves no Knight. Drag this Squire onto a Knight’s sheet.",
@@ -286,7 +288,15 @@
       "gallant": "Knight Gallant",
       "tenant": "Knight Tenant",
       "dominant": "Knight Dominant",
-      "radiant": "Knight Radiant"
+      "radiant": "Knight Radiant",
+      "hint": "Rank alone doesn’t grant a Council position or rule of a Holding. It merely proves worthiness. A Knight in a position their rank is unworthy of is sure to face opposition, but if they overcome it their worthiness is proven.",
+      "worthy": {
+        "errant": "Worthy of leading a Warband",
+        "gallant": "Worthy of a seat in Council or Court",
+        "tenant": "Worthy of ruling a Holding",
+        "dominant": "Worthy of ruling a Seat of Power",
+        "radiant": "Worthy of the City Quest"
+      }
     },
     "conditions": {
       "label": "Conditions",
@@ -326,10 +336,46 @@
       "label": "Oath",
       "line1": "Seek the Myths",
       "line2": "Honour the Seers",
-      "line3": "Protect the Realm"
+      "line3": "Protect the Realm",
+      "hint": "Every Knight has sworn the Oath."
+    },
+    "knighthood": {
+      "button": "Knighthood",
+      "hint": "The Knighthood page (p7) and Glory (p6)",
+      "title": "Knighthood",
+      "readBook": "Read pp6–7",
+      "close": "Close",
+      "intro1": "You are Knights, united by a common Oath and visions of the City. You may have dreams of glory, but every Knight must accept the risk of death.",
+      "intro2": "The Seers who knighted you have deemed that you travel as a Company. While some of you may rest, roam, or die, your collective journey will be as one.",
+      "virtues": "Knights have 3 Virtues. Roll a value for each in order. The Start chosen for your Company sets the dice; if unsure, roll d12+d6.",
+      "guard": "Roll for Guard (GD), your skill at avoiding Wounds. The Start chosen for your Company sets the dice; if unsure, roll d6.",
+      "startsLabel": "Start",
+      "virtuesLabel": "Virtues",
+      "guardLabel": "GD",
+      "yourKnight": "Your Knight",
+      "chooseKnight": "Roll or choose a Knight (p26). This gives:",
+      "propertyTerm": "Items brought with you.",
+      "everyKnight": "Every Knight",
+      "kit": "Has a dagger (d6), torches, rope, dry rations, and camping gear.",
+      "feats": "Knows the three Feats (p10).",
+      "oath": "Has sworn the Oath: Seek the Myths, Honour the Seers, Protect the Realm.",
+      "squires1": "Small Companies (2 Knights or fewer) may give each Knight a Squire. They serve as apprentices, and are not yet Knights, so cannot gain Glory or perform Feats.",
+      "squires2": "2d6 for each Virtue, 1GD. They ride a pony (VIG 7, CLA 7, SPI 2, 2GD) and carry a dagger (d6).",
+      "squires3": "Roll d6 for their extra equipment: 1 Cudgel (d8 hefty), 2 Axe (d8 hefty), 3 Hatchet (d6), 4 Shortbow (d6 long), 5 Shield (d4, A1), 6 Three Javelins (d6).",
+      "squires4": "When Knighted they gain d6 in each Virtue.",
+      "glory": "All Knights seek Glory, that they might one day be deemed worthy of the City Quest.",
+      "gloryMyths": "Through Myths",
+      "gloryMythsText": "When the group feels that a Myth has been resolved, reaching a conclusion of any type, all Knights who played a part in it gain 1 Glory.",
+      "gloryOther": "By other means",
+      "gloryDuel": "In a public duel or joust, Knights may stake Glory against a willing opponent. The victor gains 1 Glory, the loser loses 1.",
+      "gloryTournament": "A tournament may grant 1 Glory to the winning Knight, provided there are significant spectators and spectacle.",
+      "gloryBattle": "If a battle is large enough to be remembered in history, all Knights on the victorious side gain 1 Glory.",
+      "gloryAge": "When the game moves to a new Age, all Knights gain 1 Glory through serving the Realm and manoeuvring in Court.",
+      "worthiness": "Worthiness"
     },
     "property": {
-      "label": "Property"
+      "label": "Property",
+      "hint": "Items brought with you. Every Knight also has a dagger (d6), torches, rope, dry rations, and camping gear."
     },
     "steed": {
       "label": "Steed",
@@ -344,13 +390,16 @@
       "hint": "Using a Remedy takes a whole Phase. The Virtue is restored before any Omens or other encounters."
     },
     "ability": {
-      "label": "Ability"
+      "label": "Ability",
+      "hint": "A special talent unique to you."
     },
     "passion": {
-      "label": "Passion"
+      "label": "Passion",
+      "hint": "A special means you have to restore your Spirit."
     },
     "feats": {
       "label": "Feats",
+      "knightHint": "Every Knight knows the three Feats.",
       "smite": {
         "name": "Smite",
         "tagline": "Release your righteous fury",

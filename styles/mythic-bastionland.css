@@ -316,7 +316,26 @@
 }
 
 .bastionland-header__text {
+	position: relative;
 	grid-area: text;
+}
+
+/* The "?" for the Knighthood page sits in the title's corner, clear of the centred title. */
+.bastionland-page .bastionland-knighthood-help {
+	position: absolute;
+	top: 0.2rem;
+	right: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: 1.1rem;
+}
+
+.bastionland-page .bastionland-knighthood-help:hover {
+	color: var(--bastionland-rubric);
+}
+
+/* The present rank's worth, in the sheet's hand, above the Glory still to win. */
+.bastionland-worthy {
+	font-style: italic;
 }
 
 .bastionland-portrait {
