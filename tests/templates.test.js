@@ -27,6 +27,7 @@ import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness
 import { SCARS } from "../module/rules/scars.js";
 import { COMPANY_PLACES, COMPANY_STARTS } from "../module/rules/company.js";
 import { HEX_PROMPT_MODES } from "../module/rules/hex-lore.js";
+import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 
 const root = join(import.meta.dirname, "..");
@@ -152,7 +153,18 @@ describe("localization", () => {
 		...WILDERNESS_RESULTS.map((result) => `realm.wilderness.results.${result}`),
 		...["none", ...FEATURE_KINDS].map((kind) => `realm.panel.kinds.${kind}`),
 		...BARRIER_STATES.map((state) => `realm.panel.barrier.${state}`),
-		...DIRECTIONS.map((direction) => `realm.directions.${direction}`)
+		...DIRECTIONS.map((direction) => `realm.directions.${direction}`),
+		...["fold", "unfold", "page", "openPage"].map((key) => `travelRules.${key}`),
+		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
+		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),
+		...TRAVEL_RULES.flatMap(({ sections }) => sections.flatMap(({ key, intro, lines = [], rows = [], note, roll }) => [
+			"text",
+			...(intro ? [] : ["heading"]),
+			...lines.flatMap((line) => [`lines.${line}.label`, `lines.${line}.text`]),
+			...rows.map((row) => `rows.${row}`),
+			...(note ? ["note"] : []),
+			...(roll ? ["roll"] : [])
+		].map((part) => `travelRules.sections.${key}.${part}`)))
 	].map((key) => `bastionland.${key}`);
 
 	const typeKeys = [

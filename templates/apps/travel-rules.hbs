@@ -1,0 +1,65 @@
+<div class="bastionland-travel-rules__sheet">
+	<header class="bastionland-travel-rules__header">
+		<h2 class="bastionland-travel-rules__title">{{title}}</h2>
+		<button type="button" class="bastionland-travel-rules__fold" data-action="fold" data-tooltip="{{foldLabel}}" aria-label="{{foldLabel}}" aria-expanded="{{#if folded}}false{{else}}true{{/if}}">
+			<i class="fa-solid {{#if folded}}fa-chevron-down{{else}}fa-chevron-up{{/if}}" inert></i>
+		</button>
+	</header>
+
+	{{#unless folded}}
+	<div class="bastionland-travel-rules__body">
+		{{#each groups}}
+		<details class="bastionland-travel-rules__group" data-group="{{key}}" {{#if open}}open{{/if}}>
+			<summary class="bastionland-travel-rules__summary">
+				<span class="bastionland-travel-rules__group-name">{{heading}}</span>
+				{{#if pageLink}}
+				<button type="button" class="bastionland-travel-rules__page" data-action="openPage" data-page="{{pageNumber}}" data-tooltip="{{pageLink}}" aria-label="{{pageLink}}">{{page}}</button>
+				{{else}}
+				<span class="bastionland-travel-rules__page">{{page}}</span>
+				{{/if}}
+			</summary>
+
+			{{#each sections}}
+			<section class="bastionland-travel-rules__section{{#if pressing}} is-pressing{{/if}}" data-section="{{key}}">
+				{{#if heading}}
+				<h3 class="bastionland-travel-rules__heading">
+					{{heading}}
+					{{#if pressing}}<span class="bastionland-travel-rules__now">{{localize "bastionland.travelRules.now"}}</span>{{/if}}
+				</h3>
+				{{/if}}
+				<p>{{text}}</p>
+				{{#if lead}}
+				<p>{{lead}}</p>
+				{{/if}}
+				{{#if lines}}
+				<dl class="bastionland-travel-rules__lines">
+					{{#each lines}}
+					<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
+					{{/each}}
+				</dl>
+				{{/if}}
+				{{#if rows}}
+				<table class="bastionland-travel-rules__table">
+					<tbody>
+						{{#each rows}}
+						<tr><th scope="row">{{band}}</th><td>{{text}}</td></tr>
+						{{/each}}
+					</tbody>
+				</table>
+				{{/if}}
+				{{#if note}}
+				<p>{{note}}</p>
+				{{/if}}
+				{{#if roll}}
+				<button type="button" class="bastionland-travel-rules__roll" data-action="roll" data-roll="{{roll.key}}">
+					<i class="fa-solid fa-dice-d6" inert></i> {{roll.label}}
+				</button>
+				{{/if}}
+			</section>
+			{{/each}}
+		</details>
+		{{/each}}
+		<p class="bastionland-travel-rules__credit">{{credit}}</p>
+	</div>
+	{{/unless}}
+</div>

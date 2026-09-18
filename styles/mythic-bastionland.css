@@ -2009,6 +2009,259 @@
 	text-overflow: ellipsis;
 }
 
+/*
+ * Travel and Exploration against the edges of a Realm Scene's map, as the
+ * Blank Realm sheet prints them beside its map. Where on screen, and how
+ * tall it may grow, is set as the canvas pans; how wide they are is one knob,
+ * read back when they are placed. They sit over the canvas, under
+ * the Token HUD (which comes after it on the page), the sidebar and windows,
+ * and grows with the interface scale.
+ */
+.bastionland-travel-rules {
+	position: fixed;
+	z-index: calc(var(--z-index-canvas, 0) + 1);
+	display: flex;
+	width: var(--bastionland-travel-rules-width, 380px);
+	max-height: var(--travel-rules-max-height, 60vh);
+	pointer-events: none;
+	transform: scale(var(--ui-scale, 1));
+	transform-origin: top left;
+}
+
+.bastionland-travel-rules--from-foot {
+	transform-origin: bottom left;
+}
+
+.bastionland-travel-rules button {
+	--button-background-color: var(--bastionland-paper-deep);
+	--button-border-color: var(--bastionland-ink);
+	--button-text-color: var(--bastionland-ink);
+	--button-hover-background-color: var(--bastionland-ink);
+	--button-hover-border-color: var(--bastionland-ink);
+	--button-hover-text-color: var(--bastionland-paper);
+	--button-focus-outline-color: var(--bastionland-verdigris);
+}
+
+.bastionland-travel-rules__sheet {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	min-height: 0;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 6px;
+	background:
+		radial-gradient(ellipse at top left, rgb(255 255 255 / 0.35), transparent 60%),
+		var(--bastionland-paper);
+	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	color: var(--bastionland-ink);
+	color-scheme: light;
+	font-family: var(--bastionland-font-body);
+	font-size: 13px;
+	line-height: 1.3;
+	pointer-events: all;
+}
+
+.bastionland-travel-rules__header {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.2rem 0.4rem 0.2rem 0.7rem;
+}
+
+.bastionland-travel-rules__title {
+	flex: 1;
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.35rem;
+	font-weight: normal;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__fold {
+	flex: none;
+	width: 1.6rem;
+	height: 1.6rem;
+	min-height: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.8rem;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__fold:hover {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-travel-rules__body {
+	flex: 1;
+	min-height: 0;
+	padding: 0 0.7rem 0.5rem;
+	border-top: 1px solid var(--bastionland-rule);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.bastionland-travel-rules__group + .bastionland-travel-rules__group {
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-travel-rules__summary {
+	display: flex;
+	align-items: baseline;
+	gap: 0.35rem;
+	padding: 0.35rem 0 0.15rem;
+	cursor: pointer;
+	list-style: none;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+}
+
+.bastionland-travel-rules__summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-travel-rules__summary::before {
+	content: "\25B8";
+	width: 0.7rem;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.8rem;
+}
+
+.bastionland-travel-rules__group[open] > .bastionland-travel-rules__summary::before {
+	content: "\25BE";
+}
+
+.bastionland-travel-rules__group-name {
+	flex: 1;
+}
+
+.bastionland-travel-rules__page {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: 0.8rem;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__page {
+	width: auto;
+	min-height: 0;
+	height: auto;
+	padding: 0 0.2rem;
+	border: none;
+	background: none;
+	text-decoration: underline dotted;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__page:hover {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travel-rules__section {
+	padding: 0.1rem 0 0.25rem;
+}
+
+.bastionland-travel-rules__section.is-pressing {
+	margin-inline: -0.35rem;
+	padding-inline: 0.3rem 0.35rem;
+	border-left: 3px solid var(--bastionland-blood);
+	background: rgb(139 30 30 / 0.07);
+}
+
+.bastionland-travel-rules__heading {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	margin: 0.3rem 0 0.05rem;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	font-weight: normal;
+	letter-spacing: 0.02em;
+}
+
+.bastionland-travel-rules__now {
+	padding: 0 0.35rem;
+	border-radius: 999px;
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
+	font-family: var(--bastionland-font-body);
+	font-size: 0.75rem;
+}
+
+.bastionland-travel-rules__section p {
+	margin: 0.1rem 0;
+}
+
+.bastionland-travel-rules__lines {
+	margin: 0.1rem 0 0.15rem 0.6rem;
+}
+
+/* Foundry's dark theme lightens description lists, but these sit on parchment. */
+.bastionland-travel-rules__lines :is(dt, dd) {
+	display: inline;
+	margin: 0;
+	color: var(--bastionland-ink);
+	font-size: inherit;
+	text-shadow: none;
+}
+
+.bastionland-travel-rules__lines dt {
+	font-weight: bold;
+}
+
+.bastionland-travel-rules__lines dt::after {
+	content: ":";
+}
+
+.bastionland-travel-rules__table {
+	width: 100%;
+	margin: 0.15rem 0;
+	border: none;
+	border-collapse: collapse;
+	background: none;
+}
+
+.bastionland-travel-rules__table tr {
+	border-top: 1px dotted var(--bastionland-rule);
+	background: none;
+}
+
+.bastionland-travel-rules__table tr:first-child {
+	border-top: none;
+}
+
+.bastionland-travel-rules__table :is(th, td) {
+	padding: 0.1rem 0.2rem;
+	color: var(--bastionland-ink);
+	text-align: left;
+	vertical-align: top;
+}
+
+.bastionland-travel-rules__table th {
+	width: 2.3rem;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__roll {
+	width: 100%;
+	min-height: 0;
+	height: auto;
+	margin-top: 0.2rem;
+	padding: 0.15rem 0.4rem;
+	font-family: var(--bastionland-font-body);
+	font-size: 0.85rem;
+}
+
+.bastionland-travel-rules__credit {
+	margin: 0.4rem 0 0;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.75rem;
+	font-style: italic;
+}
+
 /* The Realm's Hex panel and terrain palette. */
 .bastionland-realm-panel {
 	display: flex;

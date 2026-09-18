@@ -1644,6 +1644,152 @@
         "appliedDefault": "New Realms will start with this look."
       }
     },
+    "travelRules": {
+      "titles": {
+        "left": "Travel",
+        "right": "Rest and Exploration"
+      },
+      "fold": "Fold the rules away",
+      "unfold": "Show the rules",
+      "page": "p{page}",
+      "openPage": "Open the rulebook at page {page}",
+      "now": "Now",
+      "credits": {
+        "left": "Travel, as printed on p18 of Mythic Bastionland by Chris McDowall, Bastionland Press, and on the free Blank Realm sheet.",
+        "right": "Rest and Hardship and Exploration, as printed on p18-19 of Mythic Bastionland by Chris McDowall, Bastionland Press. The worked example of the Goblin is left out."
+      },
+      "groups": {
+        "travel": "On the Road",
+        "rest": "Rest and Hardship",
+        "tables": "Other Travelling Tables",
+        "exploration": "Exploration",
+        "folklore": "Gathering Folklore"
+      },
+      "sections": {
+        "methods": {
+          "text": "Travelling consumes a whole Phase of the day and uses one of 3 methods:",
+          "lines": {
+            "trek": { "label": "Trek", "text": "1 Hex on foot or steed." },
+            "gallop": { "label": "Gallop", "text": "2 Hexes on a non-Exhausted steed. The steed loses d6 VIG." },
+            "cruise": { "label": "Cruise", "text": "3 Hexes by boat, or by steed on a rarely-found proper road." }
+          }
+        },
+        "wildernessRoll": {
+          "heading": "Wilderness Roll",
+          "text": "When ending a Phase in Wilderness, roll:",
+          "rows": {
+            "randomOmen": "Encounter the next Omen from a random Myth in this Realm.",
+            "nearestOmen": "Encounter the next Omen from the nearest Myth.",
+            "landmark": "Encounter the Hex’s Landmark. Otherwise all clear."
+          },
+          "roll": "Wilderness Roll for the Company"
+        },
+        "mythHexes": {
+          "heading": "Myth Hexes",
+          "text": "Ending a Phase in the Hex containing a Myth always reveals its next Omen without making a Wilderness Roll. When possible, the Knights also get the drop on the Omen."
+        },
+        "omens": {
+          "heading": "Omens",
+          "text": "Each Myth has 6 Omens, listed in the order in which they are encountered. The first encounter with a specific Myth is always Omen 1, the second Omen 2 etc.",
+          "note": "Remember primacy of action (p16). If the players want to hunt for the Wyvern’s nest they don’t have to wait for that Omen to appear if they take action themselves."
+        },
+        "barriers": {
+          "heading": "Barriers",
+          "text": "Travel through a Barrier is not normally possible, though locals might know a way. Attempting to travel through a Barrier wastes that Phase of the day, but still causes a Wilderness Roll."
+        },
+        "hospitality": {
+          "heading": "Hospitality",
+          "text": "When sleeping indoors, do not make a Wilderness Roll. Manners dictate that hospitality be granted to travelling Knights. Longer stays warrant a favour in return."
+        },
+        "camping": {
+          "heading": "Camping",
+          "text": "When sleeping outdoors make a Wilderness Roll as normal, ignoring Landmarks. Hostile Omens prevent proper sleep, while others may not occur at all if they are improbable as nighttime activity."
+        },
+        "supplies": {
+          "heading": "Supplies",
+          "text": "Knights gather food, water, and firewood as they travel, so these are not tracked. In situations where essential needs are deprived the Company each lose d6 VIG each morning."
+        },
+        "night": {
+          "heading": "Night",
+          "text": "Travelling or exploring at night causes the Company to lose d6 SPI each. If they lack a guide and light they are also travelling blind."
+        },
+        "sleep": {
+          "heading": "Sleep",
+          "text": "Each morning, all who did not get proper sleep the previous day lose d6 CLA."
+        },
+        "winter": {
+          "heading": "Winter",
+          "text": "Anybody camping or travelling at night in Winter loses d6 VIG. Most Realms also risk dire weather during Winter."
+        },
+        "blind": {
+          "heading": "Travelling Blind",
+          "text": "Travellers who find themselves roaming without a proper sense of direction, or shrouded by darkness or mist, must roll when they try to move to a new Hex.",
+          "rows": {
+            "circleBack": "Circle back to where you started.",
+            "drift": "Drift a Hex to the Left (2) or Right (3).",
+            "asPlanned": "Progress as planned."
+          },
+          "roll": "Roll Travelling Blind"
+        },
+        "weather": {
+          "heading": "Dire Weather",
+          "text": "When travelling in lands at the mercy of dire weather, roll at the start of each Phase.",
+          "rows": {
+            "dire": "Dire weather. You can’t leave the Hex and can’t get proper sleep.",
+            "looming": "Looming threat. If this is rolled a second consecutive time, treat as dire weather.",
+            "fine": "Fine weather for travel."
+          },
+          "roll": "Roll Dire Weather"
+        },
+        "mood": {
+          "heading": "Local Mood",
+          "text": "When arriving in a Holding, roll to gauge the local mood.",
+          "rows": {
+            "woe": "Occupied by a looming or recent woe.",
+            "decline": "There is a sense of things in decline.",
+            "fine": "A fine mood and all seems well enough."
+          },
+          "roll": "Roll Local Mood"
+        },
+        "land": {
+          "heading": "The Lay of the Land",
+          "text": "Each Hex is large and diverse, a land within the land. Some may spend their whole lives within one. A forest Hex might have cliffs, streams, clearings, and caves.",
+          "note": "Use Spark Tables (p22) and the prompts at the base of each Knight and Myth spread to help fill the blanks in your Hexes."
+        },
+        "actions": {
+          "heading": "Exploration Actions",
+          "text": "When ruling exploration actions, follow the standard Action Procedure (p16). In particular, consider whether the action will take a whole Phase of the day to carry out.",
+          "note": "As with other Actions, the players should know the risks before they commit to it."
+        },
+        "saves": {
+          "heading": "Saves",
+          "text": "If the Action calls for a Save the Company decides who rolls, using their Virtue. Even if they fail the Save, the goal might still be achievable, but now faces an obstacle, a hostile encounter, or an additional cost. While the cause and consequence of failure can be personal, they also represent the whims of nature, bad weather, shifting land.",
+          "lead": "If it is unclear which Virtue to use, consider the main activity involved in the risky part:",
+          "lines": {
+            "vig": { "label": "Vigour", "text": "Strength or physical stamina." },
+            "cla": { "label": "Clarity", "text": "Senses or mental quickness." },
+            "spi": { "label": "Spirit", "text": "Social or emotional influence." }
+          }
+        },
+        "searching": {
+          "heading": "Searching",
+          "text": "It takes a whole Phase to carry out a surface level sweep of an entire Hex, thoroughly search for something known to exist there, or find a vantage point."
+        },
+        "vision": {
+          "heading": "Vision",
+          "text": "From a vantage point it’s possible to get an overview of the current Hex and a general sense of what lies in neighbouring hexes, but not specific details."
+        },
+        "folklore": {
+          "text": "Everybody knows something about Myths. How much depends on who they are.",
+          "lines": {
+            "vassals": { "label": "Vassals", "text": "know about their nearest Myth, and its general direction. If it is adjacent to their home then they know its precise location. They know Landmarks in their home and neighbouring Hexes." },
+            "roamers": { "label": "Knights and Vagabonds", "text": "have roamed enough to know about a random Myth of the Realm and its rough direction. They also know of the nearest Landmark." },
+            "everyone": { "label": "All of the above", "text": "know rumours that warn of dangers, but not how to avoid or undo them." },
+            "seers": { "label": "Seers", "text": "know the rules of all Myths, their secrets, and their locations. They know their weaknesses, and cures to their maladies. They know all Landmarks in the Realm. Such vast knowledge isn’t given freely." }
+          }
+        }
+      }
+    },
     "settings": {
       "restoreOpenSheets": {
         "name": "Reopen Sheets on Reload",

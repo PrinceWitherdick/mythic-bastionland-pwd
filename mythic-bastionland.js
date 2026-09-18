@@ -13,6 +13,7 @@ import { installShieldClips } from "./module/apps/shield-clips.js";
 import { openSitesPanel } from "./module/apps/SitesPanel.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
+import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
@@ -174,6 +175,9 @@ Hooks.once("init", () => {
 	// What the GM has written about each hex of a Realm, and how a hex with
 	// nothing written down is offered to them.
 	registerHexLoreSettings();
+
+	// Travel and Exploration beside Realm Scenes, folded or open as each browser left it.
+	registerTravelRulesSetting();
 
 	// Macros reach the system through here, such as Import Book Art.
 	game.system.api = Object.freeze({

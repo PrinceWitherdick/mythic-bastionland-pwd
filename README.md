@@ -1,6 +1,6 @@
 # Mythic Bastionland for Foundry VTT
 
-An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet, and none of its art beyond the map legend of the free Blank Realm sheet.
+An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet and the Travel rules printed on the free Blank Realm sheet, and none of its art beyond the map legend of the free Blank Realm sheet.
 
 Requires Foundry VTT v14.
 
@@ -118,6 +118,14 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - A hex keeps its last 24 rolls. Rerolling the Realm leaves what you wrote alone, so notes about hexes that have changed are yours to clear.
 - **Barriers:** a Token can't move across a Barrier, even one nobody has found yet, or off the edge of the map. Moving around one a hex at a time works. A GM with Foundry's Unconstrained Movement turned on passes through.
 - **Hex readout:** on a Realm Scene everybody sees the hex under the pointer named at the top of the screen, with its terrain and whatever they can see in it.
+- **Travel and Exploration:** while a Realm Scene is on the canvas, everybody has the rules for getting about it on both sides of the map, split so that neither side is too tall. The text is the rulebook's own, as printed on p18-19 and on the free Blank Realm sheet; only the worked example of the Goblin is left out.
+  - **Travel**, on the left, is about moving across the map: the three ways to travel, the Wilderness Roll, Myth Hexes, Omens, Barriers, and the Travelling Blind, Dire Weather and Local Mood tables.
+  - **Rest and Exploration**, on the right, is about stopping and looking around: Hospitality, Camping, Supplies, Night, Sleep and Winter, Exploration (the lay of the land, exploration actions, Saves, Searching and Vision), and Gathering Folklore.
+  - They move with the map as you pan and zoom, but keep their own size so they stay readable. When the map runs past the top or bottom of the screen, they stay on screen beside it. The sidebar, scene controls and windows sit above them, so pan or zoom out if something covers them.
+  - Each group opens and closes, and each side's chevron folds that side down to its title. Each browser remembers how it was left.
+  - At night, Night stands out; each morning, Sleep and Supplies; and all Winter, Winter and Dire Weather.
+  - GMs get a button under each table: the Wilderness Roll for the Company, and the Travelling Blind, Dire Weather and Local Mood rolls.
+  - The page numbers open the rulebook at that page for anyone the rulebook is offered to.
 - **Realm tools:** GMs get a Realm group in the scene controls on a Realm Scene.
   - **Inspect hexes:** click a hex to open its panel. It holds the hex's terrain and whatever is in the hex: a Holding's style, name and Seat of Power; a Myth's number, roll and Omens seen; a Landmark's type, name and, for a Sanctum, its Seer. It also has a button to reveal a hidden thing, the hex's six Barriers, and a Wilderness Roll made there.
   - **Paint terrain:** pick a terrain in the palette, then click or drag across hexes. Alt-click a hex to pick up its terrain.
@@ -130,7 +138,7 @@ The map looks like the Realm Sheets: the terrain, Holdings and Landmarks from th
 
 ### Art and text from your own book
 
-Beyond the Blank Realm's legend, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
+Beyond the Blank Realm's legend and Travel rules, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
 2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, and the City Quest's Omens and Cast.
@@ -186,5 +194,6 @@ The system id lives only in `module/system-id.js`. Lint rejects the id spelled o
 - Fonts: [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English) by Igino Marini, [UnifrakturCook](https://fonts.google.com/specimen/UnifrakturCook), and the digits from [EB Garamond](https://fonts.google.com/specimen/EB+Garamond), all under the SIL Open Font License (see `assets/fonts/licenses`).
 - Heraldic charges: adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto, using only drawings after public-domain books. They are shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings only. Each drawing's entry, source, original artist and adapter are listed in `assets/heraldry/charges/CREDITS.md`, and each file carries its own credit.
 - Realm terrain, Holdings and Landmarks: traced from the map legend of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. Each picture carries the credit.
+- Travel rules beside Realm Scenes: the Travel text of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. The panel credits it too.
 - Realm icons from [game-icons.net](https://game-icons.net), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/): the Seat of Power's [Crown](https://game-icons.net/1x1/lorc/crown.html) by Lorc, and the drawn skins' [Castle](https://game-icons.net/1x1/delapouite/castle.html) and [Rempart](https://game-icons.net/1x1/delapouite/rempart.html) by Delapouite and [White Tower](https://game-icons.net/1x1/lorc/white-tower.html) by Lorc. Each picture carries the credit.
 - Mythic Bastionland © Chris McDowall, Bastionland Press.

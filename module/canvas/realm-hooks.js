@@ -1,6 +1,7 @@
 import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
+import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -87,6 +88,21 @@ export function registerRealmHooks() {
 	// The terrain brush shows the pictures the Realm is drawn with.
 	Hooks.on(REALM_LOOK_HOOK, (sceneId) => sceneId && refreshRealmPanel(sceneId));
 
-	Hooks.on("canvasReady", () => attachHexReadout());
-	Hooks.on("canvasTearDown", () => detachHexReadout());
+	// The hex readout, and Travel and Exploration beside the map. The rules stay
+	// up from one Realm Scene to the next: `canvasTearDown` is told only which
+	// canvas is going, not what follows it, so nothing is taken down until the
+	// canvas has settled on the Scene that follows. Foundry settles on that Scene,
+	// or on none at all, before this turn of the event loop is out, and a canvas
+	// with no Scene never becomes ready, so waiting here rather than leaving it to
+	// `canvasReady` is what clears the rules away with the last Scene.
+	Hooks.on("canvasReady", () => {
+		attachHexReadout();
+		showTravelRules();
+	});
+	Hooks.on("canvasTearDown", () => {
+		detachHexReadout();
+		setTimeout(() => {
+			if (!isRealmScene(canvas?.scene)) closeTravelRules();
+		}, 0);
+	});
 }
