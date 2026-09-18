@@ -18,9 +18,10 @@ export const INDEX_FILE = "index.json";
 /**
  * 2 added each Knight's Property, Ability and Passion. 3 added each Myth's
  * Omens and Cast, and each Seer's stats. 4 added the Spark Tables. 5 added
- * the City Quest's Omens and Cast. 6 added each Knight's square token.
+ * the City Quest's Omens and Cast. 6 added each Knight's square token. 7
+ * added the prompts along the foot of each Knight's page to their Seer.
  */
-export const INDEX_VERSION = 6;
+export const INDEX_VERSION = 7;
 
 /** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
 export const MYTH_TEXT_VERSION = 3;
@@ -334,11 +335,37 @@ const PROMPTS = /^(?:dwelling|person)\s*:/i;
  */
 const promptsTop = (lines) => Math.max(-Infinity, ...lines.filter((line) => PROMPTS.test(line.text)).map((line) => line.y));
 
+/** Each prompt opens with its label, such as "Person:". */
+const PROMPT_LABEL = /^([A-Z][A-Za-z' ]*?)\s*:\s*(.*)$/;
+
 /**
- * A Seer's stats and traits, printed under their name on their Knight's page.
- * A few give only GD, or no stats at all.
+ * The Referee prompts along the foot of a page, such as "Person: Glazier ~
+ * Name: Oswy", which wrap over two lines.
  * @param {object[]} items From `page.getTextContent()`.
- * @returns {{stats: import("./stat-blocks.js").Stats|null, lines: string[]}|null}
+ * @returns {{label: string, value: string}[]|null} In the order printed, or null without any.
+ */
+export function promptsFromItems(items) {
+	const lines = textLines(items);
+	const top = promptsTop(lines);
+	if (top === -Infinity) return null;
+	const { size } = lines.find((line) => line.y === top);
+	let text = "";
+	for (const line of lines.filter((each) => each.y <= top && Math.abs(each.size - size) <= 0.5)) {
+		const next = line.text.trim();
+		// A line that opens a new prompt carries on the list; any other continues the last value.
+		text = !text ? next : PROMPT_LABEL.test(next) || text.endsWith("~") ? `${text.replace(/\s*~$/, "")} ~ ${next}` : joinLines(text, next);
+	}
+	const prompts = text.split(/\s*~\s*/).map((part) => PROMPT_LABEL.exec(part.trim())).filter(Boolean)
+		.map(([, label, value]) => ({ label: label.trim(), value: value.trim() }))
+		.filter(({ value }) => value);
+	return prompts.length ? prompts : null;
+}
+
+/**
+ * A Seer's stats and traits, printed under their name on their Knight's page,
+ * and the prompts along the foot of that page. A few give only GD, or no stats at all.
+ * @param {object[]} items From `page.getTextContent()`.
+ * @returns {{stats: import("./stat-blocks.js").Stats|null, lines: string[], prompts: {label: string, value: string}[]|null}|null}
  *   `lines` holds whatever the stats don't, one written line each. Null without
  *   the Seer's heading, or with nothing under it.
  */
@@ -352,7 +379,7 @@ export function seerTextFromItems(items) {
 
 	const parsed = parseStatLine(body[0]?.text);
 	const printed = parsed ? [parsed.rest, ...body.slice(1).map((line) => line.text)] : body.map((line) => line.text);
-	const result = { stats: parsed?.stats ?? null, lines: logicalLines(printed.filter(Boolean)) };
+	const result = { stats: parsed?.stats ?? null, lines: logicalLines(printed.filter(Boolean)), prompts: promptsFromItems(items) };
 	return result.stats || result.lines.length ? result : null;
 }
 
@@ -538,7 +565,7 @@ export function indexEntry({ kind, d6, d12, page, name = null, file, path = null
 		case "knight":
 			return { ...entry, token, property: text?.property ?? null, ability: text?.ability ?? null, passion: text?.passion ?? null };
 		case "seer":
-			return { ...entry, stats: text?.stats ?? null, lines: text?.lines ?? null };
+			return { ...entry, stats: text?.stats ?? null, lines: text?.lines ?? null, prompts: text?.prompts ?? null };
 		case "myth":
 			return { ...entry, omens: text?.omens ?? null, cast: text?.cast ?? null, castNote: text?.castNote ?? null };
 		default:

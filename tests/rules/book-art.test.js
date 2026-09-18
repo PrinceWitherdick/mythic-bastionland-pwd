@@ -17,6 +17,7 @@ import {
 	rgbaPixels,
 	rollLabel,
 	seerNameFromItems,
+	promptsFromItems,
 	seerTextFromItems,
 	slugify,
 	spreadPages,
@@ -151,6 +152,33 @@ describe("seerNameFromItems", () => {
 	});
 });
 
+describe("promptsFromItems", () => {
+	it("reads each prompt along the foot of the page, over both lines", () => {
+		const items = [
+			item("Wants a steady hand.", 11, 89, 123, 100),
+			item("Person: Glazier ~ Name: Oswy ~ Characteristic: Soft", 11, 94, 75, 300),
+			item("spoken ~", 11, 94, 64, 40),
+			item("Object: Blue kettle ~ Beast: Lame heron", 11, 108, 53, 250)
+		];
+		expect(promptsFromItems(items)).toEqual([
+			{ label: "Person", value: "Glazier" },
+			{ label: "Name", value: "Oswy" },
+			{ label: "Characteristic", value: "Soft spoken" },
+			{ label: "Object", value: "Blue kettle" },
+			{ label: "Beast", value: "Lame heron" }
+		]);
+	});
+
+	it("starts a new prompt at a line opening with a label, even without a ~", () => {
+		const items = [item("Person: Glazier", 11, 94, 75, 100), item("Object: Blue kettle", 11, 94, 64, 100)];
+		expect(promptsFromItems(items).map((prompt) => prompt.label)).toEqual(["Person", "Object"]);
+	});
+
+	it("is null on a page without them", () => {
+		expect(promptsFromItems([item("Wants a steady hand.", 11, 89, 123, 100)])).toBeNull();
+	});
+});
+
 describe("seerTextFromItems", () => {
 	const anchor = item("KNIGHTED BY…", 11, 71, 196);
 	const name = item("The Glass Seer", 14, 71, 177);
@@ -176,7 +204,8 @@ describe("seerTextFromItems", () => {
 		];
 		expect(seerTextFromItems(items)).toEqual({
 			stats: { vig: 7, cla: 5, spi: 11, guard: 2 },
-			lines: ["Rings like a struck bell when touched.", "Wants a steady hand."]
+			lines: ["Rings like a struck bell when touched.", "Wants a steady hand."],
+			prompts: [{ label: "Person", value: "Glazier" }]
 		});
 	});
 
@@ -184,11 +213,12 @@ describe("seerTextFromItems", () => {
 		const kiln = [anchor, item("The Kiln Seer", 14, 71, 177), item("4GD, A3, treat as a Structure", 11, 71, 166), item("• Always warm.", 11, 71, 147)];
 		expect(seerTextFromItems(kiln)).toEqual({
 			stats: { vig: null, cla: null, spi: null, guard: 4 },
-			lines: ["A3, treat as a Structure", "Always warm."]
+			lines: ["A3, treat as a Structure", "Always warm."],
+			prompts: null
 		});
 
 		const hollow = [anchor, item("The Hollow Seer", 14, 71, 177), item("Is not there.", 11, 71, 166)];
-		expect(seerTextFromItems(hollow)).toEqual({ stats: null, lines: ["Is not there."] });
+		expect(seerTextFromItems(hollow)).toEqual({ stats: null, lines: ["Is not there."], prompts: null });
 	});
 
 	it("gives up without the label", () => {

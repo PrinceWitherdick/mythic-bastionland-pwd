@@ -49,17 +49,19 @@ export function knightTypeFromName(name) {
 
 /**
  * What the book says of a Seer, for the Seer page of their Knight's sheet:
- * their stat line, then each trait as a bullet.
- * @param {{stats?: object|null, lines?: string[]|null}|null} seer From the art index.
+ * their stat line, each trait as a bullet, then the prompts along the foot of the page.
+ * @param {{stats?: object|null, lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
  * @param {Record<string, string>} [labels] For formatStatLine.
  * @returns {string} HTML, or "" when Import PDF couldn't read their text.
  */
 export function seerInfo(seer, labels) {
 	const stats = formatStatLine(seer?.stats ?? null, labels);
 	const lines = (seer?.lines ?? []).filter(Boolean);
+	const prompts = (seer?.prompts ?? []).filter((prompt) => prompt?.label && prompt?.value);
 	return [
 		stats ? `<p><strong>${escapeHTML(stats)}</strong></p>` : "",
-		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : ""
+		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : "",
+		prompts.length ? `<p>${prompts.map(({ label, value }) => `<strong>${escapeHTML(label)}</strong>: ${escapeHTML(value)}`).join(" ~ ")}</p>` : ""
 	].join("");
 }
 
@@ -96,14 +98,16 @@ export function seerAutoFill(index, knight, labels) {
 	const seer = named ? seerForKnight(index, { seer: named }) : seerForKnight(index, { knightType: knight.knightType });
 	if (!seer) return {};
 	const seers = index?.seers ?? [];
-	const fromBook = (value, of) => !value || seers.some((entry) => of(entry) === value);
+	const fromBook = (value, of) => !value || seers.some((entry) => of(entry).includes(value));
 	const update = {};
 	if (!named && seer.name) update["system.seer"] = seer.name;
-	if (seer.path && seer.path !== knight.seerImg && fromBook(knight.seerImg, (entry) => entry.path)) {
+	if (seer.path && seer.path !== knight.seerImg && fromBook(knight.seerImg, (entry) => [entry.path])) {
 		update["system.seerImg"] = seer.path;
 	}
 	const info = seerInfo(seer, labels);
-	if (info && info !== knight.seerInfo && fromBook(knight.seerInfo, (entry) => seerInfo(entry, labels))) {
+	// Imports before the prompts were read gave the same text without them.
+	const asBookGave = (entry) => [seerInfo(entry, labels), seerInfo({ ...entry, prompts: null }, labels)];
+	if (info && info !== knight.seerInfo && fromBook(knight.seerInfo, asBookGave)) {
 		update["system.seerInfo"] = info;
 	}
 	return update;

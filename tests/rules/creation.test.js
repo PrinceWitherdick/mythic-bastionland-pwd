@@ -135,6 +135,11 @@ describe("seerInfo", () => {
 		expect(seerInfo({ stats: null, lines: ["Speaks only in riddles."] })).toBe("<ul><li>Speaks only in riddles.</li></ul>");
 	});
 
+	it("ends with the prompts along the foot of the page, as the book sets them", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }, { label: "Theme", value: "<Glass>" }];
+		expect(seerInfo({ ...glassSeer, prompts })).toBe(`${glassInfo}<p><strong>Person</strong>: Glazier ~ <strong>Theme</strong>: &lt;Glass&gt;</p>`);
+	});
+
 	it("is blank when the text wasn't read", () => {
 		expect(seerInfo(null)).toBe("");
 		expect(seerInfo({ stats: null, lines: null })).toBe("");
@@ -208,6 +213,14 @@ describe("seerAutoFill", () => {
 		expect(seerAutoFill(index, { seer: "The Hook Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
 			"system.seerImg": hookSeer.path,
 			"system.seerInfo": "<ul><li>Fishes for names.</li></ul>"
+		});
+	});
+
+	it("adds the prompts to what an earlier import filled in", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }];
+		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
+			"system.seerInfo": `${glassInfo}<p><strong>Person</strong>: Glazier</p>`
 		});
 	});
 
