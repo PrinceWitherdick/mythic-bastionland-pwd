@@ -3,7 +3,11 @@
  * apprentice who is not yet a Knight, so cannot gain Glory or perform Feats.
  * Pure, so the rolls and what they make can be tested without Foundry.
  */
+import { SYSTEM_PATH } from "../system-id.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
+
+/** A new Squire's portrait: somebody on one knee, waiting to be made a Knight. */
+export const SQUIRE_IMAGE = `${SYSTEM_PATH}/assets/icons/squire.svg`;
 
 /** Companies of this many Knights or fewer may give each Knight a Squire. */
 const SQUIRE_COMPANY_LIMIT = 2;
@@ -89,6 +93,21 @@ export function ponySystem() {
 		virtues: Object.fromEntries(VIRTUES.map((key) => [key, track(SQUIRE_PONY[key])])),
 		guard: track(SQUIRE_PONY.guard)
 	};
+}
+
+/**
+ * Kneeling doesn't suit a Knight, so a Squire Knighted while still wearing
+ * their Squire's portrait goes back to Foundry's blank one until their player
+ * picks another. A portrait or Token picture chosen since is kept.
+ * @param {{img: string, prototypeToken: {texture: {src: string}}}} squire
+ * @param {string} blank Foundry's default portrait.
+ * @returns {object} Update data, empty when there's nothing to change.
+ */
+export function knightedLooks(squire, blank) {
+	const update = {};
+	if (squire.img === SQUIRE_IMAGE) update.img = blank;
+	if (squire.prototypeToken?.texture?.src === SQUIRE_IMAGE) update["prototypeToken.texture.src"] = blank;
+	return update;
 }
 
 /**

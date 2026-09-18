@@ -4,7 +4,9 @@ import {
 	KNIGHTING_GAIN_ROLL,
 	SQUIRE_EQUIPMENT,
 	SQUIRE_GUARD,
+	SQUIRE_IMAGE,
 	SQUIRE_VIRTUE_ROLL,
+	knightedLooks,
 	knightedVirtues,
 	mayTakeSquires,
 	ponySystem,
@@ -71,6 +73,7 @@ export async function takeSquire(knight) {
 		...shared,
 		name,
 		type: "knight",
+		img: SQUIRE_IMAGE,
 		system: { ...squireSystem(virtues), serves: knight.uuid, steed: pony?.uuid ?? "" },
 		items: squireItems(equipmentRoll.total, names)
 	});
@@ -118,7 +121,7 @@ export async function knightSquire(squire) {
 	const virtues = knightedVirtues(squire.system.virtues, gains);
 
 	const master = squire.system.serves ? fromUuidSync(squire.system.serves) : null;
-	await squire.update({ "system.isSquire": false, "system.serves": "", "system.glory": 0, "system.virtues": virtues });
+	await squire.update({ "system.isSquire": false, "system.serves": "", "system.glory": 0, "system.virtues": virtues, ...knightedLooks(squire, Actor.implementation.DEFAULT_ICON) });
 	if (master?.isOwner && master.system.squire === squire.uuid) await master.update({ "system.squire": "" });
 
 	await postCard(squire, "creation", {

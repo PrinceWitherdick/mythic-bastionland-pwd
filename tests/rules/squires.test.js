@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	SQUIRE_EQUIPMENT,
+	SQUIRE_IMAGE,
+	knightedLooks,
 	knightedVirtues,
 	mayTakeSquires,
 	ponySystem,
@@ -65,5 +67,19 @@ describe("knightedVirtues", () => {
 			cla: { value: 18, max: 18 },
 			spi: { value: 19, max: 19 }
 		});
+	});
+});
+
+describe("knightedLooks", () => {
+	const blank = "icons/svg/mystery-man.svg";
+	const looks = (img, token) => ({ img, prototypeToken: { texture: { src: token } } });
+
+	it("takes the Squire's portrait off a new Knight, Token and all", () => {
+		expect(knightedLooks(looks(SQUIRE_IMAGE, SQUIRE_IMAGE), blank)).toEqual({ img: blank, "prototypeToken.texture.src": blank });
+	});
+
+	it("keeps pictures the player chose", () => {
+		expect(knightedLooks(looks("art/sir-hew.webp", "art/sir-hew-token.webp"), blank)).toEqual({});
+		expect(knightedLooks(looks("art/sir-hew.webp", SQUIRE_IMAGE), blank)).toEqual({ "prototypeToken.texture.src": blank });
 	});
 });

@@ -6,6 +6,7 @@ import { COMPANY_IMAGE } from "../module/rules/company.js";
 import { SHEET_FONTS } from "../module/fonts.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
 import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
+import { SQUIRE_IMAGE } from "../module/rules/squires.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
 import { drawRealmSet } from "../scripts/lib/realm-drawings.js";
 
@@ -17,6 +18,24 @@ const fileFor = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
 describe("The Company", () => {
 	it("ships the pennant its Token is drawn with", () => {
 		expect(existsSync(fileFor(COMPANY_IMAGE))).toBe(true);
+	});
+});
+
+describe("Squires", () => {
+	const file = fileFor(SQUIRE_IMAGE);
+
+	it("ships the portrait a new Squire gets, crediting the drawing it's made from", () => {
+		expect(existsSync(file)).toBe(true);
+		const svg = readFileSync(file, "utf8");
+		expect(svg).toContain("game-icons.net/1x1/delapouite/kneeling.html");
+		expect(svg).toContain("CC BY 3.0");
+	});
+
+	it("keeps its comments to what a browser loading it as a picture will parse", () => {
+		// A pair of hyphens inside an XML comment breaks the whole picture.
+		const comments = [...readFileSync(file, "utf8").matchAll(/<!--([\s\S]*?)-->/g)].map((match) => match[1]);
+		expect(comments.length).toBeGreaterThan(0);
+		for (const comment of comments) expect(comment).not.toContain("--");
 	});
 });
 
