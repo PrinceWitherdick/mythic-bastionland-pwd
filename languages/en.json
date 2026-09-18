@@ -46,7 +46,8 @@
       "rollScar": "Roll Scar",
       "armour": "Armour",
       "rollSave": "Roll a {virtue} Save",
-      "chooseKnight": "Choose Knight"
+      "newKnight": "New Knight",
+      "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay."
     },
     "heraldry": {
       "title": "Heraldry of {name}",

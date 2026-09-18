@@ -2,7 +2,7 @@
 	{{> "bastionland.npc-header"}}
 
 	{{#if editable}}
-	<nav class="bastionland-toolbar" aria-label="{{actor.name}}">
+	<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{actor.name}}">
 		{{#if canAttack}}
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
 		{{/if}}

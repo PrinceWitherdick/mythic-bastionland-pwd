@@ -266,7 +266,7 @@ Hooks.once("ready", async () => {
 const refreshDomainButtons = (actor) => {
 	if (actor.type !== "domain") return;
 	for (const app of foundry.applications.instances.values()) {
-		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshDomainButton();
+		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshHeaderButtons();
 	}
 };
 Hooks.on("updateActor", refreshDomainButtons);

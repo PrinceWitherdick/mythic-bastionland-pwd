@@ -14,6 +14,18 @@ import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
 
+/** Marks the labelled buttons a sheet hangs in its window header. */
+const HEADER_BUTTON = "bastionland-header-button";
+
+/**
+ * @typedef {object} HeaderButton
+ * @property {string} action    One of the sheet's actions.
+ * @property {string} icon      Font Awesome classes.
+ * @property {string} label
+ * @property {string} [tooltip]
+ * @property {boolean} [muted]  Drawn faded, for something not set up yet.
+ */
+
 /** Conditions a player marks by hand, keyed to the boolean they toggle. */
 const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "mortalWound"]);
 
@@ -119,6 +131,50 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	 * with a chooser open it.
 	 */
 	_chooseFromBook() {}
+
+	/**
+	 * Labelled buttons for the window header, left of Foundry's own controls,
+	 * for what's done to the sheet itself rather than in play, such as filling
+	 * it in from the book.
+	 * @returns {HeaderButton[]}
+	 */
+	_headerButtons() {
+		return [];
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		this.refreshHeaderButtons();
+	}
+
+	/**
+	 * Hang the header buttons afresh, since which are offered, and what they
+	 * read, follows the actor, and on a Knight's sheet the Domain they rule.
+	 */
+	refreshHeaderButtons() {
+		const header = this.element?.querySelector(".window-header");
+		if (!header) return;
+		const doc = header.ownerDocument;
+		header.querySelectorAll(`.${HEADER_BUTTON}`).forEach((button) => button.remove());
+		const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
+		for (const { action, icon, label, tooltip, muted } of this._headerButtons()) {
+			const button = doc.createElement("button");
+			button.type = "button";
+			button.className = `header-control ${HEADER_BUTTON}`;
+			button.classList.toggle(`${HEADER_BUTTON}--muted`, Boolean(muted));
+			button.dataset.action = action;
+			if (tooltip) button.dataset.tooltip = tooltip;
+			const glyph = doc.createElement("i");
+			glyph.className = icon;
+			glyph.inert = true;
+			const text = doc.createElement("span");
+			text.textContent = label;
+			button.append(glyph, text);
+			if (controls) controls.before(button);
+			else header.append(button);
+		}
+	}
 
 	/**
 	 * @param {string} html

@@ -70,6 +70,15 @@ export class NpcSheet extends BastionlandActorSheet {
 		openNpcChooser(this.actor, { fresh: true });
 	}
 
+	/** @override */
+	_headerButtons() {
+		if (!this.isEditable) return [];
+		return [
+			{ action: "chooseNpc", icon: "fa-solid fa-book-open", label: t("npc.chooseNpc") },
+			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") }
+		];
+	}
+
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */

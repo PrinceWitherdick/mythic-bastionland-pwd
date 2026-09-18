@@ -52,9 +52,6 @@ export class KnightSheet extends BastionlandActorSheet {
 		}
 	};
 
-	/** Marks the Domain button in the window header. */
-	static DOMAIN_BUTTON = "bastionland-open-domain";
-
 	static PREVIEWED_ART = ".bastionland-portrait img[data-name]";
 
 	/** @override */
@@ -73,6 +70,9 @@ export class KnightSheet extends BastionlandActorSheet {
 
 		return Object.assign(context, {
 			isSquire: system.isSquire,
+			// A Knight has one Ability and one Passion; a Squire has neither until Knighted (p7).
+			canAddAbility: !system.isSquire && !abilities.length,
+			canAddPassion: !system.isSquire && !passions.length,
 			// A Knight's Squire, or the Knight a Squire serves.
 			squire: squire && { name: system.isSquire ? t("squire.serves", { name: squire.name }) : squire.name, img: squire.img },
 			squireEmpty: t(system.isSquire ? "squire.servesNobody" : "squire.empty"),
@@ -107,8 +107,7 @@ export class KnightSheet extends BastionlandActorSheet {
 					.map((item) => `${item.name} ${item.system.damage}`)
 					.join(", ")
 			},
-			gambits: GAMBITS.map((key) => t(`gambits.${key}`)),
-			gambitsOpen: this.#gambitsOpen
+			gambits: GAMBITS.map((key) => t(`gambits.${key}`))
 		});
 	}
 
@@ -117,49 +116,35 @@ export class KnightSheet extends BastionlandActorSheet {
 		openKnightChooser(this.actor, { fresh: true });
 	}
 
-	/**
-	 * The Gambits reference is folded away until wanted, and stays as the
-	 * player left it when the sheet redraws.
-	 * @override
-	 */
+	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		const gambits = this.element.querySelector(".bastionland-gambits-reference");
-		gambits?.addEventListener("toggle", () => (this.#gambitsOpen = gambits.open));
 		placeTabRail(this.element, ".bastionland-header");
-		this.refreshDomainButton();
 	}
 
 	/**
-	 * A button in the window header opens the Domain this Knight rules, the
-	 * way the Stonetop character sheet opens the steading. It reads the
-	 * Domain's name, or just "Domain" while there isn't one.
+	 * New Knight fills the sheet in from the book, or for a Squire, Knight
+	 * Squire raises them. The Domain button opens the Domain this Knight rules,
+	 * the way the Stonetop character sheet opens the steading, and reads its
+	 * name, or just "Domain" while there isn't one.
 	 * @override
 	 */
-	async _renderFrame(options) {
-		const frame = await super._renderFrame(options);
-		const button = frame.ownerDocument.createElement("button");
-		button.type = "button";
-		button.className = `header-control ${KnightSheet.DOMAIN_BUTTON}`;
-		button.dataset.action = "openDomain";
-		const glyph = frame.ownerDocument.createElement("i");
-		glyph.className = "fa-solid fa-chess-rook";
-		glyph.inert = true;
-		button.append(glyph, frame.ownerDocument.createElement("span"));
-		frame.querySelector(".window-header [data-action=toggleControls]")?.before(button);
-		return frame;
-	}
-
-	/** Bring the Domain button up to date with the Domain's name, or its absence. */
-	refreshDomainButton() {
-		const button = this.element?.querySelector(`.${KnightSheet.DOMAIN_BUTTON}`);
-		if (!button) return;
+	_headerButtons() {
+		const { isSquire } = this.actor.system;
+		const buttons = [];
+		if (this.isEditable) buttons.push(isSquire
+			? { action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") }
+			: { action: "chooseKnight", icon: "fa-solid fa-chess-knight", label: t("sheet.newKnight"), tooltip: t("sheet.newKnightHint") });
 		const domain = knightDomain(this.actor);
 		// A Squire rules nothing, and a player who can't found one has nothing to ask for.
-		button.hidden = this.actor.system.isSquire || (!domain && !this.actor.isOwner);
-		button.classList.toggle(`${KnightSheet.DOMAIN_BUTTON}--unset`, !domain);
-		button.querySelector("span").textContent = domain?.name ?? t("domain.button");
-		button.dataset.tooltip = domain ? t("domain.openHint") : t("domain.foundHint");
+		if (!isSquire && (domain || this.actor.isOwner)) buttons.push({
+			action: "openDomain",
+			icon: "fa-solid fa-chess-rook",
+			label: domain?.name ?? t("domain.button"),
+			tooltip: t(domain ? "domain.openHint" : "domain.foundHint"),
+			muted: !domain
+		});
+		return buttons;
 	}
 
 	/**
@@ -170,9 +155,6 @@ export class KnightSheet extends BastionlandActorSheet {
 		super._onPosition(position);
 		stampRailSide(this.element, position);
 	}
-
-	/** Whether the Gambits reference is unfolded. */
-	#gambitsOpen = false;
 
 	/**
 	 * @param {string} uuid

@@ -66,6 +66,8 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			systemFields: item.system.schema.fields,
 			typeLabel: game.i18n.localize(`TYPES.Item.${item.type}`),
 			isNew: this.isNew,
+			// An Ability, Passion or Scar is nothing you could hold, so it has no picture.
+			hasPicture: !["ability", "passion", "scar"].includes(item.type),
 			isWeapon: item.type === "weapon",
 			isArmour: item.type === "armour",
 			isScar: item.type === "scar",

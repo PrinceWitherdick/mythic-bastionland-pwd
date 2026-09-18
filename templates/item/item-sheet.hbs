@@ -1,6 +1,8 @@
 <div class="bastionland-page bastionland-page--item">
 	<header class="bastionland-item-header">
+		{{#if hasPicture}}
 		<img class="bastionland-item-header__img" src="{{item.img}}" alt="" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		{{/if}}
 		<div class="bastionland-item-header__text">
 			<input class="bastionland-item-header__name" type="text" name="name" value="{{item.name}}" aria-label="{{typeLabel}}" autocomplete="off">
 			<p class="bastionland-item-header__type">{{typeLabel}}</p>

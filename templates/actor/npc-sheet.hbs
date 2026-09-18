@@ -2,9 +2,7 @@
 	{{> "bastionland.npc-header"}}
 
 	{{#if editable}}
-	<nav class="bastionland-toolbar" aria-label="{{actor.name}}">
-		<button type="button" data-action="chooseNpc"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.npc.chooseNpc"}}</button>
-		<button type="button" data-action="pasteStatBlock"><i class="fa-solid fa-paste" inert></i> {{localize "bastionland.npc.pasteStatBlock"}}</button>
+	<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{actor.name}}">
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
 		<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> {{localize "bastionland.duel.title"}}</button>
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>

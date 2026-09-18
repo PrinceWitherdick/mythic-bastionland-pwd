@@ -90,9 +90,9 @@
 	color: var(--bastionland-ink);
 }
 
-/* The Knight sheet's Domain button carries a label, where Foundry's header
-   controls are bare icons. */
-.bastionland-sheet .window-header button.bastionland-open-domain {
+/* The sheets' own header buttons, such as New Knight and Domain, carry a
+   label, where Foundry's header controls are bare icons. */
+.bastionland-sheet .window-header button.bastionland-header-button {
 	display: inline-flex;
 	flex: none;
 	align-items: center;
@@ -104,16 +104,12 @@
 	white-space: nowrap;
 }
 
-.bastionland-sheet .window-header button.bastionland-open-domain[hidden] {
-	display: none;
-}
-
-.bastionland-open-domain span {
+.bastionland-header-button span {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.bastionland-open-domain--unset {
+.bastionland-header-button--muted {
 	opacity: 0.6;
 }
 
@@ -261,17 +257,14 @@
 /* A <summary> loses its disclosure triangle once it is laid out as a flex box,
    so the headings that fold draw their own, set past the line-filler so it sits
    at the end of the row. */
-.bastionland-gambits-reference > summary.bastionland-heading,
 .bastionland-npc-chooser__omens > summary.bastionland-heading {
 	list-style: none;
 }
 
-.bastionland-gambits-reference > summary.bastionland-heading::-webkit-details-marker,
 .bastionland-npc-chooser__omens > summary.bastionland-heading::-webkit-details-marker {
 	display: none;
 }
 
-.bastionland-gambits-reference > summary.bastionland-heading::before,
 .bastionland-npc-chooser__omens > summary.bastionland-heading::before {
 	content: "\25B8";
 	flex: none;
@@ -279,7 +272,6 @@
 	order: 1;
 }
 
-.bastionland-gambits-reference[open] > summary.bastionland-heading::before,
 .bastionland-npc-chooser__omens[open] > summary.bastionland-heading::before {
 	content: "\25BE";
 }
@@ -379,7 +371,8 @@
 	min-width: 0;
 	max-width: 18rem;
 	height: auto;
-	padding: 0 0.2rem;
+	padding: 0 0.2rem 0.05rem;
+	line-height: 1.2;
 	border: none;
 	border-bottom: 1px dashed var(--bastionland-rule);
 	border-radius: 0;
@@ -817,6 +810,57 @@
 	opacity: 0.5;
 }
 
+/* A sheet's actions in play read as a line of the page rather than a row of
+   app buttons: small caps between two hairlines, parted by rubric lozenges. */
+.bastionland-toolbar--actions {
+	justify-content: center;
+	gap: 1.5rem;
+	padding: 0.3rem 0;
+}
+
+/* The lozenges sit in the gap, outside each button, so a focus ring round a
+   button stops short of them. */
+.bastionland-toolbar.bastionland-toolbar--actions button {
+	position: relative;
+	flex: none;
+	min-width: 0;
+	height: auto;
+	min-height: 0;
+	padding: 0.2rem 0.4rem;
+	border: none;
+	background: none;
+	font-size: 1.05rem;
+}
+
+.bastionland-toolbar.bastionland-toolbar--actions button:focus:not(:focus-visible) {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-toolbar--actions button + button::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: -0.75rem;
+	width: 0.3rem;
+	height: 0.3rem;
+	background: var(--bastionland-rubric);
+	opacity: 0.6;
+	transform: translate(-50%, -50%) rotate(45deg);
+	pointer-events: none;
+}
+
+.bastionland-toolbar--actions button i {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-toolbar.bastionland-toolbar--actions button:hover {
+	background: none;
+	color: var(--bastionland-rubric);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
 /* ---------------------------------------------------------------- */
 /* Two columns, collapsing to one in a narrow window                */
 /* ---------------------------------------------------------------- */
@@ -1049,7 +1093,9 @@
 	gap: 0.5rem;
 }
 
+/* The oath closes the Knight page, spanning both columns. */
 .bastionland-oath {
+	grid-column: 1 / -1;
 	text-align: center;
 }
 
@@ -1200,14 +1246,6 @@
 /* Feats and Gambits                                                */
 /* ---------------------------------------------------------------- */
 
-.bastionland-gambits-reference summary {
-	cursor: pointer;
-}
-
-.bastionland-gambits-reference:not([open]) summary {
-	margin-bottom: 0;
-}
-
 .bastionland-feats,
 .bastionland-gambits {
 	display: flex;
@@ -1249,6 +1287,11 @@
  * the rail is placed against the frame and escapes the content's clipping.
  * The frame stops clipping so the rail can show. module/sheets/tab-rail.js
  * measures where it starts.
+ *
+ * Foundry's dark theme blurs whatever is behind a window's content, and a
+ * backdrop filter makes the content the box its absolutely placed children
+ * are placed in, and clipped to. The rail would vanish inside it, so these
+ * sheets, which paint their own parchment there anyway, go without the blur.
  */
 .bastionland-sheet.bastionland-has-tab-rail {
 	overflow: visible;
@@ -1256,6 +1299,8 @@
 
 .bastionland-sheet.bastionland-has-tab-rail > .window-content {
 	border-radius: 0 0 5px 5px;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
 }
 
 .bastionland-sheet > .window-content > nav.bastionland-tab-rail {
