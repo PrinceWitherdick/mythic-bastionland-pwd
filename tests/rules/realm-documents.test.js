@@ -3,6 +3,7 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
+import { riverNetworkPieces } from "../../module/rules/realm-rivers.js";
 import { REALM_PALETTES } from "../../module/rules/realm-skins.js";
 import {
 	GRID_ALPHA,
@@ -13,10 +14,10 @@ import {
 	planChanges,
 	planRealmSync,
 	realmDocuments,
+	realmFlagChanges,
 	realmFromDocuments,
 	realmSceneData,
-	realmTextures,
-	riverPieces
+	realmTextures
 } from "../../module/rules/realm-documents.js";
 
 const g = realmGeometry();
@@ -66,6 +67,46 @@ describe("realmTextures", () => {
 	});
 });
 
+describe("a Realm's setup", () => {
+	it("rides on the Scene flag only when it isn't the book's, and is read back from it", () => {
+		const own = realmGeometry({ cols: 14, rows: 7 });
+		const realm = generateRealm({ seed: "setup", setup: { ignoreRules: true, cols: 14, rows: 7, roll: { terrain: false } }, geometry: own });
+		const scene = realmSceneData({ name: "Mine", realm, geometry: own, textures: realmTextures() });
+		expect(flagOf(scene)).toMatchObject({ cols: 14, rows: 7, setup: { ignoreRules: true, roll: { terrain: false } } });
+		expect(realmFromDocuments({ flags: scene.flags }, own).realm.setup).toEqual(realm.setup);
+
+		const book = realmSceneData({ name: "Book", realm: generateRealm({ seed: "setup", geometry: g }), geometry: g, textures: realmTextures() });
+		expect(flagOf(book)).not.toHaveProperty("setup");
+		expect(realmFromDocuments({ flags: book.flags }, g).realm).not.toHaveProperty("setup");
+	});
+});
+
+describe("realmFlagChanges", () => {
+	const own = realmGeometry({ cols: 14, rows: 7 });
+	const realm = generateRealm({ seed: "flag", setup: { ignoreRules: true, cols: 14, rows: 7, lakes: 5 }, geometry: own });
+	const saved = flagOf(realmSceneData({ name: "Mine", realm, geometry: own, textures: realmTextures() }));
+
+	it("asks for nothing when the Scene's flag already holds the Realm, whatever order its setup was saved in", () => {
+		expect(realmFlagChanges(saved, realm, own)).toBeNull();
+		const reordered = { ...saved, setup: Object.fromEntries(Object.entries(saved.setup).reverse()) };
+		expect(realmFlagChanges(reordered, realm, own)).toBeNull();
+	});
+
+	it("writes only what changed, such as a river laid or a new seed", () => {
+		const laid = { ...realm, rivers: [...realm.rivers, [{ col: 1, row: 1 }, { col: 1, row: 2 }]] };
+		expect(realmFlagChanges(saved, laid, own)).toEqual({ set: { rivers: [...saved.rivers, ["1,1", "1,2"]] }, drop: [] });
+		expect(realmFlagChanges(saved, { ...realm, seed: "again" }, own)).toEqual({ set: { seed: "again" }, drop: [] });
+	});
+
+	it("drops the fields older Scenes kept their rivers in, and a setup the Realm no longer has", () => {
+		const { rivers, ...rest } = saved;
+		const old = { ...rest, river: rivers[0] ?? [], branches: rivers.slice(1) };
+		expect(realmFlagChanges(old, realm, own)).toEqual({ set: { rivers }, drop: ["river", "branches"] });
+		const { setup: _setup, ...book } = realm;
+		expect(realmFlagChanges(saved, book, own)).toEqual({ set: {}, drop: ["setup"] });
+	});
+});
+
 describe("realmSceneData", () => {
 	it("paints the Scene and its Barriers in the look's colours", () => {
 		const { key, paper, rule, accent } = REALM_PALETTES.at(-1);
@@ -91,7 +132,7 @@ describe("realmSceneData", () => {
 			levels: [{ _id: LEVEL_ID, background: { color: "#efe8d8" } }],
 			initialLevel: LEVEL_ID
 		});
-		expect(flagOf(scene)).toMatchObject({ version: 1, seed: "documents", size: 160, cols: 12, rows: 12, river: realm.river.map(hexKey) });
+		expect(flagOf(scene)).toMatchObject({ version: 1, seed: "documents", size: 160, cols: 12, rows: 12, rivers: realm.rivers.map((course) => course.map(hexKey)) });
 	});
 
 	it("lays a locked terrain Tile centred on every hex", () => {
@@ -113,12 +154,16 @@ describe("realmSceneData", () => {
 		expect(tiles.filter((tile) => tile.alpha === 0)).toHaveLength(realm.holdings.length);
 	});
 
-	it("fills each hex with the Blank Realm's terrain, which also leaves a Holding's hex to the Holding", () => {
+	it("fills each hex with the Blank Realm's terrain, which also leaves a Holding's hex to the Holding, and a river's Valley to its plain floor", () => {
 		const tiles = scene.tiles.filter((tile) => flagOf(tile).kind === "terrain");
 		const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
+		const valleyRivers = new Set(riverNetworkPieces(g, realm.rivers, realm.terrain)
+			.filter((piece) => TERRAIN[realm.terrain[hexIndex(g, piece.hex)] - 1] === "valley").map((piece) => hexKey(piece.hex)));
 		for (const tile of tiles) {
+			const key = hexKey(hexAt(g, tile));
 			expect(tile).toMatchObject({ width: Math.round(g.hexWidth), height: g.size, texture: { fit: "fill" } });
-			expect(tile.alpha).toBe(holdings.has(hexKey(hexAt(g, tile))) ? 0 : 1);
+			expect(tile.alpha).toBe(holdings.has(key) ? 0 : 1);
+			if (valleyRivers.has(key)) expect(tile.texture.src).toMatch(/river-valley-floor\.svg$/);
 		}
 		const classic = realmDocuments(realm, g, realmTextures({ skin: "classic" })).tiles.filter(({ data }) => flagOf(data).kind === "terrain");
 		expect(classic.every(({ data }) => data.alpha === 1)).toBe(true);
@@ -163,7 +208,7 @@ describe("realmFromDocuments", () => {
 		const withoutIds = (list) => list.map(({ id: _id, ...rest }) => rest);
 		expect(problems).toEqual([]);
 		expect(read.terrain).toEqual(realm.terrain);
-		expect(read.river).toEqual(realm.river);
+		expect(read.rivers).toEqual(realm.rivers);
 		expect(read.seed).toBe(realm.seed);
 		expect(withoutIds(read.holdings)).toEqual(withoutIds(realm.holdings));
 		expect(withoutIds(read.myths)).toEqual(withoutIds(realm.myths));
@@ -234,13 +279,14 @@ describe("planRealmSync", () => {
 		expect(planRealmSync(rerolled, g, textures, snapshot, { replacing: true }).Tile.delete).toContain(myth._id);
 	});
 
-	it("only changes pictures when the look changes", () => {
+	it("only changes pictures when the look changes, and the shores of lakes only the Blank Realm joins up", () => {
 		const { snapshot } = onScene();
 		const { realm } = realmFromDocuments(snapshot, g);
 		const woodcut = realmTextures({ skin: "woodcut", palette: "ochre" });
 		const plan = planRealmSync(realm, g, woodcut, snapshot);
 		expect(plan.Tile.create).toEqual([]);
-		expect(plan.Tile.delete).toEqual([]);
+		const joins = snapshot.tiles.filter((tile) => ["shore", "mouth"].includes(flagOf(tile).kind)).map((tile) => tile._id);
+		expect(plan.Tile.delete.sort()).toEqual(joins.sort());
 		expect(plan.Tile.update.length).toBeGreaterThan(0);
 		for (const { _id, ...changes } of plan.Tile.update) {
 			expect(_id).toBeTruthy();
@@ -256,19 +302,19 @@ describe("planRealmSync", () => {
 	});
 });
 
-describe("riverPieces", () => {
+describe("riverNetworkPieces", () => {
 	it("runs straight down a column and leaves the lakes to carry the water", () => {
 		const river = Array.from({ length: 12 }, (_, index) => ({ col: 6, row: index + 1 }));
 		const terrain = new Array(144).fill(1);
 		terrain[hexIndex(g, { col: 6, row: 5 })] = LAKE;
-		const pieces = riverPieces(g, river, terrain);
+		const pieces = riverNetworkPieces(g, [river], terrain);
 		expect(pieces).toHaveLength(11);
 		expect(pieces.every((piece) => piece.shape === "straight" && piece.rotation === 180)).toBe(true);
 	});
 
 	it("bends where the river turns", () => {
 		const river = [{ col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }, { col: 3, row: 4 }];
-		const pieces = riverPieces(g, river, new Array(144).fill(1));
+		const pieces = riverNetworkPieces(g, [river], new Array(144).fill(1));
 		expect(pieces.every((piece) => RIVER_SHAPES.includes(piece.shape))).toBe(true);
 		expect(pieces.map((piece) => piece.shape)).toContain("bend");
 	});

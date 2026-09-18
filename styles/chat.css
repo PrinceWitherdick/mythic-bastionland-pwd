@@ -417,6 +417,93 @@
 	flex: 0 0 9rem;
 }
 
+/*
+ * The New Realm dialog's Custom Realm, folded away like the fieldsets beside
+ * it: a part to a row, its name and roll box on the left, its numbers on the
+ * right. Locked numbers are the book's, so they stay readable.
+ */
+.bastionland-realm-setup {
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.25);
+}
+
+.bastionland-realm-setup > summary {
+	padding: 0.35rem 0.7rem;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.bastionland-realm-setup__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	padding: 0 0.7rem 0.6rem;
+}
+
+.bastionland-realm-setup__parts {
+	display: grid;
+	grid-template-columns: 7rem 1fr;
+	align-items: center;
+	gap: 0.35rem 0.6rem;
+	margin-top: 0.2rem;
+}
+
+.bastionland-realm-setup__part {
+	display: contents;
+}
+
+.bastionland-realm-setup__name {
+	font-family: var(--bastionland-font-caps);
+	letter-spacing: 0.03em;
+}
+
+.bastionland-realm-setup__numbers {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.25rem 0.6rem;
+	min-height: 1.9rem;
+}
+
+.bastionland-realm-setup__field {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	white-space: nowrap;
+}
+
+.bastionland-dialog .bastionland-realm-setup__field input {
+	flex: none;
+	width: 3.4rem;
+	text-align: center;
+}
+
+/* Locked, a number reads as the book's: written in, not a box to fill. */
+.bastionland-dialog .bastionland-realm-setup__field input:disabled {
+	padding-inline: 0.1rem;
+	border-color: transparent;
+	background: none;
+	opacity: 1;
+	color: var(--bastionland-ink);
+	text-align: start;
+}
+
+.bastionland-realm-setup__note {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.88em;
+	font-style: italic;
+}
+
+/* A part left to draw by hand. */
+.bastionland-realm-setup__part.is-off > .bastionland-realm-setup__numbers {
+	opacity: 0.4;
+}
+
 .bastionland-dialog__problems {
 	margin: 0;
 	padding-left: 1.2rem;

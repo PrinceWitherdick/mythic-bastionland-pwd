@@ -29,8 +29,11 @@ export const MYTH_COUNT = 6;
 
 export const OMEN_COUNT = 6;
 
-/** River pieces, each drawn from the hex's south edge: straight across, a gentle bend, a sharp bend, or a spring. */
-export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end"]);
+/**
+ * River pieces, each drawn from the hex's south edge: straight across, a gentle bend, a sharp bend, a spring,
+ * and the forks where a branch meets the river. realm-rivers.js says which edges each reaches.
+ */
+export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "fork-left", "fork-right", "fork-wide", "fan"]);
 
 /** "A typical Realm has 3 or 4 of each type of Landmark." */
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
@@ -61,12 +64,14 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {number} rows
  * @property {string|null} seed
  * @property {number[]} terrain   One entry per hex in `hexIndex` order: 1-12, or 0 where unset.
- * @property {Hex[]} river         Source to mouth, each hex beside the one before.
+ * @property {Hex[][]} rivers      Each from one end to the other, each hex beside the one before. One that starts or ends on a
+ *   hex of another joins it there. The book makes no one of them the navigable one.
  * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string}[]} holdings
  * @property {{id: string|null, hex: Hex, number: number, d6: number, d12: number, omen: number, revealed: boolean}[]} myths
  * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
  *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
  * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
+ * @property {import("./realm-setup.js").RealmSetup} [setup] How it was set up, where that wasn't the book's way.
  */
 
 /**
@@ -80,7 +85,7 @@ export function emptyRealm(g, seed = null) {
 		rows: g.rows,
 		seed,
 		terrain: new Array(g.cols * g.rows).fill(0),
-		river: [],
+		rivers: [],
 		holdings: [],
 		myths: [],
 		landmarks: [],
@@ -152,18 +157,23 @@ export function validateRealm(realm, g) {
 	const problems = [];
 	const report = (kind, reason, key) => problems.push({ kind, reason, key: String(key) });
 
+	// Terrain left to draw by hand may not all be drawn yet.
+	const unpainted = realm.setup?.roll?.terrain === false;
 	realm.terrain.forEach((terrain, index) => {
+		if (unpainted && terrain === 0) return;
 		if (!isDie(terrain, TERRAIN.length)) report("terrain", "terrain", hexKey({ col: (index % g.cols) + 1, row: Math.floor(index / g.cols) + 1 }));
 	});
 
-	const riverSeen = new Set();
-	realm.river.forEach((hex, index) => {
-		const key = hexKey(hex);
-		if (!inRealm(g, hex)) report("river", "offMap", key);
-		else if (riverSeen.has(key)) report("river", "duplicate", key);
-		else if (index > 0 && hexDistance(realm.river[index - 1], hex) !== 1) report("river", "river", key);
-		riverSeen.add(key);
-	});
+	for (const course of realm.rivers) {
+		const seen = new Set();
+		course.forEach((hex, index) => {
+			const key = hexKey(hex);
+			if (!inRealm(g, hex)) report("river", "offMap", key);
+			else if (seen.has(key)) report("river", "duplicate", key);
+			else if (index > 0 && hexDistance(course[index - 1], hex) !== 1) report("river", "river", key);
+			seen.add(key);
+		});
+	}
 
 	const featuresOnHex = new Map();
 	const place = (kind, hex) => {

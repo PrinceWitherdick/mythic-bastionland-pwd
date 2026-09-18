@@ -21,7 +21,7 @@ export const BARRIER_STATES = Object.freeze(["none", "hidden", "revealed"]);
 const copyRealm = (realm) => ({
 	...realm,
 	terrain: [...realm.terrain],
-	river: realm.river.map((hex) => ({ ...hex })),
+	rivers: realm.rivers.map((course) => course.map((hex) => ({ ...hex }))),
 	holdings: realm.holdings.map((holding) => ({ ...holding, hex: { ...holding.hex } })),
 	myths: realm.myths.map((myth) => ({ ...myth, hex: { ...myth.hex } })),
 	landmarks: realm.landmarks.map((landmark) => ({ ...landmark, hex: { ...landmark.hex }, seer: landmark.seer && { ...landmark.seer } })),

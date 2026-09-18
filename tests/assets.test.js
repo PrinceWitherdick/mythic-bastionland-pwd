@@ -49,7 +49,9 @@ describe("Realm pictures", () => {
 			...Object.values(textures.landmark),
 			...Object.values(textures.myth),
 			textures.seat,
-			...Object.values(textures.river)
+			...Object.values(textures.river),
+			...(textures.lake ? [textures.lake.water, ...Object.values(textures.lake.shore), textures.lake.mouth] : []),
+			...(textures.valley ? [textures.valley.floor, ...Object.values(textures.valley.river)] : [])
 		].map(({ src }) => src);
 	});
 

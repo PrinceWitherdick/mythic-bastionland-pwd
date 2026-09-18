@@ -12,6 +12,7 @@ import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
+import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
@@ -162,6 +163,9 @@ describe("localization", () => {
 		...["once", "many"].map((count) => `gmToolkit.visits.${count}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
+		...["map", ...SETUP_PARTS].map((part) => `realm.setup.parts.${part}`),
+		...["cols", "rows", "cluster", "lakes"].map((field) => `realm.setup.fields.${field}`),
+		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),
 		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),
 		...REALM_PALETTES.map(({ key }) => `realm.look.palettes.${key}`),
 		...RIVER_SHAPES.map((shape) => `realm.look.rivers.${shape}`),

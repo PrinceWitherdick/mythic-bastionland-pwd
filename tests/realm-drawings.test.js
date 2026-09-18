@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CHARGE_LICENCE, HERALDIC_ART, HERALDIC_ART_COPYRIGHT, HERALDIC_ART_ILLUSTRATOR } from "../module/rules/heraldry-charges.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES } from "../module/rules/realm.js";
-import { PICTURE_NAME, REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette } from "../module/rules/realm-skins.js";
+import { PICTURE_NAME, REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette, skinPictures } from "../module/rules/realm-skins.js";
+import { SHORE_SHAPES } from "../module/rules/realm-rivers.js";
 import { checkChargeSvg } from "../scripts/lib/charge-svg.js";
 import { DRAWN_SKINS, drawRealmSet } from "../scripts/lib/realm-drawings.js";
 import { PUBLIC_DOMAIN } from "./public-domain-sources.js";
@@ -54,7 +55,7 @@ describe("drawRealmSet", () => {
 
 	it.each(REALM_SKINS)("draws every picture for %s", (skin) => {
 		const files = drawRealmSet(skin, "heraldic");
-		expect(Object.keys(files).sort()).toEqual(REALM_PICTURES.map((name) => `${name}.svg`).sort());
+		expect(Object.keys(files).sort()).toEqual([...REALM_PICTURES, ...skinPictures(skin)].map((name) => `${name}.svg`).sort());
 		for (const content of Object.values(files)) {
 			expect(content).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]*>.*<\/svg>\n$/s);
 			expect(content).not.toMatch(/undefined|NaN|Infinity/);
@@ -186,11 +187,69 @@ describe("the Blank Realm skin", () => {
 
 	it.each(REALM_PALETTES.map(({ key }) => key))("lays every river piece's banks and water at the same places on the edges it crosses, in %s", (palette) => {
 		const drawn = drawRealmSet("sheet", palette);
-		const banks = RIVER_SHAPES.map((shape) => edgeCrossings(drawn[`river-${shape}.svg`].match(/<path d="([^"]+)" fill="[^"]+"\/><\/svg>/)[1]));
-		const water = RIVER_SHAPES.map((shape) => edgeCrossings(drawn[`river-${shape}.svg`].match(/<path d="([^"]+)"/)[1]));
+		const { ink, water: blue } = realmPalette(palette);
+		// Every path in that colour: a Valley's ridges are inked like the banks, but never reach an edge.
+		const filled = (svg, colour) => [...svg.matchAll(new RegExp(`<path d="([^"]*)" fill="${colour}"/>`, "g"))].map((match) => match[1]).join("");
+		// Every piece, forks and pieces running through a Valley too, and a river's mouth into a lake.
+		const pieces = [...RIVER_SHAPES.flatMap((shape) => [`river-${shape}`, `river-valley-${shape}`]), "river-mouth"];
+		const banks = pieces.map((name) => edgeCrossings(filled(drawn[`${name}.svg`], ink)));
+		const water = pieces.map((name) => edgeCrossings(filled(drawn[`${name}.svg`], blue)));
 		// The water's edges and each bank's outer edge, the same for every piece, so pieces join however they're laid.
 		for (const crossings of banks) expect(crossings).toEqual(banks[0]);
 		for (const crossings of water) expect(crossings).toEqual([-29, 29]);
 		expect(banks[0]).toEqual([-46, -29, 29, 46]);
+	});
+});
+
+describe("the Blank Realm's lakes and Valleys", () => {
+	const blank = drawRealmSet("sheet", "blank");
+	const corner = (k) => ({ x: HEX_W / 2 + (HEX_W / 2) * Math.cos((Math.PI * k) / 3), y: HEX_H / 2 + (HEX_W / 2) * Math.sin((Math.PI * k) / 3) });
+	/** Distance in from the hex's edges: negative outside it. */
+	const inset = ({ x, y }) => Math.min(...[0, 1, 2, 3, 4, 5].map((k) => {
+		const [a, b] = [corner(k), corner(k + 1)];
+		return ((b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)) / Math.hypot(b.x - a.x, b.y - a.y);
+	}));
+	const land = (shape) => coordinates(blank[`lake-shore-${shape}.svg`].match(/<path d="([^"]+)"/)[1]);
+
+	it.each(SHORE_SHAPES)("keeps the %s shore's land inside its hex, along the south edge", (shape) => {
+		const points = land(shape);
+		for (const point of points) expect(inset(point)).toBeGreaterThan(-0.5);
+		expect(Math.max(...points.map(({ y }) => y))).toBeCloseTo(HEX_H, 0);
+	});
+
+	it("ends a shore beside another of the same lake on the line from the corner to the hex's middle, so the two meet", () => {
+		const points = land("closed");
+		// The land runs from the south-east corner to the shore's end, and from its other end to the south-west corner and back.
+		const [east, west] = [points[1], points.at(-3)];
+		const onBisector = (point, k) => {
+			const c = corner(k);
+			return Math.abs((point.x - c.x) * (HEX_H / 2 - c.y) - (point.y - c.y) * (HEX_W / 2 - c.x)) / Math.hypot(HEX_W / 2 - c.x, HEX_H / 2 - c.y);
+		};
+		expect(onBisector(east, 1)).toBeLessThan(0.5);
+		expect(onBisector(west, 2)).toBeLessThan(0.5);
+		expect(east.y).toBeCloseTo(west.y, 0);
+	});
+
+	it("crosses into the lake beside it at the same place from either side", () => {
+		const east = land("ccw")[1];
+		const west = land("cw").at(-3);
+		// Each end lies on the edge beside the south one, as far from the south edge's corner.
+		expect(inset(east)).toBeCloseTo(0, 0);
+		expect(inset(west)).toBeCloseTo(0, 0);
+		expect(Math.hypot(east.x - corner(1).x, east.y - corner(1).y)).toBeCloseTo(Math.hypot(west.x - corner(2).x, west.y - corner(2).y), 0);
+	});
+
+	it("hatches open water right across the hex, in rows that carry on into the lake hexes beside it", () => {
+		const hatching = blank["lake-water.svg"];
+		expect(hatching).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
+		// Rows every 48 units: a hex's half height is five of them, so the rows of the next column line up.
+		expect((HEX_H / 2) % 48).toBe(0);
+	});
+
+	it("keeps each Valley's ridges inside the hex", () => {
+		for (const shape of RIVER_SHAPES) {
+			const ridges = blank[`river-valley-${shape}.svg`].match(/<path d="([^"]*)" fill/)[1];
+			for (const point of coordinates(ridges)) expect(inset(point)).toBeGreaterThan(0);
+		}
 	});
 });

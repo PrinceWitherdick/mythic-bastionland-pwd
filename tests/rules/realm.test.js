@@ -34,7 +34,7 @@ describe("Realm tables", () => {
 describe("emptyRealm", () => {
 	it("starts with no terrain and nothing on the map", () => {
 		const realm = emptyRealm(g, "seed");
-		expect(realm).toMatchObject({ cols: 12, rows: 12, seed: "seed", river: [], holdings: [], myths: [], landmarks: [], barriers: [] });
+		expect(realm).toMatchObject({ cols: 12, rows: 12, seed: "seed", rivers: [], holdings: [], myths: [], landmarks: [], barriers: [] });
 		expect(realm.terrain).toHaveLength(144);
 		expect(terrainAt(realm, g, { col: 3, row: 3 })).toBe(0);
 		expect(terrainAt(realm, g, { col: 30, row: 3 })).toBe(0);
@@ -73,8 +73,8 @@ describe("validateRealm", () => {
 
 	it.each([
 		["missing terrain", (realm) => { realm.terrain[5] = 0; }, "terrain:terrain"],
-		["a gap in the river", (realm) => { realm.river.splice(2, 1); }, "river:river"],
-		["the river doubling back", (realm) => { realm.river.push(realm.river[0]); }, "river:duplicate"],
+		["a gap in the river", (realm) => { realm.rivers[0].splice(2, 1); }, "river:river"],
+		["the river doubling back", (realm) => { realm.rivers[0].push(realm.rivers[0][0]); }, "river:duplicate"],
 		["a Holding off the map", (realm) => { realm.holdings[0].hex = { col: 20, row: 1 }; }, "holding:offMap"],
 		["two things in one hex", (realm) => { realm.myths[0].hex = { ...realm.holdings[0].hex }; }, "hex:crowded"],
 		["two Seats of Power", (realm) => { realm.holdings.forEach((holding) => { holding.seat = true; }); }, "holding:seat"],

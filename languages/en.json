@@ -1807,12 +1807,43 @@
         "name": "Name",
         "defaultName": "The Realm",
         "seed": "Seed",
-        "seedHint": "The same seed rolls the same Realm.",
+        "seedHint": "The same seed, set up the same way, rolls the same Realm.",
         "secretHint": "Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until you reveal them.",
         "create": "Roll the Realm"
       },
+      "setup": {
+        "title": "Custom Realm",
+        "intro": "Everything below is rolled as Creating a Realm (p14) describes. Untick a part to leave it off the map and draw it yourself with the Realm tools.",
+        "ignoreRules": "Ignore the rules for setup",
+        "ignoreRulesHint": "“The guidelines on this page make for a typical Realm, but they can be bent or broken in creating your own Realms” (p14). Tick to set your own numbers.",
+        "parts": {
+          "map": "Map",
+          "terrain": "Terrain",
+          "rivers": "River",
+          "holdings": "Holdings",
+          "myths": "Myths",
+          "landmarks": "Landmarks",
+          "barriers": "Barriers"
+        },
+        "fields": {
+          "cols": "Columns",
+          "rows": "Rows",
+          "cluster": "Clusters of d",
+          "lakes": "Lakes, at most",
+          "landmarksMin": "From",
+          "landmarksMax": "to"
+        },
+        "notes": {
+          "rivers": "One navigable river crosses the map.",
+          "holdings": "One of them is the Seat of Power.",
+          "myths": "Numbered from 1, so six at most.",
+          "landmarks": "of each type.",
+          "barriers": "One sixth of the hexes."
+        }
+      },
       "key": {
         "tagline": "Realm Key for seed {seed}. Only GMs see this.",
+        "taglineCustom": "Realm Key for seed {seed}, set up your own way. Only GMs see this.",
         "myths": "Myths",
         "holdings": "Holdings",
         "sanctums": "Seers at the Sanctums",
@@ -1878,7 +1909,8 @@
       },
       "reroll": {
         "title": "Reroll the Realm?",
-        "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay."
+        "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay.",
+        "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}."
       },
       "problems": {
         "terrain": "A hex with no terrain",
@@ -2019,7 +2051,11 @@
           "straight": "Straight",
           "bend": "Bend",
           "sharp": "Sharp bend",
-          "end": "Spring"
+          "end": "Spring",
+          "fork-left": "Fork to the left",
+          "fork-right": "Fork to the right",
+          "fork-wide": "Wide fork",
+          "fan": "Three-way fork"
         },
         "fits": {
           "hex": "Terrain pictures fill their hex",

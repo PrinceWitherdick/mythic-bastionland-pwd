@@ -80,6 +80,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @type {PIXI.Graphics|null} */
 	#preview = null;
 
+	/** @type {PIXI.Container|null} Tiles a Realm look being tried out adds, drawn on this client alone. */
+	#lookTiles = null;
+
 	#onPointerMove = () => this.#hover();
 
 	/**
@@ -105,9 +108,37 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		return null;
 	}
 
+	/**
+	 * Draw the Tiles a Realm look being tried out adds, such as the sheet's lake
+	 * shores, in place of any it drew before. No Scene holds them, so nothing
+	 * saves them and nobody else sees them.
+	 * @param {object[]} tiles Tile data, as planRealmSync would create it.
+	 * @returns {Promise<void>}
+	 */
+	async showLookTiles(tiles) {
+		this.clearLookTiles();
+		const scene = canvas.scene;
+		if (!this.#lookTiles || !scene) return;
+		await Promise.all(tiles.map((data) => {
+			// As Foundry draws a Tile being dragged out: a document that isn't in the Scene, and its object.
+			const document = new CONFIG.Tile.documentClass({ ...data, _id: foundry.utils.randomID() }, { parent: scene });
+			const tile = new CONFIG.Tile.objectClass(document);
+			document._object = tile;
+			this.#lookTiles.addChild(tile);
+			return tile.draw();
+		}));
+	}
+
+	/** Take away the Tiles a Realm look being tried out added. */
+	clearLookTiles() {
+		for (const tile of this.#lookTiles?.removeChildren() ?? []) tile.destroy({ children: true });
+	}
+
 	/** @override */
 	async _draw(options) {
 		await super._draw(options);
+		this.#lookTiles = this.addChild(new PIXI.Container());
+		this.#lookTiles.eventMode = "none";
 		this.#preview = this.addChild(new PIXI.Graphics());
 		this.#preview.eventMode = "none";
 	}
@@ -116,6 +147,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	async _tearDown(options) {
 		canvas.stage?.off("pointermove", this.#onPointerMove);
 		canvas.interface?.grid?.destroyHighlightLayer(HIGHLIGHT);
+		this.clearLookTiles();
+		this.#lookTiles = null;
 		this.#preview = null;
 		this.#painting = null;
 		this.hovered = null;

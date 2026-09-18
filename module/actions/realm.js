@@ -9,20 +9,21 @@ import {
 	planChanges,
 	planRealmSync,
 	realmFlag,
+	realmFlagChanges,
 	realmFromDocuments,
 	realmSceneData,
-	realmSceneFlag,
 	realmTextures
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
 import { generateRealm } from "../rules/realm-generator.js";
+import { SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { realmGeometry } from "../rules/realm-geometry.js";
 import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart } from "./company.js";
 import { filePicker } from "../book-art/files.js";
-
+import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
 
@@ -173,9 +174,11 @@ const existingDocuments = (scene) => ({
 const queueRealmWrite = serialWrites();
 
 /**
- * Bring a Scene's documents in line with a Realm: removals first, then
- * changes, then additions. Tiles and Drawings don't depend on each other, so
- * each step writes both at once.
+ * Bring a Scene in line with a Realm: first its flag, which holds what no
+ * document does, then its documents, removals first, then changes, then
+ * additions. Tiles and Drawings don't depend on each other, so each step
+ * writes both at once. The river Tiles are drawn from the flag's rivers, so
+ * should a write fail part way, Tidy finishes laying them from the flag.
  * @param {Scene} scene
  * @param {object} realm
  * @param {object} g
@@ -185,7 +188,15 @@ const queueRealmWrite = serialWrites();
  */
 async function writeRealm(scene, realm, g, textures, options) {
 	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), options);
-	if (!planChanges(plan)) return false;
+	const flag = realmFlagChanges(realmFlag(scene), realm, g);
+	if (!planChanges(plan) && !flag) return false;
+	if (flag) {
+		const path = (key) => `flags.${SYSTEM_ID}.${REALM_FLAG}.${key}`;
+		await scene.update(Object.fromEntries([
+			...Object.entries(flag.set).map(([key, value]) => [path(key), value]),
+			...flag.drop.map((key) => [path(key), new foundry.data.operators.ForcedDeletion()])
+		]));
+	}
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
@@ -193,6 +204,9 @@ async function writeRealm(scene, realm, g, textures, options) {
 	}
 	return true;
 }
+
+/** @returns {Promise<void>} Once every Realm write asked for so far on this client has landed. */
+export const realmWritesSettled = () => queueRealmWrite.settled();
 
 /**
  * Give a Realm Scene the paper and hex lines of its colour set.
@@ -260,7 +274,7 @@ export function previewRealmLook(look) {
 	const key = JSON.stringify(normaliseRealmLook(look));
 	if (key === (previews.get(scene.id) ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
 	previews.set(scene.id, key);
-	return queueRealmWrite(() => showRealmLook(scene, look, { redraw: true }));
+	return queueRealmWrite(() => showRealmLook(scene, look, { redraw: true, preview: true }));
 }
 
 /**
@@ -277,19 +291,36 @@ export function endRealmLookPreview({ redraw = true } = {}) {
 	});
 }
 
+/** Tiles a look being tried out hides on this client, by Scene id: each Tile's id, and the alpha it had. */
+const previewHidden = new Map();
+
 /**
  * Change a Realm Scene's documents to a look in this client's memory only.
+ * Some looks draw Tiles others don't, such as the sheet's lake shores: trying
+ * a look out hides those it has no use for, and draws those it adds on the
+ * canvas alone, with no document behind them. Showing the saved look takes
+ * both away again.
  * @param {Scene} scene
  * @param {import("../rules/realm-skins.js").RealmLook} look
- * @param {{redraw: boolean}} options
+ * @param {{redraw: boolean, preview?: boolean}} options `preview` for a look being tried out, rather than the saved one.
  */
-async function showRealmLook(scene, look, { redraw }) {
+async function showRealmLook(scene, look, { redraw, preview = false }) {
 	const textures = realmTextures(look);
 	const entry = getRealm(scene);
 	if (!entry) return;
-	// Only updates: a look never adds or removes a document.
-	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene));
+	const onCanvas = scene === canvas?.scene;
 	const changed = [];
+	// What the last look tried hid comes back first, so the plan is made against the Scene as it's saved.
+	for (const [id, alpha] of previewHidden.get(scene.id) ?? []) {
+		const tile = scene.tiles.get(id);
+		if (!tile) continue;
+		tile.updateSource({ alpha });
+		changed.push(tile);
+	}
+	previewHidden.delete(scene.id);
+	if (onCanvas) canvas.realm?.clearLookTiles();
+
+	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene));
 	for (const [type, writes] of Object.entries(plan)) {
 		for (const { _id, ...changes } of writes.update) {
 			const document = scene.getEmbeddedDocument(type, _id);
@@ -298,14 +329,26 @@ async function showRealmLook(scene, look, { redraw }) {
 			changed.push(document);
 		}
 	}
+	if (preview) {
+		const hidden = new Map();
+		for (const id of plan.Tile.delete) {
+			const tile = scene.tiles.get(id);
+			if (!tile) continue;
+			hidden.set(id, tile._source.alpha);
+			tile.updateSource({ alpha: 0 });
+			changed.push(tile);
+		}
+		if (hidden.size) previewHidden.set(scene.id, hidden);
+	}
 	const { grid, level, paper } = sceneColourChanges(scene, textures.colours);
 	if (grid) scene.updateSource({ "grid.color": grid });
 	if (paper) level.updateSource({ background: { color: paper } });
 
-	if (!redraw || scene !== canvas?.scene) return;
+	if (!redraw || !onCanvas) return;
 	// The paper and hex lines are only read as the Scene is drawn.
 	if (grid || paper) await canvas.draw();
 	else for (const document of changed) document.object?.renderFlags.set({ redraw: true });
+	if (preview && plan.Tile.create.length) await canvas.realm?.showLookTiles(plan.Tile.create);
 }
 
 /**
@@ -428,15 +471,21 @@ export async function syncRealmScene(scene, { report = false } = {}) {
  */
 export async function rerollRealm(scene) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	const confirmed = await confirmDialog({ title: t("realm.reroll.title"), icon: "fa-solid fa-dice", message: t("realm.reroll.confirm") });
+	const kept = SETUP_PARTS.filter((part) => getRealm(scene).realm.setup?.roll?.[part] === false);
+	const message = kept.length
+		? t("realm.reroll.confirmCustom", { parts: kept.map((part) => t(`realm.setup.parts.${part}`)).join(", ") })
+		: t("realm.reroll.confirm");
+	const confirmed = await confirmDialog({ title: t("realm.reroll.title"), icon: "fa-solid fa-dice", message });
 	if (!confirmed) return null;
 
 	const g = sceneGeometry(scene);
-	const realm = generateRealm({ seed: randomSeed(), geometry: g });
 	const textures = currentRealmTextures(scene);
 	await queueRealmWrite(async () => {
+		// Set up as it was first, keeping what the GM draws by hand.
+		const { realm: current } = getRealm(scene);
+		const realm = generateRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
+		// The new seed and rivers go into the Scene's flag with the rest.
 		await writeRealm(scene, realm, g, textures, { replacing: true });
-		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
 		// Undo would lay the old Realm's pieces over the new one.
 		forgetRealmHistory(scene.id);
 	});
@@ -459,7 +508,8 @@ export function addNewRealmButton(element) {
 }
 
 /**
- * Ask for a name and a seed, then roll a Realm onto a new Scene.
+ * Ask for a name and a seed, and how the Realm is set up, then roll a Realm
+ * onto a new Scene.
  * @returns {Promise<Scene|null>}
  */
 export async function newRealm() {
@@ -469,6 +519,7 @@ export async function newRealm() {
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
 		name: defaultName,
 		seed: randomSeed(),
+		setupParts: setupParts(),
 		img: COMPANY_IMAGE,
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
@@ -477,16 +528,22 @@ export async function newRealm() {
 	const data = await foundry.applications.api.DialogV2.input({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
 		classes: ["bastionland-dialog"],
+		position: { width: 460 },
 		content,
 		ok: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
 		rejectClose: false,
-		render: (_event, dialog) => wireCompanyFields(dialog.element)
+		render: (_event, dialog) => {
+			wireSetupFields(dialog.element);
+			wireCompanyFields(dialog.element);
+		}
 	});
 	if (!data) return null;
 
+	const setup = foundry.utils.expandObject(data).setup ?? {};
 	return createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
 		seed: String(data.seed ?? "").trim() || randomSeed(),
+		setup: normaliseRealmSetup(setup),
 		company: data.placeCompany ? {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
 			img: String(data.companyImg ?? "").trim() || COMPANY_IMAGE
@@ -520,12 +577,14 @@ function wireCompanyFields(element) {
  * @param {object} options
  * @param {string} options.name
  * @param {string} options.seed
+ * @param {import("../rules/realm-setup.js").RealmSetup|null} [options.setup] Omit for the book's.
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @returns {Promise<Scene|null>}
  */
-async function createRealmScene({ name, seed, company = null }) {
-	const geometry = realmGeometry();
-	const realm = generateRealm({ seed, geometry });
+async function createRealmScene({ name, seed, setup = null, company = null }) {
+	const { cols, rows } = normaliseRealmSetup(setup);
+	const geometry = realmGeometry({ cols, rows });
+	const realm = generateRealm({ seed, setup, geometry });
 	const look = getRealmLook();
 	const textures = realmTextures(look);
 	const data = foundry.utils.mergeObject(
@@ -539,13 +598,7 @@ async function createRealmScene({ name, seed, company = null }) {
 	if (canvas.loading) await new Promise((resolve) => Hooks.once("canvasReady", resolve));
 	if (canvas.scene?.id !== scene.id) await scene.view();
 
-	// A picture in the Scenes directory is a nicety; the Realm works without one.
-	try {
-		const { thumb } = await scene.createThumbnail();
-		if (thumb) await scene.update({ thumb });
-	} catch (error) {
-		console.warn(`${SYSTEM_ID} | Couldn't make a thumbnail for ${scene.name}`, error);
-	}
+	await refreshThumbnail(scene);
 
 	// A Courtier's Company begins at the Seat of Power; for the other Starts the Referee chooses (p6).
 	if (company) {
@@ -556,6 +609,23 @@ async function createRealmScene({ name, seed, company = null }) {
 
 	await postRealmKey(scene);
 	return scene;
+}
+
+/**
+ * Picture a Realm Scene in the Scenes directory as it's drawn now.
+ * @param {Scene} scene
+ * @param {object} [changes] Other changes to the Scene, sent in the same update.
+ * @returns {Promise<void>}
+ */
+async function refreshThumbnail(scene, changes = {}) {
+	// A picture in the Scenes directory is a nicety; the Realm works without one.
+	let thumb = null;
+	try {
+		({ thumb } = await scene.createThumbnail());
+	} catch (error) {
+		console.warn(`${SYSTEM_ID} | Couldn't make a thumbnail for ${scene.name}`, error);
+	}
+	if (thumb || !foundry.utils.isEmpty(changes)) await scene.update(thumb ? { ...changes, thumb } : changes);
 }
 
 /**
@@ -575,6 +645,7 @@ async function postRealmKey(scene) {
 	return postCard(null, "realm-key", {
 		title: scene.name,
 		seed: realm.seed,
+		custom: Boolean(realm.setup),
 		myths: realm.myths.map((myth) => {
 			const { name, page } = mythEntry(index, myth);
 			return { number: myth.number, name, page, where: where(myth.hex) };

@@ -1,4 +1,14 @@
-import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import {
+	REALM_HISTORY_HOOK,
+	REALM_LOOK_FLAG,
+	REALM_LOOK_HOOK,
+	forgetRealm,
+	forgetRealmHistory,
+	getRealm,
+	isRealmScene,
+	realmWritesSettled,
+	sceneGeometry
+} from "../actions/realm.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
@@ -51,14 +61,15 @@ function showChanges() {
 
 /**
  * Read a Scene's Realm again, and show the change under the pointer. A Reroll
- * or Tidy writes many documents at once, each with its own hook, so drawing
- * waits until the whole batch has landed.
+ * or Tidy writes many documents at once, each with its own hook, and every
+ * edit writes the Scene's flag before its documents, so drawing waits until
+ * this client's Realm writes have all landed.
  * @param {string|undefined} sceneId
  */
 function realmChanged(sceneId) {
 	forgetRealm(sceneId);
 	if (!sceneId) return;
-	if (!changedScenes.size) setTimeout(showChanges, 0);
+	if (!changedScenes.size) realmWritesSettled().then(() => setTimeout(showChanges, 0));
 	changedScenes.add(sceneId);
 }
 

@@ -11,26 +11,26 @@
  */
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
-import { HOLDINGS_REPLACE_TERRAIN, PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours } from "./realm-skins.js";
+import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures } from "./realm-skins.js";
+import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
+import { normaliseRealmSetup } from "./realm-setup.js";
 import {
-	DIRECTIONS,
 	GRID_HEXEVENQ,
 	allHexes,
-	edgeDirection,
 	edgeSegment,
 	hexAt,
 	hexCentre,
 	hexIndex,
 	hexKey,
 	inRealm,
-	neighbour,
 	parseEdgeKey,
-	parseHexKey,
-	turnBetween
+	parseHexKey
 } from "./realm-geometry.js";
 
 /** Draw order among the Realm's Tiles. Barrier lines are Drawings, which Foundry always draws above Tiles. */
-export const REALM_SORT = Object.freeze({ terrain: 0, river: 100, feature: 200, seat: 300 });
+export const REALM_SORT = Object.freeze({ terrain: 0, shore: 50, river: 100, feature: 200, seat: 300 });
+
+const VALLEY = TERRAIN.indexOf("valley") + 1;
 
 /** How much of a hex each icon fills: its height, and for terrain its width as well. */
 export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.85, myth: 0.5, seat: 0.3 });
@@ -55,20 +55,28 @@ const round = (value) => Math.round(value * 100) / 100;
  * @param {import("./realm-skins.js").RealmLook|null} [look] The world's Realm look. Omit for the default.
  * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean}>, holding: Record<string, {src: string}>,
  *   landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>, seat: {src: string},
- *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string}}} A terrain
- *   picture is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a
- *   Holding in its hex takes its place, as on the Blank Realm sheet.
+ *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
+ *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null,
+ *   valley: {floor: {src: string}, river: Record<string, {src: string}>}|null}} A terrain picture is an `icon`
+ *   when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex takes
+ *   its place, as on the Blank Realm sheet. `lake` is there when the skin joins its lakes up, and `valley` when
+ *   it runs rivers through Valleys between ridges: the Valley's plain hex, and each river piece; a GM's own Lake,
+ *   Valley or river picture is left as it is.
  */
 export function realmTextures(look = null) {
 	const { skin, palette, custom } = normaliseRealmLook(look);
 	const dir = realmSetDir(skin, palette);
 	const picture = (name) => ({ src: custom.files[name] ?? `${dir}/${name}.svg` });
+	const skinPicture = (name) => ({ src: `${dir}/${name}.svg` });
+	const features = skinFeatures(skin);
+	const joinsLakes = features.joinsLakes && !custom.files[PICTURE_NAME.terrain(LAKE)];
+	const valleyRivers = features.valleyRivers && !custom.files[PICTURE_NAME.terrain(VALLEY)];
 
 	return {
 		terrain: Object.fromEntries(TERRAIN.map((key, index) => {
 			const name = PICTURE_NAME.terrain(index + 1);
 			const own = custom.files[name];
-			if (!own) return [index + 1, { src: `${dir}/${name}.svg`, icon: false, givesWay: HOLDINGS_REPLACE_TERRAIN.includes(skin) }];
+			if (!own) return [index + 1, { src: `${dir}/${name}.svg`, icon: false, givesWay: features.holdingsGiveWay }];
 			const icon = custom.terrainFit === "icon";
 			return [index + 1, { src: own, icon, givesWay: icon }];
 		})),
@@ -77,6 +85,15 @@ export function realmTextures(look = null) {
 		myth: Object.fromEntries(Array.from({ length: MYTH_COUNT }, (_, index) => [index + 1, picture(PICTURE_NAME.myth(index + 1))])),
 		seat: picture(PICTURE_NAME.seat),
 		river: Object.fromEntries(RIVER_SHAPES.map((shape) => [shape, picture(PICTURE_NAME.river(shape))])),
+		lake: joinsLakes ? {
+			water: skinPicture(PICTURE_NAME.water),
+			shore: Object.fromEntries(SHORE_SHAPES.map((shape) => [shape, skinPicture(PICTURE_NAME.shore(shape))])),
+			mouth: skinPicture(PICTURE_NAME.mouth)
+		} : null,
+		valley: valleyRivers ? {
+			floor: skinPicture(PICTURE_NAME.valleyFloor),
+			river: Object.fromEntries(RIVER_SHAPES.filter((shape) => !custom.files[PICTURE_NAME.river(shape)]).map((shape) => [shape, skinPicture(PICTURE_NAME.valley(shape))]))
+		} : null,
 		colours: sceneColours(palette)
 	};
 }
@@ -111,51 +128,8 @@ function tileData({ centre, width, height, texture, sort, locked, hidden = false
 }
 
 /**
- * Which way a river leaves a hex at the edge of the map, as near as possible to
- * straight on from where it came in.
- * @returns {number|null} A direction, or null when the hex isn't at the edge.
- */
-function outwardDirection(g, hex, from) {
-	const outward = DIRECTIONS.map((_, direction) => direction).filter((direction) => !neighbour(g, hex, direction));
-	if (!outward.length) return null;
-	const straightness = (direction) => (from === null ? 0 : turnBetween(direction, from));
-	return outward.reduce((best, direction) => (straightness(direction) > straightness(best) ? direction : best));
-}
-
-/**
- * The river as pieces laid on each hex it passes through. Lakes carry the
- * water themselves, so they get no piece.
- * @param {object} g
- * @param {{col: number, row: number}[]} river Source to mouth.
- * @param {number[]} terrain
- * @returns {{index: number, hex: object, shape: string, rotation: number}[]} Rotation in degrees, clockwise,
- *   of a piece drawn from the hex's south edge.
- */
-export function riverPieces(g, river, terrain) {
-	const valid = river.filter((hex) => inRealm(g, hex));
-	return valid.flatMap((hex, index) => {
-		if (terrain[hexIndex(g, hex)] === LAKE) return [];
-		const previous = index > 0 ? edgeDirection(hex, valid[index - 1]) : null;
-		const next = index < valid.length - 1 ? edgeDirection(hex, valid[index + 1]) : null;
-		const a = previous ?? outwardDirection(g, hex, next);
-		const b = next ?? outwardDirection(g, hex, previous);
-
-		const rotationFrom = (direction) => (60 * (direction - 1) + 360) % 360;
-		if (a === null || b === null) {
-			const only = a ?? b ?? 1;
-			return [{ index, hex, shape: "end", rotation: rotationFrom(only) }];
-		}
-
-		// Pieces are drawn turning one way, so a turn the other way is the same piece laid from its far end.
-		const turn = (b - a + 6) % 6;
-		const [from, sweep] = turn > 3 ? [b, 6 - turn] : [a, turn];
-		const shape = { 1: "sharp", 2: "bend", 3: "straight" }[sweep] ?? "straight";
-		return [{ index, hex, shape, rotation: rotationFrom(from) }];
-	});
-}
-
-/**
- * The Scene flag a Realm Scene carries.
+ * The Scene flag a Realm Scene carries. A Realm set up other than the book's
+ * way keeps its setup, so a reroll sets it up the same way.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  */
@@ -165,8 +139,33 @@ export const realmSceneFlag = (realm, g) => ({
 	size: g.size,
 	cols: g.cols,
 	rows: g.rows,
-	river: realm.river.map(hexKey)
+	rivers: realm.rivers.map((course) => course.map(hexKey)),
+	...(realm.setup ? { setup: realm.setup } : {})
 });
+
+/** Where older Scenes kept their rivers, before every river was kept alike. */
+const OLD_RIVER_FIELDS = Object.freeze(["river", "branches"]);
+
+/** JSON with every object's keys in order, so data saved with its keys in another order still reads as the same. */
+const canonical = (value) => JSON.stringify(value ?? null, (_key, inner) => (inner && typeof inner === "object" && !Array.isArray(inner)
+	? Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+	: inner));
+
+/**
+ * What a Realm Scene's flag needs to hold a Realm: its rivers, seed and setup,
+ * which no document carries. Scenes still keeping their rivers the old way
+ * lose those fields, since `rivers` now holds them all.
+ * @param {object|null} current The Scene's flag as it is.
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g
+ * @returns {{set: object, drop: string[]}|null} Fields to write and fields to remove, or null when the flag already fits.
+ */
+export function realmFlagChanges(current, realm, g) {
+	const wanted = realmSceneFlag(realm, g);
+	const set = Object.fromEntries(Object.entries(wanted).filter(([key, value]) => canonical(current?.[key]) !== canonical(value)));
+	const drop = [...OLD_RIVER_FIELDS, ...(wanted.setup ? [] : ["setup"])].filter((key) => current && key in current);
+	return Object.keys(set).length || drop.length ? { set, drop } : null;
+}
 
 /**
  * @param {string} edge
@@ -208,22 +207,35 @@ function barrierDrawing(g, { edge, revealed }, colour) {
  */
 export function realmDocuments(realm, g, textures) {
 	const tiles = [];
+	const courses = riverCourses(realm, g);
+	const pieces = riverNetworkPieces(g, courses, realm.terrain);
+	const piecesByHex = new Map();
+	for (const piece of pieces) piecesByHex.set(hexKey(piece.hex), [...(piecesByHex.get(hexKey(piece.hex)) ?? []), piece]);
+	// Where the skin runs a river through a Valley between ridges of its own, the Valley's drawing gives way to its plain tinted hex.
+	const valleyRivers = new Set(textures.valley ? [...piecesByHex]
+		.filter(([, list]) => realm.terrain[hexIndex(g, list[0].hex)] === VALLEY && list.every((piece) => textures.valley.river[piece.shape]))
+		.map(([key]) => key) : []);
+	// Where the skin joins lakes up, a lake that meets another or takes in a river is open water inside shores.
+	const works = textures.lake ? lakeWorks(g, courses, realm.terrain) : null;
+	const openWater = new Set((works?.water ?? []).map(hexKey));
 
 	// A terrain picture of the GM's own may sit inside its hex. Some give way to a Holding there, as on the Blank Realm sheet.
 	const holdingHexes = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	for (const hex of allHexes(g)) {
 		const terrain = realm.terrain[hexIndex(g, hex)];
 		if (!terrain) continue;
+		const key = hexKey(hex);
 		const picture = textures.terrain[terrain];
 		const scale = picture.icon ? ICON_SCALE.terrain : 1;
+		const src = openWater.has(key) ? textures.lake.water.src : valleyRivers.has(key) ? textures.valley.floor.src : picture.src;
 		tiles.push({
-			match: `terrain:${hexKey(hex)}`,
+			match: `terrain:${key}`,
 			data: tileData({
 				centre: hexCentre(g, hex),
 				width: g.hexWidth * scale,
 				height: g.size * scale,
-				texture: { src: picture.src, fit: picture.icon ? "contain" : "fill" },
-				alpha: picture.givesWay && holdingHexes.has(hexKey(hex)) ? 0 : 1,
+				texture: { src, fit: picture.icon ? "contain" : "fill" },
+				alpha: picture.givesWay && holdingHexes.has(key) ? 0 : 1,
 				sort: REALM_SORT.terrain,
 				locked: true,
 				flag: { kind: "terrain", terrain }
@@ -231,19 +243,26 @@ export function realmDocuments(realm, g, textures) {
 		});
 	}
 
-	for (const piece of riverPieces(g, realm.river, realm.terrain)) {
+	const hexPiece = (hex, texture, { sort, rotation, flag }) => tileData({
+		centre: hexCentre(g, hex), width: g.hexWidth, height: g.size, texture, sort, locked: true, rotation, flag
+	});
+	for (const piece of pieces) {
+		const texture = valleyRivers.has(hexKey(piece.hex)) ? textures.valley.river[piece.shape] : textures.river[piece.shape];
 		tiles.push({
 			match: `river:${piece.index}`,
-			data: tileData({
-				centre: hexCentre(g, piece.hex),
-				width: g.hexWidth,
-				height: g.size,
-				texture: textures.river[piece.shape],
-				sort: REALM_SORT.river,
-				locked: true,
-				rotation: piece.rotation,
-				flag: { kind: "river", index: piece.index }
-			})
+			data: hexPiece(piece.hex, texture, { sort: REALM_SORT.river, rotation: piece.rotation, flag: { kind: "river", index: piece.index } })
+		});
+	}
+	for (const { hex, edge, shape, rotation } of works?.shores ?? []) {
+		tiles.push({
+			match: `shore:${hexKey(hex)}:${edge}`,
+			data: hexPiece(hex, textures.lake.shore[shape], { sort: REALM_SORT.shore, rotation, flag: { kind: "shore", edge } })
+		});
+	}
+	for (const { hex, edge, rotation } of works?.mouths ?? []) {
+		tiles.push({
+			match: `mouth:${hexKey(hex)}:${edge}`,
+			data: hexPiece(hex, textures.lake.mouth, { sort: REALM_SORT.river, rotation, flag: { kind: "mouth", edge } })
 		});
 	}
 
@@ -352,7 +371,10 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g) {
 	const sceneFlag = realmFlag({ flags }) ?? {};
 	const realm = emptyRealm(g, sceneFlag.seed ?? null);
-	realm.river = (sceneFlag.river ?? []).map(parseHexKey).filter((hex) => inRealm(g, hex));
+	if (sceneFlag.setup) realm.setup = { ...normaliseRealmSetup(sceneFlag.setup), cols: g.cols, rows: g.rows };
+	// Scenes made before every river was kept alike have a `river`, and perhaps `branches` after it.
+	const rivers = sceneFlag.rivers ?? [sceneFlag.river ?? [], ...(sceneFlag.branches ?? [])];
+	realm.rivers = rivers.map((course) => course.map(parseHexKey).filter((hex) => inRealm(g, hex))).filter((course) => course.length);
 	const problems = [];
 
 	for (const tile of tiles) {
@@ -414,6 +436,11 @@ function existingMatch(g, kind, data, replacing) {
 			return hex ? `terrain:${hexKey(hex)}` : null;
 		}
 		case "river": return `river:${flag.index}`;
+		case "shore":
+		case "mouth": {
+			const hex = hexAt(g, data);
+			return hex ? `${flag.kind}:${hexKey(hex)}:${flag.edge}` : null;
+		}
 		case "seat": return "seat";
 		// An icon dragged off the map isn't in the Realm, so it's left for the GM rather than deleted with its Omens.
 		case "holding":
@@ -424,7 +451,7 @@ function existingMatch(g, kind, data, replacing) {
 }
 
 /** Fields planRealmSync keeps as they are on a document that already exists. */
-const KEPT_ON_UPDATE = Object.freeze({ terrain: ["hidden"], river: ["hidden"], seat: ["hidden"], holding: ["hidden"] });
+const KEPT_ON_UPDATE = Object.freeze({ terrain: ["hidden"], river: ["hidden"], shore: ["hidden"], mouth: ["hidden"], seat: ["hidden"], holding: ["hidden"] });
 
 /**
  * @returns {object|null} The changes that bring `existing` in line with `desired`, or null when none are needed.

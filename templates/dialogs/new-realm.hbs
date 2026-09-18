@@ -16,6 +16,43 @@
 		<p class="hint">{{localize "bastionland.realm.dialog.seedHint"}}</p>
 	</div>
 
+	<details class="bastionland-realm-setup">
+		<summary>{{localize "bastionland.realm.setup.title"}}</summary>
+		<div class="bastionland-realm-setup__body">
+			<p class="hint">{{localize "bastionland.realm.setup.intro"}}</p>
+
+			<label class="bastionland-check">
+				<input type="checkbox" name="setup.ignoreRules" data-setup-ignore>
+				<span class="bastionland-check__label">{{localize "bastionland.realm.setup.ignoreRules"}}</span>
+			</label>
+			<p class="hint">{{localize "bastionland.realm.setup.ignoreRulesHint"}}</p>
+
+			<div class="bastionland-realm-setup__parts">
+				{{#each setupParts}}
+				<div class="bastionland-realm-setup__part" data-setup-part="{{key}}">
+					{{#if rollable}}
+					<label class="bastionland-check bastionland-realm-setup__name">
+						<input type="checkbox" name="setup.roll.{{key}}" checked data-setup-roll>
+						<span class="bastionland-check__label">{{label}}</span>
+					</label>
+					{{else}}
+					<span class="bastionland-realm-setup__name">{{label}}</span>
+					{{/if}}
+					<div class="bastionland-realm-setup__numbers">
+						{{#each fields}}
+						<label class="bastionland-realm-setup__field">
+							{{#if label}}<span>{{label}}</span>{{/if}}
+							<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" disabled data-setup-number data-book="{{value}}"{{#unless label}} aria-label="{{../label}}"{{/unless}}>
+						</label>
+						{{/each}}
+						{{#if note}}<span class="bastionland-realm-setup__note">{{note}}</span>{{/if}}
+					</div>
+				</div>
+				{{/each}}
+			</div>
+		</div>
+	</details>
+
 	<fieldset>
 		<legend>{{localize "bastionland.company.title"}}</legend>
 

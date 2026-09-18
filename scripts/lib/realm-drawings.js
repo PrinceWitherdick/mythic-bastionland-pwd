@@ -9,7 +9,8 @@ import { join } from "node:path";
 import { contrast, mix } from "../../module/rules/colour.js";
 import { chargeNotice, recolourCharge } from "../../module/rules/heraldry-charges.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
-import { PICTURE_NAME, realmPalette } from "../../module/rules/realm-skins.js";
+import { PICTURE_NAME, realmPalette, skinPictures } from "../../module/rules/realm-skins.js";
+import { SHORE_SHAPES } from "../../module/rules/realm-rivers.js";
 import { escapeHTML } from "../../module/rules/text.js";
 import { curvePath, drawInk, inkNumeral, inkRing } from "./realm-ink.js";
 
@@ -127,6 +128,14 @@ function edgeMidpoint(k) {
 /** The edge each river piece leaves by, drawn from the south edge (direction 1). A spring ends in the hex. */
 const RIVER_ENDS = { straight: 4, bend: 3, sharp: 2, end: null };
 
+/**
+ * A fork is drawn as two courses from the south edge, splitting as they go, by
+ * the edge each leaves by: a straight course and a bend, two bends, or a bend
+ * and a sharp one. Each is the course a piece leaving by that edge runs, so a
+ * fork meets its neighbours just as they do.
+ */
+const FORK_COURSES = Object.freeze({ "fork-left": [4, 3], "fork-right": [4, 5], "fork-wide": [3, 5], fan: [3, 2] });
+
 /** A river path from the south edge (direction 1) to the edge in `to`, meeting each edge square on. */
 function riverPath(to) {
 	const start = edgeMidpoint(1);
@@ -195,9 +204,12 @@ function burst(outer, inner, rays = 8) {
 	}).join(" ");
 }
 
-/** A river drawn as banks of `edge` either side of `water`, with an optional line down the middle. */
+/**
+ * A river drawn as banks of `edge` either side of `water`, with an optional line down the middle. A fork's
+ * courses are each drawn in the one path, all their banks before any water, so the water runs together.
+ */
 function river(shape, { bank, water, edge, width, middle }) {
-	const d = riverPath(RIVER_ENDS[shape]);
+	const d = FORK_COURSES[shape] ? FORK_COURSES[shape].map(riverPath).join("") : riverPath(RIVER_ENDS[shape]);
 	const pool = shape === "end" ? `<circle cx="${f(HEX_W / 2)}" cy="${f(HEX_H / 2)}" r="${f(HEX_H * 0.07)}" fill="${water}" stroke="${bank}" stroke-width="${f(edge)}"/>` : "";
 	const banks = bank ? `<path d="${d}" fill="none" stroke="${bank}" stroke-width="${f(width + 2 * edge)}" stroke-linecap="butt"/>` : "";
 	const line = middle ? `<path d="${d}" fill="none" stroke="${middle.stroke}" stroke-width="${f(middle.width)}" stroke-dasharray="${middle.dash ?? "none"}" stroke-linecap="butt"/>` : "";
@@ -294,6 +306,22 @@ function riverCourse(shape) {
 }
 
 /**
+ * The course a piece leaving by `edge` runs, bending either way.
+ * @param {number} edge A direction other than the south.
+ * @returns {{x: number, y: number}[][]}
+ */
+function courseTo(edge) {
+	if (edge === RIVER_ENDS.straight) return riverCourse("straight");
+	const start = edgeMidpoint(1);
+	const end = edgeMidpoint(edge);
+	const reach = edge === 0 || edge === 2 ? HEX_H * 0.44 : HEX_H * 0.3;
+	return [[start, { x: start.x + start.inX * reach, y: start.y + start.inY * reach }, { x: end.x + end.inX * reach, y: end.y + end.inY * reach }, end]];
+}
+
+/** @returns {{x: number, y: number}[][][]} Each course a river piece runs, as cubic Béziers from the south edge. */
+const pieceCourses = (shape) => (FORK_COURSES[shape] ?? [RIVER_ENDS[shape]]).map((edge) => (edge === null || edge === undefined ? riverCourse(shape) : courseTo(edge)));
+
+/**
  * Points with the direction the line runs through each, in the order they come.
  * @param {{x: number, y: number}[]} points
  * @returns {{x: number, y: number, dx: number, dy: number}[]}
@@ -362,18 +390,22 @@ function bank(edge, phase) {
 	return curvePath([corner(edge[0]), ...edge.slice(1, last), corner(edge[last]), corner(outer[last]), ...outer.slice(1, last).reverse(), corner(outer[0])], true);
 }
 
+const upstream = (points) => [...points].reverse().map((point) => ({ ...point, dx: -point.dx, dy: -point.dy }));
+const ends = (points) => points.map((point, index) => (index === 0 || index === points.length - 1 ? { ...point, sharp: true } : point));
+
+/** @returns {{x: number, y: number}[]} Points close together along cubic Béziers. */
+const densely = (segments) => segments.flatMap((segment, index) => Array.from({ length: 81 }, (_, step) => cubicAt(segment, step / 80)).slice(index ? 1 : 0));
+
 /**
- * A river piece as the Realm Sheets draw their rivers: white water between two
- * hand-inked banks, the one on the outside of each bend drawn heavier.
- * @param {string} shape One of RIVER_SHAPES.
- * @param {object} p A colour set.
- * @returns {string}
+ * One run of river as the Realm Sheets ink it, along cubic Béziers: its
+ * course, each side of its water, the water, and the two banks.
+ * @param {{x: number, y: number}[][]} segments
+ * @param {string} shape The piece it's part of, whose name sets how its banks waver.
+ * @returns {{course: object[], left: object[], right: object[], water: string, banks: string}}
  */
-function inkedRiver(shape, p) {
-	const { water, waver } = INKED_RIVER;
-	const segments = riverCourse(shape);
-	const dense = segments.flatMap((segment, index) => Array.from({ length: 81 }, (_, step) => cubicAt(segment, step / 80)).slice(index ? 1 : 0));
-	const course = evenly(dense, 48);
+function inkedRun(segments, shape, { waver = INKED_RIVER.waver } = {}) {
+	const { water } = INKED_RIVER;
+	const course = evenly(densely(segments), 48);
 	const last = course.length - 1;
 	// Where the course crosses a hex's edge it runs square to it, so the banks meet the edge square on too.
 	const heading = (from, to) => {
@@ -390,29 +422,249 @@ function inkedRiver(shape, p) {
 		const reach = water / 2 + Math.sin(Math.PI * s) * waver * Math.sin(2 * Math.PI * (1.3 * s + phase + (sign > 0 ? 0 : 0.37)));
 		return { x: point.x - sign * point.dy * reach, y: point.y + sign * point.dx * reach, dx: point.dx, dy: point.dy };
 	});
-	const upstream = (points) => [...points].reverse().map((point) => ({ ...point, dx: -point.dx, dy: -point.dy }));
 	const left = side(-1);
 	const right = side(1);
-	const ends = (points) => points.map((point, index) => (index === 0 || index === points.length - 1 ? { ...point, sharp: true } : point));
-
-	if (shape === "end") {
-		// The banks meet around the spring, in one line running with the water on its right.
-		const tip = course[last];
-		const start = Math.atan2(left[last].y - tip.y, left[last].x - tip.x);
-		const cap = Array.from({ length: 9 }, (_, index) => {
-			const angle = start + (Math.PI * (index + 1)) / 10;
-			return { x: tip.x + (Math.cos(angle) * water) / 2, y: tip.y + (Math.sin(angle) * water) / 2 };
-		});
-		const around = evenly([...left, ...cap, ...upstream(right)], 72);
-		Object.assign(around[0], { dx: course[0].dx, dy: course[0].dy });
-		Object.assign(around.at(-1), { dx: -course[0].dx, dy: -course[0].dy });
-		return svg(HEX_W, HEX_H, `<path d="${curvePath(ends(around), true)}" fill="${p.water}"/><path d="${bank(around, phase)}" fill="${p.ink}"/>`);
-	}
-
-	const waterPath = curvePath([...ends(left), ...ends(right).reverse()], true);
-	return svg(HEX_W, HEX_H, `<path d="${waterPath}" fill="${p.water}"/>`
-		+ `<path d="${bank(left, phase)}${bank(upstream(right), phaseOf(shape, 2))}" fill="${p.ink}"/>`);
+	return {
+		course,
+		left,
+		right,
+		water: curvePath([...ends(left), ...ends(right).reverse()], true),
+		banks: `${bank(left, phase)}${bank(upstream(right), phaseOf(shape, 2))}`
+	};
 }
+
+/**
+ * A river piece as the Realm Sheets draw their rivers: white water between two
+ * hand-inked banks, the one on the outside of each bend drawn heavier. A fork
+ * draws every bank before any water, so its courses' water runs together.
+ * @param {string} shape One of RIVER_SHAPES.
+ * @param {object} p A colour set.
+ * @returns {string} The piece's paths.
+ */
+function inkedRiverBody(shape, p) {
+	if (FORK_COURSES[shape]) {
+		const runs = pieceCourses(shape).map((segments) => inkedRun(segments, shape));
+		return `<path d="${runs.map((run) => run.banks).join("")}" fill="${p.ink}"/><path d="${runs.map((run) => run.water).join("")}" fill="${p.water}"/>`;
+	}
+	const { course, left, right, water, banks } = inkedRun(riverCourse(shape), shape);
+	if (shape !== "end") return `<path d="${water}" fill="${p.water}"/><path d="${banks}" fill="${p.ink}"/>`;
+
+	// The banks meet around the spring, in one line running with the water on its right.
+	const last = course.length - 1;
+	const tip = course[last];
+	const start = Math.atan2(left[last].y - tip.y, left[last].x - tip.x);
+	const cap = Array.from({ length: 9 }, (_, index) => {
+		const angle = start + (Math.PI * (index + 1)) / 10;
+		return { x: tip.x + (Math.cos(angle) * INKED_RIVER.water) / 2, y: tip.y + (Math.sin(angle) * INKED_RIVER.water) / 2 };
+	});
+	const around = evenly([...left, ...cap, ...upstream(right)], 72);
+	Object.assign(around[0], { dx: course[0].dx, dy: course[0].dy });
+	Object.assign(around.at(-1), { dx: -course[0].dx, dy: -course[0].dy });
+	return `<path d="${curvePath(ends(around), true)}" fill="${p.water}"/><path d="${bank(around, phaseOf(shape, 1))}" fill="${p.ink}"/>`;
+}
+
+/** @returns {string} A river piece as the Realm Sheets draw it. */
+const inkedRiver = (shape, p) => svg(HEX_W, HEX_H, inkedRiverBody(shape, p));
+
+/* -------------------------------------------- */
+/*  Lakes and Valleys on the Blank Realm        */
+/* -------------------------------------------- */
+
+/**
+ * A lake's shore where lakes are joined, across a hex 480 high: how far in
+ * from its hex's edge the shore runs, how far along the next edge it crosses
+ * into the lake beside, how heavy its ink is and how far that swells, and how
+ * jagged a hand draws it, less where a river may run in.
+ */
+const LAKE_SHORE = Object.freeze({ inset: 66, crossing: 60, weight: 18, swell: 8, jag: 9, calm: 2 });
+
+/** A number from 0 to 1 for a whole number and a salt, the same on every machine. */
+function noise(index, salt) {
+	let hash = Math.imul(index + 7919, 0x9e3779b1) ^ Math.imul(salt + 104729, 0x85ebca6b);
+	hash = Math.imul(hash ^ (hash >>> 15), 0x2c1b3c6d);
+	hash = Math.imul(hash ^ (hash >>> 12), 0x297a2d39);
+	return ((hash ^ (hash >>> 15)) >>> 0) / 2 ** 32;
+}
+
+/** The hex's corners, corner k at 60k degrees about its middle. */
+const corner = (k) => ({ x: HEX_W / 2 + (HEX_W / 2) * Math.cos((Math.PI * k) / 3), y: HEX_H / 2 + (HEX_W / 2) * Math.sin((Math.PI * k) / 3) });
+
+/** @returns {{x: number, y: number}} `distance` along from `a` toward `b`. */
+const toward = (a, b, distance) => {
+	const length = Math.hypot(b.x - a.x, b.y - a.y);
+	return { x: a.x + ((b.x - a.x) / length) * distance, y: a.y + ((b.y - a.y) / length) * distance };
+};
+
+/**
+ * Open water filling the hex, hatched as the Blank Realm's lake is, in rows
+ * spaced so they carry on from one lake hex into the next. Shores are laid
+ * over it.
+ */
+function lakeWater(p) {
+	const fill = p.terrain[TERRAIN.indexOf("lake")];
+	const strokes = [];
+	for (let row = 0; row < 10; row++) {
+		const y = 24 + 48 * row;
+		let x = -40 + noise(row, 1) * 60;
+		for (let dash = 0; x < HEX_W + 20; dash++) {
+			const salt = row * 31 + dash;
+			const length = 60 + noise(salt, 2) * 170;
+			const thick = 8 + noise(salt, 3) * 6;
+			const lift = (noise(salt, 4) - 0.5) * 8;
+			const bow = (noise(salt, 5) - 0.5) * 7;
+			const points = Array.from({ length: 7 }, (_, step) => {
+				const t = step / 6;
+				return { x: x + length * t, y: y + lift + bow * Math.sin(Math.PI * t) + 1.5 * Math.sin(5 * t + salt) };
+			});
+			// A pen stroke, blunt at each end and a little fuller in the middle.
+			const half = (index) => (thick / 2) * (0.6 + 0.4 * Math.sin((Math.PI * index) / 6));
+			const upper = points.map((point, index) => ({ x: point.x, y: point.y - half(index) }));
+			const lower = points.map((point, index) => ({ x: point.x, y: point.y + half(index) }));
+			strokes.push(curvePath([...upper, ...lower.reverse()], true));
+			x += length + 16 + noise(salt, 6) * 34;
+		}
+	}
+	return svg(HEX_W, HEX_H, `<defs><clipPath id="hex"><polygon points="${hexPoints()}"/></clipPath></defs>`
+		+ `<polygon points="${hexPoints()}" fill="${fill}" stroke="${p.rule}" stroke-width="${1.5 * SCALE}"/>`
+		+ `<g clip-path="url(#hex)"><path d="${strokes.join("")}" fill="${p.ink}"/></g>`);
+}
+
+/**
+ * Where a shore along the south edge runs, from its end at the south-east
+ * corner to its end at the south-west one. Beside a shore of the same lake it
+ * ends on the line from the corner to the hex's middle, turning as the next
+ * shore does; beside open water it crosses the next edge square on, as the
+ * shore of the lake beside carries on from it.
+ * @param {string} shape One of SHORE_SHAPES.
+ * @returns {{x: number, y: number, dx: number, dy: number}[]} Evenly spaced, running with the water on the right.
+ */
+function shoreCourse(shape) {
+	const { inset, crossing } = LAKE_SHORE;
+	const middle = { x: HEX_W / 2, y: HEX_H / 2 };
+	const along = inset / Math.sin(Math.PI / 3);
+	const end = (open, near, next, turned) => (open
+		? { point: toward(corner(near), corner(next), crossing), heading: turned.open }
+		: { point: toward(corner(near), middle, along), heading: turned.closed });
+	const east = end(shape === "ccw" || shape === "both", 1, 0, { open: { x: -0.866, y: -0.5 }, closed: { x: -0.866, y: 0.5 } });
+	const west = end(shape === "cw" || shape === "both", 2, 3, { open: { x: -0.866, y: 0.5 }, closed: { x: -0.866, y: -0.5 } });
+	const mid = { x: HEX_W / 2, y: HEX_H - inset };
+	const handle = (a, b) => Math.hypot(b.x - a.x, b.y - a.y) / 3;
+	const east1 = handle(east.point, mid);
+	const west1 = handle(mid, west.point);
+	const segments = [
+		[east.point, { x: east.point.x + east.heading.x * east1, y: east.point.y + east.heading.y * east1 }, { x: mid.x + east1, y: mid.y }, mid],
+		[mid, { x: mid.x - west1, y: mid.y }, { x: west.point.x - west.heading.x * west1, y: west.point.y - west.heading.y * west1 }, west.point]
+	];
+	const course = evenly(densely(segments), 40);
+	Object.assign(course[0], { dx: east.heading.x, dy: east.heading.y });
+	Object.assign(course.at(-1), { dx: west.heading.x, dy: west.heading.y });
+	return course;
+}
+
+/**
+ * A lake's shore along the south edge: the land between it and the edge, and
+ * the shore inked heavily along the water, jagged as a hand draws it but calm
+ * about the middle, where a river may run in, and plain at its ends, where it
+ * meets the next shore.
+ * @param {string} shape One of SHORE_SHAPES.
+ */
+function lakeShore(shape, p) {
+	const { weight, swell, jag, calm } = LAKE_SHORE;
+	const course = shoreCourse(shape);
+	const last = course.length - 1;
+	const line = course.map((point, index) => {
+		const s = index / last;
+		const settled = Math.min(1, Math.abs(point.x - HEX_W / 2) / 90);
+		// Now and then the pen jabs out into the water, as the sheet's own lake shore does.
+		const jab = noise(index, 8) > 0.82 ? 1.8 : 1;
+		const reach = Math.sin(Math.PI * s) * (calm + (jag - calm) * settled) * (2 * noise(index, 7) - 1) * (jab > 1 ? jab * settled : 1);
+		// Into the water is to the right of the way the shore runs.
+		return { ...point, x: point.x - point.dy * reach, y: point.y + point.dx * reach, sharp: jab > 1 && settled > 0.5 };
+	});
+	const outer = line.map((point, index) => {
+		const s = index / last;
+		const heavy = weight + Math.sin(Math.PI * s) * swell * Math.sin(2 * Math.PI * (1.6 * s + 0.2));
+		return { x: point.x + point.dy * heavy, y: point.y - point.dx * heavy };
+	});
+	const sharp = (point) => ({ ...point, sharp: true });
+	const ink = curvePath([sharp(line[0]), ...line.slice(1, last), sharp(line[last]), sharp(outer[last]), ...outer.slice(1, last).reverse(), sharp(outer[0])], true);
+	const land = curvePath([sharp(corner(1)), sharp(line[0]), ...line.slice(1, last), sharp(line[last]), sharp(corner(2))], true);
+	const fill = p.terrain[TERRAIN.indexOf("lake")];
+	const rule = [[corner(2), corner(1)], ...(shape === "ccw" || shape === "both" ? [[corner(1), course[0]]] : []), ...(shape === "cw" || shape === "both" ? [[course[last], corner(2)]] : [])]
+		.map(([a, b]) => `M${f(a.x)} ${f(a.y)}L${f(b.x)} ${f(b.y)}`).join("");
+	return svg(HEX_W, HEX_H, `<path d="${land}" fill="${fill}"/><path d="${rule}" fill="none" stroke="${p.rule}" stroke-width="${1.5 * SCALE}"/><path d="${ink}" fill="${p.ink}"/>`);
+}
+
+/**
+ * A river running in from the south edge through a lake's shore: its banks
+ * end in the shore's ink, and its water runs on through the ink to the lake.
+ */
+function riverMouth(p) {
+	const start = edgeMidpoint(1);
+	const shore = HEX_H - LAKE_SHORE.inset;
+	const run = (to) => inkedRun([[start, { x: start.x, y: HEX_H - 20 }, { x: start.x, y: to + 20 }, { x: start.x, y: to }]], "mouth", { waver: 0 });
+	return svg(HEX_W, HEX_H, `<path d="${run(shore + LAKE_SHORE.weight / 2).banks}" fill="${p.ink}"/>`
+		+ `<path d="${run(shore - LAKE_SHORE.calm - 3).water}" fill="${p.water}"/>`);
+}
+
+/**
+ * The Valley's ridges, as its legend picture branches them off the valley
+ * floor, along either side of each course a river piece runs: a spur growing
+ * from the bank, swept back, and ending in a club. Each keeps inside the hex
+ * and clear of the water.
+ */
+const VALLEY_SPURS = Object.freeze({ root: 40, length: 96, sweep: 0.55, bend: 0.35, width: 20, waist: 9, club: 17, clear: 60, apart: 34, margin: 14 });
+
+function valleySpurs(shape) {
+	const { root, length, sweep, bend, width, waist, club, clear, apart, margin } = VALLEY_SPURS;
+	const courses = pieceCourses(shape).map((segments) => evenly(densely(segments), 60));
+	const everywhere = courses.flat();
+	const inside = ({ x, y }) => [0, 1, 2, 3, 4, 5].every((k) => {
+		const a = corner(k);
+		const b = corner(k + 1);
+		// Distance in from each edge, the hex being convex and its corners running clockwise.
+		return ((b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)) / Math.hypot(b.x - a.x, b.y - a.y) >= margin;
+	});
+	const clearOf = (points, distance) => (point) => points.every((other) => Math.hypot(other.x - point.x, other.y - point.y) >= distance);
+	const drawn = [];
+	const spurs = [];
+	courses.forEach((course, which) => {
+		[0.3, 0.7].forEach((share, place) => {
+			const at = course[Math.round(share * (course.length - 1))];
+			for (const sign of [-1, 1]) {
+				// Out from the bank and swept back along the course, one way at one place and the other way at the next.
+				const out = { x: -sign * at.dy, y: sign * at.dx };
+				const back = (place + which + (sign > 0 ? 1 : 0)) % 2 ? 1 : -1;
+				const heading = { x: out.x + back * sweep * at.dx, y: out.y + back * sweep * at.dy };
+				const norm = Math.hypot(heading.x, heading.y);
+				const dir = { x: heading.x / norm, y: heading.y / norm };
+				// It bends as it goes, further back the way it's swept.
+				const turned = { x: dir.x + back * bend * at.dx, y: dir.y + back * bend * at.dy };
+				const from = { x: at.x + out.x * root, y: at.y + out.y * root };
+				const knee = { x: from.x + dir.x * length * 0.5, y: from.y + dir.y * length * 0.5 };
+				const tip = { x: knee.x + turned.x * length * 0.5, y: knee.y + turned.y * length * 0.5 };
+				const spine = densely([[from, knee, knee, tip]]);
+				const outer = spine.slice(Math.floor(spine.length * 0.35));
+				if (!spine.every(inside) || !outer.every(clearOf(everywhere, clear)) || !spine.every(clearOf(drawn, apart))) continue;
+				drawn.push(...spine);
+				// Thick where it leaves the bank, narrowing, then swelling to a club before its tip.
+				const widthAt = (s) => (s < 0.6 ? width + (waist - width) * (s / 0.6) : waist + (club - waist) * Math.sin(Math.PI * Math.min(1, (s - 0.6) / 0.32)) - (s > 0.92 ? (s - 0.92) * 60 : 0));
+				const along = evenly(spine, 18);
+				const half = (index) => Math.max(2, widthAt(index / 18)) / 2;
+				const upper = along.map((point, index) => ({ x: point.x - point.dy * half(index), y: point.y + point.dx * half(index) }));
+				const lower = along.map((point, index) => ({ x: point.x + point.dy * half(index), y: point.y - point.dx * half(index) }));
+				spurs.push(curvePath([...upper, ...lower.reverse()], true));
+			}
+		});
+	});
+	return spurs.join("");
+}
+
+/** @returns {string} A river piece running through a Valley, between its ridges. */
+const valleyRiver = (shape, p) => svg(HEX_W, HEX_H, `<path d="${valleySpurs(shape)}" fill="${p.ink}"/>${inkedRiverBody(shape, p)}`);
+
+/** @returns {string} The Valley's hex with nothing drawn in it, tinted as the Valley is, for its river pieces to lie on. */
+const valleyFloor = (p) => svg(HEX_W, HEX_H, `<polygon points="${hexPoints()}" fill="${p.terrain[TERRAIN.indexOf("valley")]}" stroke="${p.rule}" stroke-width="${1.5 * SCALE}"/>`);
 
 /* -------------------------------------------- */
 /*  The Armorial skin's drawings                */
@@ -483,7 +735,11 @@ const SKINS = {
 		seat: (p) => svg(BADGE, BADGE, inkMark(inkRing(42, { shadow: false, open: true, width: 9 }), { x: 150, y: 150, size: 290, ink: goldRim(p), paper: p.paper })
 			+ inkMark(inkRing(42, { shadow: false, open: true, width: 5.5 }), { x: 150, y: 150, size: 290, ink: CROWN_GOLD, paper: p.paper })
 			+ crown(p, 184)),
-		river: inkedRiver
+		river: inkedRiver,
+		// The sheet's lake sits inside its hex, so lakes that meet are drawn as open water inside shores.
+		lake: { water: lakeWater, shore: lakeShore, mouth: riverMouth },
+		// As the Realm Sheets draw a river through a Valley: between ridges, over the Valley's plain tinted hex.
+		valley: { river: valleyRiver, floor: valleyFloor }
 	},
 
 	/** Pale tinted hexes ruled in ink, and lettered roundels. */
@@ -602,5 +858,14 @@ export function drawRealmSet(skin, paletteKey) {
 	for (let number = 1; number <= MYTH_COUNT; number++) files[`${PICTURE_NAME.myth(number)}.svg`] = draw.myth(number, p);
 	files[`${PICTURE_NAME.seat}.svg`] = draw.seat(p);
 	for (const shape of RIVER_SHAPES) files[`${PICTURE_NAME.river(shape)}.svg`] = draw.river(shape, p);
+	// The skin's own extras, by the picture names skinPictures gives.
+	const extras = new Map([
+		[PICTURE_NAME.water, () => draw.lake.water(p)],
+		...SHORE_SHAPES.map((shape) => [PICTURE_NAME.shore(shape), () => draw.lake.shore(shape, p)]),
+		[PICTURE_NAME.mouth, () => draw.lake.mouth(p)],
+		[PICTURE_NAME.valleyFloor, () => draw.valley.floor(p)],
+		...RIVER_SHAPES.map((shape) => [PICTURE_NAME.valley(shape), () => draw.valley.river(shape, p)])
+	]);
+	for (const name of skinPictures(skin)) files[`${name}.svg`] = extras.get(name)();
 	return files;
 }
