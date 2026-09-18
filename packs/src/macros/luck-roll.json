@@ -1,0 +1,19 @@
+{
+  "_id": "mbLuckRollMacro1",
+  "_key": "!macros!mbLuckRollMacro1",
+  "name": "Luck Roll",
+  "type": "script",
+  "img": "icons/magic/control/buff-luck-fortune-green.webp",
+  "scope": "global",
+  "command": "game.system.api.rollLuck();",
+  "folder": null,
+  "sort": 100000,
+  "ownership": {
+    "default": 2
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "luckRollMacro": true
+    }
+  }
+}

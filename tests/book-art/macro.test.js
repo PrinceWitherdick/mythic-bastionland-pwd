@@ -1,7 +1,12 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { IMPORT_MACRO_ID, MACRO_SEEDED_SETTING, ensureImportMacro } from "../../module/book-art/macro.js";
+import { LAST_SLOT, SYSTEM_MACRO_FLAGS, arrangeHotbar, emptySlot } from "../../module/actions/hotbar-macro.js";
+import { IMPORT_HOTBAR_FLAG, IMPORT_MACRO_ID, MACRO_SEEDED_SETTING, ensureImportHotbar, ensureImportMacro } from "../../module/book-art/macro.js";
+// Loaded for the macros they declare to hotbarMacro.
+import "../../module/actions/luck-macro.js";
+import "../../module/actions/site-macro.js";
+import "../../module/rulebook/macro.js";
 import { MACROS_PACK, SYSTEM_ID } from "../../module/system-id.js";
 
 const root = join(import.meta.dirname, "../..");
@@ -15,7 +20,9 @@ describe("Import Book Art macro source", () => {
 		expect(source._id).toMatch(/^[A-Za-z0-9]{16}$/);
 		expect(source._key).toBe(`!macros!${IMPORT_MACRO_ID}`);
 		expect(source).toMatchObject({ type: "script", scope: "global" });
-		expect(source.img).toMatch(/^icons\//);
+		// Stonetop's Import PDF icon, shipped with this system.
+		expect(source.img).toBe(`systems/${manifest.id}/assets/icons/macros/spell-book.svg`);
+		expect(existsSync(join(root, source.img.replace(`systems/${manifest.id}/`, "")))).toBe(true);
 	});
 
 	it("lives in a Macro compendium declared in system.json", () => {
@@ -33,6 +40,34 @@ describe("Import Book Art macro source", () => {
 		const warn = vi.fn();
 		await expect(run({ system: {} }, { notifications: { warn } })).resolves.toBeUndefined();
 		expect(warn).toHaveBeenCalledOnce();
+	});
+});
+
+describe("Macro compendium", () => {
+	const dir = join(root, "packs/src/macros");
+	const sources = readdirSync(dir).map((file) => JSON.parse(readFileSync(join(dir, file), "utf8")));
+
+	it("keys every macro for the compendium, each id once", () => {
+		for (const macro of sources) {
+			expect(macro._id).toMatch(/^[A-Za-z0-9]{16}$/);
+			expect(macro._key).toBe(`!macros!${macro._id}`);
+			expect(macro).toMatchObject({ type: "script", scope: "global" });
+		}
+		expect(new Set(sources.map((macro) => macro._id)).size).toBe(sources.length);
+	});
+
+	// A spare copy of each macro the system makes in code, for a GM who deleted theirs.
+	it.each([
+		["module/actions/luck-macro.js", "luckRollMacro"],
+		["module/actions/site-macro.js", "newSiteMacro"],
+		["module/rulebook/macro.js", "rulebookMacro"]
+	])("holds the macro %s makes, flagged as the world's copy", (file, flag) => {
+		const code = readFileSync(join(root, file), "utf8");
+		const macro = sources.find((entry) => entry.flags?.[manifest.id]?.[flag]);
+		expect(macro).toBeDefined();
+		expect(code).toContain(`macroFlag: "${flag}"`);
+		expect(code).toContain(`img: "${macro.img}"`);
+		expect(code).toContain(`command: "${macro.command}"`);
 	});
 });
 
@@ -115,6 +150,80 @@ describe("ensureImportMacro", () => {
 			await ensureImportMacro();
 			expect(warn).toHaveBeenCalledWith("bastionland.bookArt.packMissing");
 			expect(create).not.toHaveBeenCalled();
+		}
+	});
+});
+
+describe("arrangeHotbar", () => {
+	it("keeps the last slot, the one labelled 0, from the other system macros", () => {
+		expect(LAST_SLOT).toBe(10);
+		const nine = Object.fromEntries(Array.from({ length: 9 }, (_, index) => [index + 1, `m${index}`]));
+		expect(emptySlot(nine, "rb")).toBeNull();
+	});
+
+	it("moves Import Book Art to the last slot and slides the system macros left", () => {
+		const hotbar = { 1: "import", 2: "rb", 3: "luck", 4: "site", 6: "mine" };
+		expect(arrangeHotbar(hotbar, "import", ["rb", "luck", "site"]))
+			.toEqual({ 1: "rb", 2: "luck", 3: "site", 6: "mine", 10: "import" });
+	});
+
+	it("slides only into gaps, leaving the user's own macros where they are", () => {
+		const hotbar = { 1: "mine", 2: "import", 3: "rb", 5: "luck" };
+		expect(arrangeHotbar(hotbar, "import", ["rb", "luck"]))
+			.toEqual({ 1: "mine", 2: "rb", 3: "luck", 10: "import" });
+	});
+
+	it("puts Import Book Art in the last slot when it wasn't on the bar", () => {
+		expect(arrangeHotbar({ 1: "rb" }, "import", ["rb"])).toEqual({ 1: "rb", 10: "import" });
+	});
+
+	it("leaves Import Book Art where it is when the user keeps their own macro in the last slot", () => {
+		const hotbar = { 1: "import", 2: "rb", 10: "mine" };
+		expect(arrangeHotbar(hotbar, "import", ["rb"])).toEqual(hotbar);
+	});
+});
+
+describe("ensureImportHotbar", () => {
+	const systemMacro = (id, flag) => ({ id, getFlag: (scope, key) => scope === SYSTEM_ID && key === flag });
+
+	function installWorld({ isGM = true, placed = false, macro = true, hotbar = {} } = {}) {
+		const update = vi.fn();
+		const setFlag = vi.fn();
+		const macros = [
+			...(macro ? [systemMacro(IMPORT_MACRO_ID, null)] : []),
+			...SYSTEM_MACRO_FLAGS.map((flag) => systemMacro(flag, flag)),
+			systemMacro("mine", null)
+		];
+		globalThis.game = {
+			user: { isGM, hotbar, update, setFlag, getFlag: (scope, key) => scope === SYSTEM_ID && key === IMPORT_HOTBAR_FLAG && placed },
+			macros: { get: (id) => macros.find((entry) => entry.id === id), filter: (test) => macros.filter(test) }
+		};
+		globalThis.foundry = { utils: { objectsEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b) } };
+		return { update, setFlag };
+	}
+
+	afterEach(() => {
+		for (const key of ["game", "foundry"]) delete globalThis[key];
+	});
+
+	it("rearranges a GM's hotbar once", async () => {
+		expect(SYSTEM_MACRO_FLAGS).toEqual(expect.arrayContaining(["rulebookMacro", "luckRollMacro", "newSiteMacro"]));
+		const [first, second] = SYSTEM_MACRO_FLAGS;
+		const { update, setFlag } = installWorld({ hotbar: { 1: IMPORT_MACRO_ID, 2: first, 3: second, 4: "mine" } });
+		await ensureImportHotbar();
+		expect(update).toHaveBeenCalledWith(
+			{ hotbar: { 1: first, 2: second, 4: "mine", 10: IMPORT_MACRO_ID } },
+			{ diff: false, recursive: false, noHook: true }
+		);
+		expect(setFlag).toHaveBeenCalledWith(SYSTEM_ID, IMPORT_HOTBAR_FLAG, true);
+	});
+
+	it("leaves players, GMs it has already placed, and worlds without the macro alone", async () => {
+		for (const options of [{ isGM: false }, { placed: true }, { macro: false }]) {
+			const { update, setFlag } = installWorld({ ...options, hotbar: { 1: IMPORT_MACRO_ID } });
+			await ensureImportHotbar();
+			expect(update).not.toHaveBeenCalled();
+			expect(setFlag).not.toHaveBeenCalled();
 		}
 	});
 });

@@ -1,0 +1,19 @@
+{
+  "_id": "mbRulebookMacro1",
+  "_key": "!macros!mbRulebookMacro1",
+  "name": "Rulebook",
+  "type": "script",
+  "img": "icons/sundries/books/book-embossed-bound-brown.webp",
+  "scope": "global",
+  "command": "game.system.api.toggleRulebook();",
+  "folder": null,
+  "sort": 300000,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "rulebookMacro": true
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "_id": "mbNewSiteMacro01",
+  "_key": "!macros!mbNewSiteMacro01",
+  "name": "New Site",
+  "type": "script",
+  "img": "icons/environment/wilderness/tomb-entrance.webp",
+  "scope": "global",
+  "command": "game.system.api.newSite();",
+  "folder": null,
+  "sort": 200000,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "newSiteMacro": true
+    }
+  }
+}

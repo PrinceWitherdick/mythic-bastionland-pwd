@@ -20,7 +20,7 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
-import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
+import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { openHexLore } from "./module/apps/HexLore.js";
@@ -250,10 +250,11 @@ const WORLD_SETUP = Object.freeze([
 ]);
 
 Hooks.once("ready", async () => {
+	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),
-		ensureImportMacro(),
-		runWorldSetup(WORLD_SETUP).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)
+		// Import Book Art takes the hotbar's last slot once every other macro has its own.
+		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)]).then(ensureImportHotbar),
 	]);
 });
 
