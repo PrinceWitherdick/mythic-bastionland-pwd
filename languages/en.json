@@ -1686,6 +1686,7 @@
       "readingSpark": "Import PDF: reading the Spark Tables",
       "readingGoods": "Import PDF: reading Arms & Goods",
       "readingCityQuest": "Import PDF: reading the City Quest",
+      "readingRules": "Import PDF: reading the rules pages",
       "cityQuestParts": {
         "omens": "Omens",
         "cast": "Cast"
@@ -1699,7 +1700,11 @@
         "myth": "Myth",
         "spark": "Spark Table",
         "goods": "Arms & Goods:",
-        "cityQuest": "City Quest"
+        "cityQuest": "City Quest",
+        "rules": "Rules:"
+      },
+      "rulePages": {
+        "creatingRealm": "Creating a Realm"
       },
       "report": {
         "title": "PDF Imported",
@@ -1707,6 +1712,7 @@
         "textRead": "{kind} text: {read} of {total} read",
         "sparkRead": "Spark Tables: {read} of {total} read",
         "cityQuestRead": "City Quest: {omens} of {total} Omens and {cast} of the Cast read",
+        "rulesRead": "Rules pages: {read} of {total} read",
         "goods": "Arms & Goods: {items} items in the {itemsPack} compendium, and {actors} beasts, hirelings, Warbands and structures in {actorsPack}",
         "goodsNotGM": "Arms & Goods were read, but only a GM can fill their compendiums. Run the import again as a GM.",
         "goodsFailed": "The Arms & Goods compendiums couldn’t be filled. If either is locked, unlock it and run the import again.",
@@ -1733,7 +1739,8 @@
           "sparkText": "its rows couldn’t be read, so it’s left out of the Spark Tables",
           "sparkPage": "no Spark Tables could be read from the page",
           "goodsKind": "none could be read, so the compendium goes without them",
-          "cityQuestText": "they couldn’t be read, so the City Quest goes without them"
+          "cityQuestText": "they couldn’t be read, so the City Quest goes without them",
+          "rulesText": "the page couldn’t be read, so the free Blank Realm sheet’s words stand in for it"
         }
       }
     },

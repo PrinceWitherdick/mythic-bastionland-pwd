@@ -438,6 +438,13 @@ describe("buildIndex", () => {
 		expect(buildIndex({ entries: [], cityQuest: { ...cityQuest, omens: null }, pdfPages: 212 }).cityQuest.omens).toBeNull();
 	});
 
+	it("keeps each rules page read, and none when none were", () => {
+		const rules = { creatingRealm: { page: 14, sections: [{ heading: "Moorland", blocks: [{ kind: "paragraph", text: "Paint patches of moor." }] }] } };
+		expect(buildIndex({ entries: [], rules, pdfPages: 212 })).toMatchObject({ version: INDEX_VERSION, rules });
+		expect(buildIndex({ entries: [], pdfPages: 212 }).rules).toEqual({});
+		expect(INDEX_VERSION).toBeGreaterThanOrEqual(8);
+	});
+
 	it("keeps the text read from each kind's page", () => {
 		const knight = { property: ["Hooked lamp"], ability: { name: "Snuff Out", text: "Put out a flame." }, passion: { name: "Vigil", text: "Keep watch." } };
 		expect(indexEntry({ kind: "knight", d6: 1, d12: 1, page: 28, file: "knights/1-01-knight.webp", text: knight })).toMatchObject(knight);

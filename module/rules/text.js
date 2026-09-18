@@ -33,7 +33,8 @@ export const cleanText = (text) => text.normalize("NFKC").replace(/\s+/g, " ").t
  */
 export const joinLines = (before, after) => (/\p{L}-$/u.test(before) ? `${before}${after}` : `${before} ${after}`);
 
-const BULLET = /^[•●▪]\s*/;
+/** The bullet a list line starts with in the book. */
+export const BULLET = /^[•●▪]\s*/;
 
 /** Words a wrapped line ends on in the middle of a sentence. */
 const JOINING_WORDS = new Set([

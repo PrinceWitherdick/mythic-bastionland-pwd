@@ -8,6 +8,7 @@ import {
 	KINDS,
 	KIND_FOLDERS,
 	PAGE_KINDS,
+	RULES_KIND,
 	SPARK_KIND,
 	TEXT_REASONS,
 	artDirectories,
@@ -36,8 +37,10 @@ import {
 	goodsFromPages
 } from "../rules/arms-and-goods.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOmensFromItems } from "../rules/city-quest.js";
+import { RULE_PAGES, rulePageFromItems } from "../rules/rule-pages.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { ART_INDEX_HOOK } from "./art-index.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
@@ -201,6 +204,9 @@ async function extractArt(pdf, OPS) {
 	progress.update({ message: t("bookArt.readingCityQuest") });
 	const cityQuest = await readCityQuest(pdf, problems);
 
+	progress.update({ message: t("bookArt.readingRules") });
+	const rules = await readRulePages(pdf, problems);
+
 	progress.update({ message: t("bookArt.readingGoods") });
 	const goods = await readGoods(pdf, problems);
 
@@ -210,11 +216,13 @@ async function extractArt(pdf, OPS) {
 		problems,
 		spark,
 		cityQuest,
+		rules,
 		pdfPages: pdf.numPages,
 		importedAt: new Date().toISOString(),
 		systemVersion: game.system.version
 	});
 	const indexPath = await uploadFile(ART_ROOT, new File([JSON.stringify(index, null, "\t")], INDEX_FILE, { type: "application/json" }));
+	if (indexPath) Hooks.callAll(ART_INDEX_HOOK);
 
 	progress.update({ message: t("bookArt.fillingGoods") });
 	const goodsLines = [];
@@ -441,6 +449,22 @@ async function readCityQuest(pdf, problems) {
 }
 
 /**
+ * Read each rules page, reporting one whose sections couldn't be read.
+ * @param {object} pdf
+ * @param {object[]} problems Added to.
+ * @returns {Promise<Record<string, {page: number, sections: object[]}>>} By each page's key in RULE_PAGES.
+ */
+async function readRulePages(pdf, problems) {
+	const rules = {};
+	for (const [key, page] of Object.entries(RULE_PAGES)) {
+		const sections = await readPageText(pdf, page, rulePageFromItems);
+		if (sections) rules[key] = { page, sections };
+		else problems.push({ kind: RULES_KIND, roll: t(`bookArt.rulePages.${key}`), page, reason: "rulesText" });
+	}
+	return rules;
+}
+
+/**
  * @param {object} index
  * @param {string|null} indexPath
  * @param {string[]} [goodsLines] What became of Arms & Goods.
@@ -467,6 +491,10 @@ async function showReport(index, indexPath, goodsLines = []) {
 			omens: index.cityQuest?.omens?.length ?? 0,
 			total: CITY_OMEN_COUNT,
 			cast: index.cityQuest?.cast?.length ?? 0
+		}),
+		t("bookArt.report.rulesRead", {
+			read: Object.keys(index.rules ?? {}).length,
+			total: Object.keys(RULE_PAGES).length
 		}),
 		...goodsLines
 	].filter(Boolean);

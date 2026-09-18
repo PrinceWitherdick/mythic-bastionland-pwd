@@ -3,7 +3,8 @@ import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, FEATS, GAMBIT_DETAILS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
-import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
+import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, RULES_KIND, SPARK_KIND } from "../module/rules/book-art.js";
+import { RULE_PAGES } from "../module/rules/rule-pages.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
 import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
@@ -115,6 +116,10 @@ describe("localization", () => {
 		`bookArt.kinds.${SPARK_KIND}`,
 		`bookArt.kinds.${GOODS_KIND}`,
 		`bookArt.kinds.${CITY_QUEST_KIND}`,
+		`bookArt.kinds.${RULES_KIND}`,
+		...Object.keys(RULE_PAGES).map((key) => `bookArt.rulePages.${key}`),
+		"bookArt.readingRules",
+		"bookArt.report.rulesRead",
 		...["omens", "cast"].map((part) => `bookArt.cityQuestParts.${part}`),
 		...GOODS_KINDS.map((kind) => `goods.folders.${kind}`),
 		...RARITIES.map((rarity) => `goods.rarities.${rarity}`),

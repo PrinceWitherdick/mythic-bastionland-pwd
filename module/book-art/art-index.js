@@ -1,6 +1,10 @@
 import { t } from "../chat/cards.js";
 import { ART_ROOT, INDEX_FILE } from "../rules/book-art.js";
 import { mythReference, seerReference } from "../rules/realm.js";
+import { SYSTEM_ID } from "../system-id.js";
+
+/** Called on the importing client once Import PDF has written a new index, for windows holding on to the one they read. */
+export const ART_INDEX_HOOK = `${SYSTEM_ID}.artIndexChanged`;
 
 /**
  * Fetch a JSON file Import PDF wrote. The browser asks the server each

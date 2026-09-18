@@ -8,7 +8,7 @@
  * with a picture of the Seer who knighted them, and a Myth facing it.
  */
 import { parseStatLine } from "./stat-blocks.js";
-import { cleanText, joinLines, logicalLines } from "./text.js";
+import { BULLET, cleanText, joinLines, logicalLines } from "./text.js";
 
 /** Top-level folder under Foundry's Data path, outside any system or world. */
 export const ART_ROOT = "mythic-bastionland-art";
@@ -19,9 +19,10 @@ export const INDEX_FILE = "index.json";
  * 2 added each Knight's Property, Ability and Passion. 3 added each Myth's
  * Omens and Cast, and each Seer's stats. 4 added the Spark Tables. 5 added
  * the City Quest's Omens and Cast. 6 added each Knight's square token. 7
- * added the prompts along the foot of each Knight's page to their Seer.
+ * added the prompts along the foot of each Knight's page to their Seer. 8
+ * added the rules pages, starting with Creating a Realm (p14).
  */
-export const INDEX_VERSION = 7;
+export const INDEX_VERSION = 8;
 
 /** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
 export const MYTH_TEXT_VERSION = 3;
@@ -53,13 +54,16 @@ export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["my
  * Why an entry needs a second look. `extra` still saves the largest match and
  * the text reasons still save the picture; the rest leave the picture out.
  */
-export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind", "cityQuestText"]);
+export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind", "cityQuestText", "rulesText"]);
 
 /** The kind a problem reading the Spark Tables is reported under. */
 export const SPARK_KIND = "spark";
 
 /** The kind a problem reading the City Quest is reported under. */
 export const CITY_QUEST_KIND = "cityQuest";
+
+/** The kind a problem reading a rules page is reported under. */
+export const RULES_KIND = "rules";
 
 /** Which problem reports that a kind's text couldn't be read. */
 export const TEXT_REASONS = Object.freeze({ knight: "text", seer: "seerText", myth: "mythText" });
@@ -274,7 +278,6 @@ export function textLines(items) {
 const PROPERTY_HEADING = /^property$/i;
 const ABILITY_HEADING = /^ability\s*[-–—]\s*(.+)$/i;
 const PASSION_HEADING = /^passion\s*[-–—]\s*(.+)$/i;
-const BULLET = /^[•●▪]\s*/;
 
 /**
  * The body under a heading: each following line in the heading's size, until
@@ -603,12 +606,14 @@ export function hasPageText(kind, entry) {
  *   Each page of Spark Tables, from sparkTablesFromItems.
  * @param {{omens: string[]|null, cast: CastEntry[]|null, castNote: string}|null} [data.cityQuest]
  *   The City Quest's Omens and Cast, each null when unread, and any note beneath the Cast.
+ * @param {Record<string, {page: number, sections: object[]}>} [data.rules] Each rules page read, by its key in
+ *   RULE_PAGES, as rulePageFromItems reads it.
  * @param {number} data.pdfPages
  * @param {string} data.importedAt ISO timestamp.
  * @param {string} data.systemVersion
  * @returns {object}
  */
-export function buildIndex({ entries, problems = [], spark = [], cityQuest = null, pdfPages, importedAt, systemVersion }) {
+export function buildIndex({ entries, problems = [], spark = [], cityQuest = null, rules = {}, pdfPages, importedAt, systemVersion }) {
 	const index = { version: INDEX_VERSION, systemVersion, importedAt, pdfPages, root: ART_ROOT };
 	for (const kind of KINDS) {
 		index[KIND_FOLDERS[kind]] = entries
@@ -618,6 +623,7 @@ export function buildIndex({ entries, problems = [], spark = [], cityQuest = nul
 	}
 	index.spark = spark;
 	index.cityQuest = cityQuest;
+	index.rules = rules;
 	index.problems = problems;
 	return index;
 }
