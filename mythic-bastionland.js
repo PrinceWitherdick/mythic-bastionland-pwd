@@ -20,7 +20,9 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
+import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
+import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { openHexLore } from "./module/apps/HexLore.js";
@@ -175,6 +177,8 @@ Hooks.once("init", () => {
 	// Realm Scenes: the GM's Realm tools, Barriers that stop Tokens, and the hex readout.
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
 	registerRealmHooks();
+	CONFIG.Token.objectClass = BastionlandToken;
+	registerTokenHeraldryHooks();
 	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
 	game.keybindings.register(SYSTEM_ID, "redoRealm", {
 		name: "bastionland.realm.keybinding.redo.name",
@@ -250,6 +254,8 @@ const WORLD_SETUP = Object.freeze([
 ]);
 
 Hooks.once("ready", async () => {
+	// Nothing else waits on this.
+	squareKnightTokens();
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),

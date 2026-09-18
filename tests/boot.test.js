@@ -43,6 +43,7 @@ function installFoundryStubs() {
 		},
 		documents: { JournalEntry: class JournalEntry {} },
 		canvas: {
+			placeables: { Token: class Token {} },
 			layers: {
 				InteractionLayer: class {
 					static get layerOptions() {
@@ -52,7 +53,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, fontDefinitions: {}, queries: {} };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, fontDefinitions: {}, queries: {} };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {

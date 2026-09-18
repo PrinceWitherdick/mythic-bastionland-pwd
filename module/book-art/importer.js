@@ -25,7 +25,7 @@ import {
 	tokenFile,
 	withArticle
 } from "../rules/book-art.js";
-import { portraitTokens, tokenCrop } from "../rules/knight-tokens.js";
+import { tokenCrop } from "../rules/knight-tokens.js";
 import {
 	GOODS_KIND,
 	GOODS_KIND_PAGES,
@@ -42,6 +42,7 @@ import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
 import { showImportReport } from "./report.js";
+import { useSquareTokens } from "./square-tokens.js";
 
 /** Stops a second import starting while one is under way. */
 let running = false;
@@ -330,31 +331,6 @@ async function fillPack({ name, type, label }, folders) {
 	if (!filled.length) return;
 	const created = await folderClass.createDocuments(filled.map((folder) => ({ name: folder.name, type, sort: folder.sort })), operation);
 	await documentClass.createDocuments(filled.flatMap((folder, index) => folder.documents.map((data) => ({ ...data, folder: created[index].id }))), operation);
-}
-
-/**
- * Swap each Knight's portrait for its square token wherever a token still
- * shows the portrait: Knights' prototype tokens, and Knight tokens already
- * on a scene. Token art chosen by hand is left alone. GMs only.
- * @param {object} index
- * @returns {Promise<{actors: number, tokens: number}>} How many of each changed.
- */
-async function useSquareTokens(index) {
-	const squares = portraitTokens(index.knights);
-	if (!squares.size) return { actors: 0, tokens: 0 };
-
-	const actorUpdates = game.actors
-		.filter((actor) => actor.type === "knight" && squares.has(actor.prototypeToken.texture.src))
-		.map((actor) => ({ _id: actor.id, "prototypeToken.texture.src": squares.get(actor.prototypeToken.texture.src) }));
-	if (actorUpdates.length) await Actor.implementation.updateDocuments(actorUpdates);
-
-	const sceneUpdates = game.scenes
-		.map((scene) => [scene, scene.tokens
-			.filter((token) => token.actor?.type === "knight" && squares.has(token.texture.src))
-			.map((token) => ({ _id: token.id, "texture.src": squares.get(token.texture.src) }))])
-		.filter(([, updates]) => updates.length);
-	await Promise.all(sceneUpdates.map(([scene, updates]) => scene.updateEmbeddedDocuments("Token", updates)));
-	return { actors: actorUpdates.length, tokens: sceneUpdates.reduce((sum, [, updates]) => sum + updates.length, 0) };
 }
 
 /**

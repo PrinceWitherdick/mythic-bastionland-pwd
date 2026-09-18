@@ -52,6 +52,8 @@
     "heraldry": {
       "title": "Heraldry of {name}",
       "paint": "Paint heraldry",
+      "hideOnToken": "Hide heraldry",
+      "showOnToken": "Show heraldry",
       "toolbar": "Painting tools",
       "tools": {
         "brush": "Brush",
