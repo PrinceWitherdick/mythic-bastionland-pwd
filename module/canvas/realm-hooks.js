@@ -1,7 +1,8 @@
-import { REALM_LOOK_HOOK, forgetRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { attachHexReadout, detachHexReadout, updateHexReadout } from "./hex-readout.js";
 
 /**
@@ -66,10 +67,13 @@ export function registerRealmHooks() {
 	for (const name of ["createTile", "updateTile", "deleteTile", "createDrawing", "updateDrawing", "deleteDrawing"]) {
 		Hooks.on(name, onDocument);
 	}
-	Hooks.on("updateScene", (scene) => realmChanged(scene.id));
 	Hooks.on("deleteScene", (scene) => forgetRealm(scene.id));
+	Hooks.on("updateScene", (scene, changes) => {
+		realmChanged(scene.id);
+		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
+	});
 	// The terrain brush shows the pictures the Realm is drawn with.
-	Hooks.on(REALM_LOOK_HOOK, () => refreshRealmPanel(canvas?.scene?.id));
+	Hooks.on(REALM_LOOK_HOOK, (sceneId) => sceneId && refreshRealmPanel(sceneId));
 
 	Hooks.on("canvasReady", () => attachHexReadout());
 	Hooks.on("canvasTearDown", () => detachHexReadout());

@@ -2371,15 +2371,28 @@
 	border-radius: 4px;
 }
 
+/* A grid, so Foundry's own figure styles can't stack the tiles one per row. */
 .bastionland-realm-appearance__group {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 2.6rem);
+	justify-content: start;
 	gap: 0.3rem;
+}
+
+.bastionland-realm-appearance__group.is-hexes {
+	grid-template-columns: repeat(auto-fill, 3.5rem);
 }
 
 .bastionland-realm-appearance__group figure {
 	position: relative;
+	display: block;
+	width: auto;
+	min-width: 0;
 	margin: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
 }
 
 .bastionland-realm-appearance__group img {

@@ -18,10 +18,13 @@ import { generateRealm } from "../rules/realm-generator.js";
 import { realmGeometry } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
-/** The world's choice of skin, colour set and pictures for Realm Scenes. */
+/** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
 
-/** Called on every client when the Realm look changes. */
+/** The Scene flag holding a Realm Scene's own skin, colour set and pictures. */
+export const REALM_LOOK_FLAG = "realmLook";
+
+/** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
 
 /** Register the Realm look settings. Called during init. */
@@ -31,27 +34,53 @@ export function registerRealmSettings() {
 		config: false,
 		type: Object,
 		default: defaultRealmLook(),
-		onChange: () => {
-			// One GM repaints the Scenes; everyone else sees the documents change.
-			if (game.users.activeGM?.isSelf) refreshRealmScenes();
-			Hooks.callAll(REALM_LOOK_HOOK, getRealmLook());
-		}
+		// Only new Realms use it, so no Scene is redrawn.
+		onChange: () => Hooks.callAll(REALM_LOOK_HOOK, null)
 	});
 }
 
-/** @returns {import("../rules/realm-skins.js").RealmLook} */
-export const getRealmLook = () => normaliseRealmLook(game.settings.get(SYSTEM_ID, REALM_LOOK_SETTING));
+/** @returns {import("../rules/realm-skins.js").RealmLook} The look new Realm Scenes start with. */
+const defaultLook = () => normaliseRealmLook(game.settings.get(SYSTEM_ID, REALM_LOOK_SETTING));
 
 /**
- * @param {import("../rules/realm-skins.js").RealmLook} look
- * @returns {Promise<void>} Every Realm Scene is repainted once the setting lands.
+ * @param {Scene|null} [scene] Omit for the look new Realm Scenes start with.
+ * @returns {import("../rules/realm-skins.js").RealmLook} The look a Realm Scene is drawn in.
  */
-export async function setRealmLook(look) {
+export function getRealmLook(scene) {
+	const own = isRealmScene(scene) ? scene.getFlag(SYSTEM_ID, REALM_LOOK_FLAG) : null;
+	return own ? normaliseRealmLook(own) : defaultLook();
+}
+
+/** @param {import("../rules/realm-skins.js").RealmLook} look */
+const lookFlag = (look) => ({ [`flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`]: normaliseRealmLook(look) });
+
+/**
+ * Give a Realm Scene a look of its own and redraw it in that look. The look
+ * also becomes the one new Realm Scenes start with; no other Scene changes.
+ * @param {Scene|null} scene A Realm Scene, or null to change only what new Realms start with.
+ * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @returns {Promise<void>}
+ */
+export async function setRealmLook(scene, look) {
+	if (!game.user.isGM) return;
+	// Scenes still drawn in the old default keep it, rather than drifting to the new one as they're edited.
+	await keepRealmLooks();
+	if (isRealmScene(scene)) {
+		const textures = realmTextures(look);
+		await queueRealmWrite(async () => {
+			await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures);
+			// The flag rides with the colours, so the Scene is drawn again once.
+			await paintRealmScene(scene, textures.colours, lookFlag(look));
+		});
+	}
 	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, normaliseRealmLook(look));
 }
 
-/** @returns {ReturnType<typeof realmTextures>} The pictures and colours Realm Scenes use now. */
-export const currentRealmTextures = () => realmTextures(getRealmLook());
+/**
+ * @param {Scene} scene
+ * @returns {ReturnType<typeof realmTextures>} The pictures and colours a Realm Scene is drawn with.
+ */
+export const currentRealmTextures = (scene) => realmTextures(getRealmLook(scene));
 
 /**
  * A world setup step: bring Realm Scenes made before the pictures last changed
@@ -60,6 +89,21 @@ export const currentRealmTextures = () => realmTextures(getRealmLook());
  */
 export async function moveRealmPictures() {
 	await refreshRealmScenes();
+}
+
+/**
+ * Give each Realm Scene without a look of its own the look it's drawn in now.
+ * A world setup step for Scenes made when one look served every Realm, and
+ * run again before that look changes.
+ * @returns {Promise<void>}
+ */
+export async function keepRealmLooks() {
+	if (!game.user.isGM) return;
+	const look = defaultLook();
+	const updates = game.scenes
+		.filter((scene) => isRealmScene(scene) && !scene.getFlag(SYSTEM_ID, REALM_LOOK_FLAG))
+		.map((scene) => ({ _id: scene.id, ...lookFlag(look) }));
+	if (updates.length) await CONFIG.Scene.documentClass.updateDocuments(updates);
 }
 
 /** Realms read from their Scenes, by Scene id, until one of their documents changes. */
@@ -160,14 +204,14 @@ async function writeRealm(scene, realm, g, textures, options) {
  * Give a Realm Scene the paper and hex lines of its colour set.
  * @param {Scene} scene
  * @param {{paper: string, grid: string}} colours
+ * @param {object} [extra] Other changes to write with them.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function paintRealmScene(scene, { paper, grid }) {
-	const same = (a, b) => String(a ?? "").toLowerCase() === String(b).toLowerCase();
-	const changes = {};
-	if (!same(scene._source.grid?.color, grid)) changes["grid.color"] = grid;
-	const level = scene.levels?.get(LEVEL_ID) ?? scene.levels?.contents[0];
-	if (level && !same(level._source.background?.color, paper)) changes.levels = [{ _id: level.id, background: { color: paper } }];
+async function paintRealmScene(scene, colours, extra = {}) {
+	const { grid, level, paper } = sceneColourChanges(scene, colours);
+	const changes = { ...extra };
+	if (grid) changes["grid.color"] = grid;
+	if (paper) changes.levels = [{ _id: level.id, background: { color: paper } }];
 	if (foundry.utils.isEmpty(changes)) return false;
 	// One write, so every client redraws the Scene once.
 	await scene.update(changes);
@@ -175,21 +219,99 @@ async function paintRealmScene(scene, { paper, grid }) {
 }
 
 /**
- * Bring every Realm Scene in the world up to date with the Realm look.
+ * @param {Scene} scene
+ * @param {{paper: string, grid: string}} colours
+ * @returns {{grid?: string, paper?: string, level?: object}} The colours the Scene doesn't have yet, and the level its paper is on.
+ */
+function sceneColourChanges(scene, { paper, grid }) {
+	const same = (a, b) => String(a ?? "").toLowerCase() === String(b).toLowerCase();
+	const changes = {};
+	if (!same(scene._source.grid?.color, grid)) changes.grid = grid;
+	const level = scene.levels?.get(LEVEL_ID) ?? scene.levels?.contents[0];
+	if (level && !same(level._source.background?.color, paper)) Object.assign(changes, { paper, level });
+	return changes;
+}
+
+/**
+ * Bring every Realm Scene in the world up to date with its own look.
  * @returns {Promise<number>} How many Scenes changed.
  */
 export async function refreshRealmScenes() {
 	if (!game.user.isGM) return 0;
-	const textures = currentRealmTextures();
 	return queueRealmWrite(async () => {
 		let changed = 0;
 		for (const scene of game.scenes.filter((candidate) => isRealmScene(candidate))) {
+			const textures = currentRealmTextures(scene);
 			const documents = await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures);
 			const colours = await paintRealmScene(scene, textures.colours);
 			if (documents || colours) changed++;
 		}
 		return changed;
 	});
+}
+
+/** The look each Realm Scene is previewed in on this client, by Scene id, as normalised JSON. */
+const previews = new Map();
+
+/**
+ * Show a Realm look the GM is trying out on the Realm Scene they're viewing,
+ * in this browser only. Its Tiles, Drawings and colours are changed where they
+ * sit and never saved, so players see nothing, and a reload shows the saved look.
+ * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @returns {Promise<void>}
+ */
+export function previewRealmLook(look) {
+	const scene = canvas?.scene;
+	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve();
+	const key = JSON.stringify(normaliseRealmLook(look));
+	if (key === (previews.get(scene.id) ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
+	previews.set(scene.id, key);
+	return queueRealmWrite(() => showRealmLook(scene, look, { redraw: true }));
+}
+
+/**
+ * Put every previewed Realm Scene back to the saved look.
+ * @param {object} [options]
+ * @param {boolean} [options.redraw=true] False when the look is about to be saved, which redraws the Scene anyway.
+ * @returns {Promise<void>}
+ */
+export function endRealmLookPreview({ redraw = true } = {}) {
+	const scenes = [...previews.keys()].map((id) => game.scenes.get(id)).filter(Boolean);
+	previews.clear();
+	return queueRealmWrite(async () => {
+		for (const scene of scenes) await showRealmLook(scene, getRealmLook(scene), { redraw });
+	});
+}
+
+/**
+ * Change a Realm Scene's documents to a look in this client's memory only.
+ * @param {Scene} scene
+ * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @param {{redraw: boolean}} options
+ */
+async function showRealmLook(scene, look, { redraw }) {
+	const textures = realmTextures(look);
+	const entry = getRealm(scene);
+	if (!entry) return;
+	// Only updates: a look never adds or removes a document.
+	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene));
+	const changed = [];
+	for (const [type, writes] of Object.entries(plan)) {
+		for (const { _id, ...changes } of writes.update) {
+			const document = scene.getEmbeddedDocument(type, _id);
+			if (!document) continue;
+			document.updateSource(changes);
+			changed.push(document);
+		}
+	}
+	const { grid, level, paper } = sceneColourChanges(scene, textures.colours);
+	if (grid) scene.updateSource({ "grid.color": grid });
+	if (paper) level.updateSource({ background: { color: paper } });
+
+	if (!redraw || scene !== canvas?.scene) return;
+	// The paper and hex lines are only read as the Scene is drawn.
+	if (grid || paper) await canvas.draw();
+	else for (const document of changed) document.object?.renderFlags.set({ redraw: true });
 }
 
 /**
@@ -202,7 +324,7 @@ export async function refreshRealmScenes() {
 export async function editRealm(scene, edit) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
-		const textures = currentRealmTextures();
+		const textures = currentRealmTextures(scene);
 		const g = sceneGeometry(scene);
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
@@ -226,7 +348,7 @@ const PROBLEMS_SHOWN = 5;
 export async function syncRealmScene(scene, { report = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	const g = sceneGeometry(scene);
-	const textures = currentRealmTextures();
+	const textures = currentRealmTextures(scene);
 	const { realm, problems: readProblems, changed } = await queueRealmWrite(async () => {
 		const read = getRealm(scene);
 		return { ...read, changed: await writeRealm(scene, read.realm, g, textures) };
@@ -260,7 +382,7 @@ export async function rerollRealm(scene) {
 
 	const g = sceneGeometry(scene);
 	const realm = generateRealm({ seed: randomSeed(), geometry: g });
-	const textures = currentRealmTextures();
+	const textures = currentRealmTextures(scene);
 	await queueRealmWrite(async () => {
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
@@ -320,8 +442,12 @@ export async function newRealm() {
 async function createRealmScene({ name, seed }) {
 	const geometry = realmGeometry();
 	const realm = generateRealm({ seed, geometry });
-	const textures = currentRealmTextures();
-	const data = realmSceneData({ name, realm, geometry, textures, units: t("realm.units") });
+	const look = getRealmLook();
+	const textures = realmTextures(look);
+	const data = foundry.utils.mergeObject(
+		realmSceneData({ name, realm, geometry, textures, units: t("realm.units") }),
+		foundry.utils.expandObject(lookFlag(look))
+	);
 
 	const scene = await CONFIG.Scene.documentClass.create(data);
 	if (!scene) return null;

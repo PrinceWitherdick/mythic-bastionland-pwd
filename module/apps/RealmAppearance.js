@@ -1,4 +1,4 @@
-import { REALM_LOOK_HOOK, getRealmLook, setRealmLook } from "../actions/realm.js";
+import { REALM_LOOK_HOOK, endRealmLookPreview, getRealmLook, isRealmScene, previewRealmLook, setRealmLook } from "../actions/realm.js";
 import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { ART_ROOT } from "../rules/book-art.js";
@@ -19,6 +19,7 @@ import {
 	realmSetDir
 } from "../rules/realm-skins.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { ArtPreviewMixin } from "./art-preview.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -26,14 +27,18 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** The pictures each skin's card shows it by. */
 const SAMPLES = Object.freeze(["terrain-05", "holding-castle", "landmark-sanctum", "myth-3"]);
 
+/** @returns {Scene|null} The Realm Scene this GM is viewing, if any. */
+const viewedRealm = () => (isRealmScene(canvas?.scene) ? canvas.scene : null);
+
 const sameLook = (a, b) => JSON.stringify(normaliseRealmLook(a)) === JSON.stringify(normaliseRealmLook(b));
 
 /**
- * The GM's window for how Realm Scenes look: a skin, a colour set, and
+ * The GM's window for how a Realm Scene looks: a skin, a colour set, and
  * pictures of their own. Choices are tried out in the preview, and reach the
- * Scenes when applied.
+ * Realm Scene being viewed when applied. With no Realm Scene in view, they
+ * only change the look new Realms start with.
  */
-export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
+export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(ApplicationV2)) {
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-realm-appearance",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-realm-appearance-window"],
@@ -53,18 +58,38 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 	};
 
+	static PREVIEWED_ART = ".bastionland-realm-appearance__group img";
+
 	static PARTS = {
 		appearance: { template: templatePath("apps/realm-appearance.hbs"), scrollable: [""] }
 	};
 
+	/** The Realm Scene being viewed, whose look this changes. Null for the look new Realms start with. */
+	#scene = viewedRealm();
+
 	/** The look being tried out. */
-	#draft = getRealmLook();
+	#draft = getRealmLook(this.#scene);
 
 	/** @type {number|null} */
 	#hook = null;
 
+	/** @type {number|null} */
+	#canvasHook = null;
+
+	/**
+	 * Take up the Realm Scene now in view, and what it looks like. The window is
+	 * a singleton, so the Scene it was opened on last time is still remembered
+	 * when it opens again, by which time the GM may be looking at another Realm.
+	 */
+	#takeUpViewedRealm() {
+		this.#scene = viewedRealm();
+		this.#draft = getRealmLook(this.#scene);
+	}
+
 	/** @override */
 	async _prepareContext(options) {
+		// Before the window is drawn again from scratch, so it draws the right Realm.
+		if (options.isFirstRender) this.#takeUpViewedRealm();
 		const context = await super._prepareContext(options);
 		const draft = this.#draft;
 		const textures = realmTextures(draft);
@@ -118,16 +143,25 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 				}
 			],
 			names: REALM_PICTURES.map((name) => ({ name, found: Boolean(files[name]) })),
-			changed: !sameLook(draft, getRealmLook())
+			target: this.#scene ? t("realm.look.target.scene", { name: this.#scene.name }) : t("realm.look.target.none"),
+			changed: !sameLook(draft, getRealmLook(this.#scene))
 		});
 	}
 
 	/** @override */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
-		// Another GM's change, or one applied here, becomes what's tried out.
-		this.#hook = Hooks.on(REALM_LOOK_HOOK, (look) => {
-			this.#draft = look;
+		// Another GM's change to this Scene's look, or one applied here, becomes what's tried out.
+		this.#hook = Hooks.on(REALM_LOOK_HOOK, (sceneId) => {
+			if (sceneId !== (this.#scene?.id ?? null)) return;
+			this.#draft = getRealmLook(this.#scene);
+			if (this.rendered) this.render();
+		});
+		// The window follows the GM to another Scene. Unapplied choices carry over and show there; otherwise it shows that Scene's own look.
+		this.#canvasHook = Hooks.on("canvasReady", () => {
+			const unchanged = sameLook(this.#draft, getRealmLook(this.#scene));
+			this.#scene = viewedRealm();
+			if (unchanged) this.#draft = getRealmLook(this.#scene);
 			if (this.rendered) this.render();
 		});
 	}
@@ -137,15 +171,20 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 		super._onRender(context, options);
 		const input = this.element.querySelector("input[type=file]");
 		input?.addEventListener("change", () => this.#upload([...(input.files ?? [])]));
+		// What's being tried out shows on the Realm Scene being viewed, for this GM only.
+		previewRealmLook(this.#draft);
 	}
 
 	/** @override */
 	_onClose(options) {
 		super._onClose(options);
-		// Whatever wasn't applied is let go.
-		this.#draft = getRealmLook();
+		// Whatever wasn't applied is let go, and the Scenes go back to the saved look.
+		this.#takeUpViewedRealm();
+		endRealmLookPreview();
 		if (this.#hook !== null) Hooks.off(REALM_LOOK_HOOK, this.#hook);
+		if (this.#canvasHook !== null) Hooks.off("canvasReady", this.#canvasHook);
 		this.#hook = null;
+		this.#canvasHook = null;
 	}
 
 	/** @param {Partial<import("../rules/realm-skins.js").RealmLook>} changes */
@@ -246,9 +285,12 @@ export class RealmAppearance extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {RealmAppearance} */
 	static async #onApply() {
-		if (sameLook(this.#draft, getRealmLook())) return;
-		await setRealmLook(this.#draft);
-		ui.notifications.info(t("realm.look.applied"));
+		const scene = this.#scene;
+		if (sameLook(this.#draft, getRealmLook(scene))) return;
+		// The preview only changed this browser's copy, which would make the saved Scene look up to date already.
+		await endRealmLookPreview({ redraw: false });
+		await setRealmLook(scene, this.#draft);
+		ui.notifications.info(scene ? t("realm.look.applied", { name: scene.name }) : t("realm.look.appliedDefault"));
 	}
 }
 

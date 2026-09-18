@@ -1,4 +1,5 @@
 <div class="bastionland-page bastionland-realm-appearance">
+	<p class="bastionland-realm-appearance__target"><i class="fa-solid fa-map" inert></i> <strong>{{target}}</strong></p>
 	<p class="hint">{{localize "bastionland.realm.look.intro"}}</p>
 
 	<section class="bastionland-realm-appearance__section">
@@ -80,8 +81,8 @@
 			{{#each groups}}
 			<div class="bastionland-realm-appearance__group {{#if hexes}}is-hexes{{/if}}">
 				{{#each pictures}}
-				<figure title="{{label}}">
-					<img src="{{src}}" alt="{{label}}">
+				<figure>
+					<img src="{{src}}" alt="{{label}}" data-name="{{label}}">
 					{{#if own}}<figcaption class="is-own">{{localize "bastionland.realm.look.tags.own"}}</figcaption>{{/if}}
 				</figure>
 				{{/each}}

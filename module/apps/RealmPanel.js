@@ -99,7 +99,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { realm } = entry;
 
 		if (this.mode === "terrain" || !this.hex) {
-			const textures = realmTextures(getRealmLook());
+			const textures = realmTextures(getRealmLook(scene));
 			return Object.assign(context, {
 				terrainMode: true,
 				terrains: TERRAIN.map((key, index) => ({

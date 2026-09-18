@@ -2,7 +2,7 @@ import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
-import { addNewRealmButton, moveRealmPictures, newRealm, registerRealmSettings } from "./module/actions/realm.js";
+import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -192,7 +192,8 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
-	{ key: "realmSheetPictures", run: moveRealmPictures }
+	{ key: "realmSheetPictures", run: moveRealmPictures },
+	{ key: "realmLookPerScene", run: keepRealmLooks }
 ]);
 
 Hooks.once("ready", async () => {

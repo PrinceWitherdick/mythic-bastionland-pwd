@@ -1499,8 +1499,12 @@
       "look": {
         "title": "Realm Appearance",
         "open": "Choose the look",
-        "hint": "Choose how Realm Scenes are drawn: a skin, a set of colours, and pictures of your own.",
-        "intro": "Try a skin and a set of colours below, then apply them. Every Realm Scene in the world is redrawn, with its paper, hex lines and Barriers in the new colours. Nothing about the Realm itself changes.",
+        "hint": "Choose how a Realm Scene is drawn: a skin, a set of colours, and pictures of your own. Each Realm Scene keeps its own look.",
+        "intro": "Try a skin and a set of colours below, and the Realm Scene you're viewing shows them, for you only. Close this window to put things back. Apply them, and only that Realm Scene is redrawn, with its paper, hex lines and Barriers in the new colours; other Realms keep their own look. New Realms start with the look you last applied. Nothing about the Realm itself changes.",
+        "target": {
+          "scene": "Changing the look of {name}",
+          "none": "No Realm Scene in view: changing the look new Realms start with"
+        },
         "skin": "Skin",
         "palette": "Colours",
         "pictures": "Pictures",
@@ -1565,8 +1569,9 @@
         "browseFailed": "Couldn’t look in {folder}.",
         "scanned": "Found {count} of {total} Realm pictures in {folder}.",
         "reset": "Back to the default",
-        "apply": "Apply to Realms",
-        "applied": "Realm Scenes are being redrawn in the new look."
+        "apply": "Apply",
+        "applied": "{name} is being redrawn in the new look.",
+        "appliedDefault": "New Realms will start with this look."
       }
     },
     "settings": {
