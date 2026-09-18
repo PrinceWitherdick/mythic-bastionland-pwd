@@ -6,6 +6,7 @@ import {
 	knightItems,
 	knightTypeFromName,
 	knightUpdate,
+	seerAutoFill,
 	seerForKnight,
 	seerInfo,
 	startFor,
@@ -185,5 +186,39 @@ describe("knightItems", () => {
 	it("still gives the kit without the Knight's text", () => {
 		expect(knightItems(null, kitNames)).toHaveLength(STANDARD_KIT.length);
 		expect(knightItems({ ...lantern, property: null, ability: null, passion: null }, kitNames)).toHaveLength(STANDARD_KIT.length);
+	});
+});
+
+describe("seerAutoFill", () => {
+	const hookSeer = { roll: "1-02", name: "The Hook Seer", path: "mythic-bastionland-art/seers/1-02-hook-seer.webp", stats: null, lines: ["Fishes for names."] };
+	const index = { knights: [lantern], seers: [glassSeer, hookSeer] };
+
+	it("fills the picture and what the book says for a named Seer", () => {
+		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: "", seerInfo: "" })).toEqual({
+			"system.seerImg": glassSeer.path,
+			"system.seerInfo": glassInfo
+		});
+	});
+
+	it("finds the Seer by the Knight's roll while no name is written", () => {
+		expect(seerAutoFill(index, { seer: "", knightType: "Lantern" })).toMatchObject({ "system.seer": "The Glass Seer", "system.seerImg": glassSeer.path });
+	});
+
+	it("swaps a book Seer for another when the name changes", () => {
+		expect(seerAutoFill(index, { seer: "The Hook Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
+			"system.seerImg": hookSeer.path,
+			"system.seerInfo": "<ul><li>Fishes for names.</li></ul>"
+		});
+	});
+
+	it("keeps a picture or text chosen by hand, and does nothing once filled", () => {
+		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: "my/seer.webp", seerInfo: "<p>Mine</p>" })).toEqual({});
+		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({});
+	});
+
+	it("leaves a Squire, a Seer the book doesn't know, and a world without Import PDF alone", () => {
+		expect(seerAutoFill(index, { isSquire: true, seer: "The Glass Seer" })).toEqual({});
+		expect(seerAutoFill(index, { seer: "Old Mother Crow", knightType: "Lantern" })).toEqual({});
+		expect(seerAutoFill(null, { seer: "The Glass Seer" })).toEqual({});
 	});
 });

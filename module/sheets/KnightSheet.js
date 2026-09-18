@@ -3,7 +3,7 @@ import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dom
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
-import { readSeerFromBook } from "../actions/seers.js";
+import { fillSeerFromBook, readSeerFromBook } from "../actions/seers.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
@@ -147,6 +147,20 @@ export class KnightSheet extends BastionlandActorSheet {
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		placeTabRail(this.element, ".bastionland-header");
+		this.#fillSeer();
+	}
+
+	/** What the Seer fields held when the book was last checked, so the index isn't fetched on every render. */
+	#seerChecked = null;
+
+	/** Fill in the Seer's picture and what the book says whenever they're missing or the Seer changes. */
+	#fillSeer() {
+		const { isSquire, seer, knightType, seerImg, seerInfo } = this.actor.system;
+		if (!this.isEditable || isSquire) return;
+		const key = JSON.stringify([seer, knightType, seerImg, seerInfo]);
+		if (key === this.#seerChecked) return;
+		this.#seerChecked = key;
+		fillSeerFromBook(this.actor);
 	}
 
 	/**

@@ -81,6 +81,35 @@ export function seerForKnight(index, { seer = "", knightType = "" }) {
 }
 
 /**
+ * What a Knight's sheet fills in about their Seer on its own. The Seer is found by the name beside
+ * "Knighted by", or by the Knight's roll while that's blank. The picture and what the book says are
+ * filled only where they're empty or still hold what the book says of some Seer, so a new name
+ * swaps them over but something picked or written by hand is kept. A Squire has no Seer yet (p7).
+ * @param {object|null} index The art index.
+ * @param {{isSquire?: boolean, seer?: string, knightType?: string, seerImg?: string, seerInfo?: string}} knight
+ * @param {Record<string, string>} [labels] For seerInfo.
+ * @returns {object} An Actor update, empty when there's nothing to fill.
+ */
+export function seerAutoFill(index, knight, labels) {
+	if (knight.isSquire) return {};
+	const named = String(knight.seer ?? "").trim();
+	const seer = named ? seerForKnight(index, { seer: named }) : seerForKnight(index, { knightType: knight.knightType });
+	if (!seer) return {};
+	const seers = index?.seers ?? [];
+	const fromBook = (value, of) => !value || seers.some((entry) => of(entry) === value);
+	const update = {};
+	if (!named && seer.name) update["system.seer"] = seer.name;
+	if (seer.path && seer.path !== knight.seerImg && fromBook(knight.seerImg, (entry) => entry.path)) {
+		update["system.seerImg"] = seer.path;
+	}
+	const info = seerInfo(seer, labels);
+	if (info && info !== knight.seerInfo && fromBook(knight.seerInfo, (entry) => seerInfo(entry, labels))) {
+		update["system.seerInfo"] = info;
+	}
+	return update;
+}
+
+/**
  * Knights other characters already are, so the chooser can steer each player
  * to a different one.
  * @param {{id: string, name: string, knightType: string}[]} knights Knight actors in the world.
