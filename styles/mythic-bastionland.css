@@ -857,6 +857,10 @@
 .bastionland-toolbar.bastionland-toolbar--actions button:hover {
 	background: none;
 	color: var(--bastionland-rubric);
+}
+
+/* Only the words take the underline, not the icon. */
+.bastionland-toolbar--actions button:hover span {
 	text-decoration: underline;
 	text-underline-offset: 0.2em;
 }

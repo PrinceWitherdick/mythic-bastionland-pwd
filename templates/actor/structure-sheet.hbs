@@ -4,12 +4,12 @@
 	{{#if editable}}
 	<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{actor.name}}">
 		{{#if canAttack}}
-		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.sheet.attack"}}</button>
+		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
 		{{/if}}
-		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> {{localize "bastionland.sheet.takeDamage"}}</button>
-		<button type="button" data-action="repair" data-tooltip="{{localize 'bastionland.structure.repairHint'}}"><i class="fa-solid fa-hammer" inert></i> {{localize "bastionland.structure.repair"}}</button>
+		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
+		<button type="button" data-action="repair" data-tooltip="{{localize 'bastionland.structure.repairHint'}}"><i class="fa-solid fa-hammer" inert></i> <span>{{localize "bastionland.structure.repair"}}</span></button>
 		{{#if isShip}}
-		<button type="button" data-action="collide" data-tooltip="{{localize 'bastionland.structure.collide.hint'}}"><i class="fa-solid fa-sailboat" inert></i> {{localize "bastionland.structure.collide.title"}}</button>
+		<button type="button" data-action="collide" data-tooltip="{{localize 'bastionland.structure.collide.hint'}}"><i class="fa-solid fa-sailboat" inert></i> <span>{{localize "bastionland.structure.collide.title"}}</span></button>
 		{{/if}}
 	</nav>
 	{{/if}}
