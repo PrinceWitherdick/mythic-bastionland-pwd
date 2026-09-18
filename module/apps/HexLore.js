@@ -7,6 +7,7 @@ import {
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
+import { confirmForgetHexVisits, getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -38,7 +39,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			forget: HexLore.#onForget,
 			tell: HexLore.#onTell,
 			wilderness: HexLore.#onWilderness,
-			browse: HexLore.#onBrowse
+			browse: HexLore.#onBrowse,
+			markVisited: HexLore.#onMarkVisited,
+			forgetVisits: HexLore.#onForgetVisits
 		}
 	};
 
@@ -78,6 +81,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const hex = this.hex;
 		const terrain = terrainAt(realm, sceneGeometry(scene), hex);
 		const record = getHexRecord(scene, hex);
+		const visits = getHexVisits(scene, hex);
 		const pages = this.#index?.spark ?? [];
 
 		let notice = null;
@@ -88,6 +92,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			heading: t("realm.hex", hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 			features: this.#featuresHere(realm, hex),
+			// Whether the Company has been here, as the GM Toolkit's Journey counts it.
+			visited: Boolean(visits),
+			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
 			note: record?.note ?? "",
 			// Newest first: the roll just made is the one being read.
 			sparks: (record?.sparks ?? []).map((spark) => ({
@@ -177,6 +184,16 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onBrowse() {
 		return openSparkTables();
+	}
+
+	/** @this {HexLore} */
+	static #onMarkVisited() {
+		return markHexVisited(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onForgetVisits() {
+		return confirmForgetHexVisits(this.scene, this.hex);
 	}
 }
 

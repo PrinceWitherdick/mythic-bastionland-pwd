@@ -12,6 +12,15 @@
 		{{/each}}
 	</div>
 
+	<div class="bastionland-hex-lore__row bastionland-hex-lore__visits">
+		<span class="bastionland-hex-lore__hint">{{visits}}</span>
+		{{#if visited}}
+		<button type="button" data-action="forgetVisits"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.gmToolkit.visits.forget"}}</button>
+		{{else}}
+		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
+		{{/if}}
+	</div>
+
 	<div class="form-group">
 		<label for="{{partId}}-note">{{localize "bastionland.hexLore.note"}}</label>
 		<div class="form-fields">

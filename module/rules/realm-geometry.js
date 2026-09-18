@@ -216,6 +216,49 @@ export function hexDistance(a, b) {
 }
 
 /**
+ * The hexes a straight line from one hex's centre to another's passes through.
+ * A line running exactly along an edge is nudged to one side of it, so each step
+ * is to a neighbour, and to the side inside the Realm where there is one.
+ * @param {object} g
+ * @param {{col: number, row: number}} a
+ * @param {{col: number, row: number}} b
+ * @returns {{col: number, row: number}[]} From the hex after a up to and including b; empty when they're the same.
+ */
+export function hexLine(g, a, b) {
+	const line = nudgedLine(a, b, 1);
+	return line.every((hex) => inRealm(g, hex)) ? line : nudgedLine(a, b, -1);
+}
+
+/**
+ * @param {{col: number, row: number}} a
+ * @param {{col: number, row: number}} b
+ * @param {number} side 1 or -1, which side of an edge the line is nudged to.
+ * @returns {{col: number, row: number}[]}
+ */
+function nudgedLine(a, b, side) {
+	const from = toAxial(a);
+	const to = toAxial(b);
+	const distance = hexDistance(a, b);
+	const line = [];
+	for (let step = 1; step <= distance; step++) {
+		const share = step / distance;
+		const q = from.q + (to.q - from.q) * share + side * 1e-6;
+		const r = from.r + (to.r - from.r) * share + side * 2e-6;
+		const s = -q - r;
+		let rq = Math.round(q);
+		let rr = Math.round(r);
+		const rs = Math.round(s);
+		const dq = Math.abs(rq - q);
+		const dr = Math.abs(rr - r);
+		const ds = Math.abs(rs - s);
+		if (dq > dr && dq > ds) rq = -rr - rs;
+		else if (dr > ds) rr = -rq - rs;
+		line.push(fromAxial({ q: rq, r: rr }));
+	}
+	return line;
+}
+
+/**
  * @param {{col: number, row: number}} a
  * @param {{col: number, row: number}} b
  * @returns {number|null} The direction from a to b, or null when they aren't neighbours.

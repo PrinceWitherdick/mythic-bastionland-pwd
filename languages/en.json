@@ -4,7 +4,8 @@
       "knight": "Knight",
       "npc": "NPC",
       "domain": "Domain",
-      "structure": "Structure"
+      "structure": "Structure",
+      "gmToolkit": "GM Toolkit"
     },
     "Item": {
       "weapon": "Weapon",
@@ -828,6 +829,7 @@
       "setMissing": "Import Book Art hasn’t read enough of page 22 to roll a wilderness hex.",
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
+      "notVisited": "The Company hasn’t been here.",
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "when": "rolled in {when}",
@@ -861,13 +863,87 @@
       }
     },
     "myths": {
-      "title": "Myths",
-      "hint": "Each Myth in the Realm with its six Omens, the ones seen so far marked. The Realm’s Hex panel and the Wilderness Roll count the same Omens.",
-      "realm": "Realm",
       "noRealm": "There’s no Realm Scene yet. Use New Realm in the Scenes tab to roll one.",
       "noMyths": "This Realm has no Myths.",
       "omenNumber": "Omen {number}",
       "nextOmen": "Next Omen"
+    },
+    "gmToolkit": {
+      "name": "GM Toolkit",
+      "realm": "Realm",
+      "companyAt": "The Company is in {hex}",
+      "companyHere": "The Company is here",
+      "noCompany": "The Company isn’t on this Realm’s map",
+      "showHex": "Show on the Map",
+      "sparks": "Spark Tables rolled here",
+      "relaunch": "Launch the world again to get the GM Toolkit. The world was already open when the system added it.",
+      "gmOnly": "Only a GM can make the GM Toolkit.",
+      "onlyOne": "This world already has a GM Toolkit.",
+      "keep": "The GM Toolkit holds your notes, so the world’s last one can’t be deleted.",
+      "tabs": {
+        "myths": "Myths and Omens",
+        "journey": "Journey",
+        "places": "Places",
+        "time": "Time",
+        "notes": "Notes"
+      },
+      "myths": {
+        "hint": "The Realm’s Myths, each with the Omen playing out and the one to come. Omens are met in order (p18). The Hex panel and the Wilderness Roll count the same Omens. For your eyes only.",
+        "noText": "Run Import Book Art to quote each Myth’s Omens here.",
+        "unrolled": "Myth {number}",
+        "current": "Current: Omen {number}",
+        "next": "Next: Omen {number}",
+        "noneYet": "The Company hasn’t met any of this Myth’s Omens yet.",
+        "allOmens": "All six Omens",
+        "note": "Your notes on this Myth",
+        "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
+        "resolved": "Resolved",
+        "resolvedHint": "When the group feels a Myth is resolved, a new Myth replaces it in the next Season (p27).",
+        "unresolve": "Not Resolved",
+        "newMyth": "Roll the New Myth",
+        "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
+        "newMythRolled": "A new Myth in {hex}, replacing one resolved",
+        "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth."
+      },
+      "journey": {
+        "hint": "Every hex the Company has come into on this Realm, the last reached first, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
+        "summary": "{count} of {total} hexes visited.",
+        "none": "The Company hasn’t come into any hex of this Realm yet. Move its Token, or count a visit from the Places page."
+      },
+      "visits": {
+        "once": "Visited once: {when}",
+        "many": "Visited {count} times, last: {when}",
+        "unknown": "when is unknown",
+        "mark": "Count a Visit",
+        "forget": "Forget the Visits",
+        "forgetTitle": "Forget the Visits?",
+        "forgetConfirm": "The Company’s visits to {hex} are forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay."
+      },
+      "places": {
+        "hint": "Every place in the Realm and what you wrote about it: its Holdings, its Landmarks, found or not, and any other hex you’ve written about or rolled for. These are the same notes as in the Lay of the Land.",
+        "holdings": "Holdings",
+        "landmarks": "Landmarks",
+        "others": "Other Hexes",
+        "othersHint": "Hexes with something written or rolled that hold no Holding or Landmark, such as a Myth’s hex.",
+        "sites": "Sites",
+        "sitesHint": "Places explored in more detail than a Hex (p15).",
+        "seat": "Seat of Power",
+        "seer": "Seer: {name}",
+        "notFound": "Not found yet",
+        "myth": "Myth {number}: {name}",
+        "noHoldings": "This Realm has no Holdings.",
+        "noLandmarks": "This Realm has no Landmarks.",
+        "noOthers": "Nothing is written about any other hex yet.",
+        "noSites": "There are no Sites yet."
+      },
+      "time": {
+        "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes.",
+        "resolved": "Myths to Replace",
+        "byHand": "Set by Hand"
+      },
+      "notes": {
+        "hint": "Your own notes. At the end of each session, ask the players about their plans and ambitions for the next one, and write them here (p16)."
+      }
     },
     "cityQuest": {
       "title": "The City Quest",
@@ -882,7 +958,7 @@
       "reset": "Start Over",
       "resetTitle": "Start the City Quest Over?",
       "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
-      "wildernessHint": "A Company worthy of the City Quest encounters an Omen of the City instead. Roll it from the Myths window."
+      "wildernessHint": "A Company worthy of the City Quest encounters an Omen of the City instead. Roll it from the GM Toolkit’s Myths page."
     },
     "sites": {
       "newSite": "New Site",
@@ -1661,7 +1737,8 @@
         "wilderness": "Wilderness Roll",
         "tidy": "Tidy the Realm",
         "reroll": "Reroll the Realm",
-        "appearance": "Realm Appearance"
+        "appearance": "Realm Appearance",
+        "toolkit": "GM Toolkit"
       },
       "readout": {
         "seat": "{name}, Seat of Power",

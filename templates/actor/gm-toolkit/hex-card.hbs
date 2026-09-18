@@ -1,0 +1,52 @@
+{{!-- One hex of a Realm in the GM Toolkit: what stands there, when the Company was there,
+      what the GM wrote, and the Spark Tables rolled for it. Shared by the Journey and Places pages. --}}
+<details class="bastionland-gm-toolkit__card bastionland-gm-toolkit__hex" data-hex="{{key}}" data-fold="{{fold}}" {{#if open}}open{{/if}}>
+	<summary class="bastionland-gm-toolkit__hex-head">
+		<span class="bastionland-gm-toolkit__name">{{title}}</span>
+		{{#if kind}}<span class="bastionland-gm-toolkit__kind">{{kind}}</span>{{/if}}
+		<span class="bastionland-gm-toolkit__chips">
+			{{#if hex}}<span class="bastionland-gm-toolkit__chip">{{hex}}</span>{{/if}}
+			{{#if terrain}}<span class="bastionland-gm-toolkit__chip is-terrain">{{terrain}}</span>{{/if}}
+			{{#each features}}
+			<span class="bastionland-gm-toolkit__chip{{#if hidden}} is-hidden{{/if}}" {{#if hidden}}data-tooltip="{{localize 'bastionland.realm.panel.hidden'}}"{{/if}}>{{text}}</span>
+			{{/each}}
+			{{#if companyHere}}
+			<span class="bastionland-gm-toolkit__chip is-company"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyHere"}}</span>
+			{{/if}}
+		</span>
+		{{#if visits}}<span class="bastionland-gm-toolkit__visits">{{visits}}</span>{{/if}}
+	</summary>
+
+	<div class="bastionland-gm-toolkit__hex-body">
+		<label class="bastionland-gm-toolkit__note">
+			<span>{{localize "bastionland.hexLore.note"}}</span>
+			<textarea data-toolkit-field="hexNote" rows="3" placeholder="{{localize 'bastionland.hexLore.notePlaceholder'}}">{{note}}</textarea>
+		</label>
+
+		<ul class="bastionland-hex-lore__rolls bastionland-gm-toolkit__sparks" aria-label="{{localize 'bastionland.gmToolkit.sparks'}}">
+			{{#each sparks}}
+			<li class="bastionland-hex-lore__roll">
+				<div class="bastionland-hex-lore__prompt">
+					<strong>{{prompt}}</strong>
+					<span class="bastionland-hex-lore__source">{{table}} ({{rolls}}){{#if when}} · {{when}}{{/if}}</span>
+				</div>
+				<button type="button" data-action="forgetSpark" data-spark="{{id}}" aria-label="{{localize 'bastionland.hexLore.forget'}}" data-tooltip="{{localize 'bastionland.hexLore.forget'}}"><i class="fa-solid fa-xmark" inert></i></button>
+			</li>
+			{{else}}
+			<li class="bastionland-hint">{{localize "bastionland.hexLore.noRolls"}}</li>
+			{{/each}}
+		</ul>
+
+		<nav class="bastionland-gm-toolkit__actions" aria-label="{{title}}">
+			<button type="button" data-action="showHex"><i class="fa-solid fa-location-dot" inert></i> {{localize "bastionland.gmToolkit.showHex"}}</button>
+			<button type="button" data-action="rollHexSet"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
+			<button type="button" data-action="hexLore"><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.open"}}</button>
+			<button type="button" data-action="tellHex" {{disabled tellDisabled}}><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
+			{{#if visited}}
+			<button type="button" data-action="forgetVisits"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.gmToolkit.visits.forget"}}</button>
+			{{else}}
+			<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
+			{{/if}}
+		</nav>
+	</div>
+</details>

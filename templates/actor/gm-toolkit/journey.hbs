@@ -1,0 +1,15 @@
+{{!-- The hexes the Company has come into, the last reached first. --}}
+<section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="journey">
+	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.journey.hint"}}</p>
+
+	{{#if noRealm}}
+	<p class="bastionland-empty">{{localize "bastionland.myths.noRealm"}}</p>
+	{{else}}
+	<p class="bastionland-gm-toolkit__summary">{{summary}}</p>
+	{{#each visits}}
+	{{> "bastionland.gm-toolkit-hex"}}
+	{{else}}
+	<p class="bastionland-empty">{{localize "bastionland.gmToolkit.journey.none"}}</p>
+	{{/each}}
+	{{/if}}
+</section>

@@ -78,7 +78,6 @@
 .bastionland-spark-window .window-content,
 .bastionland-time-window .window-content,
 .bastionland-site-window .window-content,
-.bastionland-myths-window .window-content,
 .bastionland-heraldry-window .window-content,
 .bastionland-rulebook-window .window-content,
 .bastionland-rulebook-setup-window .window-content,
@@ -1793,30 +1792,9 @@
 }
 
 /* ---------------------------------------------------------------- */
-/* Myths: each Myth's Omens, and the Omens of the City              */
+/* Myths: each Myth's Omens, and the Omens of the City, in lists    */
+/* the GM Toolkit's Myths page shares (styles/gm-toolkit.css)       */
 /* ---------------------------------------------------------------- */
-
-.bastionland-myths {
-	gap: 0.75rem;
-}
-
-.bastionland-myths__header {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-}
-
-.bastionland-myths__header .bastionland-hint {
-	margin: 0;
-}
-
-.bastionland-myths__art {
-	flex: none;
-	width: 6rem;
-	height: 3.5rem;
-	border: 1px solid var(--bastionland-rule);
-	object-fit: cover;
-}
 
 .bastionland-myths__omens {
 	display: flex;

@@ -18,7 +18,8 @@
   ],
   "styles": [
     "styles/mythic-bastionland.css",
-    "styles/chat.css"
+    "styles/chat.css",
+    "styles/gm-toolkit.css"
   ],
   "languages": [
     {
@@ -51,6 +52,9 @@
         "htmlFields": ["notes"]
       },
       "structure": {
+        "htmlFields": ["notes"]
+      },
+      "gmToolkit": {
         "htmlFields": ["notes"]
       }
     },

@@ -1,7 +1,8 @@
 import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.js";
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
-import { openMythsPanel } from "./module/apps/MythsPanel.js";
+import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
+import { registerJourneyHooks } from "./module/actions/journey.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
@@ -33,6 +34,7 @@ import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
+import { GmToolkitModel } from "./module/data-models/GmToolkitModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
 import { StructureModel } from "./module/data-models/StructureModel.js";
@@ -47,6 +49,7 @@ import {
 import { registerFonts } from "./module/fonts.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
+import { GmToolkitSheet } from "./module/sheets/GmToolkitSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
@@ -75,7 +78,7 @@ const REFEREE_TOOLS = [
 	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
 	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel },
 	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.newSite", open: newSite },
-	{ className: "bastionland-myths", icon: "fa-solid fa-dragon", label: "myths.title", open: openMythsPanel }
+	{ className: "bastionland-gm-toolkit", icon: "fa-solid fa-book-open-reader", label: "gmToolkit.name", open: openGmToolkit }
 ];
 
 Hooks.once("init", () => {
@@ -83,6 +86,7 @@ Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.npc = NpcModel;
 	CONFIG.Actor.dataModels.domain = DomainModel;
 	CONFIG.Actor.dataModels.structure = StructureModel;
+	CONFIG.Actor.dataModels[GM_TOOLKIT_TYPE] = GmToolkitModel;
 	Object.assign(CONFIG.Item.dataModels, ITEM_MODELS);
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
@@ -111,6 +115,11 @@ Hooks.once("init", () => {
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});
+	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, GmToolkitSheet, {
+		types: [GM_TOOLKIT_TYPE],
+		makeDefault: true,
+		label: "bastionland.gmToolkit.name"
+	});
 	// A Site's Journal entry names this sheet in its flags, so it opens on its map. Other entries never do.
 	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntry, SYSTEM_ID, SiteSheet, {
 		makeDefault: false,
@@ -127,6 +136,7 @@ Hooks.once("init", () => {
 		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
+		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
 	});
 
@@ -206,6 +216,10 @@ Hooks.once("init", () => {
 	// Travel and Exploration beside Realm Scenes, folded or open as each browser left it.
 	registerTravelRulesSetting();
 
+	// The GM Toolkit: one per world, each GM's character so C opens it, and where the Company has been on each Realm.
+	registerGmToolkitHooks();
+	registerJourneyHooks();
+
 	// Macros reach the system through here, such as Import Book Art.
 	game.system.api = Object.freeze({
 		importBookArt,
@@ -222,7 +236,9 @@ Hooks.once("init", () => {
 		openHexLore,
 		openTimePanel,
 		newSite,
-		openMythsPanel,
+		openGmToolkit,
+		// The Myths window became the GM Toolkit's first page; macros that open it still work.
+		openMythsPanel: () => openGmToolkit("myths"),
 		rollCityOmen,
 		awardGlory,
 		getCalendar,
@@ -261,6 +277,9 @@ Hooks.once("ready", async () => {
 		restoreOpenSheets(),
 		// Import Book Art takes the hotbar's last slot once every other macro has its own.
 		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)]).then(ensureImportHotbar),
+		// Once world setup has decided whether this world is new, which it does by its having no Actors.
+		// Every GM, not only the one who made it, is then given it as their character.
+		setup.then(ensureGmToolkit).then(assignGmToolkit)
 	]);
 });
 

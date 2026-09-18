@@ -89,6 +89,12 @@ const SEER_ANCHOR = /^knighted\b/i;
 export const isDie = (value, faces) => Number.isInteger(value) && value >= 1 && value <= faces;
 
 /**
+ * @param {{d6: number, d12: number}|null|undefined} dice
+ * @returns {boolean} Whether they read as a roll on a d6 by d12 table, like the Knights or Myths (p26-27).
+ */
+export const isTableRoll = (dice) => Boolean(dice) && isDie(dice.d6, 6) && isDie(dice.d12, 12);
+
+/**
  * @param {number} d6
  * @param {number} d12
  * @returns {string} e.g. "1-01", which sorts in book order.

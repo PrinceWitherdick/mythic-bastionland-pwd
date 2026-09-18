@@ -1,0 +1,55 @@
+{{!-- The Realm's places and what the GM wrote about each: Holdings, Landmarks, every other hex written about, and the Sites. --}}
+<section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="places">
+	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.hint"}}</p>
+
+	{{#if noRealm}}
+	<p class="bastionland-empty">{{localize "bastionland.myths.noRealm"}}</p>
+	{{else}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.holdings"}}</h2>
+		{{#each holdings}}
+		{{> "bastionland.gm-toolkit-hex"}}
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.gmToolkit.places.noHoldings"}}</p>
+		{{/each}}
+	</section>
+
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.landmarks"}}</h2>
+		{{#each landmarks}}
+		{{> "bastionland.gm-toolkit-hex"}}
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.gmToolkit.places.noLandmarks"}}</p>
+		{{/each}}
+	</section>
+
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.others"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.othersHint"}}</p>
+		{{#each others}}
+		{{> "bastionland.gm-toolkit-hex"}}
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.gmToolkit.places.noOthers"}}</p>
+		{{/each}}
+	</section>
+	{{/if}}
+
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.sites"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.sitesHint"}}</p>
+		{{#if sites.length}}
+		<ul class="bastionland-gm-toolkit__sites">
+			{{#each sites}}
+			<li data-uuid="{{uuid}}">
+				<button type="button" class="bastionland-gm-toolkit__site" data-action="openSite"><i class="fa-solid fa-dungeon" inert></i> {{name}}</button>
+			</li>
+			{{/each}}
+		</ul>
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.gmToolkit.places.noSites"}}</p>
+		{{/if}}
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.gmToolkit.places.sites'}}">
+			<button type="button" data-action="newSite"><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.sites.newSite"}}</button>
+		</nav>
+	</section>
+</section>

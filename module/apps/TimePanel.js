@@ -1,17 +1,12 @@
-import { CALENDAR_HOOK, calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { CALENDAR_HOOK } from "../actions/calendar.js";
 import { awardGlory } from "../actions/glory.js";
-import { GLORY_AWARDS } from "../rules/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { t } from "../chat/cards.js";
-import { HARDSHIPS, PHASES, SEASONS } from "../rules/time.js";
 import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { setCalendarByHand, timeContext } from "./time-controls.js";
 import { singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-/** Referee Rolls offered beside the calendar. */
-const TIME_ROLLS = Object.freeze(["passage", "unresolved"]);
 
 /**
  * The world's calendar (Time, p17). GMs move it on a Phase, a Season or an Age
@@ -48,27 +43,8 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		const calendar = getCalendar();
 		const isGM = game.user.isGM;
-
-		return Object.assign(context, {
-			isGM,
-			locked: !isGM,
-			now: calendarLabel(calendar),
-			age: calendar.age,
-			day: calendar.day,
-			seasons: SEASONS.map((key) => ({ key, label: t(`time.seasons.${key}`), active: key === calendar.season })),
-			phases: PHASES.map((key) => ({ key, label: t(`time.phases.${key}`), active: key === calendar.phase })),
-			phaseHint: t(`time.phaseHints.${calendar.phase}`),
-			winter: calendar.season === "winter",
-			rolls: TIME_ROLLS.map((key) => ({ key, label: t(`refereeRolls.tables.${key}.name`) })),
-			hardships: HARDSHIPS.map(({ key }) => ({
-				key,
-				label: t(`time.hardship.kinds.${key}.label`),
-				hint: t(`time.hardship.kinds.${key}.hint`)
-			})),
-			gloryAwards: GLORY_AWARDS.map((key) => ({ key, label: t(`glory.awards.${key}.label`), hint: t(`glory.awards.${key}.hint`) }))
-		});
+		return Object.assign(context, timeContext(), { isGM, locked: !isGM });
 	}
 
 	/** @override */
@@ -85,34 +61,23 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#hook = null;
 	}
 
-	/**
-	 * Set the calendar by hand, without anything that comes between Seasons or Ages.
-	 * @param {object} changes
-	 */
-	static #set(changes) {
-		if (!game.user.isGM) return;
-		return setCalendar({ ...getCalendar(), ...changes });
-	}
-
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
 
 	/** @this {TimePanel} */
 	static #onSubmit(_event, _form, formData) {
-		const count = (value, fallback) => (Number.isInteger(Number(value)) && Number(value) >= 1 ? Number(value) : fallback);
-		const calendar = getCalendar();
-		return TimePanel.#set({ age: count(formData.object.age, calendar.age), day: count(formData.object.day, calendar.day) });
+		return setCalendarByHand({ age: formData.object.age, day: formData.object.day });
 	}
 
 	/** @this {TimePanel} */
 	static #onSetSeason(_event, target) {
-		if (SEASONS.includes(target.dataset.season)) return TimePanel.#set({ season: target.dataset.season });
+		return setCalendarByHand({ season: target.dataset.season });
 	}
 
 	/** @this {TimePanel} */
 	static #onSetPhase(_event, target) {
-		if (PHASES.includes(target.dataset.phase)) return TimePanel.#set({ phase: target.dataset.phase });
+		return setCalendarByHand({ phase: target.dataset.phase });
 	}
 
 	/** @this {TimePanel} */

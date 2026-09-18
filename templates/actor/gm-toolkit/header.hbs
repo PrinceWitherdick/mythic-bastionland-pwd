@@ -1,0 +1,27 @@
+{{!-- The toolkit's banner: which Realm its pages show, the world's calendar, and where the Company stands. --}}
+<header class="bastionland-page bastionland-gm-toolkit__header">
+	<img class="bastionland-gm-toolkit__portrait" src="{{actor.img}}" alt="" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+	<div class="bastionland-gm-toolkit__banner">
+		<h1 class="bastionland-title bastionland-gm-toolkit__title">{{actor.name}}</h1>
+		<div class="bastionland-gm-toolkit__facts">
+			{{#if realms.length}}
+			<label class="bastionland-gm-toolkit__realm">
+				<span>{{localize "bastionland.gmToolkit.realm"}}</span>
+				<select data-toolkit-field="realm" aria-label="{{localize 'bastionland.gmToolkit.realm'}}">
+					{{#each realms}}
+					<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+					{{/each}}
+				</select>
+			</label>
+			{{/if}}
+			<span class="bastionland-gm-toolkit__fact" data-tooltip="{{localize 'bastionland.time.title'}}"><i class="fa-solid fa-hourglass-half" inert></i> {{now}}</span>
+			{{#if company}}
+			<button type="button" class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--button" data-action="showHex" data-hex="{{company.key}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}">
+				<i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyAt" hex=company.label}}
+			</button>
+			{{else if noCompany}}
+			<span class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--quiet"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.noCompany"}}</span>
+			{{/if}}
+		</div>
+	</div>
+</header>

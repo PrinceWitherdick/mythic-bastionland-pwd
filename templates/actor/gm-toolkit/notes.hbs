@@ -1,0 +1,11 @@
+{{!-- The GM's own notes, kept on the toolkit Actor. --}}
+<section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="notes">
+	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.notes.hint"}}</p>
+	<section class="bastionland-chronicle bastionland-gm-toolkit__notes">
+		{{#if editable}}
+		<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
+		{{else}}
+		<div class="editor-content">{{{enrichedNotes}}}</div>
+		{{/if}}
+	</section>
+</section>

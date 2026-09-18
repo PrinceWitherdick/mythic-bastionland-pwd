@@ -139,6 +139,36 @@ describe("system boot", () => {
 		}
 	});
 
+	it("gives the world one GM Toolkit, drawn on its own sheet with a page for each part of it", async () => {
+		const { GM_TOOLKIT_TYPE } = await import("../module/actions/gm-toolkit.js");
+		const { TOOLKIT_TABS } = await import("../module/rules/gm-toolkit.js");
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const [, , toolkitSheet, options] = registerSheet.mock.calls
+			.find(([registeredClass, , , sheetOptions]) => registeredClass === Actor && sheetOptions.types.includes(GM_TOOLKIT_TYPE));
+		expect(options).toMatchObject({ types: [GM_TOOLKIT_TYPE], makeDefault: true });
+		for (const part of Object.values(toolkitSheet.PARTS)) {
+			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+		}
+		// Every page on the rail has a part to draw it.
+		expect(toolkitSheet.TABS.primary.tabs.map((tab) => tab.id)).toEqual([...TOOLKIT_TABS]);
+		for (const tab of TOOLKIT_TABS) expect(toolkitSheet.PARTS[tab]).toBeDefined();
+
+		// A second toolkit is refused, and the last one is kept.
+		expect(hooks.preCreateActor).toBeTypeOf("function");
+		expect(hooks.preDeleteActor).toBeTypeOf("function");
+		expect(hooks.renderDialogV2).toBeTypeOf("function");
+		expect(game.system.api.openGmToolkit).toBeTypeOf("function");
+	});
+
+	it("makes the GM Toolkit each GM's character, so core's own C opens it, and keeps their chat their own", () => {
+		// Core's character sheet key does the opening, so the system adds no key of its own.
+		expect(game.keybindings.register.mock.calls.map(([, name]) => name)).not.toContain("openGmToolkit");
+		expect(hooks.createActor).toBeTypeOf("function");
+		expect(hooks.preCreateChatMessage).toBeTypeOf("function");
+		// A player never takes it.
+		expect(hooks.createActor({ type: "gmToolkit", pack: null }, {}, "someone")).toBeUndefined();
+	});
+
 	it("opens a Site's Journal entry on its map, and offers the map to no other entry", async () => {
 		const { SITE_SHEET_CLASS } = await import("../module/actions/sites.js");
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
@@ -191,6 +221,7 @@ describe("system boot", () => {
 		expect(game.system.api.openHexLore).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
 		expect(game.system.api.newSite).toBeTypeOf("function");
+		// The Myths window is the GM Toolkit's first page now, and macros that open it still do.
 		expect(game.system.api.openMythsPanel).toBeTypeOf("function");
 		expect(game.system.api.rollCityOmen).toBeTypeOf("function");
 		expect(game.system.api.awardGlory).toBeTypeOf("function");
@@ -329,7 +360,7 @@ describe("system boot", () => {
 		}));
 	});
 
-	it("adds Referee Rolls, Spark Tables, Time, Sites and Myths to the Roll Tables directory only for GMs", () => {
+	it("adds Referee Rolls, Spark Tables, Time, Sites and the GM Toolkit to the Roll Tables directory only for GMs", () => {
 		const header = () => {
 			const buttons = [];
 			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
@@ -348,7 +379,7 @@ describe("system boot", () => {
 		};
 		globalThis.game.i18n = { localize: (key) => key };
 		hooks.renderRollTableDirectory({}, element(allowed));
-		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables", "bastionland-time", "bastionland-sites", "bastionland-myths"]);
+		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-referee-rolls", "bastionland-spark-tables", "bastionland-time", "bastionland-sites", "bastionland-gm-toolkit"]);
 		game.user.isGM = false;
 		delete globalThis.document;
 	});

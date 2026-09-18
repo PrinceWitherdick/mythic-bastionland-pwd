@@ -98,7 +98,7 @@ GMs get five buttons at the top of the Roll Tables tab:
   - **Hardship** takes d6 from a Virtue for everybody ticked: SPI for night travel, CLA for no proper sleep, and VIG for Winter cold or going without supplies.
   - Clicking a Season or Phase, or changing the Age or Day, sets the calendar by hand without any of that. In Winter the Wilderness Roll card reminds the GM of the cold and dire weather.
   - **Glory** awards 1 Glory to each Knight ticked for a Myth resolved, a tournament won or a battle won, and says when a Knight reaches a new Rank. Squires are left out.
-- **Myths:** each Myth in a Realm Scene with its six Omens, quoted after Import Book Art, and the ones seen so far marked. **Next Omen** counts one more and shows it to GMs, and **Myth Resolved** awards the Glory. The same window tracks the City Quest: **Roll an Omen of the City** rolls d12 plus those already encountered, skipping duplicates, and says when the Quest ends. The Wilderness Roll card reminds GMs of it on a random Myth's Omen once a player's Knight is Knight-Radiant.
+- **GM Toolkit:** opens the GM Toolkit, below, which took over from the Myths window.
 - **Sites:** **New Site**, in the Journal and Roll Tables directories and as a macro on each GM's hotbar, makes a Journal entry that opens on a map drawn the way the book does (p15). Click the points on the hexagon to mark features, dangers and treasure, and the gaps between marked neighbours to draw open, closed and hidden routes. A bar over the map sets a point's number and entrance, or what's along a route. The book's four steps sit beneath the map, counting what's drawn against the rules, warning when a point can't be reached, and rolling whatever isn't done. **Roll the rest** does all four, keeping anything already drawn. Breaking the rules changes the counts, or starts from the book's sealed burial complex. The key beside the map holds what's at each point and each entrance. In **Reveal**, clicking a point, hidden route or entrance shows it to players. **Show Players** opens the Site for them, and they see only what's been found, plus the open and closed routes leading from it, updating as the GM reveals more. Undo and Redo take back changes. A New Site closed with nothing drawn or written is deleted again.
 - **Doom and other Scars that wait:** a Doom Scar lasts the Season it was taken in, and while it does, a Mortal Wound Slays instead. Gouge, Tear and Humiliation get a settle button on the Knight sheet for the Referee to press when the Knight is stitched up, patched up or avenged.
 - **Growing older:** changing a Knight's Age to Mature or Old offers to reroll each Virtue on d12+d6, keeping the higher when becoming Mature and the lower when becoming Old.
@@ -118,7 +118,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
 - **What players see:** the terrain, the river and the Holdings. Myths, Landmarks and Barriers are hidden Tiles and Drawings, which GMs see faded and can reveal with the eye on the Tile or Drawing HUD.
   - Leave hidden Tiles unlocked: Foundry hides a hidden, locked Tile from GMs too.
   - Like hidden Tokens, hidden parts of the Realm are still sent to every player's browser, and so are the GMs' Realm cards. A player sees a Wilderness Roll only as the GM rolling privately.
-  - The same goes for what you write in the Lay of the Land: it rides on the Scene, so it reaches every browser. It's kept there for consistency, not secrecy.
+  - The same goes for what you write in the Lay of the Land, and for the GM Toolkit's notes on Myths and the Company's journey: they ride on the Scene, so they reach every browser. They're kept there for consistency, not secrecy.
 - **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import Book Art where it has been run.
 - **The Company:** one Token stands for all the Knights, because the Seers deemed that they travel as a Company (p7) — "while some of you may rest, roam, or die, your collective journey will be as one".
   - The New Realm dialog places it. Choose the Company's **Start** and it begins where the book puts it (p6): a **Wanderer** arrives over the edge of the map, a **Courtier** at the Seat of Power, and a **Ruler** at a Holding of their own, never the Seat that lies under a wicked influence. The same seed puts it in the same place.
@@ -127,7 +127,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - **Company here** on the Hex panel stands it in that hex, making the Token the first time. That is the way to give a Realm made before this a Company, or to move it without dragging.
   - Where the Company Token stands is where the Company is: the Wilderness Roll, the Travel rules and the Lay of the Land all read it, so there is no guessing from selected Tokens and no “the Company is split”. Delete the Token and they fall back to the player-owned Tokens as before.
 - **The Lay of the Land:** what you've made of a hex, kept in the hex. The book asks the Referee to fill the blanks in a Hex with Spark Table prompts (p19), and this is where those rolls are kept, so a Company coming back finds the hex they left. Open it from the Hex panel.
-  - It shows what the Realm already says stands there, a box to write what's in the hex, and every Spark Table roll made for it so far, newest first, each with the dice and the date it was rolled.
+  - It shows what the Realm already says stands there, whether the Company has been there, a box to write what's in the hex, and every Spark Table roll made for it so far, newest first, each with the dice and the date it was rolled.
   - **Roll a wilderness hex** rolls the first table of each row of the Nature page (p22) in one go — the lay of the land, its weather and a feature of it. The dropdown rolls any of the four pages' tables on its own. Both need Import Book Art; without it you can still write notes.
   - Rolls are whispered to GMs. **Tell the players** posts what you wrote, and only what you wrote, as a card everyone sees; a Myth or Landmark still hidden never rides out in it.
   - **Ask about a new hex** in the settings decides what happens when a player's Token comes to rest in a hex nothing has been written down for: nothing, a note in the corner, or the window opening. Each browser sets its own, and a hex is only offered once per session. The default is the note.
@@ -151,6 +151,30 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - **Reroll the Realm:** rolls a new Realm onto the same Scene. Tokens and anything else on the Scene stay.
 
 The map looks like the Realm Sheets: the terrain, Holdings and Landmarks from the legend of the Blank Realm sheet, traced so they stay sharp however far you zoom, in white hexes ruled in grey. Rivers are inked as the Realm Sheets draw them, and Myths are numbered in the red pen the sheet marks Landmarks in. As on the sheet, a Holding takes the place of its hex's terrain. **Realm Appearance**, under Configure Settings, offers other skins and sets of colours, and takes pictures of your own.
+
+### The GM Toolkit
+
+The GM's own place for how the Realm stands, as the Stonetop system keeps its GM's. It's an Actor of its own type, and each world has exactly one, made the first time a GM loads the world with this version. Players never see it.
+
+Each GM is given it as their character, as on Stonetop, so **C**, Foundry's character sheet key, opens it whenever no Token is selected, and the Players list shows it by their name.
+- It's given once, the first time a GM loads the world with a toolkit in it. A GM who already has a character of their own keeps theirs, and a GM who takes the toolkit off isn't given it again. Set it back under **User Configuration** from the Players list.
+- Foundry would sign a GM's chat with their character's name when no Token is selected. The toolkit never speaks, so those messages keep the GM's own name.
+
+It's also in the Actors tab, behind **GM Toolkit** in the Roll Tables tab, and on the Realm controls of a Realm Scene. Its pages hang off a rail on the window's edge, and the **Realm** at the top picks which Realm the first three show.
+
+- **Myths and Omens:** each Myth of the Realm with the Omen playing out and the one to come (p18), and all six folded beneath. The Omens are quoted after Import Book Art.
+  - **Next Omen** counts one more and whispers it to GMs; **−** takes one back. The Hex panel and the Wilderness Roll count the same Omens.
+  - Each Myth has a box for your notes on it.
+  - **Myth Resolved** marks it resolved and awards the Glory (p27). A resolved Myth offers **Roll the New Myth**, which rolls the Myth that replaces it in the same hex and under the same number, with none of its Omens met. The Realm's Undo takes the roll back, with your notes on the old Myth.
+  - The City Quest is kept here too: **Roll an Omen of the City** rolls d12 plus those already encountered, skipping duplicates, and says when the Quest ends. The Wilderness Roll card reminds GMs of it on a random Myth's Omen once a player's Knight is Knight-Radiant.
+- **Journey:** every hex the Company has come into, the last reached first: what stands there, how often and when the Company was there, what you wrote about it, and the Spark Tables rolled there.
+  - The active GM's browser counts a hex each time the Company Token walks into it, hexes passed through on the way included. A Token put down from the Hex panel counts only where it lands, and a move taken back counts nothing. Without a Company Token, any player's Token counts.
+  - **Count a Visit** and **Forget the Visits** set it right by hand, here and in the Lay of the Land.
+- **Places:** the Realm's Holdings, its Landmarks, found or not, with the Seer at each Sanctum, every other hex you've written about or rolled for, and the Sites in the Journal.
+- Each hex on those two pages holds the same note and rolls as the Lay of the Land. It has **Show on the Map**, **Roll a wilderness hex**, **Lay of the Land** and **Tell the players**. **Show on the Map** views that Realm, pans to the hex and marks it on your screen alone. Nothing is pinged to players, so a hidden Myth stays hidden.
+- **Time:** **Next Phase**, **Turn the Season** and **Turn the Age**, doing what they do in the Time window. The page also sets the calendar by hand, rolls Passage of Time and Unresolved Situation, and has Hardship and Glory. Resolved Myths wait here for the Season to turn.
+- **Notes:** your own notes, such as the plans and ambitions the players share at the end of a session (p16).
+- The world's last toolkit can't be deleted, since it holds your notes. A second one is refused, and Create Actor stops offering the type once the world has one. A world left open while the system updated needs launching again before the toolkit can be made.
 
 ### Art and text from your own book
 
@@ -213,4 +237,5 @@ The system id lives only in `module/system-id.js`. Lint rejects the id spelled o
 - Travel rules beside Realm Scenes: the Travel text of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. The panel credits it too.
 - Realm icons from [game-icons.net](https://game-icons.net), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/): the Seat of Power's [Crown](https://game-icons.net/1x1/lorc/crown.html) by Lorc, and the drawn skins' [Village](https://game-icons.net/1x1/delapouite/village.html), [Castle](https://game-icons.net/1x1/delapouite/castle.html) and [Rempart](https://game-icons.net/1x1/delapouite/rempart.html) by Delapouite and [White Tower](https://game-icons.net/1x1/lorc/white-tower.html) by Lorc. Each picture carries the credit.
 - Import Book Art macro icon: [Spell book](https://game-icons.net/1x1/delapouite/spell-book.html) by Delapouite, from [game-icons.net](https://game-icons.net) under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), the same icon as Stonetop's Import PDF macro. The picture carries the credit.
+- GM Toolkit portrait: [Read](https://game-icons.net/1x1/skoll/read.html) by Skoll, from [game-icons.net](https://game-icons.net) under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), the same mark as Stonetop's GM Toolkit, recoloured. The picture carries the credit.
 - Mythic Bastionland © Chris McDowall, Bastionland Press.

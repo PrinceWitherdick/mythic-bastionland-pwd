@@ -3,7 +3,7 @@
  * shares. Plain data and functions, so they can be tested without Foundry.
  * Names for each key live under `bastionland.realm`.
  */
-import { isDie, rollLabel, spreadPages } from "./book-art.js";
+import { isDie, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
 import { hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
 export const REALM_VERSION = 1;
@@ -36,10 +36,10 @@ export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end"]);
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll", "appearance"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll", "appearance", "toolkit"]);
 
 /** The Realm tools that act at once rather than waiting for a click on the map. */
-export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll", "appearance"]);
+export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll", "appearance", "toolkit"]);
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([
@@ -185,14 +185,14 @@ export function validateRealm(realm, g) {
 		if (!isDie(myth.number, MYTH_COUNT)) report("myth", "number", myth.number);
 		else if (numbers.has(myth.number)) report("myth", "duplicate", myth.number);
 		numbers.add(myth.number);
-		if (!isDie(myth.d6, 6) || !isDie(myth.d12, 12)) report("myth", "roll", myth.number);
+		if (!isTableRoll(myth)) report("myth", "roll", myth.number);
 		if (!Number.isInteger(myth.omen) || myth.omen < 0 || myth.omen > OMEN_COUNT) report("myth", "omen", myth.number);
 	}
 
 	for (const landmark of realm.landmarks) {
 		place("landmark", landmark.hex);
 		if (!LANDMARK_TYPES.includes(landmark.type)) report("landmark", "type", hexKey(landmark.hex));
-		if (landmark.seer && (!isDie(landmark.seer.d6, 6) || !isDie(landmark.seer.d12, 12))) report("landmark", "roll", hexKey(landmark.hex));
+		if (landmark.seer && !isTableRoll(landmark.seer)) report("landmark", "roll", hexKey(landmark.hex));
 	}
 
 	for (const [key, count] of featuresOnHex) {

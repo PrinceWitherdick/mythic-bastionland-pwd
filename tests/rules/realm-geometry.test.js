@@ -14,6 +14,7 @@ import {
 	hexDistance,
 	hexIndex,
 	hexKey,
+	hexLine,
 	hexTopLeft,
 	hexVertices,
 	inRealm,
@@ -132,6 +133,24 @@ describe("neighbours", () => {
 		}
 		for (const hex of allHexes(g)) expect(hexDistance(start, hex)).toBe(steps.get(hexKey(hex)));
 		expect(hexDistance({ col: 1, row: 1 }, { col: 12, row: 12 })).toBe(17);
+	});
+
+	it("draws a line a neighbour at a time, the shortest way, ending where it's going", () => {
+		const hexes = allHexes(g);
+		for (const from of hexes.filter((_, index) => index % 7 === 0)) {
+			for (const to of hexes) {
+				const line = hexLine(g, from, to);
+				expect(line).toHaveLength(hexDistance(from, to));
+				[from, ...line].slice(0, -1).forEach((hex, index) => expect(hexDistance(hex, line[index])).toBe(1));
+				if (line.length) expect(line.at(-1)).toEqual(to);
+				for (const hex of line) expect(inRealm(g, hex)).toBe(true);
+			}
+		}
+	});
+
+	it("draws a line down a column through each hex between", () => {
+		expect(hexLine(g, { col: 3, row: 2 }, { col: 3, row: 5 }).map(hexKey)).toEqual(["3,3", "3,4", "3,5"]);
+		expect(hexLine(g, { col: 4, row: 4 }, { col: 4, row: 4 })).toEqual([]);
 	});
 });
 

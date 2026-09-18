@@ -163,7 +163,8 @@ async function onFocus(message) {
 
 /**
  * Whoever might Deny: the actors of this user's selected Tokens, then their
- * own character. The attacker can't Deny their own Attack.
+ * own character. The attacker can't Deny their own Attack, and only somebody
+ * with Virtues can make the SPI Save: a GM's character is the GM Toolkit.
  * @param {import("../rules/attack.js").AttackState} attack
  * @returns {Actor[]}
  */
@@ -171,7 +172,7 @@ function denyCandidates(attack) {
 	const actors = [...(canvas?.tokens?.controlled ?? []).map((token) => token.actor), game.user.character];
 	const seen = new Set();
 	return actors.filter((actor) => {
-		if (!actor?.isOwner || actor.uuid === attack.attacker || seen.has(actor.uuid)) return false;
+		if (!actor?.isOwner || !actor.system?.virtues || actor.uuid === attack.attacker || seen.has(actor.uuid)) return false;
 		seen.add(actor.uuid);
 		return true;
 	});

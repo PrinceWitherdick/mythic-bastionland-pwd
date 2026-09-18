@@ -65,10 +65,11 @@ const text = (value) => (typeof value === "string" ? value.trim() : "");
 const wholeNumbers = (value) => (Array.isArray(value) ? value.filter((number) => Number.isInteger(number)) : []);
 
 /**
+ * A moment on the world's calendar as it was stored, or nothing if it doesn't read as one.
  * @param {unknown} raw
  * @returns {HexSpark["when"]}
  */
-function normaliseWhen(raw) {
+export function normaliseWhen(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const { age, season, day, phase } = raw;
 	if (!Number.isInteger(age) || !Number.isInteger(day)) return null;

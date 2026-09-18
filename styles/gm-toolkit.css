@@ -1,0 +1,522 @@
+/*
+ * The GM Toolkit: a Realm's Myths and Omens, the hexes the Company has been
+ * to, the Realm's places, the calendar and the GM's notes, on pages picked
+ * from the tab rail. It paints the same parchment as the Knight sheet and
+ * shares its rail, headings and toolbars from mythic-bastionland.css; what's
+ * here is only what the toolkit has of its own.
+ */
+
+/* The banner stays put while the page under it scrolls. */
+.bastionland-gm-toolkit > .window-content {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.bastionland-gm-toolkit > .window-content > .bastionland-gm-toolkit__page {
+	min-height: 0;
+	scrollbar-gutter: stable;
+}
+
+/* Each page is a parchment page and a tab at once. Foundry hides a tab that
+   isn't showing from inside its own cascade layer, which a page's display
+   would override, so it's hidden again here. */
+.bastionland-gm-toolkit > .window-content > .bastionland-gm-toolkit__page:not(.active) {
+	display: none;
+}
+
+/* ---------------------------------------------------------------- */
+/* Banner                                                           */
+/* ---------------------------------------------------------------- */
+
+.bastionland-page.bastionland-gm-toolkit__header {
+	flex: none;
+	flex-direction: row;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem 1.5rem 0.75rem;
+	overflow: visible;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-gm-toolkit__portrait {
+	flex: none;
+	width: 4.5rem;
+	height: 4.5rem;
+	border: none;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.bastionland-gm-toolkit__portrait[data-action] {
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__banner {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.4rem;
+	min-width: 0;
+}
+
+.bastionland-gm-toolkit__title {
+	margin: 0;
+	text-align: left;
+}
+
+.bastionland-gm-toolkit__facts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 1.1rem;
+	font-size: 0.95rem;
+}
+
+.bastionland-gm-toolkit__realm {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-style: italic;
+}
+
+.bastionland-gm-toolkit__realm select {
+	width: auto;
+	min-width: 10rem;
+	max-width: 16rem;
+	font-style: normal;
+}
+
+.bastionland-gm-toolkit__fact {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	color: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__fact--quiet {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+/* Where the Company stands reads as a line of the banner, and shows the hex when clicked. */
+.bastionland-page button.bastionland-gm-toolkit__fact--button {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font: inherit;
+	text-decoration: underline dotted var(--bastionland-rule);
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__fact--button:hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+/* ---------------------------------------------------------------- */
+/* Pages                                                            */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__page {
+	gap: 0.85rem;
+}
+
+.bastionland-gm-toolkit__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	margin-top: 0.4rem;
+}
+
+.bastionland-gm-toolkit__section > .bastionland-hint {
+	margin-top: -0.35rem;
+}
+
+.bastionland-gm-toolkit__summary {
+	margin: 0;
+	font-style: italic;
+}
+
+/* A Myth, a hex or a place: a leaf of parchment ruled off from the page. */
+.bastionland-gm-toolkit__card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	margin: 0;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid var(--bastionland-rule);
+	border-left: 4px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.28);
+}
+
+.bastionland-gm-toolkit__name {
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.3rem;
+	font-weight: normal;
+	line-height: 1.15;
+}
+
+.bastionland-gm-toolkit__kind {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+.bastionland-gm-toolkit__chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.bastionland-gm-toolkit__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.05rem 0.45rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-size: 0.82rem;
+	line-height: 1.35;
+}
+
+.bastionland-gm-toolkit__chip.is-terrain {
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+/* Hidden from players: the GM's eyes only, drawn dashed like a secret. */
+.bastionland-gm-toolkit__chip.is-hidden {
+	border-style: dashed;
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+.bastionland-gm-toolkit__chip.is-company {
+	border-color: var(--bastionland-verdigris);
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-gm-toolkit__chip.is-resolved {
+	border-color: var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-page button.bastionland-gm-toolkit__chip--button {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	box-shadow: none;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__chip--button:hover {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-gm-toolkit__note {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.bastionland-gm-toolkit__note > span {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-gm-toolkit__note textarea {
+	min-height: 3.4rem;
+	resize: vertical;
+	font-family: inherit;
+	font-size: 0.95rem;
+}
+
+.bastionland-gm-toolkit__card .bastionland-toolbar {
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+/* ---------------------------------------------------------------- */
+/* Myths                                                            */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__myth {
+	border-left-color: var(--bastionland-blood);
+}
+
+.bastionland-gm-toolkit__myth.is-resolved {
+	border-left-color: var(--bastionland-rubric);
+	background: rgb(255 255 255 / 0.12);
+}
+
+.bastionland-gm-toolkit__myth-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+}
+
+.bastionland-gm-toolkit__myth-title {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.bastionland-gm-toolkit__myth-title .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-gm-toolkit__art {
+	flex: none;
+	width: 7rem;
+	height: 4.4rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: cover;
+}
+
+/* Taking an Omen back is the odd one out on the row, so it stays a small square. */
+.bastionland-gm-toolkit__myth .bastionland-toolbar button[data-action="omenStep"] {
+	flex: 0 0 2.6rem;
+	min-width: 0;
+	padding: 0;
+}
+
+.bastionland-gm-toolkit__resolved {
+	margin: 0;
+	color: var(--bastionland-rubric);
+	font-style: italic;
+}
+
+.bastionland-gm-toolkit__omens {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.bastionland-gm-toolkit__omen {
+	padding: 0.35rem 0.6rem;
+	border-left: 3px solid var(--bastionland-rule);
+}
+
+.bastionland-gm-toolkit__omen p {
+	margin: 0.15rem 0 0;
+}
+
+.bastionland-gm-toolkit__omen.is-current {
+	border-left-color: var(--bastionland-blood);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-gm-toolkit__omen.is-next {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-gm-toolkit__omen-label {
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.95rem;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-gm-toolkit__omen.is-current .bastionland-gm-toolkit__omen-label {
+	color: var(--bastionland-blood);
+}
+
+/* The six Omens in order, folded away until wanted. */
+.bastionland-gm-toolkit__fold > summary {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.9rem;
+	font-style: italic;
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__all-omens li.is-seen {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-gm-toolkit__all-omens li.is-current {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-gm-toolkit__all-omens li.is-next {
+	color: var(--bastionland-ink);
+	font-weight: normal;
+	font-style: italic;
+}
+
+/* ---------------------------------------------------------------- */
+/* Hexes and places                                                 */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__hex {
+	gap: 0;
+	padding: 0;
+}
+
+.bastionland-gm-toolkit__hex[open] {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+.bastionland-gm-toolkit__hex-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.6rem;
+	padding: 0.55rem 0.9rem;
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__hex-head::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-gm-toolkit__hex-head::before {
+	content: "\25B8";
+	flex: none;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.8rem;
+}
+
+.bastionland-gm-toolkit__hex[open] > .bastionland-gm-toolkit__hex-head::before {
+	content: "\25BE";
+}
+
+.bastionland-gm-toolkit__hex-head .bastionland-gm-toolkit__name {
+	font-size: 1.15rem;
+}
+
+.bastionland-gm-toolkit__visits {
+	flex-basis: 100%;
+	padding-left: 1.1rem;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+	font-style: italic;
+}
+
+.bastionland-gm-toolkit__hex-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0 0.9rem 0.75rem;
+}
+
+.bastionland-gm-toolkit__sparks {
+	max-height: none;
+}
+
+.bastionland-gm-toolkit__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+/* Foundry gives buttons a fixed height, which clips a wrapped label; these grow to fit. */
+.bastionland-gm-toolkit__actions button {
+	display: inline-flex;
+	flex: 1 1 9rem;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	height: auto;
+	min-height: var(--button-size, 2rem);
+	padding: 0.25rem 0.5rem;
+	line-height: 1.15;
+	white-space: normal;
+}
+
+.bastionland-gm-toolkit__sites {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__site {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	width: auto;
+	height: auto;
+	min-height: 2rem;
+	padding: 0.2rem 0.7rem;
+}
+
+/* ---------------------------------------------------------------- */
+/* Time                                                             */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__now {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+.bastionland-gm-toolkit__now .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-gm-toolkit__waiting {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-gm-toolkit__waiting li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.4rem 0.75rem;
+}
+
+.bastionland-gm-toolkit__waiting .bastionland-button {
+	flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- */
+/* The Lay of the Land's line on the Company's visits               */
+/* ---------------------------------------------------------------- */
+
+.bastionland-hex-lore__visits > span {
+	flex: 1;
+}
+
+.bastionland-hex-lore__row.bastionland-hex-lore__visits button {
+	flex: 0 1 auto;
+}
+
+/* ---------------------------------------------------------------- */
+/* Notes                                                            */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__notes {
+	min-height: 0;
+}
+
+@container (max-width: 560px) {
+	.bastionland-gm-toolkit__art {
+		display: none;
+	}
+}
