@@ -298,9 +298,6 @@
 		<section class="bastionland-block bastionland-seer">
 			<header class="bastionland-block__header">
 				<h2 class="bastionland-heading">{{#if system.seer}}{{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
-				{{#if editable}}
-				<button type="button" class="bastionland-button" data-action="readSeer" data-tooltip="{{localize 'bastionland.seer.fromBookHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.seer.fromBook"}}</button>
-				{{/if}}
 			</header>
 			{{#if (or system.seerImg editable)}}
 			<figure class="bastionland-seer__portrait">

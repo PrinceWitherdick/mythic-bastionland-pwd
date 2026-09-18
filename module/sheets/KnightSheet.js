@@ -3,7 +3,7 @@ import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dom
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
-import { fillSeerFromBook, readSeerFromBook } from "../actions/seers.js";
+import { fillSeerFromBook } from "../actions/seers.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
@@ -39,7 +39,6 @@ export class KnightSheet extends BastionlandActorSheet {
 			openSuccessor: KnightSheet.#onOpenSuccessor,
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
-			readSeer: KnightSheet.#onReadSeer,
 			pickSeerImage: KnightSheet.#onPickSeerImage,
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood
@@ -313,11 +312,6 @@ export class KnightSheet extends BastionlandActorSheet {
 		// Loaded on first use: the painter and its gallery of charges are large, and most sessions never open them.
 		const { openHeraldryPainter } = await import("../apps/HeraldryPainter.js");
 		return openHeraldryPainter(this.actor);
-	}
-
-	/** @this {KnightSheet} */
-	static #onReadSeer() {
-		return readSeerFromBook(this.actor);
 	}
 
 	/** @this {KnightSheet} */

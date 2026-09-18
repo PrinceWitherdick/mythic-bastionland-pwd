@@ -1457,10 +1457,6 @@
 	gap: 1rem;
 }
 
-.bastionland-seer .bastionland-block__header .bastionland-button {
-	flex: 0 0 auto;
-}
-
 /* The book prints each Seer as a wide banner across their Knight's page. */
 .bastionland-seer__portrait {
 	margin: 0.4rem 0 0;
