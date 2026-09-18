@@ -26,6 +26,7 @@ import {
 	keepOnPainting,
 	placementBox,
 	placementLimits,
+	randomArms,
 	readRecentColors,
 	rememberColor,
 	rgbaToHex,
@@ -216,6 +217,23 @@ function polygonPoints(points, width, height) {
 }
 
 /**
+ * @param {{parts: {group: number, points: number[][]}[]}} division
+ * @param {number} group
+ * @returns {Path2D} The parts of a division in one group, at painting size.
+ */
+function groupPath(division, group) {
+	const path = new Path2D();
+	for (const part of division.parts) {
+		if (part.group !== group) continue;
+		const [first, ...rest] = part.points;
+		path.moveTo(first[0] * PAINTING.width, first[1] * PAINTING.height);
+		for (const [x, y] of rest) path.lineTo(x * PAINTING.width, y * PAINTING.height);
+		path.closePath();
+	}
+	return path;
+}
+
+/**
  * @param {DataTransfer|null} transfer
  * @returns {File|undefined} The first picture among files dropped.
  */
@@ -259,6 +277,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			browseCharges: HeraldryPainter.#onBrowseCharges,
 			closeCharges: HeraldryPainter.#onCloseCharges,
 			pickCharge: HeraldryPainter.#onPickCharge,
+			randomize: HeraldryPainter.#onRandomize,
 			download: HeraldryPainter.#onDownload,
 			placeImage: HeraldryPainter.#onPlaceImage,
 			discardImage: HeraldryPainter.#onDiscardImage,
@@ -347,7 +366,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** Whether the gallery of charges shows in place of the paints. */
 	#browsing = false;
 
-	/** Counts charges picked, so only the latest one picked arrives when several load at once. */
+	/** Counts charges picked and arms randomized, so only the latest one arrives when several load at once. */
 	#pickRequest = 0;
 
 	/** Whether a charge is being tinted. One tint runs at a time, and the colour picker moving meanwhile asks for one more. */
@@ -690,20 +709,23 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	#paintDivision(point) {
 		const group = this.#groupAt(point);
 		if (group === null) return;
-		const path = new Path2D();
-		for (const part of this.#division.parts) {
-			if (part.group !== group) continue;
-			const [first, ...rest] = part.points;
-			path.moveTo(first[0] * PAINTING.width, first[1] * PAINTING.height);
-			for (const [x, y] of rest) path.lineTo(x * PAINTING.width, y * PAINTING.height);
-			path.closePath();
-		}
 		this.#remember();
+		this.#fillGroup(this.#division, group, this.#color);
+	}
+
+	/**
+	 * Paint every part of a division in one group, inside the shield.
+	 * @param {typeof DIVISIONS[number]} division
+	 * @param {number} group
+	 * @param {string} color
+	 */
+	#fillGroup(division, group, color) {
+		const path = groupPath(division, group);
 		const context = this.#context;
 		context.save();
 		context.clip(this.#shield);
-		context.fillStyle = this.#color;
-		context.strokeStyle = this.#color;
+		context.fillStyle = color;
+		context.strokeStyle = color;
 		context.lineWidth = DIVISION_OVERLAP * 2;
 		context.lineJoin = "round";
 		context.fill(path);
@@ -729,6 +751,26 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	#highlightGroup(group) {
 		const guides = this.element.querySelector("[data-division-guides]");
 		for (const polygon of guides.children) polygon.classList.toggle("is-hovered", polygon.dataset.group === String(group));
+	}
+
+	/**
+	 * Draw a charge where a picked one arrives, taking another tincture over
+	 * each group of the field. The first is drawn whole beneath the others, so
+	 * no hairline of the field shows where the charge crosses a line.
+	 * @param {typeof DIVISIONS[number]|undefined} division
+	 * @param {HTMLCanvasElement[]} images The charge in its tincture over each group, in group order.
+	 */
+	#drawCounterchanged(division, images) {
+		const [first] = images;
+		const box = placementBox(first, PAINTING, chargePlacement(PAINTING));
+		this.#drawImage(first, box);
+		for (const [group, image] of images.entries()) {
+			if (image === first) continue;
+			this.#context.save();
+			this.#context.clip(groupPath(division, group));
+			this.#drawImage(image, box);
+			this.#context.restore();
+		}
 	}
 
 	/**
@@ -1055,7 +1097,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @param {boolean} saving */
 	#setSaving(saving) {
 		this.#saving = saving;
-		const buttons = this.element?.querySelectorAll('.bastionland-heraldry-painter__footer button, [data-action="browseCharges"]') ?? [];
+		const buttons = this.element?.querySelectorAll('.bastionland-heraldry-painter__footer button, [data-action="browseCharges"], [data-action="randomize"]') ?? [];
 		for (const button of buttons) button.disabled = saving;
 	}
 
@@ -1193,6 +1235,43 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
+	 * Paint random arms over the whole shield, as one change to undo: a field,
+	 * plain or divided, and perhaps a charge, in tinctures that read well. A
+	 * picture being placed is painted in first, as every tool does, so Undo
+	 * brings it back, and the paints come back into view.
+	 * @this {HeraldryPainter}
+	 */
+	static async #onRandomize() {
+		if (this.#saving) return;
+		const request = ++this.#pickRequest;
+		const arms = randomArms({ charges: CHARGES.map(({ key }) => key) });
+		/** @type {Map<string, HTMLCanvasElement>} The charge tinted in each tincture it takes. */
+		const tinted = new Map();
+		if (arms.charge) {
+			// A charge that won't load leaves the field bare rather than failing.
+			const svg = await loadChargeFile(arms.charge.key);
+			const needed = [...new Set(arms.charge.tinctures)];
+			const images = svg ? await Promise.all(needed.map((tincture) => loadTintedCharge(svg, tinctureColor(tincture)))) : [];
+			if (request !== this.#pickRequest || !this.rendered) return;
+			// Every tincture or none, so a charge is never drawn half missing.
+			if (images.length === needed.length && images.every(Boolean)) needed.forEach((tincture, index) => tinted.set(tincture, images[index]));
+		}
+		this.#finishPlacing(true);
+		this.#browse(false);
+		this.#stroke = null;
+		this.#remember();
+		this.#context.clearRect(0, 0, PAINTING.width, PAINTING.height);
+		const division = DIVISIONS.find(({ key }) => key === arms.division);
+		if (division) arms.field.forEach((tincture, group) => this.#fillGroup(division, group, tinctureColor(tincture)));
+		else {
+			this.#context.fillStyle = tinctureColor(arms.field[0]);
+			this.#context.fill(this.#shield);
+		}
+		if (tinted.size) this.#drawCounterchanged(division, arms.charge.tinctures.map((tincture) => tinted.get(tincture)));
+		this.#canvas.focus({ preventScroll: true });
+	}
+
+	/**
 	 * Save the painting to the user's computer as a PNG, full size, to open in a painter again later.
 	 * @this {HeraldryPainter}
 	 */
@@ -1226,6 +1305,8 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (this.#saving) return;
 		// A picture still being placed is saved where it is.
 		this.#finishPlacing(true);
+		// A charge or random arms still loading would paint over the shield while it's being stored.
+		this.#pickRequest++;
 		this.#setSaving(true);
 		try {
 			const { data } = this.#context.getImageData(0, 0, PAINTING.width, PAINTING.height);

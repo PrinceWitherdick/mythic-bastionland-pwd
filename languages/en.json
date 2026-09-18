@@ -168,6 +168,8 @@
           "symbols": "Crosses and symbols"
         }
       },
+      "randomize": "Randomize",
+      "randomizeHint": "Paint random arms over the whole shield: a field, plain or divided, and perhaps a charge, in tinctures that read well against each other. Undo brings the last design back.",
       "save": "Save",
       "unreadable": "That picture couldn’t be loaded onto the shield.",
       "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the GM to let you upload files."

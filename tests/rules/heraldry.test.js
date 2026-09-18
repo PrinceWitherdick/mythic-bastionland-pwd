@@ -32,7 +32,11 @@ import {
 	rememberColor,
 	rgbaToHex,
 	snapLine,
-	zoomPlacement
+	zoomPlacement,
+	randomArms,
+	readsWell,
+	touchingGroups,
+	METALS
 } from "../../module/rules/heraldry.js";
 
 const CLEAR = [0, 0, 0, 0];
@@ -264,5 +268,78 @@ describe("divisions", () => {
 		expect(divisionGroupAt(division("perPale"), 0.5, 0.5)).not.toBeNull();
 		expect(divisionGroupAt(division("gyronny"), 0.5, 0.45)).not.toBeNull();
 		expect(divisionGroupAt(division("barry"), 0, 0)).not.toBeNull();
+	});
+});
+
+describe("randomArms", () => {
+	/** @returns {() => number} A seeded stand-in for Math.random, so a failure can be run again. */
+	const seeded = (seed) => () => {
+		seed = (seed * 1664525 + 1013904223) % 2 ** 32;
+		return seed / 2 ** 32;
+	};
+	const isMetal = (key) => METALS.includes(key);
+	const charges = ["lion", "tower", "mullet"];
+	const division = (key) => DIVISIONS.find((each) => each.key === key);
+
+	it("finds which groups share a side", () => {
+		expect(touchingGroups(division("perPale"))).toEqual([[0, 1]]);
+		expect(touchingGroups(division("tiercedInPale"))).toEqual([[1, 2], [0, 2]]);
+		expect(touchingGroups(division("perPall"))).toHaveLength(3);
+	});
+
+	it("counts or on vert as reading well, and colour on colour or metal on metal as not", () => {
+		expect(readsWell("or", "vert")).toBe(true);
+		expect(readsWell("argent", "sable")).toBe(true);
+		expect(readsWell("gules", "azure")).toBe(false);
+		expect(readsWell("gules", "sable")).toBe(false);
+		expect(readsWell("or", "argent")).toBe(false);
+	});
+
+	it("gives touching parts tinctures that read well, keeping the rule of tincture wherever it can", () => {
+		const random = seeded(7);
+		for (let trial = 0; trial < 3000; trial++) {
+			const arms = randomArms({ charges, random });
+			if (!arms.division) continue;
+			const { field } = arms;
+			const each = division(arms.division);
+			expect(field).toHaveLength(new Set(each.parts.map(({ group }) => group)).size);
+			expect(new Set(field).size).toBe(field.length);
+			for (const [a, b] of touchingGroups(each)) {
+				expect(readsWell(field[a], field[b])).toBe(true);
+				if (arms.division !== "perPall") expect(isMetal(field[a])).not.toBe(isMetal(field[b]));
+			}
+		}
+	});
+
+	it("gives a charge a tincture that reads well against every part it lies over", () => {
+		const random = seeded(11);
+		let counterchanged = 0;
+		for (let trial = 0; trial < 3000; trial++) {
+			const { division: key, field, charge } = randomArms({ charges, random });
+			if (!key) expect(charge).not.toBeNull();
+			if (!charge) continue;
+			expect(charges).toContain(charge.key);
+			expect(charge.tinctures).toHaveLength(field.length);
+			charge.tinctures.forEach((tincture, group) => expect(readsWell(tincture, field[group])).toBe(true));
+			if (!key) expect(isMetal(charge.tinctures[0])).not.toBe(isMetal(field[0]));
+			if (new Set(charge.tinctures).size > 1) counterchanged++;
+		}
+		expect(counterchanged).toBeGreaterThan(0);
+	});
+
+	it("draws plain and divided fields, and no charge when there are none to draw", () => {
+		const random = seeded(3);
+		const many = Array.from({ length: 500 }, () => randomArms({ random }));
+		expect(many.some(({ division: key }) => key)).toBe(true);
+		expect(many.some(({ division: key }) => !key)).toBe(true);
+		for (const { charge } of many) expect(charge).toBeNull();
+	});
+
+	it("paints a plain field in a metal about as often as a colour", () => {
+		const random = seeded(5);
+		const plain = Array.from({ length: 4000 }, () => randomArms({ random })).filter(({ division }) => !division);
+		const metals = plain.filter(({ field }) => isMetal(field[0])).length / plain.length;
+		expect(metals).toBeGreaterThan(0.4);
+		expect(metals).toBeLessThan(0.6);
 	});
 });

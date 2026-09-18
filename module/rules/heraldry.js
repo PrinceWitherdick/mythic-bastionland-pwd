@@ -3,7 +3,7 @@
  * shield's outline, the tinctures offered, and the pixel work the painter does
  * that needs no browser.
  */
-import { channels, HEX_COLOR } from "./colour.js";
+import { channels, contrast, HEX_COLOR } from "./colour.js";
 
 /** The shield's field on the sheet, in CSS pixels. */
 export const SHIELD_WIDTH = 136;
@@ -463,4 +463,130 @@ export function divisionGroupAt(division, x, y) {
 		?? division.parts.find(({ points }) => insidePolygon(points, Math.min(x + 1e-6, 1 - 1e-6), Math.min(y + 1e-6, 1 - 1e-6)))
 		?? division.parts.find(({ points }) => insidePolygon(points, Math.max(x - 1e-6, 1e-6), Math.max(y - 1e-6, 1e-6)));
 	return part ? part.group : null;
+}
+
+/** The metals. Every other tincture counts as a colour, and heraldry sets metal against colour. */
+export const METALS = Object.freeze(["or", "argent"]);
+
+/** The tinctures random arms are drawn in: the metals and the five colours, leaving out the rarer stains. */
+const RANDOM_TINCTURES = Object.freeze(["or", "argent", "gules", "azure", "vert", "purpure", "sable"]);
+
+const isMetal = (key) => METALS.includes(key);
+
+/**
+ * How far apart two tinctures must be to read well against each other: as far
+ * as the closest pair the rule of tincture allows, or on vert. Colours against
+ * each other mostly fall well short, and the metals against each other too.
+ */
+export const READABLE_CONTRAST = Math.min(...METALS.flatMap((metal) => RANDOM_TINCTURES
+	.filter((key) => !isMetal(key))
+	.map((key) => contrast(tinctureColor(metal), tinctureColor(key)))));
+
+/**
+ * @param {string} a A tincture's key.
+ * @param {string} b Another.
+ * @returns {boolean} Whether each would show clearly on the other.
+ */
+export const readsWell = (a, b) => contrast(tinctureColor(a), tinctureColor(b)) >= READABLE_CONTRAST;
+
+/** How often random arms are divided rather than plain, how often a plain field is a metal, and how often a divided field still bears a charge. */
+export const RANDOM_ARMS = Object.freeze({ divided: 0.65, metalField: 0.5, chargeOnDivided: 0.6 });
+
+/**
+ * @template T
+ * @param {T[]} list
+ * @param {() => number} random
+ * @returns {T}
+ */
+const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
+
+/**
+ * @param {{parts: {group: number, points: number[][]}[]}} division
+ * @returns {number[][]} Each pair of groups with parts that share a side. Parts meeting only at a corner don't count.
+ */
+export function touchingGroups(division) {
+	const pairs = new Map();
+	for (const [index, part] of division.parts.entries()) {
+		for (const other of division.parts.slice(index + 1)) {
+			if (other.group === part.group) continue;
+			const shared = part.points.filter(([x, y]) => other.points.some(([ox, oy]) => ox === x && oy === y));
+			if (shared.length < 2) continue;
+			const pair = [part.group, other.group].sort((a, b) => a - b);
+			pairs.set(pair.join(), pair);
+		}
+	}
+	return [...pairs.values()];
+}
+
+/**
+ * @param {number} groups
+ * @returns {string[][]} Every way to give that many groups a different tincture each.
+ */
+function fieldTinctures(groups) {
+	if (!groups) return [[]];
+	return fieldTinctures(groups - 1).flatMap((field) => RANDOM_TINCTURES.filter((key) => !field.includes(key)).map((key) => [...field, key]));
+}
+
+/**
+ * Tinctures for a division's groups, drawn among those that keep the rule of
+ * tincture wherever parts touch. Per Pall's three parts all touch each other,
+ * so no two kinds can keep it there; it takes three tinctures that read well
+ * against each other instead.
+ * @param {{parts: {group: number, points: number[][]}[]}} division
+ * @param {() => number} random
+ * @returns {string[]} A tincture's key for each group, in group order.
+ */
+function divisionTinctures(division, random) {
+	const groups = new Set(division.parts.map(({ group }) => group)).size;
+	const touching = touchingGroups(division);
+	const all = fieldTinctures(groups);
+	const keeping = (test) => all.filter((field) => touching.every(([a, b]) => test(field[a], field[b])));
+	const ruled = keeping((a, b) => isMetal(a) !== isMetal(b));
+	return pick(ruled.length ? ruled : keeping(readsWell), random);
+}
+
+/**
+ * A charge's tincture over each group of the field. A charge on a plain field
+ * is of the other kind, metal on colour or colour on metal. Over a divided
+ * field it takes one tincture that reads well against every part, when there
+ * is one, or is counterchanged: over each part it takes a tincture of the
+ * field that reads well against that part, as the halves of a field swap.
+ * @param {string[]} field The field's tinctures, in group order.
+ * @param {() => number} random
+ * @returns {string[]} A tincture's key for each group.
+ */
+function chargeTinctures(field, random) {
+	if (field.length === 1) return [pick(RANDOM_TINCTURES.filter((key) => isMetal(key) !== isMetal(field[0])), random)];
+	const plain = RANDOM_TINCTURES.filter((key) => !field.includes(key) && field.every((ground) => readsWell(key, ground)));
+	if (plain.length && random() < 0.5) {
+		const tincture = pick(plain, random);
+		return field.map(() => tincture);
+	}
+	return field.map((ground) => pick(field.filter((key) => readsWell(key, ground)), random));
+}
+
+/**
+ * @param {() => number} random
+ * @returns {string} A plain field's tincture: a metal as often as a colour, though there are fewer metals.
+ */
+function plainField(random) {
+	const metal = random() < RANDOM_ARMS.metalField;
+	return pick(RANDOM_TINCTURES.filter((key) => isMetal(key) === metal), random);
+}
+
+/**
+ * Arms drawn at random that read well: a field, plain or divided, and perhaps a charge.
+ * @param {object} [options]
+ * @param {string[]} [options.charges] Keys of the charges that may be drawn.
+ * @param {() => number} [options.random] From 0 up to 1.
+ * @returns {{division: string|null, field: string[], charge: {key: string, tinctures: string[]}|null}}
+ *   The division's key, or null for a plain field; the tincture keys of the
+ *   field's groups in group order; and the charge, with its tincture over each group.
+ */
+export function randomArms({ charges = [], random = Math.random } = {}) {
+	const division = random() < RANDOM_ARMS.divided ? pick(DIVISIONS, random) : null;
+	const field = division ? divisionTinctures(division, random) : [plainField(random)];
+	const bearsCharge = charges.length && (!division || random() < RANDOM_ARMS.chargeOnDivided);
+	const charge = bearsCharge ? { key: pick(charges, random), tinctures: chargeTinctures(field, random) } : null;
+	return { division: division?.key ?? null, field, charge };
 }
