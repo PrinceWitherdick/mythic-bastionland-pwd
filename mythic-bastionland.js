@@ -9,8 +9,8 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
-import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
-import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
+import { openKnightChooser } from "./module/apps/KnightChooser.js";
+import { openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
@@ -253,10 +253,6 @@ Hooks.once("ready", async () => {
 	]);
 });
 
-Hooks.on("renderActorDirectory", (_directory, element) => {
-	addNewKnightButton(element);
-	addNewNpcButton(element);
-});
 
 // New Site sits in the Journal directory for GMs, and the rulebook for GMs and
 // for players the GM offers it to.

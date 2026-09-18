@@ -14,7 +14,7 @@ import {
 import { VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
-import { addDirectoryButton, confirmDialog } from "./ui.js";
+import { confirmDialog } from "./ui.js";
 
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
@@ -229,7 +229,7 @@ export class KnightChooser extends BastionlandChooser {
 		}
 
 		const { escapeHTML } = foundry.utils;
-		const confirmed = await confirmDialog({
+		const confirmed = this.fresh || await confirmDialog({
 			title: t("chooser.confirmTitle"),
 			icon: "fa-solid fa-chess-knight",
 			message: t("chooser.confirm", { name: escapeHTML(actor.name), knight: escapeHTML(name) })
@@ -247,24 +247,12 @@ export class KnightChooser extends BastionlandChooser {
 /**
  * Open the chooser.
  * @param {Actor|null} [actor] The Knight to fill in. Omit to create one.
+ * @param {object} [options]
+ * @param {boolean} [options.fresh] The Knight was only just made with Create Actor.
  * @returns {KnightChooser}
  */
-export function openKnightChooser(actor = null) {
-	const chooser = new KnightChooser({ actor });
+export function openKnightChooser(actor = null, { fresh = false } = {}) {
+	const chooser = new KnightChooser({ actor, fresh });
 	chooser.render({ force: true });
 	return chooser;
-}
-
-/**
- * Add a New Knight button beside Create Actor, for users allowed to create actors.
- * @param {HTMLElement} element The Actors directory.
- */
-export function addNewKnightButton(element) {
-	if (!game.user.can("ACTOR_CREATE")) return;
-	addDirectoryButton(element, {
-		className: "bastionland-new-knight",
-		icon: "fa-solid fa-chess-knight",
-		label: t("chooser.newKnight"),
-		onClick: () => openKnightChooser()
-	});
 }

@@ -28,6 +28,9 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	/** @type {Actor|null} */
 	#actor;
 
+	/** Whether the actor was only just made with Create Actor, so there's nothing on it to replace. */
+	#fresh;
+
 	/** @type {object|null|undefined} The art index: undefined until loaded, null if never imported. */
 	index;
 
@@ -40,15 +43,22 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	/**
 	 * @param {object} [options]
 	 * @param {Actor|null} [options.actor] The actor to fill in. Omit to create one.
+	 * @param {boolean} [options.fresh]    The actor was only just made, so fill it in without asking.
 	 */
-	constructor({ actor = null, ...options } = {}) {
+	constructor({ actor = null, fresh = false, ...options } = {}) {
 		super(options);
 		this.#actor = actor;
+		this.#fresh = Boolean(actor && fresh);
 	}
 
 	/** @returns {Actor|null} The actor being filled in, or null to create one. */
 	get actor() {
 		return this.#actor;
+	}
+
+	/** @returns {boolean} Whether the actor being filled in was only just made. */
+	get fresh() {
+		return this.#fresh;
 	}
 
 	/** @override */

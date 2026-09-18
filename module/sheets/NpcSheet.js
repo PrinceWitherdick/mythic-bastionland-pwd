@@ -65,6 +65,11 @@ export class NpcSheet extends BastionlandActorSheet {
 		});
 	}
 
+	/** @override */
+	_chooseFromBook() {
+		openNpcChooser(this.actor, { fresh: true });
+	}
+
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */

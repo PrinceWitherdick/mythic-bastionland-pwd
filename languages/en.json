@@ -1485,7 +1485,6 @@
     "chooser": {
       "title": "Choose a Knight",
       "titleFor": "Choose a Knight for {name}",
-      "newKnight": "New Knight",
       "noIndex": "Run the Import Book Art macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
       "noText": "Run Import Book Art again to bring in each Knight’s Property, Ability and Passion.",
       "start": "Start",

@@ -1,4 +1,4 @@
-import { applyNpcData, npcData } from "../actions/npc.js";
+import { actorData, applyNpcData, applyStructureData, npcData } from "../actions/npc.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { NPC_SOURCES } from "../config.js";
@@ -7,7 +7,7 @@ import { CITY_QUEST_PAGES } from "../rules/city-quest.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
-import { addDirectoryButton, confirmDialog } from "./ui.js";
+import { confirmDialog } from "./ui.js";
 
 /** Stands in for a roll, since the City Quest isn't on the d6-then-d12 table. */
 const CITY_QUEST_ROLL = "city";
@@ -157,51 +157,42 @@ export class NpcChooser extends BastionlandChooser {
 		const person = row && this.#people(row)[Number(target.dataset.index)];
 		if (!person) return;
 
-		const data = npcData(person);
+		const actor = this.actor;
+		// Filling in an NPC keeps it an NPC, but a new actor is a Structure if the stat block is one.
+		const data = actor && !this.fresh ? npcData(person) : actorData(person);
 		const name = data.name || row.name;
 		const art = row.entry?.path ? { img: row.entry.path } : {};
 
-		const actor = this.actor;
 		if (!actor) {
-			const created = await Actor.implementation.create({ name, type: "npc", ...art, system: data.system, items: data.items });
+			const created = await Actor.implementation.create({ name, type: data.type, ...art, system: data.system, items: data.items });
 			if (created) ui.notifications.info(t("npcChooser.created", { name: created.name }));
 			return;
 		}
 
 		const { escapeHTML } = foundry.utils;
-		const confirmed = await confirmDialog({
+		const confirmed = this.fresh || await confirmDialog({
 			title: t("npcChooser.confirmTitle"),
 			icon: "fa-solid fa-book-open",
 			message: t("npcChooser.confirm", { name: escapeHTML(actor.name), npc: escapeHTML(name) })
 		});
 		if (!confirmed) return;
 
-		await applyNpcData(actor, { ...data, name }, art);
-		return this.close();
+		// Closed first, since a new NPC that becomes a Structure swaps its sheet.
+		await this.close();
+		if (data.type === "structure") await applyStructureData(actor, { ...data, name }, art);
+		else await applyNpcData(actor, { ...data, name }, art);
 	}
 }
 
 /**
  * Open the chooser.
  * @param {Actor|null} [actor] The NPC to fill in. Omit to create NPCs.
+ * @param {object} [options]
+ * @param {boolean} [options.fresh] The NPC was only just made with Create Actor.
  * @returns {NpcChooser}
  */
-export function openNpcChooser(actor = null) {
-	const chooser = new NpcChooser({ actor });
+export function openNpcChooser(actor = null, { fresh = false } = {}) {
+	const chooser = new NpcChooser({ actor, fresh });
 	chooser.render({ force: true });
 	return chooser;
-}
-
-/**
- * Add a New NPC button beside Create Actor, for users allowed to create actors.
- * @param {HTMLElement} element The Actors directory.
- */
-export function addNewNpcButton(element) {
-	if (!game.user.can("ACTOR_CREATE")) return;
-	addDirectoryButton(element, {
-		className: "bastionland-new-npc",
-		icon: "fa-solid fa-book-open",
-		label: t("npcChooser.newNpc"),
-		onClick: () => openNpcChooser()
-	});
 }

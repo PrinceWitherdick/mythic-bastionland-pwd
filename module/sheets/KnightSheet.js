@@ -107,6 +107,11 @@ export class KnightSheet extends BastionlandActorSheet {
 		});
 	}
 
+	/** @override */
+	_chooseFromBook() {
+		openKnightChooser(this.actor, { fresh: true });
+	}
+
 	/**
 	 * The Gambits reference is folded away until wanted, and stays as the
 	 * player left it when the sheet redraws.

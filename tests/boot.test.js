@@ -345,27 +345,35 @@ describe("system boot", () => {
 		delete globalThis.document;
 	});
 
-	it("adds New Knight and New NPC to the Actors directory only for users who can create actors", () => {
-		const header = () => {
-			const buttons = [];
-			return { buttons, querySelector: () => null, append: (...added) => buttons.push(...added) };
-		};
-		const element = (actions) => ({ querySelector: (selector) => (selector === ".header-actions" ? actions : null) });
+	it("adds no buttons to the Actors directory, and offers the choosers when Create Actor makes a Knight or NPC", async () => {
+		expect(hooks.renderActorDirectory).toBeUndefined();
 
-		const refused = header();
-		game.user.can = () => false;
-		hooks.renderActorDirectory({}, element(refused));
-		expect(refused.buttons).toHaveLength(0);
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const sheetFor = (type) => registerSheet.mock.calls.find(([registeredClass, , , options]) => registeredClass === Actor && options.types.includes(type))[2];
+		const chooseFromBook = (type) => Object.getOwnPropertyDescriptor(sheetFor(type).prototype, "_chooseFromBook");
+		expect(chooseFromBook("knight")?.value).toBeTypeOf("function");
+		expect(chooseFromBook("npc")?.value).toBeTypeOf("function");
+		expect(chooseFromBook("domain")).toBeUndefined();
+		expect(chooseFromBook("structure")).toBeUndefined();
 
-		const allowed = header();
-		game.user.can = (permission) => permission === "ACTOR_CREATE";
-		globalThis.document = {
-			createElement: (tag) => ({ tag, append() {}, addEventListener() {} })
+		// Only a sheet Create Actor opens offers its chooser, and only to someone who can edit it.
+		const { ActorSheetV2 } = foundry.applications.sheets;
+		ActorSheetV2.prototype._onFirstRender = async () => {};
+		const offered = [];
+		const sheetOpened = (renderContext, isEditable = true) => {
+			const sheet = Object.create(sheetFor("npc").prototype, { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
+			sheet._chooseFromBook = () => offered.push(renderContext);
+			return sheet._onFirstRender({}, { renderContext });
 		};
-		globalThis.game.i18n = { localize: (key) => key };
-		hooks.renderActorDirectory({}, element(allowed));
-		expect(allowed.buttons.map((button) => button.className)).toEqual(["bastionland-new-knight", "bastionland-new-npc"]);
-		delete globalThis.document;
+		try {
+			await sheetOpened("updateActor");
+			await sheetOpened("createActor", false);
+			expect(offered).toEqual([]);
+			await sheetOpened("createActor");
+			expect(offered).toEqual(["createActor"]);
+		} finally {
+			delete ActorSheetV2.prototype._onFirstRender;
+		}
 	});
 
 	it("leaves the Macro Directory alone for players when the world is ready", async () => {

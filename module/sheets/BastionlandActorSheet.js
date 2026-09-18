@@ -20,6 +20,23 @@ const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "mortalWound"]);
 const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
 
 /**
+ * Whether a first render is Create Actor opening the blank actor it has just
+ * made. Foundry opens a new actor's sheet the same way whether the actor came
+ * from Create Actor or arrived whole from a compendium, so the render context
+ * alone doesn't tell them apart. What does is what was asked for: the Create
+ * Actor form sends a name, a type and a folder and nothing else, while an actor
+ * that arrives whole brings its own system data, items and effects with it.
+ * Offering the book's choices over one of those would paint over it.
+ * @param {object} options The render options.
+ * @returns {boolean}
+ */
+function isBlankNewActor(options) {
+	if (options?.renderContext !== "createActor") return false;
+	const data = options.renderData ?? {};
+	return !data.system && !data.items?.length && !data.effects?.length;
+}
+
+/**
  * What the Knight, NPC and Structure sheets share: Saves, Feats, Attacks, Damage and
  * recovery, conditions, notes, the items a character carries, and a larger
  * copy of the actor's picture on hover.
@@ -89,6 +106,18 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			enrichedNotes: await this._enrich(system.notes)
 		});
 	}
+
+	/** @override */
+	async _onFirstRender(context, options) {
+		await super._onFirstRender(context, options);
+		if (isBlankNewActor(options) && this.isEditable) this._chooseFromBook();
+	}
+
+	/**
+	 * Offer the book's choices for an actor Create Actor has just made. Sheets
+	 * with a chooser open it.
+	 */
+	_chooseFromBook() {}
 
 	/**
 	 * @param {string} html
