@@ -12,7 +12,6 @@ import {
 	REALM_SKINS,
 	TERRAIN_FITS,
 	customPictureName,
-	defaultRealmLook,
 	matchCustomFiles,
 	normaliseRealmLook,
 	paletteSwatches,
@@ -53,7 +52,6 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 			chooseFolder: RealmAppearance.#onChooseFolder,
 			rescan: RealmAppearance.#onRescan,
 			clearCustom: RealmAppearance.#onClearCustom,
-			reset: RealmAppearance.#onReset,
 			apply: RealmAppearance.#onApply
 		}
 	};
@@ -278,12 +276,6 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	}
 
 	/** @this {RealmAppearance} */
-	static #onReset() {
-		this.#draft = defaultRealmLook();
-		this.render();
-	}
-
-	/** @this {RealmAppearance} */
 	static async #onApply() {
 		const scene = this.#scene;
 		if (sameLook(this.#draft, getRealmLook(scene))) return;
@@ -291,6 +283,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		await endRealmLookPreview({ redraw: false });
 		await setRealmLook(scene, this.#draft);
 		ui.notifications.info(scene ? t("realm.look.applied", { name: scene.name }) : t("realm.look.appliedDefault"));
+		await this.close();
 	}
 }
 

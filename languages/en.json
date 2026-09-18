@@ -2034,7 +2034,6 @@
         "uploadFailed": "{count} pictures couldn’t be uploaded.",
         "browseFailed": "Couldn’t look in {folder}.",
         "scanned": "Found {count} of {total} Realm pictures in {folder}.",
-        "reset": "Back to the default",
         "apply": "Apply",
         "applied": "{name} is being redrawn in the new look.",
         "appliedDefault": "New Realms will start with this look."
