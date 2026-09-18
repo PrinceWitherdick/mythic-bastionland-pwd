@@ -1,7 +1,8 @@
-import { attack, specialistLabel } from "../actions/attack.js";
+import { attack } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat, showFeat } from "../actions/feats.js";
+import { itemTags, postItem } from "../actions/items.js";
 import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
@@ -69,6 +70,7 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			restore: BastionlandActorSheet.#onRestore,
 			toggleCondition: BastionlandActorSheet.#onToggleCondition,
 			createItem: BastionlandActorSheet.#onCreateItem,
+			postItem: BastionlandActorSheet.#onPostItem,
 			editItem: BastionlandActorSheet.#onEditItem,
 			deleteItem: BastionlandActorSheet.#onDeleteItem,
 			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
@@ -281,6 +283,11 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	}
 
 	/** @this {BastionlandActorSheet} */
+	static #onPostItem(_event, target) {
+		return postItem(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
 	static #onEditItem(_event, target) {
 		this.#itemFrom(target)?.sheet.render({ force: true });
 	}
@@ -302,32 +309,3 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	}
 }
 
-/**
- * Short labels printed after an item's name, the way the book writes
- * "Polished mace (d8 hefty)" or "Kite shield (d4, A1)".
- * @param {Item} item
- * @returns {string[]}
- */
-function itemTags(item) {
-	const { system } = item;
-	const qualities = (...keys) => keys.filter((key) => system[key]).map((key) => t(`item.${key}`));
-
-	switch (item.type) {
-		case "weapon":
-			return [
-				system.damage,
-				...qualities("hefty", "long", "slow", "heftyMounted", "ranged", "blast", "ignoresArmour", "trample"),
-				...[specialistLabel(system)].filter(Boolean)
-			];
-		case "armour":
-			return [
-				t(`item.kinds.${system.kind}`),
-				system.damage,
-				`A${system.armour}`
-			].filter(Boolean);
-		case "gear":
-			return system.remedy ? [t("item.remedyTag", { virtue: t(`virtues.${system.remedy}.abbr`) })] : [];
-		default:
-			return [];
-	}
-}

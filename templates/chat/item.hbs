@@ -1,0 +1,9 @@
+<section class="bastionland-card">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{item.name}}</h3>
+		<p class="bastionland-card__tagline">{{item.kind}}{{#if item.tags}} ({{item.tags}}){{/if}}</p>
+	</header>
+	{{#if item.description}}
+	<div class="bastionland-card__text">{{{item.description}}}</div>
+	{{/if}}
+</section>
