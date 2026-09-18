@@ -21,6 +21,12 @@ export const ROUTE_KINDS = Object.freeze(["open", "closed", "hidden"]);
 /** A way in anyone can find, and one only found through exploration or local knowledge. */
 export const ENTRANCE_KINDS = Object.freeze(["open", "hidden"]);
 
+/** The book makes the hidden entrance optional, so it's the Referee's call: none still counts as done, and rolls leave it out. */
+const OPTIONAL_ENTRANCES = Object.freeze(["hidden"]);
+
+/** The entrances a roll places. */
+const ROLLED_ENTRANCES = Object.freeze(ENTRANCE_KINDS.filter((kind) => !OPTIONAL_ENTRANCES.includes(kind)));
+
 /** The book's four steps, in order. */
 export const SITE_STEPS = Object.freeze(["points", "routes", "reachable", "entrances"]);
 
@@ -86,7 +92,7 @@ const freezeRules = (rules) => Object.freeze(Object.fromEntries(Object.entries(r
  * @property {Record<string, number>} entrances By ENTRANCE_KINDS. The hidden entrance is optional.
  */
 
-/** The book's distribution: 3 features, 2 dangers and 1 treasure, 3 open, 2 closed and 1 hidden route, an entrance and a hidden entrance. */
+/** The book's distribution: 3 features, 2 dangers and 1 treasure, 3 open, 2 closed and 1 hidden route, an entrance and an optional hidden entrance. */
 export const BOOK_RULES = freezeRules({
 	points: { feature: 3, danger: 2, treasure: 1 },
 	routes: { open: 3, closed: 2, hidden: 1 },
@@ -367,7 +373,7 @@ const overall = (items) => (items.some(({ state }) => state === "over") ? "over"
 export function siteSteps(site) {
 	const points = tallies(POINT_KINDS, pointCounts(site), site.rules.points);
 	const routes = tallies(ROUTE_KINDS, routeCounts(site), site.rules.routes);
-	const entrances = tallies(ENTRANCE_KINDS, entranceCounts(site), site.rules.entrances, ["hidden"]);
+	const entrances = tallies(ENTRANCE_KINDS, entranceCounts(site), site.rules.entrances, OPTIONAL_ENTRANCES);
 	const routesState = overall(routes);
 	const unreachable = unreachablePoints(site);
 	// Points are unreachable while the routes are still being drawn, and that's only a problem once they're drawn.
@@ -726,14 +732,15 @@ export function rollRoutes(site, random) {
 
 /**
  * Step 4: place the entrances the rules still ask for, each at a marked point
- * with no entrance yet.
+ * with no entrance yet. The hidden entrance is optional, so whether there's
+ * one is left to the Referee.
  * @param {Site} site
  * @param {ReturnType<import("./random.js").createRandom>} random
  * @returns {Site}
  */
 export function rollEntrances(site, random) {
 	const next = normaliseSite(site);
-	for (const kind of ENTRANCE_KINDS) {
+	for (const kind of ROLLED_ENTRANCES) {
 		for (let missing = next.rules.entrances[kind] - entranceCounts(next)[kind]; missing > 0; missing--) {
 			const key = random.pick(markedPoints(next).filter((each) => !next.points[each].entrance));
 			if (!key) break;
@@ -782,7 +789,7 @@ function canRollRoutes(site) {
 }
 
 /** @param {Site} site @returns {boolean} */
-const canRollEntrances = (site) => stillWanted(site.rules.entrances, entranceCounts(site), ENTRANCE_KINDS).length > 0
+const canRollEntrances = (site) => stillWanted(site.rules.entrances, entranceCounts(site), ROLLED_ENTRANCES).length > 0
 	&& markedPoints(site).some((key) => !site.points[key].entrance);
 
 /** Whether each step's roll has anything left to do. */

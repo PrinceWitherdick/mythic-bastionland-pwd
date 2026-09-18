@@ -321,7 +321,7 @@ describe("rolling", () => {
 		for (const site of rolled) {
 			expect(pointCounts(site)).toEqual(BOOK_RULES.points);
 			expect(routeCounts(site)).toEqual(BOOK_RULES.routes);
-			expect(entranceCounts(site)).toEqual(BOOK_RULES.entrances);
+			expect(entranceCounts(site)).toEqual({ open: 1, hidden: 0 });
 			expect(markedPoints(site)).toHaveLength(6);
 			expect(siteSteps(site).map(({ state }) => state)).toEqual(["done", "done", "done", "done"]);
 			expectSound(site);
@@ -356,9 +356,23 @@ describe("rolling", () => {
 			expect(site.notes).toBe("A tomb");
 			expect(pointCounts(site)).toEqual(BOOK_RULES.points);
 			expect(routeCounts(site)).toEqual(BOOK_RULES.routes);
-			expect(entranceCounts(site)).toEqual(BOOK_RULES.entrances);
+			expect(entranceCounts(site)).toEqual({ open: 1, hidden: 0 });
 			expect(unreachablePoints(site)).toEqual([]);
 		}
+	});
+
+	it("leaves the optional hidden entrance to the Referee", () => {
+		const points = rollPoints(emptySite(), createRandom("hidden"));
+		const [first] = markedPoints(points);
+		// The entrance is all the book's rules ask for, so there's nothing left to roll.
+		const entered = setEntrance(points, first, "open");
+		expect(siteSteps(entered)[3].state).toBe("done");
+		expect(STEP_CAN_ROLL.entrances(entered)).toBe(false);
+		expect(rollEntrances(entered, createRandom("hidden"))).toEqual(entered);
+		// A hidden entrance placed by hand stays, and the roll still places the entrance.
+		const site = rollEntrances(setEntrance(points, first, "hidden"), createRandom("hidden"));
+		expect(site.points[first].entrance).toBe("hidden");
+		expect(entranceCounts(site)).toEqual({ open: 1, hidden: 1 });
 	});
 
 	it("breaks the rules for a sealed burial complex", () => {
@@ -403,7 +417,7 @@ describe("rolling", () => {
 		const routes = rollRoutes(points, random);
 		expect(entranceCounts(routes)).toEqual({ open: 0, hidden: 0 });
 		expect(routeCounts(routes)).toEqual(BOOK_RULES.routes);
-		expect(entranceCounts(rollEntrances(routes, random))).toEqual(BOOK_RULES.entrances);
+		expect(entranceCounts(rollEntrances(routes, random))).toEqual({ open: 1, hidden: 0 });
 		const done = rollSite(emptySite(), random);
 		expect(rollSite(done, random)).toEqual(done);
 	});
