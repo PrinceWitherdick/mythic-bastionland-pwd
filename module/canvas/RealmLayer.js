@@ -1,5 +1,6 @@
 import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, stepRealmHistory, syncRealmScene } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
+import { followHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, refreshRealmPanel } from "../apps/RealmPanel.js";
 import { REALM_BUTTONS, REALM_TOOLS, terrainAt } from "../rules/realm.js";
@@ -199,7 +200,11 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (this.tool === "inspect") {
 			const hex = hexAt(g, point);
-			if (hex) openRealmPanel({ scene, hex });
+			if (hex) {
+				openRealmPanel({ scene, hex });
+				// The Lay of the Land follows along, but only if the GM already had it open.
+				followHexLore({ scene, hex });
+			}
 			return;
 		}
 

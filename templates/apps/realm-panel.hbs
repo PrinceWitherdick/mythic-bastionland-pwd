@@ -159,7 +159,10 @@
 	</ul>
 	{{/if}}
 
-	<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
+	<div class="bastionland-realm-panel__actions">
+		<button type="button" data-action="lore" class="{{#if written}}is-written{{/if}}"><i class="fa-solid {{#if written}}fa-feather-pointed{{else}}fa-feather{{/if}}" inert></i> {{localize "bastionland.hexLore.open"}}</button>
+		<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
 		<button type="button" data-action="company"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.company.here"}}</button>
+	</div>
 	{{/if}}
 </div>

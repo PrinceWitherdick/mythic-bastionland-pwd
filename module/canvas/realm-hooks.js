@@ -1,8 +1,10 @@
 import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { forgetHexArrivals, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, updateHexReadout } from "./hex-readout.js";
 
 /**
@@ -37,6 +39,7 @@ const changedScenes = new Set();
 function showChanges() {
 	for (const sceneId of changedScenes) {
 		refreshRealmPanel(sceneId);
+		refreshHexLore(sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();
@@ -62,6 +65,9 @@ function realmChanged(sceneId) {
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
 
+	// A Company coming to rest in a hex nothing has been written down for.
+	registerHexPrompt();
+
 	// A Realm is read from its Tiles and Drawings, so any change to them means reading it again.
 	const onDocument = (document) => realmChanged(document.parent?.id);
 	for (const name of ["createTile", "updateTile", "deleteTile", "createDrawing", "updateDrawing", "deleteDrawing"]) {
@@ -74,6 +80,7 @@ export function registerRealmHooks() {
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
 		forgetRealmHistory(scene.id);
+		forgetHexArrivals(scene.id);
 	});
 	// The Hex panel's Undo and Redo buttons.
 	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => refreshRealmPanel(sceneId));

@@ -18,6 +18,8 @@ import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-fo
 import { importBookArt } from "./module/book-art/importer.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
+import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
+import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { t } from "./module/chat/cards.js";
@@ -169,6 +171,10 @@ Hooks.once("init", () => {
 	registerRealmSettings();
 	registerRealmAppearanceMenu();
 
+	// What the GM has written about each hex of a Realm, and how a hex with
+	// nothing written down is offered to them.
+	registerHexLoreSettings();
+
 	// Macros reach the system through here, such as Import Book Art.
 	game.system.api = Object.freeze({
 		importBookArt,
@@ -181,6 +187,7 @@ Hooks.once("init", () => {
 		openRefereeRolls,
 		rollRefereeTable,
 		openSparkTables,
+		openHexLore,
 		openTimePanel,
 		openSitesPanel,
 		openMythsPanel,

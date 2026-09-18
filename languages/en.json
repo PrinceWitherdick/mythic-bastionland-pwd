@@ -738,6 +738,35 @@
         "middle": "The Company begins at {hex}."
       }
     },
+    "hexLore": {
+      "title": "The Lay of the Land",
+      "titleHex": "The Lay of the Land: {hex}",
+      "open": "Lay of the Land",
+      "hint": "Each Hex is large and diverse. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
+      "note": "What’s here",
+      "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
+      "spark": "Roll for this hex",
+      "table": "Spark Table",
+      "rollSet": "Roll a wilderness hex",
+      "setMissing": "Import Book Art hasn’t read enough of page 22 to roll a wilderness hex.",
+      "forget": "Forget this roll",
+      "noRolls": "Nothing rolled here yet.",
+      "tell": "Tell the players",
+      "nothingToTell": "Write what’s in the hex before telling the players about it.",
+      "when": "rolled in {when}",
+      "prompt": "{hex} on {scene} has nothing written down yet.",
+      "settings": {
+        "prompt": {
+          "name": "Ask about a new hex",
+          "hint": "What to do when a player’s Token comes to rest in a Realm hex nothing has been written down for. Saved per browser.",
+          "modes": {
+            "never": "Nothing",
+            "notify": "Tell me",
+            "open": "Open the Lay of the Land"
+          }
+        }
+      }
+    },
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",

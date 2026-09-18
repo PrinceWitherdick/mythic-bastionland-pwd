@@ -102,6 +102,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
 - **What players see:** the terrain, the river and the Holdings. Myths, Landmarks and Barriers are hidden Tiles and Drawings, which GMs see faded and can reveal with the eye on the Tile or Drawing HUD.
   - Leave hidden Tiles unlocked: Foundry hides a hidden, locked Tile from GMs too.
   - Like hidden Tokens, hidden parts of the Realm are still sent to every player's browser, and so are the GMs' Realm cards. A player sees a Wilderness Roll only as the GM rolling privately.
+  - The same goes for what you write in the Lay of the Land: it rides on the Scene, so it reaches every browser. It's kept there for consistency, not secrecy.
 - **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import Book Art where it has been run.
 - **The Company:** one Token stands for all the Knights, because the Seers deemed that they travel as a Company (p7) — "while some of you may rest, roam, or die, your collective journey will be as one".
   - The New Realm dialog places it. Choose the Company's **Start** and it begins where the book puts it (p6): a **Wanderer** arrives over the edge of the map, a **Courtier** at the Seat of Power, and a **Ruler** at a Holding of their own, never the Seat that lies under a wicked influence. The same seed puts it in the same place.
@@ -109,6 +110,12 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - It belongs to **no Actor**, which is how every player can move it without anything being owned or shared out. The Knights' own sheets stay one per Knight, where the book keeps them.
   - **Company here** on the Hex panel stands it in that hex, making the Token the first time. That is the way to give a Realm made before this a Company, or to move it without dragging.
   - Where the Company Token stands is where the Company is: the Wilderness Roll, the Travel rules and the Lay of the Land all read it, so there is no guessing from selected Tokens and no “the Company is split”. Delete the Token and they fall back to the player-owned Tokens as before.
+- **The Lay of the Land:** what you've made of a hex, kept in the hex. The book asks the Referee to fill the blanks in a Hex with Spark Table prompts (p19), and this is where those rolls are kept, so a Company coming back finds the hex they left. Open it from the Hex panel.
+  - It shows what the Realm already says stands there, a box to write what's in the hex, and every Spark Table roll made for it so far, newest first, each with the dice and the date it was rolled.
+  - **Roll a wilderness hex** rolls the first table of each row of the Nature page (p22) in one go — the lay of the land, its weather and a feature of it. The dropdown rolls any of the four pages' tables on its own. Both need Import Book Art; without it you can still write notes.
+  - Rolls are whispered to GMs. **Tell the players** posts what you wrote, and only what you wrote, as a card everyone sees; a Myth or Landmark still hidden never rides out in it.
+  - **Ask about a new hex** in the settings decides what happens when a player's Token comes to rest in a hex nothing has been written down for: nothing, a note in the corner, or the window opening. Each browser sets its own, and a hex is only offered once per session. The default is the note.
+  - A hex keeps its last 24 rolls. Rerolling the Realm leaves what you wrote alone, so notes about hexes that have changed are yours to clear.
 - **Barriers:** a Token can't move across a Barrier, even one nobody has found yet, or off the edge of the map. Moving around one a hex at a time works. A GM with Foundry's Unconstrained Movement turned on passes through.
 - **Hex readout:** on a Realm Scene everybody sees the hex under the pointer named at the top of the screen, with its terrain and whatever they can see in it.
 - **Realm tools:** GMs get a Realm group in the scene controls on a Realm Scene.

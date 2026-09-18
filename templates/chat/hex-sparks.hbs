@@ -1,0 +1,15 @@
+<section class="bastionland-card bastionland-card--spark">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{hex}}</h3>
+		<p class="bastionland-card__tagline">{{localize "bastionland.hexLore.title"}}</p>
+	</header>
+	{{#each sparks}}
+	<p class="bastionland-card__outcome">{{prompt}}</p>
+	<ul class="bastionland-card__entries">
+		<li><strong>{{name}}</strong> — {{reference}}</li>
+		{{#each results}}
+		<li><span class="bastionland-card__roll">{{roll}}</span> {{column}}: {{entry}}</li>
+		{{/each}}
+	</ul>
+	{{/each}}
+</section>

@@ -1,4 +1,5 @@
 import { companyHere } from "../actions/company.js";
+import { getHexRecord } from "../actions/hex-lore.js";
 import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -27,6 +28,8 @@ import {
 } from "../rules/realm-edits.js";
 import { DIRECTIONS, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { openHexLore } from "./HexLore.js";
+import { renderWhenIdle } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -59,6 +62,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			undo: RealmPanel.#onUndo,
 			redo: RealmPanel.#onRedo,
 			wilderness: RealmPanel.#onWilderness,
+			lore: RealmPanel.#onLore,
 			company: RealmPanel.#onCompany
 		}
 	};
@@ -167,6 +171,8 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 				const state = other ? barrierState(realm, edge) : "none";
 				return { label: t(`realm.directions.${direction}`), edge, state, stateLabel: t(`realm.panel.barrier.${state}`), disabled: !other };
 			}),
+			// So the GM can see at a glance which hexes they have already written up.
+			written: Boolean(getHexRecord(scene, hex)),
 			problems: validateRealm(realm, g).filter((problem) => problem.key === hexKey(hex)).map((problem) => t(`realm.problems.${problem.reason}`))
 		});
 	}
@@ -293,6 +299,11 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/** @this {RealmPanel} */
+	static #onLore() {
+		return openHexLore({ scene: this.scene, hex: this.hex });
+	}
+
+	/** @this {RealmPanel} */
 	static #onCompany() {
 		return companyHere(this.scene, this.hex);
 	}
@@ -318,26 +329,11 @@ export function openRealmPanel({ scene, hex = null, mode = "hex" }) {
 	return panel;
 }
 
-/** Whether the panel is waiting for the GM to leave a field before drawing again. */
-let drawOnBlur = false;
-
 /**
- * Draw the panel again after its Realm changed. While the GM is typing in one
- * of its fields, that waits until they leave it: drawing the panel puts back
- * each field's saved value.
+ * Draw the panel again after its Realm changed, once the GM has finished
+ * typing in whichever of its fields they're in.
  * @param {string} sceneId
  */
 export function refreshRealmPanel(sceneId) {
-	if (!panel?.rendered || panel.sceneId !== sceneId) return;
-	const field = document.activeElement;
-	if (!panel.element.contains(field) || !field.matches('input:not([type="checkbox"])')) {
-		panel.render();
-		return;
-	}
-	if (drawOnBlur) return;
-	drawOnBlur = true;
-	field.addEventListener("blur", () => {
-		drawOnBlur = false;
-		if (panel?.rendered) panel.render();
-	}, { once: true });
+	if (panel?.sceneId === sceneId) renderWhenIdle(panel);
 }

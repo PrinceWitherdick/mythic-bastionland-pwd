@@ -64,6 +64,11 @@
 	font-weight: bold;
 }
 
+/* What the Referee wrote about a hex, with their own line breaks kept. */
+.bastionland-card__prose {
+	white-space: pre-wrap;
+}
+
 .bastionland-card__hint {
 	color: var(--bastionland-ink-soft);
 	font-size: 0.85em;

@@ -126,3 +126,30 @@ export function chooseLocalFiles(element) {
 	input.value = "";
 	input.click();
 }
+
+/** Windows waiting for whoever is using them to leave the field they're typing in. */
+const waiting = new WeakSet();
+
+/** A field a redraw would take the typing out of. */
+const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
+
+/**
+ * Draw a window again once whoever is using it has finished typing. Drawing
+ * puts every field back to its saved value, so a redraw mid-sentence would take
+ * the sentence away.
+ * @param {foundry.applications.api.ApplicationV2} app
+ */
+export function renderWhenIdle(app) {
+	if (!app?.rendered) return;
+	const field = document.activeElement;
+	if (!field || !app.element.contains(field) || !field.matches(TYPING)) {
+		app.render();
+		return;
+	}
+	if (waiting.has(app)) return;
+	waiting.add(app);
+	field.addEventListener("blur", () => {
+		waiting.delete(app);
+		if (app.rendered) app.render();
+	}, { once: true });
+}

@@ -163,6 +163,7 @@ describe("system boot", () => {
 		expect(game.system.api.openRefereeRolls).toBeTypeOf("function");
 		expect(game.system.api.rollRefereeTable).toBeTypeOf("function");
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
+		expect(game.system.api.openHexLore).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
 		expect(game.system.api.openSitesPanel).toBeTypeOf("function");
 		expect(game.system.api.openMythsPanel).toBeTypeOf("function");
@@ -263,6 +264,26 @@ describe("system boot", () => {
 
 		expect(hooks.preMoveToken).toBeTypeOf("function");
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
+	});
+
+	it("lets each GM say what a hex with nothing written down should do", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexLorePrompt", expect.objectContaining({
+			scope: "client",
+			config: true,
+			type: String,
+			default: "notify",
+			choices: {
+				never: "bastionland.hexLore.settings.prompt.modes.never",
+				notify: "bastionland.hexLore.settings.prompt.modes.notify",
+				open: "bastionland.hexLore.settings.prompt.modes.open"
+			}
+		}));
+	});
+
+	it("watches for a Company coming to rest somewhere new", () => {
+		expect(hooks.moveToken).toBeTypeOf("function");
+		// A Scene that is not a Realm is left alone, and the hook returns nothing to await.
+		expect(hooks.moveToken({ parent: { flags: {} } }, {})).toBeUndefined();
 	});
 
 	it("keeps the world's calendar in a hidden world setting", () => {
