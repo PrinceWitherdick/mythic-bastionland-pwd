@@ -14,7 +14,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Virtues and Guard:** VIG, CLA and SPI with current and maximum values, capped at 0–19. Click a Virtue to roll a Save (d20 equal or under).
 - **Glory, Age and Rank:** Rank is worked out from Glory (0 / 3 / 6 / 9 / 12), and the sheet shows how far off the next Rank is.
 - **Conditions:** Fatigued, Exposed and Mortal Wound are marked by hand. Exhausted (VIG 0), Impaired (SPI 0) and Exposed from CLA 0 follow from the Virtues.
-- **Property, Ability, Passion and Scars:** stored as items, created on the sheet or dragged on. Worn armour adds up to the Knight's Armour.
+- **Property, Ability, Passion and Scars:** stored as items, created on the sheet or dragged on. A + button opens the new item's sheet and nothing is added until you press Save, so a button pressed by mistake costs nothing. Worn armour adds up to the Knight's Armour.
 - **Feats:** Smite, Focus and Deny roll their Save and mark Fatigue on a failure. A Fatigued Knight can't use them.
 - **Attack:** target the Tokens you're attacking, pick weapons and shields, add bonus dice or Smite, then roll everything together. Impaired and unarmed Attacks roll a single d4. A Blast against several targets rolls separately for each, one card apiece. The dialog also asks about the turn, and holds the Attack to the rules for wielding weapons:
   - **Moved this turn** is ticked for you when the Token has moved this turn in combat. A Slow weapon can't be used after moving, and an Exhausted character can't Attack at all.

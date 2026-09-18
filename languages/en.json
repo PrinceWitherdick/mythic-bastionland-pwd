@@ -1285,6 +1285,8 @@
       "attackDie": "Attack die",
       "attackDieHint": "Shields strike for d4. Leave blank for armour that never attacks.",
       "scarRoll": "Scar table result",
+      "save": "Save",
+      "cancel": "Cancel",
       "kinds": {
         "coat": "Coat",
         "plates": "Plates",

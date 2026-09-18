@@ -71,7 +71,7 @@
 /* ---------------------------------------------------------------- */
 
 .bastionland-sheet .window-content,
-.bastionland-item .window-content,
+.bastionland-item-window .window-content,
 .bastionland-chooser-window .window-content,
 .bastionland-spark-window .window-content,
 .bastionland-time-window .window-content,
@@ -1310,6 +1310,27 @@
 	padding: 0.4rem 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
+}
+
+/*
+ * Save and Cancel on an item that hasn't been added yet. The page scrolls, so
+ * they stick to its foot rather than sliding out of reach below a long
+ * description; the negative offset holds them against the page's own padding.
+ */
+.bastionland-item-footer {
+	position: sticky;
+	bottom: -1rem;
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: auto;
+	padding: 0.6rem 0 1rem;
+	border-top: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper);
+}
+
+.bastionland-page .bastionland-item-footer .bastionland-button {
+	flex: 0 1 9rem;
 }
 
 /* ---------------------------------------------------------------- */

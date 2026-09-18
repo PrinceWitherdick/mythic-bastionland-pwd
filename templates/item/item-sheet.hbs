@@ -106,9 +106,22 @@
 	<section class="bastionland-item-description">
 		<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.item.description"}}</h2>
 		{{#if editable}}
-		<prose-mirror name="system.description" value="{{system.description}}" document-uuid="{{item.uuid}}" toggled="true">{{{enrichedDescription}}}</prose-mirror>
+		{{!-- An item that hasn't been added yet has no uuid to enrich links against. --}}
+		<prose-mirror name="system.description" value="{{system.description}}" {{#if item.uuid}}document-uuid="{{item.uuid}}"{{/if}} toggled="true">{{{enrichedDescription}}}</prose-mirror>
 		{{else}}
 		<div class="editor-content">{{{enrichedDescription}}}</div>
 		{{/if}}
 	</section>
+
+	{{#if isNew}}
+	{{!-- Nothing has been written to the actor yet: saving is what adds the item. --}}
+	<footer class="bastionland-item-footer">
+		<button type="button" class="bastionland-button" data-action="close">
+			<i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.item.cancel"}}
+		</button>
+		<button type="submit" class="bastionland-button">
+			<i class="fa-solid fa-check" inert></i> {{localize "bastionland.item.save"}}
+		</button>
+	</footer>
+	{{/if}}
 </div>

@@ -9,6 +9,7 @@ import { t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -206,11 +207,8 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	}
 
 	/** @this {BastionlandActorSheet} */
-	static async #onCreateItem(_event, target) {
-		const { type } = target.dataset;
-		const name = Item.implementation.defaultName({ type, parent: this.actor });
-		const [item] = await this.actor.createEmbeddedDocuments("Item", [{ type, name }]);
-		item?.sheet.render({ force: true });
+	static #onCreateItem(_event, target) {
+		BastionlandItemSheet.openNew(this.actor, target.dataset.type);
 	}
 
 	/** @this {BastionlandActorSheet} */
