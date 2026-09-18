@@ -60,6 +60,7 @@ import { openRulebook, reopenableReader, toggleRulebook } from "./module/ruleboo
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
+import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
@@ -179,6 +180,8 @@ Hooks.once("init", () => {
 	registerRulebookSettings();
 	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
 	registerRulebookShare();
+	// Every "(p16)" in a window or chat card opens the book at that page.
+	registerPageLinks();
 	game.keybindings.register(SYSTEM_ID, "openRulebook", {
 		name: "bastionland.rulebook.keybinding.name",
 		hint: "bastionland.rulebook.keybinding.hint",

@@ -1,5 +1,22 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { VIEWER_PATH, isPdfPath, looksLikeTheRulebook, readerPage, rulebookViewerUrl, zoomStepTarget } from "../../module/rules/rulebook.js";
+import { VIEWER_PATH, isPdfPath, looksLikeTheRulebook, pageReferences, readerPage, rulebookViewerUrl, zoomStepTarget } from "../../module/rules/rulebook.js";
+
+describe("pageReferences", () => {
+	it("finds a cited page and where it sits", () => {
+		const text = "write them here (p16).";
+		expect(pageReferences(text)).toEqual([{ index: 17, length: 3, page: 16 }]);
+	});
+
+	it("finds each of several, and takes a span's first page", () => {
+		expect(pageReferences("Knighthood (pp6–7) and Glory (p6), Omens (p18-19)").map(({ page }) => page)).toEqual([6, 6, 18]);
+		expect(pageReferences("(pp6–7)")[0].length).toBe(5);
+	});
+
+	it("leaves words and numbers past the book alone", () => {
+		expect(pageReferences("top12 step3 p0 p999 map")).toEqual([]);
+		expect(pageReferences(null)).toEqual([]);
+	});
+});
 
 describe("rulebookViewerUrl", () => {
 	afterEach(() => {

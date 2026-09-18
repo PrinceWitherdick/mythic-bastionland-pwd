@@ -3113,6 +3113,21 @@
 	flex: 1;
 }
 
+/* A "(p16)" anywhere in the system's text, opening the rulebook there. */
+a.bastionland-page-link {
+	color: inherit;
+	text-decoration: underline dotted;
+	text-underline-offset: 0.15em;
+	cursor: pointer;
+}
+
+a.bastionland-page-link:hover,
+a.bastionland-page-link:focus-visible {
+	color: var(--bastionland-blood, #8b1e1e);
+	text-decoration-style: solid;
+	text-shadow: none;
+}
+
 .bastionland-travel-rules__page {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);

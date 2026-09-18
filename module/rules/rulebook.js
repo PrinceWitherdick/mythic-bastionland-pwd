@@ -83,6 +83,28 @@ export function rulebookViewerUrl(path, { page } = {}) {
 }
 
 /**
+ * "p16", "pp6–7" and "p18-19": how this system's text cites the book.
+ * The `\b` in front keeps "top12" or "step3" from reading as one.
+ */
+const PAGE_REFERENCE = /\bpp?(\d{1,3})(?:\s?[–-]\s?\d{1,3})?\b/g;
+
+/**
+ * The page references in a run of text, in order. A span goes to its first
+ * page, and a number past the end of the book isn't a page reference.
+ * @param {string} text
+ * @returns {{index: number, length: number, page: number}[]}
+ */
+export function pageReferences(text) {
+	const found = [];
+	for (const match of String(text ?? "").matchAll(PAGE_REFERENCE)) {
+		const page = Number(match[1]);
+		if (page < 1 || page > EXPECTED_PAGES) continue;
+		found.push({ index: match.index, length: match[0].length, page });
+	}
+	return found;
+}
+
+/**
  * One notch of the wheel, flat. pdf.js's own step compounds and reads one
  * mouse flick as three steps, which takes a page from 100% to 170% at once.
  */

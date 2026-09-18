@@ -2196,6 +2196,7 @@
       "title": "Mythic Bastionland",
       "open": "Rulebook",
       "openTab": "Open in a New Tab",
+      "openPage": "Open the rulebook at page {page}",
       "showPlayers": "Show This Page to Players",
       "shownPlayers": "Showed page {page} to the players.",
       "nobodyToShow": "No one else is signed in to show the page to.",
