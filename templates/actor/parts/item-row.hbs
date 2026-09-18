@@ -5,7 +5,7 @@
 			<i class="fa-solid fa-hand-fist" inert></i>
 		</button>
 		{{/if}}
-		<button type="button" class="bastionland-item__name" data-action="postItem" data-tooltip="{{localize 'bastionland.sheet.toChat'}}" data-viewable>{{name}}</button>
+		<button type="button" class="bastionland-item__name" data-action="postItem" data-tooltip="{{localize 'bastionland.sheet.toChat'}}" data-viewable><span class="bastionland-item__head">{{nameHead}}</span>{{nameRest}}</button>
 		{{#if tags.length}}
 		<span class="bastionland-item__tags">({{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})</span>
 		{{/if}}

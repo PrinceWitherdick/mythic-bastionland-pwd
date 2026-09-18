@@ -1201,6 +1201,12 @@
 
 .bastionland-item__name {
 	font-size: 1.05rem;
+	font-weight: normal;
+	text-align: start;
+}
+
+/* Only the lead words are bold; a gloss like "(see below), hood and clothes" is not. */
+.bastionland-item__head {
 	font-weight: bold;
 }
 
@@ -1208,7 +1214,7 @@
 	text-decoration: underline;
 }
 
-.bastionland-items--prose .bastionland-item__name {
+.bastionland-items--prose :is(.bastionland-item__name, .bastionland-item__head) {
 	font-family: var(--bastionland-font-caps);
 	font-weight: normal;
 	letter-spacing: 0.03em;
