@@ -1,5 +1,6 @@
 import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
+import { postGambit } from "../actions/gambits.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
@@ -21,6 +22,7 @@ export class KnightSheet extends BastionlandActorSheet {
 		position: { width: 860, height: 920 },
 		actions: {
 			chooseKnight: KnightSheet.#onChooseKnight,
+			postGambit: KnightSheet.#onPostGambit,
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
 			openSteed: KnightSheet.#onOpenSteed,
@@ -120,7 +122,7 @@ export class KnightSheet extends BastionlandActorSheet {
 					.map((item) => `${item.name} ${item.system.damage}`)
 					.join(", ")
 			},
-			gambits: GAMBITS.map((key) => t(`gambits.${key}`))
+			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) }))
 		});
 	}
 
@@ -243,6 +245,11 @@ export class KnightSheet extends BastionlandActorSheet {
 	/** @this {KnightSheet} */
 	static #onChooseKnight() {
 		return openKnightChooser(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onPostGambit(_event, target) {
+		return postGambit(this.actor, target.dataset.gambit);
 	}
 
 	/** @this {KnightSheet} */

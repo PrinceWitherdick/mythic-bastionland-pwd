@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
-import { AGES, ARMOUR_KINDS, FEATS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
+import { AGES, ARMOUR_KINDS, FEATS, GAMBIT_DETAILS, GAMBITS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
 import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, SPARK_KIND } from "../module/rules/book-art.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
@@ -88,6 +88,7 @@ describe("localization", () => {
 		...partsOf("conditions", ["fatigued", "exposed", "mortalWound", "exhausted", "impaired"], ["label", "hint"]),
 		...partsOf("feats", FEATS.map((feat) => feat.key), ["name", "tagline", "summary", "use"]),
 		...GAMBITS.flatMap((key) => [`gambits.${key}`, `gambits.names.${key}`]),
+		...GAMBIT_DETAILS.map((key) => `gambits.details.${key}`),
 		...STRONG_GAMBITS.map((key) => `attack.strong.${key}`),
 		...SET_ASIDE_REASONS.map((key) => `attack.setAside.${key}`),
 		...ATTACK_REFUSALS.map((key) => `attack.refusals.${key}`),

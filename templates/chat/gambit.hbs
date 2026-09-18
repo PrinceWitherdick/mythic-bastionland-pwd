@@ -1,0 +1,13 @@
+<section class="bastionland-card">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{gambit.name}}</h3>
+		<p class="bastionland-card__tagline">{{gambit.tagline}}</p>
+	</header>
+	<p class="bastionland-card__text">{{{gambit.effect}}}</p>
+	{{#if gambit.detail}}
+	<p class="bastionland-card__text">{{gambit.detail}}</p>
+	{{/if}}
+	<p class="bastionland-card__outcome">{{gambit.save}}</p>
+	<p class="bastionland-card__hint">{{gambit.target}}</p>
+	<p class="bastionland-card__hint">{{{gambit.strong}}}</p>
+</section>

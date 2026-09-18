@@ -27,3 +27,6 @@ export const NPC_SOURCES = Object.freeze(["myths", "seers", "cityQuest"]);
 
 /** Gambits in the order the character sheet prints them. */
 export const GAMBITS = Object.freeze(["bolster", "move", "repel", "stop", "impair", "trap", "dismount", "other"]);
+
+/** Gambits whose chat card adds a rule the sheet's short line leaves out (p10). */
+export const GAMBIT_DETAILS = Object.freeze(["move", "dismount"]);

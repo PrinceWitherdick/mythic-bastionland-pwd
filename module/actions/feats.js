@@ -30,15 +30,27 @@ export async function resolveFeat(actor, key) {
 }
 
 /**
+ * Template data describing a Feat as the book prints it (p10).
+ * @param {string} key
+ */
+function featText(key) {
+	const { virtue } = FEATS.find((candidate) => candidate.key === key);
+	return {
+		name: t(`feats.${key}.name`),
+		tagline: t(`feats.${key}.tagline`),
+		use: t(`feats.${key}.use`),
+		cost: t("feats.saveOrFatigue", { virtue: t(`virtues.${virtue}.abbr`) })
+	};
+}
+
+/**
  * Template data describing a Feat and the Save it cost.
  * @param {string} key
  * @param {import("./saves.js").SaveResult} save
  */
 export function featContext(key, save) {
 	return {
-		name: t(`feats.${key}.name`),
-		tagline: t(`feats.${key}.tagline`),
-		use: t(`feats.${key}.use`),
+		...featText(key),
 		save: saveContext(save),
 		outcome: t(save.passed ? "feats.avoidedFatigue" : "feats.becameFatigued")
 	};
@@ -54,4 +66,17 @@ export async function performFeat(actor, key) {
 	if (!save) return null;
 	await postCard(actor, "feat", { feat: featContext(key, save) }, { rolls: [save.roll] });
 	return save;
+}
+
+/**
+ * Show a Feat in chat without performing it: no Save and no Fatigue. This is
+ * for someone who can see a sheet but not act for it, as a move's text is
+ * posted for them in Stonetop.
+ * @param {Actor} actor
+ * @param {string} key
+ * @returns {Promise<ChatMessage>|null} Null if the actor doesn't know the Feat.
+ */
+export function showFeat(actor, key) {
+	if (!FEATS.some((candidate) => candidate.key === key) || !actor.system.knowsFeat(key)) return null;
+	return postCard(actor, "feat", { feat: featText(key) });
 }

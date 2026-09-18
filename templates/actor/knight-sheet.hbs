@@ -269,7 +269,12 @@
 				<h2 class="bastionland-heading">{{localize "bastionland.gambits.label"}}</h2>
 				<ul class="bastionland-gambits">
 					{{#each gambits}}
-					<li>{{{this}}}</li>
+					<li>
+						<button type="button" class="bastionland-move" data-action="postGambit" data-gambit="{{key}}" data-viewable>
+							<span class="bastionland-move__text">{{{label}}}</span>
+							<i class="bastionland-move__icon fa-solid fa-comment" inert></i>
+						</button>
+					</li>
 					{{/each}}
 				</ul>
 				<p class="bastionland-hint">{{localize "bastionland.gambits.hint"}}</p>

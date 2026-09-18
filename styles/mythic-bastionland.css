@@ -177,7 +177,7 @@
 	.bastionland-icon,
 	.bastionland-item__name,
 	.bastionland-item__equip,
-	.bastionland-feat,
+	.bastionland-move,
 	.bastionland-add,
 	.bastionland-chooser__start,
 	.bastionland-chooser__group,
@@ -1267,6 +1267,37 @@
 	list-style: none;
 }
 
+/*
+ * Each row is one button, the way a move is in Stonetop: a Feat makes its Save
+ * and a Gambit posts its rule to chat. A viewer's Feat posts its text alone.
+ * The icon at the end says which, faint until the row is hovered, as on the
+ * Save rows.
+ */
+.bastionland-move {
+	display: flex;
+	align-items: baseline;
+	width: 100%;
+}
+
+.bastionland-move__text {
+	flex: 1;
+}
+
+.bastionland-move__icon {
+	align-self: center;
+	padding-left: 0.4rem;
+	font-size: 0.85rem;
+	opacity: 0.4;
+}
+
+.bastionland-move:hover {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-move:is(:hover, :focus-visible) .bastionland-move__icon {
+	opacity: 1;
+}
+
 .bastionland-feat {
 	border-bottom: 1px solid var(--bastionland-rule);
 	font-family: var(--bastionland-font-caps);
@@ -1275,9 +1306,8 @@
 	text-transform: uppercase;
 }
 
-.bastionland-feat:not(:disabled):hover {
+.bastionland-move:hover .bastionland-feat {
 	border-bottom-color: currentcolor;
-	color: var(--bastionland-verdigris);
 }
 
 .bastionland-feat__cost {

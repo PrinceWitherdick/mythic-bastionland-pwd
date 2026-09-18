@@ -1,9 +1,14 @@
+{{!-- A viewer's click posts the Feat's text without its Save, so their icon is the speech bubble. --}}
 <ul class="bastionland-feats">
 	{{#each feats}}
 	<li>
-		<button type="button" class="bastionland-feat" data-action="performFeat" data-feat="{{key}}" {{#unless @root.editable}}disabled{{/unless}}>{{name}}</button>
-		– {{summary}}
-		<span class="bastionland-feat__cost">{{cost}}</span>
+		<button type="button" class="bastionland-move" data-action="performFeat" data-feat="{{key}}" data-viewable>
+			<span class="bastionland-move__text">
+				<span class="bastionland-feat">{{name}}</span> – {{summary}}
+				<span class="bastionland-feat__cost">{{cost}}</span>
+			</span>
+			<i class="bastionland-move__icon fa-solid {{#if @root.editable}}fa-dice-d20{{else}}fa-comment{{/if}}" inert></i>
+		</button>
 	</li>
 	{{/each}}
 </ul>

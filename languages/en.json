@@ -395,6 +395,15 @@
         "trap": "Trap",
         "dismount": "Dismount",
         "other": "Other effect"
+      },
+      "card": {
+        "tagline": "Gambit: discard an Attack die of 4 or higher",
+        "noSave": "The target gets no Save against it.",
+        "target": "The affected foe must be a target of the original Attack."
+      },
+      "details": {
+        "move": "You may Move even if you already moved or are unable to move.",
+        "dismount": "Being dismounted causes d6 Damage. In combat, add it to the Attack’s dice."
       }
     },
     "save": {

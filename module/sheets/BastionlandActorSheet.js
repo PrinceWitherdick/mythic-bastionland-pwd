@@ -1,7 +1,7 @@
 import { attack, specialistLabel } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
-import { performFeat } from "../actions/feats.js";
+import { performFeat, showFeat } from "../actions/feats.js";
 import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
@@ -149,6 +149,17 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	}
 
 	/**
+	 * Foundry disables every button on a sheet the user can't edit. Buttons
+	 * marked `data-viewable` only post the sheet's text to chat, so they stay
+	 * live for a viewer, as a move's name does in Stonetop.
+	 * @override
+	 */
+	_toggleDisabled(disabled) {
+		super._toggleDisabled(disabled);
+		this.form?.querySelectorAll("button[data-viewable]").forEach((button) => (button.disabled = false));
+	}
+
+	/**
 	 * Hang the header buttons afresh, since which are offered, and what they
 	 * read, follows the actor, and on a Knight's sheet the Domain they rule.
 	 */
@@ -227,7 +238,9 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 
 	/** @this {BastionlandActorSheet} */
 	static #onPerformFeat(_event, target) {
-		return performFeat(this.actor, target.dataset.feat);
+		const { feat } = target.dataset;
+		// Only someone who can act for the actor makes the Save. A viewer shows the Feat.
+		return this.isEditable ? performFeat(this.actor, feat) : showFeat(this.actor, feat);
 	}
 
 	/** @this {BastionlandActorSheet} */

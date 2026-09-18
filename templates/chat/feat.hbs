@@ -4,6 +4,10 @@
 		<p class="bastionland-card__tagline">{{feat.tagline}}</p>
 	</header>
 	<p class="bastionland-card__text">{{feat.use}}</p>
+	{{#if feat.save}}
 	{{> "bastionland.save-result" save=feat.save}}
 	<p class="bastionland-card__outcome">{{feat.outcome}}</p>
+	{{else}}
+	<p class="bastionland-card__hint">{{feat.cost}}</p>
+	{{/if}}
 </section>
