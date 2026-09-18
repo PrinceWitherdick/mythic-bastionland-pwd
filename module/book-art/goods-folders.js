@@ -15,7 +15,7 @@ export const GOODS_FOLDERS_STEP = "goodsFolders";
 /**
  * A world setup step: give the world its folders of Arms & Goods on the first
  * load after the compendiums have been filled. A GM who deletes the folders
- * keeps them deleted, until Import Book Art is run again.
+ * keeps them deleted, until Import PDF is run again.
  * @returns {Promise<boolean>} False while there are no compendiums to copy yet.
  */
 export async function seedGoodsFolders() {

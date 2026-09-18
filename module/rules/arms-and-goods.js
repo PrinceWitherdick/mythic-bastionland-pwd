@@ -2,7 +2,7 @@
  * Warfare (p11), Arms & Goods (p12) and People & Realms (p13) list weapons,
  * armour, tools, beasts, Remedies, poisons, hirelings, Warbands, structures
  * and siege engines one entry at a time, as "Name: what it is" under a heading.
- * Nothing from those pages ships with the system; Import Book Art reads them
+ * Nothing from those pages ships with the system; Import PDF reads them
  * from the GM's own rulebook. Pure, so the reading can be tested without Foundry.
  */
 import { ARMOUR_KINDS } from "../config.js";
@@ -306,7 +306,7 @@ export function goodsFromPages(pages) {
 const paragraphs = (...texts) => texts.filter(Boolean).map((text) => `<p>${escapeHTML(text)}</p>`).join("");
 
 /**
- * Item and actor data for the compendiums Import Book Art fills.
+ * Item and actor data for the compendiums Import PDF fills.
  * @param {Record<string, object[]>} goods From goodsFromPages.
  * @param {object} labels Words in the world's language.
  * @param {Record<string, string>} labels.rarities By RARITIES key.

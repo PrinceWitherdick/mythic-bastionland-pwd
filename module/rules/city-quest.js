@@ -1,7 +1,7 @@
 /**
  * The City Quest (p172-173): for the worthiest Companies, a list of 24 Omens
  * that stand in for a random Myth's, and a Cast who turn up in them. Nothing
- * from the pages ships with the system; Import Book Art reads them from the
+ * from the pages ships with the system; Import PDF reads them from the
  * GM's own rulebook. Pure, so the page reading can be tested without Foundry.
  */
 import { BASELINE_TOLERANCE, readCast, runMiddle, textLines, textRuns } from "./book-art.js";

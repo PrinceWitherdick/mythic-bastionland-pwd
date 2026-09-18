@@ -169,7 +169,7 @@ export async function increasedCollections(domain) {
 
 /**
  * Drama in Court (p21): how the ruler is caught up in this Season's drama. When
- * Import Book Art has brought in the Spark Tables, the Drama table gives a prompt.
+ * Import PDF has brought in the Spark Tables, the Drama table gives a prompt.
  * @param {Actor} domain
  */
 export async function dramaInCourt(domain) {

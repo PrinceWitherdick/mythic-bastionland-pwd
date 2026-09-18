@@ -14,7 +14,7 @@ const manifest = JSON.parse(readFileSync(join(root, "system.json"), "utf8"));
 const source = JSON.parse(readFileSync(join(root, "packs/src/macros/import-book-art.json"), "utf8"));
 const AsyncFunction = (async () => {}).constructor;
 
-describe("Import Book Art macro source", () => {
+describe("Import PDF macro source", () => {
 	it("is keyed for the Macro compendium", () => {
 		expect(source._id).toBe(IMPORT_MACRO_ID);
 		expect(source._id).toMatch(/^[A-Za-z0-9]{16}$/);
@@ -161,7 +161,7 @@ describe("arrangeHotbar", () => {
 		expect(emptySlot(nine, "rb")).toBeNull();
 	});
 
-	it("moves Import Book Art to the last slot and slides the system macros left", () => {
+	it("moves Import PDF to the last slot and slides the system macros left", () => {
 		const hotbar = { 1: "import", 2: "rb", 3: "luck", 4: "site", 6: "mine" };
 		expect(arrangeHotbar(hotbar, "import", ["rb", "luck", "site"]))
 			.toEqual({ 1: "rb", 2: "luck", 3: "site", 6: "mine", 10: "import" });
@@ -173,11 +173,11 @@ describe("arrangeHotbar", () => {
 			.toEqual({ 1: "mine", 2: "rb", 3: "luck", 10: "import" });
 	});
 
-	it("puts Import Book Art in the last slot when it wasn't on the bar", () => {
+	it("puts Import PDF in the last slot when it wasn't on the bar", () => {
 		expect(arrangeHotbar({ 1: "rb" }, "import", ["rb"])).toEqual({ 1: "rb", 10: "import" });
 	});
 
-	it("leaves Import Book Art where it is when the user keeps their own macro in the last slot", () => {
+	it("leaves Import PDF where it is when the user keeps their own macro in the last slot", () => {
 		const hotbar = { 1: "import", 2: "rb", 10: "mine" };
 		expect(arrangeHotbar(hotbar, "import", ["rb"])).toEqual(hotbar);
 	});

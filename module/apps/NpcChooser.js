@@ -24,7 +24,7 @@ function statLine(stats) {
 }
 
 /**
- * Makes NPCs from the text Import Book Art read from the GM's own rulebook: a
+ * Makes NPCs from the text Import PDF read from the GM's own rulebook: a
  * member of a Myth's Cast, or a Seer. It fills in an existing NPC, or creates
  * new ones, staying open so a whole Cast can be made at once.
  */

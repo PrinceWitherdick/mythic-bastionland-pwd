@@ -8,7 +8,7 @@
  *     Special rules, what they want, what they're like.
  *
  * Some give only GD, such as a thing that counts as a structure. Pure, so
- * Import Book Art and a stat block pasted onto a sheet read the same way.
+ * Import PDF and a stat block pasted onto a sheet read the same way.
  */
 import { FEATS, NPC_SCALES } from "../config.js";
 import { structureKind } from "./structures.js";

@@ -1,6 +1,6 @@
 /**
  * Square token pictures for Knights. Each Knight's portrait is tall and
- * narrow, so Import Book Art also saves a square cut from it around the
+ * narrow, so Import PDF also saves a square cut from it around the
  * Knight's face, and that square becomes the token.
  */
 

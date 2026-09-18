@@ -50,7 +50,7 @@ let running = false;
 /**
  * Save every Knight's and Seer's portrait and every Myth's illustration from
  * the GM's own copy of the rulebook into ART_ROOT, with an index keyed by roll
- * that also holds the text read from each page. The Import Book Art macro runs this.
+ * that also holds the text read from each page. The Import PDF macro runs this.
  * @param {File} [given] The rulebook, when the caller already has it, as the
  *   Welcome does. Without one the GM is asked to choose it.
  * @returns {Promise<object|null>} The index, or null if nothing was imported.

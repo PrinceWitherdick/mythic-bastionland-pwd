@@ -13,7 +13,7 @@ import { SYSTEM_ID } from "../system-id.js";
 
 /**
  * The first page's last slot, the one Foundry labels 0. It's kept for Import
- * Book Art, so the macros used in play fill the page from the left.
+ * PDF, so the macros used in play fill the page from the left.
  */
 export const LAST_SLOT = 10;
 

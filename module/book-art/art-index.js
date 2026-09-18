@@ -3,7 +3,7 @@ import { ART_ROOT, INDEX_FILE } from "../rules/book-art.js";
 import { mythReference, seerReference } from "../rules/realm.js";
 
 /**
- * Fetch a JSON file Import Book Art wrote. The browser asks the server each
+ * Fetch a JSON file Import PDF wrote. The browser asks the server each
  * time, so a new import shows up without reloading, but downloads the file
  * again only when it has changed.
  * @param {string} path Under Foundry's Data path.
@@ -19,7 +19,7 @@ async function loadJson(path) {
 }
 
 /**
- * The index Import Book Art writes, or null if it hasn't been run.
+ * The index Import PDF writes, or null if it hasn't been run.
  * @returns {Promise<object|null>}
  */
 export const loadArtIndex = () => loadJson(`${ART_ROOT}/${INDEX_FILE}`);

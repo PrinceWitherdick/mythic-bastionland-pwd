@@ -22,5 +22,5 @@ export const templatePath = (path) => `${SYSTEM_PATH}/templates/${path}`;
  */
 export const packId = (name) => `${SYSTEM_ID}.${name}`;
 
-/** The Macro compendium that holds Import Book Art. */
+/** The Macro compendium that holds Import PDF. */
 export const MACROS_PACK = packId("macros");

@@ -1,11 +1,11 @@
 {
   "_id": "mbImportBookArt1",
   "_key": "!macros!mbImportBookArt1",
-  "name": "Import Book Art",
+  "name": "Import PDF",
   "type": "script",
   "img": "systems/mythic-bastionland-pwd/assets/icons/macros/spell-book.svg",
   "scope": "global",
-  "command": "// Saves the Knight, Seer and Myth art from your copy of the Mythic Bastionland rulebook.\nconst api = game.system.api;\nif (!api?.importBookArt) {\n\tui.notifications.warn(\"Import Book Art only works in a Mythic Bastionland world.\");\n\treturn;\n}\nreturn api.importBookArt();\n",
+  "command": "// Saves the Knight, Seer and Myth art from your copy of the Mythic Bastionland rulebook.\nconst api = game.system.api;\nif (!api?.importBookArt) {\n\tui.notifications.warn(\"Import PDF only works in a Mythic Bastionland world.\");\n\treturn;\n}\nreturn api.importBookArt();\n",
   "folder": null,
   "sort": 400000,
   "ownership": {

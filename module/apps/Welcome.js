@@ -12,7 +12,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /**
  * The window a new world greets its GM with. The rulebook isn't shipped, so
  * what it offers is the GM's own PDF, chosen once: a copy is always kept to
- * read in Foundry, and if ticked, Import Book Art takes its art and text too.
+ * read in Foundry, and if ticked, Import PDF takes its art and text too.
  */
 
 /** World setting: whether the Welcome opens for GMs when the world loads, until one of them first closes it. */

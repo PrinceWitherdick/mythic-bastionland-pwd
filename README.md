@@ -53,7 +53,7 @@ The **Structure** actor is for ships, walls, gates and siege engines (Wood and S
 - **Repair:** a day of repairs restores its GD.
 - **Collide:** a ship rolls the d12 Damage a collision deals, or the d6 when it's much the larger ship, and takes it.
 - **Attack** appears once it has a weapon, such as a siege engine's.
-- Import Book Art files the book's structures, ships and siege towers as Structures. An NPC made with Create Actor and filled in from Choose from Book becomes one when its stat block has only GD and counts as a structure. On the first load after updating, structure NPCs whose Virtues were never set become Structures by themselves.
+- Import PDF files the book's structures, ships and siege towers as Structures. An NPC made with Create Actor and filled in from Choose from Book becomes one when its stat block has only GD and counts as a structure. On the first load after updating, structure NPCs whose Virtues were never set become Structures by themselves.
 ### NPCs
 
 The **NPC** sheet is laid out like the stat blocks the book prints for each Myth's Cast and each Seer, for anybody who isn't a player's Knight:
@@ -65,7 +65,7 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Leading from the front:** a Warband's Attack dialog lists individuals to lead it: the selected Tokens, your character and the Knights you can see. The leader's worn and wielded Attack dice join the roll. Until the leader's next turn in combat, Damage that gets past the Warband's Armour opens Take Damage for the leader too. The NPC sheet shows who leads the Warband.
 - **Creatures that count as structures:** mark an NPC that counts as a structure, such as a colossus of stone, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed. An NPC with only GD is better as a Structure: **Make a Structure** on its sheet turns it into one, keeping its Tokens.
 - **Morale:** rolls the SPI Save to stand rather than rout or surrender. The Damage card offers the roll when an NPC is Wounded, or when a Warband's VIG falls to half. In combat, once half of an NPC side is down, GMs get a card to roll the group: once on a leader's SPI if organised, or for each member standing. Knights are never asked.
-- **Choose from Book** (in the NPC sheet's title bar): after Import Book Art, browse the Myths, the Seers and the City Quest, read each Myth's Omens, and fill in an NPC from any stat block in its Cast, or from a Seer. An NPC made with **Create Actor** opens it straight away, and becomes a Structure if the stat block is one.
+- **Choose from Book** (in the NPC sheet's title bar): after Import PDF, browse the Myths, the Seers and the City Quest, read each Myth's Omens, and fill in an NPC from any stat block in its Cast, or from a Seer. An NPC made with **Create Actor** opens it straight away, and becomes a Structure if the stat block is one.
 - **Paste Stat Block** (also in the title bar): paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 
 ### Domains
@@ -77,7 +77,7 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 - **Crises:** the Crises the Domain faces, each with how it's resolved and a button to resolve it. **Add Crisis** gives it one the Referee chooses, such as one a failed task brings.
 - **Crisis Roll:** a Calamity adds two Crises, and a Dilemma asks which of two to take. The sheet shows whether it's been rolled this Season. A Crisis rolled that the Domain already faces passes to the next on the list.
 - **Misrule:** the sheet warns at 3 unresolved Crises, and turning the Season or Age in the Time window puts every Domain still at 3 or more into misrule.
-- **Increased Collections** and **Drama in Court** roll their tables. Drama in Court also rolls the Drama Spark Table when Import Book Art has brought it in.
+- **Increased Collections** and **Drama in Court** roll their tables. Drama in Court also rolls the Drama Spark Table when Import PDF has brought it in.
 - **Authority:** how many Warbands the Domain can muster, with reminders of grand designs and succession.
 - **Succession:** write in the ruler's successor, or leave it to the successor the ruling Knight named. **Pass On** hands the Domain to them, and the card warns that they will face some resistance.
 - **Conquest:** **Seize by Force** puts whoever took the Holding in charge. The sheet marks it in turmoil for the rest of the Season, and the Season's card says when it has adapted to its new ruler.
@@ -88,7 +88,7 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 GMs get five buttons at the top of the Roll Tables tab:
 
 - **Referee Rolls:** roll a d6 on one of the book's quick tables and post the result: the Luck Roll, Passage of Time, Unresolved Situation, Travelling Blind, Dire Weather and Local Mood.
-- **Spark Tables:** after Import Book Art, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
+- **Spark Tables:** after Import PDF, browse the four pages of Spark Tables laid out as the book sets them. The dice button on a table rolls a d12 for each column, posts the two entries as a prompt, and marks them in the window.
 - **Time:** the world's calendar of Age, Season, Day and Phase, and what moves it on:
   - **Next Phase** posts the new Phase, with a reminder of what it costs, such as lost sleep each Morning.
   - **Turn the Season** asks which Knights take part, and each picks a pursuit (Pilgrimage, Courtesy or Service). They have their Virtues restored, and a Mutilation Scar settles, raising max GD by d6 if it's 10 or less.
@@ -119,7 +119,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - Leave hidden Tiles unlocked: Foundry hides a hidden, locked Tile from GMs too.
   - Like hidden Tokens, hidden parts of the Realm are still sent to every player's browser, and so are the GMs' Realm cards. A player sees a Wilderness Roll only as the GM rolling privately.
   - The same goes for what you write in the Lay of the Land, and for the GM Toolkit's notes on Myths and the Company's journey: they ride on the Scene, so they reach every browser. They're kept there for consistency, not secrecy.
-- **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import Book Art where it has been run.
+- **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import PDF where it has been run.
 - **The Company:** one Token stands for all the Knights, because the Seers deemed that they travel as a Company (p7) — "while some of you may rest, roam, or die, your collective journey will be as one".
   - The New Realm dialog places it. Choose the Company's **Start** and it begins where the book puts it (p6): a **Wanderer** arrives over the edge of the map, a **Courtier** at the Seat of Power, and a **Ruler** at a Holding of their own, never the Seat that lies under a wicked influence. The same seed puts it in the same place.
   - Give it a picture of your own there, or keep the pennant that ships with the system. Change it later from the token HUD like any Token.
@@ -128,7 +128,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - Where the Company Token stands is where the Company is: the Wilderness Roll, the Travel rules and the Lay of the Land all read it, so there is no guessing from selected Tokens and no “the Company is split”. Delete the Token and they fall back to the player-owned Tokens as before.
 - **The Lay of the Land:** what you've made of a hex, kept in the hex. The book asks the Referee to fill the blanks in a Hex with Spark Table prompts (p19), and this is where those rolls are kept, so a Company coming back finds the hex they left. Open it from the Hex panel.
   - It shows what the Realm already says stands there, whether the Company has been there, a box to write what's in the hex, and every Spark Table roll made for it so far, newest first, each with the dice and the date it was rolled.
-  - **Roll a wilderness hex** rolls the first table of each row of the Nature page (p22) in one go — the lay of the land, its weather and a feature of it. The dropdown rolls any of the four pages' tables on its own. Both need Import Book Art; without it you can still write notes.
+  - **Roll a wilderness hex** rolls the first table of each row of the Nature page (p22) in one go — the lay of the land, its weather and a feature of it. The dropdown rolls any of the four pages' tables on its own. Both need Import PDF; without it you can still write notes.
   - Rolls are whispered to GMs. **Tell the players** posts what you wrote, and only what you wrote, as a card everyone sees; a Myth or Landmark still hidden never rides out in it.
   - **Ask about a new hex** in the settings decides what happens when a player's Token comes to rest in a hex nothing has been written down for: nothing, a note in the corner, or the window opening. Each browser sets its own, and a hex is only offered once per session. The default is the note.
   - A hex keeps its last 24 rolls. Rerolling the Realm leaves what you wrote alone, so notes about hexes that have changed are yours to clear.
@@ -146,7 +146,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - **Inspect hexes:** click a hex to open its panel. It holds the hex's terrain and whatever is in the hex: a Holding's style, name and Seat of Power; a Myth's number, roll and Omens seen; a Landmark's type, name and, for a Sanctum, its Seer. It also has a button to reveal a hidden thing, the hex's six Barriers, and a Wilderness Roll made there.
   - **Paint terrain:** pick a terrain in the palette, then click or drag across hexes. Alt-click a hex to pick up its terrain.
   - **Barriers:** click a hex edge to add or remove a Barrier, and Shift-click to reveal or hide it.
-  - **Wilderness Roll:** select the Company's Tokens and press it. A Holding's hex needs no roll, and a Myth's own hex gives its next Omen. Otherwise choose travelling or camping, and the d6 is rolled: a random Myth's Omen, the nearest Myth's, or the hex's Landmark, which is revealed. The Myth's count of Omens seen goes up, and a card only GMs see names the Myth and the Omen, quoting it if Import Book Art has been run.
+  - **Wilderness Roll:** select the Company's Tokens and press it. A Holding's hex needs no roll, and a Myth's own hex gives its next Omen. Otherwise choose travelling or camping, and the d6 is rolled: a random Myth's Omen, the nearest Myth's, or the hex's Landmark, which is revealed. The Myth's count of Omens seen goes up, and a card only GMs see names the Myth and the Omen, quoting it if Import PDF has been run.
   - **Tidy the Realm:** snaps icons back to the middle of their hexes, unlocks hidden Tiles, lays the river and Barrier lines again, and lists anything it can't put right.
   - **Reroll the Realm:** rolls a new Realm onto the same Scene. Tokens and anything else on the Scene stay.
 
@@ -162,7 +162,7 @@ Each GM is given it as their character, as on Stonetop, so **C**, Foundry's char
 
 It's also in the Actors tab, behind **GM Toolkit** in the Roll Tables tab, and on the Realm controls of a Realm Scene. Its pages hang off a rail on the window's edge, and the **Realm** at the top picks which Realm the first three show.
 
-- **Myths and Omens:** each Myth of the Realm with the Omen playing out and the one to come (p18), and all six folded beneath. The Omens are quoted after Import Book Art.
+- **Myths and Omens:** each Myth of the Realm with the Omen playing out and the one to come (p18), and all six folded beneath. The Omens are quoted after Import PDF.
   - **Next Omen** counts one more and whispers it to GMs; **−** takes one back. The Hex panel and the Wilderness Roll count the same Omens.
   - Each Myth has a box for your notes on it.
   - **Myth Resolved** marks it resolved and awards the Glory (p27). A resolved Myth offers **Roll the New Myth**, which rolls the Myth that replaces it in the same hex and under the same number, with none of its Omens met. The Realm's Undo takes the roll back, with your notes on the old Myth.
@@ -178,7 +178,7 @@ It's also in the Actors tab, behind **GM Toolkit** in the Roll Tables tab, and o
 
 ### Art and text from your own book
 
-Beyond the Blank Realm's legend and Travel rules, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import Book Art** macro, which is added to the Macro Directory the first time a GM opens a world:
+Beyond the Blank Realm's legend and Travel rules, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import PDF** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
 2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, and the City Quest's Omens and Cast.
@@ -221,7 +221,7 @@ The layout:
 
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
-- `module/book-art/` reads a rulebook PDF you own and saves its art and text, for Import Book Art.
+- `module/book-art/` reads a rulebook PDF you own and saves its art and text, for Import PDF.
 - `module/apps/` holds windows other than sheets, such as the Knight and NPC choosers.
 - `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
@@ -238,6 +238,6 @@ The system id lives only in `module/system-id.js`. Lint rejects the id spelled o
 - Realm terrain, Holdings and Landmarks: traced from the map legend of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. Each picture carries the credit.
 - Travel rules beside Realm Scenes: the Travel text of the free Mythic Bastionland Blank Realm sheet by Chris McDowall, Bastionland Press. The panel credits it too.
 - Realm icons from [game-icons.net](https://game-icons.net), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/): the Seat of Power's [Crown](https://game-icons.net/1x1/lorc/crown.html) by Lorc, and the drawn skins' [Village](https://game-icons.net/1x1/delapouite/village.html), [Castle](https://game-icons.net/1x1/delapouite/castle.html) and [Rempart](https://game-icons.net/1x1/delapouite/rempart.html) by Delapouite and [White Tower](https://game-icons.net/1x1/lorc/white-tower.html) by Lorc. Each picture carries the credit.
-- Import Book Art macro icon: [Spell book](https://game-icons.net/1x1/delapouite/spell-book.html) by Delapouite, from [game-icons.net](https://game-icons.net) under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), the same icon as Stonetop's Import PDF macro. The picture carries the credit.
+- Import PDF macro icon: [Spell book](https://game-icons.net/1x1/delapouite/spell-book.html) by Delapouite, from [game-icons.net](https://game-icons.net) under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), the same icon as Stonetop's Import PDF macro. The picture carries the credit.
 - GM Toolkit portrait: [Read](https://game-icons.net/1x1/skoll/read.html) by Skoll, from [game-icons.net](https://game-icons.net) under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), the same mark as Stonetop's GM Toolkit, recoloured. The picture carries the credit.
 - Mythic Bastionland © Chris McDowall, Bastionland Press.

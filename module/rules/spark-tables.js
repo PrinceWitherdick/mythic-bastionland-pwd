@@ -2,7 +2,7 @@
  * The Spark Tables (p22-25): four pages of nine tables, each with two columns
  * of twelve entries. Rolling 2d12, one die for each column, and combining the
  * two entries gives a prompt to improvise from. Nothing from the tables ships
- * with the system; Import Book Art reads them from the GM's own rulebook.
+ * with the system; Import PDF reads them from the GM's own rulebook.
  * Pure, so the page reading can be tested without Foundry.
  */
 import { runMiddle, textRuns } from "./book-art.js";

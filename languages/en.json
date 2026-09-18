@@ -826,7 +826,7 @@
       "spark": "Roll for this hex",
       "table": "Spark Table",
       "rollSet": "Roll a wilderness hex",
-      "setMissing": "Import Book Art hasn’t read enough of page 22 to roll a wilderness hex.",
+      "setMissing": "Import PDF hasn’t read enough of page 22 to roll a wilderness hex.",
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
       "notVisited": "The Company hasn’t been here.",
@@ -852,9 +852,9 @@
       "reference": "page {page}",
       "rollTable": "Roll on {name}",
       "tagline": "{page} Spark Table, page {number}",
-      "noIndex": "Run the Import Book Art macro with your rulebook to bring in the Spark Tables.",
-      "noText": "Run Import Book Art again with your rulebook to bring in the Spark Tables.",
-      "pageMissing": "The Spark Tables on this page couldn’t be read. Import Book Art’s report says why.",
+      "noIndex": "Run the Import PDF macro with your rulebook to bring in the Spark Tables.",
+      "noText": "Run Import PDF again with your rulebook to bring in the Spark Tables.",
+      "pageMissing": "The Spark Tables on this page couldn’t be read. Import PDF’s report says why.",
       "pages": {
         "nature": "Nature",
         "civilisation": "Civilisation",
@@ -889,7 +889,7 @@
       },
       "myths": {
         "hint": "The Realm’s Myths, each with the Omen playing out and the one to come. Omens are met in order (p18). The Hex panel and the Wilderness Roll count the same Omens. For your eyes only.",
-        "noText": "Run Import Book Art to quote each Myth’s Omens here.",
+        "noText": "Run Import PDF to quote each Myth’s Omens here.",
         "unrolled": "Myth {number}",
         "current": "Current: Omen {number}",
         "next": "Next: Omen {number}",
@@ -948,7 +948,7 @@
     "cityQuest": {
       "title": "The City Quest",
       "hint": "A Company worthy of the City Quest meets an Omen of the City instead of a random Myth’s Omen when the Wilderness Roll is a 1. Roll d12 plus the Omens of the City already encountered, taking the next one down the list for a duplicate.",
-      "noText": "Run Import Book Art again to quote the Omens of the City here.",
+      "noText": "Run Import PDF again to quote the Omens of the City here.",
       "seen": "Omens of the City encountered: {count}. The City Quest ends after Omen {end} or higher.",
       "roll": "Roll an Omen of the City",
       "rolled": "d12 showing {roll}, plus {count} already encountered",
@@ -1562,9 +1562,9 @@
         "seers": "Seer {roll}",
         "cityQuest": "The City Quest"
       },
-      "noCityQuest": "Run Import Book Art again to bring in the City Quest’s Omens and Cast.",
-      "noIndex": "Run the Import Book Art macro to see each Myth’s Cast and each Seer here.",
-      "noText": "Run Import Book Art again to bring in each Myth’s Omens and Cast and each Seer’s Virtues.",
+      "noCityQuest": "Run Import PDF again to bring in the City Quest’s Omens and Cast.",
+      "noIndex": "Run the Import PDF macro to see each Myth’s Cast and each Seer here.",
+      "noText": "Run Import PDF again to bring in each Myth’s Omens and Cast and each Seer’s Virtues.",
       "reference": "{roll}, page {page}",
       "omens": "Omens",
       "noPeople": "No stat blocks were read from this page.",
@@ -1576,31 +1576,31 @@
       "confirm": "{name} becomes {npc}. Their name, picture, Virtues, GD, Armour, Feats and notes are replaced, and their weapons are swapped for these attacks. Other items are kept."
     },
     "bookArt": {
-      "title": "Import Book Art",
+      "title": "Import PDF",
       "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
       "choose": "Rulebook PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
       "start": "Import",
       "noFile": "Choose a PDF first.",
-      "notReady": "Import Book Art can run once the world has finished loading.",
-      "running": "Import Book Art is already running.",
-      "noPermission": "Import Book Art saves files, so it needs a user who is allowed to upload files.",
+      "notReady": "Import PDF can run once the world has finished loading.",
+      "running": "Import PDF is already running.",
+      "noPermission": "Import PDF saves files, so it needs a user who is allowed to upload files.",
       "unreadable": "{name} couldn’t be opened as a PDF.",
       "mismatchTitle": "A Different Edition?",
       "pageMismatch": "This PDF has {pages} pages, but the rulebook this import was made for has {expected}. Pictures may be missing or mixed up. Import anyway?",
       "layoutMismatch": "The first Knight’s pages don’t have the pictures this import looks for, so this may be a different edition. Import anyway?",
-      "progress": "Import Book Art: reading page {page} of {last}",
-      "readingSpark": "Import Book Art: reading the Spark Tables",
-      "readingGoods": "Import Book Art: reading Arms & Goods",
-      "readingCityQuest": "Import Book Art: reading the City Quest",
+      "progress": "Import PDF: reading page {page} of {last}",
+      "readingSpark": "Import PDF: reading the Spark Tables",
+      "readingGoods": "Import PDF: reading Arms & Goods",
+      "readingCityQuest": "Import PDF: reading the City Quest",
       "cityQuestParts": {
         "omens": "Omens",
         "cast": "Cast"
       },
-      "fillingGoods": "Import Book Art: filling the Arms & Goods compendiums",
-      "writingIndex": "Import Book Art: writing the index",
-      "packMissing": "Import Book Art couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
+      "fillingGoods": "Import PDF: filling the Arms & Goods compendiums",
+      "writingIndex": "Import PDF: writing the index",
+      "packMissing": "Import PDF couldn’t be added to this world because the Mythic Bastionland Macros compendium is empty. Run npm run pack with Foundry closed, then restart Foundry.",
       "kinds": {
         "knight": "Knight",
         "seer": "Seer",
@@ -1610,7 +1610,7 @@
         "cityQuest": "City Quest"
       },
       "report": {
-        "title": "Book Art Imported",
+        "title": "PDF Imported",
         "saved": "{kind} art: {saved} of {total} saved",
         "textRead": "{kind} text: {read} of {total} read",
         "sparkRead": "Spark Tables: {read} of {total} read",
@@ -1648,8 +1648,8 @@
     "chooser": {
       "title": "Choose a Knight",
       "titleFor": "Choose a Knight for {name}",
-      "noIndex": "Run the Import Book Art macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
-      "noText": "Run Import Book Art again to bring in each Knight’s Property, Ability and Passion.",
+      "noIndex": "Run the Import PDF macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
+      "noText": "Run Import PDF again to bring in each Knight’s Property, Ability and Passion.",
       "start": "Start",
       "starts": {
         "wanderer": {
@@ -2157,7 +2157,7 @@
           "done": "This world reads its rulebook from"
         },
         "busy": "Importing…",
-        "later": "Later on, Import Book Art on the hotbar and the Rulebook button in the Journal tab each do one of these again."
+        "later": "Later on, Import PDF on the hotbar and the Rulebook button in the Journal tab each do one of these again."
       },
       "where": {
         "heading": "Where Things Are",

@@ -1,5 +1,5 @@
 /**
- * Text helpers shared by Import Book Art and the stat block reader. Pure, so
+ * Text helpers shared by Import PDF and the stat block reader. Pure, so
  * they can be tested without Foundry.
  */
 

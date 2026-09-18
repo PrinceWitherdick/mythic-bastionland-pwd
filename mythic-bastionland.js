@@ -224,7 +224,7 @@ Hooks.once("init", () => {
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
 
-	// Macros reach the system through here, such as Import Book Art.
+	// Macros reach the system through here, such as Import PDF.
 	game.system.api = Object.freeze({
 		importBookArt,
 		openKnightChooser,
@@ -282,7 +282,7 @@ Hooks.once("ready", async () => {
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),
-		// Import Book Art takes the hotbar's last slot once every other macro has its own.
+		// Import PDF takes the hotbar's last slot once every other macro has its own.
 		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)]).then(ensureImportHotbar),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.
 		// Every GM, not only the one who made it, is then given it as their character.

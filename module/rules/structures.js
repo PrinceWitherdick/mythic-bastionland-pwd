@@ -62,7 +62,7 @@ export function isStructureNpc({ type, system }) {
 	return VIRTUES.every((key) => system.virtues?.[key]?.value === DEFAULT_VIRTUE && system.virtues[key].max === DEFAULT_VIRTUE);
 }
 
-/** A paragraph that is only what a ship carries, as Import Book Art wrote it. */
+/** A paragraph that is only what a ship carries, as Import PDF wrote it. */
 const CARRIES_PARAGRAPH = /<p>\s*carries\s+([^<]+?)\.?\s*<\/p>/i;
 
 /**
