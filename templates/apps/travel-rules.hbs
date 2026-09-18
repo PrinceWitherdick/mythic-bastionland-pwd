@@ -10,7 +10,7 @@
 	<div class="bastionland-travel-rules__body">
 		{{#each groups}}
 		<details class="bastionland-travel-rules__group" data-group="{{key}}" {{#if open}}open{{/if}}>
-			<summary class="bastionland-travel-rules__summary">
+			<summary class="bastionland-travel-rules__group-heading bastionland-travel-rules__summary">
 				<span class="bastionland-travel-rules__group-name">{{heading}}</span>
 				{{#if pageLink}}
 				<button type="button" class="bastionland-travel-rules__page" data-action="openPage" data-page="{{pageNumber}}" data-tooltip="{{pageLink}}" aria-label="{{pageLink}}">{{page}}</button>

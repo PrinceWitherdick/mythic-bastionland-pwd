@@ -3079,15 +3079,24 @@
 	border-top: 1px solid var(--bastionland-rule);
 }
 
-.bastionland-travel-rules__summary {
+/* A group's name and page: a fold's summary on Travel and Exploration, a plain heading on Creating a Realm. */
+.bastionland-travel-rules__group-heading {
 	display: flex;
 	align-items: baseline;
 	gap: 0.35rem;
+	margin: 0;
 	padding: 0.35rem 0 0.15rem;
-	cursor: pointer;
-	list-style: none;
+	border: none;
+	/* Foundry colours h3s for its dark interface, so the heading takes the sheet's ink back. */
+	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
+	font-weight: normal;
+}
+
+.bastionland-travel-rules__summary {
+	cursor: pointer;
+	list-style: none;
 }
 
 .bastionland-travel-rules__summary::-webkit-details-marker {

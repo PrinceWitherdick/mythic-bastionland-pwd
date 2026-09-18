@@ -3,12 +3,10 @@ import { isRealmScene } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { t } from "../chat/cards.js";
-import { openRulebook } from "../rulebook/BookReader.js";
-import { RULEBOOK_HOOK, canReadRulebook, hasRulebook } from "../rulebook/store.js";
-import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesView, pressingSections, travelRulesPlacement } from "../rules/travel-rules.js";
+import { RULEBOOK_HOOK } from "../rulebook/store.js";
+import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesView, pressingSections } from "../rules/travel-rules.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+import { MapSidePanel } from "./MapSidePanel.js";
 
 /** Which sides of the map this browser has folded away, and which groups it has closed. */
 const VIEW_SETTING = "travelRules";
@@ -39,16 +37,11 @@ const setView = (changes) => game.settings.set(SYSTEM_ID, VIEW_SETTING, normalis
  * the right, as `TRAVEL_RULES` lays them out. Pressing rules stand out as the
  * calendar turns, and GMs get the rolls beside their tables.
  */
-export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
+export class TravelRules extends MapSidePanel {
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-travel-rules-{id}",
-		side: "right",
-		tag: "aside",
-		classes: [SYSTEM_ID, "bastionland", "bastionland-travel-rules"],
-		window: { frame: false, positioned: false },
 		actions: {
 			fold: TravelRules.#onFold,
-			openPage: TravelRules.#onOpenPage,
 			roll: TravelRules.#onRoll
 		}
 	};
@@ -57,12 +50,9 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 		rules: { template: templatePath("apps/travel-rules.hbs"), scrollable: [".bastionland-travel-rules__body"] }
 	};
 
-	/** @type {[string, number][]} Hooks to take down on close. */
-	#hooks = [];
-
-	/** @returns {"left"|"right"} The side of the map these rules stand on. */
-	get side() {
-		return this.options.side;
+	/** Night, Winter and the page links follow the calendar and the rulebook, on every client. */
+	get redrawHooks() {
+		return [CALENDAR_HOOK, RULEBOOK_HOOK];
 	}
 
 	/** @override */
@@ -72,7 +62,6 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 		const folded = view.folded.includes(this.side);
 		const pressing = pressingSections(getCalendar());
 		const isGM = game.user.isGM;
-		const pageLinks = hasRulebook() && canReadRulebook();
 		const text = (key, data) => t(`travelRules.${key}`, data);
 
 		return Object.assign(context, {
@@ -84,9 +73,7 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 				key: group.key,
 				heading: text(`groups.${group.key}`),
 				open: !view.closed.includes(group.key),
-				page: text("page", { page: group.page }),
-				pageNumber: group.page,
-				pageLink: pageLinks ? text("openPage", { page: group.page }) : null,
+				...MapSidePanel.pageContext(group.page),
 				sections: group.sections.map((section) => {
 					const key = `sections.${section.key}`;
 					return {
@@ -107,68 +94,12 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/** @override */
-	_insertElement(element) {
-		const existing = document.getElementById(element.id);
-		if (existing) existing.replaceWith(element);
-		// With the rest of the interface, so the sidebar and windows stay above it.
-		else (document.getElementById("interface") ?? document.body).append(element);
-	}
-
-	/** @override */
-	async _onFirstRender(context, options) {
-		await super._onFirstRender(context, options);
-		// Night, Winter and the page links follow the calendar and the rulebook, on every client.
-		const redraw = () => this.render();
-		// Every pan, zoom and resize of the canvas comes through canvasPan.
-		const place = () => this.place();
-		this.#hooks = [[CALENDAR_HOOK, redraw], [RULEBOOK_HOOK, redraw], ["canvasPan", place]].map(([name, fn]) => [name, Hooks.on(name, fn)]);
-	}
-
-	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		this.place();
 		// Opening or closing a group isn't a click, and a toggle event doesn't bubble.
 		for (const details of this.element.querySelectorAll("details[data-group]")) {
 			details.addEventListener("toggle", () => this.#rememberGroups());
 		}
-	}
-
-	/** @override */
-	_onClose(options) {
-		super._onClose(options);
-		for (const [name, id] of this.#hooks) Hooks.off(name, id);
-		this.#hooks = [];
-	}
-
-	/**
-	 * Move the rules against their edge of the Realm's map, wherever the canvas
-	 * has panned and zoomed it to. They stay as tall as the map but keep their
-	 * width, so they stay readable however far out the map is zoomed.
-	 */
-	place() {
-		const rect = canvas?.ready ? canvas.dimensions?.sceneRect : null;
-		if (!this.element || !rect) return;
-		// As Foundry lines its HUD up with the canvas.
-		const origin = canvas.primary.getGlobalPosition();
-		const zoom = canvas.stage.scale.x;
-		const map = {
-			left: origin.x + (rect.x * zoom),
-			top: origin.y + (rect.y * zoom),
-			right: origin.x + ((rect.x + rect.width) * zoom),
-			bottom: origin.y + ((rect.y + rect.height) * zoom)
-		};
-		// Foundry sets the interface scale on the body itself, which is cheaper to read on every pan than computed style.
-		const scale = Number.parseFloat(document.body.style.getPropertyValue("--ui-scale")) || 1;
-		// Layout width, which the interface scale's transform doesn't change.
-		const width = this.element.offsetWidth;
-		const { left, top, maxHeight } = travelRulesPlacement(map, { side: this.side, width, scale });
-
-		const { style } = this.element;
-		style.left = `${left}px`;
-		style.top = `${top}px`;
-		// The interface scale is a transform, so the height it may grow to is set before scaling.
-		style.setProperty("--travel-rules-max-height", `${maxHeight / scale}px`);
 	}
 
 	/** Remember which groups this browser has closed, without drawing the rules again. */
@@ -190,13 +121,6 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { folded } = getView();
 		await setView({ folded: folded.includes(this.side) ? folded.filter((side) => side !== this.side) : [...folded, this.side] });
 		return this.render();
-	}
-
-	/** @this {TravelRules} */
-	static #onOpenPage(event, target) {
-		// The link sits in the group's summary, which would otherwise open or close the group too.
-		event.preventDefault();
-		return openRulebook({ page: Number(target.dataset.page) });
 	}
 
 	/** @this {TravelRules} */

@@ -172,7 +172,8 @@ describe("localization", () => {
 		...["none", ...FEATURE_KINDS].map((kind) => `realm.panel.kinds.${kind}`),
 		...BARRIER_STATES.map((state) => `realm.panel.barrier.${state}`),
 		...DIRECTIONS.map((direction) => `realm.directions.${direction}`),
-		...["fold", "unfold", "page", "openPage"].map((key) => `travelRules.${key}`),
+		...["fold", "unfold", "page"].map((key) => `travelRules.${key}`),
+		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
 		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),
 		...TRAVEL_RULES.flatMap(({ sections }) => sections.flatMap(({ key, intro, lines = [], rows = [], note, roll }) => [
