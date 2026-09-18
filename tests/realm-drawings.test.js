@@ -54,12 +54,12 @@ describe("drawRealmSet", () => {
 		}
 	});
 
-	it.each(REALM_SKINS.filter((skin) => skin !== "sheet"))("draws %s's Holdings but the town as game-icons.net icons, and credits them", (skin) => {
+	it.each(REALM_SKINS.filter((skin) => skin !== "sheet"))("draws %s's Holdings as game-icons.net icons, and credits them", (skin) => {
 		const files = drawRealmSet(skin, "parchment");
+		expect(files["holding-town.svg"]).toContain("<desc>Village icon by Delapouite");
 		expect(files["holding-castle.svg"]).toContain("<desc>Castle icon by Delapouite");
 		expect(files["holding-tower.svg"]).toContain("<desc>White Tower icon by Lorc");
 		expect(files["holding-fortress.svg"]).toContain("<desc>Rempart icon by Delapouite");
-		expect(files["holding-town.svg"]).not.toContain("<desc>");
 		expect(files["seat.svg"]).toContain("<desc>Crown icon by Lorc");
 	});
 

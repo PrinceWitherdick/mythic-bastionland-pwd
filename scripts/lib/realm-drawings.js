@@ -63,11 +63,6 @@ const TERRAIN_MARKS = {
 	plains: "M30 44h0.1M62 40h0.1M46 60h0.1M72 64h0.1M28 70h0.1"
 };
 
-/** Simple drawings of a Holding, in a 100 by 100 box. Only the town is drawn by hand; the rest are game-icons.net icons. */
-const HOLDING_MARKS = {
-	town: "M14 80c10-24 62-24 72 0zM26 64l8-12 8 12v10H26zM46 58l8-12 8 12v14H46zM62 66l6-10 6 10v8H62z"
-};
-
 const LANDMARK_LETTERS = { dwelling: "D", sanctum: "S", monument: "M", hazard: "H", curse: "C", ruin: "R" };
 
 /** A drawn sign for each Landmark, in a 100 by 100 box, for the skins that don't letter them. */
@@ -82,12 +77,16 @@ const LANDMARK_MARKS = {
 
 /**
  * Icons from game-icons.net, in a 512 by 512 box, shared under CC BY 3.0: the
- * Seat of Power's crown, and the castle, tower and fortress Holdings.
+ * Seat of Power's crown, and the town, castle, tower and fortress Holdings.
  */
 const GAME_ICONS = Object.freeze({
 	crown: {
 		credit: "Crown icon by Lorc (https://lorcblog.blogspot.com), from game-icons.net, CC BY 3.0.",
-		d: "m408.256 119.46-37.7 52.165 19.57 44.426 34.8-37.214-16.67-59.375zm86.074 12.513L384.44 249.498 334.01 135.02l-75.162 132.947-86.948-131.78-33.334 114.122L17.922 132.83l39.3 127.6c1.945-.348 3.94-.54 5.98-.54 18.812 0 34.26 15.452 34.26 34.262 0 13.823-8.346 25.822-20.235 31.22l5.337 17.33c12.425 25.466 71.863 45.152 176.582 47.206 110.805 2.174 178.12-17.54 189.854-47.207h-.002l4.357-20.26c-16.836-2.114-30.02-16.612-30.02-33.986 0-18.81 15.45-34.262 34.263-34.262 3.513 0 6.91.54 10.11 1.54l26.622-123.762zm-391.77 2.04 1.22 56.337 25.56 24.89 9.592-32.842-36.37-48.386zm150.585 2.91-24.483 51.36 28.955 43.885 24.922-44.08-29.395-51.166zm204.453 135.962c-8.712 0-15.575 6.862-15.575 15.572 0 8.71 6.863 15.574 15.575 15.574s15.572-6.863 15.572-15.573-6.86-15.572-15.572-15.572zM63.2 278.58c-8.71 0-15.573 6.864-15.573 15.574s6.862 15.573 15.574 15.573c8.713 0 15.573-6.862 15.573-15.573 0-8.71-6.86-15.574-15.572-15.574zm130.33 17.842c18.812 0 34.26 15.45 34.26 34.262 0 18.81-15.448 34.26-34.26 34.26-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.26-34.262zm131.234 0c18.812 0 34.26 15.45 34.26 34.262 0 18.81-15.448 34.26-34.26 34.26-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.262-34.262zm-131.235 18.69c-8.713 0-15.573 6.86-15.573 15.572 0 8.71 6.86 15.574 15.572 15.574 8.71 0 15.572-6.864 15.572-15.574s-6.86-15.573-15.573-15.573zm131.234 0c-8.712 0-15.573 6.86-15.573 15.572 0 8.71 6.862 15.574 15.574 15.574s15.574-6.864 15.574-15.574-6.862-15.573-15.574-15.573z"
+		d: "m408.256 119.46-37.7 52.165 19.57 44.426 34.8-37.214-16.67-59.375zm86.074 12.513L384.44 249.498 334.01 135.02l-75.162 132.947-86.948-131.78-33.334 114.122L17.922 132.83l39.3 127.6c1.945-.348 3.94-.54 5.98-.54 18.812 0 34.26 15.452 34.26 34.262 0 13.823-8.346 25.822-20.235 31.22l5.337 17.33c12.425 25.466 71.863 45.152 176.582 47.206 110.805 2.174 178.12-17.54 189.854-47.207h-.002l4.357-20.26c-16.836-2.114-30.02-16.612-30.02-33.986 0-18.81 15.45-34.262 34.263-34.262 3.513 0 6.91.54 10.11 1.54l26.622-123.762zm-391.77 2.04 1.22 56.337 25.56 24.89 9.592-32.842-36.37-48.386zm150.585 2.91-24.483 51.36 28.955 43.885 24.922-44.08-29.395-51.166z",
+		// The halo leaves a speck of paper between each back point's foot and the V below it, so these seams ink it.
+		seams: [[129.34, 215.24, 138.566, 250.309], [257.617, 232.168, 258.848, 267.967], [390.126, 216.051, 384.44, 249.498]],
+		// Its jewels were rings about a dot, and a halo fills the ring, leaving just an odd pale dot: they are set solid instead.
+		jewels: [[63.2, 294.15], [193.53, 330.68], [324.76, 330.68], [448.39, 287.43]]
 	},
 	castle: {
 		credit: "Castle icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
@@ -96,6 +95,10 @@ const GAME_ICONS = Object.freeze({
 	tower: {
 		credit: "White Tower icon by Lorc (https://lorcblog.blogspot.com), from game-icons.net, CC BY 3.0.",
 		d: "M97.812 23.375v92.875l46.22 51.72V351h-25.845L94.594 491.906H414.53L390.938 351h-25.875V167.97l46.22-51.72V23.375h-53.938v43.97H324.5v-43.97h-53.938v43.97h-32.437v-43.97h-53.938v43.97H151.75v-43.97H97.812zm73.75 152.875h18.688v50.22h-18.688v-50.22zm73.594 0h18.688v50.22h-18.688v-50.22zm74.156 0H338v50.22h-18.688v-50.22z"
+	},
+	village: {
+		credit: "Village icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
+		d: "m109.902 35.87-71.14 59.284h142.28l-71.14-59.285zm288 32-71.14 59.284h142.28l-71.14-59.285zM228.73 84.403l-108.9 90.75h217.8l-108.9-90.75zm-173.828 28.75v62h36.81l73.19-60.992v-1.008h-110zm23 14h16v18h-16v-18zm265 18v10.963l23 19.166v-16.13h16v18h-13.756l.104.087 19.098 15.914h-44.446v14h78v-39h18v39h14v-62h-110zm-194.345 48v20.08l24.095-20.08h-24.095zm28.158 0 105.1 87.582 27.087-22.574v-65.008H176.715zm74.683 14h35.735v34h-35.735v-34zm-76.714 7.74L30.37 335.153H319l-144.314-120.26zm198.046 13.51-76.857 64.047 32.043 26.704H481.63l-108.9-90.75zm-23.214 108.75.103.086 19.095 15.914h-72.248v77.467h60.435v-63.466h50v63.467h46v-93.466H349.516zm-278.614 16V476.13h126v-76.976h50v76.977h31.565V353.155H70.902zm30 30h50v50h-50v-50z"
 	},
 	rempart: {
 		credit: "Rempart icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
@@ -154,22 +157,25 @@ const mark = (d, { x, y, size, stroke, width, fill = "none" }) =>
  *   of `width` rings it, behind the icon so its holes stay open.
  */
 function gameIcon(name, { x, y, size, fill, halo, width = 8 }) {
-	const { credit, d } = GAME_ICONS[name];
+	const { credit, d, jewels = [], seams = [] } = GAME_ICONS[name];
 	const scale = size / 512;
 	const outline = halo ? ` stroke="${halo}" stroke-width="${f((2 * width) / scale)}" stroke-linejoin="round" paint-order="stroke"` : "";
-	return `<desc>${credit}</desc><g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(scale)})"><path d="${d}" fill="${fill}"${outline}/></g>`;
+	const inked = halo ? seams.map(([x1, y1, x2, y2]) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${halo}" stroke-width="${f((2 * width) / scale)}" stroke-linecap="round"/>`).join("") : "";
+	const gems = jewels.map(([cx, cy]) => `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(JEWEL_RADIUS)}" fill="${halo ?? fill}"/>`).join("");
+	return `<desc>${credit}</desc><g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(scale)})">${inked}<path d="${d}" fill="${fill}"${outline}/>${gems}</g>`;
 }
 
-/** The game-icons.net icon each Holding but the town is drawn with. */
-const HOLDING_ICONS = { castle: "castle", tower: "tower", fortress: "rempart" };
+/** A jewel's radius in an icon's 512 box: big enough to fill the notch the crown's side jewels sit in. */
+const JEWEL_RADIUS = 26;
 
-/** An icon fills its box where a drawn mark leaves a margin, so Holdings' icons are drawn smaller to match the town. */
+/** The game-icons.net icon each Holding is drawn with. */
+const HOLDING_ICONS = { town: "village", castle: "castle", tower: "tower", fortress: "rempart" };
+
+/** An icon fills its box where a drawn mark leaves a margin, so Holdings' icons are drawn smaller to sit beside the marks. */
 const HOLDING_ICON_SHARE = 0.8;
 
-/** @returns {string} A Holding's drawing: its icon, filled as `icon` says, or a mark for the town. */
-const holdingMark = (style, markOptions, icon) => (HOLDING_ICONS[style]
-	? gameIcon(HOLDING_ICONS[style], { x: markOptions.x, y: markOptions.y, size: markOptions.size * HOLDING_ICON_SHARE, ...icon })
-	: mark(HOLDING_MARKS[style], markOptions));
+/** @returns {string} A Holding's icon, `size` wide before the share, with its middle at (x, y), filled as `icon` says. */
+const holdingMark = (style, { x, y, size }, icon) => gameIcon(HOLDING_ICONS[style], { x, y, size: size * HOLDING_ICON_SHARE, ...icon });
 
 /** @returns {string} A terrain's drawing, in the hex's own `paper` so a layered one hides what's behind. */
 const terrainMark = (key, stroke, width, paper, share = 0.62) => mark(TERRAIN_MARKS[key],
@@ -453,7 +459,7 @@ const SKINS = {
 		terrain: (key, index, p) => svg(HEX_W, HEX_H,
 			`<polygon points="${hexPoints()}" fill="${p.terrain[index]}" stroke="${p.rule}" stroke-width="${2 * SCALE}"/>`
 			+ terrainMark(key, p.ink, 3.2, p.terrain[index])),
-		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 300, stroke: p.ink, width: 4, fill: p.paper }, { fill: p.ink, halo: p.paper, width: 6 })),
+		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 300 }, { fill: p.ink, halo: p.paper, width: 6 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.accent}" stroke-width="16"/>`
 			+ text(LANDMARK_LETTERS[type], { x: 150, y: 196, size: 140, fill: p.accent, weight: "bold" })),
 		myth: (number, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.ink}" stroke="${p.accent}" stroke-width="14"/>`
@@ -470,7 +476,7 @@ const SKINS = {
 			+ `<polygon points="${hexPoints(0.88)}" fill="none" stroke="${p.ink}" stroke-width="${1.6 * SCALE}"/>`
 			+ terrainMark(key, p.ink, 5.5, p.terrain[index], 0.56)),
 		holding: (style, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.accent}" stroke="${p.ink}" stroke-width="12" stroke-linejoin="round"/>`
-			+ holdingMark(style, { x: 150, y: 142, size: 170, stroke: p.ink, width: 5, fill: p.paper }, { fill: p.paper, halo: p.ink, width: 4 })),
+			+ holdingMark(style, { x: 150, y: 142, size: 170 }, { fill: p.paper, halo: p.ink, width: 4 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<path d="M150 14L286 150 150 286 14 150z" fill="${p.paper}" stroke="${p.ink}" stroke-width="14" stroke-linejoin="round"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 140, stroke: p.accent, width: 8 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.ink}" stroke="${p.accent}" stroke-width="14" stroke-linejoin="round"/>`
@@ -487,7 +493,7 @@ const SKINS = {
 			return svg(HEX_W, HEX_H, `<polygon points="${hexPoints()}" fill="${fill}"/>`
 				+ terrainMark(key, mix(p.ink, p.paper, 0.12), 3, fill, 0.54));
 		},
-		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 280, stroke: p.paper, width: 3, fill: p.ink }, { fill: p.ink, halo: p.paper, width: 4 })),
+		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 280 }, { fill: p.ink, halo: p.paper, width: 4 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="100" fill="${p.paper}" stroke="${p.ink}" stroke-width="7"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 128, stroke: p.ink, width: 5 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<polygon points="${burst(140, 104)}" fill="${p.accent}" stroke="${p.ink}" stroke-width="6" stroke-linejoin="round"/>`
@@ -509,7 +515,7 @@ const SKINS = {
 		},
 		holding: (style, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.accent}"/>`
 			+ `<circle cx="150" cy="150" r="108" fill="none" stroke="${onColour(p.accent, p)}" stroke-width="5"/>`
-			+ holdingMark(style, { x: 150, y: 150, size: 170, stroke: onColour(p.accent, p), width: 5 }, { fill: onColour(p.accent, p) })),
+			+ holdingMark(style, { x: 150, y: 150, size: 170 }, { fill: onColour(p.accent, p) })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.ink}"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 150, stroke: onColour(p.ink, p), width: 7 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.accent}"/>`
