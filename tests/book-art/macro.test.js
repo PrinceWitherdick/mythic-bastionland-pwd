@@ -6,6 +6,7 @@ import { IMPORT_HOTBAR_FLAG, IMPORT_MACRO_ID, MACRO_SEEDED_SETTING, ensureImport
 // Loaded for the macros they declare to hotbarMacro.
 import "../../module/actions/luck-macro.js";
 import "../../module/actions/site-macro.js";
+import "../../module/actions/toolkit-macro.js";
 import "../../module/rulebook/macro.js";
 import { MACROS_PACK, SYSTEM_ID } from "../../module/system-id.js";
 
@@ -60,6 +61,7 @@ describe("Macro compendium", () => {
 	it.each([
 		["module/actions/luck-macro.js", "luckRollMacro"],
 		["module/actions/site-macro.js", "newSiteMacro"],
+		["module/actions/toolkit-macro.js", "gmToolkitMacro"],
 		["module/rulebook/macro.js", "rulebookMacro"]
 	])("holds the macro %s makes, flagged as the world's copy", (file, flag) => {
 		const code = readFileSync(join(root, file), "utf8");
@@ -207,7 +209,7 @@ describe("ensureImportHotbar", () => {
 	});
 
 	it("rearranges a GM's hotbar once", async () => {
-		expect(SYSTEM_MACRO_FLAGS).toEqual(expect.arrayContaining(["rulebookMacro", "luckRollMacro", "newSiteMacro"]));
+		expect(SYSTEM_MACRO_FLAGS).toEqual(expect.arrayContaining(["rulebookMacro", "luckRollMacro", "newSiteMacro", "gmToolkitMacro"]));
 		const [first, second] = SYSTEM_MACRO_FLAGS;
 		const { update, setFlag } = installWorld({ hotbar: { 1: IMPORT_MACRO_ID, 2: first, 3: second, 4: "mine" } });
 		await ensureImportHotbar();

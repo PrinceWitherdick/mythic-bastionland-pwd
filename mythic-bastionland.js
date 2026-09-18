@@ -10,6 +10,7 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
+import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openNpcChooser } from "./module/apps/NpcChooser.js";
@@ -274,6 +275,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
+	{ key: TOOLKIT_MACRO_STEP, run: seedToolkitMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
@@ -289,7 +291,7 @@ Hooks.once("ready", async () => {
 	await Promise.all([
 		restoreOpenSheets(),
 		// Import PDF takes the hotbar's last slot once every other macro has its own.
-		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)]).then(ensureImportHotbar),
+		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar).then(ensureToolkitHotbar)]).then(ensureImportHotbar),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.
 		// Every GM, not only the one who made it, is then given it as their character.
 		setup.then(ensureGmToolkit).then(assignGmToolkit)

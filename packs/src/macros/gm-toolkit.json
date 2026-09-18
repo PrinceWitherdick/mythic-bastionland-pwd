@@ -1,0 +1,19 @@
+{
+  "_id": "mbGmToolkitMacro",
+  "_key": "!macros!mbGmToolkitMacro",
+  "name": "GM Toolkit",
+  "type": "script",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/gm-toolkit.svg",
+  "scope": "global",
+  "command": "game.system.api.openGmToolkit();",
+  "folder": null,
+  "sort": 250000,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "gmToolkitMacro": true
+    }
+  }
+}
