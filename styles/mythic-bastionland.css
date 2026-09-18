@@ -473,6 +473,20 @@
 	gap: 1.25rem;
 }
 
+/* The shield, with the gallery of charges' button beneath it. */
+.bastionland-heraldry-painter__shield-column {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: 288px;
+}
+
+/* A button's flex basis would set its height in a column, not its width. */
+.bastionland-page .bastionland-heraldry-painter__shield-column .bastionland-button {
+	flex: none;
+}
+
 .bastionland-heraldry-painter__shield {
 	flex: none;
 	width: 288px;

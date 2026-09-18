@@ -10,11 +10,14 @@
 	</div>
 
 	<div class="bastionland-heraldry-painter__body">
-		<div class="bastionland-heraldry-painter__shield">
-			<div class="bastionland-heraldry-painter__ground">
-				<canvas class="bastionland-heraldry-painter__canvas" width="{{width}}" height="{{height}}" tabindex="0" aria-label="{{localize 'bastionland.heraldry.canvas'}}"></canvas>
-				<svg class="bastionland-heraldry-painter__guides" viewBox="0 0 {{width}} {{height}}" preserveAspectRatio="none" aria-hidden="true" data-division-guides hidden></svg>
+		<div class="bastionland-heraldry-painter__shield-column">
+			<div class="bastionland-heraldry-painter__shield">
+				<div class="bastionland-heraldry-painter__ground">
+					<canvas class="bastionland-heraldry-painter__canvas" width="{{width}}" height="{{height}}" tabindex="0" aria-label="{{localize 'bastionland.heraldry.canvas'}}"></canvas>
+					<svg class="bastionland-heraldry-painter__guides" viewBox="0 0 {{width}} {{height}}" preserveAspectRatio="none" aria-hidden="true" data-division-guides hidden></svg>
+				</div>
 			</div>
+			<button type="button" class="bastionland-button" data-action="browseCharges" data-tooltip="{{localize 'bastionland.heraldry.charges.openHint'}}" aria-pressed="false"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.heraldry.charges.open"}}</button>
 		</div>
 
 		<div class="bastionland-heraldry-painter__side">
@@ -117,14 +120,10 @@
 	</div>
 
 	<footer class="bastionland-toolbar bastionland-heraldry-painter__footer">
-		<input type="file" accept="image/*" data-image-file hidden>
-		<button type="button" data-action="browseCharges" data-tooltip="{{localize 'bastionland.heraldry.charges.openHint'}}" aria-pressed="false"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.heraldry.charges.open"}}</button>
-		<button type="button" data-action="uploadImage"><i class="fa-solid fa-upload" inert></i> {{localize "bastionland.heraldry.uploadImage"}}</button>
 		{{#if canChooseImage}}
 		<button type="button" data-action="chooseImage"><i class="fa-solid fa-image" inert></i> {{localize "bastionland.heraldry.chooseImage"}}</button>
 		{{/if}}
 		<button type="button" data-action="download" data-tooltip="{{localize 'bastionland.heraldry.downloadHint'}}"><i class="fa-solid fa-download" inert></i> {{localize "bastionland.heraldry.download"}}</button>
-		<button type="button" data-action="cancel"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.heraldry.cancel"}}</button>
 		<button type="button" data-action="save"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.heraldry.save"}}</button>
 	</footer>
 </div>

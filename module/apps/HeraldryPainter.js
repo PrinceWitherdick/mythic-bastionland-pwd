@@ -230,7 +230,7 @@ function droppedImage(transfer) {
  * use again on any Knight. Saving uploads the painting when the user may
  * upload files, and otherwise keeps it on the Knight itself.
  *
- * A picture uploaded, dropped on the shield or chosen from the files floats
+ * A picture dropped on the shield or chosen from the files floats
  * over the painting until it's placed: dragged into position, resized and
  * flipped, then painted in, or discarded. The file itself isn't kept, only the
  * painting. A picture the painting's own size is taken for a design downloaded
@@ -252,7 +252,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			undo: HeraldryPainter.#onUndo,
 			redo: HeraldryPainter.#onRedo,
 			clear: HeraldryPainter.#onClear,
-			uploadImage: HeraldryPainter.#onUploadImage,
 			chooseImage: HeraldryPainter.#onChooseImage,
 			fitImage: HeraldryPainter.#onFitImage,
 			fillImage: HeraldryPainter.#onFillImage,
@@ -263,7 +262,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			download: HeraldryPainter.#onDownload,
 			placeImage: HeraldryPainter.#onPlaceImage,
 			discardImage: HeraldryPainter.#onDiscardImage,
-			cancel: HeraldryPainter.#onCancel,
 			save: HeraldryPainter.#onSave
 		}
 	};
@@ -476,13 +474,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			event.preventDefault();
 			event.stopPropagation();
 			this.#placeFile(file);
-		});
-		this.element.querySelector("[data-image-file]").addEventListener("change", (event) => {
-			const input = event.currentTarget;
-			const [file] = input.files;
-			// Emptied, so choosing the same file again still counts as a change.
-			input.value = "";
-			if (file) this.#placeFile(file);
 		});
 		this.element.querySelector("[data-image-size]").addEventListener("input", (event) => {
 			if (!this.#placing) return;
@@ -1064,7 +1055,8 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @param {boolean} saving */
 	#setSaving(saving) {
 		this.#saving = saving;
-		for (const button of this.element?.querySelectorAll(".bastionland-heraldry-painter__footer button") ?? []) button.disabled = saving;
+		const buttons = this.element?.querySelectorAll('.bastionland-heraldry-painter__footer button, [data-action="browseCharges"]') ?? [];
+		for (const button of buttons) button.disabled = saving;
 	}
 
 	/**
@@ -1135,11 +1127,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (this.#placing) return;
 		this.#remember();
 		this.#context.clearRect(0, 0, PAINTING.width, PAINTING.height);
-	}
-
-	/** @this {HeraldryPainter} */
-	static #onUploadImage() {
-		this.element.querySelector("[data-image-file]").click();
 	}
 
 	/** @this {HeraldryPainter} */
@@ -1232,11 +1219,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onDiscardImage() {
 		this.#finishPlacing(false);
 		this.#canvas.focus({ preventScroll: true });
-	}
-
-	/** @this {HeraldryPainter} */
-	static #onCancel() {
-		return this.close();
 	}
 
 	/** @this {HeraldryPainter} */

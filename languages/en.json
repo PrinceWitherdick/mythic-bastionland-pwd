@@ -127,7 +127,6 @@
       },
       "otherColor": "Other colour",
       "size": "Brush size",
-      "uploadImage": "Upload an image",
       "download": "Download",
       "downloadHint": "Save this design to your computer, to upload again later.",
       "downloadFailed": "The design could not be turned into a file to download.",
@@ -163,7 +162,6 @@
           "symbols": "Crosses and symbols"
         }
       },
-      "cancel": "Cancel",
       "save": "Save",
       "unreadable": "That picture couldn’t be loaded onto the shield.",
       "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the GM to let you upload files."
