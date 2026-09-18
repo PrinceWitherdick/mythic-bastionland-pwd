@@ -1650,7 +1650,7 @@
       "titleFor": "Choose a Knight for {name}",
       "noIndex": "Run the Import PDF macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
       "noText": "Run Import PDF again to bring in each Knight’s Property, Ability and Passion.",
-      "start": "Start",
+      "start": "1. Start",
       "starts": {
         "wanderer": {
           "label": "Wanderer",
@@ -1665,10 +1665,10 @@
           "summary": "Mature Knights-Tenant, one ruling a Holding. Virtues d12+6, GD d6+6."
         }
       },
-      "scores": "Virtues and Guard",
+      "scores": "2. Virtues and Guard",
       "rollScores": "Roll Virtues and GD",
       "scoresHint": "Rolls VIG, CLA and SPI in order, then GD, with the Start’s dice. Change a result by hand if you need to.",
-      "knight": "Knight",
+      "knight": "3. Knight",
       "rollKnight": "Roll d6 and d12",
       "knightHint": "Read the d6 first, then the d12. Or pick a Knight. Generally each player should have a different one.",
       "unnamed": "Knight {roll}",

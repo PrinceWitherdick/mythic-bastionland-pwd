@@ -24,14 +24,14 @@ const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
  * the kinds of Attack that can reach it, so the dialog asks about those too.
  * @param {Actor} actor
  * @param {object} [preset] What an Attack card already knows, filled into the dialog.
- * @param {number} [preset.damage]
+ * @param {number|null} [preset.damage] Left out, the field starts empty so typing a number doesn't land beside a 0.
  * @param {boolean} [preset.ignoreArmour]
  * @param {boolean|null} [preset.ranged] Whether the Attack is ranged. Cover only counts against ranged
  *                                       Attacks, so a known melee Attack doesn't offer it.
  * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeDamage(actor, { damage = 0, ignoreArmour = false, ranged = null, harm = {} } = {}) {
+export async function takeDamage(actor, { damage = null, ignoreArmour = false, ranged = null, harm = {} } = {}) {
 	const { armour, conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.

@@ -1058,7 +1058,9 @@
 
 .bastionland-condition {
 	display: inline-block;
-	padding: 0.05rem 0.6rem;
+	/* IM Fell leaves more room under its baseline than over its capitals, so
+	   the padding sits on top to centre the letters in the pill. */
+	padding: 0.125rem 0.6rem 0;
 	border: 1px dashed var(--bastionland-rule);
 	border-radius: 999px;
 	color: var(--bastionland-ink-soft);
