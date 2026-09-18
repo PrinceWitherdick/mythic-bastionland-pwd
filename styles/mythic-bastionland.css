@@ -1490,9 +1490,24 @@
 	font-family: var(--bastionland-font-body);
 }
 
-.bastionland-page .bastionland-seer__info prose-mirror,
-.bastionland-page .bastionland-seer__info > .editor-content {
-	min-height: 4rem;
+/* What the book says is set as printed text, never cut short by a scroll box. */
+.bastionland-seer__info {
+	flex: 0 0 auto;
+}
+
+.bastionland-seer__book {
+	padding: 0.1rem 0 0 0.8rem;
+	border-left: 2px solid var(--bastionland-rule);
+	color: var(--bastionland-ink);
+	overflow: visible;
+}
+
+.bastionland-seer__book > :first-child {
+	margin-top: 0;
+}
+
+.bastionland-seer__book > :last-child {
+	margin-bottom: 0;
 }
 
 /* ---------------------------------------------------------------- */

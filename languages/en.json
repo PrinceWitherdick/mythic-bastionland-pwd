@@ -246,6 +246,7 @@
       "squire": "A Squire isn’t a Knight yet (p7). Once a Seer knights them, write the Seer’s name beside “Knighted by” on the Knight page.",
       "portrait": "Choose the Seer’s picture",
       "info": "What the book says",
+      "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
       "notes": "Notes",
       "fromBook": "From the book",
       "fromBookHint": "Fill in the Seer’s name, picture and stat block from Import PDF, found by the Seer’s name or the Knight’s. Notes are left alone.",
