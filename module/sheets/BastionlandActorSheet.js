@@ -1,4 +1,4 @@
-import { attack } from "../actions/attack.js";
+import { attack, specialistLabel } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat } from "../actions/feats.js";
@@ -301,7 +301,11 @@ function itemTags(item) {
 
 	switch (item.type) {
 		case "weapon":
-			return [system.damage, ...qualities("hefty", "long", "slow", "heftyMounted", "ranged", "blast", "ignoresArmour", "trample")];
+			return [
+				system.damage,
+				...qualities("hefty", "long", "slow", "heftyMounted", "ranged", "blast", "ignoresArmour", "trample"),
+				...[specialistLabel(system)].filter(Boolean)
+			];
 		case "armour":
 			return [
 				t(`item.kinds.${system.kind}`),

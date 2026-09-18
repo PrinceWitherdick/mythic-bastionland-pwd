@@ -23,6 +23,15 @@ export const UNSAVED_GAMBITS = Object.freeze(["bolster", "move"]);
 /** A Strong Gambit adds one of these: No Save for the target, or a Greater effect. */
 export const STRONG_GAMBITS = Object.freeze(["noSave", "greater"]);
 
+/** A specialist weapon's extra die, gained in one situation (Specialist Weapons, p12). */
+export const SPECIALIST_DICE = Object.freeze(["d8", "d10"]);
+
+/**
+ * @param {{specialist?: {die: string}}} weapon An item's system data.
+ * @returns {string|null} Its specialist die, such as "d10", or null for an ordinary weapon.
+ */
+export const specialistDie = (weapon) => (SPECIALIST_DICE.includes(weapon?.specialist?.die) ? weapon.specialist.die : null);
+
 /** Guards against a typo such as "99d6" flooding the chat card. */
 const MAX_DICE_PER_TERM = 10;
 

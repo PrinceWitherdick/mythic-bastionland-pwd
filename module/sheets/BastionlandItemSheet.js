@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
 import { ARMOUR_KINDS } from "../config.js";
+import { SPECIALIST_DICE } from "../rules/attack.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -73,6 +74,7 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			isScar: item.type === "scar",
 			isGear: item.type === "gear",
 			kindOptions: Object.fromEntries(ARMOUR_KINDS.map((key) => [key, game.i18n.localize(`bastionland.item.kinds.${key}`)])),
+			specialistOptions: { "": t("item.notSpecialist"), ...Object.fromEntries(SPECIALIST_DICE.map((die) => [die, `+${die}`])) },
 			remedyOptions: { "": t("item.notRemedy"), ...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.label`)])) },
 			enrichedDescription: await foundry.applications.ux.TextEditor.implementation.enrichHTML(item.system.description, {
 				secrets: item.isOwner,

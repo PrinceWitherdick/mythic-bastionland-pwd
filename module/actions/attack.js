@@ -9,6 +9,7 @@ import {
 	isDieSpent,
 	parseDice,
 	sortDice,
+	specialistDie,
 	summarizeAttack,
 	UNSAVED_GAMBITS
 } from "../rules/attack.js";
@@ -19,6 +20,18 @@ import { leaderCandidates } from "./leading.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample"]);
+
+/**
+ * A specialist weapon's extra die and when it applies, as shown beside the weapon.
+ * @param {object} weapon An item's system data.
+ * @returns {string|null} Such as "+d10 against the undead", or null for a weapon that isn't one.
+ */
+export function specialistLabel(weapon) {
+	const die = specialistDie(weapon);
+	if (!die) return null;
+	const situation = weapon.specialist.situation.trim();
+	return situation ? t("item.specialistTag", { die, situation }) : t("item.specialistTagBare", { die });
+}
 
 /**
  * Worn or wielded items that add Attack dice: weapons, and armour with an
@@ -148,7 +161,9 @@ export async function attack(actor) {
 			sources: sources.map((item) => ({
 				id: item.id,
 				name: item.name,
-				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · ")
+				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · "),
+				// Ticked by the player when the situation it's made for comes up.
+				specialist: specialistLabel(item.system)
 			})),
 			moved: movedThisTurn(actor),
 			// Somebody with a steed is taken to be riding it, but may have dismounted. A joust is fought mounted.
@@ -200,6 +215,11 @@ export async function attack(actor) {
 	}
 
 	const bonusDice = parseDice(choice.bonus).map((faces) => ({ faces, label: t("attack.bonus") }));
+	// A specialist weapon's die joins only when it's wielded in the situation it's made for (p12).
+	for (const item of chosen.filter((candidate) => choice.specialist?.[candidate.id])) {
+		const die = specialistDie(item.system);
+		if (die) bonusDice.push(...parseDice(die).map((faces) => ({ faces, label: t("attack.specialistDie", { name: item.name }) })));
+	}
 	if (smite?.mode === "d12") bonusDice.push({ faces: 12, label: t("feats.smite.name") });
 	if (againstIndividuals) bonusDice.push({ faces: 12, label: t("npc.scales.warband.label") });
 

@@ -434,6 +434,12 @@
 	flex: 1;
 }
 
+/* A choice that belongs to the one above it, such as a weapon's specialist die. */
+.bastionland-check--nested {
+	margin-inline-start: 1.6rem;
+	font-size: 0.9em;
+}
+
 .bastionland-tag {
 	font-size: 0.85em;
 	opacity: 0.8;

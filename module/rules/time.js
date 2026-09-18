@@ -121,6 +121,13 @@ export function agedScore({ value, max }, rolled, becoming) {
 }
 
 /**
+ * Legacy (Between Ages, p17): a Knight's successor gains half of their current Glory.
+ * @param {number} glory The Knight's Glory.
+ * @returns {number} What the successor gains, rounded down.
+ */
+export const legacyGlory = (glory) => Math.floor(Math.max(0, Number(glory) || 0) / 2);
+
+/**
  * An Old character's VIG at the end of an Age.
  * @param {number} max Their max VIG.
  * @param {number} loss The d12 rolled.

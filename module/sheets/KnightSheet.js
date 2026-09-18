@@ -2,6 +2,7 @@ import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { knightSquire, takeSquire } from "../actions/squires.js";
+import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { t } from "../chat/cards.js";
@@ -28,6 +29,9 @@ export class KnightSheet extends BastionlandActorSheet {
 			knightSquire: KnightSheet.#onKnightSquire,
 			openSquire: KnightSheet.#onOpenSquire,
 			clearSquire: KnightSheet.#onClearSquire,
+			nameSuccessor: KnightSheet.#onNameSuccessor,
+			openSuccessor: KnightSheet.#onOpenSuccessor,
+			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
 			openDomain: KnightSheet.#onOpenDomain
 		}
@@ -67,6 +71,7 @@ export class KnightSheet extends BastionlandActorSheet {
 		const calendar = getCalendar();
 		const steed = this.#steed();
 		const squire = this.#squire();
+		const successor = heirOf(this.actor);
 
 		return Object.assign(context, {
 			isSquire: system.isSquire,
@@ -76,6 +81,7 @@ export class KnightSheet extends BastionlandActorSheet {
 			// A Knight's Squire, or the Knight a Squire serves.
 			squire: squire && { name: system.isSquire ? t("squire.serves", { name: squire.name }) : squire.name, img: squire.img },
 			squireEmpty: t(system.isSquire ? "squire.servesNobody" : "squire.empty"),
+			successor: successor && { name: successor.name, img: successor.img },
 			ages: AGES.map((key) => ({ key, label: t(`age.${key}`), active: system.age === key })),
 			ranks: RANKS.map((rank) => ({
 				key: rank.key,
@@ -178,8 +184,8 @@ export class KnightSheet extends BastionlandActorSheet {
 
 	/**
 	 * Dropping an NPC from the Actors tab makes it the Knight's steed, dropping
-	 * a Squire makes them this Knight's Squire, and dropping a Domain makes it
-	 * the one they rule.
+	 * a Squire makes them this Knight's Squire, dropping another Knight names
+	 * them this Knight's successor, and dropping a Domain makes it the one they rule.
 	 * @override
 	 */
 	async _onDropActor(_event, actor) {
@@ -194,6 +200,11 @@ export class KnightSheet extends BastionlandActorSheet {
 			return actor;
 		}
 		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
+		if (actor.type === "knight" && !squire) {
+			if (this.actor.system.isSquire || actor.pack) return null;
+			await this.actor.update({ "system.successor": actor.uuid });
+			return actor;
+		}
 		if (actor.type !== "npc" && !squire) return null;
 		if (actor.pack) {
 			ui.notifications.warn(t("steed.fromDirectory"));
@@ -267,6 +278,21 @@ export class KnightSheet extends BastionlandActorSheet {
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onNameSuccessor() {
+		return chooseSuccessor(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenSuccessor() {
+		return heirOf(this.actor)?.sheet.render({ force: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onClearSuccessor() {
+		return this.actor.update({ "system.successor": "" });
 	}
 
 	/** @this {KnightSheet} */

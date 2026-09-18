@@ -22,6 +22,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
   - **In a confined space** Impairs an Attack with a Long weapon.
   - A Knight can wield only one Hefty item, and a Long weapon on its own. NPCs aren't held to this, since stat blocks list a creature's attacks without saying how it holds them.
   - **Mounted** is ticked for anybody with a steed. A weapon marked Hefty if mounted, such as the lance, then counts as Hefty rather than Long, so it can go with a shield.
+  - A **specialist weapon** (p12) is listed with a box to tick when its situation comes up, such as against the undead, which adds its +d8 or +d10. Set the die and the situation on the weapon's sheet.
   - **Charged a spearwall this turn** refuses the Attack, since enemies of a spearwall can't Attack on the turn they charge it.
 
   Problems show in the dialog as you tick boxes, and anything left out of the roll is noted on the card. The chat card then takes the Attack through the book's steps:
@@ -40,6 +41,7 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Remedies:** mark a gear item as a Remedy for a Virtue, and a flask button appears beside it. Using it asks who's present, restores that Virtue to each of them, and uses the Remedy up.
 - **Steed:** drag an NPC from the Actors tab onto the Knight sheet to ride it. When its weapons include a trample, the Attack dialog offers a mounted charge that adds the trample dice. A **Dismount** Gambit rolls the d6 being dismounted causes and adds it to the dice; take the Gambit back if the target Saves.
 - **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats, and a new Age doesn't give them Glory. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
+- **Successor:** name the Knight or Squire who follows this Knight, or drag another Knight onto the sheet. The Succession and Legacy pursuits use it when the Age turns.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
 ### Structures
@@ -77,6 +79,9 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 - **Misrule:** the sheet warns at 3 unresolved Crises, and turning the Season or Age in the Time window puts every Domain still at 3 or more into misrule.
 - **Increased Collections** and **Drama in Court** roll their tables. Drama in Court also rolls the Drama Spark Table when Import Book Art has brought it in.
 - **Authority:** how many Warbands the Domain can muster, with reminders of grand designs and succession.
+- **Succession:** write in the ruler's successor, or leave it to the successor the ruling Knight named. **Pass On** hands the Domain to them, and the card warns that they will face some resistance.
+- **Conquest:** **Seize by Force** puts whoever took the Holding in charge. The sheet marks it in turmoil for the rest of the Season, and the Season's card says when it has adapted to its new ruler.
+- A Knight chosen as the new ruler rules the Domain from their sheet, and the Knight who ruled before no longer does.
 
 ### Referee tools
 
@@ -87,7 +92,8 @@ GMs get five buttons at the top of the Roll Tables tab:
 - **Time:** the world's calendar of Age, Season, Day and Phase, and what moves it on:
   - **Next Phase** posts the new Phase, with a reminder of what it costs, such as lost sleep each Morning.
   - **Turn the Season** asks which Knights take part, and each picks a pursuit (Pilgrimage, Courtesy or Service). They have their Virtues restored, and a Mutilation Scar settles, raising max GD by d6 if it's 10 or less.
-  - **Turn the Age** does the same with Duty, Succession or Legacy, and each Knight also gains 1 Glory. An Old Knight loses d12 VIG, and dies peacefully at 0. The new Age begins in Spring.
+  - **Turn the Age** does the same with Duty, Succession or Legacy, and each Knight also gains 1 Glory. An Old Knight loses d12 VIG, and dies peacefully at 0. The new Age begins in Spring. Succession names a successor, and offers to Knight them if they're a Squire. Legacy gives the successor half the Knight's Glory, rounded down.
+  - **Journey to a Distant Realm** (p14) turns the Season the way Turn the Season does, but nobody picks a pursuit. Pick another Realm Scene as the destination and it becomes the active Scene once the Company arrives.
   - **Passage of Time** and **Unresolved Situation** roll those tables.
   - **Hardship** takes d6 from a Virtue for everybody ticked: SPI for night travel, CLA for no proper sleep, and VIG for Winter cold or going without supplies.
   - Clicking a Season or Phase, or changing the Age or Day, sets the calendar by hand without any of that. In Winter the Wilderness Roll card reminds the GM of the cold and dire weather.

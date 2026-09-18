@@ -1,4 +1,4 @@
-import { chooseDialog, confirmDialog } from "../apps/ui.js";
+import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import {
@@ -8,12 +8,15 @@ import {
 	crisisFor,
 	crisisResult,
 	domainRuledBy,
-	dramaResult
+	dramaResult,
+	isInTurmoil,
+	isSameName
 } from "../rules/dominion.js";
 import { escapeHTML } from "../rules/text.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { rollSpark } from "./referee-rolls.js";
+import { heirOf } from "./succession.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -194,15 +197,157 @@ export async function dramaInCourt(domain) {
 
 /**
  * As a Season ends, every Domain left with 3 or more unresolved Crises falls
- * into misrule (p20). GMs only.
+ * into misrule (p20), and one seized by force that Season settles under its
+ * new ruler (p21). GMs only.
+ * @param {string} ended The Season that ended, from seasonKey.
  * @returns {Promise<{entries: object[], hint: string|null}>} For the Season's card.
  */
-export async function settleDomains() {
+export async function settleDomains(ended) {
 	const domains = game.actors.filter((actor) => actor.type === "domain");
-	const due = domains.filter((domain) => domain.system.misruleDue);
-	const entries = due.map((domain) => ({ name: domain.name, lines: [t("domain.fellIntoMisrule", { count: domain.system.crises.length })] }));
-	if (due.length) await Actor.implementation.updateDocuments(due.map((domain) => ({ _id: domain.id, "system.misrule": true })));
+	const updates = new Map();
+	const lines = new Map();
+	const note = (domain, update, line) => {
+		updates.set(domain.id, { ...updates.get(domain.id), _id: domain.id, ...update });
+		lines.set(domain, [...(lines.get(domain) ?? []), line]);
+	};
+	for (const domain of domains) {
+		if (domain.system.misruleDue) note(domain, { "system.misrule": true }, t("domain.fellIntoMisrule", { count: domain.system.crises.length }));
+		if (isInTurmoil(domain.system.seized, ended)) {
+			note(domain, { "system.seized": "" }, t("domain.conquest.settled", { ruler: domain.system.ruler || t("domain.conquest.someone") }));
+		}
+	}
+	if (updates.size) await Actor.implementation.updateDocuments([...updates.values()]);
+	const entries = [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines }));
 	return { entries, hint: domains.length ? t("domain.seasonHint") : null };
+}
+
+/**
+ * Ask who takes over a Domain: one of the world's Knights, or anybody else
+ * written in by name.
+ * @param {Actor} domain
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} options.icon
+ * @param {string} options.intro HTML, already escaped.
+ * @param {string} options.ok
+ * @param {string} [options.name] Written in to start with, such as the named successor.
+ * @param {string} [options.hint]
+ * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
+ */
+async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null }) {
+	const knights = game.actors.filter((actor) => actor.type === "knight");
+	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
+	const data = await inputDialog({
+		title,
+		icon,
+		template: "new-ruler",
+		context: {
+			intro,
+			hint,
+			name: named ? "" : name,
+			knights: knights.map((knight) => ({ uuid: knight.uuid, name: knight.name, selected: knight === named }))
+		},
+		ok: { label: ok, icon }
+	});
+	if (!data) return null;
+	const knight = knights.find((candidate) => candidate.uuid === data.knight) ?? null;
+	const written = String(data.name ?? "").trim();
+	if (!knight && !written) return null;
+	return { name: knight?.name ?? written, knight };
+}
+
+/**
+ * Put a new ruler in charge of a Domain. Knights who ruled it no longer do,
+ * and a Knight taking it over now rules it.
+ * @param {Actor} domain
+ * @param {{name: string, knight: Actor|null}} ruler
+ * @param {object} update More changes for the Domain.
+ */
+async function changeRuler(domain, ruler, update) {
+	const updates = [{ _id: domain.id, "system.ruler": ruler.name, ...update }];
+	for (const knight of domainRulers(domain)) {
+		if (knight !== ruler.knight && knight.isOwner) updates.push({ _id: knight.id, "system.domain": "" });
+	}
+	if (ruler.knight?.isOwner && ruler.knight.system.domain !== domain.uuid) updates.push({ _id: ruler.knight.id, "system.domain": domain.uuid });
+	await Actor.implementation.updateDocuments(updates);
+}
+
+/**
+ * @param {Actor} domain
+ * @returns {Actor[]} The Knights who rule it.
+ */
+function domainRulers(domain) {
+	return game.actors.filter((actor) => actor.type === "knight" && actor.system.domain === domain.uuid);
+}
+
+/**
+ * The name a Domain's ruler has for their successor: the Domain's own, or else
+ * the successor of the Knight who rules it.
+ * @param {Actor} domain
+ * @returns {string}
+ */
+export function namedSuccessor(domain) {
+	if (domain.system.successor.trim()) return domain.system.successor.trim();
+	const ruler = domainRulers(domain)[0];
+	return (ruler && heirOf(ruler)?.name) ?? "";
+}
+
+/**
+ * Succession (p21): the Domain passes to the successor its ruler named, who is
+ * sure to face some resistance and should quickly establish their authority.
+ * @param {Actor} domain
+ * @returns {Promise<{name: string, knight: Actor|null}|null>} The new ruler.
+ */
+export async function passOnDomain(domain) {
+	const before = domain.system.ruler.trim();
+	const successor = await chooseRuler(domain, {
+		title: t("domain.passOn.title"),
+		icon: "fa-solid fa-crown",
+		intro: t("domain.passOn.intro", { name: escapeHTML(domain.name), ruler: escapeHTML(before || t("domain.conquest.someone")) }),
+		ok: t("domain.passOn.ok"),
+		name: namedSuccessor(domain),
+		hint: t("domain.passOn.hint")
+	});
+	if (!successor) return null;
+
+	await changeRuler(domain, successor, { "system.successor": "" });
+	await postCard(domain, "report", {
+		title: t("domain.passOn.title"),
+		tagline: before
+			? t("domain.passOn.tagline", { name: successor.name, ruler: before, domain: domain.name })
+			: t("domain.passOn.taglineBare", { name: successor.name, domain: domain.name }),
+		hint: t("domain.passOn.resistance")
+	});
+	return successor;
+}
+
+/**
+ * Conquest (p21): having the audacity to seat yourself in a Holding is often
+ * enough to rule it. Left unchallenged, it has a period of turmoil, here the
+ * rest of this Season, before it adapts to the new status quo.
+ * @param {Actor} domain
+ * @returns {Promise<{name: string, knight: Actor|null}|null>} The new ruler.
+ */
+export async function seizeDomain(domain) {
+	const before = domain.system.ruler.trim();
+	const conqueror = await chooseRuler(domain, {
+		title: t("domain.conquest.title"),
+		icon: "fa-solid fa-flag",
+		intro: t(domain.system.seat ? "domain.conquest.introSeat" : "domain.conquest.intro", { name: escapeHTML(domain.name) }),
+		ok: t("domain.conquest.ok"),
+		hint: t("domain.conquest.hint")
+	});
+	if (!conqueror) return null;
+
+	await changeRuler(domain, conqueror, { "system.seized": seasonKey(getCalendar()), "system.successor": "" });
+	await postCard(domain, "report", {
+		title: t("domain.conquest.title"),
+		tagline: before
+			? t("domain.conquest.tagline", { name: conqueror.name, ruler: before, domain: domain.name })
+			: t("domain.conquest.taglineBare", { name: conqueror.name, domain: domain.name }),
+		hint: t("domain.conquest.turmoil")
+	});
+	return conqueror;
 }
 
 /**

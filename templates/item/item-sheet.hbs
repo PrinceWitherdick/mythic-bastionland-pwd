@@ -51,6 +51,16 @@
 			<span class="bastionland-check__label">{{localize "bastionland.item.trample"}}</span>
 		</label>
 	</fieldset>
+	<div class="form-group">
+		<label for="{{rootId}}-specialist">{{localize "bastionland.item.specialist"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-specialist" name="system.specialist.die">
+				{{selectOptions specialistOptions selected=system.specialist.die}}
+			</select>
+			<input type="text" name="system.specialist.situation" value="{{system.specialist.situation}}" placeholder="{{localize 'bastionland.item.specialistPlaceholder'}}" aria-label="{{localize 'bastionland.item.specialistSituation'}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.item.specialistHint"}}</p>
+	</div>
 	{{/if}}
 
 	{{#if isGear}}

@@ -1,7 +1,16 @@
 import { calendarLabel, getCalendar } from "../actions/calendar.js";
-import { addCrisis, crisisRoll, dramaInCourt, increasedCollections, resolveCrisis } from "../actions/dominion.js";
+import {
+	addCrisis,
+	crisisRoll,
+	dramaInCourt,
+	increasedCollections,
+	namedSuccessor,
+	passOnDomain,
+	resolveCrisis,
+	seizeDomain
+} from "../actions/dominion.js";
 import { t } from "../chat/cards.js";
-import { COUNCIL_SEATS } from "../rules/dominion.js";
+import { COUNCIL_SEATS, isInTurmoil } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -20,7 +29,9 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			addCrisis: DomainSheet.#onAddCrisis,
 			resolveCrisis: DomainSheet.#onResolveCrisis,
 			collections: DomainSheet.#onCollections,
-			drama: DomainSheet.#onDrama
+			drama: DomainSheet.#onDrama,
+			passOn: DomainSheet.#onPassOn,
+			seize: DomainSheet.#onSeize
 		}
 	};
 
@@ -58,6 +69,8 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				season: calendarLabel(calendar)
 			}),
 			muster: t("domain.muster", { count: system.muster }),
+			successorPlaceholder: successorPlaceholder(actor),
+			turmoil: isInTurmoil(system.seized, seasonKey(calendar)) ? t("domain.conquest.inTurmoil") : null,
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
 				secrets: actor.isOwner,
 				relativeTo: actor
@@ -93,4 +106,23 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static #onDrama() {
 		return dramaInCourt(this.actor);
 	}
+
+	/** @this {DomainSheet} */
+	static #onPassOn() {
+		return passOnDomain(this.actor);
+	}
+
+	/** @this {DomainSheet} */
+	static #onSeize() {
+		return seizeDomain(this.actor);
+	}
+}
+
+/**
+ * @param {Actor} domain
+ * @returns {string} The successor field's placeholder: the ruling Knight's own successor stands in until the Domain names one.
+ */
+function successorPlaceholder(domain) {
+	const heir = domain.system.successor.trim() ? "" : namedSuccessor(domain);
+	return heir ? t("domain.successorFromKnight", { name: heir }) : t("domain.successorPlaceholder");
 }

@@ -16,7 +16,13 @@
 		<button type="button" data-action="addCrisis"><i class="fa-solid fa-fire" inert></i> {{localize "bastionland.domain.addCrisis"}}</button>
 		<button type="button" data-action="collections" data-tooltip="{{localize 'bastionland.domain.collectionsHint'}}"><i class="fa-solid fa-coins" inert></i> {{localize "bastionland.domain.collections"}}</button>
 		<button type="button" data-action="drama" data-tooltip="{{localize 'bastionland.domain.dramaHint'}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.domain.drama"}}</button>
+		<button type="button" data-action="passOn" data-tooltip="{{localize 'bastionland.domain.passOn.buttonHint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.domain.passOn.button"}}</button>
+		<button type="button" data-action="seize" data-tooltip="{{localize 'bastionland.domain.conquest.buttonHint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.domain.conquest.button"}}</button>
 	</nav>
+	{{/if}}
+
+	{{#if turmoil}}
+	<p class="bastionland-chooser__notice">{{turmoil}}</p>
 	{{/if}}
 
 	<div class="bastionland-columns">
@@ -24,6 +30,10 @@
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.domain.ruler"}}</h2>
 				<input class="bastionland-blank bastionland-domain__field" type="text" name="system.ruler" value="{{system.ruler}}" placeholder="{{localize 'bastionland.domain.rulerPlaceholder'}}" aria-label="{{localize 'bastionland.domain.ruler'}}" autocomplete="off">
+				<div class="bastionland-domain__seats">
+					<label for="{{rootId}}-successor" data-tooltip="{{localize 'bastionland.domain.successorHint'}}">{{localize "bastionland.domain.successor"}}</label>
+					<input id="{{rootId}}-successor" class="bastionland-blank bastionland-domain__field" type="text" name="system.successor" value="{{system.successor}}" placeholder="{{successorPlaceholder}}" autocomplete="off">
+				</div>
 			</section>
 
 			<section class="bastionland-block">

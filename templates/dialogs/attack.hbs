@@ -14,6 +14,12 @@
 			<span class="bastionland-check__label">{{name}}</span>
 			<span class="bastionland-tag">{{tags}}</span>
 		</label>
+		{{#if specialist}}
+		<label class="bastionland-check bastionland-check--nested" data-tooltip="{{localize 'bastionland.attack.specialistHint'}}">
+			<input type="checkbox" name="specialist.{{id}}">
+			<span class="bastionland-check__label">{{specialist}}</span>
+		</label>
+		{{/if}}
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
 		{{/each}}

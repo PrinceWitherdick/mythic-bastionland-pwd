@@ -2,9 +2,9 @@ import { CALENDAR_HOOK, calendarLabel, getCalendar, setCalendar } from "../actio
 import { awardGlory } from "../actions/glory.js";
 import { GLORY_AWARDS } from "../rules/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { advancePhase, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { HARDSHIPS, PHASES, SEASONS } from "../rules/time.js";
+import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { singletonOpener } from "./ui.js";
 
@@ -31,6 +31,7 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			nextPhase: advancePhase,
 			turnSeason,
 			turnAge,
+			journey: journeyToDistantRealm,
 			refereeRoll: TimePanel.#onRefereeRoll,
 			hardship: TimePanel.#onHardship,
 			awardGlory: TimePanel.#onAwardGlory

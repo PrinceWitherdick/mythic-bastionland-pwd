@@ -1,0 +1,14 @@
+<div class="bastionland-dialog__body">
+	<p>{{{intro}}}</p>
+	<div class="form-group">
+		<label for="bastionland-successor">{{localize "bastionland.successor.label"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-successor" name="successor">
+				{{#each candidates}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+	<p class="hint">{{localize "bastionland.successor.hint"}}</p>
+</div>

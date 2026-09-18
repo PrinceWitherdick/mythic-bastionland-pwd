@@ -1,4 +1,5 @@
 import { ARMOUR_KINDS } from "../config.js";
+import { SPECIALIST_DICE } from "../rules/attack.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { countField, htmlField, textField } from "./fields.js";
 
@@ -28,6 +29,11 @@ export class WeaponModel extends DescribedModel {
 			trample: new fields.BooleanField({ initial: false }),
 			// A lance counts as Hefty rather than Long when its wielder is mounted (p12).
 			heftyMounted: new fields.BooleanField({ initial: false }),
+			// A specialist weapon gains +d8 or +d10 in one situation, and is a category rarer (p12).
+			specialist: new fields.SchemaField({
+				die: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...SPECIALIST_DICE] }),
+				situation: textField()
+			}),
 			equipped: new fields.BooleanField({ initial: true })
 		};
 	}

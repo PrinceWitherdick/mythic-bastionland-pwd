@@ -13,6 +13,10 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			// The Seat of Power, ruling the whole Realm.
 			seat: booleanField(),
 			ruler: textField(),
+			// Whom the ruler names to follow them (Succession, p21), written as the GM likes.
+			successor: textField(),
+			// The Season it was seized by force in, from seasonKey. Its turmoil lasts that Season (Conquest, p21).
+			seized: textField(),
 			// Who holds each seat, written as the GM likes.
 			council: new fields.SchemaField(Object.fromEntries(COUNCIL_SEATS.map((key) => [key, textField()]))),
 			crises: new fields.ArrayField(new fields.StringField({ required: true, blank: false, choices: CRISES })),

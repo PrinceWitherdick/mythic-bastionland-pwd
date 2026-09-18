@@ -183,6 +183,30 @@
 					{{/if}}
 				</section>
 
+				{{#unless isSquire}}
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.successor.hint'}}">{{localize "bastionland.successor.label"}}</h2>
+					{{#if successor}}
+					<div class="bastionland-steed">
+						<img class="bastionland-steed__img" src="{{successor.img}}" alt="">
+						<button type="button" class="bastionland-item__name" data-action="openSuccessor">{{successor.name}}</button>
+						{{#if editable}}
+						<button type="button" class="bastionland-icon" data-action="clearSuccessor" data-tooltip="{{localize 'bastionland.successor.clear'}}" aria-label="{{localize 'bastionland.successor.clear'}}">
+							<i class="fa-solid fa-xmark" inert></i>
+						</button>
+						{{/if}}
+					</div>
+					{{else}}
+					<p class="bastionland-empty">{{localize "bastionland.successor.empty"}}</p>
+					{{#if editable}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-button" data-action="nameSuccessor"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.successor.name"}}</button>
+					</div>
+					{{/if}}
+					{{/if}}
+				</section>
+				{{/unless}}
+
 				{{!-- A Squire's sheet leaves these out unless they carry one already. --}}
 				{{#if (or abilities.length canAddAbility)}}
 				<section class="bastionland-block">

@@ -27,6 +27,8 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			serves: textField(),
 			// The UUID of the Domain this Knight rules.
 			domain: textField(),
+			// The UUID of the Knight or Squire named to follow them (Succession and Legacy, p17).
+			successor: textField(),
 			...characterFields(),
 			glory: countField()
 		};

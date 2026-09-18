@@ -1,0 +1,24 @@
+<div class="bastionland-dialog__body">
+	<p>{{{intro}}}</p>
+	<div class="form-group">
+		<label for="bastionland-ruler-knight">{{localize "bastionland.domain.newRuler.knight"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-ruler-knight" name="knight">
+				<option value="">—</option>
+				{{#each knights}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-ruler-name">{{localize "bastionland.domain.newRuler.name"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-ruler-name" type="text" name="name" value="{{name}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.domain.newRuler.hint"}}</p>
+	</div>
+	{{#if hint}}
+	<p class="hint">{{hint}}</p>
+	{{/if}}
+</div>

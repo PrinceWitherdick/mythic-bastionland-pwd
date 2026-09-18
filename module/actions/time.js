@@ -1,4 +1,4 @@
-import { inputDialog } from "../apps/ui.js";
+import { chooseDialog, inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { AGES } from "../config.js";
 import { changeGlory } from "../rules/glory.js";
@@ -12,15 +12,20 @@ import {
 	afterOldAge,
 	agedScore,
 	agingSteps,
+	legacyGlory,
 	nextAge,
 	nextPhase,
-	nextSeason
+	nextSeason,
+	seasonKey
 } from "../rules/time.js";
+import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { settleDomains } from "./dominion.js";
-import { gloryLines } from "./glory.js";
+import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScar } from "./scars.js";
+import { knightSquire } from "./squires.js";
+import { chooseSuccessor, heirOf } from "./succession.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -89,9 +94,39 @@ async function settleSeasonScars(actor) {
 }
 
 /**
+ * Succession (Between Ages, p17): a Knight names their successor, and a
+ * successor who is still a Squire may be Knighted.
+ * @param {Actor} knight
+ * @returns {Promise<string[]>} Lines for the Age's card.
+ */
+async function establishSuccessor(knight) {
+	const heir = await chooseSuccessor(knight);
+	if (!heir) return [t("successor.unnamed")];
+	const lines = [t("successor.named", { name: heir.name })];
+	if (heir.system.isSquire && heir.isOwner && (await knightSquire(heir))) lines.push(t("successor.knighted", { name: heir.name }));
+	return lines;
+}
+
+/**
+ * Legacy (Between Ages, p17): a Knight's successor gains half of their current
+ * Glory. A Knight who hasn't named one is asked to.
+ * @param {Actor} knight
+ * @param {number} glory Theirs, with the new Age's Glory counted.
+ * @returns {Promise<string[]>} Lines for the Age's card.
+ */
+async function bequeathGlory(knight, glory) {
+	const heir = heirOf(knight) ?? (await chooseSuccessor(knight));
+	if (!heir) return [t("successor.noLegacy")];
+	const amount = legacyGlory(glory);
+	const lines = [t("successor.legacy", { name: heir.name, amount })];
+	if (amount) lines.push(...(await adjustGlory(heir, amount)).map((line) => t("successor.heirLine", { name: heir.name, line })));
+	return lines;
+}
+
+/**
  * What passes for each member of the Company as the Season or Age turns:
  * Virtues restored and Scars due by the next Season settled, and for a new Age
- * 1 Glory, and d12 VIG lost by the Old.
+ * 1 Glory, d12 VIG lost by the Old, and a successor named or given a Legacy.
  * @param {{actor: Actor, pursuit: string|null}[]} company
  * @param {object} options
  * @param {boolean} options.newAge
@@ -101,6 +136,8 @@ async function passTime(company, { newAge }) {
 	const rolls = [];
 	const entries = [];
 	const updates = [];
+	const successions = [];
+	const legacies = [];
 	for (const { actor, pursuit } of company) {
 		const { system } = actor;
 		const update = Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
@@ -126,10 +163,17 @@ async function passTime(company, { newAge }) {
 		lines.push(...scars.lines);
 		if (scars.guardMax !== system.guard.max) update["system.guard.max"] = scars.guardMax;
 
+		if (newAge && pursuit === "succession") successions.push({ actor, lines });
+		if (newAge && pursuit === "legacy") legacies.push({ actor, glory: update["system.glory"] ?? system.glory, lines });
+
 		updates.push([actor, update]);
 		entries.push({ name: actor.name, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
 	}
 	await Promise.all(updates.map(([actor, update]) => actor.update(update)));
+	// After the Company's own updates, so a successor who is also in the Company
+	// keeps both what the Season restored and what Knighting or a Legacy gave them.
+	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));
+	for (const { actor, glory, lines } of legacies) lines.push(...(await bequeathGlory(actor, glory)));
 	return { rolls, entries };
 }
 
@@ -160,9 +204,10 @@ export async function advancePhase() {
  * @param {string[]} options.pursuits
  * @param {(before: object, after: object) => string} options.intro
  * @param {(after: object) => string} options.turned The report's title.
+ * @param {string} [options.note] Said on the report before anything else.
  * @returns {Promise<import("../rules/time.js").Calendar|null>}
  */
-async function turnTime({ newAge, next, label, icon, pursuits, intro, turned }) {
+async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, note = null }) {
 	if (!game.user.isGM) return null;
 	const before = getCalendar();
 	const after = next(before);
@@ -171,12 +216,12 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned }) 
 
 	await setCalendar(after);
 	const { rolls, entries } = await passTime(company, { newAge });
-	const domains = await settleDomains();
+	const domains = await settleDomains(seasonKey(before));
 	await postCard(null, "report", {
 		title: turned(after),
 		tagline: calendarLabel(after),
 		entries: [...entries, ...domains.entries],
-		hint: [t("time.unresolvedHint"), domains.hint].filter(Boolean).join(" ")
+		hint: [note, t("time.unresolvedHint"), domains.hint].filter(Boolean).join(" ")
 	}, { rolls });
 	return after;
 }
@@ -215,6 +260,49 @@ export function turnAge() {
 		intro: (_before, after) => t("time.ageIntro", { age: after.age }),
 		turned: (after) => t("time.ageTurned", { age: after.age })
 	});
+}
+
+/**
+ * Journey to a distant Realm (Distant Realms, p14), which normally sees the
+ * Company arrive in the next Season. The Season turns as it does between
+ * Seasons, but nobody chooses a pursuit, since the Knights are on the road
+ * rather than guarding the Realm. If another Realm Scene is chosen as the
+ * destination, it becomes the active Scene. GMs only.
+ * @returns {Promise<import("../rules/time.js").Calendar|null>}
+ */
+export async function journeyToDistantRealm() {
+	if (!game.user.isGM) return null;
+	const realms = game.scenes.filter((scene) => isRealmScene(scene) && !scene.active);
+	let destination = null;
+	if (realms.length) {
+		const choice = await chooseDialog({
+			title: t("time.distant.title"),
+			icon: "fa-solid fa-route",
+			message: t("time.distant.where"),
+			buttons: [
+				...realms.map((scene, index) => ({ action: scene.id, label: scene.name, default: index === 0 })),
+				{ action: "elsewhere", icon: "fa-solid fa-map", label: t("time.distant.elsewhere") }
+			]
+		});
+		if (!choice) return null;
+		destination = realms.find((scene) => scene.id === choice) ?? null;
+	}
+
+	const season = (calendar) => t(`time.seasons.${calendar.season}`);
+	// The Company dialog escapes its intro itself.
+	const where = destination?.name ?? t("time.distant.aDistantRealm");
+	const after = await turnTime({
+		newAge: false,
+		next: nextSeason,
+		label: "time.distant.title",
+		icon: "fa-solid fa-route",
+		pursuits: [],
+		intro: (_before, next) => t("time.distant.intro", { realm: where, season: season(next) }),
+		turned: (next) => t("time.distant.arrived", { season: season(next) }),
+		note: t("time.distant.note", { realm: where })
+	});
+	if (after && destination) await destination.activate();
+	return after;
 }
 
 /**

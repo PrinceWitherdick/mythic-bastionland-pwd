@@ -1,6 +1,7 @@
 /**
  * Dominion (p20) and Authority (p21): ruling a Holding as a Domain, with a
- * Council, Crises that last until resolved, and misrule when too many pile up.
+ * Council, Crises that last until resolved, misrule when too many pile up,
+ * and a change of ruler by succession or by conquest.
  * The Crisis Roll, Increased Collections and Drama in Court read 1 as the
  * worst, 2-3 as middling and 4-6 as the best, like the Referee's other tables.
  * Wording lives in the language file under `bastionland.domain`. Pure, so it
@@ -67,10 +68,27 @@ export const isMisruleDue = (crises) => crises.length >= MISRULE_CRISES;
 export const musterFor = (seat) => (seat ? MUSTER.seat : MUSTER.holding);
 
 /**
+ * A Holding seized by force and left unchallenged has a period of turmoil
+ * before it adapts to the new ruler (Conquest, p21). Here that lasts the rest
+ * of the Season it was seized in.
+ * @param {string} seized The Season it was seized in, from seasonKey, or blank.
+ * @param {string} now    This Season, from seasonKey.
+ * @returns {boolean}
+ */
+export const isInTurmoil = (seized, now) => Boolean(seized) && seized === now;
+
+/**
  * @param {string} text
  * @returns {string} A name, compared without case or surrounding space.
  */
 const nameKey = (text) => String(text ?? "").trim().toLocaleLowerCase();
+
+/**
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean} Whether both are the same name, ignoring case and surrounding space. Blanks never match.
+ */
+export const isSameName = (a, b) => Boolean(nameKey(a)) && nameKey(a) === nameKey(b);
 
 /**
  * @template {{system: {ruler: string}}} T
