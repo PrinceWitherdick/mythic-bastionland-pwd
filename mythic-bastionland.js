@@ -4,6 +4,7 @@ import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
@@ -49,6 +50,7 @@ import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
+import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
@@ -207,6 +209,7 @@ Hooks.once("init", () => {
 		rollSurprise,
 		openRefereeRolls,
 		rollRefereeTable,
+		rollLuck: () => rollRefereeTable("luck"),
 		openSparkTables,
 		openHexLore,
 		openTimePanel,
@@ -234,6 +237,8 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 /** One-time work for each world, run in this order by the active GM. */
 const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
+	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
+	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
@@ -244,7 +249,7 @@ Hooks.once("ready", async () => {
 	await Promise.all([
 		restoreOpenSheets(),
 		ensureImportMacro(),
-		runWorldSetup(WORLD_SETUP).then(ensureRulebookHotbar)
+		runWorldSetup(WORLD_SETUP).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)
 	]);
 });
 

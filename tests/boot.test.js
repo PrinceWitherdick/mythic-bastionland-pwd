@@ -178,6 +178,7 @@ describe("system boot", () => {
 		expect(game.system.api.rollSurprise).toBeTypeOf("function");
 		expect(game.system.api.openRefereeRolls).toBeTypeOf("function");
 		expect(game.system.api.rollRefereeTable).toBeTypeOf("function");
+		expect(game.system.api.rollLuck).toBeTypeOf("function");
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
 		expect(game.system.api.openHexLore).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
@@ -369,6 +370,8 @@ describe("system boot", () => {
 
 	it("leaves the Macro Directory alone for players when the world is ready", async () => {
 		expect(hooks.ready).toBeTypeOf("function");
+		// A world whose GM hasn't loaded since the Luck Roll macro shipped.
+		globalThis.game.macros = { find: () => undefined };
 		await expect(hooks.ready()).resolves.toBeUndefined();
 	});
 });

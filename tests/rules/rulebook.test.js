@@ -71,7 +71,7 @@ describe("isPdfPath", () => {
 });
 
 describe("emptySlot", async () => {
-	const { emptySlot } = await import("../../module/rulebook/macro.js");
+	const { emptySlot } = await import("../../module/actions/hotbar-macro.js");
 
 	it("takes the first empty slot on the first hotbar page", () => {
 		expect(emptySlot({}, "rb")).toBe(1);
