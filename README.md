@@ -1,6 +1,6 @@
 # Mythic Bastionland for Foundry VTT
 
-An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet and the Travel rules printed on the free Blank Realm sheet, and none of its art beyond the map legend of the free Blank Realm sheet.
+An unofficial Foundry VTT system for [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall. It is not affiliated with Bastionland Press, and it ships none of the book's text beyond the short rules reminders printed on the free character sheet and the Travel and Creating a Realm rules printed on the free Blank Realm sheet, and none of its art beyond the map legend of the free Blank Realm sheet.
 
 Requires Foundry VTT v14.
 
@@ -151,7 +151,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - The page numbers open the rulebook at that page for anyone the rulebook is offered to.
 - **Realm tools:** GMs get a Realm group in the scene controls on a Realm Scene.
   - **Inspect hexes:** click a hex to open its panel. It holds the hex's terrain and whatever is in the hex: a Holding's style, name and Seat of Power; a Myth's number, roll and Omens seen; a Landmark's type, name and, for a Sanctum, its Seer. It also has a button to reveal a hidden thing, the hex's six Barriers, and a Wilderness Roll made there.
-  - **Paint terrain:** pick a terrain in the palette, then click or drag across hexes. Alt-click a hex to pick up its terrain.
+  - **Paint terrain:** pick a terrain in the palette, then click or drag across hexes. Alt-click a hex to pick up its terrain. Pick **River** at the foot of the palette to draw rivers instead. Drag across hexes to lay one: start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Water that reaches another river joins it. Drawing never takes a river away; Shift-click a hex of a river to cut it back.
   - **Barriers:** click a hex edge to add or remove a Barrier, and Shift-click to reveal or hide it.
   - **Wilderness Roll:** select the Company's Tokens and press it. A Holding's hex needs no roll, and a Myth's own hex gives its next Omen. Otherwise choose travelling or camping, and the d6 is rolled: a random Myth's Omen, the nearest Myth's, or the hex's Landmark, which is revealed. The Myth's count of Omens seen goes up, and a card only GMs see names the Myth and the Omen, quoting it if Import PDF has been run.
   - **Tidy the Realm:** snaps icons back to the middle of their hexes, unlocks hidden Tiles, lays the river and Barrier lines again, and lists anything it can't put right.
@@ -185,10 +185,10 @@ It's also in the Actors tab, and behind **GM Toolkit** in the Roll Tables tab. I
 
 ### Art and text from your own book
 
-Beyond the Blank Realm's legend and Travel rules, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import PDF** macro, which is added to the Macro Directory the first time a GM opens a world:
+Beyond the Blank Realm's legend and rules, the system ships none of the book's art or text. A GM who owns the rulebook PDF can bring them in with the **Import PDF** macro, which is added to the Macro Directory the first time a GM opens a world:
 
 1. Run the macro and choose your copy of the rulebook, the 212-page PDF. It is read in your browser and never uploaded.
-2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, and the City Quest's Omens and Cast.
+2. Every Knight's and Seer's portrait and every Myth's illustration is saved to `mythic-bastionland-art/` in your Foundry data folder, named by roll: `knights/1-01-<name>.webp`, `seers/…` and `myths/…`. An `index.json` beside them lists each picture's roll, page and name, along with text read from your copy: each Knight's Property, Ability and Passion, each Seer's Virtues and traits, each Myth's Omens and Cast, the Spark Tables, the City Quest's Omens and Cast, and the Creating a Realm page (p14). The rules shown beside a Realm you draw by hand are the book's own once it's imported, and the free Blank Realm sheet's before.
 3. When a GM runs it, everything listed in Arms & Goods, People & Realms and Warfare goes into two world compendiums, **Arms & Goods** and **Beasts, Hirelings & Warbands**, each kind in its own folder:
    - weapons (one for each example a line names, so Hefty Weapons gives a spear, a mace and an axe), armour, tools, Remedies and poisons;
    - beasts, hirelings, Warbands, and structures, ships and siege towers, as NPCs.

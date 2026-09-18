@@ -3262,6 +3262,76 @@ a.bastionland-page-link:focus-visible {
 	font-style: italic;
 }
 
+/*
+ * Creating a Realm, in Travel and Exploration's place while a Realm is drawn
+ * by hand. It shares their sheet; its groups are headings, not folds.
+ */
+.bastionland-realm-drawing__intro {
+	margin: 0.4rem 0 0.2rem;
+	font-style: italic;
+}
+
+/* The book's paragraphs, set apart as it prints them. */
+.bastionland-realm-drawing .bastionland-travel-rules__section :is(p, ul, dl) + :is(p, ul, dl) {
+	margin-top: 0.45rem;
+}
+
+.bastionland-realm-drawing__bullets {
+	margin: 0.1rem 0;
+	padding-left: 1.2rem;
+}
+
+.bastionland-realm-drawing__tally {
+	display: flex;
+	flex-direction: column;
+	gap: 0.05rem;
+	margin: 0.2rem 0 0;
+	padding: 0;
+	list-style: none;
+	color: var(--bastionland-blood);
+	font-size: 0.9rem;
+}
+
+.bastionland-realm-drawing__tally li.is-done {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-drawing__tally i {
+	width: 1rem;
+	text-align: center;
+}
+
+.bastionland-travel-rules button.bastionland-travel-rules__roll.is-active {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+/* Under the Realm's map, as the canvas pans; placed by RealmDrawing. */
+button.bastionland-realm-drawing__finish {
+	position: fixed;
+	z-index: calc(var(--z-index-canvas, 0) + 1);
+	width: auto;
+	height: auto;
+	min-height: 0;
+	padding: 0.4rem 1.1rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper);
+	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.2rem;
+	white-space: nowrap;
+	transform: scale(var(--ui-scale, 1));
+	transform-origin: top left;
+}
+
+button.bastionland-realm-drawing__finish:hover,
+button.bastionland-realm-drawing__finish:focus-visible {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
 /* The Realm's Hex panel and terrain palette. */
 .bastionland-realm-panel {
 	display: flex;
@@ -3285,6 +3355,15 @@ a.bastionland-page-link:focus-visible {
 	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: 0.85em;
+}
+
+/* The painter's instructions are read while painting, so they keep the body size. */
+.bastionland-realm-panel__hint {
+	font-size: 1em;
+}
+
+.bastionland-realm-panel__river {
+	margin: 0;
 }
 
 .bastionland-realm-panel__feature {
@@ -3351,20 +3430,23 @@ a.bastionland-page-link:focus-visible {
 
 .bastionland-realm-panel__palette {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 0.4rem;
 }
 
-/* Foundry gives buttons a fixed height, which clipped the labels; these grow to fit. */
+/* Foundry gives buttons a fixed height, which clipped the labels; these grow to fit.
+   Three to a row leaves no room beside the picture, so each name sits under its own. */
 .bastionland-realm-panel__swatch {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	justify-content: flex-start;
-	gap: 0.5rem;
+	justify-content: center;
+	gap: 0.25rem;
 	height: auto;
 	min-height: 2.6rem;
-	padding: 0.35rem 0.5rem;
+	padding: 0.4rem 0.3rem;
 	line-height: 1.2;
+	text-align: center;
 }
 
 .bastionland-realm-panel__swatch span {
@@ -3372,13 +3454,27 @@ a.bastionland-page-link:focus-visible {
 }
 
 .bastionland-realm-panel__swatch img {
-	width: 2.2rem;
+	width: 2.6rem;
 	height: auto;
 	border: none;
 }
 
 .bastionland-realm-panel__swatch.is-active {
 	outline: 2px solid var(--bastionland-verdigris);
+}
+
+/* The river isn't a terrain, so it sits apart, across the foot of the palette,
+   with its name beside its picture as the row has room for it, the pair centred. */
+.bastionland-realm-panel__swatch--river {
+	grid-column: 1 / -1;
+	flex-direction: row;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.35rem 0.5rem;
+}
+
+.bastionland-realm-panel__swatch--river img {
+	width: 2.2rem;
 }
 
 .bastionland-realm-panel__history {

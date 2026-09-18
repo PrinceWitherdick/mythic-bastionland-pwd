@@ -41,6 +41,21 @@ export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
 export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll", "appearance"]);
 
+/** What the Paint terrain tool lays: a terrain from its palette, or the river. Names live under `bastionland.realm.brushes`. */
+export const REALM_BRUSHES = Object.freeze(["terrain", "river"]);
+
+/** Each Realm tool's icon, and the river's, which the Paint terrain tool draws. */
+export const REALM_TOOL_ICONS = Object.freeze({
+	inspect: "fa-solid fa-magnifying-glass",
+	terrain: "fa-solid fa-paintbrush",
+	river: "fa-solid fa-water",
+	barrier: "fa-solid fa-road-barrier",
+	wilderness: "fa-solid fa-tree",
+	tidy: "fa-solid fa-broom",
+	reroll: "fa-solid fa-dice",
+	appearance: "fa-solid fa-palette"
+});
+
 /** The Realm tools that act at once rather than waiting for a click on the map. */
 export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll", "appearance"]);
 

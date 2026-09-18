@@ -5,15 +5,18 @@ import {
 	forgetRealm,
 	forgetRealmHistory,
 	getRealm,
+	isDrawingRealm,
 	isRealmScene,
 	realmWritesSettled,
 	sceneGeometry
 } from "../actions/realm.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
+import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
+import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { forgetHexArrivals, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, updateHexReadout } from "./hex-readout.js";
@@ -51,6 +54,7 @@ function showChanges() {
 	for (const sceneId of changedScenes) {
 		refreshRealmPanel(sceneId);
 		refreshHexLore(sceneId);
+		refreshRealmDrawing(sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();
@@ -73,6 +77,17 @@ function realmChanged(sceneId) {
 	changedScenes.add(sceneId);
 }
 
+/**
+ * Show the rules beside the Realm on the canvas: Creating a Realm for a GM
+ * while it's still being drawn by hand, and Travel and Exploration once it's
+ * finished. While it's being drawn, players see neither.
+ * @returns {Promise<unknown>}
+ */
+function showRealmRules() {
+	if (isDrawingRealm(canvas?.scene)) return Promise.all([closeTravelRules(), showRealmDrawing()]);
+	return Promise.all([closeRealmDrawing(), showTravelRules()]);
+}
+
 /** The hooks Realm Scenes rely on. Called during init. */
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
@@ -88,6 +103,8 @@ export function registerRealmHooks() {
 	Hooks.on("updateScene", (scene, changes) => {
 		realmChanged(scene.id);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
+		// A Realm finished drawing swaps its rules back to Travel and Exploration, on every client.
+		if (scene.id === canvas?.scene?.id && foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) showRealmRules();
 	});
 	Hooks.on("deleteScene", (scene) => {
 		forgetRealm(scene.id);
@@ -108,12 +125,15 @@ export function registerRealmHooks() {
 	// `canvasReady` is what clears the rules away with the last Scene.
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
-		showTravelRules();
+		showRealmRules();
 	});
 	Hooks.on("canvasTearDown", () => {
 		detachHexReadout();
 		setTimeout(() => {
-			if (!isRealmScene(canvas?.scene)) closeTravelRules();
+			if (!isRealmScene(canvas?.scene)) {
+				closeTravelRules();
+				closeRealmDrawing();
+			}
 		}, 0);
 	});
 }

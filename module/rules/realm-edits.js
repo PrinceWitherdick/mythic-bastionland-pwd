@@ -6,7 +6,7 @@
  */
 import { isDie } from "./book-art.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt } from "./realm.js";
-import { hexIndex, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+import { hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
 /** What a hex can hold, one at a time. */
 export const FEATURE_KINDS = Object.freeze(["holding", "myth", "landmark"]);
@@ -42,6 +42,126 @@ export function paintTerrain(realm, g, hexes, terrain) {
 		if (inRealm(g, hex)) next.terrain[hexIndex(g, hex)] = terrain;
 	}
 	return next;
+}
+
+/**
+ * Follow the pointer one hex further along a river being drawn. Hexes the
+ * pointer jumped over are filled in, and going back over the course takes
+ * back what was drawn past that hex, so a course never crosses itself.
+ * @param {object} g
+ * @param {{col: number, row: number}[]} course The hexes drawn so far, in order.
+ * @param {{col: number, row: number}|null} hex The hex under the pointer.
+ * @returns {{col: number, row: number}[]} The course now.
+ */
+export function traceCourse(g, course, hex) {
+	if (!inRealm(g, hex)) return course;
+	if (!course.length) return [{ ...hex }];
+	let next = course;
+	for (const step of hexLine(g, course.at(-1), hex)) {
+		const back = next.findIndex((drawn) => sameHex(drawn, step));
+		next = back >= 0 ? next.slice(0, back + 1) : [...next, { ...step }];
+	}
+	return next;
+}
+
+/**
+ * @param {{col: number, row: number}[][]} courses
+ * @returns {(hex: {col: number, row: number}) => number[]} The courses that run through a hex, by their place in `courses`.
+ */
+const coursesThrough = (courses) => (hex) => courses.flatMap((course, index) => (course.some((wet) => sameHex(wet, hex)) ? [index] : []));
+
+/**
+ * @param {import("./realm.js").Realm} realm
+ * @param {{col: number, row: number}[][]} courses
+ * @returns {import("./realm.js").Realm} The Realm with these courses as its rivers. A course of one hex is dropped,
+ *   since it draws no water.
+ */
+function withCourses(realm, courses) {
+	return { ...copyRealm(realm), rivers: courses.filter((course) => course.length > 1).map((course) => course.map(({ col, row }) => ({ col, row }))) };
+}
+
+/**
+ * The ends of a Realm's rivers that a drag carries on: those that don't join
+ * another river.
+ * @param {import("./realm.js").Realm} realm
+ * @returns {{col: number, row: number}[]}
+ */
+export function riverEnds(realm) {
+	const courses = realm.rivers;
+	const through = coursesThrough(courses);
+	return courses.flatMap((course, index) => [...new Set([course[0], course.at(-1)])]
+		.filter((hex) => hex && through(hex).every((other) => other === index)));
+}
+
+/**
+ * Lay a river the GM drew. Drawing only ever adds water. A course that starts
+ * at a river's loose end carries that river on, back from its source or on
+ * from its mouth. One that starts partway along a river branches off it
+ * there, and one that starts anywhere else is a new river. New water that
+ * reaches another river joins it there and stops, and stops short of the
+ * river it came from rather than cross it.
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g
+ * @param {{col: number, row: number}[]} course Neighbouring hexes, in the order they were drawn.
+ * @returns {import("./realm.js").Realm} Unchanged when no new water was drawn.
+ */
+export function layRiver(realm, g, course) {
+	const drawn = course.filter((hex) => inRealm(g, hex));
+	if (drawn.length < 2) return realm;
+	const courses = realm.rivers;
+	const through = coursesThrough(courses);
+	const [start, ...steps] = drawn;
+	const onEnd = riverEnds(realm).some((end) => sameHex(end, start))
+		? courses.findIndex((wet) => sameHex(wet[0], start) || sameHex(wet.at(-1), start))
+		: -1;
+
+	// The rivers the new water comes from, which it stops short of rather than cross or run along.
+	const own = onEnd >= 0 ? [onEnd] : through(start);
+	const added = [];
+	for (const hex of steps) {
+		const wet = through(hex);
+		if (!wet.length) {
+			added.push(hex);
+			continue;
+		}
+		if (!wet.some((index) => own.includes(index))) added.push(hex);
+		break;
+	}
+	if (!added.length) return realm;
+
+	if (onEnd < 0) return withCourses(realm, [...courses, [start, ...added]]);
+	const carried = courses[onEnd];
+	const fromSource = carried.length > 1 && sameHex(carried[0], start);
+	return withCourses(realm, courses.with(onEnd, fromSource ? [...added.reverse(), ...carried] : [...carried, ...added]));
+}
+
+/**
+ * Take a hex off a river, with everything from it to the nearer end. Where
+ * rivers meet, the one that loses least is cut.
+ * @param {import("./realm.js").Realm} realm
+ * @param {{col: number, row: number}} hex
+ * @returns {import("./realm.js").Realm} Unchanged when no river runs through the hex.
+ */
+export function trimRiver(realm, hex) {
+	const courses = realm.rivers;
+	let best = null;
+	courses.forEach((course, index) => {
+		const at = course.findIndex((wet) => sameHex(wet, hex));
+		if (at < 0) return;
+		const fromStart = at < course.length - 1 - at;
+		const lost = fromStart ? at + 1 : course.length - at;
+		if (!best || lost < best.lost) best = { index, lost, kept: fromStart ? course.slice(at + 1) : course.slice(0, at) };
+	});
+	return best ? withCourses(realm, courses.with(best.index, best.kept)) : realm;
+}
+
+/**
+ * @param {import("./realm.js").Realm} realm
+ * @returns {import("./realm.js").Realm} The Realm with no rivers.
+ */
+export function clearRiver(realm) {
+	if (!realm.rivers.length) return realm;
+	return withCourses(realm, []);
 }
 
 /**

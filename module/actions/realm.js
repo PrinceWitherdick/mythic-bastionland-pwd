@@ -3,7 +3,8 @@ import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { COMPANY_IMAGE, COMPANY_STARTS } from "../rules/company.js";
 import { randomSeed } from "../rules/random.js";
-import { REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
+import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
+import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
 import {
 	LEVEL_ID,
 	planChanges,
@@ -508,18 +509,42 @@ export function addNewRealmButton(element) {
 }
 
 /**
- * Ask for a name and a seed, and how the Realm is set up, then roll a Realm
- * onto a new Scene.
+ * Ask whether the new Realm is rolled or drawn by hand.
+ * @returns {Promise<"roll"|"draw"|null>}
+ */
+async function chooseRealmMaking() {
+	const choice = await foundry.applications.api.DialogV2.wait({
+		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
+		classes: ["bastionland-dialog"],
+		content: `<p>${t("realm.dialog.chooseMaking")}</p>`,
+		buttons: [
+			{ action: "roll", label: t("realm.dialog.making.roll"), icon: "fa-solid fa-dice", default: true },
+			{ action: "draw", label: t("realm.dialog.making.draw"), icon: "fa-solid fa-paintbrush" }
+		],
+		rejectClose: false
+	});
+	return choice === "roll" || choice === "draw" ? choice : null;
+}
+
+/**
+ * Ask whether the Realm is rolled or drawn by hand, then for a name and a
+ * seed, and how the Realm is set up, and make it on a new Scene. A Realm
+ * drawn by hand rolls nothing: its Scene starts blank.
  * @returns {Promise<Scene|null>}
  */
 export async function newRealm() {
 	if (!game.user.isGM) return null;
+	const making = await chooseRealmMaking();
+	if (!making) return null;
+	const draw = making === "draw";
 	const defaultName = t("realm.dialog.defaultName");
 	const [firstStart] = COMPANY_STARTS;
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
+		draw,
 		name: defaultName,
 		seed: randomSeed(),
-		setupParts: setupParts(),
+		// Drawn by hand, only the map's size is left to set.
+		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
 		img: COMPANY_IMAGE,
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
@@ -530,7 +555,9 @@ export async function newRealm() {
 		classes: ["bastionland-dialog"],
 		position: { width: 460 },
 		content,
-		ok: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
+		ok: draw
+			? { label: t("realm.dialog.createBlank"), icon: "fa-solid fa-paintbrush" }
+			: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
 		rejectClose: false,
 		render: (_event, dialog) => {
 			wireSetupFields(dialog.element);
@@ -540,15 +567,31 @@ export async function newRealm() {
 	if (!data) return null;
 
 	const setup = foundry.utils.expandObject(data).setup ?? {};
-	return createRealmScene({
+	if (draw) setup.roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, false]));
+	const scene = await createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
 		seed: String(data.seed ?? "").trim() || randomSeed(),
 		setup: normaliseRealmSetup(setup),
+		drawing: draw,
 		company: data.placeCompany ? {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
 			img: String(data.companyImg ?? "").trim() || COMPANY_IMAGE
 		} : null
 	});
+	if (scene && draw) await openRealmPainter(scene);
+	return scene;
+}
+
+/**
+ * Pick up the Realm tools' terrain brush on a Realm drawn by hand, so the GM
+ * can start painting straight away.
+ * @param {Scene} scene
+ * @returns {Promise<void>}
+ */
+async function openRealmPainter(scene) {
+	if (canvas.scene?.id !== scene.id) return;
+	// A new Realm starts on terrain, not the river.
+	await canvas.realm?.useTool("terrain", { brush: "terrain" });
 }
 
 /**
@@ -578,10 +621,11 @@ function wireCompanyFields(element) {
  * @param {string} options.name
  * @param {string} options.seed
  * @param {import("../rules/realm-setup.js").RealmSetup|null} [options.setup] Omit for the book's.
+ * @param {boolean} [options.drawing] Drawn by hand: the Scene is marked as still being drawn, and its key waits until it's finished.
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @returns {Promise<Scene|null>}
  */
-async function createRealmScene({ name, seed, setup = null, company = null }) {
+async function createRealmScene({ name, seed, setup = null, drawing = false, company = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows });
 	const realm = generateRealm({ seed, setup, geometry });
@@ -589,7 +633,7 @@ async function createRealmScene({ name, seed, setup = null, company = null }) {
 	const textures = realmTextures(look);
 	const data = foundry.utils.mergeObject(
 		realmSceneData({ name, realm, geometry, textures, units: t("realm.units") }),
-		foundry.utils.expandObject(lookFlag(look))
+		foundry.utils.expandObject({ ...lookFlag(look), ...(drawing ? drawingFlag(true) : {}) })
 	);
 
 	const scene = await CONFIG.Scene.documentClass.create(data);
@@ -607,7 +651,8 @@ async function createRealmScene({ name, seed, setup = null, company = null }) {
 		else ui.notifications.info(t(`company.choose.${company.start}`), { permanent: true });
 	}
 
-	await postRealmKey(scene);
+	// Drawn by hand, the Realm has nothing hidden in it yet.
+	if (!drawing) await postRealmKey(scene);
 	return scene;
 }
 
@@ -626,6 +671,85 @@ async function refreshThumbnail(scene, changes = {}) {
 		console.warn(`${SYSTEM_ID} | Couldn't make a thumbnail for ${scene.name}`, error);
 	}
 	if (thumb || !foundry.utils.isEmpty(changes)) await scene.update(thumb ? { ...changes, thumb } : changes);
+}
+
+/**
+ * @param {boolean} drawing
+ * @returns {object} The Scene update marking a Realm as being drawn by hand, or not.
+ */
+const drawingFlag = (drawing) => ({ [`flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`]: drawing });
+
+/**
+ * @param {Scene|null|undefined} scene
+ * @returns {boolean} Whether a Realm Scene is still being drawn by hand.
+ */
+export const isDrawingRealm = (scene) => isRealmScene(scene) && scene.getFlag(SYSTEM_ID, REALM_DRAWING_FLAG) === true;
+
+/**
+ * Go back into drawing a Realm drawn by hand and finished, as the GM picks up
+ * the terrain brush: the Creating a Realm rules and the Finish button come back
+ * in place of Travel and Exploration. A rolled Realm is painted without going
+ * into drawing, so its players keep Travel and Exploration.
+ * @param {Scene} scene
+ * @returns {Promise<boolean>} Whether it went back into drawing.
+ */
+export async function startRealmDrawing(scene) {
+	// Finishing leaves the flag false; a rolled Realm never had it.
+	const finished = isRealmScene(scene) && scene.getFlag(SYSTEM_ID, REALM_DRAWING_FLAG) === false;
+	if (!game.user.isGM || !finished) return false;
+	await scene.update(drawingFlag(true));
+	return true;
+}
+
+/** Realm Scenes being finished on this client, by id. */
+const finishing = new Set();
+
+/**
+ * Finish drawing a Realm by hand: Travel and Exploration come back beside
+ * the map, and the GMs get the Realm's key. Where the Realm falls short of
+ * what the sheet asks for, the GM is told what's missing and may finish it
+ * all the same, since the sheet is a guide (p14).
+ * @param {Scene} scene
+ * @returns {Promise<boolean>} Whether it was finished.
+ */
+export async function finishRealmDrawing(scene) {
+	// A second click while the first is still asking or saving would post the key twice.
+	if (!game.user.isGM || !isDrawingRealm(scene) || finishing.has(scene.id)) return false;
+	finishing.add(scene.id);
+	try {
+		const short = drawingShortfalls(getRealm(scene).realm);
+		if (short.length) {
+			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
+			const confirmed = await confirmDialog({
+				title: t("realmDrawing.finish.title"),
+				icon: "fa-solid fa-scroll",
+				message: `${t("realmDrawing.finish.short")}</p><ul>${items}</ul><p>${t("realmDrawing.finish.anyway")}`
+			});
+			if (!confirmed) return false;
+		}
+
+		await refreshThumbnail(scene, drawingFlag(false));
+	} finally {
+		finishing.delete(scene.id);
+	}
+	if (canvas.scene?.id === scene.id) await ui.controls.activate({ control: "realm", tool: "inspect" });
+	ui.notifications.info(t("realmDrawing.finish.done", { name: scene.name }));
+	await postRealmKey(scene);
+	return true;
+}
+
+/**
+ * @param {import("../rules/realm-drawing.js").DrawingCount} entry
+ * @returns {string} How far one part of a Realm's drawing has come, in words.
+ */
+export function drawingCountLabel({ key, count, target, rivers = 0 }) {
+	const base = `realmDrawing.tally.${key}`;
+	if (LANDMARK_TYPES.includes(key)) {
+		return t("realmDrawing.tally.landmark", { type: t(`realmDrawing.sections.landmarks.lines.${key}.label`), count, min: LANDMARKS_PER_TYPE.min, max: LANDMARKS_PER_TYPE.max });
+	}
+	if (key === "river") return !rivers ? t(`${base}None`) : t(rivers > 1 ? `${base}s` : base, { count, rivers });
+	if (key === "seat") return t(count === 0 ? `${base}None` : count === 1 ? base : `${base}Many`, { count });
+	return t(base, { count, target });
 }
 
 /**

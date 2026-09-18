@@ -1,5 +1,5 @@
 <div class="bastionland-dialog__body">
-	<p>{{localize "bastionland.realm.dialog.intro"}}</p>
+	<p>{{#if draw}}{{localize "bastionland.realm.dialog.drawIntro"}}{{else}}{{localize "bastionland.realm.dialog.intro"}}{{/if}}</p>
 
 	<div class="form-group">
 		<label for="bastionland-realm-name">{{localize "bastionland.realm.dialog.name"}}</label>
@@ -8,6 +8,7 @@
 		</div>
 	</div>
 
+	{{#unless draw}}
 	<div class="form-group">
 		<label for="bastionland-realm-seed">{{localize "bastionland.realm.dialog.seed"}}</label>
 		<div class="form-fields">
@@ -15,11 +16,12 @@
 		</div>
 		<p class="hint">{{localize "bastionland.realm.dialog.seedHint"}}</p>
 	</div>
+	{{/unless}}
 
 	<details class="bastionland-realm-setup">
-		<summary>{{localize "bastionland.realm.setup.title"}}</summary>
+		<summary>{{#if draw}}{{localize "bastionland.realm.setup.sizeTitle"}}{{else}}{{localize "bastionland.realm.setup.title"}}{{/if}}</summary>
 		<div class="bastionland-realm-setup__body">
-			<p class="hint">{{localize "bastionland.realm.setup.intro"}}</p>
+			<p class="hint">{{#if draw}}{{localize "bastionland.realm.setup.sizeIntro"}}{{else}}{{localize "bastionland.realm.setup.intro"}}{{/if}}</p>
 
 			<label class="bastionland-check">
 				<input type="checkbox" name="setup.ignoreRules" data-setup-ignore>

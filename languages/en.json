@@ -1669,7 +1669,7 @@
     },
     "bookArt": {
       "title": "Import PDF",
-      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
+      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. So is Creating a Realm (p14), shown beside a Realm you draw by hand. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
       "choose": "Rulebook PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
@@ -1803,16 +1803,25 @@
       "hex": "Column {col}, Row {row}",
       "dialog": {
         "title": "New Realm",
+        "chooseMaking": "Roll a Realm the way Creating a Realm describes (p14), or start from a blank map and draw it yourself?",
+        "making": {
+          "roll": "Roll it",
+          "draw": "Draw it myself"
+        },
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and place its Holdings, Myths, Landmarks and Barriers from the Hex panel. Nothing is rolled.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
         "defaultName": "The Realm",
         "seed": "Seed",
         "seedHint": "The same seed, set up the same way, rolls the same Realm.",
         "secretHint": "Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until you reveal them.",
-        "create": "Roll the Realm"
+        "create": "Roll the Realm",
+        "createBlank": "Make the blank Realm"
       },
       "setup": {
         "title": "Custom Realm",
+        "sizeTitle": "Map size",
+        "sizeIntro": "A typical Realm is 12 by 12 hexes (p14). Tick Ignore the rules for setup to choose another size.",
         "intro": "Everything below is rolled as Creating a Realm (p14) describes. Untick a part to leave it off the map and draw it yourself with the Realm tools.",
         "ignoreRules": "Ignore the rules for setup",
         "ignoreRulesHint": "“The guidelines on this page make for a typical Realm, but they can be bent or broken in creating your own Realms” (p14). Tick to set your own numbers.",
@@ -1868,6 +1877,10 @@
         "tidy": "Tidy the Realm",
         "reroll": "Reroll the Realm",
         "appearance": "Realm Appearance"
+      },
+      "brushes": {
+        "terrain": "Paint terrain",
+        "river": "Draw rivers"
       },
       "readout": {
         "seat": "{name}, Seat of Power",
@@ -1928,7 +1941,14 @@
       "panel": {
         "title": "Realm",
         "missing": "This Scene isn’t a Realm any more.",
-        "brushHint": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain.",
+        "brushHint": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain. Choose River, at the foot, to draw rivers instead.",
+        "river": "River",
+        "riverHint": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Shift-click a hex of a river to cut it back to there from the nearer end.",
+        "riverLength": "One river runs through {count} hexes.",
+        "riversLength": "{rivers} rivers run through {count} hexes.",
+        "noRiver": "This Realm has no river.",
+        "clearRiver": "Remove the river",
+        "clearRivers": "Remove every river",
         "terrain": "Terrain",
         "feature": "In this hex",
         "kinds": {
@@ -2080,6 +2100,86 @@
         "applied": "{name} is being redrawn in the new look.",
         "appliedDefault": "New Realms will start with this look."
       }
+    },
+    "realmDrawing": {
+      "title": "Creating a Realm",
+      "intro": "Players get a copy of the map with Holdings and general terrain marked. They cannot see Myths, Landmarks, and Barriers.",
+      "inspectHint": "Click a hex, then set it in the Hex panel.",
+      "groups": {
+        "wilderness": "Wilderness",
+        "holdings": "Holdings",
+        "myths": "Myth Hexes",
+        "landmarks": "Landmarks"
+      },
+      "sections": {
+        "terrain": {
+          "text": "Draw clusters of d12 hexes of the same terrain type."
+        },
+        "barriers": {
+          "text": "Draw thick outlines for Barriers around the outside of 1-in-6 Hexes. Travel through a Barrier is not possible by normal means."
+        },
+        "river": {
+          "text": "Draw navigable river passing through the Realm and a few large lakes spanning whole or multiple Hexes."
+        },
+        "holdings": {
+          "text": "Draw 4 Holdings a good distance apart, typically castles, walled towns, fortresses, or towers, held by Knights or influential Vassals. Designate one Holding as the Seat of Power."
+        },
+        "myths": {
+          "text": "Mark 6 Myths (p27) in remote places. Number them 1-6 on the map."
+        },
+        "landmarks": {
+          "text": "Draw 3 or 4 of each type of Landmark. Mark them with their initial or an icon.",
+          "lines": {
+            "dwelling": {
+              "label": "Dwellings",
+              "text": "Humble homes amid the wilds."
+            },
+            "sanctum": {
+              "label": "Sanctums",
+              "text": "Each the sacred home to a Seer. Roll on the Knight table (p26) to find which Seer lives at each Sanctum."
+            },
+            "monument": {
+              "label": "Monuments",
+              "text": "Sites of inspiration. Travellers may spend a Phase to restore SPI here as if they were consuming a Sacrament."
+            },
+            "hazard": {
+              "label": "Hazards",
+              "text": "Nature fights your every step. Devise a solution, push through (lose d6 VIG), or go back the way you came."
+            },
+            "curse": {
+              "label": "Curses",
+              "text": "Blights on the land that throw you off course. If you travel in the next Phase it counts as travelling blind (p18)."
+            },
+            "ruin": {
+              "label": "Ruins",
+              "text": "Remnants of the past echo the future. These hint at a random Myth not currently active in the Realm, though it may return."
+            }
+          }
+        }
+      },
+      "tally": {
+        "terrain": "{count} of {target} hexes painted",
+        "barriers": "{count} of {target} Barriers",
+        "river": "A river {count} hexes long",
+        "rivers": "{rivers} rivers through {count} hexes",
+        "riverNone": "No river yet",
+        "holdings": "{count} of {target} Holdings",
+        "seat": "A Seat of Power",
+        "seatNone": "No Seat of Power yet",
+        "seatMany": "{count} Seats of Power, where the sheet has one",
+        "myths": "{count} of {target} Myths",
+        "landmark": "{type}: {count} of {min}-{max}"
+      },
+      "finish": {
+        "button": "Finish the Realm",
+        "hint": "Done drawing: bring back Travel and Exploration and whisper the GMs the Realm's key.",
+        "title": "Finish the Realm",
+        "short": "This Realm has less than the Blank Realm sheet asks for:",
+        "anyway": "The sheet is a guide, and its rules can be bent or broken (p14). Finish the Realm as it is?",
+        "done": "{name} is drawn. Travel and Exploration are back beside the map."
+      },
+      "credit": "Creating a Realm, as printed on the free Blank Realm sheet by Chris McDowall, Bastionland Press (p14). Run Import PDF to read the rulebook’s own page here.",
+      "bookCredit": "Creating a Realm, read from your copy of the rulebook by Chris McDowall, Bastionland Press (p14)."
     },
     "travelRules": {
       "titles": {

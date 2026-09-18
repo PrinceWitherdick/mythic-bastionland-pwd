@@ -17,6 +17,7 @@ import { realmTextures } from "../rules/realm-documents.js";
 import {
 	FEATURE_KINDS,
 	barrierState,
+	clearRiver,
 	editFeature,
 	nextBarrierState,
 	paintTerrain,
@@ -42,7 +43,7 @@ const whole = (value) => (value === "" || value === null || !Number.isFinite(Num
 /**
  * The GM's window for one hex of a Realm: its terrain, the Holding, Myth or
  * Landmark in it, its Barriers, and a Wilderness Roll there. With the terrain
- * brush it shows the palette to paint with instead.
+ * brush it shows the palette to paint with instead, the river among it.
  */
 export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -54,6 +55,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		form: { handler: RealmPanel.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			pickTerrain: RealmPanel.#onPickTerrain,
+			pickRiver: RealmPanel.#onPickRiver,
 			rollMyth: RealmPanel.#onRollMyth,
 			rollSeer: RealmPanel.#onRollSeer,
 			omenStep: RealmPanel.#onOmenStep,
@@ -63,7 +65,8 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			redo: RealmPanel.#onRedo,
 			wilderness: RealmPanel.#onWilderness,
 			lore: RealmPanel.#onLore,
-			company: RealmPanel.#onCompany
+			company: RealmPanel.#onCompany,
+			clearRiver: RealmPanel.#onClearRiver
 		}
 	};
 
@@ -73,6 +76,9 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** The terrain the brush paints, 1-12. */
 	static brush = 5;
+
+	/** Whether the brush draws the river instead of painting terrain. */
+	static river = false;
 
 	/** @type {string|null} */
 	sceneId = null;
@@ -110,14 +116,23 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 		if (this.mode === "terrain" || !this.hex) {
 			const textures = realmTextures(getRealmLook(scene));
+			const { rivers } = realm;
+			const count = new Set(rivers.flat().map(hexKey)).size;
 			return Object.assign(context, {
 				terrainMode: true,
 				terrains: TERRAIN.map((key, index) => ({
 					value: index + 1,
 					label: t(`realm.terrain.${key}`),
 					src: textures.terrain[index + 1].src,
-					active: index + 1 === RealmPanel.brush
-				}))
+					active: !RealmPanel.river && index + 1 === RealmPanel.brush
+				})),
+				river: {
+					src: textures.river.straight.src,
+					active: RealmPanel.river,
+					none: count === 0,
+					length: !count ? t("realm.panel.noRiver") : rivers.length > 1 ? t("realm.panel.riversLength", { rivers: rivers.length, count }) : t("realm.panel.riverLength", { count }),
+					clear: t(rivers.length > 1 ? "realm.panel.clearRivers" : "realm.panel.clearRiver")
+				}
 			});
 		}
 
@@ -228,8 +243,12 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {RealmPanel} */
 	static #onPickTerrain(_event, target) {
-		RealmPanel.brush = whole(target.dataset.terrain) ?? RealmPanel.brush;
-		return this.render();
+		setRealmBrush(whole(target.dataset.terrain) ?? "terrain");
+	}
+
+	/** @this {RealmPanel} */
+	static #onPickRiver() {
+		setRealmBrush("river");
 	}
 
 	/**
@@ -307,6 +326,11 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onCompany() {
 		return companyHere(this.scene, this.hex);
 	}
+
+	/** @this {RealmPanel} */
+	static #onClearRiver() {
+		return editRealm(this.scene, clearRiver);
+	}
 }
 
 /** @type {RealmPanel|null} */
@@ -327,6 +351,17 @@ export function openRealmPanel({ scene, hex = null, mode = "hex" }) {
 	panel.mode = mode;
 	panel.render({ force: true });
 	return panel;
+}
+
+/**
+ * Pick what the Paint terrain tool lays.
+ * @param {number|"terrain"|"river"} brush A terrain, 1-12; "terrain" for the one last painted with; or "river".
+ */
+export function setRealmBrush(brush) {
+	RealmPanel.river = brush === "river";
+	if (Number.isInteger(brush)) RealmPanel.brush = brush;
+	if (panel?.rendered && panel.mode === "terrain") panel.render();
+	canvas.realm?.redrawTool();
 }
 
 /**

@@ -17,7 +17,16 @@
 			<span>{{value}}. {{label}}</span>
 		</button>
 		{{/each}}
+		<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--river {{#if river.active}}is-active{{/if}}" data-action="pickRiver" aria-pressed="{{#if river.active}}true{{else}}false{{/if}}">
+			<img src="{{river.src}}" alt="" inert>
+			<span>{{localize "bastionland.realm.panel.river"}}</span>
+		</button>
 	</div>
+	{{#if river.active}}
+	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.riverHint"}}</p>
+	<p class="bastionland-realm-panel__river">{{river.length}}</p>
+	<button type="button" data-action="clearRiver" {{disabled river.none}}><i class="fa-solid fa-trash" inert></i> {{river.clear}}</button>
+	{{/if}}
 	{{/if}}
 
 	{{#if hexMode}}

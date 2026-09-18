@@ -10,7 +10,7 @@ import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
 import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
 import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, REALM_BRUSHES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
 import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
@@ -31,6 +31,7 @@ import { STRUCTURE_KINDS } from "../module/rules/structures.js";
 import { COMPANY_STARTS } from "../module/rules/company.js";
 import { HEX_PROMPT_MODES } from "../module/rules/hex-lore.js";
 import { TOOLKIT_TABS } from "../module/rules/gm-toolkit.js";
+import { DRAWING_RULES } from "../module/rules/realm-drawing.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 
@@ -163,6 +164,7 @@ describe("localization", () => {
 		...["once", "many"].map((count) => `gmToolkit.visits.${count}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
+		...REALM_BRUSHES.map((brush) => `realm.brushes.${brush}`),
 		...["map", ...SETUP_PARTS].map((part) => `realm.setup.parts.${part}`),
 		...["cols", "rows", "cluster", "lakes"].map((field) => `realm.setup.fields.${field}`),
 		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),
@@ -176,6 +178,13 @@ describe("localization", () => {
 		...["none", ...FEATURE_KINDS].map((kind) => `realm.panel.kinds.${kind}`),
 		...BARRIER_STATES.map((state) => `realm.panel.barrier.${state}`),
 		...DIRECTIONS.map((direction) => `realm.directions.${direction}`),
+		...DRAWING_RULES.map((group) => `realmDrawing.groups.${group.key}`),
+		...DRAWING_RULES.flatMap((group) => group.sections.flatMap(({ key, lines = [] }) => [
+			"text",
+			...lines.flatMap((line) => [`lines.${line}.label`, `lines.${line}.text`])
+		].map((part) => `realmDrawing.sections.${key}.${part}`))),
+		...["intro", "credit", "bookCredit", "inspectHint"].map((key) => `realmDrawing.${key}`),
+		...["terrain", "barriers", "river", "rivers", "riverNone", "holdings", "seat", "seatNone", "seatMany", "myths", "landmark"].map((key) => `realmDrawing.tally.${key}`),
 		...["fold", "unfold", "page"].map((key) => `travelRules.${key}`),
 		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
