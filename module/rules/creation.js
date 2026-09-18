@@ -3,6 +3,7 @@
  * functions, so the Knight chooser's choices can be tested without Foundry.
  */
 import { RANKS } from "./glory.js";
+import { formatStatLine } from "./stat-blocks.js";
 import { escapeHTML } from "./text.js";
 import { VIRTUES } from "./virtues.js";
 
@@ -47,6 +48,39 @@ export function knightTypeFromName(name) {
 }
 
 /**
+ * What the book says of a Seer, for the Seer page of their Knight's sheet:
+ * their stat line, then each trait as a bullet.
+ * @param {{stats?: object|null, lines?: string[]|null}|null} seer From the art index.
+ * @param {Record<string, string>} [labels] For formatStatLine.
+ * @returns {string} HTML, or "" when Import PDF couldn't read their text.
+ */
+export function seerInfo(seer, labels) {
+	const stats = formatStatLine(seer?.stats ?? null, labels);
+	const lines = (seer?.lines ?? []).filter(Boolean);
+	return [
+		stats ? `<p><strong>${escapeHTML(stats)}</strong></p>` : "",
+		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : ""
+	].join("");
+}
+
+/**
+ * The Seer who knighted a Knight, found in the art index by the Seer's name,
+ * or else by the Knight's own roll, since each Seer shares their Knight's page.
+ * @param {object|null} index The art index.
+ * @param {{seer: string, knightType: string}} knight
+ * @returns {object|null} The Seer's entry.
+ */
+export function seerForKnight(index, { seer = "", knightType = "" }) {
+	const seers = index?.seers ?? [];
+	const named = String(seer).trim().toLowerCase();
+	const byName = named && seers.find((entry) => entry.name?.trim().toLowerCase() === named);
+	if (byName) return byName;
+	const type = String(knightType).trim().toLowerCase();
+	const knight = type && (index?.knights ?? []).find((entry) => entry.name && knightTypeFromName(entry.name).toLowerCase() === type);
+	return (knight && seers.find((entry) => entry.roll === knight.roll)) || null;
+}
+
+/**
  * Knights other characters already are, so the chooser can steer each player
  * to a different one.
  * @param {{id: string, name: string, knightType: string}[]} knights Knight actors in the world.
@@ -79,9 +113,10 @@ export function takenKnights(knights, entries, exceptId = null) {
  * @param {number|null} [choice.guard]
  * @param {object|null} [choice.knight]      A Knight from the art index.
  * @param {object|null} [choice.seer]        Their Seer from the art index.
+ * @param {Record<string, string>} [choice.statLabels] For the Seer's stat line.
  * @returns {object}
  */
-export function knightUpdate({ start, virtues = {}, guard = null, knight = null, seer = null }) {
+export function knightUpdate({ start, virtues = {}, guard = null, knight = null, seer = null, statLabels }) {
 	const update = { "system.age": start.age, "system.glory": start.glory };
 	for (const key of VIRTUES) {
 		const value = virtues[key];
@@ -96,6 +131,9 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 	if (knight) {
 		update["system.knightType"] = knightTypeFromName(knight.name);
 		update["system.seer"] = seer?.name ?? "";
+		// The Knight's notes on their Seer stay; what the book says follows the new Seer.
+		update["system.seerImg"] = seer?.path ?? "";
+		update["system.seerInfo"] = seerInfo(seer, statLabels);
 		if (knight.path) update.img = knight.path;
 		if (knight.token) update["prototypeToken.texture.src"] = knight.token;
 	}

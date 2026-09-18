@@ -30,6 +30,7 @@
       "tabs": {
         "label": "Sheet pages",
         "knight": "Knight",
+        "seer": "Seer",
         "chronicle": "Chronicle"
       },
       "current": "Current",
@@ -238,6 +239,19 @@
       "noLegacy": "Legacy: no successor named, so no Glory passes on.",
       "legacy": "Legacy: {name} gains {amount} Glory, half of theirs.",
       "heirLine": "{name}: {line}"
+    },
+    "seer": {
+      "label": "Seer",
+      "unnamed": "Write the Seer who knighted them on the Knight page, beside “Knighted by”, or read them in from the book.",
+      "squire": "A Squire isn’t a Knight yet (p7). Once a Seer knights them, write the Seer’s name beside “Knighted by” on the Knight page.",
+      "portrait": "Choose the Seer’s picture",
+      "info": "What the book says",
+      "notes": "Notes",
+      "fromBook": "From the book",
+      "fromBookHint": "Fill in the Seer’s name, picture and stat block from Import PDF, found by the Seer’s name or the Knight’s. Notes are left alone.",
+      "replaceInfo": "Replace this Seer’s portrait and what’s written under “What the book says” with the book’s for {seer}?",
+      "noIndex": "Run the Import PDF macro first to read the Seers in from your copy of the book.",
+      "notFound": "No Seer in the book matches this Knight. Check the name beside “Knighted by” or “Known as the ___ Knight”."
     },
     "squire": {
       "label": "Squire",

@@ -50,6 +50,18 @@ export function parseStatLine(text) {
 }
 
 /**
+ * A stat line the way the book prints one, such as "VIG 12, CLA 9, SPI 14, 5GD".
+ * @param {Stats|null} stats
+ * @param {Record<string, string>} [labels] Each Virtue's abbreviation, and GD's as `guard`.
+ * @returns {string|null}
+ */
+export function formatStatLine(stats, labels = { vig: "VIG", cla: "CLA", spi: "SPI", guard: "GD" }) {
+	if (!stats) return null;
+	const virtues = VIRTUES.filter((key) => Number.isInteger(stats[key])).map((key) => `${labels[key]} ${stats[key]}`);
+	return [...virtues, `${stats.guard}${labels.guard}`].join(", ");
+}
+
+/**
  * "The Wyvern, That Foul Twisted Reptile" is named "The Wyvern", with the rest
  * as their epithet.
  * @param {string} full

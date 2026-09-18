@@ -6,6 +6,8 @@ import {
 	knightItems,
 	knightTypeFromName,
 	knightUpdate,
+	seerForKnight,
+	seerInfo,
 	startFor,
 	takenKnights
 } from "../../module/rules/creation.js";
@@ -22,7 +24,15 @@ const lantern = {
 	ability: { name: "Snuff Out", text: "Put out every flame you can see <at once>." },
 	passion: { name: "Vigil", text: "Restore SPI when you keep watch all night." }
 };
-const glassSeer = { roll: "1-01", name: "The Glass Seer", path: "mythic-bastionland-art/seers/1-01-glass-seer.webp" };
+const glassSeer = {
+	roll: "1-01",
+	name: "The Glass Seer",
+	path: "mythic-bastionland-art/seers/1-01-glass-seer.webp",
+	stats: { vig: 8, cla: 13, spi: 16, guard: 3 },
+	lines: ["Sees through <anything> made by hands.", "Wants the Lantern returned."]
+};
+const glassInfo = "<p><strong>VIG 8, CLA 13, SPI 16, 3GD</strong></p>"
+	+ "<ul><li>Sees through &lt;anything&gt; made by hands.</li><li>Wants the Lantern returned.</li></ul>";
 
 describe("STARTS", () => {
 	it("lists Wanderer, Courtier and Ruler, each reaching its Rank", () => {
@@ -84,6 +94,8 @@ describe("knightUpdate", () => {
 			"system.guard.max": 7,
 			"system.knightType": "Lantern",
 			"system.seer": "The Glass Seer",
+			"system.seerImg": glassSeer.path,
+			"system.seerInfo": glassInfo,
 			img: lantern.path,
 			"prototypeToken.texture.src": lantern.token
 		});
@@ -91,7 +103,7 @@ describe("knightUpdate", () => {
 
 	it("keeps the actor's picture when the Knight has no imported portrait", () => {
 		const update = knightUpdate({ start: startFor("wanderer"), knight: { roll: "1-02", name: "The Bell Knight", path: null } });
-		expect(update).toMatchObject({ "system.knightType": "Bell", "system.seer": "" });
+		expect(update).toMatchObject({ "system.knightType": "Bell", "system.seer": "", "system.seerImg": "", "system.seerInfo": "" });
 		expect(update).not.toHaveProperty("img");
 		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
 	});
@@ -109,6 +121,44 @@ describe("knightUpdate", () => {
 			"system.virtues.vig.value": 11,
 			"system.virtues.vig.max": 11
 		});
+	});
+});
+
+describe("seerInfo", () => {
+	it("gives the stat line, then each trait as a bullet", () => {
+		expect(seerInfo(glassSeer)).toBe(glassInfo);
+	});
+
+	it("keeps a Seer with only GD, or only traits", () => {
+		expect(seerInfo({ stats: { vig: null, cla: null, spi: null, guard: 4 }, lines: [] })).toBe("<p><strong>4GD</strong></p>");
+		expect(seerInfo({ stats: null, lines: ["Speaks only in riddles."] })).toBe("<ul><li>Speaks only in riddles.</li></ul>");
+	});
+
+	it("is blank when the text wasn't read", () => {
+		expect(seerInfo(null)).toBe("");
+		expect(seerInfo({ stats: null, lines: null })).toBe("");
+	});
+});
+
+describe("seerForKnight", () => {
+	const index = {
+		knights: [lantern, { roll: "1-02", name: "The Bell Knight" }],
+		seers: [glassSeer, { roll: "1-02", name: "The Salt Seer" }]
+	};
+
+	it("finds the Seer by name", () => {
+		expect(seerForKnight(index, { seer: " the salt seer ", knightType: "Lantern" }).roll).toBe("1-02");
+	});
+
+	it("falls back on the Knight's own roll", () => {
+		expect(seerForKnight(index, { seer: "", knightType: "lantern" })).toBe(glassSeer);
+		expect(seerForKnight(index, { seer: "Someone Else", knightType: "Bell" }).name).toBe("The Salt Seer");
+	});
+
+	it("finds nobody without a match or an index", () => {
+		expect(seerForKnight(index, { seer: "", knightType: "" })).toBeNull();
+		expect(seerForKnight(index, { seer: "Nobody", knightType: "Candle" })).toBeNull();
+		expect(seerForKnight(null, { seer: "The Glass Seer", knightType: "Lantern" })).toBeNull();
 	});
 });
 

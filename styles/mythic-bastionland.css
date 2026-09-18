@@ -1443,6 +1443,52 @@
 	min-height: 12rem;
 }
 
+/* The Seer page: their picture, what the book says, then the Knight's notes, filling the rest. */
+.bastionland-page > .tab.active[data-tab="seer"] {
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.bastionland-seer .bastionland-block__header .bastionland-button {
+	flex: 0 0 auto;
+}
+
+/* The book prints each Seer as a wide banner across their Knight's page. */
+.bastionland-seer__portrait {
+	margin: 0.4rem 0 0;
+}
+
+/* Sized to the picture itself, so the frame hugs it. */
+.bastionland-seer__portrait img {
+	display: block;
+	width: auto;
+	max-width: 100%;
+	max-height: 18rem;
+	margin: 0 auto;
+	border: none;
+	box-shadow: none;
+}
+
+.bastionland-seer__portrait img[data-action] {
+	cursor: pointer;
+}
+
+.bastionland-seer__pick {
+	width: 100%;
+	min-height: 5rem;
+	border: 1px dashed var(--bastionland-rule);
+	background: transparent;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+}
+
+.bastionland-page .bastionland-seer__info prose-mirror,
+.bastionland-page .bastionland-seer__info > .editor-content {
+	min-height: 4rem;
+}
+
 /* ---------------------------------------------------------------- */
 /* Rich text                                                        */
 /* ---------------------------------------------------------------- */

@@ -1,3 +1,4 @@
+import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -37,6 +38,17 @@ export async function postCard(actor, template, context, { rolls = [], mode, fla
 export function t(key, data) {
 	const path = `bastionland.${key}`;
 	return data ? game.i18n.format(path, data) : game.i18n.localize(path);
+}
+
+/**
+ * Each Virtue's abbreviation, and GD's as `guard`, for formatStatLine.
+ * @returns {Record<string, string>}
+ */
+export function statLabels() {
+	return {
+		...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.abbr`)])),
+		guard: t("guard.abbr")
+	};
 }
 
 /**

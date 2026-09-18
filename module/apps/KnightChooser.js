@@ -1,5 +1,5 @@
 import { findByRoll } from "../book-art/art-index.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, statLabels, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { spreads } from "../rules/book-art.js";
 import {
@@ -216,7 +216,8 @@ export class KnightChooser extends BastionlandChooser {
 			virtues: this.#scores,
 			guard: this.#scores.guard,
 			knight: entry.knight,
-			seer: entry.seer
+			seer: entry.seer,
+			statLabels: statLabels()
 		});
 		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
 		const items = knightItems(entry.knight, kitNames);

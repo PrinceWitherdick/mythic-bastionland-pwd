@@ -43,7 +43,7 @@
   "documentTypes": {
     "Actor": {
       "knight": {
-        "htmlFields": ["notes"]
+        "htmlFields": ["notes", "seerInfo", "seerNotes"]
       },
       "npc": {
         "htmlFields": ["notes"]

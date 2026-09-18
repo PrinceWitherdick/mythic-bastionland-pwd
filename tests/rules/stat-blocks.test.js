@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	countsAsHeftyMounted,
 	featsNamed,
+	formatStatLine,
 	isStructureBlock,
 	npcFromStatBlock,
 	parseArmour,
@@ -35,6 +36,18 @@ describe("parseStatLine", () => {
 		expect(parseStatLine("Riding goose (VIG 7, CLA 6, SPI 6, 5GD)")).toBeNull();
 		expect(parseStatLine("2 javelins (d6)")).toBeNull();
 		expect(parseStatLine(undefined)).toBeNull();
+	});
+});
+
+describe("formatStatLine", () => {
+	it("prints stats the way the book does", () => {
+		expect(formatStatLine({ vig: 12, cla: 9, spi: 14, guard: 5 })).toBe("VIG 12, CLA 9, SPI 14, 5GD");
+		expect(formatStatLine({ vig: null, cla: null, spi: null, guard: 3 })).toBe("3GD");
+		expect(formatStatLine(null)).toBeNull();
+	});
+
+	it("takes other labels", () => {
+		expect(formatStatLine({ vig: 1, cla: 2, spi: 3, guard: 4 }, { vig: "V", cla: "C", spi: "S", guard: " Garde" })).toBe("V 1, C 2, S 3, 4 Garde");
 	});
 });
 

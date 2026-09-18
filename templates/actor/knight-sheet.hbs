@@ -294,6 +294,47 @@
 		</div>
 	</div>
 
+	<div class="tab {{tabs.seer.cssClass}}" data-group="primary" data-tab="seer">
+		<section class="bastionland-block bastionland-seer">
+			<header class="bastionland-block__header">
+				<h2 class="bastionland-heading">{{#if system.seer}}{{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
+				{{#if editable}}
+				<button type="button" class="bastionland-button" data-action="readSeer" data-tooltip="{{localize 'bastionland.seer.fromBookHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.seer.fromBook"}}</button>
+				{{/if}}
+			</header>
+			{{#if (or system.seerImg editable)}}
+			<figure class="bastionland-seer__portrait">
+				{{#if system.seerImg}}
+				<img src="{{system.seerImg}}" alt="{{system.seer}}" {{#if editable}}data-action="pickSeerImage" data-tooltip="{{localize 'bastionland.seer.portrait'}}"{{/if}}>
+				{{else}}
+				<button type="button" class="bastionland-seer__pick" data-action="pickSeerImage"><i class="fa-solid fa-image" inert></i> {{localize "bastionland.seer.portrait"}}</button>
+				{{/if}}
+			</figure>
+			{{/if}}
+			{{#unless system.seer}}
+			<p class="bastionland-hint">{{localize (ifThen isSquire "bastionland.seer.squire" "bastionland.seer.unnamed")}}</p>
+			{{/unless}}
+		</section>
+
+		<section class="bastionland-block bastionland-seer__info">
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.seer.info"}}</h2>
+			{{#if editable}}
+			<prose-mirror name="system.seerInfo" value="{{system.seerInfo}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedSeerInfo}}}</prose-mirror>
+			{{else}}
+			<div class="editor-content">{{{enrichedSeerInfo}}}</div>
+			{{/if}}
+		</section>
+
+		<section class="bastionland-block bastionland-chronicle">
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.seer.notes"}}</h2>
+			{{#if editable}}
+			<prose-mirror name="system.seerNotes" value="{{system.seerNotes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedSeerNotes}}}</prose-mirror>
+			{{else}}
+			<div class="editor-content">{{{enrichedSeerNotes}}}</div>
+			{{/if}}
+		</section>
+	</div>
+
 	<div class="tab {{tabs.chronicle.cssClass}}" data-group="primary" data-tab="chronicle">
 		<section class="bastionland-block bastionland-chronicle">
 			<h2 class="bastionland-heading">{{localize "bastionland.sheet.chronicle"}}</h2>

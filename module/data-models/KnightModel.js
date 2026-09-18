@@ -1,7 +1,7 @@
 import { AGES } from "../config.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { conditionsFor } from "../rules/virtues.js";
-import { booleanField, characterFields, countField, textField } from "./fields.js";
+import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -13,6 +13,10 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			knightType: textField(),
 			// The Seer who granted their Knighthood.
 			seer: textField(),
+			// The Seer's portrait, what the book says of them, and what the Knight has learned of them since.
+			seerImg: textField(),
+			seerInfo: htmlField(),
+			seerNotes: htmlField(),
 			// "Their ultimate fate was ___"
 			fate: textField(),
 			// The shield painted at the top of the sheet: an uploaded file's path, or a data URL for users who can't upload.

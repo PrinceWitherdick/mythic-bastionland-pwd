@@ -3,10 +3,12 @@ import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dom
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
+import { readSeerFromBook } from "../actions/seers.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
+import { filePicker } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
@@ -37,6 +39,8 @@ export class KnightSheet extends BastionlandActorSheet {
 			openSuccessor: KnightSheet.#onOpenSuccessor,
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
+			readSeer: KnightSheet.#onReadSeer,
+			pickSeerImage: KnightSheet.#onPickSeerImage,
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood
 		}
@@ -56,6 +60,7 @@ export class KnightSheet extends BastionlandActorSheet {
 			initial: "knight",
 			tabs: [
 				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight" },
+				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer" },
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" }
 			]
 		}
@@ -79,6 +84,7 @@ export class KnightSheet extends BastionlandActorSheet {
 		const successor = heirOf(this.actor);
 		// Only small Companies may take Squires (p7): say so before anyone asks, and leave the Referee a way round it.
 		const companyCount = companySizeNow();
+		const [enrichedSeerInfo, enrichedSeerNotes] = await Promise.all([this._enrich(system.seerInfo), this._enrich(system.seerNotes)]);
 		const tooLargeForSquires = !system.isSquire && !squire && !mayTakeSquires(companyCount);
 
 		return Object.assign(context, {
@@ -126,7 +132,9 @@ export class KnightSheet extends BastionlandActorSheet {
 					.map((item) => `${item.name} ${item.system.damage}`)
 					.join(", ")
 			},
-			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) }))
+			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
+			enrichedSeerInfo,
+			enrichedSeerNotes
 		});
 	}
 
@@ -291,6 +299,21 @@ export class KnightSheet extends BastionlandActorSheet {
 		// Loaded on first use: the painter and its gallery of charges are large, and most sessions never open them.
 		const { openHeraldryPainter } = await import("../apps/HeraldryPainter.js");
 		return openHeraldryPainter(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onReadSeer() {
+		return readSeerFromBook(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onPickSeerImage() {
+		const picker = new (filePicker())({
+			type: "image",
+			current: this.actor.system.seerImg,
+			callback: (path) => this.actor.update({ "system.seerImg": path })
+		});
+		return picker.render({ force: true });
 	}
 
 	/** @this {KnightSheet} */

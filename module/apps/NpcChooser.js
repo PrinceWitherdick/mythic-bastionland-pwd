@@ -1,10 +1,10 @@
 import { actorData, applyNpcData, applyStructureData, npcData } from "../actions/npc.js";
 import { findByRoll } from "../book-art/art-index.js";
-import { t } from "../chat/cards.js";
+import { statLabels, t } from "../chat/cards.js";
 import { NPC_SOURCES } from "../config.js";
 import { CITY_QUEST_TEXT_VERSION, MYTH_TEXT_VERSION, spreads } from "../rules/book-art.js";
 import { CITY_QUEST_PAGES } from "../rules/city-quest.js";
-import { VIRTUES } from "../rules/virtues.js";
+import { formatStatLine } from "../rules/stat-blocks.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { confirmDialog } from "./ui.js";
@@ -18,9 +18,7 @@ const CITY_QUEST_ROLL = "city";
  * @returns {string|null}
  */
 function statLine(stats) {
-	if (!stats) return null;
-	const virtues = VIRTUES.filter((key) => Number.isInteger(stats[key])).map((key) => `${t(`virtues.${key}.abbr`)} ${stats[key]}`);
-	return [...virtues, `${stats.guard}${t("guard.abbr")}`].join(", ");
+	return formatStatLine(stats, statLabels());
 }
 
 /**
