@@ -88,6 +88,33 @@
 	color: var(--bastionland-ink);
 }
 
+/* The Knight sheet's Domain button carries a label, where Foundry's header
+   controls are bare icons. */
+.bastionland-sheet .window-header button.bastionland-open-domain {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.35rem;
+	width: auto;
+	max-width: 14rem;
+	padding: 0 0.5rem;
+	font-size: var(--font-size-12);
+	white-space: nowrap;
+}
+
+.bastionland-sheet .window-header button.bastionland-open-domain[hidden] {
+	display: none;
+}
+
+.bastionland-open-domain span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.bastionland-open-domain--unset {
+	opacity: 0.6;
+}
+
 .bastionland-page {
 	container-type: inline-size;
 	display: flex;

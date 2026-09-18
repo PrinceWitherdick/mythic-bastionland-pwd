@@ -5,6 +5,7 @@ import {
 	crisesDrawn,
 	crisisFor,
 	crisisResult,
+	domainRuledBy,
 	dramaResult,
 	isMisruleDue,
 	musterFor
@@ -45,5 +46,18 @@ describe("Authority", () => {
 	it("musters 3 Warbands from a Seat of Power and 2 from any other Holding", () => {
 		expect(musterFor(true)).toBe(3);
 		expect(musterFor(false)).toBe(2);
+	});
+});
+
+describe("domainRuledBy", () => {
+	const domains = [{ name: "Hollowmere", system: { ruler: "" } }, { name: "Ashford", system: { ruler: " Sir Brand " } }];
+
+	it("finds the Domain whose ruler is written as the Knight's name, ignoring case and space", () => {
+		expect(domainRuledBy(domains, "sir brand")?.name).toBe("Ashford");
+	});
+
+	it("finds nothing for a Knight nobody names, or a Knight with no name", () => {
+		expect(domainRuledBy(domains, "Dame Wren")).toBeNull();
+		expect(domainRuledBy(domains, "  ")).toBeNull();
 	});
 });

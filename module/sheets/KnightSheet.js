@@ -1,4 +1,5 @@
 import { getCalendar } from "../actions/calendar.js";
+import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { knightSquire, takeSquire } from "../actions/squires.js";
 import { changeAge } from "../actions/time.js";
@@ -27,7 +28,8 @@ export class KnightSheet extends BastionlandActorSheet {
 			knightSquire: KnightSheet.#onKnightSquire,
 			openSquire: KnightSheet.#onOpenSquire,
 			clearSquire: KnightSheet.#onClearSquire,
-			paintHeraldry: KnightSheet.#onPaintHeraldry
+			paintHeraldry: KnightSheet.#onPaintHeraldry,
+			openDomain: KnightSheet.#onOpenDomain
 		}
 	};
 
@@ -49,6 +51,9 @@ export class KnightSheet extends BastionlandActorSheet {
 			]
 		}
 	};
+
+	/** Marks the Domain button in the window header. */
+	static DOMAIN_BUTTON = "bastionland-open-domain";
 
 	static PREVIEWED_ART = ".bastionland-portrait img[data-name]";
 
@@ -122,6 +127,39 @@ export class KnightSheet extends BastionlandActorSheet {
 		const gambits = this.element.querySelector(".bastionland-gambits-reference");
 		gambits?.addEventListener("toggle", () => (this.#gambitsOpen = gambits.open));
 		placeTabRail(this.element, ".bastionland-header");
+		this.refreshDomainButton();
+	}
+
+	/**
+	 * A button in the window header opens the Domain this Knight rules, the
+	 * way the Stonetop character sheet opens the steading. It reads the
+	 * Domain's name, or just "Domain" while there isn't one.
+	 * @override
+	 */
+	async _renderFrame(options) {
+		const frame = await super._renderFrame(options);
+		const button = frame.ownerDocument.createElement("button");
+		button.type = "button";
+		button.className = `header-control ${KnightSheet.DOMAIN_BUTTON}`;
+		button.dataset.action = "openDomain";
+		const glyph = frame.ownerDocument.createElement("i");
+		glyph.className = "fa-solid fa-chess-rook";
+		glyph.inert = true;
+		button.append(glyph, frame.ownerDocument.createElement("span"));
+		frame.querySelector(".window-header [data-action=toggleControls]")?.before(button);
+		return frame;
+	}
+
+	/** Bring the Domain button up to date with the Domain's name, or its absence. */
+	refreshDomainButton() {
+		const button = this.element?.querySelector(`.${KnightSheet.DOMAIN_BUTTON}`);
+		if (!button) return;
+		const domain = knightDomain(this.actor);
+		// A Squire rules nothing, and a player who can't found one has nothing to ask for.
+		button.hidden = this.actor.system.isSquire || (!domain && !this.actor.isOwner);
+		button.classList.toggle(`${KnightSheet.DOMAIN_BUTTON}--unset`, !domain);
+		button.querySelector("span").textContent = domain?.name ?? t("domain.button");
+		button.dataset.tooltip = domain ? t("domain.openHint") : t("domain.foundHint");
 	}
 
 	/**
@@ -157,12 +195,22 @@ export class KnightSheet extends BastionlandActorSheet {
 	}
 
 	/**
-	 * Dropping an NPC from the Actors tab makes it the Knight's steed, and
-	 * dropping a Squire makes them this Knight's Squire.
+	 * Dropping an NPC from the Actors tab makes it the Knight's steed, dropping
+	 * a Squire makes them this Knight's Squire, and dropping a Domain makes it
+	 * the one they rule.
 	 * @override
 	 */
 	async _onDropActor(_event, actor) {
 		if (!this.isEditable || actor.uuid === this.actor.uuid) return null;
+		if (actor.type === "domain") {
+			if (this.actor.system.isSquire) return null;
+			if (actor.pack) {
+				ui.notifications.warn(t("domain.fromDirectory"));
+				return null;
+			}
+			await linkKnightDomain(this.actor, actor);
+			return actor;
+		}
 		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
 		if (actor.type !== "npc" && !squire) return null;
 		if (actor.pack) {
@@ -232,6 +280,11 @@ export class KnightSheet extends BastionlandActorSheet {
 		// Loaded on first use: the painter and its gallery of charges are large, and most sessions never open them.
 		const { openHeraldryPainter } = await import("../apps/HeraldryPainter.js");
 		return openHeraldryPainter(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenDomain() {
+		return openKnightDomain(this.actor);
 	}
 
 	/** @this {KnightSheet} */

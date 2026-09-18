@@ -680,7 +680,19 @@
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
       "designs": "Grand designs: work on existing buildings is done by next Season, a new building takes a Season, and grand projects such as castles and roads take an Age.",
       "succession": "Succession: a ruler usually names their successor, though some Realms leave it to a conclave of Seers or Knights-Elector. Whoever it is faces some resistance.",
-      "notes": "Court & Notes"
+      "notes": "Court & Notes",
+      "button": "Domain",
+      "openHint": "Open the Domain this Knight rules",
+      "foundHint": "This Knight rules no Domain yet. Found one, or drag a Domain here from the Actors tab.",
+      "noneLinked": "{name} rules no Domain yet.",
+      "askTitle": "Found a Domain?",
+      "ask": "{name} rules no Domain yet. Found one for them? It starts with them as its ruler, beside them in the Actors tab.",
+      "askNamed": "{name} rules no Domain yet, but {domain} names them as its ruler. Make it theirs, or found a new Domain?",
+      "linkNamed": "Rule {domain}",
+      "found": "Found a New Domain",
+      "newName": "{knight}’s Domain",
+      "cantCreate": "Founding a Domain creates it, so it needs a user who is allowed to create actors. Ask the Referee, or drag an existing Domain onto this sheet.",
+      "fromDirectory": "Drag the Domain from the Actors tab rather than a compendium."
     },
     "goods": {
       "itemsPack": "Arms & Goods",

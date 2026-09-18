@@ -7,6 +7,7 @@ import {
 	crisesDrawn,
 	crisisFor,
 	crisisResult,
+	domainRuledBy,
 	dramaResult
 } from "../rules/dominion.js";
 import { escapeHTML } from "../rules/text.js";
@@ -202,4 +203,86 @@ export async function settleDomains() {
 	const entries = due.map((domain) => ({ name: domain.name, lines: [t("domain.fellIntoMisrule", { count: domain.system.crises.length })] }));
 	if (due.length) await Actor.implementation.updateDocuments(due.map((domain) => ({ _id: domain.id, "system.misrule": true })));
 	return { entries, hint: domains.length ? t("domain.seasonHint") : null };
+}
+
+/**
+ * @param {Actor} knight
+ * @returns {Actor|null} The Domain this Knight rules, if it still exists.
+ */
+export function knightDomain(knight) {
+	const domain = knight.system.domain ? fromUuidSync(knight.system.domain) : null;
+	return domain?.documentName === "Actor" && domain.type === "domain" ? domain : null;
+}
+
+/**
+ * Make a Domain the one a Knight rules, writing the Knight in as its ruler if
+ * nobody is yet.
+ * @param {Actor} knight
+ * @param {Actor} domain
+ */
+export async function linkKnightDomain(knight, domain) {
+	await knight.update({ "system.domain": domain.uuid });
+	if (!domain.system.ruler.trim() && domain.isOwner) await domain.update({ "system.ruler": knight.name });
+}
+
+/**
+ * Open the Domain a Knight rules. A Knight without one is offered a Domain
+ * already naming them as its ruler, or else a new one, founded beside them in
+ * the Actors directory.
+ * @param {Actor} knight
+ * @returns {Promise<Actor|null>} The Domain.
+ */
+export async function openKnightDomain(knight) {
+	const linked = knightDomain(knight);
+	if (linked) {
+		linked.sheet.render({ force: true });
+		return linked;
+	}
+	const name = escapeHTML(knight.name);
+	if (!knight.isOwner) {
+		ui.notifications.info(t("domain.noneLinked", { name: knight.name }));
+		return null;
+	}
+
+	// Domains other Knights already rule aren't offered.
+	const ruled = new Set(game.actors.filter((actor) => actor.type === "knight" && actor !== knight).map((actor) => actor.system.domain));
+	const named = domainRuledBy(game.actors.filter((actor) => actor.type === "domain" && !ruled.has(actor.uuid)), knight.name);
+
+	let domain = null;
+	if (named) {
+		const choice = await chooseDialog({
+			title: t("domain.askTitle"),
+			icon: "fa-solid fa-chess-rook",
+			message: t("domain.askNamed", { name, domain: escapeHTML(named.name) }),
+			buttons: [
+				{ action: "link", icon: "fa-solid fa-link", label: t("domain.linkNamed", { domain: named.name }), default: true },
+				{ action: "found", icon: "fa-solid fa-chess-rook", label: t("domain.found") }
+			]
+		});
+		if (choice === "link") domain = named;
+		else if (choice !== "found") return null;
+	} else if (!(await confirmDialog({
+		title: t("domain.askTitle"),
+		icon: "fa-solid fa-chess-rook",
+		message: t("domain.ask", { name })
+	}))) return null;
+
+	if (!domain) {
+		if (!game.user.can("ACTOR_CREATE")) {
+			ui.notifications.warn(t("domain.cantCreate"));
+			return null;
+		}
+		// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
+		domain = await Actor.implementation.create({
+			name: t("domain.newName", { knight: knight.name }),
+			type: "domain",
+			folder: knight.folder?.id ?? null,
+			system: { ruler: knight.name },
+			...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
+		});
+		if (!domain) return null;
+	}
+	await linkKnightDomain(knight, domain);
+	domain.sheet.render({ force: true });
+	return domain;
 }

@@ -65,3 +65,20 @@ export const isMisruleDue = (crises) => crises.length >= MISRULE_CRISES;
  * @returns {number} Warbands it can muster.
  */
 export const musterFor = (seat) => (seat ? MUSTER.seat : MUSTER.holding);
+
+/**
+ * @param {string} text
+ * @returns {string} A name, compared without case or surrounding space.
+ */
+const nameKey = (text) => String(text ?? "").trim().toLocaleLowerCase();
+
+/**
+ * @template {{system: {ruler: string}}} T
+ * @param {T[]} domains
+ * @param {string} name A Knight's name.
+ * @returns {T|null} The first Domain whose ruler is written as that name.
+ */
+export function domainRuledBy(domains, name) {
+	const key = nameKey(name);
+	return key ? domains.find((domain) => nameKey(domain.system.ruler) === key) ?? null : null;
+}

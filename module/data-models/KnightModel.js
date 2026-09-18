@@ -25,6 +25,8 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			// A Knight's Squire, or the Knight a Squire serves, by UUID.
 			squire: textField(),
 			serves: textField(),
+			// The UUID of the Domain this Knight rules.
+			domain: textField(),
 			...characterFields(),
 			glory: countField()
 		};

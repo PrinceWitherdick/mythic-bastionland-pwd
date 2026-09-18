@@ -253,6 +253,19 @@ Hooks.once("ready", async () => {
 	]);
 });
 
+/**
+ * The Domain button on a Knight's sheet reads that Domain's name, so it
+ * follows the Domain being renamed or deleted.
+ * @param {Actor} actor
+ */
+const refreshDomainButtons = (actor) => {
+	if (actor.type !== "domain") return;
+	for (const app of foundry.applications.instances.values()) {
+		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshDomainButton();
+	}
+};
+Hooks.on("updateActor", refreshDomainButtons);
+Hooks.on("deleteActor", refreshDomainButtons);
 
 // New Site sits in the Journal directory for GMs, and the rulebook for GMs and
 // for players the GM offers it to.
