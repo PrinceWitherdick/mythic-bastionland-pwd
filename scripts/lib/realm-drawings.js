@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { contrast, mix } from "../../module/rules/colour.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { PICTURE_NAME, realmPalette } from "../../module/rules/realm-skins.js";
-import { INK_CROWN, curvePath, drawInk, inkNumeral } from "./realm-ink.js";
+import { curvePath, drawInk, inkNumeral, inkRing } from "./realm-ink.js";
 
 /** Hex pictures are drawn at three times the size a hex is shown at, so they stay crisp when zoomed. */
 const SCALE = 3;
@@ -30,29 +30,42 @@ const hexPoints = (scale = 1) => [[HEX_W, HEX_H / 2], [0.75 * HEX_W, HEX_H], [0.
 const onColour = (fill, p) => (contrast(fill, p.paper) >= contrast(fill, p.ink) ? p.paper : p.ink);
 
 const FONT = "Georgia, serif";
+/** Georgia's numerals rise and fall about the line, so a Myth's number sits off-centre in it. */
+const NUMERAL_FONT = "'Times New Roman', Times, serif";
 
-/** A few ink marks for each terrain, drawn in a 100 by 100 box. */
+/**
+ * A few ink marks for each terrain, drawn in a 100 by 100 box. A drawing given as several paths is
+ * layered from the back forward, each filled with the hex's own colour, so the trees of a wood stand
+ * in front of one another instead of showing through.
+ */
 const TERRAIN_MARKS = {
 	marsh: "M15 45h22M45 40h20M25 62h25M58 60h24M20 45v-10M52 40v-12M34 62v-9M70 60v-11",
 	heath: "M18 40l6 8 6-8M44 34l6 8 6-8M66 44l6 8 6-8M28 62l6 8 6-8M54 64l6 8 6-8",
 	crag: "M15 70l12-26 10 10 12-24 14 20 8-8 14 28z",
 	peaks: "M10 72l24-44 24 44M40 72l24-40 26 40M28 50l6-6 6 8",
-	forest: "M28 70v-14M50 70v-18M72 70v-14M28 56a10 10 0 1 0 0.1 0M50 52a12 12 0 1 0 0.1 0M72 56a10 10 0 1 0 0.1 0",
+	forest: [
+		"M19 49q-2 -10 8 -14q4 -10 14 -1q13 -4 11 10q6 8 2 14z",
+		"M51 47q-2 -10 8 -14q4 -10 14 -1q13 -4 11 10q6 8 2 14z",
+		"M22 71v-12M8 59q-2 -10 8 -14q4 -9 13 -1q12 -4 10 10q6 8 1 14z",
+		"M78 71v-12M64 59q-2 -10 8 -14q4 -9 13 -1q12 -4 10 10q6 8 1 14z",
+		"M50 73v-13M34 60q-2 -11 9 -16q5 -10 14 -1q14 -4 12 11q6 9 2 16z"
+	],
 	valley: "M12 30c20 10 26 30 30 44M88 30c-20 10-26 30-30 44M40 74h20",
 	hills: "M10 64c14-24 34-24 46 0M46 64c12-18 30-18 44 0",
 	meadow: "M20 70l-4-16M24 70l0-18M28 70l4-16M48 66l-4-16M52 66l0-18M56 66l4-16M74 72l-4-16M78 72l0-18M82 72l4-16",
 	bog: "M16 44h16M40 44h14M62 44h20M24 62h18M50 62h16M72 62h12M30 52h0.1M58 53h0.1M44 72h0.1",
 	lake: "M14 40c8-6 16 6 24 0s16 6 24 0 16 6 24 0M14 56c8-6 16 6 24 0s16 6 24 0 16 6 24 0M24 72c8-6 16 6 24 0s16 6 24 0",
-	glade: "M36 72v-16M36 56a10 10 0 1 0 0.1 0M62 66h0.1M70 60h0.1M66 72h0.1M58 58h0.1",
+	glade: [
+		"M24 61v-12M10 49q-2 -10 8 -14q4 -9 13 -1q12 -4 10 10q6 8 1 14z",
+		"M76 61v-12M62 49q-2 -10 8 -14q4 -9 13 -1q12 -4 10 10q6 8 1 14z",
+		"M34 69h32"
+	],
 	plains: "M30 44h0.1M62 40h0.1M46 60h0.1M72 64h0.1M28 70h0.1"
 };
 
-/** Simple drawings of each Holding, in a 100 by 100 box. */
+/** Simple drawings of a Holding, in a 100 by 100 box. Only the town is drawn by hand; the rest are game-icons.net icons. */
 const HOLDING_MARKS = {
-	castle: "M18 86V40h12v8h8v-8h12v8h8v-8h12v8h8v-8h12v46zM44 86V66a6 6 0 0 1 12 0v20M26 30l6-14 6 14M62 30l6-14 6 14",
-	town: "M14 80c10-24 62-24 72 0zM26 64l8-12 8 12v10H26zM46 58l8-12 8 12v14H46zM62 66l6-10 6 10v8H62z",
-	fortress: "M22 86V36h56v50zM22 36l4-8h48l4 8M32 28v-8h8v8M46 28v-8h8v8M60 28v-8h8v8M42 86V68h16v18",
-	tower: "M38 88V38h24v50zM34 38l16-24 16 24zM46 88V74h8v14M46 52h8v8h-8z"
+	town: "M14 80c10-24 62-24 72 0zM26 64l8-12 8 12v10H26zM46 58l8-12 8 12v14H46zM62 66l6-10 6 10v8H62z"
 };
 
 const LANDMARK_LETTERS = { dwelling: "D", sanctum: "S", monument: "M", hazard: "H", curse: "C", ruin: "R" };
@@ -67,7 +80,42 @@ const LANDMARK_MARKS = {
 	ruin: "M22 84V40h14v44M46 84V56l8-6 6 4v30M70 84V48h10v36M16 84h70"
 };
 
-const CROWN = "M70 200l-10-90 50 40 40-70 40 70 50-40-10 90z";
+/**
+ * Icons from game-icons.net, in a 512 by 512 box, shared under CC BY 3.0: the
+ * Seat of Power's crown, and the castle, tower and fortress Holdings.
+ */
+const GAME_ICONS = Object.freeze({
+	crown: {
+		credit: "Crown icon by Lorc (https://lorcblog.blogspot.com), from game-icons.net, CC BY 3.0.",
+		d: "m408.256 119.46-37.7 52.165 19.57 44.426 34.8-37.214-16.67-59.375zm86.074 12.513L384.44 249.498 334.01 135.02l-75.162 132.947-86.948-131.78-33.334 114.122L17.922 132.83l39.3 127.6c1.945-.348 3.94-.54 5.98-.54 18.812 0 34.26 15.452 34.26 34.262 0 13.823-8.346 25.822-20.235 31.22l5.337 17.33c12.425 25.466 71.863 45.152 176.582 47.206 110.805 2.174 178.12-17.54 189.854-47.207h-.002l4.357-20.26c-16.836-2.114-30.02-16.612-30.02-33.986 0-18.81 15.45-34.262 34.263-34.262 3.513 0 6.91.54 10.11 1.54l26.622-123.762zm-391.77 2.04 1.22 56.337 25.56 24.89 9.592-32.842-36.37-48.386zm150.585 2.91-24.483 51.36 28.955 43.885 24.922-44.08-29.395-51.166zm204.453 135.962c-8.712 0-15.575 6.862-15.575 15.572 0 8.71 6.863 15.574 15.575 15.574s15.572-6.863 15.572-15.573-6.86-15.572-15.572-15.572zM63.2 278.58c-8.71 0-15.573 6.864-15.573 15.574s6.862 15.573 15.574 15.573c8.713 0 15.573-6.862 15.573-15.573 0-8.71-6.86-15.574-15.572-15.574zm130.33 17.842c18.812 0 34.26 15.45 34.26 34.262 0 18.81-15.448 34.26-34.26 34.26-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.26-34.262zm131.234 0c18.812 0 34.26 15.45 34.26 34.262 0 18.81-15.448 34.26-34.26 34.26-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.262-34.262zm-131.235 18.69c-8.713 0-15.573 6.86-15.573 15.572 0 8.71 6.86 15.574 15.572 15.574 8.71 0 15.572-6.864 15.572-15.574s-6.86-15.573-15.573-15.573zm131.234 0c-8.712 0-15.573 6.86-15.573 15.572 0 8.71 6.862 15.574 15.574 15.574s15.574-6.864 15.574-15.574-6.862-15.573-15.574-15.573z"
+	},
+	castle: {
+		credit: "Castle icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
+		d: "m255.95 27.11-75.35 80.504 150.7 1.168-75.35-81.674h-.003zM25 109.895v68.01l19.412 25.99h71.06l19.528-26v-68h-14v15.995h-18v-15.994H89v15.995H71v-15.994H57v15.995H39v-15.994H25zm352 0v68l19.527 26h71.06L487 177.906v-68.01h-14v15.995h-18v-15.994h-14v15.995h-18v-15.994h-14v15.995h-18v-15.994h-14zm-176 15.877V260.89h110V126.63l-110-.857zm55 20.118c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zM41 221.897V484.89h78V221.897H41zm352 0V484.89h78V221.897h-78zM56 241.89c4 0 8 4 8 12v32H48v-32c0-8 4-12 8-12zm400 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12zm-303 37v23h-16v183h87v-55c0-24 16-36 32-36s32 12 32 36v55h87v-183h-16v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14zm-49 43c4 0 8 4 8 12v32H96v-32c0-8 4-12 8-12zm72 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm80 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm80 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm72 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12zm-352 64c4 0 8 4 8 12v32H48v-32c0-8 4-12 8-12zm400 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12z"
+	},
+	tower: {
+		credit: "White Tower icon by Lorc (https://lorcblog.blogspot.com), from game-icons.net, CC BY 3.0.",
+		d: "M97.812 23.375v92.875l46.22 51.72V351h-25.845L94.594 491.906H414.53L390.938 351h-25.875V167.97l46.22-51.72V23.375h-53.938v43.97H324.5v-43.97h-53.938v43.97h-32.437v-43.97h-53.938v43.97H151.75v-43.97H97.812zm73.75 152.875h18.688v50.22h-18.688v-50.22zm73.594 0h18.688v50.22h-18.688v-50.22zm74.156 0H338v50.22h-18.688v-50.22z"
+	},
+	rempart: {
+		credit: "Rempart icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
+		d: "M18 27v467h476V304h-46v64h-80v-64h-64v64h-80v-64h-64v64H80V192h48L18 27zm97 373h18v64h-18v-64zm144 0h18v64h-18v-64zm144 0h18v64h-18v-64z"
+	}
+});
+
+/** The Seat of Power's crown is gold in every colour set, outlined in whatever its badge contrasts with. */
+const CROWN_GOLD = "#c9a227";
+
+/** Gold stands out from anything when it is rimmed in whichever of the paper and ink stands out from gold. */
+const goldRim = (p) => onColour(CROWN_GOLD, p);
+
+/**
+ * @returns {string} The Seat's gold ring about the badge's middle, rimmed as the crown is and left open,
+ *   so the Holding it is pinned above shows through it.
+ */
+const goldRing = (radius, width, rim) =>
+	`<circle cx="150" cy="150" r="${f(radius)}" fill="none" stroke="${rim}" stroke-width="${f(width + 5)}"/>`
+	+ `<circle cx="150" cy="150" r="${f(radius)}" fill="none" stroke="${CROWN_GOLD}" stroke-width="${f(width)}"/>`;
 
 /** A heater shield filling a badge. */
 const SHIELD = "M46 26h208v112c0 84-58 126-104 146C104 264 46 222 46 138z";
@@ -98,13 +146,37 @@ function riverPath(to) {
 /** @returns {string} A mark from a 100 by 100 box, drawn `size` wide with its middle at (x, y). */
 const mark = (d, { x, y, size, stroke, width, fill = "none" }) =>
 	`<g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(size / 100)})">`
-	+ `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${f(width)}" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+	+ [d].flat().map((path) => `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="${f(width)}" stroke-linecap="round" stroke-linejoin="round"/>`).join("")
+	+ "</g>";
 
-const terrainMark = (key, stroke, width, share = 0.62) =>
-	mark(TERRAIN_MARKS[key], { x: HEX_W / 2, y: HEX_H / 2, size: HEX_H * share, stroke, width });
+/**
+ * @returns {string} A game-icons.net icon, credited, drawn `size` wide with its middle at (x, y). A `halo`
+ *   of `width` rings it, behind the icon so its holes stay open.
+ */
+function gameIcon(name, { x, y, size, fill, halo, width = 8 }) {
+	const { credit, d } = GAME_ICONS[name];
+	const scale = size / 512;
+	const outline = halo ? ` stroke="${halo}" stroke-width="${f((2 * width) / scale)}" stroke-linejoin="round" paint-order="stroke"` : "";
+	return `<desc>${credit}</desc><g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(scale)})"><path d="${d}" fill="${fill}"${outline}/></g>`;
+}
 
-const text = (content, { x, y, size, fill, weight = "normal", style = "normal" }) =>
-	`<text x="${f(x)}" y="${f(y)}" font-family="${FONT}" font-size="${f(size)}" font-weight="${weight}" font-style="${style}" fill="${fill}" text-anchor="middle">${content}</text>`;
+/** The game-icons.net icon each Holding but the town is drawn with. */
+const HOLDING_ICONS = { castle: "castle", tower: "tower", fortress: "rempart" };
+
+/** An icon fills its box where a drawn mark leaves a margin, so Holdings' icons are drawn smaller to match the town. */
+const HOLDING_ICON_SHARE = 0.8;
+
+/** @returns {string} A Holding's drawing: its icon, filled as `icon` says, or a mark for the town. */
+const holdingMark = (style, markOptions, icon) => (HOLDING_ICONS[style]
+	? gameIcon(HOLDING_ICONS[style], { x: markOptions.x, y: markOptions.y, size: markOptions.size * HOLDING_ICON_SHARE, ...icon })
+	: mark(HOLDING_MARKS[style], markOptions));
+
+/** @returns {string} A terrain's drawing, in the hex's own `paper` so a layered one hides what's behind. */
+const terrainMark = (key, stroke, width, paper, share = 0.62) => mark(TERRAIN_MARKS[key],
+	{ x: HEX_W / 2, y: HEX_H / 2, size: HEX_H * share, stroke, width, fill: Array.isArray(TERRAIN_MARKS[key]) ? paper : "none" });
+
+const text = (content, { x, y, size, fill, weight = "normal", style = "normal", font = FONT }) =>
+	`<text x="${f(x)}" y="${f(y)}" font-family="${font}" font-size="${f(size)}" font-weight="${weight}" font-style="${style}" fill="${fill}" text-anchor="middle">${content}</text>`;
 
 /** @returns {string} A wax seal's scalloped rim about the badge's middle. */
 function scallops(radius, bumps = 18) {
@@ -155,7 +227,11 @@ const SHEET_CREDIT = `<desc>${SHEET_ART.$source}</desc>`;
 const SHEET_TERRAIN_SCALE = (HEX_H / 158) * 0.97;
 
 /**
- * A traced picture from the sheet, fitted inside a box and centred on it.
+ * A traced picture from the sheet, hung inside a box by its middle, which the
+ * tracer measures from the picture itself: a Holding stands in the middle of
+ * its hex with its shadow falling to one side of it, rather than sitting to
+ * one side so that the shadow can have half the hex. The picture is fitted so
+ * that all of it, shadow and all, still lies inside the box.
  * @param {string} name A picture's name, such as "holding-castle".
  * @param {{x: number, y: number, width: number, height: number, scale?: number, ink: string, paper: string}} place
  *   The box's middle and size; `scale` sets the size outright instead.
@@ -163,9 +239,12 @@ const SHEET_TERRAIN_SCALE = (HEX_H / 158) * 0.97;
  */
 function sheetArt(name, { x, y, width, height, scale, ink, paper }) {
 	const art = SHEET_ART[name];
-	const size = scale ?? Math.min(width / art.width, height / art.height);
+	// Terrain is traced without a middle of its own, so it hangs by the middle of its box.
+	const middle = art.middle ?? [art.width / 2, art.height / 2];
+	const reach = [Math.max(middle[0], art.width - middle[0]), Math.max(middle[1], art.height - middle[1])];
+	const size = scale ?? Math.min(width / (2 * reach[0]), height / (2 * reach[1]));
 	const body = (art.paper ? `<path d="${art.paper}" fill="${paper}"/>` : "") + `<path d="${art.ink}" fill="${ink}"/>`;
-	return `<g transform="translate(${f(x - (art.width * size) / 2)} ${f(y - (art.height * size) / 2)}) scale(${f(size)})">${body}</g>`;
+	return `<g transform="translate(${f(x - middle[0] * size)} ${f(y - middle[1] * size)}) scale(${f(size)})">${body}</g>`;
 }
 
 /** @returns {string} A drawing from realm-ink.js, drawn `size` wide with its middle at (x, y). */
@@ -351,7 +430,7 @@ function inkedRiver(shape, p) {
 const SKINS = {
 	/**
 	 * The Blank Realm sheet's own terrain, Holdings and Landmarks, rivers as the
-	 * Realm Sheets ink them, and numerals and a crown drawn to go with them.
+	 * Realm Sheets ink them, numerals drawn to go with them, and a crown from game-icons.net.
 	 */
 	sheet: {
 		terrain: (key, index, p) => svg(HEX_W, HEX_H, SHEET_CREDIT
@@ -362,7 +441,10 @@ const SKINS = {
 		landmark: (type, p) => svg(BADGE, BADGE, SHEET_CREDIT + sheetArt(PICTURE_NAME.landmark(type), { x: 150, y: 150, width: 292, height: 292, ink: p.accent, paper: p.paper })),
 		// Myths are the GM's secret, so they're numbered in the red pen the sheet marks Landmarks in.
 		myth: (number, p) => svg(BADGE, BADGE, inkMark(inkNumeral(number), { x: 150, y: 150, size: 290, ink: p.accent, paper: p.paper })),
-		seat: (p) => svg(BADGE, BADGE, inkMark(INK_CROWN, { x: 150, y: 150, size: 290, ink: p.ink, paper: p.paper })),
+		// Ringed as the sheet rings a Myth, but in the crown's gold and left open, so the Holding shows through.
+		seat: (p) => svg(BADGE, BADGE, inkMark(inkRing(42, { shadow: false, open: true, width: 9 }), { x: 150, y: 150, size: 290, ink: goldRim(p), paper: p.paper })
+			+ inkMark(inkRing(42, { shadow: false, open: true, width: 5.5 }), { x: 150, y: 150, size: 290, ink: CROWN_GOLD, paper: p.paper })
+			+ gameIcon("crown", { x: 147, y: 149, size: 184, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
 		river: inkedRiver
 	},
 
@@ -370,13 +452,14 @@ const SKINS = {
 	classic: {
 		terrain: (key, index, p) => svg(HEX_W, HEX_H,
 			`<polygon points="${hexPoints()}" fill="${p.terrain[index]}" stroke="${p.rule}" stroke-width="${2 * SCALE}"/>`
-			+ terrainMark(key, p.ink, 3.2)),
-		holding: (style, p) => svg(BADGE, BADGE, mark(HOLDING_MARKS[style], { x: 150, y: 150, size: 300, stroke: p.ink, width: 4, fill: p.paper })),
+			+ terrainMark(key, p.ink, 3.2, p.terrain[index])),
+		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 300, stroke: p.ink, width: 4, fill: p.paper }, { fill: p.ink, halo: p.paper, width: 6 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.accent}" stroke-width="16"/>`
 			+ text(LANDMARK_LETTERS[type], { x: 150, y: 196, size: 140, fill: p.accent, weight: "bold" })),
 		myth: (number, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.ink}" stroke="${p.accent}" stroke-width="14"/>`
-			+ text(number, { x: 150, y: 200, size: 150, fill: p.paper })),
-		seat: (p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.ink}" stroke-width="12"/><path d="${CROWN}" fill="${p.ink}"/>`),
+			+ text(number, { x: 150, y: 200, size: 150, fill: p.paper, font: NUMERAL_FONT })),
+		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p))
+			+ gameIcon("crown", { x: 150, y: 150, size: 194, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
 		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 1.75 * SCALE, width: 4.5 * SCALE })
 	},
 
@@ -385,29 +468,33 @@ const SKINS = {
 		terrain: (key, index, p) => svg(HEX_W, HEX_H,
 			`<polygon points="${hexPoints()}" fill="${p.terrain[index]}" stroke="${p.rule}" stroke-width="${2 * SCALE}"/>`
 			+ `<polygon points="${hexPoints(0.88)}" fill="none" stroke="${p.ink}" stroke-width="${1.6 * SCALE}"/>`
-			+ terrainMark(key, p.ink, 5.5, 0.56)),
+			+ terrainMark(key, p.ink, 5.5, p.terrain[index], 0.56)),
 		holding: (style, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.accent}" stroke="${p.ink}" stroke-width="12" stroke-linejoin="round"/>`
-			+ mark(HOLDING_MARKS[style], { x: 150, y: 142, size: 170, stroke: p.ink, width: 5, fill: p.paper })),
+			+ holdingMark(style, { x: 150, y: 142, size: 170, stroke: p.ink, width: 5, fill: p.paper }, { fill: p.paper, halo: p.ink, width: 4 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<path d="M150 14L286 150 150 286 14 150z" fill="${p.paper}" stroke="${p.ink}" stroke-width="14" stroke-linejoin="round"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 140, stroke: p.accent, width: 8 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.ink}" stroke="${p.accent}" stroke-width="14" stroke-linejoin="round"/>`
-			+ text(number, { x: 150, y: 196, size: 140, fill: p.paper, weight: "bold" })),
-		seat: (p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="128" fill="${p.accent}" stroke="${p.ink}" stroke-width="14"/><path d="${CROWN}" fill="${p.paper}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>`),
+			+ text(number, { x: 150, y: 196, size: 140, fill: p.paper, weight: "bold", font: NUMERAL_FONT })),
+		seat: (p) => svg(BADGE, BADGE, goldRing(124, 15, goldRim(p))
+			+ gameIcon("crown", { x: 150, y: 150, size: 188, fill: CROWN_GOLD, halo: goldRim(p), width: 5 })),
 		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 3 * SCALE, width: 6 * SCALE, middle: { stroke: p.ink, width: 1.2 * SCALE, dash: `${6 * SCALE} ${5 * SCALE}` } })
 	},
 
 	/** A surveyor's map: faint washes, fine marks, silhouettes and drawn signs. */
 	atlas: {
-		terrain: (key, index, p) => svg(HEX_W, HEX_H,
-			`<polygon points="${hexPoints()}" fill="${mix(p.paper, p.terrain[index], 0.9)}"/>`
-			+ terrainMark(key, mix(p.ink, p.paper, 0.12), 3, 0.54)),
-		holding: (style, p) => svg(BADGE, BADGE, mark(HOLDING_MARKS[style], { x: 150, y: 150, size: 280, stroke: p.paper, width: 3, fill: p.ink })),
+		terrain: (key, index, p) => {
+			const fill = mix(p.paper, p.terrain[index], 0.9);
+			return svg(HEX_W, HEX_H, `<polygon points="${hexPoints()}" fill="${fill}"/>`
+				+ terrainMark(key, mix(p.ink, p.paper, 0.12), 3, fill, 0.54));
+		},
+		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 280, stroke: p.paper, width: 3, fill: p.ink }, { fill: p.ink, halo: p.paper, width: 4 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="100" fill="${p.paper}" stroke="${p.ink}" stroke-width="7"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 128, stroke: p.ink, width: 5 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<polygon points="${burst(140, 104)}" fill="${p.accent}" stroke="${p.ink}" stroke-width="6" stroke-linejoin="round"/>`
-			+ text(number, { x: 150, y: 188, size: 110, fill: onColour(p.accent, p), style: "italic" })),
-		seat: (p) => svg(BADGE, BADGE, `<path d="M96 272V30" stroke="${p.ink}" stroke-width="14" stroke-linecap="round"/>`
-			+ `<path d="M103 36h140l-36 48 36 48H103z" fill="${p.accent}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>`),
+			+ text(number, { x: 150, y: 188, size: 110, fill: onColour(p.accent, p), style: "italic", font: NUMERAL_FONT })),
+		seat: (p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="136" fill="none" stroke="${goldRim(p)}" stroke-width="3"/>`
+			+ goldRing(120, 8, goldRim(p))
+			+ gameIcon("crown", { x: 150, y: 150, size: 186, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
 		river: (shape, p) => river(shape, { bank: mix(p.ink, p.paper, 0.3), water: p.water, edge: 1 * SCALE, width: 3.5 * SCALE })
 	},
 
@@ -418,17 +505,20 @@ const SKINS = {
 			const on = onColour(fill, p);
 			return svg(HEX_W, HEX_H,
 				`<polygon points="${hexPoints()}" fill="${fill}" stroke="${p.rule}" stroke-width="${2 * SCALE}"/>`
-				+ terrainMark(key, on, 4.2));
+				+ terrainMark(key, on, 4.2, fill));
 		},
 		holding: (style, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.accent}"/>`
 			+ `<circle cx="150" cy="150" r="108" fill="none" stroke="${onColour(p.accent, p)}" stroke-width="5"/>`
-			+ mark(HOLDING_MARKS[style], { x: 150, y: 150, size: 170, stroke: onColour(p.accent, p), width: 5 })),
+			+ holdingMark(style, { x: 150, y: 150, size: 170, stroke: onColour(p.accent, p), width: 5 }, { fill: onColour(p.accent, p) })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.ink}"/>`
 			+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 150, stroke: onColour(p.ink, p), width: 7 })),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.accent}"/>`
 			+ `<circle cx="150" cy="150" r="100" fill="none" stroke="${onColour(p.accent, p)}" stroke-width="6"/>`
-			+ text(number, { x: 150, y: 196, size: 130, fill: onColour(p.accent, p), weight: "bold" })),
-		seat: (p) => svg(BADGE, BADGE, `<path d="${scallops(126)}" fill="${p.ink}"/><path d="${CROWN}" fill="${p.accent}"/>`),
+			+ text(number, { x: 150, y: 196, size: 130, fill: onColour(p.accent, p), weight: "bold", font: NUMERAL_FONT })),
+		// The Seat alone is a rim without its wax, so the Holding it is pinned above shows through.
+		seat: (p) => svg(BADGE, BADGE, `<path d="${scallops(116)}" fill="none" stroke="${goldRim(p)}" stroke-width="20"/>`
+			+ `<path d="${scallops(116)}" fill="none" stroke="${CROWN_GOLD}" stroke-width="14"/>`
+			+ gameIcon("crown", { x: 150, y: 150, size: 170, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
 		river: (shape, p) => river(shape, { bank: null, water: p.water, edge: 2 * SCALE, width: 9 * SCALE, middle: { stroke: mix(p.water, p.paper, 0.55), width: 2 * SCALE } })
 	}
 };

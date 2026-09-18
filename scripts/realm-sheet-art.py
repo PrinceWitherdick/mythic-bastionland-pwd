@@ -8,7 +8,8 @@ The sheet prints each picture as a small scan, about 200 pixels across. Each
 is enlarged four times, its ink found again with a clean, smooth edge, then
 traced, so the outlines hold up however far a Realm Scene is zoomed. Holdings
 and Landmarks also get a paper silhouette, filling the spaces their ink
-encloses, so their walls stay paper-coloured on any terrain.
+encloses, so their walls stay paper-coloured on any terrain, and the middle of
+those spaces, which is where the picture hangs in its hex.
 
 Needs Python 3 with PyMuPDF, numpy and potracer (pip install pymupdf numpy
 potracer). Run from the repository with the sheet's PDF:
@@ -130,6 +131,13 @@ def silhouette(ink):
     return solid
 
 
+def middle(mask):
+    """The middle of what the mask covers, in the picture's own pixels."""
+    rows, columns = np.nonzero(mask)
+    place = lambda values: round(float(values.min() + values.max() + 1) / (2 * SCALE), 1)
+    return [place(columns), place(rows)]
+
+
 def number(value):
     text = f"{value:.1f}".rstrip("0").rstrip(".")
     if text in ("", "-0"):
@@ -181,9 +189,17 @@ def main():
         entry = {"width": picture.width, "height": picture.height, "ink": trace(ink, turdsize=8)}
         if not name.startswith("terrain"):
             solid = silhouette(ink)
+            enclosed = solid & ~ink
             # A mark that encloses nothing needs no paper behind it.
-            if (solid & ~ink).sum() > SCALE ** 2 * 20:
+            if enclosed.sum() > SCALE ** 2 * 20:
                 entry["paper"] = trace(solid, turdsize=40)
+                # Holdings and most Landmarks are drawn casting a shadow down and to the
+                # right. A shadow is solid ink enclosing nothing, so the spaces the ink
+                # does enclose say where the building itself stands, and it is that, not
+                # the shadow with it, that belongs in the middle of a hex.
+                entry["middle"] = middle(enclosed)
+            else:
+                entry["middle"] = middle(ink)
         art[name] = entry
         print(f"{name}: {len(entry['ink']) + len(entry.get('paper', ''))} characters")
     OUT.parent.mkdir(parents=True, exist_ok=True)

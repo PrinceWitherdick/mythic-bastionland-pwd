@@ -1,10 +1,16 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { RIVER_SHAPES } from "../module/rules/realm.js";
-import { REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette } from "../module/rules/realm-skins.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES } from "../module/rules/realm.js";
+import { PICTURE_NAME, REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette } from "../module/rules/realm-skins.js";
 import { DRAWN_SKINS, drawRealmSet } from "../scripts/lib/realm-drawings.js";
 
 const HEX_H = 480;
 const HEX_W = (2 * HEX_H) / Math.sqrt(3);
+/** The square the skins draw everything but terrain and rivers in. */
+const BADGE = 300;
+
+/** What scripts/realm-sheet-art.py traced from the Blank Realm sheet. */
+const SHEET_ART = JSON.parse(readFileSync(new URL("../scripts/data/realm-sheet-art.json", import.meta.url), "utf8"));
 
 /** Every x,y pair in a path, whatever its commands. */
 function coordinates(d) {
@@ -48,6 +54,25 @@ describe("drawRealmSet", () => {
 		}
 	});
 
+	it.each(REALM_SKINS.filter((skin) => skin !== "sheet"))("draws %s's Holdings but the town as game-icons.net icons, and credits them", (skin) => {
+		const files = drawRealmSet(skin, "parchment");
+		expect(files["holding-castle.svg"]).toContain("<desc>Castle icon by Delapouite");
+		expect(files["holding-tower.svg"]).toContain("<desc>White Tower icon by Lorc");
+		expect(files["holding-fortress.svg"]).toContain("<desc>Rempart icon by Delapouite");
+		expect(files["holding-town.svg"]).not.toContain("<desc>");
+		expect(files["seat.svg"]).toContain("<desc>Crown icon by Lorc");
+	});
+
+	it.each(REALM_SKINS)("rings %s's crown, so the Seat of Power reads as a badge on the map", (skin) => {
+		const seat = drawRealmSet(skin, "parchment")["seat.svg"];
+		// Each skin rings it in its own hand, but always in gold and behind the crown, which the credit marks the start of.
+		const ring = seat.slice(0, seat.indexOf("<desc>Crown"));
+		expect(ring).toMatch(/<circle|<path/);
+		expect(ring).toContain("#c9a227");
+		// The middle of the ring is left open, so the Holding the Seat is pinned above shows through it.
+		expect(ring).not.toMatch(/fill="(?!none)/);
+	});
+
 	it("draws each colour set in its own colours", () => {
 		expect(drawRealmSet("classic", "midnight")["myth-1.svg"]).toContain("#e8dcc0");
 		expect(drawRealmSet("classic", "parchment")["myth-1.svg"]).not.toContain("#e8dcc0");
@@ -65,6 +90,10 @@ describe("the Blank Realm skin", () => {
 		expect(blank["myth-1.svg"]).not.toContain("<desc>");
 	});
 
+	it("crowns the Seat of Power with game-icons.net's crown, and credits it", () => {
+		expect(blank["seat.svg"]).toContain("<desc>Crown icon by Lorc");
+	});
+
 	it("inks terrain and Holdings, and pens Landmarks and Myths in the colour set's red", () => {
 		const drawn = drawRealmSet("sheet", "ochre");
 		expect(drawn["terrain-03.svg"]).toContain(`fill="${ochre.ink}"`);
@@ -78,6 +107,20 @@ describe("the Blank Realm skin", () => {
 		for (let number = 1; number <= 12; number++) {
 			expect(blank[`terrain-${String(number).padStart(2, "0")}.svg`]).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
 		}
+	});
+
+	const shadowed = [...HOLDING_STYLES.map(PICTURE_NAME.holding), ...LANDMARK_TYPES.map(PICTURE_NAME.landmark)];
+	it.each(shadowed)("stands %s on the middle of its badge, with the shadow it casts still inside it", (name) => {
+		const art = SHEET_ART[name];
+		const [, left, top, size] = /<g transform="translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)"/.exec(blank[`${name}.svg`]).map(Number);
+		// The picture itself sits in the middle, not the middle of the picture and its shadow together.
+		expect(Math.abs(left + art.middle[0] * size - BADGE / 2)).toBeLessThan(1);
+		expect(Math.abs(top + art.middle[1] * size - BADGE / 2)).toBeLessThan(1);
+		// And the shadow reaching past it is drawn rather than cropped off the badge.
+		expect(left).toBeGreaterThanOrEqual(0);
+		expect(top).toBeGreaterThanOrEqual(0);
+		expect(left + art.width * size).toBeLessThanOrEqual(BADGE);
+		expect(top + art.height * size).toBeLessThanOrEqual(BADGE);
 	});
 
 	it.each(REALM_PALETTES.map(({ key }) => key))("lays every river piece's banks and water at the same places on the edges it crosses, in %s", (palette) => {

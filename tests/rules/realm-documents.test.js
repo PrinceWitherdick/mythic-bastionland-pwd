@@ -133,6 +133,13 @@ describe("realmSceneData", () => {
 		expect(scene.tiles.filter((tile) => flagOf(tile).kind === "seat")).toHaveLength(1);
 	});
 
+	it("hangs the Seat of Power's crown above the middle of its Holding's hex", () => {
+		const seat = scene.tiles.find((tile) => flagOf(tile).kind === "seat");
+		const centre = hexCentre(g, realm.holdings.find((holding) => holding.seat).hex);
+		expect(seat.x).toBe(Math.round(centre.x));
+		expect(seat.y).toBeLessThan(centre.y);
+	});
+
 	it("draws each Barrier as a hidden line along its edge, sized in whole pixels as Foundry keeps it", () => {
 		expect(scene.drawings).toHaveLength(realm.barriers.length);
 		for (const drawing of scene.drawings) {

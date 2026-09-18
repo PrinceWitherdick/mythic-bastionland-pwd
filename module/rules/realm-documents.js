@@ -33,7 +33,7 @@ import {
 export const REALM_SORT = Object.freeze({ terrain: 0, river: 100, feature: 200, seat: 300 });
 
 /** How much of a hex each icon fills: its height, and for terrain its width as well. */
-export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.6, myth: 0.5, seat: 0.3 });
+export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.85, myth: 0.5, seat: 0.3 });
 
 /** The Level every Realm Scene is built on. */
 export const LEVEL_ID = "defaultLevel0000";
@@ -42,8 +42,8 @@ const BARRIER_WIDTH = 10;
 
 export const GRID_ALPHA = 0.6;
 
-/** Where the Seat of Power badge sits, from the Holding's centre, in hex heights. */
-const SEAT_OFFSET = Object.freeze({ x: 0.42, y: -0.3 });
+/** Where the Seat of Power badge sits, from the Holding's centre, in hex heights. It stays inside the hex. */
+const SEAT_OFFSET = Object.freeze({ x: 0, y: -0.33 });
 
 /** Positions are compared to the hundredth of a pixel, so a rebuilt Realm doesn't rewrite itself. */
 const round = (value) => Math.round(value * 100) / 100;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MYTH_COUNT } from "../module/rules/realm.js";
-import { INK_CROWN, curvePath, drawInk, inkNumeral, inkPath } from "../scripts/lib/realm-ink.js";
+import { curvePath, drawInk, inkNumeral, inkPath } from "../scripts/lib/realm-ink.js";
 
 const COLOURS = { ink: "#111111", paper: "#ffffff" };
 
@@ -55,10 +55,7 @@ describe("drawInk", () => {
 		expect(() => drawInk([["splash", "0,0"]], COLOURS)).toThrow(/splash/);
 	});
 
-	it.each([
-		...Array.from({ length: MYTH_COUNT }, (_, index) => [`Myth ${index + 1}`, inkNumeral(index + 1)]),
-		["the crown", INK_CROWN]
-	])("draws %s inside its box", (_name, parts) => {
+	it.each(Array.from({ length: MYTH_COUNT }, (_, index) => [`Myth ${index + 1}`, inkNumeral(index + 1)]))("draws %s inside its box", (_name, parts) => {
 		const svg = drawInk(parts, COLOURS);
 		expect(svg).not.toMatch(/NaN|undefined|Infinity/);
 		const all = [...svg.matchAll(/ d="([^"]+)"/g)].flatMap(([, d]) => numbers(d));

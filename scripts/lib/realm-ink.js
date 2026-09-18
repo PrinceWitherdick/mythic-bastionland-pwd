@@ -1,11 +1,12 @@
 /**
- * Drawing in ink for the Blank Realm skin: smooth paths through points, the
- * Myth numerals and the Seat of Power's crown, drawn for this system in the
- * manner of the Blank Realm sheet, which draws neither. Used by
+ * Drawing in ink for the Blank Realm skin: smooth paths through points and the
+ * Myth numerals, drawn for this system in the manner of the Blank Realm sheet,
+ * which doesn't draw them. Used by
  * scripts/realm-placeholders.js.
  *
  * A drawing sits in a 100 by 100 box and is a list of parts, painted in order:
  *   ["line", width, points]  a stroke of ink
+ *   ["ring", width, points]  a closed stroke of ink, with nothing inside it
  *   ["shape", width, points] a closed outline of ink, filled with paper
  *   ["solid", points]        a closed shape filled with ink
  * Points are "x,y" pairs separated by spaces. Lines bend smoothly through them,
@@ -105,6 +106,7 @@ export function drawInk(parts, { ink, paper }) {
 	for (const [kind, ...args] of parts) {
 		switch (kind) {
 			case "line": add(`fill="none" stroke="${ink}" stroke-width="${args[0]}" stroke-linecap="round" stroke-linejoin="round"`, inkPath(args[1]), true); break;
+			case "ring": add(`fill="none" stroke="${ink}" stroke-width="${args[0]}" stroke-linejoin="round"`, inkPath(args[1], true), true); break;
 			case "shape": add(`fill="${paper}" stroke="${ink}" stroke-width="${args[0]}" stroke-linejoin="round"`, inkPath(args[1], true), false); break;
 			case "solid": add(`fill="${ink}"`, inkPath(args[0], true), true); break;
 			default: throw new Error(`Unknown ink part: ${kind}`);
@@ -130,25 +132,25 @@ const NUMERALS = Object.freeze({
 });
 
 /**
- * A Myth's number, written in a ring with a shadow, as a GM numbers them on the sheet.
+ * A ring, as a GM rings a mark on the sheet.
+ * @param {number} [radius] Of the ring, in the drawing's 100 by 100 box.
+ * @param {object} [options]
+ * @param {boolean} [options.shadow] Lay a shadow behind it, as a filled disc.
+ * @param {boolean} [options.open] Leave the inside of the ring clear, so whatever is behind shows through.
+ * @param {number} [options.width] Of the ring's line.
+ * @returns {Array} Parts.
+ */
+export const inkRing = (radius = 42, { shadow = true, open = false, width = 7 } = {}) => [
+	...(shadow ? [["solid", ring(53, 54, radius, { steps: 12, turn: 0.4 })]] : []),
+	[open ? "ring" : "shape", width, ring(49, 50, radius, { steps: 12, turn: 0.2 })]
+];
+
+/**
+ * A Myth's number, written in a ring, as a GM numbers them on the sheet.
  * @param {number} number 1 to 6.
  * @returns {Array} Parts.
  */
 export const inkNumeral = (number) => [
-	["solid", ring(53, 54, 42, { steps: 12, turn: 0.4 })],
-	["shape", 7, ring(49, 50, 42, { steps: 12, turn: 0.2 })],
+	...inkRing(),
 	...(NUMERALS[number] ?? NUMERALS[1]).map((points) => ["line", 8.5, points])
 ];
-
-/** A crown for the Seat of Power, casting a shadow to its right as the sheet's Holdings do. */
-export const INK_CROWN = Object.freeze([
-	["solid", "80,40 96,48 96,92 84,97 20,97 16,90 88,86"],
-	["shape", 4.6, "12,72! 6,34! 28,52! 46,22! 64,52! 86,34! 80,72!"],
-	["shape", 4.6, "12,72! 80,72! 78,88! 14,88!"],
-	["shape", 3.2, ring(6, 29, 5.4)],
-	["shape", 3.2, ring(46, 16, 5.4)],
-	["shape", 3.2, ring(86, 29, 5.4)],
-	["solid", ring(30, 80, 3.6, { steps: 8 })],
-	["solid", ring(46, 80, 3.6, { steps: 8 })],
-	["solid", ring(62, 80, 3.6, { steps: 8 })]
-]);

@@ -49,7 +49,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			name: "realm",
 			order: 20,
 			title: "bastionland.realm.controls.title",
-			icon: "fa-solid fa-map",
+			icon: "fa-solid fa-crown",
 			layer: "realm",
 			onChange: (_event, active) => {
 				if (active) canvas.realm.activate();
