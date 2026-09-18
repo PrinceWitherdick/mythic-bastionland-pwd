@@ -1867,8 +1867,7 @@
         "wilderness": "Wilderness Roll",
         "tidy": "Tidy the Realm",
         "reroll": "Reroll the Realm",
-        "appearance": "Realm Appearance",
-        "toolkit": "GM Toolkit"
+        "appearance": "Realm Appearance"
       },
       "readout": {
         "seat": "{name}, Seat of Power",

@@ -167,7 +167,7 @@ Each GM is given it as their character, as on Stonetop, so **C**, Foundry's char
 - It's given once, the first time a GM loads the world with a toolkit in it. A GM who already has a character of their own keeps theirs, and a GM who takes the toolkit off isn't given it again. Set it back under **User Configuration** from the Players list.
 - Foundry would sign a GM's chat with their character's name when no Token is selected. The toolkit never speaks, so those messages keep the GM's own name.
 
-It's also in the Actors tab, behind **GM Toolkit** in the Roll Tables tab, and on the Realm controls of a Realm Scene. Its pages hang off a rail on the window's edge, and the **Realm** at the top picks which Realm the first three show.
+It's also in the Actors tab, and behind **GM Toolkit** in the Roll Tables tab. Its pages hang off a rail on the window's edge, and the **Realm** at the top picks which Realm the first three show.
 
 - **Myths and Omens:** each Myth of the Realm with the Omen playing out and the one to come (p18), and all six folded beneath. The Omens are quoted after Import PDF.
   - **Next Omen** counts one more and whispers it to GMs; **−** takes one back. The Hex panel and the Wilderness Roll count the same Omens.

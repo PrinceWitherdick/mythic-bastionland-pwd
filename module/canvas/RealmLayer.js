@@ -1,4 +1,3 @@
-import { openGmToolkit } from "../actions/gm-toolkit.js";
 import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, stepRealmHistory, syncRealmScene } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { followHexLore } from "../apps/HexLore.js";
@@ -22,14 +21,13 @@ const TOOL_ICONS = Object.freeze({
 	wilderness: "fa-solid fa-tree",
 	tidy: "fa-solid fa-broom",
 	reroll: "fa-solid fa-dice",
-	appearance: "fa-solid fa-palette",
-	toolkit: "fa-solid fa-book-open-reader"
+	appearance: "fa-solid fa-palette"
 });
 
 /**
  * The GM's Realm tools on a Realm Scene: a control group beside Foundry's own,
  * with tools that work on hexes and buttons for the Wilderness Roll, Tidy,
- * Reroll, the Realm's looks and the GM Toolkit.
+ * Reroll and the Realm's looks.
  */
 export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @override */
@@ -104,7 +102,6 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (name === "tidy") return syncRealmScene(scene, { report: true });
 		if (name === "reroll") return rerollRealm(scene);
 		if (name === "appearance") return openRealmAppearance();
-		if (name === "toolkit") return openGmToolkit();
 		return null;
 	}
 
