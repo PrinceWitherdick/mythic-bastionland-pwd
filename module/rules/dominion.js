@@ -8,6 +8,7 @@
  * can be tested without Foundry.
  */
 import { d6Band } from "./referee-rolls.js";
+import { seasonKey } from "./time.js";
 
 /** Seats on a Domain's Council. */
 export const COUNCIL_SEATS = Object.freeze(["steward", "marshal", "sheriff", "envoy", "circle"]);
@@ -76,6 +77,14 @@ export const musterFor = (seat) => (seat ? MUSTER.seat : MUSTER.holding);
  * @returns {boolean}
  */
 export const isInTurmoil = (seized, now) => Boolean(seized) && seized === now;
+
+/**
+ * Whether a Domain has made this Season's Crisis Roll (p20).
+ * @param {{system: {crisisRolled?: string}}} domain
+ * @param {import("./time.js").Calendar} calendar Now.
+ * @returns {boolean}
+ */
+export const crisisRolledThisSeason = (domain, calendar) => domain?.system?.crisisRolled === seasonKey(calendar);
 
 /**
  * @param {string} text

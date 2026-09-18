@@ -16,6 +16,14 @@
 		{{/each}}
 	</ul>
 	{{/if}}
+	{{#if due.length}}
+	<div class="bastionland-card__due">
+		<p class="bastionland-card__due-title">{{localize "bastionland.time.due.title"}}</p>
+		{{#each due}}
+		<p class="bastionland-card__text">{{this}}</p>
+		{{/each}}
+	</div>
+	{{/if}}
 	{{#if hint}}
 	<p class="bastionland-card__hint">{{hint}}</p>
 	{{/if}}

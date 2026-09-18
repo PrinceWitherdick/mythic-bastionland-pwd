@@ -1,0 +1,46 @@
+{{!-- Each Season, grouped by Age: the GM's notes on it, and what passed as it ended. --}}
+<section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="seasons">
+	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.seasons.hint"}}</p>
+
+	{{#each ages}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{label}}</h2>
+		{{#each seasons}}
+		<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__season bastionland-gm-toolkit__season--{{season}}{{#if current}} is-current{{/if}}" data-season-key="{{key}}">
+			<header class="bastionland-gm-toolkit__season-head">
+				<h3 class="bastionland-gm-toolkit__name"><i class="{{icon}}" inert></i> {{label}}</h3>
+				{{#if current}}
+				<span class="bastionland-gm-toolkit__chip is-company">{{localize "bastionland.gmToolkit.seasons.now"}}</span>
+				{{/if}}
+			</header>
+
+			<label class="bastionland-gm-toolkit__note">
+				<span>{{localize "bastionland.gmToolkit.seasons.notes"}}</span>
+				<textarea data-toolkit-field="seasonNotes" rows="2" placeholder="{{localize 'bastionland.gmToolkit.seasons.notesPlaceholder'}}">{{notes}}</textarea>
+			</label>
+
+			{{#if turn}}
+			<div class="bastionland-gm-toolkit__season-turn">
+				<p class="bastionland-gm-toolkit__season-ended">{{turn.ended}}</p>
+				{{#if turn.note}}
+				<p class="bastionland-hint">{{turn.note}}</p>
+				{{/if}}
+				<ul class="bastionland-gm-toolkit__season-entries">
+					{{#each turn.entries}}
+					<li>
+						<strong>{{name}}</strong>{{#if pursuit}} · {{pursuit}}{{/if}}
+						{{#each lines}}
+						<p>{{this}}</p>
+						{{/each}}
+					</li>
+					{{/each}}
+				</ul>
+			</div>
+			{{else}}
+			<p class="bastionland-hint">{{localize "bastionland.gmToolkit.seasons.notEnded"}}</p>
+			{{/if}}
+		</article>
+		{{/each}}
+	</section>
+	{{/each}}
+</section>

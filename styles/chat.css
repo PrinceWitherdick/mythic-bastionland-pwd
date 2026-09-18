@@ -536,3 +536,47 @@
 	background: linear-gradient(160deg, #262b4a, #11142a);
 }
 
+/* What's due this Season sits in a box of its own. */
+.bastionland-card__due {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	padding: 0.3rem 0.45rem;
+	border: 1px dashed var(--bastionland-rule);
+	border-radius: 3px;
+}
+
+.bastionland-card__due-title {
+	margin: 0;
+	font-weight: bold;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-card--spring {
+	--bastionland-card-icon: var(--bastionland-spring);
+	--bastionland-paper: #eef5dc;
+	--bastionland-ink: #1f2a14;
+	--bastionland-ink-soft: #4a5a32;
+	--bastionland-rule: #8fb05a;
+	background: linear-gradient(160deg, #f6fbe8, #d6e8b0);
+}
+
+.bastionland-card--harvest {
+	--bastionland-card-icon: var(--bastionland-harvest);
+	--bastionland-paper: #f2dfae;
+	--bastionland-ink: #2e200c;
+	--bastionland-ink-soft: #5e4420;
+	--bastionland-rule: #b88a30;
+	background: linear-gradient(160deg, #f7e7bc, #deb466);
+}
+
+.bastionland-card--winter {
+	--bastionland-card-icon: var(--bastionland-winter);
+	--bastionland-paper: #e4ecf2;
+	--bastionland-ink: #16202a;
+	--bastionland-ink-soft: #43546a;
+	--bastionland-rule: #8aa4bc;
+	background: linear-gradient(160deg, #f4f8fb, #c6d6e4);
+}
+

@@ -10,7 +10,7 @@ import {
 	seizeDomain
 } from "../actions/dominion.js";
 import { t } from "../chat/cards.js";
-import { COUNCIL_SEATS, isInTurmoil } from "../rules/dominion.js";
+import { COUNCIL_SEATS, crisisRolledThisSeason, isInTurmoil } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -65,7 +65,7 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				resolution: t(`domain.crises.${key}.resolution`)
 			})),
 			misruleDue: system.misruleDue ? t("domain.misruleDue", { count: system.crises.length }) : null,
-			rolled: t(system.crisisRolled === seasonKey(calendar) ? "domain.rolledThisSeason" : "domain.notRolledThisSeason", {
+			rolled: t(crisisRolledThisSeason(actor, calendar) ? "domain.rolledThisSeason" : "domain.notRolledThisSeason", {
 				season: calendarLabel(calendar)
 			}),
 			muster: t("domain.muster", { count: system.muster }),

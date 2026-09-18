@@ -12,6 +12,9 @@ export const SEASONS = Object.freeze(["spring", "harvest", "winter"]);
 /** Each Phase's icon, on its card. */
 export const PHASE_ICONS = Object.freeze({ morning: "fa-solid fa-sun", afternoon: "fa-solid fa-cloud-sun", night: "fa-solid fa-moon" });
 
+/** Each Season's icon, on its card and the Seasons page. */
+export const SEASON_ICONS = Object.freeze({ spring: "fa-solid fa-seedling", harvest: "fa-solid fa-wheat-awn", winter: "fa-regular fa-snowflake" });
+
 /** What each Knight chooses between Seasons, and between Ages. */
 export const SEASON_PURSUITS = Object.freeze(["pilgrimage", "courtesy", "service"]);
 export const AGE_PURSUITS = Object.freeze(["duty", "succession", "legacy"]);
@@ -93,6 +96,17 @@ export function nextAge(calendar) {
 export function seasonKey(calendar) {
 	const { age, season } = normalizeCalendar(calendar);
 	return `${age}-${season}`;
+}
+
+/**
+ * The inverse of seasonKey.
+ * @param {string} key Such as "2-winter".
+ * @returns {{age: number, season: string}|null} Null for a key that isn't a Season's.
+ */
+export function parseSeasonKey(key) {
+	const match = /^(\d+)-(\w+)$/.exec(String(key ?? ""));
+	if (!match || !SEASONS.includes(match[2]) || Number(match[1]) < 1) return null;
+	return { age: Number(match[1]), season: match[2] };
 }
 
 /**

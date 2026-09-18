@@ -496,6 +496,75 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* Seasons                                                          */
+/* ---------------------------------------------------------------- */
+
+/* Each Season's leaf is edged in the colour of its chat card. */
+.bastionland-gm-toolkit__season--spring {
+	--season-colour: var(--bastionland-spring);
+	border-left-color: #6f9a3e;
+}
+
+.bastionland-gm-toolkit__season--harvest {
+	--season-colour: var(--bastionland-harvest);
+	border-left-color: #b8801e;
+}
+
+.bastionland-gm-toolkit__season--winter {
+	--season-colour: var(--bastionland-winter);
+	border-left-color: #6d8fb0;
+}
+
+.bastionland-gm-toolkit__season.is-current {
+	border-color: var(--bastionland-verdigris);
+}
+
+.bastionland-gm-toolkit__season-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.6rem;
+}
+
+.bastionland-gm-toolkit__season-head .bastionland-gm-toolkit__name i {
+	color: var(--season-colour);
+	font-size: 0.75em;
+	vertical-align: 0.1em;
+}
+
+.bastionland-gm-toolkit__season-turn {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.bastionland-gm-toolkit__season-ended {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.85rem;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-gm-toolkit__season-turn .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-gm-toolkit__season-entries {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-gm-toolkit__season-entries p {
+	margin: 0.1rem 0 0;
+	font-size: 0.92rem;
+}
+
+/* ---------------------------------------------------------------- */
 /* The Lay of the Land's line on the Company's visits               */
 /* ---------------------------------------------------------------- */
 

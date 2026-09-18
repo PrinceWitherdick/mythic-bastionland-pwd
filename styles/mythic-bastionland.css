@@ -63,6 +63,10 @@
 	/* Red ochre, the ink a scribe headed a section with. */
 	--bastionland-rubric: #9a3520;
 	--bastionland-verdigris: #2f6150;
+	/* Each Season's colour, shared by its chat card and its Toolkit leaf. */
+	--bastionland-spring: #4f8a2a;
+	--bastionland-harvest: #9a5a14;
+	--bastionland-winter: #3f6e9a;
 	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
 	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
 	--bastionland-font-caps: "Bastionland Caps", Georgia, "Times New Roman", serif;

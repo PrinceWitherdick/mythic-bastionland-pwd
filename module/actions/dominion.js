@@ -195,15 +195,18 @@ export async function dramaInCourt(domain) {
 	return result;
 }
 
+/** @returns {Actor[]} Every Domain in the world. */
+export const worldDomains = () => game.actors.filter((actor) => actor.type === "domain");
+
 /**
  * As a Season ends, every Domain left with 3 or more unresolved Crises falls
  * into misrule (p20), and one seized by force that Season settles under its
  * new ruler (p21). GMs only.
  * @param {string} ended The Season that ended, from seasonKey.
- * @returns {Promise<{entries: object[], hint: string|null}>} For the Season's card.
+ * @returns {Promise<object[]>} Entries for the Season's card.
  */
 export async function settleDomains(ended) {
-	const domains = game.actors.filter((actor) => actor.type === "domain");
+	const domains = worldDomains();
 	const updates = new Map();
 	const lines = new Map();
 	const note = (domain, update, line) => {
@@ -217,8 +220,7 @@ export async function settleDomains(ended) {
 		}
 	}
 	if (updates.size) await Actor.implementation.updateDocuments([...updates.values()]);
-	const entries = [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines }));
-	return { entries, hint: domains.length ? t("domain.seasonHint") : null };
+	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines }));
 }
 
 /**

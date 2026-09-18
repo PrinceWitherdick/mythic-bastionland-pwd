@@ -1,12 +1,14 @@
 import { CALENDAR_HOOK, calendarLabel, getCalendar } from "../actions/calendar.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
 import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
+import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
+import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite } from "../actions/sites.js";
 import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
 import { openHexLore } from "../apps/HexLore.js";
@@ -20,6 +22,8 @@ import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenStage, realmPlaces, resolv
 import { visitedNewestFirst } from "../rules/journey.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
+import { SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
 import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -34,6 +38,7 @@ const TAB_ICONS = Object.freeze({
 	journey: "fa-solid fa-route",
 	places: "fa-solid fa-map-location-dot",
 	time: "fa-solid fa-hourglass-half",
+	seasons: "fa-solid fa-calendar-days",
 	notes: "fa-solid fa-feather-pointed"
 });
 
@@ -108,7 +113,8 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			setPhase: (_event, target) => setCalendarByHand({ phase: target.dataset.phase }),
 			refereeRoll: (_event, target) => rollRefereeTable(target.dataset.table),
 			hardship: (_event, target) => sufferHardship(target.dataset.hardship),
-			awardGlory: (_event, target) => awardGlory(target.dataset.award)
+			awardGlory: (_event, target) => awardGlory(target.dataset.award),
+			crisisRoll: GmToolkitSheet.#onCrisisRoll
 		}
 	};
 
@@ -119,6 +125,7 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		journey: { template: templatePath("actor/gm-toolkit/journey.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
+		seasons: { template: templatePath("actor/gm-toolkit/seasons.hbs"), scrollable: [""] },
 		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] }
 	};
 
@@ -164,6 +171,18 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/*  Rendering                                   */
 	/* -------------------------------------------- */
 
+	/**
+	 * A change to the Seasons log alone, such as a Season's notes, redraws the
+	 * Seasons page rather than every page.
+	 * @override
+	 */
+	_configureRenderOptions(options) {
+		super._configureRenderOptions(options);
+		const changes = options.renderContext === "updateActor" ? options.renderData : null;
+		const changed = Object.keys(changes ?? {}).filter((key) => !["_id", "_stats"].includes(key));
+		if (changed.length === 1 && changed[0] === "system" && Object.keys(changes.system).every((key) => key === "seasons")) options.parts = ["seasons"];
+	}
+
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
@@ -197,6 +216,7 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			case "journey": return Object.assign(part, this.#journeyContext(data));
 			case "places": return Object.assign(part, this.#placesContext(data));
 			case "time": return Object.assign(part, this.#timeContext(data));
+			case "seasons": return Object.assign(part, this.#seasonsContext());
 			case "notes": return Object.assign(part, await this.#notesContext());
 			default: return part;
 		}
@@ -400,15 +420,38 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/**
-	 * The world's calendar and what moves it (p17), and the Realm's resolved
-	 * Myths, each replaced by a new one in the next Season (p27).
+	 * The world's calendar and what moves it (p17), the Domains still owed this
+	 * Season's Crisis Roll (p20), and the Realm's resolved Myths, each replaced
+	 * by a new one in the next Season (p27).
 	 * @param {object|null} data
 	 */
 	#timeContext(data) {
 		const waiting = data ? resolvedMyths(data.realm, data.notes) : [];
 		return {
 			...timeContext(),
+			crisisRolls: crisisRollsDue(worldDomains(), getCalendar()).map((domain) => ({ id: domain.id, name: domain.name })),
 			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) }))
+		};
+	}
+
+	/** Each Season by Age, the newest first: the GM's notes on it, and how it ended. */
+	#seasonsContext() {
+		const seasonName = (season) => t(`time.seasons.${season}`);
+		return {
+			ages: seasonLogView(this.actor.system.seasons, getCalendar()).map(({ age, seasons }) => ({
+				label: t("gmToolkit.seasons.age", { age }),
+				seasons: seasons.map(({ record, ...entry }) => ({
+					...entry,
+					label: seasonName(entry.season),
+					icon: SEASON_ICONS[entry.season],
+					notes: record.notes,
+					turn: record.turn && {
+						ended: t("gmToolkit.seasons.ended", { title: record.turn.title }),
+						note: record.turn.note,
+						entries: record.turn.entries
+					}
+				}))
+			}))
 		};
 	}
 
@@ -439,6 +482,9 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Only a move, or the Company mark itself, changes where the Company is.
 		const onCompanyChange = (token, changes) => ["x", "y", "flags"].some((key) => key in changes) && onCompany(token);
 		const onSite = (entry) => isSiteEntry(entry) && this.#redraw("places");
+		const onDomain = (actor) => actor.type === "domain" && this.#redraw("time");
+		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
+		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
 		this.#hooks = [
 			...["createTile", "updateTile", "deleteTile", "updateScene"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
 			...["createScene", "deleteScene"].map((name) => [name, Hooks.on(name, onScenes)]),
@@ -447,7 +493,9 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			["updateToken", Hooks.on("updateToken", onCompanyChange)],
 			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onSite)]),
 			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
-			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))]
+			...["createActor", "deleteActor"].map((name) => [name, Hooks.on(name, onDomain)]),
+			["updateActor", Hooks.on("updateActor", onDomainChange)],
+			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))]
 		];
 	}
 
@@ -551,6 +599,11 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			case "mythNote": {
 				const myth = this.#mythFrom(target);
 				if (myth) await editMythNote(scene, myth, { note: target.value });
+				return;
+			}
+			case "seasonNotes": {
+				const key = target.closest("[data-season-key]")?.dataset.seasonKey;
+				if (key) await writeSeasonNotes(key, target.value);
 				return;
 			}
 			case "age":
@@ -719,6 +772,12 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static #onForgetVisits(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		if (hex) return confirmForgetHexVisits(this.scene, hex);
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onCrisisRoll(_event, target) {
+		const domain = game.actors.get(target.closest("[data-actor-id]")?.dataset.actorId);
+		if (domain?.type === "domain") return crisisRoll(domain);
 	}
 
 	/** @this {GmToolkitSheet} */

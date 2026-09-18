@@ -16,6 +16,21 @@
 		</nav>
 	</section>
 
+	{{#if crisisRolls.length}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.time.crisisRolls"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.gmToolkit.time.crisisRollsHint"}}</p>
+		<ul class="bastionland-gm-toolkit__waiting">
+			{{#each crisisRolls}}
+			<li data-actor-id="{{id}}">
+				<span><strong>{{name}}</strong></span>
+				<button type="button" class="bastionland-button" data-action="crisisRoll"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.time.crisisRoll"}}</button>
+			</li>
+			{{/each}}
+		</ul>
+	</section>
+	{{/if}}
+
 	{{#if resolved.length}}
 	<section class="bastionland-gm-toolkit__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.time.resolved"}}</h2>

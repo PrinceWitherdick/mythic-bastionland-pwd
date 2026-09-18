@@ -2,13 +2,15 @@ import { chooseDialog, inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { AGES } from "../config.js";
 import { changeGlory } from "../rules/glory.js";
-import { isScarPending, scarForRoll } from "../rules/scars.js";
+import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
+import { crisisRollsDue } from "../rules/season-log.js";
 import {
 	AGE_PURSUITS,
 	AGING_VIRTUE_ROLL,
 	HARDSHIPS,
 	OLD_AGE_LOSS,
 	PHASE_ICONS,
+	SEASON_ICONS,
 	SEASON_PURSUITS,
 	afterOldAge,
 	agedScore,
@@ -22,7 +24,8 @@ import {
 import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
-import { settleDomains } from "./dominion.js";
+import { settleDomains, worldDomains } from "./dominion.js";
+import { recordSeasonTurn } from "./season-log.js";
 import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScar } from "./scars.js";
 import { knightSquire } from "./squires.js";
@@ -131,9 +134,10 @@ async function bequeathGlory(knight, glory) {
  * @param {{actor: Actor, pursuit: string|null}[]} company
  * @param {object} options
  * @param {boolean} options.newAge
+ * @param {import("../rules/time.js").Calendar} options.before The Season that ended, whose Doom lifts.
  * @returns {Promise<{rolls: Roll[], entries: object[]}>}
  */
-async function passTime(company, { newAge }) {
+async function passTime(company, { newAge, before }) {
 	const rolls = [];
 	const entries = [];
 	const updates = [];
@@ -143,6 +147,8 @@ async function passTime(company, { newAge }) {
 		const { system } = actor;
 		const update = Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
 		const lines = [t("time.restored")];
+		// Doom lasts the Season it was taken in.
+		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
 
 		if (newAge && Number.isInteger(system.glory) && system.gainsGlory) {
 			const change = changeGlory(system.glory, 1);
@@ -216,10 +222,11 @@ export function announcePhase(calendar) {
  * @param {string[]} options.pursuits
  * @param {(before: object, after: object) => string} options.intro
  * @param {(after: object) => string} options.turned The report's title.
+ * @param {string} options.kind  How the Season ends, one of SEASON_TURNS in rules/season-log.js.
  * @param {string} [options.note] Said on the report before anything else.
  * @returns {Promise<import("../rules/time.js").Calendar|null>}
  */
-async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, note = null }) {
+async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, kind, note = null }) {
 	if (!game.user.isGM) return null;
 	const before = getCalendar();
 	const after = next(before);
@@ -227,15 +234,40 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, no
 	if (!company) return null;
 
 	await setCalendar(after);
-	const { rolls, entries } = await passTime(company, { newAge });
-	const domains = await settleDomains(seasonKey(before));
-	await postCard(null, "report", {
-		title: turned(after),
-		tagline: calendarLabel(after),
-		entries: [...entries, ...domains.entries],
-		hint: [note, t("time.unresolvedHint"), domains.hint].filter(Boolean).join(" ")
-	}, { rolls });
+	const { rolls, entries } = await passTime(company, { newAge, before });
+	const ended = seasonKey(before);
+	const domains = await settleDomains(ended);
+	const title = turned(after);
+	const all = [...entries, ...domains];
+	await Promise.all([
+		announceSeason(after, { title, entries: all, note }, { rolls }),
+		recordSeasonTurn(ended, { kind, title, entries: all, note })
+	]);
 	return after;
+}
+
+/**
+ * Tell the table a new Season has begun, on a card painted in the Season's
+ * colours, with what passed as it turned and what's due now it has: the
+ * Crisis Roll for every Domain (p20).
+ * @param {import("../rules/time.js").Calendar} calendar The new Season.
+ * @param {object} report
+ * @param {string} report.title
+ * @param {object[]} report.entries
+ * @param {string|null} [report.note]
+ * @param {object} [options] For postCard.
+ */
+export function announceSeason(calendar, { title, entries, note = null }, options) {
+	const due = crisisRollsDue(worldDomains(), calendar);
+	return postCard(null, "report", {
+		tone: calendar.season,
+		icon: SEASON_ICONS[calendar.season],
+		title,
+		tagline: calendarLabel(calendar),
+		entries,
+		due: due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : [],
+		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
+	}, options);
 }
 
 /**
@@ -248,6 +280,7 @@ export function turnSeason() {
 	return turnTime({
 		newAge: false,
 		next: nextSeason,
+		kind: "season",
 		label: "time.turnSeason",
 		icon: "fa-solid fa-leaf",
 		pursuits: SEASON_PURSUITS,
@@ -266,6 +299,7 @@ export function turnAge() {
 	return turnTime({
 		newAge: true,
 		next: nextAge,
+		kind: "age",
 		label: "time.turnAge",
 		icon: "fa-solid fa-hourglass-end",
 		pursuits: AGE_PURSUITS,
@@ -306,6 +340,7 @@ export async function journeyToDistantRealm() {
 	const after = await turnTime({
 		newAge: false,
 		next: nextSeason,
+		kind: "distant",
 		label: "time.distant.title",
 		icon: "fa-solid fa-route",
 		pursuits: [],

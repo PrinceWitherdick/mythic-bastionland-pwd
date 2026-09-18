@@ -569,6 +569,11 @@
       "glory": "Glory {from} → {to}.",
       "oldAge": "Old age: loses {amount} VIG, max VIG {from} → {to}.",
       "diesPeacefully": "At VIG 0, they die peacefully.",
+      "doomLifts": "The Season of their Doom has passed, and a Mortal Wound no longer Slays them.",
+      "due": {
+        "title": "Due this Season",
+        "crisis": "The Crisis Roll for {domains} (p20), from the GM Toolkit’s Time page or each Domain’s sheet."
+      },
       "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
       "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
       "hardship": {
@@ -739,7 +744,6 @@
       "misruleHint": "Vassals revolt, Knights leave, and pretenders move in on their claims.",
       "misruleDue": "{count} unresolved Crises: if the Season ends like this, the Domain falls into misrule.",
       "fellIntoMisrule": "The Season ended with {count} unresolved Crises, and the Domain falls into misrule.",
-      "seasonHint": "Make the Crisis Roll for each Domain from its sheet.",
       "collections": "Increased Collections",
       "collectionsHint": "A Steward squeezes more from the Vassals for a war or a great project.",
       "drama": "Drama in Court",
@@ -889,6 +893,7 @@
         "journey": "Journey",
         "places": "Places",
         "time": "Time",
+        "seasons": "Seasons",
         "notes": "Notes"
       },
       "myths": {
@@ -943,7 +948,19 @@
       "time": {
         "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes.",
         "resolved": "Myths to Replace",
-        "byHand": "Set by Hand"
+        "byHand": "Set by Hand",
+        "crisisRolls": "Crisis Rolls Due",
+        "crisisRollsHint": "Each Domain makes the Crisis Roll at the start of a Season (p20). These haven’t made it this Season yet.",
+        "crisisRoll": "Crisis Roll"
+      },
+      "seasons": {
+        "hint": "A record of each Season: what you wrote about it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
+        "age": "Age {age}",
+        "now": "Now",
+        "notes": "Your notes on this Season",
+        "notesPlaceholder": "What the Company did, who they met, what was left hanging.",
+        "ended": "As it ended: {title}",
+        "notEnded": "This Season hasn’t ended yet."
       },
       "notes": {
         "hint": "Your own notes. At the end of each session, ask the players about their plans and ambitions for the next one, and write them here (p16)."
