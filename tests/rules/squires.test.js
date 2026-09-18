@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
 	SQUIRE_EQUIPMENT,
 	SQUIRE_IMAGE,
+	companySize,
 	knightedLooks,
 	knightedVirtues,
 	mayTakeSquires,
+	outgrewSquires,
 	ponySystem,
 	squireEquipment,
 	squireItems,
@@ -13,11 +15,39 @@ import {
 
 const names = { dagger: "Dagger", cudgel: "Cudgel", axe: "Axe", hatchet: "Hatchet", shortbow: "Shortbow", shield: "Shield", javelins: "Three javelins" };
 
+describe("companySize", () => {
+	it("counts one Knight for each player", () => {
+		expect(companySize([{ isSquire: false, players: ["a"] }, { isSquire: false, players: ["b"] }])).toBe(2);
+	});
+
+	it("counts a fallen Knight and their heir once, since one player owns both", () => {
+		expect(companySize([{ isSquire: false, players: ["a"] }, { isSquire: false, players: ["a"] }, { isSquire: false, players: ["b"] }])).toBe(2);
+	});
+
+	it("leaves out Squires and Knights no player owns", () => {
+		expect(companySize([{ isSquire: false, players: ["a"] }, { isSquire: true, players: ["a", "b"] }, { isSquire: false, players: [] }])).toBe(1);
+	});
+
+	it("counts a Knight shared by two players as two seats at the table", () => {
+		expect(companySize([{ isSquire: false, players: ["a", "b"] }])).toBe(2);
+	});
+});
+
 describe("mayTakeSquires", () => {
 	it("allows Squires for a Company of 2 Knights or fewer", () => {
 		expect(mayTakeSquires(1)).toBe(true);
 		expect(mayTakeSquires(2)).toBe(true);
 		expect(mayTakeSquires(3)).toBe(false);
+	});
+});
+
+describe("outgrewSquires", () => {
+	it("is true only when the Company grows past 2 Knights", () => {
+		expect(outgrewSquires(2, 3)).toBe(true);
+		expect(outgrewSquires(1, 4)).toBe(true);
+		expect(outgrewSquires(1, 2)).toBe(false);
+		expect(outgrewSquires(3, 4)).toBe(false);
+		expect(outgrewSquires(3, 2)).toBe(false);
 	});
 });
 

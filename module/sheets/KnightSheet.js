@@ -1,7 +1,7 @@
 import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
-import { knightSquire, takeSquire } from "../actions/squires.js";
+import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
@@ -9,6 +9,7 @@ import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
+import { mayTakeSquires } from "../rules/squires.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
@@ -72,6 +73,9 @@ export class KnightSheet extends BastionlandActorSheet {
 		const steed = this.#steed();
 		const squire = this.#squire();
 		const successor = heirOf(this.actor);
+		// Only small Companies may take Squires (p7): say so before anyone asks, and leave the Referee a way round it.
+		const companyCount = companySizeNow();
+		const tooLargeForSquires = !system.isSquire && !squire && !mayTakeSquires(companyCount);
 
 		return Object.assign(context, {
 			isSquire: system.isSquire,
@@ -80,7 +84,10 @@ export class KnightSheet extends BastionlandActorSheet {
 			canAddPassion: !system.isSquire && !passions.length,
 			// A Knight's Squire, or the Knight a Squire serves.
 			squire: squire && { name: system.isSquire ? t("squire.serves", { name: squire.name }) : squire.name, img: squire.img },
-			squireEmpty: t(system.isSquire ? "squire.servesNobody" : "squire.empty"),
+			squireEmpty: system.isSquire ? t("squire.servesNobody")
+				: tooLargeForSquires ? t(game.user.isGM ? "squire.largeCompanyHintGM" : "squire.largeCompanyHint", { count: companyCount })
+					: t("squire.empty"),
+			squireBarred: tooLargeForSquires && !game.user.isGM,
 			successor: successor && { name: successor.name, img: successor.img },
 			ages: AGES.map((key) => ({ key, label: t(`age.${key}`), active: system.age === key })),
 			ranks: RANKS.map((rank) => ({

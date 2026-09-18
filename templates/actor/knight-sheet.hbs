@@ -177,7 +177,7 @@
 					<p class="bastionland-empty">{{squireEmpty}}</p>
 					{{#if editable}}{{#unless isSquire}}
 					<div class="bastionland-adds">
-						<button type="button" class="bastionland-button" data-action="takeSquire"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.squire.take"}}</button>
+						<button type="button" class="bastionland-button" data-action="takeSquire"{{#if squireBarred}} disabled{{/if}}><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.squire.take"}}</button>
 					</div>
 					{{/unless}}{{/if}}
 					{{/if}}

@@ -425,6 +425,7 @@ describe("system boot", () => {
 		expect(hooks.ready).toBeTypeOf("function");
 		// A world whose GM hasn't loaded since the Luck Roll macro shipped.
 		globalThis.game.macros = { find: () => undefined };
+		Object.assign(globalThis.game, { actors: [], users: [] });
 		await expect(hooks.ready()).resolves.toBeUndefined();
 	});
 });

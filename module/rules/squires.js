@@ -45,10 +45,27 @@ const track = (value) => ({ value, max: value });
 export const KNIGHTING_GAIN_ROLL = "1d6";
 
 /**
+ * How many Knights the Company has: one for each player with a Knight. A
+ * fallen Knight left in the Actors directory and the heir who follows them
+ * share a player, so they count once, and Squires don't count at all.
+ * @param {{isSquire: boolean, players: string[]}[]} knights Every Knight in the
+ *   world, with the ids of the players who own them (never the GM's).
+ * @returns {number}
+ */
+export const companySize = (knights) => new Set(knights.filter((knight) => !knight.isSquire).flatMap((knight) => knight.players)).size;
+
+/**
  * @param {number} knights Knights in the Company, not counting Squires.
  * @returns {boolean} Whether the Company is small enough for Squires.
  */
 export const mayTakeSquires = (knights) => knights <= SQUIRE_COMPANY_LIMIT;
+
+/**
+ * @param {number} before Knights in the Company before a change.
+ * @param {number} after  Knights in the Company after it.
+ * @returns {boolean} Whether the change took the Company past the size that may keep Squires.
+ */
+export const outgrewSquires = (before, after) => mayTakeSquires(before) && !mayTakeSquires(after);
 
 /**
  * @param {number} d6

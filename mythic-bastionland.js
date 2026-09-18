@@ -7,6 +7,7 @@ import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registe
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
+import { watchCompanySize } from "./module/actions/squires.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -279,6 +280,8 @@ const WORLD_SETUP = Object.freeze([
 Hooks.once("ready", async () => {
 	// Nothing else waits on this.
 	squareKnightTokens();
+	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
+	watchCompanySize();
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),

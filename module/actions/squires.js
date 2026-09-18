@@ -6,9 +6,11 @@ import {
 	SQUIRE_GUARD,
 	SQUIRE_IMAGE,
 	SQUIRE_VIRTUE_ROLL,
+	companySize,
 	knightedLooks,
 	knightedVirtues,
 	mayTakeSquires,
+	outgrewSquires,
 	ponySystem,
 	squireEquipment,
 	squireItems,
@@ -17,8 +19,59 @@ import {
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 
-/** @returns {Actor[]} The Company's Knights: every Knight a player owns who isn't a Squire. */
-const companyKnights = () => game.actors.filter((actor) => actor.type === "knight" && actor.hasPlayerOwner && !actor.system.isSquire);
+/** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
+export function companyKnightCount() {
+	const players = game.users.filter((user) => !user.isGM);
+	return companySize(game.actors.filter((actor) => actor.type === "knight").map((actor) => ({
+		isSquire: Boolean(actor.system.isSquire),
+		players: players.filter((user) => actor.testUserPermission(user, "OWNER")).map((user) => user.id)
+	})));
+}
+
+/** The Company's size when last counted, kept fresh by watchCompanySize. */
+let lastCompanyCount = 0;
+
+/** @returns {number} The Company's size when last counted, cheap enough for every sheet render. */
+export const companySizeNow = () => lastCompanyCount;
+
+/**
+ * Recount the Company after a Knight is created, deleted, Knighted or handed
+ * to another player. Open Knight sheets are redrawn when the count changes,
+ * since their Squire hint shows it. If the Company grew past 2 Knights while Squires remain, whisper
+ * the GMs, since only small Companies may keep them (p7). Whether the Squires
+ * stay is the Referee's call, so nothing else changes.
+ * @returns {Promise<ChatMessage|null>}
+ */
+async function recountCompany() {
+	const before = lastCompanyCount;
+	lastCompanyCount = companyKnightCount();
+	if (before !== lastCompanyCount) {
+		for (const actor of game.actors) if (actor.type === "knight" && actor.sheet?.rendered) actor.sheet.render();
+	}
+	if (!outgrewSquires(before, lastCompanyCount) || !game.users.activeGM?.isSelf) return null;
+	const squires = game.actors.filter((actor) => actor.type === "knight" && actor.system.isSquire);
+	if (!squires.length) return null;
+	const names = new Intl.ListFormat(game.i18n.lang, { type: "conjunction" }).format(squires.map((squire) => squire.name));
+	return postCard(null, "note", {
+		icon: "fa-solid fa-people-group",
+		text: t("squire.companyGrew", { count: lastCompanyCount, squires: names })
+	}, { mode: "gm" });
+}
+
+/**
+ * @param {Actor} actor
+ * @param {object} [changes] An update's changes; none for a creation or deletion.
+ * @returns {boolean} Whether the change could alter the Company's size.
+ */
+const changesCompany = (actor, changes) => actor.type === "knight" && (!changes || "ownership" in changes || changes.system?.isSquire !== undefined);
+
+/** Count the Company once the world is ready, then recount it as Knights come and go. */
+export function watchCompanySize() {
+	lastCompanyCount = companyKnightCount();
+	Hooks.on("createActor", (actor) => changesCompany(actor) && recountCompany());
+	Hooks.on("updateActor", (actor, changes) => changesCompany(actor, changes) && recountCompany());
+	Hooks.on("deleteActor", (actor) => changesCompany(actor) && recountCompany());
+}
 
 /**
  * Give a Knight a Squire (p7): roll 2d6 for each Virtue and a d6 for their
@@ -41,12 +94,18 @@ export async function takeSquire(knight) {
 	}
 
 	// Only small Companies may take Squires, but the Referee may bend that.
-	const count = companyKnights().length;
-	if (!mayTakeSquires(count) && !(await confirmDialog({
-		title: t("squire.largeTitle"),
-		icon: "fa-solid fa-people-group",
-		message: t("squire.largeCompany", { count })
-	}))) return null;
+	const count = companyKnightCount();
+	if (!mayTakeSquires(count)) {
+		if (!game.user.isGM) {
+			ui.notifications.warn(t("squire.largeCompanyPlayer", { count }));
+			return null;
+		}
+		if (!(await confirmDialog({
+			title: t("squire.largeTitle"),
+			icon: "fa-solid fa-people-group",
+			message: t("squire.largeCompany", { count })
+		}))) return null;
+	}
 
 	const rolls = [];
 	const virtues = {};
