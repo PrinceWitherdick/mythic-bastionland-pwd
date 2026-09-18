@@ -79,17 +79,9 @@ const LANDMARK_MARKS = {
 
 /**
  * Icons from game-icons.net, in a 512 by 512 box, shared under CC BY 3.0: the
- * Seat of Power's crown, and the town, castle, tower and fortress Holdings.
+ * town, castle, tower and fortress Holdings.
  */
 const GAME_ICONS = Object.freeze({
-	crown: {
-		credit: "Crown icon by Lorc (https://lorcblog.blogspot.com), from game-icons.net, CC BY 3.0.",
-		d: "m408.256 119.46-37.7 52.165 19.57 44.426 34.8-37.214-16.67-59.375zm86.074 12.513L384.44 249.498 334.01 135.02l-75.162 132.947-86.948-131.78-33.334 114.122L17.922 132.83l39.3 127.6c1.945-.348 3.94-.54 5.98-.54 18.812 0 34.26 15.452 34.26 34.262 0 13.823-8.346 25.822-20.235 31.22l5.337 17.33c12.425 25.466 71.863 45.152 176.582 47.206 110.805 2.174 178.12-17.54 189.854-47.207h-.002l4.357-20.26c-16.836-2.114-30.02-16.612-30.02-33.986 0-18.81 15.45-34.262 34.263-34.262 3.513 0 6.91.54 10.11 1.54l26.622-123.762zm-391.77 2.04 1.22 56.337 25.56 24.89 9.592-32.842-36.37-48.386zm150.585 2.91-24.483 51.36 28.955 43.885 24.922-44.08-29.395-51.166z",
-		// The halo leaves a speck of paper between each back point's foot and the V below it, so these seams ink it.
-		seams: [[129.34, 215.24, 138.566, 250.309], [257.617, 232.168, 258.848, 267.967], [390.126, 216.051, 384.44, 249.498]],
-		// Its jewels were rings about a dot, and a halo fills the ring, leaving just an odd pale dot: they are set solid instead.
-		jewels: [[63.2, 294.15], [193.53, 330.68], [324.76, 330.68], [448.39, 287.43]]
-	},
 	castle: {
 		credit: "Castle icon by Delapouite (https://delapouite.com), from game-icons.net, CC BY 3.0.",
 		d: "m255.95 27.11-75.35 80.504 150.7 1.168-75.35-81.674h-.003zM25 109.895v68.01l19.412 25.99h71.06l19.528-26v-68h-14v15.995h-18v-15.994H89v15.995H71v-15.994H57v15.995H39v-15.994H25zm352 0v68l19.527 26h71.06L487 177.906v-68.01h-14v15.995h-18v-15.994h-14v15.995h-18v-15.994h-14v15.995h-18v-15.994h-14zm-176 15.877V260.89h110V126.63l-110-.857zm55 20.118c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zM41 221.897V484.89h78V221.897H41zm352 0V484.89h78V221.897h-78zM56 241.89c4 0 8 4 8 12v32H48v-32c0-8 4-12 8-12zm400 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12zm-303 37v23h-16v183h87v-55c0-24 16-36 32-36s32 12 32 36v55h87v-183h-16v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14v23h-18v-23h-14zm-49 43c4 0 8 4 8 12v32H96v-32c0-8 4-12 8-12zm72 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm80 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm80 0c8 0 16 4 16 12v32h-32v-32c0-8 8-12 16-12zm72 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12zm-352 64c4 0 8 4 8 12v32H48v-32c0-8 4-12 8-12zm400 0c4 0 8 4 8 12v32h-16v-32c0-8 4-12 8-12z"
@@ -159,16 +151,11 @@ const mark = (d, { x, y, size, stroke, width, fill = "none" }) =>
  *   of `width` rings it, behind the icon so its holes stay open.
  */
 function gameIcon(name, { x, y, size, fill, halo, width = 8 }) {
-	const { credit, d, jewels = [], seams = [] } = GAME_ICONS[name];
+	const { credit, d } = GAME_ICONS[name];
 	const scale = size / 512;
 	const outline = halo ? ` stroke="${halo}" stroke-width="${f((2 * width) / scale)}" stroke-linejoin="round" paint-order="stroke"` : "";
-	const inked = halo ? seams.map(([x1, y1, x2, y2]) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${halo}" stroke-width="${f((2 * width) / scale)}" stroke-linecap="round"/>`).join("") : "";
-	const gems = jewels.map(([cx, cy]) => `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(JEWEL_RADIUS)}" fill="${halo ?? fill}"/>`).join("");
-	return `<desc>${credit}</desc><g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(scale)})">${inked}<path d="${d}" fill="${fill}"${outline}/>${gems}</g>`;
+	return `<desc>${credit}</desc><g transform="translate(${f(x - size / 2)} ${f(y - size / 2)}) scale(${f(scale)})"><path d="${d}" fill="${fill}"${outline}/></g>`;
 }
-
-/** A jewel's radius in an icon's 512 box: big enough to fill the notch the crown's side jewels sit in. */
-const JEWEL_RADIUS = 26;
 
 /** The game-icons.net icon each Holding is drawn with. */
 const HOLDING_ICONS = { town: "village", castle: "castle", tower: "tower", fortress: "rempart" };
@@ -450,6 +437,12 @@ const ARMORIAL = Object.freeze({
 });
 
 /**
+ * @returns {string} The Seat of Power's crown, the Armorial skin's Eastern Crown in every skin: gold,
+ *   lined in whatever gold stands out from, `size` wide in the badge's middle.
+ */
+const crown = (p, size) => heraldicArt(ARMORIAL.seat, { x: 150, y: 150, width: size, height: size, fill: CROWN_GOLD, line: goldRim(p) });
+
+/**
  * @param {string} key One of ARMORIAL_ART's drawings.
  * @param {{x: number, y: number, width: number, height: number, fill: string, line: string}} place The middle of
  *   the box it fits in, the box's size, and the colours it's drawn in where the heraldry painter would tint it and for its lines.
@@ -475,7 +468,7 @@ function heraldicArt(key, { x, y, width, height, fill, line }) {
 const SKINS = {
 	/**
 	 * The Blank Realm sheet's own terrain, Holdings and Landmarks, rivers as the
-	 * Realm Sheets ink them, numerals drawn to go with them, and a crown from game-icons.net.
+	 * Realm Sheets ink them, numerals drawn to go with them, and the heraldic crown every skin's Seat wears.
 	 */
 	sheet: {
 		terrain: (key, index, p) => svg(HEX_W, HEX_H, SHEET_CREDIT
@@ -489,7 +482,7 @@ const SKINS = {
 		// Ringed as the sheet rings a Myth, but in the crown's gold and left open, so the Holding shows through.
 		seat: (p) => svg(BADGE, BADGE, inkMark(inkRing(42, { shadow: false, open: true, width: 9 }), { x: 150, y: 150, size: 290, ink: goldRim(p), paper: p.paper })
 			+ inkMark(inkRing(42, { shadow: false, open: true, width: 5.5 }), { x: 150, y: 150, size: 290, ink: CROWN_GOLD, paper: p.paper })
-			+ gameIcon("crown", { x: 147, y: 149, size: 184, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
+			+ crown(p, 184)),
 		river: inkedRiver
 	},
 
@@ -504,7 +497,7 @@ const SKINS = {
 		myth: (number, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.ink}" stroke="${p.accent}" stroke-width="14"/>`
 			+ text(number, { x: 150, y: 200, size: 150, fill: p.paper, font: NUMERAL_FONT })),
 		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p))
-			+ gameIcon("crown", { x: 150, y: 150, size: 194, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
+			+ crown(p, 194)),
 		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 1.75 * SCALE, width: 4.5 * SCALE })
 	},
 
@@ -521,7 +514,7 @@ const SKINS = {
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.ink}" stroke="${p.accent}" stroke-width="14" stroke-linejoin="round"/>`
 			+ text(number, { x: 150, y: 196, size: 140, fill: p.paper, weight: "bold", font: NUMERAL_FONT })),
 		seat: (p) => svg(BADGE, BADGE, goldRing(124, 15, goldRim(p))
-			+ gameIcon("crown", { x: 150, y: 150, size: 188, fill: CROWN_GOLD, halo: goldRim(p), width: 5 })),
+			+ crown(p, 188)),
 		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 3 * SCALE, width: 6 * SCALE, middle: { stroke: p.ink, width: 1.2 * SCALE, dash: `${6 * SCALE} ${5 * SCALE}` } })
 	},
 
@@ -539,7 +532,7 @@ const SKINS = {
 			+ text(number, { x: 150, y: 188, size: 110, fill: onColour(p.accent, p), style: "italic", font: NUMERAL_FONT })),
 		seat: (p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="136" fill="none" stroke="${goldRim(p)}" stroke-width="3"/>`
 			+ goldRing(120, 8, goldRim(p))
-			+ gameIcon("crown", { x: 150, y: 150, size: 186, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
+			+ crown(p, 186)),
 		river: (shape, p) => river(shape, { bank: mix(p.ink, p.paper, 0.3), water: p.water, edge: 1 * SCALE, width: 3.5 * SCALE })
 	},
 
@@ -563,7 +556,7 @@ const SKINS = {
 		// The Seat alone is a rim without its wax, so the Holding it is pinned above shows through.
 		seat: (p) => svg(BADGE, BADGE, `<path d="${scallops(116)}" fill="none" stroke="${goldRim(p)}" stroke-width="20"/>`
 			+ `<path d="${scallops(116)}" fill="none" stroke="${CROWN_GOLD}" stroke-width="14"/>`
-			+ gameIcon("crown", { x: 150, y: 150, size: 170, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
+			+ crown(p, 170)),
 		river: (shape, p) => river(shape, { bank: null, water: p.water, edge: 2 * SCALE, width: 9 * SCALE, middle: { stroke: mix(p.water, p.paper, 0.55), width: 2 * SCALE } })
 	},
 
@@ -584,9 +577,7 @@ const SKINS = {
 			+ heraldicArt(ARMORIAL.landmark[type], { x: 150, y: 150, width: 168, height: 168, fill: p.paper, line: p.ink })),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.accent}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>`
 			+ text(number, { x: 150, y: 186, size: 130, fill: onColour(p.accent, p), font: NUMERAL_FONT })),
-		// The crown in gold, lined in whatever gold stands out from, in the same open ring as the other skins' Seats.
-		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p))
-			+ heraldicArt(ARMORIAL.seat, { x: 150, y: 150, width: 184, height: 184, fill: CROWN_GOLD, line: goldRim(p) })),
+		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p)) + crown(p, 184)),
 		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 1.75 * SCALE, width: 4.5 * SCALE })
 	}
 };

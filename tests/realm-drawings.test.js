@@ -67,7 +67,8 @@ describe("drawRealmSet", () => {
 		expect(files["holding-castle.svg"]).toContain("<desc>Castle icon by Delapouite");
 		expect(files["holding-tower.svg"]).toContain("<desc>White Tower icon by Lorc");
 		expect(files["holding-fortress.svg"]).toContain("<desc>Rempart icon by Delapouite");
-		expect(files["seat.svg"]).toContain("<desc>Crown icon by Lorc");
+		expect(files["seat.svg"]).toContain("Eastern Crown");
+		expect(files["seat.svg"]).not.toContain("Crown icon by Lorc");
 	});
 
 	it.each(REALM_SKINS)("rings %s's crown, so the Seat of Power reads as a badge on the map", (skin) => {
@@ -150,8 +151,8 @@ describe("the Blank Realm skin", () => {
 		expect(blank["myth-1.svg"]).not.toContain("<desc>");
 	});
 
-	it("crowns the Seat of Power with game-icons.net's crown, and credits it", () => {
-		expect(blank["seat.svg"]).toContain("<desc>Crown icon by Lorc");
+	it("crowns the Seat of Power with the heraldic Eastern Crown, and credits it", () => {
+		expect(blank["seat.svg"]).toMatch(/<desc>[^<]*Eastern Crown/);
 	});
 
 	it("inks terrain and Holdings, and pens Landmarks and Myths in the colour set's red", () => {
