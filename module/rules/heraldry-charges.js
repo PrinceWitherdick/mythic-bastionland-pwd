@@ -307,6 +307,17 @@ export function chargeLineColor(color) {
 }
 
 /**
+ * A cleaned charge's two colours swapped for others.
+ * @param {string} svg
+ * @param {string} fill Where the charge takes its tincture.
+ * @param {string} line For its lines.
+ * @returns {string}
+ */
+export const recolourCharge = (svg, fill, line) => svg
+	.replaceAll(`="${CHARGE_FILL}"`, `="${fill}"`)
+	.replace(new RegExp(`(\\s(?:fill|stroke))="${CHARGE_LINE}"`, "g"), `$1="${line}"`);
+
+/**
  * A shipped charge in a tincture, sized to draw sharp.
  * @param {string} svg The charge's file, as shipped.
  * @param {string} color "#rrggbb"
@@ -323,10 +334,7 @@ export function tintCharge(svg, color, size = CHARGE_RASTER) {
 	const sized = root
 		.replace(/\swidth="[^"]*"/, ` width="${Math.round(box[2] * scale)}"`)
 		.replace(/\sheight="[^"]*"/, ` height="${Math.round(box[3] * scale)}"`);
-	const line = chargeLineColor(fill);
-	return (sized + svg.slice(root.length))
-		.replaceAll(`="${CHARGE_FILL}"`, `="${fill}"`)
-		.replace(new RegExp(`(\\s(?:fill|stroke))="${CHARGE_LINE}"`, "g"), `$1="${line}"`);
+	return recolourCharge(sized + svg.slice(root.length), fill, chargeLineColor(fill));
 }
 
 /**

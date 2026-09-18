@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { CHARGE_LICENCE, HERALDIC_ART, HERALDIC_ART_COPYRIGHT, HERALDIC_ART_ILLUSTRATOR } from "../module/rules/heraldry-charges.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES } from "../module/rules/realm.js";
 import { PICTURE_NAME, REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette } from "../module/rules/realm-skins.js";
+import { checkChargeSvg } from "../scripts/lib/charge-svg.js";
 import { DRAWN_SKINS, drawRealmSet } from "../scripts/lib/realm-drawings.js";
+import { PUBLIC_DOMAIN } from "./public-domain-sources.js";
 
 const HEX_H = 480;
 const HEX_W = (2 * HEX_H) / Math.sqrt(3);
@@ -11,6 +14,10 @@ const BADGE = 300;
 
 /** What scripts/realm-sheet-art.py traced from the Blank Realm sheet. */
 const SHEET_ART = JSON.parse(readFileSync(new URL("../scripts/data/realm-sheet-art.json", import.meta.url), "utf8"));
+
+/** What scripts/realm-armorial-art.js took from the Book of Traceable Heraldic Art. */
+const ARMORIAL_ART = JSON.parse(readFileSync(new URL("../scripts/data/realm-armorial-art.json", import.meta.url), "utf8"));
+const ARMORIAL_ART_KEYS = Object.keys(ARMORIAL_ART);
 
 /** Every x,y pair in a path, whatever its commands. */
 function coordinates(d) {
@@ -54,7 +61,7 @@ describe("drawRealmSet", () => {
 		}
 	});
 
-	it.each(REALM_SKINS.filter((skin) => skin !== "sheet"))("draws %s's Holdings as game-icons.net icons, and credits them", (skin) => {
+	it.each(REALM_SKINS.filter((skin) => !["sheet", "armorial"].includes(skin)))("draws %s's Holdings as game-icons.net icons, and credits them", (skin) => {
 		const files = drawRealmSet(skin, "parchment");
 		expect(files["holding-town.svg"]).toContain("<desc>Village icon by Delapouite");
 		expect(files["holding-castle.svg"]).toContain("<desc>Castle icon by Delapouite");
@@ -65,8 +72,8 @@ describe("drawRealmSet", () => {
 
 	it.each(REALM_SKINS)("rings %s's crown, so the Seat of Power reads as a badge on the map", (skin) => {
 		const seat = drawRealmSet(skin, "parchment")["seat.svg"];
-		// Each skin rings it in its own hand, but always in gold and behind the crown, which the credit marks the start of.
-		const ring = seat.slice(0, seat.indexOf("<desc>Crown"));
+		// Each skin rings it in its own hand, but always in gold and behind the crown, which its credit marks the start of.
+		const ring = seat.slice(0, seat.indexOf("<desc>"));
 		expect(ring).toMatch(/<circle|<path/);
 		expect(ring).toContain("#c9a227");
 		// The middle of the ring is left open, so the Holding the Seat is pinned above shows through it.
@@ -76,6 +83,59 @@ describe("drawRealmSet", () => {
 	it("draws each colour set in its own colours", () => {
 		expect(drawRealmSet("classic", "midnight")["myth-1.svg"]).toContain("#e8dcc0");
 		expect(drawRealmSet("classic", "parchment")["myth-1.svg"]).not.toContain("#e8dcc0");
+	});
+});
+
+describe("the Armorial skin", () => {
+	const parchment = realmPalette("parchment");
+	const drawn = drawRealmSet("armorial", "parchment");
+	/** Its pictures drawn from the Book of Traceable Heraldic Art: all but the Valley, the Myths and the rivers. */
+	const heraldic = Object.keys(drawn).filter((name) => !/^(terrain-06|myth-\d|river-\w+)\.svg$/.test(name));
+
+	it.each(ARMORIAL_ART_KEYS)("draws %s after a public-domain source", (key) => {
+		const { sources, artists } = ARMORIAL_ART[key];
+		expect(sources.length).toBeGreaterThan(0);
+		for (const source of sources) expect(Object.keys(PUBLIC_DOMAIN)).toContain(source);
+		for (const artist of artists) expect(sources.some((source) => PUBLIC_DOMAIN[source]?.includes(artist))).toBe(true);
+	});
+
+	it.each(ARMORIAL_ART_KEYS)("keeps %s a drawing that can be tinted safely", (key) => {
+		expect(() => checkChargeSvg(ARMORIAL_ART[key].svg)).not.toThrow();
+	});
+
+	it.each(heraldic)("credits the heraldry drawing %s is made from, under its licence", (name) => {
+		const credit = /<desc>([^<]*)<\/desc>/.exec(drawn[name])?.[1];
+		expect(credit).toContain(`${HERALDIC_ART_ILLUSTRATOR} for the Book of Traceable Heraldic Art, ${HERALDIC_ART}`);
+		expect(credit).toContain(HERALDIC_ART_COPYRIGHT);
+		expect(credit).toContain(CHARGE_LICENCE.url);
+		expect(credit).toMatch(/Source: .+\. Artist: .+\./);
+	});
+
+	it("uses every drawing it ships", () => {
+		const used = new Set(heraldic.map((name) => /heraldicart\.org\/([^ ]+?)\. /.exec(drawn[name])[1]));
+		expect(ARMORIAL_ART_KEYS.map((key) => ARMORIAL_ART[key].href).filter((href) => !used.has(href))).toEqual([]);
+	});
+
+	it("tints each drawing in the colour set, leaving none of the painter's own colours", () => {
+		for (const name of heraldic) {
+			expect(drawn[name]).not.toMatch(/="#f3f3f3"|="#000"/);
+			expect(drawn[name]).toContain(`="${parchment.ink}"`);
+		}
+		expect(drawn["holding-castle.svg"]).toContain(`fill="${parchment.paper}"`);
+		expect(drawn["terrain-05.svg"]).toContain(`fill="${parchment.terrain[4]}"`);
+		expect(drawRealmSet("armorial", "midnight")["holding-castle.svg"]).toContain(`="${realmPalette("midnight").ink}"`);
+	});
+
+	it("keeps the drawn mark for the Valley, which no heraldry drawing reads as", () => {
+		expect(drawn["terrain-06.svg"]).not.toContain("<desc>");
+		expect(drawn["terrain-06.svg"]).toMatch(/<path d="M12 30c20 10/);
+	});
+
+	it("numbers its Myths on shields, with no drawing that could give a Myth away", () => {
+		for (let number = 1; number <= 6; number++) {
+			expect(drawn[`myth-${number}.svg`]).not.toContain("<desc>");
+			expect(drawn[`myth-${number}.svg`]).toContain(`>${number}</text>`);
+		}
 	});
 });
 

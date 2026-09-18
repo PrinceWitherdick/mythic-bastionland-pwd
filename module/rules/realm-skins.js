@@ -16,7 +16,7 @@ export const REALM_SKIN_ROOT = `${SYSTEM_PATH}/assets/realm`;
 export const REALM_CUSTOM_DIR = `${ART_ROOT}/realm-custom`;
 
 /** Names under `bastionland.realm.look.skins`. The first is the default. */
-export const REALM_SKINS = Object.freeze(["sheet", "classic", "woodcut", "atlas", "seal"]);
+export const REALM_SKINS = Object.freeze(["sheet", "classic", "woodcut", "atlas", "seal", "armorial"]);
 
 /** Skins whose terrain drawing gives way to a Holding in its hex, as on the Blank Realm, rather than lying under it. */
 export const HOLDINGS_REPLACE_TERRAIN = Object.freeze(["sheet"]);

@@ -1,11 +1,38 @@
 /**
  * Cleans a charge drawn for the Book of Traceable Heraldic Art down to the two
  * colours the heraldry painter tints: CHARGE_FILL where the charge takes its
- * tincture and CHARGE_LINE for its lines. Used by scripts/heraldry-charges.js.
+ * tincture and CHARGE_LINE for its lines. Used by scripts/heraldry-charges.js
+ * and scripts/realm-armorial-art.js.
  */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { mapNodesToParents, optimize } from "svgo";
-import { CHARGE_FILL, CHARGE_LINE } from "../../module/rules/heraldry-charges.js";
+import { CHARGE_FILL, CHARGE_LINE, HERALDIC_ART } from "../../module/rules/heraldry-charges.js";
 import { escapeHTML } from "../../module/rules/text.js";
+
+/** Where fetched drawings are kept, so running a script again works offline. */
+const CACHE = join(import.meta.dirname, "..", "..", "node_modules", ".cache", "heraldry-charges");
+
+/**
+ * A drawing from the Book of Traceable Heraldic Art, from the cache unless
+ * asked to fetch it again.
+ * @param {string} svg The drawing's path on the site.
+ * @param {object} options
+ * @param {string} options.agent The script asking, for the User-Agent.
+ * @param {boolean} [options.refresh] Fetch it even if it's cached.
+ * @returns {Promise<string>}
+ */
+export async function fetchDrawing(svg, { agent, refresh = false }) {
+	const path = join(CACHE, ...svg.split("/"));
+	if (!refresh && existsSync(path)) return readFileSync(path, "utf8");
+	const response = await fetch(`${HERALDIC_ART}${svg}`, { headers: { "User-Agent": `mythic-bastionland-pwd ${agent}` } });
+	if (!response.ok) throw new Error(`HTTP ${response.status}`);
+	const text = await response.text();
+	if (!text.includes("<svg")) throw new Error("Not an SVG");
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(path, text);
+	return text;
+}
 
 /** The only fill and stroke values a cleaned charge may use. */
 export const CHARGE_PAINTS = Object.freeze([CHARGE_FILL, CHARGE_LINE, "none"]);

@@ -1901,6 +1901,10 @@
           "seal": {
             "label": "Wax Seal",
             "hint": "Strong colours and sealing-wax badges."
+          },
+          "armorial": {
+            "label": "Armorial",
+            "hint": "Charges from old heraldry books: castles, crowns and beasts drawn in ink, Myths on shields."
           }
         },
         "palettes": {

@@ -15,85 +15,9 @@ import {
 	tintCharge
 } from "../../module/rules/heraldry-charges.js";
 import { contrast } from "../../module/rules/colour.js";
+import { PUBLIC_DOMAIN } from "../public-domain-sources.js";
 
 const color = (key) => TINCTURES.find((tincture) => tincture.key === key).color;
-
-/**
- * Every source a charge may be drawn after, with the artists allowed for it:
- * books, rolls and armorials whose copyright has long ended. Check a new
- * source's date and illustrator before adding it. Drawings from modern
- * collections, museum photographs and 20th-century books don't belong here.
- */
-const PUBLIC_DOMAIN = {
-	"A Complete Guide to Heraldry": ["Graham Johnston"],
-	"A Cyclopedia of Costume": ["Unknown Illustrator"],
-	"A Display of Heraldry": ["Unknown Illustrator"],
-	"A Glossary of Terms Used in Heraldry": ["James or Irene Parker"],
-	"A Handbook of Ornament": ["Unknown Illustrator"],
-	"A Treatise on Heraldry British and Foreign": ["Unknown Illustrator"],
-	"Aegidius Tschudi's Armorial": ["Unknown Illustrator"],
-	"Album Amicorum des Élèves de Morel": ["Unknown Illustrator"],
-	"Anton Tirol's Wappenbuch": ["Anton Tirol"],
-	"Arma Regni Poloniae": ["Unknown Illustrator"],
-	"Armorial de Berry": ["Gilles le Bouvier"],
-	"Armorial de Gelre": ["Claes Heinenzoon"],
-	"Armorial Général, d'Origine Vraisemblablement Lorraine": ["Unknown Illustrator"],
-	"Armorial Le Breton": ["Unknown Illustrator"],
-	"Banners, Standards, and Badges": ["Thomas Willement"],
-	"Bergshammar Armorial": ["Unknown Illustrator"],
-	"Beyeren Armorial": ["Claes Heinenzoon"],
-	"BnF MS Allemand 304": ["Unknown Illustrator"],
-	"Catalogue des Nobles Admiraulx de France": ["Unknown Illustrator"],
-	"Dering Roll": ["Unknown Illustrator"],
-	"Devises Heroiques et Emblemes": ["Unknown Illustrator"],
-	"Encyclopædia Heraldica": ["Unknown Illustrator"],
-	"English Arms A": ["Unknown Illustrator"],
-	"Fenwick Roll": ["Unknown Illustrator"],
-	"Fictitious & Symbolic Creatures in Art": ["John Vinycomb"],
-	"Funeral Arms and Commissions for Visitations": ["Unknown Illustrator"],
-	"Glover's Roll in St. George's Book": ["Unknown Illustrator"],
-	"Guillim’s Display of Heraldry": ["Unknown Illustrator"],
-	"Harley MS 709": ["Unknown Illustrator"],
-	"Heraldic Badges": ["Unknown Illustrator"],
-	"Heraldry of Fish": ["Unknown Illustrator"],
-	"Heraldry, Ancient and Modern": ["Unknown Illustrator"],
-	"Insignia Florentinorum": ["Unknown Illustrator"],
-	"Insignia Nobilium Patavinorum": ["Unknown Illustrator"],
-	"Insignia Nobilium Veronensium, Vicentinorum": ["Unknown Illustrator"],
-	"Insignia Urbium Italiae Septentrionalis": ["Unknown Illustrator"],
-	"Insignia Venetorum Nobilium III": ["Unknown Illustrator"],
-	"Jacques Prévert Ms. 57": ["Unknown Illustrator"],
-	"L'Ancienne France": ["Unknown Illustrator"],
-	"Lambeth MS774": ["Unknown Illustrator"],
-	"Le Blason Des Armoiries": ["Jérôme de Bara"],
-	"Lewis Armorial": ["Unknown Illustrator"],
-	"Libro II Della Natione Normanda": ["Unknown Illustrator"],
-	"Livro de Nobreza": ["António Godinho"],
-	"Livro do Armeiro-Mor": ["Jean Du Cros"],
-	"Manesse Codex": ["Unknown Illustrator"],
-	"Ortenburger Wappenbuch": ["Unknown Illustrator"],
-	"Ortus Sanitatis": ["Unknown Illustrator"],
-	"Prince Arthur's Book": ["Thomas Wriothesley", "Unknown Illustrator"],
-	"Sammelband Mehrerer Wappenbücher": ["Unknown Illustrator"],
-	"Sammlung von Wappen aus Verschiedenen": ["Unknown Illustrator"],
-	"Scheibler Armorial": ["Unknown Illustrator"],
-	"Scottish Nobility E2": ["Unknown Illustrator"],
-	"Siebmacher’s Wappenbuch of 1605": ["Johann Siebmacher"],
-	"Some Feudal Lords and Their Seals": ["Unknown Illustrator"],
-	"St. Gallen Armorial": ["Unknown Illustrator"],
-	"Stemmario Trivulziano": ["Gian Antonio da Tradate"],
-	"The Accedence of Armorie": ["Unknown Illustrator"],
-	"The Art of Heraldry": ["Unknown Illustrator"],
-	"The Elements of Armories": ["Unknown Illustrator"],
-	"The Trade Signs of Essex": ["Unknown Illustrator"],
-	"Thomas Jenyn's Book": ["Unknown Illustrator"],
-	"Two Tudor Books of Arms": ["Robert Cooke", "Joseph Foster"],
-	"Vocabulaire-Atlas Héraldique": ["Unknown Illustrator"],
-	"Walter Roll": ["Unknown Illustrator"],
-	"Wappenbuch der Arlberg-Bruderschaft": ["Vigil Raber"],
-	"Wernigerode Armorial": ["Unknown Illustrator"],
-	"Workes of Armorie": ["John Bossewell"]
-};
 
 /** A shipped charge in miniature: a lined root, a group of lines, charge parts, and a stroked line with no fill. */
 const CHARGE = [

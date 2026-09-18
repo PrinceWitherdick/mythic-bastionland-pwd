@@ -8,31 +8,14 @@
  *   npm run charges              (use the cache)
  *   npm run charges -- --refresh (fetch every drawing again)
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { cleanChargeSvg, withNotice } from "./lib/charge-svg.js";
-import { CHARGES, CHARGE_CREDITS_FILE, HERALDIC_ART, chargeCredits, chargeNotice } from "../module/rules/heraldry-charges.js";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { cleanChargeSvg, fetchDrawing, withNotice } from "./lib/charge-svg.js";
+import { CHARGES, CHARGE_CREDITS_FILE, chargeCredits, chargeNotice } from "../module/rules/heraldry-charges.js";
 
 const root = join(import.meta.dirname, "..");
 const out = join(root, "assets", "heraldry", "charges");
-const cache = join(root, "node_modules", ".cache", "heraldry-charges");
 const refresh = process.argv.includes("--refresh");
-
-/**
- * @param {string} svg The drawing's path on the site.
- * @returns {Promise<string>}
- */
-async function fetchDrawing(svg) {
-	const path = join(cache, ...svg.split("/"));
-	if (!refresh && existsSync(path)) return readFileSync(path, "utf8");
-	const response = await fetch(`${HERALDIC_ART}${svg}`, { headers: { "User-Agent": "mythic-bastionland-pwd heraldry-charges" } });
-	if (!response.ok) throw new Error(`HTTP ${response.status}`);
-	const text = await response.text();
-	if (!text.includes("<svg")) throw new Error("Not an SVG");
-	mkdirSync(dirname(path), { recursive: true });
-	writeFileSync(path, text);
-	return text;
-}
 
 mkdirSync(out, { recursive: true });
 const written = new Set([CHARGE_CREDITS_FILE]);
@@ -41,7 +24,7 @@ let bytes = 0;
 // One at a time, to go easy on the site.
 for (const charge of CHARGES) {
 	try {
-		const { svg: cleaned, notes } = cleanChargeSvg(await fetchDrawing(charge.svg));
+		const { svg: cleaned, notes } = cleanChargeSvg(await fetchDrawing(charge.svg, { agent: "heraldry-charges", refresh }));
 		const content = `${withNotice(cleaned, chargeNotice(charge))}\n`;
 		const name = `${charge.key}.svg`;
 		writeFileSync(join(out, name), content);

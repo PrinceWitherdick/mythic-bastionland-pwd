@@ -7,8 +7,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { contrast, mix } from "../../module/rules/colour.js";
+import { chargeNotice, recolourCharge } from "../../module/rules/heraldry-charges.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { PICTURE_NAME, realmPalette } from "../../module/rules/realm-skins.js";
+import { escapeHTML } from "../../module/rules/text.js";
 import { curvePath, drawInk, inkNumeral, inkRing } from "./realm-ink.js";
 
 /** Hex pictures are drawn at three times the size a hex is shown at, so they stay crisp when zoomed. */
@@ -426,6 +428,43 @@ function inkedRiver(shape, p) {
 }
 
 /* -------------------------------------------- */
+/*  The Armorial skin's drawings                */
+/* -------------------------------------------- */
+
+/** Drawings from the Book of Traceable Heraldic Art, each with its credit, cleaned by scripts/realm-armorial-art.js. */
+const ARMORIAL_ART = JSON.parse(readFileSync(join(import.meta.dirname, "..", "data", "realm-armorial-art.json"), "utf8"));
+
+/**
+ * The drawing each of the Armorial skin's pictures is made from. No drawing
+ * reads as a valley, so the Valley keeps the drawn mark.
+ */
+const ARMORIAL = Object.freeze({
+	terrain: {
+		marsh: "cattail", heath: "broom-sprig-fructed-2", crag: "stone-4", peaks: "mount-of-six-hillocks-couped",
+		forest: "hurst-of-trees-issuant-from-a-mount", valley: null, hills: "trimount-couped-4", meadow: "sheep-statant",
+		bog: "tree-stump-eradicated", lake: "roundel-barry-wavy-or-fountain", glade: "tree-fructed", plains: "stalk-of-wheat-3"
+	},
+	holding: { castle: "castle-of-three-towers-4", town: "house-3", fortress: "castle-of-one-tower", tower: "tower-16" },
+	landmark: { dwelling: "house-3", sanctum: "church-2", monument: "beacon", hazard: "flame-5", curse: "skull-6", ruin: "arch" },
+	seat: "eastern-crown-3"
+});
+
+/**
+ * @param {string} key One of ARMORIAL_ART's drawings.
+ * @param {{x: number, y: number, width: number, height: number, fill: string, line: string}} place The middle of
+ *   the box it fits in, the box's size, and the colours it's drawn in where the heraldry painter would tint it and for its lines.
+ * @returns {string} The drawing, credited.
+ */
+function heraldicArt(key, { x, y, width, height, fill, line }) {
+	const art = ARMORIAL_ART[key];
+	const root = /^<svg\b[^>]*>/.exec(art.svg)[0];
+	const viewBox = /\sviewBox="([^"]+)"/.exec(root)[1];
+	const body = recolourCharge(art.svg.slice(root.length, -"</svg>".length), fill, line);
+	return `<desc>${escapeHTML(chargeNotice(art))}</desc>`
+		+ `<svg x="${f(x - width / 2)}" y="${f(y - height / 2)}" width="${f(width)}" height="${f(height)}" viewBox="${viewBox}" fill="${line}">${body}</svg>`;
+}
+
+/* -------------------------------------------- */
 /*  Skins                                       */
 /* -------------------------------------------- */
 
@@ -526,6 +565,29 @@ const SKINS = {
 			+ `<path d="${scallops(116)}" fill="none" stroke="${CROWN_GOLD}" stroke-width="14"/>`
 			+ gameIcon("crown", { x: 150, y: 150, size: 170, fill: CROWN_GOLD, halo: goldRim(p), width: 4 })),
 		river: (shape, p) => river(shape, { bank: null, water: p.water, edge: 2 * SCALE, width: 9 * SCALE, middle: { stroke: mix(p.water, p.paper, 0.55), width: 2 * SCALE } })
+	},
+
+	/** Charges from old heraldry books: a drawing in each tinted hex, Landmarks in red roundels, Myths on shields. */
+	armorial: {
+		terrain: (key, index, p) => {
+			const fill = p.terrain[index];
+			const art = ARMORIAL.terrain[key];
+			return svg(HEX_W, HEX_H, `<polygon points="${hexPoints()}" fill="${fill}" stroke="${p.rule}" stroke-width="${2 * SCALE}"/>`
+				+ (art
+					? heraldicArt(art, { x: HEX_W / 2, y: HEX_H / 2, width: HEX_H * 0.6, height: HEX_H * 0.58, fill, line: p.ink })
+					// Drawn about as fine as the heraldry drawings' lines, so it doesn't stand out among them.
+					: terrainMark(key, p.ink, 1.6, fill)));
+		},
+		holding: (style, p) => svg(BADGE, BADGE, heraldicArt(ARMORIAL.holding[style],
+			{ x: 150, y: 150, width: BADGE * HOLDING_ICON_SHARE, height: BADGE * HOLDING_ICON_SHARE, fill: p.paper, line: p.ink })),
+		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.accent}" stroke-width="16"/>`
+			+ heraldicArt(ARMORIAL.landmark[type], { x: 150, y: 150, width: 168, height: 168, fill: p.paper, line: p.ink })),
+		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.accent}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>`
+			+ text(number, { x: 150, y: 186, size: 130, fill: onColour(p.accent, p), font: NUMERAL_FONT })),
+		// The crown in gold, lined in whatever gold stands out from, in the same open ring as the other skins' Seats.
+		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p))
+			+ heraldicArt(ARMORIAL.seat, { x: 150, y: 150, width: 184, height: 184, fill: CROWN_GOLD, line: goldRim(p) })),
+		river: (shape, p) => river(shape, { bank: p.ink, water: p.water, edge: 1.75 * SCALE, width: 4.5 * SCALE })
 	}
 };
 
