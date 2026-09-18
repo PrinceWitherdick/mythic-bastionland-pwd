@@ -1,4 +1,5 @@
 import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { announcePhase } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { GLORY_AWARDS } from "../rules/glory.js";
 import { HARDSHIPS, PHASES, SEASONS } from "../rules/time.js";
@@ -30,19 +31,23 @@ export function timeContext() {
 }
 
 /**
- * Set the calendar by hand, without anything that comes between Seasons or Ages. GMs only.
+ * Set the calendar by hand, without anything that comes between Seasons or Ages. A new
+ * Phase is still announced to the table. GMs only.
  * @param {{season?: string, phase?: string, age?: unknown, day?: unknown}} changes
  * @returns {Promise<unknown>|undefined}
  */
-export function setCalendarByHand({ season, phase, age, day }) {
+export async function setCalendarByHand({ season, phase, age, day }) {
 	if (!game.user.isGM) return undefined;
 	const calendar = getCalendar();
 	const count = (value, fallback) => (Number.isInteger(Number(value)) && Number(value) >= 1 ? Number(value) : fallback);
-	return setCalendar({
+	const changed = {
 		...calendar,
 		season: SEASONS.includes(season) ? season : calendar.season,
 		phase: PHASES.includes(phase) ? phase : calendar.phase,
 		age: age === undefined ? calendar.age : count(age, calendar.age),
 		day: day === undefined ? calendar.day : count(day, calendar.day)
-	});
+	};
+	const result = await setCalendar(changed);
+	if (changed.phase !== calendar.phase) await announcePhase(changed);
+	return result;
 }

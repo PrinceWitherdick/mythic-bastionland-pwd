@@ -9,6 +9,9 @@ export const PHASES = Object.freeze(["morning", "afternoon", "night"]);
 
 export const SEASONS = Object.freeze(["spring", "harvest", "winter"]);
 
+/** Each Phase's icon, on its card. */
+export const PHASE_ICONS = Object.freeze({ morning: "fa-solid fa-sun", afternoon: "fa-solid fa-cloud-sun", night: "fa-solid fa-moon" });
+
 /** What each Knight chooses between Seasons, and between Ages. */
 export const SEASON_PURSUITS = Object.freeze(["pilgrimage", "courtesy", "service"]);
 export const AGE_PURSUITS = Object.freeze(["duty", "succession", "legacy"]);

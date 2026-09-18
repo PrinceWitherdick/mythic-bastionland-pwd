@@ -492,3 +492,47 @@
 	border-left: 3px solid var(--bastionland-rule);
 	font-style: italic;
 }
+
+/*
+ * A report card painted in a Phase's light or a Season's colours: bright for
+ * Morning, the low sun's amber for Afternoon, dark for Night, Spring's new green,
+ * Harvest's ripe gold and Winter's frost. The card's own tokens are redefined so
+ * every part of it follows.
+ */
+.bastionland-card--painted {
+	border-width: 2px;
+}
+
+.bastionland-card--painted .bastionland-card__title i {
+	color: var(--bastionland-card-icon);
+	font-size: 0.8em;
+	vertical-align: 0.1em;
+}
+
+.bastionland-card--morning {
+	--bastionland-card-icon: #c98a10;
+	--bastionland-paper: #fdf6d8;
+	--bastionland-ink: #2a2414;
+	--bastionland-ink-soft: #5e5230;
+	--bastionland-rule: #d9b84e;
+	background: linear-gradient(160deg, #fffbe8, #f8e7a0);
+}
+
+.bastionland-card--afternoon {
+	--bastionland-card-icon: #9c4a12;
+	--bastionland-paper: #efc88e;
+	--bastionland-ink: #2e1c0c;
+	--bastionland-ink-soft: #5a3a1c;
+	--bastionland-rule: #a8692c;
+	background: linear-gradient(160deg, #f3d39c, #dc9a58);
+}
+
+.bastionland-card--night {
+	--bastionland-card-icon: #e8dfa8;
+	--bastionland-paper: #1c2038;
+	--bastionland-ink: #ece6f6;
+	--bastionland-ink-soft: #b9b3d2;
+	--bastionland-rule: #4d4f7c;
+	background: linear-gradient(160deg, #262b4a, #11142a);
+}
+

@@ -1,6 +1,7 @@
-<section class="bastionland-card bastionland-card--report">
+{{!-- A `tone` (a Phase or a Season) paints the card in its colours. --}}
+<section class="bastionland-card bastionland-card--report{{#if tone}} bastionland-card--painted bastionland-card--{{tone}}{{/if}}">
 	<header class="bastionland-card__header">
-		<h3 class="bastionland-card__title">{{title}}</h3>
+		<h3 class="bastionland-card__title">{{#if icon}}<i class="{{icon}}" inert></i> {{/if}}{{title}}</h3>
 		<p class="bastionland-card__tagline">{{#if d6}}<span class="bastionland-card__roll">{{d6}}</span> {{/if}}{{tagline}}</p>
 	</header>
 	{{#if entries.length}}

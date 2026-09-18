@@ -8,6 +8,7 @@ import {
 	AGING_VIRTUE_ROLL,
 	HARDSHIPS,
 	OLD_AGE_LOSS,
+	PHASE_ICONS,
 	SEASON_PURSUITS,
 	afterOldAge,
 	agedScore,
@@ -185,12 +186,23 @@ export async function advancePhase() {
 	if (!game.user.isGM) return null;
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
-	await postCard(null, "report", {
+	await announcePhase(calendar);
+	return calendar;
+}
+
+/**
+ * Tell the table the Day has moved into a Phase, on a card painted in that
+ * Phase's light.
+ * @param {import("../rules/time.js").Calendar} calendar
+ */
+export function announcePhase(calendar) {
+	return postCard(null, "report", {
+		tone: calendar.phase,
+		icon: PHASE_ICONS[calendar.phase],
 		title: t(`time.phases.${calendar.phase}`),
 		tagline: calendarLabel(calendar),
 		hint: t(`time.phaseHints.${calendar.phase}`)
 	});
-	return calendar;
 }
 
 /**
