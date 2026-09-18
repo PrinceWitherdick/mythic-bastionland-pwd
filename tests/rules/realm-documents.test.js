@@ -35,34 +35,34 @@ function onScene(seed = "documents", textures = realmTextures()) {
 }
 
 describe("realmTextures", () => {
-	it("draws the Blank Realm sheet's own pictures, in its colours, by default", () => {
+	it("draws the Blank Realm sheet's own pictures, in parchment, by default", () => {
 		const textures = realmTextures();
-		expect(textures.terrain[1].src).toMatch(/assets\/realm\/sheet\/blank\/terrain-01\.svg$/);
+		expect(textures.terrain[1].src).toMatch(/assets\/realm\/sheet\/parchment\/terrain-marsh\.svg$/);
 		// Its terrain fills the hex, but gives way to a Holding, as on the sheet.
 		expect(textures.terrain[12]).toMatchObject({ icon: false, givesWay: true });
-		expect(textures.holding.tower.src).toMatch(/sheet\/blank\/holding-tower\.svg$/);
+		expect(textures.holding.tower.src).toMatch(/sheet\/parchment\/holding-tower\.svg$/);
 		expect(textures.landmark.curse.src).toMatch(/landmark-curse\.svg$/);
 		expect(textures.myth[6].src).toMatch(/myth-6\.svg$/);
 		expect(textures.river.bend.src).toMatch(/river-bend\.svg$/);
-		expect(textures.colours).toEqual({ paper: "#ffffff", grid: "#bfbfbf", barrier: "#f93333" });
+		expect(textures.colours).toEqual({ paper: "#efe8d8", grid: "#a89f90", barrier: "#8b1e1e" });
 	});
 
 	it("draws in the look's skin and colour set", () => {
 		const textures = realmTextures({ skin: "seal", palette: "midnight" });
-		expect(textures.terrain[5]).toEqual({ src: expect.stringMatching(/assets\/realm\/seal\/midnight\/terrain-05\.svg$/), icon: false, givesWay: false });
+		expect(textures.terrain[5]).toEqual({ src: expect.stringMatching(/assets\/realm\/seal\/midnight\/terrain-forest\.svg$/), icon: false, givesWay: false });
 		expect(textures.myth[2].src).toMatch(/seal\/midnight\/myth-2\.svg$/);
 		expect(textures.colours).toEqual({ paper: "#1d2230", grid: "#4b5368", barrier: "#d8a24a" });
 	});
 
 	it("puts the GM's own pictures before the skin's", () => {
-		const look = { skin: "woodcut", custom: { terrainFit: "icon", files: { "terrain-05": "mine/forest.png", "holding-town": "mine/town.png", seat: "mine/crown.png" } } };
+		const look = { skin: "woodcut", custom: { terrainFit: "icon", files: { "terrain-forest": "mine/forest.png", "holding-town": "mine/town.png", seat: "mine/crown.png" } } };
 		const textures = realmTextures(look);
 		expect(textures.terrain[5]).toEqual({ src: "mine/forest.png", icon: true, givesWay: true });
-		expect(textures.terrain[6].src).toMatch(/woodcut\/blank\/terrain-06\.svg$/);
+		expect(textures.terrain[6].src).toMatch(/woodcut\/parchment\/terrain-valley\.svg$/);
 		expect(textures.holding.town.src).toBe("mine/town.png");
 		expect(textures.seat.src).toBe("mine/crown.png");
-		expect(textures.holding.castle.src).toMatch(/woodcut\/blank\/holding-castle\.svg$/);
-		expect(realmTextures({ custom: { files: { "terrain-01": "mine/marsh.png" } } }).terrain[1]).toMatchObject({ icon: false, givesWay: false });
+		expect(textures.holding.castle.src).toMatch(/woodcut\/parchment\/holding-castle\.svg$/);
+		expect(realmTextures({ custom: { files: { "terrain-marsh": "mine/marsh.png" } } }).terrain[1]).toMatchObject({ icon: false, givesWay: false });
 	});
 });
 
@@ -87,8 +87,8 @@ describe("realmSceneData", () => {
 			padding: 0,
 			tokenVision: false,
 			fog: { mode: 0 },
-			grid: { type: 5, size: 160, color: "#bfbfbf", alpha: GRID_ALPHA, distance: 1, units: "Hex" },
-			levels: [{ _id: LEVEL_ID, background: { color: "#ffffff" } }],
+			grid: { type: 5, size: 160, color: "#a89f90", alpha: GRID_ALPHA, distance: 1, units: "Hex" },
+			levels: [{ _id: LEVEL_ID, background: { color: "#efe8d8" } }],
 			initialLevel: LEVEL_ID
 		});
 		expect(flagOf(scene)).toMatchObject({ version: 1, seed: "documents", size: 160, cols: 12, rows: 12, river: realm.river.map(hexKey) });
@@ -102,7 +102,7 @@ describe("realmSceneData", () => {
 	});
 
 	it("draws the GM's own terrain inside its hex when asked, and leaves a Holding's hex to the Holding", () => {
-		const files = Object.fromEntries(TERRAIN.map((key, index) => [`terrain-${String(index + 1).padStart(2, "0")}`, `mine/${key}.png`]));
+		const files = Object.fromEntries(TERRAIN.map((key) => [`terrain-${key}`, `mine/${key}.png`]));
 		const icons = realmTextures({ skin: "classic", custom: { terrainFit: "icon", files } });
 		const tiles = realmDocuments(realm, g, icons).tiles.map(({ data }) => data).filter((tile) => flagOf(tile).kind === "terrain");
 		const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));

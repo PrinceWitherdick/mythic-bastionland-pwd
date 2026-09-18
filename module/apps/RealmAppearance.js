@@ -24,7 +24,7 @@ import { chooseLocalFiles, singletonOpener } from "./ui.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** The pictures each skin's card shows it by. */
-const SAMPLES = Object.freeze(["terrain-05", "holding-castle", "landmark-sanctum", "myth-3"]);
+const SAMPLES = Object.freeze(["terrain-forest", "holding-castle", "landmark-sanctum", "myth-3"]);
 
 /** @returns {Scene|null} The Realm Scene this GM is viewing, if any. */
 const viewedRealm = () => (isRealmScene(canvas?.scene) ? canvas.scene : null);

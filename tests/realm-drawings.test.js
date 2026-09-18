@@ -91,7 +91,7 @@ describe("the Armorial skin", () => {
 	const parchment = realmPalette("parchment");
 	const drawn = drawRealmSet("armorial", "parchment");
 	/** Its pictures drawn from the Book of Traceable Heraldic Art: all but the Valley, the Myths and the rivers. */
-	const heraldic = Object.keys(drawn).filter((name) => !/^(terrain-06|myth-\d|river-\w+)\.svg$/.test(name));
+	const heraldic = Object.keys(drawn).filter((name) => !/^(terrain-valley|myth-\d|river-[\w-]+)\.svg$/.test(name));
 
 	it.each(ARMORIAL_ART_KEYS)("draws %s after a public-domain source", (key) => {
 		const { sources, artists } = ARMORIAL_ART[key];
@@ -123,13 +123,13 @@ describe("the Armorial skin", () => {
 			expect(drawn[name]).toContain(`="${parchment.ink}"`);
 		}
 		expect(drawn["holding-castle.svg"]).toContain(`fill="${parchment.paper}"`);
-		expect(drawn["terrain-05.svg"]).toContain(`fill="${parchment.terrain[4]}"`);
+		expect(drawn["terrain-forest.svg"]).toContain(`fill="${parchment.terrain[4]}"`);
 		expect(drawRealmSet("armorial", "midnight")["holding-castle.svg"]).toContain(`="${realmPalette("midnight").ink}"`);
 	});
 
 	it("keeps the drawn mark for the Valley, which no heraldry drawing reads as", () => {
-		expect(drawn["terrain-06.svg"]).not.toContain("<desc>");
-		expect(drawn["terrain-06.svg"]).toMatch(/<path d="M12 30c20 10/);
+		expect(drawn["terrain-valley.svg"]).not.toContain("<desc>");
+		expect(drawn["terrain-valley.svg"]).toMatch(/<path d="M12 30c20 10/);
 	});
 
 	it("numbers its Myths on shields, with no drawing that could give a Myth away", () => {
@@ -145,7 +145,7 @@ describe("the Blank Realm skin", () => {
 	const ochre = realmPalette("ochre");
 
 	it("draws the sheet's own terrain, Holdings and Landmarks, and credits them", () => {
-		for (const name of ["terrain-05", "holding-castle", "landmark-ruin"]) {
+		for (const name of ["terrain-forest", "holding-castle", "landmark-ruin"]) {
 			expect(blank[`${name}.svg`]).toMatch(/<desc>Traced from the map legend of the Mythic Bastionland Blank Realm sheet/);
 		}
 		expect(blank["myth-1.svg"]).not.toContain("<desc>");
@@ -157,7 +157,7 @@ describe("the Blank Realm skin", () => {
 
 	it("inks terrain and Holdings, and pens Landmarks and Myths in the colour set's red", () => {
 		const drawn = drawRealmSet("sheet", "ochre");
-		expect(drawn["terrain-03.svg"]).toContain(`fill="${ochre.ink}"`);
+		expect(drawn["terrain-crag.svg"]).toContain(`fill="${ochre.ink}"`);
 		expect(drawn["holding-town.svg"]).toContain(`fill="${ochre.ink}"`);
 		expect(drawn["holding-town.svg"]).toContain(`fill="${ochre.paper}"`);
 		expect(drawn["landmark-dwelling.svg"]).toContain(`fill="${ochre.accent}"`);
@@ -166,7 +166,7 @@ describe("the Blank Realm skin", () => {
 
 	it("keeps each terrain's drawing inside its hex", () => {
 		for (let number = 1; number <= 12; number++) {
-			expect(blank[`terrain-${String(number).padStart(2, "0")}.svg`]).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
+			expect(blank[`${PICTURE_NAME.terrain(number)}.svg`]).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
 		}
 	});
 

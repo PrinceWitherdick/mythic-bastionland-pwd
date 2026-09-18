@@ -34,7 +34,7 @@ SCALE = 4
 # How far either side of half-inked an edge fades, when the ink is found again.
 EDGE = 0.15
 
-TERRAIN = 12
+TERRAIN = ["marsh", "heath", "crag", "peaks", "forest", "valley", "hills", "meadow", "bog", "lake", "glade", "plains"]
 HOLDINGS = ["castle", "town", "fortress", "tower"]
 LANDMARKS = ["dwelling", "sanctum", "monument", "hazard", "curse", "ruin"]
 
@@ -61,10 +61,10 @@ def legend_pictures(page):
     terrain = sorted((p for p in legend if p[0] < HOLDINGS_LEFT), key=lambda p: p[0])
     holdings = sorted((p for p in legend if p[0] >= HOLDINGS_LEFT), key=lambda p: p[0])
     landmarks = sorted((p for p in pictures if p[1] < LEGEND_TOP and p[0] >= LANDMARKS_LEFT), key=lambda p: p[1])
-    if (len(terrain), len(holdings), len(landmarks)) != (TERRAIN, len(HOLDINGS), len(LANDMARKS)):
+    if (len(terrain), len(holdings), len(landmarks)) != (len(TERRAIN), len(HOLDINGS), len(LANDMARKS)):
         sys.exit(f"This doesn't look like the Blank Realm sheet: found {len(terrain)} terrains, {len(holdings)} Holdings and {len(landmarks)} Landmarks.")
 
-    names = [f"terrain-{n:02d}" for n in range(1, TERRAIN + 1)] + [f"holding-{s}" for s in HOLDINGS] + [f"landmark-{t}" for t in LANDMARKS]
+    names = [f"terrain-{t}" for t in TERRAIN] + [f"holding-{s}" for s in HOLDINGS] + [f"landmark-{t}" for t in LANDMARKS]
     return dict(zip(names, [p[2] for p in terrain + holdings + landmarks]))
 
 

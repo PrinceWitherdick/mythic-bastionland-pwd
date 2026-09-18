@@ -279,7 +279,9 @@ const WORLD_SETUP = Object.freeze([
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
-	{ key: "realmLookPerScene", run: keepRealmLooks }
+	{ key: "realmLookPerScene", run: keepRealmLooks },
+	// Again, once each Scene has its own look, for terrain pictures named by terrain rather than number.
+	{ key: "realmTerrainNames", run: moveRealmPictures }
 ]);
 
 Hooks.once("ready", async () => {

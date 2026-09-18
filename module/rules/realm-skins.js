@@ -24,17 +24,22 @@ export const HOLDINGS_REPLACE_TERRAIN = Object.freeze(["sheet"]);
 /** How a picture of the GM's own for a terrain sits in its hex: filling it, or as an icon inside it. */
 export const TERRAIN_FITS = Object.freeze(["hex", "icon"]);
 
-const pad = (number) => String(number).padStart(2, "0");
-
-/** The name each picture's file carries, without the extension. Terrain and Myths go by their number from 1. */
+/**
+ * The name each picture's file carries, without the extension. Terrain is
+ * asked for by its d12 number from 1 and named for its terrain, such as
+ * "terrain-marsh"; Myths go by their number from 1.
+ */
 export const PICTURE_NAME = Object.freeze({
-	terrain: (number) => `terrain-${pad(number)}`,
+	terrain: (number) => `terrain-${TERRAIN[number - 1]}`,
 	holding: (style) => `holding-${style}`,
 	landmark: (type) => `landmark-${type}`,
 	myth: (number) => `myth-${number}`,
 	seat: "seat",
 	river: (shape) => `river-${shape}`
 });
+
+/** What each terrain picture was called when terrain went by number, as "terrain-05", to its name now. */
+const NUMBERED_TERRAIN = new Map(TERRAIN.map((_, index) => [`terrain-${String(index + 1).padStart(2, "0")}`, PICTURE_NAME.terrain(index + 1)]));
 
 const MYTH_NUMBERS = Array.from({ length: MYTH_COUNT }, (_, index) => index + 1);
 
@@ -75,16 +80,8 @@ function palette({ key, paper, ink, rule, accent, water, ground, tint, strong, t
 	});
 }
 
-/** Names under `bastionland.realm.look.palettes`. The first is the default. */
+/** Names under `bastionland.realm.look.palettes`. The first, parchment, is the default. */
 export const REALM_PALETTES = Object.freeze([
-	// The Blank Realm sheet itself: black ink and red pen on white, the hexes ruled in grey.
-	palette({
-		key: "blank",
-		paper: "#ffffff", ink: "#111111", rule: "#bfbfbf", accent: "#f93333", water: "#ffffff",
-		ground: { wet: "#9fa9ab", dry: "#bab2a2", rock: "#999999", green: "#a4ad98" },
-		strong: 0.7,
-		terrain: TERRAIN.map(() => "#ffffff")
-	}),
 	palette({
 		key: "parchment",
 		paper: "#efe8d8", ink: "#3b342c", rule: "#a89f90", accent: "#8b1e1e", water: "#dde8ec",
@@ -92,6 +89,14 @@ export const REALM_PALETTES = Object.freeze([
 		tint: 0.3, strong: 0.75,
 		// The pale tints the Realm has always had.
 		terrain: ["#dfe6d2", "#e8dcc8", "#ddd6cc", "#e3e0dc", "#d6e3c8", "#e2e8cf", "#e6e2c6", "#e4ecc8", "#d8dccb", "#d3e0e6", "#dde9cf", "#efe8d6"]
+	}),
+	// The Blank Realm sheet itself: black ink and red pen on white, the hexes ruled in grey.
+	palette({
+		key: "blank",
+		paper: "#ffffff", ink: "#111111", rule: "#bfbfbf", accent: "#f93333", water: "#ffffff",
+		ground: { wet: "#9fa9ab", dry: "#bab2a2", rock: "#999999", green: "#a4ad98" },
+		strong: 0.7,
+		terrain: TERRAIN.map(() => "#ffffff")
 	}),
 	palette({
 		key: "verdigris",
@@ -180,8 +185,13 @@ export const defaultRealmLook = () => ({ skin: REALM_SKINS[0], palette: REALM_PA
 export function normaliseRealmLook(look) {
 	const fallback = defaultRealmLook();
 	const custom = look?.custom ?? {};
-	const files = Object.fromEntries(Object.entries(custom.files ?? {})
-		.filter(([name, path]) => REALM_PICTURES.includes(name) && typeof path === "string" && path));
+	// Looks saved when terrain went by number, as "terrain-05", are read under the terrain's name;
+	// where a look has both, the terrain's name wins.
+	const saved = Object.entries(custom.files ?? {}).filter(([, path]) => typeof path === "string" && path);
+	const files = Object.fromEntries([
+		...saved.filter(([name]) => NUMBERED_TERRAIN.has(name)).map(([name, path]) => [NUMBERED_TERRAIN.get(name), path]),
+		...saved.filter(([name]) => REALM_PICTURES.includes(name))
+	]);
 	return {
 		skin: REALM_SKINS.includes(look?.skin) ? look.skin : fallback.skin,
 		palette: realmPalette(look?.palette).key,
@@ -198,9 +208,13 @@ const IMAGE_EXTENSIONS = Object.freeze(["apng", "avif", "bmp", "gif", "jpeg", "j
 
 /** Other names a GM's file may go by, to the picture it stands for. */
 const ALIASES = new Map([
+	...TERRAIN.map((key, index) => [key, PICTURE_NAME.terrain(index + 1)]),
+	// The names terrain files went by when it was numbered: "terrain-5", "05-forest", "terrain-05-forest".
+	...NUMBERED_TERRAIN,
 	...TERRAIN.flatMap((key, index) => {
 		const name = PICTURE_NAME.terrain(index + 1);
-		return [[key, name], [`terrain-${key}`, name], [`terrain-${index + 1}`, name], [`${pad(index + 1)}-${key}`, name], [`${name}-${key}`, name]];
+		const pad = String(index + 1).padStart(2, "0");
+		return [[`terrain-${index + 1}`, name], [`${pad}-${key}`, name], [`terrain-${pad}-${key}`, name]];
 	}),
 	...HOLDING_STYLES.map((style) => [style, PICTURE_NAME.holding(style)]),
 	...LANDMARK_TYPES.map((type) => [type, PICTURE_NAME.landmark(type)]),
@@ -210,7 +224,7 @@ const ALIASES = new Map([
 ]);
 
 /**
- * The picture a file stands for, going by its name: "terrain-05.png",
+ * The picture a file stands for, going by its name: "terrain-forest.png",
  * "Forest.webp", "holding_castle.jpg", "myth 3.svg" and so on.
  * @param {string} path
  * @returns {string|null} One of REALM_PICTURES.

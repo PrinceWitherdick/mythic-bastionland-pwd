@@ -4,6 +4,7 @@ import { TERRAIN } from "../../module/rules/realm.js";
 import {
 	REALM_CUSTOM_DIR,
 	REALM_PALETTES,
+	REALM_PICTURES,
 	REALM_SKINS,
 	customPictureName,
 	defaultRealmLook,
@@ -27,7 +28,7 @@ describe("colour sets", () => {
 			expect(palette.solid).toHaveLength(TERRAIN.length);
 			expect(paletteSwatches(palette.key)).toHaveLength(6);
 		}
-		expect(realmPalette("nonsense").key).toBe("blank");
+		expect(realmPalette("nonsense").key).toBe("parchment");
 		expect(sceneColours("parchment")).toEqual({ paper: "#efe8d8", grid: "#a89f90", barrier: "#8b1e1e" });
 	});
 
@@ -42,15 +43,20 @@ describe("realmSetDir", () => {
 	it("serves each set from its own folder", () => {
 		expect(REALM_SKINS[0]).toBe("sheet");
 		expect(realmSetDir("woodcut", "ochre")).toBe("systems/mythic-bastionland-pwd/assets/realm/woodcut/ochre");
-		expect(realmSetDir("nope", "nope")).toBe("systems/mythic-bastionland-pwd/assets/realm/sheet/blank");
+		expect(realmSetDir("nope", "nope")).toBe("systems/mythic-bastionland-pwd/assets/realm/sheet/parchment");
 	});
 });
 
 describe("normaliseRealmLook", () => {
 	it("fills in the default for anything missing or unknown", () => {
 		expect(normaliseRealmLook(null)).toEqual(defaultRealmLook());
-		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: true, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-05": "", seat: "b.png" } } }))
-			.toEqual({ skin: "sheet", palette: "blank", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } } });
+		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: true, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-forest": "", seat: "b.png" } } }))
+			.toEqual({ skin: "sheet", palette: "parchment", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } } });
+	});
+
+	it("reads pictures saved when terrain went by number under the terrain's name", () => {
+		expect(normaliseRealmLook({ custom: { files: { "terrain-05": "old.png", "terrain-01": "marsh.png", "terrain-marsh": "new.png" } } }).custom.files)
+			.toEqual({ "terrain-forest": "old.png", "terrain-marsh": "new.png" });
 	});
 
 	it("keeps a look that's already sound", () => {
@@ -61,12 +67,13 @@ describe("normaliseRealmLook", () => {
 
 describe("the GM's own pictures", () => {
 	it.each([
-		["terrain-05.png", "terrain-05"],
-		["dir/Forest.WEBP", "terrain-05"],
-		["terrain_marsh.jpg", "terrain-01"],
-		["terrain-3.png", "terrain-03"],
-		["12-plains.png", "terrain-12"],
-		["terrain-10-lake.webp", "terrain-10"],
+		["terrain-forest.png", "terrain-forest"],
+		["dir/Forest.WEBP", "terrain-forest"],
+		["terrain_marsh.jpg", "terrain-marsh"],
+		["terrain-01.png", "terrain-marsh"],
+		["terrain-3.png", "terrain-crag"],
+		["12-plains.png", "terrain-plains"],
+		["terrain-10-lake.webp", "terrain-lake"],
 		["holding_castle.png", "holding-castle"],
 		["Tower.svg", "holding-tower"],
 		["ruin.gif", "landmark-ruin"],
@@ -83,9 +90,14 @@ describe("the GM's own pictures", () => {
 		expect(customPictureName(path)).toBe(name);
 	});
 
+	it("names terrain for its terrain, and reads every picture's own name", () => {
+		expect(REALM_PICTURES.slice(0, TERRAIN.length)).toEqual(TERRAIN.map((key) => `terrain-${key}`));
+		for (const name of REALM_PICTURES) expect(customPictureName(`${name}.png`)).toBe(name);
+	});
+
 	it("matches a folder's files, preferring the exact name", () => {
-		expect(matchCustomFiles(["a/forest.png", "a/terrain-05.webp", "a/notes.md", "a/castle.png", "a/holding-castle.jpg", "a/tower.png", "a/Tower.webp"])).toEqual({
-			"terrain-05": "a/terrain-05.webp",
+		expect(matchCustomFiles(["a/forest.png", "a/terrain-forest.webp", "a/notes.md", "a/castle.png", "a/holding-castle.jpg", "a/tower.png", "a/Tower.webp"])).toEqual({
+			"terrain-forest": "a/terrain-forest.webp",
 			"holding-castle": "a/holding-castle.jpg",
 			"holding-tower": "a/tower.png"
 		});

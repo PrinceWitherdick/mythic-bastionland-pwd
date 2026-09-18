@@ -2036,7 +2036,7 @@
         "clear": "Stop using mine",
         "found": "{found} of {total} pictures found in",
         "namesSummary": "File names to use",
-        "namesHint": "Uploaded pictures are saved to {dir}. Terrain can also be named by its terrain, such as marsh or terrain-marsh; Holdings and Landmarks by their kind alone, such as tower or ruin. Any image type works. Ticked names are found.",
+        "namesHint": "Uploaded pictures are saved to {dir}. The terrain-, holding- and landmark- part can be left off, such as marsh, tower or ruin. Any image type works. Ticked names are found.",
         "ignored": "{count} files weren’t uploaded: their names don’t match a Realm picture.",
         "uploadFailed": "{count} pictures couldn’t be uploaded.",
         "browseFailed": "Couldn’t look in {folder}.",
