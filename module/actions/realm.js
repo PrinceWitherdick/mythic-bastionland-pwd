@@ -1,6 +1,7 @@
 import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
+import { COMPANY_IMAGE, COMPANY_STARTS } from "../rules/company.js";
 import { randomSeed } from "../rules/random.js";
 import { REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
 import {
@@ -19,6 +20,8 @@ import { realmGeometry } from "../rules/realm-geometry.js";
 import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { placeCompanyAtStart } from "./company.js";
+import { filePicker } from "../book-art/files.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
@@ -462,9 +465,13 @@ export function addNewRealmButton(element) {
 export async function newRealm() {
 	if (!game.user.isGM) return null;
 	const defaultName = t("realm.dialog.defaultName");
+	const [firstStart] = COMPANY_STARTS;
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
 		name: defaultName,
-		seed: randomSeed()
+		seed: randomSeed(),
+		img: COMPANY_IMAGE,
+		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
+		startHint: t(`company.starts.${firstStart}.hint`)
 	});
 
 	const data = await foundry.applications.api.DialogV2.input({
@@ -472,13 +479,39 @@ export async function newRealm() {
 		classes: ["bastionland-dialog"],
 		content,
 		ok: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
-		rejectClose: false
+		rejectClose: false,
+		render: (_event, dialog) => wireCompanyFields(dialog.element)
 	});
 	if (!data) return null;
 
 	return createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
-		seed: String(data.seed ?? "").trim() || randomSeed()
+		seed: String(data.seed ?? "").trim() || randomSeed(),
+		company: data.placeCompany ? {
+			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
+			img: String(data.companyImg ?? "").trim() || COMPANY_IMAGE
+		} : null
+	});
+}
+
+/**
+ * The New Realm dialog's Company fields: the Start says where the Company
+ * begins as it's chosen, and the picture can be browsed for like any other.
+ * @param {HTMLElement} element The dialog.
+ */
+function wireCompanyFields(element) {
+	const start = element.querySelector('[name="start"]');
+	const hint = element.querySelector("[data-company-hint]");
+	if (start && hint) start.addEventListener("change", () => { hint.textContent = t(`company.starts.${start.value}.hint`); });
+
+	const field = element.querySelector('[name="companyImg"]');
+	element.querySelector("[data-company-browse]")?.addEventListener("click", () => {
+		const FilePicker = filePicker();
+		new FilePicker({
+			type: "imagevideo",
+			current: field?.value || COMPANY_IMAGE,
+			callback: (path) => { if (field && path) field.value = path; }
+		}).render({ force: true });
 	});
 }
 
@@ -487,9 +520,10 @@ export async function newRealm() {
  * @param {object} options
  * @param {string} options.name
  * @param {string} options.seed
+ * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @returns {Promise<Scene|null>}
  */
-async function createRealmScene({ name, seed }) {
+async function createRealmScene({ name, seed, company = null }) {
 	const geometry = realmGeometry();
 	const realm = generateRealm({ seed, geometry });
 	const look = getRealmLook();
@@ -511,6 +545,12 @@ async function createRealmScene({ name, seed }) {
 		if (thumb) await scene.update({ thumb });
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | Couldn't make a thumbnail for ${scene.name}`, error);
+	}
+
+	// The Company stands where its Start says it begins (p6).
+	if (company) {
+		const placed = await placeCompanyAtStart(scene, { ...company, seed });
+		if (placed) ui.notifications.info(t(`company.begins.${placed.place}`, { hex: t("realm.hex", placed.hex) }));
 	}
 
 	await postRealmKey(scene);

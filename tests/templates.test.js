@@ -25,6 +25,7 @@ import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
 import { DUEL_KINDS } from "../module/rules/duel.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
+import { COMPANY_PLACES, COMPANY_STARTS } from "../module/rules/company.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 
 const root = join(import.meta.dirname, "..");
@@ -134,6 +135,8 @@ describe("localization", () => {
 		...TERRAIN.map((key) => `realm.terrain.${key}`),
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
+		...COMPANY_STARTS.flatMap((start) => [`company.starts.${start}.name`, `company.starts.${start}.hint`]),
+		...COMPANY_PLACES.map((place) => `company.begins.${place}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
 		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),

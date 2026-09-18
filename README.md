@@ -103,6 +103,12 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - Leave hidden Tiles unlocked: Foundry hides a hidden, locked Tile from GMs too.
   - Like hidden Tokens, hidden parts of the Realm are still sent to every player's browser, and so are the GMs' Realm cards. A player sees a Wilderness Roll only as the GM rolling privately.
 - **Realm Key:** a chat card only GMs see. It lists each Myth with its page, the Holdings, and the Seer at each Sanctum, named from Import Book Art where it has been run.
+- **The Company:** one Token stands for all the Knights, because the Seers deemed that they travel as a Company (p7) — "while some of you may rest, roam, or die, your collective journey will be as one".
+  - The New Realm dialog places it. Choose the Company's **Start** and it begins where the book puts it (p6): a **Wanderer** arrives over the edge of the map, a **Courtier** at the Seat of Power, and a **Ruler** at a Holding of their own, never the Seat that lies under a wicked influence. The same seed puts it in the same place.
+  - Give it a picture of your own there, or keep the pennant that ships with the system. Change it later from the token HUD like any Token.
+  - It belongs to **no Actor**, which is how every player can move it without anything being owned or shared out. The Knights' own sheets stay one per Knight, where the book keeps them.
+  - **Company here** on the Hex panel stands it in that hex, making the Token the first time. That is the way to give a Realm made before this a Company, or to move it without dragging.
+  - Where the Company Token stands is where the Company is: the Wilderness Roll, the Travel rules and the Lay of the Land all read it, so there is no guessing from selected Tokens and no “the Company is split”. Delete the Token and they fall back to the player-owned Tokens as before.
 - **Barriers:** a Token can't move across a Barrier, even one nobody has found yet, or off the edge of the map. Moving around one a hex at a time works. A GM with Foundry's Unconstrained Movement turned on passes through.
 - **Hex readout:** on a Realm Scene everybody sees the hex under the pointer named at the top of the screen, with its terrain and whatever they can see in it.
 - **Realm tools:** GMs get a Realm group in the scene controls on a Realm Scene.

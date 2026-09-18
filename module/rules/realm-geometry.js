@@ -123,7 +123,8 @@ export function hexCentre(g, { col, row }) {
 
 /**
  * The top-left of the box around a hex, which is where Foundry's grid highlight
- * expects a position.
+ * and a 1x1 Token each expect a position. On a columnar hex grid that box is as
+ * wide as the hex (twice the radius), not as wide as the grid size.
  * @param {object} g
  * @param {{col: number, row: number}} hex
  * @returns {{x: number, y: number}}

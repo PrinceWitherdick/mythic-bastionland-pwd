@@ -12,6 +12,7 @@ import {
 } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
+import { findCompanyToken } from "./company.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -22,6 +23,11 @@ import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
  * @returns {{hex: object|null, split: boolean}}
  */
 function findCompany(scene, g) {
+	// One Token stands for the whole Company where the Realm has one (p7), so
+	// there is nothing to work out and no way for the Company to be split.
+	const company = findCompanyToken(scene);
+	if (company) return { hex: hexAt(g, company.getCenterPoint()), split: false };
+
 	const selected = scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
 	const tokens = selected.length ? selected : scene.tokens.filter((token) => token.actor?.hasPlayerOwner);
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));

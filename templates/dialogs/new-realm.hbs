@@ -16,5 +16,35 @@
 		<p class="hint">{{localize "bastionland.realm.dialog.seedHint"}}</p>
 	</div>
 
+	<fieldset>
+		<legend>{{localize "bastionland.company.title"}}</legend>
+
+		<label class="bastionland-check">
+			<input type="checkbox" name="placeCompany" checked>
+			<span class="bastionland-check__label">{{localize "bastionland.company.place"}}</span>
+		</label>
+
+		<div class="form-group">
+			<label for="bastionland-company-start">{{localize "bastionland.company.start"}}</label>
+			<div class="form-fields">
+				<select id="bastionland-company-start" name="start">
+					{{#each starts}}
+					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<p class="hint" data-company-hint>{{startHint}}</p>
+		</div>
+
+		<div class="form-group">
+			<label for="bastionland-company-img">{{localize "bastionland.company.picture"}}</label>
+			<div class="form-fields">
+				<input id="bastionland-company-img" type="text" name="companyImg" value="{{img}}" spellcheck="false" autocomplete="off">
+				<button type="button" data-company-browse aria-label="{{localize "bastionland.company.browse"}}"><i class="fa-solid fa-file-image" inert></i></button>
+			</div>
+			<p class="hint">{{localize "bastionland.company.pictureHint"}}</p>
+		</div>
+	</fieldset>
+
 	<p class="hint">{{localize "bastionland.realm.dialog.secretHint"}}</p>
 </div>

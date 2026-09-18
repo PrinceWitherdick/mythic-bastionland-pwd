@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+	<desc>The Company's pennant, drawn for this system. The pale outline keeps it legible on dark paper as well as light.</desc>
+	<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<!-- Drawn twice: a pale hand underneath so the ink reads on a midnight Realm too. -->
+		<g stroke="#f6f1e4" stroke-width="22">
+			<path d="M96 34 V226" />
+			<path d="M100 48 L210 74 L160 98 L210 122 L100 148 Z" />
+		</g>
+		<g stroke="#231f1a" stroke-width="10">
+			<path d="M96 34 V226" />
+			<path d="M100 48 L210 74 L160 98 L210 122 L100 148 Z" fill="#8b1e1e" />
+		</g>
+		<circle cx="96" cy="30" r="11" fill="#231f1a" stroke="#f6f1e4" stroke-width="5" />
+	</g>
+</svg>

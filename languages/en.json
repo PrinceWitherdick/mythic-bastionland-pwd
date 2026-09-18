@@ -705,6 +705,39 @@
       "rollVirtues": "Roll their Virtues on d12+d6.",
       "foldersSeeded": "Arms & Goods: added {items} items to the Items directory and {actors} beasts, hirelings, Warbands and structures to the Actors directory."
     },
+    "company": {
+      "title": "The Company",
+      "name": "The Company",
+      "here": "Company here",
+      "place": "Place the Company on the map",
+      "start": "Start",
+      "picture": "Company picture",
+      "pictureHint": "One Token stands for the whole Company. It belongs to no Actor, so every player can move it.",
+      "browse": "Browse for a picture",
+      "placed": "The Company stands at {hex}.",
+      "moved": "The Company moves to {hex}.",
+      "notPlaced": "The Company can only stand on a Realm Scene.",
+      "starts": {
+        "wanderer": {
+          "name": "Wanderer",
+          "hint": "Young Knights-Errant who arrive in the Realm seeking Glory. The Company begins at the edge of the map."
+        },
+        "courtier": {
+          "name": "Courtier",
+          "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power."
+        },
+        "ruler": {
+          "name": "Ruler",
+          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. The Company begins at that Holding."
+        }
+      },
+      "begins": {
+        "edge": "The Company arrives in the Realm at {hex}.",
+        "seat": "The Company begins at the Seat of Power, {hex}.",
+        "holding": "The Company begins at its own Holding, {hex}.",
+        "middle": "The Company begins at {hex}."
+      }
+    },
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",

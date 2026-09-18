@@ -1,3 +1,4 @@
+import { companyHere } from "../actions/company.js";
 import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -58,6 +59,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			undo: RealmPanel.#onUndo,
 			redo: RealmPanel.#onRedo,
 			wilderness: RealmPanel.#onWilderness,
+			company: RealmPanel.#onCompany
 		}
 	};
 
@@ -288,6 +290,11 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {RealmPanel} */
 	static #onWilderness() {
 		return wildernessRoll({ scene: this.scene, hex: this.hex });
+	}
+
+	/** @this {RealmPanel} */
+	static #onCompany() {
+		return companyHere(this.scene, this.hex);
 	}
 }
 

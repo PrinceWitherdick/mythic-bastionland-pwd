@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
+import { COMPANY_IMAGE } from "../module/rules/company.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
 import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
@@ -11,6 +12,12 @@ const root = join(import.meta.dirname, "..");
 
 /** Map a served system path back to the file in this repository. */
 const fileFor = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
+
+describe("The Company", () => {
+	it("ships the pennant its Token is drawn with", () => {
+		expect(existsSync(fileFor(COMPANY_IMAGE))).toBe(true);
+	});
+});
 
 describe("Realm pictures", () => {
 	const looks = REALM_SKINS.flatMap((skin) => REALM_PALETTES.map(({ key }) => ({ skin, palette: key })));
