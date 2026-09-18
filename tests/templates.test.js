@@ -26,7 +26,7 @@ import { DUEL_KINDS } from "../module/rules/duel.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
 import { STRUCTURE_KINDS } from "../module/rules/structures.js";
-import { COMPANY_PLACES, COMPANY_STARTS } from "../module/rules/company.js";
+import { COMPANY_STARTS } from "../module/rules/company.js";
 import { HEX_PROMPT_MODES } from "../module/rules/hex-lore.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
 import { VIRTUES } from "../module/rules/virtues.js";
@@ -145,7 +145,8 @@ describe("localization", () => {
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
 		...COMPANY_STARTS.flatMap((start) => [`company.starts.${start}.name`, `company.starts.${start}.hint`]),
-		...COMPANY_PLACES.map((place) => `company.begins.${place}`),
+		"company.begins",
+		...COMPANY_STARTS.map((start) => `company.choose.${start}`),
 		"hexLore.settings.prompt.name",
 		"hexLore.settings.prompt.hint",
 		...HEX_PROMPT_MODES.map((mode) => `hexLore.settings.prompt.modes.${mode}`),

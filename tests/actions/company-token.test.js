@@ -43,6 +43,12 @@ describe("setCompanyHex", () => {
 		expect(scene.createEmbeddedDocuments).toHaveBeenCalledWith("Token", [made]);
 	});
 
+	it("carries the picture chosen with the Realm when the Referee places the Company later", async () => {
+		const scene = { ...realmScene(), getFlag: (scope, key) => (scope === SYSTEM_ID && key === "companyImg" ? "banner.webp" : undefined) };
+		const made = await setCompanyHex(scene, hex, { name: "The Company" });
+		expect(made.texture.src).toBe("banner.webp");
+	});
+
 	it("moves the Token already standing to the same corner", async () => {
 		const standing = companyToken();
 		const scene = realmScene([standing]);

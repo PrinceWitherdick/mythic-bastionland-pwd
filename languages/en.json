@@ -733,7 +733,7 @@
       "starts": {
         "wanderer": {
           "name": "Wanderer",
-          "hint": "Young Knights-Errant who arrive in the Realm seeking Glory. The Company begins at the edge of the map."
+          "hint": "Young Knights-Errant who arrive in the Realm seeking Glory. You choose where they arrive."
         },
         "courtier": {
           "name": "Courtier",
@@ -741,14 +741,14 @@
         },
         "ruler": {
           "name": "Ruler",
-          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. The Company begins at that Holding."
+          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. You choose which Holding."
         }
       },
-      "begins": {
-        "edge": "The Company arrives in the Realm at {hex}.",
-        "seat": "The Company begins at the Seat of Power, {hex}.",
-        "holding": "The Company begins at its own Holding, {hex}.",
-        "middle": "The Company begins at {hex}."
+      "begins": "The Company begins at the Seat of Power, {hex}.",
+      "choose": {
+        "wanderer": "Wanderers arrive in the Realm (p6). Open the hex where they arrive and press Company here.",
+        "courtier": "This Realm has no Seat of Power. Open the hex where the Court sits and press Company here.",
+        "ruler": "One Knight rules a Holding (p6). Open the hex of that Holding and press Company here."
       }
     },
     "hexLore": {

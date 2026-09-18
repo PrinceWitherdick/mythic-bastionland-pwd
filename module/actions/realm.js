@@ -20,7 +20,7 @@ import { realmGeometry } from "../rules/realm-geometry.js";
 import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { placeCompanyAtStart } from "./company.js";
+import { companyTokenHex, placeCompanyAtStart } from "./company.js";
 import { filePicker } from "../book-art/files.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
@@ -547,10 +547,11 @@ async function createRealmScene({ name, seed, company = null }) {
 		console.warn(`${SYSTEM_ID} | Couldn't make a thumbnail for ${scene.name}`, error);
 	}
 
-	// The Company stands where its Start says it begins (p6).
+	// A Courtier's Company begins at the Seat of Power; for the other Starts the Referee chooses (p6).
 	if (company) {
-		const placed = await placeCompanyAtStart(scene, { ...company, seed });
-		if (placed) ui.notifications.info(t(`company.begins.${placed.place}`, { hex: t("realm.hex", placed.hex) }));
+		const placed = await placeCompanyAtStart(scene, company);
+		if (placed) ui.notifications.info(t("company.begins", { hex: t("realm.hex", companyTokenHex(scene)) }));
+		else ui.notifications.info(t(`company.choose.${company.start}`), { permanent: true });
 	}
 
 	await postRealmKey(scene);

@@ -1,12 +1,14 @@
 import { t, warn } from "../chat/cards.js";
 import { COMPANY_IMAGE, companyStart } from "../rules/company.js";
-import { createRandom, randomSeed } from "../rules/random.js";
 import { hexAt, hexTopLeft } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /** The Token flag that marks the one Token standing for the whole Company (p7). */
 export const COMPANY_FLAG = "company";
+
+/** The Scene flag keeping the picture chosen for a Company that the Referee hasn't placed yet. */
+export const COMPANY_IMG_FLAG = "companyImg";
 
 /**
  * The Token standing for the Company on a Realm.
@@ -65,7 +67,7 @@ function companyTokenData(g, hex, { img, name }) {
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {object} [looks]
- * @param {string} [looks.img]  Only used when the Token is made.
+ * @param {string} [looks.img]  Only used when the Token is made. Defaults to the picture chosen with the Realm.
  * @param {string} [looks.name] Only used when the Token is made.
  * @returns {Promise<TokenDocument|null>}
  */
@@ -80,30 +82,28 @@ export async function setCompanyHex(scene, hex, { img, name } = {}) {
 		return standing;
 	}
 
-	const data = companyTokenData(g, hex, { img: img || COMPANY_IMAGE, name: name || t("company.name") });
+	const data = companyTokenData(g, hex, { img: img || scene.getFlag?.(SYSTEM_ID, COMPANY_IMG_FLAG) || COMPANY_IMAGE, name: name || t("company.name") });
 	const [made] = await scene.createEmbeddedDocuments("Token", [data]);
 	return made ?? null;
 }
 
 /**
- * Put the Company where its Start says it begins (p6), and say where that was.
+ * Put the Company where its Start says it begins (p6). Only a Courtier's
+ * Start names a place, the Seat of Power; for the others the Referee places
+ * it, so the picture is kept on the Scene until they do.
  * @param {Scene} scene
  * @param {object} options
  * @param {string} options.start One of COMPANY_STARTS.
  * @param {string} [options.img]
  * @param {string} [options.name]
- * @param {string} [options.seed] So the same Realm begins the same way.
- * @returns {Promise<{token: TokenDocument, hex: object, place: string}|null>}
+ * @returns {Promise<TokenDocument|null>} Null when the Referee chooses where.
  */
-export async function placeCompanyAtStart(scene, { start, img, name, seed }) {
+export async function placeCompanyAtStart(scene, { start, img, name }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	const entry = getRealm(scene);
-	if (!entry) return null;
-
-	const g = sceneGeometry(scene);
-	const { hex, place } = companyStart(entry.realm, g, start, createRandom(seed || randomSeed()));
-	const token = await setCompanyHex(scene, hex, { img, name });
-	return token ? { token, hex, place } : null;
+	const hex = companyStart(getRealm(scene)?.realm, start);
+	if (hex) return setCompanyHex(scene, hex, { img, name });
+	if (img && img !== COMPANY_IMAGE) await scene.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);
+	return null;
 }
 
 /**
