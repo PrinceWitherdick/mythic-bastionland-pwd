@@ -42,6 +42,7 @@ import {
 	ScarModel,
 	WeaponModel
 } from "./module/data-models/items.js";
+import { registerFonts } from "./module/fonts.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
@@ -126,6 +127,9 @@ Hooks.once("init", () => {
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
 	});
+
+	// The sheets' faces, offered by Foundry's font menus as well as the stylesheet.
+	registerFonts();
 
 	registerBookArtSettings();
 

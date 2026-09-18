@@ -52,7 +52,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, queries: {} };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, fontDefinitions: {}, queries: {} };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false } };
 	globalThis.Hooks = {
@@ -100,6 +100,13 @@ describe("system boot", () => {
 
 	it("puts the shield's clip paths on the page", () => {
 		expect(document.body.append).toHaveBeenCalledOnce();
+	});
+
+	it("offers the sheets' own faces from Foundry's font menus", () => {
+		for (const family of ["Bastionland Display", "Bastionland Body", "Bastionland Caps"]) {
+			expect(CONFIG.fontDefinitions[family]).toMatchObject({ editor: true });
+			expect(CONFIG.fontDefinitions[family].fonts.length).toBeGreaterThan(0);
+		}
 	});
 
 	it("registers a data model for every document type in system.json", async () => {

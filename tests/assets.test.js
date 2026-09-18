@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
 import { COMPANY_IMAGE } from "../module/rules/company.js";
+import { SHEET_FONTS } from "../module/fonts.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
 import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
@@ -80,5 +81,31 @@ describe("Heraldic charges", () => {
 		const desc = withNotice("<svg>", chargeNotice(charge)).slice("<svg>".length);
 		expect(svg).toMatch(/^<svg\b[^>]*><desc>/);
 		expect(svg).toContain(desc);
+	});
+});
+describe("Fonts", () => {
+	const urls = Object.values(SHEET_FONTS).flatMap((fonts) => fonts.flatMap(({ urls: faces }) => faces));
+
+	it("ships every face it registers", () => {
+		expect(urls.filter((url) => !existsSync(fileFor(url)))).toEqual([]);
+	});
+
+	/*
+	 * Foundry offers a font from the Chronicle's menu only if it is registered,
+	 * so a face added to the stylesheet has to be added to the register as well.
+	 */
+	it("registers every face the stylesheet declares", () => {
+		const css = readFileSync(join(root, "styles", "mythic-bastionland.css"), "utf8");
+		const declared = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((rule) => ({
+			family: rule[1].match(/font-family:\s*"([^"]+)"/)[1],
+			url: rule[1].match(/src:\s*url\("\.\.\/([^"]+)"/)[1]
+		}));
+		expect(declared.length).toBeGreaterThan(0);
+		const registered = new Set(
+			Object.entries(SHEET_FONTS).flatMap(([family, fonts]) =>
+				fonts.flatMap(({ urls: faces }) => faces.map((url) => `${family}|${fileFor(url)}`))
+			)
+		);
+		expect(declared.filter(({ family, url }) => !registered.has(`${family}|${join(root, url)}`))).toEqual([]);
 	});
 });

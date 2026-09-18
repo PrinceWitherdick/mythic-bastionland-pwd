@@ -60,6 +60,8 @@
 	--bastionland-ink-soft: #5a5046;
 	--bastionland-rule: #8a7d6a;
 	--bastionland-blood: #8b1e1e;
+	/* Red ochre, the ink a scribe headed a section with. */
+	--bastionland-rubric: #9a3520;
 	--bastionland-verdigris: #2f6150;
 	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
 	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
@@ -212,11 +214,20 @@
 	outline-offset: 2px;
 }
 
+/*
+ * Sections are parted the way a scribe parted them: the heading written in red
+ * ochre small caps, with a hairline running out to the margin where a penwork
+ * line-filler would have gone. A rule standing on its own between paragraphs is
+ * a printer's habit, not a medieval one, so the line hangs off the heading.
+ */
 .bastionland-heading {
-	margin: 0 0 0.3rem;
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	margin: 0 0 0.45rem;
 	padding: 0;
 	border: none;
-	color: var(--bastionland-ink);
+	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.35rem;
 	font-weight: normal;
@@ -224,8 +235,53 @@
 	text-transform: uppercase;
 }
 
+.bastionland-heading::after {
+	content: "";
+	flex: 1 1 1rem;
+	min-width: 1.75rem;
+	height: 1px;
+	background: var(--bastionland-rubric);
+	opacity: 0.4;
+}
+
 .bastionland-heading--small {
 	font-size: 1.05rem;
+}
+
+/* Headings that share their line with a control, or already head a ruled row,
+   keep the rubric but drop the line-filler. */
+:is(
+	.bastionland-spark__table-header,
+	.bastionland-heraldry-painter__title-row,
+	.bastionland-structure__carries
+) .bastionland-heading::after {
+	content: none;
+}
+
+/* A <summary> loses its disclosure triangle once it is laid out as a flex box,
+   so the headings that fold draw their own, set past the line-filler so it sits
+   at the end of the row. */
+.bastionland-gambits-reference > summary.bastionland-heading,
+.bastionland-npc-chooser__omens > summary.bastionland-heading {
+	list-style: none;
+}
+
+.bastionland-gambits-reference > summary.bastionland-heading::-webkit-details-marker,
+.bastionland-npc-chooser__omens > summary.bastionland-heading::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-gambits-reference > summary.bastionland-heading::before,
+.bastionland-npc-chooser__omens > summary.bastionland-heading::before {
+	content: "\25B8";
+	flex: none;
+	font-size: 0.7em;
+	order: 1;
+}
+
+.bastionland-gambits-reference[open] > summary.bastionland-heading::before,
+.bastionland-npc-chooser__omens[open] > summary.bastionland-heading::before {
+	content: "\25BE";
 }
 
 .bastionland-hint {
@@ -754,13 +810,13 @@
 .bastionland-columns {
 	display: grid;
 	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-	gap: 1.25rem 2rem;
+	gap: 1.6rem 2rem;
 }
 
 .bastionland-column {
 	display: flex;
 	flex-direction: column;
-	gap: 1.1rem;
+	gap: 1.6rem;
 	min-width: 0;
 }
 
@@ -983,6 +1039,20 @@
 	text-align: center;
 }
 
+/* The oath is centred, so its line-filler runs out to both margins. */
+.bastionland-oath .bastionland-heading {
+	justify-content: center;
+}
+
+.bastionland-oath .bastionland-heading::before {
+	content: "";
+	flex: 1 1 1rem;
+	min-width: 1.75rem;
+	height: 1px;
+	background: var(--bastionland-rubric);
+	opacity: 0.4;
+}
+
 .bastionland-oath p {
 	margin: 0.1rem 0;
 	font-family: var(--bastionland-font-caps);
@@ -998,6 +1068,11 @@
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 0.5rem;
+}
+
+/* The line-filler runs on across to whatever shares the heading's row. */
+.bastionland-block__header .bastionland-heading {
+	flex: 1;
 }
 
 .bastionland-armour {
@@ -1263,6 +1338,68 @@
 	border-radius: 3px;
 	background: rgb(255 255 255 / 0.25);
 	color: var(--bastionland-ink);
+}
+
+/*
+ * Foundry pins the Chronicle's edit button flush into the corner of the text
+ * area and trades the centring flexbox every other button has for a plain
+ * block, which leaves the pencil sitting off to one side. Stand the button off
+ * the frame and set the pencil back in the middle of it.
+ */
+.bastionland-page prose-mirror > button.toggle {
+	inset: 0.3rem 0.3rem auto auto;
+	width: 1.6rem;
+	height: 1.6rem;
+	min-height: 0;
+	padding: 0;
+	place-items: center;
+	line-height: 1;
+}
+
+.bastionland-page prose-mirror:hover > button.toggle:enabled {
+	display: grid;
+}
+
+/*
+ * Headings written in the Chronicle, or in any rich text on a sheet, come out
+ * in Foundry's own faces by default — Modesto Condensed, Amiri, Signika —
+ * which read as a different book from the IM Fell text around them. They take
+ * the sheet's hand instead, headed in red ochre like the section headings.
+ *
+ * Only a default: a face chosen from the editor's font menu is written as an
+ * inline style inside the heading, and overrides all of this.
+ */
+.bastionland-page .editor-content :is(h1, h2, h3, h4, h5, h6) {
+	margin: 1.1rem 0 0.4rem;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	/* IM Fell has no bold, and the browser fakes an ugly one from the roman. */
+	font-weight: normal;
+}
+
+.bastionland-page .editor-content :is(h1, h2, h3) {
+	color: var(--bastionland-rubric);
+}
+
+/*
+ * Foundry sizes headings against its own sheets, where an h1 is 48px. These are
+ * headings written inside a section, so they run from just under the section's
+ * own heading down to the size of the text.
+ */
+.bastionland-page .editor-content h1 {
+	font-size: 1.3rem;
+}
+
+.bastionland-page .editor-content h2 {
+	font-size: 1.15rem;
+}
+
+.bastionland-page .editor-content h3 {
+	font-size: 1.05rem;
+}
+
+.bastionland-page .editor-content :is(h4, h5, h6) {
+	font-size: 1rem;
 }
 
 /* ---------------------------------------------------------------- */
