@@ -51,9 +51,11 @@ let running = false;
  * Save every Knight's and Seer's portrait and every Myth's illustration from
  * the GM's own copy of the rulebook into ART_ROOT, with an index keyed by roll
  * that also holds the text read from each page. The Import Book Art macro runs this.
+ * @param {File} [given] The rulebook, when the caller already has it, as the
+ *   Welcome does. Without one the GM is asked to choose it.
  * @returns {Promise<object|null>} The index, or null if nothing was imported.
  */
-export async function importBookArt() {
+export async function importBookArt(given) {
 	if (!game.ready) {
 		ui.notifications.warn(t("bookArt.notReady"));
 		return null;
@@ -69,7 +71,8 @@ export async function importBookArt() {
 
 	running = true;
 	try {
-		const file = await choosePdf();
+		// A macro may pass anything, so only a real file skips the question.
+		const file = given instanceof File ? given : await choosePdf();
 		return file ? await importFrom(file) : null;
 	} finally {
 		running = false;

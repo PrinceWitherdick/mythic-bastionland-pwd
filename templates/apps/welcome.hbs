@@ -1,0 +1,74 @@
+<div class="bastionland-page bastionland-welcome">
+	<header class="bastionland-welcome__masthead">
+		<p class="bastionland-welcome__kicker">{{localize "bastionland.welcome.kicker"}}</p>
+		<h1 class="bastionland-title">{{localize "bastionland.rulebook.title"}}</h1>
+		<p class="bastionland-welcome__lead">{{localize "bastionland.welcome.lead"}}</p>
+	</header>
+
+	<section class="bastionland-welcome__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.welcome.book.heading"}}</h2>
+		<p>{{localize "bastionland.welcome.book.intro" pages=pages}}</p>
+
+		<ul class="bastionland-welcome__uses">
+			<li class="bastionland-welcome__use">
+				<input id="bastionland-welcome-art" type="checkbox" data-use="art" {{checked art}} {{disabled busy}}>
+				<div>
+					<label for="bastionland-welcome-art">{{localize "bastionland.welcome.book.art.label"}}</label>
+					<p class="hint">{{localize "bastionland.welcome.book.art.hint" root=root}}</p>
+					{{#if artDone}}
+					<p class="bastionland-welcome__done">
+						<i class="fa-solid fa-circle-check" inert></i>
+						{{#if importedOn}}{{localize "bastionland.welcome.book.art.doneOn" date=importedOn}}{{else}}{{localize "bastionland.welcome.book.art.done"}}{{/if}}
+					</p>
+					{{/if}}
+				</div>
+			</li>
+			<li class="bastionland-welcome__use">
+				<i class="fa-solid fa-book-open bastionland-welcome__always" inert></i>
+				<div>
+					<span class="bastionland-welcome__label">{{localize "bastionland.welcome.book.keep.label"}}</span>
+					<p class="hint">{{localize "bastionland.welcome.book.keep.hint" dir=dir}}</p>
+					{{#if path}}
+					<p class="bastionland-welcome__done">
+						<i class="fa-solid fa-circle-check" inert></i>
+						<span>{{localize "bastionland.welcome.book.keep.done"}} <code>{{path}}</code></span>
+						<button type="button" class="bastionland-welcome__read" data-action="read">
+							<i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.rulebook.setup.read"}}
+						</button>
+					</p>
+					{{/if}}
+				</div>
+			</li>
+		</ul>
+
+		<input type="file" accept="application/pdf,.pdf" hidden>
+		<button type="button" class="bastionland-button bastionland-welcome__import" data-action="choose" {{disabled busy}}>
+			{{#if busy}}
+			<i class="fa-solid fa-spinner fa-spin" inert></i> {{localize "bastionland.welcome.book.busy"}}
+			{{else}}
+			<i class="fa-solid fa-file-pdf" inert></i> {{localize "bastionland.welcome.book.choose"}}
+			{{/if}}
+		</button>
+		<p class="hint">{{localize "bastionland.welcome.book.later"}}</p>
+	</section>
+
+	<section class="bastionland-welcome__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.welcome.where.heading"}}</h2>
+		<dl class="bastionland-welcome__where">
+			<dt><i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.welcome.where.knights.term"}}</dt>
+			<dd>{{localize "bastionland.welcome.where.knights.text"}}</dd>
+			<dt><i class="fa-solid fa-map" inert></i> {{localize "bastionland.welcome.where.realms.term"}}</dt>
+			<dd>{{localize "bastionland.welcome.where.realms.text"}}</dd>
+			<dt><i class="fa-solid fa-dungeon" inert></i> {{localize "bastionland.welcome.where.sites.term"}}</dt>
+			<dd>{{localize "bastionland.welcome.where.sites.text"}}</dd>
+			<dt><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.welcome.where.referee.term"}}</dt>
+			<dd>{{localize "bastionland.welcome.where.referee.text"}}</dd>
+		</dl>
+	</section>
+
+	<footer class="bastionland-welcome__footer">
+		<button type="button" class="bastionland-button" data-action="finish">
+			<i class="fa-solid fa-check" inert></i> {{localize "bastionland.welcome.finish"}}
+		</button>
+	</footer>
+</div>

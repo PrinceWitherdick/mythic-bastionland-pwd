@@ -18,6 +18,7 @@ import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
+import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
@@ -220,6 +221,9 @@ Hooks.once("init", () => {
 	registerGmToolkitHooks();
 	registerJourneyHooks();
 
+	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
+	registerWelcome();
+
 	// Macros reach the system through here, such as Import Book Art.
 	game.system.api = Object.freeze({
 		importBookArt,
@@ -244,7 +248,8 @@ Hooks.once("init", () => {
 		getCalendar,
 		openRulebook,
 		openRulebookSetup,
-		toggleRulebook
+		toggleRulebook,
+		openWelcome
 	});
 });
 
@@ -260,6 +265,8 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 
 /** One-time work for each world, run in this order by the active GM. */
 const WORLD_SETUP = Object.freeze([
+	// First, so it sees whether any other step has been done here before.
+	{ key: WELCOME_STEP, run: welcomeOnlyNewWorlds },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
@@ -281,6 +288,8 @@ Hooks.once("ready", async () => {
 		// Every GM, not only the one who made it, is then given it as their character.
 		setup.then(ensureGmToolkit).then(assignGmToolkit)
 	]);
+	// A new world's GM is welcomed last, on top of any sheets that came back.
+	greetGM();
 });
 
 /**

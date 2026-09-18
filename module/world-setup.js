@@ -30,6 +30,9 @@ export function registerWorldSetup() {
  */
 export const isSetupDone = (key) => Boolean(game.settings.get(SYSTEM_ID, DONE_SETTING)?.[key]);
 
+/** @returns {boolean} Whether this world has had any step, so was loaded under this system before. */
+export const hasHadSetup = () => Object.values(game.settings.get(SYSTEM_ID, DONE_SETTING) ?? {}).some(Boolean);
+
 /**
  * Remember a step as done, such as when the work it does was done another way.
  * @param {string} key

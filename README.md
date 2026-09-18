@@ -190,6 +190,8 @@ Beyond the Blank Realm's legend and Travel rules, the system ships none of the b
 
 Running the import again replaces the files. It needs a user who is allowed to upload files, and like anything in the data folder, the pictures and the index can be fetched by anyone who can reach your Foundry server.
 
+A new world greets its GM with **Welcome to Mythic Bastionland**, where the PDF is chosen once and put to both uses: this import, and a copy kept for reading the rulebook in Foundry. It opens when the world loads until a GM closes it once, and **Open the Welcome**, under Configure Settings, brings it back. Worlds begun before it existed aren't shown it by themselves.
+
 ## Development
 
 The repository is the system folder. Clone it into your Foundry data folder's `systems` directory, then restart Foundry after editing `system.json`:

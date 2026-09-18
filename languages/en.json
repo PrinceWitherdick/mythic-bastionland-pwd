@@ -2134,6 +2134,51 @@
         "whoCanRead": "Foundry serves everything in its data folder to anyone signed into the world who knows the path, so treat the copy as shared with your table.",
         "hotkey": "Press B to open or close the rulebook. Change the key under Configure Controls."
       }
+    },
+    "welcome": {
+      "title": "Welcome to Mythic Bastionland",
+      "open": "Open the Welcome",
+      "hint": "The window a new world opens with, where your rulebook PDF is brought in.",
+      "kicker": "Welcome to",
+      "lead": "You are Knights, united by a common Oath and visions of the City. You may have dreams of glory, but every Knight must accept the risk of death.",
+      "book": {
+        "heading": "Your Rulebook",
+        "intro": "The rulebook doesn’t come with this system. If you own the PDF, the {pages}-page one, choose it here and this world is filled in from it.",
+        "choose": "Choose the PDF",
+        "art": {
+          "label": "Import the art and tables",
+          "hint": "Every Knight’s, Seer’s and Myth’s picture, the text the choosers fill characters in from, the Spark Tables, and compendiums of Arms & Goods. The PDF is read in your browser, and what’s taken from it is saved to {root} in your Foundry data folder.",
+          "done": "Already imported.",
+          "doneOn": "Imported on {date}."
+        },
+        "keep": {
+          "label": "A copy to read in Foundry",
+          "hint": "Always kept. Opens with B, or the Rulebook button in the Journal tab, with its chapters and search. It’s copied to {dir} in your Foundry data folder, which anyone signed into the world can fetch if they know the path.",
+          "done": "This world reads its rulebook from"
+        },
+        "busy": "Importing…",
+        "later": "Later on, Import Book Art on the hotbar and the Rulebook button in the Journal tab each do one of these again."
+      },
+      "where": {
+        "heading": "Where Things Are",
+        "knights": {
+          "term": "Knights",
+          "text": "Create Actor in the Actors tab makes a Knight, then offers to roll or pick one from the book."
+        },
+        "realms": {
+          "term": "Realms",
+          "text": "New Realm in the Scenes tab draws a Realm map to explore, hex by hex."
+        },
+        "sites": {
+          "term": "Sites",
+          "text": "New Site in the Journal tab, or on the hotbar, maps a Site that players see as they explore it."
+        },
+        "referee": {
+          "term": "The Referee’s Tables",
+          "text": "Referee Rolls, Spark Tables, Time and the GM Toolkit, where the Myths and their Omens are kept, wait in the Roll Tables tab."
+        }
+      },
+      "finish": "Close"
     }
   }
 }

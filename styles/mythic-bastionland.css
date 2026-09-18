@@ -81,6 +81,7 @@
 .bastionland-heraldry-window .window-content,
 .bastionland-rulebook-window .window-content,
 .bastionland-rulebook-setup-window .window-content,
+.bastionland-welcome-window .window-content,
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
 .bastionland-realm-panel-window .window-content {
@@ -3675,4 +3676,183 @@
 	color: var(--bastionland-paper);
 	font-size: 0.6rem;
 	line-height: 1.2;
+}
+
+/* ---------------------------------------------------------------- */
+/* Welcome: the window a new world greets its GM with               */
+/* ---------------------------------------------------------------- */
+
+.bastionland-welcome {
+	gap: 1.1rem;
+}
+
+.bastionland-welcome p {
+	margin: 0;
+}
+
+.bastionland-welcome__masthead {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	padding-bottom: 0.9rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+	text-align: center;
+}
+
+.bastionland-welcome__kicker {
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.bastionland-welcome .bastionland-title {
+	margin: 0;
+	font-size: 2.6rem;
+}
+
+.bastionland-welcome .bastionland-welcome__lead {
+	max-width: 30rem;
+	margin-top: 0.3rem;
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+.bastionland-welcome__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.bastionland-welcome .bastionland-heading {
+	margin-bottom: 0;
+}
+
+.bastionland-welcome__uses {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.25);
+	list-style: none;
+}
+
+.bastionland-welcome__use {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
+	gap: 0.5rem;
+}
+
+.bastionland-welcome__use input[type="checkbox"] {
+	margin: 0.15rem 0 0;
+}
+
+.bastionland-welcome__always {
+	width: 13px;
+	margin-top: 0.2rem;
+	color: var(--bastionland-verdigris);
+	font-size: 0.8rem;
+	text-align: center;
+}
+
+.bastionland-welcome__use :is(label, .bastionland-welcome__label) {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	cursor: pointer;
+}
+
+.bastionland-welcome__use .hint {
+	font-size: 0.9rem;
+}
+
+.bastionland-welcome .bastionland-welcome__done {
+	margin-top: 0.3rem;
+	color: var(--bastionland-verdigris);
+	font-size: 0.9rem;
+}
+
+.bastionland-welcome__done > i {
+	margin-right: 0.25rem;
+}
+
+.bastionland-welcome__done code {
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.bastionland-page .bastionland-welcome__read {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	width: auto;
+	margin-left: 0.4rem;
+	vertical-align: middle;
+	height: 1.6rem;
+	padding: 0 0.5rem;
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.9rem;
+}
+
+.bastionland-page .bastionland-welcome__import {
+	flex: none;
+	align-self: flex-start;
+	min-width: 10rem;
+}
+
+.bastionland-welcome__where {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.35rem 0.9rem;
+	margin: 0;
+}
+
+/* Foundry colours a definition list for its dark theme, and embosses the terms. */
+.bastionland-welcome__where :is(dt, dd) {
+	margin: 0;
+	padding: 0;
+	color: inherit;
+	text-shadow: none;
+}
+
+.bastionland-welcome__where dt {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	white-space: nowrap;
+}
+
+.bastionland-welcome__where dt i {
+	width: 1.1rem;
+	color: var(--bastionland-rubric);
+	text-align: center;
+}
+
+@container (width < 30rem) {
+	.bastionland-welcome__where {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.bastionland-welcome__where dd {
+		margin-bottom: 0.3rem;
+	}
+}
+
+.bastionland-welcome__footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 0.8rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-welcome__footer .bastionland-button {
+	flex: none;
+	min-width: 7rem;
 }

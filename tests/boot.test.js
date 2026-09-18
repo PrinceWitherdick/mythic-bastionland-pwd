@@ -245,6 +245,12 @@ describe("system boot", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "worldSetupDone", expect.objectContaining({ scope: "world", config: false, type: Object }));
 	});
 
+	it("welcomes a new world's GM, who can open the Welcome again from the settings", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "showWelcome", expect.objectContaining({ scope: "world", config: false, type: Boolean, default: true }));
+		expect(game.settings.registerMenu).toHaveBeenCalledWith(SYSTEM_ID, "welcome", expect.objectContaining({ restricted: true }));
+		expect(game.system.api.openWelcome).toBeTypeOf("function");
+	});
+
 	it("keeps a query from a player from opening the rulebook", async () => {
 		const query = CONFIG.queries[`${SYSTEM_ID}.showRulebookPage`];
 		await expect(query({ page: 12 }, { user: { isGM: false } })).resolves.toBe(false);
