@@ -42,6 +42,16 @@ The first milestone is the **Knight** character sheet, laid out after the offici
 - **Squire:** Take a Squire on the Knight sheet rolls 2d6 for each Virtue and a d6 for their extra equipment, then creates the Squire, with 1GD, a dagger and a pony, beside the Knight in the Actors tab. A Company of more than 2 Knights is asked first. A Squire's sheet has no Glory, Rank or Feats, and a new Age doesn't give them Glory. **Knight this Squire** rolls the d6 they gain in each Virtue and makes them a Knight. Drag a Squire onto a Knight's sheet to link them by hand.
 - **Reopen on reload:** Knight, item and journal sheets you had open come back where you left them when you reload Foundry. Turn it off with **Reopen Sheets on Reload** in Configure Settings. It's saved per browser.
 
+### Structures
+
+The **Structure** actor is for ships, walls, gates and siege engines (Wood and Stone, p11). It has only GD and Armour, no Virtues:
+
+- **What it is:** Structure, Ship or Siege Engine, with that kind's rules on the sheet. A ship notes what it carries.
+- **Take Damage** asks whether the Attack was fire, a siege weapon or a suitably large creature, since nothing else harms it. At 0GD it's **Destroyed**, and it never rolls Morale.
+- **Repair:** a day of repairs restores its GD.
+- **Collide:** a ship rolls the d12 Damage a collision deals, or the d6 when it's much the larger ship, and takes it.
+- **Attack** appears once it has a weapon, such as a siege engine's.
+- Import Book Art files the book's structures, ships and siege towers as Structures. An NPC made with Create Actor and filled in from Choose from Book becomes one when its stat block has only GD and counts as a structure. On the first load after updating, structure NPCs whose Virtues were never set become Structures by themselves.
 ### NPCs
 
 The **NPC** sheet is laid out like the stat blocks the book prints for each Myth's Cast and each Seer, for anybody who isn't a player's Knight:
@@ -51,7 +61,7 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Feats:** off by default, since only some of the Cast can perform one. Mark the ones this character can.
 - **Warbands:** set the scale to Warband and a Mortal Wound routs them, SPI 0 breaks them and VIG 0 wipes them out. Take Damage asks whether the Attack was Blast or large-scale, since nothing else harms them, and their Attacks on individuals get +d12 and Blast.
 - **Leading from the front:** a Warband's Attack dialog lists individuals to lead it: the selected Tokens, your character and the Knights you can see. The leader's worn and wielded Attack dice join the roll. Until the leader's next turn in combat, Damage that gets past the Warband's Armour opens Take Damage for the leader too. The NPC sheet shows who leads the Warband.
-- **Structures:** mark an NPC that counts as a structure, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed.
+- **Creatures that count as structures:** mark an NPC that counts as a structure, such as a colossus of stone, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed. An NPC with only GD is better as a Structure: **Make a Structure** on its sheet turns it into one, keeping its Tokens.
 - **Morale:** rolls the SPI Save to stand rather than rout or surrender. The Damage card offers the roll when an NPC is Wounded, or when a Warband's VIG falls to half. In combat, once half of an NPC side is down, GMs get a card to roll the group: once on a leader's SPI if organised, or for each member standing. Knights are never asked.
 - **Choose from Book:** after Import Book Art, browse the Myths, the Seers and the City Quest, read each Myth's Omens, and create an NPC from any stat block in its Cast, or from a Seer. Use **New NPC** in the Actors tab to make several at once.
 - **Paste Stat Block:** paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.

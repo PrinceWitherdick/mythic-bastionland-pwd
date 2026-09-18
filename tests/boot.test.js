@@ -107,21 +107,23 @@ describe("system boot", () => {
 		expect(Object.keys(CONFIG.Item.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.Item).sort());
 	});
 
-	it("registers the Knight, NPC and item sheets as defaults", () => {
+	it("registers the Knight, NPC, Domain, Structure and item sheets as defaults", () => {
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
 		const registered = (documentClass, type) => registerSheet.mock.calls
 			.find(([registeredClass, , , options]) => registeredClass === documentClass && options.types.includes(type));
 		const [, , knightSheet, knightOptions] = registered(Actor, "knight");
 		const [, , npcSheet, npcOptions] = registered(Actor, "npc");
 		const [, , domainSheet, domainOptions] = registered(Actor, "domain");
+		const [, , structureSheet, structureOptions] = registered(Actor, "structure");
 		const [, , itemSheet, itemOptions] = registered(Item, "weapon");
 
 		expect(knightOptions).toMatchObject({ types: ["knight"], makeDefault: true });
 		expect(npcOptions).toMatchObject({ types: ["npc"], makeDefault: true });
 		expect(domainOptions).toMatchObject({ types: ["domain"], makeDefault: true });
+		expect(structureOptions).toMatchObject({ types: ["structure"], makeDefault: true });
 		expect(itemOptions.types.sort()).toEqual(Object.keys(CONFIG.Item.dataModels).sort());
 
-		for (const sheet of [knightSheet, npcSheet, domainSheet, itemSheet]) {
+		for (const sheet of [knightSheet, npcSheet, domainSheet, structureSheet, itemSheet]) {
 			for (const part of Object.values(sheet.PARTS)) {
 				expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
 			}

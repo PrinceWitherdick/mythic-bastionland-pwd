@@ -1,0 +1,7 @@
+<header class="bastionland-npc-header">
+	<img class="bastionland-npc-header__img" src="{{actor.img}}" alt="{{actor.name}}" {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+	<div class="bastionland-npc-header__text">
+		<input class="bastionland-npc-header__name" type="text" name="name" value="{{actor.name}}" aria-label="{{localize 'bastionland.npc.name'}}" autocomplete="off" spellcheck="false">
+		<input class="bastionland-blank bastionland-npc-header__epithet" type="text" name="system.epithet" value="{{system.epithet}}" placeholder="{{localize 'bastionland.npc.epithet'}}" aria-label="{{localize 'bastionland.npc.epithet'}}" autocomplete="off">
+	</div>
+</header>

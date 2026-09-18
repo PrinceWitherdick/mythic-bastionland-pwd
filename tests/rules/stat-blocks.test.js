@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
 	countsAsHeftyMounted,
 	featsNamed,
+	isStructureBlock,
 	npcFromStatBlock,
 	parseArmour,
 	parseAttacks,
 	parseStatLine,
 	splitCastName,
-	statBlockFromText
+	statBlockFromText,
+	structureFromStatBlock
 } from "../../module/rules/stat-blocks.js";
 
 // Stat blocks here are invented, in the book's format, so no book text lives in the repository.
@@ -184,6 +186,39 @@ describe("npcFromStatBlock", () => {
 		const imp = npcFromStatBlock({ name: "Imp", stats: null, lines: ["(d4)", "Loves <b>mischief</b> & jam."] }, { attackName: "Strike" });
 		expect(imp.items[0].name).toBe("Strike");
 		expect(imp.system.notes).toBe("<p>Loves &lt;b&gt;mischief&lt;/b&gt; &amp; jam.</p>");
+	});
+});
+
+describe("structureFromStatBlock", () => {
+	const seer = { name: "The Glass Seer", stats: { vig: null, cla: null, spi: null, guard: 6 }, lines: ["A3, treat as a Structure", "A tall figure of green glass, humming."] };
+
+	it("tells a thing with only GD that counts as a structure from a creature that counts as one", () => {
+		expect(isStructureBlock(seer)).toBe(true);
+		expect(isStructureBlock({ name: "Mortar Golem", stats: { vig: 16, cla: 6, spi: 3, guard: 4 }, lines: ["A3 (mortared stone), count as a structure"] })).toBe(false);
+		expect(isStructureBlock({ name: "Bearer", stats: { vig: null, cla: null, spi: null, guard: 2 }, lines: ["Hauls sacks"] })).toBe(false);
+		expect(isStructureBlock({ name: "Imp", stats: null, lines: ["A3, counts as a structure"] })).toBe(false);
+	});
+
+	it("keeps GD, Armour and notes, leaving out that it's a structure", () => {
+		expect(structureFromStatBlock(seer)).toEqual({
+			name: "The Glass Seer",
+			system: {
+				kind: "structure",
+				epithet: "",
+				guard: { value: 6, max: 6 },
+				armour: 3,
+				armourNote: "",
+				notes: "<p>A tall figure of green glass, humming.</p>"
+			},
+			items: []
+		});
+
+		const chariot = structureFromStatBlock({ name: "The Wagon, Ever Rolling", stats: { vig: null, cla: null, spi: null, guard: 5 }, lines: ["A2 (structure)", "Wheels (2d12 trample)"] });
+		expect(chariot.system).toMatchObject({ epithet: "Ever Rolling", armour: 2, armourNote: "", notes: "" });
+		expect(chariot.items[0]).toMatchObject({ type: "weapon", name: "Wheels", system: { damage: "2d12", trample: true } });
+
+		const spire = structureFromStatBlock({ name: "The Mushroom Keep", stats: { vig: null, cla: null, spi: null, guard: 9 }, lines: ["count as a structure", "A2 (spongy walls)"] });
+		expect(spire.system).toMatchObject({ armour: 2, armourNote: "spongy walls", notes: "" });
 	});
 });
 

@@ -4,6 +4,7 @@ import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChooser.js";
@@ -30,6 +31,7 @@ import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
+import { StructureModel } from "./module/data-models/StructureModel.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -42,6 +44,7 @@ import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
+import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
@@ -73,6 +76,7 @@ Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
 	CONFIG.Actor.dataModels.npc = NpcModel;
 	CONFIG.Actor.dataModels.domain = DomainModel;
+	CONFIG.Actor.dataModels.structure = StructureModel;
 	Object.assign(CONFIG.Item.dataModels, ITEM_MODELS);
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
@@ -96,13 +100,19 @@ Hooks.once("init", () => {
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});
+	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, StructureSheet, {
+		types: ["structure"],
+		makeDefault: true,
+		label: "bastionland.sheet.title"
+	});
 
-	// Partials shared by the Knight and NPC sheets, and used inside chat cards,
+	// Partials shared by the Knight, NPC and Structure sheets, and used inside chat cards,
 	// which render outside any sheet.
 	foundry.applications.handlebars.loadTemplates({
 		"bastionland.item-row": templatePath("actor/parts/item-row.hbs"),
 		"bastionland.add-item": templatePath("actor/parts/add-item.hbs"),
 		"bastionland.virtue-scores": templatePath("actor/parts/virtue-scores.hbs"),
+		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
@@ -218,6 +228,7 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
+	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks }
 ]);

@@ -11,6 +11,7 @@
  * Import Book Art and a stat block pasted onto a sheet read the same way.
  */
 import { FEATS, NPC_SCALES } from "../config.js";
+import { structureKind } from "./structures.js";
 import { capitalise, escapeHTML, logicalLines } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 
@@ -315,6 +316,47 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 
 	system.notes = notes.map((note) => `<p>${escapeHTML(note)}</p>`).join("");
 	return { name: shortName, system, items };
+}
+
+/**
+ * Whether a stat block is a thing rather than a creature: only GD, and said to
+ * count as a structure, as some Seers and Cast are. A creature with Virtues
+ * that counts as a structure is still an NPC.
+ * @param {{stats?: Stats|null, lines?: string[]}} block
+ * @returns {boolean}
+ */
+export function isStructureBlock({ stats = null, lines = [] }) {
+	return Number.isInteger(stats?.guard) && !Number.isInteger(stats?.vig) && lines.some((line) => STRUCTURE.test(line));
+}
+
+/**
+ * Actor data for a Structure from a stat block, such as "The Chariot 5GD A2
+ * (structure) 2d12 trample". Saying it's a structure is left out of its notes.
+ * @param {object} block As npcFromStatBlock takes.
+ * @param {object} [options]
+ * @param {string} [options.attackName]
+ * @returns {{name: string, system: object, items: object[]}}
+ */
+export function structureFromStatBlock(block, options) {
+	const { name, system, items } = npcFromStatBlock(block, options);
+	const notes = system.notes
+		.replaceAll(/<p>(.*?)<\/p>/g, (_match, text) => {
+			const rest = capitalise(text.replace(STRUCTURE, "").replace(/^[\s.,;]+|[\s,;]+$/g, "").trim());
+			return /^[.]?$/.test(rest) ? "" : `<p>${rest}</p>`;
+		});
+	return {
+		name,
+		system: {
+			kind: structureKind({ name }),
+			epithet: system.epithet,
+			guard: system.guard ?? { value: 0, max: 0 },
+			armour: system.armour,
+			// "A2 (structure)" says only what it counts as.
+			armourNote: /^structure$/i.test(system.armourNote) ? "" : system.armourNote,
+			notes
+		},
+		items
+	};
 }
 
 /**

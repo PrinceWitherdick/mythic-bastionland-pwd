@@ -1,5 +1,5 @@
 import { t } from "../chat/cards.js";
-import { npcFromStatBlock, statBlockFromText } from "../rules/stat-blocks.js";
+import { isStructureBlock, npcFromStatBlock, statBlockFromText, structureFromStatBlock } from "../rules/stat-blocks.js";
 import { templatePath } from "../system-id.js";
 
 /**
@@ -9,6 +9,17 @@ import { templatePath } from "../system-id.js";
  */
 export function npcData(block) {
 	return npcFromStatBlock(block, { attackName: t("attack.title") });
+}
+
+/**
+ * Actor data for whatever a stat block describes: a Structure for a thing with
+ * only GD that counts as a structure, and otherwise an NPC.
+ * @param {{name: string|null, stats: object, lines?: string[]}} block
+ * @returns {{type: string, name: string, system: object, items: object[]}}
+ */
+export function actorData(block) {
+	if (isStructureBlock(block)) return { type: "structure", ...structureFromStatBlock(block, { attackName: t("attack.title") }) };
+	return { type: "npc", ...npcData(block) };
 }
 
 /**
@@ -22,6 +33,26 @@ export async function applyNpcData(actor, { name, system, items }, changes = {})
 	await actor.update({ ...(name ? { name } : {}), system, ...changes });
 	const replaced = actor.items.filter((item) => item.type === "weapon").map((item) => item.id);
 	if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
+	if (items.length) await actor.createEmbeddedDocuments("Item", items);
+}
+
+/**
+ * Make an NPC into the Structure a stat block describes, with its GD, Armour,
+ * notes and attacks in place of what it had.
+ * @param {Actor} actor
+ * @param {{name: string, system: object, items: object[]}} data From actorData, of type "structure".
+ * @param {object} [changes] More to set on the actor, such as `img`.
+ */
+export async function applyStructureData(actor, { name, system, items }, changes = {}) {
+	const replaced = actor.items.filter((item) => item.type === "weapon").map((item) => item.id);
+	if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
+	// Foundry changes a document's type only when its system data is replaced whole.
+	await actor.update({
+		...(name ? { name } : {}),
+		type: "structure",
+		system: foundry.data.operators.ForcedReplacement.create(system),
+		...changes
+	});
 	if (items.length) await actor.createEmbeddedDocuments("Item", items);
 }
 

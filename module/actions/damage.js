@@ -34,6 +34,8 @@ const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
 export async function takeDamage(actor, { damage = 0, ignoreArmour = false, ranged = null, harm = {} } = {}) {
 	const { armour, conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
+	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
+	const virtues = actor.system.virtues ?? null;
 	const requirements = [warband && "warband", actor.system.structure && "structure"]
 		.filter(Boolean)
 		.map((key) => ({
@@ -47,7 +49,7 @@ export async function takeDamage(actor, { damage = 0, ignoreArmour = false, rang
 		title: t("damage.title"),
 		icon: "fa-solid fa-heart-crack",
 		template: "damage",
-		context: { damage, armour, ignoreArmour, offerCover: ranged !== false, exposed: conditions.exposed, requirements },
+		context: { damage, armour, ignoreArmour, offerCover: ranged !== false, character: Boolean(virtues), exposed: conditions.exposed, requirements },
 		ok: { label: t("damage.apply") }
 	});
 	if (!data) return null;
@@ -60,7 +62,7 @@ export async function takeDamage(actor, { damage = 0, ignoreArmour = false, rang
 		ranged: ranged !== false,
 		shieldwall: Boolean(data.shieldwall)
 	});
-	const before = { guard: actor.system.guard.value, vigour: actor.system.virtues.vig.value };
+	const before = { guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 };
 	let result = resolveDamage({
 		damage: Math.max(0, Number(data.damage) || 0),
 		armour: appliedArmour,
@@ -73,10 +75,8 @@ export async function takeDamage(actor, { damage = 0, ignoreArmour = false, rang
 	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
 	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
 
-	const update = {
-		"system.guard.value": result.guard,
-		"system.virtues.vig.value": result.vigour
-	};
+	const update = { "system.guard.value": result.guard };
+	if (virtues) update["system.virtues.vig.value"] = result.vigour;
 	if (result.outcome === "mortal") update["system.mortalWound"] = true;
 	await actor.update(update);
 
@@ -87,7 +87,7 @@ export async function takeDamage(actor, { damage = 0, ignoreArmour = false, rang
 		outcome: result.outcome,
 		vigourBefore: before.vigour,
 		vigourAfter: result.vigour,
-		vigourMax: actor.system.virtues.vig.max,
+		vigourMax: virtues?.vig.max ?? 0,
 		// Squires are Knights too, and Morale doesn't affect player characters.
 		playerCharacter: actor.type === "knight",
 		structure: Boolean(actor.system.structure),

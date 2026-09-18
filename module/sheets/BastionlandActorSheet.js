@@ -20,7 +20,7 @@ const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "mortalWound"]);
 const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
 
 /**
- * What the Knight and NPC sheets share: Saves, Feats, Attacks, Damage and
+ * What the Knight, NPC and Structure sheets share: Saves, Feats, Attacks, Damage and
  * recovery, conditions, notes, the items a character carries, and a larger
  * copy of the actor's picture on hover.
  */
@@ -56,7 +56,8 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			actor,
 			system,
 			systemFields: system.schema.fields,
-			virtues: VIRTUES.map((key) => ({
+			// A Structure has none.
+			virtues: (system.virtues ? VIRTUES : []).map((key) => ({
 				key,
 				abbr: t(`virtues.${key}.abbr`),
 				tail: t(`virtues.${key}.tail`),

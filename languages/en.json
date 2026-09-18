@@ -3,7 +3,8 @@
     "Actor": {
       "knight": "Knight",
       "npc": "NPC",
-      "domain": "Domain"
+      "domain": "Domain",
+      "structure": "Structure"
     },
     "Item": {
       "weapon": "Weapon",
@@ -1234,6 +1235,8 @@
       },
       "structure": "Counts as a structure",
       "structureHint": "Only fire, siege weapons or suitably large creatures can harm it.",
+      "makeStructure": "Make a Structure",
+      "makeStructureHint": "A thing with only GD, such as a wall, ship or siege tower, is better as a Structure actor. A creature that counts as a structure stays an NPC.",
       "featsHint": "Feats are for Knights, but some of the Cast can perform one. Mark the ones this character can.",
       "items": "Attacks & Gear",
       "notes": "Traits & Notes",
@@ -1248,10 +1251,51 @@
         "noStats": "No stat line found. It should read like VIG 10, CLA 10, SPI 10, 3GD."
       }
     },
+    "structure": {
+      "kind": "What it is",
+      "kinds": {
+        "structure": {
+          "label": "Structure",
+          "hint": "Destroyed at 0GD. Wooden structures ignore Attacks other than fire, siege weapons or suitably large creatures. Stone walls can’t be breached by conventional means, though their gates usually can."
+        },
+        "ship": {
+          "label": "Ship",
+          "hint": "Destroyed at 0GD, and ignores Attacks other than fire, siege weapons or suitably large creatures. Colliding ships take d12 Damage, or d6 for a ship much larger than the other."
+        },
+        "siege": {
+          "label": "Siege Engine",
+          "hint": "A siege tower or engine. Destroyed at 0GD, and ignores Attacks other than fire, siege weapons or suitably large creatures."
+        }
+      },
+      "guardHint": "How much Damage it can take. At 0GD it’s destroyed.",
+      "armourNote": "What its Armour is",
+      "carries": "Carries",
+      "carriesPlaceholder": "6 passengers, a Warband…",
+      "items": "Weapons & Cargo",
+      "destroyed": {
+        "label": "Destroyed",
+        "hint": "At 0GD a ship or structure is destroyed. Recovering GD takes a day of repairs."
+      },
+      "repair": "Repair",
+      "repairHint": "A day of repairs restores its GD.",
+      "repaired": "A day of repairs: GD restored to {value}.",
+      "collide": {
+        "title": "Collide",
+        "hint": "Roll the Damage this ship takes from colliding with another.",
+        "intro": "{name} collides with another ship. Colliding ships take d12 Damage, but a ship much larger than the other takes d6 instead.",
+        "similar": "Similar or smaller (d12)",
+        "larger": "Much the larger (d6)",
+        "rolled": "{name} takes d{faces} Damage from the collision: {damage}."
+      },
+      "convert": {
+        "title": "Make a Structure",
+        "confirm": "Make {name} a Structure actor? It keeps its GD, Armour, picture, items, notes and Tokens, but loses its Virtues, Feats and scale.",
+        "converted": "Made {count} structure NPCs into Structure actors."
+      }
+    },
     "npcChooser": {
       "title": "Choose an NPC",
       "titleFor": "Choose an NPC for {name}",
-      "newNpc": "New NPC",
       "sources": {
         "myths": "Myths",
         "seers": "Seers",

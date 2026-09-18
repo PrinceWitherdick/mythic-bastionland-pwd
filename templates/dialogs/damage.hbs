@@ -19,6 +19,7 @@
 		<span class="bastionland-check__label">{{localize "bastionland.damage.ignoreArmour"}}</span>
 	</label>
 
+	{{#if character}}
 	{{#if offerCover}}
 	<label class="bastionland-check">
 		<input type="checkbox" name="cover">
@@ -36,6 +37,7 @@
 		<span class="bastionland-check__label">{{localize "bastionland.damage.exposed"}}</span>
 	</label>
 	<p class="hint">{{localize "bastionland.damage.exposedHint"}}</p>
+	{{/if}}
 
 	{{#each requirements}}
 	<label class="bastionland-check">

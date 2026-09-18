@@ -25,6 +25,7 @@ import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
 import { DUEL_KINDS } from "../module/rules/duel.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
+import { STRUCTURE_KINDS } from "../module/rules/structures.js";
 import { COMPANY_PLACES, COMPANY_STARTS } from "../module/rules/company.js";
 import { HEX_PROMPT_MODES } from "../module/rules/hex-lore.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
@@ -128,6 +129,7 @@ describe("localization", () => {
 		...["evaded", "destroyed"].map((key) => `damage.structureOutcomes.${key}`),
 		...partsOf("damage.harm", ["warband", "structure"], ["label", "hint"]),
 		...partsOf("npc.scales", NPC_SCALES, ["label", "hint"]),
+		...partsOf("structure.kinds", STRUCTURE_KINDS, ["label", "hint"]),
 		...partsOf("npc.warband", ["routed", "broken", "wipedOut"], ["label", "hint"]),
 		...NPC_SOURCES.flatMap((key) => [`npcChooser.sources.${key}`, `npcChooser.unnamed.${key}`]),
 		...KINDS.map((kind) => `bookArt.kinds.${kind}`),

@@ -8,6 +8,7 @@
 import { ARMOUR_KINDS } from "../config.js";
 import { textLines } from "./book-art.js";
 import { countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
+import { carriesFrom, structureKind } from "./structures.js";
 import { capitalise, escapeHTML, joinLines, logicalLines } from "./text.js";
 
 /** The pages read, in book order. */
@@ -44,7 +45,7 @@ export const GOODS_KIND_PAGES = Object.freeze({
 	structures: 11
 });
 
-/** Kinds filed as items, and kinds filed as NPCs. */
+/** Kinds filed as items, and kinds filed as actors: NPCs, and Structures. */
 export const GOODS_ITEM_KINDS = Object.freeze(["weapons", "armour", "tools", "remedies", "poisons"]);
 export const GOODS_ACTOR_KINDS = Object.freeze(["beasts", "hirelings", "warbands", "structures"]);
 
@@ -241,13 +242,15 @@ function readCharacters(entry, rarity, { virtues }) {
 /**
  * A structure, ship or siege tower: GD, any Armour, and what else it does.
  * @param {Entry} entry
- * @returns {{name: string, guard: number, armour: number, note: string}[]}
+ * @param {object} [options]
+ * @param {boolean} [options.siege] Printed under Artillery and Siegery.
+ * @returns {{name: string, guard: number, armour: number, note: string, siege: boolean}[]}
  */
-function readStructures(entry) {
+function readStructures(entry, { siege = false } = {}) {
 	const parsed = parseStatLine(entryText(entry));
 	if (!parsed || parsed.stats.vig !== null) return [];
 	const armour = parseArmour(parsed.rest);
-	return [{ name: entry.name, guard: parsed.stats.guard, armour: armour?.armour ?? 0, note: armour ? armour.rest : parsed.rest }];
+	return [{ name: entry.name, guard: parsed.stats.guard, armour: armour?.armour ?? 0, note: armour ? armour.rest : parsed.rest, siege }];
 }
 
 /**
@@ -290,7 +293,7 @@ export function goodsFromPages(pages) {
 						break;
 					case "siege":
 						goods.weapons.push(...readWeapons(entry, null, { siege: true }));
-						goods.structures.push(...readStructures(entry));
+						goods.structures.push(...readStructures(entry, { siege: true }));
 						break;
 				}
 			}
@@ -303,7 +306,7 @@ export function goodsFromPages(pages) {
 const paragraphs = (...texts) => texts.filter(Boolean).map((text) => `<p>${escapeHTML(text)}</p>`).join("");
 
 /**
- * Item and NPC data for the compendiums Import Book Art fills.
+ * Item and actor data for the compendiums Import Book Art fills.
  * @param {Record<string, object[]>} goods From goodsFromPages.
  * @param {object} labels Words in the world's language.
  * @param {Record<string, string>} labels.rarities By RARITIES key.
@@ -366,17 +369,21 @@ export function goodsDocuments(goods, labels) {
 			beasts: goods.beasts.map((beast) => npc(beast, { notes: [rarity(beast.rarity)] })),
 			hirelings: goods.hirelings.map((hireling) => npc(hireling, { notes: [rarity(hireling.rarity), labels.rollVirtues] })),
 			warbands: goods.warbands.map((warband) => npc(warband, { scale: "warband" })),
-			structures: goods.structures.map((structure) => ({
-				type: "npc",
-				name: structure.name,
-				system: {
-					guard: { value: structure.guard, max: structure.guard },
-					armour: structure.armour,
-					structure: true,
-					notes: paragraphs(capitalise(structure.note))
-				},
-				items: []
-			}))
+			structures: goods.structures.map((structure) => {
+				const { carries, rest } = carriesFrom(structure.note);
+				return {
+					type: "structure",
+					name: structure.name,
+					system: {
+						kind: structureKind({ name: structure.name, carries, siege: structure.siege }),
+						guard: { value: structure.guard, max: structure.guard },
+						armour: structure.armour,
+						carries,
+						notes: paragraphs(capitalise(rest))
+					},
+					items: []
+				};
+			})
 		}
 	};
 }

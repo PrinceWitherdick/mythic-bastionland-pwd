@@ -49,6 +49,9 @@
       },
       "domain": {
         "htmlFields": ["notes"]
+      },
+      "structure": {
+        "htmlFields": ["notes"]
       }
     },
     "Item": {

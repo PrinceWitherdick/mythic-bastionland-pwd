@@ -142,9 +142,9 @@ describe("goodsFromPages", () => {
 
 	it("reads structures, ships and siege towers", () => {
 		expect(goods.structures).toEqual([
-			{ name: "Palisade", guard: 6, armour: 1, note: "" },
-			{ name: "Raft", guard: 3, armour: 0, note: "carries 4 passengers" },
-			{ name: "Mantlet", guard: 5, armour: 1, note: "" }
+			{ name: "Palisade", guard: 6, armour: 1, note: "", siege: false },
+			{ name: "Raft", guard: 3, armour: 0, note: "carries 4 passengers", siege: false },
+			{ name: "Mantlet", guard: 5, armour: 1, note: "", siege: true }
 		]);
 	});
 });
@@ -187,7 +187,7 @@ describe("goodsDocuments", () => {
 		expect(items.poisons[0]).toEqual({ type: "gear", name: "rare poison", system: { description: "<p>A long sleep</p>" } });
 	});
 
-	it("makes beasts, hirelings, Warbands and structures as NPCs", () => {
+	it("makes beasts, hirelings and Warbands as NPCs", () => {
 		const warhorse = actors.beasts.find((beast) => beast.name === "Warhorse");
 		expect(warhorse.system.virtues.vig).toEqual({ value: 12, max: 12 });
 		expect(warhorse.items[0]).toMatchObject({ type: "weapon", name: "Trample", system: { damage: "d10", trample: true } });
@@ -201,10 +201,18 @@ describe("goodsDocuments", () => {
 		expect(cavalry.system).toMatchObject({ scale: "warband", armour: 2 });
 		expect(cavalry.items.map((item) => item.name)).toEqual(["Lance", "Shield", "Warhorse"]);
 
+	});
+
+	it("makes structures, ships and siege engines as Structures, with what a ship carries", () => {
+		expect(actors.structures.map((structure) => [structure.type, structure.name, structure.system.kind])).toEqual([
+			["structure", "Palisade", "structure"],
+			["structure", "Raft", "ship"],
+			["structure", "Mantlet", "siege"]
+		]);
 		expect(actors.structures[1]).toEqual({
-			type: "npc",
+			type: "structure",
 			name: "Raft",
-			system: { guard: { value: 3, max: 3 }, armour: 0, structure: true, notes: "<p>Carries 4 passengers</p>" },
+			system: { kind: "ship", guard: { value: 3, max: 3 }, armour: 0, carries: "4 passengers", notes: "" },
 			items: []
 		});
 	});

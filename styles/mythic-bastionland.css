@@ -1403,6 +1403,22 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* Structure sheet: a ship, wall or siege engine                    */
+/* ---------------------------------------------------------------- */
+
+.bastionland-structure__carries {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin-top: 0.5rem;
+}
+
+.bastionland-page .bastionland-structure__carries input {
+	width: 100%;
+	max-width: none;
+}
+
+/* ---------------------------------------------------------------- */
 /* Steed on the Knight sheet                                        */
 /* ---------------------------------------------------------------- */
 

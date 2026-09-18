@@ -1,5 +1,6 @@
 import { pasteStatBlock } from "../actions/npc.js";
 import { rollMorale } from "../actions/saves.js";
+import { convertToStructure } from "../actions/structures.js";
 import { openNpcChooser } from "../apps/NpcChooser.js";
 import { t } from "../chat/cards.js";
 import { FEATS, NPC_SCALES } from "../config.js";
@@ -23,7 +24,8 @@ export class NpcSheet extends BastionlandActorSheet {
 			rollMorale: NpcSheet.#onRollMorale,
 			setScale: NpcSheet.#onSetScale,
 			toggleFeat: NpcSheet.#onToggleFeat,
-			clearLeader: NpcSheet.#onClearLeader
+			clearLeader: NpcSheet.#onClearLeader,
+			makeStructure: NpcSheet.#onMakeStructure
 		}
 	};
 
@@ -92,6 +94,11 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onClearLeader() {
 		return this.actor.update({ "system.leader": "" });
+	}
+
+	/** @this {NpcSheet} */
+	static #onMakeStructure() {
+		return convertToStructure(this.actor);
 	}
 
 	/** @this {NpcSheet} */
