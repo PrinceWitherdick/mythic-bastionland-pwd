@@ -46,6 +46,18 @@ export async function confirmDialog({ title, icon, message }) {
 }
 
 /**
+ * The Undo and Redo gestures, with Cmd in place of Ctrl on a Mac.
+ * @param {KeyboardEvent} event
+ * @returns {"undo"|"redo"|null} Null when it's some other key.
+ */
+export function undoRedoKey(event) {
+	if (!(event.ctrlKey || event.metaKey) || event.altKey) return null;
+	const key = event.key.toLowerCase();
+	if (key === "y" || (key === "z" && event.shiftKey)) return "redo";
+	return key === "z" ? "undo" : null;
+}
+
+/**
  * Ask for a form's worth of answers.
  * @param {object} options
  * @param {string} options.title

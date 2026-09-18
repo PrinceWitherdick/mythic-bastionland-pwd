@@ -1332,6 +1332,12 @@
       }
     },
     "realm": {
+      "keybinding": {
+        "redo": {
+          "name": "Redo a Realm edit",
+          "hint": "Put back the last Realm edit taken back with Undo, while the Realm tools are in use."
+        }
+      },
       "newRealm": "New Realm",
       "units": "Hex",
       "hex": "Column {col}, Row {row}",
@@ -1458,7 +1464,9 @@
           "hidden": "Hidden",
           "revealed": "Revealed"
         },
-        "wildernessHere": "Wilderness Roll here"
+        "wildernessHere": "Wilderness Roll here",
+        "undo": "Undo",
+        "redo": "Redo"
       },
       "directions": {
         "southeast": "South-east",

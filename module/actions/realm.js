@@ -16,6 +16,8 @@ import {
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
 import { generateRealm } from "../rules/realm-generator.js";
 import { realmGeometry } from "../rules/realm-geometry.js";
+import { serialWrites } from "../rules/queue.js";
+import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
@@ -23,6 +25,9 @@ export const REALM_LOOK_SETTING = "realmLook";
 
 /** The Scene flag holding a Realm Scene's own skin, colour set and pictures. */
 export const REALM_LOOK_FLAG = "realmLook";
+
+/** Called when what Undo and Redo can take back on a Realm changes, with the Scene's id. */
+export const REALM_HISTORY_HOOK = `${SYSTEM_ID}.realmHistoryChanged`;
 
 /** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
@@ -161,22 +166,8 @@ const existingDocuments = (scene) => ({
 	drawings: scene.drawings.map((drawing) => drawing._source)
 });
 
-/** The Realm write under way, if any, so the next can wait for it. */
-let pendingWrite = Promise.resolve();
-
-/**
- * Run a Realm write once any earlier one has finished. Otherwise edits made in
- * quick succession, such as ticking a box straight after typing a name, each
- * start from the Realm as it was before the other, and undo each other.
- * @template T
- * @param {() => Promise<T>} write
- * @returns {Promise<T>}
- */
-function queueRealmWrite(write) {
-	const run = pendingWrite.then(write);
-	pendingWrite = run.catch(() => {});
-	return run;
-}
+/** Realm writes, taken one at a time. */
+const queueRealmWrite = serialWrites();
 
 /**
  * Bring a Scene's documents in line with a Realm: removals first, then
@@ -329,8 +320,65 @@ export async function editRealm(scene, edit) {
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
 		if (!next || next === realm) return false;
-		return writeRealm(scene, next, g, textures);
+		const written = await writeRealm(scene, next, g, textures);
+		if (written) setHistory(scene.id, recordChange(realmHistory(scene.id), realm));
+		return written;
 	});
+}
+
+/** Each Realm Scene's Undo and Redo, by Scene id. This GM's own, until the page reloads. */
+const histories = new Map();
+
+/**
+ * @param {string} sceneId
+ * @returns {import("../rules/history.js").History}
+ */
+const realmHistory = (sceneId) => histories.get(sceneId) ?? emptyHistory();
+
+/**
+ * @param {string} sceneId
+ * @param {import("../rules/history.js").History|null} history Null to forget it.
+ */
+function setHistory(sceneId, history) {
+	if (history) histories.set(sceneId, history);
+	else histories.delete(sceneId);
+	Hooks.callAll(REALM_HISTORY_HOOK, sceneId);
+}
+
+/**
+ * @param {Scene|null|undefined} scene
+ * @returns {{canUndo: boolean, canRedo: boolean}}
+ */
+export function realmUndoState(scene) {
+	const { undo, redo } = realmHistory(scene?.id);
+	return { canUndo: undo.length > 0, canRedo: redo.length > 0 };
+}
+
+/**
+ * Take back the last Realm edit on a Scene, or put back the last one taken
+ * back: painting, Barriers, and changes made in the Hex panel.
+ * @param {Scene} scene
+ * @param {"undo"|"redo"} way
+ * @returns {Promise<boolean>} Whether there was anything to take back or put back.
+ */
+export async function stepRealmHistory(scene, way) {
+	if (!game.user.isGM || !isRealmScene(scene)) return false;
+	return queueRealmWrite(async () => {
+		const { realm } = getRealm(scene);
+		const step = stepHistory(realmHistory(scene.id), way, realm);
+		if (!step) return false;
+		await writeRealm(scene, step.target, sceneGeometry(scene), currentRealmTextures(scene));
+		setHistory(scene.id, step.history);
+		return true;
+	});
+}
+
+/**
+ * Forget a Scene's Undo and Redo, such as when its Realm is rerolled.
+ * @param {string} sceneId
+ */
+export function forgetRealmHistory(sceneId) {
+	if (histories.has(sceneId)) setHistory(sceneId, null);
 }
 
 /** How many problems a Tidy notification names before it stops. */
@@ -386,6 +434,8 @@ export async function rerollRealm(scene) {
 	await queueRealmWrite(async () => {
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		await scene.update({ [`flags.${SYSTEM_ID}.${REALM_FLAG}`]: realmSceneFlag(realm, g) });
+		// Undo would lay the old Realm's pieces over the new one.
+		forgetRealmHistory(scene.id);
 	});
 	await postRealmKey(scene);
 	return scene;

@@ -1,4 +1,4 @@
-import { REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { REALM_HISTORY_HOOK, REALM_LOOK_FLAG, REALM_LOOK_HOOK, forgetRealm, forgetRealmHistory, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
@@ -67,11 +67,16 @@ export function registerRealmHooks() {
 	for (const name of ["createTile", "updateTile", "deleteTile", "createDrawing", "updateDrawing", "deleteDrawing"]) {
 		Hooks.on(name, onDocument);
 	}
-	Hooks.on("deleteScene", (scene) => forgetRealm(scene.id));
 	Hooks.on("updateScene", (scene, changes) => {
 		realmChanged(scene.id);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
 	});
+	Hooks.on("deleteScene", (scene) => {
+		forgetRealm(scene.id);
+		forgetRealmHistory(scene.id);
+	});
+	// The Hex panel's Undo and Redo buttons.
+	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => refreshRealmPanel(sceneId));
 	// The terrain brush shows the pictures the Realm is drawn with.
 	Hooks.on(REALM_LOOK_HOOK, (sceneId) => sceneId && refreshRealmPanel(sceneId));
 

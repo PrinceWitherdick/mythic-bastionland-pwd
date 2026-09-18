@@ -2,7 +2,7 @@ import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
-import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings } from "./module/actions/realm.js";
+import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -149,6 +149,21 @@ Hooks.once("init", () => {
 	// Realm Scenes: the GM's Realm tools, Barriers that stop Tokens, and the hex readout.
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
 	registerRealmHooks();
+	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
+	game.keybindings.register(SYSTEM_ID, "redoRealm", {
+		name: "bastionland.realm.keybinding.redo.name",
+		hint: "bastionland.realm.keybinding.redo.hint",
+		editable: [
+			{ key: "KeyY", modifiers: ["Control"] },
+			{ key: "KeyZ", modifiers: ["Control", "Shift"] }
+		],
+		restricted: true,
+		onDown: () => {
+			if (!canvas.ready || canvas.activeLayer !== canvas.realm) return false;
+			stepRealmHistory(canvas.scene, "redo");
+			return true;
+		}
+	});
 
 	// How Realm Scenes are drawn: a skin, a set of colours, and the GM's own pictures.
 	registerRealmSettings();

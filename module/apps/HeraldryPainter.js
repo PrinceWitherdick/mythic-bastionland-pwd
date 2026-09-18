@@ -34,6 +34,7 @@ import {
 	zoomPlacement
 } from "../rules/heraldry.js";
 import { CHARGES, CHARGE_GROUPS, chargePath, chargePlacement, tintCharge } from "../rules/heraldry-charges.js";
+import { undoRedoKey } from "./ui.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -620,14 +621,12 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			this.#browse(false, { focus: true });
 			return;
 		}
-		if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-		const key = event.key.toLowerCase();
-		const redo = key === "y" || (key === "z" && event.shiftKey);
-		if (key !== "z" && !redo) return;
+		const way = undoRedoKey(event);
+		if (!way) return;
 		event.preventDefault();
 		event.stopPropagation();
 		if (this.#stroke || this.#saving) return;
-		if (redo) this.#step(this.#redo, this.#undo);
+		if (way === "redo") this.#step(this.#redo, this.#undo);
 		else this.#step(this.#undo, this.#redo);
 	}
 

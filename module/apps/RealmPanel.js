@@ -1,4 +1,4 @@
-import { editRealm, getRealm, getRealmLook, sceneGeometry } from "../actions/realm.js";
+import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -55,7 +55,9 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			omenStep: RealmPanel.#onOmenStep,
 			toggleReveal: RealmPanel.#onToggleReveal,
 			cycleBarrier: RealmPanel.#onCycleBarrier,
-			wilderness: RealmPanel.#onWilderness
+			undo: RealmPanel.#onUndo,
+			redo: RealmPanel.#onRedo,
+			wilderness: RealmPanel.#onWilderness,
 		}
 	};
 
@@ -97,6 +99,8 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (!entry) return Object.assign(context, { missing: true });
 		const g = sceneGeometry(scene);
 		const { realm } = entry;
+		const { canUndo, canRedo } = realmUndoState(scene);
+		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
 		if (this.mode === "terrain" || !this.hex) {
 			const textures = realmTextures(getRealmLook(scene));
@@ -269,6 +273,16 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const { edge } = target.dataset;
 		if (!edge) return;
 		await this.#edit((realm, g) => setBarrier(realm, g, edge, nextBarrierState(barrierState(realm, edge))));
+	}
+
+	/** @this {RealmPanel} */
+	static #onUndo() {
+		return stepRealmHistory(this.scene, "undo");
+	}
+
+	/** @this {RealmPanel} */
+	static #onRedo() {
+		return stepRealmHistory(this.scene, "redo");
 	}
 
 	/** @this {RealmPanel} */

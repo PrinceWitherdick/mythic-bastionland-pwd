@@ -1,6 +1,11 @@
 <div class="bastionland-page bastionland-realm-panel">
 	{{#if missing}}
 	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.missing"}}</p>
+	{{else}}
+	<div class="bastionland-realm-panel__history">
+		<button type="button" data-action="undo" {{disabled undoDisabled}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.realm.panel.undo"}}</button>
+		<button type="button" data-action="redo" {{disabled redoDisabled}}><i class="fa-solid fa-rotate-right" inert></i> {{localize "bastionland.realm.panel.redo"}}</button>
+	</div>
 	{{/if}}
 
 	{{#if terrainMode}}

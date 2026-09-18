@@ -2094,6 +2094,12 @@
 	outline: 2px solid var(--bastionland-verdigris);
 }
 
+.bastionland-realm-panel__history {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
 .bastionland-realm-panel__problems {
 	margin: 0;
 	padding-left: 1.1rem;

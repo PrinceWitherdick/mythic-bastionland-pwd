@@ -1,4 +1,4 @@
-import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, syncRealmScene } from "../actions/realm.js";
+import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, stepRealmHistory, syncRealmScene } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, refreshRealmPanel } from "../apps/RealmPanel.js";
@@ -226,6 +226,16 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 				return setBarrier(realm, geometry, found.key, next);
 			});
 		}
+	}
+
+	/**
+	 * Ctrl+Z takes back the last Realm edit.
+	 * @override
+	 */
+	_onUndoKey(_event) {
+		if (!game.user.isGM || !isRealmScene(canvas.scene)) return false;
+		stepRealmHistory(canvas.scene, "undo");
+		return true;
 	}
 
 	/** @override */
