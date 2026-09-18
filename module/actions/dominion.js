@@ -1,3 +1,4 @@
+import { chooseDialog, confirmDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import {
@@ -8,6 +9,7 @@ import {
 	crisisResult,
 	dramaResult
 } from "../rules/dominion.js";
+import { escapeHTML } from "../rules/text.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { rollSpark } from "./referee-rolls.js";
@@ -60,16 +62,14 @@ export async function crisisRoll(domain) {
 	let added = drawn.crises;
 	const notes = [];
 	if (result === "dilemma" && drawn.crises.length > 1) {
-		const { escapeHTML } = foundry.utils;
-		const choice = await foundry.applications.api.DialogV2.wait({
-			window: { title: t("domain.dilemmaTitle"), icon: "fa-solid fa-scale-unbalanced" },
-			classes: ["bastionland-dialog"],
-			content: [
-				`<p>${t("domain.dilemmaIntro", { name: escapeHTML(domain.name) })}</p>`,
-				...drawn.crises.map((key) => `<p><strong>${crisisName(key)}</strong>: ${t(`domain.crises.${key}.resolution`)}</p>`)
-			].join(""),
-			buttons: drawn.crises.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 })),
-			rejectClose: false
+		const choice = await chooseDialog({
+			title: t("domain.dilemmaTitle"),
+			icon: "fa-solid fa-scale-unbalanced",
+			message: [
+				t("domain.dilemmaIntro", { name: escapeHTML(domain.name) }),
+				...drawn.crises.map((key) => `<strong>${crisisName(key)}</strong>: ${t(`domain.crises.${key}.resolution`)}`)
+			],
+			buttons: drawn.crises.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
 		});
 		added = drawn.crises.includes(choice) ? [choice] : [];
 		if (!added.length) notes.push(t("domain.dilemmaOpen", { options: drawn.crises.map(crisisName).join(", ") }));
@@ -97,12 +97,12 @@ export async function addCrisis(domain) {
 		ui.notifications.info(t("domain.allCrises", { name: domain.name }));
 		return null;
 	}
-	const choice = await foundry.applications.api.DialogV2.wait({
-		window: { title: t("domain.addCrisis"), icon: "fa-solid fa-fire" },
-		classes: ["bastionland-dialog", "bastionland-referee-rolls"],
-		content: `<p>${t("domain.addCrisisIntro", { name: foundry.utils.escapeHTML(domain.name) })}</p>`,
-		buttons: open.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 })),
-		rejectClose: false
+	const choice = await chooseDialog({
+		title: t("domain.addCrisis"),
+		icon: "fa-solid fa-fire",
+		classes: ["bastionland-referee-rolls"],
+		message: t("domain.addCrisisIntro", { name: escapeHTML(domain.name) }),
+		buttons: open.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
 	});
 	if (!open.includes(choice)) return null;
 

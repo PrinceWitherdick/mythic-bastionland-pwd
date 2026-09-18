@@ -1,7 +1,7 @@
 /*
- * Chat cards and roll dialogs. Fonts and colour tokens are declared in
- * mythic-bastionland.css. Cards paint their own parchment so they read the
- * same in Foundry's light and dark themes; dialogs keep Foundry's theme.
+ * Chat cards and dialogs. Fonts and colour tokens are declared in
+ * mythic-bastionland.css. Cards and dialogs paint their own parchment so they
+ * read the same in Foundry's light and dark themes.
  */
 
 .bastionland-card {
@@ -281,16 +281,113 @@
 
 /* Dialogs and shared form bits */
 
+/*
+ * Dialogs paint the same parchment as the sheets and the cards, so a question
+ * about a Scar or a Season doesn't arrive as a dark Foundry window. The frame
+ * stays Foundry's, as the sheets' does; everything inside it is ours. The
+ * controls take their colours from mythic-bastionland.css, alongside the sheets'.
+ */
+.bastionland-dialog .window-content {
+	--color-form-label: var(--bastionland-ink);
+	--color-form-label-hover: var(--bastionland-ink);
+	--color-form-hint: var(--bastionland-ink-soft);
+	--color-form-hint-hover: var(--bastionland-ink-soft);
+	--color-fieldset-border: var(--bastionland-rule);
+	--color-text-subtle: var(--bastionland-ink-soft);
+	padding: 0;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	color-scheme: light;
+}
+
+.bastionland-dialog .dialog-form {
+	gap: 0.7rem;
+	min-height: 0;
+	padding: 0.9rem 1rem 0.8rem;
+	background:
+		radial-gradient(ellipse at top left, rgb(255 255 255 / 0.35), transparent 60%),
+		var(--bastionland-paper);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+	font-variant-numeric: lining-nums;
+	line-height: 1.35;
+}
+
+/* The body scrolls, so a long dialog keeps its buttons in reach. */
+.bastionland-dialog .dialog-content {
+	gap: 0.7rem;
+	min-height: 0;
+	overflow-y: auto;
+	font-size: inherit;
+}
+
 .bastionland-dialog .bastionland-dialog__body {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
 }
 
+.bastionland-dialog .dialog-content p {
+	margin: 0;
+}
+
+/* Scoped to the body: the window title is an h1 too, and it belongs to the frame. */
+.bastionland-dialog .dialog-content :is(h1, h2, h3, h4) {
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-dialog .hint {
+	color: var(--bastionland-ink-soft);
+	font-size: 0.88em;
+	font-style: italic;
+}
+
 .bastionland-dialog fieldset {
 	display: flex;
 	flex-direction: column;
 	gap: 0.25rem;
+	padding: 0.45rem 0.7rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.25);
+}
+
+.bastionland-dialog legend {
+	padding: 0 0.3rem;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	font-weight: normal;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-dialog .form-group > label,
+.bastionland-dialog .form-group > span.label {
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-dialog .form-footer {
+	gap: 0.5rem;
+	margin: 0;
+	padding-top: 0.6rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-dialog .form-footer button {
+	--button-size: 2.1rem;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
 }
 
 .bastionland-referee-rolls .form-footer {

@@ -105,8 +105,12 @@
 	line-height: 1.35;
 }
 
-/* Foundry sets its theme's colours on each control rather than letting them inherit, so they're overridden there. */
-.bastionland-page :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+/*
+ * Foundry sets its theme's colours on each control rather than letting them
+ * inherit, so they're overridden there. Dialogs paint the same parchment as the
+ * sheets, so they take the same controls.
+ */
+:is(.bastionland-page, .bastionland-dialog .window-content) :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
 	--input-background-color: var(--bastionland-paper);
 	--input-text-color: var(--bastionland-ink);
 	--input-border-color: var(--bastionland-rule);
@@ -114,7 +118,17 @@
 	--input-focus-outline-color: var(--bastionland-verdigris);
 }
 
-.bastionland-page :is(button, a.button) {
+/* Foundry draws a tick box as two Font Awesome layers, so it's coloured, not filled. */
+:is(.bastionland-page, .bastionland-dialog .window-content) :is(input[type="checkbox"], input[type="radio"]) {
+	--checkbox-font-weight: unset;
+	--checkbox-background-color: var(--bastionland-rule);
+	--checkbox-checked-color: var(--bastionland-ink);
+	--checkbox-checkmark-color: var(--bastionland-paper);
+	--checkbox-disabled-color: var(--bastionland-rule);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+}
+
+:is(.bastionland-page, .bastionland-dialog .window-content) :is(button, a.button) {
 	--button-background-color: var(--bastionland-paper-deep);
 	--button-border-color: var(--bastionland-ink);
 	--button-text-color: var(--bastionland-ink);
@@ -160,11 +174,11 @@
 	cursor: pointer;
 }
 
-.bastionland-page button:disabled {
+:is(.bastionland-page, .bastionland-dialog .window-content) button:disabled {
 	cursor: default;
 }
 
-.bastionland-page button:focus-visible {
+:is(.bastionland-page, .bastionland-dialog .window-content) button:focus-visible {
 	outline: 2px solid var(--bastionland-verdigris);
 	outline-offset: 2px;
 }

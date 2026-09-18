@@ -46,6 +46,27 @@ export async function confirmDialog({ title, icon, message }) {
 }
 
 /**
+ * Ask which of several things to do.
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} options.icon      Font Awesome classes.
+ * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each.
+ * @param {object[]} options.buttons As DialogV2 takes them.
+ * @param {string[]} [options.classes] More classes for the window.
+ * @returns {Promise<string|null>} The button's action, or null if closed.
+ */
+export async function chooseDialog({ title, icon, message, buttons, classes = [] }) {
+	const paragraphs = Array.isArray(message) ? message : [message];
+	return foundry.applications.api.DialogV2.wait({
+		window: { title, icon },
+		classes: ["bastionland-dialog", ...classes],
+		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
+		buttons,
+		rejectClose: false
+	});
+}
+
+/**
  * The Undo and Redo gestures, with Cmd in place of Ctrl on a Mac.
  * @param {KeyboardEvent} event
  * @returns {"undo"|"redo"|null} Null when it's some other key.
