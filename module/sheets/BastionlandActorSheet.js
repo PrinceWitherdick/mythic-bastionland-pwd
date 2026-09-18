@@ -312,12 +312,15 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 
 /**
  * An item name cut where its gloss begins, at the first " (" or ", ", so a
- * row can bold only the lead words: "Unnatural body" of "Unnatural body (see
- * below), concealed beneath plate suit (A1), hood and clothes".
+ * row can bold only the lead words and drop a long gloss under them:
+ * "Unnatural body" over "(see below), concealed beneath plate suit (A1), hood
+ * and clothes". A cutting comma stays on the head as nameSep.
  * @param {string} name
- * @returns {{nameHead: string, nameRest: string}}
+ * @returns {{nameHead: string, nameSep: string, nameRest: string}}
  */
 function splitName(name) {
 	const at = name.search(/ \(|, /);
-	return at > 0 ? { nameHead: name.slice(0, at), nameRest: name.slice(at) } : { nameHead: name, nameRest: "" };
+	if (at <= 0) return { nameHead: name, nameSep: "", nameRest: "" };
+	const nameSep = name[at] === "," ? "," : "";
+	return { nameHead: name.slice(0, at), nameSep, nameRest: name.slice(at + nameSep.length).trimStart() };
 }

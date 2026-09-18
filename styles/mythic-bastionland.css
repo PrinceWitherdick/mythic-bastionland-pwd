@@ -1199,10 +1199,27 @@
 	color: var(--bastionland-ink);
 }
 
+/* The title never breaks; a gloss that won't fit beside it drops to its own line below. */
 .bastionland-item__name {
+	display: flex;
+	flex: 0 1 auto;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: flex-start;
+	column-gap: 0.3em;
+	min-width: 0;
 	font-size: 1.05rem;
 	font-weight: normal;
 	text-align: start;
+}
+
+.bastionland-item__title {
+	white-space: nowrap;
+}
+
+.bastionland-item__gloss {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 /* Only the lead words are bold; a gloss like "(see below), hood and clothes" is not. */
@@ -1323,8 +1340,13 @@
 	opacity: 1;
 }
 
+/*
+ * An underline rather than a bottom border: a border on an inline span sits
+ * under the font's whole descent, down against the line below.
+ */
 .bastionland-feat {
-	border-bottom: 1px solid var(--bastionland-rule);
+	text-decoration: underline 1px var(--bastionland-rule);
+	text-underline-offset: 0.15em;
 	font-family: var(--bastionland-font-caps);
 	font-weight: bold;
 	letter-spacing: 0.04em;
@@ -1332,7 +1354,7 @@
 }
 
 .bastionland-move:hover .bastionland-feat {
-	border-bottom-color: currentcolor;
+	text-decoration-color: currentcolor;
 }
 
 .bastionland-feat__cost {
