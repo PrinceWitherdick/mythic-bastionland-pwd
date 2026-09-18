@@ -143,8 +143,8 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Move the rules against their edge of the Realm's map, wherever the canvas
-	 * has panned and zoomed it to. They move with the map but keep their size,
-	 * so they stay readable however far out the map is zoomed.
+	 * has panned and zoomed it to. They stay as tall as the map but keep their
+	 * width, so they stay readable however far out the map is zoomed.
 	 */
 	place() {
 		const rect = canvas?.ready ? canvas.dimensions?.sceneRect : null;
@@ -162,15 +162,13 @@ export class TravelRules extends HandlebarsApplicationMixin(ApplicationV2) {
 		const scale = Number.parseFloat(document.body.style.getPropertyValue("--ui-scale")) || 1;
 		// Layout width, which the interface scale's transform doesn't change.
 		const width = this.element.offsetWidth;
-		const { left, top, bottom, maxHeight } = travelRulesPlacement(map, { height: window.innerHeight }, { side: this.side, width, scale });
+		const { left, top, maxHeight } = travelRulesPlacement(map, { side: this.side, width, scale });
 
 		const { style } = this.element;
 		style.left = `${left}px`;
-		style.top = top === null ? "" : `${top}px`;
-		style.bottom = bottom === null ? "" : `${bottom}px`;
+		style.top = `${top}px`;
 		// The interface scale is a transform, so the height it may grow to is set before scaling.
 		style.setProperty("--travel-rules-max-height", `${maxHeight / scale}px`);
-		this.element.classList.toggle("bastionland-travel-rules--from-foot", bottom !== null);
 	}
 
 	/** Remember which groups this browser has closed, without drawing the rules again. */

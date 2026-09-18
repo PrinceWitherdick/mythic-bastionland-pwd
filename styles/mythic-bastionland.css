@@ -2822,10 +2822,6 @@
 	transform-origin: top left;
 }
 
-.bastionland-travel-rules--from-foot {
-	transform-origin: bottom left;
-}
-
 .bastionland-travel-rules button {
 	--button-background-color: var(--bastionland-paper-deep);
 	--button-border-color: var(--bastionland-ink);
@@ -2850,8 +2846,8 @@
 	color: var(--bastionland-ink);
 	color-scheme: light;
 	font-family: var(--bastionland-font-body);
-	font-size: 13px;
-	line-height: 1.3;
+	font-size: 15px;
+	line-height: 1.35;
 	pointer-events: all;
 }
 
@@ -2868,7 +2864,7 @@
 	border: none;
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-display);
-	font-size: 1.35rem;
+	font-size: 1.5rem;
 	font-weight: normal;
 }
 
@@ -2909,16 +2905,20 @@
 	cursor: pointer;
 	list-style: none;
 	font-family: var(--bastionland-font-caps);
-	font-size: 1.1rem;
+	font-size: 1.2rem;
 }
 
 .bastionland-travel-rules__summary::-webkit-details-marker {
 	display: none;
 }
 
+/* The fold arrow sits at the end of the row, after the page link, as on the sheets. */
 .bastionland-travel-rules__summary::before {
 	content: "\25B8";
+	flex: none;
+	order: 1;
 	width: 0.7rem;
+	text-align: center;
 	color: var(--bastionland-ink-soft);
 	font-size: 0.8rem;
 }
@@ -2934,7 +2934,7 @@
 .bastionland-travel-rules__page {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.8rem;
+	font-size: 0.9rem;
 }
 
 .bastionland-travel-rules button.bastionland-travel-rules__page {
@@ -2970,7 +2970,7 @@
 	border: none;
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
-	font-size: 1rem;
+	font-size: 1.1rem;
 	font-weight: normal;
 	letter-spacing: 0.02em;
 }
@@ -2981,7 +2981,7 @@
 	background: var(--bastionland-blood);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.75rem;
+	font-size: 0.8rem;
 }
 
 .bastionland-travel-rules__section p {
@@ -3046,13 +3046,13 @@
 	margin-top: 0.2rem;
 	padding: 0.15rem 0.4rem;
 	font-family: var(--bastionland-font-body);
-	font-size: 0.85rem;
+	font-size: 0.95rem;
 }
 
 .bastionland-travel-rules__credit {
 	margin: 0.4rem 0 0;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.75rem;
+	font-size: 0.85rem;
 	font-style: italic;
 }
 

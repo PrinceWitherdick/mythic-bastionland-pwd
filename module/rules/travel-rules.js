@@ -99,30 +99,22 @@ export function pressingSections({ season, phase } = {}) {
 
 /**
  * Where one side's rules sit on screen: against that edge of the Realm's map,
- * level with its top and no taller than it, as the Blank Realm sheet prints
- * them. While the map runs past the top or bottom of the screen they stay
- * within the screen, so they can be read, and they're never shorter than
- * `minHeight`. Once the map's foot is too near the top of the screen for that,
- * they hang from its foot instead, so they still leave with the map.
+ * level with its top and as tall as it, as the Blank Realm sheet prints them.
+ * They stay held to the map as it pans, even when that takes their top or foot
+ * off the screen, and they're never shorter than `minHeight`.
  * @param {{left: number, top: number, right: number, bottom: number}} map The map on screen, in CSS pixels.
- * @param {{height: number}} screen
  * @param {object} [options]
  * @param {"left"|"right"} [options.side]
  * @param {number} [options.width] The rules' own width, before the interface scale.
  * @param {number} [options.gap] Between the map's edge and the rules.
- * @param {number} [options.margin] Kept clear at the top and foot of the screen.
  * @param {number} [options.minHeight]
  * @param {number} [options.scale] The interface scale, which each of these grows with.
- * @returns {{left: number, top: number|null, bottom: number|null, maxHeight: number}} Exactly one of
- *   `top` and `bottom` is set, each measured from its own edge of the screen.
+ * @returns {{left: number, top: number, maxHeight: number}}
  */
-export function travelRulesPlacement(map, screen, { side = "right", width = 300, gap = 12, margin = 16, minHeight = 240, scale = 1 } = {}) {
-	const [wide, space, clear, least] = [width, gap, margin, minHeight].map((length) => length * scale);
+export function travelRulesPlacement(map, { side = "right", width = 300, gap = 12, minHeight = 240, scale = 1 } = {}) {
+	const [wide, space, least] = [width, gap, minHeight].map((length) => length * scale);
 	const left = Math.round(side === "left" ? map.left - space - wide : map.right + space);
-	if (map.bottom < clear + least) return { left, top: null, bottom: Math.round(screen.height - map.bottom), maxHeight: Math.round(least) };
-	const top = Math.max(map.top, clear);
-	const height = Math.min(map.bottom, screen.height - clear) - top;
-	return { left, top: Math.round(top), bottom: null, maxHeight: Math.round(Math.max(least, height)) };
+	return { left, top: Math.round(map.top), maxHeight: Math.round(Math.max(least, map.bottom - map.top)) };
 }
 
 /**
