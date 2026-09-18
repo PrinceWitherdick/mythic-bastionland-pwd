@@ -1,0 +1,63 @@
+<section class="bastionland-page bastionland-site__key">
+	<div class="bastionland-site__field">
+		<label class="bastionland-site__label" for="{{rootId}}-name">{{localize "bastionland.sites.key.name"}}</label>
+		<input id="{{rootId}}-name" class="bastionland-site__name" type="text" name="name" value="{{name}}">
+	</div>
+	<div class="bastionland-site__field">
+		<label class="bastionland-site__label" for="{{rootId}}-notes">{{localize "bastionland.sites.key.notes"}}</label>
+		<textarea id="{{rootId}}-notes" name="notes" rows="3" placeholder="{{localize 'bastionland.sites.key.notesPlaceholder'}}">{{notes}}</textarea>
+	</div>
+
+	<section class="bastionland-site__section">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.sites.entrances.heading"}}</h3>
+		{{#if entrances.length}}
+		<ul class="bastionland-site__entries">
+			{{#each entrances}}
+			<li class="bastionland-site__entry bastionland-site__entry--entrance" data-point="{{key}}">
+				<div class="bastionland-site__entry-header">
+					<button type="button" class="bastionland-site__entry-name" data-action="pickPoint" data-point="{{key}}">
+						{{{glyph}}}<span>{{label}}</span><span class="bastionland-site__at">{{at}}</span>
+					</button>
+					<button type="button" class="bastionland-icon bastionland-site__found" data-action="found" data-entrance="{{key}}" data-tooltip="{{found.label}}" aria-label="{{found.label}}" aria-pressed="{{#if found.pressed}}true{{else}}false{{/if}}">
+						<i class="{{found.icon}}" inert></i>
+					</button>
+				</div>
+				<textarea name="{{name}}" rows="2" placeholder="{{placeholder}}" aria-label="{{fieldLabel}}">{{text}}</textarea>
+			</li>
+			{{/each}}
+		</ul>
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.sites.key.noEntrances"}}</p>
+		{{/if}}
+	</section>
+
+	<section class="bastionland-site__section">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.sites.key.points"}}</h3>
+		{{#if points.length}}
+		<ol class="bastionland-site__entries">
+			{{#each points}}
+			<li class="bastionland-site__entry bastionland-site__entry--point" data-point="{{key}}">
+				<div class="bastionland-site__entry-header">
+					<button type="button" class="bastionland-site__entry-name" data-action="pickPoint" data-point="{{key}}">
+						<span class="bastionland-site__number">{{number}}</span>{{{glyph}}}<span>{{label}}</span>
+					</button>
+					<button type="button" class="bastionland-icon bastionland-site__found" data-action="found" data-point="{{key}}" data-tooltip="{{found.label}}" aria-label="{{found.label}}" aria-pressed="{{#if found.pressed}}true{{else}}false{{/if}}">
+						<i class="{{found.icon}}" inert></i>
+					</button>
+				</div>
+				<textarea name="{{name}}" rows="2" placeholder="{{placeholder}}" aria-label="{{fieldLabel}}">{{text}}</textarea>
+				{{#if routes.length}}
+				<ul class="bastionland-site__ways">
+					{{#each routes}}
+					<li>{{{glyph}}}<span>{{label}}</span>{{#if note}}<span class="bastionland-site__way-note">{{note}}</span>{{/if}}</li>
+					{{/each}}
+				</ul>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+		{{else}}
+		<p class="bastionland-empty">{{localize "bastionland.sites.key.empty"}}</p>
+		{{/if}}
+	</section>
+</section>

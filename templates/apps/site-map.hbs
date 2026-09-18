@@ -1,0 +1,126 @@
+<section class="bastionland-page bastionland-site__main{{#unless referee}} bastionland-site__main--players{{/unless}}">
+	{{#if referee}}
+	<p class="bastionland-hint bastionland-site__hint">{{hint}}</p>
+	{{/if}}
+
+	<div class="bastionland-site__board">
+		<div class="bastionland-site__canvas"{{#if referee}} data-action="deselect"{{/if}}>{{{map}}}</div>
+
+		{{#if bar}}
+		<div class="bastionland-site__bar" role="group" aria-label="{{bar.label}}" data-placement="{{bar.placement}}" style="--site-x: {{bar.x}}%">
+			<div class="bastionland-site__bar-row">
+				{{#each bar.kinds}}
+				<button type="button" class="bastionland-site__chip" data-action="{{action}}" data-kind="{{kind}}" data-tooltip="{{hint}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}">
+					{{{glyph}}}<span>{{label}}</span><span class="bastionland-site__tally">{{tally}}</span>
+				</button>
+				{{/each}}
+				{{#if bar.clear}}
+				<button type="button" class="bastionland-site__chip bastionland-site__chip--clear" data-action="{{bar.clear.action}}" data-kind="" data-tooltip="{{bar.clear.hint}}" aria-label="{{bar.clear.label}}">
+					<i class="fa-solid fa-eraser" inert></i>
+				</button>
+				{{/if}}
+				<button type="button" class="bastionland-icon bastionland-site__bar-close" data-action="deselect" data-tooltip="{{localize 'bastionland.sites.bar.close'}}" aria-label="{{localize 'bastionland.sites.bar.close'}}">
+					<i class="fa-solid fa-xmark" inert></i>
+				</button>
+			</div>
+
+			{{#if bar.numbers.length}}
+			<div class="bastionland-site__bar-row">
+				<label class="bastionland-site__bar-label" for="{{@root.rootId}}-bar-number">{{localize "bastionland.sites.bar.number"}}</label>
+				<select id="{{@root.rootId}}-bar-number" class="bastionland-site__number" data-change="numberPoint">
+					{{#each bar.numbers}}
+					<option value="{{number}}"{{#if pressed}} selected{{/if}}>{{number}}</option>
+					{{/each}}
+				</select>
+				{{#each bar.entrances}}
+				<button type="button" class="bastionland-site__chip" data-action="placeEntrance" data-kind="{{kind}}" data-tooltip="{{hint}}" aria-pressed="{{#if pressed}}true{{else}}false{{/if}}">
+					{{{glyph}}}<span>{{label}}</span>
+				</button>
+				{{/each}}
+				{{#if bar.erase}}
+				<button type="button" class="bastionland-site__chip bastionland-site__chip--clear" data-action="markPoint" data-kind="" data-tooltip="{{bar.erase.hint}}" aria-label="{{bar.erase.label}}">
+					<i class="fa-solid fa-eraser" inert></i>
+				</button>
+				{{/if}}
+			</div>
+			{{/if}}
+
+			{{#if bar.note}}
+			<div class="bastionland-site__bar-row">
+				<input type="text" class="bastionland-site__note" name="{{bar.note.name}}" value="{{bar.note.value}}" placeholder="{{bar.note.placeholder}}" aria-label="{{bar.note.placeholder}}">
+				{{#if bar.found}}
+				<button type="button" class="bastionland-icon bastionland-site__found" data-action="findRoute" data-tooltip="{{bar.found.label}}" aria-label="{{bar.found.label}}" aria-pressed="{{#if bar.found.pressed}}true{{else}}false{{/if}}">
+					<i class="{{bar.found.icon}}" inert></i>
+				</button>
+				{{/if}}
+			</div>
+			{{/if}}
+		</div>
+		{{/if}}
+	</div>
+
+	{{#if referee}}
+	<section class="bastionland-site__book">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.sites.steps.heading"}}</h3>
+		<ol class="bastionland-site__steps">
+			{{#each steps}}
+			<li class="bastionland-site__step is-{{state}}">
+				<span class="bastionland-site__step-number" aria-hidden="true">{{number}}</span>
+				<div class="bastionland-site__step-body">
+					<span class="bastionland-site__step-name" data-tooltip="{{hint}}">{{label}}</span>
+					{{#if tallies.length}}
+					<ul class="bastionland-site__tallies">
+						{{#each tallies}}
+						<li class="bastionland-site__tally-chip is-{{state}}" data-tooltip="{{hint}}">{{{glyph}}}<span>{{label}}</span><span class="bastionland-site__tally">{{count}}</span></li>
+						{{/each}}
+					</ul>
+					{{/if}}
+					{{#if detail}}
+					<p class="bastionland-site__step-detail">{{detail}}</p>
+					{{/if}}
+				</div>
+				<span class="bastionland-site__step-state" data-tooltip="{{stateLabel}}" role="img" aria-label="{{stateLabel}}"><i class="{{stateIcon}}" inert></i></span>
+				{{#if roll}}
+				<button type="button" class="bastionland-icon" data-action="rollStep" data-step="{{key}}" data-tooltip="{{roll.label}}" aria-label="{{roll.label}}" {{disabled roll.disabled}}>
+					<i class="fa-solid fa-dice" inert></i>
+				</button>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+
+		<details class="bastionland-site__rules" data-sync="rules">
+			<summary>{{localize "bastionland.sites.rules.heading"}}</summary>
+			<p class="bastionland-hint">{{localize "bastionland.sites.rules.hint"}}</p>
+			<div class="bastionland-site__rule-groups">
+				{{#each rules}}
+				<fieldset class="bastionland-site__rule-group">
+					<legend>{{label}}</legend>
+					{{#each counts}}
+					<div class="bastionland-site__rule">
+						<label for="{{id}}">{{{glyph}}}<span>{{label}}</span></label>
+						<input id="{{id}}" class="bastionland-box" type="number" name="{{name}}" value="{{value}}" min="0" max="{{max}}" step="1">
+					</div>
+					{{/each}}
+				</fieldset>
+				{{/each}}
+			</div>
+			<div class="bastionland-site__presets">
+				<span class="bastionland-site__bar-label">{{localize "bastionland.sites.rules.presets"}}</span>
+				{{#each presets}}
+				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="preset" data-preset="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+				{{/each}}
+			</div>
+		</details>
+	</section>
+	{{else}}
+	{{#if empty}}
+	<p class="bastionland-empty">{{localize "bastionland.sites.players.empty"}}</p>
+	{{/if}}
+	<ul class="bastionland-site__legend" aria-label="{{localize 'bastionland.sites.players.legend'}}">
+		{{#each legend}}
+		<li>{{{glyph}}}<span>{{label}}</span></li>
+		{{/each}}
+	</ul>
+	{{/if}}
+</section>

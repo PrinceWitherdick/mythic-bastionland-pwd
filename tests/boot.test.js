@@ -35,12 +35,13 @@ function installFoundryStubs() {
 			}
 		},
 		applications: {
-			api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
+			api: { ApplicationV2: class {}, DocumentSheetV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
 			apps: { DocumentSheetConfig: { registerSheet: vi.fn() } },
 			handlebars: { loadTemplates: vi.fn(), renderTemplate: vi.fn() },
 			sheets: { ActorSheetV2: class {}, ItemSheetV2: class {} },
 			ux: { TextEditor: { implementation: {} } }
 		},
+		documents: { JournalEntry: class JournalEntry {} },
 		canvas: {
 			layers: {
 				InteractionLayer: class {
@@ -130,6 +131,19 @@ describe("system boot", () => {
 		}
 	});
 
+	it("opens a Site's Journal entry on its map, and offers the map to no other entry", async () => {
+		const { SITE_SHEET_CLASS } = await import("../module/actions/sites.js");
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const [, scope, siteSheet, options] = registerSheet.mock.calls.find(([registeredClass]) => registeredClass === foundry.documents.JournalEntry);
+		expect(options).toMatchObject({ makeDefault: false, canBeDefault: false, label: "bastionland.sites.sheet" });
+		// Foundry knows a sheet by its scope and class name, and each Site's entry stores that name.
+		expect(`${scope}.${siteSheet.name}`).toBe(SITE_SHEET_CLASS);
+		for (const part of Object.values(siteSheet.PARTS)) {
+			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+		}
+		expect(hooks.renderJournalDirectory).toBeTypeOf("function");
+	});
+
 	it("preloads partials that exist on disk", () => {
 		const [[partials]] = foundry.applications.handlebars.loadTemplates.mock.calls;
 		expect(Object.keys(partials)).toEqual(expect.arrayContaining(["bastionland.item-row", "bastionland.add-item", "bastionland.save-result"]));
@@ -167,7 +181,7 @@ describe("system boot", () => {
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
 		expect(game.system.api.openHexLore).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
-		expect(game.system.api.openSitesPanel).toBeTypeOf("function");
+		expect(game.system.api.newSite).toBeTypeOf("function");
 		expect(game.system.api.openMythsPanel).toBeTypeOf("function");
 		expect(game.system.api.rollCityOmen).toBeTypeOf("function");
 		expect(game.system.api.awardGlory).toBeTypeOf("function");

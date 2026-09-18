@@ -809,73 +809,166 @@
       "wildernessHint": "A Company worthy of the City Quest encounters an Omen of the City instead. Roll it from the Myths window."
     },
     "sites": {
-      "title": "Sites",
-      "hint": "Map a Site the way the book does: points on the corners and centre of a hexagon, joined by routes between neighbours. The same seed and counts always draw the same Site.",
-      "name": "Name",
-      "defaultName": "Site {seed}",
-      "seed": "Seed",
-      "reroll": "Roll a new seed",
-      "pointsHeading": "Points",
-      "routesHeading": "Routes",
-      "entrancesHeading": "Entrances",
-      "entrance": "Entrance",
-      "hiddenEntrance": "Hidden entrance",
-      "presetsHeading": "Start from",
-      "presets": {
-        "book": "The book’s Site",
-        "burial": "A sealed burial complex"
+      "newSite": "New Site",
+      "defaultName": "New Site",
+      "folder": "Sites",
+      "sheet": "Site",
+      "toolbar": "Site tools",
+      "modes": {
+        "label": "What clicking the map does",
+        "draw": {
+          "label": "Draw",
+          "hint": "Mark points, draw routes and place entrances.",
+          "help": "Click a point to mark it, or the gap between two marked neighbours to draw a route."
+        },
+        "reveal": {
+          "label": "Reveal",
+          "hint": "Show players what they’ve found.",
+          "help": "Players see the points they’ve found, with the open and closed routes from them. Click a point, a hidden route or an entrance to show or hide it."
+        }
       },
+      "rollRest": "Roll the rest",
+      "rollRestHint": "Follow the book’s steps for whatever isn’t done yet, keeping everything already drawn.",
+      "clear": "Clear",
+      "clearTitle": "Clear {name}",
+      "clearConfirm": "Erase every point, route and entrance, and what’s written about them? The rules and the notes on the Site stay.",
+      "revealAll": "Reveal all",
+      "hideAll": "Hide all",
+      "showPlayers": "Show Players",
+      "showPlayersHint": "Show this Site to players. They see only what they’ve found.",
+      "undo": "Undo",
+      "redo": "Redo",
       "points": {
         "feature": {
           "label": "Feature",
           "plural": "Features",
-          "hint": "Gives information or sets the mood."
+          "hint": "A circle. Gives information or sets the mood.",
+          "placeholder": "What’s here to learn, or to set the mood?"
         },
         "danger": {
           "label": "Danger",
           "plural": "Dangers",
-          "hint": "To be navigated carefully."
+          "hint": "A triangle. To be navigated carefully.",
+          "placeholder": "What must be navigated carefully?"
         },
         "treasure": {
           "label": "Treasure",
           "plural": "Treasures",
-          "hint": "A useful or valuable find."
+          "hint": "A diamond. A useful or valuable find.",
+          "placeholder": "What’s worth finding here?"
         }
       },
       "routes": {
         "open": {
+          "label": "Open",
           "plural": "Open",
-          "hint": "A straightforward path between points.",
-          "to": "open to {number}"
+          "hint": "A solid line. A straightforward path between points.",
+          "to": "Open to {number}"
         },
         "closed": {
+          "label": "Closed",
           "plural": "Closed",
-          "hint": "Something blocks the way, so creative thinking is required.",
-          "to": "closed to {number}"
+          "hint": "A crossed line. Something blocks the way, so creative thinking is required.",
+          "to": "Closed to {number}"
         },
         "hidden": {
+          "label": "Hidden",
           "plural": "Hidden",
-          "hint": "Only found by exploring the points at either end, or through local knowledge.",
-          "to": "hidden to {number}"
+          "hint": "A dotted line. Only found by exploring the points at either end, or through local knowledge.",
+          "to": "Hidden to {number}"
         }
       },
-      "entranceHere": "entrance",
-      "hiddenEntranceHere": "hidden entrance",
-      "noRoutes": "no routes",
-      "keyHeading": "Key",
-      "empty": "There are no points to map.",
-      "diagram": "Map of {name}",
-      "tagline": "A Site, seed {seed}",
-      "journalHint": "Describe what’s found at each point beneath its entry.",
-      "post": "Post to chat",
-      "save": "Save as Journal",
-      "saved": "{name} saved to the Journal.",
-      "problems": {
-        "noPoints": "A Site needs at least one point.",
-        "tooManyPoints": "A hexagon has room for {used} points, not {asked}.",
-        "tooFewRoutes": "Every point must be reachable, so there are {used} routes, not {asked}. The extra ones are open.",
-        "tooManyRoutes": "Only {used} routes fit between neighbouring points, not {asked}.",
-        "hiddenEntrance": "With only one point, there’s nowhere else to put the hidden entrance."
+      "entrances": {
+        "heading": "Entrances",
+        "open": {
+          "label": "Entrance",
+          "plural": "Entrances",
+          "hint": "A way into the Site, at any point.",
+          "placeholder": "What’s this way in like?"
+        },
+        "hidden": {
+          "label": "Hidden entrance",
+          "plural": "Hidden entrances",
+          "hint": "An optional second way in, known to few.",
+          "placeholder": "Who knows of this way in, and how is it found?"
+        }
+      },
+      "steps": {
+        "heading": "The book’s steps",
+        "count": "{count}/{target}",
+        "states": {
+          "done": "Done",
+          "todo": "Still to do",
+          "over": "More than the rules ask for",
+          "problem": "Needs fixing"
+        },
+        "points": {
+          "label": "Mark the points",
+          "hint": "Mark points with circles as features, triangles as dangers and diamonds as treasure. The point left over is erased, and the rest are numbered.",
+          "roll": "Roll the points still to mark"
+        },
+        "routes": {
+          "label": "Draw the routes",
+          "hint": "Join neighbouring points with open, closed and hidden routes.",
+          "roll": "Roll the routes still to draw"
+        },
+        "reachable": {
+          "label": "Every point can be reached",
+          "hint": "Make sure all points can be reached, even if some of the routes are closed or hidden.",
+          "unreachable": "The routes don’t reach {points}."
+        },
+        "entrances": {
+          "label": "Place the entrances",
+          "hint": "If applicable, place an entrance at any point, and an optional hidden entrance.",
+          "roll": "Roll the entrances still to place"
+        }
+      },
+      "rules": {
+        "heading": "Breaking the rules",
+        "hint": "The book’s counts are a starting point. Rearrange them if it suits the Site’s theme better.",
+        "points": "Points",
+        "routes": "Routes",
+        "entrances": "Entrances",
+        "presets": "Start from"
+      },
+      "presets": {
+        "book": "The book",
+        "burial": "A sealed burial complex"
+      },
+      "bar": {
+        "point": "Point {number}",
+        "route": "Between {from} and {to}",
+        "erase": "Erase",
+        "eraseHint": "Erase this point, with its routes and entrance.",
+        "remove": "No route",
+        "removeHint": "Take this route away.",
+        "number": "Number",
+        "note": "What’s along the way?",
+        "close": "Close"
+      },
+      "key": {
+        "name": "Name",
+        "notes": "What is this place?",
+        "notesPlaceholder": "An ancient tomb, a hostile castle, twisting caverns, misty woods spanning the whole Hex…",
+        "points": "Points",
+        "at": "at {number}",
+        "empty": "No points yet. Mark some on the map, or roll them.",
+        "noEntrances": "No entrances yet.",
+        "found": "Players have found this. Click to hide it.",
+        "notFound": "Players haven’t found this. Click to reveal it."
+      },
+      "map": {
+        "label": "Map of {name}",
+        "point": "Point {number}, {kind}",
+        "erased": "Erased point",
+        "slot": "No route between {from} and {to}",
+        "route": "{kind} route between {from} and {to}",
+        "entrance": "{kind} at {number}",
+        "glimpsed": "Somewhere not yet explored"
+      },
+      "players": {
+        "empty": "Nothing has been found here yet.",
+        "legend": "Key"
       }
     },
     "refereeRolls": {

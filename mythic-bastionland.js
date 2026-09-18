@@ -4,6 +4,7 @@ import { awardGlory } from "./module/actions/glory.js";
 import { openMythsPanel } from "./module/apps/MythsPanel.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -11,7 +12,7 @@ import { addNewKnightButton, openKnightChooser } from "./module/apps/KnightChoos
 import { addNewNpcButton, openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
-import { openSitesPanel } from "./module/apps/SitesPanel.js";
+import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
@@ -68,7 +69,7 @@ const REFEREE_TOOLS = [
 	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
 	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
 	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel },
-	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.title", open: openSitesPanel },
+	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.newSite", open: newSite },
 	{ className: "bastionland-myths", icon: "fa-solid fa-dragon", label: "myths.title", open: openMythsPanel }
 ];
 
@@ -104,6 +105,12 @@ Hooks.once("init", () => {
 		types: ["structure"],
 		makeDefault: true,
 		label: "bastionland.sheet.title"
+	});
+	// A Site's Journal entry names this sheet in its flags, so it opens on its map. Other entries never do.
+	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntry, SYSTEM_ID, SiteSheet, {
+		makeDefault: false,
+		canBeDefault: false,
+		label: "bastionland.sites.sheet"
 	});
 
 	// Partials shared by the Knight, NPC and Structure sheets, and used inside chat cards,
@@ -203,7 +210,7 @@ Hooks.once("init", () => {
 		openSparkTables,
 		openHexLore,
 		openTimePanel,
-		openSitesPanel,
+		newSite,
 		openMythsPanel,
 		rollCityOmen,
 		awardGlory,
@@ -246,8 +253,10 @@ Hooks.on("renderActorDirectory", (_directory, element) => {
 	addNewNpcButton(element);
 });
 
-// The rulebook sits in the Journal directory, for GMs and for players the GM offers it to.
+// New Site sits in the Journal directory for GMs, and the rulebook for GMs and
+// for players the GM offers it to.
 Hooks.on("renderJournalDirectory", (_directory, element) => {
+	addNewSiteButton(element);
 	const canSetUp = canKeepRulebook() && !hasRulebook();
 	if (!canSetUp && !(hasRulebook() && canReadRulebook())) return;
 	addDirectoryButton(element, {

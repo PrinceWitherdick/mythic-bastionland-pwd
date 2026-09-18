@@ -16,7 +16,7 @@ import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
-import { POINT_KINDS, ROUTE_KINDS, SITE_PRESETS, SITE_PROBLEMS } from "../module/rules/sites.js";
+import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SITE_STEPS, STEP_ROLLS, STEP_STATES } from "../module/rules/sites.js";
 import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
@@ -100,10 +100,15 @@ describe("localization", () => {
 		]),
 		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
 		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),
-		...partsOf("sites.points", POINT_KINDS, ["label", "plural", "hint"]),
-		...partsOf("sites.routes", ROUTE_KINDS, ["plural", "hint", "to"]),
+		...partsOf("sites.modes", SITE_MODES, ["label", "hint", "help"]),
+		...partsOf("sites.points", POINT_KINDS, ["label", "plural", "hint", "placeholder"]),
+		...partsOf("sites.routes", ROUTE_KINDS, ["label", "plural", "hint", "to"]),
+		...partsOf("sites.entrances", ENTRANCE_KINDS, ["label", "plural", "hint", "placeholder"]),
+		...partsOf("sites.steps", SITE_STEPS, ["label", "hint"]),
+		...Object.keys(STEP_ROLLS).map((step) => `sites.steps.${step}.roll`),
+		...STEP_STATES.map((state) => `sites.steps.states.${state}`),
+		...Object.keys(STEP_ROLLS).map((group) => `sites.rules.${group}`),
 		...SITE_PRESETS.map(({ key }) => `sites.presets.${key}`),
-		...SITE_PROBLEMS.map((reason) => `sites.problems.${reason}`),
 		`bookArt.kinds.${SPARK_KIND}`,
 		`bookArt.kinds.${GOODS_KIND}`,
 		`bookArt.kinds.${CITY_QUEST_KIND}`,

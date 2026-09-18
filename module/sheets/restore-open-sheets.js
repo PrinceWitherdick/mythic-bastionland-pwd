@@ -18,9 +18,10 @@ const OPEN_SHEETS_SETTING = "openSheets";
 /**
  * Sheet classes to follow. ApplicationV2 fires render and close hooks for every
  * class a sheet inherits from, so these core classes cover the Knight and item
- * sheets as well as any sheet a module adds.
+ * sheets as well as any sheet a module adds. A Site's sheet is a Journal
+ * entry's, but not a JournalEntrySheet, so it's named on its own.
  */
-const WATCHED_SHEETS = Object.freeze(["ActorSheetV2", "ItemSheetV2", "JournalEntrySheet"]);
+const WATCHED_SHEETS = Object.freeze(["ActorSheetV2", "ItemSheetV2", "JournalEntrySheet", "SiteSheet"]);
 
 /** Wait this long after the last change before saving, so a burst of renders saves once. */
 const SAVE_DELAY_MS = 500;

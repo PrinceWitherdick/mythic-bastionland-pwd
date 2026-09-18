@@ -71,6 +71,17 @@ describe("saving open sheets", () => {
 		});
 	});
 
+	it("saves where a Site's map is, though its sheet isn't a JournalEntrySheet", () => {
+		const sheet = fakeSheet("JournalEntry.site");
+		fire("renderSiteSheet", sheet);
+		vi.advanceTimersByTime(500);
+		expect(savedHere()).toEqual({ "JournalEntry.site": { left: 100, top: 50, width: 860, height: 920, zIndex: 101 } });
+
+		fire("closeSiteSheet", sheet);
+		vi.advanceTimersByTime(500);
+		expect(savedHere()).toEqual({});
+	});
+
 	it("forgets a sheet once it closes", () => {
 		const sheet = fakeSheet("Actor.knight");
 		fire("renderActorSheetV2", sheet);

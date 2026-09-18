@@ -1,0 +1,39 @@
+<nav class="bastionland-page bastionland-site__toolbar" aria-label="{{localize 'bastionland.sites.toolbar'}}">
+	<div class="bastionland-site__modes" role="group" aria-label="{{localize 'bastionland.sites.modes.label'}}">
+		{{#each modes}}
+		<button type="button" class="bastionland-site__mode{{#if active}} is-active{{/if}}" data-action="mode" data-mode="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+			<i class="{{icon}}" inert></i><span>{{label}}</span>
+		</button>
+		{{/each}}
+	</div>
+
+	<div class="bastionland-site__tools">
+		{{#if drawing}}
+		<button type="button" data-action="rollRest" data-tooltip="{{localize 'bastionland.sites.rollRestHint'}}">
+			<i class="fa-solid fa-dice" inert></i><span>{{localize "bastionland.sites.rollRest"}}</span>
+		</button>
+		<button type="button" data-action="clear">
+			<i class="fa-solid fa-eraser" inert></i><span>{{localize "bastionland.sites.clear"}}</span>
+		</button>
+		{{else}}
+		<button type="button" data-action="revealAll">
+			<i class="fa-solid fa-eye" inert></i><span>{{localize "bastionland.sites.revealAll"}}</span>
+		</button>
+		<button type="button" data-action="hideAll">
+			<i class="fa-solid fa-eye-slash" inert></i><span>{{localize "bastionland.sites.hideAll"}}</span>
+		</button>
+		{{/if}}
+		<button type="button" data-action="showPlayers" data-tooltip="{{localize 'bastionland.sites.showPlayersHint'}}">
+			<i class="fa-solid fa-users" inert></i><span>{{localize "bastionland.sites.showPlayers"}}</span>
+		</button>
+	</div>
+
+	<div class="bastionland-site__history">
+		<button type="button" class="bastionland-icon" data-action="undo" data-tooltip="{{localize 'bastionland.sites.undo'}}" aria-label="{{localize 'bastionland.sites.undo'}}" {{disabled undoDisabled}}>
+			<i class="fa-solid fa-rotate-left" inert></i>
+		</button>
+		<button type="button" class="bastionland-icon" data-action="redo" data-tooltip="{{localize 'bastionland.sites.redo'}}" aria-label="{{localize 'bastionland.sites.redo'}}" {{disabled redoDisabled}}>
+			<i class="fa-solid fa-rotate-right" inert></i>
+		</button>
+	</div>
+</nav>
