@@ -19,6 +19,7 @@
 			</div>
 			<button type="button" class="bastionland-button" data-action="browseCharges" data-tooltip="{{localize 'bastionland.heraldry.charges.openHint'}}" aria-pressed="false"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.heraldry.charges.open"}}</button>
 			<button type="button" class="bastionland-button" data-action="randomize" data-tooltip="{{localize 'bastionland.heraldry.randomizeHint'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.heraldry.randomize"}}</button>
+			<button type="button" class="bastionland-button" data-action="editArms" data-tooltip="{{localize 'bastionland.heraldry.arms.editHint'}}" hidden><i class="fa-solid fa-pen-to-square" inert></i> {{localize "bastionland.heraldry.arms.edit"}}</button>
 		</div>
 
 		<div class="bastionland-heraldry-painter__side">
@@ -90,6 +91,79 @@
 				</ul>
 				{{/each}}
 				<p class="bastionland-heraldry-painter__credit">{{localize "bastionland.heraldry.charges.credit"}} <a href="https://heraldicart.org/" target="_blank" rel="noopener noreferrer">heraldicart.org</a></p>
+			</div>
+
+			<div class="bastionland-heraldry-painter__controls" data-arms-controls hidden>
+				<div class="bastionland-heraldry-painter__title-row">
+					<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.heraldry.arms.title"}}</h3>
+					<button type="button" data-action="doneArms" data-tooltip="{{localize 'bastionland.heraldry.arms.doneHint'}}"><i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.heraldry.arms.done"}}</button>
+				</div>
+				<p class="bastionland-heraldry-painter__hint">{{localize "bastionland.heraldry.arms.hint"}}</p>
+
+				<div class="bastionland-heraldry-painter__field">
+					<span>{{localize "bastionland.heraldry.arms.field"}}</span>
+					<button type="button" class="bastionland-icon" data-action="rollArms" data-roll="field" data-tooltip="{{localize 'bastionland.heraldry.arms.rollField'}}" aria-label="{{localize 'bastionland.heraldry.arms.rollField'}}"><i class="fa-solid fa-dice" inert></i></button>
+				</div>
+				<ul class="bastionland-heraldry-painter__divisions bastionland-heraldry-painter__divisions--compact">
+					<li>
+						<button type="button" class="bastionland-heraldry-painter__division" data-action="armsDivision" data-division="" data-tooltip="{{localize 'bastionland.heraldry.arms.plain'}}" aria-label="{{localize 'bastionland.heraldry.arms.plain'}}" aria-pressed="false">
+							<svg viewBox="-2 -6 140 170" aria-hidden="true"><path d="{{plain.shield}}" fill="{{plain.color}}" stroke="currentColor" stroke-width="5"/></svg>
+						</button>
+					</li>
+					{{#each divisions}}
+					<li>
+						<button type="button" class="bastionland-heraldry-painter__division" data-action="armsDivision" data-division="{{key}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="false">
+							<svg viewBox="-2 -6 140 170" aria-hidden="true">
+								<clipPath id="{{clipId}}-arms"><path d="{{shield}}"/></clipPath>
+								<g clip-path="url(#{{clipId}}-arms)">
+									{{#each parts}}<polygon points="{{points}}" fill="{{color}}"/>{{/each}}
+								</g>
+								<path d="{{shield}}" fill="none" stroke="currentColor" stroke-width="5"/>
+							</svg>
+						</button>
+					</li>
+					{{/each}}
+				</ul>
+
+				<div class="bastionland-heraldry-painter__field">
+					<span>{{localize "bastionland.heraldry.tincturesLabel"}}</span>
+					<button type="button" class="bastionland-icon" data-action="rollArms" data-roll="tinctures" data-tooltip="{{localize 'bastionland.heraldry.arms.rollTinctures'}}" aria-label="{{localize 'bastionland.heraldry.arms.rollTinctures'}}"><i class="fa-solid fa-dice" inert></i></button>
+				</div>
+				<div class="bastionland-heraldry-painter__arms-field" data-arms-field></div>
+
+				<div class="bastionland-heraldry-painter__field">
+					<span>{{localize "bastionland.heraldry.arms.charge"}}</span>
+					<button type="button" class="bastionland-icon" data-action="rollArms" data-roll="charge" data-tooltip="{{localize 'bastionland.heraldry.arms.rollCharge'}}" aria-label="{{localize 'bastionland.heraldry.arms.rollCharge'}}"><i class="fa-solid fa-dice" inert></i></button>
+				</div>
+				<div class="bastionland-heraldry-painter__controls" data-arms-charge hidden>
+					<div class="bastionland-heraldry-painter__arms-bearing">
+						<img class="bastionland-heraldry-painter__arms-charge" alt="" draggable="false" data-arms-charge-image>
+						<span class="bastionland-heraldry-painter__arms-name" data-arms-charge-name></span>
+						<button type="button" class="bastionland-icon" data-action="changeArmsCharge" data-tooltip="{{localize 'bastionland.heraldry.arms.changeCharge'}}" aria-label="{{localize 'bastionland.heraldry.arms.changeCharge'}}"><i class="fa-solid fa-dragon" inert></i></button>
+						<button type="button" class="bastionland-icon" data-action="removeArmsCharge" data-tooltip="{{localize 'bastionland.heraldry.arms.removeCharge'}}" aria-label="{{localize 'bastionland.heraldry.arms.removeCharge'}}"><i class="fa-solid fa-xmark" inert></i></button>
+					</div>
+					<div class="bastionland-heraldry-painter__arms-row" data-arms-part="charge">
+						<button type="button" class="bastionland-heraldry-painter__arms-counterchange" data-action="armsCounterchange" data-tooltip="{{localize 'bastionland.heraldry.arms.counterchange'}}" aria-label="{{localize 'bastionland.heraldry.arms.counterchange'}}" aria-pressed="false"><i class="fa-solid fa-circle-half-stroke" inert></i></button>
+					</div>
+					<label class="bastionland-heraldry-painter__field">
+						<span>{{localize "bastionland.heraldry.arms.size"}}</span>
+						<input type="range" min="{{imageSize.min}}" max="{{imageSize.max}}" step="1" value="{{imageSize.value}}" data-arms-size>
+					</label>
+					<div class="bastionland-heraldry-painter__row">
+						<button type="button" data-action="fitImage"><i class="fa-solid fa-compress" inert></i> {{localize "bastionland.heraldry.placing.fit"}}</button>
+						<button type="button" data-action="flipImage" aria-pressed="false"><i class="fa-solid fa-left-right" inert></i> {{localize "bastionland.heraldry.placing.flip"}}</button>
+					</div>
+				</div>
+				<button type="button" data-action="changeArmsCharge" data-arms-no-charge hidden><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.heraldry.charges.open"}}</button>
+
+				<template data-arms-swatches>
+					<ul class="bastionland-heraldry-painter__arms-swatches">
+						{{#each tinctures}}
+						<li><button type="button" class="bastionland-heraldry-painter__recent-swatch" data-action="armsColor" data-color="{{color}}" data-tooltip="{{label}} ({{hint}})" aria-label="{{label}}" aria-pressed="false" style="background: {{color}}"></button></li>
+						{{/each}}
+						<li><input type="color" class="bastionland-heraldry-painter__arms-picker" value="#000000" data-arms-picker data-tooltip="{{localize 'bastionland.heraldry.otherColor'}}" aria-label="{{localize 'bastionland.heraldry.otherColor'}}"></li>
+					</ul>
+				</template>
 			</div>
 
 			<div class="bastionland-heraldry-painter__controls" data-place-controls hidden>

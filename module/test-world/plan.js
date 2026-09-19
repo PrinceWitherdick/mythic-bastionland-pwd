@@ -7,7 +7,7 @@
  * the world. Pure, so it can be tested without Foundry.
  */
 import { CHARGE_SCALE, tintCharge } from "../rules/heraldry-charges.js";
-import { DIVISIONS, FESS_POINT, SHIELD_HEIGHT, SHIELD_PATH, SHIELD_WIDTH, tinctureColor } from "../rules/heraldry.js";
+import { FESS_POINT, SHIELD_HEIGHT, SHIELD_PATH, SHIELD_WIDTH, divisionOf, tinctureColor } from "../rules/heraldry.js";
 import { LAKE, terrainAt } from "../rules/realm.js";
 import { edgeKey, hexDistance, hexKey, neighbours, sameHex } from "../rules/realm-geometry.js";
 
@@ -33,7 +33,7 @@ export { armourKind, companionActorData, isSteed, propertyItems } from "../rules
  */
 export function heraldrySvg({ division = null, field, charge = null }, { width, height }) {
 	const scale = ([x, y]) => `${x * SHIELD_WIDTH},${y * SHIELD_HEIGHT}`;
-	const parts = DIVISIONS.find(({ key }) => key === division)?.parts ?? null;
+	const parts = divisionOf(division)?.parts ?? null;
 	const ground = parts
 		? parts.map(({ group, points }) => `<polygon points="${points.map(scale).join(" ")}" fill="${tinctureColor(field[group] ?? field[0])}"/>`).join("")
 		: `<rect width="${SHIELD_WIDTH}" height="${SHIELD_HEIGHT}" fill="${tinctureColor(field[0])}"/>`;

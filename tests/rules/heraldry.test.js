@@ -36,7 +36,20 @@ import {
 	randomArms,
 	readsWell,
 	touchingGroups,
-	METALS
+	METALS,
+	armsWithCharge,
+	chargeColors,
+	colorsReadWell,
+	counterchange,
+	editableArms,
+	heraldryStamp,
+	readArms,
+	rechargeArms,
+	redivideArms,
+	refieldArms,
+	retinctureArms,
+	tinctureColor,
+	tinctureOf
 } from "../../module/rules/heraldry.js";
 
 const CLEAR = [0, 0, 0, 0];
@@ -341,5 +354,149 @@ describe("randomArms", () => {
 		const metals = plain.filter(({ field }) => isMetal(field[0])).length / plain.length;
 		expect(metals).toBeGreaterThan(0.4);
 		expect(metals).toBeLessThan(0.6);
+	});
+});
+
+describe("arms kept editable", () => {
+	const seeded = (seed) => () => {
+		seed = (seed * 1664525 + 1013904223) % 2 ** 32;
+		return seed / 2 ** 32;
+	};
+	const isMetal = (color) => METALS.includes(tinctureOf(color));
+	const division = (key) => DIVISIONS.find((each) => each.key === key);
+	const groups = (key) => (key ? new Set(division(key).parts.map(({ group }) => group)).size : 1);
+	const [or, argent, gules, azure, vert, sable] = ["or", "argent", "gules", "azure", "vert", "sable"].map(tinctureColor);
+	const placement = { x: 210, y: 224, scale: 0.7 };
+	const charges = ["lion", "tower", "mullet"];
+	const plainArms = (color, charge = null) => ({ division: null, field: [color], charge });
+	const bearing = (color, counterchanged = false) => ({ key: "lion", color, counterchanged, placement, flip: false });
+
+	it("counterchanges a charge by swapping the field's colours, taking the clearest where there are more", () => {
+		expect(counterchange([or, gules])).toEqual([gules, or]);
+		const three = counterchange([gules, azure, or]);
+		expect(three[0]).toBe(or);
+		expect(three[1]).toBe(or);
+		expect([gules, azure]).toContain(three[2]);
+		// A field in one colour has no other to swap in.
+		expect(counterchange([or, or])).toEqual([or, or]);
+	});
+
+	it("keeps random arms' colours, and knows a counterchanged charge", () => {
+		const random = seeded(13);
+		for (let trial = 0; trial < 2000; trial++) {
+			const drawn = randomArms({ charges, random });
+			const arms = editableArms(drawn, placement);
+			expect(arms.division).toBe(drawn.division);
+			expect(arms.field).toEqual(drawn.field.map(tinctureColor));
+			if (!drawn.charge) {
+				expect(arms.charge).toBeNull();
+				continue;
+			}
+			expect(arms.charge).toMatchObject({ key: drawn.charge.key, placement, flip: false });
+			expect(chargeColors(arms)).toEqual(drawn.charge.tinctures.map(tinctureColor));
+		}
+	});
+
+	it("keeps each group's colour on another division, and draws new groups' to read well beside theirs", () => {
+		const random = seeded(17);
+		for (let trial = 0; trial < 200; trial++) {
+			const arms = redivideArms({ division: "perPale", field: [gules, azure], charge: null }, "tiercedInPale", random);
+			expect(arms.division).toBe("tiercedInPale");
+			expect(arms.field.slice(0, 2)).toEqual([gules, azure]);
+			const [, , third] = arms.field;
+			// The third part lies between two colours, so it's a metal.
+			expect(isMetal(third)).toBe(true);
+		}
+		// Between or and gules no tincture keeps the rule with both, or reads well beside both, so it takes the clearest beside both.
+		expect(redivideArms({ division: "perPale", field: [or, gules], charge: null }, "tiercedInPale").field[2]).toBe(sable);
+		// Beside one metal on a plain field made Per Fess, it's a colour.
+		const random2 = seeded(5);
+		for (let trial = 0; trial < 100; trial++) expect(isMetal(redivideArms(plainArms(argent), "perFess", random2).field[1])).toBe(false);
+	});
+
+	it("drops the extra colours on a plain field, where a counterchanged charge keeps its colour over the first part", () => {
+		const arms = redivideArms({ division: "perPale", field: [or, gules], charge: bearing(argent, true) }, null);
+		expect(arms).toEqual({ division: null, field: [or], charge: { ...bearing(gules), counterchanged: false } });
+		// A charge of one colour stays as it was.
+		expect(redivideArms({ division: "perPale", field: [or, gules], charge: bearing(sable) }, "quarterly").charge).toEqual(bearing(sable));
+	});
+
+	it("rolls new tinctures that keep the division and the charge's place", () => {
+		const random = seeded(19);
+		for (let trial = 0; trial < 500; trial++) {
+			const before = { division: "perBend", field: [or, gules], charge: { ...bearing(sable), flip: true } };
+			const arms = retinctureArms(before, random);
+			expect(arms.division).toBe("perBend");
+			expect(arms.field).toHaveLength(2);
+			expect(isMetal(arms.field[0])).not.toBe(isMetal(arms.field[1]));
+			expect(arms.charge).toMatchObject({ key: "lion", placement, flip: true });
+			chargeColors(arms).forEach((color, group) => expect(colorsReadWell(color, arms.field[group])).toBe(true));
+		}
+	});
+
+	it("rolls another field with as many colours as its division takes, keeping the charge", () => {
+		const random = seeded(23);
+		for (let trial = 0; trial < 500; trial++) {
+			const arms = refieldArms(plainArms(or, bearing(gules)), random);
+			expect(arms.field).toHaveLength(groups(arms.division));
+			expect(arms.charge).toMatchObject({ key: "lion", placement });
+		}
+	});
+
+	it("bears another charge in the old one's colours and place, or a first one that reads well", () => {
+		const moved = { ...bearing(sable, false), placement: { x: 50, y: 60, scale: 0.4 }, flip: true };
+		expect(armsWithCharge(plainArms(or, moved), "tower", placement).charge).toEqual({ ...moved, key: "tower" });
+		const random = seeded(29);
+		for (let trial = 0; trial < 200; trial++) {
+			const first = armsWithCharge(plainArms(or), "tower", placement, random).charge;
+			expect(first).toMatchObject({ key: "tower", placement, flip: false, counterchanged: false });
+			expect(isMetal(first.color)).toBe(false);
+			// A colour mixed by hand takes a tincture that shows on it.
+			const mixed = armsWithCharge(plainArms("#335577"), "tower", placement, random).charge;
+			expect(colorsReadWell(mixed.color, "#335577")).toBe(true);
+		}
+	});
+
+	it("rolls a charge other than the one borne, and leaves the arms be when there's no other", () => {
+		const random = seeded(31);
+		for (let trial = 0; trial < 100; trial++) expect(rechargeArms(plainArms(or, bearing(gules)), charges, placement, random).charge.key).not.toBe("lion");
+		const arms = plainArms(or, bearing(gules));
+		expect(rechargeArms(arms, ["lion"], placement)).toBe(arms);
+	});
+
+	it("stamps heraldry so arms saved with it can be told from arms saved with other heraldry", () => {
+		expect(heraldryStamp("worlds/w/heraldry/a.webp?v=1")).toBe(heraldryStamp("worlds/w/heraldry/a.webp?v=1"));
+		expect(heraldryStamp("worlds/w/heraldry/a.webp?v=1")).not.toBe(heraldryStamp("worlds/w/heraldry/a.webp?v=2"));
+	});
+
+	describe("readArms", () => {
+		const heraldry = "worlds/w/heraldry/Actor-abc.webp?v=5";
+		const saved = (arms) => ({ ...arms, stamp: heraldryStamp(heraldry) });
+		const arms = { division: "perPale", field: [or, gules], charge: bearing(argent, true) };
+
+		it("reads back arms saved with the heraldry", () => {
+			expect(readArms(saved(arms), heraldry, charges)).toEqual(arms);
+			expect(readArms(saved(plainArms(vert)), heraldry, charges)).toEqual(plainArms(vert));
+		});
+
+		it("refuses arms saved with other heraldry, or none", () => {
+			expect(readArms(saved(arms), "worlds/w/heraldry/Actor-abc.webp?v=6", charges)).toBeNull();
+			expect(readArms({ ...arms }, heraldry, charges)).toBeNull();
+			expect(readArms(saved(arms), "", charges)).toBeNull();
+			expect(readArms(null, heraldry, charges)).toBeNull();
+		});
+
+		it("refuses arms that don't fit together", () => {
+			expect(readArms(saved({ ...arms, field: [or] }), heraldry, charges)).toBeNull();
+			expect(readArms(saved({ ...arms, division: "perNothing" }), heraldry, charges)).toBeNull();
+			expect(readArms(saved({ ...arms, field: [or, "red"] }), heraldry, charges)).toBeNull();
+			expect(readArms(saved({ ...arms, charge: { ...arms.charge, key: "dragon" } }), heraldry, charges)).toBeNull();
+			expect(readArms(saved({ ...arms, charge: { ...arms.charge, placement: { x: 1, y: 2 } } }), heraldry, charges)).toBeNull();
+			expect(readArms(saved({ ...arms, charge: { ...arms.charge, color: azure.toUpperCase() } }), heraldry, charges)).toBeNull();
+		});
+
+		it("never counterchanges a charge on a plain field", () => {
+			expect(readArms(saved(plainArms(or, bearing(gules, true))), heraldry, charges).charge.counterchanged).toBe(false);
+		});
 	});
 });

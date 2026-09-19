@@ -792,6 +792,130 @@
 	font-style: italic;
 }
 
+/* Arms being made: every division a size smaller, to leave room for the rest. */
+.bastionland-heraldry-painter__divisions--compact {
+	grid-template-columns: repeat(auto-fill, minmax(2.1rem, 1fr));
+	gap: 0.2rem;
+}
+
+.bastionland-heraldry-painter__arms-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+/* A part of the arms, or the charge, then the tinctures to colour it in. */
+.bastionland-heraldry-painter__arms-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.4rem;
+}
+
+.bastionland-heraldry-painter__arms-part {
+	flex: none;
+	width: 1.3rem;
+	height: auto;
+	color: var(--bastionland-ink);
+}
+
+.bastionland-heraldry-painter__arms-part [data-part] {
+	stroke: none;
+}
+
+/* Every tincture and the picker on one line, shrinking a little rather than wrapping where the side is narrow. */
+.bastionland-heraldry-painter__arms-swatches {
+	display: grid;
+	flex: 1;
+	grid-template-columns: repeat(11, minmax(0, 1.2rem));
+	gap: 0.2rem;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-page .bastionland-heraldry-painter__arms-swatches .bastionland-heraldry-painter__recent-swatch {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+}
+
+/* Any other colour, dashed round so it reads as a choice rather than a tincture. */
+.bastionland-heraldry-painter__arms-swatches input[type="color"] {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+	padding: 0;
+	border: 1px dashed var(--bastionland-ink);
+	border-radius: 50%;
+	background: none;
+	cursor: pointer;
+}
+
+.bastionland-heraldry-painter__arms-swatches input[type="color"]::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.bastionland-heraldry-painter__arms-swatches input[type="color"]::-webkit-color-swatch {
+	border: none;
+	border-radius: 50%;
+}
+
+.bastionland-heraldry-painter__arms-swatches input[type="color"].is-active {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 2px;
+}
+
+.bastionland-page .bastionland-heraldry-painter__arms-counterchange {
+	flex: none;
+	width: 1.3rem;
+	height: 1.3rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 1.5px solid transparent;
+	border-radius: 50%;
+	font-size: 0.95rem;
+	line-height: 1;
+}
+
+.bastionland-page .bastionland-heraldry-painter__arms-counterchange.is-active {
+	border-color: var(--bastionland-ink);
+	background: color-mix(in srgb, var(--bastionland-verdigris) 20%, transparent);
+}
+
+.bastionland-page .bastionland-heraldry-painter__row button.is-active {
+	border-color: var(--bastionland-ink);
+	background: color-mix(in srgb, var(--bastionland-verdigris) 20%, transparent);
+}
+
+.bastionland-heraldry-painter__arms-bearing {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-heraldry-painter__arms-charge {
+	flex: none;
+	width: 2.4rem;
+	height: 2.4rem;
+	padding: 0.15rem;
+	border: none;
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+	object-fit: contain;
+}
+
+.bastionland-heraldry-painter__arms-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------- */
 /* Toolbar                                                          */
 /* ---------------------------------------------------------------- */

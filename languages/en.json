@@ -171,7 +171,25 @@
         }
       },
       "randomize": "Randomize",
-      "randomizeHint": "Paint random arms over the whole shield: a field, plain or divided, and perhaps a charge, in tinctures that read well against each other. Undo brings the last design back.",
+      "randomizeHint": "Roll random arms over the whole shield: a field, plain or divided, and perhaps a charge, in tinctures that read well against each other. Change any part of them afterwards, or roll it again. Undo brings the last design back.",
+      "arms": {
+        "title": "Arms",
+        "hint": "Change any part, or roll it again with its die. Drag the charge to move it, and scroll over it to resize it.",
+        "done": "Paint by hand",
+        "doneHint": "Back to the paints, to paint over the arms by hand. Until you do, Edit arms takes them up again.",
+        "edit": "Edit arms",
+        "editHint": "Take these arms up again, to change their field, tinctures or charge.",
+        "field": "Field",
+        "plain": "Plain",
+        "rollField": "Roll another field, divided another way and in new tinctures",
+        "rollTinctures": "Roll new tinctures for the field and charge",
+        "charge": "Charge",
+        "rollCharge": "Roll another charge, keeping its colours and place",
+        "changeCharge": "Pick another charge",
+        "removeCharge": "Take the charge off",
+        "counterchange": "Counterchange: the charge takes the field’s colours swapped about, part by part",
+        "size": "Charge size"
+      },
       "save": "Save",
       "unreadable": "That picture couldn’t be loaded onto the shield.",
       "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the GM to let you upload files."

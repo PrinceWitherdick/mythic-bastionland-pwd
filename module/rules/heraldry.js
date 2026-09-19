@@ -84,6 +84,12 @@ export const TINCTURES = Object.freeze([
  */
 export const tinctureColor = (key) => TINCTURES.find((tincture) => tincture.key === key).color;
 
+/**
+ * @param {string} color Such as "#b0261e".
+ * @returns {string|null} The tincture of that colour, or null for a colour mixed by hand.
+ */
+export const tinctureOf = (color) => TINCTURES.find((tincture) => tincture.color === color)?.key ?? null;
+
 /** How many colours a user mixed, or took from a painting, are kept to use again. */
 export const RECENT_COLORS_LIMIT = 10;
 
@@ -483,11 +489,18 @@ export const READABLE_CONTRAST = Math.min(...METALS.flatMap((metal) => RANDOM_TI
 	.map((key) => contrast(tinctureColor(metal), tinctureColor(key)))));
 
 /**
+ * @param {string} a A colour, such as "#b0261e".
+ * @param {string} b Another.
+ * @returns {boolean} Whether each would show clearly on the other.
+ */
+export const colorsReadWell = (a, b) => contrast(a, b) >= READABLE_CONTRAST;
+
+/**
  * @param {string} a A tincture's key.
  * @param {string} b Another.
  * @returns {boolean} Whether each would show clearly on the other.
  */
-export const readsWell = (a, b) => contrast(tinctureColor(a), tinctureColor(b)) >= READABLE_CONTRAST;
+export const readsWell = (a, b) => colorsReadWell(tinctureColor(a), tinctureColor(b));
 
 /** How often random arms are divided rather than plain, how often a plain field is a metal, and how often a divided field still bears a charge. */
 export const RANDOM_ARMS = Object.freeze({ divided: 0.65, metalField: 0.5, chargeOnDivided: 0.6 });
@@ -519,6 +532,18 @@ export function touchingGroups(division) {
 }
 
 /**
+ * @param {{parts: {group: number}[]}} division
+ * @returns {number} How many tinctures the division's field takes.
+ */
+const groupCount = (division) => new Set(division.parts.map(({ group }) => group)).size;
+
+/**
+ * @param {string|null} key
+ * @returns {typeof DIVISIONS[number]|null} The division, or null for a plain field.
+ */
+export const divisionOf = (key) => DIVISIONS.find((division) => division.key === key) ?? null;
+
+/**
  * @param {number} groups
  * @returns {string[][]} Every way to give that many groups a different tincture each.
  */
@@ -537,9 +562,8 @@ function fieldTinctures(groups) {
  * @returns {string[]} A tincture's key for each group, in group order.
  */
 function divisionTinctures(division, random) {
-	const groups = new Set(division.parts.map(({ group }) => group)).size;
 	const touching = touchingGroups(division);
-	const all = fieldTinctures(groups);
+	const all = fieldTinctures(groupCount(division));
 	const keeping = (test) => all.filter((field) => touching.every(([a, b]) => test(field[a], field[b])));
 	const ruled = keeping((a, b) => isMetal(a) !== isMetal(b));
 	return pick(ruled.length ? ruled : keeping(readsWell), random);
@@ -549,8 +573,7 @@ function divisionTinctures(division, random) {
  * A charge's tincture over each group of the field. A charge on a plain field
  * is of the other kind, metal on colour or colour on metal. Over a divided
  * field it takes one tincture that reads well against every part, when there
- * is one, or is counterchanged: over each part it takes a tincture of the
- * field that reads well against that part, as the halves of a field swap.
+ * is one, or is counterchanged.
  * @param {string[]} field The field's tinctures, in group order.
  * @param {() => number} random
  * @returns {string[]} A tincture's key for each group.
@@ -562,7 +585,20 @@ function chargeTinctures(field, random) {
 		const tincture = pick(plain, random);
 		return field.map(() => tincture);
 	}
-	return field.map((ground) => pick(field.filter((key) => readsWell(key, ground)), random));
+	return counterchange(field.map(tinctureColor)).map(tinctureOf);
+}
+
+/**
+ * A charge counterchanged over a divided field: over each part it takes
+ * whichever of the field's other colours shows most clearly there, as the
+ * halves of the field swap.
+ * @param {string[]} field Colours, in group order.
+ * @returns {string[]} The charge's colour over each group.
+ */
+export function counterchange(field) {
+	return field.map((ground) => field
+		.filter((color) => color !== ground)
+		.reduce((best, color) => (best === ground || contrast(color, ground) > contrast(best, ground) ? color : best), ground));
 }
 
 /**
@@ -589,4 +625,213 @@ export function randomArms({ charges = [], random = Math.random } = {}) {
 	const bearsCharge = charges.length && (!division || random() < RANDOM_ARMS.chargeOnDivided);
 	const charge = bearsCharge ? { key: pick(charges, random), tinctures: chargeTinctures(field, random) } : null;
 	return { division: division?.key ?? null, field, charge };
+}
+
+/**
+ * Arms the painter keeps editable until something is painted over them, and
+ * keeps on the Knight beside the heraldry they were saved as.
+ * @typedef {object} Arms
+ * @property {string|null} division A division's key, or null for a plain field.
+ * @property {string[]} field A colour for each group of the field, in group order, such as "#b0261e".
+ * @property {ArmsCharge|null} charge
+ */
+
+/**
+ * @typedef {object} ArmsCharge
+ * @property {string} key
+ * @property {string} color Its colour while it isn't counterchanged.
+ * @property {boolean} counterchanged Whether it takes the field's colours swapped about instead.
+ * @property {Placement} placement
+ * @property {boolean} flip
+ */
+
+/**
+ * @param {string[]} tinctures A charge's tincture over each group, as random arms give them.
+ * @returns {{color: string, counterchanged: boolean}}
+ */
+const bearing = (tinctures) => ({ color: tinctureColor(tinctures[0]), counterchanged: new Set(tinctures).size > 1 });
+
+/**
+ * Random arms as the painter edits them.
+ * @param {ReturnType<typeof randomArms>} arms
+ * @param {Placement} placement Where the charge goes.
+ * @returns {Arms}
+ */
+export function editableArms({ division, field, charge }, placement) {
+	return {
+		division,
+		field: field.map(tinctureColor),
+		charge: charge ? { key: charge.key, ...bearing(charge.tinctures), placement, flip: false } : null
+	};
+}
+
+/**
+ * @param {Arms} arms Arms bearing a charge.
+ * @returns {string[]} The charge's colour over each group of the field.
+ */
+export function chargeColors({ field, charge }) {
+	return charge.counterchanged && field.length > 1 ? counterchange(field) : field.map(() => charge.color);
+}
+
+/**
+ * A colour for a part of the field that hasn't one: a tincture not on the
+ * field yet, keeping the rule of tincture against the parts beside it where
+ * they're all tinctures, or else reading well against them. Beside a metal and
+ * a colour at once, where none may do either, it takes the tincture that shows
+ * most clearly beside the one it shows least against.
+ * @param {string[]} beside The colours of the parts it touches.
+ * @param {string[]} used The colours on the field already.
+ * @param {() => number} random
+ * @returns {string}
+ */
+function newPartColor(beside, used, random) {
+	const unused = RANDOM_TINCTURES.filter((key) => !used.includes(tinctureColor(key)));
+	const kinds = beside.map(tinctureOf);
+	const ruled = kinds.every(Boolean) ? unused.filter((key) => kinds.every((other) => isMetal(other) !== isMetal(key))) : [];
+	const readable = unused.filter((key) => beside.every((color) => colorsReadWell(tinctureColor(key), color)));
+	const choices = [ruled, readable].find((keys) => keys.length);
+	if (choices) return tinctureColor(pick(choices, random));
+	const pool = unused.length ? unused : RANDOM_TINCTURES;
+	const dimmest = (key) => Math.min(...beside.map((color) => contrast(tinctureColor(key), color)));
+	return tinctureColor(pool.reduce((best, key) => (dimmest(key) > dimmest(best) ? key : best)));
+}
+
+/**
+ * The arms on another division, or on a plain field. Each group keeps its
+ * colour, and a group the field hadn't got draws one that reads well beside
+ * the parts it touches. A counterchanged charge on a field made plain keeps
+ * the colour it had over the first part.
+ * @param {Arms} arms
+ * @param {string|null} key The division's key, or null for a plain field.
+ * @param {() => number} [random]
+ * @returns {Arms}
+ */
+export function redivideArms(arms, key, random = Math.random) {
+	const division = divisionOf(key);
+	const count = division ? groupCount(division) : 1;
+	const touching = division ? touchingGroups(division) : [];
+	const field = arms.field.slice(0, count);
+	while (field.length < count) {
+		const group = field.length;
+		const beside = touching
+			.filter((pair) => pair.includes(group))
+			.map(([a, b]) => field[a === group ? b : a])
+			.filter(Boolean);
+		field.push(newPartColor(beside, field, random));
+	}
+	let { charge } = arms;
+	if (charge?.counterchanged && count === 1) charge = { ...charge, color: chargeColors(arms)[0], counterchanged: false };
+	return { ...arms, division: division?.key ?? null, field, charge };
+}
+
+/**
+ * A charge's colours drawn for a field, as random arms bear one. A field in
+ * a colour mixed by hand, or a stain, takes a tincture that reads well on all
+ * of it, or is counterchanged when none does.
+ * @param {string[]} field Colours, in group order.
+ * @param {() => number} random
+ * @returns {{color: string, counterchanged: boolean}}
+ */
+function drawBearing(field, random) {
+	const kinds = field.map(tinctureOf);
+	if (kinds.every((key) => RANDOM_TINCTURES.includes(key))) return bearing(chargeTinctures(kinds, random));
+	const readable = RANDOM_TINCTURES.filter((key) => field.every((color) => colorsReadWell(tinctureColor(key), color)));
+	if (readable.length) return { color: tinctureColor(pick(readable, random)), counterchanged: false };
+	if (field.length > 1) return { color: counterchange(field)[0], counterchanged: true };
+	const clearest = RANDOM_TINCTURES.map(tinctureColor).reduce((best, color) => (contrast(color, field[0]) > contrast(best, field[0]) ? color : best));
+	return { color: clearest, counterchanged: false };
+}
+
+/**
+ * New tinctures for arms, keeping their division and charge: the field's
+ * drawn as random arms' are, and the charge's to read well on it.
+ * @param {Arms} arms
+ * @param {() => number} [random]
+ * @returns {Arms}
+ */
+export function retinctureArms(arms, random = Math.random) {
+	const division = divisionOf(arms.division);
+	const field = division ? divisionTinctures(division, random) : [plainField(random)];
+	const charge = arms.charge && { ...arms.charge, ...bearing(chargeTinctures(field, random)) };
+	return { ...arms, field: field.map(tinctureColor), charge };
+}
+
+/**
+ * Another field for arms, plain or divided and in new tinctures, keeping the charge where it is.
+ * @param {Arms} arms
+ * @param {() => number} [random]
+ * @returns {Arms}
+ */
+export function refieldArms(arms, random = Math.random) {
+	const division = random() < RANDOM_ARMS.divided ? pick(DIVISIONS, random) : null;
+	return retinctureArms({ ...arms, division: division?.key ?? null }, random);
+}
+
+/**
+ * Arms bearing a given charge: in the colours, place and facing of the one
+ * they bore, or, for a first charge, in colours that read well on the field.
+ * @param {Arms} arms
+ * @param {string} key The charge's key.
+ * @param {Placement} placement Where a first charge goes.
+ * @param {() => number} [random]
+ * @returns {Arms}
+ */
+export function armsWithCharge(arms, key, placement, random = Math.random) {
+	const charge = arms.charge ? { ...arms.charge, key } : { key, ...drawBearing(arms.field, random), placement, flip: false };
+	return { ...arms, charge };
+}
+
+/**
+ * Arms bearing another charge, drawn at random.
+ * @param {Arms} arms
+ * @param {string[]} charges Keys of the charges that may be drawn.
+ * @param {Placement} placement Where a first charge goes.
+ * @param {() => number} [random]
+ * @returns {Arms}
+ */
+export function rechargeArms(arms, charges, placement, random = Math.random) {
+	const others = charges.filter((key) => key !== arms.charge?.key);
+	return others.length ? armsWithCharge(arms, pick(others, random), placement, random) : arms;
+}
+
+/**
+ * A short fingerprint of a Knight's heraldry as saved, kept with their arms,
+ * so arms kept from an older painting aren't offered for a newer one.
+ * @param {string} heraldry The file's path, or a data URL.
+ * @returns {string}
+ */
+export function heraldryStamp(heraldry) {
+	// FNV-1a, which is quick over a long data URL.
+	let hash = 0x811c9dc5;
+	for (let index = 0; index < heraldry.length; index++) {
+		hash ^= heraldry.charCodeAt(index);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return `${heraldry.length.toString(36)}-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+const isColor = (value) => typeof value === "string" && HEX_COLOR.test(value);
+
+/**
+ * Arms as kept on a Knight, checked.
+ * @param {unknown} saved
+ * @param {string} heraldry The Knight's heraldry as saved.
+ * @param {string[]} charges Keys of the charges there are.
+ * @returns {Arms|null} The arms, or null when they aren't arms or were saved with other heraldry.
+ */
+export function readArms(saved, heraldry, charges) {
+	if (!saved || typeof saved !== "object" || !heraldry || saved.stamp !== heraldryStamp(heraldry)) return null;
+	const { division = null, field, charge = null } = saved;
+	if (division !== null && !divisionOf(division)) return null;
+	const count = division ? groupCount(divisionOf(division)) : 1;
+	if (!Array.isArray(field) || field.length !== count || !field.every(isColor)) return null;
+	if (charge === null) return { division, field: [...field], charge: null };
+	const { key, color, counterchanged, placement, flip } = charge;
+	const { x, y, scale } = placement ?? {};
+	if (!charges.includes(key) || !isColor(color) || ![x, y, scale].every(Number.isFinite) || !(scale > 0)) return null;
+	return {
+		division,
+		field: [...field],
+		charge: { key, color, counterchanged: Boolean(counterchanged) && count > 1, placement: { x, y, scale }, flip: Boolean(flip) }
+	};
 }
