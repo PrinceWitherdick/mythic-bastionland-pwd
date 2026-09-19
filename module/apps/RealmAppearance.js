@@ -1,25 +1,22 @@
+import { loadOwnSkins, removeOwnSkin } from "../actions/own-skins.js";
 import { REALM_LOOK_HOOK, endRealmLookPreview, getRealmLook, isRealmScene, previewRealmLook, setRealmLook } from "../actions/realm.js";
-import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
-import { ART_ROOT } from "../rules/book-art.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../rules/realm.js";
 import { realmTextures } from "../rules/realm-documents.js";
 import {
-	PICTURE_NAME,
-	REALM_CUSTOM_DIR,
 	REALM_PALETTES,
-	REALM_PICTURES,
 	REALM_SKINS,
-	TERRAIN_FITS,
-	customPictureName,
-	matchCustomFiles,
 	normaliseRealmLook,
+	ownSkinLook,
+	ownSkinOf,
 	paletteSwatches,
-	realmSetDir
+	realmSetDir,
+	withOwnSkin,
+	withoutOwnSkin
 } from "../rules/realm-skins.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { ArtPreviewMixin } from "./art-preview.js";
-import { chooseLocalFiles, singletonOpener } from "./ui.js";
+import { OwnSkinMaker, realmPictureGroups } from "./OwnSkinMaker.js";
+import { confirmDialog, singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -32,8 +29,8 @@ const viewedRealm = () => (isRealmScene(canvas?.scene) ? canvas.scene : null);
 const sameLook = (a, b) => JSON.stringify(normaliseRealmLook(a)) === JSON.stringify(normaliseRealmLook(b));
 
 /**
- * The GM's window for how a Realm Scene looks: a skin, a colour set, and
- * pictures of their own. Choices are tried out in the preview, and reach the
+ * The GM's window for how a Realm Scene looks: a skin, shipped or made of
+ * their own pictures, and a colour set. Choices are tried out in the preview, and reach the
  * Realm Scene being viewed when applied. With no Realm Scene in view, they
  * only change the look new Realms start with.
  */
@@ -41,17 +38,16 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-realm-appearance",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-realm-appearance-window"],
-		tag: "form",
+		tag: "div",
 		position: { width: 680, height: "auto" },
 		window: { title: "bastionland.realm.look.title", icon: "fa-solid fa-palette", resizable: true },
-		form: { handler: RealmAppearance.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			pickSkin: RealmAppearance.#onPickSkin,
+			pickOwnSkin: RealmAppearance.#onPickOwnSkin,
+			makeSkin: RealmAppearance.#onMakeSkin,
+			editOwnSkin: RealmAppearance.#onEditOwnSkin,
+			removeOwnSkin: RealmAppearance.#onRemoveOwnSkin,
 			pickPalette: RealmAppearance.#onPickPalette,
-			upload: RealmAppearance.#onUpload,
-			chooseFolder: RealmAppearance.#onChooseFolder,
-			rescan: RealmAppearance.#onRescan,
-			clearCustom: RealmAppearance.#onClearCustom,
 			apply: RealmAppearance.#onApply
 		}
 	};
@@ -67,6 +63,9 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 
 	/** The look being tried out. */
 	#draft = getRealmLook(this.#scene);
+
+	/** @type {import("../rules/realm-skins.js").OwnSkin[]} The skins made of GMs' own pictures, on this server. */
+	#ownSkins = [];
 
 	/** @type {number|null} */
 	#hook = null;
@@ -87,60 +86,42 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** @override */
 	async _prepareContext(options) {
 		// Before the window is drawn again from scratch, so it draws the right Realm.
-		if (options.isFirstRender) this.#takeUpViewedRealm();
+		if (options.isFirstRender) {
+			this.#takeUpViewedRealm();
+			this.#ownSkins = await loadOwnSkins();
+		}
 		const context = await super._prepareContext(options);
 		const draft = this.#draft;
 		const textures = realmTextures(draft);
-		const { files } = draft.custom;
-		const picture = (name, src, label) => ({ src, label, own: Boolean(files[name]) });
-		const found = REALM_PICTURES.filter((name) => files[name]);
+		const own = ownSkinOf(draft, this.#ownSkins);
+		const inOwnPictures = Object.keys(draft.custom.files).length > 0;
+		const samples = (skin, files = {}) => SAMPLES.map((name) => files[name] ?? `${realmSetDir(skin, draft.palette)}/${name}.svg`);
 
 		return Object.assign(context, {
 			skins: REALM_SKINS.map((key) => ({
 				key,
 				label: t(`realm.look.skins.${key}.label`),
 				hint: t(`realm.look.skins.${key}.hint`),
-				active: key === draft.skin,
-				samples: SAMPLES.map((name) => `${realmSetDir(key, draft.palette)}/${name}.svg`)
+				active: key === draft.skin && !inOwnPictures,
+				samples: samples(key)
 			})),
+			ownSkins: this.#ownSkins.map((skin, index) => ({
+				index,
+				label: skin.name,
+				hint: t("realm.look.own.hint", { base: t(`realm.look.skins.${skin.base}.label`) }),
+				active: skin === own,
+				samples: samples(skin.base, skin.files)
+			})),
+			// A look with pictures of a GM's own from before skins could be made of them, or from a skin since removed.
+			looseOwnPictures: inOwnPictures && !own,
 			palettes: REALM_PALETTES.map(({ key }) => ({
 				key,
 				label: t(`realm.look.palettes.${key}`),
 				active: key === draft.palette,
 				swatches: paletteSwatches(key)
 			})),
-			custom: {
-				folder: draft.custom.folder,
-				fits: TERRAIN_FITS.map((value) => ({ value, label: t(`realm.look.fits.${value}`), selected: value === draft.custom.terrainFit })),
-				count: t("realm.look.found", { found: found.length, total: REALM_PICTURES.length }),
-				any: found.length > 0,
-				dir: REALM_CUSTOM_DIR
-			},
-			canUpload: game.user.can("FILES_UPLOAD"),
-			canBrowse: game.user.can("FILES_BROWSE"),
 			paper: textures.colours.paper,
-			groups: [
-				{
-					label: t("realm.panel.terrain"),
-					hexes: true,
-					pictures: TERRAIN.map((key, index) => picture(PICTURE_NAME.terrain(index + 1), textures.terrain[index + 1].src, `${index + 1}. ${t(`realm.terrain.${key}`)}`))
-				},
-				{
-					label: t("realm.look.features"),
-					pictures: [
-						...HOLDING_STYLES.map((style) => picture(PICTURE_NAME.holding(style), textures.holding[style].src, t(`realm.holdings.${style}`))),
-						picture(PICTURE_NAME.seat, textures.seat.src, t("realm.key.seat")),
-						...LANDMARK_TYPES.map((type) => picture(PICTURE_NAME.landmark(type), textures.landmark[type].src, t(`realm.landmarks.${type}`))),
-						...Array.from({ length: MYTH_COUNT }, (_, index) => picture(PICTURE_NAME.myth(index + 1), textures.myth[index + 1].src, t("realm.readout.myth", { number: index + 1 })))
-					]
-				},
-				{
-					label: t("realm.look.river"),
-					hexes: true,
-					pictures: RIVER_SHAPES.map((shape) => picture(PICTURE_NAME.river(shape), textures.river[shape].src, t(`realm.look.rivers.${shape}`)))
-				}
-			],
-			names: REALM_PICTURES.map((name) => ({ name, found: Boolean(files[name]) })),
+			groups: realmPictureGroups(draft, textures),
 			target: this.#scene ? t("realm.look.target.scene", { name: this.#scene.name }) : t("realm.look.target.none"),
 			changed: !sameLook(draft, getRealmLook(this.#scene))
 		});
@@ -167,8 +148,6 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** @override */
 	_onRender(context, options) {
 		super._onRender(context, options);
-		const input = this.element.querySelector("input[type=file]");
-		input?.addEventListener("change", () => this.#upload([...(input.files ?? [])]));
 		// What's being tried out shows on the Realm Scene being viewed, for this GM only.
 		previewRealmLook(this.#draft);
 	}
@@ -192,39 +171,29 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	}
 
 	/**
-	 * Save a GM's own pictures into the world's folder for them, then use that folder.
-	 * @param {File[]} chosen
+	 * @param {HTMLElement} target
+	 * @returns {import("../rules/realm-skins.js").OwnSkin|undefined}
 	 */
-	async #upload(chosen) {
-		const pictures = chosen.filter((file) => customPictureName(file.name));
-		const ignored = chosen.length - pictures.length;
-		if (ignored) ui.notifications.warn(t("realm.look.ignored", { count: ignored }));
-		if (!pictures.length) return;
-
-		await ensureDirectories([ART_ROOT, REALM_CUSTOM_DIR]);
-		const saved = await Promise.all(pictures.map((file) => uploadFile(REALM_CUSTOM_DIR, file)));
-		const failed = saved.filter((path) => !path).length;
-		if (failed) ui.notifications.error(t("realm.look.uploadFailed", { count: failed }));
-		await this.#scan(REALM_CUSTOM_DIR);
+	#ownSkinAt(target) {
+		return this.#ownSkins[Number(target.closest("[data-own-skin]")?.dataset.ownSkin)];
 	}
 
 	/**
-	 * Use the pictures in a folder, matched by their names.
-	 * @param {string} folder
+	 * Open the window for making a skin, or changing one. Once saved, it's
+	 * listed here and becomes the skin being tried out.
+	 * @param {import("../rules/realm-skins.js").OwnSkin|null} skin
 	 */
-	async #scan(folder) {
-		let files;
-		try {
-			({ files = [] } = await filePicker().browse("data", folder));
-		} catch (error) {
-			console.error(error);
-			ui.notifications.error(t("realm.look.browseFailed", { folder }));
-			return;
-		}
-		const matched = matchCustomFiles(files);
-		const count = Object.keys(matched).length;
-		ui.notifications[count ? "info" : "warn"](t("realm.look.scanned", { count, total: REALM_PICTURES.length, folder }));
-		this.#change({ custom: { ...this.#draft.custom, folder, files: matched } });
+	#openMaker(skin = null) {
+		new OwnSkinMaker({
+			palette: this.#draft.palette,
+			base: this.#draft.skin,
+			skin,
+			onSaved: (saved) => {
+				// Put in the list as saved, rather than reading every skin from the server again.
+				this.#ownSkins = withOwnSkin(this.#ownSkins, saved);
+				this.#change(ownSkinLook(saved, this.#draft.palette));
+			}
+		}).render({ force: true });
 	}
 
 	/* -------------------------------------------- */
@@ -232,47 +201,52 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/* -------------------------------------------- */
 
 	/** @this {RealmAppearance} */
-	static #onChangeForm(_event, _form, formData) {
-		const { terrainFit } = formData.object;
-		this.#change({ custom: { ...this.#draft.custom, terrainFit } });
+	static #onPickSkin(_event, target) {
+		this.#change({ skin: target.dataset.skin, custom: { ...this.#draft.custom, folder: "", files: {} } });
 	}
 
 	/** @this {RealmAppearance} */
-	static #onPickSkin(_event, target) {
-		this.#change({ skin: target.dataset.skin });
+	static #onPickOwnSkin(_event, target) {
+		const skin = this.#ownSkinAt(target);
+		if (skin) this.#change(ownSkinLook(skin, this.#draft.palette));
+	}
+
+	/** @this {RealmAppearance} */
+	static #onMakeSkin() {
+		this.#openMaker();
+	}
+
+	/** @this {RealmAppearance} */
+	static #onEditOwnSkin(_event, target) {
+		const skin = this.#ownSkinAt(target);
+		if (skin) this.#openMaker(skin);
+	}
+
+	/**
+	 * Take a skin off the list in every world. Realms drawn with it keep their pictures.
+	 * @this {RealmAppearance}
+	 */
+	static async #onRemoveOwnSkin(_event, target) {
+		const skin = this.#ownSkinAt(target);
+		if (!skin) return;
+		const name = foundry.utils.escapeHTML(skin.name);
+		const confirmed = await confirmDialog({
+			title: t("realm.look.own.removeTitle"),
+			icon: "fa-solid fa-trash",
+			message: t("realm.look.own.removeConfirm", { name })
+		});
+		if (!confirmed) return;
+		if (!await removeOwnSkin(skin)) {
+			ui.notifications.error(t("realm.look.own.removeFailed", { name: skin.name }));
+			return;
+		}
+		this.#ownSkins = withoutOwnSkin(this.#ownSkins, skin);
+		this.render();
 	}
 
 	/** @this {RealmAppearance} */
 	static #onPickPalette(_event, target) {
 		this.#change({ palette: target.dataset.palette });
-	}
-
-	/** @this {RealmAppearance} */
-	static #onUpload() {
-		chooseLocalFiles(this.element);
-	}
-
-	/** @this {RealmAppearance} */
-	static #onChooseFolder() {
-		const FilePicker = filePicker();
-		new FilePicker({
-			type: "folder",
-			current: this.#draft.custom.folder || REALM_CUSTOM_DIR,
-			callback: (path) => path && this.#scan(path.replace(/\/$/, ""))
-		}).render({ force: true });
-	}
-
-	/** @this {RealmAppearance} */
-	static #onRescan() {
-		if (this.#draft.custom.folder) this.#scan(this.#draft.custom.folder);
-	}
-
-	/**
-	 * Stop using the GM's own pictures. The files stay where they are.
-	 * @this {RealmAppearance}
-	 */
-	static #onClearCustom() {
-		this.#change({ custom: { ...this.#draft.custom, folder: "", files: {} } });
 	}
 
 	/** @this {RealmAppearance} */

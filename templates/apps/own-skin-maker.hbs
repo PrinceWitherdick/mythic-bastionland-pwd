@@ -1,0 +1,81 @@
+<div class="bastionland-page bastionland-realm-appearance">
+	<p class="hint">{{localize "bastionland.realm.look.own.intro"}}</p>
+
+	<section class="bastionland-realm-appearance__section">
+		<div class="form-group">
+			<label for="{{partId}}-name">{{localize "bastionland.realm.look.own.name"}}</label>
+			<div class="form-fields">
+				<input type="text" id="{{partId}}-name" name="name" value="{{name}}" placeholder="{{localize "bastionland.realm.look.own.namePlaceholder"}}" maxlength="60">
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="{{partId}}-base">{{localize "bastionland.realm.look.own.base"}}</label>
+			<div class="form-fields">
+				<select id="{{partId}}-base" name="base">
+					{{#each bases}}
+					<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="{{partId}}-fit">{{localize "bastionland.realm.look.own.terrainFit"}}</label>
+			<div class="form-fields">
+				<select id="{{partId}}-fit" name="terrainFit">
+					{{#each fits}}
+					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+	</section>
+
+	<section class="bastionland-realm-appearance__section">
+		<h3>{{localize "bastionland.realm.look.pictures"}}</h3>
+		<p class="hint">{{localize "bastionland.realm.look.own.picturesIntro"}}</p>
+		<div class="bastionland-realm-appearance__buttons">
+			<input type="file" accept="image/*" multiple hidden>
+			<button type="button" data-action="upload" {{#unless canUpload}}disabled{{/unless}}>
+				<i class="fa-solid fa-file-arrow-up" inert></i> {{localize "bastionland.realm.look.own.upload"}}
+			</button>
+			<button type="button" data-action="chooseFolder" {{#unless canBrowse}}disabled{{/unless}}>
+				<i class="fa-solid fa-folder-open" inert></i> {{localize "bastionland.realm.look.own.chooseFolder"}}
+			</button>
+			{{#if any}}
+			<button type="button" data-action="clearPictures">
+				<i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.realm.look.own.clear"}}
+			</button>
+			{{/if}}
+		</div>
+		<p><strong>{{count}}</strong></p>
+		<details class="bastionland-realm-appearance__names">
+			<summary>{{localize "bastionland.realm.look.own.namesSummary"}}</summary>
+			<p class="hint">{{localize "bastionland.realm.look.own.namesHint"}}</p>
+			<ul>
+				{{#each names}}<li class="{{#if found}}is-found{{/if}}"><code>{{name}}</code></li>{{/each}}
+			</ul>
+		</details>
+	</section>
+
+	<section class="bastionland-realm-appearance__section">
+		<h3>{{localize "bastionland.realm.look.preview"}}</h3>
+		<div class="bastionland-realm-appearance__preview" style="background: {{paper}}">
+			{{#each groups}}
+			<div class="bastionland-realm-appearance__group {{#if hexes}}is-hexes{{/if}}">
+				{{#each pictures}}
+				<figure>
+					<img src="{{src}}" alt="{{label}}" data-name="{{label}}">
+					{{#if own}}<figcaption class="is-own">{{localize "bastionland.realm.look.tags.own"}}</figcaption>{{/if}}
+				</figure>
+				{{/each}}
+			</div>
+			{{/each}}
+		</div>
+	</section>
+
+	<footer class="bastionland-realm-appearance__buttons">
+		<button type="button" data-action="save" {{#if saving}}disabled{{/if}}>
+			<i class="fa-solid {{#if saving}}fa-spinner fa-spin{{else}}fa-floppy-disk{{/if}}" inert></i> {{localize "bastionland.realm.look.own.save"}}
+		</button>
+	</footer>
+</div>

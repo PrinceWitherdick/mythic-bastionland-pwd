@@ -4018,6 +4018,51 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	font-size: 0.8em;
 }
 
+/* A skin of the GM's own: its card, with pencil and bin in its top corner. */
+.bastionland-realm-appearance__own {
+	position: relative;
+	display: flex;
+}
+
+.bastionland-realm-appearance__own > .bastionland-realm-appearance__skin {
+	flex: 1;
+}
+
+/* The samples make room for the pencil and bin; the name and hint run under them. */
+.bastionland-realm-appearance__own .bastionland-realm-appearance__samples {
+	margin-right: 3.2rem;
+}
+
+.bastionland-realm-appearance__own-tools {
+	position: absolute;
+	top: 0.25rem;
+	right: 0.25rem;
+	display: flex;
+	gap: 0.15rem;
+}
+
+.bastionland-realm-appearance__own-tools button {
+	width: 1.5rem;
+	height: 1.5rem;
+	min-height: 0;
+	padding: 0;
+	font-size: 0.75rem;
+	line-height: 1;
+}
+
+/* The card that makes a new skin of the GM's own pictures. */
+.bastionland-realm-appearance__make {
+	border-style: dashed;
+}
+
+.bastionland-realm-appearance__make .bastionland-realm-appearance__samples {
+	justify-content: center;
+	height: 2rem;
+	gap: 0.4rem;
+	font-size: 1.3rem;
+	color: var(--bastionland-verdigris);
+}
+
 .bastionland-realm-appearance__skin.is-active,
 .bastionland-realm-appearance__palette.is-active {
 	outline: 3px solid var(--bastionland-verdigris);

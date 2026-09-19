@@ -10,10 +10,18 @@ import {
 	defaultRealmLook,
 	matchCustomFiles,
 	normaliseRealmLook,
+	OWN_SKIN_ROOT,
+	ownSkinLook,
+	ownSkinManifest,
+	ownSkinOf,
+	ownSkinSlug,
 	paletteSwatches,
+	readOwnSkin,
 	realmPalette,
 	realmSetDir,
-	sceneColours
+	sceneColours,
+	withOwnSkin,
+	withoutOwnSkin
 } from "../../module/rules/realm-skins.js";
 
 describe("colour sets", () => {
@@ -101,5 +109,48 @@ describe("the GM's own pictures", () => {
 			"holding-castle": "a/holding-castle.jpg",
 			"holding-tower": "a/tower.png"
 		});
+	});
+});
+
+describe("skins of the GM's own", () => {
+	const folder = `${OWN_SKIN_ROOT}/inked`;
+
+	it("names a skin's folder after it, apart from those taken", () => {
+		expect(ownSkinSlug("My Ínked Realm!")).toBe("my-inked-realm");
+		expect(ownSkinSlug("  ")).toBe("skin");
+		expect(ownSkinSlug("Inked", ["inked", "inked-2"])).toBe("inked-3");
+	});
+
+	it("writes pictures by file name, and keeps only Realm pictures and known choices", () => {
+		expect(ownSkinManifest({
+			name: " Inked ",
+			base: "nonsense",
+			terrainFit: "icon",
+			files: { "terrain-forest": `${folder}/terrain-forest.png`, "not-a-picture": "x.png", seat: "" }
+		})).toEqual({ name: "Inked", base: REALM_SKINS[0], terrainFit: "icon", files: { "terrain-forest": "terrain-forest.png" } });
+	});
+
+	it("reads a skin back with paths in its folder, and skips removed or nameless ones", () => {
+		const skin = readOwnSkin({ name: "Inked", base: "woodcut", terrainFit: "hex", files: { seat: "seat.webp" } }, folder);
+		expect(skin).toEqual({ folder, name: "Inked", base: "woodcut", terrainFit: "hex", files: { seat: `${folder}/seat.webp` } });
+		expect(readOwnSkin({ removed: true, name: "Inked" }, folder)).toBeNull();
+		expect(readOwnSkin({ name: "" }, folder)).toBeNull();
+		expect(readOwnSkin(null, folder)).toBeNull();
+	});
+
+	it("draws with its pictures over its base skin, and is known again in a look", () => {
+		const skin = readOwnSkin({ name: "Inked", base: "woodcut", terrainFit: "icon", files: { seat: "seat.webp" } }, folder);
+		const look = ownSkinLook(skin, "midnight");
+		expect(look).toEqual({ skin: "woodcut", palette: "midnight", custom: { folder, terrainFit: "icon", files: { seat: `${folder}/seat.webp` } } });
+		expect(ownSkinOf(look, [skin])).toBe(skin);
+		expect(ownSkinOf(defaultRealmLook(), [skin])).toBeNull();
+	});
+
+	it("puts a saved skin in the list by name, in place of what it was, and takes a removed one out", () => {
+		const skin = (name, dir = name.toLowerCase()) => readOwnSkin({ name, base: "woodcut", files: {} }, `${OWN_SKIN_ROOT}/${dir}`);
+		const list = [skin("Atlas"), skin("Inked")];
+		expect(withOwnSkin(list, skin("Bold")).map(({ name }) => name)).toEqual(["Atlas", "Bold", "Inked"]);
+		expect(withOwnSkin(list, skin("Zebra", "atlas")).map(({ name }) => name)).toEqual(["Inked", "Zebra"]);
+		expect(withoutOwnSkin(list, list[0])).toEqual([list[1]]);
 	});
 });

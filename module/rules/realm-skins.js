@@ -294,3 +294,116 @@ export function matchCustomFiles(paths) {
 	}
 	return found;
 }
+
+/* -------------------------------------------- */
+/*  Skins of the GM's own                       */
+/* -------------------------------------------- */
+
+/**
+ * Where skins made from a GM's own pictures are kept, a folder for each with
+ * a skin.json in it. It is under Data, not a world, so every world on the
+ * server has them.
+ */
+export const OWN_SKIN_ROOT = `${ART_ROOT}/realm-skins`;
+
+/** The file in each own skin's folder that names it. */
+export const OWN_SKIN_MANIFEST = "skin.json";
+
+/**
+ * @typedef {object} OwnSkin A skin made from a GM's own pictures.
+ * @property {string} folder Its folder under OWN_SKIN_ROOT, which also tells it apart.
+ * @property {string} name What the GM called it.
+ * @property {string} base The shipped skin drawing the pictures it doesn't give.
+ * @property {string} terrainFit
+ * @property {Record<string, string>} files Path by picture name.
+ */
+
+/**
+ * A folder name for a skin, from what the GM called it.
+ * @param {string} name
+ * @param {string[]} [taken] Folder names already in use.
+ * @returns {string}
+ */
+export function ownSkinSlug(name, taken = []) {
+	const base = String(name ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "skin";
+	let slug = base;
+	for (let n = 2; taken.includes(slug); n += 1) slug = `${base}-${n}`;
+	return slug;
+}
+
+/**
+ * What an own skin's skin.json says, for writing. Pictures go by their file
+ * name in the skin's folder, so the folder can be moved as a whole.
+ * @param {{name: string, base: string, terrainFit: string, files: Record<string, string>}} skin
+ * @returns {object}
+ */
+export const ownSkinManifest = ({ name, base, terrainFit, files }) => ({
+	name: String(name).trim(),
+	base: REALM_SKINS.includes(base) ? base : REALM_SKINS[0],
+	terrainFit: TERRAIN_FITS.includes(terrainFit) ? terrainFit : TERRAIN_FITS[0],
+	files: Object.fromEntries(Object.entries(files ?? {})
+		.filter(([picture, path]) => REALM_PICTURES.includes(picture) && typeof path === "string" && path)
+		.map(([picture, path]) => [picture, path.split("/").at(-1)]))
+});
+
+/**
+ * An own skin as read from its folder's skin.json.
+ * @param {object|null} manifest
+ * @param {string} folder
+ * @returns {OwnSkin|null} Null for a skin removed, or a file that isn't one.
+ */
+export function readOwnSkin(manifest, folder) {
+	if (!manifest || typeof manifest !== "object" || manifest.removed) return null;
+	const name = typeof manifest.name === "string" ? manifest.name.trim() : "";
+	if (!name) return null;
+	const { base, terrainFit, files } = ownSkinManifest({ ...manifest, name });
+	return {
+		folder,
+		name,
+		base,
+		terrainFit,
+		files: Object.fromEntries(Object.entries(files).map(([picture, file]) => [picture, `${folder}/${file}`]))
+	};
+}
+
+/**
+ * The look that draws with an own skin.
+ * @param {OwnSkin} skin
+ * @param {string} palette
+ * @returns {RealmLook}
+ */
+export const ownSkinLook = (skin, palette) => normaliseRealmLook({
+	skin: skin.base,
+	palette,
+	custom: { folder: skin.folder, terrainFit: skin.terrainFit, files: skin.files }
+});
+
+/**
+ * @param {RealmLook} look
+ * @param {OwnSkin[]} skins
+ * @returns {OwnSkin|null} The own skin that look draws with, if any.
+ */
+export const ownSkinOf = (look, skins) => (Object.keys(look.custom.files).length ? skins.find((skin) => skin.folder === look.custom.folder) ?? null : null);
+
+/**
+ * @param {OwnSkin[]} skins
+ * @returns {OwnSkin[]} The skins by name, as they are listed.
+ */
+export const sortOwnSkins = (skins) => [...skins].sort((a, b) => a.name.localeCompare(b.name));
+
+/**
+ * The list once a skin is removed.
+ * @param {OwnSkin[]} skins
+ * @param {OwnSkin} removed
+ * @returns {OwnSkin[]}
+ */
+export const withoutOwnSkin = (skins, removed) => skins.filter((skin) => skin.folder !== removed.folder);
+
+/**
+ * The list once a skin is saved: in place of what it was, or added if new.
+ * @param {OwnSkin[]} skins
+ * @param {OwnSkin} saved
+ * @returns {OwnSkin[]}
+ */
+export const withOwnSkin = (skins, saved) => sortOwnSkins([...withoutOwnSkin(skins, saved), saved]);
