@@ -25,14 +25,23 @@ const FOLDER_NAME = "For Testing Purposes";
 const IMAGE = "icons/svg/hazard.svg";
 
 /**
- * The macro's script. It imports the test world only when it runs, so nothing
- * of it loads in play, and a changed test world needs no change here.
+ * The macro's script. It goes through game.system.api rather than importing
+ * populate.js by path: a release runs from one bundled file (scripts/bundle.js),
+ * where a path import would load a second copy of every module it reaches.
  */
 export const TEST_WORLD_COMMAND = [
 	"// Builds a fake game five Seasons in, or removes it again. See the system's module/test-world/populate.js.",
-	"const { populateTestWorld } = await import(foundry.utils.getRoute(`systems/${game.system.id}/module/test-world/populate.js`));",
-	"return populateTestWorld();"
+	"return game.system.api.populateTestWorld();"
 ].join("\n");
+
+/**
+ * What the api hands the macro. The test world loads only when it runs, so
+ * nothing of it loads in play, and the bundle still evaluates it lazily.
+ */
+export async function populateTestWorld() {
+	const { populateTestWorld: populate } = await import("../test-world/populate.js");
+	return populate();
+}
 
 /** @returns {Macro|undefined} The world's copy of the macro. */
 const findMacro = () => game.macros.find((macro) => macro.getFlag(SYSTEM_ID, MACRO_FLAG));

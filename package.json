@@ -9,11 +9,13 @@
     "lint:fix": "eslint . --fix",
     "pack": "node scripts/pack.js",
     "unpack": "node scripts/unpack.js",
+    "build": "node scripts/build.js",
     "charges": "node scripts/heraldry-charges.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@foundryvtt/foundryvtt-cli": "^3.0.4",
+    "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "globals": "^17.11.0",
     "handlebars": "^4.7.9",

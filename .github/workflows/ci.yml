@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      # Build the release bundle, for the exit code alone: a module the bundler cannot resolve should
+      # fail the push, not the release. dist/ is gitignored and nothing here uploads it. See
+      # scripts/bundle.js for why a release runs from one file.
+      - run: npm run build
+
+      # Compile the compendium packs, for the exit code alone, so a pack source that will not
+      # compile fails here rather than in release.yml.
+      - run: npm run pack

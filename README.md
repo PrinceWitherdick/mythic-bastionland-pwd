@@ -213,7 +213,10 @@ Foundry serves every file in a system folder to connected players, so keep sourc
 npm install
 npm test        # rules, templates, and localization keys
 npm run lint
+npm run build   # the release bundle, dist/mythic-bastionland.js
 ```
+
+A checkout runs the source files as they are, with no build step. A release runs from one bundled file instead, because Foundry makes a browser check every file with the server on every load, and one file is one request. Publishing a GitHub release runs `.github/workflows/release.yml`, which builds the bundle, points the shipped `system.json` at it, and attaches the zip.
 
 Compendium packs are built from the JSON in `packs/src`. Build them before the first launch, and again after changing `packs/src`. Foundry must be closed or at the Setup screen, because it locks a pack while a world is open:
 

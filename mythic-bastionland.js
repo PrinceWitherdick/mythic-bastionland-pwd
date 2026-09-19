@@ -10,7 +10,7 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
-import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro } from "./module/actions/test-world-macro.js";
+import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
@@ -255,7 +255,9 @@ Hooks.once("init", () => {
 		openRulebook,
 		openRulebookSetup,
 		toggleRulebook,
-		openWelcome
+		openWelcome,
+		// The (TEST ONLY) Populate World macro, which can't import populate.js by path under the release bundle.
+		populateTestWorld
 	});
 });
 

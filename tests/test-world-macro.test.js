@@ -1,7 +1,7 @@
-import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TEST_WORLD_COMMAND, TEST_WORLD_MACRO_NAME, seedTestWorldMacro, syncTestWorldMacro } from "../module/actions/test-world-macro.js";
+import { TEST_WORLD_COMMAND, TEST_WORLD_MACRO_NAME, populateTestWorld, seedTestWorldMacro, syncTestWorldMacro } from "../module/actions/test-world-macro.js";
 import { SYSTEM_ID } from "../module/system-id.js";
 
 const NONE = 0;
@@ -88,10 +88,25 @@ describe("syncTestWorldMacro", () => {
 });
 
 describe("TEST_WORLD_COMMAND", () => {
-	it("imports a module the system ships, by the system's own id", () => {
-		const path = /`systems\/\$\{game\.system\.id\}\/([^`]+)`/.exec(TEST_WORLD_COMMAND)?.[1];
-		expect(path).toBe("module/test-world/populate.js");
-		expect(existsSync(join(import.meta.dirname, "..", path))).toBe(true);
-		expect(TEST_WORLD_COMMAND).toContain("return populateTestWorld();");
+	it("runs the test world through the system's api, never a path import the release bundle would load twice", () => {
+		expect(TEST_WORLD_COMMAND).toContain("return game.system.api.populateTestWorld();");
+		expect(TEST_WORLD_COMMAND).not.toContain("import(");
+	});
+
+	it("leaves a command that still parses", () => {
+		const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+		expect(() => new AsyncFunction(TEST_WORLD_COMMAND)).not.toThrow();
+	});
+});
+
+describe("populateTestWorld", () => {
+	it("loads the system's own copy of the test world when it runs", () => {
+		expect(readFileSync(join(import.meta.dirname, "..", "module/actions/test-world-macro.js"), "utf8"))
+			.toContain('await import("../test-world/populate.js")');
+		expect(populateTestWorld).toBeTypeOf("function");
+	});
+
+	it("is on game.system.api", () => {
+		expect(readFileSync(join(import.meta.dirname, "..", "mythic-bastionland.js"), "utf8")).toMatch(/\bpopulateTestWorld\s*\}\);/);
 	});
 });

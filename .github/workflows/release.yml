@@ -1,0 +1,169 @@
+name: Release
+
+# Builds what users download. It runs on release:published, rebuilds system.json and
+# mythic-bastionland.zip from a clean checkout, and attaches them to the release, overwriting
+# anything attached by hand.
+#
+# workflow_dispatch runs the same pipeline as a rehearsal: everything happens except the publish,
+# and the zip and manifest come back as a workflow artifact that no Foundry client can reach.
+#
+# The one difference from a checkout: a release loads the one bundled file `npm run build` writes,
+# where a checkout loads the unbundled source. See scripts/bundle.js for why.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to rehearse, e.g. 0.2.0. Nothing is published."
+        required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # A published release puts the version in the tag, a rehearsal takes it as an input.
+  VERSION: ${{ github.event.inputs.version || github.ref_name }}
+  # Keyed on the trigger, not an input, so a rehearsal cannot be talked into shipping.
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Check the version's shape
+        # system.json's version is copied verbatim from the tag, and Foundry compares a "v0.2.0"
+        # against an installed "0.2.0" as a different, unordered version.
+        run: |
+          if ! echo "$VERSION" | grep -qE '^[0-9]+(\.[0-9]+){2,3}$'; then
+            echo "FAIL: version '$VERSION' is not a bare N.N.N or N.N.N.N version (no leading 'v')"
+            exit 1
+          fi
+          echo "version ok: $VERSION (rehearsal: $DRY_RUN)"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run pack
+      # The bundle the patched manifest below points Foundry at. See scripts/bundle.js for why a
+      # release runs from one file while a checkout runs the source.
+      - run: npm run build
+
+      - name: Patch manifest
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('system.json', 'utf8'));
+            // Read from the environment rather than spliced into this program text.
+            const version = process.env.VERSION;
+            const repo = process.env.REPO;
+            m.version = version;
+            m.url = 'https://github.com/' + repo;
+            // The manifest tracks the latest release, so an install's Update button finds new ones.
+            m.manifest = 'https://github.com/' + repo + '/releases/latest/download/system.json';
+            m.download = 'https://github.com/' + repo + '/releases/download/' + version + '/mythic-bastionland.zip';
+            // A release runs from the one bundled file npm run build just wrote. The tree keeps the
+            // unbundled entry, so a checkout still runs straight from source. See scripts/bundle.js.
+            m.esmodules = ['dist/mythic-bastionland.js'];
+            fs.writeFileSync('system.json', JSON.stringify(m, null, 2) + '\n');
+          "
+
+      - name: Verify the checkout before it is zipped
+        run: |
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('system.json', 'utf8'));
+            if (m.version !== process.env.VERSION) { console.error('FAIL: version mismatch'); process.exit(1); }
+            // A pack in the list and not on disk is a silently empty compendium in every world.
+            for (const p of m.packs) {
+              if (!fs.existsSync(p.path)) { console.error('FAIL: declared pack missing: ' + p.path); process.exit(1); }
+            }
+            // And the code itself: a manifest naming a bundle the build never wrote installs as a
+            // system that loads nothing at all.
+            for (const e of m.esmodules) {
+              if (!fs.existsSync(e)) { console.error('FAIL: declared esmodule missing: ' + e); process.exit(1); }
+            }
+            console.log('manifest ok: ' + m.id + ' ' + m.version);
+          "
+
+      - name: Create zip
+        # dist/ is the bundle the manifest loads. mythic-bastionland.js and module/ still ship beside
+        # it, because the bundle's source map points at them.
+        run: |
+          zip -r mythic-bastionland.zip \
+            system.json mythic-bastionland.js dist/ README.md \
+            module/ styles/ languages/ assets/ templates/ packs/ \
+            --exclude "packs/src/*"
+
+      - name: Verify the zip that will ship
+        # The checks above look at the tree; this one looks at the artifact a user receives.
+        run: |
+          unzip -Z1 mythic-bastionland.zip > zip-entries.txt
+          node -e "
+            const fs = require('fs');
+            const entries = fs.readFileSync('zip-entries.txt', 'utf8').split('\n').filter(Boolean);
+            const m = JSON.parse(fs.readFileSync('system.json', 'utf8'));
+            const fail = [];
+
+            for (const e of entries) {
+              // The rulebook is copyrighted and is only ever imported from a user's own copy.
+              if (e.toLowerCase().endsWith('.pdf')) fail.push('a PDF in the zip: ' + e);
+              if (e.startsWith('packs/src/')) fail.push('pack SOURCE in the zip: ' + e);
+              if (e.includes('\\\\')) fail.push('backslash in a zip entry name: ' + e);
+            }
+
+            if (!entries.includes('system.json')) fail.push('system.json is not in the zip');
+            // The code Foundry is told to load, and the map that makes its stack traces readable.
+            for (const e of m.esmodules) {
+              if (!entries.includes(e)) fail.push('declared esmodule is not in the zip: ' + e);
+              if (!entries.includes(e + '.map')) fail.push('source map is not in the zip: ' + e + '.map');
+            }
+            for (const p of m.packs) {
+              // A directory entry alone is not enough: an empty pack still zips its folder.
+              const files = entries.filter(e => e.startsWith(p.path + '/') && !e.endsWith('/'));
+              if (!files.length) fail.push('declared pack is empty in the zip: ' + p.path);
+            }
+
+            // A floor, so none of the above can pass by matching an empty archive.
+            if (entries.length < 500) fail.push('only ' + entries.length + ' entries in the zip');
+
+            if (fail.length) {
+              for (const f of fail) console.error('FAIL: ' + f);
+              process.exit(1);
+            }
+            console.log('zip ok: ' + entries.length + ' entries, ' + m.packs.length + ' packs, no PDFs, no pack sources');
+          "
+
+      - name: Create release
+        if: env.DRY_RUN != 'true'
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          generate_release_notes: true
+          files: |
+            mythic-bastionland.zip
+            system.json
+
+      - name: Upload the rehearsal build
+        if: env.DRY_RUN == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rehearsal-${{ env.VERSION }}
+          path: |
+            mythic-bastionland.zip
+            system.json
+          retention-days: 7
