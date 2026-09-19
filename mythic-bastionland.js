@@ -65,6 +65,7 @@ import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
+import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
@@ -192,6 +193,8 @@ Hooks.once("init", () => {
 	registerRulebookShare();
 	// Every "(p16)" in a window or chat card opens the book at that page.
 	registerPageLinks();
+	// Hovering a rule word, such as Exposed or Hefty, says what it means.
+	registerKeywordTips();
 	game.keybindings.register(SYSTEM_ID, "openRulebook", {
 		name: "bastionland.rulebook.keybinding.name",
 		hint: "bastionland.rulebook.keybinding.hint",

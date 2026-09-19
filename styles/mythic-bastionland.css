@@ -3130,6 +3130,13 @@ a.bastionland-page-link:focus-visible {
 	text-shadow: none;
 }
 
+/* A rule word, such as Exposed or Hefty, saying what it means on hover.
+   Bold rather than underlined, so it doesn't read as a link like "(p16)". */
+.bastionland-keyword {
+	font-weight: bold;
+	cursor: help;
+}
+
 .bastionland-travel-rules__page {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);

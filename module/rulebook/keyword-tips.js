@@ -1,0 +1,65 @@
+import { t } from "../chat/cards.js";
+import { showsKeywordTips } from "../client-settings.js";
+import { findKeywords } from "../rules/keywords.js";
+import { addTextMark } from "./text-marks.js";
+
+/**
+ * Hovering a rule word, such as Exposed or Hefty, in the system's windows and
+ * chat cards shows what it means, as Stonetop's gear tags do. Marked on the
+ * rendered page by module/rulebook/text-marks.js.
+ *
+ * The words are always marked, and the Rule Word Popups setting is read as
+ * one is hovered, as the art previews read theirs, so turning it off or on
+ * takes at once, in chat cards already posted too. The setting's root class
+ * takes the words' bold away while it's off (styles/settings.css).
+ */
+const KEYWORD_CLASS = "bastionland-keyword";
+
+/**
+ * Text that's being typed into, already explains itself on hover, or does
+ * something when clicked. Headings and window titles are left plain too.
+ */
+const LEAVE_ALONE = [
+	"a", "button", "input", "textarea", "select", "option", "script", "style", "code", "pre",
+	"[contenteditable]", "prose-mirror", "[data-tooltip]", "h1", "h2", "h3", "h4", ".window-header",
+	`.${KEYWORD_CLASS}`
+].join(", ");
+
+/**
+ * The rule words, each keeping its tip until it's hovered.
+ * @type {import("./text-marks.js").TextMark}
+ */
+export const KEYWORD_TIPS = Object.freeze({
+	className: KEYWORD_CLASS,
+	leaveAlone: LEAVE_ALONE,
+	// Inside a button all the same: an item's gloss, such as "d8 hefty" in
+	// "Polished mace (d8 hefty)". Its words take the hover, and a click still posts the item.
+	markAnyway: ".bastionland-item__gloss",
+	find: findKeywords,
+	make: (document, { key, page }, words) => {
+		const word = document.createElement("span");
+		word.className = KEYWORD_CLASS;
+		word.dataset.keywordTip = t("keywords.tip", { text: t(`keywords.${key}`), page });
+		word.textContent = words;
+		return word;
+	}
+});
+
+/**
+ * Give a rule word its tip as the pointer reaches it, or take it away while
+ * tips are off. This listens on the document, ahead of Foundry's tooltips,
+ * which listen on the body and read `data-tooltip` as the pointer arrives.
+ * @param {PointerEvent} event
+ */
+export function offerTip(event) {
+	const word = event.target;
+	if (!word?.classList?.contains(KEYWORD_CLASS)) return;
+	if (showsKeywordTips()) word.dataset.tooltip = word.dataset.keywordTip;
+	else delete word.dataset.tooltip;
+}
+
+/** Tip each window and chat card as it draws. Called during init. */
+export function registerKeywordTips() {
+	addTextMark(KEYWORD_TIPS);
+	globalThis.document?.addEventListener?.("pointerenter", offerTip, { capture: true });
+}

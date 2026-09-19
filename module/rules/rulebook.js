@@ -83,10 +83,10 @@ export function rulebookViewerUrl(path, { page } = {}) {
 }
 
 /**
- * "p16", "pp6–7" and "p18-19": how this system's text cites the book.
- * The `\b` in front keeps "top12" or "step3" from reading as one.
+ * "p16", "pp6–7", "p18-19" and "page 151": how this system's text cites the book.
+ * The `\b` in front keeps "top12", "step3" or "homepage 3" from reading as one.
  */
-const PAGE_REFERENCE = /\bpp?(\d{1,3})(?:\s?[–-]\s?\d{1,3})?\b/g;
+const PAGE_REFERENCE = /\b(?:pp?|[Pp]ages? )(\d{1,3})(?:\s?[–-]\s?\d{1,3})?\b/g;
 
 /**
  * The page references in a run of text, in order. A span goes to its first

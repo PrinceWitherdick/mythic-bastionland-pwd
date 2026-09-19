@@ -15,6 +15,12 @@ describe("pageReferences", () => {
 	it("leaves words and numbers past the book alone", () => {
 		expect(pageReferences("top12 step3 p0 p999 map")).toEqual([]);
 		expect(pageReferences(null)).toEqual([]);
+		expect(pageReferences("a homepage 3 and page 0")).toEqual([]);
+	});
+
+	it("reads a spelled-out \"page 151\" too, as the Myth cards write it", () => {
+		expect(pageReferences("The Gargoyle, page 151 · Omens seen")).toEqual([{ index: 14, length: 8, page: 151 }]);
+		expect(pageReferences("Page 16")[0].page).toBe(16);
 	});
 });
 

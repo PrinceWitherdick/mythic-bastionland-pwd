@@ -5,6 +5,15 @@
  */
 export const SYSTEM_ID = "mythic-bastionland-pwd";
 
+/**
+ * Only this system's windows and dialogs, which all carry a "bastionland" class;
+ * Foundry's own and other modules' are left as they are.
+ * @param {HTMLElement} element
+ */
+export function isSystemWindow(element) {
+	return [...(element?.classList ?? [])].some((name) => name.startsWith("bastionland"));
+}
+
 /** URL root for files served from this system. */
 export const SYSTEM_PATH = `systems/${SYSTEM_ID}`;
 
