@@ -16,21 +16,79 @@ const MEASURE_RETRIES = 4;
 /** @type {WeakMap<HTMLElement, number>} Each frame's rail width, measured once: it doesn't change. */
 const railWidths = new WeakMap();
 
+/** @type {WeakMap<HTMLElement, {anchor: HTMLElement, observer: ResizeObserver}>} The header each frame's rail is watching. */
+const watchedAnchors = new WeakMap();
+
 /**
- * Start the rail below the sheet's header, on whichever side has room.
- * Call after each render.
+ * Start the rail below the sheet's header, on whichever side has room, and
+ * keep it there whenever the header changes height, such as when Text Size or
+ * Typeface is changed or the window is resized. Call after each render: a
+ * header drawn afresh is watched in place of the old one.
  * @param {HTMLElement} frame   The application element.
  * @param {string} anchorSelector  The header the rail hangs below.
  */
 export function placeTabRail(frame, anchorSelector) {
-	requestAnimationFrame(() => {
-		const anchor = frame.querySelector(anchorSelector);
-		if (anchor?.offsetHeight) {
-			frame.style.setProperty("--bastionland-rail-top", `${offsetTopWithin(anchor, frame) + anchor.offsetHeight + RAIL_HEADER_GAP}px`);
+	requestAnimationFrame(() => stampRailSide(frame));
+	const anchor = frame.querySelector(anchorSelector);
+	const watched = watchedAnchors.get(frame);
+	if (watched?.anchor === anchor) return;
+	watched?.observer.disconnect();
+	watchedAnchors.delete(frame);
+	if (!anchor) return;
+	if (typeof ResizeObserver !== "function") {
+		requestAnimationFrame(() => hangRailBelow(frame, anchor));
+		return;
+	}
+	// Called once as soon as the header is laid out, and again whenever its size changes.
+	const observer = new ResizeObserver(() => {
+		if (!frame.isConnected || !anchor.isConnected) {
+			observer.disconnect();
+			if (watchedAnchors.get(frame)?.observer === observer) watchedAnchors.delete(frame);
+			return;
 		}
-		stampRailSide(frame);
+		hangRailBelow(frame, anchor);
 	});
+	observer.observe(anchor);
+	watchedAnchors.set(frame, { anchor, observer });
 }
+
+/**
+ * Set the rail's top a little below the header's bottom.
+ * @param {HTMLElement} frame
+ * @param {HTMLElement} anchor
+ */
+function hangRailBelow(frame, anchor) {
+	const bottom = anchorBottom(frame, anchor);
+	if (bottom !== null) frame.style.setProperty("--bastionland-rail-top", `${bottom + RAIL_HEADER_GAP}px`);
+}
+
+/**
+ * How far below the top of the frame the header's bottom sits, in the frame's
+ * own pixels: as drawn on screen, less the scale Foundry gives the window and
+ * whatever the pages between them have been scrolled.
+ * @param {HTMLElement} frame
+ * @param {HTMLElement} anchor
+ * @returns {number|null} px, or null while the header isn't shown.
+ */
+export function anchorBottom(frame, anchor) {
+	const anchorRect = anchor.getBoundingClientRect();
+	const frameRect = frame.getBoundingClientRect();
+	if (!anchorRect.height || !frame.offsetHeight) return null;
+	let bottom = anchorRect.bottom - frameRect.top;
+	// A page scrolled when it was measured would lift the rail with it.
+	for (let node = anchor.parentElement; node && node !== frame; node = node.parentElement) {
+		if (node.scrollTop) bottom += node.scrollTop * onScreenScale(node);
+	}
+	return bottom / onScreenScale(frame);
+}
+
+/**
+ * How much larger an element is drawn than its own layout, from the window's
+ * scale and any zoom on the way, which Text Size sets on the sheet's pages.
+ * @param {HTMLElement} element
+ * @returns {number}
+ */
+const onScreenScale = (element) => (element.offsetHeight ? element.getBoundingClientRect().height / element.offsetHeight : 1) || 1;
 
 /**
  * Hang the rail off the window's left edge when the right has no room for it,
@@ -70,17 +128,4 @@ export function stampRailSide(frame, position, retries = MEASURE_RETRIES) {
 export function railHangsLeft(frameRect, railWidth, viewportWidth) {
 	const spaceRight = viewportWidth - frameRect.right;
 	return railWidth > spaceRight && frameRect.left > spaceRight;
-}
-
-/**
- * How far below the top of `ancestor` an element sits, ignoring scrolling and
- * any scale applied to the window.
- * @param {HTMLElement} element
- * @param {HTMLElement} ancestor
- * @returns {number} px
- */
-function offsetTopWithin(element, ancestor) {
-	let top = 0;
-	for (let node = element; node && node !== ancestor; node = node.offsetParent) top += node.offsetTop;
-	return top;
 }

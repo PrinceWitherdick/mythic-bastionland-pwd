@@ -1,0 +1,54 @@
+{{!-- The reader's own settings, on the Settings page of a Knight sheet and the GM Toolkit; see module/sheets/settings-tab.js.
+      No control has a name, so the sheet's form never sends one to the Actor: each writes the setting named by its data-setting.
+      Labels, hints and choices are the settings' own, from their registration. data-viewable keeps the page live on a sheet the reader can only view. --}}
+<div class="bastionland-settings" data-viewable>
+	<p class="bastionland-hint">{{localize "bastionland.settingsTab.intro"}}</p>
+
+	{{#each settingGroups}}
+	<section class="bastionland-settings__group" data-settings-group="{{id}}">
+		<h2 class="bastionland-heading">{{localize title}}</h2>
+
+		{{#each rows}}
+		<div class="bastionland-settings__row{{#if isCheck}} bastionland-settings__row--check{{/if}}">
+			{{#if isCheck}}
+			<label class="bastionland-settings__label">
+				<input type="checkbox" data-setting="{{key}}" {{checked checked}}>
+				<span>{{localize label}}</span>
+			</label>
+			{{else}}
+			<label class="bastionland-settings__label" for="{{@root.rootId}}-setting-{{key}}">{{localize label}}</label>
+			{{#if isChoice}}
+			<select id="{{@root.rootId}}-setting-{{key}}" data-setting="{{key}}">
+				{{#each choices}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{localize label}}</option>
+				{{/each}}
+			</select>
+			{{/if}}
+			{{#if isRange}}
+			{{!-- The number follows the handle as it's dragged; the setting is written when it's let go. --}}
+			<span class="bastionland-settings__range">
+				<input id="{{@root.rootId}}-setting-{{key}}" type="range" data-setting="{{key}}" min="{{min}}" max="{{max}}" step="{{step}}" value="{{value}}">
+				<output for="{{@root.rootId}}-setting-{{key}}">{{display}}</output>
+			</span>
+			{{/if}}
+			{{/if}}
+			{{#if hint}}
+			<p class="bastionland-hint">{{#if forTable}}<strong class="bastionland-settings__table">{{localize "bastionland.settingsTab.forTable"}}</strong> {{/if}}{{localize hint}}</p>
+			{{/if}}
+		</div>
+		{{/each}}
+
+		{{#each menus}}
+		<div class="bastionland-settings__row bastionland-settings__row--menu">
+			<button type="button" class="bastionland-button" data-action="openSettingsMenu" data-menu="{{id}}"><i class="{{icon}}" inert></i> {{localize label}}</button>
+			{{#if hint}}<p class="bastionland-hint">{{localize hint}}</p>{{/if}}
+		</div>
+		{{/each}}
+	</section>
+	{{/each}}
+
+	{{!-- Everything else, the world's options and whatever modules add, is in Foundry's own window. --}}
+	<p class="bastionland-settings__more">
+		<button type="button" class="bastionland-button" data-action="openAllSettings"><i class="fa-solid fa-gear" inert></i> {{localize "bastionland.settingsTab.openAll"}}</button>
+	</p>
+</div>

@@ -343,4 +343,10 @@
 			{{/if}}
 		</section>
 	</div>
+
+	{{#if tabs.settings}}
+	<div class="tab {{tabs.settings.cssClass}}" data-group="primary" data-tab="settings">
+		{{> "bastionland.settings-tab"}}
+	</div>
+	{{/if}}
 </div>

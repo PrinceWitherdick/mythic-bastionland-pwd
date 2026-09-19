@@ -58,6 +58,8 @@
 	--bastionland-paper-deep: #e3d9c3;
 	--bastionland-ink: #231f1a;
 	--bastionland-ink-soft: #5a5046;
+	/* Placeholder writing: pale enough not to pass for something already filled in. */
+	--bastionland-ink-faint: #a39680;
 	--bastionland-rule: #8a7d6a;
 	--bastionland-blood: #8b1e1e;
 	/* Red ochre, the ink a scribe headed a section with. */
@@ -145,7 +147,7 @@
 	--input-background-color: var(--bastionland-paper);
 	--input-text-color: var(--bastionland-ink);
 	--input-border-color: var(--bastionland-rule);
-	--input-placeholder-color: var(--bastionland-ink-soft);
+	--input-placeholder-color: var(--bastionland-ink-faint);
 	--input-focus-outline-color: var(--bastionland-verdigris);
 }
 

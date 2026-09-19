@@ -1,3 +1,5 @@
+import { showsArtPreviews } from "../client-settings.js";
+
 /**
  * Hover previews: a larger copy of a piece of art, shown beside it while the
  * pointer is over it.
@@ -80,7 +82,8 @@ function removeArtPreview(root) {
  */
 function showArtPreview(art) {
 	removeArtPreview();
-	if (!art.getAttribute("src")) return;
+	// Read as each preview is about to show, so turning the setting off needs no window drawn again.
+	if (!art.getAttribute("src") || !showsArtPreviews()) return;
 
 	const popup = document.createElement("div");
 	popup.className = PREVIEW_CLASS;

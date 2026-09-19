@@ -1,0 +1,227 @@
+/*
+ * The Settings page on a Knight sheet and the GM Toolkit, and what each
+ * person's own settings change: Text Size, Contrast, Typeface, No Italic Text,
+ * Reduce Motion and Rule Word Popups. module/client-settings.js marks the
+ * document's root with a class or a variable for each; the rules keyed on
+ * them are all here.
+ */
+
+/* ---------------------------------------------------------------- */
+/* The Settings page                                                */
+/* ---------------------------------------------------------------- */
+
+.bastionland-settings {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+}
+
+.bastionland-settings > .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-settings__group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.bastionland-settings__group > .bastionland-heading {
+	margin-bottom: 0;
+}
+
+/* The name on the left and its control on the right, with the hint beneath both. */
+.bastionland-settings__row {
+	display: grid;
+	grid-template-columns: minmax(9rem, 1fr) minmax(12rem, 17rem);
+	align-items: center;
+	gap: 0.2rem 1rem;
+}
+
+.bastionland-settings__row:is(.bastionland-settings__row--check, .bastionland-settings__row--menu) {
+	grid-template-columns: minmax(0, 1fr);
+	justify-items: start;
+}
+
+.bastionland-settings__row > .bastionland-hint {
+	grid-column: 1 / -1;
+	margin: 0;
+	max-width: 44rem;
+}
+
+.bastionland-settings__label {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	letter-spacing: 0.02em;
+}
+
+/* A tick box sits in its label, so the whole name ticks it. */
+label.bastionland-settings__label:has(input[type="checkbox"]) {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.bastionland-settings__label input[type="checkbox"] {
+	flex: none;
+	margin: 0;
+}
+
+.bastionland-settings select {
+	width: 100%;
+}
+
+.bastionland-settings__range {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.bastionland-settings__range input[type="range"] {
+	flex: 1;
+	min-width: 0;
+	accent-color: var(--bastionland-ink);
+}
+
+.bastionland-settings__range output {
+	flex: none;
+	min-width: 2.6rem;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.bastionland-settings__table {
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+}
+
+.bastionland-settings__more {
+	margin: 0.2rem 0 0;
+}
+
+/* A narrow sheet, or a large Text Size, stacks each control under its name. */
+@container (max-width: 34rem) {
+	.bastionland-settings__row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* ---------------------------------------------------------------- */
+/* Text Size                                                        */
+/* ---------------------------------------------------------------- */
+
+/*
+ * The system's pages are zoomed as a whole rather than their text alone:
+ * their sizes are set against Foundry's root size, which a system can't
+ * change for its own windows only. The pictures grow with the writing, as a
+ * browser's own zoom would, and a page's layout follows its narrower width.
+ * Zoom multiplies, so anything inside one of these is left to it.
+ */
+.bastionland-page:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *),
+.bastionland-dialog > .window-content,
+.bastionland-card:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *) {
+	zoom: var(--bastionland-text-size, 1);
+}
+
+/* ---------------------------------------------------------------- */
+/* Typeface                                                         */
+/* ---------------------------------------------------------------- */
+
+/* The plainer faces take the blackletter titles too, set in the small capitals instead. */
+:root.bastionland-typeface-serif {
+	--bastionland-font-body: Georgia, "Times New Roman", serif;
+	--bastionland-font-display: var(--bastionland-font-caps);
+}
+
+:root.bastionland-typeface-signika {
+	--bastionland-font-body: "Signika", sans-serif;
+	--bastionland-font-display: var(--bastionland-font-caps);
+}
+
+/* ---------------------------------------------------------------- */
+/* Contrast                                                         */
+/* ---------------------------------------------------------------- */
+
+/*
+ * White paper and black ink, and every other colour darkened well past the
+ * readability guideline on white. The colours are tokens on the root, so every
+ * sheet, window and chat card takes them. The Phase and Season cards set their
+ * own paper and ink, which already read clearly, and keep them.
+ */
+:root.bastionland-high-contrast {
+	--bastionland-paper: #fff;
+	--bastionland-paper-deep: #ededed;
+	--bastionland-ink: #000;
+	--bastionland-ink-soft: #2b2b2b;
+	--bastionland-ink-faint: #767676;
+	--bastionland-rule: #4a4a4a;
+	--bastionland-blood: #6e0f0f;
+	--bastionland-rubric: #7a2210;
+	--bastionland-verdigris: #184434;
+	--bastionland-spring: #2f5a14;
+	--bastionland-harvest: #6b3d08;
+	--bastionland-winter: #1f4668;
+}
+
+/* Writing that was faded to sit back reads at full strength, and rules are heavy enough to follow. */
+:root.bastionland-high-contrast :is(
+	.bastionland-choice__glory,
+	.bastionland-site__tally,
+	.bastionland-score__die,
+	.bastionland-move__icon
+),
+:root.bastionland-high-contrast .bastionland-heading::after {
+	opacity: 1;
+}
+
+/* ---------------------------------------------------------------- */
+/* No Italic Text                                                   */
+/* ---------------------------------------------------------------- */
+
+/*
+ * Everywhere in Foundry, not only in the system's own windows: italics are no
+ * easier to read in the sidebar or a module's window. The id inside :is()
+ * lends the rule an id's weight, so it beats any other !important slant.
+ * Each pseudo-element has a rule of its own, since one a browser doesn't know
+ * would void a whole list.
+ */
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics),
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics) *,
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics) *::before,
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics) *::after {
+	font-style: normal !important;
+}
+
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics) *::placeholder {
+	font-style: normal !important;
+}
+
+:root.bastionland-no-italics:is(#bastionland-no-italics, .bastionland-no-italics) *::marker {
+	font-style: normal !important;
+}
+
+/* ---------------------------------------------------------------- */
+/* Reduce Motion                                                    */
+/* ---------------------------------------------------------------- */
+
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview),
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *,
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *::before,
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *::after {
+	animation-duration: 0s !important;
+	animation-delay: 0s !important;
+	transition-duration: 0s !important;
+	transition-delay: 0s !important;
+}
+
+/* ---------------------------------------------------------------- */
+/* Rule Word Popups                                                 */
+/* ---------------------------------------------------------------- */
+
+/* The rule words stay marked while their popups are off, and read as plain text. */
+:root.bastionland-no-keyword-tips .bastionland-keyword {
+	font-weight: inherit;
+	cursor: inherit;
+}

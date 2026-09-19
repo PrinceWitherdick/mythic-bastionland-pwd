@@ -19,7 +19,8 @@
   "styles": [
     "styles/mythic-bastionland.css",
     "styles/chat.css",
-    "styles/gm-toolkit.css"
+    "styles/gm-toolkit.css",
+    "styles/settings.css"
   ],
   "languages": [
     {

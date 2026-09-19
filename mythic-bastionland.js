@@ -50,12 +50,14 @@ import {
 	ScarModel,
 	WeaponModel
 } from "./module/data-models/items.js";
+import { registerClientSettings } from "./module/client-settings.js";
 import { registerFonts } from "./module/fonts.js";
 import { BastionlandItemSheet } from "./module/sheets/BastionlandItemSheet.js";
 import { DomainSheet } from "./module/sheets/DomainSheet.js";
 import { GmToolkitSheet } from "./module/sheets/GmToolkitSheet.js";
 import { KnightSheet } from "./module/sheets/KnightSheet.js";
 import { NpcSheet } from "./module/sheets/NpcSheet.js";
+import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
@@ -142,11 +144,17 @@ Hooks.once("init", () => {
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
-		"bastionland.save-result": templatePath("chat/parts/save-result.hbs")
+		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
+		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")
 	});
 
 	// The sheets' faces, offered by Foundry's font menus as well as the stylesheet.
 	registerFonts();
+
+	// Each person's own Text Size, Contrast, Typeface and the like, applied before
+	// any window is drawn, and the Settings page on Knight sheets and the GM Toolkit.
+	registerClientSettings();
+	registerSettingsTabHooks();
 
 	registerBookArtSettings();
 

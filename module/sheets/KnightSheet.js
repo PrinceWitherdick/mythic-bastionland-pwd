@@ -16,10 +16,14 @@ import { isDoomed, isScarPending } from "../rules/scars.js";
 import { mayTakeSquires } from "../rules/squires.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
 
-/** The Knight character sheet, laid out after the official printed sheet. */
-export class KnightSheet extends BastionlandActorSheet {
+/**
+ * The Knight character sheet, laid out after the official printed sheet, with
+ * the player's own settings on a page of its own.
+ */
+export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	static DEFAULT_OPTIONS = {
 		classes: ["bastionland-has-tab-rail"],
 		position: { width: 860, height: 920 },
@@ -60,7 +64,9 @@ export class KnightSheet extends BastionlandActorSheet {
 			tabs: [
 				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight" },
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer" },
-				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" }
+				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
+				// Only on a Knight that is the reader's own.
+				SETTINGS_TAB_ENTRY
 			]
 		}
 	};
@@ -135,6 +141,14 @@ export class KnightSheet extends BastionlandActorSheet {
 			enrichedSeerInfo,
 			enrichedSeerNotes
 		});
+	}
+
+	/**
+	 * The Settings page is shown on the reader's own Knight.
+	 * @override
+	 */
+	_showsSettingsTab(user) {
+		return isOwnCharacter(this.actor, user);
 	}
 
 	/** @override */
