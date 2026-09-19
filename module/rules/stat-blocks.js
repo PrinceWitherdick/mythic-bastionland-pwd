@@ -12,7 +12,7 @@
  */
 import { FEATS, NPC_SCALES } from "../config.js";
 import { structureKind } from "./structures.js";
-import { capitalise, escapeHTML, logicalLines } from "./text.js";
+import { capitalise, logicalLines, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 
 const STAT_LINE = /VIG\s*(\d+)\s*,\s*CLA\s*(\d+)\s*,\s*SPI\s*(\d+)\s*,\s*(\d+)\s*GD\b[\s,.;]*/i;
@@ -78,42 +78,7 @@ export function splitCastName(full) {
  * @param {string} text
  * @returns {string[]} The text split at commas outside parentheses.
  */
-function splitTopLevel(text) {
-	const parts = [];
-	let depth = 0;
-	let start = 0;
-	for (let index = 0; index < text.length; index++) {
-		const character = text[index];
-		if (character === "(") depth++;
-		else if (character === ")") depth = Math.max(0, depth - 1);
-		else if (character === "," && depth === 0) {
-			parts.push(text.slice(start, index));
-			start = index + 1;
-		}
-	}
-	parts.push(text.slice(start));
-	return parts.map((part) => part.trim()).filter(Boolean);
-}
-
-/**
- * @param {string} text
- * @returns {{open: number, close: number, inner: string}[]} Each outermost parenthesis.
- */
-function parentheticals(text) {
-	const groups = [];
-	let depth = 0;
-	let open = -1;
-	for (let index = 0; index < text.length; index++) {
-		if (text[index] === "(") {
-			if (depth === 0) open = index;
-			depth++;
-		} else if (text[index] === ")" && depth > 0) {
-			depth--;
-			if (depth === 0) groups.push({ open, close: index, inner: text.slice(open + 1, index) });
-		}
-	}
-	return groups;
-}
+const splitTopLevel = (text) => splitOutside(text, /^,/);
 
 const ARMOUR = /^(?:or\s+)?A(\d+)\b\s*(.*)$/i;
 
@@ -326,7 +291,7 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 		for (const feat of featsNamed(rest)) system.feats[feat] = true;
 	}
 
-	system.notes = notes.map((note) => `<p>${escapeHTML(note)}</p>`).join("");
+	system.notes = paragraphs(...notes);
 	return { name: shortName, system, items };
 }
 
@@ -379,7 +344,7 @@ export function structureFromStatBlock(block, options) {
 function weaponData(attack, fallbackName) {
 	const system = { damage: attack.damage, equipped: true };
 	for (const key of Object.keys(QUALITIES)) system[key] = attack.qualities.includes(key);
-	system.description = attack.note ? `<p>${escapeHTML(capitalise(attack.note))}</p>` : "";
+	system.description = paragraphs(capitalise(attack.note));
 	return { type: "weapon", name: capitalise(attack.name) || fallbackName, system };
 }
 

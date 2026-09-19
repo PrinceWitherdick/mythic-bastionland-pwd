@@ -6,7 +6,10 @@
  * without Foundry.
  */
 import { textLines, textRuns } from "./book-art.js";
-import { BULLET, capitalise, joinLines } from "./text.js";
+import { BULLET, joinLines, titleCase } from "./text.js";
+
+/** Headings are title-cased as the rest of the system writes them. */
+export { titleCase };
 
 /** The rules pages Import PDF reads, by the key the index keeps each under. */
 export const RULE_PAGES = Object.freeze({ creatingRealm: 14 });
@@ -21,15 +24,6 @@ const PARAGRAPH_GAP = 1.5;
 const COLUMN_SLACK = 2;
 
 const LABELLED = /^([^:]+):\s*(.*)$/;
-
-/** Words a heading keeps in lower case unless it starts with them. */
-const MINOR_WORDS = new Set(["a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to"]);
-
-/**
- * @param {string} text A heading as printed, in capitals.
- * @returns {string} In title case, as the rest of the system writes headings.
- */
-export const titleCase = (text) => text.toLowerCase().replace(/\p{L}+/gu, (word, offset) => (offset && MINOR_WORDS.has(word) ? word : capitalise(word)));
 
 /**
  * @typedef {{kind: "paragraph"|"bullet", text: string}|{kind: "term", label: string, text: string}} RuleBlock

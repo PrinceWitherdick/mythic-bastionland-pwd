@@ -3,6 +3,7 @@ import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat, showFeat } from "../actions/feats.js";
 import { itemTags, postItem } from "../actions/items.js";
+import { splitName } from "../rules/text.js";
 import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
@@ -310,17 +311,3 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	}
 }
 
-/**
- * An item name cut where its gloss begins, at the first " (" or ", ", so a
- * row can bold only the lead words and drop a long gloss under them:
- * "Unnatural body" over "(see below), concealed beneath plate suit (A1), hood
- * and clothes". A cutting comma stays on the head as nameSep.
- * @param {string} name
- * @returns {{nameHead: string, nameSep: string, nameRest: string}}
- */
-function splitName(name) {
-	const at = name.search(/ \(|, /);
-	if (at <= 0) return { nameHead: name, nameSep: "", nameRest: "" };
-	const nameSep = name[at] === "," ? "," : "";
-	return { nameHead: name.slice(0, at), nameSep, nameRest: name.slice(at + nameSep.length).trimStart() };
-}

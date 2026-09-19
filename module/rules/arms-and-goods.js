@@ -9,7 +9,7 @@ import { ARMOUR_KINDS } from "../config.js";
 import { textLines } from "./book-art.js";
 import { countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
 import { carriesFrom, structureKind } from "./structures.js";
-import { capitalise, escapeHTML, joinLines, logicalLines } from "./text.js";
+import { capitalise, joinLines, logicalLines, paragraphs } from "./text.js";
 
 /** The pages read, in book order. */
 export const GOODS_PAGES = Object.freeze([11, 12, 13]);
@@ -78,7 +78,7 @@ const DICE = /^(\d*d\d+)\b\s*(.*)$/i;
 const WEAPON_QUALITIES = Object.freeze(["hefty", "long", "slow", "blast"]);
 
 /** The book doesn't mark weapons as ranged, but these can only strike at a distance. */
-const RANGED_NAME = /bow\b|sling|thrower|launcher|catapult|trebuchet/i;
+export const RANGED_NAME = /bow\b|sling|thrower|launcher|catapult|trebuchet/i;
 
 const TRAMPLE = /\btrample\b/i;
 
@@ -301,9 +301,6 @@ export function goodsFromPages(pages) {
 	}
 	return goods;
 }
-
-/** @returns {string} Each text that isn't empty as a paragraph. */
-const paragraphs = (...texts) => texts.filter(Boolean).map((text) => `<p>${escapeHTML(text)}</p>`).join("");
 
 /**
  * Item and actor data for the compendiums Import PDF fills.

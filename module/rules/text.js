@@ -1,5 +1,6 @@
 /**
- * Text helpers shared by Import PDF and the stat block reader. Pure, so
+ * Text helpers shared by Import PDF, the stat block and Property readers, and
+ * the sheets. Pure, so
  * they can be tested without Foundry.
  */
 
@@ -18,6 +19,89 @@ export const escapeHTML = (text) => String(text)
  * @returns {string} The text with its first letter capitalised.
  */
 export const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** Words a heading keeps in lower case unless it starts with them. */
+export const MINOR_WORDS = new Set(["a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to"]);
+
+/**
+ * @param {string} text A heading as printed, in capitals, such as "LAWS OF THE LICH".
+ * @param {object} [options]
+ * @param {Set<string>} [options.minorWords] Words kept in lower case unless they start it.
+ * @param {boolean} [options.apostrophes] Whether an apostrophe stays inside a word, so
+ *   "LICH'S" reads "Lich's" rather than "Lich'S".
+ * @returns {string} In title case, such as "Laws of the Lich".
+ */
+export function titleCase(text, { minorWords = MINOR_WORDS, apostrophes = false } = {}) {
+	const word = apostrophes ? /[\p{L}’']+/gu : /\p{L}+/gu;
+	return text.toLowerCase().replace(word, (found, at) => (at > 0 && minorWords.has(found) ? found : capitalise(found)));
+}
+
+/**
+ * @param {...string} texts
+ * @returns {string} Each text that isn't empty as a paragraph of HTML.
+ */
+export const paragraphs = (...texts) => texts.filter(Boolean).map((text) => `<p>${escapeHTML(text)}</p>`).join("");
+
+/**
+ * @param {string} text
+ * @param {RegExp} separator Anchored with ^, tried at each place outside parentheses.
+ * @returns {string[]} The text split there, each part trimmed, empty parts dropped.
+ */
+export function splitOutside(text, separator) {
+	const parts = [];
+	let depth = 0;
+	let start = 0;
+	for (let index = 0; index < text.length; index++) {
+		const character = text[index];
+		if (character === "(") depth++;
+		else if (character === ")") depth = Math.max(0, depth - 1);
+		else if (depth === 0) {
+			const match = separator.exec(text.slice(index));
+			if (!match) continue;
+			parts.push(text.slice(start, index));
+			index += match[0].length - 1;
+			start = index + 1;
+		}
+	}
+	parts.push(text.slice(start));
+	return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+/**
+ * @param {string} text
+ * @returns {{open: number, close: number, inner: string}[]} Each outermost parenthesis
+ *   that closes, in order. A bracket closing nothing is passed over.
+ */
+export function parentheticals(text) {
+	const groups = [];
+	let depth = 0;
+	let open = -1;
+	for (let index = 0; index < text.length; index++) {
+		if (text[index] === "(") {
+			if (depth === 0) open = index;
+			depth++;
+		} else if (text[index] === ")" && depth > 0) {
+			depth--;
+			if (depth === 0) groups.push({ open, close: index, inner: text.slice(open + 1, index) });
+		}
+	}
+	return groups;
+}
+
+/**
+ * An item name cut where its gloss begins, at the first " (" or ", ", so a
+ * row can bold only the lead words and run the gloss on after them:
+ * "Unnatural body" then "(see below), concealed beneath plate suit (A1), hood
+ * and clothes". A cutting comma stays on the head as nameSep.
+ * @param {string} name
+ * @returns {{nameHead: string, nameSep: string, nameRest: string}}
+ */
+export function splitName(name) {
+	const at = name.search(/ \(|, /);
+	if (at <= 0) return { nameHead: name, nameSep: "", nameRest: "" };
+	const nameSep = name[at] === "," ? "," : "";
+	return { nameHead: name.slice(0, at), nameSep, nameRest: name.slice(at + nameSep.length).trimStart() };
+}
 
 /**
  * @param {string} text As pdf.js read it.
