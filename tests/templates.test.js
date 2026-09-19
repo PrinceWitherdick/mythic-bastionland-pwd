@@ -31,6 +31,7 @@ import { STRUCTURE_KINDS } from "../module/rules/structures.js";
 import { COMPANY_STARTS } from "../module/rules/company.js";
 import { HEX_PROMPT_MODES } from "../module/rules/hex-lore.js";
 import { TOOLKIT_TABS } from "../module/rules/gm-toolkit.js";
+import { KNIGHTHOOD_SECTIONS } from "../module/rules/knighthood.js";
 import { DRAWING_RULES } from "../module/rules/realm-drawing.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
 import { VIRTUES } from "../module/rules/virtues.js";
@@ -161,6 +162,7 @@ describe("localization", () => {
 		"hexLore.settings.prompt.hint",
 		...HEX_PROMPT_MODES.map((mode) => `hexLore.settings.prompt.modes.${mode}`),
 		...TOOLKIT_TABS.map((tab) => `gmToolkit.tabs.${tab}`),
+		...KNIGHTHOOD_SECTIONS.map(({ label }) => label),
 		...["once", "many"].map((count) => `gmToolkit.visits.${count}`),
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),

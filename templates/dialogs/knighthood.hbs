@@ -1,94 +1,106 @@
-<div class="bastionland-dialog__body bastionland-knighthood">
-	<section class="bastionland-knighthood__section">
-		<p class="bastionland-knighthood__lede">{{localize "bastionland.knighthood.intro1"}}</p>
-		<p>{{localize "bastionland.knighthood.intro2"}}</p>
-	</section>
-
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.virtuesLabel"}}</h3>
-		<p>{{localize "bastionland.knighthood.virtues"}}</p>
-		<dl class="bastionland-knighthood__terms">
-			{{#each virtues}}
-			<dt>{{label}}</dt>
-			<dd>{{hint}}</dd>
+<div class="bastionland-dialog__body bastionland-guide bastionland-knighthood">
+	<nav class="bastionland-guide__rail" aria-label="{{localize 'bastionland.knighthood.sectionsLabel'}}">
+		<ol class="bastionland-guide__tabs">
+			{{#each sections}}
+			<li>
+				<button type="button" class="bastionland-guide__tab{{#if active}} is-active{{/if}}" data-guide-tab="{{key}}"{{#if active}} aria-current="true"{{/if}}>
+					<i class="fa-solid {{icon}}" inert></i>
+					<span>{{label}}</span>
+				</button>
+			</li>
 			{{/each}}
-		</dl>
-		<p>{{localize "bastionland.knighthood.guard"}}</p>
-		<table class="bastionland-knighthood__table">
-			<thead>
-				<tr>
-					<th>{{localize "bastionland.knighthood.startsLabel"}}</th>
-					<th>{{localize "bastionland.knighthood.virtuesLabel"}}</th>
-					<th>{{localize "bastionland.knighthood.guardLabel"}}</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{#each starts}}
-				<tr data-tooltip="{{hint}}">
-					<td>{{name}}</td>
-					<td>{{virtues}}</td>
-					<td>{{guard}}</td>
-				</tr>
+		</ol>
+	</nav>
+
+	<div class="bastionland-guide__main">
+		<section class="bastionland-knighthood__section" data-guide-panel="knighthood"{{#unless shown.knighthood}} hidden{{/unless}}>
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.introLabel"}}</h3>
+			<p class="bastionland-knighthood__lede">{{localize "bastionland.knighthood.intro1"}}</p>
+			<p>{{localize "bastionland.knighthood.intro2"}}</p>
+
+			<h4 class="bastionland-heading bastionland-knighthood__subheading">{{localize "bastionland.knighthood.yourKnight"}}</h4>
+			<p>{{localize "bastionland.knighthood.chooseKnight"}}</p>
+			<dl class="bastionland-knighthood__terms">
+				<dt>{{localize "bastionland.property.label"}}</dt>
+				<dd>{{localize "bastionland.knighthood.propertyTerm"}}</dd>
+				<dt>{{localize "bastionland.ability.label"}}</dt>
+				<dd>{{localize "bastionland.ability.hint"}}</dd>
+				<dt>{{localize "bastionland.passion.label"}}</dt>
+				<dd>{{localize "bastionland.passion.hint"}}</dd>
+			</dl>
+
+			<h4 class="bastionland-heading bastionland-knighthood__subheading">{{localize "bastionland.knighthood.everyKnight"}}</h4>
+			<ul class="bastionland-knighthood__list">
+				<li>{{localize "bastionland.knighthood.kit"}}</li>
+				<li>{{localize "bastionland.knighthood.feats"}}</li>
+				<li>{{localize "bastionland.knighthood.oath"}}</li>
+			</ul>
+		</section>
+
+		<section class="bastionland-knighthood__section" data-guide-panel="virtues"{{#unless shown.virtues}} hidden{{/unless}}>
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.virtuesLabel"}}</h3>
+			<p>{{localize "bastionland.knighthood.virtues"}}</p>
+			<dl class="bastionland-knighthood__terms">
+				{{#each virtues}}
+				<dt>{{label}}</dt>
+				<dd>{{hint}}</dd>
 				{{/each}}
-			</tbody>
-		</table>
-	</section>
+			</dl>
+			<p>{{localize "bastionland.knighthood.guard"}}</p>
+			<table class="bastionland-knighthood__table">
+				<thead>
+					<tr>
+						<th>{{localize "bastionland.knighthood.startsLabel"}}</th>
+						<th>{{localize "bastionland.knighthood.virtuesLabel"}}</th>
+						<th>{{localize "bastionland.knighthood.guardLabel"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{#each starts}}
+					<tr data-tooltip="{{hint}}">
+						<td>{{name}}</td>
+						<td>{{virtues}}</td>
+						<td>{{guard}}</td>
+					</tr>
+					{{/each}}
+				</tbody>
+			</table>
+		</section>
 
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.yourKnight"}}</h3>
-		<p>{{localize "bastionland.knighthood.chooseKnight"}}</p>
-		<dl class="bastionland-knighthood__terms">
-			<dt>{{localize "bastionland.property.label"}}</dt>
-			<dd>{{localize "bastionland.knighthood.propertyTerm"}}</dd>
-			<dt>{{localize "bastionland.ability.label"}}</dt>
-			<dd>{{localize "bastionland.ability.hint"}}</dd>
-			<dt>{{localize "bastionland.passion.label"}}</dt>
-			<dd>{{localize "bastionland.passion.hint"}}</dd>
-		</dl>
-	</section>
+		<section class="bastionland-knighthood__section" data-guide-panel="squire"{{#unless shown.squire}} hidden{{/unless}}>
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.squire.label"}}</h3>
+			<p>{{localize "bastionland.knighthood.squires1"}}</p>
+			<p>{{localize "bastionland.knighthood.squires2"}}</p>
+			<p>{{localize "bastionland.knighthood.squires3"}}</p>
+			<p>{{localize "bastionland.knighthood.squires4"}}</p>
+		</section>
 
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.everyKnight"}}</h3>
-		<ul class="bastionland-knighthood__list">
-			<li>{{localize "bastionland.knighthood.kit"}}</li>
-			<li>{{localize "bastionland.knighthood.feats"}}</li>
-			<li>{{localize "bastionland.knighthood.oath"}}</li>
-		</ul>
-	</section>
+		<section class="bastionland-knighthood__section" data-guide-panel="glory"{{#unless shown.glory}} hidden{{/unless}}>
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.glory.label"}}</h3>
+			<p>{{localize "bastionland.knighthood.glory"}}</p>
+			<p><strong>{{localize "bastionland.knighthood.gloryMyths"}}.</strong> {{localize "bastionland.knighthood.gloryMythsText"}}</p>
+			<p><strong>{{localize "bastionland.knighthood.gloryOther"}}.</strong> {{localize "bastionland.knighthood.gloryDuel"}}</p>
+			<ul class="bastionland-knighthood__list">
+				<li>{{localize "bastionland.knighthood.gloryTournament"}}</li>
+				<li>{{localize "bastionland.knighthood.gloryBattle"}}</li>
+				<li>{{localize "bastionland.knighthood.gloryAge"}}</li>
+			</ul>
+		</section>
 
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.squire.label"}}</h3>
-		<p>{{localize "bastionland.knighthood.squires1"}}</p>
-		<p>{{localize "bastionland.knighthood.squires2"}}</p>
-		<p>{{localize "bastionland.knighthood.squires3"}}</p>
-		<p>{{localize "bastionland.knighthood.squires4"}}</p>
-	</section>
-
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.glory.label"}}</h3>
-		<p>{{localize "bastionland.knighthood.glory"}}</p>
-		<p><strong>{{localize "bastionland.knighthood.gloryMyths"}}.</strong> {{localize "bastionland.knighthood.gloryMythsText"}}</p>
-		<p><strong>{{localize "bastionland.knighthood.gloryOther"}}.</strong> {{localize "bastionland.knighthood.gloryDuel"}}</p>
-		<ul class="bastionland-knighthood__list">
-			<li>{{localize "bastionland.knighthood.gloryTournament"}}</li>
-			<li>{{localize "bastionland.knighthood.gloryBattle"}}</li>
-			<li>{{localize "bastionland.knighthood.gloryAge"}}</li>
-		</ul>
-	</section>
-
-	<section class="bastionland-knighthood__section">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.rank.label"}}</h3>
-		<table class="bastionland-knighthood__table">
-			<tbody>
-				{{#each ranks}}
-				<tr{{#if active}} class="is-active"{{/if}}>
-					<td class="bastionland-knighthood__glory">{{glory}}</td>
-					<td>{{label}}</td>
-					<td>{{worthy}}</td>
-				</tr>
-				{{/each}}
-			</tbody>
-		</table>
-		<p><strong>{{localize "bastionland.knighthood.worthiness"}}.</strong> {{localize "bastionland.rank.hint"}}</p>
-	</section>
+		<section class="bastionland-knighthood__section" data-guide-panel="rank"{{#unless shown.rank}} hidden{{/unless}}>
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.rank.label"}}</h3>
+			<table class="bastionland-knighthood__table">
+				<tbody>
+					{{#each ranks}}
+					<tr{{#if active}} class="is-active"{{/if}}>
+						<td class="bastionland-knighthood__glory">{{glory}}</td>
+						<td>{{label}}</td>
+						<td>{{worthy}}</td>
+					</tr>
+					{{/each}}
+				</tbody>
+			</table>
+			<p><strong>{{localize "bastionland.knighthood.worthiness"}}.</strong> {{localize "bastionland.rank.hint"}}</p>
+		</section>
+	</div>
 </div>

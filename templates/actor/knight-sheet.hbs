@@ -4,10 +4,12 @@
 			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
 		</figure>
 		<div class="bastionland-header__text">
-			<h1 class="bastionland-title">{{localize "bastionland.sheet.title"}}</h1>
-			<button type="button" class="bastionland-icon bastionland-knighthood-help" data-action="showKnighthood" data-tooltip="{{localize 'bastionland.knighthood.hint'}}" aria-label="{{localize 'bastionland.knighthood.button'}}">
-				<i class="fa-solid fa-circle-question" inert></i>
-			</button>
+			<div class="bastionland-title-row">
+				<h1 class="bastionland-title">{{localize "bastionland.sheet.title"}}</h1>
+				<button type="button" class="bastionland-icon bastionland-knighthood-help" data-action="showKnighthood" aria-label="{{localize 'bastionland.knighthood.button'}}">
+					<i class="fa-solid fa-circle-question" inert></i>
+				</button>
+			</div>
 			<p class="bastionland-line">
 				<label class="bastionland-script" for="{{rootId}}-name">{{localize "bastionland.sheet.named"}}</label>
 				<input id="{{rootId}}-name" class="bastionland-blank" type="text" name="name" value="{{actor.name}}" autocomplete="off" spellcheck="false">

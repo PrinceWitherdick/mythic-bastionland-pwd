@@ -50,9 +50,7 @@
       "rest": "Rest",
       "rollScar": "Roll Scar",
       "armour": "Armour",
-      "rollSave": "Roll a {virtue} Save",
-      "newKnight": "New Knight",
-      "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay."
+      "rollSave": "Roll a {virtue} Save"
     },
     "heraldry": {
       "title": "Heraldry of {name}",
@@ -375,10 +373,11 @@
     },
     "knighthood": {
       "button": "Knighthood",
-      "hint": "The Knighthood page (p7) and Glory (p6)",
       "title": "Knighthood",
       "readBook": "Read pp6–7",
       "close": "Close",
+      "sectionsLabel": "Sections of the Knighthood page",
+      "introLabel": "Knighthood",
       "intro1": "You are Knights, united by a common Oath and visions of the City. You may have dreams of glory, but every Knight must accept the risk of death.",
       "intro2": "The Seers who knighted you have deemed that you travel as a Company. While some of you may rest, roam, or die, your collective journey will be as one.",
       "virtues": "Knights have 3 Virtues. Roll a value for each in order. The Start chosen for your Company sets the dice; if unsure, roll d12+d6.",

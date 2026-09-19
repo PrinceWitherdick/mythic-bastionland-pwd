@@ -31,7 +31,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		classes: ["bastionland-has-tab-rail"],
 		position: { width: 860, height: 920 },
 		actions: {
-			chooseKnight: KnightSheet.#onChooseKnight,
 			postGambit: KnightSheet.#onPostGambit,
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
@@ -214,8 +213,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	}
 
 	/**
-	 * New Knight fills the sheet in from the book, or for a Squire, Knight
-	 * Squire raises them. The Domain button opens the Domain this Knight rules,
+	 * A Squire's sheet has Knight Squire, which raises them. The Domain button opens the Domain this Knight rules,
 	 * the way the Stonetop character sheet opens the steading, and reads its
 	 * name, or just "Domain" while there isn't one.
 	 * @override
@@ -223,9 +221,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	_headerButtons() {
 		const { isSquire } = this.actor.system;
 		const buttons = [];
-		if (this.isEditable) buttons.push(isSquire
-			? { action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") }
-			: { action: "chooseKnight", icon: "fa-solid fa-chess-knight", label: t("sheet.newKnight"), tooltip: t("sheet.newKnightHint") });
+		if (this.isEditable && isSquire) buttons.push({ action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") });
 		const domain = knightDomain(this.actor);
 		// A Squire rules nothing, and a player who can't found one has nothing to ask for.
 		if (!isSquire && (domain || this.actor.isOwner)) buttons.push({
@@ -316,11 +312,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onClearSteed() {
 		return this.actor.update({ "system.steed": "" });
-	}
-
-	/** @this {KnightSheet} */
-	static #onChooseKnight() {
-		return openKnightChooser(this.actor);
 	}
 
 	/** @this {KnightSheet} */

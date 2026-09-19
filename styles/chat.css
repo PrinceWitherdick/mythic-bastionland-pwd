@@ -673,13 +673,131 @@
 }
 
 /*
- * The Knighthood page (p7) and Glory (p6), opened from the "?" on a Knight's
- * sheet. Its headings keep the sheets' rubric rather than the dialogs' ink.
+ * A long window broken into sections, picked from a column of named tabs down
+ * its left side, after Stonetop's Welcome guide. The rail runs from the top of
+ * the window to the buttons; only the section beside it scrolls.
+ * module/apps/guide-rail.js
  */
-.bastionland-dialog .bastionland-knighthood {
-	gap: 1rem;
+/* The form fills the window, so a short section doesn't lift the buttons off its foot. */
+.bastionland-guide-dialog .dialog-form {
+	flex: 1 1 auto;
+	gap: 0;
+	padding: 0;
 }
 
+.bastionland-guide-dialog .dialog-content {
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.bastionland-guide-dialog .form-footer {
+	padding: 0.6rem 1rem 0.8rem;
+}
+
+/* The rail beside the section, where a dialog body would stack them. */
+.bastionland-guide-dialog .bastionland-guide {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: row;
+	gap: 0;
+	min-height: 0;
+}
+
+.bastionland-guide__rail {
+	flex: none;
+	width: 10.5rem;
+	overflow-y: auto;
+	padding: 0.7rem 0.45rem;
+	border-right: 1px solid var(--bastionland-rule);
+	background: rgb(0 0 0 / 0.035);
+}
+
+.bastionland-guide__tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-guide__tabs li {
+	margin: 0;
+}
+
+/* Plain buttons: Foundry's filled box taken off buttons drawn as words, cells
+   or pictures, here and in the GM Toolkit. Each keeps its own selector, so it
+   weighs what it did; its own rule below adds the rest and its hover. This
+   sits before them all, so a rule of theirs that sets a border wins. The
+   sheet's text-like buttons have their own reset, early in the main sheet. */
+.bastionland-guide-dialog .bastionland-guide__tab,
+.bastionland-page button.bastionland-gm-toolkit__fact--button,
+.bastionland-page button.bastionland-gm-toolkit__weather,
+.bastionland-page button.bastionland-gm-toolkit__art,
+.bastionland-myth-table thead button,
+.bastionland-page .bastionland-item__book-roll,
+.bastionland-page .bastionland-knight-table__pick {
+	min-height: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+}
+
+/* Written out in full, not through the button variables: Foundry's button is a
+   filled, centred box that inks over on hover. */
+.bastionland-guide-dialog .bastionland-guide__tab {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-start;
+	gap: 0.5rem;
+	width: 100%;
+	height: auto;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.95rem;
+	letter-spacing: 0.03em;
+	line-height: 1.2;
+	text-align: left;
+}
+
+.bastionland-guide-dialog .bastionland-guide__tab:is(:hover, :focus-visible) {
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-guide-dialog .bastionland-guide__tab.is-active {
+	border-color: var(--bastionland-rule);
+	background: rgb(0 0 0 / 0.06);
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-guide__tab i {
+	flex: none;
+	width: 1rem;
+	font-size: 0.8rem;
+	text-align: center;
+}
+
+.bastionland-guide__main {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-y: auto;
+	padding: 0.9rem 1rem;
+}
+
+/* A section laid out as a flex box would otherwise show through `hidden`. */
+.bastionland-guide [data-guide-panel][hidden] {
+	display: none;
+}
+
+/*
+ * The Knighthood page (p7) and Glory (p6), opened from the "?" on a Knight's
+ * sheet, a section at a time. Its headings keep the sheets' rubric rather
+ * than the dialogs' ink.
+ */
 .bastionland-knighthood__section {
 	display: flex;
 	flex-direction: column;
@@ -690,6 +808,12 @@
 	margin: 0;
 	color: var(--bastionland-rubric);
 	font-size: 1.05rem;
+}
+
+/* Your Knight and Every Knight sit under the Knighthood heading, a step smaller. */
+.bastionland-dialog .dialog-content .bastionland-knighthood .bastionland-knighthood__subheading {
+	margin-top: 0.5rem;
+	font-size: 0.9rem;
 }
 
 .bastionland-knighthood__lede {
@@ -707,9 +831,13 @@
 	color: var(--bastionland-ink);
 }
 
+/* Foundry gives every dt a black shadow and bold, which the caps face, having
+   no bold of its own, smears. */
 .bastionland-knighthood__terms dt {
 	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
 	letter-spacing: 0.04em;
+	text-shadow: none;
 	text-transform: uppercase;
 }
 

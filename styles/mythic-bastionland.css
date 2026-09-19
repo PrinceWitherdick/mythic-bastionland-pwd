@@ -96,7 +96,7 @@
 	color: var(--bastionland-ink);
 }
 
-/* The sheets' own header buttons, such as New Knight and Domain, carry a
+/* The sheets' own header buttons, such as Domain and Knight Squire, carry a
    label, where Foundry's header controls are bare icons. */
 .bastionland-sheet .window-header button.bastionland-header-button {
 	display: inline-flex;
@@ -322,13 +322,42 @@
 	grid-area: text;
 }
 
-/* The "?" for the Knighthood page sits in the title's corner, clear of the centred title. */
+/* The "?" for the Knighthood page sits small at the title's upper right, like a
+   note mark; the empty first column matches the last, so the title stays
+   centred. Faint ink keeps it quiet. */
+.bastionland-title-row {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	gap: 0.1rem;
+	align-items: center;
+	margin-bottom: 0.35rem;
+}
+
+.bastionland-title-row .bastionland-title {
+	grid-column: 2;
+	margin: 0;
+}
+
 .bastionland-page .bastionland-knighthood-help {
-	position: absolute;
-	top: 0.2rem;
-	right: 0;
-	color: var(--bastionland-ink-soft);
-	font-size: 1.1rem;
+	align-self: start;
+	justify-self: start;
+	width: 1.15rem;
+	min-width: 0;
+	height: 1.15rem;
+	min-height: 0;
+	margin: 0.2rem 0 0 -0.2rem;
+	padding: 0;
+	border: 0;
+	color: var(--bastionland-ink-faint);
+	font-size: 0.8rem;
+	line-height: 1;
+}
+
+/* The glyph as a plain block, so the hover disc sits evenly round it. */
+.bastionland-page .bastionland-knighthood-help > i {
+	display: block;
+	margin: 0;
+	line-height: 1;
 }
 
 .bastionland-page .bastionland-knighthood-help:hover {
