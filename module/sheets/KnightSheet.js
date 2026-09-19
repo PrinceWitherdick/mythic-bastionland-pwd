@@ -1,21 +1,24 @@
 import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
+import { fillKnightFromBook } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
-import { fillSeerFromBook } from "../actions/seers.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
+import { openKnightTable } from "../apps/KnightTable.js";
 import { filePicker } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
+import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { mayTakeSquires } from "../rules/squires.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { watchPromptLines } from "./prompt-breaks.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
 
@@ -45,7 +48,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
 			pickSeerImage: KnightSheet.#onPickSeerImage,
 			openDomain: KnightSheet.#onOpenDomain,
-			showKnighthood: KnightSheet.#onShowKnighthood
+			showKnighthood: KnightSheet.#onShowKnighthood,
+			openKnightTable: KnightSheet.#onOpenKnightTable
 		}
 	};
 
@@ -91,6 +95,13 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		const companyCount = companySizeNow();
 		const [enrichedSeerInfo, enrichedSeerNotes] = await Promise.all([this._enrich(system.seerInfo), this._enrich(system.seerNotes)]);
 		const tooLargeForSquires = !system.isSquire && !squire && !mayTakeSquires(companyCount);
+		// The table on their page sits under the possession that says "see below", which then
+		// needn't say it, or after them all.
+		const bookTable = this.#bookTableContext();
+		const tableItem = bookTable && knightTableItemId(this.actor);
+		const propertyRows = tableItem
+			? property.map((row) => (row.id === tableItem ? { ...row, ...namePartsWithoutSeeBelow(row), bookTable } : row))
+			: property;
 
 		return Object.assign(context, {
 			isSquire: system.isSquire,
@@ -117,7 +128,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 				? t("sheet.toNextRank", { needed: system.nextRank.needed, rank: t(`rank.${system.nextRank.key}`) })
 				: t("sheet.worthiest"),
 			propertyTypes: PROPERTY_TYPES.map((type) => ({ type, label: game.i18n.localize(`TYPES.Item.${type}`) })),
-			property,
+			property: propertyRows,
+			bookTableRow: tableItem ? null : bookTable,
 			abilities,
 			passions,
 			// A Scar still waiting on its GD increase can be settled, and Doom is marked while it lasts.
@@ -160,20 +172,45 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		placeTabRail(this.element, ".bastionland-header");
-		this.#fillSeer();
+		watchPromptLines(this.element);
+		this.#fillFromBook();
 	}
+
+	/**
+	 * The table on the Knight's page, as their Property shows it.
+	 * @returns {{name: string, label: string, tooltip: string, results: {column: string, entry: string}[]}|null}
+	 */
+	#bookTableContext() {
+		const stored = this.actor.system.bookTable;
+		if (this.actor.system.isSquire || !hasTable(stored)) return null;
+		return {
+			name: stored.name,
+			label: t(this.isEditable ? "knightTable.rollLabel" : "knightTable.viewLabel"),
+			tooltip: t(this.isEditable ? "knightTable.open" : "knightTable.view", { name: stored.name }),
+			results: tableResults(stored)
+		};
+	}
+
+	/** Who the Knight was when the book was last checked for their table. */
+	#tableChecked = null;
 
 	/** What the Seer fields held when the book was last checked, so the index isn't fetched on every render. */
 	#seerChecked = null;
 
-	/** Fill in the Seer's picture and what the book says whenever they're missing or the Seer changes. */
-	#fillSeer() {
-		const { isSquire, seer, knightType, seerImg, seerInfo } = this.actor.system;
+	/**
+	 * Fill in the Seer's picture and what the book says whenever they're missing
+	 * or the Seer changes, and take the table on the Knight's page whenever they
+	 * hold none, or another Knight's.
+	 */
+	#fillFromBook() {
+		const { isSquire, knightType, bookTable, seer, seerImg, seerInfo } = this.actor.system;
 		if (!this.isEditable || isSquire) return;
-		const key = JSON.stringify([seer, knightType, seerImg, seerInfo]);
-		if (key === this.#seerChecked) return;
-		this.#seerChecked = key;
-		fillSeerFromBook(this.actor);
+		const tableKey = JSON.stringify([knightType, bookTable.knight, bookTable.name]);
+		const seerKey = JSON.stringify([seer, knightType, seerImg, seerInfo]);
+		const parts = { seer: seerKey !== this.#seerChecked, table: tableKey !== this.#tableChecked };
+		this.#seerChecked = seerKey;
+		this.#tableChecked = tableKey;
+		fillKnightFromBook(this.actor, parts);
 	}
 
 	/**
@@ -326,6 +363,11 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		// Loaded on first use: the painter and its gallery of charges are large, and most sessions never open them.
 		const { openHeraldryPainter } = await import("../apps/HeraldryPainter.js");
 		return openHeraldryPainter(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenKnightTable() {
+		openKnightTable(this.actor);
 	}
 
 	/** @this {KnightSheet} */

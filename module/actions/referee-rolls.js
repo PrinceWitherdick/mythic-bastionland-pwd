@@ -1,5 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
 import { readRefereeTable, REFEREE_TABLES } from "../rules/referee-rolls.js";
+import { readMythTable } from "../rules/gm-toolkit.js";
 import { sparkPrompt } from "../rules/spark-tables.js";
 
 /**
@@ -53,4 +54,16 @@ export async function rollSpark(table) {
 	const roll = await new Roll(table.columns.map(() => "1d12").join(" + ")).evaluate();
 	const results = sparkPrompt(table, roll.dice.map((die) => die.total));
 	return { roll, results, prompt: results.map(({ entry }) => entry).filter(Boolean).join(" ") };
+}
+
+/**
+ * Roll on the table printed on a Myth's page, a d6 for each column asked for.
+ * @param {import("../rules/book-art.js").MythTable} table
+ * @param {number[]} [columns] By index: both unless one is named.
+ * @returns {Promise<{roll: Roll, results: ReturnType<typeof readMythTable>, prompt: string}>}
+ */
+export async function rollMythTable(table, columns = table.columns.map((_, index) => index)) {
+	const roll = await new Roll(columns.map(() => "1d6").join(" + ")).evaluate();
+	const results = readMythTable(table, columns, roll.dice.map((die) => die.total));
+	return { roll, results, prompt: results.map(({ entry }) => entry).filter(Boolean).join(" · ") };
 }

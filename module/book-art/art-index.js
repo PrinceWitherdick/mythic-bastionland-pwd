@@ -13,7 +13,7 @@ export const ART_INDEX_HOOK = `${SYSTEM_ID}.artIndexChanged`;
  * @param {string} path Under Foundry's Data path.
  * @returns {Promise<object|null>} Null when it isn't there or can't be read.
  */
-async function loadJson(path) {
+export async function loadJson(path) {
 	try {
 		const response = await fetch(foundry.utils.getRoute(path), { cache: "no-cache" });
 		return response.ok ? await response.json() : null;

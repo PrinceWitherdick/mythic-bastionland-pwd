@@ -48,21 +48,41 @@ export function knightTypeFromName(name) {
 	return String(name ?? "").trim().replace(/^the\s+/i, "").replace(/\s+knight$/i, "").trim();
 }
 
+/** Marks the prompts line so the Seer page can centre it. */
+const PROMPTS_CLASS = ' class="bastionland-seer__prompts"';
+
+/**
+ * The prompts, each "Label: value" kept whole on one line, with a "~" between
+ * them that the Seer page hides wherever the line wraps (see prompt-breaks.js),
+ * so no line starts or ends with one.
+ * @param {{label: string, value: string}[]} prompts
+ * @param {"plain"|"whole"} [older] As older fills wrote them: plain text, or each prompt whole with a trailing "~".
+ * @returns {string} HTML
+ */
+function promptsHTML(prompts, older) {
+	const pairs = prompts.map(({ label, value }) => `<strong>${escapeHTML(label)}</strong>: ${escapeHTML(value)}`);
+	if (older === "plain") return pairs.join(" ~ ");
+	if (older === "whole") return pairs.map((pair, i) => `<span class="bastionland-seer__prompt">${pair}${i < pairs.length - 1 ? " ~" : ""}</span>`).join(" ");
+	return pairs.map((pair) => `<span class="bastionland-seer__prompt">${pair}</span>`)
+		.join('<span class="bastionland-seer__sep"> <span>~</span> </span>');
+}
+
 /**
  * What the book says of a Seer, for the Seer page of their Knight's sheet:
  * their stat line, each trait as a bullet, then the prompts along the foot of the page.
  * @param {{stats?: object|null, lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
  * @param {Record<string, string>} [labels] For formatStatLine.
+ * @param {"plain"|"whole"} [older] The prompts as older fills wrote them, to recognise those.
  * @returns {string} HTML, or "" when Import PDF couldn't read their text.
  */
-export function seerInfo(seer, labels) {
+export function seerInfo(seer, labels, older) {
 	const stats = formatStatLine(seer?.stats ?? null, labels);
 	const lines = (seer?.lines ?? []).filter(Boolean);
 	const prompts = (seer?.prompts ?? []).filter((prompt) => prompt?.label && prompt?.value);
 	return [
 		stats ? `<p><strong>${escapeHTML(stats)}</strong></p>` : "",
 		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : "",
-		prompts.length ? `<p>${prompts.map(({ label, value }) => `<strong>${escapeHTML(label)}</strong>: ${escapeHTML(value)}`).join(" ~ ")}</p>` : ""
+		prompts.length ? `<p${PROMPTS_CLASS}>${promptsHTML(prompts, older)}</p>` : ""
 	].join("");
 }
 
@@ -106,8 +126,17 @@ export function seerAutoFill(index, knight, labels) {
 		update["system.seerImg"] = seer.path;
 	}
 	const info = seerInfo(seer, labels);
-	// Imports before the prompts were read gave the same text without them.
-	const asBookGave = (entry) => [seerInfo(entry, labels), seerInfo({ ...entry, prompts: null }, labels)];
+	// Imports before the prompts were read gave the same text without them,
+	// fills before the prompts were centred gave them without their class,
+	// and fills before the "~" came out of wrapped lines gave them as plain text
+	// or with each prompt whole. Every one of those opens with the Seer's stats
+	// and traits, so only a Seer whose own open the text is written out in full.
+	const asBookGave = (entry) => {
+		const withoutPrompts = seerInfo({ ...entry, prompts: null }, labels);
+		if (!String(knight.seerInfo).startsWith(withoutPrompts)) return [];
+		const plain = seerInfo(entry, labels, "plain");
+		return [seerInfo(entry, labels), seerInfo(entry, labels, "whole"), plain, plain.replace(PROMPTS_CLASS, ""), withoutPrompts];
+	};
 	if (info && info !== knight.seerInfo && fromBook(knight.seerInfo, asBookGave)) {
 		update["system.seerInfo"] = info;
 	}

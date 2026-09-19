@@ -137,7 +137,7 @@ describe("seerInfo", () => {
 
 	it("ends with the prompts along the foot of the page, as the book sets them", () => {
 		const prompts = [{ label: "Person", value: "Glazier" }, { label: "Theme", value: "<Glass>" }];
-		expect(seerInfo({ ...glassSeer, prompts })).toBe(`${glassInfo}<p><strong>Person</strong>: Glazier ~ <strong>Theme</strong>: &lt;Glass&gt;</p>`);
+		expect(seerInfo({ ...glassSeer, prompts })).toBe(`${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span><span class="bastionland-seer__sep"> <span>~</span> </span><span class="bastionland-seer__prompt"><strong>Theme</strong>: &lt;Glass&gt;</span></p>`);
 	});
 
 	it("is blank when the text wasn't read", () => {
@@ -222,7 +222,29 @@ describe("seerAutoFill", () => {
 		const prompts = [{ label: "Person", value: "Glazier" }];
 		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
 		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
-			"system.seerInfo": `${glassInfo}<p><strong>Person</strong>: Glazier</p>`
+			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`
+		});
+	});
+
+	it("centres the prompts an earlier fill left uncentred", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }];
+		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
+		const centred = `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`;
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: `${glassInfo}<p><strong>Person</strong>: Glazier</p>` })).toEqual({
+			"system.seerInfo": centred
+		});
+	});
+
+	it("rewrites the prompts an earlier fill wrote as plain text or with a trailing ~", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }, { label: "State", value: "Patrolling" }];
+		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
+		const plain = `${glassInfo}<p class="bastionland-seer__prompts"><strong>Person</strong>: Glazier ~ <strong>State</strong>: Patrolling</p>`;
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: plain })).toEqual({
+			"system.seerInfo": seerInfo({ ...glassSeer, prompts })
+		});
+		const whole = `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier ~</span> <span class="bastionland-seer__prompt"><strong>State</strong>: Patrolling</span></p>`;
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: whole })).toEqual({
+			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span><span class="bastionland-seer__sep"> <span>~</span> </span><span class="bastionland-seer__prompt"><strong>State</strong>: Patrolling</span></p>`
 		});
 	});
 

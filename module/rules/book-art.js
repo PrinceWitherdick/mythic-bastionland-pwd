@@ -8,7 +8,7 @@
  * with a picture of the Seer who knighted them, and a Myth facing it.
  */
 import { parseStatLine } from "./stat-blocks.js";
-import { BULLET, cleanText, joinLines, logicalLines } from "./text.js";
+import { BULLET, MINOR_WORDS, cleanText, joinLines, logicalLines, titleCase } from "./text.js";
 
 /** Top-level folder under Foundry's Data path, outside any system or world. */
 export const ART_ROOT = "mythic-bastionland-art";
@@ -20,15 +20,19 @@ export const INDEX_FILE = "index.json";
  * Omens and Cast, and each Seer's stats. 4 added the Spark Tables. 5 added
  * the City Quest's Omens and Cast. 6 added each Knight's square token. 7
  * added the prompts along the foot of each Knight's page to their Seer. 8
- * added the rules pages, starting with Creating a Realm (p14).
+ * added the rules pages, starting with Creating a Realm (p14). 9 added the
+ * table at the foot of each Myth's page. 10 added the table on each Knight's.
  */
-export const INDEX_VERSION = 8;
+export const INDEX_VERSION = 10;
 
 /** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
 export const MYTH_TEXT_VERSION = 3;
 
 /** The first index version with the City Quest's Omens and Cast. */
 export const CITY_QUEST_TEXT_VERSION = 5;
+
+/** The first index version with the table on each Knight's page. */
+export const KNIGHT_TABLE_VERSION = 10;
 
 /** Page count of the PDF the layout below was measured against. */
 export const EXPECTED_PAGES = 212;
@@ -305,8 +309,8 @@ function bodyText(lines, headingAt, endAt) {
  * A Knight's Property, Ability and Passion, read from their page in the order
  * the book prints them.
  * @param {object[]} items From `page.getTextContent()`.
- * @returns {{property: string[], ability: {name: string, text: string}, passion: {name: string, text: string}}|null}
- *   Null when any part can't be found.
+ * @returns {{property: string[], ability: {name: string, text: string}, passion: {name: string, text: string}, table: MythTable|null}|null}
+ *   Null when any part but the table can't be found.
  */
 export function knightTextFromItems(items) {
 	const lines = textLines(items);
@@ -326,7 +330,7 @@ export function knightTextFromItems(items) {
 	const ability = section(abilityAt, passionAt, ABILITY_HEADING);
 	const passion = section(passionAt, lines.length, PASSION_HEADING);
 	if (!property.length || !ability.text || !passion.text) return null;
-	return { property, ability, passion };
+	return { property, ability, passion, table: mythTableFromItems(items, { lines }) };
 }
 
 /** The Referee prompts along the foot of every Knight ("Person: …") and Myth ("Dwelling: …") page. */
@@ -405,7 +409,7 @@ const OMEN_START = /^(\d+)\.\s*(.*)$/;
  * A Myth's Omens and Cast. The Omens fill the left column and the Cast the
  * right, above a table and the prompts along the foot.
  * @param {object[]} items From `page.getTextContent()`.
- * @returns {{omens: string[], cast: CastEntry[], castNote: string}|null}
+ * @returns {{omens: string[], cast: CastEntry[], castNote: string, table: MythTable|null}|null}
  *   `castNote` is text about the whole Cast, printed above the first entry.
  *   Null when the columns can't be found.
  */
@@ -418,8 +422,9 @@ export function mythTextFromItems(items) {
 
 	const split = (runMiddle(omensHeading) + runMiddle(castHeading)) / 2;
 	const top = Math.min(omensHeading.y, castHeading.y) - BASELINE_TOLERANCE;
-	const bottom = promptsTop(textLines(items)) + BASELINE_TOLERANCE;
-	const column = (inColumn) => textLines(items.filter((item) => {
+	const lines = textLines(items);
+	const bottom = promptsTop(lines) + BASELINE_TOLERANCE;
+	const column =(inColumn) => textLines(items.filter((item) => {
 		const [, , , , x, y] = item.transform ?? [];
 		return y < top && y > bottom && inColumn(x);
 	}));
@@ -427,7 +432,120 @@ export function mythTextFromItems(items) {
 	const omens = readOmens(column((x) => x < split));
 	const { cast, castNote } = readCast(column((x) => x >= split));
 	if (!omens.length && !cast.length) return null;
-	return { omens, cast, castNote };
+	return { omens, cast, castNote, table: mythTableFromItems(items, { runs, lines }) };
+}
+
+/** A Myth's table has a row for each face of a d6. */
+export const MYTH_TABLE_ROWS = 6;
+
+/** A table title is printed in capitals, which sets it apart from the column headings. Some ask a question. */
+const TABLE_TITLE = /^\p{Lu}[\p{Lu}\s&'’,?!-]*$/u;
+
+/** How a table's title is title-cased: "from" and "with" stay lower case too, and an apostrophe stays inside its word. */
+const TABLE_TITLE_CASE = Object.freeze({ minorWords: new Set([...MINOR_WORDS, "from", "with"]), apostrophes: true });
+
+/**
+ * Break runs into the pieces of text on each line, parted wherever a gap is
+ * wider than a word space. A wide entry can cross the middle of its table, so
+ * a piece is placed by where its middle falls, never run by run.
+ * @param {ReturnType<typeof textRuns>} runs
+ * @returns {{x: number, width: number, runs: ReturnType<typeof textRuns>}[]}
+ */
+function clusters(runs) {
+	const pieces = [];
+	for (const run of [...runs].sort((a, b) => (Math.abs(a.y - b.y) <= BASELINE_TOLERANCE ? a.x - b.x : b.y - a.y))) {
+		const piece = pieces.at(-1);
+		const end = piece && piece.x + piece.width;
+		if (piece && Math.abs(piece.runs[0].y - run.y) <= BASELINE_TOLERANCE && run.x - end <= run.size / 2) {
+			piece.runs.push(run);
+			piece.width = Math.max(end, run.x + run.width) - piece.x;
+		} else {
+			pieces.push({ x: run.x, width: run.width, runs: [run] });
+		}
+	}
+	return pieces;
+}
+
+/**
+ * @typedef {object} MythTable
+ * @property {string} name      Such as "The Poisonous Young".
+ * @property {string[]} columns The two column headings.
+ * @property {string[][]} rows  Six rows in roll order, each with one entry per column.
+ */
+
+/**
+ * The table at the foot of a Myth's Cast column, which its Omens call "opposite",
+ * or above the Seer on a Knight's page, which their Property calls "see below".
+ * Its rows are numbered 1 to 6 down a dark strip, and an entry that wraps sits
+ * either side of its number, so each run joins the row whose number is nearest.
+ * @param {object[]} items From `page.getTextContent()`.
+ * @param {object} [parsed] What a caller has already made of the same items, so the page isn't read twice.
+ * @param {ReturnType<typeof textRuns>} [parsed.runs]   `textRuns(items)`.
+ * @param {ReturnType<typeof textLines>} [parsed.lines] `textLines(items)`.
+ * @returns {MythTable|null} Null unless there are two headings and every row has both entries.
+ */
+export function mythTableFromItems(items, { runs = textRuns(items), lines: pageLines = textLines(items) } = {}) {
+	const bottom = promptsTop(pageLines);
+
+	// The row numbers: 1 to 6, one under another, in the same place across the page.
+	const digits = runs.filter((run) => run.y > bottom && /^[1-6]$/.test(run.str.trim()));
+	const marks = [];
+	for (const one of digits.filter((run) => run.str.trim() === "1")) {
+		const found = [one];
+		for (let number = 2; number <= MYTH_TABLE_ROWS; number++) {
+			const next = digits.find((run) => run.str.trim() === String(number) && Math.abs(run.x - one.x) <= 3 && run.y < found.at(-1).y);
+			if (!next) break;
+			found.push(next);
+		}
+		if (found.length === MYTH_TABLE_ROWS) marks.splice(0, marks.length, ...found);
+	}
+	if (!marks.length) return null;
+
+	const [first] = marks;
+	const right = (run) => run.x > first.x + first.width && !marks.includes(run);
+	const lines = textLines(items.filter((item) => typeof item.str === "string" && (item.transform?.[4] ?? 0) > first.x + first.width));
+
+	// Above the rows: the title in capitals, and the column headings under it.
+	const titleAt = lines.findLastIndex((line) => line.y > first.y && TABLE_TITLE.test(line.text));
+	if (titleAt < 0) return null;
+	const titleLines = [lines[titleAt].text];
+	for (let at = titleAt - 1; at >= 0 && TABLE_TITLE.test(lines[at].text) && lines[at].y - lines[at + 1].y <= lines[at].size * 1.6; at--) {
+		titleLines.unshift(lines[at].text);
+	}
+
+	// A row's last entry can run a line or two past its number, down to the prompts.
+	// On a Knight's page it ends where their Seer begins.
+	const floor = Math.max(bottom, ...runs.filter((run) => SEER_ANCHOR.test(run.str.trim()) && run.y < marks.at(-1).y).map((run) => run.y));
+	const nearest = (run) => marks.reduce((best, mark) => (Math.abs(run.y - mark.y) < Math.abs(run.y - best.y) ? mark : best));
+	const underTitle = runs.filter((run) => right(run) && run.y < lines[titleAt].y - BASELINE_TOLERANCE && run.y > floor + BASELINE_TOLERANCE);
+	// The first entry is centred on its number, reaching as far above it as below.
+	// A heading can wrap onto a second line, so whatever sits higher is a heading.
+	const lowest = Math.min(first.y, ...underTitle.filter((run) => nearest(run) === first).map((run) => run.y));
+	const headingBelow = 2 * first.y - lowest + BASELINE_TOLERANCE;
+	const headingRuns = underTitle.filter((run) => run.y > headingBelow);
+	const body = underTitle.filter((run) => run.y <= headingBelow);
+
+	// The columns part at the widest gap across the headings, however they wrap.
+	const sorted = [...headingRuns].sort((a, b) => a.x - b.x);
+	let widest = null;
+	let end = sorted[0] ? sorted[0].x + sorted[0].width : 0;
+	for (const run of sorted.slice(1)) {
+		const gap = run.x - end;
+		if (!widest || gap > widest.gap) widest = { at: run.x, gap };
+		end = Math.max(end, run.x + run.width);
+	}
+	if (!widest || widest.gap <= 0) return null;
+	const split = widest.at - widest.gap / 2;
+	const columns = [0, 1].map((column) => joinRuns(headingRuns.filter((run) => (runMiddle(run) < split ? 0 : 1) === column)));
+
+	const rows = marks.map((mark) => {
+		const mine = body.filter((run) => nearest(run) === mark);
+		const cells = [[], []];
+		for (const cluster of clusters(mine)) cells[runMiddle(cluster) < split ? 0 : 1].push(...cluster.runs);
+		return cells.map(joinRuns);
+	});
+	if (columns.some((column) => !column) || rows.some((row) => row.some((entry) => !entry))) return null;
+	return { name: titleCase(cleanText(titleLines.join(" ")), TABLE_TITLE_CASE), columns, rows };
 }
 
 /**
@@ -556,7 +674,7 @@ export function tokenFile(d6, d12, name, extension = "webp") {
 /**
  * One picture's line in the index. `path` is null when it wasn't saved. Each
  * kind also carries the text read from its page, null when unread: a Knight's
- * Property, Ability and Passion, a Seer's stats, and a Myth's Omens and Cast.
+ * Property, Ability, Passion and table, a Seer's stats, and a Myth's Omens, Cast and table.
  * A Knight's `token` is the path of the square cut from their portrait.
  * @param {object} entry
  * @param {object|null} [entry.text] From knightTextFromItems, seerTextFromItems or mythTextFromItems.
@@ -566,11 +684,11 @@ export function indexEntry({ kind, d6, d12, page, name = null, file, path = null
 	const entry = { kind, d6, d12, roll: rollLabel(d6, d12), page, name, file, path, width, height };
 	switch (kind) {
 		case "knight":
-			return { ...entry, token, property: text?.property ?? null, ability: text?.ability ?? null, passion: text?.passion ?? null };
+			return { ...entry, token, property: text?.property ?? null, ability: text?.ability ?? null, passion: text?.passion ?? null, table: text?.table ?? null };
 		case "seer":
 			return { ...entry, stats: text?.stats ?? null, lines: text?.lines ?? null, prompts: text?.prompts ?? null };
 		case "myth":
-			return { ...entry, omens: text?.omens ?? null, cast: text?.cast ?? null, castNote: text?.castNote ?? null };
+			return { ...entry, omens: text?.omens ?? null, cast: text?.cast ?? null, castNote: text?.castNote ?? null, table: text?.table ?? null };
 		default:
 			return entry;
 	}

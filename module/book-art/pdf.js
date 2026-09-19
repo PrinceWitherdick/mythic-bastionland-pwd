@@ -24,24 +24,42 @@ function loadPdfjs() {
 }
 
 /**
- * Open a PDF the user picked. It is read in the browser and never uploaded.
- * @param {File} file
+ * Open a PDF with pdf.js, letting go of the loading task if it fails.
+ * @param {object} source What pdf.js's getDocument takes, less isEvalSupported.
  * @returns {Promise<{pdf: object, OPS: object}>} The document and pdf.js operator codes.
  */
-export async function openPdf(file) {
+async function openDocument(source) {
 	const pdfjs = await loadPdfjs();
-	const task = pdfjs.getDocument({
-		data: new Uint8Array(await file.arrayBuffer()),
-		// Without OffscreenCanvas pdf.js hands back raw pixels instead of an ImageBitmap.
-		isOffscreenCanvasSupported: false,
-		isEvalSupported: false
-	});
+	const task = pdfjs.getDocument({ ...source, isEvalSupported: false });
 	try {
 		return { pdf: await task.promise, OPS: pdfjs.OPS };
 	} catch (error) {
 		await task.destroy();
 		throw error;
 	}
+}
+
+/**
+ * Open a PDF the user picked. It is read in the browser and never uploaded.
+ * @param {File} file
+ * @returns {Promise<{pdf: object, OPS: object}>} The document and pdf.js operator codes.
+ */
+export async function openPdf(file) {
+	return openDocument({
+		data: new Uint8Array(await file.arrayBuffer()),
+		// Without OffscreenCanvas pdf.js hands back raw pixels instead of an ImageBitmap.
+		isOffscreenCanvasSupported: false
+	});
+}
+
+/**
+ * Open a PDF this Foundry serves. pdf.js fetches only the parts it reads, so
+ * reading one page of the rulebook doesn't download all of it.
+ * @param {string} url
+ * @returns {Promise<object>} The document.
+ */
+export async function openPdfUrl(url) {
+	return (await openDocument({ url })).pdf;
 }
 
 /**

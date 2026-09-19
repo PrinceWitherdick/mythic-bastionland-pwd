@@ -137,6 +137,15 @@
 						{{else}}
 						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
 						{{/each}}
+						{{#with bookTableRow}}
+						{{!-- A table about the Knight themself, which no possession points to. --}}
+						<li class="bastionland-item bastionland-item--book-table">
+							<div class="bastionland-item__line">
+								<button type="button" class="bastionland-item__name" data-action="openKnightTable" data-viewable data-tooltip="{{tooltip}}"><span class="bastionland-item__title"><span class="bastionland-item__head">{{name}}</span></span></button>
+							</div>
+							<p class="bastionland-item__book-table"><button type="button" class="bastionland-item__book-roll" data-action="openKnightTable" data-viewable data-tooltip="{{tooltip}}">{{label}} <i class="fa-solid fa-dice-d6" inert></i></button>{{#each results}} {{column}}: <strong>{{entry}}</strong>{{#unless @last}} ·{{/unless}}{{/each}}</p>
+						</li>
+						{{/with}}
 					</ul>
 					<div class="bastionland-adds">
 						{{#each propertyTypes}}
@@ -297,30 +306,28 @@
 	<div class="tab {{tabs.seer.cssClass}}" data-group="primary" data-tab="seer">
 		<section class="bastionland-block bastionland-seer">
 			<header class="bastionland-block__header">
-				<h2 class="bastionland-heading">{{#if system.seer}}{{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
+				<h2 class="bastionland-heading">{{#if system.seer}}<small class="bastionland-seer__by">{{localize "bastionland.sheet.knightedBy"}}</small> {{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
 			</header>
-			{{#if (or system.seerImg editable)}}
-			<figure class="bastionland-seer__portrait">
-				{{#if system.seerImg}}
-				<img src="{{system.seerImg}}" alt="{{system.seer}}" {{#if editable}}data-action="pickSeerImage" data-tooltip="{{localize 'bastionland.seer.portrait'}}"{{/if}}>
-				{{else}}
-				<button type="button" class="bastionland-seer__pick" data-action="pickSeerImage"><i class="fa-solid fa-image" inert></i> {{localize "bastionland.seer.portrait"}}</button>
-				{{/if}}
-			</figure>
-			{{/if}}
 			{{#unless system.seer}}
 			<p class="bastionland-hint">{{localize (ifThen isSquire "bastionland.seer.squire" "bastionland.seer.unnamed")}}</p>
 			{{/unless}}
-		</section>
-
-		<section class="bastionland-block bastionland-seer__info">
-			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.seer.info"}}</h2>
-			{{!-- The book's own words: read only, and shown whole. --}}
-			{{#if system.seerInfo}}
-			<div class="bastionland-seer__book">{{{enrichedSeerInfo}}}</div>
-			{{else}}
-			<p class="bastionland-hint">{{localize "bastionland.seer.infoEmpty"}}</p>
-			{{/if}}
+			<div class="bastionland-seer__body">
+				{{#if (or system.seerImg editable)}}
+				<figure class="bastionland-seer__portrait">
+					{{#if system.seerImg}}
+					<img src="{{system.seerImg}}" alt="{{system.seer}}" {{#if editable}}data-action="pickSeerImage" data-tooltip="{{localize 'bastionland.seer.portrait'}}"{{/if}}>
+					{{else}}
+					<button type="button" class="bastionland-seer__pick" data-action="pickSeerImage"><i class="fa-solid fa-image" inert></i> {{localize "bastionland.seer.portrait"}}</button>
+					{{/if}}
+				</figure>
+				{{/if}}
+				{{!-- The book's own words, unheaded as the book prints them: read only, and shown whole. --}}
+				{{#if system.seerInfo}}
+				<div class="bastionland-seer__book">{{{enrichedSeerInfo}}}</div>
+				{{else}}
+				<p class="bastionland-hint">{{localize "bastionland.seer.infoEmpty"}}</p>
+				{{/if}}
+			</div>
 		</section>
 
 		<section class="bastionland-block bastionland-chronicle">

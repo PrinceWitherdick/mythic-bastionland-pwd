@@ -1,0 +1,41 @@
+<section class="bastionland-page bastionland-knight-table">
+	{{#if missing}}
+	<p class="bastionland-hint">{{localize "bastionland.knightTable.missing"}}</p>
+	{{else}}
+	<p class="bastionland-hint">{{#if editable}}{{localize "bastionland.knightTable.intro"}}{{else}}{{localize "bastionland.knightTable.introViewer"}}{{/if}} {{reference}}</p>
+	<table class="bastionland-myth-table">
+		<thead>
+			<tr>
+				<th scope="col" class="bastionland-myth-table__die">
+					{{#if editable}}
+					<button type="button" data-action="rollTable" data-tooltip="{{localize 'bastionland.knightTable.roll'}}" aria-label="{{localize 'bastionland.knightTable.roll'}}"><i class="fa-solid fa-dice-d6" inert></i></button>
+					{{else}}
+					<i class="fa-solid fa-dice-d6" inert></i>
+					{{/if}}
+				</th>
+				{{#each columns}}
+				<th scope="col">{{#if @root.editable}}<button type="button" data-action="rollTable" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button>{{else}}{{label}}{{/if}}</th>
+				{{/each}}
+			</tr>
+		</thead>
+		<tbody>
+			{{#each rows}}
+			<tr>
+				<th scope="row">{{number}}</th>
+				{{#each entries}}
+				<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}>{{#if @root.editable}}<button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.knightTable.pick'}}">{{text}}</button>{{else}}{{text}}{{/if}}</td>
+				{{/each}}
+			</tr>
+			{{/each}}
+		</tbody>
+	</table>
+	{{#if editable}}
+	<nav class="bastionland-toolbar">
+		<button type="button" data-action="rollTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.knightTable.roll"}}</button>
+		{{#if rolledAny}}
+		<button type="button" data-action="clearRolls"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.knightTable.clear"}}</button>
+		{{/if}}
+	</nav>
+	{{/if}}
+	{{/if}}
+</section>

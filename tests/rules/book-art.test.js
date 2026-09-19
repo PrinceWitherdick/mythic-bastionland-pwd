@@ -11,6 +11,7 @@ import {
 	hasPageText,
 	indexEntry,
 	knightTextFromItems,
+	mythTableFromItems,
 	mythTextFromItems,
 	pickPageArt,
 	paintedImages,
@@ -280,7 +281,9 @@ describe("mythTextFromItems", () => {
 				{ name: "Moth Swarm & Wisp", stats: { vig: 5, cla: 10, spi: 3, guard: 2 }, lines: ["Bites (d4)"] },
 				{ name: "The Great Wick", stats: null, lines: ["Burns for a hundred years."] }
 			],
-			castNote: ""
+			castNote: "",
+			// One row doesn't make a table.
+			table: null
 		});
 	});
 
@@ -296,7 +299,8 @@ describe("mythTextFromItems", () => {
 		expect(mythTextFromItems(page)).toEqual({
 			omens: ["A warm draught."],
 			cast: [{ name: "Frost Warden", stats: { vig: 9, cla: 9, spi: 9, guard: 4 }, lines: [] }],
-			castNote: "Chosen by the season."
+			castNote: "Chosen by the season.",
+			table: null
 		});
 	});
 
@@ -304,6 +308,116 @@ describe("mythTextFromItems", () => {
 		expect(mythTextFromItems([item("Cast", 14, 413, 365, 27)])).toBeNull();
 		expect(mythTextFromItems(headings)).toBeNull();
 		expect(mythTextFromItems([])).toBeNull();
+	});
+});
+
+describe("mythTableFromItems", () => {
+	// Laid out as a Myth page prints its table: a title in capitals, two
+	// headings, then six rows numbered down a strip at the left.
+	const row = (number, y) => item(String(number), 10, 311, y, 6);
+	const table = [
+		body("Burns for a hundred years.", 11, 350, 217, 150),
+		body("VIG 9, CLA 9, SPI 9, 4GD", 11, 340, 205, 130),
+		item("WICK", 10, 370, 190, 30),
+		item("TABLE", 10, 403, 190, 34),
+		item("Colour", 10, 350, 178, 36),
+		item("Smell", 10, 470, 178, 30),
+		row(1, 166),
+		item("Tallow", 10, 355, 166, 34),
+		item("Smoke", 10, 470, 166, 32),
+		// An entry wraps either side of its number.
+		row(2, 148),
+		item("Beeswax from the", 10, 330, 153, 90),
+		item("abbey hives", 10, 345, 143, 60),
+		item("Honey", 10, 470, 148, 32),
+		row(3, 130),
+		item("Rush", 10, 360, 130, 22),
+		// A wide entry crosses the middle; small capitals come as runs of their own.
+		item("3", 10, 438, 130, 5.6),
+		item("GD", 7.1, 443.6, 130, 11),
+		item(", snuffers (d6)", 10, 454.6, 130, 70),
+		row(4, 117),
+		item("Bone", 10, 360, 117, 24),
+		item("Ash", 10, 475, 117, 18),
+		row(5, 104),
+		item("Pitch", 10, 360, 104, 26),
+		item("Tar", 10, 475, 104, 16),
+		row(6, 91),
+		item("Moon", 10, 360, 91, 26),
+		// The last entry runs a line past its number.
+		item("Nothing at all,", 10, 450, 96, 70),
+		item("not even", 10, 460, 86, 40),
+		item("a whisper", 10, 458, 76, 45),
+		body("Dwelling", 11, 99, 60, 51),
+		body(": Candle shop ~", 11, 150, 60, 90),
+		body("Monument", 11, 370, 60, 62),
+		body(": Wax statue", 11, 432, 60, 70)
+	];
+
+	it("reads the title, both headings and six rows, however the entries wrap", () => {
+		expect(mythTableFromItems(table)).toEqual({
+			name: "Wick Table",
+			columns: ["Colour", "Smell"],
+			rows: [
+				["Tallow", "Smoke"],
+				["Beeswax from the abbey hives", "Honey"],
+				["Rush", "3GD, snuffers (d6)"],
+				["Bone", "Ash"],
+				["Pitch", "Tar"],
+				["Moon", "Nothing at all, not even a whisper"]
+			]
+		});
+	});
+
+	it("keeps short words of the title in lower case", () => {
+		const titled = table.map((run) => (run.str === "WICK" ? { ...run, str: "LAWS OF THE" } : run));
+		expect(mythTableFromItems(titled).name).toBe("Laws of the Table");
+	});
+
+	it("reads a Knight's table: a question for a title, headings over two lines, and their Seer below", () => {
+		const knightRow = (number, y) => item(String(number), 10, 76, y, 5.7);
+		const page = [
+			item("WHAT IS IN THE SACK?", 10, 110, 430, 120),
+			item("Found on", 10, 110, 415, 45),
+			item("the Road", 10, 105, 405, 45),
+			item("Smells of", 10, 215, 410, 50),
+			knightRow(1, 395),
+			item("Turnips", 10, 125, 395, 35),
+			item("Wet dog", 10, 225, 395, 40),
+			knightRow(2, 380),
+			// The first line of an entry that wraps, above its number, is no heading.
+			item("A very small", 10, 100, 385, 60),
+			item("goose", 10, 115, 375, 30),
+			item("Cinnamon", 10, 222, 380, 45),
+			...[3, 4, 5, 6].flatMap((number) => [
+				knightRow(number, 380 - 15 * (number - 2)),
+				item(`Left ${number}`, 10, 120, 380 - 15 * (number - 2), 30),
+				item(`Right ${number}`, 10, 225, 380 - 15 * (number - 2), 32)
+			]),
+			item("KNIGHTED BY…", 11, 71, 300, 93),
+			item("VIG", 7.9, 71, 280, 15),
+			item("9, 3", 11, 89, 280, 20),
+			item("GD", 7.9, 110, 280, 12),
+			item("Hums without cease.", 11, 89, 265, 120)
+		];
+		expect(mythTableFromItems(page)).toEqual({
+			name: "What Is in the Sack?",
+			columns: ["Found on the Road", "Smells of"],
+			rows: [
+				["Turnips", "Wet dog"],
+				["A very small goose", "Cinnamon"],
+				["Left 3", "Right 3"],
+				["Left 4", "Right 4"],
+				["Left 5", "Right 5"],
+				["Left 6", "Right 6"]
+			]
+		});
+	});
+
+	it("gives up without all six rows, or with an entry missing", () => {
+		expect(mythTableFromItems(table.filter((run) => run.str !== "4"))).toBeNull();
+		expect(mythTableFromItems(table.filter((run) => run.str !== "Ash"))).toBeNull();
+		expect(mythTableFromItems([])).toBeNull();
 	});
 });
 
@@ -340,7 +454,8 @@ describe("knightTextFromItems", () => {
 		expect(knightTextFromItems(page)).toEqual({
 			property: ["Hooked lamp (d8 hefty), coat (A1), and helm (A1)", "Grumbling mule (VIG 9, GD)"],
 			ability: { name: "Snuff Out", text: "Put out every candle-flame you can see." },
-			passion: { name: "Vigil", text: "Restore SPI when you keep watch all night." }
+			passion: { name: "Vigil", text: "Restore SPI when you keep watch all night." },
+			table: null
 		});
 	});
 
@@ -417,7 +532,8 @@ describe("buildIndex", () => {
 			height: null,
 			omens: null,
 			cast: null,
-			castNote: null
+			castNote: null,
+			table: null
 		});
 		expect(index.knights[0]).not.toHaveProperty("kind");
 		expect(index.knights[0]).toMatchObject({ token: null, property: null, ability: null, passion: null });

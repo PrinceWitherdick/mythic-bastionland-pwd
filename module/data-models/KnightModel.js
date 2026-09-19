@@ -17,6 +17,15 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			seerImg: textField(),
 			seerInfo: htmlField(),
 			seerNotes: htmlField(),
+			// The d6 table on their page and what they rolled on it; see rules/knight-tables.js.
+			bookTable: new fields.SchemaField({
+				knight: textField(),
+				page: new fields.NumberField({ required: true, nullable: true, integer: true, initial: null }),
+				name: textField(),
+				columns: new fields.ArrayField(new fields.StringField()),
+				rows: new fields.ArrayField(new fields.ArrayField(new fields.StringField())),
+				rolls: new fields.ArrayField(countField({ max: 6 }))
+			}),
 			// "Their ultimate fate was ___"
 			fate: textField(),
 			// The shield painted at the top of the sheet: an uploaded file's path, or a data URL for users who can't upload.

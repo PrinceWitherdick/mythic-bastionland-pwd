@@ -19,7 +19,7 @@ export const VIEWER_PATH = "scripts/pdfjs/web/viewer.html";
  * @param {string} path
  * @returns {string}
  */
-function routed(path) {
+export function routed(path) {
 	const clean = String(path ?? "").replace(/^\/+/, "");
 	if (/^[a-z]+:\/\//i.test(clean)) return clean;
 	return globalThis.foundry?.utils?.getRoute?.(clean) ?? `/${clean}`;

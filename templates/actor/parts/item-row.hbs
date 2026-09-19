@@ -30,6 +30,9 @@
 		</span>
 		{{/if}}
 	</div>
+	{{#with bookTable}}
+	<p class="bastionland-item__book-table"><button type="button" class="bastionland-item__book-roll" data-action="openKnightTable" data-viewable data-tooltip="{{tooltip}}">{{label}} <i class="fa-solid fa-dice-d6" inert></i></button>{{#each results}} {{column}}: <strong>{{entry}}</strong>{{#unless @last}} ·{{/unless}}{{/each}}</p>
+	{{/with}}
 	{{#if description}}
 	<div class="bastionland-item__description">{{{description}}}</div>
 	{{/if}}

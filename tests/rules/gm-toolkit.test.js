@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenStage, realmPlaces, resolvedMyths } from "../../module/rules/gm-toolkit.js";
+import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenParts, omenStage, pointsOpposite, readMythTable, realmPlaces, resolvedMyths } from "../../module/rules/gm-toolkit.js";
 
 const hex = (col, row) => ({ col, row });
 
@@ -74,5 +74,42 @@ describe("resolvedMyths", () => {
 		const notes = { myths: { 1: { roll: "2-07", note: "", resolved: true }, 2: { roll: "6-06", note: "", resolved: true } } };
 		expect(resolvedMyths(realm, notes).map((myth) => myth.number)).toEqual([1]);
 		expect(resolvedMyths(null, notes)).toEqual([]);
+	});
+});
+
+describe("omenParts", () => {
+	it("marks each \"see opposite\" so it can open the Myth's table", () => {
+		expect(omenParts("A lantern swings in the dark (see opposite). It goes out.")).toEqual([
+			{ text: "A lantern swings in the dark (", opposite: false },
+			{ text: "see opposite", opposite: true },
+			{ text: "). It goes out.", opposite: false }
+		]);
+		expect(pointsOpposite("Roll a new one (See Opposite).")).toBe(true);
+	});
+
+	it("leaves other text whole, and nothing as nothing", () => {
+		expect(omenParts("The young lurch in opposite directions.")).toEqual([{ text: "The young lurch in opposite directions.", opposite: false }]);
+		expect(pointsOpposite("The young lurch in opposite directions.")).toBe(false);
+		expect(omenParts(null)).toEqual([]);
+		expect(pointsOpposite(null)).toBe(false);
+	});
+});
+
+describe("readMythTable", () => {
+	const table = {
+		name: "Wick Table",
+		columns: ["Colour", "Smell"],
+		rows: [["Tallow", "Smoke"], ["Beeswax", "Honey"], ["Rush", "Reed"], ["Bone", "Ash"], ["Pitch", "Tar"], ["Moon", "Nothing"]]
+	};
+
+	it("reads a d6 in each column", () => {
+		expect(readMythTable(table, [0, 1], [2, 6])).toEqual([
+			{ index: 0, column: "Colour", roll: 2, entry: "Beeswax" },
+			{ index: 1, column: "Smell", roll: 6, entry: "Nothing" }
+		]);
+	});
+
+	it("reads one column alone", () => {
+		expect(readMythTable(table, [1], [4])).toEqual([{ index: 1, column: "Smell", roll: 4, entry: "Ash" }]);
 	});
 });

@@ -1,6 +1,7 @@
 <section class="bastionland-card">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{item.name}}</h3>
+		{{#if item.gloss}}<p class="bastionland-card__gloss">{{item.gloss}}</p>{{/if}}
 		<p class="bastionland-card__tagline">{{item.kind}}{{#if item.tags}} ({{item.tags}}){{/if}}</p>
 	</header>
 	{{#if item.description}}

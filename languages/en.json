@@ -199,6 +199,9 @@
     "guard": {
       "label": "Guard",
       "abbr": "GD",
+      "lead": "G",
+      "middle": "uar",
+      "end": "d",
       "hint": "Your skill at avoiding Wounds."
     },
     "glory": {
@@ -249,7 +252,6 @@
       "unnamed": "Write the Seer who knighted them on the Knight page, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
       "squire": "A Squire isn’t a Knight yet (p7). Once a Seer knights them, write the Seer’s name beside “Knighted by” on the Knight page.",
       "portrait": "Choose the Seer’s picture",
-      "info": "What the book says",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
       "notes": "Notes"
     },
@@ -390,6 +392,21 @@
     "property": {
       "label": "Property",
       "hint": "Items brought with you. Every Knight also has a dagger (d6), torches, rope, dry rations, and camping gear."
+    },
+    "knightTable": {
+      "open": "Roll on {name}",
+      "view": "See {name}",
+      "rollLabel": "Roll on table",
+      "viewLabel": "See table",
+      "reference": "(p{page})",
+      "intro": "Roll a d6 for each column, or click a heading to roll just that one. Click an entry to take it instead.",
+      "introViewer": "What this Knight rolled on the table from their page.",
+      "roll": "Roll",
+      "rollColumn": "Roll a d6 for {column}",
+      "pick": "Take this one",
+      "clear": "Clear",
+      "tagline": "{name}'s table (p{page})",
+      "missing": "This Knight has no table from the book yet. Import PDF, or choose them from the book, to fill it in."
     },
     "steed": {
       "label": "Steed",

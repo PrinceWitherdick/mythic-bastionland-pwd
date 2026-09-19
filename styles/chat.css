@@ -41,6 +41,11 @@
 	line-height: 1.1;
 }
 
+.bastionland-card__gloss {
+	margin: 0.15rem 0 0;
+	color: var(--bastionland-ink);
+}
+
 .bastionland-card__tagline {
 	color: var(--bastionland-ink-soft);
 	font-style: italic;

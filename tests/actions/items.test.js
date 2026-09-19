@@ -22,7 +22,17 @@ afterEach(() => {
 describe("itemContext", () => {
 	it("gives the item's name, kind, tags and description", () => {
 		expect(itemTags(mace)).toEqual(["d8", "Hefty"]);
-		expect(itemContext(mace)).toEqual({ name: "Polished mace", kind: "Weapon", tags: "d8, Hefty", description: "<p>Heavy.</p>" });
+		expect(itemContext(mace)).toEqual({ name: "Polished mace", gloss: "", kind: "Weapon", tags: "d8, Hefty", description: "<p>Heavy.</p>" });
+	});
+
+	it("keeps the name's gloss off the title, brackets dropped when they wrap it all", () => {
+		const steed = { name: "Well-groomed steed (VIG 12, CLA 8, SPI 6, 2GD, a real horse)", type: "gear", system: {} };
+		expect(itemContext(steed)).toMatchObject({ name: "Well-groomed steed", gloss: "VIG 12, CLA 8, SPI 6, 2GD, a real horse" });
+		const body = { name: "Unnatural body (see below), concealed beneath plate suit (A1)", type: "gear", system: {} };
+		expect(itemContext(body)).toMatchObject({ name: "Unnatural body", gloss: "(see below), concealed beneath plate suit (A1)" });
+		expect(itemContext(body, { showsTable: true })).toMatchObject({ name: "Unnatural body", gloss: "concealed beneath plate suit (A1)" });
+		const coat = { name: "Coat, patched", type: "gear", system: {} };
+		expect(itemContext(coat)).toMatchObject({ name: "Coat", gloss: "patched" });
 	});
 });
 

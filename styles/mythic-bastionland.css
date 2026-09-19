@@ -1477,9 +1477,15 @@
 	gap: 1rem;
 }
 
+/* "Knighted by" leads into the Seer's name, a size down. */
+.bastionland-seer__by {
+	font-size: 0.6em;
+	font-weight: normal;
+}
+
 /* The book prints each Seer as a wide banner across their Knight's page. */
 .bastionland-seer__portrait {
-	margin: 0.4rem 0 0;
+	margin: 0 0 0.6rem;
 }
 
 /* Sized to the picture itself, so the frame hugs it. */
@@ -1507,15 +1513,40 @@
 }
 
 /* What the book says is set as printed text, never cut short by a scroll box. */
-.bastionland-seer__info {
+.bastionland-seer {
 	flex: 0 0 auto;
 }
 
+/* The picture and the book's words, set under the heading. */
+.bastionland-seer__body {
+	margin-top: 0.6rem;
+}
+
+.bastionland-seer__body > :last-child {
+	margin-bottom: 0;
+}
+
 .bastionland-seer__book {
-	padding: 0.1rem 0 0 0.8rem;
-	border-left: 2px solid var(--bastionland-rule);
 	color: var(--bastionland-ink);
 	overflow: visible;
+}
+
+.bastionland-seer__prompts {
+	text-align: center;
+}
+
+/* Each "Label: value" stays on one line, and where a line wraps between two
+   the "~" goes (prompt-breaks.js), so no line starts or ends with one. */
+.bastionland-seer__prompt {
+	white-space: nowrap;
+}
+
+.bastionland-seer__sep.is-break {
+	display: block;
+}
+
+.bastionland-seer__sep.is-break > * {
+	display: none;
 }
 
 .bastionland-seer__book > :first-child {

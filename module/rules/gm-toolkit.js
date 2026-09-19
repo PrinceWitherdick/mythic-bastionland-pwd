@@ -71,3 +71,64 @@ export const mythRollTaken = (realm, { d6, d12 }) => (realm?.myths ?? []).some((
  * @returns {object[]} Those Myths, by number.
  */
 export const resolvedMyths = (realm, notes) => (realm?.myths ?? []).filter((myth) => mythNoteFor(notes, myth).resolved);
+
+/** How an Omen points to the table printed beside it on its Myth's page. */
+const SEE_OPPOSITE = /see opposite/i;
+
+/**
+ * An Omen's text in pieces, with each "see opposite" marked, so the toolkit can
+ * make it open the Myth's table.
+ * @param {string|null} text
+ * @returns {{text: string, opposite: boolean}[]} Empty without text.
+ */
+export function omenParts(text) {
+	if (!text) return [];
+	return String(text).split(/(see opposite)/i).filter(Boolean).map((part) => ({ text: part, opposite: SEE_OPPOSITE.test(part) }));
+}
+
+/**
+ * @param {string|null} text
+ * @returns {boolean} Whether an Omen points to its Myth's table.
+ */
+export const pointsOpposite = (text) => SEE_OPPOSITE.test(text ?? "");
+
+/**
+ * Read a roll on a Myth's table: a d6 for each column rolled.
+ * @param {import("./book-art.js").MythTable} table
+ * @param {number[]} columns Which columns were rolled, by index.
+ * @param {number[]} rolls   One d6 for each, in the same order.
+ * @returns {{index: number, column: string, roll: number, entry: string|null}[]}
+ */
+export function readMythTable(table, columns, rolls) {
+	return columns.map((index, at) => ({
+		index,
+		column: table.columns[index],
+		roll: rolls[at],
+		entry: table.rows[rolls[at] - 1]?.[index] ?? null
+	}));
+}
+
+/**
+ * The columns a click on a d6 table rolls: the one whose heading was clicked,
+ * or every column.
+ * @param {{columns: string[]}} table
+ * @param {number} asked A column's index, or NaN for all of them.
+ * @returns {number[]}
+ */
+export const askedColumns = (table, asked) => table.columns.map((_, index) => index).filter((index) => Number.isNaN(asked) || index === asked);
+
+/**
+ * A d6 table as a window draws it, with the row taken in each column marked.
+ * @param {{columns: string[], rows: string[][]}} table
+ * @param {Record<number, number>|number[]} rolled The row taken in each column, from 1.
+ * @param {(column: string) => string} tooltip Each heading's tip.
+ */
+export function tableView(table, rolled, tooltip) {
+	return {
+		columns: table.columns.map((label, index) => ({ label, index, tooltip: tooltip(label) })),
+		rows: table.rows.map((entries, row) => ({
+			number: row + 1,
+			entries: entries.map((text, column) => ({ text, column, row: row + 1, rolled: rolled?.[column] === row + 1 }))
+		}))
+	};
+}

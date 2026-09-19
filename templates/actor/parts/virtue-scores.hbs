@@ -10,7 +10,7 @@
 {{/each}}
 
 <div class="bastionland-score">
-	<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.guard.hint'}}">{{localize "bastionland.guard.label"}}</span>
+	<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.guard.hint'}}"><strong>{{localize "bastionland.guard.lead"}}</strong>{{localize "bastionland.guard.middle"}}<strong>{{localize "bastionland.guard.end"}}</strong></span>
 	<input class="bastionland-box" type="number" name="system.guard.value" value="{{system.guard.value}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.current'}}">
 	<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
 </div>
