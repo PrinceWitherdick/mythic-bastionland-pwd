@@ -137,7 +137,7 @@ async function bequeathGlory(knight, glory) {
  * @param {import("../rules/time.js").Calendar} options.before The Season that ended, whose Doom lifts.
  * @returns {Promise<{rolls: Roll[], entries: object[]}>}
  */
-async function passTime(company, { newAge, before }) {
+export async function passTime(company, { newAge, before }) {
 	const rolls = [];
 	const entries = [];
 	const updates = [];
@@ -375,12 +375,21 @@ export async function sufferHardship(key) {
 		ui.notifications.info(t("time.hardship.none"));
 		return null;
 	}
+	return hardshipFor(hardship, company.map(({ actor }) => actor));
+}
 
+/**
+ * Everybody given loses d6 from the Virtue a hardship costs, told on one card.
+ * @param {{key: string, virtue: string}} hardship From HARDSHIPS.
+ * @param {Actor[]} actors
+ * @returns {Promise<object[]>} The card's entries.
+ */
+export async function hardshipFor(hardship, actors) {
 	const virtue = t(`virtues.${hardship.virtue}.abbr`);
 	const rolls = [];
 	const entries = [];
 	const updates = [];
-	for (const { actor } of company) {
+	for (const actor of actors) {
 		const roll = await new Roll("1d6").evaluate();
 		rolls.push(roll);
 		const from = actor.system.virtues[hardship.virtue].value;
@@ -389,7 +398,8 @@ export async function sufferHardship(key) {
 		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue, from, to })] });
 	}
 	await Promise.all(updates);
-	await postCard(null, "report", { title: name, tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
+	const title = t(`time.hardship.kinds.${hardship.key}.label`);
+	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
 	return entries;
 }
 
@@ -416,7 +426,18 @@ export async function changeAge(actor, age) {
 	});
 	if (choice === "skip") return actor.update({ "system.age": age });
 	if (choice !== "roll") return null;
+	return rollAging(actor, age);
+}
 
+/**
+ * Grow a character older, rerolling each Virtue on d12+d6 for each Age they
+ * grow into, and tell the table on one card.
+ * @param {Actor} actor
+ * @param {string} age One of AGES, older than theirs.
+ * @returns {Promise<Record<string, {value: number, max: number}>>} Their Virtues now.
+ */
+export async function rollAging(actor, age) {
+	const steps = agingSteps(actor.system.age, age);
 	const scores = Object.fromEntries(VIRTUES.map((key) => [key, { value: actor.system.virtues[key].value, max: actor.system.virtues[key].max }]));
 	const rolls = [];
 	const lines = [];

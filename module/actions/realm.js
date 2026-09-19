@@ -625,7 +625,7 @@ function wireCompanyFields(element) {
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @returns {Promise<Scene|null>}
  */
-async function createRealmScene({ name, seed, setup = null, drawing = false, company = null }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, company = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows });
 	const realm = generateRealm({ seed, setup, geometry });
