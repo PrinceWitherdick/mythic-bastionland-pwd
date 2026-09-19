@@ -1,0 +1,6 @@
+<!-- "Anvil" by Lorc (https://lorcblog.blogspot.com), from game icons dot net (https://game-icons.net/1x1/lorc/anvil.html), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+     Only the ground under it is ours, the same as the Squire's portrait. The CREDITS.md beside it lists every icon.
+
+     An XML comment may not hold two hyphens in a row: an SVG loaded through an img tag is parsed
+     strictly, and one stray pair breaks the whole picture. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1600" width="200" height="200" role="img" aria-label="anvil"><circle cx="800" cy="800" r="723.45" fill="#efe8d8"/><circle cx="800" cy="800" r="712.60" fill="#231f1a"/><g transform="translate(800 800) scale(1.8) translate(-256 -256)"><path fill="#efe8d8" d="M128.688 115.594v147.75h285v-147.75h-285zm-111.844 20.47c17.374 47.14 54.372 80.413 94.906 93.81v-93.81H16.844zm414.375 12.31v88.657c21.457-9.083 42.92-25.257 64.374-47.374-21.52-22.562-42.633-35.173-64.375-41.28zm-226.25 132.47c-12.15 38.536-33.897 71.5-60.595 100.47l257.844-.002c-28.705-29.016-49.952-62.054-61.5-100.468H204.97zM101.843 400v43.78h337.562V400H101.844z"/></g></svg>

@@ -1,0 +1,6 @@
+<!-- "Sickle" by Delapouite (https://delapouite.com), from game icons dot net (https://game-icons.net/1x1/delapouite/sickle.html), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+     Only the ground under it is ours, the same as the Squire's portrait. The CREDITS.md beside it lists every icon.
+
+     An XML comment may not hold two hyphens in a row: an SVG loaded through an img tag is parsed
+     strictly, and one stray pair breaks the whole picture. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1600" width="200" height="200" role="img" aria-label="sickle"><circle cx="800" cy="800" r="723.45" fill="#efe8d8"/><circle cx="800" cy="800" r="712.60" fill="#231f1a"/><g transform="translate(800 800) scale(1.8) translate(-256 -256)"><path fill="#efe8d8" d="M257.563 25.156c353.16 276.87 16.918 408.895-87.875 293.25l-40.75 37.125 50.812 50.345c217.562 181.363 524.73-252.058 77.813-380.72zM110.75 364.28c-5.525 1.065-8.975 2.957-11.313 5.25-1.956 1.922-3.248 4.556-4.25 7.564l55.188 52.844c5.468-1.008 9.264-2.796 11.28-4.688 1.997-1.872 3.095-3.864 3.095-7.53l-54-53.44zm-24.72 30.314L30.407 445.28c-16.737 27 14.693 61.198 51.093 44.66l51.53-50.282-47-45.062z"/></g></svg>

@@ -8,8 +8,9 @@
  *   npm run charges              (use the cache)
  *   npm run charges -- --refresh (fetch every drawing again)
  */
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { finishFolder, stopIfFailed } from "./lib/asset-folder.js";
 import { cleanChargeSvg, fetchDrawing, withNotice } from "./lib/charge-svg.js";
 import { CHARGES, CHARGE_CREDITS_FILE, chargeCredits, chargeNotice } from "../module/rules/heraldry-charges.js";
 
@@ -36,14 +37,8 @@ for (const charge of CHARGES) {
 	}
 }
 
-if (failures.length) {
-	console.error(`\n${failures.length} charges failed, and nothing was removed:\n${failures.join("\n")}`);
-	process.exit(1);
-}
+stopIfFailed(failures, "charges");
+// Charges no longer listed go.
+const removed = finishFolder(out, written, CHARGE_CREDITS_FILE, chargeCredits());
 
-writeFileSync(join(out, CHARGE_CREDITS_FILE), chargeCredits());
-// Charges no longer listed. Files only: some drives refuse to remove folders.
-const stale = readdirSync(out, { withFileTypes: true }).filter((entry) => entry.isFile() && !written.has(entry.name));
-for (const entry of stale) rmSync(join(out, entry.name));
-
-console.log(`\nWrote ${CHARGES.length} charges (${(bytes / 1024 / 1024).toFixed(2)} MB) and ${CHARGE_CREDITS_FILE} to ${out}. Removed ${stale.length} old files.`);
+console.log(`\nWrote ${CHARGES.length} charges (${(bytes / 1024 / 1024).toFixed(2)} MB) and ${CHARGE_CREDITS_FILE} to ${out}. Removed ${removed} old files.`);

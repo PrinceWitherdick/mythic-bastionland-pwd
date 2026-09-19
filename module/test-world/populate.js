@@ -59,7 +59,6 @@ const FOLDER_COLOR = "#6b3a8c";
 /** The Company are Courtiers: Mature Knights-Gallant with a place in Court at the Seat of Power (p6). */
 const START = "courtier";
 
-const STEED_IMAGE = "icons/environment/people/cavalry.webp";
 const DOMAIN_IMAGE = "icons/environment/settlement/castle.webp";
 const STRUCTURE_IMAGE = "icons/environment/settlement/fence-wooden-picket.webp";
 
@@ -495,7 +494,6 @@ class TestGame {
 				const data = companionActorData(companion);
 				const npc = await Actor.implementation.create({
 					...data,
-					...(isSteed(companion.name) ? { img: STEED_IMAGE } : {}),
 					name: `${companion.name} (${spec.name.split(" ").slice(0, 2).join(" ")})`,
 					folder: this.folders.Actor.id,
 					flags: testFlags()

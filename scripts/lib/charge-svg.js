@@ -14,18 +14,20 @@ import { escapeHTML } from "../../module/rules/text.js";
 const CACHE = join(import.meta.dirname, "..", "..", "node_modules", ".cache", "heraldry-charges");
 
 /**
- * A drawing from the Book of Traceable Heraldic Art, from the cache unless
- * asked to fetch it again.
+ * A drawing fetched from a site, from the cache unless asked to fetch it
+ * again. By default, from the Book of Traceable Heraldic Art.
  * @param {string} svg The drawing's path on the site.
  * @param {object} options
  * @param {string} options.agent The script asking, for the User-Agent.
  * @param {boolean} [options.refresh] Fetch it even if it's cached.
+ * @param {string} [options.baseUrl] Where on the web the site's drawings are.
+ * @param {string} [options.cacheDir] Where on disk they are kept once fetched.
  * @returns {Promise<string>}
  */
-export async function fetchDrawing(svg, { agent, refresh = false }) {
-	const path = join(CACHE, ...svg.split("/"));
+export async function fetchDrawing(svg, { agent, refresh = false, baseUrl = HERALDIC_ART, cacheDir = CACHE }) {
+	const path = join(cacheDir, ...svg.split("/"));
 	if (!refresh && existsSync(path)) return readFileSync(path, "utf8");
-	const response = await fetch(`${HERALDIC_ART}${svg}`, { headers: { "User-Agent": `mythic-bastionland-pwd ${agent}` } });
+	const response = await fetch(`${baseUrl}${svg}`, { headers: { "User-Agent": `mythic-bastionland-pwd ${agent}` } });
 	if (!response.ok) throw new Error(`HTTP ${response.status}`);
 	const text = await response.text();
 	if (!text.includes("<svg")) throw new Error("Not an SVG");

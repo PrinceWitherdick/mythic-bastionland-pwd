@@ -6,6 +6,7 @@ import { COMPANY_IMAGE } from "../module/rules/company.js";
 import { SHEET_FONTS } from "../module/fonts.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
 import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
+import { GOODS_ICONS, GOODS_ICON_CREDITS_FILE, GOODS_ICON_ROOT, goodsIconCredit, goodsIconCredits, goodsIconPath } from "../module/rules/goods-icons.js";
 import { SQUIRE_IMAGE } from "../module/rules/squires.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
 import { drawRealmSet } from "../scripts/lib/realm-drawings.js";
@@ -36,6 +37,28 @@ describe("Squires", () => {
 		const comments = [...readFileSync(file, "utf8").matchAll(/<!--([\s\S]*?)-->/g)].map((match) => match[1]);
 		expect(comments.length).toBeGreaterThan(0);
 		for (const comment of comments) expect(comment).not.toContain("--");
+	});
+});
+
+describe("Item, beast and structure pictures", () => {
+	const folder = fileFor(GOODS_ICON_ROOT);
+
+	it("ships a picture for every icon listed, each crediting the drawing it's made from", () => {
+		for (const key of Object.keys(GOODS_ICONS)) {
+			const file = fileFor(goodsIconPath(key));
+			expect([key, existsSync(file)]).toEqual([key, true]);
+			const svg = readFileSync(file, "utf8");
+			expect(svg).toContain(goodsIconCredit(key).page);
+			expect(svg).toContain("CC BY 3.0");
+			// A pair of hyphens inside an XML comment breaks the whole picture.
+			for (const [, comment] of svg.matchAll(/<!--([\s\S]*?)-->/g)) expect(comment).not.toContain("--");
+		}
+	});
+
+	it("ships the credits, and nothing that isn't listed", () => {
+		expect(readFileSync(join(folder, GOODS_ICON_CREDITS_FILE), "utf8")).toBe(goodsIconCredits());
+		const listed = new Set([GOODS_ICON_CREDITS_FILE, ...Object.keys(GOODS_ICONS).map((key) => `${key}.svg`)]);
+		expect(readdirSync(folder).filter((name) => !listed.has(name))).toEqual([]);
 	});
 });
 

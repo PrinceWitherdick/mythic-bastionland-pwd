@@ -2,6 +2,7 @@ import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
+import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
@@ -239,6 +240,9 @@ Hooks.once("init", () => {
 	registerGmToolkitHooks();
 	registerJourneyHooks();
 
+	// Weapons, armour, gear, beasts and structures get a picture their name calls for.
+	registerGoodsPictures();
+
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
 
@@ -297,6 +301,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	// Knights made before their Property was read into weapons and armour.
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },
+	// After it, so the older steeds it finds are drawn the same as the new.
+	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
 	// Again, once each Scene has its own look, for terrain pictures named by terrain rather than number.

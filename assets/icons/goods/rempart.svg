@@ -1,0 +1,6 @@
+<!-- "Rempart" by Delapouite (https://delapouite.com), from game icons dot net (https://game-icons.net/1x1/delapouite/rempart.html), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+     Only the ground under it is ours, the same as the Squire's portrait. The CREDITS.md beside it lists every icon.
+
+     An XML comment may not hold two hyphens in a row: an SVG loaded through an img tag is parsed
+     strictly, and one stray pair breaks the whole picture. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1600" width="200" height="200" role="img" aria-label="rempart"><circle cx="800" cy="800" r="723.45" fill="#efe8d8"/><circle cx="800" cy="800" r="712.60" fill="#231f1a"/><g transform="translate(800 800) scale(1.8) translate(-256 -256)"><path fill="#efe8d8" d="M18 27v467h476V304h-46v64h-80v-64h-64v64h-80v-64h-64v64H80V192h48L18 27zm97 373h18v64h-18v-64zm144 0h18v64h-18v-64zm144 0h18v64h-18v-64z"/></g></svg>
