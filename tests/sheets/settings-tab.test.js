@@ -217,8 +217,9 @@ describe("the Settings page's template", () => {
 		expect(partial).toMatch(/<div class="bastionland-settings" data-viewable>/);
 	});
 
-	it("is drawn by the Knight sheet", () => {
+	it("is drawn by both sheets that list the page", () => {
 		expect(readFileSync(join(root, "templates/actor/knight-sheet.hbs"), "utf8")).toContain('{{> "bastionland.settings-tab"}}');
+		expect(readFileSync(join(root, "templates/actor/gm-toolkit/settings.hbs"), "utf8")).toContain('{{> "bastionland.settings-tab"}}');
 	});
 });
 

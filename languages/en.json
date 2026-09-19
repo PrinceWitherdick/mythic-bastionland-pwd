@@ -607,6 +607,13 @@
     "time": {
       "title": "Time",
       "now": "Age {age}, {season}, day {day}, {phase}",
+      "chronicle": "The {phase} of the {day} day of {season}, in the {age} Age.",
+      "ordinal": {
+        "one": "{n}st",
+        "two": "{n}nd",
+        "few": "{n}rd",
+        "other": "{n}th"
+      },
       "age": "Age",
       "day": "Day",
       "season": "Season",
@@ -985,6 +992,30 @@
       "omenNumber": "Omen {number}",
       "nextOmen": "Next Omen"
     },
+    "weather": {
+      "title": "Weather",
+      "hint": "Choose the weather. FXMaster draws it on the Scene the players are on, and it follows them to the next. The book has no weather table; for lands at the mercy of dire weather, roll Dire Weather from the Referee Rolls.",
+      "unset": "Set the weather",
+      "change": "Change the weather",
+      "skies": {
+        "clear": "Clear",
+        "fair": "Fair",
+        "cloud": "Overcast",
+        "wind": "Windy",
+        "fog": "Fog",
+        "rain": "Rain",
+        "downpour": "Downpour",
+        "storm": "Storm",
+        "snow": "Snow",
+        "blizzard": "Blizzard"
+      },
+      "settings": {
+        "button": {
+          "name": "Show the Weather Button",
+          "hint": "With FXMaster on, the GM Toolkit’s banner has a button for the weather. Untick this to hide it if you don’t use the weather. The weather last set stays and still follows the table; set it to Clear first for none. Saved per browser."
+        }
+      }
+    },
     "gmToolkit": {
       "name": "GM Toolkit",
       "realm": "Realm",
@@ -1009,10 +1040,8 @@
         "hint": "The Realm’s Myths, each with the Omen playing out and the one to come. Omens are met in order (p18). The Hex panel and the Wilderness Roll count the same Omens. For your eyes only.",
         "noText": "Run Import PDF to quote each Myth’s Omens here.",
         "unrolled": "Myth {number}",
-        "current": "Current: Omen {number}",
-        "next": "Next: Omen {number}",
-        "noneYet": "The Company hasn’t met any of this Myth’s Omens yet.",
-        "allOmens": "All six Omens",
+        "current": "Current",
+        "next": "Next",
         "note": "Your notes on this Myth",
         "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
         "resolved": "Resolved",
@@ -1021,7 +1050,15 @@
         "newMyth": "Roll the New Myth",
         "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
         "newMythRolled": "A new Myth in {hex}, replacing one resolved",
-        "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth."
+        "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth.",
+        "table": "The Myth’s table",
+        "rollTable": "Roll the Table",
+        "rollColumn": "Roll {column} alone",
+        "showTable": "Open the table beside the Omens",
+        "showArt": "See the picture larger",
+        "tableTagline": "{name}’s table (p{page})",
+        "tableReading": "Reading this Myth’s table from your rulebook…",
+        "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table."
       },
       "journey": {
         "hint": "Every hex the Company has come into on this Realm, the last reached first, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
@@ -1057,11 +1094,11 @@
       "time": {
         "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes.",
         "resolved": "Myths to Replace",
-        "byHand": "Set by Hand",
         "crisisRolls": "Crisis Rolls Due",
         "crisisRollsHint": "Each Domain makes the Crisis Roll at the start of a Season (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
+      "clockHint": "Change the Season, Phase, Age or Day here to set the calendar by hand. Only the Time page’s buttons carry out what happens between Seasons and Ages (p17).",
       "seasons": {
         "hint": "A record of each Season: what you wrote about it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
         "age": "Age {age}",
@@ -2472,6 +2509,11 @@
       "warband": "Two dozen or so fighting as one. Routed by a Mortal Wound, wiped out at VIG 0, broken at SPI 0. Only harmed by Blast or large-scale Attacks. Its Attacks on individuals get +d12 and cause Blast Damage.",
       "remedy": "A sizeable bundle that takes a whole Phase to use and fully restores a Virtue for all the Company present: Sustenance (VIG), Stimulant (CLA), Sacrament (SPI). A person or beast carries only one.",
       "glory": "Gained by resolving Myths, winning staked duels, tournaments and remembered battles, and each new Age. Sets a Knight’s rank. At 12 they are worthy of the City Quest."
+    },
+    "artPopout": {
+      "showPlayers": "Show Players",
+      "shown": "Showed the picture of {name} to the players.",
+      "nobodyToShow": "No one else is signed in to show the picture to."
     },
     "rulebook": {
       "title": "Mythic Bastionland",

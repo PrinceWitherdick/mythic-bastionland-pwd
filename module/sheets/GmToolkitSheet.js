@@ -1,4 +1,5 @@
-import { CALENDAR_HOOK, calendarLabel, getCalendar } from "../actions/calendar.js";
+import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
+import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
 import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
@@ -7,27 +8,33 @@ import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, write
 import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { rollRefereeTable } from "../actions/referee-rolls.js";
+import { rollMythTable, rollRefereeTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite } from "../actions/sites.js";
 import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
+import { openArt } from "../apps/ArtPopout.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
+import { spinTable } from "../apps/roll-spin.js";
 import { setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { canReadTablesFromRulebook, peekTable, tableForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
+import { reducesMotion, scrollBehavior } from "../client-settings.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
-import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenStage, realmPlaces, resolvedMyths } from "../rules/gm-toolkit.js";
+import { REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { visitedNewestFirst } from "../rules/journey.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
-import { SEASON_ICONS } from "../rules/time.js";
+import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
 import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
+import { ViewableMixin } from "./viewable.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -73,6 +80,17 @@ function mythLookup(index, myth) {
 }
 
 /**
+ * Show as much of a card just unfolded as the page has room for: all of it,
+ * or from its heading down when it's taller than the page.
+ * @param {HTMLElement} card
+ */
+function bringIntoView(card) {
+	const page = card.closest("[data-tab]");
+	const tall = page && card.offsetHeight > page.clientHeight;
+	card.scrollIntoView({ block: tall ? "start" : "nearest", behavior: scrollBehavior() });
+}
+
+/**
  * The GM Toolkit's sheet: a Realm's Myths and their Omens, the hexes the
  * Company has been to with the Spark Tables rolled there, the places of the
  * Realm with what the GM wrote about each, and the GM's own notes. Its pages
@@ -82,7 +100,7 @@ function mythLookup(index, myth) {
  * sends them to the Actor: each is written where it lives, on the Realm's Scene,
  * by `#onToolkitField`. Only the notes are the Actor's.
  */
-export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-has-tab-rail", "bastionland-gm-toolkit"],
 		position: { width: 820, height: 820 },
@@ -105,16 +123,18 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			openSite: GmToolkitSheet.#onOpenSite,
 			newSite: () => newSite(),
 			newMyth: GmToolkitSheet.#onNewMyth,
+			rollMythTable: GmToolkitSheet.#onRollMythTable,
+			showMythTable: GmToolkitSheet.#onShowMythTable,
+			showMythArt: GmToolkitSheet.#onShowMythArt,
 			nextPhase: () => advancePhase(),
 			turnSeason: () => turnSeason(),
 			turnAge: () => turnAge(),
 			journey: () => journeyToDistantRealm(),
-			setSeason: (_event, target) => setCalendarByHand({ season: target.dataset.season }),
-			setPhase: (_event, target) => setCalendarByHand({ phase: target.dataset.phase }),
 			refereeRoll: (_event, target) => rollRefereeTable(target.dataset.table),
 			hardship: (_event, target) => sufferHardship(target.dataset.hardship),
 			awardGlory: (_event, target) => awardGlory(target.dataset.award),
-			crisisRoll: GmToolkitSheet.#onCrisisRoll
+			crisisRoll: GmToolkitSheet.#onCrisisRoll,
+			pickWeather: () => pickWeather()
 		}
 	};
 
@@ -126,14 +146,19 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
 		seasons: { template: templatePath("actor/gm-toolkit/seasons.hbs"), scrollable: [""] },
-		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] }
+		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] },
+		settings: { template: templatePath("actor/gm-toolkit/settings.hbs"), scrollable: [""] }
 	};
 
 	/** The toolkit's pages, picked from the rail hung off the window's edge. */
 	static TABS = {
 		primary: {
 			initial: TOOLKIT_TABS[0],
-			tabs: TOOLKIT_TABS.map((id) => ({ id, icon: TAB_ICONS[id], label: `bastionland.gmToolkit.tabs.${id}` }))
+			tabs: [
+				...TOOLKIT_TABS.map((id) => ({ id, icon: TAB_ICONS[id], label: `bastionland.gmToolkit.tabs.${id}` })),
+				// The GM's own settings, and the Referee's.
+				SETTINGS_TAB_ENTRY
+			]
 		}
 	};
 
@@ -151,6 +176,12 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	/** Parts waiting to be redrawn. */
 	#stale = new Set();
+
+	/** @type {Map<number, Record<number, number>>} The row last rolled in each column of a Myth's table, by Myth number. */
+	#tableRolls = new Map();
+
+	/** Whether a Myth's table is being rolled, so a second click waits for it to land. */
+	#spinning = false;
 
 	/** Whether a redraw is already on its way. */
 	#redrawing = false;
@@ -223,14 +254,17 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/**
-	 * The banner: which Realm the pages show, the world's calendar, and where the Company is.
+	 * The banner: which Realm the pages show, where the Company is, and the world's calendar.
 	 * @param {object|null} data
 	 */
 	#headerContext(data) {
 		const shown = data?.scene ?? null;
+		const realms = game.scenes.filter(isRealmScene).map((scene) => ({ id: scene.id, name: scene.name, selected: scene.id === shown?.id }));
 		return {
-			realms: game.scenes.filter(isRealmScene).map((scene) => ({ id: scene.id, name: scene.name, selected: scene.id === shown?.id })),
-			now: calendarLabel(getCalendar()),
+			realms,
+			// With one Realm there is nothing to choose: the banner names it instead of offering a dropdown.
+			onlyRealm: realms.length === 1 ? realms[0].name : null,
+			clock: this.#clockContext(),
 			company: data?.companyHex ? { label: t("realm.hex", data.companyHex), key: hexKey(data.companyHex) } : null,
 			noCompany: Boolean(data) && !data.companyHex
 		};
@@ -254,6 +288,8 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const myths = data.realm.myths.map((myth) => this.#mythContext(myth, data));
 		return {
 			myths,
+			// Opening one Myth folds the one open before, so the other five stay a row each.
+			mythGroup: `${this.id}-myths`,
 			missingText: Boolean(myths.length) && !this.#index?.myths?.length,
 			cityQuest
 		};
@@ -267,7 +303,6 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const { name, page, entry } = mythLookup(this.#index, myth);
 		const { current, next } = omenStage(myth.omen);
 		const text = (number) => entry?.omens?.[number - 1] ?? null;
-		const omen = (number) => number && { number, text: text(number) };
 		const kept = mythNoteFor(data.notes, myth);
 		const fold = `myth:${myth.number}`;
 		return {
@@ -279,21 +314,59 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			hexKey: hexKey(myth.hex),
 			hidden: !myth.revealed,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
-			current: omen(current),
-			next: omen(next),
-			omens: Array.from({ length: OMEN_COUNT }, (_, index) => ({
-				number: index + 1,
-				text: text(index + 1) ?? t("myths.omenNumber", { number: index + 1 }),
-				seen: index + 1 < myth.omen,
-				current: index + 1 === current,
-				next: index + 1 === next
-			})),
+			// All six in order: the one playing out and the one to come in full,
+			// every other cut to a line that unfolds.
+			omens: Array.from({ length: OMEN_COUNT }, (_, index) => {
+				const number = index + 1;
+				const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
+				const omenFold = `omen:${myth.number}:${number}`;
+				return {
+					number,
+					parts: omenParts(text(number) ?? t("myths.omenNumber", { number })),
+					met: number <= myth.omen,
+					past: number < myth.omen,
+					current: number === current,
+					next: number === next,
+					label,
+					fold: omenFold,
+					open: this.#folds.get(omenFold) ?? false
+				};
+			}),
 			noneSeen: myth.omen <= 0,
 			complete: myth.omen >= OMEN_COUNT,
 			resolved: kept.resolved,
 			note: kept.note,
 			fold,
-			open: this.#folds.get(fold) ?? false
+			open: this.#folds.get(fold) ?? false,
+			table: this.#tableContext(myth, page, entry, pointsOpposite(text(current)))
+		};
+	}
+
+	/**
+	 * The table printed beside a Myth's Omens, which they call "opposite": from
+	 * the index, or else read from the world's rulebook while the page waits.
+	 * @param {object} myth
+	 * @param {number|null} page
+	 * @param {object|null} entry From the art index.
+	 * @param {boolean} called Whether the Omen playing out points to it, which unfolds it.
+	 * @returns {object|null} Null for a Myth whose page there's no way to read.
+	 */
+	#tableContext(myth, page, entry, called) {
+		const fold = `table:${myth.number}`;
+		const read = peekTable(page);
+		const table = entry?.table ?? read ?? null;
+		if (!table) {
+			if (!page) return null;
+			const reading = read === undefined && canReadTablesFromRulebook();
+			// Each read is made once however often the page is drawn meanwhile, and the redraws it asks for fold into one.
+			if (reading) tableForEntry(this.#index, entry, { page }).then(() => this.#redraw("myths"));
+			return { fold, reading };
+		}
+		return {
+			fold,
+			open: this.#folds.get(fold) ?? called,
+			name: table.name,
+			...tableView(table, this.#tableRolls.get(myth.number), (column) => t("gmToolkit.myths.rollColumn", { column }))
 		};
 	}
 
@@ -419,6 +492,18 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		return features;
 	}
 
+	/** The calendar at the banner's end, each part of it set by hand from there. */
+	#clockContext() {
+		const calendar = getCalendar();
+		const { season, phase } = calendar;
+		const { age, day, seasons, phases } = timeContext();
+		// Hovering the clock reads the date out in full, as a chronicle would, before how to set it.
+		const tooltip = `${chronicleLabel(calendar)} ${t("gmToolkit.clockHint")}`;
+		// Only a table with FXMaster to draw the weather is shown it, and a GM may hide it even then.
+		const weather = weatherButtonShown() ? weatherView() : null;
+		return { age, day, season, seasonIcon: SEASON_ICONS[season], phaseIcon: PHASE_ICONS[phase], seasons, phases, weather, tooltip };
+	}
+
 	/**
 	 * The world's calendar and what moves it (p17), the Domains still owed this
 	 * Season's Crisis Roll (p20), and the Realm's resolved Myths, each replaced
@@ -495,7 +580,8 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
 			...["createActor", "deleteActor"].map((name) => [name, Hooks.on(name, onDomain)]),
 			["updateActor", Hooks.on("updateActor", onDomainChange)],
-			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))]
+			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))],
+			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))]
 		];
 	}
 
@@ -506,10 +592,23 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// drawn this time kept theirs, and already have a listener.
 		for (const part of options.parts ?? []) {
 			for (const details of this.parts?.[part]?.querySelectorAll("details[data-fold]") ?? []) {
-				details.addEventListener("toggle", () => this.#folds.set(details.dataset.fold, details.open));
+				details.addEventListener("toggle", () => {
+					// One drawn open says so too, so only a fold opened by hand counts as news.
+					const opened = details.open && this.#folds.get(details.dataset.fold) !== true;
+					this.#folds.set(details.dataset.fold, details.open);
+					if (opened && details.hasAttribute("data-myth-card")) bringIntoView(details);
+				});
 			}
 		}
 		placeTabRail(this.element, ".bastionland-gm-toolkit__header");
+	}
+
+	/**
+	 * The Settings page is shown to a GM: the Toolkit is every GM's own.
+	 * @override
+	 */
+	_showsSettingsTab(user) {
+		return Boolean(user?.isGM);
 	}
 
 	/**
@@ -610,6 +709,12 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			case "day":
 				await setCalendarByHand({ [field]: target.value });
 				return;
+			case "season":
+			case "phase":
+				// A pick is made once chosen, so the banner needn't wait for the GM to leave the drop-down.
+				target.blur();
+				await setCalendarByHand({ [field]: target.value });
+				return;
 			default:
 		}
 	}
@@ -645,23 +750,73 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/**
-	 * Count the Myth's next Omen as met and show it to the GMs, as the Wilderness Roll would.
+	 * Roll on a Myth's table, a d6 for each column or for the one clicked. The
+	 * card is posted as the highlight starts down the table to stop on each row rolled.
 	 * @this {GmToolkitSheet}
 	 */
-	static async #onNextOmen(_event, target) {
+	static async #onRollMythTable(_event, target) {
+		const myth = this.#mythFrom(target);
+		if (!myth || this.#spinning) return;
+		const { name, page, entry } = mythLookup(this.#index, myth);
+		const table = entry?.table ?? peekTable(page);
+		if (!table) return;
+
+		const columns = askedColumns(table, Number(target.dataset.column));
+		this.#spinning = true;
+		try {
+			const { roll, results, prompt } = await rollMythTable(table, columns);
+			this.#tableRolls.set(myth.number, {
+				...this.#tableRolls.get(myth.number),
+				...Object.fromEntries(results.map((result) => [result.index, result.roll]))
+			});
+			// The card goes out at once, so its dice roll while the highlight runs.
+			// GMs only, as with the Omen card: it names a Myth the players may not know.
+			const card = postCard(null, "spark", {
+				name: table.name,
+				tagline: t("gmToolkit.myths.tableTagline", { name, page }),
+				prompt,
+				results
+			}, { rolls: [roll], mode: "gm" });
+			const shown = target.closest("[data-number]")?.querySelector("[data-myth-table]");
+			await Promise.all([card, spinTable(shown, columns, results)]);
+		} finally {
+			this.#spinning = false;
+		}
+	}
+
+	/**
+	 * An Omen's "see opposite": unfold the Myth's table and bring it into view.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onShowMythTable(event, target) {
+		// In an Omen cut to a line, the link opens the table, not the Omen.
+		event.preventDefault();
+		const fold = target.closest("[data-number]")?.querySelector("details[data-myth-fold]");
+		if (!fold) return;
+		fold.open = true;
+		fold.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+	}
+
+	/**
+	 * Open the Myth's picture in a window of its own, from where it can be shown
+	 * to the players.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onShowMythArt(_event, target) {
+		const myth = this.#mythFrom(target);
+		const { name, entry } = myth ? mythLookup(this.#index, myth) : {};
+		if (entry?.path) openArt({ src: entry.path, title: name, icon: TAB_ICONS.myths });
+	}
+
+	/**
+	 * Count the Myth's next Omen as met. The Toolkit shows it as the current
+	 * Omen, so nothing goes to chat, not even to the GMs.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onNextOmen(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth || myth.omen >= OMEN_COUNT) return;
-		const omen = myth.omen + 1;
-		await editRealm(this.scene, (realm) => setOmen(realm, myth.number, omen));
-		const { name, page, entry } = mythLookup(this.#index, myth);
-		await postCard(null, "omen", {
-			title: `${myth.number}. ${name}`,
-			tagline: page ? t("realm.key.page", { page }) : null,
-			img: entry?.path ?? null,
-			omen: t("realm.wilderness.omen", { omen, count: OMEN_COUNT }),
-			text: entry?.omens?.[omen - 1] ?? null,
-			hint: omen === OMEN_COUNT ? t("realm.wilderness.omensComplete") : null
-		}, { mode: "gm" });
+		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, myth.omen + 1));
 	}
 
 	/**
@@ -732,7 +887,7 @@ export class GmToolkitSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			if (canvas.scene?.id !== scene.id) return;
 		}
 		const point = hexCentre(sceneGeometry(scene), hex);
-		await canvas.animatePan({ ...point, duration: 400 });
+		await canvas.animatePan({ ...point, duration: reducesMotion() ? 0 : 400 });
 		canvas.controls?.drawPing?.(point, { style: CONFIG.Canvas.pings?.types?.PULSE ?? "pulse", user: game.user });
 		openRealmPanel({ scene, hex });
 	}

@@ -7,6 +7,7 @@ import { registerJourneyHooks } from "./module/actions/journey.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
+import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { KNIGHT_PROPERTY_STEP, retypeKnightProperty } from "./module/actions/property.js";
@@ -167,6 +168,10 @@ Hooks.once("init", () => {
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
 
+	// The weather, for a table with FXMaster to draw it; it follows the active Scene.
+	registerWeatherSetting();
+	registerWeatherHooks();
+
 	// The Omens of the City the Company has encountered.
 	registerCityQuestSetting();
 
@@ -268,6 +273,7 @@ Hooks.once("init", () => {
 		rollCityOmen,
 		awardGlory,
 		getCalendar,
+		pickWeather,
 		openRulebook,
 		openRulebookSetup,
 		toggleRulebook,

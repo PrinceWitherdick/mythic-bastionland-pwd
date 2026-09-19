@@ -47,33 +47,6 @@
 	{{/if}}
 
 	<section class="bastionland-gm-toolkit__section">
-		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.time.byHand"}}</h2>
-		<div class="bastionland-time__fields">
-			<label for="{{partId}}-age">{{localize "bastionland.time.age"}}</label>
-			<input id="{{partId}}-age" class="bastionland-box" type="number" data-toolkit-field="age" value="{{age}}" min="1" step="1">
-			<label for="{{partId}}-day">{{localize "bastionland.time.day"}}</label>
-			<input id="{{partId}}-day" class="bastionland-box" type="number" data-toolkit-field="day" value="{{day}}" min="1" step="1">
-		</div>
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.season"}}</h3>
-		<ul class="bastionland-choices bastionland-choices--inline">
-			{{#each seasons}}
-			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setSeason" data-season="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.phase"}}</h3>
-		<ul class="bastionland-choices bastionland-choices--inline">
-			{{#each phases}}
-			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setPhase" data-phase="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-		<p class="bastionland-hint">{{localize "bastionland.time.setByHand"}}</p>
-	</section>
-
-	<section class="bastionland-gm-toolkit__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.refereeRolls.title"}}</h2>
 		<ul class="bastionland-time__list">
 			{{#each rolls}}

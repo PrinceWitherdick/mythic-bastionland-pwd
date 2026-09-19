@@ -1245,6 +1245,32 @@
 	font-size: 0.95rem;
 }
 
+/* Pills centre their letters exactly by trimming the line box to the
+   capitals and baseline, then padding it evenly. Trimming only works on
+   block containers, so the button pills stop being flex boxes, and the Site
+   map's flex chips trim their labels instead. Every trimmed pill is listed
+   here, the GM Toolkit's chips too; each pads itself to suit. */
+@supports (text-box: trim-both cap alphabetic) {
+	.bastionland-condition,
+	.bastionland-page .bastionland-choice,
+	.bastionland-page .bastionland-site__chip > span,
+	.bastionland-gm-toolkit__chip {
+		text-box: trim-both cap alphabetic;
+	}
+
+	.bastionland-condition,
+	.bastionland-page .bastionland-choice {
+		padding-top: 0.3em;
+		padding-bottom: 0.3em;
+	}
+
+	.bastionland-page button.bastionland-choice {
+		display: inline-block;
+		height: auto;
+		min-height: 0;
+	}
+}
+
 .bastionland-condition.is-derived {
 	font-style: italic;
 	cursor: help;

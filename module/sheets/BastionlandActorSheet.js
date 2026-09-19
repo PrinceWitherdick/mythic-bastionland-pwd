@@ -12,6 +12,7 @@ import { FEATS } from "../config.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
+import { ViewableMixin } from "./viewable.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -54,9 +55,10 @@ function isBlankNewActor(options) {
 /**
  * What the Knight, NPC and Structure sheets share: Saves, Feats, Attacks, Damage and
  * recovery, conditions, notes, the items a character carries, and a larger
- * copy of the actor's picture on hover.
+ * copy of the actor's picture on hover. Controls marked `data-viewable` stay
+ * live for someone who can only view the sheet.
  */
-export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplicationMixin(ActorSheetV2)) {
+export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet"],
 		window: { resizable: true },
@@ -149,17 +151,6 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		this.refreshHeaderButtons();
-	}
-
-	/**
-	 * Foundry disables every button on a sheet the user can't edit. Buttons
-	 * marked `data-viewable` only post the sheet's text to chat, so they stay
-	 * live for a viewer, as a move's name does in Stonetop.
-	 * @override
-	 */
-	_toggleDisabled(disabled) {
-		super._toggleDisabled(disabled);
-		this.form?.querySelectorAll("button[data-viewable]").forEach((button) => (button.disabled = false));
 	}
 
 	/**

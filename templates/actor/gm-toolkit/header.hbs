@@ -1,26 +1,58 @@
-{{!-- The toolkit's banner: which Realm its pages show, the world's calendar, and where the Company stands. --}}
+{{!-- The toolkit's banner: which Realm its pages show, where the Company stands, and the world's calendar. --}}
 <header class="bastionland-page bastionland-gm-toolkit__header">
 	<img class="bastionland-gm-toolkit__portrait" src="{{actor.img}}" alt="" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
 	<div class="bastionland-gm-toolkit__banner">
 		<h1 class="bastionland-title bastionland-gm-toolkit__title">{{actor.name}}</h1>
 		<div class="bastionland-gm-toolkit__facts">
-			{{#if realms.length}}
-			<label class="bastionland-gm-toolkit__realm">
-				<span>{{localize "bastionland.gmToolkit.realm"}}</span>
-				<select data-toolkit-field="realm" aria-label="{{localize 'bastionland.gmToolkit.realm'}}">
-					{{#each realms}}
-					<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
-					{{/each}}
-				</select>
-			</label>
+			{{#if onlyRealm}}
+			<span class="bastionland-gm-toolkit__fact" data-tooltip="{{localize 'bastionland.gmToolkit.realm'}}"><i class="fa-solid fa-map" inert></i> {{onlyRealm}}</span>
+			{{else if realms.length}}
+			<select class="bastionland-gm-toolkit__realm" data-toolkit-field="realm" aria-label="{{localize 'bastionland.gmToolkit.realm'}}">
+				{{#each realms}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
 			{{/if}}
-			<span class="bastionland-gm-toolkit__fact" data-tooltip="{{localize 'bastionland.time.title'}}"><i class="fa-solid fa-hourglass-half" inert></i> {{now}}</span>
 			{{#if company}}
 			<button type="button" class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--button" data-action="showHex" data-hex="{{company.key}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}">
 				<i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyAt" hex=company.label}}
 			</button>
 			{{else if noCompany}}
 			<span class="bastionland-gm-toolkit__fact bastionland-gm-toolkit__fact--quiet"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.noCompany"}}</span>
+			{{/if}}
+		</div>
+	</div>
+	{{!-- The calendar, held to the banner's far end like Stonetop's season clock: the Season in its own colour
+	      over the Day and Age (a chronicler's order, smallest first), then the Phase (and the weather) on the right. Changing any of them sets the
+	      calendar by hand; only the Time page's buttons carry out what happens between Seasons and Ages. --}}
+	<div class="bastionland-gm-toolkit__clock bastionland-gm-toolkit__clock--{{clock.season}}" role="group" aria-label="{{localize 'bastionland.time.title'}}" data-tooltip="{{clock.tooltip}}" data-tooltip-direction="DOWN">
+		<div class="bastionland-gm-toolkit__clock-calendar">
+			<label class="bastionland-gm-toolkit__clock-season">
+				<i class="{{clock.seasonIcon}}" inert></i>
+				<select data-toolkit-field="season" aria-label="{{localize 'bastionland.time.season'}}">
+					{{#each clock.seasons}}
+					<option value="{{key}}" {{#if active}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</label>
+			<div class="bastionland-gm-toolkit__clock-count">
+				<label>{{localize "bastionland.time.day"}} <input class="bastionland-box" type="number" data-toolkit-field="day" value="{{clock.day}}" min="1" step="1"></label>
+				<label>{{localize "bastionland.time.age"}} <input class="bastionland-box" type="number" data-toolkit-field="age" value="{{clock.age}}" min="1" step="1"></label>
+			</div>
+		</div>
+		<div class="bastionland-gm-toolkit__clock-now">
+			<label class="bastionland-gm-toolkit__clock-phase">
+				<i class="{{clock.phaseIcon}}" inert></i>
+				<select data-toolkit-field="phase" aria-label="{{localize 'bastionland.time.phase'}}">
+					{{#each clock.phases}}
+					<option value="{{key}}" {{#if active}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</label>
+			{{#if clock.weather}}
+			<button type="button" class="bastionland-gm-toolkit__weather{{#unless clock.weather.key}} is-unset{{/unless}}" data-action="pickWeather" data-tooltip="{{localize 'bastionland.weather.change'}}" data-tooltip-direction="DOWN">
+				<i class="{{clock.weather.icon}}" inert></i> {{clock.weather.label}}
+			</button>
 			{{/if}}
 		</div>
 	</div>

@@ -17,6 +17,8 @@ describe("the Settings page's groups", () => {
 		expect(offersSetting("restoreOpenSheets", false)).toBe(true);
 		expect(offersSetting("rulebookForPlayers", false)).toBe(false);
 		expect(offersSetting("rulebookForPlayers", true)).toBe(true);
+		expect(offersSetting("weatherButton", false)).toBe(false);
+		expect(offersSetting("weatherButton", true)).toBe(true);
 		// Settings the page doesn't offer can't be written from it, even by a GM.
 		expect(offersSetting("calendar", true)).toBe(false);
 		expect(offersMenu("welcome", false)).toBe(false);

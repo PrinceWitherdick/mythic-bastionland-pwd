@@ -171,8 +171,10 @@ Each GM is given it as their character, as on Stonetop, so **C**, Foundry's char
 
 It's also in the Actors tab, and behind **GM Toolkit** in the Roll Tables tab. Its pages hang off a rail on the window's edge, and the **Realm** at the top picks which Realm the first three show.
 
-- **Myths and Omens:** each Myth of the Realm with the Omen playing out and the one to come (p18), and all six folded beneath. The Omens are quoted after Import PDF.
+- **Myths and Omens:** each Myth of the Realm folds to one row: its picture, its name, a pip for each Omen met, and its hex. Click a row to open that Myth. Opening one folds the one open before, so all six stay on the page. Inside, the six Omens are one list, in order. The one playing out and the one to come (p18) are written out, and the rest are cut to a line you can click to read in full. The Omens are quoted after Import PDF.
   - **Next Omen** counts one more and whispers it to GMs; **−** takes one back. The Hex panel and the Wilderness Roll count the same Omens.
+  - Each Myth's table, printed beside its Omens in the book, is folded beneath them, and opens by itself when the Omen playing out says "see opposite". Clicking an Omen's **see opposite** opens it too. **Roll the Table** rolls a d6 for each column, and clicking a column's heading rolls that column alone. A highlight runs down the table and stops on the rows rolled, then the result goes to chat. With **Reduce Motion** on, the rows are marked at once.
+  - The tables come from Import PDF. If Import PDF ran before this version, they're read from the rulebook the world keeps for its reader, so there's nothing to import again. Without either, the Myth asks for one.
   - Each Myth has a box for your notes on it.
   - **Myth Resolved** marks it resolved and awards the Glory (p27). A resolved Myth offers **Roll the New Myth**, which rolls the Myth that replaces it in the same hex and under the same number, with none of its Omens met. The Realm's Undo takes the roll back, with your notes on the old Myth.
   - The City Quest is kept here too: **Roll an Omen of the City** rolls d12 plus those already encountered, skipping duplicates, and says when the Quest ends. The Wilderness Roll card reminds GMs of it on a random Myth's Omen once a player's Knight is Knight-Radiant.
@@ -183,6 +185,7 @@ It's also in the Actors tab, and behind **GM Toolkit** in the Roll Tables tab. I
 - Each hex on those two pages holds the same note and rolls as the Lay of the Land. It has **Show on the Map**, **Roll a wilderness hex**, **Lay of the Land** and **Tell the players**. **Show on the Map** views that Realm, pans to the hex and marks it on your screen alone. Nothing is pinged to players, so a hidden Myth stays hidden.
 - **Time:** **Next Phase**, **Turn the Season** and **Turn the Age**, doing what they do in the Time window. The page also sets the calendar by hand, rolls Passage of Time and Unresolved Situation, and has Hardship and Glory. Resolved Myths wait here for the Season to turn.
 - **Notes:** your own notes, such as the plans and ambitions the players share at the end of a session (p16).
+- **Settings:** your own settings, as on a player's Knight, and the Referee's: **Ask about a new hex**, **Show the Weather Button**, for hiding the banner's weather button when FXMaster is on and you don't use it, **Let Players Open the Rulebook**, which is for the whole table, and buttons for **Realm Appearance** and the **Welcome**. **All Settings…** opens Configure Settings on this system's tab.
 - The world's last toolkit can't be deleted, since it holds your notes. A second one is refused, and Create Actor stops offering the type once the world has one. A world left open while the system updated needs launching again before the toolkit can be made.
 
 ### Art and text from your own book

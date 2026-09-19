@@ -1,5 +1,7 @@
-{{!-- Each of the Realm's Myths: the Omen playing out, the one to come, and the GM's notes; then the City Quest. --}}
+{{!-- Each of the Realm's Myths: the Omen playing out, the one to come, its table and the GM's notes; then the City Quest. --}}
 <section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="myths">
+	{{!-- An Omen's text, with each "see opposite" opening the Myth's table. --}}
+	{{#*inline "omenText"}}{{#each parts}}{{#if opposite}}<a class="bastionland-gm-toolkit__opposite" data-action="showMythTable" data-tooltip="{{localize 'bastionland.gmToolkit.myths.showTable'}}">{{text}}</a>{{else}}{{text}}{{/if}}{{/each}}{{/inline}}
 	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.myths.hint"}}</p>
 
 	{{#if noRealm}}
@@ -10,74 +12,110 @@
 	{{/if}}
 
 	{{#each myths}}
-	<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__myth{{#if resolved}} is-resolved{{/if}}" data-number="{{number}}">
-		<header class="bastionland-gm-toolkit__myth-head">
+	{{!-- Folded, a Myth is one row that says where it has got to. Opening one folds the one open before. --}}
+	<details class="bastionland-gm-toolkit__card bastionland-gm-toolkit__myth{{#if resolved}} is-resolved{{/if}}" name="{{@root.mythGroup}}" data-number="{{number}}" data-fold="{{fold}}" data-myth-card {{#if open}}open{{/if}}>
+		<summary class="bastionland-gm-toolkit__myth-head">
 			{{#if img}}
-			<img class="bastionland-gm-toolkit__art" src="{{img}}" alt="">
+			{{!-- A button, so a click opens the picture rather than the card. --}}
+			<button type="button" class="bastionland-gm-toolkit__art" data-action="showMythArt" data-tooltip="{{localize 'bastionland.gmToolkit.myths.showArt'}}" aria-label="{{localize 'bastionland.gmToolkit.myths.showArt'}}"><img src="{{img}}" alt=""></button>
 			{{/if}}
-			<div class="bastionland-gm-toolkit__myth-title">
-				<h2 class="bastionland-gm-toolkit__name">{{number}}. {{name}}</h2>
-				<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}}</p>
-				<div class="bastionland-gm-toolkit__chips">
-					<button type="button" class="bastionland-gm-toolkit__chip bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
-					{{#if hidden}}
-					<span class="bastionland-gm-toolkit__chip is-hidden">{{localize "bastionland.realm.panel.hidden"}}</span>
-					{{/if}}
-					{{#if resolved}}
-					<span class="bastionland-gm-toolkit__chip is-resolved"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.resolved"}}</span>
-					{{/if}}
-				</div>
-			</div>
-		</header>
+			<span class="bastionland-gm-toolkit__name">{{number}}. {{name}}</span>
+			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
+				{{#each omens}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}"></i>{{/each}}
+			</span>
+			<span class="bastionland-gm-toolkit__chips">
+				<button type="button" class="bastionland-gm-toolkit__chip bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
+				{{#if hidden}}
+				<span class="bastionland-gm-toolkit__chip is-hidden">{{localize "bastionland.realm.panel.hidden"}}</span>
+				{{/if}}
+				{{#if resolved}}
+				<span class="bastionland-gm-toolkit__chip is-resolved"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.resolved"}}</span>
+				{{/if}}
+			</span>
+		</summary>
 
-		{{#if resolved}}
-		<p class="bastionland-gm-toolkit__resolved">{{localize "bastionland.gmToolkit.myths.resolvedHint"}}</p>
-		{{/if}}
+		<div class="bastionland-gm-toolkit__myth-body">
+			<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}}</p>
 
-		<div class="bastionland-gm-toolkit__omens">
-			{{#if current}}
-			<div class="bastionland-gm-toolkit__omen is-current">
-				<span class="bastionland-gm-toolkit__omen-label">{{localize "bastionland.gmToolkit.myths.current" number=current.number}}</span>
-				{{#if current.text}}<p>{{current.text}}</p>{{/if}}
-			</div>
-			{{else}}
-			<p class="bastionland-empty">{{localize "bastionland.gmToolkit.myths.noneYet"}}</p>
+			{{#if resolved}}
+			<p class="bastionland-gm-toolkit__resolved">{{localize "bastionland.gmToolkit.myths.resolvedHint"}}</p>
 			{{/if}}
-			{{#if next}}
-			<div class="bastionland-gm-toolkit__omen is-next">
-				<span class="bastionland-gm-toolkit__omen-label">{{localize "bastionland.gmToolkit.myths.next" number=next.number}}</span>
-				{{#if next.text}}<p>{{next.text}}</p>{{/if}}
-			</div>
-			{{else}}
-			<p class="bastionland-hint">{{localize "bastionland.realm.wilderness.omensComplete"}}</p>
-			{{/if}}
-		</div>
 
-		<details class="bastionland-gm-toolkit__fold" data-fold="{{fold}}" {{#if open}}open{{/if}}>
-			<summary>{{localize "bastionland.gmToolkit.myths.allOmens"}}</summary>
-			<ol class="bastionland-myths__omens bastionland-gm-toolkit__all-omens">
+			{{!-- The six Omens in order. The one playing out and the one to come are
+			      written out; each other is cut to a line that unfolds to be read. --}}
+			<ol class="bastionland-gm-toolkit__omens">
 				{{#each omens}}
-				<li class="{{#if seen}}is-seen{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}">{{text}}</li>
+				<li class="bastionland-gm-toolkit__omen{{#if past}} is-past{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}">
+					{{#if label}}
+					<span class="bastionland-gm-toolkit__omen-number"><span>{{number}}</span></span>
+					<div class="bastionland-gm-toolkit__omen-text">
+						<span class="bastionland-gm-toolkit__omen-label">{{label}}</span>
+						<p>{{> omenText this}}</p>
+					</div>
+					{{else}}
+					<details class="bastionland-gm-toolkit__omen-fold" data-fold="{{fold}}" {{#if open}}open{{/if}}>
+						<summary><span class="bastionland-gm-toolkit__omen-number"><span>{{number}}</span></span><span class="bastionland-gm-toolkit__omen-text">{{> omenText this}}</span></summary>
+					</details>
+					{{/if}}
+				</li>
 				{{/each}}
 			</ol>
-		</details>
-
-		<label class="bastionland-gm-toolkit__note">
-			<span>{{localize "bastionland.gmToolkit.myths.note"}}</span>
-			<textarea data-toolkit-field="mythNote" rows="2" placeholder="{{localize 'bastionland.gmToolkit.myths.notePlaceholder'}}">{{note}}</textarea>
-		</label>
-
-		<nav class="bastionland-toolbar" aria-label="{{name}}">
-			<button type="button" data-action="omenStep" data-step="-1" {{disabled noneSeen}} aria-label="{{localize 'bastionland.realm.panel.omenLess'}}" data-tooltip="{{localize 'bastionland.realm.panel.omenLess'}}"><i class="fa-solid fa-minus" inert></i></button>
-			<button type="button" data-action="nextOmen" {{disabled complete}}><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.myths.nextOmen"}}</button>
-			{{#if resolved}}
-			<button type="button" data-action="newMyth" data-tooltip="{{localize 'bastionland.gmToolkit.myths.newMythTooltip'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.gmToolkit.myths.newMyth"}}</button>
-			<button type="button" data-action="mythUnresolved"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.gmToolkit.myths.unresolve"}}</button>
-			{{else}}
-			<button type="button" data-action="mythResolved" data-tooltip="{{localize 'bastionland.glory.awards.myth.hint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.glory.awards.myth.label"}}</button>
+			{{#if complete}}
+			<p class="bastionland-hint">{{localize "bastionland.realm.wilderness.omensComplete"}}</p>
 			{{/if}}
-		</nav>
-	</article>
+
+			{{#with table}}
+			<details class="bastionland-gm-toolkit__fold bastionland-gm-toolkit__table-fold" data-fold="{{fold}}" data-myth-fold {{#if open}}open{{/if}}>
+				<summary>{{#if name}}{{name}}{{else}}{{localize "bastionland.gmToolkit.myths.table"}}{{/if}}</summary>
+				{{#if rows}}
+				<table class="bastionland-myth-table" data-myth-table>
+					<thead>
+						<tr>
+							<th scope="col" class="bastionland-myth-table__die"><button type="button" data-action="rollMythTable" data-tooltip="{{localize 'bastionland.gmToolkit.myths.rollTable'}}" aria-label="{{localize 'bastionland.gmToolkit.myths.rollTable'}}"><i class="fa-solid fa-dice-d6" inert></i></button></th>
+							{{#each columns}}
+							<th scope="col"><button type="button" data-action="rollMythTable" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
+							{{/each}}
+						</tr>
+					</thead>
+					<tbody>
+						{{#each rows}}
+						<tr>
+							<th scope="row">{{number}}</th>
+							{{#each entries}}
+							<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}>{{text}}</td>
+							{{/each}}
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+				{{else if reading}}
+				<p class="bastionland-hint">{{localize "bastionland.gmToolkit.myths.tableReading"}}</p>
+				{{else}}
+				<p class="bastionland-hint">{{localize "bastionland.gmToolkit.myths.tableMissing"}}</p>
+				{{/if}}
+			</details>
+			{{/with}}
+
+			<label class="bastionland-gm-toolkit__note">
+				<span>{{localize "bastionland.gmToolkit.myths.note"}}</span>
+				<textarea data-toolkit-field="mythNote" rows="2" placeholder="{{localize 'bastionland.gmToolkit.myths.notePlaceholder'}}">{{note}}</textarea>
+			</label>
+
+			<nav class="bastionland-toolbar" aria-label="{{name}}">
+				<button type="button" data-action="omenStep" data-step="-1" {{disabled noneSeen}} aria-label="{{localize 'bastionland.realm.panel.omenLess'}}" data-tooltip="{{localize 'bastionland.realm.panel.omenLess'}}"><i class="fa-solid fa-minus" inert></i></button>
+				<button type="button" data-action="nextOmen" {{disabled complete}}><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.myths.nextOmen"}}</button>
+				{{#if table.rows}}
+				<button type="button" data-action="rollMythTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.myths.rollTable"}}</button>
+				{{/if}}
+				{{#if resolved}}
+				<button type="button" data-action="newMyth" data-tooltip="{{localize 'bastionland.gmToolkit.myths.newMythTooltip'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.gmToolkit.myths.newMyth"}}</button>
+				<button type="button" data-action="mythUnresolved"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.gmToolkit.myths.unresolve"}}</button>
+				{{else}}
+				<button type="button" data-action="mythResolved" data-tooltip="{{localize 'bastionland.glory.awards.myth.hint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.glory.awards.myth.label"}}</button>
+				{{/if}}
+			</nav>
+		</div>
+	</details>
 	{{else}}
 	<p class="bastionland-empty">{{localize "bastionland.myths.noMyths"}}</p>
 	{{/each}}

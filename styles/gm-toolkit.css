@@ -74,17 +74,9 @@
 }
 
 .bastionland-gm-toolkit__realm {
-	display: flex;
-	align-items: center;
-	gap: 0.45rem;
-	font-style: italic;
-}
-
-.bastionland-gm-toolkit__realm select {
 	width: auto;
 	min-width: 10rem;
 	max-width: 16rem;
-	font-style: normal;
 }
 
 .bastionland-gm-toolkit__fact {
@@ -99,25 +91,192 @@
 	font-style: italic;
 }
 
-/* Where the Company stands reads as a line of the banner, and shows the hex when clicked. */
+/* Where the Company stands reads as a line of the banner, and shows the hex when clicked.
+   Like every clickable word of the banner, it carries no line: it reddens when pointed at. */
 .bastionland-page button.bastionland-gm-toolkit__fact--button {
 	width: auto;
 	height: auto;
-	min-height: 0;
 	padding: 0;
-	border: none;
-	background: none;
-	box-shadow: none;
 	color: var(--bastionland-ink);
 	font: inherit;
-	text-decoration: underline dotted var(--bastionland-rule);
-	text-underline-offset: 3px;
 	cursor: pointer;
 }
 
 .bastionland-page button.bastionland-gm-toolkit__fact--button:hover {
 	background: none;
 	color: var(--bastionland-blood);
+}
+
+/* The calendar at the banner's far end: the Season in its own colour, centred
+   over the Age and Day, then the Phase (and the weather) on the right. Each
+   line of the two columns is one height, so the weather sits level with the
+   Age and Day, and a lone Phase centres between the Season and them. Its
+   selects and boxes read as words of the banner until pointed at. */
+.bastionland-gm-toolkit__clock {
+	--bastionland-clock-ink: var(--bastionland-ink);
+	--bastionland-clock-line: 1.6rem;
+	display: flex;
+	flex: none;
+	align-items: stretch;
+	gap: 0.9rem;
+	padding-left: 1rem;
+	border-left: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-gm-toolkit__clock--spring { --bastionland-clock-ink: var(--bastionland-spring); }
+.bastionland-gm-toolkit__clock--harvest { --bastionland-clock-ink: var(--bastionland-harvest); }
+.bastionland-gm-toolkit__clock--winter { --bastionland-clock-ink: var(--bastionland-winter); }
+
+.bastionland-gm-toolkit__clock-now,
+.bastionland-gm-toolkit__clock-calendar {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: flex-start;
+	gap: 0.3rem;
+}
+
+.bastionland-gm-toolkit__clock-now {
+	padding-left: 0.9rem;
+	border-left: 1px dotted var(--bastionland-rule);
+}
+
+.bastionland-gm-toolkit__clock-now > *,
+.bastionland-gm-toolkit__clock-calendar > * {
+	min-height: var(--bastionland-clock-line);
+}
+
+.bastionland-gm-toolkit__clock label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin: 0;
+	white-space: nowrap;
+}
+
+/* No dropdown caret: the Season and Phase read as words of the banner and,
+   like its other clickable words, redden when pointed at. Each is only as wide
+   as the word it shows. */
+.bastionland-page .bastionland-gm-toolkit__clock select {
+	width: auto;
+	height: auto;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	field-sizing: content;
+}
+
+.bastionland-page .bastionland-gm-toolkit__clock select:is(:hover, :focus-visible) {
+	outline: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page .bastionland-gm-toolkit__clock select option {
+	color: var(--bastionland-ink);
+	font-weight: normal;
+}
+
+.bastionland-gm-toolkit__clock-season {
+	align-self: center;
+	color: var(--bastionland-clock-ink);
+	font-size: 1.15rem;
+	font-weight: bold;
+}
+
+/* Where a browser can't fit the box to its word, it's as wide as the longest
+   Season, so a shorter one centres in it. */
+.bastionland-page .bastionland-gm-toolkit__clock-season select {
+	text-align: center;
+	text-align-last: center;
+}
+
+.bastionland-gm-toolkit__clock-phase {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__clock-phase i {
+	color: var(--bastionland-ink-soft);
+}
+
+/* The weather, with FXMaster on: a word of the banner that opens the picker. */
+.bastionland-page button.bastionland-gm-toolkit__weather {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	width: auto;
+	height: auto;
+	padding: 0;
+	color: var(--bastionland-ink);
+	font: inherit;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__weather i {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-page button.bastionland-gm-toolkit__weather.is-unset {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__weather:hover,
+.bastionland-page button.bastionland-gm-toolkit__weather:hover i {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+/* The weather picker: every sky a button, in a grid rather than one long row. */
+.bastionland-weather-picker {
+	max-width: 30rem;
+}
+
+.bastionland-weather-picker .form-footer {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+	gap: 0.4rem;
+}
+
+.bastionland-weather-picker .form-footer button {
+	justify-content: flex-start;
+	margin: 0;
+}
+
+.bastionland-weather-picker .form-footer button.is-active {
+	border-color: var(--bastionland-blood);
+	box-shadow: inset 0 0 0 1px var(--bastionland-blood);
+	font-weight: bold;
+}
+
+.bastionland-gm-toolkit__clock-count {
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	color: var(--bastionland-ink-soft);
+	font-size: 0.9rem;
+	font-variant: small-caps;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-page .bastionland-gm-toolkit__clock-count input {
+	width: 3rem;
+	height: 1.5rem;
+	padding: 0 0.2rem;
+	border-width: 1px;
+	border-radius: 3px;
+	color: var(--bastionland-ink);
+	font-size: 1rem;
+	font-variant: normal;
+	text-align: center;
 }
 
 /* ---------------------------------------------------------------- */
@@ -179,10 +338,10 @@
 	gap: 0.3rem;
 }
 
+/* A block, not a flex box: text-box trimming only works on block containers,
+   so a flex chip kept its full line box and its letters sat off-centre. */
 .bastionland-gm-toolkit__chip {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
+	display: inline-block;
 	padding: 0.05rem 0.45rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 999px;
@@ -190,6 +349,15 @@
 	color: var(--bastionland-ink);
 	font-size: 0.82rem;
 	line-height: 1.35;
+}
+
+/* The body face carries tall ascender room, so its letters sit low in the
+   line box. The pill rule in the main sheet trims the box to the capitals and
+   baseline; pad it evenly here, after the padding above. */
+@supports (text-box: trim-both cap alphabetic) {
+	.bastionland-gm-toolkit__chip {
+		padding: 0.34rem 0.5rem;
+	}
 }
 
 .bastionland-gm-toolkit__chip.is-terrain {
@@ -214,7 +382,9 @@
 	color: var(--bastionland-rubric);
 }
 
+/* Foundry makes every button a flex box, which the trim above can't reach. */
 .bastionland-page button.bastionland-gm-toolkit__chip--button {
+	display: inline-block;
 	width: auto;
 	height: auto;
 	min-height: 0;
@@ -258,7 +428,10 @@
 /* Myths                                                            */
 /* ---------------------------------------------------------------- */
 
+/* A Myth folds to one row, so all six fit on the page at once. */
 .bastionland-gm-toolkit__myth {
+	gap: 0;
+	padding: 0;
 	border-left-color: var(--bastionland-blood);
 }
 
@@ -267,30 +440,114 @@
 	background: rgb(255 255 255 / 0.12);
 }
 
+/* The row: its picture, its name and the Omens met, then where it is, with
+   the fold's arrow at the far right. */
 .bastionland-gm-toolkit__myth-head {
-	display: flex;
-	align-items: flex-start;
-	gap: 0.75rem;
+	display: grid;
+	grid-template-areas:
+		"art name pips mark"
+		"art chips chips mark";
+	grid-template-columns: auto minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: 0.25rem 0.65rem;
+	padding: 0.4rem 0.8rem 0.4rem 0.9rem;
+	list-style: none;
+	cursor: pointer;
 }
 
-.bastionland-gm-toolkit__myth-title {
-	display: flex;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.25rem;
-	min-width: 0;
+.bastionland-gm-toolkit__myth-head::-webkit-details-marker {
+	display: none;
 }
 
-.bastionland-gm-toolkit__myth-title .bastionland-hint {
-	margin: 0;
+/* A folding card's arrow, a Myth's or a hex's, at the far right: Font
+   Awesome's chevron-down, and chevron-up once the card is open. */
+:is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head)::after {
+	content: "\f078";
+	color: var(--bastionland-ink-soft);
+	font-family: var(--font-awesome);
+	font-size: 0.75rem;
+	font-weight: 900;
 }
 
-.bastionland-gm-toolkit__art {
-	flex: none;
-	width: 7rem;
-	height: 4.4rem;
+:is(.bastionland-gm-toolkit__myth, .bastionland-gm-toolkit__hex)[open] > :is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head)::after {
+	content: "\f077";
+}
+
+:is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head):hover::after {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__myth-head::after {
+	grid-area: mark;
+}
+
+.bastionland-gm-toolkit__myth-head .bastionland-gm-toolkit__name {
+	grid-area: name;
+	font-size: 1.15rem;
+}
+
+.bastionland-gm-toolkit__myth-head .bastionland-gm-toolkit__chips {
+	grid-area: chips;
+}
+
+/* The Myth's picture, a button that opens it larger. */
+.bastionland-page button.bastionland-gm-toolkit__art {
+	display: block;
+	grid-area: art;
+	width: 4.4rem;
+	height: 2.75rem;
+	padding: 0;
 	border: 1px solid var(--bastionland-rule);
+	border-radius: 0;
+	cursor: zoom-in;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__art:is(:hover, :focus-visible) {
+	border-color: var(--bastionland-ink);
+	background: none;
+}
+
+.bastionland-gm-toolkit__art img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: none;
 	object-fit: cover;
+}
+
+/* A pip for each Omen: filled once met, the one playing out in blood. */
+.bastionland-gm-toolkit__pips {
+	display: flex;
+	grid-area: pips;
+	gap: 0.3rem;
+}
+
+.bastionland-gm-toolkit__pip {
+	width: 0.9rem;
+	height: 0.9rem;
+	border: 1.5px solid var(--bastionland-ink-soft);
+	border-radius: 50%;
+}
+
+.bastionland-gm-toolkit__pip.is-met {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__pip.is-current {
+	border-color: var(--bastionland-blood);
+	background: var(--bastionland-blood);
+}
+
+.bastionland-gm-toolkit__myth-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0.1rem 0.9rem 0.75rem;
+}
+
+.bastionland-gm-toolkit__myth-body > .bastionland-hint {
+	margin: 0;
 }
 
 /* Taking an Omen back is the odd one out on the row, so it stays a small square. */
@@ -306,33 +563,120 @@
 	font-style: italic;
 }
 
+/* The six Omens in order, each on a numbered disc: filled once met, the one
+   playing out in blood. It and the next are written out; the rest are cut to
+   a line, which unfolds when clicked. */
 .bastionland-gm-toolkit__omens {
 	display: flex;
 	flex-direction: column;
-	gap: 0.4rem;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-gm-toolkit__omen,
+.bastionland-gm-toolkit__omen-fold > summary {
+	display: grid;
+	grid-template-columns: 1.35rem minmax(0, 1fr);
+	align-items: start;
+	gap: 0 0.55rem;
 }
 
 .bastionland-gm-toolkit__omen {
-	padding: 0.35rem 0.6rem;
-	border-left: 3px solid var(--bastionland-rule);
+	padding: 0.2rem 0.55rem;
+	border-left: 3px solid transparent;
+}
+
+.bastionland-gm-toolkit__omen-fold {
+	grid-column: 1 / -1;
+}
+
+.bastionland-gm-toolkit__omen-fold > summary {
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__omen-fold > summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-gm-toolkit__omen-fold:not([open]) .bastionland-gm-toolkit__omen-text {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.bastionland-gm-toolkit__omen-fold > summary:hover .bastionland-gm-toolkit__omen-number {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__omen-number {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.35rem;
+	height: 1.35rem;
+	margin-top: 0.05rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 50%;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.78rem;
+	font-variant-numeric: lining-nums;
+	line-height: 1;
+}
+
+/* The face's tall ascender room sets the digit low in its line box, which the
+   disc's centring can't see past. The digit's own span is a flex item, so a
+   block, so it can be trimmed to the figure itself and centred as that. */
+@supports (text-box: trim-both cap alphabetic) {
+	.bastionland-gm-toolkit__omen-number > span {
+		text-box: trim-both cap alphabetic;
+	}
 }
 
 .bastionland-gm-toolkit__omen p {
-	margin: 0.15rem 0 0;
+	margin: 0;
+}
+
+.bastionland-gm-toolkit__omen.is-past {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-gm-toolkit__omen.is-past .bastionland-gm-toolkit__omen-number {
+	border-color: var(--bastionland-ink-soft);
+	background: var(--bastionland-ink-soft);
+	color: var(--bastionland-paper);
 }
 
 .bastionland-gm-toolkit__omen.is-current {
+	padding-block: 0.35rem;
 	border-left-color: var(--bastionland-blood);
 	background: var(--bastionland-paper-deep);
 }
 
+.bastionland-gm-toolkit__omen.is-current .bastionland-gm-toolkit__omen-number {
+	border-color: var(--bastionland-blood);
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
+}
+
 .bastionland-gm-toolkit__omen.is-next {
-	color: var(--bastionland-ink-soft);
+	padding-block: 0.35rem;
+	border-left-color: var(--bastionland-rule);
+}
+
+.bastionland-gm-toolkit__omen.is-next .bastionland-gm-toolkit__omen-number {
+	border-color: var(--bastionland-ink);
+	color: var(--bastionland-ink);
 }
 
 .bastionland-gm-toolkit__omen-label {
+	display: block;
+	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.95rem;
+	font-size: 0.9rem;
 	letter-spacing: 0.03em;
 }
 
@@ -340,26 +684,212 @@
 	color: var(--bastionland-blood);
 }
 
-/* The six Omens in order, folded away until wanted. */
+/* The Myth's table, folded away until wanted. */
 .bastionland-gm-toolkit__fold > summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
 	color: var(--bastionland-ink-soft);
 	font-size: 0.9rem;
 	font-style: italic;
+	list-style: none;
 	cursor: pointer;
 }
 
-.bastionland-gm-toolkit__all-omens li.is-seen {
-	color: var(--bastionland-ink-soft);
+.bastionland-gm-toolkit__fold > summary::-webkit-details-marker {
+	display: none;
 }
 
-.bastionland-gm-toolkit__all-omens li.is-current {
+/* Its arrow at the far right too, the cards' chevron at the size of its words. */
+.bastionland-gm-toolkit__fold > summary::after {
+	content: "\f078";
+	flex: none;
+	font-family: var(--font-awesome);
+	font-size: 0.7rem;
+	font-style: normal;
+	font-weight: 900;
+}
+
+.bastionland-gm-toolkit__fold[open] > summary::after {
+	content: "\f077";
+}
+
+.bastionland-gm-toolkit__fold > summary:hover {
+	color: var(--bastionland-ink);
+}
+
+/* An Omen's "see opposite" opens the Myth's table below it. It's marked by its
+   rubric colour, not a line: only page numbers carry a dotted underline. */
+.bastionland-gm-toolkit__opposite {
+	color: var(--bastionland-rubric);
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__opposite:hover {
 	color: var(--bastionland-blood);
 }
 
-.bastionland-gm-toolkit__all-omens li.is-next {
-	color: var(--bastionland-ink);
+/* The table printed beside a Myth's Omens, laid out as the book prints it:
+   its rows numbered down a dark strip, every other row shaded. */
+.bastionland-myth-table {
+	width: 100%;
+	margin: 0.35rem 0 0;
+	border: none;
+	border-collapse: collapse;
+	background: none;
+	font-size: 0.9rem;
+}
+
+.bastionland-myth-table th,
+.bastionland-myth-table td {
+	padding: 0.15rem 0.45rem;
+	border: none;
+	text-align: center;
+	/* Core fades a cell's colours, which would leave a trail behind the highlight. */
+	transition: none;
+}
+
+/* Core shades the heading row, dark in the dark theme; the book's is the page. */
+.bastionland-myth-table :is(thead, thead tr, tbody tr) {
+	border: none;
+	background: none;
+}
+
+.bastionland-myth-table thead th {
+	background: none;
 	font-weight: normal;
-	font-style: italic;
+}
+
+.bastionland-myth-table thead button {
+	width: 100%;
+	margin: 0;
+	padding: 0.1rem 0.3rem;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.95rem;
+	font-weight: bold;
+	line-height: 1.3;
+	cursor: pointer;
+}
+
+.bastionland-myth-table thead button:is(:hover, :focus-visible) {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-myth-table tbody th,
+.bastionland-myth-table thead th.bastionland-myth-table__die {
+	width: 1.8rem;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-family: var(--bastionland-font-caps);
+	font-weight: bold;
+}
+
+.bastionland-myth-table .bastionland-myth-table__die button {
+	color: var(--bastionland-paper);
+}
+
+.bastionland-myth-table tbody tr:nth-child(odd) td:not(.is-spinning) {
+	background: var(--bastionland-paper-deep);
+}
+
+/* The highlight running down a column, and the row it lands on. */
+.bastionland-myth-table td.is-spinning {
+	background: var(--bastionland-rubric);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-myth-table td.is-rolled {
+	outline: 2px solid var(--bastionland-blood);
+	outline-offset: -2px;
+	color: var(--bastionland-blood);
+	font-weight: bold;
+}
+
+/* Only as it lands, so a redraw doesn't flash it again. */
+.bastionland-myth-table td.is-landing {
+	animation: bastionland-myth-table-land 0.45s ease-out;
+}
+
+@keyframes bastionland-myth-table-land {
+	from { background: var(--bastionland-rubric); color: var(--bastionland-paper); }
+}
+
+/* ---------------------------------------------------------------- */
+/* The table on a Knight's page (p28-170)                           */
+/* ---------------------------------------------------------------- */
+
+/* "Roll on table" opens the line under the possession that says "see below",
+   in red ochre like the sheet's headings; what the table gave follows it. */
+.bastionland-page .bastionland-item__book-roll {
+	appearance: none;
+	display: inline;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	color: var(--bastionland-rubric);
+	font: inherit;
+	line-height: inherit;
+	cursor: pointer;
+}
+
+.bastionland-page .bastionland-item__book-roll:is(:hover, :focus-visible) {
+	color: var(--bastionland-blood);
+}
+
+/* What the table gave, under the possession, in the size of an item's notes. */
+.bastionland-item__book-table {
+	margin: 0.1rem 0 0;
+	font-size: 0.92rem;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-item__book-table strong {
+	color: var(--bastionland-ink);
+}
+
+/* The window, on the sheets' parchment. Its table borrows the Myth table's look from the GM Toolkit. */
+.bastionland-knight-table-window .window-content {
+	padding: 0;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-knight-table {
+	gap: 0.75rem;
+	padding: 1rem 1.25rem 1.25rem;
+}
+
+.bastionland-knight-table .bastionland-myth-table {
+	border: 1px solid var(--bastionland-ink);
+}
+
+.bastionland-knight-table .bastionland-hint {
+	margin: 0;
+}
+
+/* An entry is a button to take it by hand, drawn as the plain cell it sits in. */
+.bastionland-page .bastionland-knight-table__pick {
+	appearance: none;
+	height: auto;
+	border-radius: 0;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	color: inherit;
+	font: inherit;
+	line-height: 1.3;
+	cursor: pointer;
+}
+
+.bastionland-page .bastionland-knight-table__pick:is(:hover, :focus-visible) {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-knight-table .bastionland-toolbar {
+	justify-content: flex-end;
 }
 
 /* ---------------------------------------------------------------- */
@@ -375,12 +905,15 @@
 	border-left-color: var(--bastionland-verdigris);
 }
 
+/* Its lines wrap as they need to; the arrow (drawn with the Myths') keeps
+   the right edge to itself, level with the Myth rows' arrows. */
 .bastionland-gm-toolkit__hex-head {
+	position: relative;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.3rem 0.6rem;
-	padding: 0.55rem 0.9rem;
+	padding: 0.55rem 2.35rem 0.55rem 0.9rem;
 	list-style: none;
 	cursor: pointer;
 }
@@ -389,15 +922,11 @@
 	display: none;
 }
 
-.bastionland-gm-toolkit__hex-head::before {
-	content: "\25B8";
-	flex: none;
-	color: var(--bastionland-ink-soft);
-	font-size: 0.8rem;
-}
-
-.bastionland-gm-toolkit__hex[open] > .bastionland-gm-toolkit__hex-head::before {
-	content: "\25BE";
+.bastionland-gm-toolkit__hex-head::after {
+	position: absolute;
+	top: 50%;
+	right: 0.8rem;
+	transform: translateY(-50%);
 }
 
 .bastionland-gm-toolkit__hex-head .bastionland-gm-toolkit__name {
@@ -406,7 +935,6 @@
 
 .bastionland-gm-toolkit__visits {
 	flex-basis: 100%;
-	padding-left: 1.1rem;
 	color: var(--bastionland-ink-soft);
 	font-size: 0.85rem;
 	font-style: italic;
@@ -585,7 +1113,7 @@
 }
 
 @container (max-width: 560px) {
-	.bastionland-gm-toolkit__art {
+	.bastionland-page button.bastionland-gm-toolkit__art {
 		display: none;
 	}
 }

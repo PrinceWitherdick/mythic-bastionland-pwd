@@ -16,6 +16,7 @@ beforeAll(async () => {
 	globalThis.foundry = {
 		applications: {
 			api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
+			apps: { ImagePopout: class {} },
 			sheets: { ActorSheetV2: class {} }
 		}
 	};
@@ -33,8 +34,15 @@ describe("GM Toolkit templates", () => {
 	});
 
 	it("leave the GM's notes as the only thing the sheet's own form saves", () => {
-		const named = Object.values(templates).flatMap((source) => tags(source).filter((tag) => /\sname=/.test(tag)));
+		// A <details> name only groups folds so one opens at a time; forms never send it.
+		const named = Object.values(templates).flatMap((source) => tags(source).filter((tag) => /\sname=/.test(tag) && !tag.startsWith("<details")));
 		expect(named).toEqual([expect.stringMatching(/^<prose-mirror name="system\.notes"/)]);
+	});
+
+	it("fold the Myths as one group, so opening one folds the one open before", () => {
+		const [card] = tags(templates["myths.hbs"]).filter((tag) => tag.includes("data-myth-card"));
+		expect(card).toMatch(/^<details\b/);
+		expect(card).toContain('name="{{@root.mythGroup}}"');
 	});
 
 	it("only ask for actions the sheet has", () => {

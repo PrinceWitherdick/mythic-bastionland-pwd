@@ -36,7 +36,7 @@ function installFoundryStubs() {
 		},
 		applications: {
 			api: { ApplicationV2: class {}, DocumentSheetV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
-			apps: { DocumentSheetConfig: { registerSheet: vi.fn() } },
+			apps: { DocumentSheetConfig: { registerSheet: vi.fn() }, ImagePopout: class {} },
 			handlebars: { loadTemplates: vi.fn(), renderTemplate: vi.fn() },
 			sheets: { ActorSheetV2: class {}, ItemSheetV2: class {} },
 			ux: { TextEditor: { implementation: {} } }
@@ -149,9 +149,10 @@ describe("system boot", () => {
 		for (const part of Object.values(toolkitSheet.PARTS)) {
 			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
 		}
-		// Every page on the rail has a part to draw it.
-		expect(toolkitSheet.TABS.primary.tabs.map((tab) => tab.id)).toEqual([...TOOLKIT_TABS]);
-		for (const tab of TOOLKIT_TABS) expect(toolkitSheet.PARTS[tab]).toBeDefined();
+		// Every page on the rail has a part to draw it, the GM's own Settings last.
+		const tabs = toolkitSheet.TABS.primary.tabs.map((tab) => tab.id);
+		expect(tabs).toEqual([...TOOLKIT_TABS, "settings"]);
+		for (const tab of tabs) expect(toolkitSheet.PARTS[tab]).toBeDefined();
 
 		// A second toolkit is refused, and the last one is kept.
 		expect(hooks.preCreateActor).toBeTypeOf("function");
