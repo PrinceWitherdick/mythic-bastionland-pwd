@@ -34,6 +34,7 @@ const SAVE_DELAY_MS = 500;
  * @property {number} [height]
  * @property {number} [zIndex]  Higher is nearer the front.
  * @property {boolean} [minimized]
+ * @property {Record<string, string>} [tabs]  The page open in each tab group, such as a Knight's Chronicle.
  */
 
 /** A registered window is saved under its key after this, which no document uuid starts with. */
@@ -107,10 +108,11 @@ export async function restoreOpenSheets() {
 
 	restoring = true;
 	try {
-		for (const [key, { zIndex: _zIndex, minimized, ...position }] of saved) {
+		for (const [key, { zIndex: _zIndex, minimized, tabs, ...position }] of saved) {
 			const sheet = restorableWindows.has(key) ? restorableWindows.get(key)() : await sheetFor(key);
 			if (!sheet) continue;
 			try {
+				reopenTabs(sheet, tabs);
 				// Core keeps the position on screen, so a sheet saved on a larger monitor stays reachable.
 				await sheet.render({ force: true, position });
 				if (minimized) sheet.minimize();
@@ -197,5 +199,22 @@ function placeOf(sheet) {
 		if (Number.isFinite(sheet.position[key])) place[key] = Math.round(sheet.position[key]);
 	}
 	if (sheet.minimized) place.minimized = true;
+	const tabs = Object.fromEntries(Object.entries(sheet.tabGroups ?? {}).filter(([, tab]) => typeof tab === "string"));
+	if (Object.keys(tabs).length) place.tabs = tabs;
 	return place;
+}
+
+/**
+ * Put a window back on the pages it was showing before it first renders. A
+ * page it no longer has, such as one taken out since, is left to its default.
+ * @param {foundry.applications.api.ApplicationV2} sheet
+ * @param {Record<string, string>} [tabs]
+ */
+function reopenTabs(sheet, tabs) {
+	if (!tabs || !sheet.tabGroups) return;
+	for (const [group, tab] of Object.entries(tabs)) {
+		const known = sheet._getTabsConfig?.(group)?.tabs;
+		if (known && !known.some(({ id }) => id === tab)) continue;
+		sheet.tabGroups[group] = tab;
+	}
 }

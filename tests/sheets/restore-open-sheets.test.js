@@ -117,6 +117,16 @@ describe("saving open sheets", () => {
 		expect(savedHere()["Actor.knight"].left).toBe(640);
 	});
 
+	it("saves the page each tab group is on, as the page unloads", () => {
+		const sheet = fakeSheet("Actor.knight");
+		sheet.tabGroups = { primary: "knight" };
+		fire("renderActorSheetV2", sheet);
+		// Picking a tab shows the page without rendering the sheet again.
+		sheet.tabGroups.primary = "chronicle";
+		unload();
+		expect(savedHere()["Actor.knight"].tabs).toEqual({ primary: "chronicle" });
+	});
+
 	it("leaves out sheets over compendium entries", () => {
 		fire("renderActorSheetV2", fakeSheet("Compendium.world.knights.Actor.k1", { pack: "world.knights" }));
 		vi.advanceTimersByTime(500);
@@ -164,6 +174,24 @@ describe("reopening sheets", () => {
 		};
 		await restoreOpenSheets();
 		expect(opened).toEqual(["Actor.back", "Actor.middle", "Actor.front"]);
+	});
+
+	it("reopens a sheet on the page it was showing", async () => {
+		const sheet = fakeSheet("Actor.knight");
+		sheet.tabGroups = {};
+		sheet.render.mockImplementation(async () => expect(sheet.tabGroups.primary).toBe("seer"));
+		settings.openSheets = { "world-a": { "Actor.knight": { left: 10, top: 20, tabs: { primary: "seer" } } } };
+		await restoreOpenSheets();
+		expect(sheet.render).toHaveBeenCalledWith({ force: true, position: { left: 10, top: 20 } });
+	});
+
+	it("opens on the default page when the saved one is gone", async () => {
+		const sheet = fakeSheet("Actor.knight");
+		sheet.tabGroups = {};
+		sheet._getTabsConfig = () => ({ tabs: [{ id: "knight" }, { id: "chronicle" }] });
+		settings.openSheets = { "world-a": { "Actor.knight": { tabs: { primary: "settings" } } } };
+		await restoreOpenSheets();
+		expect(sheet.tabGroups).toEqual({});
 	});
 
 	it("minimizes a sheet that was minimized", async () => {
