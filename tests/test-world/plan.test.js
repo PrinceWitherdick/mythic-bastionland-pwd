@@ -43,9 +43,11 @@ describe("propertyItems", () => {
 		expect(items).toEqual([]);
 		expect(companions).toEqual([{
 			name: "Grey charger",
+			text: "Grey charger (VIG 12, CLA 8, SPI 5, 3GD, d6 trample, A1, hates the rain)",
 			stats: { vig: 12, cla: 8, spi: 5, guard: 3 },
 			armour: 1,
 			trample: "d6",
+			attacks: [],
 			notes: ["hates the rain"]
 		}]);
 	});

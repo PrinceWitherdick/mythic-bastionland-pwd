@@ -23,8 +23,12 @@ export const UNSAVED_GAMBITS = Object.freeze(["bolster", "move"]);
 /** A Strong Gambit adds one of these: No Save for the target, or a Greater effect. */
 export const STRONG_GAMBITS = Object.freeze(["noSave", "greater"]);
 
-/** A specialist weapon's extra die, gained in one situation (Specialist Weapons, p12). */
-export const SPECIALIST_DICE = Object.freeze(["d8", "d10"]);
+/**
+ * A specialist weapon's extra die, gained in one situation. The book's rule
+ * gives +d8 or +d10 (Specialist Weapons, p12), but some Knights' own weapons
+ * carry +d6, such as an axe "+d6 when mounted".
+ */
+export const SPECIALIST_DICE = Object.freeze(["d6", "d8", "d10"]);
 
 /**
  * @param {{specialist?: {die: string}}} weapon An item's system data.

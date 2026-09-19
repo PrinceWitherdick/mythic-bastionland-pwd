@@ -173,13 +173,15 @@ describe("knightItems", () => {
 
 	it("gives Property, Ability, Passion and the standard kit", () => {
 		const items = knightItems(lantern, kitNames);
-		expect(items.slice(0, 4)).toEqual([
-			{ type: "gear", name: "Hooked lamp (d8 hefty), coat (A1)" },
+		expect(items).toHaveLength(10);
+		expect(items[0]).toMatchObject({ type: "weapon", name: "Hooked lamp", system: { damage: "d8", hefty: true } });
+		expect(items[1]).toMatchObject({ type: "armour", name: "Coat", system: { kind: "coat", armour: 1, equipped: true } });
+		expect(items.slice(2, 5)).toEqual([
 			{ type: "gear", name: "Grumbling mule (VIG 9, GD 2)" },
 			{ type: "ability", name: "Snuff Out", system: { description: "<p>Put out every flame you can see &lt;at once&gt;.</p>" } },
 			{ type: "passion", name: "Vigil", system: { description: "<p>Restore SPI when you keep watch all night.</p>" } }
 		]);
-		expect(items.slice(4)).toEqual([
+		expect(items.slice(5)).toEqual([
 			{ type: "weapon", name: "Dagger", system: { damage: "d6" } },
 			{ type: "gear", name: "Torches" },
 			{ type: "gear", name: "Rope" },

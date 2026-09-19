@@ -1201,6 +1201,11 @@
 	color: var(--bastionland-ink);
 }
 
+/* Off reads as off at a glance, as armour that doesn't count right now. */
+.bastionland-item__equip:not(.is-active) {
+	opacity: 0.45;
+}
+
 /* The title never breaks; the gloss starts beside it and wraps like prose when the line runs out. */
 .bastionland-item__name {
 	display: block;

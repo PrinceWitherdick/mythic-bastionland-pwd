@@ -4,8 +4,8 @@ import { isInTurmoil, isSameName } from "../../module/rules/dominion.js";
 import { legacyGlory } from "../../module/rules/time.js";
 
 describe("specialistDie", () => {
-	it("offers the book's +d8 and +d10", () => {
-		expect(SPECIALIST_DICE).toEqual(["d8", "d10"]);
+	it("offers the book's +d8 and +d10, and the +d6 some Knights' weapons carry", () => {
+		expect(SPECIALIST_DICE).toEqual(["d6", "d8", "d10"]);
 	});
 
 	it("reads a specialist weapon's die", () => {

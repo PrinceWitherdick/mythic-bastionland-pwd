@@ -8,6 +8,7 @@ import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rol
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
+import { KNIGHT_PROPERTY_STEP, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
@@ -294,6 +295,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: TEST_WORLD_MACRO_STEP, run: seedTestWorldMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
+	// Knights made before their Property was read into weapons and armour.
+	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
 	// Again, once each Scene has its own look, for terrain pictures named by terrain rather than number.

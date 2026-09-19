@@ -1,8 +1,8 @@
 <li class="bastionland-item draggable" data-item-id="{{id}}">
 	<div class="bastionland-item__line">
 		{{#if equippable}}
-		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}" data-action="toggleEquipped" data-tooltip="{{localize 'bastionland.sheet.equip'}}" aria-label="{{localize 'bastionland.sheet.equip'}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
-			<i class="fa-solid fa-hand-fist" inert></i>
+		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}" data-action="toggleEquipped" data-tooltip="{{equipLabel}}" aria-label="{{equipLabel}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
+			<i class="fa-solid {{equipIcon}}" inert></i>
 		</button>
 		{{/if}}
 		<button type="button" class="bastionland-item__name" data-action="postItem" data-tooltip="{{localize 'bastionland.sheet.toChat'}}" data-viewable><span class="bastionland-item__title"><span class="bastionland-item__head">{{nameHead}}</span>{{nameSep}}</span>{{#if nameRest}} <span class="bastionland-item__gloss">{{nameRest}}</span>{{/if}}</button>

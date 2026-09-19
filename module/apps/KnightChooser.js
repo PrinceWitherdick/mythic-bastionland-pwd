@@ -1,3 +1,4 @@
+import { clearCompanions, knightOwner, makeCompanions, markCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
@@ -224,7 +225,12 @@ export class KnightChooser extends BastionlandChooser {
 
 		const actor = this.actor;
 		if (!actor) {
-			const created = await Actor.implementation.create({ name, type: "knight", ...foundry.utils.expandObject(update), items });
+			// The steed and other companions are made first, so the Knight is made riding it in one go.
+			const { made, steed, gone } = await makeCompanions(items, { name });
+			if (steed) update["system.steed"] = steed;
+			const kept = items.filter((item) => !gone.has(item));
+			const created = await Actor.implementation.create({ name, type: "knight", ...foundry.utils.expandObject(update), items: kept });
+			if (created) await markCompanions(made, created);
 			created?.sheet.render({ force: true });
 			return this.close();
 		}
@@ -237,10 +243,16 @@ export class KnightChooser extends BastionlandChooser {
 		});
 		if (!confirmed) return;
 
+		// Every piece of gear is replaced, so the companions are all among the new items,
+		// and those made from the old gear go with it.
 		const replaced = actor.items.filter((item) => REPLACED_TYPES.includes(item.type)).map((item) => item.id);
+		const cleared = await clearCompanions(actor);
+		const { steed, gone } = await makeCompanions(items, knightOwner(actor));
+		if (steed) update["system.steed"] = steed;
+		else if (cleared.includes(actor.system.steed)) update["system.steed"] = "";
 		await actor.update(update);
 		if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
-		await actor.createEmbeddedDocuments("Item", items);
+		await actor.createEmbeddedDocuments("Item", items.filter((item) => !gone.has(item)));
 		return this.close();
 	}
 }

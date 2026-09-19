@@ -1,0 +1,121 @@
+import { describe, expect, it } from "vitest";
+import { hasTable, knightEntryByType, knightTableFill, namePartsWithoutSeeBelow, pointsBelow, tableItemId, tableResults, withoutSeeBelow, withRolls } from "../../module/rules/knight-tables.js";
+
+// Names and text here are invented so no book text lives in the repository.
+
+const table = {
+	name: "What Is in the Sack?",
+	columns: ["Found on", "Smells of"],
+	rows: [1, 2, 3, 4, 5, 6].map((row) => [`Found ${row}`, `Smell ${row}`])
+};
+
+const stored = (rolls = [0, 0]) => ({ knight: "Sack", page: 40, ...table, rolls });
+
+describe("pointsBelow and tableItemId", () => {
+	it("finds the possession that points at the table", () => {
+		expect(pointsBelow("Hooked lamp (d8) marked with a sigil (see below)")).toBe(true);
+		expect(pointsBelow("Sack of odds (otherwise you find a trinket, as below)")).toBe(true);
+		expect(pointsBelow("Grumbling mule (VIG 9, 3GD)")).toBe(false);
+		expect(pointsBelow(null)).toBe(false);
+
+		const items = [{ id: "a", name: "Hooked lamp (d8)" }, { id: "b", name: "Companion (see below)" }, { id: "c", name: "Later (see below)" }];
+		expect(tableItemId(items)).toBe("b");
+		expect(tableItemId(items.slice(0, 1))).toBeNull();
+	});
+});
+
+describe("withoutSeeBelow", () => {
+	it.each([
+		["Lantern (see below)", "Lantern"],
+		["Mule (see below) (VIG 9, 3GD)", "Mule (VIG 9, 3GD)"],
+		["Grumbling mule (VIG 9, 3GD, see below)", "Grumbling mule (VIG 9, 3GD)"],
+		["Pickles (see below, restock each new Season)", "Pickles (restock each new Season)"],
+		["Tin wings (A1, can't swim, but see below)", "Tin wings (A1, can't swim)"],
+		["Odd lamp (lit at dusk, see below. Never at noon)", "Odd lamp (lit at dusk. Never at noon)"],
+		["Cracked jar (spills everywhere. See below for mending it)", "Cracked jar (spills everywhere)"],
+		["Sack of odds (otherwise you find a trinket, as below)", "Sack of odds (otherwise you find a trinket)"],
+		["Old club (d8, see below), cap (A1), helm (A1, see below)", "Old club (d8), cap (A1), helm (A1)"],
+		["Hooked lamp (d8 hefty)", "Hooked lamp (d8 hefty)"]
+	])("%s", (name, shown) => {
+		expect(withoutSeeBelow(name)).toBe(shown);
+	});
+});
+
+describe("namePartsWithoutSeeBelow", () => {
+	it("leaves no comma after the head where the aside stood", () => {
+		expect(namePartsWithoutSeeBelow({ nameHead: "Odd body", nameSep: "", nameRest: "(see below), hidden under a cloak (A1)" }))
+			.toEqual({ nameHead: "Odd body", nameSep: "", nameRest: "hidden under a cloak (A1)" });
+	});
+
+	it("keeps a comma the book puts after the head itself", () => {
+		expect(namePartsWithoutSeeBelow({ nameHead: "Sack of maps", nameSep: ",", nameRest: "a locked casket (see below)" }))
+			.toEqual({ nameHead: "Sack of maps", nameSep: ",", nameRest: "a locked casket" });
+	});
+
+	it("drops the comma when nothing is left after the head", () => {
+		expect(namePartsWithoutSeeBelow({ nameHead: "Lantern", nameSep: "", nameRest: "(see below)" }))
+			.toEqual({ nameHead: "Lantern", nameSep: "", nameRest: "" });
+		expect(namePartsWithoutSeeBelow({ nameHead: "Lantern", nameSep: ",", nameRest: "see below" }))
+			.toEqual({ nameHead: "Lantern", nameSep: "", nameRest: "" });
+	});
+});
+
+describe("knightEntryByType", () => {
+	const index = { knights: [{ name: "The Lantern Knight", page: 28 }, { name: "The Sack Knight", page: 40 }, { name: null }] };
+
+	it("finds a Knight by the name they're known by, whatever the case", () => {
+		expect(knightEntryByType(index, "sack ")).toEqual({ name: "The Sack Knight", page: 40 });
+		expect(knightEntryByType(index, "")).toBeNull();
+		expect(knightEntryByType(index, "Glass")).toBeNull();
+		expect(knightEntryByType(null, "Sack")).toBeNull();
+	});
+});
+
+describe("knightTableFill", () => {
+	it("copies the table in, unrolled, for a Knight who holds none", () => {
+		const update = knightTableFill(table, { knightType: "Sack", bookTable: null }, 40);
+		expect(update).toEqual({ "system.bookTable": { ...stored(), rows: table.rows } });
+		// A copy, so the index isn't changed by what the Knight does with it.
+		update["system.bookTable"].rows[0][0] = "Changed";
+		expect(table.rows[0][0]).toBe("Found 1");
+	});
+
+	it("leaves a Knight's own table alone, rolls and all", () => {
+		expect(knightTableFill(table, { knightType: "Sack", bookTable: stored([3, 0]) }, 40)).toEqual({});
+	});
+
+	it("swaps in the new table for a Knight chosen again", () => {
+		const update = knightTableFill(table, { knightType: "Lantern", bookTable: stored([3, 5]) }, 28);
+		expect(update["system.bookTable"]).toMatchObject({ knight: "Lantern", page: 28, rolls: [0, 0] });
+	});
+
+	it("does nothing without a table or a Knight", () => {
+		expect(knightTableFill(null, { knightType: "Sack" }, 40)).toEqual({});
+		expect(knightTableFill(table, { knightType: " " }, 40)).toEqual({});
+	});
+});
+
+describe("withRolls and tableResults", () => {
+	it("sets only the columns rolled", () => {
+		expect(withRolls(stored([2, 4]), [1], [6])).toEqual([2, 6]);
+		expect(withRolls(stored(), [0, 1], [1, 3])).toEqual([1, 3]);
+		expect(withRolls({ ...stored(), rolls: [] }, [1], [5])).toEqual([0, 5]);
+		expect(withRolls(stored([2, 4]), [0, 1], [0, 0])).toEqual([0, 0]);
+	});
+
+	it("reads what each column rolled gave", () => {
+		expect(tableResults(stored([2, 6]))).toEqual([
+			{ column: "Found on", roll: 2, entry: "Found 2" },
+			{ column: "Smells of", roll: 6, entry: "Smell 6" }
+		]);
+		expect(tableResults(stored([0, 3]))).toEqual([{ column: "Smells of", roll: 3, entry: "Smell 3" }]);
+		expect(tableResults(stored())).toEqual([]);
+		expect(tableResults(null)).toEqual([]);
+	});
+
+	it("tells a table from an empty one", () => {
+		expect(hasTable(stored())).toBe(true);
+		expect(hasTable({ knight: "", name: "", columns: [], rows: [], rolls: [] })).toBe(false);
+		expect(hasTable(undefined)).toBe(false);
+	});
+});

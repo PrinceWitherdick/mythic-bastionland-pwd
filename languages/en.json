@@ -42,6 +42,8 @@
       "toChat": "Show in chat",
       "delete": "Delete",
       "equip": "Worn or wielded",
+      "armourOn": "Its Armour counts. Click when it doesn't apply.",
+      "armourOff": "Its Armour doesn't count. Click when it applies.",
       "empty": "Nothing yet. Drag an item here or add one.",
       "attack": "Attack",
       "takeDamage": "Take Damage",
@@ -393,7 +395,9 @@
       "label": "Steed",
       "empty": "Drag an NPC from the Actors tab here to ride it. Its trample joins a mounted charge.",
       "clear": "No longer ride this steed",
-      "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat."
+      "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat.",
+      "trample": "Trample",
+      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the GM to make them NPCs, then drag the steed onto the Steed box."
     },
     "remedy": {
       "use": "Use Remedy ({virtue})",
@@ -1503,6 +1507,7 @@
     },
     "item": {
       "description": "Description",
+      "retyped": "Read the Property of {count} Knights into weapons, armour and steeds, so their Armour counts and their steeds can charge.",
       "damage": "Damage dice",
       "damageHint": "For example d8 or 2d6.",
       "hefty": "Hefty",
@@ -1777,7 +1782,7 @@
       "create": "Create Knight",
       "apply": "Apply to {name}",
       "confirmTitle": "Replace This Knight?",
-      "confirm": "{name} becomes {knight}. Their Property, Ability and Passion are replaced, along with the picture in their shield, their Age, Glory and anything rolled here. Scars and the Chronicle are kept.",
+      "confirm": "{name} becomes {knight}. Their Property, Ability and Passion are replaced, along with the picture in their shield, their Age, Glory and anything rolled here, and the steed and companions made from their old Property are deleted. Scars and the Chronicle are kept.",
       "kit": {
         "dagger": "Dagger",
         "torches": "Torches",

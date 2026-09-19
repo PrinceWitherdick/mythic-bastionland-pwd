@@ -3,6 +3,7 @@
  * functions, so the Knight chooser's choices can be tested without Foundry.
  */
 import { RANKS } from "./glory.js";
+import { propertyGear } from "./property.js";
 import { formatStatLine } from "./stat-blocks.js";
 import { escapeHTML } from "./text.js";
 import { VIRTUES } from "./virtues.js";
@@ -174,14 +175,14 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 }
 
 /**
- * Items a Knight starts with: one Gear item for each line of their Property,
+ * Items a Knight starts with: their Property as weapons, armour and gear,
  * their Ability and Passion, and the standard kit.
  * @param {object|null} knight   A Knight from the art index.
  * @param {Record<string, string>} kitNames Names for STANDARD_KIT, by key.
  * @returns {object[]} Item data for `createEmbeddedDocuments`.
  */
 export function knightItems(knight, kitNames) {
-	const items = (knight?.property ?? []).map((name) => ({ type: "gear", name }));
+	const items = propertyGear(knight?.property);
 	for (const type of ["ability", "passion"]) {
 		const part = knight?.[type];
 		if (part) items.push({ type, name: part.name, system: { description: `<p>${escapeHTML(part.text)}</p>` } });

@@ -218,6 +218,9 @@ export class BastionlandActorSheet extends ArtPreviewMixin(HandlebarsApplication
 			tags: itemTags(item),
 			equippable: typeof item.system.equipped === "boolean",
 			equipped: item.system.equipped,
+			// Armour's toggle is a shield, as the Armour total is: on when the piece counts toward it right now.
+			equipIcon: item.type === "armour" ? "fa-shield-halved" : "fa-hand-fist",
+			equipLabel: item.type === "armour" ? t(item.system.equipped ? "sheet.armourOn" : "sheet.armourOff") : t("sheet.equip"),
 			remedyLabel: item.system.remedy ? t("remedy.use", { virtue: t(`virtues.${item.system.remedy}.abbr`) }) : null,
 			description: await this._enrich(item.system.description)
 		})));
