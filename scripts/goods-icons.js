@@ -12,6 +12,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { finishFolder, stopIfFailed } from "./lib/asset-folder.js";
 import { fetchDrawing } from "./lib/charge-svg.js";
+import { INK } from "../module/rules/colour.js";
 import { GOODS_ICONS, GOODS_ICON_CREDITS_FILE, goodsIconCredits, goodsIconNotice } from "../module/rules/goods-icons.js";
 
 const root = join(import.meta.dirname, "..");
@@ -22,7 +23,6 @@ const ICON_URL = "https://game-icons.net/icons/000000/transparent/1x1/";
 
 /** The Squire's portrait's colours and disc, so every picture sits beside it. */
 const PARCHMENT = "#efe8d8";
-const INK = "#231f1a";
 
 /**
  * Icons fill their 512 box to 16 of its edge, so at this size a square one

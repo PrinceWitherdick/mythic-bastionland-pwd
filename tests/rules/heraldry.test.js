@@ -11,6 +11,7 @@ import {
 	RECENT_COLORS_LIMIT,
 	SHIELD_BORDER,
 	SHIELD_CLIPS,
+	SHIELD_FIELD_IN_OUTLINE_PATH,
 	SHIELD_HEIGHT,
 	SHIELD_OUTLINE_PATH,
 	SHIELD_PATH,
@@ -185,12 +186,21 @@ describe("the shield's outline", () => {
 	});
 
 	it("draws the border's outline round the field, as large as the border on every side", () => {
-		expect(SHIELD_CLIPS["bastionland-shield-field"]).toEqual({ path: SHIELD_PATH, width: SHIELD_WIDTH, height: SHIELD_HEIGHT });
 		const outline = SHIELD_CLIPS["bastionland-shield-outline"];
 		expect(outline.path).toBe(SHIELD_OUTLINE_PATH);
 		expect(outline.width).toBe(SHIELD_WIDTH + SHIELD_BORDER * 2);
 		expect(outline.height).toBe(SHIELD_HEIGHT + SHIELD_BORDER * 2);
 		expect(SHIELD_OUTLINE_PATH).toMatch(new RegExp(`^M0 \\d+ Q${outline.width / 2} -?\\d+ ${outline.width} `));
+	});
+
+	it("rings the field with the border, the field sitting a border's width inside the outline", () => {
+		const shifted = SHIELD_PATH.replace(/-?\d+/g, (value) => String(Number(value) + SHIELD_BORDER));
+		expect(SHIELD_FIELD_IN_OUTLINE_PATH).toBe(shifted);
+		expect(SHIELD_CLIPS["bastionland-shield-border"]).toEqual({
+			path: `${SHIELD_OUTLINE_PATH} ${SHIELD_FIELD_IN_OUTLINE_PATH}`,
+			width: SHIELD_WIDTH + SHIELD_BORDER * 2,
+			height: SHIELD_HEIGHT + SHIELD_BORDER * 2
+		});
 	});
 
 	it("clips the sheet's and the painter's shields with the same paths", () => {
@@ -202,7 +212,7 @@ describe("the shield's outline", () => {
 	it("sets the margin behind the border on the sheet, and at twice the size in the painter", () => {
 		const css = readFileSync(join(import.meta.dirname, "../../styles/mythic-bastionland.css"), "utf8");
 		expect(css).toContain(`width: calc(100% + ${PAINT_MARGIN * 2}px)`);
-		expect(css).toContain(`top: -${PAINT_MARGIN}px`);
+		expect(css).toContain(`inset: -${PAINT_MARGIN}px`);
 		expect(css).toContain(`width: calc(100% + ${PAINT_MARGIN * 4}px)`);
 		expect(css).toContain(`top: -${PAINT_MARGIN * 2}px`);
 	});

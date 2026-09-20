@@ -13,6 +13,23 @@
 	font-display: swap;
 }
 
+/*
+ * UnifrakturCook is a Fraktur, and a Fraktur k is a bare shaft with a lobe
+ * hung on it: "Landmarks" reads as "Lanlmarks". The lowercase k alone comes
+ * from Pirata One, a Textura like the Old English Text MT the book heads its
+ * sections in, whose k keeps the arm and leg that tell it from an l. Pirata's
+ * ascender is the taller of the two (0.769em against 0.750em), so the one
+ * glyph is sized down until the k tops out level with the l, h and b beside
+ * it. This face must follow the one above, as the digits do.
+ */
+@font-face {
+	font-family: "Bastionland Display";
+	src: url("../assets/fonts/PirataOne-Regular.ttf") format("truetype");
+	font-display: swap;
+	size-adjust: 97.5%;
+	unicode-range: U+006B;
+}
+
 @font-face {
 	font-family: "Bastionland Body";
 	src: url("../assets/fonts/IMFellEnglish-Regular.ttf") format("truetype");
@@ -216,6 +233,18 @@
 :is(.bastionland-page, .bastionland-dialog .window-content) button:focus-visible {
 	outline: 2px solid var(--bastionland-verdigris);
 	outline-offset: 2px;
+}
+
+/*
+ * A click never leaves a box behind. Foundry rings and glows any button it has
+ * given focus to, which lingers on the one last pressed long after the press:
+ * hovering, reddening and a pressed look say what's live instead. The ring is
+ * kept for a keyboard's own focus, where it's the only thing to steer by.
+ */
+button:focus:not(:focus-visible),
+a.button:focus:not(:focus-visible) {
+	outline: none;
+	box-shadow: none;
 }
 
 /*
@@ -477,52 +506,60 @@
 	box-shadow: none;
 }
 
+/*
+ * The border is a ring laid over the field (SHIELD_CLIPS in
+ * module/rules/heraldry.js), so whatever lies at the paint's edge is under ink.
+ */
 .bastionland-heraldry {
+	position: relative;
 	grid-area: heraldry;
 	justify-self: end;
 	width: 144px;
 	height: 170px;
 	margin: 0;
 	padding: 4px;
-	background: var(--bastionland-ink);
+	background: var(--bastionland-paper);
 	clip-path: url(#bastionland-shield-outline);
+	--bastionland-shield-border: var(--bastionland-ink);
+}
+
+.bastionland-heraldry::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--bastionland-shield-border);
+	clip-path: url(#bastionland-shield-border);
+	pointer-events: none;
 }
 
 .bastionland-heraldry__field {
+	position: relative;
 	display: block;
 	width: 136px;
 	height: 162px;
-	background: var(--bastionland-paper);
-	clip-path: url(#bastionland-shield-field);
-}
-
-/* The painting carries its own paper, so none shows through the clip's soft edge as a pale seam. */
-.bastionland-heraldry__field:has(img) {
-	background: none;
+	padding: 0;
 }
 
 /*
  * A painting runs 2px past the shield's outline all round (PAINT_MARGIN in
- * module/rules/heraldry.js), and that margin sits behind the border. Colour
- * reaching under the line leaves no pale seam against the ink. Positioned
- * rather than given negative margins, which would collapse into the field.
+ * module/rules/heraldry.js), and that margin sits under the border. Placed from
+ * the field's edges, so a button's padding can't move it off the ring.
  */
 .bastionland-heraldry__field img {
-	position: relative;
-	top: -2px;
-	left: -2px;
+	position: absolute;
+	inset: -2px;
 	display: block;
 	width: calc(100% + 4px);
 	max-width: none;
 	height: calc(100% + 4px);
 	border: none;
-	background: var(--bastionland-paper);
+	box-shadow: none;
 	object-fit: cover;
 }
 
 /* The shield's clip hides a focus outline, so its border changes colour instead. */
 .bastionland-heraldry:has(button:hover, button:focus-visible) {
-	background: var(--bastionland-verdigris);
+	--bastionland-shield-border: var(--bastionland-verdigris);
 }
 
 /* ---------------------------------------------------------------- */
@@ -566,28 +603,34 @@
 	flex: none;
 	width: 288px;
 	height: 340px;
+	position: relative;
 	padding: 8px;
-	background: var(--bastionland-ink);
+	background: var(--bastionland-paper);
 	clip-path: url(#bastionland-shield-outline);
+	--bastionland-shield-border: var(--bastionland-ink);
+}
+
+/* The border's ring over the painting, as on the sheet. */
+.bastionland-heraldry-painter__shield::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--bastionland-shield-border);
+	clip-path: url(#bastionland-shield-border);
+	pointer-events: none;
 }
 
 .bastionland-heraldry-painter__shield:has(canvas:focus-visible) {
-	background: var(--bastionland-verdigris);
+	--bastionland-shield-border: var(--bastionland-verdigris);
 }
 
-/*
- * The paper is the canvas's own background, not the ground's. Paper behind the
- * painting showed through where the clip's edge is anti-aliased, as a pale seam
- * between the paint and the border.
- */
 .bastionland-heraldry-painter__ground {
 	width: 272px;
 	height: 324px;
-	clip-path: url(#bastionland-shield-field);
 	position: relative;
 }
 
-/* The painting's margin sits behind the border, as on the sheet, at twice the size. */
+/* The painting's margin sits under the border, as on the sheet, at twice the size. */
 .bastionland-heraldry-painter__canvas {
 	position: relative;
 	top: -4px;

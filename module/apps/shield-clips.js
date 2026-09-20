@@ -7,7 +7,7 @@ import { SHIELD_CLIPS, boundingBoxPath } from "../rules/heraldry.js";
  */
 export function installShieldClips() {
 	const clips = Object.entries(SHIELD_CLIPS)
-		.map(([id, { path, width, height }]) => `<clipPath id="${id}" clipPathUnits="objectBoundingBox"><path d="${boundingBoxPath(path, width, height)}"/></clipPath>`)
+		.map(([id, { path, width, height }]) => `<clipPath id="${id}" clipPathUnits="objectBoundingBox"><path clip-rule="evenodd" d="${boundingBoxPath(path, width, height)}"/></clipPath>`)
 		.join("");
 	const holder = document.createElement("div");
 	holder.innerHTML = `<svg width="0" height="0" aria-hidden="true" style="position: absolute"><defs>${clips}</defs></svg>`;

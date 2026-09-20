@@ -10,10 +10,14 @@ export const FONT_ROOT = `${SYSTEM_PATH}/assets/fonts`;
  * rules are spelled out a second time here.
  *
  * The order within a family follows the stylesheet's: EB Garamond's figures
- * come last, so its lining digits win over IM Fell's old-style ones.
+ * come last, so its lining digits win over IM Fell's old-style ones, and the
+ * Display family's second face lends it nothing but a legible lowercase k.
  */
 export const SHEET_FONTS = Object.freeze({
-	"Bastionland Display": [{ urls: [`${FONT_ROOT}/UnifrakturCook-Bold.ttf`] }],
+	"Bastionland Display": [
+		{ urls: [`${FONT_ROOT}/UnifrakturCook-Bold.ttf`] },
+		{ urls: [`${FONT_ROOT}/PirataOne-Regular.ttf`], unicodeRange: "U+006B", sizeAdjust: "97.5%" }
+	],
 	"Bastionland Body": [
 		{ urls: [`${FONT_ROOT}/IMFellEnglish-Regular.ttf`] },
 		{ urls: [`${FONT_ROOT}/IMFellEnglish-Italic.ttf`], style: "italic" },

@@ -9,7 +9,7 @@ import { channels, contrast, HEX_COLOR } from "./colour.js";
 export const SHIELD_WIDTH = 136;
 export const SHIELD_HEIGHT = 162;
 
-/** The field's outline. The sheet and painter clip the field to it, through SHIELD_CLIPS. */
+/** The field's outline. The painter keeps paint inside it, and the border's ring (SHIELD_CLIPS) starts at it. */
 export const SHIELD_PATH = "M0 7 Q68 -5 136 7 V68 C136 112 104 142 68 162 C32 142 0 112 0 68 Z";
 
 /** The ink border round the field, drawn as a shield this much larger all round, in CSS pixels. */
@@ -18,14 +18,25 @@ export const SHIELD_BORDER = 4;
 /** The border's outer edge, a shield SHIELD_BORDER larger than the field on every side. */
 export const SHIELD_OUTLINE_PATH = "M0 8 Q72 -6 144 8 V72 C144 118 110 150 72 170 C34 150 0 118 0 72 Z";
 
+/** SHIELD_PATH moved SHIELD_BORDER in and down, where the field sits inside the outline. */
+export const SHIELD_FIELD_IN_OUTLINE_PATH = "M4 11 Q72 -1 140 11 V72 C140 116 108 146 72 166 C36 146 4 116 4 72 Z";
+
 /**
  * The shield's clip paths by element id, each drawn to fit whatever box it
  * clips, so the sheet's shield and the painter's larger one share them.
- * The stylesheet clips with `clip-path: url(#id)`.
+ * The stylesheet clips with `clip-path: url(#id)`, and each path fills even-odd.
+ *
+ * The border is a ring laid over the painting rather than ink showing round a
+ * field clipped to shape. Two clips' soft edges side by side left a pale seam
+ * between the paint and the ink; one ring on top has nothing pale beneath it.
  */
 export const SHIELD_CLIPS = Object.freeze({
 	"bastionland-shield-outline": { path: SHIELD_OUTLINE_PATH, width: SHIELD_WIDTH + SHIELD_BORDER * 2, height: SHIELD_HEIGHT + SHIELD_BORDER * 2 },
-	"bastionland-shield-field": { path: SHIELD_PATH, width: SHIELD_WIDTH, height: SHIELD_HEIGHT }
+	"bastionland-shield-border": {
+		path: `${SHIELD_OUTLINE_PATH} ${SHIELD_FIELD_IN_OUTLINE_PATH}`,
+		width: SHIELD_WIDTH + SHIELD_BORDER * 2,
+		height: SHIELD_HEIGHT + SHIELD_BORDER * 2
+	}
 });
 
 /**

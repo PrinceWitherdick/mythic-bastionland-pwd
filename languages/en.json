@@ -361,7 +361,7 @@
       },
       "exposed": {
         "label": "Exposed",
-        "hint": "Treated as having 0GD. CLA 0 also leaves you Exposed."
+        "hint": "Treated as having 0 GD. CLA 0 also leaves you Exposed."
       },
       "impaired": {
         "label": "Impaired",
@@ -1661,8 +1661,7 @@
       "cover": "Behind protective cover, against a ranged Attack (+1 Armour)",
       "shieldwall": "In a shieldwall (+1 Armour)",
       "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
-      "exposed": "Exposed",
-      "exposedHint": "Act as if at 0GD.",
+      "exposed": "Exposed (take it as if at 0 GD)",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
       "apply": "Apply",
       "dealt": "{dealt} Damage after Armour {armour}",
@@ -1683,7 +1682,7 @@
         "unharmed": "The Attack can’t harm them.",
         "none": "The blow is turned aside. No Damage.",
         "evaded": "Evades the Attack.",
-        "scar": "Left at exactly 0GD. Roll a Scar with the die that caused it.",
+        "scar": "Left at exactly 0 GD. Roll a Scar with the die that caused it.",
         "wounded": "Wounded.",
         "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
         "slain": "Slain.",
@@ -1695,7 +1694,7 @@
       },
       "structureOutcomes": {
         "evaded": "Holds, for now.",
-        "destroyed": "Destroyed at 0GD. Recovering GD takes a day of repairs."
+        "destroyed": "Destroyed at 0 GD. Recovering GD takes a day of repairs."
       }
     },
     "scarRoll": {
@@ -1901,25 +1900,25 @@
       "kinds": {
         "structure": {
           "label": "Structure",
-          "hint": "Destroyed at 0GD. Wooden structures ignore Attacks other than fire, siege weapons or suitably large creatures. Stone walls can’t be breached by conventional means, though their gates usually can."
+          "hint": "Destroyed at 0 GD. Wooden structures ignore Attacks other than fire, siege weapons or suitably large creatures. Stone walls can’t be breached by conventional means, though their gates usually can."
         },
         "ship": {
           "label": "Ship",
-          "hint": "Destroyed at 0GD, and ignores Attacks other than fire, siege weapons or suitably large creatures. Colliding ships take d12 Damage, or d6 for a ship much larger than the other."
+          "hint": "Destroyed at 0 GD, and ignores Attacks other than fire, siege weapons or suitably large creatures. Colliding ships take d12 Damage, or d6 for a ship much larger than the other."
         },
         "siege": {
           "label": "Siege Engine",
-          "hint": "A siege tower or engine. Destroyed at 0GD, and ignores Attacks other than fire, siege weapons or suitably large creatures."
+          "hint": "A siege tower or engine. Destroyed at 0 GD, and ignores Attacks other than fire, siege weapons or suitably large creatures."
         }
       },
-      "guardHint": "How much Damage it can take. At 0GD it’s destroyed.",
+      "guardHint": "How much Damage it can take. At 0 GD it’s destroyed.",
       "armourNote": "What its Armour is",
       "carries": "Carries",
       "carriesPlaceholder": "6 passengers, a Warband…",
       "items": "Weapons & Cargo",
       "destroyed": {
         "label": "Destroyed",
-        "hint": "At 0GD a ship or structure is destroyed. Recovering GD takes a day of repairs."
+        "hint": "At 0 GD a ship or structure is destroyed. Recovering GD takes a day of repairs."
       },
       "repair": "Repair",
       "repairHint": "A day of repairs restores its GD.",
@@ -2735,14 +2734,14 @@
       "spirit": "Spirit (SPI): charming tongue, iron will, fierce heart. At SPI 0 your Attacks are Impaired. Restored by Sacrament or indulging a Passion.",
       "save": "Roll a d20 equal to or under the Virtue to pass. Failing means negative consequences, not always a failed action.",
       "armour": "Subtracted from an Attack’s Damage. One coat, plates, helm and shield can be worn at once, their scores added together.",
-      "exposed": "Caught with guard down or otherwise defenceless: act as if at 0GD until the situation is remedied. CLA 0 also leaves you Exposed.",
+      "exposed": "Caught with guard down or otherwise defenceless: act as if at 0 GD until the situation is remedied. CLA 0 also leaves you Exposed.",
       "fatigue": "Can’t perform Feats until rested. After a Feat, pass its Save or become Fatigued. A moment of peace removes it.",
       "exhausted": "At VIG 0: can’t Attack after moving this turn.",
       "impaired": "Rolls a single d4, with no bonus dice and no Feats. Unarmed attacks, Long weapons in confined spaces and SPI 0 are Impaired.",
       "wounded": "Damage beyond GD comes off VIG and Wounds the target. A Wounded individual must pass a SPI Save or rout or surrender.",
       "slain": "Damage has reduced VIG to 0. Virtue Loss never Slays.",
       "evade": "At least 1GD left after the Damage: the Attack is avoided.",
-      "scar": "Gained when Damage leaves exactly 0GD. Roll the die that caused it again on the Scar table. Only from real, deadly combat.",
+      "scar": "Gained when Damage leaves exactly 0 GD. Roll the die that caused it again on the Scar table. Only from real, deadly combat.",
       "gambit": "Discard an Attack die of 4 or higher for one effect: Bolster, Move, Repel, Stop, Impair a weapon, Trap a shield, Dismount, or similar. The foe gets a VIG Save against all but Bolster and Move.",
       "bolster": "A Gambit: +1 total Damage to the Attack. The target gets no Save against it.",
       "feat": "Smite, Focus and Deny, known by every Knight. Each can be used once per Attack. After one, pass its Save or become Fatigued.",

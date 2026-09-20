@@ -1,3 +1,4 @@
+import { INK_HEX } from "../rules/colour.js";
 import { SHIELD_OUTLINE_PATH, SHIELD_PATH } from "../rules/heraldry.js";
 import { heraldryBadge, pathSteps } from "../rules/token-heraldry.js";
 import { t } from "../chat/cards.js";
@@ -7,7 +8,6 @@ import { SYSTEM_ID } from "../system-id.js";
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
 
 /** The sheet's ink (--bastionland-ink), for the shield's border. */
-const INK = 0x231f1a;
 
 /**
  * Trace a shield path onto a Graphics, already begun with a fill or line.
@@ -97,7 +97,7 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 		const badge = heraldryBadge(art, Math.min(width, height));
 
 		const outline = this.heraldry.addChild(new PIXI.Graphics());
-		outline.beginFill(INK);
+		outline.beginFill(INK_HEX);
 		traceShield(outline, SHIELD_OUTLINE_PATH, badge.scale, badge.outline);
 		outline.endFill();
 

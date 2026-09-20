@@ -12,6 +12,7 @@
  * stylesheet. The stylesheet adds what changes: hovering, the selection, and
  * what players can't see yet.
  */
+import { INK } from "./colour.js";
 import { POSITION_KEYS, SITE_EDGES, SITE_POSITIONS, markedPoints, playerView, routeSlots, siteEdge } from "./sites.js";
 import { escapeHTML } from "./text.js";
 
@@ -22,7 +23,6 @@ const RADIUS = 120;
 const HALF_VIEW = 200;
 
 const PAPER = "#efe8d8";
-const INK = "#231f1a";
 const FAINT = "#8a7d6a";
 const BLOOD = "#8b1e1e";
 
