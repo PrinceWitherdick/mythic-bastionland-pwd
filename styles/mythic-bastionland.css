@@ -1316,6 +1316,26 @@
 	color: var(--bastionland-paper);
 }
 
+/*
+ * A Gambit's mark is somebody else's doing and lasts a turn or two, so it sits
+ * among the conditions in ink rather than blood, with the cross that clears it
+ * faded until the pill is hovered.
+ */
+.bastionland-condition.is-mark.is-active {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-ink);
+}
+
+.bastionland-condition.is-mark i {
+	margin-left: 0.15rem;
+	font-size: 0.75em;
+	opacity: 0.6;
+}
+
+.bastionland-condition.is-mark:hover i {
+	opacity: 1;
+}
+
 /* ---------------------------------------------------------------- */
 /* Recovery and Oath                                                */
 /* ---------------------------------------------------------------- */
@@ -1523,8 +1543,8 @@
 /*
  * Each row is one button, the way a move is in Stonetop: a Feat makes its Save
  * and a Gambit posts its rule to chat. A viewer's Feat posts its text alone.
- * The icon at the end says which, faint until the row is hovered, as on the
- * Save rows.
+ * A Feat's icon at the end says which, faint until the row is hovered, as on
+ * the Save rows. Gambit rows have none.
  */
 .bastionland-move {
 	display: flex;

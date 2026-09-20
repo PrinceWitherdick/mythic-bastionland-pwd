@@ -1,5 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
+import { canDeny } from "../rules/attack.js";
 import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
@@ -28,6 +29,19 @@ export async function resolveFeat(actor, key) {
 	const save = await evaluateSave(actor, feat.virtue);
 	if (!save.passed) await actor.update({ "system.fatigued": true }, causedBy("feat"));
 	return save;
+}
+
+/**
+ * Whether an actor could still Deny a die on an Attack, so the card can say so
+ * before they are hurt: they know the Feat, have Virtues to Save with, and the
+ * Attack still allows it (p10).
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+export function canDenyAttack(attack, actor) {
+	if (!actor?.system?.virtues || !actor.system.knowsFeat?.("deny")) return false;
+	return canDeny(attack, { uuid: actor.uuid, fatigued: actor.system.fatigued });
 }
 
 /**

@@ -273,6 +273,73 @@
 	display: block;
 }
 
+/*
+ * A die of 4+ is a choice the attacker has to make before the Damage lands,
+ * so the prompt is inked in rather than left as another grey hint, and the
+ * book's list of Gambits folds out under it for anyone who doesn't know them.
+ */
+.bastionland-card__prompt {
+	padding-left: 0.5rem;
+	border-left: 3px solid var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+}
+
+.bastionland-card__gambit-help {
+	font-size: 0.85em;
+}
+
+.bastionland-card__gambit-help > summary {
+	color: var(--bastionland-ink-soft);
+	cursor: pointer;
+}
+
+.bastionland-card__gambit-help ul {
+	margin: 0.25rem 0;
+	padding-left: 1.1rem;
+}
+
+.bastionland-card__gambit {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.3rem;
+}
+
+/* A Gambit the foe Saved against stays on the card, struck through. */
+.bastionland-card__gambit.is-ignored {
+	opacity: 0.6;
+}
+
+.bastionland-card__gambit.is-ignored .bastionland-card__gambit-effect {
+	text-decoration: line-through;
+}
+
+.bastionland-card__gambit button {
+	flex: 0 0 auto;
+	width: auto;
+	margin: 0;
+	padding: 0 0.4rem;
+	border: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 0.8em;
+	line-height: 1.7;
+	white-space: nowrap;
+}
+
+.bastionland-card__gambit-save {
+	font-size: 0.85em;
+}
+
+.bastionland-card__gambit-save.is-pass {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-card__gambit-save.is-fail {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-card__actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -335,6 +402,17 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+}
+
+/* Gambits a foe landed, said where they change the Attack being made. */
+.bastionland-dialog__marks {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding-left: 1.1rem;
+	color: var(--bastionland-blood);
+	font-size: 0.9em;
 }
 
 .bastionland-dialog .dialog-content p {

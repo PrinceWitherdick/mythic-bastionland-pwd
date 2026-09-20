@@ -1,21 +1,26 @@
 import { inputDialog } from "../apps/ui.js";
-import { postCard, t } from "../chat/cards.js";
+import { plural, postCard, t } from "../chat/cards.js";
+import { combatPlace, marksOn } from "../chat/gambit-marks.js";
+import { GAMBITS } from "../config.js";
 import {
 	attackDamage,
 	buildAttackPool,
 	canFundGambit,
 	canFundStrongGambit,
 	checkWielding,
+	defaultWielded,
+	gambitAllowsSave,
+	gambitIgnored,
+	hasDeniableDie,
 	isDieSpent,
 	parseDice,
 	sortDice,
 	specialistDie,
-	summarizeAttack,
-	UNSAVED_GAMBITS
+	summarizeAttack
 } from "../rules/attack.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openDuelFor, saveDuelChange } from "./duel.js";
-import { featContext, resolveFeat } from "./feats.js";
+import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
@@ -152,27 +157,38 @@ export async function attack(actor) {
 
 	const leaders = warband ? leaderCandidates(actor) : [];
 	const duel = openDuelFor(actor);
+	// Gambits a foe landed on them (p10): an Impair holds this turn, a Trap holds a shield back.
+	const marks = marksOn(actor);
+	// An Impaired attack rolls a single d4 only (p9), however it came to be Impaired,
+	// so a landed Impair leaves no room for Smite's +d12 any more than SPI 0 does.
+	const startsImpaired = conditions.impaired || marks.some((mark) => mark.key === "impair");
+
+	// Somebody with a steed is taken to be riding it, but may have dismounted. A joust is fought mounted.
+	const mounted = Boolean(actor.system.steed) || duel?.duel.kind === "joust";
+	// Items that can't be held together open with only the hardest-hitting of them ticked.
+	const wielded = defaultWielded(sources.map((item) => item.system), { mounted, hands: actor.type === "knight" });
 
 	const data = await inputDialog({
 		title: t("attack.title"),
 		icon: "fa-solid fa-swords",
 		template: "attack",
 		context: {
-			sources: sources.map((item) => ({
+			sources: sources.map((item, index) => ({
 				id: item.id,
 				name: item.name,
 				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · "),
+				checked: wielded.includes(index),
 				// Ticked by the player when the situation it's made for comes up.
 				specialist: specialistLabel(item.system)
 			})),
 			moved: movedThisTurn(actor),
-			// Somebody with a steed is taken to be riding it, but may have dismounted. A joust is fought mounted.
-			mounted: Boolean(actor.system.steed) || duel?.duel.kind === "joust",
+			mounted,
 			duel: duel && t("duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
 			charge: mount && t("attack.charge", { steed: mount.steed.name, dice: mount.trample.map((item) => item.system.damage).join(" + ") }),
 			exhausted: conditions.exhausted,
-			impaired: conditions.impaired,
-			smiteDisabled: conditions.fatigued || conditions.impaired || !sources.length || !actor.system.knowsFeat("smite"),
+			impaired: startsImpaired,
+			marks: marks.map((mark) => mark.hint),
+			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length || !actor.system.knowsFeat("smite"),
 			warband,
 			leaders: leaders.map((leader) => ({ uuid: leader.uuid, name: leader.name, selected: leader.uuid === actor.system.leader }))
 		},
@@ -243,6 +259,9 @@ export async function attack(actor) {
 		// Cards from one Blast share an id, so a Feat used on one counts for all of them.
 		attackId: foundry.utils.randomID(),
 		attacker: actor.uuid,
+		attackerName: actor.name,
+		// Where in a running Combat this was rolled, so a Gambit's mark knows when it lapses.
+		place: combatPlace(),
 		melee: !chosen.some((item) => item.system.ranged),
 		impaired: pool.impaired,
 		// A Long weapon in a confined space is why this Attack is Impaired.
@@ -274,6 +293,58 @@ export async function attack(actor) {
 	}
 	if (inDuel && messages.length) await saveDuelChange(inDuel.message, { type: "attack", actor: actor.uuid, message: messages[0].id });
 	return messages;
+}
+
+/**
+ * Where a declared Gambit stands with the foe it was aimed at: no Save to be
+ * had, one still to roll, or one already rolled (p10).
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @param {number} index
+ * @param {boolean} settled Whether the Damage has been applied.
+ * @returns {object|null} Null once a settled Attack leaves a Save unrolled.
+ */
+function gambitSaveContext(gambit, index, settled) {
+	// A Strong Gambit that denies the Save already says so in its tag.
+	if (!gambitAllowsSave(gambit)) return gambit.strong === "noSave" ? null : { none: t("attack.gambitNoSave") };
+	if (gambit.save) {
+		const { by, total, target, passed } = gambit.save;
+		return { passed, result: t(passed ? "attack.gambitSaved" : "attack.gambitFailed", { name: by, total, target }) };
+	}
+	return settled ? null : { index, button: t("attack.gambitSave") };
+}
+
+/**
+ * The book's line for each Gambit, folded into the card so somebody who
+ * doesn't know the rule can see what a die of 4+ would buy them (p10).
+ * @returns {{label: string, lines: string[], strong: string, hint: string}}
+ */
+function gambitHelp() {
+	return {
+		label: t("attack.gambitHelp"),
+		lines: GAMBITS.map((key) => t(`gambits.${key}`)),
+		strong: t("gambits.strong"),
+		hint: t("gambits.hint")
+	};
+}
+
+/**
+ * The line reminding whoever is about to be hurt that they can still Deny one
+ * of these dice (p10). It names the targets who could, since they are the ones
+ * with something to lose; an ally within arm's reach may Deny for them, so the
+ * card falls silent rather than naming somebody who can't. An Attack rolled at
+ * nobody in particular names nobody either way.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {boolean} settled
+ * @returns {string|null}
+ */
+function denyPrompt(attack, settled) {
+	if (settled || !hasDeniableDie(attack)) return null;
+	if (!attack.targets.length) return t("attack.denyPromptAny");
+	const names = attack.targets
+		.map((target) => fromUuidSync(target.uuid)?.actor)
+		.filter((actor) => canDenyAttack(attack, actor))
+		.map((actor) => actor.name);
+	return names.length ? t("attack.denyPrompt", { names: names.join(", ") }) : null;
 }
 
 /**
@@ -309,19 +380,31 @@ export function attackCardContext(attack) {
 				locked: settled || !(gambit || canFundGambit(attack, index))
 			};
 		}),
-		gambits: attack.gambits.map((gambit) => ({
-			name: gambitName(gambit.key),
-			source: gambit.die === null
-				? t("feats.focus.name")
-				: t("attack.dieSource", { faces: attack.dice[gambit.die].faces, result: attack.dice[gambit.die].result }),
-			strong: gambit.strong ? t(`attack.strong.${gambit.strong}`) : null,
-			bonus: gambit.bonus ? t("attack.dismounted", { result: gambit.bonus }) : null,
-			save: UNSAVED_GAMBITS.includes(gambit.key) || gambit.strong === "noSave" ? null : t("attack.saveToIgnore")
-		})),
+		gambits: attack.gambits.map((gambit, index) => {
+			const ignored = gambitIgnored(gambit);
+			return {
+				// The book's own line, which names the Gambit and says how long it lasts.
+				effect: t(`gambits.${gambit.key}`),
+				source: gambit.die === null
+					? t("feats.focus.name")
+					: t("attack.dieSource", { faces: attack.dice[gambit.die].faces, result: attack.dice[gambit.die].result }),
+				strong: gambit.strong ? t(`attack.strong.${gambit.strong}`) : null,
+				// A Dismount the target Saved against adds nothing, so its d6 goes unmentioned.
+				bonus: gambit.bonus && !ignored ? t("attack.dismounted", { result: gambit.bonus }) : null,
+				ignored,
+				save: gambitSaveContext(gambit, index, settled)
+			};
+		}),
 		damage,
 		breakdown: bolster ? t("attack.breakdown", { highest, bolster }) : null,
-		gambitDice: t("attack.gambitDice", { count: summary.gambitDice }),
-		strongDice: attack.melee ? t("attack.strongDice", { count: summary.strongDice }) : null,
+		// Said only while there is a choice to make, so the line keeps its weight.
+		gambitPrompt: settled || !summary.gambitDice ? null : plural("attack.gambitPrompt", summary.gambitDice),
+		strongPrompt: settled || !summary.strongDice ? null : plural("attack.strongPrompt", summary.strongDice),
+		// Said while a die is still there to discard, so the reminder lands before the Damage does.
+		denyPrompt: denyPrompt(attack, settled),
+		takeBack: !settled && attack.gambits.some((gambit) => gambit.die !== null) ? t("attack.takeBack") : null,
+		// A Gambit is still to be had while a die can pay for one, or Focus can.
+		gambitHelp: settled || !(summary.gambitDice || !attack.impaired) ? null : gambitHelp(),
 		// Cards rolled before weapons could be set aside have no list.
 		setAside: (attack.setAside ?? []).map(({ name, reason }) => t(`attack.setAside.${reason}`, { name })),
 		impaired: attack.impaired,

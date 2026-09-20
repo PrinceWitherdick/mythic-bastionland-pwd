@@ -24,14 +24,42 @@
 		{{/each}}
 	</ol>
 
+	{{#if gambitPrompt}}
+	<p class="bastionland-card__prompt">{{gambitPrompt}}{{#if strongPrompt}} {{strongPrompt}}{{/if}}</p>
+	{{/if}}
+	{{#if denyPrompt}}
+	<p class="bastionland-card__prompt">{{denyPrompt}}</p>
+	{{/if}}
+	{{#if takeBack}}
+	<p class="bastionland-card__hint">{{takeBack}}</p>
+	{{/if}}
+	{{#if gambitHelp}}
+	<details class="bastionland-card__gambit-help">
+		<summary>{{gambitHelp.label}}</summary>
+		<ul>
+			{{#each gambitHelp.lines}}
+			<li>{{{this}}}</li>
+			{{/each}}
+		</ul>
+		<p class="bastionland-card__hint">{{{gambitHelp.strong}}}</p>
+		<p class="bastionland-card__hint">{{{gambitHelp.hint}}}</p>
+	</details>
+	{{/if}}
+
 	{{#if gambits.length}}
 	<ul class="bastionland-card__gambits">
 		{{#each gambits}}
-		<li>
-			<strong>{{name}}</strong>
+		<li class="bastionland-card__gambit{{#if ignored}} is-ignored{{/if}}">
+			<span class="bastionland-card__gambit-effect">{{{effect}}}</span>
 			<span class="bastionland-tag">{{source}}{{#if strong}} · {{strong}}{{/if}}</span>
-			{{#if save}}<span class="bastionland-card__hint">{{save}}</span>{{/if}}
 			{{#if bonus}}<span class="bastionland-card__hint">{{bonus}}</span>{{/if}}
+			{{#if save.none}}<span class="bastionland-card__hint">{{save.none}}</span>{{/if}}
+			{{#if save.result}}
+			<span class="bastionland-card__gambit-save{{#if save.passed}} is-pass{{else}} is-fail{{/if}}">{{save.result}}</span>
+			{{/if}}
+			{{#if save.button}}
+			<button type="button" data-attack-action="gambit-save" data-gambit="{{save.index}}"><i class="fa-solid fa-dice-d20" inert></i> {{save.button}}</button>
+			{{/if}}
 		</li>
 		{{/each}}
 	</ul>
@@ -46,7 +74,6 @@
 	{{/if}}
 	{{#unless settled}}
 	<p class="bastionland-card__hint">{{localize "bastionland.attack.damageNote"}}</p>
-	<p class="bastionland-card__hint">{{gambitDice}}{{#if strongDice}} · {{strongDice}}{{/if}}</p>
 	{{/unless}}
 
 	{{#each setAside}}

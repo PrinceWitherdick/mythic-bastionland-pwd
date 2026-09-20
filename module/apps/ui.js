@@ -32,14 +32,15 @@ export function addDirectoryButton(element, { className, icon, label, onClick })
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon    Font Awesome classes.
- * @param {string} options.message HTML, already escaped.
+ * @param {string|string[]} options.message HTML, already escaped; an array becomes a paragraph each.
  * @returns {Promise<boolean>} Whether the user said yes.
  */
 export async function confirmDialog({ title, icon, message }) {
+	const paragraphs = Array.isArray(message) ? message : [message];
 	const confirmed = await foundry.applications.api.DialogV2.confirm({
 		window: { title, icon },
 		classes: ["bastionland-dialog"],
-		content: `<p>${message}</p>`,
+		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
 		rejectClose: false
 	});
 	return confirmed === true;

@@ -24,7 +24,7 @@ describe("gambitContext", () => {
 	});
 
 	it("grants the target a VIG Save against all but Bolster and Move (p10)", () => {
-		const saved = GAMBITS.filter((key) => gambitContext(key).save === lookup("bastionland.attack.saveToIgnore"));
+		const saved = GAMBITS.filter((key) => gambitContext(key).save === lookup("bastionland.gambits.card.save"));
 		expect(saved).toEqual(["repel", "stop", "impair", "trap", "dismount", "other"]);
 		expect(gambitContext("bolster").save).toBe(lookup("bastionland.gambits.card.noSave"));
 		expect(gambitContext("move").save).toBe(lookup("bastionland.gambits.card.noSave"));

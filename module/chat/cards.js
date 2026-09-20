@@ -60,6 +60,15 @@ export function statLabels() {
 export const warn = (key, data) => ui.notifications.warn(t(key, data));
 
 /**
+ * A localized string that reads for its count, taking the key's "One" sibling
+ * when there is just the one of whatever it counts.
+ * @param {string} key   Path below `bastionland.`, whose singular is the same with "One" on the end.
+ * @param {number} count
+ * @returns {string}
+ */
+export const plural = (key, count) => t(count === 1 ? `${key}One` : key, { count });
+
+/**
  * Handle clicks on a card's buttons, holding each button disabled until its
  * handler finishes so a double click doesn't act twice.
  * @param {HTMLElement} element  The card, or the message holding it.

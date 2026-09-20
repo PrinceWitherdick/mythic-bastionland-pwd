@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
 	attackDamage,
 	buildAttackPool,
+	canDeny,
 	canFundGambit,
 	canFundStrongGambit,
 	changeAttack,
 	checkWielding,
+	defaultWielded,
+	gambitAllowsSave,
+	gambitIgnored,
+	hasDeniableDie,
 	heldAs,
 	isDieSpent,
 	parseDice,
@@ -73,12 +78,53 @@ describe("checkWielding", () => {
 	});
 });
 
+describe("defaultWielded", () => {
+	const mace = { damage: "d8", hefty: true };
+	const shield = { damage: "d4" };
+	const poleaxe = { damage: "d10", long: true };
+	const dagger = { damage: "d6" };
+
+	it("ticks everything a Knight can hold at once", () => {
+		expect(defaultWielded([mace, shield], { hands: true })).toEqual([0, 1]);
+	});
+
+	it("ticks only the Long weapon when a second item is offered", () => {
+		expect(defaultWielded([poleaxe, shield], { hands: true })).toEqual([0]);
+		expect(defaultWielded([shield, poleaxe], { hands: true })).toEqual([1]);
+	});
+
+	it("keeps the hardest-hitting item when a Long weapon is the weaker one", () => {
+		expect(defaultWielded([{ damage: "d6", long: true }, mace], { hands: true })).toEqual([1]);
+	});
+
+	it("drops the lesser of two Hefty items", () => {
+		expect(defaultWielded([{ damage: "d6", hefty: true }, mace], { hands: true })).toEqual([1]);
+	});
+
+	it("takes the first of two items that hit equally hard", () => {
+		expect(defaultWielded([{ damage: "d8", long: true }, mace], { hands: true })).toEqual([0]);
+	});
+
+	it("lets a mounted Knight tick a lance and a shield together", () => {
+		const lance = { damage: "d10", long: true, heftyMounted: true };
+		expect(defaultWielded([lance, shield], { hands: true })).toEqual([0]);
+		expect(defaultWielded([lance, shield], { hands: true, mounted: true })).toEqual([0, 1]);
+	});
+
+	it("ticks every attack of a creature whose hands aren't counted", () => {
+		expect(defaultWielded([poleaxe, mace, dagger])).toEqual([0, 1, 2]);
+	});
+});
+
 describe("parseDice", () => {
 	it.each([
 		["d8", [8]],
 		["2d6", [6, 6]],
 		["D10", [10]],
 		["d6+d4", [6, 4]],
+		["d6, d12", [6, 12]],
+		["d6 d12", [6, 12]],
+		["+2d10", [10, 10]],
 		[" 2d8 ", [8, 8]],
 		["", []],
 		["hefty", []],
@@ -202,7 +248,7 @@ describe("changeAttack", () => {
 
 	it("performs a Focus Gambit without a die, once per combatant and never when Impaired", () => {
 		const focused = changeAttack(rolled([[8, 2]]), { type: "focus", key: "bolster", actor: "Actor.k" });
-		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null }]);
+		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null, save: null, dismissed: false }]);
 		expect(attackDamage(focused).damage).toBe(3);
 		expect(changeAttack(focused, { type: "withdraw", die: null })).toBeNull();
 		expect(changeAttack(focused, { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
@@ -226,6 +272,64 @@ describe("changeAttack", () => {
 		expect(changeAttack(rolled([[8, 2]]), { type: "focus", key: "dismount", actor: "Actor.k", bonus: 4 }).gambits[0].bonus).toBe(4);
 	});
 
+
+	it("records the target's VIG Save against a Gambit, once", () => {
+		const spent = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "repel" });
+		const saved = changeAttack(spent, { type: "gambitSave", index: 0, by: "Grey Knight", total: 17, target: 12, passed: true });
+		expect(saved.gambits[0].save).toEqual({ by: "Grey Knight", total: 17, target: 12, passed: true });
+		expect(gambitIgnored(saved.gambits[0])).toBe(true);
+		// The die stays spent whatever the Save shows: it paid for the attempt (p10).
+		expect(isDieSpent(saved, 0)).toBe(true);
+		expect(changeAttack(saved, { type: "gambitSave", index: 0, by: "Grey Knight", total: 3, target: 12, passed: false })).toBeNull();
+	});
+
+	it("offers no Save against Bolster, Move or a Strong Gambit that denies one", () => {
+		expect(gambitAllowsSave({ key: "bolster", strong: null })).toBe(false);
+		expect(gambitAllowsSave({ key: "move", strong: null })).toBe(false);
+		expect(gambitAllowsSave({ key: "repel", strong: null })).toBe(true);
+		expect(gambitAllowsSave({ key: "repel", strong: "greater" })).toBe(true);
+		expect(gambitAllowsSave({ key: "repel", strong: "noSave" })).toBe(false);
+
+		const bolstered = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "bolster" });
+		expect(changeAttack(bolstered, { type: "gambitSave", index: 0, by: "Grey Knight", total: 3, target: 12, passed: false })).toBeNull();
+		expect(changeAttack(bolstered, { type: "gambitSave", index: 1, by: "Grey Knight", total: 3, target: 12, passed: false })).toBeNull();
+	});
+
+	it("refuses a Save without a d20 and a Virtue to beat", () => {
+		const spent = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "trap" });
+		expect(changeAttack(spent, { type: "gambitSave", index: 0, by: "Grey Knight", passed: true })).toBeNull();
+		expect(changeAttack(spent, { type: "gambitSave", index: 0, by: "Grey Knight", total: "17", target: 12, passed: true })).toBeNull();
+	});
+
+	it("drops a Saved Dismount's d6 and a Saved Bolster from the Damage", () => {
+		const dismounted = changeAttack(rolled([[8, 5], [6, 2]]), { type: "gambit", die: 0, key: "dismount", bonus: 6 });
+		expect(attackDamage(dismounted)).toMatchObject({ highest: 6, damage: 6, faces: 6 });
+
+		const saved = changeAttack(dismounted, { type: "gambitSave", index: 0, by: "Grey Knight", total: 18, target: 12, passed: true });
+		// The d8 is still spent, so only the d6 showing 2 is left to cause Damage.
+		expect(attackDamage(saved)).toMatchObject({ highest: 2, damage: 2, die: 1, faces: 6 });
+
+		const failed = changeAttack(dismounted, { type: "gambitSave", index: 0, by: "Grey Knight", total: 4, target: 12, passed: false });
+		expect(attackDamage(failed)).toMatchObject({ highest: 6, damage: 6, faces: 6 });
+	});
+
+
+	it("clears a landed Gambit's mark, even once the Damage is settled", () => {
+		const spent = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "impair" });
+		const settled = changeAttack(spent, { type: "applied", names: ["Grey Knight"] });
+		// A mark holds into the turns after the blow, so this is the one change a settled card takes.
+		const cleared = changeAttack(settled, { type: "dismissMark", index: 0 });
+		expect(cleared.gambits[0].dismissed).toBe(true);
+		expect(changeAttack(cleared, { type: "dismissMark", index: 0 })).toBeNull();
+		expect(changeAttack(settled, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
+	});
+
+	it("clears nothing for a Gambit that leaves no mark", () => {
+		const bolstered = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "bolster" });
+		expect(changeAttack(bolstered, { type: "dismissMark", index: 0 })).toBeNull();
+		expect(changeAttack(bolstered, { type: "dismissMark", index: 4 })).toBeNull();
+	});
+
 	it("Denies any unspent die, low or high, once per combatant", () => {
 		const attack = rolled([[8, 7], [6, 2]]);
 		const denied = changeAttack(attack, { type: "deny", die: 1, actor: "Actor.a", name: "Ser A" });
@@ -246,5 +350,34 @@ describe("changeAttack", () => {
 	it("ignores unknown changes", () => {
 		expect(changeAttack(rolled([[8, 6]]), { type: "reroll" })).toBeNull();
 		expect(changeAttack(rolled([[8, 6]]), null)).toBeNull();
+	});
+});
+
+describe("canDeny", () => {
+	const attack = () => rolled([[8, 6], [6, 3]], { attacker: "Actor.foe" });
+	const knight = { uuid: "Actor.knight" };
+
+	it("lets somebody Deny while a die is left to discard", () => {
+		expect(canDeny(attack(), knight)).toBe(true);
+		expect(hasDeniableDie(attack())).toBe(true);
+	});
+
+	it("refuses a Fatigued Knight, who can perform no Feats until they rest", () => {
+		expect(canDeny(attack(), { ...knight, fatigued: true })).toBe(false);
+	});
+
+	it("refuses whoever rolled the Attack, and anybody who already Denied it", () => {
+		expect(canDeny(attack(), { uuid: "Actor.foe" })).toBe(false);
+		const denied = changeAttack(attack(), { type: "deny", die: 0, actor: knight.uuid, name: "Ser K" });
+		expect(canDeny(denied, knight)).toBe(false);
+		expect(canDeny(denied, { uuid: "Actor.other" })).toBe(true);
+	});
+
+	it("falls silent once every die is spent or the Damage lands", () => {
+		let spent = changeAttack(attack(), { type: "deny", die: 0, actor: "Actor.a", name: "Ser A" });
+		spent = changeAttack(spent, { type: "deny", die: 1, actor: "Actor.b", name: "Ser B" });
+		expect(hasDeniableDie(spent)).toBe(false);
+		expect(canDeny(spent, knight)).toBe(false);
+		expect(canDeny(changeAttack(attack(), { type: "applied", names: ["Ser K"] }), knight)).toBe(false);
 	});
 });

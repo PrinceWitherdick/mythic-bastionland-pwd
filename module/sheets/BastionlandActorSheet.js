@@ -7,8 +7,10 @@ import { splitName } from "../rules/text.js";
 import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
+import { dismissGambitMark } from "../chat/attack-card.js";
 import { t } from "../chat/cards.js";
-import { FEATS } from "../config.js";
+import { marksOn } from "../chat/gambit-marks.js";
+import { DERIVED_CONDITIONS, FEATS, MARKED_CONDITIONS } from "../config.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
@@ -28,12 +30,6 @@ const HEADER_BUTTON = "bastionland-header-button";
  * @property {string} [tooltip]
  * @property {boolean} [muted]  Drawn faded, for something not set up yet.
  */
-
-/** Conditions a player marks by hand, keyed to the boolean they toggle. */
-const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "mortalWound"]);
-
-/** Conditions that follow from a Virtue at 0 and cannot be toggled. */
-const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
 
 /**
  * Whether a first render is Create Actor opening the blank actor it has just
@@ -72,6 +68,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			rest: BastionlandActorSheet.#onRest,
 			restore: BastionlandActorSheet.#onRestore,
 			toggleCondition: BastionlandActorSheet.#onToggleCondition,
+			clearMark: BastionlandActorSheet.#onClearMark,
 			createItem: BastionlandActorSheet.#onCreateItem,
 			postItem: BastionlandActorSheet.#onPostItem,
 			editItem: BastionlandActorSheet.#onEditItem,
@@ -112,7 +109,14 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				active: system.conditions[condition.key],
 				label: t(`conditions.${condition.key}.label`),
 				hint: t(`conditions.${condition.key}.hint`)
-			})),
+			})).concat(marksOn(actor).map((mark) => ({
+				key: mark.key,
+				dismiss: true,
+				label: mark.label,
+				hint: mark.hint,
+				messageId: mark.messageId,
+				index: mark.index
+			}))),
 			feats: FEATS.filter(({ key }) => system.knowsFeat(key)).map(({ key, virtue }) => ({
 				key,
 				name: t(`feats.${key}.name`),
@@ -271,6 +275,16 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		const key = target.dataset.condition;
 		if (!MARKED_CONDITIONS.includes(key)) return;
 		return this.actor.update({ [`system.${key}`]: !this.actor.system[key] });
+	}
+
+	/**
+	 * Clear a landed Gambit's mark once it has run its course, for a fight that
+	 * was never a Combat and so has no turn order to lapse it.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onClearMark(_event, target) {
+		const { message, gambit } = target.dataset;
+		return dismissGambitMark(this.actor, message, Number(gambit));
 	}
 
 	/** @this {BastionlandActorSheet} */

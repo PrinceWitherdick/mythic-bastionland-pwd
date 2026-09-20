@@ -6,11 +6,19 @@
 	</label>
 	{{/if}}
 
+	{{#if marks}}
+	<ul class="bastionland-dialog__marks">
+		{{#each marks}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
 	<fieldset>
 		<legend>{{localize "bastionland.attack.weapons"}}</legend>
 		{{#each sources}}
 		<label class="bastionland-check">
-			<input type="checkbox" name="source.{{id}}" checked>
+			<input type="checkbox" name="source.{{id}}" {{checked checked}}>
 			<span class="bastionland-check__label">{{name}}</span>
 			<span class="bastionland-tag">{{tags}}</span>
 		</label>

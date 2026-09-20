@@ -12,7 +12,7 @@ export function gambitContext(key) {
 		tagline: t("gambits.card.tagline"),
 		effect: t(`gambits.${key}`),
 		detail: GAMBIT_DETAILS.includes(key) ? t(`gambits.details.${key}`) : null,
-		save: t(UNSAVED_GAMBITS.includes(key) ? "gambits.card.noSave" : "attack.saveToIgnore"),
+		save: t(UNSAVED_GAMBITS.includes(key) ? "gambits.card.noSave" : "gambits.card.save"),
 		target: t("gambits.card.target"),
 		strong: t("gambits.strong")
 	};

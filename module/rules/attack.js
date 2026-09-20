@@ -4,6 +4,7 @@
  */
 
 import { GAMBITS } from "../config.js";
+import { MARK_GAMBITS } from "./gambit-marks.js";
 
 /** Die sizes offered for shields, bonuses and Scars. */
 export const DIE_SIZES = Object.freeze([4, 6, 8, 10, 12]);
@@ -41,16 +42,19 @@ const MAX_DICE_PER_TERM = 10;
 
 const DICE_TERM = /^(\d*)d(\d+)$/i;
 
+/** Dice may be joined however they come to hand: "d6+d12", "d6, d12", "d6 d12". */
+const DICE_SEPARATOR = /[+,;]|\s+/;
+
 /**
  * Turn damage notation typed on an item into one entry per die, so "2d6"
  * becomes [6, 6] and "d8" becomes [8]. Unreadable terms are skipped rather
  * than thrown, because the notation is free text.
- * @param {string} notation e.g. "d8", "2d10", "d6+d4"
+ * @param {string} notation e.g. "d8", "2d10", "d6+d4", "d6, d12"
  * @returns {number[]} Die sizes.
  */
 export function parseDice(notation) {
 	const faces = [];
-	for (const term of String(notation ?? "").split("+")) {
+	for (const term of String(notation ?? "").split(DICE_SEPARATOR)) {
 		const match = term.trim().match(DICE_TERM);
 		if (!match) continue;
 		const count = Math.min(match[1] === "" ? 1 : Number(match[1]), MAX_DICE_PER_TERM);
@@ -142,6 +146,38 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 }
 
 /**
+ * The most a weapon or shield could roll, used to choose between items that
+ * can't be held together.
+ * @param {{damage?: string}} item An item's system data.
+ * @returns {number}
+ */
+const damagePotential = (item) => parseDice(item?.damage).reduce((sum, faces) => sum + faces, 0);
+
+/**
+ * Which of the items offered to tick when the Attack dialog opens: as many as
+ * the hands allow, the hardest-hitting first. A Knight holding a Long weapon
+ * needs both hands for it (p12), so only that weapon opens ticked, and of two
+ * Hefty items only the better one does.
+ * @param {WieldedItem[]} items Each also carrying its `damage` notation.
+ * @param {object} [situation]
+ * @param {boolean} [situation.mounted] On a steed, so a lance counts as Hefty.
+ * @param {boolean} [situation.hands]   Hold the items to what two hands can wield, as for a Knight.
+ * @returns {number[]} Indexes into `items`, in the order they were offered.
+ */
+export function defaultWielded(items, { mounted = false, hands = false } = {}) {
+	// Between two items that hit equally hard the one listed first is taken.
+	const order = items.map((_item, index) => index)
+		.sort((a, b) => damagePotential(items[b]) - damagePotential(items[a]) || a - b);
+	const kept = [];
+	for (const index of order) {
+		const tried = [...kept, index].sort((a, b) => a - b);
+		if (checkWielding(tried.map((i) => items[i]), { mounted, hands }).refusal) continue;
+		kept.push(index);
+	}
+	return kept.sort((a, b) => a - b);
+}
+
+/**
  * Summarise rolled Attack dice before any Deny or Gambits are declared.
  * @param {number[]} results The face shown on each die.
  * @param {object} [options]
@@ -168,11 +204,24 @@ export function summarizeAttack(results, { melee = true } = {}) {
  * @property {number|null} die    Index of the die spent on it, or null when Focus paid instead.
  * @property {string|null} strong One of STRONG_GAMBITS.
  * @property {number|null} bonus  The d6 a Dismount adds to the dice.
+ * @property {GambitSave|null} save The target's VIG Save against it, or null while it stands unanswered.
+ * @property {boolean} dismissed Whether the mark it left on the foe has been cleared by hand.
+ *
+ * @typedef {object} GambitSave
+ * @property {string} by       Name of whoever Saved.
+ * @property {number} total    What the d20 showed.
+ * @property {number} target   The VIG it had to meet.
+ * @property {boolean} passed  A passed Save ignores the Gambit.
  *
  * @typedef {object} AttackState What an Attack card remembers between clicks.
  * @property {AttackDie[]} dice
+ * @property {{combat: string, round: number, turn: number}|null} place Where in a
+ *   running Combat's turn order the Attack was rolled, so a Gambit's mark knows
+ *   when it lapses. Null when no Combat was running.
  * @property {boolean} melee
  * @property {boolean} impaired
+ * @property {string} attacker Actor UUID of whoever rolled it.
+ * @property {{uuid: string, name: string}[]} targets The Tokens it was rolled against.
  * @property {Gambit[]} gambits
  * @property {{key: string, actor: string}[]} feats Feats used after the roll, by actor UUID.
  * @property {string[]} appliedTo Who the Damage was applied to. Once set, the Attack is settled.
@@ -188,6 +237,21 @@ export function summarizeAttack(results, { melee = true } = {}) {
 export function sortDice(dice) {
 	return [...dice].sort((a, b) => b.result - a.result || b.faces - a.faces);
 }
+
+/**
+ * Foes get a VIG Save against every Gambit but Bolster and Move, unless a
+ * Strong Gambit spends its 8+ die to deny them one (p10).
+ * @param {Gambit} gambit
+ * @returns {boolean}
+ */
+export const gambitAllowsSave = (gambit) => !UNSAVED_GAMBITS.includes(gambit.key) && gambit.strong !== "noSave";
+
+/**
+ * @param {Gambit} gambit
+ * @returns {boolean} Whether the target Saved and so ignores it. A Gambit
+ *   nobody has Saved against yet counts until they do.
+ */
+export const gambitIgnored = (gambit) => Boolean(gambit.save?.passed);
 
 /**
  * @param {AttackState} attack
@@ -234,14 +298,15 @@ export function attackDamage(attack) {
 	});
 	let highest = die === null ? 0 : attack.dice[die].result;
 	let faces = die === null ? null : attack.dice[die].faces;
-	for (const { bonus } of attack.gambits) {
-		if (bonus > highest) {
+	for (const gambit of attack.gambits) {
+		const { bonus } = gambit;
+		if (!gambitIgnored(gambit) && bonus > highest) {
 			highest = bonus;
 			faces = DISMOUNT_FACES;
 			die = null;
 		}
 	}
-	const bolster = attack.gambits.filter((gambit) => gambit.key === "bolster").length;
+	const bolster = attack.gambits.filter((gambit) => gambit.key === "bolster" && !gambitIgnored(gambit)).length;
 	return { highest, bolster, damage: highest + bolster, die, faces };
 }
 
@@ -264,6 +329,28 @@ export function hasUsedFeat(attack, key, actor) {
 }
 
 /**
+ * @param {AttackState} attack
+ * @returns {boolean} Whether a die is left for Deny to discard.
+ */
+export function hasDeniableDie(attack) {
+	return attack.dice.some((_die, index) => !isDieSpent(attack, index));
+}
+
+/**
+ * Whether somebody could still Deny one of this Attack's dice (p10): a die is
+ * left to discard, the Damage hasn't landed, they aren't the one attacking,
+ * they aren't Fatigued, and they haven't already Denied this Attack.
+ * @param {AttackState} attack
+ * @param {{uuid: string, fatigued?: boolean}} combatant
+ * @returns {boolean}
+ */
+export function canDeny(attack, { uuid, fatigued = false }) {
+	if (!attack || attack.appliedTo.length || fatigued) return false;
+	if (uuid === attack.attacker || hasUsedFeat(attack, "deny", uuid)) return false;
+	return hasDeniableDie(attack);
+}
+
+/**
  * Apply one change to an Attack card, returning the new state, or null for a
  * change the Attack doesn't allow, such as spending a die that's already gone
  * or changing anything once the Damage is applied.
@@ -272,21 +359,32 @@ export function hasUsedFeat(attack, key, actor) {
  *   A Dismount carries the d6 it adds as `bonus`.
  * - `{type: "withdraw", die}` takes back the Gambit a die was spent on.
  * - `{type: "focus", key, actor, bonus}` performs a Gambit without a die.
+ * - `{type: "gambitSave", index, by, total, target, passed}` records the target's VIG Save against one Gambit.
  * - `{type: "deny", die, actor, name}` discards any die.
  * - `{type: "applied", names}` settles the Attack.
+ * - `{type: "dismissMark", index}` clears the mark a Gambit left on the foe, which
+ *   outlives the Damage, so it is the one change a settled card still takes.
  *
  * @param {AttackState} attack
  * @param {object} change
  * @returns {AttackState|null}
  */
 export function changeAttack(attack, change) {
-	if (!attack || attack.appliedTo.length) return null;
+	if (!attack) return null;
+
+	// A mark holds into the turns after the Damage, so it can still be cleared.
+	if (change?.type === "dismissMark") {
+		const marked = attack.gambits[change.index];
+		if (!marked || marked.dismissed || !MARK_GAMBITS.includes(marked.key)) return null;
+		return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, dismissed: true } : entry)) };
+	}
+	if (attack.appliedTo.length) return null;
 
 	switch (change?.type) {
 		case "gambit": {
 			if (!GAMBITS.includes(change.key) || !canFundGambit(attack, change.die)) return null;
 			const strong = STRONG_GAMBITS.includes(change.strong) && canFundStrongGambit(attack, change.die) ? change.strong : null;
-			return { ...attack, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change) }] };
+			return { ...attack, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false }] };
 		}
 		case "withdraw": {
 			const index = attack.gambits.findIndex((gambit) => gambit.die !== null && gambit.die === change.die);
@@ -298,9 +396,17 @@ export function changeAttack(attack, change) {
 			if (attack.impaired || !GAMBITS.includes(change.key) || hasUsedFeat(attack, "focus", change.actor)) return null;
 			return {
 				...attack,
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change) }],
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
+		}
+		case "gambitSave": {
+			const gambit = attack.gambits[change.index];
+			// Each Gambit is Saved against once, and only when it offers a Save at all.
+			if (!gambit || gambit.save || !gambitAllowsSave(gambit)) return null;
+			if (!Number.isInteger(change.total) || !Number.isInteger(change.target)) return null;
+			const save = { by: String(change.by ?? ""), total: change.total, target: change.target, passed: Boolean(change.passed) };
+			return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, save } : entry)) };
 		}
 		case "deny": {
 			if (!attack.dice[change.die] || isDieSpent(attack, change.die) || hasUsedFeat(attack, "deny", change.actor)) return null;

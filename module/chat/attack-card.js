@@ -1,7 +1,8 @@
 import { renderAttackCard } from "../actions/attack.js";
 import { takeAttack } from "../actions/damage.js";
-import { performFeat } from "../actions/feats.js";
-import { inputDialog } from "../apps/ui.js";
+import { canDenyAttack, performFeat } from "../actions/feats.js";
+import { rollSave } from "../actions/saves.js";
+import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
 import {
 	attackDamage,
@@ -9,12 +10,13 @@ import {
 	canFundStrongGambit,
 	changeAttack,
 	DISMOUNT_FACES,
+	gambitAllowsSave,
 	hasUsedFeat,
 	isDieSpent,
 	STRONG_GAMBITS
 } from "../rules/attack.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { onCardClick, statefulCard, t, warn } from "./cards.js";
+import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: Deny, Gambits, then the
@@ -26,7 +28,7 @@ import { onCardClick, statefulCard, t, warn } from "./cards.js";
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /** Changes a player may ask the GM to record on a card they don't own. */
-const QUERYABLE_CHANGES = Object.freeze(["deny", "applied"]);
+const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark"]);
 
 const attackCard = statefulCard({
 	flag: "attack",
@@ -88,10 +90,16 @@ function targetActors(attack) {
 async function onChangeQuery({ messageId, change }, { user }) {
 	const message = game.messages.get(messageId);
 	if (!attackOf(message) || !QUERYABLE_CHANGES.includes(change?.type)) return false;
-	if (change.type === "deny") {
-		const denier = fromUuidSync(change.actor);
-		if (!denier?.testUserPermission(user, "OWNER")) return false;
-		change = { ...change, name: denier.name };
+	if (change.type === "dismissMark") {
+		const marked = fromUuidSync(change.actor);
+		if (!marked?.testUserPermission(user, "OWNER")) return false;
+		const attack = attackOf(message);
+		if (!attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid)) return false;
+	}
+	if (change.type === "deny" || change.type === "gambitSave") {
+		const roller = fromUuidSync(change.actor);
+		if (!roller?.testUserPermission(user, "OWNER")) return false;
+		change = change.type === "deny" ? { ...change, name: roller.name } : { ...change, by: roller.name };
 	}
 	return attackCard.commit(message, change);
 }
@@ -162,27 +170,116 @@ async function onFocus(message) {
 }
 
 /**
- * Whoever might Deny: the actors of this user's selected Tokens, then their
- * own character. The attacker can't Deny their own Attack, and only somebody
- * with Virtues can make the SPI Save: a GM's character is the GM Toolkit.
+ * Who can make the VIG Save against a Gambit: the foes the Attack targeted,
+ * or, when it targeted nobody, the actors of this user's selected Tokens.
+ * Only somebody with Virtues can Save, so a ship or a wall cannot.
  * @param {import("../rules/attack.js").AttackState} attack
  * @returns {Actor[]}
  */
-function denyCandidates(attack) {
-	const actors = [...(canvas?.tokens?.controlled ?? []).map((token) => token.actor), game.user.character];
+function saveCandidates(attack) {
+	const targets = targetActors(attack);
+	return answerers(targets.length ? targets : (canvas?.tokens?.controlled ?? []).map((token) => token.actor), attack);
+}
+
+/**
+ * Whoever in a pool could answer an Attack: an actor this user owns, with
+ * Virtues to roll with, who isn't the one attacking. Each is offered once,
+ * however many ways they were gathered.
+ * @param {(Actor|null|undefined)[]} pool
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {(actor: Actor) => boolean} [also] A further test, such as knowing a Feat.
+ * @returns {Actor[]}
+ */
+function answerers(pool, attack, also = () => true) {
 	const seen = new Set();
-	return actors.filter((actor) => {
-		if (!actor?.isOwner || !actor.system?.virtues || actor.uuid === attack.attacker || seen.has(actor.uuid)) return false;
+	return pool.filter((actor) => {
+		if (!actor?.isOwner || !actor.system?.virtues || actor.uuid === attack.attacker) return false;
+		if (seen.has(actor.uuid) || !also(actor)) return false;
 		seen.add(actor.uuid);
 		return true;
 	});
 }
 
+/**
+ * @param {Actor[]} actors
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @returns {Promise<Actor|null>}
+ */
+async function chooseSaver(actors, gambit) {
+	if (actors.length === 1) return actors[0];
+	const action = await chooseDialog({
+		title: t("attack.gambitSave"),
+		icon: "fa-solid fa-dice-d20",
+		message: t("attack.whoSaves", { gambit: t(`gambits.names.${gambit.key}`) }),
+		buttons: actors.map((actor, index) => ({ action: String(index), label: actor.name, default: index === 0 }))
+	});
+	// Closing the window answers with null, which is nobody rather than the first of them.
+	return typeof action === "string" ? actors[Number(action)] ?? null : null;
+}
+
+/**
+ * The foe makes the VIG Save that ignores a Gambit (p10). The Save is rolled
+ * and posted as any other, then recorded on the card, so a Dismount whose
+ * Save passed stops adding its d6 to the Damage.
+ */
+async function onGambitSave(message, button) {
+	const attack = attackOf(message);
+	const index = Number(button.dataset.gambit);
+	const gambit = attack.gambits[index];
+	if (!gambit || gambit.save || !gambitAllowsSave(gambit)) return;
+
+	const candidates = saveCandidates(attack);
+	if (!candidates.length) return warn("attack.noSaver");
+	const saver = await chooseSaver(candidates, gambit);
+	if (!saver) return;
+
+	const save = await rollSave(saver, "vig");
+	await saveChange(message, {
+		type: "gambitSave",
+		index,
+		actor: saver.uuid,
+		by: saver.name,
+		total: save.roll.total,
+		target: save.value,
+		passed: save.passed
+	});
+}
+
+/**
+ * Whoever this user might Deny with: the actors of their selected Tokens, the
+ * Attack's targets they own, then their own character. Only somebody who knows
+ * the Feat and has Virtues to Save with belongs in the pool, so a GM's own
+ * character, the GM Toolkit, never does.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{pool: Actor[], able: Actor[]}} `able` are those the Attack still allows to Deny.
+ */
+function denyOptions(attack) {
+	const pool = answerers([
+		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
+		...targetActors(attack),
+		game.user.character
+	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
+	return { pool, able: pool.filter((actor) => canDenyAttack(attack, actor)) };
+}
+
+/**
+ * Say before the click whether this user can Deny at all, since a Fatigued
+ * Knight, or one who has already Denied this Attack, would be turned away (p10).
+ * @param {HTMLElement} button
+ * @param {import("../rules/attack.js").AttackState} attack
+ */
+function refreshDeny(button, attack) {
+	const { pool, able } = denyOptions(attack);
+	button.disabled = !able.length;
+	if (able.length) delete button.dataset.tooltip;
+	else button.dataset.tooltip = t(pool.length ? "attack.cantDeny" : "attack.noDenier");
+}
+
 /** The target or an ally within arm's reach discards one die, paying with a SPI Save. */
 async function onDeny(message) {
 	const attack = attackOf(message);
-	const deniers = denyCandidates(attack);
-	if (!deniers.length) return warn("attack.noDenier");
+	const { pool, able: deniers } = denyOptions(attack);
+	if (!deniers.length) return warn(pool.length ? "attack.cantDeny" : "attack.noDenier");
 
 	const dice = attack.dice
 		.map((die, index) => ({ index, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: die.label }) }))
@@ -216,6 +313,27 @@ async function onDeny(message) {
 	if (save) await saveChange(message, { type: "deny", die, actor: denier.uuid, name: denier.name });
 }
 
+/**
+ * Gambits are declared and Deny used before the Damage lands, and applying it
+ * settles the card for good, so whatever is still to be had is said first.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor[]} actors Who the Damage would land on.
+ * @returns {Promise<boolean>}
+ */
+async function confirmApply(attack, actors) {
+	const lines = [];
+	const unspent = attack.dice.filter((_die, index) => canFundGambit(attack, index)).length;
+	if (unspent) lines.push(plural("attack.unspentGambits", unspent));
+	const deniers = actors.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
+	if (deniers.length) lines.push(t("attack.deniableDice", { names: deniers.join(", ") }));
+	if (!lines.length) return true;
+	return confirmDialog({
+		title: t("attack.apply"),
+		icon: "fa-solid fa-heart-crack",
+		message: [...lines, t("attack.applyAnyway")]
+	});
+}
+
 /** Take the Damage on each target this user owns, rolling a Scar with the die that caused it. */
 async function onApply(message) {
 	const attack = attackOf(message);
@@ -223,6 +341,7 @@ async function onApply(message) {
 	if (!actors.length) return warn(attack.targets.length ? "attack.targetsGone" : "attack.noTarget");
 	const owned = actors.filter((actor) => actor.isOwner);
 	if (!owned.length) return warn("attack.cantApply");
+	if (!(await confirmApply(attack, actors))) return;
 
 	const applied = [];
 	for (const actor of owned) {
@@ -231,7 +350,21 @@ async function onApply(message) {
 	if (applied.length) await saveChange(message, { type: "applied", names: applied });
 }
 
-const HANDLERS = Object.freeze({ gambit: onGambit, focus: onFocus, deny: onDeny, apply: onApply });
+/**
+ * Clear the mark a landed Gambit holds over somebody, from their own sheet.
+ * The card keeps it, so the Gambit still reads as having landed.
+ * @param {Actor} actor    Whoever is marked.
+ * @param {string} messageId
+ * @param {number} index   Which of the card's Gambits.
+ * @returns {Promise<boolean>}
+ */
+export async function dismissGambitMark(actor, messageId, index) {
+	const message = game.messages.get(messageId);
+	if (!attackOf(message)) return false;
+	return saveChange(message, { type: "dismissMark", index, actor: actor.uuid });
+}
+
+const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply });
 
 /**
  * Wire up an Attack card's buttons as it renders in the chat log or a popout.
@@ -245,12 +378,20 @@ function activateAttackCard(message, html) {
 	const card = html.querySelector(".bastionland-card--attack");
 	if (!attack || !card) return;
 
+	let denyButton = null;
 	for (const button of card.querySelectorAll("[data-attack-action]")) {
 		const { attackAction } = button.dataset;
 		if (["gambit", "focus"].includes(attackAction) && !message.isOwner) button.disabled = true;
+		if (attackAction === "deny") denyButton = button;
 		if (attackAction === "apply") {
 			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
 		}
+	}
+	if (denyButton) {
+		refreshDeny(denyButton, attack);
+		// Which Tokens are selected, and who is Fatigued, both change after the card is
+		// drawn, so the button is weighed again as the pointer reaches the card.
+		card.addEventListener("pointerenter", () => refreshDeny(denyButton, attack));
 	}
 
 	onCardClick(card, "[data-attack-action]", (button) => HANDLERS[button.dataset.attackAction]?.(message, button));
