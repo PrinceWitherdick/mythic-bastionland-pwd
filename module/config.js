@@ -19,6 +19,23 @@ export const FEATS = Object.freeze([
 	Object.freeze({ key: "deny", virtue: "spi" })
 ]);
 
+/**
+ * The fields of a Knight that hold another Actor by UUID, in the order the
+ * sheet and the Ledger read them: what each is called below `bastionland.`,
+ * and whether whoever it names is kept in the Knight's own folder.
+ */
+export const LINKED_ACTORS = Object.freeze([
+	Object.freeze({ key: "steed", label: "steed.label", kept: true }),
+	Object.freeze({ key: "squire", label: "squire.label", kept: true }),
+	Object.freeze({ key: "serves", label: "ledger.subjects.serves" }),
+	Object.freeze({ key: "domain", label: "ledger.subjects.domain" }),
+	Object.freeze({ key: "successor", label: "successor.label" })
+]);
+
+/** Conditions marked by hand, and those that follow from a Virtue at 0 (Harm & Scars, p9). */
+export const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "mortalWound"]);
+export const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
+
 /** An NPC is one person or creature, or a Warband of two dozen or so fighting as one (Warfare, p11). */
 export const NPC_SCALES = Object.freeze(["individual", "warband"]);
 

@@ -4,6 +4,7 @@ import { DIE_SIZES } from "../rules/attack.js";
 import { isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow } from "../rules/scars.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
+import { causedBy } from "./ledger.js";
 
 /**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
@@ -60,7 +61,7 @@ export async function rollScar(actor, { faces: caused } = {}) {
 
 	const name = text("name");
 	if (apply) {
-		if (!foundry.utils.isEmpty(update)) await actor.update(update);
+		if (!foundry.utils.isEmpty(update)) await actor.update(update, causedBy("scar"));
 		await actor.createEmbeddedDocuments("Item", [{
 			type: "scar",
 			name: location ? `${name} (${location})` : name,
@@ -114,7 +115,7 @@ export async function resolveScar(actor, item) {
 	if (item?.type !== "scar" || !isScarPending(item.system)) return null;
 	const maxGuard = actor.system.guard.max;
 	const settled = await settleScar(item, maxGuard);
-	if (settled.guardMax !== maxGuard) await actor.update({ "system.guard.max": settled.guardMax });
+	if (settled.guardMax !== maxGuard) await actor.update({ "system.guard.max": settled.guardMax }, causedBy("scar"));
 	await postCard(actor, "note", { icon: "fa-solid fa-bone-break", text: settled.line }, { rolls: settled.roll ? [settled.roll] : [] });
 	return settled;
 }

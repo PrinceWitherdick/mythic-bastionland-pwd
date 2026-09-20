@@ -21,6 +21,7 @@ import {
 	nextSeason,
 	seasonKey
 } from "../rules/time.js";
+import { causedBy } from "./ledger.js";
 import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
@@ -394,7 +395,7 @@ export async function hardshipFor(hardship, actors) {
 		rolls.push(roll);
 		const from = actor.system.virtues[hardship.virtue].value;
 		const to = Math.max(0, from - roll.total);
-		updates.push(actor.update({ [`system.virtues.${hardship.virtue}.value`]: to }));
+		updates.push(actor.update({ [`system.virtues.${hardship.virtue}.value`]: to }, causedBy("hardship")));
 		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue, from, to })] });
 	}
 	await Promise.all(updates);

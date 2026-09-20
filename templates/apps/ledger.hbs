@@ -1,0 +1,55 @@
+<div class="bastionland-ledger{{#if editing}} is-editing{{/if}}">
+	<div class="bastionland-ledger__toolbar">
+		{{#if editable}}
+		<button type="button" class="bastionland-ledger__edit{{#if editing}} is-active{{/if}}" data-action="toggleEditing"
+			data-tooltip="{{localize "bastionland.ledger.edit"}}" aria-label="{{localize "bastionland.ledger.edit"}}" aria-pressed="{{#if editing}}true{{else}}false{{/if}}">
+			<i class="fa-solid fa-pen" inert></i>
+		</button>
+		{{/if}}
+		{{#if editing}}
+		<input type="checkbox" name="selectAll" data-tooltip="{{localize "bastionland.ledger.selectAll"}}" aria-label="{{localize "bastionland.ledger.selectAll"}}">
+		<button type="button" class="bastionland-ledger__delete" data-action="deleteSelected">
+			<i class="fa-solid fa-trash" inert></i> {{localize "bastionland.ledger.delete"}}
+		</button>
+		{{/if}}
+		<input type="search" name="search" value="{{search}}" placeholder="{{localize "bastionland.ledger.search"}}" aria-label="{{localize "bastionland.ledger.search"}}">
+		<select name="filter" aria-label="{{localize "bastionland.ledger.filter"}}">
+			<option value="">{{localize "bastionland.ledger.all"}}</option>
+			{{#each groups}}
+			<optgroup label="{{label}}">
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{allLabel}}</option>
+				{{#each subjects}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</optgroup>
+			{{/each}}
+		</select>
+		<select name="order" aria-label="{{localize "bastionland.ledger.order"}}">
+			<option value="newest">{{localize "bastionland.ledger.newest"}}</option>
+			<option value="oldest" {{#if oldestFirst}}selected{{/if}}>{{localize "bastionland.ledger.oldest"}}</option>
+		</select>
+	</div>
+	<div class="bastionland-ledger__list">
+		{{#if empty}}
+		<p class="bastionland-ledger__empty">{{localize "bastionland.ledger.empty"}}</p>
+		{{else}}
+		<p class="bastionland-ledger__empty bastionland-ledger__none" hidden>{{localize "bastionland.ledger.noMatch"}}</p>
+		{{#each days}}
+		<section class="bastionland-ledger__day">
+			<h3 class="bastionland-ledger__date">{{label}}</h3>
+			<ol>
+				{{#each entries}}
+				<li class="bastionland-ledger__entry" data-entry-id="{{id}}" data-subject="{{subject}}" data-category="{{category}}">
+					{{#if ../../editing}}<input type="checkbox" name="pick" aria-label="{{action}}">{{/if}}
+					<div class="bastionland-ledger__body">
+						<div class="bastionland-ledger__action">{{action}}{{#if cause}} <span class="bastionland-ledger__cause">{{cause}}</span>{{/if}}</div>
+						<div class="bastionland-ledger__meta">{{by}}{{#if time}} · {{time}}{{/if}}</div>
+					</div>
+				</li>
+				{{/each}}
+			</ol>
+		</section>
+		{{/each}}
+		{{/if}}
+	</div>
+</div>

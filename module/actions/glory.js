@@ -1,6 +1,7 @@
 import { postCard, t } from "../chat/cards.js";
 import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
+import { causedBy } from "./ledger.js";
 import { chooseCompany } from "./time.js";
 
 /**
@@ -23,7 +24,7 @@ export function gloryLines(change) {
 export async function adjustGlory(actor, amount) {
 	if (!actor.system.gainsGlory) return [t("glory.squire")];
 	const change = changeGlory(actor.system.glory, amount);
-	if (change.to !== actor.system.glory) await actor.update({ "system.glory": change.to });
+	if (change.to !== actor.system.glory) await actor.update({ "system.glory": change.to }, causedBy("glory"));
 	return gloryLines(change);
 }
 

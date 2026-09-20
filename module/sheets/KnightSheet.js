@@ -10,6 +10,7 @@ import { changeAge } from "../actions/time.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { openKnightTable } from "../apps/KnightTable.js";
 import { filePicker } from "../book-art/files.js";
+import { openLedger } from "../apps/LedgerWindow.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
@@ -48,7 +49,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			pickSeerImage: KnightSheet.#onPickSeerImage,
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood,
-			openKnightTable: KnightSheet.#onOpenKnightTable
+			openKnightTable: KnightSheet.#onOpenKnightTable,
+			openLedger: KnightSheet.#onOpenLedger
 		}
 	};
 
@@ -216,7 +218,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/**
 	 * A Squire's sheet has Knight Squire, which raises them. The Domain button opens the Domain this Knight rules,
 	 * the way the Stonetop character sheet opens the steading, and reads its
-	 * name, or just "Domain" while there isn't one.
+	 * name, or just "Domain" while there isn't one. The Ledger button opens every
+	 * change made to them.
 	 * @override
 	 */
 	_headerButtons() {
@@ -232,6 +235,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			tooltip: t(domain ? "domain.openHint" : "domain.foundHint"),
 			muted: !domain
 		});
+		// Every change made to the Knight, as the Stonetop character sheet keeps one.
+		buttons.push({ action: "openLedger", icon: "fa-solid fa-scroll", label: t("ledger.button"), tooltip: t("ledger.buttonHint") });
 		return buttons;
 	}
 
@@ -379,6 +384,11 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onOpenLedger() {
+		return openLedger(this.actor);
 	}
 
 	/** @this {KnightSheet} */

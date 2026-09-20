@@ -1,5 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
+import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
@@ -25,7 +26,7 @@ export async function resolveFeat(actor, key) {
 	}
 
 	const save = await evaluateSave(actor, feat.virtue);
-	if (!save.passed) await actor.update({ "system.fatigued": true });
+	if (!save.passed) await actor.update({ "system.fatigued": true }, causedBy("feat"));
 	return save;
 }
 

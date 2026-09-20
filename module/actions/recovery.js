@@ -1,4 +1,5 @@
 import { postCard, t } from "../chat/cards.js";
+import { causedBy } from "./ledger.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { chooseCompany } from "./time.js";
 
@@ -9,7 +10,7 @@ import { chooseCompany } from "./time.js";
  */
 export async function rest(actor) {
 	const value = actor.system.guard.max;
-	await actor.update({ "system.guard.value": value, "system.fatigued": false });
+	await actor.update({ "system.guard.value": value, "system.fatigued": false }, causedBy("recovery"));
 	await postCard(actor, "note", {
 		icon: "fa-solid fa-mug-hot",
 		text: t("recovery.rested", { value })
@@ -23,7 +24,7 @@ export async function rest(actor) {
  */
 export async function restoreVirtue(actor, virtue) {
 	const value = actor.system.virtues[virtue].max;
-	await actor.update({ [`system.virtues.${virtue}.value`]: value });
+	await actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
 	await postCard(actor, "note", {
 		icon: "fa-solid fa-heart-pulse",
 		text: t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
