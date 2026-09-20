@@ -1,4 +1,4 @@
-import { t, warn } from "../chat/cards.js";
+import { t } from "../chat/cards.js";
 import { COMPANY_IMAGE, companyStart } from "../rules/company.js";
 import { hexAt, hexTopLeft } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -17,6 +17,16 @@ export const COMPANY_IMG_FLAG = "companyImg";
  */
 export function findCompanyToken(scene) {
 	return scene?.tokens?.find((token) => token.getFlag(SYSTEM_ID, COMPANY_FLAG)) ?? null;
+}
+
+/**
+ * The picture a Company carries on a Realm: the one chosen when the Realm was
+ * made, or the pennant.
+ * @param {Scene|null} scene
+ * @returns {string}
+ */
+export function companyPicture(scene) {
+	return scene?.getFlag?.(SYSTEM_ID, COMPANY_IMG_FLAG) || COMPANY_IMAGE;
 }
 
 /**
@@ -82,7 +92,7 @@ export async function setCompanyHex(scene, hex, { img, name } = {}) {
 		return standing;
 	}
 
-	const data = companyTokenData(g, hex, { img: img || scene.getFlag?.(SYSTEM_ID, COMPANY_IMG_FLAG) || COMPANY_IMAGE, name: name || t("company.name") });
+	const data = companyTokenData(g, hex, { img: img || companyPicture(scene), name: name || t("company.name") });
 	const [made] = await scene.createEmbeddedDocuments("Token", [data]);
 	return made ?? null;
 }
@@ -104,21 +114,4 @@ export async function placeCompanyAtStart(scene, { start, img, name }) {
 	if (hex) return setCompanyHex(scene, hex, { img, name });
 	if (img && img !== COMPANY_IMAGE) await scene.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);
 	return null;
-}
-
-/**
- * Move the Company to a hex from the Hex panel, telling the GM where it went.
- * @param {Scene} scene
- * @param {{col: number, row: number}} hex
- * @returns {Promise<TokenDocument|null>}
- */
-export async function companyHere(scene, hex) {
-	const made = !findCompanyToken(scene);
-	const token = await setCompanyHex(scene, hex);
-	if (!token) {
-		warn("company.notPlaced");
-		return null;
-	}
-	ui.notifications.info(t(made ? "company.placed" : "company.moved", { hex: t("realm.hex", hex) }));
-	return token;
 }

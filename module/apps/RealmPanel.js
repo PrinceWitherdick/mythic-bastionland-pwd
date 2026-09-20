@@ -1,4 +1,3 @@
-import { companyHere } from "../actions/company.js";
 import { getHexRecord } from "../actions/hex-lore.js";
 import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
@@ -117,7 +116,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			redo: RealmPanel.#onRedo,
 			wilderness: RealmPanel.#onWilderness,
 			lore: RealmPanel.#onLore,
-			company: RealmPanel.#onCompany,
 			clearRiver: RealmPanel.#onClearRiver,
 			appearance: RealmPanel.#onAppearance
 		}
@@ -469,11 +467,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {RealmPanel} */
 	static #onLore() {
 		return openHexLore({ scene: this.scene, hex: this.hex });
-	}
-
-	/** @this {RealmPanel} */
-	static #onCompany() {
-		return companyHere(this.scene, this.hex);
 	}
 
 	/** @this {RealmPanel} */

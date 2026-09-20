@@ -917,8 +917,6 @@
       "pictureHint": "One Token stands for the whole Company. It belongs to no Actor, so every player can move it.",
       "browse": "Browse for a picture",
       "placed": "The Company stands at {hex}.",
-      "moved": "The Company moves to {hex}.",
-      "notPlaced": "The Company can only stand on a Realm Scene.",
       "starts": {
         "wanderer": {
           "name": "Wanderer",
@@ -935,9 +933,13 @@
       },
       "begins": "The Company begins at the Seat of Power, {hex}.",
       "choose": {
-        "wanderer": "Wanderers arrive in the Realm (p6). Open the hex where they arrive and press Company here.",
-        "courtier": "This Realm has no Seat of Power. Open the hex where the Court sits and press Company here.",
-        "ruler": "One Knight rules a Holding (p6). Open the hex of that Holding and press Company here."
+        "wanderer": "Wanderers arrive in the Realm: click the hex where they arrive.",
+        "courtier": "This Realm has no Seat of Power: click the hex where the Court sits.",
+        "ruler": "One Knight rules a Holding: click the hex of that Holding."
+      },
+      "placing": {
+        "stop": "Right click or press Escape to place them later.",
+        "later": "The Company waits off the map. Inspect a hex with the Realm tools and press Company here to stand them in it."
       }
     },
     "hexLore": {

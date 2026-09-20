@@ -1,5 +1,6 @@
 import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
 import { COMPANY_IMAGE, COMPANY_STARTS } from "../rules/company.js";
 import { randomSeed } from "../rules/random.js";
@@ -644,11 +645,12 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 
 	await refreshThumbnail(scene);
 
-	// A Courtier's Company begins at the Seat of Power; for the other Starts the Referee chooses (p6).
+	// A Courtier's Company begins at the Seat of Power; for the other Starts the
+	// Referee chooses, so the Company is put in their hand to carry to a hex (p6).
 	if (company) {
 		const placed = await placeCompanyAtStart(scene, company);
 		if (placed) ui.notifications.info(t("company.begins", { hex: t("realm.hex", companyTokenHex(scene)) }));
-		else ui.notifications.info(t(`company.choose.${company.start}`), { permanent: true });
+		else if (!await startCompanyPlacement(scene, company)) ui.notifications.info(t("company.placing.later"));
 	}
 
 	// Drawn by hand, the Realm has nothing hidden in it yet.
