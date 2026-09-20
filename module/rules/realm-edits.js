@@ -251,6 +251,25 @@ export function placeFeature(realm, g, hex, feature) {
 }
 
 /**
+ * Whether a hex already holds what a brush would lay: a Holding of the same
+ * style, already crowned if the brush grants the crown, or a Landmark of the
+ * same type. Clicking with that brush takes it away rather than laying it
+ * again, the way clicking a Barrier takes the Barrier away.
+ * @param {import("./realm.js").Realm} realm
+ * @param {{col: number, row: number}} hex
+ * @param {object|null} feature As placeFeature takes it.
+ * @returns {boolean}
+ */
+export function featureStands(realm, hex, feature) {
+	const here = featureAt(realm, hex);
+	if (feature?.kind === "holding") {
+		return Boolean(here.holding) && here.holding.style === feature.style && (!feature.seat || Boolean(here.holding.seat));
+	}
+	if (feature?.kind === "landmark") return Boolean(here.landmark) && here.landmark.type === feature.type;
+	return false;
+}
+
+/**
  * Change part of the Holding, Myth or Landmark in a hex and keep the rest of
  * it. The Hex panel writes each field this way as it changes, so two changes
  * made close together can't undo each other.
@@ -302,12 +321,6 @@ export function setBarrier(realm, g, edge, state) {
 	}
 	return next;
 }
-
-/**
- * @param {string} state
- * @returns {"none"|"hidden"|"revealed"} The state after it, round again after revealed.
- */
-export const nextBarrierState = (state) => BARRIER_STATES[(BARRIER_STATES.indexOf(state) + 1) % BARRIER_STATES.length];
 
 /**
  * Show or hide a hex's Myth or Landmark.

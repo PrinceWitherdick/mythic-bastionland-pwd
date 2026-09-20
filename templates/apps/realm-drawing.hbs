@@ -9,6 +9,9 @@
 	</header>
 
 	<div class="bastionland-travel-rules__body">
+		<button type="button" class="bastionland-travel-rules__roll bastionland-realm-drawing__palette{{#if palette.active}} is-active{{/if}}" data-action="useTool" data-tool="{{palette.name}}" aria-pressed="{{#if palette.active}}true{{else}}false{{/if}}">
+			<i class="{{palette.icon}}" inert></i> {{palette.label}}
+		</button>
 		{{#if intro}}
 		<p class="bastionland-realm-drawing__intro">{{intro}}</p>
 		{{/if}}
@@ -27,11 +30,14 @@
 					{{/each}}
 				</ul>
 				{{else if lines}}
-				<dl class="bastionland-travel-rules__lines">
-					{{#each lines}}
-					<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
-					{{/each}}
-				</dl>
+				<details class="bastionland-realm-drawing__fold" data-fold="{{../key}}">
+					<summary>{{@root.more}}</summary>
+					<dl class="bastionland-travel-rules__lines">
+						{{#each lines}}
+						<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
+						{{/each}}
+					</dl>
+				</details>
 				{{else}}
 				<p>{{text}}</p>
 				{{/if}}
@@ -44,7 +50,7 @@
 				</ul>
 				{{/if}}
 				{{#if tool}}
-				<button type="button" class="bastionland-travel-rules__roll{{#if tool.active}} is-active{{/if}}" data-action="useTool" data-tool="{{tool.name}}"{{#if tool.brush}} data-brush="{{tool.brush}}"{{/if}} aria-pressed="{{#if tool.active}}true{{else}}false{{/if}}"{{#if tool.hint}} data-tooltip="{{tool.hint}}"{{/if}}>
+				<button type="button" class="bastionland-travel-rules__roll{{#if tool.active}} is-active{{/if}}" data-action="useTool" data-tool="{{tool.name}}" aria-pressed="{{#if tool.active}}true{{else}}false{{/if}}"{{#if tool.hint}} data-tooltip="{{tool.hint}}"{{/if}}>
 					<i class="{{tool.icon}}" inert></i> {{tool.label}}
 				</button>
 				{{/if}}

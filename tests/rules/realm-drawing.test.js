@@ -17,21 +17,28 @@ function drawnRealm() {
 }
 
 describe("DRAWING_RULES", () => {
-	it("gives every step a Realm tool that draws it", () => {
+	it("gives every step a brush of the palette or a Realm tool that draws it, not both", () => {
 		const sections = DRAWING_RULES.flatMap((group) => group.sections);
 		expect(sections.map((section) => section.key)).toEqual(["terrain", "barriers", "river", "holdings", "myths", "landmarks"]);
-		for (const section of sections) expect(REALM_TOOLS).toContain(section.tool);
+		for (const section of sections) {
+			if (section.brush) expect(section.tool).toBeUndefined();
+			else expect(REALM_TOOLS).toContain(section.tool);
+		}
 	});
 
-	it("draws terrain and the river with the one Paint terrain tool", () => {
+	it("lays all but the Myths with the one paint tool", () => {
 		const sections = DRAWING_RULES.flatMap((group) => group.sections);
 		const brushes = sections.filter((section) => section.brush);
-		expect(brushes.map(({ key, tool, brush }) => ({ key, tool, brush }))).toEqual([
-			{ key: "terrain", tool: "terrain", brush: "terrain" },
-			{ key: "river", tool: "terrain", brush: "river" }
+		expect(brushes.map(({ key, brush }) => ({ key, brush }))).toEqual([
+			{ key: "terrain", brush: "terrain" },
+			{ key: "barriers", brush: "barrier" },
+			{ key: "river", brush: "river" },
+			{ key: "holdings", brush: "holding" },
+			{ key: "landmarks", brush: "landmark" }
 		]);
 		for (const { brush } of brushes) expect(REALM_BRUSHES).toContain(brush);
-		expect(REALM_TOOLS).not.toContain("river");
+		// Each brush is picked from the palette, so none of them is a tool of its own.
+		for (const brush of REALM_BRUSHES.filter((name) => name !== "terrain")) expect(REALM_TOOLS).not.toContain(brush);
 	});
 });
 

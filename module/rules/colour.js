@@ -3,6 +3,12 @@
  * Pure, so it can be tested without Foundry.
  */
 
+/** The ink the system draws its own lines and glyphs in, on the page and on the map. */
+export const INK = "#231f1a";
+
+/** The same ink for the canvas, which wants a number rather than a string. */
+export const INK_HEX = Number(INK.replace("#", "0x"));
+
 /** A colour as the painter keeps it: "#" and six lower-case hex digits. */
 export const HEX_COLOR = /^#[0-9a-f]{6}$/;
 

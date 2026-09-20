@@ -14,8 +14,8 @@ const PAGE = RULE_PAGES.creatingRealm;
  * Creating a Realm (p14), against the right edge of a Realm Scene the GM is
  * drawing by hand, in place of Travel and Exploration: the rulebook's own page
  * once Import PDF has read it, and the free Blank Realm sheet's until then.
- * Each step has the Realm tool that draws it and a tally of how far the
- * drawing has come. A Finish button under the map ends the drawing and brings
+ * Each step has a tally of how far the drawing has come, and the steps the
+ * paint palette doesn't cover have the Realm tool that draws them. A Finish button under the map ends the drawing and brings
  * Travel and Exploration back. Only GMs see any of it.
  */
 export class RealmDrawing extends MapSidePanel {
@@ -44,6 +44,9 @@ export class RealmDrawing extends MapSidePanel {
 	/** @type {number|null} The hook that reads the index again after Import PDF. */
 	#indexHook = null;
 
+	/** @type {Set<string>} Which of the folded lists, such as what each kind of Landmark is, the GM has opened. */
+	#opened = new Set();
+
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
@@ -52,14 +55,13 @@ export class RealmDrawing extends MapSidePanel {
 		const tally = realm ? drawingTally(realm) : {};
 		const text = (key, data) => t(`realmDrawing.${key}`, data);
 		const counts = (key) => (tally[key] ?? []).map((entry) => ({ label: drawingCountLabel(entry), done: entry.done }));
-		const tool = (step) => ({
+		// A step the palette paints needs no button of its own: every brush is a swatch there already.
+		const tool = (step) => (step.brush ? null : {
 			name: step.tool,
-			brush: step.brush ?? null,
-			icon: REALM_TOOL_ICONS[step.brush ?? step.tool],
-			label: t(step.brush ? `realm.brushes.${step.brush}` : `realm.tools.${step.tool}`),
+			icon: REALM_TOOL_ICONS[step.tool],
+			label: t(`realm.tools.${step.tool}`),
 			hint: step.tool === "inspect" ? text("inspectHint") : null,
 			active: canvas.realm?.active && canvas.realm.tool === step.tool
-				&& (!step.brush || canvas.realm.drawsRiver === (step.brush === "river"))
 		});
 
 		const book = this.#index?.rules?.creatingRealm?.sections;
@@ -77,7 +79,15 @@ export class RealmDrawing extends MapSidePanel {
 
 		return Object.assign(context, {
 			title: text("title"),
+			more: text("more"),
 			...MapSidePanel.pageContext(PAGE),
+			// One way into the palette, at the head of the rules, in place of a button on every step.
+			palette: {
+				name: "terrain",
+				icon: REALM_TOOL_ICONS.terrain,
+				label: t("realm.tools.terrain"),
+				active: canvas.realm?.active && canvas.realm.tool === "terrain"
+			},
 			// The book's own page says what the sheet's intro sums up.
 			intro: fromBook ? null : text("intro"),
 			groups,
@@ -105,8 +115,20 @@ export class RealmDrawing extends MapSidePanel {
 	}
 
 	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		// A fold the GM opened stays open: these rules are drawn again after every edit to the Realm.
+		for (const fold of this.element.querySelectorAll("details[data-fold]")) {
+			const { fold: key } = fold.dataset;
+			fold.open = this.#opened.has(key);
+			fold.addEventListener("toggle", () => (fold.open ? this.#opened.add(key) : this.#opened.delete(key)));
+		}
+	}
+
+	/** @override */
 	_onClose(options) {
 		super._onClose(options);
+		this.#opened.clear();
 		if (this.#indexHook !== null) Hooks.off(ART_INDEX_HOOK, this.#indexHook);
 		this.#indexHook = null;
 		// Read again next time, in case the book has been imported since.
@@ -136,9 +158,8 @@ export class RealmDrawing extends MapSidePanel {
 
 	/** @this {RealmDrawing} */
 	static async #onUseTool(_event, target) {
-		const { tool, brush } = target.dataset;
-		// Terrain and the river are one tool, so the step also says which of them it lays. Picking it up draws these rules again.
-		await canvas.realm?.useTool(tool, { brush });
+		// Only the steps the palette can't paint have a button. Picking the tool up draws these rules again.
+		await canvas.realm?.useTool(target.dataset.tool);
 	}
 }
 

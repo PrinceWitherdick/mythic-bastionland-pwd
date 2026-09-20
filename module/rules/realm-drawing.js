@@ -17,14 +17,14 @@ export const DRAWING_SIDE = "right";
  * @typedef {object} DrawingSection
  * @property {string} key
  * @property {string} tool The Realm tool that draws it, one of REALM_TOOLS.
- * @property {string} [brush] What that tool lays, one of REALM_BRUSHES, for the Paint terrain tool.
+ * @property {string} [brush] What that tool lays, one of REALM_BRUSHES, for the paint tool.
  * @property {string[]} [lines] The labelled lines of a list under its text.
  */
 
 /**
  * The sheet's steps in its order. Each section names the Realm tool that
- * draws it: terrain and the river are both the Paint terrain tool's, and
- * Holdings, Myths and Landmarks are all set from the Hex panel. `book` is the
+ * draws it: everything but the Myths is a brush in the paint tool's one
+ * palette, and a Myth is numbered and rolled from the Hex panel. `book` is the
  * heading the rulebook prints over each group, which stays in English.
  * @type {readonly {key: string, book: string, sections: readonly DrawingSection[]}[]}
  */
@@ -33,14 +33,14 @@ export const DRAWING_RULES = Object.freeze([
 		key: "wilderness",
 		book: "Wilderness",
 		sections: [
-			{ key: "terrain", tool: "terrain", brush: "terrain" },
-			{ key: "barriers", tool: "barrier" },
-			{ key: "river", tool: "terrain", brush: "river" }
+			{ key: "terrain", brush: "terrain" },
+			{ key: "barriers", brush: "barrier" },
+			{ key: "river", brush: "river" }
 		]
 	},
-	{ key: "holdings", book: "Holdings", sections: [{ key: "holdings", tool: "inspect" }] },
+	{ key: "holdings", book: "Holdings", sections: [{ key: "holdings", brush: "holding" }] },
 	{ key: "myths", book: "Myth Hexes", sections: [{ key: "myths", tool: "inspect" }] },
-	{ key: "landmarks", book: "Landmarks", sections: [{ key: "landmarks", tool: "inspect", lines: [...LANDMARK_TYPES] }] }
+	{ key: "landmarks", book: "Landmarks", sections: [{ key: "landmarks", brush: "landmark", lines: [...LANDMARK_TYPES] }] }
 ].map((group) => Object.freeze({ ...group, sections: Object.freeze(group.sections.map((section) => Object.freeze(section))) })));
 
 /**

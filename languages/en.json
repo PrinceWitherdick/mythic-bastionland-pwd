@@ -1077,6 +1077,7 @@
       "places": {
         "hint": "Every place in the Realm and what you wrote about it: its Holdings, its Landmarks, found or not, and any other hex you’ve written about or rolled for. These are the same notes as in the Lay of the Land.",
         "holdings": "Holdings",
+        "holdings": "Holdings",
         "landmarks": "Landmarks",
         "others": "Other Hexes",
         "othersHint": "Hexes with something written or rolled that hold no Holding or Landmark, such as a Myth’s hex.",
@@ -1884,7 +1885,7 @@
           "roll": "Roll it",
           "draw": "Draw it myself"
         },
-        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and place its Holdings, Myths, Landmarks and Barriers from the Hex panel. Nothing is rolled.",
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Hex panel. Nothing is rolled.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
         "defaultName": "The Realm",
@@ -1907,7 +1908,8 @@
           "rivers": "River",
           "holdings": "Holdings",
           "myths": "Myths",
-          "landmarks": "Landmarks",
+          "holdings": "Holdings",
+        "landmarks": "Landmarks",
           "barriers": "Barriers"
         },
         "fields": {
@@ -1947,8 +1949,7 @@
       },
       "tools": {
         "inspect": "Inspect hexes",
-        "terrain": "Paint terrain",
-        "barrier": "Barriers",
+        "terrain": "Paint the Realm",
         "wilderness": "Wilderness Roll",
         "tidy": "Tidy the Realm",
         "reroll": "Reroll the Realm",
@@ -1956,7 +1957,10 @@
       },
       "brushes": {
         "terrain": "Paint terrain",
-        "river": "Draw rivers"
+        "river": "Draw rivers",
+        "barrier": "Lay Barriers",
+        "holding": "Place Holdings",
+        "landmark": "Place Landmarks"
       },
       "readout": {
         "seat": "{name}, Seat of Power",
@@ -2017,9 +2021,14 @@
       "panel": {
         "title": "Realm",
         "missing": "This Scene isn’t a Realm any more.",
-        "brushHint": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain. Choose River, at the foot, to draw rivers instead.",
+        "hints": {
+          "terrain": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain. Everything else this Realm is drawn with is beside it: rivers, Barriers, Holdings and Landmarks.",
+          "river": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Right-click or Shift-click a hex of a river to cut it back to there from the nearer end.",
+          "barrier": "Click the edge between two hexes to lay a Barrier there, hidden from players, and click it again to take it away, as right-clicking it does. Shift-click a Barrier to reveal it, or to hide it again.",
+          "holding": "Choose a Holding, then click a hex to place it. Tick the Seat of Power first and the next Holding you place is the Realm’s Seat. Clicking a hex that already has that Holding takes it away, as right-clicking or Shift-clicking any Holding does, and Alt-click a hex to pick up the Holding that stands there.",
+          "landmark": "Choose a Landmark, then click a hex to place it there, hidden from players. Clicking a hex that already has that Landmark takes it away, as right-clicking or Shift-clicking any Landmark does, and Alt-click a hex to pick up the Landmark that stands there."
+        },
         "river": "River",
-        "riverHint": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Shift-click a hex of a river to cut it back to there from the nearer end.",
         "riverLength": "One river runs through {count} hexes.",
         "riversLength": "{rivers} rivers run through {count} hexes.",
         "noRiver": "This Realm has no river.",
@@ -2047,6 +2056,15 @@
         "hidden": "Hidden from players",
         "type": "Type",
         "barriers": "Barriers",
+        "barrierTally": "{count} of {target} laid, one per six hexes.",
+        "terrainTally": "{count} of {target} hexes painted.",
+        "holdingTally": "{count} of {target} placed, a good distance apart.",
+        "seatHint": "Tick this, and the next Holding you place is the Seat of Power. A Realm has one.",
+        "seatAt": "The Seat of Power stands at {hex}.",
+        "seatNone": "No Holding is the Seat of Power yet.",
+        "holdings": "Holdings",
+        "landmarks": "Landmarks",
+        "landmarkTally": "{min} or {max} of each kind is typical.",
         "barrier": {
           "none": "None",
           "hidden": "Hidden",
@@ -2201,6 +2219,7 @@
     "realmDrawing": {
       "title": "Creating a Realm",
       "intro": "Players get a copy of the map with Holdings and general terrain marked. They cannot see Myths, Landmarks, and Barriers.",
+      "more": "What each one is",
       "inspectHint": "Click a hex, then set it in the Hex panel.",
       "groups": {
         "wilderness": "Wilderness",

@@ -39,17 +39,23 @@ export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "barrier", "wilderness", "tidy", "reroll", "appearance"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "tidy", "reroll", "appearance"]);
 
-/** What the Paint terrain tool lays: a terrain from its palette, or the river. Names live under `bastionland.realm.brushes`. */
-export const REALM_BRUSHES = Object.freeze(["terrain", "river"]);
+/**
+ * What the paint tool lays, all picked from its one palette: a terrain, the
+ * river, a Barrier along an edge, a Holding or a Landmark. Names live under
+ * `bastionland.realm.brushes`.
+ */
+export const REALM_BRUSHES = Object.freeze(["terrain", "river", "barrier", "holding", "landmark"]);
 
-/** Each Realm tool's icon, and the river's, which the Paint terrain tool draws. */
+/** Each Realm tool's icon, and each brush's, which the paint tool lays. */
 export const REALM_TOOL_ICONS = Object.freeze({
 	inspect: "fa-solid fa-magnifying-glass",
 	terrain: "fa-solid fa-paintbrush",
 	river: "fa-solid fa-water",
 	barrier: "fa-solid fa-road-barrier",
+	holding: "fa-solid fa-chess-rook",
+	landmark: "fa-solid fa-monument",
 	wilderness: "fa-solid fa-tree",
 	tidy: "fa-solid fa-broom",
 	reroll: "fa-solid fa-dice",

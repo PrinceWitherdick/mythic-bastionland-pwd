@@ -21,7 +21,7 @@
 		{{/if}}
 	</div>
 
-	<div class="form-group">
+	<div class="form-group bastionland-hex-lore__note">
 		<label for="{{partId}}-note">{{localize "bastionland.hexLore.note"}}</label>
 		<div class="form-fields">
 			<textarea id="{{partId}}-note" name="note" rows="5" placeholder="{{localize "bastionland.hexLore.notePlaceholder"}}">{{note}}</textarea>
@@ -33,7 +33,7 @@
 		{{#if notice}}
 		<p class="bastionland-hex-lore__hint">{{notice}}</p>
 		{{else}}
-		<div class="form-fields">
+		<div class="form-fields bastionland-hex-lore__pick">
 			<select name="table" aria-label="{{localize "bastionland.hexLore.table"}}">
 				{{#each pages}}
 				<optgroup label="{{label}}">

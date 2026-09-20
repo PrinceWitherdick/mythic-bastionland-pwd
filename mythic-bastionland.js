@@ -147,6 +147,8 @@ Hooks.once("init", () => {
 		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
+		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
+		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")

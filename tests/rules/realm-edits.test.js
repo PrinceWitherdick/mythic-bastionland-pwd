@@ -5,8 +5,8 @@ import {
 	barrierState,
 	clearRiver,
 	editFeature,
+	featureStands,
 	layRiver,
-	nextBarrierState,
 	paintTerrain,
 	placeFeature,
 	riverEnds,
@@ -116,17 +116,48 @@ describe("editFeature", () => {
 	});
 });
 
+describe("featureStands", () => {
+	const realm = sampleRealm();
+
+	it("knows the Holding a brush would lay is already standing there", () => {
+		expect(featureStands(realm, hex(2, 2), { kind: "holding", style: "castle" })).toBe(true);
+		expect(featureStands(realm, hex(2, 2), { kind: "holding", style: "tower" })).toBe(false);
+		expect(featureStands(realm, hex(4, 4), { kind: "holding", style: "castle" })).toBe(false);
+	});
+
+	it("still lays a Holding that the brush would crown", () => {
+		const town = placeFeature(realm, g, hex(4, 4), { kind: "holding", style: "town" });
+		expect(featureStands(town, hex(4, 4), { kind: "holding", style: "town", seat: true })).toBe(false);
+		expect(featureStands(town, hex(4, 4), { kind: "holding", style: "town" })).toBe(true);
+		expect(featureStands(realm, hex(2, 2), { kind: "holding", style: "castle", seat: true })).toBe(true);
+	});
+
+	it("knows the Landmark a brush would lay is already standing there", () => {
+		expect(featureStands(realm, hex(9, 9), { kind: "landmark", type: "sanctum" })).toBe(true);
+		expect(featureStands(realm, hex(9, 9), { kind: "landmark", type: "ruin" })).toBe(false);
+		expect(featureStands(realm, hex(9, 9), { kind: "holding", style: "castle" })).toBe(false);
+	});
+
+	it("leaves a Myth and an empty hex to be painted over", () => {
+		expect(featureStands(realm, hex(6, 6), { kind: "landmark", type: "ruin" })).toBe(false);
+		expect(featureStands(realm, hex(6, 6), { kind: "myth", number: 1 })).toBe(false);
+		expect(featureStands(realm, hex(5, 5), null)).toBe(false);
+		expect(featureStands(realm, hex(5, 5), { kind: "holding" })).toBe(false);
+		expect(featureStands(realm, hex(5, 5), { kind: "landmark" })).toBe(false);
+	});
+});
+
 describe("Barriers", () => {
 	const edge = edgeKey(hex(4, 4), hex(4, 5));
 
-	it("cycles an edge from none to hidden to revealed and back", () => {
+	it("takes an edge from none to hidden to revealed and off again", () => {
 		const realm = sampleRealm();
 		expect(barrierState(realm, edge)).toBe("none");
-		const hidden = setBarrier(realm, g, edge, nextBarrierState("none"));
+		const hidden = setBarrier(realm, g, edge, "hidden");
 		expect(barrierState(hidden, edge)).toBe("hidden");
-		const revealed = setBarrier(hidden, g, edge, nextBarrierState("hidden"));
+		const revealed = setBarrier(hidden, g, edge, "revealed");
 		expect(revealed.barriers).toEqual([{ id: null, edge, revealed: true }]);
-		expect(setBarrier(revealed, g, edge, nextBarrierState("revealed")).barriers).toEqual([]);
+		expect(setBarrier(revealed, g, edge, "none").barriers).toEqual([]);
 	});
 
 	it("refuses edges that aren't between two hexes of the map", () => {

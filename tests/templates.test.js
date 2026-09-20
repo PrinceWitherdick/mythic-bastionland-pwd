@@ -167,6 +167,7 @@ describe("localization", () => {
 		...MOVE_PROBLEMS.map((key) => `realm.movement.${key}`),
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
 		...REALM_BRUSHES.map((brush) => `realm.brushes.${brush}`),
+		...REALM_BRUSHES.map((brush) => `realm.panel.hints.${brush}`),
 		...["map", ...SETUP_PARTS].map((part) => `realm.setup.parts.${part}`),
 		...["cols", "rows", "cluster", "lakes"].map((field) => `realm.setup.fields.${field}`),
 		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),
@@ -185,7 +186,7 @@ describe("localization", () => {
 			"text",
 			...lines.flatMap((line) => [`lines.${line}.label`, `lines.${line}.text`])
 		].map((part) => `realmDrawing.sections.${key}.${part}`))),
-		...["intro", "credit", "bookCredit", "inspectHint"].map((key) => `realmDrawing.${key}`),
+		...["intro", "credit", "bookCredit", "inspectHint", "more"].map((key) => `realmDrawing.${key}`),
 		...["terrain", "barriers", "river", "rivers", "riverNone", "holdings", "seat", "seatNone", "seatMany", "myths", "landmark"].map((key) => `realmDrawing.tally.${key}`),
 		...["fold", "unfold", "page"].map((key) => `travelRules.${key}`),
 		"rulebook.openPage",

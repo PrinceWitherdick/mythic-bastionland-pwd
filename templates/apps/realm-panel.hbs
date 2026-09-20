@@ -1,32 +1,77 @@
 <div class="bastionland-page bastionland-realm-panel">
 	{{#if missing}}
 	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.missing"}}</p>
-	{{else}}
-	<div class="bastionland-realm-panel__history">
-		<button type="button" data-action="undo" {{disabled undoDisabled}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.realm.panel.undo"}}</button>
-		<button type="button" data-action="redo" {{disabled redoDisabled}}><i class="fa-solid fa-rotate-right" inert></i> {{localize "bastionland.realm.panel.redo"}}</button>
-	</div>
 	{{/if}}
 
 	{{#if terrainMode}}
-	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.brushHint"}}</p>
-	<div class="bastionland-realm-panel__palette">
-		{{#each terrains}}
-		<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickTerrain" data-terrain="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
-			<img src="{{src}}" alt="" inert>
-			<span>{{value}}. {{label}}</span>
-		</button>
-		{{/each}}
-		<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--river {{#if river.active}}is-active{{/if}}" data-action="pickRiver" aria-pressed="{{#if river.active}}true{{else}}false{{/if}}">
-			<img src="{{river.src}}" alt="" inert>
-			<span>{{localize "bastionland.realm.panel.river"}}</span>
-		</button>
+	<p class="bastionland-realm-panel__hint">{{hint}}</p>
+
+	<div class="bastionland-realm-panel__columns">
+		<section class="bastionland-realm-panel__group">
+			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.terrain"}}</h2>
+			{{> "bastionland.realm-tally" terrainTally}}
+			<div class="bastionland-realm-panel__palette">
+				{{#each terrains}}
+				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+					<img src="{{src}}" alt="" inert>
+					<span>{{value}}. {{label}}</span>
+				</button>
+				{{/each}}
+				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if river.active}}is-active{{/if}}" data-action="pickBrush" data-brush="river" aria-pressed="{{#if river.active}}true{{else}}false{{/if}}">
+					<img src="{{river.src}}" alt="" inert>
+					<span>{{localize "bastionland.realm.panel.river"}}</span>
+				</button>
+			</div>
+			{{#if river.active}}
+			<p class="bastionland-realm-panel__river">{{river.length}}</p>
+			<button type="button" data-action="clearRiver" {{disabled river.none}}><i class="fa-solid fa-trash" inert></i> {{river.clear}}</button>
+			{{/if}}
+
+			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.barriers"}}</h2>
+			{{> "bastionland.realm-tally" barrier.tally}}
+			<div class="bastionland-realm-panel__palette">
+				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if barrier.active}}is-active{{/if}}" data-action="pickBrush" data-brush="barrier" aria-pressed="{{#if barrier.active}}true{{else}}false{{/if}}">
+					<i class="{{barrier.icon}}" inert></i>
+					<span>{{localize "bastionland.realm.brushes.barrier"}}</span>
+				</button>
+			</div>
+		</section>
+
+		<section class="bastionland-realm-panel__group">
+			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.holdings"}}</h2>
+			{{> "bastionland.realm-tally" holdingTally}}
+			<div class="bastionland-realm-panel__palette bastionland-realm-panel__palette--pairs">
+				{{#each holdings}}
+				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+					<img src="{{src}}" alt="" inert>
+					<span>{{label}}</span>
+					{{> "bastionland.realm-count" this}}
+				</button>
+				{{/each}}
+				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if seat.on}}is-active{{/if}}" data-action="toggleSeat" aria-pressed="{{#if seat.on}}true{{else}}false{{/if}}" data-tooltip="{{localize "bastionland.realm.panel.seatHint"}}">
+					<img src="{{seat.src}}" alt="" inert>
+					<span>{{localize "bastionland.realm.key.seat"}}</span>
+				</button>
+			</div>
+			{{> "bastionland.realm-tally" seat.tally}}
+
+			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.landmarks"}}</h2>
+			{{> "bastionland.realm-tally" landmarkTally}}
+			<div class="bastionland-realm-panel__palette">
+				{{#each landmarks}}
+				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+					<img src="{{src}}" alt="" inert>
+					<span>{{label}}</span>
+					{{> "bastionland.realm-count" this}}
+				</button>
+				{{/each}}
+			</div>
+		</section>
 	</div>
-	{{#if river.active}}
-	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.riverHint"}}</p>
-	<p class="bastionland-realm-panel__river">{{river.length}}</p>
-	<button type="button" data-action="clearRiver" {{disabled river.none}}><i class="fa-solid fa-trash" inert></i> {{river.clear}}</button>
-	{{/if}}
+
+	<div class="bastionland-realm-panel__actions">
+		<button type="button" data-action="appearance"><i class="fa-solid fa-palette" inert></i> {{localize "bastionland.realm.look.title"}}</button>
+	</div>
 	{{/if}}
 
 	{{#if hexMode}}
@@ -37,7 +82,7 @@
 		<div class="form-fields">
 			<select id="{{partId}}-terrain" name="terrain">
 				{{#each terrains}}
-				<option value="{{value}}" {{#if active}}selected{{/if}}>{{value}}. {{label}}</option>
+				<option value="{{value}}" {{#if active}}selected{{/if}}>{{label}}</option>
 				{{/each}}
 			</select>
 		</div>
@@ -150,15 +195,11 @@
 	</fieldset>
 	{{/if}}
 
-	<fieldset class="bastionland-realm-panel__barriers">
-		<legend>{{localize "bastionland.realm.panel.barriers"}}</legend>
-		{{#each barriers}}
-		<button type="button" class="bastionland-realm-panel__edge is-{{state}}" data-action="cycleBarrier" data-edge="{{edge}}" {{disabled disabled}}>
-			<span>{{label}}</span>
-			<strong>{{stateLabel}}</strong>
-		</button>
-		{{/each}}
-	</fieldset>
+	<p class="bastionland-realm-panel__barriers">
+		<strong>{{localize "bastionland.realm.panel.barriers"}}:</strong>
+		{{#each barriers}}<span class="is-{{state}}" data-tooltip="{{stateLabel}}">{{label}}</span>{{/each}}
+		{{#unless barriers.length}}<span class="is-none">{{noBarriers}}</span>{{/unless}}
+	</p>
 
 	{{#if problems.length}}
 	<ul class="bastionland-realm-panel__problems">
@@ -174,4 +215,12 @@
 		<button type="button" data-action="company"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.company.here"}}</button>
 	</div>
 	{{/if}}
+
+	<!-- Last in the panel, so the palette above it never moves as it goes from greyed to live. -->
+	{{#unless missing}}
+	<div class="bastionland-realm-panel__history">
+		<button type="button" data-action="undo" {{disabled undoDisabled}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.realm.panel.undo"}}</button>
+		<button type="button" data-action="redo" {{disabled redoDisabled}}><i class="fa-solid fa-rotate-right" inert></i> {{localize "bastionland.realm.panel.redo"}}</button>
+	</div>
+	{{/unless}}
 </div>

@@ -3496,15 +3496,45 @@ a.bastionland-page-link:focus-visible {
 	padding-left: 1.2rem;
 }
 
+/* Where the drawing is done, under the panel's own heading. */
+.bastionland-realm-drawing__lead {
+	margin: 0.4rem 0 0.2rem;
+}
+
+/* What each kind of Landmark is: read once, so it folds away rather than
+   standing between the steps. */
+.bastionland-realm-drawing__fold > summary {
+	color: var(--bastionland-ink-soft);
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.bastionland-realm-drawing__fold[open] > summary {
+	margin-bottom: 0.2rem;
+}
+
+/* The one way into the palette, across the head of the rules. */
+button.bastionland-realm-drawing__palette {
+	width: 100%;
+	margin-bottom: 0.3rem;
+}
+
+/* The counts run along the line and wrap, so six kinds of Landmark take a
+   couple of rows rather than six. */
 .bastionland-realm-drawing__tally {
 	display: flex;
-	flex-direction: column;
-	gap: 0.05rem;
+	flex-wrap: wrap;
+	column-gap: 0.7rem;
+	row-gap: 0.05rem;
 	margin: 0.2rem 0 0;
 	padding: 0;
 	list-style: none;
 	color: var(--bastionland-blood);
 	font-size: 0.9rem;
+}
+
+.bastionland-realm-drawing__tally li {
+	white-space: nowrap;
 }
 
 .bastionland-realm-drawing__tally li.is-done {
@@ -3547,7 +3577,24 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	color: var(--bastionland-paper);
 }
 
-/* The Realm's Hex panel and terrain palette. */
+/* The palette holds every terrain, the river, Barriers and each kind of
+   Landmark, so the window scrolls rather than growing past the foot of the screen. */
+.bastionland-realm-panel-window .window-content {
+	max-height: calc(100vh - 8rem);
+	overflow-y: auto;
+}
+
+/* Once the GM has dragged it to a size of their own, the panel fills the window
+   they made and scrolls inside it, Undo and Redo held at its foot. */
+.bastionland-realm-panel-window.is-sized .window-content {
+	max-height: none;
+}
+
+.bastionland-realm-panel-window.is-sized .bastionland-realm-panel {
+	min-height: 100%;
+}
+
+/* The Realm's Hex panel and the palette it's painted from. */
 .bastionland-realm-panel {
 	display: flex;
 	flex-direction: column;
@@ -3596,6 +3643,13 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	width: 3.2rem;
 }
 
+/* The Roll button wraps under the two dice boxes in a narrow panel, so the row
+   carries a gap of its own rather than letting the button sit on them. */
+.bastionland-realm-panel .form-fields {
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
 .bastionland-realm-panel__row {
 	display: flex;
 	align-items: center;
@@ -3606,41 +3660,45 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	flex: 1;
 }
 
+/* Barriers are laid with the brush on the map, so the one hex only names the
+   edges that are barred, on a line: hidden ones in soft ink, revealed in blood. */
 .bastionland-realm-panel__barriers {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.3rem;
 	margin: 0;
-	padding: 0.4rem 0.5rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
 }
 
-.bastionland-realm-panel__barriers legend {
-	grid-column: 1 / -1;
+.bastionland-realm-panel__barriers span + span::before {
+	content: ", ";
+	color: var(--bastionland-ink);
 }
 
-/* Foundry's fixed button height clips a wrapped label; these grow to fit instead. */
-.bastionland-realm-panel__edge {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.3rem;
-	height: auto;
-	min-height: var(--button-size, 2rem);
-	padding: 0.2rem 0.4rem;
-	font-size: 0.85em;
-	line-height: 1.15;
-	white-space: normal;
-	text-align: left;
-}
-
-.bastionland-realm-panel__edge.is-hidden strong {
+.bastionland-realm-panel__barriers .is-none,
+.bastionland-realm-panel__barriers .is-hidden {
 	color: var(--bastionland-ink-soft);
 }
 
-.bastionland-realm-panel__edge.is-revealed strong {
+.bastionland-realm-panel__barriers .is-revealed {
 	color: var(--bastionland-blood);
+}
+
+/* The palette stands in two columns, terrain in one and everything else in the
+   other, so it sits beside the map instead of running down past the screen. */
+.bastionland-realm-panel__columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 0.6rem;
+}
+
+.bastionland-realm-panel__group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	min-width: 0;
+}
+
+/* A heading of its own needs air above it, but not where it opens a column. */
+.bastionland-realm-panel__group > .bastionland-realm-panel__heading:not(:first-child) {
+	margin-top: 0.4rem;
 }
 
 .bastionland-realm-panel__palette {
@@ -3649,9 +3707,15 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	gap: 0.4rem;
 }
 
+/* Four Holdings and six Landmarks sit two to a row, so their names have room. */
+.bastionland-realm-panel__palette--pairs {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 /* Foundry gives buttons a fixed height, which clipped the labels; these grow to fit.
    Three to a row leaves no room beside the picture, so each name sits under its own. */
 .bastionland-realm-panel__swatch {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -3678,9 +3742,59 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	outline: 2px solid var(--bastionland-verdigris);
 }
 
-/* The river isn't a terrain, so it sits apart, across the foot of the palette,
-   with its name beside its picture as the row has room for it, the pair centred. */
-.bastionland-realm-panel__swatch--river {
+/* How many of that Holding or Landmark the Realm has, read at a glance from the
+   corner of its swatch: the sheet's own hand on a paper disc, so the number
+   stands clear of the picture behind it. */
+.bastionland-realm-panel__swatch .bastionland-realm-panel__tally {
+	position: absolute;
+	top: 0.1rem;
+	right: 0.1rem;
+	min-width: 1.4rem;
+	padding: 0 0.15rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.2rem;
+	font-style: normal;
+	line-height: 1.35;
+	text-align: center;
+}
+
+/* None of that kind placed yet: the nought keeps its disc so every swatch reads
+   the same, but it is drawn faintly to stand back from the counts that matter. */
+.bastionland-realm-panel__swatch .bastionland-realm-panel__tally.is-none {
+	border-color: color-mix(in srgb, var(--bastionland-rule) 45%, transparent);
+	color: var(--bastionland-ink-soft);
+	opacity: 0.85;
+}
+
+/* As many as the book asks for, and more than it asks for: green and red, on
+   the count itself and on the line that tallies a whole kind. */
+.bastionland-realm-panel__swatch .bastionland-realm-panel__tally.is-met {
+	border-color: var(--bastionland-verdigris);
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-panel__swatch .bastionland-realm-panel__tally.is-over {
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+	font-weight: bold;
+}
+
+.bastionland-realm-panel__hint.is-met {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-panel__hint.is-over {
+	color: var(--bastionland-blood);
+	font-weight: bold;
+}
+
+/* Neither the river nor a Barrier is a terrain, so each takes a row of its own
+   across the palette, its name beside its picture, the pair centred. */
+.bastionland-realm-panel__swatch--wide {
 	grid-column: 1 / -1;
 	flex-direction: row;
 	justify-content: center;
@@ -3688,14 +3802,19 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	padding: 0.35rem 0.5rem;
 }
 
-.bastionland-realm-panel__swatch--river img {
+.bastionland-realm-panel__swatch--wide img {
 	width: 2.2rem;
 }
 
+/* Undo and Redo sit at the foot of the panel, under a rule, and stay there
+   however tall the window is dragged. */
 .bastionland-realm-panel__history {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.4rem;
+	margin-top: auto;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--bastionland-rule);
 }
 
 .bastionland-realm-panel__problems {
@@ -3773,7 +3892,29 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	letter-spacing: 0.04em;
 }
 
+/* The note is a paragraph, not a field, so its label sits above it and the box
+   takes the whole width instead of Foundry's label/field split. */
+.bastionland-hex-lore__note {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0;
+}
+
+.bastionland-hex-lore__note > label {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.bastionland-hex-lore__note > .form-fields {
+	flex: 1 1 auto;
+	width: 100%;
+}
+
 .bastionland-hex-lore textarea {
+	width: 100%;
 	min-height: 5.5rem;
 	resize: vertical;
 	font-family: inherit;
@@ -3799,6 +3940,27 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	display: flex;
 	align-items: center;
 	gap: 0.35rem;
+}
+
+/* The Spark Table and its die read as one line: the select takes up the slack
+   and the Roll button holds its own width at the right rather than wrapping
+   underneath. */
+.bastionland-hex-lore__pick {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bastionland-hex-lore__pick select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.bastionland-hex-lore__pick button {
+	flex: 0 0 auto;
+	width: auto;
+	white-space: nowrap;
 }
 
 .bastionland-hex-lore__rolls {
