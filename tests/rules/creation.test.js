@@ -8,6 +8,7 @@ import {
 	knightUpdate,
 	seerAutoFill,
 	seerForKnight,
+	seerBook,
 	seerInfo,
 	startFor,
 	takenKnights
@@ -32,8 +33,9 @@ const glassSeer = {
 	stats: { vig: 8, cla: 13, spi: 16, guard: 3 },
 	lines: ["Sees through <anything> made by hands.", "Wants the Lantern returned."]
 };
-const glassInfo = "<p><strong>VIG 8, CLA 13, SPI 16, 3GD</strong></p>"
-	+ "<ul><li>Sees through &lt;anything&gt; made by hands.</li><li>Wants the Lantern returned.</li></ul>";
+const glassInfo = "<ul><li>Sees through &lt;anything&gt; made by hands.</li><li>Wants the Lantern returned.</li></ul>";
+// What the book gives them, kept as data rather than printed in the text.
+const glassBook = { vig: 8, cla: 13, spi: 16, guard: 3, armour: 0, structure: false };
 
 describe("STARTS", () => {
 	it("lists Wanderer, Courtier and Ruler, each reaching its Rank", () => {
@@ -97,6 +99,7 @@ describe("knightUpdate", () => {
 			"system.seer": "The Glass Seer",
 			"system.seerImg": glassSeer.path,
 			"system.seerInfo": glassInfo,
+			"system.seerBook": glassBook,
 			img: lantern.path,
 			"prototypeToken.texture.src": lantern.token
 		});
@@ -104,7 +107,7 @@ describe("knightUpdate", () => {
 
 	it("keeps the actor's picture when the Knight has no imported portrait", () => {
 		const update = knightUpdate({ start: startFor("wanderer"), knight: { roll: "1-02", name: "The Bell Knight", path: null } });
-		expect(update).toMatchObject({ "system.knightType": "Bell", "system.seer": "", "system.seerImg": "", "system.seerInfo": "" });
+		expect(update).toMatchObject({ "system.knightType": "Bell", "system.seer": "", "system.seerImg": "", "system.seerInfo": "", "system.seerBook": null });
 		expect(update).not.toHaveProperty("img");
 		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
 	});
@@ -113,6 +116,11 @@ describe("knightUpdate", () => {
 		const update = knightUpdate({ start: startFor("wanderer"), knight: { ...lantern, token: undefined } });
 		expect(update.img).toBe(lantern.path);
 		expect(update).not.toHaveProperty(["prototypeToken.texture.src"]);
+	});
+
+	it("keeps the Seer's scores as data beside their text, so the sheet can roll their Saves", () => {
+		const update = knightUpdate({ start: startFor("wanderer"), knight: lantern, seer: glassSeer });
+		expect(update["system.seerBook"]).toEqual(glassBook);
 	});
 
 	it("leaves out what wasn't rolled or chosen", () => {
@@ -126,12 +134,8 @@ describe("knightUpdate", () => {
 });
 
 describe("seerInfo", () => {
-	it("gives the stat line, then each trait as a bullet", () => {
+	it("gives each trait as a bullet, leaving the scores to seerBook", () => {
 		expect(seerInfo(glassSeer)).toBe(glassInfo);
-	});
-
-	it("keeps a Seer with only GD, or only traits", () => {
-		expect(seerInfo({ stats: { vig: null, cla: null, spi: null, guard: 4 }, lines: [] })).toBe("<p><strong>4GD</strong></p>");
 		expect(seerInfo({ stats: null, lines: ["Speaks only in riddles."] })).toBe("<ul><li>Speaks only in riddles.</li></ul>");
 	});
 
@@ -143,6 +147,31 @@ describe("seerInfo", () => {
 	it("is blank when the text wasn't read", () => {
 		expect(seerInfo(null)).toBe("");
 		expect(seerInfo({ stats: null, lines: null })).toBe("");
+	});
+});
+
+describe("seerBook", () => {
+	it("takes the scores the book gives them straight from the index", () => {
+		expect(seerBook(glassSeer)).toEqual(glassBook);
+	});
+
+	it("keeps a Seer the book gives only GD", () => {
+		expect(seerBook({ stats: { vig: null, cla: null, spi: null, guard: 4 }, lines: [] }))
+			.toEqual({ vig: null, cla: null, spi: null, guard: 4, armour: 0, structure: false });
+	});
+
+	it("reads their Armour from the first trait, and whether they count as a structure", () => {
+		expect(seerBook({ ...glassSeer, lines: ["A2 (bronze plates)", "Rings when struck."] })).toMatchObject({ armour: 2, structure: false });
+		const statue = { stats: { vig: null, cla: null, spi: null, guard: 6 }, lines: ["A3, treat as a Structure", "Never moves."] };
+		expect(seerBook(statue)).toMatchObject({ armour: 3, structure: true });
+		// Armour named later on is only something they say.
+		expect(seerBook({ ...glassSeer, lines: ["Wants A1 armour for their acolytes."] }).armour).toBe(0);
+	});
+
+	it("gives nothing for a Seer whose stats Import PDF couldn't read", () => {
+		expect(seerBook(null)).toBeNull();
+		expect(seerBook({ stats: null, lines: ["Speaks only in riddles."] })).toBeNull();
+		expect(seerBook({ stats: { vig: 8, cla: 13, spi: 16, guard: null } })).toBeNull();
 	});
 });
 
@@ -203,7 +232,8 @@ describe("seerAutoFill", () => {
 	it("fills the picture and what the book says for a named Seer", () => {
 		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: "", seerInfo: "" })).toEqual({
 			"system.seerImg": glassSeer.path,
-			"system.seerInfo": glassInfo
+			"system.seerInfo": glassInfo,
+			"system.seerBook": glassBook
 		});
 	});
 
@@ -214,42 +244,49 @@ describe("seerAutoFill", () => {
 	it("swaps a book Seer for another when the name changes", () => {
 		expect(seerAutoFill(index, { seer: "The Hook Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
 			"system.seerImg": hookSeer.path,
-			"system.seerInfo": "<ul><li>Fishes for names.</li></ul>"
+			"system.seerInfo": "<ul><li>Fishes for names.</li></ul>",
+			// The book gives this one no stats to keep.
+			"system.seerBook": null
 		});
 	});
 
+	// A later import can read prompts the one before it missed, and that text is
+	// still the book's own rather than a hand's, so it is filled in.
 	it("adds the prompts to what an earlier import filled in", () => {
 		const prompts = [{ label: "Person", value: "Glazier" }];
 		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
 		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
-			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`
+			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`,
+			"system.seerBook": glassBook
 		});
 	});
 
-	it("centres the prompts an earlier fill left uncentred", () => {
-		const prompts = [{ label: "Person", value: "Glazier" }];
-		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
-		const centred = `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`;
-		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: `${glassInfo}<p><strong>Person</strong>: Glazier</p>` })).toEqual({
-			"system.seerInfo": centred
+	// Fills before the scores became data printed them at the head of the text. That text is
+	// still the book's own, so it is written again without them and the scores kept as data.
+	it("fills again over a fill that opened with the Seer's stat line", () => {
+		const older = `<p><strong>VIG 8, CLA 13, SPI 16, 3GD</strong></p>${glassInfo}`;
+		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: older })).toEqual({
+			"system.seerInfo": glassInfo,
+			"system.seerBook": glassBook
 		});
 	});
 
-	it("rewrites the prompts an earlier fill wrote as plain text or with a trailing ~", () => {
-		const prompts = [{ label: "Person", value: "Glazier" }, { label: "State", value: "Patrolling" }];
+	// Nor is a fill from before the "~" came out of wrapped lines taken for a hand's work.
+	it("fills again over an older fill that wrote the prompts as plain text", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }, { label: "Theme", value: "<Glass>" }];
 		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
-		const plain = `${glassInfo}<p class="bastionland-seer__prompts"><strong>Person</strong>: Glazier ~ <strong>State</strong>: Patrolling</p>`;
-		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: plain })).toEqual({
-			"system.seerInfo": seerInfo({ ...glassSeer, prompts })
-		});
-		const whole = `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier ~</span> <span class="bastionland-seer__prompt"><strong>State</strong>: Patrolling</span></p>`;
-		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: whole })).toEqual({
-			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span><span class="bastionland-seer__sep"> <span>~</span> </span><span class="bastionland-seer__prompt"><strong>State</strong>: Patrolling</span></p>`
+		const older = `<p><strong>VIG 8, CLA 13, SPI 16, 3GD</strong></p>${glassInfo}`
+			+ '<p class="bastionland-seer__prompts"><strong>Person</strong>: Glazier ~ <strong>Theme</strong>: &lt;Glass&gt;</p>';
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: older })).toEqual({
+			"system.seerInfo": seerInfo({ ...glassSeer, prompts }),
+			"system.seerBook": glassBook
 		});
 	});
 
 	it("keeps a picture or text chosen by hand, and does nothing once filled", () => {
 		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: "my/seer.webp", seerInfo: "<p>Mine</p>" })).toEqual({});
+		// Not even text of their own that opens with a bold line, as an older fill's stat line did.
+		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: "my/seer.webp", seerInfo: "<p><strong>Mine</strong></p><p>And the rest.</p>" })).toEqual({});
 		expect(seerAutoFill(index, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({});
 	});
 

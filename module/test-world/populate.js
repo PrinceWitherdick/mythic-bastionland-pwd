@@ -28,7 +28,7 @@ import { recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
-import { postCard, statLabels, t } from "../chat/cards.js";
+import { postCard, t } from "../chat/cards.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { crisesDrawn, crisisFor, crisisResult } from "../rules/dominion.js";
 import { mythRollTaken } from "../rules/gm-toolkit.js";
@@ -472,7 +472,7 @@ class TestGame {
 				rolls.push(roll);
 				rolled[key] = key === "guard" ? roll.total : Math.min(19, roll.total);
 			}
-			const update = knightUpdate({ start, virtues: rolled, guard: rolled.guard, knight, seer, statLabels: statLabels() });
+			const update = knightUpdate({ start, virtues: rolled, guard: rolled.guard, knight, seer });
 			const { items, companions } = propertyItems(knight.property);
 			const actor = await Actor.implementation.create({
 				name: spec.name,

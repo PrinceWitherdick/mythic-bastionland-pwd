@@ -3,6 +3,8 @@ import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dom
 import { fillKnightFromBook, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
+import { takeSeerDamage } from "../actions/damage.js";
+import { rollSaveFor } from "../actions/saves.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
@@ -16,8 +18,10 @@ import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
+import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires } from "../rules/squires.js";
 import { templatePath } from "../system-id.js";
+import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { watchPromptLines } from "./prompt-breaks.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
@@ -47,6 +51,10 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
 			pickSeerImage: KnightSheet.#onPickSeerImage,
+			rollSeerSave: KnightSheet.#onRollSeerSave,
+			takeSeerDamage: KnightSheet.#onTakeSeerDamage,
+			restoreSeer: KnightSheet.#onRestoreSeer,
+			toggleSeerMortalWound: KnightSheet.#onToggleSeerMortalWound,
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
@@ -94,6 +102,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		const successor = heirOf(this.actor);
 		// Only small Companies may take Squires (p7): say so before anyone asks, and leave the Referee a way round it.
 		const companyCount = companySizeNow();
+		// The Seer's scores are drawn apart from the text, so each Virtue can roll a Save.
+		const seer = system.seerBook;
 		const [enrichedSeerInfo, enrichedSeerNotes] = await Promise.all([this._enrich(system.seerInfo), this._enrich(system.seerNotes)]);
 		const tooLargeForSquires = !system.isSquire && !squire && !mayTakeSquires(companyCount);
 		// The table on their page opens from the possession that says "see below", and
@@ -152,6 +162,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 					.join(", ")
 			},
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
+			seerStats: seer && this.#seerScores(seer),
 			enrichedSeerInfo,
 			enrichedSeerNotes
 		});
@@ -190,6 +201,39 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			name: stored.name,
 			tooltip: t(this.isEditable ? "knightTable.open" : "knightTable.view", { name: stored.name }),
 			results: withTableSentences(stored, tableResults(stored))
+		};
+	}
+
+	/**
+	 * The Seer's scores as they stand, each out of what the book gives them.
+	 * Each Virtue rolls their Save.
+	 * @param {object} stats The Knight's `seerBook`.
+	 * @returns {object}
+	 */
+	#seerScores(stats) {
+		const { seer, seerState } = this.actor.system;
+		const now = seerCurrent(stats, seerState);
+		const name = seer || t("seer.label");
+		return {
+			scores: SCORES.filter((key) => Number.isInteger(stats[key])).map((key) => {
+				const virtue = key !== "guard";
+				const label = t(virtue ? `virtues.${key}.label` : "guard.label");
+				return {
+					key,
+					abbr: t(virtue ? `virtues.${key}.abbr` : "guard.abbr"),
+					value: now[key],
+					max: stats[key],
+					label: `${label} ${t("sheet.current")}`,
+					rollLabel: virtue ? t("seer.rollSave", { virtue: label, name }) : null
+				};
+			}),
+			mortalWound: {
+				active: seerState.mortalWound,
+				label: t("conditions.mortalWound.label"),
+				hint: t("conditions.mortalWound.hint")
+			},
+			takeDamage: t("seer.takeDamage", { name }),
+			restore: t("seer.restore")
 		};
 	}
 
@@ -369,6 +413,37 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	 */
 	static #onOpenKnightTable() {
 		return openKnightTable(this.actor);
+	}
+
+	/**
+	 * The Seer has no Actor, so their Save is rolled against the score on their page.
+	 * @this {KnightSheet}
+	 */
+	static #onRollSeerSave(_event, target) {
+		const { seer, seerBook, seerState } = this.actor.system;
+		const { virtue } = target.dataset;
+		if (!VIRTUES.includes(virtue)) return;
+		const value = seerCurrent(seerBook, seerState)[virtue];
+		if (!Number.isInteger(value)) return;
+		return rollSaveFor(seer || t("seer.label"), virtue, value);
+	}
+
+	/** @this {KnightSheet} */
+	static #onTakeSeerDamage() {
+		return takeSeerDamage(this.actor);
+	}
+
+	/**
+	 * The Seer back at the book's scores, without a Mortal Wound.
+	 * @this {KnightSheet}
+	 */
+	static #onRestoreSeer() {
+		return this.actor.update({ "system.seerState": { ...SEER_UNHARMED } });
+	}
+
+	/** @this {KnightSheet} */
+	static #onToggleSeerMortalWound() {
+		return this.actor.update({ "system.seerState.mortalWound": !this.actor.system.seerState.mortalWound });
 	}
 
 	/** @this {KnightSheet} */

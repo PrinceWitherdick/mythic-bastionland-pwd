@@ -324,8 +324,32 @@
 				</figure>
 				{{/if}}
 				{{!-- The book's own words, unheaded as the book prints them: read only, and shown whole. --}}
+				{{!-- Their stat line keeps the harm they've taken, each score out of the book's. Each Virtue rolls their Save. --}}
 				{{#if system.seerInfo}}
-				<div class="bastionland-seer__book">{{{enrichedSeerInfo}}}</div>
+				<div class="bastionland-seer__book">
+					{{#with seerStats}}
+					<div class="bastionland-seer__stats">
+						{{#each scores}}
+						<span class="bastionland-seer__score">
+							{{#if rollLabel}}
+							<button type="button" class="bastionland-seer__stat" data-action="rollSeerSave" data-virtue="{{key}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}">{{abbr}}</button>
+							{{else}}
+							<span class="bastionland-seer__stat">{{abbr}}</span>
+							{{/if}}
+							<input class="bastionland-seer__value" type="number" name="system.seerState.{{key}}" value="{{value}}" min="0" step="1" aria-label="{{label}}"><span class="bastionland-seer__max">/{{max}}</span>
+						</span>
+						{{/each}}
+						<button type="button" class="bastionland-condition{{#if mortalWound.active}} is-active{{/if}}" data-action="toggleSeerMortalWound" data-tooltip="{{mortalWound.hint}}" aria-pressed="{{#if mortalWound.active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{mortalWound.label}}</button>
+						{{#if @root.editable}}
+						<span class="bastionland-seer__tools">
+							<button type="button" class="bastionland-icon" data-action="takeSeerDamage" data-tooltip="{{takeDamage}}" aria-label="{{takeDamage}}"><i class="fa-solid fa-heart-crack" inert></i></button>
+							<button type="button" class="bastionland-icon" data-action="restoreSeer" data-tooltip="{{restore}}" aria-label="{{restore}}"><i class="fa-solid fa-rotate-left" inert></i></button>
+						</span>
+						{{/if}}
+					</div>
+					{{/with}}
+					{{{enrichedSeerInfo}}}
+				</div>
 				{{else}}
 				<p class="bastionland-hint">{{localize "bastionland.seer.infoEmpty"}}</p>
 				{{/if}}

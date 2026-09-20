@@ -174,6 +174,7 @@
 /* Text-like buttons: strip Foundry's button chrome, then style each below. */
 .bastionland-page :where(
 	.bastionland-score__name,
+	.bastionland-seer__stat,
 	.bastionland-choice,
 	.bastionland-condition,
 	.bastionland-icon,
@@ -1708,6 +1709,68 @@
 .bastionland-seer__book {
 	color: var(--bastionland-ink);
 	overflow: visible;
+}
+
+/* The Seer's stat line as a row of small score boxes, each out of the book's
+   number, so the harm they take is kept on the Knight's sheet. */
+.bastionland-seer__stats {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem 1rem;
+	margin-bottom: 0.7rem;
+}
+
+.bastionland-seer__score {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.3rem;
+	white-space: nowrap;
+}
+
+/* A Virtue's name rolls their Save: plain text until hovered. */
+.bastionland-seer__stat {
+	font-weight: bold;
+}
+
+button.bastionland-seer__stat:not(:disabled):hover {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page .bastionland-seer__value {
+	width: 2.4rem;
+	height: 1.8rem;
+	padding: 0;
+	border: 2px solid var(--bastionland-ink);
+	border-radius: 0.4rem;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.05rem;
+	text-align: center;
+	-moz-appearance: textfield;
+}
+
+.bastionland-page .bastionland-seer__value:focus {
+	border-color: var(--bastionland-verdigris);
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-seer__value::-webkit-inner-spin-button,
+.bastionland-seer__value::-webkit-outer-spin-button {
+	margin: 0;
+	-webkit-appearance: none;
+}
+
+.bastionland-seer__max {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-seer__tools {
+	display: inline-flex;
+	margin-left: auto;
 }
 
 .bastionland-seer__prompts {

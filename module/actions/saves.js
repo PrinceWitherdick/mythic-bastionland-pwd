@@ -17,7 +17,15 @@ import { isSavePassed } from "../rules/virtues.js";
  * @returns {Promise<SaveResult>}
  */
 export async function evaluateSave(actor, virtue) {
-	const value = actor.system.virtues[virtue].value;
+	return saveAgainst(virtue, actor.system.virtues[virtue].value);
+}
+
+/**
+ * @param {string} virtue
+ * @param {number} value
+ * @returns {Promise<SaveResult>}
+ */
+async function saveAgainst(virtue, value) {
 	const roll = await new Roll("1d20").evaluate();
 	return { virtue, value, roll, passed: isSavePassed(roll.total, value) };
 }
@@ -45,6 +53,22 @@ export function saveContext(save) {
 export async function rollSave(actor, virtue) {
 	const save = await evaluateSave(actor, virtue);
 	await postCard(actor, "save", { save: saveContext(save) }, { rolls: [save.roll] });
+	return save;
+}
+
+/**
+ * Roll a Save for someone with no Actor of their own, such as the Seer who
+ * knighted a Knight, whose Virtues are printed only on their Knight's page.
+ * The card is spoken in their name.
+ * @param {string} name
+ * @param {string} virtue
+ * @param {number} value
+ * @returns {Promise<SaveResult>}
+ */
+export async function rollSaveFor(name, virtue, value) {
+	const save = await saveAgainst(virtue, value);
+	// Not getSpeaker, which would speak for whichever Token is selected.
+	await postCard(null, "save", { save: saveContext(save) }, { rolls: [save.roll], speaker: { alias: name } });
 	return save;
 }
 

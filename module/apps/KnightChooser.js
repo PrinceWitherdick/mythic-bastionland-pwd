@@ -1,6 +1,6 @@
 import { clearCompanions, knightOwner, makeCompanions, markCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
-import { postCard, statLabels, t } from "../chat/cards.js";
+import { postCard, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { spreads } from "../rules/book-art.js";
 import {
@@ -12,7 +12,7 @@ import {
 	startFor,
 	takenKnights
 } from "../rules/creation.js";
-import { VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
+import { SCORES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { confirmDialog } from "./ui.js";
@@ -20,8 +20,6 @@ import { confirmDialog } from "./ui.js";
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
 
-/** Scores the chooser rolls, in the order the book rolls them. */
-const SCORES = Object.freeze([...VIRTUES, "guard"]);
 
 /**
  * Makes a Knight the way the book does (p6-7, p26): choose a Start, roll
@@ -217,8 +215,7 @@ export class KnightChooser extends BastionlandChooser {
 			virtues: this.#scores,
 			guard: this.#scores.guard,
 			knight: entry.knight,
-			seer: entry.seer,
-			statLabels: statLabels()
+			seer: entry.seer
 		});
 		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
 		const items = knightItems(entry.knight, kitNames);

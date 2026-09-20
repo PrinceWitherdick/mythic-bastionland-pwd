@@ -28,6 +28,7 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
+import { SEERS_PACK_STEP, seedSeersPack } from "./module/book-art/seers-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -324,6 +325,8 @@ const WORLD_SETUP = Object.freeze([
 	// In the Macro Directory only, never on a hotbar.
 	{ key: TEST_WORLD_MACRO_STEP, run: seedTestWorldMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
+	// Worlds that imported the book before there was a Seers compendium. Import PDF fills it itself.
+	{ key: SEERS_PACK_STEP, run: seedSeersPack },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	// Knights made before their Property was read into weapons and armour.
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },

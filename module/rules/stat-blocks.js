@@ -58,7 +58,9 @@ export function parseStatLine(text) {
 export function formatStatLine(stats, labels = { vig: "VIG", cla: "CLA", spi: "SPI", guard: "GD" }) {
 	if (!stats) return null;
 	const virtues = VIRTUES.filter((key) => Number.isInteger(stats[key])).map((key) => `${labels[key]} ${stats[key]}`);
-	return [...virtues, `${stats.guard}${labels.guard}`].join(", ");
+	// Whatever has no GD of its own, such as a beast the book gives none, prints its Virtues alone.
+	const guard = Number.isInteger(stats.guard) ? [`${stats.guard}${labels.guard}`] : [];
+	return [...virtues, ...guard].join(", ");
 }
 
 /**

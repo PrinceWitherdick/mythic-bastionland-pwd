@@ -14,8 +14,10 @@
 	<p class="bastionland-card__outcome">{{outcome}}</p>
 	{{#if morale}}
 	<p class="bastionland-card__hint">{{morale.text}}</p>
+	{{#if morale.uuid}}
 	<div class="bastionland-card__actions">
 		<button type="button" data-morale-roll="{{morale.uuid}}"><i class="fa-solid fa-flag" inert></i> {{morale.label}}</button>
 	</div>
+	{{/if}}
 	{{/if}}
 </section>

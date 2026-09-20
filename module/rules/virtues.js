@@ -6,6 +6,9 @@
 /** Virtue keys in sheet order, abbreviated the way the book prints them. */
 export const VIRTUES = Object.freeze(["vig", "cla", "spi"]);
 
+/** Every score a character can be rolled or harmed in: their Virtues, then GD. */
+export const SCORES = Object.freeze([...VIRTUES, "guard"]);
+
 /** Virtues "can never go higher than 19 or lower than 0". */
 export const VIRTUE_MIN = 0;
 export const VIRTUE_MAX = 19;

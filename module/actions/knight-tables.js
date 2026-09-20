@@ -1,6 +1,6 @@
 import { loadArtIndex } from "../book-art/art-index.js";
 import { tableForEntry } from "../book-art/myth-tables.js";
-import { postCard, statLabels, t } from "../chat/cards.js";
+import { postCard, t } from "../chat/cards.js";
 import { seerAutoFill } from "../rules/creation.js";
 import { rollMythTable } from "./referee-rolls.js";
 import { KNIGHT_TABLE_VERSION } from "../rules/book-art.js";
@@ -37,7 +37,7 @@ export async function fillKnightFromBook(knight, { seer = true, table = true } =
 	if (!knight?.isOwner || knight.system.isSquire || !(seer || table)) return false;
 	const index = await loadArtIndex();
 	const update = {
-		...(seer ? seerAutoFill(index, knight.system, statLabels()) : {}),
+		...(seer ? seerAutoFill(index, knight.system) : {}),
 		...(table ? await knightTableUpdate(knight, index) : {})
 	};
 	if (foundry.utils.isEmpty(update)) return false;

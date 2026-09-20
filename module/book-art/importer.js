@@ -40,9 +40,12 @@ import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOme
 import { RULE_PAGES, rulePageFromItems } from "../rules/rule-pages.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { markSetupDone } from "../world-setup.js";
 import { ART_INDEX_HOOK } from "./art-index.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
+import { fillPack } from "./packs.js";
+import { SEERS_PACK, SEERS_PACK_STEP, fillSeersPack } from "./seers-pack.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
 import { showImportReport } from "./report.js";
 import { useSquareTokens } from "./square-tokens.js";
@@ -243,6 +246,14 @@ async function extractArt(pdf, OPS) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
 			goodsLines.push(t("bookArt.report.goodsFailed"));
 		}
+		progress.update({ message: t("bookArt.fillingSeers") });
+		try {
+			goodsLines.push(t("bookArt.report.seers", { count: await fillSeersPack(index), pack: t(SEERS_PACK.label) }));
+			await markSetupDone(SEERS_PACK_STEP);
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't fill the Seers compendium`, error);
+			goodsLines.push(t("bookArt.report.seersFailed"));
+		}
 	}
 	let tokensLine = null;
 	if (game.user.isGM) {
@@ -322,29 +333,6 @@ async function fillGoodsPacks(goods) {
 		counts[group] = folders.reduce((count, folder) => count + folder.documents.length, 0);
 	}
 	return { ...counts, itemsPack: labels.items, actorsPack: labels.actors };
-}
-
-/**
- * Empty a world compendium, creating it first if needed, then fill it folder by folder.
- * @param {{name: string, type: string, label: string}} metadata
- * @param {{name: string, documents: object[]}[]} folders
- */
-async function fillPack({ name, type, label }, folders) {
-	const { CompendiumCollection } = foundry.documents.collections;
-	const pack = game.packs.get(`world.${name}`) ?? await CompendiumCollection.createCompendium({ name, label, type });
-	const operation = { pack: pack.collection };
-	const documentClass = foundry.utils.getDocumentClass(type);
-	const folderClass = foundry.utils.getDocumentClass("Folder");
-
-	const index = await pack.getIndex();
-	if (index.size) await documentClass.deleteDocuments(index.map((entry) => entry._id), operation);
-	const oldFolders = pack.folders.map((folder) => folder.id);
-	if (oldFolders.length) await folderClass.deleteDocuments(oldFolders, operation);
-
-	const filled = folders.map((folder, index) => ({ ...folder, sort: (index + 1) * 100 })).filter((folder) => folder.documents.length);
-	if (!filled.length) return;
-	const created = await folderClass.createDocuments(filled.map((folder) => ({ name: folder.name, type, sort: folder.sort })), operation);
-	await documentClass.createDocuments(filled.flatMap((folder, index) => folder.documents.map((data) => ({ ...data, folder: created[index].id }))), operation);
 }
 
 /**

@@ -5,6 +5,8 @@ import { attackDamage } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
+import { causedBy } from "./ledger.js";
+import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
 import { rollScar } from "./scars.js";
 
@@ -19,6 +21,21 @@ const DOWN_OUTCOMES = Object.freeze(["mortal", "slain"]);
 const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
 
 /**
+ * Which set of words a Damage card tells the outcome in: a Warband is broken
+ * rather than brought down, and a structure wrecked rather than wounded.
+ * @param {string} outcome
+ * @param {object} [of]
+ * @param {boolean} [of.warband]
+ * @param {boolean} [of.structure]
+ * @returns {"outcomes"|"warbandOutcomes"|"structureOutcomes"} A key under `bastionland.damage.`
+ */
+function outcomesFor(outcome, { warband = false, structure = false } = {}) {
+	if (warband && DOWN_OUTCOMES.includes(outcome)) return "warbandOutcomes";
+	if (structure && STRUCTURE_OUTCOMES.includes(outcome)) return "structureOutcomes";
+	return "outcomes";
+}
+
+/**
  * Ask how much Damage an Attack dealt, apply it to GD and VIG in the book's
  * order, and post what happened. A Warband or a structure is only harmed by
  * the kinds of Attack that can reach it, so the dialog asks about those too.
@@ -31,12 +48,110 @@ const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
  * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeDamage(actor, { damage = null, ignoreArmour = false, ranged = null, harm = {} } = {}) {
+export async function takeDamage(actor, preset = {}) {
 	const { armour, conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
-	const requirements = [warband && "warband", actor.system.structure && "structure"]
+	const asked = await askDamage({
+		armour,
+		exposed: conditions.exposed,
+		character: Boolean(virtues),
+		warband,
+		structure: Boolean(actor.system.structure),
+		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 })
+	}, preset);
+	if (!asked) return null;
+	const { armour: appliedArmour, before } = asked;
+	let { result } = asked;
+	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
+	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
+
+	const update = { "system.guard.value": result.guard };
+	if (virtues) update["system.virtues.vig.value"] = result.vigour;
+	if (result.outcome === "mortal") update["system.mortalWound"] = true;
+	await actor.update(update, causedBy("damage"));
+
+	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
+	const trigger = moraleTrigger({
+		outcome: result.outcome,
+		vigourBefore: before.vigour,
+		vigourAfter: result.vigour,
+		vigourMax: virtues?.vig.max ?? 0,
+		// Squires are Knights too, and Morale doesn't affect player characters.
+		playerCharacter: actor.type === "knight",
+		structure: Boolean(actor.system.structure),
+		warband
+	});
+	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
+	await postCard(actor, "damage", damageCard(result, appliedArmour, before, outcomes, morale));
+
+	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
+	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
+	return result;
+}
+
+/**
+ * Damage to the Seer who knighted a Knight, kept on the Knight's sheet since
+ * the Seer has no Actor. The book's Armour for them is filled in, and a Seer
+ * that counts as a structure is harmed as one. Nobody rolls Morale from the
+ * card, so it only says a Wounded Seer must: their SPI on the Seer page rolls it.
+ * @param {Actor} knight
+ * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
+ */
+export async function takeSeerDamage(knight) {
+	const stats = knight.system.seerBook;
+	if (!stats) return null;
+	const { structure } = stats;
+	const now = seerCurrent(stats, knight.system.seerState);
+	const asked = await askDamage({
+		armour: stats.armour,
+		// CLA 0 Exposes, as it does anyone.
+		exposed: now.cla === 0,
+		character: !structure,
+		warband: false,
+		structure,
+		scores: () => {
+			const at = seerCurrent(stats, knight.system.seerState);
+			return { guard: at.guard, vigour: at.vig ?? 0 };
+		}
+	});
+	if (!asked) return null;
+	const { result, armour, before } = asked;
+
+	const update = { "system.seerState.guard": result.guard };
+	if (Number.isInteger(now.vig)) update["system.seerState.vig"] = result.vigour;
+	if (result.outcome === "mortal") update["system.seerState.mortalWound"] = true;
+	await knight.update(update);
+
+	const name = knight.system.seer || t("seer.label");
+	const outcomes = outcomesFor(result.outcome, { structure });
+	const trigger = moraleTrigger({ outcome: result.outcome, vigourBefore: before.vigour, vigourAfter: result.vigour, vigourMax: stats.vig ?? 0, structure });
+	const morale = moralePrompt({ name }, trigger);
+	// Not getSpeaker, which would speak for whichever Token is selected.
+	await postCard(null, "damage", damageCard(result, armour, before, outcomes, morale), { speaker: { alias: name } });
+	return result;
+}
+
+/**
+ * Ask how much Damage an Attack dealt, and resolve it against GD and VIG in
+ * the book's order. A Warband or a structure is only harmed by the kinds of
+ * Attack that can reach it, so the dialog asks about those too.
+ * @param {object} target Whoever was hit.
+ * @param {number} target.armour
+ * @param {boolean} target.exposed
+ * @param {boolean} target.character Has Virtues, unlike a structure.
+ * @param {boolean} target.warband
+ * @param {boolean} target.structure
+ * @param {() => {guard: number, vigour: number}} target.scores Their GD and VIG, read once the
+ *   dialog closes, so Damage that landed while it stood open isn't undone by this one.
+ * @param {object} [preset] As takeDamage takes.
+ * @returns {Promise<{result: import("../rules/damage.js").DamageResult, armour: number,
+ *   before: {guard: number, vigour: number}}|null>} `armour` is what the Attack was reduced by,
+ *   `before` their scores as it landed. Null if the dialog was closed.
+ */
+async function askDamage(target, { damage = null, ignoreArmour = false, ranged = null, harm = {} } = {}) {
+	const requirements = [target.warband && "warband", target.structure && "structure"]
 		.filter(Boolean)
 		.map((key) => ({
 			key,
@@ -49,12 +164,12 @@ export async function takeDamage(actor, { damage = null, ignoreArmour = false, r
 		title: t("damage.title"),
 		icon: "fa-solid fa-heart-crack",
 		template: "damage",
-		context: { damage, armour, ignoreArmour, offerCover: ranged !== false, character: Boolean(virtues), exposed: conditions.exposed, requirements },
+		context: { damage, armour: target.armour, ignoreArmour, offerCover: ranged !== false, character: target.character, exposed: target.exposed, requirements },
 		ok: { label: t("damage.apply") }
 	});
 	if (!data) return null;
 
-	const appliedArmour = armourAgainst({
+	const armour = armourAgainst({
 		armour: data.armour,
 		ignoreArmour: Boolean(data.ignoreArmour),
 		cover: Boolean(data.cover),
@@ -62,49 +177,37 @@ export async function takeDamage(actor, { damage = null, ignoreArmour = false, r
 		ranged: ranged !== false,
 		shieldwall: Boolean(data.shieldwall)
 	});
-	const before = { guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 };
-	let result = resolveDamage({
+	const before = target.scores();
+	const result = resolveDamage({
 		damage: Math.max(0, Number(data.damage) || 0),
-		armour: appliedArmour,
+		armour,
 		guard: before.guard,
 		vigour: before.vigour,
 		exposed: Boolean(data.exposed),
 		immune: requirements.some(({ key }) => !data[`harm-${key}`]),
-		structure: Boolean(actor.system.structure)
+		structure: target.structure
 	});
-	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
-	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
+	return { result, armour, before };
+}
 
-	const update = { "system.guard.value": result.guard };
-	if (virtues) update["system.virtues.vig.value"] = result.vigour;
-	if (result.outcome === "mortal") update["system.mortalWound"] = true;
-	await actor.update(update);
-
-	let outcomes = "outcomes";
-	if (warband && DOWN_OUTCOMES.includes(result.outcome)) outcomes = "warbandOutcomes";
-	else if (actor.system.structure && STRUCTURE_OUTCOMES.includes(result.outcome)) outcomes = "structureOutcomes";
-	const trigger = moraleTrigger({
-		outcome: result.outcome,
-		vigourBefore: before.vigour,
-		vigourAfter: result.vigour,
-		vigourMax: virtues?.vig.max ?? 0,
-		// Squires are Knights too, and Morale doesn't affect player characters.
-		playerCharacter: actor.type === "knight",
-		structure: Boolean(actor.system.structure),
-		warband
-	});
-	await postCard(actor, "damage", {
+/**
+ * What the Damage card says.
+ * @param {import("../rules/damage.js").DamageResult & {doom?: boolean}} result
+ * @param {number} armour What the Attack was reduced by.
+ * @param {{guard: number, vigour: number}} before
+ * @param {string} outcomes Which set of outcome words, under `bastionland.damage`.
+ * @param {{text: string, uuid?: string, label?: string}|null} morale A Morale Save called for; its button needs a uuid.
+ * @returns {object}
+ */
+function damageCard(result, armour, before, outcomes, morale) {
+	return {
 		outcomeKey: result.outcome,
-		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour: appliedArmour }),
+		dealt: result.outcome === "unharmed" ? null : t("damage.dealt", { dealt: result.dealt, armour }),
 		guardLine: result.guardLoss ? t("damage.guardLine", { from: before.guard, to: result.guard }) : null,
 		vigourLine: result.vigourLoss ? t("damage.vigourLine", { from: before.vigour, to: result.vigour }) : null,
 		outcome: result.doom ? t("damage.doom") : t(`damage.${outcomes}.${result.outcome}`),
-		morale: moralePrompt(actor, trigger)
-	});
-
-	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
-	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
-	return result;
+		morale
+	};
 }
 
 /**

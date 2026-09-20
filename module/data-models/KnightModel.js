@@ -1,6 +1,7 @@
 import { AGES } from "../config.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
-import { conditionsFor } from "../rules/virtues.js";
+import { SEER_UNHARMED, namesNewSeer } from "../rules/seer-state.js";
+import { SCORES, conditionsFor } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -17,6 +18,19 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			seerImg: textField(),
 			seerInfo: htmlField(),
 			seerNotes: htmlField(),
+			// What the book gives the Seer, filled in from the art index: the scores that are
+			// their maximums, their Armour, and whether they're harmed as a structure. Null for
+			// a Seer the book gives none, and for one written in by hand.
+			seerBook: new fields.SchemaField({
+				...Object.fromEntries(SCORES.map((key) => [key, new fields.NumberField({ required: true, nullable: true, integer: true, min: 0, initial: null })])),
+				armour: countField(),
+				structure: booleanField()
+			}, { required: true, nullable: true, initial: null }),
+			// The Seer's scores as they stand, blank while at the book's, and their Mortal Wound; see rules/seer-state.js.
+			seerState: new fields.SchemaField({
+				...Object.fromEntries(SCORES.map((key) => [key, new fields.NumberField({ required: true, nullable: true, integer: true, min: 0, initial: null })])),
+				mortalWound: booleanField()
+			}),
 			// The d6 table on their page and what they rolled on it; see rules/knight-tables.js.
 			bookTable: new fields.SchemaField({
 				knight: textField(),
@@ -54,6 +68,16 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		this.nextRank = nextRank(this.glory);
 		this.armour = this.parent.items.reduce((total, item) => total + (item.system.wornArmour ?? 0), 0);
 		this.conditions = conditionsFor(this);
+	}
+
+	/**
+	 * The harm on the Seer page is the Seer's own, so naming another Seer clears it.
+	 * @override
+	 */
+	async _preUpdate(changes, options, user) {
+		const allowed = await super._preUpdate(changes, options, user);
+		if (allowed === false) return false;
+		if (namesNewSeer(changes, this.seer)) foundry.utils.setProperty(changes, "system.seerState", { ...SEER_UNHARMED });
 	}
 
 	/**

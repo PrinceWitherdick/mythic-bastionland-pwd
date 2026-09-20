@@ -137,11 +137,14 @@ export function registerMoraleCards() {
 
 /**
  * Template data for the Morale line on a Damage card.
- * @param {Actor} actor
+ * @param {{name: string, uuid?: string|null}} who Whoever took the harm. A Seer has no
+ *   Actor and so no UUID: their card says the Morale Roll is due without offering it,
+ *   since it's their SPI on the Seer page that rolls it.
  * @param {string|null} trigger One of MORALE_TRIGGERS.
- * @returns {{uuid: string, text: string, label: string}|null}
+ * @returns {{text: string, uuid?: string, label?: string}|null}
  */
-export function moralePrompt(actor, trigger) {
+export function moralePrompt({ name, uuid = null }, trigger) {
 	if (!trigger) return null;
-	return { uuid: actor.uuid, text: t(`morale.triggers.${trigger}`, { name: actor.name }), label: t("morale.roll") };
+	const text = t(`morale.triggers.${trigger}`, { name });
+	return uuid ? { uuid, text, label: t("morale.roll") } : { text };
 }

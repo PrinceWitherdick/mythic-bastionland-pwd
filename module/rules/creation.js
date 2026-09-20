@@ -4,7 +4,7 @@
  */
 import { RANKS } from "./glory.js";
 import { propertyGear } from "./property.js";
-import { formatStatLine } from "./stat-blocks.js";
+import { isStructureBlock, parseArmour } from "./stat-blocks.js";
 import { escapeHTML } from "./text.js";
 import { VIRTUES } from "./virtues.js";
 
@@ -51,6 +51,9 @@ export function knightTypeFromName(name) {
 /** Marks the prompts line so the Seer page can centre it. */
 const PROMPTS_CLASS = ' class="bastionland-seer__prompts"';
 
+/** The Seer's stat line, as fills before the scores became data opened with. */
+const STAT_LINE = /^<p><strong>[^<]*<\/strong><\/p>/;
+
 /**
  * The prompts, each "Label: value" kept whole on one line, with a "~" between
  * them that the Seer page hides wherever the line wraps (see prompt-breaks.js),
@@ -69,21 +72,40 @@ function promptsHTML(prompts, older) {
 
 /**
  * What the book says of a Seer, for the Seer page of their Knight's sheet:
- * their stat line, each trait as a bullet, then the prompts along the foot of the page.
- * @param {{stats?: object|null, lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
- * @param {Record<string, string>} [labels] For formatStatLine.
+ * each trait as a bullet, then the prompts along the foot of the page. Their
+ * scores aren't printed here: they're kept as data, by seerBook, and drawn
+ * as boxes that roll their Saves.
+ * @param {{lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
  * @param {"plain"|"whole"} [older] The prompts as older fills wrote them, to recognise those.
  * @returns {string} HTML, or "" when Import PDF couldn't read their text.
  */
-export function seerInfo(seer, labels, older) {
-	const stats = formatStatLine(seer?.stats ?? null, labels);
+export function seerInfo(seer, older) {
 	const lines = (seer?.lines ?? []).filter(Boolean);
 	const prompts = (seer?.prompts ?? []).filter((prompt) => prompt?.label && prompt?.value);
 	return [
-		stats ? `<p><strong>${escapeHTML(stats)}</strong></p>` : "",
 		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : "",
 		prompts.length ? `<p${PROMPTS_CLASS}>${promptsHTML(prompts, older)}</p>` : ""
 	].join("");
+}
+
+/**
+ * What the book gives a Seer, kept on their Knight as data rather than read
+ * back out of the text: the scores that are their maximums, the Armour their
+ * first trait grants, and whether they are harmed as a structure.
+ * @param {{stats?: object|null, lines?: string[]|null}|null} seer From the art index.
+ * @returns {{vig: number|null, cla: number|null, spi: number|null, guard: number|null,
+ *   armour: number, structure: boolean}|null} Null for a Seer whose stats Import PDF couldn't read.
+ */
+export function seerBook(seer) {
+	const stats = seer?.stats ?? null;
+	if (!stats || !Number.isInteger(stats.guard)) return null;
+	const lines = (seer.lines ?? []).filter(Boolean);
+	return {
+		...Object.fromEntries(VIRTUES.map((key) => [key, Number.isInteger(stats[key]) ? stats[key] : null])),
+		guard: stats.guard,
+		armour: parseArmour(lines[0] ?? "")?.armour ?? 0,
+		structure: isStructureBlock({ stats, lines })
+	};
 }
 
 /**
@@ -110,10 +132,9 @@ export function seerForKnight(index, { seer = "", knightType = "" }) {
  * swaps them over but something picked or written by hand is kept. A Squire has no Seer yet (p7).
  * @param {object|null} index The art index.
  * @param {{isSquire?: boolean, seer?: string, knightType?: string, seerImg?: string, seerInfo?: string}} knight
- * @param {Record<string, string>} [labels] For seerInfo.
  * @returns {object} An Actor update, empty when there's nothing to fill.
  */
-export function seerAutoFill(index, knight, labels) {
+export function seerAutoFill(index, knight) {
 	if (knight.isSquire) return {};
 	const named = String(knight.seer ?? "").trim();
 	const seer = named ? seerForKnight(index, { seer: named }) : seerForKnight(index, { knightType: knight.knightType });
@@ -125,20 +146,21 @@ export function seerAutoFill(index, knight, labels) {
 	if (seer.path && seer.path !== knight.seerImg && fromBook(knight.seerImg, (entry) => [entry.path])) {
 		update["system.seerImg"] = seer.path;
 	}
-	const info = seerInfo(seer, labels);
-	// Imports before the prompts were read gave the same text without them,
-	// fills before the prompts were centred gave them without their class,
-	// and fills before the "~" came out of wrapped lines gave them as plain text
-	// or with each prompt whole. Every one of those opens with the Seer's stats
-	// and traits, so only a Seer whose own open the text is written out in full.
+	const info = seerInfo(seer);
+	// Fills before the prompts were centred wrote them without their class, and fills before the
+	// "~" came out of wrapped lines wrote them as plain text or with each prompt whole; imports
+	// before the prompts were read left them out. Every one is still the book's own text.
 	const asBookGave = (entry) => {
-		const withoutPrompts = seerInfo({ ...entry, prompts: null }, labels);
-		if (!String(knight.seerInfo).startsWith(withoutPrompts)) return [];
-		const plain = seerInfo(entry, labels, "plain");
-		return [seerInfo(entry, labels), seerInfo(entry, labels, "whole"), plain, plain.replace(PROMPTS_CLASS, ""), withoutPrompts];
+		const plain = seerInfo(entry, "plain");
+		return [seerInfo(entry), seerInfo(entry, "whole"), plain, plain.replace(PROMPTS_CLASS, ""), seerInfo({ ...entry, prompts: null })];
 	};
-	if (info && info !== knight.seerInfo && fromBook(knight.seerInfo, asBookGave)) {
+	// Fills before the scores became data opened with the Seer's stat line, which is dropped here
+	// so those are known for the book's text too, and filled again without it.
+	const written = String(knight.seerInfo ?? "").replace(STAT_LINE, "");
+	if (info && info !== knight.seerInfo && fromBook(written, asBookGave)) {
 		update["system.seerInfo"] = info;
+		// The scores go with the text they came from, so the two never name different Seers.
+		update["system.seerBook"] = seerBook(seer);
 	}
 	return update;
 }
@@ -176,10 +198,9 @@ export function takenKnights(knights, entries, exceptId = null) {
  * @param {number|null} [choice.guard]
  * @param {object|null} [choice.knight]      A Knight from the art index.
  * @param {object|null} [choice.seer]        Their Seer from the art index.
- * @param {Record<string, string>} [choice.statLabels] For the Seer's stat line.
  * @returns {object}
  */
-export function knightUpdate({ start, virtues = {}, guard = null, knight = null, seer = null, statLabels }) {
+export function knightUpdate({ start, virtues = {}, guard = null, knight = null, seer = null }) {
 	const update = { "system.age": start.age, "system.glory": start.glory };
 	for (const key of VIRTUES) {
 		const value = virtues[key];
@@ -196,7 +217,9 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 		update["system.seer"] = seer?.name ?? "";
 		// The Knight's notes on their Seer stay; what the book says follows the new Seer.
 		update["system.seerImg"] = seer?.path ?? "";
-		update["system.seerInfo"] = seerInfo(seer, statLabels);
+		update["system.seerInfo"] = seerInfo(seer);
+		// As in seerAutoFill, the scores go with the text they came from.
+		update["system.seerBook"] = seerBook(seer);
 		if (knight.path) update.img = knight.path;
 		if (knight.token) update["prototypeToken.texture.src"] = knight.token;
 	}
