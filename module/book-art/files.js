@@ -7,6 +7,23 @@
 export const filePicker = () => foundry.applications.apps.FilePicker.implementation;
 
 /**
+ * Let the user choose a picture for one of a document's fields, starting at
+ * the one it holds now.
+ * @param {foundry.abstract.Document} document
+ * @param {string} [field] The path the chosen picture is written to.
+ * @param {string} [type] A FilePicker type, such as "image" for a picture that can't be a video.
+ * @returns {Promise<Application>}
+ */
+export function pickImageInto(document, field = "img", type = "imagevideo") {
+	const picker = new (filePicker())({
+		type,
+		current: foundry.utils.getProperty(document, field),
+		callback: (path) => document.update({ [field]: path })
+	});
+	return picker.render({ force: true });
+}
+
+/**
  * Create folders in order, parents first. Foundry throws when a folder is
  * already there, which is the usual case after the first import, so errors
  * are ignored: a folder that really couldn't be made shows up as failed

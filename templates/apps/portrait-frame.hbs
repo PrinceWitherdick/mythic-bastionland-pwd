@@ -1,0 +1,21 @@
+<div class="bastionland-page bastionland-frame">
+	<div class="bastionland-frame__body">
+		{{!-- role="application" hands the arrow keys to the stage rather than a screen reader. --}}
+		<div class="bastionland-frame__stage" role="application" tabindex="0" aria-label="{{localize 'bastionland.portrait.stage'}}">
+			<img src="{{src}}" alt="" draggable="false" hidden>
+			<div class="bastionland-frame__layer"></div>
+		</div>
+		<div class="bastionland-frame__rail">
+			<p class="bastionland-frame__hint">{{localize "bastionland.portrait.frameHint"}}</p>
+			<figure class="bastionland-portrait bastionland-frame__preview" aria-hidden="true">
+				<img src="{{src}}" alt="">
+			</figure>
+			<p class="bastionland-frame__caption">{{localize "bastionland.portrait.previewCaption"}}</p>
+			<p class="bastionland-frame__error" hidden></p>
+		</div>
+	</div>
+	<footer class="bastionland-frame__footer">
+		<button type="button" class="bastionland-button" data-action="save"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.portrait.save"}}</button>
+		<button type="button" class="bastionland-button" data-action="reset"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.portrait.reset"}}</button>
+	</footer>
+</div>

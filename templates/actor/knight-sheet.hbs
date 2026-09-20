@@ -1,7 +1,7 @@
 <div class="bastionland-page bastionland-page--tabbed">
 	<header class="bastionland-header">
 		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
-			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
 		</figure>
 		<div class="bastionland-header__text">
 			<div class="bastionland-title-row">
@@ -39,15 +39,14 @@
 			</span>
 			{{/if}}
 		</figure>
+		{{#if editable}}
+		<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{localize 'bastionland.sheet.title'}}">
+			<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
+			<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> <span>{{localize "bastionland.duel.title"}}</span></button>
+			<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
+		</nav>
+		{{/if}}
 	</header>
-
-	{{#if editable}}
-	<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{localize 'bastionland.sheet.title'}}">
-		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
-		<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> <span>{{localize "bastionland.duel.title"}}</span></button>
-		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
-	</nav>
-	{{/if}}
 
 	<div class="tab {{tabs.knight.cssClass}}" data-group="primary" data-tab="knight">
 		<div class="bastionland-columns">

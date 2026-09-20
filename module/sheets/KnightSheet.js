@@ -9,14 +9,17 @@ import { resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
+import { openPortrait } from "../apps/ArtPopout.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { openKnightTable } from "../apps/KnightTable.js";
-import { filePicker } from "../book-art/files.js";
+import { actorFrame } from "../apps/PortraitFrame.js";
 import { openLedger } from "../apps/LedgerWindow.js";
+import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
+import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires } from "../rules/squires.js";
@@ -55,6 +58,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			takeSeerDamage: KnightSheet.#onTakeSeerDamage,
 			restoreSeer: KnightSheet.#onRestoreSeer,
 			toggleSeerMortalWound: KnightSheet.#onToggleSeerMortalWound,
+			openPortrait: KnightSheet.#onOpenPortrait,
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
@@ -115,6 +119,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			: property;
 
 		return Object.assign(context, {
+			// The part of the picture chosen in the portrait window's Frame, if any.
+			portraitStyle: portraitStyle(this.actor.img, actorFrame(this.actor)),
 			isSquire: system.isSquire,
 			// A Knight has one Ability and one Passion; a Squire has neither until Knighted (p7).
 			canAddAbility: !system.isSquire && !abilities.length,
@@ -448,12 +454,19 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 
 	/** @this {KnightSheet} */
 	static #onPickSeerImage() {
-		const picker = new (filePicker())({
-			type: "image",
-			current: this.actor.system.seerImg,
-			callback: (path) => this.actor.update({ "system.seerImg": path })
-		});
-		return picker.render({ force: true });
+		return pickImageInto(this.actor, "system.seerImg", "image");
+	}
+
+	/**
+	 * The picture opens larger, with Change Picture and Frame in its header
+	 * as in Stonetop. With no picture yet there's nothing to enlarge, so it
+	 * goes straight to choosing one.
+	 * @this {KnightSheet}
+	 */
+	static #onOpenPortrait() {
+		if (this.actor.img && this.actor.img !== Actor.implementation.DEFAULT_ICON) return openPortrait(this.actor);
+		if (!this.isEditable) return;
+		return pickImageInto(this.actor);
 	}
 
 	/** @this {KnightSheet} */

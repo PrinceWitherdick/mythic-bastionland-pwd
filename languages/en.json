@@ -2707,6 +2707,18 @@
       "remedy": "A sizeable bundle that takes a whole Phase to use and fully restores a Virtue for all the Company present: Sustenance (VIG), Stimulant (CLA), Sacrament (SPI). A person or beast carries only one.",
       "glory": "Gained by resolving Myths, winning staked duels, tournaments and remembered battles, and each new Age. Sets a Knight’s rank. At 12 they are worthy of the City Quest."
     },
+    "portrait": {
+      "change": "Change Picture",
+      "frame": "Frame",
+      "frameTitle": "Frame {name}'s Picture",
+      "stage": "The whole picture, with the part the sheet shows boxed",
+      "frameHint": "Drag inside the box to move it, a corner to resize it, or anywhere outside to draw a new one. Arrow keys nudge it, with Shift for bigger steps, and + or − resize it.",
+      "previewCaption": "As the sheet shows it",
+      "save": "Save",
+      "reset": "Start Over",
+      "loadFailed": "This picture couldn't be loaded to frame.",
+      "video": "A moving picture can't be framed."
+    },
     "artPopout": {
       "showPlayers": "Show Players",
       "shown": "Showed the picture of {name} to the players.",

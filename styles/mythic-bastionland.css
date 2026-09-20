@@ -90,7 +90,8 @@
 .bastionland-welcome-window .window-content,
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
-.bastionland-realm-panel-window .window-content {
+.bastionland-realm-panel-window .window-content,
+.bastionland-portrait-frame-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -310,12 +311,21 @@
 /* Header: a portrait, the lines to fill in, and the heraldic shield */
 /* ---------------------------------------------------------------- */
 
+/* The Attack, Duel and Take Damage line runs under the name lines only, so the
+   portrait and shield stand the full height of the header beside it. */
 .bastionland-header {
 	display: grid;
-	grid-template-areas: "portrait text heraldry";
+	grid-template-areas:
+		"portrait text heraldry"
+		"portrait actions heraldry";
 	grid-template-columns: 9rem minmax(0, 1fr) 9rem;
-	gap: 1rem;
+	grid-template-rows: 1fr auto;
+	gap: 0.6rem 1rem;
 	align-items: center;
+}
+
+.bastionland-header > .bastionland-toolbar--actions {
+	grid-area: actions;
 }
 
 .bastionland-header__text {
@@ -371,10 +381,11 @@
 }
 
 .bastionland-portrait {
+	position: relative;
 	grid-area: portrait;
 	justify-self: start;
 	width: 144px;
-	height: 170px;
+	height: 204px;
 	margin: 0;
 	border: 2px solid var(--bastionland-ink);
 	border-radius: 3px;
@@ -394,6 +405,22 @@
 
 .bastionland-portrait img[data-action] {
 	cursor: pointer;
+}
+
+/*
+ * The Knight pictures cut from the book carry a pale rule round the art. The
+ * box is far shorter than they are, so the top crop keeps that rule along the
+ * top and sides and cuts it off the foot. A mat of the same pale laid over the
+ * picture, inside the ink border, gives all four edges the one line, whatever
+ * picture and crop the Knight ends up with.
+ */
+.bastionland-portrait::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border: 3px solid var(--bastionland-paper);
+	border-radius: 2px;
+	pointer-events: none;
 }
 
 .bastionland-title {
@@ -1069,7 +1096,8 @@
 	.bastionland-header {
 		grid-template-areas:
 			"portrait heraldry"
-			"text text";
+			"text text"
+			"actions actions";
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
@@ -4700,4 +4728,103 @@ button.bastionland-realm-drawing__finish:focus-visible {
 .bastionland-page .bastionland-welcome__footer .bastionland-button {
 	flex: none;
 	min-width: 7rem;
+}
+
+/* ---------------------------------------------------------------- */
+/* Portrait framer: the part of a Knight's picture the sheet shows  */
+/* ---------------------------------------------------------------- */
+
+.bastionland-frame {
+	padding: 1rem;
+}
+
+.bastionland-frame__body {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 1rem;
+}
+
+.bastionland-frame__stage {
+	position: relative;
+	flex: none;
+	min-width: 160px;
+	min-height: 160px;
+	background: var(--bastionland-paper-deep);
+	touch-action: none;
+	user-select: none;
+}
+
+.bastionland-frame__stage:focus-visible {
+	outline: 2px solid var(--bastionland-rubric, var(--bastionland-ink));
+	outline-offset: 2px;
+}
+
+.bastionland-frame__stage img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	border: none;
+	pointer-events: none;
+}
+
+.bastionland-frame__layer {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.bastionland-frame__box {
+	position: absolute;
+	box-sizing: border-box;
+	border: 2px solid #fff;
+	outline: 1px solid rgb(0 0 0 / 0.7);
+	/* Darken everything outside the box. */
+	box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.45);
+}
+
+.bastionland-frame__box.is-ghost {
+	border-style: dashed;
+}
+
+.bastionland-frame__grip {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	border: 1px solid rgb(0 0 0 / 0.7);
+	background: #fff;
+}
+
+.bastionland-frame__grip--nw { top: -6px; left: -6px; }
+.bastionland-frame__grip--ne { top: -6px; right: -6px; }
+.bastionland-frame__grip--sw { bottom: -6px; left: -6px; }
+.bastionland-frame__grip--se { bottom: -6px; right: -6px; }
+
+.bastionland-frame__rail {
+	display: flex;
+	flex: 1 1 10rem;
+	flex-direction: column;
+	gap: 0.6rem;
+	min-width: 10rem;
+}
+
+.bastionland-frame__rail p {
+	margin: 0;
+}
+
+.bastionland-frame__caption {
+	font-family: var(--bastionland-font-caps);
+	font-size: var(--font-size-12);
+}
+
+.bastionland-frame__error {
+	color: var(--bastionland-rubric, #8b1a1a);
+}
+
+.bastionland-frame__footer {
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 1rem;
 }
