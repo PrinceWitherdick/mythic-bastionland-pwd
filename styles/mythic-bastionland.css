@@ -1081,6 +1081,11 @@
 	gap: 1.6rem 2rem;
 }
 
+/* The wider column first, such as the Property page's list; one column still in a narrow window. */
+.bastionland-columns--wide-last {
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
 .bastionland-column {
 	display: flex;
 	flex-direction: column;
@@ -1654,6 +1659,24 @@
 .bastionland-sheet > .window-content > nav.bastionland-tab-rail .bastionland-tab-rail__item.active {
 	background: var(--bastionland-blood);
 	color: var(--bastionland-paper);
+}
+
+/*
+ * An icon Font Awesome has nothing like, drawn from a picture used as a mask
+ * over the text colour, so it takes the same colours as the icons beside it.
+ * It is as tall as theirs.
+ */
+.bastionland-glyph {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	background-color: currentColor;
+	mask: center / contain no-repeat;
+}
+
+/* The Property tab while a Squire carries the Knight's things. module/rules/property-tab.js */
+.bastionland-glyph--squire {
+	mask-image: url("../assets/icons/squire-glyph.svg");
 }
 
 /* Space for the scrollbar is kept on every page, so a page that doesn't scroll doesn't shift sideways. */

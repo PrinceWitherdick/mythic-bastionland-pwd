@@ -23,16 +23,17 @@ describe("The Company", () => {
 });
 
 describe("Squires", () => {
-	const file = fileFor(SQUIRE_IMAGE);
+	// The portrait, and the same figure alone as the Property tab's icon while a Squire serves.
+	const files = [fileFor(SQUIRE_IMAGE), join(root, "assets/icons/squire-glyph.svg")];
 
-	it("ships the portrait a new Squire gets, crediting the drawing it's made from", () => {
+	it.each(files)("ships %s, crediting the drawing it's made from", (file) => {
 		expect(existsSync(file)).toBe(true);
 		const svg = readFileSync(file, "utf8");
 		expect(svg).toContain("game-icons.net/1x1/delapouite/kneeling.html");
 		expect(svg).toContain("CC BY 3.0");
 	});
 
-	it("keeps its comments to what a browser loading it as a picture will parse", () => {
+	it.each(files)("keeps the comments in %s to what a browser loading it as a picture will parse", (file) => {
 		// A pair of hyphens inside an XML comment breaks the whole picture.
 		const comments = [...readFileSync(file, "utf8").matchAll(/<!--([\s\S]*?)-->/g)].map((match) => match[1]);
 		expect(comments.length).toBeGreaterThan(0);

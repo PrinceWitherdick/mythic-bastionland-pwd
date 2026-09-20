@@ -19,6 +19,7 @@ import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
+import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
 import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
@@ -80,6 +81,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			initial: "knight",
 			tabs: [
 				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight" },
+				// Its icon changes with whatever carries the Knight's things; see _prepareTabs.
+				{ id: "property", icon: CARRIER_ICONS.back, label: "bastionland.sheet.tabs.property" },
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer" },
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// Only on a Knight that is the reader's own.
@@ -172,6 +175,18 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			enrichedSeerInfo,
 			enrichedSeerNotes
 		});
+	}
+
+	/**
+	 * The Property tab shows what carries the Knight's things: a horse while
+	 * they ride a steed, their Squire while one serves them, else a backpack. A
+	 * Squire carries their own.
+	 * @override
+	 */
+	_prepareTabs(group) {
+		const tabs = super._prepareTabs(group);
+		if (tabs.property) tabs.property.icon = propertyTabIcon({ steed: this.#steed(), squire: !this.actor.system.isSquire && this.#squire() });
+		return tabs;
 	}
 
 	/**
