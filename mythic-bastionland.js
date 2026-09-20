@@ -311,8 +311,10 @@ const WORLD_SETUP = Object.freeze([
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
-	// Again, once each Scene has its own look, for terrain pictures named by terrain rather than number.
-	{ key: "realmTerrainNames", run: moveRealmPictures }
+	// Again, once each Scene has its own look: for terrain pictures named by terrain rather than
+	// number, and for Scenes drawn when a river through a Valley had a picture of its own, now that
+	// it is the river laid over the Valley's own picture. One pass redraws a Scene for both.
+	{ key: "realmValleyRivers", run: moveRealmPictures }
 ]);
 
 Hooks.once("ready", async () => {

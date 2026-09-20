@@ -188,10 +188,9 @@ describe("the Blank Realm skin", () => {
 	it.each(REALM_PALETTES.map(({ key }) => key))("lays every river piece's banks and water at the same places on the edges it crosses, in %s", (palette) => {
 		const drawn = drawRealmSet("sheet", palette);
 		const { ink, water: blue } = realmPalette(palette);
-		// Every path in that colour: a Valley's ridges are inked like the banks, but never reach an edge.
 		const filled = (svg, colour) => [...svg.matchAll(new RegExp(`<path d="([^"]*)" fill="${colour}"/>`, "g"))].map((match) => match[1]).join("");
-		// Every piece, forks and pieces running through a Valley too, and a river's mouth into a lake.
-		const pieces = [...RIVER_SHAPES.flatMap((shape) => [`river-${shape}`, `river-valley-${shape}`]), "river-mouth"];
+		// Every piece, forks too, and a river's mouth into a lake.
+		const pieces = [...RIVER_SHAPES.map((shape) => `river-${shape}`), "river-mouth"];
 		const banks = pieces.map((name) => edgeCrossings(filled(drawn[`${name}.svg`], ink)));
 		const water = pieces.map((name) => edgeCrossings(filled(drawn[`${name}.svg`], blue)));
 		// The water's edges and each bank's outer edge, the same for every piece, so pieces join however they're laid.
@@ -244,12 +243,5 @@ describe("the Blank Realm's lakes and Valleys", () => {
 		expect(hatching).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
 		// Rows every 48 units: a hex's half height is five of them, so the rows of the next column line up.
 		expect((HEX_H / 2) % 48).toBe(0);
-	});
-
-	it("keeps each Valley's ridges inside the hex", () => {
-		for (const shape of RIVER_SHAPES) {
-			const ridges = blank[`river-valley-${shape}.svg`].match(/<path d="([^"]*)" fill/)[1];
-			for (const point of coordinates(ridges)) expect(inset(point)).toBeGreaterThan(0);
-		}
 	});
 });

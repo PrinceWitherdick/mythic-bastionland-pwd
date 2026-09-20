@@ -4,7 +4,7 @@ import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/real
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
 import { riverNetworkPieces } from "../../module/rules/realm-rivers.js";
-import { REALM_PALETTES } from "../../module/rules/realm-skins.js";
+import { PICTURE_NAME, REALM_PALETTES } from "../../module/rules/realm-skins.js";
 import {
 	GRID_ALPHA,
 	ICON_SCALE,
@@ -154,16 +154,16 @@ describe("realmSceneData", () => {
 		expect(tiles.filter((tile) => tile.alpha === 0)).toHaveLength(realm.holdings.length);
 	});
 
-	it("fills each hex with the Blank Realm's terrain, which also leaves a Holding's hex to the Holding, and a river's Valley to its plain floor", () => {
+	it("fills each hex with the Blank Realm's terrain, which also leaves a Holding's hex to the Holding", () => {
 		const tiles = scene.tiles.filter((tile) => flagOf(tile).kind === "terrain");
 		const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
-		const valleyRivers = new Set(riverNetworkPieces(g, realm.rivers, realm.terrain)
-			.filter((piece) => TERRAIN[realm.terrain[hexIndex(g, piece.hex)] - 1] === "valley").map((piece) => hexKey(piece.hex)));
 		for (const tile of tiles) {
 			const key = hexKey(hexAt(g, tile));
 			expect(tile).toMatchObject({ width: Math.round(g.hexWidth), height: g.size, texture: { fit: "fill" } });
 			expect(tile.alpha).toBe(holdings.has(key) ? 0 : 1);
-			if (valleyRivers.has(key)) expect(tile.texture.src).toMatch(/river-valley-floor\.svg$/);
+			// A Valley keeps its own picture whether or not a river runs through it, the river piece being laid over it.
+			const terrain = realm.terrain[hexIndex(g, hexAt(g, tile))];
+			if (TERRAIN[terrain - 1] === "valley") expect(tile.texture.src.endsWith(`${PICTURE_NAME.terrain(terrain)}.svg`)).toBe(true);
 		}
 		const classic = realmDocuments(realm, g, realmTextures({ skin: "classic" })).tiles.filter(({ data }) => flagOf(data).kind === "terrain");
 		expect(classic.every(({ data }) => data.alpha === 1)).toBe(true);

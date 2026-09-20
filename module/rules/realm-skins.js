@@ -24,15 +24,14 @@ export const REALM_SKINS = Object.freeze(["sheet", "classic", "woodcut", "atlas"
  * @property {boolean} holdingsGiveWay Its terrain drawing gives way to a Holding in its hex, as on the Blank Realm, rather than lying under it.
  * @property {boolean} joinsLakes It draws a lake inside its hex, so lakes side by side are drawn as one water,
  *   with a shore where they meet land and a mouth where a river runs in.
- * @property {boolean} valleyRivers It draws a river through a Valley between ridges, as the Realm Sheets do, in place of the Valley's own drawing.
  */
 
 /** @type {Readonly<SkinFeatures>} */
-const PLAIN_SKIN = Object.freeze({ holdingsGiveWay: false, joinsLakes: false, valleyRivers: false });
+const PLAIN_SKIN = Object.freeze({ holdingsGiveWay: false, joinsLakes: false });
 
 /** @type {Readonly<Record<string, Readonly<SkinFeatures>>>} The skins that draw more than PLAIN_SKIN. */
 const SKIN_FEATURES = Object.freeze({
-	sheet: Object.freeze({ holdingsGiveWay: true, joinsLakes: true, valleyRivers: true })
+	sheet: Object.freeze({ holdingsGiveWay: true, joinsLakes: true })
 });
 
 /**
@@ -59,19 +58,16 @@ export const PICTURE_NAME = Object.freeze({
 	// The pictures only some skins draw, which a GM's own pictures don't replace.
 	water: "lake-water",
 	shore: (shape) => `lake-shore-${shape}`,
-	mouth: "river-mouth",
-	valley: (shape) => `river-valley-${shape}`,
-	valleyFloor: "river-valley-floor"
+	mouth: "river-mouth"
 });
 
 /**
  * @param {string} skin
- * @returns {string[]} The pictures that skin draws besides REALM_PICTURES, for joining lakes and running rivers through Valleys.
+ * @returns {string[]} The pictures that skin draws besides REALM_PICTURES, for joining its lakes up.
  */
-export const skinPictures = (skin) => [
-	...(skinFeatures(skin).joinsLakes ? [PICTURE_NAME.water, ...SHORE_SHAPES.map(PICTURE_NAME.shore), PICTURE_NAME.mouth] : []),
-	...(skinFeatures(skin).valleyRivers ? [PICTURE_NAME.valleyFloor, ...RIVER_SHAPES.map(PICTURE_NAME.valley)] : [])
-];
+export const skinPictures = (skin) => (skinFeatures(skin).joinsLakes
+	? [PICTURE_NAME.water, ...SHORE_SHAPES.map(PICTURE_NAME.shore), PICTURE_NAME.mouth]
+	: []);
 
 /** What each terrain picture was called when terrain went by number, as "terrain-05", to its name now. */
 const NUMBERED_TERRAIN = new Map(TERRAIN.map((_, index) => [`terrain-${String(index + 1).padStart(2, "0")}`, PICTURE_NAME.terrain(index + 1)]));

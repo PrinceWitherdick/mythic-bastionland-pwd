@@ -146,24 +146,19 @@ describe("a Realm's rivers on its Scene", () => {
 		expect(riverCourses(realm, g)).toHaveLength(2);
 	});
 
-	it("run through a Valley between ridges where the skin draws them so, and the Valley's drawing gives way to its plain tinted hex", () => {
+	it("run over a Valley's own picture, which is left as it is drawn anywhere else", () => {
 		const valley = { ...realm, terrain: realm.terrain.map((_, index) => (index === hexIndex(g, { col: 6, row: 3 }) ? VALLEY : 1)) };
 		const tiles = realmDocuments(valley, g, realmTextures()).tiles.map(({ data }) => data);
 		const at = (kind) => tiles.find((tile) => flagOf(tile).kind === kind && tile.x === Math.round(g.radius * (1.5 * 5 + 1)) && tile.y === Math.round(g.size * 3));
-		expect(at("river").texture.src).toMatch(/sheet\/parchment\/river-valley-fork[\w-]*\.svg$|river-valley-fan\.svg$/);
-		expect(at("terrain")).toMatchObject({ alpha: 1, texture: { src: expect.stringMatching(/sheet\/parchment\/river-valley-floor\.svg$/) } });
-		const classic = realmDocuments(valley, g, realmTextures({ skin: "classic" })).tiles.map(({ data }) => data);
-		expect(classic.filter((tile) => flagOf(tile).kind === "terrain").every((tile) => tile.alpha === 1 && !tile.texture.src.includes("river-valley"))).toBe(true);
+		expect(at("river").texture.src).toMatch(/sheet\/parchment\/river-(fork[\w-]*|fan)\.svg$/);
+		expect(at("terrain")).toMatchObject({ alpha: 1, texture: { src: expect.stringMatching(/sheet\/parchment\/terrain-valley\.svg$/) } });
 	});
 });
 
-describe("realmTextures for joined lakes and Valley rivers", () => {
-	it("gives them only for the Blank Realm, and not where the GM has pictures of their own", () => {
+describe("realmTextures for joined lakes", () => {
+	it("gives them only for the Blank Realm, and not where the GM has a Lake picture of their own", () => {
 		expect(realmTextures().lake.shore.both.src).toMatch(/sheet\/parchment\/lake-shore-both\.svg$/);
-		expect(realmTextures().valley.river["fork-wide"].src).toMatch(/sheet\/parchment\/river-valley-fork-wide\.svg$/);
-		expect(realmTextures().valley.floor.src).toMatch(/sheet\/parchment\/river-valley-floor\.svg$/);
-		expect(realmTextures({ skin: "seal" })).toMatchObject({ lake: null, valley: null });
-		expect(realmTextures({ custom: { files: { "terrain-lake": "mine/lake.png", "terrain-valley": "mine/valley.png" } } })).toMatchObject({ lake: null, valley: null });
-		expect(realmTextures({ custom: { files: { "river-bend": "mine/bend.png" } } }).valley.river).not.toHaveProperty("bend");
+		expect(realmTextures({ skin: "seal" })).toMatchObject({ lake: null });
+		expect(realmTextures({ custom: { files: { "terrain-lake": "mine/lake.png" } } })).toMatchObject({ lake: null });
 	});
 });

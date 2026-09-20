@@ -30,8 +30,6 @@ import {
 /** Draw order among the Realm's Tiles. Barrier lines are Drawings, which Foundry always draws above Tiles. */
 export const REALM_SORT = Object.freeze({ terrain: 0, shore: 50, river: 100, feature: 200, seat: 300 });
 
-const VALLEY = TERRAIN.indexOf("valley") + 1;
-
 /** How much of a hex each icon fills: its height, and for terrain its width as well. */
 export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.85, myth: 0.5, seat: 0.3 });
 
@@ -56,12 +54,10 @@ const round = (value) => Math.round(value * 100) / 100;
  * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean}>, holding: Record<string, {src: string}>,
  *   landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>, seat: {src: string},
  *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
- *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null,
- *   valley: {floor: {src: string}, river: Record<string, {src: string}>}|null}} A terrain picture is an `icon`
- *   when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex takes
- *   its place, as on the Blank Realm sheet. `lake` is there when the skin joins its lakes up, and `valley` when
- *   it runs rivers through Valleys between ridges: the Valley's plain hex, and each river piece; a GM's own Lake,
- *   Valley or river picture is left as it is.
+ *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null}} A terrain picture
+ *   is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex
+ *   takes its place, as on the Blank Realm sheet. `lake` is there when the skin joins its lakes up; a GM's own Lake
+ *   picture is left as it is.
  */
 export function realmTextures(look = null) {
 	const { skin, palette, custom } = normaliseRealmLook(look);
@@ -70,7 +66,6 @@ export function realmTextures(look = null) {
 	const skinPicture = (name) => ({ src: `${dir}/${name}.svg` });
 	const features = skinFeatures(skin);
 	const joinsLakes = features.joinsLakes && !custom.files[PICTURE_NAME.terrain(LAKE)];
-	const valleyRivers = features.valleyRivers && !custom.files[PICTURE_NAME.terrain(VALLEY)];
 
 	return {
 		terrain: Object.fromEntries(TERRAIN.map((key, index) => {
@@ -89,10 +84,6 @@ export function realmTextures(look = null) {
 			water: skinPicture(PICTURE_NAME.water),
 			shore: Object.fromEntries(SHORE_SHAPES.map((shape) => [shape, skinPicture(PICTURE_NAME.shore(shape))])),
 			mouth: skinPicture(PICTURE_NAME.mouth)
-		} : null,
-		valley: valleyRivers ? {
-			floor: skinPicture(PICTURE_NAME.valleyFloor),
-			river: Object.fromEntries(RIVER_SHAPES.filter((shape) => !custom.files[PICTURE_NAME.river(shape)]).map((shape) => [shape, skinPicture(PICTURE_NAME.valley(shape))]))
 		} : null,
 		colours: sceneColours(palette)
 	};
@@ -209,12 +200,6 @@ export function realmDocuments(realm, g, textures) {
 	const tiles = [];
 	const courses = riverCourses(realm, g);
 	const pieces = riverNetworkPieces(g, courses, realm.terrain);
-	const piecesByHex = new Map();
-	for (const piece of pieces) piecesByHex.set(hexKey(piece.hex), [...(piecesByHex.get(hexKey(piece.hex)) ?? []), piece]);
-	// Where the skin runs a river through a Valley between ridges of its own, the Valley's drawing gives way to its plain tinted hex.
-	const valleyRivers = new Set(textures.valley ? [...piecesByHex]
-		.filter(([, list]) => realm.terrain[hexIndex(g, list[0].hex)] === VALLEY && list.every((piece) => textures.valley.river[piece.shape]))
-		.map(([key]) => key) : []);
 	// Where the skin joins lakes up, a lake that meets another or takes in a river is open water inside shores.
 	const works = textures.lake ? lakeWorks(g, courses, realm.terrain) : null;
 	const openWater = new Set((works?.water ?? []).map(hexKey));
@@ -227,7 +212,7 @@ export function realmDocuments(realm, g, textures) {
 		const key = hexKey(hex);
 		const picture = textures.terrain[terrain];
 		const scale = picture.icon ? ICON_SCALE.terrain : 1;
-		const src = openWater.has(key) ? textures.lake.water.src : valleyRivers.has(key) ? textures.valley.floor.src : picture.src;
+		const src = openWater.has(key) ? textures.lake.water.src : picture.src;
 		tiles.push({
 			match: `terrain:${key}`,
 			data: tileData({
@@ -247,10 +232,9 @@ export function realmDocuments(realm, g, textures) {
 		centre: hexCentre(g, hex), width: g.hexWidth, height: g.size, texture, sort, locked: true, rotation, flag
 	});
 	for (const piece of pieces) {
-		const texture = valleyRivers.has(hexKey(piece.hex)) ? textures.valley.river[piece.shape] : textures.river[piece.shape];
 		tiles.push({
 			match: `river:${piece.index}`,
-			data: hexPiece(piece.hex, texture, { sort: REALM_SORT.river, rotation: piece.rotation, flag: { kind: "river", index: piece.index } })
+			data: hexPiece(piece.hex, textures.river[piece.shape], { sort: REALM_SORT.river, rotation: piece.rotation, flag: { kind: "river", index: piece.index } })
 		});
 	}
 	for (const { hex, edge, shape, rotation } of works?.shores ?? []) {

@@ -467,7 +467,7 @@ function inkedRiverBody(shape, p) {
 const inkedRiver = (shape, p) => svg(HEX_W, HEX_H, inkedRiverBody(shape, p));
 
 /* -------------------------------------------- */
-/*  Lakes and Valleys on the Blank Realm        */
+/*  Lakes on the Blank Realm                   */
 /* -------------------------------------------- */
 
 /**
@@ -607,65 +607,6 @@ function riverMouth(p) {
 		+ `<path d="${run(shore - LAKE_SHORE.calm - 3).water}" fill="${p.water}"/>`);
 }
 
-/**
- * The Valley's ridges, as its legend picture branches them off the valley
- * floor, along either side of each course a river piece runs: a spur growing
- * from the bank, swept back, and ending in a club. Each keeps inside the hex
- * and clear of the water.
- */
-const VALLEY_SPURS = Object.freeze({ root: 40, length: 96, sweep: 0.55, bend: 0.35, width: 20, waist: 9, club: 17, clear: 60, apart: 34, margin: 14 });
-
-function valleySpurs(shape) {
-	const { root, length, sweep, bend, width, waist, club, clear, apart, margin } = VALLEY_SPURS;
-	const courses = pieceCourses(shape).map((segments) => evenly(densely(segments), 60));
-	const everywhere = courses.flat();
-	const inside = ({ x, y }) => [0, 1, 2, 3, 4, 5].every((k) => {
-		const a = corner(k);
-		const b = corner(k + 1);
-		// Distance in from each edge, the hex being convex and its corners running clockwise.
-		return ((b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)) / Math.hypot(b.x - a.x, b.y - a.y) >= margin;
-	});
-	const clearOf = (points, distance) => (point) => points.every((other) => Math.hypot(other.x - point.x, other.y - point.y) >= distance);
-	const drawn = [];
-	const spurs = [];
-	courses.forEach((course, which) => {
-		[0.3, 0.7].forEach((share, place) => {
-			const at = course[Math.round(share * (course.length - 1))];
-			for (const sign of [-1, 1]) {
-				// Out from the bank and swept back along the course, one way at one place and the other way at the next.
-				const out = { x: -sign * at.dy, y: sign * at.dx };
-				const back = (place + which + (sign > 0 ? 1 : 0)) % 2 ? 1 : -1;
-				const heading = { x: out.x + back * sweep * at.dx, y: out.y + back * sweep * at.dy };
-				const norm = Math.hypot(heading.x, heading.y);
-				const dir = { x: heading.x / norm, y: heading.y / norm };
-				// It bends as it goes, further back the way it's swept.
-				const turned = { x: dir.x + back * bend * at.dx, y: dir.y + back * bend * at.dy };
-				const from = { x: at.x + out.x * root, y: at.y + out.y * root };
-				const knee = { x: from.x + dir.x * length * 0.5, y: from.y + dir.y * length * 0.5 };
-				const tip = { x: knee.x + turned.x * length * 0.5, y: knee.y + turned.y * length * 0.5 };
-				const spine = densely([[from, knee, knee, tip]]);
-				const outer = spine.slice(Math.floor(spine.length * 0.35));
-				if (!spine.every(inside) || !outer.every(clearOf(everywhere, clear)) || !spine.every(clearOf(drawn, apart))) continue;
-				drawn.push(...spine);
-				// Thick where it leaves the bank, narrowing, then swelling to a club before its tip.
-				const widthAt = (s) => (s < 0.6 ? width + (waist - width) * (s / 0.6) : waist + (club - waist) * Math.sin(Math.PI * Math.min(1, (s - 0.6) / 0.32)) - (s > 0.92 ? (s - 0.92) * 60 : 0));
-				const along = evenly(spine, 18);
-				const half = (index) => Math.max(2, widthAt(index / 18)) / 2;
-				const upper = along.map((point, index) => ({ x: point.x - point.dy * half(index), y: point.y + point.dx * half(index) }));
-				const lower = along.map((point, index) => ({ x: point.x + point.dy * half(index), y: point.y - point.dx * half(index) }));
-				spurs.push(curvePath([...upper, ...lower.reverse()], true));
-			}
-		});
-	});
-	return spurs.join("");
-}
-
-/** @returns {string} A river piece running through a Valley, between its ridges. */
-const valleyRiver = (shape, p) => svg(HEX_W, HEX_H, `<path d="${valleySpurs(shape)}" fill="${p.ink}"/>${inkedRiverBody(shape, p)}`);
-
-/** @returns {string} The Valley's hex with nothing drawn in it, tinted as the Valley is, for its river pieces to lie on. */
-const valleyFloor = (p) => svg(HEX_W, HEX_H, `<polygon points="${hexPoints()}" fill="${p.terrain[TERRAIN.indexOf("valley")]}" stroke="${p.rule}" stroke-width="${1.5 * SCALE}"/>`);
-
 /* -------------------------------------------- */
 /*  The Armorial skin's drawings                */
 /* -------------------------------------------- */
@@ -737,9 +678,7 @@ const SKINS = {
 			+ crown(p, 184)),
 		river: inkedRiver,
 		// The sheet's lake sits inside its hex, so lakes that meet are drawn as open water inside shores.
-		lake: { water: lakeWater, shore: lakeShore, mouth: riverMouth },
-		// As the Realm Sheets draw a river through a Valley: between ridges, over the Valley's plain tinted hex.
-		valley: { river: valleyRiver, floor: valleyFloor }
+		lake: { water: lakeWater, shore: lakeShore, mouth: riverMouth }
 	},
 
 	/** Pale tinted hexes ruled in ink, and lettered roundels. */
@@ -862,9 +801,7 @@ export function drawRealmSet(skin, paletteKey) {
 	const extras = new Map([
 		[PICTURE_NAME.water, () => draw.lake.water(p)],
 		...SHORE_SHAPES.map((shape) => [PICTURE_NAME.shore(shape), () => draw.lake.shore(shape, p)]),
-		[PICTURE_NAME.mouth, () => draw.lake.mouth(p)],
-		[PICTURE_NAME.valleyFloor, () => draw.valley.floor(p)],
-		...RIVER_SHAPES.map((shape) => [PICTURE_NAME.valley(shape), () => draw.valley.river(shape, p)])
+		[PICTURE_NAME.mouth, () => draw.lake.mouth(p)]
 	]);
 	for (const name of skinPictures(skin)) files[`${name}.svg`] = extras.get(name)();
 	return files;
