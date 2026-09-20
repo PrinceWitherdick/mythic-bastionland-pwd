@@ -1,6 +1,7 @@
 import { drawingCountLabel, finishRealmDrawing, getRealm, isDrawingRealm } from "../actions/realm.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
+import { markDice, restoreDiceRolls, showDiceRoll } from "../rulebook/dice-in-text.js";
 import { DRAWING_SIDE, bookDrawingGroups, drawingTally, finishPlacement, sheetDrawingGroups } from "../rules/realm-drawing.js";
 import { REALM_TOOL_ICONS } from "../rules/realm.js";
 import { RULE_PAGES } from "../rules/rule-pages.js";
@@ -24,7 +25,8 @@ export class RealmDrawing extends MapSidePanel {
 		side: DRAWING_SIDE,
 		classes: [`bastionland-travel-rules--${DRAWING_SIDE}`, "bastionland-realm-drawing"],
 		actions: {
-			useTool: RealmDrawing.#onUseTool
+			useTool: RealmDrawing.#onUseTool,
+			rollDice: RealmDrawing.#onRollDice
 		}
 	};
 
@@ -43,6 +45,14 @@ export class RealmDrawing extends MapSidePanel {
 
 	/** @type {number|null} The hook that reads the index again after Import PDF. */
 	#indexHook = null;
+
+	/**
+	 * What each die printed in the rules last gave, keyed as markDice keys
+	 * them, so a suggestion stays on the page while the GM paints it and the
+	 * tallies draw the rules again.
+	 * @type {Map<string, number>}
+	 */
+	#rolls = new Map();
 
 	/** @type {Set<string>} Which of the folded lists, such as what each kind of Landmark is, the GM has opened. */
 	#opened = new Set();
@@ -117,6 +127,8 @@ export class RealmDrawing extends MapSidePanel {
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
+		// The dice the book prints, such as "clusters of d12 hexes", rolled where they stand.
+		restoreDiceRolls(markDice(this.element), this.#rolls);
 		// A fold the GM opened stays open: these rules are drawn again after every edit to the Realm.
 		for (const fold of this.element.querySelectorAll("details[data-fold]")) {
 			const { fold: key } = fold.dataset;
@@ -128,6 +140,7 @@ export class RealmDrawing extends MapSidePanel {
 	/** @override */
 	_onClose(options) {
 		super._onClose(options);
+		this.#rolls.clear();
 		this.#opened.clear();
 		if (this.#indexHook !== null) Hooks.off(ART_INDEX_HOOK, this.#indexHook);
 		this.#indexHook = null;
@@ -160,6 +173,18 @@ export class RealmDrawing extends MapSidePanel {
 	static async #onUseTool(_event, target) {
 		// Only the steps the palette can't paint have a button. Picking the tool up draws these rules again.
 		await canvas.realm?.useTool(target.dataset.tool);
+	}
+
+	/**
+	 * Roll a die the rules print, such as the d12 a terrain cluster is wide,
+	 * and show what it gave beside the word. A suggestion for the GM alone:
+	 * nothing is posted and nothing is written to the Realm.
+	 * @this {RealmDrawing}
+	 */
+	static async #onRollDice(_event, target) {
+		const roll = await new Roll(target.dataset.formula).evaluate();
+		this.#rolls.set(target.dataset.die, roll.total);
+		showDiceRoll(target, roll.total, { landing: true });
 	}
 }
 

@@ -3352,6 +3352,102 @@ a.bastionland-page-link:focus-visible {
 	cursor: help;
 }
 
+/* A die the rules print, such as the "d12" in "clusters of d12 hexes",
+   rolled where it stands. Set in the text's own hand, bold like a rule word:
+   only a page number is drawn with a line under it. Foundry lays every button
+   out as a flex box, which would put the die on a line of its own; drawn
+   inline, it stays in the sentence it's printed in. */
+button.bastionland-dice {
+	display: inline;
+	width: auto;
+	min-height: 0;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	font-weight: bold;
+	line-height: inherit;
+	vertical-align: baseline;
+	cursor: pointer;
+}
+
+/* The die itself, drawn before the words so a roll is offered at a glance:
+   the shape the text asks for, or a pair of dice for one Font Awesome has
+   nothing like, such as a d2 or a d100. */
+button.bastionland-dice::before {
+	content: var(--bastionland-die-glyph, "\f522");
+	margin: 0 0.2em 0 0.15em;
+	font-family: var(--font-awesome);
+	font-size: 0.9em;
+	font-weight: 900;
+}
+
+button.bastionland-dice[data-faces="4"] {
+	--bastionland-die-glyph: "\f6d0";
+}
+
+button.bastionland-dice[data-faces="6"] {
+	--bastionland-die-glyph: "\f6d1";
+}
+
+button.bastionland-dice[data-faces="8"] {
+	--bastionland-die-glyph: "\f6d2";
+}
+
+button.bastionland-dice[data-faces="10"] {
+	--bastionland-die-glyph: "\f6cd";
+}
+
+button.bastionland-dice[data-faces="12"] {
+	--bastionland-die-glyph: "\f6ce";
+}
+
+button.bastionland-dice[data-faces="20"] {
+	--bastionland-die-glyph: "\f6cf";
+}
+
+/* Reddening says the die is live; a box drawn round a word in the middle of a
+   sentence never does. */
+button.bastionland-dice:hover,
+button.bastionland-dice:focus,
+button.bastionland-dice:focus-visible {
+	outline: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-blood);
+	text-shadow: none;
+}
+
+/* What the die gave, kept beside it while the GM paints to it. */
+.bastionland-dice__result {
+	display: inline-block;
+	margin-left: 0.2em;
+	color: var(--bastionland-blood);
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.bastionland-dice__result.is-landing {
+	animation: bastionland-dice-land 260ms ease-out;
+}
+
+@keyframes bastionland-dice-land {
+	from {
+		opacity: 0;
+		transform: translateY(-0.3em);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
 .bastionland-travel-rules__page {
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);

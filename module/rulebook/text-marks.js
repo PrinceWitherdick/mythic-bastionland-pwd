@@ -11,6 +11,21 @@ import { isSystemWindow } from "../system-id.js";
 /** What every chat card the system posts is wrapped in. */
 const CARD_CLASS = "bastionland-card";
 
+/** Text that's being typed into, or already does something when clicked. */
+const INTERACTIVE = Object.freeze([
+	"a", "button", "input", "textarea", "select", "option", "script", "style", "code", "pre",
+	"[contenteditable]", "prose-mirror"
+]);
+
+/**
+ * What a mark leaves as it is: anything already interactive, its own marks, and
+ * whatever else it names.
+ * @param {string} className The mark's own class, so nothing is marked twice.
+ * @param {...string} also   Further selectors this mark leaves alone.
+ * @returns {string} A selector list.
+ */
+export const leaveAlone = (className, ...also) => [...INTERACTIVE, ...also, `.${className}`].join(", ");
+
 /**
  * @typedef {object} TextMatch
  * @property {number} index   Where the words start in the text.

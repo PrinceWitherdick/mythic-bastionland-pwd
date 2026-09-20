@@ -2,7 +2,7 @@ import { t } from "../chat/cards.js";
 import { pageReferences } from "../rules/rulebook.js";
 import { openRulebook } from "./BookReader.js";
 import { canReadRulebook, hasRulebook } from "./store.js";
-import { addTextMark } from "./text-marks.js";
+import { addTextMark, leaveAlone } from "./text-marks.js";
 
 /**
  * Every "(p16)" in the system's windows and chat cards opens the rulebook at
@@ -17,8 +17,7 @@ const LINK_CLASS = "bastionland-page-link";
  */
 export const PAGE_LINKS = Object.freeze({
 	className: LINK_CLASS,
-	// Text that's being typed into, or already does something when clicked.
-	leaveAlone: `a, button, input, textarea, select, option, script, style, code, pre, [contenteditable], prose-mirror, .${LINK_CLASS}`,
+	leaveAlone: leaveAlone(LINK_CLASS),
 	enabled: () => hasRulebook() && canReadRulebook(),
 	find: pageReferences,
 	make: (document, { page }, words) => {

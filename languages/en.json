@@ -2495,6 +2495,11 @@
         "hint": "Show a larger copy of a Knight’s, Seer’s or Myth’s picture beside it while the pointer is over it."
       }
     },
+    "dice": {
+      "roll": "Roll {dice} for a suggestion",
+      "again": "{dice} gave {total} — click to roll it again",
+      "result": "→ {total}"
+    },
     "keywords": {
       "tip": "{text} (p{page})",
       "strongGambit": "A Gambit made with a melee die of 8 or higher. Also choose No Save for the target, or a Greater effect such as disarming, breaking a wooden shield or weapon, or removing a helm.",

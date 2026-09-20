@@ -1,7 +1,7 @@
 import { t } from "../chat/cards.js";
 import { showsKeywordTips } from "../client-settings.js";
 import { findKeywords } from "../rules/keywords.js";
-import { addTextMark } from "./text-marks.js";
+import { addTextMark, leaveAlone } from "./text-marks.js";
 
 /**
  * Hovering a rule word, such as Exposed or Hefty, in the system's windows and
@@ -15,15 +15,8 @@ import { addTextMark } from "./text-marks.js";
  */
 const KEYWORD_CLASS = "bastionland-keyword";
 
-/**
- * Text that's being typed into, already explains itself on hover, or does
- * something when clicked. Headings and window titles are left plain too.
- */
-const LEAVE_ALONE = [
-	"a", "button", "input", "textarea", "select", "option", "script", "style", "code", "pre",
-	"[contenteditable]", "prose-mirror", "[data-tooltip]", "h1", "h2", "h3", "h4", ".window-header",
-	`.${KEYWORD_CLASS}`
-].join(", ");
+/** A word that already explains itself on hover is left alone, as are headings and window titles. */
+const LEAVE_ALONE = leaveAlone(KEYWORD_CLASS, "[data-tooltip]", "h1", "h2", "h3", "h4", ".window-header");
 
 /**
  * The rule words, each keeping its tip until it's hovered.
