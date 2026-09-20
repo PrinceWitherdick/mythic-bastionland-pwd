@@ -4,6 +4,7 @@ import { awardGlory } from "./module/actions/glory.js";
 import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
+import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/knight-folders.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
@@ -199,6 +200,9 @@ Hooks.once("init", () => {
 	// Each Knight's Ledger of the changes made to them.
 	registerLedgerHooks();
 
+	// Each Knight gets a folder of their own in the Company's, where their steed and Squire are kept.
+	registerKnightFolderHooks();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -345,6 +349,8 @@ Hooks.once("ready", async () => {
 	squareKnightTokens();
 	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
 	watchCompanySize();
+	// Knights made while no GM was on get their folders now.
+	fileWaitingKnights();
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),

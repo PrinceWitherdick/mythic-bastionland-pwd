@@ -2138,6 +2138,37 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	gap: 0.5rem;
 }
 
+/* The steed's name, and under it the book steed it was and its Trample. */
+.bastionland-steed__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.bastionland-steed__title {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.bastionland-steed__title .bastionland-icon {
+	opacity: 0;
+	transition: opacity 120ms;
+}
+
+.bastionland-steed:is(:hover, :focus-within) .bastionland-steed__title .bastionland-icon {
+	opacity: 1;
+}
+
+.bastionland-steed__text .bastionland-item__tags > span {
+	white-space: nowrap;
+}
+
+.bastionland-steed__text .bastionland-item__tags > span + span::before {
+	content: " · ";
+}
+
 .bastionland-steed__img {
 	flex: none;
 	width: 2.5rem;

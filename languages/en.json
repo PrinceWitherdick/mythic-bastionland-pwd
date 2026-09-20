@@ -598,7 +598,29 @@
     },
     "steed": {
       "label": "Steed",
-      "empty": "Drag an NPC from the Actors tab here to ride it. Its trample joins a mounted charge.",
+      "empty": "Take a steed, or drag an NPC from the Actors tab here to ride it. Its trample joins a mounted charge.",
+      "take": "Take a Steed",
+      "name": "{steed} ({knight})",
+      "nameLabel": "Name",
+      "namePlaceholder": "Leave empty to name it later",
+      "rename": "Name your steed",
+      "renameOk": "Name it",
+      "blankIntro": "Take a steed with no stats yet, to fill in yourself.",
+      "blank": "No stats yet",
+      "pickIntro": "Take one of the book’s steeds (p12), or one with no stats yet to fill in yourself.",
+      "gallop": {
+        "title": "Gallop",
+        "intro": "Tick everybody galloping. Each rides 2 Hexes this Phase, and their steed loses d6 VIG (p18).",
+        "ok": "Gallop",
+        "tagline": "2 Hexes this Phase",
+        "lost": "{name}’s steed loses {loss} VIG, {from} → {to}.",
+        "exhaustedNow": "{steed} is Exhausted, and can’t Gallop again until its VIG is restored.",
+        "hint": "Only a steed that isn’t Exhausted can Gallop.",
+        "blocked": "Nobody gallops: {names}",
+        "noSteed": "{name} rides no steed.",
+        "exhausted": "{name}’s {steed} is Exhausted."
+      },
+      "cantCreate": "Taking a steed creates it as an NPC, so it needs a user who is allowed to create actors. Ask the GM, or drag a steed here from the Actors tab.",
       "clear": "No longer ride this steed",
       "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat.",
       "trample": "Trample",
@@ -1081,6 +1103,7 @@
     "company": {
       "title": "The Company",
       "name": "The Company",
+      "folder": "Company",
       "here": "Company here",
       "place": "Place the Company on the map",
       "start": "Start",
@@ -2502,7 +2525,8 @@
             "trek": { "label": "Trek", "text": "1 Hex on foot or steed." },
             "gallop": { "label": "Gallop", "text": "2 Hexes on a non-Exhausted steed. The steed loses d6 VIG." },
             "cruise": { "label": "Cruise", "text": "3 Hexes by boat, or by steed on a rarely-found proper road." }
-          }
+          },
+          "roll": "Gallop"
         },
         "wildernessRoll": {
           "heading": "Wilderness Roll",

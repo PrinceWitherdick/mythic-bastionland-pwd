@@ -240,7 +240,14 @@
 					<div class="bastionland-steed">
 						<img class="bastionland-steed__img" src="{{steed.img}}" alt="">
 						<div class="bastionland-steed__text">
+							<span class="bastionland-steed__title">
 								<button type="button" class="bastionland-item__name" data-action="openSteed">{{steed.name}}</button>
+								{{#if steed.renamable}}
+								<button type="button" class="bastionland-icon" data-action="renameSteed" data-tooltip="{{localize 'bastionland.steed.rename'}}" aria-label="{{localize 'bastionland.steed.rename'}}">
+									<i class="fa-solid fa-pen" inert></i>
+								</button>
+								{{/if}}
+							</span>
 							{{#if (or steed.breed steed.trample)}}
 							<span class="bastionland-item__tags">{{#if steed.breed}}<span>{{steed.breed}}</span>{{/if}}{{#if steed.trample}}<span>{{steed.trample}}</span>{{/if}}</span>
 							{{/if}}
@@ -255,6 +262,7 @@
 					<p class="bastionland-empty">{{localize "bastionland.steed.empty"}}</p>
 					{{#if editable}}
 					<div class="bastionland-adds">
+						<button type="button" class="bastionland-button" data-action="takeSteed"><i class="fa-solid fa-horse" inert></i> {{localize "bastionland.steed.take"}}</button>
 					</div>
 					{{/if}}
 					{{/if}}

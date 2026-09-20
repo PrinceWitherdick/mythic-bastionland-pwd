@@ -400,11 +400,13 @@
 	letter-spacing: 0.03em;
 }
 
-.bastionland-referee-rolls .form-footer {
+.bastionland-referee-rolls .form-footer,
+.bastionland-steed-pick .form-footer {
 	flex-wrap: wrap;
 }
 
-.bastionland-referee-rolls .form-footer button {
+.bastionland-referee-rolls .form-footer button,
+.bastionland-steed-pick .form-footer button {
 	flex: 1 1 40%;
 }
 

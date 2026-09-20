@@ -39,9 +39,9 @@ describe("TRAVEL_RULES", () => {
 		}
 	});
 
-	it("offers only the Wilderness Roll and the Referee's tables as rolls", () => {
+	it("offers only the Gallop, the Wilderness Roll and the Referee's tables as rolls", () => {
 		const rolls = sections.filter((section) => section.roll).map((section) => section.roll);
-		expect(rolls).toEqual(["wilderness", "blind", "weather", "mood"]);
+		expect(rolls).toEqual(["gallop", "wilderness", "blind", "weather", "mood"]);
 	});
 
 	it("puts Travel and its rolls on the left, and Rest and Exploration on the right", () => {

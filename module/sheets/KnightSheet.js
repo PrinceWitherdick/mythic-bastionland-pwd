@@ -7,6 +7,7 @@ import { takeSeerDamage } from "../actions/damage.js";
 import { rollSaveFor } from "../actions/saves.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
+import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openPortrait } from "../apps/ArtPopout.js";
@@ -16,7 +17,7 @@ import { actorFrame } from "../apps/PortraitFrame.js";
 import { openLedger } from "../apps/LedgerWindow.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
-import { AGES, GAMBITS, PROPERTY_TYPES } from "../config.js";
+import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
@@ -24,8 +25,9 @@ import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires } from "../rules/squires.js";
-import { templatePath } from "../system-id.js";
+import { steedBreedShown } from "../rules/steeds.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
+import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { watchPromptLines } from "./prompt-breaks.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
@@ -45,6 +47,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			settleScar: KnightSheet.#onSettleScar,
 			openSteed: KnightSheet.#onOpenSteed,
 			clearSteed: KnightSheet.#onClearSteed,
+			takeSteed: KnightSheet.#onTakeSteed,
+			renameSteed: KnightSheet.#onRenameSteed,
 			setAge: KnightSheet.#onSetAge,
 			takeSquire: KnightSheet.#onTakeSquire,
 			chooseKnight: KnightSheet.#onChooseKnight,
@@ -166,6 +170,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			steed: steed && {
 				name: steed.name,
 				img: steed.img,
+				breed: steedBreedShown(steed.name, steed.getFlag(SYSTEM_ID, "breed")),
+				renamable: steed.isOwner,
 				trample: steed.items
 					.filter((item) => item.type === "weapon" && item.system.trample)
 					.map((item) => `${item.name} ${item.system.damage}`)
@@ -318,6 +324,31 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		stampRailSide(this.element, position);
 	}
 
+	/** The hooks that redraw the sheet when its steed, Squire or successor changes. */
+	#linkHooks = [];
+
+	/**
+	 * Keep the steed, Squire and successor shown here in step with their own
+	 * sheets, so renaming the steed there renames it here. A hook rather than
+	 * their `apps`, as deleting a document closes every window in its `apps`.
+	 * @override
+	 */
+	async _onFirstRender(context, options) {
+		await super._onFirstRender(context, options);
+		const redraw = (actor) => {
+			const system = this.actor.system;
+			if (LINKED_ACTORS.some(({ key }) => system[key] === actor.uuid)) this.render();
+		};
+		this.#linkHooks = ["updateActor", "deleteActor"].map((hook) => [hook, Hooks.on(hook, redraw)]);
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		for (const [hook, id] of this.#linkHooks) Hooks.off(hook, id);
+		this.#linkHooks = [];
+	}
+
 	/**
 	 * @param {string} uuid
 	 * @returns {Actor|null} The actor, if it still exists.
@@ -387,6 +418,16 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onClearSteed() {
 		return this.actor.update({ "system.steed": "" });
+	}
+
+	/** @this {KnightSheet} */
+	static #onRenameSteed() {
+		return renameSteed(this.#steed());
+	}
+
+	/** @this {KnightSheet} */
+	static #onTakeSteed() {
+		return takeSteed(this.actor);
 	}
 
 	/** @this {KnightSheet} */

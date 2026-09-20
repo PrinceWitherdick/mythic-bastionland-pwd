@@ -1,6 +1,7 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
+import { gallop } from "../actions/steeds.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { t } from "../chat/cards.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
@@ -127,6 +128,7 @@ export class TravelRules extends MapSidePanel {
 	static #onRoll(_event, target) {
 		if (!game.user.isGM) return null;
 		const { roll } = target.dataset;
+		if (roll === "gallop") return gallop();
 		return roll === "wilderness" ? wildernessRoll({ scene: canvas.scene }) : rollRefereeTable(roll);
 	}
 }

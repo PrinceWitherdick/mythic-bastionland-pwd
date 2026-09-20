@@ -29,7 +29,7 @@ const refereeRows = (key) => REFEREE_TABLES.find((table) => table.key === key).r
  * @property {string[]} [lines] The labelled lines of a list under its text.
  * @property {readonly string[]} [rows] A d6 table's results, one for each of D6_BANDS.
  * @property {boolean} [note] A second paragraph follows the list or table.
- * @property {string} [roll] What a GM's roll button beside it rolls: "wilderness", or one of REFEREE_TABLES.
+ * @property {string} [roll] What a GM's roll button beside it rolls: "wilderness", "gallop", or one of REFEREE_TABLES.
  */
 
 /**
@@ -45,7 +45,7 @@ export const TRAVEL_RULES = Object.freeze([
 		page: 18,
 		side: "left",
 		sections: [
-			{ key: "methods", intro: true, lines: ["trek", "gallop", "cruise"] },
+			{ key: "methods", intro: true, lines: ["trek", "gallop", "cruise"], roll: "gallop" },
 			{ key: "wildernessRoll", rows: WILDERNESS_ROWS, roll: "wilderness" },
 			{ key: "mythHexes" },
 			{ key: "omens", note: true },
