@@ -3,6 +3,7 @@ import { findByRoll } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { spreads } from "../rules/book-art.js";
+import { rollKnightName, startingName } from "../rules/knight-names.js";
 import {
 	DEFAULT_START,
 	STANDARD_KIT,
@@ -20,6 +21,11 @@ import { confirmDialog } from "./ui.js";
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
 
+/**
+ * How many pixels wider the window grows to show the Knights to pick from. From
+ * the starting width, the chosen Knight's column keeps its width as they slide in.
+ */
+const BROWSE_WIDTH = 390;
 
 /**
  * Makes a Knight the way the book does (p6-7, p26): choose a Start, roll
@@ -29,13 +35,15 @@ const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
 export class KnightChooser extends BastionlandChooser {
 	static DEFAULT_OPTIONS = {
 		tag: "form",
-		position: { width: 1200, height: 860 },
+		position: { width: 822, height: 860 },
 		window: { icon: "fa-solid fa-chess-knight" },
 		form: { handler: KnightChooser.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			setStart: KnightChooser.#onSetStart,
 			rollScores: KnightChooser.#onRollScores,
 			rollKnight: KnightChooser.#onRollKnight,
+			rollName: KnightChooser.#onRollName,
+			browse: KnightChooser.#onBrowse,
 			apply: KnightChooser.#onApply
 		}
 	};
@@ -52,9 +60,21 @@ export class KnightChooser extends BastionlandChooser {
 	/** @type {Record<string, number|null>} */
 	#scores = Object.fromEntries(SCORES.map((key) => [key, null]));
 
+	/** Whether the Knights to pick from are shown, after Choose your own. */
+	#browsing = false;
+
+	/** How far the window really widened to show them, so folding them away gives it back. */
+	#widened = 0;
+
+	/** Counts slides, so one cut short by another doesn't end the new one early. */
+	#slides = 0;
+
+	/** The Knight's name, as typed or rolled beside Apply. Starts as their own, unless Create Actor only gave them a stand-in. */
+	#name = startingName(this.actor?.name, game.i18n.localize(CONFIG.Actor.typeLabels.knight));
+
 	/** @override */
 	get title() {
-		return this.actor ? t("chooser.titleFor", { name: this.actor.name }) : t("chooser.title");
+		return t("chooser.title");
 	}
 
 	/** @override */
@@ -84,6 +104,7 @@ export class KnightChooser extends BastionlandChooser {
 				value: this.#scores[key],
 				max: key === "guard" ? null : VIRTUE_MAX
 			})),
+			browsing: this.#browsing,
 			cards: entries.filter((entry) => entry.d6 === this.group).map((entry) => ({
 				roll: entry.roll,
 				d12: entry.d12,
@@ -102,8 +123,32 @@ export class KnightChooser extends BastionlandChooser {
 				passion: selected.knight?.passion ?? null,
 				seer: selected.seer?.name ? { name: selected.seer.name, img: selected.seer.path } : null
 			},
-			applyLabel: this.actor ? t("chooser.apply", { name: this.actor.name }) : t("chooser.create")
+			applyLabel: this.actor ? t("chooser.apply", { name: this.actor.name }) : t("chooser.create"),
+			name: this.#name,
+			canApply: this.#canApply()
 		});
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		// Apply waits for a name, so it follows each keystroke rather than the form's change.
+		const input = this.element.querySelector("input[name=knightName]");
+		input?.addEventListener("input", () => {
+			this.#name = input.value;
+			this.#syncApply();
+		});
+	}
+
+	/** @returns {boolean} Whether a Knight is picked and named. */
+	#canApply() {
+		return Boolean(this.roll && this.#name.trim());
+	}
+
+	/** Enable Apply once there's a Knight and a name, without re-rendering under the cursor. */
+	#syncApply() {
+		const apply = this.element?.querySelector("[data-action=apply]");
+		if (apply) apply.disabled = !this.#canApply();
 	}
 
 	/**
@@ -181,7 +226,7 @@ export class KnightChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * Roll d6 then d12 and show the Knight they land on.
+	 * Roll d6 then d12 and show the Knight they land on. Nothing goes to chat.
 	 * @this {KnightChooser}
 	 */
 	static async #onRollKnight() {
@@ -190,26 +235,63 @@ export class KnightChooser extends BastionlandChooser {
 		const entry = this.#entries().find((candidate) => candidate.d6 === d6.total && candidate.d12 === d12.total);
 		this.group = entry.d6;
 		this.roll = entry.roll;
-
-		const takenBy = this.#taken().get(entry.roll);
-		await postCard(this.actor, "creation", {
-			title: this.#knightName(entry),
-			tagline: t("chooser.card.knightRoll", { d6: d6.total, d12: d12.total }),
-			note: entry.seer?.name ? t("chooser.card.knightedBy", { seer: entry.seer.name }) : null,
-			warning: takenBy ? t("chooser.takenBy", { name: takenBy }) : null
-		}, { rolls: [d6, d12] });
 		return this.render();
 	}
 
 	/**
-	 * Give the Knight everything chosen and rolled here.
+	 * Show the Knights to pick from, or fold them away again, widening or
+	 * narrowing the window to fit. The page isn't drawn again, so their column
+	 * slides open or shut with the window.
+	 * @this {KnightChooser}
+	 */
+	static #onBrowse(_event, target) {
+		this.#browsing = !this.#browsing;
+		target.setAttribute("aria-expanded", String(this.#browsing));
+		this.element.querySelector(".bastionland-chooser__layout")?.classList.toggle("is-folded", !this.#browsing);
+		if (this.#browsing) this.#widened = this.#slide(BROWSE_WIDTH);
+		else this.#slide(-this.#widened);
+	}
+
+	/**
+	 * Widen or narrow the window about its middle, animated unless motion is reduced.
+	 * @param {number} change  Pixels to add to the width.
+	 * @returns {number} The change made, which the screen's edges can cut short.
+	 */
+	#slide(change) {
+		const element = this.element;
+		const { width, left } = this.position;
+		const slide = ++this.#slides;
+		element.classList.add("is-sliding");
+		this.setPosition({ width: width + change, left: left - change / 2 });
+		// The transition goes once it ends, so dragging or resizing the window isn't slowed by it.
+		Promise.allSettled(element.getAnimations().map((animation) => animation.finished)).then(() => {
+			if (slide === this.#slides) element.classList.remove("is-sliding");
+		});
+		return this.position.width - width;
+	}
+
+	/**
+	 * Put a medieval name in the box: never the one already there, nor another Knight's while any is left.
+	 * @this {KnightChooser}
+	 */
+	static #onRollName() {
+		const others = game.actors.filter((actor) => actor.type === "knight" && actor !== this.actor).map((actor) => actor.name);
+		this.#name = rollKnightName(Math.random, [this.#name, ...others]);
+		const input = this.element.querySelector("input[name=knightName]");
+		if (input) input.value = this.#name;
+		this.#syncApply();
+	}
+
+	/**
+	 * Give the Knight everything chosen and rolled here, and the name beside Apply.
 	 * @this {KnightChooser}
 	 */
 	static async #onApply() {
 		const entry = this.#entries().find((candidate) => candidate.roll === this.roll);
-		if (!entry) return;
+		const name = this.#name.trim();
+		if (!entry || !name) return;
 
-		const name = this.#knightName(entry);
+		const knightName = this.#knightName(entry);
 		const update = knightUpdate({
 			start: startFor(this.#start),
 			virtues: this.#scores,
@@ -236,15 +318,19 @@ export class KnightChooser extends BastionlandChooser {
 		const confirmed = this.fresh || await confirmDialog({
 			title: t("chooser.confirmTitle"),
 			icon: "fa-solid fa-chess-knight",
-			message: t("chooser.confirm", { name: escapeHTML(actor.name), knight: escapeHTML(name) })
+			message: t("chooser.confirm", { name: escapeHTML(actor.name), knight: escapeHTML(knightName) })
 		});
 		if (!confirmed) return;
+
+		// Foundry leaves the Token's name behind on a rename, so it follows here unless it was set apart.
+		update.name = name;
+		if (actor.prototypeToken.name === actor.name) update["prototypeToken.name"] = name;
 
 		// Every piece of gear is replaced, so the companions are all among the new items,
 		// and those made from the old gear go with it.
 		const replaced = actor.items.filter((item) => REPLACED_TYPES.includes(item.type)).map((item) => item.id);
 		const cleared = await clearCompanions(actor);
-		const { steed, gone } = await makeCompanions(items, knightOwner(actor));
+		const { steed, gone } = await makeCompanions(items, { ...knightOwner(actor), name });
 		if (steed) update["system.steed"] = steed;
 		else if (cleared.includes(actor.system.steed)) update["system.steed"] = "";
 		await actor.update(update);

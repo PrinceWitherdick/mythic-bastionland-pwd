@@ -47,6 +47,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			clearSteed: KnightSheet.#onClearSteed,
 			setAge: KnightSheet.#onSetAge,
 			takeSquire: KnightSheet.#onTakeSquire,
+			chooseKnight: KnightSheet.#onChooseKnight,
 			knightSquire: KnightSheet.#onKnightSquire,
 			openSquire: KnightSheet.#onOpenSquire,
 			clearSquire: KnightSheet.#onClearSquire,
@@ -281,7 +282,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	}
 
 	/**
-	 * A Squire's sheet has Knight Squire, which raises them. The Domain button opens the Domain this Knight rules,
+	 * New Knight fills the sheet in from the book, or for a Squire, Knight
+	 * Squire raises them. The Domain button opens the Domain this Knight rules,
 	 * the way the Stonetop character sheet opens the steading, and reads its
 	 * name, or just "Domain" while there isn't one. The Ledger button opens every
 	 * change made to them.
@@ -290,7 +292,9 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	_headerButtons() {
 		const { isSquire } = this.actor.system;
 		const buttons = [];
-		if (this.isEditable && isSquire) buttons.push({ action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") });
+		if (this.isEditable) buttons.push(isSquire
+			? { action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") }
+			: { action: "chooseKnight", icon: "fa-solid fa-chess-knight", label: t("sheet.newKnight"), tooltip: t("sheet.newKnightHint") });
 		const domain = knightDomain(this.actor);
 		// A Squire rules nothing, and a player who can't found one has nothing to ask for.
 		if (!isSquire && (domain || this.actor.isOwner)) buttons.push({
@@ -408,6 +412,11 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onTakeSquire() {
 		return takeSquire(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onChooseKnight() {
+		return openKnightChooser(this.actor);
 	}
 
 	/** @this {KnightSheet} */

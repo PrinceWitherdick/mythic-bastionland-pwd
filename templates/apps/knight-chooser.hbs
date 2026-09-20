@@ -3,10 +3,11 @@
 	<p class="bastionland-chooser__notice">{{notice}}</p>
 	{{/if}}
 
-	<div class="bastionland-chooser__layout">
+	<div class="bastionland-chooser__layout{{#unless browsing}} is-folded{{/unless}}">
 		<div class="bastionland-chooser__steps">
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.chooser.start"}}</h2>
+				<p class="bastionland-hint bastionland-chooser__start-hint">{{localize "bastionland.chooser.startHint"}}</p>
 				<ul class="bastionland-chooser__starts">
 					{{#each starts}}
 					<li>
@@ -37,14 +38,19 @@
 
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.chooser.knight"}}</h2>
-				<button type="button" class="bastionland-button" data-action="rollKnight">
-					<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollKnight"}}
-				</button>
+				<div class="bastionland-chooser__knight-buttons">
+					<button type="button" class="bastionland-button" data-action="rollKnight">
+						<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollKnight"}}
+					</button>
+					<button type="button" class="bastionland-button bastionland-chooser__choose" data-action="browse" aria-expanded="{{#if browsing}}true{{else}}false{{/if}}" aria-controls="{{partId}}-browse">
+						<i class="fa-solid fa-angles-right" inert></i> {{localize "bastionland.chooser.chooseOwn"}}
+					</button>
+				</div>
 				<p class="bastionland-hint">{{localize "bastionland.chooser.knightHint"}}</p>
 			</section>
 		</div>
 
-		<section class="bastionland-chooser__browse" aria-label="{{localize 'bastionland.chooser.knight'}}">
+		<section class="bastionland-chooser__browse" id="{{partId}}-browse" aria-label="{{localize 'bastionland.chooser.knight'}}">
 			<ul class="bastionland-chooser__groups">
 				{{#each groups}}
 				<li>
@@ -124,7 +130,12 @@
 	</div>
 
 	<footer class="bastionland-chooser__footer">
-		<button type="button" class="bastionland-button" data-action="apply" {{#unless selected}}disabled{{/unless}}>
+		<label class="bastionland-chooser__name-label" for="{{partId}}-name">{{localize "bastionland.chooser.name"}}</label>
+		<input id="{{partId}}-name" class="bastionland-chooser__name-input" type="text" name="knightName" value="{{name}}" placeholder="{{localize 'bastionland.chooser.namePlaceholder'}}" autocomplete="off" spellcheck="false">
+		<button type="button" class="bastionland-icon bastionland-chooser__roll-name" data-action="rollName" data-tooltip="{{localize 'bastionland.chooser.rollName'}}" aria-label="{{localize 'bastionland.chooser.rollName'}}">
+			<i class="fa-solid fa-dice" inert></i>
+		</button>
+		<button type="button" class="bastionland-button" data-action="apply" {{#unless canApply}}disabled{{/unless}}>
 			<i class="fa-solid fa-check" inert></i> {{applyLabel}}
 		</button>
 	</footer>

@@ -124,14 +124,18 @@ export function spreadPages(d6, d12) {
 	return { knight, myth: knight + 1 };
 }
 
+/** The 72 spreads, reckoned once: they are the same in every copy of the book. */
+let allSpreads = null;
+
 /** @returns {{d6: number, d12: number, roll: string, knightPage: number, mythPage: number}[]} In book order. */
 export function spreads() {
-	return Array.from({ length: SPREAD_COUNT }, (_, index) => {
+	allSpreads ??= Object.freeze(Array.from({ length: SPREAD_COUNT }, (_, index) => {
 		const d6 = Math.floor(index / 12) + 1;
 		const d12 = (index % 12) + 1;
 		const pages = spreadPages(d6, d12);
-		return { d6, d12, roll: rollLabel(d6, d12), knightPage: pages.knight, mythPage: pages.myth };
-	});
+		return Object.freeze({ d6, d12, roll: rollLabel(d6, d12), knightPage: pages.knight, mythPage: pages.myth });
+	}));
+	return allSpreads;
 }
 
 /**

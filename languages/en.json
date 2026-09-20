@@ -51,7 +51,9 @@
       "rest": "Rest",
       "rollScar": "Roll Scar",
       "armour": "Armour",
-      "rollSave": "Roll a {virtue} Save"
+      "rollSave": "Roll a {virtue} Save",
+      "newKnight": "New Knight",
+      "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay."
     },
     "heraldry": {
       "title": "Heraldry of {name}",
@@ -1997,10 +1999,10 @@
     },
     "chooser": {
       "title": "Choose a Knight",
-      "titleFor": "Choose a Knight for {name}",
       "noIndex": "Run the Import PDF macro to see each Knight’s name, portrait, Property, Ability and Passion. You can still roll.",
       "noText": "Run Import PDF again to bring in each Knight’s Property, Ability and Passion.",
       "start": "1. Start",
+      "startHint": "The opening situation your whole Company shares (p6).",
       "starts": {
         "wanderer": {
           "label": "Wanderer",
@@ -2020,11 +2022,15 @@
       "scoresHint": "Rolls VIG, CLA and SPI in order, then GD, with the Start’s dice. Change a result by hand if you need to.",
       "knight": "3. Knight",
       "rollKnight": "Roll d6 and d12",
-      "knightHint": "Read the d6 first, then the d12. Or pick a Knight. Generally each player should have a different one.",
+      "knightHint": "Read the d6 first, then the d12. Or choose your own. Generally each player should have a different one.",
+      "chooseOwn": "Choose your own",
       "unnamed": "Knight {roll}",
       "reference": "{roll}, page {page}",
       "takenBy": "Already {name}’s Knight",
       "noSelection": "Roll or pick a Knight to see them here.",
+      "name": "Name:",
+      "namePlaceholder": "Your Knight’s name",
+      "rollName": "Roll a medieval name",
       "create": "Create Knight",
       "apply": "Apply to {name}",
       "confirmTitle": "Replace This Knight?",
@@ -2037,9 +2043,7 @@
         "camping": "Camping gear"
       },
       "card": {
-        "scores": "Virtues and Guard",
-        "knightRoll": "{d6} on the d6, {d12} on the d12",
-        "knightedBy": "Knighted by {seer}"
+        "scores": "Virtues and Guard"
       }
     },
     "realm": {

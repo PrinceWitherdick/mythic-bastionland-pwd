@@ -3007,9 +3007,17 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-chooser__layout {
 	display: grid;
 	flex: 1;
-	grid-template-columns: 15rem minmax(0, 1fr) minmax(0, 1.35fr);
+	grid-template-columns: 15.75rem minmax(0, 1fr) minmax(0, 1.35fr);
 	gap: 1.25rem;
 	min-height: 0;
+}
+
+/* The Knights to pick from stay folded away until Choose your own. Their column
+   opens from nothing as the window widens (module/apps/KnightChooser.js), and
+   the half gaps either side of it make the one gap the other two had. */
+.bastionland-chooser__layout.is-folded {
+	grid-template-columns: 15.75rem minmax(0, 0fr) minmax(0, 1.35fr);
+	column-gap: 0.625rem;
 }
 
 .bastionland-chooser__steps,
@@ -3020,8 +3028,60 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	min-height: 0;
 }
 
+.bastionland-chooser__layout.is-folded > .bastionland-chooser__browse {
+	visibility: hidden;
+}
+
+.bastionland-chooser-window.is-sliding {
+	transition: width 0.35s ease, left 0.35s ease;
+}
+
+.bastionland-chooser-window.is-sliding .bastionland-chooser__layout {
+	transition: grid-template-columns 0.35s ease, column-gap 0.35s ease;
+}
+
+/* While the column opens or shuts, the Knights keep about their open width and
+   are cut off at its edge, rather than squeezing into it. They stay seen until
+   the column has shut. */
+.bastionland-chooser-window.is-sliding .bastionland-chooser__browse,
+.bastionland-chooser__layout.is-folded > .bastionland-chooser__browse {
+	overflow: hidden;
+}
+
+.bastionland-chooser-window.is-sliding .bastionland-chooser__browse {
+	transition: visibility 0.35s;
+}
+
+.bastionland-chooser-window.is-sliding .bastionland-chooser__browse > * {
+	min-width: 22rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bastionland-chooser-window.is-sliding,
+	.bastionland-chooser-window.is-sliding :is(.bastionland-chooser__layout, .bastionland-chooser__browse) {
+		transition: none;
+	}
+}
+
+/* Room between the steps and their scrollbar; the column is widened to match. */
 .bastionland-chooser__steps {
+	padding-right: 0.75rem;
 	overflow-y: auto;
+}
+
+/* Roll d6 and d12 with Choose your own under it, both as wide as the wider. */
+.bastionland-chooser__knight-buttons {
+	display: inline-grid;
+	gap: 0.4rem;
+}
+
+/* Its arrows turn back once the Knights are open, since it folds them away again. */
+.bastionland-chooser__choose i {
+	transition: transform 0.35s ease;
+}
+
+.bastionland-chooser__choose[aria-expanded="true"] i {
+	transform: rotate(180deg);
 }
 
 .bastionland-chooser__starts {
@@ -3057,6 +3117,10 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-chooser__start-summary {
 	color: var(--bastionland-ink-soft);
 	font-size: 0.85rem;
+}
+
+.bastionland-page .bastionland-chooser__start-hint {
+	margin: 0 0 0.5rem;
 }
 
 .bastionland-chooser__scores {
@@ -3260,6 +3324,8 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-chooser__footer {
 	display: flex;
 	justify-content: flex-end;
+	align-items: center;
+	gap: 0.5rem;
 	padding-top: 0.6rem;
 	border-top: 1px solid var(--bastionland-rule);
 }
@@ -3268,13 +3334,65 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	flex: 0 1 16rem;
 }
 
+.bastionland-chooser__name-label {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+	white-space: nowrap;
+}
+
+/* Tucked against the name box it rolls for, and held apart from Apply. */
+.bastionland-page .bastionland-chooser__roll-name {
+	width: 2.1rem;
+	height: 2.1rem;
+	margin: 0 0.6rem 0 -0.4rem;
+	font-size: 1rem;
+}
+
+.bastionland-page .bastionland-chooser__name-input {
+	flex: 0 1 16rem;
+	min-width: 8rem;
+	height: 2.1rem;
+	padding: 0 0.5rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 3px;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.05rem;
+}
+
+.bastionland-page .bastionland-chooser__name-input:focus {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 1px;
+	box-shadow: none;
+}
+
+.bastionland-page .bastionland-chooser__name-input::placeholder {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+/* Not while a Knight chooser widens to show its Knights, or its columns would
+   stack for a moment on the way. :where() keeps the NPC chooser's own columns winning. */
 @container (max-width: 860px) {
 	.bastionland-chooser {
 		overflow-y: auto;
 	}
 
-	.bastionland-chooser__layout {
+	:where(.bastionland-chooser-window:not(.is-sliding)) .bastionland-chooser__layout {
 		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* With its Knights folded away, the Knight chooser's two columns fit a narrower window. */
+@container (max-width: 600px) {
+	.bastionland-chooser__layout.is-folded {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.bastionland-chooser__layout.is-folded > .bastionland-chooser__browse {
+		display: none;
 	}
 }
 
