@@ -36,8 +36,8 @@ describe("rulebookViewerUrl", () => {
 	});
 
 	it("opens a Data path in Foundry's viewer", () => {
-		expect(rulebookViewerUrl("mythic-bastionland-book/mythic-bastionland.pdf"))
-			.toBe(`/${VIEWER_PATH}?file=%2Fmythic-bastionland-book%2Fmythic-bastionland.pdf`);
+		expect(rulebookViewerUrl("mythic-bastionland-art/mythic-bastionland.pdf"))
+			.toBe(`/${VIEWER_PATH}?file=%2Fmythic-bastionland-art%2Fmythic-bastionland.pdf`);
 	});
 
 	it("resolves both the viewer and the file against the route prefix", () => {

@@ -1,8 +1,8 @@
 import { loadArtIndex } from "../book-art/art-index.js";
-import { importBookArt } from "../book-art/importer.js";
 import { ART_ROOT, EXPECTED_PAGES } from "../rules/book-art.js";
-import { openReader, openRulebook } from "../rulebook/BookReader.js";
-import { RULEBOOK_DIR, RULEBOOK_HOOK, keepRulebook, rulebookPath } from "../rulebook/store.js";
+import { openRulebook } from "../rulebook/BookReader.js";
+import { bringInRulebook, importKeptRulebook } from "../rulebook/bring-in.js";
+import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath, setFoundRulebook } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
@@ -11,8 +11,9 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
  * The window a new world greets its GM with. The rulebook isn't shipped, so
- * what it offers is the GM's own PDF, chosen once: a copy is always kept to
- * read in Foundry, and if ticked, Import PDF takes its art and text too.
+ * what it offers is the GM's own PDF, chosen once: a copy is kept to read in
+ * Foundry, and Import PDF takes its art and text. A world that found the book
+ * another world kept imports it by itself instead.
  */
 
 /** World setting: whether the Welcome opens for GMs when the world loads, until one of them first closes it. */
@@ -50,6 +51,9 @@ export async function welcomeOnlyNewWorlds() {
 	if (inPlay) await game.settings.set(SYSTEM_ID, SHOW_SETTING, false);
 }
 
+/** @returns {boolean} Whether the Welcome still greets this world, so it counts as new. */
+export const welcomesThisWorld = () => Boolean(game.settings.get(SYSTEM_ID, SHOW_SETTING));
+
 /**
  * Open the Welcome for a GM, once world setup has said whether this world is
  * new and until a GM has closed it.
@@ -66,6 +70,16 @@ export function greetGM() {
 function importDate(iso) {
 	const date = new Date(iso ?? "");
 	return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(game.i18n.lang, { dateStyle: "long" });
+}
+
+/**
+ * @param {""|"pending"|"done"} found What became of a book found kept by another world.
+ * @param {boolean} busy Whether an import is under way.
+ * @returns {string|null} The key of what the Welcome says about it, or null when none was found.
+ */
+export function foundText(found, busy) {
+	if (!found) return null;
+	return `bastionland.welcome.book.found.${busy ? "importing" : found}`;
 }
 
 export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -85,13 +99,6 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		welcome: { template: templatePath("apps/welcome.hbs") }
 	};
 
-	/**
-	 * Whether the art import is ticked. Null until the first draw ticks it if
-	 * the art isn't in yet.
-	 * @type {boolean|null}
-	 */
-	#art = null;
-
 	/** Whether an import is under way, which holds every control still. */
 	#busy = false;
 
@@ -106,15 +113,14 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		const context = await super._prepareContext(options);
 		const index = await (this.#index ??= loadArtIndex());
 		const path = rulebookPath();
-		this.#art ??= !index;
 		return Object.assign(context, {
 			pages: EXPECTED_PAGES,
 			root: ART_ROOT,
 			dir: RULEBOOK_DIR,
-			art: this.#art,
 			artDone: !!index,
 			importedOn: importDate(index?.importedAt),
 			path,
+			found: foundText(foundRulebook(), this.#busy),
 			busy: this.#busy
 		});
 	}
@@ -124,6 +130,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		await super._onFirstRender(context, options);
 		// Redraw when the book is kept or forgotten here or on another GM's screen.
 		this.#hook = Hooks.on(RULEBOOK_HOOK, () => this.rendered && this.render());
+		// A book found kept by another world is imported here without asking, by one GM.
+		if (foundRulebook() === "pending" && game.users.activeGM?.isSelf) this.#importFound();
 	}
 
 	/** @override */
@@ -133,9 +141,6 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		input?.addEventListener("change", () => {
 			const [file] = input.files ?? [];
 			if (file) this.#bringIn(file);
-		});
-		this.element.querySelector("input[data-use=art]")?.addEventListener("change", (event) => {
-			this.#art = event.currentTarget.checked;
 		});
 	}
 
@@ -157,27 +162,41 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Keep a copy of the chosen PDF, then import its art if that's ticked. The
-	 * copy goes first, as the art import ends on a report the GM has to close.
+	 * Keep a copy of the chosen PDF and import its art and tables.
 	 * @param {File} file
 	 */
 	async #bringIn(file) {
 		if (this.#busy) return;
-		const art = this.#art;
 		this.#busy = true;
 		await this.render();
 
-		let artDone = false;
 		try {
-			if (await keepRulebook(file)) openReader()?.reload();
-			if (art) artDone = !!(await importBookArt(file));
+			await bringInRulebook(file);
 		} finally {
 			this.#busy = false;
-			if (art) this.#index = null;
+			this.#index = null;
 		}
+		if (this.rendered) await this.render();
+	}
 
-		// Once the art is in, the box goes back to unticked.
-		if (artDone) this.#art = null;
+	/**
+	 * Import the art and tables from the book this world found kept by
+	 * another, which is already where the reader looks for it.
+	 */
+	async #importFound() {
+		if (this.#busy) return;
+		this.#busy = true;
+		await this.render();
+
+		let index;
+		try {
+			index = await importKeptRulebook();
+		} finally {
+			this.#busy = false;
+			this.#index = null;
+		}
+		// Given up on, the Welcome goes back to asking for the PDF, rather than trying again each time it opens.
+		await setFoundRulebook(index ? "done" : "");
 		if (this.rendered) await this.render();
 	}
 

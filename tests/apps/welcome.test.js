@@ -116,6 +116,13 @@ describe("the Welcome", () => {
 		expect(opened).toHaveLength(0);
 	});
 
+	it("says a book found kept by another world is being imported, then that it has been", () => {
+		expect(welcome.foundText("", false)).toBeNull();
+		expect(welcome.foundText("pending", true)).toBe("bastionland.welcome.book.found.importing");
+		expect(welcome.foundText("pending", false)).toBe("bastionland.welcome.book.found.pending");
+		expect(welcome.foundText("done", false)).toBe("bastionland.welcome.book.found.done");
+	});
+
 	it("is offered among the system's settings to GMs only", () => {
 		expect(game.settings.registerMenu).toHaveBeenCalledWith(SYSTEM_ID, "welcome", expect.objectContaining({
 			type: welcome.Welcome,

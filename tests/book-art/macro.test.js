@@ -35,8 +35,8 @@ describe("Import PDF macro source", () => {
 		expect(source.command).not.toMatch(/systems\//);
 		const run = new AsyncFunction("game", "ui", source.command);
 
-		const importBookArt = vi.fn(async () => "imported");
-		await expect(run({ system: { api: { importBookArt } } }, {})).resolves.toBe("imported");
+		const bringInRulebook = vi.fn(async () => "imported");
+		await expect(run({ system: { api: { bringInRulebook } } }, {})).resolves.toBe("imported");
 
 		const warn = vi.fn();
 		await expect(run({ system: {} }, { notifications: { warn } })).resolves.toBeUndefined();

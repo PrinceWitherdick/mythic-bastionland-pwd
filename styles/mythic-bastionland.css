@@ -4531,10 +4531,6 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	gap: 0.5rem;
 }
 
-.bastionland-welcome__use input[type="checkbox"] {
-	margin: 0.15rem 0 0;
-}
-
 .bastionland-welcome__always {
 	width: 13px;
 	margin-top: 0.2rem;
@@ -4543,10 +4539,9 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	text-align: center;
 }
 
-.bastionland-welcome__use :is(label, .bastionland-welcome__label) {
+.bastionland-welcome__use .bastionland-welcome__label {
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.05rem;
-	cursor: pointer;
 }
 
 .bastionland-welcome__use .hint {
@@ -4559,6 +4554,11 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	font-size: 0.9rem;
 }
 
+.bastionland-welcome .bastionland-welcome__found {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-welcome__found > i,
 .bastionland-welcome__done > i {
 	margin-right: 0.25rem;
 }

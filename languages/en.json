@@ -2577,6 +2577,7 @@
         "read": "Read It",
         "forget": "Forget It",
         "copyHint": "A file chosen from this computer is copied to {dir} in your Foundry data folder, so it’s still there next session. Forgetting it leaves the file there.",
+    "importHint": "Whichever way you point this world at the book, its art and tables are imported from it as well.",
         "whoCanRead": "Foundry serves everything in its data folder to anyone signed into the world who knows the path, so treat the copy as shared with your table.",
         "hotkey": "Press B to open or close the rulebook. Change the key under Configure Controls."
       }
@@ -2591,8 +2592,14 @@
         "heading": "Your Rulebook",
         "intro": "The rulebook doesn’t come with this system. If you own the PDF, the {pages}-page one, choose it here and this world is filled in from it.",
         "choose": "Choose the PDF",
+        "chooseAnother": "Choose a different PDF",
+        "found": {
+          "pending": "We already have your rulebook: the PDF you brought into another world is on this server, so there’s nothing to choose. What this world needs from it is imported by itself.",
+          "importing": "We already have your rulebook: the PDF you brought into another world is on this server, so there’s nothing to choose. Importing what this world needs from it now…",
+          "done": "We already had your rulebook: the PDF you brought into another world is on this server, and what this world needs from it has been imported. There was nothing to choose."
+        },
         "art": {
-          "label": "Import the art and tables",
+          "label": "The art and tables",
           "hint": "Every Knight’s, Seer’s and Myth’s picture, the text the choosers fill characters in from, the Spark Tables, and compendiums of Arms & Goods. The PDF is read in your browser, and what’s taken from it is saved to {root} in your Foundry data folder.",
           "done": "Already imported.",
           "doneOn": "Imported on {date}."
@@ -2603,7 +2610,7 @@
           "done": "This world reads its rulebook from"
         },
         "busy": "Importing…",
-        "later": "Later on, Import PDF on the hotbar and the Rulebook button in the Journal tab each do one of these again."
+        "later": "Later on, Import PDF on the hotbar and the Rulebook button in the Journal tab both do this again."
       },
       "where": {
         "heading": "Where Things Are",
@@ -2624,7 +2631,19 @@
           "text": "Referee Rolls, Spark Tables, Time and the GM Toolkit, where the Myths and their Omens are kept, wait in the Roll Tables tab."
         }
       },
-      "finish": "Close"
+      "finish": "Close",
+      "chat": {
+        "import": {
+          "title": "Your Rulebook",
+          "text": "Choose your Mythic Bastionland PDF to keep a copy to read in Foundry and to import its art and tables.",
+          "button": "Import PDF"
+        },
+        "realm": {
+          "title": "Your First Realm",
+          "text": "Roll a Realm from the book’s tables, or draw one yourself, for the Company to explore.",
+          "button": "Create a Realm"
+        }
+      }
     }
   }
 }

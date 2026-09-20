@@ -24,7 +24,7 @@ import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
-import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds } from "./module/apps/Welcome.js";
+import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { importBookArt } from "./module/book-art/importer.js";
@@ -38,6 +38,7 @@ import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { t } from "./module/chat/cards.js";
 import { registerMoraleCards } from "./module/chat/morale-card.js";
+import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -64,13 +65,14 @@ import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
+import { bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
-import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
+import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 
@@ -253,8 +255,13 @@ Hooks.once("init", () => {
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
 
+	// And the chat cards waiting beside it, to import the PDF and create a Realm.
+	registerWelcomeCards();
+
 	// Macros reach the system through here, such as Import PDF.
 	game.system.api = Object.freeze({
+		bringInRulebook,
+		// Only the art and tables, for macros written before Import PDF kept a copy to read as well.
 		importBookArt,
 		openKnightChooser,
 		openNpcChooser,
@@ -299,6 +306,10 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	// First, so it sees whether any other step has been done here before.
 	{ key: WELCOME_STEP, run: welcomeOnlyNewWorlds },
+	// A new world takes up the book another world kept, before the cards ask for one.
+	{ key: FIND_RULEBOOK_STEP, run: () => findKeptRulebook(welcomesThisWorld) },
+	// Right after it, so only a world it still greets is posted them.
+	{ key: WELCOME_CARDS_STEP, run: () => postWelcomeCards(welcomesThisWorld) },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },

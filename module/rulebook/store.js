@@ -1,5 +1,6 @@
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
+import { ART_ROOT } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -19,13 +20,31 @@ const PATH_SETTING = "rulebookPdf";
 const PLAYERS_SETTING = "rulebookForPlayers";
 
 /**
- * Top-level folder under Data a copied book lands in, outside `systems/`,
- * so a system update or reinstall can't take the GM's book with it.
+ * Top-level folder under Data a copied book lands in, outside `systems/`, so a
+ * system update or reinstall can't take the GM's book with it. It's the folder
+ * the art read out of the book goes to as well, so everything that came from
+ * the GM's copy sits in the one place.
  */
-export const RULEBOOK_DIR = "mythic-bastionland-book";
+export const RULEBOOK_DIR = ART_ROOT;
 
 /** The copy is named for the system rather than for whatever the GM's file is called, so re-picking overwrites it instead of leaving a 60 MB orphan behind. */
 const RULEBOOK_FILE = "mythic-bastionland.pdf";
+
+/**
+ * Where every world's copy lands. The folder is shared by the whole Foundry,
+ * so a book kept by one world is there for the next one made.
+ */
+export const KEPT_RULEBOOK = `${RULEBOOK_DIR}/${RULEBOOK_FILE}`;
+
+/**
+ * World setting: what became of a book this world found kept by another.
+ * "" when it found none, "pending" until its art and tables are imported
+ * here, "done" after.
+ */
+const FOUND_SETTING = "rulebookFound";
+
+/** The world setup step that looks for a book another world kept. */
+export const FIND_RULEBOOK_STEP = "findRulebook";
 
 /** Called on every client when the world's copy changes. */
 export const RULEBOOK_HOOK = `${SYSTEM_ID}.rulebookChanged`;
@@ -33,6 +52,13 @@ export const RULEBOOK_HOOK = `${SYSTEM_ID}.rulebookChanged`;
 /** Register the rulebook's settings. Called during init. */
 export function registerRulebookSettings() {
 	game.settings.register(SYSTEM_ID, PATH_SETTING, {
+		scope: "world",
+		config: false,
+		type: String,
+		default: "",
+		onChange: () => Hooks.callAll(RULEBOOK_HOOK)
+	});
+	game.settings.register(SYSTEM_ID, FOUND_SETTING, {
 		scope: "world",
 		config: false,
 		type: String,
@@ -136,4 +162,62 @@ export async function keepRulebook(file) {
 	}
 	ui.notifications.info(t("rulebook.copied"));
 	return path;
+}
+
+/** @returns {""|"pending"|"done"} What became of a book this world found kept by another. */
+export function foundRulebook() {
+	try {
+		const found = game.settings.get(SYSTEM_ID, FOUND_SETTING);
+		return found === "pending" || found === "done" ? found : "";
+	} catch {
+		return "";
+	}
+}
+
+/**
+ * @param {""|"pending"|"done"} state
+ * @returns {Promise<unknown>}
+ */
+export const setFoundRulebook = (state) => game.settings.set(SYSTEM_ID, FOUND_SETTING, state);
+
+/**
+ * @returns {Promise<boolean>} Whether a copy kept by some world is on the server.
+ */
+async function keptRulebookThere() {
+	try {
+		const response = await fetch(foundry.utils.getRoute(KEPT_RULEBOOK), { method: "HEAD", cache: "no-cache" });
+		return response.ok;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Point a new world at the book another world already kept, so its GM isn't
+ * asked for the PDF again, and leave its import to the Welcome. A world setup
+ * step, run before the welcome cards so they know not to ask either.
+ * @param {() => boolean} isNewWorld
+ */
+export async function findKeptRulebook(isNewWorld) {
+	if (!isNewWorld() || hasRulebook()) return;
+	if (!(await keptRulebookThere())) return;
+	await saveRulebookPath(KEPT_RULEBOOK);
+	await setFoundRulebook("pending");
+}
+
+/**
+ * Fetch the world's copy back as a file, to import it the way a chosen one is.
+ * @returns {Promise<File|null>} Null if it can't be fetched.
+ */
+export async function fetchRulebook() {
+	const path = rulebookPath();
+	if (!path) return null;
+	try {
+		const response = await fetch(foundry.utils.getRoute(path), { cache: "no-cache" });
+		if (!response.ok) return null;
+		return new File([await response.blob()], RULEBOOK_FILE, { type: "application/pdf" });
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | Couldn't fetch the rulebook from ${path}`, error);
+		return null;
+	}
 }

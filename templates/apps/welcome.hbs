@@ -7,13 +7,20 @@
 
 	<section class="bastionland-welcome__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.welcome.book.heading"}}</h2>
+		{{#if found}}
+		<p class="bastionland-welcome__found">
+			<i class="fa-solid {{#if busy}}fa-spinner fa-spin{{else}}fa-circle-check{{/if}}" inert></i>
+			<span>{{localize found}}</span>
+		</p>
+		{{else}}
 		<p>{{localize "bastionland.welcome.book.intro" pages=pages}}</p>
+		{{/if}}
 
 		<ul class="bastionland-welcome__uses">
 			<li class="bastionland-welcome__use">
-				<input id="bastionland-welcome-art" type="checkbox" data-use="art" {{checked art}} {{disabled busy}}>
+				<i class="fa-solid fa-images bastionland-welcome__always" inert></i>
 				<div>
-					<label for="bastionland-welcome-art">{{localize "bastionland.welcome.book.art.label"}}</label>
+					<span class="bastionland-welcome__label">{{localize "bastionland.welcome.book.art.label"}}</span>
 					<p class="hint">{{localize "bastionland.welcome.book.art.hint" root=root}}</p>
 					{{#if artDone}}
 					<p class="bastionland-welcome__done">
@@ -46,7 +53,7 @@
 			{{#if busy}}
 			<i class="fa-solid fa-spinner fa-spin" inert></i> {{localize "bastionland.welcome.book.busy"}}
 			{{else}}
-			<i class="fa-solid fa-file-pdf" inert></i> {{localize "bastionland.welcome.book.choose"}}
+			<i class="fa-solid fa-file-pdf" inert></i> {{#if found}}{{localize "bastionland.welcome.book.chooseAnother"}}{{else}}{{localize "bastionland.welcome.book.choose"}}{{/if}}
 			{{/if}}
 		</button>
 		<p class="hint">{{localize "bastionland.welcome.book.later"}}</p>

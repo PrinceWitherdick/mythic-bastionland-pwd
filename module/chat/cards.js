@@ -13,13 +13,14 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
  * @param {Roll[]} [options.rolls]
  * @param {string} [options.mode] A message mode such as "gm", used instead of the user's choice.
  * @param {object} [options.flags] Flags to store on the message, such as an Attack card's state.
+ * @param {object} [options.speaker] Who speaks instead, such as a Seer who has no Actor.
  * @returns {Promise<ChatMessage>}
  */
-export async function postCard(actor, template, context, { rolls = [], mode, flags } = {}) {
+export async function postCard(actor, template, context, { rolls = [], mode, flags, speaker } = {}) {
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath(`chat/${template}.hbs`), context);
 	const data = {
 		// Without an actor, Foundry would speak for whichever Token is selected.
-		speaker: actor ? ChatMessage.implementation.getSpeaker({ actor }) : { alias: game.user.name },
+		speaker: speaker ?? (actor ? ChatMessage.implementation.getSpeaker({ actor }) : { alias: game.user.name }),
 		content,
 		rolls
 	};

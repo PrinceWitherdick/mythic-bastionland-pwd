@@ -4,12 +4,12 @@ import { t } from "../chat/cards.js";
 import { isPdfPath } from "../rules/rulebook.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openReader, openRulebook } from "./BookReader.js";
+import { bringInRulebook, importKeptRulebook } from "./bring-in.js";
 import {
 	RULEBOOK_DIR,
 	RULEBOOK_HOOK,
 	canBrowseRulebooks,
 	canKeepRulebook,
-	keepRulebook,
 	rulebookPath,
 	saveRulebookPath
 } from "./store.js";
@@ -21,7 +21,8 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
  * own computer, which is copied into the world so it's still there next
  * session (the reader fetches by URL, and a file picked in the browser only
  * lasts until the page reloads), or a file already on the server, which is
- * the whole story on a hosted Foundry. Each choice is saved as it's made.
+ * the whole story on a hosted Foundry. Each choice is saved as it's made, and
+ * either way the book is read for its art and tables as well.
  */
 export class RulebookSetup extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -78,8 +79,7 @@ export class RulebookSetup extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @param {File|undefined} file */
 	async #keep(file) {
-		if (!file) return;
-		if (await keepRulebook(file)) openReader()?.reload();
+		if (file) await bringInRulebook(file);
 	}
 
 	/** @this {RulebookSetup} */
@@ -102,6 +102,7 @@ export class RulebookSetup extends HandlebarsApplicationMixin(ApplicationV2) {
 				if (!isPdfPath(path)) ui.notifications.warn(t("rulebook.notPdf"));
 				await saveRulebookPath(path);
 				openReader()?.reload();
+				await importKeptRulebook();
 			}
 		}).render({ force: true });
 	}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const book = vi.hoisted(() => ({ path: "mythic-bastionland-book/mythic-bastionland.pdf", reads: 0 }));
+const book = vi.hoisted(() => ({ path: "mythic-bastionland-art/mythic-bastionland.pdf", reads: 0 }));
 
 vi.mock("../../module/rulebook/store.js", () => ({ rulebookPath: () => book.path }));
 vi.mock("../../module/book-art/pdf.js", () => ({
