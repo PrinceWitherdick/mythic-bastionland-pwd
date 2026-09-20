@@ -68,6 +68,7 @@ import { openRulebook, reopenableReader, toggleRulebook } from "./module/ruleboo
 import { bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
+import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
@@ -338,8 +339,11 @@ Hooks.once("ready", async () => {
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),
-		// Import PDF takes the hotbar's last slot once every other macro has its own.
-		Promise.all([ensureImportMacro(), setup.then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar).then(ensureToolkitHotbar)]).then(ensureImportHotbar),
+		// Import PDF takes the hotbar's last slot once every other macro has its own,
+		// then the GM Toolkit (a player's Luck Roll) is put in the first.
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)])
+			.then(ensureImportHotbar)
+			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.
 		// Every GM, not only the one who made it, is then given it as their character.

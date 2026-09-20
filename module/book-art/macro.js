@@ -1,4 +1,4 @@
-import { SYSTEM_MACRO_FLAGS, arrangeHotbar } from "../actions/hotbar-macro.js";
+import { arrangeHotbar } from "../actions/hotbar-macro.js";
 import { t } from "../chat/cards.js";
 import { MACROS_PACK, SYSTEM_ID } from "../system-id.js";
 
@@ -61,20 +61,16 @@ export async function ensureImportMacro() {
 }
 
 /**
- * Give Import PDF the last slot on the first page of each GM's hotbar, the
- * one Foundry labels 0, and slide the system's other macros left into any gaps
- * that leaves. Done once per GM, after the other macros have their slots, so a
- * GM who moves it afterwards keeps it moved.
+ * Give Import PDF the last slot on the first page of each GM's hotbar, the one
+ * Foundry labels 0. Done once per GM, after the other macros have their slots,
+ * so a GM who moves it afterwards keeps it moved.
  */
 export async function ensureImportHotbar() {
 	if (!game.user.isGM || game.user.getFlag(SYSTEM_ID, IMPORT_HOTBAR_FLAG)) return;
 	const macro = game.macros.get(IMPORT_MACRO_ID);
 	if (!macro) return;
 
-	const others = game.macros
-		.filter((entry) => SYSTEM_MACRO_FLAGS.some((flag) => entry.getFlag(SYSTEM_ID, flag)))
-		.map((entry) => entry.id);
-	const hotbar = arrangeHotbar(game.user.hotbar ?? {}, macro.id, others);
+	const hotbar = arrangeHotbar(game.user.hotbar ?? {}, macro.id);
 	// Replaced whole, as assignHotbarMacro does, so emptied slots are removed rather than merged back.
 	if (!foundry.utils.objectsEqual(hotbar, game.user.hotbar ?? {})) {
 		await game.user.update({ hotbar }, { diff: false, recursive: false, noHook: true });

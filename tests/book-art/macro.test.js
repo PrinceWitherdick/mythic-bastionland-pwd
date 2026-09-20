@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LAST_SLOT, SYSTEM_MACRO_FLAGS, arrangeHotbar, emptySlot } from "../../module/actions/hotbar-macro.js";
+import { LAST_SLOT, arrangeHotbar, emptySlot } from "../../module/actions/hotbar-macro.js";
+import { GM_HOTBAR_ORDER } from "../../module/actions/hotbar-order.js";
 import { IMPORT_HOTBAR_FLAG, IMPORT_MACRO_ID, MACRO_SEEDED_SETTING, ensureImportHotbar, ensureImportMacro } from "../../module/book-art/macro.js";
 // Loaded for the macros they declare to hotbarMacro.
 import "../../module/actions/luck-macro.js";
@@ -163,25 +164,19 @@ describe("arrangeHotbar", () => {
 		expect(emptySlot(nine, "rb")).toBeNull();
 	});
 
-	it("moves Import PDF to the last slot and slides the system macros left", () => {
+	it("moves Import PDF to the last slot, leaving the rest where they are", () => {
 		const hotbar = { 1: "import", 2: "rb", 3: "luck", 4: "site", 6: "mine" };
-		expect(arrangeHotbar(hotbar, "import", ["rb", "luck", "site"]))
-			.toEqual({ 1: "rb", 2: "luck", 3: "site", 6: "mine", 10: "import" });
-	});
-
-	it("slides only into gaps, leaving the user's own macros where they are", () => {
-		const hotbar = { 1: "mine", 2: "import", 3: "rb", 5: "luck" };
-		expect(arrangeHotbar(hotbar, "import", ["rb", "luck"]))
-			.toEqual({ 1: "mine", 2: "rb", 3: "luck", 10: "import" });
+		expect(arrangeHotbar(hotbar, "import"))
+			.toEqual({ 2: "rb", 3: "luck", 4: "site", 6: "mine", 10: "import" });
 	});
 
 	it("puts Import PDF in the last slot when it wasn't on the bar", () => {
-		expect(arrangeHotbar({ 1: "rb" }, "import", ["rb"])).toEqual({ 1: "rb", 10: "import" });
+		expect(arrangeHotbar({ 1: "rb" }, "import")).toEqual({ 1: "rb", 10: "import" });
 	});
 
 	it("leaves Import PDF where it is when the user keeps their own macro in the last slot", () => {
 		const hotbar = { 1: "import", 2: "rb", 10: "mine" };
-		expect(arrangeHotbar(hotbar, "import", ["rb"])).toEqual(hotbar);
+		expect(arrangeHotbar(hotbar, "import")).toEqual(hotbar);
 	});
 });
 
@@ -193,7 +188,7 @@ describe("ensureImportHotbar", () => {
 		const setFlag = vi.fn();
 		const macros = [
 			...(macro ? [systemMacro(IMPORT_MACRO_ID, null)] : []),
-			...SYSTEM_MACRO_FLAGS.map((flag) => systemMacro(flag, flag)),
+			...GM_HOTBAR_ORDER.map((flag) => systemMacro(flag, flag)),
 			systemMacro("mine", null)
 		];
 		globalThis.game = {
@@ -209,12 +204,12 @@ describe("ensureImportHotbar", () => {
 	});
 
 	it("rearranges a GM's hotbar once", async () => {
-		expect(SYSTEM_MACRO_FLAGS).toEqual(expect.arrayContaining(["rulebookMacro", "luckRollMacro", "newSiteMacro", "gmToolkitMacro"]));
-		const [first, second] = SYSTEM_MACRO_FLAGS;
+		expect(GM_HOTBAR_ORDER).toEqual(expect.arrayContaining(["rulebookMacro", "luckRollMacro", "newSiteMacro", "gmToolkitMacro"]));
+		const [first, second] = GM_HOTBAR_ORDER;
 		const { update, setFlag } = installWorld({ hotbar: { 1: IMPORT_MACRO_ID, 2: first, 3: second, 4: "mine" } });
 		await ensureImportHotbar();
 		expect(update).toHaveBeenCalledWith(
-			{ hotbar: { 1: first, 2: second, 4: "mine", 10: IMPORT_MACRO_ID } },
+			{ hotbar: { 2: first, 3: second, 4: "mine", 10: IMPORT_MACRO_ID } },
 			{ diff: false, recursive: false, noHook: true }
 		);
 		expect(setFlag).toHaveBeenCalledWith(SYSTEM_ID, IMPORT_HOTBAR_FLAG, true);
