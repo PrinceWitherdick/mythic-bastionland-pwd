@@ -150,6 +150,8 @@ Hooks.once("init", () => {
 		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),
+		"bastionland.book-table-line": templatePath("actor/parts/book-table-line.hbs"),
+		"bastionland.table-sentence": templatePath("actor/parts/table-sentence.hbs"),
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),

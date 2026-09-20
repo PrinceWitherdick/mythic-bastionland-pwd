@@ -133,13 +133,13 @@ export function withRolls(stored, columns, rolls) {
 /**
  * What a Knight's rolls gave, column by column.
  * @param {StoredTable|null|undefined} stored
- * @returns {{column: string, roll: number, entry: string}[]} Only the columns rolled.
+ * @returns {{index: number, column: string, roll: number, entry: string}[]} Only the columns rolled.
  */
 export function tableResults(stored) {
 	if (!hasTable(stored)) return [];
 	return stored.columns.flatMap((column, index) => {
 		const roll = stored.rolls?.[index] ?? 0;
 		const entry = stored.rows[roll - 1]?.[index];
-		return entry ? [{ column, roll, entry }] : [];
+		return entry ? [{ index, column, roll, entry }] : [];
 	});
 }

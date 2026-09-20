@@ -20,8 +20,7 @@ export class KnightTable extends HandlebarsApplicationMixin(ApplicationV2) {
 		window: { icon: "fa-solid fa-dice-d6" },
 		actions: {
 			rollTable: KnightTable.#onRollTable,
-			pickRow: KnightTable.#onPickRow,
-			clearRolls: KnightTable.#onClearRolls
+			pickRow: KnightTable.#onPickRow
 		}
 	};
 
@@ -52,8 +51,7 @@ export class KnightTable extends HandlebarsApplicationMixin(ApplicationV2) {
 		return Object.assign(context, {
 			editable: this.knight.isOwner,
 			reference: stored.page ? t("knightTable.reference", { page: stored.page }) : "",
-			...tableView(stored, stored.rolls, (column) => t("knightTable.rollColumn", { column })),
-			rolledAny: (stored.rolls ?? []).some(Boolean)
+			...tableView(stored, stored.rolls, (column) => t("knightTable.rollColumn", { column }))
 		});
 	}
 
@@ -99,13 +97,6 @@ export class KnightTable extends HandlebarsApplicationMixin(ApplicationV2) {
 		const row = Number(target.dataset.row);
 		const taken = this.knight.system.bookTable.rolls?.[column] === row;
 		return setKnightTableRows(this.knight, [column], [taken ? 0 : row]);
-	}
-
-	/** @this {KnightTable} */
-	static #onClearRolls() {
-		if (this.#spinning) return;
-		const { columns } = this.knight.system.bookTable;
-		return setKnightTableRows(this.knight, columns.map((_, index) => index), columns.map(() => 0));
 	}
 }
 

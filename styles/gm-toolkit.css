@@ -820,8 +820,7 @@
 /* The table on a Knight's page (p28-170)                           */
 /* ---------------------------------------------------------------- */
 
-/* "Roll on table" opens the line under the possession that says "see below",
-   in red ochre like the sheet's headings; what the table gave follows it. */
+/* A die beside what the table gave, under the possession it belongs to. */
 .bastionland-page .bastionland-item__book-roll {
 	appearance: none;
 	display: inline;
@@ -839,7 +838,7 @@
 	color: var(--bastionland-blood);
 }
 
-/* What the table gave, under the possession, in the size of an item's notes. */
+/* What the table gave, in the size of an item's notes. */
 .bastionland-item__book-table {
 	margin: 0.1rem 0 0;
 	font-size: 0.92rem;
@@ -848,6 +847,22 @@
 
 .bastionland-item__book-table strong {
 	color: var(--bastionland-ink);
+}
+
+/* Two or more results take a line each, lined up after the die. */
+.bastionland-item__book-table.is-several {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	column-gap: 0.35rem;
+	align-items: baseline;
+}
+
+.bastionland-item__book-table.is-several .bastionland-item__book-roll {
+	grid-row: 1;
+}
+
+.bastionland-item__book-table.is-several .bastionland-item__book-result {
+	grid-column: 2;
 }
 
 /* The window, on the sheets' parchment. Its table borrows the Myth table's look from the GM Toolkit. */

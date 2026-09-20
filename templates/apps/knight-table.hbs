@@ -29,13 +29,11 @@
 			{{/each}}
 		</tbody>
 	</table>
-	{{#if editable}}
 	<nav class="bastionland-toolbar">
+		{{#if editable}}
 		<button type="button" data-action="rollTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.knightTable.roll"}}</button>
-		{{#if rolledAny}}
-		<button type="button" data-action="clearRolls"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.knightTable.clear"}}</button>
 		{{/if}}
+		<button type="button" data-action="close"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.knightTable.done"}}</button>
 	</nav>
-	{{/if}}
 	{{/if}}
 </section>

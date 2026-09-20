@@ -105,10 +105,10 @@ describe("withRolls and tableResults", () => {
 
 	it("reads what each column rolled gave", () => {
 		expect(tableResults(stored([2, 6]))).toEqual([
-			{ column: "Found on", roll: 2, entry: "Found 2" },
-			{ column: "Smells of", roll: 6, entry: "Smell 6" }
+			{ index: 0, column: "Found on", roll: 2, entry: "Found 2" },
+			{ index: 1, column: "Smells of", roll: 6, entry: "Smell 6" }
 		]);
-		expect(tableResults(stored([0, 3]))).toEqual([{ column: "Smells of", roll: 3, entry: "Smell 3" }]);
+		expect(tableResults(stored([0, 3]))).toEqual([{ index: 1, column: "Smells of", roll: 3, entry: "Smell 3" }]);
 		expect(tableResults(stored())).toEqual([]);
 		expect(tableResults(null)).toEqual([]);
 	});

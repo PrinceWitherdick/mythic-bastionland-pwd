@@ -1,6 +1,6 @@
 import { getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
-import { fillKnightFromBook } from "../actions/knight-tables.js";
+import { fillKnightFromBook, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
@@ -94,8 +94,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		const companyCount = companySizeNow();
 		const [enrichedSeerInfo, enrichedSeerNotes] = await Promise.all([this._enrich(system.seerInfo), this._enrich(system.seerNotes)]);
 		const tooLargeForSquires = !system.isSquire && !squire && !mayTakeSquires(companyCount);
-		// The table on their page sits under the possession that says "see below", which then
-		// needn't say it, or after them all.
+		// The table on their page opens from the possession that says "see below", and
+		// what it gave shows right under it, so the name needn't say "see below" too.
 		const bookTable = this.#bookTableContext();
 		const tableItem = bookTable && knightTableItemId(this.actor);
 		const propertyRows = tableItem
@@ -128,6 +128,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 				: t("sheet.worthiest"),
 			propertyTypes: PROPERTY_TYPES.map((type) => ({ type, label: game.i18n.localize(`TYPES.Item.${type}`) })),
 			property: propertyRows,
+			// A table about the Knight themself, which no possession points to, gets a row of its own.
 			bookTableRow: tableItem ? null : bookTable,
 			abilities,
 			passions,
@@ -176,17 +177,17 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	}
 
 	/**
-	 * The table on the Knight's page, as their Property shows it.
-	 * @returns {{name: string, label: string, tooltip: string, results: {column: string, entry: string}[]}|null}
+	 * The table on the Knight's page, as their Property shows it: a die that
+	 * opens the table in its own window, and what it gave.
+	 * @returns {{name: string, tooltip: string, results: {column: string, entry: string}[]}|null}
 	 */
 	#bookTableContext() {
 		const stored = this.actor.system.bookTable;
 		if (this.actor.system.isSquire || !hasTable(stored)) return null;
 		return {
 			name: stored.name,
-			label: t(this.isEditable ? "knightTable.rollLabel" : "knightTable.viewLabel"),
 			tooltip: t(this.isEditable ? "knightTable.open" : "knightTable.view", { name: stored.name }),
-			results: tableResults(stored)
+			results: withTableSentences(stored, tableResults(stored))
 		};
 	}
 
@@ -356,9 +357,13 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		return openHeraldryPainter(this.actor);
 	}
 
-	/** @this {KnightSheet} */
+	/**
+	 * The table on the Knight's page opens in its own window, to roll on or,
+	 * for someone who can only see the Knight, to read.
+	 * @this {KnightSheet}
+	 */
 	static #onOpenKnightTable() {
-		openKnightTable(this.actor);
+		return openKnightTable(this.actor);
 	}
 
 	/** @this {KnightSheet} */

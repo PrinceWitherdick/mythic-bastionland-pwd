@@ -4,6 +4,7 @@ import { postCard, statLabels, t } from "../chat/cards.js";
 import { seerAutoFill } from "../rules/creation.js";
 import { rollMythTable } from "./referee-rolls.js";
 import { KNIGHT_TABLE_VERSION } from "../rules/book-art.js";
+import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
 import { hasTable, knightEntryByType, knightTableFill, withRolls } from "../rules/knight-tables.js";
 
 /**
@@ -62,9 +63,26 @@ export async function rollKnightTable(knight, columns) {
 		name: stored.name,
 		tagline: t("knightTable.tagline", { name: knight.name, page: stored.page }),
 		prompt,
-		results
+		results: withTableSentences(stored, results)
 	}, { rolls: [roll] });
 	return { results, card, save: () => setKnightTableRows(knight, asked, results.map((result) => result.roll)) };
+}
+
+/**
+ * Each result with the sentence it reads as, where its table has one; see rules/knight-table-sentences.js.
+ * @template {{index: number, entry: string|null}} R
+ * @param {{page: number}} stored
+ * @param {R[]} results
+ * @returns {(R & {sentence: object|null})[]}
+ */
+export function withTableSentences(stored, results) {
+	return withSentences(stored, results, (roll, column) => {
+		const key = `bastionland.knightTable.sentences.${roll}.${column}`;
+		// Read straight from the translations, in the language's own before English, since
+		// `localize` hands back only strings and a joining column is written as { line, join }.
+		const at = (source) => foundry.utils.getProperty(source ?? {}, key);
+		return asPattern(at(game.i18n.translations) ?? at(game.i18n._fallback));
+	});
 }
 
 /**
