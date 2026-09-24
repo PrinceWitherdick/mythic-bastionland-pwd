@@ -1175,6 +1175,21 @@ a.button:focus:not(:focus-visible) {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
+	/*
+	 * One column now, so the Knight's two give up their own boxes and let every
+	 * block fall into the single run. A narrow sheet is not read in the order a
+	 * wide one is: Recovery belongs under the Gambits it is weighed against, and
+	 * Age and Rank under the Scars, so each block says where it lands.
+	 */
+	.tab[data-tab="knight"] .bastionland-column {
+		display: contents;
+	}
+
+	.tab[data-tab="knight"] .bastionland-column > *,
+	.tab[data-tab="knight"] .bastionland-oath {
+		order: var(--bastionland-narrow-order, 0);
+	}
+
 	.bastionland-header {
 		grid-template-areas:
 			"portrait heraldry"
@@ -1198,10 +1213,29 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-scores {
 	display: grid;
-	grid-template-columns: auto 4rem 3.4rem;
+	grid-template-columns: minmax(min-content, 8.5rem) 4rem 3.4rem minmax(max-content, 1fr);
 	align-items: center;
 	justify-content: start;
 	gap: 0.35rem 0.4rem;
+}
+
+/* Each score is a display:contents row handing the grid its three cells. Left to
+   auto-placement they would run on into the fourth column the Armour badge holds
+   and shear the rows apart, so every cell is pinned to the column it belongs in. */
+.bastionland-scores .bastionland-score__name {
+	grid-column: 1;
+	/* The name's own 8rem floor is lifted here: the first column holds it at that
+	   width while there is room, and gives it up in a narrow sheet so the Armour
+	   still has somewhere to sit rather than spilling over the next column. */
+	min-width: 0;
+}
+
+.bastionland-scores .bastionland-box {
+	grid-column: 2;
+}
+
+.bastionland-scores .bastionland-box--max {
+	grid-column: 3;
 }
 
 .bastionland-score {
@@ -1481,18 +1515,32 @@ a.button:focus:not(:focus-visible) {
 	font-size: 1.15rem;
 }
 
+/* The same shield, held at the end of the VIG row where Damage is taken. The last
+   column takes the slack so the shield sits out at the right edge, clear of the
+   boxes, rather than crowding the one beside it. */
+.bastionland-armour--score {
+	grid-column: 4;
+	grid-row: 1;
+	justify-self: end;
+	align-self: center;
+	padding-left: 0.7rem;
+	font-size: 1.35rem;
+	white-space: nowrap;
+}
+
+/* Item rows read as prose, so nothing is ruled off between them: the name that
+   opens each entry does the separating, given air. */
 .bastionland-items {
 	display: flex;
 	flex-direction: column;
-	gap: 0.15rem;
+	gap: 0.55rem;
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
 .bastionland-item {
-	padding: 0.2rem 0;
-	border-bottom: 1px dotted var(--bastionland-rule);
+	padding: 0;
 }
 
 .bastionland-item__line {
@@ -1545,6 +1593,11 @@ a.button:focus:not(:focus-visible) {
 	letter-spacing: 0.03em;
 }
 
+/* An Ability, a Passion or a Scar is known by its name, so that name keeps its bold. */
+.bastionland-items--named .bastionland-item__head {
+	font-weight: bold;
+}
+
 .bastionland-item__tags {
 	color: var(--bastionland-ink-soft);
 }
@@ -1565,6 +1618,23 @@ a.button:focus:not(:focus-visible) {
 	.bastionland-item__controls {
 		opacity: 1;
 	}
+}
+
+/* Property is a stock list, not prose, so it rules itself like a ledger: every
+   other row takes a faint wash of ink, which lands on whatever parchment the
+   sheet is wearing. The rows close up, since the striping now does the
+   separating that the air between them did. */
+.bastionland-items--zebra {
+	gap: 0;
+}
+
+.bastionland-items--zebra > li {
+	padding: 0.2rem 0.35rem;
+	border-radius: 2px;
+}
+
+.bastionland-items--zebra > li:nth-child(odd) {
+	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
 }
 
 .bastionland-item__description {

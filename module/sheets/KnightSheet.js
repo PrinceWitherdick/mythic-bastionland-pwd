@@ -24,7 +24,7 @@ import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
 import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
-import { mayTakeSquires } from "../rules/squires.js";
+import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -36,6 +36,10 @@ import { placeTabRail, stampRailSide } from "./tab-rail.js";
 /**
  * The Knight character sheet, laid out after the official printed sheet, with
  * the player's own settings on a page of its own.
+ *
+ * A Squire is the same Actor, so Knighting them is an update rather than a new
+ * document, and the same sheet, drawn as the one page p7 gives them; see
+ * templates/actor/squire-sheet.hbs.
  */
 export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	static DEFAULT_OPTIONS = {
@@ -80,15 +84,21 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		}
 	};
 
+	/** A Squire's own page, in place of the Knight's, under the figure from their portrait. */
+	static SQUIRE_TAB = Object.freeze({ id: "squire", icon: CARRIER_ICONS.squire, label: "bastionland.sheet.tabs.squire" });
+
 	/** The sheet's pages, picked from the rail hung off the window's edge. */
 	static TABS = {
 		primary: {
 			initial: "knight",
 			tabs: [
-				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight" },
+				// `squire: false` on a page a Squire has no use for (p7): their own page
+				// stands in for the Knight's, they carry their own things rather than
+				// keeping a Property page, and nobody has Knighted them, so there's no Seer.
+				{ id: "knight", icon: "fa-solid fa-chess-knight", label: "bastionland.sheet.tabs.knight", squire: false },
 				// Its icon changes with whatever carries the Knight's things; see _prepareTabs.
-				{ id: "property", icon: CARRIER_ICONS.back, label: "bastionland.sheet.tabs.property" },
-				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer" },
+				{ id: "property", icon: CARRIER_ICONS.back, label: "bastionland.sheet.tabs.property", squire: false },
+				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer", squire: false },
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// Only on a Knight that is the reader's own.
 				SETTINGS_TAB_ENTRY
@@ -133,8 +143,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			// A Knight has one Ability and one Passion; a Squire has neither until Knighted (p7).
 			canAddAbility: !system.isSquire && !abilities.length,
 			canAddPassion: !system.isSquire && !passions.length,
-			// A Knight's Squire, or the Knight a Squire serves.
-			squire: squire && { name: system.isSquire ? t("squire.serves", { name: squire.name }) : squire.name, img: squire.img },
+			// A Knight's Squire, or, on a Squire's own page, the Knight they serve.
+			squire: squire && { name: squire.name, img: squire.img },
 			squireEmpty: system.isSquire ? t("squire.servesNobody")
 				: tooLargeForSquires ? t(game.user.isGM ? "squire.largeCompanyHintGM" : "squire.largeCompanyHint", { count: companyCount })
 					: t("squire.empty"),
@@ -182,6 +192,28 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			enrichedSeerInfo,
 			enrichedSeerNotes
 		});
+	}
+
+	/**
+	 * A Squire's sheet is the one page p7 gives them, in place of the Knight's
+	 * four. Read afresh on every render, so Knighting them turns the page over.
+	 * @override
+	 */
+	_configureRenderParts(options) {
+		const parts = super._configureRenderParts(options);
+		if (this.actor.system.isSquire) parts.sheet.template = templatePath("actor/squire-sheet.hbs");
+		return parts;
+	}
+
+	/**
+	 * A Squire's rail leads with their own page and drops the Knight's pages
+	 * they've no use for.
+	 * @override
+	 */
+	_getTabsConfig(group) {
+		const config = super._getTabsConfig(group);
+		if (group !== "primary" || !config || !this.actor.system.isSquire) return config;
+		return { ...config, initial: KnightSheet.SQUIRE_TAB.id, tabs: squireTabs(config.tabs, KnightSheet.SQUIRE_TAB) };
 	}
 
 	/**

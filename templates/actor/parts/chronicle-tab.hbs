@@ -1,0 +1,11 @@
+{{!-- The Chronicle page, shared by the Knight sheet and the Squire's. --}}
+<div class="tab {{tabs.chronicle.cssClass}}" data-group="primary" data-tab="chronicle">
+	<section class="bastionland-block bastionland-chronicle">
+		<h2 class="bastionland-heading">{{localize "bastionland.sheet.chronicle"}}</h2>
+		{{#if editable}}
+		<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
+		{{else}}
+		<div class="editor-content">{{{enrichedNotes}}}</div>
+		{{/if}}
+	</section>
+</div>

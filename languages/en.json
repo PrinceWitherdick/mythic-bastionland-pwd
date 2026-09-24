@@ -30,6 +30,7 @@
       "tabs": {
         "label": "Sheet pages",
         "knight": "Knight",
+        "squire": "Squire",
         "property": "Property, Steed and Squire",
         "seer": "Seer",
         "chronicle": "Chronicle"
@@ -269,7 +270,6 @@
     "seer": {
       "label": "Seer",
       "unnamed": "Write the Seer who knighted them on the Knight page, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
-      "squire": "A Squire isn’t a Knight yet (p7). Once a Seer knights them, write the Seer’s name beside “Knighted by” on the Knight page.",
       "portrait": "Choose the Seer’s picture",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
       "notes": "Notes",
@@ -295,11 +295,10 @@
       "take": "Take a Squire",
       "rules": "An apprentice with 2d6 in each Virtue and 1GD, riding a pony (VIG 7, CLA 7, SPI 2, 2GD) and carrying a dagger (d6) and a d6 roll of extra equipment. Not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
       "empty": "Small Companies of 2 Knights or fewer may give each Knight a Squire. Take one, or drag a Squire here from the Actors tab.",
-      "serves": "Squire to {name}",
+      "servesLabel": "Squire to",
       "servesNobody": "A Squire who serves no Knight. Drag this Squire onto a Knight’s sheet.",
       "clear": "No longer linked",
       "hint": "An apprentice, not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
-      "noFeats": "Squires can’t perform Feats until they are Knighted.",
       "knight": "Knight this Squire",
       "name": "Squire to {knight}",
       "pony": "{name}’s Pony",
@@ -369,7 +368,7 @@
       },
       "mortalWound": {
         "label": "Mortal Wound",
-        "hint": "Down and dying. They die if left untended for an hour, but can be patched up in a few moments."
+        "hint": "Down and dying. You die if left untended for an hour, but can be patched up in a few moments."
       }
     },
     "recovery": {

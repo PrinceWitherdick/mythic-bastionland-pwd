@@ -1,0 +1,157 @@
+{{!-- A Squire's sheet (p7). They have 2d6 in each Virtue, 1GD, a pony, a dagger
+      and one rolled piece of equipment, and none of what a Knight has earned:
+      no Glory, no Rank, no Feats, no Seer, and no oath sworn. So their whole
+      sheet is this one page, with their Property on it rather than a page of
+      its own. Knighting flips system.isSquire and the Knight's pages take
+      over; see module/sheets/KnightSheet.js. --}}
+<div class="bastionland-page bastionland-page--tabbed">
+	<header class="bastionland-header">
+		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
+		</figure>
+		<div class="bastionland-header__text">
+			<div class="bastionland-title-row">
+				<h1 class="bastionland-title">{{localize "bastionland.squire.title"}}</h1>
+				<button type="button" class="bastionland-icon bastionland-knighthood-help" data-action="showKnighthood" aria-label="{{localize 'bastionland.knighthood.button'}}">
+					<i class="fa-solid fa-circle-question" inert></i>
+				</button>
+			</div>
+			<p class="bastionland-line">
+				<label class="bastionland-script" for="{{rootId}}-name">{{localize "bastionland.sheet.named"}}</label>
+				<input id="{{rootId}}-name" class="bastionland-blank" type="text" name="name" value="{{actor.name}}" autocomplete="off" spellcheck="false">
+			</p>
+			{{!-- Whom they serve, where a Knight's sheet says who Knighted them. --}}
+			<p class="bastionland-line">
+				{{#if squire}}
+				<span class="bastionland-script">{{localize "bastionland.squire.servesLabel"}}</span>
+				<button type="button" class="bastionland-item__name" data-action="openSquire">{{squire.name}}</button>
+				{{#if editable}}
+				<button type="button" class="bastionland-icon" data-action="clearSquire" data-tooltip="{{localize 'bastionland.squire.clear'}}" aria-label="{{localize 'bastionland.squire.clear'}}">
+					<i class="fa-solid fa-xmark" inert></i>
+				</button>
+				{{/if}}
+				{{else}}
+				<span class="bastionland-empty">{{squireEmpty}}</span>
+				{{/if}}
+			</p>
+		</div>
+		<figure class="bastionland-heraldry" data-tooltip="{{localize (ifThen editable 'bastionland.heraldry.paint' 'bastionland.sheet.heraldry')}}">
+			{{#if editable}}
+			<button type="button" class="bastionland-heraldry__field" data-action="paintHeraldry" aria-label="{{localize 'bastionland.heraldry.paint'}}">
+				{{#if system.heraldry}}<img src="{{system.heraldry}}" alt="">{{/if}}
+			</button>
+			{{else}}
+			<span class="bastionland-heraldry__field">
+				{{#if system.heraldry}}<img src="{{system.heraldry}}" alt="{{localize 'bastionland.sheet.heraldry'}}">{{/if}}
+			</span>
+			{{/if}}
+		</figure>
+		{{#if editable}}
+		<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{localize 'bastionland.sheet.title'}}">
+			<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
+			<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> <span>{{localize "bastionland.duel.title"}}</span></button>
+			<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
+		</nav>
+		{{/if}}
+	</header>
+
+	<div class="tab {{tabs.squire.cssClass}}" data-group="primary" data-tab="squire">
+		<div class="bastionland-columns">
+			<div class="bastionland-column">
+				<section class="bastionland-scores">
+					{{> "bastionland.virtue-scores"}}
+
+					{{!-- Beside VIG, where the blows land, as on a Knight's page. --}}
+					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+						<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
+					</span>
+				</section>
+
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
+					<ul class="bastionland-conditions">
+						{{> "bastionland.condition-items"}}
+					</ul>
+				</section>
+
+				<section class="bastionland-block">
+					{{> "bastionland.recovery-list"}}
+				</section>
+
+				<div class="bastionland-pair">
+					{{> "bastionland.age-choices"}}
+					{{!-- Where a Knight's page keeps their Rank: what a Squire goes without, and what Knighting gives them. --}}
+					<section class="bastionland-block">
+						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.squire.rules'}}">{{localize "bastionland.squire.label"}}</h2>
+						<p class="bastionland-hint">{{localize "bastionland.squire.hint"}}</p>
+					</section>
+				</div>
+			</div>
+
+			<div class="bastionland-column">
+				{{!-- A Squire has neither until Knighted, so these show only for one the Referee has given something. --}}
+				{{#if abilities.length}}
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.ability.hint'}}">{{localize "bastionland.ability.label"}}</h2>
+					<ul class="bastionland-items bastionland-items--prose bastionland-items--named">
+						{{#each abilities}}
+						{{> "bastionland.item-row"}}
+						{{/each}}
+					</ul>
+				</section>
+				{{/if}}
+
+				{{#if passions.length}}
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.passion.hint'}}">{{localize "bastionland.passion.label"}}</h2>
+					<ul class="bastionland-items bastionland-items--prose bastionland-items--named">
+						{{#each passions}}
+						{{> "bastionland.item-row"}}
+						{{/each}}
+					</ul>
+				</section>
+				{{/if}}
+
+				{{!-- A Squire carries their own things, so their Property stays on this page. --}}
+				<section class="bastionland-block">
+					<header class="bastionland-block__header">
+						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.property.hint'}}">{{localize "bastionland.property.label"}}</h2>
+						<span class="bastionland-armour" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+							<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
+						</span>
+					</header>
+					<ul class="bastionland-items">
+						{{#each property}}
+						{{> "bastionland.item-row"}}
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
+						{{/each}}
+					</ul>
+					<div class="bastionland-adds">
+						{{#each propertyTypes}}
+						{{> "bastionland.add-item"}}
+						{{/each}}
+					</div>
+				</section>
+
+				{{> "bastionland.steed-block"}}
+				<section class="bastionland-block">
+					{{> "bastionland.scar-list"}}
+				</section>
+
+				{{!-- Gambits are what anyone may do with an Attack die, Knighted or not. --}}
+				<section class="bastionland-block">
+					{{> "bastionland.gambit-list"}}
+				</section>
+			</div>
+		</div>
+	</div>
+
+	{{> "bastionland.chronicle-tab"}}
+
+	{{#if tabs.settings}}
+	<div class="tab {{tabs.settings.cssClass}}" data-group="primary" data-tab="settings">
+		{{> "bastionland.settings-tab"}}
+	</div>
+	{{/if}}
+</div>

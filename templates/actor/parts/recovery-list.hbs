@@ -1,0 +1,22 @@
+{{!-- How each Virtue and Guard comes back, with the buttons that do it. Shared by the Knight's sheet and the Squire's, which recover the same way. --}}
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.recovery.label"}}</h2>
+					<ul class="bastionland-recovery">
+						{{#each virtues}}
+						<li>
+							<span><strong>{{abbr}}</strong> – {{recovery}}</span>
+							{{#if @root.editable}}
+							<button type="button" class="bastionland-icon" data-action="restore" data-virtue="{{key}}" data-tooltip="{{restoreLabel}}" aria-label="{{restoreLabel}}">
+								<i class="fa-solid fa-heart-pulse" inert></i>
+							</button>
+							{{/if}}
+						</li>
+						{{/each}}
+						<li>
+							<span><strong>{{localize "bastionland.recovery.guardLabel"}}</strong> – {{localize "bastionland.recovery.guard"}}</span>
+							{{#if editable}}
+							<button type="button" class="bastionland-icon" data-action="rest" data-tooltip="{{localize 'bastionland.sheet.rest'}}" aria-label="{{localize 'bastionland.sheet.rest'}}">
+								<i class="fa-solid fa-mug-hot" inert></i>
+							</button>
+							{{/if}}
+						</li>
+					</ul>

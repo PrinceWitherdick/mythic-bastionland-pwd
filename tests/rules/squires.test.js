@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	SQUIRE_EQUIPMENT,
@@ -10,7 +12,8 @@ import {
 	ponySystem,
 	squireEquipment,
 	squireItems,
-	squireSystem
+	squireSystem,
+	squireTabs
 } from "../../module/rules/squires.js";
 
 const names = { dagger: "Dagger", cudgel: "Cudgel", axe: "Axe", hatchet: "Hatchet", shortbow: "Shortbow", shield: "Shield", javelins: "Three javelins" };
@@ -111,5 +114,39 @@ describe("knightedLooks", () => {
 	it("keeps pictures the player chose", () => {
 		expect(knightedLooks(looks("art/sir-hew.webp", "art/sir-hew-token.webp"), blank)).toEqual({});
 		expect(knightedLooks(looks("art/sir-hew.webp", SQUIRE_IMAGE), blank)).toEqual({ "prototypeToken.texture.src": blank });
+	});
+});
+
+describe("squireTabs", () => {
+	const page = { id: "squire" };
+	// The rail as the Knight sheet declares it: a page a Squire has no use for says so itself.
+	const knightRail = [
+		{ id: "knight", squire: false },
+		{ id: "property", squire: false },
+		{ id: "seer", squire: false },
+		{ id: "chronicle" }
+	];
+
+	it("leads with the Squire's page and keeps the Chronicle", () => {
+		expect(squireTabs(knightRail, page).map((tab) => tab.id)).toEqual(["squire", "chronicle"]);
+	});
+
+	it("drops the Knight's page, their Property page and their Seer", () => {
+		const ids = squireTabs(knightRail, page).map((tab) => tab.id);
+		for (const id of ["knight", "property", "seer"]) expect(ids).not.toContain(id);
+	});
+
+	// The fact lives on the tab table, so a page added to the rail is a Squire's
+	// unless it says otherwise there.
+	it("reads that off the Knight sheet's own rail", () => {
+		const rail = readFileSync(join(import.meta.dirname, "../../module/sheets/KnightSheet.js"), "utf8");
+		for (const id of ["knight", "property", "seer"]) {
+			expect(rail, `the ${id} page is marked as no Squire's`).toMatch(new RegExp(`id: "${id}",[^\\n]*squire: false`));
+		}
+	});
+
+	it("keeps a page the reader is shown, such as Settings, and leaves out one they aren't", () => {
+		expect(squireTabs([...knightRail, { id: "settings" }], page).map((tab) => tab.id)).toEqual(["squire", "chronicle", "settings"]);
+		expect(squireTabs(knightRail, page).map((tab) => tab.id)).not.toContain("settings");
 	});
 });

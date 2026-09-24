@@ -36,6 +36,18 @@ export const SQUIRE_EQUIPMENT = Object.freeze([
 ]);
 
 /**
+ * The pages a Squire's sheet shows: their own, then whatever of the Knight's
+ * still suits them. Taken from the pages the reader is shown rather than a list
+ * of its own, so a page that comes and goes with the reader, such as Settings,
+ * still does, and a page added to the rail is a Squire's unless it says
+ * otherwise with `squire: false`.
+ * @param {{id: string, squire?: boolean}[]} tabs The Knight sheet's pages, as this reader sees them.
+ * @param {{id: string}} squirePage  The Squire's own page, which leads.
+ * @returns {{id: string}[]}
+ */
+export const squireTabs = (tabs, squirePage) => [squirePage, ...tabs].filter((tab) => tab.squire !== false);
+
+/**
  * @param {number} value
  * @returns {{value: number, max: number}} A score at its maximum.
  */

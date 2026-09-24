@@ -1,0 +1,12 @@
+{{!-- The Scars carried, and the roll that takes another. --}}
+					<h2 class="bastionland-heading">{{localize "bastionland.scars.label"}}</h2>
+					<ul class="bastionland-items bastionland-items--prose bastionland-items--named">
+						{{#each scars}}
+						{{> "bastionland.item-row"}}
+						{{/each}}
+					</ul>
+					{{#if editable}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-add" data-action="rollScar"><i class="fa-solid fa-bone-break" inert></i> {{localize "bastionland.sheet.rollScar"}}</button>
+					</div>
+					{{/if}}

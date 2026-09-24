@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe("buttons that only post to chat", () => {
-	const templates = ["actor/parts/feat-list.hbs", "actor/knight-sheet.hbs", "actor/parts/item-row.hbs"];
+	const templates = ["actor/parts/feat-list.hbs", "actor/parts/gambit-list.hbs", "actor/parts/item-row.hbs"];
 	const buttons = templates.flatMap((file) =>
 		readFileSync(join(root, "templates", file), "utf8").match(/<button\b[^>]*data-action="(?:performFeat|postGambit|postItem)"[^>]*>/g));
 

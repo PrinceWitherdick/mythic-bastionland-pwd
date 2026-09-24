@@ -1,0 +1,12 @@
+{{!-- The ages a Knight or a Squire may be, one of them chosen. --}}
+					<section class="bastionland-block">
+						<h2 class="bastionland-heading">{{localize "bastionland.age.label"}}</h2>
+						<ul class="bastionland-choices">
+							{{#each ages}}
+							<li>
+								<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setAge" data-age="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+							</li>
+							{{/each}}
+						</ul>
+					</section>
+

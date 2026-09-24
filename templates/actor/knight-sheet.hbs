@@ -51,41 +51,35 @@
 	<div class="tab {{tabs.knight.cssClass}}" data-group="primary" data-tab="knight">
 		<div class="bastionland-columns">
 			<div class="bastionland-column">
-				<section class="bastionland-scores">
+				<section class="bastionland-scores" data-block="scores" style="--bastionland-narrow-order: 1">
 					{{> "bastionland.virtue-scores"}}
 
-					{{#unless isSquire}}
+					{{!-- The Property page's Armour, repeated beside VIG where the blows land. --}}
+					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+						<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
+					</span>
+
 					<div class="bastionland-score">
 						<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-glory" data-tooltip="{{localize 'bastionland.glory.hint'}}">{{localize "bastionland.glory.label"}}</label>
 						<input id="{{rootId}}-glory" class="bastionland-box" type="number" name="system.glory" value="{{system.glory}}" min="0" step="1">
 					</div>
-					{{/unless}}
 				</section>
 
-				<section class="bastionland-block">
+				<section class="bastionland-block" data-block="conditions" style="--bastionland-narrow-order: 2">
 					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
 					<ul class="bastionland-conditions">
 						{{> "bastionland.condition-items"}}
 					</ul>
 				</section>
 
-				<div class="bastionland-pair">
-					<section class="bastionland-block">
-						<h2 class="bastionland-heading">{{localize "bastionland.age.label"}}</h2>
-						<ul class="bastionland-choices">
-							{{#each ages}}
-							<li>
-								<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setAge" data-age="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-							</li>
-							{{/each}}
-						</ul>
-					</section>
+				<section class="bastionland-block" data-block="recovery" style="--bastionland-narrow-order: 7">
+					{{> "bastionland.recovery-list"}}
+				</section>
 
+				<div class="bastionland-pair" data-block="age" style="--bastionland-narrow-order: 9">
+					{{> "bastionland.age-choices"}}
 					<section class="bastionland-block">
 						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.rank.hint'}}">{{localize "bastionland.rank.label"}}</h2>
-						{{#if isSquire}}
-						<p class="bastionland-hint">{{localize "bastionland.squire.hint"}}</p>
-						{{else}}
 						<ul class="bastionland-choices">
 							{{#each ranks}}
 							<li class="bastionland-choice bastionland-choice--static{{#if active}} is-active{{/if}}" data-tooltip="{{worthy}}">
@@ -95,41 +89,16 @@
 						</ul>
 						<p class="bastionland-hint bastionland-worthy">{{worthyOf}}</p>
 						<p class="bastionland-hint">{{nextRank}}</p>
-						{{/if}}
 					</section>
 				</div>
-
-				<section class="bastionland-block">
-					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.recovery.label"}}</h2>
-					<ul class="bastionland-recovery">
-						{{#each virtues}}
-						<li>
-							<span><strong>{{abbr}}</strong> – {{recovery}}</span>
-							{{#if @root.editable}}
-							<button type="button" class="bastionland-icon" data-action="restore" data-virtue="{{key}}" data-tooltip="{{restoreLabel}}" aria-label="{{restoreLabel}}">
-								<i class="fa-solid fa-heart-pulse" inert></i>
-							</button>
-							{{/if}}
-						</li>
-						{{/each}}
-						<li>
-							<span><strong>{{localize "bastionland.recovery.guardLabel"}}</strong> – {{localize "bastionland.recovery.guard"}}</span>
-							{{#if editable}}
-							<button type="button" class="bastionland-icon" data-action="rest" data-tooltip="{{localize 'bastionland.sheet.rest'}}" aria-label="{{localize 'bastionland.sheet.rest'}}">
-								<i class="fa-solid fa-mug-hot" inert></i>
-							</button>
-							{{/if}}
-						</li>
-					</ul>
-				</section>
 			</div>
 
 			<div class="bastionland-column">
 				{{!-- A Squire's sheet leaves these out unless they carry one already. --}}
 				{{#if (or abilities.length canAddAbility)}}
-				<section class="bastionland-block">
+				<section class="bastionland-block" data-block="property" style="--bastionland-narrow-order: 3">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.ability.hint'}}">{{localize "bastionland.ability.label"}}</h2>
-					<ul class="bastionland-items bastionland-items--prose">
+					<ul class="bastionland-items bastionland-items--prose bastionland-items--named">
 						{{#each abilities}}
 						{{> "bastionland.item-row"}}
 						{{/each}}
@@ -143,9 +112,9 @@
 				{{/if}}
 
 				{{#if (or passions.length canAddPassion)}}
-				<section class="bastionland-block">
+				<section class="bastionland-block" data-block="passions" style="--bastionland-narrow-order: 4">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.passion.hint'}}">{{localize "bastionland.passion.label"}}</h2>
-					<ul class="bastionland-items bastionland-items--prose">
+					<ul class="bastionland-items bastionland-items--prose bastionland-items--named">
 						{{#each passions}}
 						{{> "bastionland.item-row"}}
 						{{/each}}
@@ -158,46 +127,20 @@
 				</section>
 				{{/if}}
 
-				<section class="bastionland-block">
+				<section class="bastionland-block" data-block="feats" style="--bastionland-narrow-order: 5">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.feats.knightHint'}}">{{localize "bastionland.feats.label"}}</h2>
-					{{#if isSquire}}
-					<p class="bastionland-hint">{{localize "bastionland.squire.noFeats"}}</p>
-					{{else}}
 					{{> "bastionland.feat-list"}}
-					{{/if}}
 				</section>
 
-				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.gambits.label"}}</h2>
-					<ul class="bastionland-gambits">
-						{{#each gambits}}
-						<li>
-							<button type="button" class="bastionland-move" data-action="postGambit" data-gambit="{{key}}" data-viewable>
-								<span class="bastionland-move__text">{{{label}}}</span>
-							</button>
-						</li>
-						{{/each}}
-					</ul>
-					<p class="bastionland-hint">{{localize "bastionland.gambits.hint"}}</p>
-					<p class="bastionland-hint">{{{localize "bastionland.gambits.strong"}}}</p>
+				<section class="bastionland-block" data-block="gambits" style="--bastionland-narrow-order: 6">
+					{{> "bastionland.gambit-list"}}
 				</section>
 
-				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.scars.label"}}</h2>
-					<ul class="bastionland-items bastionland-items--prose">
-						{{#each scars}}
-						{{> "bastionland.item-row"}}
-						{{/each}}
-					</ul>
-					{{#if editable}}
-					<div class="bastionland-adds">
-						<button type="button" class="bastionland-add" data-action="rollScar"><i class="fa-solid fa-bone-break" inert></i> {{localize "bastionland.sheet.rollScar"}}</button>
-					</div>
-					{{/if}}
+				<section class="bastionland-block" data-block="scars" style="--bastionland-narrow-order: 8">
+					{{> "bastionland.scar-list"}}
 				</section>
 
-				{{#unless isSquire}}
-				<section class="bastionland-block">
+				<section class="bastionland-block" data-block="squire" style="--bastionland-narrow-order: 10">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.successor.hint'}}">{{localize "bastionland.successor.label"}}</h2>
 					{{#if successor}}
 					<div class="bastionland-steed">
@@ -218,10 +161,9 @@
 					{{/if}}
 					{{/if}}
 				</section>
-				{{/unless}}
 			</div>
 
-			<section class="bastionland-oath">
+			<section class="bastionland-oath" data-block="oath" style="--bastionland-narrow-order: 11">
 				<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.oath.hint'}}">{{localize "bastionland.oath.label"}}</h2>
 				<p>{{localize "bastionland.oath.line1"}}</p>
 				<p>{{localize "bastionland.oath.line2"}}</p>
@@ -234,40 +176,7 @@
 		{{!-- Whatever carries the Knight's goods, which the page's tab shows, then what they own. --}}
 		<div class="bastionland-columns bastionland-columns--wide-last">
 			<div class="bastionland-column">
-				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.steed.label"}}</h2>
-					{{#if steed}}
-					<div class="bastionland-steed">
-						<img class="bastionland-steed__img" src="{{steed.img}}" alt="">
-						<div class="bastionland-steed__text">
-							<span class="bastionland-steed__title">
-								<button type="button" class="bastionland-item__name" data-action="openSteed">{{steed.name}}</button>
-								{{#if steed.renamable}}
-								<button type="button" class="bastionland-icon" data-action="renameSteed" data-tooltip="{{localize 'bastionland.steed.rename'}}" aria-label="{{localize 'bastionland.steed.rename'}}">
-									<i class="fa-solid fa-pen" inert></i>
-								</button>
-								{{/if}}
-							</span>
-							{{#if (or steed.breed steed.trample)}}
-							<span class="bastionland-item__tags">{{#if steed.breed}}<span>{{steed.breed}}</span>{{/if}}{{#if steed.trample}}<span>{{steed.trample}}</span>{{/if}}</span>
-							{{/if}}
-						</div>
-						{{#if editable}}
-						<button type="button" class="bastionland-icon" data-action="clearSteed" data-tooltip="{{localize 'bastionland.steed.clear'}}" aria-label="{{localize 'bastionland.steed.clear'}}">
-							<i class="fa-solid fa-xmark" inert></i>
-						</button>
-						{{/if}}
-					</div>
-					{{else}}
-					<p class="bastionland-empty">{{localize "bastionland.steed.empty"}}</p>
-					{{#if editable}}
-					<div class="bastionland-adds">
-						<button type="button" class="bastionland-button" data-action="takeSteed"><i class="fa-solid fa-horse" inert></i> {{localize "bastionland.steed.take"}}</button>
-					</div>
-					{{/if}}
-					{{/if}}
-				</section>
-
+				{{> "bastionland.steed-block"}}
 				<section class="bastionland-block">
 					<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.squire.rules'}}">{{localize "bastionland.squire.label"}}</h2>
 					{{#if squire}}
@@ -282,11 +191,11 @@
 					</div>
 					{{else}}
 					<p class="bastionland-empty">{{squireEmpty}}</p>
-					{{#if editable}}{{#unless isSquire}}
+					{{#if editable}}
 					<div class="bastionland-adds">
 						<button type="button" class="bastionland-button" data-action="takeSquire"{{#if squireBarred}} disabled{{/if}}><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.squire.take"}}</button>
 					</div>
-					{{/unless}}{{/if}}
+					{{/if}}
 					{{/if}}
 				</section>
 			</div>
@@ -299,7 +208,7 @@
 							<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 						</span>
 					</header>
-					<ul class="bastionland-items">
+					<ul class="bastionland-items bastionland-items--zebra">
 						{{#each property}}
 						{{> "bastionland.item-row"}}
 						{{else}}
@@ -329,7 +238,7 @@
 				<h2 class="bastionland-heading">{{#if system.seer}}<small class="bastionland-seer__by">{{localize "bastionland.sheet.knightedBy"}}</small> {{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
 			</header>
 			{{#unless system.seer}}
-			<p class="bastionland-hint">{{localize (ifThen isSquire "bastionland.seer.squire" "bastionland.seer.unnamed")}}</p>
+			<p class="bastionland-hint">{{localize "bastionland.seer.unnamed"}}</p>
 			{{/unless}}
 			<div class="bastionland-seer__body">
 				{{#if (or system.seerImg editable)}}
@@ -384,16 +293,7 @@
 		</section>
 	</div>
 
-	<div class="tab {{tabs.chronicle.cssClass}}" data-group="primary" data-tab="chronicle">
-		<section class="bastionland-block bastionland-chronicle">
-			<h2 class="bastionland-heading">{{localize "bastionland.sheet.chronicle"}}</h2>
-			{{#if editable}}
-			<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
-			{{else}}
-			<div class="editor-content">{{{enrichedNotes}}}</div>
-			{{/if}}
-		</section>
-	</div>
+	{{> "bastionland.chronicle-tab"}}
 
 	{{#if tabs.settings}}
 	<div class="tab {{tabs.settings.cssClass}}" data-group="primary" data-tab="settings">
