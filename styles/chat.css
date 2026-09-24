@@ -23,6 +23,63 @@
 	margin: 0;
 }
 
+/*
+ * Foundry frames a message in its own parchment, so a card's paper — or a
+ * Phase's or a Season's colour — stopped short of the message's edges. Where a
+ * message holds one of our cards the message itself takes the card's paper and
+ * rule, and the card gives up its own frame, so the colour fills the box,
+ * header and all. The message keeps its padding, so the words still sit off the
+ * edge, and the card's tokens are inherited, so every part of it follows.
+ */
+.chat-message:has(.bastionland-card) {
+	border-color: var(--bastionland-rule);
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+}
+
+/* A whisper keeps Foundry's border: the one cue that says who else can read it. */
+.chat-message.whisper:has(.bastionland-card) {
+	border-color: var(--color-whisper-border);
+}
+
+.chat-message.blind:has(.bastionland-card) {
+	border-color: var(--color-blind-border);
+}
+
+/*
+ * The sender and the time sit on the card's paper now, so they take its ink and
+ * its hand rather than Foundry's furniture. The name is set in the small caps
+ * the system names a place or a score in, a size over the card's own words and
+ * in the full ink, so it reads as the byline the card is posted under. It is
+ * let wrap: a long name held to one line would either push the time off the
+ * card or be cut in half.
+ */
+.chat-message:has(.bastionland-card) .message-header {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+}
+
+.chat-message:has(.bastionland-card) .message-header .message-sender {
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+	letter-spacing: 0.04em;
+	line-height: 1.2;
+	white-space: normal;
+}
+
+/* Foundry sets the time below the floor; it takes the card's small print instead. */
+.chat-message:has(.bastionland-card) .message-header .message-metadata {
+	font-size: var(--bastionland-font-note);
+}
+
+.chat-message .bastionland-card {
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+}
+
 .bastionland-card__header {
 	display: flex;
 	flex-direction: column;
@@ -876,20 +933,17 @@
 /*
  * A report card painted in a Phase's light or a Season's colours: bright for
  * Morning, the low sun's amber for Afternoon, dark for Night, Spring's new green,
- * Harvest's ripe gold and Winter's frost. The card's own tokens are redefined so
- * every part of it follows.
+ * Harvest's ripe gold and Winter's frost. The tokens are redefined on the whole
+ * message, so the colour fills it and every part of the card follows.
  */
-.bastionland-card--painted {
-	border-width: 2px;
-}
-
 .bastionland-card--painted .bastionland-card__title i {
 	color: var(--bastionland-card-icon);
 	font-size: 0.8em;
 	vertical-align: 0.1em;
 }
 
-.bastionland-card--morning {
+.bastionland-card--morning,
+.chat-message:has(.bastionland-card--morning) {
 	--bastionland-card-icon: #c98a10;
 	--bastionland-paper: #fdf6d8;
 	--bastionland-ink: #2a2414;
@@ -898,7 +952,8 @@
 	background: linear-gradient(160deg, #fffbe8, #f8e7a0);
 }
 
-.bastionland-card--afternoon {
+.bastionland-card--afternoon,
+.chat-message:has(.bastionland-card--afternoon) {
 	--bastionland-card-icon: #9c4a12;
 	--bastionland-paper: #efc88e;
 	--bastionland-ink: #2e1c0c;
@@ -907,7 +962,8 @@
 	background: linear-gradient(160deg, #f3d39c, #dc9a58);
 }
 
-.bastionland-card--night {
+.bastionland-card--night,
+.chat-message:has(.bastionland-card--night) {
 	--bastionland-card-icon: #e8dfa8;
 	--bastionland-paper: #1c2038;
 	--bastionland-ink: #ece6f6;
@@ -933,7 +989,8 @@
 	letter-spacing: 0.04em;
 }
 
-.bastionland-card--spring {
+.bastionland-card--spring,
+.chat-message:has(.bastionland-card--spring) {
 	--bastionland-card-icon: var(--bastionland-spring);
 	--bastionland-paper: #eef5dc;
 	--bastionland-ink: #1f2a14;
@@ -942,7 +999,8 @@
 	background: linear-gradient(160deg, #f6fbe8, #d6e8b0);
 }
 
-.bastionland-card--harvest {
+.bastionland-card--harvest,
+.chat-message:has(.bastionland-card--harvest) {
 	--bastionland-card-icon: var(--bastionland-harvest);
 	--bastionland-paper: #f2dfae;
 	--bastionland-ink: #2e200c;
@@ -951,7 +1009,8 @@
 	background: linear-gradient(160deg, #f7e7bc, #deb466);
 }
 
-.bastionland-card--winter {
+.bastionland-card--winter,
+.chat-message:has(.bastionland-card--winter) {
 	--bastionland-card-icon: var(--bastionland-winter);
 	--bastionland-paper: #e4ecf2;
 	--bastionland-ink: #16202a;
