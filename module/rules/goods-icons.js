@@ -6,26 +6,14 @@
  * to assets/icons/goods. Pure, so it can be tested without Foundry.
  */
 import { SYSTEM_PATH } from "../system-id.js";
-import { capitalise, splitName } from "./text.js";
+import { iconSet } from "./game-icons.js";
+import { splitName } from "./text.js";
 
 /** Where the pictures are served from. */
 export const GOODS_ICON_ROOT = `${SYSTEM_PATH}/assets/icons/goods`;
 
 /** The credits file saved beside the pictures. */
 export const GOODS_ICON_CREDITS_FILE = "CREDITS.md";
-
-/** game-icons.net's artists, by the folder their icons are in, as the site credits them. */
-const ARTISTS = Object.freeze({
-	"caro-asercion": { name: "Caro Asercion" },
-	"carl-olsen": { name: "Carl Olsen", url: "https://twitter.com/unstoppableCarl" },
-	cathelineau: { name: "Cathelineau" },
-	delapouite: { name: "Delapouite", url: "https://delapouite.com" },
-	"heavenly-dog": { name: "HeavenlyDog", url: "http://www.gnomosygoblins.blogspot.com" },
-	lorc: { name: "Lorc", url: "https://lorcblog.blogspot.com" },
-	lucasms: { name: "Lucas" },
-	sbed: { name: "sbed", url: "http://opengameart.org/content/95-game-icons" },
-	skoll: { name: "Skoll" }
-});
 
 /** Every picture, by the file it's saved as, and the game-icons.net icon it's made from. */
 export const GOODS_ICONS = Object.freeze({
@@ -344,39 +332,25 @@ export function goodsActorIcon({ type, name }) {
 	return key ? goodsIconPath(key) : null;
 }
 
+/** What this set's pictures are credited as. */
+const CREDITS = iconSet({
+	icons: Object.entries(GOODS_ICONS).map(([key, icon]) => ({ key, icon })),
+	heading: "Item, beast and structure pictures",
+	blurb: ["Each is recoloured and set on an ink disc; the artwork is otherwise unchanged. Each picture carries its credit too."]
+});
+
 /**
  * @param {string} key A GOODS_ICONS key.
  * @returns {{title: string, artist: string, url?: string, page: string}} Who drew it, and where it's from.
  */
-export function goodsIconCredit(key) {
-	const [folder, icon] = GOODS_ICONS[key].split("/");
-	const artist = ARTISTS[folder];
-	return { title: capitalise(icon.split("-").join(" ")), artist: artist.name, url: artist.url, page: `https://game-icons.net/1x1/${folder}/${icon}.html` };
-}
+export const goodsIconCredit = CREDITS.credit;
 
 /**
  * @param {string} key
  * @returns {string} The credit an icon's picture carries, as the Squire's does. It holds
  *   no pair of hyphens, which would break the XML comment it goes in.
  */
-export function goodsIconNotice(key) {
-	const { title, artist, url, page } = goodsIconCredit(key);
-	return `"${title}" by ${artist}${url ? ` (${url})` : ""}, from game icons dot net (${page}), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).`;
-}
+export const goodsIconNotice = CREDITS.notice;
 
 /** @returns {string} The credits file, one line for each icon. */
-export function goodsIconCredits() {
-	const lines = Object.keys(GOODS_ICONS).map((key) => {
-		const { title, artist, url, page } = goodsIconCredit(key);
-		return `- \`${key}.svg\`: [${title}](${page}) by ${url ? `[${artist}](${url})` : artist}`;
-	});
-	return [
-		"# Item, beast and structure pictures",
-		"",
-		"Icons from [game-icons.net](https://game-icons.net), shared under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).",
-		"Each is recoloured and set on an ink disc; the artwork is otherwise unchanged. Each picture carries its credit too.",
-		"",
-		...lines,
-		""
-	].join("\n");
-}
+export const goodsIconCredits = CREDITS.credits;

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ensureSiteHotbar, seedSiteMacro } from "../module/actions/site-macro.js";
 import { SYSTEM_ID } from "../module/system-id.js";
+import { macroIconPath } from "../module/rules/macro-icons.js";
+
+/** The picture the macro wears, drawn in the system's ink. */
+const IMAGE = macroIconPath("new-site");
 
 const COMMAND = "game.system.api.newSite();";
 
@@ -21,9 +25,10 @@ function installWorld({ isGM = true, macro = null, hotbar = {}, placed = false }
 	return { create, assign, setFlag };
 }
 
-/** A world macro carrying the system's flag. */
-const worldMacro = ({ command = COMMAND } = {}) => ({
-	id: "site", command, update: vi.fn(), getFlag: (scope, key) => scope === SYSTEM_ID && key === "newSiteMacro"
+/** A world macro carrying the system's flag. `given` is the picture the system remembers giving it; null for a world made before it remembered. */
+const worldMacro = ({ command = COMMAND, img = IMAGE, given = IMAGE } = {}) => ({
+	id: "site", command, img, update: vi.fn(),
+	getFlag: (scope, key) => scope === SYSTEM_ID && (key === "givenImg" ? given : key === "newSiteMacro")
 });
 
 afterEach(() => {
@@ -39,9 +44,9 @@ describe("seedSiteMacro", () => {
 		expect(data).toMatchObject({
 			name: "bastionland.sites.newSite",
 			type: "script",
-			img: "icons/environment/wilderness/tomb-entrance.webp",
+			img: IMAGE,
 			command: COMMAND,
-			flags: { [SYSTEM_ID]: { newSiteMacro: true } }
+			flags: { [SYSTEM_ID]: { newSiteMacro: true, givenImg: IMAGE } }
 		});
 		expect(data).not.toHaveProperty("ownership");
 	});
@@ -98,5 +103,33 @@ describe("ensureSiteHotbar", () => {
 		installWorld({ macro: stale, placed: true });
 		await ensureSiteHotbar();
 		expect(stale.update).toHaveBeenCalledWith({ command: COMMAND });
+	});
+
+	it("brings an old picture up to date, so a world made before it changed catches up", async () => {
+		const stale = worldMacro({ img: "icons/environment/wilderness/tomb-entrance.webp", given: null });
+		installWorld({ macro: stale, placed: true });
+		await ensureSiteHotbar();
+		expect(stale.update).toHaveBeenCalledWith({ img: IMAGE, [`flags.${SYSTEM_ID}.givenImg`]: IMAGE });
+	});
+
+	it("keeps a picture a GM put on the macro themselves", async () => {
+		const theirs = worldMacro({ img: "icons/svg/book.svg" });
+		installWorld({ macro: theirs, placed: true });
+		await ensureSiteHotbar();
+		expect(theirs.update).not.toHaveBeenCalled();
+	});
+
+	it("remembers the picture it gave a world made before it remembered, so the next change leaves a GM's own alone", async () => {
+		const current = worldMacro({ given: null });
+		installWorld({ macro: current, placed: true });
+		await ensureSiteHotbar();
+		expect(current.update).toHaveBeenCalledWith({ [`flags.${SYSTEM_ID}.givenImg`]: IMAGE });
+	});
+
+	it("leaves a macro that is already current alone", async () => {
+		const macro = worldMacro();
+		installWorld({ macro, placed: true });
+		await ensureSiteHotbar();
+		expect(macro.update).not.toHaveBeenCalled();
 	});
 });

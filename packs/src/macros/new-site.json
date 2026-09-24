@@ -3,7 +3,7 @@
   "_key": "!macros!mbNewSiteMacro01",
   "name": "New Site",
   "type": "script",
-  "img": "icons/environment/wilderness/tomb-entrance.webp",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/new-site.svg",
   "scope": "global",
   "command": "game.system.api.newSite();",
   "folder": null,

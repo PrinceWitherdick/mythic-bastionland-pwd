@@ -3,10 +3,12 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
 import { COMPANY_IMAGE } from "../module/rules/company.js";
+import { INK } from "../module/rules/colour.js";
 import { SHEET_FONTS } from "../module/fonts.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
 import { REALM_PALETTES, REALM_SKINS } from "../module/rules/realm-skins.js";
 import { GOODS_ICONS, GOODS_ICON_CREDITS_FILE, GOODS_ICON_ROOT, goodsIconCredit, goodsIconCredits, goodsIconPath } from "../module/rules/goods-icons.js";
+import { MACRO_ICONS, MACRO_ICON_CREDITS_FILE, MACRO_ICON_ROOT, macroIconCredit, macroIconCredits, macroIconPath } from "../module/rules/macro-icons.js";
 import { SQUIRE_IMAGE } from "../module/rules/squires.js";
 import { checkChargeSvg, withNotice } from "../scripts/lib/charge-svg.js";
 import { drawRealmSet } from "../scripts/lib/realm-drawings.js";
@@ -59,6 +61,38 @@ describe("Item, beast and structure pictures", () => {
 	it("ships the credits, and nothing that isn't listed", () => {
 		expect(readFileSync(join(folder, GOODS_ICON_CREDITS_FILE), "utf8")).toBe(goodsIconCredits());
 		const listed = new Set([GOODS_ICON_CREDITS_FILE, ...Object.keys(GOODS_ICONS).map((key) => `${key}.svg`)]);
+		expect(readdirSync(folder).filter((name) => !listed.has(name))).toEqual([]);
+	});
+});
+
+describe("Macro pictures", () => {
+	const folder = fileFor(MACRO_ICON_ROOT);
+
+	it("ships a picture for every macro, each crediting the drawing it's made from", () => {
+		for (const { key } of MACRO_ICONS) {
+			const file = fileFor(macroIconPath(key));
+			expect([key, existsSync(file)]).toEqual([key, true]);
+			const svg = readFileSync(file, "utf8");
+			expect(svg).toContain(macroIconCredit(key).page);
+			expect(svg).toContain("CC BY 3.0");
+			// A pair of hyphens inside an XML comment breaks the whole picture.
+			for (const [, comment] of svg.matchAll(/<!--([\s\S]*?)-->/g)) expect(comment).not.toContain("--");
+		}
+	});
+
+	// A hotbar button is small and sits among Foundry's dark furniture, where parchment goes muddy.
+	it("draws every one in white on an ink tile, with no disc around it", () => {
+		for (const { key } of MACRO_ICONS) {
+			const svg = readFileSync(fileFor(macroIconPath(key)), "utf8");
+			expect([key, svg.includes('fill="#fff"')]).toEqual([key, true]);
+			expect(svg).toContain(`<path d="M0 0h512v512H0z" fill="${INK}"/>`);
+			expect(svg).not.toContain("<circle");
+		}
+	});
+
+	it("ships the credits, and nothing that isn't listed", () => {
+		expect(readFileSync(join(folder, MACRO_ICON_CREDITS_FILE), "utf8")).toBe(macroIconCredits());
+		const listed = new Set([MACRO_ICON_CREDITS_FILE, ...MACRO_ICONS.map(({ key }) => `${key}.svg`)]);
 		expect(readdirSync(folder).filter((name) => !listed.has(name))).toEqual([]);
 	});
 });

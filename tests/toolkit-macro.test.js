@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ensureToolkitHotbar, seedToolkitMacro } from "../module/actions/toolkit-macro.js";
 import { SYSTEM_ID } from "../module/system-id.js";
+import { macroIconPath } from "../module/rules/macro-icons.js";
+
+/** The picture the macro wears, drawn in the system's ink. */
+const IMAGE = macroIconPath("gm-toolkit");
 
 const COMMAND = "game.system.api.openGmToolkit();";
 
@@ -21,9 +25,10 @@ function installWorld({ isGM = true, macro = null, hotbar = {}, placed = false }
 	return { create, assign, setFlag };
 }
 
-/** A world macro carrying the system's flag. */
-const worldMacro = ({ command = COMMAND } = {}) => ({
-	id: "toolkit", command, update: vi.fn(), getFlag: (scope, key) => scope === SYSTEM_ID && key === "gmToolkitMacro"
+/** A world macro carrying the system's flag. `given` is the picture the system remembers giving it; null for a world made before it remembered. */
+const worldMacro = ({ command = COMMAND, img = IMAGE, given = IMAGE } = {}) => ({
+	id: "toolkit", command, img, update: vi.fn(),
+	getFlag: (scope, key) => scope === SYSTEM_ID && (key === "givenImg" ? given : key === "gmToolkitMacro")
 });
 
 afterEach(() => {
@@ -39,9 +44,9 @@ describe("seedToolkitMacro", () => {
 		expect(data).toMatchObject({
 			name: "bastionland.gmToolkit.name",
 			type: "script",
-			img: "systems/mythic-bastionland-pwd/assets/icons/gm-toolkit.svg",
+			img: IMAGE,
 			command: COMMAND,
-			flags: { [SYSTEM_ID]: { gmToolkitMacro: true } }
+			flags: { [SYSTEM_ID]: { gmToolkitMacro: true, givenImg: IMAGE } }
 		});
 		expect(data).not.toHaveProperty("ownership");
 	});

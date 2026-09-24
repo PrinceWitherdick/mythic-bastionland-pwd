@@ -11,7 +11,8 @@
     "unpack": "node scripts/unpack.js",
     "build": "node scripts/build.js",
     "charges": "node scripts/heraldry-charges.js",
-    "goods-icons": "node scripts/goods-icons.js"
+    "goods-icons": "node scripts/goods-icons.js",
+    "macro-icons": "node scripts/macro-icons.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

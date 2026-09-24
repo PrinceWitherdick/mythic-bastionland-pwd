@@ -1,4 +1,5 @@
 import { hotbarMacro } from "./hotbar-macro.js";
+import { macroIconPath } from "../rules/macro-icons.js";
 
 /**
  * A Luck Roll macro on everyone's hotbar: a d6 where a high roll favours the
@@ -16,7 +17,7 @@ const { seed: seedLuckMacro, ensure: ensureLuckHotbar } = hotbarMacro({
 	macroFlag: "luckRollMacro",
 	hotbarFlag: "luckRollHotbar",
 	nameKey: "refereeRolls.tables.luck.name",
-	img: "icons/magic/control/buff-luck-fortune-green.webp",
+	img: macroIconPath("luck-roll"),
 	command: "game.system.api.rollLuck();",
 	ownership: () => ({ default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER }),
 	everyone: true

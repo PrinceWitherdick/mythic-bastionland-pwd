@@ -1,4 +1,5 @@
 import { hotbarMacro } from "./hotbar-macro.js";
+import { macroIconPath } from "../rules/macro-icons.js";
 
 /**
  * A New Site macro on each GM's hotbar, doing what New Site does in the
@@ -13,7 +14,7 @@ const { seed: seedSiteMacro, ensure: ensureSiteHotbar } = hotbarMacro({
 	macroFlag: "newSiteMacro",
 	hotbarFlag: "newSiteHotbar",
 	nameKey: "sites.newSite",
-	img: "icons/environment/wilderness/tomb-entrance.webp",
+	img: macroIconPath("new-site"),
 	command: "game.system.api.newSite();"
 });
 

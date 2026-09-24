@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ensureLuckHotbar, seedLuckMacro } from "../module/actions/luck-macro.js";
 import { SYSTEM_ID } from "../module/system-id.js";
+import { macroIconPath } from "../module/rules/macro-icons.js";
+
+/** The picture the macro wears, drawn in the system's ink. */
+const IMAGE = macroIconPath("luck-roll");
 
 const COMMAND = "game.system.api.rollLuck();";
 
@@ -22,9 +26,10 @@ function installWorld({ isGM = false, macro = null, hotbar = {}, placed = false 
 	return { create, assign, setFlag };
 }
 
-/** A world macro carrying the system's flag. */
-const worldMacro = ({ command = COMMAND, canExecute = true } = {}) => ({
-	id: "luck", command, canExecute, update: vi.fn(), getFlag: (scope, key) => scope === SYSTEM_ID && key === "luckRollMacro"
+/** A world macro carrying the system's flag. `given` is the picture the system remembers giving it; null for a world made before it remembered. */
+const worldMacro = ({ command = COMMAND, img = IMAGE, canExecute = true, given = IMAGE } = {}) => ({
+	id: "luck", command, img, canExecute, update: vi.fn(),
+	getFlag: (scope, key) => scope === SYSTEM_ID && (key === "givenImg" ? given : key === "luckRollMacro")
 });
 
 afterEach(() => {
@@ -36,7 +41,7 @@ describe("seedLuckMacro", () => {
 		const { create } = installWorld({ isGM: true });
 		await seedLuckMacro();
 		expect(create).toHaveBeenCalledWith(expect.objectContaining({
-			type: "script", command: COMMAND, ownership: { default: 2 }, flags: { [SYSTEM_ID]: { luckRollMacro: true } }
+			type: "script", command: COMMAND, ownership: { default: 2 }, flags: { [SYSTEM_ID]: { luckRollMacro: true, givenImg: IMAGE } }
 		}));
 	});
 

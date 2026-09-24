@@ -3,7 +3,7 @@
   "_key": "!macros!mbLuckRollMacro1",
   "name": "Luck Roll",
   "type": "script",
-  "img": "icons/magic/control/buff-luck-fortune-green.webp",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/luck-roll.svg",
   "scope": "global",
   "command": "game.system.api.rollLuck();",
   "folder": null,

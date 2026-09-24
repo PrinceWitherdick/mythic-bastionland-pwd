@@ -3,7 +3,7 @@
   "_key": "!macros!mbImportBookArt1",
   "name": "Import PDF",
   "type": "script",
-  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/spell-book.svg",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/import-pdf.svg",
   "scope": "global",
   "command": "// Keeps a copy of your Mythic Bastionland rulebook to read in Foundry, and imports its art and tables.\nconst api = game.system.api;\nif (!api?.bringInRulebook) {\n\tui.notifications.warn(\"Import PDF only works in a Mythic Bastionland world.\");\n\treturn;\n}\nreturn api.bringInRulebook();\n",
   "folder": null,

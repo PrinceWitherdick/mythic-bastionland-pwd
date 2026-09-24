@@ -1,4 +1,5 @@
 import { hotbarMacro } from "../actions/hotbar-macro.js";
+import { macroIconPath } from "../rules/macro-icons.js";
 
 /**
  * A Rulebook macro on each GM's hotbar, doing what the hotkey does. Only GMs
@@ -12,7 +13,7 @@ const { seed: seedRulebookMacro, ensure: ensureRulebookHotbar } = hotbarMacro({
 	macroFlag: "rulebookMacro",
 	hotbarFlag: "rulebookHotbar",
 	nameKey: "rulebook.open",
-	img: "icons/sundries/books/book-embossed-bound-brown.webp",
+	img: macroIconPath("rulebook"),
 	command: "game.system.api.toggleRulebook();"
 });
 

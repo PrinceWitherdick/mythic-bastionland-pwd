@@ -3,7 +3,7 @@
   "_key": "!macros!mbRulebookMacro1",
   "name": "Rulebook",
   "type": "script",
-  "img": "icons/sundries/books/book-embossed-bound-brown.webp",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/rulebook.svg",
   "scope": "global",
   "command": "game.system.api.toggleRulebook();",
   "folder": null,

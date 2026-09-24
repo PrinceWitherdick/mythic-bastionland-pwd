@@ -9,6 +9,7 @@ import "../../module/actions/luck-macro.js";
 import "../../module/actions/site-macro.js";
 import "../../module/actions/toolkit-macro.js";
 import "../../module/rulebook/macro.js";
+import { MACRO_ICONS, macroIconPath } from "../../module/rules/macro-icons.js";
 import { MACROS_PACK, SYSTEM_ID } from "../../module/system-id.js";
 
 const root = join(import.meta.dirname, "../..");
@@ -23,7 +24,7 @@ describe("Import PDF macro source", () => {
 		expect(source._key).toBe(`!macros!${IMPORT_MACRO_ID}`);
 		expect(source).toMatchObject({ type: "script", scope: "global" });
 		// Stonetop's Import PDF icon, shipped with this system.
-		expect(source.img).toBe(`systems/${manifest.id}/assets/icons/macros/spell-book.svg`);
+		expect(source.img).toBe(macroIconPath("import-pdf"));
 		expect(existsSync(join(root, source.img.replace(`systems/${manifest.id}/`, "")))).toBe(true);
 	});
 
@@ -59,17 +60,31 @@ describe("Macro compendium", () => {
 	});
 
 	// A spare copy of each macro the system makes in code, for a GM who deleted theirs.
+	// Foundry's own icons are painted; every macro this system ships wears one of its own
+	// black-and-white drawings instead, so the hotbar reads as one set.
+	it("gives every macro a picture this system draws", () => {
+		const ours = new Set(MACRO_ICONS.map(({ key }) => macroIconPath(key)));
+		for (const macro of sources) {
+			expect([macro.name, ours.has(macro.img)]).toEqual([macro.name, true]);
+			expect(existsSync(join(root, macro.img.replace(`systems/${manifest.id}/`, "")))).toBe(true);
+		}
+	});
+
 	it.each([
 		["module/actions/luck-macro.js", "luckRollMacro"],
 		["module/actions/site-macro.js", "newSiteMacro"],
 		["module/actions/toolkit-macro.js", "gmToolkitMacro"],
 		["module/rulebook/macro.js", "rulebookMacro"]
 	])("holds the macro %s makes, flagged as the world's copy", (file, flag) => {
+		/** @returns {string} The key a picture's path was made from. */
+		const keyOf = (img) => img.replace(/^.*\//, "").replace(/\.svg$/, "");
 		const code = readFileSync(join(root, file), "utf8");
 		const macro = sources.find((entry) => entry.flags?.[manifest.id]?.[flag]);
 		expect(macro).toBeDefined();
 		expect(code).toContain(`macroFlag: "${flag}"`);
-		expect(code).toContain(`img: "${macro.img}"`);
+		// The module asks for its picture by key, so the two are compared by the path that key makes.
+		expect(code).toContain(`img: macroIconPath("${keyOf(macro.img)}")`);
+		expect(macroIconPath(keyOf(macro.img))).toBe(macro.img);
 		expect(code).toContain(`command: "${macro.command}"`);
 	});
 });

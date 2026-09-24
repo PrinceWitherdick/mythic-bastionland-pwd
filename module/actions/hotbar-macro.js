@@ -18,6 +18,13 @@ import { SYSTEM_ID } from "../system-id.js";
 export const LAST_SLOT = 10;
 
 /**
+ * Flag on a macro remembering the picture the system last gave it. A macro
+ * still wearing that picture takes the next one the system draws; one wearing
+ * anything else is a GM's own choice, and is left alone.
+ */
+const GIVEN_IMG_FLAG = "givenImg";
+
+/**
  * @param {Record<number, string>} hotbar Macro ids by slot.
  * @param {string} macroId
  * @returns {number|null} The first empty slot on the first page short of the
@@ -57,12 +64,12 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 			img,
 			command,
 			...(ownership ? { ownership: ownership() } : {}),
-			flags: { [SYSTEM_ID]: { [macroFlag]: true } }
+			flags: { [SYSTEM_ID]: { [macroFlag]: true, [GIVEN_IMG_FLAG]: img } }
 		});
 	};
 
 	/**
-	 * Keep the world's copy of the macro's script current, and give this user a
+	 * Keep the world's copy of the macro's script and picture current, and give this user a
 	 * hotbar slot for it. Run after world setup, so the active GM's slot comes
 	 * the load the macro is made; anyone else gets theirs on a later load.
 	 */
@@ -70,8 +77,21 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 		if (!everyone && !game.user.isGM) return;
 
 		const macro = find();
-		// Only a GM may rewrite the world's macro.
-		if (game.user.isGM && macro && macro.command !== command) await macro.update({ command });
+		// Only a GM may rewrite the world's macro. The script always follows the system, so a
+		// world made before it changed catches up; a GM's rename is kept. The picture follows
+		// only while it is still the one the system gave, so a GM who puts their own on the
+		// macro keeps it. A world made before the system remembered the picture it gave takes
+		// the current one once, and is remembered from then on.
+		if (game.user.isGM && macro) {
+			const update = {};
+			if (macro.command !== command) update.command = command;
+			const given = macro.getFlag(SYSTEM_ID, GIVEN_IMG_FLAG) || null;
+			if (!given || macro.img === given) {
+				if (macro.img !== img) update.img = img;
+				if (given !== img) update[`flags.${SYSTEM_ID}.${GIVEN_IMG_FLAG}`] = img;
+			}
+			if (Object.keys(update).length) await macro.update(update);
+		}
 		// A macro the user can't run is no use on their bar.
 		if (!(everyone ? macro?.canExecute : macro) || game.user.getFlag(SYSTEM_ID, hotbarFlag)) return;
 
