@@ -20,7 +20,7 @@ import { t } from "../chat/cards.js";
 import { movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { forgetHexArrivals, registerHexPrompt } from "./hex-prompt.js";
+import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, updateHexReadout } from "./hex-readout.js";
 
 /**
@@ -128,7 +128,9 @@ export function registerRealmHooks() {
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
 		showRealmRules();
-		// A Realm with no Company on it offers the Referee one over the map.
+		// Where the Company got to while the GM was looking at another Scene.
+		offerWaitingArrival();
+		// And, for a Realm with no Company on it, the button that hands the Referee one.
 		showCompanyButton();
 		// Put right anything that drifted on the Scene's own layers, quietly: it writes nothing on a Realm in order.
 		syncRealmScene(canvas?.scene).catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));

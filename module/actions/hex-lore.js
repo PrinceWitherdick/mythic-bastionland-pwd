@@ -22,10 +22,10 @@ import { rollSpark } from "./referee-rolls.js";
 /** The Scene flag holding what the GM has written about each hex of its Realm. */
 export const HEX_LORE_FLAG = "hexLore";
 
-/** Whether a hex the Company reaches with nothing written down is offered to the GM. */
+/** Whether the Lay of the Land opens on a hex the Company has just reached. */
 const PROMPT_SETTING = "hexLorePrompt";
 
-/** Register how the GM is told about a hex with nothing written down. Called during init. */
+/** Register what a hex the Company reaches opens for the GM. Called during init. */
 export function registerHexLoreSettings() {
 	game.settings.register(SYSTEM_ID, PROMPT_SETTING, {
 		name: "bastionland.hexLore.settings.prompt.name",
@@ -33,16 +33,16 @@ export function registerHexLoreSettings() {
 		scope: "client",
 		config: true,
 		type: String,
-		default: "notify",
+		default: "open",
 		// Settings are registered before the language files are ready, so these are keys for Foundry to localize.
 		choices: Object.fromEntries(HEX_PROMPT_MODES.map((mode) => [mode, `bastionland.hexLore.settings.prompt.modes.${mode}`]))
 	});
 }
 
-/** @returns {"never"|"notify"|"open"} */
+/** @returns {"never"|"open"} */
 export function hexLorePromptMode() {
 	const mode = game.settings.get(SYSTEM_ID, PROMPT_SETTING);
-	return HEX_PROMPT_MODES.includes(mode) ? mode : "notify";
+	return HEX_PROMPT_MODES.includes(mode) ? mode : "open";
 }
 
 /**

@@ -3,13 +3,12 @@ import { hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
-// The prompt reaches the Hex Lore window, and every window reads `foundry` as
-// it loads, so the stub has to stand before the module does.
-globalThis.foundry = {
-	applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {} } },
-	utils: { deepClone: structuredClone }
-};
-const { forgetHexArrivals, registerHexPrompt } = await import("../../module/canvas/hex-prompt.js");
+// The window itself is another test's business: here it stands for the offer,
+// so the prompt is watched by what it opens.
+const openHexLore = vi.fn();
+vi.mock("../../module/apps/HexLore.js", () => ({ openHexLore: (...args) => openHexLore(...args) }));
+
+const { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } = await import("../../module/canvas/hex-prompt.js");
 
 const g = realmGeometry();
 
@@ -40,9 +39,11 @@ const leg = (pending = []) => ({ method: "dragging", constrained: false, pending
 
 beforeEach(() => {
 	vi.useFakeTimers();
-	globalThis.game = { user: { isGM: true }, settings: { get: () => "notify" }, i18n: { localize: (key) => key, format: (key) => key } };
-	globalThis.ui = { notifications: { info: vi.fn() } };
-	globalThis.canvas = { scene: null };
+	openHexLore.mockClear();
+	globalThis.game = { user: { isGM: true }, settings: { get: () => "open" }, i18n: { localize: (key) => key, format: (key) => key } };
+	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
+	// The GM is looking at the Realm the Company walks across.
+	globalThis.canvas = { scene };
 	globalThis.Hooks = { on: (name, fn) => { if (name === "moveToken") moveToken = fn; } };
 	registerHexPrompt();
 });
@@ -54,31 +55,87 @@ afterEach(() => {
 });
 
 describe("the hex arrival prompt", () => {
-	it("offers a hex once the Token has walked the last of its waypoints", () => {
+	it("opens the Lay of the Land on the hex once the Token has walked the last of its waypoints", () => {
 		moveToken(tokenIn({ col: 4, row: 3 }), leg());
 		vi.advanceTimersByTime(GATHER);
-		expect(ui.notifications.info).toHaveBeenCalledOnce();
+		expect(openHexLore).toHaveBeenCalledWith({ scene, hex: { col: 4, row: 3 } });
 	});
 
-	it("says nothing while there are waypoints still to walk", () => {
+	it("opens nothing while there are waypoints still to walk", () => {
 		moveToken(tokenIn({ col: 4, row: 3 }), leg([{ x: 1, y: 1 }]));
 		vi.advanceTimersByTime(GATHER);
-		expect(ui.notifications.info).not.toHaveBeenCalled();
+		expect(openHexLore).not.toHaveBeenCalled();
 	});
 
 	it("counts a walk a wall cut short as an arrival, because the Token stops there", () => {
 		moveToken(tokenIn({ col: 4, row: 3 }), { ...leg([{ x: 1, y: 1 }]), constrained: true });
 		vi.advanceTimersByTime(GATHER);
-		expect(ui.notifications.info).toHaveBeenCalledOnce();
+		expect(openHexLore).toHaveBeenCalledOnce();
 	});
 
-	it("offers a hex only once, and never for a move taken back", () => {
+	it("opens once for a whole Company, and never for a shuffle within the hex or a move taken back", () => {
 		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		moveToken({ ...tokenIn({ col: 4, row: 3 }), id: "t2" }, leg());
 		vi.advanceTimersByTime(GATHER);
 		moveToken(tokenIn({ col: 4, row: 3 }), leg());
 		moveToken(tokenIn({ col: 5, row: 3 }), { ...leg(), method: "undo" });
 		vi.advanceTimersByTime(GATHER);
-		expect(ui.notifications.info).toHaveBeenCalledOnce();
+		expect(openHexLore).toHaveBeenCalledOnce();
+	});
+
+	it("opens again for the hex the Company left, once they walk back into it", () => {
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		moveToken(tokenIn({ col: 5, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		expect(openHexLore).toHaveBeenCalledTimes(3);
+	});
+
+	it("leaves the window shut over a Realm the GM isn't looking at, and opens it when they look", () => {
+		canvas.scene = { id: "elsewhere" };
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		// They walk on while the GM is away, so what waits is where they stand now.
+		moveToken(tokenIn({ col: 5, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		expect(openHexLore).not.toHaveBeenCalled();
+
+		canvas.scene = scene;
+		offerWaitingArrival();
+		expect(openHexLore).toHaveBeenCalledOnce();
+		expect(openHexLore).toHaveBeenCalledWith({ scene, hex: { col: 5, row: 3 } });
+		// Once it's been shown, looking at the Realm again opens nothing.
+		offerWaitingArrival();
+		expect(openHexLore).toHaveBeenCalledOnce();
+	});
+
+	it("opens nothing on looking at a Realm the Company hasn't moved on, or when the GM asked for no prompt", () => {
+		offerWaitingArrival();
+		canvas.scene = { id: "elsewhere" };
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		canvas.scene = scene;
+		game.settings.get = () => "never";
+		offerWaitingArrival();
+		expect(openHexLore).not.toHaveBeenCalled();
+	});
+
+	it("opens nothing for a Company that walked away and back while the GM was elsewhere", () => {
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		openHexLore.mockClear();
+
+		canvas.scene = { id: "elsewhere" };
+		moveToken(tokenIn({ col: 5, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+
+		canvas.scene = scene;
+		offerWaitingArrival();
+		expect(openHexLore).not.toHaveBeenCalled();
 	});
 
 	it("leaves alone Scenes that aren't Realms, Tokens no player owns, and GMs who asked for no prompt", () => {
@@ -87,6 +144,6 @@ describe("the hex arrival prompt", () => {
 		game.settings.get = () => "never";
 		moveToken(tokenIn({ col: 7, row: 3 }), leg());
 		vi.advanceTimersByTime(GATHER);
-		expect(ui.notifications.info).not.toHaveBeenCalled();
+		expect(openHexLore).not.toHaveBeenCalled();
 	});
 });

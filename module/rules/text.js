@@ -164,3 +164,9 @@ export function logicalLines(lines) {
 	}
 	return result;
 }
+
+/**
+ * @param {unknown} value As stored, which may be anything.
+ * @returns {string} The text with its edges trimmed, or "" where there is none.
+ */
+export const trimmedText = (value) => (typeof value === "string" ? value.trim() : "");

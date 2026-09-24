@@ -1234,14 +1234,12 @@
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "when": "rolled in {when}",
-      "prompt": "{hex} on {scene} has nothing written down yet.",
       "settings": {
         "prompt": {
-          "name": "Ask about a new hex",
-          "hint": "What to do when a player’s Token comes to rest in a Realm hex nothing has been written down for. Saved per browser.",
+          "name": "Reaching a new hex",
+          "hint": "What to do when the Company comes to rest in a Hex of a Realm you’re looking at. Saved per browser.",
           "modes": {
             "never": "Nothing",
-            "notify": "Tell me",
             "open": "Open the Lay of the Land"
           }
         }

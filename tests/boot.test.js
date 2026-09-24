@@ -336,15 +336,14 @@ describe("system boot", () => {
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
 	});
 
-	it("lets each GM say what a hex with nothing written down should do", () => {
+	it("lets each GM say what reaching a new hex should do", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexLorePrompt", expect.objectContaining({
 			scope: "client",
 			config: true,
 			type: String,
-			default: "notify",
+			default: "open",
 			choices: {
 				never: "bastionland.hexLore.settings.prompt.modes.never",
-				notify: "bastionland.hexLore.settings.prompt.modes.notify",
 				open: "bastionland.hexLore.settings.prompt.modes.open"
 			}
 		}));

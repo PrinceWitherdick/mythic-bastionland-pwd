@@ -1,8 +1,7 @@
 import { findCompanyToken } from "../actions/company.js";
-import { getHexRecord, hexLorePromptMode } from "../actions/hex-lore.js";
+import { hexLorePromptMode } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHexLore } from "../apps/HexLore.js";
-import { t } from "../chat/cards.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 
 /**
@@ -13,12 +12,20 @@ import { hexAt, hexKey } from "../rules/realm-geometry.js";
 const arrived = new Map();
 
 /**
- * Hexes this browser has already offered, by Scene id. Closing the window
- * without writing anything shouldn't mean being asked again at the next step
- * back into the hex, so an offer stands until the world is reloaded.
- * @type {Map<string, Set<string>>}
+ * The hex each Scene's Company was last met in, by Scene id. Shuffling a Token
+ * about within the hex it already stands in isn't arriving anywhere, so the
+ * window only follows a step into a hex the Company wasn't in a moment ago.
+ * @type {Map<string, string>}
  */
-const offered = new Map();
+const standing = new Map();
+
+/**
+ * The hex a Realm's Company reached while the GM was looking at something else,
+ * by Scene id, waiting for them to look at that Realm. Later moves overwrite
+ * it, so what waits is always where the Company stands now.
+ * @type {Map<string, {col: number, row: number}>}
+ */
+const waitingOn = new Map();
 
 /** How long to wait for the rest of a Company before offering what it reached. */
 const GATHER = 250;
@@ -26,28 +33,60 @@ const GATHER = 250;
 /** Whether the arrivals so far are already waiting their turn to be offered. */
 let gathering = false;
 
-/** Offer the hexes that have just been arrived in. */
+/**
+ * Open the Lay of the Land on the hexes just arrived in: everything the GM
+ * knows about the place, and every way of finding out more, in one window
+ * rather than a notice that says only that they've moved. The window is a help
+ * offered, never a write: nothing is recorded here.
+ */
 function offerArrivals() {
 	const waiting = [...arrived.values()].flatMap((hexes) => [...hexes.values()]);
 	arrived.clear();
-	const mode = hexLorePromptMode();
-	if (mode === "never") return;
+	if (hexLorePromptMode() === "never") return;
 
 	let opened = false;
 	for (const { scene, hex } of waiting) {
-		const seen = offered.get(scene.id) ?? new Set();
-		const key = hexKey(hex);
-		if (seen.has(key)) continue;
-		if (getHexRecord(scene, hex)) continue;
-		offered.set(scene.id, seen.add(key));
-		// A window thrown open over a Realm the GM isn't looking at is a jump, not a help.
-		if (mode === "open" && !opened && scene.id === canvas.scene?.id) {
-			openHexLore({ scene, hex });
-			opened = true;
+		// A window thrown open over a Realm the GM isn't looking at is a jump, not
+		// a help, so that Realm's arrival waits until they look at it.
+		if (scene.id !== canvas.scene?.id) {
+			waitingOn.set(scene.id, hex);
 			continue;
 		}
-		ui.notifications.info(t("hexLore.prompt", { hex: t("realm.hex", hex), scene: scene.name }));
+		// One window serves however many Tokens walked in at once.
+		if (opened) continue;
+		opened = showArrival(scene, hex);
 	}
+}
+
+/**
+ * Open the Lay of the Land where the Company has come to rest, unless they were
+ * already standing there when the GM last saw them.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean} Whether the window was opened on it.
+ */
+function showArrival(scene, hex) {
+	const key = hexKey(hex);
+	if (standing.get(scene.id) === key) return false;
+	standing.set(scene.id, key);
+	// Already open, and it moves to the new hex rather than opening again.
+	openHexLore({ scene, hex });
+	return true;
+}
+
+/**
+ * Open what a Realm's Company reached while the GM was looking elsewhere, now
+ * that they're looking at the Realm. Nothing waits from before this browser
+ * loaded, so coming back to a world opens no window. Called as the canvas
+ * becomes ready.
+ */
+export function offerWaitingArrival() {
+	const scene = canvas?.scene;
+	if (!game.user.isGM || !isRealmScene(scene) || hexLorePromptMode() === "never") return;
+	const hex = waitingOn.get(scene.id);
+	if (!hex) return;
+	waitingOn.delete(scene.id);
+	showArrival(scene, hex);
 }
 
 /**
@@ -80,8 +119,7 @@ function atRest(movement) {
 /**
  * Notice a player's Token coming to rest in a hex of a Realm. Every client is
  * told about the move, and each GM's browser decides for itself what to do
- * about it, because the setting that decides is that browser's own. Nothing is
- * written here: the offer is only an offer.
+ * about it, because the setting that decides is that browser's own.
  * @param {TokenDocument} token
  * @param {object} movement The movement from the `moveToken` hook.
  */
@@ -115,6 +153,7 @@ export function registerHexPrompt() {
  * @param {string} sceneId
  */
 export function forgetHexArrivals(sceneId) {
-	offered.delete(sceneId);
+	standing.delete(sceneId);
+	waitingOn.delete(sceneId);
 	arrived.delete(sceneId);
 }

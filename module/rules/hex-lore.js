@@ -7,6 +7,7 @@
  */
 import { hexKey, parseHexKey } from "./realm-geometry.js";
 import { SPARK_TABLES_PER_PAGE } from "./spark-tables.js";
+import { trimmedText } from "./text.js";
 
 export const HEX_LORE_VERSION = 1;
 
@@ -18,10 +19,10 @@ export const HEX_LORE_VERSION = 1;
 export const MAX_HEX_SPARKS = 24;
 
 /**
- * What a GM's browser does when a player's Token comes to rest in a hex nothing
- * has been written down for.
+ * What a GM's browser does when the Company comes to rest in a hex it wasn't
+ * in a moment ago: open the Lay of the Land on it, or leave them to it.
  */
-export const HEX_PROMPT_MODES = Object.freeze(["never", "notify", "open"]);
+export const HEX_PROMPT_MODES = Object.freeze(["never", "open"]);
 
 /**
  * Where the three stand on the Nature page (p22), which prints its nine tables
@@ -58,9 +59,6 @@ const WILDERNESS_POSITIONS = Object.freeze([0, 3, 6]);
 /** @returns {HexLore} */
 export const emptyLore = () => ({ version: HEX_LORE_VERSION, hexes: {} });
 
-/** @returns {string} A trimmed string from whatever was stored, or "". */
-const text = (value) => (typeof value === "string" ? value.trim() : "");
-
 /** @returns {number[]} */
 const wholeNumbers = (value) => (Array.isArray(value) ? value.filter((number) => Number.isInteger(number)) : []);
 
@@ -84,16 +82,16 @@ export function normaliseWhen(raw) {
  */
 function normaliseSpark(raw, index) {
 	if (!raw || typeof raw !== "object") return null;
-	const table = text(raw.table);
-	const entries = (Array.isArray(raw.entries) ? raw.entries : []).map(text).filter(Boolean);
+	const table = trimmedText(raw.table);
+	const entries = (Array.isArray(raw.entries) ? raw.entries : []).map(trimmedText).filter(Boolean);
 	if (!table || !entries.length) return null;
 	return {
-		id: text(raw.id) || String(index),
-		page: text(raw.page),
+		id: trimmedText(raw.id) || String(index),
+		page: trimmedText(raw.page),
 		table,
 		rolls: wholeNumbers(raw.rolls),
 		entries,
-		prompt: text(raw.prompt) || entries.join(" "),
+		prompt: trimmedText(raw.prompt) || entries.join(" "),
 		when: normaliseWhen(raw.when)
 	};
 }
@@ -105,7 +103,7 @@ function normaliseSpark(raw, index) {
 export function normaliseRecord(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const sparks = (Array.isArray(raw.sparks) ? raw.sparks : []).map(normaliseSpark).filter(Boolean);
-	const note = text(raw.note);
+	const note = trimmedText(raw.note);
 	return note || sparks.length ? { note, sparks } : null;
 }
 
@@ -191,7 +189,7 @@ export function forgetSpark(lore, hex, id) {
  */
 export function setNote(lore, hex, note) {
 	const here = loreAt(lore, hex) ?? { note: "", sparks: [] };
-	return withRecord(lore, hex, worthKeeping({ ...here, note: text(note) }));
+	return withRecord(lore, hex, worthKeeping({ ...here, note: trimmedText(note) }));
 }
 
 /**
