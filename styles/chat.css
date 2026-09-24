@@ -14,7 +14,7 @@
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-body);
-	font-size: 14px;
+	font-size: 15px;
 	font-variant-numeric: lining-nums;
 	line-height: 1.35;
 }
@@ -51,17 +51,18 @@
 	font-style: italic;
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-card__roll {
 	display: inline-grid;
 	place-items: center;
-	min-width: 1.6rem;
-	height: 1.6rem;
+	min-width: 1.5rem;
+	height: 1.5rem;
 	margin-right: 0.2rem;
 	border-radius: 50%;
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 	vertical-align: middle;
 }
 
@@ -76,12 +77,12 @@
 
 .bastionland-card__hint {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-card__warning {
 	color: var(--bastionland-blood);
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-card__entries {
@@ -157,7 +158,7 @@
 .bastionland-save__die {
 	grid-area: die;
 	justify-self: center;
-	font-size: 1.6rem;
+	--bastionland-die-fill: var(--bastionland-paper-deep);
 	line-height: 1;
 }
 
@@ -248,13 +249,13 @@
 
 .bastionland-die__faces {
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-die__label {
 	max-width: 6rem;
 	overflow: hidden;
-	font-size: 0.7rem;
+	font-size: var(--bastionland-font-floor);
 	text-align: center;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -285,7 +286,7 @@
 }
 
 .bastionland-card__gambit-help {
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-card__gambit-help > summary {
@@ -323,13 +324,13 @@
 	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.8em;
+	font-size: var(--bastionland-font-floor);
 	line-height: 1.7;
 	white-space: nowrap;
 }
 
 .bastionland-card__gambit-save {
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-card__gambit-save.is-pass {
@@ -412,7 +413,7 @@
 	margin: 0;
 	padding-left: 1.1rem;
 	color: var(--bastionland-blood);
-	font-size: 0.9em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-dialog .dialog-content p {
@@ -432,7 +433,7 @@
 
 .bastionland-dialog .hint {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.88em;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -580,7 +581,7 @@
 
 .bastionland-realm-setup__note {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.88em;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -593,7 +594,7 @@
 	margin: 0;
 	padding-left: 1.2rem;
 	color: var(--bastionland-blood);
-	font-size: 0.9em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-check {
@@ -609,11 +610,11 @@
 /* A choice that belongs to the one above it, such as a weapon's specialist die. */
 .bastionland-check--nested {
 	margin-inline-start: 1.6rem;
-	font-size: 0.9em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-tag {
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-floor);
 	opacity: 0.8;
 }
 
@@ -1102,7 +1103,7 @@
 
 .bastionland-ledger__cause {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.88em;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 	font-weight: normal;
 }
@@ -1110,7 +1111,7 @@
 .bastionland-ledger__meta {
 	margin-top: 0.1rem;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.82em;
+	font-size: var(--bastionland-font-note);
 }
 
 /* The filter hides lines and days; their own display would otherwise win over `hidden`. */

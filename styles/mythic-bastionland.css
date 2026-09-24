@@ -89,6 +89,27 @@
 	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
 	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
 	--bastionland-font-caps: "Bastionland Caps", Georgia, "Times New Roman", serif;
+	/*
+	 * Nothing anyone has to read is set smaller than the floor, and small
+	 * print isn't smaller print: a hint, a note or a caption says less than
+	 * the text around it, and is set apart by its italic and its softer ink,
+	 * not by being shrunk. The floor is for the words penned inside tight
+	 * furniture only: a die chip, a numbered disc, a tally, a tab.
+	 */
+	/*
+	 * A small box centres its line, not its figures. Foundry sets every
+	 * number field's line-height to 2rem, which overflows a box shorter
+	 * than that, and the line it centres is struck from IM Fell, whose deep
+	 * descent (0.363em) hangs under a baseline the shallower EB Garamond
+	 * digits (0.65em tall) never reach: the numbers ride 0.054em above the
+	 * middle. Padding half of that back on at the top drops them into it,
+	 * since the field centres what is left of its content box. Only a box
+	 * that short wants it: the taller Virtue, Guard and Glory boxes hold
+	 * their figures in the middle on their own.
+	 */
+	--bastionland-figure-nudge: 0.11em;
+	--bastionland-font-note: 15px;
+	--bastionland-font-floor: 14px;
 }
 
 /* ---------------------------------------------------------------- */
@@ -124,7 +145,7 @@
 	width: auto;
 	max-width: 14rem;
 	padding: 0 0.5rem;
-	font-size: var(--font-size-12);
+	font-size: var(--bastionland-font-floor);
 	white-space: nowrap;
 }
 
@@ -316,18 +337,29 @@ a.button:focus:not(:focus-visible) {
 .bastionland-hint {
 	margin: 0.25rem 0 0;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 }
 
+/*
+ * The disc and the glyph are both whole pixels at the default text size
+ * (24px around 14px), so the icon lands dead centre. The old 1.6rem/0.8rem pair
+ * measured 25.6px around 12.8px, and the browser rounded the glyph a pixel and
+ * a half above the middle of the circle.
+ *
+ * Every round or square badge that centres a glyph or a figure is sized the
+ * same way for the same reason: the "?" beside a heading, the painter's
+ * counterchange, a Site's step numbers, the chooser's d6 groups, the Welcome
+ * window's Read button and the chat cards' Save die.
+ */
 .bastionland-icon {
 	display: inline-grid;
 	flex: none;
 	place-items: center;
-	width: 1.6rem;
-	height: 1.6rem;
+	width: 1.5rem;
+	height: 1.5rem;
 	border-radius: 50%;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.8rem;
+	font-size: 0.875rem;
 	text-align: center;
 }
 
@@ -378,18 +410,19 @@ a.button:focus:not(:focus-visible) {
 	margin: 0;
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-page .bastionland-knighthood-help {
 	align-self: start;
 	justify-self: start;
-	width: 1.15rem;
+	width: 1.125rem;
 	min-width: 0;
-	height: 1.15rem;
+	height: 1.125rem;
 	min-height: 0;
 	margin: 0.2rem 0 0 -0.2rem;
 	padding: 0;
 	border: 0;
 	color: var(--bastionland-ink-faint);
-	font-size: 0.8rem;
+	font-size: 0.8125rem;
 	line-height: 1;
 }
 
@@ -879,7 +912,7 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-heraldry-painter__credit {
 	margin: 0;
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 	color: var(--bastionland-ink-soft);
 }
@@ -968,16 +1001,17 @@ a.button:focus:not(:focus-visible) {
 	outline-offset: 2px;
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-page .bastionland-heraldry-painter__arms-counterchange {
 	flex: none;
-	width: 1.3rem;
-	height: 1.3rem;
+	width: 1.25rem;
+	height: 1.25rem;
 	min-height: 0;
 	margin: 0;
 	padding: 0;
 	border: 1.5px solid transparent;
 	border-radius: 50%;
-	font-size: 0.95rem;
+	font-size: 0.875rem;
 	line-height: 1;
 }
 
@@ -1293,7 +1327,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-choice__glory {
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-note);
 	font-style: normal;
 	opacity: 0.7;
 }
@@ -1547,7 +1581,7 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-empty {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -1560,7 +1594,7 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-add {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-add:hover {
@@ -1634,7 +1668,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-feat__cost {
 	display: block;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -1773,7 +1807,7 @@ a.button:focus:not(:focus-visible) {
 
 /* "Knighted by" leads into the Seer's name, a size down. */
 .bastionland-seer__by {
-	font-size: 0.6em;
+	font-size: var(--bastionland-font-note);
 	font-weight: normal;
 }
 
@@ -1854,7 +1888,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-page .bastionland-seer__value {
 	width: 2.4rem;
 	height: 1.8rem;
-	padding: 0;
+	padding: var(--bastionland-figure-nudge) 0 0;
 	border: 2px solid var(--bastionland-ink);
 	border-radius: 0.4rem;
 	background: var(--bastionland-paper);
@@ -2050,7 +2084,12 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-size: 1.05rem;
 }
 
-.bastionland-page .hint {
+/*
+ * Foundry sets its own hints a good deal smaller than the writing they hang
+ * under. Ours keep the page's size and are set apart by their softer ink.
+ */
+.bastionland-page .hint,
+.bastionland-card .hint {
 	color: var(--bastionland-ink-soft);
 }
 
@@ -2323,7 +2362,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 
 .bastionland-spark__table thead th {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-floor);
 	font-weight: normal;
 	text-align: left;
 }
@@ -2675,7 +2714,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-site__bar-label {
 	margin-right: 0.2rem;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -2707,7 +2746,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 .bastionland-site__tally {
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-floor);
 	font-variant-numeric: lining-nums tabular-nums;
 	opacity: 0.75;
 }
@@ -2768,15 +2807,16 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	border-bottom: 1px dotted var(--bastionland-rule);
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-site__step-number {
 	display: inline-grid;
 	place-items: center;
-	width: 1.6rem;
-	height: 1.6rem;
+	width: 1.5rem;
+	height: 1.5rem;
 	border: 1.5px solid var(--bastionland-ink);
 	border-radius: 50%;
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 }
 
 .bastionland-site__step.is-done .bastionland-site__step-number {
@@ -2831,6 +2871,8 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 .bastionland-site__step-state {
+	/* Held in the last column, so the step without a die still lines its mark up with the rest. */
+	grid-column: 4;
 	color: var(--bastionland-rule);
 	font-size: 1rem;
 }
@@ -3038,16 +3080,20 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-style: italic;
 }
 
+/* A whole-pixel square, so the numbers sit in a true circle. */
 .bastionland-site__number {
 	display: inline-grid;
+	flex: 0 0 auto;
 	place-items: center;
-	min-width: 1.5rem;
-	height: 1.5rem;
+	box-sizing: border-box;
+	width: 26px;
+	height: 26px;
+	padding: 0;
 	border-radius: 50%;
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-floor);
 }
 
 .bastionland-page .bastionland-site__found[aria-pressed="true"] {
@@ -3060,7 +3106,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	gap: 0.1rem;
 	margin: 0;
 	padding: 0 0 0 0.2rem;
-	font-size: 0.9rem;
+	font-size: var(--bastionland-font-floor);
 	list-style: none;
 }
 
@@ -3210,7 +3256,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 
 .bastionland-chooser__start-summary {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-page .bastionland-chooser__start-hint {
@@ -3247,15 +3293,16 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	list-style: none;
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-page .bastionland-chooser__group {
 	display: grid;
 	place-items: center;
-	width: 2.2rem;
-	height: 2.2rem;
+	width: 2.25rem;
+	height: 2.25rem;
 	border: 1.5px solid var(--bastionland-rule);
 	border-radius: 6px;
 	font-family: var(--bastionland-font-caps);
-	font-size: 1.2rem;
+	font-size: 1.25rem;
 	text-align: center;
 }
 
@@ -3313,7 +3360,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	border-radius: 50%;
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-floor);
 }
 
 .bastionland-chooser__thumb {
@@ -3330,14 +3377,14 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 .bastionland-chooser__card-name {
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 	line-height: 1.15;
 }
 
 .bastionland-chooser__taken {
 	margin: 0;
 	color: var(--bastionland-blood);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -3593,7 +3640,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	border: none;
 	background: none;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-floor);
 }
 
 .bastionland-travel-rules button.bastionland-travel-rules__fold:hover {
@@ -3824,7 +3871,7 @@ button.bastionland-dice:focus-visible {
 	background: var(--bastionland-blood);
 	color: var(--bastionland-paper);
 	font-family: var(--bastionland-font-body);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-travel-rules__section p {
@@ -3895,7 +3942,7 @@ button.bastionland-dice:focus-visible {
 .bastionland-travel-rules__credit {
 	margin: 0.4rem 0 0;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85rem;
+	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
@@ -4038,7 +4085,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 .bastionland-hex-lore__hint {
 	margin: 0;
 	color: var(--bastionland-ink-soft);
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 /* The painter's instructions are read while painting, so they keep the body size. */
@@ -4243,7 +4290,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	margin: 0;
 	padding-left: 1.1rem;
 	color: var(--bastionland-blood);
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 
@@ -4306,7 +4353,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	padding: 0.1rem 0.4rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-hex-lore__terrain {
@@ -4412,7 +4459,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 
 .bastionland-hex-lore__source {
 	color: var(--bastionland-ink-soft);
-	font-size: 0.8em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-hex-lore__roll button {
@@ -4625,7 +4672,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 }
 
 .bastionland-realm-appearance__skin .hint {
-	font-size: 0.8em;
+	font-size: var(--bastionland-font-note);
 }
 
 /* A skin of the GM's own: its card, with pencil and bin in its top corner. */
@@ -4720,7 +4767,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	margin: 0.3rem 0 0;
 	padding: 0;
 	list-style: none;
-	font-size: 0.85em;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-realm-appearance__names li.is-found::before {
@@ -4782,7 +4829,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	border-radius: 3px;
 	background: var(--bastionland-verdigris);
 	color: var(--bastionland-paper);
-	font-size: 0.6rem;
+	font-size: var(--bastionland-font-floor);
 	line-height: 1.2;
 }
 
@@ -4861,7 +4908,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	width: 13px;
 	margin-top: 0.2rem;
 	color: var(--bastionland-verdigris);
-	font-size: 0.8rem;
+	font-size: var(--bastionland-font-note);
 	text-align: center;
 }
 
@@ -4894,6 +4941,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	white-space: normal;
 }
 
+/* Whole pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-page .bastionland-welcome__read {
 	display: inline-flex;
 	align-items: center;
@@ -4901,10 +4949,10 @@ button.bastionland-realm-drawing__finish:focus-visible {
 	width: auto;
 	margin-left: 0.4rem;
 	vertical-align: middle;
-	height: 1.6rem;
+	height: 1.5rem;
 	padding: 0 0.5rem;
 	font-family: var(--bastionland-font-caps);
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 }
 
 .bastionland-page .bastionland-welcome__import {
@@ -5051,7 +5099,7 @@ button.bastionland-realm-drawing__finish:focus-visible {
 
 .bastionland-frame__caption {
 	font-family: var(--bastionland-font-caps);
-	font-size: var(--font-size-12);
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-frame__error {

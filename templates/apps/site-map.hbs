@@ -79,12 +79,12 @@
 					<p class="bastionland-site__step-detail">{{detail}}</p>
 					{{/if}}
 				</div>
-				<span class="bastionland-site__step-state" data-tooltip="{{stateLabel}}" role="img" aria-label="{{stateLabel}}"><i class="{{stateIcon}}" inert></i></span>
 				{{#if roll}}
 				<button type="button" class="bastionland-icon" data-action="rollStep" data-step="{{key}}" data-tooltip="{{roll.label}}" aria-label="{{roll.label}}" {{disabled roll.disabled}}>
 					<i class="fa-solid fa-dice" inert></i>
 				</button>
 				{{/if}}
+				<span class="bastionland-site__step-state" data-tooltip="{{stateLabel}}" role="img" aria-label="{{stateLabel}}"><i class="{{stateIcon}}" inert></i></span>
 			</li>
 			{{/each}}
 		</ol>
