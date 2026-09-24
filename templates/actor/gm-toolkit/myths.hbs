@@ -64,6 +64,10 @@
 			<p class="bastionland-hint">{{localize "bastionland.realm.wilderness.omensComplete"}}</p>
 			{{/if}}
 
+			{{#with cast}}
+			{{> "bastionland.gm-toolkit-cast"}}
+			{{/with}}
+
 			{{#with table}}
 			<details class="bastionland-gm-toolkit__fold bastionland-gm-toolkit__table-fold" data-fold="{{fold}}" data-myth-fold {{#if open}}open{{/if}}>
 				<summary>{{#if name}}{{name}}{{else}}{{localize "bastionland.gmToolkit.myths.table"}}{{/if}}</summary>
@@ -121,7 +125,7 @@
 	{{/each}}
 	{{/if}}
 
-	<section class="bastionland-gm-toolkit__card bastionland-myths__city">
+	<section class="bastionland-gm-toolkit__card bastionland-myths__city" data-cast-key="{{cityQuest.cast.key}}">
 		<h2 class="bastionland-heading">{{localize "bastionland.cityQuest.title"}}</h2>
 		<p class="bastionland-hint">{{localize "bastionland.cityQuest.hint"}}</p>
 		{{#if cityQuest.missingText}}
@@ -135,6 +139,9 @@
 			{{/each}}
 		</ol>
 		{{/unless}}
+		{{#with cityQuest.cast}}
+		{{> "bastionland.gm-toolkit-cast"}}
+		{{/with}}
 		{{#if cityQuest.over}}
 		<p class="bastionland-card__outcome">{{localize "bastionland.cityQuest.over"}}</p>
 		{{/if}}

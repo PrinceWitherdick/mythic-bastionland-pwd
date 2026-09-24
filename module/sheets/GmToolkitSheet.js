@@ -6,6 +6,7 @@ import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, makeWholeCast, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable, rollRefereeTable } from "../actions/referee-rolls.js";
@@ -19,15 +20,17 @@ import { spinTable } from "../apps/roll-spin.js";
 import { setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, tableForEntry } from "../book-art/myth-tables.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, statLabels, t } from "../chat/cards.js";
 import { reducesMotion, scrollBehavior } from "../client-settings.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
 import { REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { visitedNewestFirst } from "../rules/journey.js";
+import { CAST_FLAG, castToMake, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
+import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
 import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
@@ -127,6 +130,10 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			rollMythTable: GmToolkitSheet.#onRollMythTable,
 			showMythTable: GmToolkitSheet.#onShowMythTable,
 			showMythArt: GmToolkitSheet.#onShowMythArt,
+			makeCastMember: GmToolkitSheet.#onMakeCastMember,
+			makeWholeCast: GmToolkitSheet.#onMakeWholeCast,
+			openCastActor: GmToolkitSheet.#onOpenCastActor,
+			dropFromCast: GmToolkitSheet.#onDropFromCast,
 			nextPhase: () => advancePhase(),
 			turnSeason: () => turnSeason(),
 			turnAge: () => turnAge(),
@@ -180,6 +187,9 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 
 	/** @type {Map<number, Record<number, number>>} The row last rolled in each column of a Myth's table, by Myth number. */
 	#tableRolls = new Map();
+
+	/** @type {Map<string, {img: string|null, members: object[]}>} Each Cast as the page last drew it, so a click knows the stat block it stands for. */
+	#casts = new Map();
 
 	/** Whether a Myth's table is being rolled, so a second click waits for it to land. */
 	#spinning = false;
@@ -277,16 +287,28 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 */
 	#mythsContext(data) {
 		const seen = cityOmensSeen();
+		// Read once for the whole page: every Myth's Cast is gathered from the same
+		// actors, and names their scores by the same words.
+		const forCast = { actors: castActors(), labels: statLabels() };
+		this.#casts.clear();
 		const cityQuest = {
 			seen: t("cityQuest.seen", { count: seen.length, end: CITY_QUEST_END }),
 			omens: seen.map((omen) => ({ number: omen, text: this.#index?.cityQuest?.omens?.[omen - 1] ?? t("cityQuest.omen", { omen, count: CITY_OMEN_COUNT }) })),
 			over: cityQuestOver(seen),
 			empty: !seen.length,
-			missingText: !this.#index?.cityQuest?.omens
+			missingText: !this.#index?.cityQuest?.omens,
+			cast: this.#castContext({
+				key: CITY_CAST,
+				fold: "cast:city",
+				cast: this.#index?.cityQuest?.cast,
+				note: this.#index?.cityQuest?.castNote,
+				missingText: !this.#index?.cityQuest?.cast,
+				...forCast
+			})
 		};
 		if (!data) return { noRealm: true, cityQuest };
 
-		const myths = data.realm.myths.map((myth) => this.#mythContext(myth, data));
+		const myths = data.realm.myths.map((myth) => this.#mythContext(myth, data, forCast));
 		return {
 			myths,
 			// Opening one Myth folds the one open before, so the other five stay a row each.
@@ -299,8 +321,9 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/**
 	 * @param {object} myth From the Realm.
 	 * @param {object} data
+	 * @param {import("../rules/myth-cast.js").CastActor[]} actors Every actor a Cast could gather.
 	 */
-	#mythContext(myth, data) {
+	#mythContext(myth, data, forCast) {
 		const { name, page, entry } = mythLookup(this.#index, myth);
 		const { current, next } = omenStage(myth.omen);
 		const text = (number) => entry?.omens?.[number - 1] ?? null;
@@ -339,7 +362,48 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			note: kept.note,
 			fold,
 			open: this.#folds.get(fold) ?? false,
-			table: this.#tableContext(myth, page, entry, pointsOpposite(text(current)))
+			table: this.#tableContext(myth, page, entry, pointsOpposite(text(current))),
+			cast: this.#castContext({
+				key: castKey(this.scene, myth),
+				fold: `cast:${myth.number}`,
+				cast: entry?.cast,
+				note: entry?.castNote,
+				missingText: !entry?.cast,
+				img: entry?.path ?? null,
+				...forCast
+			})
+		};
+	}
+
+	/**
+	 * The Cast printed beside a Myth's Omens (p18), with whoever the world has
+	 * made of them and anyone else the GM has dropped in.
+	 * @param {object} options
+	 * @param {string} options.key Which Cast, as an actor's flag names it.
+	 * @param {string} options.fold
+	 * @param {object[]|null|undefined} options.cast From the art index.
+	 * @param {string|null|undefined} options.note What the book says about the whole Cast.
+	 * @param {boolean} options.missingText Whether the book's own words are still to be imported.
+	 * @param {string|null} [options.img] The Myth's picture, worn by whoever is made from it.
+	 * @param {import("../rules/myth-cast.js").CastActor[]} options.actors
+	 * @param {Record<string, string>} options.labels What each score is called, read once for the page.
+	 */
+	#castContext({ key, fold, cast, note, missingText, img = null, actors, labels }) {
+		const { members, extras, made, missing } = gatherCast(cast, actors, key);
+		this.#casts.set(key, { img, members });
+		return {
+			key,
+			fold,
+			img,
+			open: this.#folds.get(fold) ?? false,
+			summary: members.length ? t("gmToolkit.cast.summary", { made, count: members.length }) : t("gmToolkit.cast.title"),
+			note: note || null,
+			members: members.map((member) => ({ ...member, statLine: formatStatLine(member.stats, labels) })),
+			extras,
+			made,
+			missing,
+			empty: !members.length && !extras.length,
+			missingText
 		};
 	}
 
@@ -569,6 +633,11 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const onCompanyChange = (token, changes) => ["x", "y", "flags"].some((key) => key in changes) && onCompany(token);
 		const onSite = (entry) => isSiteEntry(entry) && this.#redraw("places");
 		const onDomain = (actor) => actor.type === "domain" && this.#redraw("time");
+		// An actor made, deleted, renamed, repictured, put in a Cast or taken out of one changes the Myths page.
+		const onCast = (actor) => couldJoinCast(actor) && this.#redraw("myths");
+		// Only the Cast flag itself, since the system writes plenty of others on an
+		// actor -- goods pictures, a breed, a hex's lore -- that the Myths page can't see.
+		const onCastChange = (actor, changes) => (["name", "img"].some((key) => key in changes) || CAST_FLAG in (changes.flags?.[SYSTEM_ID] ?? {})) && onCast(actor);
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
 		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
 		this.#hooks = [
@@ -579,8 +648,16 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			["updateToken", Hooks.on("updateToken", onCompanyChange)],
 			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onSite)]),
 			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
-			...["createActor", "deleteActor"].map((name) => [name, Hooks.on(name, onDomain)]),
-			["updateActor", Hooks.on("updateActor", onDomainChange)],
+			// One listener for each, fanning out to the pages that care, rather than
+			// a pair of them running down every actor the world writes.
+			...["createActor", "deleteActor"].map((name) => [name, Hooks.on(name, (actor) => {
+				onDomain(actor);
+				onCast(actor);
+			})]),
+			["updateActor", Hooks.on("updateActor", (actor, changes) => {
+				onDomainChange(actor, changes);
+				onCastChange(actor, changes);
+			})],
 			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))],
 			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))]
 		];
@@ -718,6 +795,35 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				return;
 			default:
 		}
+	}
+
+	/**
+	 * Dropping an actor on a Myth counts them among its Cast, and dropping one
+	 * on the City Quest among the City's.
+	 * @override
+	 */
+	async _onDropActor(event, actor) {
+		const element = event.target instanceof HTMLElement ? event.target : null;
+		if (!element || !this.isEditable || actor.uuid === this.actor.uuid) return null;
+		// A Cast already on the page says which it is; anywhere else on a Myth's card means that Myth's.
+		const fold = element.closest("[data-cast-key]");
+		const myth = fold ? null : this.#mythFrom(element);
+		const key = fold?.dataset.castKey || (myth && castKey(this.scene, myth));
+		if (!key) return null;
+		return addToCast(actor, key, myth ? mythLookup(this.#index, myth).name : t("cityQuest.title"));
+	}
+
+	/**
+	 * @param {HTMLElement} target
+	 * @returns {{key: string, img: string|null, members: object[], member: object|null}|null} The Cast
+	 *   a control belongs to, and the entry it stands for, as the page last drew them.
+	 */
+	#castFrom(target) {
+		const key = target.closest("[data-cast-key]")?.dataset.castKey;
+		const cast = key ? this.#casts.get(key) : null;
+		if (!cast) return null;
+		const index = Number(target.closest("[data-cast-index]")?.dataset.castIndex);
+		return { key, img: cast.img, members: cast.members, member: cast.members[index] ?? null };
 	}
 
 	/**
@@ -916,6 +1022,36 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const hex = GmToolkitSheet.#hexFrom(target);
 		const { spark } = target.dataset;
 		if (hex && spark) return forgetHexSpark(this.scene, hex, spark);
+	}
+
+	/**
+	 * Make one of a Cast: an NPC, or a Structure for a stat block that is one.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onMakeCastMember(_event, target) {
+		const cast = this.#castFrom(target);
+		if (!cast?.member) return;
+		const made = await makeCastMember(cast.member, { key: cast.key, img: cast.img });
+		if (made) ui.notifications.info(t("npcChooser.created", { name: made.name }));
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onMakeWholeCast(_event, target) {
+		const cast = this.#castFrom(target);
+		if (!cast) return;
+		return makeWholeCast(castToMake(cast.members), { key: cast.key, img: cast.img });
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onOpenCastActor(_event, target) {
+		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		return actor?.sheet?.render({ force: true });
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onDropFromCast(_event, target) {
+		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		return actor ? removeFromCast(actor) : null;
 	}
 
 	/**

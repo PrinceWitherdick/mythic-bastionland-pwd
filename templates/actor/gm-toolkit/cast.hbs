@@ -1,0 +1,49 @@
+{{!-- A Cast, folded away under its Myth: each stat block the book prints, with
+      whoever the world has made of them, and anyone else dropped in by hand. --}}
+<details class="bastionland-gm-toolkit__fold bastionland-gm-toolkit__cast-fold" data-fold="{{fold}}" data-cast-key="{{key}}" {{#if open}}open{{/if}}>
+	<summary>{{summary}}</summary>
+
+	{{#if note}}<p class="bastionland-hint">{{note}}</p>{{/if}}
+
+	<ul class="bastionland-gm-toolkit__cast">
+		{{#each members}}
+		<li class="bastionland-gm-toolkit__cast-member{{#if actors.length}} is-made{{/if}}" data-cast-index="{{index}}">
+			<p class="bastionland-gm-toolkit__cast-line">
+				<span class="bastionland-gm-toolkit__cast-name">{{name}}</span>{{#if epithet}}<span class="bastionland-gm-toolkit__cast-epithet">, {{epithet}}</span>{{/if}}
+				{{#if statLine}}<span class="bastionland-gm-toolkit__cast-stats">{{statLine}}</span>{{/if}}
+			</p>
+			{{#each lines}}
+			<p class="bastionland-gm-toolkit__cast-text">{{this}}</p>
+			{{/each}}
+			<div class="bastionland-gm-toolkit__cast-made">
+				{{#each actors}}
+				{{> "bastionland.gm-toolkit-cast-actor"}}
+				{{else}}
+				<button type="button" class="bastionland-gm-toolkit__cast-make" data-action="makeCastMember" data-tooltip="{{localize 'bastionland.gmToolkit.cast.makeTooltip'}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.gmToolkit.cast.make"}}</button>
+				{{/each}}
+			</div>
+		</li>
+		{{/each}}
+
+		{{#each extras}}
+		<li class="bastionland-gm-toolkit__cast-member is-made is-yours">
+			<div class="bastionland-gm-toolkit__cast-made">
+				{{> "bastionland.gm-toolkit-cast-actor"}}
+				<span class="bastionland-gm-toolkit__chip">{{localize "bastionland.gmToolkit.cast.yours"}}</span>
+			</div>
+		</li>
+		{{/each}}
+	</ul>
+
+	{{#if empty}}
+	<p class="bastionland-hint">{{#if missingText}}{{localize "bastionland.gmToolkit.cast.noText"}}{{else}}{{localize "bastionland.gmToolkit.cast.empty"}}{{/if}}</p>
+	{{else}}
+	<p class="bastionland-hint bastionland-gm-toolkit__cast-hint">{{localize "bastionland.gmToolkit.cast.dropHint"}}</p>
+	{{/if}}
+
+	{{#if missing}}
+	<nav class="bastionland-toolbar" aria-label="{{summary}}">
+		<button type="button" data-action="makeWholeCast"><i class="fa-solid fa-users" inert></i> {{localize "bastionland.gmToolkit.cast.makeAll"}}</button>
+	</nav>
+	{{/if}}
+</details>

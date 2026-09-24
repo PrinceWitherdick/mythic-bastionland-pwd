@@ -1280,6 +1280,22 @@
         "tableReading": "Reading this Myth’s table from your rulebook…",
         "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table."
       },
+      "cast": {
+        "title": "The Cast",
+        "summary": "The Cast, {made} of {count} made",
+        "make": "Make Them",
+        "makeTooltip": "Add them to the Actors directory as one of the Cast, with the stat block the book prints for them.",
+        "makeAll": "Make the Rest of the Cast",
+        "madeAll": "{count} of the Cast added to the Actors directory.",
+        "open": "Open their sheet",
+        "remove": "Take them out of this Cast",
+        "yours": "Yours",
+        "empty": "Nobody here yet. Drag an actor onto this card to count them among the Cast.",
+        "dropHint": "Drag an actor onto this card to count them among the Cast.",
+        "noText": "Run Import PDF to read the printed Cast here. Until then, drag an actor onto this card to count them among it.",
+        "added": "{name} counts among the Cast of {myth}.",
+        "fromDirectory": "Import them into the world first: an actor in a compendium can’t be counted among a Cast."
+      },
       "journey": {
         "hint": "Every hex the Company has come into on this Realm, the last reached first, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
         "summary": "{count} of {total} hexes visited.",
