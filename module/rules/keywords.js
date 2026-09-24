@@ -56,6 +56,7 @@ export const KEYWORDS = Object.freeze([
 	{ key: "save", pattern: "Saves?", page: 8 },
 	{ key: "armour", pattern: "Armour", page: 12 },
 	{ key: "exposed", pattern: "Exposed", page: 8 },
+	{ key: "reaction", pattern: "Reactions?", page: 8 },
 	{ key: "fatigue", pattern: "Fatigued?", page: 10 },
 	{ key: "exhausted", pattern: "Exhausted", page: 9 },
 	{ key: "impaired", pattern: "Impaired", page: 8 },

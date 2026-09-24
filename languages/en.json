@@ -803,6 +803,62 @@
       "noCombatants": "This encounter has nobody in it yet.",
       "nobody": "Nobody was caught unready, so there’s nothing to roll."
     },
+    "reaction": {
+      "title": "Reaction",
+      "buttonHint": "A SPI Save for how they take it, when the Referee is uncertain which way they’d go.",
+      "favourable": "Nothing unfavourable in how they take it.",
+      "unfavourable": "They take it badly.",
+      "hint": "Characters react in a way that suits the moment (p8). This is only for when that’s uncertain."
+    },
+    "scope": {
+      "title": "Scope",
+      "hint": "How long you expect the game to run for, both in and out of game (p6). Settle it with the players before you begin.",
+      "unchosen": "No Scope settled on yet.",
+      "chosen": "The game’s Scope: {scope}.",
+      "kinds": {
+        "adventure": {
+          "label": "Adventure",
+          "hint": "One session.",
+          "text": "One session. It saves time to make a few Knights ahead of the game and let the players choose one each."
+        },
+        "chronicle": {
+          "label": "Chronicle",
+          "hint": "A known number of sessions.",
+          "text": "A known number of sessions, with the Season and Age turns planned out ahead of time."
+        },
+        "saga": {
+          "label": "Saga",
+          "hint": "An indeterminate number of sessions.",
+          "text": "An indeterminate number of sessions. Let the players guide the scope as they explore the world."
+        }
+      },
+      "sessionsPlanned": "{count} sessions are planned.",
+      "sessionsPlannedOne": "One session is planned.",
+      "turnEveryLine": "A turn falls at the end of every {count} sessions.",
+      "turnEveryLineOne": "A turn falls at the end of each session.",
+      "fields": {
+        "sessions": "Sessions planned",
+        "session": "Playing session",
+        "turnEvery": "A turn every",
+        "turnEveryUnit": "sessions"
+      },
+      "standing": "Session {session} of {sessions}.",
+      "sessionsLeft": "{count} more to come.",
+      "sessionsLeftOne": "One more to come.",
+      "lastSession": "The last one planned.",
+      "spent": "Every session planned has been played. Plan further ahead, or let it run on.",
+      "due": {
+        "season": "A turn of the Season falls at the end of it.",
+        "age": "A turn of the Age falls at the end of it, as Winter ends.",
+        "none": "No turn falls at the end of it."
+      },
+      "endSession": "End the Session",
+      "endSessionHint": "Counts this session as played, and turns the Season or the Age where the plan puts one at its end.",
+      "sessionEnded": "Session {session} is played out.",
+      "knightAhead": "Make a Knight Ahead",
+      "knightAheadHint": "Makes a Knight with the chooser open on them, ready to hand to a player when they sit down.",
+      "knightName": "A New Knight"
+    },
     "time": {
       "title": "Time",
       "now": "Age {age}, {season}, day {day}, {phase}",
@@ -2762,6 +2818,7 @@
       "save": "Roll a d20 equal to or under the Virtue to pass. Failing means negative consequences, not always a failed action.",
       "armour": "Subtracted from an Attack’s Damage. One coat, plates, helm and shield can be worn at once, their scores added together.",
       "exposed": "Caught with guard down or otherwise defenceless: act as if at 0 GD until the situation is remedied. CLA 0 also leaves you Exposed.",
+      "reaction": "How a non-player character takes something. They react in a way that suits the moment; where that’s uncertain, they make a SPI Save to avoid an unfavourable one.",
       "fatigue": "Can’t perform Feats until rested. After a Feat, pass its Save or become Fatigued. A moment of peace removes it.",
       "exhausted": "At VIG 0: can’t Attack after moving this turn.",
       "impaired": "Rolls a single d4, with no bonus dice and no Feats. Unarmed attacks, Long weapons in confined spaces and SPI 0 are Impaired.",

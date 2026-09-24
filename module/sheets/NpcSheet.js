@@ -1,6 +1,6 @@
 import { pasteStatBlock } from "../actions/npc.js";
 import { COMPANION_FLAG } from "../actions/property.js";
-import { rollMorale } from "../actions/saves.js";
+import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { openNpcChooser } from "../apps/NpcChooser.js";
 import { t } from "../chat/cards.js";
@@ -24,6 +24,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			chooseNpc: NpcSheet.#onChooseNpc,
 			pasteStatBlock: NpcSheet.#onPasteStatBlock,
 			rollMorale: NpcSheet.#onRollMorale,
+			rollReaction: NpcSheet.#onRollReaction,
 			setScale: NpcSheet.#onSetScale,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
@@ -128,6 +129,11 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onRollMorale() {
 		return rollMorale(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onRollReaction() {
+		return rollReaction(this.actor);
 	}
 
 	/** @this {NpcSheet} */

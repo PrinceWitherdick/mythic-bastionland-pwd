@@ -76,17 +76,55 @@ export async function rollSaveFor(name, virtue, value) {
 }
 
 /**
+ * A Save made for a named reason, posted as a card that says what it was for
+ * and what came of it. Morale, a Reaction and a search all read this way, so
+ * the card is built in the one place.
+ * @param {Actor} actor
+ * @param {string} virtue One of VIRTUES.
+ * Whatever turns on the Save itself — usually whether it was made — is given as
+ * a function of the result rather than a finished line.
+ * @param {object} words
+ * @param {string} words.label   What the Save was for, as its heading.
+ * @param {string|((save: SaveResult) => string)} words.outcome  What came of it.
+ * @param {string|((save: SaveResult) => string)|null} [words.hint] A line of the book's own guidance.
+ * @returns {Promise<SaveResult>}
+ */
+export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }) {
+	const save = await evaluateSave(actor, virtue);
+	const read = (words) => (typeof words === "function" ? words(save) : words);
+	await postCard(actor, "save", {
+		save: { ...saveContext(save), label },
+		outcome: read(outcome),
+		hint: read(hint)
+	}, { rolls: [save.roll] });
+	return save;
+}
+
+/**
  * Roll Morale: a SPI Save to stand rather than rout or surrender (Wavering
  * Morale, p10).
  * @param {Actor} actor
  * @returns {Promise<SaveResult>}
  */
 export async function rollMorale(actor) {
-	const save = await evaluateSave(actor, "spi");
-	await postCard(actor, "save", {
-		save: { ...saveContext(save), label: t("morale.title") },
-		outcome: t(save.passed ? "morale.holds" : "morale.breaks"),
+	return rollLabelledSave(actor, "spi", {
+		label: t("morale.title"),
+		outcome: ({ passed }) => t(passed ? "morale.holds" : "morale.breaks"),
 		hint: t("morale.hint")
-	}, { rolls: [save.roll] });
-	return save;
+	});
+}
+
+/**
+ * Reaction (p8): non-player characters react in a way that fits the moment,
+ * and when the Referee is uncertain how one takes something, a SPI Save says
+ * whether the reaction is unfavourable.
+ * @param {Actor} actor
+ * @returns {Promise<SaveResult>}
+ */
+export async function rollReaction(actor) {
+	return rollLabelledSave(actor, "spi", {
+		label: t("reaction.title"),
+		outcome: ({ passed }) => t(passed ? "reaction.favourable" : "reaction.unfavourable"),
+		hint: t("reaction.hint")
+	});
 }
