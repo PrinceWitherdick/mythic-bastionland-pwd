@@ -2161,6 +2161,17 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-page .hint,
 .bastionland-card .hint {
 	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+/*
+ * The specialist die and the situation it applies to share a row while there
+ * is room for both; the row gap holds the text field clear of the dropdown
+ * once the sheet is narrow enough to drop it underneath.
+ */
+.bastionland-page .bastionland-item-specialist .form-fields {
+	flex-wrap: wrap;
+	row-gap: 0.4rem;
 }
 
 .bastionland-qualities {
@@ -2174,7 +2185,26 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /*
- * Save and Cancel on an item that hasn't been added yet. The page scrolls, so
+ * Six lines of description is a tight window for anything longer than a line
+ * of rules text, so the box takes a drag handle at its foot. Foundry lays the
+ * editor out as a menu above a container the text is stretched inside, and
+ * that container is only given a height of its own in a column; `resize`, in
+ * turn, only takes on a box that keeps its own overflow.
+ */
+.bastionland-page .bastionland-item-description prose-mirror {
+	display: flex;
+	flex-direction: column;
+	overflow: auto;
+	resize: vertical;
+}
+
+/* Whatever height the box is dragged to is the text's to fill. */
+.bastionland-page .bastionland-item-description prose-mirror > .editor-container {
+	min-height: 0;
+}
+
+/*
+ * Save, Cancel and Delete at the foot of an item's window. The page scrolls, so
  * they stick to its foot rather than sliding out of reach below a long
  * description; the negative offset holds them against the page's own padding.
  */
@@ -2192,6 +2222,19 @@ button.bastionland-seer__stat:not(:disabled):hover {
 
 .bastionland-page .bastionland-item-footer .bastionland-button {
 	flex: 0 1 9rem;
+}
+
+/* Deleting is the one thing here that can't be taken back, so it stands apart
+   at the far end in blood rather than beside Save. */
+.bastionland-page .bastionland-item-footer__delete {
+	margin-right: auto;
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page .bastionland-item-footer__delete:not(:disabled):hover {
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
 }
 
 /* ---------------------------------------------------------------- */

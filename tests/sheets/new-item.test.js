@@ -1,8 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const root = join(import.meta.dirname, "../..");
 
 let BastionlandItemSheet;
 let actor;
 let renders;
+let submits;
+let closes;
 
 /**
  * Just enough of Foundry for the item sheet to load and open. The stub sheet
@@ -27,6 +33,16 @@ function installFoundryStubs() {
 
 		_prepareSubmitData(_event, _form, formData) {
 			return { ...formData };
+		}
+
+		submit() {
+			submits.push(this);
+			return Promise.resolve();
+		}
+
+		close() {
+			closes.push(this);
+			return Promise.resolve();
 		}
 	}
 
@@ -55,6 +71,8 @@ function installFoundryStubs() {
 
 beforeEach(async () => {
 	renders = [];
+	submits = [];
+	closes = [];
 	actor = { name: "Ser Test", createEmbeddedDocuments: vi.fn() };
 	installFoundryStubs();
 	vi.resetModules();
@@ -93,5 +111,44 @@ describe("adding an item from a + button", () => {
 
 		expect(sheet.isNew).toBe(false);
 		expect(sheet._prepareSubmitData(null, null, { name: "Polished mace" })).toEqual({ name: "Polished mace" });
+	});
+});
+
+describe("the buttons at the foot of an item's window", () => {
+	/**
+	 * The action handlers are private statics, so they're reached the way
+	 * Foundry reaches them: through the sheet's registered actions.
+	 */
+	function press(sheet, action) {
+		return BastionlandItemSheet.DEFAULT_OPTIONS.actions[action].call(sheet);
+	}
+
+	// Cancel is Foundry's own `close` action, which shuts the window without
+	// submitting, so the sheet declares no handler of its own for it.
+	it("cancels a new item with the close Foundry already handles", () => {
+		const markup = readFileSync(join(root, "templates/item/item-sheet.hbs"), "utf8");
+
+		expect(markup).toContain('data-action="close"');
+		expect(BastionlandItemSheet.DEFAULT_OPTIONS.actions.close).toBeUndefined();
+	});
+
+	it("asks before deleting an item the actor carries", async () => {
+		const deleteDialog = vi.fn();
+		const sheet = new BastionlandItemSheet({ document: { id: "abc123", type: "weapon", deleteDialog } });
+
+		await press(sheet, "deleteItem");
+
+		expect(deleteDialog).toHaveBeenCalledOnce();
+		// Foundry shuts the window itself once the document has gone.
+		expect(closes).toEqual([]);
+	});
+
+	it("saves before shutting the window", async () => {
+		const sheet = new BastionlandItemSheet({ document: { id: "abc123", type: "weapon" } });
+
+		await press(sheet, "saveAndClose");
+
+		expect(submits).toEqual([sheet]);
+		expect(closes).toEqual([sheet]);
 	});
 });

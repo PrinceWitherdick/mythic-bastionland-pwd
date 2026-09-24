@@ -51,7 +51,7 @@
 			<span class="bastionland-check__label">{{localize "bastionland.item.trample"}}</span>
 		</label>
 	</fieldset>
-	<div class="form-group">
+	<div class="form-group bastionland-item-specialist">
 		<label for="{{rootId}}-specialist">{{localize "bastionland.item.specialist"}}</label>
 		<div class="form-fields">
 			<select id="{{rootId}}-specialist" name="system.specialist.die">
@@ -132,6 +132,17 @@
 			<i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.item.cancel"}}
 		</button>
 		<button type="submit" class="bastionland-button">
+			<i class="fa-solid fa-check" inert></i> {{localize "bastionland.item.save"}}
+		</button>
+	</footer>
+	{{else if editable}}
+	{{!-- An item the actor already carries writes every change as it's made, so
+	      Save only shuts the window; Delete is here rather than on the row. --}}
+	<footer class="bastionland-item-footer">
+		<button type="button" class="bastionland-button bastionland-item-footer__delete" data-action="deleteItem">
+			<i class="fa-solid fa-trash" inert></i> {{localize "bastionland.sheet.delete"}}
+		</button>
+		<button type="button" class="bastionland-button" data-action="saveAndClose">
 			<i class="fa-solid fa-check" inert></i> {{localize "bastionland.item.save"}}
 		</button>
 	</footer>

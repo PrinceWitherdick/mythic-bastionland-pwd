@@ -72,7 +72,6 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			createItem: BastionlandActorSheet.#onCreateItem,
 			postItem: BastionlandActorSheet.#onPostItem,
 			editItem: BastionlandActorSheet.#onEditItem,
-			deleteItem: BastionlandActorSheet.#onDeleteItem,
 			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
 			useRemedy: BastionlandActorSheet.#onUseRemedy
 		}
@@ -322,11 +321,6 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	/** @this {BastionlandActorSheet} */
 	static #onEditItem(_event, target) {
 		this.#itemFrom(target)?.sheet.render({ force: true });
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onDeleteItem(_event, target) {
-		return this.#itemFrom(target)?.deleteDialog();
 	}
 
 	/** @this {BastionlandActorSheet} */

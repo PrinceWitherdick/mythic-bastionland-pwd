@@ -19,7 +19,11 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		classes: [SYSTEM_ID, "bastionland", "bastionland-item-window"],
 		position: { width: 480, height: 520 },
 		window: { resizable: true },
-		form: { submitOnChange: true }
+		form: { submitOnChange: true },
+		actions: {
+			deleteItem: BastionlandItemSheet.#onDeleteItem,
+			saveAndClose: BastionlandItemSheet.#onSaveAndClose
+		}
 	};
 
 	static PARTS = {
@@ -81,6 +85,25 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 				relativeTo: item
 			})
 		});
+	}
+
+	/**
+	 * Delete the item, once its owner has confirmed. Foundry shuts the window
+	 * itself when the document goes.
+	 * @this {BastionlandItemSheet}
+	 */
+	static #onDeleteItem() {
+		return this.item.deleteDialog();
+	}
+
+	/**
+	 * Save and shut the window. An item the actor already carries writes every
+	 * change as it's made, so this only catches whatever is still in the form.
+	 * @this {BastionlandItemSheet}
+	 */
+	static async #onSaveAndClose() {
+		await this.submit();
+		return this.close();
 	}
 
 	/** @inheritDoc */
