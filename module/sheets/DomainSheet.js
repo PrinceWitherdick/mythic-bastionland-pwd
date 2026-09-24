@@ -11,6 +11,7 @@ import {
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { addCourtMember, removeCourtMember } from "../actions/court.js";
+import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { COURT_ROLES, SERVES_A_SEAT, courtByRole } from "../rules/court.js";
 import { COUNCIL_SEATS, crisisRolledThisSeason, isInTurmoil } from "../rules/dominion.js";
@@ -40,6 +41,9 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			seize: DomainSheet.#onSeize,
 			addCourtMember: DomainSheet.#onAddCourtMember,
 			removeCourtMember: DomainSheet.#onRemoveCourtMember,
+			muster: DomainSheet.#onMuster,
+			dismissWarband: DomainSheet.#onDismissWarband,
+			openWarband: DomainSheet.#onOpenWarband,
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
 			setTaskAside: DomainSheet.#onSetTaskAside
@@ -86,6 +90,8 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				season: calendarLabel(calendar)
 			}),
 			muster: t("domain.muster", { count: system.muster }),
+			// The Warbands this Holding has in the field, against what it can raise (p11, p21).
+			warbands: DomainSheet.#musterContext(actor),
 			successorPlaceholder: successorPlaceholder(actor),
 			turmoil: isInTurmoil(system.seized, seasonKey(calendar)) ? t("domain.conquest.inTurmoil") : null,
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
@@ -117,6 +123,20 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				seats: seats.map((seat) => ({ ...seat, selected: seat.key === member.seat }))
 			}))
 		}));
+	}
+
+	/**
+	 * What the Authority block says of the Domain’s soldiers.
+	 * @param {Actor} domain
+	 * @returns {object}
+	 */
+	static #musterContext(domain) {
+		const { state, lines } = musterView(domain);
+		return {
+			lines,
+			tally: t("warband.mustered", { count: state.mustered, muster: state.muster }),
+			full: state.full ? t("warband.full") : null
+		};
 	}
 
 	/* -------------------------------------------- */
@@ -167,6 +187,23 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/** @this {DomainSheet} */
 	static #onRemoveCourtMember(_event, target) {
 		return removeCourtMember(this.actor, target.closest("[data-member]")?.dataset.member);
+	}
+
+	/** @this {DomainSheet} */
+	static #onMuster() {
+		return musterWarband(this.actor);
+	}
+
+	/** @this {DomainSheet} */
+	static #onDismissWarband(_event, target) {
+		return dismissWarband(this.actor, target.closest("[data-warband]")?.dataset.warband);
+	}
+
+	/** @this {DomainSheet} */
+	static #onOpenWarband(_event, target) {
+		const warband = fromUuidSync(target.closest("[data-warband]")?.dataset.uuid ?? "");
+		warband?.sheet.render({ force: true });
+		return warband;
 	}
 
 	/** @this {DomainSheet} */

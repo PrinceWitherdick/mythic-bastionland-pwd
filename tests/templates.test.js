@@ -24,6 +24,7 @@ import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULT
 import { COURT_ROLES } from "../module/rules/court.js";
 import { TASK_OUTCOMES, TASK_RISKS, TASK_SCOPES } from "../module/rules/council-tasks.js";
 import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
+import { UPKEEP_STRAINS, WARBAND_ORIGINS } from "../module/rules/warbands.js";
 import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js";
 import { EVENT_KEYS, EVENT_STAGES, MIDPOINT_STAGE } from "../module/rules/season-events.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
@@ -214,6 +215,8 @@ describe("localization", () => {
 		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
 		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),
+		...partsOf("warband.origins", [...WARBAND_ORIGINS], ["label", "hint", "text"]),
+		...partsOf("warband.upkeep.strains", [...UPKEEP_STRAINS], ["label", "text"]),
 		...partsOf("explore.folklore.sources", [...FOLK_SOURCES], ["label", "hint"]),
 		...partsOf("explore.search.aims", [...SEARCH_AIMS], ["label", "hint"]),
 		...TRAVEL_RULES.flatMap(({ sections }) => sections.flatMap(({ key, intro, lines = [], rows = [], note, roll, act }) => [

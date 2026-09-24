@@ -2,6 +2,7 @@ import { pasteStatBlock } from "../actions/npc.js";
 import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
+import { strainWarband } from "../actions/warbands.js";
 import { openNpcChooser } from "../apps/NpcChooser.js";
 import { t } from "../chat/cards.js";
 import { FEATS, NPC_SCALES } from "../config.js";
@@ -25,6 +26,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			pasteStatBlock: NpcSheet.#onPasteStatBlock,
 			rollMorale: NpcSheet.#onRollMorale,
 			rollReaction: NpcSheet.#onRollReaction,
+			upkeep: NpcSheet.#onUpkeep,
 			setScale: NpcSheet.#onSetScale,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
@@ -134,6 +136,11 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onRollReaction() {
 		return rollReaction(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onUpkeep() {
+		return strainWarband(this.actor);
 	}
 
 	/** @this {NpcSheet} */

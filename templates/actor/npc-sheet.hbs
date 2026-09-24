@@ -8,6 +8,9 @@
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
 		<button type="button" data-action="rollMorale"><i class="fa-solid fa-flag" inert></i> <span>{{localize "bastionland.morale.title"}}</span></button>
 		<button type="button" data-action="rollReaction" data-tooltip="{{localize 'bastionland.reaction.buttonHint'}}"><i class="fa-solid fa-comments" inert></i> <span>{{localize "bastionland.reaction.title"}}</span></button>
+		{{#if system.warband}}
+		<button type="button" data-action="upkeep" data-tooltip="{{localize 'bastionland.warband.upkeep.hint'}}"><i class="fa-solid fa-utensils" inert></i> <span>{{localize "bastionland.warband.upkeep.title"}}</span></button>
+		{{/if}}
 		<button type="button" data-action="rest"><i class="fa-solid fa-mug-hot" inert></i> <span>{{localize "bastionland.sheet.rest"}}</span></button>
 	</nav>
 	{{/if}}

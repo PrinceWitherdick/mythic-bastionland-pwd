@@ -2851,6 +2851,71 @@
       "credit": "Creating a Realm, as printed on the free Blank Realm sheet by Chris McDowall, Bastionland Press (p14). Run Import PDF to read the rulebook’s own page here.",
       "bookCredit": "Creating a Realm, read from your copy of the rulebook by Chris McDowall, Bastionland Press (p14)."
     },
+    "warband": {
+      "mustered": "{count} of {muster} Warbands raised.",
+      "full": "Every Warband this Holding can raise is in the field.",
+      "spiritLine": "{abbr} {spi}",
+      "cantCreate": "Mustering a Warband creates an actor, so it needs a user who is allowed to create actors. Ask the Referee.",
+      "origins": {
+        "vassals": {
+          "label": "Loyal Vassals",
+          "hint": "Those who serve the Holding, called up from their fields and workshops.",
+          "text": "Drawn from loyal Vassals, who leave their own work to serve."
+        },
+        "allies": {
+          "label": "Knights Who Share a Cause",
+          "hint": "Knights who ride with you because your cause is theirs.",
+          "text": "Drawn from Knights who share the cause, and who expect it to be honoured."
+        },
+        "mercenaries": {
+          "label": "Mercenaries",
+          "hint": "Soldiers who have agreed a price, and expect it paid.",
+          "text": "Mercenaries who have agreed a price, and will hold you to it."
+        }
+      },
+      "muster": {
+        "title": "Muster a Warband",
+        "button": "Muster a Warband",
+        "hint": "A typical Seat of Power musters 3 Warbands, another Holding 2.",
+        "origin": "Where the soldiers are drawn from",
+        "intro": "Who takes the field for {name}?",
+        "blankIntro": "Who takes the field for {name}? Import PDF brings in the book\u2019s Warbands; until then, raise one and fill in their stats.",
+        "blank": "A Warband of Your Own",
+        "ok": "Muster Them",
+        "newName": "A Warband",
+        "needs": "Whatever their origin, soldiers expect their basic needs to be met during their service.",
+        "marshal": "The Marshal determines their training and armament.",
+        "raised": "{name} takes the field for {domain}.",
+        "full": "{name} already has {count} Warbands in the field, all it can raise. Muster another anyway?"
+      },
+      "dismiss": {
+        "title": "Let Them Go",
+        "confirm": "Do the soldiers of {name} leave the service of {domain}? Their sheet stays in the Actors tab.",
+        "went": "{name} leaves the service of {domain}."
+      },
+      "upkeep": {
+        "title": "Upkeep",
+        "hint": "A Warband ill-rested, poorly fed or pushed too far loses d6 SPI.",
+        "intro": "What has worn {name} down?",
+        "needs": "Soldiers expect their basic needs to be met during their service.",
+        "notDamage": "Virtue Loss is not Damage, so it can never Mortally Wound or Slay them.",
+        "broken": "At SPI 0 {name} will not follow orders, acting only in their self interest.",
+        "strains": {
+          "illRested": {
+            "label": "Ill-rested",
+            "text": "Night after night without proper sleep."
+          },
+          "poorlyFed": {
+            "label": "Poorly fed",
+            "text": "Short rations, and no sight of better."
+          },
+          "pushedTooFar": {
+            "label": "Pushed too far",
+            "text": "Asked for more than soldiers have to give."
+          }
+        }
+      }
+    },
     "explore": {
       "here": "in this very Hex",
       "away": "{distance} Hexes to the {direction}",
