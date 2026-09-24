@@ -2344,6 +2344,120 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	width: 100%;
 }
 
+/*
+ * The Council (p20): each seat keeps its line, with a scroll to set it a task
+ * and whatever it has in hand written under the line like a clerk's docket. A
+ * task whose Phase, Week or Season is up is marked in the rubric's red ochre,
+ * so a glance down the Council says what's waiting to be settled.
+ */
+.bastionland-council {
+	grid-template-columns: max-content minmax(0, 1fr) max-content;
+}
+
+/* No scroll to set a task on a sheet nobody may edit, so no column to hold one. */
+.bastionland-council--reading {
+	grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.bastionland-council__tasks {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0 0 0.2rem;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-council__task {
+	padding-left: 0.45rem;
+	border-left: 2px solid var(--bastionland-rule);
+}
+
+.bastionland-council__task.is-due {
+	border-left-color: var(--bastionland-rubric);
+}
+
+.bastionland-council__line {
+	display: flex;
+	align-items: baseline;
+	gap: 0.3rem 0.5rem;
+}
+
+.bastionland-council__what {
+	flex: 1 1 auto;
+	font-weight: bold;
+}
+
+.bastionland-council__task.is-due .bastionland-council__what {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-council__gloss {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+/*
+ * The Court (p20): a block for each role, holding a line each for whoever
+ * serves. A member's name and the seat they were taken on by share the first
+ * line, with their leverage and note written under it like a scribe's gloss.
+ */
+.bastionland-court__role {
+	margin-top: 0.5rem;
+}
+
+.bastionland-court__role .bastionland-heading--small {
+	margin-bottom: 0.2rem;
+}
+
+.bastionland-court__members {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-court__member {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	padding-left: 0.45rem;
+	border-left: 2px solid var(--bastionland-rule);
+}
+
+.bastionland-court__line {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.3rem 0.5rem;
+}
+
+.bastionland-court__name {
+	flex: 1 1 8rem;
+	font-weight: bold;
+}
+
+.bastionland-court__seat {
+	flex: 0 1 auto;
+	max-width: 10rem;
+}
+
+.bastionland-court__leverage,
+.bastionland-court__note {
+	width: 100%;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-court__add {
+	margin-top: 0.35rem;
+}
+
 /* ---------------------------------------------------------------- */
 /* Structure sheet: a ship, wall or siege engine                    */
 /* ---------------------------------------------------------------- */

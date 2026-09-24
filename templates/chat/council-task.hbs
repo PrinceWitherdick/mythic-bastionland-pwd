@@ -1,0 +1,32 @@
+{{!-- A Council task settled (p20): what was asked, what was risked, and what came of it. --}}
+<section class="bastionland-card">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{#if icon}}<i class="{{icon}}" inert></i> {{/if}}{{title}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	<p class="bastionland-card__text">{{what}}</p>
+	<p class="bastionland-card__hint">{{scope}}</p>
+	{{#if save}}
+	{{> "bastionland.save-result" save=save}}
+	{{/if}}
+	{{#if luck}}
+	<p class="bastionland-card__tagline"><span class="bastionland-card__roll">{{luck.d6}}</span> {{luck.result}}</p>
+	{{/if}}
+	{{#if noRoll}}
+	<p class="bastionland-card__tagline">{{noRoll}}</p>
+	{{/if}}
+	<p class="bastionland-card__outcome">{{outcome}}</p>
+	{{#if crisis}}
+	<ul class="bastionland-card__entries">
+		<li>
+			<strong>{{crisis.name}}</strong>
+			{{#each crisis.lines}}
+			<p class="bastionland-card__text">{{this}}</p>
+			{{/each}}
+		</li>
+	</ul>
+	{{/if}}
+	{{#if hint}}
+	<p class="bastionland-card__hint">{{hint}}</p>
+	{{/if}}
+</section>

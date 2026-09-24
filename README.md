@@ -79,6 +79,7 @@ A **Domain** is an actor for a Holding granted to a ruler (Dominion and Authorit
 
 - **The Holding:** its name and picture, whether it's the Seat of Power, and who rules it.
 - **Council:** the Steward, Marshal, Sheriff, Envoy and the Circle, with what each seat does.
+- **Council tasks:** the scroll beside a seat sets it a task. Say what they're to do, whether the work takes a Phase, a Week or a full Season, and what's at risk: nothing, a Luck Roll, or a Save by whoever holds the seat, offered when an actor of that name has a sheet. The task sits under its seat with when it falls due, and is marked in red ochre once its time has come. Settling it rolls what was put at risk and posts what came of it, and a failure brings the Domain a Crisis. The Phase and Season cards name every Domain with work waiting to be settled.
 - **Crises:** the Crises the Domain faces, each with how it's resolved and a button to resolve it. **Add Crisis** gives it one the Referee chooses, such as one a failed task brings.
 - **Crisis Roll:** a Calamity adds two Crises, and a Dilemma asks which of two to take. The sheet shows whether it's been rolled this Season. A Crisis rolled that the Domain already faces passes to the next on the list.
 - **Misrule:** the sheet warns at 3 unresolved Crises, and turning the Season or Age in the Time window puts every Domain still at 3 or more into misrule.

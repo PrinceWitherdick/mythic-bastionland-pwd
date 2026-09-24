@@ -38,13 +38,81 @@
 
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.domain.council.label"}}</h2>
-				<div class="bastionland-domain__seats">
+				<div class="bastionland-domain__seats bastionland-council{{#unless editable}} bastionland-council--reading{{/unless}}">
 					{{#each seats}}
 					<label for="{{@root.rootId}}-{{key}}" data-tooltip="{{hint}}">{{label}}</label>
 					<input id="{{@root.rootId}}-{{key}}" class="bastionland-blank bastionland-domain__field" type="text" name="system.council.{{key}}" value="{{value}}" autocomplete="off">
+					{{#if @root.editable}}
+					<button type="button" class="bastionland-icon" data-action="assignTask" data-seat="{{key}}" data-tooltip="{{assign}}" aria-label="{{assign}}">
+						<i class="fa-solid fa-scroll" inert></i>
+					</button>
+					{{/if}}
+					{{#if tasks.length}}
+					<ul class="bastionland-council__tasks">
+						{{#each tasks}}
+						<li class="bastionland-council__task{{#if due}} is-due{{/if}}" data-task="{{id}}">
+							<div class="bastionland-council__line">
+								<span class="bastionland-council__what"><i class="{{icon}}" inert></i> {{what}}</span>
+								{{#if @root.editable}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="settleTask" data-tooltip="{{localize 'bastionland.domain.tasks.settle'}}" aria-label="{{localize 'bastionland.domain.tasks.settle'}}">
+										<i class="fa-solid fa-dice-d6" inert></i>
+									</button>
+									<button type="button" class="bastionland-icon" data-action="setTaskAside" data-tooltip="{{localize 'bastionland.domain.tasks.setAside'}}" aria-label="{{localize 'bastionland.domain.tasks.setAside'}}">
+										<i class="fa-solid fa-xmark" inert></i>
+									</button>
+								</span>
+								{{/if}}
+							</div>
+							<p class="bastionland-council__gloss">{{gloss}}</p>
+						</li>
+						{{/each}}
+					</ul>
+					{{/if}}
 					{{/each}}
 				</div>
 				<p class="bastionland-hint">{{localize "bastionland.domain.council.hint"}}</p>
+			</section>
+
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.domain.court.label"}}</h2>
+				<p class="bastionland-hint">{{localize "bastionland.domain.court.hint"}}</p>
+				{{#each court}}
+				<section class="bastionland-court__role">
+					<h3 class="bastionland-heading bastionland-heading--small" data-tooltip="{{hint}}">{{label}}</h3>
+					{{#if members.length}}
+					<ul class="bastionland-court__members">
+						{{#each members}}
+						<li class="bastionland-court__member" data-member="{{id}}">
+							<div class="bastionland-court__line">
+								<input class="bastionland-blank bastionland-court__name" type="text" name="system.court.{{id}}.name" value="{{name}}" placeholder="{{localize 'bastionland.domain.court.namePlaceholder'}}" aria-label="{{localize 'bastionland.domain.court.name'}}" autocomplete="off">
+								{{#if ../servesASeat}}
+								<select class="bastionland-court__seat" name="system.court.{{id}}.seat" aria-label="{{localize 'bastionland.domain.court.serves'}}" data-tooltip="{{localize 'bastionland.domain.court.servesHint'}}">
+									<option value="">{{localize "bastionland.domain.court.servesNobody"}}</option>
+									{{#each seats}}
+									<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+									{{/each}}
+								</select>
+								{{/if}}
+								{{#if @root.editable}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="removeCourtMember" data-tooltip="{{localize 'bastionland.domain.court.remove'}}" aria-label="{{localize 'bastionland.domain.court.remove'}}">
+										<i class="fa-solid fa-user-xmark" inert></i>
+									</button>
+								</span>
+								{{/if}}
+							</div>
+							<input class="bastionland-blank bastionland-court__leverage" type="text" name="system.court.{{id}}.leverage" value="{{leverage}}" placeholder="{{localize 'bastionland.domain.court.leveragePlaceholder'}}" aria-label="{{localize 'bastionland.domain.court.leverage'}}" data-tooltip="{{localize 'bastionland.domain.court.leverageHint'}}" autocomplete="off">
+							<input class="bastionland-blank bastionland-court__note" type="text" name="system.court.{{id}}.note" value="{{note}}" placeholder="{{../notePlaceholder}}" aria-label="{{localize 'bastionland.domain.court.note'}}" autocomplete="off">
+						</li>
+						{{/each}}
+					</ul>
+					{{/if}}
+					{{#if @root.editable}}
+					<button type="button" class="bastionland-button bastionland-court__add" data-action="addCourtMember" data-role="{{role}}"><i class="fa-solid fa-user-plus" inert></i> {{add}}</button>
+					{{/if}}
+				</section>
+				{{/each}}
 			</section>
 
 			<section class="bastionland-block">

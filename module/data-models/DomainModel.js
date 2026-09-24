@@ -4,8 +4,9 @@ import { booleanField, htmlField, textField } from "./fields.js";
 const fields = foundry.data.fields;
 
 /**
- * A Holding granted to a ruler (Dominion, p20): its Council, the Crises it
- * faces until they're resolved, and whether it has fallen into misrule.
+ * A Holding granted to a ruler (Dominion, p20): its Council and the tasks its
+ * seats have been given, its Court, the Crises it faces until they're
+ * resolved, and whether it has fallen into misrule.
  */
 export class DomainModel extends foundry.abstract.TypeDataModel {
 	static defineSchema() {
@@ -19,6 +20,10 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			seized: textField(),
 			// Who holds each seat, written as the GM likes.
 			council: new fields.SchemaField(Object.fromEntries(COUNCIL_SEATS.map((key) => [key, textField()]))),
+			// Those who serve outside the Council (The Court, p20), by id. See rules/court.js.
+			court: new fields.ObjectField({ required: true, initial: {} }),
+			// The tasks the Council has in hand (p20), by id. See rules/council-tasks.js.
+			tasks: new fields.ObjectField({ required: true, initial: {} }),
 			crises: new fields.ArrayField(new fields.StringField({ required: true, blank: false, choices: CRISES })),
 			misrule: booleanField(),
 			// The Season its Crisis Roll was last made in, from seasonKey.

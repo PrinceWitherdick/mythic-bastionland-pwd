@@ -12,6 +12,7 @@ import {
 	isInTurmoil,
 	isSameName
 } from "../rules/dominion.js";
+import { dramaCandidates } from "../rules/court.js";
 import { escapeHTML } from "../rules/text.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -25,13 +26,13 @@ const crisisName = (key) => t(`domain.crises.${key}.name`);
  * A card entry describing a Crisis and how to resolve it.
  * @param {string} key
  */
-const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)] });
+export const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)] });
 
 /**
  * @param {Actor} domain Once its Crises are saved.
  * @returns {string|null} A warning when it faces enough to fall into misrule.
  */
-const misruleWarning = (domain) =>
+export const misruleWarning = (domain) =>
 	(domain.system.misruleDue ? t("domain.misruleDue", { count: domain.system.crises.length }) : null);
 
 /**
@@ -49,6 +50,18 @@ async function drawCrises(count, taken) {
 		if (key) crises.push(key);
 	}
 	return { rolls, crises };
+}
+
+/**
+ * Give a Domain a Crisis rolled on the d6, as a failed Council task typically
+ * brings (p20). Nothing comes of it once it already faces every Crisis.
+ * @param {Actor} domain
+ * @returns {Promise<{key: string|null, rolls: Roll[]}>}
+ */
+export async function inflictCrisis(domain) {
+	const drawn = await drawCrises(1, domain.system.crises);
+	if (drawn.crises.length) await domain.update({ "system.crises": [...domain.system.crises, ...drawn.crises] });
+	return { key: drawn.crises[0] ?? null, rolls: drawn.rolls };
 }
 
 /**
@@ -186,11 +199,31 @@ export async function dramaInCourt(domain) {
 	}
 
 	const result = dramaResult(roll.total);
+
+	// The Court is where the drama breeds (p21), so one of them is at the heart of it.
+	const candidates = dramaCandidates(domain.system.court);
+	const entries = [];
+	if (candidates.length) {
+		const who = await new Roll(`1d${candidates.length}`).evaluate();
+		rolls.push(who);
+		const member = candidates[who.total - 1];
+		// A report card sets its second slot beside the name, which here carries their role.
+		entries.push({
+			name: member.name,
+			pursuit: t(`domain.court.roles.${member.role}.one`),
+			lines: [
+				member.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : t("domain.court.noLeverage"),
+				...(member.note ? [member.note] : [])
+			]
+		});
+	}
+
 	await postCard(domain, "report", {
 		title: t("domain.drama"),
 		tagline: t(`domain.results.drama.${result}`),
 		d6: roll.total,
-		hint: prompt
+		entries,
+		hint: [prompt, candidates.length ? null : t("domain.court.emptyHint")].filter(Boolean).join(" ") || null
 	}, { rolls });
 	return result;
 }

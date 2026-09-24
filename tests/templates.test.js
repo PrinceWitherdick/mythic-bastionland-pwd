@@ -21,6 +21,8 @@ import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SITE_STEPS, STEP_ROLLS, STEP_STATES } from "../module/rules/sites.js";
 import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
+import { COURT_ROLES } from "../module/rules/court.js";
+import { TASK_OUTCOMES, TASK_RISKS, TASK_SCOPES } from "../module/rules/council-tasks.js";
 import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
 import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js";
 import { EVENT_KEYS, EVENT_STAGES, MIDPOINT_STAGE } from "../module/rules/season-events.js";
@@ -149,6 +151,12 @@ describe("localization", () => {
 		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.offer).map(([type]) => `realm.landmarks.effects.${type}.offer`),
 		// A lapsed Curse is let go without a word, so it has no line of its own.
 		...OFF_COURSE_SHOWN.map((state) => `realm.landmarks.offCourse.${state}`),
+		...partsOf("domain.court.roles", [...COURT_ROLES], ["label", "one", "add", "hint", "notePlaceholder"]),
+		...partsOf("domain.tasks.scopes", [...TASK_SCOPES], ["label", "takes", "took"]),
+		...partsOf("domain.tasks.outcomes", [...TASK_OUTCOMES], ["label", "hint"]),
+		// A Save names the Virtue it's rolled in, so the Virtues share one line between them.
+		...TASK_RISKS.filter((risk) => !VIRTUES.includes(risk)).map((risk) => `domain.tasks.risks.${risk}`),
+		...["save", "saveAlone"].map((key) => `domain.tasks.risks.${key}`),
 		...AGES.filter((key) => key !== "young").map((key) => `time.aging.${key}`),
 		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),

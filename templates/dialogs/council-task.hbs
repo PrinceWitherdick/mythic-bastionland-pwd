@@ -1,0 +1,31 @@
+<div class="bastionland-dialog__body">
+	<p>{{{intro}}}</p>
+	<div class="form-group">
+		<label for="bastionland-task-what">{{localize "bastionland.domain.tasks.what"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-task-what" type="text" name="what" placeholder="{{localize 'bastionland.domain.tasks.whatPlaceholder'}}" autocomplete="off" autofocus>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-task-scope">{{localize "bastionland.domain.tasks.scope"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-task-scope" name="scope">
+				{{#each scopes}}
+				<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.domain.tasks.scopeHint"}}</p>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-task-risk">{{localize "bastionland.domain.tasks.risk"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-task-risk" name="risk">
+				{{#each risks}}
+				<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.domain.tasks.riskHint"}}</p>
+	</div>
+</div>

@@ -1127,6 +1127,69 @@
           "hint": "Worthy visiting Knights invited to sit alongside the Council as equals."
         }
       },
+      "tasks": {
+        "assign": "Set the {seat} a task",
+        "assignTitle": "Council Task",
+        "assignIntro": "What is the {seat} to do?",
+        "assignIntroNamed": "What is {holder}, the {seat}, to do?",
+        "set": "Set the Task",
+        "what": "The task",
+        "whatPlaceholder": "What are they to do?",
+        "whatUnwritten": "An unwritten task",
+        "scope": "Scope",
+        "scopeHint": "How long the work takes. It can be settled sooner, but it isn’t due until then.",
+        "scopes": {
+          "phase": {
+            "label": "A Phase",
+            "takes": "A Phase’s work",
+            "took": "A Phase’s work."
+          },
+          "week": {
+            "label": "A Week",
+            "takes": "A Week’s work",
+            "took": "A Week’s work."
+          },
+          "season": {
+            "label": "A full Season",
+            "takes": "A Season’s work",
+            "took": "A full Season’s work."
+          }
+        },
+        "risk": "Settled by",
+        "riskHint": "What’s at risk? No risk, no roll. Otherwise make a Save or a Luck Roll (p16).",
+        "risks": {
+          "none": "No risk, no roll",
+          "luck": "Luck Roll",
+          "save": "{virtue} Save · {name}",
+          "saveAlone": "{virtue} Save"
+        },
+        "noSheet": "{name} has no sheet to Save with, so it falls to a Luck Roll.",
+        "taken": "{who} takes up a task: {what}. {scope}.",
+        "settle": "Settle this task",
+        "settledTitle": "Council Task",
+        "by": "{seat} · {name}",
+        "setAside": "Set this task aside",
+        "setAsideConfirm": "Is “{what}” taken back out of the {seat}’s hands? Nothing comes of it, and what was written goes with it.",
+        "dueNow": "Due now",
+        "dueAt": "Due {when}",
+        "dueNotice": "{name}: {count} Council tasks are due.",
+        "dueNoticeOne": "{name}: a Council task is due.",
+        "everyCrisis": "The Domain already faces every Crisis, so the Referee says what this failure brings instead.",
+        "outcomes": {
+          "success": {
+            "label": "The task is done.",
+            "hint": "Advance, disrupt, or resolve: move things in a good direction, lessen a threat, or put a problem to rest."
+          },
+          "problem": {
+            "label": "The work is done, but something potentially bad comes of it.",
+            "hint": "Threaten or escalate: a new problem stands behind the finished work, or an old one grows."
+          },
+          "crisis": {
+            "label": "It fails, and a Crisis comes of it.",
+            "hint": "Failure at a Council task typically brings a Crisis, which the Domain faces until it is resolved."
+          }
+        }
+      },
       "crisesLabel": "Crises",
       "noCrises": "No Crises. Times are good.",
       "crises": {
@@ -1199,6 +1262,54 @@
       "drama": "Drama in Court",
       "dramaHint": "Every Season brings some drama. Roll to see how the ruler is involved.",
       "dramaPrompt": "Drama Spark Table: {prompt}",
+      "court": {
+        "label": "The Court",
+        "hint": "Those who serve outside the Council (p20). Write whoever the Court holds; the drama each Season falls to one of them.",
+        "roles": {
+          "retainer": {
+            "label": "Retainers",
+            "one": "Retainer",
+            "add": "Take on a Retainer",
+            "hint": "Vassals taken on by individual Council members to aid in their work.",
+            "notePlaceholder": "What work do they aid with?"
+          },
+          "courtier": {
+            "label": "Courtiers",
+            "one": "Courtier",
+            "add": "Admit a Courtier",
+            "hint": "Commoners with lesser responsibilities or ceremonial honours, usually holding higher ambitions. Courtiers breed problems, so this Season’s drama falls to them first.",
+            "notePlaceholder": "What honour or ambition do they hold?"
+          },
+          "petitioner": {
+            "label": "Petitioners",
+            "one": "Petitioner",
+            "add": "Grant an Audience",
+            "hint": "Representatives from outside of the Court, granted an audience to seek aid, counsel, or justice.",
+            "notePlaceholder": "What do they seek: aid, counsel, or justice?"
+          },
+          "seer": {
+            "label": "Seers",
+            "one": "Seer",
+            "add": "A Seer Visits",
+            "hint": "Although they live in their Sanctums they occasionally visit Court, or send acolytes in their stead.",
+            "notePlaceholder": "Do they visit, or send an acolyte?"
+          }
+        },
+        "name": "Name",
+        "namePlaceholder": "Who are they?",
+        "serves": "Serves",
+        "servesHint": "The Council member who took them on.",
+        "servesNobody": "No seat",
+        "leverage": "Leverage",
+        "leverageHint": "What hold they have over the ruler: family influence, dark secrets, or military might (p21). A ruler must tread carefully, as obvious solutions always leave at least one party feeling mistreated.",
+        "leveragePlaceholder": "What hold do they have over you?",
+        "note": "Note",
+        "remove": "They Leave the Court",
+        "removeConfirm": "Does {name} leave the Court? What was written about this {role} goes with them.",
+        "holdsLeverage": "Holds leverage over the ruler: {leverage}",
+        "noLeverage": "Holds no leverage over the ruler, which is the ruler’s good fortune.",
+        "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to."
+      },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
       "designs": "Grand designs: work on existing buildings is done by next Season, a new building takes a Season, and grand projects such as castles and roads take an Age.",

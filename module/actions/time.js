@@ -26,6 +26,7 @@ import { causedBy } from "./ledger.js";
 import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
+import { tasksDueNotices } from "./council-tasks.js";
 import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
@@ -201,7 +202,7 @@ export async function advancePhase() {
 
 /**
  * Tell the table the Day has moved into a Phase, on a card painted in that
- * Phase's light.
+ * Phase's light, with any Council task whose time has come (p20).
  * @param {import("../rules/time.js").Calendar} calendar
  */
 export function announcePhase(calendar) {
@@ -210,6 +211,7 @@ export function announcePhase(calendar) {
 		icon: PHASE_ICONS[calendar.phase],
 		title: t(`time.phases.${calendar.phase}`),
 		tagline: calendarLabel(calendar),
+		due: tasksDueNotices(calendar),
 		hint: t(`time.phaseHints.${calendar.phase}`)
 	});
 }
@@ -254,7 +256,7 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 /**
  * Tell the table a new Season has begun, on a card painted in the Season's
  * colours, with what passed as it turned and what's due now it has: the
- * Crisis Roll for every Domain (p20).
+ * Crisis Roll for every Domain, and any Council task the Season has finished (p20).
  * @param {import("../rules/time.js").Calendar} calendar The new Season.
  * @param {object} report
  * @param {string} report.title
@@ -264,13 +266,18 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
  */
 export function announceSeason(calendar, { title, entries, note = null }, options) {
 	const due = crisisRollsDue(worldDomains(), calendar);
+	// Council tasks whose Phase, Week or Season is up wait to be settled (p20).
+	const tasks = tasksDueNotices(calendar);
 	return postCard(null, "report", {
 		tone: calendar.season,
 		icon: SEASON_ICONS[calendar.season],
 		title,
 		tagline: calendarLabel(calendar),
 		entries,
-		due: due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : [],
+		due: [
+			...(due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : []),
+			...tasks
+		],
 		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
 	}, options);
 }

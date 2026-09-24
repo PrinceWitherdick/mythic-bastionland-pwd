@@ -9,7 +9,10 @@ import {
 	resolveCrisis,
 	seizeDomain
 } from "../actions/dominion.js";
+import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
+import { addCourtMember, removeCourtMember } from "../actions/court.js";
 import { t } from "../chat/cards.js";
+import { COURT_ROLES, SERVES_A_SEAT, courtByRole } from "../rules/court.js";
 import { COUNCIL_SEATS, crisisRolledThisSeason, isInTurmoil } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -17,7 +20,10 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
 
-/** A Domain's sheet: the Holding, its ruler and Council, and the Crises it faces. */
+/**
+ * A Domain's sheet: the Holding, its ruler, the Council and the tasks it has in
+ * hand, the Court, and the Crises the Domain faces.
+ */
 export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-domain"],
@@ -31,7 +37,12 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			collections: DomainSheet.#onCollections,
 			drama: DomainSheet.#onDrama,
 			passOn: DomainSheet.#onPassOn,
-			seize: DomainSheet.#onSeize
+			seize: DomainSheet.#onSeize,
+			addCourtMember: DomainSheet.#onAddCourtMember,
+			removeCourtMember: DomainSheet.#onRemoveCourtMember,
+			assignTask: DomainSheet.#onAssignTask,
+			settleTask: DomainSheet.#onSettleTask,
+			setTaskAside: DomainSheet.#onSetTaskAside
 		}
 	};
 
@@ -48,6 +59,8 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const actor = this.actor;
 		const { system } = actor;
 		const calendar = getCalendar();
+		// Read once between the seats, since every one of them is drawn here.
+		const tasks = tasksBySeat(actor, calendar);
 
 		return Object.assign(context, {
 			actor,
@@ -56,8 +69,12 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				key,
 				label: t(`domain.council.${key}.label`),
 				hint: t(`domain.council.${key}.hint`),
-				value: system.council[key]
+				value: system.council[key],
+				// The tasks that seat has in hand (p20), each saying when its work is done.
+				tasks: tasks[key],
+				assign: t("domain.tasks.assign", { seat: t(`domain.council.${key}.label`) })
 			})),
+			court: DomainSheet.#courtContext(system.court),
 			crises: system.crises.map((key, index) => ({
 				index,
 				name: t(`domain.crises.${key}.name`),
@@ -76,6 +93,30 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				relativeTo: actor
 			})
 		});
+	}
+
+	/**
+	 * The Court by role (p20), every role shown even where nobody serves, so a
+	 * Referee can see what a Court is made of. Only a Retainer names the Council
+	 * seat they were taken on by.
+	 * @param {unknown} court As stored.
+	 * @returns {object[]}
+	 */
+	static #courtContext(court) {
+		const seats = COUNCIL_SEATS.map((key) => ({ key, label: t(`domain.council.${key}.label`) }));
+		return courtByRole(court).map(({ role, members }) => ({
+			role,
+			label: t(`domain.court.roles.${role}.label`),
+			hint: t(`domain.court.roles.${role}.hint`),
+			add: t(`domain.court.roles.${role}.add`),
+			notePlaceholder: t(`domain.court.roles.${role}.notePlaceholder`),
+			// "Vassals taken on by individual Council members", so only a Retainer serves a seat.
+			servesASeat: role === SERVES_A_SEAT,
+			members: members.map((member) => ({
+				...member,
+				seats: seats.map((seat) => ({ ...seat, selected: seat.key === member.seat }))
+			}))
+		}));
 	}
 
 	/* -------------------------------------------- */
@@ -115,6 +156,32 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/** @this {DomainSheet} */
 	static #onSeize() {
 		return seizeDomain(this.actor);
+	}
+
+	/** @this {DomainSheet} */
+	static #onAddCourtMember(_event, target) {
+		const role = target.dataset.role;
+		return COURT_ROLES.includes(role) ? addCourtMember(this.actor, role) : null;
+	}
+
+	/** @this {DomainSheet} */
+	static #onRemoveCourtMember(_event, target) {
+		return removeCourtMember(this.actor, target.closest("[data-member]")?.dataset.member);
+	}
+
+	/** @this {DomainSheet} */
+	static #onAssignTask(_event, target) {
+		return assignTask(this.actor, target.dataset.seat);
+	}
+
+	/** @this {DomainSheet} */
+	static #onSettleTask(_event, target) {
+		return settleTask(this.actor, target.closest("[data-task]")?.dataset.task);
+	}
+
+	/** @this {DomainSheet} */
+	static #onSetTaskAside(_event, target) {
+		return setTaskAside(this.actor, target.closest("[data-task]")?.dataset.task);
 	}
 }
 
