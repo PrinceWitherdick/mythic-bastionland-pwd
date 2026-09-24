@@ -947,6 +947,85 @@
       },
       "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
       "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
+      "seasonBynames": {
+        "spring": "The Green Season",
+        "harvest": "The Gold Season",
+        "winter": "The Grey Season"
+      },
+      "seasonMidpoints": {
+        "spring": "Midspring",
+        "harvest": "Midharvest",
+        "winter": "Midwinter"
+      },
+      "events": {
+        "title": "The Season’s Events",
+        "hint": "Each Season begins with a Feast, sees a mass at its middle, and ends with the Realm’s collection (p17). The book doesn’t number a Season’s days, so these come in the order they come rather than on a date.",
+        "stages": {
+          "begins": "{season} begins",
+          "ends": "{season} ends"
+        },
+        "mark": "Came to pass",
+        "markHint": "Mark this event as having come to pass, and tell the table.",
+        "passed": "Came to pass",
+        "passedHint": "This event of the Season has already come to pass.",
+        "ends": "Ends the Season",
+        "endsHint": "The Realm’s collection ends the Season, so it comes to pass as the Season turns.",
+        "weeks": "Weeks Pass",
+        "weeksHint": "Continue on to the next significant seasonal event (p17). Reaching the Realm’s collection turns the Season instead.",
+        "weeksPassed": "Weeks pass on the road, and a new Morning dawns.",
+        "nextIs": "Weeks passing carries the Company on to {event}.",
+        "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
+        "collected": "Collected by {domains}, who may squeeze more out of their Vassals for a war or great project.",
+        "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Turn the Season.",
+        "notThisSeason": "{event} isn’t an event of this Season, or has already come to pass.",
+        "kinds": {
+          "feastOfTheSun": {
+            "label": "The Feast of the Sun",
+            "text": "A day of excess and revelry to strengthen both the people and the land.",
+            "prompt": "A feast is a fine place for a Knight to be seen, and for a Vassal to ask a favour of one."
+          },
+          "sceptremass": {
+            "label": "Sceptremass",
+            "text": "The Seat of Power gathers local rulers to renew their vows of loyalty.",
+            "prompt": "Every ruler in one hall: a good moment for drama in Court (p21), or for a Knight to press a claim their rank is unworthy of."
+          },
+          "tax": {
+            "label": "The Tax",
+            "text": "A share of coins collected by the Realm.",
+            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+          },
+          "feastOfTheStars": {
+            "label": "The Feast of the Stars",
+            "text": "A night of honours, unions, and contests.",
+            "prompt": "A tournament with significant spectators and spectacle grants 1 Glory to the winning Knight (p6)."
+          },
+          "eldermass": {
+            "label": "Eldermass",
+            "text": "A secretive assembly of Seers and trusted associates.",
+            "prompt": "Seers know the rules of every Myth, their secrets and their locations, and their guidance restores CLA. Such knowledge isn’t given freely."
+          },
+          "tithe": {
+            "label": "The Tithe",
+            "text": "A share of food and drink collected by the Realm.",
+            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+          },
+          "feastOfTheMoon": {
+            "label": "The Feast of the Moon",
+            "text": "A solemn reflection of mortality and history.",
+            "prompt": "The dead are named tonight: a Knight’s Scars, their Doom, and the successor they have yet to establish."
+          },
+          "kindlemass": {
+            "label": "Kindlemass",
+            "text": "A sacred day of warmth and goodwill, where each home must open their doors to all.",
+            "prompt": "Every door open: a full day in warm hospitality restores VIG, and sleeping indoors calls for no Wilderness Roll."
+          },
+          "levy": {
+            "label": "The Levy",
+            "text": "A share of materials and crafted goods collected by the Realm.",
+            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+          }
+        }
+      },
       "hardship": {
         "title": "Hardship",
         "intro": "Tick everybody who suffers it.",

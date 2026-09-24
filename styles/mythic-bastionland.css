@@ -2444,6 +2444,91 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /*
+ * The three events that mark a Season (p17), listed in the order they come.
+ * The one still to come is drawn in full, and the ones that have come to pass
+ * fade back without going below the writing's floor. Shared by the Time window,
+ * the Toolkit's Time page and its Seasons page.
+ */
+.bastionland-season-events {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0.4rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-season-events__event {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.3rem 0.6rem;
+	padding: 0.3rem 0.45rem;
+	border-left: 3px solid var(--bastionland-rule);
+}
+
+.bastionland-season-events__event.is-next {
+	border-left-color: var(--bastionland-rubric);
+	background: rgb(154 53 32 / 6%);
+}
+
+.bastionland-season-events__event.is-passed {
+	border-left-style: dotted;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-season-events__icon {
+	flex: 0 0 auto;
+	width: 20px;
+	color: var(--bastionland-rubric);
+	text-align: center;
+}
+
+.bastionland-season-events__event.is-passed .bastionland-season-events__icon {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-season-events__words {
+	flex: 1 1 12rem;
+}
+
+.bastionland-season-events__name {
+	margin: 0;
+	font-weight: bold;
+}
+
+/* Where in the Season it falls, set beside the name as a scribe's gloss. */
+.bastionland-season-events__stage {
+	margin-left: 0.4rem;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-weight: normal;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-season-events__mark,
+.bastionland-season-events .bastionland-button {
+	flex: 0 0 auto;
+}
+
+.bastionland-season-events__mark {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-season-events__mark.is-waiting {
+	font-style: italic;
+}
+
+/* On the Seasons page each event is one line, so its words need no room below. */
+.bastionland-season-events--log .bastionland-season-events__event {
+	padding: 0.2rem 0.45rem;
+}
+
+/*
  * A Curse's blight (p14), held in front of the Referee until the Phase it
  * throws the Company off course in has passed. Edged in the rubric, as the one
  * thing on the page that's waiting to be rolled.

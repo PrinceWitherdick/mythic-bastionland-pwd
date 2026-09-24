@@ -45,6 +45,15 @@
 	</section>
 	{{/if}}
 
+	<section class="bastionland-block">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.events.title"}}</h3>
+		<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
+		{{> "bastionland.season-events" seasonEvents}}
+		<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.events.title'}}">
+			<button type="button" data-action="weeksPass" data-tooltip="{{localize 'bastionland.time.events.weeksHint'}}"><i class="fa-solid fa-forward" inert></i> {{localize "bastionland.time.events.weeks"}}</button>
+		</nav>
+	</section>
 	{{/if}}
 
 	{{#if isGM}}

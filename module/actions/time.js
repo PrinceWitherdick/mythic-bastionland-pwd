@@ -17,6 +17,7 @@ import {
 	agingSteps,
 	legacyGlory,
 	nextAge,
+	nextDay,
 	nextPhase,
 	nextSeason,
 	seasonKey
@@ -26,6 +27,7 @@ import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { settleDomains, worldDomains } from "./dominion.js";
+import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
 import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScar } from "./scars.js";
@@ -237,9 +239,11 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	await setCalendar(after);
 	const { rolls, entries } = await passTime(company, { newAge, before });
 	const ended = seasonKey(before);
+	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
+	const collection = await markCollection(ended, before.season);
 	const domains = await settleDomains(ended);
 	const title = turned(after);
-	const all = [...entries, ...domains];
+	const all = [...(collection ? [collectionEntry(collection)] : []), ...entries, ...domains];
 	await Promise.all([
 		announceSeason(after, { title, entries: all, note }, { rolls }),
 		recordSeasonTurn(ended, { kind, title, entries: all, note })
@@ -307,6 +311,30 @@ export function turnAge() {
 		intro: (_before, after) => t("time.ageIntro", { age: after.age }),
 		turned: (after) => t("time.ageTurned", { age: after.age })
 	});
+}
+
+/**
+ * Advancing Time's Weeks step (p17): "continue on to the next significant
+ * seasonal event". The next of the Season's events comes to pass and a new
+ * Morning dawns on it. The Realm's collection ends the Season, so reaching that
+ * turns the Season instead. No Phase card is posted, since the event's own card
+ * tells the table where the Company now stands. GMs only.
+ * @returns {Promise<import("../rules/time.js").Calendar|null>}
+ */
+export async function weeksPass() {
+	if (!game.user.isGM) return null;
+	const calendar = getCalendar();
+	const { next } = seasonEventsNow(calendar);
+	if (!next) {
+		ui.notifications.info(t("time.events.nothingLeft", { season: t(`time.seasons.${calendar.season}`) }));
+		return null;
+	}
+	if (next.collection) return turnSeason();
+
+	if (!(await markSeasonEvent(next.key, { weeks: true }))) return null;
+	const after = nextDay(calendar);
+	await setCalendar(after);
+	return after;
 }
 
 /**

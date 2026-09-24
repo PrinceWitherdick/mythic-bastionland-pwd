@@ -23,6 +23,7 @@ import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-good
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
 import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js";
+import { EVENT_KEYS, EVENT_STAGES, MIDPOINT_STAGE } from "../module/rules/season-events.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
@@ -138,6 +139,11 @@ describe("localization", () => {
 		...SEASONS.map((key) => `time.seasons.${key}`),
 		...partsOf("time.pursuits", [...SEASON_PURSUITS, ...AGE_PURSUITS], ["label", "hint"]),
 		...partsOf("time.hardship.kinds", HARDSHIPS.map(({ key }) => key), ["label", "hint"]),
+		...partsOf("time.events.kinds", [...EVENT_KEYS], ["label", "text", "prompt"]),
+		// The middle of a Season takes the book's own Midspring, Midharvest, Midwinter instead.
+		...EVENT_STAGES.filter((stage) => stage !== MIDPOINT_STAGE).map((stage) => `time.events.stages.${stage}`),
+		...SEASONS.map((season) => `time.seasonMidpoints.${season}`),
+		...SEASONS.map((season) => `time.seasonBynames.${season}`),
 		// Every Landmark says what it is; only the ones that ask something have an offer to press.
 		...Object.keys(LANDMARK_EFFECTS).map((type) => `realm.landmarks.effects.${type}.text`),
 		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.offer).map(([type]) => `realm.landmarks.effects.${type}.offer`),

@@ -172,6 +172,7 @@ Hooks.once("init", () => {
 		"bastionland.table-sentence": templatePath("actor/parts/table-sentence.hbs"),
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
+		"bastionland.season-events": templatePath("apps/parts/season-events.hbs"),
 		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.gm-toolkit-cast": templatePath("actor/gm-toolkit/cast.hbs"),

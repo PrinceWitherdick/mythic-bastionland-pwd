@@ -10,6 +10,7 @@
 		{{/if}}
 		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.title'}}">
 			<button type="button" data-action="nextPhase"><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.time.nextPhase"}}</button>
+			<button type="button" data-action="weeksPass" data-tooltip="{{localize 'bastionland.time.events.weeksHint'}}"><i class="fa-solid fa-forward" inert></i> {{localize "bastionland.time.events.weeks"}}</button>
 			<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>
 			<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
 			<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
@@ -22,6 +23,13 @@
 		{{> "bastionland.off-course" offCourse}}
 	</section>
 	{{/if}}
+
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.time.events.title"}}</h2>
+		<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
+		{{> "bastionland.season-events" seasonEvents}}
+		<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
+	</section>
 
 	{{#if crisisRolls.length}}
 	<section class="bastionland-gm-toolkit__section">

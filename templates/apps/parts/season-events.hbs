@@ -1,0 +1,29 @@
+{{!--
+	The events that mark the Season (p17), drawn from timeContext's seasonEvents:
+	a Feast to begin it, a mass at its middle, and the Realm's collection to end
+	it. Shared by the Time window and the GM Toolkit's Time page.
+
+	Everything here is the Referee's, Mark included: timeContext builds
+	seasonEvents for a Referee alone and hands every other reader null, so this
+	partial has nothing of its own to hide.
+--}}
+<ul class="bastionland-season-events">
+	{{#each events}}
+	<li class="bastionland-season-events__event{{#if passed}} is-passed{{/if}}{{#if next}} is-next{{/if}}">
+		<i class="bastionland-season-events__icon {{icon}}" inert></i>
+		<div class="bastionland-season-events__words">
+			<p class="bastionland-season-events__name">{{label}}<span class="bastionland-season-events__stage">{{stage}}</span></p>
+			<p class="bastionland-hint">{{text}}</p>
+		</div>
+		{{#if passed}}
+		<span class="bastionland-season-events__mark" data-tooltip="{{localize 'bastionland.time.events.passedHint'}}"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.time.events.passed"}}</span>
+		{{else}}
+			{{#if collection}}
+			<span class="bastionland-season-events__mark is-waiting" data-tooltip="{{localize 'bastionland.time.events.endsHint'}}">{{localize "bastionland.time.events.ends"}}</span>
+			{{else}}
+			<button type="button" class="bastionland-button" data-action="markSeasonEvent" data-event="{{key}}" data-tooltip="{{localize 'bastionland.time.events.markHint'}}">{{localize "bastionland.time.events.mark"}}</button>
+			{{/if}}
+		{{/if}}
+	</li>
+	{{/each}}
+</ul>

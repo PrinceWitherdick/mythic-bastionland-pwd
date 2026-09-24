@@ -14,6 +14,20 @@
 				{{/if}}
 			</header>
 
+			<ul class="bastionland-season-events bastionland-season-events--log">
+				{{#each events}}
+				<li class="bastionland-season-events__event{{#if passed}} is-passed{{/if}}">
+					<i class="bastionland-season-events__icon {{icon}}" inert></i>
+					<div class="bastionland-season-events__words">
+						<p class="bastionland-season-events__name">{{label}}<span class="bastionland-season-events__stage">{{stage}}</span></p>
+					</div>
+					{{#if passed}}
+					<span class="bastionland-season-events__mark"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.time.events.passed"}}</span>
+					{{/if}}
+				</li>
+				{{/each}}
+			</ul>
+
 			<label class="bastionland-gm-toolkit__note">
 				<span>{{localize "bastionland.gmToolkit.seasons.notes"}}</span>
 				<textarea data-toolkit-field="seasonNotes" rows="2" placeholder="{{localize 'bastionland.gmToolkit.seasons.notesPlaceholder'}}">{{notes}}</textarea>

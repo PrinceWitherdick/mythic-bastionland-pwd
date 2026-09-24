@@ -6,6 +6,7 @@ import {
 	compareCalendars,
 	DEFAULT_CALENDAR,
 	nextAge,
+	nextDay,
 	nextPhase,
 	nextSeason,
 	normalizeCalendar,
@@ -29,6 +30,11 @@ describe("advancing time", () => {
 		const morning = { age: 1, season: "spring", day: 1, phase: "morning" };
 		expect(nextPhase(morning).phase).toBe("afternoon");
 		expect(nextPhase({ ...morning, phase: "night" })).toEqual({ age: 1, season: "spring", day: 2, phase: "morning" });
+	});
+
+	it("dawns on the next Day's Morning whatever Phase it was, since weeks passing gives no figure", () => {
+		expect(nextDay({ age: 1, season: "spring", day: 4, phase: "night" })).toEqual({ age: 1, season: "spring", day: 5, phase: "morning" });
+		expect(nextDay({ age: 2, season: "winter", day: 1, phase: "morning" })).toEqual({ age: 2, season: "winter", day: 2, phase: "morning" });
 	});
 
 	it("turns the Season to its first Morning, Winter giving way to Spring in the same Age", () => {
@@ -62,7 +68,7 @@ describe("compareCalendars", () => {
 	});
 
 	it("puts every step forward after the calendar it was taken from", () => {
-		for (const step of [nextPhase, nextSeason, nextAge]) expect(compareCalendars(step(now), now)).toBe(1);
+		for (const step of [nextPhase, nextDay, nextSeason, nextAge]) expect(compareCalendars(step(now), now)).toBe(1);
 	});
 });
 

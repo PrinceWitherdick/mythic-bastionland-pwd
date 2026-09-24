@@ -1,4 +1,4 @@
-import { seasonTurn } from "../rules/season-log.js";
+import { normalizeSeasonRecord, seasonTurn } from "../rules/season-log.js";
 import { parseSeasonKey } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { theGmToolkit } from "./gm-toolkit.js";
@@ -39,3 +39,21 @@ export async function recordSeasonTurn(key, turn) {
  * @param {string} notes What the GM wrote about the Season.
  */
 export const writeSeasonNotes = (key, notes) => writeSeason(key, { notes: String(notes ?? "") });
+
+/**
+ * What the toolkit keeps about a Season. A world with no toolkit yet reads as a
+ * Season nothing has been written about.
+ * @param {string} key A Season's key.
+ * @returns {import("../rules/season-log.js").SeasonRecord}
+ */
+export function seasonRecord(key) {
+	return normalizeSeasonRecord(theGmToolkit()?.system.seasons?.[key]);
+}
+
+/**
+ * Keep which of a Season's events have come to pass (p17).
+ * @param {string} key A Season's key.
+ * @param {string[]} events
+ * @returns {Promise<Actor|null>}
+ */
+export const writeSeasonEvents = (key, events) => writeSeason(key, { events });

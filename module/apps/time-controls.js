@@ -2,7 +2,8 @@ import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js"
 import { awardGlory } from "../actions/glory.js";
 import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { advancePhase, announcePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
+import { eventLabel, markSeasonEvent, seasonEventsNow, stageLabel } from "../actions/season-events.js";
+import { advancePhase, announcePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason, weeksPass } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { GLORY_AWARDS } from "../rules/glory.js";
 import { HARDSHIPS, PHASES, SEASONS } from "../rules/time.js";
@@ -24,6 +25,8 @@ export const TIME_ROLLS = Object.freeze(["passage", "unresolved"]);
  */
 export const TIME_ACTIONS = Object.freeze({
 	nextPhase: () => advancePhase(),
+	weeksPass: () => weeksPass(),
+	markSeasonEvent: (_event, target) => markSeasonEvent(target.dataset.event),
 	travellingBlind: () => rollTravellingBlind(),
 	holdCourse: () => clearOffCourse(),
 	turnSeason: () => turnSeason(),
@@ -35,9 +38,49 @@ export const TIME_ACTIONS = Object.freeze({
 });
 
 /**
- * What a page about the calendar shows. A Curse's blight is the Referee's
- * own, and every page that draws it keeps it behind that guard, so it's
- * only worked out for whoever will see it.
+ * One of a Season's events as any page draws it (p17): the book's name for it,
+ * where in the Season it falls, and whether it has come to pass. Shared by the
+ * Season now and the Seasons already logged, so both read the same.
+ * @param {object} event From seasonEventsView.
+ * @param {string} season One of SEASONS, since a stage is named for its Season.
+ * @returns {object}
+ */
+export function seasonEventLine(event, season) {
+	return {
+		key: event.key,
+		label: eventLabel(event.key),
+		text: t(`time.events.kinds.${event.key}.text`),
+		stage: stageLabel(event.stage, season),
+		icon: event.icon,
+		passed: event.passed,
+		next: event.next,
+		collection: event.collection
+	};
+}
+
+/**
+ * The events that mark the Season the world is in (p17), as a page or panel
+ * lists them: in order, each with the book's words, each saying whether it has
+ * come to pass, and a line naming where the Weeks step carries the group.
+ * @param {import("../rules/time.js").Calendar} calendar
+ * @returns {{byname: string, events: object[], nextLine: string}}
+ */
+function seasonEventsContext(calendar) {
+	const { events, next } = seasonEventsNow(calendar);
+	const season = t(`time.seasons.${calendar.season}`);
+	return {
+		byname: t(`time.seasonBynames.${calendar.season}`),
+		events: events.map((event) => seasonEventLine(event, calendar.season)),
+		nextLine: next
+			? t(next.collection ? "time.events.nextIsEnd" : "time.events.nextIs", { event: eventLabel(next.key) })
+			: t("time.events.nothingLeft", { season })
+	};
+}
+
+/**
+ * What a page about the calendar shows. The Season's events and a Curse's
+ * blight are the Referee's own, and every page that draws them keeps them
+ * behind that guard, so they're only worked out for whoever will see them.
  * @param {object} [options]
  * @param {boolean} [options.referee] Whether the Referee's blocks are wanted.
  * @returns {object}
@@ -52,6 +95,7 @@ export function timeContext({ referee = game.user?.isGM === true } = {}) {
 		phases: PHASES.map((key) => ({ key, label: t(`time.phases.${key}`), active: key === calendar.phase })),
 		phaseHint: t(`time.phaseHints.${calendar.phase}`),
 		winter: calendar.season === "winter",
+		seasonEvents: referee ? seasonEventsContext(calendar) : null,
 		// A Curse's blight, while the Company still carries it (p14).
 		offCourse: referee ? offCourseNow(calendar) : null,
 		rolls: TIME_ROLLS.map((key) => ({ key, label: t(`refereeRolls.tables.${key}.name`), hint: t(`refereeRolls.tables.${key}.hint`) })),

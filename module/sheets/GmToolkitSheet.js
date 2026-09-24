@@ -17,7 +17,7 @@ import { openArt } from "../apps/ArtPopout.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
+import { TIME_ACTIONS, seasonEventLine, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, tableForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
@@ -29,6 +29,7 @@ import { visitedNewestFirst } from "../rules/journey.js";
 import { CAST_FLAG, castToMake, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { seasonEventsView } from "../rules/season-events.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
@@ -588,7 +589,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		};
 	}
 
-	/** Each Season by Age, the newest first: the GM's notes on it, and how it ended. */
+	/** Each Season by Age, the newest first: the GM's notes on it, which of its events came to pass, and how it ended. */
 	#seasonsContext() {
 		const seasonName = (season) => t(`time.seasons.${season}`);
 		return {
@@ -599,6 +600,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 					label: seasonName(entry.season),
 					icon: SEASON_ICONS[entry.season],
 					notes: record.notes,
+					// The Season's own events (p17), each ticked once it has come to pass.
+					events: seasonEventsView(entry.season, record.events).map((event) => seasonEventLine(event, entry.season)),
 					turn: record.turn && {
 						ended: t("gmToolkit.seasons.ended", { title: record.turn.title }),
 						note: record.turn.note,

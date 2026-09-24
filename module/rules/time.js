@@ -81,6 +81,19 @@ export function nextPhase(calendar) {
 	const now = normalizeCalendar(calendar);
 	const index = PHASES.indexOf(now.phase);
 	if (index < PHASES.length - 1) return { ...now, phase: PHASES[index + 1] };
+	return nextDay(now);
+}
+
+/**
+ * The Morning a new Day dawns on. The book counts a Day's 3 Phases but never
+ * numbers the Days of a Season, so the Day count only tallies the Days played;
+ * weeks passing moves the calendar on one Morning rather than claiming a figure
+ * the book doesn't give. A GM who wants another Day sets it by hand.
+ * @param {Calendar} calendar
+ * @returns {Calendar}
+ */
+export function nextDay(calendar) {
+	const now = normalizeCalendar(calendar);
 	return { ...now, day: now.day + 1, phase: PHASES[0] };
 }
 

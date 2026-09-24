@@ -17,14 +17,15 @@ describe("parseSeasonKey", () => {
 
 describe("normalizeSeasonRecord", () => {
 	it("reads nothing stored as a Season with no notes that hasn't ended", () => {
-		expect(normalizeSeasonRecord(undefined)).toEqual({ notes: "", turn: null });
-		expect(normalizeSeasonRecord({ turn: { kind: "sleep" } })).toEqual({ notes: "", turn: null });
+		expect(normalizeSeasonRecord(undefined)).toEqual({ notes: "", events: [], turn: null });
+		expect(normalizeSeasonRecord({ turn: { kind: "sleep" } })).toEqual({ notes: "", events: [], turn: null });
 	});
 
 	it("keeps a turn's entries as plain text", () => {
 		const record = normalizeSeasonRecord({ notes: "Met the Seer.", turn: { kind: "age", title: "Age 2 Begins", entries: [{ name: "Sir Tam", lines: [1] }] } });
 		expect(record).toEqual({
 			notes: "Met the Seer.",
+			events: [],
 			turn: { kind: "age", title: "Age 2 Begins", when: 0, entries: [{ name: "Sir Tam", pursuit: null, lines: ["1"] }], note: null }
 		});
 	});
@@ -44,8 +45,14 @@ describe("seasonTurn", () => {
 describe("seasonLogView", () => {
 	it("always shows the Season the world is in, even with nothing written", () => {
 		expect(seasonLogView({}, now(1, "spring"))).toEqual([
-			{ age: 1, seasons: [{ key: "1-spring", age: 1, season: "spring", current: true, record: { notes: "", turn: null } }] }
+			{ age: 1, seasons: [{ key: "1-spring", age: 1, season: "spring", current: true, record: { notes: "", events: [], turn: null } }] }
 		]);
+	});
+
+	it("keeps a Season that only has an event marked against it", () => {
+		const view = seasonLogView({ "1-spring": { events: ["sceptremass"] } }, now(1, "winter"));
+		expect(view[0].seasons.map(({ key }) => key)).toEqual(["1-spring", "1-winter"]);
+		expect(view[0].seasons[0].record.events).toEqual(["sceptremass"]);
 	});
 
 	it("groups Seasons by Age, the newest Age first and each Age's Seasons in order", () => {

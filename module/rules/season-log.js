@@ -6,6 +6,7 @@
  * it can be tested without Foundry; the sheet puts words to it.
  */
 import { crisisRolledThisSeason } from "./dominion.js";
+import { normalizeEvents } from "./season-events.js";
 import { SEASONS, normalizeCalendar, parseSeasonKey, seasonKey } from "./time.js";
 
 /** How a Season can end: the Season turned, the Age turned, or the Company journeyed to a distant Realm. */
@@ -23,6 +24,7 @@ export const SEASON_TURNS = Object.freeze(["season", "age", "distant"]);
 /**
  * @typedef {object} SeasonRecord
  * @property {string} notes          The GM's own notes on the Season.
+ * @property {string[]} events       Which of its events came to pass (rules/season-events.js).
  * @property {SeasonTurn|null} turn  Null until the Season has ended.
  */
 
@@ -34,6 +36,7 @@ export function normalizeSeasonRecord(raw) {
 	const turn = raw?.turn;
 	return {
 		notes: typeof raw?.notes === "string" ? raw.notes : "",
+		events: normalizeEvents(raw?.events),
 		turn: turn && SEASON_TURNS.includes(turn.kind)
 			? {
 				kind: turn.kind,
@@ -70,8 +73,8 @@ export function seasonTurn({ kind, title, when, entries, note = null }) {
 
 /**
  * The Seasons to show, grouped by Age, the newest Age first and its Seasons in
- * the order they come: every Season written about or ended, and the one the
- * world is in now.
+ * the order they come: every Season written about, marked by an event, or
+ * ended, and the one the world is in now.
  * @param {Record<string, unknown>} log As stored, by Season key.
  * @param {import("./time.js").Calendar} calendar Now.
  * @returns {{age: number, seasons: {key: string, age: number, season: string, current: boolean, record: SeasonRecord}[]}[]}
@@ -83,7 +86,7 @@ export function seasonLogView(log, calendar) {
 		const parsed = parseSeasonKey(key);
 		if (!parsed) continue;
 		const record = normalizeSeasonRecord(raw);
-		if (record.notes.trim() || record.turn || key === now) records.set(key, { key, ...parsed, record });
+		if (record.notes.trim() || record.events.length || record.turn || key === now) records.set(key, { key, ...parsed, record });
 	}
 	if (!records.has(now)) records.set(now, { key: now, ...parseSeasonKey(now), record: normalizeSeasonRecord(null) });
 
