@@ -560,7 +560,8 @@
 
 /* The six Omens in order, each on a numbered disc: filled once met, the one
    playing out in blood. It and the next are written out; the rest are cut to
-   a line, which unfolds when clicked. */
+   a line, which the row reads out on hover. Clicking a row says the Company
+   has met that Omen, which crosses out the ones before it. */
 .bastionland-gm-toolkit__omens {
 	display: flex;
 	flex-direction: column;
@@ -570,56 +571,53 @@
 	list-style: none;
 }
 
-.bastionland-gm-toolkit__omen,
-.bastionland-gm-toolkit__omen-fold > summary {
+.bastionland-gm-toolkit__omen {
 	display: grid;
 	grid-template-columns: 1.35rem minmax(0, 1fr);
 	align-items: start;
 	gap: 0 0.55rem;
-}
-
-.bastionland-gm-toolkit__omen {
 	padding: 0.2rem 0.55rem;
 	border-left: 3px solid transparent;
-}
-
-.bastionland-gm-toolkit__omen-fold {
-	grid-column: 1 / -1;
-}
-
-.bastionland-gm-toolkit__omen-fold > summary {
-	list-style: none;
 	cursor: pointer;
 }
 
-.bastionland-gm-toolkit__omen-fold > summary::-webkit-details-marker {
-	display: none;
-}
-
-.bastionland-gm-toolkit__omen-fold:not([open]) .bastionland-gm-toolkit__omen-text {
+/* A row cut to a line, for an Omen neither playing out nor next. The text is
+   its own paragraph, so that is what trails off. */
+.bastionland-gm-toolkit__omen.is-cut .bastionland-gm-toolkit__omen-text,
+.bastionland-gm-toolkit__omen.is-cut .bastionland-gm-toolkit__omen-text p {
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 }
 
-.bastionland-gm-toolkit__omen-fold > summary:hover .bastionland-gm-toolkit__omen-number {
+.bastionland-gm-toolkit__omen:hover {
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-gm-toolkit__omen:hover .bastionland-gm-toolkit__omen-number,
+.bastionland-page button.bastionland-gm-toolkit__omen-number:focus-visible {
 	border-color: var(--bastionland-ink);
 }
 
-.bastionland-gm-toolkit__omen-number {
+.bastionland-page button.bastionland-gm-toolkit__omen-number {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	flex: 0 0 auto;
 	width: 1.35rem;
 	height: 1.35rem;
+	min-height: 0;
 	margin-top: 0.05rem;
+	padding: 0;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 50%;
+	background: none;
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-caps);
 	font-size: var(--bastionland-font-floor);
 	font-variant-numeric: lining-nums;
 	line-height: 1;
+	cursor: pointer;
 }
 
 /* The face's tall ascender room sets the digit low in its line box, which the
@@ -643,6 +641,12 @@
 	border-color: var(--bastionland-ink-soft);
 	background: var(--bastionland-ink-soft);
 	color: var(--bastionland-paper);
+}
+
+/* An Omen met is struck through, the way a Referee scores off a list. */
+.bastionland-gm-toolkit__omen.is-past .bastionland-gm-toolkit__omen-text {
+	text-decoration: line-through;
+	text-decoration-color: var(--bastionland-ink-soft);
 }
 
 .bastionland-gm-toolkit__omen.is-current {

@@ -45,6 +45,16 @@ describe("GM Toolkit templates", () => {
 		expect(card).toContain('name="{{@root.mythGroup}}"');
 	});
 
+	it("mark an Omen by clicking its row, rather than stepping a count", () => {
+		const source = templates["myths.hbs"];
+		// The row itself, and the numbered disc in it, which is the keyboard's target.
+		const marks = tags(source).filter((tag) => tag.includes('data-action="markOmen"'));
+		expect(marks).toHaveLength(2);
+		for (const mark of marks) expect(mark).toContain('data-omen="{{number}}"');
+		expect(source).not.toContain("omenStep");
+		expect(source).not.toContain("nextOmen");
+	});
+
 	it("only ask for actions the sheet has", () => {
 		const actions = new Set(Object.values(templates).flatMap((source) => [...source.matchAll(/data-action="(\w+)"/g)].map((match) => match[1])));
 		// Foundry's own document sheets pick a new picture this way.

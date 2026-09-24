@@ -1263,8 +1263,7 @@
     "myths": {
       "noRealm": "There’s no Realm Scene yet. Use New Realm in the Scenes tab to roll one.",
       "noMyths": "This Realm has no Myths.",
-      "omenNumber": "Omen {number}",
-      "nextOmen": "Next Omen"
+      "omenNumber": "Omen {number}"
     },
     "weather": {
       "title": "Weather",
@@ -1316,6 +1315,9 @@
         "unrolled": "Myth {number}",
         "current": "Current",
         "next": "Next",
+        "clickOmen": "Click the Omen the Company has met, or it again to take it back",
+        "markOmen": "The Company has met Omen {number}: mark it, and cross out the ones before it",
+        "unmarkOmen": "Take this Omen back, leaving the one before it playing out",
         "note": "Your notes on this Myth",
         "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
         "resolved": "Resolved",

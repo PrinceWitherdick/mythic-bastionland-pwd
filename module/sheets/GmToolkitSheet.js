@@ -110,8 +110,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		window: { resizable: true },
 		form: { submitOnChange: true },
 		actions: {
-			omenStep: GmToolkitSheet.#onOmenStep,
-			nextOmen: GmToolkitSheet.#onNextOmen,
+			markOmen: GmToolkitSheet.#onMarkOmen,
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
 			rollCityOmen: () => rollCityOmen(),
@@ -339,24 +338,29 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			hidden: !myth.revealed,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 			// All six in order: the one playing out and the one to come in full,
-			// every other cut to a line that unfolds.
+			// every other cut to a line, which its row reads out on hover instead.
+			// Clicking a row marks that Omen; clicking the one playing out takes
+			// it back, so what each does is said where the pointer is.
 			omens: Array.from({ length: OMEN_COUNT }, (_, index) => {
 				const number = index + 1;
 				const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
-				const omenFold = `omen:${myth.number}:${number}`;
+				const written = text(number) ?? t("myths.omenNumber", { number });
+				const cut = number !== current && number !== next;
+				const mark = number === current ? t("gmToolkit.myths.unmarkOmen") : t("gmToolkit.myths.markOmen", { number });
 				return {
 					number,
-					parts: omenParts(text(number) ?? t("myths.omenNumber", { number })),
+					parts: omenParts(written),
 					met: number <= myth.omen,
 					past: number < myth.omen,
 					current: number === current,
 					next: number === next,
 					label,
-					fold: omenFold,
-					open: this.#folds.get(omenFold) ?? false
+					cut,
+					mark,
+					// A cut row says what it holds; one written out says what a click does.
+					tip: cut ? written : mark
 				};
 			}),
-			noneSeen: myth.omen <= 0,
 			complete: myth.omen >= OMEN_COUNT,
 			resolved: kept.resolved,
 			note: kept.note,
@@ -848,12 +852,18 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/*  Actions                                     */
 	/* -------------------------------------------- */
 
-	/** @this {GmToolkitSheet} */
-	static #onOmenStep(_event, target) {
+	/**
+	 * The Omen clicked is the one the Company has met: Omens come in order (p18),
+	 * so every Omen before it is met too and every one after it is still to come.
+	 * Clicking the Omen playing out takes it back, which is how a mistaken tap is
+	 * undone where it was made. Nothing goes to chat, not even to the GMs.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onMarkOmen(_event, target) {
 		const myth = this.#mythFrom(target);
-		const step = Number(target.dataset.step) || 0;
-		if (!myth) return;
-		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, myth.omen + step));
+		const number = Number(target.dataset.omen);
+		if (!myth || !Number.isInteger(number)) return;
+		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, number === myth.omen ? number - 1 : number));
 	}
 
 	/**
@@ -913,17 +923,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const myth = this.#mythFrom(target);
 		const { name, entry } = myth ? mythLookup(this.#index, myth) : {};
 		if (entry?.path) openArt({ src: entry.path, title: name, icon: TAB_ICONS.myths });
-	}
-
-	/**
-	 * Count the Myth's next Omen as met. The Toolkit shows it as the current
-	 * Omen, so nothing goes to chat, not even to the GMs.
-	 * @this {GmToolkitSheet}
-	 */
-	static #onNextOmen(_event, target) {
-		const myth = this.#mythFrom(target);
-		if (!myth || myth.omen >= OMEN_COUNT) return;
-		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, myth.omen + 1));
 	}
 
 	/**

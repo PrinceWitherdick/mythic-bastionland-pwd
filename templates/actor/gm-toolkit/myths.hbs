@@ -35,28 +35,24 @@
 		</summary>
 
 		<div class="bastionland-gm-toolkit__myth-body">
-			<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}}</p>
+			<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}} · {{localize "bastionland.gmToolkit.myths.clickOmen"}}</p>
 
 			{{#if resolved}}
 			<p class="bastionland-gm-toolkit__resolved">{{localize "bastionland.gmToolkit.myths.resolvedHint"}}</p>
 			{{/if}}
 
-			{{!-- The six Omens in order. The one playing out and the one to come are
-			      written out; each other is cut to a line that unfolds to be read. --}}
+			{{!-- The six Omens in order. Clicking the one the Company has met marks
+			      it and crosses out the ones before it; clicking it again takes it
+			      back. The one playing out and the one to come are written out;
+			      each other is cut to a line, which hovering reads in full. --}}
 			<ol class="bastionland-gm-toolkit__omens">
 				{{#each omens}}
-				<li class="bastionland-gm-toolkit__omen{{#if past}} is-past{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}">
-					{{#if label}}
-					<span class="bastionland-gm-toolkit__omen-number"><span>{{number}}</span></span>
+				<li class="bastionland-gm-toolkit__omen{{#if past}} is-past{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}{{#if cut}} is-cut{{/if}}" data-action="markOmen" data-omen="{{number}}" data-tooltip="{{tip}}">
+					<button type="button" class="bastionland-gm-toolkit__omen-number" data-action="markOmen" data-omen="{{number}}" data-tooltip="{{mark}}" aria-label="{{mark}}"><span>{{number}}</span></button>
 					<div class="bastionland-gm-toolkit__omen-text">
-						<span class="bastionland-gm-toolkit__omen-label">{{label}}</span>
+						{{#if label}}<span class="bastionland-gm-toolkit__omen-label">{{label}}</span>{{/if}}
 						<p>{{> omenText this}}</p>
 					</div>
-					{{else}}
-					<details class="bastionland-gm-toolkit__omen-fold" data-fold="{{fold}}" {{#if open}}open{{/if}}>
-						<summary><span class="bastionland-gm-toolkit__omen-number"><span>{{number}}</span></span><span class="bastionland-gm-toolkit__omen-text">{{> omenText this}}</span></summary>
-					</details>
-					{{/if}}
 				</li>
 				{{/each}}
 			</ol>
@@ -106,8 +102,6 @@
 			</label>
 
 			<nav class="bastionland-toolbar" aria-label="{{name}}">
-				<button type="button" data-action="omenStep" data-step="-1" {{disabled noneSeen}} aria-label="{{localize 'bastionland.realm.panel.omenLess'}}" data-tooltip="{{localize 'bastionland.realm.panel.omenLess'}}"><i class="fa-solid fa-minus" inert></i></button>
-				<button type="button" data-action="nextOmen" {{disabled complete}}><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.myths.nextOmen"}}</button>
 				{{#if table.rows}}
 				<button type="button" data-action="rollMythTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.myths.rollTable"}}</button>
 				{{/if}}
