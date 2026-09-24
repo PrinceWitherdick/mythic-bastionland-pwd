@@ -42,6 +42,9 @@
 			<button type="button" data-action="rollHexSet"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
 			<button type="button" data-action="hexLore"><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.open"}}</button>
 			<button type="button" data-action="tellHex" {{disabled tellDisabled}}><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
+			{{#unless companyHere}}
+			<button type="button" data-action="standCompany"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.company.here"}}</button>
+			{{/unless}}
 			{{#if visited}}
 			<button type="button" data-action="forgetVisits"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.gmToolkit.visits.forget"}}</button>
 			{{else}}

@@ -1,7 +1,7 @@
 import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
-import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
+import { COMPANY_FLAG, companyTokenHex, setCompanyHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
@@ -118,6 +118,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			rollHexSet: GmToolkitSheet.#onRollHexSet,
 			tellHex: GmToolkitSheet.#onTellHex,
 			forgetSpark: GmToolkitSheet.#onForgetSpark,
+			standCompany: GmToolkitSheet.#onStandCompany,
 			markVisited: GmToolkitSheet.#onMarkVisited,
 			forgetVisits: GmToolkitSheet.#onForgetVisits,
 			openSite: GmToolkitSheet.#onOpenSite,
@@ -915,6 +916,19 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const hex = GmToolkitSheet.#hexFrom(target);
 		const { spark } = target.dataset;
 		if (hex && spark) return forgetHexSpark(this.scene, hex, spark);
+	}
+
+	/**
+	 * Stand the Company in this hex, making its Token when the Realm hasn't one
+	 * yet. That is how a Realm made before the Company had a Token gets one, and
+	 * how a Token deleted by mistake comes back.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onStandCompany(_event, target) {
+		const hex = GmToolkitSheet.#hexFrom(target);
+		if (!hex) return;
+		const token = await setCompanyHex(this.scene, hex);
+		if (token) ui.notifications.info(t("company.placed", { hex: t("realm.hex", hex) }));
 	}
 
 	/** @this {GmToolkitSheet} */

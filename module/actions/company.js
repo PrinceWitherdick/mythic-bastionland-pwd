@@ -11,6 +11,9 @@ export const COMPANY_FLAG = "company";
 /** The Scene flag keeping the picture chosen for a Company that the Referee hasn't placed yet. */
 export const COMPANY_IMG_FLAG = "companyImg";
 
+/** The Scene flag keeping the hex the Company stood in, so a Token deleted by mistake can be put back. */
+export const COMPANY_LAST_HEX_FLAG = "companyLastHex";
+
 /**
  * The Token standing for the Company on a Realm.
  * @param {Scene|null} scene
@@ -39,6 +42,45 @@ export function companyTokenHex(scene) {
 	const token = findCompanyToken(scene);
 	if (!token || !isRealmScene(scene)) return null;
 	return hexAt(sceneGeometry(scene), token.getCenterPoint());
+}
+
+/**
+ * The hex the Company stood in when its Token went, kept on the Scene.
+ * @param {Scene|null} scene
+ * @returns {{col: number, row: number}|null}
+ */
+export function lastCompanyHex(scene) {
+	const hex = scene?.getFlag?.(SYSTEM_ID, COMPANY_LAST_HEX_FLAG);
+	return Number.isInteger(hex?.col) && Number.isInteger(hex?.row) ? { col: hex.col, row: hex.row } : null;
+}
+
+/**
+ * Keep where the Company stood, and what it carried, against the Token being
+ * deleted. Written as the Token goes, so putting them back needs nothing else.
+ * @param {Scene} scene
+ * @param {TokenDocument} token The Token on its way out.
+ * @returns {Promise<void>}
+ */
+export async function rememberCompany(scene, token) {
+	if (!game.user.isGM || !isRealmScene(scene)) return;
+	const hex = hexAt(sceneGeometry(scene), token.getCenterPoint());
+	const img = token.texture?.src;
+	await scene.update({
+		[`flags.${SYSTEM_ID}.${COMPANY_LAST_HEX_FLAG}`]: hex,
+		...(img ? { [`flags.${SYSTEM_ID}.${COMPANY_IMG_FLAG}`]: img } : {})
+	});
+}
+
+/**
+ * Put a deleted Company back where it stood, with the picture it carried.
+ * @param {Scene} scene
+ * @returns {Promise<TokenDocument|null>} Null when there's nowhere to put them,
+ *   or one already stands on the Realm.
+ */
+export async function standCompanyAgain(scene) {
+	if (!game.user.isGM || findCompanyToken(scene)) return null;
+	const hex = lastCompanyHex(scene);
+	return hex ? setCompanyHex(scene, hex) : null;
 }
 
 /**

@@ -44,6 +44,7 @@ import { registerGambitMarks } from "./module/chat/gambit-marks.js";
 import { t } from "./module/chat/cards.js";
 import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
+import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -276,6 +277,9 @@ Hooks.once("init", () => {
 
 	// And the chat cards waiting beside it, to import the PDF and create a Realm.
 	registerWelcomeCards();
+
+	// A Company Token deleted by mistake: the GMs are whispered a way to put it back.
+	registerCompanyLostCard();
 
 	// Macros reach the system through here, such as Import PDF.
 	game.system.api = Object.freeze({

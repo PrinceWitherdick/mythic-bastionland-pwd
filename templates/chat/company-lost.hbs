@@ -1,0 +1,11 @@
+<section class="bastionland-card bastionland-card--welcome">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+	</header>
+	<p class="bastionland-card__text">{{text}}</p>
+	{{#if restorable}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-company-restore="{{scene}}"><i class="fa-solid fa-flag" inert></i> {{label}}</button>
+	</div>
+	{{/if}}
+</section>
