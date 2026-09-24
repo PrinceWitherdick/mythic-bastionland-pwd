@@ -2702,11 +2702,13 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	color: var(--bastionland-paper);
 }
 
-.bastionland-page .bastionland-site__number {
+/* The bar's picker is a dropdown, so it keeps room for its caret. */
+.bastionland-page select.bastionland-site__number {
 	width: auto;
 	height: 1.8rem;
 	margin-right: 0.3rem;
 	padding: 0 0.3rem;
+	border-radius: 0;
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
 }
@@ -4592,6 +4594,112 @@ button.bastionland-realm-drawing__finish:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
 	.bastionland-art-preview {
+		animation: none;
+	}
+}
+
+/* ---------------------------------------------------------------- */
+/* Dropdowns (module/apps/dropdown.js)                              */
+/* ---------------------------------------------------------------- */
+
+/*
+ * The list a select drops. The browser's own is never opened: the rows are
+ * drawn here instead, on <body> and fixed, so the scrolling pages and dialogs
+ * they come from can't clip them. The script sets top, left, width and the
+ * height it was left room for.
+ */
+.bastionland-dropdown {
+	position: fixed;
+	box-sizing: border-box;
+	width: max-content;
+	max-width: 90vw;
+	padding: 0.25rem 0;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper);
+	box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+	color: var(--bastionland-ink);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	animation: bastionland-dropdown-in 100ms ease-out;
+}
+
+/*
+ * The rows, held inside the frame rather than being it, because Text Size
+ * zooms them: zoom would take the panel's own top and left with it, and the
+ * script places the panel in the window's own pixels. The frame is left
+ * unzoomed, so its rule stays a hairline whatever size the writing is set to.
+ */
+.bastionland-dropdown__list {
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-note);
+	line-height: 1.35;
+}
+
+/* Room around each word, which the browser's own list gives none of. */
+.bastionland-dropdown__option {
+	padding: 0.35rem 0.85rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+/*
+ * The row under the pointer or the cursor. No bar of another colour: it takes
+ * the parchment's deeper tone and the rubric's red, as every other pointed-at
+ * word on the page does.
+ */
+.bastionland-dropdown__option.is-active {
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rubric);
+}
+
+/* The one already chosen, marked in its own ink rather than by a highlight. */
+.bastionland-dropdown__option[aria-selected="true"] {
+	font-weight: bold;
+}
+
+.bastionland-dropdown__option[aria-disabled="true"] {
+	color: var(--bastionland-ink-faint);
+	cursor: default;
+}
+
+/* An optgroup's name: a rubric in miniature, ruled off from the rows under it. */
+.bastionland-dropdown__group {
+	margin: 0.3rem 0 0.15rem;
+	padding: 0 0.85rem 0.15rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+}
+
+.bastionland-dropdown__group:first-child {
+	margin-top: 0;
+}
+
+/* The list unfolds from the box it drops from, whichever side that is. */
+@keyframes bastionland-dropdown-in {
+	from {
+		opacity: 0;
+		transform: translateY(-3px);
+	}
+}
+
+@keyframes bastionland-dropdown-in-above {
+	from {
+		opacity: 0;
+		transform: translateY(3px);
+	}
+}
+
+.bastionland-dropdown.is-above {
+	animation-name: bastionland-dropdown-in-above;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bastionland-dropdown {
 		animation: none;
 	}
 }

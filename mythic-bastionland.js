@@ -21,6 +21,7 @@ import { wildernessRoll } from "./module/actions/wilderness.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
+import { registerDropdowns } from "./module/apps/dropdown.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
@@ -218,6 +219,10 @@ Hooks.once("init", () => {
 
 	// The outline the sheet and the heraldry painter clip the shield to.
 	installShieldClips();
+
+	// Every dropdown in the system's windows drops a list drawn on the parchment
+	// rather than the browser's own.
+	registerDropdowns();
 
 	// The GM's own copy of the rulebook, read in Foundry's PDF viewer, with a
 	// hotkey, Show Players, and the book reopening after a reload.

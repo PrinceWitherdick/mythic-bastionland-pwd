@@ -65,7 +65,8 @@ function installFoundryStubs() {
 	globalThis.window = { addEventListener: vi.fn() };
 	globalThis.document = {
 		body: { append: vi.fn() },
-		createElement: () => ({ innerHTML: "", firstElementChild: {} })
+		createElement: () => ({ innerHTML: "", firstElementChild: {} }),
+		addEventListener: vi.fn()
 	};
 	return hooks;
 }
@@ -101,6 +102,12 @@ describe("system boot", () => {
 
 	it("puts the shield's clip paths on the page", () => {
 		expect(document.body.append).toHaveBeenCalledOnce();
+	});
+
+	it("listens for a dropdown anywhere on the page, so every select drops the system's own list", () => {
+		for (const press of ["mousedown", "keydown"]) {
+			expect(document.addEventListener).toHaveBeenCalledWith(press, expect.any(Function), true);
+		}
 	});
 
 	it("offers the sheets' own faces from Foundry's font menus", () => {

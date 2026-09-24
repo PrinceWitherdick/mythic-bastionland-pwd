@@ -1216,15 +1216,6 @@
 	max-width: 11rem;
 }
 
-.bastionland-ledger__toolbar optgroup {
-	font-weight: bold;
-	font-style: normal;
-}
-
-.bastionland-ledger__toolbar optgroup option {
-	font-weight: normal;
-}
-
 .bastionland-ledger-window .bastionland-ledger__toolbar button {
 	flex: 0 0 auto;
 	width: auto;

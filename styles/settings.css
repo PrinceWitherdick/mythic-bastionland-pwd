@@ -121,7 +121,8 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
  */
 .bastionland-page:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *),
 .bastionland-dialog > .window-content,
-.bastionland-card:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *) {
+.bastionland-card:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *),
+.bastionland-dropdown__list {
 	zoom: var(--bastionland-text-size, 1);
 }
 
@@ -206,10 +207,10 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
 /* Reduce Motion                                                    */
 /* ---------------------------------------------------------------- */
 
-:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview),
-:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *,
-:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *::before,
-:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview) *::after {
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview, .bastionland-dropdown),
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview, .bastionland-dropdown) *,
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview, .bastionland-dropdown) *::before,
+:root.bastionland-reduce-motion :is(.bastionland, .bastionland-dialog, .bastionland-card, .bastionland-art-preview, .bastionland-dropdown) *::after {
 	animation-duration: 0s !important;
 	animation-delay: 0s !important;
 	transition-duration: 0s !important;

@@ -179,11 +179,6 @@
 	color: var(--bastionland-blood);
 }
 
-.bastionland-page .bastionland-gm-toolkit__clock select option {
-	color: var(--bastionland-ink);
-	font-weight: normal;
-}
-
 .bastionland-gm-toolkit__clock-season {
 	align-self: center;
 	color: var(--bastionland-clock-ink);
