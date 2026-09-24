@@ -39,7 +39,7 @@ export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "tidy", "reroll", "appearance"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "reroll", "appearance"]);
 
 /**
  * What the paint tool lays, all picked from its one palette: a terrain, the
@@ -57,13 +57,12 @@ export const REALM_TOOL_ICONS = Object.freeze({
 	holding: "fa-solid fa-chess-rook",
 	landmark: "fa-solid fa-monument",
 	wilderness: "fa-solid fa-tree",
-	tidy: "fa-solid fa-broom",
 	reroll: "fa-solid fa-dice",
 	appearance: "fa-solid fa-palette"
 });
 
 /** The Realm tools that act at once rather than waiting for a click on the map. */
-export const REALM_BUTTONS = Object.freeze(["wilderness", "tidy", "reroll", "appearance"]);
+export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance"]);
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([
@@ -168,8 +167,8 @@ export const mythReference = ({ d6, d12 }) => ({ roll: rollLabel(d6, d12), page:
 export const seerReference = ({ d6, d12 }) => ({ roll: rollLabel(d6, d12), page: spreadPages(d6, d12).knight });
 
 /**
- * Everything about a Realm that doesn't fit the rules above, for Tidy and the
- * Hex panel to point out. Nothing here is fatal: the map still works.
+ * Everything about a Realm that doesn't fit the rules above, for the Hex
+ * panel to point out. Nothing here is fatal: the map still works.
  * @param {Realm} realm
  * @param {object} g
  * @returns {{kind: string, reason: string, key: string}[]} `key` names the hex, edge or number concerned.

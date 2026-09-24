@@ -48,8 +48,8 @@ const kindHere = ({ holding, myth, landmark }) => (holding ? "holding" : myth ? 
 
 /**
  * A swatch's count against what the book asks for: green once it's right, red
- * once there are too many, so a Realm says how its drawing is going rather
- * than waiting for Tidy. A count with no number of its own, such as one style
+ * once there are too many, so a Realm says how its drawing is going as it
+ * goes. A count with no number of its own, such as one style
  * of Holding among four Holdings, is never right or wrong on its own.
  * @param {number} count
  * @param {{min?: number|null, max: number}} asked

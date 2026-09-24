@@ -1,4 +1,4 @@
-import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory, syncRealmScene } from "../actions/realm.js";
+import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { followHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
@@ -89,8 +89,8 @@ function riverDrag(g, start) {
 
 /**
  * The GM's Realm tools on a Realm Scene: a control group beside Foundry's own,
- * with tools that work on hexes and buttons for the Wilderness Roll, Tidy,
- * Reroll and the Realm's looks.
+ * with tools that work on hexes and buttons for the Wilderness Roll, Reroll
+ * and the Realm's looks.
  */
 export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @override */
@@ -196,7 +196,6 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	runButton(name) {
 		const scene = canvas.scene;
 		if (name === "wilderness") return wildernessRoll({ scene });
-		if (name === "tidy") return syncRealmScene(scene, { report: true });
 		if (name === "reroll") return rerollRealm(scene);
 		if (name === "appearance") return openRealmAppearance();
 		return null;

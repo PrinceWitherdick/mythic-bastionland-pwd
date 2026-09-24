@@ -175,7 +175,7 @@ function barrierDrawing(g, { edge, revealed }, colour) {
 		elevation: 0,
 		rotation: 0,
 		bezierFactor: 0,
-		// Foundry keeps a shape's size in whole pixels; given any other way, every Tidy would write it again.
+		// Foundry keeps a shape's size in whole pixels; given any other way, every sync would write it again.
 		shape: { type: "p", width: Math.round(Math.abs(to.x - from.x)), height: Math.round(Math.abs(to.y - from.y)), points: [round(from.x - x), round(from.y - y), round(to.x - x), round(to.y - y)] },
 		strokeWidth: BARRIER_WIDTH,
 		strokeColor: colour,

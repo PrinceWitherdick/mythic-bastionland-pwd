@@ -2209,7 +2209,6 @@
         "inspect": "Inspect hexes",
         "terrain": "Paint the Realm",
         "wilderness": "Wilderness Roll",
-        "tidy": "Tidy the Realm",
         "reroll": "Reroll the Realm",
         "appearance": "Realm Appearance"
       },
@@ -2250,12 +2249,6 @@
         "tied": "Myths {numbers} are equally near, so a roll chose between them.",
         "seer": "Home to {seer}, page {page}",
         "revealed": "Now revealed on the map."
-      },
-      "tidy": {
-        "problem": "{problem} at {key}",
-        "problems": "The Realm has {count} things to look at: {list}",
-        "done": "The Realm is tidy again.",
-        "clean": "The Realm was already tidy."
       },
       "reroll": {
         "title": "Reroll the Realm?",

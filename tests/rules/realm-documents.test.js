@@ -265,7 +265,7 @@ describe("planRealmSync", () => {
 		expect(plan.Tile.create).toEqual([]);
 	});
 
-	it("leaves an icon dragged off the map where it is, for Tidy to report", () => {
+	it("leaves an icon dragged off the map where it is, and reports it", () => {
 		const { snapshot } = onScene();
 		const myth = snapshot.tiles.find((tile) => flagOf(tile).kind === "myth");
 		Object.assign(myth, { x: g.width + 500, y: g.height + 500 });

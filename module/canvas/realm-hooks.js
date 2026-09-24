@@ -8,7 +8,8 @@ import {
 	isDrawingRealm,
 	isRealmScene,
 	realmWritesSettled,
-	sceneGeometry
+	sceneGeometry,
+	syncRealmScene
 } from "../actions/realm.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
@@ -65,7 +66,7 @@ function showChanges() {
 
 /**
  * Read a Scene's Realm again, and show the change under the pointer. A Reroll
- * or Tidy writes many documents at once, each with its own hook, and every
+ * writes many documents at once, each with its own hook, and every
  * edit writes the Scene's flag before its documents, so drawing waits until
  * this client's Realm writes have all landed.
  * @param {string|undefined} sceneId
@@ -126,6 +127,8 @@ export function registerRealmHooks() {
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
 		showRealmRules();
+		// Put right anything that drifted on the Scene's own layers, quietly: it writes nothing on a Realm in order.
+		syncRealmScene(canvas?.scene).catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
 	});
 	Hooks.on("canvasTearDown", () => {
 		detachHexReadout();

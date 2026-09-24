@@ -6,7 +6,7 @@ import { COMPANY_STARTS } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
-import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
+import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, validateRealm } from "../rules/realm.js";
 import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
 import {
 	LEVEL_ID,
@@ -181,7 +181,7 @@ const queueRealmWrite = serialWrites();
  * document does, then its documents, removals first, then changes, then
  * additions. Tiles and Drawings don't depend on each other, so each step
  * writes both at once. The river Tiles are drawn from the flag's rivers, so
- * should a write fail part way, Tidy finishes laying them from the flag.
+ * should a write fail part way, syncRealmScene lays them again from the flag.
  * @param {Scene} scene
  * @param {object} realm
  * @param {object} g
@@ -430,20 +430,18 @@ export function forgetRealmHistory(sceneId) {
 	if (histories.has(sceneId)) setHistory(sceneId, null);
 }
 
-/** How many problems a Tidy notification names before it stops. */
-const PROBLEMS_SHOWN = 5;
-
 /**
- * Tidy a Realm Scene: snap its icons to the centres of their hexes, unlock
- * hidden ones, lay the river and Barrier lines again, and clear duplicates.
- * Anything it can't put right is reported rather than changed.
+ * Put a Realm Scene back in order: snap its icons to the centres of their
+ * hexes, lay the river and Barrier lines again, and clear duplicates. Nothing
+ * is written unless something drifted, so it costs nothing on a Scene that is
+ * already in order. Anything it can't put right is logged rather than changed.
+ * Called as a Realm Scene is drawn. Only the one GM who keeps the world writes,
+ * so two GMs opening the same drifted Realm don't lay its lines twice over.
  * @param {Scene} scene
- * @param {object} [options]
- * @param {boolean} [options.report] Tell the GM what happened.
  * @returns {Promise<{changed: boolean, problems: object[]}|null>}
  */
-export async function syncRealmScene(scene, { report = false } = {}) {
-	if (!game.user.isGM || !isRealmScene(scene)) return null;
+export async function syncRealmScene(scene) {
+	if (!game.user.isGM || !game.users?.activeGM?.isSelf || !isRealmScene(scene)) return null;
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
 	const { realm, problems: readProblems, changed } = await queueRealmWrite(async () => {
@@ -452,17 +450,8 @@ export async function syncRealmScene(scene, { report = false } = {}) {
 	});
 
 	const problems = [...readProblems, ...validateRealm(realm, g)];
-	if (report) {
-		if (problems.length) {
-			const list = problems.slice(0, PROBLEMS_SHOWN)
-				.map(({ reason, key }) => t("realm.tidy.problem", { problem: t(`realm.problems.${REALM_PROBLEMS.includes(reason) ? reason : "duplicate"}`), key }))
-				.join("; ");
-			ui.notifications.warn(t("realm.tidy.problems", { count: problems.length, list }));
-			console.warn(`${SYSTEM_ID} | Realm problems on ${scene.name}`, problems);
-		} else {
-			ui.notifications.info(t(changed ? "realm.tidy.done" : "realm.tidy.clean"));
-		}
-	}
+	// The Hex panel shows these hex by hex; the log is for a GM looking at the Realm as a whole.
+	if (problems.length) console.warn(`${SYSTEM_ID} | Realm problems on ${scene.name}`, problems);
 	return { changed, problems };
 }
 
