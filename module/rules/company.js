@@ -7,10 +7,6 @@
  * Foundry.
  */
 import { STARTS } from "./creation.js";
-import { SYSTEM_PATH } from "../system-id.js";
-
-/** The pennant the Company carries when the GM hasn't chosen a picture of their own. */
-export const COMPANY_IMAGE = `${SYSTEM_PATH}/assets/company/pennant.svg`;
 
 /** The Starts, in the book's order. Where the Company begins follows from which one they took. */
 export const COMPANY_STARTS = Object.freeze(STARTS.map((start) => start.key));

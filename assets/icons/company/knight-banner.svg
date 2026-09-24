@@ -1,0 +1,6 @@
+<!-- "Knight banner" by Delapouite (https://delapouite.com), from game icons dot net (https://game-icons.net/1x1/delapouite/knight-banner.html), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+     Only the halo behind it is ours. The CREDITS.md beside it lists every icon.
+
+     An XML comment may not hold two hyphens in a row: an SVG loaded through an img tag is parsed
+     strictly, and one stray pair breaks the whole picture. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Knight's banner"><g transform="translate(12 12) scale(0.4531)"><path d="m256 23.57-16.1 48.86h32.2zM73 90.43v15.97h366V90.43zm48 33.97V479l135-105 135 105V124.4zm87 37h96l-32 80 80-32v96l-80-32 32 80h-96l32-80-80 32v-96l80 32zm48 235.4-23 17.9v73.7h46v-73.7z" fill="#231f1a" stroke="#f6f1e4" stroke-width="30.9" stroke-linejoin="round" paint-order="stroke"/></g></svg>

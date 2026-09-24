@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { extname, join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..", "..");
@@ -59,7 +59,8 @@ describe("dialogs", () => {
 });
 
 describe("dialog templates", () => {
-	const bodies = walk(join(root, "templates", "dialogs"), ".hbs");
+	// A dialog's own template, not the partials under parts/, which are pieces of one.
+	const bodies = walk(join(root, "templates", "dialogs"), ".hbs").filter((file) => !file.includes(`${sep}parts${sep}`));
 
 	it.each(bodies.map((file) => [relative(root, file), file]))("%s opens with the dialog body", (_name, file) => {
 		expect(readFileSync(file, "utf8").trimStart()).toMatch(/^<div class="bastionland-dialog__body\b/);

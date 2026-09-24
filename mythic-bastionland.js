@@ -160,6 +160,7 @@ Hooks.once("init", () => {
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
+		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")
 	});

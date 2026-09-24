@@ -1,4 +1,5 @@
 import { showsArtPreviews } from "../client-settings.js";
+import { viewport } from "./ui.js";
 
 /**
  * Hover previews: a larger copy of a piece of art, shown beside it while the
@@ -60,8 +61,6 @@ export function placeArt(anchor, popup, viewport) {
 	};
 }
 
-/** @returns {{width: number, height: number}} */
-const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
 
 /** @type {{popup: HTMLElement, art: HTMLImageElement}|null} The preview showing. There is only ever one. */
 let showing = null;

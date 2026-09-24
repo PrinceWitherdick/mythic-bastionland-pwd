@@ -1,3 +1,5 @@
+import { changeCompanyPicture } from "../apps/company-picture.js";
+import { COMPANY_FLAG } from "../actions/company.js";
 import { INK_HEX } from "../rules/colour.js";
 import { SHIELD_OUTLINE_PATH, SHIELD_PATH } from "../rules/heraldry.js";
 import { heraldryBadge, pathSteps } from "../rules/token-heraldry.js";
@@ -110,6 +112,35 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 		traceShield(field, SHIELD_PATH, badge.scale, badge.field);
 		field.endFill();
 		painting.mask = field;
+	}
+
+	/** Whether this is the one Token standing for the whole Company (p7). */
+	get isCompany() {
+		return Boolean(this.document.getFlag(SYSTEM_ID, COMPANY_FLAG));
+	}
+
+	/**
+	 * Foundry asks this before it lets a double click through, and warns that
+	 * the Token's Actor is missing when there is none. The Company's Token has
+	 * none on purpose, so the warning would be wrong: the Referee is let
+	 * through to the picture instead, and nobody else is warned.
+	 * @inheritDoc
+	 */
+	_canView(user, event) {
+		if (!this.isCompany) return super._canView(user, event);
+		return Boolean(user.isGM) && this.layer.active && !this.isPreview && !this.layer._draggedToken;
+	}
+
+	/**
+	 * A double click opens an Actor's sheet, and the Company's Token has no
+	 * Actor on purpose, so for the Referee it offers the Company's picture
+	 * instead. That's the only way to change it once the Realm is made.
+	 * @inheritDoc
+	 */
+	_onClickLeft2(event) {
+		if (!this.isCompany || !game.user.isGM) return super._onClickLeft2(event);
+		if (!this._propagateLeftClick(event)) event.stopPropagation();
+		changeCompanyPicture(this.document);
 	}
 
 	/** @inheritDoc */

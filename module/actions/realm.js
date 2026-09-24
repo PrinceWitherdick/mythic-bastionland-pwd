@@ -2,7 +2,9 @@ import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
-import { COMPANY_IMAGE, COMPANY_STARTS } from "../rules/company.js";
+import { COMPANY_STARTS } from "../rules/company.js";
+import { COMPANY_IMAGE } from "../rules/company-icons.js";
+import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
 import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, REALM_PROBLEMS, validateRealm } from "../rules/realm.js";
 import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
@@ -24,7 +26,6 @@ import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart } from "./company.js";
-import { filePicker } from "../book-art/files.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
@@ -546,7 +547,7 @@ export async function newRealm() {
 		seed: randomSeed(),
 		// Drawn by hand, only the map's size is left to set.
 		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
-		img: COMPANY_IMAGE,
+		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
 	});
@@ -576,7 +577,7 @@ export async function newRealm() {
 		drawing: draw,
 		company: data.placeCompany ? {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
-			img: String(data.companyImg ?? "").trim() || COMPANY_IMAGE
+			img: await resolveCompanyPicture(data)
 		} : null
 	});
 	if (scene && draw) await openRealmPainter(scene);
@@ -597,23 +598,15 @@ async function openRealmPainter(scene) {
 
 /**
  * The New Realm dialog's Company fields: the Start says where the Company
- * begins as it's chosen, and the picture can be browsed for like any other.
+ * begins as it's chosen, and the picture is chosen the same way as anywhere
+ * else the Company's picture is.
  * @param {HTMLElement} element The dialog.
  */
 function wireCompanyFields(element) {
 	const start = element.querySelector('[name="start"]');
 	const hint = element.querySelector("[data-company-hint]");
 	if (start && hint) start.addEventListener("change", () => { hint.textContent = t(`company.starts.${start.value}.hint`); });
-
-	const field = element.querySelector('[name="companyImg"]');
-	element.querySelector("[data-company-browse]")?.addEventListener("click", () => {
-		const FilePicker = filePicker();
-		new FilePicker({
-			type: "imagevideo",
-			current: field?.value || COMPANY_IMAGE,
-			callback: (path) => { if (field && path) field.value = path; }
-		}).render({ force: true });
-	});
+	wireCompanyPicture(element);
 }
 
 /**

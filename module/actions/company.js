@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
-import { COMPANY_IMAGE, companyStart } from "../rules/company.js";
+import { companyStart } from "../rules/company.js";
+import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { hexAt, hexTopLeft } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
@@ -21,7 +22,7 @@ export function findCompanyToken(scene) {
 
 /**
  * The picture a Company carries on a Realm: the one chosen when the Realm was
- * made, or the pennant.
+ * made, or the icon a Company carries when nothing was chosen.
  * @param {Scene|null} scene
  * @returns {string}
  */

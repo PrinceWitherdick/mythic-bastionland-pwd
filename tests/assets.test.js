@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGES, CHARGE_CREDITS_FILE, CHARGE_ROOT, chargeCredits, chargeNotice, chargePath, tintCharge } from "../module/rules/heraldry-charges.js";
-import { COMPANY_IMAGE } from "../module/rules/company.js";
+import { COMPANY_ICONS, COMPANY_ICON_CREDITS_FILE, COMPANY_ICON_FILL, COMPANY_ICON_HALO, COMPANY_ICON_ROOT, COMPANY_IMAGE, companyIconCredit, companyIconCredits, companyIconPath, tintCompanyIcon } from "../module/rules/company-icons.js";
 import { INK } from "../module/rules/colour.js";
 import { SHEET_FONTS } from "../module/fonts.js";
 import { realmTextures } from "../module/rules/realm-documents.js";
@@ -18,9 +18,40 @@ const root = join(import.meta.dirname, "..");
 /** Map a served system path back to the file in this repository. */
 const fileFor = (path) => join(root, path.replace(/^systems\/[^/]+\//, ""));
 
-describe("The Company", () => {
-	it("ships the pennant its Token is drawn with", () => {
+describe("Company pictures", () => {
+	const folder = fileFor(COMPANY_ICON_ROOT);
+
+	it("ships a picture for every icon offered, each crediting the drawing it's made from", () => {
+		for (const { key } of COMPANY_ICONS) {
+			const file = fileFor(companyIconPath(key));
+			expect([key, existsSync(file)]).toEqual([key, true]);
+			const svg = readFileSync(file, "utf8");
+			expect(svg).toContain(companyIconCredit(key).page);
+			expect(svg).toContain("CC BY 3.0");
+			// A pair of hyphens inside an XML comment breaks the whole picture.
+			for (const [, comment] of svg.matchAll(/<!--([\s\S]*?)-->/g)) expect(comment).not.toContain("--");
+		}
+	});
+
+	// The build script paints them with these two, and a Company's colour is given
+	// by swapping them: a picture that drifted from either would refuse to recolour.
+	it("paints every one with the two colours a Company's colour swaps", () => {
+		for (const { key } of COMPANY_ICONS) {
+			const svg = readFileSync(fileFor(companyIconPath(key)), "utf8");
+			expect([key, svg.includes(`fill="${COMPANY_ICON_FILL}"`)]).toEqual([key, true]);
+			expect([key, svg.includes(`stroke="${COMPANY_ICON_HALO}"`)]).toEqual([key, true]);
+			expect([key, tintCompanyIcon(svg, "#b0261e").includes('fill="#b0261e"')]).toEqual([key, true]);
+		}
+	});
+
+	it("ships the one the Company carries when nothing is chosen", () => {
 		expect(existsSync(fileFor(COMPANY_IMAGE))).toBe(true);
+	});
+
+	it("ships the credits, and nothing that isn't offered", () => {
+		expect(readFileSync(join(folder, COMPANY_ICON_CREDITS_FILE), "utf8")).toBe(companyIconCredits());
+		const listed = new Set([COMPANY_ICON_CREDITS_FILE, ...COMPANY_ICONS.map(({ key }) => `${key}.svg`)]);
+		expect(readdirSync(folder).filter((name) => !listed.has(name))).toEqual([]);
 	});
 });
 

@@ -46,7 +46,7 @@ import {
 	zoomPlacement
 } from "../rules/heraldry.js";
 import { CHARGES, CHARGE_GROUPS, chargePath, chargePlacement, tintCharge } from "../rules/heraldry-charges.js";
-import { undoRedoKey } from "./ui.js";
+import { markActive, undoRedoKey } from "./ui.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -224,15 +224,6 @@ function paintableShield() {
 		shield = { path, mask: shieldMask(path) };
 	}
 	return shield;
-}
-
-/**
- * @param {HTMLElement} button
- * @param {boolean} active
- */
-function markActive(button, active) {
-	button.classList.toggle("is-active", active);
-	button.setAttribute("aria-pressed", String(active));
 }
 
 /**

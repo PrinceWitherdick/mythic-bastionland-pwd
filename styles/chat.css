@@ -689,6 +689,114 @@
 	opacity: 0.4;
 }
 
+/* The gallery of pictures the Company's Token can carry. */
+.bastionland-dialog .form-group > .bastionland-company-pictures {
+	/* A whole line of its own under the field, the way a hint takes one. */
+	flex: 0 0 100%;
+}
+
+.bastionland-company-pictures {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+	gap: 0.3rem;
+	margin: 0.15rem 0 0.35rem;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-dialog .bastionland-company-picture {
+	display: block;
+	width: 100%;
+	height: auto;
+	min-height: 0;
+	aspect-ratio: 1;
+	margin: 0;
+	padding: 0.2rem;
+	border: 1.5px solid transparent;
+	border-radius: 4px;
+	background: rgb(255 255 255 / 0.35);
+	box-shadow: none;
+}
+
+.bastionland-dialog .bastionland-company-picture:hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-dialog .bastionland-company-picture.is-active {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-company-picture img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: none;
+	object-fit: contain;
+	pointer-events: none;
+}
+
+/* The colours the Company's icon can be carried in. */
+.bastionland-dialog .form-group > .bastionland-company-colours {
+	/* A whole line of its own under the label, the way the gallery takes one. */
+	flex: 0 0 100%;
+}
+
+.bastionland-company-colours {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin: 0.15rem 0 0.35rem;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-dialog .bastionland-company-colour {
+	display: block;
+	width: 1.5rem;
+	height: 1.5rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 1.5px solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-company-colour, var(--bastionland-ink));
+	box-shadow: none;
+}
+
+.bastionland-dialog .bastionland-company-colour:hover {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-dialog .bastionland-company-colour.is-active {
+	border-color: var(--bastionland-ink);
+	box-shadow: inset 0 0 0 2px var(--bastionland-paper);
+}
+
+/* The Referee's own colour: the swatch is the picker, so the browser's box never shows. */
+.bastionland-dialog .bastionland-company-colour--own {
+	position: relative;
+	overflow: hidden;
+	background: conic-gradient(#b0261e, #d9a92e, #2d7433, #1f4f9a, #6b3a8c, #b0261e);
+}
+
+.bastionland-company-colour--own input {
+	position: absolute;
+	inset: -25%;
+	width: 150%;
+	height: 150%;
+	padding: 0;
+	border: none;
+	background: none;
+	opacity: 0;
+	cursor: pointer;
+}
+
+/* A picture of the Referee's own takes no colour from us. */
+.bastionland-company-colour-group.is-off {
+	opacity: 0.4;
+	pointer-events: none;
+}
+
 .bastionland-dialog__problems {
 	margin: 0;
 	padding-left: 1.2rem;

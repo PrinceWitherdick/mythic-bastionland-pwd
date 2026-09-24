@@ -67,6 +67,19 @@ export async function chooseDialog({ title, icon, message, buttons, classes = []
 	});
 }
 
+/** @returns {{width: number, height: number}} The window a floating panel has to be placed inside. */
+export const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
+
+/**
+ * Mark a button as the chosen one of a row, for a reader as well as a looker.
+ * @param {HTMLElement} button
+ * @param {boolean} active
+ */
+export function markActive(button, active) {
+	button.classList.toggle("is-active", active);
+	button.setAttribute("aria-pressed", String(active));
+}
+
 /**
  * The Undo and Redo gestures, with Cmd in place of Ctrl on a Mac.
  * @param {KeyboardEvent} event

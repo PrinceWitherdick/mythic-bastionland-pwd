@@ -12,6 +12,7 @@
     "build": "node scripts/build.js",
     "charges": "node scripts/heraldry-charges.js",
     "goods-icons": "node scripts/goods-icons.js",
+    "company-icons": "node scripts/company-icons.js",
     "macro-icons": "node scripts/macro-icons.js"
   },
   "devDependencies": {

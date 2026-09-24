@@ -1,0 +1,36 @@
+{{!-- The picture the one Company Token carries: the gallery, the colour it's carried in, and a field for any other picture. --}}
+<div class="form-group">
+	<label for="bastionland-company-img">{{localize "bastionland.company.picture"}}</label>
+	<div class="form-fields">
+		<input id="bastionland-company-img" type="text" name="companyImg" value="{{img}}" spellcheck="false" autocomplete="off">
+		<button type="button" data-company-browse aria-label="{{localize "bastionland.company.browse"}}"><i class="fa-solid fa-file-image" inert></i></button>
+	</div>
+	<ul class="bastionland-company-pictures">
+		{{#each pictures}}
+		<li>
+			<button type="button" class="bastionland-company-picture" data-company-picture="{{path}}" data-company-icon="{{key}}" data-tooltip="{{name}}" aria-label="{{name}}" aria-pressed="false">
+				<img src="{{path}}" alt="">
+			</button>
+		</li>
+		{{/each}}
+	</ul>
+	<p class="hint">{{localize "bastionland.company.pictureHint"}}</p>
+</div>
+
+<div class="form-group bastionland-company-colour-group" data-company-colours>
+	<label>{{localize "bastionland.company.colour"}}</label>
+	<ul class="bastionland-company-colours">
+		{{#each colours}}
+		<li>
+			<button type="button" class="bastionland-company-colour" data-company-colour="{{color}}" style="--bastionland-company-colour: {{color}}" data-tooltip="{{label}}" aria-label="{{label}}" aria-pressed="false"></button>
+		</li>
+		{{/each}}
+		<li>
+			<label class="bastionland-company-colour bastionland-company-colour--own" data-tooltip="{{localize "bastionland.company.ownColour"}}">
+				<input type="color" value="{{colour}}" data-company-own-colour aria-label="{{localize "bastionland.company.ownColour"}}">
+			</label>
+		</li>
+	</ul>
+	<input type="hidden" name="companyColour" value="{{colour}}">
+	<p class="hint">{{localize "bastionland.company.colourHint"}}</p>
+</div>
