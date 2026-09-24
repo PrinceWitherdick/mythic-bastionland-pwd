@@ -2838,7 +2838,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	height: 1.8rem;
 	margin-right: 0.3rem;
 	padding: 0 0.3rem;
-	border-radius: 0;
+	border-radius: 999px;
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
 }

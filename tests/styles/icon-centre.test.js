@@ -68,6 +68,22 @@ describe("the badges that centre a glyph or a figure", () => {
 		expect(pixels(declarations["font-size"]) % 1, `font-size of ${selector}`).toBe(0);
 	});
 
+	/*
+	 * A Site's points were numbered in a box that grew with its digits, which
+	 * drew the ring around them as an ellipse. Only the bar's dropdown, which
+	 * has a caret to house, is allowed to stretch.
+	 */
+	it("draws a Site point's number in a true circle", () => {
+		const number = rule("mythic-bastionland.css", ".bastionland-site__number");
+		expect(number.width).toBe(number.height);
+		expect(number["border-radius"]).toBe("50%");
+		expect(number["min-width"]).toBeUndefined();
+		const stretched = [...sheets["mythic-bastionland.css"].matchAll(/^([^\n{]*\.bastionland-site__number) \{/gm)]
+			.map((match) => match[1])
+			.filter((selector) => selector !== ".bastionland-site__number");
+		for (const selector of stretched) expect(selector).toContain("select.bastionland-site__number");
+	});
+
 	it("keeps the round icon buttons square, with room around the glyph", () => {
 		const icon = rule("mythic-bastionland.css", ".bastionland-icon");
 		expect(icon.width).toBe(icon.height);
