@@ -29,7 +29,6 @@ import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
-import { watchPromptLines } from "./prompt-breaks.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
 
@@ -245,7 +244,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		placeTabRail(this.element, ".bastionland-header");
-		watchPromptLines(this.element);
 		this.#fillFromBook();
 	}
 

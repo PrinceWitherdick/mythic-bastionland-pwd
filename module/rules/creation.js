@@ -48,44 +48,47 @@ export function knightTypeFromName(name) {
 	return String(name ?? "").trim().replace(/^the\s+/i, "").replace(/\s+knight$/i, "").trim();
 }
 
-/** Marks the prompts line so the Seer page can centre it. */
+/** Marks the prompts line, as fills that still printed it wrote it. */
 const PROMPTS_CLASS = ' class="bastionland-seer__prompts"';
 
 /** The Seer's stat line, as fills before the scores became data opened with. */
 const STAT_LINE = /^<p><strong>[^<]*<\/strong><\/p>/;
 
 /**
- * The prompts, each "Label: value" kept whole on one line, with a "~" between
- * them that the Seer page hides wherever the line wraps (see prompt-breaks.js),
- * so no line starts or ends with one.
- * @param {{label: string, value: string}[]} prompts
- * @param {"plain"|"whole"} [older] As older fills wrote them: plain text, or each prompt whole with a trailing "~".
- * @returns {string} HTML
+ * The prompts along the foot of the Seer's page, as fills that printed them on
+ * the Seer page wrote them. They're a Spark Table for the Referee rather than
+ * anything the Knight knows, so the page no longer shows them; this is kept only
+ * to recognise the fills that did, and replace them.
+ * @param {{lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
+ * @param {"plain"|"whole"} [older] Older still: plain text, or each prompt whole with a trailing "~".
+ * @returns {string} HTML, or "" for a Seer whose prompts weren't read.
  */
-function promptsHTML(prompts, older) {
+function withPrompts(seer, older) {
+	const prompts = (seer?.prompts ?? []).filter((prompt) => prompt?.label && prompt?.value);
+	if (!prompts.length) return "";
 	const pairs = prompts.map(({ label, value }) => `<strong>${escapeHTML(label)}</strong>: ${escapeHTML(value)}`);
-	if (older === "plain") return pairs.join(" ~ ");
-	if (older === "whole") return pairs.map((pair, i) => `<span class="bastionland-seer__prompt">${pair}${i < pairs.length - 1 ? " ~" : ""}</span>`).join(" ");
-	return pairs.map((pair) => `<span class="bastionland-seer__prompt">${pair}</span>`)
-		.join('<span class="bastionland-seer__sep"> <span>~</span> </span>');
+	/** How each fill wrote the line, by how old it is. */
+	const written = {
+		plain: () => pairs.join(" ~ "),
+		whole: () => pairs.map((pair, at) => `<span class="bastionland-seer__prompt">${pair}${at < pairs.length - 1 ? " ~" : ""}</span>`).join(" "),
+		current: () => pairs.map((pair) => `<span class="bastionland-seer__prompt">${pair}</span>`)
+			.join('<span class="bastionland-seer__sep"> <span>~</span> </span>')
+	};
+	const line = (written[older] ?? written.current)();
+	return `${seerInfo(seer)}<p${PROMPTS_CLASS}>${line}</p>`;
 }
 
 /**
- * What the book says of a Seer, for the Seer page of their Knight's sheet:
- * each trait as a bullet, then the prompts along the foot of the page. Their
- * scores aren't printed here: they're kept as data, by seerBook, and drawn
- * as boxes that roll their Saves.
- * @param {{lines?: string[]|null, prompts?: {label: string, value: string}[]|null}|null} seer From the art index.
- * @param {"plain"|"whole"} [older] The prompts as older fills wrote them, to recognise those.
+ * What the book says of a Seer, for the Seer page of their Knight's sheet: each
+ * trait as a bullet. Their scores aren't printed here: they're kept as data, by
+ * seerBook, and drawn as boxes that roll their Saves. Nor are the prompts along
+ * the foot of their page, which are the Referee's Spark Table.
+ * @param {{lines?: string[]|null}|null} seer From the art index.
  * @returns {string} HTML, or "" when Import PDF couldn't read their text.
  */
-export function seerInfo(seer, older) {
+export function seerInfo(seer) {
 	const lines = (seer?.lines ?? []).filter(Boolean);
-	const prompts = (seer?.prompts ?? []).filter((prompt) => prompt?.label && prompt?.value);
-	return [
-		lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : "",
-		prompts.length ? `<p${PROMPTS_CLASS}>${promptsHTML(prompts, older)}</p>` : ""
-	].join("");
+	return lines.length ? `<ul>${lines.map((line) => `<li>${escapeHTML(line)}</li>`).join("")}</ul>` : "";
 }
 
 /**
@@ -147,12 +150,12 @@ export function seerAutoFill(index, knight) {
 		update["system.seerImg"] = seer.path;
 	}
 	const info = seerInfo(seer);
-	// Fills before the prompts were centred wrote them without their class, and fills before the
-	// "~" came out of wrapped lines wrote them as plain text or with each prompt whole; imports
-	// before the prompts were read left them out. Every one is still the book's own text.
+	// Fills made while the page still printed the prompts end with them: centred, or, older, without
+	// their class, as plain text, or with each prompt whole. Every one is still the book's own text,
+	// so the page takes the prompts back off them here.
 	const asBookGave = (entry) => {
-		const plain = seerInfo(entry, "plain");
-		return [seerInfo(entry), seerInfo(entry, "whole"), plain, plain.replace(PROMPTS_CLASS, ""), seerInfo({ ...entry, prompts: null })];
+		const plain = withPrompts(entry, "plain");
+		return [seerInfo(entry), withPrompts(entry), withPrompts(entry, "whole"), plain, plain.replace(PROMPTS_CLASS, "")];
 	};
 	// Fills before the scores became data opened with the Seer's stat line, which is dropped here
 	// so those are known for the book's text too, and filled again without it.

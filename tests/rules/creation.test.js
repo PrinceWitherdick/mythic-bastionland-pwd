@@ -139,9 +139,10 @@ describe("seerInfo", () => {
 		expect(seerInfo({ stats: null, lines: ["Speaks only in riddles."] })).toBe("<ul><li>Speaks only in riddles.</li></ul>");
 	});
 
-	it("ends with the prompts along the foot of the page, as the book sets them", () => {
+	// They are the Referee's Spark Table, not anything the Knight knows.
+	it("leaves out the prompts along the foot of the page", () => {
 		const prompts = [{ label: "Person", value: "Glazier" }, { label: "Theme", value: "<Glass>" }];
-		expect(seerInfo({ ...glassSeer, prompts })).toBe(`${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span><span class="bastionland-seer__sep"> <span>~</span> </span><span class="bastionland-seer__prompt"><strong>Theme</strong>: &lt;Glass&gt;</span></p>`);
+		expect(seerInfo({ ...glassSeer, prompts })).toBe(glassInfo);
 	});
 
 	it("is blank when the text wasn't read", () => {
@@ -250,13 +251,15 @@ describe("seerAutoFill", () => {
 		});
 	});
 
-	// A later import can read prompts the one before it missed, and that text is
-	// still the book's own rather than a hand's, so it is filled in.
-	it("adds the prompts to what an earlier import filled in", () => {
-		const prompts = [{ label: "Person", value: "Glazier" }];
+	// Fills made while the page still printed the prompts are the book's own text too,
+	// so the prompts come back off them.
+	it("takes the prompts off a fill that ends with them", () => {
+		const prompts = [{ label: "Person", value: "Glazier" }, { label: "Theme", value: "<Glass>" }];
 		const reimported = { knights: [lantern], seers: [{ ...glassSeer, prompts }] };
-		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: glassInfo })).toEqual({
-			"system.seerInfo": `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span></p>`,
+		const older = `${glassInfo}<p class="bastionland-seer__prompts"><span class="bastionland-seer__prompt"><strong>Person</strong>: Glazier</span>`
+			+ '<span class="bastionland-seer__sep"> <span>~</span> </span><span class="bastionland-seer__prompt"><strong>Theme</strong>: &lt;Glass&gt;</span></p>';
+		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: older })).toEqual({
+			"system.seerInfo": glassInfo,
 			"system.seerBook": glassBook
 		});
 	});
@@ -278,7 +281,7 @@ describe("seerAutoFill", () => {
 		const older = `<p><strong>VIG 8, CLA 13, SPI 16, 3GD</strong></p>${glassInfo}`
 			+ '<p class="bastionland-seer__prompts"><strong>Person</strong>: Glazier ~ <strong>Theme</strong>: &lt;Glass&gt;</p>';
 		expect(seerAutoFill(reimported, { seer: "The Glass Seer", seerImg: glassSeer.path, seerInfo: older })).toEqual({
-			"system.seerInfo": seerInfo({ ...glassSeer, prompts }),
+			"system.seerInfo": glassInfo,
 			"system.seerBook": glassBook
 		});
 	});

@@ -1991,24 +1991,6 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	margin-left: auto;
 }
 
-.bastionland-seer__prompts {
-	text-align: center;
-}
-
-/* Each "Label: value" stays on one line, and where a line wraps between two
-   the "~" goes (prompt-breaks.js), so no line starts or ends with one. */
-.bastionland-seer__prompt {
-	white-space: nowrap;
-}
-
-.bastionland-seer__sep.is-break {
-	display: block;
-}
-
-.bastionland-seer__sep.is-break > * {
-	display: none;
-}
-
 .bastionland-seer__book > :first-child {
 	margin-top: 0;
 }
