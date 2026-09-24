@@ -1595,7 +1595,8 @@
         "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
         "spearwall": "Enemies of a spearwall can’t Attack on the turn they charge it.",
         "hefty": "Only one Hefty item can be wielded at once.",
-        "long": "A Long weapon needs both hands, so it can’t be wielded with anything else."
+        "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
+        "hands": "A weapon or shield fills a hand, so only two can be wielded at once."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",

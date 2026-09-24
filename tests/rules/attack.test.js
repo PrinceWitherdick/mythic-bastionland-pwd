@@ -66,6 +66,20 @@ describe("checkWielding", () => {
 		expect(heldAs(poleaxe, true)).toEqual({ hefty: false, long: true });
 	});
 
+	it("holds a Knight to two hands, whatever the items are", () => {
+		const dagger = {};
+		expect(checkWielding([mace, shield, dagger], { hands: true }).refusal).toBe("hands");
+		expect(checkWielding([dagger, dagger, dagger], { hands: true }).refusal).toBe("hands");
+		expect(checkWielding([mace, dagger], { hands: true }).refusal).toBeNull();
+		// A creature's listed attacks aren't held in hands at all.
+		expect(checkWielding([mace, shield, dagger]).refusal).toBeNull();
+	});
+
+	it("names the Hefty or Long rule before counting hands", () => {
+		expect(checkWielding([mace, { hefty: true }, shield], { hands: true }).refusal).toBe("hefty");
+		expect(checkWielding([poleaxe, shield, {}], { hands: true }).refusal).toBe("long");
+	});
+
 	it("refuses an Attack on the turn its attacker charged a spearwall", () => {
 		expect(checkWielding([mace], { spearwall: true }).refusal).toBe("spearwall");
 		expect(checkWielding([mace], { exhausted: true, moved: true, spearwall: true }).refusal).toBe("exhausted");
@@ -109,6 +123,10 @@ describe("defaultWielded", () => {
 		const lance = { damage: "d10", long: true, heftyMounted: true };
 		expect(defaultWielded([lance, shield], { hands: true })).toEqual([0]);
 		expect(defaultWielded([lance, shield], { hands: true, mounted: true })).toEqual([0, 1]);
+	});
+
+	it("ticks only the two hardest-hitting of three one-handed items", () => {
+		expect(defaultWielded([mace, shield, dagger], { hands: true })).toEqual([0, 2]);
 	});
 
 	it("ticks every attack of a creature whose hands aren't counted", () => {

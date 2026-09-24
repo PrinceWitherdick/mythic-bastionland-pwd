@@ -83,11 +83,14 @@ export function buildAttackPool({ sources = [], bonus = [], impaired = false }) 
 /** Why a chosen weapon sits out an Attack: Slow after moving (p12), or purely ranged when engaged in melee (p10). */
 export const SET_ASIDE_REASONS = Object.freeze(["slow", "ranged"]);
 
+/** A Knight has two hands, and every weapon or shield fills at least one (p12). */
+export const HANDS = 2;
+
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
  * a spearwall (p10), or more than two hands can hold (p12).
  */
-export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "hefty", "long"]);
+export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "hefty", "long", "hands"]);
 
 /**
  * @typedef {object} WieldedItem A weapon or shield chosen for an Attack.
@@ -141,6 +144,8 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	else if (spearwall) refusal = "spearwall";
 	else if (hands && items.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
 	else if (hands && items.length > 1 && items.some(isLong)) refusal = "long";
+	// Anything else still takes a hand each, and there are only two.
+	else if (hands && items.length > HANDS) refusal = "hands";
 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
 }
@@ -156,8 +161,8 @@ const damagePotential = (item) => parseDice(item?.damage).reduce((sum, faces) =>
 /**
  * Which of the items offered to tick when the Attack dialog opens: as many as
  * the hands allow, the hardest-hitting first. A Knight holding a Long weapon
- * needs both hands for it (p12), so only that weapon opens ticked, and of two
- * Hefty items only the better one does.
+ * needs both hands for it (p12), so only that weapon opens ticked, of two
+ * Hefty items only the better one does, and never more than two items in all.
  * @param {WieldedItem[]} items Each also carrying its `damage` notation.
  * @param {object} [situation]
  * @param {boolean} [situation.mounted] On a steed, so a lance counts as Hefty.
