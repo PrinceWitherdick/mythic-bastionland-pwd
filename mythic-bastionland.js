@@ -8,6 +8,7 @@ import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { registerScopeSetting } from "./module/actions/scope.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
@@ -197,6 +198,9 @@ Hooks.once("init", () => {
 
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
+
+	// The Scope the group settled on, and the plan a Chronicle keeps (p6).
+	registerScopeSetting();
 
 	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
 	registerLandmarkSettings();

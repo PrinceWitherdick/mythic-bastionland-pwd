@@ -10,6 +10,7 @@ import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMembe
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
+import { SCOPE_HOOK, endSession, makeKnightAhead, scopeView, setScope, setScopePlan } from "../actions/scope.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
@@ -134,6 +135,9 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			makeWholeCast: GmToolkitSheet.#onMakeWholeCast,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
+			setScope: (_event, target) => setScope(target.dataset.scope),
+			endSession: () => endSession(),
+			knightAhead: () => makeKnightAhead(),
 			...TIME_ACTIONS,
 			landmarkOffer: GmToolkitSheet.#onLandmarkOffer,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
@@ -584,6 +588,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const waiting = data ? resolvedMyths(data.realm, data.notes) : [];
 		return {
 			...timeContext(),
+			// How long the game is expected to run, and what a Chronicle's plan puts at this session's end (p6).
+			scope: scopeView(),
 			crisisRolls: crisisRollsDue(worldDomains(), getCalendar()).map((domain) => ({ id: domain.id, name: domain.name })),
 			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) }))
 		};
@@ -666,6 +672,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				onCastChange(actor, changes);
 			})],
 			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))],
+			[SCOPE_HOOK, Hooks.on(SCOPE_HOOK, () => this.#redraw("time"))],
 			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))]
 		];
 	}
@@ -793,6 +800,10 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			case "age":
 			case "day":
 				await setCalendarByHand({ [field]: target.value });
+				return;
+			// Which part of the plan a box sets is written on the box; setScopePlan knows the parts.
+			case "scopePlan":
+				await setScopePlan({ [target.dataset.part]: target.value });
 				return;
 			case "season":
 			case "phase":
