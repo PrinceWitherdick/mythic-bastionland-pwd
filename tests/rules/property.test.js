@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pointsBelow, tableItemId } from "../../module/rules/knight-tables.js";
-import { companionActorData, knightCompanions, propertyGear, propertyItems, retypedProperty } from "../../module/rules/property.js";
+import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, propertyGear, propertyItems, retypedProperty } from "../../module/rules/property.js";
 
 // Lines here are invented so no book text lives in the repository.
 
@@ -137,5 +137,51 @@ describe("knightCompanions", () => {
 		const items = [gear("a", "Tame owl (VIG 5, CLA 10, SPI 5, 4GD)"), gear("b", "Grey mare (VIG 10, CLA 8, SPI 5, 3GD)", "<p>Mine now</p>")];
 		expect(knightCompanions(items, { steedOnly: true })).toEqual([]);
 		expect(knightCompanions(items).map(({ itemId }) => itemId)).toEqual(["a"]);
+	});
+});
+
+describe("ownerOf", () => {
+	const knight = (id, steed) => ({ type: "knight", id, uuid: `Actor.${id}`, system: { steed } });
+
+	it("finds the Knight who rides a steed", () => {
+		const bardolf = knight("b", "Actor.s");
+		expect(ownerOf([knight("a", null), { type: "npc", uuid: "Actor.s", system: {} }, bardolf], { uuid: "Actor.s" })).toBe(bardolf);
+	});
+
+	it("finds the Knight a companion was made for", () => {
+		const bardolf = knight("b", null);
+		expect(ownerOf([knight("a", null), bardolf], { uuid: "Actor.hawk", companionOf: "b" })).toBe(bardolf);
+	});
+
+	it("asks who rides it before whose companion it is", () => {
+		const rider = knight("r", "Actor.s");
+		expect(ownerOf([knight("m", null), rider], { uuid: "Actor.s", companionOf: "m" })).toBe(rider);
+	});
+
+	it("finds nobody for an NPC of its own, or one whose Knight is gone", () => {
+		expect(ownerOf([knight("b", "Actor.s")], { uuid: "Actor.other" })).toBeNull();
+		expect(ownerOf([knight("b", "Actor.s")], { uuid: "Actor.hawk", companionOf: "gone" })).toBeNull();
+		expect(ownerOf([knight("b", "Actor.s")], {})).toBeNull();
+	});
+
+	it("passes over an NPC that somehow points at it", () => {
+		expect(ownerOf([{ type: "npc", id: "n", uuid: "Actor.n", system: { steed: "Actor.s" } }], { uuid: "Actor.s", companionOf: "n" })).toBeNull();
+	});
+});
+
+describe("nameWithoutOwner", () => {
+	it("takes the Knight's name back off a companion that carried it", () => {
+		expect(nameWithoutOwner("Majestic charger (Sir Bardolf)", "Sir Bardolf")).toBe("Majestic charger");
+		expect(nameWithoutOwner("Tame owl (Sir Bardolf)", "Sir Bardolf")).toBe("Tame owl");
+	});
+
+	it("leaves a name of the companion's own alone", () => {
+		expect(nameWithoutOwner("Bucephalus", "Sir Bardolf")).toBe("Bucephalus");
+		expect(nameWithoutOwner("Charger (Sir Kay)", "Sir Bardolf")).toBe("Charger (Sir Kay)");
+		expect(nameWithoutOwner("Charger", undefined)).toBe("Charger");
+	});
+
+	it("keeps a name with nothing left under the Knight's", () => {
+		expect(nameWithoutOwner(" (Sir Bardolf)", "Sir Bardolf")).toBe(" (Sir Bardolf)");
 	});
 });

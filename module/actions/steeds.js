@@ -1,6 +1,6 @@
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
-import { GALLOP_ROLL, bookSteeds, gallopBlocked, steedStatLine, vigAfterGallop } from "../rules/steeds.js";
+import { BREED_FLAG, GALLOP_ROLL, bookSteeds, gallopBlocked, steedBreedShown, steedStatLine, vigAfterGallop } from "../rules/steeds.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { chooseCompany } from "./time.js";
@@ -111,11 +111,17 @@ export async function takeSteed(knight) {
 		? { type: "npc", name: t("steed.label"), items: [{ type: "weapon", name: t("steed.trample"), system: { trample: true, equipped: true } }] }
 		: game.actors.fromCompendium(choice.steed);
 	// A named steed keeps the book steed it was, to show under its name.
-	if (!blank) foundry.utils.setProperty(data, `flags.${SYSTEM_ID}.breed`, data.name);
+	const breed = blank ? "" : data.name;
+	if (breed) foundry.utils.setProperty(data, `flags.${SYSTEM_ID}.${BREED_FLAG}`, breed);
+	// Its own name only: whose steed it is, its sheet says. Named by its Knight,
+	// what the book called it becomes the line under the name.
+	const name = choice.name || data.name;
+	const epithet = data.system?.epithet || steedBreedShown(name, breed);
 	// Players who can see the Knight can see their steed. Only a GM may hand ownership to others.
 	const steed = await Actor.implementation.create({
 		...data,
-		name: choice.name || t("steed.name", { steed: data.name, knight: knight.name }),
+		name,
+		...(epithet ? { system: { ...data.system, epithet } } : {}),
 		folder: knight.folder?.id ?? null,
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
 	});
@@ -170,4 +176,19 @@ export async function gallop() {
 		]
 	}));
 	return postCard(null, "report", { title: t("steed.gallop.title"), tagline: t("steed.gallop.tagline"), entries, hint: t("steed.gallop.hint") }, { rolls });
+}
+
+/**
+ * A steed given a name of its Knight's own — at the window, by the pencil on
+ * the Knight's sheet, or on its own sheet — keeps what the book called it as
+ * the line under the name, unless it has a line of its own already, or the
+ * new name says what it is.
+ */
+export function registerSteedNames() {
+	Hooks.on("preUpdateActor", (actor, changes) => {
+		if (typeof changes.name !== "string" || foundry.utils.hasProperty(changes, "system.epithet")) return;
+		if (!("epithet" in actor.system) || actor.system.epithet) return;
+		const epithet = steedBreedShown(changes.name, actor.getFlag(SYSTEM_ID, BREED_FLAG));
+		if (epithet) foundry.utils.setProperty(changes, "system.epithet", epithet);
+	});
 }

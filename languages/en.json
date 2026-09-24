@@ -600,7 +600,6 @@
       "label": "Steed",
       "empty": "Take a steed, or drag an NPC from the Actors tab here to ride it. Its trample joins a mounted charge.",
       "take": "Take a Steed",
-      "name": "{steed} ({knight})",
       "nameLabel": "Name",
       "namePlaceholder": "Leave empty to name it later",
       "rename": "Name your steed",
@@ -1832,6 +1831,7 @@
     "item": {
       "description": "Description",
       "retyped": "Read the Property of {count} Knights into weapons, armour and steeds, so their Armour counts and their steeds can charge.",
+      "companionsRenamed": "{count} steeds and companions were named afresh: their own sheet says who owns them, and what the book called a steed sits under its name.",
       "damage": "Damage dice",
       "damageHint": "For example d8 or 2d6.",
       "hefty": "Hefty",
@@ -1879,6 +1879,8 @@
     "npc": {
       "name": "Name",
       "epithet": "Epithet",
+      "ownedBy": "Owned by",
+      "openOwner": "Open their sheet",
       "armourNote": "What their Armour is",
       "scale": "Scale",
       "scales": {

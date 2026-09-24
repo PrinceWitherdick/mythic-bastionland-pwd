@@ -25,7 +25,7 @@ import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires } from "../rules/squires.js";
-import { steedBreedShown } from "../rules/steeds.js";
+import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
@@ -170,7 +170,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			steed: steed && {
 				name: steed.name,
 				img: steed.img,
-				breed: steedBreedShown(steed.name, steed.getFlag(SYSTEM_ID, "breed")),
+				breed: steedBreedShown(steed.name, steed.getFlag(SYSTEM_ID, BREED_FLAG)),
 				renamable: steed.isOwner,
 				trample: steed.items
 					.filter((item) => item.type === "weapon" && item.system.trample)
@@ -324,9 +324,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		stampRailSide(this.element, position);
 	}
 
-	/** The hooks that redraw the sheet when its steed, Squire or successor changes. */
-	#linkHooks = [];
-
 	/**
 	 * Keep the steed, Squire and successor shown here in step with their own
 	 * sheets, so renaming the steed there renames it here. A hook rather than
@@ -339,14 +336,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			const system = this.actor.system;
 			if (LINKED_ACTORS.some(({ key }) => system[key] === actor.uuid)) this.render();
 		};
-		this.#linkHooks = ["updateActor", "deleteActor"].map((hook) => [hook, Hooks.on(hook, redraw)]);
-	}
-
-	/** @override */
-	_onClose(options) {
-		super._onClose(options);
-		for (const [hook, id] of this.#linkHooks) Hooks.off(hook, id);
-		this.#linkHooks = [];
+		this._watchHooks(["updateActor", "deleteActor"], redraw);
 	}
 
 	/**

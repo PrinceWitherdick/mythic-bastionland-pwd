@@ -327,3 +327,42 @@ export function knightCompanions(items, { steedOnly = false } = {}) {
 	}
 	return found;
 }
+
+/**
+ * Whose companion an NPC is: the Knight who rides it, or the one it was made
+ * for. A companion's own sheet names them, so its name needn't carry them.
+ * Being ridden comes first, as that is the link the Knight's sheet keeps.
+ * @template {{type: string, id?: string, uuid?: string, system?: {steed?: string}}} T
+ * @param {Iterable<T>} actors Every actor in the world.
+ * @param {object} companion
+ * @param {string} [companion.uuid] The companion's uuid, which their Knight rides.
+ * @param {string} [companion.companionOf] The id in its companion flag, if it has one.
+ * @returns {T|null}
+ */
+export function ownerOf(actors, { uuid, companionOf } = {}) {
+	if (!uuid && !companionOf) return null;
+	// One pass, since the callers hand this every actor in the world and one of
+	// them asks it for each of them in turn.
+	let made = null;
+	for (const actor of actors) {
+		if (actor.type !== "knight") continue;
+		if (uuid && actor.system?.steed === uuid) return actor;
+		if (companionOf && !made && actor.id === companionOf) made = actor;
+	}
+	return made;
+}
+
+/**
+ * The name a companion once carried its Knight in, without them: companions
+ * used to be called "Charger (Sir Bardolf)", where their sheet now says who
+ * owns them.
+ * @param {string} name The companion's name.
+ * @param {string} [owner] The name of the Knight it belongs to.
+ * @returns {string} The name alone, or the name unchanged if it never held theirs.
+ */
+export function nameWithoutOwner(name, owner) {
+	if (!owner) return name;
+	const suffix = ` (${owner})`;
+	if (!name.endsWith(suffix)) return name;
+	return name.slice(0, -suffix.length).trim() || name;
+}

@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
-import { companionActorData, knightCompanions, retypedProperty } from "../rules/property.js";
+import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, retypedProperty } from "../rules/property.js";
+import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -7,6 +8,14 @@ import { SYSTEM_ID } from "../system-id.js";
  * armour, and makes their steeds NPCs they ride.
  */
 export const KNIGHT_PROPERTY_STEP = "knightPropertyAndSteeds";
+
+/**
+ * The world setup step that takes their Knight's name back off the companions
+ * made when a steed was called "Charger (Sir Bardolf)". Their own sheet names
+ * their owner now, so the name needn't, and what the book called a steed goes
+ * under the name instead.
+ */
+export const COMPANION_NAMES_STEP = "companionNames";
 
 /** The flag on an NPC made from a Knight's gear: the Knight's id. */
 export const COMPANION_FLAG = "companionOf";
@@ -30,8 +39,7 @@ export const COMPANION_FLAG = "companionOf";
  * made and the steed is set in the same update as everything else: leave the
  * entries in `gone` out, and put `steed` in `system.steed`.
  * @param {{type: string, name: string, system?: object}[]} items The Knight's items, saved or still item data.
- * @param {object} knight
- * @param {string} knight.name
+ * @param {object} knight Where the NPCs belong; nothing when the Knight isn't made yet.
  * @param {string|null} [knight.folder] The id of the Knight's folder.
  * @param {object} [knight.ownership] The Knight's ownership, which a GM hands on.
  * @param {string} [knight.id] The Knight's id, when already made. Otherwise mark the NPCs with `markCompanions`.
@@ -39,7 +47,7 @@ export const COMPANION_FLAG = "companionOf";
  * @param {boolean} [options.steedOnly] Only the steed.
  * @returns {Promise<MadeCompanions>}
  */
-export async function makeCompanions(items, { name, folder = null, ownership, id }, { steedOnly = false } = {}) {
+export async function makeCompanions(items, { folder = null, ownership, id } = {}, { steedOnly = false } = {}) {
 	const none = { made: [], steed: null, gone: new Set() };
 	const lines = items.map((item, index) => ({ id: index, type: item.type, name: item.name, system: item.system ?? {} }));
 	const carried = knightCompanions(lines, { steedOnly });
@@ -51,12 +59,19 @@ export async function makeCompanions(items, { name, folder = null, ownership, id
 
 	// A player who makes an actor owns it already; only a GM hands it on.
 	const handed = game.user.isGM && ownership ? foundry.utils.deepClone(ownership) : undefined;
-	const made = await Actor.implementation.create(carried.map(({ companion }) => ({
+	const made = await Actor.implementation.create(carried.map(({ companion, steed }) => ({
 		...companionActorData(companion, { trampleName: t("steed.trample") }),
-		name: `${companion.name} (${name})`,
+		// Its own name only: whose companion it is, its sheet says.
+		name: companion.name,
 		folder,
 		...(handed ? { ownership: handed } : {}),
-		...(id ? { flags: { [SYSTEM_ID]: { [COMPANION_FLAG]: id } } } : {})
+		flags: {
+			[SYSTEM_ID]: {
+				// What the book called the steed, kept under a name its Knight gives it later.
+				...(steed ? { [BREED_FLAG]: companion.name } : {}),
+				...(id ? { [COMPANION_FLAG]: id } : {})
+			}
+		}
 	})));
 	return {
 		made,
@@ -67,9 +82,9 @@ export async function makeCompanions(items, { name, folder = null, ownership, id
 
 /**
  * @param {Actor} actor A Knight already made.
- * @returns {{name: string, folder: string|null, ownership: object, id: string}} Who their companions belong to.
+ * @returns {{folder: string|null, ownership: object, id: string}} Where their companions belong.
  */
-export const knightOwner = (actor) => ({ name: actor.name, folder: actor.folder?.id ?? null, ownership: actor.ownership, id: actor.id });
+export const knightOwner = (actor) => ({ folder: actor.folder?.id ?? null, ownership: actor.ownership, id: actor.id });
 
 /**
  * Mark NPCs made before their Knight was as that Knight's.
@@ -136,4 +151,36 @@ export async function retypeKnightProperty() {
 	})));
 	const count = changed.filter(Boolean).length;
 	if (count) ui.notifications.info(t("item.retyped", { count }));
+}
+
+/**
+ * A world setup step. A Knight's steed and other companions used to carry the
+ * Knight's name in brackets, where their own sheet now says who owns them, so
+ * take it back off those whose name still ends in it, and put what the book
+ * called a steed renamed by its Knight under the name instead. One renamed
+ * since keeps the name it was given, as does one that already says what it is,
+ * and one this user can't write is left to a GM.
+ * @returns {Promise<void>}
+ */
+export async function dropOwnerFromCompanionNames() {
+	const actors = game.actors.contents;
+	const knights = actors.filter((actor) => actor.type === "knight");
+	const changes = [];
+	for (const actor of actors) {
+		// Only actors of this world, which can be written in one go.
+		if (actor.type === "knight" || actor.pack || !actor.canUserModify(game.user, "update")) continue;
+		const owner = ownerOf(knights, { uuid: actor.uuid, companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) });
+		if (!owner) continue;
+		const name = nameWithoutOwner(actor.name, owner.name);
+		const was = actor.system.epithet;
+		const epithet = "epithet" in actor.system && !was ? steedBreedShown(name, actor.getFlag(SYSTEM_ID, BREED_FLAG)) : was;
+		const change = {
+			...(name === actor.name ? {} : { name }),
+			...(epithet && epithet !== was ? { "system.epithet": epithet } : {})
+		};
+		if (Object.keys(change).length) changes.push({ _id: actor.id, ...change });
+	}
+	if (!changes.length) return;
+	await Actor.implementation.updateDocuments(changes);
+	ui.notifications.info(t("item.companionsRenamed", { count: changes.length }));
 }

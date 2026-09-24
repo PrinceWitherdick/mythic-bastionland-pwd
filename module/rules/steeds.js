@@ -10,6 +10,9 @@ import { VIRTUES } from "./virtues.js";
 /** A Gallop costs the steed this die of VIG (p18). */
 export const GALLOP_ROLL = "1d6";
 
+/** The flag on a steed taken from the book: what the book called it, kept under a name of its own. */
+export const BREED_FLAG = "breed";
+
 /**
  * @template {{name: string}} T
  * @param {T[]} beasts The book's beasts, as Import PDF read them from p12.
@@ -72,3 +75,4 @@ export function steedBreedShown(name, breed) {
 	if (!breed) return "";
 	return name.toLowerCase().includes(breed.toLowerCase()) ? "" : breed;
 }
+

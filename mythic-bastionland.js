@@ -12,7 +12,8 @@ import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actio
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
-import { KNIGHT_PROPERTY_STEP, retypeKnightProperty } from "./module/actions/property.js";
+import { registerSteedNames } from "./module/actions/steeds.js";
+import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, dropOwnerFromCompanionNames, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
@@ -279,6 +280,9 @@ Hooks.once("init", () => {
 	// Weapons, armour, gear, beasts and structures get a picture their name calls for.
 	registerGoodsPictures();
 
+	// A steed renamed by its Knight keeps what the book called it under the name.
+	registerSteedNames();
+
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
 
@@ -352,6 +356,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	// Knights made before their Property was read into weapons and armour.
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },
+	// After it, so the companions it makes are named as the rest: their own sheet says whose they are.
+	{ key: COMPANION_NAMES_STEP, run: dropOwnerFromCompanionNames },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	{ key: "realmSheetPictures", run: moveRealmPictures },

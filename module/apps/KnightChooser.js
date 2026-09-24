@@ -305,7 +305,7 @@ export class KnightChooser extends BastionlandChooser {
 		const actor = this.actor;
 		if (!actor) {
 			// The steed and other companions are made first, so the Knight is made riding it in one go.
-			const { made, steed, gone } = await makeCompanions(items, { name });
+			const { made, steed, gone } = await makeCompanions(items);
 			if (steed) update["system.steed"] = steed;
 			const kept = items.filter((item) => !gone.has(item));
 			const created = await Actor.implementation.create({ name, type: "knight", ...foundry.utils.expandObject(update), items: kept });
@@ -330,7 +330,7 @@ export class KnightChooser extends BastionlandChooser {
 		// and those made from the old gear go with it.
 		const replaced = actor.items.filter((item) => REPLACED_TYPES.includes(item.type)).map((item) => item.id);
 		const cleared = await clearCompanions(actor);
-		const { steed, gone } = await makeCompanions(items, { ...knightOwner(actor), name });
+		const { steed, gone } = await makeCompanions(items, knightOwner(actor));
 		if (steed) update["system.steed"] = steed;
 		else if (cleared.includes(actor.system.steed)) update["system.steed"] = "";
 		await actor.update(update);

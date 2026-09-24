@@ -1,10 +1,12 @@
 import { pasteStatBlock } from "../actions/npc.js";
+import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { openNpcChooser } from "../apps/NpcChooser.js";
 import { t } from "../chat/cards.js";
 import { FEATS, NPC_SCALES } from "../config.js";
-import { templatePath } from "../system-id.js";
+import { ownerOf } from "../rules/property.js";
+import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 
 /** Item types the sheet offers to add, in sheet order. It lists every item the NPC has. */
@@ -25,6 +27,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			setScale: NpcSheet.#onSetScale,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
+			openOwner: NpcSheet.#onOpenOwner,
 			makeStructure: NpcSheet.#onMakeStructure
 		}
 	};
@@ -58,11 +61,40 @@ export class NpcSheet extends BastionlandActorSheet {
 					hint: t(`npc.warband.${key}.hint`)
 				}))
 				: [],
+			ownedBy: this.#owner(),
 			leader: system.warband && system.leader ? t("npc.leader.label", { name: fromUuidSync(system.leader)?.name ?? t("npc.leader.missing") }) : null,
 			featChoices: FEATS.map(({ key }) => ({ key, label: t(`feats.${key}.name`), active: system.feats[key] })),
 			addTypes: ADDED_TYPES.map((type) => ({ type, label: game.i18n.localize(`TYPES.Item.${type}`) })),
 			items: await this._prepareItems()
 		});
+	}
+
+	/** The uuid of the Knight this belonged to when the sheet was last drawn. */
+	#ownerUuid = null;
+
+	/**
+	 * @returns {{name: string, uuid: string}|null} The Knight whose steed or
+	 *   other companion this is, so the sheet names them instead of its name
+	 *   having to carry them.
+	 */
+	#owner() {
+		const owner = ownerOf(game.actors, { uuid: this.actor.uuid, companionOf: this.actor.getFlag(SYSTEM_ID, COMPANION_FLAG) });
+		this.#ownerUuid = owner?.uuid ?? null;
+		return owner ? { name: owner.name, uuid: owner.uuid } : null;
+	}
+
+	/**
+	 * Keep the owner named here in step: a Knight renamed, or one who takes
+	 * this companion or lets it go, redraws the sheet.
+	 * @override
+	 */
+	async _onFirstRender(context, options) {
+		await super._onFirstRender(context, options);
+		const redraw = (actor) => {
+			if (actor.type !== "knight") return;
+			if (actor.system?.steed === this.actor.uuid || actor.uuid === this.#ownerUuid) this.render();
+		};
+		this._watchHooks(["updateActor", "deleteActor"], redraw);
 	}
 
 	/** @override */
@@ -108,6 +140,12 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onClearLeader() {
 		return this.actor.update({ "system.leader": "" });
+	}
+
+	/** @this {NpcSheet} */
+	static #onOpenOwner(_event, target) {
+		const rider = fromUuidSync(target.dataset.uuid);
+		return rider?.sheet.render({ force: true });
 	}
 
 	/** @this {NpcSheet} */

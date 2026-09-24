@@ -414,7 +414,8 @@ describe("system boot", () => {
 		ActorSheetV2.prototype._onFirstRender = async () => {};
 		const offered = [];
 		const sheetOpened = (renderContext, isEditable = true) => {
-			const sheet = Object.create(sheetFor("npc").prototype, { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
+			// Made rather than fabricated, so the sheet's own fields are there to write.
+			const sheet = Object.defineProperties(new (sheetFor("npc"))(), { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
 			sheet._chooseFromBook = () => offered.push(renderContext);
 			return sheet._onFirstRender({}, { renderContext });
 		};

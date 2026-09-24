@@ -135,6 +135,28 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		if (isBlankNewActor(options) && this.isEditable) this._chooseFromBook();
 	}
 
+	/** The hooks listened on while the window is open, by the name each was put on. */
+	#watched = [];
+
+	/**
+	 * Listen on some of Foundry's hooks for as long as this window is open, and
+	 * no longer. A hook rather than a document's `apps`, since deleting a
+	 * document closes every window in its `apps`; taken off again in `_onClose`,
+	 * so a sheet opened and shut over and over leaves nothing behind.
+	 * @param {string[]} names Hooks to listen on.
+	 * @param {Function} handler Called for each of them.
+	 */
+	_watchHooks(names, handler) {
+		for (const name of names) this.#watched.push([name, Hooks.on(name, handler)]);
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		for (const [name, id] of this.#watched) Hooks.off(name, id);
+		this.#watched = [];
+	}
+
 	/**
 	 * Offer the book's choices for an actor Create Actor has just made. Sheets
 	 * with a chooser open it.
