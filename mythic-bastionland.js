@@ -49,6 +49,8 @@ import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
+import { registerLandmarkCards } from "./module/chat/landmark-card.js";
+import { registerLandmarkSettings } from "./module/actions/landmarks.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -170,6 +172,7 @@ Hooks.once("init", () => {
 		"bastionland.table-sentence": templatePath("actor/parts/table-sentence.hbs"),
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
+		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.gm-toolkit-cast": templatePath("actor/gm-toolkit/cast.hbs"),
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
@@ -194,6 +197,9 @@ Hooks.once("init", () => {
 	// The world's calendar of Ages, Seasons, Days and Phases.
 	registerCalendarSetting();
 
+	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
+	registerLandmarkSettings();
+
 	// The weather, for a table with FXMaster to draw it; it follows the active Scene.
 	registerWeatherSetting();
 	registerWeatherHooks();
@@ -211,7 +217,8 @@ Hooks.once("init", () => {
 	// Damage cards and group prompts roll Wavering Morale.
 	registerMoraleCards();
 
-	// Exploration cards offer to mark on the players' map what the Company learned.
+	// A Wilderness card offers what the Landmark it found asks of the Company.
+	registerLandmarkCards();
 	registerExplorationCards();
 
 	// Duel cards resolve both duelists' Attacks together, and settle Glory staked on them.

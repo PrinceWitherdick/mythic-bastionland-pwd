@@ -38,6 +38,16 @@
 	</section>
 
 	{{#if isGM}}
+	{{#if offCourse.shown}}
+	<section class="bastionland-block bastionland-off-course">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h3>
+		{{> "bastionland.off-course" offCourse}}
+	</section>
+	{{/if}}
+
+	{{/if}}
+
+	{{#if isGM}}
 	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.title'}}">
 		<button type="button" data-action="nextPhase"><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.time.nextPhase"}}</button>
 		<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>

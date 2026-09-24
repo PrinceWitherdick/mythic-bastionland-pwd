@@ -9,15 +9,15 @@ import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from 
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, makeWholeCast, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { rollMythTable, rollRefereeTable } from "../actions/referee-rolls.js";
+import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite } from "../actions/sites.js";
-import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
+import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { setCalendarByHand, timeContext } from "../apps/time-controls.js";
+import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, tableForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
@@ -133,13 +133,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			makeWholeCast: GmToolkitSheet.#onMakeWholeCast,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
-			nextPhase: () => advancePhase(),
-			turnSeason: () => turnSeason(),
-			turnAge: () => turnAge(),
-			journey: () => journeyToDistantRealm(),
-			refereeRoll: (_event, target) => rollRefereeTable(target.dataset.table),
-			hardship: (_event, target) => sufferHardship(target.dataset.hardship),
-			awardGlory: (_event, target) => awardGlory(target.dataset.award),
+			...TIME_ACTIONS,
+			landmarkOffer: GmToolkitSheet.#onLandmarkOffer,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
 			pickWeather: () => pickWeather()
 		}
@@ -476,6 +471,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				return card(landmark.hex, {
 					...named(landmark.name, t(`realm.landmarks.${landmark.type}`)),
 					self: "landmark",
+					// What this sort of Landmark asks of travellers who are there (p14).
+					landmark: landmarkOfferView(landmark.type),
 					status: [
 						seer && { text: t("gmToolkit.places.seer", { name: seer.name }), hidden: false },
 						!landmark.revealed && { text: t("gmToolkit.places.notFound"), hidden: true }
@@ -499,9 +496,10 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @param {string|null} [options.kind] What sort of place it is, when it isn't just a hex.
 	 * @param {"holding"|"landmark"} [options.self] The feature the card is about, left out of what stands in the hex.
 	 * @param {{text: string, hidden: boolean}[]} [options.status] More to say about the place, before what stands in the hex.
+	 * @param {object|null} [options.landmark] What a Landmark here asks of travellers, from landmarkOfferView.
 	 * @returns {object}
 	 */
-	#hexCard(data, hex, { fold, open, title, kind = null, self = null, status = [] }) {
+	#hexCard(data, hex, { fold, open, title, kind = null, self = null, status = [], landmark = null }) {
 		const key = hexKey(hex);
 		const record = data.lore.hexes[key] ?? null;
 		const visits = data.journey.hexes[key] ?? null;
@@ -527,6 +525,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				when: spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null
 			})),
 			tellDisabled: !record?.note,
+			landmark,
 			fold,
 			open: this.#folds.get(fold) ?? open
 		};
@@ -565,7 +564,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	#clockContext() {
 		const calendar = getCalendar();
 		const { season, phase } = calendar;
-		const { age, day, seasons, phases } = timeContext();
+		// The banner shows the date alone, so the Referee's own blocks aren't worked out for it.
+		const { age, day, seasons, phases } = timeContext({ referee: false });
 		// Hovering the clock reads the date out in full, as a chronicle would, before how to set it.
 		const tooltip = `${chronicleLabel(calendar)} ${t("gmToolkit.clockHint")}`;
 		// Only a table with FXMaster to draw the weather is shown it, and a GM may hide it even then.
@@ -1076,6 +1076,15 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	static #onForgetVisits(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		if (hex) return confirmForgetHexVisits(this.scene, hex);
+	}
+
+	/**
+	 * Carry out what the Landmark on this card asks of the Company (p14), on the
+	 * Realm the toolkit is showing.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onLandmarkOffer(_event, target) {
+		return takeLandmarkOffer(target.dataset.landmarkOffer, { scene: this.scene });
 	}
 
 	/** @this {GmToolkitSheet} */

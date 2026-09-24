@@ -10,9 +10,11 @@ import {
 	wildernessResult,
 	wildernessSituation
 } from "../rules/wilderness.js";
+import { throwsOffCourse } from "../rules/landmarks.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
 import { findCompanyToken } from "./company.js";
+import { landmarkOfferView, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -136,15 +138,19 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null } = {}) 
 	if (revealLandmark) updates.push({ _id: outcome.landmark.id, hidden: false });
 	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
 
-	const winter = getCalendar().season === "winter";
-	await postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter }), { rolls, mode: "gm" });
+	const calendar = getCalendar();
+	// A Curse throws the Company off course, so the next travelling Phase is blind (p14).
+	if (outcome.landmark && throwsOffCourse(outcome.landmark.type)) await strikeOffCourse(calendar);
+
+	const winter = calendar.season === "winter";
+	await postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene }), { rolls, mode: "gm" });
 	return outcome;
 }
 
 /**
  * @returns {object} What the Wilderness card shows.
  */
-function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter }) {
+function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter, scene }) {
 	const terrain = terrainAt(realm, g, where);
 
 	let myth = null;
@@ -169,10 +175,19 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 			const reference = seerEntry(index, seer);
 			seerLine = t("realm.wilderness.seer", { seer: reference.name, page: reference.page });
 		}
-		landmark = { type: t(`realm.landmarks.${type}`), name: name || null, seer: seerLine, revealed: revealLandmark };
+		landmark = {
+			type: t(`realm.landmarks.${type}`),
+			name: name || null,
+			seer: seerLine,
+			revealed: revealLandmark,
+			// What this sort of Landmark asks of the travellers who found it (p14).
+			...landmarkOfferView(type)
+		};
 	}
 
 	return {
+		// A Ruin's echo reads the Myths of the Realm the roll was made for, whichever Scene is on the canvas.
+		scene: scene?.id ?? null,
 		hex: t("realm.hex", where),
 		terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 		mode: outcome.d6 === null ? null : t(`realm.wilderness.modes.${mode}`),

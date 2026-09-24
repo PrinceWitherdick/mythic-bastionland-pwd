@@ -2432,7 +2432,47 @@
         "monument": "Monument",
         "hazard": "Hazard",
         "curse": "Curse",
-        "ruin": "Ruin"
+        "ruin": "Ruin",
+      "effects": {
+        "dwelling": {
+          "text": "Humble homes amid the wilds. Whoever lives here knows their own Hex and the ones beside it."
+        },
+        "sanctum": {
+          "text": "The sacred home of a Seer, who knows every Myth of the Realm, its secrets and its weaknesses. Their guidance restores CLA, though such knowledge isn’t given freely."
+        },
+        "monument": {
+          "text": "A site of inspiration. Travellers may spend a Phase here to restore SPI, as if they were consuming a Sacrament.",
+          "offer": "Spend a Phase: Restore SPI"
+        },
+        "hazard": {
+          "text": "Nature fights your every step. Devise a solution, push through, or go back the way you came.",
+          "offer": "Push Through"
+        },
+        "curse": {
+          "text": "A blight on the land that throws you off course."
+        },
+        "ruin": {
+          "text": "Remnants of the past echo the future, hinting at a Myth the Realm doesn’t hold, though it may yet return.",
+          "offer": "Echo a Myth"
+        }
+      },
+      "nobody": "Nobody was ticked, so nothing happens here.",
+      "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
+      "monumentHint": "The Phase is spent here, so turn the calendar on when the Company moves.",
+      "hazardWhich": "Pushing through costs d6 in a Virtue, usually VIG. Which does this Hazard take?",
+      "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
+      "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
+      "ruinHint": "Hint at it however the ruin would: a carving, a name half-worn away, a warning nobody living remembers. It may yet return to the Realm.",
+      "offCourse": {
+        "title": "Thrown Off Course",
+        "struck": "If the Company travels in the next Phase, it counts as travelling blind.",
+        "pending": "A Curse has thrown the Company off course. If they travel in the next Phase, roll Travelling Blind.",
+        "live": "This is the Phase the Curse blights. Travel now counts as travelling blind.",
+        "roll": "Roll Travelling Blind",
+        "rollHint": "Roll Travelling Blind for the Company, and let the Curse’s blight go.",
+        "hold": "They Hold Their Course",
+        "holdHint": "Let the blight go without rolling, because the Company didn’t travel or found their way regardless."
+      }
       },
       "look": {
         "title": "Realm Appearance",

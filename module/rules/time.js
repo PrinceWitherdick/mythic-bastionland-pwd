@@ -46,6 +46,20 @@ const isCount = (value) => Number.isInteger(value) && value >= 1;
  */
 
 /**
+ * Whether something stored reads as a whole calendar in its own right, rather
+ * than being mended into one. What was never written down is told apart from a
+ * date that was, which is how a Scar or a Curse knows it holds nothing yet.
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export const isCalendar = (value) =>
+	Boolean(value) &&
+	isCount(value.age) &&
+	SEASONS.includes(value.season) &&
+	isCount(value.day) &&
+	PHASES.includes(value.phase);
+
+/**
  * A calendar with anything missing or unreadable set to where a game begins.
  * @param {object|null|undefined} raw As stored.
  * @returns {Calendar}
@@ -87,6 +101,27 @@ export function nextSeason(calendar) {
 export function nextAge(calendar) {
 	const now = normalizeCalendar(calendar);
 	return { age: now.age + 1, season: SEASONS[0], day: 1, phase: PHASES[0] };
+}
+
+/**
+ * Where a calendar stands against another, so that something set for a later
+ * Phase, Day or Season can tell whether its time has come. The Day count runs
+ * within a Season, so the Age and the Season are weighed before it.
+ * @param {Calendar} a
+ * @param {Calendar} b
+ * @returns {-1|0|1} Negative where `a` comes first.
+ */
+export function compareCalendars(a, b) {
+	const rank = (calendar) => {
+		const { age, season, day, phase } = normalizeCalendar(calendar);
+		return [age, SEASONS.indexOf(season), day, PHASES.indexOf(phase)];
+	};
+	const left = rank(a);
+	const right = rank(b);
+	for (let part = 0; part < left.length; part++) {
+		if (left[part] !== right[part]) return left[part] < right[part] ? -1 : 1;
+	}
+	return 0;
 }
 
 /**

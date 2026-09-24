@@ -380,29 +380,43 @@ export async function sufferHardship(key) {
 }
 
 /**
- * Everybody given loses d6 from the Virtue a hardship costs, told on one card.
- * @param {{key: string, virtue: string}} hardship From HARDSHIPS.
+ * Everybody given loses d6 from one Virtue, told on one card. What a hardship
+ * of the road costs (p17), and what pushing through a Hazard costs as well
+ * (p14), which is no hardship of the book's own list.
  * @param {Actor[]} actors
+ * @param {string} virtue One of VIRTUES.
+ * @param {object} words
+ * @param {string} words.title Heads the card.
  * @returns {Promise<object[]>} The card's entries.
  */
-export async function hardshipFor(hardship, actors) {
-	const virtue = t(`virtues.${hardship.virtue}.abbr`);
+export async function virtueLoss(actors, virtue, { title }) {
+	const abbr = t(`virtues.${virtue}.abbr`);
 	const rolls = [];
 	const entries = [];
 	const updates = [];
 	for (const actor of actors) {
 		const roll = await new Roll("1d6").evaluate();
 		rolls.push(roll);
-		const from = actor.system.virtues[hardship.virtue].value;
+		const from = actor.system.virtues[virtue].value;
 		const to = Math.max(0, from - roll.total);
-		updates.push(actor.update({ [`system.virtues.${hardship.virtue}.value`]: to }, causedBy("hardship")));
-		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue, from, to })] });
+		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: to }, causedBy("hardship")));
+		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue: abbr, from, to })] });
 	}
 	await Promise.all(updates);
-	const title = t(`time.hardship.kinds.${hardship.key}.label`);
 	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
 	return entries;
 }
+
+/**
+ * The d6 one of the book's own hardships costs (p17).
+ * @param {{key: string, virtue: string}} hardship From HARDSHIPS.
+ * @param {Actor[]} actors
+ * @param {object} [options]
+ * @param {string} [options.title] Heads the card. The hardship's own name by default.
+ * @returns {Promise<object[]>} The card's entries.
+ */
+export const hardshipFor = (hardship, actors, { title = null } = {}) =>
+	virtueLoss(actors, hardship.virtue, { title: title ?? t(`time.hardship.kinds.${hardship.key}.label`) });
 
 /**
  * Change a character's Age. Growing Mature or Old offers to reroll each Virtue

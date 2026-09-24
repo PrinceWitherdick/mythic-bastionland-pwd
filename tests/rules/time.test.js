@@ -3,6 +3,7 @@ import {
 	afterOldAge,
 	agedScore,
 	agingSteps,
+	compareCalendars,
 	DEFAULT_CALENDAR,
 	nextAge,
 	nextPhase,
@@ -42,6 +43,26 @@ describe("advancing time", () => {
 	it("names a Season by its Age", () => {
 		expect(seasonKey({ age: 4, season: "winter", day: 2, phase: "night" })).toBe("4-winter");
 		expect(seasonKey(nextSeason({ age: 4, season: "winter" }))).toBe("4-spring");
+	});
+});
+
+describe("compareCalendars", () => {
+	const now = { age: 2, season: "harvest", day: 5, phase: "afternoon" };
+
+	it("weighs the Age, then the Season, then the Day, then the Phase", () => {
+		expect(compareCalendars(now, now)).toBe(0);
+		expect(compareCalendars(now, { ...now, age: 3 })).toBe(-1);
+		expect(compareCalendars(now, { ...now, season: "spring" })).toBe(1);
+		expect(compareCalendars(now, { ...now, day: 6 })).toBe(-1);
+		expect(compareCalendars(now, { ...now, phase: "morning" })).toBe(1);
+	});
+
+	it("counts a Day within its Season, so a new Season's first Day comes later", () => {
+		expect(compareCalendars(nextSeason(now), now)).toBe(1);
+	});
+
+	it("puts every step forward after the calendar it was taken from", () => {
+		for (const step of [nextPhase, nextSeason, nextAge]) expect(compareCalendars(step(now), now)).toBe(1);
 	});
 });
 

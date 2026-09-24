@@ -16,6 +16,13 @@
 		</nav>
 	</section>
 
+	{{#if offCourse.shown}}
+	<section class="bastionland-gm-toolkit__section bastionland-off-course">
+		<h2 class="bastionland-heading">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h2>
+		{{> "bastionland.off-course" offCourse}}
+	</section>
+	{{/if}}
+
 	{{#if crisisRolls.length}}
 	<section class="bastionland-gm-toolkit__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.time.crisisRolls"}}</h2>

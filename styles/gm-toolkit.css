@@ -1237,6 +1237,20 @@
 }
 
 /* ---------------------------------------------------------------- */
+/* What a Landmark asks of travellers who are there (p14)           */
+/* ---------------------------------------------------------------- */
+
+.bastionland-gm-toolkit__landmark {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.bastionland-gm-toolkit__landmark .bastionland-hint {
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------- */
 /* The Lay of the Land's line on the Company's visits               */
 /* ---------------------------------------------------------------- */
 

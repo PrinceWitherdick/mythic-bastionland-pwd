@@ -37,6 +37,17 @@
 			{{/each}}
 		</ul>
 
+		{{#if landmark}}
+		<div class="bastionland-gm-toolkit__landmark">
+			<p class="bastionland-hint">{{landmark.text}}</p>
+			{{#if landmark.offer}}
+			<nav class="bastionland-gm-toolkit__actions" aria-label="{{landmark.offer.label}}">
+				<button type="button" data-action="landmarkOffer" data-landmark-offer="{{landmark.offer.key}}"><i class="{{landmark.offer.icon}}" inert></i> {{landmark.offer.label}}</button>
+			</nav>
+			{{/if}}
+		</div>
+		{{/if}}
+
 		<nav class="bastionland-gm-toolkit__actions" aria-label="{{title}}">
 			<button type="button" data-action="showHex"><i class="fa-solid fa-location-dot" inert></i> {{localize "bastionland.gmToolkit.showHex"}}</button>
 			<button type="button" data-action="rollHexSet"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>

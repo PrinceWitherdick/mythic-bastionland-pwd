@@ -1,9 +1,6 @@
 import { CALENDAR_HOOK } from "../actions/calendar.js";
-import { awardGlory } from "../actions/glory.js";
-import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { advancePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason } from "../actions/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { setCalendarByHand, timeContext } from "./time-controls.js";
+import { TIME_ACTIONS, setCalendarByHand, timeContext } from "./time-controls.js";
 import { singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -23,13 +20,7 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		actions: {
 			setSeason: TimePanel.#onSetSeason,
 			setPhase: TimePanel.#onSetPhase,
-			nextPhase: advancePhase,
-			turnSeason,
-			turnAge,
-			journey: journeyToDistantRealm,
-			refereeRoll: TimePanel.#onRefereeRoll,
-			hardship: TimePanel.#onHardship,
-			awardGlory: TimePanel.#onAwardGlory
+			...TIME_ACTIONS
 		}
 	};
 
@@ -80,20 +71,6 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		return setCalendarByHand({ phase: target.dataset.phase });
 	}
 
-	/** @this {TimePanel} */
-	static #onRefereeRoll(_event, target) {
-		return rollRefereeTable(target.dataset.table);
-	}
-
-	/** @this {TimePanel} */
-	static #onHardship(_event, target) {
-		return sufferHardship(target.dataset.hardship);
-	}
-
-	/** @this {TimePanel} */
-	static #onAwardGlory(_event, target) {
-		return awardGlory(target.dataset.award);
-	}
 }
 
 /** Open the calendar, bringing the window forward if it's already open. */

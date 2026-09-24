@@ -2443,6 +2443,16 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	list-style: none;
 }
 
+/*
+ * A Curse's blight (p14), held in front of the Referee until the Phase it
+ * throws the Company off course in has passed. Edged in the rubric, as the one
+ * thing on the page that's waiting to be rolled.
+ */
+.bastionland-off-course {
+	border-left: 3px solid var(--bastionland-rubric);
+	padding-left: 0.5rem;
+}
+
 /* ---------------------------------------------------------------- */
 /* Spark Tables: a page of nine tables, the way the book sets them  */
 /* ---------------------------------------------------------------- */

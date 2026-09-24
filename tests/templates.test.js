@@ -22,6 +22,7 @@ import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SIT
 import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
 import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
+import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
@@ -137,6 +138,11 @@ describe("localization", () => {
 		...SEASONS.map((key) => `time.seasons.${key}`),
 		...partsOf("time.pursuits", [...SEASON_PURSUITS, ...AGE_PURSUITS], ["label", "hint"]),
 		...partsOf("time.hardship.kinds", HARDSHIPS.map(({ key }) => key), ["label", "hint"]),
+		// Every Landmark says what it is; only the ones that ask something have an offer to press.
+		...Object.keys(LANDMARK_EFFECTS).map((type) => `realm.landmarks.effects.${type}.text`),
+		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.offer).map(([type]) => `realm.landmarks.effects.${type}.offer`),
+		// A lapsed Curse is let go without a word, so it has no line of its own.
+		...OFF_COURSE_SHOWN.map((state) => `realm.landmarks.offCourse.${state}`),
 		...AGES.filter((key) => key !== "young").map((key) => `time.aging.${key}`),
 		...partsOf("scars", SCARS.map((scar) => scar.key), ["name", "flavour", "effect"]),
 		...SCARS.filter((scar) => scar.detail).flatMap((scar) => [1, 2, 3, 4, 5, 6].map((n) => `scars.${scar.key}.detail.${n}`)),
