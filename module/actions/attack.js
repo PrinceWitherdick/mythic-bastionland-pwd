@@ -20,6 +20,7 @@ import {
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { chatIsPublic, playBlowFx } from "./attack-fx.js";
 import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./attack-memory.js";
 import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
@@ -322,6 +323,21 @@ export async function attack(actor) {
 		}));
 	}
 	if (inDuel && messages.length) await saveDuelChange(inDuel.message, { type: "attack", actor: actor.uuid, message: messages[0].id });
+	// The blows on the map, as the card lands (module/actions/attack-fx.js): one for
+	// each thing that added dice, the biggest die first. Once for the whole Attack,
+	// however many cards a Blast split it into, and never awaited: the dice are
+	// rolled and the cards are posted, so it can't cost the table anything.
+	playBlowFx({
+		attacker: actor,
+		weapons: weaponItems.map((item) => ({ name: item.name, damage: item.system.damage, ranged: Boolean(item.system.ranged) })),
+		mounted: Boolean(choice.mounted || choice.charge),
+		warband,
+		// An Impaired Attack rolls one d4 whatever they hold (p9), so it strikes once.
+		impaired: pool.impaired,
+		targets,
+		// A card the table wasn't shown isn't drawn on their map either.
+		whispered: !chatIsPublic()
+	});
 	return messages;
 }
 

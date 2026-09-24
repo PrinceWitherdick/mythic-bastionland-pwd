@@ -42,6 +42,7 @@ import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
+import { registerAttackFx } from "./module/actions/attack-fx.js";
 import { registerAttackMemory } from "./module/actions/attack-memory.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { registerGambitMarks } from "./module/chat/gambit-marks.js";
@@ -216,6 +217,10 @@ Hooks.once("init", () => {
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();
 	registerGambitMarks();
+
+	// Attacks drawn on the map and heard at the table, for a world with Sequencer,
+	// JB2A and the SoundFx Library.
+	registerAttackFx();
 
 	// The Attack dialog opens on the choices last rolled with for that actor.
 	registerAttackMemory();

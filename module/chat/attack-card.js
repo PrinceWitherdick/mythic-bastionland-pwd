@@ -1,4 +1,5 @@
 import { renderAttackCard } from "../actions/attack.js";
+import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { takeAttack } from "../actions/damage.js";
 import { canDenyAttack, performFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
@@ -135,6 +136,8 @@ async function chooseGambit({ source, strong }) {
 async function rollDismount(key) {
 	if (key !== "dismount") return null;
 	const roll = await new Roll(`1d${DISMOUNT_FACES}`).evaluate();
+	// The horse goes over, heard at the table (module/actions/attack-fx.js).
+	playDismountFx({ whispered: !chatIsPublic() });
 	return roll.total;
 }
 

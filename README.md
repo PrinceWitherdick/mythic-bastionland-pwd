@@ -222,6 +222,17 @@ Running the import again replaces the files. It needs a user who is allowed to u
 
 A new world greets its GM with **Welcome to Mythic Bastionland**, where the PDF is chosen once and put to both uses: this import, and a copy kept for reading the rulebook in Foundry. It opens when the world loads until a GM closes it once, and **Open the Welcome**, under Configure Settings, brings it back. Worlds begun before it existed aren't shown it by themselves.
 
+## Modules worth having
+
+None of these ships with the system, and nothing here needs any of them.
+
+- **[Sequencer](https://foundryvtt.com/packages/sequencer)** and **[JB2A](https://foundryvtt.com/packages/JB2A_DnD5e)** draw an Attack on the map. When the dice are rolled, every weapon that added a die strikes in turn, a quarter of a second apart and the biggest die first: a sword swings, then the shield on the arm, then the steed's hooves. An arrow flies, a thrown javelin arcs and a beast's jaws close on whoever they closed on; applying the Damage bursts on whoever lost GD, bloodies whoever lost VIG, and a Stone Thrower's stone comes down where it landed. The system picks each animation from the weapon's own name, so a world that has imported Arms & Goods has nothing to configure. The free JB2A is enough; the Patreon edition adds a few more, among them the thrown spear, the thrown hatchet and the sling stone.
+- **[SoundFx Library](https://foundryvtt.com/packages/soundfxlibrary)** gives those Attacks their sound: a blade landing, an arrow's fly-by and thunk, the clank of a shield where the Armour took the whole blow, a horse at the gallop for a mounted charge and a Warband's cry. The sounds reach everyone at the table, including anyone running Foundry with the game canvas switched off, and work with or without Sequencer.
+- **[FXMaster](https://foundryvtt.com/packages/fxmaster)** draws the weather the GM Toolkit sets on the Scene the players are on.
+- **[Dice So Nice!](https://foundryvtt.com/packages/dice-so-nice)** rolls the dice on the table in three dimensions. Every Save, Attack and table roll in the system uses Foundry's own dice, so it needs no setting up.
+
+The Attack effects are one world setting, **Attack Effects on the Map**, on by default and doing nothing where the modules are missing. Anyone who has turned on **Reduce Motion**, on their Settings page or in their browser, keeps the sounds without the pictures.
+
 ## Development
 
 The repository is the system folder. Clone it into your Foundry data folder's `systems` directory, then restart Foundry after editing `system.json`:

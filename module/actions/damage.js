@@ -5,6 +5,7 @@ import { attackDamage } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
+import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { seerCurrent } from "../rules/seer-state.js";
@@ -86,6 +87,9 @@ export async function takeDamage(actor, preset = {}) {
 	});
 	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
 	await postCard(actor, "damage", damageCard(result, appliedArmour, before, outcomes, morale));
+	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
+	// scores are written and the card says so, since it's only the map catching up.
+	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
 	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
 	// A played Knight taken to VIG 0 is Slain, and their player carries on some other way (p8).
