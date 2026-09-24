@@ -1,4 +1,5 @@
 import { postCard, t } from "../chat/cards.js";
+import { dieMask } from "../rules/die-shapes.js";
 import { isSavePassed } from "../rules/virtues.js";
 
 /**
@@ -39,6 +40,8 @@ export function saveContext(save) {
 		label: t("save.title", { virtue: t(`virtues.${save.virtue}.label`) }),
 		target: t("save.target", { value: save.value }),
 		total: save.roll.total,
+		// A Save is always rolled on a d20 (p9), so the card draws one behind the result.
+		shape: dieMask(20),
 		passed: save.passed,
 		result: t(save.passed ? "save.pass" : "save.fail")
 	};

@@ -18,6 +18,7 @@ import {
 	specialistDie,
 	summarizeAttack
 } from "../rules/attack.js";
+import { dieMask } from "../rules/die-shapes.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
@@ -370,6 +371,8 @@ export function attackCardContext(attack) {
 			return {
 				index,
 				faces: die.faces,
+				// The outline the card draws behind the result, so a d12 is told from a d6 without reading.
+				shape: dieMask(die.faces),
 				result: die.result,
 				label: spentOn ?? die.label,
 				spent: Boolean(spentOn),

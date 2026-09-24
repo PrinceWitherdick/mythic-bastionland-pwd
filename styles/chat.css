@@ -155,11 +155,33 @@
 	font-weight: bold;
 }
 
+/* A Save is a d20, so its total sits inside the die's own outline. Whole
+   pixels around whole pixels, as .bastionland-icon explains. */
 .bastionland-save__die {
+	position: relative;
+	display: grid;
 	grid-area: die;
+	place-items: center;
 	justify-self: center;
+	width: 3rem;
+	height: 3rem;
+	/* The die is cut out of the block's own colour, not the card's. */
 	--bastionland-die-fill: var(--bastionland-paper-deep);
+	font-size: 1.5rem;
 	line-height: 1;
+}
+
+.bastionland-save__total {
+	position: relative;
+	z-index: 1;
+}
+
+.bastionland-save.is-pass .bastionland-save__die::before {
+	background: var(--bastionland-verdigris);
+}
+
+.bastionland-save.is-fail .bastionland-save__die::before {
+	background: var(--bastionland-blood);
 }
 
 .bastionland-save__target {
@@ -204,13 +226,15 @@
 .bastionland-die {
 	display: grid;
 	justify-items: center;
-	min-width: 3.2rem;
+	gap: 0.1rem;
+	width: 5.2rem;
+	/* Foundry holds every button to one height, which would stack the die on its own name. */
 	height: auto;
+	min-height: 0;
 	margin: 0;
-	padding: 0.25rem 0.35rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
-	background: var(--bastionland-paper-deep);
+	padding: 0;
+	border: 0;
+	background: none;
 	color: var(--bastionland-ink-soft);
 	font: inherit;
 	line-height: 1.2;
@@ -219,6 +243,68 @@
 
 .bastionland-die:disabled {
 	cursor: default;
+}
+
+/*
+ * Cards posted before the dice were drawn as profiles keep the markup they
+ * were stored with, so one without a face is left the box it was written for.
+ */
+.bastionland-die:not(:has(.bastionland-die__face)) {
+	padding: 0.25rem 0.35rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+}
+
+/*
+ * The die itself is drawn in a square of its own, whatever the words under it
+ * run to, and each size keeps the profile it shows on the table: a d4's
+ * triangle, a d6's square, a d20's hexagon. The card carries the profile as a
+ * `--bastionland-die-shape` style, since Foundry's server strips an `svg` out
+ * of a chat message; the outline is that shape in ink with a smaller copy of
+ * itself, in the colour under it, laid over the middle.
+ */
+.bastionland-die__face {
+	position: relative;
+	display: grid;
+	place-items: center;
+}
+
+.bastionland-die .bastionland-die__face {
+	width: 3.375rem;
+	height: 3.375rem;
+}
+
+.bastionland-die__face::before,
+.bastionland-die__face::after {
+	position: absolute;
+	z-index: 0;
+	inset: 0;
+	mask: var(--bastionland-die-mask) center / 100% 100% no-repeat;
+	content: "";
+}
+
+.bastionland-die__face::before {
+	background: var(--bastionland-rule);
+}
+
+.bastionland-die__face::after {
+	background: var(--bastionland-die-fill, var(--bastionland-paper));
+	transform: scale(0.9);
+}
+
+/* The result reads over the profile, which is cut out behind it. */
+.bastionland-die__result {
+	position: relative;
+	z-index: 1;
+	font-size: 1.75rem;
+	line-height: 1;
+}
+
+/* A triangle carries its weight low, so the number sits where the d4 is widest. */
+.bastionland-die__face[data-faces="4"] .bastionland-die__result {
+	transform: translateY(0.2em);
+	font-size: 1.5rem;
 }
 
 .bastionland-die.is-spent {
@@ -233,32 +319,45 @@
 	color: var(--bastionland-ink);
 }
 
-.bastionland-die.is-strong {
-	border: 3px double var(--bastionland-ink);
+.bastionland-die.is-gambit .bastionland-die__face::before {
+	background: var(--bastionland-ink);
 }
 
-.bastionland-die.is-highest {
+/* A Strong Gambit's die keeps the heavier rule it had as a box. */
+.bastionland-die.is-strong .bastionland-die__face::before {
 	background: var(--bastionland-ink);
+}
+
+.bastionland-die.is-strong .bastionland-die__face::after {
+	transform: scale(0.78);
+}
+
+/* The die the Damage is read off is inked in, and its result reversed out. */
+.bastionland-die.is-highest .bastionland-die__face::before,
+.bastionland-die.is-highest .bastionland-die__face::after {
+	background: var(--bastionland-ink);
+}
+
+.bastionland-die.is-highest .bastionland-die__result {
 	color: var(--bastionland-paper);
 }
 
-.bastionland-die__result {
-	font-size: 1.4rem;
-	line-height: 1;
-}
-
+/* The book's own "d8", in the hand that gives it a lowercase d rather than a small capital. */
 .bastionland-die__faces {
-	font-family: var(--bastionland-font-caps);
+	font-family: var(--bastionland-font-body);
 	font-size: var(--bastionland-font-note);
 }
 
+/* The weapon or Feat the die came from, held under it rather than stretching it. */
 .bastionland-die__label {
-	max-width: 6rem;
+	display: -webkit-box;
+	max-width: 100%;
 	overflow: hidden;
 	font-size: var(--bastionland-font-floor);
 	text-align: center;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
 }
 
 .bastionland-card__gambits {

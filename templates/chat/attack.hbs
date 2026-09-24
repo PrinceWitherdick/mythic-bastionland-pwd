@@ -15,8 +15,10 @@
 	<ol class="bastionland-dice">
 		{{#each dice}}
 		<li>
-			<button type="button" class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}{{#if spent}} is-spent{{/if}}" data-attack-action="gambit" data-die="{{index}}" {{disabled locked}}>
-				<span class="bastionland-die__result">{{result}}</span>
+			<button type="button" class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}{{#if spent}} is-spent{{/if}}" data-attack-action="gambit" data-die="{{index}}" title="d{{faces}} {{label}}" {{disabled locked}}>
+				<span class="bastionland-die__face" data-faces="{{faces}}" style="--bastionland-die-mask: {{shape}}">
+					<span class="bastionland-die__result">{{result}}</span>
+				</span>
 				<span class="bastionland-die__faces">d{{faces}}</span>
 				<span class="bastionland-die__label">{{label}}</span>
 			</button>

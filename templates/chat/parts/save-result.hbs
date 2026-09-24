@@ -1,6 +1,8 @@
 <div class="bastionland-save {{#if save.passed}}is-pass{{else}}is-fail{{/if}}">
 	<span class="bastionland-save__label">{{save.label}}</span>
-	<span class="bastionland-save__die">{{save.total}}</span>
+	<span class="bastionland-save__die bastionland-die__face" style="--bastionland-die-mask: {{save.shape}}">
+		<span class="bastionland-save__total">{{save.total}}</span>
+	</span>
 	<span class="bastionland-save__target">{{save.target}}</span>
 	<strong class="bastionland-save__result">{{save.result}}</strong>
 </div>
