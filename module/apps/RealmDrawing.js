@@ -6,7 +6,8 @@ import { DRAWING_SIDE, bookDrawingGroups, drawingTally, finishPlacement, sheetDr
 import { REALM_TOOL_ICONS } from "../rules/realm.js";
 import { RULE_PAGES } from "../rules/rule-pages.js";
 import { templatePath } from "../system-id.js";
-import { MapSidePanel, interfaceScale, mapOnScreen } from "./MapSidePanel.js";
+import { MapSidePanel } from "./MapSidePanel.js";
+import { hotbarFloor, mapOnScreen, mapPanelScale } from "./map-screen.js";
 
 /** The page Creating a Realm is printed on. */
 const PAGE = RULE_PAGES.creatingRealm;
@@ -158,9 +159,7 @@ export class RealmDrawing extends MapSidePanel {
 		// Measured once it has a size, so a pan doesn't lay the page out again for it.
 		this.#finishSize ??= this.#finish.offsetWidth ? { width: this.#finish.offsetWidth, height: this.#finish.offsetHeight } : null;
 		if (!this.#finishSize) return;
-		const hotbar = document.getElementById("hotbar")?.getBoundingClientRect();
-		const floor = hotbar?.height ? hotbar.top : window.innerHeight;
-		const { left, top } = finishPlacement(map, { ...this.#finishSize, floor, scale: interfaceScale() });
+		const { left, top } = finishPlacement(map, { ...this.#finishSize, floor: hotbarFloor(), scale: mapPanelScale() });
 		this.#finish.style.left = `${left}px`;
 		this.#finish.style.top = `${top}px`;
 	}

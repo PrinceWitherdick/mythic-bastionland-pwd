@@ -3,6 +3,10 @@ import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import { INK_HEX } from "../rules/colour.js";
 import { hexAt, hexCentre, hexVertices, sameHex } from "../rules/realm-geometry.js";
+import { SYSTEM_ID } from "../system-id.js";
+
+/** Called as the Company is taken up and as it is put down, so the button that hands it over knows whether it is in hand. */
+export const COMPANY_PLACING_HOOK = `${SYSTEM_ID}.companyPlacing`;
 
 /** The ink the hex under the Company is ringed in. */
 
@@ -87,14 +91,16 @@ function endPlacement() {
 }
 
 /**
- * Give up carrying the Company, leaving it off the map until the GM stands it
- * in a hex from the Hex panel.
+ * Give up carrying the Company, leaving it off the map until the GM takes it
+ * up again from the button over the map, or stands it in a hex from the Hex
+ * panel.
  * @param {object} [options]
  * @param {boolean} [options.quiet] True when the Realm itself has gone, so there's nothing to say.
  */
 export function cancelCompanyPlacement({ quiet = false } = {}) {
 	if (!placing) return;
 	endPlacement();
+	Hooks.callAll(COMPANY_PLACING_HOOK);
 	if (!quiet) ui.notifications.info(t("company.placing.later"));
 }
 
@@ -109,6 +115,8 @@ async function placeHere(hex) {
 	if (!scene) return;
 	const token = await setCompanyHex(scene, hex);
 	if (token) ui.notifications.info(t("company.placed", { hex: t("realm.hex", hex) }));
+	// Once the Token is there, or once it turns out it could not be made.
+	Hooks.callAll(COMPANY_PLACING_HOOK);
 }
 
 /**
@@ -165,15 +173,16 @@ function onKeyDown(event) {
  *
  * This is what happens for the Starts whose Company doesn't begin anywhere the
  * book names — a Wanderer arriving, a Ruler's Holding, a Courtier's Realm with
- * no Seat of Power.
+ * no Seat of Power — and what the Place the Company button over the map hands
+ * over for a Realm whose Company is nowhere on it.
  *
  * @param {Scene} scene
  * @param {object} [options]
- * @param {string} [options.start] One of COMPANY_STARTS, for what the notification says.
+ * @param {string} [options.start] One of COMPANY_STARTS, for what the notification says; "anywhere" when no Start led here.
  * @param {string} [options.img] The picture to carry; the Realm's own by default.
  * @returns {Promise<boolean>} False when there's no map to carry it over, so the caller can say so another way.
  */
-export async function startCompanyPlacement(scene, { start, img } = {}) {
+export async function startCompanyPlacement(scene, { start = "anywhere", img } = {}) {
 	cancelCompanyPlacement({ quiet: true });
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	if (!canvas?.ready || canvas.scene?.id !== scene.id) return false;
@@ -206,5 +215,6 @@ export async function startCompanyPlacement(scene, { start, img } = {}) {
 	window.addEventListener("pointerup", onPointerUp, true);
 	window.addEventListener("keydown", onKeyDown, true);
 	drawGhost(hexAtPointer());
+	Hooks.callAll(COMPANY_PLACING_HOOK);
 	return true;
 }

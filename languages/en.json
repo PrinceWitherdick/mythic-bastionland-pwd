@@ -1207,11 +1207,14 @@
       "choose": {
         "wanderer": "Wanderers arrive in the Realm: click the hex where they arrive.",
         "courtier": "This Realm has no Seat of Power: click the hex where the Court sits.",
-        "ruler": "One Knight rules a Holding: click the hex of that Holding."
+        "ruler": "One Knight rules a Holding: click the hex of that Holding.",
+        "anywhere": "Click the hex the Company stands in."
       },
       "placing": {
+        "button": "Place the Company",
+        "hint": "One Token stands for the whole Company, and this Realm has none on it. Carry them over the map and click the hex they stand in.",
         "stop": "Right click or press Escape to place them later.",
-        "later": "The Company waits off the map. Inspect a hex with the Realm tools and press Company here to stand them in it."
+        "later": "The Company waits off the map. Take them up again with Place the Company over the map, or press Company here on a hex in the Toolkit."
       }
     },
     "hexLore": {

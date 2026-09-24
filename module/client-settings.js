@@ -51,10 +51,22 @@ export function textScale(value) {
 	return Math.min(TEXT_SIZE_RANGE.max, Math.max(TEXT_SIZE_RANGE.min, scale));
 }
 
+/**
+ * Called as Text Size changes, for the few things that are sized in JavaScript
+ * rather than by the stylesheet alone, such as the rules held against the edges
+ * of a Realm's map.
+ */
+export const TEXT_SIZE_HOOK = `${SYSTEM_ID}.textSizeChanged`;
+
 /** @param {unknown} value */
 export function applyTextSize(value) {
-	root()?.style.setProperty("--bastionland-text-size", String(textScale(value)));
+	const scale = textScale(value);
+	root()?.style.setProperty("--bastionland-text-size", String(scale));
+	globalThis.Hooks?.callAll?.(TEXT_SIZE_HOOK, scale);
 }
+
+/** @returns {number} Text Size as the stylesheet has it, so what JavaScript places agrees with what CSS draws. */
+export const textSizeScale = () => Number.parseFloat(root()?.style.getPropertyValue("--bastionland-text-size") ?? "") || 1;
 
 /** @param {unknown} value */
 export function applyContrast(value) {

@@ -1,7 +1,8 @@
 import { t } from "../chat/cards.js";
+import { TEXT_SIZE_HOOK } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { RULEBOOK_HOOK, canReadRulebook, hasRulebook } from "../rulebook/store.js";
-import { travelRulesPlacement } from "../rules/travel-rules.js";
+import { mapOnScreen, placeBesideMap } from "./map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -62,7 +63,7 @@ export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const redraw = () => this.render();
 		// Every pan, zoom and resize of the canvas comes through canvasPan.
 		const place = () => this.place();
-		this.#hooks = [...this.redrawHooks.map((name) => [name, redraw]), ["canvasPan", place]].map(([name, fn]) => [name, Hooks.on(name, fn)]);
+		this.#hooks = [...this.redrawHooks.map((name) => [name, redraw]), ["canvasPan", place], [TEXT_SIZE_HOOK, place]].map(([name, fn]) => [name, Hooks.on(name, fn)]);
 	}
 
 	/** @override */
@@ -93,46 +94,4 @@ export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		event.preventDefault();
 		return openRulebook({ page: Number(target.dataset.page) });
 	}
-}
-
-/**
- * @returns {{left: number, top: number, right: number, bottom: number}|null} Where the Scene's map is on
- *   screen, in CSS pixels, or null while the canvas isn't ready.
- */
-export function mapOnScreen() {
-	const rect = canvas?.ready ? canvas.dimensions?.sceneRect : null;
-	if (!rect) return null;
-	// As Foundry lines its HUD up with the canvas.
-	const origin = canvas.primary.getGlobalPosition();
-	const zoom = canvas.stage.scale.x;
-	return {
-		left: origin.x + (rect.x * zoom),
-		top: origin.y + (rect.y * zoom),
-		right: origin.x + ((rect.x + rect.width) * zoom),
-		bottom: origin.y + ((rect.y + rect.height) * zoom)
-	};
-}
-
-/** @returns {number} The interface scale. Foundry sets it on the body itself, which is cheaper to read on every pan than computed style. */
-export const interfaceScale = () => Number.parseFloat(document.body.style.getPropertyValue("--ui-scale")) || 1;
-
-/**
- * Hold a panel against one edge of the Realm's map, level with its top and as
- * tall as it.
- * @param {HTMLElement|null|undefined} element
- * @param {"left"|"right"} side
- * @param {ReturnType<typeof mapOnScreen>} [map]
- */
-export function placeBesideMap(element, side, map = mapOnScreen()) {
-	if (!element || !map) return;
-	const scale = interfaceScale();
-	// Layout width, which the interface scale's transform doesn't change.
-	const width = element.offsetWidth;
-	const { left, top, maxHeight } = travelRulesPlacement(map, { side, width, scale });
-
-	const { style } = element;
-	style.left = `${left}px`;
-	style.top = `${top}px`;
-	// The interface scale is a transform, so the height it may grow to is set before scaling.
-	style.setProperty("--travel-rules-max-height", `${maxHeight / scale}px`);
 }

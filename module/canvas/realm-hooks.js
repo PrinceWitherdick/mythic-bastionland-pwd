@@ -11,6 +11,7 @@ import {
 	sceneGeometry,
 	syncRealmScene
 } from "../actions/realm.js";
+import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
@@ -127,6 +128,8 @@ export function registerRealmHooks() {
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
 		showRealmRules();
+		// A Realm with no Company on it offers the Referee one over the map.
+		showCompanyButton();
 		// Put right anything that drifted on the Scene's own layers, quietly: it writes nothing on a Realm in order.
 		syncRealmScene(canvas?.scene).catch((error) => console.error(`${SYSTEM_ID} | Couldn't put the Realm Scene back in order`, error));
 	});
@@ -136,6 +139,7 @@ export function registerRealmHooks() {
 			if (!isRealmScene(canvas?.scene)) {
 				closeTravelRules();
 				closeRealmDrawing();
+				closeCompanyButton();
 			}
 		}, 0);
 	});

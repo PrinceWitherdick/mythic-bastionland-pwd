@@ -109,7 +109,7 @@ beforeEach(() => {
 	globalThis.CONST = { TOKEN_DISPOSITIONS: { FRIENDLY: 1 } };
 	globalThis.game = { user: { isGM: true }, i18n: { localize: (key) => key, format: (key) => key } };
 	globalThis.ui = { notifications: { info: vi.fn(() => note), warn: vi.fn(), remove: vi.fn() } };
-	globalThis.Hooks = { on: vi.fn(() => 7), off: vi.fn() };
+	globalThis.Hooks = { on: vi.fn(() => 7), off: vi.fn(), callAll: vi.fn() };
 	globalThis.canvas = {
 		ready: true,
 		scene,

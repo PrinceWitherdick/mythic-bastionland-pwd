@@ -11,7 +11,10 @@ function fakeRoot() {
 		classes,
 		properties,
 		classList: { toggle: (name, force) => (force ? classes.add(name) : classes.delete(name)), contains: (name) => classes.has(name) },
-		style: { setProperty: (name, value) => properties.set(name, value) }
+		style: {
+			setProperty: (name, value) => properties.set(name, value),
+			getPropertyValue: (name) => properties.get(name) ?? ""
+		}
 	};
 }
 
@@ -100,6 +103,23 @@ describe("registerClientSettings", () => {
 		expect(root.classes.has("bastionland-no-keyword-tips")).toBe(true);
 		registrations().keywordTips.onChange(true);
 		expect(root.classes.has("bastionland-no-keyword-tips")).toBe(false);
+	});
+});
+
+describe("applyTextSize", () => {
+	it("calls the hook and reads the same size back, for what's placed in pixels rather than zoomed", () => {
+		const called = [];
+		globalThis.Hooks = { callAll: (name, value) => called.push([name, value]) };
+		settings.applyTextSize(1.3);
+		expect(called).toEqual([[`${SYSTEM_ID}.textSizeChanged`, 1.3]]);
+		expect(settings.textSizeScale()).toBe(1.3);
+		delete globalThis.Hooks;
+	});
+
+	it("is the size the sheets were drawn at until one is chosen, and holds a size past the ends of the range in", () => {
+		expect(settings.textSizeScale()).toBe(1);
+		settings.applyTextSize(9);
+		expect(settings.textSizeScale()).toBe(settings.TEXT_SIZE_RANGE.max);
 	});
 });
 

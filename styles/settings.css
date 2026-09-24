@@ -118,6 +118,11 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
  * change for its own windows only. The pictures grow with the writing, as a
  * browser's own zoom would, and a page's layout follows its narrower width.
  * Zoom multiplies, so anything inside one of these is left to it.
+ *
+ * What's held against a Realm's map is no window, and is placed in pixels
+ * that zoom would leave behind: Travel, Rest and Exploration, Creating a
+ * Realm, Finish the Realm and Place the Company take Text Size into the
+ * transform that already scales them, in styles/mythic-bastionland.css.
  */
 .bastionland-page:not(:is(.bastionland-page, .bastionland-dialog, .bastionland-card) *),
 .bastionland-dialog > .window-content,

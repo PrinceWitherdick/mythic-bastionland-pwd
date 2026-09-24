@@ -19,6 +19,7 @@ import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
+import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
@@ -297,6 +298,9 @@ Hooks.once("init", () => {
 
 	// A Company Token deleted by mistake: the GMs are whispered a way to put it back.
 	registerCompanyLostCard();
+
+	// And a Realm with no Company on it at all offers the Referee one over the map.
+	registerCompanyButton();
 
 	// Macros reach the system through here, such as Import PDF.
 	game.system.api = Object.freeze({

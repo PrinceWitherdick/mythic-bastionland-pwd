@@ -3704,7 +3704,10 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * tall it may grow, is set as the canvas pans; how wide they are is one knob,
  * read back when they are placed. They sit over the canvas, under
  * the Token HUD (which comes after it on the page), the sidebar and windows,
- * and grows with the interface scale.
+ * and grow with the interface scale and Text Size. Nothing held against the
+ * map is a window, so Text Size can't zoom it as it zooms the system's pages:
+ * it is scaled here instead, and MapSidePanel's placing reads the same scale
+ * back, so the sheet stays against the map's edge however large the writing is.
  */
 .bastionland-travel-rules {
 	position: fixed;
@@ -3713,7 +3716,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	width: var(--bastionland-travel-rules-width, 380px);
 	max-height: var(--travel-rules-max-height, 60vh);
 	pointer-events: none;
-	transform: scale(var(--ui-scale, 1));
+	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
 	transform-origin: top left;
 }
 
@@ -4152,8 +4155,10 @@ button.bastionland-realm-drawing__palette {
 	color: var(--bastionland-paper);
 }
 
-/* Under the Realm's map, as the canvas pans; placed by RealmDrawing. */
-button.bastionland-realm-drawing__finish {
+/* Held against the Realm’s map as the canvas pans: Finish under it, placed by
+   RealmDrawing, and Place the Company over it, placed by CompanyButton. */
+button.bastionland-realm-drawing__finish,
+button.bastionland-company-button {
 	position: fixed;
 	z-index: calc(var(--z-index-canvas, 0) + 1);
 	width: auto;
@@ -4168,12 +4173,18 @@ button.bastionland-realm-drawing__finish {
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
 	white-space: nowrap;
-	transform: scale(var(--ui-scale, 1));
+	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
 	transform-origin: top left;
+	/* Foundry gives every button a half-second transition on every property it has,
+	   which would set these sliding across the screen after a map that has already
+	   been panned. They are held against the map, not animated to it. */
+	transition: none;
 }
 
 button.bastionland-realm-drawing__finish:hover,
-button.bastionland-realm-drawing__finish:focus-visible {
+button.bastionland-realm-drawing__finish:focus-visible,
+button.bastionland-company-button:hover,
+button.bastionland-company-button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 }

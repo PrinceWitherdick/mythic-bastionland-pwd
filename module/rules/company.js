@@ -28,3 +28,29 @@ export function companyStart(realm, start) {
 	if (start !== "courtier") return null;
 	return realm?.holdings?.find((holding) => holding.seat)?.hex ?? null;
 }
+
+/**
+ * Where the button that hands the Referee the Company sits: centred over the
+ * Realm's map, above its top edge. A map panned up under the scene navigation
+ * pushes the button down to `ceiling`, below the navigation's own buttons, but
+ * never past the map itself: wherever the map is, the button is on it or just
+ * over it, and never left floating below.
+ * @param {{left: number, right: number, top: number, bottom: number}} map The map on screen, in CSS pixels.
+ * @param {object} options
+ * @param {number} options.width The button's own width, before the interface scale.
+ * @param {number} options.height The button's own height, before the interface scale.
+ * @param {number} [options.ceiling] The foot of whatever the button must stay clear of at the top of the screen, in CSS pixels.
+ * @param {number} [options.gap] Between the button and the map's top, and between the ceiling and the button.
+ * @param {number} [options.scale] The interface scale, which the button grows with.
+ * @returns {{left: number, top: number}}
+ */
+export function companyButtonPlacement(map, { width, height, ceiling = 0, gap = 12, scale = 1 }) {
+	const [wide, tall, space] = [width, height, gap].map((length) => length * scale);
+	const above = map.top - space - tall;
+	const clear = Math.max(above, ceiling + space);
+	return {
+		left: Math.round(((map.left + map.right) / 2) - (wide / 2)),
+		// The foot of the map is the lowest it may fall, so it's never adrift below the Realm.
+		top: Math.round(Math.min(clear, Math.max(above, map.bottom - space - tall)))
+	};
+}
