@@ -140,9 +140,9 @@ export function drawingTally(realm) {
 export const drawingShortfalls = (realm) => Object.values(drawingTally(realm)).flat().filter((entry) => !entry.done);
 
 /**
- * Where the Finish button sits: centred under the Realm's map, but never
- * lower than `floor`, so it stays on screen above the hotbar however the map
- * is panned.
+ * Where the Finish button sits, and the window a rolled Realm is looked over
+ * in with it: centred under the Realm's map, but never lower than `floor`, so
+ * it stays on screen above the hotbar however the map is panned.
  * @param {{left: number, right: number, bottom: number}} map The map on screen, in CSS pixels.
  * @param {object} options
  * @param {number} options.width The button's own width, before the interface scale.

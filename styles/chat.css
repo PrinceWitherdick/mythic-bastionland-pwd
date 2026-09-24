@@ -746,6 +746,65 @@
 	opacity: 0.4;
 }
 
+/*
+ * Keep this Realm? A window small enough, and held low enough, to leave the
+ * Realm it asks about in view: what the roll laid down, the seed it came from,
+ * and a die to roll another Realm over it.
+ */
+.bastionland-keep-realm__tally {
+	font-family: var(--bastionland-font-caps);
+	letter-spacing: 0.02em;
+}
+
+.bastionland-keep-realm__seed {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-keep-realm__seed code {
+	padding: 0.05rem 0.3rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.35);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	letter-spacing: 0.12em;
+}
+
+/* Rolling again is the window's own doing, so its button stands in the body; the footer's is only for having done. */
+.bastionland-dialog .bastionland-keep-realm__again {
+	display: flex;
+	gap: 0.4rem;
+	align-items: center;
+	justify-content: center;
+	margin-top: 0.15rem;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-keep-realm__again i {
+	font-size: 1.1rem;
+}
+
+/* The die turns while the Realm is being rolled, so a slow write is seen to be working. */
+.bastionland-keep-realm__again.is-rolling i {
+	animation: bastionland-keep-realm-roll 0.7s linear infinite;
+}
+
+@keyframes bastionland-keep-realm-roll {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bastionland-keep-realm__again.is-rolling i {
+		animation: none;
+	}
+}
+
 /* The gallery of pictures the Company's Token can carry. */
 .bastionland-dialog .form-group > .bastionland-company-pictures {
 	/* A whole line of its own under the field, the way a hint takes one. */

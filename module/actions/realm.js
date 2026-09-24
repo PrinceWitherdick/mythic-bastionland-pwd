@@ -1,4 +1,5 @@
 import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
+import { askToKeepRealm } from "../apps/keep-realm.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
@@ -470,9 +471,22 @@ export async function rerollRealm(scene) {
 	const confirmed = await confirmDialog({ title: t("realm.reroll.title"), icon: "fa-solid fa-dice", message });
 	if (!confirmed) return null;
 
+	await rollRealmAgain(scene);
+	await postRealmKey(scene);
+	return scene;
+}
+
+/**
+ * Lay a newly rolled Realm over the one a Scene holds, set up as it was, and
+ * keeping whatever parts the GM draws by hand. Nothing is asked and nothing is
+ * posted: the callers do that.
+ * @param {Scene} scene
+ * @returns {Promise<object>} The Realm now on the Scene.
+ */
+function rollRealmAgain(scene) {
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
-	await queueRealmWrite(async () => {
+	return queueRealmWrite(async () => {
 		// Set up as it was first, keeping what the GM draws by hand.
 		const { realm: current } = getRealm(scene);
 		const realm = generateRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
@@ -480,9 +494,8 @@ export async function rerollRealm(scene) {
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		// Undo would lay the old Realm's pieces over the new one.
 		forgetRealmHistory(scene.id);
+		return realm;
 	});
-	await postRealmKey(scene);
-	return scene;
 }
 
 /**
@@ -559,15 +572,18 @@ export async function newRealm() {
 
 	const setup = foundry.utils.expandObject(data).setup ?? {};
 	if (draw) setup.roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, false]));
+	const rules = normaliseRealmSetup(setup);
 	const scene = await createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
 		seed: String(data.seed ?? "").trim() || randomSeed(),
-		setup: normaliseRealmSetup(setup),
+		setup: rules,
 		drawing: draw,
 		company: data.placeCompany ? {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
 			img: await resolveCompanyPicture(data)
-		} : null
+		} : null,
+		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
+		review: SETUP_PARTS.some((part) => rules.roll[part])
 	});
 	if (scene && draw) await openRealmPainter(scene);
 	return scene;
@@ -606,9 +622,10 @@ function wireCompanyFields(element) {
  * @param {import("../rules/realm-setup.js").RealmSetup|null} [options.setup] Omit for the book's.
  * @param {boolean} [options.drawing] Drawn by hand: the Scene is marked as still being drawn, and its key waits until it's finished.
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
+ * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, company = null }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, company = null, review = false }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows });
 	const realm = generateRealm({ seed, setup, geometry });
@@ -624,6 +641,11 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	// A world's first Scene is made active as it's created, so Foundry is already drawing it and won't switch Scenes until it's done.
 	if (canvas.loading) await new Promise((resolve) => Hooks.once("canvasReady", resolve));
 	if (canvas.scene?.id !== scene.id) await scene.view();
+
+	// A first roll is only an offer: the Referee looks the Realm over and rolls
+	// again until one of them is theirs. What they keep is the one pictured in
+	// the Scenes directory, given the Company, and whispered as a Realm Key.
+	if (review) await askToKeepRealm({ realm, roll: () => rollRealmAgain(scene) });
 
 	await refreshThumbnail(scene);
 

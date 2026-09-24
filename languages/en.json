@@ -2316,6 +2316,18 @@
         "confirm": "A new Realm is rolled onto this Scene, replacing its terrain, river, Holdings, Myths, Landmarks and Barriers. Tokens and anything else on the Scene stay.",
         "confirmCustom": "A new Realm is rolled onto this Scene the way it was set up. Tokens and anything else on the Scene stay, and so does what you draw by hand: {parts}."
       },
+      "keep": {
+        "title": "Keep this Realm?",
+        "intro": "Look it over. Roll again as often as you like; the last one rolled is the one you keep.",
+        "counts": "{holdings} Holdings, {myths} Myths, {landmarks} Landmarks and {barriers} Barriers.",
+        "river": "A river crosses it.",
+        "rivers": "{rivers} rivers cross it.",
+        "noRiver": "No river crosses it.",
+        "again": "Roll again",
+        "keep": "Keep this Realm",
+        "hint": "Nothing is settled until you keep one: the Company waits, and the Realm Key is whispered to the Referees at the end.",
+        "failed": "The Realm couldn’t be rolled again. What was on the map stands."
+      },
       "problems": {
         "terrain": "A hex with no terrain",
         "offMap": "Something off the map",

@@ -120,6 +120,7 @@ The Realm is a Foundry Scene, so everybody sees the same map and moves their own
   - Barriers on one sixth as many hex edges as there are hexes.
 
   The same seed rolls the same Realm.
+- **Keep this Realm?** a small window held at the foot of the map once a Realm is rolled, with the map itself in view behind it. It counts what was laid down, names the seed, and **Roll again** rolls another Realm onto the same Scene as often as you like. **Keep this Realm** has done with it: only the Realm you keep is pictured in the Scenes tab, given the Company and whispered as a Realm Key. Closing the window keeps what's on the map. A Realm drawn by hand rolls nothing, so it's never asked.
 - **Custom Realm:** a folded section of the New Realm dialog, for a Realm set up your own way.
   - Untick any part (terrain, the river, Holdings, Myths, Landmarks or Barriers) and it's left off the map for you to draw with the Realm tools. The rest is rolled around what you'll draw, so nothing lands in a lake or on top of something else. Untick them all for a blank map.
   - **Ignore the rules for setup** unlocks the numbers, as the book allows: "The guidelines on this page make for a typical Realm, but they can be bent or broken in creating your own Realms" (p14). Set the map's columns and rows (3 to 30 each), the die for a terrain cluster's size, the most lakes, how many Holdings and Myths, how many of each Landmark, and how many Barriers. Barriers follow one sixth of the hexes until you set them yourself. Untick it again and every number goes back to the book's.
