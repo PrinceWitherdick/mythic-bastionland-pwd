@@ -1,0 +1,15 @@
+{{!-- A played Knight is Slain, and their player takes one of the ways on (p8). --}}
+<section class="bastionland-card bastionland-card--fallen">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title"><i class="fa-solid fa-skull" inert></i> {{title}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	<p class="bastionland-card__text">{{text}}</p>
+	{{#if paths.length}}
+	<div class="bastionland-card__actions">
+		{{#each paths}}
+		<button type="button" data-fallen-path="{{key}}" data-fallen-knight="{{../uuid}}"><i class="{{icon}}" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
+</section>

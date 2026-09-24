@@ -50,6 +50,7 @@ import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
+import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
 import { registerLandmarkSettings } from "./module/actions/landmarks.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
@@ -225,6 +226,7 @@ Hooks.once("init", () => {
 	// A Wilderness card offers what the Landmark it found asks of the Company.
 	registerLandmarkCards();
 	registerExplorationCards();
+	registerFallenCards();
 
 	// Duel cards resolve both duelists' Attacks together, and settle Glory staked on them.
 	registerDuelCards();

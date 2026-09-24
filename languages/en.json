@@ -2916,6 +2916,22 @@
         }
       }
     },
+    "fallen": {
+      "title": "A Knight Falls",
+      "tagline": "{name} is Slain.",
+      "text": "Even the boldest Knight can die a sudden or ignoble death. Their player makes a new Knight, added to the Company as quickly as possible, or takes up a Squire or follower.",
+      "paths": {
+        "newKnight": "Make a New Knight",
+        "squire": "Take up Their Squire",
+        "follower": "Take up a Follower"
+      },
+      "takeUpNamed": "Take up {name}",
+      "whichFollower": "Who rode with {name}, and who takes up the journey now?",
+      "newName": "A New Knight",
+      "tookUp": "{name} takes up the Company\u2019s journey where {fallen} left it.",
+      "notYours": "{name} was another player\u2019s Knight. Only their player, or the Referee, says who carries on.",
+      "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
+    },
     "explore": {
       "here": "in this very Hex",
       "away": "{distance} Hexes to the {direction}",

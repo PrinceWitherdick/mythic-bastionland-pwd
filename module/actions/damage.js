@@ -5,6 +5,7 @@ import { attackDamage } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
+import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
@@ -87,6 +88,9 @@ export async function takeDamage(actor, preset = {}) {
 	await postCard(actor, "damage", damageCard(result, appliedArmour, before, outcomes, morale));
 
 	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
+	// A played Knight taken to VIG 0 is Slain, and their player carries on some other way (p8).
+	// Which deaths the book leaves alone is knightHasFallen's to judge, so the outcome goes to it.
+	await announceFallenKnight(actor, result.outcome);
 	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
 	return result;
 }
