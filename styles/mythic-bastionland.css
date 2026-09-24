@@ -4532,7 +4532,9 @@ button.bastionland-company-button:focus-visible {
 	font-family: inherit;
 }
 
-.bastionland-hex-lore__spark {
+/* The rolls for a hex and the ways of finding out about it are each penned in. */
+.bastionland-hex-lore__spark,
+.bastionland-hex-lore__explore {
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
@@ -4542,7 +4544,8 @@ button.bastionland-company-button:focus-visible {
 	border-radius: 4px;
 }
 
-.bastionland-hex-lore__spark legend {
+.bastionland-hex-lore__spark legend,
+.bastionland-hex-lore__explore legend {
 	padding: 0 0.3rem;
 	font-variant: small-caps;
 	letter-spacing: 0.04em;

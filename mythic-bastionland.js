@@ -48,6 +48,7 @@ import { t } from "./module/chat/cards.js";
 import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
+import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -209,6 +210,9 @@ Hooks.once("init", () => {
 
 	// Damage cards and group prompts roll Wavering Morale.
 	registerMoraleCards();
+
+	// Exploration cards offer to mark on the players' map what the Company learned.
+	registerExplorationCards();
 
 	// Duel cards resolve both duelists' Attacks together, and settle Glory staked on them.
 	registerDuelCards();

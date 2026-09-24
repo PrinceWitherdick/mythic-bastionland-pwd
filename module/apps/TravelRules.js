@@ -1,4 +1,5 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
+import { takeExplorationAct } from "../actions/exploration.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { gallop } from "../actions/steeds.js";
@@ -43,7 +44,8 @@ export class TravelRules extends MapSidePanel {
 		id: "bastionland-travel-rules-{id}",
 		actions: {
 			fold: TravelRules.#onFold,
-			roll: TravelRules.#onRoll
+			roll: TravelRules.#onRoll,
+			act: TravelRules.#onAct
 		}
 	};
 
@@ -86,7 +88,8 @@ export class TravelRules extends MapSidePanel {
 						lines: section.lines?.map((line) => ({ label: text(`${key}.lines.${line}.label`), text: text(`${key}.lines.${line}.text`) })) ?? null,
 						rows: section.rows?.map((row, index) => ({ band: D6_BANDS[index], text: text(`${key}.rows.${row}`) })) ?? null,
 						note: section.note ? text(`${key}.note`) : null,
-						roll: isGM && section.roll ? { key: section.roll, label: text(`${key}.roll`) } : null
+						roll: isGM && section.roll ? { key: section.roll, label: text(`${key}.roll`) } : null,
+						act: isGM && section.act ? { key: section.act, label: text(`${key}.act`) } : null
 					};
 				})
 			})),
@@ -122,6 +125,14 @@ export class TravelRules extends MapSidePanel {
 		const { folded } = getView();
 		await setView({ folded: folded.includes(this.side) ? folded.filter((side) => side !== this.side) : [...folded, this.side] });
 		return this.render();
+	}
+
+	/**
+	 * What the Company does when it stops and looks about (p19).
+	 * @this {TravelRules}
+	 */
+	static #onAct(_event, target) {
+		return takeExplorationAct(target.dataset.act, { scene: canvas.scene });
 	}
 
 	/** @this {TravelRules} */

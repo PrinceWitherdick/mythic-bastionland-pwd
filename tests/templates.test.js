@@ -21,6 +21,7 @@ import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SITE_STEPS, STEP_ROLLS, STEP_STATES } from "../module/rules/sites.js";
 import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
 import { COLLECTION_RESULTS, COUNCIL_SEATS, CRISES, CRISIS_RESULTS, DRAMA_RESULTS } from "../module/rules/dominion.js";
+import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
 import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
@@ -193,13 +194,16 @@ describe("localization", () => {
 		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
 		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),
-		...TRAVEL_RULES.flatMap(({ sections }) => sections.flatMap(({ key, intro, lines = [], rows = [], note, roll }) => [
+		...partsOf("explore.folklore.sources", [...FOLK_SOURCES], ["label", "hint"]),
+		...partsOf("explore.search.aims", [...SEARCH_AIMS], ["label", "hint"]),
+		...TRAVEL_RULES.flatMap(({ sections }) => sections.flatMap(({ key, intro, lines = [], rows = [], note, roll, act }) => [
 			"text",
 			...(intro ? [] : ["heading"]),
 			...lines.flatMap((line) => [`lines.${line}.label`, `lines.${line}.text`]),
 			...rows.map((row) => `rows.${row}`),
 			...(note ? ["note"] : []),
-			...(roll ? ["roll"] : [])
+			...(roll ? ["roll"] : []),
+			...(act ? ["act"] : [])
 		].map((part) => `travelRules.sections.${key}.${part}`)))
 	].map((key) => `bastionland.${key}`);
 

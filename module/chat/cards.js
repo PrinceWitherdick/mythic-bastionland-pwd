@@ -69,6 +69,27 @@ export const warn = (key, data) => ui.notifications.warn(t(key, data));
 export const plural = (key, count) => t(count === 1 ? `${key}One` : key, { count });
 
 /**
+ * A list of keys as a window offers them to be picked between: each with the
+ * words kept under its own key, and one of them marked as already chosen.
+ * @param {readonly string[]} keys
+ * @param {string} path Where their words are kept, such as "explore.search.aims".
+ * @param {object} [options]
+ * @param {"checked"|"selected"|"active"} [options.mark] What marks the chosen one: `checked` for a
+ *   radio, `selected` for a drop-down, `active` for a row of buttons.
+ * @param {string} [options.chosen] Which is chosen, the first of them by default.
+ * @param {boolean} [options.hint]  Whether each carries the book's own line about it.
+ * @returns {object[]}
+ */
+export function keyChoices(keys, path, { mark = "checked", chosen = keys[0], hint = true } = {}) {
+	return keys.map((key) => ({
+		key,
+		label: t(`${path}.${key}.label`),
+		...(hint ? { hint: t(`${path}.${key}.hint`) } : {}),
+		[mark]: key === chosen
+	}));
+}
+
+/**
  * Handle clicks on a card's buttons, holding each button disabled until its
  * handler finishes so a double click doesn't act twice.
  * @param {HTMLElement} element  The card, or the message holding it.
@@ -86,6 +107,23 @@ export function onCardClick(element, selector, handler) {
 		} finally {
 			button.disabled = false;
 		}
+	});
+}
+
+/**
+ * Wire up one kind of card's buttons wherever chat draws it. A card module says
+ * what marks its own buttons and what pressing one does; a card that carries
+ * none of them is left alone. Called during init.
+ * @param {object} card
+ * @param {string} card.selector   What marks its buttons, such as "[data-fallen-path]".
+ * @param {boolean} [card.gmOnly]  Whether they're the Referee's alone, as a card whispered to them is.
+ * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
+ * @returns {void}
+ */
+export function registerCardButtons({ selector, gmOnly = false, handler }) {
+	Hooks.on("renderChatMessageHTML", (message, html) => {
+		if ((gmOnly && !game.user.isGM) || !html.querySelector(selector)) return;
+		onCardClick(html, selector, (button) => handler(button, message));
 	});
 }
 

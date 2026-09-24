@@ -1,0 +1,32 @@
+{{!-- What one of the Realm's people can tell the Company (Gathering Folklore, p19). --}}
+<section class="bastionland-card bastionland-card--folklore">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title"><i class="fa-solid fa-comments" inert></i> {{title}}</h3>
+		<p class="bastionland-card__tagline">{{source}} · {{hex}}</p>
+	</header>
+
+	{{#each myths}}
+	<p><strong>{{#if name}}{{number}}. {{name}}{{else}}{{localize "bastionland.explore.folklore.mythNumber" number=number}}{{/if}}</strong>{{#if page}} <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=page}}</span>{{/if}}</p>
+	<p class="bastionland-card__location">{{where}}</p>
+	{{/each}}
+
+	{{#each landmarks}}
+	<p><strong>{{type}}</strong>{{#if name}}: {{name}}{{/if}} <span class="bastionland-card__location">{{where}}</span></p>
+	{{/each}}
+
+	{{#if nothing}}
+	<p class="bastionland-card__text">{{nothing}}</p>
+	{{/if}}
+	{{#if rumours}}
+	<p class="bastionland-card__hint">{{rumours}}</p>
+	{{/if}}
+	{{#if secrets}}
+	<p class="bastionland-card__hint">{{secrets}}</p>
+	{{/if}}
+
+	{{#if mark}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-explore-mark="{{mark.ids}}" data-explore-scene="{{scene}}"><i class="fa-solid fa-map-location-dot" inert></i> {{mark.label}}</button>
+	</div>
+	{{/if}}
+</section>

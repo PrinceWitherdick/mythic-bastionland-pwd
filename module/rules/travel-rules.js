@@ -30,6 +30,7 @@ const refereeRows = (key) => REFEREE_TABLES.find((table) => table.key === key).r
  * @property {readonly string[]} [rows] A d6 table's results, one for each of D6_BANDS.
  * @property {boolean} [note] A second paragraph follows the list or table.
  * @property {string} [roll] What a GM's roll button beside it rolls: "wilderness", "gallop", or one of REFEREE_TABLES.
+ * @property {string} [act]  What a GM's button beside it does, where nothing is rolled: "folklore", "search" or "vantage".
  */
 
 /**
@@ -68,9 +69,15 @@ export const TRAVEL_RULES = Object.freeze([
 		key: "exploration",
 		page: 19,
 		side: "right",
-		sections: [{ key: "land", note: true }, { key: "actions", note: true }, { key: "saves", lead: true, lines: ["vig", "cla", "spi"] }, { key: "searching" }, { key: "vision" }]
+		sections: [
+			{ key: "land", note: true },
+			{ key: "actions", note: true },
+			{ key: "saves", lead: true, lines: ["vig", "cla", "spi"] },
+			{ key: "searching", act: "search" },
+			{ key: "vision", act: "vantage" }
+		]
 	},
-	{ key: "folklore", page: 19, side: "right", sections: [{ key: "folklore", intro: true, lines: ["vassals", "roamers", "everyone", "seers"] }] }
+	{ key: "folklore", page: 19, side: "right", sections: [{ key: "folklore", intro: true, lines: ["vassals", "roamers", "everyone", "seers"], act: "folklore" }] }
 ].map((group) => Object.freeze({ ...group, sections: Object.freeze(group.sections.map((section) => Object.freeze(section))) })));
 
 /** Every group's key, in order. */

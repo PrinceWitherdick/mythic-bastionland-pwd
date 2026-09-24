@@ -1,0 +1,14 @@
+<div class="bastionland-dialog__body">
+	<p>{{intro}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.explore.folklore.who"}}</legend>
+		{{#each sources}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="radio" name="source" value="{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	<p class="hint">{{localize "bastionland.explore.folklore.freely"}}</p>
+</div>

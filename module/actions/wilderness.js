@@ -22,7 +22,7 @@ import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
  * @param {object} g
  * @returns {{hex: object|null, split: boolean}}
  */
-function findCompany(scene, g) {
+export function findCompany(scene, g) {
 	// One Token stands for the whole Company where the Realm has one (p7), so
 	// there is nothing to work out and no way for the Company to be split.
 	const company = findCompanyToken(scene);
@@ -31,6 +31,43 @@ function findCompany(scene, g) {
 	const selected = scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
 	const tokens = selected.length ? selected : scene.tokens.filter((token) => token.actor?.hasPlayerOwner);
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
+}
+
+/**
+ * Where the Company stands, with a word to the Referee where nothing says so or
+ * the Company is spread over more than one hex. Shared by everything that acts
+ * on the hex the Company is in.
+ * @param {Scene} scene
+ * @param {object} g
+ * @returns {{col: number, row: number}|null} Null when no Token says where they are.
+ */
+export function companyHexOrWarn(scene, g) {
+	const company = findCompany(scene, g);
+	if (!company.hex) {
+		ui.notifications.warn(t("realm.wilderness.noToken"));
+		return null;
+	}
+	if (company.split) ui.notifications.warn(t("realm.wilderness.split", { hex: t("realm.hex", company.hex) }));
+	return company.hex;
+}
+
+/**
+ * The Realm a command acts on, and where the Company stands in it. Everything
+ * that acts on the Company's own hex begins here, so a Scene that is no Realm
+ * and a Company with no Token on it are answered in the one place.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}|null} [hex] Where to act, or the Company's own hex.
+ * @returns {{realm: object, g: object, where: object}|null} Null with a word to the Referee.
+ */
+export function realmAndCompany(scene, hex = null) {
+	if (!isRealmScene(scene)) {
+		ui.notifications.warn(t("realm.wilderness.notRealm"));
+		return null;
+	}
+	const g = sceneGeometry(scene);
+	const where = hex ?? companyHexOrWarn(scene, g);
+	if (!where) return null;
+	return { realm: getRealm(scene).realm, g, where };
 }
 
 /** @returns {boolean} Whether any player's Knight is a Knight-Radiant, worthy of the City Quest. */
@@ -66,23 +103,9 @@ async function chooseMode(hex) {
  */
 export async function wildernessRoll({ scene = canvas.scene, hex = null } = {}) {
 	if (!game.user.isGM) return null;
-	if (!isRealmScene(scene)) {
-		ui.notifications.warn(t("realm.wilderness.notRealm"));
-		return null;
-	}
-	const g = sceneGeometry(scene);
-	const { realm } = getRealm(scene);
-
-	let where = hex;
-	if (!where) {
-		const company = findCompany(scene, g);
-		if (!company.hex) {
-			ui.notifications.warn(t("realm.wilderness.noToken"));
-			return null;
-		}
-		if (company.split) ui.notifications.warn(t("realm.wilderness.split", { hex: t("realm.hex", company.hex) }));
-		where = company.hex;
-	}
+	const place = realmAndCompany(scene, hex);
+	if (!place) return null;
+	const { realm, g, where } = place;
 
 	const situation = wildernessSituation(realm, where);
 	const rolls = [];

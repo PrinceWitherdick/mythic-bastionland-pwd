@@ -1,0 +1,36 @@
+{{!-- A Phase spent sweeping the Hex, or the land as a vantage point shows it (p19). --}}
+<section class="bastionland-card bastionland-card--survey">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title"><i class="fa-solid fa-binoculars" inert></i> {{title}}</h3>
+		<p class="bastionland-card__tagline">{{hex}}{{#if terrain}}, {{terrain}}{{/if}}</p>
+	</header>
+
+	{{#if holding}}
+	<p class="bastionland-card__text">{{holding}}</p>
+	{{/if}}
+	{{#if myth}}
+	<p class="bastionland-card__text">{{myth}}</p>
+	{{/if}}
+	{{#if landmark}}
+	<p class="bastionland-card__text">{{landmark}}</p>
+	{{/if}}
+
+	{{#if around.length}}
+	<ul class="bastionland-card__entries">
+		{{#each around}}
+		<li>
+			<strong>{{direction}}</strong> · {{hex}}
+			<p class="bastionland-card__text">{{terrain}}{{#if holding}} · {{holding}}{{/if}}{{#if barrier}} · {{barrier}}{{/if}}</p>
+		</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+
+	<p class="bastionland-card__hint">{{hint}}</p>
+
+	{{#if mark}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-explore-mark="{{mark.ids}}" data-explore-scene="{{scene}}"><i class="fa-solid fa-map-location-dot" inert></i> {{mark.label}}</button>
+	</div>
+	{{/if}}
+</section>

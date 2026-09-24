@@ -1234,6 +1234,8 @@
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "when": "rolled in {when}",
+      "explore": "Find out what’s here",
+      "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
       "settings": {
         "prompt": {
           "name": "Reaching a new hex",
@@ -1476,19 +1478,19 @@
           "label": "Open",
           "plural": "Open",
           "hint": "A solid line. A straightforward path between points.",
-          "to": "Open to {number}"
+          "to": "Open path to {number}"
         },
         "closed": {
           "label": "Closed",
           "plural": "Closed",
           "hint": "A crossed line. Something blocks the way, so creative thinking is required.",
-          "to": "Closed to {number}"
+          "to": "Closed path to {number}"
         },
         "hidden": {
           "label": "Hidden",
           "plural": "Hidden",
           "hint": "A dotted line. Only found by exploring the points at either end, or through local knowledge.",
-          "to": "Hidden to {number}"
+          "to": "Has a hidden path to {number}"
         }
       },
       "entrances": {
@@ -2619,6 +2621,87 @@
       "credit": "Creating a Realm, as printed on the free Blank Realm sheet by Chris McDowall, Bastionland Press (p14). Run Import PDF to read the rulebook’s own page here.",
       "bookCredit": "Creating a Realm, read from your copy of the rulebook by Chris McDowall, Bastionland Press (p14)."
     },
+    "explore": {
+      "here": "in this very Hex",
+      "away": "{distance} Hexes to the {direction}",
+      "awayOne": "the next Hex to the {direction}",
+      "mark": "Mark it on the players’ map",
+      "marked": "Marked on the players’ map: {count}.",
+      "markedNothing": "The players’ map already shows all of it.",
+      "folklore": {
+        "title": "Gathering Folklore",
+        "intro": "Somebody in {hex} is asked what they know of the Realm.",
+        "who": "Who is asked",
+        "freely": "Such vast knowledge isn’t given freely. What they want in return is for the table to settle.",
+        "ask": "Ask Them",
+        "sources": {
+          "vassal": {
+            "label": "A Vassal",
+            "hint": "Knows their nearest Myth and its general direction, precisely where it lies if it is adjacent to their home, and the Landmarks in their home and neighbouring Hexes."
+          },
+          "roamer": {
+            "label": "A Knight or Vagabond",
+            "hint": "Has roamed enough to know a random Myth of the Realm and its rough direction, and the nearest Landmark."
+          },
+          "seer": {
+            "label": "A Seer",
+            "hint": "Knows the rules of all Myths, their secrets, weaknesses and cures, their locations, and every Landmark in the Realm."
+          }
+        },
+        "mythNumber": "Myth {number}",
+        "precise": "{hex}, {where}",
+        "at": "{hex}, {where}",
+        "nothing": "They know of no Myth and no Landmark from here.",
+        "rumours": "They know rumours that warn of dangers, but not how to avoid or undo them.",
+        "secrets": "They know this Myth’s rules and secrets, its weaknesses, and the cures to its maladies."
+      },
+      "search": {
+        "title": "Searching",
+        "intro": "A whole Phase is spent searching {hex}.",
+        "aim": "What the Phase is spent on",
+        "aims": {
+          "sweep": {
+            "label": "Sweep the whole Hex",
+            "hint": "A surface level sweep of the entire Hex."
+          },
+          "known": {
+            "label": "Search for something known to be here",
+            "hint": "A thorough search for something known to exist there, which is a normal action and calls for a Save."
+          },
+          "vantage": {
+            "label": "Find a vantage point",
+            "hint": "Climb to somewhere the Hex and the land around it can be taken in."
+          }
+        },
+        "ifItCalls": "If the action calls for a Save",
+        "what": "What they seek",
+        "whatPlaceholder": "What are they searching for?",
+        "who": "Who rolls",
+        "virtue": "Virtue",
+        "virtueHint": "The Company decides who rolls, using their Virtue. Consider the main activity involved in the risky part.",
+        "phase": "The Phase passes",
+        "phaseHint": "Searching takes a whole Phase of the day. Untick it where the Referee rules otherwise.",
+        "ok": "Search",
+        "saveTitle": "Exploration Save",
+        "searching": "Searching the Hex",
+        "found": "They find what they sought.",
+        "obstacle": "The goal might still be achievable, but now faces an obstacle, a hostile encounter, or an additional cost. Nature has its own whims: bad weather, shifting land.",
+        "noOne": "Nobody was chosen to roll the Save, so nothing was rolled."
+      },
+      "survey": {
+        "sweepTitle": "The Hex Swept",
+        "vantageTitle": "From the Vantage Point",
+        "holding": "A Holding stands here: {name}.",
+        "seat": "The Seat of Power stands here: {name}.",
+        "myth": "The Hex is clearly affected by the presence of Myth {number}.",
+        "landmark": "{type} {name}",
+        "barrier": "a Barrier between",
+        "someHolding": "walls in the distance",
+        "unknownLand": "land unmarked on the map",
+        "sweepHint": "A sweep takes in the Hex itself. What lies in the Hexes around it waits on the Wilderness Roll.",
+        "vantageHint": "A vantage point gives an overview of this Hex and a general sense of the land around, but not specific details: the Myths and Landmarks hidden out there keep their secrets."
+      }
+    },
     "travelRules": {
       "titles": {
         "left": "Travel",
@@ -2747,14 +2830,17 @@
           }
         },
         "searching": {
+          "act": "Search the Hex",
           "heading": "Searching",
           "text": "It takes a whole Phase to carry out a surface level sweep of an entire Hex, thoroughly search for something known to exist there, or find a vantage point."
         },
         "vision": {
+          "act": "Look from a Vantage Point",
           "heading": "Vision",
           "text": "From a vantage point it’s possible to get an overview of the current Hex and a general sense of what lies in neighbouring hexes, but not specific details."
         },
         "folklore": {
+          "act": "Ask Somebody",
           "text": "Everybody knows something about Myths. How much depends on who they are.",
           "lines": {
             "vassals": { "label": "Vassals", "text": "know about their nearest Myth, and its general direction. If it is adjacent to their home then they know its precise location. They know Landmarks in their home and neighbouring Hexes." },

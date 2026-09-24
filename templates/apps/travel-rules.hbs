@@ -55,6 +55,11 @@
 					<i class="fa-solid fa-dice-d6" inert></i> {{roll.label}}
 				</button>
 				{{/if}}
+				{{#if act}}
+				<button type="button" class="bastionland-travel-rules__roll" data-action="act" data-act="{{act.key}}">
+					<i class="fa-solid fa-binoculars" inert></i> {{act.label}}
+				</button>
+				{{/if}}
 			</section>
 			{{/each}}
 		</details>

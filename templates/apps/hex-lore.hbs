@@ -66,9 +66,21 @@
 		{{/each}}
 	</ul>
 
+	<fieldset class="bastionland-hex-lore__explore">
+		<legend>{{localize "bastionland.hexLore.explore"}}</legend>
+		<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.exploreHint"}}</p>
+		<div class="bastionland-hex-lore__row">
+			<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
+			<button type="button" data-action="act" data-act="folklore"><i class="fa-solid fa-comments" inert></i> {{localize "bastionland.travelRules.sections.folklore.act"}}</button>
+		</div>
+		<div class="bastionland-hex-lore__row">
+			<button type="button" data-action="act" data-act="search"><i class="fa-solid fa-magnifying-glass" inert></i> {{localize "bastionland.travelRules.sections.searching.act"}}</button>
+			<button type="button" data-action="act" data-act="vantage"><i class="fa-solid fa-binoculars" inert></i> {{localize "bastionland.travelRules.sections.vision.act"}}</button>
+		</div>
+	</fieldset>
+
 	<div class="bastionland-hex-lore__row">
 		<button type="button" data-action="tell" {{disabled tellDisabled}}><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
-		<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
 	</div>
 	{{/if}}
 </div>

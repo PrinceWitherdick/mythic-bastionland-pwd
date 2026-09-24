@@ -1,4 +1,5 @@
 import { calendarLabel } from "../actions/calendar.js";
+import { takeExplorationAct } from "../actions/exploration.js";
 import {
 	forgetHexSpark,
 	getHexRecord,
@@ -39,6 +40,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			forget: HexLore.#onForget,
 			tell: HexLore.#onTell,
 			wilderness: HexLore.#onWilderness,
+			act: HexLore.#onAct,
 			browse: HexLore.#onBrowse,
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits
@@ -179,6 +181,15 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onWilderness() {
 		return wildernessRoll({ scene: this.scene, hex: this.hex });
+	}
+
+	/**
+	 * Gathering Folklore, searching, or what a vantage point shows, whichever
+	 * the button names (p19).
+	 * @this {HexLore}
+	 */
+	static #onAct(_event, target) {
+		return takeExplorationAct(target.dataset.act, { scene: this.scene, hex: this.hex });
 	}
 
 	/** @this {HexLore} */

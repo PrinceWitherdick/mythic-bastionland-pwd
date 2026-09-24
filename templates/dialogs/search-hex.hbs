@@ -1,0 +1,49 @@
+<div class="bastionland-dialog__body">
+	<p>{{intro}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.explore.search.aim"}}</legend>
+		{{#each aims}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="radio" name="aim" value="{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+
+	<fieldset>
+		<legend>{{localize "bastionland.explore.search.ifItCalls"}}</legend>
+		<div class="form-group">
+			<label for="bastionland-search-what">{{localize "bastionland.explore.search.what"}}</label>
+			<div class="form-fields">
+				<input id="bastionland-search-what" type="text" name="what" placeholder="{{localize 'bastionland.explore.search.whatPlaceholder'}}" autocomplete="off">
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="bastionland-search-who">{{localize "bastionland.explore.search.who"}}</label>
+			<div class="form-fields">
+				<select id="bastionland-search-who" name="who">
+					{{#each knights}}
+					<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="bastionland-search-virtue">{{localize "bastionland.explore.search.virtue"}}</label>
+			<div class="form-fields">
+				<select id="bastionland-search-virtue" name="virtue">
+					{{#each virtues}}
+					<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}} — {{hint}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<p class="hint">{{localize "bastionland.explore.search.virtueHint"}}</p>
+		</div>
+	</fieldset>
+
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.explore.search.phaseHint'}}">
+		<input type="checkbox" name="phase" checked>
+		<span class="bastionland-check__label">{{localize "bastionland.explore.search.phase"}}</span>
+	</label>
+</div>
