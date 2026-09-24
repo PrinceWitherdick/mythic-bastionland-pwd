@@ -30,7 +30,8 @@ export function duelCardContext(duel) {
 		})),
 		exchanges: duel.exchanges ? t("duel.exchanges", { count: duel.exchanges }) : null,
 		notes: [duel.stake && t("duel.stakeNote"), duel.bloodless && t("duel.bloodlessNote")].filter(Boolean),
-		resolveLocked: !readyToResolve(duel),
+		// Resolve stays live before both Attacks are in, and says what it waits for.
+		resolveHint: readyToResolve(duel) ? null : t("duel.notReady"),
 		ended: duel.ended,
 		outcome: victor ? t("duel.won", { name: victor.name }) : t("duel.endedNoVictor")
 	};
@@ -92,8 +93,10 @@ export async function onDuelQuery({ messageId, change }, { user }) {
 }
 
 /**
- * Two combatants agree to a duel, or a joust if mounted: the actor, and the
- * one Token this user targets. Posts the duel card that follows them.
+ * Two combatants agree to a duel: the actor, and the one Token this user
+ * targets. It opens on a plain duel, whether either is mounted or not, since
+ * a joust is the rarer of the two and is asked for when it's meant. Posts the
+ * duel card that follows them.
  * @param {Actor} actor
  * @returns {Promise<ChatMessage|null>}
  */
@@ -106,7 +109,6 @@ export async function challengeToDuel(actor) {
 	const [target] = targets;
 	const opponent = target.actor;
 	const stakeable = canStakeGlory([actor, opponent].map(({ type, system }) => ({ type, isSquire: Boolean(system.isSquire) })));
-	const joust = Boolean(actor.system.steed);
 
 	const data = await inputDialog({
 		title: t("duel.title"),
@@ -114,7 +116,7 @@ export async function challengeToDuel(actor) {
 		template: "duel",
 		context: {
 			intro: t("duel.intro", { name: actor.name, opponent: target.document.name }),
-			kinds: DUEL_KINDS.map((key) => ({ key, label: t(`duel.kinds.${key}.label`), hint: t(`duel.kinds.${key}.hint`), selected: (key === "joust") === joust })),
+			kinds: DUEL_KINDS.map((key) => ({ key, label: t(`duel.kinds.${key}.label`), hint: t(`duel.kinds.${key}.hint`), selected: key === DUEL_KINDS[0] })),
 			stakeLocked: !stakeable,
 			stakeHint: t(stakeable ? "duel.stakeHint" : "duel.stakeKnightsOnly")
 		},

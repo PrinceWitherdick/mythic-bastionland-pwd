@@ -24,7 +24,7 @@
 		</label>
 		{{#if specialist}}
 		<label class="bastionland-check bastionland-check--nested" data-tooltip="{{localize 'bastionland.attack.specialistHint'}}">
-			<input type="checkbox" name="specialist.{{id}}">
+			<input type="checkbox" name="specialist.{{id}}" {{checked specialistChecked}}>
 			<span class="bastionland-check__label">{{specialist}}</span>
 		</label>
 		{{/if}}
@@ -40,11 +40,11 @@
 			<span class="bastionland-check__label">{{localize "bastionland.attack.moved"}}</span>
 		</label>
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.engagedHint'}}">
-			<input type="checkbox" name="engaged">
+			<input type="checkbox" name="engaged" {{checked engaged}}>
 			<span class="bastionland-check__label">{{localize "bastionland.attack.engaged"}}</span>
 		</label>
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.confinedHint'}}">
-			<input type="checkbox" name="confined">
+			<input type="checkbox" name="confined" {{checked confined}}>
 			<span class="bastionland-check__label">{{localize "bastionland.attack.confined"}}</span>
 		</label>
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.mountedHint'}}">
@@ -53,16 +53,19 @@
 		</label>
 		{{#if charge}}
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.chargeHint'}}">
-			<input type="checkbox" name="charge">
+			<input type="checkbox" name="charge" {{checked chargeChecked}}>
 			<span class="bastionland-check__label">{{charge}}</span>
 		</label>
 		{{/if}}
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.spearwallHint'}}">
-			<input type="checkbox" name="spearwall">
+			<input type="checkbox" name="spearwall" {{checked spearwall}}>
 			<span class="bastionland-check__label">{{localize "bastionland.attack.spearwall"}}</span>
 		</label>
 		{{#if exhausted}}
 		<p class="hint">{{localize "bastionland.conditions.exhausted.hint"}}</p>
+		{{/if}}
+		{{#if impaired}}
+		<p class="hint">{{localize "bastionland.attack.impaired"}}</p>
 		{{/if}}
 	</fieldset>
 
@@ -90,7 +93,7 @@
 
 	{{#if warband}}
 	<label class="bastionland-check">
-		<input type="checkbox" name="againstIndividuals" checked>
+		<input type="checkbox" name="againstIndividuals" {{checked againstIndividuals}}>
 		<span class="bastionland-check__label">{{localize "bastionland.attack.againstIndividuals"}}</span>
 	</label>
 	<p class="hint">{{localize "bastionland.attack.againstIndividualsHint"}}</p>
@@ -108,10 +111,4 @@
 		<p class="hint">{{localize "bastionland.attack.leaderHint"}}</p>
 	</div>
 	{{/if}}
-
-	<label class="bastionland-check">
-		<input type="checkbox" name="impaired" {{checked impaired}}>
-		<span class="bastionland-check__label">{{localize "bastionland.conditions.impaired.label"}}</span>
-	</label>
-	<p class="hint">{{localize "bastionland.attack.impaired"}}</p>
 </div>

@@ -23,7 +23,7 @@
 	{{else}}
 	<p class="bastionland-card__hint">{{localize "bastionland.duel.howTo"}}</p>
 	<div class="bastionland-card__actions">
-		<button type="button" data-duel-action="resolve" {{disabled resolveLocked}}><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.duel.resolve"}}</button>
+		<button type="button" data-duel-action="resolve"{{#if resolveHint}} data-tooltip="{{resolveHint}}"{{/if}}><i class="fa-solid fa-swords" inert></i> {{localize "bastionland.duel.resolve"}}</button>
 	</div>
 	<div class="bastionland-card__actions">
 		{{#each duelists}}

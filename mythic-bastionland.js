@@ -38,6 +38,7 @@ import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
+import { registerAttackMemory } from "./module/actions/attack-memory.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { registerGambitMarks } from "./module/chat/gambit-marks.js";
 import { t } from "./module/chat/cards.js";
@@ -189,6 +190,9 @@ Hooks.once("init", () => {
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();
 	registerGambitMarks();
+
+	// The Attack dialog opens on the choices last rolled with for that actor.
+	registerAttackMemory();
 
 	// Damage cards and group prompts roll Wavering Morale.
 	registerMoraleCards();

@@ -38,6 +38,12 @@ describe("findKeywords", () => {
 		expect(findKeywords("Long ago, a Slow river")).toEqual([]);
 	});
 
+	it("reads the qualities the Attack dialog joins with a middle dot", () => {
+		expect(words("d10 · Long")).toEqual(["Long"]);
+		expect(words("d8 · Hefty · Slow")).toEqual(["Hefty", "Slow"]);
+		expect(words("d6 · Ranged")).toEqual(["Ranged"]);
+	});
+
 	it("finds Hefty and Blast wherever they're capitalised, and lower case after dice", () => {
 		expect(words("Mace (d8 hefty)")).toEqual(["hefty"]);
 		expect(words("Only one Hefty item")).toEqual(["Hefty"]);

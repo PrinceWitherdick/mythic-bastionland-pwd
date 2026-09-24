@@ -20,6 +20,7 @@ import {
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./attack-memory.js";
 import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
@@ -144,6 +145,27 @@ function watchWielding(dialog, actor, sources) {
 }
 
 /**
+ * Which weapons the dialog opens ticked: the ones this actor last rolled with,
+ * and the hardest-hitting of anything they've taken up since. A remembered set
+ * that can't be held together any more — a shield beside a weapon since made
+ * Hefty — gives way to the hardest-hitting set instead, so the dialog doesn't
+ * open on an Attack that can't be rolled.
+ * @param {Actor} actor
+ * @param {Item[]} sources
+ * @param {import("./attack-memory.js").AttackChoice|null} remembered
+ * @param {boolean} mounted
+ * @returns {number[]} Indexes into sources.
+ */
+function openingWielded(actor, sources, remembered, mounted) {
+	const items = sources.map((item) => item.system);
+	const options = { mounted, hands: actor.type === "knight" };
+	const hardest = defaultWielded(items, options);
+	if (!remembered) return hardest;
+	const kept = wieldedWith(remembered, sources.map((item) => item.id), hardest);
+	return checkWielding(kept.map((index) => items[index]), options).refusal ? hardest : kept;
+}
+
+/**
  * Ask which weapons to use, roll the Attack dice together, and post a card
  * where the table declares Deny and Gambits and applies the Damage. A Blast
  * against several targeted Tokens rolls separately for each, one card apiece.
@@ -164,10 +186,11 @@ export async function attack(actor) {
 	// so a landed Impair leaves no room for Smite's +d12 any more than SPI 0 does.
 	const startsImpaired = conditions.impaired || marks.some((mark) => mark.key === "impair");
 
-	// Somebody with a steed is taken to be riding it, but may have dismounted. A joust is fought mounted.
-	const mounted = Boolean(actor.system.steed) || duel?.duel.kind === "joust";
-	// Items that can't be held together open with only the hardest-hitting of them ticked.
-	const wielded = defaultWielded(sources.map((item) => item.system), { mounted, hands: actor.type === "knight" });
+	// What this actor last rolled an Attack with, which the dialog opens on again.
+	const remembered = recallAttack(actor);
+	// A joust is fought mounted. Otherwise nobody is taken to be riding, steed or no, until they say so.
+	const mounted = duel?.duel.kind === "joust" || Boolean(remembered?.mounted);
+	const wielded = openingWielded(actor, sources, remembered, mounted);
 
 	const data = await inputDialog({
 		title: t("attack.title"),
@@ -180,9 +203,12 @@ export async function attack(actor) {
 				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · "),
 				checked: wielded.includes(index),
 				// Ticked by the player when the situation it's made for comes up.
-				specialist: specialistLabel(item.system)
+				specialist: specialistLabel(item.system),
+				specialistChecked: Boolean(remembered?.specialist?.[item.id])
 			})),
+			...rememberedTicks(remembered),
 			moved: movedThisTurn(actor),
+			// Read off the world rather than remembered, so it follows the steed.
 			mounted,
 			duel: duel && t("duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
 			charge: mount && t("attack.charge", { steed: mount.steed.name, dice: mount.trample.map((item) => item.system.damage).join(" + ") }),
@@ -204,6 +230,8 @@ export async function attack(actor) {
 		ui.notifications.warn(t(`attack.refusals.${check.refusal}`, { name: actor.name }));
 		return null;
 	}
+	// Their next Attack with this actor opens on what they chose here.
+	await rememberAttack(actor, choice);
 	const chosen = check.usable.map((index) => picked[index]);
 	// Leading from the front adds the leader's Attack dice to the Warband's roll (p11).
 	const leader = leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
@@ -220,7 +248,8 @@ export async function attack(actor) {
 	// and forgets a leader who no longer does.
 	const leaderUuid = leader?.uuid ?? "";
 	if (warband && actor.isOwner && actor.system.leader !== leaderUuid) await actor.update({ "system.leader": leaderUuid });
-	const impaired = Boolean(choice.impaired) || check.impaired || !weaponDice.length;
+	// Impaired is read off the actor and the marks on them, never declared in the dialog.
+	const impaired = startsImpaired || check.impaired || !weaponDice.length;
 	// A Warband's Attack on individuals gets +d12 and Blast (Warfare, p11).
 	const againstIndividuals = warband && Boolean(choice.againstIndividuals);
 

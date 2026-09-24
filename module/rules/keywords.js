@@ -6,15 +6,24 @@
  * The book capitalises its rule words, so they are matched as written: "Save"
  * is the rule, "save" is only a word. "Long" and "Slow" are ordinary words
  * even capitalised, so they count only where a weapon's qualities are listed:
- * after its dice ("d10 long"), in a tag list ("(d8, Long)"), or naming the
- * kind of weapon ("Slow weapons").
+ * after its dice ("d10 long"), in a tag list ("(d8, Long)" or "d8 · Long"), or
+ * naming the kind of weapon ("Slow weapons").
  */
 
 /** A weapon's dice, such as "d8", "2d10" or "d6+d8", and the space after them. */
 const AFTER_DICE = String.raw`(?<=(?<![\p{L}\p{N}])\d*d\d+(?:\s*\+\s*\d*d\d+)*\s+)`;
 
-/** Inside a list of tags: after "(" or ", ", and before "," or ")". */
-const IN_TAGS = (word) => String.raw`(?<=[(,]\s*)${word}(?=\s*[,)])`;
+/**
+ * Inside a list of tags, written either way the system writes one: between
+ * brackets and commas, as an item row does in "(d10, Long)", or set off by the
+ * middle dot the Attack dialog joins a weapon's qualities with, as in
+ * "d10 · Long". Nothing else writes that dot, so one side of it is enough.
+ */
+const IN_TAGS = (word) => [
+	String.raw`(?<=[(,]\s*)${word}(?=\s*[,)])`,
+	String.raw`(?<=·\s*)${word}`,
+	String.raw`${word}(?=\s*·)`
+].join("|");
 
 /**
  * A weapon quality: capitalised anywhere it's unmistakable, and otherwise
