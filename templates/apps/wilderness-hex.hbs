@@ -1,0 +1,35 @@
+<section class="bastionland-page bastionland-wilderness-hex">
+	<p class="bastionland-hint">{{localize "bastionland.hexLore.wildHex.intro"}} {{reference}}</p>
+	<div class="bastionland-wilderness-hex__tables">
+		{{#each tables}}
+		<table class="bastionland-myth-table" data-table="{{index}}">
+			<caption>{{name}}</caption>
+			<thead>
+				<tr>
+					<th scope="col" class="bastionland-myth-table__die">
+						<button type="button" data-action="rollTable" data-table="{{index}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}"><i class="fa-solid fa-dice" inert></i></button>
+					</th>
+					{{#each columns}}
+					<th scope="col"><button type="button" data-action="rollTable" data-table="{{../index}}" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
+					{{/each}}
+				</tr>
+			</thead>
+			<tbody>
+				{{#each rows}}
+				<tr>
+					<th scope="row">{{number}}</th>
+					{{#each entries}}
+					<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}><button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-table="{{../../index}}" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.hexLore.wildHex.pick'}}">{{text}}</button></td>
+					{{/each}}
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+		{{/each}}
+	</div>
+	<nav class="bastionland-toolbar">
+		<button type="button" data-action="rollTable"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.hexLore.wildHex.rollAll"}}</button>
+		<button type="button" data-action="keep" {{disabled nothingTaken}}><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.wildHex.keep"}}</button>
+		<button type="button" data-action="close"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.hexLore.wildHex.close"}}</button>
+	</nav>
+</section>

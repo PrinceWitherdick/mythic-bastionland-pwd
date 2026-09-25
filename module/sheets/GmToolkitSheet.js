@@ -1,10 +1,10 @@
-import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
+import { CALENDAR_HOOK, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
-import { COMPANY_FLAG, companyTokenHex, setCompanyHex } from "../actions/company.js";
+import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
-import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
+import { forgetHexSpark, getHexLore, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
@@ -12,12 +12,13 @@ import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/rea
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { SCOPE_HOOK, makeKnightAhead, scopeView, setScope, setScopePlan } from "../actions/scope.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
-import { isSiteEntry, newSite } from "../actions/sites.js";
+import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
-import { openHexLore } from "../apps/HexLore.js";
+import { openHexLore, sparkWhen } from "../apps/HexLore.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
+import { openWildernessHex } from "../apps/WildernessHex.js";
 import { TIME_ACTIONS, seasonEventLine, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerse, tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
@@ -25,17 +26,19 @@ import { postCard, statLabels, t } from "../chat/cards.js";
 import { reducesMotion, scrollBehavior } from "../client-settings.js";
 import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
-import { REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
-import { visitedNewestFirst } from "../rules/journey.js";
+import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { seasonEventsView } from "../rules/season-events.js";
+import { POINT_KINDS } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
 import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { latestWilderness } from "../rules/hex-lore.js";
+import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
@@ -47,7 +50,6 @@ const { ActorSheetV2 } = foundry.applications.sheets;
 /** Each page's icon on the tab rail. */
 const TAB_ICONS = Object.freeze({
 	myths: "fa-solid fa-dragon",
-	journey: "fa-solid fa-route",
 	places: "fa-solid fa-map-location-dot",
 	time: "fa-solid fa-hourglass-half",
 	notes: "fa-solid fa-feather-pointed"
@@ -68,7 +70,7 @@ const REDRAW_DELAY = 50;
 /** How often to look again whether the GM has left the field a redraw is waiting on. */
 const TYPING_RECHECK = 300;
 
-/** How many of the hexes visited last start unfolded. */
+/** How many of the hexes visited last start unfolded, when the Places page lists the visited first. */
 const OPEN_VISITS = 3;
 
 /**
@@ -95,9 +97,9 @@ function bringIntoView(card) {
 }
 
 /**
- * The GM Toolkit's sheet: a Realm's Myths and their Omens, the hexes the
- * Company has been to with the Spark Tables rolled there, the places of the
- * Realm with what the GM wrote about each, and the GM's own notes. Its pages
+ * The GM Toolkit's sheet: a Realm's Myths and their Omens, the places of the
+ * Realm and the hexes the Company has been to, with what the GM wrote and the
+ * Spark Tables rolled for each, and the GM's own notes. Its pages
  * hang off a tab rail, as the Knight sheet's do. Only GMs ever open it.
  *
  * The fields on the Realm's pages have no names, so the sheet's own form never
@@ -121,7 +123,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			rollHexSet: GmToolkitSheet.#onRollHexSet,
 			tellHex: GmToolkitSheet.#onTellHex,
 			forgetSpark: GmToolkitSheet.#onForgetSpark,
-			standCompany: GmToolkitSheet.#onStandCompany,
 			markVisited: GmToolkitSheet.#onMarkVisited,
 			forgetVisits: GmToolkitSheet.#onForgetVisits,
 			openSite: GmToolkitSheet.#onOpenSite,
@@ -139,7 +140,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			...TIME_ACTIONS,
 			landmarkOffer: GmToolkitSheet.#onLandmarkOffer,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
-			pickWeather: () => pickWeather()
+			pickWeather: () => pickWeather(),
+			placesOrder: GmToolkitSheet.#onPlacesOrder
 		}
 	};
 
@@ -147,7 +149,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		tabs: { template: templatePath("actor/tab-rail.hbs") },
 		header: { template: templatePath("actor/gm-toolkit/header.hbs") },
 		myths: { template: templatePath("actor/gm-toolkit/myths.hbs"), scrollable: [""] },
-		journey: { template: templatePath("actor/gm-toolkit/journey.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
 		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] },
@@ -192,6 +193,12 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 
 	/** Whether a redraw is already on its way. */
 	#redrawing = false;
+
+	/** @type {Record<string, string>} What each page with a search box is searched for, kept across redraws. */
+	#searches = { places: "" };
+
+	/** How the Places page lists its hexes, one of PLACE_ORDERS, kept across redraws. */
+	#placesOrder = PLACE_ORDERS[0];
 
 	/** @returns {Scene|null} The Realm on show: the one chosen, the one on the canvas, or the first there is. */
 	get scene() {
@@ -251,7 +258,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		switch (partId) {
 			case "header": return Object.assign(part, this.#headerContext(data));
 			case "myths": return Object.assign(part, this.#mythsContext(data));
-			case "journey": return Object.assign(part, this.#journeyContext(data));
 			case "places": return Object.assign(part, this.#placesContext(data));
 			case "time": return Object.assign(part, this.#timeContext(data));
 			case "notes": return Object.assign(part, await this.#notesContext());
@@ -458,52 +464,68 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	}
 
 	/**
-	 * The hexes the Company has come into, the last reached first.
-	 * @param {object|null} data
-	 */
-	#journeyContext(data) {
-		if (!data) return { noRealm: true };
-		const visited = visitedNewestFirst(data.journey);
-		return {
-			summary: t("gmToolkit.journey.summary", { count: visited.length, total: data.g.cols * data.g.rows }),
-			visits: visited.map(({ hex }, index) => this.#hexCard(data, hex, { fold: `visit:${hexKey(hex)}`, open: index < OPEN_VISITS }))
-		};
-	}
-
-	/**
-	 * The Realm's Holdings, Landmarks and every other hex written about, and the Sites.
+	 * Every place in the Realm, each hex once, by column then row: the hexes
+	 * the Company has come into, the last three reached unfolded, then the
+	 * rest; or its Holdings, Landmarks and every other hex visited or written
+	 * about. And the Sites.
 	 * @param {object|null} data
 	 */
 	#placesContext(data) {
 		const sites = game.journal.filter(isSiteEntry)
 			.sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang))
-			.map((entry) => ({ uuid: entry.uuid, name: entry.name }));
-		if (!data) return { noRealm: true, sites };
+			.map((entry) => this.#siteRow(entry));
+		const search = this.#searches.places;
+		if (!data) return { noRealm: true, sites, search };
 
-		const { holdings, landmarks, others } = realmPlaces(data.realm, data.lore);
-		const card = (hex, options) => this.#hexCard(data, hex, { fold: `place:${hexKey(hex)}`, open: false, ...options });
-		// A place's card is headed by its name, or by what it is while it has none, and says what it is only once.
-		const named = (name, what) => ({ title: name || what, kind: name ? what : null });
+		const order = this.#placesOrder;
+		const places = realmPlaces(data.realm, data.lore, data.journey);
+		// One fold for a hex in either order, so switching keeps a card as it was left.
+		const card = (hex, open = false) => this.#hexCard(data, hex, { fold: `place:${hexKey(hex)}`, open });
+		const section = (key, cards, hint = false) => ({
+			heading: t(`gmToolkit.places.${key}`),
+			hint: hint ? t(`gmToolkit.places.${key}Hint`) : null,
+			empty: t(`gmToolkit.places.${key}None`),
+			cards
+		});
+		const latest = places.recent.slice(0, OPEN_VISITS);
+		const sections = order === "visited"
+			? [
+				section("visited", places.visited.map((hex) => card(hex, latest.some((seen) => sameHex(seen, hex))))),
+				section("unvisited", places.unvisited.map((hex) => card(hex)), true)
+			]
+			: [
+				section("holdings", places.holdings.map((holding) => card(holding.hex))),
+				section("landmarks", places.landmarks.map((landmark) => card(landmark.hex))),
+				section("others", places.others.map((hex) => card(hex)), true)
+			];
 		return {
-			holdings: holdings.map((holding) => {
-				const { title, kind } = named(holding.name, t(`realm.holdings.${holding.style}`));
-				return card(holding.hex, { title, kind: [kind, holding.seat ? t("gmToolkit.places.seat") : null].filter(Boolean).join(", ") || null, self: "holding" });
-			}),
-			landmarks: landmarks.map((landmark) => {
-				const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
-				return card(landmark.hex, {
-					...named(landmark.name, t(`realm.landmarks.${landmark.type}`)),
-					self: "landmark",
-					// What this sort of Landmark asks of travellers who are there (p14).
-					landmark: landmarkOfferView(landmark.type),
-					status: [
-						seer && { text: t("gmToolkit.places.seer", { name: seer.name }), hidden: false },
-						!landmark.revealed && { text: t("gmToolkit.places.notFound"), hidden: true }
-					].filter(Boolean)
-				});
-			}),
-			others: others.map((hex) => card(hex, { title: t("realm.hex", hex) })),
-			sites
+			summary: t("gmToolkit.places.summary", { count: places.visited.length, total: data.g.cols * data.g.rows }),
+			orders: PLACE_ORDERS.map((key) => ({ key, label: t(`gmToolkit.places.orders.${key}`), active: key === order })),
+			sections,
+			sites,
+			search
+		};
+	}
+
+	/**
+	 * A Site on one row: its name, how many of each kind of point it has, and
+	 * how many of them the players have found.
+	 * @param {JournalEntry} entry
+	 * @returns {object}
+	 */
+	#siteRow(entry) {
+		const points = Object.values(readSite(entry).points).filter((point) => point.kind);
+		const counts = POINT_KINDS.map((kind) => {
+			const count = points.filter((point) => point.kind === kind).length;
+			return count ? `${count} ${t(`sites.points.${kind}.${count === 1 ? "label" : "plural"}`)}` : null;
+		}).filter(Boolean);
+		const found = points.filter((point) => point.found).length;
+		return {
+			uuid: entry.uuid,
+			name: entry.name,
+			counts,
+			found: points.length ? t("gmToolkit.places.siteFound", { found, total: points.length }) : t("gmToolkit.places.siteEmpty"),
+			search: searchable([entry.name, ...counts, ...points.map((point) => point.text)].join(" "))
 		};
 	}
 
@@ -515,43 +537,83 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @param {object} options
 	 * @param {string} options.fold  What remembers whether it's unfolded.
 	 * @param {boolean} options.open Whether it starts unfolded.
-	 * @param {string} [options.title] Defaults to the hex's name.
-	 * @param {string|null} [options.kind] What sort of place it is, when it isn't just a hex.
-	 * @param {"holding"|"landmark"} [options.self] The feature the card is about, left out of what stands in the hex.
-	 * @param {{text: string, hidden: boolean}[]} [options.status] More to say about the place, before what stands in the hex.
-	 * @param {object|null} [options.landmark] What a Landmark here asks of travellers, from landmarkOfferView.
 	 * @returns {object}
 	 */
-	#hexCard(data, hex, { fold, open, title, kind = null, self = null, status = [], landmark = null }) {
+	#hexCard(data, hex, { fold, open }) {
 		const key = hexKey(hex);
+		const { title, kind, self, status } = this.#placeIn(data.realm, hex);
+		// What a Landmark here asks of travellers who are there (p14), Holding or no.
+		const { landmark } = featureAt(data.realm, hex);
+		const offer = landmark ? landmarkOfferView(landmark.type) : null;
 		const record = data.lore.hexes[key] ?? null;
 		const visits = data.journey.hexes[key] ?? null;
 		const terrain = terrainAt(data.realm, data.g, hex);
 		const label = t("realm.hex", hex);
+		const terrainName = terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null;
+		const features = [...status, ...this.#featuresIn(data.realm, hex, self)];
+		const visited = visits && visitsLabel(visits);
+		const sparks = [...(record?.sparks ?? [])].reverse().map((spark) => ({
+			id: spark.id,
+			prompt: spark.prompt,
+			table: spark.table,
+			when: sparkWhen(spark)
+		}));
+		// The wilderness as it was last rolled, read at a glance while the card is folded.
+		const wild = latestWilderness(record).map((spark) => ({
+			text: t("gmToolkit.wildChip", { table: spark.table, prompt: spark.prompt }),
+			when: sparkWhen(spark)
+		}));
+		const said = [title, kind, label, terrainName, ...features.map((feature) => feature.text), visited, record?.note, ...sparks.flatMap((spark) => [spark.prompt, spark.table, spark.when])];
 		return {
 			key,
+			// Everything the card says, for the Places page's search.
+			search: searchable(said.filter(Boolean).join(" ")),
 			title: title ?? label,
 			kind,
 			// A place's own name heads its card, so the hex it's in is named beside it.
 			hex: title && title !== label ? label : null,
-			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
-			features: [...status, ...this.#featuresIn(data.realm, hex, self)],
+			terrain: terrainName,
+			features,
 			companyHere: sameHex(data.companyHex, hex),
 			visited: Boolean(visits),
-			visits: visits && visitsLabel(visits),
+			visits: visited,
 			note: record?.note ?? "",
-			sparks: [...(record?.sparks ?? [])].reverse().map((spark) => ({
-				id: spark.id,
-				prompt: spark.prompt,
-				table: spark.table,
-				rolls: spark.rolls.join(", "),
-				when: spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null
-			})),
+			sparks,
+			wild,
 			tellDisabled: !record?.note,
-			landmark,
+			landmark: offer,
 			fold,
 			open: this.#folds.get(fold) ?? open
 		};
+	}
+
+	/**
+	 * What heads a hex's card: the Holding in it, else the Landmark, by name or
+	 * by what it is while it has none, and saying what it is only once. A hex
+	 * holding neither is headed by its own name.
+	 * @param {object} realm
+	 * @param {{col: number, row: number}} hex
+	 * @returns {{title: string|undefined, kind: string|null, self: "holding"|"landmark"|null, status: {text: string, hidden: boolean}[]}}
+	 */
+	#placeIn(realm, hex) {
+		const { holding, landmark } = featureAt(realm, hex);
+		const named = (name, what) => ({ title: name || what, kind: name ? what : null });
+		if (holding) {
+			const { title, kind } = named(holding.name, t(`realm.holdings.${holding.style}`));
+			return { title, kind: [kind, holding.seat ? t("gmToolkit.places.seat") : null].filter(Boolean).join(", ") || null, self: "holding", status: [] };
+		}
+		if (landmark) {
+			const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
+			return {
+				...named(landmark.name, t(`realm.landmarks.${landmark.type}`)),
+				self: "landmark",
+				status: [
+					seer && { text: t("gmToolkit.places.seer", { name: seer.name }), hidden: false },
+					!landmark.revealed && { text: t("gmToolkit.places.notFound"), hidden: true }
+				].filter(Boolean)
+			};
+		}
+		return { title: undefined, kind: null, self: null, status: [] };
 	}
 
 	/**
@@ -674,7 +736,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const onScenes = () => this.#redraw(...REALM_PARTS);
 		const onSceneChange = (_scene, changes) => ("name" in changes || changes.flags?.[SYSTEM_ID]) && onScenes();
 		const onCompany = (token) => {
-			if (token.parent?.id === this.scene?.id && token.getFlag?.(SYSTEM_ID, COMPANY_FLAG)) this.#redraw("header", "journey", "places");
+			if (token.parent?.id === this.scene?.id && token.getFlag?.(SYSTEM_ID, COMPANY_FLAG)) this.#redraw("header", "places");
 		};
 		// Only a move, or the Company mark itself, changes where the Company is.
 		const onCompanyChange = (token, changes) => ["x", "y", "flags"].some((key) => key in changes) && onCompany(token);
@@ -726,7 +788,36 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				});
 			}
 		}
+		for (const part of Object.keys(this.#searches)) {
+			if (!options.parts?.includes(part)) continue;
+			this.parts[part]?.querySelector(".bastionland-gm-toolkit__search")?.addEventListener("input", (event) => {
+				this.#searches[part] = event.target.value;
+				this.#applySearch(part);
+			});
+			this.#applySearch(part);
+		}
 		placeTabRail(this.element, ".bastionland-gm-toolkit__header");
+	}
+
+	/**
+	 * Show only the hexes and Sites a page's search finds, and only the sections
+	 * that still hold one. With no search, everything is shown.
+	 * @param {string} part The page searched.
+	 */
+	#applySearch(part) {
+		const page = this.parts?.[part];
+		if (!page) return;
+		const term = searchable(this.#searches[part].trim());
+		let found = 0;
+		for (const place of page.querySelectorAll("[data-search]")) {
+			place.hidden = Boolean(term) && !place.dataset.search.includes(term);
+			if (!place.hidden) found++;
+		}
+		for (const section of page.querySelectorAll("[data-search-section]")) {
+			section.hidden = Boolean(term) && !section.querySelector("[data-search]:not([hidden])");
+		}
+		const none = page.querySelector(".bastionland-gm-toolkit__no-match");
+		if (none) none.hidden = !term || found > 0;
 	}
 
 	/**
@@ -812,6 +903,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	async #onToolkitField(field, target) {
 		const scene = this.scene;
 		switch (field) {
+			// A search filters its page as it's typed, and is never saved.
+			case "search": return;
 			case "realm":
 				if (!target.value || target.value === this.sceneId) return;
 				this.sceneId = target.value;
@@ -1073,7 +1166,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/** @this {GmToolkitSheet} */
 	static #onRollHexSet(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
-		if (hex) return rollHexSparkSet({ scene: this.scene, hex });
+		if (hex && this.scene) return openWildernessHex({ scene: this.scene, hex });
 	}
 
 	/** @this {GmToolkitSheet} */
@@ -1112,19 +1205,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		return actor ? removeFromCast(actor) : null;
 	}
 
-	/**
-	 * Stand the Company in this hex, making its Token when the Realm hasn't one
-	 * yet. That is how a Realm made before the Company had a Token gets one, and
-	 * how a Token deleted by mistake comes back.
-	 * @this {GmToolkitSheet}
-	 */
-	static async #onStandCompany(_event, target) {
-		const hex = GmToolkitSheet.#hexFrom(target);
-		if (!hex) return;
-		const token = await setCompanyHex(this.scene, hex);
-		if (token) ui.notifications.info(t("company.placed", { hex: t("realm.hex", hex) }));
-	}
-
 	/** @this {GmToolkitSheet} */
 	static #onMarkVisited(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
@@ -1144,6 +1224,17 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 */
 	static #onLandmarkOffer(_event, target) {
 		return takeLandmarkOffer(target.dataset.landmarkOffer, { scene: this.scene });
+	}
+
+	/**
+	 * List the Places page's hexes another way: the last visited first, or by kind.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onPlacesOrder(_event, target) {
+		const order = target.dataset.order;
+		if (!PLACE_ORDERS.includes(order) || order === this.#placesOrder) return;
+		this.#placesOrder = order;
+		this.#redraw("places");
 	}
 
 	/** @this {GmToolkitSheet} */

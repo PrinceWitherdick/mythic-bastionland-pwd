@@ -6,7 +6,8 @@
  * place. Pure, so it can be tested without Foundry.
  */
 import { hexKey, parseHexKey } from "./realm-geometry.js";
-import { SPARK_TABLES_PER_PAGE } from "./spark-tables.js";
+import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkPrompt } from "./spark-tables.js";
+import { compareCalendars } from "./time.js";
 import { trimmedText } from "./text.js";
 
 export const HEX_LORE_VERSION = 1;
@@ -204,4 +205,33 @@ export function wildernessSparkSet(page) {
 	if (!tables.length) return [];
 	const places = tables.length === SPARK_TABLES_PER_PAGE ? WILDERNESS_POSITIONS : [0, 1, 2];
 	return places.filter((index) => tables[index]).map((index) => ({ index, table: tables[index] }));
+}
+
+/**
+ * What a table comes to for the rows taken from it, by dice or by hand. A
+ * column left untaken says nothing, so a table can be kept with one entry.
+ * @param {{columns: string[], rows: string[][]}} table
+ * @param {(number|null)[]} rows The row taken in each column, from 1, or null.
+ * @returns {{column: string, roll: number, entry: string}[]} The taken columns alone, in order.
+ */
+export function takenEntries(table, rows) {
+	return sparkPrompt(table, rows).filter((result) => Number.isInteger(result.roll) && result.entry);
+}
+
+/**
+ * What a hex's wilderness was last rolled as. The book keeps no rule for a hex
+ * the Company comes back to (p19 asks only that the blanks be filled), and its
+ * weather at least won't hold from one visit to the next, so a hex rolled more
+ * than once shows only the Nature rolls from the latest moment on the world's
+ * calendar they were made at. A roll kept with no calendar counts as the
+ * oldest, and a table rolled twice at that moment gives its later roll.
+ * @param {HexRecord|null} record
+ * @returns {HexSpark[]} In the order they were kept; empty with no Nature roll.
+ */
+export function latestWilderness(record) {
+	const nature = (record?.sparks ?? []).filter((spark) => spark.page === SPARK_PAGES[0].key);
+	const later = (a, b) => (!a ? false : !b ? true : compareCalendars(a, b) > 0);
+	const latest = nature.reduce((when, spark) => (later(spark.when, when) ? spark.when : when), null);
+	const then = nature.filter((spark) => (latest ? spark.when && compareCalendars(spark.when, latest) === 0 : !spark.when));
+	return then.filter((spark, index) => !then.slice(index + 1).some((other) => other.table === spark.table));
 }

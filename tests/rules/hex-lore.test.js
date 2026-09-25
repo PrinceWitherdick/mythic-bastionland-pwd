@@ -4,10 +4,12 @@ import {
 	MAX_HEX_SPARKS,
 	emptyLore,
 	forgetSpark,
+	latestWilderness,
 	loreAt,
 	normaliseHexLore,
 	recordSpark,
 	setNote,
+	takenEntries,
 	wildernessSparkSet
 } from "../../module/rules/hex-lore.js";
 
@@ -155,5 +157,56 @@ describe("wildernessSparkSet", () => {
 
 	it("hands back the tables themselves, so a roll keeps the name the import read", () => {
 		expect(wildernessSparkSet(page(9)).map(({ table }) => table.name)).toEqual(["Table 0", "Table 3", "Table 6"]);
+	});
+});
+
+describe("takenEntries", () => {
+	// Invented, so no book text lives in the repository.
+	const table = { columns: ["Shape", "Cover"], rows: Array.from({ length: 12 }, (_unused, row) => [`shape ${row + 1}`, `cover ${row + 1}`]) };
+
+	it("reads the row taken in each column", () => {
+		expect(takenEntries(table, [3, 12])).toEqual([
+			{ column: "Shape", roll: 3, entry: "shape 3" },
+			{ column: "Cover", roll: 12, entry: "cover 12" }
+		]);
+	});
+
+	it("leaves out a column nothing was taken from", () => {
+		expect(takenEntries(table, [null, 5])).toEqual([{ column: "Cover", roll: 5, entry: "cover 5" }]);
+		expect(takenEntries(table, [null, null])).toEqual([]);
+	});
+
+	it("leaves out a row the table doesn't have", () => {
+		expect(takenEntries(table, [13, 1]).map(({ column }) => column)).toEqual(["Cover"]);
+	});
+});
+
+describe("latestWilderness", () => {
+	const at = (id, table, day, phase = "morning", page = "nature") => ({ ...spark(id, table), page, when: { age: 1, season: "spring", day, phase } });
+	const ids = (record) => latestWilderness(record).map(({ id }) => id);
+
+	it("gives nothing for a hex with no Nature roll", () => {
+		expect(ids(null)).toEqual([]);
+		expect(ids({ note: "caves", sparks: [] })).toEqual([]);
+		expect(ids({ note: "", sparks: [at("a", "Crowd", 2, "morning", "people")] })).toEqual([]);
+	});
+
+	it("keeps only the rolls from the latest moment on the calendar, not the latest kept", () => {
+		const sparks = [at("new-ground", "Ground", 5), at("new-sky", "Sky", 5), at("old-ground", "Ground", 2), at("old-sky", "Sky", 2), at("old-wet", "Wet", 2)];
+		expect(ids({ note: "", sparks })).toEqual(["new-ground", "new-sky"]);
+	});
+
+	it("weighs the Phase within a Day", () => {
+		expect(ids({ note: "", sparks: [at("night", "Sky", 3, "night"), at("morning", "Sky", 3, "morning")] })).toEqual(["night"]);
+	});
+
+	it("gives a table rolled twice at one moment its later roll", () => {
+		expect(ids({ note: "", sparks: [at("a", "Sky", 3), at("b", "Ground", 3), at("c", "Sky", 3)] })).toEqual(["b", "c"]);
+	});
+
+	it("counts a roll kept with no calendar as the oldest", () => {
+		const undated = { ...spark("undated", "Sky"), when: null };
+		expect(ids({ note: "", sparks: [at("dated", "Ground", 1), undated] })).toEqual(["dated"]);
+		expect(ids({ note: "", sparks: [undated] })).toEqual(["undated"]);
 	});
 });

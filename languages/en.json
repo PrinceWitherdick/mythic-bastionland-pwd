@@ -1365,7 +1365,6 @@
       "title": "The Company",
       "name": "The Company",
       "folder": "Company",
-      "here": "Company here",
       "place": "Place the Company on the map",
       "start": "Start",
       "picture": "Company picture",
@@ -1378,8 +1377,8 @@
       "colourFailed": "The Company's colour could not be saved, so the icon is carried in ink.",
       "lost": {
         "title": "The Company has left the map",
-        "text": "Their Token was deleted at {hex}. One Token stands for the whole Company, and it has no Actor to reopen it from, so put them back here or stand them in a hex with Company here.",
-        "textAway": "Their Token was deleted. Stand them in a hex again with Company here on the Hex panel.",
+        "text": "Their Token was deleted at {hex}. One Token stands for the whole Company, and it has no Actor to reopen it from, so put them back here or stand them in a hex with Place the Company over the map.",
+        "textAway": "Their Token was deleted. Stand them in a hex again with Place the Company over the map.",
         "button": "Put them back",
         "back": "The Company stands at {hex} again.",
         "cannot": "The Company is already on the Realm, or there is nowhere to put them back."
@@ -1413,7 +1412,7 @@
         "button": "Place the Company",
         "hint": "One Token stands for the whole Company, and this Realm has none on it. Carry them over the map and click the hex they stand in.",
         "stop": "Right click or press Escape to place them later.",
-        "later": "The Company waits off the map. Take them up again with Place the Company over the map, or press Company here on a hex in the Toolkit."
+        "later": "The Company waits off the map. Take them up again with Place the Company over the map."
       }
     },
     "hexLore": {
@@ -1427,6 +1426,17 @@
       "table": "Spark Table",
       "rollSet": "Roll a wilderness hex",
       "setMissing": "Import PDF hasn’t read enough of page 22 to roll a wilderness hex.",
+      "wildHex": {
+        "title": "Wilderness Hex: {hex}",
+        "intro": "Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you keep it.",
+        "reference": "(p{page})",
+        "rollAll": "Roll",
+        "rollTable": "Roll {name}",
+        "rollColumn": "Roll a d12 for {column}",
+        "pick": "Choose this one",
+        "keep": "Keep in this hex",
+        "close": "Close"
+      },
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
       "notVisited": "The Company hasn’t been here.",
@@ -1499,13 +1509,14 @@
       "noCompany": "The Company isn’t on this Realm’s map",
       "showHex": "Show on the Map",
       "sparks": "Spark Tables rolled here",
+      "wild": "The wilderness as last rolled",
+      "wildChip": "{table}: {prompt}",
       "relaunch": "Launch the world again to get the GM Toolkit. The world was already open when the system added it.",
       "gmOnly": "Only a GM can make the GM Toolkit.",
       "onlyOne": "This world already has a GM Toolkit.",
       "keep": "The GM Toolkit holds your notes, so the world’s last one can’t be deleted.",
       "tabs": {
         "myths": "Myths and Omens",
-        "journey": "Journey",
         "places": "Places",
         "time": "Time",
         "notes": "Notes"
@@ -1555,11 +1566,6 @@
         "fromDirectory": "Import them into the world first: an actor in a compendium can’t be counted among a Cast.",
         "created": "{name} added to the Actors directory."
       },
-      "journey": {
-        "hint": "Every hex the Company has come into on this Realm, the last reached first, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
-        "summary": "{count} of {total} hexes visited.",
-        "none": "The Company hasn’t come into any hex of this Realm yet. Move its Token, or count a visit from the Places page."
-      },
       "visits": {
         "once": "Visited once: {when}",
         "many": "Visited {count} times, last: {when}",
@@ -1570,22 +1576,37 @@
         "forgetConfirm": "The Company’s visits to {hex} are forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay."
       },
       "places": {
-        "hint": "Every place in the Realm and what you wrote about it: its Holdings, its Landmarks, found or not, and any other hex you’ve written about or rolled for. These are the same notes as in the Lay of the Land.",
+        "hint": "Every place in the Realm and every hex the Company has come into, each once, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. These are the same notes as in the Lay of the Land. For your eyes only.",
+        "summary": "{count} of {total} hexes visited.",
+        "order": "List the places",
+        "orders": {
+          "visited": "By Visit",
+          "kind": "By Kind"
+        },
+        "search": "Search the places…",
+        "noMatch": "No place matches.",
+        "visited": "Visited",
+        "visitedNone": "The Company hasn’t come into any hex of this Realm yet. Move its Token, or count a visit on a place below.",
+        "unvisited": "Not Visited Yet",
+        "unvisitedHint": "The Holdings and Landmarks, found or not, and any other hex you’ve written about or rolled for.",
+        "unvisitedNone": "The Company has been to every place in the Realm.",
         "holdings": "Holdings",
-        "holdings": "Holdings",
+        "holdingsNone": "This Realm has no Holdings.",
         "landmarks": "Landmarks",
+        "landmarksNone": "This Realm has no Landmarks.",
         "others": "Other Hexes",
-        "othersHint": "Hexes with something written or rolled that hold no Holding or Landmark, such as a Myth’s hex.",
+        "othersHint": "Hexes the Company has come into, or with something written or rolled, that hold no Holding or Landmark, such as a Myth’s hex.",
+        "othersNone": "The Company hasn’t come into any other hex, and nothing is written about one yet.",
         "sites": "Sites",
         "sitesHint": "Places explored in more detail than a Hex (p15).",
         "seat": "Seat of Power",
         "seer": "Seer: {name}",
         "notFound": "Not found yet",
         "myth": "Myth {number}: {name}",
-        "noHoldings": "This Realm has no Holdings.",
-        "noLandmarks": "This Realm has no Landmarks.",
-        "noOthers": "Nothing is written about any other hex yet.",
-        "noSites": "There are no Sites yet."
+        "noSites": "There are no Sites yet.",
+        "openSite": "Open the Site",
+        "siteFound": "{found} of {total} points found",
+        "siteEmpty": "Nothing drawn yet"
       },
       "time": {
         "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes. Below them is the Season you’re in, what’s owed before it turns, and the Seasons before it.",

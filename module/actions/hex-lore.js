@@ -8,6 +8,7 @@ import {
 	normaliseRecord,
 	recordSpark,
 	setNote,
+	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
 import { hexSummary } from "../rules/realm.js";
@@ -107,6 +108,39 @@ export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, hex, (lore)
 const sparkPages = async () => (await loadArtIndex())?.spark ?? [];
 
 /**
+ * Keep what was taken from each table in the hex, and whisper the GMs one card
+ * for the lot.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @param {{page: object, table: object, results: {column: string, roll: number, entry: string|null}[]}[]} made
+ * @param {Roll[]} [rolls] The dice behind them, for the card to carry.
+ * @returns {Promise<object[]>} What was kept.
+ */
+async function keepSparks(scene, hex, made, rolls = []) {
+	const cards = [];
+	const sparks = [];
+	for (const { page, table, results } of made) {
+		const taken = results.filter((result) => result.entry);
+		if (!taken.length) continue;
+		const prompt = taken.map(({ entry }) => entry).join(" ");
+		sparks.push({
+			id: foundry.utils.randomID(),
+			page: page.key,
+			table: table.name,
+			rolls: taken.map((result) => result.roll),
+			entries: taken.map((result) => result.entry),
+			prompt,
+			when: getCalendar()
+		});
+		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt, results: taken });
+	}
+	// Keeping them takes one write, however many there are.
+	if (sparks.length) await editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
+	if (cards.length) await postCard(null, "hex-sparks", { hex: t("realm.hex", hex), sparks: cards }, { rolls, mode: "gm" });
+	return cards;
+}
+
+/**
  * Roll each table given, keep every roll in the hex, and whisper the GMs one
  * card for the lot.
  * @param {Scene} scene
@@ -116,27 +150,14 @@ const sparkPages = async () => (await loadArtIndex())?.spark ?? [];
  */
 async function rollInto(scene, hex, chosen) {
 	const rolls = [];
-	const cards = [];
-	const sparks = [];
+	const made = [];
 	// The dice are thrown one table at a time, so they land in the order the card reads.
 	for (const { page, table } of chosen) {
-		const { roll, results, prompt } = await rollSpark(table);
-		sparks.push({
-			id: foundry.utils.randomID(),
-			page: page.key,
-			table: table.name,
-			rolls: results.map((result) => result.roll),
-			entries: results.map((result) => result.entry ?? ""),
-			prompt,
-			when: getCalendar()
-		});
+		const { roll, results } = await rollSpark(table);
 		rolls.push(roll);
-		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt, results });
+		made.push({ page, table, results });
 	}
-	// Keeping them takes one write, however many were rolled.
-	if (sparks.length) await editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
-	if (cards.length) await postCard(null, "hex-sparks", { hex: t("realm.hex", hex), sparks: cards }, { rolls, mode: "gm" });
-	return cards;
+	return keepSparks(scene, hex, made, rolls);
 }
 
 /**
@@ -157,8 +178,21 @@ export async function rollHexSpark({ scene, hex, page: key, index }) {
 }
 
 /**
- * Roll a wilderness hex: the first table of each row of the Nature page (p22),
- * for the lay of the land, its weather, and one feature of it. GMs only.
+ * The tables a wilderness hex is rolled on: the first of each row of the
+ * Nature page (p22), for the lay of the land, its weather, and one feature of it.
+ * @returns {Promise<{page: object, set: {index: number, table: object}[]}|null>}
+ *   Null, with a word to the GM, where Import PDF hasn't read them.
+ */
+export async function wildernessHexTables() {
+	const page = (await sparkPages()).find((candidate) => candidate.key === SPARK_PAGES[0].key);
+	const set = wildernessSparkSet(page);
+	if (set.length) return { page, set };
+	warn("hexLore.setMissing");
+	return null;
+}
+
+/**
+ * Roll a wilderness hex in one go, keeping every roll. GMs only.
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
@@ -166,13 +200,38 @@ export async function rollHexSpark({ scene, hex, page: key, index }) {
  */
 export async function rollHexSparkSet({ scene, hex }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return [];
-	const page = (await sparkPages()).find((candidate) => candidate.key === SPARK_PAGES[0].key);
-	const set = wildernessSparkSet(page);
-	if (!set.length) {
-		warn("hexLore.setMissing");
-		return [];
-	}
-	return rollInto(scene, hex, set.map(({ table }) => ({ page, table })));
+	const tables = await wildernessHexTables();
+	if (!tables) return [];
+	return rollInto(scene, hex, tables.set.map(({ table }) => ({ page: tables.page, table })));
+}
+
+/**
+ * Keep the entries the GM took from the wilderness tables, by dice or by hand. GMs only.
+ * @param {object} options
+ * @param {Scene} options.scene
+ * @param {{col: number, row: number}} options.hex
+ * @param {object} options.page The Nature page, as wildernessHexTables gave it.
+ * @param {{table: object, rows: (number|null)[]}[]} options.taken The row taken in each column, from 1.
+ * @returns {Promise<object[]>} What was kept.
+ */
+export async function keepHexSparks({ scene, hex, page, taken }) {
+	if (!game.user.isGM || !isRealmScene(scene)) return [];
+	return keepSparks(scene, hex, taken.map(({ table, rows }) => ({ page, table, results: takenEntries(table, rows) })));
+}
+
+/**
+ * Throw a d12 for each column asked for where only the GMs see them, with no
+ * card: what they land on is only a suggestion until it's kept.
+ * @param {number} count
+ * @returns {Promise<number[]>} One d12 for each column.
+ */
+export async function throwSparkDice(count) {
+	const roll = await new Roll(Array.from({ length: count }, () => "1d12").join(" + ")).evaluate();
+	const gms = game.users.filter((user) => user.isGM).map((user) => user.id);
+	// Dice So Nice throws them on the GMs' screens; without it, the rattle alone.
+	if (game.dice3d) game.dice3d.showForRoll(roll, game.user, true, gms);
+	else foundry.audio.AudioHelper.play({ src: CONFIG.sounds.dice, autoplay: true, loop: false }, false);
+	return roll.dice.map((die) => die.total);
 }
 
 /**

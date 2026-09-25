@@ -293,9 +293,35 @@
 	margin-top: -0.35rem;
 }
 
+/* The Places page's search hides what it misses, over the cards' and sections' own display. */
+.bastionland-gm-toolkit__page [data-search-section][hidden],
+.bastionland-gm-toolkit__page [data-search][hidden],
+.bastionland-gm-toolkit__no-match[hidden] {
+	display: none;
+}
+
+.bastionland-page .bastionland-gm-toolkit__search {
+	flex: none;
+	width: 100%;
+	height: 2.25rem;
+}
+
 .bastionland-gm-toolkit__summary {
 	margin: 0;
 	font-style: italic;
+}
+
+/* How many hexes are visited, and the order the Places page lists them in, on one line. */
+.bastionland-gm-toolkit__places-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.4rem 1rem;
+}
+
+.bastionland-gm-toolkit__places-bar .bastionland-choices--inline {
+	margin-bottom: 0;
 }
 
 /* A Myth, a hex or a place: a leaf of parchment ruled off from the page. */
@@ -1059,6 +1085,48 @@
 	justify-content: flex-end;
 }
 
+/* A wilderness hex's tables from the Nature page, side by side as the book sets them. */
+.bastionland-wilderness-hex-window .window-content {
+	padding: 0;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-wilderness-hex {
+	gap: 0.75rem;
+	padding: 1rem 1.25rem 1.25rem;
+}
+
+.bastionland-wilderness-hex .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-wilderness-hex__tables {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+	align-items: start;
+	gap: 1rem;
+}
+
+.bastionland-wilderness-hex .bastionland-myth-table {
+	margin: 0;
+	border: 1px solid var(--bastionland-ink);
+}
+
+.bastionland-wilderness-hex .bastionland-myth-table caption {
+	padding: 0.2rem 0.45rem;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-family: var(--bastionland-font-caps);
+	font-weight: bold;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.bastionland-wilderness-hex .bastionland-toolbar {
+	justify-content: flex-end;
+}
+
 /* ---------------------------------------------------------------- */
 /* Hexes and places                                                 */
 /* ---------------------------------------------------------------- */
@@ -1107,6 +1175,17 @@
 	font-style: italic;
 }
 
+/* The wilderness as last rolled, on a line of its own under the heading. It
+   says only what the Spark Tables list in the open card already says, so it
+   shows while the card is folded. */
+.bastionland-gm-toolkit__wild {
+	flex-basis: 100%;
+}
+
+.bastionland-gm-toolkit__hex[open] .bastionland-gm-toolkit__wild {
+	display: none;
+}
+
 .bastionland-gm-toolkit__hex-body {
 	display: flex;
 	flex-direction: column;
@@ -1138,23 +1217,37 @@
 	white-space: normal;
 }
 
-.bastionland-gm-toolkit__sites {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.4rem;
-	margin: 0;
-	padding: 0;
-	list-style: none;
+/* A Site on one row like a hex's head, with the button opening its editor at the right. */
+.bastionland-gm-toolkit__card.bastionland-gm-toolkit__site {
+	flex-direction: row;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 0.8rem 0.55rem 0.9rem;
 }
 
-.bastionland-page button.bastionland-gm-toolkit__site {
-	display: inline-flex;
+.bastionland-gm-toolkit__site-line {
+	display: flex;
+	flex: 1;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.4rem;
+	gap: 0.3rem 0.6rem;
+	min-width: 0;
+}
+
+.bastionland-gm-toolkit__site .bastionland-gm-toolkit__name {
+	font-size: 1.15rem;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__site-open {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.3rem;
 	width: auto;
 	height: auto;
-	min-height: 2rem;
-	padding: 0.2rem 0.7rem;
+	min-height: var(--button-size, 2rem);
+	padding: 0.25rem 0.6rem;
+	line-height: 1.15;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1315,6 +1408,24 @@
 
 .bastionland-gm-toolkit__landmark .bastionland-hint {
 	margin: 0;
+}
+
+/* What the Landmark offers is what the GM came to the hex for, so it's struck
+   in the rubric's red ochre, set apart from the plain buttons under it. */
+.bastionland-page .bastionland-gm-toolkit__actions button.is-landmark {
+	border: 1px solid var(--bastionland-rubric);
+	background: var(--bastionland-rubric);
+	color: var(--bastionland-paper);
+	font-family: var(--bastionland-font-caps);
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+.bastionland-page .bastionland-gm-toolkit__actions button.is-landmark:hover {
+	background: color-mix(in srgb, var(--bastionland-rubric) 82%, black);
+	border-color: color-mix(in srgb, var(--bastionland-rubric) 82%, black);
+	color: var(--bastionland-paper);
 }
 
 /* ---------------------------------------------------------------- */

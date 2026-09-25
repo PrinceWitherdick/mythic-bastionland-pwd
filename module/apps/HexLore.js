@@ -4,7 +4,6 @@ import {
 	forgetHexSpark,
 	getHexRecord,
 	rollHexSpark,
-	rollHexSparkSet,
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
@@ -16,9 +15,16 @@ import { t } from "../chat/cards.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openSparkTables } from "./SparkTables.js";
+import { openWildernessHex } from "./WildernessHex.js";
 import { renderWhenIdle } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/**
+ * @param {{when?: object|null}} spark One kept in a hex.
+ * @returns {string|null} When in the game it was rolled, as the hex's windows show it.
+ */
+export const sparkWhen = (spark) => (spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null);
 
 /**
  * The lay of the land in one hex (p19). A Hex is large and diverse, and what
@@ -104,7 +110,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				table: spark.table,
 				prompt: spark.prompt,
 				rolls: spark.rolls.join(", "),
-				when: spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null
+				when: sparkWhen(spark)
 			})).reverse(),
 			notice,
 			pages: pages
@@ -164,7 +170,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {HexLore} */
 	static #onRollSet() {
-		return rollHexSparkSet({ scene: this.scene, hex: this.hex });
+		return openWildernessHex({ scene: this.scene, hex: this.hex });
 	}
 
 	/** @this {HexLore} */

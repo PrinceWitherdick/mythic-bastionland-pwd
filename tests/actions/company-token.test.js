@@ -134,9 +134,8 @@ describe("the card the GMs are whispered", () => {
 		expect(card).toContain("{{#if restorable}}");
 	});
 
-	it("is joined by the Company here button on every hex they aren't standing in", () => {
+	it("leaves the Toolkit's hex cards without a button of their own for it", () => {
 		const hexCard = readFileSync(join(import.meta.dirname, "../../templates/actor/gm-toolkit/hex-card.hbs"), "utf8");
-		expect(hexCard).toContain('data-action="standCompany"');
-		expect(hexCard).toContain("{{#unless companyHere}}");
+		expect(hexCard).not.toContain('data-action="standCompany"');
 	});
 });

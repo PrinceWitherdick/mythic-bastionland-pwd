@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenParts, omenStage, pointsOpposite, readMythTable, realmPlaces, resolvedMyths } from "../../module/rules/gm-toolkit.js";
+import { REALM_TABS, TOOLKIT_TABS, mythRollTaken, omenParts, omenStage, pointsOpposite, readMythTable, realmPlaces, resolvedMyths, tableView } from "../../module/rules/gm-toolkit.js";
 
 const hex = (col, row) => ({ col, row });
 
@@ -34,20 +34,44 @@ describe("realmPlaces", () => {
 	};
 	const lore = { hexes: { "5,5": {}, "2,2": {}, "8,3": {}, "1,8": {}, "not a hex": {} } };
 
-	it("puts the Seat of Power first, then the Holdings as the sheet reads", () => {
-		expect(realmPlaces(realm, lore).holdings.map((holding) => holding.hex)).toEqual([hex(6, 6), hex(2, 2), hex(9, 9)]);
+	it("lists the Holdings by column, then row", () => {
+		expect(realmPlaces(realm, lore).holdings.map((holding) => holding.hex)).toEqual([hex(2, 2), hex(6, 6), hex(9, 9)]);
 	});
 
-	it("lists the Landmarks by type in the book's order, then as the sheet reads", () => {
-		expect(realmPlaces(realm, lore).landmarks.map((landmark) => landmark.hex)).toEqual([hex(4, 4), hex(7, 1), hex(3, 1), hex(1, 9)]);
+	it("lists the Landmarks by column, then row", () => {
+		expect(realmPlaces(realm, lore).landmarks.map((landmark) => landmark.hex)).toEqual([hex(1, 9), hex(3, 1), hex(4, 4), hex(7, 1)]);
 	});
 
 	it("adds every other hex something was written about, and none twice", () => {
-		expect(realmPlaces(realm, lore).others).toEqual([hex(8, 3), hex(5, 5), hex(1, 8)]);
+		expect(realmPlaces(realm, lore).others).toEqual([hex(1, 8), hex(5, 5), hex(8, 3)]);
+	});
+
+	it("breaks a tie in column by row", () => {
+		const column = { holdings: [{ hex: hex(3, 7) }, { hex: hex(3, 2) }], landmarks: [] };
+		expect(realmPlaces(column, null).holdings.map((holding) => holding.hex)).toEqual([hex(3, 2), hex(3, 7)]);
+	});
+
+	it("lists a Landmark in a Holding's hex once, as the Holding", () => {
+		const shared = { ...realm, landmarks: [...realm.landmarks, { hex: hex(2, 2), type: "hazard" }] };
+		expect(realmPlaces(shared, lore).landmarks.map((landmark) => landmark.hex)).not.toContainEqual(hex(2, 2));
+	});
+
+	const visit = (order) => ({ count: 1, first: { when: null, order }, last: { when: null, order } });
+	const journey = { version: 1, next: 4, hexes: { "8,3": visit(1), "6,6": visit(3), "4,2": visit(2) } };
+
+	it("counts a hex the Company came into among the other hexes, even with nothing written", () => {
+		expect(realmPlaces(realm, lore, journey).others).toEqual([hex(1, 8), hex(4, 2), hex(5, 5), hex(8, 3)]);
+	});
+
+	it("splits the hexes visited from the rest, each by column then row, and keeps the last reached first apart", () => {
+		const { visited, unvisited, recent } = realmPlaces(realm, lore, journey);
+		expect(visited).toEqual([hex(4, 2), hex(6, 6), hex(8, 3)]);
+		expect(unvisited).toEqual([hex(1, 8), hex(1, 9), hex(2, 2), hex(3, 1), hex(4, 4), hex(5, 5), hex(7, 1), hex(9, 9)]);
+		expect(recent).toEqual([hex(6, 6), hex(4, 2), hex(8, 3)]);
 	});
 
 	it("copes with a Realm that has nothing yet", () => {
-		expect(realmPlaces(null, null)).toEqual({ holdings: [], landmarks: [], others: [] });
+		expect(realmPlaces(null, null)).toEqual({ holdings: [], landmarks: [], others: [], visited: [], unvisited: [], recent: [] });
 	});
 
 	it("keeps its pages in the rail's order, the Realm's own before the notes", () => {
@@ -111,5 +135,22 @@ describe("readMythTable", () => {
 
 	it("reads one column alone", () => {
 		expect(readMythTable(table, [1], [4])).toEqual([{ index: 1, column: "Smell", roll: 4, entry: "Ash" }]);
+	});
+
+	it("drops the ellipsis a heading carries on from its title", () => {
+		const lich = { ...table, columns: ["Subject…", "Must..."] };
+		expect(readMythTable(lich, [0, 1], [1, 1]).map(({ column }) => column)).toEqual(["Subject", "Must"]);
+	});
+});
+
+describe("tableView", () => {
+	it("heads each column without the ellipsis, and tips it by what it shows", () => {
+		const table = { columns: ["Subject…", "Must…"], rows: [["A thief", "Kneel"]] };
+		const view = tableView(table, [1, 0], (column) => `Roll ${column}`);
+		expect(view.columns).toEqual([
+			{ label: "Subject", index: 0, tooltip: "Roll Subject" },
+			{ label: "Must", index: 1, tooltip: "Roll Must" }
+		]);
+		expect(view.rows[0].entries[0]).toEqual({ text: "A thief", column: 0, row: 1, rolled: true });
 	});
 });

@@ -116,6 +116,19 @@ export function splitName(name) {
  */
 export const cleanText = (text) => text.normalize("NFKC").replace(/\s+/g, " ").trim();
 
+/** An ellipsis at either end of a heading, printed as "…" or as three dots. */
+const EDGE_ELLIPSIS = /^\s*(?:…|\.{3,})\s*|\s*(?:…|\.{3,})\s*$/g;
+
+/**
+ * A column heading as a window or a chat card shows it. The book leaves an
+ * ellipsis where a table's title runs on into its headings, as "Subject…" and
+ * "Must…" do under "LAWS OF THE LICH", which reads only as "Subject…:" once
+ * the heading stands on its own.
+ * @param {string} text As printed.
+ * @returns {string} Without the ellipsis at either end.
+ */
+export const headingText = (text) => String(text ?? "").replace(EDGE_ELLIPSIS, "").trim();
+
 /**
  * Join a wrapped line to the text before it, keeping a hyphen that split a word.
  * @param {string} before

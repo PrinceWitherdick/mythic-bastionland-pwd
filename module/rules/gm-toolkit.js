@@ -3,15 +3,17 @@
  * about its hexes, and where the Company has been. Pure, so it can be tested
  * without Foundry; the sheet puts words to it.
  */
+import { visitedNewestFirst } from "./journey.js";
 import { mythNoteFor } from "./myth-notes.js";
-import { LANDMARK_TYPES, OMEN_COUNT } from "./realm.js";
-import { parseHexKey, sameHex } from "./realm-geometry.js";
+import { OMEN_COUNT } from "./realm.js";
+import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
+import { headingText } from "./text.js";
 
 /** The toolkit's pages, in the order its tab rail lists them. Names live under `bastionland.gmToolkit.tabs`. */
-export const TOOLKIT_TABS = Object.freeze(["myths", "journey", "places", "time", "notes"]);
+export const TOOLKIT_TABS = Object.freeze(["myths", "places", "time", "notes"]);
 
 /** The pages about one Realm, which follow the Realm chosen at the top of the sheet. */
-export const REALM_TABS = Object.freeze(["myths", "journey", "places"]);
+export const REALM_TABS = Object.freeze(["myths", "places"]);
 
 /**
  * Where a Myth has got to. Omens come in order (p18), so the one met last is
@@ -25,34 +27,46 @@ export function omenStage(seen) {
 	return { current: count > 0 ? count : null, next: count < OMEN_COUNT ? count + 1 : null };
 }
 
-/** @returns {number} Top to bottom, then left to right, the way the Realm Sheet reads. */
-const byPlace = (a, b) => a.row - b.row || a.col - b.col;
+/** @returns {number} Lowest column first, then lowest row, as the hex readout numbers them. */
+const byPlace = (a, b) => a.col - b.col || a.row - b.row;
 
 /**
- * The places in a Realm a GM keeps notes on: its Holdings, the Seat of Power
- * first; its Landmarks, by type in the book's order (p14); and every other hex
- * something has been written about or rolled for, which is where the Myths'
- * hexes and the Company's own discoveries turn up.
+ * The places in a Realm a GM keeps notes on, each hex once, in both the ways
+ * the Places page groups them, each group by column then row. By kind: its
+ * Holdings; its Landmarks, less any in a Holding's hex; and every other hex the
+ * Company has come into, or something has been written about or rolled for,
+ * which is where the Myths' hexes and the Company's own discoveries turn up.
+ * By visit: the hexes the Company has come into, then every other place.
+ * `recent` is the visited hexes again, the last reached first.
  * @param {import("./realm.js").Realm} realm
  * @param {{hexes: Record<string, unknown>}} lore What the GM has written, from hex-lore.js.
- * @returns {{holdings: object[], landmarks: object[], others: {col: number, row: number}[]}}
+ * @param {import("./journey.js").Journey} [journey] Where the Company has been, from journey.js.
+ * @returns {{holdings: object[], landmarks: object[], others: {col: number, row: number}[],
+ *   visited: {col: number, row: number}[], unvisited: {col: number, row: number}[],
+ *   recent: {col: number, row: number}[]}}
  */
-export function realmPlaces(realm, lore) {
-	const holdings = [...(realm?.holdings ?? [])]
-		.sort((a, b) => Number(Boolean(b.seat)) - Number(Boolean(a.seat)) || byPlace(a.hex, b.hex));
-	const typeOrder = (landmark) => {
-		const index = LANDMARK_TYPES.indexOf(landmark.type);
-		return index < 0 ? LANDMARK_TYPES.length : index;
-	};
-	const landmarks = [...(realm?.landmarks ?? [])].sort((a, b) => typeOrder(a) - typeOrder(b) || byPlace(a.hex, b.hex));
+export function realmPlaces(realm, lore, journey = null) {
+	const holdings = [...(realm?.holdings ?? [])].sort((a, b) => byPlace(a.hex, b.hex));
+	// A hex holding both is listed once, as the Holding; its card still says what the Landmark asks.
+	const landmarks = [...(realm?.landmarks ?? [])]
+		.filter((landmark) => !holdings.some((holding) => sameHex(holding.hex, landmark.hex)))
+		.sort((a, b) => byPlace(a.hex, b.hex));
 
 	const named = [...holdings, ...landmarks].map((place) => place.hex);
-	const others = Object.keys(lore?.hexes ?? {})
-		.map(parseHexKey)
-		.filter((hex) => hex && !named.some((place) => sameHex(place, hex)))
+	const keys = new Set([...Object.keys(lore?.hexes ?? {}), ...Object.keys(journey?.hexes ?? {})]
+		.map(parseHexKey).filter(Boolean).map(hexKey));
+	const others = [...keys].map(parseHexKey)
+		.filter((hex) => !named.some((place) => sameHex(place, hex)))
 		.sort(byPlace);
-	return { holdings, landmarks, others };
+
+	const recent = visitedNewestFirst(journey).map((visit) => visit.hex).filter(Boolean);
+	const visited = [...recent].sort(byPlace);
+	const unvisited = [...named, ...others].filter((hex) => !recent.some((seen) => sameHex(seen, hex))).sort(byPlace);
+	return { holdings, landmarks, others, visited, unvisited, recent };
 }
+
+/** The orders the Places page can list its hexes in, the first taken until another is chosen. */
+export const PLACE_ORDERS = Object.freeze(["visited", "kind"]);
 
 /**
  * Whether a roll on the Myths table (p27) is a Myth the Realm already has. A
@@ -102,7 +116,7 @@ export const pointsOpposite = (text) => SEE_OPPOSITE.test(text ?? "");
 export function readMythTable(table, columns, rolls) {
 	return columns.map((index, at) => ({
 		index,
-		column: table.columns[index],
+		column: headingText(table.columns[index]),
 		roll: rolls[at],
 		entry: table.rows[rolls[at] - 1]?.[index] ?? null
 	}));
@@ -125,7 +139,10 @@ export const askedColumns = (table, asked) => table.columns.map((_, index) => in
  */
 export function tableView(table, rolled, tooltip) {
 	return {
-		columns: table.columns.map((label, index) => ({ label, index, tooltip: tooltip(label) })),
+		columns: table.columns.map((printed, index) => {
+			const label = headingText(printed);
+			return { label, index, tooltip: tooltip(label) };
+		}),
 		rows: table.rows.map((entries, row) => ({
 			number: row + 1,
 			entries: entries.map((text, column) => ({ text, column, row: row + 1, rolled: rolled?.[column] === row + 1 }))
