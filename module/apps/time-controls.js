@@ -1,21 +1,18 @@
 import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
 import { awardGlory } from "../actions/glory.js";
 import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
-import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { eventLabel, markSeasonEvent, seasonEventsNow, stageLabel } from "../actions/season-events.js";
-import { advancePhase, announcePhase, journeyToDistantRealm, sufferHardship, turnAge, turnSeason, weeksPass } from "../actions/time.js";
+import { advancePhase, announcePhase, journeyToDistantRealm, turnAge, turnSeason, weeksPass } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { GLORY_AWARDS } from "../rules/glory.js";
-import { HARDSHIPS, PHASES, SEASONS } from "../rules/time.js";
+import { PHASES, SEASONS } from "../rules/time.js";
+import { openSessionEnd } from "./SessionEnd.js";
 
 /**
  * The world's calendar and what moves it (Time, p17), as the Time window and the GM
  * Toolkit's Time page show them: a Phase, a Season or an Age at a time, carrying out what
  * the book says happens between them, or set by hand.
  */
-
-/** Referee Rolls offered beside the calendar. */
-export const TIME_ROLLS = Object.freeze(["passage", "unresolved"]);
 
 /**
  * What the buttons beside a calendar do. The Time window and the GM Toolkit's
@@ -32,8 +29,8 @@ export const TIME_ACTIONS = Object.freeze({
 	turnSeason: () => turnSeason(),
 	turnAge: () => turnAge(),
 	journey: () => journeyToDistantRealm(),
-	refereeRoll: (_event, target) => rollRefereeTable(target.dataset.table),
-	hardship: (_event, target) => sufferHardship(target.dataset.hardship),
+	pickAge: () => pickAge(),
+	endSession: () => openSessionEnd(),
 	awardGlory: (_event, target) => awardGlory(target.dataset.award)
 });
 
@@ -98,15 +95,23 @@ export function timeContext({ referee = game.user?.isGM === true } = {}) {
 		seasonEvents: referee ? seasonEventsContext(calendar) : null,
 		// A Curse's blight, while the Company still carries it (p14).
 		offCourse: referee ? offCourseNow(calendar) : null,
-		rolls: TIME_ROLLS.map((key) => ({ key, label: t(`refereeRolls.tables.${key}.name`), hint: t(`refereeRolls.tables.${key}.hint`) })),
-		hardships: HARDSHIPS.map(({ key }) => ({ key, label: t(`time.hardship.kinds.${key}.label`), hint: t(`time.hardship.kinds.${key}.hint`) })),
 		gloryAwards: GLORY_AWARDS.map((key) => ({ key, label: t(`glory.awards.${key}.label`), hint: t(`glory.awards.${key}.hint`) }))
 	};
 }
 
 /**
+ * A Day set by hand is told to the table once the GM stops changing it, so stepping the
+ * box on a few Days posts one Phase card, for wherever it came to rest.
+ */
+let announceDay = null;
+const announceDayByHand = () => {
+	announceDay ??= foundry.utils.debounce(() => announcePhase(getCalendar()), 800);
+	announceDay();
+};
+
+/**
  * Set the calendar by hand, without anything that comes between Seasons or Ages. A new
- * Phase is still announced to the table. GMs only.
+ * Phase or Day is still announced to the table, with any Council task now due. GMs only.
  * @param {{season?: string, phase?: string, age?: unknown, day?: unknown}} changes
  * @returns {Promise<unknown>|undefined}
  */
@@ -123,5 +128,35 @@ export async function setCalendarByHand({ season, phase, age, day }) {
 	};
 	const result = await setCalendar(changed);
 	if (changed.phase !== calendar.phase) await announcePhase(changed);
+	else if (changed.day !== calendar.day) announceDayByHand();
 	return result;
+}
+
+/**
+ * Ask whether to turn the Age (Between Ages, p17) or only put its number right. Turning it
+ * is what the Time page's button does; setting it by hand carries out nothing between Ages.
+ * GMs only.
+ * @returns {Promise<unknown>}
+ */
+export async function pickAge() {
+	if (!game.user.isGM) return null;
+	const { age } = getCalendar();
+	const choice = await foundry.applications.api.DialogV2.wait({
+		window: { title: t("time.agePick.title"), icon: "fa-solid fa-hourglass-half" },
+		classes: ["bastionland-dialog"],
+		content: `<p>${t("time.agePick.turn", { next: age + 1 })}</p>
+			<div class="form-group">
+				<label for="bastionland-age-pick">${t("time.age")}</label>
+				<div class="form-fields"><input id="bastionland-age-pick" class="bastionland-box" type="number" name="age" value="${age}" min="1" step="1"></div>
+			</div>
+			<p class="hint">${t("time.agePick.setHint")}</p>`,
+		buttons: [
+			{ action: "turn", label: t("time.turnAge"), icon: "fa-solid fa-hourglass-end" },
+			{ action: "set", label: t("time.agePick.set"), icon: "fa-solid fa-pen", default: true, callback: (_event, button) => ({ age: button.form.elements.age.value }) }
+		],
+		rejectClose: false
+	});
+	if (choice === "turn") return turnAge();
+	if (choice?.age === undefined) return null;
+	return setCalendarByHand({ age: choice.age });
 }

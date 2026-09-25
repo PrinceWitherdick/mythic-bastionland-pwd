@@ -1434,3 +1434,209 @@
 .bastionland-ledger [hidden] {
 	display: none !important;
 }
+
+/*
+ * Ending a Session (p16): a section for each step of the book's procedure, all
+ * scrolling under one End the Session button held at the foot. It wears the
+ * dialog's parchment, so the buttons want the sheets' look, which is otherwise
+ * scoped to a page.
+ */
+.bastionland-session-end-window .window-content {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.bastionland-session-end {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+	line-height: 1.35;
+}
+
+.bastionland-session-end__body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0.9rem 0.9rem 1.1rem;
+	scrollbar-width: thin;
+}
+
+/* Each part of a section stands a little apart from the next, the hint kept
+   close under its heading. */
+.bastionland-session-end__section {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.7rem;
+	margin-top: 1.1rem;
+	padding-top: 0.9rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-session-end .bastionland-session-end__section > * {
+	margin: 0;
+}
+
+.bastionland-session-end .bastionland-session-end__section > .bastionland-heading + .bastionland-hint {
+	margin-top: -0.45rem;
+}
+
+.bastionland-session-end__section > :is(ul, p, textarea) {
+	align-self: stretch;
+}
+
+.bastionland-session-end .bastionland-choices--inline {
+	align-items: center;
+	gap: 0.4rem;
+}
+
+/* The sheet's button (mythic-bastionland.css), held at its label's width. */
+.bastionland-session-end .bastionland-button {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+/* What a roll last session, or a Chronicle's plan, already puts at this session's end. */
+.bastionland-session-end__notice {
+	margin: 0.4rem 0 0;
+	color: var(--bastionland-rubric);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+/* A die's result, read as the card reads it: the number, then what it gave. */
+.bastionland-session-end__rolled {
+	margin: 0.4rem 0 0;
+	color: var(--bastionland-ink);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-session-end__d6 {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-right: 0.3rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 3px;
+	background: var(--bastionland-paper-deep);
+	font-family: var(--bastionland-font-caps);
+	font-variant-numeric: lining-nums tabular-nums;
+	vertical-align: middle;
+}
+
+.bastionland-session-end__situations,
+.bastionland-session-end__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-session-end__list > li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Foundry spaces every list item but the last with a bottom margin, which in a
+   row lifts all the buttons but the last one. The gaps do the spacing here. */
+.bastionland-session-end :is(ul, ol) > li {
+	margin: 0;
+}
+
+/* The Glory buttons share a line while they fit. */
+.bastionland-session-end__list--row {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-session-end__row {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-session-end__row input[type="text"] {
+	flex: 1;
+	min-width: 0;
+}
+
+.bastionland-session-end__drop {
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid var(--bastionland-blood);
+	border-radius: 3px;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-session-end__drop:hover {
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
+}
+
+/* Who the Glory went to, said beside the button that awarded it. */
+.bastionland-session-end__awarded {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+.bastionland-session-end textarea {
+	width: 100%;
+	min-height: 3.6rem;
+	resize: vertical;
+	font-family: inherit;
+	font-size: 15px;
+}
+
+.bastionland-session-end__footer {
+	display: flex;
+	flex-shrink: 0;
+	justify-content: center;
+	padding: 0.75rem 0.9rem;
+	border-top: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-session-end__finish {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	width: auto;
+	height: 2.3rem;
+	padding: 0 1.4rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 3px;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-session-end__finish:not(:disabled):hover {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-session-end__finish:disabled {
+	opacity: 0.5;
+}

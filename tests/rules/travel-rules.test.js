@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { REFEREE_TABLES } from "../../module/rules/referee-rolls.js";
-import { PHASES, SEASONS } from "../../module/rules/time.js";
+import { HARDSHIPS, PHASES, SEASONS } from "../../module/rules/time.js";
 import {
 	D6_BANDS,
 	TRAVEL_GROUPS,
@@ -49,6 +49,13 @@ describe("TRAVEL_RULES", () => {
 		expect(groupsOnSide("right").map((group) => group.key)).toEqual(["rest", "exploration", "folklore"]);
 		expect(TRAVEL_SIDES.flatMap((side) => groupsOnSide(side)).length).toBe(TRAVEL_RULES.length);
 		expect(groupsOnSide("right").flatMap((group) => group.sections).some((section) => section.roll)).toBe(false);
+	});
+
+	it("puts every hardship's button under the Rest rule that deals it, once", () => {
+		const hardships = sections.filter((section) => section.hardship);
+		expect(hardships.map((section) => section.hardship).sort()).toEqual(HARDSHIPS.map(({ key }) => key).sort());
+		for (const section of hardships) expect(section.hardship).toBe(section.key);
+		expect(TRAVEL_RULES.find((group) => group.key === "rest").sections).toEqual(expect.arrayContaining(hardships));
 	});
 
 	it("gives a heading to every section that doesn't open its group", () => {

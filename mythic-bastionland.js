@@ -9,6 +9,8 @@ import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { registerScopeSetting } from "./module/actions/scope.js";
+import { registerSessionEndSetting } from "./module/actions/session-end.js";
+import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./module/actions/session-macro.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
@@ -24,6 +26,7 @@ import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
 import { registerDropdowns } from "./module/apps/dropdown.js";
+import { openSessionEnd } from "./module/apps/SessionEnd.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables } from "./module/apps/SparkTables.js";
@@ -179,6 +182,7 @@ Hooks.once("init", () => {
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.gm-toolkit-cast": templatePath("actor/gm-toolkit/cast.hbs"),
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
+		"bastionland.season-turn": templatePath("actor/gm-toolkit/season-turn.hbs"),
 		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")
@@ -202,6 +206,8 @@ Hooks.once("init", () => {
 
 	// The Scope the group settled on, and the plan a Chronicle keeps (p6).
 	registerScopeSetting();
+	// And what the last session's end left for the next one (p17).
+	registerSessionEndSetting();
 
 	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
 	registerLandmarkSettings();
@@ -340,6 +346,7 @@ Hooks.once("init", () => {
 		openSparkTables,
 		openHexLore,
 		openTimePanel,
+		openSessionEnd,
 		newSite,
 		openGmToolkit,
 		// The Myths window became the GM Toolkit's first page; macros that open it still work.
@@ -381,6 +388,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
 	{ key: TOOLKIT_MACRO_STEP, run: seedToolkitMacro },
+	{ key: SESSION_MACRO_STEP, run: seedSessionMacro },
 	// In the Macro Directory only, never on a hotbar.
 	{ key: TEST_WORLD_MACRO_STEP, run: seedTestWorldMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
@@ -414,7 +422,7 @@ Hooks.once("ready", async () => {
 		restoreOpenSheets(),
 		// Import PDF takes the hotbar's last slot once every other macro has its own,
 		// then the GM Toolkit (a player's Luck Roll) is put in the first.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)])
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)])
 			.then(ensureImportHotbar)
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),

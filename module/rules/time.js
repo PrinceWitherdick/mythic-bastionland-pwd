@@ -12,7 +12,7 @@ export const SEASONS = Object.freeze(["spring", "harvest", "winter"]);
 /** Each Phase's icon, on its card. */
 export const PHASE_ICONS = Object.freeze({ morning: "fa-solid fa-sun", afternoon: "fa-solid fa-cloud-sun", night: "fa-solid fa-moon" });
 
-/** Each Season's icon, on its card and the Seasons page. */
+/** Each Season's icon, on its card and the Toolkit's Time page. */
 export const SEASON_ICONS = Object.freeze({ spring: "fa-solid fa-seedling", harvest: "fa-solid fa-wheat-awn", winter: "fa-regular fa-snowflake" });
 
 /** What each Knight chooses between Seasons, and between Ages. */

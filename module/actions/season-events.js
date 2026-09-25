@@ -17,7 +17,7 @@ import { seasonRecord, writeSeasonEvents } from "./season-log.js";
 /**
  * The events that mark each Season (Time, p17): a Feast to begin it, a mass at
  * its middle, and the Realm's collection to end it. Which have come to pass is
- * kept in the Season's own record on the GM Toolkit, so the Seasons page shows
+ * kept in the Season's own record on the GM Toolkit, so the Time page shows
  * them alongside how the Season ended.
  */
 

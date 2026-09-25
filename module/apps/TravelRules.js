@@ -3,10 +3,12 @@ import { takeExplorationAct } from "../actions/exploration.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { gallop } from "../actions/steeds.js";
+import { sufferHardship } from "../actions/time.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { t } from "../chat/cards.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
 import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesView, pressingSections } from "../rules/travel-rules.js";
+import { HARDSHIPS } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { MapSidePanel } from "./MapSidePanel.js";
 
@@ -33,11 +35,26 @@ const getView = () => normaliseTravelRulesView(game.settings.get(SYSTEM_ID, VIEW
 const setView = (changes) => game.settings.set(SYSTEM_ID, VIEW_SETTING, normaliseTravelRulesView({ ...getView(), ...changes }));
 
 /**
+ * A hardship's button, naming what it costs.
+ * @param {string} key One of HARDSHIPS.
+ * @returns {{key: string, label: string, hint: string}}
+ */
+function hardshipButton(key) {
+	const { virtue } = HARDSHIPS.find((hardship) => hardship.key === key);
+	return {
+		key,
+		label: t("travelRules.hardship", { virtue: t(`virtues.${virtue}.abbr`) }),
+		hint: t(`time.hardship.kinds.${key}.hint`)
+	};
+}
+
+/**
  * One side's share of Travel and Exploration (p18-19), against that edge of a
  * Realm Scene's map, as the Blank Realm sheet prints Travel beside its map, for
  * GMs and players alike. Travel stands on the left and Rest and Exploration on
  * the right, as `TRAVEL_RULES` lays them out. Pressing rules stand out as the
- * calendar turns, and GMs get the rolls beside their tables.
+ * calendar turns, and GMs get the rolls beside their tables and each hardship's
+ * Virtue Loss beside the rule that deals it.
  */
 export class TravelRules extends MapSidePanel {
 	static DEFAULT_OPTIONS = {
@@ -45,7 +62,8 @@ export class TravelRules extends MapSidePanel {
 		actions: {
 			fold: TravelRules.#onFold,
 			roll: TravelRules.#onRoll,
-			act: TravelRules.#onAct
+			act: TravelRules.#onAct,
+			hardship: TravelRules.#onHardship
 		}
 	};
 
@@ -89,7 +107,8 @@ export class TravelRules extends MapSidePanel {
 						rows: section.rows?.map((row, index) => ({ band: D6_BANDS[index], text: text(`${key}.rows.${row}`) })) ?? null,
 						note: section.note ? text(`${key}.note`) : null,
 						roll: isGM && section.roll ? { key: section.roll, label: text(`${key}.roll`) } : null,
-						act: isGM && section.act ? { key: section.act, label: text(`${key}.act`) } : null
+						act: isGM && section.act ? { key: section.act, label: text(`${key}.act`) } : null,
+						hardship: isGM && section.hardship ? hardshipButton(section.hardship) : null
 					};
 				})
 			})),
@@ -133,6 +152,14 @@ export class TravelRules extends MapSidePanel {
 	 */
 	static #onAct(_event, target) {
 		return takeExplorationAct(target.dataset.act, { scene: canvas.scene });
+	}
+
+	/**
+	 * Take a hardship's d6 from everybody ticked (p18).
+	 * @this {TravelRules}
+	 */
+	static #onHardship(_event, target) {
+		return sufferHardship(target.dataset.hardship);
 	}
 
 	/** @this {TravelRules} */

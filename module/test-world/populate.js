@@ -3,7 +3,7 @@
  * five Seasons in, for seeing what the sheets, the GM Toolkit and a Realm look
  * like once a campaign has been going a while. The world's calendar is moved
  * on a Phase at a time as the Company travels, so the Journey, the Spark
- * rolls, the Scars and the Seasons page carry the dates they would have had in
+ * rolls, the Scars and the Season log carry the dates they would have had in
  * play, and the Seasons turn through the system's own Season turn.
  *
  * Nothing loads this in play. The macro imports it, so its imports here are

@@ -23,7 +23,7 @@ vi.mock("../../module/actions/time.js", () => ({
 }));
 vi.mock("../../module/apps/KnightChooser.js", () => ({ openKnightChooser: vi.fn((actor) => chosen.push(actor)) }));
 
-const { SCOPE_HOOK, endSession, getScope, makeKnightAhead, registerScopeSetting, scopeView, setScope, setScopePlan } =
+const { SCOPE_HOOK, countSession, getScope, makeKnightAhead, registerScopeSetting, scopeView, setScope, setScopePlan } =
 	await import("../../module/actions/scope.js");
 
 const root = join(import.meta.dirname, "../..");
@@ -115,38 +115,28 @@ describe("setScopePlan", () => {
 	});
 });
 
-describe("endSession", () => {
-	it("turns the Season at a session's end, then counts the session played", async () => {
+describe("countSession", () => {
+	it("counts the session played, so the next one begins", async () => {
 		await setScope("chronicle");
-		expect(await endSession()).toMatchObject({ session: 2 });
-		expect(turns).toEqual(["season"]);
+		expect(await countSession()).toMatchObject({ session: 2 });
 	});
 
-	it("turns the Age instead where Winter ends, since a new Age begins in Spring", async () => {
+	it("turns nothing itself: what falls at a session's end is the Ending a Session window's", async () => {
 		await setScope("chronicle");
-		calendar.season = "winter";
-		await endSession();
-		expect(turns).toEqual(["age"]);
-	});
-
-	it("leaves the session unended where the Referee closes the turn's window", async () => {
-		await setScope("chronicle");
-		turned = null;
-		expect(await endSession()).toBeNull();
-		expect(getScope().session).toBe(1);
-	});
-
-	it("counts a session with no turn planned for its end without turning anything", async () => {
-		await setScope("chronicle");
-		await setScopePlan({ turnEvery: 2 });
-		expect(await endSession()).toMatchObject({ session: 2 });
+		await countSession();
 		expect(turns).toEqual([]);
 	});
 
 	it("is only for the Scope that plans its sessions", async () => {
 		await setScope("saga");
-		expect(await endSession()).toBeNull();
-		expect(turns).toEqual([]);
+		expect(await countSession()).toBeNull();
+	});
+
+	it("is the Referee's to do", async () => {
+		await setScope("chronicle");
+		game.user.isGM = false;
+		expect(await countSession()).toBeNull();
+		expect(getScope().session).toBe(1);
 	});
 });
 

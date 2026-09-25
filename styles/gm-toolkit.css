@@ -262,7 +262,7 @@
 	letter-spacing: 0.03em;
 }
 
-.bastionland-page .bastionland-gm-toolkit__clock-count input {
+.bastionland-page .bastionland-gm-toolkit__clock-count :is(input, button) {
 	width: 3rem;
 	height: 1.5rem;
 	padding: 0 0.2rem;
@@ -1210,21 +1210,65 @@
 	border-left-color: #6d8fb0;
 }
 
-.bastionland-gm-toolkit__season.is-current {
-	border-color: var(--bastionland-verdigris);
-}
-
-.bastionland-gm-toolkit__season-head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.3rem 0.6rem;
-}
-
+/* The Season now heads its own section on the Time page, its leaf in the heading. */
+.bastionland-gm-toolkit__section.bastionland-gm-toolkit__season > .bastionland-heading i,
 .bastionland-gm-toolkit__season-head .bastionland-gm-toolkit__name i {
 	color: var(--season-colour);
 	font-size: 0.75em;
 	vertical-align: 0.1em;
+}
+
+/* A past Season folds to one row, as a Places hex does, with how it ended beside its name. */
+.bastionland-gm-toolkit__season:is(details) {
+	gap: 0;
+	padding: 0;
+}
+
+.bastionland-gm-toolkit__season-head {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.6rem;
+	padding: 0.55rem 2.35rem 0.55rem 0.9rem;
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-gm-toolkit__season-head::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-gm-toolkit__season-head .bastionland-gm-toolkit__name {
+	font-size: 1.15rem;
+}
+
+/* The fold arrow, drawn as the Myth and hex cards draw theirs. */
+.bastionland-gm-toolkit__season-head::after {
+	position: absolute;
+	top: 50%;
+	right: 0.8rem;
+	transform: translateY(-50%);
+	content: "\f078";
+	color: var(--bastionland-ink-soft);
+	font-family: var(--font-awesome);
+	font-size: 0.75rem;
+	font-weight: 900;
+}
+
+.bastionland-gm-toolkit__season[open] > .bastionland-gm-toolkit__season-head::after {
+	content: "\f077";
+}
+
+.bastionland-gm-toolkit__season-head:hover::after {
+	color: var(--bastionland-ink);
+}
+
+.bastionland-gm-toolkit__season-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0 0.9rem 0.75rem;
 }
 
 .bastionland-gm-toolkit__season-turn {

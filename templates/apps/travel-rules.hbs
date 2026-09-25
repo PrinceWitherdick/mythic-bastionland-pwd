@@ -60,6 +60,11 @@
 					<i class="fa-solid fa-binoculars" inert></i> {{act.label}}
 				</button>
 				{{/if}}
+				{{#if hardship}}
+				<button type="button" class="bastionland-travel-rules__roll bastionland-travel-rules__hardship" data-action="hardship" data-hardship="{{hardship.key}}" data-tooltip="{{hardship.hint}}">
+					<i class="fa-solid fa-person-hiking" inert></i> {{hardship.label}}
+				</button>
+				{{/if}}
 			</section>
 			{{/each}}
 		</details>

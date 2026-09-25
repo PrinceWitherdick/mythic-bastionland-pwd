@@ -858,9 +858,6 @@
         "age": "A turn of the Age falls at the end of it, as Winter ends.",
         "none": "No turn falls at the end of it."
       },
-      "endSession": "End the Session",
-      "endSessionHint": "Counts this session as played, and turns the Season or the Age where the plan puts one at its end.",
-      "sessionEnded": "Session {session} is played out.",
       "knightAhead": "Make a Knight Ahead",
       "knightAheadHint": "Makes a Knight with the chooser open on them, ready to hand to a player when they sit down.",
       "knightName": "A New Knight"
@@ -879,7 +876,7 @@
       "day": "Day",
       "season": "Season",
       "phase": "Phase",
-      "setByHand": "Click a Season or Phase, or change the Age or Day, to set the calendar by hand. Only the buttons below carry out what happens between Seasons and Ages.",
+      "setByHand": "Click a Season or Phase, or change the Day, to set the calendar by hand. Click the Age to turn it or set it by hand. Only the buttons below carry out what happens between Seasons and Ages.",
       "phases": {
         "morning": "Morning",
         "afternoon": "Afternoon",
@@ -900,6 +897,13 @@
       "turnAge": "Turn the Age",
       "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
       "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
+      "agePick": {
+        "title": "The Age",
+        "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored, gains 1 Glory and chooses a pursuit, and Old Knights lose d12 VIG.",
+        "set": "Set the Age",
+        "setHint": "Setting the Age only puts the number right. Nothing that comes between Ages happens.",
+        "change": "Turn the Age, or set it by hand"
+      },
       "company": "Who takes part",
       "pursuit": "Pursuit",
       "noCompany": "There are no Knights in this world yet, and no Tokens are selected.",
@@ -1033,7 +1037,6 @@
         }
       },
       "hardship": {
-        "title": "Hardship",
         "intro": "Tick everybody who suffers it.",
         "roll": "Roll Losses",
         "lost": "Loses {amount} {virtue}: {from} → {to}.",
@@ -1505,7 +1508,6 @@
         "journey": "Journey",
         "places": "Places",
         "time": "Time",
-        "seasons": "Seasons",
         "notes": "Notes"
       },
       "myths": {
@@ -1586,21 +1588,22 @@
         "noSites": "There are no Sites yet."
       },
       "time": {
-        "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes.",
+        "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes. Below them is the Season you’re in, what’s owed before it turns, and the Seasons before it.",
+        "thisSeason": "This Season: {season}",
         "resolved": "Myths to Replace",
         "crisisRolls": "Crisis Rolls Due",
         "crisisRollsHint": "Each Domain makes the Crisis Roll at the start of a Season (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
-      "clockHint": "Change the Season, Phase, Age or Day here to set the calendar by hand. Only the Time page’s buttons carry out what happens between Seasons and Ages (p17).",
+      "clockHint": "Change the Season, Phase or Day here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time page’s buttons carry out what happens between Seasons (p17).",
       "seasons": {
-        "hint": "A record of each Season: what you wrote about it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
-        "age": "Age {age}",
-        "now": "Now",
+        "title": "Past Seasons",
+        "hint": "Each Season you wrote about, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
+        "label": "{season}, Age {age}",
         "notes": "Your notes on this Season",
         "notesPlaceholder": "What the Company did, who they met, what was left hanging.",
         "ended": "As it ended: {title}",
-        "notEnded": "This Season hasn’t ended yet."
+        "notRecorded": "The calendar was moved off this Season by hand, so nothing was recorded as it ended."
       },
       "notes": {
         "hint": "Your own notes. At the end of each session, ask the players about their plans and ambitions for the next one, and write them here (p16)."
@@ -1847,6 +1850,87 @@
             "fine": "A fine mood, and all seems well enough."
           }
         }
+      }
+    },
+    "sessionEnd": {
+      "title": "Ending a Session",
+      "hint": "At the end of each session (p16): settle how much time passes, see what became of anything left hanging, and ask the players what they plan next.",
+      "open": "End the Session",
+      "openHint": "Walk the book’s end-of-session procedure (p16).",
+      "finish": "End the Session",
+      "needStep": "Settle how much time passes before ending the session.",
+      "notices": {
+        "promised": "A roll last session put the turn at the end of this one (p17).",
+        "planned": "The Chronicle’s plan puts a turn at the end of this session (p6)."
+      },
+      "time": {
+        "title": "How much time passes?",
+        "hint": "The group decides (p17). Roll if they’re uncertain.",
+        "roll": "Uncertain",
+        "rollHint": "Roll Passage of Time (p17) and let the die settle it.",
+        "rolled": "Passage of Time, {d6}: {result}",
+        "steps": {
+          "none": {
+            "label": "None",
+            "hint": "Pick up where you left off.",
+            "card": "No time passes: the next session picks up where this one left off."
+          },
+          "weeks": {
+            "label": "Weeks",
+            "hint": "Continue on to the next significant seasonal event.",
+            "card": "Weeks pass, on to the Season’s next event."
+          },
+          "months": {
+            "label": "Months",
+            "hint": "Move to the next Season.",
+            "card": "Months pass, and the Season turns."
+          },
+          "years": {
+            "label": "Years",
+            "hint": "Begin a new Age in Spring.",
+            "card": "Years pass, and a new Age begins in Spring."
+          }
+        }
+      },
+      "situations": {
+        "title": "Anything left unresolved?",
+        "hint": "An important situation left unresolved before the turn changes on a d6 (p17).",
+        "add": "Add a situation",
+        "placeholder": "What was left hanging",
+        "roll": "Roll",
+        "rollHint": "Roll Unresolved Situations (p17) for this one.",
+        "remove": "Take this situation off the list",
+        "unnamed": "A situation left unresolved"
+      },
+      "crises": {
+        "title": "Crisis Rolls still owed",
+        "hint": "These Domains never made this Season’s Crisis Roll (p20), which is best made before the Season turns.",
+        "roll": "Crisis Roll"
+      },
+      "glory": {
+        "title": "Glory",
+        "hint": "Glory by other means (p6): a Myth resolved, a tournament won, or a battle history will remember.",
+        "awarded": "{award}: {names}"
+      },
+      "plans": {
+        "title": "Plans and ambitions",
+        "hint": "Ask the players what they plan for next session (p16). It gives you a direction for whatever preparation you do before then.",
+        "placeholder": "What they mean to do next"
+      },
+      "recap": {
+        "title": "This session",
+        "hint": "Written into the Season’s notes on the Toolkit’s Time page.",
+        "placeholder": "What the session came to"
+      },
+      "recapHeading": "Session {session} · {when}",
+      "card": {
+        "session": "Session {session} of {sessions}",
+        "time": "Time",
+        "unresolved": "Left unresolved",
+        "situation": "{situation} · {d6}: {result}",
+        "glory": "Glory",
+        "plans": "Next session",
+        "hint": "Ending a Session (p16)."
       }
     },
     "attack": {
@@ -3025,6 +3109,7 @@
       "unfold": "Show the rules",
       "page": "p{page}",
       "now": "Now",
+      "hardship": "Lose d6 {virtue}",
       "credits": {
         "left": "Travel, as printed on p18 of Mythic Bastionland by Chris McDowall, Bastionland Press, and on the free Blank Realm sheet.",
         "right": "Rest and Hardship and Exploration, as printed on p18-19 of Mythic Bastionland by Chris McDowall, Bastionland Press. The worked example of the Goblin is left out."

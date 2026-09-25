@@ -8,7 +8,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /**
  * The world's calendar (Time, p17). GMs move it on a Phase, a Season or an Age
  * at a time, which carries out what the book says happens between them, or set
- * it by hand. The same window tallies hardship on the road.
+ * it by hand. Hardship on the road is taken beside its rules on the Realm's map.
  */
 export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -58,7 +58,7 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {TimePanel} */
 	static #onSubmit(_event, _form, formData) {
-		return setCalendarByHand({ age: formData.object.age, day: formData.object.day });
+		return setCalendarByHand({ day: formData.object.day });
 	}
 
 	/** @this {TimePanel} */

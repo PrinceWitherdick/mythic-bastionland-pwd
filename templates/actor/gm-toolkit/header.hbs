@@ -24,8 +24,9 @@
 	</div>
 	{{!-- The calendar, held to the banner's far end like Stonetop's season clock: the Season in its own colour
 	      over the Day and Age (a chronicler's order, smallest first), then the Phase (and the weather) on the right. Changing any of them sets the
-	      calendar by hand; only the Time page's buttons carry out what happens between Seasons and Ages. --}}
-	<div class="bastionland-gm-toolkit__clock bastionland-gm-toolkit__clock--{{clock.season}}" role="group" aria-label="{{localize 'bastionland.time.title'}}" data-tooltip="{{clock.tooltip}}" data-tooltip-direction="DOWN">
+	      calendar by hand; only the Time page's buttons carry out what happens between Seasons. The Age opens a window
+	      that turns it or sets it by hand. --}}
+	<div class="bastionland-gm-toolkit__clock bastionland-gm-toolkit__clock--{{clock.season}}" role="group" aria-label="{{localize 'bastionland.time.title'}}">
 		<div class="bastionland-gm-toolkit__clock-calendar">
 			<label class="bastionland-gm-toolkit__clock-season">
 				<i class="{{clock.seasonIcon}}" inert></i>
@@ -35,9 +36,11 @@
 					{{/each}}
 				</select>
 			</label>
-			<div class="bastionland-gm-toolkit__clock-count">
+			{{!-- Only the Day and Age read the date out on hover; the Season and Phase dropdowns carry no hover text. --}}
+			<div class="bastionland-gm-toolkit__clock-count" data-tooltip="{{clock.tooltip}}" data-tooltip-direction="DOWN">
 				<label>{{localize "bastionland.time.day"}} <input class="bastionland-box" type="number" data-toolkit-field="day" value="{{clock.day}}" min="1" step="1"></label>
-				<label>{{localize "bastionland.time.age"}} <input class="bastionland-box" type="number" data-toolkit-field="age" value="{{clock.age}}" min="1" step="1"></label>
+				{{!-- The Age is a button, since turning it (Between Ages) is more than a new number. --}}
+				<label>{{localize "bastionland.time.age"}} <button type="button" class="bastionland-box bastionland-gm-toolkit__clock-age" data-action="pickAge" aria-label="{{localize 'bastionland.time.agePick.change'}}">{{clock.age}}</button></label>
 			</div>
 		</div>
 		<div class="bastionland-gm-toolkit__clock-now">

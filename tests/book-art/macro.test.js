@@ -74,6 +74,7 @@ describe("Macro compendium", () => {
 		["module/actions/luck-macro.js", "luckRollMacro"],
 		["module/actions/site-macro.js", "newSiteMacro"],
 		["module/actions/toolkit-macro.js", "gmToolkitMacro"],
+		["module/actions/session-macro.js", "endSessionMacro"],
 		["module/rulebook/macro.js", "rulebookMacro"]
 	])("holds the macro %s makes, flagged as the world's copy", (file, flag) => {
 		/** @returns {string} The key a picture's path was made from. */

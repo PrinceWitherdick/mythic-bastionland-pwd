@@ -14,7 +14,6 @@ import {
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
 import { makeFreshKnight } from "./new-knight.js";
-import { turnAge, turnSeason } from "./time.js";
 
 /**
  * The Scope the group settled on before they began (p6), and the plan a
@@ -92,21 +91,17 @@ export function setScopePlan(changes) {
 }
 
 /**
- * End the session being played: carry out the turn the Chronicle's plan puts at
- * its end, then count it as played. A Referee who closes the turn's window
- * leaves the session unended, so it can be ended again once they're ready.
- * GMs only.
- * @returns {Promise<import("../rules/scope.js").Scope|null>}
+ * Count the session being played as played, so the next one begins. Only a
+ * Chronicle counts its sessions; an Adventure is one and a Saga doesn't count
+ * them. What falls at a session's end is the Ending a Session window's to carry
+ * out (module/apps/SessionEnd.js), so this only keeps the tally. GMs only.
+ * @returns {Promise<import("../rules/scope.js").Scope|null>} Null for any other Scope.
  */
-export async function endSession() {
+export async function countSession() {
 	if (!game.user.isGM) return null;
 	const plan = getScope();
 	if (plan.scope !== PLANNED_SCOPE) return null;
-	if (turnDue(plan) && !(await (plannedTurn(getCalendar().season) === "age" ? turnAge() : turnSeason()))) return null;
-	const ended = await writeScope(endedSession(plan));
-	if (!ended) return null;
-	await postCard(null, "note", { icon: SCOPE_ICONS[PLANNED_SCOPE], text: t("scope.sessionEnded", { session: plan.session }) });
-	return ended;
+	return writeScope(endedSession(plan));
 }
 
 /**

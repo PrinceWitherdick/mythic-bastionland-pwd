@@ -17,6 +17,7 @@ import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
 import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
+import { TIME_STEPS } from "../module/rules/session-end.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SITE_STEPS, STEP_ROLLS, STEP_STATES } from "../module/rules/sites.js";
 import { GOODS_KIND, GOODS_KINDS, RARITIES } from "../module/rules/arms-and-goods.js";
@@ -114,6 +115,8 @@ describe("localization", () => {
 			...results.map((result) => `refereeRolls.tables.${key}.results.${result}`)
 		]),
 		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
+		...partsOf("sessionEnd.time.steps", TIME_STEPS.map(({ key }) => key), ["label", "hint", "card"]),
+		...["promised", "planned"].map((reason) => `sessionEnd.notices.${reason}`),
 		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),
 		...partsOf("sites.modes", SITE_MODES, ["label", "hint", "help"]),
 		...partsOf("sites.points", POINT_KINDS, ["label", "plural", "hint", "placeholder"]),
@@ -211,7 +214,7 @@ describe("localization", () => {
 		].map((part) => `realmDrawing.sections.${key}.${part}`))),
 		...["intro", "credit", "bookCredit", "inspectHint", "more"].map((key) => `realmDrawing.${key}`),
 		...["terrain", "barriers", "river", "rivers", "riverNone", "holdings", "seat", "seatNone", "seatMany", "myths", "landmark"].map((key) => `realmDrawing.tally.${key}`),
-		...["fold", "unfold", "page"].map((key) => `travelRules.${key}`),
+		...["fold", "unfold", "page", "hardship"].map((key) => `travelRules.${key}`),
 		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
 		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),

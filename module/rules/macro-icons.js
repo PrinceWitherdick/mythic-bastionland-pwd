@@ -25,6 +25,8 @@ export const MACRO_ICON_CREDITS_FILE = "CREDITS.md";
 export const MACRO_ICONS = Object.freeze([
 	{ key: "luck-roll", name: "Luck Roll", icon: "delapouite/perspective-dice-six-faces-random" },
 	{ key: "new-site", name: "New Site", icon: "delapouite/cave-entrance" },
+	// Ending a Session turns on how much time passes, so the sand does for it.
+	{ key: "end-session", name: "End the Session", icon: "lorc/sands-of-time" },
 	{ key: "rulebook", name: "Rulebook", icon: "lorc/open-book" },
 	// The same drawing the toolkit wears as its portrait, on a tile rather than its disc.
 	{ key: "gm-toolkit", name: "GM Toolkit", icon: "skoll/read" },

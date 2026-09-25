@@ -211,7 +211,7 @@
 }
 
 /* Text-like buttons: strip Foundry's button chrome, then style each below. */
-.bastionland-page :where(
+:is(.bastionland-page, .bastionland-session-end) :where(
 	.bastionland-score__name,
 	.bastionland-seer__stat,
 	.bastionland-choice,
@@ -1041,7 +1041,8 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-toolbar button,
-.bastionland-page .bastionland-button {
+.bastionland-page .bastionland-button,
+.bastionland-session-end .bastionland-button {
 	display: inline-flex;
 	/* Buttons take no automatic minimum size from their label, so hold them at
 	   the label's width and let the toolbar wrap rather than spill the text. */
@@ -1062,7 +1063,8 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-toolbar button:hover,
-.bastionland-page .bastionland-button:not(:disabled):hover {
+.bastionland-page .bastionland-button:not(:disabled):hover,
+.bastionland-session-end .bastionland-button:not(:disabled):hover {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 }
@@ -1072,10 +1074,12 @@ a.button:focus:not(:focus-visible) {
 }
 
 /* A sheet's actions in play read as a line of the page rather than a row of
-   app buttons: small caps between two hairlines, parted by rubric lozenges. */
+   app buttons: small caps between two hairlines, parted by rubric lozenges.
+   The wide gap is only between buttons; a wrapped second line sits close under
+   the first, the buttons' own padding keeping the two apart. */
 .bastionland-toolbar--actions {
 	justify-content: center;
-	gap: 1.5rem;
+	gap: 0 1.5rem;
 	padding: 0.3rem 0;
 }
 
@@ -1287,6 +1291,32 @@ a.button:focus:not(:focus-visible) {
 	box-shadow: none;
 }
 
+/* A box that opens a window rather than taking a number, such as the Age: drawn
+   like the boxes beside it, reddening when pointed at, and a click leaves no mark. */
+.bastionland-page button.bastionland-box {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	font-weight: normal;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-box:hover:not(:disabled) {
+	border-color: var(--bastionland-blood);
+	background: var(--bastionland-paper);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page button.bastionland-box:focus:not(:focus-visible) {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-page button.bastionland-box:disabled {
+	cursor: default;
+}
+
 /* The boxes are too small for number spinners. */
 .bastionland-box::-webkit-inner-spin-button,
 .bastionland-box::-webkit-outer-spin-button {
@@ -1375,19 +1405,19 @@ a.button:focus:not(:focus-visible) {
    here, the GM Toolkit's chips too; each pads itself to suit. */
 @supports (text-box: trim-both cap alphabetic) {
 	.bastionland-condition,
-	.bastionland-page .bastionland-choice,
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice,
 	.bastionland-page .bastionland-site__chip > span,
 	.bastionland-gm-toolkit__chip {
 		text-box: trim-both cap alphabetic;
 	}
 
 	.bastionland-condition,
-	.bastionland-page .bastionland-choice {
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		padding-top: 0.3em;
 		padding-bottom: 0.3em;
 	}
 
-	.bastionland-page button.bastionland-choice {
+	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
 		display: inline-block;
 		height: auto;
 		min-height: 0;
@@ -2548,7 +2578,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * The three events that mark a Season (p17), listed in the order they come.
  * The one still to come is drawn in full, and the ones that have come to pass
  * fade back without going below the writing's floor. Shared by the Time window,
- * the Toolkit's Time page and its Seasons page.
+ * the Toolkit's Time page, the Season now and the past Seasons alike.
  */
 .bastionland-season-events {
 	display: flex;
@@ -2624,7 +2654,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-style: italic;
 }
 
-/* On the Seasons page each event is one line, so its words need no room below. */
+/* In a past Season's record each event is one line, so its words need no room below. */
 .bastionland-season-events--log .bastionland-season-events__event {
 	padding: 0.2rem 0.45rem;
 }
@@ -4278,6 +4308,13 @@ button.bastionland-dice:focus-visible {
 	padding: 0.15rem 0.4rem;
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
+}
+
+/* The hardship the calendar makes due is the one to press. */
+.bastionland-travel-rules .is-pressing button.bastionland-travel-rules__hardship {
+	border-color: var(--bastionland-blood);
+	background: var(--bastionland-blood);
+	color: var(--bastionland-paper);
 }
 
 .bastionland-travel-rules__credit {

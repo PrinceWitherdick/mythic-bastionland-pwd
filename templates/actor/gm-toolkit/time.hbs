@@ -1,4 +1,5 @@
-{{!-- The world's calendar and what moves it (p17), and the Myths waiting to be replaced as the Season turns (p27). --}}
+{{!-- The world's calendar and what moves it (p17): the Season it is in, with what it still holds and what's owed
+      before it turns (p20, p27), and a record of the Seasons before it. --}}
 <section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="time">
 	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.time.hint"}}</p>
 
@@ -14,39 +15,9 @@
 			<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>
 			<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
 			<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
+			{{!-- Ending a Session (p16) walks its own window, whatever Scope the game is. --}}
+			<button type="button" data-action="endSession" data-tooltip="{{localize 'bastionland.sessionEnd.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.sessionEnd.open"}}</button>
 		</nav>
-	</section>
-
-	{{!-- Scope (p6): how long the game is expected to run, and for a Chronicle the plan it keeps. --}}
-	<section class="bastionland-gm-toolkit__section">
-		<h2 class="bastionland-heading">{{localize "bastionland.scope.title"}}</h2>
-		<p class="bastionland-hint">{{localize "bastionland.scope.hint"}}</p>
-		<ul class="bastionland-choices bastionland-choices--inline">
-			{{#each scope.choices}}
-			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setScope" data-scope="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-		<p class="bastionland-hint">{{#if scope.text}}{{scope.text}}{{else}}{{localize "bastionland.scope.unchosen"}}{{/if}}</p>
-
-		{{#if scope.chronicle}}
-		<div class="bastionland-time__fields">
-			<label>{{localize "bastionland.scope.fields.sessions"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="sessions" value="{{scope.sessions}}" min="1" step="1"></label>
-			<label>{{localize "bastionland.scope.fields.session"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="session" value="{{scope.session}}" min="1" step="1"></label>
-			<label>{{localize "bastionland.scope.fields.turnEvery"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="turnEvery" value="{{scope.turnEvery}}" min="1" step="1"> {{localize "bastionland.scope.fields.turnEveryUnit"}}</label>
-		</div>
-		<p class="bastionland-hint">{{scope.standing}} {{scope.left}} {{scope.due}}</p>
-		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.scope.title'}}">
-			<button type="button" data-action="endSession" data-tooltip="{{localize 'bastionland.scope.endSessionHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.scope.endSession"}}</button>
-		</nav>
-		{{/if}}
-
-		{{#if scope.adventure}}
-		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.scope.title'}}">
-			<button type="button" data-action="knightAhead" data-tooltip="{{localize 'bastionland.scope.knightAheadHint'}}"><i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.scope.knightAhead"}}</button>
-		</nav>
-		{{/if}}
 	</section>
 
 	{{#if offCourse.shown}}
@@ -56,11 +27,23 @@
 	</section>
 	{{/if}}
 
-	<section class="bastionland-gm-toolkit__section">
-		<h2 class="bastionland-heading">{{localize "bastionland.time.events.title"}}</h2>
+	{{!-- The Season now: its events (p17), marked as they come to pass, and the GM's notes on it, which
+	      the Season keeps in the record below once it has turned. --}}
+	<section class="bastionland-gm-toolkit__section bastionland-gm-toolkit__season bastionland-gm-toolkit__season--{{thisSeason.season}}" data-season-key="{{thisSeason.key}}">
+		<h2 class="bastionland-heading"><i class="{{thisSeason.icon}}" inert></i> {{thisSeason.label}}</h2>
 		<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
 		{{> "bastionland.season-events" seasonEvents}}
 		<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
+
+		<label class="bastionland-gm-toolkit__note">
+			<span>{{localize "bastionland.gmToolkit.seasons.notes"}}</span>
+			<textarea data-toolkit-field="seasonNotes" rows="2" placeholder="{{localize 'bastionland.gmToolkit.seasons.notesPlaceholder'}}">{{thisSeason.notes}}</textarea>
+		</label>
+
+		{{!-- Only a calendar set back by hand comes to a Season that has already ended once. --}}
+		{{#if thisSeason.turn}}
+		{{> "bastionland.season-turn" thisSeason.turn}}
+		{{/if}}
 	</section>
 
 	{{#if crisisRolls.length}}
@@ -94,28 +77,6 @@
 	{{/if}}
 
 	<section class="bastionland-gm-toolkit__section">
-		<h2 class="bastionland-heading">{{localize "bastionland.refereeRolls.title"}}</h2>
-		<ul class="bastionland-time__list">
-			{{#each rolls}}
-			<li>
-				<button type="button" class="bastionland-button" data-action="refereeRoll" data-table="{{key}}" data-tooltip="{{hint}}"><i class="fa-solid fa-dice-d6" inert></i> {{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-	</section>
-
-	<section class="bastionland-gm-toolkit__section">
-		<h2 class="bastionland-heading">{{localize "bastionland.time.hardship.title"}}</h2>
-		<ul class="bastionland-time__list">
-			{{#each hardships}}
-			<li>
-				<button type="button" class="bastionland-button" data-action="hardship" data-hardship="{{key}}" data-tooltip="{{hint}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-	</section>
-
-	<section class="bastionland-gm-toolkit__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.glory.title"}}</h2>
 		<ul class="bastionland-time__list">
 			{{#each gloryAwards}}
@@ -125,4 +86,77 @@
 			{{/each}}
 		</ul>
 	</section>
+
+	{{!-- Scope (p6): how long the game is expected to run, and for a Chronicle the plan it keeps. --}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.scope.title"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.scope.hint"}}</p>
+		<ul class="bastionland-choices bastionland-choices--inline">
+			{{#each scope.choices}}
+			<li>
+				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setScope" data-scope="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+			</li>
+			{{/each}}
+		</ul>
+		<p class="bastionland-hint">{{#if scope.text}}{{scope.text}}{{else}}{{localize "bastionland.scope.unchosen"}}{{/if}}</p>
+
+		{{#if scope.chronicle}}
+		<div class="bastionland-time__fields">
+			<label>{{localize "bastionland.scope.fields.sessions"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="sessions" value="{{scope.sessions}}" min="1" step="1"></label>
+			<label>{{localize "bastionland.scope.fields.session"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="session" value="{{scope.session}}" min="1" step="1"></label>
+			<label>{{localize "bastionland.scope.fields.turnEvery"}} <input class="bastionland-box" type="number" data-toolkit-field="scopePlan" data-part="turnEvery" value="{{scope.turnEvery}}" min="1" step="1"> {{localize "bastionland.scope.fields.turnEveryUnit"}}</label>
+		</div>
+		<p class="bastionland-hint">{{scope.standing}} {{scope.left}} {{scope.due}}</p>
+		{{/if}}
+
+		{{#if scope.adventure}}
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.scope.title'}}">
+			<button type="button" data-action="knightAhead" data-tooltip="{{localize 'bastionland.scope.knightAheadHint'}}"><i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.scope.knightAhead"}}</button>
+		</nav>
+		{{/if}}
+	</section>
+
+	{{!-- Every other Season written about, marked or ended, the newest first, each folded to one row
+	      that says how it ended. The record grows with the game, so it comes last. --}}
+	{{#if pastSeasons.length}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.seasons.title"}}</h2>
+		<p class="bastionland-hint">{{localize "bastionland.gmToolkit.seasons.hint"}}</p>
+		{{#each pastSeasons}}
+		<details class="bastionland-gm-toolkit__card bastionland-gm-toolkit__season bastionland-gm-toolkit__season--{{season}}" data-season-key="{{key}}" data-fold="{{fold}}" {{#if open}}open{{/if}}>
+			<summary class="bastionland-gm-toolkit__season-head">
+				<span class="bastionland-gm-toolkit__name"><i class="{{icon}}" inert></i> {{label}}</span>
+				{{#if turn}}<span class="bastionland-gm-toolkit__kind">{{turn.title}}</span>{{/if}}
+			</summary>
+
+			<div class="bastionland-gm-toolkit__season-body">
+				<ul class="bastionland-season-events bastionland-season-events--log">
+					{{#each events}}
+					<li class="bastionland-season-events__event{{#if passed}} is-passed{{/if}}">
+						<i class="bastionland-season-events__icon {{icon}}" inert></i>
+						<div class="bastionland-season-events__words">
+							<p class="bastionland-season-events__name">{{label}}<span class="bastionland-season-events__stage">{{stage}}</span></p>
+						</div>
+						{{#if passed}}
+						<span class="bastionland-season-events__mark"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.time.events.passed"}}</span>
+						{{/if}}
+					</li>
+					{{/each}}
+				</ul>
+
+				<label class="bastionland-gm-toolkit__note">
+					<span>{{localize "bastionland.gmToolkit.seasons.notes"}}</span>
+					<textarea data-toolkit-field="seasonNotes" rows="2" placeholder="{{localize 'bastionland.gmToolkit.seasons.notesPlaceholder'}}">{{notes}}</textarea>
+				</label>
+
+				{{#if turn}}
+				{{> "bastionland.season-turn" turn}}
+				{{else}}
+				<p class="bastionland-hint">{{localize "bastionland.gmToolkit.seasons.notRecorded"}}</p>
+				{{/if}}
+			</div>
+		</details>
+		{{/each}}
+	</section>
+	{{/if}}
 </section>

@@ -227,6 +227,7 @@ describe("system boot", () => {
 		expect(game.system.api.openSparkTables).toBeTypeOf("function");
 		expect(game.system.api.openHexLore).toBeTypeOf("function");
 		expect(game.system.api.openTimePanel).toBeTypeOf("function");
+		expect(game.system.api.openSessionEnd).toBeTypeOf("function");
 		expect(game.system.api.newSite).toBeTypeOf("function");
 		// The Myths window is the GM Toolkit's first page now, and macros that open it still do.
 		expect(game.system.api.openMythsPanel).toBeTypeOf("function");

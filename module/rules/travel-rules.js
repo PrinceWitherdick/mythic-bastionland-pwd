@@ -31,6 +31,7 @@ const refereeRows = (key) => REFEREE_TABLES.find((table) => table.key === key).r
  * @property {boolean} [note] A second paragraph follows the list or table.
  * @property {string} [roll] What a GM's roll button beside it rolls: "wilderness", "gallop", or one of REFEREE_TABLES.
  * @property {string} [act]  What a GM's button beside it does, where nothing is rolled: "folklore", "search" or "vantage".
+ * @property {string} [hardship] The Virtue Loss a GM's button beside it takes from those who suffer it: one of HARDSHIPS.
  */
 
 /**
@@ -57,7 +58,12 @@ export const TRAVEL_RULES = Object.freeze([
 		key: "rest",
 		page: 18,
 		side: "right",
-		sections: [{ key: "hospitality" }, { key: "camping" }, { key: "supplies" }, { key: "night" }, { key: "sleep" }, { key: "winter" }]
+		sections: [
+			{ key: "hospitality" },
+			{ key: "camping" },
+			// Each hardship's button stands under the rule that deals it (p18).
+			...["supplies", "night", "sleep", "winter"].map((key) => ({ key, hardship: key }))
+		]
 	},
 	{
 		key: "tables",

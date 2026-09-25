@@ -1,5 +1,5 @@
 /**
- * The Seasons page of the GM Toolkit: a record of each Season, kept by the
+ * The record of each Season on the GM Toolkit's Time page, kept by the
  * Season's key ("2-winter"), holding what the GM wrote about it and what came
  * to pass as it ended. Borrowed from the Stonetop system's Seasons Change
  * journal, which keeps one page a year with a block for each season. Pure, so

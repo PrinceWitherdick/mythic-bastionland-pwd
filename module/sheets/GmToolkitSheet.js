@@ -10,7 +10,7 @@ import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMembe
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
-import { SCOPE_HOOK, endSession, makeKnightAhead, scopeView, setScope, setScopePlan } from "../actions/scope.js";
+import { SCOPE_HOOK, makeKnightAhead, scopeView, setScope, setScopePlan } from "../actions/scope.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
@@ -50,7 +50,6 @@ const TAB_ICONS = Object.freeze({
 	journey: "fa-solid fa-route",
 	places: "fa-solid fa-map-location-dot",
 	time: "fa-solid fa-hourglass-half",
-	seasons: "fa-solid fa-calendar-days",
 	notes: "fa-solid fa-feather-pointed"
 });
 
@@ -136,7 +135,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
 			setScope: (_event, target) => setScope(target.dataset.scope),
-			endSession: () => endSession(),
 			knightAhead: () => makeKnightAhead(),
 			...TIME_ACTIONS,
 			landmarkOffer: GmToolkitSheet.#onLandmarkOffer,
@@ -152,7 +150,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		journey: { template: templatePath("actor/gm-toolkit/journey.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
-		seasons: { template: templatePath("actor/gm-toolkit/seasons.hbs"), scrollable: [""] },
 		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] },
 		settings: { template: templatePath("actor/gm-toolkit/settings.hbs"), scrollable: [""] }
 	};
@@ -214,14 +211,14 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 
 	/**
 	 * A change to the Seasons log alone, such as a Season's notes, redraws the
-	 * Seasons page rather than every page.
+	 * Time page, which keeps it, rather than every page.
 	 * @override
 	 */
 	_configureRenderOptions(options) {
 		super._configureRenderOptions(options);
 		const changes = options.renderContext === "updateActor" ? options.renderData : null;
 		const changed = Object.keys(changes ?? {}).filter((key) => !["_id", "_stats"].includes(key));
-		if (changed.length === 1 && changed[0] === "system" && Object.keys(changes.system).every((key) => key === "seasons")) options.parts = ["seasons"];
+		if (changed.length === 1 && changed[0] === "system" && Object.keys(changes.system).every((key) => key === "seasons")) options.parts = ["time"];
 	}
 
 	/** @override */
@@ -257,7 +254,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			case "journey": return Object.assign(part, this.#journeyContext(data));
 			case "places": return Object.assign(part, this.#placesContext(data));
 			case "time": return Object.assign(part, this.#timeContext(data));
-			case "seasons": return Object.assign(part, this.#seasonsContext());
 			case "notes": return Object.assign(part, await this.#notesContext());
 			default: return part;
 		}
@@ -593,7 +589,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const { season, phase } = calendar;
 		// The banner shows the date alone, so the Referee's own blocks aren't worked out for it.
 		const { age, day, seasons, phases } = timeContext({ referee: false });
-		// Hovering the clock reads the date out in full, as a chronicle would, before how to set it.
+		// Hovering the Day and Age reads the date out in full, as a chronicle would, before how to set it.
 		const tooltip = `${chronicleLabel(calendar)} ${t("gmToolkit.clockHint")}`;
 		// Only a table with FXMaster to draw the weather is shown it, and a GM may hide it even then.
 		const weather = weatherButtonShown() ? weatherView() : null;
@@ -601,42 +597,58 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	}
 
 	/**
-	 * The world's calendar and what moves it (p17), the Domains still owed this
-	 * Season's Crisis Roll (p20), and the Realm's resolved Myths, each replaced
-	 * by a new one in the next Season (p27).
+	 * The world's calendar and what moves it (p17). The Season it is in comes
+	 * with what's owed before it turns: the Domains' Crisis Rolls (p20), and the
+	 * Realm's resolved Myths, each replaced by a new one in the next Season
+	 * (p27). Below it, the record of every other Season.
 	 * @param {object|null} data
 	 */
 	#timeContext(data) {
+		const calendar = getCalendar();
 		const waiting = data ? resolvedMyths(data.realm, data.notes) : [];
+		// The log by Age, the newest first; flattened so the newest Season of all comes first.
+		const log = seasonLogView(this.actor.system.seasons, calendar).flatMap(({ seasons }) => [...seasons].reverse());
+		const { record, ...now } = log.find((entry) => entry.current);
 		return {
 			...timeContext(),
+			thisSeason: {
+				...now,
+				label: t("gmToolkit.time.thisSeason", { season: t(`time.seasons.${now.season}`) }),
+				icon: SEASON_ICONS[now.season],
+				notes: record.notes,
+				turn: this.#seasonTurn(record.turn)
+			},
+			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name })),
+			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) })),
 			// How long the game is expected to run, and what a Chronicle's plan puts at this session's end (p6).
 			scope: scopeView(),
-			crisisRolls: crisisRollsDue(worldDomains(), getCalendar()).map((domain) => ({ id: domain.id, name: domain.name })),
-			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) }))
+			pastSeasons: log.filter((entry) => !entry.current).map(({ record: past, ...entry }) => {
+				const fold = `season-${entry.key}`;
+				return {
+					...entry,
+					label: t("gmToolkit.seasons.label", { season: t(`time.seasons.${entry.season}`), age: entry.age }),
+					icon: SEASON_ICONS[entry.season],
+					notes: past.notes,
+					// The Season's own events (p17), each ticked once it came to pass.
+					events: seasonEventsView(entry.season, past.events).map((event) => seasonEventLine(event, entry.season)),
+					turn: this.#seasonTurn(past.turn),
+					fold,
+					open: this.#folds.get(fold) ?? false
+				};
+			})
 		};
 	}
 
-	/** Each Season by Age, the newest first: the GM's notes on it, which of its events came to pass, and how it ended. */
-	#seasonsContext() {
-		const seasonName = (season) => t(`time.seasons.${season}`);
-		return {
-			ages: seasonLogView(this.actor.system.seasons, getCalendar()).map(({ age, seasons }) => ({
-				label: t("gmToolkit.seasons.age", { age }),
-				seasons: seasons.map(({ record, ...entry }) => ({
-					...entry,
-					label: seasonName(entry.season),
-					icon: SEASON_ICONS[entry.season],
-					notes: record.notes,
-					// The Season's own events (p17), each ticked once it has come to pass.
-					events: seasonEventsView(entry.season, record.events).map((event) => seasonEventLine(event, entry.season)),
-					turn: record.turn && {
-						ended: t("gmToolkit.seasons.ended", { title: record.turn.title }),
-						note: record.turn.note,
-						entries: record.turn.entries
-					}
-				}))
-			}))
+	/**
+	 * How a Season ended, as its card told the table, or null while it hasn't.
+	 * @param {import("../rules/season-log.js").SeasonTurn|null} turn
+	 */
+	#seasonTurn(turn) {
+		return turn && {
+			title: turn.title,
+			ended: t("gmToolkit.seasons.ended", { title: turn.title }),
+			note: turn.note,
+			entries: turn.entries
 		};
 	}
 
@@ -693,7 +705,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				onDomainChange(actor, changes);
 				onCastChange(actor, changes);
 			})],
-			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time", "seasons"))],
+			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))],
 			[SCOPE_HOOK, Hooks.on(SCOPE_HOOK, () => this.#redraw("time"))],
 			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))]
 		];
@@ -819,7 +831,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				if (key) await writeSeasonNotes(key, target.value);
 				return;
 			}
-			case "age":
 			case "day":
 				await setCalendarByHand({ [field]: target.value });
 				return;

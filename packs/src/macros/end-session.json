@@ -1,0 +1,19 @@
+{
+  "_id": "mbEndSessionMac1",
+  "_key": "!macros!mbEndSessionMac1",
+  "name": "End the Session",
+  "type": "script",
+  "img": "systems/mythic-bastionland-pwd/assets/icons/macros/end-session.svg",
+  "scope": "global",
+  "command": "game.system.api.openSessionEnd();",
+  "folder": null,
+  "sort": 275000,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "mythic-bastionland-pwd": {
+      "endSessionMacro": true
+    }
+  }
+}

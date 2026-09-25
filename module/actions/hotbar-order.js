@@ -7,7 +7,7 @@ import { orderHotbar } from "./hotbar-macro.js";
  */
 
 /** The macros' flags, in the order they take the first slots. */
-export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro"]);
+export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "endSessionMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro"]);
 export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro"]);
 
 /** User flag set once this user's hotbar has been put in that order. */

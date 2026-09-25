@@ -8,7 +8,7 @@ import { LANDMARK_TYPES, OMEN_COUNT } from "./realm.js";
 import { parseHexKey, sameHex } from "./realm-geometry.js";
 
 /** The toolkit's pages, in the order its tab rail lists them. Names live under `bastionland.gmToolkit.tabs`. */
-export const TOOLKIT_TABS = Object.freeze(["myths", "journey", "places", "time", "seasons", "notes"]);
+export const TOOLKIT_TABS = Object.freeze(["myths", "journey", "places", "time", "notes"]);
 
 /** The pages about one Realm, which follow the Realm chosen at the top of the sheet. */
 export const REALM_TABS = Object.freeze(["myths", "journey", "places"]);

@@ -1,0 +1,18 @@
+{{!-- What came to pass as a Season ended, as its card told the table. The GM Toolkit's Time page shows it
+      on each past Season, and on this one if the calendar was set back by hand to a Season already turned. --}}
+<div class="bastionland-gm-toolkit__season-turn">
+	<p class="bastionland-gm-toolkit__season-ended">{{ended}}</p>
+	{{#if note}}
+	<p class="bastionland-hint">{{note}}</p>
+	{{/if}}
+	<ul class="bastionland-gm-toolkit__season-entries">
+		{{#each entries}}
+		<li>
+			<strong>{{name}}</strong>{{#if pursuit}} · {{pursuit}}{{/if}}
+			{{#each lines}}
+			<p>{{this}}</p>
+			{{/each}}
+		</li>
+		{{/each}}
+	</ul>
+</div>

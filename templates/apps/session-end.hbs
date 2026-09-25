@@ -1,0 +1,109 @@
+{{!-- Ending a Session (p16), a section for each step of the book's procedure. --}}
+<div class="bastionland-session-end">
+	<div class="bastionland-session-end__body">
+		<p class="bastionland-hint">{{localize "bastionland.sessionEnd.hint"}}</p>
+		{{#if standing}}<p class="bastionland-hint">{{standing}}</p>{{/if}}
+		{{#if notice}}<p class="bastionland-session-end__notice">{{notice}}</p>{{/if}}
+
+		{{!-- Advancing Time (p17): the group decides, or the die does. --}}
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.time.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.time.hint"}}</p>
+			<ul class="bastionland-choices bastionland-choices--inline">
+				{{#each steps}}
+				<li>
+					<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="pickStep" data-step="{{key}}"
+						data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+				</li>
+				{{/each}}
+				<li>
+					<button type="button" class="bastionland-button" data-action="rollPassage" data-tooltip="{{localize 'bastionland.sessionEnd.time.rollHint'}}">
+						<i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.sessionEnd.time.roll"}}
+					</button>
+				</li>
+			</ul>
+			{{#if passage}}<p class="bastionland-session-end__rolled">{{passage}}</p>{{/if}}
+		</section>
+
+		{{!-- Unresolved Situations (p17), which only change where the Season or Age moves on. --}}
+		{{#if turning}}
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.situations.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.situations.hint"}}</p>
+			<ul class="bastionland-session-end__situations">
+				{{#each situations}}
+				<li data-situation-id="{{id}}">
+					<div class="bastionland-session-end__row">
+						<input class="bastionland-box" type="text" name="situation" value="{{name}}"
+							placeholder="{{localize 'bastionland.sessionEnd.situations.placeholder'}}"
+							aria-label="{{localize 'bastionland.sessionEnd.situations.placeholder'}}">
+						<button type="button" class="bastionland-button" data-action="rollSituation" data-tooltip="{{localize 'bastionland.sessionEnd.situations.rollHint'}}">
+							<i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.sessionEnd.situations.roll"}}
+						</button>
+						<button type="button" class="bastionland-session-end__drop" data-action="dropSituation"
+							data-tooltip="{{localize 'bastionland.sessionEnd.situations.remove'}}" aria-label="{{localize 'bastionland.sessionEnd.situations.remove'}}">
+							<i class="fa-solid fa-xmark" inert></i>
+						</button>
+					</div>
+					{{#if text}}<p class="bastionland-session-end__rolled"><span class="bastionland-session-end__d6">{{d6}}</span> {{text}}</p>{{/if}}
+				</li>
+				{{/each}}
+			</ul>
+			<button type="button" class="bastionland-button" data-action="addSituation">
+				<i class="fa-solid fa-plus" inert></i> {{localize "bastionland.sessionEnd.situations.add"}}
+			</button>
+		</section>
+		{{/if}}
+
+		{{!-- Crisis Rolls a Domain never made this Season (p20), before it turns. --}}
+		{{#if crises.length}}
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.crises.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.crises.hint"}}</p>
+			<ul class="bastionland-session-end__list">
+				{{#each crises}}
+				<li data-actor-id="{{id}}">
+					<span><strong>{{name}}</strong></span>
+					<button type="button" class="bastionland-button" data-action="crisisRoll"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.sessionEnd.crises.roll"}}</button>
+				</li>
+				{{/each}}
+			</ul>
+		</section>
+		{{/if}}
+
+		{{!-- Glory by other means (p6), for what the session was worth. --}}
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.glory.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.glory.hint"}}</p>
+			<ul class="bastionland-session-end__list bastionland-session-end__list--row">
+				{{#each awards}}
+				<li>
+					<button type="button" class="bastionland-button" data-action="award" data-award="{{key}}" data-tooltip="{{hint}}"><i class="fa-solid fa-crown" inert></i> {{label}}</button>
+					{{#each awarded}}
+					<span class="bastionland-session-end__awarded">{{this}}</span>
+					{{/each}}
+				</li>
+				{{/each}}
+			</ul>
+		</section>
+
+		{{!-- "Ask the players if they have any plans or ambitions for the next session" (p16). --}}
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.plans.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.plans.hint"}}</p>
+			<textarea name="plans" rows="3" placeholder="{{localize 'bastionland.sessionEnd.plans.placeholder'}}">{{plans}}</textarea>
+		</section>
+
+		<section class="bastionland-session-end__section">
+			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.recap.title"}}</h3>
+			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.recap.hint"}}</p>
+			<textarea name="recap" rows="3" placeholder="{{localize 'bastionland.sessionEnd.recap.placeholder'}}">{{recap}}</textarea>
+		</section>
+	</div>
+
+	<footer class="bastionland-session-end__footer">
+		<button type="button" class="bastionland-session-end__finish" data-action="finish" {{#unless ready}}data-tooltip="{{localize 'bastionland.sessionEnd.needStep'}}"{{/unless}}>
+			<i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.sessionEnd.finish"}}
+		</button>
+	</footer>
+</div>

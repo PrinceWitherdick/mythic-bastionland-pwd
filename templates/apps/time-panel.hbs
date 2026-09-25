@@ -10,7 +10,7 @@
 	<section class="bastionland-block">
 		<div class="bastionland-time__fields">
 			<label for="{{rootId}}-age">{{localize "bastionland.time.age"}}</label>
-			<input id="{{rootId}}-age" class="bastionland-box" type="number" name="age" value="{{age}}" min="1" step="1" {{disabled locked}}>
+			<button id="{{rootId}}-age" type="button" class="bastionland-box bastionland-time__age" data-action="pickAge" data-tooltip="{{localize 'bastionland.time.agePick.change'}}" {{disabled locked}}>{{age}}</button>
 			<label for="{{rootId}}-day">{{localize "bastionland.time.day"}}</label>
 			<input id="{{rootId}}-day" class="bastionland-box" type="number" name="day" value="{{day}}" min="1" step="1" {{disabled locked}}>
 		</div>
@@ -63,22 +63,9 @@
 		<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
 		<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
 	</nav>
-	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.refereeRolls.title'}}">
-		{{#each rolls}}
-		<button type="button" data-action="refereeRoll" data-table="{{key}}" data-tooltip="{{hint}}"><i class="fa-solid fa-dice-d6" inert></i> {{label}}</button>
-		{{/each}}
+	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.sessionEnd.title'}}">
+		<button type="button" data-action="endSession" data-tooltip="{{localize 'bastionland.sessionEnd.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.sessionEnd.open"}}</button>
 	</nav>
-
-	<section class="bastionland-block">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.hardship.title"}}</h3>
-		<ul class="bastionland-time__list">
-			{{#each hardships}}
-			<li>
-				<button type="button" class="bastionland-button" data-action="hardship" data-hardship="{{key}}" data-tooltip="{{hint}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-	</section>
 
 	<section class="bastionland-block">
 		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.glory.title"}}</h3>
