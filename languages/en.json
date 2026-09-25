@@ -39,6 +39,7 @@
       "maximum": "Maximum",
       "toNextRank": "{needed} more Glory to {rank}",
       "worthiest": "Worthy of the City Quest",
+      "knightTitle": "{name} the {type} Knight",
       "add": "Add {type}",
       "edit": "Edit",
       "toChat": "Show in chat",

@@ -48,6 +48,15 @@ export function knightTypeFromName(name) {
 	return String(name ?? "").trim().replace(/^the\s+/i, "").replace(/\s+knight$/i, "").trim();
 }
 
+/**
+ * The Knight their sheet's title calls them, as in "Eve the Silk Knight".
+ * @param {{isSquire?: boolean, knightType?: string}} knight
+ * @returns {string} "Silk", or "" for a Squire or a Knight not yet chosen.
+ */
+export function titleKnightType({ isSquire = false, knightType = "" } = {}) {
+	return isSquire ? "" : knightTypeFromName(knightType);
+}
+
 /** Marks the prompts line, as fills that still printed it wrote it. */
 const PROMPTS_CLASS = ' class="bastionland-seer__prompts"';
 

@@ -18,6 +18,7 @@ import { openLedger } from "../apps/LedgerWindow.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
+import { titleKnightType } from "../rules/creation.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
@@ -106,6 +107,29 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	};
 
 	static PREVIEWED_ART = ".bastionland-portrait img[data-name]";
+
+	/**
+	 * A chosen Knight is titled as the book styles them, "Eve the Silk Knight",
+	 * in place of "Knight: Eve"; a Squire and an unchosen Knight keep the plain title.
+	 * @override
+	 */
+	get title() {
+		const type = titleKnightType(this.actor.system);
+		return type ? t("sheet.knightTitle", { name: this.actor.name, type }) : super.title;
+	}
+
+	/**
+	 * Foundry retitles the window only when the name changes, so a new Knight
+	 * type, or a Squire Knighted, retitles it too.
+	 * @override
+	 */
+	_configureRenderOptions(options) {
+		super._configureRenderOptions(options);
+		const changes = options.renderData?.system;
+		if (this.hasFrame && options.renderContext && changes && ("knightType" in changes || "isSquire" in changes)) {
+			options.window = Object.assign(options.window ?? {}, { title: this.title });
+		}
+	}
 
 	/** @override */
 	async _prepareContext(options) {

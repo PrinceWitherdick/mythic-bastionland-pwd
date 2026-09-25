@@ -11,7 +11,8 @@ import {
 	seerBook,
 	seerInfo,
 	startFor,
-	takenKnights
+	takenKnights,
+	titleKnightType
 } from "../../module/rules/creation.js";
 import { rankForGlory } from "../../module/rules/glory.js";
 
@@ -55,6 +56,19 @@ describe("knightTypeFromName", () => {
 		expect(knightTypeFromName("The Lantern Knight")).toBe("Lantern");
 		expect(knightTypeFromName("Lantern")).toBe("Lantern");
 		expect(knightTypeFromName(null)).toBe("");
+	});
+});
+
+describe("titleKnightType", () => {
+	it("names a chosen Knight's type for the sheet's title", () => {
+		expect(titleKnightType({ knightType: "Lantern" })).toBe("Lantern");
+		expect(titleKnightType({ knightType: " The Lantern Knight " })).toBe("Lantern");
+	});
+
+	it("leaves a Squire and an unchosen Knight to the plain title", () => {
+		expect(titleKnightType({ knightType: "Lantern", isSquire: true })).toBe("");
+		expect(titleKnightType({ knightType: "  " })).toBe("");
+		expect(titleKnightType()).toBe("");
 	});
 });
 
