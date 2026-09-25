@@ -1424,6 +1424,83 @@ a.button:focus:not(:focus-visible) {
 	}
 }
 
+/* Even padding still left the letters a pixel high or low, a different way in
+   each pill: the border snaps to whole screen pixels and the baseline snaps on
+   its own, from wherever the pill happens to fall. So a pill's height and its
+   baseline are each rounded to a whole screen pixel (--pill-dp, which allows
+   for the display's scaling and Text Size's zoom), and the padding is whatever
+   is left above and below the letters. A pill may set --pill-pad (the padding
+   it would have on paper), --pill-border-width, and --pill-edge (the height its
+   letters are centred on). --pill-border is the width the browser snaps the
+   border to anyway, so the sums agree with what is drawn. */
+@supports (text-box: trim-both cap alphabetic) and (padding: round(1cap, 1px)) {
+	:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+		--pill-dp: calc(1px / var(--bastionland-text-size, 1));
+		--pill-edge: 1cap;
+		--pill-border: max(var(--pill-dp), round(down, var(--pill-border-width, 1px), var(--pill-dp)));
+		--pill-height: round(up, calc(2 * var(--pill-border) + 1cap + 2 * var(--pill-pad, 0.3em)), var(--pill-dp));
+		--pill-baseline: round(calc((var(--pill-height) + var(--pill-edge)) / 2), var(--pill-dp));
+	}
+
+	@media (resolution: 1.25dppx) {
+		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+			--pill-dp: calc(0.8px / var(--bastionland-text-size, 1));
+		}
+	}
+
+	@media (resolution: 1.5dppx) {
+		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+			--pill-dp: calc(2px / 3 / var(--bastionland-text-size, 1));
+		}
+	}
+
+	@media (resolution: 1.75dppx) {
+		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+			--pill-dp: calc(4px / 7 / var(--bastionland-text-size, 1));
+		}
+	}
+
+	.bastionland-condition,
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
+		padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
+		padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
+		border-width: var(--pill-border);
+	}
+
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
+		--pill-border-width: 1.5px;
+	}
+
+	/* A rank is a flex box, which the trim can't reach, so it goes back to
+	   plain lines, the Glory beside the name on the same baseline. */
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static {
+		display: block;
+	}
+
+	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static .bastionland-choice__glory {
+		margin-left: 0.25rem;
+	}
+
+	/* A Site chip keeps its set height, rounded, and stays a flex box so its
+	   glyph centres. The label drops to the whole-pixel baseline, and the tally
+	   sits on the label's baseline. Named as a button to outrank the chip's
+	   own rule further down. */
+	.bastionland-page button.bastionland-site__chip {
+		--pill-height: round(1.8rem, var(--pill-dp));
+		box-sizing: border-box;
+		height: var(--pill-height);
+		border-width: var(--pill-border);
+	}
+
+	.bastionland-page .bastionland-site__chip > span {
+		align-self: baseline;
+	}
+
+	.bastionland-page .bastionland-site__chip > span:not(.bastionland-site__tally) {
+		margin-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
+	}
+}
+
 .bastionland-condition.is-derived {
 	font-style: italic;
 	cursor: help;

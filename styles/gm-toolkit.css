@@ -381,6 +381,25 @@
 	}
 }
 
+/* Even padding still left the letters a pixel high or low, so the chip takes
+   its height and baseline in whole screen pixels from the pill sums in the
+   main sheet, and pads itself with what they leave. */
+@supports (text-box: trim-both cap alphabetic) and (padding: round(1cap, 1px)) {
+	.bastionland-gm-toolkit__chip {
+		--pill-pad: 0.34rem;
+		padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
+		padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
+		border-width: var(--pill-border);
+	}
+
+	/* Small capitals stand an x-height tall, so a terrain's are centred on that
+	   and its one full capital rises above them, in a pill the same height. */
+	.bastionland-gm-toolkit__chip.is-terrain {
+		--pill-edge: 1ex;
+		text-box: trim-both ex alphabetic;
+	}
+}
+
 .bastionland-gm-toolkit__chip.is-terrain {
 	font-variant: small-caps;
 	letter-spacing: 0.04em;
