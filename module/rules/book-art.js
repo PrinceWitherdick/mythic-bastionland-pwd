@@ -22,11 +22,15 @@ export const INDEX_FILE = "index.json";
  * added the prompts along the foot of each Knight's page to their Seer. 8
  * added the rules pages, starting with Creating a Realm (p14). 9 added the
  * table at the foot of each Myth's page. 10 added the table on each Knight's.
+ * 11 added the verse under each Myth's name.
  */
-export const INDEX_VERSION = 10;
+export const INDEX_VERSION = 11;
 
 /** The first index version with the table on each Knight's page. */
 export const KNIGHT_TABLE_VERSION = 10;
+
+/** The first index version with the verse under each Myth's name. */
+export const MYTH_VERSE_VERSION = 11;
 
 /** Page count of the PDF the layout below was measured against. */
 export const EXPECTED_PAGES = 212;
@@ -407,15 +411,15 @@ const OMEN_START = /^(\d+)\.\s*(.*)$/;
  * A Myth's Omens and Cast. The Omens fill the left column and the Cast the
  * right, above a table and the prompts along the foot.
  * @param {object[]} items From `page.getTextContent()`.
- * @returns {{omens: string[], cast: CastEntry[], castNote: string, table: MythTable|null}|null}
- *   `castNote` is text about the whole Cast, printed above the first entry.
- *   Null when the columns can't be found.
+ * @returns {{verse: string[]|null, omens: string[], cast: CastEntry[], castNote: string, table: MythTable|null}|null}
+ *   `verse` is the couplet under the Myth's name, one line each. `castNote` is
+ *   text about the whole Cast, printed above the first entry. Null when the
+ *   columns can't be found.
  */
 export function mythTextFromItems(items) {
 	const runs = textRuns(items);
-	const heading = (word) => runs.find((run) => Math.abs(run.size - COLUMN_HEADING_SIZE) <= 1 && run.str.trim().toLowerCase() === word);
-	const omensHeading = heading("omens");
-	const castHeading = heading("cast");
+	const omensHeading = columnHeading(runs, "omens");
+	const castHeading = columnHeading(runs, "cast");
 	if (!omensHeading || !castHeading) return null;
 
 	const split = (runMiddle(omensHeading) + runMiddle(castHeading)) / 2;
@@ -430,7 +434,33 @@ export function mythTextFromItems(items) {
 	const omens = readOmens(column((x) => x < split));
 	const { cast, castNote } = readCast(column((x) => x >= split));
 	if (!omens.length && !cast.length) return null;
-	return { omens, cast, castNote, table: mythTableFromItems(items, { runs, lines }) };
+	return { verse: mythVerseFromItems(items, { runs }), omens, cast, castNote, table: mythTableFromItems(items, { runs, lines }) };
+}
+
+/**
+ * @param {ReturnType<typeof textRuns>} runs
+ * @param {string} word "omens" or "cast".
+ * @returns {ReturnType<typeof textRuns>[number]|undefined} The heading over that column of a Myth's page.
+ */
+const columnHeading = (runs, word) => runs.find((run) => Math.abs(run.size - COLUMN_HEADING_SIZE) <= 1 && run.str.trim().toLowerCase() === word);
+
+/**
+ * The verse under a Myth's name, set in the headings' face between the name
+ * and the Omens.
+ * @param {object[]} items From `page.getTextContent()`.
+ * @param {object} [parsed] What a caller has already made of the same items.
+ * @param {ReturnType<typeof textRuns>} [parsed.runs] `textRuns(items)`.
+ * @returns {string[]|null} One entry a line, or null without an Omens heading or anything above it.
+ */
+export function mythVerseFromItems(items, { runs = textRuns(items) } = {}) {
+	const omensHeading = columnHeading(runs, "omens");
+	if (!omensHeading) return null;
+	const above = items.filter((item) => {
+		const [, , c = 0, d = 0, , y] = item.transform ?? [];
+		return y > omensHeading.y + BASELINE_TOLERANCE && Math.abs(Math.hypot(c, d) - COLUMN_HEADING_SIZE) <= 1;
+	});
+	const verse = textLines(above).map((line) => line.text).filter(Boolean);
+	return verse.length ? verse : null;
 }
 
 /** A Myth's table has a row for each face of a d6. */
@@ -672,7 +702,7 @@ export function tokenFile(d6, d12, name, extension = "webp") {
 /**
  * One picture's line in the index. `path` is null when it wasn't saved. Each
  * kind also carries the text read from its page, null when unread: a Knight's
- * Property, Ability, Passion and table, a Seer's stats, and a Myth's Omens, Cast and table.
+ * Property, Ability, Passion and table, a Seer's stats, and a Myth's verse, Omens, Cast and table.
  * A Knight's `token` is the path of the square cut from their portrait.
  * @param {object} entry
  * @param {object|null} [entry.text] From knightTextFromItems, seerTextFromItems or mythTextFromItems.
@@ -686,7 +716,7 @@ export function indexEntry({ kind, d6, d12, page, name = null, file, path = null
 		case "seer":
 			return { ...entry, stats: text?.stats ?? null, lines: text?.lines ?? null, prompts: text?.prompts ?? null };
 		case "myth":
-			return { ...entry, omens: text?.omens ?? null, cast: text?.cast ?? null, castNote: text?.castNote ?? null, table: text?.table ?? null };
+			return { ...entry, verse: text?.verse ?? null, omens: text?.omens ?? null, cast: text?.cast ?? null, castNote: text?.castNote ?? null, table: text?.table ?? null };
 		default:
 			return entry;
 	}

@@ -34,19 +34,20 @@ export class ArtPopout extends ImagePopout {
 			return;
 		}
 		// Sent directly rather than through shareImage, whose own notice would say the same again.
-		game.socket.emit("shareImage", { image: this.options.src, title: this.title, showTitle: true });
+		game.socket.emit("shareImage", { image: this.options.src, title: this.title, caption: this.options.caption, showTitle: true });
 		ui.notifications.info(t("artPopout.shown", { name: this.title }));
 	}
 }
 
 /**
  * Open a picture larger, or bring it forward if it's open already.
- * @param {{src: string, title: string, icon?: string}} art
+ * @param {{src: string, title: string, caption?: string, icon?: string}} art
+ *   `caption` is printed under the picture, each line of it on its own.
  * @returns {ArtPopout}
  */
-export function openArt({ src, title, icon = "fa-solid fa-image" }) {
+export function openArt({ src, title, caption = "", icon = "fa-solid fa-image" }) {
 	const id = `${SYSTEM_ID}-art-${slugify(src)}`;
-	const popout = foundry.applications.instances.get(id) ?? new ArtPopout({ id, src, window: { title, icon } });
+	const popout = foundry.applications.instances.get(id) ?? new ArtPopout({ id, src, caption, window: { title, icon } });
 	popout.render({ force: true });
 	return popout;
 }

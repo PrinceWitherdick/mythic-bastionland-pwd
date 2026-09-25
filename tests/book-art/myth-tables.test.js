@@ -13,7 +13,7 @@ vi.mock("../../module/book-art/pdf.js", () => ({
 	})
 }));
 
-const { peekTable, tableForEntry } = await import("../../module/book-art/myth-tables.js");
+const { peekTable, peekVerse, tableForEntry, verseForEntry } = await import("../../module/book-art/myth-tables.js");
 
 describe("tableForEntry", () => {
 	beforeEach(() => {
@@ -39,6 +39,28 @@ describe("tableForEntry", () => {
 		expect(peekTable(33)).toBeNull();
 		// With no entry, the page is given on its own; whatever the version, without a floor.
 		await tableForEntry({ version: 10 }, null, { page: 33 });
+		expect(book.reads).toBe(1);
+	});
+});
+
+describe("verseForEntry", () => {
+	beforeEach(() => {
+		book.reads = 0;
+	});
+
+	it("gives the index's own verse, or leaves an index at the floor alone", async () => {
+		const verse = ["One line", "And another"];
+		await expect(verseForEntry({ version: 1 }, { page: 29, verse })).resolves.toBe(verse);
+		await expect(verseForEntry({ version: 11 }, { page: 35 }, { versionFloor: 11 })).resolves.toBeNull();
+		expect(book.reads).toBe(0);
+		expect(peekVerse(35)).toBeUndefined();
+	});
+
+	it("shares one read of a page with its table", async () => {
+		await expect(verseForEntry({ version: 10 }, { page: 37 }, { versionFloor: 11 })).resolves.toBeNull();
+		expect(peekVerse(37)).toBeNull();
+		await expect(tableForEntry({ version: 9 }, { page: 37 }, { versionFloor: 10 })).resolves.toBeNull();
+		expect(peekTable(37)).toBeNull();
 		expect(book.reads).toBe(1);
 	});
 });

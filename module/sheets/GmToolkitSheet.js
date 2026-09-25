@@ -20,10 +20,10 @@ import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { TIME_ACTIONS, seasonEventLine, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
-import { canReadTablesFromRulebook, peekTable, tableForEntry } from "../book-art/myth-tables.js";
+import { canReadTablesFromRulebook, peekTable, peekVerse, tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { reducesMotion, scrollBehavior } from "../client-settings.js";
-import { isTableRoll } from "../rules/book-art.js";
+import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
 import { REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { visitedNewestFirst } from "../rules/journey.js";
@@ -337,6 +337,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			hexKey: hexKey(myth.hex),
 			hidden: !myth.revealed,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
+			// On one line under the name, so it reads with the card folded.
+			verse: this.#verse(entry, page)?.join(" / ") ?? null,
 			// All six in order: the one playing out and the one to come in full,
 			// every other cut to a line, which its row reads out on hover instead.
 			// Clicking a row marks that Omen; clicking the one playing out takes
@@ -356,12 +358,13 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 					next: number === next,
 					label,
 					cut,
-					mark,
-					// A cut row says what it holds; one written out says what a click does.
-					tip: cut ? written : mark
+					mark
 				};
 			}),
 			complete: myth.omen >= OMEN_COUNT,
+			// Resolving a Myth is only offered once its last Omen has been met
+			// (p18); until then the page says so in place of the button.
+			awaitOmens: !kept.resolved && myth.omen < OMEN_COUNT,
 			resolved: kept.resolved,
 			note: kept.note,
 			fold,
@@ -411,6 +414,22 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			empty: !members.length && !extras.length,
 			missingText
 		};
+	}
+
+	/**
+	 * The verse under a Myth's name: from the index, or else read from the
+	 * world's rulebook for an index imported before the verses were.
+	 * @param {object|null} entry From the art index.
+	 * @param {number|null} page
+	 * @returns {string[]|null} One entry a line, or null while it's read or where there's none.
+	 */
+	#verse(entry, page) {
+		if (entry?.verse) return entry.verse;
+		if (!page || (this.#index?.version ?? 0) >= MYTH_VERSE_VERSION) return null;
+		const read = peekVerse(page);
+		// Read once however often the page is drawn meanwhile, as the table is.
+		if (read === undefined && canReadTablesFromRulebook()) verseForEntry(this.#index, entry, { page }).then(() => this.#redraw("myths"));
+		return read ?? null;
 	}
 
 	/**
@@ -937,18 +956,20 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 */
 	static #onShowMythArt(_event, target) {
 		const myth = this.#mythFrom(target);
-		const { name, entry } = myth ? mythLookup(this.#index, myth) : {};
-		if (entry?.path) openArt({ src: entry.path, title: name, icon: TAB_ICONS.myths });
+		const { name, page, entry } = myth ? mythLookup(this.#index, myth) : {};
+		// The verse goes under the picture as the book prints it, one line under the other.
+		if (entry?.path) openArt({ src: entry.path, title: name, caption: this.#verse(entry, page)?.join("\n") ?? "", icon: TAB_ICONS.myths });
 	}
 
 	/**
 	 * The group feels the Myth is resolved: mark it so, and award the Glory
-	 * that comes with it (p27). A new Myth replaces it in the next Season.
+	 * that comes with it (p27). A new Myth replaces it in the next Season. Only
+	 * a Myth whose last Omen has been met can be resolved.
 	 * @this {GmToolkitSheet}
 	 */
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
-		if (!myth) return;
+		if (!myth || myth.omen < OMEN_COUNT) return;
 		await editMythNote(this.scene, myth, { resolved: true });
 		await awardGlory("myth");
 	}

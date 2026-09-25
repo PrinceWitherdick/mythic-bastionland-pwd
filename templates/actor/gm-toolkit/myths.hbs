@@ -23,6 +23,10 @@
 			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
 				{{#each omens}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}"></i>{{/each}}
 			</span>
+			{{!-- The verse under the Myth's name in the book, its two lines run into one. --}}
+			{{#if verse}}
+			<span class="bastionland-gm-toolkit__verse" data-tooltip="{{verse}}">{{verse}}</span>
+			{{/if}}
 			<span class="bastionland-gm-toolkit__chips">
 				<button type="button" class="bastionland-gm-toolkit__chip bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
 				{{#if hidden}}
@@ -47,8 +51,8 @@
 			      each other is cut to a line, which hovering reads in full. --}}
 			<ol class="bastionland-gm-toolkit__omens">
 				{{#each omens}}
-				<li class="bastionland-gm-toolkit__omen{{#if past}} is-past{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}{{#if cut}} is-cut{{/if}}" data-action="markOmen" data-omen="{{number}}" data-tooltip="{{tip}}">
-					<button type="button" class="bastionland-gm-toolkit__omen-number" data-action="markOmen" data-omen="{{number}}" data-tooltip="{{mark}}" aria-label="{{mark}}"><span>{{number}}</span></button>
+				<li class="bastionland-gm-toolkit__omen{{#if past}} is-past{{/if}}{{#if current}} is-current{{/if}}{{#if next}} is-next{{/if}}{{#if cut}} is-cut{{/if}}" data-action="markOmen" data-omen="{{number}}">
+					<button type="button" class="bastionland-gm-toolkit__omen-number" data-action="markOmen" data-omen="{{number}}" aria-label="{{mark}}"><span>{{number}}</span></button>
 					<div class="bastionland-gm-toolkit__omen-text">
 						{{#if label}}<span class="bastionland-gm-toolkit__omen-label">{{label}}</span>{{/if}}
 						<p>{{> omenText this}}</p>
@@ -101,6 +105,11 @@
 				<textarea data-toolkit-field="mythNote" rows="2" placeholder="{{localize 'bastionland.gmToolkit.myths.notePlaceholder'}}">{{note}}</textarea>
 			</label>
 
+			{{!-- A Myth is only offered as resolved once its last Omen has been met (p18). --}}
+			{{#if awaitOmens}}
+			<p class="bastionland-hint">{{localize "bastionland.gmToolkit.myths.awaitOmens"}}</p>
+			{{/if}}
+
 			<nav class="bastionland-toolbar" aria-label="{{name}}">
 				{{#if table.rows}}
 				<button type="button" data-action="rollMythTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.myths.rollTable"}}</button>
@@ -108,7 +117,7 @@
 				{{#if resolved}}
 				<button type="button" data-action="newMyth" data-tooltip="{{localize 'bastionland.gmToolkit.myths.newMythTooltip'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.gmToolkit.myths.newMyth"}}</button>
 				<button type="button" data-action="mythUnresolved"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.gmToolkit.myths.unresolve"}}</button>
-				{{else}}
+				{{else if complete}}
 				<button type="button" data-action="mythResolved" data-tooltip="{{localize 'bastionland.glory.awards.myth.hint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.glory.awards.myth.label"}}</button>
 				{{/if}}
 			</nav>

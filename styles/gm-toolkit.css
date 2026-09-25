@@ -441,6 +441,7 @@
 	display: grid;
 	grid-template-areas:
 		"art name pips mark"
+		"art verse verse mark"
 		"art chips chips mark";
 	grid-template-columns: auto minmax(0, 1fr) auto auto;
 	align-items: center;
@@ -485,12 +486,24 @@
 	grid-area: chips;
 }
 
-/* The Myth's picture, a button that opens it larger. */
+/* One line under the name, reaching as far as the pips; hovering reads it in full. */
+.bastionland-gm-toolkit__verse {
+	grid-area: verse;
+	overflow: hidden;
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+	line-height: 1.2;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The Myth's picture, a button that opens it larger: the height of the
+   row's three lines, in the book's proportions (941 by 499). */
 .bastionland-page button.bastionland-gm-toolkit__art {
 	display: block;
 	grid-area: art;
-	width: 4.4rem;
-	height: 2.75rem;
+	width: 8.5rem;
+	height: 4.5rem;
 	padding: 0;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 0;
@@ -510,17 +523,19 @@
 	object-fit: cover;
 }
 
-/* A pip for each Omen: filled once met, the one playing out in blood. */
+/* A pip for each Omen: filled once met, the one playing out in blood. They
+   stand the height of the row, so they sit level with the fold's arrow. */
 .bastionland-gm-toolkit__pips {
 	display: flex;
 	grid-area: pips;
-	gap: 0.3rem;
+	align-items: center;
+	gap: 0.35rem;
 }
 
 .bastionland-gm-toolkit__pip {
-	width: 0.9rem;
-	height: 0.9rem;
-	border: 1.5px solid var(--bastionland-ink-soft);
+	width: 1.15rem;
+	height: 1.15rem;
+	border: 2px solid var(--bastionland-ink-soft);
 	border-radius: 50%;
 }
 
@@ -1276,6 +1291,14 @@
 
 .bastionland-gm-toolkit__notes {
 	min-height: 0;
+}
+
+/* Narrower, the picture gives its width back to the name and the verse. */
+@container (max-width: 760px) {
+	.bastionland-page button.bastionland-gm-toolkit__art {
+		width: 5.6rem;
+		height: 3rem;
+	}
 }
 
 @container (max-width: 560px) {

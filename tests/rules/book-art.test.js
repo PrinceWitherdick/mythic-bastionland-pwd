@@ -235,6 +235,9 @@ describe("mythTextFromItems", () => {
 		const page = [
 			item("The", 30, 285, 715),
 			item("Lamplighter", 54, 227, 680),
+			item("Wax that weeps and wicks that", 14, 159, 657, 180),
+			item("sing", 14, 342, 657, 25),
+			item("Light the way for those who cling", 14, 158, 644, 200),
 			...headings,
 			body("1.", 11, 71, 354, 9),
 			body("A guttering candle on the road.", 11, 88, 354, 200),
@@ -271,6 +274,7 @@ describe("mythTextFromItems", () => {
 		];
 
 		expect(mythTextFromItems(page)).toEqual({
+			verse: ["Wax that weeps and wicks that sing", "Light the way for those who cling"],
 			omens: ["A guttering candle on the road.", "A procession of lanterns winds toward the hill."],
 			cast: [
 				{
@@ -297,6 +301,7 @@ describe("mythTextFromItems", () => {
 			body("VIG 9, CLA 9, SPI 9, 4GD", 11, 340, 332, 130)
 		];
 		expect(mythTextFromItems(page)).toEqual({
+			verse: null,
 			omens: ["A warm draught."],
 			cast: [{ name: "Frost Warden", stats: { vig: 9, cla: 9, spi: 9, guard: 4 }, lines: [] }],
 			castNote: "Chosen by the season.",
@@ -530,6 +535,7 @@ describe("buildIndex", () => {
 			path: null,
 			width: null,
 			height: null,
+			verse: null,
 			omens: null,
 			cast: null,
 			castNote: null,

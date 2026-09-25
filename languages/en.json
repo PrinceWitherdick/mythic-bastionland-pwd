@@ -1520,6 +1520,7 @@
         "note": "Your notes on this Myth",
         "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
         "resolved": "Resolved",
+        "awaitOmens": "A Myth can be resolved once its last Omen has been met.",
         "resolvedHint": "When the group feels a Myth is resolved, a new Myth replaces it in the next Season (p27).",
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",

@@ -5489,3 +5489,19 @@ button.bastionland-company-button:focus-visible {
 	gap: 0.5rem;
 	margin-top: 1rem;
 }
+
+/* A picture's caption keeps its line breaks, so a Myth's verse reads as the
+   book prints it, here and in the window players are shown. The window is
+   dark behind the picture, so the caption is set on a strip of the parchment
+   in ink rather than left in the page's dark text on it. */
+.application.image-popout figure figcaption {
+	align-self: center;
+	margin-top: 0.75rem;
+	padding: 0.4rem 1.1rem;
+	border: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	line-height: 1.35;
+	white-space: pre-line;
+}
