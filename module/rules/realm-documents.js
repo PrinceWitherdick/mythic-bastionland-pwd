@@ -15,7 +15,7 @@ import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatur
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
 import {
-	GRID_HEXEVENQ,
+	BOOK_LAYOUT,
 	allHexes,
 	edgeSegment,
 	hexAt,
@@ -45,6 +45,24 @@ const SEAT_OFFSET = Object.freeze({ x: 0, y: -0.33 });
 
 /** Positions are compared to the hundredth of a pixel, so a rebuilt Realm doesn't rewrite itself. */
 const round = (value) => Math.round(value * 100) / 100;
+
+/**
+ * The system's own ground, river and shore pictures are drawn for flat-topped
+ * hexes. A Realm laid out with pointed tops turns each a twelfth of a turn back,
+ * which fits it to the hex exactly and keeps a river's ends on the edges it
+ * crosses, since direction k runs out through the same edge either way.
+ * @param {object} g
+ * @param {number} [rotation] The picture's own turn, in degrees clockwise.
+ * @returns {number} Its turn on this Realm, from 0 up to 360 as Foundry keeps it, so a sync doesn't write it again.
+ */
+const pieceRotation = (g, rotation = 0) => (((rotation + (g.columns === false ? -30 : 0)) % 360) + 360) % 360;
+
+/**
+ * @param {object} g
+ * @returns {{width: number, height: number}} A hex-shaped picture's size before it's turned: flat top to flat bottom,
+ *   point to point across.
+ */
+const pieceSize = (g) => ({ width: 2 * g.radius, height: g.size });
 
 /**
  * The picture for each part of the map, and the colours of the Scene itself.
@@ -130,6 +148,8 @@ export const realmSceneFlag = (realm, g) => ({
 	size: g.size,
 	cols: g.cols,
 	rows: g.rows,
+	// Only a Realm laid out other than the book's way says so, so Realms made before there was a choice read the same.
+	...(g.layout && g.layout !== BOOK_LAYOUT ? { layout: g.layout } : {}),
 	rivers: realm.rivers.map((course) => course.map(hexKey)),
 	...(realm.setup ? { setup: realm.setup } : {})
 });
@@ -154,7 +174,8 @@ const canonical = (value) => JSON.stringify(value ?? null, (_key, inner) => (inn
 export function realmFlagChanges(current, realm, g) {
 	const wanted = realmSceneFlag(realm, g);
 	const set = Object.fromEntries(Object.entries(wanted).filter(([key, value]) => canonical(current?.[key]) !== canonical(value)));
-	const drop = [...OLD_RIVER_FIELDS, ...(wanted.setup ? [] : ["setup"])].filter((key) => current && key in current);
+	const gone = ["setup", "picture", "layout"].filter((key) => !wanted[key]);
+	const drop = [...OLD_RIVER_FIELDS, ...gone].filter((key) => current && key in current);
 	return Object.keys(set).length || drop.length ? { set, drop } : null;
 }
 
@@ -211,14 +232,16 @@ export function realmDocuments(realm, g, textures) {
 		if (!terrain) continue;
 		const key = hexKey(hex);
 		const picture = textures.terrain[terrain];
-		const scale = picture.icon ? ICON_SCALE.terrain : 1;
 		const src = openWater.has(key) ? textures.lake.water.src : picture.src;
+		// An icon of the GM's own stands upright inside the hex's box; a picture of the whole hex is turned to fit it.
+		const shape = picture.icon
+			? { width: g.hexWidth * ICON_SCALE.terrain, height: g.hexHeight * ICON_SCALE.terrain, rotation: 0 }
+			: { ...pieceSize(g), rotation: pieceRotation(g) };
 		tiles.push({
 			match: `terrain:${key}`,
 			data: tileData({
 				centre: hexCentre(g, hex),
-				width: g.hexWidth * scale,
-				height: g.size * scale,
+				...shape,
 				texture: { src, fit: picture.icon ? "contain" : "fill" },
 				alpha: picture.givesWay && holdingHexes.has(key) ? 0 : 1,
 				sort: REALM_SORT.terrain,
@@ -229,7 +252,7 @@ export function realmDocuments(realm, g, textures) {
 	}
 
 	const hexPiece = (hex, texture, { sort, rotation, flag }) => tileData({
-		centre: hexCentre(g, hex), width: g.hexWidth, height: g.size, texture, sort, locked: true, rotation, flag
+		centre: hexCentre(g, hex), ...pieceSize(g), texture, sort, locked: true, rotation: pieceRotation(g, rotation), flag
 	});
 	for (const piece of pieces) {
 		tiles.push({
@@ -333,7 +356,7 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		padding: 0,
 		tokenVision: false,
 		fog: { mode: 0 },
-		grid: { type: GRID_HEXEVENQ, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
+		grid: { type: g.gridType, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
 		levels: [{ _id: LEVEL_ID, name, background: { color: textures.colours.paper } }],
 		initialLevel: LEVEL_ID,
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: 0.5 },
@@ -397,7 +420,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 	for (const drawing of drawings) {
 		const flag = realmFlag(drawing);
 		if (flag?.kind !== "barrier") continue;
-		if (!parseEdgeKey(flag.edge)) problems.push({ kind: "barrier", reason: "edge", key: String(flag.edge) });
+		if (!parseEdgeKey(g, flag.edge)) problems.push({ kind: "barrier", reason: "edge", key: String(flag.edge) });
 		else if (edges.has(flag.edge)) problems.push({ kind: "barrier", reason: "duplicate", key: flag.edge });
 		else realm.barriers.push({ id: drawing._id ?? null, edge: flag.edge, revealed: !drawing.hidden });
 		edges.add(flag.edge);

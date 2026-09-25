@@ -46,29 +46,31 @@ const ADJACENT = 1;
 export function directionFrom(g, from, to) {
 	if (sameHex(from, to)) return null;
 	const [step] = hexLine(g, from, to);
-	return step ? edgeDirection(from, step) : null;
+	return step ? edgeDirection(g, from, step) : null;
 }
 
 /**
  * @param {import("./realm.js").Realm} realm
+ * @param {object} g
  * @param {{col: number, row: number}} hex
  * @returns {object[]} Every Myth at the shortest distance from the hex, by number.
  */
-export function nearestMyths(realm, hex) {
+export function nearestMyths(realm, g, hex) {
 	if (!realm.myths.length) return [];
-	const closest = Math.min(...realm.myths.map((myth) => hexDistance(myth.hex, hex)));
-	return realm.myths.filter((myth) => hexDistance(myth.hex, hex) === closest).sort((a, b) => a.number - b.number);
+	const closest = Math.min(...realm.myths.map((myth) => hexDistance(g, myth.hex, hex)));
+	return realm.myths.filter((myth) => hexDistance(g, myth.hex, hex) === closest).sort((a, b) => a.number - b.number);
 }
 
 /**
  * @param {import("./realm.js").Realm} realm
+ * @param {object} g
  * @param {{col: number, row: number}} hex
  * @returns {object[]} Every Landmark at the shortest distance, in the order they're held.
  */
-export function nearestLandmarks(realm, hex) {
+export function nearestLandmarks(realm, g, hex) {
 	if (!realm.landmarks.length) return [];
-	const closest = Math.min(...realm.landmarks.map((landmark) => hexDistance(landmark.hex, hex)));
-	return realm.landmarks.filter((landmark) => hexDistance(landmark.hex, hex) === closest);
+	const closest = Math.min(...realm.landmarks.map((landmark) => hexDistance(g, landmark.hex, hex)));
+	return realm.landmarks.filter((landmark) => hexDistance(g, landmark.hex, hex) === closest);
 }
 
 /**
@@ -94,7 +96,7 @@ export function landmarksAbout(realm, g, hex) {
  * @returns {{number: number, hex: object, distance: number, direction: number|null, precise: boolean, here: boolean}}
  */
 function mythKnown(g, home, myth, precise) {
-	const distance = hexDistance(myth.hex, home);
+	const distance = hexDistance(g, myth.hex, home);
 	return {
 		number: myth.number,
 		hex: myth.hex,
@@ -113,7 +115,7 @@ function mythKnown(g, home, myth, precise) {
  * @param {object} landmark
  */
 function landmarkKnown(g, home, landmark) {
-	const distance = hexDistance(landmark.hex, home);
+	const distance = hexDistance(g, landmark.hex, home);
 	return {
 		type: landmark.type,
 		name: landmark.name ?? "",
@@ -156,7 +158,7 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 			source,
 			home,
 			myths: [...realm.myths]
-				.sort((a, b) => hexDistance(a.hex, home) - hexDistance(b.hex, home) || a.number - b.number)
+				.sort((a, b) => hexDistance(g, a.hex, home) - hexDistance(g, b.hex, home) || a.number - b.number)
 				.map((myth) => mythKnown(g, home, myth, true)),
 			landmarks: realm.landmarks.map((landmark) => landmarkKnown(g, home, landmark)),
 			rumours: false,
@@ -166,12 +168,12 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 	}
 
 	// A Vassal speaks of the Myth nearest their home; a roamer of any Myth of the Realm.
-	const candidates = source === "vassal" ? nearestMyths(realm, home) : [...realm.myths].sort((a, b) => a.number - b.number);
+	const candidates = source === "vassal" ? nearestMyths(realm, g, home) : [...realm.myths].sort((a, b) => a.number - b.number);
 	const myth = candidates[Math.min(Math.max(0, pick), candidates.length - 1)] ?? null;
 	// "If it is adjacent to their home then they know its precise location."
-	const precise = Boolean(myth) && source === "vassal" && hexDistance(myth.hex, home) <= ADJACENT;
+	const precise = Boolean(myth) && source === "vassal" && hexDistance(g, myth.hex, home) <= ADJACENT;
 
-	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : nearestLandmarks(realm, home).slice(0, 1);
+	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : nearestLandmarks(realm, g, home).slice(0, 1);
 	return {
 		source,
 		home,

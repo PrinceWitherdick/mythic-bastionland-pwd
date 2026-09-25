@@ -130,7 +130,7 @@ function openRealm(cols = 5, rows = 5) {
 }
 
 /** @returns {boolean} Whether each hex of a road is beside the one before it. */
-const joined = (from, road) => road.every((hex, index) => hexDistance(index ? road[index - 1] : from, hex) === 1);
+const joined = (g, from, road) => road.every((hex, index) => hexDistance(g, index ? road[index - 1] : from, hex) === 1);
 
 describe("realmRoad", () => {
 	it("takes the shortest road between two hexes", () => {
@@ -139,8 +139,8 @@ describe("realmRoad", () => {
 		const to = { col: 5, row: 5 };
 		const road = realmRoad(realm, g, from, to);
 		expect(road.at(-1)).toEqual(to);
-		expect(road).toHaveLength(hexDistance(from, to));
-		expect(joined(from, road)).toBe(true);
+		expect(road).toHaveLength(hexDistance(g, from, to));
+		expect(joined(g, from, road)).toBe(true);
 	});
 
 	it("goes round a Barrier rather than through it (p18)", () => {
@@ -151,7 +151,7 @@ describe("realmRoad", () => {
 		const road = realmRoad(realm, g, from, to);
 		expect(road.length).toBeGreaterThan(1);
 		expect(road.at(-1)).toEqual(to);
-		expect(joined(from, road)).toBe(true);
+		expect(joined(g, from, road)).toBe(true);
 		const edges = road.map((hex, index) => edgeKey(index ? road[index - 1] : from, hex));
 		expect(edges).not.toContain(edgeKey(from, to));
 	});
@@ -181,7 +181,7 @@ describe("seasonRoad", () => {
 		const { days, end } = seasonRoad(realm, g, from, stops);
 		const steps = days.flat();
 		expect(days.every((day) => day.length <= HEXES_PER_DAY)).toBe(true);
-		expect(steps).toHaveLength(3 + hexDistance(stops[0].hex, stops[1].hex));
+		expect(steps).toHaveLength(3 + hexDistance(g, stops[0].hex, stops[1].hex));
 		expect(steps.filter((step) => step.arrive).map((step) => [step.arrive, step.hex])).toEqual(stops.map((stop) => [stop.name, stop.hex]));
 		expect(end).toEqual(stops[1].hex);
 	});
@@ -191,7 +191,7 @@ describe("seasonRoad", () => {
 		const to = { col: 1, row: 5 };
 		const { days, end } = seasonRoad(realm, g, { col: 1, row: 1 }, [{ name: "myth", hex: to }], { stopShort: true });
 		expect(days.flat()).toHaveLength(3);
-		expect(hexDistance(end, to)).toBe(1);
+		expect(hexDistance(g, end, to)).toBe(1);
 		expect(days.flat().some((step) => step.arrive)).toBe(false);
 	});
 });
@@ -216,7 +216,7 @@ describe("pickPlaces", () => {
 
 	it.each(["gravenmoor", "ashby", "halehx"])("finds every place the story needs in a rolled Realm (%s)", (seed) => {
 		const realm = generateRealm({ seed, geometry: g });
-		const places = pickPlaces(realm);
+		const places = pickPlaces(realm, g);
 		expect(places.seat.seat).toBe(true);
 		expect(places.sanctum.type).toBe("sanctum");
 		expect(places.sanctum.seer).toBeTruthy();
@@ -229,11 +229,11 @@ describe("pickPlaces", () => {
 
 	it("can walk from the Seat to every place without crossing a Barrier", () => {
 		const realm = generateRealm({ seed: "gravenmoor", geometry: g });
-		const { seat, sanctum, ruin, tourney, domain, myths } = pickPlaces(realm);
+		const { seat, sanctum, ruin, tourney, domain, myths } = pickPlaces(realm, g);
 		for (const place of [sanctum, ruin, tourney, domain, ...myths]) {
 			const road = realmRoad(realm, g, seat.hex, place.hex);
 			expect(road.at(-1)).toEqual(place.hex);
-			expect(joined(seat.hex, road)).toBe(true);
+			expect(joined(g, seat.hex, road)).toBe(true);
 		}
 	});
 });

@@ -18,15 +18,16 @@ export const WILDERNESS_RESULTS = Object.freeze(["holding", "mythHex", "randomOm
 /**
  * What's in and around a hex that a Wilderness Roll cares about.
  * @param {import("./realm.js").Realm} realm
+ * @param {object} g
  * @param {{col: number, row: number}} hex
  * @returns {{hex: object, holding: object|null, myth: object|null, landmark: object|null, nearest: object[]}}
  *   `nearest` is every Myth at the shortest distance, by number.
  */
-export function wildernessSituation(realm, hex) {
+export function wildernessSituation(realm, g, hex) {
 	const { holding, myth, landmark } = featureAt(realm, hex);
-	const closest = Math.min(...realm.myths.map((candidate) => hexDistance(candidate.hex, hex)));
+	const closest = Math.min(...realm.myths.map((candidate) => hexDistance(g, candidate.hex, hex)));
 	const nearest = realm.myths
-		.filter((candidate) => hexDistance(candidate.hex, hex) === closest)
+		.filter((candidate) => hexDistance(g, candidate.hex, hex) === closest)
 		.sort((a, b) => a.number - b.number);
 	return { hex, holding, myth, landmark, nearest };
 }

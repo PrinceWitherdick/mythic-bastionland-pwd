@@ -65,36 +65,38 @@ const byPlace = (a, b) => a.row - b.row || a.col - b.col;
 
 /**
  * @template {{hex: {col: number, row: number}}} T
+ * @param {object} g
  * @param {T[]} list
  * @param {{col: number, row: number}} to
  * @returns {T[]} Nearest first, ties broken by place.
  */
-const nearestTo = (list, to) => [...list].sort((a, b) => hexDistance(a.hex, to) - hexDistance(b.hex, to) || byPlace(a.hex, b.hex));
+const nearestTo = (g, list, to) => [...list].sort((a, b) => hexDistance(g, a.hex, to) - hexDistance(g, b.hex, to) || byPlace(a.hex, b.hex));
 
 /**
  * The places the Company's story goes through. Each is picked from the Realm
  * so that the whole road can be walked, and is null where the Realm has none.
  * @param {import("../rules/realm.js").Realm} realm
+ * @param {object} g
  * @returns {{seat: object|null, sanctum: object|null, ruin: object|null, dwelling: object|null, monument: object|null,
  *   tourney: object|null, domain: object|null, myths: object[]}} `myths` in the order the Company meets them.
  */
-export function pickPlaces(realm) {
+export function pickPlaces(realm, g) {
 	const seat = realm.holdings.find((holding) => holding.seat) ?? realm.holdings[0] ?? null;
 	const home = seat?.hex ?? { col: 1, row: 1 };
 	const landmarks = (type) => realm.landmarks.filter((landmark) => landmark.type === type);
-	const sanctum = nearestTo(landmarks("sanctum").filter((landmark) => landmark.seer), home)[0] ?? nearestTo(landmarks("sanctum"), home)[0] ?? null;
-	const ruin = nearestTo(landmarks("ruin"), sanctum?.hex ?? home)[0] ?? null;
-	const dwelling = nearestTo(landmarks("dwelling"), home)[0] ?? null;
-	const monument = nearestTo(landmarks("monument"), ruin?.hex ?? home)[0] ?? null;
+	const sanctum = nearestTo(g, landmarks("sanctum").filter((landmark) => landmark.seer), home)[0] ?? nearestTo(g, landmarks("sanctum"), home)[0] ?? null;
+	const ruin = nearestTo(g, landmarks("ruin"), sanctum?.hex ?? home)[0] ?? null;
+	const dwelling = nearestTo(g, landmarks("dwelling"), home)[0] ?? null;
+	const monument = nearestTo(g, landmarks("monument"), ruin?.hex ?? home)[0] ?? null;
 
-	const others = nearestTo(realm.holdings.filter((holding) => holding !== seat), ruin?.hex ?? home);
+	const others = nearestTo(g, realm.holdings.filter((holding) => holding !== seat), ruin?.hex ?? home);
 	const tourney = others.find((holding) => ["town", "castle"].includes(holding.style)) ?? others[0] ?? null;
 	const domain = others.find((holding) => holding !== tourney) ?? null;
 
-	const first = nearestTo(realm.myths, tourney?.hex ?? home)[0] ?? null;
+	const first = nearestTo(g, realm.myths, tourney?.hex ?? home)[0] ?? null;
 	const rest = realm.myths.filter((myth) => myth !== first);
-	const second = nearestTo(rest, domain?.hex ?? home)[0] ?? null;
-	const third = nearestTo(rest.filter((myth) => myth !== second), second?.hex ?? home)[0] ?? null;
+	const second = nearestTo(g, rest, domain?.hex ?? home)[0] ?? null;
+	const third = nearestTo(g, rest.filter((myth) => myth !== second), second?.hex ?? home)[0] ?? null;
 	return { seat, sanctum, ruin, dwelling, monument, tourney, domain, myths: [first, second, third].filter(Boolean) };
 }
 

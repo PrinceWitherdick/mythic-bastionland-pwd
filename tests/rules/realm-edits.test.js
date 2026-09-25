@@ -193,7 +193,7 @@ describe("drawing the river", () => {
 		expect(traceCourse(g, course, hex(40, 1))).toBe(course);
 
 		const wide = drag(hex(1, 1), hex(9, 7), hex(2, 11));
-		wide.slice(1).forEach((step, index) => expect(hexDistance(wide[index], step)).toBe(1));
+		wide.slice(1).forEach((step, index) => expect(hexDistance(g, wide[index], step)).toBe(1));
 		expect(new Set(keys(wide)).size).toBe(wide.length);
 	});
 

@@ -10,7 +10,7 @@ import {
 	folkloreToMark,
 	surveyFrom
 } from "../rules/exploration.js";
-import { DIRECTIONS, sameHex } from "../rules/realm-geometry.js";
+import { directionNames, sameHex } from "../rules/realm-geometry.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
 import { rollLabelledSave } from "./saves.js";
@@ -24,17 +24,21 @@ import { realmAndCompany } from "./wilderness.js";
  * whispered to the Referee, and marked on the players' map.
  */
 
-/** @param {number|null} direction An index into DIRECTIONS. */
-const directionName = (direction) => (direction === null ? null : t(`realm.directions.${DIRECTIONS[direction]}`));
+/**
+ * @param {object} g The Realm's geometry, which says what each way out of a hex is called.
+ * @param {number|null} direction An index into directionNames.
+ */
+const directionName = (g, direction) => (direction === null ? null : t(`realm.directions.${directionNames(g)[direction]}`));
 
 /**
  * How far off something lies, as a teller would put it.
+ * @param {object} g
  * @param {{distance: number, direction: number|null, here: boolean}} known
  * @returns {string}
  */
-function whereItLies({ distance, direction, here }) {
+function whereItLies(g, { distance, direction, here }) {
 	if (here) return t("explore.here");
-	const where = directionName(direction);
+	const where = directionName(g, direction);
 	return t(distance === 1 ? "explore.awayOne" : "explore.away", { distance, direction: where });
 }
 
@@ -93,13 +97,13 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 				number: known.number,
 				name,
 				page,
-				where: known.precise ? t("explore.folklore.precise", { hex: t("realm.hex", known.hex), where: whereItLies(known) }) : whereItLies(known)
+				where: known.precise ? t("explore.folklore.precise", { hex: t("realm.hex", known.hex), where: whereItLies(g, known) }) : whereItLies(g, known)
 			};
 		}),
 		landmarks: folklore.landmarks.map((known) => ({
 			type: t(`realm.landmarks.${known.type}`),
 			name: known.name || null,
-			where: t("explore.folklore.at", { hex: t("realm.hex", known.hex), where: whereItLies(known) })
+			where: t("explore.folklore.at", { hex: t("realm.hex", known.hex), where: whereItLies(g, known) })
 		})),
 		nothing: folklore.myths.length || folklore.landmarks.length ? null : t("explore.folklore.nothing"),
 		rumours: folklore.rumours ? t("explore.folklore.rumours") : null,
@@ -230,7 +234,7 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 		myth: here.myth ? t("explore.survey.myth", { number: here.myth.number }) : null,
 		landmark: landmark ? t("explore.survey.landmark", { type: t(`realm.landmarks.${landmark.type}`), name: landmark.name || "" }).trim() : null,
 		around: survey.around.map((step) => ({
-			direction: directionName(step.direction),
+			direction: directionName(g, step.direction),
 			hex: t("realm.hex", step.hex),
 			terrain: step.terrain ? t(`realm.terrain.${step.terrain}`) : t("explore.survey.unknownLand"),
 			barrier: step.barrier ? t("explore.survey.barrier") : null,

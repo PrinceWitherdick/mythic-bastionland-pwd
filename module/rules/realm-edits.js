@@ -308,7 +308,7 @@ export function barrierState(realm, edge) {
  * @returns {import("./realm.js").Realm}
  */
 export function setBarrier(realm, g, edge, state) {
-	const hexes = parseEdgeKey(edge);
+	const hexes = parseEdgeKey(g, edge);
 	if (!hexes || !hexes.every((hex) => inRealm(g, hex)) || !BARRIER_STATES.includes(state)) return realm;
 	const next = copyRealm(realm);
 	const index = next.barriers.findIndex((barrier) => barrier.edge === edge);

@@ -201,6 +201,45 @@ describe("realmSceneData", () => {
 	});
 });
 
+describe("a Realm laid out with pointed tops", () => {
+	const rows = realmGeometry({ layout: "evenRows" });
+	const realm = generateRealm({ seed: "rows", geometry: rows });
+	const scene = realmSceneData({ name: "Rows", realm, geometry: rows, textures: realmTextures(), units: "Hex" });
+
+	it("builds a Scene on Foundry's row grid, and says so in its flag", () => {
+		expect(scene).toMatchObject({ width: 2000, height: 1709, grid: { type: 3, size: 160 } });
+		expect(flagOf(scene).layout).toBe("evenRows");
+		// A Realm on the book's sheet says nothing, as Realms made before there was a choice don't.
+		expect(flagOf(onScene().scene)).not.toHaveProperty("layout");
+	});
+
+	it("turns the flat-topped ground and river pictures a twelfth of a turn to fit each hex", () => {
+		const terrain = scene.tiles.filter((tile) => flagOf(tile).kind === "terrain");
+		expect(terrain).toHaveLength(144);
+		for (const tile of terrain) expect(tile).toMatchObject({ width: Math.round(2 * rows.radius), height: 160, rotation: 330 });
+		const rivers = scene.tiles.filter((tile) => flagOf(tile).kind === "river");
+		expect(rivers.length).toBeGreaterThan(0);
+		for (const tile of rivers) expect((tile.rotation + 30) % 60).toBe(0);
+	});
+
+	it("reads every hex back where it was laid, and asks for nothing more", () => {
+		const snapshot = {
+			flags: scene.flags,
+			tiles: scene.tiles.map((tile, index) => ({ _id: `tile${index}`, ...structuredClone(tile) })),
+			drawings: scene.drawings.map((drawing, index) => ({ _id: `drawing${index}`, ...structuredClone(drawing) }))
+		};
+		const { realm: back, problems } = realmFromDocuments(snapshot, rows);
+		expect(problems).toEqual([]);
+		expect(back.terrain).toEqual(realm.terrain);
+		expect(back.barriers.map((barrier) => barrier.edge).sort()).toEqual(realm.barriers.map((barrier) => barrier.edge).sort());
+		expect(planChanges(planRealmSync(back, rows, realmTextures(), snapshot))).toBe(false);
+	});
+
+	it("drops the layout from the flag when the Realm goes back to the book's", () => {
+		expect(realmFlagChanges(flagOf(scene), realm, g)).toEqual({ set: {}, drop: ["layout"] });
+	});
+});
+
 describe("realmFromDocuments", () => {
 	it("reads back the Realm the Scene was built from", () => {
 		const { realm, snapshot } = onScene();

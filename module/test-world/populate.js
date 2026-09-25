@@ -434,7 +434,7 @@ class TestGame {
 		});
 
 		this.g = sceneGeometry(this.scene);
-		const places = pickPlaces(this.realm);
+		const places = pickPlaces(this.realm, this.g);
 		this.places = places;
 		this.here = places.seat?.hex ?? { col: 1, row: 1 };
 		const [first, second, third] = places.myths.map((myth) => myth.number);

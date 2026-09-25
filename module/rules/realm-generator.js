@@ -175,7 +175,7 @@ export function generateRiver(random, g, terrain, blocked = new Set()) {
 			if (path.length >= shortest && onSide(current, endSide)) return path;
 
 			const earlier = new Set(path.slice(0, -1).map(hexKey));
-			const lastDirection = path.length > 1 ? edgeDirection(path.at(-2), current) : null;
+			const lastDirection = path.length > 1 ? edgeDirection(g, path.at(-2), current) : null;
 			const candidates = neighbours(g, current).filter(({ hex }) => !visited.has(hexKey(hex))
 				&& !blocked.has(edgeKey(current, hex))
 				&& !neighbours(g, hex).some(({ hex: beside }) => earlier.has(hexKey(beside))));
@@ -210,12 +210,12 @@ export function generateRiver(random, g, terrain, blocked = new Set()) {
  * already taken, easing the distance until enough fit.
  * @returns {{col: number, row: number}[]} Fewer than `count` only when the pool is too small.
  */
-function spreadOut(random, pool, count, spacings) {
+function spreadOut(random, g, pool, count, spacings) {
 	for (const spacing of spacings) {
 		for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS; attempt++) {
 			const chosen = [];
 			for (const hex of random.shuffle(pool)) {
-				if (chosen.every((other) => hexDistance(other, hex) >= spacing)) chosen.push(hex);
+				if (chosen.every((other) => hexDistance(g, other, hex) >= spacing)) chosen.push(hex);
 				if (chosen.length === count) return chosen;
 			}
 		}
@@ -238,7 +238,7 @@ function placeHoldings(random, g, realm, count) {
 	if (count <= 0) return [];
 	const taken = featureHexes(realm);
 	const pool = allHexes(g).filter((hex) => realm.terrain[hexIndex(g, hex)] !== LAKE && !taken.has(hexKey(hex)));
-	const hexes = spreadOut(random, pool, count, scaledSpacings(HOLDING_SPACINGS, g, count, BOOK_SETUP.holdings));
+	const hexes = spreadOut(random, g, pool, count, scaledSpacings(HOLDING_SPACINGS, g, count, BOOK_SETUP.holdings));
 	if (!hexes.length) return [];
 	const seat = random.die(hexes.length) - 1;
 	return hexes.map((hex, index) => ({ id: null, hex, style: random.pick(HOLDING_STYLES), seat: index === seat, name: "" }));
@@ -272,14 +272,14 @@ function placeMyths(random, g, realm, count) {
 	if (count <= 0) return [];
 	const holdings = realm.holdings.map((holding) => holding.hex);
 	const taken = featureHexes(realm);
-	const remoteness = (hex) => Math.min(...holdings.map((other) => hexDistance(other, hex)));
+	const remoteness = (hex) => Math.min(...holdings.map((other) => hexDistance(g, other, hex)));
 	const candidates = allHexes(g).filter((hex) => !taken.has(hexKey(hex)));
 	// Without Holdings, nowhere is more remote than anywhere else.
 	const remote = holdings.length
 		? candidates.sort((a, b) => remoteness(b) - remoteness(a)).slice(0, Math.max(count, Math.ceil(candidates.length * REMOTE_SHARE)))
 		: candidates;
 
-	const hexes = spreadOut(random, remote, count, scaledSpacings(MYTH_SPACINGS, g, count, BOOK_SETUP.myths));
+	const hexes = spreadOut(random, g, remote, count, scaledSpacings(MYTH_SPACINGS, g, count, BOOK_SETUP.myths));
 	const used = new Set();
 	return hexes.map((hex, index) => ({ id: null, hex, number: index + 1, ...uniqueRoll(random, used), omen: 0, revealed: false }));
 }
@@ -301,7 +301,7 @@ function placeLandmarks(random, g, realm, perType) {
 	for (const type of instances) {
 		const open = allHexes(g).filter((hex) => !taken.has(hexKey(hex)));
 		if (!open.length) break;
-		const distanceToOthers = (hex) => (landmarks.length ? Math.min(...landmarks.map((other) => hexDistance(other.hex, hex))) : 0);
+		const distanceToOthers = (hex) => (landmarks.length ? Math.min(...landmarks.map((other) => hexDistance(g, other.hex, hex))) : 0);
 		const sample = Array.from({ length: Math.min(LANDMARK_SAMPLES, open.length) }, () => random.pick(open));
 		const hex = sample.reduce((best, candidate) => (distanceToOthers(candidate) > distanceToOthers(best) ? candidate : best));
 		taken.add(hexKey(hex));
@@ -344,7 +344,7 @@ function placeBarriers(random, g, realm, target) {
 	const riverEdges = new Set(realm.rivers.flatMap((river) => river.slice(1).map((hex, index) => edgeKey(river[index], hex))));
 	const holdings = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	const weightOf = (key) => {
-		const [a, b] = parseEdgeKey(key);
+		const [a, b] = parseEdgeKey(g, key);
 		let weight = realm.terrain[hexIndex(g, a)] === realm.terrain[hexIndex(g, b)] ? 1 : 3;
 		if (holdings.has(hexKey(a)) || holdings.has(hexKey(b))) weight *= 0.3;
 		return weight;

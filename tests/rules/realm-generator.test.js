@@ -49,7 +49,7 @@ describe("generateRealm", () => {
 			expect(more).toEqual([]);
 			expect(river.length).toBeGreaterThanOrEqual(8);
 			expect(new Set(river.map(hexKey)).size).toBe(river.length);
-			river.slice(1).forEach((hex, index) => expect(hexDistance(river[index], hex)).toBe(1));
+			river.slice(1).forEach((hex, index) => expect(hexDistance(g, river[index], hex)).toBe(1));
 			const start = sidesOf(river[0]);
 			const end = sidesOf(river.at(-1));
 			expect(start.length).toBeGreaterThan(0);
@@ -67,7 +67,7 @@ describe("generateRealm", () => {
 				expect(realm.terrain[hexIndex(g, holding.hex)]).not.toBe(LAKE);
 			}
 			realm.holdings.forEach((a, index) => realm.holdings.slice(index + 1)
-				.forEach((b) => expect(hexDistance(a.hex, b.hex)).toBeGreaterThanOrEqual(3)));
+				.forEach((b) => expect(hexDistance(g, a.hex, b.hex)).toBeGreaterThanOrEqual(3)));
 		}
 	});
 
@@ -106,7 +106,7 @@ describe("generateRealm", () => {
 			const edges = realm.barriers.map((barrier) => barrier.edge);
 			expect(edges).toHaveLength(barrierCount(g));
 			expect(new Set(edges).size).toBe(edges.length);
-			expect(edges.every((edge) => parseEdgeKey(edge)?.every((hex) => inRealm(g, hex)))).toBe(true);
+			expect(edges.every((edge) => parseEdgeKey(g, edge)?.every((hex) => inRealm(g, hex)))).toBe(true);
 			const riverEdges = new Set(realm.rivers.flatMap((river) => river.slice(1).map((hex, index) => edgeKey(river[index], hex))));
 			expect(edges.some((edge) => riverEdges.has(edge))).toBe(false);
 			expect(isConnected(g, new Set(edges))).toBe(true);

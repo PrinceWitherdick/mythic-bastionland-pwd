@@ -109,7 +109,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null } = {}) 
 	if (!place) return null;
 	const { realm, g, where } = place;
 
-	const situation = wildernessSituation(realm, where);
+	const situation = wildernessSituation(realm, g, where);
 	const rolls = [];
 	let mode = "travel";
 	let d6 = null;

@@ -49,12 +49,12 @@ describe("wildernessResult", () => {
 describe("wildernessSituation", () => {
 	it("finds what's in the hex and every Myth tied for nearest", () => {
 		const realm = sampleRealm();
-		const situation = wildernessSituation(realm, hex(6, 6));
+		const situation = wildernessSituation(realm, g, hex(6, 6));
 		expect(situation.landmark?.id).toBe("l1");
 		expect(situation.nearest.map((myth) => myth.number)).toEqual([1, 2]);
 		expect(needsWildernessRoll(situation)).toBe(true);
-		expect(needsWildernessRoll(wildernessSituation(realm, hex(2, 2)))).toBe(false);
-		expect(needsWildernessRoll(wildernessSituation(realm, hex(8, 6)))).toBe(false);
+		expect(needsWildernessRoll(wildernessSituation(realm, g, hex(2, 2)))).toBe(false);
+		expect(needsWildernessRoll(wildernessSituation(realm, g, hex(8, 6)))).toBe(false);
 	});
 });
 
@@ -70,12 +70,12 @@ describe("wildernessOutcome", () => {
 	const realm = sampleRealm();
 
 	it("makes no roll in a Holding, and gives a Myth's hex its next Omen", () => {
-		expect(wildernessOutcome(realm, wildernessSituation(realm, hex(2, 2)), { d6: 1 })).toEqual({ result: "holding", d6: null });
-		expect(wildernessOutcome(realm, wildernessSituation(realm, hex(8, 6)))).toMatchObject({ result: "mythHex", myth: { id: "m2" }, omen: 1, complete: false });
+		expect(wildernessOutcome(realm, wildernessSituation(realm, g, hex(2, 2)), { d6: 1 })).toEqual({ result: "holding", d6: null });
+		expect(wildernessOutcome(realm, wildernessSituation(realm, g, hex(8, 6)))).toMatchObject({ result: "mythHex", myth: { id: "m2" }, omen: 1, complete: false });
 	});
 
 	it("chooses a random Myth by number, and the nearest with its ties shown", () => {
-		const situation = wildernessSituation(realm, hex(6, 6));
+		const situation = wildernessSituation(realm, g, hex(6, 6));
 		expect(mythChoices(realm, situation, "randomOmen")).toBe(3);
 		expect(wildernessOutcome(realm, situation, { d6: 1, pick: 2 })).toMatchObject({ result: "randomOmen", myth: { number: 3 }, complete: true });
 
@@ -87,10 +87,10 @@ describe("wildernessOutcome", () => {
 	});
 
 	it("finds the hex's Landmark while travelling, but not while camping", () => {
-		const situation = wildernessSituation(realm, hex(6, 6));
+		const situation = wildernessSituation(realm, g, hex(6, 6));
 		expect(wildernessOutcome(realm, situation, { d6: 5 })).toMatchObject({ result: "landmark", landmark: { id: "l1" } });
 		expect(wildernessOutcome(realm, situation, { mode: "camp", d6: 5 })).toEqual({ result: "allClear", d6: 5 });
-		expect(wildernessOutcome(realm, wildernessSituation(realm, hex(10, 2)), { d6: 6 })).toEqual({ result: "allClear", d6: 6 });
+		expect(wildernessOutcome(realm, wildernessSituation(realm, g, hex(10, 2)), { d6: 6 })).toEqual({ result: "allClear", d6: 6 });
 	});
 });
 

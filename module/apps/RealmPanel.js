@@ -29,7 +29,7 @@ import {
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
-import { DIRECTIONS, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
+import { directionNames, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openHexLore } from "./HexLore.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
@@ -300,7 +300,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			landmark,
 			// One line of the edges that are barred, rather than a chip per edge:
 			// they are laid with the brush on the map, so the panel only reports them.
-			barriers: DIRECTIONS.map((direction, index) => {
+			barriers: directionNames(g).map((direction, index) => {
 				const other = neighbour(g, hex, index);
 				const state = other ? barrierState(realm, edgeKey(hex, other)) : "none";
 				return { label: t(`realm.directions.${direction}`), state, stateLabel: t(`realm.panel.barrier.${state}`) };

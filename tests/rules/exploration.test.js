@@ -66,23 +66,23 @@ describe("nearestMyths and nearestLandmarks", () => {
 	});
 
 	it("gives every Myth at the shortest distance, by number", () => {
-		expect(nearestMyths(realm, hex(5, 5)).map((myth) => myth.number)).toEqual([2]);
-		expect(nearestMyths(realm, hex(1, 1)).map((myth) => myth.number)).toEqual([1]);
+		expect(nearestMyths(realm, g, hex(5, 5)).map((myth) => myth.number)).toEqual([2]);
+		expect(nearestMyths(realm, g, hex(1, 1)).map((myth) => myth.number)).toEqual([1]);
 	});
 
 	it("keeps a tie, so a roll can settle which one is spoken of", () => {
 		const tied = realmWith({ myths: [{ number: 4, hex: hex(3, 5) }, { number: 6, hex: hex(5, 5) }] });
-		expect(nearestMyths(tied, hex(4, 5)).map((myth) => myth.number)).toEqual([4, 6]);
+		expect(nearestMyths(tied, g, hex(4, 5)).map((myth) => myth.number)).toEqual([4, 6]);
 	});
 
 	it("finds nothing in a Realm with none", () => {
-		expect(nearestMyths(realmWith(), hex(1, 1))).toEqual([]);
-		expect(nearestLandmarks(realmWith(), hex(1, 1))).toEqual([]);
+		expect(nearestMyths(realmWith(), g, hex(1, 1))).toEqual([]);
+		expect(nearestLandmarks(realmWith(), g, hex(1, 1))).toEqual([]);
 	});
 
 	it("gives the closest Landmark", () => {
-		expect(nearestLandmarks(realm, hex(5, 5))[0].type).toBe("dwelling");
-		expect(nearestLandmarks(realm, hex(9, 8))[0].type).toBe("ruin");
+		expect(nearestLandmarks(realm, g, hex(5, 5))[0].type).toBe("dwelling");
+		expect(nearestLandmarks(realm, g, hex(9, 8))[0].type).toBe("ruin");
 	});
 });
 

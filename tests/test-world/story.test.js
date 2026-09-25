@@ -337,14 +337,14 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		const seat = world.realm.holdings.find((holding) => holding.seat);
 		expect(world.visits[0]).toEqual({ hex: seat.hex, when: { age: 1, season: "spring", day: 1, phase: "morning" } });
 		for (let index = 1; index < world.visits.length; index++) {
-			expect(hexDistance(world.visits[index - 1].hex, world.visits[index].hex)).toBe(1);
+			expect(hexDistance(world.g, world.visits[index - 1].hex, world.visits[index].hex)).toBe(1);
 		}
 		const order = (when) => [when.age, ["spring", "harvest", "winter"].indexOf(when.season), when.day, ["morning", "afternoon", "night"].indexOf(when.phase)];
 		const sorted = world.visits.map(({ when }) => order(when));
 		for (let index = 1; index < sorted.length; index++) expect(sorted[index].join() >= sorted[index - 1].join()).toBe(true);
 		// The Company's Token counts the camp as it's put there, so this Season's travel doesn't.
 		const [[, camp]] = setCompanyHex.mock.calls;
-		expect(hexDistance(world.visits.at(-1).hex, camp)).toBe(1);
+		expect(hexDistance(world.g, world.visits.at(-1).hex, camp)).toBe(1);
 		const thisSeason = world.visits.filter(({ when }) => when.age === 2 && when.season === "harvest");
 		expect(thisSeason.some(({ hex }) => hexKey(hex) === hexKey(camp))).toBe(false);
 	});

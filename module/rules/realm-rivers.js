@@ -113,8 +113,8 @@ export function riverNetworkPieces(g, courses, terrain) {
 		if (!hexes.has(key)) hexes.set(key, { hex, index: next++, edges: new Set(), passes: [] });
 		const entry = hexes.get(key);
 		const last = run.length - 1;
-		const previous = position > 0 ? edgeDirection(hex, run[position - 1]) : null;
-		const following = position < last ? edgeDirection(hex, run[position + 1]) : null;
+		const previous = position > 0 ? edgeDirection(g, hex, run[position - 1]) : null;
+		const following = position < last ? edgeDirection(g, hex, run[position + 1]) : null;
 		const loose = (position === 0 || position === last) && !joins(hex, course);
 		const a = previous ?? (loose ? outwardDirection(g, hex, following) : null);
 		const b = following ?? (loose ? outwardDirection(g, hex, previous) : null);
@@ -160,7 +160,7 @@ export function lakeWorks(g, courses, terrain) {
 		valid.forEach((hex, position) => {
 			if (!isLake(hex)) return;
 			for (const other of [valid[position - 1], valid[position + 1]]) {
-				const edge = other && !isLake(other) ? edgeDirection(hex, other) : null;
+				const edge = other && !isLake(other) ? edgeDirection(g, hex, other) : null;
 				if (edge === null) continue;
 				const key = hexKey(hex);
 				inflows.set(key, (inflows.get(key) ?? new Set()).add(edge));

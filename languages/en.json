@@ -2594,7 +2594,9 @@
         "southwest": "South-west",
         "northwest": "North-west",
         "north": "North",
-        "northeast": "North-east"
+        "northeast": "North-east",
+        "east": "East",
+        "west": "West"
       },
       "terrain": {
         "marsh": "Marsh",

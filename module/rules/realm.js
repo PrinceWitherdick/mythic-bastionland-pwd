@@ -190,7 +190,7 @@ export function validateRealm(realm, g) {
 			const key = hexKey(hex);
 			if (!inRealm(g, hex)) report("river", "offMap", key);
 			else if (seen.has(key)) report("river", "duplicate", key);
-			else if (index > 0 && hexDistance(course[index - 1], hex) !== 1) report("river", "river", key);
+			else if (index > 0 && hexDistance(g, course[index - 1], hex) !== 1) report("river", "river", key);
 			seen.add(key);
 		});
 	}
@@ -231,7 +231,7 @@ export function validateRealm(realm, g) {
 
 	const edges = new Set();
 	for (const { edge } of realm.barriers) {
-		const hexes = parseEdgeKey(edge);
+		const hexes = parseEdgeKey(g, edge);
 		if (!hexes || !hexes.every((hex) => inRealm(g, hex))) report("barrier", "edge", edge);
 		else if (edges.has(edge)) report("barrier", "duplicate", edge);
 		edges.add(edge);

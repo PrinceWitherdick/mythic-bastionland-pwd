@@ -135,8 +135,8 @@ export function isRealmScene(scene) {
  * @returns {object} Its geometry, from realmGeometry.
  */
 export function sceneGeometry(scene) {
-	const { size, cols, rows } = realmFlag(scene);
-	return realmGeometry({ size, cols, rows });
+	const { size, cols, rows, layout } = realmFlag(scene);
+	return realmGeometry({ size, cols, rows, layout });
 }
 
 /**

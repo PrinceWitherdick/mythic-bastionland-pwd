@@ -23,13 +23,13 @@ export function realmMoveProblem(g, barriers, from, to) {
 	if (!inRealm(g, to)) return "offMap";
 	if (!inRealm(g, from) || sameHex(from, to)) return null;
 
-	const distance = hexDistance(from, to);
+	const distance = hexDistance(g, from, to);
 	let reached = [from];
 	for (let step = 1; step <= distance; step++) {
 		const next = new Map();
 		for (const hex of reached) {
 			for (const { hex: beside } of neighbours(g, hex)) {
-				if (hexDistance(beside, to) !== distance - step) continue;
+				if (hexDistance(g, beside, to) !== distance - step) continue;
 				if (barriers.has(edgeKey(hex, beside))) continue;
 				next.set(hexKey(beside), beside);
 			}

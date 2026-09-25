@@ -46,8 +46,8 @@ describe("riverNetworkPieces", () => {
 		expect(fork.shape).toMatch(/^fork|fan$/);
 		// The fork reaches the river's edges and the branch's.
 		const edges = RIVER_PIECE_EDGES[fork.shape].map((edge) => (edge + fork.rotation / 60) % 6).sort();
-		expect(edges).toEqual([edgeDirection({ col: 6, row: 3 }, { col: 6, row: 2 }), edgeDirection({ col: 6, row: 3 }, { col: 6, row: 4 }),
-			edgeDirection({ col: 6, row: 3 }, { col: 5, row: 4 })].sort());
+		expect(edges).toEqual([edgeDirection(g, { col: 6, row: 3 }, { col: 6, row: 2 }), edgeDirection(g, { col: 6, row: 3 }, { col: 6, row: 4 }),
+			edgeDirection(g, { col: 6, row: 3 }, { col: 5, row: 4 })].sort());
 		// One piece to a hex, the river's numbered first by their place along it.
 		expect(new Set(pieces.map((piece) => hexKey(piece.hex))).size).toBe(pieces.length);
 		expect(pieces.slice(0, river.length).map((piece) => piece.index)).toEqual(river.map((_, index) => index));
