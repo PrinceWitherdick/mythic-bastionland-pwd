@@ -57,7 +57,7 @@ The **Structure** actor is for ships, walls, gates and siege engines (Wood and S
 - **Repair:** a day of repairs restores its GD.
 - **Collide:** a ship rolls the d12 Damage a collision deals, or the d6 when it's much the larger ship, and takes it.
 - **Attack** appears once it has a weapon, such as a siege engine's.
-- Import PDF files the book's structures, ships and siege towers as Structures. An NPC made with Create Actor and filled in from Choose from Book becomes one when its stat block has only GD and counts as a structure. On the first load after updating, structure NPCs whose Virtues were never set become Structures by themselves.
+- Import PDF files the book's structures, ships and siege towers as Structures. So does a Seer or one of a Cast in the NPCs compendium when its stat block has only GD and counts as a structure. On the first load after updating, structure NPCs whose Virtues were never set become Structures by themselves.
 ### NPCs
 
 The **NPC** sheet is laid out like the stat blocks the book prints for each Myth's Cast and each Seer, for anybody who isn't a player's Knight:
@@ -71,8 +71,8 @@ The **NPC** sheet is laid out like the stat blocks the book prints for each Myth
 - **Creatures that count as structures:** mark an NPC that counts as a structure, such as a colossus of stone, and Take Damage asks whether the Attack was fire, a siege weapon or a suitably large creature. Damage wears its GD down without touching VIG, and at 0GD it's destroyed. An NPC with only GD is better as a Structure: **Make a Structure** on its sheet turns it into one, keeping its Tokens.
 - **Morale:** rolls the SPI Save to stand rather than rout or surrender. The Damage card offers the roll when an NPC is Wounded, or when a Warband's VIG falls to half. In combat, once half of an NPC side is down, GMs get a card to roll the group: once on a leader's SPI if organised, or for each member standing. Knights are never asked.
 - **Reaction:** characters react in a way that suits the moment, so this is for the times the Referee is uncertain which way one would go (p8). It rolls their SPI Save and posts whether they take it badly.
-- **Choose from Book** (in the NPC sheet's title bar): after Import PDF, browse the Myths, the Seers and the City Quest, read each Myth's Omens, and fill in an NPC from any stat block in its Cast, or from a Seer. An NPC made with **Create Actor** opens it straight away, and becomes a Structure if the stat block is one.
-- **Paste Stat Block** (also in the title bar): paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
+- **Create Actor** makes a blank NPC for you to fill in, as it does a Structure. The book's own are ready made in the **NPCs** compendium after Import PDF: drag in whoever the Company meets.
+- **Paste Stat Block** (in the title bar): paste a stat block as text, such as one copied from your PDF, and the sheet fills in from it.
 
 ### Domains
 
@@ -189,7 +189,7 @@ It's also in the Actors tab, and behind **GM Toolkit** in the Roll Tables tab. I
 - **Myths and Omens:** each Myth of the Realm folds to one row: its picture, its name, a pip for each Omen met, and its hex. Click a row to open that Myth. Opening one folds the one open before, so all six stay on the page. Inside, the six Omens are one list, in order. The one playing out and the one to come (p18) are written out, and the rest are cut to a line you can click to read in full. The Omens are quoted after Import PDF.
   - **Next Omen** counts one more and whispers it to GMs; **−** takes one back. The Hex panel and the Wilderness Roll count the same Omens.
   - **The Cast** is folded under the Omens: every stat block printed beside them, and what the book says about the Cast as a whole. **Make Them** adds one to the Actors directory with their Virtues, GD, Armour, Feats, notes and attacks, wearing the Myth's picture, and becoming a Structure if the stat block is one. **Make the Rest of the Cast** makes everyone not made yet.
-  - Whoever has been made is listed under their entry: click their name to open their sheet, or the cross to take them out of the Cast. One made another way, such as from **Choose from Book**, is gathered by its name, and one renamed after it was made stays where it was put. Drag any actor onto a Myth to count them among its Cast, and onto the City Quest for the City's.
+  - Whoever has been made is listed under their entry: click their name to open their sheet, or the cross to take them out of the Cast. One dragged in from the **NPCs** compendium joins its Myth's Cast, one made another way is gathered by its name, and one renamed after it was made stays where it was put. Drag any actor onto a Myth to count them among its Cast, and onto the City Quest for the City's.
   - Each Myth's table, printed beside its Omens in the book, is folded beneath them, and opens by itself when the Omen playing out says "see opposite". Clicking an Omen's **see opposite** opens it too. **Roll the Table** rolls a d6 for each column, and clicking a column's heading rolls that column alone. A highlight runs down the table and stops on the rows rolled, then the result goes to chat. With **Reduce Motion** on, the rows are marked at once.
   - The tables come from Import PDF. If Import PDF ran before this version, they're read from the rulebook the world keeps for its reader, so there's nothing to import again. Without either, the Myth asks for one.
   - Each Myth has a box for your notes on it.
@@ -216,7 +216,8 @@ Beyond the Blank Realm's legend and rules, the system ships none of the book's a
    - weapons (one for each example a line names, so Hefty Weapons gives a spear, a mace and an axe), armour, tools, Remedies and poisons;
    - beasts, hirelings, Warbands, and structures, ships and siege towers, as NPCs.
 
-   Bows, slings and siege artillery are marked ranged, which the book leaves unsaid. Hirelings print only GD, so theirs keep the default Virtues with a note to roll d12+d6. Running the import again replaces what's in both compendiums. Choose Knight and Choose from Book fill characters in from it.
+   Bows, slings and siege artillery are marked ranged, which the book leaves unsaid. Hirelings print only GD, so theirs keep the default Virtues with a note to roll d12+d6. Running the import again replaces what's in both compendiums. Choose Knight fills characters in from it.
+4. The book's NPCs go into an **NPCs** compendium, each in their own folder: **Seers**, a folder for each d6; **Myths**, a folder for each d6 holding one per Myth with its Cast; and **The City Quest**, for its Cast. Each wears their picture and notes the page they're printed on. It isn't copied into the world, and players can't open it: drag in whoever the Company meets. One of a Myth's Cast dragged in counts among that Myth's Cast on the GM Toolkit. It replaces the Seers compendium earlier versions made, which is deleted once the NPCs one is filled.
 
 Running the import again replaces the files. It needs a user who is allowed to upload files, and like anything in the data folder, the pictures and the index can be fetched by anyone who can reach your Foundry server.
 
@@ -266,7 +267,7 @@ The layout:
 - `module/rules/` holds the game arithmetic as plain functions with no Foundry dependency, so all of it is unit tested. That includes reading the rulebook's pages and stat blocks.
 - `module/actions/` connects those rules to Foundry through dialogs, actor updates and chat cards.
 - `module/book-art/` reads a rulebook PDF you own and saves its art and text, for Import PDF.
-- `module/apps/` holds windows other than sheets, such as the Knight and NPC choosers.
+- `module/apps/` holds windows other than sheets, such as the Knight chooser.
 - `module/canvas/` holds what runs on the Scene, such as the check that stops Tokens crossing a Realm's Barriers.
 - `module/sheets/` and `templates/` hold the sheets.
 - `packs/src/` holds the compendium sources.

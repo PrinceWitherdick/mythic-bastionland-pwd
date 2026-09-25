@@ -4,8 +4,8 @@
  * per d6 and kept in roll order, as the Knights' table on p26 lists them. A
  * Seer that counts as a structure is one. Pure, so it can be tested without Foundry.
  */
-import { isStructureBlock, npcFromStatBlock, structureFromStatBlock } from "./stat-blocks.js";
-import { paragraphs } from "./text.js";
+import { actorFromStatBlock } from "./stat-blocks.js";
+import { midSentence, paragraphs } from "./text.js";
 
 /**
  * @typedef {object} SeerNpcWords
@@ -13,13 +13,6 @@ import { paragraphs } from "./text.js";
  * @property {(knight: string, page: number) => string} knighted A note on the Knight they knighted, on whose page they're printed.
  * @property {string} attackName Names an attack printed without one.
  */
-
-/**
- * "The True Knight" reads "the True Knight" inside a sentence.
- * @param {string} name
- * @returns {string}
- */
-const midSentence = (name) => name.replace(/^The\b/, "the");
 
 /**
  * Actor data for one Seer: an NPC, or a Structure for a Seer with only GD
@@ -31,14 +24,11 @@ const midSentence = (name) => name.replace(/^The\b/, "the");
  */
 export function seerActor(seer, knight, words) {
 	const block = { name: seer.name, stats: seer.stats, lines: seer.lines ?? [] };
-	const structure = isStructureBlock(block);
-	const { name, system, items } = structure
-		? structureFromStatBlock(block, { attackName: words.attackName })
-		: npcFromStatBlock(block, { attackName: words.attackName });
+	const { type, name, system, items } = actorFromStatBlock(block, { attackName: words.attackName });
 	const knighted = knight?.name && seer.page ? words.knighted(midSentence(knight.name), seer.page) : "";
 	return {
 		name,
-		type: structure ? "structure" : "npc",
+		type,
 		...(seer.path ? { img: seer.path, prototypeToken: { texture: { src: seer.path } } } : {}),
 		system: { ...system, notes: system.notes + paragraphs(knighted) },
 		items,

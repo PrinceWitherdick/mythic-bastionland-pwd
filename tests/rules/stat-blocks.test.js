@@ -62,18 +62,18 @@ describe("splitCastName", () => {
 
 describe("parseArmour", () => {
 	it("reads the value and what the Armour is", () => {
-		expect(parseArmour("A3 (quilted coat, tin plate, pot helm)")).toEqual({ armour: 3, note: "quilted coat, tin plate, pot helm", rest: "" });
+		expect(parseArmour("A3 (quilted coat, tin plate, pot helm)")).toEqual({ armour: 3, note: "quilted coat, tin plate, pot helm", printed: "A3 (quilted coat, tin plate, pot helm)", rest: "" });
 	});
 
 	it("keeps every value when it changes with the situation, counting the first", () => {
-		expect(parseArmour("A1 when awake, A3 asleep (shell)")).toEqual({ armour: 1, note: "A1 when awake, A3 asleep (shell)", rest: "" });
+		expect(parseArmour("A1 when awake, A3 asleep (shell)")).toEqual({ armour: 1, note: "A1 when awake, A3 asleep (shell)", printed: "A1 when awake, A3 asleep (shell)", rest: "" });
 		expect(parseArmour("A2, or A4 when curled (plates)").note).toBe("A2, or A4 when curled (plates)");
 	});
 
 	it("hands back what follows the Armour", () => {
-		expect(parseArmour("A1 (hard skin), tail (d8)")).toEqual({ armour: 1, note: "hard skin", rest: "tail (d8)" });
-		expect(parseArmour("A2 (wax). Can Deny.")).toEqual({ armour: 2, note: "wax", rest: "Can Deny." });
-		expect(parseArmour("A3. Treat as a structure.")).toEqual({ armour: 3, note: "", rest: "Treat as a structure." });
+		expect(parseArmour("A1 (hard skin), tail (d8)")).toEqual({ armour: 1, note: "hard skin", printed: "A1 (hard skin)", rest: "tail (d8)" });
+		expect(parseArmour("A2 (wax). Can Deny.")).toEqual({ armour: 2, note: "wax", printed: "A2 (wax)", rest: "Can Deny." });
+		expect(parseArmour("A3. Treat as a structure.")).toEqual({ armour: 3, note: "", printed: "A3", rest: "Treat as a structure." });
 	});
 
 	it("ignores lines that don't start with Armour", () => {

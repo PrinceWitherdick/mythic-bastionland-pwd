@@ -6,7 +6,7 @@ import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
-import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, makeWholeCast, removeFromCast } from "../actions/myth-cast.js";
+import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
@@ -27,7 +27,7 @@ import { isTableRoll } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
 import { REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { visitedNewestFirst } from "../rules/journey.js";
-import { CAST_FLAG, castToMake, gatherCast } from "../rules/myth-cast.js";
+import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { seasonEventsView } from "../rules/season-events.js";
@@ -132,7 +132,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			showMythTable: GmToolkitSheet.#onShowMythTable,
 			showMythArt: GmToolkitSheet.#onShowMythArt,
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
-			makeWholeCast: GmToolkitSheet.#onMakeWholeCast,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
 			setScope: (_event, target) => setScope(target.dataset.scope),
@@ -302,6 +301,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				cast: this.#index?.cityQuest?.cast,
 				note: this.#index?.cityQuest?.castNote,
 				missingText: !this.#index?.cityQuest?.cast,
+				myth: t("cityQuest.title"),
 				...forCast
 			})
 		};
@@ -374,6 +374,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				note: entry?.castNote,
 				missingText: !entry?.cast,
 				img: entry?.path ?? null,
+				myth: name,
 				...forCast
 			})
 		};
@@ -389,12 +390,13 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @param {string|null|undefined} options.note What the book says about the whole Cast.
 	 * @param {boolean} options.missingText Whether the book's own words are still to be imported.
 	 * @param {string|null} [options.img] The Myth's picture, worn by whoever is made from it.
+	 * @param {string} options.myth The Myth's name, which the folder its Cast is filed in takes.
 	 * @param {import("../rules/myth-cast.js").CastActor[]} options.actors
 	 * @param {Record<string, string>} options.labels What each score is called, read once for the page.
 	 */
-	#castContext({ key, fold, cast, note, missingText, img = null, actors, labels }) {
-		const { members, extras, made, missing } = gatherCast(cast, actors, key);
-		this.#casts.set(key, { img, members });
+	#castContext({ key, fold, cast, note, missingText, img = null, myth, actors, labels }) {
+		const { members, extras, made } = gatherCast(cast, actors, key);
+		this.#casts.set(key, { img, myth, members });
 		return {
 			key,
 			fold,
@@ -402,10 +404,10 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			open: this.#folds.get(fold) ?? false,
 			summary: members.length ? t("gmToolkit.cast.summary", { made, count: members.length }) : t("gmToolkit.cast.title"),
 			note: note || null,
-			members: members.map((member) => ({ ...member, statLine: formatStatLine(member.stats, labels) })),
+			// The Armour joins the stat line and the rest is run together; the entry keeps its printed lines for making an actor of it.
+			members: members.map((member) => ({ ...member, statLine: formatStatLine(member.stats, labels), ...castBlock(member.lines) })),
 			extras,
 			made,
-			missing,
 			empty: !members.length && !extras.length,
 			missingText
 		};
@@ -841,7 +843,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const cast = key ? this.#casts.get(key) : null;
 		if (!cast) return null;
 		const index = Number(target.closest("[data-cast-index]")?.dataset.castIndex);
-		return { key, img: cast.img, members: cast.members, member: cast.members[index] ?? null };
+		return { key, img: cast.img, myth: cast.myth, members: cast.members, member: cast.members[index] ?? null };
 	}
 
 	/**
@@ -1044,15 +1046,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	static async #onMakeCastMember(_event, target) {
 		const cast = this.#castFrom(target);
 		if (!cast?.member) return;
-		const made = await makeCastMember(cast.member, { key: cast.key, img: cast.img });
-		if (made) ui.notifications.info(t("npcChooser.created", { name: made.name }));
-	}
-
-	/** @this {GmToolkitSheet} */
-	static #onMakeWholeCast(_event, target) {
-		const cast = this.#castFrom(target);
-		if (!cast) return;
-		return makeWholeCast(castToMake(cast.members), { key: cast.key, img: cast.img });
+		const made = await makeCastMember(cast.member, { key: cast.key, img: cast.img, myth: cast.myth });
+		if (made) ui.notifications.info(t("gmToolkit.cast.created", { name: made.name }));
 	}
 
 	/** @this {GmToolkitSheet} */

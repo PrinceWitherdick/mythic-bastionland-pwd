@@ -43,6 +43,13 @@ export function titleCase(text, { minorWords = MINOR_WORDS, apostrophes = false 
 export const paragraphs = (...texts) => texts.filter(Boolean).map((text) => `<p>${escapeHTML(text)}</p>`).join("");
 
 /**
+ * "The Heron" reads "the Heron" inside a sentence.
+ * @param {string} name
+ * @returns {string}
+ */
+export const midSentence = (name) => name.replace(/^The\b/, "the");
+
+/**
  * @param {string} text
  * @param {RegExp} separator Anchored with ^, tried at each place outside parentheses.
  * @returns {string[]} The text split there, each part trimmed, empty parts dropped.

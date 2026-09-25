@@ -25,12 +25,6 @@ export const INDEX_FILE = "index.json";
  */
 export const INDEX_VERSION = 10;
 
-/** The first index version with each Myth's Omens and Cast, and each Seer's stats. */
-export const MYTH_TEXT_VERSION = 3;
-
-/** The first index version with the City Quest's Omens and Cast. */
-export const CITY_QUEST_TEXT_VERSION = 5;
-
 /** The first index version with the table on each Knight's page. */
 export const KNIGHT_TABLE_VERSION = 10;
 

@@ -312,28 +312,6 @@ a.button:focus:not(:focus-visible) {
 	content: none;
 }
 
-/* A <summary> loses its disclosure triangle once it is laid out as a flex box,
-   so the headings that fold draw their own, set past the line-filler so it sits
-   at the end of the row. */
-.bastionland-npc-chooser__omens > summary.bastionland-heading {
-	list-style: none;
-}
-
-.bastionland-npc-chooser__omens > summary.bastionland-heading::-webkit-details-marker {
-	display: none;
-}
-
-.bastionland-npc-chooser__omens > summary.bastionland-heading::before {
-	content: "\25B8";
-	flex: none;
-	font-size: 0.7em;
-	order: 1;
-}
-
-.bastionland-npc-chooser__omens[open] > summary.bastionland-heading::before {
-	content: "\25BE";
-}
-
 .bastionland-hint {
 	margin: 0.25rem 0 0;
 	color: var(--bastionland-ink-soft);
@@ -2171,17 +2149,26 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * of rules text, so the box takes a drag handle at its foot. Foundry lays the
  * editor out as a menu above a container the text is stretched inside, and
  * that container is only given a height of its own in a column; `resize`, in
- * turn, only takes on a box that keeps its own overflow.
+ * turn, only takes on a box that keeps its own overflow. An NPC's Traits &
+ * Notes take the same handle, and keep it when shown read-only.
  */
-.bastionland-page .bastionland-item-description prose-mirror {
+.bastionland-page .bastionland-item-description prose-mirror,
+.bastionland-page .bastionland-npc-notes prose-mirror,
+.bastionland-page .bastionland-npc-notes > .editor-content {
 	display: flex;
 	flex-direction: column;
 	overflow: auto;
 	resize: vertical;
 }
 
+/* Read-only text has no editor to stretch, so it stays a plain block. */
+.bastionland-page .bastionland-npc-notes > .editor-content {
+	display: block;
+}
+
 /* Whatever height the box is dragged to is the text's to fill. */
-.bastionland-page .bastionland-item-description prose-mirror > .editor-container {
+.bastionland-page .bastionland-item-description prose-mirror > .editor-container,
+.bastionland-page .bastionland-npc-notes prose-mirror > .editor-container {
 	min-height: 0;
 }
 
@@ -4825,12 +4812,8 @@ button.bastionland-company-button:focus-visible {
 }
 
 /* ---------------------------------------------------------------- */
-/* NPC chooser: Myths and Seers, and the stat blocks read from them */
+/* Wide cards: a Myth's picture spans its two pages                 */
 /* ---------------------------------------------------------------- */
-
-.bastionland-chooser__layout--npc {
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-}
 
 .bastionland-chooser__grid--wide {
 	grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
@@ -4840,72 +4823,6 @@ button.bastionland-company-button:focus-visible {
 	aspect-ratio: 2 / 1;
 	object-position: center;
 }
-
-.bastionland-page .bastionland-npc-chooser__detail {
-	display: flex;
-	flex-direction: column;
-	gap: 0.6rem;
-}
-
-.bastionland-npc-chooser__art {
-	display: block;
-	width: 100%;
-	border: 1px solid var(--bastionland-ink);
-}
-
-.bastionland-npc-chooser__omens summary {
-	cursor: pointer;
-}
-
-.bastionland-npc-chooser__omens ol {
-	margin: 0.3rem 0 0;
-	padding-left: 1.4rem;
-	font-size: 0.95rem;
-}
-
-.bastionland-npc-chooser__people {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.bastionland-npc-chooser__person {
-	display: flex;
-	flex-direction: column;
-	gap: 0.2rem;
-	padding: 0.5rem 0.7rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
-	background: rgb(255 255 255 / 0.25);
-}
-
-.bastionland-npc-chooser__person p {
-	margin: 0;
-	font-size: 0.95rem;
-}
-
-.bastionland-npc-chooser__person-name {
-	margin: 0;
-	border: none;
-	color: var(--bastionland-ink);
-	font-family: var(--bastionland-font-caps);
-	font-size: 1.2rem;
-	font-weight: normal;
-}
-
-.bastionland-npc-chooser__stats {
-	font-family: var(--bastionland-font-caps);
-}
-
-.bastionland-page .bastionland-npc-chooser__person .bastionland-button {
-	flex: none;
-	align-self: flex-end;
-	margin-top: 0.3rem;
-}
-
 /* ---------------------------------------------------------------- */
 /* Art preview: a larger copy of hovered art (module/apps/art-preview.js) */
 /* ---------------------------------------------------------------- */

@@ -1,5 +1,5 @@
 import { t } from "../chat/cards.js";
-import { isStructureBlock, npcFromStatBlock, statBlockFromText, structureFromStatBlock } from "../rules/stat-blocks.js";
+import { actorFromStatBlock, npcFromStatBlock, statBlockFromText } from "../rules/stat-blocks.js";
 import { templatePath } from "../system-id.js";
 
 /**
@@ -17,42 +17,18 @@ export function npcData(block) {
  * @param {{name: string|null, stats: object, lines?: string[]}} block
  * @returns {{type: string, name: string, system: object, items: object[]}}
  */
-export function actorData(block) {
-	if (isStructureBlock(block)) return { type: "structure", ...structureFromStatBlock(block, { attackName: t("attack.title") }) };
-	return { type: "npc", ...npcData(block) };
-}
+export const actorData = (block) => actorFromStatBlock(block, { attackName: t("attack.title") });
 
 /**
  * Give an NPC what a stat block says: its name, scores, Armour, Feats and
  * notes, with its attacks in place of the NPC's weapons. Other items stay.
  * @param {Actor} actor
  * @param {{name: string, system: object, items: object[]}} data From npcData.
- * @param {object} [changes] More to set on the actor, such as `img`.
  */
-export async function applyNpcData(actor, { name, system, items }, changes = {}) {
-	await actor.update({ ...(name ? { name } : {}), system, ...changes });
+export async function applyNpcData(actor, { name, system, items }) {
+	await actor.update({ ...(name ? { name } : {}), system });
 	const replaced = actor.items.filter((item) => item.type === "weapon").map((item) => item.id);
 	if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
-	if (items.length) await actor.createEmbeddedDocuments("Item", items);
-}
-
-/**
- * Make an NPC into the Structure a stat block describes, with its GD, Armour,
- * notes and attacks in place of what it had.
- * @param {Actor} actor
- * @param {{name: string, system: object, items: object[]}} data From actorData, of type "structure".
- * @param {object} [changes] More to set on the actor, such as `img`.
- */
-export async function applyStructureData(actor, { name, system, items }, changes = {}) {
-	const replaced = actor.items.filter((item) => item.type === "weapon").map((item) => item.id);
-	if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
-	// Foundry changes a document's type only when its system data is replaced whole.
-	await actor.update({
-		...(name ? { name } : {}),
-		type: "structure",
-		system: foundry.data.operators.ForcedReplacement.create(system),
-		...changes
-	});
 	if (items.length) await actor.createEmbeddedDocuments("Item", items);
 }
 

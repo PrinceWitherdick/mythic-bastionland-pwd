@@ -4,10 +4,12 @@
  *
  * An actor says which Cast it belongs to with a flag naming the Myth and the
  * entry it was made from, so a renamed one stays where it was put. One made
- * before, such as from the NPC chooser, is collected by its name instead.
+ * before the flag, such as from the old NPC chooser, is collected by its name
+ * instead. Those in the NPCs compendium carry it, so one dragged in joins.
  * Pure, so it can be tested without Foundry.
  */
-import { splitCastName } from "./stat-blocks.js";
+import { parseArmour, parseAttacks, splitCastName } from "./stat-blocks.js";
+import { joinLines } from "./text.js";
 
 /** The flag an actor carries under the system's scope: `{myth, from}`, or `{myth: null}` for one taken out of a Cast. */
 export const CAST_FLAG = "cast";
@@ -63,7 +65,7 @@ function isMember(actor, member, key) {
  * @param {import("./book-art.js").CastEntry[]|null|undefined} cast What the book prints.
  * @param {CastActor[]} actors Every actor that could belong to a Cast.
  * @param {string} key Which Myth: its roll on the Myths table, such as "1-05", or `CITY_CAST`.
- * @returns {{members: CastMember[], extras: CastActor[], made: number, missing: number}}
+ * @returns {{members: CastMember[], extras: CastActor[], made: number}}
  */
 export function gatherCast(cast, actors, key) {
 	const taken = new Set();
@@ -77,12 +79,36 @@ export function gatherCast(cast, actors, key) {
 	});
 	const extras = actors.filter((actor) => actor.myth === key && !taken.has(actor.uuid));
 	const made = members.filter((member) => member.actors.length).length;
-	return { members, extras, made, missing: members.length - made };
+	return { members, extras, made };
 }
 
 /**
- * The entries of a Cast nobody has been made of yet, for making the rest of it at once.
- * @param {CastMember[]} members
- * @returns {CastMember[]}
+ * A Cast entry's printed lines laid out the way the sheet shows them: the
+ * Armour taken out, to stand beside the stats, and each attack left on a line
+ * of its own. The book breaks the rest where its column ran out, not where the
+ * writing did, so those breaks are closed up and the words run together.
+ * @param {string[]|null|undefined} lines What follows the stats, as the book prints it.
+ * @returns {{armour: string|null, lines: string[]}} `armour` as printed, such as "A2 (mail)".
  */
-export const castToMake = (members) => members.filter((member) => !member.actors.length);
+export function castBlock(lines) {
+	let armour = null;
+	const written = [];
+	let flowing = false;
+	for (const line of lines ?? []) {
+		let text = String(line ?? "").trim();
+		// The Armour is printed once, at the head of the block, sometimes with an attack after it.
+		if (armour === null) {
+			const read = parseArmour(text);
+			if (read) {
+				armour = read.printed;
+				text = read.rest;
+			}
+		}
+		if (!text) continue;
+		const attack = parseAttacks(text).attacks.length > 0;
+		if (flowing && !attack) written[written.length - 1] = joinLines(written.at(-1), text);
+		else written.push(text);
+		flowing = !attack;
+	}
+	return { armour, lines: written };
+}

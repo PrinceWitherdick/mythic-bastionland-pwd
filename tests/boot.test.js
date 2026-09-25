@@ -218,7 +218,6 @@ describe("system boot", () => {
 		}));
 		expect(game.system.api.importBookArt).toBeTypeOf("function");
 		expect(game.system.api.openKnightChooser).toBeTypeOf("function");
-		expect(game.system.api.openNpcChooser).toBeTypeOf("function");
 		expect(game.system.api.newRealm).toBeTypeOf("function");
 		expect(game.system.api.wildernessRoll).toBeTypeOf("function");
 		expect(game.system.api.rollSurprise).toBeTypeOf("function");
@@ -231,6 +230,8 @@ describe("system boot", () => {
 		expect(game.system.api.newSite).toBeTypeOf("function");
 		// The Myths window is the GM Toolkit's first page now, and macros that open it still do.
 		expect(game.system.api.openMythsPanel).toBeTypeOf("function");
+		// And the NPC chooser's macros open the NPCs compendium that replaced it.
+		expect(game.system.api.openNpcChooser).toBeTypeOf("function");
 		expect(game.system.api.rollCityOmen).toBeTypeOf("function");
 		expect(game.system.api.awardGlory).toBeTypeOf("function");
 		expect(game.system.api.getCalendar).toBeTypeOf("function");
@@ -397,14 +398,15 @@ describe("system boot", () => {
 		delete globalThis.document;
 	});
 
-	it("adds no buttons to the Actors directory, and offers the choosers when Create Actor makes a Knight or NPC", async () => {
+	it("adds no buttons to the Actors directory, and offers the Knight chooser when Create Actor makes a Knight", async () => {
 		expect(hooks.renderActorDirectory).toBeUndefined();
 
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
 		const sheetFor = (type) => registerSheet.mock.calls.find(([registeredClass, , , options]) => registeredClass === Actor && options.types.includes(type))[2];
 		const chooseFromBook = (type) => Object.getOwnPropertyDescriptor(sheetFor(type).prototype, "_chooseFromBook");
 		expect(chooseFromBook("knight")?.value).toBeTypeOf("function");
-		expect(chooseFromBook("npc")?.value).toBeTypeOf("function");
+		// A new NPC is filled in by hand, as a Structure is; the book's are in the NPCs compendium.
+		expect(chooseFromBook("npc")).toBeUndefined();
 		expect(chooseFromBook("domain")).toBeUndefined();
 		expect(chooseFromBook("structure")).toBeUndefined();
 
@@ -414,7 +416,7 @@ describe("system boot", () => {
 		const offered = [];
 		const sheetOpened = (renderContext, isEditable = true) => {
 			// Made rather than fabricated, so the sheet's own fields are there to write.
-			const sheet = Object.defineProperties(new (sheetFor("npc"))(), { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
+			const sheet = Object.defineProperties(new (sheetFor("knight"))(), { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
 			sheet._chooseFromBook = () => offered.push(renderContext);
 			return sheet._onFirstRender({}, { renderContext });
 		};

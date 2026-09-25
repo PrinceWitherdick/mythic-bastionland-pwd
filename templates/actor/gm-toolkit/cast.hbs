@@ -10,8 +10,12 @@
 		<li class="bastionland-gm-toolkit__cast-member{{#if actors.length}} is-made{{/if}}" data-cast-index="{{index}}">
 			<p class="bastionland-gm-toolkit__cast-line">
 				<span class="bastionland-gm-toolkit__cast-name">{{name}}</span>{{#if epithet}}<span class="bastionland-gm-toolkit__cast-epithet">, {{epithet}}</span>{{/if}}
-				{{#if statLine}}<span class="bastionland-gm-toolkit__cast-stats">{{statLine}}</span>{{/if}}
 			</p>
+			{{#if statLine}}
+			<p class="bastionland-gm-toolkit__cast-scores"><span class="bastionland-gm-toolkit__cast-stats">{{statLine}}</span>{{#if armour}}<span class="bastionland-gm-toolkit__cast-armour">{{armour}}</span>{{/if}}</p>
+			{{else if armour}}
+			<p class="bastionland-gm-toolkit__cast-scores"><span class="bastionland-gm-toolkit__cast-armour">{{armour}}</span></p>
+			{{/if}}
 			{{#each lines}}
 			<p class="bastionland-gm-toolkit__cast-text">{{this}}</p>
 			{{/each}}
@@ -39,11 +43,5 @@
 	<p class="bastionland-hint">{{#if missingText}}{{localize "bastionland.gmToolkit.cast.noText"}}{{else}}{{localize "bastionland.gmToolkit.cast.empty"}}{{/if}}</p>
 	{{else}}
 	<p class="bastionland-hint bastionland-gm-toolkit__cast-hint">{{localize "bastionland.gmToolkit.cast.dropHint"}}</p>
-	{{/if}}
-
-	{{#if missing}}
-	<nav class="bastionland-toolbar" aria-label="{{summary}}">
-		<button type="button" data-action="makeWholeCast"><i class="fa-solid fa-users" inert></i> {{localize "bastionland.gmToolkit.cast.makeAll"}}</button>
-	</nav>
 	{{/if}}
 </details>

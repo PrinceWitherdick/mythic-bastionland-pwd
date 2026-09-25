@@ -88,8 +88,9 @@ const ARMOUR = /^(?:or\s+)?A(\d+)\b\s*(.*)$/i;
  * Armour at the start of a line: "A3 (what it is)", or more than one value,
  * such as "A2 in flight, A4 on ground (why)".
  * @param {string} line
- * @returns {{armour: number, note: string, rest: string}|null} The first value
- *   counts. `rest` is what follows the Armour on the line, such as an attack.
+ * @returns {{armour: number, note: string, printed: string, rest: string}|null}
+ *   The first value counts. `printed` is the Armour as the book sets it, such
+ *   as "A2 (mail)". `rest` is what follows it on the line, such as an attack.
  */
 export function parseArmour(line) {
 	const parts = splitTopLevel(String(line ?? ""));
@@ -111,7 +112,7 @@ export function parseArmour(line) {
 
 	const [, value, described] = ARMOUR.exec(armourParts[0]);
 	const note = armourParts.length === 1 ? (/^\((.*)\)$/.exec(described)?.[1] ?? described) : armourParts.join(", ");
-	return { armour: Number(value), note: note.trim(), rest: rest.join(", ") };
+	return { armour: Number(value), note: note.trim(), printed: armourParts.join(", "), rest: rest.join(", ") };
 }
 
 /** Weapon qualities an attack's parenthesis can name. */
@@ -336,6 +337,19 @@ export function structureFromStatBlock(block, options) {
 		},
 		items
 	};
+}
+
+/**
+ * Actor data for whatever a stat block describes: a Structure for a thing with
+ * only GD that counts as a structure, and otherwise an NPC.
+ * @param {object} block As npcFromStatBlock takes.
+ * @param {object} [options]
+ * @param {string} [options.attackName]
+ * @returns {{type: "npc"|"structure", name: string, system: object, items: object[]}}
+ */
+export function actorFromStatBlock(block, options) {
+	if (isStructureBlock(block)) return { type: "structure", ...structureFromStatBlock(block, options) };
+	return { type: "npc", ...npcFromStatBlock(block, options) };
 }
 
 /**

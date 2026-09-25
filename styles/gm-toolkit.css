@@ -857,9 +857,17 @@
 	font-style: italic;
 }
 
-/* The stat line as the book prints it, in the same face as the score boxes. */
-.bastionland-gm-toolkit__cast-stats {
-	display: block;
+/* The stats and the Armour stand side by side, the Armour dropping below when the column is too narrow for both. */
+.bastionland-gm-toolkit__cast-scores {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.1rem 0.75rem;
+	margin: 0;
+}
+
+/* The stat line and the Armour as the book prints them, in the same face as the score boxes. */
+.bastionland-gm-toolkit__cast-stats,
+.bastionland-gm-toolkit__cast-armour {
 	font-family: var(--bastionland-font-caps);
 	font-size: 0.95rem;
 }

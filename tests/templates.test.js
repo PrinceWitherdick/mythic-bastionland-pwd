@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
-import { AGES, ARMOUR_KINDS, DERIVED_CONDITIONS, FEATS, GAMBIT_DETAILS, GAMBITS, LINKED_ACTORS, MARKED_CONDITIONS, NPC_SCALES, NPC_SOURCES, PROPERTY_TYPES } from "../module/config.js";
+import { AGES, ARMOUR_KINDS, DERIVED_CONDITIONS, FEATS, GAMBIT_DETAILS, GAMBITS, LINKED_ACTORS, MARKED_CONDITIONS, NPC_SCALES, PROPERTY_TYPES } from "../module/config.js";
 import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, RULES_KIND, SPARK_KIND } from "../module/rules/book-art.js";
 import { RULE_PAGES } from "../module/rules/rule-pages.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
@@ -171,7 +171,6 @@ describe("localization", () => {
 		...partsOf("npc.scales", NPC_SCALES, ["label", "hint"]),
 		...partsOf("structure.kinds", STRUCTURE_KINDS, ["label", "hint"]),
 		...partsOf("npc.warband", ["routed", "broken", "wipedOut"], ["label", "hint"]),
-		...NPC_SOURCES.flatMap((key) => [`npcChooser.sources.${key}`, `npcChooser.unnamed.${key}`]),
 		...KINDS.map((kind) => `bookArt.kinds.${kind}`),
 		...PROBLEM_REASONS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...partsOf("chooser.starts", STARTS.map((start) => start.key), ["label", "summary"]),

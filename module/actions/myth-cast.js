@@ -48,52 +48,65 @@ export function castActors() {
 }
 
 /**
+ * The Actors folder a Cast is kept in, named after its Myth and made when it's
+ * missing. It's found by the Cast's flag, so a GM may rename or move it and
+ * whoever is made next still lands in it. A folder nobody may make (a player
+ * pressing the button) leaves the actor unfiled rather than unmade.
+ * @param {string} key Which Cast, from `castKey`.
+ * @param {string|null} name What to call the folder: the Myth's name.
+ * @returns {Promise<Folder|null>}
+ */
+async function castFolder(key, name) {
+	const found = game.folders.find((folder) => folder.type === "Actor" && folder.getFlag(SYSTEM_ID, CAST_FLAG) === key);
+	if (found) return found;
+	if (!name) return null;
+	try {
+		return await foundry.utils.getDocumentClass("Folder").create({
+			name,
+			type: "Actor",
+			flags: { [SYSTEM_ID]: { [CAST_FLAG]: key } }
+		});
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | Couldn't make a folder for the Cast of ${name}`, error);
+		return null;
+	}
+}
+
+/**
  * Make one of a Cast: an NPC, or a Structure for a stat block that is one,
- * marked as belonging to this Myth and wearing its picture.
+ * marked as belonging to this Myth, wearing its picture and filed in its folder.
  * @param {{printed: string, name: string, stats: object|null, lines: string[]}} member
  * @param {object} options
  * @param {string} options.key  Which Cast, from `castKey`.
  * @param {string|null} [options.img] The Myth's picture.
+ * @param {string|null} [options.myth] The Myth's name, which its folder takes.
  * @returns {Promise<Actor|null>}
  */
-export async function makeCastMember(member, options) {
-	return Actor.implementation.create(castMemberData(member, options));
+export async function makeCastMember(member, { key, img = null, myth = null }) {
+	const folder = await castFolder(key, myth);
+	return Actor.implementation.create(castMemberData(member, { key, img, folder: folder?.id ?? null }));
 }
 
 /**
- * What one of them is made from, without making them: the whole Cast is made
- * in one go, so the reading of a member has to be had on its own.
- * @param {object} member One of `castToMake`'s.
+ * What one of them is made from, without making them.
+ * @param {object} member One of `gatherCast`'s members.
  * @param {object} options
  * @param {string} options.key Which Cast, from `castKey`.
  * @param {string|null} [options.img] The Myth's picture.
+ * @param {string|null} [options.folder] The folder to file them in.
  * @returns {object} The actor to create.
  */
-export function castMemberData(member, { key, img = null }) {
+function castMemberData(member, { key, img = null, folder = null }) {
 	const data = actorData({ name: member.printed, stats: member.stats, lines: member.lines });
 	return {
 		name: data.name || member.name,
 		type: data.type,
 		...(img ? { img } : {}),
+		...(folder ? { folder } : {}),
 		system: data.system,
 		items: data.items,
 		flags: { [SYSTEM_ID]: { [CAST_FLAG]: { myth: key, from: member.printed } } }
 	};
-}
-
-/**
- * Make everyone in a Cast nobody has been made of yet, in the order the book prints them.
- * @param {object[]} members From `castToMake`.
- * @param {object} options As `makeCastMember` takes.
- * @returns {Promise<number>} How many were made.
- */
-export async function makeWholeCast(members, options) {
-	if (!members.length) return 0;
-	// One write for the whole Cast, rather than a round trip and a redraw each.
-	const created = await Actor.implementation.create(members.map((member) => castMemberData(member, options)));
-	const made = created?.length ?? 0;
-	if (made) ui.notifications.info(t("gmToolkit.cast.madeAll", { count: made }));
-	return made;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CITY_CAST, castToMake, gatherCast } from "../../module/rules/myth-cast.js";
+import { CITY_CAST, castBlock, gatherCast } from "../../module/rules/myth-cast.js";
 
 /** The Cast as Import PDF reads one from a Myth's page. */
 const cast = [
@@ -12,7 +12,7 @@ const actor = (name, extra = {}) => ({ uuid: `Actor.${name.replace(/\W/g, "")}`,
 
 describe("gatherCast", () => {
 	it("gives every printed entry, with nobody made of them yet", () => {
-		const { members, extras, made, missing } = gatherCast(cast, [], "1-05");
+		const { members, extras, made } = gatherCast(cast, [], "1-05");
 		expect(members.map((member) => [member.index, member.name, member.epithet])).toEqual([
 			[0, "The Wyvern", "That Foul Twisted Reptile"],
 			[1, "Ghostly Riders", "Warband"],
@@ -21,20 +21,18 @@ describe("gatherCast", () => {
 		expect(members.every((member) => member.actors.length === 0)).toBe(true);
 		expect(extras).toEqual([]);
 		expect(made).toBe(0);
-		expect(missing).toBe(3);
 	});
 
 	it("gives nothing for a Myth whose page hasn't been read", () => {
-		expect(gatherCast(null, [], "1-05")).toEqual({ members: [], extras: [], made: 0, missing: 0 });
+		expect(gatherCast(null, [], "1-05")).toEqual({ members: [], extras: [], made: 0 });
 	});
 
 	it("gathers an actor made from an entry by the flag it carries, whatever it is called now", () => {
 		const gorthax = actor("Gorthax", { flagged: true, myth: "1-05", from: "The Wyvern, That Foul Twisted Reptile" });
-		const { members, made, missing } = gatherCast(cast, [gorthax], "1-05");
+		const { members, made } = gatherCast(cast, [gorthax], "1-05");
 		expect(members[0].actors).toEqual([gorthax]);
 		expect(members[1].actors).toEqual([]);
 		expect(made).toBe(1);
-		expect(missing).toBe(2);
 	});
 
 	it("leaves an actor flagged to another Myth alone", () => {
@@ -82,9 +80,36 @@ describe("gatherCast", () => {
 	});
 });
 
-describe("castToMake", () => {
-	it("is everyone in the Cast nobody has been made of", () => {
-		const { members } = gatherCast(cast, [actor("The Wyvern")], "1-05");
-		expect(castToMake(members).map((member) => member.name)).toEqual(["Ghostly Riders", "The Broken Tower"]);
+describe("castBlock", () => {
+	it("takes the Armour out, to stand beside the stats", () => {
+		const block = castBlock(["A2 (waxed leather, iron cap)", "Wick-hook (d8 hefty)"]);
+		expect(block).toEqual({ armour: "A2 (waxed leather, iron cap)", lines: ["Wick-hook (d8 hefty)"] });
+	});
+
+	it("keeps an attack printed on the Armour's line", () => {
+		expect(castBlock(["A1 (hard skin), tail (d8)"])).toEqual({ armour: "A1 (hard skin)", lines: ["tail (d8)"] });
+	});
+
+	it("gives no Armour to a stat block printed without one", () => {
+		expect(castBlock(["Claws (d8)."])).toEqual({ armour: null, lines: ["Claws (d8)."] });
+		expect(castBlock([])).toEqual({ armour: null, lines: [] });
+		expect(castBlock(null)).toEqual({ armour: null, lines: [] });
+	});
+
+	it("runs the writing together, since the book only broke it where its column ran out", () => {
+		const block = castBlock(["Wants the tower rebuilt.", "Hates the cold.", "Will trade for iron."]);
+		expect(block.lines).toEqual(["Wants the tower rebuilt. Hates the cold. Will trade for iron."]);
+	});
+
+	it("leaves each attack on a line of its own", () => {
+		const block = castBlock(["A3 (plate)", "Crush (2d12)", "Sweep (d12 blast)", "Can Focus.", "Wants quiet."]);
+		expect(block).toEqual({
+			armour: "A3 (plate)",
+			lines: ["Crush (2d12)", "Sweep (d12 blast)", "Can Focus. Wants quiet."]
+		});
+	});
+
+	it("closes up a word the column broke, keeping its hyphen", () => {
+		expect(castBlock(["Wants the caravan un-", "harmed."]).lines).toEqual(["Wants the caravan un-harmed."]);
 	});
 });

@@ -44,8 +44,8 @@ import { markSetupDone } from "../world-setup.js";
 import { ART_INDEX_HOOK } from "./art-index.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
+import { NPC_PACK, NPC_PACK_STEP, fillNpcPack } from "./npc-pack.js";
 import { fillPack } from "./packs.js";
-import { SEERS_PACK, SEERS_PACK_STEP, fillSeersPack } from "./seers-pack.js";
 import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
 import { showImportReport } from "./report.js";
 import { useSquareTokens } from "./square-tokens.js";
@@ -246,13 +246,13 @@ async function extractArt(pdf, OPS) {
 			console.error(`${SYSTEM_ID} | Couldn't fill the Arms & Goods compendiums`, error);
 			goodsLines.push(t("bookArt.report.goodsFailed"));
 		}
-		progress.update({ message: t("bookArt.fillingSeers") });
+		progress.update({ message: t("bookArt.fillingNpcs") });
 		try {
-			goodsLines.push(t("bookArt.report.seers", { count: await fillSeersPack(index), pack: t(SEERS_PACK.label) }));
-			await markSetupDone(SEERS_PACK_STEP);
+			goodsLines.push(t("bookArt.report.npcs", { ...await fillNpcPack(index), pack: t(NPC_PACK.label) }));
+			await markSetupDone(NPC_PACK_STEP);
 		} catch (error) {
-			console.error(`${SYSTEM_ID} | Couldn't fill the Seers compendium`, error);
-			goodsLines.push(t("bookArt.report.seersFailed"));
+			console.error(`${SYSTEM_ID} | Couldn't fill the NPCs compendium`, error);
+			goodsLines.push(t("bookArt.report.npcsFailed"));
 		}
 	}
 	let tokensLine = null;

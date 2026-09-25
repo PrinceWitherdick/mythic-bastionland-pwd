@@ -1,8 +1,30 @@
 /**
+ * @typedef {object} PackFolder
+ * @property {string} name
+ * @property {object[]} documents
+ * @property {number} [sort] Its place among its siblings, else the order given.
+ * @property {PackFolder[]} [folders] Folders inside it.
+ */
+
+/**
+ * @param {PackFolder} folder
+ * @returns {boolean} Whether it holds anything, however deep.
+ */
+const holdsDocuments = (folder) => folder.documents.length > 0 || (folder.folders ?? []).some(holdsDocuments);
+
+/**
+ * @param {PackFolder[]} folders
+ * @returns {PackFolder[]} Those holding anything, each given its place.
+ */
+const placed = (folders) => folders
+	.map((folder, index) => ({ ...folder, sort: folder.sort ?? (index + 1) * 100 }))
+	.filter(holdsDocuments);
+
+/**
  * Empty a world compendium, creating it first if needed, then fill it folder by folder.
  * @param {{name: string, type: string, label: string, ownership?: object}} metadata
  *   `ownership` is set only when the compendium is created, so a GM's own choice stays.
- * @param {{name: string, documents: object[]}[]} folders
+ * @param {PackFolder[]} folders
  */
 export async function fillPack({ name, type, label, ownership }, folders) {
 	const { CompendiumCollection } = foundry.documents.collections;
@@ -20,8 +42,16 @@ export async function fillPack({ name, type, label, ownership }, folders) {
 	const oldFolders = pack.folders.map((folder) => folder.id);
 	if (oldFolders.length) await folderClass.deleteDocuments(oldFolders, operation);
 
-	const filled = folders.map((folder, index) => ({ ...folder, sort: (index + 1) * 100 })).filter((folder) => folder.documents.length);
-	if (!filled.length) return;
-	const created = await folderClass.createDocuments(filled.map((folder) => ({ name: folder.name, type, sort: folder.sort })), operation);
-	await documentClass.createDocuments(filled.flatMap((folder, index) => folder.documents.map((data) => ({ ...data, folder: created[index].id }))), operation);
+	// A level at a time, since a folder inside another needs its parent's id.
+	const documents = [];
+	let level = placed(folders).map((folder) => ({ folder, parent: null }));
+	while (level.length) {
+		const created = await folderClass.createDocuments(level.map(({ folder, parent }) => ({ name: folder.name, type, sort: folder.sort, folder: parent })), operation);
+		level = level.flatMap(({ folder }, index) => {
+			const id = created[index].id;
+			documents.push(...folder.documents.map((data) => ({ ...data, folder: id })));
+			return placed(folder.folders ?? []).map((child) => ({ folder: child, parent: id }));
+		});
+	}
+	if (documents.length) await documentClass.createDocuments(documents, operation);
 }

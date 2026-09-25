@@ -22,7 +22,6 @@ import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./mod
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
-import { openNpcChooser } from "./module/apps/NpcChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
 import { registerDropdowns } from "./module/apps/dropdown.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
@@ -33,7 +32,7 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
-import { SEERS_PACK_STEP, seedSeersPack } from "./module/book-art/seers-pack.js";
+import { NPC_PACK_STEP, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -331,7 +330,6 @@ Hooks.once("init", () => {
 		// Only the art and tables, for macros written before Import PDF kept a copy to read as well.
 		importBookArt,
 		openKnightChooser,
-		openNpcChooser,
 		newRealm,
 		openRealmAppearance,
 		wildernessRoll,
@@ -346,6 +344,8 @@ Hooks.once("init", () => {
 		openGmToolkit,
 		// The Myths window became the GM Toolkit's first page; macros that open it still work.
 		openMythsPanel: () => openGmToolkit("myths"),
+		// The NPC chooser gave way to the NPCs compendium; macros that open it open that instead.
+		openNpcChooser: openNpcPack,
 		rollCityOmen,
 		awardGlory,
 		getCalendar,
@@ -384,8 +384,9 @@ const WORLD_SETUP = Object.freeze([
 	// In the Macro Directory only, never on a hotbar.
 	{ key: TEST_WORLD_MACRO_STEP, run: seedTestWorldMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
-	// Worlds that imported the book before there was a Seers compendium. Import PDF fills it itself.
-	{ key: SEERS_PACK_STEP, run: seedSeersPack },
+	// Worlds that imported the book before there was an NPCs compendium. Import PDF fills it itself,
+	// and either way it takes in the Seers compendium there used to be.
+	{ key: NPC_PACK_STEP, run: seedNpcPack },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	// Knights made before their Property was read into weapons and armour.
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },

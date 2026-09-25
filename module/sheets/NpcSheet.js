@@ -3,7 +3,6 @@ import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { strainWarband } from "../actions/warbands.js";
-import { openNpcChooser } from "../apps/NpcChooser.js";
 import { t } from "../chat/cards.js";
 import { FEATS, NPC_SCALES } from "../config.js";
 import { ownerOf } from "../rules/property.js";
@@ -22,7 +21,6 @@ export class NpcSheet extends BastionlandActorSheet {
 		classes: ["bastionland-npc"],
 		position: { width: 740, height: 800 },
 		actions: {
-			chooseNpc: NpcSheet.#onChooseNpc,
 			pasteStatBlock: NpcSheet.#onPasteStatBlock,
 			rollMorale: NpcSheet.#onRollMorale,
 			rollReaction: NpcSheet.#onRollReaction,
@@ -72,6 +70,19 @@ export class NpcSheet extends BastionlandActorSheet {
 		});
 	}
 
+	/**
+	 * Keep the height the Traits & Notes box was dragged to, since the sheet
+	 * redraws on every change to the NPC.
+	 * @override
+	 */
+	_syncPartState(partId, newElement, priorElement, state) {
+		super._syncPartState(partId, newElement, priorElement, state);
+		const box = ".bastionland-npc-notes > prose-mirror, .bastionland-npc-notes > .editor-content";
+		const height = priorElement.querySelector(box)?.style.height;
+		const target = newElement.querySelector(box);
+		if (height && target) target.style.height = height;
+	}
+
 	/** The uuid of the Knight this belonged to when the sheet was last drawn. */
 	#ownerUuid = null;
 
@@ -101,15 +112,9 @@ export class NpcSheet extends BastionlandActorSheet {
 	}
 
 	/** @override */
-	_chooseFromBook() {
-		openNpcChooser(this.actor, { fresh: true });
-	}
-
-	/** @override */
 	_headerButtons() {
 		if (!this.isEditable) return [];
 		return [
-			{ action: "chooseNpc", icon: "fa-solid fa-book-open", label: t("npc.chooseNpc") },
 			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") }
 		];
 	}
@@ -117,11 +122,6 @@ export class NpcSheet extends BastionlandActorSheet {
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
-
-	/** @this {NpcSheet} */
-	static #onChooseNpc() {
-		return openNpcChooser(this.actor);
-	}
 
 	/** @this {NpcSheet} */
 	static #onPasteStatBlock() {
