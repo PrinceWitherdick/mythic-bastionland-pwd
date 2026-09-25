@@ -4282,7 +4282,8 @@ button.bastionland-dice:focus-visible {
 	font-size: 0.9rem;
 }
 
-.bastionland-travel-rules button.bastionland-travel-rules__page {
+:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__page {
+	flex: none;
 	width: auto;
 	min-height: 0;
 	height: auto;
@@ -4292,7 +4293,7 @@ button.bastionland-dice:focus-visible {
 	text-decoration: underline dotted;
 }
 
-.bastionland-travel-rules button.bastionland-travel-rules__page:hover {
+:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__page:hover {
 	color: var(--bastionland-blood);
 }
 
@@ -4385,7 +4386,7 @@ button.bastionland-dice:focus-visible {
 	white-space: nowrap;
 }
 
-.bastionland-travel-rules button.bastionland-travel-rules__roll {
+:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__roll {
 	width: 100%;
 	min-height: 0;
 	height: auto;
@@ -4411,8 +4412,26 @@ button.bastionland-dice:focus-visible {
 
 /*
  * Creating a Realm, in Travel and Exploration's place while a Realm is drawn
- * by hand. It shares their sheet; its groups are headings, not folds.
+ * by hand. It shares their sheet, and its groups are pages on a rail down
+ * its left (styles/chat.css, with the dialogs' rail). It's a window, opened over the middle of the map and moved from there, so
+ * the sheet fills the window rather than drawing an edge of its own. The
+ * palette and the page stay at its head as the rules scroll under them.
  */
+.bastionland-realm-drawing .window-content {
+	overflow: hidden;
+}
+
+.bastionland-realm-drawing .bastionland-travel-rules__sheet {
+	flex: 1;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.bastionland-realm-drawing__head {
+	padding: 0.5rem 0.7rem 0.4rem;
+}
+
 .bastionland-realm-drawing__intro {
 	margin: 0.4rem 0 0.2rem;
 	font-style: italic;
@@ -4445,10 +4464,11 @@ button.bastionland-dice:focus-visible {
 	margin-bottom: 0.2rem;
 }
 
-/* The one way into the palette, across the head of the rules. */
-button.bastionland-realm-drawing__palette {
-	width: 100%;
-	margin-bottom: 0.3rem;
+/* The one way into the palette, across the head of the rules beside the page. */
+.bastionland-realm-drawing__head button.bastionland-realm-drawing__palette {
+	flex: 1;
+	width: auto;
+	margin: 0;
 }
 
 /* The counts run along the line and wrap, so six kinds of Landmark take a
@@ -4478,7 +4498,212 @@ button.bastionland-realm-drawing__palette {
 	text-align: center;
 }
 
-.bastionland-travel-rules button.bastionland-travel-rules__roll.is-active {
+/* The pictures a traced Realm is drawn by, at the head of the drawing rules. */
+.bastionland-realm-drawing__maps {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0.4rem 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-realm-drawing__map {
+	display: grid;
+	grid-template-columns: 3.4rem 1fr;
+	grid-template-areas: "picture name" "picture line";
+	align-items: center;
+	column-gap: 0.5rem;
+	row-gap: 0.2rem;
+}
+
+.bastionland-realm-drawing__map img {
+	grid-area: picture;
+	width: 3.4rem;
+	height: 3.4rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: cover;
+}
+
+.bastionland-realm-drawing__map-name {
+	grid-area: name;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-realm-drawing__map button {
+	grid-area: line;
+}
+
+/* How strongly Foundry's own hex lines are drawn over the picture. */
+.bastionland-realm-drawing__lines {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.4rem;
+}
+
+.bastionland-realm-drawing__lines input[type="range"] {
+	flex: 1;
+}
+
+/* Choosing the pictures a Realm is traced from, in the New Realm dialog and
+   in one of its own. A picture chosen is shown at once, since a photograph
+   from a phone is easily the wrong one. Stacked: the label on a row of its
+   own, then the path and its buttons, then the picture, then the hint. */
+.bastionland-realm-picture__role.form-group {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.3rem;
+}
+
+.bastionland-realm-picture__role > label {
+	line-height: normal;
+}
+
+.bastionland-realm-picture__role > .form-fields {
+	display: flex;
+	gap: 0.3rem;
+}
+
+.bastionland-realm-picture__role > .form-fields input {
+	flex: 1;
+	min-width: 0;
+}
+
+.bastionland-realm-picture__role > .form-fields button {
+	flex: none;
+}
+
+.bastionland-realm-picture__role > .hint {
+	margin: 0;
+}
+
+.bastionland-realm-picture__shown {
+	margin: 0.3rem 0 0;
+	text-align: center;
+}
+
+.bastionland-realm-picture__shown img {
+	max-width: 100%;
+	max-height: 11rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: contain;
+}
+
+/* The picture is its own button, opening it larger: none of a button's look, just the zoom cursor. */
+.bastionland-realm-picture__enlarge {
+	display: inline-block;
+	width: auto;
+	height: auto;
+	max-width: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	line-height: 0;
+	cursor: zoom-in;
+}
+
+.bastionland-realm-picture__enlarge:hover img,
+.bastionland-realm-picture__enlarge:focus-visible img {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-realm-picture__role + .bastionland-realm-picture__role {
+	margin-top: 0.6rem;
+}
+
+/* How the hexes on a GM's own map sit: four drawings of a map's top-left
+   corner side by side, the map's top and left edges drawn soft behind the
+   hexes, and the GM picks the one that looks like theirs. The book's Realm
+   Sheet is named under its own. The radio button itself is hidden behind the
+   card. */
+.bastionland-realm-layout {
+	margin: 0.6rem 0 0;
+	padding: 0.3rem 0.6rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-realm-layout > legend {
+	padding: 0 0.3rem;
+}
+
+.bastionland-realm-layout > .hint {
+	margin: 0 0 0.4rem;
+}
+
+.bastionland-realm-layout__choices {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
+.bastionland-realm-layout__choice {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.5rem 0.4rem;
+	border: 1.5px solid transparent;
+	border-radius: 4px;
+	background: rgb(255 255 255 / 0.35);
+	line-height: 1.2;
+	text-align: center;
+	cursor: pointer;
+}
+
+.bastionland-realm-layout__choice:hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-realm-layout__choice:has(input:checked) {
+	border-color: var(--bastionland-ink);
+}
+
+/* A keyboard's focus is ringed on the card, as on a button; a click leaves nothing. */
+.bastionland-realm-layout__choice:has(input:focus-visible) {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 2px;
+}
+
+.bastionland-realm-layout__choice input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.bastionland-realm-layout__diagram {
+	width: 100%;
+	max-width: 6.5rem;
+	height: 4.5rem;
+}
+
+.bastionland-realm-layout__diagram polygon {
+	fill: none;
+	stroke: var(--bastionland-ink);
+	stroke-width: 1.4;
+	stroke-linejoin: round;
+}
+
+.bastionland-realm-layout__edge {
+	fill: none;
+	stroke: var(--bastionland-ink-soft);
+	stroke-width: 3;
+	stroke-opacity: 0.45;
+	stroke-linecap: square;
+}
+
+.bastionland-realm-layout__caption {
+	color: var(--bastionland-ink-soft);
+}
+
+:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__roll.is-active {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 }
@@ -4516,6 +4741,82 @@ button.bastionland-company-button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
 }
+
+/* While a Realm's picture is slid into place: what to do and the buttons that
+   end it, held at the foot of the screen by map-alignment.js. The buttons that
+   stand under the map would sit behind it, so they step aside until it's done. */
+.bastionland-map-slide {
+	position: fixed;
+	z-index: calc(var(--z-index-canvas, 0) + 2);
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	max-width: 46rem;
+	padding: 0.5rem 0.8rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 6px;
+	background: var(--bastionland-paper);
+	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	color: var(--bastionland-ink);
+	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
+	transform-origin: top left;
+}
+
+.bastionland-map-slide__hint {
+	flex: 1 1 auto;
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.3;
+}
+
+.bastionland-map-slide__buttons {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-map-slide button {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	padding: 0.25rem 0.8rem;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 15px;
+	white-space: nowrap;
+	transition: none;
+}
+
+.bastionland-map-slide button:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-map-slide button:is(:hover, :focus-visible, [aria-pressed="true"]),
+.bastionland-map-slide button[data-slide="keep"]:not(:disabled) {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-map-slide button:disabled {
+	opacity: 0.45;
+}
+
+body.bastionland-map-sliding :is(button.bastionland-realm-drawing__finish, button.bastionland-company-button) {
+	display: none;
+}
+
+/* The pointer says what a drag will do: move the picture, or size it by the handle under it. */
+body[data-map-slide="move"] #board { cursor: move !important; }
+body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
+body[data-map-slide="nwse-resize"] #board { cursor: nwse-resize !important; }
+body[data-map-slide="nesw-resize"] #board { cursor: nesw-resize !important; }
+body[data-map-slide="ns-resize"] #board { cursor: ns-resize !important; }
+body[data-map-slide="ew-resize"] #board { cursor: ew-resize !important; }
 
 /* The palette holds every terrain, the river, Barriers and each kind of
    Landmark, so the window scrolls rather than growing past the foot of the screen. */
@@ -4707,6 +5008,19 @@ button.bastionland-company-button:focus-visible {
 
 .bastionland-realm-panel__swatch.is-active {
 	outline: 2px solid var(--bastionland-verdigris);
+}
+
+/* On a Realm traced over a picture the map is tinted rather than drawn, each
+   terrain in its own colour. The swatch wears the same colour down its foot, so
+   a glance at the palette says which tint on the map is which. */
+.bastionland-realm-panel__swatch--marked::after {
+	position: absolute;
+	right: 0.25rem;
+	bottom: 0;
+	left: 0.25rem;
+	height: 3px;
+	background: var(--bastionland-terrain-mark);
+	content: "";
 }
 
 /* How many of that Holding or Landmark the Realm has, read at a glance from the

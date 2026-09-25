@@ -13,6 +13,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures } from "./realm-skins.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
+import { MAP_ROLES, hidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
 import {
 	BOOK_LAYOUT,
@@ -27,8 +28,11 @@ import {
 	parseHexKey
 } from "./realm-geometry.js";
 
-/** Draw order among the Realm's Tiles. Barrier lines are Drawings, which Foundry always draws above Tiles. */
-export const REALM_SORT = Object.freeze({ terrain: 0, shore: 50, river: 100, feature: 200, seat: 300 });
+/**
+ * Draw order among the Realm's Tiles. Barrier lines are Drawings, which Foundry always draws above Tiles.
+ * A picture of a Realm drawn on paper lies under everything, since it is the map itself.
+ */
+export const REALM_SORT = Object.freeze({ map: -100, terrain: 0, shore: 50, river: 100, feature: 200, seat: 300 });
 
 /** How much of a hex each icon fills: its height, and for terrain its width as well. */
 export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.85, myth: 0.5, seat: 0.3 });
@@ -138,7 +142,8 @@ function tileData({ centre, width, height, texture, sort, locked, hidden = false
 
 /**
  * The Scene flag a Realm Scene carries. A Realm set up other than the book's
- * way keeps its setup, so a reroll sets it up the same way.
+ * way keeps its setup, so a reroll sets it up the same way, and one traced over
+ * a picture keeps which pictures they are and where they lie.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  */
@@ -151,7 +156,8 @@ export const realmSceneFlag = (realm, g) => ({
 	// Only a Realm laid out other than the book's way says so, so Realms made before there was a choice read the same.
 	...(g.layout && g.layout !== BOOK_LAYOUT ? { layout: g.layout } : {}),
 	rivers: realm.rivers.map((course) => course.map(hexKey)),
-	...(realm.setup ? { setup: realm.setup } : {})
+	...(realm.setup ? { setup: realm.setup } : {}),
+	...(realm.picture ? { picture: realm.picture } : {})
 });
 
 /** Where older Scenes kept their rivers, before every river was kept alike. */
@@ -163,9 +169,9 @@ const canonical = (value) => JSON.stringify(value ?? null, (_key, inner) => (inn
 	: inner));
 
 /**
- * What a Realm Scene's flag needs to hold a Realm: its rivers, seed and setup,
- * which no document carries. Scenes still keeping their rivers the old way
- * lose those fields, since `rivers` now holds them all.
+ * What a Realm Scene's flag needs to hold a Realm: its rivers, seed, setup and
+ * pictures, which no document carries. Scenes still keeping their rivers the
+ * old way lose those fields, since `rivers` now holds them all.
  * @param {object|null} current The Scene's flag as it is.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
@@ -225,6 +231,30 @@ export function realmDocuments(realm, g, textures) {
 	const works = textures.lake ? lakeWorks(g, courses, realm.terrain) : null;
 	const openWater = new Set((works?.water ?? []).map(hexKey));
 
+	// A Realm traced over a picture is drawn by the picture: the system's own
+	// ground and water are still there, still saying what each hex holds, but
+	// drawn at nothing so the drawing underneath shows through. The Holdings,
+	// Landmarks and Myths are drawn over it as on any Realm.
+	const traced = hidesTerrain(realm);
+	const showing = (hidden) => (hidden ? 0 : 1);
+
+	// The picture lies under the whole map. It isn't locked, so a GM can nudge
+	// it into place with Foundry's own handles when two clicks got it nearly right.
+	for (const { role, src, x, y, width, height } of realmPictures(realm, g)) {
+		tiles.push({
+			match: `map:${role}`,
+			data: tileData({
+				centre: { x, y },
+				width,
+				height,
+				texture: { src, fit: "fill" },
+				sort: REALM_SORT.map + MAP_ROLES.indexOf(role),
+				locked: false,
+				flag: { kind: "map", role }
+			})
+		});
+	}
+
 	// A terrain picture of the GM's own may sit inside its hex. Some give way to a Holding there, as on the Blank Realm sheet.
 	const holdingHexes = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	for (const hex of allHexes(g)) {
@@ -243,7 +273,7 @@ export function realmDocuments(realm, g, textures) {
 				centre: hexCentre(g, hex),
 				...shape,
 				texture: { src, fit: picture.icon ? "contain" : "fill" },
-				alpha: picture.givesWay && holdingHexes.has(key) ? 0 : 1,
+				alpha: showing(traced || (picture.givesWay && holdingHexes.has(key))),
 				sort: REALM_SORT.terrain,
 				locked: true,
 				flag: { kind: "terrain", terrain }
@@ -252,7 +282,7 @@ export function realmDocuments(realm, g, textures) {
 	}
 
 	const hexPiece = (hex, texture, { sort, rotation, flag }) => tileData({
-		centre: hexCentre(g, hex), ...pieceSize(g), texture, sort, locked: true, rotation: pieceRotation(g, rotation), flag
+		centre: hexCentre(g, hex), ...pieceSize(g), texture, sort, locked: true, rotation: pieceRotation(g, rotation), flag, alpha: showing(traced)
 	});
 	for (const piece of pieces) {
 		tiles.push({
@@ -406,6 +436,8 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 	const rivers = sceneFlag.rivers ?? [sceneFlag.river ?? [], ...(sceneFlag.branches ?? [])];
 	realm.rivers = rivers.map((course) => course.map(parseHexKey).filter((hex) => inRealm(g, hex))).filter((course) => course.length);
 	const problems = [];
+	/** Where each picture's Tile stands, which is where that picture lies. */
+	const places = {};
 
 	for (const tile of tiles) {
 		const flag = realmFlag(tile);
@@ -414,6 +446,9 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 		const where = hex ? hexKey(hex) : `${tile.x},${tile.y}`;
 
 		switch (flag.kind) {
+			case "map":
+				if (MAP_ROLES.includes(flag.role)) places[flag.role] = { x: tile.x, y: tile.y, width: tile.width, height: tile.height };
+				break;
 			case "terrain": {
 				if (!hex) break;
 				const index = hexIndex(g, hex);
@@ -438,6 +473,8 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 		}
 	}
 	realm.myths.sort((a, b) => a.number - b.number);
+	const picture = normaliseRealmPicture(withMapPlaces(sceneFlag.picture, places));
+	if (picture) realm.picture = picture;
 
 	const edges = new Set();
 	for (const drawing of drawings) {
@@ -461,6 +498,9 @@ function existingMatch(g, kind, data, replacing) {
 	if (!flag) return null;
 	if (kind === "drawing") return flag.kind === "barrier" ? `edge:${flag.edge}` : null;
 	switch (flag.kind) {
+		// Claimed whatever role it says it plays, so a picture the Realm no longer
+		// carries is cleared away rather than left lying under the map for ever.
+		case "map": return `map:${flag.role}`;
 		case "terrain": {
 			const hex = hexAt(g, data);
 			return hex ? `terrain:${hexKey(hex)}` : null;

@@ -10,6 +10,7 @@ import { randomSeed } from "../rules/random.js";
 import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, validateRealm } from "../rules/realm.js";
 import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
 import {
+	GRID_ALPHA,
 	LEVEL_ID,
 	hiddenByHand,
 	planChanges,
@@ -21,14 +22,18 @@ import {
 	realmTextures
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
+import { fittedMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
+import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
 import { generateRealm } from "../rules/realm-generator.js";
 import { SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
-import { realmGeometry } from "../rules/realm-geometry.js";
+import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
+import { relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { companyTokenHex, placeCompanyAtStart } from "./company.js";
+import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
+import { wireDialogRail } from "../apps/dialog-rail.js";
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
 
@@ -248,6 +253,21 @@ async function paintRealmScene(scene, colours, extra = {}) {
 	// One write, so every client redraws the Scene once.
 	await scene.update(changes);
 	return true;
+}
+
+/**
+ * How strongly Foundry's own hex lines are drawn over a Realm. A Realm traced
+ * from a map drawn on paper already has hexes printed on it: the GM wants the
+ * system's brighter while lining the picture up and fainter once it fits.
+ * @param {Scene} scene
+ * @param {number} alpha 0 to 1.
+ * @returns {Promise<void>}
+ */
+export async function setRealmGridAlpha(scene, alpha) {
+	if (!game.user.isGM || !isRealmScene(scene)) return;
+	const wanted = Math.min(1, Math.max(0, Number(alpha) || 0));
+	if (Math.abs((scene._source.grid?.alpha ?? GRID_ALPHA) - wanted) < 0.005) return;
+	await scene.update({ "grid.alpha": wanted });
 }
 
 /**
@@ -532,43 +552,69 @@ export function addNewRealmButton(element) {
 	});
 }
 
+/** The ways a new Realm can be made. */
+const REALM_MAKINGS = Object.freeze(["roll", "draw", "picture"]);
+
 /**
- * Ask whether the new Realm is rolled or drawn by hand.
- * @returns {Promise<"roll"|"draw"|null>}
+ * Ask whether the new Realm is rolled, drawn by hand, or traced from a map the
+ * GM has already drawn on paper.
+ * @returns {Promise<"roll"|"draw"|"picture"|null>}
  */
 async function chooseRealmMaking() {
 	const choice = await foundry.applications.api.DialogV2.wait({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog"],
+		classes: ["bastionland-dialog", "realm-making-dialog"],
+		// Left to size itself, the question's one long line stretches the window across the screen.
+		position: { width: 560 },
 		content: `<p>${t("realm.dialog.chooseMaking")}</p>`,
 		buttons: [
 			{ action: "roll", label: t("realm.dialog.making.roll"), icon: "fa-solid fa-dice", default: true },
-			{ action: "draw", label: t("realm.dialog.making.draw"), icon: "fa-solid fa-paintbrush" }
+			{ action: "draw", label: t("realm.dialog.making.draw"), icon: "fa-solid fa-paintbrush" },
+			{ action: "picture", label: t("realm.dialog.making.picture"), icon: "fa-solid fa-image" }
 		],
 		rejectClose: false
 	});
-	return choice === "roll" || choice === "draw" ? choice : null;
+	return REALM_MAKINGS.includes(choice) ? choice : null;
 }
 
 /**
- * Ask whether the Realm is rolled or drawn by hand, then for a name and a
- * seed, and how the Realm is set up, and make it on a new Scene. A Realm
- * drawn by hand rolls nothing: its Scene starts blank.
+ * Ask how the Realm is made — rolled, drawn by hand, or traced from a map the
+ * GM has already drawn on paper — then for a name and a seed, and how the
+ * Realm is set up, and make it on a new Scene. A Realm that isn't rolled rolls
+ * nothing: its Scene starts blank, and a traced one starts with the picture
+ * under it and every hex still to be marked.
  * @returns {Promise<Scene|null>}
  */
 export async function newRealm() {
 	if (!game.user.isGM) return null;
 	const making = await chooseRealmMaking();
 	if (!making) return null;
-	const draw = making === "draw";
+	const traced = making === "picture";
+	// A traced Realm is a drawn one whose ground is the picture: nothing is rolled, and it's finished the same way.
+	const draw = making === "draw" || traced;
 	const defaultName = t("realm.dialog.defaultName");
 	const [firstStart] = COMPANY_STARTS;
+	const upload = foundry.utils.randomID();
+	// A page to each part of the Realm on the rail down the dialog's left side.
+	const pages = [
+		{ key: "realm", icon: "fa-map", label: t("realm.dialog.pages.realm") },
+		...(traced ? [{ key: "picture", icon: "fa-image", label: t("realm.picture.title") }] : []),
+		draw
+			? { key: "setup", icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") }
+			: { key: "setup", icon: "fa-sliders", label: t("realm.setup.title") },
+		{ key: "company", icon: "fa-flag", label: t("company.title") }
+	];
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
 		draw,
+		traced,
+		pages,
+		firstPage: pages[0],
+		making: t(`realm.dialog.making.${making}`),
 		name: defaultName,
 		seed: randomSeed(),
 		// Drawn by hand, only the map's size is left to set.
 		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
+		...(traced ? mapPictureContext() : {}),
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
@@ -576,19 +622,34 @@ export async function newRealm() {
 
 	const data = await foundry.applications.api.DialogV2.input({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog"],
-		position: { width: 460 },
+		classes: ["bastionland-dialog", "bastionland-rail-dialog-window"],
+		// Wide enough for the rail and the Custom Realm's rows beside it.
+		position: { width: 660 },
 		content,
-		ok: draw
-			? { label: t("realm.dialog.createBlank"), icon: "fa-solid fa-paintbrush" }
-			: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
+		ok: traced
+			? { label: t("realm.dialog.createTraced"), icon: "fa-solid fa-image" }
+			: draw
+				? { label: t("realm.dialog.createBlank"), icon: "fa-solid fa-paintbrush" }
+				: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
 		rejectClose: false,
 		render: (_event, dialog) => {
+			wireDialogRail(dialog.element);
 			wireSetupFields(dialog.element);
 			wireCompanyFields(dialog.element);
+			if (traced) {
+				wireMapPictureFields(dialog.element, { name: upload });
+				holdForMapPicture(dialog.element);
+			}
 		}
 	});
 	if (!data) return null;
+
+	const picture = traced ? readMapPictures(data) : null;
+	const layout = traced ? readMapLayout(data) : BOOK_LAYOUT;
+	if (traced && !picture.players) {
+		ui.notifications.warn(t("realm.picture.needed"));
+		return null;
+	}
 
 	const setup = foundry.utils.expandObject(data).setup ?? {};
 	if (draw) setup.roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, false]));
@@ -598,6 +659,8 @@ export async function newRealm() {
 		seed: String(data.seed ?? "").trim() || randomSeed(),
 		setup: rules,
 		drawing: draw,
+		picture,
+		layout,
 		company: data.placeCompany ? {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
 			img: await resolveCompanyPicture(data)
@@ -607,6 +670,25 @@ export async function newRealm() {
 	});
 	if (scene && draw) await openRealmPainter(scene);
 	return scene;
+}
+
+/**
+ * A traced Realm can't be made without the players' picture, and that field is
+ * on a page of the rail the GM may never have opened. Create stops on that page
+ * instead, rather than closing the dialog and losing all that was filled in.
+ * @param {HTMLElement} element The New Realm dialog.
+ */
+function holdForMapPicture(element) {
+	// Caught on the way down, before the dialog's own submit hears of it.
+	element.addEventListener("click", (event) => {
+		if (!event.target.closest?.('button[data-action="ok"]')) return;
+		if (element.querySelector('[name="picture.players"]')?.value.trim()) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		ui.notifications.warn(t("realm.picture.needed"));
+		element.querySelector('[data-rail-tab="picture"]')?.click();
+		element.querySelector('[name="picture.players"]')?.focus();
+	}, { capture: true });
 }
 
 /**
@@ -641,14 +723,19 @@ function wireCompanyFields(element) {
  * @param {string} options.seed
  * @param {import("../rules/realm-setup.js").RealmSetup|null} [options.setup] Omit for the book's.
  * @param {boolean} [options.drawing] Drawn by hand: the Scene is marked as still being drawn, and its key waits until it's finished.
+ * @param {object|null} [options.picture] The pictures a Realm traced from a map drawn on paper is drawn by.
+ * @param {string} [options.layout] How its hexes are laid out, one of REALM_LAYOUTS: the book's unless a map of the GM's own says otherwise.
  * @param {{start: string, img: string}|null} [options.company] Where the Company begins, or null to leave it off the map.
  * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, company = null, review = false }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
-	const geometry = realmGeometry({ cols, rows });
+	const geometry = realmGeometry({ cols, rows, layout });
 	const realm = generateRealm({ seed, setup, geometry });
+	// The picture lies as large as fits on the map, unstretched, until the GM lines it up against the hexes.
+	const pictures = await fitRealmPicture(normaliseRealmPicture(picture), geometry);
+	if (pictures) realm.picture = pictures;
 	const look = getRealmLook();
 	const textures = realmTextures(look);
 	const data = foundry.utils.mergeObject(
@@ -682,6 +769,14 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 		await closeMyths?.();
 	}
 
+	// A picture only lies roughly in place until it's lined up, so the GM slides it
+	// into place while the Realm is empty and there is nothing in the way.
+	// Waited on, so the Company isn't handed over to take the same clicks.
+	if (pictures) {
+		const { startMapAlignment } = await import("../canvas/map-alignment.js");
+		await startMapAlignment(scene, { role: "players" });
+	}
+
 	await refreshThumbnail(scene);
 
 	// A Courtier's Company begins at the Seat of Power; for the other Starts the
@@ -695,6 +790,76 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	// Drawn by hand, the Realm has nothing hidden in it yet.
 	if (!drawing) await postRealmKey(scene);
 	return scene;
+}
+
+/**
+ * A Realm's pictures, each laid as large as fits on the map without being
+ * stretched, in the middle of it, ready to be lined up.
+ * @param {object|null} picture The pictures as chosen, each with a `src`.
+ * @param {object} g The Realm's geometry.
+ * @returns {Promise<object|null>}
+ */
+async function fitRealmPicture(picture, g) {
+	if (!picture) return null;
+	const fitted = {};
+	for (const [role, map] of Object.entries(picture)) fitted[role] = { src: map.src, ...fittedMapRect(g, await measurePicture(map.src)) };
+	return normaliseRealmPicture(fitted);
+}
+
+/**
+ * Lay a Realm's hexes out another way (REALM_LAYOUTS), to match a map of the
+ * GM's own: flat tops or pointed, with either column or row set off. The
+ * Scene takes the Foundry grid of that layout and the size it needs. Every hex
+ * keeps what it holds and its Tiles move to where that hex now lies; the
+ * Company stays in its hex; a river or Barrier is kept where its hexes still
+ * meet. A picture lined up against the old hexes is laid out ready to line up
+ * again, as a new one is. GMs only.
+ * @param {Scene} scene
+ * @param {string} layout One of REALM_LAYOUTS.
+ * @returns {Promise<{relaid: boolean, trimmed: boolean}>} Whether the hexes changed, and whether any river or
+ *   Barrier was cut back for no longer joining up.
+ */
+export async function setRealmLayout(scene, layout) {
+	const none = { relaid: false, trimmed: false };
+	if (!game.user.isGM || !isRealmScene(scene)) return none;
+	const from = sceneGeometry(scene);
+	const to = realmGeometry({ size: from.size, cols: from.cols, rows: from.rows, layout });
+	if (to.layout === from.layout) return none;
+	const company = companyTokenHex(scene);
+
+	const trimmed = await queueRealmWrite(async () => {
+		const { realm } = getRealm(scene);
+		const joined = relayRealm(realm, to);
+		let next = joined;
+		const picture = await fitRealmPicture(next.picture ?? null, to);
+		if (picture) next = { ...next, picture };
+
+		// The layout goes into the Scene's flag with its grid and size in one write,
+		// so a Realm read from here on is read the new way, even by a sync the redraw sets off.
+		const flag = `flags.${SYSTEM_ID}.${REALM_FLAG}.layout`;
+		await scene.update({
+			"grid.type": to.gridType,
+			width: to.width,
+			height: to.height,
+			[flag]: to.layout === BOOK_LAYOUT ? new foundry.data.operators.ForcedDeletion() : to.layout
+		});
+		// Each of the Realm's Tiles moves with its hex, so the sync that follows finds each where the new layout looks for it.
+		const moves = scene.tiles.contents.flatMap((tile) => {
+			const kind = realmFlag(tile)?.kind;
+			const hex = kind && kind !== "map" ? hexAt(from, tile._source) : null;
+			if (!hex) return [];
+			const was = hexCentre(from, hex);
+			const now = hexCentre(to, hex);
+			return [{ _id: tile.id, x: Math.round(tile._source.x + now.x - was.x), y: Math.round(tile._source.y + now.y - was.y) }];
+		});
+		if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+		await writeRealm(scene, next, to, currentRealmTextures(scene));
+		// Undo would lay pieces down where the old hexes were.
+		forgetRealmHistory(scene.id);
+		return joined !== realm;
+	});
+	await restandCompany(scene, company);
+	return { relaid: true, trimmed };
 }
 
 /**

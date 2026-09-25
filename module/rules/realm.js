@@ -39,7 +39,7 @@ export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
-export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "reroll", "appearance"]);
+export const REALM_TOOLS = Object.freeze(["inspect", "terrain", "wilderness", "reroll", "appearance", "picture"]);
 
 /**
  * What the paint tool lays, all picked from its one palette: a terrain, the
@@ -58,11 +58,12 @@ export const REALM_TOOL_ICONS = Object.freeze({
 	landmark: "fa-solid fa-monument",
 	wilderness: "fa-solid fa-tree",
 	reroll: "fa-solid fa-dice",
-	appearance: "fa-solid fa-palette"
+	appearance: "fa-solid fa-palette",
+	picture: "fa-solid fa-image"
 });
 
 /** The Realm tools that act at once rather than waiting for a click on the map. */
-export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance"]);
+export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance", "picture"]);
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([
@@ -92,6 +93,8 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
  * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
  * @property {import("./realm-setup.js").RealmSetup} [setup] How it was set up, where that wasn't the book's way.
+ * @property {import("./realm-map.js").RealmPicture} [picture] The pictures a Realm traced from a map drawn on paper
+ *   is drawn by, in place of the system's own ink.
  */
 
 /**

@@ -2492,12 +2492,17 @@
       "hex": "Column {col}, Row {row}",
       "dialog": {
         "title": "New Realm",
-        "chooseMaking": "Roll a Realm the way Creating a Realm describes (p14), or start from a blank map and draw it yourself?",
+        "chooseMaking": "Roll a Realm the way Creating a Realm describes (p14), start from a blank map and draw it yourself, or bring in a map you have already drawn on paper?",
         "making": {
           "roll": "Roll it",
-          "draw": "Draw it myself"
+          "draw": "Draw it myself",
+          "picture": "Import a map I drew"
+        },
+        "pages": {
+          "realm": "The Realm"
         },
         "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Hex panel. Nothing is rolled.",
+        "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. You line the picture up in two clicks, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
         "defaultName": "The Realm",
@@ -2505,7 +2510,59 @@
         "seedHint": "The same seed, set up the same way, rolls the same Realm.",
         "secretHint": "Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until you reveal them.",
         "create": "Roll the Realm",
-        "createBlank": "Make the blank Realm"
+        "createBlank": "Make the blank Realm",
+        "createTraced": "Use this map"
+      },
+      "picture": {
+        "title": "Import map",
+        "intro": "A photograph or scan of a Realm drawn on paper, laid under the hexes in place of the system's own drawings.",
+        "roles": {
+          "players": {
+            "label": "The players' map",
+            "hint": "Everybody at the table sees this map, so upload one with no Myths, Landmarks or Barriers drawn on it. Place those afterwards with the Realm tools, and they stay hidden until you reveal them."
+          }
+        },
+        "fromComputer": "From my computer",
+        "onServer": "Already on the server",
+        "enlarge": "Open the map larger",
+        "change": "Change the pictures",
+        "gridLines": "Hex lines",
+        "gridLinesHint": "How strongly the system's own hex lines are drawn over your picture. Turn them up while you line the map up, and down once it fits.",
+        "use": "Use this map",
+        "needed": "A Realm traced from a map needs a players' map to trace.",
+        "uploadFailed": "That picture couldn't be saved. Check that you're allowed to upload files.",
+        "cleared": "The pictures are gone; the Realm is drawn in its own ink again.",
+        "relaid": "The Realm's hexes now sit the way your map's do.",
+        "relaidTrimmed": "The Realm's hexes now sit the way your map's do. Rivers and Barriers whose hexes no longer meet were cut back.",
+        "layouts": {
+          "legend": "Which of these looks like your map?",
+          "hint": "Look at the hexes in the top left corner of your map, and pick the drawing that matches them.",
+          "book": "The book's Realm Sheet",
+          "evenColumns": "Flat-topped hexes. The corner hex sits higher than the one beside it.",
+          "oddColumns": "Flat-topped hexes. The corner hex sits lower than the one beside it.",
+          "evenRows": "Pointed-topped hexes. The corner hex sticks out further left than the one under it.",
+          "oddRows": "Pointed-topped hexes. The corner hex is set in from the one under it."
+        },
+        "lineUpHint": "Once the picture is in, you slide it into place under the hex lines: drag the map to move it, and drag its corners and edges to size it.",
+        "lineUp": {
+          "first": "Click the centre of {hex} on your picture, the first hex of the map, at its top left. Escape goes back to sliding.",
+          "second": "Now click the centre of {hex}, the last hex of the map, at its bottom right.",
+          "tooClose": "Those two were too close together to line the map up. Click the two far corners of it.",
+          "done": "The map is lined up. Pick a terrain and mark the hexes that hold it.",
+          "stopped": "The picture is back where it was. Line it up again from the Realm tools whenever you like.",
+          "again": "Line it up again",
+          "missing": "There's no picture under this Realm to line up."
+        },
+        "slide": {
+          "hint": "Drag the map to slide your picture under the hex lines. Drag a corner to size it, or an edge to stretch it one way. Arrow keys nudge it (Shift for more).",
+          "clicks": "Click two hexes",
+          "clicksHint": "For a picture far out: click the centre of the map's first hex on it, then its last, and it's fitted roughly. Slide it the rest of the way.",
+          "noClicks": "Back to sliding",
+          "back": "Put it back",
+          "backHint": "Put the picture back where it was (Escape).",
+          "keep": "Keep it here",
+          "keepHint": "Keep the picture where it is now, for everyone (Enter)."
+        }
       },
       "setup": {
         "title": "Custom Realm",
@@ -2566,7 +2623,8 @@
         "terrain": "Paint the Realm",
         "wilderness": "Wilderness Roll",
         "reroll": "Reroll the Realm",
-        "appearance": "Realm Appearance"
+        "appearance": "Realm Appearance",
+        "picture": "Import map"
       },
       "brushes": {
         "terrain": "Paint terrain",

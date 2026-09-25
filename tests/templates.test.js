@@ -11,6 +11,7 @@ import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
 import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_BRUSHES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import { MAP_ROLES } from "../module/rules/realm-map.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
 import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
@@ -197,6 +198,9 @@ describe("localization", () => {
 		...["map", ...SETUP_PARTS].map((part) => `realm.setup.parts.${part}`),
 		...["cols", "rows", "cluster", "lakes"].map((field) => `realm.setup.fields.${field}`),
 		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),
+		...partsOf("realm.picture.roles", MAP_ROLES, ["label", "hint"]),
+		...["first", "second"].map((step) => `realm.picture.lineUp.${step}`),
+		...["clicks", "noClicks"].map((label) => `realm.picture.slide.${label}`),
 		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),
 		...REALM_PALETTES.map(({ key }) => `realm.look.palettes.${key}`),
 		...RIVER_SHAPES.map((shape) => `realm.look.rivers.${shape}`),

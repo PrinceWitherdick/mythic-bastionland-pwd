@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DRAWING_RULES, bookDrawingGroups, drawingShortfalls, drawingTally, finishPlacement, sheetDrawingGroups } from "../../module/rules/realm-drawing.js";
+import { DRAWING_RULES, bookDrawingGroups, drawingShortfalls, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../../module/rules/realm-drawing.js";
 import { LANDMARK_TYPES, REALM_BRUSHES, REALM_TOOLS, emptyRealm } from "../../module/rules/realm.js";
 
 const hex = (col, row) => ({ col, row });
@@ -136,5 +136,37 @@ describe("finishPlacement", () => {
 
 	it("grows with the interface scale", () => {
 		expect(finishPlacement(map, { width: 200, height: 40, scale: 1.5 })).toEqual({ left: 350, top: 668 });
+	});
+
+	it("stands to the right of Place the Company while that button is over the map", () => {
+		const beside = { left: 410, top: 10, width: 180 };
+		expect(finishPlacement(map, { width: 200, height: 40, beside })).toEqual({ left: 602, top: 10 });
+		expect(finishPlacement(map, { width: 200, height: 40, scale: 1.5, beside: { ...beside, width: 270 } })).toEqual({ left: 698, top: 10 });
+	});
+});
+
+describe("drawingWindowPlacement", () => {
+	const room = { left: 0, top: 0, right: 1600, bottom: 1000 };
+	const size = { width: 440, height: 400 };
+
+	it("opens over the middle of the map", () => {
+		const map = { left: 100, right: 900, top: 50, bottom: 650 };
+		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 280, top: 150, width: 440, height: 400 });
+	});
+
+	it("centres on the part of the map in view, and stays inside the room", () => {
+		const map = { left: 1200, right: 3000, top: 100, bottom: 900 };
+		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 1148, top: 300, width: 440, height: 400 });
+	});
+
+	it("takes the middle of the room with no map in view", () => {
+		const away = { left: -2000, right: -1000, top: 100, bottom: 900 };
+		expect(drawingWindowPlacement(room, away, size)).toEqual({ left: 580, top: 300, width: 440, height: 400 });
+		expect(drawingWindowPlacement(room, null, size)).toEqual({ left: 580, top: 300, width: 440, height: 400 });
+	});
+
+	it("shrinks to fit a room smaller than it", () => {
+		const small = { left: 0, top: 0, right: 400, bottom: 300 };
+		expect(drawingWindowPlacement(small, null, { width: 440, height: 680 })).toEqual({ left: 12, top: 12, width: 376, height: 276 });
 	});
 });

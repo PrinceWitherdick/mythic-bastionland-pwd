@@ -18,6 +18,7 @@ import {
 	realmFlagChanges,
 	realmFromDocuments,
 	realmSceneData,
+	realmSceneFlag,
 	realmTextures
 } from "../../module/rules/realm-documents.js";
 
@@ -339,6 +340,96 @@ describe("planRealmSync", () => {
 		const plan = planRealmSync(realm, g, textures, { tiles: [], drawings: [] });
 		expect(plan.Tile.create.length).toBe(realmDocuments(realm, g, textures).tiles.length);
 		expect(plan.Drawing.create).toHaveLength(realm.barriers.length);
+	});
+});
+
+describe("a Realm traced over a picture", () => {
+	const textures = realmTextures();
+	const pictured = (picture) => {
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture };
+		return { realm, tiles: realmDocuments(realm, g, textures).tiles.map(({ data }) => data) };
+	};
+	const players = { src: "art/realm-maps/open.webp" };
+	const referee = { src: "art/realm-maps/secret.webp" };
+
+	it("lays the players' picture under the whole map, loose for the GM to nudge", () => {
+		const { tiles } = pictured({ players });
+		const maps = tiles.filter((tile) => flagOf(tile).kind === "map");
+		expect(maps).toHaveLength(1);
+		expect(maps[0]).toMatchObject({
+			x: Math.round(g.width / 2), y: Math.round(g.height / 2), width: g.width, height: g.height,
+			texture: { src: players.src, fit: "fill" }, sort: REALM_SORT.map, hidden: false, locked: false
+		});
+		// Under everything else on the map.
+		expect(REALM_SORT.map).toBeLessThan(REALM_SORT.terrain);
+	});
+
+	it("draws the system's own ground and water at nothing, so the drawing shows through", () => {
+		const { tiles } = pictured({ players });
+		const drawn = (kinds) => tiles.filter((tile) => kinds.includes(flagOf(tile).kind));
+		expect(drawn(["terrain"]).every((tile) => tile.alpha === 0)).toBe(true);
+		expect(drawn(["river", "shore", "mouth"]).every((tile) => tile.alpha === 0)).toBe(true);
+		// The Holdings, Myths and Landmarks are still drawn: the players' map of the sheet shows none of them.
+		expect(drawn(["holding", "myth", "landmark", "seat"]).every((tile) => tile.alpha === 1)).toBe(true);
+	});
+
+	it("draws the Holdings and Landmarks even on a Realm once told its picture drew them", () => {
+		const { tiles } = pictured({ players, features: true });
+		const icons = tiles.filter((tile) => ["holding", "myth", "landmark", "seat"].includes(flagOf(tile).kind));
+		expect(icons.length).toBeGreaterThan(0);
+		expect(icons.every((tile) => tile.alpha === 1)).toBe(true);
+	});
+
+	it("keeps its pictures through a sync, rather than sweeping them off the map", () => {
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture: { players } };
+		const scene = realmSceneData({ name: "Traced", realm, geometry: g, textures });
+		const snapshot = {
+			flags: scene.flags,
+			tiles: scene.tiles.map((tile, index) => ({ _id: `tile${index}`, ...structuredClone(tile) })),
+			drawings: scene.drawings.map((drawing, index) => ({ _id: `drawing${index}`, ...structuredClone(drawing) }))
+		};
+		const read = realmFromDocuments(snapshot, g);
+		expect(read.realm.picture).toEqual({ players: { ...players, x: Math.round(g.width / 2), y: Math.round(g.height / 2), width: g.width, height: g.height } });
+		expect(planChanges(planRealmSync(read.realm, g, textures, snapshot))).toBe(false);
+	});
+
+	it("sweeps off the referee's map a Realm once carried over the players'", () => {
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture: { players } };
+		const scene = realmSceneData({ name: "Traced", realm, geometry: g, textures });
+		const map = scene.tiles.find((tile) => flagOf(tile).kind === "map");
+		const old = { ...structuredClone(map), texture: { src: referee.src }, hidden: true, flags: { [SYSTEM_ID]: { [REALM_FLAG]: { kind: "map", role: "referee" } } } };
+		const snapshot = {
+			flags: scene.flags,
+			tiles: [...scene.tiles, old].map((tile, index) => ({ _id: `tile${index}`, ...structuredClone(tile) })),
+			drawings: scene.drawings.map((drawing, index) => ({ _id: `drawing${index}`, ...structuredClone(drawing) }))
+		};
+		const read = realmFromDocuments(snapshot, g);
+		expect(read.realm.picture).not.toHaveProperty("referee");
+		expect(planRealmSync(read.realm, g, textures, snapshot).Tile.delete).toEqual([`tile${scene.tiles.length}`]);
+	});
+
+	it("takes a picture the GM nudged where they left it, and puts it back if its Tile goes", () => {
+		const lined = { ...players, x: 900, y: 1100, width: 1800, height: 2100 };
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture: { players: lined } };
+		const scene = realmSceneData({ name: "Traced", realm, geometry: g, textures });
+		const tiles = scene.tiles.map((tile, index) => ({ _id: `tile${index}`, ...structuredClone(tile) }));
+		const snapshot = { flags: scene.flags, tiles, drawings: [] };
+
+		const map = tiles.find((tile) => flagOf(tile).kind === "map");
+		Object.assign(map, { x: 950, y: 1050 });
+		expect(realmFromDocuments(snapshot, g).realm.picture.players).toMatchObject({ x: 950, y: 1050, width: 1800 });
+
+		// The Scene's flag remembers where it was left, so a picture whose Tile is deleted comes back there.
+		const without = { ...snapshot, tiles: tiles.filter((tile) => tile !== map) };
+		expect(realmFromDocuments(without, g).realm.picture.players).toEqual(lined);
+	});
+
+	it("says in the Scene's flag that it has pictures, and forgets them when it loses them", () => {
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture: { players } };
+		const flag = realmSceneFlag(realm, g);
+		expect(flag.picture).toEqual({ players });
+		const { picture: _gone, ...plain } = realm;
+		expect(realmFlagChanges(flag, plain, g)).toEqual({ set: {}, drop: ["picture"] });
 	});
 });
 

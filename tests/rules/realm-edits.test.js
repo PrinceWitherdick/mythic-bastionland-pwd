@@ -9,8 +9,11 @@ import {
 	layRiver,
 	paintTerrain,
 	placeFeature,
+	placeMapPicture,
+	relayRealm,
 	riverEnds,
 	setBarrier,
+	setMapPicture,
 	setOmen,
 	setRevealed,
 	traceCourse,
@@ -284,5 +287,75 @@ describe("drawing the river", () => {
 		expect(promoted.rivers.map(keys)).toEqual([keys(column(8, 1, 4))]);
 
 		expect(clearRiver(realm)).toMatchObject({ rivers: [] });
+	});
+});
+
+describe("a Realm's pictures", () => {
+	const g = realmGeometry();
+	const blank = () => emptyRealm(g, "pictures");
+	const players = { src: "art/realm-maps/open.webp" };
+
+	it("takes a players' map", () => {
+		const open = setMapPicture(blank(), "players", players);
+		expect(open.picture).toEqual({ players });
+		// The Realm it was made from is untouched.
+		expect(blank().picture).toBeUndefined();
+	});
+
+	it("won't take a referee's map, or any other", () => {
+		const open = setMapPicture(blank(), "players", players);
+		expect(setMapPicture(open, "referee", { src: "secret.webp" })).toBe(open);
+		expect(setMapPicture(blank(), "nobody", players)).toEqual(blank());
+	});
+
+	it("goes back to the system's own ink when the players' map is taken away", () => {
+		const open = setMapPicture(blank(), "players", players);
+		expect(setMapPicture(open, "players", null).picture).toBeUndefined();
+	});
+
+	it("remembers where a picture was lined up, and forgets it when the picture changes", () => {
+		const open = setMapPicture(blank(), "players", players);
+		const lined = placeMapPicture(open, "players", { x: 800, y: 900, width: 1700, height: 2000 });
+		expect(lined.picture.players).toEqual({ ...players, x: 800, y: 900, width: 1700, height: 2000 });
+		expect(placeMapPicture(open, "referee", { x: 1, y: 2, width: 3, height: 4 })).toBe(open);
+		// Another picture is another thing to line up.
+		expect(setMapPicture(lined, "players", { src: "art/realm-maps/other.webp" }).picture.players).toEqual({ src: "art/realm-maps/other.webp" });
+	});
+});
+
+describe("relayRealm", () => {
+	const rows = realmGeometry({ layout: "evenRows" });
+
+	it("keeps a Realm whose rivers and Barriers still join up as it is", () => {
+		const realm = sampleRealm();
+		// Straight down a column is a river either way: with pointed tops it zigzags down the rows.
+		realm.rivers = [[hex(4, 1), hex(4, 2), hex(4, 3)]];
+		realm.barriers = [{ id: "b1", edge: edgeKey(hex(5, 5), hex(5, 6)), revealed: false }];
+		expect(relayRealm(realm, rows)).toBe(realm);
+	});
+
+	it("cuts a river where its hexes no longer meet, and drops what breaks off alone", () => {
+		const realm = sampleRealm();
+		// A step up and across from an odd row meets on the book's sheet but not with pointed tops, where only the
+		// rows set in reach up and across to the right: so (3,5) to (4,4) and (5,3) to (6,2) come apart.
+		realm.rivers = [[hex(3, 2), hex(3, 3), hex(3, 4), hex(3, 5), hex(4, 4), hex(4, 3), hex(4, 2), hex(5, 3), hex(6, 2)]];
+		expect(realm.rivers[0].every((step, index) => !index || hexDistance(g, realm.rivers[0][index - 1], step) === 1)).toBe(true);
+		const relaid = relayRealm(realm, rows);
+		expect(relaid.rivers.map((course) => course.map(hexKey))).toEqual([["3,2", "3,3", "3,4", "3,5"], ["4,4", "4,3", "4,2", "5,3"]]);
+		for (const course of relaid.rivers) course.slice(1).forEach((step, index) => expect(hexDistance(rows, course[index], step)).toBe(1));
+		// The Realm it was made from is untouched, and everything else goes with its hex.
+		expect(realm.rivers[0]).toHaveLength(9);
+		expect(relaid.holdings).toEqual(realm.holdings);
+		expect(relaid.terrain).toEqual(realm.terrain);
+	});
+
+	it("drops a Barrier between hexes that no longer share an edge", () => {
+		const realm = sampleRealm();
+		const kept = edgeKey(hex(5, 5), hex(5, 6));
+		realm.barriers = [
+			{ id: "b1", edge: kept, revealed: false },
+			{ id: "b2", edge: edgeKey(hex(3, 5), hex(4, 4)), revealed: true }
+		];
+		expect(relayRealm(realm, rows).barriers.map((barrier) => barrier.edge)).toEqual([kept]);
 	});
 });

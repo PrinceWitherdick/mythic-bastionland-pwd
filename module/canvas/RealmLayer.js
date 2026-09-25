@@ -1,16 +1,26 @@
-import { editRealm, getRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
+import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
+import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { followHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
-import { refreshRealmDrawing } from "../apps/RealmDrawing.js";
+import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { INK_HEX } from "../rules/colour.js";
 import { REALM_BUTTONS, REALM_TOOLS, REALM_TOOL_ICONS, featureAt, terrainAt } from "../rules/realm.js";
 import { barrierState, featureStands, layRiver, paintTerrain, placeFeature, riverEnds, setBarrier, traceCourse, trimRiver } from "../rules/realm-edits.js";
-import { edgeAt, edgeSegment, hexAt, hexCentre, hexKey, hexTopLeft, sameHex } from "../rules/realm-geometry.js";
+import { MARK_ALPHA, hidesTerrain, terrainMark } from "../rules/realm-map.js";
+import { allHexes, edgeAt, edgeSegment, hexAt, hexCentre, hexIndex, hexKey, hexTopLeft, sameHex } from "../rules/realm-geometry.js";
 
 /** The grid highlight the Realm tools draw in. */
 const HIGHLIGHT = "bastionland-realm";
+
+/**
+ * The grid highlight the hexes already marked are tinted in, on a Realm drawn
+ * by a picture. There the system's own ground is drawn at nothing so the
+ * picture shows through, so this is the only way the GM can see how far the
+ * marking has come. Drawn on this client alone: nobody else sees it.
+ */
+const MARKS = "bastionland-realm-marks";
 
 const BLOOD = 0x8b1e1e;
 const VERDIGRIS = 0x2f6150;
@@ -34,7 +44,7 @@ const FEATURE_BRUSHES = {
 		pick: (here) => here.landmark?.type ?? "landmark",
 		build: () => ({ kind: "landmark", type: RealmPanel.landmark })
 	}
-};
+};
 
 /**
  * @typedef {object} PaintDrag A drag with the Paint terrain tool: the hexes it
@@ -120,10 +130,14 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			},
 			onToolChange: (event, tool, active) => {
 				if (active && !tool.button) canvas.realm.setTool(tool.name);
-				// Clicking the terrain brush's own button goes back into drawing the Realm. Not a click on the Realm
-				// controls, which picks up whichever tool was last in hand, nor the controls switching tools on their own.
+				// Clicking the terrain brush's own button goes back into drawing the Realm, or, while it's being drawn,
+				// brings Creating a Realm back up if the GM closed it. Not a click on the Realm controls, which picks up
+				// whichever tool was last in hand, nor the controls switching tools on their own.
 				const clicked = event?.isTrusted && event.target instanceof Element && event.target.closest("[data-tool]")?.dataset.tool === "terrain";
-				if (active && tool.name === "terrain" && clicked) startRealmDrawing(canvas.scene);
+				if (active && tool.name === "terrain" && clicked) {
+					if (isDrawingRealm(canvas.scene)) showRealmDrawing();
+					else startRealmDrawing(canvas.scene);
+				}
 			},
 			tools,
 			activeTool: "inspect"
@@ -157,6 +171,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 	/** @type {PIXI.Container|null} Tiles a Realm look being tried out adds, drawn on this client alone. */
 	#lookTiles = null;
+
+	/** @type {object|null} The Realm the marks on the map were drawn from, so they're only drawn again once it changes. */
+	#marked = null;
 
 	#onPointerMove = () => this.#hover();
 
@@ -198,6 +215,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (name === "wilderness") return wildernessRoll({ scene });
 		if (name === "reroll") return rerollRealm(scene);
 		if (name === "appearance") return openRealmAppearance();
+		if (name === "picture") return changeRealmPicture(scene);
 		return null;
 	}
 
@@ -240,8 +258,10 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	async _tearDown(options) {
 		canvas.stage?.off("pointermove", this.#onPointerMove);
 		canvas.interface?.grid?.destroyHighlightLayer(HIGHLIGHT);
+		canvas.interface?.grid?.destroyHighlightLayer(MARKS);
 		this.clearLookTiles();
 		this.#lookTiles = null;
+		this.#marked = null;
 		this.#preview = null;
 		this.#drag = null;
 		this.hovered = null;
@@ -294,6 +314,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		grid.addHighlightLayer(HIGHLIGHT);
 		grid.clearHighlightLayer(HIGHLIGHT);
 		this.#preview?.clear();
+		this.#drawMarks();
 		if (!this.active || !isRealmScene(canvas.scene)) return;
 		const g = sceneGeometry(canvas.scene);
 
@@ -324,6 +345,32 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		const { x, y } = hexTopLeft(g, this.hovered);
 		const color = this.drawsRiver ? WATER : this.brush === "terrain" ? VERDIGRIS : BLOOD;
 		grid.highlightPosition(HIGHLIGHT, { x, y, color, border: INK_HEX, alpha: 0.18 });
+	}
+
+	/**
+	 * Tint every hex already marked in its terrain's own colour, so the GM can
+	 * see how far they have got over a picture that draws the ground itself.
+	 * Redrawn only when the Realm or the tool in hand has changed: the Realm is
+	 * read from a cache that a new object replaces on every edit, so its own
+	 * identity says whether the marks still stand.
+	 */
+	#drawMarks() {
+		const grid = canvas.interface?.grid;
+		const realm = this.active && isRealmScene(canvas.scene) ? getRealm(canvas.scene)?.realm : null;
+		const showing = realm && this.tool === "terrain" && hidesTerrain(realm) ? realm : null;
+		if (showing === this.#marked) return;
+		this.#marked = showing;
+		grid.addHighlightLayer(MARKS);
+		grid.clearHighlightLayer(MARKS);
+		if (!showing) return;
+
+		const g = sceneGeometry(canvas.scene);
+		for (const hex of allHexes(g)) {
+			const terrain = showing.terrain[hexIndex(g, hex)];
+			if (!terrain) continue;
+			const { x, y } = hexTopLeft(g, hex);
+			grid.highlightPosition(MARKS, { x, y, color: terrainMark(terrain), alpha: MARK_ALPHA });
+		}
 	}
 
 	/**

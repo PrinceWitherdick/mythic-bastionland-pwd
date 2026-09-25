@@ -640,6 +640,16 @@
 	flex-wrap: wrap;
 }
 
+/* New Realm's three ways of making it stay on one row, each as wide as its label. */
+.realm-making-dialog .form-footer {
+	flex-wrap: nowrap;
+}
+
+.realm-making-dialog .form-footer button {
+	flex: 1 1 auto;
+	white-space: nowrap;
+}
+
 .bastionland-referee-rolls .form-footer button,
 .bastionland-steed-pick .form-footer button {
 	flex: 1 1 40%;
@@ -660,33 +670,10 @@
 }
 
 /*
- * The New Realm dialog's Custom Realm, folded away like the fieldsets beside
- * it: a part to a row, its name and roll box on the left, its numbers on the
- * right. Locked numbers are the book's, so they stay readable.
+ * The New Realm dialog's Custom Realm page: a part to a row, its name and
+ * roll box on the left, its numbers on the right. Locked numbers are the
+ * book's, so they stay readable.
  */
-.bastionland-realm-setup {
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: rgb(255 255 255 / 0.25);
-}
-
-.bastionland-realm-setup > summary {
-	padding: 0.35rem 0.7rem;
-	color: var(--bastionland-ink);
-	font-family: var(--bastionland-font-caps);
-	font-size: 1rem;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	cursor: pointer;
-}
-
-.bastionland-realm-setup__body {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	padding: 0 0.7rem 0.6rem;
-}
-
 .bastionland-realm-setup__parts {
 	display: grid;
 	grid-template-columns: 7rem 1fr;
@@ -744,6 +731,189 @@
 /* A part left to draw by hand. */
 .bastionland-realm-setup__part.is-off > .bastionland-realm-setup__numbers {
 	opacity: 0.4;
+}
+
+/*
+ * A tall dialog laid out as a rail of pages down its left side, as Stonetop's
+ * welcome window is (module/apps/dialog-rail.js). The rail runs the dialog's
+ * full height beside the pages, which scroll on their own under a banner
+ * naming the page shown; the footer's buttons stay under both.
+ */
+.bastionland-rail-dialog-window .dialog-form {
+	gap: 0;
+	padding: 0;
+}
+
+.bastionland-rail-dialog-window .dialog-content {
+	overflow: hidden;
+}
+
+.bastionland-rail-dialog-window .form-footer {
+	padding: 0.6rem 1rem 0.8rem;
+}
+
+.bastionland-dialog .bastionland-rail-dialog {
+	flex-direction: row;
+	gap: 0;
+	/* One height for every page, so the window holds still as the rail is used. */
+	height: min(34rem, 70vh);
+}
+
+.bastionland-rail-dialog__rail {
+	flex: none;
+	width: 11rem;
+	padding: 0.75rem 0.5rem 1rem;
+	overflow-y: auto;
+	border-right: 1px solid var(--bastionland-rule);
+	background: rgb(0 0 0 / 0.04);
+}
+
+.bastionland-rail-dialog__rail ol {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-dialog .bastionland-rail-dialog__tab {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.5rem;
+	width: 100%;
+	height: auto;
+	min-height: 0;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+	line-height: 1.25;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 0.12s, color 0.12s;
+}
+
+.bastionland-rail-dialog__tab i {
+	flex: none;
+	width: 1rem;
+	color: var(--bastionland-ink-soft);
+	text-align: center;
+}
+
+.bastionland-dialog .bastionland-rail-dialog__tab:hover {
+	background: rgb(138 125 106 / 0.22);
+	color: var(--bastionland-ink);
+}
+
+/* The page shown, in the rubric's red ochre. Last, so it keeps its fill while hovered. */
+.bastionland-dialog .bastionland-rail-dialog__tab.is-active {
+	border-color: rgb(138 125 106 / 0.6);
+	background: rgb(0 0 0 / 0.06);
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-rail-dialog__tab.is-active i {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-rail-dialog__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.7rem;
+	min-width: 0;
+	padding: 0.8rem 1rem 1rem;
+	overflow-y: auto;
+	scrollbar-gutter: stable;
+}
+
+.bastionland-rail-dialog__banner {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0.8rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(255 255 255 / 0.25);
+}
+
+.bastionland-rail-dialog__banner > i {
+	flex: none;
+	width: 1.75rem;
+	color: var(--bastionland-rubric);
+	font-size: 1.4rem;
+	text-align: center;
+}
+
+.bastionland-rail-dialog__banner > div {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.bastionland-rail-dialog__title {
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.35rem;
+	letter-spacing: 0.05em;
+	line-height: 1.15;
+	text-transform: uppercase;
+}
+
+.bastionland-rail-dialog__sub {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+.bastionland-rail-dialog__page {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-rail-dialog__page[hidden] {
+	display: none;
+}
+
+/* On a page of its own, the picture chosen can be shown large enough to check. */
+.bastionland-rail-dialog .bastionland-realm-picture__shown img {
+	max-height: 18rem;
+}
+
+/*
+ * Creating a Realm on the same rail, under the palette and the page. It fills
+ * the window as it's resized rather than holding the dialogs' one height, and
+ * its rail is a little narrower, to leave the rules the room.
+ */
+.bastionland-realm-drawing .bastionland-rail-dialog.bastionland-realm-drawing__rail {
+	display: flex;
+	flex: 1;
+	height: auto;
+	min-height: 0;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-realm-drawing .bastionland-realm-drawing__rail .bastionland-rail-dialog__rail {
+	width: 9.5rem;
+}
+
+.bastionland-realm-drawing .bastionland-realm-drawing__rail .bastionland-rail-dialog__main {
+	overscroll-behavior: contain;
+}
+
+/* A part of the Realm drawn as the sheet asks, ticked at the end of its tab. */
+.bastionland-realm-drawing .bastionland-rail-dialog__tab i.bastionland-realm-drawing__tab-done {
+	margin-left: auto;
+	color: var(--bastionland-verdigris);
 }
 
 /*

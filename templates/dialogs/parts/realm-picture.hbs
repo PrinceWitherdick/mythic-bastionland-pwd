@@ -1,0 +1,38 @@
+{{!-- The pictures a Realm traced from a map drawn on paper is drawn by: the players' map, and how the hexes on it sit. --}}
+<div class="bastionland-realm-picture">
+	{{#each mapRoles}}
+	<div class="form-group bastionland-realm-picture__role" data-map-role="{{key}}">
+		<label for="bastionland-realm-picture-{{key}}">{{label}}</label>
+		<div class="form-fields">
+			<input id="bastionland-realm-picture-{{key}}" type="text" name="picture.{{key}}" value="{{src}}" spellcheck="false" autocomplete="off" data-map-field>
+			<button type="button" data-map-upload data-tooltip="{{../mapFromComputer}}" aria-label="{{../mapFromComputer}}"><i class="fa-solid fa-upload" inert></i></button>
+			<button type="button" data-map-browse data-tooltip="{{../mapOnServer}}" aria-label="{{../mapOnServer}}"><i class="fa-solid fa-file-image" inert></i></button>
+		</div>
+		<input type="file" accept="image/*" hidden data-map-file>
+		<figure class="bastionland-realm-picture__shown" data-map-preview{{#unless src}} hidden{{/unless}}>
+			<button type="button" class="bastionland-realm-picture__enlarge" data-map-enlarge data-tooltip="{{../mapEnlarge}}" aria-label="{{../mapEnlarge}}"><img src="{{src}}" alt=""></button>
+		</figure>
+		<p class="hint">{{hint}}</p>
+	</div>
+	{{/each}}
+
+	{{#if mapLayouts}}
+	{{!-- Each choice is a drawing of a map's top-left corner, made from the Realm's own geometry: the GM picks the one that looks like theirs. --}}
+	<fieldset class="bastionland-realm-layout">
+		<legend>{{localize "bastionland.realm.picture.layouts.legend"}}</legend>
+		<p class="hint">{{localize "bastionland.realm.picture.layouts.hint"}}</p>
+		<div class="bastionland-realm-layout__choices">
+			{{#each mapLayouts}}
+			<label class="bastionland-realm-layout__choice" data-tooltip="{{description}}">
+				<input type="radio" name="layout" value="{{key}}" aria-label="{{description}}"{{#if checked}} checked{{/if}}>
+				<svg class="bastionland-realm-layout__diagram" viewBox="{{diagram.viewBox}}" aria-hidden="true" focusable="false">
+					<path class="bastionland-realm-layout__edge" d="{{diagram.edge}}"></path>
+					{{#each diagram.hexes}}<polygon points="{{points}}"></polygon>{{/each}}
+				</svg>
+				{{#if caption}}<span class="bastionland-realm-layout__caption">{{caption}}</span>{{/if}}
+			</label>
+			{{/each}}
+		</div>
+	</fieldset>
+	{{/if}}
+</div>

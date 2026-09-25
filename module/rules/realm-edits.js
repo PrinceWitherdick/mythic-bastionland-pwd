@@ -6,7 +6,8 @@
  */
 import { isDie } from "./book-art.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt } from "./realm.js";
-import { hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
+import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
 /** What a hex can hold, one at a time. */
 export const FEATURE_KINDS = Object.freeze(["holding", "myth", "landmark"]);
@@ -348,4 +349,76 @@ export function setOmen(realm, number, omen) {
 	const myth = next.myths.find((candidate) => candidate.number === number);
 	if (myth) myth.omen = Math.min(OMEN_COUNT, Math.max(0, Math.trunc(Number(omen) || 0)));
 	return next;
+}
+
+/**
+ * @param {import("./realm.js").Realm} realm
+ * @param {object|null} picture The Realm's pictures as they should be, or null to draw the Realm in the system's own ink again.
+ * @returns {import("./realm.js").Realm}
+ */
+function withPicture(realm, picture) {
+	const next = copyRealm(realm);
+	if (picture) next.picture = picture;
+	else delete next.picture;
+	return next;
+}
+
+/**
+ * Give a Realm one of its pictures, or take it away.
+ * @param {import("./realm.js").Realm} realm
+ * @param {string} role One of MAP_ROLES.
+ * @param {{src: string}|null} picture Null to take that one away.
+ * @returns {import("./realm.js").Realm}
+ */
+export function setMapPicture(realm, role, picture) {
+	if (!MAP_ROLES.includes(role)) return realm;
+	const src = typeof picture?.src === "string" ? picture.src.trim() : "";
+	// A picture changed is a picture to line up again, so only what the caller gives is kept.
+	const map = src ? { ...picture, src } : null;
+	return withPicture(realm, normaliseRealmPicture({ ...realm.picture, [role]: map }));
+}
+
+/**
+ * Say where one of a Realm's pictures lies, once it has been lined up.
+ * @param {import("./realm.js").Realm} realm
+ * @param {string} role One of MAP_ROLES.
+ * @param {{x: number, y: number, width: number, height: number}} rect
+ * @returns {import("./realm.js").Realm}
+ */
+export function placeMapPicture(realm, role, rect) {
+	const map = MAP_ROLES.includes(role) ? realm.picture?.[role] : null;
+	if (!map || !rect) return realm;
+	return withPicture(realm, normaliseRealmPicture({ ...realm.picture, [role]: { ...map, ...rect } }));
+}
+
+/**
+ * A Realm about to have its hexes laid out another way (REALM_LAYOUTS). Each
+ * hex keeps what it holds, since a hex is still the same column and row; but
+ * which hexes meet changes, so a river is kept a stretch at a time where its
+ * hexes still meet, and a Barrier only where its two hexes still share an edge.
+ * @param {import("./realm.js").Realm} realm
+ * @param {object} g The new layout's geometry.
+ * @returns {import("./realm.js").Realm} The Realm itself when all of it still holds together.
+ */
+export function relayRealm(realm, g) {
+	const rivers = realm.rivers.flatMap((course) => {
+		const stretches = [[]];
+		for (const hex of course) {
+			const stretch = stretches.at(-1);
+			if (stretch.length && hexDistance(g, stretch.at(-1), hex) !== 1) stretches.push([hex]);
+			else stretch.push(hex);
+		}
+		// A lone hex broken off a river is no river; one the GM had only begun is left as it was.
+		return stretches.length > 1 ? stretches.filter((stretch) => stretch.length > 1) : stretches;
+	});
+	const barriers = realm.barriers.filter((barrier) => parseEdgeKey(g, barrier.edge));
+	const unchanged = barriers.length === realm.barriers.length
+		&& rivers.length === realm.rivers.length
+		&& rivers.every((course, index) => course.length === realm.rivers[index].length);
+	if (unchanged) return realm;
+	return {
+		...copyRealm(realm),
+		rivers: rivers.map((course) => course.map(({ col, row }) => ({ col, row }))),
+		barriers: barriers.map((barrier) => ({ ...barrier }))
+	};
 }

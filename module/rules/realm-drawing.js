@@ -10,8 +10,39 @@ import { hexKey } from "./realm-geometry.js";
 /** The Scene flag that marks a Realm Scene still being drawn by hand. */
 export const REALM_DRAWING_FLAG = "drawing";
 
-/** The side of the map the drawing rules stand on, where Rest and Exploration stood. */
-export const DRAWING_SIDE = "right";
+/** How large the Creating a Realm window opens, in CSS pixels, where the screen has room. */
+export const DRAWING_WINDOW = Object.freeze({ width: 620, height: 600 });
+
+/**
+ * Where the Creating a Realm window first opens: over the middle of as much
+ * of the map as the interface leaves in view, where a GM who has just begun
+ * drawing can't miss it. It never opens outside that room, and it's made
+ * smaller where the room is smaller than it. From there the GM moves it.
+ * @param {{left: number, top: number, right: number, bottom: number}} room What the interface leaves of the screen.
+ * @param {{left: number, top: number, right: number, bottom: number}|null} map Where the map is, or null while the canvas isn't ready.
+ * @param {{width: number, height: number, gap?: number}} size The window's size, and how far it keeps from the room's edges.
+ * @returns {{left: number, top: number, width: number, height: number}}
+ */
+export function drawingWindowPlacement(room, map, { width, height, gap = 12 }) {
+	const inner = { left: room.left + gap, top: room.top + gap, right: room.right - gap, bottom: room.bottom - gap };
+	const wide = Math.max(0, Math.min(width, inner.right - inner.left));
+	const tall = Math.max(0, Math.min(height, inner.bottom - inner.top));
+	const seen = map && {
+		left: Math.max(map.left, inner.left),
+		top: Math.max(map.top, inner.top),
+		right: Math.min(map.right, inner.right),
+		bottom: Math.min(map.bottom, inner.bottom)
+	};
+	// A map panned wholly out of view has no middle to open over, so the room's is taken.
+	const area = seen && seen.right > seen.left && seen.bottom > seen.top ? seen : inner;
+	const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
+	return {
+		left: Math.round(clamp(((area.left + area.right) / 2) - (wide / 2), inner.left, inner.right - wide)),
+		top: Math.round(clamp(((area.top + area.bottom) / 2) - (tall / 2), inner.top, inner.bottom - tall)),
+		width: Math.round(wide),
+		height: Math.round(tall)
+	};
+}
 
 /**
  * @typedef {object} DrawingSection
@@ -25,22 +56,24 @@ export const DRAWING_SIDE = "right";
  * The sheet's steps in its order. Each section names the Realm tool that
  * draws it: everything but the Myths is a brush in the paint tool's one
  * palette, and a Myth is numbered and rolled from the Hex panel. `book` is the
- * heading the rulebook prints over each group, which stays in English.
- * @type {readonly {key: string, book: string, sections: readonly DrawingSection[]}[]}
+ * heading the rulebook prints over each group, which stays in English, and
+ * `icon` the Font Awesome icon its tab on the window's rail wears.
+ * @type {readonly {key: string, book: string, icon: string, sections: readonly DrawingSection[]}[]}
  */
 export const DRAWING_RULES = Object.freeze([
 	{
 		key: "wilderness",
 		book: "Wilderness",
+		icon: "fa-tree",
 		sections: [
 			{ key: "terrain", brush: "terrain" },
 			{ key: "barriers", brush: "barrier" },
 			{ key: "river", brush: "river" }
 		]
 	},
-	{ key: "holdings", book: "Holdings", sections: [{ key: "holdings", brush: "holding" }] },
-	{ key: "myths", book: "Myth Hexes", sections: [{ key: "myths", tool: "inspect" }] },
-	{ key: "landmarks", book: "Landmarks", sections: [{ key: "landmarks", brush: "landmark", lines: [...LANDMARK_TYPES] }] }
+	{ key: "holdings", book: "Holdings", icon: "fa-chess-rook", sections: [{ key: "holdings", brush: "holding" }] },
+	{ key: "myths", book: "Myth Hexes", icon: "fa-dragon", sections: [{ key: "myths", tool: "inspect" }] },
+	{ key: "landmarks", book: "Landmarks", icon: "fa-monument", sections: [{ key: "landmarks", brush: "landmark", lines: [...LANDMARK_TYPES] }] }
 ].map((group) => Object.freeze({ ...group, sections: Object.freeze(group.sections.map((section) => Object.freeze(section))) })));
 
 /**
@@ -57,7 +90,23 @@ export const DRAWING_RULES = Object.freeze([
  * @property {DrawingBlock[]} blocks
  */
 
-/** @typedef {{key: string, heading: string, parts: DrawingPart[]}} DrawingGroup */
+/** @typedef {{key: string, heading: string, icon: string, parts: DrawingPart[]}} DrawingGroup */
+
+/**
+ * The icons on the rail for the book's sections that no drawing step takes,
+ * keyed by the heading the book prints, lower-cased. A section not named here
+ * wears the open book.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const BOOK_SECTION_ICONS = Object.freeze({
+	"breaking the rules": "fa-scale-unbalanced",
+	"the hex map": "fa-border-all",
+	"adding details": "fa-feather-pointed",
+	"distant realms": "fa-mountain-sun"
+});
+
+/** The icon for a book section no step takes. */
+const bookSectionIcon = (heading) => BOOK_SECTION_ICONS[heading.trim().toLowerCase()] ?? "fa-book-open";
 
 /**
  * Creating a Realm as the GM's own rulebook prints it (p14), fitted to the
@@ -72,10 +121,10 @@ export const DRAWING_RULES = Object.freeze([
 export function bookDrawingGroups(book) {
 	const groups = book.map(({ heading, blocks }, index) => {
 		const group = DRAWING_RULES.find((rule) => rule.book.toLowerCase() === heading.trim().toLowerCase());
-		if (!group) return { key: `book-${index}`, heading, parts: [{ key: `book-${index}`, step: null, blocks }] };
+		if (!group) return { key: `book-${index}`, heading, icon: bookSectionIcon(heading), parts: [{ key: `book-${index}`, step: null, blocks }] };
 		const last = group.sections.length - 1;
 		const parts = group.sections.map((step, at) => ({ key: step.key, step, blocks: blocks.slice(at, at === last ? undefined : at + 1) }));
-		return { key: group.key, heading, parts };
+		return { key: group.key, heading, icon: group.icon, parts };
 	});
 	const found = new Set(groups.map((group) => group.key));
 	return DRAWING_RULES.every((group) => found.has(group.key)) ? groups : null;
@@ -91,6 +140,7 @@ export function sheetDrawingGroups(text) {
 	return DRAWING_RULES.map((group) => ({
 		key: group.key,
 		heading: text(`groups.${group.key}`),
+		icon: group.icon,
 		parts: group.sections.map((step) => {
 			const key = `sections.${step.key}`;
 			const lines = (step.lines ?? []).map((line) => ({ kind: "term", label: text(`${key}.lines.${line}.label`), text: text(`${key}.lines.${line}.text`) }));
@@ -150,10 +200,14 @@ export const drawingShortfalls = (realm) => Object.values(drawingTally(realm)).f
  * @param {number} [options.floor] The lowest its foot may go, in CSS pixels.
  * @param {number} [options.gap] Between the map's foot and the button, and between the button and the floor.
  * @param {number} [options.scale] The interface scale, which the button grows with.
+ * @param {{left: number, top: number, width: number}|null} [options.beside] Where the Place the Company
+ *   button stands, in CSS pixels, its scale included. While it's over the map the Finish button stands
+ *   to its right instead, level with it, so the Referee finds the two together.
  * @returns {{left: number, top: number}}
  */
-export function finishPlacement(map, { width, height, floor = Infinity, gap = 12, scale = 1 }) {
+export function finishPlacement(map, { width, height, floor = Infinity, gap = 12, scale = 1, beside = null }) {
 	const [wide, tall, space] = [width, height, gap].map((length) => length * scale);
+	if (beside) return { left: Math.round(beside.left + beside.width + space), top: Math.round(beside.top) };
 	return {
 		left: Math.round(((map.left + map.right) / 2) - (wide / 2)),
 		top: Math.round(Math.min(map.bottom + space, floor - space - tall))

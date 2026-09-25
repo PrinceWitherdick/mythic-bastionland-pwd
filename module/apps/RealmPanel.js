@@ -32,6 +32,7 @@ import {
 } from "../rules/realm-edits.js";
 import { rollFreeMyth } from "../rules/realm-myths.js";
 import { directionNames, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
+import { TERRAIN_MARKS, hidesTerrain } from "../rules/realm-map.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openHexLore } from "./HexLore.js";
 import { openMythChooser } from "./MythChooser.js";
@@ -210,6 +211,9 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 					value: index + 1,
 					label: t(`realm.terrain.${key}`),
 					src: textures.terrain[index + 1].src,
+					// On a Realm traced over a picture the map shows each terrain as its own
+					// tint, so the palette carries the same tint to read the map by.
+					mark: hidesTerrain(realm) ? TERRAIN_MARKS[index] : null,
 					active: brush === "terrain" && index + 1 === RealmPanel.terrain
 				})),
 				river: {

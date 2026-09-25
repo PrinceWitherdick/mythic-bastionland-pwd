@@ -6,13 +6,17 @@
 	{{#if terrainMode}}
 	<p class="bastionland-realm-panel__hint">{{hint}}</p>
 
+	<div class="bastionland-realm-panel__actions">
+		<button type="button" data-action="appearance"><i class="fa-solid fa-palette" inert></i> {{localize "bastionland.realm.look.title"}}</button>
+	</div>
+
 	<div class="bastionland-realm-panel__columns">
 		<section class="bastionland-realm-panel__group">
 			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.terrain"}}</h2>
 			{{> "bastionland.realm-tally" terrainTally}}
 			<div class="bastionland-realm-panel__palette">
 				{{#each terrains}}
-				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}{{#if mark}} bastionland-realm-panel__swatch--marked{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}"{{#if mark}} style="--bastionland-terrain-mark: {{mark}}"{{/if}}>
 					<img src="{{src}}" alt="" inert>
 					<span>{{value}}. {{label}}</span>
 				</button>
@@ -67,10 +71,6 @@
 				{{/each}}
 			</div>
 		</section>
-	</div>
-
-	<div class="bastionland-realm-panel__actions">
-		<button type="button" data-action="appearance"><i class="fa-solid fa-palette" inert></i> {{localize "bastionland.realm.look.title"}}</button>
 	</div>
 	{{/if}}
 

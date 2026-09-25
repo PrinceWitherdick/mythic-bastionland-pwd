@@ -34,6 +34,40 @@ export function companyPicture(scene) {
 }
 
 /**
+ * An update option on the Company's Token moved only because the hexes under
+ * it were laid out another way: it is still in the same hex, so it has gone
+ * nowhere, arrived nowhere, and crossed no Barrier.
+ */
+export const NOT_A_MOVE = "bastionlandNotAMove";
+
+/**
+ * Whether a Token's move took it anywhere: not a move taken back, nor one
+ * standing it again where the hexes were laid out anew.
+ * @param {object|undefined} movement As the moveToken hook gives it.
+ * @param {object|undefined} operation
+ * @returns {boolean}
+ */
+export const wentSomewhere = (movement, operation) => movement?.method !== "undo" && !operation?.[NOT_A_MOVE];
+
+/**
+ * Stand the Company's Token in its hex again after that hex has moved, when
+ * its Realm's hexes are laid out another way. GMs only.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}|null} hex Where it stood before.
+ * @returns {Promise<void>}
+ */
+export async function restandCompany(scene, hex) {
+	const token = findCompanyToken(scene);
+	if (!game.user.isGM || !token || !hex || !isRealmScene(scene)) return;
+	const { x, y } = hexTopLeft(sceneGeometry(scene), hex);
+	await token.update({ x: Math.round(x), y: Math.round(y) }, {
+		animate: false,
+		[NOT_A_MOVE]: true,
+		movement: { [token.id]: { constrainOptions: { ignoreWalls: true } } }
+	});
+}
+
+/**
  * The hex the Company stands in, from its own Token.
  * @param {Scene|null} scene
  * @returns {{col: number, row: number}|null} Null when there's no Company Token, or it's off the map.

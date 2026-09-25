@@ -1,4 +1,4 @@
-import { findCompanyToken } from "../actions/company.js";
+import { findCompanyToken, wentSomewhere } from "../actions/company.js";
 import { hexLorePromptMode } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHexLore } from "../apps/HexLore.js";
@@ -122,8 +122,9 @@ function atRest(movement) {
  * about it, because the setting that decides is that browser's own.
  * @param {TokenDocument} token
  * @param {object} movement The movement from the `moveToken` hook.
+ * @param {object} [operation] The update that moved it.
  */
-function noticeArrival(token, movement) {
+function noticeArrival(token, movement, operation) {
 	if (!game.user.isGM || hexLorePromptMode() === "never") return;
 	const scene = token.parent;
 	if (!isRealmScene(scene)) return;
@@ -131,8 +132,8 @@ function noticeArrival(token, movement) {
 	// one, any player's Token arriving somewhere counts.
 	const company = findCompanyToken(scene);
 	if (company ? token.id !== company.id : !token.actor?.hasPlayerOwner) return;
-	// Taking a move back isn't arriving anywhere.
-	if (movement?.method === "undo") return;
+	// Taking a move back isn't arriving anywhere, and nor is standing again where the hexes were laid out anew.
+	if (!wentSomewhere(movement, operation)) return;
 	// One drag across five hexes arrives once, at the end of it.
 	if (!atRest(movement)) return;
 

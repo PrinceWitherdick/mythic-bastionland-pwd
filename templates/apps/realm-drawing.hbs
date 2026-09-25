@@ -1,6 +1,8 @@
 <div class="bastionland-travel-rules__sheet">
-	<header class="bastionland-travel-rules__header">
-		<h2 class="bastionland-travel-rules__title">{{title}}</h2>
+	<header class="bastionland-travel-rules__header bastionland-realm-drawing__head">
+		<button type="button" class="bastionland-travel-rules__roll bastionland-realm-drawing__palette{{#if palette.active}} is-active{{/if}}" data-action="useTool" data-tool="{{palette.name}}" aria-pressed="{{#if palette.active}}true{{else}}false{{/if}}">
+			<i class="{{palette.icon}}" inert></i> {{palette.label}}
+		</button>
 		{{#if pageLink}}
 		<button type="button" class="bastionland-travel-rules__page" data-action="openPage" data-page="{{pageNumber}}" data-tooltip="{{pageLink}}" aria-label="{{pageLink}}">{{page}}</button>
 		{{else}}
@@ -8,56 +10,103 @@
 		{{/if}}
 	</header>
 
-	<div class="bastionland-travel-rules__body">
-		<button type="button" class="bastionland-travel-rules__roll bastionland-realm-drawing__palette{{#if palette.active}} is-active{{/if}}" data-action="useTool" data-tool="{{palette.name}}" aria-pressed="{{#if palette.active}}true{{else}}false{{/if}}">
-			<i class="{{palette.icon}}" inert></i> {{palette.label}}
-		</button>
-		{{#if intro}}
-		<p class="bastionland-realm-drawing__intro">{{intro}}</p>
-		{{/if}}
-
-		{{#each groups}}
-		<section class="bastionland-travel-rules__group" data-group="{{key}}">
-			<h3 class="bastionland-travel-rules__group-heading"><span class="bastionland-travel-rules__group-name">{{heading}}</span></h3>
-
-			{{#each sections}}
-			<section class="bastionland-travel-rules__section" data-section="{{key}}">
-				{{#each blocks}}
-				{{#if bullets}}
-				<ul class="bastionland-realm-drawing__bullets">
-					{{#each bullets}}
-					<li>{{this}}</li>
-					{{/each}}
-				</ul>
-				{{else if lines}}
-				<details class="bastionland-realm-drawing__fold" data-fold="{{../key}}">
-					<summary>{{@root.more}}</summary>
-					<dl class="bastionland-travel-rules__lines">
-						{{#each lines}}
-						<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
-						{{/each}}
-					</dl>
-				</details>
-				{{else}}
-				<p>{{text}}</p>
-				{{/if}}
+	{{!-- A rail of pages down the left, as Stonetop's welcome window has, one to
+	      each part of the Realm. The rules are drawn again after every edit, so the
+	      page shown is marked here rather than left to the rail. See
+	      module/apps/dialog-rail.js. --}}
+	<div class="bastionland-rail-dialog bastionland-realm-drawing__rail" data-rail>
+		<nav class="bastionland-rail-dialog__rail" aria-label="{{title}}">
+			<ol>
+				{{#each pages}}
+				<li>
+					<button type="button" class="bastionland-rail-dialog__tab{{#if active}} is-active{{/if}}" data-rail-tab="{{key}}" data-rail-icon="{{icon}}"{{#if active}} aria-current="true"{{/if}}>
+						<i class="fa-solid {{icon}}" inert></i>
+						<span>{{label}}</span>
+						{{#if done}}<i class="fa-solid fa-check bastionland-realm-drawing__tab-done" inert></i>{{/if}}
+					</button>
+				</li>
 				{{/each}}
-				{{#if counts}}
-				<ul class="bastionland-realm-drawing__tally">
-					{{#each counts}}
-					<li class="{{#if done}}is-done{{/if}}"><i class="fa-solid {{#if done}}fa-check{{else}}fa-circle-dot{{/if}}" inert></i> {{label}}</li>
+			</ol>
+		</nav>
+
+		<div class="bastionland-rail-dialog__main">
+			<header class="bastionland-rail-dialog__banner">
+				<i class="fa-solid {{shown.icon}}" inert data-rail-banner-icon></i>
+				<div>
+					<span class="bastionland-rail-dialog__title" data-rail-banner-title>{{shown.label}}</span>
+				</div>
+			</header>
+
+			{{#if picture}}
+			<section class="bastionland-rail-dialog__page bastionland-realm-drawing__picture" data-rail-page="picture"{{#unless picture.active}} hidden{{/unless}}>
+				<p>{{picture.intro}}</p>
+				<ul class="bastionland-realm-drawing__maps">
+					{{#each picture.maps}}
+					<li class="bastionland-realm-drawing__map">
+						<img src="{{src}}" alt="">
+						<span class="bastionland-realm-drawing__map-name">{{label}}</span>
+						<button type="button" class="bastionland-travel-rules__roll" data-action="lineUpMap" data-map-role="{{role}}" data-tooltip="{{../picture.lineUpHint}}">
+							<i class="fa-solid fa-up-down-left-right" inert></i> {{../picture.lineUp}}
+						</button>
+					</li>
 					{{/each}}
 				</ul>
-				{{/if}}
-				{{#if tool}}
-				<button type="button" class="bastionland-travel-rules__roll{{#if tool.active}} is-active{{/if}}" data-action="useTool" data-tool="{{tool.name}}" aria-pressed="{{#if tool.active}}true{{else}}false{{/if}}"{{#if tool.hint}} data-tooltip="{{tool.hint}}"{{/if}}>
-					<i class="{{tool.icon}}" inert></i> {{tool.label}}
+				<button type="button" class="bastionland-travel-rules__roll" data-action="changeMap">
+					<i class="fa-solid fa-image" inert></i> {{picture.change}}
 				</button>
-				{{/if}}
+				<label class="bastionland-check bastionland-realm-drawing__lines">
+					<span class="bastionland-check__label">{{picture.gridLabel}}</span>
+					<input type="range" min="0" max="100" step="5" value="{{picture.grid}}" data-grid-alpha data-tooltip="{{picture.gridHint}}" aria-label="{{picture.gridLabel}}">
+				</label>
+			</section>
+			{{/if}}
+
+			{{#each groups}}
+			<section class="bastionland-rail-dialog__page" data-rail-page="{{key}}"{{#unless active}} hidden{{/unless}}>
+				{{#if @first}}{{#if @root.intro}}
+				<p class="bastionland-realm-drawing__intro">{{@root.intro}}</p>
+				{{/if}}{{/if}}
+
+				{{#each sections}}
+				<section class="bastionland-travel-rules__section" data-section="{{key}}">
+					{{#each blocks}}
+					{{#if bullets}}
+					<ul class="bastionland-realm-drawing__bullets">
+						{{#each bullets}}
+						<li>{{this}}</li>
+						{{/each}}
+					</ul>
+					{{else if lines}}
+					<details class="bastionland-realm-drawing__fold" data-fold="{{../key}}">
+						<summary>{{@root.more}}</summary>
+						<dl class="bastionland-travel-rules__lines">
+							{{#each lines}}
+							<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
+							{{/each}}
+						</dl>
+					</details>
+					{{else}}
+					<p>{{text}}</p>
+					{{/if}}
+					{{/each}}
+					{{#if counts}}
+					<ul class="bastionland-realm-drawing__tally">
+						{{#each counts}}
+						<li class="{{#if done}}is-done{{/if}}"><i class="fa-solid {{#if done}}fa-check{{else}}fa-circle-dot{{/if}}" inert></i> {{label}}</li>
+						{{/each}}
+					</ul>
+					{{/if}}
+					{{#if tool}}
+					<button type="button" class="bastionland-travel-rules__roll{{#if tool.active}} is-active{{/if}}" data-action="useTool" data-tool="{{tool.name}}" aria-pressed="{{#if tool.active}}true{{else}}false{{/if}}"{{#if tool.hint}} data-tooltip="{{tool.hint}}"{{/if}}>
+						<i class="{{tool.icon}}" inert></i> {{tool.label}}
+					</button>
+					{{/if}}
+				</section>
+				{{/each}}
 			</section>
 			{{/each}}
-		</section>
-		{{/each}}
-		<p class="bastionland-travel-rules__credit">{{credit}}</p>
+
+			<p class="bastionland-travel-rules__credit">{{credit}}</p>
+		</div>
 	</div>
 </div>

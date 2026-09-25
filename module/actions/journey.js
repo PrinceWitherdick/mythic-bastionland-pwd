@@ -5,7 +5,7 @@ import { serialWrites } from "../rules/queue.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { COMPANY_FLAG, findCompanyToken } from "./company.js";
+import { COMPANY_FLAG, findCompanyToken, wentSomewhere } from "./company.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -191,11 +191,12 @@ export function legHexes(token, movement, g) {
  * travelling anywhere, so it counts nothing.
  * @param {TokenDocument} token
  * @param {object} movement
+ * @param {object} [operation] The update that moved it.
  */
-function noticeMove(token, movement) {
+function noticeMove(token, movement, operation) {
 	const scene = token?.parent;
 	if (!isRealmScene(scene) || !keepsTheJourney()) return;
-	if (movement?.method === "undo" || !movesAsCompany(token)) return;
+	if (!wentSomewhere(movement, operation) || !movesAsCompany(token)) return;
 	gather(scene, legHexes(token, movement, sceneGeometry(scene)));
 }
 

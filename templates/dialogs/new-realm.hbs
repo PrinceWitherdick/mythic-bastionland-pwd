@@ -1,26 +1,62 @@
-<div class="bastionland-dialog__body">
-	<p>{{#if draw}}{{localize "bastionland.realm.dialog.drawIntro"}}{{else}}{{localize "bastionland.realm.dialog.intro"}}{{/if}}</p>
+<div class="bastionland-dialog__body bastionland-rail-dialog" data-rail>
+	{{!-- New Realm, laid out as a rail of pages down the left like Stonetop's welcome
+	      window: the rail shows one page at a time and the banner names it. Pages are
+	      only hidden, never re-rendered, so what's filled in on one is kept. See
+	      module/apps/dialog-rail.js. --}}
+	<nav class="bastionland-rail-dialog__rail" aria-label="{{localize "bastionland.realm.dialog.title"}}">
+		<ol>
+			{{#each pages}}
+			<li>
+				<button type="button" class="bastionland-rail-dialog__tab{{#if @first}} is-active{{/if}}" data-rail-tab="{{key}}" data-rail-icon="{{icon}}"{{#if @first}} aria-current="true"{{/if}}>
+					<i class="fa-solid {{icon}}" inert></i>
+					<span>{{label}}</span>
+				</button>
+			</li>
+			{{/each}}
+		</ol>
+	</nav>
 
-	<div class="form-group">
-		<label for="bastionland-realm-name">{{localize "bastionland.realm.dialog.name"}}</label>
-		<div class="form-fields">
-			<input id="bastionland-realm-name" type="text" name="name" value="{{name}}">
-		</div>
-	</div>
+	<div class="bastionland-rail-dialog__main">
+		<header class="bastionland-rail-dialog__banner">
+			<i class="fa-solid {{firstPage.icon}}" inert data-rail-banner-icon></i>
+			<div>
+				<span class="bastionland-rail-dialog__title" data-rail-banner-title>{{firstPage.label}}</span>
+				<span class="bastionland-rail-dialog__sub">{{making}}</span>
+			</div>
+		</header>
 
-	{{#unless draw}}
-	<div class="form-group">
-		<label for="bastionland-realm-seed">{{localize "bastionland.realm.dialog.seed"}}</label>
-		<div class="form-fields">
-			<input id="bastionland-realm-seed" type="text" name="seed" value="{{seed}}" spellcheck="false" autocomplete="off">
-		</div>
-		<p class="hint">{{localize "bastionland.realm.dialog.seedHint"}}</p>
-	</div>
-	{{/unless}}
+		<section class="bastionland-rail-dialog__page" data-rail-page="realm">
+			<p>{{#if traced}}{{localize "bastionland.realm.dialog.tracedIntro"}}{{else if draw}}{{localize "bastionland.realm.dialog.drawIntro"}}{{else}}{{localize "bastionland.realm.dialog.intro"}}{{/if}}</p>
 
-	<details class="bastionland-realm-setup">
-		<summary>{{#if draw}}{{localize "bastionland.realm.setup.sizeTitle"}}{{else}}{{localize "bastionland.realm.setup.title"}}{{/if}}</summary>
-		<div class="bastionland-realm-setup__body">
+			<div class="form-group">
+				<label for="bastionland-realm-name">{{localize "bastionland.realm.dialog.name"}}</label>
+				<div class="form-fields">
+					<input id="bastionland-realm-name" type="text" name="name" value="{{name}}">
+				</div>
+			</div>
+
+			{{#unless draw}}
+			<div class="form-group">
+				<label for="bastionland-realm-seed">{{localize "bastionland.realm.dialog.seed"}}</label>
+				<div class="form-fields">
+					<input id="bastionland-realm-seed" type="text" name="seed" value="{{seed}}" spellcheck="false" autocomplete="off">
+				</div>
+				<p class="hint">{{localize "bastionland.realm.dialog.seedHint"}}</p>
+			</div>
+			{{/unless}}
+
+			<p class="hint">{{localize "bastionland.realm.dialog.secretHint"}}</p>
+		</section>
+
+		{{#if traced}}
+		<section class="bastionland-rail-dialog__page" data-rail-page="picture" hidden>
+			<p>{{localize "bastionland.realm.picture.intro"}}</p>
+			{{> "bastionland.realm-picture"}}
+			<p class="hint">{{localize "bastionland.realm.picture.lineUpHint"}}</p>
+		</section>
+		{{/if}}
+
+		<section class="bastionland-rail-dialog__page" data-rail-page="setup" hidden>
 			<p class="hint">{{#if draw}}{{localize "bastionland.realm.setup.sizeIntro"}}{{else}}{{localize "bastionland.realm.setup.intro"}}{{/if}}</p>
 
 			<label class="bastionland-check">
@@ -52,34 +88,29 @@
 				</div>
 				{{/each}}
 			</div>
-		</div>
-	</details>
+		</section>
 
-	<fieldset>
-		<legend>{{localize "bastionland.company.title"}}</legend>
+		<section class="bastionland-rail-dialog__page" data-rail-page="company" hidden>
+			<label class="bastionland-check">
+				<input type="checkbox" name="placeCompany" checked>
+				<span class="bastionland-check__label">{{localize "bastionland.company.place"}}</span>
+			</label>
 
-		<label class="bastionland-check">
-			<input type="checkbox" name="placeCompany" checked>
-			<span class="bastionland-check__label">{{localize "bastionland.company.place"}}</span>
-		</label>
-
-		<div class="form-group">
-			<label for="bastionland-company-start">{{localize "bastionland.company.start"}}</label>
-			<div class="form-fields">
-				<select id="bastionland-company-start" name="start">
-					{{#each starts}}
-					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-					{{/each}}
-				</select>
+			<div class="form-group">
+				<label for="bastionland-company-start">{{localize "bastionland.company.start"}}</label>
+				<div class="form-fields">
+					<select id="bastionland-company-start" name="start">
+						{{#each starts}}
+						<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+						{{/each}}
+					</select>
+				</div>
+				<p class="hint" data-company-hint>{{startHint}}</p>
 			</div>
-			<p class="hint" data-company-hint>{{startHint}}</p>
-		</div>
 
-		{{> "bastionland.company-picture"}}
+			{{> "bastionland.company-picture"}}
 
-		<p class="hint">{{localize "bastionland.company.tokenHint"}}</p>
-
-	</fieldset>
-
-	<p class="hint">{{localize "bastionland.realm.dialog.secretHint"}}</p>
+			<p class="hint">{{localize "bastionland.company.tokenHint"}}</p>
+		</section>
+	</div>
 </div>
