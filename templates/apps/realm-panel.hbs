@@ -136,12 +136,13 @@
 				</select>
 			</div>
 		</div>
-		<div class="form-group">
+		<div class="form-group bastionland-realm-panel__myth-roll">
 			<label for="{{partId}}-d6">{{localize "bastionland.realm.panel.mythRoll"}}</label>
 			<div class="form-fields">
 				<input id="{{partId}}-d6" type="number" name="d6" value="{{myth.d6}}" min="1" max="6" step="1" aria-label="d6">
 				<input type="number" name="d12" value="{{myth.d12}}" min="1" max="12" step="1" aria-label="d12">
 				<button type="button" data-action="rollMyth"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.realm.panel.roll"}}</button>
+				<button type="button" data-action="chooseMyth" data-tooltip="{{localize 'bastionland.realm.panel.chooseMythTooltip'}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.realm.panel.chooseMyth"}}</button>
 			</div>
 		</div>
 		<p class="bastionland-realm-panel__hint">{{myth.reference}}</p>

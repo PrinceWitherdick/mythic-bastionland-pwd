@@ -126,6 +126,13 @@
 	{{else}}
 	<p class="bastionland-empty">{{localize "bastionland.myths.noMyths"}}</p>
 	{{/each}}
+
+	{{#if myths.length}}
+	{{!-- Which six the Realm holds, chosen apart from play: rolled again, or picked from the book's table. --}}
+	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.gmToolkit.myths.choose'}}">
+		<button type="button" data-action="settleMyths" data-tooltip="{{localize 'bastionland.gmToolkit.myths.chooseTooltip'}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.gmToolkit.myths.choose"}}</button>
+	</nav>
+	{{/if}}
 	{{/if}}
 
 	<section class="bastionland-gm-toolkit__card bastionland-myths__city" data-cast-key="{{cityQuest.cast.key}}">

@@ -12,5 +12,12 @@
 		<span>{{localize "bastionland.realm.keep.again"}}</span>
 	</button>
 
+	{{#if myths}}
+	<button type="button" class="bastionland-keep-realm__again bastionland-keep-realm__myths" data-keep-myths>
+		<i class="fa-solid fa-dragon" inert></i>
+		<span>{{localize "bastionland.realm.keep.myths"}}</span>
+	</button>
+	{{/if}}
+
 	<p class="hint">{{localize "bastionland.realm.keep.hint"}}</p>
 </div>

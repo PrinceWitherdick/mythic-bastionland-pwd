@@ -1525,6 +1525,8 @@
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",
         "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
+        "choose": "Choose the Myths",
+        "chooseTooltip": "Which six Myths the Realm holds: roll one again, roll them all again, or choose them from the book’s table (p27).",
         "newMythRolled": "A new Myth in {hex}, replacing one resolved",
         "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth.",
         "table": "The Myth’s table",
@@ -2227,6 +2229,23 @@
         "converted": "Made {count} structure NPCs into Structure actors."
       }
     },
+    "mythChooser": {
+      "title": "The Realm’s Myths",
+      "hint": "Six Myths lie hidden in a Realm (p14), each rolled on the Myths table (p27). Roll one again, roll them all again, or choose one yourself. Every Myth keeps its number and stays in its hex: only which Myth it is changes.",
+      "inRealm": "In the Realm",
+      "table": "The Myths table",
+      "noIndex": "Run the Import PDF macro to see the Myths by name and picture. Until then they go by their roll.",
+      "reference": "{roll}, page {page}",
+      "rollOne": "Roll this Myth again",
+      "rollAll": "Roll them all again",
+      "noPick": "Pick a Myth from the table to give it to the Realm.",
+      "use": "Make it Myth {number}",
+      "taken": "The Realm already has it, as Myth {number}.",
+      "already": "This is Myth {number} already.",
+      "takenBy": "Myth {number}",
+      "search": "Search the Myths…",
+      "noMatch": "No Myth matches."
+    },
     "bookArt": {
       "title": "Import PDF",
       "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. So is Creating a Realm (p14), shown beside a Realm you draw by hand. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
@@ -2493,6 +2512,7 @@
         "rivers": "{rivers} rivers cross it.",
         "noRiver": "No river crosses it.",
         "again": "Roll again",
+        "myths": "Choose the Myths",
         "keep": "Keep this Realm",
         "hint": "Nothing is settled until you keep one: the Company waits, and the Realm Key is whispered to the Referees at the end.",
         "failed": "The Realm couldn’t be rolled again. What was on the map stands."
@@ -2539,6 +2559,8 @@
         "name": "Name",
         "number": "Number",
         "mythRoll": "Myth rolled",
+        "chooseMyth": "Choose",
+        "chooseMythTooltip": "Open the Realm’s Myths on this one, to roll it again or choose another for it.",
         "seerRoll": "Seer rolled",
         "roll": "Roll",
         "reference": "{name}, page {page}",

@@ -643,9 +643,24 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	if (canvas.scene?.id !== scene.id) await scene.view();
 
 	// A first roll is only an offer: the Referee looks the Realm over and rolls
-	// again until one of them is theirs. What they keep is the one pictured in
+	// again until one of them is theirs. Which six Myths it holds they can settle
+	// on their own, apart from the roll. What they keep is the one pictured in
 	// the Scenes directory, given the Company, and whispered as a Realm Key.
-	if (review) await askToKeepRealm({ realm, roll: () => rollRealmAgain(scene) });
+	if (review) {
+		/** @type {(() => Promise<void>)|null} Puts the Myths window away again, once one has been opened. */
+		let closeMyths = null;
+		await askToKeepRealm({
+			realm,
+			roll: () => rollRealmAgain(scene),
+			// A window of its own, like the Knight chooser, loaded only when one is asked for.
+			myths: async () => {
+				const { closeMythChooser, openMythChooser } = await import("../apps/MythChooser.js");
+				closeMyths = closeMythChooser;
+				openMythChooser({ scene });
+			}
+		});
+		await closeMyths?.();
+	}
 
 	await refreshThumbnail(scene);
 

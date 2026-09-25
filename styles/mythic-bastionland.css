@@ -3651,6 +3651,16 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	list-style: none;
 }
 
+/* A hover preview pops up over the window and goes again. Chrome would redraw
+   these scrolling lists on a layer of their own as it came and flat as it went,
+   and each redraw lands the pictures and names a fraction of a pixel apart, so
+   every card but the one hovered shivered. Kept on their own layer throughout,
+   they are drawn one way only. */
+.bastionland-chooser__grid,
+.bastionland-myth-chooser__list {
+	will-change: transform;
+}
+
 .bastionland-page .bastionland-chooser__card {
 	position: relative;
 	display: flex;
@@ -3843,7 +3853,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /* Not while a Knight chooser widens to show its Knights, or its columns would
-   stack for a moment on the way. :where() keeps the NPC chooser's own columns winning. */
+   stack for a moment on the way. :where() keeps the Myth chooser's own columns winning. */
 @container (max-width: 860px) {
 	.bastionland-chooser {
 		overflow-y: auto;
@@ -4458,6 +4468,33 @@ button.bastionland-company-button:focus-visible {
 	gap: 0.35rem;
 }
 
+/* The Myth's two dice and its Roll and Choose buttons read as one line: the
+   label sits above so the row has the panel's whole width, and the buttons
+   share what the boxes leave rather than wrapping underneath. */
+.bastionland-realm-panel__myth-roll {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.15rem;
+}
+
+.bastionland-realm-panel__myth-roll > label {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.bastionland-realm-panel__myth-roll > .form-fields {
+	flex: 1 1 auto;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.bastionland-realm-panel__myth-roll button {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	white-space: nowrap;
+}
+
 .bastionland-realm-panel__row {
 	display: flex;
 	align-items: center;
@@ -4823,6 +4860,225 @@ button.bastionland-company-button:focus-visible {
 	aspect-ratio: 2 / 1;
 	object-position: center;
 }
+
+/* ---------------------------------------------------------------- */
+/* The Realm's Myths (module/apps/MythChooser.js)                   */
+/* ---------------------------------------------------------------- */
+
+/* The Realm's six down one side, the book's seventy-two down the other. */
+.bastionland-chooser__layout--myths {
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.bastionland-myth-chooser__realm {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	min-height: 0;
+	/* Its rows' pictures and names grow with the column. */
+	container-type: inline-size;
+}
+
+.bastionland-myth-chooser__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.bastionland-myth-chooser__myth {
+	display: flex;
+	flex: none;
+	align-items: stretch;
+	gap: 0.3rem;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-myth-chooser__myth.is-selected {
+	border-color: var(--bastionland-ink);
+}
+
+/* The row is the one tile: its Myth and its die sit on it, not on tiles of their own. */
+.bastionland-page :is(.bastionland-myth-chooser__pick, .bastionland-myth-chooser__die),
+.bastionland-page :is(.bastionland-myth-chooser__pick, .bastionland-myth-chooser__die):hover {
+	background: transparent;
+	box-shadow: none;
+}
+
+.bastionland-myth-chooser__myth:not(.is-selected):hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-myth-chooser__pick {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	/* Foundry centres a button's contents, which set each number as far in as its name was short. */
+	justify-content: flex-start;
+	gap: 0.6rem;
+	min-width: 0;
+	padding: 0.35rem;
+	border: none;
+	text-align: left;
+}
+
+.bastionland-myth-chooser__number {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-myth-chooser__thumb {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: clamp(5.5rem, 28cqi, 13rem);
+	aspect-ratio: 2 / 1;
+	border: none;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rule);
+	font-size: 1.2rem;
+	object-fit: cover;
+}
+
+.bastionland-myth-chooser__lines {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.bastionland-myth-chooser__name {
+	font-family: var(--bastionland-font-caps);
+	font-size: clamp(1.05rem, 3.2cqi, 1.45rem);
+	line-height: 1.2;
+}
+
+.bastionland-myth-chooser__where {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-page .bastionland-myth-chooser__die {
+	flex: none;
+	width: 32px;
+	border: none;
+}
+
+.bastionland-page .bastionland-myth-chooser__all {
+	flex: none;
+	align-self: flex-start;
+}
+
+/* Foundry's fixed button height squeezed the name and its hex line on top of
+   each other; the row grows to hold both. */
+.bastionland-page .bastionland-myth-chooser__pick,
+.bastionland-page .bastionland-myth-chooser__die {
+	height: auto;
+	min-height: 32px;
+}
+
+/* The table takes the column's height, and MythChooser sizes its cards to fill
+   it: as large as the window allows with the whole d6 result in sight. */
+.bastionland-myth-chooser .bastionland-chooser__grid {
+	flex: 1 1 0;
+	min-height: 0;
+}
+
+.bastionland-myth-chooser .bastionland-chooser__grid.is-fitted {
+	grid-template-columns: repeat(var(--myth-columns), var(--myth-card));
+	justify-content: center;
+}
+
+/* Cropped to the height worked out for it, which may be a little wider or taller than 2:1. */
+.bastionland-myth-chooser .bastionland-chooser__grid.is-fitted .bastionland-chooser__thumb {
+	height: var(--myth-art);
+	aspect-ratio: auto;
+}
+
+.bastionland-myth-chooser .bastionland-chooser__grid.is-fitted .bastionland-chooser__card-name {
+	font-size: clamp(var(--bastionland-font-note), calc(var(--myth-card) * 0.07), 1.35rem);
+}
+
+/* The d6 results and the search share a row above the table. */
+.bastionland-myth-chooser__find {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.bastionland-page .bastionland-myth-chooser__search {
+	flex: 1;
+	min-width: 0;
+	height: 2.25rem;
+}
+
+/* A search shows Myths from every d6 result, so each card names its whole roll. */
+.bastionland-myth-chooser__card-d6 {
+	display: none;
+}
+
+.bastionland-chooser__grid.is-searching .bastionland-myth-chooser__card-d6 {
+	display: inline;
+}
+
+.bastionland-chooser__grid.is-searching .bastionland-chooser__card-roll {
+	padding: 0 0.35rem;
+	border-radius: 0.75rem;
+}
+
+.bastionland-myth-chooser__none {
+	flex: none;
+	margin: 0;
+}
+
+/* The Myth on show is named under the table, with the offer to give it to the Realm. */
+/* One line: the name, its page, then the offer; why it can't be had goes under them. */
+.bastionland-myth-chooser__footer {
+	flex: none;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	align-items: center;
+	gap: 0.3rem 0.9rem;
+}
+
+/* The footer keeps one height, picked or not, so the table above it is never
+   drawn again at another size: the button is there unseen before a Myth is
+   picked, the note's line is kept when there's no note, and the name is set no
+   taller than the button beside it. */
+.bastionland-myth-chooser__footer .bastionland-chooser__name {
+	margin: 0;
+	font-size: 1.6rem;
+	line-height: 1;
+}
+
+.bastionland-page .bastionland-myth-chooser__footer .bastionland-button.is-held {
+	visibility: hidden;
+}
+
+.bastionland-myth-chooser__footer p {
+	margin: 0;
+}
+
+.bastionland-page .bastionland-myth-chooser__footer .bastionland-button {
+	flex: none;
+}
+
+.bastionland-myth-chooser__note {
+	flex-basis: 100%;
+}
+
 /* ---------------------------------------------------------------- */
 /* Art preview: a larger copy of hovered art (module/apps/art-preview.js) */
 /* ---------------------------------------------------------------- */

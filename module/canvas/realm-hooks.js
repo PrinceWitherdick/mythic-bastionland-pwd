@@ -13,6 +13,7 @@ import {
 } from "../actions/realm.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
 import { refreshHexLore } from "../apps/HexLore.js";
+import { refreshMythChooser } from "../apps/MythChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
@@ -57,6 +58,7 @@ function showChanges() {
 		refreshRealmPanel(sceneId);
 		refreshHexLore(sceneId);
 		refreshRealmDrawing(sceneId);
+		refreshMythChooser(sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();

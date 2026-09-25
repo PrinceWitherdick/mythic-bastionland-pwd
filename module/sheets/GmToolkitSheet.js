@@ -128,6 +128,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			openSite: GmToolkitSheet.#onOpenSite,
 			newSite: () => newSite(),
 			newMyth: GmToolkitSheet.#onNewMyth,
+			settleMyths: GmToolkitSheet.#onSettleMyths,
 			rollMythTable: GmToolkitSheet.#onRollMythTable,
 			showMythTable: GmToolkitSheet.#onShowMythTable,
 			showMythArt: GmToolkitSheet.#onShowMythArt,
@@ -1013,6 +1014,23 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			text: null,
 			hint: t("gmToolkit.myths.newMythHint")
 		}, { rolls: [d6, d12], mode: "gm" });
+	}
+
+	/**
+	 * Open the Realm's Myths, where which six the Realm holds is settled: one
+	 * rolled again, all of them rolled again, or one chosen from the book's
+	 * table. Nothing here is posted, since none of it is play: it's the Realm
+	 * being made or mended.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onSettleMyths(_event, target) {
+		const scene = this.scene;
+		if (!scene) return;
+		// Opened from a Myth's own card it opens on that Myth; from the page, on the first.
+		const myth = this.#mythFrom(target);
+		// A window of its own, like the Knight chooser, loaded only when one is asked for.
+		const { openMythChooser } = await import("../apps/MythChooser.js");
+		openMythChooser({ scene, number: myth?.number ?? null });
 	}
 
 	/**

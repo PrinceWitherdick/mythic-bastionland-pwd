@@ -32,6 +32,12 @@ describe("the Realm's Hex panel", () => {
 		expect(app).not.toContain("companyHere");
 	});
 
+	it("rolls a Myth the Realm hasn't got, and leaves the fields beside the die to set one by hand", () => {
+		expect(app).toContain("const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(this.scene)?.realm?.myths);");
+		// The d6 and d12 fields are still the GM's to type into, duplicate or not.
+		expect(template).toContain('<input id="{{partId}}-d6" type="number" name="d6"');
+	});
+
 	it("lets the GM size the window, and fills it when they have", () => {
 		expect(app).toMatch(/window: \{[^}]*resizable: true/);
 		expect(styles).toMatch(/\.bastionland-realm-panel-window\.is-sized \.window-content \{[^}]*max-height: none;/);

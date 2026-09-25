@@ -3,6 +3,7 @@ import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepR
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
+import { createRandom, randomSeed } from "../rules/random.js";
 import {
 	HOLDING_COUNT,
 	HOLDING_STYLES,
@@ -29,9 +30,11 @@ import {
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
+import { rollFreeMyth } from "../rules/realm-myths.js";
 import { directionNames, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openHexLore } from "./HexLore.js";
+import { openMythChooser } from "./MythChooser.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
 import { renderWhenIdle } from "./ui.js";
 
@@ -109,6 +112,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			pickBrush: RealmPanel.#onPickBrush,
 			toggleSeat: RealmPanel.#onToggleSeat,
 			rollMyth: RealmPanel.#onRollMyth,
+			chooseMyth: RealmPanel.#onChooseMyth,
 			rollSeer: RealmPanel.#onRollSeer,
 			omenStep: RealmPanel.#onOmenStep,
 			toggleReveal: RealmPanel.#onToggleReveal,
@@ -406,16 +410,31 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Roll the Myth's d6 and d12 on the Myths table (p27).
+	 * Roll the Myth's d6 and d12 on the Myths table (p27). A Realm never holds
+	 * the same Myth twice, so a Myth it already has, the one in this hex
+	 * included, is rolled again. The d6 and d12 fields beside the die still set
+	 * any roll by hand.
 	 * @this {RealmPanel}
 	 */
 	static async #onRollMyth() {
-		const d6 = await new Roll("1d6").evaluate();
-		const d12 = await new Roll("1d12").evaluate();
+		const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(this.scene)?.realm?.myths);
+		if (!roll) return;
 		await this.#edit((realm, g) => {
 			const { myth } = featureAt(realm, this.hex);
-			return myth ? placeFeature(realm, g, this.hex, { kind: "myth", number: myth.number, d6: d6.total, d12: d12.total }) : realm;
+			return myth ? placeFeature(realm, g, this.hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12 }) : realm;
 		});
+	}
+
+	/**
+	 * Open the Realm's Myths on the one in this hex, to roll it again against
+	 * the Myths the Realm already holds, or to choose another for it by hand.
+	 * @this {RealmPanel}
+	 */
+	static #onChooseMyth() {
+		const scene = this.scene;
+		const realm = scene ? getRealm(scene)?.realm : null;
+		const myth = realm && this.hex ? featureAt(realm, this.hex).myth : null;
+		if (myth) openMythChooser({ scene, number: myth.number });
 	}
 
 	/**

@@ -1,0 +1,92 @@
+<div class="bastionland-page bastionland-chooser bastionland-myth-chooser">
+	{{#if notice}}
+	<p class="bastionland-chooser__notice">{{notice}}</p>
+	{{/if}}
+
+	<p class="bastionland-hint">{{localize "bastionland.mythChooser.hint"}}</p>
+
+	<div class="bastionland-chooser__layout bastionland-chooser__layout--myths">
+		<section class="bastionland-myth-chooser__realm" aria-label="{{localize 'bastionland.mythChooser.inRealm'}}">
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.mythChooser.inRealm"}}</h2>
+
+			<ol class="bastionland-myth-chooser__list">
+				{{#each myths}}
+				<li class="bastionland-myth-chooser__myth{{#if selected}} is-selected{{/if}}">
+					<button type="button" class="bastionland-myth-chooser__pick" data-action="chooseMyth" data-number="{{number}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
+						<span class="bastionland-myth-chooser__number">{{number}}</span>
+						{{#if img}}
+						<img class="bastionland-myth-chooser__thumb" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
+						{{else}}
+						<span class="bastionland-myth-chooser__thumb is-empty"><i class="fa-solid fa-dragon" inert></i></span>
+						{{/if}}
+						<span class="bastionland-myth-chooser__lines">
+							<span class="bastionland-myth-chooser__name">{{name}}</span>
+							<span class="bastionland-myth-chooser__where">{{hex}} · {{reference}}</span>
+						</span>
+					</button>
+					<button type="button" class="bastionland-myth-chooser__die" data-action="rollMyth" data-number="{{number}}" data-tooltip="{{localize 'bastionland.mythChooser.rollOne'}}" aria-label="{{localize 'bastionland.mythChooser.rollOne'}}">
+						<i class="fa-solid fa-dice" inert></i>
+					</button>
+				</li>
+				{{else}}
+				<li class="bastionland-empty">{{localize "bastionland.myths.noMyths"}}</li>
+				{{/each}}
+			</ol>
+
+			{{#if myths.length}}
+			<button type="button" class="bastionland-button bastionland-myth-chooser__all" data-action="rollAll">
+				<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.mythChooser.rollAll"}}
+			</button>
+			{{/if}}
+		</section>
+
+		<section class="bastionland-chooser__browse" aria-label="{{localize 'bastionland.mythChooser.table'}}">
+			<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.mythChooser.table"}}</h2>
+
+			<div class="bastionland-myth-chooser__find">
+				<ul class="bastionland-chooser__groups">
+					{{#each groups}}
+					<li>
+						<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				<input type="search" name="search" class="bastionland-myth-chooser__search" value="{{search}}" placeholder="{{localize 'bastionland.mythChooser.search'}}" aria-label="{{localize 'bastionland.mythChooser.search'}}" autocomplete="off">
+			</div>
+
+			<p class="bastionland-empty bastionland-myth-chooser__none" hidden>{{localize "bastionland.mythChooser.noMatch"}}</p>
+
+			<ul class="bastionland-chooser__grid bastionland-chooser__grid--wide">
+				{{#each cards}}
+				<li data-d6="{{d6}}" data-search="{{searchText}}" {{#unless inGroup}}hidden{{/unless}}>
+					<button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if taken}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
+						<span class="bastionland-chooser__card-roll"><span class="bastionland-myth-chooser__card-d6">{{d6}}-</span>{{d12}}</span>
+						{{#if img}}
+						<img class="bastionland-chooser__thumb bastionland-chooser__thumb--wide" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
+						{{else}}
+						<span class="bastionland-chooser__thumb bastionland-chooser__thumb--wide is-empty"><i class="fa-solid fa-dragon" inert></i></span>
+						{{/if}}
+						<span class="bastionland-chooser__card-name">{{name}}</span>
+						{{#if taken}}
+						<span class="bastionland-chooser__taken">{{takenLabel}}</span>
+						{{/if}}
+					</button>
+				</li>
+				{{/each}}
+			</ul>
+
+			<div class="bastionland-chooser__footer bastionland-myth-chooser__footer">
+				{{#with picked}}
+				<h3 class="bastionland-chooser__name">{{name}}</h3>
+				<p class="bastionland-chooser__reference">{{reference}}</p>
+				{{else}}
+				<p class="bastionland-empty">{{localize "bastionland.mythChooser.noPick"}}</p>
+				{{/with}}
+				<button type="button" class="bastionland-button{{#unless offer}} is-held{{/unless}}" data-action="useRoll" {{#unless picked.free}}disabled{{/unless}}>
+					<i class="fa-solid fa-feather-pointed" inert></i> {{useLabel}}
+				</button>
+				<p class="bastionland-hint bastionland-myth-chooser__note">{{#if picked.note}}{{picked.note}}{{else}}&nbsp;{{/if}}</p>
+			</div>
+		</section>
+	</div>
+</div>

@@ -63,6 +63,9 @@ function showRealm(element, realm) {
 	};
 	write("[data-keep-tally]", tally);
 	write("[data-keep-seed]", seed);
+	// A Realm set up without Myths has none to settle.
+	const myths = element.querySelector("[data-keep-myths]");
+	if (myths) myths.hidden = !realm.myths.length;
 }
 
 /**
@@ -73,13 +76,18 @@ function showRealm(element, realm) {
  * @param {object} options
  * @param {import("../rules/realm.js").Realm} options.realm What's on the map now.
  * @param {() => Promise<import("../rules/realm.js").Realm|null>} options.roll Rolls another onto the same Scene.
+ * @param {(() => unknown)|null} [options.myths] Opens the Realm's Myths to be settled. Omit to leave the offer out.
  * @returns {Promise<import("../rules/realm.js").Realm>} The Realm they kept.
  */
-export async function askToKeepRealm({ realm, roll }) {
+export async function askToKeepRealm({ realm, roll, myths = null }) {
 	let shown = realm;
 	/** @type {Promise<void>|null} The roll being laid on the Scene, while there is one. */
 	let rolling = null;
-	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/keep-realm.hbs"), keepRealmLines(realm));
+	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/keep-realm.hbs"), {
+		...keepRealmLines(realm),
+		// Which six Myths the Realm holds is settled on its own, apart from the roll that made the Realm.
+		myths: Boolean(myths) && realm.myths.length > 0
+	});
 
 	/**
 	 * Roll another Realm onto the Scene and say what it holds. The button waits
@@ -118,6 +126,11 @@ export async function askToKeepRealm({ realm, roll }) {
 		rejectClose: false,
 		render: (_event, dialog) => {
 			const element = dialog.element;
+			const settle = element?.querySelector("[data-keep-myths]");
+			if (settle && myths && !settle.dataset.wired) {
+				settle.dataset.wired = "true";
+				settle.addEventListener("click", () => myths());
+			}
 			const button = element?.querySelector("[data-keep-again]");
 			if (!button || button.dataset.wired) return;
 			button.dataset.wired = "true";

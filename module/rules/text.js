@@ -177,3 +177,11 @@ export function logicalLines(lines) {
  * @returns {string} The text with its edges trimmed, or "" where there is none.
  */
 export const trimmedText = (value) => (typeof value === "string" ? value.trim() : "");
+
+/**
+ * Text as a search compares it: lower case, and with its accents taken off, so
+ * "hollow" finds "Hollow" and "e" finds "é".
+ * @param {string} text
+ * @returns {string}
+ */
+export const searchable = (text) => String(text ?? "").normalize("NFD").replace(/\p{Mn}/gu, "").toLocaleLowerCase();

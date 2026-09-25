@@ -71,6 +71,44 @@ export async function chooseDialog({ title, icon, message, buttons, classes = []
 export const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
 
 /**
+ * How many columns a grid of pictured cards wants for its pictures to be as
+ * large as the space allows, with every card in sight. A picture is cropped to
+ * fill its frame, so the frame may be drawn anywhere between two shapes: that
+ * lets the cards take the space's height as well as its width, where a single
+ * shape would leave one of them over.
+ * @param {object} space
+ * @param {number} space.count  How many cards.
+ * @param {number} space.width  The grid's width.
+ * @param {number} space.height The grid's height.
+ * @param {number} space.gap    Between cards, across and down.
+ * @param {number} space.widest The widest a picture may be drawn, as its width over its height.
+ * @param {number} space.tallest The tallest, likewise.
+ * @param {number} space.inset  How much narrower a picture is than its card.
+ * @param {number} space.extra  How much taller a card is than its picture: its name and the like.
+ * @param {number} space.min    The narrowest a card may be.
+ * @param {number} space.max    The widest a card may be.
+ * @returns {{columns: number, size: number, art: number}|null} The columns, a card's width and its picture's height, in whole pixels; or null when even the narrowest cards won't all fit.
+ */
+export function fitCards({ count, width, height, gap, widest, tallest, inset, extra, min, max }) {
+	let best = null;
+	for (let columns = 1; columns <= count; columns++) {
+		const across = Math.floor((width - (columns - 1) * gap) / columns);
+		// More columns only ever make narrower cards.
+		if (across < min) break;
+		const rows = Math.ceil(count / columns);
+		const room = Math.floor((height - (rows - 1) * gap) / rows - extra);
+		if (room <= 0) continue;
+		// As wide as the column allows, unless even the widest shape then stands taller than the row.
+		const size = Math.min(across, Math.floor(max), Math.floor(room * widest + inset));
+		if (size < min) continue;
+		const art = Math.min(room, Math.floor((size - inset) / tallest));
+		const area = (size - inset) * art;
+		if (!best || area > best.area) best = { columns, size, art, area };
+	}
+	return best && { columns: best.columns, size: best.size, art: best.art };
+}
+
+/**
  * Mark a button as the chosen one of a row, for a reader as well as a looker.
  * @param {HTMLElement} button
  * @param {boolean} active
