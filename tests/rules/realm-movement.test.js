@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { edgeKey, hexCentre, realmGeometry } from "../../module/rules/realm-geometry.js";
-import { movePathProblem, realmMoveProblem } from "../../module/rules/realm-movement.js";
+import { barriersMet, movePathProblem, realmMoveProblem } from "../../module/rules/realm-movement.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });
@@ -29,6 +29,15 @@ describe("realmMoveProblem", () => {
 	it("allows going round a Barrier a hex at a time", () => {
 		const detour = [hex(1, 1), hex(1, 2), hex(2, 2), hex(2, 1)];
 		detour.slice(1).forEach((to, index) => expect(realmMoveProblem(g, barriers, detour[index], to)).toBeNull());
+	});
+
+	it("names the Barriers a refused move ran into, and only those", () => {
+		const across = edgeKey(hex(2, 2), hex(3, 3));
+		const down = edgeKey(hex(2, 2), hex(2, 3));
+		const elsewhere = edgeKey(hex(8, 8), hex(8, 9));
+		expect(barriersMet(g, new Set([across, down, elsewhere]), hex(2, 2), hex(3, 4)).sort()).toEqual([across, down].sort());
+		expect(barriersMet(g, barriers, hex(1, 1), hex(2, 1))).toEqual([edgeKey(hex(1, 1), hex(2, 1))]);
+		expect(barriersMet(g, barriers, hex(1, 1), null)).toEqual([]);
 	});
 
 	it("refuses leaving the Realm, but lets a token come onto it", () => {

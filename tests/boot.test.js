@@ -338,6 +338,10 @@ describe("system boot", () => {
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
 	});
 
+	it("keeps the hex readout's column and row off until the GM turns them on for the table", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexCoordinates", expect.objectContaining({ scope: "world", config: true, type: Boolean, default: false }));
+	});
+
 	it("lets each GM say what reaching a new hex should do", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexLorePrompt", expect.objectContaining({
 			scope: "client",

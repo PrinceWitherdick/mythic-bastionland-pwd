@@ -17,7 +17,7 @@ import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
-import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
 
 /** The Scene flag holding what the GM has written about each hex of its Realm. */
@@ -251,7 +251,7 @@ export async function tellPlayersAboutHex({ scene, hex }) {
 		return null;
 	}
 	const { realm } = getRealm(scene);
-	const seen = hexSummary(realm, sceneGeometry(scene), hex, { showHidden: false });
+	const seen = hexSummary(realm, sceneGeometry(scene), hex, { showHidden: false, hiddenByHand: hexHiddenByHand(scene, hex) });
 	const named = [
 		seen.holding && (seen.holding.name || t(`realm.holdings.${seen.holding.style}`)),
 		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))

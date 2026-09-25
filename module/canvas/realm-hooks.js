@@ -18,11 +18,12 @@ import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
 import { t } from "../chat/cards.js";
-import { movePathProblem } from "../rules/realm-movement.js";
+import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { listenForBarriersFound, reportBarriersFound } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
-import { attachHexReadout, detachHexReadout, updateHexReadout } from "./hex-readout.js";
+import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 
 /**
  * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
@@ -41,11 +42,17 @@ function allowRealmMove(token, movement) {
 
 	const waypoints = [movement.origin, ...(movement.passed?.waypoints ?? []), ...(movement.pending?.waypoints ?? [])].filter(Boolean);
 	const points = waypoints.map((waypoint) => token.getCenterPoint(waypoint));
+	const g = sceneGeometry(scene);
 	const barriers = new Set(entry.realm.barriers.map((barrier) => barrier.edge));
-	const problem = movePathProblem(sceneGeometry(scene), barriers, points);
+	const problem = movePathProblem(g, barriers, points);
 	if (!problem) return true;
 
 	ui.notifications.warn(t(`realm.movement.${problem.reason}`));
+	// A hidden Barrier found by walking into it isn't hidden any more.
+	if (problem.reason === "barrier") {
+		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
+		reportBarriersFound(scene, barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)));
+	}
 	return false;
 }
 
@@ -95,6 +102,11 @@ function showRealmRules() {
 /** The hooks Realm Scenes rely on. Called during init. */
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
+	// A player's Company that runs into a hidden Barrier has the GM's client reveal it.
+	listenForBarriersFound();
+
+	// Whether the hex readout names the column and row as well.
+	registerHexReadoutSetting();
 
 	// A Company coming to rest in a hex nothing has been written down for.
 	registerHexPrompt();

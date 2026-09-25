@@ -51,7 +51,7 @@ describe("hexSummary", () => {
 	realm.landmarks.push({ id: "l", hex: { col: 1, row: 1 }, type: "ruin", name: "", seer: null, revealed: true });
 
 	it("shows players a hex's terrain and Holding, and hidden things only once revealed", () => {
-		expect(hexSummary(realm, g, hex)).toEqual({ hex, terrain: "forest", holding: null, myth: null, landmark: null });
+		expect(hexSummary(realm, g, hex)).toEqual({ hex, terrain: "forest", terrainRevealed: true, holding: null, myth: null, landmark: null });
 		expect(hexSummary(realm, g, { col: 1, row: 1 })).toMatchObject({
 			holding: { style: "town", name: "Oakwall", seat: true },
 			landmark: { type: "ruin", revealed: true }
@@ -60,6 +60,15 @@ describe("hexSummary", () => {
 
 	it("shows GMs everything", () => {
 		expect(hexSummary(realm, g, hex, { showHidden: true }).myth).toEqual({ number: 2, revealed: false });
+	});
+
+	it("keeps quiet to players about the terrain, Holding or Seat the GM hid by hand, and marks them for the GM", () => {
+		const home = { col: 1, row: 1 };
+		expect(hexSummary(realm, g, hex, { hiddenByHand: { terrain: true } }).terrain).toBeNull();
+		expect(hexSummary(realm, g, home, { hiddenByHand: { holding: true } }).holding).toBeNull();
+		expect(hexSummary(realm, g, home, { hiddenByHand: { seat: true } }).holding).toMatchObject({ name: "Oakwall", seat: false });
+		expect(hexSummary(realm, g, hex, { showHidden: true, hiddenByHand: { terrain: true } })).toMatchObject({ terrain: "forest", terrainRevealed: false });
+		expect(hexSummary(realm, g, home, { showHidden: true, hiddenByHand: { holding: true } }).holding).toMatchObject({ seat: true, revealed: false });
 	});
 });
 

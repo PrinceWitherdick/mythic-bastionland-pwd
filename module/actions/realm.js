@@ -11,6 +11,7 @@ import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, validateRealm } from ".
 import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
 import {
 	LEVEL_ID,
+	hiddenByHand,
 	planChanges,
 	planRealmSync,
 	realmFlag,
@@ -122,6 +123,9 @@ export async function keepRealmLooks() {
 /** Realms read from their Scenes, by Scene id, until one of their documents changes. */
 const realms = new Map();
 
+/** The Tiles hidden on each Realm read, for hexHiddenByHand: dropped with the reading when a document changes. */
+const hiddenTiles = new WeakMap();
+
 /**
  * @param {Scene|null|undefined} scene
  * @returns {boolean} Whether the Scene was built as a Realm.
@@ -152,6 +156,22 @@ export function getRealm(scene) {
 		realms.set(scene.id, entry);
 	}
 	return entry;
+}
+
+/**
+ * @param {Scene} scene A Realm Scene.
+ * @param {{col: number, row: number}} hex
+ * @returns {{terrain: boolean, holding: boolean, seat: boolean}} What of the hex the GM has hidden by hand, for hexSummary.
+ */
+export function hexHiddenByHand(scene, hex) {
+	// The hover readout asks at every hex crossed, so the hidden Tiles are gathered once per reading of the Realm.
+	const entry = getRealm(scene);
+	let hidden = entry && hiddenTiles.get(entry);
+	if (!hidden) {
+		hidden = scene.tiles.filter((tile) => tile._source.hidden).map((tile) => tile._source);
+		if (entry) hiddenTiles.set(entry, hidden);
+	}
+	return hiddenByHand(hidden, sceneGeometry(scene), hex);
 }
 
 /**

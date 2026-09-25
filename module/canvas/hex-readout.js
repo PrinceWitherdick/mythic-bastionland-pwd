@@ -1,7 +1,11 @@
-import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import { hexSummary } from "../rules/realm.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
+import { SYSTEM_ID } from "../system-id.js";
+
+/** World setting: whether the readout leads with the hex's column and row, for everyone at the table. */
+const COORDINATES_SETTING = "hexCoordinates";
 
 /** @type {HTMLElement|null} */
 let chip = null;
@@ -11,16 +15,36 @@ let shown = null;
 
 const onPointerMove = () => updateHexReadout();
 
+/** Register the readout's setting. Called during init. */
+export function registerHexReadoutSetting() {
+	game.settings.register(SYSTEM_ID, COORDINATES_SETTING, {
+		name: "bastionland.realm.readout.settings.coordinates.name",
+		hint: "bastionland.realm.readout.settings.coordinates.hint",
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		onChange: () => updateHexReadout({ force: true })
+	});
+}
+
+/** @returns {boolean} */
+const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING) === true;
+
 /**
  * @param {ReturnType<typeof hexSummary>} summary
- * @returns {string} e.g. "Column 5, Row 7 · Forest · Castle, Seat of Power".
+ * @param {object} [options]
+ * @param {boolean} [options.coordinates] Lead with the hex's column and row.
+ * @returns {string} e.g. "Column 5, Row 7 · Forest · Castle, Seat of Power". Empty where the hex holds nothing worth naming.
  */
-function describe(summary) {
-	const parts = [t("realm.hex", summary.hex)];
-	if (summary.terrain) parts.push(t(`realm.terrain.${summary.terrain}`));
+export function describeHex(summary, { coordinates = false } = {}) {
+	const parts = coordinates ? [t("realm.hex", summary.hex)] : [];
+	// Only a GM is told of what's hidden, so only a GM sees it marked.
+	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
+	if (summary.terrain) parts.push(marked(t(`realm.terrain.${summary.terrain}`), summary.terrainRevealed));
 	if (summary.holding) {
 		const name = summary.holding.name || t(`realm.holdings.${summary.holding.style}`);
-		parts.push(summary.holding.seat ? t("realm.readout.seat", { name }) : name);
+		parts.push(marked(summary.holding.seat ? t("realm.readout.seat", { name }) : name, summary.holding.revealed));
 	}
 	if (summary.myth) parts.push(t(summary.myth.revealed ? "realm.readout.myth" : "realm.readout.hiddenMyth", { number: summary.myth.number }));
 	if (summary.landmark) {
@@ -68,6 +92,8 @@ export function updateHexReadout({ force = false } = {}) {
 	}
 	if (!force && shown === hexKey(hex)) return;
 	shown = hexKey(hex);
-	chip.textContent = describe(hexSummary(entry.realm, g, hex, { showHidden: game.user.isGM }));
-	chip.hidden = false;
+	const summary = hexSummary(entry.realm, g, hex, { showHidden: game.user.isGM, hiddenByHand: hexHiddenByHand(scene, hex) });
+	const text = describeHex(summary, { coordinates: showsCoordinates() });
+	chip.textContent = text;
+	chip.hidden = !text;
 }

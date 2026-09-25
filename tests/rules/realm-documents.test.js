@@ -10,6 +10,7 @@ import {
 	ICON_SCALE,
 	LEVEL_ID,
 	REALM_SORT,
+	hiddenByHand,
 	isRealmDocument,
 	planChanges,
 	planRealmSync,
@@ -356,5 +357,24 @@ describe("riverNetworkPieces", () => {
 		const pieces = riverNetworkPieces(g, [river], new Array(144).fill(1));
 		expect(pieces.every((piece) => RIVER_SHAPES.includes(piece.shape))).toBe(true);
 		expect(pieces.map((piece) => piece.shape)).toContain("bend");
+	});
+});
+
+describe("hiddenByHand", () => {
+	it("finds the terrain, Holding and Seat Tiles the GM has hidden in a hex, and nothing elsewhere", () => {
+		const { realm, snapshot } = onScene();
+		const seat = realm.holdings.find((holding) => holding.seat);
+		const hide = (kind) =>
+			snapshot.tiles
+				.filter((tile) => flagOf(tile)?.kind === kind && hexKey(hexAt(g, tile)) === hexKey(seat.hex))
+				.forEach((tile) => (tile.hidden = true));
+		expect(hiddenByHand(snapshot.tiles, g, seat.hex)).toEqual({ terrain: false, holding: false, seat: false });
+		hide("terrain");
+		hide("seat");
+		expect(hiddenByHand(snapshot.tiles, g, seat.hex)).toEqual({ terrain: true, holding: false, seat: true });
+		hide("holding");
+		expect(hiddenByHand(snapshot.tiles, g, seat.hex)).toEqual({ terrain: true, holding: true, seat: true });
+		const other = realm.holdings.find((holding) => hexKey(holding.hex) !== hexKey(seat.hex));
+		expect(hiddenByHand(snapshot.tiles, g, other.hex)).toEqual({ terrain: false, holding: false, seat: false });
 	});
 });

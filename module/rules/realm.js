@@ -133,22 +133,28 @@ export function featureAt(realm, hex) {
 
 /**
  * What someone looking at a hex can see of it. Players see a Myth or Landmark
- * only once it's revealed.
+ * only once it's revealed, and nothing of the hex the GM has hidden by hand.
  * @param {Realm} realm
  * @param {object} g
  * @param {Hex} hex
  * @param {object} [options]
  * @param {boolean} [options.showHidden] For GMs.
- * @returns {{hex: Hex, terrain: string|null, holding: {style: string, name: string, seat: boolean}|null,
+ * @param {{terrain?: boolean, holding?: boolean, seat?: boolean}} [options.hiddenByHand] The hex's Tiles the GM has hidden, from hiddenByHand.
+ * @returns {{hex: Hex, terrain: string|null, terrainRevealed: boolean, holding: {style: string, name: string, seat: boolean, revealed: boolean}|null,
  *   myth: {number: number, revealed: boolean}|null, landmark: {type: string, name: string, revealed: boolean}|null}}
  */
-export function hexSummary(realm, g, hex, { showHidden = false } = {}) {
+export function hexSummary(realm, g, hex, { showHidden = false, hiddenByHand = {} } = {}) {
 	const { holding, myth, landmark } = featureAt(realm, hex);
 	const terrain = terrainAt(realm, g, hex);
+	const hand = { terrain: Boolean(hiddenByHand.terrain), holding: Boolean(hiddenByHand.holding), seat: Boolean(holding?.seat && hiddenByHand.seat) };
 	return {
 		hex,
-		terrain: terrain ? TERRAIN[terrain - 1] ?? null : null,
-		holding: holding ? { style: holding.style, name: holding.name ?? "", seat: Boolean(holding.seat) } : null,
+		terrain: terrain && (showHidden || !hand.terrain) ? TERRAIN[terrain - 1] ?? null : null,
+		terrainRevealed: !hand.terrain,
+		holding:
+			holding && (showHidden || !hand.holding)
+				? { style: holding.style, name: holding.name ?? "", seat: Boolean(holding.seat) && (showHidden || !hand.seat), revealed: !hand.holding && !hand.seat }
+				: null,
 		myth: myth && (showHidden || myth.revealed) ? { number: myth.number, revealed: Boolean(myth.revealed) } : null,
 		landmark: landmark && (showHidden || landmark.revealed) ? { type: landmark.type, name: landmark.name ?? "", revealed: Boolean(landmark.revealed) } : null
 	};

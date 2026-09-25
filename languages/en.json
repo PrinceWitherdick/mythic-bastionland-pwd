@@ -2554,7 +2554,9 @@
       },
       "movement": {
         "barrier": "A Barrier blocks the way.",
-        "offMap": "That’s past the edge of the Realm."
+        "offMap": "That’s past the edge of the Realm.",
+        "found": "{name} ran into a hidden Barrier between {from} and {to}. It’s shown on the map now.",
+        "someone": "A player"
       },
       "controls": {
         "title": "Realm"
@@ -2577,7 +2579,13 @@
         "seat": "{name}, Seat of Power",
         "myth": "Myth {number}",
         "hiddenMyth": "Myth {number} (hidden)",
-        "hidden": "{name} (hidden)"
+        "hidden": "{name} (hidden)",
+        "settings": {
+          "coordinates": {
+            "name": "Show hex column and row",
+            "hint": "Pointing at a hex of a Realm names its column and row, such as Column 5, Row 7, before what’s there. Everyone at the table sees them."
+          }
+        }
       },
       "wilderness": {
         "title": "Wilderness Roll",

@@ -22,22 +22,45 @@ export const MOVE_PROBLEMS = Object.freeze(["offMap", "barrier"]);
 export function realmMoveProblem(g, barriers, from, to) {
 	if (!inRealm(g, to)) return "offMap";
 	if (!inRealm(g, from) || sameHex(from, to)) return null;
+	return shortestWays(g, barriers, from, to).blocked ? "barrier" : null;
+}
 
+/**
+ * The Barriers a move between two hexes runs into: each one across the
+ * shortest ways there that the Company gets as far as, and so finds by trying.
+ * @param {object} g From realmGeometry.
+ * @param {Set<string>} barriers Edge keys.
+ * @param {{col: number, row: number}|null} from
+ * @param {{col: number, row: number}|null} to
+ * @returns {string[]} Edge keys.
+ */
+export function barriersMet(g, barriers, from, to) {
+	if (!inRealm(g, from) || !inRealm(g, to) || sameHex(from, to)) return [];
+	return shortestWays(g, barriers, from, to).met;
+}
+
+/**
+ * Walk every shortest way from one hex of a Realm to another, a hex at a time.
+ * @returns {{blocked: boolean, met: string[]}} Whether every way is barred, and the Barriers found on the way.
+ */
+function shortestWays(g, barriers, from, to) {
 	const distance = hexDistance(g, from, to);
+	const met = new Set();
 	let reached = [from];
 	for (let step = 1; step <= distance; step++) {
 		const next = new Map();
 		for (const hex of reached) {
 			for (const { hex: beside } of neighbours(g, hex)) {
 				if (hexDistance(g, beside, to) !== distance - step) continue;
-				if (barriers.has(edgeKey(hex, beside))) continue;
-				next.set(hexKey(beside), beside);
+				const edge = edgeKey(hex, beside);
+				if (barriers.has(edge)) met.add(edge);
+				else next.set(hexKey(beside), beside);
 			}
 		}
-		if (!next.size) return "barrier";
+		if (!next.size) return { blocked: true, met: [...met] };
 		reached = [...next.values()];
 	}
-	return null;
+	return { blocked: false, met: [...met] };
 }
 
 /**

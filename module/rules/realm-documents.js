@@ -367,6 +367,29 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 }
 
 /**
+ * What the GM has hidden of a hex by hand, by hiding its terrain, Holding or
+ * Seat Tile on the Scene. The Realm doesn't record these, since only Myths,
+ * Landmarks and Barriers are hidden by the rules, but a sync keeps them hidden
+ * (KEPT_ON_UPDATE), so what players are told should keep quiet about them too.
+ * @param {object[]} tiles Tile source data.
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {{terrain: boolean, holding: boolean, seat: boolean}}
+ */
+export function hiddenByHand(tiles, g, hex) {
+	const hidden = { terrain: false, holding: false, seat: false };
+	const key = hexKey(hex);
+	for (const tile of tiles) {
+		if (!tile.hidden) continue;
+		const kind = realmFlag(tile)?.kind;
+		if (!Object.hasOwn(hidden, kind)) continue;
+		const at = hexAt(g, tile);
+		if (at && hexKey(at) === key) hidden[kind] = true;
+	}
+	return hidden;
+}
+
+/**
  * Read a Realm back from its Scene.
  * @param {object} snapshot
  * @param {object} [snapshot.flags] The Scene's flags.
