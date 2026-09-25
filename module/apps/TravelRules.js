@@ -1,11 +1,12 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { takeExplorationAct } from "../actions/exploration.js";
-import { isRealmScene } from "../actions/realm.js";
+import { isDrawingRealm, isRealmScene } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { gallop } from "../actions/steeds.js";
 import { sufferHardship } from "../actions/time.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { t } from "../chat/cards.js";
+import { read } from "../client-settings.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
 import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesView, pressingSections } from "../rules/travel-rules.js";
 import { HARDSHIPS } from "../rules/time.js";
@@ -15,7 +16,10 @@ import { MapSidePanel } from "./MapSidePanel.js";
 /** Which sides of the map this browser has folded away, and which groups it has closed. */
 const VIEW_SETTING = "travelRules";
 
-/** Register where each browser left the rules. Called during init. */
+/** Whether this browser shows the rules at all. Everyone else at the table keeps their own choice. */
+const SHOWN_SETTING = "travelRulesShown";
+
+/** Register where each browser left the rules, and whether it shows them. Called during init. */
 export function registerTravelRulesSetting() {
 	game.settings.register(SYSTEM_ID, VIEW_SETTING, {
 		scope: "client",
@@ -23,7 +27,20 @@ export function registerTravelRulesSetting() {
 		type: Object,
 		default: { folded: [], closed: [] }
 	});
+	game.settings.register(SYSTEM_ID, SHOWN_SETTING, {
+		name: "bastionland.settings.travelRulesShown.name",
+		hint: "bastionland.settings.travelRulesShown.hint",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: true,
+		// A Realm still being drawn by hand shows Creating a Realm there instead, and keeps it.
+		onChange: (shown) => (shown && !isDrawingRealm(canvas?.scene) ? showTravelRules() : closeTravelRules())
+	});
 }
+
+/** @returns {boolean} Whether this browser shows the rules beside a Realm's map. */
+export const travelRulesShown = () => read(SHOWN_SETTING, true) !== false;
 
 /** @returns {ReturnType<typeof normaliseTravelRulesView>} */
 const getView = () => normaliseTravelRulesView(game.settings.get(SYSTEM_ID, VIEW_SETTING));
@@ -175,12 +192,12 @@ export class TravelRules extends MapSidePanel {
 const panels = new Map();
 
 /**
- * Show the rules on both sides of the map while a Realm Scene is on the canvas.
- * Called as the canvas becomes ready.
+ * Show the rules on both sides of the map while a Realm Scene is on the canvas,
+ * unless this browser has turned them off. Called as the canvas becomes ready.
  * @returns {Promise<unknown>}
  */
 export function showTravelRules() {
-	if (!isRealmScene(canvas?.scene)) return closeTravelRules();
+	if (!isRealmScene(canvas?.scene) || !travelRulesShown()) return closeTravelRules();
 	return Promise.all(TRAVEL_SIDES.map((side) => {
 		if (!panels.has(side)) panels.set(side, new TravelRules({ id: `bastionland-travel-rules-${side}`, side, classes: [`bastionland-travel-rules--${side}`] }));
 		return panels.get(side).render({ force: true });

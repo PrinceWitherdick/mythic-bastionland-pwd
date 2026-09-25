@@ -88,27 +88,47 @@ describe("pressingSections", () => {
 });
 
 describe("travelRulesPlacement", () => {
-	it("sits against the map's right edge, level with its top and as tall as the map", () => {
-		expect(travelRulesPlacement({ left: 532, top: 40, right: 1387, bottom: 1040 })).toEqual({ left: 1399, top: 40, maxHeight: 1000 });
+	const screen = { left: 120, top: 40, right: 1600, bottom: 1040 };
+
+	it("stands against the map's edges, level with its top and as tall as it, whichever way the map has been panned and zoomed", () => {
+		const map = { left: 500, top: -300, right: 1100, bottom: 1400 };
+		expect(travelRulesPlacement(screen, { side: "right", map, width: 380 })).toEqual({ left: 1112, top: -300, maxHeight: 1700 });
+		expect(travelRulesPlacement(screen, { side: "left", map, width: 380 })).toEqual({ left: 108, top: -300, maxHeight: 1700 });
 	});
 
-	it("sits against the map's left edge on the left, its own width away", () => {
-		expect(travelRulesPlacement({ left: 532, top: 40, right: 1387, bottom: 1040 }, { side: "left" })).toEqual({ left: 220, top: 40, maxHeight: 1000 });
-		expect(travelRulesPlacement({ left: 532, top: 40, right: 1387, bottom: 1040 }, { side: "left", width: 320, scale: 1.25 }).left).toBe(117);
+	it("is never shorter than can be read, however far out the map is zoomed", () => {
+		expect(travelRulesPlacement(screen, { map: { left: 700, top: 500, right: 900, bottom: 600 }, width: 380 })).toMatchObject({ top: 500, maxHeight: 240 });
 	});
 
-	it("stays held to the map while it runs past the top and foot of the screen", () => {
-		expect(travelRulesPlacement({ top: -500, right: 2100, bottom: 3000 })).toEqual({ left: 2112, top: -500, maxHeight: 3500 });
-		expect(travelRulesPlacement({ top: -2000, right: 900, bottom: 100 })).toEqual({ left: 912, top: -2000, maxHeight: 2100 });
+	it("grows its gap from the map with the interface scale", () => {
+		expect(travelRulesPlacement(screen, { side: "left", map: { left: 800, right: 1000 }, width: 300, scale: 1.5 }).left).toBe(332);
 	});
 
-	it("is never shorter than can be read, beside a small map", () => {
-		expect(travelRulesPlacement({ top: 400, right: 900, bottom: 600 })).toMatchObject({ top: 400, maxHeight: 240 });
+	it("stands inside the sidebar on the right, under the navigation and above the hotbar", () => {
+		expect(travelRulesPlacement(screen, { width: 380 })).toEqual({ left: 1208, top: 52, maxHeight: 976 });
+	});
+
+	it("stands inside the tool palette on the left, its own width away from that edge", () => {
+		expect(travelRulesPlacement(screen, { side: "left", width: 380 })).toEqual({ left: 132, top: 52, maxHeight: 976 });
+	});
+
+	it("keeps both panels whole inside the room the interface leaves", () => {
+		for (const side of TRAVEL_SIDES) {
+			const { left, top, maxHeight } = travelRulesPlacement(screen, { side, width: 380 });
+			expect(left).toBeGreaterThanOrEqual(screen.left);
+			expect(left + 380).toBeLessThanOrEqual(screen.right);
+			expect(top).toBeGreaterThanOrEqual(screen.top);
+			expect(top + maxHeight).toBeLessThanOrEqual(screen.bottom);
+		}
+	});
+
+	it("is never shorter than can be read, on a short screen", () => {
+		expect(travelRulesPlacement({ left: 0, top: 400, right: 900, bottom: 600 })).toMatchObject({ top: 412, maxHeight: 240 });
 	});
 
 	it("grows its gap and least height with the interface scale", () => {
-		expect(travelRulesPlacement({ top: -500, right: 1000, bottom: 3000 }, { scale: 1.5 })).toEqual({ left: 1018, top: -500, maxHeight: 3500 });
-		expect(travelRulesPlacement({ top: 400, right: 1000, bottom: 600 }, { scale: 1.5 }).maxHeight).toBe(360);
+		expect(travelRulesPlacement(screen, { width: 380, scale: 1.5 })).toEqual({ left: 1012, top: 58, maxHeight: 964 });
+		expect(travelRulesPlacement({ left: 0, top: 400, right: 1000, bottom: 600 }, { scale: 1.5 }).maxHeight).toBe(360);
 	});
 });
 

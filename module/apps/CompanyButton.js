@@ -9,21 +9,23 @@ import { findCompanyToken } from "../actions/company.js";
 import { isRealmScene } from "../actions/realm.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { t } from "../chat/cards.js";
-import { TEXT_SIZE_HOOK } from "../client-settings.js";
 import { companyButtonPlacement } from "../rules/company.js";
-import { mapOnScreen, mapPanelScale } from "./map-screen.js";
+import { followMap, forgetNavigationFloor, mapOnScreen, mapPanelScale, navigationFloor } from "./map-screen.js";
 
 /** @type {HTMLButtonElement|null} The one button, while it's up. */
 let button = null;
 
+/** @type {(() => void)|null} Stops it following the map, while it's up. */
+let unfollow = null;
+
 /** @type {{width: number, height: number}|null} Its size, which doesn't change once it's laid out, so a pan doesn't measure it again. */
 let size = null;
 
-/** @type {number|null} The measured scene navigation floor, kept until the navigation itself changes. */
-let floor = null;
-
 /** What it's taken for until it has been laid out, so it's never left to fall where the interface would put it. */
 const UNMEASURED = Object.freeze({ width: 180, height: 34 });
+
+/** Called as the button comes up or goes down, for the Finish button that stands beside it while it's up. */
+export const COMPANY_BUTTON_HOOK = "bastionlandCompanyButton";
 
 /** @returns {boolean} Whether the Referee is looking at a Realm whose Company is nowhere on it, and isn't already carrying them. */
 function wanted() {
@@ -41,34 +43,29 @@ async function takeTheCompany() {
 }
 
 /**
- * The foot of the scene navigation's own buttons. Its element is no guide: it
- * is stretched down half the screen whatever it holds, so what the button has
- * to stay clear of is measured from the menus of scenes inside it, each of
- * which collapses to nothing when it's empty or folded away.
- *
- * Measuring it forces the browser to lay the page out, so the figure is kept
- * and only taken again once the navigation itself has changed.
- * @returns {number} In CSS pixels, or 0 with no navigation on screen.
+ * Where the button stands over the map: worked out afresh rather than read
+ * off its style, so whatever stands beside it is placed right however the two
+ * are ordered on a pan.
+ * @param {ReturnType<typeof mapOnScreen>} [map]
+ * @returns {{left: number, top: number, width: number, height: number}|null} In CSS pixels, the interface scale
+ *   included, or null while the button is down.
  */
-function navigationFloor() {
-	if (floor !== null) return floor;
-	const menus = document.getElementById("scene-navigation")?.querySelectorAll(".scene-navigation-menu") ?? [];
-	floor = 0;
-	for (const menu of menus) {
-		const { bottom, height } = menu.getBoundingClientRect();
-		if (height) floor = Math.max(floor, bottom);
-	}
-	return floor;
+export function companyButtonBox(map = mapOnScreen()) {
+	if (!button || !map) return null;
+	size ??= button.offsetWidth ? { width: button.offsetWidth, height: button.offsetHeight } : null;
+	// Measured again on the next pan if it hasn't been laid out yet, but placed either way.
+	const { width, height } = size ?? UNMEASURED;
+	const scale = mapPanelScale();
+	const { left, top } = companyButtonPlacement(map, { width, height, ceiling: navigationFloor(), scale });
+	return { left, top, width: width * scale, height: height * scale };
 }
 
 /** Hold the button over the middle of the map's top edge, clear of the scene navigation. */
 function place(map = mapOnScreen()) {
-	if (!button || !map) return;
-	size ??= button.offsetWidth ? { width: button.offsetWidth, height: button.offsetHeight } : null;
-	// Measured again on the next pan if it hasn't been laid out yet, but placed either way.
-	const { left, top } = companyButtonPlacement(map, { ...(size ?? UNMEASURED), ceiling: navigationFloor(), scale: mapPanelScale() });
-	button.style.left = `${left}px`;
-	button.style.top = `${top}px`;
+	const box = companyButtonBox(map);
+	if (!box) return;
+	button.style.left = `${box.left}px`;
+	button.style.top = `${box.top}px`;
 }
 
 /**
@@ -87,37 +84,33 @@ export function showCompanyButton() {
 		button.dataset.tooltip = t("company.placing.hint");
 		button.addEventListener("click", () => takeTheCompany());
 		(document.getElementById("interface") ?? document.body).append(button);
+		place();
+		unfollow = followMap(() => place());
+		Hooks.callAll(COMPANY_BUTTON_HOOK);
+		return;
 	}
 	place();
 }
 
 /** Take the button down. */
 export function closeCompanyButton() {
+	const was = button;
 	button?.remove();
 	button = null;
+	unfollow?.();
+	unfollow = null;
 	size = null;
-	floor = null;
+	forgetNavigationFloor();
+	if (was) Hooks.callAll(COMPANY_BUTTON_HOOK);
 }
 
-/** The hooks the button watches: the map moving, the Company being carried, and its Token coming or going. Called during init. */
+/**
+ * The hooks the button watches: the Company being carried, and its Token
+ * coming or going. The map moving is followed only while the button is up,
+ * which is never for a player. Called during init.
+ */
 export function registerCompanyButton() {
-	// A pan is worth no work at all where there's no button to hold, which is every
-	// player, and the Referee on any Scene but a Realm whose Company is off the map.
-	Hooks.on("canvasPan", () => {
-		if (button) place();
-	});
-	Hooks.on(TEXT_SIZE_HOOK, () => {
-		floor = null;
-		place();
-	});
 	Hooks.on(COMPANY_PLACING_HOOK, () => showCompanyButton());
-	// The navigation is measured again only once it has been drawn or folded away.
-	const onNavigation = () => {
-		floor = null;
-		if (button) place();
-	};
-	Hooks.on("renderSceneNavigation", onNavigation);
-	Hooks.on("collapseSceneNavigation", onNavigation);
 	// A Token is out of the Scene's collection only once its own hooks have run, so the
 	// Realm is read on the turn after — once for a batch, however many Tokens it carries.
 	let looking = false;

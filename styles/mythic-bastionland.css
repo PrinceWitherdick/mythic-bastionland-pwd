@@ -4012,15 +4012,17 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /*
- * Travel and Exploration against the edges of a Realm Scene's map, as the
- * Blank Realm sheet prints them beside its map. Where on screen, and how
- * tall it may grow, is set as the canvas pans; how wide they are is one knob,
- * read back when they are placed. They sit over the canvas, under
- * the Token HUD (which comes after it on the page), the sidebar and windows,
- * and grow with the interface scale and Text Size. Nothing held against the
- * map is a window, so Text Size can't zoom it as it zooms the system's pages:
- * it is scaled here instead, and MapSidePanel's placing reads the same scale
- * back, so the sheet stays against the map's edge however large the writing is.
+ * Travel and Exploration down the sides of the screen while a Realm Scene is
+ * up, as the Blank Realm sheet prints them beside its map. They're furniture
+ * of the screen rather than of the map, so panning and zooming the Realm
+ * leaves them the same size in the same place: where they stand, and how tall
+ * they may grow, is set from the room the interface leaves them. How wide they
+ * are is one knob, read back when they are placed. They sit over the canvas,
+ * under the Token HUD (which comes after it on the page), the sidebar and
+ * windows, and grow with the interface scale and Text Size. Neither is a
+ * window, so Text Size can't zoom them as it zooms the system's pages: they
+ * are scaled here instead, and MapSidePanel's placing reads the same scale
+ * back, so they stand where they're put however large the writing is.
  */
 .bastionland-travel-rules {
 	position: fixed;
@@ -4031,6 +4033,11 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	pointer-events: none;
 	transform: scale(calc(var(--ui-scale, 1) * var(--bastionland-text-size, 1)));
 	transform-origin: top left;
+}
+
+/* Open, a panel runs all the way to the map's foot, however little it holds; folded, it's only its header. */
+.bastionland-travel-rules:has(.bastionland-travel-rules__body) {
+	height: var(--travel-rules-max-height, 60vh);
 }
 
 .bastionland-travel-rules button {
@@ -4355,13 +4362,14 @@ button.bastionland-dice:focus-visible {
 	background: none;
 }
 
+/* Striped rather than ruled, so each band reads across to its result. */
 .bastionland-travel-rules__table tr {
-	border-top: 1px dotted var(--bastionland-rule);
+	border: none;
 	background: none;
 }
 
-.bastionland-travel-rules__table tr:first-child {
-	border-top: none;
+.bastionland-travel-rules__table tr:nth-child(odd) {
+	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
 }
 
 .bastionland-travel-rules__table :is(th, td) {

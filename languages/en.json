@@ -3296,6 +3296,10 @@
         "name": "Attack Effects on the Map",
         "hint": "When on, an Attack is drawn on the map and heard at the table: every weapon that added a die strikes in turn, the biggest die first, so a sword swings and the shield on the arm follows it. An arrow flies, a beast’s jaws close, and a mounted charge comes at a gallop. Applying the Damage bursts on whoever lost GD, bloodies whoever lost VIG, and clanks where the Armour took the whole blow. The pictures need the Sequencer and JB2A modules, and the sounds the SoundFx Library module; without them, that half does nothing. Anyone who has turned on Reduce Motion, here or in their browser, keeps the sounds without the pictures."
       },
+      "travelRulesShown": {
+        "name": "Travel Rules beside the Realm Map",
+        "hint": "Show Travel on the left of a Realm’s map and Rest and Exploration on its right. Untick to hide them in this browser only: everyone else keeps theirs. A GM who hides them hides the rolls and the Lose d6 buttons they hold too."
+      },
       "restoreOpenSheets": {
         "name": "Reopen Sheets on Reload",
         "hint": "Reopen the Knight, item and journal sheets and the rulebook you had open, where you left them, when you reload Foundry. Only affects this browser."

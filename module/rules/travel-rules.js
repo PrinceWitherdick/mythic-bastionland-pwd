@@ -1,8 +1,8 @@
 /**
- * The rules for getting about a Realm, kept beside a Realm Scene the way the
- * Blank Realm sheet prints Travel (p18) beside its map, with Exploration (p19)
- * as well. They're split over both sides of the map so neither side is too
- * tall to read. Each group is a heading, the page it's printed on, the side
+ * The rules for getting about a Realm, kept down the sides of the screen the
+ * way the Blank Realm sheet prints Travel (p18) beside its map, with
+ * Exploration (p19) as well. They're split over both sides so neither side is
+ * too tall to read. Each group is a heading, the page it's printed on, the side
  * of the map it stands on, and its sections. Wording lives in the language
  * file under `bastionland.travelRules`. Pure, so it can be tested without
  * Foundry.
@@ -112,22 +112,29 @@ export function pressingSections({ season, phase } = {}) {
 
 /**
  * Where one side's rules sit on screen: against that edge of the Realm's map,
- * level with its top and as tall as it, as the Blank Realm sheet prints them.
- * They stay held to the map as it pans, even when that takes their top or foot
- * off the screen, and they're never shorter than `minHeight`.
- * @param {{left: number, top: number, right: number, bottom: number}} map The map on screen, in CSS pixels.
+ * level with its top and as tall as it, as the Blank Realm sheet prints them
+ * beside its map, so they follow the map as it's panned and zoomed, even off
+ * the screen. Only their width stays put as it's zoomed, and they're never
+ * shorter than `minHeight`. Without a map they stand against that edge of the
+ * screen's room instead, from under the scene navigation down to the hotbar.
+ * @param {{left: number, top: number, right: number, bottom: number}} screen The room the interface leaves, in CSS pixels.
  * @param {object} [options]
  * @param {"left"|"right"} [options.side]
+ * @param {{left: number, top: number, right: number, bottom: number}|null} [options.map] The map on screen, in CSS pixels.
  * @param {number} [options.width] The rules' own width, before the interface scale.
- * @param {number} [options.gap] Between the map's edge and the rules.
+ * @param {number} [options.gap] Between the map's edge, or the screen room's, and the rules.
  * @param {number} [options.minHeight]
  * @param {number} [options.scale] The interface scale, which each of these grows with.
  * @returns {{left: number, top: number, maxHeight: number}}
  */
-export function travelRulesPlacement(map, { side = "right", width = 300, gap = 12, minHeight = 240, scale = 1 } = {}) {
+export function travelRulesPlacement(screen, { side = "right", map = null, width = 300, gap = 12, minHeight = 240, scale = 1 } = {}) {
 	const [wide, space, least] = [width, gap, minHeight].map((length) => length * scale);
-	const left = Math.round(side === "left" ? map.left - space - wide : map.right + space);
-	return { left, top: Math.round(map.top), maxHeight: Math.round(Math.max(least, map.bottom - map.top)) };
+	const left = Math.round(map
+		? side === "left" ? map.left - space - wide : map.right + space
+		: side === "left" ? screen.left + space : screen.right - space - wide);
+	const top = Math.round(map ? map.top : screen.top + space);
+	const bottom = map ? map.bottom : screen.bottom - space;
+	return { left, top, maxHeight: Math.round(Math.max(least, bottom - top)) };
 }
 
 /**

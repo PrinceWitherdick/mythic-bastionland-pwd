@@ -1,17 +1,18 @@
 import { t } from "../chat/cards.js";
-import { TEXT_SIZE_HOOK } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { RULEBOOK_HOOK, canReadRulebook, hasRulebook } from "../rulebook/store.js";
-import { mapOnScreen, placeBesideMap } from "./map-screen.js";
+import { followMap, mapOnScreen, placeBesideMap } from "./map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
  * A sheet of rules held against one edge of a Realm Scene's map, as the Blank
- * Realm sheet prints them beside its map, wherever the canvas has panned and
- * zoomed it to. It draws itself again as the rulebook comes and goes, for the
- * link to its page.
+ * Realm sheet prints them beside its map, from its top to its foot. It follows
+ * the map as the Realm is panned and zoomed, growing taller or shorter with it
+ * but never wider.
+ * It draws itself again as the rulebook comes and goes, for the link to its
+ * page.
  */
 export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -20,12 +21,18 @@ export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-travel-rules"],
 		window: { frame: false, positioned: false },
 		actions: {
-			openPage: MapSidePanel.#onOpenPage
+			openPage: MapSidePanel.openPage
 		}
 	};
 
 	/** @type {[string, number][]} Hooks to take down on close. */
 	#hooks = [];
+
+	/** @type {number|null} The panel's layout width, which doesn't change once it's laid out, so a placing doesn't measure it again. */
+	#width = null;
+
+	/** @type {(() => void)|null} Stops the panel following the map. */
+	#unfollow = null;
 
 	/** @returns {"left"|"right"} The side of the map the panel stands on. */
 	get side() {
@@ -61,14 +68,18 @@ export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
 		const redraw = () => this.render();
-		// Every pan, zoom and resize of the canvas comes through canvasPan.
-		const place = () => this.place();
-		this.#hooks = [...this.redrawHooks.map((name) => [name, redraw]), ["canvasPan", place], [TEXT_SIZE_HOOK, place]].map(([name, fn]) => [name, Hooks.on(name, fn)]);
+		this.#hooks = this.redrawHooks.map((name) => [name, Hooks.on(name, redraw)]);
+		this.#unfollow = followMap(() => {
+			if (this.rendered) this.place();
+		});
 	}
 
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
+		// Drawn again from scratch, so its width is measured afresh: Text Size and the
+		// interface scale are one transform on it, but the wording it holds is not.
+		this.#width = null;
 		this.place();
 	}
 
@@ -77,19 +88,31 @@ export class MapSidePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		super._onClose(options);
 		for (const [name, id] of this.#hooks) Hooks.off(name, id);
 		this.#hooks = [];
+		this.#unfollow?.();
+		this.#unfollow = null;
+		this.#width = null;
 	}
 
 	/**
-	 * Move the panel against its edge of the map. It stays as tall as the map
-	 * but keeps its width, so it stays readable however far out the map is zoomed.
-	 * @param {ReturnType<typeof mapOnScreen>} [map]
+	 * Move the panel against its edge of the map, as tall as it. It keeps its
+	 * width wherever the map is zoomed to, so the rules stay readable.
+	 * @param {ReturnType<typeof mapOnScreen>} [map] Where the map is.
 	 */
 	place(map = mapOnScreen()) {
-		placeBesideMap(this.element, this.side, map);
+		const element = this.element;
+		if (!element) return;
+		// Measured again on the next placing if it hasn't been laid out yet, but placed either way.
+		this.#width ||= element.offsetWidth || null;
+		placeBesideMap(element, this.side, this.#width ?? 0, map);
 	}
 
-	/** @this {MapSidePanel} */
-	static #onOpenPage(event, target) {
+	/**
+	 * Open the rulebook at a page link's page. Shared with the other windows
+	 * that print the same page links, such as Creating a Realm.
+	 * @param {PointerEvent} event
+	 * @param {HTMLElement} target
+	 */
+	static openPage(event, target) {
 		// A link in a group's summary would otherwise open or close the group too.
 		event.preventDefault();
 		return openRulebook({ page: Number(target.dataset.page) });

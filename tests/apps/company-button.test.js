@@ -7,9 +7,26 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 const MAP = Object.freeze({ left: 200, top: 300, right: 800, bottom: 900 });
 const map = { ...MAP };
 
+/** The foot of the scene navigation, which map-screen measures for the button and map-screen's own tests cover. */
+const nav = { floor: 56, forgotten: 0 };
+
 vi.mock("../../module/apps/map-screen.js", () => ({
 	mapPanelScale: () => 1,
-	mapOnScreen: () => map
+	mapOnScreen: () => map,
+	navigationFloor: () => nav.floor,
+	forgetNavigationFloor: () => (nav.forgotten += 1),
+	// Just the hooks of map-screen's own follower, which its own tests cover, taken off again as it stops.
+	followMap: (place) => {
+		const remeasure = () => {
+			nav.forgotten += 1;
+			place();
+		};
+		const followed = [["canvasPan", place], ["renderSceneNavigation", remeasure], ["collapseSceneNavigation", remeasure]];
+		for (const [name, fn] of followed) Hooks.on(name, fn);
+		return () => {
+			for (const [name, fn] of followed) hooks[name] = hooks[name].filter((hook) => hook !== fn);
+		};
+	}
 }));
 
 const placement = { placing: false, started: 0, takes: true };
@@ -51,8 +68,6 @@ function element(tag) {
 
 let interfaceElement;
 let scene;
-/** The scene navigation, stretched down half the screen however thin its bar of scenes is. */
-let navigation;
 /** @type {Record<string, Function[]>} */
 let hooks;
 
@@ -67,6 +82,8 @@ beforeEach(() => {
 	placement.started = 0;
 	placement.takes = true;
 	Object.assign(map, MAP);
+	nav.floor = 56;
+	nav.forgotten = 0;
 	interfaceElement = { children: [], append(child) { this.children.push(child); } };
 	scene = {
 		id: "realm1",
@@ -80,14 +97,9 @@ beforeEach(() => {
 	globalThis.canvas = { ready: true, scene };
 	globalThis.foundry = { utils: { escapeHTML: (text) => text } };
 	globalThis.Hooks = { on: (name, fn) => (hooks[name] ??= []).push(fn), off: vi.fn(), callAll: vi.fn() };
-	navigation = {
-		menus: [{ bottom: 56, height: 36 }, { bottom: 0, height: 0 }],
-		getBoundingClientRect: () => ({ top: 0, bottom: 540, height: 540 }),
-		querySelectorAll: () => navigation.menus.map((menu) => ({ getBoundingClientRect: () => menu }))
-	};
 	globalThis.document = {
 		createElement: element,
-		getElementById: (id) => ({ interface: interfaceElement, "scene-navigation": navigation }[id] ?? null)
+		getElementById: (id) => (id === "interface" ? interfaceElement : null)
 	};
 });
 
@@ -170,9 +182,9 @@ describe("the Place the Company button", () => {
 		expect(shown()).toBeTruthy();
 	});
 
-	it("follows the map as the canvas pans, without making a button of its own", () => {
+	it("follows the map as the canvas pans only while it's up, without making a button of its own", () => {
 		registerCompanyButton();
-		hooks.canvasPan.forEach((fn) => fn());
+		expect(hooks.canvasPan ?? []).toHaveLength(0);
 		expect(shown()).toBeUndefined();
 
 		showCompanyButton();
@@ -183,17 +195,24 @@ describe("the Place the Company button", () => {
 });
 
 describe("keeping out of the way", () => {
-	it("measures the scene navigation by its scenes, not by its element, which is stretched down half the screen", () => {
-		// The map panned up under the navigation: the button drops below the bar of scenes, not below the whole element.
+	it("drops below the scene navigation where the map has panned up under it", () => {
 		map.top = 20;
 		showCompanyButton();
 		expect(shown().style.top).toBe(`${56 + 12}px`);
 
 		// With no scenes shown, the navigation holds nothing back.
-		navigation.menus = [{ bottom: 0, height: 0 }];
+		nav.floor = 0;
 		closeCompanyButton();
 		showCompanyButton();
 		expect(shown().style.top).toBe(`${12}px`);
+	});
+
+	it("measures the navigation again once it has been drawn, folded away or rescaled", () => {
+		registerCompanyButton();
+		showCompanyButton();
+		nav.forgotten = 0;
+		for (const name of ["renderSceneNavigation", "collapseSceneNavigation"]) hooks[name].forEach((fn) => fn());
+		expect(nav.forgotten).toBe(2);
 	});
 });
 
