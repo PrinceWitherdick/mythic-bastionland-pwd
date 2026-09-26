@@ -3,6 +3,7 @@ import {
 	afterOldAge,
 	agedScore,
 	agingSteps,
+	cadencesTurned,
 	compareCalendars,
 	DEFAULT_CALENDAR,
 	nextAge,
@@ -15,40 +16,41 @@ import {
 
 describe("normalizeCalendar", () => {
 	it("starts a game on the first Morning of Spring in Age 1", () => {
-		expect(normalizeCalendar(undefined)).toEqual({ age: 1, season: "spring", day: 1, phase: "morning" });
+		expect(normalizeCalendar(undefined)).toEqual({ age: 1, year: 1, season: "spring", day: 1, phase: "morning" });
 		expect(DEFAULT_CALENDAR).toEqual(normalizeCalendar(null));
 	});
 
 	it("keeps what it can read and replaces the rest", () => {
-		expect(normalizeCalendar({ age: 3, season: "winter", day: 0, phase: "dusk" })).toEqual({ age: 3, season: "winter", day: 1, phase: "morning" });
-		expect(normalizeCalendar({ age: 2.5, season: "harvest", day: 4, phase: "night" })).toEqual({ age: 1, season: "harvest", day: 4, phase: "night" });
+		expect(normalizeCalendar({ age: 3, season: "winter", day: 0, phase: "dusk" })).toEqual({ age: 3, year: 1, season: "winter", day: 1, phase: "morning" });
+		expect(normalizeCalendar({ age: 2.5, year: 4, season: "harvest", day: 4, phase: "night" })).toEqual({ age: 1, year: 4, season: "harvest", day: 4, phase: "night" });
 	});
 });
 
 describe("advancing time", () => {
 	it("moves through the Phases and into the next Day after Night", () => {
-		const morning = { age: 1, season: "spring", day: 1, phase: "morning" };
+		const morning = { age: 1, year: 1, season: "spring", day: 1, phase: "morning" };
 		expect(nextPhase(morning).phase).toBe("afternoon");
-		expect(nextPhase({ ...morning, phase: "night" })).toEqual({ age: 1, season: "spring", day: 2, phase: "morning" });
+		expect(nextPhase({ ...morning, phase: "night" })).toEqual({ age: 1, year: 1, season: "spring", day: 2, phase: "morning" });
 	});
 
 	it("dawns on the next Day's Morning whatever Phase it was, since weeks passing gives no figure", () => {
-		expect(nextDay({ age: 1, season: "spring", day: 4, phase: "night" })).toEqual({ age: 1, season: "spring", day: 5, phase: "morning" });
-		expect(nextDay({ age: 2, season: "winter", day: 1, phase: "morning" })).toEqual({ age: 2, season: "winter", day: 2, phase: "morning" });
+		expect(nextDay({ age: 1, season: "spring", day: 4, phase: "night" })).toEqual({ age: 1, year: 1, season: "spring", day: 5, phase: "morning" });
+		expect(nextDay({ age: 2, year: 3, season: "winter", day: 1, phase: "morning" })).toEqual({ age: 2, year: 3, season: "winter", day: 2, phase: "morning" });
 	});
 
-	it("turns the Season to its first Morning, Winter giving way to Spring in the same Age", () => {
-		expect(nextSeason({ age: 2, season: "spring", day: 9, phase: "night" })).toEqual({ age: 2, season: "harvest", day: 1, phase: "morning" });
-		expect(nextSeason({ age: 2, season: "winter", day: 3, phase: "afternoon" })).toEqual({ age: 2, season: "spring", day: 1, phase: "morning" });
+	it("turns the Season to its first Morning, Winter giving way to the next year's Spring in the same Age", () => {
+		expect(nextSeason({ age: 2, year: 3, season: "spring", day: 9, phase: "night" })).toEqual({ age: 2, year: 3, season: "harvest", day: 1, phase: "morning" });
+		expect(nextSeason({ age: 2, year: 3, season: "winter", day: 3, phase: "afternoon" })).toEqual({ age: 2, year: 4, season: "spring", day: 1, phase: "morning" });
 	});
 
-	it("begins a new Age in Spring", () => {
-		expect(nextAge({ age: 2, season: "harvest", day: 5, phase: "night" })).toEqual({ age: 3, season: "spring", day: 1, phase: "morning" });
+	it("begins a new Age in the next year's Spring", () => {
+		expect(nextAge({ age: 2, year: 3, season: "harvest", day: 5, phase: "night" })).toEqual({ age: 3, year: 4, season: "spring", day: 1, phase: "morning" });
 	});
 
 	it("names a Season by its Age", () => {
 		expect(seasonKey({ age: 4, season: "winter", day: 2, phase: "night" })).toBe("4-winter");
-		expect(seasonKey(nextSeason({ age: 4, season: "winter" }))).toBe("4-spring");
+		expect(seasonKey(nextSeason({ age: 4, season: "winter" }))).toBe("4-2-spring");
+		expect(seasonKey({ age: 4, year: 7, season: "harvest" })).toBe("4-7-harvest");
 	});
 });
 
@@ -67,8 +69,41 @@ describe("compareCalendars", () => {
 		expect(compareCalendars(nextSeason(now), now)).toBe(1);
 	});
 
+	it("puts the next year's Spring after this year's Winter, and after this year's Spring", () => {
+		const winter = { age: 2, year: 5, season: "winter", day: 8, phase: "night" };
+		expect(compareCalendars(nextSeason(winter), winter)).toBe(1);
+		expect(compareCalendars(nextSeason(winter), { ...winter, season: "spring", day: 30 })).toBe(1);
+	});
+
+	it("reads a calendar written before the year was counted as the first year", () => {
+		expect(compareCalendars({ age: 1, season: "winter", day: 1, phase: "morning" }, { age: 1, year: 1, season: "winter", day: 1, phase: "morning" })).toBe(0);
+	});
+
 	it("puts every step forward after the calendar it was taken from", () => {
 		for (const step of [nextPhase, nextDay, nextSeason, nextAge]) expect(compareCalendars(step(now), now)).toBe(1);
+	});
+});
+
+describe("cadencesTurned", () => {
+	const at = (season, day, phase, age = 1) => ({ age, season, day, phase });
+
+	it("names what a change of calendar brings round", () => {
+		expect(cadencesTurned(at("spring", 3, "morning"), at("spring", 3, "afternoon"))).toEqual([]);
+		expect(cadencesTurned(at("spring", 3, "afternoon"), at("spring", 3, "night"))).toEqual(["night"]);
+		expect(cadencesTurned(at("spring", 3, "night"), at("spring", 4, "morning"))).toEqual(["day"]);
+		expect(cadencesTurned(at("spring", 3, "night"), at("harvest", 1, "morning"))).toEqual(["season", "day"]);
+	});
+
+	it("counts Winter giving way to the next year's Spring in the same Age as a new Season", () => {
+		const winter = at("winter", 7, "night");
+		expect(cadencesTurned(winter, nextSeason(winter))).toEqual(["season", "day"]);
+		expect(cadencesTurned(at("spring", 3, "morning"), { ...at("spring", 3, "night"), year: 2 })).toEqual(["season", "day", "night"]);
+	});
+
+	it("brings nothing round for an Age, a Season or a Day set back", () => {
+		expect(cadencesTurned(at("spring", 1, "morning", 2), at("winter", 5, "night", 1))).toEqual([]);
+		expect(cadencesTurned(at("winter", 1, "morning"), at("spring", 1, "morning"))).toEqual([]);
+		expect(cadencesTurned(at("spring", 4, "morning"), at("spring", 3, "morning"))).toEqual([]);
 	});
 });
 

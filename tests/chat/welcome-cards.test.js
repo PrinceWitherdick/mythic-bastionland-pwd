@@ -8,7 +8,7 @@ vi.mock("../../module/rulebook/store.js", () => ({ hasRulebook: vi.fn(() => fals
 
 const { newRealm } = await import("../../module/actions/realm.js");
 const { hasRulebook } = await import("../../module/rulebook/store.js");
-const { WELCOME_CARDS, postWelcomeCards, registerWelcomeCards } = await import("../../module/chat/welcome-cards.js");
+const { RECOMMENDED_MODULES, WELCOME_CARDS, postWelcomeCards, registerWelcomeCards } = await import("../../module/chat/welcome-cards.js");
 
 let created;
 let hooks;
@@ -37,17 +37,39 @@ afterEach(() => {
 });
 
 describe("postWelcomeCards", () => {
-	it("whispers the GMs an Import PDF card, then a Create a Realm card", async () => {
+	it("whispers the GMs an Import PDF card, a Create a Realm card, then a Recommended Modules card", async () => {
 		await postWelcomeCards(() => true);
 		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toEqual(WELCOME_CARDS);
-		expect(created.map((data) => data.mode)).toEqual(["gm", "gm"]);
+		expect(WELCOME_CARDS).toEqual(["import", "realm", "modules"]);
+		expect(created.map((data) => data.mode)).toEqual(["gm", "gm", "gm"]);
 		expect(created[0].speaker).toEqual({ alias: "Mythic Bastionland" });
 	});
 
 	it("doesn't ask for the PDF when the world already has its rulebook", async () => {
 		hasRulebook.mockReturnValueOnce(true);
 		await postWelcomeCards(() => true);
-		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toEqual(["realm"]);
+		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toEqual(["realm", "modules"]);
+	});
+
+	it("lists every recommended module on the modules card, linked to its package page", async () => {
+		await postWelcomeCards(() => true);
+		const context = foundry.applications.handlebars.renderTemplate.mock.calls.find(([, data]) => data.card === "modules")[1];
+		expect(context.modules.map((module) => module.url)).toEqual(RECOMMENDED_MODULES.map((module) => module.url));
+		expect(context.modules[0].name).toBe("bastionland.welcome.chat.modules.list.diceSoNice.name");
+	});
+
+	it("leaves the modules card out when every recommended module is on", async () => {
+		const on = new Set(["dice-so-nice", "sequencer", "JB2A_DnD5e", "soundfxlibrary", "fxmaster"]);
+		game.modules = { get: (id) => (on.has(id) ? { active: true } : undefined) };
+		await postWelcomeCards(() => true);
+		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toEqual(["import", "realm"]);
+	});
+
+	it("still posts it while Sequencer is on without JB2A", async () => {
+		const on = new Set(["dice-so-nice", "sequencer", "soundfxlibrary", "fxmaster"]);
+		game.modules = { get: (id) => (on.has(id) ? { active: true } : undefined) };
+		await postWelcomeCards(() => true);
+		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toContain("modules");
 	});
 
 	it("posts nothing to a world already in play", async () => {
@@ -70,6 +92,13 @@ describe("the cards' buttons", () => {
 	it("opens New Realm for a GM", () => {
 		renderCard("realm").click();
 		expect(newRealm).toHaveBeenCalledOnce();
+	});
+
+	it("opens Manage Modules for a GM", () => {
+		const render = vi.fn();
+		foundry.applications.sidebar = { apps: { ModuleManagement: class { render = render; } } };
+		renderCard("modules").click();
+		expect(render).toHaveBeenCalledWith({ force: true });
 	});
 
 	it("does nothing for a player", () => {

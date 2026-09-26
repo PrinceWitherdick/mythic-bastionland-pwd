@@ -3,6 +3,7 @@ import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
 	HEX_PROMPT_MODES,
+	forgetRecord,
 	forgetSpark,
 	normaliseHexLore,
 	normaliseRecord,
@@ -103,6 +104,9 @@ export const writeHexNote = (scene, hex, note) => editHexLore(scene, hex, (lore)
 
 /** Strike one roll out of a hex. @returns {Promise<boolean>} */
 export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, hex, (lore) => forgetSpark(lore, hex, id));
+
+/** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
+export const forgetHexRecord = (scene, hex) => editHexLore(scene, hex, (lore) => forgetRecord(lore, hex));
 
 /** @returns {Promise<object[]>} The Spark Tables the GM's own import read, or an empty list. */
 const sparkPages = async () => (await loadArtIndex())?.spark ?? [];
@@ -241,10 +245,15 @@ export async function throwSparkDice(count) {
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
+ * @param {string} [options.note] What's in the note box now, saved first: a click
+ *   straight from typing lands before the box's own change is written.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function tellPlayersAboutHex({ scene, hex }) {
+export async function tellPlayersAboutHex({ scene, hex, note }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
+	if (typeof note === "string" && note.trim() !== (getHexRecord(scene, hex)?.note ?? "")) {
+		await writeHexNote(scene, hex, note);
+	}
 	const record = getHexRecord(scene, hex);
 	if (!record?.note) {
 		warn("hexLore.nothingToTell");
@@ -256,10 +265,13 @@ export async function tellPlayersAboutHex({ scene, hex }) {
 		seen.holding && (seen.holding.name || t(`realm.holdings.${seen.holding.style}`)),
 		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))
 	].filter(Boolean);
-	return postCard(null, "hex-lore", {
-		hex: t("realm.hex", hex),
+	const where = t("realm.hex", hex);
+	const message = await postCard(null, "hex-lore", {
+		hex: where,
 		terrain: seen.terrain ? t(`realm.terrain.${seen.terrain}`) : null,
 		features: named.length ? named.join(", ") : null,
 		note: record.note
 	}, { mode: "public" });
+	if (message) ui.notifications.info(t("hexLore.told", { hex: where }));
+	return message;
 }

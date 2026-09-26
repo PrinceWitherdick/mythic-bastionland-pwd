@@ -128,6 +128,7 @@
 .bastionland-welcome-window .window-content,
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
+.bastionland-hex-visits-window .window-content,
 .bastionland-realm-panel-window .window-content,
 .bastionland-portrait-frame-window .window-content {
 	padding: 0;
@@ -135,9 +136,11 @@
 	color: var(--bastionland-ink);
 }
 
-/* The sheets' own header buttons, such as Domain and Knight Squire, carry a
-   label, where Foundry's header controls are bare icons. */
-.bastionland-sheet .window-header button.bastionland-header-button {
+/* The sheets' own header buttons, such as Domain and Knight Squire, and the
+   Realm palette's Appearance, carry a label, where Foundry's header controls
+   are bare icons. */
+.bastionland-sheet .window-header button.bastionland-header-button,
+.bastionland-realm-panel-window .window-header button.bastionland-header-button {
 	display: inline-flex;
 	flex: none;
 	align-items: center;
@@ -221,6 +224,7 @@
 	.bastionland-item__equip,
 	.bastionland-move,
 	.bastionland-add,
+	.bastionland-unchosen__by-hand,
 	.bastionland-chooser__start,
 	.bastionland-chooser__group,
 	.bastionland-chooser__card,
@@ -1687,6 +1691,31 @@ a.button:focus:not(:focus-visible) {
 	color: var(--bastionland-ink-soft);
 }
 
+/* Worn, but its Armour doesn't count right now: faded as a piece taken off is. */
+.bastionland-item__equip.is-active.is-idle {
+	opacity: 0.45;
+}
+
+/* Broken, or all used up: the row fades until it's mended or restocked, but its buttons don't. */
+.bastionland-item.is-unusable .bastionland-item__line > :not(.bastionland-item__controls, .bastionland-item__count),
+.bastionland-item.is-unusable .bastionland-item__description {
+	opacity: 0.5;
+}
+
+/* "2 of 3" between a button to use one and one to add one back. */
+.bastionland-item__count {
+	display: inline-flex;
+	flex: none;
+	align-items: baseline;
+	gap: 0.15rem;
+	color: var(--bastionland-ink-soft);
+	white-space: nowrap;
+}
+
+.bastionland-item__count .bastionland-icon:disabled {
+	opacity: 0.3;
+}
+
 .bastionland-item__controls {
 	display: flex;
 	gap: 0.1rem;
@@ -1913,6 +1942,59 @@ a.button:focus:not(:focus-visible) {
 	color: var(--bastionland-paper);
 }
 
+/* A Knight made blank has no pages to pick from until they're chosen. module/sheets/KnightSheet.js */
+.bastionland-sheet > .window-content > nav.bastionland-tab-rail:not(:has(.bastionland-tab-rail__item)) {
+	display: none;
+}
+
+/*
+ * The page of a Knight nobody has chosen yet: the chooser's button in the
+ * middle of it, as the Stonetop sheet offers to make a new character, and
+ * for a GM, whom to give the Knight to. templates/actor/knight-unchosen.hbs
+ */
+.bastionland-unchosen__call {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	padding-bottom: 4rem;
+	text-align: center;
+}
+
+.bastionland-unchosen__call .bastionland-hint {
+	max-width: 28rem;
+	margin: 0;
+}
+
+.bastionland-page .bastionland-unchosen__choose {
+	flex: 0 0 auto;
+	height: 2.75rem;
+	padding: 0 1.5rem;
+	font-size: 1.25rem;
+}
+
+.bastionland-page .bastionland-unchosen__by-hand {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	cursor: pointer;
+}
+
+.bastionland-page .bastionland-unchosen__by-hand:hover {
+	color: var(--bastionland-ink);
+	text-decoration: underline;
+}
+
+.bastionland-unchosen__player {
+	margin-top: 1.25rem;
+}
+
+.bastionland-unchosen__player select {
+	width: auto;
+	min-width: 12rem;
+}
+
 /*
  * An icon Font Awesome has nothing like, drawn from a picture used as a mask
  * over the text colour, so it takes the same colours as the icons beside it.
@@ -2100,6 +2182,19 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /*
+ * Inside the editor, `.editor-content` is Foundry's own scroller, pinned to
+ * fill the box. It keeps only the padding: framed and given a height of its
+ * own as well, it stood a frame inside the frame, overflowed it by the border,
+ * and set a second scrollbar beside its own.
+ */
+.bastionland-page prose-mirror .editor-content {
+	min-height: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+}
+
+/*
  * Foundry pins the Chronicle's edit button flush into the corner of the text
  * area and trades the centring flexbox every other button has for a plain
  * block, which leaves the pencil sitting off to one side. Stand the button off
@@ -2236,9 +2331,28 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * is room for both; the row gap holds the text field clear of the dropdown
  * once the sheet is narrow enough to drop it underneath.
  */
-.bastionland-page .bastionland-item-specialist .form-fields {
+.bastionland-page .bastionland-item-specialist .form-fields,
+.bastionland-page .bastionland-item-condition .form-fields,
+.bastionland-page .bastionland-item-alternate .form-fields,
+.bastionland-page .bastionland-item-stock .form-fields {
 	flex-wrap: wrap;
 	row-gap: 0.4rem;
+}
+
+/* "Carried 2 of 3", then how often it's restocked. */
+.bastionland-page .bastionland-item-stock input[type="number"] {
+	flex: 0 0 4.5rem;
+}
+
+.bastionland-item-stock__of {
+	flex: none;
+	align-self: center;
+}
+
+/* A weapon's other way to fight: its qualities sit in the fieldset's own frame. */
+.bastionland-item-alternate .bastionland-qualities {
+	padding: 0;
+	border: none;
 }
 
 .bastionland-qualities {
@@ -2257,20 +2371,22 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * editor out as a menu above a container the text is stretched inside, and
  * that container is only given a height of its own in a column; `resize`, in
  * turn, only takes on a box that keeps its own overflow. An NPC's Traits &
- * Notes take the same handle, and keep it when shown read-only.
+ * Notes take the same handle, and keep it when shown read-only. The editor's
+ * text scrolls inside it, so the box itself only clips.
  */
 .bastionland-page .bastionland-item-description prose-mirror,
 .bastionland-page .bastionland-npc-notes prose-mirror,
 .bastionland-page .bastionland-npc-notes > .editor-content {
 	display: flex;
 	flex-direction: column;
-	overflow: auto;
+	overflow: hidden;
 	resize: vertical;
 }
 
-/* Read-only text has no editor to stretch, so it stays a plain block. */
+/* Read-only text has no editor to stretch, so it stays a plain block and scrolls itself. */
 .bastionland-page .bastionland-npc-notes > .editor-content {
 	display: block;
+	overflow: auto;
 }
 
 /* Whatever height the box is dragged to is the text's to fill. */
@@ -2630,6 +2746,73 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	margin: 0;
 }
 
+.bastionland-time__header {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+/* A GM's window: the date across the top, then the calendar and what moves it
+   on beside what the Season asks of the Referee, and ending the session under both. */
+.bastionland-time--referee .bastionland-time__header {
+	padding-bottom: 0.6rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-time__columns,
+.bastionland-time__column {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.bastionland-time--referee .bastionland-time__columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: start;
+	gap: 0.75rem 2rem;
+}
+
+/* Too narrow for two, when the GM has dragged the window in: one column again. */
+@container (width < 40rem) {
+	.bastionland-time--referee .bastionland-time__columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* The ways time moves on: the next Phase, pressed most, across the top; the
+   Season and the Age side by side; the long journey across the foot. */
+.bastionland-time__moves {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bastionland-time__moves button {
+	min-width: 0;
+}
+
+.bastionland-time__moves button:is([data-action="nextPhase"], [data-action="journey"]) {
+	grid-column: 1 / -1;
+}
+
+/* Setting the calendar by hand skips what the book says happens between Seasons and Ages, so that is said in bold. */
+.bastionland-hint.bastionland-time__warning {
+	color: var(--bastionland-ink);
+	font-weight: bold;
+}
+
+/* End the Session closes the window, with nothing ruled off under it. */
+.bastionland-time__end {
+	border-bottom: none;
+}
+
+/* The Glory awards fill the column's width as they wrap, rather than leaving a ragged edge. */
+.bastionland-time--referee .bastionland-time__list > li {
+	display: flex;
+	flex: 1 1 auto;
+}
+
 .bastionland-time__fields {
 	display: flex;
 	flex-wrap: wrap;
@@ -2731,11 +2914,6 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-style: italic;
 }
 
-/* In a past Season's record each event is one line, so its words need no room below. */
-.bastionland-season-events--log .bastionland-season-events__event {
-	padding: 0.2rem 0.45rem;
-}
-
 /*
  * A Curse's blight (p14), held in front of the Referee until the Phase it
  * throws the Company off course in has passed. Edged in the rubric, as the one
@@ -2757,6 +2935,12 @@ button.bastionland-seer__stat:not(:disabled):hover {
 
 .bastionland-spark__header .bastionland-choices--inline {
 	margin-bottom: 0;
+}
+
+/* Only as wide as its words, so a click beside it doesn't tick it. */
+.bastionland-spark__animate {
+	display: inline-flex;
+	margin-top: 0.35rem;
 }
 
 .bastionland-spark__grid {
@@ -2787,7 +2971,10 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-spark__table table {
 	width: 100%;
 	margin: 0;
-	border: none;
+	/* Ruled down its sides and along its foot; the rule under the table's name
+	   closes it at the top. */
+	border: 1px solid var(--bastionland-rule);
+	border-top: none;
 	border-collapse: collapse;
 	background: none;
 	font-size: 0.9rem;
@@ -2817,11 +3004,22 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	text-align: right;
 }
 
+/* The highlight running down a column as it's rolled, as on a Myth's table. */
+.bastionland-spark__table td.is-spinning {
+	background: var(--bastionland-rubric);
+	color: var(--bastionland-paper);
+}
+
 .bastionland-spark__table td.is-rolled {
 	outline: 1.5px solid var(--bastionland-blood);
 	outline-offset: -1.5px;
 	color: var(--bastionland-blood);
 	font-weight: bold;
+}
+
+/* Only as it lands; the keyframes are the Myth table's (styles/gm-toolkit.css). */
+.bastionland-spark__table td.is-landing {
+	animation: bastionland-myth-table-land 0.45s ease-out;
 }
 
 /* ---------------------------------------------------------------- */
@@ -3720,6 +3918,13 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-size: 1.4rem;
 }
 
+/* A Knighted Squire's scores, kept rather than rolled, shown in the same boxes. */
+.bastionland-page .bastionland-chooser__score span.bastionland-box {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
 .bastionland-chooser__groups {
 	display: flex;
 	gap: 0.3rem;
@@ -3907,6 +4112,17 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-size: 0.95rem;
 }
 
+.bastionland-chooser__seer .bastionland-chooser__seer-name {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+}
+
+.bastionland-chooser__seer-lines {
+	margin: 0.3rem 0 0;
+	padding-left: 1.1rem;
+	font-size: 0.95rem;
+}
+
 .bastionland-chooser__footer {
 	display: flex;
 	justify-content: flex-end;
@@ -3989,11 +4205,11 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	flex: 1;
 }
 
-/* The hex under the pointer on a Realm Scene. */
+/* The hex under the pointer on a Realm Scene, held under the map's foot as it pans (hex-readout.js moves it). */
 .bastionland-hex-readout {
 	position: fixed;
-	top: 0.6rem;
-	left: 50%;
+	top: 0;
+	left: 0;
 	z-index: 60;
 	max-width: min(40rem, 70vw);
 	padding: 0.2rem 0.7rem;
@@ -4005,7 +4221,6 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
 	pointer-events: none;
-	transform: translateX(-50%);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -4282,7 +4497,7 @@ button.bastionland-dice:focus-visible {
 	font-size: 0.9rem;
 }
 
-:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__page {
+.bastionland-travel-rules button.bastionland-travel-rules__page {
 	flex: none;
 	width: auto;
 	min-height: 0;
@@ -4293,7 +4508,7 @@ button.bastionland-dice:focus-visible {
 	text-decoration: underline dotted;
 }
 
-:is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__page:hover {
+.bastionland-travel-rules button.bastionland-travel-rules__page:hover {
 	color: var(--bastionland-blood);
 }
 
@@ -4428,13 +4643,38 @@ button.bastionland-dice:focus-visible {
 	box-shadow: none;
 }
 
-.bastionland-realm-drawing__head {
-	padding: 0.5rem 0.7rem 0.4rem;
-}
-
 .bastionland-realm-drawing__intro {
 	margin: 0.4rem 0 0.2rem;
 	font-style: italic;
+}
+
+/* An imported map's standing order, at the head of the Wilderness page: paint
+   every hex. Ruled off in red until every hex is painted, then in verdigris. */
+.bastionland-realm-drawing__paint-all {
+	margin: 0.4rem 0 0.6rem;
+	padding: 0.45rem 0.7rem;
+	border-left: 3px solid var(--bastionland-rubric);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-realm-drawing__paint-all strong {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-realm-drawing__paint-all.is-done {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-drawing__paint-all.is-done strong {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-realm-drawing__paint-all p {
+	margin: 0.2rem 0 0;
+}
+
+.bastionland-realm-drawing__paint-next {
+	font-weight: bold;
 }
 
 /* The book's paragraphs, set apart as it prints them. */
@@ -4464,11 +4704,63 @@ button.bastionland-dice:focus-visible {
 	margin-bottom: 0.2rem;
 }
 
-/* The one way into the palette, across the head of the rules beside the page. */
-.bastionland-realm-drawing__head button.bastionland-realm-drawing__palette {
+/* Undo and Redo one over the other at the foot of the rail, under the last
+   tab, held there as the rules scroll. */
+.bastionland-realm-drawing .bastionland-realm-drawing__rail .bastionland-rail-dialog__rail {
+	display: flex;
+	flex-direction: column;
+}
+
+.bastionland-realm-drawing__history {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-top: auto;
+	padding-top: 0.75rem;
+}
+
+.bastionland-realm-drawing__history button.bastionland-travel-rules__roll {
+	margin: 0;
+}
+
+/* The Company picture's field with its browse button at its right end. */
+.bastionland-realm-drawing__company .form-fields {
+	display: flex;
+	align-items: stretch;
+	gap: 0.3rem;
+	margin-bottom: 0.45rem;
+}
+
+.bastionland-realm-drawing__company .form-fields input {
 	flex: 1;
 	width: auto;
+	min-width: 0;
+}
+
+/* The button takes the field's height, however tall the field is drawn. */
+.bastionland-realm-drawing__company .form-fields button {
+	flex: none;
+	width: auto;
+	height: auto;
+	min-height: 0;
 	margin: 0;
+	padding: 0 0.5rem;
+}
+
+/* Each step's part of the paint palette, under its tally. The terrains and
+   Landmarks go three to a row and the Holdings two, as in the palette. */
+.bastionland-realm-drawing .bastionland-realm-drawing__palette {
+	margin-top: 0.45rem;
+}
+
+.bastionland-realm-drawing .bastionland-realm-drawing__palette + button.bastionland-travel-rules__roll {
+	margin-top: 0.4rem;
+}
+
+/* How to paint with the brush in hand, under its swatches. */
+.bastionland-realm-drawing .bastionland-realm-drawing__hint {
+	margin-top: 0.4rem;
+	font-size: 0.9rem;
 }
 
 /* The counts run along the line and wrap, so six kinds of Landmark take a
@@ -4498,6 +4790,11 @@ button.bastionland-dice:focus-visible {
 	text-align: center;
 }
 
+/* A book section at the foot of another page, such as Breaking the Rules under The Hex Map, under its own heading. */
+.bastionland-realm-drawing__subhead {
+	margin-top: 0.9rem;
+}
+
 /* The pictures a traced Realm is drawn by, at the head of the drawing rules. */
 .bastionland-realm-drawing__maps {
 	display: flex;
@@ -4508,30 +4805,38 @@ button.bastionland-dice:focus-visible {
 	list-style: none;
 }
 
+/* Each picture as large as the page lets it be, its name centred under it as a caption, and its buttons side by side under that. */
 .bastionland-realm-drawing__map {
-	display: grid;
-	grid-template-columns: 3.4rem 1fr;
-	grid-template-areas: "picture name" "picture line";
+	display: flex;
+	flex-direction: column;
 	align-items: center;
-	column-gap: 0.5rem;
-	row-gap: 0.2rem;
-}
-
-.bastionland-realm-drawing__map img {
-	grid-area: picture;
-	width: 3.4rem;
-	height: 3.4rem;
-	border: 1px solid var(--bastionland-rule);
-	object-fit: cover;
+	gap: 0.4rem;
 }
 
 .bastionland-realm-drawing__map-name {
-	grid-area: name;
+	margin-top: -0.15rem;
 	color: var(--bastionland-ink-soft);
+	text-align: center;
 }
 
-.bastionland-realm-drawing__map button {
-	grid-area: line;
+.bastionland-realm-drawing__map .bastionland-realm-picture__enlarge img {
+	max-width: 100%;
+	max-height: 20rem;
+	border: 1px solid var(--bastionland-rule);
+	object-fit: contain;
+}
+
+.bastionland-realm-drawing__map-actions {
+	display: flex;
+	align-self: stretch;
+	gap: 0.5rem;
+}
+
+.bastionland-realm-drawing__map-actions button.bastionland-travel-rules__roll {
+	flex: 1 1 0;
+	width: auto;
+	min-width: 0;
+	margin: 0;
 }
 
 /* How strongly Foundry's own hex lines are drawn over the picture. */
@@ -4542,8 +4847,14 @@ button.bastionland-dice:focus-visible {
 	margin-top: 0.4rem;
 }
 
+/* The slider just after its label, rather than pushed to the far side by it. */
+.bastionland-realm-drawing__lines .bastionland-check__label {
+	flex: none;
+}
+
 .bastionland-realm-drawing__lines input[type="range"] {
-	flex: 1;
+	flex: 0 1 14rem;
+	min-width: 0;
 }
 
 /* Choosing the pictures a Realm is traced from, in the New Realm dialog and
@@ -4769,6 +5080,19 @@ button.bastionland-company-button:focus-visible {
 	line-height: 1.3;
 }
 
+/* A hex marked on the picture, named in the hint beside a little hexagon in its colour. */
+.bastionland-map-slide__pin {
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.bastionland-map-slide__pin svg {
+	width: 1em;
+	height: 1em;
+	margin-right: 0.2em;
+	vertical-align: -0.15em;
+}
+
 .bastionland-map-slide__buttons {
 	display: flex;
 	flex: 0 0 auto;
@@ -4806,17 +5130,23 @@ button.bastionland-company-button:focus-visible {
 	opacity: 0.45;
 }
 
+.bastionland-map-slide button[hidden] {
+	display: none;
+}
+
+/* Which step of the lining up this is, leading the hint. */
+.bastionland-map-slide__step {
+	display: block;
+	font-family: var(--bastionland-font-caps);
+}
+
 body.bastionland-map-sliding :is(button.bastionland-realm-drawing__finish, button.bastionland-company-button) {
 	display: none;
 }
 
-/* The pointer says what a drag will do: move the picture, or size it by the handle under it. */
+/* The pointer says what a click or a drag will do: move the picture or a mark, or put the marks down. */
 body[data-map-slide="move"] #board { cursor: move !important; }
 body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
-body[data-map-slide="nwse-resize"] #board { cursor: nwse-resize !important; }
-body[data-map-slide="nesw-resize"] #board { cursor: nesw-resize !important; }
-body[data-map-slide="ns-resize"] #board { cursor: ns-resize !important; }
-body[data-map-slide="ew-resize"] #board { cursor: ew-resize !important; }
 
 /* The palette holds every terrain, the river, Barriers and each kind of
    Landmark, so the window scrolls rather than growing past the foot of the screen. */
@@ -5284,6 +5614,36 @@ body[data-map-slide="ew-resize"] #board { cursor: ew-resize !important; }
 	line-height: 1;
 }
 
+/* Everything kept for a hex, to forget a piece at a time (module/apps/HexVisits.js). */
+.bastionland-hex-visits {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.5rem 0.6rem;
+}
+
+.bastionland-hex-visits__lists {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+.bastionland-hex-visits__lists .bastionland-heading {
+	margin: 0.35rem 0 0;
+}
+
+/* The lists scroll together, so none of them scrolls on its own. */
+.bastionland-hex-visits__list {
+	max-height: none;
+	overflow: visible;
+}
+
+.bastionland-hex-visits__note {
+	white-space: pre-wrap;
+}
+
 /* ---------------------------------------------------------------- */
 /* Wide cards: a Myth's picture spans its two pages                 */
 /* ---------------------------------------------------------------- */
@@ -5625,20 +5985,34 @@ body[data-map-slide="ew-resize"] #board { cursor: ew-resize !important; }
 	cursor: default;
 }
 
-/* An optgroup's name: a rubric in miniature, ruled off from the rows under it. */
+/*
+ * An optgroup's name: a rubric in miniature, larger and heavier than the rows
+ * under it and set on the deeper parchment, so it reads as a heading and not
+ * as one more choice. The rows it holds step in beneath it.
+ */
 .bastionland-dropdown__group {
-	margin: 0.3rem 0 0.15rem;
-	padding: 0 0.85rem 0.15rem;
+	margin: 0.5rem 0 0.2rem;
+	padding: 0.25rem 0.85rem 0.2rem;
+	border-top: 1px solid var(--bastionland-rule);
 	border-bottom: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);
+	font-size: 1.15em;
+	font-weight: bold;
 	font-variant: small-caps;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.05em;
 	white-space: nowrap;
+	cursor: default;
 }
 
 .bastionland-dropdown__group:first-child {
 	margin-top: 0;
+	border-top: none;
+}
+
+.bastionland-dropdown__group ~ .bastionland-dropdown__option {
+	padding-left: 1.6rem;
 }
 
 /* The list unfolds from the box it drops from, whichever side that is. */

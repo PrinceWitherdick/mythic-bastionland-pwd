@@ -28,8 +28,11 @@
 		{{/each}}
 	</div>
 	<nav class="bastionland-toolbar">
+		<label class="bastionland-check bastionland-wilderness-hex__animate">
+			<input type="checkbox" name="animate" {{checked animate}}>
+			<span class="bastionland-check__label">{{localize "bastionland.spark.animate"}}</span>
+		</label>
 		<button type="button" data-action="rollTable"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.hexLore.wildHex.rollAll"}}</button>
 		<button type="button" data-action="keep" {{disabled nothingTaken}}><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.wildHex.keep"}}</button>
-		<button type="button" data-action="close"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.hexLore.wildHex.close"}}</button>
 	</nav>
 </section>

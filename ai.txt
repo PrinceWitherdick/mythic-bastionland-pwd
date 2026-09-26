@@ -1,0 +1,179 @@
+# ai.txt - AI training / text-and-data-mining preferences for this project.
+# Rights reserved for TDM and AI training. See AI-TRAINING-NOTICE.md.
+# Machine-readable companion to robots.txt and /.well-known/tdmrep.json.
+#
+# This project (source, compiled artifacts, docs, and bundled content) may NOT be
+# used to train, fine-tune, or evaluate machine-learning or generative-AI models,
+# nor be included in datasets assembled for those purposes.
+#
+# GENERATED FILE - edit scripts/ai-bots.txt and run `npm run gen:ai-signals`.
+
+# Disallow all automated agents from AI-training use of this content.
+User-Agent: *
+Disallow: /
+
+# Named AI crawlers and dataset agents are explicitly disallowed.
+User-Agent: AddSearchBot
+User-Agent: AgentTimes
+User-Agent: AI2Bot
+User-Agent: AI2Bot-DeepResearchEval
+User-Agent: Ai2Bot-Dolma
+User-Agent: aiHitBot
+User-Agent: AIWebIndex
+User-Agent: amazon-kendra
+User-Agent: amazon-QBusiness
+User-Agent: Amazonbot
+User-Agent: AmazonBuyForMe
+User-Agent: Amzn-SearchBot
+User-Agent: Amzn-User
+User-Agent: Andibot
+User-Agent: Anomura
+User-Agent: anthropic-ai
+User-Agent: ApifyBot
+User-Agent: ApifyWebsiteContentCrawler
+User-Agent: Applebot
+User-Agent: Applebot-Extended
+User-Agent: Aranet-SearchBot
+User-Agent: atlassian-bot
+User-Agent: Awario
+User-Agent: AzureAI-SearchBot
+User-Agent: bedrockbot
+User-Agent: bigsur.ai
+User-Agent: Bravebot
+User-Agent: Brightbot
+User-Agent: Brightbot 1.0
+User-Agent: BuddyBot
+User-Agent: Bytespider
+User-Agent: CCBot
+User-Agent: Channel3Bot
+User-Agent: ChatGLM-Spider
+User-Agent: ChatGPT Agent
+User-Agent: ChatGPT-User
+User-Agent: Claude-Code
+User-Agent: Claude-SearchBot
+User-Agent: Claude-User
+User-Agent: Claude-Web
+User-Agent: ClaudeBot
+User-Agent: Cloudflare-AutoRAG
+User-Agent: CloudVertexBot
+User-Agent: cohere-ai
+User-Agent: cohere-training-data-crawler
+User-Agent: Cotoyogi
+User-Agent: CragCrawler
+User-Agent: Crawl4AI
+User-Agent: Crawlspace
+User-Agent: Cursor
+User-Agent: Datenbank Crawler
+User-Agent: DeepSeekBot
+User-Agent: Devin
+User-Agent: Diffbot
+User-Agent: DuckAssistBot
+User-Agent: Echobot Bot
+User-Agent: EchoboxBot
+User-Agent: ExaBot
+User-Agent: FacebookBot
+User-Agent: facebookexternalhit
+User-Agent: Factset_spyderbot
+User-Agent: FirecrawlAgent
+User-Agent: FriendlyCrawler
+User-Agent: GeistHaus-PageFetcher
+User-Agent: Gemini-Deep-Research
+User-Agent: Google-Agent
+User-Agent: Google-CloudVertexBot
+User-Agent: Google-Extended
+User-Agent: Google-Firebase
+User-Agent: Google-Gemini-CLI
+User-Agent: Google-NotebookLM
+User-Agent: GoogleAgent-Mariner
+User-Agent: GoogleAgent-URLContext
+User-Agent: GoogleOther
+User-Agent: GoogleOther-Image
+User-Agent: GoogleOther-Video
+User-Agent: GPTBot
+User-Agent: HenkBot
+User-Agent: iAskBot
+User-Agent: iaskspider
+User-Agent: iaskspider/2.0
+User-Agent: IbouBot
+User-Agent: ICC-Crawler
+User-Agent: ImagesiftBot
+User-Agent: imageSpider
+User-Agent: img2dataset
+User-Agent: ISSCyberRiskCrawler
+User-Agent: kagi-fetcher
+User-Agent: Kangaroo Bot
+User-Agent: Kimi-User
+User-Agent: KlaviyoAIBot
+User-Agent: KunatoCrawler
+User-Agent: laion-huggingface-processor
+User-Agent: LAIONDownloader
+User-Agent: LCC
+User-Agent: LinerBot
+User-Agent: Linguee Bot
+User-Agent: LinkupBot
+User-Agent: Manus-User
+User-Agent: meta-externalagent
+User-Agent: Meta-ExternalAgent
+User-Agent: meta-externalfetcher
+User-Agent: Meta-ExternalFetcher
+User-Agent: meta-webindexer
+User-Agent: MistralAI-User
+User-Agent: MistralAI-User/1.0
+User-Agent: Mozilla-Tabstack
+User-Agent: MyCentralAIScraperBot
+User-Agent: NagetBot
+User-Agent: netEstate Imprint Crawler
+User-Agent: newsai
+User-Agent: NotebookLM
+User-Agent: NovaAct
+User-Agent: OAI-SearchBot
+User-Agent: omgili
+User-Agent: omgilibot
+User-Agent: OpenAI
+User-Agent: Operator
+User-Agent: PanguBot
+User-Agent: Panscient
+User-Agent: panscient.com
+User-Agent: Perplexity-User
+User-Agent: PerplexityBot
+User-Agent: PetalBot
+User-Agent: PhindBot
+User-Agent: Poggio-Citations
+User-Agent: Poseidon Research Crawler
+User-Agent: QualifiedBot
+User-Agent: Querit-SearchBot
+User-Agent: QueritBot
+User-Agent: QuillBot
+User-Agent: quillbot.com
+User-Agent: SBIntuitionsBot
+User-Agent: Scrapy
+User-Agent: SemrushBot-OCOB
+User-Agent: SemrushBot-SWA
+User-Agent: Shap-User
+User-Agent: ShapBot
+User-Agent: Sidetrade indexer bot
+User-Agent: TavilyBot
+User-Agent: Terra Cotta
+User-Agent: TerraCotta
+User-Agent: Thinkbot
+User-Agent: TikTokSpider
+User-Agent: Timpibot
+User-Agent: TongyiBot
+User-Agent: Trae
+User-Agent: TwinAgent
+User-Agent: UseAI
+User-Agent: VelenPublicWebCrawler
+User-Agent: WARDBot
+User-Agent: Webzio-Extended
+User-Agent: webzio-extended
+User-Agent: wpbot
+User-Agent: WRTNBot
+User-Agent: YaK
+User-Agent: YandexAdditional
+User-Agent: YandexAdditionalBot
+User-Agent: YiyanBot
+User-Agent: YouBot
+User-Agent: ZanistaBot
+Disallow: /
+
+# Contact: https://github.com/PrinceWitherdick/mythic-bastionland-pwd/issues

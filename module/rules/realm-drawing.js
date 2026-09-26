@@ -14,9 +14,11 @@ export const REALM_DRAWING_FLAG = "drawing";
 export const DRAWING_WINDOW = Object.freeze({ width: 620, height: 600 });
 
 /**
- * Where the Creating a Realm window first opens: over the middle of as much
- * of the map as the interface leaves in view, where a GM who has just begun
- * drawing can't miss it. It never opens outside that room, and it's made
+ * Where the Creating a Realm window first opens: to the left of as much of the
+ * map as the interface leaves in view, level with its middle, where a GM who
+ * has just begun drawing can't miss it and it hides as little of the map as it
+ * can. Where there's no room beside the map it keeps to the room's left edge,
+ * over the map's left side. It never opens outside that room, and it's made
  * smaller where the room is smaller than it. From there the GM moves it.
  * @param {{left: number, top: number, right: number, bottom: number}} room What the interface leaves of the screen.
  * @param {{left: number, top: number, right: number, bottom: number}|null} map Where the map is, or null while the canvas isn't ready.
@@ -33,11 +35,11 @@ export function drawingWindowPlacement(room, map, { width, height, gap = 12 }) {
 		right: Math.min(map.right, inner.right),
 		bottom: Math.min(map.bottom, inner.bottom)
 	};
-	// A map panned wholly out of view has no middle to open over, so the room's is taken.
+	// A map panned wholly out of view has nothing to open beside, so the room is taken.
 	const area = seen && seen.right > seen.left && seen.bottom > seen.top ? seen : inner;
 	const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
 	return {
-		left: Math.round(clamp(((area.left + area.right) / 2) - (wide / 2), inner.left, inner.right - wide)),
+		left: Math.round(clamp(area.left - gap - wide, inner.left, inner.right - wide)),
 		top: Math.round(clamp(((area.top + area.bottom) / 2) - (tall / 2), inner.top, inner.bottom - tall)),
 		width: Math.round(wide),
 		height: Math.round(tall)
@@ -88,6 +90,7 @@ export const DRAWING_RULES = Object.freeze([
  * @property {string} key
  * @property {DrawingSection|null} step Null for rules no step draws.
  * @property {DrawingBlock[]} blocks
+ * @property {string} [heading] The book's heading over a section that joined the page before it.
  */
 
 /** @typedef {{key: string, heading: string, icon: string, parts: DrawingPart[]}} DrawingGroup */
@@ -100,13 +103,29 @@ export const DRAWING_RULES = Object.freeze([
  */
 export const BOOK_SECTION_ICONS = Object.freeze({
 	"breaking the rules": "fa-scale-unbalanced",
-	"the hex map": "fa-border-all",
-	"adding details": "fa-feather-pointed",
-	"distant realms": "fa-mountain-sun"
+	"the hex map": "fa-border-all"
 });
 
 /** The icon for a book section no step takes. */
 const bookSectionIcon = (heading) => BOOK_SECTION_ICONS[heading.trim().toLowerCase()] ?? "fa-book-open";
+
+/**
+ * The book's sections too short for a tab of their own, keyed by the heading
+ * the book prints, lower-cased, to the heading of the page each goes at the
+ * foot of, under its own heading: Breaking the Rules under The Hex Map.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const BOOK_SECTIONS_JOINED = Object.freeze({
+	"breaking the rules": "the hex map"
+});
+
+/**
+ * The book's sections the window leaves out, keyed by the heading the book
+ * prints, lower-cased: Adding Details and Distant Realms, which are about what
+ * comes after the map is drawn, and stay in the rulebook.
+ * @type {ReadonlySet<string>}
+ */
+export const BOOK_SECTIONS_LEFT_OUT = Object.freeze(new Set(["adding details", "distant realms"]));
 
 /**
  * Creating a Realm as the GM's own rulebook prints it (p14), fitted to the
@@ -114,18 +133,28 @@ const bookSectionIcon = (heading) => BOOK_SECTION_ICONS[heading.trim().toLowerCa
  * as its `book` says, whatever language the sheet is in, and its steps take that section's paragraphs in order,
  * the last step taking whatever is left, so each step's tally and tool follow
  * the book's words for it. The book's other sections stand between them in
- * the book's order.
+ * the book's order, those in BOOK_SECTIONS_JOINED at the foot of the page
+ * named there, or on a page of their own where the book has no such page,
+ * and those in BOOK_SECTIONS_LEFT_OUT not at all.
  * @param {{heading: string, blocks: DrawingBlock[]}[]} book From the index, as rulePageFromItems reads p14.
  * @returns {DrawingGroup[]|null} Null unless the book has a section for every group.
  */
 export function bookDrawingGroups(book) {
-	const groups = book.map(({ heading, blocks }, index) => {
-		const group = DRAWING_RULES.find((rule) => rule.book.toLowerCase() === heading.trim().toLowerCase());
+	const sections = book.map(({ heading, blocks }, index) => ({ heading, blocks, index, name: heading.trim().toLowerCase() }))
+		.filter((section) => !BOOK_SECTIONS_LEFT_OUT.has(section.name));
+	const pages = new Set(sections.map((section) => section.name));
+	const joins = (section) => pages.has(BOOK_SECTIONS_JOINED[section.name]);
+	const groups = sections.filter((section) => !joins(section)).map(({ heading, blocks, index, name }) => {
+		const group = DRAWING_RULES.find((rule) => rule.book.toLowerCase() === name);
 		if (!group) return { key: `book-${index}`, heading, icon: bookSectionIcon(heading), parts: [{ key: `book-${index}`, step: null, blocks }] };
 		const last = group.sections.length - 1;
 		const parts = group.sections.map((step, at) => ({ key: step.key, step, blocks: blocks.slice(at, at === last ? undefined : at + 1) }));
 		return { key: group.key, heading, icon: group.icon, parts };
 	});
+	for (const { heading, blocks, index, name } of sections.filter(joins)) {
+		const page = groups.find((group) => group.heading.trim().toLowerCase() === BOOK_SECTIONS_JOINED[name]);
+		page.parts.push({ key: `book-${index}`, step: null, blocks, heading });
+	}
 	const found = new Set(groups.map((group) => group.key));
 	return DRAWING_RULES.every((group) => found.has(group.key)) ? groups : null;
 }

@@ -5,7 +5,8 @@
  * steed or other companion. Pure, so it can be tested without Foundry.
  */
 import { RANGED_NAME } from "./arms-and-goods.js";
-import { SPECIALIST_DICE } from "./attack.js";
+import { looksWooden } from "./armour.js";
+import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "./attack.js";
 import { countsAsHeftyMounted, parseAttacks, parseStatLine } from "./stat-blocks.js";
 import { capitalise, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES } from "./virtues.js";
@@ -84,6 +85,84 @@ export function armourKind(name) {
 /** @returns {string} Paragraphs of HTML, one for each piece of text given, tidied and capitalised. */
 const tidyParagraphs = (...texts) => paragraphs(...texts.map((text) => capitalise(tidy(text))));
 
+/** How many are carried, leading a name as in "3 javelins", or an aside as in "3 polished stones". */
+const LEADING_COUNT = /^(\d+)\s+(?=\p{L})/u;
+/** When a possession comes round again: "restock each new Season", or a flask found anew then. */
+const RESTOCKS = Object.freeze([
+	["season", /\brestock each new season\b|\bat the start of the next season\b/i],
+	["day", /\b(?:one|a) (?:use|dose) each day\b/i]
+]);
+/** Something carried to be used once, as "use once only". */
+const ONCE = /\buse once only\b/i;
+
+/**
+ * How many of a possession are carried and whether they come round again, as
+ * the book's line says: "3 runic scrolls", "(restock each new Season)",
+ * "enough for one dose each day", "(use once only ...)". A possession that is
+ * restocked or used once is counted as one when no number is given.
+ * @param {string} text The possession as printed.
+ * @param {number|null} [count] A number of them already read off it.
+ * @returns {{quantity?: {value: number, max: number}, restock?: string}}
+ */
+function stockOf(text, count = null) {
+	const restock = RESTOCKS.find(([, pattern]) => pattern.test(text))?.[0] ?? "";
+	const carried = count ?? (restock || ONCE.test(text) ? 1 : null);
+	return {
+		...(carried === null ? {} : { quantity: { value: carried, max: carried } }),
+		...(restock ? { restock } : {})
+	};
+}
+
+/**
+ * A name with the number carried taken off its front: "3 javelins" is
+ * "Javelins", three of them.
+ * @param {string} name
+ * @returns {{name: string, count: number|null}}
+ */
+function countedName(name) {
+	const match = LEADING_COUNT.exec(name);
+	return match ? { name: capitalise(name.slice(match[0].length)), count: Number(match[1]) } : { name, count: null };
+}
+
+/**
+ * A weapon's other way to fight, as a note on it says: "in melee or d10 slow
+ * ranged", or "or d8 each when wielded as a pair".
+ * @param {string} note
+ * @returns {object|null} The alternate field's data, or null for a note that says nothing of the kind.
+ */
+function alternateFrom(note) {
+	const text = tidy(note);
+	const pair = /^or\s+(\d*)d(\d+)\s+each\s+when\s+wielded\s+as\s+a\s+pair$/i.exec(text);
+	if (pair) return { label: "as a pair", damage: `2d${pair[2]}` };
+	const other = /^in\s+melee\s+or\s+(\d*d\d+)\s+(.+)$/i.exec(text);
+	if (!other) return null;
+	const words = other[2].toLowerCase().split(/\s+/);
+	const alternate = { label: words.filter((word) => !ALTERNATE_QUALITIES.includes(word)).join(" ") || words.at(-1), damage: other[1].toLowerCase() };
+	for (const word of words) if (ALTERNATE_QUALITIES.includes(word)) alternate[word] = true;
+	return alternate;
+}
+
+/**
+ * When a piece of armour's Armour counts, from the words sharing its "A1":
+ * "(A1 only when Wounded)", "(A1 when mounted)", "(A1 in verdant environments
+ * only)"; or from an aside of its own, "no protection against fire".
+ * @param {string} inner The parenthesis, as "A1 only when Wounded".
+ * @returns {{condition: string, situation: string, said: string[]}|null} `said` are the notes it came from.
+ */
+function armourConditionFrom(inner) {
+	const parts = splitOutside(inner, COMMA).map(tidy);
+	const valued = parts.find((part) => ARMOUR_VALUE.test(part));
+	const beside = tidy((valued ?? "").replace(ARMOUR_VALUE, " ").replace(/\b\d*d\d+\b/i, " "));
+	if (beside && !ONLY_SEE_BELOW.test(beside)) {
+		if (/^(?:only\s+)?when\s+wounded$/i.test(beside)) return { condition: "wounded", situation: "", said: [beside] };
+		if (/^(?:only\s+)?(?:when|while)\s+mounted$/i.test(beside)) return { condition: "mounted", situation: "", said: [beside] };
+		return { condition: "only", situation: tidy(beside.replace(/^only\s+|\s+only$/gi, "")), said: [beside] };
+	}
+	const against = parts.find((part) => /^no protection against\s+/i.test(part));
+	if (against) return { condition: "except", situation: against.replace(/^no protection\s+/i, ""), said: [against] };
+	return null;
+}
+
 /**
  * @typedef {object} Companion A creature carried as Property, such as a steed.
  * @property {string} name
@@ -94,6 +173,18 @@ const tidyParagraphs = (...texts) => paragraphs(...texts.map((text) => capitalis
  * @property {{name: string, damage: string}[]} attacks Its own attacks, such as a hawk's "d4 talons".
  * @property {string[]} notes Anything else said of it.
  */
+
+/**
+ * A piece of gear as printed, with any count taken off the front of its name
+ * and read, as whether it's restocked is.
+ * @param {string} text
+ * @returns {{type: "gear", name: string, system?: object}}
+ */
+function gearItem(text) {
+	const { name, count } = countedName(capitalise(tidy(text)));
+	const system = stockOf(text, count);
+	return Object.keys(system).length ? { type: "gear", name, system } : { type: "gear", name };
+}
 
 /**
  * The pieces of Property in one chunk: the text before a parenthesis, the
@@ -107,7 +198,7 @@ function readChunk(chunk) {
 	const group = typedGroup(text);
 	const kind = group?.kind;
 	const name = kind ? capitalise(tidy(text.slice(0, group.open))) : "";
-	if (!kind || !name) return [{ item: { type: "gear", name: capitalise(tidy(text)) } }];
+	if (!kind || !name) return [{ item: gearItem(text) }];
 	const tail = text.slice(group.close + 1);
 	const more = typedGroup(tail) ? tail.replace(/^\s*(?:with|and|plus)\s+/i, "") : "";
 	const own = more ? text.slice(0, group.close + 1) : text;
@@ -140,28 +231,47 @@ function readChunk(chunk) {
 		// Dice later on are something else it does.
 		const die = /^\s*(\d*d\d+)\b/i.exec(group.inner) ?? /\bA\d+\s+(\d*d\d+)\b/i.exec(group.inner);
 		const damage = die?.[1].toLowerCase() ?? "";
-		const note = splitOutside((die ? group.inner.replace(die[1], " ") : group.inner).replace(ARMOUR_VALUE, " "), COMMA).filter(aside).map(tidy).filter(Boolean).join(", ");
+		const counts = armourConditionFrom(group.inner);
+		const note = splitOutside((die ? group.inner.replace(die[1], " ") : group.inner).replace(ARMOUR_VALUE, " "), COMMA)
+			.filter(aside).map(tidy)
+			.filter((part) => part && !counts?.said.includes(part))
+			.join(", ");
+		const kind = armourKind(name);
 		const item = {
 			type: "armour",
 			name: label,
-			system: { kind: armourKind(name), armour, damage, equipped: true, description: tidyParagraphs(note, after) }
+			system: {
+				kind,
+				armour,
+				damage,
+				equipped: true,
+				...(kind === "shield" && /buckler/i.test(name) ? { buckler: true } : {}),
+				...(looksWooden(name, { type: "armour", kind }) ? { wooden: true } : {}),
+				...(counts ? { condition: counts.condition, situation: counts.situation } : {}),
+				description: tidyParagraphs(note, after)
+			}
 		};
 		return [{ item }, ...rest];
 	}
 
 	if (kind === "blast") {
 		// Titan beads or phoenix feathers: an Attack of their own, and the book says how many are carried.
+		const counted = countedName(label);
+		const count = counted.count ?? (Number(LEADING_COUNT.exec(tidy(group.inner))?.[1]) || null);
 		const system = {
 			damage: BLAST.exec(group.inner)[1].toLowerCase(),
 			blast: true,
 			equipped: true,
+			...stockOf(own, count),
+			// Each one thrown is gone until they're restocked.
+			usedUp: Boolean(count),
 			description: tidyParagraphs(...splitOutside(group.inner, COMMA).filter((note) => aside(note) && !/^(?:striking for\s+)?\d*d\d+\s+blast$/i.test(tidy(note))), after)
 		};
-		return [{ item: { type: "weapon", name: label, system } }, ...rest];
+		return [{ item: { type: "weapon", name: counted.name, system } }, ...rest];
 	}
 
 	const [attack] = parseAttacks(`${name} (${group.inner})`).attacks;
-	if (!attack) return [{ item: { type: "gear", name: capitalise(tidy(own)) } }, ...rest];
+	if (!attack) return [{ item: gearItem(own) }, ...rest];
 	let notes = attack.note ? splitOutside(attack.note, COMMA).filter(aside) : [];
 	// "+d8 dropping from above": a specialist weapon's extra die, and when it applies (p12).
 	const special = notes.map((note) => /^\+\s*(d\d+)\s+(.+)$/i.exec(note)).find((match) => match && SPECIALIST_DICE.includes(match[1].toLowerCase()));
@@ -185,14 +295,23 @@ function readChunk(chunk) {
 		qualities.add(quality);
 		notes = notes.filter((note) => !onFoot.test(tidy(note)));
 	}
+	// "in melee or d10 slow ranged": another way to fight with it.
+	const alternateNote = notes.find((note) => alternateFrom(note));
+	notes = notes.filter((note) => note !== alternateNote);
+	const counted = countedName(label);
 	const system = {
 		damage: attack.damage,
 		equipped: true,
 		specialist: special ? { die: special[1].toLowerCase(), situation: tidy(special[2]) } : { die: "", situation: "" },
+		...(alternateNote ? { alternate: alternateFrom(alternateNote) } : {}),
+		...(looksWooden(name, { type: "weapon" }) ? { wooden: true } : {}),
+		...stockOf(own, counted.count),
 		description: tidyParagraphs(...notes.filter((note) => !special || note !== special[0]), after)
 	};
 	for (const quality of ["hefty", "long", "slow", "ranged", "blast", "ignoresArmour", "trample", "heftyMounted"]) system[quality] = qualities.has(quality);
-	return [{ item: { type: "weapon", name: label, system } }, ...rest];
+	// Explosives and the like go with each Attack; a javelin can be picked up again.
+	if (system.blast && counted.count) system.usedUp = true;
+	return [{ item: { type: "weapon", name: counted.name, system } }, ...rest];
 }
 
 /**
@@ -265,6 +384,43 @@ export function retypedProperty(items) {
 		create.push(...retyped);
 	}
 	return { remove, create };
+}
+
+/**
+ * What the Property reader now knows of a possession beyond its dice and
+ * Armour: how many, when restocked, when its Armour counts, another way to
+ * fight with it, and whether it's wooden or a buckler. Knights made before it
+ * read these get them from their book lines, filled in only where the item
+ * still has nothing of its own, so nothing a player set is undone.
+ * @param {{id: string, type: string, name: string, system: object}[]} items A Knight's items.
+ * @param {string[]} lines Their Property as the book prints it.
+ * @returns {{_id: string, [key: string]: unknown}[]} Item updates.
+ */
+export function possessionDetails(items, lines) {
+	const plain = (name) => String(name ?? "").replace(LEADING_COUNT, "").trim().toLowerCase();
+	const pieces = propertyItems(lines).items;
+	const updates = [];
+	for (const item of items) {
+		const piece = pieces.find((candidate) => candidate.type === item.type && plain(candidate.name) === plain(item.name));
+		if (!piece?.system) continue;
+		const had = item.system ?? {};
+		const got = piece.system;
+		const update = {};
+		if (got.quantity && !Number.isInteger(had.quantity?.value)) update["system.quantity"] = got.quantity;
+		if (got.restock && !had.restock) update["system.restock"] = got.restock;
+		if (got.usedUp && !had.usedUp) update["system.usedUp"] = true;
+		if (got.wooden && !had.wooden) update["system.wooden"] = true;
+		if (got.buckler && !had.buckler) update["system.buckler"] = true;
+		if (got.alternate && !had.alternate?.damage) update["system.alternate"] = got.alternate;
+		if (got.condition && !had.condition) {
+			update["system.condition"] = got.condition;
+			update["system.situation"] = got.situation;
+		}
+		// "3 javelins" is "Javelins" now its count is kept.
+		if (LEADING_COUNT.test(item.name) && update["system.quantity"]) update.name = piece.name;
+		if (Object.keys(update).length) updates.push({ _id: item.id, ...update });
+	}
+	return updates;
 }
 
 /** @param {string} name */

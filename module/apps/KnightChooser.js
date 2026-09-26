@@ -4,6 +4,7 @@ import { postCard, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { spreads } from "../rules/book-art.js";
 import { rollKnightName, startingName } from "../rules/knight-names.js";
+import { CHOOSING_FLAG, isSquireName, itemsGained, knightedChoice } from "../rules/squires.js";
 import {
 	DEFAULT_START,
 	STANDARD_KIT,
@@ -13,8 +14,9 @@ import {
 	startFor,
 	takenKnights
 } from "../rules/creation.js";
-import { SCORES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
-import { templatePath } from "../system-id.js";
+import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
+import { SCORES, VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
+import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { confirmDialog } from "./ui.js";
 
@@ -30,12 +32,24 @@ const BROWSE_WIDTH = 390;
 /**
  * Makes a Knight the way the book does (p6-7, p26): choose a Start, roll
  * Virtues and GD, then roll d6 and d12 for the Knight or pick one. It fills in
- * an existing Knight, or creates a new one.
+ * an existing Knight, or creates a new one. For a Squire just Knighted, it only
+ * rolls or picks the Knight they became, and keeps everything they have (p7).
  */
 export class KnightChooser extends BastionlandChooser {
+	/**
+	 * @param {object} [options]
+	 * @param {boolean} [options.knighting] The actor is a Squire just Knighted, whose scores and gear stay.
+	 */
+	constructor({ knighting = false, ...options } = {}) {
+		super(options);
+		this.#knighting = Boolean(this.actor && knighting);
+		// A Squire still named for the Knight they served starts without one, as a Knight made blank does.
+		if (this.#knighting && isSquireName(this.#name, t("squire.name"))) this.#name = "";
+	}
+
 	static DEFAULT_OPTIONS = {
 		tag: "form",
-		position: { width: 822, height: 860 },
+		position: { width: 822, height: 1000 },
 		window: { icon: "fa-solid fa-chess-knight" },
 		form: { handler: KnightChooser.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
@@ -56,6 +70,9 @@ export class KnightChooser extends BastionlandChooser {
 	};
 
 	#start = DEFAULT_START;
+
+	/** Whether this is a Squire just Knighted, choosing the Knight they became. */
+	#knighting = false;
 
 	/** @type {Record<string, number|null>} */
 	#scores = Object.fromEntries(SCORES.map((key) => [key, null]));
@@ -105,6 +122,11 @@ export class KnightChooser extends BastionlandChooser {
 				max: key === "guard" ? null : VIRTUE_MAX
 			})),
 			browsing: this.#browsing,
+			knighting: this.#knighting && {
+				hint: t("chooser.knighted.hint", { name: this.actor.name }),
+				kept: [...VIRTUES.map((key) => ({ abbr: t(`virtues.${key}.abbr`), value: this.actor.system.virtues[key].max })),
+					{ abbr: t("guard.abbr"), value: this.actor.system.guard.max }]
+			},
 			cards: entries.filter((entry) => entry.d6 === this.group).map((entry) => ({
 				roll: entry.roll,
 				d12: entry.d12,
@@ -121,7 +143,12 @@ export class KnightChooser extends BastionlandChooser {
 				property: selected.knight?.property ?? null,
 				ability: selected.knight?.ability ?? null,
 				passion: selected.knight?.passion ?? null,
-				seer: selected.seer?.name ? { name: selected.seer.name, img: selected.seer.path } : null
+				seer: selected.seer?.name ? {
+					name: selected.seer.name,
+					img: selected.seer.path,
+					// What the book says of them, without their scores.
+					lines: (selected.seer.lines ?? []).filter(Boolean)
+				} : null
 			},
 			applyLabel: this.actor ? t("chooser.apply", { name: this.actor.name }) : t("chooser.create"),
 			name: this.#name,
@@ -290,6 +317,7 @@ export class KnightChooser extends BastionlandChooser {
 		const entry = this.#entries().find((candidate) => candidate.roll === this.roll);
 		const name = this.#name.trim();
 		if (!entry || !name) return;
+		if (this.#knighting) return this.#applyKnighted(entry, name);
 
 		const knightName = this.#knightName(entry);
 		const update = knightUpdate({
@@ -325,6 +353,8 @@ export class KnightChooser extends BastionlandChooser {
 		// Foundry leaves the Token's name behind on a rename, so it follows here unless it was set apart.
 		update.name = name;
 		if (actor.prototypeToken.name === actor.name) update["prototypeToken.name"] = name;
+		// Chosen now, so the empty page a Knight made blank shows gives way to the sheet.
+		if (actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG)) update[`flags.${SYSTEM_ID}.${UNCHOSEN_FLAG}`] = false;
 
 		// Every piece of gear is replaced, so the companions are all among the new items,
 		// and those made from the old gear go with it.
@@ -338,6 +368,36 @@ export class KnightChooser extends BastionlandChooser {
 		await actor.createEmbeddedDocuments("Item", items.filter((item) => !gone.has(item)));
 		return this.close();
 	}
+
+	/**
+	 * Make a Squire just Knighted the Knight chosen here. Only what that Knight
+	 * gives is added: their Property, Ability and Passion, the kit they don't
+	 * carry yet, and the Seer who knighted them. Nothing they had goes. A steed
+	 * the Knight brings is the one they ride from then on, and their pony stays theirs.
+	 * @param {object} entry The Knight chosen.
+	 * @param {string} name
+	 * @returns {Promise<void>}
+	 */
+	async #applyKnighted(entry, name) {
+		const actor = this.actor;
+		const update = knightedChoice(
+			{ img: actor.img, tokenImg: actor.prototypeToken.texture.src },
+			entry.knight,
+			entry.seer,
+			Actor.implementation.DEFAULT_ICON
+		);
+		update.name = name;
+		if (actor.prototypeToken.name === actor.name) update["prototypeToken.name"] = name;
+		update[`flags.${SYSTEM_ID}.${CHOOSING_FLAG}`] = false;
+
+		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
+		const items = itemsGained(knightItems(entry.knight, kitNames), actor.items.contents, Object.values(kitNames));
+		const { steed, gone } = await makeCompanions(items, knightOwner(actor));
+		if (steed) update["system.steed"] = steed;
+		await actor.update(update);
+		await actor.createEmbeddedDocuments("Item", items.filter((item) => !gone.has(item)));
+		return this.close();
+	}
 }
 
 /**
@@ -345,10 +405,11 @@ export class KnightChooser extends BastionlandChooser {
  * @param {Actor|null} [actor] The Knight to fill in. Omit to create one.
  * @param {object} [options]
  * @param {boolean} [options.fresh] The Knight was only just made with Create Actor.
+ * @param {boolean} [options.knighting] The Knight is a Squire just Knighted, choosing the Knight they became.
  * @returns {KnightChooser}
  */
-export function openKnightChooser(actor = null, { fresh = false } = {}) {
-	const chooser = new KnightChooser({ actor, fresh });
+export function openKnightChooser(actor = null, { fresh = false, knighting = false } = {}) {
+	const chooser = new KnightChooser({ actor, fresh, knighting });
 	chooser.render({ force: true });
 	return chooser;
 }

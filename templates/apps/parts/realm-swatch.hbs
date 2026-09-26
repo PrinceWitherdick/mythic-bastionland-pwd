@@ -1,0 +1,7 @@
+{{!-- One swatch of the paint palette, built by realmSwatches in module/apps/RealmPanel.js: a terrain, the river,
+      Barriers, a Holding, the Seat of Power or a Landmark. It takes up its brush, or, for the Seat, ticks it. --}}
+<button type="button" class="bastionland-realm-panel__swatch{{#if wide}} bastionland-realm-panel__swatch--wide{{/if}}{{#if mark}} bastionland-realm-panel__swatch--marked{{/if}}{{#if active}} is-active{{/if}}" data-action="{{#if action}}{{action}}{{else}}pickBrush{{/if}}"{{#if brush}} data-brush="{{brush}}"{{/if}} aria-pressed="{{#if active}}true{{else}}false{{/if}}"{{#if mark}} style="--bastionland-terrain-mark: {{mark}}"{{/if}}{{#if tooltip}} data-tooltip="{{tooltip}}"{{/if}}>
+	{{#if src}}<img src="{{src}}" alt="" inert>{{else}}<i class="{{icon}}" inert></i>{{/if}}
+	<span>{{label}}</span>
+	{{#if tally}}{{> "bastionland.realm-count" tally}}{{/if}}
+</button>

@@ -1,5 +1,5 @@
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
-import { chooseDialog, confirmDialog } from "../apps/ui.js";
+import { chooseDialog, confirmDialog, waitDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
 import {
@@ -98,17 +98,15 @@ async function pickWarband(warbands, intro) {
 	const lines = warbands.map((warband) => `<strong>${escapeHTML(warband.name)}</strong>: ${escapeHTML(warband.system.epithet || "")}`);
 	const pick = (warband) => (event, button) => ({ warband, origin: button.form.elements.origin.value });
 
-	return foundry.applications.api.DialogV2.wait({
+	return waitDialog({
 		window: { title: t("warband.muster.title"), icon: "fa-solid fa-flag" },
-		classes: ["bastionland-dialog"],
 		content: [intro, ...lines].map((line) => `<p>${line}</p>`).join("")
 			+ `<fieldset><legend>${escapeHTML(t("warband.muster.origin"))}</legend>${origins}</fieldset>`
 			+ `<p class="hint">${escapeHTML(t("warband.muster.needs"))}</p>`,
 		buttons: [
 			...warbands.map((warband, index) => ({ action: warband.id, label: warband.name, default: index === 0, callback: pick(warband) })),
 			{ action: BLANK, label: warbands.length ? t("warband.muster.blank") : t("warband.muster.ok"), default: !warbands.length, callback: pick(BLANK) }
-		],
-		rejectClose: false
+		]
 	});
 }
 

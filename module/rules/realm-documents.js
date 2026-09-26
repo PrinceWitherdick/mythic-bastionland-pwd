@@ -9,6 +9,7 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
+import { noFogSceneData, paperSceneData } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures } from "./realm-skins.js";
@@ -37,7 +38,7 @@ export const REALM_SORT = Object.freeze({ map: -100, terrain: 0, shore: 50, rive
 /** How much of a hex each icon fills: its height, and for terrain its width as well. */
 export const ICON_SCALE = Object.freeze({ terrain: 0.8, holding: 0.8, landmark: 0.85, myth: 0.5, seat: 0.3 });
 
-/** The Level every Realm Scene is built on. */
+/** The Level every Realm Scene is built on, on Foundry v14. v13 has no Levels, and keeps the paper on the Scene. */
 export const LEVEL_ID = "defaultLevel0000";
 
 const BARRIER_WIDTH = 10;
@@ -238,8 +239,8 @@ export function realmDocuments(realm, g, textures) {
 	const traced = hidesTerrain(realm);
 	const showing = (hidden) => (hidden ? 0 : 1);
 
-	// The picture lies under the whole map. It isn't locked, so a GM can nudge
-	// it into place with Foundry's own handles when two clicks got it nearly right.
+	// The picture lies under the whole map. It isn't locked, so a GM can drag it
+	// into place with Foundry's own tools; its size is kept (keepMapPictureSize).
 	for (const { role, src, x, y, width, height } of realmPictures(realm, g)) {
 		tiles.push({
 			match: `map:${role}`,
@@ -385,10 +386,9 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		height: g.height,
 		padding: 0,
 		tokenVision: false,
-		fog: { mode: 0 },
+		...noFogSceneData(),
 		grid: { type: g.gridType, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
-		levels: [{ _id: LEVEL_ID, name, background: { color: textures.colours.paper } }],
-		initialLevel: LEVEL_ID,
+		...paperSceneData(LEVEL_ID, name, textures.colours.paper),
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: 0.5 },
 		tiles: tiles.map((tile) => tile.data),
 		drawings: drawings.map((drawing) => drawing.data),

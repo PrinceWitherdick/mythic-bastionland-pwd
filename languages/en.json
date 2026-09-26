@@ -47,6 +47,13 @@
       "equip": "Worn or wielded",
       "armourOn": "Its Armour counts. Click when it doesn't apply.",
       "armourOff": "Its Armour doesn't count. Click when it applies.",
+      "armourIdle": "Worn, but its Armour doesn't count right now. Click to take it off.",
+      "useOne": "Use one",
+      "addOne": "Add one",
+      "holdsOn": "It holds now, so this piece’s Armour {counts}. Click when it doesn’t.",
+      "holdsOff": "It doesn’t hold now, so this piece’s Armour {counts}. Click when it does.",
+      "armourCounts": "counts",
+      "armourDoesNotCount": "doesn’t count",
       "empty": "Nothing yet. Drag an item here or add one.",
       "attack": "Attack",
       "takeDamage": "Take Damage",
@@ -55,7 +62,9 @@
       "armour": "Armour",
       "rollSave": "Roll a {virtue} Save",
       "newKnight": "New Knight",
-      "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay."
+      "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay.",
+      "chooseKnighted": "Choose Their Knight",
+      "chooseKnightedHint": "Roll or choose which Knight this Squire became. Their Virtues, GD and everything they carry stay, and the Knight’s Property, Ability and Passion are added."
     },
     "heraldry": {
       "title": "Heraldry of {name}",
@@ -299,7 +308,6 @@
     "squire": {
       "label": "Squire",
       "take": "Take a Squire",
-      "rules": "An apprentice with 2d6 in each Virtue and 1GD, riding a pony (VIG 7, CLA 7, SPI 2, 2GD) and carrying a dagger (d6) and a d6 roll of extra equipment. Not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
       "empty": "Small Companies of 2 Knights or fewer may give each Knight a Squire. Take one, or drag a Squire here from the Actors tab.",
       "servesLabel": "Squire to",
       "servesNobody": "A Squire who serves no Knight. Drag this Squire onto a Knight’s sheet.",
@@ -319,7 +327,7 @@
       "companyGrew": "The Company now has {count} Knights, and only Companies of 2 or fewer may give each Knight a Squire. Squires in this world: {squires}. Whether they stay is the Referee’s call.",
       "cantCreate": "Taking a Squire creates them and their pony, so it needs a user who is allowed to create actors.",
       "knightConfirmTitle": "Knight This Squire?",
-      "knightConfirm": "{name} becomes a Knight, gaining d6 in each Virtue. From then on they can gain Glory and perform Feats.",
+      "knightConfirm": "{name} becomes a Knight, gaining d6 in each Virtue. From then on they can gain Glory and perform Feats. Then choose which Knight they became: they keep everything they have.",
       "knightedTitle": "Knighted",
       "knightedTagline": "{name} is a Squire no longer",
       "knightedValue": "+{gain}, {from} → {to}",
@@ -329,7 +337,7 @@
         "hatchet": "Hatchet",
         "shortbow": "Shortbow",
         "shield": "Shield",
-        "javelins": "Three javelins"
+        "javelins": "Javelins"
       }
     },
     "age": {
@@ -375,6 +383,14 @@
       "mortalWound": {
         "label": "Mortal Wound",
         "hint": "Down and dying. You die if left untended for an hour, but can be patched up in a few moments."
+      },
+      "wounded": {
+        "label": "Wounded",
+        "hint": "Took Damage past their GD. Lasts until their VIG is whole again. Armour worn only when Wounded counts."
+      },
+      "mounted": {
+        "label": "Mounted",
+        "hint": "On horseback: a lance counts as Hefty, and armour worn when mounted counts."
       }
     },
     "recovery": {
@@ -394,6 +410,14 @@
       "line2": "Honour the Seers",
       "line3": "Protect the Realm",
       "hint": "Every Knight has sworn the Oath."
+    },
+    "unchosen": {
+      "hint": "Nobody has claimed this Knight yet. Roll or pick one from the book, or fill in the sheet yourself.",
+      "hintGM": "Nobody has claimed this Knight yet. Choose one now, or give them to a player to choose.",
+      "hintViewer": "Nobody has claimed this Knight yet.",
+      "byHand": "Fill in the sheet by hand",
+      "player": "Played by",
+      "nobody": "Nobody yet"
     },
     "ledger": {
       "button": "Ledger",
@@ -498,7 +522,7 @@
       "oath": "Has sworn the Oath: Seek the Myths, Honour the Seers, Protect the Realm.",
       "squires1": "Small Companies (2 Knights or fewer) may give each Knight a Squire. They serve as apprentices, and are not yet Knights, so cannot gain Glory or perform Feats.",
       "squires2": "2d6 for each Virtue, 1GD. They ride a pony (VIG 7, CLA 7, SPI 2, 2GD) and carry a dagger (d6).",
-      "squires3": "Roll d6 for their extra equipment: 1 Cudgel (d8 hefty), 2 Axe (d8 hefty), 3 Hatchet (d6), 4 Shortbow (d6 long), 5 Shield (d4, A1), 6 Three Javelins (d6).",
+      "squires3": "Roll d6 for their extra equipment: 1 Cudgel (d8 hefty), 2 Axe (d8 hefty), 3 Hatchet (d6 hefty), 4 Shortbow (d6 long), 5 Shield (d4, A1), 6 Three Javelins (d6 hefty).",
       "squires4": "When Knighted they gain d6 in each Virtue.",
       "glory": "All Knights seek Glory, that they might one day be deemed worthy of the City Quest.",
       "gloryMyths": "Through Myths",
@@ -512,7 +536,8 @@
     },
     "property": {
       "label": "Property",
-      "hint": "Items brought with you. Every Knight also has a dagger (d6), torches, rope, dry rations, and camping gear."
+      "hint": "Items brought with you. Every Knight also has a dagger (d6), torches, rope, dry rations, and camping gear.",
+      "keepsPlace": "{name} keeps its place: weapons come first, biggest die leading, then shields, then armour from the head outward, then everything else."
     },
     "knightTable": {
       "open": "Roll on {name}",
@@ -526,6 +551,11 @@
       "done": "Done",
       "tagline": "{name}'s table (p{page})",
       "missing": "This Knight has no table from the book yet. Import PDF, or choose them from the book, to fill it in.",
+      "renewal": {
+        "notice": "{name}: roll on {table} again ({when}).",
+        "due": "Time to roll on {name} again: {when}.",
+        "dueMark": "Due"
+      },
       "sentences": {
         "1-01": { "1": "The symbol wakes when someone is {entry}.", "2": "Its sign of a lie: {entry}." },
         "1-02": { "1": "Your companion’s past has left them {entry}.", "2": "Your companion is {a entry}." },
@@ -634,7 +664,9 @@
       "use": "Use Remedy ({virtue})",
       "intro": "Tick everybody present. Each has their {virtue} restored, and the Remedy is used up.",
       "tagline": "A Remedy used",
-      "hint": "Using a Remedy takes a whole Phase. The Virtue is restored before any Omens or other encounters."
+      "hint": "Using a Remedy takes a whole Phase. The Virtue is restored before any Omens or other encounters.",
+      "limit": "{name} already carries a Remedy, and a person or beast of burden can only carry one at once. Give it to somebody else to carry.",
+      "limitSteed": "{name} already carries a Remedy, and a person or beast of burden can only carry one at once. {steed} could carry it."
     },
     "ability": {
       "label": "Ability",
@@ -816,56 +848,20 @@
       "unfavourable": "They take it badly.",
       "hint": "Characters react in a way that suits the moment (p8). This is only for when that’s uncertain."
     },
-    "scope": {
-      "title": "Scope",
-      "hint": "How long you expect the game to run for, both in and out of game (p6). Settle it with the players before you begin.",
-      "unchosen": "No Scope settled on yet.",
-      "chosen": "The game’s Scope: {scope}.",
-      "kinds": {
-        "adventure": {
-          "label": "Adventure",
-          "hint": "One session.",
-          "text": "One session. It saves time to make a few Knights ahead of the game and let the players choose one each."
-        },
-        "chronicle": {
-          "label": "Chronicle",
-          "hint": "A known number of sessions.",
-          "text": "A known number of sessions, with the Season and Age turns planned out ahead of time."
-        },
-        "saga": {
-          "label": "Saga",
-          "hint": "An indeterminate number of sessions.",
-          "text": "An indeterminate number of sessions. Let the players guide the scope as they explore the world."
-        }
-      },
-      "sessionsPlanned": "{count} sessions are planned.",
-      "sessionsPlannedOne": "One session is planned.",
-      "turnEveryLine": "A turn falls at the end of every {count} sessions.",
-      "turnEveryLineOne": "A turn falls at the end of each session.",
-      "fields": {
-        "sessions": "Sessions planned",
-        "session": "Playing session",
-        "turnEvery": "A turn every",
-        "turnEveryUnit": "sessions"
-      },
-      "standing": "Session {session} of {sessions}.",
-      "sessionsLeft": "{count} more to come.",
-      "sessionsLeftOne": "One more to come.",
-      "lastSession": "The last one planned.",
-      "spent": "Every session planned has been played. Plan further ahead, or let it run on.",
-      "due": {
-        "season": "A turn of the Season falls at the end of it.",
-        "age": "A turn of the Age falls at the end of it, as Winter ends.",
-        "none": "No turn falls at the end of it."
-      },
-      "knightAhead": "Make a Knight Ahead",
-      "knightAheadHint": "Makes a Knight with the chooser open on them, ready to hand to a player when they sit down.",
-      "knightName": "A New Knight"
-    },
     "time": {
       "title": "Time",
-      "now": "Age {age}, {season}, day {day}, {phase}",
-      "chronicle": "The {phase} of the {day} day of {season}, in the {age} Age.",
+      "now": "Age {age}, {season}, {phase}",
+      "chronicle": "{phase}, in the {season} of the {age} Age.",
+      "banner": {
+        "age": "{age} Age",
+        "moves": "Move Time On",
+        "weeks": "Weeks Pass",
+        "weeksHint": "Continue on to the next seasonal event ({event}).",
+        "months": "Months Pass",
+        "monthsHint": "Move to the next Season.",
+        "year": "A Year Passes",
+        "yearHint": "Begin a new Age in Spring."
+      },
       "ordinal": {
         "one": "{n}st",
         "two": "{n}nd",
@@ -873,10 +869,10 @@
         "other": "{n}th"
       },
       "age": "Age",
-      "day": "Day",
       "season": "Season",
       "phase": "Phase",
-      "setByHand": "Click a Season or Phase, or change the Day, to set the calendar by hand. Click the Age to turn it or set it by hand. Only the buttons below carry out what happens between Seasons and Ages.",
+      "setByHand": "Click a Season or Phase to set the calendar by hand. Click the Age to turn it or set it by hand.",
+      "setByHandWarning": "Only the buttons below carry out what happens between Seasons and Ages.",
       "phases": {
         "morning": "Morning",
         "afternoon": "Afternoon",
@@ -892,6 +888,7 @@
         "harvest": "Harvest",
         "winter": "Winter"
       },
+      "moveOn": "Move Time On",
       "nextPhase": "Next Phase",
       "turnSeason": "Turn the Season",
       "turnAge": "Turn the Age",
@@ -1181,6 +1178,8 @@
         "setAsideConfirm": "Is “{what}” taken back out of the {seat}’s hands? Nothing comes of it, and what was written goes with it.",
         "dueNow": "Due now",
         "dueAt": "Due {when}",
+        "dueBy": "Due by {phase}",
+        "dueNext": "Due the next {phase}",
         "dueNotice": "{name}: {count} Council tasks are due.",
         "dueNoticeOne": "{name}: a Council task is due.",
         "everyCrisis": "The Domain already faces every Crisis, so the Referee says what this failure brings instead.",
@@ -1428,20 +1427,20 @@
       "setMissing": "Import PDF hasn’t read enough of page 22 to roll a wilderness hex.",
       "wildHex": {
         "title": "Wilderness Hex: {hex}",
-        "intro": "Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you keep it.",
+        "intro": "Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you save the results.",
         "reference": "(p{page})",
         "rollAll": "Roll",
         "rollTable": "Roll {name}",
         "rollColumn": "Roll a d12 for {column}",
         "pick": "Choose this one",
-        "keep": "Keep in this hex",
-        "close": "Close"
+        "keep": "Save results"
       },
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
       "notVisited": "The Company hasn’t been here.",
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
+      "told": "Told the players about the hex at {hex}.",
       "when": "rolled in {when}",
       "explore": "Find out what’s here",
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
@@ -1461,6 +1460,7 @@
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
       "reference": "page {page}",
       "rollTable": "Roll on {name}",
+      "animate": "Animate selection",
       "tagline": "{page} Spark Table, page {number}",
       "noIndex": "Run the Import PDF macro with your rulebook to bring in the Spark Tables.",
       "noText": "Run Import PDF again with your rulebook to bring in the Spark Tables.",
@@ -1503,6 +1503,8 @@
     },
     "gmToolkit": {
       "name": "GM Toolkit",
+      "rulebook": "Open the Rulebook",
+      "rulebookSetup": "Point this world at your rulebook PDF",
       "realm": "Realm",
       "companyAt": "The Company is in {hex}",
       "companyHere": "The Company is here",
@@ -1571,9 +1573,20 @@
         "many": "Visited {count} times, last: {when}",
         "unknown": "when is unknown",
         "mark": "Count a Visit",
-        "forget": "Forget the Visits",
-        "forgetTitle": "Forget the Visits?",
-        "forgetConfirm": "The Company’s visits to {hex} are forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay."
+        "edit": "Edit the Visits",
+        "forgetTitle": "Forget Every Visit?",
+        "forgetConfirm": "Every visit the Company made to {hex} is forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay.",
+        "windowTitle": "Forget: {hex}",
+        "windowHint": "Everything kept for this hex. Strike out one piece with its ×, or forget it all at once below.",
+        "visitsHeading": "Visits",
+        "nth": "Visit {count}",
+        "forgetOne": "Forget this visit",
+        "forgetNote": "Rub out the note",
+        "noNote": "Nothing written about this hex.",
+        "forgetAll": "Forget Every Visit",
+        "forgetEverything": "Forget Everything Here",
+        "forgetAllTitle": "Forget Everything Here?",
+        "forgetAllConfirm": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten."
       },
       "places": {
         "hint": "Every place in the Realm and every hex the Company has come into, each once, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. These are the same notes as in the Lay of the Land. For your eyes only.",
@@ -1609,18 +1622,23 @@
         "siteEmpty": "Nothing drawn yet"
       },
       "time": {
-        "hint": "The world’s calendar (p17). The buttons carry out what the book says happens as a Phase, a Season or an Age passes. Below them is the Season you’re in, what’s owed before it turns, and the Seasons before it.",
         "thisSeason": "This Season: {season}",
         "resolved": "Myths to Replace",
         "crisisRolls": "Crisis Rolls Due",
         "crisisRollsHint": "Each Domain makes the Crisis Roll at the start of a Season (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
-      "clockHint": "Change the Season, Phase or Day here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time page’s buttons carry out what happens between Seasons (p17).",
+      "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons (p17).",
       "seasons": {
         "title": "Past Seasons",
-        "hint": "Each Season you wrote about, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
-        "label": "{season}, Age {age}",
+        "hint": "Each Season you wrote about, the Myths resolved in it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
+        "age": "Age {age}",
+        "count": {
+          "one": "{count} Season",
+          "other": "{count} Seasons"
+        },
+        "mythCompleted": "{name} was completed",
+        "noMyth": "No Myth was completed this Season.",
         "notes": "Your notes on this Season",
         "notesPlaceholder": "What the Company did, who they met, what was left hanging.",
         "ended": "As it ended: {title}",
@@ -1881,8 +1899,7 @@
       "finish": "End the Session",
       "needStep": "Settle how much time passes before ending the session.",
       "notices": {
-        "promised": "A roll last session put the turn at the end of this one (p17).",
-        "planned": "The Chronicle’s plan puts a turn at the end of this session (p6)."
+        "promised": "A roll last session put the turn at the end of this one (p17)."
       },
       "time": {
         "title": "How much time passes?",
@@ -1935,7 +1952,7 @@
       },
       "plans": {
         "title": "Plans and ambitions",
-        "hint": "Ask the players what they plan for next session (p16). It gives you a direction for whatever preparation you do before then.",
+        "hint": "Ask the players what they plan for next session (p16). It gives you a direction for whatever preparation you do before then, and is written into the Season’s notes under this session.",
         "placeholder": "What they mean to do next"
       },
       "recap": {
@@ -1943,9 +1960,8 @@
         "hint": "Written into the Season’s notes on the Toolkit’s Time page.",
         "placeholder": "What the session came to"
       },
-      "recapHeading": "Session {session} · {when}",
+      "recapHeading": "Session · {when}",
       "card": {
-        "session": "Session {session} of {sessions}",
         "time": "Time",
         "unresolved": "Left unresolved",
         "situation": "{situation} · {d6}: {result}",
@@ -1962,6 +1978,14 @@
       "bonusHint": "From useful information, shrewd preparations, or a tactical advantage. +d8 is typical. List several as d6, d12.",
       "specialistDie": "{name}, specialist",
       "specialistHint": "Tick when the situation this weapon is made for comes up, to add its specialist die.",
+      "alternateName": "{name}, {how}",
+      "unavailable": "Not offered, being broken or all used: {names}.",
+      "usedOne": "{name}: one used, {left} left.",
+      "break": "Break something wooden",
+      "breakHint": "A Greater effect can break a wooden shield or weapon.",
+      "breakWhat": "Which of their wooden things does the Gambit break?",
+      "broke": "{name}’s {item} breaks.",
+      "nothingToBreak": "Nobody hit carries anything wooden and whole that you can mark broken.",
       "smite": "Smite for +d12",
       "smiteHint": "A VIG Save follows to avoid Fatigue.",
       "blast": "Blast",
@@ -1990,7 +2014,8 @@
         "spearwall": "Enemies of a spearwall can’t Attack on the turn they charge it.",
         "hefty": "Only one Hefty item can be wielded at once.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
-        "hands": "A weapon or shield fills a hand, so only two can be wielded at once."
+        "hands": "A weapon or shield fills a hand, so only two can be wielded at once.",
+        "twoWays": "A weapon is fought one way at a time, so tick only one of its ways."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
@@ -2020,6 +2045,9 @@
       "gambitSaved": "{name} Saved with {total} against VIG {target}, and ignores it.",
       "gambitFailed": "{name} failed with {total} against VIG {target}, so it takes effect.",
       "gambitNoSave": "No Save against it.",
+      "focusSource": "Focus pays for this Gambit instead of a die. {name} must then pass a CLA Save or become Fatigued.",
+      "focusPassed": "{name} passed the CLA Save with {total} against CLA {target}, and avoids Fatigue.",
+      "focusFailed": "{name} failed the CLA Save with {total} against CLA {target}, and is Fatigued until they rest.",
       "whoSaves": "Who makes the VIG Save against {gambit}?",
       "noSaver": "Select the Token of whoever Saves against the Gambit.",
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
@@ -2056,6 +2084,10 @@
       "cover": "Behind protective cover, against a ranged Attack (+1 Armour)",
       "shieldwall": "In a shieldwall (+1 Armour)",
       "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
+      "bucklerOnly": "A buckler doesn’t make a shieldwall.",
+      "situational": "Armour that counts only sometimes",
+      "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",
+      "situationalPiece": "{name} (A{armour}, {when})",
       "exposed": "Exposed (take it as if at 0 GD)",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
       "apply": "Apply",
@@ -2221,7 +2253,7 @@
       "specialistTag": "+{die} {situation}",
       "specialistTagBare": "+{die} specialist",
       "remedy": "Remedy for",
-      "remedyHint": "When used, restores this Virtue to everybody present, and is used up.",
+      "remedyHint": "When used, restores this Virtue to everybody present, and is used up. A person or beast of burden can only carry one at once.",
       "notRemedy": "Not a Remedy",
       "remedyTag": "Remedy, {virtue}",
       "equipped": "Worn or wielded",
@@ -2229,6 +2261,62 @@
       "armour": "Armour",
       "attackDie": "Attack die",
       "attackDieHint": "Shields strike for d4. Leave blank for armour that never attacks.",
+      "alternate": "Another way to fight",
+      "alternateLabel": "How",
+      "alternatePlaceholder": "Such as ranged, or as a pair",
+      "alternateHint": "For a weapon fought two ways, such as a bolt-guisarme, d10 long in melee or d10 slow ranged. The Attack dialog offers each way, and only one at a time. Leave the dice blank if it has none.",
+      "alternateTag": "or {how}",
+      "usedUp": "Each Attack uses one",
+      "usedUpHint": "Rolling an Attack with it takes one off the count, as throwing a titan bead does.",
+      "wooden": "Wooden",
+      "woodenHint": "A Strong Gambit’s Greater effect can break it.",
+      "poison": "Poison",
+      "poisonHint": "As strong as it is rare: set its Rarity below.",
+      "poisonTag": "{rarity} poison",
+      "poisonTagBare": "Poison",
+      "condition": "Counts",
+      "conditionHint": "When its Armour counts toward the total. For Only when or Except when, write the situation beside it, and tick It holds now while it does.",
+      "conditions": {
+        "always": "Always",
+        "mounted": "When mounted",
+        "wounded": "When Wounded",
+        "only": "Only when…",
+        "except": "Except when…"
+      },
+      "conditionTags": {
+        "mounted": "when mounted",
+        "wounded": "only when Wounded",
+        "only": "only {situation}",
+        "except": "except {situation}",
+        "onlyBare": "only sometimes",
+        "exceptBare": "not always"
+      },
+      "situation": "Situation",
+      "situationPlaceholder": "Such as in verdant environments",
+      "holds": "It holds now",
+      "holdsHint": "Whether the situation written beside Counts holds right now.",
+      "buckler": "Buckler",
+      "bucklerHint": "A shield, but not one that makes a shieldwall.",
+      "rarity": "Rarity",
+      "rarityHint": "Common items are widely available, uncommon ones need a specialist, and rare ones are truly treasured. A specialist weapon is one category rarer than the weapon it’s made from.",
+      "noRarity": "Not said",
+      "quantity": "Carried",
+      "quantityOf": "of",
+      "quantityMax": "Full stock",
+      "quantityHint": "Leave blank for something nobody counts. Restocked, it fills back up to its full stock and is mended.",
+      "quantityTag": "{value} of {max}",
+      "quantityTagBare": "{value} left",
+      "restock": "Restocked",
+      "restocks": {
+        "never": "Never restocked",
+        "season": "Each new Season",
+        "day": "Each day"
+      },
+      "broken": "Broken",
+      "brokenHint": "No use until it’s mended: a broken weapon can’t Attack, and broken armour adds nothing.",
+      "brokenTag": "broken",
+      "displaced": "{name} comes off: only one {kind} can be worn at once.",
+      "restocked": "{name}: {items} restocked.",
       "scarRoll": "Scar table result",
       "save": "Save",
       "cancel": "Cancel",
@@ -2467,6 +2555,11 @@
       "rollName": "Roll a medieval name",
       "create": "Create Knight",
       "apply": "Apply to {name}",
+      "knighted": {
+        "heading": "Knighted",
+        "hint": "{name} keeps these Virtues and GD, their Age, and everything they carry. The Knight chosen here adds their Property, Ability and Passion, and names the Seer who knighted them.",
+        "knight": "Which Knight?"
+      },
       "confirmTitle": "Replace This Knight?",
       "confirm": "{name} becomes {knight}. Their Property, Ability and Passion are replaced, along with the picture in their shield, their Age, Glory and anything rolled here, and the steed and companions made from their old Property are deleted. Scars and the Chronicle are kept.",
       "kit": {
@@ -2502,7 +2595,7 @@
           "realm": "The Realm"
         },
         "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Hex panel. Nothing is rolled.",
-        "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. You line the picture up in two clicks, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
+        "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. You slide the picture into place under the hex lines, or mark two of its hexes and fit it to them, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
         "defaultName": "The Realm",
@@ -2516,6 +2609,7 @@
       "picture": {
         "title": "Import map",
         "intro": "A photograph or scan of a Realm drawn on paper, laid under the hexes in place of the system's own drawings.",
+        "paintNext": "The picture is only for show. Once it's lined up, go to Wilderness and paint every hex with the terrain drawn on your map.",
         "roles": {
           "players": {
             "label": "The players' map",
@@ -2537,29 +2631,40 @@
         "layouts": {
           "legend": "Which of these looks like your map?",
           "hint": "Look at the hexes in the top left corner of your map, and pick the drawing that matches them.",
-          "book": "The book's Realm Sheet",
+          "book": "Default Realm Sheet",
+          "names": {
+            "oddColumns": "Flat tops, corner low",
+            "evenRows": "Pointed tops, corner out",
+            "oddRows": "Pointed tops, corner in"
+          },
           "evenColumns": "Flat-topped hexes. The corner hex sits higher than the one beside it.",
           "oddColumns": "Flat-topped hexes. The corner hex sits lower than the one beside it.",
           "evenRows": "Pointed-topped hexes. The corner hex sticks out further left than the one under it.",
           "oddRows": "Pointed-topped hexes. The corner hex is set in from the one under it."
         },
-        "lineUpHint": "Once the picture is in, you slide it into place under the hex lines: drag the map to move it, and drag its corners and edges to size it.",
+        "lineUpHint": "Once the picture is in, you line it up in two steps: mark two of its hexes and it's sized to them, then slide it the last little way under the hex lines. There's no need to crop it: whatever lies outside the map isn't shown.",
+        "keepsSize": "The imported map can't be sized by hand. Mark two hexes when you line it up, and it's sized to them.",
         "lineUp": {
-          "first": "Click the centre of {hex} on your picture, the first hex of the map, at its top left. Escape goes back to sliding.",
-          "second": "Now click the centre of {hex}, the last hex of the map, at its bottom right.",
-          "tooClose": "Those two were too close together to line the map up. Click the two far corners of it.",
-          "done": "The map is lined up. Pick a terrain and mark the hexes that hold it.",
+          "first": "Click the centre of {hex} on your picture, the first hex of the map, at its top left.",
+          "second": "Now click the centre of {hex}, the last hex of the map, at its bottom right. Drag a mark to move it.",
+          "adjust": "Drag each mark until it sits squarely over its hex on your picture: {first} and {second}. They're drawn as large as your picture's hexes. The arrow keys nudge the one you moved last (Shift for more). Then fit the map to them.",
+          "tooClose": "Those two marks can't be the map's corners. Drag them onto its first hex, at the top left, and its last, at the bottom right.",
+          "done": "The map is lined up. Now paint every hex with the terrain drawn on your map: the picture is only for show, and the Realm knows a hex only by the terrain you paint on it.",
           "stopped": "The picture is back where it was. Line it up again from the Realm tools whenever you like.",
           "again": "Line it up again",
           "missing": "There's no picture under this Realm to line up."
         },
         "slide": {
-          "hint": "Drag the map to slide your picture under the hex lines. Drag a corner to size it, or an edge to stretch it one way. Arrow keys nudge it (Shift for more).",
-          "clicks": "Click two hexes",
-          "clicksHint": "For a picture far out: click the centre of the map's first hex on it, then its last, and it's fitted roughly. Slide it the rest of the way.",
+          "steps": {
+            "mark": "Step 1 of 2: Mark two hexes.",
+            "slide": "Step 2 of 2: Slide it into place."
+          },
+          "hint": "Your picture is sized to the marks. If it's still a little out, drag the map to slide it under the hex lines; the arrow keys nudge it (Shift for more). Ctrl and the mouse wheel size it about the pointer, to match the hexes (Shift for more). Then keep it here.",
+          "clicks": "Mark them again",
+          "clicksHint": "Mark the map's first and last hex on your picture again, and fit the map to them afresh.",
           "noClicks": "Back to sliding",
-          "back": "Put it back",
-          "backHint": "Put the picture back where it was (Escape).",
+          "fit": "Fit the map to them",
+          "fitHint": "Size the picture evenly and move it so the two marks land on the map's first and last hex (Enter).",
           "keep": "Keep it here",
           "keepHint": "Keep the picture where it is now, for everyone (Enter)."
         }
@@ -2638,10 +2743,11 @@
         "myth": "Myth {number}",
         "hiddenMyth": "Myth {number} (hidden)",
         "hidden": "{name} (hidden)",
+        "coordinates": "({col}, {row})",
         "settings": {
           "coordinates": {
             "name": "Show hex column and row",
-            "hint": "Pointing at a hex of a Realm names its column and row, such as Column 5, Row 7, before what’s there. Everyone at the table sees them."
+            "hint": "Pointing at a hex of a Realm names its column and row, such as (5, 7), before what’s there. Everyone at the table sees them."
           }
         }
       },
@@ -2704,9 +2810,11 @@
       },
       "panel": {
         "title": "Realm",
+        "appearance": "Appearance",
         "missing": "This Scene isn’t a Realm any more.",
         "hints": {
-          "terrain": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain. Everything else this Realm is drawn with is beside it: rivers, Barriers, Holdings and Landmarks.",
+          "terrain": "Choose the terrain to paint, then click or drag across hexes. Alt-click a hex to pick up its terrain.",
+          "beside": "Everything else this Realm is drawn with is beside it: rivers, Barriers, Holdings and Landmarks.",
           "river": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Right-click or Shift-click a hex of a river to cut it back to there from the nearer end.",
           "barrier": "Click the edge between two hexes to lay a Barrier there, hidden from players, and click it again to take it away, as right-clicking it does. Shift-click a Barrier to reveal it, or to hide it again.",
           "holding": "Choose a Holding, then click a hex to place it. Tick the Seat of Power first and the next Holding you place is the Realm’s Seat. Clicking a hex that already has that Holding takes it away, as right-clicking or Shift-clicking any Holding does, and Alt-click a hex to pick up the Holding that stands there.",
@@ -2948,6 +3056,10 @@
       "title": "Creating a Realm",
       "intro": "Players get a copy of the map with Holdings and general terrain marked. They cannot see Myths, Landmarks, and Barriers.",
       "more": "What each one is",
+      "paintEveryHex": {
+        "heading": "Paint every hex",
+        "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture."
+      },
       "inspectHint": "Click a hex, then set it in the Hex panel.",
       "groups": {
         "wilderness": "Wilderness",
@@ -3013,6 +3125,11 @@
         "seatMany": "{count} Seats of Power, where the sheet has one",
         "myths": "{count} of {target} Myths",
         "landmark": "{type}: {count} of {min}-{max}"
+      },
+      "company": {
+        "intro": "Choose what the Company looks like, then carry them over the map and click the hex they stand in.",
+        "standing": "The Company stands in {hex}. Choose another picture, or take them up and stand them somewhere else.",
+        "move": "Move the Company"
       },
       "finish": {
         "button": "Finish the Realm",
@@ -3164,6 +3281,9 @@
         "who": "Who rolls",
         "virtue": "Virtue",
         "virtueHint": "The Company decides who rolls, using their Virtue. Consider the main activity involved in the risky part.",
+        "rolled": "Their d20",
+        "rolledPlaceholder": "Roll it here",
+        "rolledHint": "If they rolled the d20 at the table, enter what it showed. Leave it empty to roll here.",
         "phase": "The Phase passes",
         "phaseHint": "Searching takes a whole Phase of the day. Untick it where the Referee rules otherwise.",
         "ok": "Search",
@@ -3353,6 +3473,14 @@
       "attackFx": {
         "name": "Attack Effects on the Map",
         "hint": "When on, an Attack is drawn on the map and heard at the table: every weapon that added a die strikes in turn, the biggest die first, so a sword swings and the shield on the arm follows it. An arrow flies, a beast’s jaws close, and a mounted charge comes at a gallop. Applying the Damage bursts on whoever lost GD, bloodies whoever lost VIG, and clanks where the Armour took the whole blow. The pictures need the Sequencer and JB2A modules, and the sounds the SoundFx Library module; without them, that half does nothing. Anyone who has turned on Reduce Motion, here or in their browser, keeps the sounds without the pictures."
+      },
+      "phaseBannerShown": {
+        "name": "Phase, Season and Age at the Top of the Screen",
+        "hint": "Show the Phase of the Day, the Season and the Age at the top of the screen, the Phase and the Season in the same colours as the cards their changes post to chat. Untick to hide them in this browser only: everyone else keeps theirs."
+      },
+      "hexReadoutShown": {
+        "name": "Name the Realm Hex under the Pointer",
+        "hint": "Pointing at a hex of a Realm shows a label under the map naming its terrain and what stands there. Untick to hide it in this browser only: everyone else keeps theirs."
       },
       "travelRulesShown": {
         "name": "Travel Rules beside the Realm Map",
@@ -3556,6 +3684,29 @@
           "title": "Your First Realm",
           "text": "Roll a Realm from the book’s tables, or draw one yourself, for the Company to explore.",
           "button": "Create a Realm"
+        },
+        "modules": {
+          "title": "Recommended Modules",
+          "text": "Nothing here needs them, but each makes the table better. Install them from the Add-on Modules tab on Foundry’s setup screen, then turn them on for this world.",
+          "button": "Manage Modules",
+          "list": {
+            "diceSoNice": {
+              "name": "Dice So Nice!",
+              "text": "rolls every Save, Attack and table roll as three-dimensional dice on the table."
+            },
+            "sequencer": {
+              "name": "Sequencer and JB2A",
+              "text": "draw each Attack on the map: swords swing, arrows fly, and Damage bursts or bloodies whoever it lands on."
+            },
+            "soundFx": {
+              "name": "SoundFx Library",
+              "text": "gives those Attacks their sound, heard by everyone at the table."
+            },
+            "fxmaster": {
+              "name": "FXMaster",
+              "text": "draws the weather set from the GM Toolkit on the Scene the players are on."
+            }
+          }
         }
       }
     }

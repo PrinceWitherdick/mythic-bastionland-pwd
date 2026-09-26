@@ -9,7 +9,8 @@ let chosen;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	confirmDialog: vi.fn(async () => confirmed),
-	chooseDialog: vi.fn(async () => chosen)
+	chooseDialog: vi.fn(async () => chosen),
+	waitDialog: vi.fn(async () => null)
 }));
 
 const { MUSTERED_FLAG, ORIGIN_FLAG, dismissWarband, musterView, strainWarband, warbandsOf, wearWarbandDown } =

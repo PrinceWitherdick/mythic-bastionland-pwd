@@ -1,3 +1,4 @@
+import { waitDialog } from "../apps/ui.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { BREED_FLAG, GALLOP_ROLL, bookSteeds, gallopBlocked, steedBreedShown, steedStatLine, vigAfterGallop } from "../rules/steeds.js";
@@ -53,15 +54,14 @@ async function pickSteed(steeds) {
 	const intro = steeds.length ? t("steed.pickIntro") : t("steed.blankIntro");
 	const lines = steeds.map((steed) => `<strong>${escapeHTML(steed.name)}</strong>: ${escapeHTML(steedStatLine(steed.system, steed.items.contents.map((item) => item.toObject()), statLabels()))}`);
 	const pick = (steed) => (event, button) => ({ steed, name: button.form.elements.name.value.trim() });
-	return foundry.applications.api.DialogV2.wait({
+	return waitDialog({
 		window: { title: t("steed.take"), icon: "fa-solid fa-horse" },
-		classes: ["bastionland-dialog", "bastionland-steed-pick"],
+		classes: ["bastionland-steed-pick"],
 		content: [intro, ...lines].map((line) => `<p>${line}</p>`).join("") + nameField(),
 		buttons: [
 			...steeds.map((steed, index) => ({ action: steed.id, label: steed.name, default: index === 0, callback: pick(steed) })),
 			{ action: BLANK, label: steeds.length ? t("steed.blank") : t("steed.take"), default: !steeds.length, callback: pick(BLANK) }
-		],
-		rejectClose: false
+		]
 	});
 }
 

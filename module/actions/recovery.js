@@ -2,6 +2,19 @@ import { postCard, t } from "../chat/cards.js";
 import { causedBy } from "./ledger.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { chooseCompany } from "./time.js";
+import { countAfter, isCounted } from "../rules/restock.js";
+
+/**
+ * A Remedy is used up (p9): one of several carried is taken off the count,
+ * and the last goes, unless it's restocked, when it waits at none for that.
+ * @param {Item} item
+ */
+async function spendRemedy(item) {
+	const { system } = item;
+	const left = isCounted(system) ? countAfter(system.quantity, -1) : 0;
+	if (left > 0 || (isCounted(system) && system.restock)) await item.update({ "system.quantity.value": left });
+	else await item.delete();
+}
 
 /**
  * A moment's calm and rest: GD returns to full and Fatigue is removed
@@ -58,7 +71,7 @@ export async function useRemedy(actor, item) {
 		await member.update({ [`system.virtues.${virtue}.value`]: value });
 		return { name: member.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] };
 	}));
-	await item.delete();
+	await spendRemedy(item);
 	await postCard(actor, "report", { title: name, tagline: t("remedy.tagline"), entries, hint: t("remedy.hint") });
 	return entries;
 }

@@ -174,6 +174,19 @@ describe("tasksBySeat", () => {
 		expect(waiting.gloss).toContain(lookup("bastionland.time.seasons.harvest"));
 	});
 
+	it("tells a task due within the Season by its Phase, since the book never numbers the Days", () => {
+		const domain = fakeDomain({
+			tasks: {
+				phase: task("steward", { scope: "phase", at: 1 }),
+				week: task("steward", { scope: "week", at: 2 })
+			}
+		});
+		const [phase, week] = tasksBySeat(domain, calendar).steward;
+		expect(phase.gloss).toContain(format("bastionland.domain.tasks.dueBy", { phase: lookup("bastionland.time.phases.afternoon") }));
+		expect(week.gloss).toContain(format("bastionland.domain.tasks.dueNext", { phase: lookup("bastionland.time.phases.morning") }));
+		for (const { gloss } of [phase, week]) expect(gloss).not.toMatch(/\bday\b/i);
+	});
+
 	it("names the Virtue a Save is rolled in, and whoever rolls it", () => {
 		game.actors = [{ name: "Alda", system: { virtues: { cla: { value: 10 } } } }];
 		const domain = fakeDomain({ council: { steward: "Alda" }, tasks: { one: task("steward", { risk: "cla" }) } });

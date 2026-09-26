@@ -86,11 +86,14 @@ export const SET_ASIDE_REASONS = Object.freeze(["slow", "ranged"]);
 /** A Knight has two hands, and every weapon or shield fills at least one (p12). */
 export const HANDS = 2;
 
+/** Qualities a weapon's other way to fight can have, as its main one can. */
+export const ALTERNATE_QUALITIES = Object.freeze(["hefty", "long", "slow", "ranged", "blast"]);
+
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
  * a spearwall (p10), or more than two hands can hold (p12).
  */
-export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "hefty", "long", "hands"]);
+export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands"]);
 
 /**
  * @typedef {object} WieldedItem A weapon or shield chosen for an Attack.
@@ -99,17 +102,19 @@ export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "hefty",
  * @property {boolean} [slow]         Slow weapons are also Long.
  * @property {boolean} [ranged]
  * @property {boolean} [heftyMounted] Counts as Hefty rather than Long when mounted, as a lance does (p12).
+ * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways.
  */
 
 /**
- * How an item is held right now. A lance is couched under one arm on horseback.
+ * How an item is held right now. A lance is couched under one arm on horseback,
+ * and a greatlance that is Slow on foot is Hefty, and no longer Slow, mounted.
  * @param {WieldedItem} item
  * @param {boolean} mounted
- * @returns {{hefty: boolean, long: boolean}} `long` includes Slow.
+ * @returns {{hefty: boolean, long: boolean, slow: boolean}} `long` includes Slow.
  */
 export function heldAs(item, mounted = false) {
-	if (mounted && item.heftyMounted) return { hefty: true, long: false };
-	return { hefty: Boolean(item.hefty), long: Boolean(item.long || item.slow) };
+	if (mounted && item.heftyMounted) return { hefty: true, long: false, slow: false };
+	return { hefty: Boolean(item.hefty), long: Boolean(item.long || item.slow), slow: Boolean(item.slow) };
 }
 
 /**
@@ -132,7 +137,7 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	const usable = [];
 	const setAside = [];
 	items.forEach((item, index) => {
-		if (item.slow && moved) setAside.push({ index, reason: "slow" });
+		if (heldAs(item, mounted).slow && moved) setAside.push({ index, reason: "slow" });
 		else if (item.ranged && engaged) setAside.push({ index, reason: "ranged" });
 		else usable.push(index);
 	});
@@ -142,6 +147,8 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	if (exhausted && moved) refusal = "exhausted";
 	// Enemies of a spearwall can't Attack on the turn that they charge.
 	else if (spearwall) refusal = "spearwall";
+	// A weapon fought two ways, such as a bolt-guisarme, is fought one way at a time.
+	else if (items.some((item, index) => item.of && items.findIndex((other) => other.of === item.of) !== index)) refusal = "twoWays";
 	else if (hands && items.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
 	else if (hands && items.length > 1 && items.some(isLong)) refusal = "long";
 	// Anything else still takes a hand each, and there are only two.
@@ -211,6 +218,13 @@ export function summarizeAttack(results, { melee = true } = {}) {
  * @property {number|null} bonus  The d6 a Dismount adds to the dice.
  * @property {GambitSave|null} save The target's VIG Save against it, or null while it stands unanswered.
  * @property {boolean} dismissed Whether the mark it left on the foe has been cleared by hand.
+ * @property {FocusSave|null} [focus] The attacker's CLA Save for a Gambit Focus paid for.
+ *
+ * @typedef {object} FocusSave
+ * @property {string} by       Name of whoever Focused.
+ * @property {number} total    What the d20 showed.
+ * @property {number} target   The CLA it had to meet.
+ * @property {boolean} passed  A failed Save leaves them Fatigued (p10).
  *
  * @typedef {object} GambitSave
  * @property {string} by       Name of whoever Saved.
@@ -323,6 +337,15 @@ const dismountBonus = ({ key, bonus }) =>
 	(key === "dismount" && Number.isInteger(bonus) && bonus >= 1 && bonus <= DISMOUNT_FACES ? bonus : null);
 
 /**
+ * @param {object} [save] The CLA Save Focus cost, as `{by, total, target, passed}`.
+ * @returns {FocusSave|null}
+ */
+function focusSave(save) {
+	if (!Number.isInteger(save?.total) || !Number.isInteger(save?.target)) return null;
+	return { by: String(save.by ?? ""), total: save.total, target: save.target, passed: Boolean(save.passed) };
+}
+
+/**
  * Each Feat can only be used once per Attack by each combatant (p10).
  * @param {AttackState} attack
  * @param {string} key
@@ -363,7 +386,8 @@ export function canDeny(attack, { uuid, fatigued = false }) {
  * - `{type: "gambit", die, key, strong, bonus}` spends a die of 4+ on a Gambit.
  *   A Dismount carries the d6 it adds as `bonus`.
  * - `{type: "withdraw", die}` takes back the Gambit a die was spent on.
- * - `{type: "focus", key, actor, bonus}` performs a Gambit without a die.
+ * - `{type: "focus", key, actor, bonus, save}` performs a Gambit without a die,
+ *   keeping the CLA Save it cost as `save: {by, total, target, passed}`.
  * - `{type: "gambitSave", index, by, total, target, passed}` records the target's VIG Save against one Gambit.
  * - `{type: "deny", die, actor, name}` discards any die.
  * - `{type: "applied", names}` settles the Attack.
@@ -401,7 +425,7 @@ export function changeAttack(attack, change) {
 			if (attack.impaired || !GAMBITS.includes(change.key) || hasUsedFeat(attack, "focus", change.actor)) return null;
 			return {
 				...attack,
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false }],
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save) }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
 		}

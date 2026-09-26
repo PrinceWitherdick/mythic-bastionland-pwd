@@ -27,6 +27,7 @@ import { isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
+import { tableRenewalNotices } from "./knight-tables.js";
 import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
@@ -202,7 +203,8 @@ export async function advancePhase() {
 
 /**
  * Tell the table the Day has moved into a Phase, on a card painted in that
- * Phase's light, with any Council task whose time has come (p20).
+ * Phase's light, with any Council task whose time has come (p20) and any
+ * Knight's table that comes round with it.
  * @param {import("../rules/time.js").Calendar} calendar
  */
 export function announcePhase(calendar) {
@@ -211,7 +213,8 @@ export function announcePhase(calendar) {
 		icon: PHASE_ICONS[calendar.phase],
 		title: t(`time.phases.${calendar.phase}`),
 		tagline: calendarLabel(calendar),
-		due: tasksDueNotices(calendar),
+		// Night brings round a table rolled each night, and Morning a new Day's.
+		due: [...tasksDueNotices(calendar), ...tableRenewalNotices(calendar.phase === "night" ? ["night"] : calendar.phase === "morning" ? ["day"] : [])],
 		hint: t(`time.phaseHints.${calendar.phase}`)
 	});
 }
@@ -256,7 +259,8 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 /**
  * Tell the table a new Season has begun, on a card painted in the Season's
  * colours, with what passed as it turned and what's due now it has: the
- * Crisis Roll for every Domain, and any Council task the Season has finished (p20).
+ * Crisis Roll for every Domain, any Council task the Season has finished (p20),
+ * and every Knight's table that comes round with it.
  * @param {import("../rules/time.js").Calendar} calendar The new Season.
  * @param {object} report
  * @param {string} report.title
@@ -276,7 +280,9 @@ export function announceSeason(calendar, { title, entries, note = null }, option
 		entries,
 		due: [
 			...(due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : []),
-			...tasks
+			...tasks,
+			// Tables a Knight rolls on again each Season, and each Day, since a Season begins on a new one.
+			...tableRenewalNotices(["season", "day"])
 		],
 		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
 	}, options);
@@ -464,15 +470,14 @@ export async function changeAge(actor, age) {
 	const steps = agingSteps(actor.system.age, age);
 	if (!steps.length) return actor.update({ "system.age": age });
 
-	const choice = await foundry.applications.api.DialogV2.wait({
-		window: { title: t("time.aging.title"), icon: "fa-solid fa-hourglass-half" },
-		classes: ["bastionland-dialog"],
-		content: `<p>${t("time.aging.intro", { name: foundry.utils.escapeHTML(actor.name), age: t(`age.${age}`) })}</p>`,
+	const choice = await chooseDialog({
+		title: t("time.aging.title"),
+		icon: "fa-solid fa-hourglass-half",
+		message: t("time.aging.intro", { name: foundry.utils.escapeHTML(actor.name), age: t(`age.${age}`) }),
 		buttons: [
 			{ action: "roll", label: t("time.aging.roll"), icon: "fa-solid fa-dice", default: true },
 			{ action: "skip", label: t("time.aging.skip"), icon: "fa-solid fa-forward" }
-		],
-		rejectClose: false
+		]
 	});
 	if (choice === "skip") return actor.update({ "system.age": age });
 	if (choice !== "roll") return null;

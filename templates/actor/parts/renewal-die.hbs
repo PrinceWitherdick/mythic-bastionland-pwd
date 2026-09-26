@@ -1,0 +1,3 @@
+{{!-- The die for a Knight's table that comes round again, inside its possession's aside. Marked once that time has come since the last roll. --}}
+<button type="button" class="bastionland-item__book-roll bastionland-item__book-roll--inline{{#if due}} is-due{{/if}}" data-action="openKnightTable" data-viewable data-tooltip="{{tooltip}}" aria-label="{{tooltip}}"><i class="fa-solid fa-dice-d6" inert></i>{{#if due}}<span class="bastionland-item__due">{{localize "bastionland.knightTable.renewal.dueMark"}}</span>{{/if}}</button>
+{{~! No space after the die, so the aside closes right on it. ~}}

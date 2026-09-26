@@ -2,7 +2,10 @@ import { attack } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat, showFeat } from "../actions/feats.js";
-import { itemTags, postItem } from "../actions/items.js";
+import { armourConditionText, itemTags, postItem, quantityText } from "../actions/items.js";
+import { armourCounts, displacedArmour, SITUATION_CONDITIONS } from "../rules/armour.js";
+import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
+import { comparePropertyPlace, samePropertyPlace } from "../rules/property-tab.js";
 import { splitName } from "../rules/text.js";
 import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
 import { rollSave } from "../actions/saves.js";
@@ -10,7 +13,7 @@ import { ArtPreviewMixin } from "../apps/art-preview.js";
 import { dismissGambitMark } from "../chat/attack-card.js";
 import { t } from "../chat/cards.js";
 import { marksOn } from "../chat/gambit-marks.js";
-import { DERIVED_CONDITIONS, FEATS, MARKED_CONDITIONS } from "../config.js";
+import { DERIVED_CONDITIONS, FEATS, MARKED_CONDITIONS, PROPERTY_TYPES } from "../config.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
@@ -32,29 +35,15 @@ const HEADER_BUTTON = "bastionland-header-button";
  */
 
 /**
- * Whether a first render is Create Actor opening the blank actor it has just
- * made. Foundry opens a new actor's sheet the same way whether the actor came
- * from Create Actor or arrived whole from a compendium, so the render context
- * alone doesn't tell them apart. What does is what was asked for: the Create
- * Actor form sends a name, a type and a folder and nothing else, while an actor
- * that arrives whole brings its own system data, items and effects with it.
- * Offering the book's choices over one of those would paint over it.
- * @param {object} options The render options.
- * @returns {boolean}
- */
-function isBlankNewActor(options) {
-	if (options?.renderContext !== "createActor") return false;
-	const data = options.renderData ?? {};
-	return !data.system && !data.items?.length && !data.effects?.length;
-}
-
-/**
  * What the Knight, NPC and Structure sheets share: Saves, Feats, Attacks, Damage and
  * recovery, conditions, notes, the items a character carries, and a larger
  * copy of the actor's picture on hover. Controls marked `data-viewable` stay
  * live for someone who can only view the sheet.
  */
 export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
+	/** Whether the sheet lists owned things in their Property place rather than their own order. */
+	static PROPERTY_ORDER = false;
+
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet"],
 		window: { resizable: true },
@@ -73,6 +62,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			postItem: BastionlandActorSheet.#onPostItem,
 			editItem: BastionlandActorSheet.#onEditItem,
 			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
+			toggleHolds: BastionlandActorSheet.#onToggleHolds,
+			adjustCount: BastionlandActorSheet.#onAdjustCount,
 			useRemedy: BastionlandActorSheet.#onUseRemedy
 		}
 	};
@@ -128,12 +119,6 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		});
 	}
 
-	/** @override */
-	async _onFirstRender(context, options) {
-		await super._onFirstRender(context, options);
-		if (isBlankNewActor(options) && this.isEditable) this._chooseFromBook();
-	}
-
 	/** The hooks listened on while the window is open, by the name each was put on. */
 	#watched = [];
 
@@ -155,12 +140,6 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		for (const [name, id] of this.#watched) Hooks.off(name, id);
 		this.#watched = [];
 	}
-
-	/**
-	 * Offer the book's choices for an actor Create Actor has just made. Sheets
-	 * with a chooser open it.
-	 */
-	_chooseFromBook() {}
 
 	/**
 	 * Labelled buttons for the window header, left of Foundry's own controls,
@@ -222,24 +201,87 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 * @param {...string} types Item types to include. None includes every item.
 	 */
 	_prepareItems(...types) {
-		const items = this.actor.items.contents
-			.filter((item) => !types.length || types.includes(item.type))
-			.sort((a, b) => a.sort - b.sort);
-		return Promise.all(items.map(async (item) => ({
-			id: item.id,
-			name: item.name,
-			...splitName(item.name),
-			img: item.img,
-			type: item.type,
-			tags: itemTags(item),
-			equippable: typeof item.system.equipped === "boolean",
-			equipped: item.system.equipped,
-			// Armour's toggle is a shield, as the Armour total is: on when the piece counts toward it right now.
-			equipIcon: item.type === "armour" ? "fa-shield-halved" : "fa-hand-fist",
-			equipLabel: item.type === "armour" ? t(item.system.equipped ? "sheet.armourOn" : "sheet.armourOff") : t("sheet.equip"),
-			remedyLabel: item.system.remedy ? t("remedy.use", { virtue: t(`virtues.${item.system.remedy}.abbr`) }) : null,
-			description: await this._enrich(item.system.description)
-		})));
+		return this.#prepareItemRows(this.#itemsOf(types).sort((a, b) => a.sort - b.sort));
+	}
+
+	/**
+	 * Owned items as _prepareItems gives them, in Property order: weapons lead,
+	 * biggest die first, then shields, then armour from the head outward, then the rest.
+	 * @param {...string} types Item types to include. None includes every item.
+	 */
+	_preparePropertyItems(...types) {
+		return this.#prepareItemRows(this.#itemsOf(types).sort(comparePropertyPlace));
+	}
+
+	/**
+	 * Property keeps its place (see _preparePropertyItems), so a row dropped among
+	 * things of another place would only jump back: it stays put, and says why.
+	 * Among things of its own place it sorts where it's dropped.
+	 * @override
+	 */
+	_onSortItem(event, item) {
+		const target = this.actor.items.get(event.target.closest("[data-item-id]")?.dataset.itemId);
+		const source = this.actor.items.get(item.id);
+		if (this.constructor.PROPERTY_ORDER && source && target && !samePropertyPlace(source, target)) {
+			ui.notifications.info(t("property.keepsPlace", { name: source.name }));
+			return;
+		}
+		return super._onSortItem(event, item);
+	}
+
+	/**
+	 * @param {string[]} types
+	 * @returns {Item[]}
+	 */
+	#itemsOf(types) {
+		return this.actor.items.contents.filter((item) => !types.length || types.includes(item.type));
+	}
+
+	/**
+	 * @param {Item[]} items
+	 * @returns {Promise<object[]>}
+	 */
+	#prepareItemRows(items) {
+		const wearer = this.actor.system.conditions ?? {};
+		return Promise.all(items.map(async (item) => {
+			const { system } = item;
+			const armour = item.type === "armour";
+			// Worn, but its Armour doesn't count right now: off its horse, say, or broken.
+			const idle = armour && system.equipped && !armourCounts(system, wearer);
+			const situational = armour && SITUATION_CONDITIONS.includes(system.condition);
+			const counted = isCounted(system);
+			return {
+				id: item.id,
+				name: item.name,
+				...splitName(item.name),
+				img: item.img,
+				type: item.type,
+				// The row shows the count with its own buttons.
+				tags: itemTags(item, { counted: false }),
+				equippable: typeof system.equipped === "boolean",
+				equipped: system.equipped,
+				// Broken, or all used: faded until mended or restocked.
+				unusable: PROPERTY_TYPES.includes(item.type) && !isAtHand(system),
+				idle,
+				// Armour's toggle is a shield, as the Armour total is: on when the piece counts toward it right now.
+				equipIcon: armour ? "fa-shield-halved" : "fa-hand-fist",
+				equipLabel: armour ? t(idle ? "sheet.armourIdle" : system.equipped ? "sheet.armourOn" : "sheet.armourOff") : t("sheet.equip"),
+				holds: situational ? {
+					active: system.holds,
+					label: t(system.holds ? "sheet.holdsOn" : "sheet.holdsOff", {
+						counts: t(armourCounts({ ...system, equipped: true, broken: false }, wearer) ? "sheet.armourCounts" : "sheet.armourDoesNotCount")
+					}),
+					text: armourConditionText(system)
+				} : null,
+				count: counted ? {
+					text: quantityText(system),
+					cannotUse: isUsedUp(system),
+					cannotAdd: Number.isInteger(system.quantity.max) && system.quantity.value >= system.quantity.max
+				} : null,
+				remedyLabel: system.remedy && isAtHand(system) ? t("remedy.use", { virtue: t(`virtues.${system.remedy}.abbr`) }) : null,
+				description: await this._enrich(system.description)
+			};
+		}));
 	}
 
 	/**
@@ -295,7 +337,9 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	static #onToggleCondition(_event, target) {
 		const key = target.dataset.condition;
 		if (!MARKED_CONDITIONS.includes(key)) return;
-		return this.actor.update({ [`system.${key}`]: !this.actor.system[key] });
+		// Wounded lapses once VIG is whole, so the pill flips what it shows rather than the stale mark.
+		const on = key === "wounded" ? this.actor.system.conditions.wounded : this.actor.system[key];
+		return this.actor.update({ [`system.${key}`]: !on });
 	}
 
 	/**
@@ -323,10 +367,42 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		this.#itemFrom(target)?.sheet.render({ force: true });
 	}
 
-	/** @this {BastionlandActorSheet} */
-	static #onToggleEquipped(_event, target) {
+	/**
+	 * Put a piece on or take it off. Only one of each armour type can be worn at
+	 * once (p12), so putting on a second coat takes the first off.
+	 * @this {BastionlandActorSheet}
+	 */
+	static async #onToggleEquipped(_event, target) {
 		const item = this.#itemFrom(target);
-		return item?.update({ "system.equipped": !item.system.equipped });
+		if (!item) return;
+		const putOn = !item.system.equipped;
+		const displaced = putOn ? displacedArmour(this.actor.items.contents, item.id) : [];
+		await this.actor.updateEmbeddedDocuments("Item", [
+			{ _id: item.id, "system.equipped": putOn },
+			...displaced.map((id) => ({ _id: id, "system.equipped": false }))
+		]);
+		for (const id of displaced) {
+			ui.notifications.info(t("item.displaced", { name: this.actor.items.get(id)?.name, kind: t(`item.kinds.${item.system.kind}`).toLowerCase() }));
+		}
+	}
+
+	/**
+	 * Say whether the situation a piece of armour counts in, or doesn't, holds right now.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onToggleHolds(_event, target) {
+		const item = this.#itemFrom(target);
+		return item?.update({ "system.holds": !item.system.holds });
+	}
+
+	/**
+	 * Use one of something counted, or add one back.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onAdjustCount(_event, target) {
+		const item = this.#itemFrom(target);
+		if (!item || !isCounted(item.system)) return;
+		return item.update({ "system.quantity.value": countAfter(item.system.quantity, Number(target.dataset.by) || 0) });
 	}
 
 	/** @this {BastionlandActorSheet} */

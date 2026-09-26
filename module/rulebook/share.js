@@ -1,4 +1,5 @@
 import { t } from "../chat/cards.js";
+import { queryAsker } from "../compat.js";
 import { readerPage } from "../rules/rulebook.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { openRulebook } from "./BookReader.js";
@@ -39,10 +40,10 @@ export async function showRulebookPage(page) {
  * Only a GM's query opens anything. Shown pages open even for players who
  * aren't offered the book: the GM chose to show them this one.
  * @param {{page: number}} data
- * @param {{user: User}} context
+ * @param {{user?: User}} context
  * @returns {Promise<boolean>}
  */
-async function onShowQuery({ page } = {}, { user } = {}) {
-	if (!user?.isGM) return false;
-	return !!openRulebook({ page, shown: true });
+async function onShowQuery(data = {}, context = {}) {
+	if (!queryAsker(context)?.isGM) return false;
+	return !!openRulebook({ page: data.page, shown: true });
 }

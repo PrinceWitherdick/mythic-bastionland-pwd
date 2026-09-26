@@ -3,6 +3,7 @@ import {
 	JOURNEY_VERSION,
 	changedHexes,
 	emptyJourney,
+	forgetVisit,
 	forgetVisits,
 	hexesEntered,
 	normaliseJourney,
@@ -33,12 +34,44 @@ describe("normaliseJourney", () => {
 			}
 		});
 		expect(Object.keys(journey.hexes)).toEqual(["3,4"]);
-		expect(journey.hexes["3,4"]).toEqual({ count: 2, first: { when: spring, order: 1 }, last: { when: winter, order: 5 } });
+		expect(journey.hexes["3,4"]).toMatchObject({ count: 2, first: { when: spring, order: 1 }, last: { when: winter, order: 5 } });
 	});
 
 	it("reads a missing last arrival as the first, and a calendar that isn't one as none", () => {
 		const journey = normaliseJourney({ hexes: { "2,2": { count: 1, first: { when: { age: "old" }, order: 4 } } } });
-		expect(journey.hexes["2,2"]).toEqual({ count: 1, first: { when: null, order: 4 }, last: { when: null, order: 4 } });
+		expect(journey.hexes["2,2"]).toEqual({ count: 1, first: { when: null, order: 4 }, last: { when: null, order: 4 }, arrivals: [{ when: null, order: 4 }] });
+	});
+
+	it("puts the visits of a record kept before each was between its first and last, with no calendar", () => {
+		const journey = normaliseJourney({ hexes: { "3,4": { count: 4, first: { when: spring, order: 1 }, last: { when: winter, order: 7 } } } });
+		expect(journey.hexes["3,4"].arrivals).toEqual([
+			{ when: spring, order: 1 },
+			{ when: null, order: 3 },
+			{ when: null, order: 5 },
+			{ when: winter, order: 7 }
+		]);
+		expect(journey.hexes["3,4"].count).toBe(4);
+	});
+
+	it("keeps every visit of an older record whose first and last share a moment", () => {
+		const journey = normaliseJourney({ hexes: { "3,4": { count: 3, first: { when: spring, order: 5 } }, "1,1": { count: 2, first: { order: 0 }, last: { order: 0 } } } });
+		expect(journey.hexes["3,4"].count).toBe(3);
+		expect(journey.hexes["3,4"].arrivals.map(({ order }) => order)).toEqual([5 - 2 / 3, 5 - 1 / 3, 5]);
+		expect(journey.hexes["3,4"].first.when).toEqual(spring);
+		expect(journey.hexes["1,1"].arrivals.map(({ order }) => order)).toEqual([0, 0.5]);
+		expect(journey.next).toBe(6);
+	});
+
+	it("reads each arrival kept, oldest first, over the count kept beside them", () => {
+		const raw = { count: 9, first: { order: 1 }, last: { order: 9 }, arrivals: [{ when: winter, order: 6 }, { order: 2 }, { order: 6 }, "no"] };
+		const journey = normaliseJourney({ hexes: { "1,1": raw } });
+		expect(journey.hexes["1,1"]).toEqual({
+			count: 2,
+			first: { when: null, order: 2 },
+			last: { when: winter, order: 6 },
+			arrivals: [{ when: null, order: 2 }, { when: winter, order: 6 }]
+		});
+		expect(normaliseJourney({ hexes: { "1,1": { count: 3, first: { order: 1 }, arrivals: [] } } }).hexes).toEqual({});
 	});
 
 	it("never counts on from behind a hex already come into", () => {
@@ -78,8 +111,9 @@ describe("recordVisits", () => {
 	it("counts each hex come into, stamping the first and the last time", () => {
 		let journey = recordVisits(emptyJourney(), [hex(1, 1), hex(2, 1)], spring);
 		journey = recordVisits(journey, [hex(1, 1)], winter);
-		expect(visitsAt(journey, hex(1, 1))).toEqual({ count: 2, first: { when: spring, order: 1 }, last: { when: winter, order: 3 } });
-		expect(visitsAt(journey, hex(2, 1))).toEqual({ count: 1, first: { when: spring, order: 2 }, last: { when: spring, order: 2 } });
+		expect(visitsAt(journey, hex(1, 1))).toMatchObject({ count: 2, first: { when: spring, order: 1 }, last: { when: winter, order: 3 } });
+		expect(visitsAt(journey, hex(1, 1)).arrivals).toEqual([{ when: spring, order: 1 }, { when: winter, order: 3 }]);
+		expect(visitsAt(journey, hex(2, 1))).toMatchObject({ count: 1, first: { when: spring, order: 2 }, last: { when: spring, order: 2 } });
 		expect(journey.next).toBe(4);
 	});
 
@@ -109,6 +143,28 @@ describe("forgetVisits", () => {
 	it("changes nothing for a hex never come into", () => {
 		const journey = recordVisits(emptyJourney(), [hex(1, 1)], spring);
 		expect(forgetVisits(journey, hex(8, 8))).toBe(journey);
+	});
+});
+
+describe("forgetVisit", () => {
+	it("forgets one arrival and counts from the rest", () => {
+		let journey = recordVisits(emptyJourney(), [hex(1, 1), hex(2, 1)], spring);
+		journey = recordVisits(journey, [hex(1, 1)], winter);
+		const forgotten = forgetVisit(journey, hex(1, 1), 3);
+		expect(visitsAt(forgotten, hex(1, 1))).toEqual({ count: 1, first: { when: spring, order: 1 }, last: { when: spring, order: 1 }, arrivals: [{ when: spring, order: 1 }] });
+		expect(forgotten.hexes["2,1"]).toBe(journey.hexes["2,1"]);
+		expect(changedHexes(journey, forgotten)).toEqual(["1,1"]);
+	});
+
+	it("forgets the hex with its last arrival", () => {
+		const journey = recordVisits(emptyJourney(), [hex(1, 1)], spring);
+		expect(visitsAt(forgetVisit(journey, hex(1, 1), 1), hex(1, 1))).toBeNull();
+	});
+
+	it("changes nothing for an arrival that isn't there", () => {
+		const journey = recordVisits(emptyJourney(), [hex(1, 1)], spring);
+		expect(forgetVisit(journey, hex(1, 1), 9)).toBe(journey);
+		expect(forgetVisit(journey, hex(5, 5), 1)).toBe(journey);
 	});
 });
 

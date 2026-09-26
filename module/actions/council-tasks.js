@@ -16,6 +16,7 @@ import {
 import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
 import { readRefereeTable } from "../rules/referee-rolls.js";
 import { escapeHTML } from "../rules/text.js";
+import { normalizeCalendar } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./dominion.js";
@@ -217,6 +218,20 @@ export async function setTaskAside(domain, id) {
 }
 
 /**
+ * When a task not yet due will be, told against now. The book never numbers the Days (p17), so a
+ * task due later in the Season is told by its Phase: later today, or the next Day's.
+ * @param {import("../rules/time.js").Calendar} due
+ * @param {import("../rules/time.js").Calendar} now
+ * @returns {string}
+ */
+function dueLine(due, calendar) {
+	const now = normalizeCalendar(calendar);
+	if (due.age !== now.age || due.season !== now.season) return t("domain.tasks.dueAt", { when: calendarLabel(due) });
+	const phase = t(`time.phases.${due.phase}`);
+	return t(due.day === now.day ? "domain.tasks.dueBy" : "domain.tasks.dueNext", { phase });
+}
+
+/**
  * Every task as the Domain sheet lists them, gathered under the seat each was
  * given to. A sheet draws all five seats at once, so the list is read once
  * between them, and a seat's holder — who is found by name among every actor —
@@ -243,7 +258,7 @@ export function tasksBySeat(domain, now) {
 			gloss: [
 				t(`domain.tasks.scopes.${task.scope}.takes`),
 				riskLabel(task, holderFor(task.seat)),
-				due ? t("domain.tasks.dueNow") : t("domain.tasks.dueAt", { when: calendarLabel(taskDueAt(task)) })
+				due ? t("domain.tasks.dueNow") : dueLine(taskDueAt(task), now)
 			].join(" · ")
 		});
 	}

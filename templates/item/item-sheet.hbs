@@ -61,6 +61,35 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.specialistHint"}}</p>
 	</div>
+	<fieldset class="bastionland-item-alternate">
+		<legend>{{localize "bastionland.item.alternate"}}</legend>
+		<div class="form-group">
+			<label for="{{rootId}}-alternate-label">{{localize "bastionland.item.alternateLabel"}}</label>
+			<div class="form-fields">
+				<input id="{{rootId}}-alternate-label" type="text" name="system.alternate.label" value="{{system.alternate.label}}" placeholder="{{localize 'bastionland.item.alternatePlaceholder'}}" autocomplete="off">
+				<input type="text" name="system.alternate.damage" value="{{system.alternate.damage}}" placeholder="d10" aria-label="{{localize 'bastionland.item.damage'}}" autocomplete="off">
+			</div>
+		</div>
+		<div class="bastionland-qualities">
+			{{#each alternateQualities}}
+			<label class="bastionland-check" data-tooltip="{{hint}}">
+				<input type="checkbox" name="system.alternate.{{key}}" {{checked checked}}>
+				<span class="bastionland-check__label">{{label}}</span>
+			</label>
+			{{/each}}
+		</div>
+		<p class="hint">{{localize "bastionland.item.alternateHint"}}</p>
+	</fieldset>
+	<fieldset class="bastionland-qualities">
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.usedUpHint'}}">
+			<input type="checkbox" name="system.usedUp" {{checked system.usedUp}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.usedUp"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.woodenHint'}}">
+			<input type="checkbox" name="system.wooden" {{checked system.wooden}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.wooden"}}</span>
+		</label>
+	</fieldset>
 	{{/if}}
 
 	{{#if isGear}}
@@ -73,6 +102,10 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.remedyHint"}}</p>
 	</div>
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.poisonHint'}}">
+		<input type="checkbox" name="system.poison" {{checked system.poison}}>
+		<span class="bastionland-check__label">{{localize "bastionland.item.poison"}}</span>
+	</label>
 	{{/if}}
 
 	{{#if isArmour}}
@@ -97,6 +130,58 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.attackDieHint"}}</p>
 	</div>
+	<div class="form-group bastionland-item-condition">
+		<label for="{{rootId}}-condition">{{localize "bastionland.item.condition"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-condition" name="system.condition">
+				{{selectOptions conditionOptions selected=system.condition}}
+			</select>
+			<input type="text" name="system.situation" value="{{system.situation}}" placeholder="{{localize 'bastionland.item.situationPlaceholder'}}" aria-label="{{localize 'bastionland.item.situation'}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.item.conditionHint"}}</p>
+	</div>
+	<fieldset class="bastionland-qualities">
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.holdsHint'}}">
+			<input type="checkbox" name="system.holds" {{checked system.holds}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.holds"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.bucklerHint'}}">
+			<input type="checkbox" name="system.buckler" {{checked system.buckler}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.buckler"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.woodenHint'}}">
+			<input type="checkbox" name="system.wooden" {{checked system.wooden}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.wooden"}}</span>
+		</label>
+	</fieldset>
+	{{/if}}
+
+	{{#if isPossession}}
+	<div class="form-group">
+		<label for="{{rootId}}-rarity">{{localize "bastionland.item.rarity"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-rarity" name="system.rarity">
+				{{selectOptions rarityOptions selected=system.rarity}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.item.rarityHint"}}</p>
+	</div>
+	<div class="form-group bastionland-item-stock">
+		<label for="{{rootId}}-quantity">{{localize "bastionland.item.quantity"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-quantity" type="number" name="system.quantity.value" value="{{system.quantity.value}}" min="0" step="1" placeholder="–">
+			<span class="bastionland-item-stock__of">{{localize "bastionland.item.quantityOf"}}</span>
+			<input type="number" name="system.quantity.max" value="{{system.quantity.max}}" min="0" step="1" placeholder="–" aria-label="{{localize 'bastionland.item.quantityMax'}}">
+			<select name="system.restock" aria-label="{{localize 'bastionland.item.restock'}}">
+				{{selectOptions restockOptions selected=system.restock}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.item.quantityHint"}}</p>
+	</div>
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.brokenHint'}}">
+		<input type="checkbox" name="system.broken" {{checked system.broken}}>
+		<span class="bastionland-check__label">{{localize "bastionland.item.broken"}}</span>
+	</label>
 	{{/if}}
 
 	{{#if (or isWeapon isArmour)}}

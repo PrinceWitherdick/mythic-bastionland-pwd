@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendRecap, normalizeSessionEnd, offeredStep, passageStep, TIME_STEPS, TIME_STEP_KEYS, timeStep, turnsSeasonOrAge } from "../../module/rules/session-end.js";
+import { appendRecap, calendarTurn, normalizeSessionEnd, offeredStep, passageStep, sessionRecap, TIME_STEPS, TIME_STEP_KEYS, timeStep, turnsSeasonOrAge } from "../../module/rules/session-end.js";
 
 describe("TIME_STEPS", () => {
 	it("offers the book's four answers, in its order (p17)", () => {
@@ -55,12 +55,11 @@ describe("offeredStep", () => {
 		expect(offeredStep({ promised: "age" })).toEqual({ step: "years", reason: "promised" });
 	});
 
-	it("offers the turn a Chronicle's plan puts at this session's end", () => {
-		expect(offeredStep({ due: "season" })).toEqual({ step: "months", reason: "planned" });
-	});
+});
 
-	it("puts a promise before a plan, since the promise was made at the table", () => {
-		expect(offeredStep({ promised: "season", due: "age" })).toEqual({ step: "months", reason: "promised" });
+describe("calendarTurn", () => {
+	it("turns the Age as Winter ends, since a new Age begins in Spring (p17), and the Season otherwise", () => {
+		expect(["spring", "harvest", "winter"].map(calendarTurn)).toEqual(["season", "season", "age"]);
 	});
 });
 
@@ -88,5 +87,18 @@ describe("appendRecap", () => {
 	it("leaves the notes alone where nothing was written about the session", () => {
 		expect(appendRecap("Session 1\nThey rode north.", "Session 2", "   ")).toBe("Session 1\nThey rode north.");
 		expect(appendRecap(undefined, "Session 1", "")).toBe("");
+	});
+});
+
+describe("sessionRecap", () => {
+	it("puts the players' plans on a line of their own under the recap", () => {
+		expect(sessionRecap(" The ford was held. ", " Ride for the coast. ", "Next session"))
+			.toBe("The ford was held.\nNext session: Ride for the coast.");
+	});
+
+	it("keeps whichever of the two was written", () => {
+		expect(sessionRecap("", "Ride for the coast.", "Next session")).toBe("Next session: Ride for the coast.");
+		expect(sessionRecap("The ford was held.", "  ", "Next session")).toBe("The ford was held.");
+		expect(sessionRecap(undefined, undefined, "Next session")).toBe("");
 	});
 });

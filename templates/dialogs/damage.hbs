@@ -14,6 +14,19 @@
 		</div>
 	</div>
 
+	{{#if situational.length}}
+	<fieldset>
+		<legend>{{localize "bastionland.damage.situational"}}</legend>
+		{{#each situational}}
+		<label class="bastionland-check">
+			<input type="checkbox" data-situational="{{id}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+		<p class="hint">{{localize "bastionland.damage.situationalHint"}}</p>
+	</fieldset>
+	{{/if}}
+
 	<label class="bastionland-check">
 		<input type="checkbox" name="ignoreArmour" {{checked ignoreArmour}}>
 		<span class="bastionland-check__label">{{localize "bastionland.damage.ignoreArmour"}}</span>
@@ -27,8 +40,9 @@
 	</label>
 	{{/if}}
 
-	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.damage.shieldwallHint'}}">
-		<input type="checkbox" name="shieldwall">
+	{{!-- A buckler doesn't make a shieldwall (p10), so a target bearing only one can't count one. --}}
+	<label class="bastionland-check" data-tooltip="{{#if buckler}}{{localize 'bastionland.damage.bucklerOnly'}}{{else}}{{localize 'bastionland.damage.shieldwallHint'}}{{/if}}">
+		<input type="checkbox" name="shieldwall" {{disabled buckler}}>
 		<span class="bastionland-check__label">{{localize "bastionland.damage.shieldwall"}}</span>
 	</label>
 

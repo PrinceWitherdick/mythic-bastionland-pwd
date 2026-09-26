@@ -95,6 +95,88 @@ function seatLine(realm) {
 const whole = (value) => (value === "" || value === null || !Number.isFinite(Number(value)) ? undefined : Math.trunc(Number(value)));
 
 /**
+ * @typedef {object} RealmSwatch One button of the paint palette, as templates/apps/parts/realm-swatch.hbs draws it.
+ * @property {number|string} [brush] What it takes up, as setRealmBrush takes it; the Seat of Power has none.
+ * @property {string} [action] Its action, when it isn't pickBrush.
+ * @property {string} label
+ * @property {string} [src] Its picture.
+ * @property {string} [icon] Its icon, where it has no picture.
+ * @property {string|null} [mark] The tint a traced Realm shows that terrain in on the map.
+ * @property {boolean} [wide] A row of its own across the palette.
+ * @property {{count: number, met: boolean, over: boolean}} [tally] How many of it stand on the map.
+ * @property {string} [tooltip]
+ * @property {boolean} active
+ */
+
+/**
+ * The swatches a Realm is painted from, by the brush each belongs to: every
+ * terrain, the river, Barriers, each style of Holding with the Seat of Power
+ * after them, and each kind of Landmark. The palette shows them all together;
+ * Creating a Realm shows each set beside the step it draws.
+ * @param {Scene} scene
+ * @param {import("../rules/realm.js").Realm} realm
+ * @param {string|null} brush The brush in hand, one of REALM_BRUSHES, or null while the paint tool isn't.
+ * @returns {Record<string, RealmSwatch[]>} Keyed by REALM_BRUSHES.
+ */
+export function realmSwatches(scene, realm, brush) {
+	const textures = realmTextures(getRealmLook(scene));
+	// On a Realm traced over a picture the map shows each terrain as its own
+	// tint, so the palette carries the same tint to read the map by.
+	const marked = hidesTerrain(realm);
+	return {
+		terrain: TERRAIN.map((key, index) => ({
+			brush: index + 1,
+			label: `${index + 1}. ${t(`realm.terrain.${key}`)}`,
+			src: textures.terrain[index + 1].src,
+			mark: marked ? TERRAIN_MARKS[index] : null,
+			active: brush === "terrain" && index + 1 === RealmPanel.terrain
+		})),
+		river: [{ brush: "river", label: t("realm.panel.river"), src: textures.river.straight.src, wide: true, active: brush === "river" }],
+		// The Barrier brush works along the edges between hexes, so it has no picture of its own.
+		barrier: [{ brush: "barrier", label: t("realm.brushes.barrier"), icon: REALM_TOOL_ICONS.barrier, wide: true, active: brush === "barrier" }],
+		holding: [
+			...HOLDING_STYLES.map((style) => ({
+				brush: style,
+				label: t(`realm.holdings.${style}`),
+				src: textures.holding[style].src,
+				// Four Holdings all told, in whatever mixture of styles, so no one style is a number to hit.
+				tally: counted(realm.holdings.filter((holding) => holding.style === style).length, { max: HOLDING_COUNT }),
+				active: brush === "holding" && style === RealmPanel.holding
+			})),
+			// One Holding is the Seat of Power, so the crown is a tick beside the styles, not a brush of its own.
+			{ action: "toggleSeat", label: t("realm.key.seat"), src: textures.seat.src, wide: true, tooltip: t("realm.panel.seatHint"), active: RealmPanel.seat }
+		],
+		landmark: LANDMARK_TYPES.map((type) => ({
+			brush: type,
+			label: t(`realm.landmarks.${type}`),
+			src: textures.landmark[type].src,
+			tally: counted(realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE),
+			active: brush === "landmark" && type === RealmPanel.landmark
+		}))
+	};
+}
+
+/**
+ * How much river the Realm has, and the button that clears it.
+ * @param {import("../rules/realm.js").Realm} realm
+ * @returns {{none: boolean, length: string, clear: string}}
+ */
+export function riverState({ rivers }) {
+	const count = new Set(rivers.flat().map(hexKey)).size;
+	return {
+		none: count === 0,
+		length: !count ? t("realm.panel.noRiver") : rivers.length > 1 ? t("realm.panel.riversLength", { rivers: rivers.length, count }) : t("realm.panel.riverLength", { count }),
+		clear: t(rivers.length > 1 ? "realm.panel.clearRivers" : "realm.panel.clearRiver")
+	};
+}
+
+/**
+ * @param {string} brush One of REALM_BRUSHES.
+ * @returns {string} How to paint with it.
+ */
+export const brushHint = (brush) => t(`realm.panel.hints.${brush}`);
+
+/**
  * The GM's window for one hex of a Realm: its terrain, the Holding, Myth or
  * Landmark in it, its Barriers, and a Wilderness Roll there. With the paint
  * tool in hand it shows the palette to paint the Realm with instead: every
@@ -183,76 +265,35 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
 		if (this.mode === "terrain" || !this.hex) {
-			const textures = realmTextures(getRealmLook(scene));
-			const { rivers } = realm;
-			const count = new Set(rivers.flat().map(hexKey)).size;
 			const brush = RealmPanel.brush;
+			const swatches = realmSwatches(scene, realm, brush);
 			const painted = realm.terrain.filter(Boolean).length;
 			// How many Barriers the rules ask this Realm for, which is both the least and the most.
 			const barriers = barrierCount(realm);
-			const landmarks = LANDMARK_TYPES.map((type) => ({
-				value: type,
-				label: t(`realm.landmarks.${type}`),
-				src: textures.landmark[type].src,
-				...counted(realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE),
-				active: brush === "landmark" && type === RealmPanel.landmark
-			}));
+			const landmarks = swatches.landmark.map((swatch) => swatch.tally);
 			return Object.assign(context, {
 				terrainMode: true,
 				// Only the brush in hand says how to use it, so the palette keeps one line of instructions.
-				hint: t(`realm.panel.hints.${brush}`),
+				hint: [brushHint(brush), ...(brush === "terrain" ? [t("realm.panel.hints.beside")] : [])].join(" "),
 				// A count of the painted hexes, so the Terrain has a line of its own like the rest.
 				terrainTally: tallyLine(
 					t("realm.panel.terrainTally", { count: painted, target: realm.terrain.length }),
 					painted,
 					{ min: realm.terrain.length, max: realm.terrain.length }
 				),
-				terrains: TERRAIN.map((key, index) => ({
-					value: index + 1,
-					label: t(`realm.terrain.${key}`),
-					src: textures.terrain[index + 1].src,
-					// On a Realm traced over a picture the map shows each terrain as its own
-					// tint, so the palette carries the same tint to read the map by.
-					mark: hidesTerrain(realm) ? TERRAIN_MARKS[index] : null,
-					active: brush === "terrain" && index + 1 === RealmPanel.terrain
-				})),
-				river: {
-					src: textures.river.straight.src,
-					active: brush === "river",
-					none: count === 0,
-					length: !count ? t("realm.panel.noRiver") : rivers.length > 1 ? t("realm.panel.riversLength", { rivers: rivers.length, count }) : t("realm.panel.riverLength", { count }),
-					clear: t(rivers.length > 1 ? "realm.panel.clearRivers" : "realm.panel.clearRiver")
-				},
-				// The Barrier brush works along the edges between hexes, so it has no picture of its own.
-				barrier: {
-					icon: REALM_TOOL_ICONS.barrier,
-					active: brush === "barrier",
-					tally: tallyLine(
-						t("realm.panel.barrierTally", { count: realm.barriers.length, target: barriers }),
-						realm.barriers.length,
-						{ min: barriers, max: barriers }
-					)
-				},
-				holdings: HOLDING_STYLES.map((style) => ({
-					value: style,
-					label: t(`realm.holdings.${style}`),
-					src: textures.holding[style].src,
-					// Four Holdings all told, in whatever mixture of styles, so no one style is a number to hit.
-					...counted(realm.holdings.filter((holding) => holding.style === style).length, { max: HOLDING_COUNT }),
-					active: brush === "holding" && style === RealmPanel.holding
-				})),
+				swatches,
+				river: { active: brush === "river", ...riverState(realm) },
+				barrierTally: tallyLine(
+					t("realm.panel.barrierTally", { count: realm.barriers.length, target: barriers }),
+					realm.barriers.length,
+					{ min: barriers, max: barriers }
+				),
 				holdingTally: tallyLine(
 					t("realm.panel.holdingTally", { count: realm.holdings.length, target: HOLDING_COUNT }),
 					realm.holdings.length,
 					{ min: HOLDING_COUNT, max: HOLDING_COUNT }
 				),
-				// One Holding is the Seat of Power, so the crown is a tick beside the styles, not a brush of its own.
-				seat: {
-					src: textures.seat.src,
-					on: RealmPanel.seat,
-					tally: seatLine(realm)
-				},
-				landmarks,
+				seatTally: seatLine(realm),
 				// The line over the Landmarks is green once every kind is right, as the Holdings' line is.
 				landmarkTally: {
 					text: t("realm.panel.landmarkTally", LANDMARKS_PER_TYPE),
@@ -329,9 +370,38 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	 */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
+		this.#hangAppearanceButton(Boolean(context.terrainMode));
 		if (this.#shown === this.mode) return;
 		this.#shown = this.mode;
 		this.setPosition({ width: this.mode === "terrain" ? PAINT_WIDTH : HEX_WIDTH, height: "auto" });
+	}
+
+	/**
+	 * The palette's way to Realm Appearance, a labelled button in the window
+	 * header left of Foundry's own controls, as the sheets hang theirs. The
+	 * one-hex panel has none.
+	 * @param {boolean} shown
+	 */
+	#hangAppearanceButton(shown) {
+		const header = this.element?.querySelector(".window-header");
+		if (!header) return;
+		const hung = header.querySelector(".bastionland-header-button[data-action=appearance]");
+		if (!shown) return hung?.remove();
+		if (hung) return;
+		const doc = header.ownerDocument;
+		const button = doc.createElement("button");
+		button.type = "button";
+		button.className = "header-control bastionland-header-button";
+		button.dataset.action = "appearance";
+		const glyph = doc.createElement("i");
+		glyph.className = "fa-solid fa-palette";
+		glyph.inert = true;
+		const text = doc.createElement("span");
+		text.textContent = t("realm.panel.appearance");
+		button.append(glyph, text);
+		const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
+		if (controls) controls.before(button);
+		else header.append(button);
 	}
 
 	/**
@@ -409,8 +479,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @this {RealmPanel}
 	 */
 	static #onToggleSeat() {
-		RealmPanel.seat = !RealmPanel.seat;
-		setRealmBrush("holding");
+		toggleRealmSeat();
 	}
 
 	/**
@@ -549,6 +618,15 @@ export function setRealmBrush(brush) {
 }
 
 /**
+ * Tick the Seat of Power, or untick it. Ticking it takes up the Holding brush,
+ * since that's what it's for.
+ */
+export function toggleRealmSeat() {
+	RealmPanel.seat = !RealmPanel.seat;
+	setRealmBrush("holding");
+}
+
+/**
  * Untick the Seat of Power once the Seat has been placed, so the next Holding
  * doesn't quietly take the crown off the one before it.
  * @param {boolean} on
@@ -557,6 +635,17 @@ export function setRealmSeat(on) {
 	if (RealmPanel.seat === on) return;
 	RealmPanel.seat = on;
 	if (panel?.rendered && panel.mode === "terrain") panel.render();
+	// Creating a Realm shows the tick as well.
+	canvas.realm?.redrawTool();
+}
+
+/**
+ * Close the palette, while Creating a Realm lays each part of it beside the
+ * step it draws. The Hex panel stays: the Myths are set there.
+ * @returns {Promise<unknown>}
+ */
+export function closeRealmPalette() {
+	return panel?.rendered && panel.mode === "terrain" ? panel.close({ animate: false }) : Promise.resolve();
 }
 
 /**

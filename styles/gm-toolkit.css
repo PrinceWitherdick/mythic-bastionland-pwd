@@ -65,6 +65,37 @@
 	text-align: left;
 }
 
+/* The rulebook beside the calendar: a bare glyph in the banner's soft ink that
+   reddens when pointed at, like the banner's other clickable words. */
+.bastionland-page button.bastionland-gm-toolkit__book {
+	flex: none;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink-soft);
+	font-size: 1.6rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: color 0.15s;
+}
+
+.bastionland-page button.bastionland-gm-toolkit__book:is(:hover, :focus-visible) {
+	outline: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-blood);
+}
+
+/* No copy yet: dimmed rather than hidden, since clicking it is how one is set up. */
+.bastionland-page button.bastionland-gm-toolkit__book.is-unset {
+	opacity: 0.4;
+}
+
 .bastionland-gm-toolkit__facts {
 	display: flex;
 	flex-wrap: wrap;
@@ -1035,6 +1066,52 @@
 	color: var(--bastionland-blood);
 }
 
+/* A table rolled again each Season, Night or Day keeps its die inside the
+   possession's aside, right after the words saying when, so the name, the die
+   and the rest of the aside run on as one line of prose. */
+.bastionland-item__name--renewal {
+	cursor: default;
+}
+
+.bastionland-item__name--renewal:hover {
+	text-decoration: none;
+}
+
+.bastionland-page .bastionland-item__name-button {
+	appearance: none;
+	display: inline;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border-radius: 0;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.bastionland-page .bastionland-item__name-button:hover {
+	text-decoration: underline;
+}
+
+.bastionland-page .bastionland-item__book-roll--inline {
+	margin-inline-start: 0.3em;
+}
+
+/* Its time has come since the last roll: the die turns to blood and says so. */
+.bastionland-page .bastionland-item__book-roll.is-due {
+	color: var(--bastionland-blood);
+	font-weight: bold;
+}
+
+.bastionland-item__due {
+	margin-inline-start: 0.25em;
+	font-family: var(--bastionland-font-caps);
+	letter-spacing: 0.03em;
+}
+
 /* What the table gave, in the size of an item's notes. */
 .bastionland-item__book-table {
 	margin: 0.1rem 0 0;
@@ -1060,6 +1137,15 @@
 
 .bastionland-item__book-table.is-several .bastionland-item__book-result {
 	grid-column: 2;
+}
+
+/* With its die up in the aside, each result simply takes a line of its own. */
+.bastionland-item__book-table.is-several.is-dieless {
+	display: block;
+}
+
+.bastionland-item__book-table.is-several.is-dieless .bastionland-item__book-result {
+	display: block;
 }
 
 /* The window, on the sheets' parchment. Its table borrows the Myth table's look from the GM Toolkit. */
@@ -1144,6 +1230,13 @@
 
 .bastionland-wilderness-hex .bastionland-toolbar {
 	justify-content: flex-end;
+	align-items: center;
+}
+
+/* The tick box keeps to the left, the buttons to the right. */
+.bastionland-wilderness-hex__animate {
+	display: inline-flex;
+	margin-right: auto;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1188,6 +1281,9 @@
 }
 
 .bastionland-gm-toolkit__visits {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
 	flex-basis: 100%;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
@@ -1273,14 +1369,6 @@
 /* Time                                                             */
 /* ---------------------------------------------------------------- */
 
-.bastionland-gm-toolkit__now {
-	border-left-color: var(--bastionland-verdigris);
-}
-
-.bastionland-gm-toolkit__now .bastionland-hint {
-	margin: 0;
-}
-
 .bastionland-gm-toolkit__waiting {
 	display: flex;
 	flex-direction: column;
@@ -1330,8 +1418,9 @@
 	vertical-align: 0.1em;
 }
 
-/* A past Season folds to one row, as a Places hex does, with how it ended beside its name. */
-.bastionland-gm-toolkit__season:is(details) {
+/* A past Season folds to one row, as a Places hex does, with how it ended beside its name.
+   Its Age folds the same way, around all of them, with how many it holds beside its name. */
+:is(.bastionland-gm-toolkit__season:is(details), .bastionland-gm-toolkit__age) {
 	gap: 0;
 	padding: 0;
 }
@@ -1368,7 +1457,7 @@
 	font-weight: 900;
 }
 
-.bastionland-gm-toolkit__season[open] > .bastionland-gm-toolkit__season-head::after {
+:is(.bastionland-gm-toolkit__season, .bastionland-gm-toolkit__age)[open] > .bastionland-gm-toolkit__season-head::after {
 	content: "\f077";
 }
 
@@ -1376,11 +1465,43 @@
 	color: var(--bastionland-ink);
 }
 
+/* An Age's Seasons stand as leaves inside it, each still edged in its colour. */
+.bastionland-gm-toolkit__age-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0 0.9rem 0.75rem;
+}
+
 .bastionland-gm-toolkit__season-body {
 	display: flex;
 	flex-direction: column;
 	gap: 0.55rem;
 	padding: 0 0.9rem 0.75rem;
+}
+
+/* The Myths resolved in a past Season (p27), each on a line with the rubric's dragon. */
+.bastionland-gm-toolkit__season-myths {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-gm-toolkit__season-myths li {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45rem;
+}
+
+.bastionland-gm-toolkit__season-myths i {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-gm-toolkit__season-body > .bastionland-hint {
+	margin: 0;
 }
 
 .bastionland-gm-toolkit__season-turn {
@@ -1408,11 +1529,6 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
-}
-
-.bastionland-gm-toolkit__season-entries p {
-	margin: 0.1rem 0 0;
-	font-size: 0.92rem;
 }
 
 /* ---------------------------------------------------------------- */
@@ -1457,6 +1573,14 @@
 
 .bastionland-hex-lore__row.bastionland-hex-lore__visits button {
 	flex: 0 1 auto;
+}
+
+/* The pencil opening the visits to edit keeps its round badge, not the row's button size. */
+.bastionland-hex-lore__row.bastionland-hex-lore__visits button.bastionland-icon {
+	flex: none;
+	min-height: 0;
+	height: 1.5rem;
+	padding: 0;
 }
 
 /* ---------------------------------------------------------------- */

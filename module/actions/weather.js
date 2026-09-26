@@ -1,6 +1,7 @@
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
+import { deletionEntry } from "../compat.js";
 import { FXMASTER_FLAG, FXMASTER_IDS, WEATHER, WEATHER_KEYS, isWeather, weatherEffectsChange } from "../rules/weather.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -94,7 +95,7 @@ export async function drawWeather() {
 		try {
 			await scene.update(Object.fromEntries([
 				...Object.entries(change.set).map(([key, effect]) => [path(key), effect]),
-				...change.drop.map((key) => [path(key), new foundry.data.operators.ForcedDeletion()])
+				...change.drop.map((key) => deletionEntry(path(key)))
 			]));
 		} catch (error) {
 			// The weather is still set; only the Scene stayed as it was.

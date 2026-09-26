@@ -9,10 +9,6 @@ let turned;
 /** The Season notes written, by Season key, and what each Season holds now. */
 let written;
 let notes;
-/** The Scope, and whether the session was counted. */
-let scope;
-let counted;
-
 vi.mock("../../module/actions/calendar.js", () => ({
 	getCalendar: () => calendar,
 	calendarLabel: () => "Morning, 1st of Spring"
@@ -29,13 +25,6 @@ vi.mock("../../module/actions/time.js", () => ({
 	turnAge: vi.fn(async () => {
 		turns.push("age");
 		return turned;
-	})
-}));
-vi.mock("../../module/actions/scope.js", () => ({
-	getScope: () => scope,
-	countSession: vi.fn(async () => {
-		counted++;
-		return scope;
 	})
 }));
 vi.mock("../../module/actions/season-log.js", () => ({
@@ -64,8 +53,6 @@ beforeEach(() => {
 	turned = { ...calendar, season: "harvest" };
 	written = [];
 	notes = {};
-	scope = { scope: "chronicle", sessions: 6, session: 3, turnEvery: 1 };
-	counted = 0;
 	settings = new Map();
 	cards = [];
 	globalThis.game = {
@@ -106,10 +93,9 @@ describe("registerSessionEndSetting", () => {
 });
 
 describe("endTheSession", () => {
-	it("passes no time for the None step, and counts the session played", async () => {
+	it("passes no time for the None step", async () => {
 		expect(await endTheSession({ step: "none" })).toBe(true);
 		expect(turns).toEqual([]);
-		expect(counted).toBe(1);
 	});
 
 	it("turns the Season for Months, the Age for Years, and reaches the next event for Weeks", async () => {
@@ -122,25 +108,29 @@ describe("endTheSession", () => {
 	it("leaves the session unended where the Referee turns away from the turn", async () => {
 		turned = null;
 		expect(await endTheSession({ step: "months", recap: "The ford was held." })).toBe(false);
-		expect(counted).toBe(0);
 		expect(cards).toHaveLength(0);
 		expect(written).toEqual([]);
 	});
 
 	it("ends on no step it doesn't know", async () => {
 		expect(await endTheSession({ step: "decades" })).toBe(false);
-		expect(counted).toBe(0);
 	});
 
 	it("is the Referee's to do", async () => {
 		game.user.isGM = false;
 		expect(await endTheSession({ step: "none" })).toBe(false);
-		expect(counted).toBe(0);
+		expect(cards).toHaveLength(0);
 	});
 
 	it("writes the recap into the notes of the Season that was played, not the one turned to", async () => {
 		await endTheSession({ step: "months", recap: "The ford was held." });
-		expect(written).toEqual([["1-spring", `${format("bastionland.sessionEnd.recapHeading", { session: 3, when: "Morning, 1st of Spring" })}\nThe ford was held.`]]);
+		expect(written).toEqual([["1-spring", `${format("bastionland.sessionEnd.recapHeading", { when: "Morning, 1st of Spring" })}\nThe ford was held.`]]);
+	});
+
+	it("writes the players' plans into the Season's notes under the recap", async () => {
+		await endTheSession({ step: "none", recap: "The ford was held.", plans: "Ride for the coast." });
+		const heading = format("bastionland.sessionEnd.recapHeading", { when: "Morning, 1st of Spring" });
+		expect(written).toEqual([["1-spring", `${heading}\nThe ford was held.\n${lookup("bastionland.sessionEnd.card.plans")}: Ride for the coast.`]]);
 	});
 
 	it("writes nothing where the Referee wrote nothing about the session", async () => {
@@ -171,7 +161,7 @@ describe("endTheSession", () => {
 		const [card] = cards;
 		expect(card.path).toContain("report");
 		expect(card.context.title).toBe(lookup("bastionland.sessionEnd.title"));
-		expect(card.context.tagline).toBe(format("bastionland.sessionEnd.card.session", { session: 3, sessions: 6 }));
+		expect(card.context.tagline).toBe("Morning, 1st of Spring");
 		expect(card.context.entries.map(({ name }) => name)).toEqual([
 			lookup("bastionland.sessionEnd.card.time"),
 			lookup("bastionland.sessionEnd.card.unresolved"),
@@ -185,12 +175,10 @@ describe("endTheSession", () => {
 		})]);
 	});
 
-	it("leaves out the headings with nothing to say, and dates a card for a Scope that counts no sessions", async () => {
-		scope = { scope: "saga", sessions: 6, session: 1, turnEvery: 1 };
+	it("leaves out the headings with nothing to say", async () => {
 		await endTheSession({ step: "none", passed: "No time passes." });
 		const [card] = cards;
 		expect(card.context.entries).toEqual([{ name: lookup("bastionland.sessionEnd.card.time"), lines: ["No time passes."] }]);
-		expect(card.context.tagline).toBe("Morning, 1st of Spring");
 	});
 
 	it("names a situation nobody wrote down, so its roll still reads", async () => {

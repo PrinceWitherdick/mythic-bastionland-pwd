@@ -2,10 +2,10 @@
   "$schema": "https://json.schemastore.org/foundryvtt-system-manifest.json",
   "id": "mythic-bastionland-pwd",
   "title": "Mythic Bastionland",
-  "description": "<p>An unofficial system for playing Mythic Bastionland, the Arthurian-inspired game of Knights, Seers and Myths by Chris McDowall. Knights get a sheet modelled on the official one, with rollable Saves, Feats that track Fatigue, an Attack roller, Damage that follows the book's order of Guard, Scars, Wounds and Mortal Wounds, and the Scar table.</p>",
-  "version": "0.1.0",
+  "description": "<p>An unofficial system for playing Mythic Bastionland, the game of Knights, Seers and Myths by Chris McDowall, made with his permission. It is not an official Bastionland Press product.</p><p>Knight, NPC, Domain and Structure sheets, the book's Attack, Damage and Scar rules, a Realm map rolled or drawn the book's way with its travel and exploration rules beside it, and a GM Toolkit for Myths, Omens, Places and the calendar.</p><p>Mythic Bastionland, its text, art and trade dress are &copy; Chris McDowall, Bastionland Press. All rights reserved.</p>",
+  "version": "0.9.0",
   "compatibility": {
-    "minimum": "14",
+    "minimum": "13",
     "verified": "14.363"
   },
   "authors": [
@@ -13,6 +13,12 @@
       "name": "PrinceWitherdick"
     }
   ],
+  "url": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd",
+  "manifest": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/releases/latest/download/system.json",
+  "download": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/releases/download/0.9.0/mythic-bastionland.zip",
+  "readme": "README.md",
+  "bugs": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/issues",
+  "changelog": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/releases",
   "esmodules": [
     "mythic-bastionland.js"
   ],

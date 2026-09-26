@@ -25,11 +25,6 @@
 				{{#if squire}}
 				<span class="bastionland-script">{{localize "bastionland.squire.servesLabel"}}</span>
 				<button type="button" class="bastionland-item__name" data-action="openSquire">{{squire.name}}</button>
-				{{#if editable}}
-				<button type="button" class="bastionland-icon" data-action="clearSquire" data-tooltip="{{localize 'bastionland.squire.clear'}}" aria-label="{{localize 'bastionland.squire.clear'}}">
-					<i class="fa-solid fa-xmark" inert></i>
-				</button>
-				{{/if}}
 				{{else}}
 				<span class="bastionland-empty">{{squireEmpty}}</span>
 				{{/if}}
@@ -82,7 +77,7 @@
 					{{> "bastionland.age-choices"}}
 					{{!-- Where a Knight's page keeps their Rank: what a Squire goes without, and what Knighting gives them. --}}
 					<section class="bastionland-block">
-						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.squire.rules'}}">{{localize "bastionland.squire.label"}}</h2>
+						<h2 class="bastionland-heading">{{localize "bastionland.squire.label"}}</h2>
 						<p class="bastionland-hint">{{localize "bastionland.squire.hint"}}</p>
 					</section>
 				</div>

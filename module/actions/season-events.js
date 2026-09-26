@@ -78,7 +78,8 @@ export function announceSeasonEvent(event, season, { weeks = false } = {}) {
 		tagline: stageLabel(event.stage, season),
 		entries: [{ name: t(`time.seasonBynames.${season}`), lines: [t(`time.events.kinds.${event.key}.text`)] }],
 		due: domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : [],
-		hint: [weeks ? t("time.events.weeksPassed") : null, prompt].filter(Boolean).join(" ")
+		hint: [weeks ? t("time.events.weeksPassed") : null, prompt].filter(Boolean).join(" "),
+		hintAside: true
 	});
 }
 

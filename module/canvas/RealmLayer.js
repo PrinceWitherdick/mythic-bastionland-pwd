@@ -1,14 +1,16 @@
 import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
+import { toolActivated } from "../compat.js";
 import { followHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { INK_HEX } from "../rules/colour.js";
-import { REALM_BUTTONS, REALM_TOOLS, REALM_TOOL_ICONS, featureAt, terrainAt } from "../rules/realm.js";
+import { REALM_BUTTONS, REALM_TOOLS, REALM_TOOL_ICONS, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { t } from "../chat/cards.js";
 import { barrierState, featureStands, layRiver, paintTerrain, placeFeature, riverEnds, setBarrier, traceCourse, trimRiver } from "../rules/realm-edits.js";
-import { MARK_ALPHA, hidesTerrain, terrainMark } from "../rules/realm-map.js";
+import { MARK_ALPHA, hidesTerrain, markedHexLettering, terrainMark } from "../rules/realm-map.js";
 import { allHexes, edgeAt, edgeSegment, hexAt, hexCentre, hexIndex, hexKey, hexTopLeft, sameHex } from "../rules/realm-geometry.js";
 
 /** The grid highlight the Realm tools draw in. */
@@ -25,6 +27,7 @@ const MARKS = "bastionland-realm-marks";
 const BLOOD = 0x8b1e1e;
 const VERDIGRIS = 0x2f6150;
 const WATER = 0x2e5f8a;
+const PAPER = 0xf4ecd8;
 
 /**
  * The brushes that stand a feature in a hex. Each says how to pick one up, what
@@ -128,20 +131,41 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			onChange: (_event, active) => {
 				if (active) canvas.realm.activate();
 			},
-			onToolChange: (event, tool, active) => {
+			onToolChange: (event, tool, toggled) => {
+				const active = toolActivated(tool, toggled);
 				if (active && !tool.button) canvas.realm.setTool(tool.name);
 				// Clicking the terrain brush's own button goes back into drawing the Realm, or, while it's being drawn,
 				// brings Creating a Realm back up if the GM closed it. Not a click on the Realm controls, which picks up
 				// whichever tool was last in hand, nor the controls switching tools on their own.
 				const clicked = event?.isTrusted && event.target instanceof Element && event.target.closest("[data-tool]")?.dataset.tool === "terrain";
-				if (active && tool.name === "terrain" && clicked) {
-					if (isDrawingRealm(canvas.scene)) showRealmDrawing();
-					else startRealmDrawing(canvas.scene);
-				}
+				if (active && tool.name === "terrain" && clicked) RealmLayer.#reopenPaint();
 			},
 			tools,
 			activeTool: "inspect"
 		};
+	}
+
+	/** Bring back Creating a Realm while the Realm is being drawn, or go back into drawing it. */
+	static #reopenPaint() {
+		if (isDrawingRealm(canvas.scene)) showRealmDrawing();
+		else startRealmDrawing(canvas.scene);
+	}
+
+	/**
+	 * Foundry drops a click on the tool already in hand, so a second click on
+	 * the paint tool, after the GM closed its palette or Creating a Realm,
+	 * would bring neither back. This catches that click before Foundry does,
+	 * while the tool in hand is still the one it was, and opens them again.
+	 * A click that picks the paint tool up is left to onToolChange.
+	 */
+	static listenForPaintAgain() {
+		document.addEventListener("click", (event) => {
+			const button = event.target instanceof Element ? event.target.closest("#scene-controls [data-tool]") : null;
+			if (button?.dataset.tool !== "terrain" || !game.user.isGM || !canvas.ready) return;
+			if (ui.controls?.control?.name !== "realm" || ui.controls.tool?.name !== "terrain") return;
+			canvas.realm?.setTool("terrain");
+			RealmLayer.#reopenPaint();
+		}, { capture: true });
 	}
 
 	/** The tool in use: one of REALM_TOOLS that isn't a button. */
@@ -169,6 +193,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @type {PIXI.Graphics|null} */
 	#preview = null;
 
+	/** @type {PIXI.Container|null} The names written in the middle of the hexes already marked. */
+	#names = null;
+
 	/** @type {PIXI.Container|null} Tiles a Realm look being tried out adds, drawn on this client alone. */
 	#lookTiles = null;
 
@@ -195,7 +222,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @param {string} name */
 	setTool(name) {
 		this.tool = name;
-		if (name === "terrain" && isRealmScene(canvas.scene)) openRealmPanel({ scene: canvas.scene, mode: name });
+		// While a Realm is drawn by hand, Creating a Realm holds each part of the palette beside the step it draws.
+		if (name === "terrain" && isRealmScene(canvas.scene) && !isDrawingRealm(canvas.scene)) openRealmPanel({ scene: canvas.scene, mode: name });
 		this.redrawTool();
 	}
 
@@ -250,6 +278,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		await super._draw(options);
 		this.#lookTiles = this.addChild(new PIXI.Container());
 		this.#lookTiles.eventMode = "none";
+		this.#names = this.addChild(new PIXI.Container());
+		this.#names.eventMode = "none";
 		this.#preview = this.addChild(new PIXI.Graphics());
 		this.#preview.eventMode = "none";
 	}
@@ -262,6 +292,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		this.clearLookTiles();
 		this.#lookTiles = null;
 		this.#marked = null;
+		this.#names = null;
 		this.#preview = null;
 		this.#drag = null;
 		this.hovered = null;
@@ -272,6 +303,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @override */
 	_activate() {
 		canvas.stage.on("pointermove", this.#onPointerMove);
+		// Creating a Realm marks the swatch in hand only while the Realm tools are.
+		if (canvas.scene) refreshRealmDrawing(canvas.scene.id);
 	}
 
 	/** @override */
@@ -281,6 +314,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		this.hovered = null;
 		this.hoveredEdge = null;
 		this.refreshHighlight();
+		if (canvas.scene) refreshRealmDrawing(canvas.scene.id);
 	}
 
 	/**
@@ -348,8 +382,10 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	}
 
 	/**
-	 * Tint every hex already marked in its terrain's own colour, so the GM can
-	 * see how far they have got over a picture that draws the ground itself.
+	 * Tint every hex already marked in its terrain's own colour, and write what
+	 * it was marked as in the middle, its Holding's name under its terrain, so
+	 * the GM can see how far they have got over a picture that draws the ground
+	 * itself.
 	 * Redrawn only when the Realm or the tool in hand has changed: the Realm is
 	 * read from a cache that a new object replaces on every edit, so its own
 	 * identity says whether the marks still stand.
@@ -362,15 +398,55 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		this.#marked = showing;
 		grid.addHighlightLayer(MARKS);
 		grid.clearHighlightLayer(MARKS);
+		for (const name of this.#names?.removeChildren() ?? []) name.destroy();
 		if (!showing) return;
 
 		const g = sceneGeometry(canvas.scene);
+		const style = this.#namesStyle(g);
 		for (const hex of allHexes(g)) {
 			const terrain = showing.terrain[hexIndex(g, hex)];
-			if (!terrain) continue;
-			const { x, y } = hexTopLeft(g, hex);
-			grid.highlightPosition(MARKS, { x, y, color: terrainMark(terrain), alpha: MARK_ALPHA });
+			const holding = featureAt(showing, hex).holding;
+			if (terrain) {
+				const { x, y } = hexTopLeft(g, hex);
+				grid.highlightPosition(MARKS, { x, y, color: terrainMark(terrain), alpha: MARK_ALPHA });
+			}
+			const lines = [
+				terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
+				holding ? holding.name || t(`realm.holdings.${holding.style}`) : null
+			].filter(Boolean);
+			if (lines.length && this.#names) this.#writeName(lines.join("\n"), hexCentre(g, hex), style);
 		}
+	}
+
+	/**
+	 * The lettering of a marked hex's name: the sheet's own hand, in ink on a
+	 * paper edge so it reads over any drawing.
+	 * @param {object} g
+	 * @returns {PIXI.TextStyle}
+	 */
+	#namesStyle(g) {
+		const { fontSize, strokeThickness } = markedHexLettering(g.size);
+		return foundry.canvas.containers.PreciseText.getTextStyle({
+			fontFamily: ["Bastionland Body", "Georgia", "serif"],
+			fontSize,
+			fontWeight: "bold",
+			fill: INK_HEX,
+			stroke: PAPER,
+			strokeThickness,
+			align: "center",
+			dropShadow: false
+		});
+	}
+
+	/**
+	 * @param {string} text
+	 * @param {{x: number, y: number}} centre
+	 * @param {PIXI.TextStyle} style
+	 */
+	#writeName(text, { x, y }, style) {
+		const name = this.#names.addChild(new foundry.canvas.containers.PreciseText(text, style));
+		name.anchor.set(0.5);
+		name.position.set(x, y);
 	}
 
 	/**

@@ -6,25 +6,13 @@
 	{{#if terrainMode}}
 	<p class="bastionland-realm-panel__hint">{{hint}}</p>
 
-	<div class="bastionland-realm-panel__actions">
-		<button type="button" data-action="appearance"><i class="fa-solid fa-palette" inert></i> {{localize "bastionland.realm.look.title"}}</button>
-	</div>
-
 	<div class="bastionland-realm-panel__columns">
 		<section class="bastionland-realm-panel__group">
 			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.terrain"}}</h2>
 			{{> "bastionland.realm-tally" terrainTally}}
 			<div class="bastionland-realm-panel__palette">
-				{{#each terrains}}
-				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}{{#if mark}} bastionland-realm-panel__swatch--marked{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}"{{#if mark}} style="--bastionland-terrain-mark: {{mark}}"{{/if}}>
-					<img src="{{src}}" alt="" inert>
-					<span>{{value}}. {{label}}</span>
-				</button>
-				{{/each}}
-				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if river.active}}is-active{{/if}}" data-action="pickBrush" data-brush="river" aria-pressed="{{#if river.active}}true{{else}}false{{/if}}">
-					<img src="{{river.src}}" alt="" inert>
-					<span>{{localize "bastionland.realm.panel.river"}}</span>
-				</button>
+				{{#each swatches.terrain}}{{> "bastionland.realm-swatch" this}}{{/each}}
+				{{#each swatches.river}}{{> "bastionland.realm-swatch" this}}{{/each}}
 			</div>
 			{{#if river.active}}
 			<p class="bastionland-realm-panel__river">{{river.length}}</p>
@@ -32,12 +20,9 @@
 			{{/if}}
 
 			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.barriers"}}</h2>
-			{{> "bastionland.realm-tally" barrier.tally}}
+			{{> "bastionland.realm-tally" barrierTally}}
 			<div class="bastionland-realm-panel__palette">
-				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if barrier.active}}is-active{{/if}}" data-action="pickBrush" data-brush="barrier" aria-pressed="{{#if barrier.active}}true{{else}}false{{/if}}">
-					<i class="{{barrier.icon}}" inert></i>
-					<span>{{localize "bastionland.realm.brushes.barrier"}}</span>
-				</button>
+				{{#each swatches.barrier}}{{> "bastionland.realm-swatch" this}}{{/each}}
 			</div>
 		</section>
 
@@ -45,30 +30,14 @@
 			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.holdings"}}</h2>
 			{{> "bastionland.realm-tally" holdingTally}}
 			<div class="bastionland-realm-panel__palette bastionland-realm-panel__palette--pairs">
-				{{#each holdings}}
-				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
-					<img src="{{src}}" alt="" inert>
-					<span>{{label}}</span>
-					{{> "bastionland.realm-count" this}}
-				</button>
-				{{/each}}
-				<button type="button" class="bastionland-realm-panel__swatch bastionland-realm-panel__swatch--wide {{#if seat.on}}is-active{{/if}}" data-action="toggleSeat" aria-pressed="{{#if seat.on}}true{{else}}false{{/if}}" data-tooltip="{{localize "bastionland.realm.panel.seatHint"}}">
-					<img src="{{seat.src}}" alt="" inert>
-					<span>{{localize "bastionland.realm.key.seat"}}</span>
-				</button>
+				{{#each swatches.holding}}{{> "bastionland.realm-swatch" this}}{{/each}}
 			</div>
-			{{> "bastionland.realm-tally" seat.tally}}
+			{{> "bastionland.realm-tally" seatTally}}
 
 			<h2 class="bastionland-realm-panel__heading">{{localize "bastionland.realm.panel.landmarks"}}</h2>
 			{{> "bastionland.realm-tally" landmarkTally}}
 			<div class="bastionland-realm-panel__palette">
-				{{#each landmarks}}
-				<button type="button" class="bastionland-realm-panel__swatch {{#if active}}is-active{{/if}}" data-action="pickBrush" data-brush="{{value}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
-					<img src="{{src}}" alt="" inert>
-					<span>{{label}}</span>
-					{{> "bastionland.realm-count" this}}
-				</button>
-				{{/each}}
+				{{#each swatches.landmark}}{{> "bastionland.realm-swatch" this}}{{/each}}
 			</div>
 		</section>
 	</div>

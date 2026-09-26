@@ -2,6 +2,7 @@
 <div class="bastionland-realm-picture">
 	{{#each mapRoles}}
 	<div class="form-group bastionland-realm-picture__role" data-map-role="{{key}}">
+		<p class="hint">{{hint}}</p>
 		<label for="bastionland-realm-picture-{{key}}">{{label}}</label>
 		<div class="form-fields">
 			<input id="bastionland-realm-picture-{{key}}" type="text" name="picture.{{key}}" value="{{src}}" spellcheck="false" autocomplete="off" data-map-field>
@@ -12,7 +13,6 @@
 		<figure class="bastionland-realm-picture__shown" data-map-preview{{#unless src}} hidden{{/unless}}>
 			<button type="button" class="bastionland-realm-picture__enlarge" data-map-enlarge data-tooltip="{{../mapEnlarge}}" aria-label="{{../mapEnlarge}}"><img src="{{src}}" alt=""></button>
 		</figure>
-		<p class="hint">{{hint}}</p>
 	</div>
 	{{/each}}
 

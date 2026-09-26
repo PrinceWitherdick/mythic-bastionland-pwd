@@ -50,13 +50,35 @@ export const terrainMark = (terrain) => MARK_NUMBERS[terrain - 1] ?? MARK_NUMBER
 export const MARK_ALPHA = 0.38;
 
 /**
- * How far apart, as a share of the picture, two clicks lining it up must be.
- * Closer than this and a small slip of the hand would throw the whole map out.
+ * How the name written in the middle of each hex already marked is lettered,
+ * so no hex is taken for unmarked, or for the wrong ground, because its tint
+ * is faint over a dark drawing. The longest names, Meadow and Plains, fit
+ * inside the hex with room to spare.
+ * @param {number} size The hex's height.
+ * @returns {{fontSize: number, strokeThickness: number}} In canvas pixels, whole ones.
  */
-const LEAST_APART = 0.05;
+export function markedHexLettering(size) {
+	const fontSize = Math.max(10, Math.round(size * 0.17));
+	return { fontSize, strokeThickness: Math.max(2, Math.round(fontSize * 0.22)) };
+}
 
-/** How far off the Scene's own size a picture may end up, so a bad pair of clicks can't send it miles away. */
+/** How far off the Scene's own size a picture may be fitted, so a bad pair of marks can't send it miles away. */
 const SIZE_LIMITS = Object.freeze({ least: 0.1, most: 20 });
+
+/**
+ * @param {object} g
+ * @param {{width: number, height: number}} rect
+ * @returns {boolean} Whether a picture this size is within SIZE_LIMITS of the map's.
+ */
+const withinSizeLimits = (g, rect) => [[rect.width, g.width], [rect.height, g.height]]
+	.every(([length, map]) => length >= map * SIZE_LIMITS.least && length <= map * SIZE_LIMITS.most);
+
+/**
+ * How far, in degrees, the line between two marks may turn from the line
+ * between the map's first and last hex. The picture is never turned, so marks
+ * further round than a photograph taken a little askew can't be its corners.
+ */
+const MOST_TURNED = 10;
 
 /** Kept to the hundredth of a pixel, so a Realm read back and written again doesn't rewrite itself. */
 const round = (value) => Math.round(value * 100) / 100;
@@ -106,15 +128,39 @@ export function normaliseRealmPicture(picture) {
 /**
  * A Realm's pictures with each one put where its Tile actually stands. The
  * Scene's flag remembers where each was left, so a picture whose Tile is
- * deleted comes back where it was; while the Tile is there it is the truth,
- * so a GM who nudges it with Foundry's own handles has moved the picture.
+ * deleted comes back where it was; while the Tile is there its place is the
+ * truth, so a GM who drags it with Foundry's own tools has moved the picture.
+ * Its size is the flag's: a picture keeps the size it was laid at, so a Tile
+ * sized any other way is put back to it. One never measured takes the Tile's
+ * size as well.
  * @param {object|null|undefined} picture
  * @param {Record<string, {x: number, y: number, width: number, height: number}>} places By role, from the Tiles on the Scene.
  * @returns {object|null|undefined}
  */
 export const withMapPlaces = (picture, places) => (picture
-	? { ...picture, ...Object.fromEntries(MAP_ROLES.flatMap((role) => (picture[role] && places?.[role] ? [[role, { ...picture[role], ...places[role] }]] : []))) }
+	? { ...picture, ...Object.fromEntries(MAP_ROLES.flatMap((role) => {
+		const map = picture[role];
+		const place = places?.[role];
+		if (!map || !place) return [];
+		return [[role, map.width > 0 ? { ...map, x: place.x, y: place.y } : { ...map, ...place }]];
+	})) }
 	: picture);
+
+/**
+ * Whether a change to a picture's Tile would size the picture. A picture is
+ * never sized by hand: it's laid at the size that fits, and sized again only
+ * evenly, by two hexes marked on it (fitToMarks), so it can't be stretched out
+ * of its shape. A picture never measured has no size to keep.
+ * @param {MapPicture|null|undefined} picture What the Realm says of the picture.
+ * @param {{width?: number, height?: number}|null|undefined} changes To its Tile.
+ * @returns {boolean}
+ */
+export function resizesMapPicture(picture, changes) {
+	if (!(picture?.width > 0) || !changes) return false;
+	// Tiles are sized in whole pixels, the picture to the hundredth.
+	return [["width", picture.width], ["height", picture.height]]
+		.some(([key, size]) => key in changes && !(Math.abs(Number(changes[key]) - size) < 1));
+}
 
 /**
  * @param {object} g
@@ -125,7 +171,8 @@ export const fullMapRect = (g) => ({ x: g.width / 2, y: g.height / 2, width: g.w
 /**
  * Where a picture lies before it's lined up: as large as fits on the map
  * without being stretched, in the middle of it. A map drawn edge to edge is
- * then nearly in place already, and the two clicks only have to nudge it.
+ * then in place already, and only has to be slid; one with a border round it
+ * is sized to its hexes by marking two of them.
  * @param {object} g
  * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
  * @returns {{x: number, y: number, width: number, height: number}} The whole map for a picture of no known size.
@@ -201,7 +248,7 @@ export const hidesTerrain = (realm) => Boolean(realm.picture);
 
 /**
  * The two hexes a picture is lined up by: the first of the map and the last.
- * Corners as far apart as the map allows, so a click a few pixels out barely
+ * Corners as far apart as the map allows, so a mark a few pixels out barely
  * moves anything.
  * @param {object} g
  * @returns {{col: number, row: number}[]}
@@ -209,97 +256,152 @@ export const hidesTerrain = (realm) => Boolean(realm.picture);
 export const calibrationHexes = (g) => [{ col: 1, row: 1 }, { col: g.cols, row: g.rows }];
 
 /**
- * Solve one axis: where the picture must lie for two points of it to fall on
- * two known places.
- * @param {number} first Where the first click was, along this axis.
- * @param {number} second
- * @param {number} centre Where the picture's centre is now.
- * @param {number} length How long the picture is now.
- * @param {number} from Where the first click should have landed.
- * @param {number} to
- * @returns {{centre: number, length: number}|null} Null for clicks too close together to say anything.
+ * How two marks on a picture compare with the map's first and last hex: the
+ * line from one mark to the other, the line from the one hex to the other,
+ * and how much the picture must be sized, evenly, for the one to become the
+ * other. The best even size for two points is the one that matches the
+ * lines' lengths along the map's own line.
+ * @param {object} g
+ * @param {{x: number, y: number}|null|undefined} first Where the first hex's centre is marked.
+ * @param {{x: number, y: number}|null|undefined} second Where the last hex's centre is marked.
+ * @returns {{scale: number, marked: {x: number, y: number}, hexes: {x: number, y: number}}|null} Null for two marks that
+ *   can't be the map's corners: missing, on top of each other, the wrong way round, or turned too far from the map's line.
  */
-function solveAxis(first, second, centre, length, from, to) {
-	const origin = centre - length / 2;
-	const a = (first - origin) / length;
-	const b = (second - origin) / length;
-	if (!Number.isFinite(a) || !Number.isFinite(b) || Math.abs(b - a) < LEAST_APART) return null;
-	const size = (to - from) / (b - a);
-	return { centre: from - a * size + size / 2, length: size };
+function compareMarks(g, first, second) {
+	if (!first || !second) return null;
+	const [from, to] = calibrationHexes(g).map((hex) => hexCentre(g, hex));
+	const marked = { x: second.x - first.x, y: second.y - first.y };
+	const hexes = { x: to.x - from.x, y: to.y - from.y };
+	const along = marked.x * hexes.x + marked.y * hexes.y;
+	const lengths = Math.hypot(marked.x, marked.y) * Math.hypot(hexes.x, hexes.y);
+	if (!(along > 0) || !(lengths > 0) || along / lengths < Math.cos(MOST_TURNED * Math.PI / 180)) return null;
+	return { scale: along / (marked.x ** 2 + marked.y ** 2), marked, hexes };
 }
 
 /**
+ * How large a picture's hexes are beside the Realm's own, going by where the
+ * GM has marked the centres of the map's first and last hex on it: the same
+ * both ways, since a picture is only ever sized evenly.
  * @param {object} g
- * @param {{width: number, height: number}} rect
- * @returns {boolean} Whether a picture that size is worth writing.
+ * @param {{x: number, y: number}|null|undefined} first
+ * @param {{x: number, y: number}|null|undefined} second
+ * @returns {number|null} Null until both are marked, or for marks that can't be the map's corners.
  */
-const sized = (g, rect) => [[rect.width, g.width], [rect.height, g.height]]
-	.every(([length, map]) => length >= map * SIZE_LIMITS.least && length <= map * SIZE_LIMITS.most);
+export function markedHexScale(g, first, second) {
+	const compared = compareMarks(g, first, second);
+	return compared ? 1 / compared.scale : null;
+}
 
 /**
- * Line a picture up from two clicks on it: the centre of the map's first hex,
- * then the centre of its last. Each axis is solved on its own, so a photograph
- * taken a little askew of square is still put right, and anything past the
- * picture's edge — the margins of the sheet, the rules printed beside the map —
- * falls off the map of its own accord.
- *
- * Clicked the other way round, the two are swapped rather than refused: which
- * corner the GM started from is not worth an error.
+ * Line a picture up from the hexes marked on it: sized evenly so its hexes
+ * are the Realm's own size, and moved so the marks land where the map's
+ * first and last hex are, as near as the two allow. Never stretched, so a map
+ * drawn right needs no cropping: the margins, the numbers and the legend
+ * round it fall off the map's edges, where nothing is drawn.
  * @param {object} g
  * @param {{x: number, y: number, width: number, height: number}} rect Where the picture lies now.
- * @param {{x: number, y: number}} first Where the first hex's centre was clicked.
- * @param {{x: number, y: number}} second Where the last hex's centre was clicked.
- * @returns {{x: number, y: number, width: number, height: number}|null} Where it should lie, or null for a pair of
- *   clicks that says nothing: too close together, or one corner clicked before the other on one axis but after it on the other.
+ * @param {{x: number, y: number}[]} marks Where the first and last hex are marked on it, in that order.
+ * @returns {{x: number, y: number, width: number, height: number}|null} Null without both marks, for marks
+ *   that can't be the map's corners, or for a fit that would leave the picture far too large or small.
  */
-export function fitFromClicks(g, rect, first, second) {
-	if (!rect?.width || !rect?.height || !first || !second) return null;
+export function fitToMarks(g, rect, marks) {
+	const [first, second] = marks ?? [];
+	const compared = rect?.width > 0 && rect?.height > 0 ? compareMarks(g, first, second) : null;
+	if (!compared) return null;
+	const { scale } = compared;
 	const [from, to] = calibrationHexes(g).map((hex) => hexCentre(g, hex));
-
-	for (const [a, b] of [[first, second], [second, first]]) {
-		const across = solveAxis(a.x, b.x, rect.x, rect.width, from.x, to.x);
-		const down = solveAxis(a.y, b.y, rect.y, rect.height, from.y, to.y);
-		if (!across || !down || across.length <= 0 || down.length <= 0) continue;
-		const fitted = { x: round(across.centre), y: round(down.centre), width: round(across.length), height: round(down.length) };
-		if (sized(g, fitted)) return fitted;
-	}
-	return null;
+	// The point halfway between the marks lands halfway between the hexes, and the picture is sized about it.
+	const middle = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+	const target = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+	const fitted = {
+		x: round(target.x + (rect.x - middle.x) * scale),
+		y: round(target.y + (rect.y - middle.y) * scale),
+		width: round(rect.width * scale),
+		height: round(rect.height * scale)
+	};
+	return withinSizeLimits(g, fitted) ? fitted : null;
 }
 
 /**
- * The handles a picture is sized by while it's slid into place: its corners
- * and the middle of each edge, each with the way it lies from the picture's
- * centre as a share of its half-width and half-height.
+ * The outline of a hex marked on a picture: centred where the GM put the
+ * mark, and as large as the picture's own hexes are once both marks say so,
+ * so the GM can see it sit squarely over the hex drawn there or not. Every
+ * hex of a Realm is the same shape, so any one of them serves.
+ * @param {object} g
+ * @param {{x: number, y: number}} point Where the mark is.
+ * @param {number} [scale] From markedHexScale: the Realm's own hex size without it.
+ * @returns {{x: number, y: number}[]} Its corners, in order round it.
  */
-export const MAP_HANDLES = Object.freeze({
-	nw: [-1, -1], n: [0, -1], ne: [1, -1], e: [1, 0],
-	se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0]
-});
+export function markedHexOutline(g, point, scale = 1) {
+	const hex = { col: 1, row: 1 };
+	const centre = hexCentre(g, hex);
+	return hexVertices(g, hex).map(({ x, y }) => ({ x: point.x + (x - centre.x) * scale, y: point.y + (y - centre.y) * scale }));
+}
 
 /**
- * @param {{x: number, y: number, width: number, height: number}} rect
- * @returns {{handle: string, x: number, y: number}[]} Where each handle stands on the map.
+ * @param {{x: number, y: number}[]} corners A shape with no dents, in order round it.
+ * @param {{x: number, y: number}} point
+ * @returns {boolean} Whether the point is inside it or on its edge.
  */
-export const mapHandles = (rect) => Object.entries(MAP_HANDLES).map(([handle, [across, down]]) => ({
-	handle,
-	x: rect.x + across * rect.width / 2,
-	y: rect.y + down * rect.height / 2
-}));
+function inside(corners, point) {
+	let side = 0;
+	for (const [index, a] of corners.entries()) {
+		const b = corners[(index + 1) % corners.length];
+		const turn = Math.sign((b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x));
+		if (!turn) continue;
+		if (side && turn !== side) return false;
+		side = turn;
+	}
+	return true;
+}
 
 /**
- * @param {{x: number, y: number, width: number, height: number}} rect
+ * Which mark on a picture the pointer has hold of: anywhere inside its hex,
+ * or near enough its centre when the hex is drawn too small to aim at. Where
+ * two overlap, the one whose centre is nearer.
+ * @param {object} g
+ * @param {{x: number, y: number}[]} marks Where each is.
  * @param {{x: number, y: number}} point Where the pointer is on the map.
- * @param {number} reach How near a handle the pointer must be to take it, in map pixels.
- * @returns {string|null} The handle nearest the pointer within reach, or null to slide the whole picture.
+ * @param {object} [options]
+ * @param {number} [options.scale] From markedHexScale.
+ * @param {number} [options.reach] How near a mark's centre is always near enough, in map pixels.
+ * @returns {number} The mark's index, or -1 for none.
  */
-export function handleAt(rect, point, reach) {
-	let nearest = null;
-	let best = reach;
-	for (const { handle, x, y } of mapHandles(rect)) {
-		const distance = Math.hypot(point.x - x, point.y - y);
-		if (distance <= best) [nearest, best] = [handle, distance];
+export function markAt(g, marks, point, { scale = 1, reach = 0 } = {}) {
+	let nearest = -1;
+	let best = Infinity;
+	for (const [index, mark] of marks.entries()) {
+		const distance = Math.hypot(point.x - mark.x, point.y - mark.y);
+		const held = distance <= reach || inside(markedHexOutline(g, mark, scale), point);
+		if (held && distance < best) [nearest, best] = [index, distance];
 	}
 	return nearest;
+}
+
+/**
+ * Where to look at the map from for the whole of a picture to be in view
+ * inside part of the screen, as large as it fits there: the centre and zoom
+ * Foundry's canvas is panned to. The zoom is kept within what the canvas
+ * allows, so a picture too large to fit even at the furthest the map zooms out
+ * is still centred in that part of the screen, running over its edges alike.
+ * @param {{x: number, y: number, width: number, height: number}} rect The picture on the map, by its centre.
+ * @param {{left: number, top: number, right: number, bottom: number}} room The part of the screen, in CSS pixels.
+ * @param {{width: number, height: number}} screen The whole canvas on screen: the view is its middle.
+ * @param {{min: number, max: number}} zoom How far the canvas zooms out and in.
+ * @param {number} [margin] Room kept round the picture, in CSS pixels.
+ * @returns {{x: number, y: number, scale: number}|null} Null for a picture or a part of the screen with no size.
+ */
+export function viewOfPicture(rect, room, screen, zoom, margin = 0) {
+	const wide = room.right - room.left - 2 * margin;
+	const tall = room.bottom - room.top - 2 * margin;
+	if (!(rect?.width > 0) || !(rect?.height > 0) || !(wide > 0) || !(tall > 0)) return null;
+	const scale = Math.min(Math.max(Math.min(wide / rect.width, tall / rect.height), zoom.min), zoom.max);
+	// The map point at the middle of the screen, for the picture's centre to fall in the middle of the room.
+	return {
+		x: rect.x - (((room.left + room.right) / 2) - (screen.width / 2)) / scale,
+		y: rect.y - (((room.top + room.bottom) / 2) - (screen.height / 2)) / scale,
+		scale
+	};
 }
 
 /**
@@ -316,49 +418,22 @@ export const slideMapRect = (rect, across, down) => ({
 });
 
 /**
- * Size a picture by one of its handles, the side or corner opposite held
- * still. A corner keeps the picture's shape unless told otherwise, since a
- * photograph is mostly the right shape already and only the wrong size; an
- * edge stretches that way alone, for one taken a little out of square.
+ * Size a picture evenly about a point on it, so what's under that point stays
+ * put: the pointer, when the GM sizes it with the wheel.
  * @param {object} g
- * @param {{x: number, y: number, width: number, height: number}} rect Where the picture lay as the handle was taken.
- * @param {string} handle One of MAP_HANDLES.
- * @param {{x: number, y: number}} point Where the handle has been dragged to.
- * @param {object} [options]
- * @param {boolean} [options.keepShape] For a corner: grow both ways alike rather than following the pointer freely.
- * @returns {{x: number, y: number, width: number, height: number}} Never smaller or larger than a picture may be.
+ * @param {{x: number, y: number, width: number, height: number}} rect
+ * @param {number} factor How much larger it's made: below 1 makes it smaller.
+ * @param {{x: number, y: number}} about
+ * @returns {{x: number, y: number, width: number, height: number}|null} The picture sized, its shape kept; null for a
+ *   size too far from the map's, or a factor that isn't one.
  */
-export function resizeMapRect(g, rect, handle, point, { keepShape = true } = {}) {
-	const sides = MAP_HANDLES[handle];
-	if (!sides || !point) return rect;
-	const [across, down] = sides;
-	// The side or corner that stays where it is.
-	const anchor = { x: rect.x - across * rect.width / 2, y: rect.y - down * rect.height / 2 };
-	const least = { width: g.width * SIZE_LIMITS.least, height: g.height * SIZE_LIMITS.least };
-	const most = { width: g.width * SIZE_LIMITS.most, height: g.height * SIZE_LIMITS.most };
-	const clamp = (value, low, high) => Math.min(Math.max(value, low), high);
-
-	if (across && down && keepShape) {
-		// How far along the line from the held corner to the one taken the pointer has come.
-		const reach = { x: across * rect.width, y: down * rect.height };
-		const scale = ((point.x - anchor.x) * reach.x + (point.y - anchor.y) * reach.y) / (reach.x ** 2 + reach.y ** 2);
-		const lowest = Math.max(least.width / rect.width, least.height / rect.height);
-		const highest = Math.min(most.width / rect.width, most.height / rect.height);
-		const kept = clamp(scale, lowest, highest);
-		return {
-			x: round(anchor.x + reach.x * kept / 2),
-			y: round(anchor.y + reach.y * kept / 2),
-			width: round(rect.width * kept),
-			height: round(rect.height * kept)
-		};
-	}
-
-	const width = across ? clamp(across * (point.x - anchor.x), least.width, most.width) : rect.width;
-	const height = down ? clamp(down * (point.y - anchor.y), least.height, most.height) : rect.height;
-	return {
-		x: round(across ? anchor.x + across * width / 2 : rect.x),
-		y: round(down ? anchor.y + down * height / 2 : rect.y),
-		width: round(width),
-		height: round(height)
+export function sizeMapRect(g, rect, factor, about) {
+	if (!(factor > 0) || !(rect?.width > 0) || !(rect?.height > 0)) return null;
+	const sized = {
+		x: round(about.x + (rect.x - about.x) * factor),
+		y: round(about.y + (rect.y - about.y) * factor),
+		width: round(rect.width * factor),
+		height: round(rect.height * factor)
 	};
+	return withinSizeLimits(g, sized) ? sized : null;
 }

@@ -47,6 +47,17 @@ export async function confirmDialog({ title, icon, message }) {
 }
 
 /**
+ * DialogV2.wait in the system's parchment, at the width its dialogs share:
+ * without one, wait() sizes the window to its longest line unwrapped.
+ * @param {object} options As DialogV2.wait takes them.
+ * @param {string[]} [options.classes] More classes for the window.
+ * @returns {Promise<unknown>} What the button pressed gave, or null if closed.
+ */
+export function waitDialog({ classes = [], ...options }) {
+	return foundry.applications.api.DialogV2.wait({ position: { width: 400 }, rejectClose: false, ...options, classes: ["bastionland-dialog", ...classes] });
+}
+
+/**
  * Ask which of several things to do.
  * @param {object} options
  * @param {string} options.title
@@ -58,12 +69,11 @@ export async function confirmDialog({ title, icon, message }) {
  */
 export async function chooseDialog({ title, icon, message, buttons, classes = [] }) {
 	const paragraphs = Array.isArray(message) ? message : [message];
-	return foundry.applications.api.DialogV2.wait({
+	return waitDialog({
 		window: { title, icon },
-		classes: ["bastionland-dialog", ...classes],
+		classes,
 		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
-		buttons,
-		rejectClose: false
+		buttons
 	});
 }
 
@@ -131,6 +141,19 @@ export function undoRedoKey(event) {
 }
 
 /**
+ * A dialog's content that DialogV2 takes as it is. Content given as a string
+ * is run through Foundry's HTML cleaning, which drops an `svg` and everything
+ * in it; content given as a bare `div` is not.
+ * @param {string} html Rendered from one of the system's own templates.
+ * @returns {HTMLDivElement}
+ */
+export function uncleanedContent(html) {
+	const content = document.createElement("div");
+	content.innerHTML = html;
+	return content;
+}
+
+/**
  * Ask for a form's worth of answers.
  * @param {object} options
  * @param {string} options.title
@@ -138,11 +161,13 @@ export function undoRedoKey(event) {
  * @param {string} options.template Name of a file in templates/dialogs, without extension.
  * @param {object} options.context  Data for the template.
  * @param {{label: string, icon?: string}} options.ok
+ * @param {boolean} [options.drawings] Whether the template draws with SVG, which must skip Foundry's HTML cleaning.
  * @param {object} [options.rest]   Anything else DialogV2.input takes, such as `render`.
  * @returns {Promise<object|null>} The form data, or null if closed.
  */
-export async function inputDialog({ title, icon, template, context, ok, ...rest }) {
-	const content = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
+export async function inputDialog({ title, icon, template, context, ok, drawings = false, ...rest }) {
+	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
+	const content = drawings ? uncleanedContent(html) : html;
 	return foundry.applications.api.DialogV2.input({
 		window: { title, icon },
 		classes: ["bastionland-dialog"],

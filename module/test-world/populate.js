@@ -15,34 +15,51 @@
  * rulebook are read from the GM's own import at run time, and never kept here.
  */
 import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { rollCityOmen } from "../actions/city-quest.js";
 import { setCompanyHex } from "../actions/company.js";
+import { settleTask } from "../actions/council-tasks.js";
 import { linkKnightDomain, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
 import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import { rollHexSpark, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { recordHexVisits } from "../actions/journey.js";
+import { fillKnightFromBook, rollKnightTable } from "../actions/knight-tables.js";
+import { echoRuin } from "../actions/landmarks.js";
+import { castKey } from "../actions/myth-cast.js";
 import { editMythNote } from "../actions/myth-notes.js";
 import { actorData } from "../actions/npc.js";
 import { createRealmScene, editRealm, getRealm, sceneGeometry } from "../actions/realm.js";
-import { recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
+import { rollRefereeTable } from "../actions/referee-rolls.js";
+import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
+import { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
+import { endTheSession } from "../actions/session-end.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
+import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
+import { drawWeather, setWeather } from "../actions/weather.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, t } from "../chat/cards.js";
+import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
+import { newCourtMember } from "../rules/court.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { crisesDrawn, crisisFor, crisisResult } from "../rules/dominion.js";
 import { mythRollTaken } from "../rules/gm-toolkit.js";
+import { hasTable } from "../rules/knight-tables.js";
+import { CAST_FLAG } from "../rules/myth-cast.js";
+import { SQUIRE_EQUIPMENT, SQUIRE_GUARD, SQUIRE_IMAGE, SQUIRE_VIRTUE_ROLL, ponySystem, squireEquipment, squireItems, squireSystem } from "../rules/squires.js";
 import { chargePath } from "../rules/heraldry-charges.js";
 import { MAX_INLINE_LENGTH, PAINTING_HEIGHT, PAINTING_WIDTH, PAINT_SCALE } from "../rules/heraldry.js";
 import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
 import { createRandom } from "../rules/random.js";
 import { scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
-import { crisisRollsDue } from "../rules/season-log.js";
+import { completedMythId, crisisRollsDue } from "../rules/season-log.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
 import { HARDSHIPS, PHASES, nextAge, nextSeason, seasonKey } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { deletionEntry, replacementEntry } from "../compat.js";
 import { barriersBeside, companionActorData, heraldrySvg, isSteed, pickPlaces, propertyItems, seasonRoad } from "./plan.js";
 
 /** Marks every document the macro makes, so running it again can find and delete them. */
@@ -136,6 +153,26 @@ const SITE_TEXT = Object.freeze({
 const ROUTE_TEXT = Object.freeze({ closed: "Flooded to the ceiling", hidden: "A priest's passage behind the rood screen" });
 const ENTRANCE_TEXT = Object.freeze({ open: "The west door, half sunk in the mere", hidden: "A crack behind the altar, just wide enough" });
 
+/** Who serves the Domain outside its Council (p20), in the order they came to Court. */
+const COURT = Object.freeze([
+	{ role: "retainer", name: "Piers Wendle", seat: "marshal", note: "The marshal's man. Held the gate in the battle, and wants it remembered." },
+	{ role: "courtier", name: "Dame Ysolt Veyle", leverage: "Holds the old lord's debts, and the letters that prove them.", note: "Wants a seat on the Council, and says so at every supper." },
+	{ role: "courtier", name: "Brother Anselm", leverage: "Heard the old lord's last confession.", note: "Keeps the chapel, and the Domain's accounts when the steward lets him." },
+	{ role: "petitioner", name: "Goodwife Anne of the Mill", note: "Asks justice for a son the old lord's sheriff hanged." }
+]);
+
+/** A Warband for the Domain when the book's haven't been imported (p11). */
+const LEVY = Object.freeze({ vig: 12, cla: 8, spi: 10, guard: 4, armour: 1, armourNote: "padded jacks", epithet: "Farmhands with spears, and a few with bows" });
+
+/** The Squire Dame Isolde takes when she's granted her Domain. */
+const SQUIRE_NAME = "Hugh Fenwick";
+
+/** The world settings the story changes, to put back as they were. */
+const SETTINGS = Object.freeze(["weather", "cityQuest", "sessionEnd"]);
+
+/** The weather the Company is left in. */
+const WEATHER_NOW = "rain";
+
 /* -------------------------------------------- */
 /*  The macro                                   */
 /* -------------------------------------------- */
@@ -173,14 +210,14 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, NPCs, Domain, Realm, Sites, folders and chat messages, and put the calendar and the GM Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, and put the calendar, the weather, the City Quest and the GM Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers, their steeds and a Domain, the Realm of ${REALM_NAME} with its Journey, Places, Myths and Omens, two Sites, a year of chat, and the GM Toolkit's Seasons and notes filled in.`,
-			"The world's calendar moves on to where the game has got to. Run the macro again to remove it all and put the calendar and the GM Toolkit back.",
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, Places, Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the GM Toolkit's Seasons and notes filled in.`,
+			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the GM Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
 		if (confirmed) await buildTestWorld();
@@ -239,14 +276,17 @@ async function removeTestWorld() {
 	const before = toolkit?.getFlag(SYSTEM_ID, BEFORE_FLAG);
 	if (before) {
 		await setCalendar(before.calendar);
-		await toolkit.update({
-			"system.notes": before.notes ?? "",
-			"system.seasons": foundry.data.operators.ForcedReplacement.create(before.seasons ?? {}),
-			[`flags.${SYSTEM_ID}.${BEFORE_FLAG}`]: new foundry.data.operators.ForcedDeletion()
-		});
+		// A test world made before the settings were kept leaves them as they are.
+		for (const [key, value] of Object.entries(before.settings ?? {})) await game.settings.set(SYSTEM_ID, key, value);
+		if (before.settings) await drawWeather();
+		await toolkit.update(Object.fromEntries([
+			["system.notes", before.notes ?? ""],
+			replacementEntry("system.seasons", before.seasons ?? {}),
+			deletionEntry(`flags.${SYSTEM_ID}.${BEFORE_FLAG}`)
+		]));
 	}
 	if (!canvas.scene && game.scenes.active) await game.scenes.active.view();
-	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar and the GM Toolkit are as they were." : ""}`);
+	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the GM Toolkit are as they were." : ""}`);
 }
 
 /** Build the test world, keeping what it changes so removing it can put that back. */
@@ -262,7 +302,8 @@ async function buildTestWorld() {
 		[`flags.${SYSTEM_ID}.${BEFORE_FLAG}`]: {
 			calendar: getCalendar(),
 			notes: toolkit.system.notes,
-			seasons: foundry.utils.deepClone(toolkit.system.seasons ?? {})
+			seasons: foundry.utils.deepClone(toolkit.system.seasons ?? {}),
+			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))]))
 		}
 	});
 
@@ -359,7 +400,11 @@ class TestGame {
 		this.walked = [];
 		/** What's happened to each Knight that their Chronicle tells. */
 		this.deeds = { isolde: [], corvin: [], oswin: [] };
+		/** @type {Record<string, Folder>} Each Knight's own folder, by their key in COMPANY. */
+		this.knightFolders = {};
 		this.domain = null;
+		/** @type {Actor|null} The Domain's Warband. */
+		this.warband = null;
 	}
 
 	async play() {
@@ -373,6 +418,8 @@ class TestGame {
 		await this.springOfAgeTwo();
 		await this.harvestOfAgeTwo();
 		await this.writeUp();
+		await setWeather(WEATHER_NOW);
+		await this.endSession();
 	}
 
 	/** @returns {Actor[]} The Company, in the order COMPANY lists them. */
@@ -483,6 +530,15 @@ class TestGame {
 				items: [...items, ...knightItems({ ...knight, property: [] }, kitNames)]
 			});
 			this.knights[spec.key] = actor;
+			// Filed as a Knight made in play is (knight-folders.js): a folder of their own, found by its flag.
+			const folder = await foundry.utils.getDocumentClass("Folder").create({
+				name: spec.name,
+				type: "Actor",
+				folder: this.folders.Actor.id,
+				flags: { [SYSTEM_ID]: { [TEST_FLAG]: true, knight: actor.id } }
+			});
+			this.knightFolders[spec.key] = folder;
+			await actor.update({ folder: folder.id });
 			await postCard(actor, "creation", {
 				title: t("chooser.card.scores"),
 				tagline: t(`chooser.starts.${start.key}.label`),
@@ -495,12 +551,32 @@ class TestGame {
 				const npc = await Actor.implementation.create({
 					...data,
 					name: `${companion.name} (${spec.name.split(" ").slice(0, 2).join(" ")})`,
-					folder: this.folders.Actor.id,
+					folder: folder.id,
 					flags: testFlags()
 				});
 				if (index === 0 && isSteed(companion.name)) changes["system.steed"] = npc.uuid;
 			}
 			await actor.update(changes);
+			await this.knightTable(actor);
+		}
+	}
+
+	/**
+	 * Fill in the d6 table on a Knight's page, as their sheet does once it's
+	 * opened, and roll it as a player would at the start. Only with the book.
+	 * @param {Actor} actor
+	 */
+	async knightTable(actor) {
+		try {
+			await fillKnightFromBook(actor, { seer: false });
+			if (!hasTable(actor.system.bookTable)) return;
+			const rolled = await rollKnightTable(actor);
+			if (!rolled) return;
+			await rolled.card;
+			await rolled.save();
+		} catch (error) {
+			// The table is read from the PDF; the story goes on without it.
+			console.warn(`${SYSTEM_ID} | Couldn't roll ${actor.name}'s table`, error);
 		}
 	}
 
@@ -680,6 +756,15 @@ class TestGame {
 	}
 
 	/**
+	 * One of the Season's feasts or masses (p17) comes to pass, marked on the
+	 * Time page and told to the table as its button there tells it.
+	 * @param {string} key From SEASON_EVENTS.
+	 */
+	feast(key) {
+		return markSeasonEvent(key);
+	}
+
+	/**
 	 * Turn the Season or the Age through the system's own Season turn, with
 	 * each Knight's pursuit chosen, and record it in the GM Toolkit.
 	 * @param {object} options
@@ -699,7 +784,9 @@ class TestGame {
 			entries[index].lines.push(...(more[key] ?? []));
 		});
 		const ended = seasonKey(before);
-		const all = [...entries, ...(await settleDomains(ended))];
+		// Every Season ends with the Realm's collection (p17), as the Time page's own turn has it.
+		const collection = await markCollection(ended, before.season);
+		const all = [...(collection ? [collectionEntry(collection)] : []), ...entries, ...(await settleDomains(ended))];
 		const title = newAge ? t("time.ageTurned", { age: after.age }) : t("time.seasonTurned", { season: t(`time.seasons.${after.season}`) });
 		await announceSeason(after, { title, entries: all }, { rolls });
 		await recordSeasonTurn(ended, { kind: newAge ? "age" : "season", title, entries: all, note: null });
@@ -716,6 +803,7 @@ class TestGame {
 		const { first } = this.mythNumbers;
 		await recordHexVisits(this.scene, [this.here]);
 		this.walked.push(this.here);
+		await this.feast("feastOfTheSun");
 		await this.note(seat?.hex, `The Court of ${this.names.seat}, where the Company hold places as Courtiers. The steward keeps a cold hall; the kitchens are warmer, and the cook talks.`);
 		await this.spark(seat?.hex, "civilisation", 0);
 		await this.note(dwelling?.hex, `${this.names.dwelling}. Said at Court to take in travellers and ask no questions. Not visited yet.`);
@@ -735,11 +823,12 @@ class TestGame {
 				await this.omen(first);
 				const scar = await this.scar(corvin, 6, 1);
 				this.deeds.corvin.push(`Spring, Age 1: ambushed on the road to ${this.names.sanctum}, and took ${scar}.`);
+				await this.feast("sceptremass");
 			}
 		});
 		this.deeds.isolde.push(`Spring, Age 1: presented at the Court of ${this.names.seat}.`);
 		this.deeds.oswin.push(`Spring, Age 1: presented at the Court of ${this.names.seat}; the steward already dislikes him.`);
-		await writeSeasonNotes("1-spring", `The Company arrive at ${this.names.seat} as Courtiers. First session: introductions at Court, then out to find the Seer at ${this.names.sanctum}. ${isolde.name} charmed the envoy; ${oswin.name} did not.`);
+		await writeSeasonNotes(seasonKey(getCalendar()), `The Company arrive at ${this.names.seat} as Courtiers. First session: introductions at Court, then out to find the Seer at ${this.names.sanctum}. ${isolde.name} charmed the envoy; ${oswin.name} did not.`);
 		await this.turn({ pursuits: { isolde: "courtesy", corvin: "pilgrimage", oswin: "service" } });
 	}
 
@@ -749,6 +838,7 @@ class TestGame {
 		const { ruin, tourney, monument } = this.places;
 		const { first, second } = this.mythNumbers;
 		const stops = [{ name: "ruin", hex: ruin?.hex }, { name: "tourney", hex: tourney?.hex }].filter((stop) => stop.hex);
+		await this.feast("feastOfTheStars");
 		const road = seasonRoad(this.realm, this.g, this.here, stops);
 		await this.travel(road, {
 			onDay: async (index) => {
@@ -765,10 +855,13 @@ class TestGame {
 					await this.note(hex, `${this.names.ruin}: a flooded chapel on the old pilgrim road, explored in Harvest of Age 1. See the Site. The bell is still down there somewhere.`);
 					await this.makeSites(hex);
 					await tellPlayersAboutHex({ scene: this.scene, hex });
+					// A Ruin hints at a Myth the Realm doesn't hold (p14), whispered to the Referee.
+					await echoRuin(this.scene);
 					const scar = await this.scar(isolde, 10, 10);
 					this.deeds.isolde.push(`Harvest, Age 1: dragged under at ${this.names.ruin}, and came up with ${scar}.`);
 				} else {
-					await this.note(hex, `${this.names.tourney}. The Harvest tourney: ${isolde.name} unhorsed the champion in front of half the Realm. The reeve still owes the Company a supper.`);
+					await this.feast("eldermass");
+					await this.note(hex, `${this.names.tourney}. The Harvest tourney, held on Eldermass: ${isolde.name} unhorsed the champion in front of half the Realm. The reeve still owes the Company a supper.`);
 					await this.spark(hex, "civilisation", 6);
 					await this.omen(first);
 					await this.award("tournament", [isolde]);
@@ -776,7 +869,7 @@ class TestGame {
 				}
 			}
 		});
-		await writeSeasonNotes("1-harvest", `Explored ${this.names.ruin}. The players loved the floating pews. Then the Harvest tourney at ${this.names.tourney}, which ${isolde.name} won.`);
+		await writeSeasonNotes(seasonKey(getCalendar()), `Explored ${this.names.ruin}. The players loved the floating pews. Then the Harvest tourney at ${this.names.tourney}, which ${isolde.name} won.`);
 		await this.turn({ pursuits: { isolde: "service", corvin: "courtesy", oswin: "pilgrimage" } });
 	}
 
@@ -785,6 +878,7 @@ class TestGame {
 		const { isolde, corvin, oswin } = this.knights;
 		const { first } = this.mythNumbers;
 		const mythHex = this.myth(first)?.hex;
+		await this.feast("feastOfTheMoon");
 		await hardshipFor(HARDSHIPS.find(({ key }) => key === "winter"), this.company);
 		const road = seasonRoad(this.realm, this.g, this.here, mythHex ? [{ name: "myth", hex: mythHex }] : []);
 		await this.travel(road, {
@@ -792,6 +886,8 @@ class TestGame {
 				if (index === 0) {
 					await this.omen(first);
 					await this.findBarrier();
+					// A pilgrim at the fire tells of the City (p172), and the Referee rolls its first Omen.
+					await rollCityOmen();
 				}
 			},
 			onArrive: async (_stop, hex) => {
@@ -803,12 +899,14 @@ class TestGame {
 					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${t("realm.hex", hex)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
 					resolved: true
 				});
+				await recordMythCompleted({ id: completedMythId(this.scene.id, myth), name });
 				await this.award("myth", this.company);
 				await this.note(hex, `Where ${name} ended, in the deep of Winter. Burnt ground; nothing grows here yet.`);
 				for (const key of ["isolde", "corvin", "oswin"]) this.deeds[key].push(`Winter, Age 1: saw ${name} to its end.`);
+				await this.feast("kindlemass");
 			}
 		});
-		await writeSeasonNotes("1-winter", `A hard Winter on the road: everyone lost VIG to the cold. ${this.mythName(this.myth(first))} ended at last. Good session; ${corvin.name}'s player cried.`);
+		await writeSeasonNotes(seasonKey(getCalendar()), `A hard Winter on the road: everyone lost VIG to the cold. ${this.mythName(this.myth(first))} ended at last. Good session; ${corvin.name}'s player cried.`);
 		await corvin.update({ "system.successor": oswin.uuid });
 		await this.turn({
 			newAge: true,
@@ -827,6 +925,7 @@ class TestGame {
 		const { domain } = this.places;
 		const { first, second } = this.mythNumbers;
 		await this.newMyth(first);
+		await this.feast("feastOfTheSun");
 		const road = seasonRoad(this.realm, this.g, this.here, domain ? [{ name: "domain", hex: domain.hex }] : []);
 		await this.travel(road, {
 			onDay: async (index, steps) => {
@@ -843,9 +942,15 @@ class TestGame {
 				await this.makeDomain(hex);
 				this.deeds.isolde.push(`Spring, Age 2: led the charge at ${this.names.domain}, and was granted it after.`);
 				this.deeds.corvin.push(`Spring, Age 2: kept the baggage while the others fought at ${this.names.domain}. Won't hear the end of it.`);
+				await this.makeSquire(isolde);
+				this.deeds.isolde.push(`Spring, Age 2: took ${SQUIRE_NAME}, the steward's boy, as her Squire.`);
+				await this.feast("sceptremass");
+				// The Circle's week riding the bounds is up before the Season is.
+				await this.at({ day: getCalendar().day + 1, phase: "morning" });
+				await this.settleTasks("circle");
 			}
 		});
-		await writeSeasonNotes("2-spring", `The new Age. A new Myth stirs where the old one ended. The battle at ${this.names.domain}: ${isolde.name} was granted it after. ${corvin.name} sat it out.`);
+		await writeSeasonNotes(seasonKey(getCalendar()), `The new Age. A new Myth stirs where the old one ended. The battle at ${this.names.domain}: ${isolde.name} was granted it after. ${corvin.name} sat it out.`);
 		await this.turn({ pursuits: { isolde: "service", corvin: "pilgrimage", oswin: "courtesy" } });
 	}
 
@@ -854,6 +959,10 @@ class TestGame {
 		const { isolde, corvin, oswin } = this.knights;
 		const { second, third } = this.mythNumbers;
 		const target = this.myth(second)?.hex;
+		await this.feast("feastOfTheStars");
+		// Famine in the stores: the Warband goes short before the Company rides out.
+		if (this.warband) await wearWarbandDown(this.warband, "poorlyFed");
+		if (this.domain) await this.setTask("envoy", { what: "Carry the Domain's greetings, and its excuses, to the Seat of Power", scope: "season", risk: "luck" });
 		const road = seasonRoad(this.realm, this.g, this.here, target ? [{ name: "myth", hex: target }] : [], { stopShort: true });
 		await this.travel(road, {
 			camp: true,
@@ -861,6 +970,7 @@ class TestGame {
 				if (index === 0) {
 					await this.omen(second);
 					await this.makeCast(this.myth(second));
+					await rollCityOmen();
 				}
 				if (index === road.days.length - 1) {
 					await this.omen(third);
@@ -881,19 +991,19 @@ class TestGame {
 
 		const final = this.here;
 		const myth = this.myth(second);
-		await this.note(final, `The Company's camp on the road to ${this.mythName(myth)}. Smoke to the north at dusk; nobody has gone to look yet.`);
+		await this.note(final, `The Company's camp on the road to ${this.mythName(myth)}. Smoke to the north at dusk; nobody has gone to look yet. It's been raining since noon.`);
 		await editMythNote(this.scene, myth, { note: `Its Omens keep turning up around ${this.names.domain}, and the villagers are starting to blame the Company. They're a day or two from it now.` });
 		const rumoured = this.myth(third);
 		if (rumoured) await editMythNote(this.scene, rumoured, { note: "One Omen, met on the road north. The players haven't tied it to anything yet." });
 		// The Journey counts the hex the Company's Token is put in, as it would the Referee placing it.
-		await setCompanyHex(this.scene, final);
+		await setCompanyHex(this.scene, final, { name: `The Company of ${REALM_NAME}` });
 
 		await isolde.update({ "system.virtues.vig.value": Math.max(1, isolde.system.virtues.vig.max - 3), "system.virtues.spi.value": Math.max(1, isolde.system.virtues.spi.max - 4), "system.guard.value": Math.min(2, isolde.system.guard.max) });
 		await corvin.update({ "system.virtues.cla.value": Math.max(1, corvin.system.virtues.cla.max - 5), "system.guard.value": Math.min(1, corvin.system.guard.max), "system.fatigued": true });
 		await oswin.update({ "system.virtues.vig.value": Math.max(1, oswin.system.virtues.vig.max - 6), "system.virtues.cla.value": Math.max(1, oswin.system.virtues.cla.max - 1) });
 		this.deeds.isolde.push(`Harvest, Age 2: rides out from ${this.names.domain} with the walls half-mended.`);
 		this.deeds.oswin.push(`Harvest, Age 2: sits in the Circle at ${this.names.domain}, and is courting its envoy.`);
-		await writeSeasonNotes("2-harvest", `On the road toward ${this.mythName(myth)}. ${corvin.name} took a Doom Scar this Season: a Mortal Wound would Slay him until it turns. ${this.names.domain} is owed its Crisis Roll.`);
+		await writeSeasonNotes(seasonKey(getCalendar()), `On the road toward ${this.mythName(myth)}. ${corvin.name} took a Doom Scar this Season: a Mortal Wound would Slay him until it turns. ${this.names.domain} is owed its Crisis Roll.`);
 	}
 
 	/* -------------------------------------------- */
@@ -918,23 +1028,83 @@ class TestGame {
 	}
 
 	/**
-	 * One of a Myth's Cast, met on the road, from their stat block in the GM's import.
+	 * A Myth's Cast, made from their stat blocks in the GM's import as the GM
+	 * Toolkit's Make button makes them: marked as the Myth's, and kept in a
+	 * folder of its own that the Toolkit files anyone made later in. The first
+	 * was met on the road.
 	 * @param {object|null} myth
 	 */
 	async makeCast(myth) {
 		const { entry } = myth ? mythEntry(this.index, myth) : {};
-		const person = entry?.cast?.[0];
-		if (!person) return;
-		const data = actorData(person);
-		await Actor.implementation.create({
-			type: data.type,
-			name: data.name || entry.name,
-			...(entry.path ? { img: entry.path } : {}),
-			system: { ...data.system, notes: `${data.system.notes ?? ""}${html(`Met on the road in Harvest of Age 2. Knows where ${entry.name} will show itself next.`)}` },
-			items: data.items,
+		if (!entry?.cast?.length) return;
+		const key = castKey(this.scene, myth);
+		const folder = await foundry.utils.getDocumentClass("Folder").create({
+			name: entry.name,
+			type: "Actor",
 			folder: this.folders.Actor.id,
-			flags: testFlags()
+			flags: { [SYSTEM_ID]: { [TEST_FLAG]: true, [CAST_FLAG]: key } }
 		});
+		for (const [index, person] of entry.cast.entries()) {
+			const data = actorData(person);
+			const met = index === 0 ? html(`Met on the road in Harvest of Age 2. Knows where ${entry.name} will show itself next.`) : "";
+			await Actor.implementation.create({
+				type: data.type,
+				name: data.name || entry.name,
+				...(entry.path ? { img: entry.path } : {}),
+				system: { ...data.system, notes: `${data.system.notes ?? ""}${met}` },
+				items: data.items,
+				folder: folder.id,
+				flags: { [SYSTEM_ID]: { [TEST_FLAG]: true, [CAST_FLAG]: { myth: key, from: String(person.name ?? "") } } }
+			});
+		}
+	}
+
+	/**
+	 * A Squire for a Knight (p7), rolled as Take a Squire rolls one and riding
+	 * their pony. By the book only a Company of one or two Knights takes
+	 * Squires; the Referee allowed this one, as Take a Squire lets a GM.
+	 * @param {Actor} knight
+	 */
+	async makeSquire(knight) {
+		const rolls = [];
+		const virtues = {};
+		const lines = [];
+		for (const key of VIRTUES) {
+			const roll = await new Roll(SQUIRE_VIRTUE_ROLL).evaluate();
+			rolls.push(roll);
+			virtues[key] = roll.total;
+			lines.push({ label: t(`virtues.${key}.abbr`), value: roll.total });
+		}
+		lines.push({ label: t("guard.abbr"), value: SQUIRE_GUARD });
+		const equipment = await new Roll("1d6").evaluate();
+		rolls.push(equipment);
+		const names = { dagger: t("chooser.kit.dagger"), ...Object.fromEntries(SQUIRE_EQUIPMENT.map(({ key }) => [key, t(`squire.equipment.${key}`)])) };
+		lines.push({ label: t("squire.equipmentRoll", { roll: equipment.total }), value: names[squireEquipment(equipment.total).key] });
+
+		const folder = knight.folder?.id ?? this.folders.Actor.id;
+		const pony = await Actor.implementation.create({ name: t("squire.pony", { name: SQUIRE_NAME }), type: "npc", system: ponySystem(), folder, flags: testFlags() });
+		const squire = await Actor.implementation.create({
+			name: SQUIRE_NAME,
+			type: "knight",
+			img: SQUIRE_IMAGE,
+			folder,
+			flags: testFlags(),
+			system: {
+				...squireSystem(virtues),
+				serves: knight.uuid,
+				steed: pony.uuid,
+				notes: html(`The steward's son at ${this.names.domain}, given to ${knight.name} the day she was granted it. Eager, clumsy, and reports everything to his mother.`)
+			},
+			items: squireItems(equipment.total, names)
+		});
+		lines.push({ label: t("steed.label"), value: pony.name });
+		await knight.update({ "system.squire": squire.uuid });
+		await postCard(knight, "creation", {
+			title: t("squire.title"),
+			tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
+			lines,
+			note: t("squire.hint")
+		}, { rolls });
 	}
 
 	/**
@@ -952,7 +1122,9 @@ class TestGame {
 			flags: testFlags(),
 			system: {
 				seat: false,
+				successor: oswin.name,
 				council: { ...COUNCIL, circle: oswin.name },
+				court: this.court(),
 				notes: html(
 					`Granted to ${isolde.name} after the battle in Spring of Age 2. The old lord's household stayed on; the steward was his.`,
 					"The walls need work before Winter."
@@ -961,6 +1133,9 @@ class TestGame {
 		});
 		await linkKnightDomain(isolde, this.domain);
 		await this.crisis(this.domain);
+		await this.setTask("steward", { what: "Find where the grain went, before the Famine takes the village", scope: "season", risk: "none" });
+		await this.setTask("circle", { what: "Ride the bounds and count the burnt farms", scope: "week", risk: "vig" });
+		await this.musterLevy(this.domain);
 		await Actor.implementation.create({
 			name: `${this.names.domain} palisade`,
 			type: "structure",
@@ -1004,6 +1179,101 @@ class TestGame {
 			d6: roll.total,
 			entries: [{ name: t(`domain.crises.${chosen}.name`), lines: [t(`domain.crises.${chosen}.flavour`), t(`domain.crises.${chosen}.resolution`)] }]
 		}, { rolls });
+	}
+
+	/**
+	 * The Domain's Court (p20), by id as the sheet keeps it, with the Seer at
+	 * the Sanctum sending an acolyte in their stead.
+	 * @returns {object}
+	 */
+	court() {
+		const members = [
+			...COURT,
+			{ role: "seer", name: `An acolyte from ${this.names.sanctum}`, note: "Sent to watch the Knights. Burns something in the chapel every Night." }
+		];
+		const at = Date.now();
+		return Object.fromEntries(members.map((member, index) => [
+			foundry.utils.randomID(),
+			{ ...newCourtMember(member.role, at + index), ...member }
+		]));
+	}
+
+	/**
+	 * Give one of the Council a task, as the Domain sheet's Set a Task does.
+	 * @param {string} seat One of COUNCIL_SEATS.
+	 * @param {{what: string, scope: string, risk: string}} details
+	 */
+	async setTask(seat, details) {
+		const task = newTask(seat, { ...details, started: getCalendar(), at: Date.now() });
+		if (!task) return;
+		await this.domain.update({ [`system.tasks.${foundry.utils.randomID()}`]: task });
+		const holder = this.domain.system.council[seat] || t(`domain.council.${seat}.label`);
+		await postCard(this.domain, "note", {
+			icon: TASK_SCOPE_ICONS[task.scope],
+			text: t("domain.tasks.taken", { who: holder, what: task.what, scope: t(`domain.tasks.scopes.${task.scope}.takes`) })
+		});
+	}
+
+	/**
+	 * Settle a seat's tasks, rolling what they put at risk.
+	 * @param {string} seat One of COUNCIL_SEATS.
+	 */
+	async settleTasks(seat) {
+		if (!this.domain) return;
+		const ids = Object.entries(this.domain.system.tasks ?? {}).filter(([, task]) => task?.seat === seat).map(([id]) => id);
+		for (const id of ids) await settleTask(this.domain, id);
+	}
+
+	/**
+	 * Muster a Warband of Vassals for the Domain (p21), as Muster a Warband
+	 * does: the book's first Warband where the GM has imported them, or a levy
+	 * of the story's own.
+	 * @param {Actor} domain
+	 */
+	async musterLevy(domain) {
+		const book = await this.bookWarband();
+		const origin = "vassals";
+		const track = (value) => ({ value, max: value });
+		const data = book ?? {
+			type: "npc",
+			name: `The Levy of ${domain.name}`,
+			system: {
+				epithet: LEVY.epithet,
+				virtues: { vig: track(LEVY.vig), cla: track(LEVY.cla), spi: track(LEVY.spi) },
+				guard: track(LEVY.guard),
+				armour: LEVY.armour,
+				armourNote: LEVY.armourNote
+			}
+		};
+		this.warband = await Actor.implementation.create({
+			...data,
+			system: { ...data.system, scale: "warband", notes: html(`Raised at ${domain.name} after the battle. Half of them fought for the old lord.`) },
+			folder: this.folders.Actor.id,
+			flags: { ...data.flags, [SYSTEM_ID]: { ...data.flags?.[SYSTEM_ID], [TEST_FLAG]: true, [MUSTERED_FLAG]: domain.id, [ORIGIN_FLAG]: origin } }
+		});
+		await postCard(domain, "report", {
+			title: t("warband.muster.title"),
+			tagline: t("warband.muster.raised", { name: this.warband.name, domain: domain.name }),
+			entries: [{
+				name: this.warband.name,
+				pursuit: t(`warband.origins.${origin}.label`),
+				lines: [t(`warband.origins.${origin}.text`), t("warband.muster.needs")]
+			}],
+			hint: t("warband.muster.marshal")
+		});
+	}
+
+	/** @returns {Promise<object|null>} The book's first Warband (p11), from the Beasts & Hirelings compendium Import PDF fills. */
+	async bookWarband() {
+		const pack = game.packs?.get(`world.${GOODS_PACKS.actors.name}`);
+		if (!pack?.visible) return null;
+		try {
+			const warband = (await pack.getDocuments()).find((actor) => actor.type === "npc" && actor.folder?.name === t("goods.folders.warbands"));
+			return warband ? game.actors.fromCompendium(warband) : null;
+		} catch (error) {
+			console.warn(`${SYSTEM_ID} | Couldn't read the book's Warbands`, error);
+			return null;
+		}
 	}
 
 	/**
@@ -1079,10 +1349,35 @@ class TestGame {
 				list(
 					`${this.mythName(second)} is close. Its next Omen should land on the Company, not near them.`,
 					due.length ? `Crisis Roll owed this Season: ${due.join(", ")}.` : null,
+					`${COUNCIL.steward}'s search for the grain is due. Settle it on the Domain sheet, and let her lie about it.`,
+					this.warband ? `${this.warband.name} went hungry at the Feast of the Stars. Another lean week and they'll stop following orders.` : null,
+					`${SQUIRE_NAME} squires for ${isolde.name}, though a Company of three shouldn't take Squires by the book. I allowed it; he's the steward's spy.`,
 					`${this.names.dwelling} is still unvisited. Someone there knows who holds the Seat's debts.`
 				),
 				`<section class="secret" id="secret-testworld">${html(`The steward at ${this.names.domain} is still loyal to the old lord, and is starving the stores on purpose.`)}</section>`
 			].join("")
+		});
+	}
+
+	/**
+	 * End the session where the game has got to, as the Ending a Session window
+	 * ends one (p16): no time passes, two threads left hanging are rolled on,
+	 * and the recap and the players' plans go into this Season's notes.
+	 */
+	async endSession() {
+		const { corvin } = this.knights;
+		const situations = [];
+		for (const name of ["The smoke to the north", `${COUNCIL.steward} and the missing grain`]) {
+			const rolled = await rollRefereeTable("unresolved");
+			if (rolled) situations.push({ name, d6: rolled.d6, result: rolled.result });
+		}
+		await endTheSession({
+			step: "none",
+			passed: t("sessionEnd.time.steps.none.card"),
+			situations,
+			glory: [],
+			plans: `Go and look at the smoke in the Morning, then on to ${this.mythName(this.myth(this.mythNumbers.second))}. ${corvin.name} wants to rest a day first; nobody else does.`,
+			recap: "A skirmish on the road in the Morning, and a wet Afternoon in camp. Short session: two players were late."
 		});
 	}
 }

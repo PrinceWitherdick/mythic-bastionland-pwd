@@ -3,12 +3,10 @@ import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { endTheSession, getSessionEnd } from "../actions/session-end.js";
-import { scopeView } from "../actions/scope.js";
 import { t } from "../chat/cards.js";
-import { GLORY_AWARDS } from "../rules/glory.js";
-import { plannedTurn, turnDue } from "../rules/scope.js";
+import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
-import { offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
+import { calendarTurn, offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -69,25 +67,21 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	#plans = "";
 	#recap = "";
 
-	/** Why a step is offered before one is picked: "promised", "planned" or null for neither. */
+	/** Why a step is offered before one is picked: "promised", or null. */
 	#offered = null;
 
 	/** Whether the offer has been made, so the window only makes it as it opens. */
 	#considered = false;
 
 	/**
-	 * Offer the step the calendar or a roll already calls for, once, before the
+	 * Offer the step last session's roll already calls for, once, before the
 	 * Referee has touched the row. The book has the group discuss it, so nothing
 	 * is offered when nothing points at a turn.
 	 */
 	#offer() {
 		if (this.#considered) return;
 		this.#considered = true;
-		const plan = scopeView();
-		const { step, reason } = offeredStep({
-			promised: getSessionEnd().promised,
-			due: plan.chronicle && turnDue(plan) ? plannedTurn(getCalendar().season) : null
-		});
+		const { step, reason } = offeredStep({ promised: getSessionEnd().promised });
 		this.#step = step;
 		this.#offered = reason;
 	}
@@ -96,11 +90,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		this.#offer();
-		const plan = scopeView();
 
 		return Object.assign(context, {
 			notice: this.#offered ? t(`sessionEnd.notices.${this.#offered}`) : null,
-			standing: plan.chronicle ? `${plan.standing} ${plan.left}` : null,
 			steps: TIME_STEPS.map(({ key }) => ({
 				key,
 				label: t(`sessionEnd.time.steps.${key}.label`),
@@ -119,7 +111,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				...situation,
 				text: situation.result ? t(`refereeRolls.tables.unresolved.results.${situation.result}`) : null
 			})),
-			awards: GLORY_AWARDS.map((key) => ({
+			awards: GLORY_BUTTONS.map((key) => ({
 				key,
 				label: t(`glory.awards.${key}.label`),
 				hint: t(`glory.awards.${key}.hint`),
@@ -181,7 +173,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	static async #onRollPassage() {
 		const rolled = await rollRefereeTable("passage");
 		if (!rolled) return;
-		const { step, promised } = passageStep(rolled.result, plannedTurn(getCalendar().season));
+		const { step, promised } = passageStep(rolled.result, calendarTurn(getCalendar().season));
 		this.#passage = { d6: rolled.d6, result: rolled.result };
 		this.#step = step;
 		this.#promised = promised;
@@ -217,7 +209,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {SessionEnd} */
 	static async #onAward(_event, target) {
 		const { award } = target.dataset;
-		if (!GLORY_AWARDS.includes(award)) return;
+		if (!GLORY_BUTTONS.includes(award)) return;
 		const entries = await awardGlory(award);
 		if (!entries?.length) return;
 		this.#glory.push({ key: award, names: entries.map((entry) => entry.name).join(", ") });

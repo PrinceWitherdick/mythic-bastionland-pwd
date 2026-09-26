@@ -5,7 +5,13 @@ import { seerAutoFill } from "../rules/creation.js";
 import { rollMythTable } from "./referee-rolls.js";
 import { KNIGHT_TABLE_VERSION } from "../rules/book-art.js";
 import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
-import { hasTable, knightEntryByType, knightTableFill, withRolls } from "../rules/knight-tables.js";
+import { hasTable, knightEntryByType, knightRenewal, knightTableFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
+import { SYSTEM_ID } from "../system-id.js";
+import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
+
+
+/** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
+const ROLLED_AT = "tableRolledAt";
 
 /**
  * The table on a Knight's page, as knightTableFill allows. An index from
@@ -95,5 +101,60 @@ export function withTableSentences(stored, results) {
 export function setKnightTableRows(knight, columns, rows) {
 	const stored = knight?.system.bookTable;
 	if (!knight?.isOwner || !hasTable(stored)) return null;
-	return knight.update({ "system.bookTable.rolls": withRolls(stored, columns, rows) });
+	const update = { "system.bookTable.rolls": withRolls(stored, columns, rows) };
+	// A row taken, not cleared, counts as the table rolled now.
+	if (rows.some((row) => row > 0)) update[`flags.${SYSTEM_ID}.${ROLLED_AT}`] = getCalendar();
+	return knight.update(update);
+}
+
+/**
+ * When a Knight's table comes round again, and whether it has since they last rolled.
+ * @param {Actor} knight
+ * @param {object} [now] The calendar.
+ * @param {import("../rules/knight-tables.js").Renewal|null} [renewal] The Knight's renewal, where it's been read already.
+ * @returns {(import("../rules/knight-tables.js").Renewal & {due: boolean})|null}
+ */
+export function knightTableRenewal(knight, now = getCalendar(), renewal = knightRenewal(knight)) {
+	return renewal && { ...renewal, due: renewalDue(renewal.cadence, knight.getFlag(SYSTEM_ID, ROLLED_AT), now) };
+}
+
+/**
+ * A line for the Season or Phase card for each Knight whose table comes round
+ * with it, such as the Dust Knight's fish, restocked each new Season.
+ * @param {string[]} cadences Some of RENEWAL_CADENCES.
+ * @returns {string[]}
+ */
+export function tableRenewalNotices(cadences) {
+	return game.actors.filter((actor) => actor.type === "knight").flatMap((knight) => {
+		const renewal = knightRenewal(knight);
+		if (!renewal || !cadences.includes(renewal.cadence)) return [];
+		return [renewalNotice(knight, renewal)];
+	});
+}
+
+/**
+ * @param {Actor} knight
+ * @param {import("../rules/knight-tables.js").Renewal} renewal
+ * @returns {string} Such as "The Dust Knight's fish comes round again, restocked each new Season."
+ */
+const renewalNotice = (knight, renewal) => t("knightTable.renewal.notice", { name: knight.name, table: knight.system.bookTable.name, when: clauseMidSentence(renewal.clause) });
+
+/**
+ * When the calendar moves on, a player is told of their own Knights' tables
+ * that have come round; the GM has it from the Season and Phase cards. Each
+ * Knight sheet redraws its own table as it comes round. Called once the world
+ * is ready.
+ */
+export function watchTableRenewals() {
+	Hooks.on(CALENDAR_HOOK, (after, before, turned) => {
+		for (const knight of game.actors) {
+			const parsed = knight.type === "knight" && knightRenewal(knight);
+			if (!parsed) continue;
+			// A table rolled before its roll was dated counts as rolled just before the calendar moved.
+			const undated = !knight.getFlag(SYSTEM_ID, ROLLED_AT) && knight.system.bookTable.rolls.some((roll) => roll > 0);
+			if (undated && game.user === game.users.activeGM) knight.setFlag(SYSTEM_ID, ROLLED_AT, before);
+			if (game.user.isGM || !knight.isOwner || !turned.includes(parsed.cadence)) continue;
+			if (undated || knightTableRenewal(knight, after, parsed).due) ui.notifications.info(renewalNotice(knight, parsed));
+		}
+	});
 }

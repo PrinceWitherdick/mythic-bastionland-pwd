@@ -137,6 +137,11 @@
 	font-size: var(--bastionland-font-note);
 }
 
+/* A seasonal event's closing word adds colour to the event, so it reads as an aside. */
+.bastionland-card__hint--aside {
+	font-style: italic;
+}
+
 .bastionland-card__warning {
 	color: var(--bastionland-blood);
 	font-size: var(--bastionland-font-note);
@@ -899,7 +904,6 @@
 	flex: 1;
 	height: auto;
 	min-height: 0;
-	border-top: 1px solid var(--bastionland-rule);
 }
 
 .bastionland-realm-drawing .bastionland-realm-drawing__rail .bastionland-rail-dialog__rail {
@@ -1138,6 +1142,23 @@
 	list-style: none;
 }
 
+/* Welcome: Recommended Modules */
+
+.bastionland-card__modules {
+	gap: 0.35rem;
+	margin-bottom: 0.35rem;
+}
+
+.bastionland-card__modules a {
+	color: var(--bastionland-rubric);
+	font-weight: bold;
+	text-decoration: none;
+}
+
+.bastionland-card__modules a:hover {
+	text-decoration: underline;
+}
+
 /* Wilderness Roll */
 
 .bastionland-card__myth {
@@ -1199,6 +1220,232 @@
 	--bastionland-ink-soft: #b9b3d2;
 	--bastionland-rule: #4d4f7c;
 	background: linear-gradient(160deg, #262b4a, #11142a);
+}
+
+/*
+ * The Phase, the Season and the Age held at the top of the screen for the
+ * whole table (PhaseBanner.js), one bar hanging from the top edge in three
+ * parts. The classes that paint a Phase's or a Season's card above paint its
+ * part too, so the two are always the same light; the Age keeps the parchment.
+ * Each part keeps its own gradient and fades in over the end of the part
+ * before it, so one light runs into the next with no line between them; the
+ * bar has one shadow and rounds only its two outer corners. It sits in
+ * Foundry's middle column, which scales it with the interface already.
+ */
+#ui-top > .bastionland-time-banner {
+	/* How far each part fades in over the one before it. */
+	--bastionland-banner-blend: 2.5rem;
+
+	order: -1;
+	display: inline-flex;
+	flex: none;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+	border-radius: 0 0 12px 12px;
+	box-shadow: 0 2px 10px rgb(0 0 0 / 45%);
+	pointer-events: none;
+	transform: scale(var(--bastionland-text-size, 1));
+	transform-origin: top center;
+}
+
+.bastionland-time-banner__tab {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	/* The inner sides keep the words clear of the fade on either side of them. */
+	padding: 0.25rem calc(var(--bastionland-banner-blend) + 0.5rem) 0.35rem;
+	border: none;
+	border-bottom: 1px solid var(--bastionland-rule);
+	border-radius: 0;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.75rem;
+	font-weight: normal;
+	line-height: 1.15;
+	white-space: nowrap;
+	pointer-events: auto;
+	cursor: default;
+	/* A new face slides in from above the tab, and nothing of it shows until it's inside. */
+	position: relative;
+	clip-path: inset(0);
+	/* Foundry slides every button's every property; a tab turns by its own animation instead. */
+	transition: none;
+}
+
+/* Only the bar's two ends are rounded and edged down the side. The GM's buttons hang after the tabs, so the ends go by name. */
+.bastionland-time-banner__tab--phase {
+	padding-left: 1.5rem;
+	border-left: 1px solid var(--bastionland-rule);
+	border-bottom-left-radius: 12px;
+}
+
+.bastionland-time-banner__tab--age {
+	padding-right: 1.5rem;
+	border-right: 1px solid var(--bastionland-rule);
+	border-bottom-right-radius: 12px;
+}
+
+/* Each later part lies over the end of the one before it and fades in from nothing, so the two lights blend. */
+.bastionland-time-banner__tab + .bastionland-time-banner__tab {
+	margin-left: calc(-1 * var(--bastionland-banner-blend));
+	mask-image: linear-gradient(to right, transparent, #000 var(--bastionland-banner-blend));
+}
+
+/* Each wide enough for its longest word (Afternoon, Harvest, a two-figure Age), so no tab changes width as time goes round. */
+.bastionland-time-banner__tab--phase {
+	min-width: 13.5rem;
+}
+
+.bastionland-time-banner__tab--season {
+	min-width: 13rem;
+}
+
+.bastionland-time-banner__tab--age {
+	min-width: 11rem;
+}
+
+.bastionland-time-banner__tab i {
+	color: var(--bastionland-card-icon);
+	font-size: 0.8em;
+}
+
+/* No card is posted in the Age's colours, so its tab is the sheet's own parchment, its hourglass in red ochre; the GM's buttons under the bar are the same parchment. */
+.bastionland-time-banner__age,
+.bastionland-time-banner__moves {
+	--bastionland-card-icon: var(--bastionland-rubric);
+	--bastionland-paper: #f3ecdc;
+	--bastionland-ink: #231f1a;
+	--bastionland-ink-soft: #5a5046;
+	--bastionland-rule: #8a7d6a;
+	background: linear-gradient(160deg, #f7f1e3, #dccfb0);
+}
+
+/* A GM's tabs let the ways of moving time on down under the bar, and say so when the pointer is over them. */
+#ui-top > .bastionland-time-banner > button {
+	cursor: pointer;
+}
+
+#ui-top > .bastionland-time-banner > button:hover {
+	filter: brightness(1.06);
+}
+
+#ui-top > .bastionland-time-banner > button:focus-visible {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: -4px;
+}
+
+/*
+ * A new Phase, Season or Age drops in from the top edge over the old one, the
+ * way the sun or the moon comes up. The face covers the whole tab down to its
+ * rule and ends, and the tab takes its light once it's in (PhaseBanner.js).
+ */
+.bastionland-time-banner__face {
+	position: absolute;
+	inset: 0 0 -1px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: inherit;
+	padding: inherit;
+	border-bottom: 1px solid var(--bastionland-rule);
+	border-radius: inherit;
+	color: var(--bastionland-ink);
+	pointer-events: none;
+	animation: bastionland-phase-turn 0.7s ease-out;
+}
+
+.bastionland-time-banner__tab--phase > .bastionland-time-banner__face {
+	left: -1px;
+	border-left: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-time-banner__tab--age > .bastionland-time-banner__face {
+	right: -1px;
+	border-right: 1px solid var(--bastionland-rule);
+}
+
+/* Weeks Pass, Months Pass and A Year Passes, with End the Session across the foot, let down under the middle of the bar by a GM's press on it. */
+.bastionland-time-banner__moves {
+	position: absolute;
+	top: calc(100% + 0.4rem);
+	left: 50%;
+	translate: -50% 0;
+	display: grid;
+	grid-template-columns: repeat(3, auto);
+	gap: 0.4rem;
+	padding: 0.4rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 10px;
+	box-shadow: 0 2px 10px rgb(0 0 0 / 45%);
+	pointer-events: auto;
+}
+
+.bastionland-time-banner__moves > button {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.45rem;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	padding: 0.35rem 0.8rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 6px;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: 16px;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+/* End the Session runs the width of the three above it. */
+.bastionland-time-banner__moves > [data-move="end"] {
+	grid-column: 1 / -1;
+	justify-content: center;
+}
+
+.bastionland-time-banner__moves > button i {
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-time-banner__moves > button:hover {
+	border-color: var(--bastionland-rubric);
+	background: color-mix(in srgb, var(--bastionland-rubric) 12%, var(--bastionland-paper));
+}
+
+.bastionland-time-banner__moves > button:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-time-banner__moves > button:focus-visible {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 1px;
+}
+
+@keyframes bastionland-phase-turn {
+	from {
+		translate: 0 -100%;
+	}
+
+	to {
+		translate: 0 0;
+	}
 }
 
 /* What's due this Season sits in a box of its own. */
@@ -1312,6 +1559,7 @@
 .bastionland-page button.bastionland-gm-toolkit__art,
 .bastionland-myth-table thead button,
 .bastionland-page .bastionland-item__book-roll,
+.bastionland-page .bastionland-item__name-button,
 .bastionland-page .bastionland-knight-table__pick {
 	min-height: 0;
 	border: none;

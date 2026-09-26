@@ -1,5 +1,7 @@
+import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
-import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, retypedProperty } from "../rules/property.js";
+import { knightEntryByType } from "../rules/knight-tables.js";
+import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, retypedProperty } from "../rules/property.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -16,6 +18,13 @@ export const KNIGHT_PROPERTY_STEP = "knightPropertyAndSteeds";
  * under the name instead.
  */
 export const COMPANION_NAMES_STEP = "companionNames";
+
+/**
+ * The world setup step that gives Knights made before the Property reader
+ * knew counts, restocks, armour conditions, second ways to fight, wood and
+ * bucklers, those details from their book lines.
+ */
+export const POSSESSION_DETAILS_STEP = "possessionDetails";
 
 /** The flag on an NPC made from a Knight's gear: the Knight's id. */
 export const COMPANION_FLAG = "companionOf";
@@ -183,4 +192,26 @@ export async function dropOwnerFromCompanionNames() {
 	if (!changes.length) return;
 	await Actor.implementation.updateDocuments(changes);
 	ui.notifications.info(t("item.companionsRenamed", { count: changes.length }));
+}
+
+/**
+ * A world setup step. Knights made before the Property reader knew how many
+ * javelins they carry, which titan beads come back each Season, or that a
+ * brutal plate only counts when Wounded, get it from their book lines, where
+ * their items don't say otherwise already. A world that hasn't imported the
+ * book has no lines to read, and its Knights were written by hand.
+ * @returns {Promise<void>}
+ */
+export async function fillPossessionDetails() {
+	const index = await loadArtIndex().catch(() => null);
+	if (!index) return;
+	for (const actor of game.actors) {
+		if (actor.type !== "knight" || !actor.canUserModify(game.user, "update")) continue;
+		const entry = knightEntryByType(index, actor.system.knightType);
+		if (!entry?.property?.length) continue;
+		const updates = possessionDetails(actor.items.contents, entry.property);
+		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates).catch((error) => {
+			console.error(`${SYSTEM_ID} | Couldn't fill in ${actor.uuid}'s possessions`, error);
+		});
+	}
 }

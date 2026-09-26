@@ -8,6 +8,8 @@
 import { PROPERTY_TYPES } from "../config.js";
 import { knightTypeFromName } from "./creation.js";
 import { WHOLE_ASIDE, pointsBelow } from "./property.js";
+import { parentheticals } from "./text.js";
+import { cadencesTurned, isCalendar } from "./time.js";
 
 export { pointsBelow };
 
@@ -142,4 +144,132 @@ export function tableResults(stored) {
 		const entry = stored.rows[roll - 1]?.[index];
 		return entry ? [{ index, column, roll, entry }] : [];
 	});
+}
+
+/**
+ * When a few Knights roll on their table again, by what their possession says:
+ * "restock each new Season", "rolling each night", "one dose each day". The
+ * earliest named wins, should one aside name two.
+ */
+const RENEWALS = Object.freeze([
+	["season", /\b(?:each new|each|every|the next) Season\b/i],
+	["night", /\beach night\b/i],
+	["day", /\beach day\b/i]
+]);
+
+/** How often a table can come round again. */
+export const RENEWAL_CADENCES = Object.freeze(RENEWALS.map(([cadence]) => cadence));
+
+/** "(see below)" and nothing else, left when the rest of the aside was read into tags and notes. */
+const ONLY_POINTER = /^\s*(?:see|as) below\s*$/i;
+
+/** A clause that sets a condition, kept with the clause after it: "If smashed, find a new flask…". */
+const CONDITION = /^(?:if|when|unless|once)\b/i;
+
+/**
+ * The first time named in some text.
+ * @param {string} text
+ * @returns {{cadence: string, index: number, end: number}|null}
+ */
+function renewalIn(text) {
+	const found = RENEWALS.map(([cadence, pattern]) => ({ cadence, match: pattern.exec(text) }))
+		.filter(({ match }) => match)
+		.sort((a, b) => a.match.index - b.match.index)[0];
+	return found ? { cadence: found.cadence, index: found.match.index, end: found.match.index + found.match[0].length } : null;
+}
+
+/**
+ * The words saying when, from the start of their clause to the time they name:
+ * "restock each new Season" out of "see below, restock each new Season". A
+ * condition just before is kept with them.
+ * @param {string} text
+ * @param {{index: number, end: number}} at
+ * @returns {string}
+ */
+function renewalClause(text, { index, end }) {
+	const stop = text.lastIndexOf(". ", index);
+	const start = Math.max(text.lastIndexOf("(", index) + 1, stop >= 0 ? stop + 2 : 0);
+	const parts = text.slice(start, end).split(/,\s*/).map((part) => part.trim()).filter(Boolean);
+	const condition = parts.findLastIndex((part) => CONDITION.test(part));
+	return parts.slice(condition >= 0 ? condition : parts.length - 1).join(", ");
+}
+
+/**
+ * @typedef {object} Renewal When a Knight rolls on their table again.
+ * @property {string} cadence   One of RENEWAL_CADENCES.
+ * @property {string} clause    The book's words for it, such as "restock each new Season".
+ * @property {"name"|"description"} source Where the possession says it.
+ * @property {string} [paragraph] The note that says it, as stored, when the source is the description.
+ */
+
+/**
+ * Whether the possession a Knight's table sits under says to roll on it again,
+ * and when. Only its own "see below" aside counts, so a note about another
+ * thing in the same line, such as salt restocked each Season beside a table
+ * about a miniature, doesn't. An aside that was read into the item's notes,
+ * leaving just "(see below)", is looked for there.
+ * @param {{name: string, system?: {description?: string}}|null|undefined} item
+ * @returns {Renewal|null}
+ */
+export function tableRenewal(item) {
+	const name = String(item?.name ?? "");
+	const aside = parentheticals(name).find((group) => pointsBelow(group.inner));
+	if (!aside) return null;
+	const inName = renewalIn(aside.inner);
+	if (inName) return { cadence: inName.cadence, clause: renewalClause(aside.inner, inName), source: "name" };
+	if (!ONLY_POINTER.test(aside.inner)) return null;
+	for (const [paragraph, inner] of String(item.system?.description ?? "").matchAll(/<p>(.*?)<\/p>/gs)) {
+		const text = inner.replace(/<[^>]*>/g, "");
+		const found = renewalIn(text);
+		if (found) return { cadence: found.cadence, clause: renewalClause(text, found), source: "description", paragraph };
+	}
+	return null;
+}
+
+/**
+ * When a Knight's table comes round again, found through the possession it sits under.
+ * @param {{type: string, system: object, items?: {contents: object[]}}|null} actor
+ * @returns {Renewal|null}
+ */
+export function knightRenewal(actor) {
+	const id = knightTableItemId(actor);
+	return id ? tableRenewal(actor.items.contents.find((item) => item.id === id)) : null;
+}
+
+/**
+ * The words for when as they read mid-sentence: "restock each new Season".
+ * @param {string} text
+ * @returns {string}
+ */
+export const clauseMidSentence = (text) => (/^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text);
+
+/**
+ * A possession's shown gloss split where it says when, so the die can sit
+ * right there inside its aside: "(restock each new Season" and ")".
+ * @param {string} gloss As the row shows it, without "see below".
+ * @param {Renewal} renewal
+ * @returns {{before: string, after: string}|null} Null when the gloss doesn't say it.
+ */
+export function splitAtRenewal(gloss, renewal) {
+	const text = String(gloss ?? "");
+	const [, pattern] = RENEWALS.find(([cadence]) => cadence === renewal?.cadence) ?? [];
+	const last = pattern ? [...text.matchAll(new RegExp(pattern.source, "gi"))].at(-1) : null;
+	if (!last) return null;
+	const end = last.index + last[0].length;
+	return { before: text.slice(0, end), after: text.slice(end) };
+}
+
+/**
+ * Whether a table's time has come round again since it was last rolled: a
+ * new Season, a later Day, or a Night other than the one it was rolled in
+ * (see cadencesTurned).
+ * A table with no record of when it was rolled isn't counted due, since
+ * there's no knowing.
+ * @param {string} cadence One of RENEWAL_CADENCES.
+ * @param {object|null|undefined} rolledAt The calendar when it was last rolled.
+ * @param {object} now
+ * @returns {boolean}
+ */
+export function renewalDue(cadence, rolledAt, now) {
+	return isCalendar(rolledAt) && cadencesTurned(rolledAt, now).includes(cadence);
 }

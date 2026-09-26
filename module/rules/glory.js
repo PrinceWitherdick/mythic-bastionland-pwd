@@ -34,6 +34,12 @@ export function rankForGlory(glory) {
 export const GLORY_AWARDS = Object.freeze(["myth", "tournament", "battle"]);
 
 /**
+ * The awards given from a Glory button of their own. A Myth's Glory is given
+ * from its row in the GM Toolkit instead, as it is marked resolved.
+ */
+export const GLORY_BUTTONS = Object.freeze(GLORY_AWARDS.filter((key) => key !== "myth"));
+
+/**
  * Add or take away Glory, which never falls below 0.
  * @param {number} glory
  * @param {number} amount Such as 1 for a Myth resolved, or -1 for a duel lost.

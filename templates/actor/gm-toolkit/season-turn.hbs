@@ -5,14 +5,10 @@
 	{{#if note}}
 	<p class="bastionland-hint">{{note}}</p>
 	{{/if}}
+	{{!-- One line each: "Eve the Leaf Knight: Duty – Virtues restored. Glory 0 → 1." --}}
 	<ul class="bastionland-gm-toolkit__season-entries">
 		{{#each entries}}
-		<li>
-			<strong>{{name}}</strong>{{#if pursuit}} · {{pursuit}}{{/if}}
-			{{#each lines}}
-			<p>{{this}}</p>
-			{{/each}}
-		</li>
+		<li><strong>{{name}}</strong>{{#if pursuit}}: {{pursuit}}{{/if}}{{#if lines.length}}{{#if pursuit}} –{{else}}:{{/if}}{{#each lines}} {{this}}{{/each}}{{/if}}</li>
 		{{/each}}
 	</ul>
 </div>

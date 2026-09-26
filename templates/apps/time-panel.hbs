@@ -1,5 +1,10 @@
-<div class="bastionland-page bastionland-time">
-	<header>
+{{!--
+	A GM's window is laid out in two columns under the date: the calendar and
+	what moves it on to the left, and what the Season asks of the Referee to the
+	right. A player sees the calendar alone, in one narrow column.
+--}}
+<div class="bastionland-page bastionland-time{{#if isGM}} bastionland-time--referee{{/if}}">
+	<header class="bastionland-time__header">
 		<h2 class="bastionland-chooser__name">{{now}}</h2>
 		<p class="bastionland-hint">{{phaseHint}}</p>
 		{{#if winter}}
@@ -7,75 +12,85 @@
 		{{/if}}
 	</header>
 
-	<section class="bastionland-block">
-		<div class="bastionland-time__fields">
-			<label for="{{rootId}}-age">{{localize "bastionland.time.age"}}</label>
-			<button id="{{rootId}}-age" type="button" class="bastionland-box bastionland-time__age" data-action="pickAge" data-tooltip="{{localize 'bastionland.time.agePick.change'}}" {{disabled locked}}>{{age}}</button>
-			<label for="{{rootId}}-day">{{localize "bastionland.time.day"}}</label>
-			<input id="{{rootId}}-day" class="bastionland-box" type="number" name="day" value="{{day}}" min="1" step="1" {{disabled locked}}>
+	<div class="bastionland-time__columns">
+		<div class="bastionland-time__column">
+			<section class="bastionland-block">
+				<div class="bastionland-time__fields">
+					<label for="{{rootId}}-age">{{localize "bastionland.time.age"}}</label>
+					<button id="{{rootId}}-age" type="button" class="bastionland-box bastionland-time__age" data-action="pickAge" data-tooltip="{{localize 'bastionland.time.agePick.change'}}" {{disabled locked}}>{{age}}</button>				</div>
+
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.season"}}</h3>
+				<ul class="bastionland-choices bastionland-choices--inline">
+					{{#each seasons}}
+					<li>
+						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setSeason" data-season="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.phase"}}</h3>
+				<ul class="bastionland-choices bastionland-choices--inline">
+					{{#each phases}}
+					<li>
+						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setPhase" data-phase="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				{{#if isGM}}
+				<p class="bastionland-hint">{{localize "bastionland.time.setByHand"}}</p>
+				<p class="bastionland-hint bastionland-time__warning">{{localize "bastionland.time.setByHandWarning"}}</p>
+				{{/if}}
+			</section>
+
+			{{#if isGM}}
+			<section class="bastionland-block">
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.moveOn"}}</h3>
+				<nav class="bastionland-toolbar bastionland-time__moves" aria-label="{{localize 'bastionland.time.moveOn'}}">
+					<button type="button" data-action="nextPhase"><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.time.nextPhase"}}</button>
+					<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>
+					<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
+					<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
+				</nav>
+			</section>
+			{{/if}}
 		</div>
 
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.season"}}</h3>
-		<ul class="bastionland-choices bastionland-choices--inline">
-			{{#each seasons}}
-			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setSeason" data-season="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.phase"}}</h3>
-		<ul class="bastionland-choices bastionland-choices--inline">
-			{{#each phases}}
-			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setPhase" data-phase="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
 		{{#if isGM}}
-		<p class="bastionland-hint">{{localize "bastionland.time.setByHand"}}</p>
+		<div class="bastionland-time__column">
+			<section class="bastionland-block">
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.events.title"}}</h3>
+				<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
+				{{> "bastionland.season-events" seasonEvents}}
+				<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
+				<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.events.title'}}">
+					<button type="button" data-action="weeksPass" data-tooltip="{{localize 'bastionland.time.events.weeksHint'}}"><i class="fa-solid fa-forward" inert></i> {{localize "bastionland.time.events.weeks"}}</button>
+				</nav>
+			</section>
+
+			{{#if offCourse.shown}}
+			<section class="bastionland-block bastionland-off-course">
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h3>
+				{{> "bastionland.off-course" offCourse}}
+			</section>
+			{{/if}}
+
+			<section class="bastionland-block">
+				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.glory.title"}}</h3>
+				<ul class="bastionland-time__list">
+					{{#each gloryAwards}}
+					<li>
+						<button type="button" class="bastionland-button" data-action="awardGlory" data-award="{{key}}" data-tooltip="{{hint}}">{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+			</section>
+		</div>
 		{{/if}}
-	</section>
+	</div>
 
 	{{#if isGM}}
-	{{#if offCourse.shown}}
-	<section class="bastionland-block bastionland-off-course">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h3>
-		{{> "bastionland.off-course" offCourse}}
-	</section>
-	{{/if}}
-
-	<section class="bastionland-block">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.time.events.title"}}</h3>
-		<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
-		{{> "bastionland.season-events" seasonEvents}}
-		<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
-		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.events.title'}}">
-			<button type="button" data-action="weeksPass" data-tooltip="{{localize 'bastionland.time.events.weeksHint'}}"><i class="fa-solid fa-forward" inert></i> {{localize "bastionland.time.events.weeks"}}</button>
-		</nav>
-	</section>
-	{{/if}}
-
-	{{#if isGM}}
-	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.title'}}">
-		<button type="button" data-action="nextPhase"><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.time.nextPhase"}}</button>
-		<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>
-		<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
-		<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
-	</nav>
-	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.sessionEnd.title'}}">
+	<nav class="bastionland-toolbar bastionland-time__end" aria-label="{{localize 'bastionland.sessionEnd.title'}}">
 		<button type="button" data-action="endSession" data-tooltip="{{localize 'bastionland.sessionEnd.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.sessionEnd.open"}}</button>
 	</nav>
-
-	<section class="bastionland-block">
-		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.glory.title"}}</h3>
-		<ul class="bastionland-time__list">
-			{{#each gloryAwards}}
-			<li>
-				<button type="button" class="bastionland-button" data-action="awardGlory" data-award="{{key}}" data-tooltip="{{hint}}">{{label}}</button>
-			</li>
-			{{/each}}
-		</ul>
-	</section>
 	{{/if}}
 </div>

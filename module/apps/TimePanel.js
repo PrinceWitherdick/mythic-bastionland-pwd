@@ -16,7 +16,6 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-time-window"],
 		position: { width: 480, height: "auto" },
 		window: { title: "bastionland.time.title", icon: "fa-solid fa-hourglass-half" },
-		form: { handler: TimePanel.#onSubmit, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			setSeason: TimePanel.#onSetSeason,
 			setPhase: TimePanel.#onSetPhase,
@@ -30,6 +29,14 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @type {number|null} */
 	#hook = null;
+
+	/** @override */
+	_initializeApplicationOptions(options) {
+		options = super._initializeApplicationOptions(options);
+		// A GM's window sets the calendar and the Season's business side by side.
+		if (game.user?.isGM) options.position = { ...options.position, width: 860 };
+		return options;
+	}
 
 	/** @override */
 	async _prepareContext(options) {
@@ -55,11 +62,6 @@ export class TimePanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
-
-	/** @this {TimePanel} */
-	static #onSubmit(_event, _form, formData) {
-		return setCalendarByHand({ day: formData.object.day });
-	}
 
 	/** @this {TimePanel} */
 	static #onSetSeason(_event, target) {

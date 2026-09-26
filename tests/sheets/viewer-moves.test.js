@@ -65,7 +65,8 @@ describe("buttons that only post to chat", () => {
 		readFileSync(join(root, "templates", file), "utf8").match(/<button\b[^>]*data-action="(?:performFeat|postGambit|postItem)"[^>]*>/g));
 
 	it("are marked for viewers to keep", () => {
-		expect(buttons).toHaveLength(3);
+		// An item row has two: its own, and the one before a table's die sat inside the aside.
+		expect(buttons).toHaveLength(4);
 		for (const button of buttons) {
 			expect(button).toContain("data-viewable");
 			expect(button).not.toContain("disabled");

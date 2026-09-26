@@ -171,10 +171,11 @@ describe("goodsDocuments", () => {
 		expect(scythe).toEqual({
 			type: "weapon",
 			name: "Scythe",
-			system: { damage: "d6", hefty: true, long: false, slow: false, ranged: false, blast: false, heftyMounted: false, equipped: true, description: "<p>Common · Farm Tools</p>" }
+			system: { damage: "d6", hefty: true, long: false, slow: false, ranged: false, blast: false, heftyMounted: false, equipped: true, rarity: "common", description: "<p>Farm Tools</p>" }
 		});
 		const pike = items.weapons.find((weapon) => weapon.name === "Pike");
-		expect(pike.system.description).toBe("<p>Uncommon</p><p>Count as hefty when braced</p>");
+		expect(pike.system.rarity).toBe("uncommon");
+		expect(pike.system.description).toBe("<p>Count as hefty when braced</p>");
 		// Braced isn't mounted, so only a note says so.
 		expect(pike.system.heftyMounted).toBe(false);
 		expect(items.weapons.find((weapon) => weapon.name === "Catapult").system).toMatchObject({ blast: true, ranged: true, description: "<p>Siege engine</p><p>Immobile</p>" });
@@ -184,7 +185,9 @@ describe("goodsDocuments", () => {
 		expect(items.armour[0]).toMatchObject({ type: "armour", name: "Shield", system: { kind: "shield", armour: 1, damage: "d4" } });
 		expect(items.tools.map((tool) => tool.name)).toEqual(["Rake", "Bucket", "Lantern"]);
 		expect(items.remedies[0]).toMatchObject({ type: "gear", name: "Broth", system: { remedy: "vig" } });
-		expect(items.poisons[0]).toEqual({ type: "gear", name: "rare poison", system: { description: "<p>A long sleep</p>" } });
+		// Rarity is a field, not words in the description, and a poison is as strong as it is rare.
+		expect(items.armour[0].system).toMatchObject({ wooden: true });
+		expect(items.poisons[0]).toEqual({ type: "gear", name: "rare poison", system: { poison: true, rarity: "rare", description: "<p>A long sleep</p>" } });
 	});
 
 	it("makes beasts, hirelings and Warbands as NPCs", () => {

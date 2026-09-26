@@ -1,10 +1,11 @@
 import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { waitDialog } from "./ui.js";
 import { awardGlory } from "../actions/glory.js";
 import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
 import { eventLabel, markSeasonEvent, seasonEventsNow, stageLabel } from "../actions/season-events.js";
 import { advancePhase, announcePhase, journeyToDistantRealm, turnAge, turnSeason, weeksPass } from "../actions/time.js";
 import { t } from "../chat/cards.js";
-import { GLORY_AWARDS } from "../rules/glory.js";
+import { GLORY_BUTTONS } from "../rules/glory.js";
 import { PHASES, SEASONS } from "../rules/time.js";
 import { openSessionEnd } from "./SessionEnd.js";
 
@@ -87,7 +88,6 @@ export function timeContext({ referee = game.user?.isGM === true } = {}) {
 	return {
 		now: calendarLabel(calendar),
 		age: calendar.age,
-		day: calendar.day,
 		seasons: SEASONS.map((key) => ({ key, label: t(`time.seasons.${key}`), active: key === calendar.season })),
 		phases: PHASES.map((key) => ({ key, label: t(`time.phases.${key}`), active: key === calendar.phase })),
 		phaseHint: t(`time.phaseHints.${calendar.phase}`),
@@ -95,27 +95,18 @@ export function timeContext({ referee = game.user?.isGM === true } = {}) {
 		seasonEvents: referee ? seasonEventsContext(calendar) : null,
 		// A Curse's blight, while the Company still carries it (p14).
 		offCourse: referee ? offCourseNow(calendar) : null,
-		gloryAwards: GLORY_AWARDS.map((key) => ({ key, label: t(`glory.awards.${key}.label`), hint: t(`glory.awards.${key}.hint`) }))
+		gloryAwards: GLORY_BUTTONS.map((key) => ({ key, label: t(`glory.awards.${key}.label`), hint: t(`glory.awards.${key}.hint`) }))
 	};
 }
 
 /**
- * A Day set by hand is told to the table once the GM stops changing it, so stepping the
- * box on a few Days posts one Phase card, for wherever it came to rest.
- */
-let announceDay = null;
-const announceDayByHand = () => {
-	announceDay ??= foundry.utils.debounce(() => announcePhase(getCalendar()), 800);
-	announceDay();
-};
-
-/**
  * Set the calendar by hand, without anything that comes between Seasons or Ages. A new
- * Phase or Day is still announced to the table, with any Council task now due. GMs only.
- * @param {{season?: string, phase?: string, age?: unknown, day?: unknown}} changes
+ * Phase is still announced to the table, with any Council task now due. The Day tally
+ * isn't set by hand, since the book never numbers the Days. GMs only.
+ * @param {{season?: string, phase?: string, age?: unknown}} changes
  * @returns {Promise<unknown>|undefined}
  */
-export async function setCalendarByHand({ season, phase, age, day }) {
+export async function setCalendarByHand({ season, phase, age }) {
 	if (!game.user.isGM) return undefined;
 	const calendar = getCalendar();
 	const count = (value, fallback) => (Number.isInteger(Number(value)) && Number(value) >= 1 ? Number(value) : fallback);
@@ -123,12 +114,10 @@ export async function setCalendarByHand({ season, phase, age, day }) {
 		...calendar,
 		season: SEASONS.includes(season) ? season : calendar.season,
 		phase: PHASES.includes(phase) ? phase : calendar.phase,
-		age: age === undefined ? calendar.age : count(age, calendar.age),
-		day: day === undefined ? calendar.day : count(day, calendar.day)
+		age: age === undefined ? calendar.age : count(age, calendar.age)
 	};
 	const result = await setCalendar(changed);
 	if (changed.phase !== calendar.phase) await announcePhase(changed);
-	else if (changed.day !== calendar.day) announceDayByHand();
 	return result;
 }
 
@@ -141,9 +130,8 @@ export async function setCalendarByHand({ season, phase, age, day }) {
 export async function pickAge() {
 	if (!game.user.isGM) return null;
 	const { age } = getCalendar();
-	const choice = await foundry.applications.api.DialogV2.wait({
+	const choice = await waitDialog({
 		window: { title: t("time.agePick.title"), icon: "fa-solid fa-hourglass-half" },
-		classes: ["bastionland-dialog"],
 		content: `<p>${t("time.agePick.turn", { next: age + 1 })}</p>
 			<div class="form-group">
 				<label for="bastionland-age-pick">${t("time.age")}</label>
@@ -153,8 +141,7 @@ export async function pickAge() {
 		buttons: [
 			{ action: "turn", label: t("time.turnAge"), icon: "fa-solid fa-hourglass-end" },
 			{ action: "set", label: t("time.agePick.set"), icon: "fa-solid fa-pen", default: true, callback: (_event, button) => ({ age: button.form.elements.age.value }) }
-		],
-		rejectClose: false
+		]
 	});
 	if (choice === "turn") return turnAge();
 	if (choice?.age === undefined) return null;

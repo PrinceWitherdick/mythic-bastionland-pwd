@@ -239,12 +239,24 @@ describe("searchTheHex", () => {
 		expect(rollLabelledSave).toHaveBeenCalledWith(knight, "cla", expect.objectContaining({
 			label: lookup("bastionland.explore.search.saveTitle"),
 			outcome: "The buried door"
-		}));
+		}), { rolled: null });
 		// What the Save found is read off the result, so the card can say either way.
 		const { hint } = rollLabelledSave.mock.calls.at(-1)[2];
 		expect(hint({ passed: true })).toBe(lookup("bastionland.explore.search.found"));
 		expect(hint({ passed: false })).toBe(lookup("bastionland.explore.search.obstacle"));
 		expect(phases).toBe(1);
+	});
+
+	it("rolls here when no d20 was entered, and keeps the face the player rolled at the table", async () => {
+		const knight = { id: "k1", name: "Sir Ose", type: "knight", system: { virtues: { cla: { value: 12 } } } };
+		game.actors = [knight];
+		answer = { aim: "known", who: "k1", virtue: "cla", what: "", rolled: null, phase: false };
+		await searchTheHex({ scene: { id: "scene" } });
+		expect(rollLabelledSave.mock.calls.at(-1)[3]).toEqual({ rolled: null });
+
+		answer = { ...answer, rolled: 17 };
+		await searchTheHex({ scene: { id: "scene" } });
+		expect(rollLabelledSave.mock.calls.at(-1)[3]).toEqual({ rolled: 17 });
 	});
 
 	it("says so when nobody was chosen to roll", async () => {

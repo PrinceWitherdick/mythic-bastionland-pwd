@@ -6,6 +6,7 @@
  * and a Passage of Time roll for a group that can't decide. Pure, so it can be
  * tested without Foundry; module/apps/SessionEnd.js puts the window to it.
  */
+import { SEASONS } from "./time.js";
 
 /**
  * How much time can pass, in the book's order, each with the turn it makes:
@@ -44,11 +45,19 @@ export const turnsSeasonOrAge = (key) => ["season", "age"].includes(timeStep(key
 const stepFor = (turn) => (turn === "age" ? "years" : "months");
 
 /**
+ * Which turn the calendar calls for at a session's end. A new Age begins in
+ * Spring (p17), so the Age turns when Winter ends and the Season turns otherwise.
+ * @param {string} season The Season the game stands in.
+ * @returns {"season"|"age"}
+ */
+export const calendarTurn = (season) => (season === SEASONS[SEASONS.length - 1] ? "age" : "season");
+
+/**
  * Which step a Passage of Time roll (p17) points at. The table says only
  * "Season or Age", so which of the two it means is the one the calendar calls
  * for: an Age turn ends Winter, a Season turn every other Season.
  * @param {string} result One of the passage table's results (rules/referee-rolls.js).
- * @param {"season"|"age"} planned Which turn the calendar calls for, from rules/scope.js's plannedTurn.
+ * @param {"season"|"age"} planned Which turn the calendar calls for, from calendarTurn.
  * @returns {{step: string, promised: "season"|"age"|null}} The step it chooses, and a
  *   turn it puts at the end of the *next* session instead, to be remembered until then.
  */
@@ -76,16 +85,13 @@ export function normalizeSessionEnd(raw) {
 
 /**
  * Which step the window offers before the Referee has chosen one: the turn a
- * roll promised last session, else the one a Chronicle's plan puts at this
- * session's end, else nothing, since the book has the group discuss it.
+ * roll promised last session, else nothing, since the book has the group discuss it.
  * @param {object} options
  * @param {"season"|"age"|null} [options.promised] From the last session's Passage of Time roll.
- * @param {"season"|"age"|null} [options.due]      What a Chronicle's plan calls for now.
- * @returns {{step: string|null, reason: "promised"|"planned"|null}}
+ * @returns {{step: string|null, reason: "promised"|null}}
  */
-export function offeredStep({ promised = null, due = null } = {}) {
+export function offeredStep({ promised = null } = {}) {
 	if (promised) return { step: stepFor(promised), reason: "promised" };
-	if (due) return { step: stepFor(due), reason: "planned" };
 	return { step: null, reason: null };
 }
 
@@ -105,4 +111,19 @@ export function appendRecap(notes, heading, recap) {
 	if (!written) return String(notes ?? "");
 	const entry = `${heading}\n${written}`;
 	return before ? `${before}\n\n${entry}` : entry;
+}
+
+/**
+ * What a session leaves in the Season's notes: the Referee's recap, then the
+ * players' plans for next session (p16) on a line of their own, so they're
+ * still there when the Referee prepares.
+ * @param {unknown} recap What the Referee wrote about the session.
+ * @param {unknown} plans What the players plan next.
+ * @param {string} label Heads the plans' line, such as "Next session".
+ * @returns {string} Empty when neither was written.
+ */
+export function sessionRecap(recap, plans, label) {
+	const written = String(recap ?? "").trim();
+	const next = String(plans ?? "").trim();
+	return [written, next ? `${label}: ${next}` : ""].filter(Boolean).join("\n");
 }

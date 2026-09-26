@@ -321,6 +321,12 @@ describe("a Realm's pictures", () => {
 		// Another picture is another thing to line up.
 		expect(setMapPicture(lined, "players", { src: "art/realm-maps/other.webp" }).picture.players).toEqual({ src: "art/realm-maps/other.webp" });
 	});
+
+	it("moves and sizes a measured picture without stretching it", () => {
+		const laid = setMapPicture(blank(), "players", { ...players, x: 500, y: 600, width: 900, height: 1000 });
+		const moved = placeMapPicture(laid, "players", { x: 520, y: 590, width: 1800, height: 700 });
+		expect(moved.picture.players).toEqual({ ...players, x: 520, y: 590, width: 1800, height: 2000 });
+	});
 });
 
 describe("relayRealm", () => {

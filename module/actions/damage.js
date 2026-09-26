@@ -1,6 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
+import { armourCounts, armourTotal, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { attackDamage } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { moraleTrigger } from "../rules/morale.js";
@@ -10,7 +11,44 @@ import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
+import { armourConditionText } from "./items.js";
 import { rollScar } from "./scars.js";
+
+/** Outcomes that take VIG, leaving the target Wounded (p8). */
+const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
+
+/**
+ * A Knight's armour as the Damage dialog weighs it: every piece, and those
+ * worn only in some situation, or in all but one, which the dialog asks about.
+ * NPCs and structures have their Armour as a single number.
+ * @param {Actor} actor
+ * @returns {{pieces: object[], situational: object[], bearing: "shield"|"buckler"|null}}
+ */
+function armourPieces(actor) {
+	if (actor.type !== "knight") return { pieces: [], situational: [], bearing: null };
+	const wearer = actor.system.conditions;
+	const pieces = actor.items.filter((item) => item.type === "armour").map((item) => ({ ...item.system.toObject(), id: item.id, name: item.name }));
+	const situational = pieces
+		.filter((piece) => piece.equipped && !piece.broken && SITUATION_CONDITIONS.includes(piece.condition))
+		.map((piece) => ({
+			id: piece.id,
+			label: t("damage.situationalPiece", { name: piece.name, armour: piece.armour, when: armourConditionText(piece) }),
+			checked: armourCounts(piece, wearer)
+		}));
+	return { pieces, situational, bearing: shieldwallBearing(pieces) };
+}
+
+/**
+ * The Armour the Damage dialog's box holds once the pieces worn only
+ * sometimes are ticked or not: ticked ones count, and the rest follow the wearer.
+ * @param {object[]} pieces From armourPieces.
+ * @param {Record<string, boolean>} ticked By piece id.
+ * @param {object} wearer The target's conditions.
+ * @returns {number}
+ */
+function armourWithTicks(pieces, ticked, wearer) {
+	return armourTotal(pieces.map((piece) => (piece.id in ticked ? { ...piece, condition: "", equipped: ticked[piece.id] } : piece)), wearer);
+}
 
 /**
  * Outcomes that take somebody out of the fight, which can leave their side at
@@ -55,8 +93,12 @@ export async function takeDamage(actor, preset = {}) {
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
+	const worn = armourPieces(actor);
 	const asked = await askDamage({
 		armour,
+		situational: worn.situational,
+		armourFor: (ticked) => armourWithTicks(worn.pieces, ticked, conditions),
+		buckler: worn.bearing === "buckler",
 		exposed: conditions.exposed,
 		character: Boolean(virtues),
 		warband,
@@ -72,6 +114,8 @@ export async function takeDamage(actor, preset = {}) {
 	const update = { "system.guard.value": result.guard };
 	if (virtues) update["system.virtues.vig.value"] = result.vigour;
 	if (result.outcome === "mortal") update["system.mortalWound"] = true;
+	// Damage past GD Wounds them (p8), which some armour answers to.
+	if (virtues && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));
 
 	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
@@ -147,6 +191,10 @@ export async function takeSeerDamage(knight) {
  * Attack that can reach it, so the dialog asks about those too.
  * @param {object} target Whoever was hit.
  * @param {number} target.armour
+ * @param {{id: string, label: string, checked: boolean}[]} [target.situational] Armour worn only
+ *   sometimes, ticked in the dialog when it counts against this Attack.
+ * @param {(ticked: Record<string, boolean>) => number} [target.armourFor] Their Armour with those ticked or not.
+ * @param {boolean} [target.buckler] Their only shield is a buckler, which makes no shieldwall (p10).
  * @param {boolean} target.exposed
  * @param {boolean} target.character Has Virtues, unlike a structure.
  * @param {boolean} target.warband
@@ -172,8 +220,19 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 		title: t("damage.title"),
 		icon: "fa-solid fa-heart-crack",
 		template: "damage",
-		context: { damage, armour: target.armour, ignoreArmour, offerCover: ranged !== false, character: target.character, exposed: target.exposed, requirements },
-		ok: { label: t("damage.apply") }
+		context: {
+			damage,
+			armour: target.armour,
+			ignoreArmour,
+			offerCover: ranged !== false,
+			character: target.character,
+			exposed: target.exposed,
+			requirements,
+			situational: target.situational ?? [],
+			buckler: Boolean(target.buckler)
+		},
+		ok: { label: t("damage.apply") },
+		render: (_event, dialog) => watchSituationalArmour(dialog, target)
 	});
 	if (!data) return null;
 
@@ -196,6 +255,23 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 		structure: target.structure
 	});
 	return { result, armour, before };
+}
+
+/**
+ * Keep the Damage dialog's Armour box in step as pieces worn only sometimes
+ * are ticked, so it always reads what the Attack is reduced by.
+ * @param {foundry.applications.api.DialogV2} dialog
+ * @param {object} target As askDamage takes.
+ */
+function watchSituationalArmour(dialog, target) {
+	const form = dialog.element.querySelector("form");
+	const box = form?.querySelector("[name='armour']");
+	const ticks = [...(form?.querySelectorAll("[data-situational]") ?? [])];
+	if (!box || !ticks.length || !target.armourFor) return;
+	const update = () => {
+		box.value = target.armourFor(Object.fromEntries(ticks.map((tick) => [tick.dataset.situational, tick.checked])));
+	};
+	for (const tick of ticks) tick.addEventListener("change", update);
 }
 
 /**

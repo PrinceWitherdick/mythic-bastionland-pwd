@@ -3,6 +3,7 @@ import { plural, postCard, t } from "../chat/cards.js";
 import { combatPlace, marksOn } from "../chat/gambit-marks.js";
 import { GAMBITS } from "../config.js";
 import {
+	ALTERNATE_QUALITIES,
 	attackDamage,
 	buildAttackPool,
 	canFundGambit,
@@ -19,8 +20,10 @@ import {
 	summarizeAttack
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
+import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
+import { alternateText } from "./items.js";
 import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./attack-memory.js";
 import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
@@ -42,13 +45,84 @@ export function specialistLabel(weapon) {
 }
 
 /**
+ * @typedef {object} AttackSource One way to add dice to an Attack: a weapon or
+ *   shield, or a weapon's other way to fight, such as a bolt-guisarme shot.
+ * @property {string} id      The item's id, or for its other way, the id with "-alt" after it.
+ * @property {string} name
+ * @property {object} system  What it rolls and how it's held, as an item's system data has it.
+ * @property {Item} item      The item it comes from.
+ */
+
+/** What an Attack reads off a weapon's or shield's system data. */
+const WIELDED_KEYS = Object.freeze(["damage", "hefty", "long", "slow", "ranged", "blast", "ignoresArmour", "heftyMounted", "trample", "specialist", "usedUp"]);
+
+/**
  * Worn or wielded items that add Attack dice: weapons, and armour with an
- * attack die such as a shield.
+ * attack die such as a shield. A weapon fought two ways is offered once for
+ * each, and a broken one, or one all used up, not at all.
  * @param {Actor} actor
- * @returns {Item[]}
+ * @returns {AttackSource[]}
  */
 function attackSources(actor) {
-	return actor.items.filter((item) => item.system.equipped && parseDice(item.system.damage).length);
+	return armedWith(actor).filter(({ item }) => isAtHand(item.system)).flatMap((source) => {
+		const { item } = source;
+		const alternate = item.system.alternate;
+		if (!alternate?.damage?.trim()) return [source];
+		const how = alternate.label?.trim() || alternateText(item.system);
+		return [source, {
+			id: `${item.id}-alt`,
+			name: t("attack.alternateName", { name: item.name, how }),
+			item,
+			system: {
+				...source.system,
+				damage: alternate.damage,
+				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, alternate[key]])),
+				heftyMounted: false
+			}
+		}];
+	});
+}
+
+/**
+ * Everything worn or wielded that has Attack dice, usable or not.
+ * @param {Actor} actor
+ * @returns {AttackSource[]}
+ */
+function armedWith(actor) {
+	return actor.items
+		.filter((item) => item.system.equipped && parseDice(item.system.damage).length)
+		.map((item) => ({
+			id: item.id,
+			name: item.name,
+			item,
+			// Both ways of a weapon fought two ways name it, so only one of them is ticked.
+			system: { ...Object.fromEntries(WIELDED_KEYS.map((key) => [key, item.system[key]])), of: item.id }
+		}));
+}
+
+/**
+ * Names of what is worn or wielded with Attack dice but can't be used, being
+ * broken or all used up, for a line under the weapons in the Attack dialog.
+ * @param {Actor} actor
+ * @returns {string|null}
+ */
+function unavailableNames(actor) {
+	const names = armedWith(actor).filter(({ item }) => !isAtHand(item.system)).map(({ name }) => name);
+	return names.length ? t("attack.unavailable", { names: names.join(", ") }) : null;
+}
+
+/**
+ * Take one off the count of each thing whose every Attack uses one up, such
+ * as a titan bead thrown, and say how many are left.
+ * @param {AttackSource[]} chosen
+ */
+async function useUpThrown(chosen) {
+	const items = [...new Set(chosen.map(({ item }) => item))].filter((item) => item.system.usedUp && isCounted(item.system) && item.isOwner);
+	await Promise.all(items.map((item) => {
+		const left = countAfter(item.system.quantity, -1);
+		ui.notifications.info(t("attack.usedOne", { name: item.name, left }));
+		return item.update({ "system.quantity.value": left });
+	}));
 }
 
 /**
@@ -189,8 +263,9 @@ export async function attack(actor) {
 
 	// What this actor last rolled an Attack with, which the dialog opens on again.
 	const remembered = recallAttack(actor);
-	// A joust is fought mounted. Otherwise nobody is taken to be riding, steed or no, until they say so.
-	const mounted = duel?.duel.kind === "joust" || Boolean(remembered?.mounted);
+	// A joust is fought mounted, and so is anybody marked Mounted. Otherwise nobody is taken to be
+	// riding, steed or no, until they say so.
+	const mounted = duel?.duel.kind === "joust" || Boolean(conditions.mounted) || Boolean(remembered?.mounted);
 	const wielded = openingWielded(actor, sources, remembered, mounted);
 
 	const data = await inputDialog({
@@ -201,13 +276,15 @@ export async function attack(actor) {
 			sources: sources.map((item, index) => ({
 				id: item.id,
 				name: item.name,
-				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`))].join(" · "),
+				tags: [item.system.damage, ...SHOWN_QUALITIES.filter((key) => item.system[key]).map((key) => t(`item.${key}`)), isCounted(item.item.system) ? t("item.quantityTagBare", { value: item.item.system.quantity.value }) : null].filter(Boolean).join(" · "),
 				checked: wielded.includes(index),
 				// Ticked by the player when the situation it's made for comes up.
 				specialist: specialistLabel(item.system),
 				specialistChecked: Boolean(remembered?.specialist?.[item.id])
 			})),
 			...rememberedTicks(remembered),
+			// Worn or wielded, but broken or all used up, so not offered.
+			unavailable: unavailableNames(actor),
 			moved: movedThisTurn(actor),
 			// Read off the world rather than remembered, so it follows the steed.
 			mounted,
@@ -233,6 +310,9 @@ export async function attack(actor) {
 	}
 	// Their next Attack with this actor opens on what they chose here.
 	await rememberAttack(actor, choice);
+	// Riding or not, as ticked here, is marked on them, so a rider's plate counts while they ride.
+	const riding = Boolean(choice.mounted || choice.charge);
+	if (actor.isOwner && typeof actor.system.mounted === "boolean" && actor.system.mounted !== riding) await actor.update({ "system.mounted": riding });
 	const chosen = check.usable.map((index) => picked[index]);
 	// Leading from the front adds the leader's Attack dice to the Warband's roll (p11).
 	const leader = leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
@@ -240,7 +320,7 @@ export async function attack(actor) {
 	const weaponGroups = [
 		{ items: chosen, label: null },
 		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name },
-		{ items: leader ? attackSources(leader) : [], label: leader?.name }
+		{ items: leader ? armedWith(leader).filter(({ item }) => isAtHand(item.system)) : [], label: leader?.name }
 	];
 	const weaponItems = weaponGroups.flatMap(({ items }) => items);
 	const weaponDice = weaponGroups.flatMap(({ items, label }) =>
@@ -310,6 +390,8 @@ export async function attack(actor) {
 		appliedTo: []
 	};
 
+	await useUpThrown(chosen);
+
 	const messages = [];
 	for (const [index, group] of groups.entries()) {
 		const roll = await new Roll(dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
@@ -339,6 +421,16 @@ export async function attack(actor) {
 		whispered: !chatIsPublic()
 	});
 	return messages;
+}
+
+/**
+ * @param {import("../rules/attack.js").FocusSave|null|undefined} save
+ * @returns {{passed: boolean, result: string}|null}
+ */
+function focusSaveContext(save) {
+	if (!save) return null;
+	const { by, total, target, passed } = save;
+	return { passed, result: t(passed ? "attack.focusPassed" : "attack.focusFailed", { name: by, total, target }) };
 }
 
 /**
@@ -437,8 +529,12 @@ export function attackCardContext(attack) {
 					? t("feats.focus.name")
 					: t("attack.dieSource", { faces: attack.dice[gambit.die].faces, result: attack.dice[gambit.die].result }),
 				strong: gambit.strong ? t(`attack.strong.${gambit.strong}`) : null,
+				// The CLA Save Focus cost the attacker (p10). Cards from before it was kept have none.
+				focus: focusSaveContext(gambit.focus),
 				// A Dismount the target Saved against adds nothing, so its d6 goes unmentioned.
 				bonus: gambit.bonus && !ignored ? t("attack.dismounted", { result: gambit.bonus }) : null,
+				// A Greater effect can break a wooden shield or weapon (p10), which the card marks on the foe's sheet.
+				breaks: gambit.strong === "greater" && !ignored ? { label: t("attack.break"), hint: t("attack.breakHint") } : null,
 				ignored,
 				save: gambitSaveContext(gambit, index, settled)
 			};

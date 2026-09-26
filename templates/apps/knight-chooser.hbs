@@ -5,6 +5,20 @@
 
 	<div class="bastionland-chooser__layout{{#unless browsing}} is-folded{{/unless}}">
 		<div class="bastionland-chooser__steps">
+			{{#if knighting}}
+			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.chooser.knighted.heading"}}</h2>
+				<div class="bastionland-chooser__scores">
+					{{#each knighting.kept}}
+					<span class="bastionland-chooser__score">
+						<span>{{abbr}}</span>
+						<span class="bastionland-box">{{value}}</span>
+					</span>
+					{{/each}}
+				</div>
+				<p class="bastionland-hint">{{knighting.hint}}</p>
+			</section>
+			{{else}}
 			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.chooser.start"}}</h2>
 				<p class="bastionland-hint bastionland-chooser__start-hint">{{localize "bastionland.chooser.startHint"}}</p>
@@ -35,9 +49,10 @@
 				</button>
 				<p class="bastionland-hint">{{localize "bastionland.chooser.scoresHint"}}</p>
 			</section>
+			{{/if}}
 
 			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.chooser.knight"}}</h2>
+				<h2 class="bastionland-heading">{{#if knighting}}{{localize "bastionland.chooser.knighted.knight"}}{{else}}{{localize "bastionland.chooser.knight"}}{{/if}}</h2>
 				<div class="bastionland-chooser__knight-buttons">
 					<button type="button" class="bastionland-button" data-action="rollKnight">
 						<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollKnight"}}
@@ -120,7 +135,14 @@
 				{{#if seer.img}}
 				<img src="{{seer.img}}" alt="{{seer.name}}">
 				{{/if}}
-				<p>{{seer.name}}</p>
+				<p class="bastionland-chooser__seer-name">{{seer.name}}</p>
+				{{#if seer.lines.length}}
+				<ul class="bastionland-chooser__seer-lines">
+					{{#each seer.lines}}
+					<li>{{this}}</li>
+					{{/each}}
+				</ul>
+				{{/if}}
 			</div>
 			{{/if}}
 			{{else}}

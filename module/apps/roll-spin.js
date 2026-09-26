@@ -39,13 +39,15 @@ export async function spinColumns(columns, landings, { reduce = reducesMotion() 
  * @param {HTMLElement|null} table
  * @param {number[]} columns By index.
  * @param {{roll: number}[]} results One for each column, in the same order.
+ * @param {object} [options] As spinColumns takes them.
  * @returns {Promise<void>}
  */
-export function spinTable(table, columns, results) {
+export function spinTable(table, columns, results, options) {
 	if (!table) return Promise.resolve();
 	return spinColumns(
 		columns.map((column) => [...table.querySelectorAll(`td[data-column="${column}"]`)]),
-		results.map((result) => result.roll - 1)
+		results.map((result) => result.roll - 1),
+		options
 	);
 }
 

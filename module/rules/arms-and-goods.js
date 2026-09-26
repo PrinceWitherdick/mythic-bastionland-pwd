@@ -6,6 +6,8 @@
  * from the GM's own rulebook. Pure, so the reading can be tested without Foundry.
  */
 import { ARMOUR_KINDS } from "../config.js";
+import { looksWooden } from "./armour.js";
+import { ALTERNATE_QUALITIES } from "./attack.js";
 import { textLines } from "./book-art.js";
 import { countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
 import { carriesFrom, structureKind } from "./structures.js";
@@ -316,8 +318,10 @@ export function goodsFromPages(pages) {
  */
 export function goodsDocuments(goods, labels) {
 	const rarity = (key) => labels.rarities[key] ?? "";
+	/** @returns {{rarity?: string}} The item's rarity field, left out when the book gives none. */
+	const rarityField = (key) => (RARITIES.includes(key) ? { rarity: key } : {});
 	const describe = (...texts) => paragraphs(texts.filter(Boolean).join(" · "));
-	const flags = (qualities) => Object.fromEntries(["hefty", "long", "slow", "ranged", "blast"].map((key) => [key, qualities.includes(key)]));
+	const flags = (qualities) => Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, qualities.includes(key)]));
 
 	const npc = (block, { scale = null, notes = [] } = {}) => {
 		const data = npcFromStatBlock(block, { attackName: labels.attack });
@@ -328,6 +332,7 @@ export function goodsDocuments(goods, labels) {
 
 	return {
 		items: {
+			// Rarity is a field of its own, which the item's window and chat card show.
 			weapons: goods.weapons.map((weapon) => ({
 				type: "weapon",
 				name: weapon.name,
@@ -336,7 +341,9 @@ export function goodsDocuments(goods, labels) {
 					...flags(weapon.qualities),
 					heftyMounted: countsAsHeftyMounted(weapon.note),
 					equipped: true,
-					description: describe(weapon.siege ? labels.siege : rarity(weapon.rarity), weapon.group) + paragraphs(capitalise(weapon.note))
+					...rarityField(weapon.rarity),
+					...(looksWooden(`${weapon.name} ${weapon.group ?? ""}`, { type: "weapon" }) ? { wooden: true } : {}),
+					description: describe(weapon.siege ? labels.siege : "", weapon.group) + paragraphs(capitalise(weapon.note))
 				}
 			})),
 			armour: goods.armour.map((armour) => ({
@@ -347,19 +354,22 @@ export function goodsDocuments(goods, labels) {
 					armour: armour.armour,
 					damage: armour.damage,
 					equipped: true,
-					description: describe(rarity(armour.rarity)) + paragraphs(capitalise(armour.note))
+					...rarityField(armour.rarity),
+					...(looksWooden(armour.name, { type: "armour", kind: armour.kind }) ? { wooden: true } : {}),
+					description: paragraphs(capitalise(armour.note))
 				}
 			})),
-			tools: goods.tools.map((tool) => ({ type: "gear", name: tool.name, system: { description: describe(rarity(tool.rarity)) } })),
+			tools: goods.tools.map((tool) => ({ type: "gear", name: tool.name, system: { ...rarityField(tool.rarity), description: "" } })),
 			remedies: goods.remedies.map((remedy) => ({
 				type: "gear",
 				name: remedy.name,
-				system: { remedy: remedy.virtue ?? "", description: describe(rarity(remedy.rarity)) + paragraphs(remedy.note) }
+				system: { remedy: remedy.virtue ?? "", ...rarityField(remedy.rarity), description: paragraphs(remedy.note) }
 			})),
+			// A poison is as strong as it is rare (p12).
 			poisons: goods.poisons.map((poison) => ({
 				type: "gear",
 				name: labels.poison(poison.rarity),
-				system: { description: paragraphs(poison.note) }
+				system: { poison: true, ...rarityField(poison.rarity), description: paragraphs(poison.note) }
 			}))
 		},
 		actors: {

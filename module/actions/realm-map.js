@@ -8,7 +8,8 @@ import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js"
 import { ART_ROOT } from "../rules/book-art.js";
 import { t } from "../chat/cards.js";
 import { inputDialog } from "../apps/ui.js";
-import { MAP_ROLES, REALM_MAP_DIR, fittedMapRect, layoutChoices } from "../rules/realm-map.js";
+import { MAP_ROLES, REALM_MAP_DIR, fittedMapRect, layoutChoices, resizesMapPicture } from "../rules/realm-map.js";
+import { realmFlag } from "../rules/realm-documents.js";
 import { setMapPicture, placeMapPicture } from "../rules/realm-edits.js";
 import { BOOK_LAYOUT, normaliseLayout } from "../rules/realm-geometry.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry, setRealmLayout } from "./realm.js";
@@ -69,7 +70,7 @@ export function mapPictureContext(realm = null, { layout = BOOK_LAYOUT } = {}) {
 		mapLayouts: layoutChoices(layout).map((choice) => ({
 			...choice,
 			description: t(`realm.picture.layouts.${choice.key}`),
-			caption: choice.book ? t("realm.picture.layouts.book") : null
+			caption: t(choice.book ? "realm.picture.layouts.book" : `realm.picture.layouts.names.${choice.key}`)
 		}))
 	};
 }
@@ -182,6 +183,25 @@ export function setRealmPicture(scene, picture) {
 export const placeRealmPicture = (scene, role, rect) => editRealm(scene, (realm) => placeMapPicture(realm, role, rect));
 
 /**
+ * Refuse to size a Realm's picture with Foundry's own Tile handles or the
+ * Tile's sheet: a picture stretched out of its shape only throws the hexes
+ * out. It's sized evenly, by marking two hexes on it when it's lined up, and
+ * moving it is still fine. The Realm's own writes carry the size its flag
+ * already holds, since the flag is written before the Tiles, so they pass.
+ * For `preUpdateTile`.
+ * @param {TileDocument} tile
+ * @param {object} changes
+ * @returns {false|void} False to refuse the change.
+ */
+export function keepMapPictureSize(tile, changes) {
+	const flag = realmFlag(tile);
+	if (flag?.kind !== "map" || !tile.parent) return undefined;
+	if (!resizesMapPicture(realmFlag(tile.parent)?.picture?.[flag.role], changes)) return undefined;
+	ui.notifications.warn(t("realm.picture.keepsSize"));
+	return false;
+}
+
+/**
  * @param {Scene|null|undefined} scene
  * @returns {boolean} Whether a Realm is drawn by a picture rather than the system's own ink.
  */
@@ -202,6 +222,8 @@ export async function askForRealmPicture(scene) {
 		template: "realm-picture",
 		context: { ...mapPictureContext(realm, { layout: sceneGeometry(scene).layout }), intro: t("realm.picture.intro") },
 		ok: { label: t("realm.picture.use"), icon: "fa-solid fa-image" },
+		// The layouts are drawn as SVG.
+		drawings: true,
 		position: { width: 480 },
 		render: (_event, dialog) => wireMapPictureFields(dialog.element, { name: scene.id })
 	});

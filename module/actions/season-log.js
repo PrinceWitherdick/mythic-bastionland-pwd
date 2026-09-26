@@ -1,6 +1,7 @@
-import { normalizeSeasonRecord, seasonTurn } from "../rules/season-log.js";
-import { parseSeasonKey } from "../rules/time.js";
+import { normalizeSeasonRecord, seasonTurn, withCompletedMyth, withoutCompletedMyth } from "../rules/season-log.js";
+import { parseSeasonKey, seasonKey } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { getCalendar } from "./calendar.js";
 import { theGmToolkit } from "./gm-toolkit.js";
 
 /**
@@ -57,3 +58,29 @@ export function seasonRecord(key) {
  * @returns {Promise<Actor|null>}
  */
 export const writeSeasonEvents = (key, events) => writeSeason(key, { events });
+
+/**
+ * Keep a Myth as resolved in the Season the world is in (p27), for Past Seasons.
+ * @param {import("../rules/season-log.js").CompletedMyth} myth
+ * @returns {Promise<Actor|null>}
+ */
+export function recordMythCompleted(myth) {
+	const key = seasonKey(getCalendar());
+	return writeSeason(key, { myths: withCompletedMyth(seasonRecord(key).myths, myth) });
+}
+
+/**
+ * A Myth marked unresolved again comes out of whichever Season it was resolved in.
+ * @param {string} id As rules/season-log.js's completedMythId gives it.
+ * @returns {Promise<Actor|null>}
+ */
+export async function forgetMythCompleted(id) {
+	const seasons = theGmToolkit()?.system.seasons ?? {};
+	const changes = {};
+	for (const key of Object.keys(seasons)) {
+		const { myths } = seasonRecord(key);
+		if (myths.some((myth) => myth.id === id)) changes[`system.seasons.${key}.myths`] = withoutCompletedMyth(myths, id);
+	}
+	if (!game.user.isGM || !Object.keys(changes).length) return null;
+	return theGmToolkit().update(changes);
+}

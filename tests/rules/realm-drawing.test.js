@@ -68,6 +68,28 @@ describe("bookDrawingGroups", () => {
 		expect(groups[0].parts).toEqual([{ key: "book-0", step: null, blocks: book[0].blocks }]);
 	});
 
+	it("puts a section too short for a tab of its own at the foot of the page named for it, under its heading", () => {
+		const joined = [
+			{ heading: "Breaking the Rules", blocks: [paragraph("Bend them.")] },
+			{ heading: "The Hex Map", blocks: [paragraph("Twelve by twelve.")] },
+			...book.slice(1),
+			{ heading: "Adding Details", blocks: [paragraph("Name things.")] },
+			{ heading: "Distant Realms ", blocks: [paragraph("Over the hills.")] }
+		];
+		const groups = bookDrawingGroups(joined);
+		// Adding Details and Distant Realms are left out altogether.
+		expect(groups.map((group) => group.key)).toEqual(["book-1", "wilderness", "holdings", "myths", "landmarks", "book-6"]);
+		expect(groups[0].parts).toEqual([
+			{ key: "book-1", step: null, blocks: joined[1].blocks },
+			{ key: "book-0", step: null, blocks: joined[0].blocks, heading: "Breaking the Rules" }
+		]);
+	});
+
+	it("gives a section meant for another page a page of its own when the book has no such page", () => {
+		const alone = [{ heading: "Breaking the Rules", blocks: [paragraph("Bend them.")] }, ...book.slice(1)];
+		expect(bookDrawingGroups(alone)[0]).toEqual({ key: "book-0", heading: "Breaking the Rules", icon: "fa-scale-unbalanced", parts: [{ key: "book-0", step: null, blocks: alone[0].blocks }] });
+	});
+
 	it("gives nothing unless the book has every step's section", () => {
 		expect(bookDrawingGroups(book.filter((section) => section.heading !== "Holdings"))).toBeNull();
 		expect(bookDrawingGroups([])).toBeNull();
@@ -149,20 +171,25 @@ describe("drawingWindowPlacement", () => {
 	const room = { left: 0, top: 0, right: 1600, bottom: 1000 };
 	const size = { width: 440, height: 400 };
 
-	it("opens over the middle of the map", () => {
+	it("opens to the left of the map, level with its middle", () => {
+		const map = { left: 700, right: 1500, top: 50, bottom: 650 };
+		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 248, top: 150, width: 440, height: 400 });
+	});
+
+	it("keeps to the room's left edge where there's no room beside the map", () => {
 		const map = { left: 100, right: 900, top: 50, bottom: 650 };
-		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 280, top: 150, width: 440, height: 400 });
+		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 12, top: 150, width: 440, height: 400 });
 	});
 
-	it("centres on the part of the map in view, and stays inside the room", () => {
+	it("goes beside the part of the map in view, and stays inside the room", () => {
 		const map = { left: 1200, right: 3000, top: 100, bottom: 900 };
-		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 1148, top: 300, width: 440, height: 400 });
+		expect(drawingWindowPlacement(room, map, size)).toEqual({ left: 748, top: 300, width: 440, height: 400 });
 	});
 
-	it("takes the middle of the room with no map in view", () => {
+	it("takes the room's left side with no map in view", () => {
 		const away = { left: -2000, right: -1000, top: 100, bottom: 900 };
-		expect(drawingWindowPlacement(room, away, size)).toEqual({ left: 580, top: 300, width: 440, height: 400 });
-		expect(drawingWindowPlacement(room, null, size)).toEqual({ left: 580, top: 300, width: 440, height: 400 });
+		expect(drawingWindowPlacement(room, away, size)).toEqual({ left: 12, top: 300, width: 440, height: 400 });
+		expect(drawingWindowPlacement(room, null, size)).toEqual({ left: 12, top: 300, width: 440, height: 400 });
 	});
 
 	it("shrinks to fit a room smaller than it", () => {

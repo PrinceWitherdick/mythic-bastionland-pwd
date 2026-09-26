@@ -17,7 +17,8 @@ import {
 	STRONG_GAMBITS
 } from "../rules/attack.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
+import { queryAsker } from "../compat.js";
+import { onCardClick, plural, postCard, statefulCard, t, warn } from "./cards.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: Deny, Gambits, then the
@@ -85,10 +86,14 @@ function targetActors(attack) {
  * The active GM records a Deny or applied Damage for a player. A Deny must
  * come from an actor the player owns.
  * @param {{messageId: string, change: object}} data
- * @param {{user: User}} context
+ * @param {{user?: User}} context
  * @returns {Promise<boolean>}
  */
-async function onChangeQuery({ messageId, change }, { user }) {
+async function onChangeQuery(data, context) {
+	const { messageId } = data;
+	let { change } = data;
+	const user = queryAsker(context);
+	if (!user) return false;
 	const message = game.messages.get(messageId);
 	if (!attackOf(message) || !QUERYABLE_CHANGES.includes(change?.type)) return false;
 	if (change.type === "dismissMark") {
@@ -156,7 +161,10 @@ async function onGambit(message, button) {
 	if (choice) await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) });
 }
 
-/** The attacker performs a Gambit without a die, paying with a CLA Save. */
+/**
+ * The attacker performs a Gambit without a die, then must pass a CLA Save or
+ * become Fatigued (p10). The Save is kept on the card beside the Gambit.
+ */
 async function onFocus(message) {
 	const attack = attackOf(message);
 	const attacker = fromUuidSync(attack.attacker);
@@ -166,10 +174,17 @@ async function onFocus(message) {
 		return warn("attack.featUsed", { name: attacker.name, feat: t("feats.focus.name") });
 	}
 
-	const choice = await chooseGambit({ source: t("feats.focus.use"), strong: false });
+	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: false });
 	if (!choice) return;
 	const save = await performFeat(attacker, "focus");
-	if (save) await saveChange(message, { type: "focus", key: choice.key, actor: attacker.uuid, bonus: await rollDismount(choice.key) });
+	if (!save) return;
+	await saveChange(message, {
+		type: "focus",
+		key: choice.key,
+		actor: attacker.uuid,
+		bonus: await rollDismount(choice.key),
+		save: { by: attacker.name, total: save.roll.total, target: save.value, passed: save.passed }
+	});
 }
 
 /**
@@ -367,7 +382,44 @@ export async function dismissGambitMark(actor, messageId, index) {
 	return saveChange(message, { type: "dismissMark", index, actor: actor.uuid });
 }
 
-const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply });
+/**
+ * What a Strong Gambit's Greater effect could break on the foes it was aimed
+ * at (p10): their wooden shields and weapons still whole, on those this user
+ * can change.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{actor: Actor, item: Item}[]}
+ */
+function breakableThings(attack) {
+	return targetActors(attack)
+		.filter((actor) => actor.isOwner)
+		.flatMap((actor) => actor.items
+			.filter((item) => item.system.wooden && !item.system.broken && (item.type === "weapon" || item.system.kind === "shield"))
+			.map((item) => ({ actor, item })));
+}
+
+/**
+ * Mark the wooden shield or weapon a Greater effect broke (p10). It stays on
+ * the sheet, faded, until it's mended.
+ */
+async function onBreak(message) {
+	const things = breakableThings(attackOf(message));
+	if (!things.length) return warn("attack.nothingToBreak");
+	let chosen = things[0];
+	if (things.length > 1) {
+		const action = await chooseDialog({
+			title: t("attack.break"),
+			icon: "fa-solid fa-hammer",
+			message: t("attack.breakWhat"),
+			buttons: things.map(({ actor, item }, index) => ({ action: String(index), label: `${actor.name}: ${item.name}`, default: index === 0 }))
+		});
+		chosen = typeof action === "string" ? things[Number(action)] : null;
+	}
+	if (!chosen) return;
+	await chosen.item.update({ "system.broken": true });
+	await postCard(chosen.actor, "note", { icon: "fa-solid fa-hammer", text: t("attack.broke", { name: chosen.actor.name, item: chosen.item.name }) });
+}
+
+const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, break: onBreak });
 
 /**
  * Wire up an Attack card's buttons as it renders in the chat log or a popout.

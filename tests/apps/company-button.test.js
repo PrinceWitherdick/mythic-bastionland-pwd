@@ -136,6 +136,27 @@ describe("the Place the Company button", () => {
 		expect(shown()).toBeUndefined();
 	});
 
+	it("waits while Creating a Realm is open over a Realm being drawn, whose last page places the Company", () => {
+		const drawing = { ...scene.flags[SYSTEM_ID], drawing: true };
+		scene.flags[SYSTEM_ID] = drawing;
+		scene.getFlag = (scope, key) => (scope === SYSTEM_ID ? drawing[key] : undefined);
+		const instances = new Map([["bastionland-realm-drawing", {}]]);
+		foundry.applications = { instances };
+		showCompanyButton();
+		expect(shown()).toBeUndefined();
+
+		// Closed early, the button takes the Company up instead.
+		instances.clear();
+		showCompanyButton();
+		expect(shown()).toBeTruthy();
+
+		// Once the Realm is finished, the window has nothing to do with it.
+		drawing.drawing = false;
+		instances.set("bastionland-realm-drawing", {});
+		showCompanyButton();
+		expect(shown()).toBeTruthy();
+	});
+
 	it("hands the Company over on a click, and stands down while it's carried", async () => {
 		showCompanyButton();
 		await shown().listeners.click();

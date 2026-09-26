@@ -1,5 +1,6 @@
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
+import { FrameButtonsMixin } from "../compat.js";
 import { slugify } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { openPortraitFrame } from "./PortraitFrame.js";
@@ -12,7 +13,7 @@ const { ImagePopout } = foundry.applications.apps;
  * a GM opens one for. Players get the picture with its title, such as a
  * Myth's name.
  */
-export class ArtPopout extends ImagePopout {
+export class ArtPopout extends FrameButtonsMixin(ImagePopout) {
 	static DEFAULT_OPTIONS = {
 		classes: ["bastionland-art-popout"],
 		// Foundry's own Show is in the menu. This window's is the header button.

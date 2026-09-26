@@ -70,10 +70,11 @@ const wholeNumbers = (value) => (Array.isArray(value) ? value.filter((number) =>
  */
 export function normaliseWhen(raw) {
 	if (!raw || typeof raw !== "object") return null;
-	const { age, season, day, phase } = raw;
+	const { age, year, season, day, phase } = raw;
 	if (!Number.isInteger(age) || !Number.isInteger(day)) return null;
 	if (typeof season !== "string" || typeof phase !== "string") return null;
-	return { age, season, day, phase };
+	// The year is kept where it was counted, so one Spring's roll isn't taken for the next's.
+	return Number.isInteger(year) ? { age, year, season, day, phase } : { age, season, day, phase };
 }
 
 /**
@@ -178,6 +179,16 @@ export function forgetSpark(lore, hex, id) {
 	const sparks = here.sparks.filter((spark) => spark.id !== id);
 	if (sparks.length === here.sparks.length) return lore;
 	return withRecord(lore, hex, worthKeeping({ ...here, sparks }));
+}
+
+/**
+ * Forget all that's written and rolled for a hex.
+ * @param {HexLore} lore
+ * @param {{col: number, row: number}} hex
+ * @returns {HexLore} Unchanged when nothing was.
+ */
+export function forgetRecord(lore, hex) {
+	return loreAt(lore, hex) ? withRecord(lore, hex, null) : lore;
 }
 
 /**

@@ -11,6 +11,8 @@ import {
 	sceneGeometry,
 	syncRealmScene
 } from "../actions/realm.js";
+import { keepMapPictureSize } from "../actions/realm-map.js";
+import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
 import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshMythChooser } from "../apps/MythChooser.js";
@@ -91,10 +93,12 @@ function realmChanged(sceneId) {
 /**
  * Show the rules beside the Realm on the canvas: Creating a Realm for a GM
  * while it's still being drawn by hand, and Travel and Exploration once it's
- * finished. While it's being drawn, players see neither.
+ * finished. While it's being drawn, players see neither. While the GM is
+ * lining a picture up under it, they see neither either, until it's kept.
  * @returns {Promise<unknown>}
  */
 function showRealmRules() {
+	if (liningUpMap(canvas?.scene)) return Promise.all([closeTravelRules(), closeRealmDrawing()]);
 	if (isDrawingRealm(canvas?.scene)) return Promise.all([closeTravelRules(), showRealmDrawing()]);
 	return Promise.all([closeRealmDrawing(), showTravelRules()]);
 }
@@ -110,6 +114,13 @@ export function registerRealmHooks() {
 
 	// A Company coming to rest in a hex nothing has been written down for.
 	registerHexPrompt();
+
+	// An imported map keeps its size: its Tile may be moved, but not sized.
+	Hooks.on("preUpdateTile", keepMapPictureSize);
+	// The rules beside the map wait while a picture is lined up under it, and come back once it's kept or put back.
+	Hooks.on(MAP_ALIGNMENT_HOOK, (_active, scene) => {
+		if (scene?.id === canvas?.scene?.id) showRealmRules();
+	});
 
 	// A Realm is read from its Tiles and Drawings, so any change to them means reading it again.
 	const onDocument = (document) => realmChanged(document.parent?.id);
@@ -127,10 +138,17 @@ export function registerRealmHooks() {
 		forgetRealmHistory(scene.id);
 		forgetHexArrivals(scene.id);
 	});
-	// The Hex panel's Undo and Redo buttons.
-	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => refreshRealmPanel(sceneId));
-	// The terrain brush shows the pictures the Realm is drawn with.
-	Hooks.on(REALM_LOOK_HOOK, (sceneId) => sceneId && refreshRealmPanel(sceneId));
+	// The Undo and Redo buttons of the Hex panel and of Creating a Realm.
+	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => {
+		refreshRealmPanel(sceneId);
+		refreshRealmDrawing(sceneId);
+	});
+	// The swatches, in the palette and in Creating a Realm, show the pictures the Realm is drawn with.
+	Hooks.on(REALM_LOOK_HOOK, (sceneId) => {
+		if (!sceneId) return;
+		refreshRealmPanel(sceneId);
+		refreshRealmDrawing(sceneId);
+	});
 
 	// The hex readout, and Travel and Exploration beside the map. The rules stay
 	// up from one Realm Scene to the next: `canvasTearDown` is told only which

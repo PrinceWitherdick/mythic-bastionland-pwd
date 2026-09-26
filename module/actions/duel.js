@@ -2,6 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
 import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, opponentOf, readyToResolve } from "../rules/duel.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { queryAsker } from "../compat.js";
 
 /**
  * Duels & Jousts (p10). A duel card follows two duelists through each
@@ -83,7 +84,10 @@ export function openDuelFor(actor) {
  * @param {{user: User}} context
  * @returns {Promise<boolean>}
  */
-export async function onDuelQuery({ messageId, change }, { user }) {
+export async function onDuelQuery(data, context) {
+	const { messageId, change } = data;
+	const user = queryAsker(context);
+	if (!user) return false;
 	const message = game.messages.get(messageId);
 	const duel = duelOf(message);
 	if (!duel) return false;

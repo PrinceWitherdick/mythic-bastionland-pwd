@@ -4,6 +4,7 @@
  * Pure, so the rolls and what they make can be tested without Foundry.
  */
 import { SYSTEM_PATH } from "../system-id.js";
+import { knightChoice } from "./creation.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 
 /** A new Squire's portrait: somebody on one knee, waiting to be made a Knight. */
@@ -25,14 +26,19 @@ const SQUIRE_DAGGER = Object.freeze({ key: "dagger", type: "weapon", system: Obj
 /**
  * A d6 for their extra equipment, in table order. Names live under
  * `bastionland.squire.equipment`. The shortbow is purely ranged, as bows are.
+ * p7 prints the hatchet and javelins as plain d6, but the weapon list (p12)
+ * makes both hefty, so they are here too. The javelins are counted, three of
+ * them, as a Knight's "3 javelins" are. The cudgel, shortbow and shield are
+ * wooden, so a Strong Gambit can break them (p10); set here rather than read
+ * off the name, which is translated.
  */
 export const SQUIRE_EQUIPMENT = Object.freeze([
-	Object.freeze({ key: "cudgel", type: "weapon", system: Object.freeze({ damage: "d8", hefty: true }) }),
+	Object.freeze({ key: "cudgel", type: "weapon", system: Object.freeze({ damage: "d8", hefty: true, wooden: true }) }),
 	Object.freeze({ key: "axe", type: "weapon", system: Object.freeze({ damage: "d8", hefty: true }) }),
-	Object.freeze({ key: "hatchet", type: "weapon", system: Object.freeze({ damage: "d6" }) }),
-	Object.freeze({ key: "shortbow", type: "weapon", system: Object.freeze({ damage: "d6", long: true, ranged: true }) }),
-	Object.freeze({ key: "shield", type: "armour", system: Object.freeze({ kind: "shield", armour: 1, damage: "d4" }) }),
-	Object.freeze({ key: "javelins", type: "weapon", system: Object.freeze({ damage: "d6" }) })
+	Object.freeze({ key: "hatchet", type: "weapon", system: Object.freeze({ damage: "d6", hefty: true }) }),
+	Object.freeze({ key: "shortbow", type: "weapon", system: Object.freeze({ damage: "d6", long: true, ranged: true, wooden: true }) }),
+	Object.freeze({ key: "shield", type: "armour", system: Object.freeze({ kind: "shield", armour: 1, damage: "d4", wooden: true }) }),
+	Object.freeze({ key: "javelins", type: "weapon", system: Object.freeze({ damage: "d6", hefty: true, quantity: Object.freeze({ value: 3, max: 3 }) }) })
 ]);
 
 /**
@@ -151,4 +157,59 @@ export function knightedVirtues(virtues, gains) {
 		const gain = Math.max(0, Math.trunc(gains[key]) || 0);
 		return [key, { value: clampVirtue(virtues[key].value + gain), max: clampVirtue(virtues[key].max + gain) }];
 	}));
+}
+
+/**
+ * The flag on a Squire just Knighted who is still to choose which Knight they
+ * became. While it stands, the chooser adds that Knight to them rather than
+ * making them over.
+ */
+export const CHOOSING_FLAG = "choosingKnight";
+
+/**
+ * @param {string} name
+ * @param {string} template The name a Squire is given, as "Squire to {knight}".
+ * @returns {boolean} Whether the name is still the one they were given as a Squire.
+ */
+export function isSquireName(name, template) {
+	const [before, after = ""] = String(template ?? "").toLowerCase().split("{knight}").map((part) => part.trim());
+	const given = String(name ?? "").trim().toLowerCase();
+	if (!before && !after) return false;
+	return given.length > before.length + after.length && given.startsWith(before) && given.endsWith(after);
+}
+
+/**
+ * A Knighted Squire becoming the Knight chosen for them (p7: "Roll or choose a
+ * Knight"). They're named that Knight, and the Seer on the Knight's page is the
+ * one who knighted them. The Knight's portrait and Token picture are taken only
+ * where theirs are still a stand-in. Their Virtues, GD, Age and Glory stay.
+ * @param {{img: string, tokenImg: string}} squire Their portrait and Token picture.
+ * @param {object|null} knight A Knight from the art index; none before Import PDF, which names nothing.
+ * @param {object|null} seer    Their Seer from the art index.
+ * @param {string} blank        Foundry's default portrait.
+ * @returns {object} An Actor update.
+ */
+export function knightedChoice({ img, tokenImg }, knight, seer, blank) {
+	if (!knight) return {};
+	const update = knightChoice(knight, seer);
+	const standIn = (src) => !src || src === blank || src === SQUIRE_IMAGE;
+	if (knight.path && standIn(img)) update.img = knight.path;
+	if (knight.token && standIn(tokenImg)) update["prototypeToken.texture.src"] = knight.token;
+	return update;
+}
+
+/**
+ * The items a Knighted Squire gains from the Knight they became: all of that
+ * Knight's, less any piece of the kit every Knight carries (p7) that they
+ * carry already, such as the dagger every Squire has.
+ * @param {{type: string, name: string}[]} items The Knight's items, from knightItems.
+ * @param {{type: string, name: string}[]} carried What the Squire carries.
+ * @param {string[]} kitNames The kit's names.
+ * @returns {{type: string, name: string}[]}
+ */
+export function itemsGained(items, carried, kitNames) {
+	const key = (item) => `${item.type}:${String(item.name ?? "").trim().toLowerCase()}`;
+	const kit = new Set(kitNames.map((name) => String(name).trim().toLowerCase()));
+	const have = new Set(carried.map(key));
+	return items.filter((item) => !(kit.has(String(item.name ?? "").trim().toLowerCase()) && have.has(key(item))));
 }

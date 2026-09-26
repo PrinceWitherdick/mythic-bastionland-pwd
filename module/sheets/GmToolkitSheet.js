@@ -5,34 +5,36 @@ import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
-import { confirmForgetHexVisits, getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
-import { SCOPE_HOOK, makeKnightAhead, scopeView, setScope, setScopePlan } from "../actions/scope.js";
-import { writeSeasonNotes } from "../actions/season-log.js";
+import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { openHexLore, sparkWhen } from "../apps/HexLore.js";
+import { openHexVisits } from "../apps/HexVisits.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { openWildernessHex } from "../apps/WildernessHex.js";
-import { TIME_ACTIONS, seasonEventLine, setCalendarByHand, timeContext } from "../apps/time-controls.js";
+import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerse, tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { reducesMotion, scrollBehavior } from "../client-settings.js";
+import { openRulebook } from "../rulebook/BookReader.js";
+import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
+import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
-import { seasonEventsView } from "../rules/season-events.js";
 import { POINT_KINDS } from "../rules/sites.js";
-import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
+import { completedMythId, crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
@@ -135,12 +137,12 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
-			setScope: (_event, target) => setScope(target.dataset.scope),
-			knightAhead: () => makeKnightAhead(),
 			...TIME_ACTIONS,
 			landmarkOffer: GmToolkitSheet.#onLandmarkOffer,
 			crisisRoll: GmToolkitSheet.#onCrisisRoll,
 			pickWeather: () => pickWeather(),
+			// With no copy yet, the button sets one up rather than doing nothing.
+			openRulebook: () => openRulebook() ?? openRulebookSetup(),
 			placesOrder: GmToolkitSheet.#onPlacesOrder
 		}
 	};
@@ -277,6 +279,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			// With one Realm there is nothing to choose: the banner names it instead of offering a dropdown.
 			onlyRealm: realms.length === 1 ? realms[0].name : null,
 			clock: this.#clockContext(),
+			rulebook: { have: hasRulebook(), tooltip: t(hasRulebook() ? "gmToolkit.rulebook" : "gmToolkit.rulebookSetup") },
 			company: data?.companyHex ? { label: t("realm.hex", data.companyHex), key: hexKey(data.companyHex) } : null,
 			noCompany: Boolean(data) && !data.companyHex
 		};
@@ -580,7 +583,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			note: record?.note ?? "",
 			sparks,
 			wild,
-			tellDisabled: !record?.note,
 			landmark: offer,
 			fold,
 			open: this.#folds.get(fold) ?? open
@@ -650,12 +652,12 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const calendar = getCalendar();
 		const { season, phase } = calendar;
 		// The banner shows the date alone, so the Referee's own blocks aren't worked out for it.
-		const { age, day, seasons, phases } = timeContext({ referee: false });
-		// Hovering the Day and Age reads the date out in full, as a chronicle would, before how to set it.
+		const { age, seasons, phases } = timeContext({ referee: false });
+		// Hovering the Age reads the date out in full, as a chronicle would, before how to set it.
 		const tooltip = `${chronicleLabel(calendar)} ${t("gmToolkit.clockHint")}`;
 		// Only a table with FXMaster to draw the weather is shown it, and a GM may hide it even then.
 		const weather = weatherButtonShown() ? weatherView() : null;
-		return { age, day, season, seasonIcon: SEASON_ICONS[season], phaseIcon: PHASE_ICONS[phase], seasons, phases, weather, tooltip };
+		return { age, season, seasonIcon: SEASON_ICONS[season], phaseIcon: PHASE_ICONS[phase], seasons, phases, weather, tooltip };
 	}
 
 	/**
@@ -668,9 +670,9 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	#timeContext(data) {
 		const calendar = getCalendar();
 		const waiting = data ? resolvedMyths(data.realm, data.notes) : [];
-		// The log by Age, the newest first; flattened so the newest Season of all comes first.
-		const log = seasonLogView(this.actor.system.seasons, calendar).flatMap(({ seasons }) => [...seasons].reverse());
-		const { record, ...now } = log.find((entry) => entry.current);
+		// The log by Age, the newest first, and each Age's Seasons the newest first too.
+		const ages = seasonLogView(this.actor.system.seasons, calendar).map(({ age, seasons }) => ({ age, seasons: [...seasons].reverse() }));
+		const { record, ...now } = ages.flatMap(({ seasons }) => seasons).find((entry) => entry.current);
 		return {
 			...timeContext(),
 			thisSeason: {
@@ -682,22 +684,38 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			},
 			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name })),
 			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) })),
-			// How long the game is expected to run, and what a Chronicle's plan puts at this session's end (p6).
-			scope: scopeView(),
-			pastSeasons: log.filter((entry) => !entry.current).map(({ record: past, ...entry }) => {
-				const fold = `season-${entry.key}`;
+			pastAges: ages.map(({ age, seasons }) => {
+				const past = seasons.filter((entry) => !entry.current).map((entry) => this.#pastSeason(entry));
+				const fold = `age-${age}`;
 				return {
-					...entry,
-					label: t("gmToolkit.seasons.label", { season: t(`time.seasons.${entry.season}`), age: entry.age }),
-					icon: SEASON_ICONS[entry.season],
-					notes: past.notes,
-					// The Season's own events (p17), each ticked once it came to pass.
-					events: seasonEventsView(entry.season, past.events).map((event) => seasonEventLine(event, entry.season)),
-					turn: this.#seasonTurn(past.turn),
+					age,
+					label: t("gmToolkit.seasons.age", { age }),
+					count: t(`gmToolkit.seasons.count.${past.length === 1 ? "one" : "other"}`, { count: past.length }),
+					seasons: past,
 					fold,
-					open: this.#folds.get(fold) ?? false
+					// The Age the world is in lies open, the ones before it folded away.
+					open: this.#folds.get(fold) ?? age === now.age
 				};
-			})
+			}).filter(({ seasons }) => seasons.length)
+		};
+	}
+
+	/**
+	 * A Season before this one, folded to one row under its Age.
+	 * @param {{key: string, season: string, record: import("../rules/season-log.js").SeasonRecord}} entry
+	 */
+	#pastSeason({ record, ...entry }) {
+		const fold = `season-${entry.key}`;
+		return {
+			...entry,
+			label: t(`time.seasons.${entry.season}`),
+			icon: SEASON_ICONS[entry.season],
+			notes: record.notes,
+			// The Myths resolved in it (p27); its events (p17) only mattered while it lasted.
+			myths: record.myths.map(({ name }) => name),
+			turn: this.#seasonTurn(record.turn),
+			fold,
+			open: this.#folds.get(fold) ?? false
 		};
 	}
 
@@ -768,8 +786,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				onCastChange(actor, changes);
 			})],
 			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))],
-			[SCOPE_HOOK, Hooks.on(SCOPE_HOOK, () => this.#redraw("time"))],
-			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))]
+			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))],
+			[RULEBOOK_HOOK, Hooks.on(RULEBOOK_HOOK, () => this.#redraw("header"))]
 		];
 	}
 
@@ -924,13 +942,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				if (key) await writeSeasonNotes(key, target.value);
 				return;
 			}
-			case "day":
-				await setCalendarByHand({ [field]: target.value });
-				return;
-			// Which part of the plan a box sets is written on the box; setScopePlan knows the parts.
-			case "scopePlan":
-				await setScopePlan({ [target.dataset.part]: target.value });
-				return;
 			case "season":
 			case "phase":
 				// A pick is made once chosen, so the banner needn't wait for the GM to leave the drop-down.
@@ -1067,22 +1078,27 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	}
 
 	/**
-	 * The group feels the Myth is resolved: mark it so, and award the Glory
-	 * that comes with it (p27). A new Myth replaces it in the next Season. Only
-	 * a Myth whose last Omen has been met can be resolved.
+	 * The group feels the Myth is resolved: mark it so, keep it in this
+	 * Season's record, and award the Glory that comes with it (p27). A new Myth
+	 * replaces it in the next Season. Only a Myth whose last Omen has been met
+	 * can be resolved.
 	 * @this {GmToolkitSheet}
 	 */
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth || myth.omen < OMEN_COUNT) return;
-		await editMythNote(this.scene, myth, { resolved: true });
-		await awardGlory("myth");
+		await Promise.all([
+			editMythNote(this.scene, myth, { resolved: true }),
+			recordMythCompleted({ id: completedMythId(this.scene.id, myth), name: mythLookup(this.#index, myth).name }),
+			awardGlory("myth")
+		]);
 	}
 
 	/** @this {GmToolkitSheet} */
-	static #onMythUnresolved(_event, target) {
+	static async #onMythUnresolved(_event, target) {
 		const myth = this.#mythFrom(target);
-		if (myth) return editMythNote(this.scene, myth, { resolved: false });
+		if (!myth) return;
+		await Promise.all([editMythNote(this.scene, myth, { resolved: false }), forgetMythCompleted(completedMythId(this.scene.id, myth))]);
 	}
 
 	/**
@@ -1172,7 +1188,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/** @this {GmToolkitSheet} */
 	static #onTellHex(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
-		if (hex) return tellPlayersAboutHex({ scene: this.scene, hex });
+		const note = target.closest("[data-hex]")?.querySelector('[data-toolkit-field="hexNote"]')?.value;
+		if (hex) return tellPlayersAboutHex({ scene: this.scene, hex, note });
 	}
 
 	/** @this {GmToolkitSheet} */
@@ -1214,7 +1231,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/** @this {GmToolkitSheet} */
 	static #onForgetVisits(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
-		if (hex) return confirmForgetHexVisits(this.scene, hex);
+		if (hex) return openHexVisits({ scene: this.scene, hex });
 	}
 
 	/**

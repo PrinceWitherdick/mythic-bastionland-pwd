@@ -1,0 +1,172 @@
+# Source-of-truth list of AI-training / text-and-data-mining crawler user-agents.
+#
+# One user-agent per line. Blank lines and lines starting with `#` are ignored.
+# Run `npm run gen:ai-signals` to regenerate robots.txt and ai.txt from this list.
+#
+# Seeded from the community-maintained ai.robots.txt project
+# (https://github.com/ai-robots-txt/ai.robots.txt). Refresh periodically by
+# pasting its current list here and re-running the generator. Case variants are
+# intentional: robots.txt matching is case-insensitive per spec, but some
+# operators only honor an exact-cased product token.
+
+AddSearchBot
+AgentTimes
+AI2Bot
+AI2Bot-DeepResearchEval
+Ai2Bot-Dolma
+aiHitBot
+AIWebIndex
+amazon-kendra
+amazon-QBusiness
+Amazonbot
+AmazonBuyForMe
+Amzn-SearchBot
+Amzn-User
+Andibot
+Anomura
+anthropic-ai
+ApifyBot
+ApifyWebsiteContentCrawler
+Applebot
+Applebot-Extended
+Aranet-SearchBot
+atlassian-bot
+Awario
+AzureAI-SearchBot
+bedrockbot
+bigsur.ai
+Bravebot
+Brightbot
+Brightbot 1.0
+BuddyBot
+Bytespider
+CCBot
+Channel3Bot
+ChatGLM-Spider
+ChatGPT Agent
+ChatGPT-User
+Claude-Code
+Claude-SearchBot
+Claude-User
+Claude-Web
+ClaudeBot
+Cloudflare-AutoRAG
+CloudVertexBot
+cohere-ai
+cohere-training-data-crawler
+Cotoyogi
+CragCrawler
+Crawl4AI
+Crawlspace
+Cursor
+Datenbank Crawler
+DeepSeekBot
+Devin
+Diffbot
+DuckAssistBot
+Echobot Bot
+EchoboxBot
+ExaBot
+FacebookBot
+facebookexternalhit
+Factset_spyderbot
+FirecrawlAgent
+FriendlyCrawler
+GeistHaus-PageFetcher
+Gemini-Deep-Research
+Google-Agent
+Google-CloudVertexBot
+Google-Extended
+Google-Firebase
+Google-Gemini-CLI
+Google-NotebookLM
+GoogleAgent-Mariner
+GoogleAgent-URLContext
+GoogleOther
+GoogleOther-Image
+GoogleOther-Video
+GPTBot
+HenkBot
+iAskBot
+iaskspider
+iaskspider/2.0
+IbouBot
+ICC-Crawler
+ImagesiftBot
+imageSpider
+img2dataset
+ISSCyberRiskCrawler
+kagi-fetcher
+Kangaroo Bot
+Kimi-User
+KlaviyoAIBot
+KunatoCrawler
+laion-huggingface-processor
+LAIONDownloader
+LCC
+LinerBot
+Linguee Bot
+LinkupBot
+Manus-User
+meta-externalagent
+Meta-ExternalAgent
+meta-externalfetcher
+Meta-ExternalFetcher
+meta-webindexer
+MistralAI-User
+MistralAI-User/1.0
+Mozilla-Tabstack
+MyCentralAIScraperBot
+NagetBot
+netEstate Imprint Crawler
+newsai
+NotebookLM
+NovaAct
+OAI-SearchBot
+omgili
+omgilibot
+OpenAI
+Operator
+PanguBot
+Panscient
+panscient.com
+Perplexity-User
+PerplexityBot
+PetalBot
+PhindBot
+Poggio-Citations
+Poseidon Research Crawler
+QualifiedBot
+Querit-SearchBot
+QueritBot
+QuillBot
+quillbot.com
+SBIntuitionsBot
+Scrapy
+SemrushBot-OCOB
+SemrushBot-SWA
+Shap-User
+ShapBot
+Sidetrade indexer bot
+TavilyBot
+Terra Cotta
+TerraCotta
+Thinkbot
+TikTokSpider
+Timpibot
+TongyiBot
+Trae
+TwinAgent
+UseAI
+VelenPublicWebCrawler
+WARDBot
+Webzio-Extended
+webzio-extended
+wpbot
+WRTNBot
+YaK
+YandexAdditional
+YandexAdditionalBot
+YiyanBot
+YouBot
+ZanistaBot

@@ -19,6 +19,8 @@ function installFoundryStubs() {
 	}
 	class TypeDataModel {
 		prepareDerivedData() {}
+		async _preCreate() {}
+		async _preUpdate() {}
 	}
 	const hooks = {};
 
@@ -339,7 +341,7 @@ describe("system boot", () => {
 	});
 
 	it("keeps the hex readout's column and row off until the GM turns them on for the table", () => {
-		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexCoordinates", expect.objectContaining({ scope: "world", config: true, type: Boolean, default: false }));
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexCoordinates", expect.objectContaining({ scope: "world", config: true, type: Boolean, default: true }));
 	});
 
 	it("lets each GM say what reaching a new hex should do", () => {
@@ -366,7 +368,7 @@ describe("system boot", () => {
 			scope: "world",
 			config: false,
 			type: Object,
-			default: { age: 1, season: "spring", day: 1, phase: "morning" }
+			default: { age: 1, year: 1, season: "spring", day: 1, phase: "morning" }
 		}));
 	});
 
@@ -403,37 +405,14 @@ describe("system boot", () => {
 		delete globalThis.document;
 	});
 
-	it("adds no buttons to the Actors directory, and offers the Knight chooser when Create Actor makes a Knight", async () => {
+	it("adds no buttons to the Actors directory, and opens no chooser when Create Actor makes a Knight", () => {
 		expect(hooks.renderActorDirectory).toBeUndefined();
 
+		// A new Knight opens on an empty page with the chooser a click away, so a
+		// GM can make one for a player to choose; see tests/sheets/unchosen-knight.test.js.
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
 		const sheetFor = (type) => registerSheet.mock.calls.find(([registeredClass, , , options]) => registeredClass === Actor && options.types.includes(type))[2];
-		const chooseFromBook = (type) => Object.getOwnPropertyDescriptor(sheetFor(type).prototype, "_chooseFromBook");
-		expect(chooseFromBook("knight")?.value).toBeTypeOf("function");
-		// A new NPC is filled in by hand, as a Structure is; the book's are in the NPCs compendium.
-		expect(chooseFromBook("npc")).toBeUndefined();
-		expect(chooseFromBook("domain")).toBeUndefined();
-		expect(chooseFromBook("structure")).toBeUndefined();
-
-		// Only a sheet Create Actor opens offers its chooser, and only to someone who can edit it.
-		const { ActorSheetV2 } = foundry.applications.sheets;
-		ActorSheetV2.prototype._onFirstRender = async () => {};
-		const offered = [];
-		const sheetOpened = (renderContext, isEditable = true) => {
-			// Made rather than fabricated, so the sheet's own fields are there to write.
-			const sheet = Object.defineProperties(new (sheetFor("knight"))(), { isEditable: { value: isEditable }, element: { value: { addEventListener() {} } } });
-			sheet._chooseFromBook = () => offered.push(renderContext);
-			return sheet._onFirstRender({}, { renderContext });
-		};
-		try {
-			await sheetOpened("updateActor");
-			await sheetOpened("createActor", false);
-			expect(offered).toEqual([]);
-			await sheetOpened("createActor");
-			expect(offered).toEqual(["createActor"]);
-		} finally {
-			delete ActorSheetV2.prototype._onFirstRender;
-		}
+		for (const type of ["knight", "npc", "domain", "structure"]) expect(sheetFor(type).prototype._chooseFromBook).toBeUndefined();
 	});
 
 	it("leaves the Macro Directory alone for players when the world is ready", async () => {
@@ -454,7 +433,16 @@ describe("KnightModel", () => {
 			exposed: false,
 			mortalWound: false,
 			virtues: { vig: { value: 0 }, cla: { value: 4 }, spi: { value: 0 } },
-			parent: { items: [{ system: { wornArmour: 1 } }, { system: { wornArmour: 2 } }, { system: {} }] }
+			parent: {
+				items: [
+					{ type: "armour", system: { kind: "coat", armour: 1, equipped: true } },
+					{ type: "armour", system: { kind: "shield", armour: 2, equipped: true } },
+					// Only one coat is worn at once, and a piece taken off adds nothing.
+					{ type: "armour", system: { kind: "coat", armour: 1, equipped: true } },
+					{ type: "armour", system: { kind: "helm", armour: 1, equipped: false } },
+					{ type: "gear", system: {} }
+				]
+			}
 		});
 
 		model.prepareDerivedData();
@@ -467,7 +455,9 @@ describe("KnightModel", () => {
 			exhausted: true,
 			exposed: false,
 			impaired: true,
-			mortalWound: false
+			mortalWound: false,
+			wounded: false,
+			mounted: false
 		});
 		expect(model.knowsFeat("deny")).toBe(true);
 	});
@@ -534,6 +524,36 @@ describe("NpcModel", () => {
 	});
 });
 
+describe("GearModel", () => {
+	it("lets one Remedy into a create that adds two at once", async () => {
+		const { gear: GearModel } = CONFIG.Item.dataModels;
+		globalThis.ui = { notifications: { warn: vi.fn() } };
+		globalThis.game.i18n = { format: (key) => key };
+		const actor = { documentName: "Actor", type: "knight", system: {}, name: "Eve", items: { contents: [] } };
+		const remedy = () => Object.assign(new GearModel(), { remedy: "vig", quantity: { value: null, max: null }, parent: { parent: actor } });
+		const options = {};
+
+		expect(await remedy()._preCreate({}, options, {})).toBeUndefined();
+		expect(await remedy()._preCreate({}, options, {})).toBe(false);
+		expect(await remedy()._preCreate({}, {}, {})).toBeUndefined();
+	});
+});
+
+describe("Wounded", () => {
+	it("goes once an update makes a Knight's or an NPC's VIG whole", async () => {
+		const { knight: KnightModel, npc: NpcModel } = CONFIG.Actor.dataModels;
+		for (const Model of [KnightModel, NpcModel]) {
+			const model = Object.assign(new Model(), { seer: "", wounded: true, virtues: { vig: { value: 4, max: 9 } } });
+			const healed = { system: { virtues: { vig: { value: 9 } } } };
+			await model._preUpdate(healed, {}, {});
+			expect(healed.system.wounded).toBe(false);
+			const hurt = { system: { virtues: { vig: { value: 6 } } } };
+			await model._preUpdate(hurt, {}, {});
+			expect(hurt.system).not.toHaveProperty("wounded");
+		}
+	});
+});
+
 describe("DomainModel", () => {
 	it("musters by the Holding's standing and warns of misrule before it falls", () => {
 		const { domain: DomainModel } = CONFIG.Actor.dataModels;
@@ -551,10 +571,3 @@ describe("DomainModel", () => {
 	});
 });
 
-describe("ArmourModel", () => {
-	it("only counts worn armour", () => {
-		const { armour: ArmourModel } = CONFIG.Item.dataModels;
-		expect(Object.assign(new ArmourModel(), { equipped: true, armour: 2 }).wornArmour).toBe(2);
-		expect(Object.assign(new ArmourModel(), { equipped: false, armour: 2 }).wornArmour).toBe(0);
-	});
-});

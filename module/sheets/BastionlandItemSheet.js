@@ -1,6 +1,9 @@
 import { t } from "../chat/cards.js";
-import { ARMOUR_KINDS } from "../config.js";
-import { SPECIALIST_DICE } from "../rules/attack.js";
+import { ARMOUR_KINDS, PROPERTY_TYPES } from "../config.js";
+import { RARITIES } from "../rules/arms-and-goods.js";
+import { ARMOUR_CONDITIONS } from "../rules/armour.js";
+import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "../rules/attack.js";
+import { RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -17,7 +20,7 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		// Not "bastionland-item": that is the class on an item's row in a sheet's
 		// list, and its padding and rule would be painted around this window.
 		classes: [SYSTEM_ID, "bastionland", "bastionland-item-window"],
-		position: { width: 480, height: 520 },
+		position: { width: 480, height: 640 },
 		window: { resizable: true },
 		form: { submitOnChange: true },
 		actions: {
@@ -77,6 +80,14 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			isArmour: item.type === "armour",
 			isScar: item.type === "scar",
 			isGear: item.type === "gear",
+			// Weapons, armour and gear can be rare, counted, restocked and broken.
+			isPossession: PROPERTY_TYPES.includes(item.type),
+			alternateQualities: item.type === "weapon"
+				? ALTERNATE_QUALITIES.map((key) => ({ key, label: t(`item.${key}`), hint: t(`item.${key}Hint`), checked: item.system.alternate[key] }))
+				: [],
+			conditionOptions: Object.fromEntries(ARMOUR_CONDITIONS.map((key) => [key, t(`item.conditions.${key || "always"}`)])),
+			rarityOptions: { "": t("item.noRarity"), ...Object.fromEntries(RARITIES.map((key) => [key, t(`goods.rarities.${key}`)])) },
+			restockOptions: Object.fromEntries(RESTOCK_CADENCES.map((key) => [key, t(`item.restocks.${key || "never"}`)])),
 			kindOptions: Object.fromEntries(ARMOUR_KINDS.map((key) => [key, game.i18n.localize(`bastionland.item.kinds.${key}`)])),
 			specialistOptions: { "": t("item.notSpecialist"), ...Object.fromEntries(SPECIALIST_DICE.map((die) => [die, `+${die}`])) },
 			remedyOptions: { "": t("item.notRemedy"), ...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.label`)])) },

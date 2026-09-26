@@ -13,7 +13,8 @@
     "charges": "node scripts/heraldry-charges.js",
     "goods-icons": "node scripts/goods-icons.js",
     "company-icons": "node scripts/company-icons.js",
-    "macro-icons": "node scripts/macro-icons.js"
+    "macro-icons": "node scripts/macro-icons.js",
+    "gen:ai-signals": "node scripts/gen-ai-signals.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

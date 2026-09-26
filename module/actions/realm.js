@@ -1,8 +1,9 @@
-import { addDirectoryButton, confirmDialog } from "../apps/ui.js";
+import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
+import { deletionEntry, scenePaper } from "../compat.js";
 import { COMPANY_STARTS } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
@@ -223,7 +224,7 @@ async function writeRealm(scene, realm, g, textures, options) {
 		const path = (key) => `flags.${SYSTEM_ID}.${REALM_FLAG}.${key}`;
 		await scene.update(Object.fromEntries([
 			...Object.entries(flag.set).map(([key, value]) => [path(key), value]),
-			...flag.drop.map((key) => [path(key), new foundry.data.operators.ForcedDeletion()])
+			...flag.drop.map((key) => deletionEntry(path(key)))
 		]));
 	}
 	for (const step of ["delete", "update", "create"]) {
@@ -245,10 +246,10 @@ export const realmWritesSettled = () => queueRealmWrite.settled();
  * @returns {Promise<boolean>} Whether anything was written.
  */
 async function paintRealmScene(scene, colours, extra = {}) {
-	const { grid, level, paper } = sceneColourChanges(scene, colours);
+	const { grid, paper, sheet } = sceneColourChanges(scene, colours);
 	const changes = { ...extra };
 	if (grid) changes["grid.color"] = grid;
-	if (paper) changes.levels = [{ _id: level.id, background: { color: paper } }];
+	if (paper) Object.assign(changes, sheet.update(paper));
 	if (foundry.utils.isEmpty(changes)) return false;
 	// One write, so every client redraws the Scene once.
 	await scene.update(changes);
@@ -273,14 +274,14 @@ export async function setRealmGridAlpha(scene, alpha) {
 /**
  * @param {Scene} scene
  * @param {{paper: string, grid: string}} colours
- * @returns {{grid?: string, paper?: string, level?: object}} The colours the Scene doesn't have yet, and the level its paper is on.
+ * @returns {{grid?: string, paper?: string, sheet?: object}} The colours the Scene doesn't have yet, and where its paper is kept (see scenePaper).
  */
 function sceneColourChanges(scene, { paper, grid }) {
 	const same = (a, b) => String(a ?? "").toLowerCase() === String(b).toLowerCase();
 	const changes = {};
 	if (!same(scene._source.grid?.color, grid)) changes.grid = grid;
-	const level = scene.levels?.get(LEVEL_ID) ?? scene.levels?.contents[0];
-	if (level && !same(level._source.background?.color, paper)) Object.assign(changes, { paper, level });
+	const sheet = scenePaper(scene, LEVEL_ID);
+	if (sheet && !same(sheet.colour, paper)) Object.assign(changes, { paper, sheet });
 	return changes;
 }
 
@@ -384,9 +385,9 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
 		}
 		if (hidden.size) previewHidden.set(scene.id, hidden);
 	}
-	const { grid, level, paper } = sceneColourChanges(scene, textures.colours);
+	const { grid, paper, sheet } = sceneColourChanges(scene, textures.colours);
 	if (grid) scene.updateSource({ "grid.color": grid });
-	if (paper) level.updateSource({ background: { color: paper } });
+	if (paper) sheet.updateSource(paper);
 
 	if (!redraw || !onCanvas) return;
 	// The paper and hex lines are only read as the Scene is drawn.
@@ -602,9 +603,11 @@ export async function newRealm() {
 		draw
 			? { key: "setup", icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") }
 			: { key: "setup", icon: "fa-sliders", label: t("realm.setup.title") },
-		{ key: "company", icon: "fa-flag", label: t("company.title") }
+		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
+		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
 	];
-	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
+	// As an element, so the Import map page's layout drawings (SVG) aren't cleaned away.
+	const content = uncleanedContent(await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
 		draw,
 		traced,
 		pages,
@@ -618,7 +621,7 @@ export async function newRealm() {
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
-	});
+	}));
 
 	const data = await foundry.applications.api.DialogV2.input({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
@@ -743,7 +746,11 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 		foundry.utils.expandObject({ ...lookFlag(look), ...(drawing ? drawingFlag(true) : {}) })
 	);
 
-	const scene = await CONFIG.Scene.documentClass.create(data);
+	// A Realm laid over a picture opens with the picture being lined up, and the rules that open with the
+	// Scene wait for that. They're told before the Scene exists, since a world's first is drawn as it's made.
+	const id = foundry.utils.randomID();
+	if (pictures) (await import("../canvas/map-alignment.js")).awaitMapAlignment(id);
+	const scene = await CONFIG.Scene.documentClass.create({ ...data, _id: id }, { keepId: true });
 	if (!scene) return null;
 	// A world's first Scene is made active as it's created, so Foundry is already drawing it and won't switch Scenes until it's done.
 	if (canvas.loading) await new Promise((resolve) => Hooks.once("canvasReady", resolve));
@@ -837,12 +844,12 @@ export async function setRealmLayout(scene, layout) {
 		// The layout goes into the Scene's flag with its grid and size in one write,
 		// so a Realm read from here on is read the new way, even by a sync the redraw sets off.
 		const flag = `flags.${SYSTEM_ID}.${REALM_FLAG}.layout`;
-		await scene.update({
-			"grid.type": to.gridType,
-			width: to.width,
-			height: to.height,
-			[flag]: to.layout === BOOK_LAYOUT ? new foundry.data.operators.ForcedDeletion() : to.layout
-		});
+		await scene.update(Object.fromEntries([
+			["grid.type", to.gridType],
+			["width", to.width],
+			["height", to.height],
+			to.layout === BOOK_LAYOUT ? deletionEntry(flag) : [flag, to.layout]
+		]));
 		// Each of the Realm's Tiles moves with its hex, so the sync that follows finds each where the new layout looks for it.
 		const moves = scene.tiles.contents.flatMap((tile) => {
 			const kind = realmFlag(tile)?.kind;

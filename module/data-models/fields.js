@@ -53,6 +53,10 @@ export function characterFields() {
 		// Caught with their guard down. CLA 0 also Exposes, but that is derived.
 		exposed: booleanField(),
 		mortalWound: booleanField(),
+		// Took Damage past their GD (p8); it lapses once their VIG is whole again.
+		wounded: booleanField(),
+		// On horseback, so a lance counts as Hefty and a rider's plate counts.
+		mounted: booleanField(),
 		notes: htmlField()
 	};
 }

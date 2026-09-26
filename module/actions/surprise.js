@@ -1,5 +1,6 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
+import { contextMenuEntry } from "../compat.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
@@ -59,10 +60,10 @@ export async function rollSurprise(combat = game.combat) {
  * @param {object[]} options The menu's entries.
  */
 export function addSurpriseOption(tracker, options) {
-	options.push({
+	options.push(contextMenuEntry({
 		label: "bastionland.surprise.title",
 		icon: "fa-solid fa-bolt",
 		visible: () => game.user.isGM && tracker.viewed?.combatants.size > 0,
-		onClick: () => rollSurprise(tracker.viewed)
-	});
+		run: () => rollSurprise(tracker.viewed)
+	}));
 }

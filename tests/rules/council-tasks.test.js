@@ -19,7 +19,7 @@ import {
 import { COUNCIL_SEATS } from "../../module/rules/dominion.js";
 import { VIRTUES } from "../../module/rules/virtues.js";
 
-const day = (day, phase = "morning", season = "spring", age = 1) => ({ age, season, day, phase });
+const day = (day, phase = "morning", season = "spring", age = 1, year = 1) => ({ age, year, season, day, phase });
 
 const task = (seat, extra = {}) => ({
 	seat,
@@ -73,7 +73,7 @@ describe("normalizeTask", () => {
 
 	it("keeps the calendar the work began on, however bad", () => {
 		expect(normalizeTask({ seat: "envoy", started: { age: 2, season: "winter", day: 4, phase: "night" } }).started)
-			.toEqual({ age: 2, season: "winter", day: 4, phase: "night" });
+			.toEqual({ age: 2, year: 1, season: "winter", day: 4, phase: "night" });
 		expect(normalizeTask({ seat: "envoy", started: "yesterday" }).started).toEqual(day(1));
 	});
 });
@@ -156,6 +156,14 @@ describe("isTaskDue", () => {
 		expect(isTaskDue(season, day(40))).toBe(false);
 		expect(isTaskDue(season, day(1, "morning", "harvest"))).toBe(true);
 		expect(isTaskDue(season, day(1, "morning", "spring", 2))).toBe(true);
+	});
+
+	it("brings work begun late in Winter due in the next year's Spring", () => {
+		const week = task("marshal", { scope: "week", started: day(6, "night", "winter") });
+		expect(isTaskDue(week, day(1, "morning", "spring", 1, 2))).toBe(true);
+		const season = task("envoy", { scope: "season", started: day(6, "night", "winter") });
+		expect(taskDueAt(season)).toEqual(day(1, "morning", "spring", 1, 2));
+		expect(isTaskDue(season, day(1, "morning", "spring", 1, 2))).toBe(true);
 	});
 
 	it("leaves the work unfinished again where the calendar is set back", () => {

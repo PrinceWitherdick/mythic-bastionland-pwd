@@ -3,6 +3,13 @@
 		<h3 class="bastionland-card__title">{{title}}</h3>
 	</header>
 	<p class="bastionland-card__text">{{text}}</p>
+	{{#if modules}}
+	<ul class="bastionland-card__list bastionland-card__modules">
+		{{#each modules}}
+		<li><a href="{{url}}" target="_blank" rel="noopener">{{name}}</a> {{text}}</li>
+		{{/each}}
+	</ul>
+	{{/if}}
 	<div class="bastionland-card__actions">
 		<button type="button" data-welcome-card="{{card}}"><i class="{{icon}}" inert></i> {{label}}</button>
 	</div>

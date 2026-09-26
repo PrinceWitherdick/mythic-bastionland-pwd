@@ -1,9 +1,11 @@
 import { keepHexSparks, throwSparkDice, wildernessHexTables } from "../actions/hex-lore.js";
 import { t } from "../chat/cards.js";
 import { tableView } from "../rules/gm-toolkit.js";
+import { reducesMotion } from "../client-settings.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { spinTable } from "./roll-spin.js";
+import { animates, wireAnimateBox } from "./SparkTables.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -72,8 +74,15 @@ export class WildernessHex extends HandlebarsApplicationMixin(ApplicationV2) {
 				rollLabel: t("hexLore.wildHex.rollTable", { name: table.name }),
 				...tableView(table, this.#taken[index], (column) => t("hexLore.wildHex.rollColumn", { column }))
 			})),
-			nothingTaken: this.#taken.every((rows) => rows.every((row) => row === null))
+			nothingTaken: this.#taken.every((rows) => rows.every((row) => row === null)),
+			animate: animates()
 		});
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		wireAnimateBox(this.element);
 	}
 
 	/**
@@ -96,10 +105,11 @@ export class WildernessHex extends HandlebarsApplicationMixin(ApplicationV2) {
 			// Closed while the dice were still rolling: nothing's left to spin, and nothing is kept.
 			if (!this.rendered) return;
 			let next = 0;
+			const reduce = !animates() || reducesMotion();
 			await Promise.all(plan.map(({ index, columns }) => {
 				const rolls = columns.map(() => dice[next++]);
 				columns.forEach((at, rolled) => (this.#taken[index][at] = rolls[rolled]));
-				return spinTable(this.element.querySelector(`table[data-table="${index}"]`), columns, rolls.map((roll) => ({ roll })));
+				return spinTable(this.element.querySelector(`table[data-table="${index}"]`), columns, rolls.map((roll) => ({ roll })), { reduce });
 			}));
 		} finally {
 			this.#spinning = false;

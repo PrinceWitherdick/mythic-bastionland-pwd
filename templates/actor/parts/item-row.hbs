@@ -1,16 +1,45 @@
-<li class="bastionland-item draggable" data-item-id="{{id}}">
+<li class="bastionland-item draggable{{#if unusable}} is-unusable{{/if}}" data-item-id="{{id}}">
 	<div class="bastionland-item__line">
 		{{#if equippable}}
-		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}" data-action="toggleEquipped" data-tooltip="{{equipLabel}}" aria-label="{{equipLabel}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
+		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}{{#if idle}} is-idle{{/if}}" data-action="toggleEquipped" data-tooltip="{{equipLabel}}" aria-label="{{equipLabel}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
 			<i class="fa-solid {{equipIcon}}" inert></i>
 		</button>
 		{{/if}}
+		{{#if renewal.after}}
+		{{!-- A table rolled again each Season, Night or Day: the die sits in the aside, right after the words saying when. --}}
+		<span class="bastionland-item__name bastionland-item__name--renewal"><button type="button" class="bastionland-item__name-button" data-action="postItem" data-tooltip="{{localize 'bastionland.sheet.toChat'}}" data-viewable><span class="bastionland-item__title"><span class="bastionland-item__head">{{nameHead}}</span>{{nameSep}}</span>{{#if nameRest}} <span class="bastionland-item__gloss">{{nameRest}}</span>{{/if}}</button>{{> "bastionland.renewal-die" renewal}}<span class="bastionland-item__gloss">{{renewal.after}}</span></span>
+		{{else}}
 		<button type="button" class="bastionland-item__name" data-action="postItem" data-tooltip="{{localize 'bastionland.sheet.toChat'}}" data-viewable><span class="bastionland-item__title"><span class="bastionland-item__head">{{nameHead}}</span>{{nameSep}}</span>{{#if nameRest}} <span class="bastionland-item__gloss">{{nameRest}}</span>{{/if}}</button>
+		{{/if}}
 		{{#if tags.length}}
-		<span class="bastionland-item__tags">({{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})</span>
+		<span class="bastionland-item__tags">({{#each tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{#if renewal.inTags}}, {{renewal.clause}}{{> "bastionland.renewal-die" renewal}}{{/if}})</span>
+		{{else if renewal.inTags}}
+		<span class="bastionland-item__tags">({{renewal.clause}}{{> "bastionland.renewal-die" renewal}})</span>
+		{{/if}}
+		{{#if count}}
+		{{!-- How many are left, with a button to use one and one to add one back. --}}
+		<span class="bastionland-item__count">
+			{{#if @root.editable}}
+			<button type="button" class="bastionland-icon" data-action="adjustCount" data-by="-1" data-tooltip="{{localize 'bastionland.sheet.useOne'}}" aria-label="{{localize 'bastionland.sheet.useOne'}}" {{disabled count.cannotUse}}>
+				<i class="fa-solid fa-minus" inert></i>
+			</button>
+			{{/if}}
+			<span class="bastionland-item__count-text">{{count.text}}</span>
+			{{#if @root.editable}}
+			<button type="button" class="bastionland-icon" data-action="adjustCount" data-by="1" data-tooltip="{{localize 'bastionland.sheet.addOne'}}" aria-label="{{localize 'bastionland.sheet.addOne'}}" {{disabled count.cannotAdd}}>
+				<i class="fa-solid fa-plus" inert></i>
+			</button>
+			{{/if}}
+		</span>
 		{{/if}}
 		{{#if @root.editable}}
 		<span class="bastionland-item__controls">
+			{{#if holds}}
+			{{!-- Armour worn only in some situation, or in all but one: whether it holds right now. --}}
+			<button type="button" class="bastionland-icon bastionland-item__holds{{#if holds.active}} is-active{{/if}}" data-action="toggleHolds" data-tooltip="{{holds.text}}: {{holds.label}}" aria-label="{{holds.text}}: {{holds.label}}" aria-pressed="{{#if holds.active}}true{{else}}false{{/if}}">
+				<i class="fa-solid {{#if holds.active}}fa-toggle-on{{else}}fa-toggle-off{{/if}}" inert></i>
+			</button>
+			{{/if}}
 			{{#if remedyLabel}}
 			<button type="button" class="bastionland-icon" data-action="useRemedy" data-tooltip="{{remedyLabel}}" aria-label="{{remedyLabel}}">
 				<i class="fa-solid fa-flask" inert></i>

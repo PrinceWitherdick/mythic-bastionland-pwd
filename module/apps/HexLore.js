@@ -7,7 +7,7 @@ import {
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
-import { confirmForgetHexVisits, getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -15,6 +15,7 @@ import { t } from "../chat/cards.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openSparkTables } from "./SparkTables.js";
+import { openHexVisits } from "./HexVisits.js";
 import { openWildernessHex } from "./WildernessHex.js";
 import { renderWhenIdle } from "./ui.js";
 
@@ -109,7 +110,6 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				id: spark.id,
 				table: spark.table,
 				prompt: spark.prompt,
-				rolls: spark.rolls.join(", "),
 				when: sparkWhen(spark)
 			})).reverse(),
 			notice,
@@ -118,8 +118,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 					label: page.name || t(`spark.pages.${page.key}`),
 					tables: (page.tables ?? []).map((table, index) => ({ value: `${page.key}:${index}`, name: table.name }))
 				}))
-				.filter(({ tables }) => tables.length),
-			tellDisabled: !record?.note
+				.filter(({ tables }) => tables.length)
 		});
 	}
 
@@ -181,7 +180,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {HexLore} */
 	static #onTell() {
-		return tellPlayersAboutHex({ scene: this.scene, hex: this.hex });
+		const note = this.element.querySelector('[name="note"]')?.value;
+		return tellPlayersAboutHex({ scene: this.scene, hex: this.hex, note });
 	}
 
 	/** @this {HexLore} */
@@ -210,7 +210,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {HexLore} */
 	static #onForgetVisits() {
-		return confirmForgetHexVisits(this.scene, this.hex);
+		return openHexVisits({ scene: this.scene, hex: this.hex });
 	}
 }
 

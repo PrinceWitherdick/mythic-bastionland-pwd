@@ -12,6 +12,10 @@
 			{{/each}}
 		</ul>
 		<p class="bastionland-hint">{{localize "bastionland.spark.hint"}}{{#if reference}} ({{reference}}){{/if}}</p>
+		<label class="bastionland-check bastionland-spark__animate">
+			<input type="checkbox" name="animate" {{checked animate}}>
+			<span class="bastionland-check__label">{{localize "bastionland.spark.animate"}}</span>
+		</label>
 	</header>
 
 	{{#if empty}}
@@ -27,7 +31,7 @@
 					<i class="fa-solid fa-dice" inert></i>
 				</button>
 			</header>
-			<table>
+			<table data-table="{{index}}">
 				<thead>
 					<tr>
 						<th scope="col"></th>
@@ -41,7 +45,7 @@
 					<tr>
 						<th scope="row">{{number}}</th>
 						{{#each entries}}
-						<td{{#if rolled}} class="is-rolled"{{/if}}>{{entry}}</td>
+						<td data-column="{{@index}}"{{#if rolled}} class="is-rolled"{{/if}}>{{entry}}</td>
 						{{/each}}
 					</tr>
 					{{/each}}

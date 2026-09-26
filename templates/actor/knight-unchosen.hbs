@@ -1,0 +1,39 @@
+{{!-- A Knight made blank with Create Actor, before anyone has chosen them:
+      a GM can make one ahead of the game and give it to a player to pick up
+      (p6). Only the name so far, with the chooser a click
+      away. Choosing them, or filling the sheet in by hand, turns the page over
+      to the Knight's own; see module/sheets/KnightSheet.js. --}}
+<div class="bastionland-page bastionland-unchosen">
+	<header class="bastionland-header">
+		<div class="bastionland-header__text">
+			<div class="bastionland-title-row">
+				<h1 class="bastionland-title">{{localize "bastionland.sheet.title"}}</h1>
+			</div>
+			<p class="bastionland-line">
+				<label class="bastionland-script" for="{{rootId}}-name">{{localize "bastionland.sheet.named"}}</label>
+				<input id="{{rootId}}-name" class="bastionland-blank" type="text" name="name" value="{{actor.name}}" autocomplete="off" spellcheck="false">
+			</p>
+		</div>
+	</header>
+
+	<section class="bastionland-unchosen__call">
+		<p class="bastionland-hint">{{unchosen.hint}}</p>
+		{{#if editable}}
+		<button type="button" class="bastionland-button bastionland-unchosen__choose" data-action="chooseFresh">
+			<i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.chooser.title"}}
+		</button>
+		<button type="button" class="bastionland-unchosen__by-hand" data-action="fillByHand">{{localize "bastionland.unchosen.byHand"}}</button>
+		{{/if}}
+		{{#if unchosen.players.length}}
+		<p class="bastionland-line bastionland-unchosen__player">
+			<label class="bastionland-script" for="{{rootId}}-player">{{localize "bastionland.unchosen.player"}}</label>
+			<select id="{{rootId}}-player">
+				<option value="">{{localize "bastionland.unchosen.nobody"}}</option>
+				{{#each unchosen.players}}
+				<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+				{{/each}}
+			</select>
+		</p>
+		{{/if}}
+	</section>
+</div>

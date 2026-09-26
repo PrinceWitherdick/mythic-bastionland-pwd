@@ -1,10 +1,10 @@
-import { confirmDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { JOURNEY_VERSION, WALKED_METHODS, changedHexes, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
+import { JOURNEY_VERSION, WALKED_METHODS, changedHexes, forgetVisit, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
 import { serialWrites } from "../rules/queue.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
+import { setOrDeleteEntry } from "../compat.js";
 import { COMPANY_FLAG, findCompanyToken, wentSomewhere } from "./company.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 
@@ -59,7 +59,10 @@ function editJourney(scene, edit) {
 		if (!keys.length) return false;
 		const changes = { [flagPath("version")]: JOURNEY_VERSION, [flagPath("next")]: after.next };
 		// A hex forgotten is a key taken out, rather than an empty record left behind.
-		for (const key of keys) changes[flagPath("hexes", key)] = after.hexes[key] ?? new foundry.data.operators.ForcedDeletion();
+		for (const key of keys) {
+			const [path, value] = setOrDeleteEntry(flagPath("hexes", key), after.hexes[key]);
+			changes[path] = value;
+		}
 		await scene.update(changes);
 		return true;
 	});
@@ -91,18 +94,13 @@ export const markHexVisited = (scene, hex) => recordHexVisits(scene, [hex]);
 export const forgetHexVisits = (scene, hex) => editJourney(scene, (journey) => forgetVisits(journey, hex));
 
 /**
- * Forget a hex's visits once the GM confirms it.
+ * Forget one time the Company came into a hex.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
+ * @param {number} order The arrival's.
+ * @returns {Promise<boolean>}
  */
-export async function confirmForgetHexVisits(scene, hex) {
-	const confirmed = await confirmDialog({
-		title: t("gmToolkit.visits.forgetTitle"),
-		icon: "fa-solid fa-route",
-		message: t("gmToolkit.visits.forgetConfirm", { hex: t("realm.hex", hex) })
-	});
-	if (confirmed) await forgetHexVisits(scene, hex);
-}
+export const forgetHexVisit = (scene, hex, order) => editJourney(scene, (journey) => forgetVisit(journey, hex, order));
 
 /**
  * @param {{count: number, last: {when: object|null}}} visits

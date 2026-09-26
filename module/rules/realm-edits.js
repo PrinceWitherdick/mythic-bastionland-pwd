@@ -379,7 +379,10 @@ export function setMapPicture(realm, role, picture) {
 }
 
 /**
- * Say where one of a Realm's pictures lies, once it has been lined up.
+ * Say where one of a Realm's pictures lies, once it has been lined up. A
+ * measured picture keeps its shape: it may be moved and sized evenly, never
+ * stretched, so its height follows its width. One never measured, which lay
+ * over the whole map, takes the place it was lined up at as it is.
  * @param {import("./realm.js").Realm} realm
  * @param {string} role One of MAP_ROLES.
  * @param {{x: number, y: number, width: number, height: number}} rect
@@ -388,7 +391,8 @@ export function setMapPicture(realm, role, picture) {
 export function placeMapPicture(realm, role, rect) {
 	const map = MAP_ROLES.includes(role) ? realm.picture?.[role] : null;
 	if (!map || !rect) return realm;
-	return withPicture(realm, normaliseRealmPicture({ ...realm.picture, [role]: { ...map, ...rect } }));
+	const place = map.width > 0 ? { ...rect, height: rect.width * (map.height / map.width) } : rect;
+	return withPicture(realm, normaliseRealmPicture({ ...realm.picture, [role]: { ...map, ...place } }));
 }
 
 /**

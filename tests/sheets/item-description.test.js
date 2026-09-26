@@ -37,4 +37,15 @@ describe("the description box on an item sheet", () => {
 		expect(declarations).toContain("flex-direction: column;");
 		expect(rule(".bastionland-page .bastionland-item-description prose-mirror > .editor-container")).toContain("min-height: 0;");
 	});
+
+	it("scrolls once, in Foundry's text box, not in the frame around it", () => {
+		expect(rule(".bastionland-page .bastionland-item-description prose-mirror")).toContain("overflow: hidden;");
+		expect(rule(".bastionland-page .bastionland-npc-notes prose-mirror")).toContain("overflow: hidden;");
+
+		// The page's framing of read-only text is taken back off the editor's own
+		// text box, which would otherwise stand taller than the box it fills.
+		const inner = rule(".bastionland-page prose-mirror .editor-content");
+		expect(inner).toContain("min-height: 0;");
+		expect(inner).toContain("border: none;");
+	});
 });

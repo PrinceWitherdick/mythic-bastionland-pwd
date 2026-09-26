@@ -1,4 +1,5 @@
 import { t } from "../chat/cards.js";
+import { FrameButtonsMixin } from "../compat.js";
 import { EXPECTED_PAGES } from "../rules/book-art.js";
 import { looksLikeTheRulebook, readerPage, rulebookViewerUrl, zoomStepTarget } from "../rules/rulebook.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -46,7 +47,7 @@ const WHEEL_PIXELS_PER_NOTCH = 30;
  * replaces the frame and loses the page being read, so anything that changes
  * drives the viewer instead of calling `render`.
  */
-export class BookReader extends HandlebarsApplicationMixin(ApplicationV2) {
+export class BookReader extends FrameButtonsMixin(HandlebarsApplicationMixin(ApplicationV2)) {
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-rulebook",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-rulebook-window"],

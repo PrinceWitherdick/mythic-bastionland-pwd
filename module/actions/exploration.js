@@ -11,7 +11,7 @@ import {
 	surveyFrom
 } from "../rules/exploration.js";
 import { directionNames, sameHex } from "../rules/realm-geometry.js";
-import { VIRTUES } from "../rules/virtues.js";
+import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
 import { rollLabelledSave } from "./saves.js";
 import { advancePhase } from "./time.js";
@@ -160,7 +160,7 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	});
 	if (!data || !SEARCH_AIMS.includes(data.aim)) return null;
 
-	if (data.aim === SEARCH_SAVE_AIM) await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what);
+	if (data.aim === SEARCH_SAVE_AIM) await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what, typedD20(data.rolled));
 	else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
 
 	// Each of the three takes a whole Phase of the day, unless the Referee says otherwise.
@@ -262,9 +262,10 @@ const featureId = (landmarks, hex, type) =>
  * @param {Actor|undefined} actor
  * @param {string} virtue
  * @param {string} what What they're searching for, as the Referee wrote it.
+ * @param {number|null} [rolled] The d20 when the player rolled it at the table.
  * @returns {Promise<object|null>}
  */
-async function rollExplorationSave(actor, virtue, what) {
+async function rollExplorationSave(actor, virtue, what, rolled = null) {
 	if (!actor || !VIRTUES.includes(virtue)) {
 		ui.notifications.warn(t("explore.search.noOne"));
 		return null;
@@ -273,7 +274,7 @@ async function rollExplorationSave(actor, virtue, what) {
 		label: t("explore.search.saveTitle"),
 		outcome: String(what ?? "").trim() || t("explore.search.searching"),
 		hint: ({ passed }) => t(passed ? "explore.search.found" : "explore.search.obstacle")
-	});
+	}, { rolled });
 }
 
 /**

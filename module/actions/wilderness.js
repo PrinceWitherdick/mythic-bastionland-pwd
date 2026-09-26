@@ -1,3 +1,4 @@
+import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { OMEN_COUNT, REALM_FLAG, TERRAIN, terrainAt } from "../rules/realm.js";
@@ -81,15 +82,14 @@ const worthyOfCityQuest = () => game.actors.some((actor) => actor.type === "knig
  * @returns {Promise<"travel"|"camp"|null>}
  */
 async function chooseMode(hex) {
-	const choice = await foundry.applications.api.DialogV2.wait({
-		window: { title: t("realm.wilderness.title"), icon: "fa-solid fa-tree" },
-		classes: ["bastionland-dialog"],
-		content: `<p>${t("realm.wilderness.chooseMode", { hex: t("realm.hex", hex) })}</p>`,
+	const choice = await chooseDialog({
+		title: t("realm.wilderness.title"),
+		icon: "fa-solid fa-tree",
+		message: t("realm.wilderness.chooseMode", { hex: t("realm.hex", hex) }),
 		buttons: [
 			{ action: "travel", label: t("realm.wilderness.modes.travel"), icon: "fa-solid fa-person-hiking", default: true },
 			{ action: "camp", label: t("realm.wilderness.modes.camp"), icon: "fa-solid fa-campground" }
-		],
-		rejectClose: false
+		]
 	});
 	return choice === "travel" || choice === "camp" ? choice : null;
 }

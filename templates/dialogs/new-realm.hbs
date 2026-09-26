@@ -90,6 +90,8 @@
 			</div>
 		</section>
 
+		{{!-- A Realm drawn by hand has no hexes to stand in yet: its Company is chosen on the last page of Creating a Realm. --}}
+		{{#unless draw}}
 		<section class="bastionland-rail-dialog__page" data-rail-page="company" hidden>
 			<label class="bastionland-check">
 				<input type="checkbox" name="placeCompany" checked>
@@ -112,5 +114,6 @@
 
 			<p class="hint">{{localize "bastionland.company.tokenHint"}}</p>
 		</section>
+		{{/unless}}
 	</div>
 </div>

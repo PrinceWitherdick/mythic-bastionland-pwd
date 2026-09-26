@@ -1,4 +1,5 @@
 import { read, reducesMotion } from "../client-settings.js";
+import { currentMessageMode } from "../compat.js";
 import {
 	BLOW_STAGGER_MS,
 	DISMOUNT_SOUND,
@@ -71,7 +72,8 @@ const SOUND_VOLUME = 0.8;
 /** The deliveries that travel, and so have a landing to wait for. */
 const FLIGHTS = new Set(["throw", "projectile"]);
 
-const moduleActive = (id) => game.modules?.get(id)?.active === true;
+/** @param {string} id @returns {boolean} Whether that module is on in this world. */
+export const moduleActive = (id) => game.modules?.get(id)?.active === true;
 
 /** Register the world's Attack Effects setting, and the reduced-motion hook. Called during init. */
 export function registerAttackFx() {
@@ -194,7 +196,7 @@ function audienceFor(ends, whispered = false) {
 /** @returns {boolean} Whether this user's chat cards are posted for the whole table. */
 export function chatIsPublic() {
 	try {
-		return game.settings.get("core", "messageMode") === "public";
+		return currentMessageMode() === "public";
 	} catch {
 		return true;
 	}

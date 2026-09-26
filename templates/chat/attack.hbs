@@ -55,12 +55,16 @@
 			<span class="bastionland-card__gambit-effect">{{{effect}}}</span>
 			<span class="bastionland-tag">{{source}}{{#if strong}} · {{strong}}{{/if}}</span>
 			{{#if bonus}}<span class="bastionland-card__hint">{{bonus}}</span>{{/if}}
+			{{#if focus}}<span class="bastionland-card__gambit-save{{#if focus.passed}} is-pass{{else}} is-fail{{/if}}">{{focus.result}}</span>{{/if}}
 			{{#if save.none}}<span class="bastionland-card__hint">{{save.none}}</span>{{/if}}
 			{{#if save.result}}
 			<span class="bastionland-card__gambit-save{{#if save.passed}} is-pass{{else}} is-fail{{/if}}">{{save.result}}</span>
 			{{/if}}
 			{{#if save.button}}
 			<button type="button" data-attack-action="gambit-save" data-gambit="{{save.index}}"><i class="fa-solid fa-dice-d20" inert></i> {{save.button}}</button>
+			{{/if}}
+			{{#if breaks}}
+			<button type="button" data-attack-action="break" data-tooltip="{{breaks.hint}}"><i class="fa-solid fa-hammer" inert></i> {{breaks.label}}</button>
 			{{/if}}
 		</li>
 		{{/each}}

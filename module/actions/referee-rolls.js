@@ -1,3 +1,4 @@
+import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { readRefereeTable, REFEREE_TABLES } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
@@ -31,16 +32,16 @@ export async function rollRefereeTable(key) {
  */
 export async function openRefereeRolls() {
 	if (!game.user.isGM) return null;
-	const key = await foundry.applications.api.DialogV2.wait({
-		window: { title: t("refereeRolls.title"), icon: "fa-solid fa-dice-d6" },
-		classes: ["bastionland-dialog", "bastionland-referee-rolls"],
-		content: `<p>${t("refereeRolls.intro")}</p>`,
+	const key = await chooseDialog({
+		title: t("refereeRolls.title"),
+		icon: "fa-solid fa-dice-d6",
+		classes: ["bastionland-referee-rolls"],
+		message: t("refereeRolls.intro"),
 		buttons: REFEREE_TABLES.map(({ key: action }, index) => ({
 			action,
 			label: t(`refereeRolls.tables.${action}.name`),
 			default: index === 0
-		})),
-		rejectClose: false
+		}))
 	});
 	return REFEREE_TABLES.some((table) => table.key === key) ? rollRefereeTable(key) : null;
 }

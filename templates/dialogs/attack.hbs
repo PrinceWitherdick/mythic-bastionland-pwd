@@ -31,6 +31,9 @@
 		{{else}}
 		<p class="hint">{{localize "bastionland.attack.noWeapons"}}</p>
 		{{/each}}
+		{{#if unavailable}}
+		<p class="hint">{{unavailable}}</p>
+		{{/if}}
 	</fieldset>
 
 	<fieldset>

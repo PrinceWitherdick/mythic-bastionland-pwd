@@ -62,8 +62,22 @@ describe("checkWielding", () => {
 		expect(checkWielding([lance, shield], { hands: true, mounted: true }).refusal).toBeNull();
 		expect(checkWielding([lance, mace], { hands: true, mounted: true }).refusal).toBe("hefty");
 		expect(checkWielding([lance], { confined: true, mounted: true }).impaired).toBe(false);
-		expect(heldAs(lance, true)).toEqual({ hefty: true, long: false });
-		expect(heldAs(poleaxe, true)).toEqual({ hefty: false, long: true });
+		expect(heldAs(lance, true)).toEqual({ hefty: true, long: false, slow: false });
+		expect(heldAs(poleaxe, true)).toEqual({ hefty: false, long: true, slow: false });
+	});
+
+	it("takes a greatlance Slow on foot as Hefty, and not Slow, on horseback", () => {
+		const greatlance = { slow: true, heftyMounted: true };
+		expect(checkWielding([greatlance], { moved: true }).setAside).toEqual([{ index: 0, reason: "slow" }]);
+		expect(checkWielding([greatlance], { moved: true, mounted: true }).setAside).toEqual([]);
+	});
+
+	it("fights a weapon one way at a time", () => {
+		const melee = { long: true, of: "guisarme" };
+		const shot = { slow: true, ranged: true, of: "guisarme" };
+		expect(checkWielding([melee, shot]).refusal).toBe("twoWays");
+		expect(checkWielding([shot]).refusal).toBeNull();
+		expect(checkWielding([{ of: "a" }, { of: "b" }]).refusal).toBeNull();
 	});
 
 	it("holds a Knight to two hands, whatever the items are", () => {
@@ -266,11 +280,18 @@ describe("changeAttack", () => {
 
 	it("performs a Focus Gambit without a die, once per combatant and never when Impaired", () => {
 		const focused = changeAttack(rolled([[8, 2]]), { type: "focus", key: "bolster", actor: "Actor.k" });
-		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null, save: null, dismissed: false }]);
+		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null, save: null, dismissed: false, focus: null }]);
 		expect(attackDamage(focused).damage).toBe(3);
 		expect(changeAttack(focused, { type: "withdraw", die: null })).toBeNull();
 		expect(changeAttack(focused, { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
 		expect(changeAttack(rolled([[4, 2]], { impaired: true }), { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
+	});
+
+	it("keeps the CLA Save a Focus cost beside its Gambit", () => {
+		const save = { by: "Eve", total: 15, target: 12, passed: false };
+		const focused = changeAttack(rolled([[8, 2]]), { type: "focus", key: "move", actor: "Actor.k", save });
+		expect(focused.gambits[0].focus).toEqual(save);
+		expect(changeAttack(rolled([[8, 2]]), { type: "focus", key: "move", actor: "Actor.k", save: { total: "15" } }).gambits[0].focus).toBeNull();
 	});
 
 	it("adds a Dismount's d6 to the dice, and takes it away with the Gambit", () => {

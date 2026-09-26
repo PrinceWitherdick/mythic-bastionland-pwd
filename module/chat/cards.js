@@ -1,4 +1,5 @@
 import { VIRTUES } from "../rules/virtues.js";
+import { applyMessageMode, currentMessageMode } from "../compat.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -26,7 +27,7 @@ export async function postCard(actor, template, context, { rolls = [], mode, fla
 	};
 	if (flags) data.flags = flags;
 	if (rolls.length) data.sound = CONFIG.sounds.dice;
-	ChatMessage.implementation.applyMode(data, mode ?? game.settings.get("core", "messageMode"));
+	applyMessageMode(data, mode ?? currentMessageMode());
 	return ChatMessage.implementation.create(data);
 }
 

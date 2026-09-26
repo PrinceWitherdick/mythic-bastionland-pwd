@@ -1,6 +1,7 @@
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import {
+	CHOOSING_FLAG,
 	KNIGHTING_GAIN_ROLL,
 	SQUIRE_EQUIPMENT,
 	SQUIRE_GUARD,
@@ -18,6 +19,7 @@ import {
 } from "../rules/squires.js";
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
+import { SYSTEM_ID } from "../system-id.js";
 
 /** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
 export function companyKnightCount() {
@@ -154,8 +156,27 @@ export async function takeSquire(knight) {
 }
 
 /**
+ * @param {Actor} actor
+ * @returns {boolean} Whether they're a Squire just Knighted, still to choose which Knight they became.
+ */
+export const isChoosingKnight = (actor) => actor?.type === "knight" && !actor.system.isSquire && Boolean(actor.getFlag(SYSTEM_ID, CHOOSING_FLAG));
+
+/**
+ * Open the chooser for a Knighted Squire to choose which Knight they became,
+ * keeping everything they have.
+ * @param {Actor} knight
+ * @returns {Promise<Application>}
+ */
+export async function chooseKnightedSquire(knight) {
+	// Loaded when wanted, so this file doesn't pull in the application classes.
+	const { openKnightChooser } = await import("../apps/KnightChooser.js");
+	return openKnightChooser(knight, { knighting: true });
+}
+
+/**
  * Knight a Squire (p7): they gain d6 in each Virtue, and from then on can gain
- * Glory and perform Feats.
+ * Glory and perform Feats. Then they choose which Knight they became, keeping
+ * their Virtues and everything they carry.
  * @param {Actor} squire
  * @returns {Promise<Record<string, {value: number, max: number}>|null>} Their new Virtues.
  */
@@ -180,7 +201,14 @@ export async function knightSquire(squire) {
 	const virtues = knightedVirtues(squire.system.virtues, gains);
 
 	const master = squire.system.serves ? fromUuidSync(squire.system.serves) : null;
-	await squire.update({ "system.isSquire": false, "system.serves": "", "system.glory": 0, "system.virtues": virtues, ...knightedLooks(squire, Actor.implementation.DEFAULT_ICON) });
+	await squire.update({
+		"system.isSquire": false,
+		"system.serves": "",
+		"system.glory": 0,
+		"system.virtues": virtues,
+		[`flags.${SYSTEM_ID}.${CHOOSING_FLAG}`]: true,
+		...knightedLooks(squire, Actor.implementation.DEFAULT_ICON)
+	});
 	if (master?.isOwner && master.system.squire === squire.uuid) await master.update({ "system.squire": "" });
 
 	await postCard(squire, "creation", {
@@ -191,5 +219,6 @@ export async function knightSquire(squire) {
 			value: t("squire.knightedValue", { gain: gains[key], from: before[key], to: virtues[key].max })
 		}))
 	}, { rolls });
+	chooseKnightedSquire(squire);
 	return virtues;
 }

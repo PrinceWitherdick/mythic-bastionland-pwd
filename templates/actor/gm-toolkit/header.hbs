@@ -22,10 +22,15 @@
 			{{/if}}
 		</div>
 	</div>
+	{{!-- The rulebook, as on Stonetop's toolkit, beside the calendar and centred with it and the portrait. A world
+	      with no copy yet draws it dimmed, and it opens the window that points the world at one. --}}
+	<button type="button" class="bastionland-gm-toolkit__book{{#unless rulebook.have}} is-unset{{/unless}}" data-action="openRulebook" aria-label="{{rulebook.tooltip}}" data-tooltip="{{rulebook.tooltip}}" data-tooltip-direction="DOWN">
+		<i class="fa-solid fa-book" inert></i>
+	</button>
 	{{!-- The calendar, held to the banner's far end like Stonetop's season clock: the Season in its own colour
-	      over the Day and Age (a chronicler's order, smallest first), then the Phase (and the weather) on the right. Changing any of them sets the
-	      calendar by hand; only the Time page's buttons carry out what happens between Seasons. The Age opens a window
-	      that turns it or sets it by hand. --}}
+	      over the Age, then the Phase (and the weather) on the right. The book never numbers the Days (p17), so
+	      no Day is shown. Changing any of them sets the calendar by hand; only the Time window's buttons carry
+	      out what happens between Seasons. The Age opens a window that turns it or sets it by hand. --}}
 	<div class="bastionland-gm-toolkit__clock bastionland-gm-toolkit__clock--{{clock.season}}" role="group" aria-label="{{localize 'bastionland.time.title'}}">
 		<div class="bastionland-gm-toolkit__clock-calendar">
 			<label class="bastionland-gm-toolkit__clock-season">
@@ -36,9 +41,8 @@
 					{{/each}}
 				</select>
 			</label>
-			{{!-- Only the Day and Age read the date out on hover; the Season and Phase dropdowns carry no hover text. --}}
+			{{!-- Only the Age reads the date out on hover; the Season and Phase dropdowns carry no hover text. --}}
 			<div class="bastionland-gm-toolkit__clock-count" data-tooltip="{{clock.tooltip}}" data-tooltip-direction="DOWN">
-				<label>{{localize "bastionland.time.day"}} <input class="bastionland-box" type="number" data-toolkit-field="day" value="{{clock.day}}" min="1" step="1"></label>
 				{{!-- The Age is a button, since turning it (Between Ages) is more than a new number. --}}
 				<label>{{localize "bastionland.time.age"}} <button type="button" class="bastionland-box bastionland-gm-toolkit__clock-age" data-action="pickAge" aria-label="{{localize 'bastionland.time.agePick.change'}}">{{clock.age}}</button></label>
 			</div>

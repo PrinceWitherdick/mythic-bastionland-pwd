@@ -31,16 +31,36 @@ export function clampVirtue(value) {
  * @param {boolean} character.fatigued
  * @param {boolean} character.exposed     Caught with their guard down.
  * @param {boolean} character.mortalWound
- * @returns {{fatigued: boolean, exhausted: boolean, exposed: boolean, impaired: boolean, mortalWound: boolean}}
+ * @param {boolean} [character.wounded]   Marked when Damage last went past their GD.
+ * @param {boolean} [character.mounted]
+ * @returns {{fatigued: boolean, exhausted: boolean, exposed: boolean, impaired: boolean, mortalWound: boolean, wounded: boolean, mounted: boolean}}
  */
-export function conditionsFor({ virtues, fatigued, exposed, mortalWound }) {
+export function conditionsFor({ virtues, fatigued, exposed, mortalWound, wounded = false, mounted = false }) {
 	return {
 		fatigued,
 		exhausted: virtues.vig.value === 0,
 		exposed: exposed || virtues.cla.value === 0,
 		impaired: virtues.spi.value === 0,
-		mortalWound
+		mortalWound,
+		// Wounded lasts until VIG is restored, however that comes about.
+		wounded: Boolean(wounded) && virtues.vig.value < virtues.vig.max,
+		mounted: Boolean(mounted)
 	};
+}
+
+/**
+ * Whether an update restores a Wounded character's VIG, so the mark can go:
+ * Wounded lasts until then, and a stale mark would Wound them again with the
+ * next VIG they lost, however they lost it.
+ * @param {{wounded?: boolean, virtues: {vig: {value: number, max: number}}}} system As it stands.
+ * @param {object} changes An Actor update, expanded.
+ * @returns {boolean}
+ */
+export function healsWound(system, changes) {
+	const update = changes?.system;
+	if (!system?.wounded || !update || "wounded" in update) return false;
+	const vig = { ...system.virtues.vig, ...update.virtues?.vig };
+	return vig.value >= vig.max;
 }
 
 /**
@@ -51,4 +71,16 @@ export function conditionsFor({ virtues, fatigued, exposed, mortalWound }) {
  */
 export function isSavePassed(roll, virtue) {
 	return roll <= virtue;
+}
+
+/**
+ * A d20 face a player rolled at the table and typed into a form, or null when
+ * the box was left empty for the dice to be rolled here instead.
+ * @param {unknown} value
+ * @returns {number|null}
+ */
+export function typedD20(value) {
+	if (value === null || value === undefined || value === "") return null;
+	const face = Number(value);
+	return Number.isInteger(face) && face >= 1 && face <= 20 ? face : null;
 }

@@ -15,7 +15,7 @@
 	<div class="bastionland-hex-lore__row bastionland-hex-lore__visits">
 		<span class="bastionland-hex-lore__hint">{{visits}}</span>
 		{{#if visited}}
-		<button type="button" data-action="forgetVisits"><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.gmToolkit.visits.forget"}}</button>
+		<button type="button" class="bastionland-icon" data-action="forgetVisits" data-tooltip="{{localize 'bastionland.gmToolkit.visits.edit'}}" aria-label="{{localize 'bastionland.gmToolkit.visits.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
 		{{else}}
 		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
 		{{/if}}
@@ -57,7 +57,7 @@
 		<li class="bastionland-hex-lore__roll">
 			<div class="bastionland-hex-lore__prompt">
 				<strong>{{prompt}}</strong>
-				<span class="bastionland-hex-lore__source">{{table}} ({{rolls}}){{#if when}} · {{when}}{{/if}}</span>
+				<span class="bastionland-hex-lore__source">{{table}}{{#if when}} · {{when}}{{/if}}</span>
 			</div>
 			<button type="button" data-action="forget" data-spark="{{id}}" aria-label="{{localize "bastionland.hexLore.forget"}}"><i class="fa-solid fa-xmark" inert></i></button>
 		</li>
@@ -80,7 +80,7 @@
 	</fieldset>
 
 	<div class="bastionland-hex-lore__row">
-		<button type="button" data-action="tell" {{disabled tellDisabled}}><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
+		<button type="button" data-action="tell"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
 	</div>
 	{{/if}}
 </div>

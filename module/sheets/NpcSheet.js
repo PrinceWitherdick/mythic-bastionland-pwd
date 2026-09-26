@@ -17,6 +17,9 @@ const WARBAND_STATES = Object.freeze(["routed", "broken", "wipedOut"]);
 
 /** An NPC's sheet, laid out like the stat blocks the book prints for its Cast. */
 export class NpcSheet extends BastionlandActorSheet {
+	/** @override */
+	static PROPERTY_ORDER = true;
+
 	static DEFAULT_OPTIONS = {
 		classes: ["bastionland-npc"],
 		position: { width: 740, height: 800 },
@@ -66,7 +69,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			leader: system.warband && system.leader ? t("npc.leader.label", { name: fromUuidSync(system.leader)?.name ?? t("npc.leader.missing") }) : null,
 			featChoices: FEATS.map(({ key }) => ({ key, label: t(`feats.${key}.name`), active: system.feats[key] })),
 			addTypes: ADDED_TYPES.map((type) => ({ type, label: game.i18n.localize(`TYPES.Item.${type}`) })),
-			items: await this._prepareItems()
+			items: await this._preparePropertyItems()
 		});
 	}
 

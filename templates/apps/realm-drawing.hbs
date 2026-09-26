@@ -1,15 +1,4 @@
 <div class="bastionland-travel-rules__sheet">
-	<header class="bastionland-travel-rules__header bastionland-realm-drawing__head">
-		<button type="button" class="bastionland-travel-rules__roll bastionland-realm-drawing__palette{{#if palette.active}} is-active{{/if}}" data-action="useTool" data-tool="{{palette.name}}" aria-pressed="{{#if palette.active}}true{{else}}false{{/if}}">
-			<i class="{{palette.icon}}" inert></i> {{palette.label}}
-		</button>
-		{{#if pageLink}}
-		<button type="button" class="bastionland-travel-rules__page" data-action="openPage" data-page="{{pageNumber}}" data-tooltip="{{pageLink}}" aria-label="{{pageLink}}">{{page}}</button>
-		{{else}}
-		<span class="bastionland-travel-rules__page">{{page}}</span>
-		{{/if}}
-	</header>
-
 	{{!-- A rail of pages down the left, as Stonetop's welcome window has, one to
 	      each part of the Realm. The rules are drawn again after every edit, so the
 	      page shown is marked here rather than left to the rail. See
@@ -27,6 +16,11 @@
 				</li>
 				{{/each}}
 			</ol>
+			{{!-- Undo and Redo at the rail's foot, under the last tab. --}}
+			<div class="bastionland-realm-drawing__history">
+				<button type="button" class="bastionland-travel-rules__roll" data-action="undo" {{disabled undoDisabled}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.realm.panel.undo"}}</button>
+				<button type="button" class="bastionland-travel-rules__roll" data-action="redo" {{disabled redoDisabled}}><i class="fa-solid fa-rotate-right" inert></i> {{localize "bastionland.realm.panel.redo"}}</button>
+			</div>
 		</nav>
 
 		<div class="bastionland-rail-dialog__main">
@@ -40,20 +34,26 @@
 			{{#if picture}}
 			<section class="bastionland-rail-dialog__page bastionland-realm-drawing__picture" data-rail-page="picture"{{#unless picture.active}} hidden{{/unless}}>
 				<p>{{picture.intro}}</p>
+				<p class="bastionland-realm-drawing__paint-next">{{picture.paintNext}}</p>
 				<ul class="bastionland-realm-drawing__maps">
 					{{#each picture.maps}}
 					<li class="bastionland-realm-drawing__map">
-						<img src="{{src}}" alt="">
+						{{!-- The picture is its own button, opening it larger in a window of its own; its name is under it, as a caption. --}}
+						<button type="button" class="bastionland-realm-picture__enlarge" data-action="enlargeMap" data-map-src="{{src}}" data-map-label="{{label}}" data-tooltip="{{../picture.enlarge}}" aria-label="{{../picture.enlarge}}"><img src="{{src}}" alt=""></button>
 						<span class="bastionland-realm-drawing__map-name">{{label}}</span>
-						<button type="button" class="bastionland-travel-rules__roll" data-action="lineUpMap" data-map-role="{{role}}" data-tooltip="{{../picture.lineUpHint}}">
-							<i class="fa-solid fa-up-down-left-right" inert></i> {{../picture.lineUp}}
-						</button>
+						<div class="bastionland-realm-drawing__map-actions">
+							<button type="button" class="bastionland-travel-rules__roll" data-action="lineUpMap" data-map-role="{{role}}" data-tooltip="{{../picture.lineUpHint}}">
+								<i class="fa-solid fa-up-down-left-right" inert></i> {{../picture.lineUp}}
+							</button>
+							{{#if @last}}
+							<button type="button" class="bastionland-travel-rules__roll" data-action="changeMap">
+								<i class="fa-solid fa-image" inert></i> {{../picture.change}}
+							</button>
+							{{/if}}
+						</div>
 					</li>
 					{{/each}}
 				</ul>
-				<button type="button" class="bastionland-travel-rules__roll" data-action="changeMap">
-					<i class="fa-solid fa-image" inert></i> {{picture.change}}
-				</button>
 				<label class="bastionland-check bastionland-realm-drawing__lines">
 					<span class="bastionland-check__label">{{picture.gridLabel}}</span>
 					<input type="range" min="0" max="100" step="5" value="{{picture.grid}}" data-grid-alpha data-tooltip="{{picture.gridHint}}" aria-label="{{picture.gridLabel}}">
@@ -66,9 +66,19 @@
 				{{#if @first}}{{#if @root.intro}}
 				<p class="bastionland-realm-drawing__intro">{{@root.intro}}</p>
 				{{/if}}{{/if}}
+				{{!-- An imported map is a picture alone: the GM paints what each hex is, or the Realm doesn't know. --}}
+				{{#if @first}}{{#if @root.paintEveryHex}}
+				<div class="bastionland-realm-drawing__paint-all{{#if @root.paintEveryHex.done}} is-done{{/if}}" role="note">
+					<strong><i class="fa-solid {{#if @root.paintEveryHex.done}}fa-check{{else}}fa-paintbrush{{/if}}" inert></i> {{@root.paintEveryHex.heading}}</strong>
+					<p>{{@root.paintEveryHex.text}}</p>
+				</div>
+				{{/if}}{{/if}}
 
 				{{#each sections}}
 				<section class="bastionland-travel-rules__section" data-section="{{key}}">
+					{{#if heading}}
+					<h3 class="bastionland-heading bastionland-heading--small bastionland-realm-drawing__subhead">{{heading}}</h3>
+					{{/if}}
 					{{#each blocks}}
 					{{#if bullets}}
 					<ul class="bastionland-realm-drawing__bullets">
@@ -96,6 +106,18 @@
 						{{/each}}
 					</ul>
 					{{/if}}
+					{{!-- The part of the paint palette that draws this step: its swatches take up the paint tool. --}}
+					{{#if palette}}
+					<div class="bastionland-realm-panel__palette{{#if palette.pairs}} bastionland-realm-panel__palette--pairs{{/if}} bastionland-realm-drawing__palette">
+						{{#each palette.swatches}}{{> "bastionland.realm-swatch" this}}{{/each}}
+					</div>
+					{{#if palette.clear}}
+					<button type="button" class="bastionland-travel-rules__roll" data-action="clearRiver"><i class="fa-solid fa-trash" inert></i> {{palette.clear}}</button>
+					{{/if}}
+					{{#if palette.hint}}
+					<p class="bastionland-realm-panel__hint bastionland-realm-drawing__hint">{{palette.hint}}</p>
+					{{/if}}
+					{{/if}}
 					{{#if tool}}
 					<button type="button" class="bastionland-travel-rules__roll{{#if tool.active}} is-active{{/if}}" data-action="useTool" data-tool="{{tool.name}}" aria-pressed="{{#if tool.active}}true{{else}}false{{/if}}"{{#if tool.hint}} data-tooltip="{{tool.hint}}"{{/if}}>
 						<i class="{{tool.icon}}" inert></i> {{tool.label}}
@@ -105,6 +127,15 @@
 				{{/each}}
 			</section>
 			{{/each}}
+
+			{{!-- The last page: what the Company looks like, and the button that hands them over to be stood in a hex. --}}
+			<section class="bastionland-rail-dialog__page bastionland-realm-drawing__company" data-rail-page="company"{{#unless company.active}} hidden{{/unless}}>
+				<p>{{company.intro}}</p>
+				{{> "bastionland.company-picture" company.picture}}
+				<button type="button" class="bastionland-travel-rules__roll" data-action="placeCompany" data-tooltip="{{company.hint}}">
+					<i class="fa-solid fa-flag" inert></i> {{company.button}}
+				</button>
+			</section>
 
 			<p class="bastionland-travel-rules__credit">{{credit}}</p>
 		</div>

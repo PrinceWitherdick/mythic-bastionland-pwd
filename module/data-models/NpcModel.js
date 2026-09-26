@@ -1,5 +1,5 @@
 import { FEATS, NPC_SCALES } from "../config.js";
-import { conditionsFor } from "../rules/virtues.js";
+import { conditionsFor, healsWound } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -35,6 +35,16 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 		this.warband = this.scale === "warband"
 			? { routed: this.mortalWound, broken: this.virtues.spi.value === 0, wipedOut: this.virtues.vig.value === 0 }
 			: null;
+	}
+
+	/**
+	 * Wounded goes once VIG is whole again.
+	 * @override
+	 */
+	async _preUpdate(changes, options, user) {
+		const allowed = await super._preUpdate(changes, options, user);
+		if (allowed === false) return false;
+		if (healsWound(this, changes)) changes.system.wounded = false;
 	}
 
 	/**

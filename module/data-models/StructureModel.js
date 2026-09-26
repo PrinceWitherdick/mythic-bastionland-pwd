@@ -4,7 +4,7 @@ import { countField, htmlField, textField, trackField } from "./fields.js";
 const fields = foundry.data.fields;
 
 /** Nothing wears a structure down but Damage, so it is never in any condition. */
-const NO_CONDITIONS = Object.freeze({ fatigued: false, exposed: false, mortalWound: false, exhausted: false, impaired: false });
+const NO_CONDITIONS = Object.freeze({ fatigued: false, exposed: false, mortalWound: false, exhausted: false, impaired: false, wounded: false, mounted: false });
 
 /**
  * A structure, ship or siege engine (Wood and Stone, p11): only GD and Armour,

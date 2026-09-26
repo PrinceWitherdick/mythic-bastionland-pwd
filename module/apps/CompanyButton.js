@@ -2,15 +2,18 @@
  * The way back onto the map for a Company that isn't on it: a button held over
  * the top edge of a Realm Scene, shown to the Referee alone and only while
  * that Realm has no Company Token — before one has ever been placed, or after
- * the Token was deleted. Pressing it hands them the Company to carry under the
+ * the Token was deleted. A Realm being drawn by hand places its Company from
+ * the last page of Creating a Realm instead, so the button comes up only once
+ * that window is closed. Pressing it hands them the Company to carry under the
  * pointer and click into a hex, as the Starts the book names no place for do.
  */
 import { findCompanyToken } from "../actions/company.js";
-import { isRealmScene } from "../actions/realm.js";
+import { isDrawingRealm, isRealmScene } from "../actions/realm.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { t } from "../chat/cards.js";
 import { companyButtonPlacement } from "../rules/company.js";
 import { followMap, forgetNavigationFloor, mapOnScreen, mapPanelScale, navigationFloor } from "./map-screen.js";
+import { phaseBannerFloor } from "./PhaseBanner.js";
 
 /** @type {HTMLButtonElement|null} The one button, while it's up. */
 let button = null;
@@ -27,9 +30,18 @@ const UNMEASURED = Object.freeze({ width: 180, height: 34 });
 /** Called as the button comes up or goes down, for the Finish button that stands beside it while it's up. */
 export const COMPANY_BUTTON_HOOK = "bastionlandCompanyButton";
 
-/** @returns {boolean} Whether the Referee is looking at a Realm whose Company is nowhere on it, and isn't already carrying them. */
+/** The Creating a Realm window's id: its last page places the Company, so the button waits while it's open. */
+const DRAWING_WINDOW_ID = "bastionland-realm-drawing";
+
+/**
+ * @returns {boolean} Whether the Referee is looking at a Realm whose Company is nowhere on it, and isn't already
+ *   carrying them or drawing that Realm with the Creating a Realm window open.
+ */
 function wanted() {
-	return Boolean(game.user?.isGM && canvas?.ready && isRealmScene(canvas.scene) && !findCompanyToken(canvas.scene) && !isPlacingCompany());
+	if (!game.user?.isGM || !canvas?.ready || !isRealmScene(canvas.scene)) return false;
+	if (findCompanyToken(canvas.scene) || isPlacingCompany()) return false;
+	// Known by its id rather than imported, since that window stands Finish beside this button.
+	return !(isDrawingRealm(canvas.scene) && foundry.applications.instances.has(DRAWING_WINDOW_ID));
 }
 
 /** Take the Company up, and stand the button down while it's in hand. */
@@ -56,11 +68,11 @@ export function companyButtonBox(map = mapOnScreen()) {
 	// Measured again on the next pan if it hasn't been laid out yet, but placed either way.
 	const { width, height } = size ?? UNMEASURED;
 	const scale = mapPanelScale();
-	const { left, top } = companyButtonPlacement(map, { width, height, ceiling: navigationFloor(), scale });
+	const { left, top } = companyButtonPlacement(map, { width, height, ceiling: Math.max(navigationFloor(), phaseBannerFloor()), scale });
 	return { left, top, width: width * scale, height: height * scale };
 }
 
-/** Hold the button over the middle of the map's top edge, clear of the scene navigation. */
+/** Hold the button over the middle of the map's top edge, clear of the scene navigation and the Phase. */
 function place(map = mapOnScreen()) {
 	const box = companyButtonBox(map);
 	if (!box) return;

@@ -39,6 +39,47 @@ vi.mock("../../module/actions/realm.js", async () => {
 
 vi.mock("../../module/actions/company.js", () => ({ setCompanyHex: vi.fn() }));
 
+vi.mock("../../module/actions/city-quest.js", () => ({ rollCityOmen: vi.fn() }));
+
+vi.mock("../../module/actions/council-tasks.js", () => ({
+	settleTask: vi.fn(async (domain, id) => {
+		delete domain.system.tasks[id];
+		return "success";
+	})
+}));
+
+vi.mock("../../module/actions/knight-tables.js", () => ({
+	fillKnightFromBook: vi.fn(async (knight) => {
+		if (world.index) knight.system.bookTable = { name: "Table", columns: ["A"], rows: [["1"], ["2"], ["3"], ["4"], ["5"], ["6"]], rolls: [] };
+		return Boolean(world.index);
+	}),
+	rollKnightTable: vi.fn(async (knight) => ({
+		card: Promise.resolve({}),
+		save: async () => { knight.system.bookTable.rolls = [3]; }
+	}))
+}));
+
+vi.mock("../../module/actions/landmarks.js", () => ({ echoRuin: vi.fn() }));
+
+vi.mock("../../module/actions/myth-cast.js", () => ({ castKey: (_scene, myth) => `${myth.d6}-${myth.d12}` }));
+
+vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(async () => ({ d6: 4, result: "worse" })) }));
+
+vi.mock("../../module/actions/season-events.js", () => ({
+	collectionEntry: (collection) => ({ name: collection.key, lines: [] }),
+	markCollection: vi.fn(async (_key, season) => ({ key: { spring: "tax", harvest: "tithe", winter: "levy" }[season] })),
+	markSeasonEvent: vi.fn(async (key) => ({ key }))
+}));
+
+vi.mock("../../module/actions/session-end.js", () => ({ endTheSession: vi.fn(async () => true) }));
+
+vi.mock("../../module/actions/warbands.js", () => ({ MUSTERED_FLAG: "musteredBy", ORIGIN_FLAG: "warbandOrigin", wearWarbandDown: vi.fn() }));
+
+vi.mock("../../module/actions/weather.js", () => ({
+	drawWeather: vi.fn(),
+	setWeather: vi.fn(async (sky) => { world.settings.weather = sky; })
+}));
+
 vi.mock("../../module/actions/dominion.js", () => ({
 	linkKnightDomain: vi.fn(async (knight, domain) => {
 		knight.system.domain = domain.uuid;
@@ -72,7 +113,7 @@ vi.mock("../../module/actions/myth-notes.js", () => ({ editMythNote: vi.fn() }))
 
 vi.mock("../../module/actions/npc.js", () => ({ actorData: (block) => ({ type: "npc", name: block.name, system: { notes: "" }, items: [] }) }));
 
-vi.mock("../../module/actions/season-log.js", () => ({ recordSeasonTurn: vi.fn(), writeSeasonNotes: vi.fn() }));
+vi.mock("../../module/actions/season-log.js", () => ({ recordMythCompleted: vi.fn(), recordSeasonTurn: vi.fn(), writeSeasonNotes: vi.fn() }));
 
 vi.mock("../../module/actions/sites.js", () => ({ SITE_FLAG: "site", SITE_SHEET_CLASS: "mythic-bastionland-pwd.SiteSheet" }));
 
@@ -114,11 +155,18 @@ vi.mock("../../module/chat/cards.js", () => ({
 }));
 
 const { populateTestWorld, BEFORE_FLAG, TEST_FLAG } = await import("../../module/test-world/populate.js");
-const { recordSeasonTurn, writeSeasonNotes } = await import("../../module/actions/season-log.js");
+const { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } = await import("../../module/actions/season-log.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { editMythNote } = await import("../../module/actions/myth-notes.js");
 const { hardshipFor, rollAging } = await import("../../module/actions/time.js");
 const { rollHexSpark, rollHexSparkSet } = await import("../../module/actions/hex-lore.js");
+const { markCollection, markSeasonEvent } = await import("../../module/actions/season-events.js");
+const { settleTask } = await import("../../module/actions/council-tasks.js");
+const { wearWarbandDown } = await import("../../module/actions/warbands.js");
+const { endTheSession } = await import("../../module/actions/session-end.js");
+const { rollCityOmen } = await import("../../module/actions/city-quest.js");
+const { echoRuin } = await import("../../module/actions/landmarks.js");
+const { rollKnightTable } = await import("../../module/actions/knight-tables.js");
 
 /** Set a value at a dotted path, making objects on the way. */
 function setPath(target, path, value) {
@@ -216,6 +264,7 @@ beforeEach(() => {
 		journal: [],
 		folders: [],
 		index: null,
+		settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null } },
 		Document: FakeDocument
 	});
 	world.toolkit = new FakeDocument({ type: "gmToolkit", system: { notes: "<p>Mine</p>", seasons: { "3-winter": { notes: "Mine" } } } });
@@ -234,6 +283,7 @@ beforeEach(() => {
 			deepClone: (value) => structuredClone(value),
 			isEmpty: (value) => !Object.keys(value ?? {}).length,
 			escapeHTML: (value) => String(value),
+			randomID: () => `id${++nextId}`,
 			getRoute: (path) => `/${path}`,
 			getDocumentClass: (name) => world.classes[name]
 		},
@@ -247,6 +297,10 @@ beforeEach(() => {
 	globalThis.canvas = { scene: null };
 	globalThis.game = {
 		user: { isGM: true, id: "gm" },
+		settings: {
+			get: (_scope, key) => world.settings[key],
+			set: vi.fn(async (_scope, key, value) => { world.settings[key] = value; })
+		},
 		actors: collection(world.actors),
 		scenes: collection([]),
 		journal: collection(world.journal),
@@ -265,7 +319,7 @@ afterEach(() => {
 });
 
 /** The Knights, by name. */
-const knights = () => Object.fromEntries(world.actors.filter((actor) => actor.type === "knight").map((actor) => [actor.name, actor]));
+const knights = () => Object.fromEntries(world.actors.filter((actor) => actor.type === "knight" && !actor.system.isSquire).map((actor) => [actor.name, actor]));
 
 describe.each([["with the book imported", true], ["without it", false]])("the test world, %s", (_label, imported) => {
 	beforeEach(() => {
@@ -275,14 +329,19 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 	it("plays five Seasons to the Afternoon of Harvest in Age 2, and says it's done", async () => {
 		await populateTestWorld();
 		expect(ui.notifications.error).not.toHaveBeenCalled();
-		expect(world.calendar).toEqual({ age: 2, season: "harvest", day: expect.any(Number), phase: "afternoon" });
+		expect(world.calendar).toEqual({ age: 2, year: expect.any(Number), season: "harvest", day: expect.any(Number), phase: "afternoon" });
 		expect(ui.notifications.info).toHaveBeenLastCalledWith(expect.stringContaining("The test world is ready"));
 		expect(world.toolkit.sheet.render).toHaveBeenCalledWith({ force: true, tab: "places" });
 	});
 
 	it("keeps what it changes on the GM Toolkit, to put back", async () => {
 		await populateTestWorld();
-		expect(world.toolkit.flags[SYSTEM_ID][BEFORE_FLAG]).toEqual({ calendar: BEFORE, notes: "<p>Mine</p>", seasons: { "3-winter": { notes: "Mine" } } });
+		expect(world.toolkit.flags[SYSTEM_ID][BEFORE_FLAG]).toEqual({
+			calendar: BEFORE,
+			notes: "<p>Mine</p>",
+			seasons: { "3-winter": { notes: "Mine" } },
+			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null } }
+		});
 		expect(world.toolkit.system.notes).toContain("<h2>Where we left off</h2>");
 	});
 
@@ -318,15 +377,16 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		const scars = Object.fromEntries(Object.entries(knights()).map(([name, actor]) => [name, actor.items.filter((item) => item.type === "scar").map((item) => [item.system.roll, item.system.season])]));
 		expect(scars).toEqual({
 			"Dame Isolde Marrow": [[10, "1-harvest"]],
-			"Sir Corvin Ashby": [[1, "1-spring"], [11, "2-harvest"]],
-			"Sir Oswin Hale": [[12, "2-spring"]]
+			"Sir Corvin Ashby": [[1, "1-spring"], [11, "2-2-harvest"]],
+			"Sir Oswin Hale": [[12, "2-2-spring"]]
 		});
 	});
 
 	it("turns three Seasons and one Age, and writes about all five", async () => {
 		await populateTestWorld();
-		expect(recordSeasonTurn.mock.calls.map(([key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-spring", "season"]]);
-		expect(writeSeasonNotes.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-spring", "2-harvest"]);
+		expect(recordSeasonTurn.mock.calls.map(([key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-2-spring", "season"]]);
+		expect(writeSeasonNotes.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring", "2-2-harvest"]);
+		expect(recordMythCompleted).toHaveBeenCalledTimes(1);
 		const succession = recordSeasonTurn.mock.calls[2][1].entries.find((entry) => entry.name === "Sir Corvin Ashby");
 		expect(succession.pursuit).toBe("time.pursuits.succession.label");
 		expect(hardshipFor).toHaveBeenCalledWith(expect.objectContaining({ key: "winter" }), expect.any(Array));
@@ -367,11 +427,61 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		await populateTestWorld();
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
 		expect(domain.system.crises).toHaveLength(1);
-		expect(domain.system.crisisRolled).toBe("2-spring");
+		expect(domain.system.crisisRolled).toBe("2-2-spring");
 		expect(domain.system.council.circle).toBe("Sir Oswin Hale");
 		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
 		expect(world.journal.map((entry) => entry.flags.core.sheetClass)).toEqual(["mythic-bastionland-pwd.SiteSheet", "mythic-bastionland-pwd.SiteSheet"]);
 		expect(world.journal[0].flags[SYSTEM_ID].site.points).toBeTruthy();
+	});
+
+	it("gives the Domain an heir, a Court, Council tasks and a Warband it feeds too little", async () => {
+		await populateTestWorld();
+		const [domain] = world.actors.filter((actor) => actor.type === "domain");
+		expect(domain.system.successor).toBe("Sir Oswin Hale");
+		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "courtier", "courtier", "petitioner", "seer"]);
+		expect(Object.values(domain.system.court).every((member) => member.name)).toBe(true);
+		// The Circle's week is settled; the steward's Season and the envoy's are still in hand.
+		expect(settleTask).toHaveBeenCalledTimes(1);
+		expect(Object.values(domain.system.tasks).map((task) => [task.seat, task.scope, task.started.season])).toEqual([["steward", "season", "spring"], ["envoy", "season", "harvest"]]);
+		const [warband] = world.actors.filter((actor) => actor.system.scale === "warband");
+		expect(warband.flags[SYSTEM_ID]).toMatchObject({ musteredBy: domain.id, warbandOrigin: "vassals", [TEST_FLAG]: true });
+		expect(wearWarbandDown).toHaveBeenCalledWith(warband, "poorlyFed");
+	});
+
+	it("gives Dame Isolde a Squire on a pony, and each Knight a folder of their own", async () => {
+		await populateTestWorld();
+		const { "Dame Isolde Marrow": isolde } = knights();
+		const squire = world.actors.find((actor) => actor.system.isSquire);
+		expect(squire.system.serves).toBe(isolde.uuid);
+		expect(isolde.system.squire).toBe(squire.uuid);
+		expect(world.actors.find((actor) => actor.uuid === squire.system.steed)?.type).toBe("npc");
+		for (const knight of Object.values(knights())) {
+			const folder = world.folders.find((candidate) => candidate.id === knight.folder);
+			expect(folder.flags[SYSTEM_ID].knight).toBe(knight.id);
+		}
+	});
+
+	it("marks each Season's feasts and masses, and its collection as it turns", async () => {
+		await populateTestWorld();
+		expect(markSeasonEvent.mock.calls.map(([key]) => key)).toEqual([
+			"feastOfTheSun", "sceptremass", "feastOfTheStars", "eldermass", "feastOfTheMoon", "kindlemass", "feastOfTheSun", "sceptremass", "feastOfTheStars"
+		]);
+		expect(markCollection.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring"]);
+		expect(recordSeasonTurn.mock.calls[0][1].entries[0].name).toBe("tax");
+	});
+
+	it("leaves it raining, with two City Omens met, a Ruin's echo and the session ended", async () => {
+		await populateTestWorld();
+		expect(world.settings.weather).toBe("rain");
+		expect(rollCityOmen).toHaveBeenCalledTimes(2);
+		expect(echoRuin).toHaveBeenCalledTimes(1);
+		expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ step: "none", situations: [expect.objectContaining({ d6: 4 }), expect.objectContaining({ d6: 4 })] }));
+	});
+
+	it(imported ? "rolls each Knight's table from the book" : "leaves the Knights' tables empty", async () => {
+		await populateTestWorld();
+		expect(rollKnightTable).toHaveBeenCalledTimes(imported ? 3 : 0);
+		if (imported) for (const knight of Object.values(knights())) expect(knight.system.bookTable.rolls).toEqual([3]);
 	});
 
 	it(imported ? "rolls Spark Tables and makes the Seer and a Myth's Cast from the book" : "leaves the book's Spark Tables and people out", async () => {
@@ -381,11 +491,14 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			expect(rollHexSpark).toHaveBeenCalled();
 			expect(rollHexSparkSet).toHaveBeenCalled();
 			expect(npcs.some((name) => / Seer$/.test(name))).toBe(true);
-			expect(npcs.some((name) => /^Cast of /.test(name))).toBe(true);
+			const cast = world.actors.find((actor) => /^Cast of /.test(actor.name));
+			expect(cast.flags[SYSTEM_ID].cast).toEqual({ myth: expect.any(String), from: cast.name });
+			expect(world.folders.find((folder) => folder.id === cast.folder).flags[SYSTEM_ID].cast).toBe(cast.flags[SYSTEM_ID].cast.myth);
 		} else {
 			expect(rollHexSpark).not.toHaveBeenCalled();
 			expect(rollHexSparkSet).not.toHaveBeenCalled();
-			expect(npcs).toHaveLength(3);
+			// Three steeds, the Squire's pony and the Domain's levy.
+			expect(npcs).toHaveLength(5);
 		}
 	});
 });
@@ -411,6 +524,19 @@ describe("running it again", () => {
 			[`flags.${SYSTEM_ID}.${BEFORE_FLAG}`]: expect.any(foundry.data.operators.ForcedDeletion)
 		});
 		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining("Removed the test world"));
+		// A test world made before the settings were kept leaves them alone.
+		expect(game.settings.set).not.toHaveBeenCalled();
+	});
+
+	it("puts back the weather, the City Quest and the session's memory it kept", async () => {
+		const kept = { weather: "fog", cityQuest: { seen: [] }, sessionEnd: { promised: "season" } };
+		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, settings: kept } } };
+		world.toolkit.update = vi.fn();
+		const { drawWeather } = await import("../../module/actions/weather.js");
+
+		await populateTestWorld();
+		expect(world.settings).toEqual(kept);
+		expect(drawWeather).toHaveBeenCalled();
 	});
 
 	it("does nothing unless the GM confirms", async () => {

@@ -6,7 +6,7 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });
-const spring = { age: 1, season: "spring", day: 2, phase: "afternoon" };
+const spring = { age: 1, year: 1, season: "spring", day: 2, phase: "afternoon" };
 
 class ForcedDeletion {}
 
@@ -64,7 +64,7 @@ describe("recordHexVisits", () => {
 			`flags.${SYSTEM_ID}.${JOURNEY_FLAG}.next`,
 			`flags.${SYSTEM_ID}.${JOURNEY_FLAG}.version`
 		]);
-		expect(getJourney(scene).hexes["3,2"]).toEqual({ count: 1, first: { when: spring, order: 2 }, last: { when: spring, order: 2 } });
+		expect(getJourney(scene).hexes["3,2"]).toEqual({ count: 1, first: { when: spring, order: 2 }, last: { when: spring, order: 2 }, arrivals: [{ when: spring, order: 2 }] });
 		expect(getJourney(scene).next).toBe(3);
 	});
 

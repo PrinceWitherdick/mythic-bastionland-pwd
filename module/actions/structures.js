@@ -3,6 +3,7 @@ import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, t } from "../chat/cards.js";
 import { collisionFaces, isStructureNpc, structureFromNpc } from "../rules/structures.js";
 import { escapeHTML } from "../rules/text.js";
+import { replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { takeDamage } from "./damage.js";
 
@@ -67,7 +68,7 @@ export async function convertToStructure(actor, { confirm = true } = {}) {
 	}
 	const system = structureFromNpc(actor.name, actor.toObject().system);
 	// Foundry changes a document's type only when its system data is replaced whole.
-	await actor.update({ type: "structure", system: foundry.data.operators.ForcedReplacement.create(system) });
+	await actor.update(Object.fromEntries([["type", "structure"], replacementEntry("system", system)]));
 	return true;
 }
 

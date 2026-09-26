@@ -1,5 +1,6 @@
 import { MYTH_NOTES_VERSION, normaliseMythNotes, withMythNote } from "../rules/myth-notes.js";
 import { serialWrites } from "../rules/queue.js";
+import { setOrDeleteEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { isRealmScene } from "./realm.js";
 
@@ -39,10 +40,8 @@ export function editMythNote(scene, myth, changes) {
 		const after = withMythNote(before, myth, changes);
 		if (after === before) return false;
 		const key = String(myth.number);
-		await scene.update({
-			[flagPath("version")]: MYTH_NOTES_VERSION,
-			[flagPath("myths", key)]: after.myths[key] ?? new foundry.data.operators.ForcedDeletion()
-		});
+		const [path, value] = setOrDeleteEntry(flagPath("myths", key), after.myths[key]);
+		await scene.update({ [flagPath("version")]: MYTH_NOTES_VERSION, [path]: value });
 		return true;
 	});
 }

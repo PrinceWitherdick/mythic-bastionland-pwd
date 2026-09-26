@@ -1,18 +1,16 @@
 import { postCard, t } from "../chat/cards.js";
-import { appendRecap, normalizeSessionEnd, timeStep } from "../rules/session-end.js";
-import { PLANNED_SCOPE } from "../rules/scope.js";
+import { appendRecap, normalizeSessionEnd, sessionRecap, timeStep } from "../rules/session-end.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { countSession, getScope } from "./scope.js";
 import { seasonRecord, writeSeasonNotes } from "./season-log.js";
 import { turnAge, turnSeason, weeksPass } from "./time.js";
 
 /**
  * Carrying out the end of a session (Refereeing p16): the time the group
  * settled on passes, the Season just played keeps the Referee's recap, a turn a
- * roll promised for next time is remembered, a Chronicle counts the session,
- * and one card tells the table what came of it all. The window that asks the
+ * roll promised for next time is remembered, and one card tells the table what
+ * came of it all. The window that asks the
  * questions is module/apps/SessionEnd.js; the rules behind them are in
  * module/rules/session-end.js.
  */
@@ -63,8 +61,9 @@ async function letTimePass(key) {
 }
 
 /**
- * Write the Referee's recap into the notes of the Season just played, on the
- * Toolkit's Time page, under a heading naming the session. A world with no
+ * Write the Referee's recap, and the players' plans for next session, into the
+ * notes of the Season just played, on the Toolkit's Time page, under a heading
+ * naming the session. A world with no
  * toolkit yet has nowhere to keep it, and the session still ends.
  * @param {string} key The Season that was played.
  * @param {string} heading
@@ -122,24 +121,21 @@ function sessionEntries({ situations = [], glory = [], plans = "" }, passed) {
  */
 export async function endTheSession(session) {
 	if (!game.user.isGM) return false;
-	const { step, passed = "", recap = "", promised = null } = session;
+	const { step, passed = "", recap = "", plans = "", promised = null } = session;
 	if (!timeStep(step)) return false;
 
-	const plan = getScope();
 	const before = getCalendar();
 	const played = seasonKey(before);
 	if (!(await letTimePass(step))) return false;
 
-	// The recap belongs to the Season that was played, read before the turn moved on. It's kept
-	// only once the time has passed, so a turn the Referee closed doesn't keep it twice.
-	await keepRecap(played, t("sessionEnd.recapHeading", { session: plan.session, when: calendarLabel(before) }), recap);
-	await Promise.all([rememberPromise(promised), countSession()]);
+	// The recap and plans belong to the Season that was played, read before the turn moved on. They're
+	// kept only once the time has passed, so a turn the Referee closed doesn't keep them twice.
+	await keepRecap(played, t("sessionEnd.recapHeading", { when: calendarLabel(before) }), sessionRecap(recap, plans, t("sessionEnd.card.plans")));
+	await rememberPromise(promised);
 	await postCard(null, "report", {
 		icon: SESSION_ICON,
 		title: t("sessionEnd.title"),
-		tagline: plan.scope === PLANNED_SCOPE
-			? t("sessionEnd.card.session", { session: plan.session, sessions: plan.sessions })
-			: calendarLabel(getCalendar()),
+		tagline: calendarLabel(getCalendar()),
 		entries: sessionEntries(session, passed),
 		hint: t("sessionEnd.card.hint")
 	});

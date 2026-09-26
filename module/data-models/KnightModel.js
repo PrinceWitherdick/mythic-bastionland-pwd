@@ -1,7 +1,8 @@
 import { AGES } from "../config.js";
+import { armourTotal } from "../rules/armour.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { SEER_UNHARMED, namesNewSeer } from "../rules/seer-state.js";
-import { SCORES, conditionsFor } from "../rules/virtues.js";
+import { SCORES, conditionsFor, healsWound } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -66,18 +67,21 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		super.prepareDerivedData();
 		this.rank = rankForGlory(this.glory);
 		this.nextRank = nextRank(this.glory);
-		this.armour = this.parent.items.reduce((total, item) => total + (item.system.wornArmour ?? 0), 0);
 		this.conditions = conditionsFor(this);
+		// One of each type counts, and only while its condition holds (p12).
+		this.armour = armourTotal(this.parent.items.filter((item) => item.type === "armour").map((item) => item.system), this.conditions);
 	}
 
 	/**
 	 * The harm on the Seer page is the Seer's own, so naming another Seer clears it.
+	 * Wounded goes once VIG is whole again.
 	 * @override
 	 */
 	async _preUpdate(changes, options, user) {
 		const allowed = await super._preUpdate(changes, options, user);
 		if (allowed === false) return false;
 		if (namesNewSeer(changes, this.seer)) foundry.utils.setProperty(changes, "system.seerState", { ...SEER_UNHARMED });
+		if (healsWound(this, changes)) changes.system.wounded = false;
 	}
 
 	/**

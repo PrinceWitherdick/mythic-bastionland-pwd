@@ -225,17 +225,30 @@ export function knightUpdate({ start, virtues = {}, guard = null, knight = null,
 		update["system.guard.max"] = guard;
 	}
 	if (knight) {
-		update["system.knightType"] = knightTypeFromName(knight.name);
-		update["system.seer"] = seer?.name ?? "";
-		// The Knight's notes on their Seer stay; what the book says follows the new Seer.
-		update["system.seerImg"] = seer?.path ?? "";
-		update["system.seerInfo"] = seerInfo(seer);
-		// As in seerAutoFill, the scores go with the text they came from.
-		update["system.seerBook"] = seerBook(seer);
+		Object.assign(update, knightChoice(knight, seer));
 		if (knight.path) update.img = knight.path;
 		if (knight.token) update["prototypeToken.texture.src"] = knight.token;
 	}
 	return update;
+}
+
+/**
+ * The actor update naming which Knight a character is, and the Seer who
+ * knighted them. Nothing else: no scores, no picture.
+ * @param {object} knight      A Knight from the art index.
+ * @param {object|null} [seer] Their Seer from the art index.
+ * @returns {object}
+ */
+export function knightChoice(knight, seer = null) {
+	return {
+		"system.knightType": knightTypeFromName(knight.name),
+		"system.seer": seer?.name ?? "",
+		// The Knight's notes on their Seer stay; what the book says follows the new Seer.
+		"system.seerImg": seer?.path ?? "",
+		"system.seerInfo": seerInfo(seer),
+		// As in seerAutoFill, the scores go with the text they came from.
+		"system.seerBook": seerBook(seer)
+	};
 }
 
 /**

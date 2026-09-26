@@ -1,24 +1,29 @@
-import { getCalendar, registerCalendarSetting } from "./module/actions/calendar.js";
+import { getCalendar, registerCalendarSetting, watchCalendar } from "./module/actions/calendar.js";
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/knight-folders.js";
+import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/actions/new-knight.js";
+import { watchTableRenewals } from "./module/actions/knight-tables.js";
+import { watchRestocks } from "./module/actions/restock.js";
+import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
-import { registerScopeSetting } from "./module/actions/scope.js";
 import { registerSessionEndSetting } from "./module/actions/session-end.js";
+import { eventLabel, seasonEventsNow } from "./module/actions/season-events.js";
 import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./module/actions/session-macro.js";
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
-import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, dropOwnerFromCompanionNames, retypeKnightProperty } from "./module/actions/property.js";
+import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
+import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -29,7 +34,8 @@ import { registerDropdowns } from "./module/apps/dropdown.js";
 import { openSessionEnd } from "./module/apps/SessionEnd.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
-import { openSparkTables } from "./module/apps/SparkTables.js";
+import { openSparkTables, registerSparkTablesSetting } from "./module/apps/SparkTables.js";
+import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
@@ -86,10 +92,12 @@ import { bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
+import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
+import { watchQuerySenders } from "./module/compat.js";
 import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
@@ -175,8 +183,10 @@ Hooks.once("init", () => {
 		"bastionland.steed-block": templatePath("actor/parts/steed-block.hbs"),
 		"bastionland.book-table-line": templatePath("actor/parts/book-table-line.hbs"),
 		"bastionland.table-sentence": templatePath("actor/parts/table-sentence.hbs"),
+		"bastionland.renewal-die": templatePath("actor/parts/renewal-die.hbs"),
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
+		"bastionland.realm-swatch": templatePath("apps/parts/realm-swatch.hbs"),
 		"bastionland.season-events": templatePath("apps/parts/season-events.hbs"),
 		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
@@ -202,12 +212,10 @@ Hooks.once("init", () => {
 	// Remembers the one-time setup each world has had.
 	registerWorldSetup();
 
-	// The world's calendar of Ages, Seasons, Days and Phases.
+	// The world's calendar of Ages, Seasons and Phases.
 	registerCalendarSetting();
 
-	// The Scope the group settled on, and the plan a Chronicle keeps (p6).
-	registerScopeSetting();
-	// And what the last session's end left for the next one (p17).
+	// What the last session's end left for the next one (p17).
 	registerSessionEndSetting();
 
 	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
@@ -251,6 +259,9 @@ Hooks.once("init", () => {
 	// Each Knight gets a folder of their own in the Company's, where their steed and Squire are kept.
 	registerKnightFolderHooks();
 
+	// A Knight made blank shows an empty page until they're chosen, and opens for the player they're given to.
+	registerUnchosenKnightHooks();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -266,6 +277,8 @@ Hooks.once("init", () => {
 	registerRulebookSettings();
 	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
 	registerRulebookShare();
+	// v13 doesn't tell a User query's handler who sent it, so it's heard off the socket.
+	watchQuerySenders();
 	// Every "(p16)" in a window or chat card opens the book at that page.
 	registerPageLinks();
 	// Hovering a rule word, such as Exposed or Hefty, says what it means.
@@ -279,6 +292,7 @@ Hooks.once("init", () => {
 
 	// Realm Scenes: the GM's Realm tools, Barriers that stop Tokens, and the hex readout.
 	CONFIG.Canvas.layers.realm = { layerClass: RealmLayer, group: "interface" };
+	RealmLayer.listenForPaintAgain();
 	registerRealmHooks();
 	CONFIG.Token.objectClass = BastionlandToken;
 	registerTokenHeraldryHooks();
@@ -306,15 +320,39 @@ Hooks.once("init", () => {
 	// nothing written down is offered to them.
 	registerHexLoreSettings();
 
+	// The Phase of the Day at the top of the screen, turning with the calendar for everyone, and
+	// for GMs the ways of moving time on and End the Session hanging under it.
+	registerPhaseBanner({
+		moves: {
+			weeks: weeksPass,
+			months: turnSeason,
+			year: turnAge,
+			end: openSessionEnd,
+			nextEvent: () => {
+				const { next } = seasonEventsNow();
+				return next ? eventLabel(next.key) : null;
+			}
+		}
+	});
+
 	// Travel and Exploration beside Realm Scenes, folded or open as each browser left it.
 	registerTravelRulesSetting();
+
+	// Whether a Spark Table roll runs its highlight, as each browser left the tick box.
+	registerSparkTablesSetting();
 
 	// The GM Toolkit: one per world, each GM's character so C opens it, and where the Company has been on each Realm.
 	registerGmToolkitHooks();
 	registerJourneyHooks();
 
+	// Players may make their own Knights, and Create Actor offers them nothing else.
+	registerPlayerKnightDialog();
+
 	// Weapons, armour, gear, beasts and structures get a picture their name calls for.
 	registerGoodsPictures();
+
+	// Everyone at the table sees a Knight's name when hovering over their Token.
+	registerKnightTokenNames();
 
 	// A steed renamed by its Knight keeps what the book called it under the name.
 	registerSteedNames();
@@ -390,6 +428,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
 	{ key: TOOLKIT_MACRO_STEP, run: seedToolkitMacro },
 	{ key: SESSION_MACRO_STEP, run: seedSessionMacro },
+	// Once only, so a GM who takes it away again under Configure Permissions keeps it away.
+	{ key: PLAYER_KNIGHTS_STEP, run: grantPlayerActorCreate },
 	// In the Macro Directory only, never on a hotbar.
 	{ key: TEST_WORLD_MACRO_STEP, run: seedTestWorldMacro },
 	{ key: GOODS_FOLDERS_STEP, run: seedGoodsFolders },
@@ -401,8 +441,12 @@ const WORLD_SETUP = Object.freeze([
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },
 	// After it, so the companions it makes are named as the rest: their own sheet says whose they are.
 	{ key: COMPANION_NAMES_STEP, run: dropOwnerFromCompanionNames },
+	// After it too, so the pieces it read get their counts, restocks and armour conditions.
+	{ key: POSSESSION_DETAILS_STEP, run: fillPossessionDetails },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
+	// Knights made while their Tokens showed their name to no one.
+	{ key: KNIGHT_TOKEN_NAMES_STEP, run: showExistingKnightNames },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
 	// Again, once each Scene has its own look: for terrain pictures named by terrain rather than
@@ -412,12 +456,20 @@ const WORLD_SETUP = Object.freeze([
 ]);
 
 Hooks.once("ready", async () => {
+	// The Phase at the top of the screen, for everyone at the table.
+	showPhaseBanner();
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
 	watchCompanySize();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
+	// A Knight given to this player while they were away opens for them to choose.
+	openOfferedKnights();
+	// A Knight's table rolled again each Season, Night or Day is marked, and its player told, when that time comes.
+	watchCalendar();
+	watchTableRenewals();
+	watchRestocks();
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),

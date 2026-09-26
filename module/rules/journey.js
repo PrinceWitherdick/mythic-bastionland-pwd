@@ -26,7 +26,9 @@ export const WALKED_METHODS = Object.freeze(["dragging", "keyboard"]);
  * @typedef {object} Arrival
  * @property {When} when   The world's calendar then, or null when it wasn't known.
  * @property {number} order Counts up with each hex come into, across the whole Realm,
- *   so the hex reached last sorts first whatever the calendar says.
+ *   so the hex reached last sorts first whatever the calendar says. Also names the
+ *   arrival, so one can be forgotten on its own. A whole number, save for the
+ *   arrivals read out of a record kept before each was.
  */
 
 /**
@@ -34,6 +36,8 @@ export const WALKED_METHODS = Object.freeze(["dragging", "keyboard"]);
  * @property {number} count  How many times the Company has come into the hex.
  * @property {Arrival} first
  * @property {Arrival} last
+ * @property {Arrival[]} arrivals Each time it came in, oldest first. Count, first and last
+ *   are read from these, and kept beside them for anything reading the older record.
  */
 
 /**
@@ -55,7 +59,41 @@ const atLeast = (value, least) => (Number.isInteger(value) && value >= least ? v
  */
 function normaliseArrival(raw) {
 	if (!raw || typeof raw !== "object") return null;
-	return { when: normaliseWhen(raw.when), order: atLeast(raw.order, 0) };
+	const order = Number.isFinite(raw.order) && raw.order >= 0 ? raw.order : 0;
+	return { when: normaliseWhen(raw.when), order };
+}
+
+/**
+ * A hex's visits from its arrivals, however few are left.
+ * @param {Arrival[]} arrivals Oldest first.
+ * @returns {HexVisits|null} Null once none are.
+ */
+function fromArrivals(arrivals) {
+	if (!arrivals.length) return null;
+	return { count: arrivals.length, first: arrivals[0], last: arrivals.at(-1), arrivals };
+}
+
+/**
+ * The arrivals of a hex kept before each was: only the first and last are
+ * known, so those between are put evenly between them, with no calendar.
+ * @param {number} count
+ * @param {Arrival} first
+ * @param {Arrival} last
+ * @returns {Arrival[]}
+ */
+function arrivalsBetween(count, first, last) {
+	// One visit is the last: it is what the newest-first order and the next arrival go by.
+	if (count === 1) return [last];
+	// A record whose first and last share a moment still counted every visit, so they're
+	// spread over the step before the last, where no other hex's whole-numbered arrival is.
+	if (first.order >= last.order) {
+		const lift = Math.max(0, (count - 1) / count - last.order);
+		const orders = Array.from({ length: count }, (_, index) => last.order + lift - (count - 1 - index) / count);
+		return orders.map((order, index) => ({ when: index === 0 ? first.when : index === count - 1 ? last.when : null, order }));
+	}
+	const step = (last.order - first.order) / (count - 1);
+	const between = Array.from({ length: count - 2 }, (_, index) => ({ when: null, order: first.order + step * (index + 1) }));
+	return [first, ...between, last];
 }
 
 /**
@@ -64,11 +102,16 @@ function normaliseArrival(raw) {
  */
 export function normaliseVisits(raw) {
 	if (!raw || typeof raw !== "object") return null;
+	if (Array.isArray(raw.arrivals)) {
+		const arrivals = raw.arrivals.map(normaliseArrival).filter(Boolean).sort((a, b) => a.order - b.order);
+		// Two arrivals can't share a moment in the Company's journey.
+		return fromArrivals(arrivals.filter((arrival, index) => index === 0 || arrival.order !== arrivals[index - 1].order));
+	}
 	const count = atLeast(raw.count, 0);
 	const first = normaliseArrival(raw.first);
 	const last = normaliseArrival(raw.last) ?? first;
 	if (!count || !first) return null;
-	return { count, first, last };
+	return fromArrivals(arrivalsBetween(count, first, last));
 }
 
 /**
@@ -89,7 +132,7 @@ export function normaliseJourney(raw) {
 		latest = Math.max(latest, visits.last.order);
 	}
 	// Never behind a hex already come into, or the next one would sort among the old.
-	journey.next = Math.max(atLeast(raw.next, 1), latest + 1);
+	journey.next = Math.max(atLeast(raw.next, 1), Math.floor(latest) + 1);
 	return journey;
 }
 
@@ -136,10 +179,7 @@ export function recordVisits(journey, hexes, when = null) {
 	for (const hex of hexes) {
 		const key = hexKey(hex);
 		const arrival = { when: stamp, order: next.next++ };
-		const before = next.hexes[key];
-		next.hexes[key] = before
-			? { count: before.count + 1, first: before.first, last: arrival }
-			: { count: 1, first: arrival, last: arrival };
+		next.hexes[key] = fromArrivals([...(next.hexes[key]?.arrivals ?? []), arrival]);
 	}
 	return next;
 }
@@ -160,10 +200,30 @@ export function forgetVisits(journey, hex) {
 }
 
 /**
+ * Forget one time the Company came into a hex, such as a Token dragged across
+ * it by mistake. Forgetting its last forgets the hex.
+ * @param {Journey} journey
+ * @param {{col: number, row: number}} hex
+ * @param {number} order The arrival's.
+ * @returns {Journey} Unchanged when the hex has no such arrival.
+ */
+export function forgetVisit(journey, hex, order) {
+	const key = hexKey(hex);
+	const before = journey.hexes[key];
+	const arrivals = before?.arrivals.filter((arrival) => arrival.order !== order);
+	if (!before || arrivals.length === before.arrivals.length) return journey;
+	const hexes = { ...journey.hexes };
+	const after = fromArrivals(arrivals);
+	if (after) hexes[key] = after;
+	else delete hexes[key];
+	return { ...journey, hexes };
+}
+
+/**
  * @param {Journey} before
  * @param {Journey} after
- * @returns {string[]} The hexes whose visits differ, so each can be written on its own. recordVisits
- * and forgetVisits replace only the entries they change, so an unchanged hex is the same object.
+ * @returns {string[]} The hexes whose visits differ, so each can be written on its own. recordVisits,
+ * forgetVisit and forgetVisits replace only the entries they change, so an unchanged hex is the same object.
  */
 export function changedHexes(before, after) {
 	const keys = new Set([...Object.keys(before.hexes), ...Object.keys(after.hexes)]);

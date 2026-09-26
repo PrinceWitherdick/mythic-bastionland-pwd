@@ -24,12 +24,26 @@ export async function evaluateSave(actor, virtue) {
 /**
  * @param {string} virtue
  * @param {number} value
+ * @param {number|null} [rolled] The d20 when it was rolled at the table instead.
  * @returns {Promise<SaveResult>}
  */
-async function saveAgainst(virtue, value) {
-	const roll = await new Roll("1d20").evaluate();
+async function saveAgainst(virtue, value, rolled = null) {
+	const roll = rolled === null ? await new Roll("1d20").evaluate() : d20Showing(rolled);
 	return { virtue, value, roll, passed: isSavePassed(roll.total, value) };
 }
+
+/**
+ * A d20 that was rolled at the table rather than here, so the card and the
+ * dice in chat show the face the player read out.
+ * @param {number} face 1 to 20.
+ * @returns {Roll}
+ */
+function d20Showing(face) {
+	const data = new Roll("1d20").toJSON();
+	Object.assign(data.terms[0], { results: [{ result: face, active: true }], evaluated: true });
+	return Roll.fromData({ ...data, total: face, evaluated: true });
+}
+
 
 /**
  * Template data for the `bastionland.save-result` partial.
@@ -87,10 +101,12 @@ export async function rollSaveFor(name, virtue, value) {
  * @param {string} words.label   What the Save was for, as its heading.
  * @param {string|((save: SaveResult) => string)} words.outcome  What came of it.
  * @param {string|((save: SaveResult) => string)|null} [words.hint] A line of the book's own guidance.
+ * @param {object} [options]
+ * @param {number|null} [options.rolled] The d20 when it was rolled at the table instead.
  * @returns {Promise<SaveResult>}
  */
-export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }) {
-	const save = await evaluateSave(actor, virtue);
+export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }, { rolled = null } = {}) {
+	const save = await saveAgainst(virtue, actor.system.virtues[virtue].value, rolled);
 	const read = (words) => (typeof words === "function" ? words(save) : words);
 	await postCard(actor, "save", {
 		save: { ...saveContext(save), label },

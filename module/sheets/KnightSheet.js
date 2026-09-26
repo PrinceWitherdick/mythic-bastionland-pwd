@@ -1,12 +1,13 @@
-import { getCalendar } from "../actions/calendar.js";
+import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
-import { fillKnightFromBook, withTableSentences } from "../actions/knight-tables.js";
+import { fillKnightFromBook, knightTableRenewal, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
+import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { takeSeerDamage } from "../actions/damage.js";
 import { rollSaveFor } from "../actions/saves.js";
 import { resolveScar, rollScar } from "../actions/scars.js";
-import { companySizeNow, knightSquire, takeSquire } from "../actions/squires.js";
+import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
@@ -20,13 +21,14 @@ import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
 import { titleKnightType } from "../rules/creation.js";
 import { RANKS } from "../rules/glory.js";
-import { hasTable, knightTableItemId, namePartsWithoutSeeBelow, tableResults } from "../rules/knight-tables.js";
+import { hasTable, knightRenewal, knightTableItemId, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
 import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
+import { compareCalendars } from "../rules/time.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
@@ -42,6 +44,9 @@ import { placeTabRail, stampRailSide } from "./tab-rail.js";
  * templates/actor/squire-sheet.hbs.
  */
 export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
+	/** @override */
+	static PROPERTY_ORDER = true;
+
 	static DEFAULT_OPTIONS = {
 		classes: ["bastionland-has-tab-rail"],
 		position: { width: 860, height: 920 },
@@ -56,6 +61,9 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			setAge: KnightSheet.#onSetAge,
 			takeSquire: KnightSheet.#onTakeSquire,
 			chooseKnight: KnightSheet.#onChooseKnight,
+			chooseKnighted: KnightSheet.#onChooseKnighted,
+			chooseFresh: KnightSheet.#onChooseFresh,
+			fillByHand: KnightSheet.#onFillByHand,
 			knightSquire: KnightSheet.#onKnightSquire,
 			openSquire: KnightSheet.#onOpenSquire,
 			clearSquire: KnightSheet.#onClearSquire,
@@ -136,7 +144,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		const context = await super._prepareContext(options);
 		const system = this.actor.system;
 		const [property, abilities, passions, scars] = await Promise.all([
-			this._prepareItems(...PROPERTY_TYPES),
+			this._preparePropertyItems(...PROPERTY_TYPES),
 			this._prepareItems("ability"),
 			this._prepareItems("passion"),
 			this._prepareItems("scar")
@@ -156,7 +164,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		const bookTable = this.#bookTableContext();
 		const tableItem = bookTable && knightTableItemId(this.actor);
 		const propertyRows = tableItem
-			? property.map((row) => (row.id === tableItem ? { ...row, ...namePartsWithoutSeeBelow(row), bookTable } : row))
+			? await Promise.all(property.map((row) => (row.id === tableItem ? this.#tableItemRow(row, bookTable) : row)))
 			: property;
 
 		return Object.assign(context, {
@@ -213,29 +221,49 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
 			seerStats: seer && this.#seerScores(seer),
 			enrichedSeerInfo,
-			enrichedSeerNotes
+			enrichedSeerNotes,
+			unchosen: isUnchosen(this.actor) && this.#unchosenContext()
 		});
 	}
 
 	/**
+	 * What the empty page of a Knight made blank says, and, for a GM, the
+	 * players they can give the Knight to for choosing (p6).
+	 * @returns {{hint: string, players: {id: string, name: string, selected: boolean}[]}}
+	 */
+	#unchosenContext() {
+		const hint = !this.isEditable ? "unchosen.hintViewer" : game.user.isGM ? "unchosen.hintGM" : "unchosen.hint";
+		const holder = knightPlayer(this.actor);
+		const players = game.user.isGM
+			? game.users.filter((user) => !user.isGM).map((user) => ({ id: user.id, name: user.name, selected: user.id === holder }))
+			: [];
+		return { hint: t(hint), players };
+	}
+
+	/**
 	 * A Squire's sheet is the one page p7 gives them, in place of the Knight's
-	 * four. Read afresh on every render, so Knighting them turns the page over.
+	 * four, and a Knight made blank shows an empty page until they're chosen.
+	 * Read afresh on every render, so Knighting or choosing them turns the page over.
 	 * @override
 	 */
 	_configureRenderParts(options) {
 		const parts = super._configureRenderParts(options);
 		if (this.actor.system.isSquire) parts.sheet.template = templatePath("actor/squire-sheet.hbs");
+		else if (isUnchosen(this.actor)) parts.sheet.template = templatePath("actor/knight-unchosen.hbs");
 		return parts;
 	}
 
 	/**
 	 * A Squire's rail leads with their own page and drops the Knight's pages
-	 * they've no use for.
+	 * they've no use for. A Knight still to be chosen has no rail.
 	 * @override
 	 */
 	_getTabsConfig(group) {
 		const config = super._getTabsConfig(group);
-		if (group !== "primary" || !config || !this.actor.system.isSquire) return config;
+		if (group !== "primary" || !config) return config;
+		// The empty page is the only one until they're chosen.
+		if (isUnchosen(this.actor)) return { ...config, tabs: [] };
+		if (!this.actor.system.isSquire) return config;
 		return { ...config, initial: KnightSheet.SQUIRE_TAB.id, tabs: squireTabs(config.tabs, KnightSheet.SQUIRE_TAB) };
 	}
 
@@ -260,15 +288,44 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	}
 
 	/** @override */
-	_chooseFromBook() {
-		openKnightChooser(this.actor, { fresh: true });
-	}
-
-	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		placeTabRail(this.element, ".bastionland-header");
 		this.#fillFromBook();
+		// Picking a player on a Knight's empty page gives them the Knight; it isn't a field of the Actor's.
+		this.element.querySelector(".bastionland-unchosen__player select")?.addEventListener("change", (event) => {
+			event.stopPropagation();
+			giveKnightTo(this.actor, event.currentTarget.value);
+		});
+	}
+
+	/**
+	 * The possession a Knight's table sits under, without its "see below". Where
+	 * it says the table comes round again, as the Dust Knight's fish are restocked
+	 * each new Season, the die moves into its aside right after those words, and
+	 * is marked once that time has come since the last roll.
+	 * @param {object} row From _prepareItems.
+	 * @param {object} bookTable From #bookTableContext.
+	 * @returns {Promise<object>}
+	 */
+	async #tableItemRow(row, bookTable) {
+		const shown = { ...row, ...namePartsWithoutSeeBelow(row), bookTable };
+		const renewal = knightTableRenewal(this.actor);
+		if (!renewal) return shown;
+		// With the die gone up into the aside, the line under keeps only what the table gave, if anything.
+		const table = { ...bookTable, inlineDie: true, dieless: !bookTable.results.length };
+		const die = {
+			due: renewal.due,
+			tooltip: renewal.due ? t("knightTable.renewal.due", { name: bookTable.name, when: renewal.clause }) : bookTable.tooltip
+		};
+		if (renewal.source === "name") {
+			const split = splitAtRenewal(shown.nameRest, renewal);
+			if (!split) return shown;
+			return { ...shown, nameRest: split.before, renewal: { ...die, after: split.after }, bookTable: table };
+		}
+		// Said in the notes, it joins the tags' brackets instead, and leaves the notes.
+		const description = await this._enrich(this.actor.items.get(row.id).system.description.replace(renewal.paragraph, ""));
+		return { ...shown, description, renewal: { ...die, clause: clauseMidSentence(renewal.clause), inTags: true }, bookTable: table };
 	}
 
 	/**
@@ -346,15 +403,22 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	 * Squire raises them. The Domain button opens the Domain this Knight rules,
 	 * the way the Stonetop character sheet opens the steading, and reads its
 	 * name, or just "Domain" while there isn't one. The Ledger button opens every
-	 * change made to them.
+	 * change made to them. A Knight still to be chosen has only the Ledger.
 	 * @override
 	 */
 	_headerButtons() {
 		const { isSquire } = this.actor.system;
+		// Every change made to the Knight, as the Stonetop character sheet keeps one.
+		const ledger = { action: "openLedger", icon: "fa-solid fa-scroll", label: t("ledger.button"), tooltip: t("ledger.buttonHint") };
+		// A Knight still to be chosen has the chooser on their page, and no Domain yet.
+		if (isUnchosen(this.actor)) return [ledger];
 		const buttons = [];
 		if (this.isEditable) buttons.push(isSquire
 			? { action: "knightSquire", icon: "fa-solid fa-khanda", label: t("squire.knight") }
-			: { action: "chooseKnight", icon: "fa-solid fa-chess-knight", label: t("sheet.newKnight"), tooltip: t("sheet.newKnightHint") });
+			// A Squire just Knighted adds the Knight they became rather than being made over.
+			: isChoosingKnight(this.actor)
+				? { action: "chooseKnighted", icon: "fa-solid fa-chess-knight", label: t("sheet.chooseKnighted"), tooltip: t("sheet.chooseKnightedHint") }
+				: { action: "chooseKnight", icon: "fa-solid fa-chess-knight", label: t("sheet.newKnight"), tooltip: t("sheet.newKnightHint") });
 		const domain = knightDomain(this.actor);
 		// A Squire rules nothing, and a player who can't found one has nothing to ask for.
 		if (!isSquire && (domain || this.actor.isOwner)) buttons.push({
@@ -364,8 +428,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			tooltip: t(domain ? "domain.openHint" : "domain.foundHint"),
 			muted: !domain
 		});
-		// Every change made to the Knight, as the Stonetop character sheet keeps one.
-		buttons.push({ action: "openLedger", icon: "fa-solid fa-scroll", label: t("ledger.button"), tooltip: t("ledger.buttonHint") });
+		buttons.push(ledger);
 		return buttons;
 	}
 
@@ -391,6 +454,11 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			if (LINKED_ACTORS.some(({ key }) => system[key] === actor.uuid)) this.render();
 		};
 		this._watchHooks(["updateActor", "deleteActor"], redraw);
+		// The Knight's table shows due once it comes round, or no longer due once the calendar is set back.
+		this._watchHooks([CALENDAR_HOOK], (after, before, turned) => {
+			const renewal = knightRenewal(this.actor);
+			if (renewal && (turned.includes(renewal.cadence) || compareCalendars(after, before) < 0)) this.render();
+		});
 	}
 
 	/**
@@ -502,6 +570,22 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onChooseKnight() {
 		return openKnightChooser(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onChooseKnighted() {
+		return openKnightChooser(this.actor, { knighting: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onChooseFresh() {
+		// Nothing on the sheet yet to be replaced, so the chooser doesn't ask first.
+		return openKnightChooser(this.actor, { fresh: true });
+	}
+
+	/** @this {KnightSheet} */
+	static #onFillByHand() {
+		return fillKnightByHand(this.actor);
 	}
 
 	/** @this {KnightSheet} */
