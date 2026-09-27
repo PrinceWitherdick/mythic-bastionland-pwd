@@ -4,7 +4,7 @@
  */
 
 /**
- * @typedef {"unharmed"|"none"|"evaded"|"scar"|"wounded"|"mortal"|"slain"|"destroyed"} DamageOutcome
+ * @typedef {"unharmed"|"none"|"evaded"|"scar"|"spared"|"wounded"|"mortal"|"slain"|"destroyed"} DamageOutcome
  *
  * @typedef {object} DamageResult
  * @property {number} dealt       Damage left after Armour.
@@ -62,9 +62,10 @@ export function applyDoom(result, vigourBefore) {
  *                                    individual's Attack can't harm a Warband (p11).
  * @param {boolean} [args.structure]  Ships and structures are destroyed at 0GD (p11),
  *                                    and have no VIG to lose.
+ * @param {boolean} [args.nonLethal]  Non-lethal Damage leaves at least 1 VIG, so it never Slays.
  * @returns {DamageResult}
  */
-export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false, structure = false }) {
+export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = false, immune = false, structure = false, nonLethal = false }) {
 	const dealt = Math.max(0, Math.trunc(damage) - Math.max(0, Math.trunc(armour)));
 	const unchanged = { dealt, guard, vigour, guardLoss: 0, vigourLoss: 0 };
 
@@ -89,8 +90,10 @@ export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = fal
 		return { ...unchanged, guard: guardAfter, guardLoss, outcome: "scar" };
 	}
 
-	const vigourLoss = Math.min(dealt - effectiveGuard, vigour);
+	const vigourLoss = Math.min(dealt - effectiveGuard, nonLethal ? Math.max(0, vigour - 1) : vigour);
 	const vigourAfter = vigour - vigourLoss;
+	// Non-lethal Damage at 1 VIG has nothing left to take, so it leaves no Wound.
+	if (vigourLoss === 0) return { dealt, guard: guardAfter, vigour, guardLoss, vigourLoss, outcome: "spared" };
 
 	let outcome = "wounded";
 	if (vigourAfter <= 0) outcome = "slain";

@@ -52,6 +52,8 @@ export class WeaponModel extends PossessionModel {
 			// Cast attacks such as a sweep (d12 blast) or a scream that ignores armour.
 			blast: new fields.BooleanField({ initial: false }),
 			ignoresArmour: new fields.BooleanField({ initial: false }),
+			// Its Damage never Slays or leaves anybody dying, as a Knight-Catcher's tremor-gun (p173).
+			nonLethal: booleanField(),
 			// A steed's trample, added to its rider's dice when charging enemies on foot (p10).
 			trample: new fields.BooleanField({ initial: false }),
 			// A lance counts as Hefty rather than Long when its wielder is mounted (p12).

@@ -87,6 +87,7 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  * @param {boolean|null} [preset.ranged] Whether the Attack is ranged. Cover only counts against ranged
  *                                       Attacks, so a known melee Attack doesn't offer it.
  * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
+ * @param {boolean} [preset.nonLethal] The Attack's Damage never Slays or leaves anybody dying.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
@@ -105,6 +106,8 @@ export async function takeDamage(actor, preset = {}) {
 		warband,
 		structure: Boolean(actor.system.structure),
 		stone: Boolean(actor.system.stone),
+		// What keeps some of the Cast from harm, weighed as the blow lands.
+		immunity: actor.system.immunity ?? "",
 		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 })
 	}, preset);
 	if (!asked) return null;
@@ -115,7 +118,8 @@ export async function takeDamage(actor, preset = {}) {
 
 	const update = { "system.guard.value": result.guard };
 	if (virtues) update["system.virtues.vig.value"] = result.vigour;
-	if (result.outcome === "mortal") update["system.mortalWound"] = true;
+	// Non-lethal Damage leaves them down, but not dying.
+	if (result.outcome === "mortal" && !preset.nonLethal) update["system.mortalWound"] = true;
 	// Damage past GD Wounds them (p8), which some armour answers to.
 	if (virtues && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));
@@ -132,7 +136,10 @@ export async function takeDamage(actor, preset = {}) {
 		warband
 	});
 	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
-	await postCard(actor, "damage", damageCard(result, appliedArmour, before, outcomes, morale));
+	const card = damageCard(result, appliedArmour, before, outcomes, morale);
+	// Non-lethal Damage leaves them down, but not dying.
+	if (preset.nonLethal && result.outcome === "mortal" && virtues) card.outcome = t("damage.nonLethalDown");
+	await postCard(actor, "damage", card);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
@@ -202,6 +209,7 @@ export async function takeSeerDamage(knight) {
  * @param {boolean} target.warband
  * @param {boolean} target.structure
  * @param {boolean} [target.stone] A stone wall, which only siege weapons breach.
+ * @param {string} [target.immunity] What keeps them from harm, asked about as a requirement of its own.
  * @param {() => {guard: number, vigour: number}} target.scores Their GD and VIG, read once the
  *   dialog closes, so Damage that landed while it stood open isn't undone by this one.
  * @param {object} [preset] As takeDamage takes.
@@ -209,13 +217,13 @@ export async function takeSeerDamage(knight) {
  *   before: {guard: number, vigour: number}}|null>} `armour` is what the Attack was reduced by,
  *   `before` their scores as it landed. Null if the dialog was closed.
  */
-async function askDamage(target, { damage = null, ignoreArmour = false, ranged = null, harm = {} } = {}) {
-	const requirements = [target.warband && "warband", target.structure && "structure"]
+async function askDamage(target, { damage = null, ignoreArmour = false, ranged = null, harm = {}, nonLethal = false } = {}) {
+	const requirements = [target.warband && "warband", target.structure && "structure", target.immunity && "immunity"]
 		.filter(Boolean)
 		.map((key) => ({
 			key,
 			// A stone wall asks for a siege weapon alone.
-			label: t(`damage.harm.${key === "structure" && target.stone ? "stone" : key}.label`),
+			label: t(`damage.harm.${key === "structure" && target.stone ? "stone" : key}.label`, { immunity: target.immunity }),
 			hint: t(`damage.harm.${key === "structure" && target.stone ? "stone" : key}.hint`),
 			checked: Boolean(harm[key])
 		}));
@@ -256,7 +264,8 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 		vigour: before.vigour,
 		exposed: Boolean(data.exposed),
 		immune: requirements.some(({ key }) => !data[`harm-${key}`]),
-		structure: target.structure
+		structure: target.structure,
+		nonLethal
 	});
 	return { result, armour, before };
 }
@@ -313,6 +322,7 @@ export async function takeAttack(actor, attack, { scars = true } = {}) {
 		damage,
 		ignoreArmour: attack.ignoresArmour,
 		ranged: !attack.melee,
+		nonLethal: Boolean(attack.nonLethal),
 		// Only Blast or large-scale Attacks harm a Warband, and only fire, siege
 		// weapons or large creatures a structure, or siege weapons stone (p11).
 		harm: { warband: attack.blast || attack.largeScale, structure: harmsStructure(attack.structureHarm, Boolean(actor.system.stone)) }

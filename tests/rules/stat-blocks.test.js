@@ -176,6 +176,7 @@ describe("npcFromStatBlock", () => {
 					ranged: false,
 					blast: false,
 					ignoresArmour: false,
+					nonLethal: false,
 					trample: false,
 					heftyMounted: false,
 					description: "<p>+d6 vs the unlit</p>"

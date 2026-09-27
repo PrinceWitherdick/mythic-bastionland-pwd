@@ -340,7 +340,8 @@ export function blowSounds(kind, delivery, { mounted = false, warband = false } 
  *
  * - `clank`, heard and not seen: the Armour took the whole blow, and a burst
  *   over somebody who lost nothing would say the opposite.
- * - `burst`: GD went down, and GD alone — Evaded, or a Scar.
+ * - `burst`: GD went down, and GD alone — Evaded, a Scar, or spared by
+ *   non-lethal Damage.
  * - `blood`: VIG went down, so they are Wounded, Mortally Wounded or Slain.
  * - `wreck`: a ship or a structure at 0GD (p11), which bleeds nothing.
  * - null: the Attack couldn't harm them at all, so nothing happened to draw.
@@ -355,6 +356,7 @@ const DAMAGE_REACTIONS = Object.freeze({
 	none: "clank",
 	evaded: "burst",
 	scar: "burst",
+	spared: "burst",
 	wounded: "blood",
 	mortal: "blood",
 	slain: "blood",

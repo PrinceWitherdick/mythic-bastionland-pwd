@@ -39,6 +39,8 @@ import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
+import { sufferMorningAfflictions } from "./afflictions.js";
+import { rollVirtueLosses } from "./virtue-loss.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -51,11 +53,12 @@ import { chooseSuccessor, heirOf } from "./succession.js";
  * @param {string} options.intro
  * @param {string} options.ok
  * @param {Actor[]} [options.present]
+ * @param {Actor[]} [options.others] Listed unticked, for the Referee to tick any that take part.
  * @param {string[]} [options.pursuits]
  * @param {boolean} [options.knightsOnly] Leave out selected Tokens that aren't Knights.
  * @returns {Promise<{actor: Actor, pursuit: string|null}[]|null>} Those ticked, or null if closed.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], pursuits = [], knightsOnly = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included) => {
@@ -66,6 +69,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], purs
 	};
 	for (const actor of present) add(actor, true);
 	for (const token of canvas?.tokens?.controlled ?? []) add(token.actor, true);
+	for (const actor of others) add(actor, false);
 	for (const actor of game.actors.filter((candidate) => candidate.type === "knight")) add(actor, actor.hasPlayerOwner);
 
 	const data = await inputDialog({
@@ -193,6 +197,8 @@ export async function advancePhase() {
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
 	await announcePhase(calendar);
+	// Each morning, a daily affliction takes its toll.
+	if (calendar.phase === "morning") await sufferMorningAfflictions();
 	return calendar;
 }
 
@@ -253,19 +259,50 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 }
 
 /**
+ * Old characters lose d12 VIG at the end of each Age, and die peacefully at
+ * VIG 0 (p17): every NPC in the world given an Age of Old, on one card. The
+ * Company's own Old are taken care of as the Age turns for them.
+ * @returns {Promise<object[]>} The card's entries.
+ */
+async function npcsOldAge() {
+	const old = game.actors.filter((actor) => actor.type === "npc" && actor.system.age === "old" && actor.isOwner);
+	if (!old.length) return [];
+	const rolls = [];
+	const entries = [];
+	const updates = [];
+	for (const actor of old) {
+		const roll = await new Roll(OLD_AGE_LOSS).evaluate();
+		rolls.push(roll);
+		const from = actor.system.virtues.vig.max;
+		const { max, diesPeacefully } = afterOldAge(from, roll.total);
+		updates.push({ _id: actor.id, "system.virtues.vig.max": max, "system.virtues.vig.value": Math.min(actor.system.virtues.vig.value, max) });
+		entries.push({ name: actor.name, lines: [t("time.oldAge", { amount: roll.total, from, to: max }), ...(diesPeacefully ? [t("time.diesPeacefully")] : [])] });
+	}
+	// Every one a world actor, so one write takes them all.
+	await Actor.updateDocuments(updates);
+	await postCard(null, "report", { title: t("time.aging.oldNpcs"), tagline: calendarLabel(getCalendar()), entries }, { rolls });
+	return entries;
+}
+
+/**
  * A new Age of the world (p17): ask which of the Company grow a stage older,
  * Young to Mature or Mature to Old, and reroll their Virtues for it.
  * @param {Actor[]} actors Those who took part in the Age's turn.
  */
 async function growOlder(actors) {
+	await npcsOldAge();
+	// The Company, and anybody else in the world given an Age that has one to grow into.
+	const npcs = game.actors.filter((actor) => actor.type === "npc" && olderAge(actor.system.age));
 	const company = actors.filter((actor) => olderAge(actor.system.age));
-	if (!company.length) return;
+	if (!company.length && !npcs.length) return;
 	const chosen = await chooseCompany({
 		title: t("time.aging.title"),
 		icon: "fa-solid fa-hourglass-half",
 		intro: t("time.aging.newAge"),
 		ok: t("time.aging.roll"),
-		present: company
+		present: company,
+		// Anybody else given an Age is offered, not ticked, so a new Age doesn't reroll the whole world by default.
+		others: npcs
 	});
 	for (const { actor } of chosen ?? []) {
 		const age = olderAge(actor.system.age);
@@ -472,11 +509,11 @@ export async function virtueLoss(actors, virtue, { title }) {
 	const entries = [];
 	const updates = [];
 	for (const actor of actors) {
-		const roll = await new Roll("1d6").evaluate();
+		const { update, taken } = await rollVirtueLosses(actor, [{ virtue }]);
+		if (!taken.length) continue;
+		const [{ roll, from, to }] = taken;
 		rolls.push(roll);
-		const from = actor.system.virtues[virtue].value;
-		const to = Math.max(0, from - roll.total);
-		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: to }, causedBy("hardship")));
+		updates.push(actor.update(update, causedBy("hardship")));
 		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue: abbr, from, to })] });
 	}
 	await Promise.all(updates);

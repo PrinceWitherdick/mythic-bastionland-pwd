@@ -14,6 +14,7 @@ import { FEATS, NPC_SCALES } from "../config.js";
 import { structureKind } from "./structures.js";
 import { capitalise, logicalLines, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
+import { afflictionsFromText, immunityFromText } from "./afflictions.js";
 
 const STAT_LINE = /VIG\s*(\d+)\s*,\s*CLA\s*(\d+)\s*,\s*SPI\s*(\d+)\s*,\s*(\d+)\s*GD\b[\s,.;]*/i;
 const GUARD_ONLY = /^(\d+)\s*GD\b[\s,.;]*/i;
@@ -123,6 +124,7 @@ const QUALITIES = Object.freeze({
 	ranged: /^ranged$/i,
 	blast: /^blast$/i,
 	ignoresArmour: /^ignor(?:e|es|ing) armou?r$/i,
+	nonLethal: /^(?:causes?\s+)?non-?lethal(?:\s+damage)?$/i,
 	// A steed's charge, as in "charger (d8 trample)".
 	trample: /^trample$/i,
 	// A lance, "d10 long, count as hefty if mounted" (p12).
@@ -295,6 +297,12 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 	}
 
 	system.notes = paragraphs(...notes);
+	// Only said where the stat block says so, so data from before stays as it was.
+	const said = notes.join(" ");
+	const immunity = immunityFromText(said);
+	if (immunity) system.immunity = immunity;
+	const inflicts = afflictionsFromText(said, shortName);
+	if (inflicts.length) system.inflicts = inflicts.map((affliction, index) => ({ id: `inflicts${index}`, ...affliction }));
 	return { name: shortName, system, items };
 }
 

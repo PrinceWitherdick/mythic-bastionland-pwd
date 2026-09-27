@@ -18,6 +18,7 @@ import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
 import { ViewableMixin } from "./viewable.js";
+import { afflictionLabel, cureAffliction, sufferAffliction } from "../actions/afflictions.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -58,6 +59,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			restore: BastionlandActorSheet.#onRestore,
 			toggleCondition: BastionlandActorSheet.#onToggleCondition,
 			clearMark: BastionlandActorSheet.#onClearMark,
+			sufferAffliction: BastionlandActorSheet.#onSufferAffliction,
+			cureAffliction: BastionlandActorSheet.#onCureAffliction,
 			createItem: BastionlandActorSheet.#onCreateItem,
 			postItem: BastionlandActorSheet.#onPostItem,
 			editItem: BastionlandActorSheet.#onEditItem,
@@ -106,6 +109,12 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				hint: mark.hint,
 				messageId: mark.messageId,
 				index: mark.index
+			}))).concat((system.afflictions ?? []).map((affliction) => ({
+				key: affliction.id,
+				affliction: true,
+				label: afflictionLabel(affliction),
+				hint: t("afflictions.hint"),
+				cureHint: t("afflictions.cure")
 			}))),
 			feats: FEATS.filter(({ key }) => system.knowsFeat(key)).map(({ key, virtue }) => ({
 				key,
@@ -340,6 +349,22 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		// Wounded lapses once VIG is whole, so the pill flips what it shows rather than the stale mark.
 		const on = key === "wounded" ? this.actor.system.conditions.wounded : this.actor.system[key];
 		return this.actor.update({ [`system.${key}`]: !on });
+	}
+
+	/**
+	 * Take an affliction's toll now, when the Referee says it's due.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onSufferAffliction(_event, target) {
+		return sufferAffliction(this.actor, target.dataset.affliction);
+	}
+
+	/**
+	 * Cure an affliction, which takes no more.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onCureAffliction(_event, target) {
+		return cureAffliction(this.actor, target.dataset.affliction);
 	}
 
 	/**

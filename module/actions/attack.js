@@ -382,6 +382,8 @@ export async function attack(actor) {
 		setAside: check.setAside.map(({ index, reason }) => ({ name: picked[index].name, reason })),
 		blast,
 		ignoresArmour: chosen.some((item) => item.system.ignoresArmour),
+		// Its Damage never Slays or leaves anybody dying (p173).
+		nonLethal: chosen.length > 0 && chosen.every((item) => item.system.nonLethal),
 		// What a Cast member's weapon does besides its dice, as its stat block says: "sets area alight".
 		notes: actor.type === "knight" ? [] : chosen.map((item) => ({ name: item.name, note: plainNote(item.system.description) })).filter(({ note }) => note),
 		// A Warband's Attack is large-scale, so it can harm another Warband.

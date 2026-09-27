@@ -1067,6 +1067,7 @@
       "aging": {
         "title": "Growing Older",
         "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
+        "oldNpcs": "The Old Grow Frailer",
         "newAge": "A new Age begins. Tick each character who grows a stage older. Becoming Mature rerolls each Virtue on d12+d6 and keeps the higher; becoming Old keeps the lower (p17).",
         "roll": "Roll Virtues",
         "skip": "Just change Age",
@@ -2099,12 +2100,17 @@
       "situationalPiece": "{name} (A{armour}, {when})",
       "exposed": "Exposed (take it as if at 0 GD)",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
+      "nonLethalDown": "Non-lethal: down and out, but not dying.",
       "apply": "Apply",
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
       "vigourLine": "VIG {from} → {to}",
       "leaderShares": "{name} leads {warband} from the front, so suffers the same {damage} Damage. Apply it from their sheet.",
       "harm": {
+        "immunity": {
+          "label": "Gets past: {immunity}",
+          "hint": "Tick only if this blow can harm them."
+        },
         "stone": {
           "label": "A siege weapon",
           "hint": "Stone walls can’t be breached by conventional means."
@@ -2123,6 +2129,7 @@
         "none": "The blow is turned aside. No Damage.",
         "evaded": "Evades the Attack.",
         "scar": "Left at exactly 0 GD. Roll a Scar with the die that caused it.",
+        "spared": "Non-lethal: already down and out, it takes nothing more.",
         "wounded": "Wounded.",
         "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
         "slain": "Slain.",
@@ -2343,7 +2350,27 @@
         "shield": "Shield"
       }
     },
+    "afflictions": {
+      "label": "{name}: {loss} {virtue} {when}",
+      "hint": "Take its toll now. Virtue Loss, not Damage.",
+      "cure": "Cured: it takes no more",
+      "when": {
+        "day": "daily",
+        "round": "each round"
+      },
+      "afflict": "Afflict Targets",
+      "afflictHint": "Pass on what they cause to the Tokens you’ve targeted, once the Referee rules it caught.",
+      "noTargets": "Target the Tokens to afflict first.",
+      "took": "{name} is afflicted: {affliction}.",
+      "lost": "{affliction} takes {amount} {virtue}, {from} → {to}.",
+      "cured": "{name} is cured of {affliction}.",
+      "morning": "Afflictions Take Their Toll"
+    },
     "npc": {
+      "rollVirtues": "Roll Virtues",
+      "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled (p13).",
+      "rollVirtuesTagline": "Each Virtue rolled on d12+d6",
+      "rollVirtuesAgain": "{name} already has Virtues of their own. Roll new ones on d12+d6?",
       "name": "Name",
       "epithet": "Epithet",
       "ownedBy": "Owned by",

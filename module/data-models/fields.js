@@ -1,4 +1,5 @@
 import { VIRTUES, VIRTUE_MAX } from "../rules/virtues.js";
+import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 
 const fields = foundry.data.fields;
 
@@ -42,8 +43,23 @@ export function booleanField() {
 }
 
 /**
+ * A list of afflictions, each a Virtue lost each morning or each round, as a
+ * victim carries them or one of the Cast causes them. See rules/afflictions.js.
+ * @returns {foundry.data.fields.ArrayField}
+ */
+export function afflictionsField() {
+	return new fields.ArrayField(new fields.SchemaField({
+		id: new fields.StringField({ required: true, blank: false }),
+		name: textField(),
+		loss: new fields.StringField({ required: true, blank: false, initial: "1d6" }),
+		virtue: new fields.StringField({ required: true, initial: VIRTUES[0], choices: VIRTUES }),
+		when: new fields.StringField({ required: true, initial: AFFLICTION_TIMES[0], choices: AFFLICTION_TIMES })
+	}));
+}
+
+/**
  * What every character has, Knight or NPC: Virtues, GD, the conditions marked
- * by hand, and notes. `conditionsFor` derives the rest from these.
+ * by hand, afflictions carried, and notes. `conditionsFor` derives the rest from these.
  */
 export function characterFields() {
 	return {
@@ -57,6 +73,8 @@ export function characterFields() {
 		wounded: booleanField(),
 		// On horseback, so a lance counts as Hefty and a rider's plate counts.
 		mounted: booleanField(),
+		// What eats at them each morning or each round until cured, such as the Plague.
+		afflictions: afflictionsField(),
 		notes: htmlField()
 	};
 }

@@ -1,13 +1,15 @@
-import { pasteStatBlock } from "../actions/npc.js";
+import { pasteStatBlock, rollNpcVirtues } from "../actions/npc.js";
 import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { strainWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
-import { FEATS, NPC_SCALES } from "../config.js";
+import { AGES, FEATS, NPC_SCALES } from "../config.js";
 import { ownerOf } from "../rules/property.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { afflictTargets } from "../actions/afflictions.js";
+import { changeAge } from "../actions/time.js";
 
 /** Item types the sheet offers to add, in sheet order. It lists every item the NPC has. */
 const ADDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
@@ -25,10 +27,13 @@ export class NpcSheet extends BastionlandActorSheet {
 		position: { width: 740, height: 800 },
 		actions: {
 			pasteStatBlock: NpcSheet.#onPasteStatBlock,
+			rollVirtues: NpcSheet.#onRollVirtues,
+			afflictTargets: NpcSheet.#onAfflictTargets,
 			rollMorale: NpcSheet.#onRollMorale,
 			rollReaction: NpcSheet.#onRollReaction,
 			upkeep: NpcSheet.#onUpkeep,
 			setScale: NpcSheet.#onSetScale,
+			setAge: NpcSheet.#onSetAge,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
 			openOwner: NpcSheet.#onOpenOwner,
@@ -51,6 +56,8 @@ export class NpcSheet extends BastionlandActorSheet {
 		const system = this.actor.system;
 
 		return Object.assign(context, {
+			// A Warband has no Age of its own; anybody else may be given one.
+			ages: this.actor.system.scale === "warband" ? [] : AGES.map((key) => ({ key, label: t(`age.${key}`), active: this.actor.system.age === key })),
 			scales: NPC_SCALES.map((key) => ({
 				key,
 				label: t(`npc.scales.${key}.label`),
@@ -118,7 +125,11 @@ export class NpcSheet extends BastionlandActorSheet {
 	_headerButtons() {
 		if (!this.isEditable) return [];
 		return [
-			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") }
+			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") },
+			// Those of the Cast who cause an affliction pass it on to whoever is targeted.
+			...(this.actor.system.inflicts?.length ? [{ action: "afflictTargets", icon: "fa-solid fa-virus", label: t("afflictions.afflict"), tooltip: t("afflictions.afflictHint") }] : []),
+			// Hirelings and other folk roll their Virtues on d12+d6 (p13); a Warband's are the book's.
+			...(this.actor.system.scale === "warband" ? [] : [{ action: "rollVirtues", icon: "fa-solid fa-dice", label: t("npc.rollVirtues"), tooltip: t("npc.rollVirtuesHint") }])
 		];
 	}
 
@@ -129,6 +140,16 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onPasteStatBlock() {
 		return pasteStatBlock(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onAfflictTargets() {
+		return afflictTargets(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onRollVirtues() {
+		return rollNpcVirtues(this.actor);
 	}
 
 	/** @this {NpcSheet} */
@@ -144,6 +165,14 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onUpkeep() {
 		return strainWarband(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onSetAge(_event, target) {
+		const { age } = target.dataset;
+		// Clicking the Age they are forgets it again.
+		if (age === this.actor.system.age) return this.actor.update({ "system.age": "" });
+		return changeAge(this.actor, age);
 	}
 
 	/** @this {NpcSheet} */

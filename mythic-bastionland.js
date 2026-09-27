@@ -102,6 +102,8 @@ import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, fi
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { restAfterCombat } from "./module/actions/recovery.js";
+import { rollHirelingVirtues } from "./module/actions/npc.js";
+import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -255,6 +257,9 @@ Hooks.once("init", () => {
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
 	registerSurpriseHooks();
+	registerAfflictionHooks();
+	// A hireling taken from the book's compendium rolls its Virtues as it's made (p13).
+	Hooks.on("preCreateActor", rollHirelingVirtues);
 	Hooks.on("deleteCombat", (combat) => restAfterCombat(combat));
 
 	// Each Knight's Ledger of the changes made to them.

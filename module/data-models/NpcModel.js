@@ -1,6 +1,6 @@
-import { FEATS, NPC_SCALES } from "../config.js";
+import { AGES, FEATS, NPC_SCALES } from "../config.js";
 import { conditionsFor, healsWound } from "../rules/virtues.js";
-import { booleanField, characterFields, countField, textField } from "./fields.js";
+import { afflictionsField, booleanField, characterFields, countField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -22,6 +22,12 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			structure: booleanField(),
 			// The UUID of whoever leads this Warband from the front, sharing its Damage until their next turn (p11).
 			leader: textField(),
+			// Young, Mature or Old (p17), or blank where nobody has said, as for most of the Cast.
+			age: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AGES] }),
+			// What keeps them from harm, as "Cannot be harmed by physical attacks." Weighed as each blow lands.
+			immunity: textField(),
+			// The afflictions they cause those they touch, as the Plague's infected cause d6 VIG loss daily.
+			inflicts: afflictionsField(),
 			// Feats are for Knights, but some of the Cast "Can Focus" or "Can Deny".
 			feats: new fields.SchemaField(Object.fromEntries(FEATS.map(({ key }) => [key, booleanField()])))
 		};

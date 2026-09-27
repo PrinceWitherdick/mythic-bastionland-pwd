@@ -36,6 +36,16 @@
 					</li>
 					{{/each}}
 				</ul>
+				{{#if ages.length}}
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.age.label"}}</h2>
+				<ul class="bastionland-choices bastionland-choices--inline">
+					{{#each ages}}
+					<li>
+						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setAge" data-age="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				{{/if}}
 				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.structureHint'}}">
 					<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
 					<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
