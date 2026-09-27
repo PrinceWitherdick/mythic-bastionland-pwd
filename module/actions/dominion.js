@@ -218,6 +218,7 @@ export async function dramaInCourt(domain) {
 		});
 	}
 
+	if (domain.isOwner) await domain.update({ "system.dramaRolled": seasonKey(getCalendar()) });
 	await postCard(domain, "report", {
 		title: t("domain.drama"),
 		tagline: t(`domain.results.drama.${result}`),

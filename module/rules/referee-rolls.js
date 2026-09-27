@@ -43,3 +43,16 @@ export function readRefereeTable(key, d6) {
 	const result = table.results[d6Band(d6)];
 	return { result, side: result === "drift" ? DRIFT_SIDES[d6 - 2] : null };
 }
+
+/**
+ * Dire Weather read against the roll before it: a Looming threat rolled a
+ * second consecutive time is treated as dire weather (p18).
+ * @param {string} result The result just rolled on the weather table.
+ * @param {string|null} previous The one rolled before it, if any.
+ * @returns {{result: string, streak: boolean}} `streak` when a second Looming made it dire.
+ */
+export function weatherAfter(result, previous) {
+	const streak = result === "looming" && previous === "looming";
+	return { result: streak ? "dire" : result, streak };
+}
+

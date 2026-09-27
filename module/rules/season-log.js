@@ -5,7 +5,7 @@
  * journal, which keeps one page a year with a block for each season. Pure, so
  * it can be tested without Foundry; the sheet puts words to it.
  */
-import { crisisRolledThisSeason } from "./dominion.js";
+import { crisisRolledThisSeason, dramaRolledThisSeason } from "./dominion.js";
 import { normalizeEvents } from "./season-events.js";
 import { SEASONS, normalizeCalendar, parseSeasonKey, seasonKey } from "./time.js";
 
@@ -143,4 +143,15 @@ export function seasonLogView(log, calendar) {
  */
 export function crisisRollsDue(domains, calendar) {
 	return domains.filter((domain) => !crisisRolledThisSeason(domain, calendar));
+}
+
+/**
+ * The Domains still owed this Season's Drama in Court (p21).
+ * @template {{system: {dramaRolled?: string}}} Domain
+ * @param {Domain[]} domains
+ * @param {import("./time.js").Calendar} calendar Now.
+ * @returns {Domain[]}
+ */
+export function dramaRollsDue(domains, calendar) {
+	return domains.filter((domain) => !dramaRolledThisSeason(domain, calendar));
 }

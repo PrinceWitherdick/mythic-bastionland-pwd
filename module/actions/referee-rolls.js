@@ -1,8 +1,22 @@
 import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { readRefereeTable, REFEREE_TABLES } from "../rules/referee-rolls.js";
+import { readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
+import { getCalendar } from "./calendar.js";
 import { sparkPrompt } from "../rules/spark-tables.js";
+import { SYSTEM_ID } from "../system-id.js";
+
+/**
+ * The Dire Weather table's last roll: in which Phase, what the die gave, and
+ * what that came to, so a second Looming in a row reads as dire (p18):
+ * {when, rolled, result}, or null.
+ */
+const WEATHER_NOW_SETTING = "weatherNow";
+
+/** Register what the weather table last gave, and when it's rolled. Called during init. */
+export function registerWeatherStreakSetting() {
+	game.settings.register(SYSTEM_ID, WEATHER_NOW_SETTING, { scope: "world", config: false, type: Object, default: null });
+}
 
 /**
  * Roll a d6 on one of the Referee's tables and post what it gives.
@@ -15,13 +29,21 @@ export async function rollRefereeTable(key) {
 
 	const roll = await new Roll("1d6").evaluate();
 	const read = readRefereeTable(key, roll.total);
+	let streak = false;
+	if (key === "weather") {
+		const rolled = read.result;
+		({ result: read.result, streak } = weatherAfter(rolled, game.settings.get(SYSTEM_ID, WEATHER_NOW_SETTING)?.rolled ?? null));
+		// What was rolled is kept, so a third Looming in a row is still a second one in a row, and kept
+		// with its Phase, so the Night's end knows whether dire weather kept the Company from sleep.
+		if (game.user.isGM) await game.settings.set(SYSTEM_ID, WEATHER_NOW_SETTING, { when: { ...getCalendar() }, rolled, result: read.result });
+	}
 	const text = (part, data) => t(`refereeRolls.tables.${key}.${part}`, data);
 	await postCard(null, "referee-roll", {
 		name: text("name"),
 		page: t("refereeRolls.page", { page: table.page }),
 		d6: roll.total,
 		result: text(`results.${read.result}`, { side: read.side ? t(`refereeRolls.sides.${read.side}`) : "" }),
-		hint: text("hint")
+		hint: streak ? `${t("refereeRolls.loomingAgain")} ${text("hint")}` : text("hint")
 	}, { rolls: [roll] });
 	return { d6: roll.total, ...read };
 }

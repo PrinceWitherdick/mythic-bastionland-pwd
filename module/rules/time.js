@@ -210,6 +210,16 @@ export function parseSeasonKey(key) {
 }
 
 /**
+ * The Age a character grows into next, as a new Age of the world begins (p17).
+ * @param {string} age One of AGES.
+ * @returns {string|null} Null for the Old, or anything that isn't an Age.
+ */
+export function olderAge(age) {
+	const at = AGES.indexOf(age);
+	return at < 0 ? null : AGES[at + 1] ?? null;
+}
+
+/**
  * The Ages a character grows into when their Age changes. Growing younger, or
  * staying put, passes none.
  * @param {string} from One of AGES.

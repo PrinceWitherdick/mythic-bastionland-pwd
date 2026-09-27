@@ -11,7 +11,7 @@ import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
-import { openRefereeRolls, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { openRefereeRolls, registerWeatherStreakSetting, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { registerSessionEndSetting } from "./module/actions/session-end.js";
 import { eventLabel, seasonEventsNow } from "./module/actions/season-events.js";
 import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./module/actions/session-macro.js";
@@ -227,6 +227,7 @@ Hooks.once("init", () => {
 
 	// The Omens of the City the Company has encountered.
 	registerCityQuestSetting();
+	registerWeatherStreakSetting();
 
 	// Attack cards take Deny and Gambits after the roll, then apply the Damage.
 	registerAttackCards();

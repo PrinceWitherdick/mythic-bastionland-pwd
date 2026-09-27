@@ -9,6 +9,7 @@ import {
 } from "../actions/hex-lore.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
+import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -50,7 +51,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			act: HexLore.#onAct,
 			browse: HexLore.#onBrowse,
 			markVisited: HexLore.#onMarkVisited,
-			forgetVisits: HexLore.#onForgetVisits
+			forgetVisits: HexLore.#onForgetVisits,
+			mood: HexLore.#onMood,
 		}
 	};
 
@@ -101,6 +103,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			heading: t("realm.hex", hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 			features: this.#featuresHere(realm, hex),
+			// Arriving in a Holding, roll to gauge the local mood (p18).
+			holding: Boolean(featureAt(realm, hex).holding),
 			// Whether the Company has been here, as the GM Toolkit's Journey counts it.
 			visited: Boolean(visits),
 			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
@@ -206,6 +210,11 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onMarkVisited() {
 		return markHexVisited(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onMood() {
+		return rollRefereeTable("mood");
 	}
 
 	/** @this {HexLore} */

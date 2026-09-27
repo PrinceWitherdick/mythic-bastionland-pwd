@@ -28,6 +28,8 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			misrule: booleanField(),
 			// The Season its Crisis Roll was last made in, from seasonKey.
 			crisisRolled: textField(),
+			// The Season its Drama in Court was last rolled in, from seasonKey (p21).
+			dramaRolled: textField(),
 			notes: htmlField()
 		};
 	}

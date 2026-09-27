@@ -87,6 +87,15 @@ export const isInTurmoil = (seized, now) => Boolean(seized) && seized === now;
 export const crisisRolledThisSeason = (domain, calendar) => domain?.system?.crisisRolled === seasonKey(calendar);
 
 /**
+ * Whether a Domain has rolled this Season's Drama in Court: "every Season
+ * brings some drama" (p21).
+ * @param {{system: {dramaRolled?: string}}} domain
+ * @param {import("./time.js").Calendar} calendar Now.
+ * @returns {boolean}
+ */
+export const dramaRolledThisSeason = (domain, calendar) => domain?.system?.dramaRolled === seasonKey(calendar);
+
+/**
  * @param {string} text
  * @returns {string} A name, compared without case or surrounding space.
  */

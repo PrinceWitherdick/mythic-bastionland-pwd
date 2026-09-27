@@ -3,7 +3,9 @@ import { postCard, t } from "../chat/cards.js";
 import { AGES } from "../config.js";
 import { changeGlory } from "../rules/glory.js";
 import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
-import { crisisRollsDue } from "../rules/season-log.js";
+import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
+import { resolvedMyths } from "../rules/gm-toolkit.js";
+import { crisisRollsDue, dramaRollsDue } from "../rules/season-log.js";
 import {
 	AGE_PURSUITS,
 	AGING_VIRTUE_ROLL,
@@ -15,6 +17,7 @@ import {
 	afterOldAge,
 	agedScore,
 	agingSteps,
+	olderAge,
 	legacyGlory,
 	nextAge,
 	nextDay,
@@ -23,7 +26,8 @@ import {
 	seasonKey
 } from "../rules/time.js";
 import { causedBy } from "./ledger.js";
-import { isRealmScene } from "./realm.js";
+import { getMythNotes } from "./myth-notes.js";
+import { getRealm, isRealmScene } from "./realm.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
@@ -253,14 +257,50 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 		announceSeason(after, { title, entries: all, note }, { rolls }),
 		recordSeasonTurn(ended, { kind, title, entries: all, note })
 	]);
+	if (newAge) await growOlder(company.map(({ actor }) => actor));
 	return after;
+}
+
+/**
+ * A new Age of the world (p17): ask which of the Company grow a stage older,
+ * Young to Mature or Mature to Old, and reroll their Virtues for it.
+ * @param {Actor[]} actors Those who took part in the Age's turn.
+ */
+async function growOlder(actors) {
+	const company = actors.filter((actor) => olderAge(actor.system.age));
+	if (!company.length) return;
+	const chosen = await chooseCompany({
+		title: t("time.aging.title"),
+		icon: "fa-solid fa-hourglass-half",
+		intro: t("time.aging.newAge"),
+		ok: t("time.aging.roll"),
+		present: company
+	});
+	for (const { actor } of chosen ?? []) {
+		const age = olderAge(actor.system.age);
+		if (age) await rollAging(actor, age);
+	}
+}
+
+/**
+ * The names of every Realm's resolved Myths, each owed a new Myth in its place
+ * now the Season has turned (p27).
+ * @returns {Promise<string[]>}
+ */
+async function mythsToReplace() {
+	const scenes = game.scenes.filter((scene) => isRealmScene(scene));
+	const waiting = scenes.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)));
+	if (!waiting.length) return [];
+	const index = await loadArtIndex();
+	return waiting.map((myth) => mythEntry(index, myth).name);
 }
 
 /**
  * Tell the table a new Season has begun, on a card painted in the Season's
  * colours, with what passed as it turned and what's due now it has: the
- * Crisis Roll for every Domain, any Council task the Season has finished (p20),
- * and every Knight's table that comes round with it.
+ * Crisis Roll and Drama in Court for every Domain (p20–21), any Council task
+ * the Season has finished (p20), each resolved Myth's replacement (p27), and
+ * every Knight's table that comes round with it.
  * @param {import("../rules/time.js").Calendar} calendar The new Season.
  * @param {object} report
  * @param {string} report.title
@@ -268,10 +308,13 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
  * @param {string|null} [report.note]
  * @param {object} [options] For postCard.
  */
-export function announceSeason(calendar, { title, entries, note = null }, options) {
-	const due = crisisRollsDue(worldDomains(), calendar);
+export async function announceSeason(calendar, { title, entries, note = null }, options) {
+	const domains = worldDomains();
+	const due = crisisRollsDue(domains, calendar);
+	const drama = dramaRollsDue(domains, calendar);
 	// Council tasks whose Phase, Week or Season is up wait to be settled (p20).
 	const tasks = tasksDueNotices(calendar);
+	const myths = await mythsToReplace();
 	return postCard(null, "report", {
 		tone: calendar.season,
 		icon: SEASON_ICONS[calendar.season],
@@ -280,6 +323,8 @@ export function announceSeason(calendar, { title, entries, note = null }, option
 		entries,
 		due: [
 			...(due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : []),
+			...(drama.length ? [t("time.due.drama", { domains: drama.map((domain) => domain.name).join(", ") })] : []),
+			...(myths.length ? [t("time.due.myths", { myths: myths.join(", ") })] : []),
 			...tasks,
 			// Tables a Knight rolls on again each Season, and each Day, since a Season begins on a new one.
 			...tableRenewalNotices(["season", "day"])

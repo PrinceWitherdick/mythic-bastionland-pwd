@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completedMythId, crisisRollsDue, normalizeSeasonRecord, seasonLogView, seasonTurn, withCompletedMyth, withoutCompletedMyth } from "../../module/rules/season-log.js";
+import { completedMythId, crisisRollsDue, dramaRollsDue, normalizeSeasonRecord, seasonLogView, seasonTurn, withCompletedMyth, withoutCompletedMyth } from "../../module/rules/season-log.js";
 import { SEASONS, SEASON_ICONS, parseSeasonKey } from "../../module/rules/time.js";
 
 const now = (age, season, year = 1) => ({ age, year, season, day: 3, phase: "afternoon" });
@@ -120,4 +120,13 @@ describe("crisisRollsDue", () => {
 
 it("gives every Season an icon", () => {
 	for (const season of SEASONS) expect(SEASON_ICONS[season]).toMatch(/^fa-/);
+});
+
+describe("dramaRollsDue", () => {
+	it("lists the Domains that haven't rolled this Season's Drama in Court", () => {
+		const rolled = { name: "Ashwood", system: { dramaRolled: "2-winter" } };
+		const stale = { name: "Greymoor", system: { dramaRolled: "2-harvest" } };
+		const never = { name: "Fenwick", system: {} };
+		expect(dramaRollsDue([rolled, stale, never], now(2, "winter"))).toEqual([stale, never]);
+	});
 });

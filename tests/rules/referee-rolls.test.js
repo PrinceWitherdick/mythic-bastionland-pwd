@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { d6Band, readRefereeTable, REFEREE_TABLES } from "../../module/rules/referee-rolls.js";
+import { d6Band, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../../module/rules/referee-rolls.js";
 
 describe("d6Band", () => {
 	it.each([[1, 0], [2, 1], [3, 1], [4, 2], [5, 2], [6, 2]])("reads %i as result %i", (d6, band) => {
@@ -27,5 +27,14 @@ describe("readRefereeTable", () => {
 
 	it("has nothing for a table the book doesn't print", () => {
 		expect(readRefereeTable("fortune", 4)).toBeNull();
+	});
+});
+
+describe("weatherAfter", () => {
+	it("treats a second Looming threat in a row as dire weather", () => {
+		expect(weatherAfter("looming", "looming")).toEqual({ result: "dire", streak: true });
+		expect(weatherAfter("looming", "fine")).toEqual({ result: "looming", streak: false });
+		expect(weatherAfter("looming", null)).toEqual({ result: "looming", streak: false });
+		expect(weatherAfter("fine", "looming")).toEqual({ result: "fine", streak: false });
 	});
 });

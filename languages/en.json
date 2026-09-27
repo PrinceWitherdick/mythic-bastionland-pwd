@@ -950,7 +950,9 @@
       "doomLifts": "The Season of their Doom has passed, and a Mortal Wound no longer Slays them.",
       "due": {
         "title": "Due this Season",
-        "crisis": "The Crisis Roll for {domains} (p20), from the GM Toolkit’s Time page or each Domain’s sheet."
+        "crisis": "The Crisis Roll for {domains} (p20), from the GM Toolkit’s Time page or each Domain’s sheet.",
+        "drama": "Drama in Court for {domains} (p21), from each Domain’s sheet.",
+        "myths": "A new Myth in place of each one resolved: {myths} (p27), from the GM Toolkit’s Time page."
       },
       "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
       "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
@@ -1061,6 +1063,7 @@
       "aging": {
         "title": "Growing Older",
         "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
+        "newAge": "A new Age begins. Tick each character who grows a stage older. Becoming Mature rerolls each Virtue on d12+d6 and keeps the higher; becoming Old keeps the lower (p17).",
         "roll": "Roll Virtues",
         "skip": "Just change Age",
         "mature": "Becoming Mature keeps the higher",
@@ -1826,6 +1829,7 @@
       }
     },
     "refereeRolls": {
+      "loomingAgain": "A Looming threat twice in a row: treat it as dire weather.",
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
       "page": "page {page}",

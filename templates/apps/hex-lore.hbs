@@ -77,6 +77,11 @@
 			<button type="button" data-action="act" data-act="search"><i class="fa-solid fa-magnifying-glass" inert></i> {{localize "bastionland.travelRules.sections.searching.act"}}</button>
 			<button type="button" data-action="act" data-act="vantage"><i class="fa-solid fa-binoculars" inert></i> {{localize "bastionland.travelRules.sections.vision.act"}}</button>
 		</div>
+		{{#if holding}}
+		<div class="bastionland-hex-lore__row">
+			<button type="button" data-action="mood" data-tooltip="{{localize "bastionland.refereeRolls.tables.mood.hint"}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.refereeRolls.tables.mood.name"}}</button>
+		</div>
+		{{/if}}
 	</fieldset>
 
 	<div class="bastionland-hex-lore__row">

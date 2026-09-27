@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+	DEFAULT_CALENDAR,
 	afterOldAge,
 	agedScore,
 	agingSteps,
 	cadencesTurned,
 	compareCalendars,
-	DEFAULT_CALENDAR,
 	nextAge,
 	nextDay,
 	nextPhase,
 	nextSeason,
 	normalizeCalendar,
+	olderAge,
 	seasonKey
 } from "../../module/rules/time.js";
 
@@ -131,5 +132,14 @@ describe("growing older", () => {
 	it("takes d12 VIG from the Old at the end of an Age, and they die peacefully at 0", () => {
 		expect(afterOldAge(12, 5)).toEqual({ max: 7, diesPeacefully: false });
 		expect(afterOldAge(4, 9)).toEqual({ max: 0, diesPeacefully: true });
+	});
+});
+
+describe("olderAge", () => {
+	it("grows the Young Mature and the Mature Old, and the Old no further", () => {
+		expect(olderAge("young")).toBe("mature");
+		expect(olderAge("mature")).toBe("old");
+		expect(olderAge("old")).toBeNull();
+		expect(olderAge("ancient")).toBeNull();
 	});
 });
