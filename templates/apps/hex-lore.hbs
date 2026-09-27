@@ -77,6 +77,13 @@
 			<button type="button" data-action="act" data-act="search"><i class="fa-solid fa-magnifying-glass" inert></i> {{localize "bastionland.travelRules.sections.searching.act"}}</button>
 			<button type="button" data-action="act" data-act="vantage"><i class="fa-solid fa-binoculars" inert></i> {{localize "bastionland.travelRules.sections.vision.act"}}</button>
 		</div>
+		<div class="bastionland-hex-lore__row">
+			<label class="bastionland-check" data-tooltip="{{localize "bastionland.cruise.roadHint"}}">
+				<input type="checkbox" name="road" {{checked road}}>
+				<span class="bastionland-check__label">{{localize "bastionland.cruise.roadHere"}}</span>
+			</label>
+			<button type="button" data-action="cruise" data-tooltip="{{localize "bastionland.cruise.buttonHint"}}"><i class="fa-solid fa-sailboat" inert></i> {{localize "bastionland.cruise.button"}}</button>
+		</div>
 		{{#if holding}}
 		<div class="bastionland-hex-lore__row">
 			<button type="button" data-action="mood" data-tooltip="{{localize "bastionland.refereeRolls.tables.mood.hint"}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.refereeRolls.tables.mood.name"}}</button>

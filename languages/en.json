@@ -2350,6 +2350,18 @@
         "shield": "Shield"
       }
     },
+    "cruise": {
+      "title": "Cruise",
+      "button": "Cruise from Here",
+      "buttonHint": "Where 3 Hexes by boat, or by steed on a proper road, can take the Company in one Phase (p18).",
+      "roadHere": "A proper road runs here",
+      "roadHint": "Roads are rarely found. Mark each hex one runs through, and a Cruise can follow it.",
+      "boat": "By boat",
+      "road": "By road",
+      "place": "{hex} {terrain}, {steps} away",
+      "hint": "A Cruise takes the whole Phase. Barriers stop it.",
+      "nowhere": "No river, lake or road runs on from here, so there is nowhere to Cruise."
+    },
     "afflictions": {
       "label": "{name}: {loss} {virtue} {when}",
       "hint": "Take its toll now. Virtue Loss, not Damage.",

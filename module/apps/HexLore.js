@@ -10,6 +10,7 @@ import {
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
+import { cruiseFrom, hasRoad, setRoad } from "../actions/roads.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -53,6 +54,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,
+			cruise: HexLore.#onCruise
 		}
 	};
 
@@ -105,6 +107,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			features: this.#featuresHere(realm, hex),
 			// Arriving in a Holding, roll to gauge the local mood (p18).
 			holding: Boolean(featureAt(realm, hex).holding),
+			// A proper road runs through it, which a Cruise can take (p18).
+			road: hasRoad(scene, hex),
 			// Whether the Company has been here, as the GM Toolkit's Journey counts it.
 			visited: Boolean(visits),
 			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
@@ -159,7 +163,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @this {HexLore}
 	 */
 	static async #onChangeForm(event, _form, formData) {
-		if (event.target?.name !== "note" || !this.hex) return;
+		if (!this.hex) return;
+		if (event.target?.name === "road") return setRoad(this.scene, this.hex, Boolean(event.target.checked));
+		if (event.target?.name !== "note") return;
 		await writeHexNote(this.scene, this.hex, formData.object.note ?? "");
 	}
 
@@ -210,6 +216,11 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onMarkVisited() {
 		return markHexVisited(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onCruise() {
+		return cruiseFrom({ scene: this.scene, hex: this.hex });
 	}
 
 	/** @this {HexLore} */
