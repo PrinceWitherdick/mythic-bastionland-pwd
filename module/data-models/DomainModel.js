@@ -28,6 +28,8 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			court: new fields.ObjectField({ required: true, initial: {} }),
 			// The tasks the Council has in hand (p20), by id. See rules/council-tasks.js.
 			tasks: new fields.ObjectField({ required: true, initial: {} }),
+			// The works it has in hand (Grand Designs, p21), by id. See rules/grand-designs.js.
+			designs: new fields.ObjectField({ required: true, initial: {} }),
 			crises: new fields.ArrayField(new fields.StringField({ required: true, blank: false, choices: CRISES })),
 			misrule: booleanField(),
 			// The Season its Crisis Roll was last made in, from seasonKey.

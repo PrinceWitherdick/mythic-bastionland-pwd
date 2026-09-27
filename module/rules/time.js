@@ -22,6 +22,23 @@ export const SEASON_ICONS = Object.freeze({ spring: "fa-solid fa-seedling", harv
 export const SEASON_PURSUITS = Object.freeze(["pilgrimage", "courtesy", "service"]);
 export const AGE_PURSUITS = Object.freeze(["duty", "succession", "legacy"]);
 
+/**
+ * What a pursuit between Seasons can make, as the book plays them (p192):
+ * Service a new Dwelling on the map or some other small improvement, Courtesy
+ * a place at Court, a new contact or a favour. Wording lives under
+ * `bastionland.time.pursuitMakes`.
+ */
+export const PURSUIT_MAKINGS = Object.freeze({
+	service: Object.freeze(["dwelling", "other"]),
+	courtesy: Object.freeze(["court", "contact", "favour"])
+});
+
+/**
+ * @param {string|null} pursuit
+ * @returns {readonly string[]} What it can make: none for a pursuit that makes nothing to keep.
+ */
+export const pursuitMakings = (pursuit) => (Object.hasOwn(PURSUIT_MAKINGS, pursuit ?? "") ? PURSUIT_MAKINGS[pursuit] : []);
+
 /** Virtue Loss from hardship on the road (Travel, p18), and the Virtue each costs. */
 export const HARDSHIPS = Object.freeze([
 	Object.freeze({ key: "night", virtue: "spi" }),

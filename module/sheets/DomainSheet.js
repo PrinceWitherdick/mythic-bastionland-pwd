@@ -15,7 +15,8 @@ import { addCourtMember, removeCourtMember } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { COURT_ROLES, SERVES_A_SEAT, courtByRole } from "../rules/court.js";
-import { COUNCIL_SEATS, crisisRolledThisSeason, isInTurmoil } from "../rules/dominion.js";
+import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
+import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -42,6 +43,8 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			seize: DomainSheet.#onSeize,
 			addCourtMember: DomainSheet.#onAddCourtMember,
 			removeCourtMember: DomainSheet.#onRemoveCourtMember,
+			addDesign: DomainSheet.#onAddDesign,
+			removeDesign: DomainSheet.#onRemoveDesign,
 			muster: DomainSheet.#onMuster,
 			dismissWarband: DomainSheet.#onDismissWarband,
 			openWarband: DomainSheet.#onOpenWarband,
@@ -79,7 +82,11 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				tasks: tasks[key],
 				assign: t("domain.tasks.assign", { seat: t(`domain.council.${key}.label`) })
 			})),
+			// A seat left empty invites trouble (p204), so the sheet says which.
+			emptySeats: DomainSheet.#emptySeatsNotice(system.council),
 			court: DomainSheet.#courtContext(system.court),
+			designs: DomainSheet.#designsContext(system.designs, calendar),
+			designScales: DESIGN_SCALES.map((scale) => ({ scale, icon: DESIGN_ICONS[scale], label: t(`domain.designs.scales.${scale}.add`), hint: t(`domain.designs.scales.${scale}.hint`) })),
 			crises: system.crises.map((key, index) => ({
 				index,
 				name: t(`domain.crises.${key}.name`),
@@ -101,6 +108,36 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				secrets: actor.isOwner,
 				relativeTo: actor
 			})
+		});
+	}
+
+	/**
+	 * @param {Record<string, string>} council
+	 * @returns {string|null} Which seats that must be filled stand empty, or null when none do.
+	 */
+	static #emptySeatsNotice(council) {
+		const seats = emptySeats(council).map((seat) => t(`domain.council.${seat}.label`));
+		return seats.length ? t("domain.council.empty", { seats: seats.join(", ") }) : null;
+	}
+
+	/**
+	 * The works the Domain has in hand (Grand Designs, p21), each saying when it's done.
+	 * @param {unknown} designs As stored.
+	 * @param {import("../rules/time.js").Calendar} calendar Now.
+	 * @returns {object[]}
+	 */
+	static #designsContext(designs, calendar) {
+		return grandDesigns(designs).map((design) => {
+			const ready = designReady(design);
+			const done = designDone(design, calendar);
+			return {
+				id: design.id,
+				what: design.what,
+				icon: DESIGN_ICONS[design.scale],
+				scale: t(`domain.designs.scales.${design.scale}.label`),
+				done,
+				when: done ? t("domain.designs.done") : t("domain.designs.readyBy", { season: t(`time.seasons.${ready.season}`), age: ready.age })
+			};
 		});
 	}
 
@@ -190,6 +227,20 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/** @this {DomainSheet} */
 	static #onRemoveCourtMember(_event, target) {
 		return removeCourtMember(this.actor, target.closest("[data-member]")?.dataset.member);
+	}
+
+	/** @this {DomainSheet} */
+	static #onAddDesign(_event, target) {
+		const design = newDesign(target.dataset.scale, getCalendar(), Date.now());
+		if (!design) return null;
+		return this.actor.update({ [`system.designs.${foundry.utils.randomID()}`]: design });
+	}
+
+	/** @this {DomainSheet} */
+	static #onRemoveDesign(_event, target) {
+		const id = target.closest("[data-design]")?.dataset.design;
+		if (!id) return null;
+		return this.actor.update({ [`system.designs.-=${id}`]: null });
 	}
 
 	/** @this {DomainSheet} */

@@ -17,7 +17,7 @@ import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
-import { DRIFT_SIDES, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
+import { DRIFT_SIDES, LUCK_ODDS, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { TIME_STEPS } from "../module/rules/session-end.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
 import { ENTRANCE_KINDS, POINT_KINDS, ROUTE_KINDS, SITE_MODES, SITE_PRESETS, SITE_STEPS, STEP_ROLLS, STEP_STATES } from "../module/rules/sites.js";
@@ -116,6 +116,7 @@ describe("localization", () => {
 			...results.map((result) => `refereeRolls.tables.${key}.results.${result}`)
 		]),
 		...DRIFT_SIDES.map((side) => `refereeRolls.sides.${side}`),
+		...LUCK_ODDS.map(({ key }) => `refereeRolls.odds.${key}`),
 		...partsOf("sessionEnd.time.steps", TIME_STEPS.map(({ key }) => key), ["label", "hint", "card"]),
 		"sessionEnd.notices.promised",
 		...SPARK_PAGES.map(({ key }) => `spark.pages.${key}`),

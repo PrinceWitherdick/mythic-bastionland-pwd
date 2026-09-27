@@ -1,4 +1,4 @@
-import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
+import { chooseDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import {
@@ -443,28 +443,16 @@ export async function openKnightDomain(knight) {
 		});
 		if (choice === "link") domain = named;
 		else if (choice !== "found") return null;
-	} else if (!(await confirmDialog({
-		title: t("domain.askTitle"),
-		icon: "fa-solid fa-chess-rook",
-		message: t("domain.ask", { name })
-	}))) return null;
+	}
 
-	if (!domain) {
-		if (!game.user.can("ACTOR_CREATE")) {
-			ui.notifications.warn(t("domain.cantCreate"));
-			return null;
-		}
-		// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
-		domain = await Actor.implementation.create({
-			name: t("domain.newName", { knight: knight.name }),
-			type: "domain",
-			folder: knight.folder?.id ?? null,
-			system: { ruler: knight.name },
-			...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
-		});
+	if (domain) {
+		await linkKnightDomain(knight, domain);
+	} else {
+		// Founding one asks which Holding it rules and who sits in its Circle, and closing that window founds nothing.
+		const { foundDomain } = await import("./found-domain.js");
+		domain = await foundDomain(knight);
 		if (!domain) return null;
 	}
-	await linkKnightDomain(knight, domain);
 	domain.sheet.render({ force: true });
 	return domain;
 }

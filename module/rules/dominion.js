@@ -14,6 +14,20 @@ import { seasonKey } from "./time.js";
 /** Seats on a Domain's Council. */
 export const COUNCIL_SEATS = Object.freeze(["steward", "marshal", "sheriff", "envoy", "circle"]);
 
+/**
+ * The seats that "must be filled for a Domain to run smoothly" (p20). The
+ * Circle is an honour a ruler may offer visiting Knights, so it may stand empty.
+ */
+export const SEATS_TO_FILL = Object.freeze(COUNCIL_SEATS.filter((seat) => seat !== "circle"));
+
+/**
+ * The seats a Domain's Council has nobody in, which the Referee warns invite
+ * trouble (p204).
+ * @param {Record<string, string>|null|undefined} council As stored, by seat.
+ * @returns {string[]} Of SEATS_TO_FILL, in the book's order.
+ */
+export const emptySeats = (council) => SEATS_TO_FILL.filter((seat) => !String(council?.[seat] ?? "").trim());
+
 /** The Crises, in the order a d6 rolls them. */
 export const CRISES = Object.freeze(["chaos", "debt", "famine", "misery", "panic", "doubt"]);
 

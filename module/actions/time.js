@@ -6,6 +6,8 @@ import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { resolvedMyths } from "../rules/gm-toolkit.js";
 import { crisisRollsDue, dramaRollsDue } from "../rules/season-log.js";
+import { emptySeats } from "../rules/dominion.js";
+import { designDone, grandDesigns } from "../rules/grand-designs.js";
 import {
 	AGE_PURSUITS,
 	AGING_VIRTUE_ROLL,
@@ -42,6 +44,7 @@ import { chooseSuccessor, heirOf } from "./succession.js";
 import { sufferMorningAfflictions } from "./afflictions.js";
 import { companySituation, wildernessRoll } from "./wilderness.js";
 import { askPhaseEnd, dieUntended, takeMorningLosses } from "./phase-end.js";
+import { followPursuits } from "./pursuits.js";
 import { markLongAbsences } from "./homecoming.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
@@ -302,6 +305,8 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	// A ruler away from their Holding as the Season turns returns from a long absence (p20).
 	await markLongAbsences();
 	const { rolls, entries } = await passTime(company, { newAge, before });
+	// What a Service or Courtesy made goes on the report with the rest (p17, p192).
+	await followPursuits(company, entries, t(`time.seasons.${after.season}`));
 	const ended = seasonKey(before);
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
 	const collection = await markCollection(ended, before.season);
@@ -382,6 +387,29 @@ async function mythsToReplace() {
 }
 
 /**
+ * @param {Actor[]} domains
+ * @param {import("../rules/time.js").Calendar} calendar Now.
+ * @returns {string[]} One line naming every Domain's Grand Designs that are done, or none.
+ */
+function designsDoneNotices(domains, calendar) {
+	const works = domains.flatMap((domain) => grandDesigns(domain.system.designs)
+		.filter((design) => designDone(design, calendar))
+		.map((design) => `${design.what || t(`domain.designs.scales.${design.scale}.label`)} (${domain.name})`));
+	return works.length ? [t("time.due.designs", { works: works.join(", ") })] : [];
+}
+
+/**
+ * @param {Actor[]} domains
+ * @returns {string[]} A line for each Domain with a seat on its Council that must be filled standing empty.
+ */
+function emptySeatNotices(domains) {
+	return domains.flatMap((domain) => {
+		const seats = emptySeats(domain.system.council).map((seat) => t(`domain.council.${seat}.label`));
+		return seats.length ? [t("time.due.emptySeats", { domain: domain.name, seats: seats.join(", ") })] : [];
+	});
+}
+
+/**
  * Tell the table a new Season has begun, on a card painted in the Season's
  * colours, with what passed as it turned and what's due now it has: the
  * Crisis Roll and Drama in Court for every Domain (p20–21), any Council task
@@ -411,6 +439,10 @@ export async function announceSeason(calendar, { title, entries, note = null }, 
 			...(due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : []),
 			...(drama.length ? [t("time.due.drama", { domains: drama.map((domain) => domain.name).join(", ") })] : []),
 			...(myths.length ? [t("time.due.myths", { myths: myths.join(", ") })] : []),
+			// Seats left empty, which invite trouble (p204).
+			...emptySeatNotices(domains),
+			// Works whose time has come (p21), until they're struck off.
+			...designsDoneNotices(domains, calendar),
 			...tasks,
 			// Tables a Knight rolls on again each Season, and each Day, since a Season begins on a new one.
 			...tableRenewalNotices(["season", "day"])

@@ -1,0 +1,32 @@
+<div class="bastionland-dialog__body">
+	<p>{{{intro}}}</p>
+	<div class="form-group">
+		<label for="bastionland-found-holding">{{localize "bastionland.domain.founding.holding"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-found-holding" name="holding">
+				<option value="">{{localize "bastionland.domain.founding.noHolding"}}</option>
+				{{#each holdings}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-found-name">{{localize "bastionland.domain.founding.name"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-found-name" type="text" name="name" value="" placeholder="{{namePlaceholder}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.domain.founding.nameHint"}}</p>
+	</div>
+	{{#if circle.length}}
+	<fieldset>
+		<legend data-tooltip="{{localize 'bastionland.domain.council.circle.hint'}}">{{localize "bastionland.domain.founding.circle"}}</legend>
+		{{#each circle}}
+		<label class="bastionland-check">
+			<input type="checkbox" name="circle.{{id}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{name}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	{{/if}}
+</div>

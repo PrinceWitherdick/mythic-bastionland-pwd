@@ -1,6 +1,6 @@
 import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
+import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, LUCK_ODDS, luckAtOdds, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
 import { samePhase } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -79,6 +79,38 @@ export async function rollRefereeTable(key) {
 }
 
 /**
+ * Ask what the odds are, then make a Luck Roll: on its table, or at the odds
+ * the Referee states ("a slim chance", "straight 50/50", p182, p184).
+ * @param {string} [odds] One of LUCK_ODDS, or "table"; asked when not given.
+ * @returns {Promise<object|null>} What was rolled, or null if the question was closed.
+ */
+export async function rollLuck(odds) {
+	odds ??= await chooseDialog({
+		title: t("refereeRolls.tables.luck.name"),
+		icon: "fa-solid fa-dice-d6",
+		classes: ["bastionland-referee-rolls"],
+		message: t("refereeRolls.odds.question"),
+		buttons: [
+			{ action: "table", label: t("refereeRolls.odds.table"), default: true },
+			...LUCK_ODDS.map(({ key, needs }) => ({ action: key, label: t("refereeRolls.odds.label", { odds: t(`refereeRolls.odds.${key}`), needs }) }))
+		]
+	});
+	if (odds === "table") return rollRefereeTable("luck");
+	if (!LUCK_ODDS.some(({ key }) => key === odds)) return null;
+
+	const roll = await new Roll("1d6").evaluate();
+	const read = luckAtOdds(odds, roll.total);
+	await postCard(null, "referee-roll", {
+		name: t("refereeRolls.tables.luck.name"),
+		page: t("refereeRolls.page", { page: REFEREE_TABLES.find(({ key }) => key === "luck").page }),
+		d6: roll.total,
+		result: t(read.favoured ? "refereeRolls.odds.favoured" : "refereeRolls.odds.against"),
+		hint: t("refereeRolls.odds.hint", { odds: t(`refereeRolls.odds.${odds}`), needs: read.needs })
+	}, { rolls: [roll] });
+	return { d6: roll.total, odds, ...read };
+}
+
+/**
  * Ask which of the Referee's tables to roll on, then roll it. GMs only.
  * @returns {Promise<object|null>}
  */
@@ -95,6 +127,7 @@ export async function openRefereeRolls() {
 			default: index === 0
 		}))
 	});
+	if (key === "luck") return rollLuck();
 	return REFEREE_TABLES.some((table) => table.key === key) ? rollRefereeTable(key) : null;
 }
 

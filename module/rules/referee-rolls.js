@@ -75,3 +75,29 @@ export const DEFAULT_DIRE_WEATHER_RISK = "winter";
  */
 export const atMercyOfWeather = (risk, season) => risk === "always" || (risk === "winter" && season === "winter");
 
+/**
+ * Odds the Referee may state for a Luck Roll instead of reading its table:
+ * "there's a slim chance", "we'll call it straight 50/50" (p182, p184). Each
+ * is the lowest d6 that goes the players' way. Wording lives under
+ * `bastionland.refereeRolls.odds`.
+ */
+export const LUCK_ODDS = Object.freeze([
+	{ key: "slim", needs: 6 },
+	{ key: "unlikely", needs: 5 },
+	{ key: "even", needs: 4 },
+	{ key: "likely", needs: 3 },
+	{ key: "high", needs: 2 }
+].map(Object.freeze));
+
+/**
+ * Read a Luck Roll at stated odds.
+ * @param {string} odds One of LUCK_ODDS.
+ * @param {number} d6
+ * @returns {{favoured: boolean, needs: number}|null} Whether fortune favours the players. Null for odds that don't exist.
+ */
+export function luckAtOdds(odds, d6) {
+	const stated = LUCK_ODDS.find((candidate) => candidate.key === odds);
+	if (!stated) return null;
+	d6Band(d6);
+	return { favoured: d6 >= stated.needs, needs: stated.needs };
+}

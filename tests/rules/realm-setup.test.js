@@ -52,6 +52,13 @@ describe("normaliseRealmSetup", () => {
 		expect(setupBarriers(setup)).toBe(18);
 	});
 
+	it("keeps a count of their own only for the types given one, within the limits", () => {
+		const setup = normaliseRealmSetup({ ignoreRules: true, landmarks: { min: 1, max: 1, types: { hazard: "2", curse: 500, ruin: "", dwelling: "lots", palace: 3 } } });
+		expect(setup.landmarks.types).toEqual({ hazard: 2, curse: SETUP_LIMITS.landmarks.max });
+		expect(isBookSetup({ ignoreRules: true, landmarks: { types: { hazard: 4 } } })).toBe(false);
+		expect(normaliseRealmSetup({ landmarks: { types: { hazard: 9 } } }).landmarks.types).toEqual({});
+	});
+
 	it("counts ignoring the rules with the book's numbers as the book's setup", () => {
 		expect(isBookSetup({ ignoreRules: true })).toBe(true);
 		expect(isBookSetup({ ignoreRules: true, barriers: 24 })).toBe(true);

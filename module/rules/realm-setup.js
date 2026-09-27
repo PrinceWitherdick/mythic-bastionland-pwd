@@ -5,7 +5,7 @@
  * for setup gives their own. Either way, any part can be left off the roll to
  * draw by hand. Pure, so it can be tested without Foundry.
  */
-import { HOLDING_COUNT, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount } from "./realm.js";
+import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount } from "./realm.js";
 import { realmGeometry } from "./realm-geometry.js";
 
 /** The parts of a Realm that are rolled, in the order they're rolled. Each is also the Realm's key for it. */
@@ -21,7 +21,8 @@ export const SETUP_PARTS = Object.freeze(["terrain", "rivers", "holdings", "myth
  * @property {number} lakes The most lake clusters: "a few large lakes".
  * @property {number} holdings
  * @property {number} myths
- * @property {{min: number, max: number}} landmarks Of each type.
+ * @property {{min: number, max: number, types: Record<string, number>}} landmarks Of each type, unless `types`
+ *   gives a type a count of its own, as the Referee on p202 sets "a single Landmark of each type" and then an extra Hazard and Curse.
  * @property {number|null} barriers Null for one sixth of the hexes.
  */
 
@@ -37,7 +38,7 @@ export const BOOK_SETUP = Object.freeze({
 	lakes: 3,
 	holdings: HOLDING_COUNT,
 	myths: MYTH_COUNT,
-	landmarks: LANDMARKS_PER_TYPE,
+	landmarks: Object.freeze({ ...LANDMARKS_PER_TYPE, types: Object.freeze({}) }),
 	barriers: null
 });
 
@@ -77,7 +78,7 @@ export function normaliseRealmSetup(given = null) {
 	// A setup saved before every river was kept alike calls its rivers `river`.
 	const asked = { ...given?.roll, rivers: given?.roll?.rivers ?? given?.roll?.river };
 	const roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, asked[part] !== false]));
-	if (!given?.ignoreRules) return { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks } };
+	if (!given?.ignoreRules) return { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks, types: {} } };
 
 	const number = (key, value) => within(value, BOOK_SETUP[key], SETUP_LIMITS[key]);
 	const fewest = within(given.landmarks?.min, BOOK_SETUP.landmarks.min, SETUP_LIMITS.landmarks);
@@ -92,9 +93,20 @@ export function normaliseRealmSetup(given = null) {
 		lakes: number("lakes", given.lakes),
 		holdings: number("holdings", given.holdings),
 		myths: number("myths", given.myths),
-		landmarks: { min: Math.min(fewest, most), max: Math.max(fewest, most) },
+		landmarks: { min: Math.min(fewest, most), max: Math.max(fewest, most), types: landmarkCounts(given.landmarks?.types) },
 		barriers: barriers === null || barriers === undefined || barriers === "" ? null : within(barriers, 0, SETUP_LIMITS.barriers)
 	};
+}
+
+/**
+ * @param {unknown} types As given, by Landmark type.
+ * @returns {Record<string, number>} The types given a count of their own, each within the limits; a blank leaves a type to the range.
+ */
+function landmarkCounts(types) {
+	const given = types && typeof types === "object" ? types : {};
+	return Object.fromEntries(LANDMARK_TYPES
+		.filter((type) => !["", null, undefined].includes(given[type]) && Number.isFinite(Number(given[type])))
+		.map((type) => [type, within(given[type], 0, SETUP_LIMITS.landmarks)]));
 }
 
 /**
@@ -110,6 +122,6 @@ export const setupBarriers = (setup) => setup.barriers ?? barrierCount(setup);
 export function isBookSetup(setup) {
 	const own = normaliseRealmSetup(setup);
 	const numbers = (value) => [value.cols, value.rows, value.cluster, value.lakes, value.holdings, value.myths,
-		value.landmarks.min, value.landmarks.max, setupBarriers(value)].join();
+		value.landmarks.min, value.landmarks.max, JSON.stringify(value.landmarks.types ?? {}), setupBarriers(value)].join();
 	return SETUP_PARTS.every((part) => own.roll[part]) && numbers(own) === numbers(BOOK_SETUP);
 }

@@ -78,6 +78,9 @@
 					{{/if}}
 					{{/each}}
 				</div>
+				{{#if emptySeats}}
+				<p class="bastionland-chooser__notice">{{emptySeats}}</p>
+				{{/if}}
 				<p class="bastionland-hint">{{localize "bastionland.domain.council.hint"}}</p>
 			</section>
 
@@ -123,6 +126,36 @@
 			</section>
 
 			<section class="bastionland-block">
+				<h2 class="bastionland-heading">{{localize "bastionland.domain.designs.label"}}</h2>
+				<p class="bastionland-hint">{{localize "bastionland.domain.designs.hint"}}</p>
+				{{#if designs.length}}
+				<ul class="bastionland-court__members">
+					{{#each designs}}
+					<li class="bastionland-court__member bastionland-council__task{{#if done}} is-due{{/if}}" data-design="{{id}}">
+						<div class="bastionland-court__line">
+							<i class="{{icon}}" data-tooltip="{{scale}}" aria-label="{{scale}}"></i>
+							<input class="bastionland-blank bastionland-court__name" type="text" name="system.designs.{{id}}.what" value="{{what}}" placeholder="{{localize 'bastionland.domain.designs.whatPlaceholder'}}" aria-label="{{localize 'bastionland.domain.designs.what'}}" autocomplete="off">
+							<span class="bastionland-tag">{{when}}</span>
+							{{#if @root.editable}}
+							<span class="bastionland-item__controls">
+								<button type="button" class="bastionland-icon" data-action="removeDesign" data-tooltip="{{localize 'bastionland.domain.designs.remove'}}" aria-label="{{localize 'bastionland.domain.designs.remove'}}">
+									<i class="fa-solid fa-xmark" inert></i>
+								</button>
+							</span>
+							{{/if}}
+						</div>
+					</li>
+					{{/each}}
+				</ul>
+				{{/if}}
+				{{#if editable}}
+				{{#each designScales}}
+				<button type="button" class="bastionland-button bastionland-court__add" data-action="addDesign" data-scale="{{scale}}" data-tooltip="{{hint}}"><i class="{{icon}}" inert></i> {{label}}</button>
+				{{/each}}
+				{{/if}}
+			</section>
+
+			<section class="bastionland-block">
 				<h2 class="bastionland-heading">{{localize "bastionland.domain.authority"}}</h2>
 				<p class="bastionland-hint">{{muster}}</p>
 				<p class="bastionland-hint">{{warbands.tally}}</p>
@@ -148,7 +181,6 @@
 				{{#if editable}}
 				<button type="button" class="bastionland-button" data-action="muster" data-tooltip="{{localize 'bastionland.warband.muster.hint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.warband.muster.button"}}</button>
 				{{/if}}
-				<p class="bastionland-hint">{{localize "bastionland.domain.designs"}}</p>
 				<p class="bastionland-hint">{{localize "bastionland.domain.succession"}}</p>
 			</section>
 		</div>

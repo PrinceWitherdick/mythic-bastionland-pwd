@@ -84,6 +84,15 @@
 						</label>
 						{{/each}}
 						{{#if note}}<span class="bastionland-realm-setup__note">{{note}}</span>{{/if}}
+						{{#if more.length}}
+						<span class="bastionland-realm-setup__note bastionland-realm-setup__more">{{moreNote}}</span>
+						{{#each more}}
+						<label class="bastionland-realm-setup__field">
+							<span>{{label}}</span>
+							<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" placeholder="{{placeholder}}" disabled data-setup-number data-book="{{value}}">
+						</label>
+						{{/each}}
+						{{/if}}
 					</div>
 				</div>
 				{{/each}}

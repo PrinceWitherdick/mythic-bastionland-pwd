@@ -5,12 +5,14 @@
 import { t } from "../chat/cards.js";
 import { barrierCount } from "../rules/realm.js";
 import { BOOK_SETUP, SETUP_LIMITS, SETUP_PARTS, setupBarriers, within } from "../rules/realm-setup.js";
+import { LANDMARK_TYPES } from "../rules/realm.js";
 
 /**
  * The Custom Realm rows: the map's size, then each part the generator rolls,
  * with the book's numbers (p14) filled in.
  * @returns {{key: string, label: string, rollable: boolean, note: string|null,
- *   fields: {name: string, label: string|null, value: number, min: number, max: number}[]}[]}
+ *   fields: {name: string, label: string|null, value: number, min: number, max: number}[],
+ *   more: object[], moreNote: string|null}[]} `more` are fields a part may fill in beyond its own, such as a count for one type of Landmark.
  */
 export function setupParts() {
 	const field = (key, value, name = key, label = null) => ({ name: `setup.${name}`, label, value, ...SETUP_LIMITS[key] });
@@ -27,6 +29,10 @@ export function setupParts() {
 		barriers: [field("barriers", setupBarriers(BOOK_SETUP))]
 	};
 	const notes = ["rivers", "holdings", "myths", "landmarks", "barriers"];
+	// Each type of Landmark may be given a count of its own (p202); left blank, it takes the range above.
+	const more = {
+		landmarks: LANDMARK_TYPES.map((type) => ({ ...field("landmarks", "", `landmarks.types.${type}`, t(`realm.landmarks.${type}`)), placeholder: "—" }))
+	};
 	return [
 		{ key: "map", label: t("realm.setup.parts.map"), rollable: false, note: null, fields: [labelled("cols", BOOK_SETUP.cols), labelled("rows", BOOK_SETUP.rows)] },
 		...SETUP_PARTS.map((key) => ({
@@ -34,7 +40,9 @@ export function setupParts() {
 			label: t(`realm.setup.parts.${key}`),
 			rollable: true,
 			note: notes.includes(key) ? t(`realm.setup.notes.${key}`) : null,
-			fields: fields[key]
+			fields: fields[key],
+			more: more[key] ?? [],
+			moreNote: more[key] ? t(`realm.setup.more.${key}`) : null
 		}))
 	];
 }

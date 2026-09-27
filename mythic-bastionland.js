@@ -14,7 +14,7 @@ import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
-import { openRefereeRolls, registerWeatherStreakSetting, rollRefereeTable } from "./module/actions/referee-rolls.js";
+import { openRefereeRolls, registerWeatherStreakSetting, rollLuck, rollRefereeTable } from "./module/actions/referee-rolls.js";
 import { registerSessionEndSetting } from "./module/actions/session-end.js";
 import { eventLabel, seasonEventsNow } from "./module/actions/season-events.js";
 import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./module/actions/session-macro.js";
@@ -401,7 +401,7 @@ Hooks.once("init", () => {
 		rollSurprise,
 		openRefereeRolls,
 		rollRefereeTable,
-		rollLuck: () => rollRefereeTable("luck"),
+		rollLuck,
 		openSparkTables,
 		openHexLore,
 		openTimePanel,

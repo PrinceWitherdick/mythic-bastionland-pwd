@@ -142,6 +142,13 @@ describe("generateRealm with a setup of the GM's own", () => {
 		expect(validateRealm(realm, own)).toEqual([]);
 	});
 
+	it("gives a type of Landmark its own count, as the Referee on p202 adds an extra Hazard and Curse", () => {
+		const setup = { ignoreRules: true, landmarks: { min: 1, max: 1, types: { hazard: 2, curse: "2", ruin: 0 } } };
+		const { realm } = custom(setup, "island");
+		const counts = Object.fromEntries(LANDMARK_TYPES.map((type) => [type, realm.landmarks.filter((landmark) => landmark.type === type).length]));
+		expect(counts).toEqual({ dwelling: 1, sanctum: 1, monument: 1, hazard: 2, curse: 2, ruin: 0 });
+	});
+
 	it("leaves the parts it doesn't roll empty for the GM to draw", () => {
 		const { realm, g: own } = custom({ roll: { terrain: false, rivers: false, holdings: false, barriers: false } });
 		expect(realm.terrain.every((terrain) => terrain === 0)).toBe(true);

@@ -983,6 +983,33 @@
           "hint": "Your successor gains half of your current Glory."
         }
       },
+      "pursuitMakes": {
+        "service": {
+          "question": "What small improvement to the Realm did {name}’s Service make?",
+          "dwelling": "A new Dwelling on the map",
+          "other": "Something else",
+          "made": {
+            "dwelling": "Service: a new Dwelling, marked on the map.",
+            "other": "Service: a small improvement to the Realm."
+          },
+          "markIt": "The Dwelling brush is in hand: click the hex where the Service made it.",
+          "openRealm": "Open the Realm and mark the new Dwelling with the Landmark brush in Paint the Realm."
+        },
+        "courtesy": {
+          "question": "What did {name}’s Courtesy earn?",
+          "court": "A place at Court",
+          "contact": "A new contact",
+          "favour": "A favour",
+          "whichCourt": "Whose Court does {name} join?",
+          "courtNote": "Earned by Courtesy before {season}.",
+          "joined": "Courtesy: a place at the Court of {court}, as a Courtier.",
+          "noCourt": "Courtesy: a place at Court, though no Domain is kept yet to write it in.",
+          "made": {
+            "contact": "Courtesy: a new contact.",
+            "favour": "Courtesy: a favour owed."
+          }
+        }
+      },
       "seasonTurned": "{season} Begins",
       "ageTurned": "Age {age} Begins",
       "distant": {
@@ -1005,7 +1032,9 @@
         "title": "Due this Season",
         "crisis": "The Crisis Roll for {domains} (p20), from the GM Toolkit’s Time page or each Domain’s sheet.",
         "drama": "Drama in Court for {domains} (p21), from each Domain’s sheet.",
-        "myths": "A new Myth in place of each one resolved: {myths} (p27), from the GM Toolkit’s Time page."
+        "myths": "A new Myth in place of each one resolved: {myths} (p27), from the GM Toolkit’s Time page.",
+        "emptySeats": "{domain} has nobody as {seats} (p20). A Domain runs smoothly only with its seats filled.",
+        "designs": "Grand Designs done (p21): {works}. Strike them off each Domain’s sheet."
       },
       "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
       "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
@@ -1188,6 +1217,7 @@
       },
       "council": {
         "label": "Council",
+        "empty": "Nobody sits as {seats}. Prestigious seats must be filled for a Domain to run smoothly, and a Realm left without them invites trouble.",
         "hint": "Council members can be given tasks lasting a Phase, a Week or a Season. They’re handled as normal actions, and failure usually brings a Crisis. Seats can be granted and revoked, but the scorned rarely go quietly.",
         "steward": {
           "label": "Steward",
@@ -1347,6 +1377,42 @@
       "drama": "Drama in Court",
       "dramaHint": "Every Season brings some drama. Roll to see how the ruler is involved.",
       "dramaPrompt": "Drama Spark Table: {prompt}",
+      "designs": {
+        "label": "Grand Designs",
+        "hint": "Works the Domain has in hand (p21). Each is marked done once its time has come, and the Season’s card says so; strike it off with ×.",
+        "what": "What’s being built",
+        "whatPlaceholder": "What’s being built…",
+        "readyBy": "Ready by {season}, Age {age}",
+        "done": "Done",
+        "remove": "Strike it off",
+        "scales": {
+          "works": {
+            "label": "Work on what stands",
+            "add": "Works",
+            "hint": "Work on existing buildings or infrastructure, generally completed by the next Season."
+          },
+          "building": {
+            "label": "A new building",
+            "add": "New building",
+            "hint": "New buildings or infrastructure, completed in a Season: the next one if begun as a Season begins, the one after that otherwise."
+          },
+          "grand": {
+            "label": "A grand project",
+            "add": "Grand project",
+            "hint": "Castles, roads and the like, which take an entire Age of work: done as the next Age begins if begun as an Age begins, the one after that otherwise."
+          }
+        }
+      },
+      "founding": {
+        "title": "Found a Domain",
+        "intro": "The Domain {name} rules (p20).",
+        "holding": "Holding",
+        "noHolding": "None on the map yet",
+        "name": "Name",
+        "nameHint": "Left blank, it takes the Holding’s name.",
+        "circle": "In the Circle",
+        "ok": "Found It"
+      },
       "court": {
         "label": "The Court",
         "hint": "Those who serve outside the Council (p20). Write whoever the Court holds; the drama each Season falls to one of them.",
@@ -1397,7 +1463,6 @@
       },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
-      "designs": "Grand designs: work on existing buildings is done by next Season, a new building takes a Season, and grand projects such as castles and roads take an Age.",
       "succession": "Succession: a ruler usually names their successor, though some Realms leave it to a conclave of Seers or Knights-Elector. Whoever it is faces some resistance.",
       "notes": "Court & Notes",
       "button": "Domain",
@@ -1405,7 +1470,6 @@
       "foundHint": "This Knight rules no Domain yet. Found one, or drag a Domain here from the Actors tab.",
       "noneLinked": "{name} rules no Domain yet.",
       "askTitle": "Found a Domain?",
-      "ask": "{name} rules no Domain yet. Found one for them? It starts with them as its ruler, beside them in the Actors tab.",
       "askNamed": "{name} rules no Domain yet, but {domain} names them as its ruler. Make it theirs, or found a new Domain?",
       "linkNamed": "Rule {domain}",
       "found": "Found a New Domain",
@@ -1470,11 +1534,22 @@
         },
         "courtier": {
           "name": "Courtier",
-          "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power."
+          "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power.",
+          "newsTitle": "News at Court",
+          "newsTagline": "{name} (p{page})",
+          "newsHint": "The first Omen of the nearest Myth is delivered as news to the Court (p6). It counts as met."
         },
         "ruler": {
           "name": "Ruler",
-          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. You choose which Holding."
+          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. You choose which Holding.",
+          "influenceTitle": "A Wicked Influence",
+          "influenceTagline": "The Seat of Power",
+          "influencePrompt": "A prompt for it: {prompt}.",
+          "influenceNoPrompt": "The Seat of Power is under a wicked influence.",
+          "influenceHint": "One Knight rules a Holding, the others are in their Circle (p6). Where the Knights aren’t made yet, found the Domain later from the ruling Knight’s Domain button, ticking the others into the Circle.",
+          "domainTitle": "Who Rules?",
+          "domainQuestion": "One Knight rules a Holding, the others are in their Circle (p6). Which Knight rules?",
+          "domainLater": "Decide Later"
         }
       },
       "begins": "The Company begins at the Seat of Power, {hex}.",
@@ -1915,6 +1990,19 @@
       },
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
+      "odds": {
+        "question": "Read it on the Luck Roll table, or at odds you’ve stated?",
+        "table": "The table: Crisis, Problem or Blessing",
+        "label": "{odds} ({needs}+)",
+        "slim": "A slim chance",
+        "unlikely": "Unlikely",
+        "even": "Straight 50/50",
+        "likely": "Likely",
+        "high": "A high chance",
+        "hint": "{odds}: fortune favours the players on {needs} or higher.",
+        "favoured": "Fortune favours them.",
+        "against": "Fortune doesn’t favour them."
+      },
       "page": "page {page}",
       "sides": {
         "left": "left",
@@ -2893,8 +2981,7 @@
           "rivers": "River",
           "holdings": "Holdings",
           "myths": "Myths",
-          "holdings": "Holdings",
-        "landmarks": "Landmarks",
+          "landmarks": "Landmarks",
           "barriers": "Barriers"
         },
         "fields": {
@@ -2911,6 +2998,9 @@
           "myths": "Numbered from 1, so six at most.",
           "landmarks": "of each type.",
           "barriers": "One sixth of the hexes."
+        },
+        "more": {
+          "landmarks": "Or give a type its own count (p202):"
         }
       },
       "key": {

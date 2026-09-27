@@ -13,11 +13,12 @@ import { escapeHTML } from "../rules/text.js";
  * Take somebody new into the Court.
  * @param {Actor} domain
  * @param {string} role One of COURT_ROLES.
+ * @param {{name?: string, note?: string}} [fields] What's already known of them.
  * @returns {Promise<string|null>} Their id, or null for a role the Court doesn't have.
  */
-export async function addCourtMember(domain, role) {
+export async function addCourtMember(domain, role, fields = {}) {
 	if (!COURT_ROLES.includes(role) || !domain?.isOwner) return null;
-	const member = newCourtMember(role, Date.now());
+	const member = { ...newCourtMember(role, Date.now()), ...fields };
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.court.${id}`]: member });
 	return id;

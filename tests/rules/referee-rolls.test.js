@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, atMercyOfWeather, d6Band, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../../module/rules/referee-rolls.js";
+import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, LUCK_ODDS, atMercyOfWeather, d6Band, luckAtOdds, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../../module/rules/referee-rolls.js";
 
 describe("d6Band", () => {
 	it.each([[1, 0], [2, 1], [3, 1], [4, 2], [5, 2], [6, 2]])("reads %i as result %i", (d6, band) => {
@@ -47,5 +47,25 @@ describe("atMercyOfWeather", () => {
 		expect(atMercyOfWeather("winter", "summer")).toBe(false);
 		expect(atMercyOfWeather("always", "spring")).toBe(true);
 		expect(atMercyOfWeather("never", "winter")).toBe(false);
+	});
+});
+
+describe("luckAtOdds", () => {
+	it("goes the players' way on the odds' number or higher", () => {
+		expect(luckAtOdds("even", 3)).toEqual({ favoured: false, needs: 4 });
+		expect(luckAtOdds("even", 4)).toEqual({ favoured: true, needs: 4 });
+		expect(luckAtOdds("slim", 5).favoured).toBe(false);
+		expect(luckAtOdds("slim", 6).favoured).toBe(true);
+		expect(luckAtOdds("high", 2).favoured).toBe(true);
+		expect(luckAtOdds("high", 1).favoured).toBe(false);
+	});
+
+	it("runs from slimmest to highest, one pip apart", () => {
+		expect(LUCK_ODDS.map(({ needs }) => needs)).toEqual([6, 5, 4, 3, 2]);
+	});
+
+	it("has nothing for odds it doesn't know, and rejects a roll that isn't a d6", () => {
+		expect(luckAtOdds("certain", 4)).toBeNull();
+		expect(() => luckAtOdds("even", 7)).toThrow(RangeError);
 	});
 });

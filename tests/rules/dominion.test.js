@@ -9,12 +9,21 @@ import {
 	crisisResult,
 	domainRuledBy,
 	dramaResult,
+	emptySeats,
 	findDomainHolding,
 	holdingRef,
 	isMisruleDue,
 	musterFor,
 	parseHoldingRef
 } from "../../module/rules/dominion.js";
+
+describe("emptySeats", () => {
+	it("names the seats that must be filled and stand empty, leaving the Circle to be offered (p20, p204)", () => {
+		expect(emptySeats({ steward: "Medryn", marshal: "Moss", sheriff: "  ", envoy: "", circle: "" })).toEqual(["sheriff", "envoy"]);
+		expect(emptySeats({ steward: "a", marshal: "b", sheriff: "c", envoy: "d", circle: "" })).toEqual([]);
+		expect(emptySeats(null)).toEqual(["steward", "marshal", "sheriff", "envoy"]);
+	});
+});
 
 describe("the Domain's rolls", () => {
 	it("reads the Crisis Roll", () => {

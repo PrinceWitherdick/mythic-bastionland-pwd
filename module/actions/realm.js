@@ -33,6 +33,7 @@ import { serialWrites } from "../rules/queue.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
+import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
@@ -743,7 +744,12 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	const textures = realmTextures(look);
 	const data = foundry.utils.mergeObject(
 		realmSceneData({ name, realm, geometry, textures, units: t("realm.units") }),
-		foundry.utils.expandObject({ ...lookFlag(look), ...(drawing ? drawingFlag(true) : {}) })
+		foundry.utils.expandObject({
+			...lookFlag(look),
+			...(drawing ? drawingFlag(true) : {}),
+			// A Realm drawn by hand hears what its Start sets going once it's finished.
+			...(drawing && company?.start ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: company.start } : {})
+		})
 	);
 
 	// A Realm laid over a picture opens with the picture being lined up, and the rules that open with the
@@ -796,6 +802,8 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 
 	// Drawn by hand, the Realm has nothing hidden in it yet.
 	if (!drawing) await postRealmKey(scene);
+	// What the Start sets going besides where the Company begins (p6).
+	if (company && !drawing) await announceStart(scene, company.start);
 	return scene;
 }
 
@@ -892,6 +900,9 @@ async function refreshThumbnail(scene, changes = {}) {
  */
 const drawingFlag = (drawing) => ({ [`flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`]: drawing });
 
+/** The Start a Realm drawn by hand announces when it's first finished, kept on its Scene until then. */
+const START_DUE_FLAG = "startDue";
+
 /**
  * @param {Scene|null|undefined} scene
  * @returns {boolean} Whether a Realm Scene is still being drawn by hand.
@@ -948,6 +959,12 @@ export async function finishRealmDrawing(scene) {
 	if (canvas.scene?.id === scene.id) await ui.controls.activate({ control: "realm", tool: "inspect" });
 	ui.notifications.info(t("realmDrawing.finish.done", { name: scene.name }));
 	await postRealmKey(scene);
+	// Only the first time: a Realm taken back into drawing and finished again has already begun.
+	const start = scene.getFlag(SYSTEM_ID, START_DUE_FLAG);
+	if (start) {
+		await scene.unsetFlag(SYSTEM_ID, START_DUE_FLAG);
+		await announceStart(scene, start);
+	}
 	return true;
 }
 

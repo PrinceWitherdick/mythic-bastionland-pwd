@@ -288,13 +288,15 @@ function placeMyths(random, g, realm, count) {
  * "A typical Realm has 3 or 4 of each type of Landmark", in Wilderness hexes
  * without a Holding or Myth, one to a hex, spread across the map. A Sanctum
  * rolls on the Knights table (p26) for its Seer.
- * @param {{min: number, max: number}} perType
+ * @param {{min: number, max: number, types?: Record<string, number>}} perType
  */
 function placeLandmarks(random, g, realm, perType) {
 	const taken = featureHexes(realm);
-	const extra = perType.max - perType.min + 1;
-	const instances = random.shuffle(LANDMARK_TYPES.flatMap((type) =>
-		new Array(perType.min - 1 + random.die(extra)).fill(type)));
+	const instances = random.shuffle(LANDMARK_TYPES.flatMap((type) => {
+		// A type given a count of its own in a custom Realm (p202) rolls nothing, so the others roll as they always did.
+		const own = perType.types?.[type];
+		return new Array(Number.isInteger(own) ? own : perType.min - 1 + random.die(perType.max - perType.min + 1)).fill(type);
+	}));
 
 	const landmarks = [];
 	const seers = new Set();
