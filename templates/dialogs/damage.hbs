@@ -27,6 +27,13 @@
 	</fieldset>
 	{{/if}}
 
+	{{#if trap}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="trapped" {{checked trap.shielded}}>
+		<span class="bastionland-check__label">{{trap.label}}</span>
+	</label>
+	{{/if}}
+
 	<label class="bastionland-check">
 		<input type="checkbox" name="ignoreArmour" {{checked ignoreArmour}}>
 		<span class="bastionland-check__label">{{localize "bastionland.damage.ignoreArmour"}}</span>

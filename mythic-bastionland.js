@@ -63,6 +63,7 @@ import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./mo
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
+import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
 import { registerLandmarkSettings } from "./module/actions/landmarks.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
@@ -253,6 +254,8 @@ Hooks.once("init", () => {
 	registerLandmarkCards();
 	registerExplorationCards();
 	registerFallenCards();
+	// A Humiliation's dealer brought down asks whether that was the revenge (p9).
+	registerRevengeCards();
 
 	// Duel cards resolve both duelists' Attacks together, and settle Glory staked on them.
 	registerDuelCards();

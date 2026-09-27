@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDoomed, isScarPending, scarForRoll, scarRaisesGuardLater } from "../../module/rules/scars.js";
+import { awaitsRevengeOn, isDoomed, isScarPending, scarForRoll, scarRaisesGuardLater } from "../../module/rules/scars.js";
 
 describe("Scars that settle later", () => {
 	it("wait on Gouge, Tear, Mutilation and Humiliation until settled", () => {
@@ -20,6 +20,22 @@ describe("Scars that settle later", () => {
 	it("settle Mutilation when the Season turns, and the rest when the Referee says", () => {
 		expect(scarForRoll(10).bySeason).toBe(true);
 		expect([6, 8, 12].some((roll) => scarForRoll(roll).bySeason)).toBe(false);
+	});
+});
+
+describe("awaitsRevengeOn", () => {
+	const chief = { uuid: "Actor.chief", name: "Bandit Chief" };
+
+	it("names the foe who dealt a Humiliation, by UUID or by a name typed in", () => {
+		expect(awaitsRevengeOn({ roll: 12, foe: "Actor.chief", foeName: "Bandit Chief" }, chief)).toBe(true);
+		expect(awaitsRevengeOn({ roll: 12, foe: "", foeName: " bandit chief " }, chief)).toBe(true);
+		expect(awaitsRevengeOn({ roll: 12, foe: "Actor.other", foeName: "Somebody Else" }, chief)).toBe(false);
+	});
+
+	it("waits on nobody once settled, when nobody is named, or for another Scar", () => {
+		expect(awaitsRevengeOn({ roll: 12, foe: "Actor.chief", resolved: true }, chief)).toBe(false);
+		expect(awaitsRevengeOn({ roll: 12, foe: "", foeName: "" }, { uuid: "", name: "" })).toBe(false);
+		expect(awaitsRevengeOn({ roll: 6, foe: "Actor.chief", foeName: "Bandit Chief" }, chief)).toBe(false);
 	});
 });
 

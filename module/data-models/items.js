@@ -203,7 +203,17 @@ export class ScarModel extends DescribedModel {
 			// A GD increase that waited on something later has been rolled, or found not to apply.
 			resolved: new fields.BooleanField({ initial: false }),
 			// The Age and Season it was taken in, such as "2-winter", which Doom lasts.
-			season: textField()
+			season: textField(),
+			// Who dealt a Humiliation, whose downfall may be the revenge that settles it (p9).
+			foe: textField(),
+			foeName: textField()
 		};
+	}
+
+	/** A foe renamed by hand is somebody else, so the dealer's UUID no longer holds. */
+	async _preUpdate(changes, options, user) {
+		if ((await super._preUpdate(changes, options, user)) === false) return false;
+		const system = changes.system;
+		if (system && "foeName" in system && !("foe" in system) && system.foeName !== this.foeName) system.foe = "";
 	}
 }

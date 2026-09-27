@@ -220,5 +220,7 @@ describe("applying the Damage", () => {
 		await card.click("apply");
 		expect(confirmDialog).not.toHaveBeenCalled();
 		expect(takeAttack).toHaveBeenCalledOnce();
+		// A Trap Gambit on this very card holds the shield only after its own blow lands.
+		expect(takeAttack.mock.calls[0][2]).toEqual({ except: ["message-1"] });
 	});
 });

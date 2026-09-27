@@ -35,8 +35,9 @@ async function onResolve(message) {
 	const blows = cards.map((card, index) => ({ card, attack: attackOf(card), target: actors[1 - index] }));
 	for (const { card, attack, target } of blows) {
 		if (attack.appliedTo.length) continue;
-		// Scars are only gained through real, deadly combat (p9).
-		const result = await takeAttack(target, attack, { scars: !duel.bloodless });
+		// Scars are only gained through real, deadly combat (p9). Both cards' Gambits land
+		// together, so neither's Trap holds a shield against the other's blow.
+		const result = await takeAttack(target, attack, { scars: !duel.bloodless, except: cards.map((each) => each.id) });
 		if (!result) continue;
 		if (duel.bloodless && result.outcome === "scar") {
 			await postCard(target, "note", { icon: "fa-solid fa-hand-fist", text: t("duel.noScar", { name: target.name }) });

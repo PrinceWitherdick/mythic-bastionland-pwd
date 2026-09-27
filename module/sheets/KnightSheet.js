@@ -24,7 +24,7 @@ import { RANKS } from "../rules/glory.js";
 import { hasTable, knightRenewal, knightTableItemId, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
 import { portraitStyle } from "../rules/portrait-frame.js";
-import { isDoomed, isScarPending } from "../rules/scars.js";
+import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
@@ -200,13 +200,16 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			bookTableRow: tableItem ? null : bookTable,
 			abilities,
 			passions,
-			// A Scar still waiting on its GD increase can be settled, and Doom is marked while it lasts.
+			// A Scar still waiting on its GD increase can be settled, Doom is marked while it
+			// lasts, and a Humiliation names whoever its revenge is owed on.
 			scars: scars.map((row) => {
 				const { system: scar } = this.actor.items.get(row.id);
+				const pending = isScarPending(scar);
+				const owed = pending && scarForRoll(scar.roll)?.byRevenge && scar.foeName ? [t("revenge.owedTag", { name: scar.foeName })] : null;
 				return {
 					...row,
-					pending: isScarPending(scar),
-					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : row.tags
+					pending,
+					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : owed ?? row.tags
 				};
 			}),
 			// Patched up in a few moments (p8), which settles a Gouge or Tear too (p9).

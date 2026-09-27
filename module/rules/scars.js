@@ -1,3 +1,4 @@
+import { isSameName } from "./dominion.js";
 import { seasonKey } from "./time.js";
 
 /**
@@ -12,6 +13,7 @@ import { seasonKey } from "./time.js";
  *   so it is recorded on the Scar rather than applied.
  * - `bySeason`: that condition is the next Season, so turning the Season settles it.
  * - `byTending`: that condition is being stitched or patched up, so tending the wounds settles it.
+ * - `byRevenge`: that condition is revenge, so the foe who dealt it being brought down offers to settle it.
  */
 export const SCARS = Object.freeze([
 	{ roll: 1, key: "distress", loss: { virtue: "spi", formula: "1d6" } },
@@ -25,7 +27,7 @@ export const SCARS = Object.freeze([
 	{ roll: 9, key: "agony", loss: { virtue: "spi", formula: "2d6" } },
 	{ roll: 10, key: "mutilation", detail: true, laterGuardAtMost: 10, bySeason: true },
 	{ roll: 11, key: "doom" },
-	{ roll: 12, key: "humiliation", laterGuardAtMost: 12 }
+	{ roll: 12, key: "humiliation", laterGuardAtMost: 12, byRevenge: true }
 ].map((scar) => Object.freeze(scar)));
 
 /**
@@ -51,6 +53,8 @@ export function scarRaisesGuardNow(scar, maxGuard) {
  * @property {number|null} roll
  * @property {boolean} [resolved] Its delayed GD increase has been settled.
  * @property {string} [season]    When it was taken, from seasonKey.
+ * @property {string} [foe]       A Humiliation's dealer, by actor UUID.
+ * @property {string} [foeName]   Their name, which can be typed in by hand.
  */
 
 /**
@@ -69,6 +73,19 @@ export function isScarPending(scar) {
  * @returns {boolean}
  */
 export const settlesByTending = (scar) => isScarPending(scar) && Boolean(scarForRoll(scar.roll)?.byTending);
+
+/**
+ * Whether bringing somebody down may be the revenge a recorded Scar waits on: a
+ * Humiliation not yet settled that names them, by UUID or, typed in by hand, by name.
+ * @param {RecordedScar} scar
+ * @param {{uuid: string, name: string}} foe Whoever was just brought down.
+ * @returns {boolean}
+ */
+export function awaitsRevengeOn(scar, foe) {
+	if (!isScarPending(scar) || !scarForRoll(scar.roll)?.byRevenge) return false;
+	if (scar.foe && scar.foe === foe?.uuid) return true;
+	return isSameName(scar.foeName, foe?.name);
+}
 
 /**
  * Whether settling a recorded Scar raises max GD: only while it's at or under the entry's limit.

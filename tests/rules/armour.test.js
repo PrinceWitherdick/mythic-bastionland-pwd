@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armourCounts, armourTotal, displacedArmour, looksWooden, noteBearing, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
+import { armourCounts, armourTotal, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
 
 const piece = (kind, armour = 1, more = {}) => ({ kind, armour, equipped: true, ...more });
 
@@ -92,6 +92,78 @@ describe("a shieldwall on the map", () => {
 	it("names whoever in it bears a buckler or no shield", () => {
 		const wall = shieldwallAround(at("Ada", 0, 0, null), [at("Bryn", 1, 0, "buckler"), at("Cal", 2, 0)], SIZE);
 		expect(wall).toEqual({ count: 3, formed: false, unshielded: ["Ada", "Bryn"] });
+	});
+});
+
+describe("a Trapped shield", () => {
+	it("leaves a Knight the Armour of their other pieces", () => {
+		expect(armourUnshielded([piece("coat"), piece("helm"), piece("shield")])).toBe(2);
+		expect(armourUnshielded([piece("coat"), piece("shield", 1, { buckler: true })])).toBe(1);
+		expect(armourUnshielded([piece("plates", 1, { condition: "mounted" }), piece("shield")], { mounted: true })).toBe(1);
+	});
+
+	it("takes a point off an NPC whose Armour note names a shield", () => {
+		expect(noteNamesShield("mail, helm, shield")).toBe(true);
+		expect(noteNamesShield("ringmail, redshield")).toBe(true);
+		expect(noteNamesShield("huge body")).toBe(false);
+		expect(npcArmourUnshielded(3, "mail, helm, shield")).toBe(2);
+		expect(npcArmourUnshielded(1, "brass shield")).toBe(0);
+		expect(npcArmourUnshielded(2, "muscular hide, wiry fur")).toBe(2);
+		expect(npcArmourUnshielded(0, "shield")).toBe(0);
+	});
+});
+
+describe("a Strong Gambit's Greater effect", () => {
+	const item = (id, type, system) => ({ id, name: id, type, system: { equipped: true, broken: false, wooden: false, ...system } });
+
+	it("offers to disarm, unhelm or break what a Knight holds and wears", () => {
+		const effects = greaterEffects([
+			item("Longsword", "weapon", {}),
+			item("Staff", "weapon", { wooden: true }),
+			item("Trample", "weapon", { trample: true }),
+			item("Kite shield", "armour", { kind: "shield", wooden: true }),
+			item("Helm", "armour", { kind: "helm" }),
+			item("Mail", "armour", { kind: "coat" })
+		]);
+		expect(effects).toEqual([
+			{ effect: "disarm", name: "Longsword", id: "Longsword" },
+			{ effect: "disarm", name: "Staff", id: "Staff" },
+			{ effect: "break", name: "Staff", id: "Staff" },
+			{ effect: "disarm", name: "Kite shield", id: "Kite shield" },
+			{ effect: "break", name: "Kite shield", id: "Kite shield" },
+			{ effect: "unhelm", name: "Helm", id: "Helm" }
+		]);
+	});
+
+	it("leaves out what is already off, set down or broken", () => {
+		expect(greaterEffects([
+			item("Helm", "armour", { kind: "helm", equipped: false }),
+			item("Spear", "weapon", { equipped: false }),
+			item("Round shield", "armour", { kind: "shield", wooden: true, broken: true })
+		])).toEqual([]);
+		// A wooden weapon set down can still be broken.
+		expect(greaterEffects([item("Club", "weapon", { equipped: false, wooden: true })])).toEqual([{ effect: "break", name: "Club", id: "Club" }]);
+	});
+
+	it("offers an NPC's helm and shield from its Armour note while it has Armour", () => {
+		expect(greaterEffects([item("Axe", "weapon", {})], { armour: 3, armourNote: "mail, helm, shield" })).toEqual([
+			{ effect: "disarm", name: "Axe", id: "Axe" },
+			{ effect: "disarm", name: "shield", id: null },
+			{ effect: "unhelm", name: "helm", id: null }
+		]);
+		expect(greaterEffects([], { armour: 2, armourNote: "ringmail, redshield" })).toEqual([{ effect: "disarm", name: "redshield", id: null }]);
+		expect(greaterEffects([], { armour: 0, armourNote: "helm" })).toEqual([]);
+		expect(greaterEffects([], { armour: 2, armourNote: "muscular hide" })).toEqual([]);
+		// An NPC's armour items add nothing to its Armour, so only the note is offered.
+		expect(greaterEffects([item("Helm", "armour", { kind: "helm" })], { armour: 1, armourNote: "" })).toEqual([]);
+	});
+
+	it("takes the part naming a helm or shield out of an NPC's Armour note", () => {
+		expect(noteWithout("mail, helm, shield", "helm")).toBe("mail, shield");
+		expect(noteWithout("ringmail, redshield", "shield")).toBe("ringmail");
+		expect(noteWithout("plate and great helm", "helm")).toBe("plate");
+		expect(noteWithout("helm", "helm")).toBe("");
+		expect(noteWithout("huge body", "helm")).toBe("huge body");
 	});
 });
 

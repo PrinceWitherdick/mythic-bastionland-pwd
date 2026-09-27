@@ -66,8 +66,12 @@
 			{{#if save.button}}
 			<button type="button" data-attack-action="gambit-save" data-gambit="{{save.index}}"><i class="fa-solid fa-dice-d20" inert></i> {{save.button}}</button>
 			{{/if}}
-			{{#if breaks}}
-			<button type="button" data-attack-action="break" data-tooltip="{{breaks.hint}}"><i class="fa-solid fa-hammer" inert></i> {{breaks.label}}</button>
+			{{#if greater.done}}
+			<span class="bastionland-card__gambit-save is-fail">{{greater.done}}</span>
+			{{else if greater.waiting}}
+			<span class="bastionland-card__hint">{{greater.waiting}}</span>
+			{{else if greater}}
+			<button type="button" data-attack-action="greater" data-gambit="{{greater.index}}" data-tooltip="{{greater.hint}}"><i class="fa-solid fa-hand-fist" inert></i> {{greater.label}}</button>
 			{{/if}}
 		</li>
 		{{/each}}

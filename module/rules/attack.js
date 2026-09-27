@@ -368,6 +368,7 @@ export function summarizeAttack(results, { melee = true } = {}) {
  * @property {GambitSave|null} save The target's VIG Save against it, or null while it stands unanswered.
  * @property {boolean} dismissed Whether the mark it left on the foe has been cleared by hand.
  * @property {FocusSave|null} [focus] The attacker's CLA Save for a Gambit Focus paid for.
+ * @property {string} [greater] What its Greater effect did, once carried out.
  *
  * @typedef {object} FocusSave
  * @property {string} by       Name of whoever Focused.
@@ -547,7 +548,10 @@ export function canDeny(attack, { uuid, fatigued = false }) {
  * - `{type: "deny", die, actor, name}` discards any die.
  * - `{type: "applied", names}` settles the Attack.
  * - `{type: "dismissMark", index}` clears the mark a Gambit left on the foe, which
- *   outlives the Damage, so it is the one change a settled card still takes.
+ *   outlives the Damage, so a settled card still takes it.
+ * - `{type: "greater", index, text}` records what a Strong Gambit's Greater
+ *   effect did, such as "Eve loses hold of the Longsword". It is carried out
+ *   on the foe's sheet, often after the Damage, so a settled card takes it too.
  *
  * @param {AttackState} attack
  * @param {object} change
@@ -563,6 +567,13 @@ export function changeAttack(attack, change) {
 		const marked = attack.gambits[change.index];
 		if (!marked || marked.dismissed || !MARK_GAMBITS.includes(marked.key)) return null;
 		return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, dismissed: true } : entry)) };
+	}
+	// One Greater effect per Strong Gambit, and none once the foe has Saved against it (p10).
+	if (change?.type === "greater") {
+		const gambit = attack.gambits[change.index];
+		const text = typeof change.text === "string" ? change.text.trim() : "";
+		if (!gambit || gambit.strong !== "greater" || gambit.greater || gambitIgnored(gambit) || !text) return null;
+		return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, greater: text } : entry)) };
 	}
 	if (attack.appliedTo.length) return null;
 

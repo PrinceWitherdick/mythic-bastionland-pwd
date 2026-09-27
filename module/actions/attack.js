@@ -591,6 +591,23 @@ function gambitSaveContext(gambit, index, settled) {
 }
 
 /**
+ * A Strong Gambit's Greater effect (p10): disarming, taking off a helm or
+ * breaking something wooden, carried out on the foe's sheet from the card.
+ * It waits while the foe's VIG Save is still to roll, and once done the card
+ * says what it did.
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @param {number} index
+ * @param {boolean} settled Whether the Damage has been applied.
+ * @returns {{done?: string, waiting?: string, index?: number, label?: string, hint?: string}|null}
+ */
+function greaterContext(gambit, index, settled) {
+	if (gambit.strong !== "greater" || gambitIgnored(gambit)) return null;
+	if (gambit.greater) return { done: gambit.greater };
+	if (gambitAllowsSave(gambit) && !gambit.save && !settled) return { waiting: t("attack.greater.waiting", { virtue: virtueOf(gambit) }) };
+	return { index, label: t("attack.greater.button"), hint: t("attack.greater.hint") };
+}
+
+/**
  * The book's line for each Gambit, folded into the card so somebody who
  * doesn't know the rule can see what a die of 4+ would buy them (p10).
  * @returns {{label: string, lines: string[], strong: string, hint: string}}
@@ -673,8 +690,7 @@ export function attackCardContext(attack) {
 				focus: focusSaveContext(gambit.focus),
 				// A Dismount the target Saved against adds nothing, so its d6 goes unmentioned.
 				bonus: gambit.bonus && !ignored ? t("attack.dismounted", { result: gambit.bonus }) : null,
-				// A Greater effect can break a wooden shield or weapon (p10), which the card marks on the foe's sheet.
-				breaks: gambit.strong === "greater" && !ignored ? { label: t("attack.break"), hint: t("attack.breakHint") } : null,
+				greater: greaterContext(gambit, index, settled),
 				ignored,
 				save: gambitSaveContext(gambit, index, settled)
 			};

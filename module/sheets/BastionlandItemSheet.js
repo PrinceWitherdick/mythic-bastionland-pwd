@@ -3,6 +3,7 @@ import { ARMOUR_KINDS, PROPERTY_TYPES } from "../config.js";
 import { RARITIES } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
 import { ALTERNATE_QUALITIES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
+import { scarForRoll } from "../rules/scars.js";
 import { RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -82,6 +83,8 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			isWeapon: item.type === "weapon",
 			isArmour: item.type === "armour",
 			isScar: item.type === "scar",
+			// A Humiliation settles on revenge, so it names whoever it's owed on (p9).
+			byRevenge: item.type === "scar" && Boolean(scarForRoll(item.system.roll)?.byRevenge),
 			isGear: item.type === "gear",
 			// Weapons, armour and gear can be rare, counted, restocked and broken.
 			isPossession: PROPERTY_TYPES.includes(item.type),

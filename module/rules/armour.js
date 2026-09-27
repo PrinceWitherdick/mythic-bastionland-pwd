@@ -147,6 +147,17 @@ export function shieldwallAround(struck, allies, size) {
 }
 
 /**
+ * The Armour a character keeps while a Trap Gambit holds their shield (p10):
+ * what their other pieces add up to.
+ * @param {ArmourPiece[]} pieces
+ * @param {Wearer} [wearer]
+ * @returns {number}
+ */
+export function armourUnshielded(pieces, wearer = {}) {
+	return armourTotal(pieces.filter((piece) => piece.kind !== "shield"), wearer);
+}
+
+/**
  * Whether an NPC's Armour note names a shield, as "mail, helm, shield" or
  * "ringmail, redshield" do.
  * @param {string} note
@@ -154,6 +165,88 @@ export function shieldwallAround(struck, allies, size) {
  */
 export function noteNamesShield(note) {
 	return /shield/i.test(String(note ?? ""));
+}
+
+/**
+ * The Armour an NPC keeps while a Trap Gambit holds its shield (p10). Its
+ * Armour is one number, and a shield is a point of it (p12).
+ * @param {number} armour
+ * @param {string} note What the Armour is made of.
+ * @returns {number}
+ */
+export function npcArmourUnshielded(armour, note) {
+	return npcArmourWithout(armour, note, "shield").armour;
+}
+
+/**
+ * An NPC's Armour without the helm or shield its note names, taken off by a
+ * Trap or a Greater effect (p10): a point of its Armour (p12), and a word of
+ * its note.
+ * @param {number} armour
+ * @param {string} note What the Armour is made of.
+ * @param {"helm"|"shield"} word
+ * @returns {{armour: number, armourNote: string}} Unchanged when the note doesn't name it.
+ */
+export function npcArmourWithout(armour, note, word) {
+	const value = Math.max(0, Math.trunc(Number(armour)) || 0);
+	const armourNote = noteWithout(note, word);
+	return { armour: armourNote === String(note ?? "") ? value : Math.max(0, value - 1), armourNote };
+}
+
+/** How an NPC's Armour note lists its parts: "mail, helm, shield" or "plate and helm". */
+const NOTE_PARTS = /\s*(?:,|;|&|\+|\band\b)\s*/i;
+
+/**
+ * An NPC's Armour note with the first part naming a word taken out, as
+ * "mail, helm, shield" loses "helm" when a Greater effect knocks it off (p10).
+ * @param {string} note
+ * @param {"helm"|"shield"} word
+ * @returns {string} The note unchanged when no part names the word.
+ */
+export function noteWithout(note, word) {
+	const parts = String(note ?? "").split(NOTE_PARTS).filter(Boolean);
+	const index = parts.findIndex((part) => part.toLowerCase().includes(word));
+	return index < 0 ? String(note ?? "") : parts.toSpliced(index, 1).join(", ");
+}
+
+/**
+ * @typedef {object} GreaterEffect
+ * @property {"disarm"|"unhelm"|"break"} effect
+ * @property {string} name     What it's done to: the item's name, or the note's word.
+ * @property {string|null} id  The item's id, or null for a part of an NPC's Armour note.
+ */
+
+/**
+ * What a Strong Gambit's Greater effect could do to somebody (p10): disarm a
+ * weapon or shield they hold, take off their helm, or break a wooden shield
+ * or weapon. A steed's trample isn't held, so it can't be disarmed. An NPC's
+ * Armour is one number with a note, so a helm or shield named there is
+ * offered as a point of it.
+ * @param {{id: string, name: string, type: string, system: object}[]} items
+ * @param {object} [npc] Left out for a Knight, whose armour is all items.
+ * @param {number} [npc.armour]
+ * @param {string} [npc.armourNote]
+ * @returns {GreaterEffect[]}
+ */
+export function greaterEffects(items, npc = null) {
+	const effects = [];
+	for (const { id, name, type, system } of items) {
+		const shield = type === "armour" && system.kind === "shield";
+		if (system.broken) continue;
+		// An NPC's armour items don't count toward its Armour, so taking one off would change nothing.
+		const worn = system.equipped && !(type === "armour" && npc);
+		if (worn && ((type === "weapon" && !system.trample) || shield)) effects.push({ effect: "disarm", name, id });
+		if (worn && type === "armour" && system.kind === "helm") effects.push({ effect: "unhelm", name, id });
+		if (system.wooden && (type === "weapon" || shield)) effects.push({ effect: "break", name, id });
+	}
+	if (npc && Number(npc.armour) > 0) {
+		const note = String(npc.armourNote ?? "");
+		const helm = note.split(NOTE_PARTS).find((part) => /helm/i.test(part));
+		const shield = note.split(NOTE_PARTS).find((part) => /shield/i.test(part));
+		if (shield) effects.push({ effect: "disarm", name: shield, id: null });
+		if (helm) effects.push({ effect: "unhelm", name: helm, id: null });
+	}
+	return effects;
 }
 
 /** Words that say a weapon is made of wood, and could be broken by a Strong Gambit (p10). */

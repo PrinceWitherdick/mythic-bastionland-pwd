@@ -403,6 +403,21 @@ describe("changeAttack", () => {
 		expect(changeAttack(settled, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
 	});
 
+	it("records a Greater effect once, even on a settled card, unless the foe Saved", () => {
+		const greater = changeAttack(rolled([[10, 9]]), { type: "gambit", die: 0, key: "impair", strong: "greater" });
+		const settled = changeAttack(greater, { type: "applied", names: ["Grey Knight"] });
+		const done = changeAttack(settled, { type: "greater", index: 0, text: "Grey Knight loses hold of the Longsword." });
+		expect(done.gambits[0].greater).toBe("Grey Knight loses hold of the Longsword.");
+		expect(changeAttack(done, { type: "greater", index: 0, text: "Again" })).toBeNull();
+		expect(changeAttack(settled, { type: "greater", index: 0, text: " " })).toBeNull();
+
+		const saved = changeAttack(greater, { type: "gambitSave", index: 0, by: "Grey Knight", total: 3, target: 12, passed: true });
+		expect(changeAttack(saved, { type: "greater", index: 0, text: "Too late" })).toBeNull();
+
+		const plain = changeAttack(rolled([[10, 9]]), { type: "gambit", die: 0, key: "impair", strong: "noSave" });
+		expect(changeAttack(plain, { type: "greater", index: 0, text: "Not strong enough" })).toBeNull();
+	});
+
 	it("clears nothing for a Gambit that leaves no mark", () => {
 		const bolstered = changeAttack(rolled([[8, 6]]), { type: "gambit", die: 0, key: "bolster" });
 		expect(changeAttack(bolstered, { type: "dismissMark", index: 0 })).toBeNull();

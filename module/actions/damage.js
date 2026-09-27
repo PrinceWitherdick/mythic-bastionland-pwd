@@ -1,18 +1,19 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
-import { armourCounts, armourTotal, noteBearing, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
+import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { attackDamage, dismountLanded } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { isDown, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
+import { marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
-import { rollScar } from "./scars.js";
+import { offerRevenge, rollScar } from "./scars.js";
 import { harmsStructure } from "../rules/structures.js";
 import { escapeHTML } from "../rules/text.js";
 
@@ -46,10 +47,32 @@ function armourPieces(actor) {
  * @param {object[]} pieces From armourPieces.
  * @param {Record<string, boolean>} ticked By piece id.
  * @param {object} wearer The target's conditions.
+ * @param {boolean} [trapped] A Trap Gambit holds their shield, whose Armour then doesn't count.
  * @returns {number}
  */
-function armourWithTicks(pieces, ticked, wearer) {
-	return armourTotal(pieces.map((piece) => (piece.id in ticked ? { ...piece, condition: "", equipped: ticked[piece.id] } : piece)), wearer);
+function armourWithTicks(pieces, ticked, wearer, trapped = false) {
+	const worn = pieces.map((piece) => (piece.id in ticked ? { ...piece, condition: "", equipped: ticked[piece.id] } : piece));
+	return trapped ? armourUnshielded(worn, wearer) : armourTotal(worn, wearer);
+}
+
+/**
+ * A Trap Gambit holding the target's shield until its dealer's next turn
+ * (p10), so its Armour doesn't count against the Attacks made meanwhile, by
+ * anybody. Ticked from the start where they have a shield to trap. Without
+ * one, the Trap may have left them open some other way, such as a beast's
+ * belly (p186), which the dialog offers unticked, to ignore their Armour.
+ * @param {Actor} actor
+ * @param {{bearing: string|null}} worn From armourPieces.
+ * @param {string[]} [except] Attack cards being applied now: a Gambit bought
+ *   by an Attack takes hold after it, and a duel's Gambits all land at once.
+ * @returns {{label: string, shielded: boolean}|null} Null when no Trap holds them. Ticked where shielded.
+ */
+function trapOn(actor, worn, except = []) {
+	const mark = marksOn(actor).findLast((each) => each.key === "trap" && !except.includes(each.messageId));
+	if (!mark) return null;
+	const name = mark.by || t("gambits.marks.someone");
+	const shielded = actor.type === "knight" ? Boolean(worn.bearing) : noteNamesShield(actor.system.armourNote);
+	return { label: t(shielded ? "damage.trapped" : "damage.trapOpen", { name }), shielded };
 }
 
 /**
@@ -146,19 +169,28 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  *                                       Attacks, so a known melee Attack doesn't offer it.
  * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
  * @param {boolean} [preset.nonLethal] The Attack's Damage never Slays or leaves anybody dying.
+ * @param {string[]} [preset.except] Ids of the Attack cards being applied, whose own Trap doesn't hold yet.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
-	const { armour, conditions } = actor.system;
+	const { armour, armourNote, conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
 	const worn = armourPieces(actor);
 	const bearing = bearingOf(actor, worn);
+	const trap = trapOn(actor, worn, preset.except);
+	/** Their Armour with the pieces worn only sometimes ticked or not, and their shield trapped or not. */
+	const armourFor = (ticked, trapped) => {
+		if (trapped && trap && !trap.shielded) return 0;
+		if (actor.type === "knight") return armourWithTicks(worn.pieces, ticked, conditions, trapped);
+		return trapped ? npcArmourUnshielded(armour, armourNote) : armour;
+	};
 	const asked = await askDamage({
-		armour,
+		armour: armourFor({}, Boolean(trap?.shielded)),
 		situational: worn.situational,
-		armourFor: (ticked) => armourWithTicks(worn.pieces, ticked, conditions),
+		trap,
+		armourFor,
 		buckler: bearing === "buckler",
 		// Whether they stand in a shieldwall on the map, which a buckler never makes.
 		shieldwall: virtues && bearing !== "buckler" ? shieldwallOnMap(actor, bearing) : null,
@@ -205,7 +237,11 @@ export async function takeDamage(actor, preset = {}) {
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
-	if (DOWN_OUTCOMES.includes(result.outcome)) await promptGroupMorale(actor);
+	if (DOWN_OUTCOMES.includes(result.outcome)) {
+		await promptGroupMorale(actor);
+		// Bringing down whoever dealt a Humiliation may be the revenge that settles it (p9).
+		await offerRevenge(actor);
+	}
 	// A played Knight taken to VIG 0 is Slain, and their player carries on some other way (p8).
 	// Which deaths the book leaves alone is knightHasFallen's to judge, so the outcome goes to it.
 	await announceFallenKnight(actor, result.outcome);
@@ -263,7 +299,9 @@ export async function takeSeerDamage(knight) {
  * @param {number} target.armour
  * @param {{id: string, label: string, checked: boolean}[]} [target.situational] Armour worn only
  *   sometimes, ticked in the dialog when it counts against this Attack.
- * @param {(ticked: Record<string, boolean>) => number} [target.armourFor] Their Armour with those ticked or not.
+ * @param {{label: string, checked: boolean}|null} [target.trap] A Trap Gambit holding their shield, from trapOn.
+ * @param {(ticked: Record<string, boolean>, trapped: boolean) => number} [target.armourFor] Their Armour
+ *   with those ticked or not, and their shield trapped or not.
  * @param {boolean} [target.buckler] Their only shield is a buckler, which makes no shieldwall (p10).
  * @param {{checked: boolean, tip: string}|null} [target.shieldwall] The shieldwall they stand in on the map, from shieldwallOnMap.
  * @param {boolean} target.exposed
@@ -303,6 +341,7 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 			exposed: target.exposed,
 			requirements,
 			situational: target.situational ?? [],
+			trap: target.trap ?? null,
 			buckler: Boolean(target.buckler),
 			shieldwall: target.shieldwall ?? null
 		},
@@ -335,7 +374,7 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 
 /**
  * Keep the Damage dialog's Armour box in step as pieces worn only sometimes
- * are ticked, so it always reads what the Attack is reduced by.
+ * are ticked, or a trapped shield is, so it always reads what the Attack is reduced by.
  * @param {foundry.applications.api.DialogV2} dialog
  * @param {object} target As askDamage takes.
  */
@@ -343,11 +382,12 @@ function watchSituationalArmour(dialog, target) {
 	const form = dialog.element.querySelector("form");
 	const box = form?.querySelector("[name='armour']");
 	const ticks = [...(form?.querySelectorAll("[data-situational]") ?? [])];
-	if (!box || !ticks.length || !target.armourFor) return;
+	const trapped = form?.querySelector("[name='trapped']");
+	if (!box || (!ticks.length && !trapped) || !target.armourFor) return;
 	const update = () => {
-		box.value = target.armourFor(Object.fromEntries(ticks.map((tick) => [tick.dataset.situational, tick.checked])));
+		box.value = target.armourFor(Object.fromEntries(ticks.map((tick) => [tick.dataset.situational, tick.checked])), Boolean(trapped?.checked));
 	};
-	for (const tick of ticks) tick.addEventListener("change", update);
+	for (const tick of [...ticks, trapped].filter(Boolean)) tick.addEventListener("change", update);
 }
 
 /**
@@ -377,20 +417,22 @@ function damageCard(result, armour, before, outcomes, morale) {
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {object} [options]
  * @param {boolean} [options.scars=true] False where Scars can't be gained, such as a bloodless duel.
+ * @param {string[]} [options.except] Ids of the Attack cards being applied now, whose Trap Gambits don't hold yet.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeAttack(actor, attack, { scars = true } = {}) {
+export async function takeAttack(actor, attack, { scars = true, except = [] } = {}) {
 	const { damage, faces } = attackDamage(attack);
 	const result = await takeDamage(actor, {
 		damage,
 		ignoreArmour: attack.ignoresArmour,
 		ranged: !attack.melee,
 		nonLethal: Boolean(attack.nonLethal),
+		except,
 		// Only Blast or large-scale Attacks harm a Warband, and only fire, siege
 		// weapons or large creatures a structure, or siege weapons stone (p11).
 		harm: { warband: attack.blast || attack.largeScale, structure: harmsStructure(attack.structureHarm, Boolean(actor.system.stone)) }
 	});
-	if (scars && result?.outcome === "scar") await rollScar(actor, { faces });
+	if (scars && result?.outcome === "scar") await rollScar(actor, { faces, by: attack.attacker });
 	if (attack.smiteMark && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, attack);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
 	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });

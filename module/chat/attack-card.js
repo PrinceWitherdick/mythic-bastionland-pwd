@@ -5,6 +5,7 @@ import { canDenyAttack, performFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
+import { greaterEffects, npcArmourWithout } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -20,7 +21,7 @@ import {
 } from "../rules/attack.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
-import { onCardClick, plural, postCard, statefulCard, t, warn } from "./cards.js";
+import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: Deny, Gambits, then the
@@ -32,7 +33,7 @@ import { onCardClick, plural, postCard, statefulCard, t, warn } from "./cards.js
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /** Changes a player may ask the GM to record on a card they don't own. */
-const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark"]);
+const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater"]);
 
 const attackCard = statefulCard({
 	flag: "attack",
@@ -98,11 +99,14 @@ async function onChangeQuery(data, context) {
 	if (!user) return false;
 	const message = game.messages.get(messageId);
 	if (!attackOf(message) || !QUERYABLE_CHANGES.includes(change?.type)) return false;
-	if (change.type === "dismissMark") {
+	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
+	if (change.type === "dismissMark" || change.type === "greater") {
 		const marked = fromUuidSync(change.actor);
 		if (!marked?.testUserPermission(user, "OWNER")) return false;
 		const attack = attackOf(message);
-		if (!attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid)) return false;
+		// A card rolled with no targets lands on whoever its reader targets, as targetActors has it.
+		const untargeted = change.type === "greater" && !attack.targets.length;
+		if (!untargeted && !attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid)) return false;
 	}
 	if (change.type === "deny" || change.type === "gambitSave") {
 		const roller = fromUuidSync(change.actor);
@@ -368,7 +372,7 @@ async function onApply(message) {
 
 	const applied = [];
 	for (const actor of owned) {
-		if (await takeAttack(actor, attack)) applied.push(actor.name);
+		if (await takeAttack(actor, attack, { except: [message.id] })) applied.push(actor.name);
 	}
 	if (applied.length) await saveChange(message, { type: "applied", names: applied });
 }
@@ -388,43 +392,80 @@ export async function dismissGambitMark(actor, messageId, index) {
 }
 
 /**
- * What a Strong Gambit's Greater effect could break on the foes it was aimed
- * at (p10): their wooden shields and weapons still whole, on those this user
- * can change.
+ * What a Strong Gambit's Greater effect could do to the foes it was aimed at
+ * (p10), on those this user can change: disarm, take off a helm, or break
+ * something wooden.
  * @param {import("../rules/attack.js").AttackState} attack
- * @returns {{actor: Actor, item: Item}[]}
+ * @returns {({actor: Actor} & import("../rules/armour.js").GreaterEffect)[]}
  */
-function breakableThings(attack) {
+function greaterOptions(attack) {
 	return targetActors(attack)
 		.filter((actor) => actor.isOwner)
-		.flatMap((actor) => actor.items
-			.filter((item) => item.system.wooden && !item.system.broken && (item.type === "weapon" || item.system.kind === "shield"))
-			.map((item) => ({ actor, item })));
+		.flatMap((actor) => {
+			const items = actor.items.map(({ id, name, type, system }) => ({ id, name, type, system }));
+			// A Knight's Armour is the sum of their items; anybody else's is one number with a note.
+			const npc = actor.type === "knight" ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
+			return greaterEffects(items, npc).map((effect) => ({ actor, ...effect }));
+		});
+}
+
+/** What each Greater effect reads as once done, under `attack.greater.` */
+const GREATER_DONE = Object.freeze({ disarm: "disarmed", unhelm: "unhelmed", break: "broke" });
+
+/**
+ * Carry a Greater effect out on the foe's sheet. A disarmed weapon or shield
+ * and a helm knocked off stay on a Knight's sheet unticked until they're back;
+ * a broken one stays faded until it's mended. An NPC's helm or shield is a
+ * point of its Armour and a word of its note, both taken away.
+ * @param {{actor: Actor} & import("../rules/armour.js").GreaterEffect} option
+ * @returns {{text: string, carryOut: () => Promise<unknown>}} What happens, for the card, and doing it.
+ */
+function greaterOutcome({ actor, effect, name, id }) {
+	const said = [t(`attack.greater.${GREATER_DONE[effect]}`, { name: actor.name, item: name })];
+	if (id) {
+		if (effect !== "break") said.push(t(effect === "disarm" ? "attack.greater.pickUp" : "attack.greater.putOn"));
+		const update = effect === "break" ? { "system.broken": true } : { "system.equipped": false };
+		return { text: said.join(" "), carryOut: () => actor.items.get(id)?.update(update) };
+	}
+	const from = Number(actor.system.armour) || 0;
+	const { armour: to, armourNote } = npcArmourWithout(from, actor.system.armourNote, effect === "unhelm" ? "helm" : "shield");
+	said.push(t("attack.greater.armour", { from, to }), t("attack.greater.npcBack"));
+	return { text: said.join(" "), carryOut: () => actor.update({ "system.armour": to, "system.armourNote": armourNote }) };
 }
 
 /**
- * Mark the wooden shield or weapon a Greater effect broke (p10). It stays on
- * the sheet, faded, until it's mended.
+ * Carry out a Strong Gambit's Greater effect (p10) on a foe this user owns,
+ * and keep what it did on the card, so it's done once.
  */
-async function onBreak(message) {
-	const things = breakableThings(attackOf(message));
-	if (!things.length) return warn("attack.nothingToBreak");
-	let chosen = things[0];
-	if (things.length > 1) {
+async function onGreater(message, button) {
+	const attack = attackOf(message);
+	const index = Number(button.dataset.gambit);
+	const gambit = attack.gambits[index];
+	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
+
+	const options = greaterOptions(attack);
+	if (!options.length) return warn("attack.greater.nothing");
+	let chosen = options[0];
+	if (options.length > 1) {
 		const action = await chooseDialog({
-			title: t("attack.break"),
-			icon: "fa-solid fa-hammer",
-			message: t("attack.breakWhat"),
-			buttons: things.map(({ actor, item }, index) => ({ action: String(index), label: `${actor.name}: ${item.name}`, default: index === 0 }))
+			title: t("attack.greater.title"),
+			icon: "fa-solid fa-hand-fist",
+			message: t("attack.greater.which"),
+			buttons: options.map(({ actor, effect, name }, at) => ({
+				action: String(at),
+				label: `${actor.name}: ${t(`attack.greater.${effect}`, { item: name })}`,
+				default: at === 0
+			}))
 		});
-		chosen = typeof action === "string" ? things[Number(action)] : null;
+		chosen = typeof action === "string" ? options[Number(action)] ?? null : null;
 	}
 	if (!chosen) return;
-	await chosen.item.update({ "system.broken": true });
-	await postCard(chosen.actor, "note", { icon: "fa-solid fa-hammer", text: t("attack.broke", { name: chosen.actor.name, item: chosen.item.name }) });
+	// Recorded first, so a card that can't be marked done leaves the foe as they were.
+	const { text, carryOut } = greaterOutcome(chosen);
+	if (await saveChange(message, { type: "greater", index, text, actor: chosen.actor.uuid })) await carryOut();
 }
 
-const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, break: onBreak });
+const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, greater: onGreater });
 
 /**
  * Wire up an Attack card's buttons as it renders in the chat log or a popout.
@@ -443,7 +484,7 @@ function activateAttackCard(message, html) {
 		const { attackAction } = button.dataset;
 		if (["gambit", "focus"].includes(attackAction) && !message.isOwner) button.disabled = true;
 		if (attackAction === "deny") denyButton = button;
-		if (attackAction === "apply") {
+		if (attackAction === "apply" || attackAction === "greater") {
 			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
 		}
 	}

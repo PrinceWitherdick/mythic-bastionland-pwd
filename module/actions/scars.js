@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { DIE_SIZES } from "../rules/attack.js";
-import { isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
+import { awaitsRevengeOn, isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
@@ -10,12 +10,14 @@ import { causedBy } from "./ledger.js";
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
  * player agrees, the Scar is recorded on the Knight and its immediate effects
  * are applied: Virtue Loss, and a max GD increase where the entry grants one
- * straight away. Effects that wait on a later event stay as text on the Scar.
+ * straight away. Effects that wait on a later event stay as text on the Scar,
+ * and a Humiliation remembers who dealt it, for the revenge that settles it.
  * @param {Actor} actor
  * @param {object} [options]
  * @param {number} [options.faces=6] The die that caused the Scar, selected in the dialog.
+ * @param {string} [options.by] Actor UUID of whoever dealt the blow, when an Attack card knows.
  */
-export async function rollScar(actor, { faces: caused } = {}) {
+export async function rollScar(actor, { faces: caused, by } = {}) {
 	const preset = DIE_SIZES.includes(caused) ? caused : 6;
 	const data = await inputDialog({
 		title: t("scarRoll.title"),
@@ -59,6 +61,10 @@ export async function rollScar(actor, { faces: caused } = {}) {
 		lines.push(t("scarRoll.guardRaised", { amount: guardRoll.total, value: maxGuard + guardRoll.total }));
 	}
 
+	// Revenge on whoever dealt a Humiliation settles it (p9).
+	const foe = scar.byRevenge && by ? fromUuidSync(by) : null;
+	if (foe) lines.push(t("revenge.owed", { name: foe.name }));
+
 	const name = text("name");
 	if (apply) {
 		if (!foundry.utils.isEmpty(update)) await actor.update(update, causedBy("scar"));
@@ -69,6 +75,8 @@ export async function rollScar(actor, { faces: caused } = {}) {
 				roll: scar.roll,
 				// Doom lasts the Season it was taken in.
 				season: seasonKey(getCalendar()),
+				foe: foe?.uuid ?? "",
+				foeName: foe?.name ?? "",
 				description: `<p><em>${text("flavour")}</em></p><p>${text("effect")}</p>`
 			}
 		}]);
@@ -165,4 +173,48 @@ export async function resolveScar(actor, item) {
 	if (settled.guardMax !== maxGuard) await actor.update({ "system.guard.max": settled.guardMax }, causedBy("scar"));
 	await postCard(actor, "note", { icon: "fa-solid fa-bone-break", text: settled.line }, { rolls: settled.roll ? [settled.roll] : [] });
 	return settled;
+}
+
+/**
+ * Somebody brought down may be a Knight's revenge (p9). Each Knight whose
+ * Humiliation names them gets a card asking whether it is, and its button
+ * settles the Scar. Whether it counts is the table's to say, so nothing
+ * settles by itself.
+ * @param {Actor} foe Whoever was just Mortally Wounded, Slain or routed.
+ * @returns {Promise<ChatMessage[]>}
+ */
+export async function offerRevenge(foe) {
+	const owed = game.actors
+		.filter((actor) => actor.type === "knight" && actor !== foe)
+		.flatMap((knight) => knight.items.filter((item) => item.type === "scar" && awaitsRevengeOn(item.system, foe)));
+	const cards = [];
+	for (const item of owed) {
+		const knight = item.parent;
+		cards.push(await postCard(knight, "revenge", {
+			tagline: t("revenge.tagline", { name: knight.name, scar: item.name }),
+			text: t("revenge.text", { foe: foe.name, name: knight.name }),
+			uuid: item.uuid
+		}));
+	}
+	return cards;
+}
+
+/**
+ * Settle a Humiliation from its revenge card. Only the Knight's player and the
+ * Referee may, and only while it still waits.
+ * @param {Item|null} item The Scar.
+ * @returns {Promise<object|null>} What settleScar found, or null.
+ */
+export async function takeRevenge(item) {
+	const knight = item?.parent;
+	if (item?.type !== "scar" || !knight) return null;
+	if (!item.isOwner) {
+		ui.notifications.warn(t("revenge.notYours", { name: knight.name }));
+		return null;
+	}
+	if (!isScarPending(item.system)) {
+		ui.notifications.info(t("revenge.settled", { name: knight.name, scar: item.name }));
+		return null;
+	}
+	return resolveScar(knight, item);
 }

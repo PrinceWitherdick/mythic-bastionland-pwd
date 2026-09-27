@@ -210,6 +210,15 @@
 			<input id="{{rootId}}-roll" type="number" name="system.roll" value="{{system.roll}}" min="1" max="12" step="1">
 		</div>
 	</div>
+	{{#if byRevenge}}
+	<div class="form-group">
+		<label for="{{rootId}}-foe">{{localize "bastionland.revenge.foe"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-foe" type="text" name="system.foeName" value="{{system.foeName}}">
+		</div>
+		<p class="hint">{{localize "bastionland.revenge.foeHint"}}</p>
+	</div>
+	{{/if}}
 	{{/if}}
 
 	<section class="bastionland-item-description">
