@@ -5,6 +5,7 @@ import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, regis
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
+import { registerHomecoming } from "./module/actions/homecoming.js";
 import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
 import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/knight-folders.js";
 import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/actions/new-knight.js";
@@ -358,6 +359,8 @@ Hooks.once("init", () => {
 	// Without a guide and light the Company travels blind by night, and what the Night cost is taken as it ends.
 	registerNightTravel();
 	registerPhaseEndSettings();
+	// A ruler back at their Holding from a long absence makes the Crisis Roll.
+	registerHomecoming();
 
 	// Players may make their own Knights, and Create Actor offers them nothing else.
 	registerPlayerKnightDialog();

@@ -42,6 +42,7 @@ import { chooseSuccessor, heirOf } from "./succession.js";
 import { sufferMorningAfflictions } from "./afflictions.js";
 import { companySituation, wildernessRoll } from "./wilderness.js";
 import { askPhaseEnd, dieUntended, takeMorningLosses } from "./phase-end.js";
+import { markLongAbsences } from "./homecoming.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
@@ -298,6 +299,8 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	if (!company) return null;
 
 	await setCalendar(after);
+	// A ruler away from their Holding as the Season turns returns from a long absence (p20).
+	await markLongAbsences();
 	const { rolls, entries } = await passTime(company, { newAge, before });
 	const ended = seasonKey(before);
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
@@ -475,6 +478,8 @@ export async function weeksPass() {
 	if (!(await markSeasonEvent(next.key, { weeks: true }))) return null;
 	const after = nextDay(calendar);
 	await setCalendar(after);
+	// Weeks away from their Holding make a ruler's return a long absence (p20).
+	await markLongAbsences();
 	return after;
 }
 

@@ -93,7 +93,8 @@ export async function crisisRoll(domain) {
 	}
 
 	const crises = [...facing, ...added];
-	await domain.update({ "system.crises": crises, "system.crisisRolled": seasonKey(getCalendar()) });
+	// A roll made while the ruler is away answers for the time already gone.
+	await domain.update({ "system.crises": crises, "system.crisisRolled": seasonKey(getCalendar()), "system.longAbsence": false });
 	await postCard(domain, "report", {
 		title: t("domain.crisisRoll"),
 		tagline: t(`domain.results.crisis.${result}`),

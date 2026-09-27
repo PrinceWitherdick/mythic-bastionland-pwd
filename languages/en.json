@@ -1141,6 +1141,20 @@
       "successorHint": "Whom the ruler names to follow them. Pass On hands the Domain to them.",
       "successorPlaceholder": "Not yet named",
       "successorFromKnight": "{name}, the ruler’s named successor",
+      "holding": {
+        "label": "Holding",
+        "hint": "The Holding on the Realm map this Domain rules. When its ruler’s Knight comes home with the Company after Weeks or a Season away, the Crisis Roll is offered.",
+        "byName": "{name}, by its name",
+        "none": "Not on the map",
+        "away": "Away long",
+        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll (p20). Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
+      },
+      "homecoming": {
+        "title": "Home from a Long Absence",
+        "text": "<strong>{ruler}</strong> is back at <strong>{name}</strong> after a long absence.",
+        "rule": "At the start of a Season or when returning from a long absence, make the Crisis Roll (p20).",
+        "notNow": "Not now"
+      },
       "newRuler": {
         "knight": "A Knight",
         "name": "Or by name",

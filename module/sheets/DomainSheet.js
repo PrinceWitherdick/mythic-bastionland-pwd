@@ -10,6 +10,7 @@ import {
 	seizeDomain
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
+import { holdingChoices } from "../actions/homecoming.js";
 import { addCourtMember, removeCourtMember } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
@@ -93,6 +94,8 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			// The Warbands this Holding has in the field, against what it can raise (p11, p21).
 			warbands: DomainSheet.#musterContext(actor),
 			successorPlaceholder: successorPlaceholder(actor),
+			// The Holding it rules, which a ruler comes home to from a long absence (p20).
+			holdings: holdingChoices(actor),
 			turmoil: isInTurmoil(system.seized, seasonKey(calendar)) ? t("domain.conquest.inTurmoil") : null,
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
 				secrets: actor.isOwner,

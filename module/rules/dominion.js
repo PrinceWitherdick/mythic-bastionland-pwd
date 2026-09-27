@@ -7,6 +7,7 @@
  * Wording lives in the language file under `bastionland.domain`. Pure, so it
  * can be tested without Foundry.
  */
+import { sameHex } from "./realm-geometry.js";
 import { d6Band } from "./referee-rolls.js";
 import { seasonKey } from "./time.js";
 
@@ -118,3 +119,64 @@ export function domainRuledBy(domains, name) {
 	const key = nameKey(name);
 	return key ? domains.find((domain) => nameKey(domain.system.ruler) === key) ?? null : null;
 }
+
+/* -------------------------------------------- */
+/*  A long absence                              */
+/* -------------------------------------------- */
+
+/**
+ * @param {string} sceneId
+ * @param {string} holdingId The Holding's Tile id.
+ * @returns {string} How a Domain names the Holding it rules: the Tile's uuid.
+ */
+export const holdingRef = (sceneId, holdingId) => `Scene.${sceneId}.Tile.${holdingId}`;
+
+/**
+ * @param {string} ref From holdingRef.
+ * @returns {{sceneId: string, holdingId: string}|null} Null for anything else.
+ */
+export function parseHoldingRef(ref) {
+	const match = /^Scene\.([^.]+)\.Tile\.([^.]+)$/.exec(String(ref ?? ""));
+	return match ? { sceneId: match[1], holdingId: match[2] } : null;
+}
+
+/**
+ * @typedef {object} RealmHoldings
+ * @property {string} sceneId
+ * @property {{id: string|null, hex: {col: number, row: number}, name: string, style: string, seat: boolean}[]} holdings
+ */
+
+/**
+ * The Holding a Domain rules: the one it was given, or else the one Holding
+ * that bears its name.
+ * @param {RealmHoldings[]} realms Every Realm's Holdings.
+ * @param {{name: string, system: {holding?: string}}} domain
+ * @returns {{sceneId: string, holding: object}|null}
+ */
+export function findDomainHolding(realms, domain) {
+	const ref = parseHoldingRef(domain.system.holding);
+	if (ref) {
+		const holding = realms.find((realm) => realm.sceneId === ref.sceneId)?.holdings.find((each) => each.id === ref.holdingId);
+		return holding ? { sceneId: ref.sceneId, holding } : null;
+	}
+	const named = realms.flatMap((realm) => realm.holdings.filter((holding) => holding.id && isSameName(holding.name, domain.name)).map((holding) => ({ sceneId: realm.sceneId, holding })));
+	// Two Holdings of one name can't tell which is meant.
+	return named.length === 1 ? named[0] : null;
+}
+
+/**
+ * Whether time passing leaves a Domain's ruler away long enough that
+ * "returning from a long absence" brings the Crisis Roll (p20): Weeks or a
+ * Season passed while the Company was somewhere other than the Holding.
+ * @param {{col: number, row: number}} home The Holding's hex.
+ * @param {{col: number, row: number}|null} company Where the Company stands on that Realm, null when it isn't there.
+ * @returns {boolean}
+ */
+export const awayFromHome = (home, company) => !sameHex(home, company);
+
+/**
+ * @param {{col: number, row: number}} home The Holding's hex.
+ * @param {{col: number, row: number}[]} entered The hexes a move came into.
+ * @returns {boolean} Whether the move brought the Company home.
+ */
+export const cameHome = (home, entered) => entered.some((hex) => sameHex(hex, home));

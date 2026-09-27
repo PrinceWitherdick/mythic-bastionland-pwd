@@ -33,6 +33,13 @@
 				<div class="bastionland-domain__seats">
 					<label for="{{rootId}}-successor" data-tooltip="{{localize 'bastionland.domain.successorHint'}}">{{localize "bastionland.domain.successor"}}</label>
 					<input id="{{rootId}}-successor" class="bastionland-blank bastionland-domain__field" type="text" name="system.successor" value="{{system.successor}}" placeholder="{{successorPlaceholder}}" autocomplete="off">
+					<label for="{{rootId}}-holding" data-tooltip="{{localize 'bastionland.domain.holding.hint'}}">{{localize "bastionland.domain.holding.label"}}</label>
+					<select id="{{rootId}}-holding" class="bastionland-domain__field" name="system.holding" {{#unless editable}}disabled{{/unless}}>
+						<option value="">{{holdings.blank}}</option>
+						{{#each holdings.options}}
+						<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+						{{/each}}
+					</select>
 				</div>
 			</section>
 
@@ -173,6 +180,10 @@
 					{{/each}}
 				</ul>
 				<p class="bastionland-hint">{{rolled}}</p>
+				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.holding.awayHint'}}">
+					<input type="checkbox" name="system.longAbsence" {{checked system.longAbsence}} {{#unless editable}}disabled{{/unless}}>
+					<span class="bastionland-check__label">{{localize "bastionland.domain.holding.away"}}</span>
+				</label>
 				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.misruleHint'}}">
 					<input type="checkbox" name="system.misrule" {{checked system.misrule}} {{#unless editable}}disabled{{/unless}}>
 					<span class="bastionland-check__label">{{localize "bastionland.domain.misrule"}}</span>

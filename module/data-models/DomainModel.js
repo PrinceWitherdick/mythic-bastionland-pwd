@@ -14,6 +14,10 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			// The Seat of Power, ruling the whole Realm.
 			seat: booleanField(),
 			ruler: textField(),
+			// The Holding on the Realm it rules, from holdingRef. Blank finds the Holding bearing its name.
+			holding: textField(),
+			// Whether Weeks or a Season have passed with its ruler away, so their return brings the Crisis Roll (p20).
+			longAbsence: booleanField(),
 			// Whom the ruler names to follow them (Succession, p21), written as the GM likes.
 			successor: textField(),
 			// The Season it was seized by force in, from seasonKey. Its turmoil lasts that Season (Conquest, p21).

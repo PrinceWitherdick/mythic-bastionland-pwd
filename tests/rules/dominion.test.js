@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	awayFromHome,
+	cameHome,
 	collectionsResult,
 	CRISES,
 	crisesDrawn,
@@ -7,8 +9,11 @@ import {
 	crisisResult,
 	domainRuledBy,
 	dramaResult,
+	findDomainHolding,
+	holdingRef,
 	isMisruleDue,
-	musterFor
+	musterFor,
+	parseHoldingRef
 } from "../../module/rules/dominion.js";
 
 describe("the Domain's rolls", () => {
@@ -59,5 +64,40 @@ describe("domainRuledBy", () => {
 	it("finds nothing for a Knight nobody names, or a Knight with no name", () => {
 		expect(domainRuledBy(domains, "Dame Wren")).toBeNull();
 		expect(domainRuledBy(domains, "  ")).toBeNull();
+	});
+});
+
+describe("a Domain's Holding", () => {
+	const hollowmere = { id: "t1", hex: { col: 3, row: 2 }, name: "Hollowmere", style: "castle", seat: false };
+	const tower = { id: "t2", hex: { col: 5, row: 5 }, name: "", style: "tower", seat: false };
+	const realms = [{ sceneId: "s1", holdings: [hollowmere, tower] }];
+	const domain = (name, holding = "") => ({ name, system: { holding } });
+
+	it("names a Holding by its Tile's uuid", () => {
+		expect(holdingRef("s1", "t2")).toBe("Scene.s1.Tile.t2");
+		expect(parseHoldingRef("Scene.s1.Tile.t2")).toEqual({ sceneId: "s1", holdingId: "t2" });
+		expect(parseHoldingRef("Actor.x")).toBeNull();
+		expect(parseHoldingRef("")).toBeNull();
+	});
+
+	it("finds the Holding it was given, or else the one bearing its name", () => {
+		expect(findDomainHolding(realms, domain("Anywhere", "Scene.s1.Tile.t2"))).toEqual({ sceneId: "s1", holding: tower });
+		expect(findDomainHolding(realms, domain(" hollowmere "))).toEqual({ sceneId: "s1", holding: hollowmere });
+		expect(findDomainHolding(realms, domain("Elsewhere"))).toBeNull();
+		// A Holding given but since taken off the map isn't found by name instead.
+		expect(findDomainHolding(realms, domain("Hollowmere", "Scene.s1.Tile.gone"))).toBeNull();
+	});
+
+	it("finds nothing by a name two Holdings share", () => {
+		const twice = [...realms, { sceneId: "s2", holdings: [{ ...hollowmere, id: "t9" }] }];
+		expect(findDomainHolding(twice, domain("Hollowmere"))).toBeNull();
+	});
+
+	it("knows the Company is away from home, or has come home", () => {
+		expect(awayFromHome({ col: 3, row: 2 }, { col: 3, row: 2 })).toBe(false);
+		expect(awayFromHome({ col: 3, row: 2 }, { col: 4, row: 2 })).toBe(true);
+		expect(awayFromHome({ col: 3, row: 2 }, null)).toBe(true);
+		expect(cameHome({ col: 3, row: 2 }, [{ col: 4, row: 2 }, { col: 3, row: 2 }])).toBe(true);
+		expect(cameHome({ col: 3, row: 2 }, [{ col: 4, row: 2 }])).toBe(false);
 	});
 });
