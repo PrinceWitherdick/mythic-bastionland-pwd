@@ -354,7 +354,7 @@ export function realmDocuments(realm, g, textures) {
 			data: icon("landmark", textures.landmark[landmark.type] ?? textures.landmark.dwelling, landmark.hex, {
 				name: landmark.name ?? "",
 				hidden: !landmark.revealed,
-				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null }
+				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null, ...(landmark.echo ? { echo: landmark.echo } : {}) }
 			})
 		});
 	}
@@ -466,7 +466,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				break;
 			case "landmark":
 				if (!hex) problems.push({ kind: "landmark", reason: "offMap", key: where });
-				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden });
+				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden, ...(flag.echo ? { echo: flag.echo } : {}) });
 				break;
 			default:
 				break;

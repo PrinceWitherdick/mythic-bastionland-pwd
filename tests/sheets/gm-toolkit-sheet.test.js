@@ -55,14 +55,14 @@ describe("GM Toolkit templates", () => {
 		expect(source).not.toContain("nextOmen");
 	});
 
-	it("offer a Myth as resolved only once its last Omen has been met", () => {
+	it("offer a Myth as resolved at any Omen, until it is", () => {
 		const source = templates["myths.hbs"];
 		const before = source.slice(0, source.indexOf('data-action="mythResolved"'));
-		// The block the button sits in: resolved already, else the Omens are all in.
+		// The block the button sits in: anything not resolved already.
 		const blocks = [...before.matchAll(/\{\{(?:#if|else if|else|\/if)[^}]*\}\}/g)];
-		expect(blocks.at(-1)[0]).toBe("{{else if complete}}");
-		// Until then the card says why the button isn't there.
-		expect(source).toContain("{{#if awaitOmens}}");
+		expect(blocks.at(-1)[0]).toBe("{{else}}");
+		expect(blocks.at(-2)[0]).toBe("{{#if resolved}}");
+		expect(source).not.toContain("awaitOmens");
 	});
 
 	it("only ask for actions the sheet has", () => {

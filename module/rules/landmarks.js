@@ -48,6 +48,32 @@ export const landmarkEffect = (type) => (LANDMARK_TYPES.includes(type) ? LANDMAR
 export const throwsOffCourse = (type) => Boolean(landmarkEffect(type)?.offCourse);
 
 /**
+ * The prompt a Myth's page gives a Landmark of this type: each page prints one
+ * of every type along its foot, "Dwelling: Shepherd fields ~ Sanctum: …" (p14).
+ * @param {{label: string, value: string}[]|null} prompts From the Myth's page.
+ * @param {string} type One of LANDMARK_TYPES.
+ * @returns {string|null}
+ */
+export function landmarkPrompt(prompts, type) {
+	if (!LANDMARK_TYPES.includes(type) || !Array.isArray(prompts)) return null;
+	return prompts.find((prompt) => prompt.label?.trim().toLowerCase() === type)?.value?.trim() || null;
+}
+
+/**
+ * Which spread of the book gives a Landmark its prompt. A Sanctum takes its
+ * Seer's, whose Knight shares the spread, and a Ruin the Myth it echoes; any
+ * other Landmark takes the spread rolled for it.
+ * @param {{type: string, seer?: {d6: number, d12: number}|null, echo?: {d6: number, d12: number}|null}} landmark
+ * @param {{d6: number, d12: number}} rolled
+ * @returns {{d6: number, d12: number}}
+ */
+export function promptSpread(landmark, rolled) {
+	if (landmark.type === "sanctum" && landmark.seer) return landmark.seer;
+	if (landmark.type === "ruin" && landmark.echo) return landmark.echo;
+	return rolled;
+}
+
+/**
  * How the Company stands after a Curse threw them off course:
  * - `pending` while the Phase it struck in runs on, so the blind Phase is still to come.
  * - `live` in the Phase that follows, where travel counts as travelling blind.

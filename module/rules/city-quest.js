@@ -129,3 +129,19 @@ export function cityOmen(d12, seen = []) {
  * @returns {boolean} Whether one of them ended the City Quest.
  */
 export const cityQuestOver = (seen) => seen.some((number) => isOmen(number) && number >= CITY_QUEST_END);
+
+/**
+ * @param {{type: string, hasPlayerOwner?: boolean, system?: {rank?: string}}[]} actors
+ * @returns {boolean} Whether any player's Knight is a Knight-Radiant, worthy of the City Quest.
+ */
+export const worthyOfCityQuest = (actors) => actors.some((actor) => actor.type === "knight" && actor.hasPlayerOwner && actor.system?.rank === "radiant");
+
+/**
+ * Whether a Wilderness Roll meets an Omen of the City in place of a random
+ * Myth's: the roll was a 1, the Company is worthy, and the Quest hasn't ended.
+ * @param {string} result From wildernessResult.
+ * @param {boolean} worthy
+ * @param {number[]} seen Omens of the City already encountered.
+ * @returns {boolean}
+ */
+export const cityOmenReplaces = (result, worthy, seen) => result === "randomOmen" && worthy && !cityQuestOver(seen);

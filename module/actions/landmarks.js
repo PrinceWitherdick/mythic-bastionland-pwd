@@ -1,12 +1,16 @@
 import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
+import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
+import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
 import { mythRollTaken } from "../rules/gm-toolkit.js";
-import { LANDMARK_EFFECTS, landmarkEffect, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
+import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, promptSpread, throwsOffCourse } from "../rules/landmarks.js";
+import { featureAt } from "../rules/realm.js";
+import { editFeature } from "../rules/realm-edits.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
-import { getRealm } from "./realm.js";
+import { editRealm, getRealm } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { chooseCompany, virtueLoss } from "./time.js";
 
@@ -163,16 +167,11 @@ export async function pushThroughHazard() {
 }
 
 /**
- * A Ruin's echo (p14): it hints at a random Myth the Realm doesn't currently
- * hold, though that Myth may yet return. The roll is whispered to the Referee,
- * who decides how the ruin hints at it. GMs only.
- * @param {Scene} scene The Realm.
- * @returns {Promise<{d6: number, d12: number, name: string}|null>}
+ * Roll the Myth a Ruin echoes: any the Realm doesn't currently hold.
+ * @param {import("../rules/realm.js").Realm} realm
+ * @returns {Promise<{echo: {d6: number, d12: number}, rolls: Roll[]}>}
  */
-export async function echoRuin(scene) {
-	if (!game.user.isGM || !scene) return null;
-	const { realm } = getRealm(scene);
-
+async function rollRuinEcho(realm) {
 	let d6 = null;
 	let d12 = null;
 	// Six Myths of 72 are in the Realm, so one it doesn't hold turns up within a few rolls.
@@ -181,18 +180,76 @@ export async function echoRuin(scene) {
 		d12 = await new Roll("1d12").evaluate();
 		if (!mythRollTaken(realm, { d6: d6.total, d12: d12.total })) break;
 	}
+	return { echo: { d6: d6.total, d12: d12.total }, rolls: [d6, d12] };
+}
 
-	const rolled = { d6: d6.total, d12: d12.total };
-	const { name, page, entry } = mythEntry(await loadArtIndex(), rolled);
+/**
+ * The prompt a spread of the book prints for a Landmark of this type.
+ * @param {object|null} index The art index.
+ * @param {{d6: number, d12: number}} spread
+ * @param {string} type One of LANDMARK_TYPES.
+ * @returns {Promise<{prompt: string|null, myth: string, page: number, entry: object|null}>}
+ */
+async function spreadPrompt(index, spread, type) {
+	const { name, page, entry } = mythEntry(index, spread);
+	const prompts = await promptsForEntry(index, entry, { page, versionFloor: MYTH_PROMPTS_VERSION });
+	return { prompt: landmarkPrompt(prompts, type), myth: name, page, entry };
+}
+
+/**
+ * A Ruin's echo (p14): it hints at a random Myth the Realm doesn't currently
+ * hold, though that Myth may yet return. A Ruin keeps the Myth it echoes once
+ * rolled, so asking again tells the same story. The Myth is whispered to the
+ * Referee with the ruin its page suggests, who decides how the ruin hints at
+ * it. GMs only.
+ * @param {Scene} scene The Realm.
+ * @param {{col: number, row: number}|null} [hex] Where the Ruin is, so it keeps the Myth.
+ * @returns {Promise<{d6: number, d12: number, name: string}|null>}
+ */
+export async function echoRuin(scene, hex = null) {
+	if (!game.user.isGM || !scene) return null;
+	const { realm } = getRealm(scene);
+	const ruin = hex ? featureAt(realm, hex).landmark : null;
+	const kept = ruin?.type === "ruin" ? ruin.echo ?? null : null;
+	const { echo, rolls } = kept ? { echo: kept, rolls: [] } : await rollRuinEcho(realm);
+	if (!kept && ruin?.type === "ruin") await editRealm(scene, (current, g) => editFeature(current, g, hex, { echo }));
+
+	const { prompt, myth, page, entry } = await spreadPrompt(await loadArtIndex(), echo, "ruin");
 	await postCard(null, "omen", {
-		title: name,
+		title: myth,
 		tagline: page ? t("realm.key.page", { page }) : null,
 		img: entry?.path ?? null,
 		omen: t("realm.landmarks.ruinEchoes"),
-		text: null,
+		text: prompt ? t("realm.landmarks.ruinPrompt", { prompt }) : null,
 		hint: t("realm.landmarks.ruinHint")
-	}, { rolls: [d6, d12], mode: "gm" });
-	return { ...rolled, name };
+	}, { rolls, mode: "gm" });
+	return { ...echo, name: myth };
+}
+
+/**
+ * Give a Landmark met for the first time, and still without a name, the prompt
+ * the book prints for its type along the foot of a spread (p14, p16): its
+ * Seer's for a Sanctum, the Myth it echoes for a Ruin, and a spread rolled for
+ * any other. The prompt becomes its name, kept on the map for the Referee to
+ * change. A Ruin rolls the Myth it echoes here too. GMs only.
+ * @param {Scene} scene The Realm.
+ * @param {object} landmark As the Realm holds it.
+ * @returns {Promise<{name: string, myth: string, page: number}|null>} Null where
+ *   it has a name already, or no prompt could be read.
+ */
+export async function nameLandmarkFromPrompt(scene, landmark) {
+	if (!game.user.isGM || !scene || !landmark || landmark.name) return null;
+	let echo = landmark.type === "ruin" ? landmark.echo ?? null : null;
+	if (landmark.type === "ruin" && !echo) ({ echo } = await rollRuinEcho(getRealm(scene).realm));
+	let rolled = null;
+	if (!(landmark.type === "sanctum" && landmark.seer) && landmark.type !== "ruin") {
+		const [d6, d12] = await Promise.all([new Roll("1d6").evaluate(), new Roll("1d12").evaluate()]);
+		rolled = { d6: d6.total, d12: d12.total };
+	}
+	const { prompt, myth, page } = await spreadPrompt(await loadArtIndex(), promptSpread({ ...landmark, echo }, rolled), landmark.type);
+	const changes = { ...(prompt ? { name: prompt } : {}), ...(echo && !landmark.echo ? { echo } : {}) };
+	if (Object.keys(changes).length) await editRealm(scene, (current, g) => editFeature(current, g, landmark.hex, changes));
+	return prompt ? { name: prompt, myth, page } : null;
 }
 
 /**
@@ -200,17 +257,18 @@ export async function echoRuin(scene) {
  * @param {string} offer One of LANDMARK_OFFERS.
  * @param {object} [options]
  * @param {Scene} [options.scene] The Realm, which a Ruin's echo needs.
+ * @param {{col: number, row: number}|null} [options.hex] Where the Landmark is, so a Ruin keeps its Myth.
  * @returns {Promise<unknown>} Nothing for an offer that doesn't exist.
  */
-export function takeLandmarkOffer(offer, { scene = canvas.scene } = {}) {
-	return OFFER_ACTIONS[offer]?.(scene) ?? Promise.resolve(null);
+export function takeLandmarkOffer(offer, { scene = canvas.scene, hex = null } = {}) {
+	return OFFER_ACTIONS[offer]?.(scene, hex) ?? Promise.resolve(null);
 }
 
 /** What each of LANDMARK_OFFERS does when it's taken up. */
 const OFFER_ACTIONS = Object.freeze({
 	restoreSpirit: () => restoreAtMonument(),
 	pushThrough: () => pushThroughHazard(),
-	echoMyth: (scene) => echoRuin(scene)
+	echoMyth: (scene, hex) => echoRuin(scene, hex)
 });
 
 /**

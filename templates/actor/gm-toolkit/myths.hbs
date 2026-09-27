@@ -105,11 +105,6 @@
 				<textarea data-toolkit-field="mythNote" rows="2" placeholder="{{localize 'bastionland.gmToolkit.myths.notePlaceholder'}}">{{note}}</textarea>
 			</label>
 
-			{{!-- A Myth is only offered as resolved once its last Omen has been met (p18). --}}
-			{{#if awaitOmens}}
-			<p class="bastionland-hint">{{localize "bastionland.gmToolkit.myths.awaitOmens"}}</p>
-			{{/if}}
-
 			<nav class="bastionland-toolbar" aria-label="{{name}}">
 				{{#if table.rows}}
 				<button type="button" data-action="rollMythTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.myths.rollTable"}}</button>
@@ -117,7 +112,7 @@
 				{{#if resolved}}
 				<button type="button" data-action="newMyth" data-tooltip="{{localize 'bastionland.gmToolkit.myths.newMythTooltip'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.gmToolkit.myths.newMyth"}}</button>
 				<button type="button" data-action="mythUnresolved"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.gmToolkit.myths.unresolve"}}</button>
-				{{else if complete}}
+				{{else}}
 				<button type="button" data-action="mythResolved" data-tooltip="{{localize 'bastionland.glory.awards.myth.hint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.glory.awards.myth.label"}}</button>
 				{{/if}}
 			</nav>

@@ -368,9 +368,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				};
 			}),
 			complete: myth.omen >= OMEN_COUNT,
-			// Resolving a Myth is only offered once its last Omen has been met
-			// (p18); until then the page says so in place of the button.
-			awaitOmens: !kept.resolved && myth.omen < OMEN_COUNT,
 			resolved: kept.resolved,
 			note: kept.note,
 			fold,
@@ -1080,13 +1077,13 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	/**
 	 * The group feels the Myth is resolved: mark it so, keep it in this
 	 * Season's record, and award the Glory that comes with it (p27). A new Myth
-	 * replaces it in the next Season. Only a Myth whose last Omen has been met
-	 * can be resolved.
+	 * replaces it in the next Season. The group may resolve it at any Omen,
+	 * for the players' own deeds can bring it to an end (p16).
 	 * @this {GmToolkitSheet}
 	 */
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
-		if (!myth || myth.omen < OMEN_COUNT) return;
+		if (!myth) return;
 		await Promise.all([
 			editMythNote(this.scene, myth, { resolved: true }),
 			recordMythCompleted({ id: completedMythId(this.scene.id, myth), name: mythLookup(this.#index, myth).name }),
@@ -1240,7 +1237,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @this {GmToolkitSheet}
 	 */
 	static #onLandmarkOffer(_event, target) {
-		return takeLandmarkOffer(target.dataset.landmarkOffer, { scene: this.scene });
+		return takeLandmarkOffer(target.dataset.landmarkOffer, { scene: this.scene, hex: GmToolkitSheet.#hexFrom(target) });
 	}
 
 	/**

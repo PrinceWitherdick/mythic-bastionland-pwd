@@ -39,12 +39,15 @@
 	{{#if landmark.seer}}
 	<p class="bastionland-card__hint">{{landmark.seer}}</p>
 	{{/if}}
+	{{#if landmark.promptFrom}}
+	<p class="bastionland-card__hint">{{landmark.promptFrom}}</p>
+	{{/if}}
 	{{#if landmark.offCourse}}
 	<p class="bastionland-card__warning">{{localize "bastionland.realm.landmarks.offCourse.struck"}}</p>
 	{{/if}}
 	{{#if landmark.offer}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-landmark-offer="{{landmark.offer.key}}" data-landmark-scene="{{scene}}"><i class="{{landmark.offer.icon}}" inert></i> {{landmark.offer.label}}</button>
+		<button type="button" data-landmark-offer="{{landmark.offer.key}}" data-landmark-scene="{{scene}}" data-landmark-hex="{{landmark.key}}"><i class="{{landmark.offer.icon}}" inert></i> {{landmark.offer.label}}</button>
 	</div>
 	{{/if}}
 	{{#if landmark.revealed}}

@@ -89,6 +89,16 @@ describe("placeFeature", () => {
 });
 
 describe("editFeature", () => {
+	it("keeps the Myth a Ruin echoes, and forgets it when the Ruin becomes something else", () => {
+		const start = placeFeature(emptyRealm(g, "echo"), g, hex(3, 3), { kind: "landmark", type: "ruin" });
+		const echoed = editFeature(start, g, hex(3, 3), { echo: { d6: 5, d12: 9 } });
+		expect(featureAt(echoed, hex(3, 3)).landmark.echo).toEqual({ d6: 5, d12: 9 });
+		const named = editFeature(echoed, g, hex(3, 3), { name: "Burned village" });
+		expect(featureAt(named, hex(3, 3)).landmark).toMatchObject({ name: "Burned village", echo: { d6: 5, d12: 9 } });
+		const dwelling = editFeature(named, g, hex(3, 3), { type: "dwelling" });
+		expect(featureAt(dwelling, hex(3, 3)).landmark).not.toHaveProperty("echo");
+	});
+
 	it("changes one thing about a Holding and keeps the rest", () => {
 		const realm = sampleRealm();
 		expect(featureAt(editFeature(realm, g, hex(2, 2), { name: "Stillwatch" }), hex(2, 2)).holding)

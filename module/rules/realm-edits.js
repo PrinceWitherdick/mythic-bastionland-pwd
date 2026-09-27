@@ -234,13 +234,16 @@ export function placeFeature(realm, g, hex, feature) {
 			const seer = type !== "sanctum" ? null
 				: rolled.d6 || rolled.d12 ? { d6: rolled.d6 ? feature.seer.d6 : before?.d6 ?? 1, d12: rolled.d12 ? feature.seer.d12 : before?.d12 ?? 1 }
 					: before;
+			// The Myth a Ruin echoes, once rolled, stays with it; another type forgets it.
+			const echo = type !== "ruin" ? null : feature.echo === undefined ? here.landmark?.echo ?? null : feature.echo;
 			next.landmarks.push({
 				id: here.landmark?.id ?? null,
 				hex: { ...hex },
 				type,
 				name: String(feature.name ?? here.landmark?.name ?? ""),
 				seer,
-				revealed: feature.revealed ?? here.landmark?.revealed ?? false
+				revealed: feature.revealed ?? here.landmark?.revealed ?? false,
+				...(echo ? { echo: { d6: echo.d6, d12: echo.d12 } } : {})
 			});
 			break;
 		}

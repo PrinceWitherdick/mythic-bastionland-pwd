@@ -171,6 +171,7 @@ function readWielding(actor, sources, choice) {
 		// A mounted charge is made on horseback.
 		mounted: Boolean(choice.mounted || choice.charge),
 		spearwall: Boolean(choice.spearwall),
+		smite: Boolean(choice.smite),
 		// Stat blocks don't say how the Cast hold their attacks, so only Knights count hands.
 		hands: actor.type === "knight"
 	});

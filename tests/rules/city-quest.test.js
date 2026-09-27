@@ -4,9 +4,11 @@ import {
 	CITY_QUEST_END,
 	CITY_QUEST_PAGES,
 	cityOmen,
+	cityOmenReplaces,
 	cityQuestCastFromItems,
 	cityQuestOmensFromItems,
-	cityQuestOver
+	cityQuestOver,
+	worthyOfCityQuest
 } from "../../module/rules/city-quest.js";
 
 // Text here is invented so no book text lives in the repository. Sizes and
@@ -181,5 +183,25 @@ describe("cityQuestOver", () => {
 		expect(cityQuestOver([3, 17])).toBe(false);
 		expect(cityQuestOver([5, 18])).toBe(true);
 		expect(cityQuestOver([24])).toBe(true);
+	});
+});
+
+describe("worthyOfCityQuest", () => {
+	const knight = (rank, hasPlayerOwner = true) => ({ type: "knight", hasPlayerOwner, system: { rank } });
+	it("takes one player's Knight-Radiant", () => {
+		expect(worthyOfCityQuest([knight("tenant"), knight("radiant")])).toBe(true);
+		expect(worthyOfCityQuest([knight("dominant")])).toBe(false);
+		expect(worthyOfCityQuest([knight("radiant", false)])).toBe(false);
+		expect(worthyOfCityQuest([{ type: "npc", hasPlayerOwner: true, system: { rank: "radiant" } }])).toBe(false);
+	});
+});
+
+describe("cityOmenReplaces", () => {
+	it("stands in for a random Myth's Omen only, while the Quest goes on", () => {
+		expect(cityOmenReplaces("randomOmen", true, [])).toBe(true);
+		expect(cityOmenReplaces("randomOmen", true, [4, 12])).toBe(true);
+		expect(cityOmenReplaces("nearestOmen", true, [])).toBe(false);
+		expect(cityOmenReplaces("randomOmen", false, [])).toBe(false);
+		expect(cityOmenReplaces("randomOmen", true, [19])).toBe(false);
 	});
 });

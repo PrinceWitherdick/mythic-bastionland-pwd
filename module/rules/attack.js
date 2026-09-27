@@ -91,9 +91,10 @@ export const ALTERNATE_QUALITIES = Object.freeze(["hefty", "long", "slow", "rang
 
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
- * a spearwall (p10), or more than two hands can hold (p12).
+ * a spearwall (p10), more than two hands can hold (p12), every weapon chosen
+ * sitting out, or Smite with nothing to strike in melee (p10).
  */
-export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands"]);
+export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands", "allSetAside", "smiteRanged"]);
 
 /**
  * @typedef {object} WieldedItem A weapon or shield chosen for an Attack.
@@ -130,10 +131,11 @@ export function heldAs(item, mounted = false) {
  * @param {boolean} [situation.spearwall] Charged a spearwall this turn.
  * @param {boolean} [situation.hands]     Hold the items to what two hands can wield, as for a Knight.
  *                                        Stat blocks list a creature's attacks without saying how it holds them.
+ * @param {boolean} [situation.smite]     Smite is declared, which only a melee Attack can use.
  * @returns {{refusal: string|null, usable: number[], setAside: {index: number, reason: string}[], impaired: boolean}}
  *   `usable` and `setAside` are indexes into `items`. `impaired` is a Long weapon used in a confined space.
  */
-export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false } = {}) {
+export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false, smite = false } = {}) {
 	const usable = [];
 	const setAside = [];
 	items.forEach((item, index) => {
@@ -153,6 +155,11 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	else if (hands && items.length > 1 && items.some(isLong)) refusal = "long";
 	// Anything else still takes a hand each, and there are only two.
 	else if (hands && items.length > HANDS) refusal = "hands";
+	// Weapons chosen and all of them sitting out leave nothing to Attack with,
+	// which is not the same as fighting unarmed.
+	else if (items.length && !usable.length) refusal = "allSetAside";
+	// Smite is used before rolling a melee Attack.
+	else if (smite && usable.length && usable.every((index) => items[index].ranged)) refusal = "smiteRanged";
 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
 }

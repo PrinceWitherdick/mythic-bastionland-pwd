@@ -287,7 +287,8 @@ describe("mythTextFromItems", () => {
 			],
 			castNote: "",
 			// One row doesn't make a table.
-			table: null
+			table: null,
+			prompts: [{ label: "Dwelling", value: "Candle shop" }, { label: "Monument", value: "Wax statue" }]
 		});
 	});
 
@@ -305,7 +306,8 @@ describe("mythTextFromItems", () => {
 			omens: ["A warm draught."],
 			cast: [{ name: "Frost Warden", stats: { vig: 9, cla: 9, spi: 9, guard: 4 }, lines: [] }],
 			castNote: "Chosen by the season.",
-			table: null
+			table: null,
+			prompts: null
 		});
 	});
 
@@ -539,7 +541,8 @@ describe("buildIndex", () => {
 			omens: null,
 			cast: null,
 			castNote: null,
-			table: null
+			table: null,
+			prompts: null
 		});
 		expect(index.knights[0]).not.toHaveProperty("kind");
 		expect(index.knights[0]).toMatchObject({ token: null, property: null, ability: null, passion: null });

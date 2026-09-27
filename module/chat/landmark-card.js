@@ -6,6 +6,7 @@
  */
 import { takeLandmarkOffer } from "../actions/landmarks.js";
 import { LANDMARK_OFFERS } from "../rules/landmarks.js";
+import { parseHexKey } from "../rules/realm-geometry.js";
 import { registerCardButtons } from "./cards.js";
 
 /** Called during init. */
@@ -18,7 +19,7 @@ export function registerLandmarkCards() {
 			if (!LANDMARK_OFFERS.includes(offer)) return;
 			// The card names the Realm it was rolled for; without one, whatever Scene is on the canvas.
 			const scene = game.scenes.get(button.dataset.landmarkScene) ?? canvas.scene;
-			await takeLandmarkOffer(offer, { scene });
+			await takeLandmarkOffer(offer, { scene, hex: parseHexKey(button.dataset.landmarkHex) });
 		}
 	});
 }

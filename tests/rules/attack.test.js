@@ -31,13 +31,27 @@ describe("checkWielding", () => {
 	});
 
 	it("sets a Slow weapon aside after moving", () => {
-		expect(checkWielding([longbow], { moved: true })).toMatchObject({ usable: [], setAside: [{ index: 0, reason: "slow" }] });
+		expect(checkWielding([longbow], { moved: true })).toMatchObject({ refusal: "allSetAside", usable: [], setAside: [{ index: 0, reason: "slow" }] });
 		expect(checkWielding([longbow]).usable).toEqual([0]);
 	});
 
 	it("sets a purely ranged weapon aside when the turn began engaged in melee", () => {
 		const check = checkWielding([shortbow, { hefty: true }], { engaged: true });
 		expect(check).toMatchObject({ usable: [1], setAside: [{ index: 0, reason: "ranged" }] });
+	});
+
+	it("refuses an Attack whose every weapon sits out, but not one with a weapon left", () => {
+		expect(checkWielding([longbow, shortbow], { moved: true, engaged: true }).refusal).toBe("allSetAside");
+		expect(checkWielding([longbow, mace], { moved: true }).refusal).toBeNull();
+		// Nothing chosen is an unarmed Attack, which is Impaired rather than refused.
+		expect(checkWielding([], { moved: true }).refusal).toBeNull();
+	});
+
+	it("keeps Smite to a melee Attack", () => {
+		expect(checkWielding([shortbow], { smite: true }).refusal).toBe("smiteRanged");
+		expect(checkWielding([shortbow, { hefty: true }], { smite: true }).refusal).toBeNull();
+		expect(checkWielding([mace], { smite: true }).refusal).toBeNull();
+		expect(checkWielding([shortbow]).refusal).toBeNull();
 	});
 
 	it("refuses an Exhausted Attack after moving, but not before", () => {

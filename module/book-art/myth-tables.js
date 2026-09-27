@@ -1,19 +1,21 @@
-import { mythTableFromItems, mythVerseFromItems } from "../rules/book-art.js";
+import { mythTableFromItems, mythVerseFromItems, promptsFromItems } from "../rules/book-art.js";
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { openPdfUrl } from "./pdf.js";
 
 /**
- * The table on a Myth's page, and the verse under its name, read straight from
- * the rulebook the world keeps for its reader, for an index Import PDF wrote
- * before it read them. Each page is read once a session; nothing is written back.
+ * The table on a Myth's page, the verse under its name and the prompts along
+ * its foot, read straight from the rulebook the world keeps for its reader, for
+ * an index Import PDF wrote before it read them. Each page is read once a
+ * session; nothing is written back.
  */
 
 /**
  * @typedef {object} PageRead
  * @property {import("../rules/book-art.js").MythTable|null} table
  * @property {string[]|null} verse
+ * @property {{label: string, value: string}[]|null} prompts
  */
 
 /** @type {{path: string, document: Promise<object>}|null} The rulebook opened last. */
@@ -62,7 +64,7 @@ function readPage(page) {
 			try {
 				const pdf = await openBook(rulebookPath());
 				const items = (await (await pdf.getPage(page)).getTextContent()).items;
-				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items) };
+				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items), prompts: promptsFromItems(items) };
 			} catch (error) {
 				// Kept as unread, so the sheet doesn't try again on every redraw.
 				console.warn(`${SYSTEM_ID} | Couldn't read page ${page} of the rulebook`, error);
@@ -145,6 +147,22 @@ export function verseForEntry(index, entry, { page = entry?.page, versionFloor =
 	if (entry?.verse) return Promise.resolve(entry.verse);
 	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
 	return mythVerseFromRulebook(page);
+}
+
+/**
+ * The prompts along the foot of a Myth's page: the index's own, or else the
+ * ones read from the rulebook, for an index Import PDF wrote before it read them.
+ * @param {object|null} index The art index.
+ * @param {{prompts?: object[], page?: number}|null} entry The Myth's entry in it.
+ * @param {object} [options]
+ * @param {number} [options.page]         The page to read, when there's no entry to give it.
+ * @param {number} [options.versionFloor] An index at this version or later had its prompts read already.
+ * @returns {Promise<{label: string, value: string}[]|null>}
+ */
+export function promptsForEntry(index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
+	if (entry?.prompts) return Promise.resolve(entry.prompts);
+	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
+	return readPage(page).then((read) => read?.prompts ?? null);
 }
 
 /** @returns {boolean} Whether there's a rulebook to read a table from. */

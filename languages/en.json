@@ -1535,7 +1535,6 @@
         "note": "Your notes on this Myth",
         "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
         "resolved": "Resolved",
-        "awaitOmens": "A Myth can be resolved once its last Omen has been met.",
         "resolvedHint": "When the group feels a Myth is resolved, a new Myth replaces it in the next Season (p27).",
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",
@@ -1661,7 +1660,7 @@
       "reset": "Start Over",
       "resetTitle": "Start the City Quest Over?",
       "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
-      "wildernessHint": "A Company worthy of the City Quest encounters an Omen of the City instead. Roll it from the GM Toolkit’s Myths page."
+      "wildernessHint": "A Company worthy of the City Quest meets an Omen of the City instead of a random Myth’s. It follows below."
     },
     "sites": {
       "newSite": "New Site",
@@ -2015,7 +2014,9 @@
         "hefty": "Only one Hefty item can be wielded at once.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
         "hands": "A weapon or shield fills a hand, so only two can be wielded at once.",
-        "twoWays": "A weapon is fought one way at a time, so tick only one of its ways."
+        "twoWays": "A weapon is fought one way at a time, so tick only one of its ways.",
+        "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
+        "smiteRanged": "Smite is only used before a melee Attack."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
@@ -2934,6 +2935,8 @@
       "hazardWhich": "Pushing through costs d6 in a Virtue, usually VIG. Which does this Hazard take?",
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
       "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
+      "ruinPrompt": "Its page suggests a ruin: {prompt}.",
+      "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it on the Places page.",
       "ruinHint": "Hint at it however the ruin would: a carving, a name half-worn away, a warning nobody living remembers. It may yet return to the Realm.",
       "offCourse": {
         "title": "Thrown Off Course",
