@@ -4,6 +4,8 @@ import { awardGlory } from "./module/actions/glory.js";
 import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
+import { registerNightTravel } from "./module/actions/night-travel.js";
+import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
 import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/knight-folders.js";
 import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/actions/new-knight.js";
 import { watchTableRenewals } from "./module/actions/knight-tables.js";
@@ -353,6 +355,9 @@ Hooks.once("init", () => {
 	// The GM Toolkit: one per world, each GM's character so C opens it, and where the Company has been on each Realm.
 	registerGmToolkitHooks();
 	registerJourneyHooks();
+	// Without a guide and light the Company travels blind by night, and what the Night cost is taken as it ends.
+	registerNightTravel();
+	registerPhaseEndSettings();
 
 	// Players may make their own Knights, and Create Actor offers them nothing else.
 	registerPlayerKnightDialog();

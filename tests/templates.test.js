@@ -155,6 +155,7 @@ describe("localization", () => {
 		// Every Landmark says what it is; only the ones that ask something have an offer to press.
 		...Object.keys(LANDMARK_EFFECTS).map((type) => `realm.landmarks.effects.${type}.text`),
 		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.offer).map(([type]) => `realm.landmarks.effects.${type}.offer`),
+		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.also).map(([type]) => `realm.landmarks.effects.${type}.also`),
 		// A lapsed Curse is let go without a word, so it has no line of its own.
 		...OFF_COURSE_SHOWN.map((state) => `realm.landmarks.offCourse.${state}`),
 		...partsOf("domain.court.roles", [...COURT_ROLES], ["label", "one", "add", "hint", "notePlaceholder"]),

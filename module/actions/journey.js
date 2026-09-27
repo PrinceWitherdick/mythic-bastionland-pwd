@@ -128,36 +128,70 @@ export function movesAsCompany(token) {
 }
 
 /**
+ * Called on the active GM's client once a Company's move is gathered, with the
+ * Scene and `{entered, ended}`: the hexes it came into, each once, and whether
+ * a move ended in a new hex. So each rule that follows the Company hears of a
+ * move once, however many Knights' Tokens made it.
+ */
+export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
+
+/**
  * Hexes come into and waiting to be written, by Scene id, so four Knights'
- * Tokens reaching the same hex together are one write.
- * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[]}>}
+ * Tokens reaching the same hex together are one write. `entered` holds those
+ * moved into rather than placed in.
+ * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[], entered: {col: number, row: number}[], ended: boolean}>}
  */
 const arriving = new Map();
 
 /** How long to wait for the rest of a Company before writing where it went. */
 const GATHER = 250;
 
-/** Write what's been gathered. */
+/**
+ * Knights moving together come into the same hex together, which is one visit.
+ * @param {{col: number, row: number}[]} hexes
+ * @returns {{col: number, row: number}[]}
+ */
+const onceEach = (hexes) => hexes.filter((hex, index) => index === hexes.findIndex((other) => hexKey(other) === hexKey(hex)));
+
+/** Write what's been gathered, and tell the rules that follow the Company. */
 function writeArrivals() {
 	const waiting = [...arriving.values()];
 	arriving.clear();
-	for (const { scene, hexes } of waiting) {
-		// Knights moving together come into the same hex together, which is one visit.
-		const once = hexes.filter((hex, index) => index === hexes.findIndex((other) => hexKey(other) === hexKey(hex)));
-		recordHexVisits(scene, once).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
+	for (const { scene, hexes, entered, ended } of waiting) {
+		recordHexVisits(scene, onceEach(hexes)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
+		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: onceEach(entered), ended });
 	}
 }
 
 /**
  * @param {Scene} scene
  * @param {{col: number, row: number}[]} hexes
+ * @param {object} [move] Left out for a Company put down rather than moved.
+ * @param {boolean} [move.ended] Whether the move ended in a new hex.
  */
-function gather(scene, hexes) {
-	if (!hexes.length) return;
+function gather(scene, hexes, move = null) {
+	if (!hexes.length && !move?.ended) return;
 	if (!arriving.size) setTimeout(writeArrivals, GATHER);
-	const waiting = arriving.get(scene.id) ?? { scene, hexes: [] };
+	const waiting = arriving.get(scene.id) ?? { scene, hexes: [], entered: [], ended: false };
 	waiting.hexes.push(...hexes);
+	if (move) waiting.entered.push(...hexes);
+	waiting.ended ||= Boolean(move?.ended);
 	arriving.set(scene.id, waiting);
+}
+
+/**
+ * Whether a Token's move has ended in another hex than it set off from. A long
+ * move is handed over a leg at a time; it's one move to a new hex.
+ * @param {TokenDocument} token
+ * @param {object} movement From the `moveToken` hook.
+ * @param {object} g
+ * @returns {boolean}
+ */
+function endsInNewHex(token, movement, g) {
+	if (movement?.pending?.waypoints?.length || !movement?.origin) return false;
+	const from = hexAt(g, token.getCenterPoint(movement.origin));
+	const to = hexAt(g, token.getCenterPoint());
+	return Boolean(from && to && hexKey(from) !== hexKey(to));
 }
 
 /**
@@ -195,7 +229,8 @@ function noticeMove(token, movement, operation) {
 	const scene = token?.parent;
 	if (!isRealmScene(scene) || !keepsTheJourney()) return;
 	if (!wentSomewhere(movement, operation) || !movesAsCompany(token)) return;
-	gather(scene, legHexes(token, movement, sceneGeometry(scene)));
+	const g = sceneGeometry(scene);
+	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g) });
 }
 
 /**

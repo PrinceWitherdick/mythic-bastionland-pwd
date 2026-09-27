@@ -5,12 +5,15 @@ import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
 import { mythRollTaken } from "../rules/gm-toolkit.js";
 import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, promptSpread, throwsOffCourse } from "../rules/landmarks.js";
+import { cameFrom } from "../rules/journey.js";
 import { featureAt } from "../rules/realm.js";
 import { editFeature } from "../rules/realm-edits.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
-import { editRealm, getRealm } from "./realm.js";
+import { companyTokenHex, setCompanyHex } from "./company.js";
+import { getJourney } from "./journey.js";
+import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { chooseCompany, virtueLoss } from "./time.js";
 
@@ -167,6 +170,30 @@ export async function pushThroughHazard() {
 }
 
 /**
+ * Go back the way you came from a Hazard (p14): the Company's Token steps back
+ * into the hex it came from, which its journey records. It is travelling like
+ * any other, so the Phase moves on when the Referee says. GMs only.
+ * @param {Scene} scene The Realm.
+ * @returns {Promise<{col: number, row: number}|null>} The hex gone back to, or null with a word to the Referee.
+ */
+export async function goBackTheWayYouCame(scene) {
+	if (!game.user.isGM || !isRealmScene(scene)) return null;
+	const here = companyTokenHex(scene);
+	if (!here) {
+		ui.notifications.warn(t("realm.landmarks.goBack.noToken"));
+		return null;
+	}
+	const back = cameFrom(getJourney(scene), sceneGeometry(scene), here);
+	if (!back) {
+		ui.notifications.warn(t("realm.landmarks.goBack.unknown"));
+		return null;
+	}
+	await setCompanyHex(scene, back);
+	ui.notifications.info(t("realm.landmarks.goBack.done", { hex: t("realm.hex", back) }));
+	return back;
+}
+
+/**
  * Roll the Myth a Ruin echoes: any the Realm doesn't currently hold.
  * @param {import("../rules/realm.js").Realm} realm
  * @returns {Promise<{echo: {d6: number, d12: number}, rolls: Roll[]}>}
@@ -268,22 +295,21 @@ export function takeLandmarkOffer(offer, { scene = canvas.scene, hex = null } = 
 const OFFER_ACTIONS = Object.freeze({
 	restoreSpirit: () => restoreAtMonument(),
 	pushThrough: () => pushThroughHazard(),
-	echoMyth: (scene, hex) => echoRuin(scene, hex)
+	echoMyth: (scene, hex) => echoRuin(scene, hex),
+	goBack: (scene) => goBackTheWayYouCame(scene)
 });
 
 /**
- * What a Landmark of this type offers, for a card or a page to show.
+ * What a Landmark of this type offers, for a card or a page to show: a button
+ * for each thing it lets the Company do, none where it asks nothing.
  * @param {string} type One of LANDMARK_TYPES.
- * @returns {{text: string, offer: {key: string, label: string, icon: string}|null, offCourse: boolean}|null}
+ * @returns {{text: string, offers: {key: string, label: string, icon: string}[], offCourse: boolean}|null}
  */
 export function landmarkOfferView(type) {
 	const effect = landmarkEffect(type);
 	if (!effect) return null;
-	return {
-		text: t(`realm.landmarks.effects.${type}.text`),
-		offer: effect.offer
-			? { key: effect.offer, label: t(`realm.landmarks.effects.${type}.offer`), icon: effect.icon }
-			: null,
-		offCourse: throwsOffCourse(type)
-	};
+	const offers = [];
+	if (effect.offer) offers.push({ key: effect.offer, label: t(`realm.landmarks.effects.${type}.offer`), icon: effect.icon });
+	if (effect.also) offers.push({ key: effect.also, label: t(`realm.landmarks.effects.${type}.also`), icon: effect.alsoIcon });
+	return { text: t(`realm.landmarks.effects.${type}.text`), offers, offCourse: throwsOffCourse(type) };
 }

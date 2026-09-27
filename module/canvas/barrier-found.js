@@ -1,4 +1,6 @@
+import { getCalendar } from "../actions/calendar.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { advancePhase } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { setBarrier } from "../rules/realm-edits.js";
 import { parseEdgeKey } from "../rules/realm-geometry.js";
@@ -7,21 +9,28 @@ import { SYSTEM_ID } from "../system-id.js";
 /** The system's socket channel, open since system.json asks for one. */
 const SOCKET = `system.${SYSTEM_ID}`;
 
-/** What a player's client sends when their Company runs into hidden Barriers. */
-const BARRIERS_FOUND = "barriersFound";
+/** What a player's client sends when a Barrier turns their Token back. */
+const TURNED_BACK = "turnedBack";
 
 /**
- * Tell the GMs a player's Company ran into Barriers nobody knew were there. A
- * player can't change the Realm, so their client asks the GMs': the Barriers
- * are drawn for everyone from then on, and each GM is told. Socket messages
- * don't come back to the sender, so this is for players alone; a GM's own move
+ * Tell the Referee a Barrier turned a Token back (p18). A player can't change
+ * the Realm or the calendar, so their client asks the GMs': the hidden
+ * Barriers it ran into are drawn for everyone from then on, and a Company's
+ * attempt offers the Phase it wasted. Socket messages don't come back to the
+ * sender, so a GM's own client offers the Phase itself, and a GM's own move
  * leaves a hidden Barrier hidden.
  * @param {Scene} scene
- * @param {string[]} edges The hidden Barriers' edge keys.
+ * @param {object} turned
+ * @param {string[]} turned.edges The hidden Barriers' edge keys.
+ * @param {{from: object, to: object}|null} [turned.company] Where the Company tried to go, when it was the Company.
  */
-export function reportBarriersFound(scene, edges) {
-	if (game.user.isGM || !edges.length) return;
-	game.socket.emit(SOCKET, { action: BARRIERS_FOUND, sceneId: scene.id, edges, userId: game.user.id });
+export function reportTurnedBack(scene, { edges, company = null }) {
+	if (game.user.isGM) {
+		if (company) offerWastedPhase(scene, company);
+		return;
+	}
+	if (!edges.length && !company) return;
+	game.socket.emit(SOCKET, { action: TURNED_BACK, sceneId: scene.id, edges, userId: game.user.id, ...(company ? { company } : {}) });
 }
 
 /**
@@ -30,20 +39,22 @@ export function reportBarriersFound(scene, edges) {
  */
 const hexName = (hex) => t("realm.hex", hex);
 
+/** @returns {boolean} Whether a message's hex is one. */
+const isHex = (hex) => Number.isInteger(hex?.col) && Number.isInteger(hex?.row);
+
 /**
- * On a GM's client: tell them of each Barrier found, and have the active GM
- * reveal them. Only Barriers still hidden on that Realm are taken, whatever
- * the message says.
- * @param {{action?: string, sceneId?: string, edges?: unknown, userId?: string}} message
+ * On a GM's client: tell them of each hidden Barrier found, and have the active
+ * GM reveal them and be offered the Phase a Company's attempt wasted. Only
+ * Barriers still hidden on that Realm are taken, whatever the message says.
+ * @param {{action?: string, sceneId?: string, edges?: unknown, userId?: string, company?: unknown}} message
  * @returns {Promise<void>}
  */
-export async function onBarriersFound(message) {
-	if (message?.action !== BARRIERS_FOUND || !game.user.isGM || !Array.isArray(message.edges)) return;
+export async function onTurnedBack(message) {
+	if (message?.action !== TURNED_BACK || !game.user.isGM || !Array.isArray(message.edges)) return;
 	const scene = game.scenes.get(message.sceneId);
 	if (!isRealmScene(scene)) return;
 	const hidden = new Set(getRealm(scene).realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
 	const found = message.edges.filter((edge) => hidden.has(edge));
-	if (!found.length) return;
 
 	const name = game.users.get(message.userId)?.name ?? t("realm.movement.someone");
 	const g = sceneGeometry(scene);
@@ -52,10 +63,36 @@ export async function onBarriersFound(message) {
 		ui.notifications.info(t("realm.movement.found", { name, from: hexName(from), to: hexName(to) }));
 	}
 	if (!game.users.activeGM?.isSelf) return;
-	await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
+	if (found.length) await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
+	const { company } = message;
+	if (isHex(company?.from) && isHex(company?.to)) await offerWastedPhase(scene, { from: company.from, to: company.to });
 }
 
-/** Listen for Barriers found. Called during init: Foundry hands the game its socket before init runs. */
-export function listenForBarriersFound() {
-	game.socket?.on(SOCKET, onBarriersFound);
+/** Whether the Referee is already being asked, so a Company that tries again meanwhile isn't asked twice. */
+let offering = false;
+
+/**
+ * Attempting to travel through a Barrier wastes that Phase of the day, but
+ * still causes a Wilderness Roll (p18). The Phase's end is offered with the
+ * Company travelling and what turned it back said first; closing it lets the
+ * Phase stand, since a Token can be dragged across one by mistake. GMs only.
+ * @param {Scene} scene
+ * @param {{from: {col: number, row: number}, to: {col: number, row: number}}} tried
+ * @returns {Promise<boolean>} Whether the Phase was spent.
+ */
+export async function offerWastedPhase(scene, { from, to }) {
+	if (!game.user.isGM || offering) return false;
+	offering = true;
+	try {
+		const phase = t(`time.phases.${getCalendar().phase}`);
+		const note = t("realm.movement.wasted.text", { from: hexName(from), to: hexName(to), phase });
+		return Boolean(await advancePhase({ scene, mode: "travel", atBarrier: true, note }));
+	} finally {
+		offering = false;
+	}
+}
+
+/** Listen for Tokens turned back. Called during init: Foundry hands the game its socket before init runs. */
+export function listenForTurnedBack() {
+	game.socket?.on(SOCKET, onTurnedBack);
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	JOURNEY_VERSION,
+	cameFrom,
 	changedHexes,
 	emptyJourney,
 	forgetVisit,
@@ -16,6 +17,25 @@ import { realmGeometry } from "../../module/rules/realm-geometry.js";
 const hex = (col, row) => ({ col, row });
 const spring = { age: 1, season: "spring", day: 3, phase: "morning" };
 const winter = { age: 1, season: "winter", day: 1, phase: "night" };
+
+describe("cameFrom", () => {
+	const g = realmGeometry();
+
+	it("finds the hex come into just before the latest arrival, even on a second visit", () => {
+		let journey = recordVisits(emptyJourney(), [hex(3, 3), hex(4, 3), hex(5, 3)], spring);
+		expect(cameFrom(journey, g, hex(5, 3))).toEqual(hex(4, 3));
+		expect(cameFrom(journey, g, hex(4, 3))).toEqual(hex(3, 3));
+		journey = recordVisits(journey, [hex(5, 4), hex(4, 3)], spring);
+		expect(cameFrom(journey, g, hex(4, 3))).toEqual(hex(5, 4));
+	});
+
+	it("has nothing where the journey starts, the hex was never come into, or the one before lies further off", () => {
+		const journey = recordVisits(emptyJourney(), [hex(3, 3), hex(8, 8)], spring);
+		expect(cameFrom(journey, g, hex(3, 3))).toBeNull();
+		expect(cameFrom(journey, g, hex(1, 1))).toBeNull();
+		expect(cameFrom(journey, g, hex(8, 8))).toBeNull();
+	});
+});
 
 describe("normaliseJourney", () => {
 	it("gives an empty journey for anything that isn't one", () => {

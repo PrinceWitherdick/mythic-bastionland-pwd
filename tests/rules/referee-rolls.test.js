@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { d6Band, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../../module/rules/referee-rolls.js";
+import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, atMercyOfWeather, d6Band, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../../module/rules/referee-rolls.js";
 
 describe("d6Band", () => {
 	it.each([[1, 0], [2, 1], [3, 1], [4, 2], [5, 2], [6, 2]])("reads %i as result %i", (d6, band) => {
@@ -36,5 +36,16 @@ describe("weatherAfter", () => {
 		expect(weatherAfter("looming", "fine")).toEqual({ result: "looming", streak: false });
 		expect(weatherAfter("looming", null)).toEqual({ result: "looming", streak: false });
 		expect(weatherAfter("fine", "looming")).toEqual({ result: "fine", streak: false });
+	});
+});
+
+describe("atMercyOfWeather", () => {
+	it("rolls in Winter as most Realms do, all year, or never", () => {
+		expect(DIRE_WEATHER_RISKS).toContain(DEFAULT_DIRE_WEATHER_RISK);
+		expect(DEFAULT_DIRE_WEATHER_RISK).toBe("winter");
+		expect(atMercyOfWeather("winter", "winter")).toBe(true);
+		expect(atMercyOfWeather("winter", "summer")).toBe(false);
+		expect(atMercyOfWeather("always", "spring")).toBe(true);
+		expect(atMercyOfWeather("never", "winter")).toBe(false);
 	});
 });

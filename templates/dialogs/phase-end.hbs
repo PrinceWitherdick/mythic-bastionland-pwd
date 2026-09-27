@@ -1,0 +1,70 @@
+<div class="bastionland-dialog__body bastionland-phase-end">
+	{{#if note}}
+	<p>{{note}}</p>
+	{{/if}}
+	<p class="hint">{{where}}</p>
+
+	<fieldset>
+		<legend>{{spent}}</legend>
+		{{#each modes}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="radio" name="mode" value="{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+
+	{{#if wilderness}}
+	<fieldset>
+		<legend>{{localize "bastionland.realm.wilderness.title"}}</legend>
+		{{#if wilderness.offered}}
+		<label class="bastionland-check">
+			<input type="checkbox" name="wilderness" {{checked wilderness.checked}}>
+			<span class="bastionland-check__label">{{wilderness.line}}</span>
+		</label>
+		<p class="hint">{{localize "bastionland.phaseEnd.wilderness.indoors"}}</p>
+		{{else}}
+		<p class="hint">{{wilderness.line}}</p>
+		{{/if}}
+	</fieldset>
+	{{/if}}
+
+	{{#if morning}}
+	<fieldset>
+		<legend>{{localize "bastionland.phaseEnd.morning.legend"}}</legend>
+		{{#each morning.rules}}
+		<p class="hint">{{this}}</p>
+		{{/each}}
+		{{#if morning.members.length}}
+		<div class="bastionland-phase-end__members">
+			<span></span>
+			<span class="bastionland-phase-end__head">{{localize "bastionland.phaseEnd.morning.noSleep"}}</span>
+			<span class="bastionland-phase-end__head">{{localize "bastionland.phaseEnd.morning.deprived"}}</span>
+			{{#each morning.members}}
+			<label class="bastionland-check">
+				<input type="checkbox" name="include-{{index}}" {{checked included}}>
+				<span class="bastionland-check__label">{{name}}</span>
+			</label>
+			<input type="checkbox" name="nosleep-{{index}}" aria-label="{{localize 'bastionland.phaseEnd.morning.noSleep'}}: {{name}}">
+			<input type="checkbox" name="deprived-{{index}}" aria-label="{{localize 'bastionland.phaseEnd.morning.deprived'}}: {{name}}" {{checked deprived}}>
+			{{/each}}
+		</div>
+		{{else}}
+		<p class="hint">{{localize "bastionland.time.noCompany"}}</p>
+		{{/if}}
+	</fieldset>
+	{{/if}}
+
+	{{#if dying.length}}
+	<fieldset>
+		<legend>{{localize "bastionland.phaseEnd.dying.legend"}}</legend>
+		<p class="hint">{{localize "bastionland.phaseEnd.dying.rule"}}</p>
+		{{#each dying}}
+		<label class="bastionland-check">
+			<input type="checkbox" name="dying-{{index}}" checked>
+			<span class="bastionland-check__label">{{name}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	{{/if}}
+</div>

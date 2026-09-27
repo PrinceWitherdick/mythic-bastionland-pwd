@@ -4,9 +4,10 @@ import { postCard, t } from "../chat/cards.js";
 import { OMEN_COUNT, REALM_FLAG, TERRAIN, terrainAt } from "../rules/realm.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import {
+	WILDERNESS_MODES,
 	companyHex,
 	mythChoices,
-	needsWildernessRoll,
+	phaseEndCalls,
 	wildernessOutcome,
 	wildernessResult,
 	wildernessSituation
@@ -25,15 +26,17 @@ import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
  * player owner.
  * @param {Scene} scene
  * @param {object} g
+ * @param {object} [options]
+ * @param {boolean} [options.selected] Let the selected Tokens say, as a Referee acting on a hex does; off where nobody chose them.
  * @returns {{hex: object|null, split: boolean}}
  */
-export function findCompany(scene, g) {
+export function findCompany(scene, g, { selected: useSelected = true } = {}) {
 	// One Token stands for the whole Company where the Realm has one (p7), so
 	// there is nothing to work out and no way for the Company to be split.
 	const company = findCompanyToken(scene);
 	if (company) return { hex: hexAt(g, company.getCenterPoint()), split: false };
 
-	const selected = scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
+	const selected = useSelected && scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
 	const tokens = selected.length ? selected : scene.tokens.filter((token) => token.actor?.hasPlayerOwner);
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
 }
@@ -75,6 +78,30 @@ export function realmAndCompany(scene, hex = null) {
 	return { realm: getRealm(scene).realm, g, where };
 }
 
+/**
+ * The Realm the Company stands in, found without a word to anybody: the one on
+ * the canvas, then the one the players are shown, then any other, each first
+ * where the Company's own Token is.
+ * @returns {Scene|null}
+ */
+function companyRealm() {
+	const realms = [...new Set([canvas?.scene, game.scenes.active, ...game.scenes])].filter((scene) => scene && isRealmScene(scene));
+	return realms.find((scene) => findCompanyToken(scene)) ?? realms.find((scene) => findCompany(scene, sceneGeometry(scene)).hex) ?? null;
+}
+
+/**
+ * What's in and around the hex the Company stands in, found as quietly as
+ * companyRealm finds its Realm.
+ * @param {Scene|null} [scene] The Realm, when it's already known.
+ * @returns {{scene: Scene, situation: ReturnType<typeof wildernessSituation>}|null} Null when no Realm shows where they are.
+ */
+export function companySituation(scene = null) {
+	const realm = scene ?? companyRealm();
+	if (!realm || !isRealmScene(realm)) return null;
+	const g = sceneGeometry(realm);
+	const { hex } = findCompany(realm, g);
+	return hex ? { scene: realm, situation: wildernessSituation(getRealm(realm).realm, g, hex) } : null;
+}
 
 /**
  * Ask whether the Company ends a travelling Phase or makes camp.
@@ -91,7 +118,7 @@ async function chooseMode(hex) {
 			{ action: "camp", label: t("realm.wilderness.modes.camp"), icon: "fa-solid fa-campground" }
 		]
 	});
-	return choice === "travel" || choice === "camp" ? choice : null;
+	return WILDERNESS_MODES.includes(choice) ? choice : null;
 }
 
 /**
@@ -101,23 +128,32 @@ async function chooseMode(hex) {
  * @param {object} [options]
  * @param {Scene} [options.scene] The Realm. Defaults to the Scene on the canvas.
  * @param {{col: number, row: number}} [options.hex] Where the Company is. Defaults to where its Tokens stand.
+ * @param {string|null} [options.phase] The Phase ending, when the roll is offered as it ends.
+ * @param {"travel"|"camp"|null} [options.mode] How the Company spent the Phase, when the Referee
+ *   has already said: then nothing more is asked.
+ * @param {boolean} [options.atBarrier] The Phase was wasted trying to cross a Barrier.
  * @returns {Promise<object|null>} The outcome, or null when nothing was rolled.
  */
-export async function wildernessRoll({ scene = canvas.scene, hex = null } = {}) {
+export async function wildernessRoll({ scene = canvas.scene, hex = null, phase = null, mode: known = null, atBarrier = false } = {}) {
 	if (!game.user.isGM) return null;
 	const place = realmAndCompany(scene, hex);
 	if (!place) return null;
 	const { realm, g, where } = place;
 
-	const situation = wildernessSituation(realm, g, where);
+	const around = wildernessSituation(realm, g, where);
+	// A Phase wasted at a Barrier was spent out at it, so it still causes the roll even setting out from a Holding (p18).
+	const situation = atBarrier ? { ...around, holding: null } : around;
+	const calls = phaseEndCalls(situation);
+	// A Phase ending in a Holding passes with no word, since a Holding isn't Wilderness.
+	if (phase && calls === "none") return null;
 	const rolls = [];
-	let mode = "travel";
+	let mode = known ?? "travel";
 	let d6 = null;
 	let pick = 0;
 	// A Company worthy of the City Quest meets an Omen of the City in place of a random Myth's (p172).
 	let city = false;
-	if (needsWildernessRoll(situation)) {
-		mode = await chooseMode(where);
+	if (calls === "roll") {
+		mode = known ?? (await chooseMode(where));
 		if (!mode) return null;
 		const roll = await new Roll("1d6").evaluate();
 		rolls.push(roll);

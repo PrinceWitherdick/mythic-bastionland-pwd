@@ -165,6 +165,13 @@ export function compareCalendars(a, b) {
 }
 
 /**
+ * @param {Calendar} a
+ * @param {Calendar} b
+ * @returns {boolean} Whether both stand in the same Phase of the same Day.
+ */
+export const samePhase = (a, b) => isCalendar(a) && isCalendar(b) && compareCalendars(a, b) === 0;
+
+/**
  * Which cadences a change of calendar brings round: a new Season (which is
  * also a new Day), a new Day's Morning, or Night falling. A calendar set back
  * brings nothing round.

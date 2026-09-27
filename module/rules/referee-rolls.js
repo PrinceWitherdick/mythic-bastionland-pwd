@@ -56,3 +56,22 @@ export function weatherAfter(result, previous) {
 	return { result: streak ? "dire" : result, streak };
 }
 
+/**
+ * When a Realm's lands are at the mercy of dire weather (p18): never, in
+ * Winter as most Realms are, or all year round. Wording lives under
+ * `bastionland.refereeRolls.direWeather.risks`.
+ */
+export const DIRE_WEATHER_RISKS = Object.freeze(["never", "winter", "always"]);
+
+/** Most Realms risk dire weather during Winter (p18). */
+export const DEFAULT_DIRE_WEATHER_RISK = "winter";
+
+/**
+ * Whether the Dire Weather table is rolled as a Phase begins: lands at the
+ * mercy of dire weather roll at the start of each Phase (p18).
+ * @param {string} risk One of DIRE_WEATHER_RISKS.
+ * @param {string} season One of SEASONS in rules/time.js.
+ * @returns {boolean}
+ */
+export const atMercyOfWeather = (risk, season) => risk === "always" || (risk === "winter" && season === "winter");
+

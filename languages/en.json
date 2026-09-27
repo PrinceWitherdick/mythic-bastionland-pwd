@@ -852,6 +852,55 @@
       "unfavourable": "They take it badly.",
       "hint": "Characters react in a way that suits the moment (p8). This is only for when that’s uncertain."
     },
+    "phaseEnd": {
+      "title": "The {phase} Ends",
+      "where": "The Company stands at {hex}.",
+      "nowhere": "No Realm shows where the Company stands, so no Wilderness Roll is made.",
+      "spent": "How did the Company spend the {phase}?",
+      "ok": "Move On to the {next}",
+      "alreadyOpen": "The Phase is already ending. Finish that window first.",
+      "modes": {
+        "travel": {
+          "label": "Travelling or exploring",
+          "hint": "On the move, or searching the Hex. Through the Night this costs d6 SPI each and leaves no time for proper sleep."
+        },
+        "camp": {
+          "label": "Camping outdoors",
+          "hint": "Sleeping outdoors. The Wilderness Roll ignores Landmarks, and a hostile Omen prevents proper sleep."
+        },
+        "indoors": {
+          "label": "Indoors, as guests",
+          "hint": "Manners dictate that hospitality be granted to travelling Knights. Sleeping indoors makes no Wilderness Roll."
+        }
+      },
+      "wilderness": {
+        "roll": "Make the Wilderness Roll",
+        "omen": "Show the next Omen of the Myth in this hex, with no roll",
+        "none": "A Holding isn’t Wilderness, so there’s no Wilderness Roll.",
+        "barrier": "Make the Wilderness Roll, which an attempt on a Barrier still causes",
+        "indoors": "Spent indoors, there’s no roll whatever is ticked."
+      },
+      "morning": {
+        "legend": "As Morning Comes",
+        "title": "What the Night Cost",
+        "line": "{kind}: {lost}",
+        "noSleep": "No sleep",
+        "deprived": "Deprived",
+        "rules": {
+          "travel": "Travelling or exploring through the Night costs d6 SPI each, and leaves no time for proper sleep.",
+          "winter": "In Winter, anybody camping or travelling at night loses d6 VIG.",
+          "dire": "Dire weather held through the Night, so nobody outdoors got proper sleep.",
+          "each": "Tick who else went without proper sleep, such as for a hostile Omen (d6 CLA), and who was deprived of essential needs (d6 VIG)."
+        }
+      },
+      "dying": {
+        "legend": "Dying Untended",
+        "rule": "The Mortally Wounded die if left untended for an hour, and a Phase is longer than that. Untick anybody who was tended; Patch Up on their sheet clears the wound.",
+        "title": "Died Untended",
+        "line": "Left Mortally Wounded and untended, they die.",
+        "hint": "Mortally Wounded targets die if left untended for an hour, but can be patched up in a few moments (p8)."
+      }
+    },
     "time": {
       "title": "Time",
       "now": "Age {age}, {season}, {phase}",
@@ -1038,6 +1087,12 @@
             "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
           }
         }
+      },
+      "nightTravel": {
+        "title": "Travelling by Night",
+        "text": "The Company is on the move by night. Without a guide and light they are travelling blind, and roll each time they move to a new Hex this Night. What the Night costs is taken as it ends.",
+        "sighted": "With a guide and light",
+        "blind": "Travelling blind"
       },
       "hardship": {
         "intro": "Tick everybody who suffers it.",
@@ -1835,6 +1890,15 @@
     },
     "refereeRolls": {
       "loomingAgain": "A Looming threat twice in a row: treat it as dire weather.",
+      "direWeather": {
+        "name": "Dire Weather",
+        "hint": "When the Realm’s lands are at the mercy of dire weather. Then the Dire Weather table is rolled as each Phase begins, unless the Company is in a Holding.",
+        "risks": {
+          "never": "Never",
+          "winter": "In Winter, as in most Realms",
+          "always": "All year round"
+        }
+      },
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
       "page": "page {page}",
@@ -2775,7 +2839,11 @@
         "barrier": "A Barrier blocks the way.",
         "offMap": "That’s past the edge of the Realm.",
         "found": "{name} ran into a hidden Barrier between {from} and {to}. It’s shown on the map now.",
-        "someone": "A player"
+        "someone": "A player",
+        "wasted": {
+          "text": "The Company tried to travel through a Barrier, from {from} to {to}. The attempt wastes the {phase}, but still causes a Wilderness Roll.",
+          "waste": "Waste the {phase}"
+        }
       },
       "controls": {
         "title": "Realm"
@@ -2975,7 +3043,8 @@
         },
         "hazard": {
           "text": "Nature fights your every step. Devise a solution, push through, or go back the way you came.",
-          "offer": "Push Through"
+          "offer": "Push Through",
+          "also": "Go Back"
         },
         "curse": {
           "text": "A blight on the land that throws you off course."
@@ -2989,6 +3058,11 @@
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
       "monumentHint": "The Phase is spent here, so turn the calendar on when the Company moves.",
       "hazardWhich": "Pushing through costs d6 in a Virtue, usually VIG. Which does this Hazard take?",
+      "goBack": {
+        "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",
+        "noToken": "Only the Company’s own Token can be sent back. Move the Company’s Tokens back by hand.",
+        "unknown": "The Company’s way here isn’t known, so move its Token back by hand."
+      },
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
       "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
       "ruinPrompt": "Its page suggests a ruin: {prompt}.",

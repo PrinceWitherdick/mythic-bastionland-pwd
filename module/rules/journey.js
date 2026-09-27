@@ -6,7 +6,7 @@
  * and last did. Pure, so it can be tested without Foundry.
  */
 import { normaliseWhen } from "./hex-lore.js";
-import { hexKey, hexLine, parseHexKey, sameHex } from "./realm-geometry.js";
+import { hexDistance, hexKey, hexLine, parseHexKey, sameHex } from "./realm-geometry.js";
 
 export const JOURNEY_VERSION = 1;
 
@@ -228,6 +228,27 @@ export function forgetVisit(journey, hex, order) {
 export function changedHexes(before, after) {
 	const keys = new Set([...Object.keys(before.hexes), ...Object.keys(after.hexes)]);
 	return [...keys].filter((key) => before.hexes[key] !== after.hexes[key]);
+}
+
+/**
+ * The hex the Company came into a hex from: the one come into just before its
+ * latest arrival there, so long as it lies beside it. Going back the way you
+ * came (p14) is a step back into it.
+ * @param {Journey} journey
+ * @param {object} g From realmGeometry.
+ * @param {{col: number, row: number}} hex
+ * @returns {{col: number, row: number}|null} Null when nothing was come into just before, or it lies further off.
+ */
+export function cameFrom(journey, g, hex) {
+	const arrived = visitsAt(journey, hex)?.last.order;
+	if (arrived === undefined) return null;
+	let best = null;
+	for (const [key, visits] of Object.entries(journey.hexes)) {
+		const before = visits.arrivals.filter((arrival) => arrival.order < arrived).at(-1);
+		if (before && (!best || before.order > best.order)) best = { key, order: before.order };
+	}
+	const from = best ? parseHexKey(best.key) : null;
+	return from && hexDistance(g, from, hex) === 1 ? from : null;
 }
 
 /**

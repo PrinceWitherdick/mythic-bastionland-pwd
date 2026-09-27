@@ -11,6 +11,7 @@ import {
 	sceneGeometry,
 	syncRealmScene
 } from "../actions/realm.js";
+import { movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -23,7 +24,7 @@ import { t } from "../chat/cards.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { listenForBarriersFound, reportBarriersFound } from "./barrier-found.js";
+import { listenForTurnedBack, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 
@@ -50,10 +51,14 @@ function allowRealmMove(token, movement) {
 	if (!problem) return true;
 
 	ui.notifications.warn(t(`realm.movement.${problem.reason}`));
-	// A hidden Barrier found by walking into it isn't hidden any more.
+	// A hidden Barrier found by walking into it isn't hidden any more, and the
+	// Company's attempt wastes the Phase.
 	if (problem.reason === "barrier") {
 		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
-		reportBarriersFound(scene, barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)));
+		reportTurnedBack(scene, {
+			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
+			company: movesAsCompany(token) ? { from: problem.from, to: problem.to } : null
+		});
 	}
 	return false;
 }
@@ -106,8 +111,8 @@ function showRealmRules() {
 /** The hooks Realm Scenes rely on. Called during init. */
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
-	// A player's Company that runs into a hidden Barrier has the GM's client reveal it.
-	listenForBarriersFound();
+	// A player's Token turned back by a Barrier has the GM's client reveal it, and offer the Phase the Company wasted.
+	listenForTurnedBack();
 
 	// Whether the hex readout names the column and row as well.
 	registerHexReadoutSetting();

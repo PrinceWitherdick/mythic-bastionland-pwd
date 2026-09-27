@@ -164,7 +164,7 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
 
 	// Each of the three takes a whole Phase of the day, unless the Referee says otherwise.
-	if (data.phase) await advancePhase();
+	if (data.phase) await advancePhase({ scene, mode: "travel" });
 	return data.aim;
 }
 

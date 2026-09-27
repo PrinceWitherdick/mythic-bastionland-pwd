@@ -6,6 +6,7 @@ import {
 	mythChoices,
 	needsWildernessRoll,
 	nextOmen,
+	phaseEndCalls,
 	wildernessOutcome,
 	wildernessResult,
 	wildernessSituation
@@ -57,6 +58,17 @@ describe("wildernessSituation", () => {
 		expect(needsWildernessRoll(wildernessSituation(realm, g, hex(8, 6)))).toBe(false);
 	});
 });
+
+describe("phaseEndCalls", () => {
+	it("calls for nothing in a Holding, the Omen in a Myth's hex, and the roll elsewhere", () => {
+		const realm = sampleRealm();
+		expect(phaseEndCalls(wildernessSituation(realm, g, hex(2, 2)))).toBe("none");
+		expect(phaseEndCalls(wildernessSituation(realm, g, hex(8, 6)))).toBe("omen");
+		expect(phaseEndCalls(wildernessSituation(realm, g, hex(6, 6)))).toBe("roll");
+		expect(phaseEndCalls(wildernessSituation(realm, g, hex(10, 2)))).toBe("roll");
+	});
+});
+
 
 describe("nextOmen", () => {
 	it("counts Omens in order and stops after the sixth", () => {

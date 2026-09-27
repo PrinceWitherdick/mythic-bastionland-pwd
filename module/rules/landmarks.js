@@ -8,29 +8,38 @@
  * the Realm is made. Pure, so it can be tested without Foundry.
  */
 import { LANDMARK_TYPES } from "./realm.js";
-import { compareCalendars, isCalendar, nextPhase } from "./time.js";
+import { isCalendar, nextPhase, samePhase } from "./time.js";
 
 /** What a Landmark offers the Company, each a button on the card that found it. */
-export const LANDMARK_OFFERS = Object.freeze(["restoreSpirit", "pushThrough", "echoMyth"]);
+export const LANDMARK_OFFERS = Object.freeze(["restoreSpirit", "pushThrough", "echoMyth", "goBack"]);
 
 /**
  * @typedef {object} LandmarkEffect
  * @property {string|null} offer   One of LANDMARK_OFFERS, or null where the Landmark asks nothing.
+ * @property {string|null} also    A second of LANDMARK_OFFERS, where the Landmark leaves a choice.
  * @property {string|null} virtue  The Virtue it restores or costs, where it touches one.
  * @property {boolean} offCourse   Whether finding it throws the Company off course.
  * @property {string|null} icon    On the offer's button.
+ * @property {string|null} alsoIcon On the second offer's button.
  */
 
-const effect = ({ offer = null, virtue = null, offCourse = false, icon = null } = {}) =>
-	Object.freeze({ offer, virtue, offCourse, icon });
+const effect = ({ offer = null, also = null, virtue = null, offCourse = false, icon = null, alsoIcon = null } = {}) =>
+	Object.freeze({ offer, also, virtue, offCourse, icon, alsoIcon });
 
 /** Each Landmark type's effect, by type. */
 export const LANDMARK_EFFECTS = Object.freeze({
 	dwelling: effect(),
 	sanctum: effect(),
 	monument: effect({ offer: "restoreSpirit", virtue: "spi", icon: "fa-solid fa-hands-praying" }),
-	// "Lose d6 in a Virtue, usually VIG", so VIG is offered and the Referee may choose another.
-	hazard: effect({ offer: "pushThrough", virtue: "vig", icon: "fa-solid fa-mountain-sun" }),
+	// "Lose d6 in a Virtue, usually VIG", so VIG is offered and the Referee may choose another,
+	// "or go back the way you came". Devising a solution is the players' own, with no button.
+	hazard: effect({
+		offer: "pushThrough",
+		also: "goBack",
+		virtue: "vig",
+		icon: "fa-solid fa-mountain-sun",
+		alsoIcon: "fa-solid fa-person-walking-arrow-loop-left"
+	}),
 	curse: effect({ offCourse: true, icon: "fa-solid fa-eye-low-vision" }),
 	ruin: effect({ offer: "echoMyth", icon: "fa-solid fa-dice" })
 });
@@ -87,12 +96,7 @@ export const OFF_COURSE_STATES = Object.freeze(["pending", "live", "lapsed"]);
  */
 export const OFF_COURSE_SHOWN = Object.freeze(["pending", "live"]);
 
-/**
- * @param {import("./time.js").Calendar} a
- * @param {import("./time.js").Calendar} b
- * @returns {boolean} Whether both stand in the same Phase of the same Day.
- */
-export const samePhase = (a, b) => isCalendar(a) && isCalendar(b) && compareCalendars(a, b) === 0;
+export { samePhase };
 
 /**
  * Where a Curse's blight stands now.

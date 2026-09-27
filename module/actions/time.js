@@ -40,7 +40,11 @@ import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
 import { sufferMorningAfflictions } from "./afflictions.js";
+import { companySituation, wildernessRoll } from "./wilderness.js";
+import { askPhaseEnd, dieUntended, takeMorningLosses } from "./phase-end.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
+import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
+import { atMercyOfWeather } from "../rules/referee-rolls.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -189,17 +193,68 @@ export async function passTime(company, { newAge, before }) {
 }
 
 /**
- * Move on to the next Phase and post it. GMs only.
+ * Move on to the next Phase and post it (p18). The Referee first says how the
+ * Phase that ends was spent, in one window: the Wilderness Roll follows from
+ * it, and as the Night ends, what the Night cost each of the Company. Then the
+ * new Phase begins, with its weather where the lands are at its mercy. GMs only.
+ * @param {object} [known] What's already known of the Phase's end, for askPhaseEnd.
+ * @returns {Promise<import("../rules/time.js").Calendar|null>} Null when the window was closed.
+ */
+export async function advancePhase(known = {}) {
+	if (!game.user.isGM) return null;
+	// One Phase ends at a time: a Barrier's window and Next Phase open together would both move the calendar on.
+	if (endingPhase) {
+		ui.notifications.info(t("phaseEnd.alreadyOpen"));
+		return null;
+	}
+	endingPhase = true;
+	try {
+		return await endPhase(known);
+	} finally {
+		endingPhase = false;
+	}
+}
+
+/** Whether a Phase's end window is open or its Phase is still being moved on. */
+let endingPhase = false;
+
+/**
+ * The work of advancePhase, once it's sure no other Phase is ending.
+ * @param {object} known
  * @returns {Promise<import("../rules/time.js").Calendar|null>}
  */
-export async function advancePhase() {
-	if (!game.user.isGM) return null;
+async function endPhase(known) {
+	const ending = getCalendar();
+	const answers = await askPhaseEnd(ending, known);
+	if (!answers) return null;
+	// Rolled while the Phase it ends is still the Phase, so a Curse it finds blinds the one after.
+	if (answers.wilderness) {
+		await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) });
+	}
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
 	await announcePhase(calendar);
+	if (answers.members.length) await takeMorningLosses(answers, ending);
+	// Nobody lies untended through a Phase and lives (p8).
+	if (answers.dying?.length) await dieUntended(answers.dying);
 	// Each morning, a daily affliction takes its toll.
 	if (calendar.phase === "morning") await sufferMorningAfflictions();
+	await phaseWeather(calendar);
 	return calendar;
+}
+
+/**
+ * Lands at the mercy of dire weather roll for it at the start of each Phase
+ * (p18). The Company in a Holding is indoors, and one on no Realm is on no
+ * land the world's setting speaks for, so neither rolls.
+ * @param {import("../rules/time.js").Calendar} calendar The Phase beginning.
+ * @returns {Promise<object|null>} What the weather table gave, or null when it wasn't rolled.
+ */
+async function phaseWeather(calendar) {
+	if (!atMercyOfWeather(direWeatherRisk(), calendar.season)) return null;
+	const standing = companySituation();
+	if (!standing || standing.situation.holding) return null;
+	return rollRefereeTable("weather");
 }
 
 /**

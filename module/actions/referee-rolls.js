@@ -1,10 +1,14 @@
 import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
+import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
+import { samePhase } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { sparkPrompt } from "../rules/spark-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
+
+/** When the Realm's lands are at the mercy of dire weather, one of DIRE_WEATHER_RISKS. */
+const DIRE_WEATHER_SETTING = "direWeather";
 
 /**
  * The Dire Weather table's last roll: in which Phase, what the die gave, and
@@ -16,6 +20,32 @@ const WEATHER_NOW_SETTING = "weatherNow";
 /** Register what the weather table last gave, and when it's rolled. Called during init. */
 export function registerWeatherStreakSetting() {
 	game.settings.register(SYSTEM_ID, WEATHER_NOW_SETTING, { scope: "world", config: false, type: Object, default: null });
+	game.settings.register(SYSTEM_ID, DIRE_WEATHER_SETTING, {
+		name: "bastionland.refereeRolls.direWeather.name",
+		hint: "bastionland.refereeRolls.direWeather.hint",
+		scope: "world",
+		config: true,
+		type: String,
+		default: DEFAULT_DIRE_WEATHER_RISK,
+		// Settings are registered before the language files are ready, so these are keys for Foundry to localize.
+		choices: Object.fromEntries(DIRE_WEATHER_RISKS.map((risk) => [risk, `bastionland.refereeRolls.direWeather.risks.${risk}`]))
+	});
+}
+
+/**
+ * What the weather table came to in a Phase, with a second Looming read as dire.
+ * @param {import("../rules/time.js").Calendar} calendar
+ * @returns {string|null} Null where it wasn't rolled then.
+ */
+export function weatherIn(calendar) {
+	const now = game.settings.get(SYSTEM_ID, WEATHER_NOW_SETTING);
+	return samePhase(now?.when, calendar) ? now.result ?? null : null;
+}
+
+/** @returns {string} When the lands are at the mercy of dire weather, one of DIRE_WEATHER_RISKS. */
+export function direWeatherRisk() {
+	const risk = game.settings.get(SYSTEM_ID, DIRE_WEATHER_SETTING);
+	return DIRE_WEATHER_RISKS.includes(risk) ? risk : DEFAULT_DIRE_WEATHER_RISK;
 }
 
 /**

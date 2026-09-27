@@ -39,6 +39,19 @@ export function wildernessSituation(realm, g, hex) {
 export const needsWildernessRoll = (situation) => !situation.holding && !situation.myth;
 
 /**
+ * What ending a Phase where the Company stands calls for (p18): nothing in a
+ * Holding, which isn't Wilderness; a Myth's next Omen in its own hex, with no
+ * roll; the Wilderness Roll anywhere else.
+ * @param {ReturnType<typeof wildernessSituation>} situation
+ * @returns {"none"|"omen"|"roll"}
+ */
+export function phaseEndCalls(situation) {
+	if (situation.holding) return "none";
+	return situation.myth ? "omen" : "roll";
+}
+
+
+/**
  * @param {number} d6
  * @param {object} [options]
  * @param {"travel"|"camp"} [options.mode]

@@ -675,6 +675,27 @@
 }
 
 /*
+ * The Phase's end: each of the Company on a row, with who went without proper
+ * sleep and who went without essential needs in the columns after.
+ */
+.bastionland-phase-end__members {
+	display: grid;
+	grid-template-columns: 1fr auto auto;
+	align-items: center;
+	gap: 0.3rem 0.8rem;
+	margin-top: 0.3rem;
+}
+
+.bastionland-phase-end__members > input[type="checkbox"] {
+	justify-self: center;
+}
+
+.bastionland-phase-end__head {
+	font-size: 15px;
+	text-align: center;
+}
+
+/*
  * The New Realm dialog's Custom Realm page: a part to a row, its name and
  * roll box on the left, its numbers on the right. Locked numbers are the
  * book's, so they stay readable.

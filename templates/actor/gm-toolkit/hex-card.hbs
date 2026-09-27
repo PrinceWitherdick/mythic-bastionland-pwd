@@ -52,9 +52,11 @@
 		{{#if landmark}}
 		<div class="bastionland-gm-toolkit__landmark">
 			<p class="bastionland-hint">{{landmark.text}}</p>
-			{{#if landmark.offer}}
-			<nav class="bastionland-gm-toolkit__actions" aria-label="{{landmark.offer.label}}">
-				<button type="button" class="is-landmark" data-action="landmarkOffer" data-landmark-offer="{{landmark.offer.key}}"><i class="{{landmark.offer.icon}}" inert></i> {{landmark.offer.label}}</button>
+			{{#if landmark.offers.length}}
+			<nav class="bastionland-gm-toolkit__actions" aria-label="{{landmark.text}}">
+				{{#each landmark.offers}}
+				<button type="button" class="is-landmark" data-action="landmarkOffer" data-landmark-offer="{{key}}"><i class="{{icon}}" inert></i> {{label}}</button>
+				{{/each}}
 			</nav>
 			{{/if}}
 		</div>

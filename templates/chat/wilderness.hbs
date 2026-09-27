@@ -45,9 +45,11 @@
 	{{#if landmark.offCourse}}
 	<p class="bastionland-card__warning">{{localize "bastionland.realm.landmarks.offCourse.struck"}}</p>
 	{{/if}}
-	{{#if landmark.offer}}
+	{{#if landmark.offers.length}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-landmark-offer="{{landmark.offer.key}}" data-landmark-scene="{{scene}}" data-landmark-hex="{{landmark.key}}"><i class="{{landmark.offer.icon}}" inert></i> {{landmark.offer.label}}</button>
+		{{#each landmark.offers}}
+		<button type="button" data-landmark-offer="{{key}}" data-landmark-scene="{{../scene}}" data-landmark-hex="{{../landmark.key}}"><i class="{{icon}}" inert></i> {{label}}</button>
+		{{/each}}
 	</div>
 	{{/if}}
 	{{#if landmark.revealed}}

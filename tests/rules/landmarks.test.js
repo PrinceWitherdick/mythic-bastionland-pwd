@@ -28,7 +28,7 @@ describe("LANDMARK_EFFECTS", () => {
 
 	it("leaves Dwellings and Sanctums as places rather than demands", () => {
 		for (const type of ["dwelling", "sanctum"]) {
-			expect(LANDMARK_EFFECTS[type]).toEqual({ offer: null, virtue: null, offCourse: false, icon: null });
+			expect(LANDMARK_EFFECTS[type]).toEqual({ offer: null, also: null, virtue: null, offCourse: false, icon: null, alsoIcon: null });
 		}
 	});
 
@@ -38,9 +38,15 @@ describe("LANDMARK_EFFECTS", () => {
 	});
 
 	it("names only offers the actions know", () => {
-		const offers = LANDMARK_TYPES.map((type) => LANDMARK_EFFECTS[type].offer).filter(Boolean);
+		const offers = LANDMARK_TYPES.flatMap((type) => [LANDMARK_EFFECTS[type].offer, LANDMARK_EFFECTS[type].also]).filter(Boolean);
 		expect(offers.every((offer) => LANDMARK_OFFERS.includes(offer))).toBe(true);
 		expect(new Set(offers).size).toBe(offers.length);
+		expect([...LANDMARK_OFFERS].sort()).toEqual([...offers].sort());
+	});
+
+	it("lets a Hazard be pushed through or gone back from", () => {
+		expect(LANDMARK_EFFECTS.hazard).toMatchObject({ offer: "pushThrough", also: "goBack" });
+		expect(LANDMARK_EFFECTS.hazard.alsoIcon).toBeTruthy();
 	});
 });
 
