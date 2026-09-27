@@ -2064,6 +2064,11 @@
       "bonusHint": "From useful information, shrewd preparations, or a tactical advantage. +d8 is typical. List several as d6, d12.",
       "specialistDie": "{name}, specialist",
       "specialistHint": "Tick when the situation this weapon is made for comes up, to add its specialist die.",
+      "weakness": "{name}’s weakness, {text}: +{die}",
+      "weaknessBare": "{name}’s weakness: +{die}",
+      "weaknessHint": "The Knights have learned what can be turned against them, so every Attack that uses it gets this die. Untick it for a blow that doesn’t.",
+      "weaknessDie": "Weakness, {text}",
+      "weaknessDieBare": "Known weakness",
       "alternateName": "{name}, {how}",
       "unavailable": "Not offered, being broken or all used: {names}.",
       "usedOne": "{name}: one used, {left} left.",
@@ -2073,7 +2078,12 @@
       "broke": "{name}’s {item} breaks.",
       "nothingToBreak": "Nobody hit carries anything wooden and whole that you can mark broken.",
       "smite": "Smite for +d12",
-      "smiteHint": "A VIG Save follows to avoid Fatigue.",
+      "smiteMark": "Smite for a lasting mark",
+      "smiteMarkLine": "Smite for a lasting mark rather than more Damage: if this Wounds, it leaves its mark (p187).",
+      "smiteHint": "A VIG Save follows to avoid Fatigue. A lasting mark, such as an eye put out, adds no dice but is left once the blow Wounds (p187).",
+      "saveInLabel": "Their Save",
+      "saveIn": "{virtue} Save",
+      "saveInHint": "VIG as the rules have it, or another where you rule so, such as CLA to dodge a stab at the eye (p187).",
       "blast": "Blast",
       "blastHint": "Roll separately against everybody in the area.",
       "ranged": "Ranged",
@@ -2090,10 +2100,14 @@
       "spearwallHint": "3 or more allies in a wall formation, all bearing spears or similar. Enemies can’t Attack on the turn they charge it.",
       "charge": "Charging on {steed} at enemies on foot (+{dice})",
       "chargeHint": "A steed’s trample joins the Attack when charging enemies on foot. It doesn’t work against a spearwall.",
+      "chargeBarred": "A steed tramples only enemies on foot, and nobody targeted is on foot: {names}.",
       "confinedImpaired": "A Long weapon in a confined space is Impaired: it rolls a single d4 and gains no bonus dice or Feats.",
+      "swarmImpaired": "An individual Attack at a swarm is Impaired unless it’s a Blast: it rolls a single d4 and gains no bonus dice or Feats.",
+      "swarmHint": "{name} is a swarm: an Attack at them is Impaired unless it’s a Blast.",
       "setAside": {
         "slow": "{name} is Slow, so it can’t be used after moving.",
-        "ranged": "{name} is purely ranged, so it can’t be used after beginning the turn engaged in melee."
+        "ranged": "{name} is purely ranged, so it can’t be used after beginning the turn engaged in melee.",
+        "mountedFoe": "{name}’s trample doesn’t join, since a steed tramples only enemies on foot."
       },
       "refusals": {
         "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
@@ -2101,7 +2115,7 @@
         "hefty": "Only one Hefty item can be wielded at once.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
         "hands": "A weapon or shield fills a hand, so only two can be wielded at once.",
-        "twoWays": "A weapon is fought one way at a time, so tick only one of its ways.",
+        "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
         "smiteRanged": "Smite is only used before a melee Attack."
       },
@@ -2129,14 +2143,14 @@
       "deniedBy": "Denied by {name}",
       "dieSource": "d{faces} showing {result}",
       "dieChoice": "d{faces} showing {result} ({label})",
-      "gambitSave": "VIG Save",
-      "gambitSaved": "{name} Saved with {total} against VIG {target}, and ignores it.",
-      "gambitFailed": "{name} failed with {total} against VIG {target}, so it takes effect.",
+      "gambitSave": "{virtue} Save",
+      "gambitSaved": "{name} Saved with {total} against {virtue} {target}, and ignores it.",
+      "gambitFailed": "{name} failed with {total} against {virtue} {target}, so it takes effect.",
       "gambitNoSave": "No Save against it.",
       "focusSource": "Focus pays for this Gambit instead of a die. {name} must then pass a CLA Save or become Fatigued.",
       "focusPassed": "{name} passed the CLA Save with {total} against CLA {target}, and avoids Fatigue.",
       "focusFailed": "{name} failed the CLA Save with {total} against CLA {target}, and is Fatigued until they rest.",
-      "whoSaves": "Who makes the VIG Save against {gambit}?",
+      "whoSaves": "Who makes the {virtue} Save against {gambit}?",
       "noSaver": "Select the Token of whoever Saves against the Gambit.",
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
       "unspentGambitsOne": "One die still shows 4 or higher and could be spent on a Gambit.",
@@ -2164,6 +2178,7 @@
       "changeRefused": "The Attack card changed before that could be recorded."
     },
     "damage": {
+      "lastingMark": "{attacker}’s Smite leaves {name} a lasting mark (p187).",
       "title": "Take Damage",
       "amount": "Damage",
       "amountHint": "The highest die left after Gambits, plus any Bolster.",
@@ -2173,6 +2188,9 @@
       "shieldwall": "In a shieldwall (+1 Armour)",
       "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
       "bucklerOnly": "A buckler doesn’t make a shieldwall.",
+      "shieldwallFormed": "On the map, {count} of their side stand together, all bearing shields.",
+      "shieldwallFew": "On the map, fewer than 3 of their side stand together.",
+      "shieldwallUnshielded": "On the map, not everyone standing together bears a shield: {names}.",
       "situational": "Armour that counts only sometimes",
       "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",
       "situationalPiece": "{name} (A{armour}, {when})",
@@ -2366,6 +2384,9 @@
       "alternateLabel": "How",
       "alternatePlaceholder": "Such as ranged, or as a pair",
       "alternateHint": "For a weapon fought two ways, such as a bolt-guisarme, d10 long in melee or d10 slow ranged. The Attack dialog offers each way, and only one at a time. Leave the dice blank if it has none.",
+      "insteadOf": "Instead of",
+      "insteadOfNone": "Nothing: it joins the others",
+      "insteadOfHint": "For attacks printed with “or” between them, as “Pound (2d12) or sweep (d12 blast)”. An Attack uses only one of them, and the Attack dialog opens on the harder.",
       "alternateTag": "or {how}",
       "usedUp": "Each Attack uses one",
       "usedUpHint": "Rolling an Attack with it takes one off the count, as throwing a titan bead does.",
@@ -2472,6 +2493,10 @@
           "label": "Individual",
           "hint": "One person, beast or thing."
         },
+        "swarm": {
+          "label": "Swarm",
+          "hint": "Bats, bees or the like. Individual Attacks at a swarm are Impaired unless they are Blast Attacks."
+        },
         "warband": {
           "label": "Warband",
           "hint": "Two-dozen or so fighting as one. Only Blast or large-scale Attacks harm them, and their Attacks on individuals get +d12 and Blast."
@@ -2496,8 +2521,32 @@
         "missing": "somebody no longer here",
         "clear": "Nobody leads from the front"
       },
+      "weakness": {
+        "label": "Weakness",
+        "placeholder": "Such as a hatred of fire",
+        "die": "Bonus die",
+        "dieHint": "What every Attack that uses it gets. A strong foe’s weakness, such as a stone mammoth’s hatred of fire, is worth +d10.",
+        "known": "The Knights know of it",
+        "knownHint": "Once they learn it, say from hunters or those who have fought them, the Attack dialog offers the die against them. Until then nobody attacking them is told."
+      },
       "structure": "Counts as a structure",
       "structureHint": "Only fire, siege weapons or suitably large creatures can harm it.",
+      "wields": {
+        "label": "Wields",
+        "auto": {
+          "label": "By their gear",
+          "hands": "They carry a Hefty, Long or Slow weapon or a shield, so they hold their weapons in two hands, as a Knight does: one Hefty item at a time, a Long weapon on its own.",
+          "free": "They carry no Hefty, Long or Slow weapon and no shield, so every attack joins in at once, as claws and teeth do."
+        },
+        "hands": {
+          "label": "In two hands",
+          "hint": "Held to two hands, as a Knight is: one Hefty item at a time, a Long weapon on its own, and two items at most."
+        },
+        "free": {
+          "label": "All at once",
+          "hint": "Claws, teeth and the like, or more hands than two: every attack joins in at once."
+        }
+      },
       "makeStructure": "Make a Structure",
       "makeStructureHint": "A thing with only GD, such as a wall, ship or siege tower, is better as a Structure actor. A creature that counts as a structure stays an NPC.",
       "featsHint": "Feats are for Knights, but some of the Cast can perform one. Mark the ones this character can.",

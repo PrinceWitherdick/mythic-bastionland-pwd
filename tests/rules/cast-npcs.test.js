@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spreads } from "../../module/rules/book-art.js";
 import { CITY_QUEST_PAGES } from "../../module/rules/city-quest.js";
-import { castActor, cityCastActors, countDocuments, mythCastFolders } from "../../module/rules/cast-npcs.js";
+import { castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../../module/rules/cast-npcs.js";
 import { CITY_CAST } from "../../module/rules/myth-cast.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -56,6 +56,11 @@ describe("castActor", () => {
 
 	it("notes their traits, then the Cast they're in and its page", () => {
 		expect(castActor(heron.cast[0], of, 100, words).system.notes).toBe("<p>Stands very still.</p><p>Of the Cast of the Heron (p32).</p>");
+	});
+
+	it("adds what the book says about the whole Cast after it", () => {
+		expect(castActor(heron.cast[0], { ...of, note: "All of them fear frogs." }, 100, words).system.notes)
+			.toBe("<p>Stands very still.</p><p>Of the Cast of the Heron (p32).</p><p>All of them fear frogs.</p>");
 	});
 
 	it("makes a Structure of one with only GD that counts as one", () => {
@@ -114,5 +119,56 @@ describe("countDocuments", () => {
 	it("counts every actor, however deep", () => {
 		expect(countDocuments(mythCastFolders(index, words))).toBe(4);
 		expect(countDocuments([{ documents: [{}], folders: mythCastFolders(index, words) }])).toBe(5);
+	});
+});
+
+describe("documentsIn", () => {
+	it("gathers every actor, however deep", () => {
+		const folders = [{ documents: [{ name: "a" }], folders: [{ documents: [{ name: "b" }], folders: [{ documents: [{ name: "c" }] }] }] }];
+		expect(documentsIn(folders).map(({ name }) => name)).toEqual(["a", "b", "c"]);
+	});
+});
+
+describe("castNotes", () => {
+	it("keys each Cast's note as a Cast actor's flag names its Cast, leaving out Casts without one", () => {
+		const notes = castNotes({ myths: [{ ...heron, castNote: "All of them fear frogs." }, moth], cityQuest: { cast: [], castNote: "Sworn to the gate." } });
+		expect([...notes]).toEqual([["1-03", "All of them fear frogs."], [CITY_CAST, "Sworn to the gate."]]);
+		expect(castNotes(null).size).toBe(0);
+	});
+});
+
+describe("castDetailUpdates", () => {
+	const npc = (scale, notes) => ({ type: "npc", system: { scale, notes } });
+	const swarm = { system: { scale: "swarm" } };
+
+	it("gives a swarm brought in before its scale, and the Cast's note at the foot of the notes", () => {
+		expect(castDetailUpdates(npc("individual", "<p>Bites.</p>"), swarm, "Bats & more.")).toEqual({
+			"system.scale": "swarm",
+			"system.notes": "<p>Bites.</p><p>Bats &amp; more.</p>"
+		});
+	});
+
+	it("leaves a scale the GM has set, a note already there, and a Cast with none", () => {
+		expect(castDetailUpdates(npc("warband", "<p>Bats &amp; more.</p>"), swarm, "Bats & more.")).toBeNull();
+		expect(castDetailUpdates(npc("individual", ""), { system: { scale: "individual" } }, null)).toBeNull();
+		expect(castDetailUpdates({ type: "structure", system: { notes: "" } }, swarm, "")).toBeNull();
+	});
+});
+
+describe("eitherUpdates", () => {
+	const weapon = (name, either = "", id = name) => ({ id, type: "weapon", name, system: { either } });
+
+	it("marks the attacks printed with \"or\" on a Cast member brought in before", () => {
+		const items = [weapon("Pound", "", "p1"), weapon("Sweep", "", "s1"), weapon("Bite", "", "b1"), { id: "m1", type: "armour", name: "Pound", system: {} }];
+		const printed = [weapon("Pound", "Pound"), weapon("Sweep", "Pound"), weapon("Bite")];
+		expect(eitherUpdates(items, printed)).toEqual([
+			{ _id: "p1", "system.either": "Pound" },
+			{ _id: "s1", "system.either": "Pound" }
+		]);
+	});
+
+	it("leaves weapons already marked, renamed or taken away", () => {
+		const printed = [weapon("Pound", "Pound"), weapon("Sweep", "Pound")];
+		expect(eitherUpdates([weapon("Pound", "Pound", "p1"), weapon("Great sweep", "", "s1")], printed)).toEqual([]);
 	});
 });

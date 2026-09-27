@@ -3,7 +3,7 @@
  * tested without Foundry.
  */
 
-import { GAMBITS } from "../config.js";
+import { GAMBITS, WEAKNESS_DICE } from "../config.js";
 import { MARK_GAMBITS } from "./gambit-marks.js";
 
 /** Die sizes offered for shields, bonuses and Scars. */
@@ -28,6 +28,13 @@ export const dismountLanded = (attack) => attack.gambits.some((gambit) => gambit
 
 /** Gambits the target gets no VIG Save to ignore. */
 export const UNSAVED_GAMBITS = Object.freeze(["bolster", "move"]);
+
+/**
+ * The Virtues a foe may Save in against a Gambit: VIG as the book has it
+ * (p10), or another where the Referee rules so, as a Clarity Save to dodge a
+ * stab at the eye (p187).
+ */
+export const SAVE_VIRTUES = Object.freeze(["vig", "cla", "spi"]);
 
 /** A Strong Gambit adds one of these: No Save for the target, or a Greater effect. */
 export const STRONG_GAMBITS = Object.freeze(["noSave", "greater"]);
@@ -111,7 +118,8 @@ export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays
  * @property {boolean} [slow]         Slow weapons are also Long.
  * @property {boolean} [ranged]
  * @property {boolean} [heftyMounted] Counts as Hefty rather than Long when mounted, as a lance does (p12).
- * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways.
+ * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways,
+ *                                    or the attacks printed with "or" between them that it is one of.
  */
 
 /**
@@ -170,6 +178,132 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	else if (smite && usable.length && usable.every((index) => items[index].ranged)) refusal = "smiteRanged";
 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
+}
+
+/** A shield's name, as "kite shield", "redshield" or "bronze buckler". */
+const SHIELD_NAME = /shield|buckler/i;
+
+/**
+ * Whether an NPC's gear says it holds its weapons in hands (p12): a Hefty,
+ * Long or Slow weapon or a shield is held, as the armed Cast's are. Claws,
+ * teeth and screams carry no such quality, and are all used at once.
+ * @param {{name: string, type: string, system: object}[]} items
+ * @returns {boolean}
+ */
+export function gearHeldInHands(items) {
+	return items.some(({ name, type, system }) => {
+		if (type === "armour") return system.kind === "shield";
+		if (type !== "weapon") return false;
+		return Boolean(system.hefty || system.long || system.slow || system.heftyMounted) || SHIELD_NAME.test(name);
+	});
+}
+
+/**
+ * Whether an NPC is held to what two hands can wield, as a Knight is (p12):
+ * as its sheet says, or else as its gear does.
+ * @param {""|"hands"|"free"} wields
+ * @param {{name: string, type: string, system: object}[]} items
+ * @returns {boolean}
+ */
+export function wieldsInHands(wields, items) {
+	if (wields === "hands") return true;
+	if (wields === "free") return false;
+	return gearHeldInHands(items);
+}
+
+/**
+ * @typedef {object} EitherWeapon A weapon as the "Instead of" choice on a weapon's sheet weighs it.
+ * @property {string|null} id Null for one not added yet.
+ * @property {string} [name]
+ * @property {string} either Shared by attacks printed with "or" between them, or blank.
+ */
+
+/** @param {EitherWeapon} weapon @returns {string} What the attacks used instead of it would share. */
+const eitherKey = (weapon) => weapon.either || weapon.id;
+
+/**
+ * What a weapon's sheet offers it to be used instead of: each other attack,
+ * or each set of attacks already one or the other, as "Pound or sweep".
+ * @param {EitherWeapon} self
+ * @param {EitherWeapon[]} others Its actor's other weapons.
+ * @returns {{options: {key: string, label: string}[], selected: string}} `selected` is blank
+ *   when it joins the others, as it does unless one of them shares its mark.
+ */
+export function insteadOfOptions(self, others) {
+	const groups = new Map();
+	for (const weapon of others) {
+		const key = eitherKey(weapon);
+		groups.set(key, [...(groups.get(key) ?? []), weapon.name]);
+	}
+	const options = [...groups].map(([key, names]) => ({ key, label: names.join(" or ") }));
+	return { options, selected: self.either && groups.has(self.either) ? self.either : "" };
+}
+
+/**
+ * What picking which attack a weapon is used instead of changes: its own mark,
+ * and the one picked, which starts a set of its own if it wasn't in one. A set
+ * left with a single attack in it is no set any more.
+ * @param {EitherWeapon} self
+ * @param {EitherWeapon[]} others Its actor's other weapons.
+ * @param {string} pick A key from insteadOfOptions, or blank to join the others.
+ * @returns {{either: string, others: {_id: string, "system.either": string}[]}} Its new mark, and item updates.
+ */
+export function insteadOfChanges(self, others, pick) {
+	const updates = others
+		.filter((weapon) => pick && !weapon.either && weapon.id === pick)
+		.map((weapon) => ({ _id: weapon.id, "system.either": pick }));
+	if (self.either && self.either !== pick) {
+		const left = others.filter((weapon) => weapon.either === self.either);
+		if (left.length === 1) updates.push({ _id: left[0].id, "system.either": "" });
+	}
+	return { either: pick, others: updates };
+}
+
+/**
+ * Whether a steed's trample joins a charge at these targets (p10): only
+ * enemies on foot are trampled, so not a rider, a ship or a wall. With no
+ * target known, the charging player's word is taken.
+ * @param {{mounted?: boolean, structure?: boolean}[]} targets
+ * @returns {boolean}
+ */
+export function trampleJoins(targets) {
+	return !targets.length || targets.some(({ mounted = false, structure = false }) => !mounted && !structure);
+}
+
+/**
+ * Whether a card is Impaired for striking at a swarm, whose foes' individual
+ * attacks are Impaired unless they are Blast attacks (p61). A Warband's Attack
+ * is no individual's, so it isn't.
+ * @param {{blast?: boolean, largeScale?: boolean}} attack
+ * @param {{swarm?: boolean}[]} targets The card's targets.
+ * @returns {boolean}
+ */
+export function swarmImpairs({ blast = false, largeScale = false }, targets) {
+	return !blast && !largeScale && targets.some(({ swarm = false }) => swarm);
+}
+
+/**
+ * A foe's weakness once the Knights have learned it, which gives every Attack
+ * that uses it a bonus die (p188). One nobody knows of yet gives nothing, and
+ * isn't shown to whoever attacks.
+ * @param {object} [system] An actor's system data.
+ * @returns {{text: string, die: string}|null}
+ */
+export function knownWeakness(system) {
+	const weakness = system?.weakness;
+	if (!weakness?.known || !WEAKNESS_DICE.includes(weakness.die)) return null;
+	return { text: String(weakness.text ?? "").trim(), die: weakness.die };
+}
+
+/**
+ * The die an Attack gains from the weaknesses it uses. A card at several foes
+ * gets one bonus, not one for each, so the biggest die stands for them all.
+ * @param {{die: string}[]} weaknesses
+ * @returns {number|null} The die's faces, or null for none.
+ */
+export function weaknessFaces(weaknesses) {
+	const faces = weaknesses.flatMap(({ die }) => parseDice(die));
+	return faces.length ? Math.max(...faces) : null;
 }
 
 /**
@@ -279,6 +413,12 @@ export function sortDice(dice) {
  * @returns {boolean}
  */
 export const gambitAllowsSave = (gambit) => !UNSAVED_GAMBITS.includes(gambit.key) && gambit.strong !== "noSave";
+
+/**
+ * @param {Gambit} gambit
+ * @returns {string} The Virtue the foe Saves in against it, one of SAVE_VIRTUES.
+ */
+export const gambitSaveVirtue = (gambit) => (SAVE_VIRTUES.includes(gambit?.saveIn) ? gambit.saveIn : SAVE_VIRTUES[0]);
 
 /**
  * @param {Gambit} gambit
@@ -414,6 +554,8 @@ export function canDeny(attack, { uuid, fatigued = false }) {
  * @returns {AttackState|null}
  */
 export function changeAttack(attack, change) {
+	// A Gambit Saved against in a Virtue other than VIG remembers which (p187).
+	const saveInOf = ({ saveIn }) => (SAVE_VIRTUES.includes(saveIn) && saveIn !== SAVE_VIRTUES[0] ? { saveIn } : {});
 	if (!attack) return null;
 
 	// A mark holds into the turns after the Damage, so it can still be cleared.
@@ -428,7 +570,7 @@ export function changeAttack(attack, change) {
 		case "gambit": {
 			if (!GAMBITS.includes(change.key) || !canFundGambit(attack, change.die)) return null;
 			const strong = STRONG_GAMBITS.includes(change.strong) && canFundStrongGambit(attack, change.die) ? change.strong : null;
-			return { ...attack, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false }] };
+			return { ...attack, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false, ...saveInOf(change) }] };
 		}
 		case "withdraw": {
 			const index = attack.gambits.findIndex((gambit) => gambit.die !== null && gambit.die === change.die);
@@ -440,7 +582,7 @@ export function changeAttack(attack, change) {
 			if (attack.impaired || !GAMBITS.includes(change.key) || hasUsedFeat(attack, "focus", change.actor)) return null;
 			return {
 				...attack,
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save) }],
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), ...saveInOf(change) }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
 		}

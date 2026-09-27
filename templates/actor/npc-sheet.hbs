@@ -46,6 +46,17 @@
 					{{/each}}
 				</ul>
 				{{/if}}
+				{{#if wields.length}}
+				{{!-- How they hold their weapons: two hands limit an Attack as a Knight's (p12), claws and teeth don't. --}}
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.wields.label"}}</h2>
+				<ul class="bastionland-choices bastionland-choices--inline">
+					{{#each wields}}
+					<li>
+						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setWields" data-wields="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+					</li>
+					{{/each}}
+				</ul>
+				{{/if}}
 				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.structureHint'}}">
 					<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
 					<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
@@ -53,6 +64,21 @@
 				{{#if system.structure}}{{#if editable}}
 				<button type="button" class="bastionland-button" data-action="makeStructure" data-tooltip="{{localize 'bastionland.npc.makeStructureHint'}}"><i class="fa-solid fa-chess-rook" inert></i> {{localize "bastionland.npc.makeStructure"}}</button>
 				{{/if}}{{/if}}
+			</section>
+
+			{{!-- What can be turned against them. Once the Knights learn it, every Attack that uses it gets the die (p188). --}}
+			<section class="bastionland-block bastionland-npc-weakness">
+				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.weakness.label"}}</h2>
+				<input class="bastionland-blank bastionland-npc-weakness__text" type="text" name="system.weakness.text" value="{{system.weakness.text}}" placeholder="{{localize 'bastionland.npc.weakness.placeholder'}}" aria-label="{{localize 'bastionland.npc.weakness.label'}}" autocomplete="off">
+				<div class="bastionland-npc-weakness__row">
+					<select name="system.weakness.die" aria-label="{{localize 'bastionland.npc.weakness.die'}}" data-tooltip="{{localize 'bastionland.npc.weakness.dieHint'}}" {{#unless editable}}disabled{{/unless}}>
+						{{selectOptions weaknessDice selected=system.weakness.die}}
+					</select>
+					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.weakness.knownHint'}}">
+						<input type="checkbox" name="system.weakness.known" {{checked system.weakness.known}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.npc.weakness.known"}}</span>
+					</label>
+				</div>
 			</section>
 
 			<section class="bastionland-block">

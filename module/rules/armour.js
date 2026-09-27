@@ -92,6 +92,70 @@ export function shieldwallBearing(pieces) {
 	return shields.some((piece) => !piece.buckler) ? "shield" : "buckler";
 }
 
+/**
+ * What an NPC brings to a shieldwall, read off its Armour note ("mail,
+ * shield" or "leather, buckler"), since its Armour is one number.
+ * @param {string} note
+ * @returns {"shield"|"buckler"|null}
+ */
+export function noteBearing(note) {
+	if (noteNamesShield(note)) return "shield";
+	return /buckler/i.test(String(note ?? "")) ? "buckler" : null;
+}
+
+/**
+ * @typedef {object} WallStander Somebody on the map, as a shieldwall weighs them.
+ * @property {string} name
+ * @property {"shield"|"buckler"|null} bearing From shieldwallBearing or noteBearing.
+ * @property {{x: number, y: number, w: number, h: number}} box Where their Token stands, in pixels.
+ */
+
+/**
+ * Whether two Tokens stand side by side: their boxes touch, or all but touch,
+ * across less than half a grid space, corners included.
+ * @param {WallStander["box"]} a
+ * @param {WallStander["box"]} b
+ * @param {number} size One grid space, in pixels.
+ * @returns {boolean}
+ */
+export function standTogether(a, b, size) {
+	const gapX = Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w);
+	const gapY = Math.max(a.y, b.y) - Math.min(a.y + a.h, b.y + b.h);
+	return gapX < size / 2 && gapY < size / 2;
+}
+
+/**
+ * The wall formation somebody struck stands in (p10): them, each ally beside
+ * them, each ally beside one of those, and so on. 3 or more allies make a
+ * wall, which gains a point of Armour if they all bear shields, not bucklers.
+ * @param {WallStander} struck
+ * @param {WallStander[]} allies Everybody else on their side.
+ * @param {number} size One grid space, in pixels.
+ * @returns {{count: number, formed: boolean, unshielded: string[]}} `count` includes whoever
+ *   was struck, and `unshielded` names those in it with no shield, or only a buckler.
+ */
+export function shieldwallAround(struck, allies, size) {
+	const wall = [struck];
+	const left = [...allies];
+	for (let i = 0; i < wall.length; i++) {
+		for (let j = left.length - 1; j >= 0; j--) {
+			if (standTogether(wall[i].box, left[j].box, size)) wall.push(...left.splice(j, 1));
+		}
+	}
+	const unshielded = wall.filter((each) => each.bearing !== "shield").map((each) => each.name);
+	return { count: wall.length, formed: wall.length >= 3 && !unshielded.length, unshielded };
+}
+
+/**
+ * Whether an NPC's Armour note names a shield, as "mail, helm, shield" or
+ * "ringmail, redshield" do.
+ * @param {string} note
+ * @returns {boolean}
+ */
+export function noteNamesShield(note) {
+	return /shield/i.test(String(note ?? ""));
+}
+
 /** Words that say a weapon is made of wood, and could be broken by a Strong Gambit (p10). */
 const WOODEN_WEAPON = /\b(?:wood(?:en)?|oak\w*|branch\w*|root\w*|staff|longstaff|club|cudgel|stick|bow|longbow|shortbow|curvebow|crossbow)\b/i;
 /** Metal a shield might be made of, rather than wood. */

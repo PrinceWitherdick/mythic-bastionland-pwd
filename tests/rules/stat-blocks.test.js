@@ -87,7 +87,7 @@ describe("parseAttacks", () => {
 		expect(parseAttacks("Hookstaff (d10 long, +d6 vs riders) or kick (d4)")).toEqual({
 			attacks: [
 				{ name: "Hookstaff", damage: "d10", qualities: ["long"], note: "+d6 vs riders" },
-				{ name: "kick", damage: "d4", qualities: [], note: "" }
+				{ name: "kick", damage: "d4", qualities: [], note: "", or: true }
 			],
 			rest: ""
 		});
@@ -179,10 +179,24 @@ describe("npcFromStatBlock", () => {
 					nonLethal: false,
 					trample: false,
 					heftyMounted: false,
-					description: "<p>+d6 vs the unlit</p>"
+					description: "<p>+d6 vs the unlit</p>",
+					either: "Wick-hook"
 				}
 			},
-			{ type: "weapon", name: "Snuffer", system: expect.objectContaining({ damage: "d6", blast: true, description: "" }) }
+			{ type: "weapon", name: "Snuffer", system: expect.objectContaining({ damage: "d6", blast: true, description: "", either: "Wick-hook" }) }
+		]);
+	});
+
+	it("makes attacks printed with \"or\" one or the other, and leaves those listed with commas or \"and\" together", () => {
+		const either = (lines) => npcFromStatBlock({ name: "Beast", stats: null, lines }).items.map((item) => [item.name, item.system.either ?? ""]);
+		expect(either(["Lash (d10 blast) or gnaw (3d10 slow) or spray with grit (d8 blast)"])).toEqual([
+			["Lash", "Lash"], ["Gnaw", "Lash"], ["Spray with grit", "Lash"]
+		]);
+		expect(either(["Hooked talons (2d8) and tail (d10 blast)", "Barbs (2d6), sour spit (d8)"])).toEqual([
+			["Hooked talons", ""], ["Tail", ""], ["Barbs", ""], ["Sour spit", ""]
+		]);
+		expect(either(["Pincers (2d4) or cold fire (d6 blast), bite (d6)"])).toEqual([
+			["Pincers", "Pincers"], ["Cold fire", "Pincers"], ["Bite", ""]
 		]);
 	});
 
@@ -194,6 +208,13 @@ describe("npcFromStatBlock", () => {
 		const riders = npcFromStatBlock({ name: "Moth Riders, Warband", stats: null });
 		expect(riders.system).toMatchObject({ scale: "warband" });
 		expect(riders.system).not.toHaveProperty("guard");
+	});
+
+	it("marks a swarm by its rule, even where the line breaks inside it (p61)", () => {
+		const bats = npcFromStatBlock({ name: "Enthralled Bat Swarm", stats: null, lines: ["Bites (3d6), individual attacks are Impaired", "unless they are Blast attacks."] });
+		expect(bats.system.scale).toBe("swarm");
+		expect(npcFromStatBlock({ name: "Foxes of the Imp's Court", stats: null, lines: ["Bite (d4), smouldering tails"] }).system.scale).toBe("individual");
+		expect(npcFromStatBlock({ name: "Clawed Bee Swarm, Warband", stats: null, lines: ["Claws and stings (d6)"] }).system.scale).toBe("warband");
 	});
 
 	it("names an attack printed without a name, and escapes notes", () => {

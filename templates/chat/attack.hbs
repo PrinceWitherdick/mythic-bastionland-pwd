@@ -11,6 +11,9 @@
 	{{> "bastionland.save-result" save=smite.save}}
 	<p class="bastionland-card__outcome">{{smite.outcome}}</p>
 	{{/if}}
+	{{#if smiteMark}}
+	<p class="bastionland-card__hint">{{smiteMark}}</p>
+	{{/if}}
 
 	<ol class="bastionland-dice">
 		{{#each dice}}
@@ -86,7 +89,7 @@
 	<p class="bastionland-card__warning">{{this}}</p>
 	{{/each}}
 	{{#if impaired}}
-	<p class="bastionland-card__warning">{{#if confined}}{{localize "bastionland.attack.confinedImpaired"}}{{else}}{{localize "bastionland.attack.impaired"}}{{/if}}</p>
+	<p class="bastionland-card__warning">{{#if confined}}{{localize "bastionland.attack.confinedImpaired"}}{{else if swarm}}{{localize "bastionland.attack.swarmImpaired"}}{{else}}{{localize "bastionland.attack.impaired"}}{{/if}}</p>
 	{{/if}}
 	{{#if blast}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.blast"}}</strong>: {{localize "bastionland.attack.blastHint"}}</p>

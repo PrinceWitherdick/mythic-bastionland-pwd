@@ -188,6 +188,13 @@ describe("the Gambit's Save", () => {
 		expect(chooseDialog).not.toHaveBeenCalled();
 		expect(rollSave).toHaveBeenCalledWith(tokens["Scene.s.Token.k"].actor, "vig");
 	});
+
+	it("rolls the Virtue the Gambit was declared with, as a CLA Save to dodge a stab (p187)", async () => {
+		rollSave.mockResolvedValue({ roll: { total: 9 }, value: 12, passed: true });
+		const card = renderCard(attackState({ gambits: [{ key: "impair", save: null, saveIn: "cla" }] }));
+		await card.click("gambit-save");
+		expect(rollSave).toHaveBeenCalledWith(tokens["Scene.s.Token.k"].actor, "cla");
+	});
 });
 
 describe("applying the Damage", () => {

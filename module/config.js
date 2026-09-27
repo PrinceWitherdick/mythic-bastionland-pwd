@@ -37,7 +37,19 @@ export const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "wounded"
 export const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
 
 /** An NPC is one person or creature, or a Warband of two dozen or so fighting as one (Warfare, p11). */
-export const NPC_SCALES = Object.freeze(["individual", "warband"]);
+export const NPC_SCALES = Object.freeze(["individual", "swarm", "warband"]);
+
+/**
+ * How an NPC holds its weapons, when its gear doesn't say: in two hands as a
+ * Knight does (p12), or all at once, as claws and teeth are. Blank reads it off its gear.
+ */
+export const NPC_WIELDS = Object.freeze(["hands", "free"]);
+
+/**
+ * The dice a foe's weakness can add to every Attack against them once the
+ * Knights have learned it. A stone mammoth's hatred of fire is worth +d10 (p188).
+ */
+export const WEAKNESS_DICE = Object.freeze(["d6", "d8", "d10", "d12"]);
 
 /** Gambits in the order the character sheet prints them. */
 export const GAMBITS = Object.freeze(["bolster", "move", "repel", "stop", "impair", "trap", "dismount", "other"]);

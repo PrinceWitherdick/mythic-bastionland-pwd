@@ -2477,7 +2477,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	line-height: 1.15;
 }
 
-.bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-armour-note) {
+.bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-armour-note, .bastionland-npc-weakness__text) {
 	flex: none;
 	width: 100%;
 	max-width: none;
@@ -2525,6 +2525,18 @@ button.bastionland-seer__stat:not(:disabled):hover {
 .bastionland-page .bastionland-npc-armour-note {
 	margin-top: -0.6rem;
 	font-size: 1rem;
+}
+
+.bastionland-npc-weakness__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.8rem;
+}
+
+.bastionland-npc-weakness__row select {
+	flex: none;
+	width: auto;
 }
 
 .bastionland-choices--inline {

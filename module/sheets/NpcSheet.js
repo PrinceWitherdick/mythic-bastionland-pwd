@@ -3,8 +3,9 @@ import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { strainWarband } from "../actions/warbands.js";
-import { t } from "../chat/cards.js";
-import { AGES, FEATS, NPC_SCALES } from "../config.js";
+import { keyChoices, t } from "../chat/cards.js";
+import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
+import { gearHeldInHands } from "../rules/attack.js";
 import { ownerOf } from "../rules/property.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
@@ -34,6 +35,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			upkeep: NpcSheet.#onUpkeep,
 			setScale: NpcSheet.#onSetScale,
 			setAge: NpcSheet.#onSetAge,
+			setWields: NpcSheet.#onSetWields,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
 			openOwner: NpcSheet.#onOpenOwner,
@@ -58,6 +60,8 @@ export class NpcSheet extends BastionlandActorSheet {
 		return Object.assign(context, {
 			// A Warband has no Age of its own; anybody else may be given one.
 			ages: this.actor.system.scale === "warband" ? [] : AGES.map((key) => ({ key, label: t(`age.${key}`), active: this.actor.system.age === key })),
+			wields: this.#wieldsChoices(),
+			weaknessDice: Object.fromEntries(WEAKNESS_DICE.map((die) => [die, `+${die}`])),
 			scales: NPC_SCALES.map((key) => ({
 				key,
 				label: t(`npc.scales.${key}.label`),
@@ -173,6 +177,26 @@ export class NpcSheet extends BastionlandActorSheet {
 		// Clicking the Age they are forgets it again.
 		if (age === this.actor.system.age) return this.actor.update({ "system.age": "" });
 		return changeAge(this.actor, age);
+	}
+
+	/**
+	 * How they hold their weapons (p12): read off their gear, or said outright.
+	 * A Warband's Attack is its members', so it isn't asked.
+	 * @returns {{key: string, label: string, hint: string, active: boolean}[]}
+	 */
+	#wieldsChoices() {
+		const system = this.actor.system;
+		if (system.scale === "warband") return [];
+		const reading = gearHeldInHands([...this.actor.items]) ? "hands" : "free";
+		return [
+			{ key: "", label: t("npc.wields.auto.label"), hint: t(`npc.wields.auto.${reading}`), active: !system.wields },
+			...keyChoices(NPC_WIELDS, "npc.wields", { mark: "active", chosen: system.wields })
+		];
+	}
+
+	/** @this {NpcSheet} */
+	static #onSetWields(_event, target) {
+		return this.actor.update({ "system.wields": target.dataset.wields ?? "" });
 	}
 
 	/** @this {NpcSheet} */

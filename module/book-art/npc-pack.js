@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
-import { cityCastActors, countDocuments, mythCastFolders } from "../rules/cast-npcs.js";
+import { castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../rules/cast-npcs.js";
+import { CAST_FLAG } from "../rules/myth-cast.js";
 import { seerFolders } from "../rules/seer-npcs.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { loadArtIndex } from "./art-index.js";
@@ -34,6 +35,15 @@ const OLD_PACKS = Object.freeze(["bastionland-seers"]);
 
 /** The world setup step that fills it for a world that imported the book before it existed. */
 export const NPC_PACK_STEP = "npcPack";
+
+/** The world setup step that reads attacks printed with "or" as one or the other, for a world imported before. */
+export const OR_ATTACKS_STEP = "npcOrAttacks";
+
+/** The world setup step that gives a world imported before them the swarms' scale and the Cast notes. */
+export const CAST_DETAILS_STEP = "npcCastDetails";
+
+/** Whether this load has filled the compendium already, so the step above needn't again. */
+let filledThisLoad = false;
 
 /**
  * The compendium's folders: the Seers by d6, the Myths by d6 and then by
@@ -97,6 +107,7 @@ export async function fillNpcPack(index) {
 	if (!seers && !cast) return { seers, cast };
 	const { label, ...metadata } = NPC_PACK;
 	await fillPack({ ...metadata, label: t(label) }, folders);
+	filledThisLoad = true;
 	await dropOldPacks();
 	return { seers, cast };
 }
@@ -115,5 +126,60 @@ export async function seedNpcPack() {
 	if (!index) return true;
 	const counts = await fillNpcPack(index);
 	if (counts.seers || counts.cast) ui.notifications.info(t("npcPack.seeded", { ...counts, pack: t(NPC_PACK.label) }));
+	return true;
+}
+
+/**
+ * A world setup step for a world that imported the book before attacks printed
+ * with "or" were read as one or the other, as "Crush (2d12) or sweep (d12 blast)".
+ * The NPCs compendium is filled again from the book's text, and each of a
+ * Cast already brought into the world has those attacks marked, keeping
+ * everything else about them as it is.
+ * @returns {Promise<boolean>} Always done: a world without the book's text has none to mark.
+ */
+export function markOrAttacks() {
+	return patchWorldCast(async (actor, data) => {
+		const updates = eitherUpdates([...actor.items], data.items);
+		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+	});
+}
+
+/**
+ * A world setup step for a world that imported the book before a swarm was
+ * one (p61) and before each of a Cast carried what the book says about the
+ * whole Cast. The NPCs compendium is filled again, and each of a Cast already
+ * in the world is given what it's owed, keeping everything else as it is.
+ * @returns {Promise<boolean>} Always done: a world without the book's text has nothing to give.
+ */
+export function fillCastDetails() {
+	let notes = null;
+	return patchWorldCast(async (actor, data, index) => {
+		notes ??= castNotes(index);
+		const update = castDetailUpdates(actor, data, notes.get(actor.getFlag(SYSTEM_ID, CAST_FLAG).myth));
+		if (update) await actor.update(update);
+	});
+}
+
+/**
+ * Fill the NPCs compendium again from the book this world imported, unless
+ * this load has already, then patch each of a Cast already brought into the
+ * world against its stat block as the book gives it now.
+ * @param {(actor: Actor, printed: object, index: object) => Promise<void>} patch
+ * @returns {Promise<boolean>} Always done: a world without the book's text has none to patch.
+ */
+async function patchWorldCast(patch) {
+	const index = await loadArtIndex();
+	if (!index) return true;
+	if (!filledThisLoad && game.packs.get(`world.${NPC_PACK.name}`)) await fillNpcPack(index);
+	const key = ({ myth, from }) => `${myth}|${from}`;
+	const printed = new Map(documentsIn(npcFolders(index).folders)
+		.filter((data) => data.flags?.[SYSTEM_ID]?.[CAST_FLAG])
+		.map((data) => [key(data.flags[SYSTEM_ID][CAST_FLAG]), data]));
+	// Each patches an actor of its own, so they needn't wait on one another.
+	await Promise.all(game.actors.map((actor) => {
+		const flag = actor.getFlag(SYSTEM_ID, CAST_FLAG);
+		const data = flag?.from ? printed.get(key(flag)) : null;
+		return data ? patch(actor, data, index) : null;
+	}));
 	return true;
 }

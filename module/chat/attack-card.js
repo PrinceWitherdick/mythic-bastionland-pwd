@@ -6,15 +6,17 @@ import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
 import {
+	DISMOUNT_FACES,
+	SAVE_VIRTUES,
+	STRONG_GAMBITS,
 	attackDamage,
 	canFundGambit,
 	canFundStrongGambit,
 	changeAttack,
-	DISMOUNT_FACES,
 	gambitAllowsSave,
+	gambitSaveVirtue,
 	hasUsedFeat,
-	isDieSpent,
-	STRONG_GAMBITS
+	isDieSpent
 } from "../rules/attack.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
@@ -118,6 +120,7 @@ async function onChangeQuery(data, context) {
  * @returns {Promise<{key: string, strong: string|null}|null>}
  */
 async function chooseGambit({ source, strong }) {
+	const virtue = (key) => t(`virtues.${key}.abbr`);
 	const data = await inputDialog({
 		title: t("gambits.label"),
 		icon: "fa-solid fa-chess-knight",
@@ -125,12 +128,13 @@ async function chooseGambit({ source, strong }) {
 		context: {
 			source,
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
-			strong: strong ? STRONG_GAMBITS.map((key) => ({ key, label: t(`attack.strong.${key}`) })) : null
+			strong: strong ? STRONG_GAMBITS.map((key) => ({ key, label: t(`attack.strong.${key}`) })) : null,
+			saves: SAVE_VIRTUES.map((key, index) => ({ key, label: t("attack.saveIn", { virtue: virtue(key) }), selected: index === 0 }))
 		},
 		ok: { label: t("attack.declare") }
 	});
 	if (!data || !GAMBITS.includes(data.gambit)) return null;
-	return { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null };
+	return { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null, saveIn: SAVE_VIRTUES.includes(data.saveIn) ? data.saveIn : SAVE_VIRTUES[0] };
 }
 
 /**
@@ -181,6 +185,7 @@ async function onFocus(message) {
 	await saveChange(message, {
 		type: "focus",
 		key: choice.key,
+		saveIn: choice.saveIn,
 		actor: attacker.uuid,
 		bonus: await rollDismount(choice.key),
 		save: { by: attacker.name, total: save.roll.total, target: save.value, passed: save.passed }
@@ -226,9 +231,9 @@ function answerers(pool, attack, also = () => true) {
 async function chooseSaver(actors, gambit) {
 	if (actors.length === 1) return actors[0];
 	const action = await chooseDialog({
-		title: t("attack.gambitSave"),
+		title: t("attack.gambitSave", { virtue: t(`virtues.${gambitSaveVirtue(gambit)}.abbr`) }),
 		icon: "fa-solid fa-dice-d20",
-		message: t("attack.whoSaves", { gambit: t(`gambits.names.${gambit.key}`) }),
+		message: t("attack.whoSaves", { gambit: t(`gambits.names.${gambit.key}`), virtue: t(`virtues.${gambitSaveVirtue(gambit)}.abbr`) }),
 		buttons: actors.map((actor, index) => ({ action: String(index), label: actor.name, default: index === 0 }))
 	});
 	// Closing the window answers with null, which is nobody rather than the first of them.
@@ -251,7 +256,7 @@ async function onGambitSave(message, button) {
 	const saver = await chooseSaver(candidates, gambit);
 	if (!saver) return;
 
-	const save = await rollSave(saver, "vig");
+	const save = await rollSave(saver, gambitSaveVirtue(gambit));
 	await saveChange(message, {
 		type: "gambitSave",
 		index,

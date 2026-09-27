@@ -12,12 +12,18 @@ import {
 	defaultWielded,
 	gambitAllowsSave,
 	gambitIgnored,
+	gambitSaveVirtue,
 	hasDeniableDie,
 	isDieSpent,
+	knownWeakness,
 	parseDice,
 	sortDice,
 	specialistDie,
-	summarizeAttack
+	summarizeAttack,
+	swarmImpairs,
+	trampleJoins,
+	weaknessFaces,
+	wieldsInHands
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
@@ -96,8 +102,9 @@ function armedWith(actor) {
 			id: item.id,
 			name: item.name,
 			item,
-			// Both ways of a weapon fought two ways name it, so only one of them is ticked.
-			system: { ...Object.fromEntries(WIELDED_KEYS.map((key) => [key, item.system[key]])), of: item.id }
+			// Both ways of a weapon fought two ways name it, so only one of them is ticked, and
+			// so do attacks printed with "or" between them.
+			system: { ...Object.fromEntries(WIELDED_KEYS.map((key) => [key, item.system[key]])), of: item.system.either || item.id }
 		}));
 }
 
@@ -146,6 +153,65 @@ function currentTargets() {
 }
 
 /**
+ * How a targeted Token stands: whether it's mounted or a structure, for a
+ * steed's trample, which only joins a charge at enemies on foot (p10), and
+ * whether it's a swarm, whose foes' individual attacks are Impaired unless
+ * they are Blast attacks (p61). A Token whose actor can't be found is taken to
+ * be one person on foot.
+ * @param {{uuid: string}} target
+ * @returns {{mounted: boolean, structure: boolean, swarm: boolean}}
+ */
+function standingOf({ uuid }) {
+	const actor = fromUuidSync(uuid)?.actor;
+	if (!actor) return { mounted: false, structure: false, swarm: false };
+	return {
+		mounted: Boolean(actor.system.conditions?.mounted),
+		structure: actor.type === "structure" || Boolean(actor.system.structure),
+		swarm: actor.type === "npc" && actor.system.scale === "swarm"
+	};
+}
+
+/**
+ * Why a charge's trample can't join an Attack at these targets, for the Attack
+ * dialog to say beside its charge box.
+ * @param {{uuid: string, name: string}[]} targets
+ * @returns {string|null} Null when it joins, or nobody is targeted yet.
+ */
+function trampleBarred(targets) {
+	if (trampleJoins(targets.map(standingOf))) return null;
+	return t("attack.chargeBarred", { names: targets.map(({ name }) => name).join(", ") });
+}
+
+/**
+ * The weaknesses of these targets that the Knights have learned, each of which
+ * gives every Attack that uses it a bonus die (p188). The Attack dialog offers
+ * them ticked, to be unticked for a blow that doesn't use it.
+ * @param {{uuid: string, name: string}[]} targets
+ * @returns {{uuid: string, name: string, text: string, die: string}[]}
+ */
+function weaknessesOf(targets) {
+	return targets.flatMap((target) => {
+		const weakness = knownWeakness(fromUuidSync(target.uuid)?.actor?.system);
+		return weakness ? [{ ...target, ...weakness }] : [];
+	});
+}
+
+/**
+ * The die a card at these targets gains from the weaknesses ticked in the
+ * Attack dialog, one die however many of them it hits.
+ * @param {{uuid: string}[]} group The card's targets.
+ * @param {ReturnType<typeof weaknessesOf>} used The weaknesses ticked.
+ * @returns {{faces: number, label: string}[]}
+ */
+function weaknessDice(group, used) {
+	const hit = used.filter((weakness) => group.some((target) => target.uuid === weakness.uuid));
+	const faces = weaknessFaces(hit);
+	if (!faces) return [];
+	const { text } = hit.find((weakness) => parseDice(weakness.die)[0] === faces);
+	return [{ faces, label: text ? t("attack.weaknessDie", { text }) : t("attack.weaknessDieBare") }];
+}
+
+/**
  * Whether the actor's Token has moved this turn. Foundry records movement only
  * while a combat is running, and clears it as each turn starts.
  * @param {Actor} actor
@@ -153,6 +219,19 @@ function currentTargets() {
  */
 function movedThisTurn(actor) {
 	return actor.getActiveTokens(false, true).some((token) => token.combatant?.parent?.started && token.movementHistory.length > 0);
+}
+
+/**
+ * Whether an Attack is held to what two hands can wield (p12): always for a
+ * Knight, never for a Warband, whose Attack is its members', and for anybody
+ * else as their sheet or their gear says.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function countsHands(actor) {
+	if (actor.type === "knight") return true;
+	if (actor.type !== "npc" || actor.system.scale === "warband") return false;
+	return wieldsInHands(actor.system.wields, [...actor.items]);
 }
 
 /**
@@ -173,8 +252,7 @@ function readWielding(actor, sources, choice) {
 		mounted: Boolean(choice.mounted || choice.charge),
 		spearwall: Boolean(choice.spearwall),
 		smite: Boolean(choice.smite),
-		// Stat blocks don't say how the Cast hold their attacks, so only Knights count hands.
-		hands: actor.type === "knight"
+		hands: countsHands(actor)
 	});
 	return { chosen, check };
 }
@@ -235,7 +313,7 @@ function watchWielding(dialog, actor, sources) {
  */
 function openingWielded(actor, sources, remembered, mounted) {
 	const items = sources.map((item) => item.system);
-	const options = { mounted, hands: actor.type === "knight" };
+	const options = { mounted, hands: countsHands(actor) };
 	const hardest = defaultWielded(items, options);
 	if (!remembered) return hardest;
 	const kept = wieldedWith(remembered, sources.map((item) => item.id), hardest);
@@ -269,6 +347,11 @@ export async function attack(actor) {
 	// riding, steed or no, until they say so.
 	const mounted = duel?.duel.kind === "joust" || Boolean(conditions.mounted) || Boolean(remembered?.mounted);
 	const wielded = openingWielded(actor, sources, remembered, mounted);
+	// Who the Attack is aimed at as the dialog opens: the other duelist in a duel.
+	const aimedAt = duel?.opponent.token ? [{ uuid: duel.opponent.token, name: duel.opponent.name }] : currentTargets();
+	// Nobody on foot among the targets leaves the steed nobody to trample.
+	const chargeBarred = mount ? trampleBarred(aimedAt) : null;
+	const weaknesses = weaknessesOf(aimedAt);
 
 	const data = await inputDialog({
 		title: t("attack.title"),
@@ -292,9 +375,15 @@ export async function attack(actor) {
 			mounted,
 			duel: duel && t("duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
 			charge: mount && t("attack.charge", { steed: mount.steed.name, dice: mount.trample.map((item) => item.system.damage).join(" + ") }),
+			chargeBarred,
 			exhausted: conditions.exhausted,
 			impaired: startsImpaired,
-			marks: marks.map((mark) => mark.hint),
+			// A swarm aimed at is named, so a Blast, which isn't Impaired by it, can be chosen before rolling.
+			marks: [...marks.map((mark) => mark.hint), ...aimedAt.filter((target) => standingOf(target).swarm).map(({ name }) => t("attack.swarmHint", { name }))],
+			weaknesses: weaknesses.map(({ name, text, die }, index) => ({
+				index,
+				label: text ? t("attack.weakness", { name, text, die }) : t("attack.weaknessBare", { name, die })
+			})),
 			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length || !actor.system.knowsFeat("smite"),
 			warband,
 			leaders: leaders.map((leader) => ({ uuid: leader.uuid, name: leader.name, selected: leader.uuid === actor.system.leader }))
@@ -321,12 +410,12 @@ export async function attack(actor) {
 	// What rolls, each group's dice labelled with the item or whoever brings them.
 	const weaponGroups = [
 		{ items: chosen, label: null },
-		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name },
+		{ items: mount && choice.charge ? mount.trample : [], label: mount?.steed.name, trample: true },
 		{ items: leader ? armedWith(leader).filter(({ item }) => isAtHand(item.system)) : [], label: leader?.name }
 	];
 	const weaponItems = weaponGroups.flatMap(({ items }) => items);
-	const weaponDice = weaponGroups.flatMap(({ items, label }) =>
-		items.flatMap((item) => parseDice(item.system.damage).map((faces) => ({ faces, label: label ?? item.name }))));
+	const weaponDice = weaponGroups.flatMap(({ items, label, trample = false }) =>
+		items.flatMap((item) => parseDice(item.system.damage).map((faces) => ({ faces, label: label ?? item.name, trample }))));
 	// They share the Warband's Damage until their next turn, so the Warband remembers who leads it,
 	// and forgets a leader who no longer does.
 	const leaderUuid = leader?.uuid ?? "";
@@ -349,8 +438,11 @@ export async function attack(actor) {
 		const die = specialistDie(item.system);
 		if (die) bonusDice.push(...parseDice(die).map((faces) => ({ faces, label: t("attack.specialistDie", { name: item.name }) })));
 	}
+	// Smite for a lasting mark adds no dice: the Wound it deals leaves the mark (p187).
 	if (smite?.mode === "d12") bonusDice.push({ faces: 12, label: t("feats.smite.name") });
 	if (againstIndividuals) bonusDice.push({ faces: 12, label: t("npc.scales.warband.label") });
+	// A known weakness joins each card at whoever has it, and only while it's ticked.
+	const exploited = weaknesses.filter((_weakness, index) => choice.weakness?.[index]);
 
 	const pool = buildAttackPool({
 		sources: weaponItems.map((item) => item.system.damage),
@@ -396,6 +488,8 @@ export async function attack(actor) {
 		}),
 		leader: leader ? { uuid: leader.uuid, name: leader.name } : null,
 		smite: smite?.feat ?? null,
+		// A Smite made to leave a lasting mark rather than more Damage, which a Wound brings (p187).
+		smiteMark: smite?.mode === "mark",
 		duel: inDuel?.message.id ?? null,
 		gambits: [],
 		feats: [],
@@ -406,9 +500,23 @@ export async function attack(actor) {
 
 	const messages = [];
 	for (const [index, group] of groups.entries()) {
-		const roll = await new Roll(dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
-		const rolled = dice.map((die, i) => ({ ...die, result: roll.dice[i].total, deniedBy: null }));
+		// A steed tramples only enemies on foot (p10), so a card at riders alone leaves its dice out,
+		// and a charge that was all trample fights them unarmed.
+		const standing = group.map(standingOf);
+		const trampleOut = weaponDice.some((die) => die.trample) && !trampleJoins(standing);
+		const unarmed = trampleOut && !pool.impaired && weaponDice.every((die) => die.trample);
+		// An individual's Attack at a swarm is Impaired unless it's a Blast (p61).
+		const swarmed = !pool.impaired && !unarmed && swarmImpairs(shared, standing);
+		// An Impaired Attack rolls its d4 alone, known weakness or not.
+		const cardDice = unarmed || swarmed
+			? [{ faces: 4, label: t(unarmed ? "attack.unarmed" : "npc.scales.swarm.label") }]
+			: [...dice.filter((die) => !(trampleOut && die.trample)), ...(pool.impaired ? [] : weaknessDice(group, exploited))];
+		const roll = await new Roll(cardDice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
+		const rolled = cardDice.map((die, i) => ({ faces: die.faces, label: die.label, result: roll.dice[i].total, deniedBy: null }));
 		const state = { ...shared, targets: group, dice: sortDice(rolled) };
+		if (trampleOut) state.setAside = [...shared.setAside, { name: mount.steed.name, reason: "mountedFoe" }];
+		if (unarmed || swarmed) state.impaired = true;
+		if (swarmed) state.swarm = true;
 		// The Smite Save was rolled once, so only the first card carries it.
 		const rolls = smite && index === 0 ? [smite.roll, roll] : [roll];
 		messages.push(await postCard(actor, "attack", attackCardContext(state), {
@@ -466,14 +574,20 @@ function focusSaveContext(save) {
  * @param {boolean} settled Whether the Damage has been applied.
  * @returns {object|null} Null once a settled Attack leaves a Save unrolled.
  */
+/**
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @returns {string} The Virtue the foe Saves in against it, as its short name.
+ */
+const virtueOf = (gambit) => t(`virtues.${gambitSaveVirtue(gambit)}.abbr`);
+
 function gambitSaveContext(gambit, index, settled) {
 	// A Strong Gambit that denies the Save already says so in its tag.
 	if (!gambitAllowsSave(gambit)) return gambit.strong === "noSave" ? null : { none: t("attack.gambitNoSave") };
 	if (gambit.save) {
 		const { by, total, target, passed } = gambit.save;
-		return { passed, result: t(passed ? "attack.gambitSaved" : "attack.gambitFailed", { name: by, total, target }) };
+		return { passed, result: t(passed ? "attack.gambitSaved" : "attack.gambitFailed", { name: by, total, target, virtue: virtueOf(gambit) }) };
 	}
-	return settled ? null : { index, button: t("attack.gambitSave") };
+	return settled ? null : { index, button: t("attack.gambitSave", { virtue: virtueOf(gambit) }) };
 }
 
 /**
@@ -524,6 +638,7 @@ export function attackCardContext(attack) {
 
 	return {
 		smite: attack.smite,
+		smiteMark: attack.smiteMark ? t("attack.smiteMarkLine") : null,
 		targets: attack.targets.length ? t("attack.against", { names: attack.targets.map((target) => target.name).join(", ") }) : null,
 		dice: attack.dice.map((die, index) => {
 			const gambit = attack.gambits.find((entry) => entry.die === index);
@@ -578,6 +693,8 @@ export function attackCardContext(attack) {
 		setAside: (attack.setAside ?? []).map(({ name, reason }) => t(`attack.setAside.${reason}`, { name })),
 		impaired: attack.impaired,
 		confined: Boolean(attack.confined),
+		// Impaired for striking at a swarm without a Blast.
+		swarm: Boolean(attack.swarm),
 		blast: attack.blast,
 		ignoresArmour: attack.ignoresArmour,
 		// Cards rolled before weapon notes were kept have none.

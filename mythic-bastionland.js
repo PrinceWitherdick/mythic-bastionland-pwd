@@ -44,7 +44,7 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
-import { NPC_PACK_STEP, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
+import { CAST_DETAILS_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -453,6 +453,10 @@ const WORLD_SETUP = Object.freeze([
 	// Worlds that imported the book before there was an NPCs compendium. Import PDF fills it itself,
 	// and either way it takes in the Seers compendium there used to be.
 	{ key: NPC_PACK_STEP, run: seedNpcPack },
+	// Worlds that imported the book before attacks printed with "or" were one or the other.
+	{ key: OR_ATTACKS_STEP, run: markOrAttacks },
+	// Worlds that imported the book before swarms had a scale and each of a Cast carried its Cast's note.
+	{ key: CAST_DETAILS_STEP, run: fillCastDetails },
 	{ key: STRUCTURE_ACTORS_STEP, run: convertStructureNpcs },
 	// Knights made before their Property was read into weapons and armour.
 	{ key: KNIGHT_PROPERTY_STEP, run: retypeKnightProperty },

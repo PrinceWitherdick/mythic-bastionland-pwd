@@ -1,10 +1,10 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
-import { armourCounts, armourTotal, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
+import { armourCounts, armourTotal, noteBearing, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { attackDamage, dismountLanded } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
-import { moraleTrigger } from "../rules/morale.js";
+import { isDown, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
@@ -14,6 +14,7 @@ import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { rollScar } from "./scars.js";
 import { harmsStructure } from "../rules/structures.js";
+import { escapeHTML } from "../rules/text.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -49,6 +50,63 @@ function armourPieces(actor) {
  */
 function armourWithTicks(pieces, ticked, wearer) {
 	return armourTotal(pieces.map((piece) => (piece.id in ticked ? { ...piece, condition: "", equipped: ticked[piece.id] } : piece)), wearer);
+}
+
+/**
+ * What somebody brings to a shieldwall (p10): a Knight's shield or buckler
+ * among their items, or whichever an NPC's Armour note names.
+ * @param {Actor} actor
+ * @param {{bearing: string|null}} [worn] From armourPieces, where it's already been worked out.
+ * @returns {"shield"|"buckler"|null}
+ */
+function bearingOf(actor, worn = null) {
+	return actor.type === "knight" ? (worn ?? armourPieces(actor)).bearing : noteBearing(actor.system.armourNote);
+}
+
+/**
+ * Whether someone on the map can stand in a wall: a character, not a ship or
+ * wall, still on their feet, and not a steed, which is ridden rather than
+ * lined up with.
+ * @param {Actor} actor
+ * @param {Set<string>} steeds UUIDs of the steeds Knights ride.
+ * @param {string} [baseUuid] The world Actor a Token's actor was made from.
+ * @returns {boolean}
+ */
+function canStandInWall(actor, steeds, baseUuid) {
+	const vig = actor.system.virtues?.vig.value;
+	if (vig === undefined || actor.system.structure || isDown({ vigour: vig, mortalWound: actor.system.mortalWound })) return false;
+	return !steeds.has(actor.uuid) && !steeds.has(baseUuid);
+}
+
+/**
+ * The shieldwall somebody struck stands in on the map (p10): whoever is beside
+ * them on their side, and beside those, and so on. It ticks the Damage dialog's
+ * shieldwall box when it gives a point of Armour, and says why when not. The
+ * formation is theirs to declare, so the box can still be ticked by hand.
+ * @param {Actor} actor
+ * @param {"shield"|"buckler"|null} bearing What they bear themselves.
+ * @returns {{checked: boolean, tip: string}|null} Null when they have no Token on the map.
+ */
+function shieldwallOnMap(actor, bearing) {
+	const token = canvas?.ready ? actor.getActiveTokens(false, false)[0] : null;
+	if (!token) return null;
+	const { disposition } = token.document;
+	if (disposition === CONST.TOKEN_DISPOSITIONS.SECRET) return null;
+	const steeds = new Set(game.actors.filter((each) => each.type === "knight" && each.system.steed).map((each) => each.system.steed));
+	const stander = (placed, bears) => ({
+		name: placed.document.name,
+		bearing: bears,
+		box: { x: placed.document.x, y: placed.document.y, w: placed.w, h: placed.h }
+	});
+	const allies = canvas.tokens.placeables
+		.filter((placed) => placed !== token && placed.actor && !placed.document.hidden && placed.document.disposition === disposition)
+		.filter((placed) => canStandInWall(placed.actor, steeds, placed.document.actorId && `Actor.${placed.document.actorId}`))
+		.map((placed) => stander(placed, bearingOf(placed.actor)));
+	const wall = shieldwallAround(stander(token, bearing), allies, canvas.grid.size);
+	const hint = t("damage.shieldwallHint");
+	if (wall.formed) return { checked: true, tip: `${hint} ${t("damage.shieldwallFormed", { count: wall.count })}` };
+	if (wall.count < 3) return { checked: false, tip: `${hint} ${t("damage.shieldwallFew", { count: wall.count })}` };
+	return { checked: false, tip: `${hint} ${t("damage.shieldwallUnshielded", { names: wall.unshielded.join(", ") })}` };
 }
 
 /**
@@ -96,11 +154,14 @@ export async function takeDamage(actor, preset = {}) {
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
 	const worn = armourPieces(actor);
+	const bearing = bearingOf(actor, worn);
 	const asked = await askDamage({
 		armour,
 		situational: worn.situational,
 		armourFor: (ticked) => armourWithTicks(worn.pieces, ticked, conditions),
-		buckler: worn.bearing === "buckler",
+		buckler: bearing === "buckler",
+		// Whether they stand in a shieldwall on the map, which a buckler never makes.
+		shieldwall: virtues && bearing !== "buckler" ? shieldwallOnMap(actor, bearing) : null,
 		exposed: conditions.exposed,
 		character: Boolean(virtues),
 		warband,
@@ -204,6 +265,7 @@ export async function takeSeerDamage(knight) {
  *   sometimes, ticked in the dialog when it counts against this Attack.
  * @param {(ticked: Record<string, boolean>) => number} [target.armourFor] Their Armour with those ticked or not.
  * @param {boolean} [target.buckler] Their only shield is a buckler, which makes no shieldwall (p10).
+ * @param {{checked: boolean, tip: string}|null} [target.shieldwall] The shieldwall they stand in on the map, from shieldwallOnMap.
  * @param {boolean} target.exposed
  * @param {boolean} target.character Has Virtues, unlike a structure.
  * @param {boolean} target.warband
@@ -241,7 +303,8 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 			exposed: target.exposed,
 			requirements,
 			situational: target.situational ?? [],
-			buckler: Boolean(target.buckler)
+			buckler: Boolean(target.buckler),
+			shieldwall: target.shieldwall ?? null
 		},
 		ok: { label: t("damage.apply") },
 		render: (_event, dialog) => watchSituationalArmour(dialog, target)
@@ -328,9 +391,23 @@ export async function takeAttack(actor, attack, { scars = true } = {}) {
 		harm: { warband: attack.blast || attack.largeScale, structure: harmsStructure(attack.structureHarm, Boolean(actor.system.stone)) }
 	});
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces });
+	if (attack.smiteMark && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, attack);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
 	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });
 	return result;
+}
+
+/**
+ * A Smite made to leave a lasting mark rather than more Damage, such as a
+ * dagger through the eye, leaves it once the blow Wounds (p187). The card says
+ * so and the target's notes keep it, for the table to describe.
+ * @param {Actor} actor
+ * @param {import("../rules/attack.js").AttackState} attack
+ */
+async function leaveLastingMark(actor, attack) {
+	const text = t("damage.lastingMark", { name: actor.name, attacker: attack.attackerName });
+	if (typeof actor.system.notes === "string" && actor.isOwner) await actor.update({ "system.notes": `${actor.system.notes}<p>${escapeHTML(text)}</p>` });
+	await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text });
 }
 
 /**

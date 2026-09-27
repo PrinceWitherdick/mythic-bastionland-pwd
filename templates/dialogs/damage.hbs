@@ -40,9 +40,10 @@
 	</label>
 	{{/if}}
 
-	{{!-- A buckler doesn't make a shieldwall (p10), so a target bearing only one can't count one. --}}
-	<label class="bastionland-check" data-tooltip="{{#if buckler}}{{localize 'bastionland.damage.bucklerOnly'}}{{else}}{{localize 'bastionland.damage.shieldwallHint'}}{{/if}}">
-		<input type="checkbox" name="shieldwall" {{disabled buckler}}>
+	{{!-- A buckler doesn't make a shieldwall (p10), so a target bearing only one can't count one.
+	      Otherwise the wall they stand in on the map ticks it, and its tooltip says why or why not. --}}
+	<label class="bastionland-check" data-tooltip="{{#if buckler}}{{localize 'bastionland.damage.bucklerOnly'}}{{else if shieldwall}}{{shieldwall.tip}}{{else}}{{localize 'bastionland.damage.shieldwallHint'}}{{/if}}">
+		<input type="checkbox" name="shieldwall" {{disabled buckler}} {{checked shieldwall.checked}}>
 		<span class="bastionland-check__label">{{localize "bastionland.damage.shieldwall"}}</span>
 	</label>
 

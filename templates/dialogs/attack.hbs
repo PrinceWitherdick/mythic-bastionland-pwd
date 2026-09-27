@@ -55,8 +55,9 @@
 			<span class="bastionland-check__label">{{localize "bastionland.attack.mounted"}}</span>
 		</label>
 		{{#if charge}}
-		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.chargeHint'}}">
-			<input type="checkbox" name="charge" {{checked chargeChecked}}>
+		{{!-- A steed tramples only enemies on foot (p10), so a charge at riders alone has nothing to add. --}}
+		<label class="bastionland-check" data-tooltip="{{#if chargeBarred}}{{chargeBarred}}{{else}}{{localize 'bastionland.attack.chargeHint'}}{{/if}}">
+			<input type="checkbox" name="charge" {{#if chargeBarred}}disabled{{else}}{{checked chargeChecked}}{{/if}}>
 			<span class="bastionland-check__label">{{charge}}</span>
 		</label>
 		{{/if}}
@@ -74,6 +75,14 @@
 
 	<ul class="bastionland-dialog__problems" data-wielding-problems hidden></ul>
 
+	{{!-- A foe's weakness the Knights have learned gives every Attack that uses it a die (p188). --}}
+	{{#each weaknesses}}
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.weaknessHint'}}">
+		<input type="checkbox" name="weakness.{{index}}" checked>
+		<span class="bastionland-check__label">{{label}}</span>
+	</label>
+	{{/each}}
+
 	<div class="form-group">
 		<label for="bastionland-attack-bonus">{{localize "bastionland.attack.bonus"}}</label>
 		<div class="form-fields">
@@ -89,6 +98,7 @@
 				<option value="">—</option>
 				<option value="d12">{{localize "bastionland.attack.smite"}}</option>
 				<option value="blast">{{localize "bastionland.attack.blast"}}</option>
+				<option value="mark">{{localize "bastionland.attack.smiteMark"}}</option>
 			</select>
 		</div>
 		<p class="hint">{{localize "bastionland.attack.smiteHint"}}</p>

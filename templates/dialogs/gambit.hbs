@@ -12,6 +12,18 @@
 		<p class="hint">{{localize "bastionland.gambits.hint"}}</p>
 	</fieldset>
 
+	<div class="form-group">
+		<label for="bastionland-gambit-save">{{localize "bastionland.attack.saveInLabel"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-gambit-save" name="saveIn">
+				{{#each saves}}
+				<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.attack.saveInHint"}}</p>
+	</div>
+
 	{{#if strong}}
 	<fieldset>
 		<legend>{{localize "bastionland.attack.strongGambit"}}</legend>

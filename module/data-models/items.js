@@ -70,6 +70,9 @@ export class WeaponModel extends PossessionModel {
 				damage: textField(),
 				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, booleanField()]))
 			}),
+			// Shared by attacks printed with "or" between them, as "Crush (2d12) or sweep (d12 blast)",
+			// so an Attack uses only one of them. Blank for anything that joins the others.
+			either: textField(),
 			// Each Attack with it uses one up, as a titan bead or an explosive is.
 			usedUp: booleanField(),
 			// A wooden weapon can be broken by a Strong Gambit (p10).

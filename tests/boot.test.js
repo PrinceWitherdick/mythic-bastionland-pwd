@@ -520,7 +520,7 @@ describe("NpcModel", () => {
 
 	it("offers only the scales the rules have", () => {
 		const schema = CONFIG.Actor.dataModels.npc.defineSchema();
-		expect(schema.scale.options.choices).toEqual(["individual", "warband"]);
+		expect(schema.scale.options.choices).toEqual(["individual", "swarm", "warband"]);
 	});
 });
 

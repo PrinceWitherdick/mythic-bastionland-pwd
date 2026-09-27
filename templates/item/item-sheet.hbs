@@ -80,6 +80,18 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.alternateHint"}}</p>
 	</fieldset>
+	{{#if insteadOf}}
+	{{!-- Attacks printed with "or" between them, of which an Attack uses only one. --}}
+	<div class="form-group">
+		<label for="{{rootId}}-instead-of">{{localize "bastionland.item.insteadOf"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-instead-of" name="insteadOf">
+				{{selectOptions insteadOf.options selected=insteadOf.selected}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.item.insteadOfHint"}}</p>
+	</div>
+	{{/if}}
 	<fieldset class="bastionland-qualities">
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.usedUpHint'}}">
 			<input type="checkbox" name="system.usedUp" {{checked system.usedUp}}>

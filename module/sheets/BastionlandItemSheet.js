@@ -2,7 +2,7 @@ import { t } from "../chat/cards.js";
 import { ARMOUR_KINDS, PROPERTY_TYPES } from "../config.js";
 import { RARITIES } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
-import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "../rules/attack.js";
+import { ALTERNATE_QUALITIES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
 import { RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -58,6 +58,9 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		return sheet;
 	}
 
+	/** Updates to the actor's other weapons, made once this one's change is written. */
+	#partnerUpdates = [];
+
 	/** @returns {boolean} Whether this sheet is writing an item that hasn't been added yet. */
 	get isNew() {
 		return !this.item.id;
@@ -82,6 +85,7 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			isGear: item.type === "gear",
 			// Weapons, armour and gear can be rare, counted, restocked and broken.
 			isPossession: PROPERTY_TYPES.includes(item.type),
+			insteadOf: this.#insteadOf(),
 			alternateQualities: item.type === "weapon"
 				? ALTERNATE_QUALITIES.map((key) => ({ key, label: t(`item.${key}`), hint: t(`item.${key}Hint`), checked: item.system.alternate[key] }))
 				: [],
@@ -96,6 +100,30 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 				relativeTo: item
 			})
 		});
+	}
+
+	/**
+	 * The actor's other weapons, as the "Instead of" choice weighs them.
+	 * @returns {import("../rules/attack.js").EitherWeapon[]}
+	 */
+	#otherWeapons() {
+		return (this.item.actor?.items ?? [])
+			.filter((each) => each.type === "weapon" && each.id !== this.item.id)
+			.map((each) => ({ id: each.id, name: each.name, either: each.system.either }));
+	}
+
+	/**
+	 * Which of an NPC's other attacks this one is used instead of, as the book
+	 * prints "Pound (2d12) or sweep (d12 blast)", so an Attack uses only one of
+	 * them. A Knight's weapons have their second way to fight instead.
+	 * @returns {{options: Record<string, string>, selected: string}|null} Null where there's nothing to choose.
+	 */
+	#insteadOf() {
+		if (this.item.type !== "weapon" || !this.item.actor || this.item.actor.type === "knight") return null;
+		const others = this.#otherWeapons();
+		if (!others.length) return null;
+		const { options, selected } = insteadOfOptions({ id: this.item.id, either: this.item.system.either }, others);
+		return { options: { "": t("item.insteadOfNone"), ...Object.fromEntries(options.map(({ key, label }) => [key, label])) }, selected };
 	}
 
 	/**
@@ -115,6 +143,30 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 	static async #onSaveAndClose() {
 		await this.submit();
 		return this.close();
+	}
+
+	/**
+	 * The "Instead of" choice becomes this weapon's mark, and whatever the
+	 * attack picked or the one left behind needs changing to match.
+	 * @inheritDoc
+	 */
+	_processFormData(event, form, formData) {
+		const data = super._processFormData(event, form, formData);
+		if (!("insteadOf" in data)) return data;
+		const pick = String(data.insteadOf ?? "");
+		delete data.insteadOf;
+		const { either, others } = insteadOfChanges({ id: this.item.id, either: this.item.system.either }, this.#otherWeapons(), pick);
+		data.system = { ...data.system, either };
+		this.#partnerUpdates = others;
+		return data;
+	}
+
+	/** @inheritDoc */
+	async _processSubmitData(event, form, submitData, options) {
+		await super._processSubmitData(event, form, submitData, options);
+		const updates = this.#partnerUpdates;
+		this.#partnerUpdates = [];
+		if (updates.length && this.item.actor) await this.item.actor.updateEmbeddedDocuments("Item", updates);
 	}
 
 	/** @inheritDoc */

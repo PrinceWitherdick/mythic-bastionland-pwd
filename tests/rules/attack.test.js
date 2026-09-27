@@ -14,10 +14,21 @@ import {
 	hasDeniableDie,
 	heldAs,
 	isDieSpent,
+	knownWeakness,
 	parseDice,
 	sortDice,
-	summarizeAttack
+	summarizeAttack,
+	SAVE_VIRTUES,
+	gambitSaveVirtue,
+	swarmImpairs,
+	trampleJoins,
+	weaknessFaces,
+	gearHeldInHands,
+	insteadOfChanges,
+	insteadOfOptions,
+	wieldsInHands
 } from "../../module/rules/attack.js";
+import { npcFromStatBlock } from "../../module/rules/stat-blocks.js";
 
 describe("checkWielding", () => {
 	const mace = { hefty: true };
@@ -260,6 +271,20 @@ describe("attackDamage", () => {
 });
 
 describe("changeAttack", () => {
+	it("remembers a Gambit Saved against in another Virtue, and reads the rest as VIG (p10, p187)", () => {
+		const attack = rolled([[8, 6], [6, 5]]);
+		const stab = changeAttack(attack, { type: "gambit", die: 0, key: "impair", saveIn: "cla" });
+		expect(stab.gambits[0].saveIn).toBe("cla");
+		expect(gambitSaveVirtue(stab.gambits[0])).toBe("cla");
+		const plain = changeAttack(attack, { type: "gambit", die: 0, key: "repel", saveIn: "vig" });
+		expect(plain.gambits[0]).not.toHaveProperty("saveIn");
+		expect(gambitSaveVirtue(plain.gambits[0])).toBe("vig");
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "repel", saveIn: "luck" }).gambits[0]).not.toHaveProperty("saveIn");
+		const focused = changeAttack(attack, { type: "focus", key: "trap", actor: "Actor.a", saveIn: "spi", save: { by: "A", total: 3, target: 12, passed: true } });
+		expect(gambitSaveVirtue(focused.gambits[0])).toBe("spi");
+		expect(SAVE_VIRTUES).toEqual(["vig", "cla", "spi"]);
+	});
+
 	it("spends only unspent dice of 4 or higher on Gambits", () => {
 		const attack = rolled([[8, 6], [6, 3]]);
 		expect(canFundGambit(attack, 1)).toBe(false);
@@ -444,5 +469,147 @@ describe("dismountLanded", () => {
 		expect(dismountLanded({ gambits: [gambit({ save: { passed: true } })] })).toBe(false);
 		expect(dismountLanded({ gambits: [gambit({ dismissed: true })] })).toBe(false);
 		expect(dismountLanded({ gambits: [{ ...gambit(), key: "repel" }] })).toBe(false);
+	});
+});
+
+describe("swarmImpairs", () => {
+	it("Impairs an individual's Attack at a swarm unless it's a Blast (p61)", () => {
+		expect(swarmImpairs({}, [{ swarm: true }])).toBe(true);
+		expect(swarmImpairs({ blast: true }, [{ swarm: true }])).toBe(false);
+		expect(swarmImpairs({}, [{ swarm: false }, {}])).toBe(false);
+		expect(swarmImpairs({}, [])).toBe(false);
+	});
+
+	it("leaves a Warband's Attack alone, since it's no individual's", () => {
+		expect(swarmImpairs({ largeScale: true }, [{ swarm: true }])).toBe(false);
+	});
+});
+
+describe("trampleJoins", () => {
+	it("tramples enemies on foot, and takes the charger's word with nobody targeted", () => {
+		expect(trampleJoins([])).toBe(true);
+		expect(trampleJoins([{ mounted: false }])).toBe(true);
+		expect(trampleJoins([{ mounted: true }, { mounted: false }])).toBe(true);
+	});
+
+	it("doesn't trample riders, ships or walls", () => {
+		expect(trampleJoins([{ mounted: true }])).toBe(false);
+		expect(trampleJoins([{ structure: true }, { mounted: true }])).toBe(false);
+	});
+});
+
+describe("how an NPC wields", () => {
+	const weapon = (name, qualities = {}) => ({ name, type: "weapon", system: { damage: "d6", ...qualities } });
+	const cast = (line) => npcFromStatBlock({ name: "Somebody", stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: ["A1 (mail)", line] }).items;
+
+	it("reads two hands off a Hefty, Long or Slow weapon, or a shield", () => {
+		expect(gearHeldInHands([weapon("Flail", { hefty: true })])).toBe(true);
+		expect(gearHeldInHands([weapon("Bow", { long: true })])).toBe(true);
+		expect(gearHeldInHands([weapon("Maul", { slow: true })])).toBe(true);
+		expect(gearHeldInHands([weapon("Dagger"), weapon("Kite shield")])).toBe(true);
+		expect(gearHeldInHands([{ name: "Roundshield", type: "armour", system: { kind: "shield" } }])).toBe(true);
+	});
+
+	it("reads claws, teeth and plain weapons as all at once", () => {
+		expect(gearHeldInHands([weapon("Claws"), weapon("Bite")])).toBe(false);
+		expect(gearHeldInHands([{ name: "Mail", type: "armour", system: { kind: "coat" } }])).toBe(false);
+		expect(gearHeldInHands([])).toBe(false);
+	});
+
+	it("lets the sheet say otherwise", () => {
+		expect(wieldsInHands("", [weapon("Flail", { hefty: true })])).toBe(true);
+		expect(wieldsInHands("free", [weapon("Flail", { hefty: true })])).toBe(false);
+		expect(wieldsInHands("hands", [weapon("Claws")])).toBe(true);
+	});
+
+	it("holds the armed Cast to two hands, and leaves beasts free", () => {
+		expect(gearHeldInHands(cast("Sling-staff (d6 long), glaive (d10 long)"))).toBe(true);
+		expect(gearHeldInHands(cast("Crossbow (d8 slow), knife (d6)"))).toBe(true);
+		expect(gearHeldInHands(cast("Talons and teeth (2d6)"))).toBe(false);
+	});
+
+	it("opens an armed NPC's Attack on what two hands can hold", () => {
+		const kit = [{ damage: "d6", long: true }, { damage: "d10", long: true }];
+		expect(defaultWielded(kit, { hands: true })).toEqual([1]);
+		expect(checkWielding(kit, { hands: true }).refusal).toBe("long");
+	});
+
+	it("opens a beast's Attack on the harder of attacks printed with \"or\", beside what joins them", () => {
+		const beast = [{ damage: "2d12", of: "Pound" }, { damage: "d12", blast: true, of: "Pound" }, { damage: "d6", of: "Bite" }];
+		expect(defaultWielded(beast)).toEqual([0, 2]);
+		expect(checkWielding(beast).refusal).toBe("twoWays");
+	});
+});
+
+describe("the Instead of choice", () => {
+	const weapon = (id, name, either = "") => ({ id, name, either });
+
+	it("offers each other attack, and each set already one or the other", () => {
+		const others = [weapon("p1", "Pound", "Pound"), weapon("s1", "Sweep", "Pound"), weapon("b1", "Bite")];
+		expect(insteadOfOptions(weapon("n1", "Kick"), others)).toEqual({
+			options: [{ key: "Pound", label: "Pound or Sweep" }, { key: "b1", label: "Bite" }],
+			selected: ""
+		});
+		expect(insteadOfOptions(weapon("n1", "Kick", "Pound"), others).selected).toBe("Pound");
+		// A mark nobody else shares any more is no set.
+		expect(insteadOfOptions(weapon("n1", "Kick", "gone"), others).selected).toBe("");
+	});
+
+	it("marks the attack picked when it wasn't in a set yet", () => {
+		expect(insteadOfChanges(weapon(null, "Kick"), [weapon("b1", "Bite")], "b1")).toEqual({
+			either: "b1",
+			others: [{ _id: "b1", "system.either": "b1" }]
+		});
+		expect(insteadOfChanges(weapon("k1", "Kick"), [weapon("p1", "Pound", "Pound"), weapon("s1", "Sweep", "Pound")], "Pound")).toEqual({
+			either: "Pound",
+			others: []
+		});
+	});
+
+	it("unmarks the last one left in a set", () => {
+		expect(insteadOfChanges(weapon("k1", "Kick", "b1"), [weapon("b1", "Bite", "b1")], "")).toEqual({
+			either: "",
+			others: [{ _id: "b1", "system.either": "" }]
+		});
+		const three = [weapon("p1", "Pound", "Pound"), weapon("s1", "Sweep", "Pound")];
+		expect(insteadOfChanges(weapon("k1", "Kick", "Pound"), three, "").others).toEqual([]);
+	});
+
+	it("changes nothing when the pick stands", () => {
+		expect(insteadOfChanges(weapon("k1", "Kick", "b1"), [weapon("b1", "Bite", "b1")], "b1")).toEqual({ either: "b1", others: [] });
+	});
+});
+
+describe("knownWeakness", () => {
+	it("gives a learned weakness and its die", () => {
+		expect(knownWeakness({ weakness: { text: " hatred of fire ", die: "d10", known: true } })).toEqual({ text: "hatred of fire", die: "d10" });
+	});
+
+	it("gives nothing the Knights haven't learned yet", () => {
+		expect(knownWeakness({ weakness: { text: "hatred of fire", die: "d10", known: false } })).toBeNull();
+	});
+
+	it("gives a known weakness nobody wrote down, with its die", () => {
+		expect(knownWeakness({ weakness: { text: "", die: "d8", known: true } })).toEqual({ text: "", die: "d8" });
+	});
+
+	it("gives nothing for an actor without one, or a die the book doesn't offer", () => {
+		expect(knownWeakness({})).toBeNull();
+		expect(knownWeakness(undefined)).toBeNull();
+		expect(knownWeakness({ weakness: { text: "x", die: "d20", known: true } })).toBeNull();
+	});
+});
+
+describe("weaknessFaces", () => {
+	it("gives the one die a weakness is worth", () => {
+		expect(weaknessFaces([{ die: "d10" }])).toBe(10);
+	});
+
+	it("gives one die for a card at several foes, the biggest", () => {
+		expect(weaknessFaces([{ die: "d6" }, { die: "d12" }, { die: "d8" }])).toBe(12);
+	});
+
+	it("gives nothing when no weakness is used", () => {
+		expect(weaknessFaces([])).toBeNull();
 	});
 });

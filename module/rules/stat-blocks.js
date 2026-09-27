@@ -190,7 +190,12 @@ function nameStartIn(before) {
  * @property {string} damage e.g. "2d10".
  * @property {string[]} qualities Keys of QUALITIES.
  * @property {string} note   Anything else in the parenthesis.
+ * @property {true} [or]     Printed after "or", so it's used instead of the attack before it, as the sweep in
+ *                           "Crush (2d12) or sweep (d12 blast)".
  */
+
+/** Nothing but "or" between one attack and the next. */
+const OR_BETWEEN = /^[\s,;]*or\s*$/i;
 
 /**
  * Find the attacks on a line: a name followed by a parenthesis that starts
@@ -209,12 +214,14 @@ export function parseAttacks(line) {
 		const details = readAttackDetails(group.inner);
 		if (details) {
 			const nameStart = previousClose + nameStartIn(text.slice(previousClose, group.open));
-			leftovers.push(text.slice(cursor, nameStart));
+			const between = text.slice(cursor, nameStart);
+			leftovers.push(between);
 			attacks.push({
 				name: text.slice(nameStart, group.open).trim(),
 				damage: details.damage,
 				qualities: [...details.qualities],
-				note: details.notes.join(", ")
+				note: details.notes.join(", "),
+				...(attacks.length && OR_BETWEEN.test(between) ? { or: true } : {})
 			});
 			cursor = group.close + 1;
 		}
@@ -245,10 +252,24 @@ export function featsNamed(text) {
 /** "Count as a structure", "treat as structure", or Armour that is "(structure)". */
 const STRUCTURE = /\b(?:counts?|treat(?:ed)?)\s+as\s+(?:a\s+)?structure\b|\(structure\)/i;
 
+/** A swarm's rule as its stat block prints it: "individual attacks are Impaired unless they are Blast attacks" (p61). */
+const SWARM = /\bindividual\s+attacks\s+are\s+impaired\b/i;
+
+/**
+ * @param {string|null} name As printed.
+ * @param {string[]} lines What follows the stats.
+ * @returns {string} One of NPC_SCALES: a Warband by its name, a swarm by its rule.
+ */
+function castScale(name, lines) {
+	if (/\bwarband\b/i.test(name ?? "")) return "warband";
+	return SWARM.test(lines.join(" ")) ? "swarm" : NPC_SCALES[0];
+}
+
 /**
  * Actor data for an NPC from a stat block. Scores the stat block doesn't give
  * are left out, so a new NPC keeps its defaults and an existing one its own.
- * A Cast entry named as a Warband, such as "Ghostly Riders, Warband", is one.
+ * A Cast entry named as a Warband, such as "Ghostly Riders, Warband", is one,
+ * and one whose foes' individual attacks are Impaired is a swarm.
  * @param {object} block
  * @param {string|null} block.name  As printed, such as "The Wyvern, That Foul Twisted Reptile".
  * @param {Stats|null} [block.stats]
@@ -264,7 +285,7 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 		epithet,
 		armour: 0,
 		armourNote: "",
-		scale: /\bwarband\b/i.test(name ?? "") ? "warband" : NPC_SCALES[0],
+		scale: castScale(name, lines),
 		structure: false,
 		feats: Object.fromEntries(FEATS.map(({ key }) => [key, false])),
 		notes: ""
@@ -290,7 +311,16 @@ export function npcFromStatBlock({ name, stats = null, lines = [] }, { attackNam
 		if (!text) continue;
 
 		const { attacks, rest } = parseAttacks(text);
-		for (const attack of attacks) items.push(weaponData(attack, attackName));
+		for (const attack of attacks) {
+			const weapon = weaponData(attack, attackName);
+			// Attacks printed with "or" between them are one or the other, never together.
+			if (attack.or) {
+				const before = items.at(-1);
+				before.system.either ||= before.name;
+				weapon.system.either = before.system.either;
+			}
+			items.push(weapon);
+		}
 		if (!rest) continue;
 		notes.push(rest);
 		for (const feat of featsNamed(rest)) system.feats[feat] = true;

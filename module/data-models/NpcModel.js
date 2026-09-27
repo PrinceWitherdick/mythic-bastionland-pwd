@@ -1,4 +1,4 @@
-import { AGES, FEATS, NPC_SCALES } from "../config.js";
+import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
 import { conditionsFor, healsWound } from "../rules/virtues.js";
 import { afflictionsField, booleanField, characterFields, countField, textField } from "./fields.js";
 
@@ -24,8 +24,16 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			leader: textField(),
 			// Young, Mature or Old (p17), or blank where nobody has said, as for most of the Cast.
 			age: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AGES] }),
+			// In two hands as a Knight, or all at once as claws and teeth, or blank to read it off their gear (p12).
+			wields: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...NPC_WIELDS] }),
 			// What keeps them from harm, as "Cannot be harmed by physical attacks." Weighed as each blow lands.
 			immunity: textField(),
+			// What can be turned against them, as a hatred of fire. Once `known`, every Attack that uses it gets `die` (p188).
+			weakness: new fields.SchemaField({
+				text: textField(),
+				die: new fields.StringField({ required: true, initial: "d10", choices: WEAKNESS_DICE }),
+				known: booleanField()
+			}),
 			// The afflictions they cause those they touch, as the Plague's infected cause d6 VIG loss daily.
 			inflicts: afflictionsField(),
 			// Feats are for Knights, but some of the Cast "Can Focus" or "Can Deny".

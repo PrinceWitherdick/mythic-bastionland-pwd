@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armourCounts, armourTotal, displacedArmour, looksWooden, shieldwallBearing } from "../../module/rules/armour.js";
+import { armourCounts, armourTotal, displacedArmour, looksWooden, noteBearing, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
 
 const piece = (kind, armour = 1, more = {}) => ({ kind, armour, equipped: true, ...more });
 
@@ -58,6 +58,40 @@ describe("shieldwallBearing", () => {
 		expect(shieldwallBearing([piece("shield", 1, { buckler: true })])).toBe("buckler");
 		expect(shieldwallBearing([piece("shield")])).toBe("shield");
 		expect(shieldwallBearing([piece("shield", 1, { broken: true })])).toBeNull();
+	});
+});
+
+describe("noteBearing", () => {
+	it("reads a shield or a buckler off an NPC's Armour note", () => {
+		expect(noteBearing("mail, helm, shield")).toBe("shield");
+		expect(noteBearing("leather, buckler")).toBe("buckler");
+		expect(noteBearing("plate and helm")).toBeNull();
+		expect(noteBearing(undefined)).toBeNull();
+	});
+});
+
+describe("a shieldwall on the map", () => {
+	const SIZE = 100;
+	const at = (name, col, row, bearing = "shield") => ({ name, bearing, box: { x: col * SIZE, y: row * SIZE, w: SIZE, h: SIZE } });
+
+	it("counts Tokens side by side or corner to corner as standing together, and one space apart as not", () => {
+		expect(standTogether(at("a", 0, 0).box, at("b", 1, 0).box, SIZE)).toBe(true);
+		expect(standTogether(at("a", 0, 0).box, at("b", 1, 1).box, SIZE)).toBe(true);
+		expect(standTogether(at("a", 0, 0).box, at("b", 2, 0).box, SIZE)).toBe(false);
+	});
+
+	it("forms of 3 or more allies in a chain, all bearing shields", () => {
+		const wall = shieldwallAround(at("Ada", 0, 0), [at("Bryn", 1, 0), at("Cal", 2, 0), at("Far", 6, 6, null)], SIZE);
+		expect(wall).toEqual({ count: 3, formed: true, unshielded: [] });
+	});
+
+	it("doesn't form of fewer than 3", () => {
+		expect(shieldwallAround(at("Ada", 0, 0), [at("Bryn", 1, 0), at("Cal", 3, 0)], SIZE)).toEqual({ count: 2, formed: false, unshielded: [] });
+	});
+
+	it("names whoever in it bears a buckler or no shield", () => {
+		const wall = shieldwallAround(at("Ada", 0, 0, null), [at("Bryn", 1, 0, "buckler"), at("Cal", 2, 0)], SIZE);
+		expect(wall).toEqual({ count: 3, formed: false, unshielded: ["Ada", "Bryn"] });
 	});
 });
 
