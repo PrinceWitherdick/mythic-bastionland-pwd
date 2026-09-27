@@ -1,0 +1,106 @@
+# Roadmap
+
+What the system still owes the rulebook, and what's waiting to be tried in a live world. It grew out of the rules audit of 2026-09-26, which covered every page except the Knights. Page numbers are the book's.
+
+Each item has an ID so we can refer to it ("do R-12 next"). Tick an item when it's done, and move it to **Done** once it has been tried live.
+
+**Status:** 🧪 built, not yet tried live · 🔜 next up · 💡 idea, not yet planned · ⏸ parked · ✗ decided against
+
+---
+
+## 1. Test live 🧪
+
+These were built on 2026-09-26 and pass the unit tests and lint, but haven't been run in Foundry. They aren't committed yet. An item built from **Next up** keeps its old ID beside the new one.
+
+### Myths and the City Quest
+- [ ] **T-1** A Company with a Knight-Radiant rolls a 1 on the Wilderness Roll. The City Omen replaces the Myth's, and the Myth's Omen count stays where it was. (p172)
+- [ ] **T-2** A Myth can be resolved at any Omen from the GM Toolkit, and Glory is awarded. (p27)
+- [ ] **T-3** After re-running Import PDF, a nameless Landmark met on a Wilderness Roll is named from a Myth page prompt. A Sanctum takes its Seer's spread. (p14)
+- [ ] **T-4** A Ruin's echo gives the same Myth on a second click, along with that Myth's Ruin prompt. (p14)
+
+### Time, Seasons and Ages
+- [ ] **T-5** The Season card lists Drama in Court owed and resolved Myths to replace. (p21, p27)
+- [ ] **T-6** Turning the Age offers the Mature or Old reroll to Knights and to NPCs with an Age, and Old NPCs lose d12 VIG. (p17)
+- [ ] **T-7** A second Looming result in a row on the weather table reads as dire weather. (p18)
+- [ ] **T-8** The Lay of the Land window shows a Local Mood button in a Holding hex. (p18)
+- [ ] **T-41** *(was C-8)* Turning the Season, a Knight who chose **Service** is asked what it made: **A new Dwelling on the map** or Something else. A Knight who chose **Courtesy** is asked what it earned: **A place at Court**, A new contact, or A favour. Their line on the Season card says what came of it. A place at Court adds the Knight as a Courtier to the only Domain, or the one picked, with "Earned by Courtesy before …" in the note; with no Domain the line says so. Once everyone has answered, a Dwelling takes up the Dwelling brush on the Realm in view (or says to open the Realm). Closing a question adds nothing. Pilgrimage asks nothing, and so do the Age's pursuits. (p17, p192)
+
+### Referee rolls and the Realm
+- [ ] **T-38** *(was C-5)* The Luck Roll macro and Referee Rolls → Luck Roll ask **Read it on the Luck Roll table, or at odds you've stated?** The table rolls Crisis/Problem/Blessing as before. A slim chance (6+), Unlikely (5+), Straight 50/50 (4+), Likely (3+) or A high chance (2+) posts "Fortune favours them" or "Fortune doesn't favour them", naming the odds. Closing the question rolls nothing. Players' macros ask too. (p16, p182, p184)
+- [ ] **T-45** *(was C-12)* New Realm → Custom Realm with **Ignore the rules for setup** ticked: the Landmarks row has From/to and then a box for each of the six types, blank to start. Leaving a box blank rolls that type within From–to; a number gives that type exactly that many (0 leaves it off). Unticking Ignore the rules clears the boxes. A book Realm, or a seed rolled before with blank boxes, comes out as it always did. (p202)
+
+### Combat
+- [ ] **T-9** Patch Up on a Knight sheet clears a Mortal Wound and settles Gouge and Tear. (p8–9)
+- [ ] **T-10** A landed Dismount clears the target's Mounted mark. (p10)
+- [ ] **T-11** Ending a Combat offers to restore Guard and Fatigue. (p9)
+- [ ] **T-12** A failed Surprise Save skips that combatant's turn in round 1. (p8)
+- [ ] **T-13** A Stone structure is harmed only by siege weapons. Siege or fire weapons pre-tick the structure harm box. (p11)
+- [ ] **T-14** Cast weapons import with counts ("3 firepots"), once-a-day limits and other ways to fight ("or d12 blast"), and their notes show on Attack cards.
+- [ ] **T-15** Smite is refused for a ranged-only Attack, and an Attack whose weapons are all set aside is refused. (p10, p12)
+- [ ] **T-16** Setting a specialist die makes a weapon one rarity rarer. (p12)
+- [ ] **T-31** *(was R-9)* A Trap Gambit lands on a Knight bearing a shield. Until the trapper's next turn, the Damage dialog for any Attack on them, by anybody, comes with **"…'s Trap holds their shield, so its Armour doesn't count"** ticked, and the Armour box drops by the shield's Armour. Unticking puts it back. An NPC whose Armour note names a shield ("mail, helm, shield") loses a point. A foe with no shield is offered **"…'s Trap left them open"** unticked, which sets their Armour to 0. The card that laid the Trap doesn't strip Armour from its own blow, and neither card in a duel does. (p10, p186)
+- [ ] **T-32** *(was R-10)* A melee die of 8+ is spent on a Gambit with **Greater effect**. While the foe's VIG Save is still to roll, the Gambit line says it waits on it, and a passed Save takes the effect away. Otherwise the line shows **Disarm, unhelm or break** to whoever owns a target. It offers each foe's held weapons and shields (not a steed's trample), a worn helm, and wooden things still whole. Disarm and unhelm untick the item on a Knight's sheet, and a shield's Armour goes with it. Break marks it broken. An NPC's helm or shield named in its Armour note ("mail, helm, shield") takes a point of Armour off and the word out of the note. The line then says what happened, the button is gone, and it works after the Damage is applied. A player pressing it on the attacker's card has the GM record it. (p10)
+- [ ] **T-33** *(was C-1)* Three or more Tokens on one side stand side by side (corners count), all bearing shields: a Knight's shield item or an NPC's Armour note naming one. Damage to any of them opens with **In a shieldwall** ticked, and its tooltip says how many stand together. With fewer than 3 it opens unticked and says so. With a buckler or no shield among them, it names who. It can still be ticked by hand. Steeds, fallen allies, hidden Tokens and structures don't count. An NPC whose note names only a buckler gets the box greyed out, as a Knight with one does. (p10)
+- [ ] **T-34** *(was C-2)* A Knight with a steed targets only mounted foes (or a structure). The charge box in the Attack dialog is greyed out, with a tooltip naming them. If the targets change after the dialog opens and the charge is still ticked, the card leaves out the trample dice and says why. A charge that was all trample fights unarmed. A Blast at a rider and a footman keeps the trample only on the footman's card. A joust has no trample. (p10)
+- [ ] **T-35** *(was C-3)* An armed NPC (a Hefty, Long or Slow weapon, or a shield) is held to two hands in the Attack dialog, as a Knight is. A Cast member with two Long weapons (p123) opens on the harder one alone and refuses both at once. One with a lance, a mace and a shield (p92) allows two items at most. Claws and teeth still roll together. The NPC sheet's **Wields** row (By their gear, In two hands, All at once) overrides it, and its By their gear tooltip says which way the gear reads. A Warband isn't asked. (p12)
+- [ ] **T-36** Attacks printed with "or" between them are one or the other. After loading a world that imported the book before, the NPCs compendium is filled again, and Cast members already in the Actors tab have those weapons marked, keeping any other edits. The Attack dialog of p125's or p61's beast opens on the harder attack alone and refuses ticking both. Attacks joined by commas or "and" (p65, p151) still roll together. A three-way "or" (p51) allows only one of the three. Unlinked Tokens already placed on a Scene aren't updated. On a hand-made NPC's weapon sheet, **Instead of** lists its other attacks (sets already paired read "Pound or Sweep"). Picking one pairs them in the Attack dialog, and it works on a new weapon before it's saved too. Picking **Nothing** unpairs them, and a pair's last partner is unmarked with it. Knights' weapons don't show it.
+- [ ] **T-39** *(was C-6)* An NPC sheet's Scale row offers **Swarm** between Individual and Warband, and p61's Enthralled Bat Swarm imports as one. Targeting a swarm, the Attack dialog says "… is a swarm: an Attack at them is Impaired unless it's a Blast". A Knight's non-Blast Attack at it rolls a single d4 labelled Swarm, and the card says why. A Blast (a Smite for Blast, or a Blast weapon) rolls in full, and a Blast at a swarm and a man Impairs neither card. A Warband's Attack isn't Impaired. (p61)
+- [ ] **T-46** *(was C-13)* With anybody Mortally Wounded, Next Phase always opens the Phase's end window, and it lists them under **Dying Untended**, ticked. That includes world actors and unlinked Tokens on the Scene in view, but not anybody already at VIG 0. On Move On, those left ticked go to VIG 0 with the wound cleared, one "Died Untended" card names them, and a played Knight gets A Knight Falls. Unticking someone spares them; Patch Up clears the wound so they aren't listed at all. (p8)
+- [ ] **T-47** *(was C-14)* The Attack dialog's Smite list adds **Smite for a lasting mark**. It makes the VIG Save for Fatigue like any Smite, but adds no dice and isn't a Blast. The card says what it's for. Applying Damage that Wounds (past GD, a Mortal Wound or Slain) posts "…'s Smite leaves … a lasting mark" and writes it into the target's notes; Damage that stops at GD leaves nothing. Separately, the Gambit window has **Their Save**: VIG Save by default, or CLA or SPI. A Gambit declared with CLA shows a "CLA Save" button, rolls the foe's CLA, and its lines and the Greater effect's wait say CLA. Focus's Gambits offer it too. (p10, p187)
+- [ ] **T-37** *(was C-4)* An NPC sheet's **Weakness** block takes what it is ("hatred of fire"), a bonus die (+d10 to start) and **The Knights know of it**. While that's unticked, attacking them shows nothing. Once it's ticked, the Attack dialog of anybody targeting them (or duelling them) offers **"…'s weakness, hatred of fire: +d10"** ticked, and the card rolls a d10 labelled "Weakness, hatred of fire". Unticking it leaves the die out. A Blast at that foe and another adds the die only to that foe's card. A card at two foes with weaknesses gets one die, the bigger. An Impaired Attack still rolls its d4 alone. (p188)
+
+### NPCs and the Cast
+- [ ] **T-17** A hireling dragged in from the Beasts & Hirelings compendium rolls its Virtues on d12+d6, and Roll Virtues works on any NPC. (p13)
+- [ ] **T-18** An NPC's "Cannot be harmed…" text shows as a tick in the Damage dialog.
+- [ ] **T-19** Afflict Targets passes the NPC's affliction to the targeted Tokens. The affliction takes its toll each Morning, or at the start of each round's turn, and the × cures it.
+- [ ] **T-20** A non-lethal weapon leaves its target down but not dying (the Knight-Catchers, p173).
+- [ ] **T-40** *(was C-7)* After Import PDF, or once on loading a world that imported the book before, each Cast member in the NPCs compendium ends its notes with what the book says about the whole Cast, after "Of the Cast of …". Cast members already in the Actors tab get that note added at the foot of their notes (not twice), and a Bat Swarm left as Individual becomes a Swarm; anything else about them stays as it was.
+
+### Starts and travel
+- [ ] **T-21** A Courtier Start sends the nearest Myth's first Omen to the Seat as news. A Ruler Start posts a wicked-influence card. (p6)
+- [ ] **T-22** "A proper road runs here" ticks on and off, and Cruise from Here lists hexes reachable by boat or road, stopping at Barriers. (p18)
+- [ ] **T-23** *(was R-1)* Next Phase opens "The Morning Ends" before moving on. It asks how the Company spent the Phase: Travelling or exploring, Camping outdoors, or Indoors, as guests. The likely answer comes ticked: Travelling by day, Camping at Night, Indoors in a Holding. **Make the Wilderness Roll** comes ticked where it's due, and a Myth's own hex offers its next Omen instead. Indoors or unticked makes no roll, and closing the window keeps the Phase. It works while another Scene is on the canvas, and Search's "spend the Phase" opens it with Travelling ticked. (p18)
+- [ ] **T-24** *(was R-2)* A player drags the Company's Token across a Barrier, known or hidden. The GM gets the Phase's end window, with what turned them back said first, Travelling ticked and the button reading "Waste the Morning". Closing it lets the Phase stand. The GM's own drag asks too. Two quick bumps ask only once, and with Unconstrained Movement on nothing is asked. Setting out from a Holding still rolls, because the Phase was spent out at the Barrier. (p18)
+- [ ] **T-25** *(was R-3)* A Hazard's Wilderness card and its Places card show **Go Back** beside Push Through. It steps the Company's Token back into the hex it came from, which is counted as a visit and opens the Lay of the Land there. Where the way in isn't known, or there's no Company Token, it asks the GM to move them by hand. (p14)
+- [ ] **T-26** *(was R-4)* Settings page → Dire Weather (In Winter by default, or Never, or All year round). In Winter, Next Phase with the Company out of a Holding rolls the Dire Weather table as the new Phase begins, and a second Looming in a row reads as dire. In a Holding, or in another Season, nothing is rolled. (p18)
+- [ ] **T-27** *(was R-5)* At Night, the Company's Token stepping into a new hex asks **With a guide and light** or **Travelling blind**. Travelling blind rolls the Travelling Blind table now and at every new hex that Night. A guided Company isn't asked again that Night, and the next Night asks afresh. The move is remembered, so the Night's end expects Travelling. (p18)
+- [ ] **T-28** *(was R-6)* Ending a Night, the window adds **As Morning Comes**: each Knight on a row with the Company tick (player-owned Knights ticked), **No sleep** and **Deprived**. On Move On, one "What the Night Cost" card rolls what's due: d6 SPI and no proper sleep (d6 CLA) for Travelling through the Night; d6 VIG for camping or travelling in Winter; no proper sleep for anybody outdoors when that Night's weather was dire; d6 CLA for No sleep; d6 VIG for Deprived. Indoors costs only the ticks. Deprived stays ticked for the next Morning until unticked. (p18)
+
+### Scars
+- [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
+
+### Dominion
+- [ ] **T-42** *(was C-9)* A Domain sheet with nobody written as Steward, Marshal, Sheriff or Envoy shows "Nobody sits as …" under the Council; an empty Circle doesn't count. The Season card lists each Domain with an empty seat. (p20, p204)
+- [ ] **T-43** *(was C-10)* The Domain sheet's **Grand Designs** section adds **Works**, **New building** or **Grand project**, each begun on today's date, with a name box and "Ready by Harvest, Age 1". Works are ready the next Season. A new building is ready the next Season if begun on a Season's first Morning, otherwise the one after. A grand project is ready the next Age if begun on a Spring's first Morning, otherwise the Age after. Once its time comes the row reads Done, and each Season card lists the Done works until × strikes them off. (p21)
+- [ ] **T-44** *(was C-11)* A Knight's Domain header button, with no Domain named for them, opens **Found a Domain**: a Holding list (every Realm's Holdings, or None on the map yet), a Name (blank takes the Holding's name), and a tick for each other Knight to sit **In the Circle**. Found It makes the Domain in the Knight's folder with its ruler, Holding, Seat of Power if that Holding is the Seat, and the Circle filled, and opens it. Closing founds nothing. A Ruler Start, once the Realm is made and Knights exist, asks **Who Rules?** (players' Knights, or Decide Later), then opens the same window with a Holding other than the Seat offered and the other Knights ticked. (p6, p20)
+- [ ] **T-29** *(was R-7)* The Domain sheet's **Holding** list offers the Realm's Holdings, and a Domain named like a Holding shows "…, by its name". With the ruler's Knight owned by a player and the Company Token away from that Holding, Weeks Pass or turning the Season ticks **Away long**. Walking the Company Token into the Holding then offers **Home from a Long Absence** with the Crisis Roll. Not now still clears the tick, and a Crisis Roll made while away clears it too. A Company at home as time passes ticks nothing. (p20)
+
+---
+
+## 2. Next up 🔜
+
+These rules are stated outright in the book, but the system still leaves them to the Referee to remember.
+
+*(nothing left: R-1 to R-10 are all built and waiting in **Test live**)*
+
+## 3. Candidates 💡
+
+*(nothing left: C-1 to C-14 are all built and waiting in **Test live**)*
+
+## 4. Parked ⏸
+
+- **P-1 Roads drawn on the map.** Roads are rules-only for now: marked per hex, with no art. A road brush with Undo would mean drawing on every Realm skin. Pick this up if roads matter visually.
+- **P-2 Damage-over-time afflictions** such as "d8 Damage each round until washed" (p173). Afflictions cover Virtue Loss only; Damage-type afflictions stay as weapon notes.
+
+## 5. Decided against ✗
+
+- **Scope** (Adventure/Chronicle/Saga, p6): removed at the user's request.
+- **Plates and helm "in battle"** (p12): the existing Only armour condition does this. Set the situation to "in battle".
+- **Scar settle button on NPC sheets:** NPC sheets don't show Scars.
+- **Advice-only rules:** Action Procedure (p16), Trade and Service (p12–13), Faith and Roles (p13) and most of the Oddpocrypha are for the Referee to read. The rulebook reader and hover tips cover them.
+
+## 6. Done
+
+Items move here once tried live.
+
+- *(nothing yet)*
