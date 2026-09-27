@@ -1,5 +1,5 @@
 import { ARMOUR_KINDS } from "../config.js";
-import { RARITIES } from "../rules/arms-and-goods.js";
+import { RARITIES, specialistRarity } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
 import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "../rules/attack.js";
 import { bearsRemedies, overRemedyLimit } from "../rules/remedies.js";
@@ -79,6 +79,20 @@ export class WeaponModel extends PossessionModel {
 	/** Slow weapons are also Long (p12). */
 	get isLong() {
 		return this.long || this.slow;
+	}
+
+	/**
+	 * Made a specialist weapon, it's one category rarer (p12), unless the same
+	 * change says how rare it is.
+	 * @override
+	 */
+	async _preUpdate(changes, options, user) {
+		const allowed = await super._preUpdate(changes, options, user);
+		if (allowed === false) return false;
+		const die = changes.system?.specialist?.die;
+		if (!die || this.specialist.die || changes.system.rarity !== undefined) return;
+		const rarer = specialistRarity(this.rarity);
+		if (rarer) changes.system.rarity = rarer;
 	}
 }
 

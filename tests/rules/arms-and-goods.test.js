@@ -5,7 +5,8 @@ import {
 	GOODS_KIND_PAGES,
 	GOODS_KINDS,
 	goodsDocuments,
-	goodsFromPages
+	goodsFromPages,
+	specialistRarity
 } from "../../module/rules/arms-and-goods.js";
 
 // Everything here is invented so no book text lives in the repository.
@@ -218,5 +219,14 @@ describe("goodsDocuments", () => {
 			system: { kind: "ship", guard: { value: 3, max: 3 }, armour: 0, carries: "4 passengers", notes: "" },
 			items: []
 		});
+	});
+});
+
+describe("specialistRarity", () => {
+	it("makes a common or uncommon weapon one category rarer", () => {
+		expect(specialistRarity("common")).toBe("uncommon");
+		expect(specialistRarity("uncommon")).toBe("rare");
+		expect(specialistRarity("rare")).toBeNull();
+		expect(specialistRarity("")).toBeNull();
 	});
 });

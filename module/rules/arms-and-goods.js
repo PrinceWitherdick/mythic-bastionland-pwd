@@ -21,6 +21,17 @@ export const GOODS_KIND = "goods";
 
 export const RARITIES = Object.freeze(["common", "uncommon", "rare"]);
 
+/**
+ * A specialist weapon is an existing common or uncommon one made one category
+ * rarer (p12).
+ * @param {string} rarity One of RARITIES, or blank where nobody said.
+ * @returns {string|null} The rarer category, or null where it doesn't change.
+ */
+export function specialistRarity(rarity) {
+	const at = RARITIES.indexOf(rarity);
+	return at < 0 || at === RARITIES.length - 1 ? null : RARITIES[at + 1];
+}
+
 /** What the pages list, in the order the importer files it. */
 export const GOODS_KINDS = Object.freeze([
 	"weapons",

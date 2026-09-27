@@ -6,7 +6,7 @@ import { openKnighthood } from "../actions/knighthood.js";
 import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { takeSeerDamage } from "../actions/damage.js";
 import { rollSaveFor } from "../actions/saves.js";
-import { resolveScar, rollScar } from "../actions/scars.js";
+import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf } from "../actions/succession.js";
@@ -54,6 +54,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			postGambit: KnightSheet.#onPostGambit,
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
+			patchUp: KnightSheet.#onPatchUp,
 			openSteed: KnightSheet.#onOpenSteed,
 			clearSteed: KnightSheet.#onClearSteed,
 			takeSteed: KnightSheet.#onTakeSteed,
@@ -208,6 +209,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : row.tags
 				};
 			}),
+			// Patched up in a few moments (p8), which settles a Gouge or Tear too (p9).
+			canPatchUp: canPatchUp(this.actor),
 			steed: steed && {
 				name: steed.name,
 				img: steed.img,
@@ -550,6 +553,11 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @this {KnightSheet} */
 	static #onRollScar() {
 		return rollScar(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onPatchUp() {
+		return patchUp(this.actor);
 	}
 
 	/** @this {KnightSheet} */

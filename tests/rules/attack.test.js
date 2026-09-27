@@ -8,6 +8,7 @@ import {
 	changeAttack,
 	checkWielding,
 	defaultWielded,
+	dismountLanded,
 	gambitAllowsSave,
 	gambitIgnored,
 	hasDeniableDie,
@@ -432,5 +433,16 @@ describe("canDeny", () => {
 		expect(hasDeniableDie(spent)).toBe(false);
 		expect(canDeny(spent, knight)).toBe(false);
 		expect(canDeny(changeAttack(attack(), { type: "applied", names: ["Ser K"] }), knight)).toBe(false);
+	});
+});
+
+describe("dismountLanded", () => {
+	const gambit = (changes) => ({ key: "dismount", die: 5, strong: false, bonus: 3, save: null, dismissed: false, ...changes });
+	it("lands unless Saved against or taken back", () => {
+		expect(dismountLanded({ gambits: [gambit()] })).toBe(true);
+		expect(dismountLanded({ gambits: [gambit({ save: { passed: false } })] })).toBe(true);
+		expect(dismountLanded({ gambits: [gambit({ save: { passed: true } })] })).toBe(false);
+		expect(dismountLanded({ gambits: [gambit({ dismissed: true })] })).toBe(false);
+		expect(dismountLanded({ gambits: [{ ...gambit(), key: "repel" }] })).toBe(false);
 	});
 });

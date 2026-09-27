@@ -36,7 +36,7 @@ import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
 import { adjustGlory, gloryLines } from "./glory.js";
-import { settleScar } from "./scars.js";
+import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
 
@@ -92,18 +92,9 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], purs
  * @param {Actor} actor
  * @returns {Promise<{rolls: Roll[], lines: string[], guardMax: number}>}
  */
-async function settleSeasonScars(actor) {
-	let guardMax = actor.system.guard.max;
-	const rolls = [];
-	const lines = [];
+function settleSeasonScars(actor) {
 	const due = actor.items.filter((item) => item.type === "scar" && isScarPending(item.system) && scarForRoll(item.system.roll)?.bySeason);
-	for (const item of due) {
-		const settled = await settleScar(item, guardMax);
-		if (settled.roll) rolls.push(settled.roll);
-		guardMax = settled.guardMax;
-		lines.push(settled.line);
-	}
-	return { rolls, lines, guardMax };
+	return settleScars(due, actor.system.guard.max);
 }
 
 /**

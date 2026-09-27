@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carriesFrom, collisionFaces, isStructureNpc, STRUCTURE_KINDS, structureFromNpc, structureKind } from "../../module/rules/structures.js";
+import { STRUCTURE_KINDS, carriesFrom, collisionFaces, harmsStructure, isStructureNpc, structureFromNpc, structureHarm, structureKind } from "../../module/rules/structures.js";
 
 const virtues = (value = 10, max = value) => ({ vig: { value, max }, cla: { value, max }, spi: { value, max } });
 
@@ -80,5 +80,31 @@ describe("structureFromNpc", () => {
 			carries: "",
 			notes: ""
 		});
+	});
+});
+
+describe("structureHarm", () => {
+	it("reads siege engines and fire from what the Attack is made with", () => {
+		expect(structureHarm({ texts: ["Trebuchet 3d12 blast, immobile"] })).toEqual({ siege: true, fire: false, large: false });
+		expect(structureHarm({ texts: ["3 firepots (d6 blast, sets area alight)"] })).toEqual({ siege: false, fire: true, large: false });
+		expect(structureHarm({ texts: ["Mace"] })).toEqual({ siege: false, fire: false, large: false });
+		expect(structureHarm({ fromSiege: true, large: true })).toEqual({ siege: true, fire: false, large: true });
+	});
+	it("doesn't take a rampart for a ram", () => {
+		expect(structureHarm({ texts: ["Rampart stone"] }).siege).toBe(false);
+	});
+});
+
+describe("harmsStructure", () => {
+	it("lets fire, siege weapons and large creatures harm wood", () => {
+		expect(harmsStructure({ fire: true })).toBe(true);
+		expect(harmsStructure({ large: true })).toBe(true);
+		expect(harmsStructure({ siege: true })).toBe(true);
+		expect(harmsStructure({})).toBe(false);
+		expect(harmsStructure(null)).toBe(false);
+	});
+	it("lets only siege weapons breach stone", () => {
+		expect(harmsStructure({ siege: true }, true)).toBe(true);
+		expect(harmsStructure({ fire: true, large: true }, true)).toBe(false);
 	});
 });

@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { DIE_SIZES } from "../rules/attack.js";
-import { isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow } from "../rules/scars.js";
+import { isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
@@ -104,6 +104,53 @@ export async function settleScar(item, maxGuard) {
 	const roll = await new Roll("1d6").evaluate();
 	const guardMax = maxGuard + roll.total;
 	return { roll, guardMax, line: t("scarRoll.settledRaise", { name: item.name, amount: roll.total, value: guardMax }) };
+}
+
+/**
+ * Settle Scars one after another, each raising max GD from where the last left it.
+ * @param {Item[]} items Scar items.
+ * @param {number} guardMax Max GD before the first.
+ * @returns {Promise<{rolls: Roll[], lines: string[], guardMax: number}>} The caller saves `guardMax`.
+ */
+export async function settleScars(items, guardMax) {
+	const rolls = [];
+	const lines = [];
+	for (const item of items) {
+		const settled = await settleScar(item, guardMax);
+		if (settled.roll) rolls.push(settled.roll);
+		guardMax = settled.guardMax;
+		lines.push(settled.line);
+	}
+	return { rolls, lines, guardMax };
+}
+
+/**
+ * @param {Actor} actor
+ * @returns {Item[]} Their Gouges and Tears waiting on being stitched or patched up (p9).
+ */
+const tendingScars = (actor) => actor.items.filter((item) => item.type === "scar" && settlesByTending(item.system));
+
+/**
+ * @param {Actor} actor
+ * @returns {boolean} Whether patching them up would do anything: a Mortal Wound, or a Scar it settles.
+ */
+export const canPatchUp = (actor) => Boolean(actor.system.mortalWound) || tendingScars(actor).length > 0;
+
+/**
+ * Patch someone up (p8): a Mortal Wound tended in a few moments, and any Gouge
+ * or Tear waiting on being stitched or patched up settled with it (p9).
+ * @param {Actor} actor
+ * @returns {Promise<string[]|null>} The card's lines, or null when there was nothing to tend.
+ */
+export async function patchUp(actor) {
+	if (!canPatchUp(actor)) return null;
+	const { rolls, lines, guardMax } = await settleScars(tendingScars(actor), actor.system.guard?.max ?? 0);
+	const update = { "system.mortalWound": false };
+	if (actor.system.guard && guardMax !== actor.system.guard.max) update["system.guard.max"] = guardMax;
+	await actor.update(update, causedBy("scar"));
+	const text = [t("scarRoll.patchedUp", { name: actor.name }), ...lines].join(" ");
+	await postCard(actor, "note", { icon: "fa-solid fa-kit-medical", text }, { rolls });
+	return lines;
 }
 
 /**

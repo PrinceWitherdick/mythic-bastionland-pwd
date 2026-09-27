@@ -352,16 +352,58 @@ export function actorFromStatBlock(block, options) {
 	return { type: "npc", ...npcFromStatBlock(block, options) };
 }
 
+/** How many are carried, leading an attack's name as in "3 firepots". */
+const LEADING_COUNT = /^(\d+)\s+(?=\p{L})/u;
+
+/** An attack used once a day, as "once per day each". */
+const ONCE_A_DAY = /\bonce (?:per|a) day\b/i;
+
+/** Another way to fight with the same thing, as the "or d12 blast" in "Crush (2d12 or d12 blast)". */
+const OR_DICE = /^or\s+(\d*d\d+)\s*(.*)$/i;
+
+/** Qualities an attack's other way to fight can have, as rules/attack.js lists them. */
+const ALTERNATE_WORDS = Object.freeze(["hefty", "long", "slow", "ranged", "blast"]);
+
+/**
+ * An attack's other way to fight, from the part of its note that starts "or"
+ * and dice, as "or d12 blast".
+ * @param {string} part
+ * @returns {object|null} The alternate field's data.
+ */
+function alternateFrom(part) {
+	const match = OR_DICE.exec(part.trim());
+	if (!match) return null;
+	const words = match[2].toLowerCase().split(/\s+/).filter(Boolean);
+	const alternate = { label: words.filter((word) => !ALTERNATE_WORDS.includes(word)).join(" ") || words.at(-1) || "or", damage: match[1].toLowerCase() };
+	for (const word of words) if (ALTERNATE_WORDS.includes(word)) alternate[word] = true;
+	return alternate;
+}
+
 /**
  * @param {ParsedAttack} attack
  * @param {string} fallbackName
- * @returns {object} Weapon item data.
+ * @returns {object} Weapon item data. "3 firepots" are three Firepots, counted;
+ *   "once per day" is one, restocked each day; "or d12 blast" is another way to fight.
  */
 function weaponData(attack, fallbackName) {
 	const system = { damage: attack.damage, equipped: true };
 	for (const key of Object.keys(QUALITIES)) system[key] = attack.qualities.includes(key);
-	system.description = paragraphs(capitalise(attack.note));
-	return { type: "weapon", name: capitalise(attack.name) || fallbackName, system };
+
+	const parts = splitOutside(attack.note, /^,/);
+	const alternateAt = parts.findIndex((part) => alternateFrom(part));
+	if (alternateAt >= 0) system.alternate = alternateFrom(parts.splice(alternateAt, 1)[0]);
+
+	const counted = LEADING_COUNT.exec(attack.name);
+	const name = counted ? attack.name.slice(counted[0].length) : attack.name;
+	const daily = ONCE_A_DAY.test(attack.note);
+	const count = counted ? Number(counted[1]) : daily ? 1 : null;
+	if (count !== null) system.quantity = { value: count, max: count };
+	if (daily) system.restock = "day";
+	// Each use of a daily attack, or each firepot thrown, is gone until restocked, as on a Knight's Property.
+	if (daily || (counted && system.blast)) system.usedUp = true;
+
+	system.description = paragraphs(capitalise(parts.join(", ")));
+	return { type: "weapon", name: capitalise(name) || fallbackName, system };
 }
 
 /**

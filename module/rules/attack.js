@@ -18,6 +18,14 @@ export const STRONG_GAMBIT_MINIMUM = 8;
 /** Being dismounted causes d6 Damage, added to the dice when it happens in combat (p10). */
 export const DISMOUNT_FACES = 6;
 
+/**
+ * Whether an Attack card's Dismount Gambit landed: declared, not taken back,
+ * and not ignored with a passed Save.
+ * @param {{gambits: {key: string, dismissed?: boolean, save?: {passed: boolean}|null}[]}} attack
+ * @returns {boolean}
+ */
+export const dismountLanded = (attack) => attack.gambits.some((gambit) => gambit.key === "dismount" && !gambit.dismissed && !gambit.save?.passed);
+
 /** Gambits the target gets no VIG Save to ignore. */
 export const UNSAVED_GAMBITS = Object.freeze(["bolster", "move"]);
 

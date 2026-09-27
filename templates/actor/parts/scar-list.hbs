@@ -8,5 +8,8 @@
 					{{#if editable}}
 					<div class="bastionland-adds">
 						<button type="button" class="bastionland-add" data-action="rollScar"><i class="fa-solid fa-bone-break" inert></i> {{localize "bastionland.sheet.rollScar"}}</button>
+						{{#if canPatchUp}}
+						<button type="button" class="bastionland-add" data-action="patchUp" data-tooltip="{{localize 'bastionland.scarRoll.patchUpHint'}}"><i class="fa-solid fa-kit-medical" inert></i> {{localize "bastionland.scarRoll.patchUp"}}</button>
+						{{/if}}
 					</div>
 					{{/if}}

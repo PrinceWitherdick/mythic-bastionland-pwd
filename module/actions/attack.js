@@ -28,6 +28,7 @@ import { recallAttack, rememberAttack, rememberedTicks, wieldedWith } from "./at
 import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, resolveFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
+import { structureHarm } from "../rules/structures.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample"]);
@@ -381,8 +382,16 @@ export async function attack(actor) {
 		setAside: check.setAside.map(({ index, reason }) => ({ name: picked[index].name, reason })),
 		blast,
 		ignoresArmour: chosen.some((item) => item.system.ignoresArmour),
+		// What a Cast member's weapon does besides its dice, as its stat block says: "sets area alight".
+		notes: actor.type === "knight" ? [] : chosen.map((item) => ({ name: item.name, note: plainNote(item.system.description) })).filter(({ note }) => note),
 		// A Warband's Attack is large-scale, so it can harm another Warband.
 		largeScale: warband,
+		// Fire, a siege weapon or a suitably large creature harms a structure (p11).
+		structureHarm: structureHarm({
+			fromSiege: actor.type === "structure",
+			large: actor.type === "npc" && Boolean(actor.system.structure),
+			texts: chosen.map((item) => `${item.name} ${item.system.description ?? ""}`)
+		}),
 		leader: leader ? { uuid: leader.uuid, name: leader.name } : null,
 		smite: smite?.feat ?? null,
 		duel: inDuel?.message.id ?? null,
@@ -422,6 +431,19 @@ export async function attack(actor) {
 		whispered: !chatIsPublic()
 	});
 	return messages;
+}
+
+/** The longest weapon note an Attack card repeats; anything longer is on the weapon itself. */
+const NOTE_LENGTH = 160;
+
+/**
+ * A weapon's note as one short line of plain text for a card.
+ * @param {string} html
+ * @returns {string} Empty for a note too long to repeat, or none.
+ */
+function plainNote(html) {
+	const text = String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+	return text.length <= NOTE_LENGTH ? text : "";
 }
 
 /**
@@ -556,6 +578,8 @@ export function attackCardContext(attack) {
 		confined: Boolean(attack.confined),
 		blast: attack.blast,
 		ignoresArmour: attack.ignoresArmour,
+		// Cards rolled before weapon notes were kept have none.
+		weaponNotes: (attack.notes ?? []).map(({ name, note }) => `${name}: ${note}`),
 		// Cards rolled before leading from the front have no leader.
 		leader: attack.leader ? t("attack.ledBy", { name: attack.leader.name }) : null,
 		// A duel's Attacks are applied together from the duel card.

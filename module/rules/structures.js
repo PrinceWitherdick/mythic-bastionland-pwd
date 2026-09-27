@@ -43,6 +43,42 @@ export function carriesFrom(note) {
 	return { carries, rest: parts.join(", ") };
 }
 
+/** Siege engines, named for what they are (Artillery and Siegery, p11). */
+const SIEGE_WORDS = /\b(?:siege|trebuchets?|stone throwers?|battering rams?|bolt launchers?|catapults?|ballistae?|mangonels?)\b/i;
+
+/** Fire, as a weapon's name or note gives it. */
+const FIRE_WORDS = /\b(?:fire|firepots?|flames?|flaming|burning|torch(?:es)?|incendiary|alight)\b/i;
+
+/**
+ * What an Attack brings that can harm a structure (Wood and Stone, p11):
+ * siege weapons, fire, or a suitably large creature.
+ * @param {object} args
+ * @param {boolean} [args.fromSiege] Made by a siege engine, which is a Structure actor.
+ * @param {boolean} [args.large]     Made by a creature that counts as a structure.
+ * @param {string[]} [args.texts]    Each weapon's name and note.
+ * @returns {{siege: boolean, fire: boolean, large: boolean}}
+ */
+export function structureHarm({ fromSiege = false, large = false, texts = [] } = {}) {
+	return {
+		siege: fromSiege || texts.some((text) => SIEGE_WORDS.test(text)),
+		fire: texts.some((text) => FIRE_WORDS.test(text)),
+		large
+	};
+}
+
+/**
+ * Whether an Attack harms a structure. Wood yields to fire, siege weapons and
+ * large creatures; stone walls can't be breached by conventional means, so
+ * only siege weapons are taken to harm them (p11).
+ * @param {{siege?: boolean, fire?: boolean, large?: boolean}|null|undefined} harm From structureHarm.
+ * @param {boolean} stone
+ * @returns {boolean}
+ */
+export function harmsStructure(harm, stone = false) {
+	if (!harm) return false;
+	return stone ? Boolean(harm.siege) : Boolean(harm.siege || harm.fire || harm.large);
+}
+
 /**
  * The die a ship takes in a collision (p11).
  * @param {boolean} muchLarger Whether this ship is much larger than the other.

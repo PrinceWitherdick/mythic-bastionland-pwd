@@ -1,5 +1,5 @@
 import { STRUCTURE_KINDS } from "../rules/structures.js";
-import { countField, htmlField, textField, trackField } from "./fields.js";
+import { booleanField, countField, htmlField, textField, trackField } from "./fields.js";
 
 const fields = foundry.data.fields;
 
@@ -15,6 +15,8 @@ export class StructureModel extends foundry.abstract.TypeDataModel {
 	static defineSchema() {
 		return {
 			kind: new fields.StringField({ required: true, initial: STRUCTURE_KINDS[0], choices: STRUCTURE_KINDS }),
+			// Stone walls can't be breached by conventional means (p11); anything else is wood.
+			stone: booleanField(),
 			// "The Great Fungal Tower", the part of a Cast name after the comma.
 			epithet: textField(),
 			guard: trackField({ initial: 5 }),

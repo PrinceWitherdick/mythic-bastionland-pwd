@@ -2,7 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
-import { attackDamage } from "../rules/attack.js";
+import { attackDamage, dismountLanded } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
@@ -13,6 +13,7 @@ import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { rollScar } from "./scars.js";
+import { harmsStructure } from "../rules/structures.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -103,6 +104,7 @@ export async function takeDamage(actor, preset = {}) {
 		character: Boolean(virtues),
 		warband,
 		structure: Boolean(actor.system.structure),
+		stone: Boolean(actor.system.stone),
 		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 })
 	}, preset);
 	if (!asked) return null;
@@ -199,6 +201,7 @@ export async function takeSeerDamage(knight) {
  * @param {boolean} target.character Has Virtues, unlike a structure.
  * @param {boolean} target.warband
  * @param {boolean} target.structure
+ * @param {boolean} [target.stone] A stone wall, which only siege weapons breach.
  * @param {() => {guard: number, vigour: number}} target.scores Their GD and VIG, read once the
  *   dialog closes, so Damage that landed while it stood open isn't undone by this one.
  * @param {object} [preset] As takeDamage takes.
@@ -211,8 +214,9 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 		.filter(Boolean)
 		.map((key) => ({
 			key,
-			label: t(`damage.harm.${key}.label`),
-			hint: t(`damage.harm.${key}.hint`),
+			// A stone wall asks for a siege weapon alone.
+			label: t(`damage.harm.${key === "structure" && target.stone ? "stone" : key}.label`),
+			hint: t(`damage.harm.${key === "structure" && target.stone ? "stone" : key}.hint`),
 			checked: Boolean(harm[key])
 		}));
 
@@ -295,7 +299,8 @@ function damageCard(result, armour, before, outcomes, morale) {
 }
 
 /**
- * Take the Damage of an Attack card, then roll a Scar with the die that caused it.
+ * Take the Damage of an Attack card, then roll a Scar with the die that caused
+ * it, and come off a steed a Dismount landed on.
  * @param {Actor} actor
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {object} [options]
@@ -308,10 +313,13 @@ export async function takeAttack(actor, attack, { scars = true } = {}) {
 		damage,
 		ignoreArmour: attack.ignoresArmour,
 		ranged: !attack.melee,
-		// Only Blast or large-scale Attacks harm a Warband (p11).
-		harm: { warband: attack.blast || attack.largeScale }
+		// Only Blast or large-scale Attacks harm a Warband, and only fire, siege
+		// weapons or large creatures a structure, or siege weapons stone (p11).
+		harm: { warband: attack.blast || attack.largeScale, structure: harmsStructure(attack.structureHarm, Boolean(actor.system.stone)) }
 	});
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces });
+	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
+	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });
 	return result;
 }
 

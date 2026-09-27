@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SCARS, scarForRoll, scarRaisesGuardNow } from "../../module/rules/scars.js";
+import { SCARS, scarForRoll, scarRaisesGuardNow, settlesByTending } from "../../module/rules/scars.js";
 
 describe("SCARS", () => {
 	it("has one entry for each result from 1 to 12", () => {
@@ -26,5 +26,15 @@ describe("scarRaisesGuardNow", () => {
 
 	it("never raises GD at once for Scars that wait on a later condition", () => {
 		expect(scarRaisesGuardNow(scarForRoll(6), 1)).toBe(false);
+	});
+});
+
+describe("settlesByTending", () => {
+	it("waits a Gouge or a Tear on being stitched or patched up, until settled", () => {
+		expect(settlesByTending({ roll: 6 })).toBe(true);
+		expect(settlesByTending({ roll: 8 })).toBe(true);
+		expect(settlesByTending({ roll: 8, resolved: true })).toBe(false);
+		expect(settlesByTending({ roll: 10 })).toBe(false);
+		expect(settlesByTending({ roll: 12 })).toBe(false);
 	});
 });

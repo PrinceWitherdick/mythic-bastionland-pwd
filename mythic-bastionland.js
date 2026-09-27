@@ -22,7 +22,7 @@ import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
-import { addSurpriseOption, rollSurprise } from "./module/actions/surprise.js";
+import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
@@ -101,6 +101,7 @@ import { watchQuerySenders } from "./module/compat.js";
 import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
+import { restAfterCombat } from "./module/actions/recovery.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -253,6 +254,8 @@ Hooks.once("init", () => {
 
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
+	registerSurpriseHooks();
+	Hooks.on("deleteCombat", (combat) => restAfterCombat(combat));
 
 	// Each Knight's Ledger of the changes made to them.
 	registerLedgerHooks();

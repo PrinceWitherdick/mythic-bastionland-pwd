@@ -1,6 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { contextMenuEntry } from "../compat.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
@@ -44,6 +45,10 @@ export async function rollSurprise(combat = game.combat) {
 
 	const results = [];
 	for (const entry of unready) results.push({ ...entry, save: await evaluateSave(entry.actor, "cla") });
+	// Whoever failed misses the first turn, which the tracker skips for them.
+	const missed = new Set(results.filter(({ save }) => !save.passed).map(({ actor }) => actor.uuid));
+	const surprised = [...(combat?.combatants ?? [])].filter((combatant) => combatant.actor && missed.has(combatant.actor.uuid));
+	if (surprised.length) await combat.updateEmbeddedDocuments("Combatant", surprised.map(({ id }) => ({ _id: id, [`flags.${SYSTEM_ID}.${SURPRISED_FLAG}`]: true })));
 	await postCard(null, "surprise", {
 		entries: results.map(({ name, save }) => ({
 			name,
@@ -52,6 +57,28 @@ export async function rollSurprise(combat = game.combat) {
 		}))
 	}, { rolls: results.map(({ save }) => save.roll) });
 	return results;
+}
+
+/** Marks a Combatant who failed the Surprise Save and so misses the first turn. */
+const SURPRISED_FLAG = "surprised";
+
+/**
+ * Pass over a surprised Combatant's turn in the first round. The active GM
+ * moves the tracker on.
+ * @param {Combat} combat
+ */
+async function skipSurprised(combat) {
+	if (!game.users.activeGM?.isSelf || !combat?.started || combat.round > 1) return;
+	const current = combat.combatant;
+	if (!current?.getFlag(SYSTEM_ID, SURPRISED_FLAG)) return;
+	await postCard(null, "note", { icon: "fa-solid fa-bolt", text: t("surprise.skipped", { name: current.name }) });
+	await combat.nextTurn();
+}
+
+/** Called during init. */
+export function registerSurpriseHooks() {
+	// Round 0 becoming 1 is a turn change too; combatStart comes before the Combat has started.
+	Hooks.on("combatTurnChange", (combat) => skipSurprised(combat));
 }
 
 /**

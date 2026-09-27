@@ -1,3 +1,4 @@
+import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { causedBy } from "./ledger.js";
 import { VIRTUES } from "../rules/virtues.js";
@@ -28,6 +29,32 @@ export async function rest(actor) {
 		icon: "fa-solid fa-mug-hot",
 		text: t("recovery.rested", { value })
 	});
+}
+
+/**
+ * The danger has passed (Recovery, p9): once a Combat ends, offer the active
+ * GM to restore Guard and remove Fatigue for everybody in it still standing
+ * who needs it, on one card.
+ * @param {Combat} combat
+ * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
+ */
+export async function restAfterCombat(combat) {
+	if (!game.users.activeGM?.isSelf || !combat?.started) return null;
+	const actors = [];
+	for (const combatant of combat.combatants) {
+		const { actor } = combatant;
+		const guard = actor?.system?.guard;
+		// A ship or wall doesn't catch its breath: its GD comes back by repair.
+		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.virtues?.vig.value === 0) continue;
+		if (guard.value < guard.max || actor.system.fatigued) actors.push(actor);
+	}
+	if (!actors.length) return null;
+	const names = actors.map((actor) => actor.name).join(", ");
+	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
+	if (!confirmed) return null;
+	await Promise.all(actors.map((actor) => actor.update({ "system.guard.value": actor.system.guard.max, "system.fatigued": false }, causedBy("recovery"))));
+	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text: t("recovery.restedAfterCombat", { names }) });
+	return actors;
 }
 
 /**

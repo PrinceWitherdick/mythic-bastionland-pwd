@@ -402,6 +402,9 @@
       "guardLabel": "GD/Fatigue",
       "restore": "Restore {virtue}",
       "restored": "{virtue} restored to {value}.",
+      "afterCombatTitle": "The Danger Has Passed",
+      "afterCombat": "The fight is over. Restore Guard and remove Fatigue for {names}?",
+      "restedAfterCombat": "The danger has passed: {names} restore Guard and shake off Fatigue.",
       "rested": "A moment’s calm: GD restored to {value} and Fatigue removed."
     },
     "oath": {
@@ -837,6 +840,7 @@
       "hint": "Players normally take the first turn, discussing their plan and acting in any order they wish.",
       "roll": "Roll Saves",
       "acts": "Ready in time.",
+      "skipped": "{name} was caught unready and misses the first turn.",
       "misses": "Misses the first turn.",
       "noCombatants": "This encounter has nobody in it yet.",
       "nobody": "Nobody was caught unready, so there’s nothing to roll."
@@ -2101,6 +2105,10 @@
       "vigourLine": "VIG {from} → {to}",
       "leaderShares": "{name} leads {warband} from the front, so suffers the same {damage} Damage. Apply it from their sheet.",
       "harm": {
+        "stone": {
+          "label": "A siege weapon",
+          "hint": "Stone walls can’t be breached by conventional means."
+        },
         "warband": {
           "label": "A Blast or large-scale Attack",
           "hint": "Individual Attacks don’t harm a Warband."
@@ -2139,7 +2147,10 @@
       "settle": "Settle this Scar: roll its GD increase now its moment has come",
       "settledRaise": "{name} settles: max GD rises by {amount} to {value}.",
       "settledNoRaise": "{name} settles, but max GD is already above {limit}, so it doesn’t rise.",
-      "doomActive": "this Season"
+      "doomActive": "this Season",
+      "patchUp": "Patch Up",
+      "patchUpHint": "Tend the wounds: clear a Mortal Wound, and settle any Gouge or Tear waiting to be stitched or patched up.",
+      "patchedUp": "{name} is patched up."
     },
     "scars": {
       "label": "Scars",
@@ -2404,6 +2415,8 @@
       "guardHint": "How much Damage it can take. At 0 GD it’s destroyed.",
       "armourNote": "What its Armour is",
       "carries": "Carries",
+      "stone": "Stone",
+      "stoneHint": "Stone walls can’t be breached by conventional means: only siege weapons harm them here (p11). Their gates are usually wood.",
       "carriesPlaceholder": "6 passengers, a Warband…",
       "items": "Weapons & Cargo",
       "destroyed": {

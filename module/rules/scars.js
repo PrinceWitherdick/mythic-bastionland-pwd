@@ -11,6 +11,7 @@ import { seasonKey } from "./time.js";
  * - `laterGuardAtMost`: the same, but only once a condition in the text is met,
  *   so it is recorded on the Scar rather than applied.
  * - `bySeason`: that condition is the next Season, so turning the Season settles it.
+ * - `byTending`: that condition is being stitched or patched up, so tending the wounds settles it.
  */
 export const SCARS = Object.freeze([
 	{ roll: 1, key: "distress", loss: { virtue: "spi", formula: "1d6" } },
@@ -18,9 +19,9 @@ export const SCARS = Object.freeze([
 	{ roll: 3, key: "smash", loss: { virtue: "vig", formula: "1d6" } },
 	{ roll: 4, key: "stun", loss: { virtue: "cla", formula: "1d6" }, guardAtMost: 4 },
 	{ roll: 5, key: "rupture", loss: { virtue: "vig", formula: "2d6" } },
-	{ roll: 6, key: "gouge", laterGuardAtMost: 6 },
+	{ roll: 6, key: "gouge", laterGuardAtMost: 6, byTending: true },
 	{ roll: 7, key: "concussion", loss: { virtue: "cla", formula: "2d6" } },
-	{ roll: 8, key: "tear", detail: true, laterGuardAtMost: 8 },
+	{ roll: 8, key: "tear", detail: true, laterGuardAtMost: 8, byTending: true },
 	{ roll: 9, key: "agony", loss: { virtue: "spi", formula: "2d6" } },
 	{ roll: 10, key: "mutilation", detail: true, laterGuardAtMost: 10, bySeason: true },
 	{ roll: 11, key: "doom" },
@@ -60,6 +61,14 @@ export function scarRaisesGuardNow(scar, maxGuard) {
 export function isScarPending(scar) {
 	return !scar?.resolved && scarForRoll(scar?.roll)?.laterGuardAtMost !== undefined;
 }
+
+/**
+ * Whether a recorded Scar waits on its bearer being stitched or patched up: a
+ * Gouge or a Tear not yet settled.
+ * @param {RecordedScar} scar
+ * @returns {boolean}
+ */
+export const settlesByTending = (scar) => isScarPending(scar) && Boolean(scarForRoll(scar.roll)?.byTending);
 
 /**
  * Whether settling a recorded Scar raises max GD: only while it's at or under the entry's limit.

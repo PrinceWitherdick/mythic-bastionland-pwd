@@ -40,6 +40,10 @@
 					{{/each}}
 				</ul>
 				<p class="bastionland-hint">{{kindRules}}</p>
+				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.structure.stoneHint'}}">
+					<input type="checkbox" name="system.stone" {{checked system.stone}} {{#unless editable}}disabled{{/unless}}>
+					<span class="bastionland-check__label">{{localize "bastionland.structure.stone"}}</span>
+				</label>
 				{{#if isShip}}
 				<label class="bastionland-structure__carries">
 					<span class="bastionland-heading bastionland-heading--small">{{localize "bastionland.structure.carries"}}</span>

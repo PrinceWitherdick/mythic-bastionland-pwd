@@ -267,3 +267,39 @@ describe("statBlockFromText", () => {
 		expect(statBlockFromText("")).toBeNull();
 	});
 });
+
+describe("Cast weapons", () => {
+	const attacks = (line) => npcFromStatBlock({ name: "Tester", stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: [line] }).items;
+
+	it("counts the number carried off the front of a name", () => {
+		const [firepots] = attacks("3 firepots (d6 blast, sets area alight)");
+		expect(firepots.name).toBe("Firepots");
+		expect(firepots.system).toMatchObject({ damage: "d6", blast: true, quantity: { value: 3, max: 3 }, usedUp: true });
+		expect(firepots.system.description).toContain("Sets area alight");
+	});
+
+	it("keeps an attack used once a day to one, restocked each day", () => {
+		const [scream] = attacks("Bone-melting scream (d12 slow, ignore armour, once per day each)");
+		expect(scream.system).toMatchObject({ slow: true, ignoresArmour: true, quantity: { value: 1, max: 1 }, restock: "day", usedUp: true });
+	});
+
+	it("reads another way to fight from an \"or\"", () => {
+		const [crush] = attacks("Crush (2d12 or d12 blast)");
+		expect(crush.system.damage).toBe("2d12");
+		expect(crush.system.alternate).toEqual({ label: "blast", damage: "d12", blast: true });
+		expect(crush.system.description).toBe("");
+	});
+
+	it("leaves an ordinary attack uncounted", () => {
+		const [claws] = attacks("Claws and teeth (2d6)");
+		expect(claws.system).not.toHaveProperty("quantity");
+		expect(claws.system).not.toHaveProperty("alternate");
+		expect(claws.system).not.toHaveProperty("usedUp");
+	});
+
+	it("leaves counted weapons that can be picked up again unspent", () => {
+		const [javelins] = attacks("2 javelins (d6 ranged)");
+		expect(javelins.system).toMatchObject({ quantity: { value: 2, max: 2 } });
+		expect(javelins.system).not.toHaveProperty("usedUp");
+	});
+});
