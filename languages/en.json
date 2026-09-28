@@ -910,6 +910,19 @@
         }
       }
     },
+    "seenFromAfar": {
+      "title": "Seen from Afar",
+      "intro": "From the vantage point the Company can make out that something stands in these hexes, but not what it is.",
+      "rule": "Each one ticked gets an unnamed mark on the players’ map until the Company gets there (p197). Add a few words of what they see, if you like.",
+      "placeholder": "What they see, such as a structure, smoke rising",
+      "noteLabel": "What they see at {hex}",
+      "row": "{direction}, {hex}: {what}",
+      "ok": "Mark Their Map",
+      "marked": "{count} marked on the players’ map as seen from afar.",
+      "reached": "The Company has reached what it saw from afar, and it is shown on the players’ map.",
+      "readout": "Something stands here",
+      "readoutNote": "Something stands here: {note}"
+    },
     "phaseEnd": {
       "title": "The {phase} Ends",
       "where": "The Company stands at {hex}.",

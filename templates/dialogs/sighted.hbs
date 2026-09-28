@@ -1,0 +1,15 @@
+<div class="bastionland-dialog__body bastionland-sighted">
+	<p>{{intro}}</p>
+	<p class="hint">{{rule}}</p>
+	{{#each hexes}}
+	<fieldset>
+		<label class="bastionland-check">
+			<input type="checkbox" name="sight-{{index}}" checked>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		<div class="form-fields">
+			<input type="text" name="note-{{index}}" value="{{note}}" maxlength="{{../maxLength}}" placeholder="{{../placeholder}}" aria-label="{{noteLabel}}" autocomplete="off">
+		</div>
+	</fieldset>
+	{{/each}}
+</div>

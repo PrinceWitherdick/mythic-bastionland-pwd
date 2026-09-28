@@ -5,6 +5,7 @@ import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, regis
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
+import { registerSightings } from "./module/actions/sighted.js";
 import { registerSkyAndWeather } from "./module/actions/sky-weather.js";
 import { registerHomecoming } from "./module/actions/homecoming.js";
 import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
@@ -366,6 +367,8 @@ Hooks.once("init", () => {
 	registerPhaseEndSettings();
 	// The day's sky and weather, rolled as the Company breaks camp, and the fog that hides the way (p197).
 	registerSkyAndWeather();
+	// What the Company saw from afar is found once it gets there.
+	registerSightings();
 	// A ruler back at their Holding from a long absence makes the Crisis Roll.
 	registerHomecoming();
 

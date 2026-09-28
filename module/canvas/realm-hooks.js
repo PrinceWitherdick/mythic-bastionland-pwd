@@ -27,6 +27,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { listenForTurnedBack, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
+import { drawSightedMarks } from "./sighted-marks.js";
 
 /**
  * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
@@ -76,6 +77,8 @@ function showChanges() {
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();
+			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed.
+			drawSightedMarks();
 		}
 	}
 	changedScenes.clear();
@@ -164,6 +167,7 @@ export function registerRealmHooks() {
 	// `canvasReady` is what clears the rules away with the last Scene.
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
+		drawSightedMarks();
 		showRealmRules();
 		// Where the Company got to while the GM was looking at another Scene.
 		offerWaitingArrival();

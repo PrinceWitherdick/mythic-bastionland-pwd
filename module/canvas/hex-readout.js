@@ -1,6 +1,8 @@
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { getSighted } from "../actions/sighted.js";
 import { t } from "../chat/cards.js";
 import { hexSummary } from "../rules/realm.js";
+import { SIGHTED_FLAG, hiddenThere, sightedAt } from "../rules/sighted.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { read } from "../client-settings.js";
 import { followMap, hotbarFloor, mapOnScreen, panelScreen } from "../apps/map-screen.js";
@@ -115,9 +117,10 @@ const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING)
  * @param {ReturnType<typeof hexSummary>} summary
  * @param {object} [options]
  * @param {boolean} [options.coordinates] Lead with the hex's column and row.
+ * @param {{note: string}|null} [options.sighted] Something seen standing there from afar and not yet reached (p197).
  * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power". Empty where the hex holds nothing worth naming.
  */
-export function describeHex(summary, { coordinates = false } = {}) {
+export function describeHex(summary, { coordinates = false, sighted = null } = {}) {
 	const parts = [];
 	// Only a GM is told of what's hidden, so only a GM sees it marked.
 	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
@@ -132,6 +135,8 @@ export function describeHex(summary, { coordinates = false } = {}) {
 		const named = summary.landmark.name ? `${type}: ${summary.landmark.name}` : type;
 		parts.push(summary.landmark.revealed ? named : t("realm.readout.hidden", { name: named }));
 	}
+	// Everybody sees that something stands there, in the Referee's words, but not what it is.
+	if (sighted) parts.push(sighted.note ? t("seenFromAfar.readoutNote", { note: sighted.note }) : t("seenFromAfar.readout"));
 	const text = parts.join(" · ");
 	if (!coordinates) return text;
 	const where = t("realm.readout.coordinates", summary.hex);
@@ -184,8 +189,12 @@ export function updateHexReadout({ force = false } = {}) {
 	// Within the hex already shown, the chip stays where it stands: following the map moves it.
 	if (!force && shown === hexKey(hex)) return;
 	shown = hexKey(hex);
-	const summary = hexSummary(entry.realm, g, hex, { showHidden: game.user.isGM, hiddenByHand: hexHiddenByHand(scene, hex) });
-	const text = describeHex(summary, { coordinates: showsCoordinates() });
+	const handHidden = hexHiddenByHand(scene, hex);
+	const summary = hexSummary(entry.realm, g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
+	// A mark stands only while something there is still hidden. Most hexes have none, so the flag is read whole only where one does.
+	const marked = Boolean(scene.flags?.[SYSTEM_ID]?.[SIGHTED_FLAG]?.[shown]);
+	const sighted = marked && hiddenThere(entry.realm, hex, () => handHidden) ? sightedAt(getSighted(scene), hex) : null;
+	const text = describeHex(summary, { coordinates: showsCoordinates(), sighted });
 	chip.textContent = text;
 	chip.hidden = !text;
 	size = null;

@@ -24,7 +24,8 @@ vi.mock("../../module/apps/ui.js", () => ({
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => scene?.isRealm !== false,
 	sceneGeometry: () => g,
-	getRealm: () => ({ realm })
+	getRealm: () => ({ realm }),
+	hexHiddenByHand: () => ({ terrain: false, holding: false, seat: false })
 }));
 // The Realm and the hex the Company stands in; a Scene that's no Realm warns and gives nothing.
 vi.mock("../../module/actions/wilderness.js", () => ({
@@ -281,6 +282,33 @@ describe("lookFromVantage", () => {
 		await lookFromVantage({ scene: { id: "scene" } });
 		expect(lastCard().around).toHaveLength(6);
 		expect(phases).toBe(0);
+	});
+
+	it("offers to mark what stands hidden in the hexes around, seen from afar (p197)", async () => {
+		realm = realmWith({ landmarks: [{ type: "monument", hex: hex(6, 7), name: "Eternal Hearth" }], barriers: [edgeKey(hex(6, 6), hex(6, 5))] });
+		const scene = { id: "scene", flags: {}, update: vi.fn() };
+		answer = { "sight-0": true, "note-0": "a structure, smoke rising" };
+		await lookFromVantage({ scene });
+		expect(asked.template).toBe("sighted");
+		expect(asked.context.hexes).toHaveLength(1);
+		const [[changes]] = scene.update.mock.calls;
+		expect(Object.values(changes)).toEqual([{ note: "a structure, smoke rising" }]);
+		expect(Object.keys(changes)[0]).toMatch(/\.sighted\.6,7$/);
+	});
+
+	it("sees nothing past the Hex in fog, and offers nothing to mark there", async () => {
+		realm = realmWith({ landmarks: [{ type: "monument", hex: hex(6, 7) }], barriers: [edgeKey(hex(6, 6), hex(6, 5))] });
+		// The day's fog came down this morning, which is where the calendar stands.
+		game.settings.get = (_scope, key) => (key === "fog" ? { when: { age: 1, year: 1, season: "spring", day: 1, phase: "morning" } } : "public");
+		const scene = { id: "scene", flags: {}, update: vi.fn() };
+		answer = { "sight-0": true };
+		await lookFromVantage({ scene });
+		const card = lastCard();
+		expect(card.around).toEqual([]);
+		expect(card.mark).toBeNull();
+		expect(card.hint).toBe(lookup("bastionland.skyWeather.fog.vantage"));
+		expect(asked).toBeNull();
+		expect(scene.update).not.toHaveBeenCalled();
 	});
 });
 

@@ -27,6 +27,11 @@ describe("describeHex", () => {
 		const text = describeHex(summary({ terrain: "forest", terrainRevealed: false, holding: { style: "town", name: "Oakwall", seat: false, revealed: false } }));
 		expect(text).toBe("bastionland.realm.readout.hidden(bastionland.realm.terrain.forest) · bastionland.realm.readout.hidden(Oakwall)");
 	});
+
+	it("says something stands where it was seen from afar, in the Referee's words if they wrote any", () => {
+		expect(describeHex(summary({ terrain: "hills" }), { sighted: { note: "" } })).toBe("bastionland.realm.terrain.hills · bastionland.seenFromAfar.readout");
+		expect(describeHex(summary(), { sighted: { note: "a structure, smoke rising" } })).toBe("bastionland.seenFromAfar.readoutNote(a structure, smoke rising)");
+	});
 });
 
 describe("readoutPlacement", () => {

@@ -14,6 +14,7 @@ import { directionNames, sameHex } from "../rules/realm-geometry.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
 import { rollLabelledSave } from "./saves.js";
+import { offerSightings } from "./sighted.js";
 import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
@@ -171,8 +172,9 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 
 /**
  * Vision (p19): what a Company at a vantage point can make out of the Hex it
- * stands in and the land around it. Takes no Phase of its own, since the
- * search that found the vantage point spent one. GMs only.
+ * stands in and the land around it, and what it sees standing out there, not
+ * knowing what (p197). Fog hides the land around. Takes no Phase of its own,
+ * since the search that found the vantage point spent one. GMs only.
  * @param {object} [options]
  * @param {Scene} [options.scene]
  * @param {{col: number, row: number}} [options.hex]
@@ -211,7 +213,9 @@ export function takeExplorationAct(act, { scene, hex } = {}) {
 
 /**
  * Whisper the Referee what a sweep or a vantage point shows, with what can be
- * marked on the players' map.
+ * marked on the players' map, then offer to mark what a vantage point saw
+ * standing in the hexes around. Fog hides those hexes, so from a vantage point
+ * in fog only the Hex itself is seen (p197).
  * @returns {Promise<object>} The survey.
  */
 async function postSurvey({ scene, realm, g, where, vantage }) {
@@ -245,6 +249,7 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 		hint: fogged ? t("skyWeather.fog.vantage") : t(vantage ? "explore.survey.vantageHint" : "explore.survey.sweepHint"),
 		mark: ids.length ? { label: t("explore.mark"), ids: ids.join(",") } : null
 	}, { mode: "gm" });
+	if (survey.vantage) await offerSightings({ scene, realm, g, where });
 	return survey;
 }
 
