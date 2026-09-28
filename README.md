@@ -53,7 +53,7 @@ Weapons, armour and gear sort themselves by die and by armour piece. Worn armour
 Every world gets one **GM Toolkit**, the Referee's own sheet. Press **C** to open it, or use the first slot on the hotbar.
 
 - **Myths and Omens:** each Myth of the Realm on one row, with Omens counted as they're met, its Cast ready to drop into the world, and its d6 table with a roll button. **Myth Resolved** awards the Glory and rolls the Myth that replaces it. The City Quest is kept here too.
-- **Places:** every hex the Company has visited and every place in the Realm, each with its visits, notes and Spark Table rolls, plus the Sites you've made. You can search them.
+- **Places:** every hex the Company has visited and every place in the Realm, each with its visits, notes and Spark Table rolls, plus the Sites you've made. You can search them. **Flip the book** opens a random spread and the prompts along its foot (p19, p179): click the ones you'll use, then **Save to hex** and click a hex on the map to keep them there.
 - **Time:** the current Season, its events, the Crisis Rolls owed, Glory, and a log of past Seasons.
 - **Notes**, and the Referee's settings.
 

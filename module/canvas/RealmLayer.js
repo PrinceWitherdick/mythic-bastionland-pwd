@@ -6,7 +6,7 @@ import { followHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
-import { INK_HEX } from "../rules/colour.js";
+import { INK_HEX, PAPER_HEX as PAPER } from "../rules/colour.js";
 import { REALM_BUTTONS, REALM_TOOLS, REALM_TOOL_ICONS, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { t } from "../chat/cards.js";
 import { barrierState, featureStands, layRiver, paintTerrain, placeFeature, riverEnds, setBarrier, traceCourse, trimRiver } from "../rules/realm-edits.js";
@@ -27,7 +27,6 @@ const MARKS = "bastionland-realm-marks";
 const BLOOD = 0x8b1e1e;
 const VERDIGRIS = 0x2f6150;
 const WATER = 0x2e5f8a;
-const PAPER = 0xf4ecd8;
 
 /**
  * The brushes that stand a feature in a hex. Each says how to pick one up, what

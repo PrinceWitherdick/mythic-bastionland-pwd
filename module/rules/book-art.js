@@ -27,6 +27,9 @@ export const INDEX_FILE = "index.json";
  */
 export const INDEX_VERSION = 12;
 
+/** The first index version with the prompts along the foot of each Knight's page, kept on their Seer. */
+export const SEER_PROMPTS_VERSION = 7;
+
 /** The first index version with the table on each Knight's page. */
 export const KNIGHT_TABLE_VERSION = 10;
 

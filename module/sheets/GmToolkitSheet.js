@@ -14,6 +14,7 @@ import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../a
 import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
+import { openBookFlip } from "../apps/BookFlip.js";
 import { openHexLore, sparkWhen } from "../apps/HexLore.js";
 import { openHexVisits } from "../apps/HexVisits.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
@@ -129,6 +130,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			forgetVisits: GmToolkitSheet.#onForgetVisits,
 			openSite: GmToolkitSheet.#onOpenSite,
 			newSite: () => newSite(),
+			flipBook: () => openBookFlip(),
 			newMyth: GmToolkitSheet.#onNewMyth,
 			settleMyths: GmToolkitSheet.#onSettleMyths,
 			rollMythTable: GmToolkitSheet.#onRollMythTable,

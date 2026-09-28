@@ -14,6 +14,10 @@
 			{{/each}}
 		</ul>
 	</div>
+	{{!-- A random page of the book for a prompt along its foot, saved to a hex clicked on the map (p19, p179). --}}
+	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.bookFlip.title'}}">
+		<button type="button" data-action="flipBook" data-tooltip="{{localize 'bastionland.bookFlip.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.bookFlip.open"}}</button>
+	</nav>
 	{{/unless}}
 
 	{{!-- Hides the places whose name, hex, terrain, what stands there, visits, notes and Spark Tables miss what is typed. --}}

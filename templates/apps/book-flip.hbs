@@ -1,0 +1,42 @@
+{{!-- A random spread of the book and the prompts along its foot: the Knight's page on the left, the Myth's on
+      the right, as the book prints them. Clicking a prompt chooses it; Save to hex keeps the chosen ones in a
+      hex clicked on the map. --}}
+<div class="bastionland-page bastionland-book-flip">
+	<p class="bastionland-hint">{{localize "bastionland.bookFlip.hint"}}</p>
+
+	<div class="bastionland-book-flip__bar">
+		<button type="button" data-action="flip" {{disabled busy}}><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.bookFlip.flip"}}</button>
+		{{#if spread}}<span class="bastionland-book-flip__roll">{{spread.roll}}</span>{{/if}}
+	</div>
+
+	{{#if spread}}
+	<div class="bastionland-book-flip__spread">
+		{{#each spread.pages}}
+		<section class="bastionland-book-flip__page bastionland-book-flip__page--{{side}}">
+			<h2 class="bastionland-heading bastionland-heading--small">{{name}}</h2>
+			<p class="bastionland-book-flip__reference">{{reference}}</p>
+			<ul class="bastionland-book-flip__prompts">
+				{{#each prompts}}
+				<li>
+					<button type="button" class="bastionland-book-flip__prompt{{#if chosen}} is-chosen{{/if}}" data-action="choose" data-key="{{key}}" aria-pressed="{{#if chosen}}true{{else}}false{{/if}}">
+						<span class="bastionland-book-flip__label">{{label}}</span>
+						<span class="bastionland-book-flip__value">{{value}}</span>
+						<i class="fa-solid fa-check bastionland-book-flip__tick" inert></i>
+					</button>
+				</li>
+				{{else}}
+				<li class="bastionland-empty">{{localize "bastionland.bookFlip.unread"}}</li>
+				{{/each}}
+			</ul>
+		</section>
+		{{/each}}
+	</div>
+
+	{{#if anyPrompts}}
+	<footer class="bastionland-book-flip__footer">
+		<span class="bastionland-hint">{{chosenLabel}}</span>
+		<button type="button" data-action="saveToHex" {{disabled noneChosen}}><i class="fa-solid fa-location-dot" inert></i> {{localize "bastionland.bookFlip.saveToHex"}}</button>
+	</footer>
+	{{/if}}
+	{{/if}}
+</div>

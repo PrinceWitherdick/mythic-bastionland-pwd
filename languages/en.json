@@ -1566,6 +1566,31 @@
         "later": "The Company waits off the map. Take them up again with Place the Company over the map."
       }
     },
+    "bookFlip": {
+      "title": "Flip the Book",
+      "open": "Flip the book",
+      "openHint": "A random page of the book, for a prompt along its foot",
+      "hint": "A random spread of the book and the prompts along its foot. Take whatever fits the blank you’re filling: a Hex, a stranger, an explanation (p19, p179). Click the prompts you’ll use, then Save to hex and click a hex on the map.",
+      "flip": "Flip again",
+      "rolled": "Spread {roll}",
+      "page": "page {page}",
+      "unread": "Import PDF hasn’t read the prompts on this page.",
+      "chooseHint": "Click the prompts you’ll use.",
+      "chosenOne": "1 prompt chosen",
+      "chosenMany": "{count} prompts chosen",
+      "saveToHex": "Save to hex",
+      "chooseFirst": "Click a prompt to choose it first.",
+      "noRealm": "Open a Realm’s map to save to one of its hexes.",
+      "pick": "Click the hex to save {what} to.",
+      "pickHere": "Save to {hex}",
+      "savedOne": "“{prompt}”",
+      "savedMany": "{count} prompts",
+      "saved": "Saved {what} to {hex}.",
+      "source": "{label} (p{page})"
+    },
+    "hexPick": {
+      "stop": "Right-click or press Esc to stop."
+    },
     "hexLore": {
       "title": "The Lay of the Land",
       "titleHex": "The Lay of the Land: {hex}",

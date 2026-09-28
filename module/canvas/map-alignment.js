@@ -31,7 +31,7 @@
  */
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
-import { INK_HEX } from "../rules/colour.js";
+import { INK_HEX, PAPER_HEX as PAPER } from "../rules/colour.js";
 import { hexCentre, hexVertices } from "../rules/realm-geometry.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { calibrationHexes, fitToMarks, mapRect, markAt, markedHexOutline, markedHexScale, sizeMapRect, slideMapRect, viewOfPicture } from "../rules/realm-map.js";
@@ -43,9 +43,6 @@ import { SYSTEM_ID } from "../system-id.js";
 
 /** The ink the picture's frame and the hex being pointed out are drawn in. */
 const RING = 0x8b1e1e;
-
-/** The halo round a mark, so it shows on a dark picture. */
-const PAPER = 0xf4ecd8;
 
 /**
  * The colour of each hex marked on the picture: the first hex's, then the

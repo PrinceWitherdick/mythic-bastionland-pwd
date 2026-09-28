@@ -36,6 +36,13 @@ export const loadArtIndex = () => loadJson(`${ART_ROOT}/${INDEX_FILE}`);
 export const findByRoll = (list, roll) => list?.find((entry) => entry.roll === roll) ?? null;
 
 /**
+ * @param {object|null} index
+ * @param {string} key One of SPARK_PAGES' keys.
+ * @returns {object|null} That page of Spark Tables, if Import PDF read it.
+ */
+export const sparkPageOf = (index, key) => index?.spark?.find((page) => page.key === key) ?? null;
+
+/**
  * A Myth's entry in the art index, with a name to show whether or not the book has been imported.
  * @param {object|null} index
  * @param {{d6: number, d12: number}} myth

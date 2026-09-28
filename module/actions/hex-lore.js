@@ -1,4 +1,4 @@
-import { loadArtIndex } from "../book-art/art-index.js";
+import { loadArtIndex, sparkPageOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
@@ -108,8 +108,11 @@ export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, hex, (lore)
 /** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
 export const forgetHexRecord = (scene, hex) => editHexLore(scene, hex, (lore) => forgetRecord(lore, hex));
 
-/** @returns {Promise<object[]>} The Spark Tables the GM's own import read, or an empty list. */
-const sparkPages = async () => (await loadArtIndex())?.spark ?? [];
+/** Keep rolls in a hex in one write, however many there are. @returns {Promise<boolean>} */
+export const keepHexSparkRecords = (scene, hex, sparks) => editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
+
+/** @returns {Promise<object|null>} One page of Spark Tables the GM's own import read. */
+const sparkPage = async (key) => sparkPageOf(await loadArtIndex(), key);
 
 /**
  * Keep what was taken from each table in the hex, and whisper the GMs one card
@@ -138,8 +141,7 @@ async function keepSparks(scene, hex, made, rolls = []) {
 		});
 		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt, results: taken });
 	}
-	// Keeping them takes one write, however many there are.
-	if (sparks.length) await editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
+	if (sparks.length) await keepHexSparkRecords(scene, hex, sparks);
 	if (cards.length) await postCard(null, "hex-sparks", { hex: t("realm.hex", hex), sparks: cards }, { rolls, mode: "gm" });
 	return cards;
 }
@@ -175,7 +177,7 @@ async function rollInto(scene, hex, chosen) {
  */
 export async function rollHexSpark({ scene, hex, page: key, index }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return [];
-	const page = (await sparkPages()).find((candidate) => candidate.key === key);
+	const page = await sparkPage(key);
 	const table = page?.tables?.[index];
 	if (!table) return [];
 	return rollInto(scene, hex, [{ page, table }]);
@@ -188,7 +190,7 @@ export async function rollHexSpark({ scene, hex, page: key, index }) {
  *   Null, with a word to the GM, where Import PDF hasn't read them.
  */
 export async function wildernessHexTables() {
-	const page = (await sparkPages()).find((candidate) => candidate.key === SPARK_PAGES[0].key);
+	const page = await sparkPage(SPARK_PAGES[0].key);
 	const set = wildernessSparkSet(page);
 	if (set.length) return { page, set };
 	warn("hexLore.setMissing");
@@ -230,12 +232,22 @@ export async function keepHexSparks({ scene, hex, page, taken }) {
  * @returns {Promise<number[]>} One d12 for each column.
  */
 export async function throwSparkDice(count) {
-	const roll = await new Roll(Array.from({ length: count }, () => "1d12").join(" + ")).evaluate();
+	const roll = await throwForGms(Array.from({ length: count }, () => "1d12").join(" + "));
+	return roll.dice.map((die) => die.total);
+}
+
+/**
+ * Roll a formula where only the GMs see the dice, with no card.
+ * @param {string} formula
+ * @returns {Promise<Roll>}
+ */
+export async function throwForGms(formula) {
+	const roll = await new Roll(formula).evaluate();
 	const gms = game.users.filter((user) => user.isGM).map((user) => user.id);
 	// Dice So Nice throws them on the GMs' screens; without it, the rattle alone.
 	if (game.dice3d) game.dice3d.showForRoll(roll, game.user, true, gms);
 	else foundry.audio.AudioHelper.play({ src: CONFIG.sounds.dice, autoplay: true, loop: false }, false);
-	return roll.dice.map((die) => die.total);
+	return roll;
 }
 
 /**

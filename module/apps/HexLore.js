@@ -17,6 +17,7 @@ import { t } from "../chat/cards.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openSparkTables } from "./SparkTables.js";
+import { openBookFlip } from "./BookFlip.js";
 import { openHexVisits } from "./HexVisits.js";
 import { openWildernessHex } from "./WildernessHex.js";
 import { renderWhenIdle } from "./ui.js";
@@ -51,6 +52,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			wilderness: HexLore.#onWilderness,
 			act: HexLore.#onAct,
 			browse: HexLore.#onBrowse,
+			flipBook: () => openBookFlip(),
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,

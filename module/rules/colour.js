@@ -9,6 +9,9 @@ export const INK = "#231f1a";
 /** The same ink for the canvas, which wants a number rather than a string. */
 export const INK_HEX = Number(INK.replace("#", "0x"));
 
+/** The paper the Realm's names and marks are lettered on, for the canvas. */
+export const PAPER_HEX = 0xf4ecd8;
+
 /** A colour as the painter keeps it: "#" and six lower-case hex digits. */
 export const HEX_COLOR = /^#[0-9a-f]{6}$/;
 
