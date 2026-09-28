@@ -324,13 +324,6 @@
 	margin-top: -0.35rem;
 }
 
-/* The Places page's search hides what it misses, over the cards' and sections' own display. */
-.bastionland-gm-toolkit__page [data-search-section][hidden],
-.bastionland-gm-toolkit__page [data-search][hidden],
-.bastionland-gm-toolkit__no-match[hidden] {
-	display: none;
-}
-
 .bastionland-page .bastionland-gm-toolkit__search {
 	flex: none;
 	width: 100%;

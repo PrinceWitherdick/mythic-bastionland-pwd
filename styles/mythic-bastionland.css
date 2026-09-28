@@ -70,6 +70,16 @@
 	unicode-range: U+0030-0039;
 }
 
+/*
+ * `hidden` hides, in anything of the system's: its sheets, windows, dialogs and
+ * chat cards. A component's own display (a form-group's flex, a card's grid)
+ * would otherwise win over the browser's rule for it and keep the element shown.
+ */
+:is([class^="bastionland"], [class*=" bastionland"]) [hidden],
+:is([class^="bastionland"], [class*=" bastionland"])[hidden] {
+	display: none !important;
+}
+
 :root {
 	--bastionland-paper: #efe8d8;
 	--bastionland-paper-deep: #e3d9c3;
@@ -671,10 +681,6 @@ a.button:focus:not(:focus-visible) {
 	width: calc(100% + 8px);
 	height: calc(100% + 8px);
 	pointer-events: none;
-}
-
-.bastionland-heraldry-painter [hidden] {
-	display: none;
 }
 
 .bastionland-heraldry-painter__guides polygon {
@@ -5140,10 +5146,6 @@ button.bastionland-company-button:focus-visible {
 
 .bastionland-map-slide button:disabled {
 	opacity: 0.45;
-}
-
-.bastionland-map-slide button[hidden] {
-	display: none;
 }
 
 /* Which step of the lining up this is, leading the hint. */

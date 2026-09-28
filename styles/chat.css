@@ -906,10 +906,6 @@
 	gap: 0.5rem;
 }
 
-.bastionland-rail-dialog__page[hidden] {
-	display: none;
-}
-
 /* On a page of its own, the picture chosen can be shown large enough to check. */
 .bastionland-rail-dialog .bastionland-realm-picture__shown img {
 	max-height: 18rem;
@@ -1633,11 +1629,6 @@
 	padding: 0.9rem 1rem;
 }
 
-/* A section laid out as a flex box would otherwise show through `hidden`. */
-.bastionland-guide [data-guide-panel][hidden] {
-	display: none;
-}
-
 /*
  * The Knighthood page (p7) and Glory (p6), opened from the "?" on a Knight's
  * sheet, a section at a time. Its headings keep the sheets' rubric rather
@@ -1867,11 +1858,6 @@
 	margin-top: 0.1rem;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
-}
-
-/* The filter hides lines and days; their own display would otherwise win over `hidden`. */
-.bastionland-ledger [hidden] {
-	display: none !important;
 }
 
 /*
