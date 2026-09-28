@@ -886,6 +886,30 @@
       "unfavourable": "They take it badly.",
       "hint": "Characters react in a way that suits the moment (p8). This is only for when that’s uncertain."
     },
+    "skyWeather": {
+      "legend": "Breaking Camp",
+      "tick": "Roll the day’s sky and weather",
+      "tickHint": "The Nature Spark Tables’ Sky and Weather set the scene as the Company wakes and breaks camp (p197).",
+      "title": "The Day’s Sky and Weather",
+      "cardHint": "Paint the scene with it as the Company breaks camp. Lean generous, but don’t hesitate to make the Knights’ lives difficult when the dice prompt it (p197).",
+      "missing": "Run the Import PDF macro with your rulebook to bring in the Nature Spark Tables’ Sky and Weather.",
+      "fog": {
+        "solid": "Solid Fog: the Knights can’t see into the neighbouring hexes, and without a way to keep their course they’re travelling blind until the day is out (p197).",
+        "maybe": "Fog: if it’s thick enough to hide the neighbouring hexes, bring it down and the Company may be travelling blind (p197).",
+        "down": "Let the Fog Hide the Way",
+        "lift": "The Fog Lifts",
+        "fell": "Fog hides the way until the day is out.",
+        "lifted": "The fog lifts.",
+        "pastDay": "That weather was rolled for another day, so it can’t bring fog down or lift it today.",
+        "vantage": "Fog hides the land around, so from here the Company makes out nothing past this Hex (p197).",
+        "travel": {
+          "title": "Fog Hides the Way",
+          "text": "Fog hides the neighbouring hexes. Without a way to keep their course the Company is travelling blind, and rolls each time it moves to a new Hex this Phase (p197).",
+          "course": "Keep your course",
+          "blind": "Travelling blind"
+        }
+      }
+    },
     "phaseEnd": {
       "title": "The {phase} Ends",
       "where": "The Company stands at {hex}.",

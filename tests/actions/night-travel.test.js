@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { movedThisNight, nightMove } from "../../module/rules/night-travel.js";
+import { fogMove, movedThisNight, nightMove } from "../../module/rules/night-travel.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 /** The world's calendar, what the next dialog answers, and what was stored. */
@@ -7,6 +7,8 @@ let calendar;
 let answer;
 let asked;
 let stored;
+/** The world's other settings: the day's fog, and the Company's Phase in it. */
+let others;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	chooseDialog: vi.fn(async (options) => {
@@ -21,7 +23,7 @@ vi.mock("../../module/actions/journey.js", () => ({ COMPANY_MOVED_HOOK: "mythic-
 vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: () => true, sceneGeometry: () => ({}) }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn() }));
 
-const { companyMovedThisNight, travelAtNight } = await import("../../module/actions/night-travel.js");
+const { companyMovedThisNight, travelAtNight, travelInFog } = await import("../../module/actions/night-travel.js");
 const { rollRefereeTable } = await import("../../module/actions/referee-rolls.js");
 
 const night = { age: 1, year: 1, season: "spring", day: 4, phase: "night" };
@@ -31,13 +33,18 @@ beforeEach(() => {
 	answer = null;
 	asked = [];
 	stored = null;
+	others = new Map();
 	vi.mocked(rollRefereeTable).mockClear();
 	globalThis.game = {
 		user: { isGM: true },
 		settings: {
-			get: (scope, key) => (scope === SYSTEM_ID && key === "nightTravel" ? stored : null),
-			set: vi.fn(async (_scope, _key, value) => {
-				stored = value;
+			get: (scope, key) => {
+				if (scope !== SYSTEM_ID) return null;
+				return key === "nightTravel" ? stored : others.get(key) ?? null;
+			},
+			set: vi.fn(async (_scope, key, value) => {
+				if (key === "nightTravel") stored = value;
+				else others.set(key, value);
 			})
 		}
 	};
@@ -96,5 +103,63 @@ describe("travelAtNight", () => {
 		answer = "sighted";
 		expect(await travelAtNight()).toBe("sighted");
 		expect(asked).toHaveLength(2);
+	});
+});
+
+describe("fogMove", () => {
+	const day = { ...night, phase: "morning" };
+
+	it("asks nothing without fog, or by night, which asks for itself", () => {
+		expect(fogMove(null, day, false)).toBe("clear");
+		expect(fogMove(null, night, true)).toBe("clear");
+	});
+
+	it("asks until the Referee has answered this Phase, then rolls blind or asks nothing", () => {
+		expect(fogMove(null, day, true)).toBe("ask");
+		expect(fogMove({ when: day, blind: true }, day, true)).toBe("blind");
+		expect(fogMove({ when: day, blind: false }, day, true)).toBe("course");
+		expect(fogMove({ when: day, blind: false }, { ...day, phase: "afternoon" }, true)).toBe("ask");
+	});
+});
+
+describe("travelInFog", () => {
+	beforeEach(() => {
+		calendar = { ...night, phase: "morning" };
+		others.set("fog", { when: { ...calendar } });
+	});
+
+	it("asks once a Phase whether the Company can keep its course", async () => {
+		answer = "course";
+		expect(await travelInFog()).toBe("course");
+		expect(await travelInFog()).toBe("course");
+		expect(asked).toHaveLength(1);
+		expect(asked[0].buttons.map(({ action }) => action)).toEqual(["course", "blind"]);
+		expect(rollRefereeTable).not.toHaveBeenCalled();
+	});
+
+	it("rolls Travelling Blind now and at each new Hex, without a way to", async () => {
+		answer = "blind";
+		await travelInFog();
+		await travelInFog();
+		expect(rollRefereeTable).toHaveBeenCalledTimes(2);
+		expect(rollRefereeTable).toHaveBeenCalledWith("blind");
+	});
+
+	it("asks again in the afternoon, and nothing once the fog has lapsed", async () => {
+		answer = "course";
+		await travelInFog();
+		calendar.phase = "afternoon";
+		await travelInFog();
+		expect(asked).toHaveLength(2);
+		calendar = { ...calendar, day: 5, phase: "morning" };
+		expect(await travelInFog()).toBeNull();
+		expect(asked).toHaveLength(2);
+	});
+
+	it("leaves the Night's own question alone", async () => {
+		calendar.phase = "night";
+		expect(await travelInFog()).toBeNull();
+		expect(asked).toHaveLength(0);
+		expect(stored).toBeNull();
 	});
 });

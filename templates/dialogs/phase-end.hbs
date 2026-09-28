@@ -55,6 +55,17 @@
 	</fieldset>
 	{{/if}}
 
+	{{#if sky}}
+	<fieldset>
+		<legend>{{localize "bastionland.skyWeather.legend"}}</legend>
+		<label class="bastionland-check">
+			<input type="checkbox" name="sky" checked>
+			<span class="bastionland-check__label">{{localize "bastionland.skyWeather.tick"}}</span>
+		</label>
+		<p class="hint">{{localize "bastionland.skyWeather.tickHint"}}</p>
+	</fieldset>
+	{{/if}}
+
 	{{#if dying.length}}
 	<fieldset>
 		<legend>{{localize "bastionland.phaseEnd.dying.legend"}}</legend>

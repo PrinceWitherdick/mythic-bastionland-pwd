@@ -16,6 +16,8 @@ let realm;
 /** When the lands are at the mercy of dire weather, and what the weather came to. */
 let risk;
 let weather;
+/** The art index Import PDF wrote, which holds the Spark Tables. */
+let artIndex;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	chooseDialog: vi.fn(async () => null),
@@ -42,7 +44,12 @@ vi.mock("../../module/actions/calendar.js", () => ({
 	calendarLabel: () => "now"
 }));
 vi.mock("../../module/book-art/art-index.js", () => ({
-	loadArtIndex: async () => null,
+	loadArtIndex: async () => artIndex,
+	sparkPageOf: (index, key) => index?.spark?.find((page) => page.key === key) ?? null,
+	sparkTablesOf: (index, key) => {
+		const page = index?.spark?.find((each) => each.key === key);
+		return page?.tables?.length ? page : null;
+	},
 	mythEntry: (_index, myth) => ({ name: `Myth ${myth.number}`, page: 30, entry: null }),
 	seerEntry: () => ({ name: "Seer", page: 28 })
 }));
@@ -60,6 +67,12 @@ vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn()
 vi.mock("../../module/actions/referee-rolls.js", () => ({
 	direWeatherRisk: () => risk,
 	rollRefereeTable: vi.fn(),
+	// Solid Fog, whichever table: the first column's eighth entry and the second's twelfth.
+	rollSpark: vi.fn(async (table) => ({
+		roll: {},
+		results: table.columns.map((column, at) => ({ column, roll: [8, 12][at], entry: `${column} ${[8, 12][at]}` })),
+		prompt: "rolled"
+	})),
 	weatherIn: () => weather
 }));
 
@@ -108,6 +121,7 @@ beforeEach(() => {
 	settings = new Map();
 	risk = "winter";
 	weather = null;
+	artIndex = null;
 	realm = emptyRealm(g, "wild");
 	realm.myths = [{ id: "m1", hex: hex(8, 6), number: 1, d6: 1, d12: 1, omen: 2, revealed: false }];
 	realm.holdings = [{ id: "h1", hex: hex(2, 2), style: "castle", seat: true, name: "" }];
@@ -335,5 +349,42 @@ describe("the weather as a Phase begins", () => {
 		calendar.season = "summer";
 		await advancePhase();
 		expect(rollRefereeTable).toHaveBeenCalledOnce();
+	});
+});
+
+describe("the day's sky and weather", () => {
+	/** The Nature page, with its nine tables. */
+	const nature = () => ({ key: "nature", name: "Nature", page: 22, tables: Array.from({ length: 9 }, (_, at) => ({ name: `T${at}`, columns: ["A", "B"], rows: [] })) });
+
+	beforeEach(() => {
+		calendar.phase = "night";
+		artIndex = { spark: [nature()] };
+	});
+
+	it("comes ticked as the Night ends, and rolls Sky and Weather onto one card as Morning comes", async () => {
+		standAt(hex(6, 6));
+		answer = (options) => ({ mode: "camp", sky: options.context.sky });
+		await advancePhase();
+		expect(asked[0].context.sky).toBe(true);
+		const [card] = cardsOf("sky-weather");
+		expect(card[2].tables.map(({ name }) => name)).toEqual(["T0", "T6"]);
+		expect(calendar.phase).toBe("morning");
+		// Solid Fog hides the way until the day is out.
+		expect(settings.get("fog")).toEqual({ when: { ...calendar } });
+	});
+
+	it("rolls nothing when unticked, or offers nothing by day or before Import PDF", async () => {
+		standAt(hex(6, 6));
+		answer = { mode: "camp", sky: false };
+		await advancePhase();
+		expect(cardsOf("sky-weather")).toHaveLength(0);
+		answer = { mode: "travel", sky: true };
+		await advancePhase();
+		expect(asked[1].context.sky).toBe(false);
+		calendar.phase = "night";
+		artIndex = null;
+		await advancePhase();
+		expect(asked[2].context.sky).toBe(false);
+		expect(cardsOf("sky-weather")).toHaveLength(0);
 	});
 });

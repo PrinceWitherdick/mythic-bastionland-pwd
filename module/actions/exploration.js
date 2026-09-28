@@ -14,6 +14,7 @@ import { directionNames, sameHex } from "../rules/realm-geometry.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
 import { rollLabelledSave } from "./saves.js";
+import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
 
@@ -214,7 +215,8 @@ export function takeExplorationAct(act, { scene, hex } = {}) {
  * @returns {Promise<object>} The survey.
  */
 async function postSurvey({ scene, realm, g, where, vantage }) {
-	const survey = surveyFrom(realm, g, where, { vantage });
+	const fogged = vantage && fogHidesTheWay();
+	const survey = surveyFrom(realm, g, where, { vantage: vantage && !fogged });
 	const { here } = survey;
 	const landmark = here.landmark;
 	const barriers = barriersSeen(survey);
@@ -240,7 +242,7 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 			barrier: step.barrier ? t("explore.survey.barrier") : null,
 			holding: step.holding ? t("explore.survey.someHolding") : null
 		})),
-		hint: t(vantage ? "explore.survey.vantageHint" : "explore.survey.sweepHint"),
+		hint: fogged ? t("skyWeather.fog.vantage") : t(vantage ? "explore.survey.vantageHint" : "explore.survey.sweepHint"),
 		mark: ids.length ? { label: t("explore.mark"), ids: ids.join(",") } : null
 	}, { mode: "gm" });
 	return survey;

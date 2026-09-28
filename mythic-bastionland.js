@@ -5,6 +5,7 @@ import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, regis
 import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from "./module/actions/goods-icons.js";
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
+import { registerSkyAndWeather } from "./module/actions/sky-weather.js";
 import { registerHomecoming } from "./module/actions/homecoming.js";
 import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
 import { fileWaitingKnights, registerKnightFolderHooks } from "./module/actions/knight-folders.js";
@@ -363,6 +364,8 @@ Hooks.once("init", () => {
 	// Without a guide and light the Company travels blind by night, and what the Night cost is taken as it ends.
 	registerNightTravel();
 	registerPhaseEndSettings();
+	// The day's sky and weather, rolled as the Company breaks camp, and the fog that hides the way (p197).
+	registerSkyAndWeather();
 	// A ruler back at their Holding from a long absence makes the Crisis Roll.
 	registerHomecoming();
 

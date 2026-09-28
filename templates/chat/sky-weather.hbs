@@ -1,0 +1,21 @@
+{{!-- The day's Sky and Weather, rolled as the Company breaks camp (p197), with the fog that may come of it. --}}
+<section class="bastionland-card bastionland-card--spark bastionland-card--sky">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title"><i class="fa-solid fa-cloud-sun" inert></i> {{title}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	{{#each tables}}
+	{{> "bastionland.spark-entries"}}
+	{{/each}}
+
+	{{#if fog}}
+	<p class="bastionland-card__text">{{fog.text}}</p>
+	{{/if}}
+	<p class="bastionland-card__hint">{{hint}}</p>
+
+	{{#if fog}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-sky-fog="{{fog.action}}"><i class="{{fog.icon}}" inert></i> {{fog.label}}</button>
+	</div>
+	{{/if}}
+</section>

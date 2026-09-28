@@ -33,3 +33,20 @@ export function nightMove(said, now) {
 	if (!movedThisNight(said, now) || typeof said.blind !== "boolean") return "ask";
 	return said.blind ? "blind" : "sighted";
 }
+
+/**
+ * What a move of the Company to a new Hex calls for while fog hides the way by
+ * day (p197). The Referee is asked once a Phase whether the Company can keep
+ * its course; without a way to, it travels blind as by night.
+ * @param {NightTravel|null} said As stored for fog, with the Phase it was said in.
+ * @param {import("./time.js").Calendar} now
+ * @param {boolean} fogged Whether fog hides the way now (rules/sky-weather.js).
+ * @returns {"clear"|"ask"|"blind"|"course"} Nothing without fog, or by night,
+ *   which asks for itself; the question until it's answered this Phase; after
+ *   that, a blind roll or nothing more.
+ */
+export function fogMove(said, now, fogged) {
+	if (!fogged || now?.phase === "night") return "clear";
+	if (!samePhase(said?.when, now) || typeof said.blind !== "boolean") return "ask";
+	return said.blind ? "blind" : "course";
+}

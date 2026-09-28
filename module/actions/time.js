@@ -48,6 +48,7 @@ import { followPursuits } from "./pursuits.js";
 import { markLongAbsences } from "./homecoming.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
+import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
 
 /**
@@ -243,6 +244,8 @@ async function endPhase(known) {
 	if (answers.dying?.length) await dieUntended(answers.dying);
 	// Each morning, a daily affliction takes its toll.
 	if (calendar.phase === "morning") await sufferMorningAfflictions();
+	// The new day's Sky and Weather, rolled as the Company breaks camp (p197).
+	if (answers.sky) await rollSkyAndWeather(answers.sky);
 	await phaseWeather(calendar);
 	return calendar;
 }

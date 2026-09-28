@@ -9,6 +9,7 @@ import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { companyMovedThisNight } from "./night-travel.js";
 import { weatherIn } from "./referee-rolls.js";
+import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { companySituation } from "./wilderness.js";
 
@@ -32,6 +33,7 @@ export function registerPhaseEndSettings() {
  * @property {Scene|null} scene The Realm the Company stands in.
  * @property {boolean} wilderness Whether the Wilderness Roll follows.
  * @property {boolean} dire Whether the Night's weather was dire.
+ * @property {{sky: object, weather: object, page: object}|null} sky The tables the new day's Sky and Weather are rolled on, as the Night ends, or null when they aren't.
  * @property {{actor: Actor, noSleep: boolean, deprived: boolean}[]} members Those Morning comes to, as the Night ends.
  * @property {Actor[]} dying Those left Mortally Wounded and untended, who die of it.
  */
@@ -86,7 +88,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 	const standing = companySituation(scene);
 	const nightEnds = ending.phase === "night";
 	const wounded = mortallyWounded();
-	if (!standing && !nightEnds && !note && !wounded.length) return { mode: null, scene: null, wilderness: false, dire: false, members: [], dying: [] };
+	if (!standing && !nightEnds && !note && !wounded.length) return { mode: null, scene: null, wilderness: false, dire: false, sky: null, members: [], dying: [] };
 
 	// A Phase wasted at a Barrier was spent out at it, even setting out from a Holding (p18).
 	const holding = Boolean(standing?.situation.holding) && !atBarrier;
@@ -98,6 +100,8 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 	const knights = nightEnds ? game.actors.filter((actor) => actor.type === "knight" && actor.system?.virtues) : [];
 	const deprived = new Set(game.settings.get(SYSTEM_ID, DEPRIVED_SETTING) ?? []);
 	const phase = t(`time.phases.${ending.phase}`);
+	// As the Company breaks camp, the Referee rolls the day's Sky and Weather (p197), where Import PDF has read them.
+	const sky = nightEnds ? await daySkyTables() : null;
 
 	const data = await inputDialog({
 		title: t("phaseEnd.title", { phase }),
@@ -117,6 +121,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 					members: knights.map((actor, index) => ({ index, name: actor.name, included: actor.hasPlayerOwner, deprived: deprived.has(actor.id) }))
 				}
 				: null,
+			sky: Boolean(sky),
 			// Ticked, since the Phase outlasts the hour; unticked for anybody tended that the sheet doesn't show.
 			dying: wounded.map((actor, index) => ({ index, name: actor.name }))
 		},
@@ -133,6 +138,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 		scene: standing?.scene ?? null,
 		wilderness: Boolean(data.wilderness) && wildernessDue({ calls, mode: chosen, atBarrier }),
 		dire,
+		sky: data.sky ? sky : null,
 		members: knights.flatMap((actor, index) =>
 			data[`include-${index}`] ? [{ actor, noSleep: Boolean(data[`nosleep-${index}`]), deprived: Boolean(data[`deprived-${index}`]) }] : []
 		),
