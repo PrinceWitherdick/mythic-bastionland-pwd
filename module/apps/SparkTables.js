@@ -1,7 +1,9 @@
+import { postPerson, rollPersonTables } from "../actions/people.js";
 import { rollSpark } from "../actions/referee-rolls.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
+import { PEOPLE_PAGE } from "../rules/people.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { spinTable } from "./roll-spin.js";
@@ -48,7 +50,8 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		window: { title: "bastionland.spark.title", icon: "fa-solid fa-wand-sparkles", resizable: true },
 		actions: {
 			showPage: SparkTables.#onShowPage,
-			roll: SparkTables.#onRoll
+			roll: SparkTables.#onRoll,
+			rollPerson: SparkTables.#onRollPerson
 		}
 	};
 
@@ -65,7 +68,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** The page on show, one of SPARK_PAGES. */
 	#page = SPARK_PAGES[0].key;
 
-	/** @type {{page: string, table: number, rolls: number[]}|null} The last roll made here. */
+	/** @type {{page: string, tables: Record<number, number[]>}|null} The last roll made here: the rolls on each table it took in. */
 	#last = null;
 
 	/** A roll's highlight is still running. */
@@ -106,7 +109,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 					number: row + 1,
 					entries: entries.map((entry, column) => ({
 						entry,
-						rolled: last?.table === index && last.rolls[column] === row + 1
+						rolled: last?.tables[index]?.[column] === row + 1
 					}))
 				}))
 			})),
@@ -148,9 +151,8 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#spinning = true;
 		try {
 			const { roll, results, prompt } = await rollSpark(table);
-			this.#last = { page: this.#page, table: index, rolls: results.map((result) => result.roll) };
-			// The last roll's marks go as this one starts.
-			for (const cell of this.element.querySelectorAll(".bastionland-spark__table td.is-rolled")) cell.classList.remove("is-rolled");
+			this.#last = { page: this.#page, tables: { [index]: results.map((result) => result.roll) } };
+			this.#clearMarks();
 
 			const card = postCard(null, "spark", {
 				name: table.name,
@@ -166,6 +168,43 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			this.#spinning = false;
 		}
 		// No redraw: the entries it landed on are marked already, and a redraw would cut their flash short.
+	}
+
+	/** The last roll's marks go as the next one starts. */
+	#clearMarks() {
+		for (const cell of this.element.querySelectorAll(".bastionland-spark__table td.is-rolled")) cell.classList.remove("is-rolled");
+	}
+
+	/**
+	 * Roll a person on every People table at once (p200, p202). The window turns
+	 * to the People page so the highlight can run down each table, and one card
+	 * goes out for the lot.
+	 * @this {SparkTables}
+	 */
+	static async #onRollPerson() {
+		if (this.#spinning) return;
+		this.#spinning = true;
+		try {
+			const person = await rollPersonTables();
+			if (!person) return;
+			this.#last = { page: PEOPLE_PAGE, tables: Object.fromEntries(person.rolled.map(({ results }, index) => [index, results.map((result) => result.roll)])) };
+			if (this.#page === PEOPLE_PAGE) this.#clearMarks();
+			else {
+				// Drawn with the roll already marked, which the highlight then runs down to.
+				this.#page = PEOPLE_PAGE;
+				await this.render();
+			}
+			const reduce = !animates() || reducesMotion();
+			const spins = person.rolled.map(({ table, results }, index) => spinTable(
+				this.element.querySelector(`table[data-table="${index}"]`),
+				table.columns.map((_, column) => column),
+				results,
+				{ reduce }
+			));
+			await Promise.all([postPerson(person), ...spins]);
+		} finally {
+			this.#spinning = false;
+		}
 	}
 }
 

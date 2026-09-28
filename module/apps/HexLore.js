@@ -8,6 +8,7 @@ import {
 	writeHexNote
 } from "../actions/hex-lore.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { rollHexPerson, rollUpHolding } from "../actions/people.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { cruiseFrom, hasRoad, setRoad } from "../actions/roads.js";
@@ -53,6 +54,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			act: HexLore.#onAct,
 			browse: HexLore.#onBrowse,
 			flipBook: () => openBookFlip(),
+			rollPerson: HexLore.#onRollPerson,
+			rollHolding: HexLore.#onRollHolding,
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,
@@ -72,6 +75,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @type {object|null|undefined} The art index: undefined until loaded, null if never imported. */
 	#index;
+
+	/** A person or a Holding is still being rolled, so a second click doesn't roll it twice. */
+	#rolling = false;
 
 	/** @override */
 	get title() {
@@ -177,6 +183,36 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const [page, index] = chosen.split(":");
 		if (!page || !index) return;
 		await rollHexSpark({ scene: this.scene, hex: this.hex, page, index: Number(index) });
+	}
+
+	/**
+	 * Roll every People table for someone met here, and keep them in the hex (p200, p202).
+	 * @this {HexLore}
+	 */
+	static #onRollPerson() {
+		return this.#rollOnce(() => rollHexPerson({ scene: this.scene, hex: this.hex }));
+	}
+
+	/**
+	 * Roll up the Holding here, a few of its people and the Myths they've heard of (p181).
+	 * @this {HexLore}
+	 */
+	static #onRollHolding() {
+		return this.#rollOnce(() => rollUpHolding({ scene: this.scene, hex: this.hex }));
+	}
+
+	/**
+	 * @param {() => Promise<unknown>} roll
+	 * @returns {Promise<unknown>}
+	 */
+	async #rollOnce(roll) {
+		if (this.#rolling || !this.hex) return null;
+		this.#rolling = true;
+		try {
+			return await roll();
+		} finally {
+			this.#rolling = false;
+		}
 	}
 
 	/** @this {HexLore} */

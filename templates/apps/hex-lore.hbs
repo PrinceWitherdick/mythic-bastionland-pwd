@@ -50,6 +50,12 @@
 			<button type="button" data-action="browse"><i class="fa-solid fa-table-list" inert></i> {{localize "bastionland.spark.title"}}</button>
 			<button type="button" data-action="flipBook" data-tooltip="{{localize "bastionland.bookFlip.openHint"}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.bookFlip.open"}}</button>
 		</div>
+		<div class="bastionland-hex-lore__row">
+			<button type="button" data-action="rollPerson" data-tooltip="{{localize "bastionland.people.rollHint"}}"><i class="fa-solid fa-user" inert></i> {{localize "bastionland.people.roll"}}</button>
+			{{#if holding}}
+			<button type="button" data-action="rollHolding" data-tooltip="{{localize "bastionland.people.holding.rollHint"}}"><i class="fa-solid fa-chess-rook" inert></i> {{localize "bastionland.people.holding.roll"}}</button>
+			{{/if}}
+		</div>
 		{{/if}}
 	</fieldset>
 

@@ -2961,6 +2961,21 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	margin-top: 0.35rem;
 }
 
+/* The tick box on the left, Roll a Person holding its own width on the right. */
+.bastionland-spark__tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.35rem 0.75rem;
+}
+
+.bastionland-spark__tools button {
+	flex: 0 0 auto;
+	width: auto;
+	margin-top: 0.35rem;
+}
+
 .bastionland-spark__grid {
 	display: grid;
 	flex: 1;

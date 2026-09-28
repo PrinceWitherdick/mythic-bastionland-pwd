@@ -206,6 +206,7 @@ Hooks.once("init", () => {
 		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
 		"bastionland.realm-picture": templatePath("dialogs/parts/realm-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
+		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")
 	});
 

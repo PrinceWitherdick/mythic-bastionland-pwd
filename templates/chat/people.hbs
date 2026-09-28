@@ -1,0 +1,24 @@
+{{!-- People rolled on every People Spark Table at once (p200, p202), and a Holding rolled up with a few of them (p181). --}}
+<section class="bastionland-card bastionland-card--spark">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		<p class="bastionland-card__tagline">{{tagline}}</p>
+	</header>
+	{{#each sparks}}
+	{{> "bastionland.spark-entries"}}
+	{{/each}}
+	{{#each people}}
+	{{#if label}}<p class="bastionland-card__outcome">{{label}}</p>{{/if}}
+	<ul class="bastionland-card__entries">
+		{{#each traits}}
+		<li>{{#each rolls}}<span class="bastionland-card__roll">{{this}}</span>{{/each}} <strong>{{name}}:</strong> {{prompt}}</li>
+		{{/each}}
+		{{#if heard}}
+		<li>{{heard}}</li>
+		{{/if}}
+	</ul>
+	{{/each}}
+	{{#if note}}
+	<p class="bastionland-card__hint">{{note}}</p>
+	{{/if}}
+</section>

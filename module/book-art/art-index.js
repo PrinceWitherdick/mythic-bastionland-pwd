@@ -43,6 +43,16 @@ export const findByRoll = (list, roll) => list?.find((entry) => entry.roll === r
 export const sparkPageOf = (index, key) => index?.spark?.find((page) => page.key === key) ?? null;
 
 /**
+ * @param {object|null} index
+ * @param {string} key One of SPARK_PAGES' keys.
+ * @returns {object|null} That page, if Import PDF read any tables on it.
+ */
+export function sparkTablesOf(index, key) {
+	const page = sparkPageOf(index, key);
+	return page?.tables?.length ? page : null;
+}
+
+/**
  * A Myth's entry in the art index, with a name to show whether or not the book has been imported.
  * @param {object|null} index
  * @param {{d6: number, d12: number}} myth

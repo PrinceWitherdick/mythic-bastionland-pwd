@@ -1720,6 +1720,26 @@
         "combat": "Combat"
       }
     },
+    "people": {
+      "roll": "Roll a Person",
+      "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot (p200, p202).",
+      "title": "A Person",
+      "taglineHex": "{hex} · {reference}",
+      "kept": "A person (p{page})",
+      "missing": "Run Import PDF with your rulebook to bring in the People Spark Tables.",
+      "heardOf": "Has heard of {name}",
+      "heardOfPage": "Has heard of {name} (p{page})",
+      "holding": {
+        "roll": "Roll Up This Holding",
+        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex (p181).",
+        "tagline": "Rolled up at {hex}",
+        "person": "Someone here, {number} of {count}",
+        "kept": "Someone here, {number} of {count} (p181)",
+        "noMyths": "This Realm has no Myths yet, so nobody here has heard of one.",
+        "none": "There’s no Holding in this hex to roll up.",
+        "missing": "Run Import PDF with your rulebook to bring in the Civilisation and People Spark Tables."
+      }
+    },
     "myths": {
       "noRealm": "There’s no Realm Scene yet. Use New Realm in the Scenes tab to roll one.",
       "noMyths": "This Realm has no Myths.",
