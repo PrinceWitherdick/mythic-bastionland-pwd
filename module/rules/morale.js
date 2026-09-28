@@ -13,6 +13,21 @@ export const MORALE_TRIGGERS = Object.freeze(["wounded", "halved"]);
 export const GROUP_ORDER = Object.freeze(["organised", "disorganised"]);
 
 /**
+ * What a failed Morale Save makes of them: they rout, or they surrender. The
+ * book leaves which to the Referee, and either takes them out of the fight.
+ */
+export const MORALE_BREAKS = Object.freeze(["fled", "surrendered"]);
+
+/** The icon for each of MORALE_BREAKS. */
+export const BREAK_ICONS = Object.freeze({ fled: "fa-solid fa-person-running", surrendered: "fa-solid fa-hands-bound" });
+
+/**
+ * @param {string} broken
+ * @returns {boolean} Whether it's one of the ways Morale breaks.
+ */
+export const isMoraleBreak = (broken) => MORALE_BREAKS.includes(broken);
+
+/**
  * Whether the Damage just taken calls for a Morale Save.
  * @param {object} args
  * @param {import("./damage.js").DamageOutcome} args.outcome
@@ -34,10 +49,41 @@ export function moraleTrigger({ outcome, vigourBefore, vigourAfter, vigourMax, p
 }
 
 /**
- * @param {{vigour: number, mortalWound?: boolean, defeated?: boolean}} member
- * @returns {boolean} Whether they are out of the fight: Slain, Mortally Wounded or marked defeated.
+ * @param {{vigour: number, mortalWound?: boolean, defeated?: boolean, broken?: string}} member
+ *   `broken` is one of MORALE_BREAKS once their Morale has failed, or blank.
+ * @returns {boolean} Whether they are out of the fight: Slain, Mortally Wounded, fled or
+ *   surrendered, or marked defeated.
  */
-export const isDown = ({ vigour, mortalWound = false, defeated = false }) => defeated || mortalWound || !(vigour > 0);
+export const isDown = ({ vigour, mortalWound = false, defeated = false, broken = "" }) =>
+	defeated || mortalWound || isMoraleBreak(broken) || !(vigour > 0);
+
+/**
+ * isDown, read from an actor.
+ * @param {Actor} actor
+ * @param {object} [options]
+ * @param {boolean} [options.defeated] Whether their Combatant is marked defeated.
+ * @param {boolean} [options.morale=true] Whether a broken Morale counts; false asks whether they're down some other way.
+ * @returns {boolean}
+ */
+export const downOf = (actor, { defeated = false, morale = true } = {}) => isDown({
+	vigour: actor.system.virtues?.vig.value,
+	mortalWound: actor.system.mortalWound,
+	defeated,
+	broken: morale ? actor.system.moraleBroken : ""
+});
+
+/**
+ * Whether a turn in the Combat Tracker should be passed over because its
+ * character's Morale broke, without passing over every turn there is: with
+ * nobody left who hasn't, the tracker is left where it stands.
+ * @param {{broken: string}[]} turns Everybody in the turn order, the current one included.
+ * @param {number} index The current turn.
+ * @returns {boolean}
+ */
+export function skipsBrokenTurn(turns, index) {
+	if (!isMoraleBreak(turns[index]?.broken)) return false;
+	return turns.some((turn) => !isMoraleBreak(turn.broken));
+}
 
 /**
  * @param {{down: boolean}[]} members Everybody in the group, down or standing.

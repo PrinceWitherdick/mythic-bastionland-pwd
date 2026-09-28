@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupHalved, isDown, moraleRollers, moraleTrigger } from "../../module/rules/morale.js";
+import { MORALE_BREAKS, groupHalved, isDown, isMoraleBreak, moraleRollers, moraleTrigger, skipsBrokenTurn } from "../../module/rules/morale.js";
 
 describe("moraleTrigger", () => {
 	const wound = { outcome: "wounded", vigourBefore: 10, vigourAfter: 7, vigourMax: 10 };
@@ -33,6 +33,40 @@ describe("isDown", () => {
 		expect(isDown({ vigour: 5, mortalWound: true })).toBe(true);
 		expect(isDown({ vigour: 5, defeated: true })).toBe(true);
 		expect(isDown({ vigour: 5 })).toBe(false);
+	});
+
+	it("counts those who fled or surrendered as down, and nothing else as broken", () => {
+		expect(isDown({ vigour: 5, broken: "fled" })).toBe(true);
+		expect(isDown({ vigour: 5, broken: "surrendered" })).toBe(true);
+		expect(isDown({ vigour: 5, broken: "" })).toBe(false);
+		expect(isDown({ vigour: 5, broken: "sulking" })).toBe(false);
+	});
+});
+
+describe("MORALE_BREAKS", () => {
+	it("routs or surrenders (p10)", () => {
+		expect(MORALE_BREAKS).toEqual(["fled", "surrendered"]);
+		expect(MORALE_BREAKS.every(isMoraleBreak)).toBe(true);
+		expect(isMoraleBreak("")).toBe(false);
+		expect(isMoraleBreak(undefined)).toBe(false);
+	});
+});
+
+describe("skipsBrokenTurn", () => {
+	const turns = (...broken) => broken.map((each) => ({ broken: each }));
+
+	it("passes over somebody who fled or surrendered", () => {
+		expect(skipsBrokenTurn(turns("", "fled", ""), 1)).toBe(true);
+		expect(skipsBrokenTurn(turns("", "surrendered"), 1)).toBe(true);
+	});
+
+	it("leaves anybody still in the fight their turn", () => {
+		expect(skipsBrokenTurn(turns("", "fled"), 0)).toBe(false);
+		expect(skipsBrokenTurn(turns("fled", ""), 5)).toBe(false);
+	});
+
+	it("doesn't go round and round once nobody is left who hasn't broken", () => {
+		expect(skipsBrokenTurn(turns("fled", "surrendered"), 0)).toBe(false);
 	});
 });
 

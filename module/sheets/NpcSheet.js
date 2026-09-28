@@ -4,8 +4,10 @@ import { rollMorale, rollReaction } from "../actions/saves.js";
 import { convertToStructure } from "../actions/structures.js";
 import { strainWarband } from "../actions/warbands.js";
 import { keyChoices, t } from "../chat/cards.js";
+import { clearMoraleBreak } from "../chat/morale-card.js";
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
 import { gearHeldInHands } from "../rules/attack.js";
+import { isMoraleBreak } from "../rules/morale.js";
 import { ownerOf } from "../rules/property.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
@@ -31,6 +33,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			rollVirtues: NpcSheet.#onRollVirtues,
 			afflictTargets: NpcSheet.#onAfflictTargets,
 			rollMorale: NpcSheet.#onRollMorale,
+			clearMoraleBreak: NpcSheet.#onClearMoraleBreak,
 			rollReaction: NpcSheet.#onRollReaction,
 			upkeep: NpcSheet.#onUpkeep,
 			setScale: NpcSheet.#onSetScale,
@@ -76,6 +79,10 @@ export class NpcSheet extends BastionlandActorSheet {
 					hint: t(`npc.warband.${key}.hint`)
 				}))
 				: [],
+			// Fled or surrendered after a failed Morale Save (p10), until the × clears it.
+			moraleBroken: isMoraleBreak(system.moraleBroken)
+				? { label: t(`morale.broke.${system.moraleBroken}.label`), hint: t("morale.broke.clear") }
+				: null,
 			ownedBy: this.#owner(),
 			leader: system.warband && system.leader ? t("npc.leader.label", { name: fromUuidSync(system.leader)?.name ?? t("npc.leader.missing") }) : null,
 			featChoices: FEATS.map(({ key }) => ({ key, label: t(`feats.${key}.name`), active: system.feats[key] })),
@@ -159,6 +166,11 @@ export class NpcSheet extends BastionlandActorSheet {
 	/** @this {NpcSheet} */
 	static #onRollMorale() {
 		return rollMorale(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onClearMoraleBreak() {
+		return clearMoraleBreak(this.actor);
 	}
 
 	/** @this {NpcSheet} */

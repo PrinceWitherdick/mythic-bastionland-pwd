@@ -3,6 +3,14 @@
 	{{#if outcome}}
 	<p class="bastionland-card__outcome">{{outcome}}</p>
 	{{/if}}
+	{{#if breaks}}
+	{{!-- A failed Morale Save: the Referee says whether they rout or surrender (p10). --}}
+	<div class="bastionland-card__actions">
+		{{#each breaks.choices}}
+		<button type="button" data-morale-break="{{key}}" data-actors="{{../breaks.actors}}" data-tooltip="{{hint}}"><i class="{{icon}}" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
 	{{#if hint}}
 	<p class="bastionland-card__hint">{{hint}}</p>
 	{{/if}}

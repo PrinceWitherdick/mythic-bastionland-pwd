@@ -53,6 +53,25 @@ export function musterState(mustered, muster) {
 }
 
 /**
+ * What has become of a Warband (p11). A Mortal Wound routs them from the
+ * battle, and so does a failed Morale Save that sent them running (p10); one
+ * that ended in surrender takes them out of it too. At SPI 0 they are broken,
+ * and at VIG 0 wiped out.
+ * @param {object} args
+ * @param {boolean} args.mortalWound
+ * @param {number} args.spi
+ * @param {number} args.vig
+ * @param {string} [args.moraleBroken] "fled" or "surrendered" once their Morale failed, or blank.
+ * @returns {{routed: boolean, surrendered: boolean, broken: boolean, wipedOut: boolean}}
+ */
+export const warbandState = ({ mortalWound, spi, vig, moraleBroken = "" }) => ({
+	routed: Boolean(mortalWound) || moraleBroken === "fled",
+	surrendered: moraleBroken === "surrendered",
+	broken: spi === 0,
+	wipedOut: vig === 0
+});
+
+/**
  * @typedef {object} WarbandLine One Warband as a Domain's sheet lists it.
  * @property {string} name
  * @property {number} spi
@@ -61,13 +80,13 @@ export function musterState(mustered, muster) {
 
 /**
  * How a Warband reads in a list: their Spirit, and the worst that has become
- * of them. Wiped out is the end of them, being routed takes them out of the
- * battle, and broken leaves them in it but out of hand.
- * @param {{name: string, spi: number, warband: {routed: boolean, broken: boolean, wipedOut: boolean}|null}} actor
+ * of them. Wiped out is the end of them, being routed or surrendering takes
+ * them out of the battle, and broken leaves them in it but out of hand.
+ * @param {{name: string, spi: number, warband: {routed: boolean, surrendered?: boolean, broken: boolean, wipedOut: boolean}|null}} actor
  * @returns {WarbandLine}
  */
 export function warbandLine({ name, spi, warband }) {
-	const state = ["wipedOut", "routed", "broken"].find((key) => warband?.[key]) ?? null;
+	const state = ["wipedOut", "routed", "surrendered", "broken"].find((key) => warband?.[key]) ?? null;
 	return { name, spi: Number(spi) || 0, state };
 }
 

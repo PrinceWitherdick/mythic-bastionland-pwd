@@ -32,7 +32,7 @@ import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js
 import { EVENT_KEYS, EVENT_STAGES, MIDPOINT_STAGE } from "../module/rules/season-events.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
 import { MOVE_PROBLEMS } from "../module/rules/realm-movement.js";
-import { GROUP_ORDER, MORALE_TRIGGERS } from "../module/rules/morale.js";
+import { GROUP_ORDER, MORALE_BREAKS, MORALE_TRIGGERS } from "../module/rules/morale.js";
 import { DUEL_KINDS } from "../module/rules/duel.js";
 import { WILDERNESS_MODES, WILDERNESS_RESULTS } from "../module/rules/wilderness.js";
 import { SCARS } from "../module/rules/scars.js";
@@ -111,6 +111,7 @@ describe("localization", () => {
 		...MORALE_TRIGGERS.map((key) => `morale.triggers.${key}`),
 		...partsOf("duel.kinds", DUEL_KINDS, ["label", "hint"]),
 		...partsOf("morale.group.orders", GROUP_ORDER, ["label", "hint"]),
+		...partsOf("morale.broke", MORALE_BREAKS, ["label", "hint", "hintOne", "did", "didOne"]),
 		...REFEREE_TABLES.flatMap(({ key, results }) => [
 			`refereeRolls.tables.${key}.name`,
 			`refereeRolls.tables.${key}.hint`,
@@ -177,7 +178,7 @@ describe("localization", () => {
 		...partsOf("damage.harm", ["warband", "structure"], ["label", "hint"]),
 		...partsOf("npc.scales", NPC_SCALES, ["label", "hint"]),
 		...partsOf("structure.kinds", STRUCTURE_KINDS, ["label", "hint"]),
-		...partsOf("npc.warband", ["routed", "broken", "wipedOut"], ["label", "hint"]),
+		...partsOf("npc.warband", ["routed", "surrendered", "broken", "wipedOut"], ["label", "hint"]),
 		...KINDS.map((kind) => `bookArt.kinds.${kind}`),
 		...PROBLEM_REASONS.map((reason) => `bookArt.report.reasons.${reason}`),
 		...partsOf("chooser.starts", STARTS.map((start) => start.key), ["label", "summary"]),

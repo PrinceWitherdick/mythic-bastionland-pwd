@@ -4,7 +4,7 @@ import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
-import { isDown, moraleTrigger } from "../rules/morale.js";
+import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
 import { marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
@@ -95,8 +95,7 @@ function bearingOf(actor, worn = null) {
  * @returns {boolean}
  */
 function canStandInWall(actor, steeds, baseUuid) {
-	const vig = actor.system.virtues?.vig.value;
-	if (vig === undefined || actor.system.structure || isDown({ vigour: vig, mortalWound: actor.system.mortalWound })) return false;
+	if (actor.system.virtues?.vig.value === undefined || actor.system.structure || downOf(actor)) return false;
 	return !steeds.has(actor.uuid) && !steeds.has(baseUuid);
 }
 

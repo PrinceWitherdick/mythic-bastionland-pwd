@@ -516,9 +516,15 @@ describe("NpcModel", () => {
 
 	it("follows a Warband's rout, break and wipe-out from its Mortal Wound, SPI and VIG", () => {
 		const warband = npc({ scale: "warband", mortalWound: true, virtues: { vig: { value: 0 }, cla: { value: 4 }, spi: { value: 0 } } });
-		expect(warband.warband).toEqual({ routed: true, broken: true, wipedOut: true });
+		expect(warband.warband).toEqual({ routed: true, surrendered: false, broken: true, wipedOut: true });
 		expect(warband.conditions).toMatchObject({ exhausted: true, impaired: true, mortalWound: true });
 		expect(npc({}).warband).toBeNull();
+	});
+
+	it("routs a Warband whose failed Morale sent it running, and knows one that surrendered", () => {
+		const standing = { vig: { value: 10 }, cla: { value: 10 }, spi: { value: 7 } };
+		expect(npc({ scale: "warband", moraleBroken: "fled", virtues: standing }).warband).toMatchObject({ routed: true, surrendered: false });
+		expect(npc({ scale: "warband", moraleBroken: "surrendered", virtues: standing }).warband).toMatchObject({ routed: false, surrendered: true });
 	});
 
 	it("knows only the Feats it is marked with", () => {

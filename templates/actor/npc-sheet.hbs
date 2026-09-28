@@ -90,6 +90,11 @@
 						<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
 					</li>
 					{{/each}}
+					{{#if moraleBroken}}
+					<li>
+						<button type="button" class="bastionland-condition is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
+					</li>
+					{{/if}}
 				</ul>
 				{{#if leader}}
 				<p class="bastionland-steed">

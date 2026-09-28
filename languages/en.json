@@ -761,6 +761,25 @@
       "roll": "Roll Morale",
       "gone": "That character no longer exists.",
       "notOwner": "Only a GM or {name}’s owner can roll their Morale.",
+      "broke": {
+        "fled": {
+          "label": "Fled",
+          "hintOne": "They rout. Marks them Fled on their sheet, and takes them out of the Combat’s turn order.",
+          "hint": "The group routs together. Marks each of them Fled, and takes them out of the Combat’s turn order.",
+          "didOne": "{names} flees the fight.",
+          "did": "{names} flee the fight."
+        },
+        "surrendered": {
+          "label": "Surrendered",
+          "hintOne": "They surrender. Marks them Surrendered on their sheet, and takes them out of the Combat’s turn order.",
+          "hint": "The group surrenders together. Marks each of them Surrendered, and takes them out of the Combat’s turn order.",
+          "didOne": "{names} surrenders.",
+          "did": "{names} surrender."
+        },
+        "clear": "Clear it: they’re back in the fight",
+        "notOwner": "Only a GM or their owner can say how their Morale broke.",
+        "already": "That’s already marked on their sheet."
+      },
       "triggers": {
         "wounded": "{name} is Wounded, and must pass a SPI Save to avoid rout or surrender.",
         "halved": "{name} has lost half its number, and must pass a SPI Save to avoid rout or surrender."
@@ -2675,7 +2694,11 @@
       "warband": {
         "routed": {
           "label": "Routed",
-          "hint": "A Mortal Wound routs a Warband from the battle."
+          "hint": "A Mortal Wound routs a Warband from the battle, and so does failing its Morale Save and fleeing."
+        },
+        "surrendered": {
+          "label": "Surrendered",
+          "hint": "The Warband failed its Morale Save and surrendered, out of the battle."
         },
         "broken": {
           "label": "Broken",

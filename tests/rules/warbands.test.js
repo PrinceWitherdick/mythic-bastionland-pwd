@@ -9,6 +9,7 @@ import {
 	musterState,
 	strainedSpirit,
 	warbandLine,
+	warbandState,
 	willNotFollowOrders
 } from "../../module/rules/warbands.js";
 import { VIRTUES } from "../../module/rules/virtues.js";
@@ -75,6 +76,22 @@ describe("musterState", () => {
 	});
 });
 
+describe("warbandState", () => {
+	const standing = { mortalWound: false, spi: 7, vig: 10 };
+
+	it("routs a Warband by a Mortal Wound, or by failed Morale that sent it running (p10, p11)", () => {
+		expect(warbandState(standing)).toEqual({ routed: false, surrendered: false, broken: false, wipedOut: false });
+		expect(warbandState({ ...standing, mortalWound: true }).routed).toBe(true);
+		expect(warbandState({ ...standing, moraleBroken: "fled" })).toMatchObject({ routed: true, surrendered: false });
+		expect(warbandState({ ...standing, moraleBroken: "surrendered" })).toMatchObject({ routed: false, surrendered: true });
+	});
+
+	it("breaks it at SPI 0 and wipes it out at VIG 0", () => {
+		expect(warbandState({ ...standing, spi: 0 }).broken).toBe(true);
+		expect(warbandState({ ...standing, vig: 0 }).wipedOut).toBe(true);
+	});
+});
+
 describe("warbandLine", () => {
 	const warband = (state = {}) => ({ routed: false, broken: false, wipedOut: false, ...state });
 
@@ -86,6 +103,11 @@ describe("warbandLine", () => {
 		expect(warbandLine({ name: "A", spi: 0, warband: warband({ broken: true }) }).state).toBe("broken");
 		expect(warbandLine({ name: "A", spi: 0, warband: warband({ broken: true, routed: true }) }).state).toBe("routed");
 		expect(warbandLine({ name: "A", spi: 0, warband: warband({ broken: true, routed: true, wipedOut: true }) }).state).toBe("wipedOut");
+	});
+
+	it("counts surrender as worse than broken, but not as bad as a rout", () => {
+		expect(warbandLine({ name: "A", spi: 0, warband: warband({ broken: true, surrendered: true }) }).state).toBe("surrendered");
+		expect(warbandLine({ name: "A", spi: 7, warband: warband({ surrendered: true, routed: true }) }).state).toBe("routed");
 	});
 
 	it("says nothing of an individual, who has no Warband states", () => {

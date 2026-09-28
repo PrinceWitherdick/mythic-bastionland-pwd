@@ -1,5 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
 import { dieMask } from "../rules/die-shapes.js";
+import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
 import { isSavePassed } from "../rules/virtues.js";
 
 /**
@@ -103,31 +104,58 @@ export async function rollSaveFor(name, virtue, value) {
  * @param {string|((save: SaveResult) => string)|null} [words.hint] A line of the book's own guidance.
  * @param {object} [options]
  * @param {number|null} [options.rolled] The d20 when it was rolled at the table instead.
+ * @param {((save: SaveResult) => object)|null} [options.extra] More for the card, such as buttons offered on how it went.
  * @returns {Promise<SaveResult>}
  */
-export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }, { rolled = null } = {}) {
+export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }, { rolled = null, extra = null } = {}) {
 	const save = await saveAgainst(virtue, actor.system.virtues[virtue].value, rolled);
 	const read = (words) => (typeof words === "function" ? words(save) : words);
 	await postCard(actor, "save", {
 		save: { ...saveContext(save), label },
 		outcome: read(outcome),
-		hint: read(hint)
+		hint: read(hint),
+		...extra?.(save)
 	}, { rolls: [save.roll] });
 	return save;
 }
 
 /**
+ * The buttons a failed Morale Save offers, to mark whoever it stood for as
+ * fled or surrendered. Only NPCs keep the mark, since Morale doesn't affect
+ * player characters (p10).
+ * @param {Actor[]} group
+ * @returns {{actors: string, choices: object[]}|null} `actors` their UUIDs, comma-separated. Null with no NPC among them.
+ */
+export function moraleBreakButtons(group) {
+	const npcs = group.filter((member) => member?.type === "npc");
+	if (!npcs.length) return null;
+	return {
+		actors: npcs.map((member) => member.uuid).join(","),
+		choices: MORALE_BREAKS.map((key) => ({
+			key,
+			icon: BREAK_ICONS[key],
+			label: t(`morale.broke.${key}.label`),
+			hint: t(npcs.length === 1 ? `morale.broke.${key}.hintOne` : `morale.broke.${key}.hint`)
+		}))
+	};
+}
+
+/**
  * Roll Morale: a SPI Save to stand rather than rout or surrender (Wavering
- * Morale, p10).
+ * Morale, p10). A failed Save offers to mark who broke as fled or
+ * surrendered, which takes them out of the fight until cleared.
  * @param {Actor} actor
+ * @param {object} [options]
+ * @param {Actor[]} [options.group] Everybody the roll stands for, as an organised group's
+ *   leader rolls for them all. Themself alone by default.
  * @returns {Promise<SaveResult>}
  */
-export async function rollMorale(actor) {
+export async function rollMorale(actor, { group = [actor] } = {}) {
 	return rollLabelledSave(actor, "spi", {
 		label: t("morale.title"),
 		outcome: ({ passed }) => t(passed ? "morale.holds" : "morale.breaks"),
 		hint: t("morale.hint")
-	});
+	}, { extra: ({ passed }) => (passed ? {} : { breaks: moraleBreakButtons(group) }) });
 }
 
 /**
