@@ -59,6 +59,42 @@
 		<p class="hint">{{localize "bastionland.welcome.book.later"}}</p>
 	</section>
 
+	<section class="bastionland-welcome__section bastionland-welcome__company">
+		<h2 class="bastionland-heading">{{localize "bastionland.welcome.company.heading"}}</h2>
+		<label class="bastionland-welcome__question" for="bastionland-welcome-company">{{localize "bastionland.welcome.company.question"}}</label>
+		<div class="bastionland-welcome__muster">
+			<div class="bastionland-welcome__stepper">
+				<button type="button" data-action="companyStep" data-step="-1" aria-label="{{localize "bastionland.welcome.company.fewer"}}" {{disabled (or company.fewest company.busy)}}>
+					<i class="fa-solid fa-minus" inert></i>
+				</button>
+				<input id="bastionland-welcome-company" type="text" value="{{company.count}}" readonly tabindex="-1" aria-live="polite">
+				<button type="button" data-action="companyStep" data-step="1" aria-label="{{localize "bastionland.welcome.company.more"}}" {{disabled (or company.most company.busy)}}>
+					<i class="fa-solid fa-plus" inert></i>
+				</button>
+			</div>
+			<button type="button" class="bastionland-button bastionland-welcome__knight" data-action="knightCompany" {{disabled company.busy}}>
+				{{#if company.busy}}
+				<i class="fa-solid fa-spinner fa-spin" inert></i> {{localize "bastionland.welcome.company.busy"}}
+				{{else}}
+				<i class="fa-solid fa-chess-knight" inert></i> {{localize "bastionland.welcome.company.button"}}
+				{{/if}}
+			</button>
+		</div>
+		<p class="hint">
+			{{#if company.waiting}}{{localize "bastionland.welcome.company.waiting" names=company.waiting}}{{else}}{{localize "bastionland.welcome.company.nobody"}}{{/if}}
+		</p>
+		{{#if company.done}}
+		<p class="bastionland-welcome__done">
+			<i class="fa-solid fa-circle-check" inert></i>
+			<span>
+				{{localize "bastionland.welcome.company.made" count=company.done.made}}
+				{{#if company.done.given}}{{localize "bastionland.welcome.company.given" names=company.done.given}}{{/if}}
+				{{#if company.done.left}}{{localize "bastionland.welcome.company.left" count=company.done.left}}{{/if}}
+			</span>
+		</p>
+		{{/if}}
+	</section>
+
 	<section class="bastionland-welcome__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.welcome.where.heading"}}</h2>
 		<dl class="bastionland-welcome__where">

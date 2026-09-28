@@ -3967,6 +3967,20 @@
         "busy": "Importing…",
         "later": "Later on, Import PDF on the hotbar and the Rulebook button in the Journal tab both do this again."
       },
+      "company": {
+        "heading": "The Company",
+        "question": "How many Knights have followed the call to glory?",
+        "fewer": "One Knight fewer",
+        "more": "One Knight more",
+        "button": "Knight Those Subjects",
+        "busy": "Knighting…",
+        "waiting": "Signed in and waiting for a Knight: {names}. Each is given one, and it opens on their screen for them to choose.",
+        "nobody": "No players are signed in yet. The count follows them as they join; Knights nobody is signed in for wait in the Actors tab, where Played by on the sheet gives them to a player.",
+        "made": "Knighted {count}.",
+        "given": "Given to {names}.",
+        "left": "Still in the Actors tab for a player: {count}.",
+        "failed": "The Company’s Knights couldn’t all be made. The console says why."
+      },
       "where": {
         "heading": "Where Things Are",
         "knights": {

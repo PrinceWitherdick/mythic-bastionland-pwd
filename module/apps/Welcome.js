@@ -1,5 +1,7 @@
+import { knightTheCompany, waitingPlayers } from "../actions/welcome-company.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { ART_ROOT, EXPECTED_PAGES } from "../rules/book-art.js";
+import { COMPANY_MAX, COMPANY_MIN, clampCompany, suggestedCompany } from "../rules/welcome-company.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { bringInRulebook, importKeptRulebook } from "../rulebook/bring-in.js";
 import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath, setFoundRulebook } from "../rulebook/store.js";
@@ -91,6 +93,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		actions: {
 			choose: Welcome.#onChoose,
 			read: Welcome.#onRead,
+			companyStep: Welcome.#onCompanyStep,
+			knightCompany: Welcome.#onKnightCompany,
 			finish: Welcome.#onFinish
 		}
 	};
@@ -105,14 +109,33 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {number|null} */
 	#hook = null;
 
+	/** Redraws the Company's count as players sign in and out. @type {number|null} */
+	#userHook = null;
+
+	/** How many Knights the GM counted, or null to follow the players signed in. @type {number|null} */
+	#company = null;
+
+	/** Whether the Company's Knights are being made. */
+	#knighting = false;
+
+	/** What the last Knight Those Subjects made. @type {{made: number, given: string[]}|null} */
+	#knighted = null;
+
 	/** The art index, read once and again only after an import. @type {Promise<object|null>|null} */
 	#index = null;
+
+	/** @returns {number} The Knights to make: as counted by hand, or one for each player waiting. */
+	get #companyCount() {
+		return this.#company ?? suggestedCompany(waitingPlayers().length);
+	}
 
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		const index = await (this.#index ??= loadArtIndex());
 		const path = rulebookPath();
+		const waiting = waitingPlayers();
+		const company = this.#companyCount;
 		return Object.assign(context, {
 			pages: EXPECTED_PAGES,
 			root: ART_ROOT,
@@ -121,7 +144,19 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 			importedOn: importDate(index?.importedAt),
 			path,
 			found: foundText(foundRulebook(), this.#busy),
-			busy: this.#busy
+			busy: this.#busy,
+			company: {
+				count: company,
+				fewest: company <= COMPANY_MIN,
+				most: company >= COMPANY_MAX,
+				waiting: waiting.map((user) => user.name).join(", "),
+				busy: this.#knighting,
+				done: this.#knighted && {
+					made: this.#knighted.made,
+					given: this.#knighted.given.join(", "),
+					left: this.#knighted.made - this.#knighted.given.length
+				}
+			}
 		});
 	}
 
@@ -130,6 +165,7 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		await super._onFirstRender(context, options);
 		// Redraw when the book is kept or forgotten here or on another GM's screen.
 		this.#hook = Hooks.on(RULEBOOK_HOOK, () => this.rendered && this.render());
+		this.#userHook = Hooks.on("userConnected", () => this.rendered && this.render());
 		// A book found kept by another world is imported here without asking, by one GM.
 		if (foundRulebook() === "pending" && game.users.activeGM?.isSelf) this.#importFound();
 	}
@@ -149,6 +185,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		super._onClose(options);
 		if (this.#hook !== null) Hooks.off(RULEBOOK_HOOK, this.#hook);
 		this.#hook = null;
+		if (this.#userHook !== null) Hooks.off("userConnected", this.#userHook);
+		this.#userHook = null;
 		// Closed once, it has done its greeting: the world stops opening it by itself.
 		if (game.settings.get(SYSTEM_ID, SHOW_SETTING)) {
 			game.settings.set(SYSTEM_ID, SHOW_SETTING, false)
@@ -197,6 +235,41 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 		// Given up on, the Welcome goes back to asking for the PDF, rather than trying again each time it opens.
 		await setFoundRulebook(index ? "done" : "");
+		if (this.rendered) await this.render();
+	}
+
+	/**
+	 * One Knight more or fewer; counted by hand, the count stops following who signs in.
+	 * @this {Welcome}
+	 * @param {PointerEvent} _event
+	 * @param {HTMLElement} target
+	 */
+	static #onCompanyStep(_event, target) {
+		if (this.#knighting) return;
+		this.#company = clampCompany(this.#companyCount + Number(target.dataset.step));
+		this.render();
+	}
+
+	/**
+	 * Make the Company's Knights, one given to each player signed in, whose sheet opens for them.
+	 * @this {Welcome}
+	 */
+	static async #onKnightCompany() {
+		if (this.#knighting) return;
+		const count = this.#companyCount;
+		this.#knighting = true;
+		await this.render();
+		try {
+			const { made, given } = await knightTheCompany(count);
+			this.#knighted = { made: made.length, given: given.map((user) => user.name) };
+			// Those Knights are made: the count follows whoever is still waiting.
+			this.#company = null;
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't make the Company's Knights`, error);
+			ui.notifications.error("bastionland.welcome.company.failed", { localize: true });
+		} finally {
+			this.#knighting = false;
+		}
 		if (this.rendered) await this.render();
 	}
 

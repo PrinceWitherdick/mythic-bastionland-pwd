@@ -6419,6 +6419,57 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-width: 10rem;
 }
 
+/* The Company: a count the GM can only step, and the button that knights them. */
+.bastionland-welcome__question {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+}
+
+.bastionland-welcome__muster {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.bastionland-welcome__stepper {
+	display: flex;
+	align-items: stretch;
+	height: 32px;
+}
+
+.bastionland-page .bastionland-welcome__stepper button {
+	flex: none;
+	width: 32px;
+	height: 32px;
+	margin: 0;
+	padding: 0;
+	border-radius: 3px 0 0 3px;
+}
+
+.bastionland-page .bastionland-welcome__stepper button:last-child {
+	border-radius: 0 3px 3px 0;
+}
+
+.bastionland-page .bastionland-welcome__stepper input {
+	width: 3.2rem;
+	height: 32px;
+	margin: 0;
+	border-inline: none;
+	border-radius: 0;
+	background: rgb(255 255 255 / 0.35);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.2rem;
+	text-align: center;
+	cursor: default;
+	pointer-events: none;
+}
+
+.bastionland-page .bastionland-welcome__knight {
+	flex: none;
+	min-width: 12rem;
+}
+
 .bastionland-welcome__where {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
