@@ -4,7 +4,7 @@
 
 An unofficial [Foundry VTT](https://foundryvtt.com) system for playing [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall, made with his permission. It is not an official Bastionland Press product.
 
-> **You need the rulebook PDF.** Without a purchased copy of the Mythic Bastionland PDF, this system is practically useless: no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums, just empty sheets and a blank map. [Buy the book](https://www.bastionland.com), then import your PDF with the **Import PDF** macro or the Welcome window.
+> **You need the rulebook PDF.** Without a purchased copy of the Mythic Bastionland PDF, this system is practically useless: no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums, just empty sheets and a blank map. [Buy the book](https://bastionlandpress.com/collections/all), then import your PDF with the **Import PDF** macro or the Welcome window.
 
 It ships none of the book's text beyond the rules reminders printed on the free character sheet and the free Blank Realm sheet, and none of its art beyond the Blank Realm sheet's map legend. Everything else is read from your own copy of the PDF (see [Art and text from your own book](#art-and-text-from-your-own-book)).
 
@@ -156,7 +156,7 @@ A checkout runs straight from the source files. A release runs from the single b
 
 Mythic Bastionland, its text, art and trade dress are © Chris McDowall, Bastionland Press. All rights reserved. They're used here with his permission, and only as far as described above. They aren't covered by any licence this project grants.
 
-This is an unofficial, fan-made system, made with Chris McDowall's permission. It is not an official Bastionland Press product. To play, you'll want a copy of [the book](https://www.bastionland.com).
+This is an unofficial, fan-made system, made with Chris McDowall's permission. It is not an official Bastionland Press product. To play, you'll want a copy of [the book](https://bastionlandpress.com/collections/all).
 
 ## AI Training and Data Mining
 
