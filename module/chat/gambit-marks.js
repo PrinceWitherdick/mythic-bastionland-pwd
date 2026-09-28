@@ -62,15 +62,20 @@ export function marksOn(actor) {
 		const message = log[i];
 		const attack = message.flags?.[SYSTEM_ID]?.attack;
 		if (!attack?.gambits?.length || !targeted(attack, actor)) continue;
-		const attackerTurn = places.get(attack.attacker) ?? null;
-		for (const mark of attackMarks(attack, { ownTurn, attackerTurn })) {
+		// A Trap lapses as its payer's next turn begins, who in a joint Attack may not be the attacker.
+		const turnOf = (uuid) => places.get(uuid) ?? null;
+		for (const mark of attackMarks(attack, { ownTurn, turnOf })) {
 			if (markLapsed(mark, now)) continue;
+			// An Impair on one foe's weapon, from a card aimed at several, holds nobody else.
+			if (mark.weapon?.actor && mark.weapon.actor !== actor.uuid) continue;
 			const name = mark.by || t("gambits.marks.someone");
 			marks.push({
 				...mark,
 				messageId: message.id,
 				label: t(`gambits.names.${mark.key}`),
-				hint: t(`gambits.marks.${mark.key}`, { name })
+				hint: mark.weapon
+					? t("gambits.marks.impairWeapon", { name, weapon: mark.weapon.name })
+					: t(`gambits.marks.${mark.key}`, { name })
 			});
 		}
 	}

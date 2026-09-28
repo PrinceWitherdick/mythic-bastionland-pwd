@@ -5,6 +5,7 @@
 
 import { GAMBITS, WEAKNESS_DICE } from "../config.js";
 import { MARK_GAMBITS } from "./gambit-marks.js";
+import { harmsStructure } from "./structures.js";
 
 /** Die sizes offered for shields, bonuses and Scars. */
 export const DIE_SIZES = Object.freeze([4, 6, 8, 10, 12]);
@@ -271,6 +272,24 @@ export function trampleJoins(targets) {
 }
 
 /**
+ * Whether somebody struck at is an individual: one person or beast, not a
+ * Warband, a swarm or a ship or wall (p11, p61).
+ * @param {{warband?: boolean, swarm?: boolean, structure?: boolean}} target
+ * @returns {boolean}
+ */
+export const isIndividual = ({ warband = false, swarm = false, structure = false }) => !warband && !swarm && !structure;
+
+/**
+ * Whether a Warband's Attack at these targets is one at individuals, which
+ * gets +d12 and causes Blast Damage (p11, p189).
+ * @param {{warband?: boolean, swarm?: boolean, structure?: boolean}[]} targets
+ * @returns {boolean|null} Null with nobody targeted, when only the Referee can say.
+ */
+export function atIndividuals(targets) {
+	return targets.length ? targets.every(isIndividual) : null;
+}
+
+/**
  * Whether a card is Impaired for striking at a swarm, whose foes' individual
  * attacks are Impaired unless they are Blast attacks (p61). A Warband's Attack
  * is no individual's, so it isn't.
@@ -339,26 +358,21 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
 }
 
 /**
- * Summarise rolled Attack dice before any Deny or Gambits are declared.
- * @param {number[]} results The face shown on each die.
- * @param {object} [options]
- * @param {boolean} [options.melee=true] Only melee dice make Strong Gambits.
- * @returns {{highest: number, gambitDice: number, strongDice: number}}
- */
-export function summarizeAttack(results, { melee = true } = {}) {
-	return {
-		highest: results.length ? Math.max(...results) : 0,
-		gambitDice: results.filter((result) => result >= GAMBIT_MINIMUM).length,
-		strongDice: melee ? results.filter((result) => result >= STRONG_GAMBIT_MINIMUM).length : 0
-	};
-}
-
-/**
  * @typedef {object} AttackDie
  * @property {number} faces
  * @property {number} result
  * @property {string} label
  * @property {string|null} deniedBy Name of whoever discarded it with Deny.
+ * @property {string} [item]    Id of the weapon it was rolled for, on the dice of the roller's own weapons.
+ * @property {boolean} [weakness] Added for a known weakness, which a joint Attack gets once (p188).
+ * @property {string} [actor]   UUID of whoever rolled it, once others have joined the Attack.
+ * @property {string} [by]      Their name, which labels it on the card.
+ * @property {boolean} [melee]  Whether it came from a melee Attack, which only can make a Strong Gambit.
+ * @property {boolean} [ignoresArmour] Whether the Attack it came from ignores Armour.
+ * @property {boolean} [nonLethal] Whether that Attack never Slays.
+ * @property {boolean} [blast]     Whether it was a Blast, which harms a Warband (p11).
+ * @property {boolean} [largeScale] Whether it was a Warband's, which harms a Warband.
+ * @property {object|null} [structureHarm] What in it harms a structure, from structureHarm.
  *
  * @typedef {object} Gambit
  * @property {string} key         One of GAMBITS.
@@ -369,6 +383,26 @@ export function summarizeAttack(results, { melee = true } = {}) {
  * @property {boolean} dismissed Whether the mark it left on the foe has been cleared by hand.
  * @property {FocusSave|null} [focus] The attacker's CLA Save for a Gambit Focus paid for.
  * @property {string} [greater] What its Greater effect did, once carried out.
+ * @property {ImpairedWeapon} [weapon] The one weapon an Impair holds, as p186's crocodile has its jaw
+ *   Impaired. Without one it holds the foe's whole next Attack.
+ * @property {string|null} [payer] UUID of whoever Focused for it. A die's Gambit is paid by whoever rolled the die.
+ *
+ * @typedef {object} ImpairedWeapon
+ * @property {string} id    The item's id on the foe's sheet.
+ * @property {string} name  Its name, which also finds it on a Token's copy of the foe.
+ * @property {string|null} actor UUID of the foe who holds it, for a card aimed at several.
+ *
+ * @typedef {object} JoinedAttacker Somebody who rolled into another's Attack (p8).
+ * @property {string} actor  Their UUID.
+ * @property {string} name
+ * @property {boolean} impaired Whether their share was Impaired, and so can't benefit from Feats.
+ * @property {boolean} confined A Long weapon in a confined space is why.
+ * @property {boolean} swarm    Striking at a swarm without a Blast is why.
+ * @property {string|null} impairedWeapon A foe's Impair on this weapon of theirs is why.
+ * @property {object|null} smite The Smite they declared, as the card shows it.
+ * @property {boolean} smiteMark Whether they Smote for a lasting mark.
+ * @property {{name: string, reason: string}[]} setAside
+ * @property {{uuid: string, name: string}|null} [leader] Whoever leads a joining Warband from the front.
  *
  * @typedef {object} FocusSave
  * @property {string} by       Name of whoever Focused.
@@ -394,7 +428,35 @@ export function summarizeAttack(results, { melee = true } = {}) {
  * @property {Gambit[]} gambits
  * @property {{key: string, actor: string}[]} feats Feats used after the roll, by actor UUID.
  * @property {string[]} appliedTo Who the Damage was applied to. Once set, the Attack is settled.
+ * @property {JoinedAttacker[]} [joined] Those who joined the Attack, rolling with the attacker (p8).
+ * @property {boolean} [declared] Whether a Deny, Gambit or Focus has been declared, which closes it to joiners.
  */
+
+/**
+ * Whoever rolled into an Attack card: the attacker, and each who joined them (p8).
+ * @param {AttackState} attack
+ * @returns {string[]} Actor UUIDs.
+ */
+export const attackersOf = (attack) => [attack.attacker, ...(attack.joined ?? []).map((entry) => entry.actor)].filter(Boolean);
+
+/**
+ * @param {AttackState} attack
+ * @param {string} uuid
+ * @returns {boolean} Whether this actor is one of those making the Attack.
+ */
+export const isAttacker = (attack, uuid) => attackersOf(attack).includes(uuid);
+
+/**
+ * Whether an attacker's share of the Attack was Impaired, so they can't
+ * benefit from Feats (p8). Anybody who didn't join is read as the attacker.
+ * @param {AttackState} attack
+ * @param {string} uuid
+ * @returns {boolean}
+ */
+export function attackerImpaired(attack, uuid) {
+	const joined = (attack.joined ?? []).find((entry) => entry.actor === uuid);
+	return Boolean(joined ? joined.impaired : attack.impaired);
+}
 
 /**
  * Highest first, so the card reads left to right the way Damage is taken.
@@ -453,22 +515,28 @@ export function canFundGambit(attack, index) {
  * @returns {boolean}
  */
 export function canFundStrongGambit(attack, index) {
-	return attack.melee && canFundGambit(attack, index) && attack.dice[index].result >= STRONG_GAMBIT_MINIMUM;
+	// In a joint Attack each die is melee or not as its own attacker's was.
+	const melee = attack.dice[index]?.melee ?? attack.melee;
+	return Boolean(melee) && canFundGambit(attack, index) && attack.dice[index].result >= STRONG_GAMBIT_MINIMUM;
 }
 
 /**
  * The Damage an Attack causes before Armour: the highest die left after Deny
  * and Gambits, including any d6 a Dismount added, plus 1 for each Bolster (p8).
  * @param {AttackState} attack
+ * @param {((share: ReturnType<typeof shareOf>) => boolean)|null} [counts] Which shares' dice
+ *   may count, for a target only some of a joint Attack can harm.
  * @returns {{highest: number, bolster: number, damage: number, die: number|null, faces: number|null}}
  *   `die` is the index of the rolled die that counts, null when none is left or
  *   a Dismount's d6 is higher. `faces` is the size of the die that counts,
  *   which is the die to roll if it causes a Scar.
  */
-export function attackDamage(attack) {
+export function attackDamage(attack, counts = null) {
 	let die = null;
 	attack.dice.forEach((candidate, index) => {
 		if (isDieSpent(attack, index)) return;
+		// In a joint Attack, dice from a share that can't harm the target don't count against it.
+		if (counts && !counts(shareOf(attack, candidate))) return;
 		if (die === null || candidate.result > attack.dice[die].result) die = index;
 	});
 	let highest = die === null ? 0 : attack.dice[die].result;
@@ -486,11 +554,216 @@ export function attackDamage(attack) {
 }
 
 /**
+ * What a die's share of the Attack was made with: the joiner's own, once
+ * others have joined it, and the card's for a die rolled by one attacker alone.
+ * @param {AttackState} attack
+ * @param {AttackDie|null} die Null for the card as a whole.
+ * @returns {{melee: boolean, ignoresArmour: boolean, nonLethal: boolean, blast: boolean, largeScale: boolean, structureHarm: object|null}}
+ */
+export function shareOf(attack, die) {
+	return {
+		melee: Boolean(die?.melee ?? attack.melee),
+		ignoresArmour: Boolean(die?.ignoresArmour ?? attack.ignoresArmour),
+		nonLethal: Boolean(die?.nonLethal ?? attack.nonLethal),
+		blast: Boolean(die?.blast ?? attack.blast),
+		largeScale: Boolean(die?.largeScale ?? attack.largeScale),
+		// A share stamped with none harms no structure, whatever the whole card could.
+		structureHarm: (die && "structureHarm" in die ? die.structureHarm : attack.structureHarm) ?? null
+	};
+}
+
+/** Why a share's dice can't harm a target: a Warband, a structure, or a stone wall (p11). */
+export const HARM_BARS = Object.freeze(["warband", "structure", "stone"]);
+
+/**
+ * @param {object} system A target's system data.
+ * @returns {{warband: boolean, structure: boolean, stone: boolean}} What only some Attacks can harm, as harmBarred and damageAgainst read it.
+ */
+export const harmTargetOf = (system) => ({
+	warband: system?.scale === "warband",
+	structure: Boolean(system?.structure),
+	stone: Boolean(system?.stone)
+});
+
+/**
+ * Why one share of an Attack can't harm a target (p11): a Warband is harmed
+ * only by Blast or large-scale Attacks, a structure only by fire, siege
+ * weapons or large creatures, and a stone wall only by siege weapons.
+ * @param {ReturnType<typeof shareOf>} share
+ * @param {{warband?: boolean, structure?: boolean, stone?: boolean}} [target]
+ * @returns {string|null} One of HARM_BARS, or null when it can harm them.
+ */
+export function harmBarred(share, { warband = false, structure = false, stone = false } = {}) {
+	if (warband && !(share.blast || share.largeScale)) return "warband";
+	if (structure && !harmsStructure(share.structureHarm, stone)) return stone ? "stone" : "structure";
+	return null;
+}
+
+/**
+ * The Damage an Attack deals to one target, and what the Damage dialog weighs
+ * with it. A Warband is harmed only by Blast or large-scale Attacks, and a
+ * structure only by fire, siege weapons or large creatures, or stone by siege
+ * weapons alone (p11), so in a joint Attack only the dice of shares that can
+ * harm the target count against it. Whether cover counts (a ranged Attack,
+ * p10), Armour is ignored or the blow can't Slay follows the die that counts.
+ * When no share can harm them, the whole Attack is weighed and the dialog finds them unharmed.
+ * @param {AttackState} attack
+ * @param {{warband?: boolean, structure?: boolean, stone?: boolean}} [target]
+ * @returns {ReturnType<typeof attackDamage> & {ranged: boolean, ignoresArmour: boolean,
+ *   nonLethal: boolean, harm: {warband: boolean, structure: boolean}, unharmed: boolean, dealer: string}}
+ */
+export function damageAgainst(attack, { warband = false, structure = false, stone = false } = {}) {
+	const harmsWarband = (share) => share.blast || share.largeScale;
+	const harmsIt = (share) => harmsStructure(share.structureHarm, stone);
+	const canHarm = (share) => !harmBarred(share, { warband, structure, stone });
+	const shares = attack.dice.map((die) => shareOf(attack, die));
+	const anyHarms = shares.some(canHarm);
+	const counted = attackDamage(attack, anyHarms ? canHarm : null);
+	const share = shareOf(attack, counted.die === null ? null : attack.dice[counted.die]);
+	return {
+		...counted,
+		ranged: !share.melee,
+		ignoresArmour: share.ignoresArmour,
+		nonLethal: share.nonLethal,
+		harm: { warband: shares.some(harmsWarband), structure: shares.some(harmsIt) },
+		// Nobody's share can harm them at all.
+		unharmed: !anyHarms,
+		dealer: (counted.die !== null && attack.dice[counted.die].actor) || attack.attacker
+	};
+}
+
+/**
+ * Whether others may still join an Attack card (p8): everybody attacking the
+ * same target rolls at the same time, before any Deny or Gambit, so once one
+ * is declared the roll is closed. Never a duel's blow, nor a settled Attack.
+ * @param {AttackState|null} attack
+ * @returns {boolean}
+ */
+export function canJoin(attack) {
+	if (!attack || attack.appliedTo.length || attack.duel || attack.declared) return false;
+	// Cards from before `declared` was kept still show what was declared on them.
+	return !attack.gambits.length && !attack.feats.length && !attack.dice.some((die) => die.deniedBy);
+}
+
+/**
+ * Who Smote for a lasting mark on this Attack (p187): the attacker, or the
+ * first who joined them to do so.
+ * @param {AttackState} attack
+ * @returns {string|null} Their name, or null when nobody did.
+ */
+export function lastingMarkBy(attack) {
+	if (attack.smiteMark) return attack.attackerName ?? "";
+	return (attack.joined ?? []).find((entry) => entry.smiteMark)?.name ?? null;
+}
+
+/**
  * @param {{key: string, bonus?: number}} change
  * @returns {number|null} The d6 a Dismount Gambit adds, or null for any other Gambit.
  */
 const dismountBonus = ({ key, bonus }) =>
 	(key === "dismount" && Number.isInteger(bonus) && bonus >= 1 && bonus <= DISMOUNT_FACES ? bonus : null);
+
+/**
+ * The one weapon an Impair Gambit names (p10, p186), kept on the Gambit.
+ * @param {{key: string, weapon?: object}} change
+ * @returns {{weapon?: ImpairedWeapon}} Nothing for any other Gambit, or an Impair on the foe's whole next Attack.
+ */
+function impairedWeaponOf({ key, weapon }) {
+	const name = typeof weapon?.name === "string" ? weapon.name.trim() : "";
+	if (key !== "impair" || typeof weapon?.id !== "string" || !weapon.id || !name) return {};
+	return { weapon: { id: weapon.id, name, actor: typeof weapon.actor === "string" && weapon.actor ? weapon.actor : null } };
+}
+
+/**
+ * @param {object} die A die as a change brings it.
+ * @returns {boolean} Whether it's a die that was really rolled.
+ */
+const rolledDie = (die) => Number.isInteger(die?.faces) && die.faces > 0 && Number.isInteger(die.result)
+	&& die.result >= 1 && die.result <= die.faces && typeof die.label === "string";
+
+/**
+ * @param {object|null|undefined} a From structureHarm.
+ * @param {object|null|undefined} b
+ * @returns {object|null} What harms a structure in either.
+ */
+function eitherHarm(a, b) {
+	if (!a || !b) return a ?? b ?? null;
+	return { siege: Boolean(a.siege || b.siege), fire: Boolean(a.fire || b.fire), large: Boolean(a.large || b.large) };
+}
+
+/**
+ * Pool another combatant's dice into an Attack card, since everybody
+ * attacking the same target rolls at the same time (p8). Each die remembers
+ * who rolled it and how, the dice are sorted highest first again, and the
+ * Gambits and Denials made so far follow their dice.
+ * @param {AttackState} attack
+ * @param {object} change See changeAttack's `join`.
+ * @returns {AttackState|null}
+ */
+function joinAttack(attack, change) {
+	const dice = Array.isArray(change.dice) ? change.dice.filter(rolledDie) : [];
+	// All roll before any Deny or Gambit, a duel is fought one on one, and each combatant rolls into an Attack once.
+	if (!canJoin(attack) || typeof change.actor !== "string" || !change.actor || isAttacker(attack, change.actor) || !dice.length) return null;
+	const name = String(change.name ?? "");
+	const stamp = (die, who) => ({ ...who, ...die });
+	// Each die carries its own share's traits, so what depends on the Damage follows the die that counts.
+	const first = { actor: attack.attacker, by: attack.attackerName ?? "", ...shareOf(attack, null) };
+	const joiner = {
+		actor: change.actor,
+		by: name,
+		melee: Boolean(change.melee),
+		ignoresArmour: Boolean(change.ignoresArmour),
+		nonLethal: Boolean(change.nonLethal),
+		blast: Boolean(change.blast),
+		largeScale: Boolean(change.largeScale),
+		structureHarm: change.structureHarm && typeof change.structureHarm === "object" ? change.structureHarm : null
+	};
+	// A die keeps the weapon it was rolled for, so a foe can Impair what the joiner showed (p186).
+	const fresh = dice.map(({ faces, result, label, weakness, item }) => ({
+		faces,
+		result,
+		label,
+		deniedBy: null,
+		...(typeof item === "string" && item ? { item } : {}),
+		...(weakness ? { weakness: true } : {})
+	}));
+	const pooled = [...attack.dice.map((die) => stamp(die, first)), ...fresh.map((die) => stamp(die, joiner))];
+	const order = pooled.map((_die, index) => index)
+		.sort((a, b) => pooled[b].result - pooled[a].result || pooled[b].faces - pooled[a].faces || a - b);
+	const moved = new Map(order.map((from, to) => [from, to]));
+	const setAside = (Array.isArray(change.setAside) ? change.setAside : [])
+		.filter((entry) => typeof entry?.name === "string" && typeof entry.reason === "string")
+		.map(({ name: item, reason }) => ({ name: item, reason }));
+	const notes = (Array.isArray(change.notes) ? change.notes : [])
+		.filter((entry) => typeof entry?.name === "string" && typeof entry.note === "string")
+		.map(({ name: item, note }) => ({ name: item, note }));
+	return {
+		...attack,
+		dice: order.map((index) => pooled[index]),
+		gambits: attack.gambits.map((gambit) => (gambit.die === null ? gambit : { ...gambit, die: moved.get(gambit.die) })),
+		// What the card says of the whole: ranged if any of it is, a Blast if any of it is. The
+		// Damage itself is weighed by the die that counts (damageAgainst).
+		melee: Boolean(attack.melee && joiner.melee),
+		blast: Boolean(attack.blast || joiner.blast),
+		largeScale: Boolean(attack.largeScale || joiner.largeScale),
+		structureHarm: eitherHarm(attack.structureHarm, joiner.structureHarm),
+		nonLethal: Boolean(attack.nonLethal && joiner.nonLethal),
+		notes: [...(attack.notes ?? []), ...notes],
+		joined: [...(attack.joined ?? []), {
+			actor: change.actor,
+			name,
+			impaired: Boolean(change.impaired),
+			confined: Boolean(change.confined),
+			swarm: Boolean(change.swarm),
+			impairedWeapon: typeof change.impairedWeapon === "string" && change.impairedWeapon ? change.impairedWeapon : null,
+			smite: change.smite && typeof change.smite === "object" ? change.smite : null,
+			smiteMark: Boolean(change.smiteMark),
+			setAside,
+			// Whoever leads a joining Warband from the front (p11).
+			leader: typeof change.leader?.uuid === "string" && typeof change.leader.name === "string" ? { uuid: change.leader.uuid, name: change.leader.name } : null
+		}]
+	};
+}
 
 /**
  * @param {object} [save] The CLA Save Focus cost, as `{by, total, target, passed}`.
@@ -522,15 +795,15 @@ export function hasDeniableDie(attack) {
 
 /**
  * Whether somebody could still Deny one of this Attack's dice (p10): a die is
- * left to discard, the Damage hasn't landed, they aren't the one attacking,
- * they aren't Fatigued, and they haven't already Denied this Attack.
+ * left to discard, the Damage hasn't landed, they aren't one of those
+ * attacking, they aren't Fatigued, and they haven't already Denied this Attack.
  * @param {AttackState} attack
  * @param {{uuid: string, fatigued?: boolean}} combatant
  * @returns {boolean}
  */
 export function canDeny(attack, { uuid, fatigued = false }) {
 	if (!attack || attack.appliedTo.length || fatigued) return false;
-	if (uuid === attack.attacker || hasUsedFeat(attack, "deny", uuid)) return false;
+	if (isAttacker(attack, uuid) || hasUsedFeat(attack, "deny", uuid)) return false;
 	return hasDeniableDie(attack);
 }
 
@@ -539,11 +812,15 @@ export function canDeny(attack, { uuid, fatigued = false }) {
  * change the Attack doesn't allow, such as spending a die that's already gone
  * or changing anything once the Damage is applied.
  *
- * - `{type: "gambit", die, key, strong, bonus}` spends a die of 4+ on a Gambit.
- *   A Dismount carries the d6 it adds as `bonus`.
+ * - `{type: "gambit", die, key, strong, bonus, weapon}` spends a die of 4+ on a Gambit.
+ *   A Dismount carries the d6 it adds as `bonus`, and an Impair the one weapon
+ *   it holds as `weapon: {id, name, actor}`, or none for the foe's whole next Attack.
  * - `{type: "withdraw", die}` takes back the Gambit a die was spent on.
- * - `{type: "focus", key, actor, bonus, save}` performs a Gambit without a die,
+ * - `{type: "focus", key, actor, bonus, save, weapon}` performs a Gambit without a die,
  *   keeping the CLA Save it cost as `save: {by, total, target, passed}`.
+ * - `{type: "join", actor, name, dice, melee, impaired, leader, ...}` pools another
+ *   combatant's dice into the Attack (p8), with what the card says of their share.
+ *   Only before any Deny, Gambit or Focus is declared (canJoin).
  * - `{type: "gambitSave", index, by, total, target, passed}` records the target's VIG Save against one Gambit.
  * - `{type: "deny", die, actor, name}` discards any die.
  * - `{type: "applied", names}` settles the Attack.
@@ -581,7 +858,8 @@ export function changeAttack(attack, change) {
 		case "gambit": {
 			if (!GAMBITS.includes(change.key) || !canFundGambit(attack, change.die)) return null;
 			const strong = STRONG_GAMBITS.includes(change.strong) && canFundStrongGambit(attack, change.die) ? change.strong : null;
-			return { ...attack, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false, ...saveInOf(change) }] };
+			// Declaring one closes the roll to anybody else joining (p8), even if it's taken back.
+			return { ...attack, declared: true, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false, ...saveInOf(change), ...impairedWeaponOf(change) }] };
 		}
 		case "withdraw": {
 			const index = attack.gambits.findIndex((gambit) => gambit.die !== null && gambit.die === change.die);
@@ -589,14 +867,18 @@ export function changeAttack(attack, change) {
 			return { ...attack, gambits: attack.gambits.toSpliced(index, 1) };
 		}
 		case "focus": {
-			// Impaired Attacks can't benefit from Feats (p8).
-			if (attack.impaired || !GAMBITS.includes(change.key) || hasUsedFeat(attack, "focus", change.actor)) return null;
+			// Impaired Attacks can't benefit from Feats (p8), so in a joint Attack it's the one Focusing whose share counts.
+			if (attackerImpaired(attack, change.actor) || !GAMBITS.includes(change.key) || hasUsedFeat(attack, "focus", change.actor)) return null;
 			return {
 				...attack,
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), ...saveInOf(change) }],
+				declared: true,
+				// `payer` is whoever Focused, whose mark it is (p10).
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), payer: change.actor ?? null, ...saveInOf(change), ...impairedWeaponOf(change) }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
 		}
+		case "join":
+			return joinAttack(attack, change);
 		case "gambitSave": {
 			const gambit = attack.gambits[change.index];
 			// Each Gambit is Saved against once, and only when it offers a Save at all.
@@ -609,6 +891,7 @@ export function changeAttack(attack, change) {
 			if (!attack.dice[change.die] || isDieSpent(attack, change.die) || hasUsedFeat(attack, "deny", change.actor)) return null;
 			return {
 				...attack,
+				declared: true,
 				dice: attack.dice.map((die, index) => (index === change.die ? { ...die, deniedBy: change.name } : die)),
 				feats: [...attack.feats, { key: "deny", actor: change.actor }]
 			};

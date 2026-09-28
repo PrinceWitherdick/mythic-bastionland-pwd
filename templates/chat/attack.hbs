@@ -15,10 +15,28 @@
 	<p class="bastionland-card__hint">{{smiteMark}}</p>
 	{{/if}}
 
+	{{!-- Others attacking the same target roll with the attacker, as one Attack (p8). --}}
+	{{#each joined}}
+	<p class="bastionland-card__tagline">{{line}}</p>
+	{{#if smite}}
+	{{> "bastionland.save-result" save=smite.save}}
+	<p class="bastionland-card__outcome">{{smite.outcome}}</p>
+	{{/if}}
+	{{#if smiteMark}}
+	<p class="bastionland-card__hint">{{smiteMark}}</p>
+	{{/if}}
+	{{#if leader}}
+	<p class="bastionland-card__hint">{{leader}}</p>
+	{{/if}}
+	{{#each warnings}}
+	<p class="bastionland-card__warning">{{this}}</p>
+	{{/each}}
+	{{/each}}
+
 	<ol class="bastionland-dice">
 		{{#each dice}}
 		<li>
-			<button type="button" class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}{{#if spent}} is-spent{{/if}}" data-attack-action="gambit" data-die="{{index}}" title="d{{faces}} {{label}}" {{disabled locked}}>
+			<button type="button" class="bastionland-die{{#if isHighest}} is-highest{{/if}}{{#if isGambit}} is-gambit{{/if}}{{#if isStrong}} is-strong{{/if}}{{#if spent}} is-spent{{/if}}{{#if barred}} is-barred{{/if}}" data-attack-action="gambit" data-die="{{index}}" title="d{{faces}} {{label}}{{#if barred}}: {{barred}}{{/if}}"{{#if barred}} data-tooltip="{{barred}}"{{/if}} {{disabled locked}}>
 				<span class="bastionland-die__face" data-faces="{{faces}}" style="--bastionland-die-mask: {{shape}}">
 					<span class="bastionland-die__result">{{result}}</span>
 				</span>
@@ -57,6 +75,7 @@
 		<li class="bastionland-card__gambit{{#if ignored}} is-ignored{{/if}}">
 			<span class="bastionland-card__gambit-effect">{{{effect}}}</span>
 			<span class="bastionland-tag">{{source}}{{#if strong}} · {{strong}}{{/if}}</span>
+			{{#if weapon}}<span class="bastionland-card__hint">{{weapon}}</span>{{/if}}
 			{{#if bonus}}<span class="bastionland-card__hint">{{bonus}}</span>{{/if}}
 			{{#if focus}}<span class="bastionland-card__gambit-save{{#if focus.passed}} is-pass{{else}} is-fail{{/if}}">{{focus.result}}</span>{{/if}}
 			{{#if save.none}}<span class="bastionland-card__hint">{{save.none}}</span>{{/if}}
@@ -78,10 +97,18 @@
 	</ul>
 	{{/if}}
 
+	{{!-- A joint Attack's Damage counts only the dice that can harm its target (p11). --}}
+	{{#if unharmed}}
+	<p class="bastionland-card__warning">{{unharmed}}</p>
+	{{else}}
 	<p class="bastionland-card__damage">
 		<span>{{localize "bastionland.attack.damage"}}</span>
 		<strong>{{damage}}</strong>
 	</p>
+	{{/if}}
+	{{#if barredNote}}
+	<p class="bastionland-card__hint">{{barredNote}}</p>
+	{{/if}}
 	{{#if breakdown}}
 	<p class="bastionland-card__hint">{{breakdown}}</p>
 	{{/if}}
@@ -93,7 +120,7 @@
 	<p class="bastionland-card__warning">{{this}}</p>
 	{{/each}}
 	{{#if impaired}}
-	<p class="bastionland-card__warning">{{#if confined}}{{localize "bastionland.attack.confinedImpaired"}}{{else if swarm}}{{localize "bastionland.attack.swarmImpaired"}}{{else}}{{localize "bastionland.attack.impaired"}}{{/if}}</p>
+	<p class="bastionland-card__warning">{{impairedText}}</p>
 	{{/if}}
 	{{#if blast}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.blast"}}</strong>: {{localize "bastionland.attack.blastHint"}}</p>
@@ -113,9 +140,12 @@
 	{{else}}
 	<div class="bastionland-card__actions">
 		<button type="button" data-attack-action="deny"><i class="fa-solid fa-shield-halved"></i> {{localize "bastionland.feats.deny.name"}}</button>
-		{{#unless impaired}}
+		{{#if focusable}}
 		<button type="button" data-attack-action="focus"><i class="fa-solid fa-eye"></i> {{localize "bastionland.feats.focus.name"}}</button>
-		{{/unless}}
+		{{/if}}
+		{{#if joinable}}
+		<button type="button" data-attack-action="join" data-tooltip="{{localize 'bastionland.attack.joinHint'}}"><i class="fa-solid fa-user-plus"></i> {{localize "bastionland.attack.join"}}</button>
+		{{/if}}
 		{{#unless duel}}
 		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
 		{{/unless}}

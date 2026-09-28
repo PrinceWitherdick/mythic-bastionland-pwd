@@ -377,6 +377,12 @@
 	text-decoration: line-through;
 }
 
+/* In a joint Attack, a die whose share can't harm this card's target (p11): it never counts toward the Damage. */
+.bastionland-die.is-barred .bastionland-die__result {
+	text-decoration: line-through;
+	opacity: 0.6;
+}
+
 .bastionland-die.is-gambit {
 	color: var(--bastionland-ink);
 }

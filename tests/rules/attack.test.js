@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+	atIndividuals,
 	attackDamage,
+	attackerImpaired,
+	attackersOf,
 	buildAttackPool,
 	canDeny,
+	canJoin,
+	damageAgainst,
+	harmBarred,
+	isAttacker,
+	isIndividual,
+	lastingMarkBy,
 	canFundGambit,
 	canFundStrongGambit,
 	changeAttack,
@@ -17,7 +26,6 @@ import {
 	knownWeakness,
 	parseDice,
 	sortDice,
-	summarizeAttack,
 	SAVE_VIRTUES,
 	gambitSaveVirtue,
 	swarmImpairs,
@@ -216,22 +224,6 @@ describe("buildAttackPool", () => {
 	});
 });
 
-describe("summarizeAttack", () => {
-	// p8: the dice show 7, 3, 1 and 5.
-	it("takes the highest die and counts dice able to fund Gambits", () => {
-		expect(summarizeAttack([7, 3, 1, 5])).toEqual({ highest: 7, gambitDice: 2, strongDice: 0 });
-	});
-
-	it("counts Strong Gambit dice only in melee", () => {
-		expect(summarizeAttack([9, 8, 2])).toMatchObject({ strongDice: 2 });
-		expect(summarizeAttack([9, 8, 2], { melee: false })).toMatchObject({ strongDice: 0 });
-	});
-
-	it("handles an empty roll", () => {
-		expect(summarizeAttack([])).toEqual({ highest: 0, gambitDice: 0, strongDice: 0 });
-	});
-});
-
 /** An Attack card's state straight after rolling these faces and results. */
 const rolled = (pairs, extra = {}) => ({
 	dice: sortDice(pairs.map(([faces, result]) => ({ faces, result, label: `d${faces}`, deniedBy: null }))),
@@ -320,7 +312,7 @@ describe("changeAttack", () => {
 
 	it("performs a Focus Gambit without a die, once per combatant and never when Impaired", () => {
 		const focused = changeAttack(rolled([[8, 2]]), { type: "focus", key: "bolster", actor: "Actor.k" });
-		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null, save: null, dismissed: false, focus: null }]);
+		expect(focused.gambits).toEqual([{ key: "bolster", die: null, strong: null, bonus: null, save: null, dismissed: false, focus: null, payer: "Actor.k" }]);
 		expect(attackDamage(focused).damage).toBe(3);
 		expect(changeAttack(focused, { type: "withdraw", die: null })).toBeNull();
 		expect(changeAttack(focused, { type: "focus", key: "move", actor: "Actor.k" })).toBeNull();
@@ -626,5 +618,213 @@ describe("weaknessFaces", () => {
 
 	it("gives nothing when no weakness is used", () => {
 		expect(weaknessFaces([])).toBeNull();
+	});
+});
+
+describe("a Warband against individuals", () => {
+	it("counts one person or beast as an individual, and not a Warband, a swarm or a structure (p11)", () => {
+		expect(isIndividual({})).toBe(true);
+		expect(isIndividual({ mounted: true })).toBe(true);
+		expect(isIndividual({ warband: true })).toBe(false);
+		expect(isIndividual({ swarm: true })).toBe(false);
+		expect(isIndividual({ structure: true })).toBe(false);
+	});
+
+	it("is at individuals only when everybody targeted is one, as Tal and Moss are (p189)", () => {
+		expect(atIndividuals([{}, { mounted: true }])).toBe(true);
+		expect(atIndividuals([{}, { warband: true }])).toBe(false);
+		expect(atIndividuals([{ structure: true }])).toBe(false);
+	});
+
+	it("can't say with nobody targeted", () => {
+		expect(atIndividuals([])).toBeNull();
+	});
+});
+
+describe("Impairing one weapon", () => {
+	const jaw = { id: "jaw", name: "Jaws", actor: "Actor.croc" };
+
+	it("keeps the weapon an Impair names, from a die or from Focus (p186)", () => {
+		const attack = rolled([[8, 6], [6, 5]]);
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "impair", weapon: jaw }).gambits[0].weapon).toEqual(jaw);
+		const focused = changeAttack(attack, { type: "focus", key: "impair", actor: "Actor.a", weapon: { id: "tail", name: " Tail " } });
+		expect(focused.gambits[0].weapon).toEqual({ id: "tail", name: "Tail", actor: null });
+	});
+
+	it("names none for the foe's whole next Attack, or for any other Gambit", () => {
+		const attack = rolled([[8, 6], [6, 5]]);
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "impair" }).gambits[0]).not.toHaveProperty("weapon");
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "impair", weapon: { id: "jaw", name: " " } }).gambits[0]).not.toHaveProperty("weapon");
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "trap", weapon: jaw }).gambits[0]).not.toHaveProperty("weapon");
+	});
+});
+
+describe("a joint Attack", () => {
+	// p185: Moss rolls d8 and d4, showing 2 and 8, and Tal pounces with 2d8, showing 3 and 5.
+	const moss = () => rolled([[8, 2], [4, 8]], { attacker: "Actor.moss", attackerName: "Moss", ignoresArmour: false });
+	const tal = (extra = {}) => ({
+		type: "join",
+		actor: "Actor.tal",
+		name: "Tal",
+		melee: true,
+		dice: [{ faces: 8, result: 5, label: "Hookhammer" }, { faces: 8, result: 3, label: "Hookhammer" }],
+		...extra
+	});
+
+	it("pools the dice highest first, each labelled with who rolled it (p8)", () => {
+		const joint = changeAttack(moss(), tal());
+		expect(joint.dice.map((die) => `${die.by} d${die.faces}:${die.result}`)).toEqual(["Moss d4:8", "Tal d8:5", "Tal d8:3", "Moss d8:2"]);
+		expect(joint.dice[1]).toMatchObject({ actor: "Actor.tal", label: "Hookhammer", deniedBy: null });
+		expect(joint.joined).toEqual([expect.objectContaining({ actor: "Actor.tal", name: "Tal", impaired: false })]);
+		expect(attackersOf(joint)).toEqual(["Actor.moss", "Actor.tal"]);
+	});
+
+	it("keeps the weapon each of the joiner's dice was rolled for, so a foe can Impair it (p186)", () => {
+		const joint = changeAttack(moss(), tal({ dice: [{ faces: 8, result: 5, label: "Hookhammer", item: "hammer" }, { faces: 8, result: 3, label: "Hookhammer", item: "" }] }));
+		expect(joint.dice.filter((die) => die.by === "Tal").map((die) => die.item ?? null)).toEqual(["hammer", null]);
+	});
+
+	it("takes the highest single die as the Damage, and lets another's die Bolster it, as Tal's 5 does (p185)", () => {
+		const joint = changeAttack(moss(), tal());
+		const five = joint.dice.findIndex((die) => die.result === 5);
+		const bolstered = changeAttack(joint, { type: "gambit", die: five, key: "bolster" });
+		expect(attackDamage(bolstered)).toMatchObject({ highest: 8, bolster: 1, damage: 9, faces: 4 });
+		expect(damageAgainst(bolstered).dealer).toBe("Actor.moss");
+	});
+
+	it("counts the joiner's die when it's the highest, and names them as its dealer", () => {
+		const joint = changeAttack(moss(), tal({ dice: [{ faces: 10, result: 9, label: "Axe" }] }));
+		expect(joint.dice.map((die) => die.result)).toEqual([9, 8, 2]);
+		expect(attackDamage(joint)).toMatchObject({ highest: 9, die: 0 });
+		expect(damageAgainst(joint).dealer).toBe("Actor.tal");
+	});
+
+	it("closes to joiners once a Deny, Gambit or Focus is declared, taken back or not (p8)", () => {
+		expect(canJoin(moss())).toBe(true);
+		const gambit = changeAttack(moss(), { type: "gambit", die: 0, key: "bolster" });
+		expect(canJoin(gambit)).toBe(false);
+		expect(changeAttack(gambit, tal())).toBeNull();
+		expect(canJoin(changeAttack(gambit, { type: "withdraw", die: 0 }))).toBe(false);
+		expect(canJoin(changeAttack(moss(), { type: "deny", die: 1, actor: "Actor.boar", name: "Boar" }))).toBe(false);
+		expect(canJoin(changeAttack(moss(), { type: "focus", key: "move", actor: "Actor.moss" }))).toBe(false);
+		// A card from before `declared` was kept shows what was declared on it.
+		expect(canJoin({ ...moss(), gambits: [{ key: "bolster", die: 0 }] })).toBe(false);
+		expect(canJoin({ ...moss(), duel: "Message.d" })).toBe(false);
+		expect(canJoin(changeAttack(moss(), { type: "applied", names: ["Boar"] }))).toBe(false);
+		// Joining itself leaves the roll open to more.
+		expect(canJoin(changeAttack(moss(), tal()))).toBe(true);
+	});
+
+	it("names a joining Warband's leader, who leads from the front (p11)", () => {
+		const joint = changeAttack(moss(), tal({ leader: { uuid: "Actor.aldric", name: "Aldric" } }));
+		expect(joint.joined[0].leader).toEqual({ uuid: "Actor.aldric", name: "Aldric" });
+		expect(changeAttack(moss(), tal()).joined[0].leader).toBeNull();
+	});
+
+	it("takes each combatant once, and nobody into a duel or a settled Attack", () => {
+		const joint = changeAttack(moss(), tal());
+		expect(changeAttack(joint, tal())).toBeNull();
+		expect(changeAttack(moss(), tal({ actor: "Actor.moss" }))).toBeNull();
+		expect(changeAttack(rolled([[8, 6]], { attacker: "Actor.moss", duel: "Message.d" }), tal())).toBeNull();
+		expect(changeAttack(changeAttack(moss(), { type: "applied", names: ["Boar"] }), tal())).toBeNull();
+	});
+
+	it("takes only dice really rolled", () => {
+		expect(changeAttack(moss(), tal({ dice: [] }))).toBeNull();
+		expect(changeAttack(moss(), tal({ dice: [{ faces: 6, result: 7, label: "d6" }] }))).toBeNull();
+		expect(changeAttack(moss(), tal({ dice: [{ faces: 6, result: "4", label: "d6" }] }))).toBeNull();
+	});
+
+	it("lets nobody rolling in it Deny it", () => {
+		const joint = changeAttack(moss(), tal());
+		expect(isAttacker(joint, "Actor.tal")).toBe(true);
+		expect(canDeny(joint, { uuid: "Actor.tal" })).toBe(false);
+		expect(canDeny(joint, { uuid: "Actor.boar" })).toBe(true);
+	});
+
+	it("makes Strong Gambits only from melee dice, and counts as ranged once a ranged share joins", () => {
+		const joint = changeAttack(moss(), tal({ melee: false, dice: [{ faces: 10, result: 9, label: "Crossbow" }] }));
+		expect(joint.melee).toBe(false);
+		expect(canFundStrongGambit(joint, joint.dice.findIndex((die) => die.result === 9))).toBe(false);
+		expect(canFundStrongGambit(joint, joint.dice.findIndex((die) => die.result === 8))).toBe(true);
+	});
+
+	it("weighs cover and Slaying as the die that counts does (p10)", () => {
+		const bowman = tal({ melee: false, nonLethal: true, dice: [{ faces: 10, result: 9, label: "Crossbow" }] });
+		const joint = changeAttack(moss(), bowman);
+		expect(damageAgainst(joint)).toMatchObject({ damage: 9, ranged: true, nonLethal: true, dealer: "Actor.tal" });
+		// Deny the crossbow's 9 and Moss's 8 counts: a melee blow that can Slay.
+		const denied = changeAttack(joint, { type: "deny", die: 0, actor: "Actor.boar", name: "Boar" });
+		expect(damageAgainst(denied)).toMatchObject({ damage: 8, ranged: false, nonLethal: false, dealer: "Actor.moss" });
+	});
+
+	it("counts against a Warband only the dice of shares that can harm it (p11)", () => {
+		const blast = tal({ blast: true, dice: [{ faces: 6, result: 4, label: "Firepot" }] });
+		const joint = changeAttack(moss(), blast);
+		// Moss's 8 can't harm a Warband, so Tal's Blast 4 is the Damage against one.
+		expect(damageAgainst(joint, { warband: true })).toMatchObject({ damage: 4, harm: { warband: true } });
+		expect(damageAgainst(joint)).toMatchObject({ damage: 8 });
+		// Nobody's share harms it: the whole is weighed, and the dialog finds them unharmed.
+		expect(damageAgainst(changeAttack(moss(), tal()), { warband: true })).toMatchObject({ damage: 8, harm: { warband: false } });
+	});
+
+	it("counts against a structure only the dice of shares that can harm it (p11)", () => {
+		const fire = tal({ structureHarm: { siege: false, fire: true, large: false }, dice: [{ faces: 6, result: 3, label: "Torch" }] });
+		const joint = changeAttack(moss(), fire);
+		expect(damageAgainst(joint, { structure: true })).toMatchObject({ damage: 3, harm: { structure: true } });
+		// Stone yields only to siege weapons, which nobody brought.
+		expect(damageAgainst(joint, { structure: true, stone: true })).toMatchObject({ damage: 8, harm: { structure: false } });
+	});
+
+	it("says why a share can't harm a Warband, a structure or a stone wall (p11)", () => {
+		expect(harmBarred({ blast: false, largeScale: false }, { warband: true })).toBe("warband");
+		expect(harmBarred({ blast: true }, { warband: true })).toBeNull();
+		expect(harmBarred({ largeScale: true }, { warband: true })).toBeNull();
+		expect(harmBarred({ structureHarm: null }, { structure: true })).toBe("structure");
+		expect(harmBarred({ structureHarm: { fire: true } }, { structure: true })).toBeNull();
+		expect(harmBarred({ structureHarm: { fire: true } }, { structure: true, stone: true })).toBe("stone");
+		expect(harmBarred({}, {})).toBeNull();
+	});
+
+	it("says when nobody's share can harm the target at all", () => {
+		expect(damageAgainst(changeAttack(moss(), tal()), { warband: true }).unharmed).toBe(true);
+		expect(damageAgainst(changeAttack(moss(), tal({ blast: true })), { warband: true }).unharmed).toBe(false);
+		expect(damageAgainst(moss()).unharmed).toBe(false);
+	});
+
+	it("weighs a lone attacker's card as before", () => {
+		const alone = rolled([[8, 6]], { attacker: "Actor.a", melee: false, blast: true, nonLethal: true, ignoresArmour: true });
+		expect(damageAgainst(alone, { warband: true })).toMatchObject({ damage: 6, ranged: true, nonLethal: true, ignoresArmour: true, harm: { warband: true, structure: false }, dealer: "Actor.a" });
+	});
+
+	it("ignores Armour as the die that counts does", () => {
+		const joint = changeAttack(moss(), tal({ ignoresArmour: true, dice: [{ faces: 10, result: 9, label: "Pick" }] }));
+		expect(damageAgainst(joint).ignoresArmour).toBe(true);
+		const denied = changeAttack(joint, { type: "deny", die: 0, actor: "Actor.boar", name: "Boar" });
+		expect(damageAgainst(denied).ignoresArmour).toBe(false);
+	});
+
+	it("lets an attacker Focus unless their own share was Impaired (p8)", () => {
+		const impaired = changeAttack(rolled([[4, 3]], { attacker: "Actor.moss", impaired: true }), tal({ impaired: true, dice: [{ faces: 4, result: 4, label: "Impaired" }] }));
+		expect(attackerImpaired(impaired, "Actor.tal")).toBe(true);
+		expect(changeAttack(impaired, { type: "focus", key: "bolster", actor: "Actor.tal" })).toBeNull();
+
+		const shared = changeAttack(rolled([[4, 3]], { attacker: "Actor.moss", impaired: true }), tal());
+		expect(changeAttack(shared, { type: "focus", key: "bolster", actor: "Actor.moss" })).toBeNull();
+		expect(changeAttack(shared, { type: "focus", key: "bolster", actor: "Actor.tal" }).gambits).toHaveLength(1);
+	});
+
+	it("never Slays while any share can, and harms what any share harms (p11)", () => {
+		const gentle = rolled([[6, 4]], { attacker: "Actor.a", nonLethal: true, blast: false, structureHarm: { siege: false, fire: false, large: false } });
+		const joint = changeAttack(gentle, tal({ nonLethal: false, blast: true, structureHarm: { siege: false, fire: true, large: false } }));
+		expect(joint.nonLethal).toBe(false);
+		expect(joint.blast).toBe(true);
+		expect(joint.structureHarm).toEqual({ siege: false, fire: true, large: false });
+	});
+
+	it("leaves a lasting mark for whoever Smote for one", () => {
+		expect(lastingMarkBy(moss())).toBeNull();
+		expect(lastingMarkBy({ ...moss(), smiteMark: true })).toBe("Moss");
+		expect(lastingMarkBy(changeAttack(moss(), tal({ smiteMark: true })))).toBe("Tal");
 	});
 });

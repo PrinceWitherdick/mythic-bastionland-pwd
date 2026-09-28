@@ -1,7 +1,7 @@
-import { renderAttackCard } from "../actions/attack.js";
+import { cardTarget, dieLabel, joinAttack, renderAttackCard } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { takeAttack } from "../actions/damage.js";
-import { canDenyAttack, performFeat } from "../actions/feats.js";
+import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
@@ -10,30 +10,42 @@ import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
 	STRONG_GAMBITS,
-	attackDamage,
+	attackerImpaired,
+	attackersOf,
 	canFundGambit,
 	canFundStrongGambit,
+	canJoin,
 	changeAttack,
+	damageAgainst,
 	gambitAllowsSave,
 	gambitSaveVirtue,
 	hasUsedFeat,
-	isDieSpent
+	isAttacker,
+	isDieSpent,
+	parseDice
 } from "../rules/attack.js";
+import { shownWeapons, weaponShown } from "../rules/gambit-marks.js";
+import { damageReach } from "../rules/property-tab.js";
+import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 
 /**
- * Attack cards follow the steps on p8 after the roll: Deny, Gambits, then the
- * Damage applied to the targets. Only a message's author and GMs can update
- * it, so a player who Denies or applies Damage on somebody else's card asks
- * the active GM to record it.
+ * Attack cards follow the steps on p8 after the roll: others attacking the
+ * same target join in, then Deny, Gambits, and the Damage applied to the
+ * targets. Only a message's author and GMs can update it, so a player who
+ * joins, Denies or applies Damage on somebody else's card asks the active GM
+ * to record it.
  */
 
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /** Changes a player may ask the GM to record on a card they don't own. */
-const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater"]);
+const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater", "join", "gambit", "withdraw", "focus"]);
+
+/** The kinds of actor that make Attacks, and so can join one. */
+const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
 
 const attackCard = statefulCard({
 	flag: "attack",
@@ -41,8 +53,23 @@ const attackCard = statefulCard({
 	notices: "attack",
 	change: changeAttack,
 	render: renderAttackCard,
-	queryable: (change) => QUERYABLE_CHANGES.includes(change.type)
+	queryable: (change) => QUERYABLE_CHANGES.includes(change.type),
+	alsoUpdate: joinedRolls
 });
+
+/**
+ * A joiner's rolls, kept on the card's message beside its own so they have a
+ * tooltip too. A message's rolls are stored as JSON, alike in v13 and v14, and
+ * Foundry takes only evaluated ones.
+ * @param {ChatMessage} message
+ * @param {object} change
+ * @returns {{rolls?: string[]}}
+ */
+function joinedRolls(message, change) {
+	const rolls = change?.type === "join" && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
+	if (!rolls.length) return {};
+	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
+}
 
 /**
  * @param {ChatMessage|undefined} message
@@ -86,8 +113,19 @@ function targetActors(attack) {
 }
 
 /**
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {User} [user] Whoever asks; this user when left out.
+ * @returns {boolean} Whether they own one of those making the Attack, whose
+ *   dice, pooled in a joint Attack, any of them may spend on Gambits (p8).
+ */
+function ownsAnAttacker(attack, user = game.user) {
+	return attackersOf(attack).some((uuid) => fromUuidSync(uuid)?.testUserPermission?.(user, "OWNER"));
+}
+
+/**
  * The active GM records a Deny or applied Damage for a player. A Deny must
- * come from an actor the player owns.
+ * come from an actor the player owns, and so must a joiner, a Focus, and
+ * the Gambits spent from the pooled dice of an Attack they roll in.
  * @param {{messageId: string, change: object}} data
  * @param {{user?: User}} context
  * @returns {Promise<boolean>}
@@ -113,7 +151,70 @@ async function onChangeQuery(data, context) {
 		if (!roller?.testUserPermission(user, "OWNER")) return false;
 		change = change.type === "deny" ? { ...change, name: roller.name } : { ...change, by: roller.name };
 	}
+	if (change.type === "join") {
+		const joiner = fromUuidSync(change.actor);
+		// A join that arrives after a Deny or Gambit is refused (p8), and changeAttack says so too.
+		if (!joiner?.testUserPermission(user, "OWNER") || !canJoin(attackOf(message))) return false;
+		change = { ...change, name: joiner.name };
+	}
+	if ((change.type === "gambit" || change.type === "withdraw") && !ownsAnAttacker(attackOf(message), user)) return false;
+	if (change.type === "focus") {
+		const focuser = fromUuidSync(change.actor);
+		if (!isAttacker(attackOf(message), change.actor) || !focuser?.testUserPermission(user, "OWNER")) return false;
+	}
 	return attackCard.commit(message, change);
+}
+
+/**
+ * The Attack cards this user can see, read for the weapons foes have shown.
+ * @returns {import("../rules/attack.js").AttackState[]}
+ */
+function seenAttacks() {
+	return [...(game.messages ?? [])].filter((message) => message.visible !== false).map(attackOf).filter(Boolean);
+}
+
+/**
+ * The weapons an Impair Gambit could name (p10): whatever the foes it's aimed
+ * at fight with, hardest-hitting first, as p186 Impairs the crocodile's jaw.
+ * A player is offered only those a foe has been seen attacking with on a card
+ * they can see. Each foe is named where the card is aimed at several.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{value: string, label: string, weapon: import("../rules/attack.js").ImpairedWeapon}[]}
+ */
+function impairOptions(attack) {
+	const foes = targetActors(attack);
+	// A player names only what the foe has shown, so the list gives nothing away; the GM sees all.
+	const seen = game.user.isGM ? null : seenAttacks();
+	const shownBy = seen && new Map(foes.map((foe) => [foe.uuid, shownWeapons(seen, foe.uuid)]));
+	const shown = (foe, item) => !shownBy || weaponShown(shownBy.get(foe.uuid), item);
+	return foes
+		.flatMap((foe) => [...(foe.items ?? [])]
+			.filter((item) => item.system?.equipped && parseDice(item.system.damage).length && isAtHand(item.system))
+			.filter((item) => shown(foe, item))
+			.map((item) => ({ foe, item })))
+		.sort((a, b) => damageReach(b.item.system.damage) - damageReach(a.item.system.damage))
+		.map(({ foe, item }, index) => ({
+			value: String(index),
+			label: foes.length > 1
+				? t("attack.impairOption", { name: foe.name, weapon: item.name, damage: item.system.damage })
+				: t("attack.impairOptionOne", { weapon: item.name, damage: item.system.damage }),
+			weapon: { id: item.id, name: item.name, actor: foe.uuid }
+		}));
+}
+
+/**
+ * Show the Gambit window's choice of weapon only while Impair is picked.
+ * @param {foundry.applications.api.DialogV2} dialog
+ */
+function watchImpairChoice(dialog) {
+	const form = dialog.element.querySelector("form");
+	const row = form?.querySelector("[data-impair-weapon]");
+	if (!row) return;
+	const update = () => {
+		row.hidden = form.querySelector("[name='gambit']:checked")?.value !== "impair";
+	};
+	form.addEventListener("change", update);
+	update();
 }
 
 /**
@@ -121,9 +222,10 @@ async function onChangeQuery(data, context) {
  * @param {object} options
  * @param {string} options.source   What pays for it, such as "d8 showing 5".
  * @param {boolean} options.strong  Offer the Strong Gambit choices.
- * @returns {Promise<{key: string, strong: string|null}|null>}
+ * @param {ReturnType<typeof impairOptions>} [options.weapons] What an Impair could name.
+ * @returns {Promise<{key: string, strong: string|null, saveIn: string, weapon?: object}|null>}
  */
-async function chooseGambit({ source, strong }) {
+async function chooseGambit({ source, strong, weapons = [] }) {
 	const virtue = (key) => t(`virtues.${key}.abbr`);
 	const data = await inputDialog({
 		title: t("gambits.label"),
@@ -133,12 +235,17 @@ async function chooseGambit({ source, strong }) {
 			source,
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
 			strong: strong ? STRONG_GAMBITS.map((key) => ({ key, label: t(`attack.strong.${key}`) })) : null,
-			saves: SAVE_VIRTUES.map((key, index) => ({ key, label: t("attack.saveIn", { virtue: virtue(key) }), selected: index === 0 }))
+			saves: SAVE_VIRTUES.map((key, index) => ({ key, label: t("attack.saveIn", { virtue: virtue(key) }), selected: index === 0 })),
+			weapons: weapons.map(({ value, label }) => ({ value, label }))
 		},
-		ok: { label: t("attack.declare") }
+		ok: { label: t("attack.declare") },
+		render: (_event, dialog) => watchImpairChoice(dialog)
 	});
 	if (!data || !GAMBITS.includes(data.gambit)) return null;
-	return { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null, saveIn: SAVE_VIRTUES.includes(data.saveIn) ? data.saveIn : SAVE_VIRTUES[0] };
+	const chosen = { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null, saveIn: SAVE_VIRTUES.includes(data.saveIn) ? data.saveIn : SAVE_VIRTUES[0] };
+	// Blank Impairs their whole next Attack, as every Impair did before one could name a weapon.
+	const weapon = data.gambit === "impair" ? weapons.find(({ value }) => value === data.weapon)?.weapon : null;
+	return weapon ? { ...chosen, weapon } : chosen;
 }
 
 /**
@@ -149,9 +256,16 @@ async function chooseGambit({ source, strong }) {
 async function rollDismount(key) {
 	if (key !== "dismount") return null;
 	const roll = await new Roll(`1d${DISMOUNT_FACES}`).evaluate();
-	// The horse goes over, heard at the table (module/actions/attack-fx.js).
-	playDismountFx({ whispered: !chatIsPublic() });
 	return roll.total;
+}
+
+/**
+ * The horse goes over, heard at the table (module/actions/attack-fx.js), once
+ * the card has taken the Dismount.
+ * @param {string} key
+ */
+function showDismount(key) {
+	if (key === "dismount") playDismountFx({ whispered: !chatIsPublic() });
 }
 
 /** Click a die of 4+ to spend it on a Gambit, or a spent one to take the Gambit back. */
@@ -164,29 +278,38 @@ async function onGambit(message, button) {
 	const { faces, result } = attack.dice[die];
 	const choice = await chooseGambit({
 		source: t("attack.dieSource", { faces, result }),
-		strong: canFundStrongGambit(attack, die)
+		strong: canFundStrongGambit(attack, die),
+		weapons: impairOptions(attack)
 	});
-	if (choice) await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) });
+	if (!choice) return;
+	if (await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) })) showDismount(choice.key);
 }
 
 /**
- * The attacker performs a Gambit without a die, then must pass a CLA Save or
- * become Fatigued (p10). The Save is kept on the card beside the Gambit.
+ * An attacker performs a Gambit without a die, then must pass a CLA Save or
+ * become Fatigued (p10). The Save is kept on the card beside the Gambit. In a
+ * joint Attack, any of those making it whom this user owns may Focus, each
+ * once, unless their own share was Impaired (p8).
  */
 async function onFocus(message) {
 	const attack = attackOf(message);
-	const attacker = fromUuidSync(attack.attacker);
-	if (!attacker) return;
-	if (attack.impaired) return warn("attack.impaired");
-	if (featUsedOnAttack(attack, "focus", attacker.uuid)) {
-		return warn("attack.featUsed", { name: attacker.name, feat: t("feats.focus.name") });
+	const owned = attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter((actor) => actor?.isOwner);
+	if (!owned.length) return;
+	const unimpaired = owned.filter((actor) => !attackerImpaired(attack, actor.uuid));
+	if (!unimpaired.length) return warn("attack.impaired");
+	const able = unimpaired.filter((actor) => !featUsedOnAttack(attack, "focus", actor.uuid));
+	if (!able.length) {
+		return warn("attack.featUsed", { name: unimpaired[0].name, feat: t("feats.focus.name") });
 	}
+	const attacker = await chooseActor(able, { title: t("feats.focus.name"), message: t("attack.whoFocuses"), icon: "fa-solid fa-eye" });
+	if (!attacker) return;
 
-	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: false });
+	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: false, weapons: impairOptions(attack) });
 	if (!choice) return;
-	const save = await performFeat(attacker, "focus");
+	// The CLA Save is rolled now, for the card to keep, but Fatigue follows only once the card takes the Focus.
+	const save = await rollFeat(attacker, "focus");
 	if (!save) return;
-	await saveChange(message, {
+	const saved = await saveChange(message, {
 		type: "focus",
 		key: choice.key,
 		saveIn: choice.saveIn,
@@ -194,6 +317,10 @@ async function onFocus(message) {
 		bonus: await rollDismount(choice.key),
 		save: { by: attacker.name, total: save.roll.total, target: save.value, passed: save.passed }
 	});
+	if (!saved) return;
+	await payFeat(attacker, save);
+	await postFeat(attacker, "focus", save);
+	showDismount(choice.key);
 }
 
 /**
@@ -210,7 +337,7 @@ function saveCandidates(attack) {
 
 /**
  * Whoever in a pool could answer an Attack: an actor this user owns, with
- * Virtues to roll with, who isn't the one attacking. Each is offered once,
+ * Virtues to roll with, who isn't one of those attacking. Each is offered once,
  * however many ways they were gathered.
  * @param {(Actor|null|undefined)[]} pool
  * @param {import("../rules/attack.js").AttackState} attack
@@ -220,7 +347,7 @@ function saveCandidates(attack) {
 function answerers(pool, attack, also = () => true) {
 	const seen = new Set();
 	return pool.filter((actor) => {
-		if (!actor?.isOwner || !actor.system?.virtues || actor.uuid === attack.attacker) return false;
+		if (!actor?.isOwner || !actor.system?.virtues || isAttacker(attack, actor.uuid)) return false;
 		if (seen.has(actor.uuid) || !also(actor)) return false;
 		seen.add(actor.uuid);
 		return true;
@@ -228,20 +355,34 @@ function answerers(pool, attack, also = () => true) {
 }
 
 /**
+ * Ask which of several actors acts, or take the only one without asking.
  * @param {Actor[]} actors
- * @param {import("../rules/attack.js").Gambit} gambit
+ * @param {{title: string, message: string, icon?: string}} ask
  * @returns {Promise<Actor|null>}
  */
-async function chooseSaver(actors, gambit) {
+async function chooseActor(actors, { title, message, icon = "fa-solid fa-dice-d20" }) {
 	if (actors.length === 1) return actors[0];
 	const action = await chooseDialog({
-		title: t("attack.gambitSave", { virtue: t(`virtues.${gambitSaveVirtue(gambit)}.abbr`) }),
-		icon: "fa-solid fa-dice-d20",
-		message: t("attack.whoSaves", { gambit: t(`gambits.names.${gambit.key}`), virtue: t(`virtues.${gambitSaveVirtue(gambit)}.abbr`) }),
+		title,
+		icon,
+		message,
 		buttons: actors.map((actor, index) => ({ action: String(index), label: actor.name, default: index === 0 }))
 	});
 	// Closing the window answers with null, which is nobody rather than the first of them.
 	return typeof action === "string" ? actors[Number(action)] ?? null : null;
+}
+
+/**
+ * @param {Actor[]} actors
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @returns {Promise<Actor|null>}
+ */
+function chooseSaver(actors, gambit) {
+	const virtue = t(`virtues.${gambitSaveVirtue(gambit)}.abbr`);
+	return chooseActor(actors, {
+		title: t("attack.gambitSave", { virtue }),
+		message: t("attack.whoSaves", { gambit: t(`gambits.names.${gambit.key}`), virtue })
+	});
 }
 
 /**
@@ -309,11 +450,12 @@ async function onDeny(message) {
 	if (!deniers.length) return warn(pool.length ? "attack.cantDeny" : "attack.noDenier");
 
 	const dice = attack.dice
-		.map((die, index) => ({ index, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: die.label }) }))
+		.map((die, index) => ({ index, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: dieLabel(die) }) }))
 		.filter(({ index }) => !isDieSpent(attack, index));
 	if (!dice.length) return;
-	// A Dismount's d6 can count instead of any die, and can't be Denied, so offer the highest die left.
-	const highest = attackDamage(attack).die
+	// A Dismount's d6 can count instead of any die, and can't be Denied, so offer the highest die left,
+	// of those that can harm the card's target in a joint Attack (p11).
+	const highest = damageAgainst(attack, cardTarget(attack)).die
 		?? dice.reduce((best, entry) => (attack.dice[entry.index].result > attack.dice[best.index].result ? entry : best)).index;
 
 	const data = await inputDialog({
@@ -336,8 +478,11 @@ async function onDeny(message) {
 	if (featUsedOnAttack(attack, "deny", denier.uuid)) {
 		return warn("attack.featUsed", { name: denier.name, feat: t("feats.deny.name") });
 	}
-	const save = await performFeat(denier, "deny");
-	if (save) await saveChange(message, { type: "deny", die, actor: denier.uuid, name: denier.name });
+	// Fatigue follows the SPI Save only once the card takes the Deny.
+	const save = await rollFeat(denier, "deny");
+	if (!save || !(await saveChange(message, { type: "deny", die, actor: denier.uuid, name: denier.name }))) return;
+	await payFeat(denier, save);
+	await postFeat(denier, "deny", save);
 }
 
 /**
@@ -465,12 +610,66 @@ async function onGreater(message, button) {
 	if (await saveChange(message, { type: "greater", index, text, actor: chosen.actor.uuid })) await carryOut();
 }
 
-const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, greater: onGreater });
+/**
+ * Who this user could add to an Attack card (p8): the actors of their selected
+ * Tokens and, for a player, their own character and every Knight they own. A
+ * GM owns everybody, so only their selected Tokens are offered. Nobody already
+ * rolling in it, or struck by it, joins it.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {Actor[]}
+ */
+function joinCandidates(attack) {
+	const struck = new Set(targetActors(attack).map((actor) => actor.uuid));
+	const pool = [
+		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
+		...(game.user.isGM ? [] : [game.user.character, ...(game.actors?.filter((actor) => actor.type === "knight") ?? [])])
+	];
+	const seen = new Set();
+	return pool.filter((actor) => {
+		if (!actor?.isOwner || !ATTACKER_TYPES.includes(actor.type) || seen.has(actor.uuid)) return false;
+		seen.add(actor.uuid);
+		return !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid);
+	});
+}
+
+/**
+ * Show Join this Attack to a player only while they have somebody to join it
+ * with. A GM may join anybody, once their Token is selected, so it stays for them.
+ * @param {HTMLElement} button
+ * @param {import("../rules/attack.js").AttackState} attack
+ */
+function refreshJoin(button, attack) {
+	button.hidden = !canJoin(attack) || (!game.user.isGM && !joinCandidates(attack).length);
+}
+
+/**
+ * Another combatant rolls into this Attack, since everybody attacking the same
+ * target rolls at the same time (p8): their own Attack dialog, aimed at the
+ * card's targets, and their dice pooled on the card. Once a Deny, Gambit or
+ * Focus is declared the roll is over, so it's too late to join.
+ */
+async function onJoin(message) {
+	const attack = attackOf(message);
+	if (!canJoin(attack)) return warn("attack.joinClosed");
+	const candidates = joinCandidates(attack);
+	if (!candidates.length) return warn("attack.noJoiner");
+	const joiner = await chooseActor(candidates, { title: t("attack.join"), message: t("attack.whoJoins"), icon: "fa-solid fa-user-plus" });
+	if (!joiner) return;
+	const joined = await joinAttack(joiner, attack);
+	if (!joined) return;
+	// Somebody may have declared a Deny or Gambit while the dialog stood open.
+	if (!canJoin(attackOf(message))) return warn("attack.joinClosed");
+	// Their Smite is paid for, and anything thrown used up, only once the card takes them.
+	if (await saveChange(message, joined.change)) await joined.settle();
+}
+
+const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, greater: onGreater, join: onJoin });
 
 /**
  * Wire up an Attack card's buttons as it renders in the chat log or a popout.
- * Gambits and Focus belong to whoever rolled the Attack. Anyone may try to
- * Deny, and Apply Damage shows for those who own a target.
+ * Gambits and Focus belong to whoever rolled the Attack, or rolled into it.
+ * Anyone may try to Deny, Join shows for those with somebody to join it with,
+ * and Apply Damage shows for those who own a target.
  * @param {ChatMessage} message
  * @param {HTMLElement} html
  */
@@ -480,19 +679,26 @@ function activateAttackCard(message, html) {
 	if (!attack || !card) return;
 
 	let denyButton = null;
+	let joinButton = null;
+	const attacking = message.isOwner || ownsAnAttacker(attack);
 	for (const button of card.querySelectorAll("[data-attack-action]")) {
 		const { attackAction } = button.dataset;
-		if (["gambit", "focus"].includes(attackAction) && !message.isOwner) button.disabled = true;
+		if (["gambit", "focus"].includes(attackAction) && !attacking) button.disabled = true;
 		if (attackAction === "deny") denyButton = button;
+		if (attackAction === "join") joinButton = button;
 		if (attackAction === "apply" || attackAction === "greater") {
 			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
 		}
 	}
-	if (denyButton) {
-		refreshDeny(denyButton, attack);
+	if (denyButton) refreshDeny(denyButton, attack);
+	if (joinButton) refreshJoin(joinButton, attack);
+	if (denyButton || joinButton) {
 		// Which Tokens are selected, and who is Fatigued, both change after the card is
-		// drawn, so the button is weighed again as the pointer reaches the card.
-		card.addEventListener("pointerenter", () => refreshDeny(denyButton, attack));
+		// drawn, so the buttons are weighed again as the pointer reaches the card.
+		card.addEventListener("pointerenter", () => {
+			if (denyButton) refreshDeny(denyButton, attack);
+			if (joinButton) refreshJoin(joinButton, attack);
+		});
 	}
 
 	onCardClick(card, "[data-attack-action]", (button) => HANDLERS[button.dataset.attackAction]?.(message, button));

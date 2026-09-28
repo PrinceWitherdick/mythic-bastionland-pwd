@@ -16,7 +16,7 @@ import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm
 import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
 import { DIRECTIONS } from "../module/rules/realm-geometry.js";
-import { ATTACK_REFUSALS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
+import { ATTACK_REFUSALS, HARM_BARS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
 import { DRIFT_SIDES, LUCK_ODDS, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { TIME_STEPS } from "../module/rules/session-end.js";
 import { SPARK_PAGES } from "../module/rules/spark-tables.js";
@@ -107,6 +107,7 @@ describe("localization", () => {
 		...STRONG_GAMBITS.map((key) => `attack.strong.${key}`),
 		...SET_ASIDE_REASONS.map((key) => `attack.setAside.${key}`),
 		...ATTACK_REFUSALS.map((key) => `attack.refusals.${key}`),
+		...HARM_BARS.map((key) => `attack.barred.${key}`),
 		...MORALE_TRIGGERS.map((key) => `morale.triggers.${key}`),
 		...partsOf("duel.kinds", DUEL_KINDS, ["label", "hint"]),
 		...partsOf("morale.group.orders", GROUP_ORDER, ["label", "hint"]),

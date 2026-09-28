@@ -12,6 +12,20 @@
 		<p class="hint">{{localize "bastionland.gambits.hint"}}</p>
 	</fieldset>
 
+	{{!-- An Impair holds one weapon, as the crocodile's jaw (p186), or the foe's whole next Attack. Shown while Impair is picked. --}}
+	<div class="form-group" data-impair-weapon hidden>
+		<label for="bastionland-gambit-weapon">{{localize "bastionland.attack.impairWhich"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-gambit-weapon" name="weapon">
+				{{#each weapons}}
+				<option value="{{value}}">{{label}}</option>
+				{{/each}}
+				<option value="">{{localize "bastionland.attack.impairWhole"}}</option>
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.attack.impairWhichHint"}}</p>
+	</div>
+
 	<div class="form-group">
 		<label for="bastionland-gambit-save">{{localize "bastionland.attack.saveInLabel"}}</label>
 		<div class="form-fields">

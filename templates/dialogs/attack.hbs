@@ -105,7 +105,8 @@
 	</div>
 
 	{{#if warband}}
-	<label class="bastionland-check">
+	{{!-- Ticked when everybody targeted is an individual, rather than a Warband, a swarm or a structure (p11). --}}
+	<label class="bastionland-check"{{#if againstIndividualsTip}} data-tooltip="{{againstIndividualsTip}}"{{/if}}>
 		<input type="checkbox" name="againstIndividuals" {{checked againstIndividuals}}>
 		<span class="bastionland-check__label">{{localize "bastionland.attack.againstIndividuals"}}</span>
 	</label>

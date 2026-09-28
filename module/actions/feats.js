@@ -12,6 +12,20 @@ import { evaluateSave, saveContext } from "./saves.js";
  * @returns {Promise<import("./saves.js").SaveResult|null>} Null if the Feat could not be used.
  */
 export async function resolveFeat(actor, key) {
+	const save = await rollFeat(actor, key);
+	if (save) await payFeat(actor, save);
+	return save;
+}
+
+/**
+ * Make a Feat's Save without paying for it yet, for a Feat that only counts
+ * once a card has taken it: refuse while Fatigued, otherwise roll the Save.
+ * Pay with payFeat once it counts.
+ * @param {Actor} actor
+ * @param {string} key "smite", "focus" or "deny".
+ * @returns {Promise<import("./saves.js").SaveResult|null>} Null if the Feat could not be used.
+ */
+export async function rollFeat(actor, key) {
 	const feat = FEATS.find((candidate) => candidate.key === key);
 	if (!feat) return null;
 
@@ -26,9 +40,16 @@ export async function resolveFeat(actor, key) {
 		return null;
 	}
 
-	const save = await evaluateSave(actor, feat.virtue);
+	return evaluateSave(actor, feat.virtue);
+}
+
+/**
+ * Pay for a Feat whose Save was rolled: Fatigued on a failure (p10).
+ * @param {Actor} actor
+ * @param {import("./saves.js").SaveResult} save
+ */
+export async function payFeat(actor, save) {
 	if (!save.passed) await actor.update({ "system.fatigued": true }, causedBy("feat"));
-	return save;
 }
 
 /**
@@ -79,8 +100,18 @@ export function featContext(key, save) {
 export async function performFeat(actor, key) {
 	const save = await resolveFeat(actor, key);
 	if (!save) return null;
-	await postCard(actor, "feat", { feat: featContext(key, save) }, { rolls: [save.roll] });
+	await postFeat(actor, key, save);
 	return save;
+}
+
+/**
+ * Post a Feat and the Save it cost to chat.
+ * @param {Actor} actor
+ * @param {string} key
+ * @param {import("./saves.js").SaveResult} save
+ */
+export function postFeat(actor, key, save) {
+	return postCard(actor, "feat", { feat: featContext(key, save) }, { rolls: [save.roll] });
 }
 
 /**

@@ -2,7 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
-import { attackDamage, dismountLanded } from "../rules/attack.js";
+import { damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
 import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
 import { isDown, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
@@ -14,7 +14,6 @@ import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
-import { harmsStructure } from "../rules/structures.js";
 import { escapeHTML } from "../rules/text.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
@@ -421,19 +420,22 @@ function damageCard(result, armour, before, outcomes, morale) {
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeAttack(actor, attack, { scars = true, except = [] } = {}) {
-	const { damage, faces } = attackDamage(attack);
+	// Only Blast or large-scale Attacks harm a Warband, and only fire, siege weapons or large
+	// creatures a structure, or siege weapons stone (p11). In a joint Attack only the dice of
+	// shares that can harm them count, and cover, Armour and Slaying follow the die that does (p8).
+	const blow = damageAgainst(attack, harmTargetOf(actor.system));
 	const result = await takeDamage(actor, {
-		damage,
-		ignoreArmour: attack.ignoresArmour,
-		ranged: !attack.melee,
-		nonLethal: Boolean(attack.nonLethal),
+		damage: blow.damage,
+		ignoreArmour: blow.ignoresArmour,
+		ranged: blow.ranged,
+		nonLethal: blow.nonLethal,
 		except,
-		// Only Blast or large-scale Attacks harm a Warband, and only fire, siege
-		// weapons or large creatures a structure, or siege weapons stone (p11).
-		harm: { warband: attack.blast || attack.largeScale, structure: harmsStructure(attack.structureHarm, Boolean(actor.system.stone)) }
+		harm: blow.harm
 	});
-	if (scars && result?.outcome === "scar") await rollScar(actor, { faces, by: attack.attacker });
-	if (attack.smiteMark && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, attack);
+	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
+	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });
+	const marker = lastingMarkBy(attack);
+	if (marker !== null && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
 	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });
 	return result;
@@ -444,10 +446,10 @@ export async function takeAttack(actor, attack, { scars = true, except = [] } = 
  * dagger through the eye, leaves it once the blow Wounds (p187). The card says
  * so and the target's notes keep it, for the table to describe.
  * @param {Actor} actor
- * @param {import("../rules/attack.js").AttackState} attack
+ * @param {string} attacker Who Smote for it, from lastingMarkBy.
  */
-async function leaveLastingMark(actor, attack) {
-	const text = t("damage.lastingMark", { name: actor.name, attacker: attack.attackerName });
+async function leaveLastingMark(actor, attacker) {
+	const text = t("damage.lastingMark", { name: actor.name, attacker });
 	if (typeof actor.system.notes === "string" && actor.isOwner) await actor.update({ "system.notes": `${actor.system.notes}<p>${escapeHTML(text)}</p>` });
 	await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text });
 }

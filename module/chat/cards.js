@@ -140,8 +140,10 @@ export function registerCardButtons({ selector, gmOnly = false, handler }) {
  * @param {(state: State, change: object) => State|null} options.change Null if the card no longer allows the change.
  * @param {(state: State) => Promise<string>} options.render The card's HTML.
  * @param {(change: object) => boolean} [options.queryable] Whether a user may ask the GM for this change.
+ * @param {(message: ChatMessage, change: object) => object} [options.alsoUpdate] More of the
+ *   message a change updates, such as the rolls another combatant adds to an Attack card.
  */
-export function statefulCard({ flag, query, notices, change, render, queryable = () => true }) {
+export function statefulCard({ flag, query, notices, change, render, queryable = () => true, alsoUpdate = () => ({}) }) {
 	/**
 	 * @param {ChatMessage|undefined} message
 	 * @returns {State|null}
@@ -156,7 +158,7 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 	async function commit(message, delta) {
 		const state = change(stateOf(message), delta);
 		if (!state) return false;
-		await message.update({ content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
+		await message.update({ ...alsoUpdate(message, delta), content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
 		return true;
 	}
 
