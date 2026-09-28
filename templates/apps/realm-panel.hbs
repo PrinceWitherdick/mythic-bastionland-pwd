@@ -90,6 +90,12 @@
 			<input type="checkbox" name="seat" {{checked holding.seat}}>
 			<span class="bastionland-check__label">{{localize "bastionland.realm.key.seat"}}</span>
 		</label>
+		{{#if holding.seat}}
+		<label class="bastionland-check" data-tooltip="{{localize "bastionland.realm.panel.disputedHint"}}">
+			<input type="checkbox" name="disputed" {{checked holding.disputed}}>
+			<span class="bastionland-check__label">{{localize "bastionland.realm.panel.disputed"}}</span>
+		</label>
+		{{/if}}
 	</fieldset>
 	{{/if}}
 

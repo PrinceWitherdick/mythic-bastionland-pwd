@@ -15,6 +15,8 @@ import {
 	TERRAIN,
 	barrierCount,
 	featureAt,
+	realmSeats,
+	seatsInOrder,
 	terrainAt,
 	validateRealm
 } from "../rules/realm.js";
@@ -84,10 +86,16 @@ const tallyLine = (text, count, asked) => {
  * @returns {{text: string, met: boolean}}
  */
 function seatLine(realm) {
-	const seat = realm.holdings.find((holding) => holding.seat);
+	const seats = realmSeats(realm);
+	const where = seats.map((seat) => t("realm.hex", seat.hex)).join(", ");
+	if (seats.length > 1) {
+		// Two Holdings claiming the Seat (p202), or more than the rules allow.
+		const met = seatsInOrder(realm);
+		return { text: t(met ? "realm.panel.seatDisputed" : "realm.panel.seatMany", { hexes: where }), met, over: !met };
+	}
 	return {
-		text: seat ? t("realm.panel.seatAt", { hex: t("realm.hex", seat.hex) }) : t("realm.panel.seatNone"),
-		met: Boolean(seat)
+		text: seats.length ? t("realm.panel.seatAt", { hex: where }) : t("realm.panel.seatNone"),
+		met: seats.length === 1
 	};
 }
 
@@ -343,7 +351,9 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			holding: here.holding && {
 				styles: HOLDING_STYLES.map((style) => option(style, t(`realm.holdings.${style}`), style === here.holding.style)),
 				name: here.holding.name,
-				seat: here.holding.seat
+				seat: here.holding.seat,
+				// Another Holding may claim the Seat too (p202).
+				disputed: Boolean(here.holding.disputed)
 			},
 			myth,
 			landmark,
@@ -445,6 +455,8 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 					return placeFeature(realm, g, hex, value === "none" ? null : { kind: value });
 				case "seat":
 					return editFeature(realm, g, hex, { seat: Boolean(value) });
+				case "disputed":
+					return editFeature(realm, g, hex, { disputed: Boolean(value) });
 				case "number":
 				case "d6":
 				case "d12":

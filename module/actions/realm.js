@@ -972,13 +972,13 @@ export async function finishRealmDrawing(scene) {
  * @param {import("../rules/realm-drawing.js").DrawingCount} entry
  * @returns {string} How far one part of a Realm's drawing has come, in words.
  */
-export function drawingCountLabel({ key, count, target, rivers = 0 }) {
+export function drawingCountLabel({ key, count, target, rivers = 0, disputed = false }) {
 	const base = `realmDrawing.tally.${key}`;
 	if (LANDMARK_TYPES.includes(key)) {
 		return t("realmDrawing.tally.landmark", { type: t(`realmDrawing.sections.landmarks.lines.${key}.label`), count, min: LANDMARKS_PER_TYPE.min, max: LANDMARKS_PER_TYPE.max });
 	}
 	if (key === "river") return !rivers ? t(`${base}None`) : t(rivers > 1 ? `${base}s` : base, { count, rivers });
-	if (key === "seat") return t(count === 0 ? `${base}None` : count === 1 ? base : `${base}Many`, { count });
+	if (key === "seat") return t(count === 0 ? `${base}None` : count === 1 ? base : disputed ? `${base}Disputed` : `${base}Many`, { count });
 	return t(base, { count, target });
 }
 

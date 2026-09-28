@@ -62,6 +62,56 @@ describe("placeFeature", () => {
 		expect(realm.holdings.filter((holding) => holding.seat).map((holding) => holding.hex)).toEqual([hex(10, 3)]);
 	});
 
+	describe("a disputed Seat (p202)", () => {
+		const seats = (realm) => realm.holdings.filter((holding) => holding.seat).map(({ hex: at, disputed }) => ({ hex: at, disputed: Boolean(disputed) }));
+
+		it("keeps both crowns once the first Seat is marked disputed, and marks the second too", () => {
+			const marked = editFeature(sampleRealm(), g, hex(2, 2), { disputed: true });
+			expect(featureAt(marked, hex(2, 2)).holding).toEqual({ id: "h1", hex: hex(2, 2), style: "castle", seat: true, name: "Greyhold", disputed: true });
+			const rival = placeFeature(marked, g, hex(10, 3), { kind: "holding", style: "town", seat: true });
+			expect(seats(rival)).toEqual([{ hex: hex(2, 2), disputed: true }, { hex: hex(10, 3), disputed: true }]);
+			expect(validateRealm(rival, g).filter((problem) => problem.reason === "seat")).toEqual([]);
+		});
+
+		it("keeps both crowns when the new Seat comes marked disputed", () => {
+			const rival = placeFeature(sampleRealm(), g, hex(10, 3), { kind: "holding", style: "town", seat: true, disputed: true });
+			expect(seats(rival)).toEqual([{ hex: hex(2, 2), disputed: true }, { hex: hex(10, 3), disputed: true }]);
+		});
+
+		it("keeps both crowns, unmarked, while the rules for setup are ignored", () => {
+			const realm = { ...sampleRealm(), setup: { ignoreRules: true } };
+			const rival = placeFeature(realm, g, hex(10, 3), { kind: "holding", style: "town", seat: true });
+			expect(seats(rival)).toEqual([{ hex: hex(2, 2), disputed: false }, { hex: hex(10, 3), disputed: false }]);
+			expect(validateRealm(rival, g).filter((problem) => problem.reason === "seat")).toEqual([]);
+		});
+
+		it("settles the dispute in a Seat's favour when its mark comes off", () => {
+			const marked = editFeature(sampleRealm(), g, hex(2, 2), { disputed: true });
+			const rival = placeFeature(marked, g, hex(10, 3), { kind: "holding", style: "town", seat: true });
+			const settled = editFeature(rival, g, hex(10, 3), { disputed: false });
+			expect(seats(settled)).toEqual([{ hex: hex(10, 3), disputed: false }]);
+			expect(featureAt(settled, hex(2, 2)).holding).toEqual({ id: "h1", hex: hex(2, 2), style: "castle", seat: false, name: "Greyhold" });
+		});
+
+		it("settles the dispute once the rival Seat loses its crown, or its hex is cleared", () => {
+			const marked = editFeature(sampleRealm(), g, hex(2, 2), { disputed: true });
+			const rival = placeFeature(marked, g, hex(10, 3), { kind: "holding", style: "town", seat: true });
+			expect(seats(editFeature(rival, g, hex(10, 3), { seat: false }))).toEqual([{ hex: hex(2, 2), disputed: false }]);
+			const cleared = placeFeature(rival, g, hex(10, 3), null);
+			expect(seats(cleared)).toEqual([{ hex: hex(2, 2), disputed: false }]);
+			// A new Seat now takes the crown, as it would from any lone Seat.
+			expect(seats(placeFeature(cleared, g, hex(10, 3), { kind: "holding", style: "town", seat: true }))).toEqual([{ hex: hex(10, 3), disputed: false }]);
+		});
+
+		it("keeps the mark through other edits, and drops it with the crown", () => {
+			const marked = editFeature(sampleRealm(), g, hex(2, 2), { disputed: true });
+			expect(featureAt(editFeature(marked, g, hex(2, 2), { name: "Stillwatch" }), hex(2, 2)).holding).toMatchObject({ seat: true, disputed: true });
+			expect(featureAt(placeFeature(marked, g, hex(2, 2), { kind: "holding", style: "tower", seat: true }), hex(2, 2)).holding).toMatchObject({ disputed: true });
+			expect(featureAt(editFeature(marked, g, hex(2, 2), { seat: false }), hex(2, 2)).holding).not.toHaveProperty("disputed");
+			expect(featureAt(editFeature(sampleRealm(), g, hex(2, 2), { seat: false, disputed: true }), hex(2, 2)).holding).not.toHaveProperty("disputed");
+		});
+	});
+
 	it("gives a new Myth the first free number, and moves a Myth that takes its number", () => {
 		const realm = sampleRealm();
 		const added = placeFeature(realm, g, hex(4, 10), { kind: "myth" });

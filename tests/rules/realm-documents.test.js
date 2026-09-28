@@ -335,6 +335,34 @@ describe("planRealmSync", () => {
 		}
 	});
 
+	it("hangs a crown over each of two Holdings disputing the Seat, and reads the dispute back without rewriting it (p202)", () => {
+		const { snapshot } = onScene();
+		const { realm } = realmFromDocuments(snapshot, g);
+		const crown = snapshot.tiles.find((tile) => flagOf(tile).kind === "seat");
+		const [first, second] = realm.holdings.filter((holding) => !holding.seat);
+		realm.holdings.forEach((holding) => {
+			if (holding.seat || holding === first) Object.assign(holding, { seat: true, disputed: true });
+		});
+		// The crown already hanging is kept where its Seat still stands, and a second one made.
+		const plan = planRealmSync(realm, g, textures, snapshot);
+		expect(plan.Tile.delete).toEqual([]);
+		expect(plan.Tile.update.map(({ _id }) => _id)).not.toContain(crown._id);
+		expect(plan.Tile.create.filter((tile) => flagOf(tile).kind === "seat").map((tile) => hexKey(hexAt(g, tile)))).toEqual([hexKey(first.hex)]);
+
+		const disputed = realmSceneData({ name: "Disputed", realm, geometry: g, textures, units: "Hex" });
+		const scene = { flags: disputed.flags, tiles: disputed.tiles.map((tile, index) => ({ _id: `tile${index}`, ...tile })), drawings: [] };
+		const read = realmFromDocuments(scene, g).realm;
+		expect(read.holdings.filter((holding) => holding.seat).map((holding) => holding.disputed)).toEqual([true, true]);
+		expect(read.holdings.find((holding) => hexKey(holding.hex) === hexKey(second.hex))).not.toHaveProperty("disputed");
+		expect(planChanges(planRealmSync(read, g, textures, scene))).toBe(false);
+
+		// Settled, the losing Seat's crown comes down.
+		read.holdings.find((holding) => hexKey(holding.hex) === hexKey(first.hex)).seat = false;
+		const settled = planRealmSync(read, g, textures, scene);
+		const fallen = scene.tiles.find((tile) => flagOf(tile).kind === "seat" && hexKey(hexAt(g, tile)) === hexKey(first.hex));
+		expect(settled.Tile.delete).toEqual([fallen._id]);
+	});
+
 	it("creates the pieces of a Realm that has none yet", () => {
 		const realm = generateRealm({ seed: "fresh", geometry: g });
 		const plan = planRealmSync(realm, g, textures, { tiles: [], drawings: [] });

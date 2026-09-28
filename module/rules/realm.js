@@ -87,7 +87,8 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {number[]} terrain   One entry per hex in `hexIndex` order: 1-12, or 0 where unset.
  * @property {Hex[][]} rivers      Each from one end to the other, each hex beside the one before. One that starts or ends on a
  *   hex of another joins it there. The book makes no one of them the navigable one.
- * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string}[]} holdings
+ * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string, disputed?: true}[]} holdings
+ *   `disputed` marks a Seat whose claim another Holding disputes (p202), so two may wear the crown.
  * @property {{id: string|null, hex: Hex, number: number, d6: number, d12: number, omen: number, revealed: boolean}[]} myths
  * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
  *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
@@ -123,6 +124,28 @@ export function emptyRealm(g, seed = null) {
  * @returns {number} 1-12, or 0 off the Realm or where unset.
  */
 export const terrainAt = (realm, g, hex) => (inRealm(g, hex) ? realm.terrain[hexIndex(g, hex)] ?? 0 : 0);
+
+/**
+ * The Holdings wearing the crown. A Realm has one Seat of Power (p14), but
+ * two Holdings can both claim it, as p202's island has them do.
+ * @param {Realm|null} realm
+ * @returns {Realm["holdings"]} In the order they were placed, so the first is
+ *   the one anything wanting a single Seat takes.
+ */
+export const realmSeats = (realm) => (realm?.holdings ?? []).filter((holding) => holding.seat);
+
+/**
+ * Whether a Realm's Seats of Power are as they ought to be: one, or several
+ * where the claim is disputed or the rules for setup are set aside.
+ * @param {Realm} realm
+ * @returns {boolean} True for a Realm with no Holdings at all, which has nothing to crown.
+ */
+export function seatsInOrder(realm) {
+	const seats = realmSeats(realm);
+	if (!realm.holdings.length || seats.length === 1) return true;
+	if (!seats.length) return false;
+	return Boolean(realm.setup?.ignoreRules) || seats.every((holding) => holding.disputed);
+}
 
 /**
  * @param {Realm} realm
@@ -215,8 +238,8 @@ export function validateRealm(realm, g) {
 		place("holding", holding.hex);
 		if (!HOLDING_STYLES.includes(holding.style)) report("holding", "style", hexKey(holding.hex));
 	}
-	const seats = realm.holdings.filter((holding) => holding.seat).length;
-	if (realm.holdings.length && seats !== 1) report("holding", "seat", seats);
+	// Two Holdings may both claim the Seat where the claim is disputed (p202).
+	if (!seatsInOrder(realm)) report("holding", "seat", realmSeats(realm).length);
 
 	const numbers = new Set();
 	for (const myth of realm.myths) {

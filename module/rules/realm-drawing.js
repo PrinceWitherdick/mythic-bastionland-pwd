@@ -4,7 +4,7 @@
  * each step. Wording lives in the language file under
  * `bastionland.realmDrawing`. Pure, so it can be tested without Foundry.
  */
-import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount } from "./realm.js";
+import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
 import { hexKey } from "./realm-geometry.js";
 
 /** The Scene flag that marks a Realm Scene still being drawn by hand. */
@@ -185,6 +185,7 @@ export function sheetDrawingGroups(text) {
  * @property {number|null} target What the book asks for, or null where it gives no number.
  * @property {boolean} done
  * @property {number} [rivers] For the river step: how many rivers there are.
+ * @property {boolean} [disputed] For the Seat: more than one Holding claims it, as a disputed Seat may (p202).
  */
 
 /**
@@ -196,7 +197,12 @@ export function drawingTally(realm) {
 	const count = (key, value, target, done = value >= target) => ({ key, count: value, target, done });
 	const hexes = realm.cols * realm.rows;
 	const painted = realm.terrain.filter((value) => value > 0).length;
-	const seats = realm.holdings.filter((holding) => holding.seat).length;
+	const crowned = realmSeats(realm);
+	const seats = crowned.length;
+	// Two Holdings may both claim the Seat where it's disputed (p202), or where the rules for setup
+	// are set aside, but only a Seat marked so is said to be disputed.
+	const several = seats > 1 && seatsInOrder(realm);
+	const disputed = seats > 1 && crowned.every((holding) => holding.disputed);
 	const rivers = realm.rivers.filter((river) => river.length > 1);
 	const wet = new Set(rivers.flat().map(hexKey)).size;
 	return {
@@ -204,7 +210,7 @@ export function drawingTally(realm) {
 		barriers: [count("barriers", realm.barriers.length, barrierCount(realm))],
 		// The book gives rivers no length or number; one running through more than a single hex is drawn.
 		river: [{ ...count("river", wet, null, rivers.length > 0), rivers: rivers.length }],
-		holdings: [count("holdings", realm.holdings.length, HOLDING_COUNT), count("seat", seats, 1, seats === 1)],
+		holdings: [count("holdings", realm.holdings.length, HOLDING_COUNT), { ...count("seat", seats, 1, seats === 1 || several), ...(disputed ? { disputed } : {}) }],
 		myths: [count("myths", realm.myths.length, MYTH_COUNT)],
 		landmarks: LANDMARK_TYPES.map((type) => count(type, realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE.min))
 	};

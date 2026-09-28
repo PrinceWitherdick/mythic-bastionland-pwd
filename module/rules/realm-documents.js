@@ -319,13 +319,20 @@ export function realmDocuments(realm, g, textures) {
 			match: holding.id ? `id:${holding.id}` : `new:holding:${hexKey(holding.hex)}`,
 			data: icon("holding", textures.holding[holding.style] ?? textures.holding.castle, holding.hex, {
 				name: holding.name ?? "",
-				flag: { kind: "holding", style: holding.style, seat: Boolean(holding.seat), name: holding.name ?? "" }
+				flag: {
+					kind: "holding",
+					style: holding.style,
+					seat: Boolean(holding.seat),
+					name: holding.name ?? "",
+					...(holding.seat && holding.disputed ? { disputed: true } : {})
+				}
 			})
 		});
 		if (!holding.seat) continue;
 		const centre = hexCentre(g, holding.hex);
 		tiles.push({
-			match: "seat",
+			// One crown to each Seat, since a disputed Seat has two (p202).
+			match: `seat:${hexKey(holding.hex)}`,
 			data: tileData({
 				centre: { x: centre.x + SEAT_OFFSET.x * g.size, y: centre.y + SEAT_OFFSET.y * g.size },
 				width: g.size * ICON_SCALE.seat,
@@ -458,7 +465,16 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 			}
 			case "holding":
 				if (!hex) problems.push({ kind: "holding", reason: "offMap", key: where });
-				else realm.holdings.push({ id: tile._id ?? null, hex, style: flag.style, seat: Boolean(flag.seat), name: flag.name ?? "" });
+				else {
+					realm.holdings.push({
+						id: tile._id ?? null,
+						hex,
+						style: flag.style,
+						seat: Boolean(flag.seat),
+						name: flag.name ?? "",
+						...(flag.seat && flag.disputed ? { disputed: true } : {})
+					});
+				}
 				break;
 			case "myth":
 				if (!hex) problems.push({ kind: "myth", reason: "offMap", key: where });
@@ -511,7 +527,11 @@ function existingMatch(g, kind, data, replacing) {
 			const hex = hexAt(g, data);
 			return hex ? `${flag.kind}:${hexKey(hex)}:${flag.edge}` : null;
 		}
-		case "seat": return "seat";
+		// Each crown answers to the hex it hangs over. One off the map belongs to no Seat, and goes.
+		case "seat": {
+			const hex = hexAt(g, data);
+			return hex ? `seat:${hexKey(hex)}` : `seat:off:${data._id}`;
+		}
 		// An icon dragged off the map isn't in the Realm, so it's left for the GM rather than deleted with its Omens.
 		case "holding":
 		case "myth":

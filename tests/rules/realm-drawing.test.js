@@ -128,6 +128,21 @@ describe("drawingTally", () => {
 		expect(drawingShortfalls(realm)).toEqual([{ key: "seat", count: 2, target: 1, done: false }]);
 	});
 
+	it("takes two Holdings disputing the Seat as drawn (p202)", () => {
+		const realm = drawnRealm();
+		realm.holdings[1].seat = true;
+		realm.holdings.slice(0, 2).forEach((holding) => { holding.disputed = true; });
+		expect(drawingShortfalls(realm)).toEqual([]);
+		expect(drawingTally(realm).holdings[1]).toEqual({ key: "seat", count: 2, target: 1, done: true, disputed: true });
+		expect(drawingShortfalls({ ...drawnRealm(), setup: { ignoreRules: true }, holdings: realm.holdings.map(({ disputed: _d, ...holding }) => holding) })).toEqual([]);
+	});
+
+	it("takes two unmarked Seats as drawn where the rules for setup are ignored, without calling them disputed", () => {
+		const realm = { ...drawnRealm(), setup: { ignoreRules: true } };
+		realm.holdings[1].seat = true;
+		expect(drawingTally(realm).holdings[1]).toEqual({ key: "seat", count: 2, target: 1, done: true });
+	});
+
 	it("counts every river drawn, and the hexes they run through", () => {
 		const realm = drawnRealm();
 		realm.rivers = [[hex(1, 1), hex(1, 2), hex(1, 3)], [hex(1, 2), hex(2, 2)], [hex(5, 5)]];

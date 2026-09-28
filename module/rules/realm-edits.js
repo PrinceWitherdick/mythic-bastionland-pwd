@@ -5,7 +5,7 @@
  * replaced. Pure, so it can be tested without Foundry.
  */
 import { isDie } from "./book-art.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt } from "./realm.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt, realmSeats } from "./realm.js";
 import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
 import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
@@ -175,9 +175,31 @@ export function unusedMythNumbers(realm) {
 }
 
 /**
+ * What crowning a Holding does to the Seats already standing. A Realm has one
+ * Seat of Power (p14), so a new Seat takes the crown off the old one, unless
+ * the claim is disputed (p202): the new Seat or one already standing is marked
+ * so, or the GM ignores the rules for setup. Marking a Seat undisputed settles
+ * the dispute in its favour, and the others lose the crown.
+ * @param {import("./realm.js").Realm} realm The Realm without the Holding being placed.
+ * @param {{seat?: boolean, disputed?: boolean}} feature
+ * @param {object|null} before The Seat that stood in the hex before, whose mark it keeps unless told otherwise.
+ * @returns {{disputed: boolean, unseat: boolean}} Whether the Holding placed is a disputed Seat,
+ *   and whether every other Holding loses the crown.
+ */
+function seatClaim(realm, feature, before) {
+	if (!feature.seat) return { disputed: false, unseat: false };
+	const others = realmSeats(realm);
+	// Unticking it settles the dispute, whatever the rules for setup say.
+	if (feature.disputed === false) return { disputed: false, unseat: others.length > 0 };
+	const disputed = (feature.disputed ?? before?.disputed) === true || others.some((holding) => holding.disputed);
+	return { disputed, unseat: !disputed && !realm.setup?.ignoreRules && others.length > 0 };
+}
+
+/**
  * Put a Holding, Myth or Landmark in a hex, replacing whatever was there, or
  * clear the hex. A Myth takes its number with it: a Myth already carrying that
- * number elsewhere moves here. A new Seat of Power unseats the old one.
+ * number elsewhere moves here. A new Seat of Power unseats the old one, unless
+ * the Seat is disputed or the rules for setup are set aside (seatClaim).
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
@@ -193,19 +215,30 @@ export function placeFeature(realm, g, hex, feature) {
 	next.holdings = next.holdings.filter(elsewhere);
 	next.myths = next.myths.filter(elsewhere);
 	next.landmarks = next.landmarks.filter(elsewhere);
-	if (!feature) return next;
+	if (!feature) return settleDispute(realm, next);
 
 	switch (feature.kind) {
-		case "holding":
-			if (feature.seat) next.holdings.forEach((holding) => { holding.seat = false; });
+		case "holding": {
+			const seat = Boolean(feature.seat);
+			const { disputed, unseat } = seatClaim(next, feature, seat ? here.holding : null);
+			if (unseat) {
+				for (const holding of next.holdings) {
+					holding.seat = false;
+					delete holding.disputed;
+				}
+			}
+			// Every Holding claiming a disputed Seat is marked, so each says it's contested.
+			if (disputed) realmSeats(next).forEach((holding) => { holding.disputed = true; });
 			next.holdings.push({
 				id: here.holding?.id ?? null,
 				hex: { ...hex },
 				style: HOLDING_STYLES.includes(feature.style) ? feature.style : here.holding?.style ?? HOLDING_STYLES[0],
-				seat: Boolean(feature.seat),
-				name: String(feature.name ?? here.holding?.name ?? "")
+				seat,
+				name: String(feature.name ?? here.holding?.name ?? ""),
+				...(seat && disputed ? { disputed: true } : {})
 			});
 			break;
+		}
 
 		case "myth": {
 			const number = isDie(feature.number, MYTH_COUNT) ? feature.number : here.myth?.number ?? unusedMythNumbers(next)[0];
@@ -251,6 +284,20 @@ export function placeFeature(realm, g, hex, feature) {
 		default:
 			return realm;
 	}
+	return settleDispute(realm, next);
+}
+
+/**
+ * A disputed Seat whose rivals have all lost the crown, or gone, holds it
+ * alone, so its claim is no longer disputed. A lone Seat marked disputed
+ * before any rival is crowned keeps its mark, as the Hex panel offers.
+ * @param {import("./realm.js").Realm} before
+ * @param {import("./realm.js").Realm} next Changed in place.
+ * @returns {import("./realm.js").Realm} next
+ */
+function settleDispute(before, next) {
+	const seats = realmSeats(next);
+	if (realmSeats(before).length > 1 && seats.length === 1) delete seats[0].disputed;
 	return next;
 }
 

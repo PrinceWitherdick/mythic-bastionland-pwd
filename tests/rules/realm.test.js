@@ -8,6 +8,8 @@ import {
 	featureAt,
 	hexSummary,
 	mythReference,
+	realmSeats,
+	seatsInOrder,
 	seerReference,
 	terrainAt,
 	validateRealm
@@ -101,6 +103,31 @@ describe("validateRealm", () => {
 		const realm = fresh();
 		spoil(realm);
 		expect(reasons(realm)).toContain(expected);
+	});
+
+	it("lets two Holdings claim the Seat where the claim is disputed or the rules for setup are ignored (p202)", () => {
+		const twoSeats = () => {
+			const realm = fresh();
+			realm.holdings.forEach((holding, index) => { holding.seat = index < 2; });
+			return realm;
+		};
+		const disputed = twoSeats();
+		disputed.holdings.filter((holding) => holding.seat).forEach((holding) => { holding.disputed = true; });
+		expect(reasons(disputed)).not.toContain("holding:seat");
+		expect(realmSeats(disputed)).toHaveLength(2);
+
+		const halfDisputed = twoSeats();
+		halfDisputed.holdings[0].disputed = true;
+		expect(seatsInOrder(halfDisputed)).toBe(false);
+		expect(reasons(halfDisputed)).toContain("holding:seat");
+
+		const unruled = { ...twoSeats(), setup: { ignoreRules: true } };
+		expect(reasons(unruled)).not.toContain("holding:seat");
+
+		// Ignoring the rules still wants a Seat somewhere.
+		unruled.holdings.forEach((holding) => { holding.seat = false; });
+		expect(reasons(unruled)).toContain("holding:seat");
+		expect(seatsInOrder({ ...unruled, holdings: [] })).toBe(true);
 	});
 
 	it("only reports reasons that have wording", () => {
