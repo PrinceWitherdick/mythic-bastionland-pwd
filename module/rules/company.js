@@ -11,6 +11,21 @@ import { STARTS } from "./creation.js";
 /** The Starts, in the book's order. Where the Company begins follows from which one they took. */
 export const COMPANY_STARTS = Object.freeze(STARTS.map((start) => start.key));
 
+/** The Scene flag keeping the Start a Realm's Company began with, so Knights made later start the same way. */
+export const COMPANY_START_FLAG = "companyStart";
+
+/**
+ * The Start a new Knight begins with: the one their Company took (p6). Of the
+ * Realms that remember one, the Realm in view is asked first, then the active
+ * one, then the Realm made last.
+ * @param {{start?: string, viewed?: boolean, active?: boolean}[]} realms Each Realm Scene, in the order they were made.
+ * @returns {string|null} One of COMPANY_STARTS, or null where no Realm remembers a Start.
+ */
+export function realmStart(realms) {
+	const known = (realms ?? []).filter((realm) => COMPANY_STARTS.includes(realm?.start));
+	return (known.find((realm) => realm.viewed) ?? known.find((realm) => realm.active) ?? known.at(-1))?.start ?? null;
+}
+
 /**
  * Where the Company begins, by the Start the players chose (p6).
  *

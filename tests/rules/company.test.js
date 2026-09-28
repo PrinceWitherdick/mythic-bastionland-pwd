@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMPANY_STARTS, companyButtonPlacement, companyStart } from "../../module/rules/company.js";
+import { COMPANY_STARTS, companyButtonPlacement, companyStart, realmStart } from "../../module/rules/company.js";
 
 const realm = (holdings) => ({ holdings });
 const at = (col, row, seat = false) => ({ hex: { col, row }, seat });
@@ -7,6 +7,31 @@ const at = (col, row, seat = false) => ({ hex: { col, row }, seat });
 describe("COMPANY_STARTS", () => {
 	it("is the book's three Starts, in its order", () => {
 		expect(COMPANY_STARTS).toEqual(["wanderer", "courtier", "ruler"]);
+	});
+});
+
+describe("realmStart", () => {
+	it("gives the Start the only Realm remembers", () => {
+		expect(realmStart([{ start: "courtier" }])).toBe("courtier");
+	});
+
+	it("asks the Realm in view first, then the active one, then the one made last", () => {
+		const older = { start: "ruler" };
+		const active = { start: "courtier", active: true };
+		const viewed = { start: "wanderer", viewed: true };
+		expect(realmStart([older, active, viewed])).toBe("wanderer");
+		expect(realmStart([older, active, { start: "ruler" }])).toBe("courtier");
+		expect(realmStart([{ start: "courtier" }, older])).toBe("ruler");
+	});
+
+	it("passes over a Realm in view that remembers no Start", () => {
+		expect(realmStart([{ start: "courtier" }, { viewed: true }])).toBe("courtier");
+	});
+
+	it("gives null where no Realm remembers one, or only one that isn't a Start", () => {
+		expect(realmStart([])).toBeNull();
+		expect(realmStart([{}, { start: "pilgrim", viewed: true }])).toBeNull();
+		expect(realmStart(null)).toBeNull();
 	});
 });
 

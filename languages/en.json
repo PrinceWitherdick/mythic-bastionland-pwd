@@ -2991,6 +2991,10 @@
       "scores": "2. Virtues and Guard",
       "rollScores": "Roll Virtues and GD",
       "scoresHint": "Rolls VIG, CLA and SPI in order, then GD, with the Start’s dice. Change a result by hand if you need to.",
+      "averageHint": "High is better, and 10 is an average Virtue (p177).",
+      "glory": {
+        "hint": "The rest of the Company has {glory} Glory, so a Knight joining them may start with some (p195)."
+      },
       "knight": "3. Knight",
       "rollKnight": "Roll d6 and d12",
       "knightHint": "Read the d6 first, then the d12. Or choose your own. Generally each player should have a different one.",
@@ -3678,13 +3682,16 @@
     "fallen": {
       "title": "A Knight Falls",
       "tagline": "{name} is Slain.",
-      "text": "Even the boldest Knight can die a sudden or ignoble death. Their player makes a new Knight, added to the Company as quickly as possible, or takes up a Squire or follower.",
+      "text": "Even the boldest Knight can die a sudden or ignoble death. Their player makes a new Knight, added to the Company as quickly as possible, or takes up a successor, Squire or follower.",
       "paths": {
         "newKnight": "Make a New Knight",
+        "successor": "Take up Their Successor",
         "squire": "Take up Their Squire",
         "follower": "Take up a Follower"
       },
       "takeUpNamed": "Take up {name}",
+      "takeUpSuccessor": "Take up {name}, Their Successor",
+      "successorNotYours": "Only the Referee can hand {name} to you. Ask them to press this.",
       "whichFollower": "Who rode with {name}, and who takes up the journey now?",
       "newName": "A New Knight",
       "tookUp": "{name} takes up the Company\u2019s journey where {fallen} left it.",

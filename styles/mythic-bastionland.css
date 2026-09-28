@@ -3951,6 +3951,11 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-size: 1.4rem;
 }
 
+/* The Glory a Knight replacing one who fell may start with (p195), under the Starts. */
+.bastionland-chooser__glory {
+	margin: 0.5rem 0 0;
+}
+
 /* A Knighted Squire's scores, kept rather than rolled, shown in the same boxes. */
 .bastionland-page .bastionland-chooser__score span.bastionland-box {
 	display: flex;

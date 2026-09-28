@@ -32,6 +32,16 @@
 					</li>
 					{{/each}}
 				</ul>
+				{{#if glory}}
+				{{!-- A Knight made in place of one who fell, joining a well-established Company, may start with some Glory (p195). --}}
+				<div class="bastionland-chooser__scores bastionland-chooser__glory">
+					<label class="bastionland-chooser__score">
+						<span>{{localize "bastionland.glory.label"}}</span>
+						<input class="bastionland-box" type="number" name="glory" value="{{glory.value}}" min="0" step="1">
+					</label>
+				</div>
+				<p class="bastionland-hint">{{glory.hint}}</p>
+				{{/if}}
 			</section>
 
 			<section class="bastionland-block">
@@ -48,6 +58,7 @@
 					<i class="fa-solid fa-dice" inert></i> {{localize "bastionland.chooser.rollScores"}}
 				</button>
 				<p class="bastionland-hint">{{localize "bastionland.chooser.scoresHint"}}</p>
+				<p class="bastionland-hint">{{localize "bastionland.chooser.averageHint"}}</p>
 			</section>
 			{{/if}}
 

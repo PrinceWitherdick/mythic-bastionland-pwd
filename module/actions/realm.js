@@ -4,7 +4,7 @@ import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
 import { deletionEntry, scenePaper } from "../compat.js";
-import { COMPANY_STARTS } from "../rules/company.js";
+import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
@@ -747,6 +747,8 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 		foundry.utils.expandObject({
 			...lookFlag(look),
 			...(drawing ? drawingFlag(true) : {}),
+			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
+			...(company?.start ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: company.start } : {}),
 			// A Realm drawn by hand hears what its Start sets going once it's finished.
 			...(drawing && company?.start ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: company.start } : {})
 		})

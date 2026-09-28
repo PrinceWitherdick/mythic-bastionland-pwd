@@ -1,6 +1,15 @@
 import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { FALLEN_PATHS, fallenPaths, followersOf, knightHasFallen, squireOf } from "../rules/fallen.js";
+import {
+	FALLEN_PATHS,
+	companyGlory,
+	fallenPaths,
+	followersOf,
+	knightHasFallen,
+	squireOf,
+	successorOf
+} from "../rules/fallen.js";
+import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
 import { COMPANION_FLAG } from "./property.js";
@@ -15,6 +24,14 @@ import { knightSquire } from "./squires.js";
  */
 
 /**
+ * @param {Actor} actor
+ * @returns {string[]} The players who own them, never a GM.
+ */
+const playersOf = (actor) => Object.entries(actor.ownership ?? {})
+	.filter(([user, level]) => user !== "default" && level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && !game.users.get(user)?.isGM)
+	.map(([user]) => user);
+
+/**
  * Every actor as rules/fallen.js reads them.
  * @returns {object[]}
  */
@@ -25,19 +42,51 @@ const worldCompanions = () => game.actors.map((actor) => ({
 	isSquire: Boolean(actor.system?.isSquire),
 	serves: actor.system?.serves ?? "",
 	companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) ?? "",
+	// Only a Knight can be a successor, so only theirs are counted.
+	players: actor.type === "knight" ? playersOf(actor) : [],
 	actor
 }));
 
 /**
  * @param {Actor} knight
- * @returns {{squire: object|null, followers: object[]}} Who rode with them, as actors.
+ * @returns {{squire: object|null, successor: object|null, followers: object[]}} Who rode with them, and who they
+ *   named to follow them, as actors. A successor who is also their Squire is given as both.
  */
 export function whoRodeWith(knight) {
-	const held = { uuid: knight.uuid, id: knight.id, squire: knight.system.squire, steed: knight.system.steed };
+	const held = {
+		uuid: knight.uuid,
+		id: knight.id,
+		squire: knight.system.squire,
+		steed: knight.system.steed,
+		successor: knight.system.successor ?? "",
+		players: playersOf(knight)
+	};
 	const actors = worldCompanions();
-	// The Squire is handed on, so the world is read for them once rather than twice.
+	// The Squire and the successor are handed on, so the world is read for them once rather than twice.
 	const squire = squireOf(held, actors);
-	return { squire: squire?.actor ?? null, followers: followersOf(held, actors, squire).map((entry) => entry.actor) };
+	const successor = successorOf(held, actors);
+	return {
+		squire: squire?.actor ?? null,
+		successor: successor?.actor ?? null,
+		followers: followersOf(held, actors, squire, successor).map((entry) => entry.actor)
+	};
+}
+
+/**
+ * The Glory of the Knights riding on without the fallen one, for a new Knight
+ * who may start with some (p195).
+ * @param {Actor} fallen
+ * @returns {{lowest: number, highest: number}|null}
+ */
+export function gloryOfTheCompany(fallen) {
+	return companyGlory(game.actors.filter((actor) => actor.type === "knight" && actor.id !== fallen.id).map((actor) => ({
+		glory: actor.system.glory,
+		isSquire: Boolean(actor.system.isSquire),
+		played: actor.hasPlayerOwner,
+		// VIG 0 by Damage is Slain (p8).
+		slain: (actor.system.virtues?.vig?.value ?? 1) <= 0,
+		unchosen: Boolean(actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG))
+	})));
 }
 
 /**
@@ -50,8 +99,11 @@ export function whoRodeWith(knight) {
  */
 export async function announceFallenKnight(knight, outcome) {
 	if (!knightHasFallen({ type: knight.type, isSquire: knight.system.isSquire, hasPlayerOwner: knight.hasPlayerOwner }, outcome)) return null;
-	const { squire, followers } = whoRodeWith(knight);
-	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length });
+	const rode = whoRodeWith(knight);
+	const { squire, successor, followers } = rode;
+	// A successor who is their Squire is taken up as their Squire, and named so on that button.
+	const heir = successor && successor !== squire ? successor : null;
+	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir) });
 
 	return postCard(knight, "fallen", {
 		title: t("fallen.title"),
@@ -60,12 +112,27 @@ export async function announceFallenKnight(knight, outcome) {
 		uuid: knight.uuid,
 		paths: paths.map((path) => ({
 			key: path,
-			label: path === "squire"
-				? t("fallen.takeUpNamed", { name: squire.name })
-				: t(path === "follower" && followers.length === 1 ? "fallen.takeUpNamed" : `fallen.paths.${path}`, { name: followers[0]?.name ?? "" }),
-			icon: { newKnight: "fa-solid fa-chess-knight", squire: "fa-solid fa-khanda", follower: "fa-solid fa-people-group" }[path]
+			label: fallenPathLabel(path, rode),
+			icon: {
+				newKnight: "fa-solid fa-chess-knight",
+				successor: "fa-solid fa-crown",
+				squire: "fa-solid fa-khanda",
+				follower: "fa-solid fa-people-group"
+			}[path]
 		}))
 	});
+}
+
+/**
+ * @param {string} path One of FALLEN_PATHS.
+ * @param {{squire: Actor|null, successor: Actor|null, followers: Actor[]}} rode From whoRodeWith.
+ * @returns {string} What the path's button on the card says, naming whoever it takes up.
+ */
+function fallenPathLabel(path, { squire, successor, followers }) {
+	if (path === "successor") return t("fallen.takeUpSuccessor", { name: successor.name });
+	if (path === "squire") return t(squire === successor ? "fallen.takeUpSuccessor" : "fallen.takeUpNamed", { name: squire.name });
+	if (path === "follower" && followers.length === 1) return t("fallen.takeUpNamed", { name: followers[0].name });
+	return t(`fallen.paths.${path}`);
 }
 
 /**
@@ -82,7 +149,8 @@ export async function carryOnFrom(path, knight) {
 		return null;
 	}
 	if (path === "newKnight") return makeAnotherKnight(knight);
-	const { squire, followers } = whoRodeWith(knight);
+	const { squire, successor, followers } = whoRodeWith(knight);
+	if (path === "successor") return successor ? takeUpSuccessor(knight, successor) : null;
 	if (path === "squire") return squire ? takeUpSquire(knight, squire) : null;
 	return takeUpFollower(knight, followers);
 }
@@ -90,7 +158,8 @@ export async function carryOnFrom(path, knight) {
 /**
  * "The player creates a new Knight and they are added to the Company as quickly
  * as possible": a Knight is made carrying the fallen one's players, and the
- * chooser opens on them to be rolled or picked.
+ * chooser opens on them to be rolled or picked. Where the Company is well
+ * established, the chooser offers to start them with some Glory (p195).
  * @param {Actor} fallen
  * @returns {Promise<Actor|null>}
  */
@@ -99,12 +168,34 @@ async function makeAnotherKnight(fallen) {
 		ui.notifications.warn(t("fallen.cantCreate"));
 		return null;
 	}
+	// Read before the new Knight is made, who has no Glory yet.
+	const companyGlory = gloryOfTheCompany(fallen);
 	// A player who makes an actor owns it already; only a GM hands the fallen
 	// Knight's players on.
 	return makeFreshKnight({
 		name: t("fallen.newName"),
-		ownership: game.user.isGM ? foundry.utils.deepClone(fallen.ownership) : null
+		ownership: game.user.isGM ? foundry.utils.deepClone(fallen.ownership) : null,
+		companyGlory,
+		replacement: true
 	});
+}
+
+/**
+ * Take up the successor the fallen Knight named (p195). A Squire is Knighted,
+ * as their own Squire would be; a Knight is handed over as a follower is.
+ * Handing over is the Referee's, so a player who doesn't own them yet is told
+ * to ask.
+ * @param {Actor} fallen
+ * @param {Actor} successor
+ * @returns {Promise<Actor|null>}
+ */
+async function takeUpSuccessor(fallen, successor) {
+	if (!game.user.isGM && !successor.isOwner) {
+		ui.notifications.warn(t("fallen.successorNotYours", { name: successor.name }));
+		return null;
+	}
+	if (successor.system.isSquire) return takeUpSquire(fallen, successor);
+	return takeUp(fallen, successor, "fa-solid fa-crown");
 }
 
 /**
@@ -143,12 +234,23 @@ async function takeUpFollower(fallen, followers) {
 		if (!taken) return null;
 	}
 
+	return takeUp(fallen, taken, "fa-solid fa-people-group");
+}
+
+/**
+ * Hand somebody over to the fallen Knight's player as their character, and say so.
+ * @param {Actor} fallen
+ * @param {Actor} taken
+ * @param {string} icon For the note in chat.
+ * @returns {Promise<Actor>}
+ */
+async function takeUp(fallen, taken, icon) {
 	await handOver(taken, fallen);
 	// They're their own character now, not a line of the dead Knight's Property,
 	// so re-rolling that Knight's gear can never sweep them away.
 	if (taken.getFlag(SYSTEM_ID, COMPANION_FLAG)) await taken.unsetFlag(SYSTEM_ID, COMPANION_FLAG);
 	taken.sheet.render({ force: true });
-	await postCard(taken, "note", { icon: "fa-solid fa-people-group", text: t("fallen.tookUp", { name: taken.name, fallen: fallen.name }) });
+	await postCard(taken, "note", { icon, text: t("fallen.tookUp", { name: taken.name, fallen: fallen.name }) });
 	return taken;
 }
 

@@ -13,7 +13,8 @@ vi.mock("../../module/actions/squires.js", () => ({ knightSquire: vi.fn(async (s
 vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn(async () => answer) }));
 vi.mock("../../module/apps/KnightChooser.js", () => ({ openKnightChooser: vi.fn((actor) => { chosen = actor; }) }));
 
-const { announceFallenKnight, carryOnFrom, whoRodeWith } = await import("../../module/actions/fallen.js");
+const { announceFallenKnight, carryOnFrom, gloryOfTheCompany, whoRodeWith } = await import("../../module/actions/fallen.js");
+const { openKnightChooser } = await import("../../module/apps/KnightChooser.js");
 
 const root = join(import.meta.dirname, "../..");
 const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
@@ -65,6 +66,7 @@ beforeEach(() => {
 	globalThis.game = {
 		i18n: { localize: (key) => lookup(key) ?? key, format },
 		actors: [],
+		users: { get: (id) => (id === "gm" ? { isGM: true } : { isGM: false }) },
 		settings: { get: () => "public" },
 		user: { name: "Referee", isGM: true, can: () => true }
 	};
@@ -86,10 +88,11 @@ beforeEach(() => {
 		implementation: { getSpeaker: ({ actor: spoken }) => ({ alias: spoken.name }), applyMode: () => {}, create: vi.fn(async (data) => data) }
 	};
 	globalThis.CONFIG = { sounds: { dice: "dice.wav" } };
+	globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OWNER: 3 } };
 });
 
 afterEach(() => {
-	for (const key of ["game", "ui", "foundry", "Actor", "ChatMessage", "CONFIG"]) delete globalThis[key];
+	for (const key of ["game", "ui", "foundry", "Actor", "ChatMessage", "CONFIG", "CONST"]) delete globalThis[key];
 	vi.clearAllMocks();
 });
 
@@ -126,6 +129,46 @@ describe("announceFallenKnight", () => {
 		expect(card.tagline).toBe(format("bastionland.fallen.tagline", { name: "Sir Ose" }));
 	});
 
+	it("offers the successor named on their sheet, after a new Knight", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({ id: "k2", name: "Sir Ban", type: "knight", system: { isSquire: false }, ownership: { default: 0, gm: 3 } });
+		game.actors = [knight, heir];
+
+		await announceFallenKnight(knight, "slain");
+		const card = lastCard();
+		expect(card.paths.map((path) => path.key)).toEqual(["newKnight", "successor"]);
+		expect(card.paths[1].label).toBe(format("bastionland.fallen.takeUpSuccessor", { name: "Sir Ban" }));
+	});
+
+	it("names their Squire as their successor on the Squire's own button, rather than twice", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "Actor.s1", steed: "", successor: "Actor.s1" } });
+		const squire = actor({ id: "s1", name: "Ned", type: "knight", system: { isSquire: true, serves: knight.uuid } });
+		game.actors = [knight, squire];
+
+		await announceFallenKnight(knight, "slain");
+		const card = lastCard();
+		expect(card.paths.map((path) => path.key)).toEqual(["newKnight", "squire"]);
+		expect(card.paths[1].label).toBe(format("bastionland.fallen.takeUpSuccessor", { name: "Ned" }));
+	});
+
+	it("takes a successor who rode as a follower up by their own path only", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({ id: "k2", name: "Sir Ban", type: "knight", system: { isSquire: false, serves: knight.uuid } });
+		game.actors = [knight, heir];
+
+		await announceFallenKnight(knight, "slain");
+		expect(lastCard().paths.map((path) => path.key)).toEqual(["newKnight", "successor"]);
+	});
+
+	it("leaves a successor another player plays to them", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({ id: "k2", name: "Sir Ban", type: "knight", system: { isSquire: false }, ownership: { default: 0, other: 3 } });
+		game.actors = [knight, heir];
+
+		await announceFallenKnight(knight, "slain");
+		expect(lastCard().paths.map((path) => path.key)).toEqual(["newKnight"]);
+	});
+
 	it("offers only a new Knight to one who rode alone", async () => {
 		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "" } });
 		game.actors = [knight];
@@ -159,6 +202,76 @@ describe("carryOnFrom", () => {
 		expect(chosen).toBe(made);
 		// The folder is left to the Knight-filing hooks.
 		expect(created[0].folder).toBeUndefined();
+	});
+
+	it("opens the chooser with the Glory of the Knights riding on", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", glory: 9 } });
+		const rider = (id, glory, extra = {}) => actor({
+			id,
+			name: id,
+			type: "knight",
+			ownership: { default: 0, [`player-${id}`]: 3 },
+			system: { isSquire: false, glory, virtues: { vig: { value: 8 } } },
+			...extra
+		});
+		game.actors = [
+			knight,
+			rider("a", 4),
+			rider("b", 6),
+			rider("dead", 1, { system: { isSquire: false, glory: 1, virtues: { vig: { value: 0 } } } }),
+			rider("blank", 0, { flags: { [`${SYSTEM_ID}.unchosen`]: true } }),
+			actor({ id: "npc", name: "Sir Nobody", type: "knight", system: { isSquire: false, glory: 0 } })
+		];
+
+		expect(gloryOfTheCompany(knight)).toEqual({ lowest: 4, highest: 6 });
+		const made = await carryOnFrom("newKnight", knight);
+		expect(openKnightChooser).toHaveBeenCalledWith(made, { fresh: true, companyGlory: { lowest: 4, highest: 6 }, replacement: true });
+	});
+
+	it("opens the chooser with no Glory where nobody rides on", async () => {
+		const knight = fallenKnight();
+		game.actors = [knight];
+		const made = await carryOnFrom("newKnight", knight);
+		expect(openKnightChooser).toHaveBeenCalledWith(made, { fresh: true, companyGlory: null, replacement: true });
+	});
+
+	it("hands over a successor who is a Knight, and says so", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({
+			id: "k2",
+			name: "Sir Ban",
+			type: "knight",
+			system: { isSquire: false },
+			flags: { [`${SYSTEM_ID}.companionOf`]: "k1" }
+		});
+		game.actors = [knight, heir];
+
+		expect(await carryOnFrom("successor", knight)).toBe(heir);
+		expect(knighted).toBeNull();
+		expect(heir.update).toHaveBeenCalledWith({ ownership: { player: 3 } });
+		expect(heir.unsetFlag).toHaveBeenCalledWith(SYSTEM_ID, "companionOf");
+		expect(heir.sheet.render).toHaveBeenCalled();
+		expect(lastCard().text).toBe(format("bastionland.fallen.tookUp", { name: "Sir Ban", fallen: "Sir Ose" }));
+	});
+
+	it("Knights a successor who is still a Squire", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.s9" } });
+		const page = actor({ id: "s9", name: "Pip", type: "knight", system: { isSquire: true, serves: "Actor.k7" } });
+		game.actors = [knight, page];
+
+		expect(await carryOnFrom("successor", knight)).toBe(page);
+		expect(knighted).toBe(page);
+	});
+
+	it("tells a player the Referee hands over a successor they don't own", async () => {
+		game.user.isGM = false;
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({ id: "k2", name: "Sir Ban", type: "knight", system: { isSquire: false }, isOwner: false });
+		game.actors = [knight, heir];
+
+		expect(await carryOnFrom("successor", knight)).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith(format("bastionland.fallen.successorNotYours", { name: "Sir Ban" }));
+		expect(heir.update).not.toHaveBeenCalled();
 	});
 
 	it("warns a player away from somebody else's Knight", async () => {

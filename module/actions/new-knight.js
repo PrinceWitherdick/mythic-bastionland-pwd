@@ -13,9 +13,13 @@ import { SYSTEM_ID } from "../system-id.js";
  * @param {object} details
  * @param {string} details.name        What to call them until they're rolled.
  * @param {object} [details.ownership] Who holds them, where they're handed on from somebody.
+ * @param {{lowest: number, highest: number}|null} [details.companyGlory] The Glory of the Company they join, where
+ *   they may start with some (p195).
+ * @param {boolean} [details.replacement] They're made in place of a Knight who fell, so start as a
+ *   Young Knight-Errant whatever the Company's Start (p195).
  * @returns {Promise<Actor|null>} Null where the actor couldn't be made.
  */
-export async function makeFreshKnight({ name, ownership = null }) {
+export async function makeFreshKnight({ name, ownership = null, companyGlory = null, replacement = false }) {
 	// The folder is left to the Knight-filing hooks, which give every Knight one
 	// of their own inside the Company.
 	const created = await Actor.implementation.create({
@@ -25,7 +29,7 @@ export async function makeFreshKnight({ name, ownership = null }) {
 	});
 	if (!created) return null;
 	const { openKnightChooser } = await import("../apps/KnightChooser.js");
-	openKnightChooser(created, { fresh: true });
+	openKnightChooser(created, { fresh: true, companyGlory, replacement });
 	return created;
 }
 

@@ -3,6 +3,8 @@ import { findByRoll } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
 import { spreads } from "../rules/book-art.js";
+import { COMPANY_START_FLAG, realmStart } from "../rules/company.js";
+import { replacementGlory } from "../rules/fallen.js";
 import { rollKnightName, startingName } from "../rules/knight-names.js";
 import { CHOOSING_FLAG, isSquireName, itemsGained, knightedChoice } from "../rules/squires.js";
 import {
@@ -39,10 +41,17 @@ export class KnightChooser extends BastionlandChooser {
 	/**
 	 * @param {object} [options]
 	 * @param {boolean} [options.knighting] The actor is a Squire just Knighted, whose scores and gear stay.
+	 * @param {{lowest: number, highest: number}|null} [options.companyGlory] The Glory of the Company a Knight made
+	 *   in place of one who fell joins, so they may start with some (p195).
+	 * @param {boolean} [options.replacement] The Knight is made in place of one who fell.
 	 */
-	constructor({ knighting = false, ...options } = {}) {
+	constructor({ knighting = false, companyGlory = null, replacement = false, ...options } = {}) {
 		super(options);
 		this.#knighting = Boolean(this.actor && knighting);
+		this.#companyGlory = companyGlory;
+		// A new Knight joins the Company as it began (p6), but one made in place of
+		// a fallen Knight starts as a Young Knight-Errant in most cases (p195).
+		this.#start = replacement ? DEFAULT_START : companyStartKey();
 		// A Squire still named for the Knight they served starts without one, as a Knight made blank does.
 		if (this.#knighting && isSquireName(this.#name, t("squire.name"))) this.#name = "";
 	}
@@ -73,6 +82,12 @@ export class KnightChooser extends BastionlandChooser {
 
 	/** Whether this is a Squire just Knighted, choosing the Knight they became. */
 	#knighting = false;
+
+	/** @type {{lowest: number, highest: number}|null} The Glory of the Company a Knight made in place of one who fell joins. */
+	#companyGlory = null;
+
+	/** @type {number|null} The Glory typed in for them, or null for what's suggested. */
+	#glory = null;
 
 	/** @type {Record<string, number|null>} */
 	#scores = Object.fromEntries(SCORES.map((key) => [key, null]));
@@ -115,6 +130,7 @@ export class KnightChooser extends BastionlandChooser {
 				summary: t(`chooser.starts.${key}.summary`),
 				active: key === this.#start
 			})),
+			glory: this.#gloryContext(),
 			scores: SCORES.map((key) => ({
 				key,
 				abbr: key === "guard" ? t("guard.abbr") : t(`virtues.${key}.abbr`),
@@ -165,6 +181,25 @@ export class KnightChooser extends BastionlandChooser {
 			this.#name = input.value;
 			this.#syncApply();
 		});
+	}
+
+	/**
+	 * @returns {{lowest: number, highest: number, suggested: number}|null} The Glory a Knight made in place of one
+	 *   who fell may start with, where the Company is well established (p195).
+	 */
+	#gloryOffer() {
+		return this.#knighting ? null : replacementGlory(this.#companyGlory, startFor(this.#start).glory);
+	}
+
+	/** @returns {{value: number, hint: string}|null} The Glory box, where it's offered. */
+	#gloryContext() {
+		const offer = this.#gloryOffer();
+		if (!offer) return null;
+		const { lowest, highest, suggested } = offer;
+		return {
+			value: this.#glory ?? suggested,
+			hint: t("chooser.glory.hint", { glory: lowest === highest ? lowest : `${lowest}–${highest}` })
+		};
 	}
 
 	/** @returns {boolean} Whether a Knight is picked and named. */
@@ -219,6 +254,11 @@ export class KnightChooser extends BastionlandChooser {
 			const value = formData.object[key];
 			if (!Number.isFinite(value)) this.#scores[key] = null;
 			else this.#scores[key] = key === "guard" ? Math.max(0, Math.trunc(value)) : clampVirtue(value);
+		}
+		// Only there where it's offered; left blank, it goes back to what's suggested.
+		if ("glory" in formData.object) {
+			const glory = formData.object.glory;
+			this.#glory = Number.isFinite(glory) ? Math.max(0, Math.trunc(glory)) : null;
 		}
 	}
 
@@ -327,6 +367,9 @@ export class KnightChooser extends BastionlandChooser {
 			knight: entry.knight,
 			seer: entry.seer
 		});
+		// Where they join a well-established Company, the Glory offered in place of the Start's (p195).
+		const offer = this.#gloryOffer();
+		if (offer) update["system.glory"] = this.#glory ?? offer.suggested;
 		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
 		const items = knightItems(entry.knight, kitNames);
 
@@ -401,15 +444,32 @@ export class KnightChooser extends BastionlandChooser {
 }
 
 /**
+ * @returns {string} The Start the Company took (p6), as the Realms remember it,
+ *   or the book's "if unsure" where none does.
+ */
+function companyStartKey() {
+	const viewed = globalThis.canvas?.scene?.id;
+	const realms = (game.scenes ?? [])
+		.filter((scene) => scene.getFlag(SYSTEM_ID, COMPANY_START_FLAG))
+		// The world's Scenes come in the order they were loaded, so they're put in the order they were made.
+		.sort((a, b) => (a._stats?.createdTime ?? 0) - (b._stats?.createdTime ?? 0))
+		.map((scene) => ({ start: scene.getFlag(SYSTEM_ID, COMPANY_START_FLAG), viewed: scene.id === viewed, active: scene.active }));
+	return realmStart(realms) ?? DEFAULT_START;
+}
+
+/**
  * Open the chooser.
  * @param {Actor|null} [actor] The Knight to fill in. Omit to create one.
  * @param {object} [options]
  * @param {boolean} [options.fresh] The Knight was only just made with Create Actor.
  * @param {boolean} [options.knighting] The Knight is a Squire just Knighted, choosing the Knight they became.
+ * @param {{lowest: number, highest: number}|null} [options.companyGlory] The Glory of the Company a Knight made in
+ *   place of one who fell joins, so they may start with some (p195).
+ * @param {boolean} [options.replacement] The Knight is made in place of one who fell, so opens on Wanderer (p195).
  * @returns {KnightChooser}
  */
-export function openKnightChooser(actor = null, { fresh = false, knighting = false } = {}) {
-	const chooser = new KnightChooser({ actor, fresh, knighting });
+export function openKnightChooser(actor = null, { fresh = false, knighting = false, companyGlory = null, replacement = false } = {}) {
+	const chooser = new KnightChooser({ actor, fresh, knighting, companyGlory, replacement });
 	chooser.render({ force: true });
 	return chooser;
 }
