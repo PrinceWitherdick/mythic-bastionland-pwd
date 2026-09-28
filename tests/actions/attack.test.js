@@ -196,6 +196,19 @@ describe("an Attack under an Impair that named one weapon (p186)", () => {
 	});
 });
 
+describe("an Attack in a sparring bout", () => {
+	it("says in the dialog that the duel is a sparring bout (p188)", async () => {
+		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind: "duel", sparring: true }, opponent: { token: "Scene.s.Token.Kay", name: "Ser Kay" } });
+		await attack(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight" }));
+		expect(opened().duel).toBe("bastionland.duel.attackInSparring");
+
+		inputDialog.mockClear();
+		openDuelFor.mockReturnValue({ message: { id: "duel-1" }, duel: { kind: "duel", sparring: false }, opponent: { token: "Scene.s.Token.Kay", name: "Ser Kay" } });
+		await attack(combatant({ uuid: "Actor.tal", name: "Tal", type: "knight" }));
+		expect(opened().duel).toBe("bastionland.duel.attackIn");
+	});
+});
+
 describe("joining an Attack (p8)", () => {
 	const boar = combatant({ uuid: "Actor.boar", name: "Boar" });
 	const card = () => ({

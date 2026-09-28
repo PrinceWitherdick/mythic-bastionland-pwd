@@ -21,7 +21,7 @@ export function duelCardContext(duel) {
 	const [first, second] = duel.duelists;
 	const victor = duel.duelists.find((duelist) => duelist.uuid === duel.victor);
 	return {
-		title: t(`duel.kinds.${duel.kind}.label`),
+		title: duel.sparring ? t("duel.sparringTitle", { kind: t(`duel.kinds.${duel.kind}.label`) }) : t(`duel.kinds.${duel.kind}.label`),
 		tagline: t("duel.versus", { first: first.name, second: second.name }),
 		duelists: duel.duelists.map((duelist) => ({
 			uuid: duelist.uuid,
@@ -30,7 +30,8 @@ export function duelCardContext(duel) {
 			wins: t("duel.wins", { name: duelist.name })
 		})),
 		exchanges: duel.exchanges ? t("duel.exchanges", { count: duel.exchanges }) : null,
-		notes: [duel.stake && t("duel.stakeNote"), duel.bloodless && t("duel.bloodlessNote")].filter(Boolean),
+		// Sparring says all a bloodless bout would, and more.
+		notes: [duel.stake && t("duel.stakeNote"), duel.sparring ? t("duel.sparringNote") : duel.bloodless && t("duel.bloodlessNote")].filter(Boolean),
 		// Resolve stays live before both Attacks are in, and says what it waits for.
 		resolveHint: readyToResolve(duel) ? null : t("duel.notReady"),
 		ended: duel.ended,
@@ -97,6 +98,34 @@ export async function onDuelQuery(data, context) {
 }
 
 /**
+ * What sparring puts back once the duel ends (p188).
+ * @param {Actor} actor
+ * @returns {import("../rules/duel.js").DuelistScores}
+ */
+export function duelistScores(actor) {
+	const { guard, virtues, wounded } = actor.system;
+	return { guard: guard?.value ?? 0, vigour: virtues?.vig.value ?? null, wounded: Boolean(wounded) };
+}
+
+/**
+ * Keep the Bloodless box ticked while Sparring is, since a bout whose Damage
+ * is shaken off leaves no Scar either.
+ * @param {foundry.applications.api.DialogV2} dialog
+ */
+function tieBloodlessToSparring(dialog) {
+	const form = dialog.element.querySelector("form");
+	const sparring = form?.querySelector("[name='sparring']");
+	const bloodless = form?.querySelector("[name='bloodless']");
+	if (!sparring || !bloodless) return;
+	let chosen = bloodless.checked;
+	bloodless.addEventListener("change", () => { chosen = bloodless.checked; });
+	sparring.addEventListener("change", () => {
+		bloodless.checked = sparring.checked || chosen;
+		bloodless.disabled = sparring.checked;
+	});
+}
+
+/**
  * Two combatants agree to a duel: the actor, and the one Token this user
  * targets. It opens on a plain duel, whether either is mounted or not, since
  * a joust is the rarer of the two and is asked for when it's meant. Posts the
@@ -124,7 +153,8 @@ export async function challengeToDuel(actor) {
 			stakeLocked: !stakeable,
 			stakeHint: t(stakeable ? "duel.stakeHint" : "duel.stakeKnightsOnly")
 		},
-		ok: { label: t("duel.start") }
+		ok: { label: t("duel.start") },
+		render: (_event, dialog) => tieBloodlessToSparring(dialog)
 	});
 	if (!data) return null;
 
@@ -133,9 +163,10 @@ export async function challengeToDuel(actor) {
 		kind: data.kind,
 		stake: stakeable && Boolean(data.stake),
 		bloodless: Boolean(data.bloodless),
+		sparring: Boolean(data.sparring),
 		duelists: [
-			{ uuid: actor.uuid, name: own?.name ?? actor.name, token: own?.uuid ?? null },
-			{ uuid: opponent.uuid, name: target.document.name, token: target.document.uuid }
+			{ uuid: actor.uuid, name: own?.name ?? actor.name, token: own?.uuid ?? null, scores: duelistScores(actor) },
+			{ uuid: opponent.uuid, name: target.document.name, token: target.document.uuid, scores: duelistScores(opponent) }
 		]
 	});
 	if (!duel) return null;

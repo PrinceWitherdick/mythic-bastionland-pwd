@@ -449,7 +449,8 @@ async function planAttack(actor, joining = null) {
 			moved: movedThisTurn(actor),
 			// Read off the world rather than remembered, so it follows the steed.
 			mounted,
-			duel: duel && t("duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
+			// A sparring bout says so, since its Damage is shaken off afterwards (p188).
+			duel: duel && t(duel.duel.sparring ? "duel.attackInSparring" : "duel.attackIn", { kind: t(`duel.kinds.${duel.duel.kind}.label`), name: duel.opponent.name }),
 			charge: mount && t("attack.charge", { steed: mount.steed.name, dice: mount.trample.map((item) => item.system.damage).join(" + ") }),
 			chargeBarred,
 			exhausted: conditions.exhausted,

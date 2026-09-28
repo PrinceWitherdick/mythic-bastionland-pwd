@@ -6,6 +6,8 @@ import {
 	createDuel,
 	opponentOf,
 	readyToResolve,
+	shakenOff,
+	sparringOpen,
 	stakeChanges
 } from "../../module/rules/duel.js";
 
@@ -17,9 +19,10 @@ describe("createDuel", () => {
 			kind: "joust",
 			stake: true,
 			bloodless: false,
+			sparring: false,
 			duelists: [
-				{ uuid: "Actor.ada", name: "Ada", token: "Token.a", attack: null },
-				{ uuid: "Actor.bram", name: "Bram", token: "Token.b", attack: null }
+				{ uuid: "Actor.ada", name: "Ada", token: "Token.a", attack: null, start: null },
+				{ uuid: "Actor.bram", name: "Bram", token: "Token.b", attack: null, start: null }
 			],
 			exchanges: 0,
 			victor: null,
@@ -31,6 +34,67 @@ describe("createDuel", () => {
 		expect(createDuel({ duelists: [duelists[0]] })).toBeNull();
 		expect(createDuel({ duelists: [duelists[0], duelists[0]] })).toBeNull();
 		expect(createDuel({ kind: "brawl", duelists }).kind).toBe("duel");
+	});
+});
+
+describe("sparring", () => {
+	const scored = [
+		{ ...duelists[0], scores: { guard: 4, vigour: 12, wounded: false } },
+		{ ...duelists[1], scores: { guard: 3, vigour: 9, wounded: true } }
+	];
+
+	it("keeps each duelist's GD, VIG and Wound as it begins, and is always bloodless (p188)", () => {
+		const duel = createDuel({ sparring: true, duelists: scored });
+		expect(duel).toMatchObject({ sparring: true, bloodless: true });
+		expect(duel.duelists.map(({ start }) => start)).toEqual([
+			{ guard: 4, vigour: 12, wounded: false },
+			{ guard: 3, vigour: 9, wounded: true }
+		]);
+	});
+
+	it("keeps nothing for a duel that isn't sparring", () => {
+		const duel = createDuel({ bloodless: true, duelists: scored });
+		expect(duel).toMatchObject({ sparring: false, bloodless: true });
+		expect(duel.duelists.every(({ start }) => start === null)).toBe(true);
+	});
+
+	it("is open to be shaken off until it ends, and only for its own duelists where they're named", () => {
+		const duel = createDuel({ sparring: true, duelists: scored });
+		expect(sparringOpen(duel)).toBe(true);
+		expect(sparringOpen(duel, new Set(["Actor.bram"]))).toBe(true);
+		expect(sparringOpen(duel, new Set(["Actor.cole"]))).toBe(false);
+		expect(sparringOpen(changeDuel(duel, { type: "end", victor: null }))).toBe(false);
+		expect(sparringOpen(createDuel({ duelists: scored }))).toBe(false);
+		expect(sparringOpen(null)).toBe(false);
+	});
+
+	it("puts back the GD and VIG lost, and a Wound taken, once it ends", () => {
+		const duel = createDuel({ sparring: true, duelists: scored });
+		const now = {
+			"Actor.ada": { guard: 0, vigour: 7, wounded: true },
+			"Actor.bram": { guard: 1, vigour: 9, wounded: true }
+		};
+		expect(shakenOff(duel, now)).toEqual([
+			{ uuid: "Actor.ada", from: now["Actor.ada"], to: { guard: 4, vigour: 12, wounded: false } },
+			// Wounded before the bout began, so still Wounded after it.
+			{ uuid: "Actor.bram", from: now["Actor.bram"], to: { guard: 3, vigour: 9, wounded: true } }
+		]);
+	});
+
+	it("keeps what was gained meanwhile, and leaves out anybody with nothing to put back", () => {
+		const duel = createDuel({ sparring: true, duelists: scored });
+		const now = {
+			"Actor.ada": { guard: 5, vigour: 12, wounded: false },
+			"Actor.bram": { guard: 2, vigour: 10, wounded: false }
+		};
+		expect(shakenOff(duel, now)).toEqual([{ uuid: "Actor.bram", from: now["Actor.bram"], to: { guard: 3, vigour: 10, wounded: false } }]);
+	});
+
+	it("puts back only GD for somebody with no VIG, and nothing for a duel that isn't sparring", () => {
+		const duel = createDuel({ sparring: true, duelists: [{ ...scored[0], scores: { guard: 5, vigour: null } }, scored[1]] });
+		expect(duel.duelists[0].start).toEqual({ guard: 5, vigour: null, wounded: false });
+		expect(shakenOff(duel, { "Actor.ada": { guard: 2, vigour: null, wounded: false } })[0].to).toEqual({ guard: 5, vigour: null, wounded: false });
+		expect(shakenOff(createDuel({ duelists: scored }), { "Actor.ada": { guard: 0, vigour: 1, wounded: true } })).toEqual([]);
 	});
 });
 

@@ -5,22 +5,31 @@
  * both can use Feats before the Attacks are resolved. In a public duel or
  * joust, Knights may stake Glory: the victor gains 1, the loser loses 1 (p6).
  * Scars only come from real, deadly combat, not training or bloodless duels (p9).
+ * Sparring goes further: its Damage "can be shaken off afterwards" (p188), so
+ * it leaves nobody dying, and each duelist's GD and VIG are put back as it ends.
  * Pure, so a duel card's state can be tested without Foundry.
  */
 
 export const DUEL_KINDS = Object.freeze(["duel", "joust"]);
 
 /**
+ * @typedef {object} DuelistScores What sparring puts back.
+ * @property {number} guard
+ * @property {number|null} vigour Null for somebody with no VIG.
+ * @property {boolean} wounded
+ *
  * @typedef {object} Duelist
  * @property {string} uuid        Actor UUID.
  * @property {string} name
  * @property {string|null} token  Token document UUID, which the other's Attack targets.
  * @property {string|null} attack Chat message id of their Attack this exchange.
+ * @property {DuelistScores|null} start Their scores as a sparring bout began, or null for any other duel.
  *
  * @typedef {object} DuelState What a duel card remembers between clicks.
  * @property {string} kind         One of DUEL_KINDS.
  * @property {boolean} stake       Glory is staked on the outcome.
  * @property {boolean} bloodless   A bout that leaves no Scars.
+ * @property {boolean} sparring    A practice bout, whose Damage is shaken off afterwards. Always bloodless.
  * @property {Duelist[]} duelists  Always two.
  * @property {number} exchanges    How many pairs of Attacks have been resolved.
  * @property {string|null} victor  The victor's UUID once over, or null.
@@ -32,20 +41,73 @@ export const DUEL_KINDS = Object.freeze(["duel", "joust"]);
  * @param {string} [args.kind]
  * @param {boolean} [args.stake]
  * @param {boolean} [args.bloodless]
- * @param {{uuid: string, name: string, token?: string|null}[]} args.duelists
+ * @param {boolean} [args.sparring]
+ * @param {{uuid: string, name: string, token?: string|null, scores?: DuelistScores}[]} args.duelists
+ *   `scores` are what they start on, kept for sparring.
  * @returns {DuelState|null} Null without two different duelists.
  */
-export function createDuel({ kind = DUEL_KINDS[0], stake = false, bloodless = false, duelists }) {
+export function createDuel({ kind = DUEL_KINDS[0], stake = false, bloodless = false, sparring = false, duelists }) {
 	if (duelists?.length !== 2 || duelists[0].uuid === duelists[1].uuid) return null;
 	return {
 		kind: DUEL_KINDS.includes(kind) ? kind : DUEL_KINDS[0],
 		stake: Boolean(stake),
-		bloodless: Boolean(bloodless),
-		duelists: duelists.map(({ uuid, name, token = null }) => ({ uuid, name, token, attack: null })),
+		// A blow shaken off afterwards leaves no Scar either.
+		bloodless: Boolean(bloodless) || Boolean(sparring),
+		sparring: Boolean(sparring),
+		duelists: duelists.map(({ uuid, name, token = null, scores = null }) => ({
+			uuid,
+			name,
+			token,
+			attack: null,
+			start: sparring && scores ? startingScores(scores) : null
+		})),
 		exchanges: 0,
 		victor: null,
 		ended: false
 	};
+}
+
+/**
+ * @param {{guard?: number, vigour?: number|null, wounded?: boolean}} scores
+ * @returns {DuelistScores}
+ */
+function startingScores({ guard = 0, vigour = null, wounded = false }) {
+	return { guard: Number(guard) || 0, vigour: Number.isFinite(vigour) ? vigour : null, wounded: Boolean(wounded) };
+}
+
+/**
+ * Whether a sparring bout is still open to be shaken off: once time has
+ * passed, or the Combat either duelist was in has ended, the bout is over
+ * whether or not anybody won it (p188).
+ * @param {DuelState|null} duel
+ * @param {Set<string>|null} [among] Actor UUIDs, one of whom must be a duelist. Null for any bout.
+ * @returns {boolean}
+ */
+export const sparringOpen = (duel, among = null) =>
+	Boolean(duel?.sparring && !duel.ended && (!among || duel.duelists.some(({ uuid }) => among.has(uuid))));
+
+/**
+ * What sparring puts back as the duel ends (p188): GD and VIG lost since it
+ * began, and Wounded if they weren't. Anything they've gained meanwhile, such
+ * as GD back from a breather, is theirs to keep.
+ * @param {DuelState} duel
+ * @param {Record<string, DuelistScores>} now Each duelist's scores now, by UUID.
+ * @returns {{uuid: string, from: DuelistScores, to: DuelistScores}[]} Those with anything
+ *   to put back. None unless sparring.
+ */
+export function shakenOff(duel, now) {
+	if (!duel?.sparring) return [];
+	return duel.duelists.flatMap(({ uuid, start }) => {
+		const from = now[uuid];
+		if (!start || !from) return [];
+		const to = {
+			guard: Math.max(from.guard, start.guard),
+			vigour: from.vigour === null || start.vigour === null ? from.vigour : Math.max(from.vigour, start.vigour),
+			wounded: from.wounded && start.wounded
+		};
+		const changed = to.guard !== from.guard || to.vigour !== from.vigour || to.wounded !== from.wounded;
+		return changed ? [{ uuid, from, to }] : [];
+	});
 }
 
 /**

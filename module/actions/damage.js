@@ -167,6 +167,7 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  *                                       Attacks, so a known melee Attack doesn't offer it.
  * @param {{warband?: boolean, structure?: boolean}} [preset.harm] Which harm requirements the Attack meets.
  * @param {boolean} [preset.nonLethal] The Attack's Damage never Slays or leaves anybody dying.
+ * @param {boolean} [preset.sparring] A practice bout's, to be shaken off afterwards (p188): nobody's Morale or revenge rides on it.
  * @param {string[]} [preset.except] Ids of the Attack cards being applied, whose own Trap doesn't hold yet.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
@@ -205,7 +206,8 @@ export async function takeDamage(actor, preset = {}) {
 	const { armour: appliedArmour, before } = asked;
 	let { result } = asked;
 	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
-	if (result.outcome === "mortal" && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
+	// Non-lethal Damage never Slays, Doom or not.
+	if (result.outcome === "mortal" && !preset.nonLethal && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
 
 	const update = { "system.guard.value": result.guard };
 	if (virtues) update["system.virtues.vig.value"] = result.vigour;
@@ -216,7 +218,8 @@ export async function takeDamage(actor, preset = {}) {
 	await actor.update(update, causedBy("damage"));
 
 	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
-	const trigger = moraleTrigger({
+	// Nobody routs from a practice bout.
+	const trigger = !preset.sparring && moraleTrigger({
 		outcome: result.outcome,
 		vigourBefore: before.vigour,
 		vigourAfter: result.vigour,
@@ -229,13 +232,13 @@ export async function takeDamage(actor, preset = {}) {
 	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
 	const card = damageCard(result, appliedArmour, before, outcomes, morale);
 	// Non-lethal Damage leaves them down, but not dying.
-	if (preset.nonLethal && result.outcome === "mortal" && virtues) card.outcome = t("damage.nonLethalDown");
+	if (preset.nonLethal && result.outcome === "mortal" && virtues) card.outcome = t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown");
 	await postCard(actor, "damage", card);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
-	if (DOWN_OUTCOMES.includes(result.outcome)) {
+	if (DOWN_OUTCOMES.includes(result.outcome) && !preset.sparring) {
 		await promptGroupMorale(actor);
 		// Bringing down whoever dealt a Humiliation may be the revenge that settles it (p9).
 		await offerRevenge(actor);
@@ -416,9 +419,10 @@ function damageCard(result, armour, before, outcomes, morale) {
  * @param {object} [options]
  * @param {boolean} [options.scars=true] False where Scars can't be gained, such as a bloodless duel.
  * @param {string[]} [options.except] Ids of the Attack cards being applied now, whose Trap Gambits don't hold yet.
+ * @param {boolean} [options.sparring] A practice bout's blow: non-lethal, and leaving no lasting mark.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeAttack(actor, attack, { scars = true, except = [] } = {}) {
+export async function takeAttack(actor, attack, { scars = true, except = [], sparring = false } = {}) {
 	// Only Blast or large-scale Attacks harm a Warband, and only fire, siege weapons or large
 	// creatures a structure, or siege weapons stone (p11). In a joint Attack only the dice of
 	// shares that can harm them count, and cover, Armour and Slaying follow the die that does (p8).
@@ -427,14 +431,16 @@ export async function takeAttack(actor, attack, { scars = true, except = [] } = 
 		damage: blow.damage,
 		ignoreArmour: blow.ignoresArmour,
 		ranged: blow.ranged,
-		nonLethal: blow.nonLethal,
+		// Sparring's Damage is shaken off afterwards (p188), so it leaves nobody dying.
+		nonLethal: sparring || blow.nonLethal,
+		sparring,
 		except,
 		harm: blow.harm
 	});
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });
 	const marker = lastingMarkBy(attack);
-	if (marker !== null && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
+	if (marker !== null && !sparring && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
 	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });
 	return result;
