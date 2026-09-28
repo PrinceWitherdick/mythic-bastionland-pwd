@@ -3937,6 +3937,18 @@
         "hotkey": "Press B to open or close the rulebook. Change the key under Configure Controls."
       }
     },
+    "realmTour": {
+      "title": "Your First Realm",
+      "description": "Where Realms are made: the Scenes tab, and the New Realm button at its top.",
+      "scenes": {
+        "title": "The Scenes Tab",
+        "content": "Each Realm is a Scene of its own, kept here with the world’s other Scenes."
+      },
+      "newRealm": {
+        "title": "New Realm",
+        "content": "New Realm makes a Realm for the Company to explore. Roll it from the book’s tables, draw it yourself on a blank map, or import a map you drew on paper."
+      }
+    },
     "welcome": {
       "title": "Welcome to Mythic Bastionland",
       "open": "Open the Welcome",

@@ -63,11 +63,13 @@ The Phase, Season and Age sit in a bar at the top of the screen. The GM's button
 
 #### The Realm
 
-**New Realm** rolls a Realm onto a Scene the way the book's Creating a Realm page does: terrain, a river, four Holdings, six Myths, Landmarks and Barriers. The same seed always gives the same map. Reroll until you like it, then keep it. You can also:
+**New Realm**, at the top of the Scenes tab, rolls a Realm onto a Scene the way the book's Creating a Realm page does: terrain, a river, four Holdings, six Myths, Landmarks and Barriers. The same seed always gives the same map. Reroll until you like it, then keep it. You can also:
 
 - **Draw it yourself**, one step at a time, with the book's instructions beside the map.
 - **Import a map** drawn on paper, scanned or photographed, and line the hexes up over it.
 - Untick any part of the setup to draw it by hand, or ignore the rules and set your own counts.
+
+When a new world's GM closes the Welcome window, a short Foundry Tour points them to the Scenes tab and New Realm. They can play it again from **Tour Management** in the Settings tab.
 
 Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there.
 

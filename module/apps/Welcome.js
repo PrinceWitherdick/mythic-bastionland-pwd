@@ -7,6 +7,7 @@ import { bringInRulebook, importKeptRulebook } from "../rulebook/bring-in.js";
 import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath, setFoundRulebook } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
+import { showWhereRealmsAreMade } from "./realm-tour.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -187,10 +188,12 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#hook = null;
 		if (this.#userHook !== null) Hooks.off("userConnected", this.#userHook);
 		this.#userHook = null;
-		// Closed once, it has done its greeting: the world stops opening it by itself.
+		// Closed once, it has done its greeting: the world stops opening it by itself,
+		// and the GM is shown where the first Realm is made.
 		if (game.settings.get(SYSTEM_ID, SHOW_SETTING)) {
 			game.settings.set(SYSTEM_ID, SHOW_SETTING, false)
 				.catch((error) => console.error(`${SYSTEM_ID} | Couldn't stop the Welcome opening by itself`, error));
+			showWhereRealmsAreMade();
 		}
 	}
 

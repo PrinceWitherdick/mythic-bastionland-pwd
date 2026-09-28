@@ -44,6 +44,7 @@ function installFoundryStubs() {
 			ux: { TextEditor: { implementation: {} } }
 		},
 		documents: { JournalEntry: class JournalEntry {} },
+		nue: { Tour: class Tour {} },
 		canvas: {
 			placeables: { Token: class Token {} },
 			layers: {
@@ -57,7 +58,7 @@ function installFoundryStubs() {
 	};
 	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, fontDefinitions: {}, queries: {} };
 	globalThis.canvas = { scene: null };
-	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
+	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {
 		once: (name, callback) => { hooks[name] = callback; },
 		on: (name, callback) => { hooks[name] = callback; }
@@ -273,6 +274,14 @@ describe("system boot", () => {
 		game.settings.settings = new Map([["core.tokenAutoRotate", autoRotate]]);
 		hooks.setup();
 		expect(autoRotate.default).toBe(false);
+		delete game.settings.settings;
+	});
+
+	it("registers the Tour showing GMs where Realms are made once core's settings are there", () => {
+		game.settings.settings = new Map();
+		game.tours.register.mockClear();
+		hooks.setup();
+		expect(game.tours.register).toHaveBeenCalledWith(SYSTEM_ID, "newRealm", expect.any(foundry.nue.Tour));
 		delete game.settings.settings;
 	});
 

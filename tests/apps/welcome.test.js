@@ -5,6 +5,7 @@ let settings;
 let opened;
 let welcome;
 let worldSetup;
+let tour;
 
 /**
  * A world as the Welcome sees it at load.
@@ -18,12 +19,14 @@ let worldSetup;
 function installWorld({ isGM = true, done = {}, actors = 0, scenes = 0, journal = 0 } = {}) {
 	const user = { isGM, isSelf: true };
 	settings = {};
+	tour = { start: vi.fn(async () => {}) };
 	globalThis.game = {
 		user,
 		users: { activeGM: user },
 		actors: { size: actors },
-		scenes: { size: scenes },
+		scenes: { size: scenes, some: () => false },
 		journal: { size: journal },
+		tours: { get: () => tour },
 		settings: {
 			register: (_namespace, key, config) => { settings[key] = config.default; },
 			registerMenu: vi.fn(),
@@ -59,7 +62,8 @@ beforeAll(async () => {
 				},
 				HandlebarsApplicationMixin: (Base) => class extends Base {}
 			}
-		}
+		},
+		nue: { Tour: { tourInProgress: false } }
 	};
 	worldSetup = await import("../../module/world-setup.js");
 	welcome = await import("../../module/apps/Welcome.js");
@@ -92,6 +96,15 @@ describe("the Welcome", () => {
 		game.settings.set.mockClear();
 		welcome.openWelcome()._onClose({});
 		expect(game.settings.set).not.toHaveBeenCalled();
+	});
+
+	it("shows the GM where Realms are made when it's first closed, and not again", async () => {
+		await load();
+		opened.at(-1)._onClose({});
+		expect(tour.start).toHaveBeenCalledTimes(1);
+
+		welcome.openWelcome()._onClose({});
+		expect(tour.start).toHaveBeenCalledTimes(1);
 	});
 
 	it("stays away from a world that was in play before it existed", async () => {

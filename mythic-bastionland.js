@@ -39,6 +39,7 @@ import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables, registerSparkTablesSetting } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
+import { registerRealmTour } from "./module/apps/realm-tour.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
@@ -430,6 +431,8 @@ Hooks.once("init", () => {
 Hooks.once("setup", () => {
 	const autoRotate = game.settings.settings.get("core.tokenAutoRotate");
 	if (autoRotate) autoRotate.default = false;
+	// Foundry's Tours keep their progress in a core setting, also registered after init.
+	registerRealmTour();
 });
 
 // Roll Surprise sits in the Combat Tracker's encounter menu.
