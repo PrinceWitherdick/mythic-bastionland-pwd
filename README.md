@@ -6,7 +6,7 @@ An unofficial [Foundry VTT](https://foundryvtt.com) system for playing [Mythic B
 
 > **You need the rulebook PDF.** Without a purchased copy of the Mythic Bastionland PDF, this system is practically useless: no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums, just empty sheets and a blank map. [Buy the book](https://bastionlandpress.com/collections/all), then import your PDF with the **Import PDF** macro or the Welcome window.
 
-It ships none of the book's text beyond the rules reminders printed on the free character sheet and the free Blank Realm sheet, and none of its art beyond the Blank Realm sheet's map legend. Everything else is read from your own copy of the PDF (see [Art and text from your own book](#art-and-text-from-your-own-book)).
+It ships none of the book's text, and none of its art beyond the free Blank Realm sheet's map legend. The rules it shows in the book's own words, and everything else from the book, are read from your own copy of the PDF (see [Art and text from your own book](#art-and-text-from-your-own-book)).
 
 ## 🤖 Created in collaboration with AI to facilitate rapid development. Absolutely no image generation was or will be used.
 
@@ -20,7 +20,7 @@ Everything below is built into the system. No extra modules required.
 
 Laid out after the official printed sheet: Virtues and Guard, Glory, Age and Rank, Conditions, Property, Ability, Passion, Scars and Feats. Click a Virtue to roll a Save. Rank follows from Glory, and conditions such as Exhausted or Impaired follow from the Virtues. Side tabs hold the Knight's **Property, Steed and Squire**, the **Seer** who knighted them, the **Chronicle**, and your own **Settings** (text size, contrast, typeface, reduced motion).
 
-Hover a rule word such as Exposed, Hefty or Gambit, or a heading such as Glory or Passion, to see what the book says about it. The title bar has a **Ledger** of every change made to the Knight, and a **Domain** button for Knights who rule one.
+Hover a rule word such as Exposed, Hefty or Gambit, or a heading such as Glory or Passion, to see what the book says about it, once your PDF is imported. The title bar has a **Ledger** of every change made to the Knight, and a **Domain** button for Knights who rule one.
 
 #### Making a Knight
 
@@ -91,8 +91,9 @@ Buttons in the Roll Tables tab roll the book's quick tables (the Luck Roll, Pass
 
 ### Art and text from your own book
 
-Chris McDowall's text and art ship only as far as the free sheets allow. If you own the rulebook PDF, the **Import PDF** macro (or the **Welcome** window a new world opens with) reads your copy, locally in your browser, and brings in:
+None of Chris McDowall's text ships with the system, and of his art only the free Blank Realm sheet's legend does. If you own the rulebook PDF, the **Import PDF** macro (or the **Welcome** window a new world opens with) reads your copy, locally in your browser, and brings in:
 
+- the book's own words for the rules the system shows: Travel and Exploration beside the map, the Knighthood page, the rule word tips, the Scars, the seasonal events, and the Council and Court. Until then each shows the system's own short line or nothing, with the page to read;
 - every Knight's and Seer's portrait and every Myth's illustration;
 - each Knight's Property, Ability, Passion and table, each Seer's traits, each Myth's Omens, Cast and table, the Spark Tables and the City Quest;
 - **Arms & Goods** and **Beasts, Hirelings & Warbands** compendiums;
@@ -147,16 +148,18 @@ npm run unpack    # extract packs back to packs/src
 
 A checkout runs straight from the source files. A release runs from the single bundled file. Game arithmetic lives in `module/rules/` as plain functions with no Foundry dependency, so all of it is unit tested. The system id is defined only in `module/system-id.js`.
 
+No words of the book belong in the repository, code comments and tests included. A passage the system shows in the book's words is added to `module/rules/book-prints.js` as a page and fingerprint with `node scripts/book-text.js print`, and `node scripts/book-text.js overlap` checks, against your own PDFs, that nothing else has crept in. Both take Foundry's copy of pdf.js through `PDFJS` (see the top of `scripts/book-text.js`).
+
 ## Credits
 
-- **Mythic Bastionland** © Chris McDowall, [Bastionland Press](https://www.bastionland.com). The Realm's terrain, Holdings and Landmarks are traced from the free Blank Realm sheet's map legend, and the Travel rules beside the map are that sheet's text.
+- **Mythic Bastionland** © Chris McDowall, [Bastionland Press](https://www.bastionland.com). The Realm's terrain, Holdings and Landmarks are traced from the free Blank Realm sheet's map legend. The rules shown in the book's words are read from your own copy.
 - **Fonts:** [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English), [UnifrakturCook](https://fonts.google.com/specimen/UnifrakturCook), [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) and [Pirata One](https://fonts.google.com/specimen/Pirata+One), under the SIL Open Font License (`assets/fonts/licenses`).
 - **Heraldic charges and the Armorial Realm skin** are adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto. Only drawings after public-domain books are used. They're shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings and the pictures made from them (`assets/heraldry/charges/`, `assets/realm/armorial/` and each skin's `seat.svg`). Per-drawing credits are in [assets/heraldry/charges/CREDITS.md](assets/heraldry/charges/CREDITS.md) and in each file.
 - **Icons** from [game-icons.net](https://game-icons.net) by Delapouite, Lorc, Skoll, Caro Asercion, Carl Olsen, Cathelineau, HeavenlyDog, Lucas and sbed, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), recoloured. They're used for goods, macros, Company Tokens, the Realm's towns and castles, the GM Toolkit and the Squire. Each picture carries its credit, and the lists are in [goods](assets/icons/goods/CREDITS.md), [macro](assets/icons/macros/CREDITS.md) and [Company](assets/icons/company/CREDITS.md) CREDITS.md files.
 
 ## Licence
 
-This project's own code and original material are under the [MIT License](LICENSE). That licence doesn't cover the Mythic Bastionland material, or the fonts, heraldry and icons listed above, which keep their own terms. [LICENSE](LICENSE) sets out exactly what's excluded.
+This project's code and text are under the [MIT License](LICENSE). That licence doesn't cover the Mythic Bastionland name, the traced Blank Realm art, or the fonts, heraldry and icons listed above, which keep their own terms. [LICENSE](LICENSE) sets out exactly what's excluded.
 
 ## Copyright
 

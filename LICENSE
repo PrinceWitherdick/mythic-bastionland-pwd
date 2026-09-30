@@ -24,18 +24,23 @@ SOFTWARE.
 Scope
 -------------------------------------------------------------------------------
 
-The MIT License above covers this project's own source code and original
-material only. It does not cover the following, which stay under their own
-terms:
+The MIT License above covers this project's own source code, text and
+original material. It does not cover the following, which stay under their
+own terms:
 
-- Mythic Bastionland material. Mythic Bastionland, its text, art and trade
-  dress are (c) Chris McDowall, Bastionland Press. All rights reserved. This
-  includes the rules text from the book, the free character sheet and the free
-  Blank Realm sheet that is reproduced or summarised in languages/en.json, and
-  the Realm terrain, Holdings and Landmarks traced from the Blank Realm sheet's
-  map legend under assets/realm/.
-  It is used here with Chris McDowall's permission, and that permission does
-  not pass on to anyone else.
+- Mythic Bastionland. Mythic Bastionland, its text, art and trade dress are
+  (c) Chris McDowall, Bastionland Press. All rights reserved. None of its text
+  is included here: the rules the system shows in the book's own words are
+  read at runtime from the user's own copy of the rulebook. The repository
+  holds only the page each passage is on and a fingerprint of its letters
+  (module/rules/book-prints.js), from which no text can be read back. The
+  name Mythic Bastionland is his, and no rights in it are granted.
+
+- The Realm terrain, Holdings and Landmarks traced from the free Blank Realm
+  sheet's map legend, (c) Chris McDowall, Bastionland Press, under
+  assets/realm/ and in scripts/data/realm-sheet-art.json. They are included
+  with Chris McDowall's permission, and that permission does not pass on to
+  anyone else.
 
 - Heraldic charges and the Armorial Realm skin (assets/heraldry/charges/,
   assets/realm/armorial/ and each skin's seat.svg), adapted from the Book of
