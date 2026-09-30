@@ -106,7 +106,7 @@ jobs:
         # it, because the bundle's source map points at them.
         run: |
           zip -r mythic-bastionland.zip \
-            system.json mythic-bastionland.js dist/ README.md \
+            system.json mythic-bastionland.js dist/ README.md LICENSE \
             AI-TRAINING-NOTICE.md ai.txt robots.txt .well-known/ \
             module/ styles/ languages/ assets/ templates/ packs/ \
             --exclude "packs/src/*"

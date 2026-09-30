@@ -1,0 +1,52 @@
+MIT License
+
+Copyright (c) 2026 PrinceWitherdick
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+Scope
+-------------------------------------------------------------------------------
+
+The MIT License above covers this project's own source code and original
+material only. It does not cover the following, which stay under their own
+terms:
+
+- Mythic Bastionland material. Mythic Bastionland, its text, art and trade
+  dress are (c) Chris McDowall, Bastionland Press. All rights reserved. This
+  includes the rules text from the book, the free character sheet and the free
+  Blank Realm sheet that is reproduced or summarised in languages/en.json, and
+  the Realm terrain, Holdings and Landmarks traced from the Blank Realm sheet's
+  map legend under assets/realm/.
+  It is used here with Chris McDowall's permission, and that permission does
+  not pass on to anyone else.
+
+- Heraldic charges and the Armorial Realm skin (assets/heraldry/charges/,
+  assets/realm/armorial/ and each skin's seat.svg), adapted from the Book of
+  Traceable Heraldic Art, (c) 2016-2023 Matthew Simon Ryan Cavalletto, under
+  CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+
+- Icons from game-icons.net, under CC BY 3.0
+  (https://creativecommons.org/licenses/by/3.0/). Credits are in each file and
+  in the CREDITS.md files under assets/icons/.
+
+- Fonts under assets/fonts/, under the SIL Open Font License. The licence
+  texts are in assets/fonts/licenses/.
+
+See the Credits and Copyright sections of README.md for details.

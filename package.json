@@ -1,6 +1,7 @@
 {
   "name": "mythic-bastionland-pwd",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "test": "vitest run",

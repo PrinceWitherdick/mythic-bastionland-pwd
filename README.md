@@ -154,6 +154,10 @@ A checkout runs straight from the source files. A release runs from the single b
 - **Heraldic charges and the Armorial Realm skin** are adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto. Only drawings after public-domain books are used. They're shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings and the pictures made from them (`assets/heraldry/charges/`, `assets/realm/armorial/` and each skin's `seat.svg`). Per-drawing credits are in [assets/heraldry/charges/CREDITS.md](assets/heraldry/charges/CREDITS.md) and in each file.
 - **Icons** from [game-icons.net](https://game-icons.net) by Delapouite, Lorc, Skoll, Caro Asercion, Carl Olsen, Cathelineau, HeavenlyDog, Lucas and sbed, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), recoloured. They're used for goods, macros, Company Tokens, the Realm's towns and castles, the GM Toolkit and the Squire. Each picture carries its credit, and the lists are in [goods](assets/icons/goods/CREDITS.md), [macro](assets/icons/macros/CREDITS.md) and [Company](assets/icons/company/CREDITS.md) CREDITS.md files.
 
+## Licence
+
+This project's own code and original material are under the [MIT License](LICENSE). That licence doesn't cover the Mythic Bastionland material, or the fonts, heraldry and icons listed above, which keep their own terms. [LICENSE](LICENSE) sets out exactly what's excluded.
+
 ## Copyright
 
 Mythic Bastionland, its text, art and trade dress are © Chris McDowall, Bastionland Press. All rights reserved. They're used here with his permission, and only as far as described above. They aren't covered by any licence this project grants.
