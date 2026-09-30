@@ -37,7 +37,7 @@ async function loadBots() {
 function robotsTxt(bots) {
 	const header = [
 		"# robots.txt - AI training / text-and-data-mining opt-out for the Mythic",
-		"# Bastionland for Foundry VTT project. Rights reserved; see AI-TRAINING-NOTICE.md.",
+		"# Bastionland for Foundry VTT project. A request; see AI-TRAINING-NOTICE.md.",
 		"#",
 		"# robots.txt is only honored when served from the ROOT of a host you control",
 		"# (a GitHub Pages site or your own domain); it has no effect on github.com.",
@@ -60,20 +60,21 @@ function robotsTxt(bots) {
 function aiTxt(bots) {
 	const header = [
 		"# ai.txt - AI training / text-and-data-mining preferences for this project.",
-		"# Rights reserved for TDM and AI training. See AI-TRAINING-NOTICE.md.",
+		"# The maintainers ask that this project not be used for AI training. See AI-TRAINING-NOTICE.md.",
 		"# Machine-readable companion to robots.txt and /.well-known/tdmrep.json.",
 		"#",
-		"# This project (source, compiled artifacts, docs, and bundled content) may NOT be",
-		"# used to train, fine-tune, or evaluate machine-learning or generative-AI models,",
-		"# nor be included in datasets assembled for those purposes.",
+		"# Please do not use this project (source, compiled artifacts, docs, and bundled",
+		"# content) to train, fine-tune, or evaluate machine-learning or generative-AI",
+		"# models, or include it in datasets assembled for those purposes. This is a",
+		"# request: it does not limit what the project's MIT licence permits.",
 		"#",
 		"# GENERATED FILE - edit scripts/ai-bots.txt and run `npm run gen:ai-signals`.",
 		"",
-		"# Disallow all automated agents from AI-training use of this content.",
+		"# All automated agents are asked not to use this content for AI training.",
 		"User-Agent: *",
 		"Disallow: /",
 		"",
-		"# Named AI crawlers and dataset agents are explicitly disallowed.",
+		"# Named AI crawlers and dataset agents are asked the same.",
 	];
 	const named = bots.map(ua => `User-Agent: ${ua}`);
 	return header.join("\n") + "\n" + named.join("\n") + "\nDisallow: /\n\n# Contact: " + CONTACT + "\n";

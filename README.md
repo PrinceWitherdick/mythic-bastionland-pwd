@@ -169,4 +169,4 @@ This is an unofficial, fan-made system, made with Chris McDowall's permission. I
 
 ## AI Training and Data Mining
 
-Rights are reserved for text and data mining, machine learning, and AI training. This project and its release artifacts may not be used to train, fine-tune, or evaluate AI models, or be included in datasets built for those purposes. See the [AI Training and Data-Mining Notice](AI-TRAINING-NOTICE.md), with machine-readable signals in [`ai.txt`](ai.txt), [`.well-known/tdmrep.json`](.well-known/tdmrep.json), and [`robots.txt`](robots.txt).
+The maintainers ask that this project and its release artifacts not be used to train, fine-tune, or evaluate AI models, or be included in datasets built for those purposes. This is a request and doesn't limit what the [MIT License](LICENSE) permits. See the [AI Training and Data-Mining Notice](AI-TRAINING-NOTICE.md), with machine-readable signals in [`ai.txt`](ai.txt), [`.well-known/tdmrep.json`](.well-known/tdmrep.json), and [`robots.txt`](robots.txt).

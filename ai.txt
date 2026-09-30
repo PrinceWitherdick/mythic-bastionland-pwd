@@ -1,18 +1,19 @@
 # ai.txt - AI training / text-and-data-mining preferences for this project.
-# Rights reserved for TDM and AI training. See AI-TRAINING-NOTICE.md.
+# The maintainers ask that this project not be used for AI training. See AI-TRAINING-NOTICE.md.
 # Machine-readable companion to robots.txt and /.well-known/tdmrep.json.
 #
-# This project (source, compiled artifacts, docs, and bundled content) may NOT be
-# used to train, fine-tune, or evaluate machine-learning or generative-AI models,
-# nor be included in datasets assembled for those purposes.
+# Please do not use this project (source, compiled artifacts, docs, and bundled
+# content) to train, fine-tune, or evaluate machine-learning or generative-AI
+# models, or include it in datasets assembled for those purposes. This is a
+# request: it does not limit what the project's MIT licence permits.
 #
 # GENERATED FILE - edit scripts/ai-bots.txt and run `npm run gen:ai-signals`.
 
-# Disallow all automated agents from AI-training use of this content.
+# All automated agents are asked not to use this content for AI training.
 User-Agent: *
 Disallow: /
 
-# Named AI crawlers and dataset agents are explicitly disallowed.
+# Named AI crawlers and dataset agents are asked the same.
 User-Agent: AddSearchBot
 User-Agent: AgentTimes
 User-Agent: AI2Bot
