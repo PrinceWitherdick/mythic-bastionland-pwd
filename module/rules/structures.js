@@ -1,6 +1,6 @@
 /**
- * Wood and Stone (Warfare, p11): ships and structures are destroyed at 0GD,
- * recovering GD takes a day of repairs, and colliding ships take d12 Damage,
+ * Wood and Stone (Warfare, p11): a ship or structure is destroyed at 0GD, a
+ * day of repairs brings its GD back, and colliding ships take d12 Damage,
  * or d6 for one much larger than the other. Siege towers are built the same
  * way. Pure, so it can be tested without Foundry.
  */

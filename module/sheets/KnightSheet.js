@@ -212,7 +212,7 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 					tags: isDoomed([scar], calendar) ? [t("scarRoll.doomActive")] : owed ?? row.tags
 				};
 			}),
-			// Patched up in a few moments (p8), which settles a Gouge or Tear too (p9).
+			// A few moments' care patches them up (p8), which settles a Gouge or Tear too (p9).
 			canPatchUp: canPatchUp(this.actor),
 			steed: steed && {
 				name: steed.name,

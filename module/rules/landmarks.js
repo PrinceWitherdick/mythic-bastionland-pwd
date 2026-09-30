@@ -31,8 +31,8 @@ export const LANDMARK_EFFECTS = Object.freeze({
 	dwelling: effect(),
 	sanctum: effect(),
 	monument: effect({ offer: "restoreSpirit", virtue: "spi", icon: "fa-solid fa-hands-praying" }),
-	// "Lose d6 in a Virtue, usually VIG", so VIG is offered and the Referee may choose another,
-	// "or go back the way you came". Devising a solution is the players' own, with no button.
+	// Pushing through costs d6 of a Virtue, most often VIG, so VIG is offered and the Referee may
+	// choose another, or the Company turns back. Devising a solution is the players' own, with no button.
 	hazard: effect({
 		offer: "pushThrough",
 		also: "goBack",

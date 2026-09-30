@@ -9,7 +9,7 @@ import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
- * "At the start of a Season or when returning from a long absence" (p20): a
+ * The Crisis Roll's other time, coming home after a long time away (p20): a
  * Domain whose ruler rides with the Company is marked as Weeks or a Season
  * pass with the Company away from its Holding, and the Referee is offered the
  * Crisis Roll when the Company comes home.

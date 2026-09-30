@@ -76,7 +76,8 @@ export function announceSeasonEvent(event, season, { weeks = false } = {}) {
 		icon: event.icon,
 		title: eventLabel(event.key),
 		tagline: stageLabel(event.stage, season),
-		entries: [{ name: t(`time.seasonBynames.${season}`), lines: [t(`time.events.kinds.${event.key}.text`)] }],
+		// The event's line is the book's, so before Import PDF has read it the Season's name stands alone.
+		entries: [{ name: t(`time.seasonBynames.${season}`), lines: [t(`time.events.kinds.${event.key}.text`)].filter(Boolean) }],
 		due: domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : [],
 		hint: [weeks ? t("time.events.weeksPassed") : null, prompt].filter(Boolean).join(" "),
 		hintAside: true
@@ -141,6 +142,6 @@ export function collectionEntry(collection) {
 		lines: [
 			t(`time.events.kinds.${collection.key}.text`),
 			...(domains.length ? [t("time.events.collected", { domains: domains.map((domain) => domain.name).join(", ") })] : [])
-		]
+		].filter(Boolean)
 	};
 }

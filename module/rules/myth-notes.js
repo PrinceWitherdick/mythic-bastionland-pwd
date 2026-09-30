@@ -1,8 +1,7 @@
 /**
  * What the GM has written about each Myth of a Realm, and whether the group
- * feels it's resolved. "When the group feels that a Myth is resolved the
- * Knights each gain 1 Glory and a new Myth replaces it in the next Season"
- * (p27), so a note is kept under the Myth's number together with the roll that
+ * feels it's resolved. A resolved Myth earns each Knight 1 Glory and gives way
+ * to another next Season (p27), so a note is kept under the Myth's number together with the roll that
  * made it: a new Myth rolled under the same number starts with nothing written,
  * rather than inheriting the old one's. Pure, so it can be tested without Foundry.
  */

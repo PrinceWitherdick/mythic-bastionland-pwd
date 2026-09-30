@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { realmGeometry, edgeKey } from "../../module/rules/realm-geometry.js";
 import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
+import { withBookText } from "../../module/rules/book-text.js";
 
 const g = realmGeometry({ cols: 12, rows: 12 });
 const hex = (col, row) => ({ col, row });
@@ -51,7 +52,7 @@ const { gatherFolklore, lookFromVantage, markOnPlayersMap, searchTheHex } = awai
 const { rollLabelledSave } = await import("../../module/actions/saves.js");
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 const format = (key, data) => String(lookup(key) ?? key).replace(/\{(\w+)\}/g, (_match, name) => data?.[name] ?? "");
 

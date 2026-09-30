@@ -9,9 +9,9 @@ import { offerRulerDomain } from "./found-domain.js";
 
 /**
  * What the Start the players chose sets going once the Realm is made (p6),
- * besides where the Company begins. A Courtier's Court hears the first Omen of
- * the nearest Myth as news; a Ruler's Seat of Power is under a wicked
- * influence. Whispered to the Referee.
+ * besides where the Company begins. A Courtier's Court hears news of the
+ * nearest Myth's first Omen; something wicked has hold of a Ruler's Seat of
+ * Power. Whispered to the Referee.
  * @param {Scene} scene The Realm.
  * @param {string} start One of COMPANY_STARTS.
  * @returns {Promise<ChatMessage|null>}
@@ -21,7 +21,7 @@ export async function announceStart(scene, start) {
 	if (start === "courtier") return courtNews(scene);
 	if (start === "ruler") {
 		const card = await wickedInfluence();
-		// "One Knight rules a Holding, the others are in their Circle."
+		// One Knight rules, and the others sit in their Circle.
 		await offerRulerDomain(scene);
 		return card;
 	}
@@ -29,9 +29,8 @@ export async function announceStart(scene, start) {
 }
 
 /**
- * Courtier (p6): "The first Omen of the nearest Myth is delivered as news to
- * the Court." The Myth nearest the Seat of Power shows its first Omen, which
- * counts as met.
+ * Courtier (p6): the Court hears of the nearest Myth's first Omen. The Myth
+ * nearest the Seat of Power shows its first Omen, which counts as met.
  * @param {Scene} scene
  * @returns {Promise<ChatMessage|null>}
  */
@@ -58,9 +57,9 @@ async function courtNews(scene) {
 }
 
 /**
- * Ruler (p6): "One Knight rules a Holding, the others are in their Circle. The
- * Seat of Power is under a wicked influence." What the influence is the Woe
- * Spark Table suggests, once Import PDF has brought it in.
+ * Ruler (p6): one Knight rules a Holding with the others in their Circle, and
+ * something wicked has hold of the Seat of Power. What it is the Woe Spark
+ * Table suggests, once Import PDF has brought it in.
  * @returns {Promise<ChatMessage>}
  */
 async function wickedInfluence() {

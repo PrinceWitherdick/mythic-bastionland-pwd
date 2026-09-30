@@ -156,7 +156,7 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			hint: t(`domain.court.roles.${role}.hint`),
 			add: t(`domain.court.roles.${role}.add`),
 			notePlaceholder: t(`domain.court.roles.${role}.notePlaceholder`),
-			// "Vassals taken on by individual Council members", so only a Retainer serves a seat.
+			// A Retainer works for one Council member, so only a Retainer serves a seat.
 			servesASeat: role === SERVES_A_SEAT,
 			members: members.map((member) => ({
 				...member,

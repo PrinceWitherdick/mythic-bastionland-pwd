@@ -211,7 +211,7 @@ describe("npcFromStatBlock", () => {
 	});
 
 	it("marks a swarm by its rule, even where the line breaks inside it (p61)", () => {
-		const bats = npcFromStatBlock({ name: "Enthralled Bat Swarm", stats: null, lines: ["Bites (3d6), individual attacks are Impaired", "unless they are Blast attacks."] });
+		const bats = npcFromStatBlock({ name: "Enthralled Bat Swarm", stats: null, lines: ["Stings (d4), individual attacks are Impaired", "save for a Blast."] });
 		expect(bats.system.scale).toBe("swarm");
 		expect(npcFromStatBlock({ name: "Foxes of the Imp's Court", stats: null, lines: ["Bite (d4), smouldering tails"] }).system.scale).toBe("individual");
 		expect(npcFromStatBlock({ name: "Clawed Bee Swarm, Warband", stats: null, lines: ["Claws and stings (d6)"] }).system.scale).toBe("warband");
@@ -225,7 +225,7 @@ describe("npcFromStatBlock", () => {
 });
 
 describe("structureFromStatBlock", () => {
-	const seer = { name: "The Glass Seer", stats: { vig: null, cla: null, spi: null, guard: 6 }, lines: ["A3, treat as a Structure", "A tall figure of green glass, humming."] };
+	const seer = { name: "The Glass Seer", stats: { vig: null, cla: null, spi: null, guard: 6 }, lines: ["A3, treated as a Structure", "A tall figure of green glass, humming."] };
 
 	it("tells a thing with only GD that counts as a structure from a creature that counts as one", () => {
 		expect(isStructureBlock(seer)).toBe(true);
@@ -294,14 +294,14 @@ describe("Cast weapons", () => {
 	const attacks = (line) => npcFromStatBlock({ name: "Tester", stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: [line] }).items;
 
 	it("counts the number carried off the front of a name", () => {
-		const [firepots] = attacks("3 firepots (d6 blast, sets area alight)");
-		expect(firepots.name).toBe("Firepots");
+		const [firepots] = attacks("3 oil pots (d6 blast, leave the ground burning)");
+		expect(firepots.name).toBe("Oil pots");
 		expect(firepots.system).toMatchObject({ damage: "d6", blast: true, quantity: { value: 3, max: 3 }, usedUp: true });
-		expect(firepots.system.description).toContain("Sets area alight");
+		expect(firepots.system.description).toContain("Leave the ground burning");
 	});
 
 	it("keeps an attack used once a day to one, restocked each day", () => {
-		const [scream] = attacks("Bone-melting scream (d12 slow, ignore armour, once per day each)");
+		const [scream] = attacks("Keening wail (d10 slow, ignore armour, once a day)");
 		expect(scream.system).toMatchObject({ slow: true, ignoresArmour: true, quantity: { value: 1, max: 1 }, restock: "day", usedUp: true });
 	});
 

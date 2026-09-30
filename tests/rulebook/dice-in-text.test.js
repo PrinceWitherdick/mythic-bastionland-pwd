@@ -65,7 +65,7 @@ afterEach(() => {
 
 describe("markDice", () => {
 	it("makes each die a button the window's rollDice action answers", () => {
-		const [die] = mark("create clusters of d12 hexes of the same terrain type");
+		const [die] = mark("paint patches of d12 hexes in one terrain");
 		expect(die.tag).toBe("button");
 		expect(die.type).toBe("button");
 		expect(die.textContent).toBe("d12");

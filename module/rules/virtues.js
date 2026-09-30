@@ -9,7 +9,7 @@ export const VIRTUES = Object.freeze(["vig", "cla", "spi"]);
 /** Every score a character can be rolled or harmed in: their Virtues, then GD. */
 export const SCORES = Object.freeze([...VIRTUES, "guard"]);
 
-/** Hirelings and other folk of the Realm roll their Virtues on d12+d6 (Service, p13). */
+/** Hirelings and other folk of the Realm have d12+d6 in each Virtue (Service, p13). */
 export const FOLK_VIRTUE_ROLL = "1d12+1d6";
 
 /** The score every NPC's Virtues start at, until something gives it its own. */
@@ -23,7 +23,7 @@ export const DEFAULT_VIRTUE = 10;
  */
 export const hasUnrolledVirtues = (system) => VIRTUES.every((key) => system?.virtues?.[key]?.value === DEFAULT_VIRTUE && system.virtues[key].max === DEFAULT_VIRTUE);
 
-/** Virtues "can never go higher than 19 or lower than 0". */
+/** Virtues stay between 0 and 19 (p8). */
 export const VIRTUE_MIN = 0;
 export const VIRTUE_MAX = 19;
 

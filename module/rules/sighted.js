@@ -1,7 +1,7 @@
 /**
  * Seen from afar (p183, p197, p199). From a vantage point the Company can make
  * out that something stands in a neighbouring hex without knowing what it is:
- * "some sort of structure in amongst the hills, a little smoke rising from it".
+ * "a tower on the ridge, a thread of smoke above it".
  * The players' map shows an unnamed mark there, with the Referee's few words of
  * what they see, until the Company gets there.
  *

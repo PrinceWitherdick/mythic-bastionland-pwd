@@ -1,6 +1,6 @@
 /**
- * A single Remedy is a sizeable bundle of materials and tools, and a person
- * or dedicated beast of burden can only carry one at once (Remedies, p9).
+ * A Remedy is a bulky bundle of materials and tools, and nobody, person or
+ * pack beast, carries more than one (Remedies, p9).
  * Pure, so it can be tested without Foundry.
  */
 import { isCounted } from "./restock.js";

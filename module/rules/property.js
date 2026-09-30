@@ -24,7 +24,7 @@ const NATURAL_ATTACK = /^(\d*d\d+)\s+(.+)$/i;
 const SEE_BELOW = /\b(?:see|as) below\b/i;
 
 /**
- * @param {string|null|undefined} name An item's name, such as "Kite shield (d4, A1) marked with a symbol of the truth (see below)".
+ * @param {string|null|undefined} name An item's name, such as "Round shield (d4, A1) painted with a lantern (see below)".
  * @returns {boolean} Whether it points at the table on its Knight's page.
  */
 export const pointsBelow = (name) => SEE_BELOW.test(name ?? "");
@@ -58,7 +58,7 @@ function groupKind(inner) {
 
 /**
  * The first parenthesis that says what the thing before it is, as the "(A1)"
- * in "Tapestry cloak (see below) over mail (A1)".
+ * in "Fur mantle (see below) over mail (A1)".
  * @param {string} text
  * @returns {{open: number, close: number, inner: string, kind: string}|null}
  */
@@ -97,8 +97,8 @@ const ONCE = /\buse once only\b/i;
 
 /**
  * How many of a possession are carried and whether they come round again, as
- * the book's line says: "3 runic scrolls", "(restock each new Season)",
- * "enough for one dose each day", "(use once only ...)". A possession that is
+ * the book's line says: "3 wax candles", "(restock …)", "one dose each day",
+ * "(use once only …)". A possession that is
  * restocked or used once is counted as one when no number is given.
  * @param {string} text The possession as printed.
  * @param {number|null} [count] A number of them already read off it.
@@ -125,8 +125,8 @@ function countedName(name) {
 }
 
 /**
- * A weapon's other way to fight, as a note on it says: "in melee or d10 slow
- * ranged", or "or d8 each when wielded as a pair".
+ * A weapon's other way to fight, as a note on it says: "in melee or d6
+ * ranged", or "or d6 each …as a pair".
  * @param {string} note
  * @returns {object|null} The alternate field's data, or null for a note that says nothing of the kind.
  */
@@ -189,7 +189,7 @@ function gearItem(text) {
 /**
  * The pieces of Property in one chunk: the text before a parenthesis, the
  * parenthesis, and whatever follows it. A second typed piece after the first,
- * as in "mail (A1) with masked helm (A1)", is a piece of its own.
+ * as in "mail (A1) with open helm (A1)", is a piece of its own.
  * @param {string} chunk
  * @returns {{item?: object, companion?: Companion}[]}
  */
@@ -277,13 +277,13 @@ function readChunk(chunk) {
 	const special = notes.map((note) => /^\+\s*(d\d+)\s+(.+)$/i.exec(note)).find((match) => match && SPECIALIST_DICE.includes(match[1].toLowerCase()));
 	const qualities = new Set(attack.qualities);
 	if (RANGED_NAME.test(name)) qualities.add("ranged");
-	// "2d10 hefty when mounted, slow on foot": Hefty only on horseback, as a lance is (p12).
+	// "2d8 hefty when mounted": Hefty only on horseback, as a lance is (p12).
 	if (qualities.has("hefty") && notes.some((note) => /^when mounted$/i.test(tidy(note)))) {
 		qualities.delete("hefty");
 		qualities.add("heftyMounted");
 		notes = notes.filter((note) => !/^when mounted$/i.test(tidy(note)));
 	}
-	// "d10 long, or hefty if mounted"
+	// "d8 long, or hefty if mounted"
 	const lance = (note) => countsAsHeftyMounted(note) || /^or\s+hefty\s+(?:if|when)\s+mounted$/i.test(tidy(note));
 	if (notes.some(lance)) {
 		qualities.add("heftyMounted");
@@ -295,7 +295,7 @@ function readChunk(chunk) {
 		qualities.add(quality);
 		notes = notes.filter((note) => !onFoot.test(tidy(note)));
 	}
-	// "in melee or d10 slow ranged": another way to fight with it.
+	// "in melee or d6 ranged": another way to fight with it.
 	const alternateNote = notes.find((note) => alternateFrom(note));
 	notes = notes.filter((note) => note !== alternateNote);
 	const counted = countedName(label);

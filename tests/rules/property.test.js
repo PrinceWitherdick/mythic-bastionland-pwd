@@ -88,8 +88,8 @@ describe("retypedProperty", () => {
 
 describe("blast consumables", () => {
 	it("makes a thrown thing that strikes an area a Blast weapon", () => {
-		const [pebbles] = propertyItems(["2 river pebbles (thrown, they burst into gravel, striking for d10 blast, restock each new Season)"]).items;
-		expect(pebbles).toMatchObject({ type: "weapon", name: "River pebbles", system: { damage: "d10", blast: true, equipped: true } });
+		const [pebbles] = propertyItems(["2 river pebbles (thrown, they burst into gravel, striking for d8 blast, restock each new Season)"]).items;
+		expect(pebbles).toMatchObject({ type: "weapon", name: "River pebbles", system: { damage: "d8", blast: true, equipped: true } });
 		expect(pebbles.system.description).toBe("<p>Thrown</p><p>They burst into gravel</p><p>Restock each new Season</p>");
 		// Two carried, each Attack throws one, and they come back each new Season.
 		expect(pebbles.system).toMatchObject({ quantity: { value: 2, max: 2 }, restock: "season", usedUp: true });
@@ -195,9 +195,9 @@ describe("possessionDetails", () => {
 
 describe("specialist dice", () => {
 	it("reads a Knight's own +d6", () => {
-		const [axe] = propertyItems(["2 riding axes (d6, +d6 when mounted, can be thrown)"]).items;
+		const [axe] = propertyItems(["2 riding axes (d6, +d6 when mounted, thrown at need)"]).items;
 		expect(axe.system.specialist).toEqual({ die: "d6", situation: "when mounted" });
-		expect(axe.system.description).toBe("<p>Can be thrown</p>");
+		expect(axe.system.description).toBe("<p>Thrown at need</p>");
 	});
 });
 

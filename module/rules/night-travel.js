@@ -1,6 +1,6 @@
 /**
  * Travelling at night (Night, p18). A Company lacking a guide and light is
- * travelling blind, which is rolled each time it tries to move to a new Hex.
+ * travelling blind, which is rolled for every Hex it tries to enter.
  * What the Night costs in SPI is taken as the Night ends (rules/phase-end.js),
  * which is why a Company seen on the move by night is remembered. Pure, so it
  * can be tested without Foundry.

@@ -24,7 +24,7 @@ export const AGE_PURSUITS = Object.freeze(["duty", "succession", "legacy"]);
 
 /**
  * What a pursuit between Seasons can make, as the book plays them (p192):
- * Service a new Dwelling on the map or some other small improvement, Courtesy
+ * Service a Dwelling added to the map or some other small improvement, Courtesy
  * a place at Court, a new contact or a favour. Wording lives under
  * `bastionland.time.pursuitMakes`.
  */
@@ -50,7 +50,7 @@ export const HARDSHIPS = Object.freeze([
 /** Each Virtue is rerolled on this when a character grows Mature or Old. */
 export const AGING_VIRTUE_ROLL = "1d12 + 1d6";
 
-/** Old characters lose this much VIG at the end of each Age. */
+/** What the Old lose in VIG as each Age ends. */
 export const OLD_AGE_LOSS = "1d12";
 
 export const DEFAULT_CALENDAR = Object.freeze({ age: 1, year: 1, season: SEASONS[0], day: 1, phase: PHASES[0] });

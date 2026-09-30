@@ -32,11 +32,25 @@ export const KEYWORD_TIPS = Object.freeze({
 	make: (document, { key, page }, words) => {
 		const word = document.createElement("span");
 		word.className = KEYWORD_CLASS;
-		word.dataset.keywordTip = t("keywords.tip", { text: t(`keywords.${key}`), page });
+		word.dataset.keyword = key;
+		word.dataset.keywordPage = String(page);
 		word.textContent = words;
 		return word;
 	}
 });
+
+/**
+ * What a rule word's tip says: the book's own words for it, read by Import
+ * PDF, or where it's explained until then. Read as it's hovered, so a word
+ * marked before the book was read has the book's words once it is.
+ * @param {string} key Its entry in KEYWORDS.
+ * @param {number|string} page
+ * @returns {string}
+ */
+export function keywordTip(key, page) {
+	const text = t(`keywords.${key}`);
+	return text ? t("keywords.tip", { text, page }) : t("keywords.unread", { page });
+}
 
 /**
  * Give a rule word its tip as the pointer reaches it, or take it away while
@@ -47,7 +61,7 @@ export const KEYWORD_TIPS = Object.freeze({
 export function offerTip(event) {
 	const word = event.target;
 	if (!word?.classList?.contains(KEYWORD_CLASS)) return;
-	if (showsKeywordTips()) word.dataset.tooltip = word.dataset.keywordTip;
+	if (showsKeywordTips()) word.dataset.tooltip = keywordTip(word.dataset.keyword, word.dataset.keywordPage);
 	else delete word.dataset.tooltip;
 }
 

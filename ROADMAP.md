@@ -23,7 +23,7 @@ These were built between 2026-09-26 and 2026-09-28 and pass the unit tests and l
 - [ ] **T-6** Turning the Age offers the Mature or Old reroll to Knights and to NPCs with an Age, and Old NPCs lose d12 VIG. (p17)
 - [ ] **T-7** A second Looming result in a row on the weather table reads as dire weather. (p18)
 - [ ] **T-8** The Lay of the Land window shows a Local Mood button in a Holding hex. (p18)
-- [ ] **T-41** *(was C-8)* Turning the Season, a Knight who chose **Service** is asked what it made: **A new Dwelling on the map** or Something else. A Knight who chose **Courtesy** is asked what it earned: **A place at Court**, A new contact, or A favour. Their line on the Season card says what came of it. A place at Court adds the Knight as a Courtier to the only Domain, or the one picked, with "Earned by Courtesy before …" in the note; with no Domain the line says so. Once everyone has answered, a Dwelling takes up the Dwelling brush on the Realm in view (or says to open the Realm). Closing a question adds nothing. Pilgrimage asks nothing, and so do the Age's pursuits. (p17, p192)
+- [ ] **T-41** *(was C-8)* Turning the Season, a Knight who chose **Service** is asked what it made: **A Dwelling added to the map** or Something else. A Knight who chose **Courtesy** is asked what it earned: **A place at Court**, A new contact, or A favour. Their line on the Season card says what came of it. A place at Court adds the Knight as a Courtier to the only Domain, or the one picked, with "Earned by Courtesy before …" in the note; with no Domain the line says so. Once everyone has answered, a Dwelling takes up the Dwelling brush on the Realm in view (or says to open the Realm). Closing a question adds nothing. Pilgrimage asks nothing, and so do the Age's pursuits. (p17, p192)
 
 ### Referee rolls and the Realm
 - [ ] **T-38** *(was C-5)* The Luck Roll macro and Referee Rolls → Luck Roll ask **Read it on the Luck Roll table, or at odds you've stated?** The table rolls Crisis/Problem/Blessing as before. A slim chance (6+), Unlikely (5+), Straight 50/50 (4+), Likely (3+) or A high chance (2+) posts "Fortune favours them" or "Fortune doesn't favour them", naming the odds. Closing the question rolls nothing. Players' macros ask too. (p16, p182, p184)
@@ -107,7 +107,7 @@ Not taken up from the examples, because they're the Referee's call or are alread
 ## 4. Parked ⏸
 
 - **P-1 Roads drawn on the map.** Roads are rules-only for now: marked per hex, with no art. A road brush with Undo would mean drawing on every Realm skin. Pick this up if roads matter visually.
-- **P-2 Damage-over-time afflictions** such as "d8 Damage each round until washed" (p173). Afflictions cover Virtue Loss only; Damage-type afflictions stay as weapon notes.
+- **P-2 Damage-over-time afflictions** such as a flask of acid that burns every round until washed off (p173). Afflictions cover Virtue Loss only; Damage-type afflictions stay as weapon notes.
 
 ## 5. Decided against ✗
 

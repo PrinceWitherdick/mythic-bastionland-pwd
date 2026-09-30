@@ -12,6 +12,7 @@ import {
 } from "../../module/actions/season-events.js";
 import { GM_TOOLKIT_TYPE } from "../../module/actions/gm-toolkit.js";
 import { MIDPOINT_STAGE, findEvent } from "../../module/rules/season-events.js";
+import { withBookText } from "../../module/rules/book-text.js";
 
 /**
  * The seasonal events (p17) as the actions carry them out: what a Season has
@@ -20,7 +21,7 @@ import { MIDPOINT_STAGE, findEvent } from "../../module/rules/season-events.js";
  */
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 const format = (key, data) => String(lookup(key) ?? key).replace(/\{(\w+)\}/g, (_match, name) => data?.[name] ?? "");
 
@@ -192,15 +193,26 @@ describe("announceSeasonEvent and collectionEntry", () => {
 		expect(lastCard().due).toEqual([format("bastionland.time.events.collected", { domains: "Bramblewatch, Stonewell" })]);
 		expect(collectionEntry(findEvent("levy"))).toEqual({
 			name: lookup("bastionland.time.events.kinds.levy.label"),
-			lines: [
-				lookup("bastionland.time.events.kinds.levy.text"),
-				format("bastionland.time.events.collected", { domains: "Bramblewatch, Stonewell" })
-			]
+			lines: [format("bastionland.time.events.collected", { domains: "Bramblewatch, Stonewell" })]
 		});
 	});
 
+	it("puts the book's own line for the event first, once Import PDF has read it", () => {
+		game.actors = [fakeDomain("Bramblewatch")];
+		const { kinds } = lang.bastionland.time.events;
+		kinds.levy.text = "Words from the book.";
+		try {
+			expect(collectionEntry(findEvent("levy")).lines).toEqual([
+				"Words from the book.",
+				format("bastionland.time.events.collected", { domains: "Bramblewatch" })
+			]);
+		} finally {
+			kinds.levy.text = "";
+		}
+	});
+
 	it("leaves a Realm with no Domain nobody to gather from, and a Feast gathers nothing anywhere", async () => {
-		expect(collectionEntry(findEvent("levy")).lines).toHaveLength(1);
+		expect(collectionEntry(findEvent("levy")).lines).toEqual([]);
 
 		game.actors = [fakeDomain("Bramblewatch")];
 		await announceSeasonEvent(findEvent("feastOfTheMoon"), "winter");

@@ -95,7 +95,7 @@ function scaledSpacings(spacings, g, count, bookCount) {
 }
 
 /**
- * "Create clusters of d12 hexes of the same terrain type": each cluster rolls a
+ * Terrain in patches of d12 hexes (p14): each cluster rolls a
  * d12 for its terrain and another for its size, then grows from a hex beside
  * the land already drawn, favouring compact shapes.
  * @param {{cluster: number, lakes: number}} rules The die for a cluster's size, and the most lake clusters.
@@ -147,7 +147,7 @@ function stepsToSide(g, { col, row }, side) {
 }
 
 /**
- * "Most Realms have a navigable river passing through": a winding walk from one
+ * A navigable river runs through most Realms (p14): a winding walk from one
  * side of the map to another, preferring to keep going the way it flows and to
  * go around high ground.
  * @param {number[]} terrain
@@ -230,7 +230,7 @@ function spreadOut(random, g, pool, count, spacings) {
 const featureHexes = (realm) => new Set([...realm.holdings, ...realm.myths, ...realm.landmarks].map((feature) => hexKey(feature.hex)));
 
 /**
- * "Place 4 Holdings a good distance apart", none in a lake. Each rolls its
+ * 4 Holdings, well apart (p14), none in a lake. Each rolls its
  * style, and one becomes the Seat of Power.
  * @param {number} count
  */
@@ -264,7 +264,7 @@ function uniqueRoll(random, used) {
 }
 
 /**
- * "Place 6 Myths in remote places. Number them 1-6." Remote means far from any
+ * 6 Myths, somewhere remote and numbered 1 to 6 (p14). Remote means far from any
  * Holding. Each Myth rolls on the Myths table (p27), never twice the same.
  * @param {number} count
  */
@@ -285,7 +285,7 @@ function placeMyths(random, g, realm, count) {
 }
 
 /**
- * "A typical Realm has 3 or 4 of each type of Landmark", in Wilderness hexes
+ * 3 or 4 Landmarks of each kind (p14), in Wilderness hexes
  * without a Holding or Myth, one to a hex, spread across the map. A Sanctum
  * rolls on the Knights table (p26) for its Seer.
  * @param {{min: number, max: number, types?: Record<string, number>}} perType
@@ -336,8 +336,8 @@ export function isConnected(g, blocked) {
 }
 
 /**
- * "Some Hexes have a Barrier on one or more of their edges, typically a sudden
- * altitude change or impassable feature." Barriers favour edges where the
+ * Barriers along some hexes' edges, where the land drops away or can't be
+ * crossed (p14). Barriers favour edges where the
  * terrain changes, keep off the rivers so they stay navigable, and never cut off
  * part of the map.
  * @param {number} target How many: by the book, one sixth as many as there are hexes.

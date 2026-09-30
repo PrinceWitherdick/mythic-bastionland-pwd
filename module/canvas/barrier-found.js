@@ -72,8 +72,8 @@ export async function onTurnedBack(message) {
 let offering = false;
 
 /**
- * Attempting to travel through a Barrier wastes that Phase of the day, but
- * still causes a Wilderness Roll (p18). The Phase's end is offered with the
+ * A try at crossing a Barrier loses the Phase, and the Wilderness Roll is made
+ * all the same (p18). The Phase's end is offered with the
  * Company travelling and what turned it back said first; closing it lets the
  * Phase stand, since a Token can be dragged across one by mistake. GMs only.
  * @param {Scene} scene

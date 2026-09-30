@@ -11,7 +11,7 @@ import { SEASONS } from "./time.js";
 /**
  * How much time can pass, in the book's order, each with the turn it makes:
  * Weeks carries the group to the next seasonal event, Months turns the Season,
- * and Years begin a new Age in Spring.
+ * and Years start a new Age, in Spring.
  */
 export const TIME_STEPS = Object.freeze([
 	Object.freeze({ key: "none", turn: null }),
@@ -30,7 +30,7 @@ export const TIME_STEP_KEYS = Object.freeze(TIME_STEPS.map(({ key }) => key));
 export const timeStep = (key) => TIME_STEPS.find((step) => step.key === key) ?? null;
 
 /**
- * Whether a step moves the game on to the next Season or Age, which is when a
+ * Whether a step turns the Season or the Age, which is when a
  * situation left unresolved changes (p17). The Weeks step only carries the
  * group to the Season's next event, so nothing is left behind by it.
  * @param {string} key

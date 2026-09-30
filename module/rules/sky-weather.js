@@ -2,8 +2,8 @@
  * The day's sky and weather (p197). As the Company wakes and breaks camp, the
  * Referee rolls the Nature Spark Tables' Sky and Weather (p22) to paint the
  * scene. A weather roll of Solid Fog means the Knights can't see into the
- * neighbouring hexes, and they may be Travelling Blind unless they have a way
- * to keep their course. Pure, so it can be tested without Foundry.
+ * neighbouring hexes, and without some means of keeping their course they
+ * may be Travelling Blind. Pure, so it can be tested without Foundry.
  */
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE } from "./spark-tables.js";
 import { sameDay } from "./time.js";

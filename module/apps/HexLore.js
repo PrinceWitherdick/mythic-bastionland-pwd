@@ -32,7 +32,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export const sparkWhen = (spark) => (spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null);
 
 /**
- * The lay of the land in one hex (p19). A Hex is large and diverse, and what
+ * What one hex holds (p19). A Hex is a whole country in little, and what
  * fills it is the Referee's to improvise, so this is where they roll the Spark
  * Tables for it and write down what they made of it. Everything rolled stays
  * in the hex, so a Company coming back finds the hex they left.
@@ -113,7 +113,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			heading: t("realm.hex", hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 			features: this.#featuresHere(realm, hex),
-			// Arriving in a Holding, roll to gauge the local mood (p18).
+			// A Holding's Local Mood is rolled as the Company arrives (p18).
 			holding: Boolean(featureAt(realm, hex).holding),
 			// A proper road runs through it, which a Cruise can take (p18).
 			road: hasRoad(scene, hex),
@@ -276,7 +276,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 let window_ = null;
 
 /**
- * Show the lay of the land in a hex.
+ * Show what a hex holds.
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex

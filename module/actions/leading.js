@@ -1,7 +1,7 @@
 /**
- * Leading from the front (Warfare, p11): one individual within a Warband can
- * add their Attack dice to the Warband's Attack roll. If they do, they suffer
- * the same Damage that the Warband does until their next turn.
+ * Leading from the front (Warfare, p11): someone in a Warband may add their own
+ * Attack dice to its roll, and then takes whatever Damage it takes until their
+ * next turn.
  */
 
 /**

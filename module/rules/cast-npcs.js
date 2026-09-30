@@ -113,7 +113,7 @@ export const documentsIn = (folders) => folders.flatMap((folder) => [...folder.d
 
 /**
  * Marks for a Cast member brought into the world before attacks printed with
- * "or" were read as one or the other, as "Crush (2d12) or sweep (d12 blast)":
+ * "or" were read as one or the other, as "Stamp (2d10) or swipe (d10 blast)":
  * each of its weapons named as one of those, and not marked yet.
  * @param {{id: string, type: string, name: string, system: {either?: string}}[]} items The actor's.
  * @param {{type: string, name: string, system: {either?: string}}[]} printed Its items as its stat block gives them.

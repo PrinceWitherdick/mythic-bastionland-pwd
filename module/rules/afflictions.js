@@ -50,7 +50,7 @@ export function afflictionsFromText(text, name) {
 	return found;
 }
 
-/** "Cannot be harmed by physical attacks.", "Can only be harmed by weapons forged in…", "Ignores all Damage." */
+/** Immunities as a Cast member's line puts them: nothing can harm it, it can only be harmed by one thing, or it ignores all Damage. */
 const IMMUNITY = /[^.]*\b(?:cannot|can't|can not|can only)\s+be\s+(?:harmed|hurt|damaged|wounded)\b[^.]*\.?|[^.]*\bignores all damage\b[^.]*\.?/i;
 
 /**

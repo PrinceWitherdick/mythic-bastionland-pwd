@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { moraleBreakButtons, rollMorale } from "../../module/actions/saves.js";
+import { withBookText } from "../../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 const format = (key, data) => String(lookup(key) ?? key).replace(/\{(\w+)\}/g, (_match, name) => data?.[name] ?? "");
 

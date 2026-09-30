@@ -107,7 +107,7 @@ export async function rollHexPerson({ scene, hex }) {
 /**
  * Roll up a Holding in one go, as the Referee does on a short break (p181):
  * the Holding itself on the Civilisation tables, two or three people there,
- * and for each of them a random Myth of the Realm they've heard of (p200).
+ * and for each of them one of the Realm's Myths, at random, they've heard of (p200).
  * Everything is kept in the hex, and the GMs are whispered one card. GMs only.
  * @param {object} options
  * @param {Scene} options.scene

@@ -15,7 +15,7 @@ import { seasonKey } from "./time.js";
 export const COUNCIL_SEATS = Object.freeze(["steward", "marshal", "sheriff", "envoy", "circle"]);
 
 /**
- * The seats that "must be filled for a Domain to run smoothly" (p20). The
+ * The seats a Domain runs badly without (p20). The
  * Circle is an honour a ruler may offer visiting Knights, so it may stand empty.
  */
 export const SEATS_TO_FILL = Object.freeze(COUNCIL_SEATS.filter((seat) => seat !== "circle"));
@@ -84,9 +84,9 @@ export const isMisruleDue = (crises) => crises.length >= MISRULE_CRISES;
 export const musterFor = (seat) => (seat ? MUSTER.seat : MUSTER.holding);
 
 /**
- * A Holding seized by force and left unchallenged has a period of turmoil
- * before it adapts to the new ruler (Conquest, p21). Here that lasts the rest
- * of the Season it was seized in.
+ * A Holding taken by force and not contested is in turmoil for a while before
+ * it settles under its new ruler (Conquest, p21). Here that lasts until the
+ * Season it was seized in is over.
  * @param {string} seized The Season it was seized in, from seasonKey, or blank.
  * @param {string} now    This Season, from seasonKey.
  * @returns {boolean}

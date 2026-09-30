@@ -1,10 +1,9 @@
 /**
- * Recruitment and upkeep (p11). "Soldiers are drawn from loyal Vassals,
- * Knights that share a cause, or mercenaries who have agreed a price.
- * Whatever their origin, soldiers expect their basic needs to be met during
- * their service. Warbands who are ill-rested, poorly fed, or otherwise pushed
- * too far typically lose SPI. At SPI 0 a Warband will not follow orders,
- * acting only in their self interest."
+ * Recruitment and upkeep (p11). Soldiers come from loyal Vassals, from Knights
+ * who share the cause, or from mercenaries paid an agreed price, and all of
+ * them expect to be fed and sheltered while they serve. A Warband short of
+ * rest or food, or driven too hard, loses SPI, and at SPI 0 it stops taking
+ * orders.
  *
  * A Warband at SPI 0 is already Broken on its own sheet (p11), which is the
  * same thing said from the other side, so nothing new is written on them: the
@@ -36,7 +35,7 @@ export const strainedSpirit = (spi, loss) => Math.max(0, (Number(spi) || 0) - Ma
 
 /**
  * @param {number} spi
- * @returns {boolean} Whether they will not follow orders, acting only in their self interest.
+ * @returns {boolean} Whether they've stopped taking orders, looking out only for themselves.
  */
 export const willNotFollowOrders = (spi) => (Number(spi) || 0) <= 0;
 
@@ -55,8 +54,8 @@ export function musterState(mustered, muster) {
 /**
  * What has become of a Warband (p11). A Mortal Wound routs them from the
  * battle, and so does a failed Morale Save that sent them running (p10); one
- * that ended in surrender takes them out of it too. At SPI 0 they are broken,
- * and at VIG 0 wiped out.
+ * that ended in surrender takes them out of it too. SPI 0 breaks them, and VIG
+ * 0 wipes them out.
  * @param {object} args
  * @param {boolean} args.mortalWound
  * @param {number} args.spi

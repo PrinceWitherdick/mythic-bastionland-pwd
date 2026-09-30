@@ -1,7 +1,7 @@
 /**
  * How a new Realm is set up: the size of its map, and what Creating a Realm
- * (p14) rolls onto it. The book's numbers make a typical Realm, "but they can
- * be bent or broken in creating your own Realms", so a GM who ignores the rules
+ * (p14) rolls onto it. The book's numbers make a typical Realm, and a Realm of
+ * your own needn't keep to them, so a GM who ignores the rules
  * for setup gives their own. Either way, any part can be left off the roll to
  * draw by hand. Pure, so it can be tested without Foundry.
  */
@@ -22,7 +22,7 @@ export const SETUP_PARTS = Object.freeze(["terrain", "rivers", "holdings", "myth
  * @property {number} holdings
  * @property {number} myths
  * @property {{min: number, max: number, types: Record<string, number>}} landmarks Of each type, unless `types`
- *   gives a type a count of its own, as the Referee on p202 sets "a single Landmark of each type" and then an extra Hazard and Curse.
+ *   gives a type a count of its own, as the Referee on p202 sets one Landmark per type and then an extra Hazard and Curse.
  * @property {number|null} barriers Null for one sixth of the hexes.
  */
 

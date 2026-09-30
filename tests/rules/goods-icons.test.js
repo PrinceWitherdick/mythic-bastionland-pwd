@@ -44,7 +44,7 @@ describe("goodsItemIcon", () => {
 		expect(itemKey("armour", "Bronze buckler")).toBe("viking-shield");
 		expect(itemKey("armour", "Iron chestplate")).toBe("breastplate");
 		expect(itemKey("armour", "Brass-studded brigandine")).toBe("armor-vest");
-		expect(itemKey("gear", "Ring of keys (for any lock there’s a 1-in-3 chance)")).toBe("key");
+		expect(itemKey("gear", "Ring of keys (one of them fits most doors)")).toBe("key");
 		expect(itemKey("gear", "Flickerlamp (a warm lantern)")).toBe("lantern");
 		expect(itemKey("gear", "Sack of books")).toBe("book-cover");
 	});
@@ -62,8 +62,8 @@ describe("goodsItemIcon", () => {
 	});
 
 	it("reads only the lead words, not the gloss after them", () => {
-		expect(itemKey("gear", "Cleaner salt (renders even the most rotten food safe)")).toBe("knapsack");
-		expect(itemKey("gear", "Pouch of wolfnuts (repellent to canines), poem on tattered parchment")).toBe("swap-bag");
+		expect(itemKey("gear", "Cleaner salt (scrubs any pot bright)")).toBe("knapsack");
+		expect(itemKey("gear", "Pouch of acorns (squirrels adore them), a song on a scrap of vellum")).toBe("swap-bag");
 	});
 
 	it("keeps words from matching inside others", () => {

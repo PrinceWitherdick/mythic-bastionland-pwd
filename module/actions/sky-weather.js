@@ -9,7 +9,7 @@ import { rollSpark } from "./referee-rolls.js";
 /**
  * The day's sky and weather (p197): rolled on the Nature Spark Tables as the
  * Company breaks camp, and the fog that can come with it, which hides the
- * neighbouring hexes for the rest of the day.
+ * neighbouring hexes until the day is out.
  */
 
 /** The fog that came down today: {when}, or null. */
@@ -27,7 +27,7 @@ const fogSaid = () => game.settings.get(SYSTEM_ID, FOG_SETTING) ?? null;
 export const fogHidesTheWay = (now = getCalendar()) => fogHides(fogSaid(), now);
 
 /**
- * Bring the fog down for the rest of the day, or lift it. GMs only.
+ * Bring the fog down until the day is out, or lift it. GMs only.
  * @param {boolean} down
  * @returns {Promise<boolean>} Whether anything was written.
  */
@@ -60,7 +60,7 @@ function fogView(fog) {
 
 /**
  * Roll the day's Sky and Weather, and whisper the Referee one card with both.
- * Solid Fog comes down at once, to hide the way for the rest of the day; any
+ * Solid Fog comes down at once, to hide the way until the day is out; any
  * other fog is the Referee's to bring down from the card. GMs only.
  * @param {Awaited<ReturnType<typeof daySkyTables>>} [found] The tables, where they've been read already.
  * @returns {Promise<{sky: object[], weather: object[], fog: "solid"|"fog"|null}|null>}

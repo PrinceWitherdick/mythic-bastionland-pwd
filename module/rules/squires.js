@@ -1,6 +1,6 @@
 /**
- * Squires (Knighthood, p7). Small Companies may give each Knight a Squire, an
- * apprentice who is not yet a Knight, so cannot gain Glory or perform Feats.
+ * Squires (Knighthood, p7). In a small Company each Knight may have a Squire,
+ * an apprentice who isn't a Knight yet and so has no Glory and no Feats.
  * Pure, so the rolls and what they make can be tested without Foundry.
  */
 import { SYSTEM_PATH } from "../system-id.js";
@@ -10,7 +10,7 @@ import { VIRTUES, clampVirtue } from "./virtues.js";
 /** A new Squire's portrait: somebody on one knee, waiting to be made a Knight. */
 export const SQUIRE_IMAGE = `${SYSTEM_PATH}/assets/icons/squire.svg`;
 
-/** Companies of this many Knights or fewer may give each Knight a Squire. */
+/** The most Knights a Company can have and still keep a Squire for each. */
 const SQUIRE_COMPANY_LIMIT = 2;
 
 /** Each Virtue is rolled on 2d6, and a Squire has 1GD. */
@@ -59,7 +59,7 @@ export const squireTabs = (tabs, squirePage) => [squirePage, ...tabs].filter((ta
  */
 const track = (value) => ({ value, max: value });
 
-/** When Knighted they gain d6 in each Virtue. */
+/** On being Knighted, each Virtue rises by this. */
 export const KNIGHTING_GAIN_ROLL = "1d6";
 
 /**

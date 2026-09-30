@@ -1,11 +1,11 @@
 /**
- * Council tasks (p20): "Members of your Council can be assigned to tasks.
- * Depending on the scope these could take a Phase, a Week, or a full Season.
- * These are handled just as normal actions (p16), with failure typically
- * causing a Crisis."
+ * Council tasks (p20): a Council seat is set a task lasting anything from a
+ * Phase to a Season, resolved like any other action (p16), and failing it
+ * tends to bring a Crisis.
  *
  * The Action Procedure (p16) settles a normal action on its fourth step,
- * Risk: "No risk, no roll. Otherwise make a Save or a Luck Roll." So a task is
+ * Risk: nothing at risk means no roll, and otherwise it's settled by a Luck
+ * Roll or a Save. So a task is
  * written down with what settles it, and the Luck Roll's own bands carry the
  * rest: a Crisis on a 1, a Problem on 2-3, and the work done on 4-6. A failed
  * Save brings a Crisis the same way.

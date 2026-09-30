@@ -49,7 +49,7 @@ export function wildernessDue({ calls, mode, atBarrier = false }) {
 /**
  * What one of the Company loses as Morning comes, by the HARDSHIPS of rules/time.js
  * (p18): d6 SPI for travelling or exploring through the Night, d6 VIG for
- * camping or travelling at night in Winter, d6 CLA without proper sleep, and
+ * a Winter night camped out or on the road, d6 CLA without proper sleep, and
  * d6 VIG where essential needs were deprived. Travelling through the Night
  * leaves no time for sleep, and dire weather lets nobody outdoors sleep properly.
  * @param {object} night

@@ -1,7 +1,9 @@
 <section class="bastionland-card bastionland-card--scar">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title"><span class="bastionland-card__roll">{{roll}}</span> {{name}}</h3>
+		{{#if flavour}}
 		<p class="bastionland-card__tagline">{{flavour}}</p>
+		{{/if}}
 	</header>
 	{{#if location}}
 	<p class="bastionland-card__location">{{location}}</p>

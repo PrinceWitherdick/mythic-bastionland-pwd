@@ -1,8 +1,7 @@
 /**
- * Wavering Morale (p10): individuals who are Wounded, or groups who lose half
- * their number, must pass a SPI Save to avoid rout or surrender. Organised
- * groups roll once using their leader's SPI, and disorganised groups roll for
- * each individual. None of it affects player characters. Pure, so when to ask
+ * Wavering Morale (p10): someone Wounded, or a group down to half its number,
+ * makes a SPI Save or routs or surrenders. An organised group rolls once on
+ * its leader's SPI, and a disorganised one rolls each member on their own. None of it affects player characters. Pure, so when to ask
  * can be tested without Foundry.
  */
 

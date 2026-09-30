@@ -37,7 +37,7 @@ async function onResolve(message) {
 	const blows = cards.map((card, index) => ({ card, attack: attackOf(card), target: actors[1 - index] }));
 	for (const { card, attack, target } of blows) {
 		if (attack.appliedTo.length) continue;
-		// Scars are only gained through real, deadly combat (p9), and sparring's Damage is
+		// Only a real fight to the death gives Scars (p9), and sparring's Damage is
 		// shaken off afterwards (p188). Both cards' Gambits land together, so neither's Trap
 		// holds a shield against the other's blow.
 		const result = await takeAttack(target, attack, { scars: !duel.bloodless, except: cards.map((each) => each.id), sparring: Boolean(duel.sparring) });

@@ -5,6 +5,7 @@ import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { gallop } from "../actions/steeds.js";
 import { sufferHardship } from "../actions/time.js";
 import { wildernessRoll } from "../actions/wilderness.js";
+import { BOOK_TEXT_HOOK, bookTextRead } from "../book-art/book-text.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
@@ -88,9 +89,9 @@ export class TravelRules extends MapSidePanel {
 		rules: { template: templatePath("apps/travel-rules.hbs"), scrollable: [".bastionland-travel-rules__body"] }
 	};
 
-	/** Night, Winter and the page links follow the calendar and the rulebook, on every client. */
+	/** Night, Winter, the page links and the book's words follow the calendar and the rulebook, on every client. */
 	get redrawHooks() {
-		return [CALENDAR_HOOK, RULEBOOK_HOOK];
+		return [CALENDAR_HOOK, RULEBOOK_HOOK, BOOK_TEXT_HOOK];
 	}
 
 	/** @override */
@@ -101,6 +102,8 @@ export class TravelRules extends MapSidePanel {
 		const pressing = pressingSections(getCalendar());
 		const isGM = game.user.isGM;
 		const text = (key, data) => t(`travelRules.${key}`, data);
+		// The rules are the book's own words, so until Import PDF has read them there are only headings and buttons.
+		const fromBook = bookTextRead("travelRules.");
 
 		return Object.assign(context, {
 			isGM,
@@ -121,7 +124,7 @@ export class TravelRules extends MapSidePanel {
 						lead: section.lead ? text(`${key}.lead`) : null,
 						pressing: pressing.has(section.key),
 						lines: section.lines?.map((line) => ({ label: text(`${key}.lines.${line}.label`), text: text(`${key}.lines.${line}.text`) })) ?? null,
-						rows: section.rows?.map((row, index) => ({ band: D6_BANDS[index], text: text(`${key}.rows.${row}`) })) ?? null,
+						rows: fromBook ? section.rows?.map((row, index) => ({ band: D6_BANDS[index], text: text(`${key}.rows.${row}`) })) ?? null : null,
 						note: section.note ? text(`${key}.note`) : null,
 						roll: isGM && section.roll ? { key: section.roll, label: text(`${key}.roll`) } : null,
 						act: isGM && section.act ? { key: section.act, label: text(`${key}.act`) } : null,
@@ -129,7 +132,8 @@ export class TravelRules extends MapSidePanel {
 					};
 				})
 			})),
-			credit: text(`credits.${this.side}`)
+			unread: fromBook ? null : text("unread"),
+			credit: fromBook ? text(`credits.${this.side}`) : null
 		});
 	}
 

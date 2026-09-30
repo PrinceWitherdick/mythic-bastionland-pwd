@@ -8,9 +8,9 @@ import { getRealm } from "./realm.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
- * called, and which of the other Knights sit in its Circle. A Ruler Start (p6)
- * founds one as the Realm is made — "One Knight rules a Holding, the others
- * are in their Circle" — once there are Knights to rule it.
+ * called, and which of the other Knights sit in its Circle. A Ruler Start (p6),
+ * where one Knight rules and the rest sit in their Circle, founds one as the
+ * Realm is made, once there are Knights to rule it.
  */
 
 /**
@@ -75,8 +75,8 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 }
 
 /**
- * Ruler (p6): "One Knight rules a Holding, the others are in their Circle."
- * Once the Realm is made, ask which of the players' Knights rules, then found
+ * Ruler (p6): one Knight holds a Holding with the rest of the Company in their
+ * Circle. Once the Realm is made, ask which of the players' Knights rules, then found
  * their Domain with a Holding of this Realm offered and the others seated in
  * the Circle. Nothing is asked before there are Knights to ask about.
  * @param {Scene} scene The Realm just made.

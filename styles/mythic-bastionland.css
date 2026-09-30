@@ -1589,6 +1589,11 @@ a.button:focus:not(:focus-visible) {
 	font-size: 1.25rem;
 }
 
+/* Its words are the book's, so until Import PDF has read them only the heading shows. */
+.bastionland-oath p:empty {
+	display: none;
+}
+
 /* ---------------------------------------------------------------- */
 /* Property, Ability, Passion and Scars                             */
 /* ---------------------------------------------------------------- */
@@ -4660,6 +4665,13 @@ button.bastionland-dice:focus-visible {
 	margin: 0.4rem 0 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+/* Until Import PDF has read the book's words, the rules are headings and buttons under this one line. */
+.bastionland-travel-rules__unread {
+	margin: 0 0 0.4rem;
+	color: var(--bastionland-ink-soft);
 	font-style: italic;
 }
 

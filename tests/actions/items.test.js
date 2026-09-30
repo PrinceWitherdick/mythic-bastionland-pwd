@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { itemContext, itemTags, postItem } from "../../module/actions/items.js";
+import { withBookText } from "../../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 
 const mace = { name: "Polished mace", type: "weapon", system: { damage: "d8", hefty: true, description: "<p>Heavy.</p>" } };
@@ -26,11 +27,11 @@ describe("itemContext", () => {
 	});
 
 	it("keeps the name's gloss off the title, brackets dropped when they wrap it all", () => {
-		const steed = { name: "Well-groomed steed (VIG 12, CLA 8, SPI 6, 2GD, a real horse)", type: "gear", system: {} };
-		expect(itemContext(steed)).toMatchObject({ name: "Well-groomed steed", gloss: "VIG 12, CLA 8, SPI 6, 2GD, a real horse" });
-		const body = { name: "Unnatural body (see below), concealed beneath plate suit (A1)", type: "gear", system: {} };
-		expect(itemContext(body)).toMatchObject({ name: "Unnatural body", gloss: "(see below), concealed beneath plate suit (A1)" });
-		expect(itemContext(body, { showsTable: true })).toMatchObject({ name: "Unnatural body", gloss: "concealed beneath plate suit (A1)" });
+		const steed = { name: "Patient mare (VIG 11, CLA 8, SPI 6, 2GD, bought at a fair)", type: "gear", system: {} };
+		expect(itemContext(steed)).toMatchObject({ name: "Patient mare", gloss: "VIG 11, CLA 8, SPI 6, 2GD, bought at a fair" });
+		const hand = { name: "Iron hand (see below), hidden under a glove (A1)", type: "gear", system: {} };
+		expect(itemContext(hand)).toMatchObject({ name: "Iron hand", gloss: "(see below), hidden under a glove (A1)" });
+		expect(itemContext(hand, { showsTable: true })).toMatchObject({ name: "Iron hand", gloss: "hidden under a glove (A1)" });
 		const coat = { name: "Coat, patched", type: "gear", system: {} };
 		expect(itemContext(coat)).toMatchObject({ name: "Coat", gloss: "patched" });
 	});

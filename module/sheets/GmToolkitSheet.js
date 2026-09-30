@@ -1078,8 +1078,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 
 	/**
 	 * The group feels the Myth is resolved: mark it so, keep it in this
-	 * Season's record, and award the Glory that comes with it (p27). A new Myth
-	 * replaces it in the next Season. The group may resolve it at any Omen,
+	 * Season's record, and award the Glory that comes with it (p27). Another Myth
+	 * takes its place next Season. The group may resolve it at any Omen,
 	 * for the players' own deeds can bring it to an end (p16).
 	 * @this {GmToolkitSheet}
 	 */

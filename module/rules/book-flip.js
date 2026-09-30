@@ -3,8 +3,8 @@
  * prints prompts for the Referee: a Person, a Name, a Characteristic, an
  * Object, a Beast, a State and a Theme on the Knight's page, and one of each
  * Landmark on the Myth's. They help fill the blanks in a Hex (p19), and
- * flicking to a random page for one spreads the blame for improvising between
- * the Referee and the book (p179). A random page is a random spread, so the
+ * flicking to a random page for one lets the book share the work of improvising
+ * (p179). A random page is a random spread, so the
  * Knights' own d6 and d12 find one. Pure, so it can be tested without Foundry.
  */
 import { spreadPages } from "./book-art.js";

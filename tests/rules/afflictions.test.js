@@ -24,8 +24,8 @@ describe("afflictionsFromText", () => {
 
 describe("immunityFromText", () => {
 	it("keeps the sentence that says what can't harm them", () => {
-		expect(immunityFromText("A shadow of a man. Cannot be harmed by physical attacks. Hates light.")).toBe("Cannot be harmed by physical attacks.");
-		expect(immunityFromText("Can only be harmed by weapons of silver")).toBe("Can only be harmed by weapons of silver");
+		expect(immunityFromText("A shadow of a man. Cannot be harmed by blades or arrows. Hates light.")).toBe("Cannot be harmed by blades or arrows.");
+		expect(immunityFromText("Can only be hurt by weapons of silver")).toBe("Can only be hurt by weapons of silver");
 		expect(immunityFromText("Ignores all Damage while the bell tolls.")).toBe("Ignores all Damage while the bell tolls.");
 		expect(immunityFromText("Bites hard.")).toBe("");
 	});

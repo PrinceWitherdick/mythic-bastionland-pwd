@@ -24,7 +24,7 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			seized: textField(),
 			// Who holds each seat, written as the GM likes.
 			council: new fields.SchemaField(Object.fromEntries(COUNCIL_SEATS.map((key) => [key, textField()]))),
-			// Those who serve outside the Council (The Court, p20), by id. See rules/court.js.
+			// Everyone serving the ruler but not on the Council (The Court, p20), by id. See rules/court.js.
 			court: new fields.ObjectField({ required: true, initial: {} }),
 			// The tasks the Council has in hand (p20), by id. See rules/council-tasks.js.
 			tasks: new fields.ObjectField({ required: true, initial: {} }),

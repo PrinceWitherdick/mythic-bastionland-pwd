@@ -5,8 +5,8 @@
  *
  * The book never numbers the Days of a Season, and never says how long one
  * lasts, so these are milestones in the order they come rather than dates.
- * Advancing Time's Weeks step, "continue on to the next significant seasonal
- * event", carries the group from one to the next. Pure, so it can be tested
+ * Advancing Time's Weeks step carries the group on to the next of them that
+ * matters. Pure, so it can be tested
  * without Foundry; the language file puts the book's words to each one.
  */
 import { SEASONS } from "./time.js";

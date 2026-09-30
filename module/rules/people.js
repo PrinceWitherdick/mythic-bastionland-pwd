@@ -110,7 +110,7 @@ export function personSpark(traits, { id, table, heard = null, when = null }) {
 
 /**
  * The Myth of the Realm someone has heard of, by a die as big as the Realm has
- * Myths: "Ref rolls a random Myth of the Realm for this Knight to know about" (p200).
+ * Myths, as the Referee rolls one for each Knight to have heard of (p200).
  * @param {{myths: object[]}|null} realm
  * @param {number} roll From 1.
  * @returns {object|null} Null where the Realm has no Myths.

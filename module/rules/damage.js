@@ -56,11 +56,11 @@ export function applyDoom(result, vigourBefore) {
  * @param {number} [args.armour=0]    The target's total Armour.
  * @param {number} args.guard         The target's current GD.
  * @param {number} args.vigour        The target's current VIG.
- * @param {boolean} [args.exposed]    Exposed targets act as if they have 0GD.
+ * @param {boolean} [args.exposed]    An Exposed target counts as having 0GD.
  *                                    Their real GD is left untouched.
  * @param {boolean} [args.immune]     The Attack can't harm the target at all, as an
  *                                    individual's Attack can't harm a Warband (p11).
- * @param {boolean} [args.structure]  Ships and structures are destroyed at 0GD (p11),
+ * @param {boolean} [args.structure]  A ship or structure is destroyed at 0GD (p11),
  *                                    and have no VIG to lose.
  * @param {boolean} [args.nonLethal]  Non-lethal Damage leaves at least 1 VIG, so it never Slays.
  * @returns {DamageResult}

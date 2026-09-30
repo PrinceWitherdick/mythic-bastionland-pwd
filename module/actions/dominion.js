@@ -26,7 +26,7 @@ const crisisName = (key) => t(`domain.crises.${key}.name`);
  * A card entry describing a Crisis and how to resolve it.
  * @param {string} key
  */
-export const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)] });
+export const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)].filter(Boolean) });
 
 /**
  * @param {Actor} domain Once its Crises are saved.
@@ -65,8 +65,8 @@ export async function inflictCrisis(domain) {
 }
 
 /**
- * The Crisis Roll (p20), made at the start of a Season or on returning from a
- * long absence. A Calamity brings two Crises at once, and a Dilemma asks which
+ * The Crisis Roll (p20), made as each Season begins and on coming home after
+ * a long time away. A Calamity brings two Crises at once, and a Dilemma asks which
  * of two to take.
  * @param {Actor} domain
  */
@@ -234,8 +234,8 @@ export async function dramaInCourt(domain) {
 export const worldDomains = () => game.actors.filter((actor) => actor.type === "domain");
 
 /**
- * As a Season ends, every Domain left with 3 or more unresolved Crises falls
- * into misrule (p20), and one seized by force that Season settles under its
+ * As a Season ends, every Domain still carrying 3 Crises or more falls into
+ * misrule (p20), and one seized by force that Season settles under its
  * new ruler (p21). GMs only.
  * @param {string} ended The Season that ended, from seasonKey.
  * @returns {Promise<object[]>} Entries for the Season's card.
@@ -330,8 +330,8 @@ export function namedSuccessor(domain) {
 }
 
 /**
- * Succession (p21): the Domain passes to the successor its ruler named, who is
- * sure to face some resistance and should quickly establish their authority.
+ * Succession (p21): the Domain passes to the successor its ruler named, who
+ * meets resistance of their own to overcome.
  * @param {Actor} domain
  * @returns {Promise<{name: string, knight: Actor|null}|null>} The new ruler.
  */
@@ -359,9 +359,9 @@ export async function passOnDomain(domain) {
 }
 
 /**
- * Conquest (p21): having the audacity to seat yourself in a Holding is often
- * enough to rule it. Left unchallenged, it has a period of turmoil, here the
- * rest of this Season, before it adapts to the new status quo.
+ * Conquest (p21): whoever boldly takes a Holding's seat often simply rules it.
+ * Uncontested, it's in turmoil for a while, here until the Season turns,
+ * before it settles under them.
  * @param {Actor} domain
  * @returns {Promise<{name: string, knight: Actor|null}|null>} The new ruler.
  */

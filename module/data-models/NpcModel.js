@@ -30,7 +30,7 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			age: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AGES] }),
 			// In two hands as a Knight, or all at once as claws and teeth, or blank to read it off their gear (p12).
 			wields: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...NPC_WIELDS] }),
-			// What keeps them from harm, as "Cannot be harmed by physical attacks." Weighed as each blow lands.
+			// What keeps them from harm, as "No weapon of iron can touch it." Weighed as each blow lands.
 			immunity: textField(),
 			// What can be turned against them, as a hatred of fire. Once `known`, every Attack that uses it gets `die` (p188).
 			weakness: new fields.SchemaField({

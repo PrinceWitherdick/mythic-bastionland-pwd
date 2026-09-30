@@ -35,7 +35,7 @@ export const OMEN_COUNT = 6;
  */
 export const RIVER_SHAPES = Object.freeze(["straight", "bend", "sharp", "end", "fork-left", "fork-right", "fork-wide", "fan"]);
 
-/** "A typical Realm has 3 or 4 of each type of Landmark." */
+/** 3 or 4 Landmarks of each kind make a typical Realm (p14). */
 export const LANDMARKS_PER_TYPE = Object.freeze({ min: 3, max: 4 });
 
 /** The GM's Realm tools, in the order the controls list them. Names live under `bastionland.realm.tools`. */
@@ -71,7 +71,7 @@ export const REALM_PROBLEMS = Object.freeze([
 ]);
 
 /**
- * "Place a number of Barriers equal to one sixth of your total Hexes."
+ * Barriers: a sixth as many as the Realm has Hexes (p14).
  * @param {{cols: number, rows: number}} g
  * @returns {number}
  */

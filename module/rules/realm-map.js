@@ -6,8 +6,8 @@
  * work on a traced Realm exactly as they do on a rolled one.
  *
  * One picture: the players' map, which everyone looks at. Whatever it shows,
- * the players see (p14: "Players get a copy of the map with Holdings and
- * general terrain marked. They cannot see Myths, Landmarks, and Barriers"), so
+ * the players see (p14: their map shows the Holdings and the lie of the land,
+ * but not the Myths, Landmarks or Barriers), so
  * the Landmarks and the rest are placed over it afterwards, not traced from it.
  *
  * A map of the GM's own needn't be laid out as the book's sheet is: its hexes

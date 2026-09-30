@@ -47,7 +47,7 @@ function whereItLies(g, { distance, direction, here }) {
 /**
  * Gathering Folklore (p19): ask a Vassal, a roamer or a Seer what they know of
  * the Realm's Myths and Landmarks, and whisper the Referee what this one can
- * tell. Such vast knowledge isn't given freely, which is left to the table.
+ * tell. What a Seer asks for it is left to the table.
  * GMs only.
  * @param {object} [options]
  * @param {Scene} [options.scene]
@@ -165,7 +165,7 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	if (data.aim === SEARCH_SAVE_AIM) await rollExplorationSave(knights.find((knight) => knight.id === data.who), data.virtue, data.what, typedD20(data.rolled));
 	else await postSurvey({ scene, realm, g, where, vantage: data.aim === "vantage" });
 
-	// Each of the three takes a whole Phase of the day, unless the Referee says otherwise.
+	// Each of the three uses up the Phase, unless the Referee says otherwise.
 	if (data.phase) await advancePhase({ scene, mode: "travel" });
 	return data.aim;
 }
@@ -286,7 +286,7 @@ async function rollExplorationSave(actor, virtue, what, rolled = null) {
 
 /**
  * Show the players what the Company was told or saw: the Myths, Landmarks and
- * Barriers named are drawn on their copy of the map. A Myth or a Landmark is a
+ * Barriers named are drawn on the map the players see. A Myth or a Landmark is a
  * Tile and a Barrier is a Drawing (module/rules/realm-documents.js), so each id
  * is looked for in both collections rather than the Tiles alone. GMs only.
  * @param {Scene} scene

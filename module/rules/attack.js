@@ -164,9 +164,9 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	const isLong = (item) => heldAs(item, mounted).long;
 	let refusal = null;
 	if (exhausted && moved) refusal = "exhausted";
-	// Enemies of a spearwall can't Attack on the turn that they charge.
+	// Charging a spearwall leaves no Attack that turn.
 	else if (spearwall) refusal = "spearwall";
-	// A weapon fought two ways, such as a bolt-guisarme, is fought one way at a time.
+	// A weapon fought two ways, such as a spear that can be thrown, is fought one way at a time.
 	else if (items.some((item, index) => item.of && items.findIndex((other) => other.of === item.of) !== index)) refusal = "twoWays";
 	else if (hands && items.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
 	else if (hands && items.length > 1 && items.some(isLong)) refusal = "long";
@@ -290,8 +290,8 @@ export function atIndividuals(targets) {
 }
 
 /**
- * Whether a card is Impaired for striking at a swarm, whose foes' individual
- * attacks are Impaired unless they are Blast attacks (p61). A Warband's Attack
+ * Whether a card is Impaired for striking at a swarm, which one person's Attack
+ * only harms Impaired unless it's a Blast (p61). A Warband's Attack
  * is no individual's, so it isn't.
  * @param {{blast?: boolean, largeScale?: boolean}} attack
  * @param {{swarm?: boolean}[]} targets The card's targets.
@@ -775,7 +775,7 @@ function focusSave(save) {
 }
 
 /**
- * Each Feat can only be used once per Attack by each combatant (p10).
+ * No combatant uses the same Feat twice in one Attack (p10).
  * @param {AttackState} attack
  * @param {string} key
  * @param {string} actor Actor UUID.

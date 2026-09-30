@@ -1,6 +1,6 @@
 /**
- * Glory and Rank (Beginnings & Glory, p6). A Knight's Glory dictates their
- * Rank, so Rank is always derived and never stored.
+ * Glory and Rank (Beginnings & Glory, p6). A Knight's Rank follows from their
+ * Glory, so Rank is always derived and never stored.
  */
 
 /** Ranks in ascending order with the Glory needed to hold each. */
@@ -28,8 +28,8 @@ export function rankForGlory(glory) {
 /**
  * Glory By Other Means (p6), besides a new Age: a Myth resolved, for every
  * Knight who played a part; a tournament won before significant spectators;
- * and a battle large enough to be remembered in history, for every Knight on
- * the victorious side. Duels and jousts stake Glory between two Knights.
+ * and a battle big enough for the chronicles, for every Knight on the winning
+ * side. Duels and jousts stake Glory between two Knights.
  */
 export const GLORY_AWARDS = Object.freeze(["myth", "tournament", "battle"]);
 

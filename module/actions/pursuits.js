@@ -7,8 +7,8 @@ import { worldDomains } from "./dominion.js";
 import { isRealmScene } from "./realm.js";
 
 /**
- * What a pursuit between Seasons made (p17): a Knight's Service may leave a
- * new Dwelling on the map, and their Courtesy a place at Court (as p192 plays
+ * What a pursuit between Seasons made (p17): a Knight's Service may add a
+ * Dwelling to the map, and their Courtesy a place at Court (as p192 plays
  * it). Each Knight who chose one is asked what came of it, and the Season's
  * report says so.
  */

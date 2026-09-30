@@ -3,9 +3,10 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gambitContext, postGambit } from "../../module/actions/gambits.js";
 import { GAMBITS } from "../../module/config.js";
+import { withBookText } from "../../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 
 beforeEach(() => {
@@ -31,7 +32,7 @@ describe("gambitContext", () => {
 	});
 
 	it("adds the rules the sheet's short lines leave out", () => {
-		expect(gambitContext("move").detail).toMatch(/already moved/);
+		expect(gambitContext("move").detail).toMatch(/after moving/);
 		expect(gambitContext("dismount").detail).toMatch(/d6 Damage/);
 		expect(gambitContext("repel").detail).toBeNull();
 	});

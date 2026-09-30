@@ -286,8 +286,8 @@ async function onGambit(message, button) {
 }
 
 /**
- * An attacker performs a Gambit without a die, then must pass a CLA Save or
- * become Fatigued (p10). The Save is kept on the card beside the Gambit. In a
+ * An attacker performs a Gambit without a die, then makes a CLA Save or is
+ * Fatigued (p10). The Save is kept on the card beside the Gambit. In a
  * joint Attack, any of those making it whom this user owns may Focus, each
  * once, unless their own share was Impaired (p8).
  */
@@ -443,7 +443,7 @@ function refreshDeny(button, attack) {
 	else button.dataset.tooltip = t(pool.length ? "attack.cantDeny" : "attack.noDenier");
 }
 
-/** The target or an ally within arm's reach discards one die, paying with a SPI Save. */
+/** The target, or an ally close enough to touch, discards one die, paying with a SPI Save. */
 async function onDeny(message) {
 	const attack = attackOf(message);
 	const { pool, able: deniers } = denyOptions(attack);

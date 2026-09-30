@@ -5,8 +5,8 @@ import { SYSTEM_ID } from "../system-id.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
- * Characters who were not readied for combat must pass a CLA Save or miss the
- * first turn (Surprise, p8). The GM ticks who was caught unready, and one card
+ * Anybody caught unready for a fight makes a CLA Save, or sits out the first
+ * turn (Surprise, p8). The GM ticks who was caught unready, and one card
  * shows every Save. GMs only.
  * @param {Combat|null} [combat] The encounter. Defaults to the active one.
  * @returns {Promise<{name: string, actor: Actor, save: import("./saves.js").SaveResult}[]|null>}

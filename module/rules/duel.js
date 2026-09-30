@@ -1,11 +1,10 @@
 /**
- * Duels & Jousts (Specifics of Combat, p10). Two combatants mutually agree to
- * a duel, or a joust if mounted. They fight as normal, but their Attacks are
- * rolled and resolved simultaneously, including the effects of Gambits, and
- * both can use Feats before the Attacks are resolved. In a public duel or
- * joust, Knights may stake Glory: the victor gains 1, the loser loses 1 (p6).
- * Scars only come from real, deadly combat, not training or bloodless duels (p9).
- * Sparring goes further: its Damage "can be shaken off afterwards" (p188), so
+ * Duels & Jousts (Specifics of Combat, p10). Two combatants agree to fight, a
+ * joust if they're mounted. It goes as any fight does, except both Attacks,
+ * Gambits and all, are rolled and settled at once, and either may use Feats
+ * first. Fought in public, Glory may be staked on it: the winner gains 1 and
+ * the loser loses 1 (p6). Only a real fight to the death gives Scars (p9).
+ * Sparring goes further: its Damage doesn't last (p188), so
  * it leaves nobody dying, and each duelist's GD and VIG are put back as it ends.
  * Pure, so a duel card's state can be tested without Foundry.
  */

@@ -19,11 +19,11 @@ import {
 
 describe("propertyItems", () => {
 	it("splits a line into the weapons and armour it lists", () => {
-		const { items, companions } = propertyItems(["Old sword (d8 hefty) and half-shield (A1), gambeson (A1)"]);
+		const { items, companions } = propertyItems(["Worn sword (d8 hefty) and round shield (A1), gambeson (A1)"]);
 		expect(companions).toEqual([]);
 		expect(items).toHaveLength(3);
-		expect(items[0]).toMatchObject({ type: "weapon", name: "Old sword", system: { damage: "d8", hefty: true, long: false, equipped: true } });
-		expect(items[1]).toMatchObject({ type: "armour", name: "Half-shield", system: { kind: "shield", armour: 1, damage: "", equipped: true } });
+		expect(items[0]).toMatchObject({ type: "weapon", name: "Worn sword", system: { damage: "d8", hefty: true, long: false, equipped: true } });
+		expect(items[1]).toMatchObject({ type: "armour", name: "Round shield", system: { kind: "shield", armour: 1, damage: "", equipped: true } });
 		expect(items[2]).toMatchObject({ type: "armour", name: "Gambeson", system: { kind: "coat", armour: 1, equipped: true } });
 	});
 

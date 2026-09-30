@@ -127,7 +127,7 @@ export function standTogether(a, b, size) {
 /**
  * The wall formation somebody struck stands in (p10): them, each ally beside
  * them, each ally beside one of those, and so on. 3 or more allies make a
- * wall, which gains a point of Armour if they all bear shields, not bucklers.
+ * wall, which gains a point of Armour when every one has a shield, bucklers aside.
  * @param {WallStander} struck
  * @param {WallStander[]} allies Everybody else on their side.
  * @param {number} size One grid space, in pixels.

@@ -150,7 +150,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	let mode = known ?? "travel";
 	let d6 = null;
 	let pick = 0;
-	// A Company worthy of the City Quest meets an Omen of the City in place of a random Myth's (p172).
+	// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 	let city = false;
 	if (calls === "roll") {
 		mode = known ?? (await chooseMode(where));
@@ -243,7 +243,7 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		myth,
 		tied: outcome.tied ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
 		landmark,
-		// A Company worthy of the City Quest meets an Omen of the City in place of a random Myth's (p172).
+		// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 		cityQuest: city ? t("cityQuest.wildernessHint") : null,
 		winter: winter ? t("time.winterReminder") : null
 	};

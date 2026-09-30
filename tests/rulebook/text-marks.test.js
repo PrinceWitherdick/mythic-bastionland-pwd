@@ -233,14 +233,24 @@ describe("renderedRoots", () => {
 describe("a rule word's tip", () => {
 	const hover = () => {
 		const word = el("span", { classes: ["bastionland-keyword"] });
-		word.dataset.keywordTip = "Exposed means…";
+		word.dataset.keyword = "exposed";
+		word.dataset.keywordPage = "8";
 		return word;
 	};
 
-	it("is offered as the word is hovered", () => {
+	it("is offered as the word is hovered, in the words laid by then", () => {
 		const word = hover();
 		keywords.offerTip({ target: word });
-		expect(word.dataset.tooltip).toBe("Exposed means…");
+		expect(word.dataset.tooltip).toBe("bastionland.keywords.tip:bastionland.keywords.exposed");
+	});
+
+	it("says where the word is explained while the book's words aren't read", () => {
+		const localize = game.i18n.localize;
+		game.i18n.localize = (key) => (key === "bastionland.keywords.exposed" ? "" : localize(key));
+		const word = hover();
+		keywords.offerTip({ target: word });
+		expect(word.dataset.tooltip).toBe("bastionland.keywords.unread:8");
+		game.i18n.localize = localize;
 	});
 
 	it("is taken away while the popups are off, in cards already posted too", () => {

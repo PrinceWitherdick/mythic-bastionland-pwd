@@ -2,8 +2,8 @@ import { isSameName } from "./dominion.js";
 import { seasonKey } from "./time.js";
 
 /**
- * The Scar table (Harm & Scars, p9). Re-roll the die that caused the Scar and
- * read the matching entry. Wording lives in the language file under
+ * The Scar table (Harm & Scars, p9). The die that dealt the Scar is rolled
+ * again, and its number read on the table. Wording lives in the language file under
  * `bastionland.scars.<key>`; this table holds only what the code acts on.
  *
  * - `loss`: Virtue Loss taken at once.
@@ -29,6 +29,15 @@ export const SCARS = Object.freeze([
 	{ roll: 11, key: "doom" },
 	{ roll: 12, key: "humiliation", laterGuardAtMost: 12, byRevenge: true }
 ].map((scar) => Object.freeze(scar)));
+
+/**
+ * The note a Scar keeps on the sheet: its line from the book, where Import PDF
+ * has read one, over what it does.
+ * @param {string} flavour Such as "A lucky escape", or "" before the book is read.
+ * @param {string} effect
+ * @returns {string} HTML.
+ */
+export const scarDescription = (flavour, effect) => `${flavour ? `<p><em>${flavour}</em></p>` : ""}<p>${effect}</p>`;
 
 /**
  * @param {number} roll

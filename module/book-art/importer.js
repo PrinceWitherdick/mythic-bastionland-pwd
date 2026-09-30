@@ -2,6 +2,7 @@ import { confirmDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import {
 	ART_ROOT,
+	BOOK_TEXT_KIND,
 	CITY_QUEST_KIND,
 	EXPECTED_PAGES,
 	INDEX_FILE,
@@ -37,11 +38,13 @@ import {
 	goodsFromPages
 } from "../rules/arms-and-goods.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_PAGES, cityQuestCastFromItems, cityQuestOmensFromItems } from "../rules/city-quest.js";
+import { BOOK_PRINTS } from "../rules/book-text.js";
 import { RULE_PAGES, rulePageFromItems } from "../rules/rule-pages.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { markSetupDone } from "../world-setup.js";
 import { ART_INDEX_HOOK } from "./art-index.js";
+import { BOOK_TEXT_TOTAL, readBookText } from "./book-text.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { NPC_PACK, NPC_PACK_STEP, fillNpcPack } from "./npc-pack.js";
@@ -213,6 +216,9 @@ async function extractArt(pdf, OPS) {
 	progress.update({ message: t("bookArt.readingRules") });
 	const rules = await readRulePages(pdf, problems);
 
+	progress.update({ message: t("bookArt.readingBookText") });
+	const bookText = await readRulesText(pdf, problems);
+
 	progress.update({ message: t("bookArt.readingGoods") });
 	const goods = await readGoods(pdf, problems);
 
@@ -223,6 +229,7 @@ async function extractArt(pdf, OPS) {
 		spark,
 		cityQuest,
 		rules,
+		bookText,
 		pdfPages: pdf.numPages,
 		importedAt: new Date().toISOString(),
 		systemVersion: game.system.version
@@ -456,6 +463,26 @@ async function readRulePages(pdf, problems) {
 }
 
 /**
+ * Find the book's words for the rules text the system shows, reporting each
+ * page with passages that couldn't be found there.
+ * @param {object} pdf
+ * @param {object[]} problems Added to.
+ * @returns {Promise<Record<string, string>>} By language key.
+ */
+async function readRulesText(pdf, problems) {
+	const { texts, missing } = await readBookText(pdf);
+	const byPage = new Map();
+	for (const key of missing) {
+		const page = BOOK_PRINTS[key][0];
+		byPage.set(page, (byPage.get(page) ?? 0) + 1);
+	}
+	for (const [page, count] of byPage) {
+		problems.push({ kind: BOOK_TEXT_KIND, roll: t("bookArt.report.passageCount", { count }), page, reason: "bookText" });
+	}
+	return texts;
+}
+
+/**
  * @param {object} index
  * @param {string|null} indexPath
  * @param {string[]} [goodsLines] What became of Arms & Goods.
@@ -486,6 +513,10 @@ async function showReport(index, indexPath, goodsLines = []) {
 		t("bookArt.report.rulesRead", {
 			read: Object.keys(index.rules ?? {}).length,
 			total: Object.keys(RULE_PAGES).length
+		}),
+		t("bookArt.report.bookTextRead", {
+			read: Object.keys(index.bookText ?? {}).length,
+			total: BOOK_TEXT_TOTAL
 		}),
 		...goodsLines
 	].filter(Boolean);

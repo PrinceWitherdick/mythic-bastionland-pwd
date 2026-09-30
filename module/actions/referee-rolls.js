@@ -7,7 +7,7 @@ import { getCalendar } from "./calendar.js";
 import { sparkPrompt } from "../rules/spark-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
 
-/** When the Realm's lands are at the mercy of dire weather, one of DIRE_WEATHER_RISKS. */
+/** When the Realm's lands suffer dire weather, one of DIRE_WEATHER_RISKS. */
 const DIRE_WEATHER_SETTING = "direWeather";
 
 /**
@@ -42,7 +42,7 @@ export function weatherIn(calendar) {
 	return samePhase(now?.when, calendar) ? now.result ?? null : null;
 }
 
-/** @returns {string} When the lands are at the mercy of dire weather, one of DIRE_WEATHER_RISKS. */
+/** @returns {string} When the lands suffer dire weather, one of DIRE_WEATHER_RISKS. */
 export function direWeatherRisk() {
 	const risk = game.settings.get(SYSTEM_ID, DIRE_WEATHER_SETTING);
 	return DIRE_WEATHER_RISKS.includes(risk) ? risk : DEFAULT_DIRE_WEATHER_RISK;

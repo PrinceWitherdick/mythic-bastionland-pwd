@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { withBookText } from "../../module/rules/book-text.js";
 
 /** The calendar the world stands at, which turns were carried out, and what each answers with. */
 let calendar;
@@ -39,7 +40,7 @@ const { endTheSession, getSessionEnd, registerSessionEndSetting } =
 	await import("../../module/actions/session-end.js");
 
 const root = join(import.meta.dirname, "../..");
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 const lookup = (key) => key.split(".").reduce((node, part) => node?.[part], lang);
 const format = (key, data) => String(lookup(key) ?? key).replace(/\{(\w+)\}/g, (_match, name) => data?.[name] ?? "");
 

@@ -2,8 +2,8 @@ import { hotbarMacro } from "./hotbar-macro.js";
 import { macroIconPath } from "../rules/macro-icons.js";
 
 /**
- * A Luck Roll macro on everyone's hotbar: a d6 where a high roll favours the
- * players and a low one does not (Refereeing p16).
+ * A Luck Roll macro on everyone's hotbar: a d6, good for the players when it's
+ * high and bad when it's low (Refereeing p16).
  *
  * The whole table has it, not just the GM, since a player often rolls the dice
  * the fiction points at. A player who loads before a GM has made the macro

@@ -159,7 +159,7 @@ export async function rollMorale(actor, { group = [actor] } = {}) {
 }
 
 /**
- * Reaction (p8): non-player characters react in a way that fits the moment,
+ * Reaction (p8): how someone takes something follows from the moment,
  * and when the Referee is uncertain how one takes something, a SPI Save says
  * whether the reaction is unfavourable.
  * @param {Actor} actor

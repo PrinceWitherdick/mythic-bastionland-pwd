@@ -23,9 +23,10 @@ export const INDEX_FILE = "index.json";
  * added the rules pages, starting with Creating a Realm (p14). 9 added the
  * table at the foot of each Myth's page. 10 added the table on each Knight's.
  * 11 added the verse under each Myth's name. 12 added the prompts along the
- * foot of each Myth's page.
+ * foot of each Myth's page. 13 added the book's words for the rules text the
+ * system shows (module/rules/book-text.js).
  */
-export const INDEX_VERSION = 12;
+export const INDEX_VERSION = 13;
 
 /** The first index version with the prompts along the foot of each Knight's page, kept on their Seer. */
 export const SEER_PROMPTS_VERSION = 7;
@@ -63,7 +64,7 @@ export const PAGE_KINDS = Object.freeze({ knight: ["knight", "seer"], myth: ["my
  * Why an entry needs a second look. `extra` still saves the largest match and
  * the text reasons still save the picture; the rest leave the picture out.
  */
-export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind", "cityQuestText", "rulesText"]);
+export const PROBLEM_REASONS = Object.freeze(["notFound", "extra", "decode", "upload", "text", "mythText", "seerText", "sparkText", "sparkPage", "goodsKind", "cityQuestText", "rulesText", "bookText"]);
 
 /** The kind a problem reading the Spark Tables is reported under. */
 export const SPARK_KIND = "spark";
@@ -73,6 +74,9 @@ export const CITY_QUEST_KIND = "cityQuest";
 
 /** The kind a problem reading a rules page is reported under. */
 export const RULES_KIND = "rules";
+
+/** The kind a passage of rules text that couldn't be found is reported under. */
+export const BOOK_TEXT_KIND = "bookText";
 
 /** Which problem reports that a kind's text couldn't be read. */
 export const TEXT_REASONS = Object.freeze({ knight: "text", seer: "seerText", myth: "mythText" });
@@ -762,12 +766,14 @@ export function hasPageText(kind, entry) {
  *   The City Quest's Omens and Cast, each null when unread, and any note beneath the Cast.
  * @param {Record<string, {page: number, sections: object[]}>} [data.rules] Each rules page read, by its key in
  *   RULE_PAGES, as rulePageFromItems reads it.
+ * @param {Record<string, string>} [data.bookText] The book's words for the rules text, by
+ *   language key, as findBookText reads them.
  * @param {number} data.pdfPages
  * @param {string} data.importedAt ISO timestamp.
  * @param {string} data.systemVersion
  * @returns {object}
  */
-export function buildIndex({ entries, problems = [], spark = [], cityQuest = null, rules = {}, pdfPages, importedAt, systemVersion }) {
+export function buildIndex({ entries, problems = [], spark = [], cityQuest = null, rules = {}, bookText = {}, pdfPages, importedAt, systemVersion }) {
 	const index = { version: INDEX_VERSION, systemVersion, importedAt, pdfPages, root: ART_ROOT };
 	for (const kind of KINDS) {
 		index[KIND_FOLDERS[kind]] = entries
@@ -778,6 +784,7 @@ export function buildIndex({ entries, problems = [], spark = [], cityQuest = nul
 	index.spark = spark;
 	index.cityQuest = cityQuest;
 	index.rules = rules;
+	index.bookText = bookText;
 	index.problems = problems;
 	return index;
 }

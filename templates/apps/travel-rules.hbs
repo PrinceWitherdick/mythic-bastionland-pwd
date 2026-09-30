@@ -8,6 +8,9 @@
 
 	{{#unless folded}}
 	<div class="bastionland-travel-rules__body">
+		{{#if unread}}
+		<p class="bastionland-travel-rules__unread">{{unread}}</p>
+		{{/if}}
 		{{#each groups}}
 		<details class="bastionland-travel-rules__group" data-group="{{key}}" {{#if open}}open{{/if}}>
 			<summary class="bastionland-travel-rules__group-heading bastionland-travel-rules__summary">
@@ -27,14 +30,16 @@
 					{{#if pressing}}<span class="bastionland-travel-rules__now">{{localize "bastionland.travelRules.now"}}</span>{{/if}}
 				</h3>
 				{{/if}}
+				{{#if text}}
 				<p>{{text}}</p>
+				{{/if}}
 				{{#if lead}}
 				<p>{{lead}}</p>
 				{{/if}}
 				{{#if lines}}
 				<dl class="bastionland-travel-rules__lines">
 					{{#each lines}}
-					<div><dt>{{label}}</dt> <dd>{{text}}</dd></div>
+					<div><dt>{{label}}</dt>{{#if text}} <dd>{{text}}</dd>{{/if}}</div>
 					{{/each}}
 				</dl>
 				{{/if}}
@@ -69,7 +74,9 @@
 			{{/each}}
 		</details>
 		{{/each}}
+		{{#if credit}}
 		<p class="bastionland-travel-rules__credit">{{credit}}</p>
+		{{/if}}
 	</div>
 	{{/unless}}
 </div>

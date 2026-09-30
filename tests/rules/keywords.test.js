@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BOOK_PRINTS } from "../../module/rules/book-text.js";
 import { KEYWORDS, findKeywords } from "../../module/rules/keywords.js";
 
 /** The words found, as written. */
@@ -10,7 +10,7 @@ const keys = (text) => findKeywords(text).map(({ key }) => key);
 
 describe("findKeywords", () => {
 	it("finds the book's capitalised rule words", () => {
-		expect(keys("Pass a VIG Save or become Fatigued.")).toEqual(["vigour", "save", "fatigue"]);
+		expect(keys("Fail a VIG Save and become Fatigued.")).toEqual(["vigour", "save", "fatigue"]);
 		expect(keys("Characters caught defenceless are Exposed.")).toEqual(["exposed"]);
 	});
 
@@ -58,10 +58,8 @@ describe("findKeywords", () => {
 });
 
 describe("the keywords' tips", () => {
-	const lang = JSON.parse(readFileSync(new URL("../../languages/en.json", import.meta.url), "utf8"));
-
-	it("has a tip for every keyword, and a keyword for every tip", () => {
-		const tips = Object.keys(lang.bastionland.keywords).filter((key) => key !== "tip");
+	it("has the book's words for every keyword, and a keyword for every tip", () => {
+		const tips = Object.keys(BOOK_PRINTS).filter((key) => key.startsWith("keywords.")).map((key) => key.slice("keywords.".length));
 		expect(tips.sort()).toEqual(KEYWORDS.map(({ key }) => key).sort());
 	});
 

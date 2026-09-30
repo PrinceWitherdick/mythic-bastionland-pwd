@@ -2,14 +2,14 @@
  * Exploration (p19): what the people of a Realm know, and what a Company sees
  * when it stops and looks about.
  *
- * Gathering Folklore: "Everybody knows something about Myths. How much depends
- * on who they are." A Vassal knows their nearest Myth and its general
- * direction, precisely where it lies if it is adjacent to their home, and the
- * Landmarks in their home and neighbouring Hexes. Knights and Vagabonds have
- * roamed enough to know a random Myth of the Realm and its rough direction,
- * and the nearest Landmark. All of those know rumours that warn of dangers,
- * but not how to avoid or undo them. A Seer knows every Myth, its secrets,
- * weaknesses and location, and every Landmark in the Realm.
+ * Gathering Folklore: what someone knows of the Myths depends on who they are.
+ * A Vassal knows the Myth nearest them and which way it lies, exactly where if
+ * it borders their home, and the Landmarks in and around their home Hex.
+ * Knights and Vagabonds, having travelled, know one Myth of the Realm picked at
+ * random and roughly where it lies, and the nearest Landmark. Any of those has
+ * heard warnings of danger, but nothing of how to escape or undo it. A Seer
+ * knows every Myth, its secrets, weaknesses and location, and every Landmark
+ * in the Realm.
  *
  * Searching and Vision: a whole Phase sweeps a Hex, searches it for something
  * known to be there, or reaches a vantage point, from which the Hex can be
@@ -152,8 +152,7 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 	if (!FOLK_SOURCES.includes(source)) return null;
 
 	if (source === "seer") {
-		// "Seers know the rules of all Myths, their secrets, and their locations",
-		// and all Landmarks in the Realm.
+		// A Seer knows every Myth's rules, secrets and whereabouts, and every Landmark in the Realm.
 		return {
 			source,
 			home,
@@ -170,7 +169,7 @@ export function folkloreFrom(realm, g, { source, home, pick = 0 }) {
 	// A Vassal speaks of the Myth nearest their home; a roamer of any Myth of the Realm.
 	const candidates = source === "vassal" ? nearestMyths(realm, g, home) : [...realm.myths].sort((a, b) => a.number - b.number);
 	const myth = candidates[Math.min(Math.max(0, pick), candidates.length - 1)] ?? null;
-	// "If it is adjacent to their home then they know its precise location."
+	// Where the Myth borders their home, they know exactly where it is.
 	const precise = Boolean(myth) && source === "vassal" && hexDistance(g, myth.hex, home) <= ADJACENT;
 
 	const landmarks = source === "vassal" ? landmarksAbout(realm, g, home) : nearestLandmarks(realm, g, home).slice(0, 1);

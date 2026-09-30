@@ -99,7 +99,7 @@ const isOmen = (number) => Number.isInteger(number) && number >= 1 && number <= 
 /**
  * Which Omen of the City a Company encounters: d12 plus the number of its
  * Omens they have already encountered, treating more than 24 as 24, and taking
- * the next Omen down the list in place of one already encountered.
+ * the Omen after it in place of one already encountered.
  * @param {number} d12
  * @param {number[]} [seen] Omens already encountered.
  * @returns {{omen: number|null, ends: boolean}} `ends` when the Omen ends the
@@ -132,7 +132,7 @@ export const cityQuestOver = (seen) => seen.some((number) => isOmen(number) && n
 
 /**
  * @param {{type: string, hasPlayerOwner?: boolean, system?: {rank?: string}}[]} actors
- * @returns {boolean} Whether any player's Knight is a Knight-Radiant, worthy of the City Quest.
+ * @returns {boolean} Whether any player's Knight is a Knight-Radiant, ready for the City Quest.
  */
 export const worthyOfCityQuest = (actors) => actors.some((actor) => actor.type === "knight" && actor.hasPlayerOwner && actor.system?.rank === "radiant");
 

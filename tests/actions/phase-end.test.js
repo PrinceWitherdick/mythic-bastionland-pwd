@@ -13,7 +13,7 @@ let asked;
 let calendar;
 let settings;
 let realm;
-/** When the lands are at the mercy of dire weather, and what the weather came to. */
+/** When the lands suffer dire weather, and what the weather came to. */
 let risk;
 let weather;
 /** The art index Import PDF wrote, which holds the Spark Tables. */

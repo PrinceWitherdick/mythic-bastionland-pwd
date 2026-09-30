@@ -303,7 +303,7 @@ const ACTOR_ICONS = Object.freeze([
 /**
  * @returns {string|null} The picture the first rule matching `name` calls for. Only the
  *   lead words count, cut where the sheet cuts them (splitName), not the gloss after
- *   " (" or ", ", so the Cleaner salt that "renders even the most rotten food safe" is no food.
+ *   " (" or ", ", so the Salt of cleansing that "makes spoiled meat fit to eat" is no food.
  */
 function firstMatch(rules, name) {
 	const { nameHead } = splitName(String(name ?? ""));

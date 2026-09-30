@@ -139,7 +139,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") },
 			// Those of the Cast who cause an affliction pass it on to whoever is targeted.
 			...(this.actor.system.inflicts?.length ? [{ action: "afflictTargets", icon: "fa-solid fa-virus", label: t("afflictions.afflict"), tooltip: t("afflictions.afflictHint") }] : []),
-			// Hirelings and other folk roll their Virtues on d12+d6 (p13); a Warband's are the book's.
+			// Hirelings and other folk have d12+d6 in each Virtue (p13); a Warband's are the book's.
 			...(this.actor.system.scale === "warband" ? [] : [{ action: "rollVirtues", icon: "fa-solid fa-dice", label: t("npc.rollVirtues"), tooltip: t("npc.rollVirtuesHint") }])
 		];
 	}

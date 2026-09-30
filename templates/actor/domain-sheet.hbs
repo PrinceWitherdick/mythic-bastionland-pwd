@@ -196,7 +196,7 @@
 					<li class="bastionland-item">
 						<div class="bastionland-item__line">
 							<span class="bastionland-item__name">{{name}}</span>
-							<span class="bastionland-item__tags">({{flavour}})</span>
+							{{#if flavour}}<span class="bastionland-item__tags">({{flavour}})</span>{{/if}}
 							{{#if @root.editable}}
 							<span class="bastionland-item__controls">
 								<button type="button" class="bastionland-icon" data-action="resolveCrisis" data-index="{{index}}" data-tooltip="{{localize 'bastionland.domain.resolve'}}" aria-label="{{localize 'bastionland.domain.resolve'}}">
@@ -205,7 +205,7 @@
 							</span>
 							{{/if}}
 						</div>
-						<div class="bastionland-item__description"><p>{{resolution}}</p></div>
+						{{#if resolution}}<div class="bastionland-item__description"><p>{{resolution}}</p></div>{{/if}}
 					</li>
 					{{else}}
 					<li class="bastionland-empty">{{localize "bastionland.domain.noCrises"}}</li>

@@ -1,8 +1,7 @@
 /**
- * Grand Designs (p21): "Work on existing buildings or infrastructure is
- * generally completed by the next Season. New buildings or infrastructure can
- * be completed in a Season. Grand projects such as castles and roads require
- * an entire Age of work."
+ * Grand Designs (p21): repairs to what stands are done by the next Season, new
+ * building takes a Season, and a great work such as a castle or a road takes
+ * a whole Age.
  *
  * So each work a Domain has in hand remembers when it was begun, and its scale
  * says when it's done: works on what stands by the next Season; a new building

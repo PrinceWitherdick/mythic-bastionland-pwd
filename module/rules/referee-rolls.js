@@ -57,8 +57,8 @@ export function weatherAfter(result, previous) {
 }
 
 /**
- * When a Realm's lands are at the mercy of dire weather (p18): never, in
- * Winter as most Realms are, or all year round. Wording lives under
+ * When a Realm's lands suffer dire weather (p18): never, in Winter as most
+ * Realms do, or all year round. Wording lives under
  * `bastionland.refereeRolls.direWeather.risks`.
  */
 export const DIRE_WEATHER_RISKS = Object.freeze(["never", "winter", "always"]);
@@ -67,8 +67,8 @@ export const DIRE_WEATHER_RISKS = Object.freeze(["never", "winter", "always"]);
 export const DEFAULT_DIRE_WEATHER_RISK = "winter";
 
 /**
- * Whether the Dire Weather table is rolled as a Phase begins: lands at the
- * mercy of dire weather roll at the start of each Phase (p18).
+ * Whether the Dire Weather table is rolled as a Phase begins, which it is in
+ * every Phase where dire weather rules the land (p18).
  * @param {string} risk One of DIRE_WEATHER_RISKS.
  * @param {string} season One of SEASONS in rules/time.js.
  * @returns {boolean}
@@ -77,7 +77,7 @@ export const atMercyOfWeather = (risk, season) => risk === "always" || (risk ===
 
 /**
  * Odds the Referee may state for a Luck Roll instead of reading its table:
- * "there's a slim chance", "we'll call it straight 50/50" (p182, p184). Each
+ * a slim chance, say, or an even one (p182, p184). Each
  * is the lowest d6 that goes the players' way. Wording lives under
  * `bastionland.refereeRolls.odds`.
  */

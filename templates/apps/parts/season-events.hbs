@@ -13,7 +13,7 @@
 		<i class="bastionland-season-events__icon {{icon}}" inert></i>
 		<div class="bastionland-season-events__words">
 			<p class="bastionland-season-events__name">{{label}}<span class="bastionland-season-events__stage">{{stage}}</span></p>
-			<p class="bastionland-hint">{{text}}</p>
+			{{#if text}}<p class="bastionland-hint">{{text}}</p>{{/if}}
 		</div>
 		{{#if passed}}
 		<span class="bastionland-season-events__mark" data-tooltip="{{localize 'bastionland.time.events.passedHint'}}"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.time.events.passed"}}</span>

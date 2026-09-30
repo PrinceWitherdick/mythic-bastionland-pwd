@@ -52,7 +52,7 @@ describe("crisisFor", () => {
 });
 
 describe("Authority", () => {
-	it("falls into misrule with 3 or more unresolved Crises", () => {
+	it("falls into misrule once it carries 3 Crises or more", () => {
 		expect(isMisruleDue(["chaos", "debt"])).toBe(false);
 		expect(isMisruleDue(["chaos", "debt", "panic"])).toBe(true);
 	});

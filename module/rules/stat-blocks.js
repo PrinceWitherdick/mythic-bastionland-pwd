@@ -65,8 +65,8 @@ export function formatStatLine(stats, labels = { vig: "VIG", cla: "CLA", spi: "S
 }
 
 /**
- * "The Wyvern, That Foul Twisted Reptile" is named "The Wyvern", with the rest
- * as their epithet.
+ * "The Heron, That Grey Stalker of the Reeds" is named "The Heron", with the
+ * rest as their epithet.
  * @param {string} full
  * @returns {{name: string, epithet: string}}
  */
@@ -87,7 +87,7 @@ const ARMOUR = /^(?:or\s+)?A(\d+)\b\s*(.*)$/i;
 
 /**
  * Armour at the start of a line: "A3 (what it is)", or more than one value,
- * such as "A2 in flight, A4 on ground (why)".
+ * such as "A1 in water, A3 on land (why)".
  * @param {string} line
  * @returns {{armour: number, note: string, printed: string, rest: string}|null}
  *   The first value counts. `printed` is the Armour as the book sets it, such
@@ -127,7 +127,7 @@ const QUALITIES = Object.freeze({
 	nonLethal: /^(?:causes?\s+)?non-?lethal(?:\s+damage)?$/i,
 	// A steed's charge, as in "charger (d8 trample)".
 	trample: /^trample$/i,
-	// A lance, "d10 long, count as hefty if mounted" (p12).
+	// A lance, long, and hefty too when mounted (p12).
 	heftyMounted: /^counts?\s+as\s+hefty\s+(?:if|when)\s+mounted$/i
 });
 
@@ -140,8 +140,8 @@ export const countsAsHeftyMounted = (text) => /\bcounts?\s+as\s+hefty\s+(?:if|wh
 const qualityOf = (words) => Object.keys(QUALITIES).find((key) => QUALITIES[key].test(words.trim())) ?? null;
 
 /**
- * Read the inside of an attack's parenthesis, such as "2d10 long, +d10 vs the
- * guilty". Returns null when it doesn't start with dice.
+ * Read the inside of an attack's parenthesis, such as "2d8 long, +d8 vs the
+ * faithless". Returns null when it doesn't start with dice.
  * @param {string} inner
  */
 function readAttackDetails(inner) {
@@ -191,7 +191,7 @@ function nameStartIn(before) {
  * @property {string[]} qualities Keys of QUALITIES.
  * @property {string} note   Anything else in the parenthesis.
  * @property {true} [or]     Printed after "or", so it's used instead of the attack before it, as the sweep in
- *                           "Crush (2d12) or sweep (d12 blast)".
+ *                           "Stamp (2d10) or swipe (d10 blast)".
  */
 
 /** Nothing but "or" between one attack and the next. */
@@ -199,7 +199,7 @@ const OR_BETWEEN = /^[\s,;]*or\s*$/i;
 
 /**
  * Find the attacks on a line: a name followed by a parenthesis that starts
- * with dice, such as "Crush (2d12) or sweep (d12 blast)".
+ * with dice, such as "Stamp (2d10) or swipe (d10 blast)".
  * @param {string} line
  * @returns {{attacks: ParsedAttack[], rest: string}} `rest` is the line's other text.
  */
@@ -252,7 +252,7 @@ export function featsNamed(text) {
 /** "Count as a structure", "treat as structure", or Armour that is "(structure)". */
 const STRUCTURE = /\b(?:counts?|treat(?:ed)?)\s+as\s+(?:a\s+)?structure\b|\(structure\)/i;
 
-/** A swarm's rule as its stat block prints it: "individual attacks are Impaired unless they are Blast attacks" (p61). */
+/** A swarm's rule as its stat block prints it, that one person's Attack on it is Impaired unless it's a Blast (p61). */
 const SWARM = /\bindividual\s+attacks\s+are\s+impaired\b/i;
 
 /**
@@ -271,7 +271,7 @@ function castScale(name, lines) {
  * A Cast entry named as a Warband, such as "Ghostly Riders, Warband", is one,
  * and one whose foes' individual attacks are Impaired is a swarm.
  * @param {object} block
- * @param {string|null} block.name  As printed, such as "The Wyvern, That Foul Twisted Reptile".
+ * @param {string|null} block.name  As printed, such as "The Heron, That Grey Stalker of the Reeds".
  * @param {Stats|null} [block.stats]
  * @param {string[]} [block.lines] What follows the stats, one written line each.
  * @param {object} [options]
@@ -348,8 +348,8 @@ export function isStructureBlock({ stats = null, lines = [] }) {
 }
 
 /**
- * Actor data for a Structure from a stat block, such as "The Chariot 5GD A2
- * (structure) 2d12 trample". Saying it's a structure is left out of its notes.
+ * Actor data for a Structure from a stat block, such as "The Siege Cart 4GD A1
+ * (structure) d12 trample". Saying it's a structure is left out of its notes.
  * @param {object} block As npcFromStatBlock takes.
  * @param {object} [options]
  * @param {string} [options.attackName]

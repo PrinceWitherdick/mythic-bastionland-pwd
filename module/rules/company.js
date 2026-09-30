@@ -1,8 +1,7 @@
 /**
- * Where the Company stands on a Realm. The Seers who knighted the players
- * deemed that they travel as a Company (p7) — "While some of you may rest,
- * roam, or die, your collective journey will be as one" — so one Token on the
- * map stands for all of them, and where it begins follows the Start the
+ * Where the Company stands on a Realm. The Knights journey together as one
+ * Company (p7), whoever rests or falls along the way, so one Token on the map
+ * stands for all of them, and where it begins follows the Start the
  * players chose for the Company (p6). Pure, so it can be tested without
  * Foundry.
  */
@@ -29,9 +28,9 @@ export function realmStart(realms) {
 /**
  * Where the Company begins, by the Start the players chose (p6).
  *
- * The book only names a place for one Start: a **Courtier** has "a place in
- * Court at the Seat of Power". A **Wanderer** "arrives in the Realm" and a
- * **Ruler**'s Knight "rules a Holding", but neither says where, so the
+ * The book only names a place for one Start: a **Courtier** begins at Court,
+ * in the Seat of Power. A **Wanderer** comes into the Realm and a **Ruler**'s
+ * Knight holds a Holding, but neither says where, so the
  * Referee chooses and nothing is rolled for them. Nor is anything rolled for
  * a Courtier in a Realm with no Seat.
  *

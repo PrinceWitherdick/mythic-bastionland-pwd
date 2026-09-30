@@ -83,7 +83,7 @@ describe("resolveDamage", () => {
 		expect(result).toMatchObject({ guard: 5, guardLoss: 0, vigour: 8, outcome: "wounded" });
 	});
 
-	// Wood and Stone (p11): ships and structures are destroyed at 0GD.
+	// Wood and Stone (p11): a ship or structure is destroyed at 0GD.
 	it("wears down a structure's GD and destroys it at 0, never touching VIG", () => {
 		expect(resolveDamage({ damage: 3, armour: 1, guard: 5, vigour: 10, structure: true })).toMatchObject({ guard: 3, vigour: 10, outcome: "evaded" });
 		expect(resolveDamage({ damage: 5, guard: 5, vigour: 10, structure: true })).toMatchObject({ guard: 0, guardLoss: 5, vigour: 10, vigourLoss: 0, outcome: "destroyed" });

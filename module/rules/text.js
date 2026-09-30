@@ -98,8 +98,8 @@ export function parentheticals(text) {
 /**
  * An item name cut where its gloss begins, at the first " (" or ", ", so a
  * row can bold only the lead words and run the gloss on after them:
- * "Unnatural body" then "(see below), concealed beneath plate suit (A1), hood
- * and clothes". A cutting comma stays on the head as nameSep.
+ * "Iron hand" then "(see below), hidden under a glove, with mail (A1) and a
+ * hood". A cutting comma stays on the head as nameSep.
  * @param {string} name
  * @returns {{nameHead: string, nameSep: string, nameRest: string}}
  */

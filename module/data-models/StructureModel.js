@@ -8,8 +8,8 @@ const NO_CONDITIONS = Object.freeze({ fatigued: false, exposed: false, mortalWou
 
 /**
  * A structure, ship or siege engine (Wood and Stone, p11): only GD and Armour,
- * destroyed at 0GD, and harmed only by fire, siege weapons or suitably large
- * creatures. It has no Virtues, so it never Saves, tires or loses its nerve.
+ * destroyed at 0GD, and harmed only by fire, siege engines or something big
+ * enough. It has no Virtues, so it never Saves, tires or loses its nerve.
  */
 export class StructureModel extends foundry.abstract.TypeDataModel {
 	static defineSchema() {

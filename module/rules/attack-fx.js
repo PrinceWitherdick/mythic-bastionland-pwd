@@ -226,8 +226,8 @@ const biggestDie = (dice) => (dice.length ? Math.max(...dice) : 0);
 const everyDie = (dice) => dice.reduce((sum, faces) => sum + faces, 0);
 
 /**
- * Every blow one Attack strikes, in the order they're drawn: the weapon with
- * the biggest Attack die first, then the next, down to the shield on the arm
+ * Every blow one Attack strikes, in the order they're drawn: the largest die's
+ * weapon first, then the next, down to the shield on the arm
  * and the steed's hooves. Between two weapons rolling the same largest die the
  * one that rolls more dice goes first, and between two alike, the one the
  * Attack listed first.

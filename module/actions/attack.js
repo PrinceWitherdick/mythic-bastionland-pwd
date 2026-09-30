@@ -161,8 +161,8 @@ function currentTargets() {
 /**
  * How a targeted Token stands: whether it's mounted or a structure, for a
  * steed's trample, which only joins a charge at enemies on foot (p10), and
- * whether it's a swarm, whose foes' individual attacks are Impaired unless
- * they are Blast attacks (p61). A Token whose actor can't be found is taken to
+ * whether it's a swarm, which one person's Attack only harms Impaired unless
+ * it's a Blast (p61). A Token whose actor can't be found is taken to
  * be one person on foot. A Warband is told apart too, since a Warband's Attack
  * at individuals gets +d12 and Blast (p11).
  * @param {{uuid: string}} target
@@ -701,7 +701,7 @@ export async function attack(actor) {
 	if (!plan) return null;
 	await plan.settle();
 	const { targets, inDuel } = plan;
-	// Blast attacks target everybody in their area, rolling each separately (p8).
+	// A Blast rolls for everybody in its area, one target at a time (p8).
 	const groups = plan.blast && targets.length > 1 ? targets.map((target) => [target]) : [targets];
 
 	const shared = {
@@ -748,8 +748,8 @@ function showRolls(rolls) {
 }
 
 /**
- * Join an Attack card that hasn't landed yet: everybody attacking the same
- * target rolls their dice at the same time, as one Attack (p8). The joiner
+ * Join an Attack card that hasn't landed yet: all who attack one target roll
+ * together, as one Attack (p8). The joiner
  * answers their own Attack dialog, with their own Smite, aimed at the card's
  * targets, and rolls. A Blast card is joined alone, being one target's roll,
  * and a Blast can't join a card at several, since it rolls for each (p8).

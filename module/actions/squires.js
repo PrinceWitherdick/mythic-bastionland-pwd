@@ -174,7 +174,7 @@ export async function chooseKnightedSquire(knight) {
 }
 
 /**
- * Knight a Squire (p7): they gain d6 in each Virtue, and from then on can gain
+ * Knight a Squire (p7): each Virtue rises by d6, and from then on they can gain
  * Glory and perform Feats. Then they choose which Knight they became, keeping
  * their Virtues and everything they carry.
  * @param {Actor} squire

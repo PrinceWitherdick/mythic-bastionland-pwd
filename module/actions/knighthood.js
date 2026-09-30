@@ -1,4 +1,5 @@
 import { wireGuideRail } from "../apps/guide-rail.js";
+import { bookTextRead } from "../book-art/book-text.js";
 import { t } from "../chat/cards.js";
 import { STARTS } from "../rules/creation.js";
 import { RANKS } from "../rules/glory.js";
@@ -32,6 +33,9 @@ export async function openKnighthood(actor) {
 	const content = await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/knighthood.hbs"), {
 		sections: KNIGHTHOOD_SECTIONS.map(({ key, icon, label }) => ({ key, icon, label: t(label), active: key === section })),
 		shown: { [section]: true },
+		// The page is the book's own words, so until Import PDF has read them it says where to find them.
+		unread: bookTextRead("knighthood.") ? null : t("knighthood.unread"),
+		oath: [t("knighthood.oath"), ["line1", "line2", "line3"].map((line) => t(`oath.${line}`)).filter(Boolean).join(", ")].filter(Boolean).join(" "),
 		virtues: VIRTUES.map((key) => ({ label: t(`virtues.${key}.label`), hint: t(`virtues.${key}.hint`) })),
 		starts: STARTS.map((start) => ({
 			name: t(`company.starts.${start.key}.name`),

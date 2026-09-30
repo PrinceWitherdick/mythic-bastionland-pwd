@@ -81,8 +81,8 @@ const tallyLine = (text, count, asked) => {
 };
 
 /**
- * "Designate one Holding as the Seat of Power" (p14): where it stands, or that
- * the Realm has none yet.
+ * The Realm's one Seat of Power (p14): where it stands, or that the Realm has
+ * none yet.
  * @returns {{text: string, met: boolean}}
  */
 function seatLine(realm) {

@@ -102,8 +102,8 @@ export async function rollTravellingBlind() {
 }
 
 /**
- * A Monument's Sacrament (p14): travellers may spend a Phase to restore SPI here
- * as if they were consuming a Sacrament. The Phase isn't moved on, as a Remedy
+ * A Monument's Sacrament (p14): a Phase spent there restores SPI just as a
+ * Sacrament would. The Phase isn't moved on, as a Remedy
  * doesn't move it either: the Referee turns the calendar when they're ready.
  * GMs only.
  * @returns {Promise<object[]|null>} The card's entries, or null if nobody took part.
@@ -138,8 +138,8 @@ export async function restoreAtMonument() {
 }
 
 /**
- * Push through a Hazard (p14): everybody who does loses d6 in a Virtue, usually
- * VIG. The Referee is asked which, since the book leaves it to the moment. GMs
+ * Push through a Hazard (p14): everybody who does loses d6 of a Virtue, most
+ * often VIG. The Referee is asked which, since the book leaves it to the moment. GMs
  * only.
  * @returns {Promise<object[]|null>}
  */
@@ -170,7 +170,7 @@ export async function pushThroughHazard() {
 }
 
 /**
- * Go back the way you came from a Hazard (p14): the Company's Token steps back
+ * Turn back from a Hazard (p14): the Company's Token steps back
  * into the hex it came from, which its journey records. It is travelling like
  * any other, so the Phase moves on when the Referee says. GMs only.
  * @param {Scene} scene The Realm.

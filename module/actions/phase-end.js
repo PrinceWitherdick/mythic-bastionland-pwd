@@ -39,8 +39,8 @@ export function registerPhaseEndSettings() {
  */
 
 /**
- * Everybody still Mortally Wounded: "They die if left untended for an hour"
- * (p8), and a Phase is longer than that. The world's own, and anybody placed
+ * Everybody still Mortally Wounded: an hour without care is fatal (p8), and a
+ * Phase is longer than that. The world's own, and anybody placed
  * on the Scene in view without an actor of their own.
  * @returns {Actor[]}
  */

@@ -13,7 +13,7 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		return {
 			// "Known as the ___ Knight"
 			knightType: textField(),
-			// The Seer who granted their Knighthood.
+			// The Seer who knighted them.
 			seer: textField(),
 			// The Seer's portrait, what the book says of them, and what the Knight has learned of them since.
 			seerImg: textField(),
@@ -48,7 +48,7 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			age: new fields.StringField({ required: true, initial: AGES[0], choices: AGES }),
 			// The UUID of the NPC this Knight rides, whose trample joins a mounted charge.
 			steed: textField(),
-			// A Squire is not yet a Knight, so cannot gain Glory or perform Feats (p7).
+			// A Squire isn't a Knight yet: no Glory and no Feats (p7).
 			isSquire: booleanField(),
 			// A Knight's Squire, or the Knight a Squire serves, by UUID.
 			squire: textField(),
@@ -85,7 +85,7 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 	}
 
 	/**
-	 * Every Knight knows the three Feats (p7). A Squire isn't a Knight yet.
+	 * All three Feats are known to every Knight (p7). A Squire isn't a Knight yet.
 	 * @returns {boolean}
 	 */
 	knowsFeat() {

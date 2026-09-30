@@ -131,7 +131,7 @@ export async function seedNpcPack() {
 
 /**
  * A world setup step for a world that imported the book before attacks printed
- * with "or" were read as one or the other, as "Crush (2d12) or sweep (d12 blast)".
+ * with "or" were read as one or the other, as "Stamp (2d10) or swipe (d10 blast)".
  * The NPCs compendium is filled again from the book's text, and each of a
  * Cast already brought into the world has those attacks marked, keeping
  * everything else about them as it is.

@@ -12,7 +12,7 @@
 
 export const SITE_VERSION = 1;
 
-/** Features give information or set the mood, dangers are navigated carefully, and treasure is a useful or valuable find. */
+/** Features tell the players something or colour the place, dangers must be got past with care, and treasure is worth the finding (p15). */
 export const POINT_KINDS = Object.freeze(["feature", "danger", "treasure"]);
 
 /** Open routes are straightforward, closed ones are blocked, and hidden ones have to be found. */

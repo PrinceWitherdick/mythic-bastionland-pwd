@@ -31,7 +31,7 @@ class PossessionModel extends DescribedModel {
 			rarity: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...RARITIES] }),
 			// "3 javelins", "3 runic scrolls": blank while nobody counts them.
 			quantity: new fields.SchemaField({ value: optionalCount(), max: optionalCount() }),
-			// "Restock each new Season", "enough for one dose each day".
+			// How often it's refilled, as a Knight's page words it: each Season, each day.
 			restock: new fields.StringField({ required: true, blank: true, initial: "", choices: RESTOCK_CADENCES }),
 			// Broken by a Strong Gambit (p10), or smashed: no use until mended.
 			broken: booleanField()
@@ -70,7 +70,7 @@ export class WeaponModel extends PossessionModel {
 				damage: textField(),
 				...Object.fromEntries(ALTERNATE_QUALITIES.map((key) => [key, booleanField()]))
 			}),
-			// Shared by attacks printed with "or" between them, as "Crush (2d12) or sweep (d12 blast)",
+			// Shared by attacks printed with "or" between them, as "Stamp (2d10) or swipe (d10 blast)",
 			// so an Attack uses only one of them. Blank for anything that joins the others.
 			either: textField(),
 			// Each Attack with it uses one up, as a titan bead or an explosive is.

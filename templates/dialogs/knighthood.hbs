@@ -13,6 +13,9 @@
 	</nav>
 
 	<div class="bastionland-guide__main">
+		{{#if unread}}
+		<p class="bastionland-knighthood__unread">{{unread}}</p>
+		{{/if}}
 		<section class="bastionland-knighthood__section" data-guide-panel="knighthood"{{#unless shown.knighthood}} hidden{{/unless}}>
 			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.knighthood.introLabel"}}</h3>
 			<p class="bastionland-knighthood__lede">{{localize "bastionland.knighthood.intro1"}}</p>
@@ -29,11 +32,10 @@
 				<dd>{{localize "bastionland.passion.hint"}}</dd>
 			</dl>
 
-			<h4 class="bastionland-heading bastionland-knighthood__subheading">{{localize "bastionland.knighthood.everyKnight"}}</h4>
 			<ul class="bastionland-knighthood__list">
 				<li>{{localize "bastionland.knighthood.kit"}}</li>
 				<li>{{localize "bastionland.knighthood.feats"}}</li>
-				<li>{{localize "bastionland.knighthood.oath"}}</li>
+				<li>{{oath}}</li>
 			</ul>
 		</section>
 

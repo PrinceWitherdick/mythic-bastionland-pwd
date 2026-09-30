@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { DIE_SIZES } from "../rules/attack.js";
-import { awaitsRevengeOn, isScarPending, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
+import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
@@ -14,7 +14,7 @@ import { causedBy } from "./ledger.js";
  * and a Humiliation remembers who dealt it, for the revenge that settles it.
  * @param {Actor} actor
  * @param {object} [options]
- * @param {number} [options.faces=6] The die that caused the Scar, selected in the dialog.
+ * @param {number} [options.faces=6] The die that dealt the Scar, selected in the dialog.
  * @param {string} [options.by] Actor UUID of whoever dealt the blow, when an Attack card knows.
  */
 export async function rollScar(actor, { faces: caused, by } = {}) {
@@ -77,7 +77,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 				season: seasonKey(getCalendar()),
 				foe: foe?.uuid ?? "",
 				foeName: foe?.name ?? "",
-				description: `<p><em>${text("flavour")}</em></p><p>${text("effect")}</p>`
+				description: scarDescription(text("flavour"), text("effect"))
 			}
 		}]);
 	}

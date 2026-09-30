@@ -1,6 +1,6 @@
 /**
- * Dice written into printed rules, such as the "d12" in "create clusters of
- * d12 hexes of the same terrain type" (p14). Found in the text as it stands,
+ * Dice written into printed rules, such as the "d12" a patch of terrain is
+ * sized by (p14). Found in the text as it stands,
  * so a window can offer to roll the die where the book writes it without the
  * words being touched. Pure, so it can be tested without Foundry.
  */

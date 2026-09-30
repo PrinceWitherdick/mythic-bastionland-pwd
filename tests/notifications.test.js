@@ -1,9 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { withBookText } from "../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "..");
-const strings = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")).bastionland;
+const strings = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"))).bastionland;
 
 /** A page number as the book's own pages are cited: "(p6)", "(pp6-7)". */
 const PAGE = /\(pp?\s?\d/i;

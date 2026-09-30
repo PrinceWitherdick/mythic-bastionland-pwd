@@ -4,9 +4,9 @@
  * and Dismount move somebody, and Other is the Referee's to judge. Three reach
  * into the turns that follow, so somebody has to remember them:
  *
- *   Impair  a weapon on their next turn
- *   Stop    a foe from moving next turn
- *   Trap    a shield until your next turn
+ *   Impair  one of their weapons, for their next turn
+ *   Stop    their moving, on their next turn
+ *   Trap    their shield, until your next turn
  *
  * A mark is read back off the Attack card that bought it rather than written
  * onto the foe, so taking the Gambit back, or Saving against it, takes the mark

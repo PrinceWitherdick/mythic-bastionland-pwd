@@ -103,6 +103,7 @@ import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
+import { catchUpBookText, loadBookText, registerBookText } from "./module/book-art/book-text.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { watchQuerySenders } from "./module/compat.js";
 import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
@@ -302,6 +303,8 @@ Hooks.once("init", () => {
 	registerPageLinks();
 	// Hovering a rule word, such as Exposed or Hefty, says what it means.
 	registerKeywordTips();
+	// The rules text the system shows is the book's own, read from the GM's PDF.
+	registerBookText();
 	game.keybindings.register(SYSTEM_ID, "openRulebook", {
 		name: "bastionland.rulebook.keybinding.name",
 		hint: "bastionland.rulebook.keybinding.hint",
@@ -436,6 +439,8 @@ Hooks.once("init", () => {
 // Tokens keep facing the same way when moved around the map, unless the GM turns
 // Token Automatic Rotation back on. Core registers the setting after init.
 Hooks.once("setup", () => {
+	// The book's words for the rules text, read by Import PDF, before any window draws.
+	loadBookText();
 	const autoRotate = game.settings.settings.get("core.tokenAutoRotate");
 	if (autoRotate) autoRotate.default = false;
 	// Foundry's Tours keep their progress in a core setting, also registered after init.
@@ -494,6 +499,8 @@ Hooks.once("ready", async () => {
 	showPhaseBanner();
 	// Nothing else waits on this.
 	squareKnightTokens();
+	// A world imported before the rules text was read has it found in the rulebook it keeps.
+	catchUpBookText();
 	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
 	watchCompanySize();
 	// Knights made while no GM was on get their folders now.

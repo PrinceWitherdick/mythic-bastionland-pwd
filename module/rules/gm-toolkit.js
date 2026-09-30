@@ -78,8 +78,8 @@ export const PLACE_ORDERS = Object.freeze(["visited", "kind"]);
 export const mythRollTaken = (realm, { d6, d12 }) => (realm?.myths ?? []).some((myth) => myth.d6 === d6 && myth.d12 === d12);
 
 /**
- * The Myths the group feels are resolved, each waiting for the new Myth that
- * replaces it in the next Season (p27).
+ * The Myths the group feels are resolved, each waiting for the Myth that takes
+ * its place next Season (p27).
  * @param {import("./realm.js").Realm} realm
  * @param {import("./myth-notes.js").MythNotes} notes
  * @returns {object[]} Those Myths, by number.

@@ -251,7 +251,7 @@ async function endPhase(known) {
 }
 
 /**
- * Lands at the mercy of dire weather roll for it at the start of each Phase
+ * Where dire weather rules the land, it's rolled for as each Phase begins
  * (p18). The Company in a Holding is indoors, and one on no Realm is on no
  * land the world's setting speaks for, so neither rolls.
  * @param {import("../rules/time.js").Calendar} calendar The Phase beginning.
@@ -325,8 +325,8 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 }
 
 /**
- * Old characters lose d12 VIG at the end of each Age, and die peacefully at
- * VIG 0 (p17): every NPC in the world given an Age of Old, on one card. The
+ * The Old lose d12 VIG as each Age ends, and a quiet death comes to any it
+ * takes to VIG 0 (p17): every NPC in the world given an Age of Old, on one card. The
  * Company's own Old are taken care of as the Age turns for them.
  * @returns {Promise<object[]>} The card's entries.
  */
@@ -493,8 +493,8 @@ export function turnAge() {
 }
 
 /**
- * Advancing Time's Weeks step (p17): "continue on to the next significant
- * seasonal event". The next of the Season's events comes to pass and a new
+ * Advancing Time's Weeks step (p17): on to the Season's next event that
+ * matters. The next of the Season's events comes to pass and a new
  * Morning dawns on it. The Realm's collection ends the Season, so reaching that
  * turns the Season instead. No Phase card is posted, since the event's own card
  * tells the table where the Company now stands. GMs only.
@@ -628,8 +628,8 @@ export const hardshipFor = (hardship, actors, { title = null } = {}) =>
 	virtueLoss(actors, hardship.virtue, { title: title ?? t(`time.hardship.kinds.${hardship.key}.label`) });
 
 /**
- * Change a character's Age. Growing Mature or Old offers to reroll each Virtue
- * on d12+d6, keeping the higher on becoming Mature and the lower on becoming Old.
+ * Change a character's Age. Growing Mature or Old offers a fresh d12+d6 for
+ * each Virtue, the higher kept by the Mature and the lower by the Old.
  * @param {Actor} actor
  * @param {string} age One of AGES.
  */

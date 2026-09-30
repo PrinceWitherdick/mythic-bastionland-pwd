@@ -19,10 +19,10 @@
   "bastionland": {
     "sheet": {
       "title": "Mythic Bastionland",
-      "named": "They were named",
-      "knownAs": "Known as the",
+      "named": "Named",
+      "knownAs": "Called the",
       "knight": "Knight",
-      "fate": "Their ultimate fate was",
+      "fate": "In the end",
       "knightedBy": "Knighted by",
       "heraldry": "Heraldry",
       "portrait": "Portrait",
@@ -38,7 +38,7 @@
       "current": "Current",
       "maximum": "Maximum",
       "toNextRank": "{needed} more Glory to {rank}",
-      "worthiest": "Worthy of the City Quest",
+      "worthiest": "Ready for the City Quest",
       "knightTitle": "{name} the {type} Knight",
       "add": "Add {type}",
       "edit": "Edit",
@@ -210,20 +210,17 @@
       "vig": {
         "abbr": "VIG",
         "tail": "our",
-        "label": "Vigour",
-        "hint": "Strong limbs, firm hands, powerful lungs."
+        "label": "Vigour"
       },
       "cla": {
         "abbr": "CLA",
         "tail": "rity",
-        "label": "Clarity",
-        "hint": "Keen instinct, lucid mind, shrewd eyes."
+        "label": "Clarity"
       },
       "spi": {
         "abbr": "SPI",
         "tail": "rit",
-        "label": "Spirit",
-        "hint": "Charming tongue, iron will, fierce heart."
+        "label": "Spirit"
       }
     },
     "guard": {
@@ -232,7 +229,7 @@
       "lead": "G",
       "middle": "uar",
       "end": "d",
-      "hint": "Your skill at avoiding Wounds."
+      "hint": "How well you avoid Wounds."
     },
     "glory": {
       "label": "Glory",
@@ -246,17 +243,17 @@
         "myth": {
           "label": "Myth Resolved",
           "intro": "Tick every Knight who played a part in the Myth. Each gains 1 Glory.",
-          "hint": "When the group feels that a Myth has reached a conclusion of any type."
+          "hint": "Once the table agrees the Myth has ended, however it ended."
         },
         "tournament": {
           "label": "Tournament Won",
           "intro": "Tick the winning Knight. They gain 1 Glory.",
-          "hint": "Only a tournament with significant spectators and spectacle grants Glory."
+          "hint": "Only a tournament with a real crowd and real pageantry earns Glory."
         },
         "battle": {
           "label": "Battle Won",
           "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
-          "hint": "Only a battle large enough to be remembered in history grants Glory."
+          "hint": "Only a battle big enough for the chronicles earns Glory."
         }
       }
     },
@@ -308,11 +305,11 @@
     "squire": {
       "label": "Squire",
       "take": "Take a Squire",
-      "empty": "Small Companies of 2 Knights or fewer may give each Knight a Squire. Take one, or drag a Squire here from the Actors tab.",
+      "empty": "In a Company of 2 Knights or fewer, each Knight may have a Squire. Take one, or drag a Squire here from the Actors tab.",
       "servesLabel": "Squire to",
       "servesNobody": "A Squire who serves no Knight. Drag this Squire onto a Knight’s sheet.",
       "clear": "No longer linked",
-      "hint": "An apprentice, not yet a Knight, so they can’t gain Glory or perform Feats. When Knighted they gain d6 in each Virtue.",
+      "hint": "An apprentice rather than a Knight: no Glory and no Feats until they’re Knighted, when each Virtue rises by d6.",
       "knight": "Knight this Squire",
       "name": "Squire to {knight}",
       "pony": "{name}’s Pony",
@@ -320,11 +317,11 @@
       "tagline": "{name} serves {knight}",
       "equipmentRoll": "Equipment, d6 showing {roll}",
       "largeTitle": "A Large Company",
-      "largeCompany": "Only Companies of 2 Knights or fewer may give each Knight a Squire, and this one has {count}. Take a Squire anyway?",
-      "largeCompanyPlayer": "Only Companies of 2 Knights or fewer may give each Knight a Squire, and this one has {count}. Ask the Referee.",
-      "largeCompanyHint": "The Company has {count} Knights, and only Companies of 2 or fewer may give each Knight a Squire.",
-      "largeCompanyHintGM": "The Company has {count} Knights, and only Companies of 2 or fewer may give each Knight a Squire. As Referee you may grant one anyway.",
-      "companyGrew": "The Company now has {count} Knights, and only Companies of 2 or fewer may give each Knight a Squire. Squires in this world: {squires}. Whether they stay is the Referee’s call.",
+      "largeCompany": "Squires are for a Company of 2 Knights or fewer, and this one has {count}. Take a Squire anyway?",
+      "largeCompanyPlayer": "Squires are for a Company of 2 Knights or fewer, and this one has {count}. Ask the Referee.",
+      "largeCompanyHint": "The Company has {count} Knights, and Squires are for a Company of 2 or fewer.",
+      "largeCompanyHintGM": "The Company has {count} Knights, and Squires are for a Company of 2 or fewer. As Referee you may grant one anyway.",
+      "companyGrew": "The Company now has {count} Knights, and Squires are for a Company of 2 or fewer. Squires in this world: {squires}. Whether they stay is the Referee’s call.",
       "cantCreate": "Taking a Squire creates them and their pony, so it needs a user who is allowed to create actors.",
       "knightConfirmTitle": "Knight This Squire?",
       "knightConfirm": "{name} becomes a Knight, gaining d6 in each Virtue. From then on they can gain Glory and perform Feats. Then choose which Knight they became: they keep everything they have.",
@@ -352,25 +349,17 @@
       "gallant": "Knight Gallant",
       "tenant": "Knight Tenant",
       "dominant": "Knight Dominant",
-      "radiant": "Knight Radiant",
-      "hint": "Rank alone doesn’t grant a Council position or rule of a Holding. It merely proves worthiness. A Knight in a position their rank is unworthy of is sure to face opposition, but if they overcome it their worthiness is proven.",
-      "worthy": {
-        "errant": "Worthy of leading a Warband",
-        "gallant": "Worthy of a seat in Council or Court",
-        "tenant": "Worthy of ruling a Holding",
-        "dominant": "Worthy of ruling a Seat of Power",
-        "radiant": "Worthy of the City Quest"
-      }
+      "radiant": "Knight Radiant"
     },
     "conditions": {
       "label": "Conditions",
       "fatigued": {
         "label": "Fatigued",
-        "hint": "Cannot perform Feats until they rest."
+        "hint": "No Feats again until they’ve rested."
       },
       "exhausted": {
         "label": "Exhausted",
-        "hint": "At VIG 0 you cannot Attack if you have moved this turn."
+        "hint": "At VIG 0: no Attack in a turn you’ve already moved."
       },
       "exposed": {
         "label": "Exposed",
@@ -382,7 +371,7 @@
       },
       "mortalWound": {
         "label": "Mortal Wound",
-        "hint": "Down and dying. You die if left untended for an hour, but can be patched up in a few moments."
+        "hint": "Dying: an hour without help kills them, but a few moments’ care patches them up."
       },
       "wounded": {
         "label": "Wounded",
@@ -395,10 +384,10 @@
     },
     "recovery": {
       "label": "Recovery",
-      "vig": "Hospitality or consume Sustenance",
-      "cla": "Seer’s guidance or consume Stimulant",
-      "spi": "Indulge passion or consume Sacrament",
-      "guard": "A moment’s calm and rest",
+      "vig": "Sustenance, or a day of hospitality",
+      "cla": "Stimulant, or a Seer’s guidance",
+      "spi": "Sacrament, or indulging a Passion",
+      "guard": "Calm, once danger is past",
       "guardLabel": "GD/Fatigue",
       "restore": "Restore {virtue}",
       "restored": "{virtue} restored to {value}.",
@@ -409,10 +398,7 @@
     },
     "oath": {
       "label": "Oath",
-      "line1": "Seek the Myths",
-      "line2": "Honour the Seers",
-      "line3": "Protect the Realm",
-      "hint": "Every Knight has sworn the Oath."
+      "hint": "Sworn by every Knight."
     },
     "unchosen": {
       "hint": "Nobody has claimed this Knight yet. Roll or pick one from the book, or fill in the sheet yourself.",
@@ -509,37 +495,19 @@
       "close": "Close",
       "sectionsLabel": "Sections of the Knighthood page",
       "introLabel": "Knighthood",
-      "intro1": "You are Knights, united by a common Oath and visions of the City. You may have dreams of glory, but every Knight must accept the risk of death.",
-      "intro2": "The Seers who knighted you have deemed that you travel as a Company. While some of you may rest, roam, or die, your collective journey will be as one.",
-      "virtues": "Knights have 3 Virtues. Roll a value for each in order. The Start chosen for your Company sets the dice; if unsure, roll d12+d6.",
-      "guard": "Roll for Guard (GD), your skill at avoiding Wounds. The Start chosen for your Company sets the dice; if unsure, roll d6.",
       "startsLabel": "Start",
       "virtuesLabel": "Virtues",
       "guardLabel": "GD",
       "yourKnight": "Your Knight",
-      "chooseKnight": "Roll or choose a Knight (p26). This gives:",
-      "propertyTerm": "Items brought with you.",
       "everyKnight": "Every Knight",
-      "kit": "Has a dagger (d6), torches, rope, dry rations, and camping gear.",
-      "feats": "Knows the three Feats (p10).",
-      "oath": "Has sworn the Oath: Seek the Myths, Honour the Seers, Protect the Realm.",
-      "squires1": "Small Companies (2 Knights or fewer) may give each Knight a Squire. They serve as apprentices, and are not yet Knights, so cannot gain Glory or perform Feats.",
-      "squires2": "2d6 for each Virtue, 1GD. They ride a pony (VIG 7, CLA 7, SPI 2, 2GD) and carry a dagger (d6).",
-      "squires3": "Roll d6 for their extra equipment: 1 Cudgel (d8 hefty), 2 Axe (d8 hefty), 3 Hatchet (d6 hefty), 4 Shortbow (d6 long), 5 Shield (d4, A1), 6 Three Javelins (d6 hefty).",
-      "squires4": "When Knighted they gain d6 in each Virtue.",
-      "glory": "All Knights seek Glory, that they might one day be deemed worthy of the City Quest.",
       "gloryMyths": "Through Myths",
-      "gloryMythsText": "When the group feels that a Myth has been resolved, reaching a conclusion of any type, all Knights who played a part in it gain 1 Glory.",
       "gloryOther": "By other means",
-      "gloryDuel": "In a public duel or joust, Knights may stake Glory against a willing opponent. The victor gains 1 Glory, the loser loses 1.",
-      "gloryTournament": "A tournament may grant 1 Glory to the winning Knight, provided there are significant spectators and spectacle.",
-      "gloryBattle": "If a battle is large enough to be remembered in history, all Knights on the victorious side gain 1 Glory.",
-      "gloryAge": "When the game moves to a new Age, all Knights gain 1 Glory through serving the Realm and manoeuvring in Court.",
-      "worthiness": "Worthiness"
+      "worthiness": "Worthiness",
+      "unread": "Import your rulebook PDF to read pp6–7 here in the book’s own words."
     },
     "property": {
       "label": "Property",
-      "hint": "Items brought with you. Every Knight also has a dagger (d6), torches, rope, dry rations, and camping gear.",
+      "hint": "What the Knight brings with them. Every Knight also carries rope, torches, dry rations, camping gear and a dagger (d6).",
       "keepsPlace": "{name} keeps its place: weapons come first, biggest die leading, then shields, then armour from the head outward, then everything else."
     },
     "knightTable": {
@@ -667,56 +635,48 @@
       "use": "Use Remedy ({virtue})",
       "intro": "Tick everybody present. Each has their {virtue} restored, and the Remedy is used up.",
       "tagline": "A Remedy used",
-      "hint": "Using a Remedy takes a whole Phase. The Virtue is restored before any Omens or other encounters.",
-      "limit": "{name} already carries a Remedy, and a person or beast of burden can only carry one at once. Give it to somebody else to carry.",
-      "limitSteed": "{name} already carries a Remedy, and a person or beast of burden can only carry one at once. {steed} could carry it."
+      "hint": "A Remedy takes a whole Phase to use, and its Virtue comes back before anything the Phase brings, Omens included.",
+      "limit": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. Give it to somebody else to carry.",
+      "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it."
     },
     "ability": {
-      "label": "Ability",
-      "hint": "A special talent unique to you."
+      "label": "Ability"
     },
     "passion": {
-      "label": "Passion",
-      "hint": "A special means you have to restore your Spirit."
+      "label": "Passion"
     },
     "feats": {
       "label": "Feats",
-      "knightHint": "Every Knight knows the three Feats.",
+      "knightHint": "All three Feats are known to every Knight.",
       "smite": {
         "name": "Smite",
-        "tagline": "Release your righteous fury",
-        "summary": "+d12 or Blast to a melee attack.",
-        "use": "Use before rolling a melee Attack. The Attack gains either +d12 or Blast."
+        "summary": "A melee Attack gains d12, or Blast."
       },
       "focus": {
         "name": "Focus",
-        "tagline": "Create an opening to exploit",
-        "summary": "Perform a Gambit without using a die.",
-        "use": "Use after rolling an Attack. Perform a Gambit without using a die."
+        "summary": "A Gambit that costs no die."
       },
       "deny": {
         "name": "Deny",
-        "tagline": "Rebuff an attack before it lands",
-        "summary": "Discard a damage die rolled against you or a nearby Ally.",
-        "use": "Use after an Attack roll against you or an ally within arm’s reach. Discard one Attack die from the roll."
+        "summary": "Strike out one die of an Attack on you or an ally beside you."
       },
       "saveOrFatigue": "{virtue} Save or become Fatigued.",
-      "alreadyFatigued": "{name} is Fatigued and cannot perform Feats until they rest.",
+      "alreadyFatigued": "{name} is Fatigued: no Feats again until they’ve rested.",
       "notKnown": "{name} can’t perform {feat}.",
       "becameFatigued": "Fatigued until they rest.",
       "avoidedFatigue": "Avoids Fatigue."
     },
     "gambits": {
       "label": "Gambits",
-      "bolster": "<strong>Bolster</strong> the attack for +1 total damage",
+      "bolster": "<strong>Bolster</strong>: +1 total Damage",
       "move": "<strong>Move</strong> after the attack",
-      "repel": "<strong>Repel</strong> a foe away from you",
-      "stop": "<strong>Stop</strong> a foe from moving next turn",
-      "impair": "<strong>Impair</strong> a weapon on their next turn",
-      "trap": "<strong>Trap</strong> a shield until your next turn",
+      "repel": "<strong>Repel</strong>: push the foe back from you",
+      "stop": "<strong>Stop</strong>: the foe can’t move on their next turn",
+      "impair": "<strong>Impair</strong>: a weapon of theirs is Impaired on their next turn",
+      "trap": "<strong>Trap</strong>: their shield is held until your next turn",
       "dismount": "<strong>Dismount</strong> a foe",
-      "other": "<strong>Other effect</strong> of a similar level of impact",
-      "hint": "Discard Attack dice of 4 or higher, one per Gambit. Foes get a VIG Save against all but Bolster and Move.",
+      "other": "<strong>Other effect</strong>, as strong as these",
+      "hint": "Each Gambit spends one Attack die showing 4 or more. Except for Bolster and Move, the foe may make a VIG Save to shrug it off.",
       "strong": "<strong>Strong Gambit</strong>: a melee die of 8+ also grants No Save or a Greater effect.",
       "names": {
         "bolster": "Bolster",
@@ -732,7 +692,7 @@
         "tagline": "Gambit: discard an Attack die of 4 or higher",
         "save": "The target may make a VIG Save to ignore it.",
         "noSave": "The target gets no Save against it.",
-        "target": "The affected foe must be a target of the original Attack."
+        "target": "It can only affect somebody this Attack was aimed at."
       },
       "marks": {
         "someone": "a foe",
@@ -743,8 +703,8 @@
         "clear": "Clear this once it has run its course."
       },
       "details": {
-        "move": "You may Move even if you already moved or are unable to move.",
-        "dismount": "Being dismounted causes d6 Damage. In combat, add it to the Attack’s dice."
+        "move": "A Move that works even after moving, or when movement is otherwise barred.",
+        "dismount": "A rider knocked from the saddle takes d6 Damage, added to the Attack’s dice in combat."
       }
     },
     "save": {
@@ -781,12 +741,12 @@
         "already": "That’s already marked on their sheet."
       },
       "triggers": {
-        "wounded": "{name} is Wounded, and must pass a SPI Save to avoid rout or surrender.",
-        "halved": "{name} has lost half its number, and must pass a SPI Save to avoid rout or surrender."
+        "wounded": "{name} is Wounded: a SPI Save, or they rout or surrender.",
+        "halved": "{name} has lost half its number: a SPI Save, or it routs or surrenders."
       },
       "group": {
         "title": "Wavering Morale",
-        "intro": "{down} of {count} on this side are down. The rest must pass a SPI Save to avoid rout or surrender.",
+        "intro": "{down} of {count} on this side are down. The rest make a SPI Save, or rout or surrender.",
         "standing": "Still standing:",
         "leader": "Who leads them",
         "noneStanding": "Nobody you control in this group is still standing.",
@@ -806,7 +766,7 @@
       "title": "Duel",
       "buttonHint": "Target the one Token you’ve agreed to duel, then press this.",
       "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
-      "intro": "{name} and {opponent} agree to fight. They fight as normal, but their Attacks are rolled and resolved at the same time, including the effects of Gambits, and both can use Feats before they’re resolved.",
+      "intro": "{name} and {opponent} agree to fight. It goes as any fight does, except both Attacks, Gambits and all, are rolled and settled at once, and either may use Feats first.",
       "kind": "Kind",
       "kinds": {
         "duel": {
@@ -819,12 +779,12 @@
         }
       },
       "stake": "Stake Glory",
-      "stakeHint": "In a public duel or joust, Knights may stake Glory against a willing opponent. The victor gains 1 Glory, and the loser loses 1.",
+      "stakeHint": "Fought in public, a duel or joust can have Glory staked on it, if both agree: the winner gains 1, the loser loses 1.",
       "stakeKnightsOnly": "Only two Knights can stake Glory, and a Squire isn’t a Knight yet.",
       "bloodless": "Bloodless",
       "bloodlessHint": "Training, or a duel that isn’t to the death. Scars only come from real, deadly combat, so it leaves none.",
       "sparring": "Sparring",
-      "sparringHint": "A practice bout, whose Damage can be shaken off afterwards (p188). Nobody is left dying or Scarred, and each duelist’s GD and VIG are put back as they were when the duel ends.",
+      "sparringHint": "A practice bout, whose Damage doesn’t last (p188). Nobody is left dying or Scarred, and each duelist’s GD and VIG are put back as they were when the duel ends.",
       "sparringTitle": "Sparring {kind}",
       "sparringNote": "Sparring: nobody is left dying or Scarred, and each duelist’s GD and VIG are put back when the duel ends, the fight is over, or time passes.",
       "shaken": {
@@ -870,8 +830,8 @@
       "cardTitle": "Surprise",
       "tagline": "Caught unready for combat",
       "intro": "Tick everybody who wasn’t readied for combat. Each makes a CLA Save or misses the first turn.",
-      "unready": "Not readied for combat",
-      "hint": "Players normally take the first turn, discussing their plan and acting in any order they wish.",
+      "unready": "Caught unready",
+      "hint": "The players usually go first, agreeing a plan and acting in whatever order they like.",
       "roll": "Roll Saves",
       "acts": "Ready in time.",
       "skipped": "{name} was caught unready and misses the first turn.",
@@ -884,14 +844,14 @@
       "buttonHint": "A SPI Save for how they take it, when the Referee is uncertain which way they’d go.",
       "favourable": "Nothing unfavourable in how they take it.",
       "unfavourable": "They take it badly.",
-      "hint": "Characters react in a way that suits the moment (p8). This is only for when that’s uncertain."
+      "hint": "How someone takes things usually follows from the moment (p8). Roll only when it could go either way."
     },
     "skyWeather": {
       "legend": "Breaking Camp",
       "tick": "Roll the day’s sky and weather",
       "tickHint": "The Nature Spark Tables’ Sky and Weather set the scene as the Company wakes and breaks camp (p197).",
       "title": "The Day’s Sky and Weather",
-      "cardHint": "Paint the scene with it as the Company breaks camp. Lean generous, but don’t hesitate to make the Knights’ lives difficult when the dice prompt it (p197).",
+      "cardHint": "Describe it as the Company breaks camp. Be kind by default, but let hard weather bite when the dice call for it (p197).",
       "missing": "Run the Import PDF macro with your rulebook to bring in the Nature Spark Tables’ Sky and Weather.",
       "fog": {
         "solid": "Solid Fog: the Knights can’t see into the neighbouring hexes, and without a way to keep their course they’re travelling blind until the day is out (p197).",
@@ -941,7 +901,7 @@
         },
         "indoors": {
           "label": "Indoors, as guests",
-          "hint": "Manners dictate that hospitality be granted to travelling Knights. Sleeping indoors makes no Wilderness Roll."
+          "hint": "Travelling Knights are owed a roof by custom. A night indoors needs no Wilderness Roll."
         }
       },
       "wilderness": {
@@ -959,17 +919,17 @@
         "deprived": "Deprived",
         "rules": {
           "travel": "Travelling or exploring through the Night costs d6 SPI each, and leaves no time for proper sleep.",
-          "winter": "In Winter, anybody camping or travelling at night loses d6 VIG.",
+          "winter": "Winter: d6 VIG from each who camped out or travelled by night.",
           "dire": "Dire weather held through the Night, so nobody outdoors got proper sleep.",
           "each": "Tick who else went without proper sleep, such as for a hostile Omen (d6 CLA), and who was deprived of essential needs (d6 VIG)."
         }
       },
       "dying": {
         "legend": "Dying Untended",
-        "rule": "The Mortally Wounded die if left untended for an hour, and a Phase is longer than that. Untick anybody who was tended; Patch Up on their sheet clears the wound.",
+        "rule": "Nobody Mortally Wounded outlives an hour without care, and a Phase is longer than that. Untick anybody who was tended; Patch Up on their sheet clears the wound.",
         "title": "Died Untended",
         "line": "Left Mortally Wounded and untended, they die.",
-        "hint": "Mortally Wounded targets die if left untended for an hour, but can be patched up in a few moments (p8)."
+        "hint": "An hour without care kills the Mortally Wounded; a few moments of it patches them up (p8)."
       }
     },
     "time": {
@@ -982,9 +942,9 @@
         "weeks": "Weeks Pass",
         "weeksHint": "Continue on to the next seasonal event ({event}).",
         "months": "Months Pass",
-        "monthsHint": "Move to the next Season.",
+        "monthsHint": "On to the next Season.",
         "year": "A Year Passes",
-        "yearHint": "Begin a new Age in Spring."
+        "yearHint": "A new Age, starting in Spring."
       },
       "ordinal": {
         "one": "{n}st",
@@ -1003,9 +963,9 @@
         "night": "Night"
       },
       "phaseHints": {
-        "morning": "Sunrise to noon. Anybody who didn’t get proper sleep loses d6 CLA, and anybody deprived of essential needs loses d6 VIG.",
-        "afternoon": "Noon to sunset.",
-        "night": "Sunset to sunrise. Travelling or exploring at night costs d6 SPI each, and without a guide and light the Company travels blind."
+        "morning": "From sunrise until noon. Whoever slept badly loses d6 CLA, and whoever went without food, water or fire loses d6 VIG.",
+        "afternoon": "From noon until sunset.",
+        "night": "From sunset until sunrise. Moving about by night costs each d6 SPI, and with no guide and no light the Company travels blind."
       },
       "seasons": {
         "spring": "Spring",
@@ -1030,38 +990,32 @@
       "noCompany": "There are no Knights in this world yet, and no Tokens are selected.",
       "pursuits": {
         "pilgrimage": {
-          "label": "Pilgrimage",
-          "hint": "Learn about an unknown part of the Realm."
+          "label": "Pilgrimage"
         },
         "courtesy": {
-          "label": "Courtesy",
-          "hint": "Establish a new contact or earn a favour."
+          "label": "Courtesy"
         },
         "service": {
-          "label": "Service",
-          "hint": "Make a small improvement to the Realm."
+          "label": "Service"
         },
         "duty": {
-          "label": "Duty",
-          "hint": "Make a significant improvement to the Realm."
+          "label": "Duty"
         },
         "succession": {
-          "label": "Succession",
-          "hint": "Establish a successor, or have them Knighted."
+          "label": "Succession"
         },
         "legacy": {
-          "label": "Legacy",
-          "hint": "Your successor gains half of your current Glory."
+          "label": "Legacy"
         }
       },
       "pursuitMakes": {
         "service": {
           "question": "What small improvement to the Realm did {name}’s Service make?",
-          "dwelling": "A new Dwelling on the map",
+          "dwelling": "A Dwelling added to the map",
           "other": "Something else",
           "made": {
             "dwelling": "Service: a new Dwelling, marked on the map.",
-            "other": "Service: a small improvement to the Realm."
+            "other": "Service: the Realm made a little better."
           },
           "markIt": "The Dwelling brush is in hand: click the hex where the Service made it.",
           "openRealm": "Open the Realm and mark the new Dwelling with the Landmark brush in Paint the Realm."
@@ -1085,7 +1039,7 @@
       "ageTurned": "Age {age} Begins",
       "distant": {
         "button": "Journey to a Distant Realm",
-        "hint": "Travelling to a distant Realm normally sees you arrive in the next Season.",
+        "hint": "A journey to a distant Realm usually ends in the Season after this one.",
         "title": "Journey to a Distant Realm",
         "where": "Which Realm does the Company journey to? Choosing one of this world’s Realm Scenes makes it the active Scene once they arrive.",
         "elsewhere": "Somewhere Else",
@@ -1108,7 +1062,7 @@
         "designs": "Grand Designs done (p21): {works}. Strike them off each Domain’s sheet."
       },
       "unresolvedHint": "Roll an Unresolved Situation for anything important left hanging.",
-      "winterReminder": "It’s Winter: anybody camping or travelling at night loses d6 VIG, and dire weather may keep the Company where it is.",
+      "winterReminder": "It’s Winter: camping out or travelling by night costs d6 VIG, and dire weather may keep the Company where it is.",
       "seasonBynames": {
         "spring": "The Green Season",
         "harvest": "The Gold Season",
@@ -1133,64 +1087,55 @@
         "ends": "Ends the Season",
         "endsHint": "The Realm’s collection ends the Season, so it comes to pass as the Season turns.",
         "weeks": "Weeks Pass",
-        "weeksHint": "Continue on to the next significant seasonal event (p17). Reaching the Realm’s collection turns the Season instead.",
+        "weeksHint": "On to the next seasonal event that matters (p17). Reaching the Realm’s collection turns the Season instead.",
         "weeksPassed": "Weeks pass on the road, and a new Morning dawns.",
         "nextIs": "Weeks passing carries the Company on to {event}.",
         "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
-        "collected": "Collected by {domains}, who may squeeze more out of their Vassals for a war or great project.",
+        "collected": "Collected by {domains}, whose Stewards may press their Vassals for more to pay for a war or a great work.",
         "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Turn the Season.",
         "notThisSeason": "{event} isn’t an event of this Season, or has already come to pass.",
         "kinds": {
           "feastOfTheSun": {
             "label": "The Feast of the Sun",
-            "text": "A day of excess and revelry to strengthen both the people and the land.",
             "prompt": "A feast is a fine place for a Knight to be seen, and for a Vassal to ask a favour of one."
           },
           "sceptremass": {
             "label": "Sceptremass",
-            "text": "The Seat of Power gathers local rulers to renew their vows of loyalty.",
             "prompt": "Every ruler in one hall: a good moment for drama in Court (p21), or for a Knight to press a claim their rank is unworthy of."
           },
           "tax": {
             "label": "The Tax",
-            "text": "A share of coins collected by the Realm.",
-            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+            "prompt": "The usual collection keeps a Domain going comfortably. A Steward who wants more, for a war or a great work, has to roll for it (p21)."
           },
           "feastOfTheStars": {
             "label": "The Feast of the Stars",
-            "text": "A night of honours, unions, and contests.",
-            "prompt": "A tournament with significant spectators and spectacle grants 1 Glory to the winning Knight (p6)."
+            "prompt": "A tournament with a real crowd and real pageantry earns its winner 1 Glory (p6)."
           },
           "eldermass": {
             "label": "Eldermass",
-            "text": "A secretive assembly of Seers and trusted associates.",
-            "prompt": "Seers know the rules of every Myth, their secrets and their locations, and their guidance restores CLA. Such knowledge isn’t given freely."
+            "prompt": "Every Seer knows each Myth’s rules, secrets and whereabouts, and their guidance restores CLA. None of it comes for free."
           },
           "tithe": {
             "label": "The Tithe",
-            "text": "A share of food and drink collected by the Realm.",
-            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+            "prompt": "The usual collection keeps a Domain going comfortably. A Steward who wants more, for a war or a great work, has to roll for it (p21)."
           },
           "feastOfTheMoon": {
             "label": "The Feast of the Moon",
-            "text": "A solemn reflection of mortality and history.",
             "prompt": "The dead are named tonight: a Knight’s Scars, their Doom, and the successor they have yet to establish."
           },
           "kindlemass": {
             "label": "Kindlemass",
-            "text": "A sacred day of warmth and goodwill, where each home must open their doors to all.",
-            "prompt": "Every door open: a full day in warm hospitality restores VIG, and sleeping indoors calls for no Wilderness Roll."
+            "prompt": "Every door open: a whole day as somebody’s welcome guest restores VIG, and a night under a roof needs no Wilderness Roll."
           },
           "levy": {
             "label": "The Levy",
-            "text": "A share of materials and crafted goods collected by the Realm.",
-            "prompt": "Standard collections keep a Domain running without much strain. A Steward can squeeze more out for a war or great project, but must roll (p21)."
+            "prompt": "The usual collection keeps a Domain going comfortably. A Steward who wants more, for a war or a great work, has to roll for it (p21)."
           }
         }
       },
       "nightTravel": {
         "title": "Travelling by Night",
-        "text": "The Company is on the move by night. Without a guide and light they are travelling blind, and roll each time they move to a new Hex this Night. What the Night costs is taken as it ends.",
+        "text": "The Company is on the move by night. With no guide and no light they’re travelling blind, rolling for every Hex they try to enter this Night. What the Night costs is taken as it ends.",
         "sighted": "With a guide and light",
         "blind": "Travelling blind"
       },
@@ -1203,7 +1148,7 @@
         "kinds": {
           "night": {
             "label": "Night travel",
-            "hint": "Travelling or exploring at night costs d6 SPI each."
+            "hint": "Moving about by night costs each d6 SPI."
           },
           "sleep": {
             "label": "No proper sleep",
@@ -1211,11 +1156,11 @@
           },
           "winter": {
             "label": "Winter cold",
-            "hint": "Camping, or travelling at night, in Winter costs d6 VIG each."
+            "hint": "In Winter, a night camped out or on the road costs each d6 VIG."
           },
           "supplies": {
             "label": "Deprived",
-            "hint": "Each morning without essential needs met, the Company each lose d6 VIG."
+            "hint": "A morning that finds them without food, water or fire costs each of the Company d6 VIG."
           }
         }
       },
@@ -1223,7 +1168,7 @@
         "title": "Growing Older",
         "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
         "oldNpcs": "The Old Grow Frailer",
-        "newAge": "A new Age begins. Tick each character who grows a stage older. Becoming Mature rerolls each Virtue on d12+d6 and keeps the higher; becoming Old keeps the lower (p17).",
+        "newAge": "A new Age begins. Tick each character who grows a stage older. Each Virtue is rolled again on d12+d6: someone turning Mature keeps the higher result, someone turning Old the lower (p17).",
         "roll": "Roll Virtues",
         "skip": "Just change Age",
         "mature": "Becoming Mature keeps the higher",
@@ -1234,7 +1179,7 @@
     },
     "domain": {
       "seat": "Seat of Power",
-      "seatHint": "The Holding of the ruler of the whole Realm, facing the same problems on a larger scale.",
+      "seatHint": "Where the whole Realm is ruled from, with a Holding’s troubles writ large.",
       "ruler": "Ruler",
       "rulerPlaceholder": "Who rules here",
       "successor": "Successor",
@@ -1252,7 +1197,7 @@
       "homecoming": {
         "title": "Home from a Long Absence",
         "text": "<strong>{ruler}</strong> is back at <strong>{name}</strong> after a long absence.",
-        "rule": "At the start of a Season or when returning from a long absence, make the Crisis Roll (p20).",
+        "rule": "Make the Crisis Roll as each Season begins, and on coming home after a long time away (p20).",
         "notNow": "Not now"
       },
       "newRuler": {
@@ -1266,10 +1211,10 @@
         "title": "Succession",
         "intro": "Who succeeds {ruler} in {name}?",
         "ok": "Pass On",
-        "hint": "Some Realms leave the choice to a conclave of Seers or to Knights-Elector rather than the ruler.",
+        "hint": "In some Realms it’s not the ruler who chooses, but gathered Seers or Knights-Elector.",
         "tagline": "{name} succeeds {ruler} in {domain}",
         "taglineBare": "{name} takes up the rule of {domain}",
-        "resistance": "Whoever the successor, they are sure to face at least some resistance, and should quickly establish their own authority."
+        "resistance": "Whoever takes the seat meets some resistance, and does well to show their authority quickly."
       },
       "conquest": {
         "button": "Seize by Force",
@@ -1278,37 +1223,32 @@
         "intro": "Who seizes {name} by force?",
         "introSeat": "Who seizes {name}, and with it the Realm, by force?",
         "ok": "Seize",
-        "hint": "Having the audacity to seat yourself in a Holding is often enough to make you its ruler.",
+        "hint": "Often, whoever is bold enough to take a Holding’s seat simply becomes its ruler.",
         "tagline": "{name} seizes {domain} from {ruler}",
         "taglineBare": "{name} seizes {domain}",
-        "turmoil": "Seized by force and left unchallenged, it has a period of turmoil before adapting to the new status quo. The turmoil lasts until the Season turns.",
+        "turmoil": "Taken by force and not contested, it is in turmoil for a time before it settles under its new ruler. The turmoil lasts until the Season turns.",
         "inTurmoil": "In turmoil: seized by force this Season, it hasn’t yet adapted to its new ruler.",
         "settled": "The turmoil of its conquest passes, and it adapts to the rule of {ruler}.",
         "someone": "its ruler"
       },
       "council": {
         "label": "Council",
-        "empty": "Nobody sits as {seats}. Prestigious seats must be filled for a Domain to run smoothly, and a Realm left without them invites trouble.",
-        "hint": "Council members can be given tasks lasting a Phase, a Week or a Season. They’re handled as normal actions, and failure usually brings a Crisis. Seats can be granted and revoked, but the scorned rarely go quietly.",
+        "empty": "Nobody sits as {seats}. A Domain runs badly with its great seats empty, and trouble finds it.",
+        "hint": "Set a Council member a task that takes anything from a Phase to a whole Season. It’s resolved like any other action, and failing it tends to bring a Crisis. You can grant and take away seats, but whoever loses one won’t forget it.",
         "steward": {
-          "label": "Steward",
-          "hint": "Rules in your absence, carrying your authority and the key to the treasury."
+          "label": "Steward"
         },
         "marshal": {
-          "label": "Marshal",
-          "hint": "Trains and equips soldiers, and musters them in times of war."
+          "label": "Marshal"
         },
         "sheriff": {
-          "label": "Sheriff",
-          "hint": "Watches for threats within the Realm, and within your own walls."
+          "label": "Sheriff"
         },
         "envoy": {
-          "label": "Envoy",
-          "hint": "Manages neighbours, and gives hospitality to visitors."
+          "label": "Envoy"
         },
         "circle": {
-          "label": "The Circle",
-          "hint": "Worthy visiting Knights invited to sit alongside the Council as equals."
+          "label": "The Circle"
         }
       },
       "tasks": {
@@ -1340,9 +1280,9 @@
           }
         },
         "risk": "Settled by",
-        "riskHint": "What’s at risk? No risk, no roll. Otherwise make a Save or a Luck Roll (p16).",
+        "riskHint": "What could go wrong? If nothing, there’s no roll; otherwise it’s settled by a Luck Roll or a Save (p16).",
         "risks": {
-          "none": "No risk, no roll",
+          "none": "Nothing at risk: no roll",
           "luck": "Luck Roll",
           "save": "{virtue} Save · {name}",
           "saveAlone": "{virtue} Save"
@@ -1364,15 +1304,15 @@
         "outcomes": {
           "success": {
             "label": "The task is done.",
-            "hint": "Advance, disrupt, or resolve: move things in a good direction, lessen a threat, or put a problem to rest."
+            "hint": "Things improve: a step forward, a threat weakened, or a trouble ended."
           },
           "problem": {
             "label": "The work is done, but something potentially bad comes of it.",
-            "hint": "Threaten or escalate: a new problem stands behind the finished work, or an old one grows."
+            "hint": "Things get harder: a new trouble behind the finished work, or an old one grown."
           },
           "crisis": {
             "label": "It fails, and a Crisis comes of it.",
-            "hint": "Failure at a Council task typically brings a Crisis, which the Domain faces until it is resolved."
+            "hint": "A failed Council task tends to bring a Crisis, which the Domain faces until it’s dealt with."
           }
         }
       },
@@ -1380,38 +1320,26 @@
       "noCrises": "No Crises. Times are good.",
       "crises": {
         "chaos": {
-          "name": "Chaos",
-          "flavour": "lawlessness in the land",
-          "resolution": "Resolved by enforcing a sense of justice."
+          "name": "Chaos"
         },
         "debt": {
-          "name": "Debt",
-          "flavour": "dire need of coffer and coin",
-          "resolution": "Resolved by restocking the treasury."
+          "name": "Debt"
         },
         "famine": {
-          "name": "Famine",
-          "flavour": "empty plates, empty fields",
-          "resolution": "Resolved by getting food into the stores."
+          "name": "Famine"
         },
         "misery": {
-          "name": "Misery",
-          "flavour": "Vassals question why they toil",
-          "resolution": "Resolved by raising the spirits of the people."
+          "name": "Misery"
         },
         "panic": {
-          "name": "Panic",
-          "flavour": "the weak tremble with unease",
-          "resolution": "Resolved by making the Vassals feel safe."
+          "name": "Panic"
         },
         "doubt": {
-          "name": "Doubt",
-          "flavour": "seeds of betrayal against you",
-          "resolution": "Resolved by asserting your authority to rule."
+          "name": "Doubt"
         }
       },
       "crisisRoll": "Crisis Roll",
-      "crisisRollHint": "Roll at the start of each Season, or on returning from a long absence.",
+      "crisisRollHint": "Rolled as each Season begins, or on coming home after a long time away.",
       "rolledThisSeason": "The Crisis Roll has been made this Season ({season}).",
       "notRolledThisSeason": "The Crisis Roll hasn’t been made this Season yet ({season}).",
       "addCrisis": "Add Crisis",
@@ -1423,30 +1351,30 @@
         "crisis": {
           "calamity": "Calamity: two Crises at once.",
           "dilemma": "Dilemma: a choice between two Crises.",
-          "prosperity": "Prosperity: times are good."
+          "prosperity": "Prosperity: all is well."
         },
         "collections": {
-          "misrule": "Immediate misrule.",
+          "misrule": "Misrule, at once.",
           "crisis": "The coffers are filled, but a Crisis comes with it.",
-          "willing": "The Vassals pay willingly, mostly."
+          "willing": "The Vassals pay up, mostly without complaint."
         },
         "drama": {
-          "personal": "You are personally involved.",
-          "association": "You are involved by association.",
-          "uninvolved": "You are not involved."
+          "personal": "It concerns you directly.",
+          "association": "It concerns you through someone close.",
+          "uninvolved": "It doesn’t concern you."
         }
       },
       "dilemmaTitle": "Dilemma",
       "dilemmaIntro": "{name} must take on one of these Crises.",
       "dilemmaOpen": "No choice was made between {options}. Add the one chosen from the sheet.",
       "misrule": "Misrule",
-      "misruleHint": "Vassals revolt, Knights leave, and pretenders move in on their claims.",
+      "misruleHint": "Vassals rise up, Knights ride away and pretenders press their claims.",
       "misruleDue": "{count} unresolved Crises: if the Season ends like this, the Domain falls into misrule.",
       "fellIntoMisrule": "The Season ended with {count} unresolved Crises, and the Domain falls into misrule.",
       "collections": "Increased Collections",
-      "collectionsHint": "A Steward squeezes more from the Vassals for a war or a great project.",
+      "collectionsHint": "A Steward presses the Vassals for more, to pay for a war or a great work.",
       "drama": "Drama in Court",
-      "dramaHint": "Every Season brings some drama. Roll to see how the ruler is involved.",
+      "dramaHint": "There’s drama at Court each Season. Roll to see how the ruler is drawn in.",
       "dramaPrompt": "Drama Spark Table: {prompt}",
       "designs": {
         "label": "Grand Designs",
@@ -1460,7 +1388,7 @@
           "works": {
             "label": "Work on what stands",
             "add": "Works",
-            "hint": "Work on existing buildings or infrastructure, generally completed by the next Season."
+            "hint": "Repairs and additions to what already stands, usually done by the next Season."
           },
           "building": {
             "label": "A new building",
@@ -1470,7 +1398,7 @@
           "grand": {
             "label": "A grand project",
             "add": "Grand project",
-            "hint": "Castles, roads and the like, which take an entire Age of work: done as the next Age begins if begun as an Age begins, the one after that otherwise."
+            "hint": "Castles, roads and the like, a whole Age in the making: done as the next Age begins if begun as an Age begins, the one after that otherwise."
           }
         }
       },
@@ -1486,34 +1414,30 @@
       },
       "court": {
         "label": "The Court",
-        "hint": "Those who serve outside the Council (p20). Write whoever the Court holds; the drama each Season falls to one of them.",
+        "hint": "Everyone serving the ruler but not on the Council (p20). Write whoever the Court holds; the drama each Season falls to one of them.",
         "roles": {
           "retainer": {
             "label": "Retainers",
             "one": "Retainer",
             "add": "Take on a Retainer",
-            "hint": "Vassals taken on by individual Council members to aid in their work.",
             "notePlaceholder": "What work do they aid with?"
           },
           "courtier": {
             "label": "Courtiers",
             "one": "Courtier",
             "add": "Admit a Courtier",
-            "hint": "Commoners with lesser responsibilities or ceremonial honours, usually holding higher ambitions. Courtiers breed problems, so this Season’s drama falls to them first.",
             "notePlaceholder": "What honour or ambition do they hold?"
           },
           "petitioner": {
             "label": "Petitioners",
             "one": "Petitioner",
             "add": "Grant an Audience",
-            "hint": "Representatives from outside of the Court, granted an audience to seek aid, counsel, or justice.",
-            "notePlaceholder": "What do they seek: aid, counsel, or justice?"
+            "notePlaceholder": "What do they ask for: help, advice, or judgement?"
           },
           "seer": {
             "label": "Seers",
             "one": "Seer",
             "add": "A Seer Visits",
-            "hint": "Although they live in their Sanctums they occasionally visit Court, or send acolytes in their stead.",
             "notePlaceholder": "Do they visit, or send an acolyte?"
           }
         },
@@ -1523,7 +1447,7 @@
         "servesHint": "The Council member who took them on.",
         "servesNobody": "No seat",
         "leverage": "Leverage",
-        "leverageHint": "What hold they have over the ruler: family influence, dark secrets, or military might (p21). A ruler must tread carefully, as obvious solutions always leave at least one party feeling mistreated.",
+        "leverageHint": "What hold they have over the ruler, such as kinship, secrets or swords (p21). Easy answers leave somebody aggrieved, so a ruler treads carefully.",
         "leveragePlaceholder": "What hold do they have over you?",
         "note": "Note",
         "remove": "They Leave the Court",
@@ -1534,7 +1458,7 @@
       },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
-      "succession": "Succession: a ruler usually names their successor, though some Realms leave it to a conclave of Seers or Knights-Elector. Whoever it is faces some resistance.",
+      "succession": "Succession: the ruler usually picks who follows them, though some Realms leave that to gathered Seers or Knights-Elector. Whoever it is meets some resistance.",
       "notes": "Court & Notes",
       "button": "Domain",
       "openHint": "Open the Domain this Knight rules",
@@ -1569,7 +1493,7 @@
       },
       "siege": "Siege engine",
       "poison": "{rarity} Poison",
-      "rollVirtues": "Roll their Virtues on d12+d6.",
+      "rollVirtues": "Virtues: d12+d6 each.",
       "foldersSeeded": "Arms & Goods: added {items} items to the Items directory and {actors} beasts, hirelings, Warbands and structures to the Actors directory."
     },
     "company": {
@@ -1601,25 +1525,25 @@
       "starts": {
         "wanderer": {
           "name": "Wanderer",
-          "hint": "Young Knights-Errant who arrive in the Realm seeking Glory. You choose where they arrive."
+          "hint": "Young Knights-Errant, newly come to the Realm in search of Glory. You choose where they arrive."
         },
         "courtier": {
           "name": "Courtier",
           "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power.",
           "newsTitle": "News at Court",
           "newsTagline": "{name} (p{page})",
-          "newsHint": "The first Omen of the nearest Myth is delivered as news to the Court (p6). It counts as met."
+          "newsHint": "Word of the nearest Myth’s first Omen reaches the Court as news (p6). It counts as met."
         },
         "ruler": {
           "name": "Ruler",
-          "hint": "Mature Knights-Tenant, one of whom rules a Holding while the Seat of Power is under a wicked influence. You choose which Holding.",
+          "hint": "Mature Knights-Tenant. One rules a Holding, and something wicked has hold of the Seat of Power. You choose which Holding.",
           "influenceTitle": "A Wicked Influence",
           "influenceTagline": "The Seat of Power",
           "influencePrompt": "A prompt for it: {prompt}.",
-          "influenceNoPrompt": "The Seat of Power is under a wicked influence.",
-          "influenceHint": "One Knight rules a Holding, the others are in their Circle (p6). Where the Knights aren’t made yet, found the Domain later from the ruling Knight’s Domain button, ticking the others into the Circle.",
+          "influenceNoPrompt": "Something wicked has hold of the Seat of Power.",
+          "influenceHint": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Where the Knights aren’t made yet, found the Domain later from the ruling Knight’s Domain button, ticking the others into the Circle.",
           "domainTitle": "Who Rules?",
-          "domainQuestion": "One Knight rules a Holding, the others are in their Circle (p6). Which Knight rules?",
+          "domainQuestion": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Which Knight rules?",
           "domainLater": "Decide Later"
         }
       },
@@ -1666,7 +1590,7 @@
       "title": "The Lay of the Land",
       "titleHex": "The Lay of the Land: {hex}",
       "open": "Lay of the Land",
-      "hint": "Each Hex is large and diverse. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
+      "hint": "A Hex is a whole country in little. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
       "spark": "Roll for this hex",
@@ -1747,7 +1671,7 @@
     },
     "weather": {
       "title": "Weather",
-      "hint": "Choose the weather. FXMaster draws it on the Scene the players are on, and it follows them to the next. The book has no weather table; for lands at the mercy of dire weather, roll Dire Weather from the Referee Rolls.",
+      "hint": "Choose the weather. FXMaster draws it on the Scene the players are on, and it follows them to the next. The book has no weather table; where dire weather rules the land, roll Dire Weather from the Referee Rolls.",
       "unset": "Set the weather",
       "change": "Change the weather",
       "skies": {
@@ -1803,7 +1727,7 @@
         "note": "Your notes on this Myth",
         "notePlaceholder": "Who has been met, what the Company knows, where it’s heading.",
         "resolved": "Resolved",
-        "resolvedHint": "When the group feels a Myth is resolved, a new Myth replaces it in the next Season (p27).",
+        "resolvedHint": "Once the table agrees a Myth is over, another takes its place next Season (p27).",
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",
         "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
@@ -1892,7 +1816,7 @@
         "thisSeason": "This Season: {season}",
         "resolved": "Myths to Replace",
         "crisisRolls": "Crisis Rolls Due",
-        "crisisRollsHint": "Each Domain makes the Crisis Roll at the start of a Season (p20). These haven’t made it this Season yet.",
+        "crisisRollsHint": "Every Domain makes its Crisis Roll as a Season begins (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
       "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons (p17).",
@@ -1912,12 +1836,12 @@
         "notRecorded": "The calendar was moved off this Season by hand, so nothing was recorded as it ended."
       },
       "notes": {
-        "hint": "Your own notes. At the end of each session, ask the players about their plans and ambitions for the next one, and write them here (p16)."
+        "hint": "Your own notes. When a session ends, ask what the players mean to do next time, and write it here (p16)."
       }
     },
     "cityQuest": {
       "title": "The City Quest",
-      "hint": "A Company worthy of the City Quest meets an Omen of the City instead of a random Myth’s Omen when the Wilderness Roll is a 1. Roll d12 plus the Omens of the City already encountered, taking the next one down the list for a duplicate.",
+      "hint": "Once the Company is worthy of the City Quest, a Wilderness Roll of 1 brings an Omen of the City in place of a random Myth’s. Roll d12, add the Omens of the City already met, and take the next one down for one already seen.",
       "noText": "Run Import PDF again to quote the Omens of the City here.",
       "seen": "Omens of the City encountered: {count}. The City Quest ends after Omen {end} or higher.",
       "roll": "Roll an Omen of the City",
@@ -1928,7 +1852,7 @@
       "reset": "Start Over",
       "resetTitle": "Start the City Quest Over?",
       "resetConfirm": "Every Omen of the City encountered is forgotten, as for a new Company.",
-      "wildernessHint": "A Company worthy of the City Quest meets an Omen of the City instead of a random Myth’s. It follows below."
+      "wildernessHint": "This Company is worthy of the City Quest, so an Omen of the City comes in place of a random Myth’s. It follows below."
     },
     "sites": {
       "newSite": "New Site",
@@ -1964,19 +1888,19 @@
         "feature": {
           "label": "Feature",
           "plural": "Features",
-          "hint": "A circle. Gives information or sets the mood.",
-          "placeholder": "What’s here to learn, or to set the mood?"
+          "hint": "A circle. Something to learn here, or a sense of the place.",
+          "placeholder": "What’s here to learn, or to feel?"
         },
         "danger": {
           "label": "Danger",
           "plural": "Dangers",
-          "hint": "A triangle. To be navigated carefully.",
-          "placeholder": "What must be navigated carefully?"
+          "hint": "A triangle. Something to get past with care.",
+          "placeholder": "What has to be got past with care?"
         },
         "treasure": {
           "label": "Treasure",
           "plural": "Treasures",
-          "hint": "A diamond. A useful or valuable find.",
+          "hint": "A diamond. Something worth the finding.",
           "placeholder": "What’s worth finding here?"
         }
       },
@@ -1984,19 +1908,19 @@
         "open": {
           "label": "Open",
           "plural": "Open",
-          "hint": "A solid line. A straightforward path between points.",
+          "hint": "A solid line. An easy way from one point to the next.",
           "to": "Open path to {number}"
         },
         "closed": {
           "label": "Closed",
           "plural": "Closed",
-          "hint": "A crossed line. Something blocks the way, so creative thinking is required.",
+          "hint": "A crossed line. The way is blocked, and getting past takes some ingenuity.",
           "to": "Closed path to {number}"
         },
         "hidden": {
           "label": "Hidden",
           "plural": "Hidden",
-          "hint": "A dotted line. Only found by exploring the points at either end, or through local knowledge.",
+          "hint": "A dotted line. Found only by searching the points it joins, or from someone who knows the place.",
           "to": "Has a hidden path to {number}"
         }
       },
@@ -2036,12 +1960,12 @@
         },
         "reachable": {
           "label": "Every point can be reached",
-          "hint": "Make sure all points can be reached, even if some of the routes are closed or hidden.",
+          "hint": "Check every point can be got to, even if some routes are closed or hidden.",
           "unreachable": "The routes don’t reach {points}."
         },
         "entrances": {
           "label": "Place the entrances",
-          "hint": "If applicable, place an entrance at any point, and an optional hidden entrance.",
+          "hint": "Where the Site has one, put an entrance on any point, and a hidden one if you like.",
           "roll": "Roll the entrances still to place"
         }
       },
@@ -2055,7 +1979,7 @@
       },
       "presets": {
         "book": "The book",
-        "burial": "A sealed burial complex"
+        "burial": "A sealed tomb"
       },
       "bar": {
         "point": "Point {number}",
@@ -2097,7 +2021,7 @@
       "loomingAgain": "A Looming threat twice in a row: treat it as dire weather.",
       "direWeather": {
         "name": "Dire Weather",
-        "hint": "When the Realm’s lands are at the mercy of dire weather. Then the Dire Weather table is rolled as each Phase begins, unless the Company is in a Holding.",
+        "hint": "When the Realm’s lands suffer dire weather. Dire Weather is then rolled as each Phase begins, unless the Company is in a Holding.",
         "risks": {
           "never": "Never",
           "winter": "In Winter, as in most Realms",
@@ -2127,20 +2051,20 @@
       "tables": {
         "luck": {
           "name": "Luck Roll",
-          "hint": "When you need to consult the whims of fate.",
+          "hint": "When it’s down to chance.",
           "results": {
             "crisis": "Crisis: something bad, right away.",
             "problem": "Problem: something that could turn bad.",
-            "blessing": "Blessing: a welcome result."
+            "blessing": "Blessing: something welcome."
           }
         },
         "passage": {
           "name": "Passage of Time",
           "hint": "At the end of a session, when it isn’t clear how much time should pass.",
           "results": {
-            "now": "The Season or Age turns now.",
-            "afterNextSession": "The Season or Age turns after the next session.",
-            "continues": "The Season or Age carries on."
+            "now": "A Season or Age passes now.",
+            "afterNextSession": "A Season or Age passes after the next session.",
+            "continues": "The Season or Age goes on."
           }
         },
         "unresolved": {
@@ -2154,7 +2078,7 @@
         },
         "blind": {
           "name": "Travelling Blind",
-          "hint": "When travellers without a proper sense of direction, or shrouded by darkness or mist, try to move to a new Hex.",
+          "hint": "When travellers with no sense of direction, or lost in darkness or mist, try to enter a new Hex.",
           "results": {
             "circleBack": "They circle back to where they started.",
             "drift": "They drift a Hex to the {side}.",
@@ -2163,33 +2087,33 @@
         },
         "weather": {
           "name": "Dire Weather",
-          "hint": "At the start of each Phase in lands at the mercy of dire weather, as most Realms are in Winter.",
+          "hint": "As each Phase begins, where the land suffers dire weather, as most Realms do in Winter.",
           "results": {
             "dire": "Dire weather: nobody can leave the Hex or get proper sleep.",
             "looming": "A looming threat. Rolled twice in a row, it’s dire weather.",
-            "fine": "Fine weather for travel."
+            "fine": "Good travelling weather."
           }
         },
         "mood": {
           "name": "Local Mood",
           "hint": "On arriving in a Holding.",
           "results": {
-            "woe": "Troubled by a looming or recent woe.",
-            "decline": "A sense of things in decline.",
-            "fine": "A fine mood, and all seems well enough."
+            "woe": "Troubled by some woe, past or coming.",
+            "decline": "Things feel as if they’re slipping.",
+            "fine": "Good spirits, and nothing much amiss."
           }
         }
       }
     },
     "sessionEnd": {
       "title": "Ending a Session",
-      "hint": "At the end of each session (p16): settle how much time passes, see what became of anything left hanging, and ask the players what they plan next.",
+      "hint": "As each session ends (p16): settle how much time passes, see what became of anything left hanging, and ask the players what they plan next.",
       "open": "End the Session",
       "openHint": "Walk the book’s end-of-session procedure (p16).",
       "finish": "End the Session",
       "needStep": "Settle how much time passes before ending the session.",
       "notices": {
-        "promised": "A roll last session put the turn at the end of this one (p17)."
+        "promised": "A roll last session said the time turns as this one ends (p17)."
       },
       "time": {
         "title": "How much time passes?",
@@ -2200,22 +2124,22 @@
         "steps": {
           "none": {
             "label": "None",
-            "hint": "Pick up where you left off.",
+            "hint": "Carry on from where you stopped.",
             "card": "No time passes: the next session picks up where this one left off."
           },
           "weeks": {
             "label": "Weeks",
-            "hint": "Continue on to the next significant seasonal event.",
+            "hint": "On to the next seasonal event that matters.",
             "card": "Weeks pass, on to the Season’s next event."
           },
           "months": {
             "label": "Months",
-            "hint": "Move to the next Season.",
+            "hint": "On to the next Season.",
             "card": "Months pass, and the Season turns."
           },
           "years": {
             "label": "Years",
-            "hint": "Begin a new Age in Spring.",
+            "hint": "A new Age, starting in Spring.",
             "card": "Years pass, and a new Age begins in Spring."
           }
         }
@@ -2242,7 +2166,7 @@
       },
       "plans": {
         "title": "Plans and ambitions",
-        "hint": "Ask the players what they plan for next session (p16). It gives you a direction for whatever preparation you do before then, and is written into the Season’s notes under this session.",
+        "hint": "Ask the players what they mean to do next time (p16). It tells you what to get ready, and is written into the Season’s notes under this session.",
         "placeholder": "What they mean to do next"
       },
       "recap": {
@@ -2265,7 +2189,7 @@
       "weapons": "Weapons and shields",
       "noWeapons": "Nothing is worn or wielded, so this Attack is unarmed and Impaired.",
       "bonus": "Bonus dice",
-      "bonusHint": "From useful information, shrewd preparations, or a tactical advantage. +d8 is typical. List several as d6, d12.",
+      "bonusHint": "For good intelligence, clever preparation or a tactical edge. +d8 is typical. List several as d6, d12.",
       "specialistDie": "{name}, specialist",
       "specialistHint": "Tick when the situation this weapon is made for comes up, to add its specialist die.",
       "weakness": "{name}’s weakness, {text}: +{die}",
@@ -2278,7 +2202,7 @@
       "usedOne": "{name}: one used, {left} left.",
       "greater": {
         "button": "Disarm, unhelm or break",
-        "hint": "A Greater effect can disarm a weapon or shield, take off a helm, or break a wooden shield or weapon.",
+        "hint": "A Greater effect can knock a weapon or shield away, take off a helm, or smash a shield or weapon made of wood.",
         "waiting": "Waits on their {virtue} Save, which ignores it if passed.",
         "title": "Greater effect",
         "which": "What does the Greater effect do?",
@@ -2316,7 +2240,7 @@
       "spearwall": "Charged a spearwall this turn",
       "spearwallHint": "3 or more allies in a wall formation, all bearing spears or similar. Enemies can’t Attack on the turn they charge it.",
       "charge": "Charging on {steed} at enemies on foot (+{dice})",
-      "chargeHint": "A steed’s trample joins the Attack when charging enemies on foot. It doesn’t work against a spearwall.",
+      "chargeHint": "A steed’s trample joins the Attack when it charges foes who are on foot, but never against a spearwall.",
       "chargeBarred": "A steed tramples only enemies on foot, and nobody targeted is on foot: {names}.",
       "confinedImpaired": "A Long weapon in a confined space is Impaired: it rolls a single d4 and gains no bonus dice or Feats.",
       "swarmImpaired": "An individual Attack at a swarm is Impaired unless it’s a Blast: it rolls a single d4 and gains no bonus dice or Feats.",
@@ -2329,9 +2253,9 @@
       "refusals": {
         "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
         "spearwall": "Enemies of a spearwall can’t Attack on the turn they charge it.",
-        "hefty": "Only one Hefty item can be wielded at once.",
+        "hefty": "Two Hefty items can’t be wielded together.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
-        "hands": "A weapon or shield fills a hand, so only two can be wielded at once.",
+        "hands": "A weapon or shield fills a hand, so nobody holds more than two.",
         "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
         "smiteRanged": "Smite is only used before a melee Attack."
@@ -2370,7 +2294,7 @@
       "whoFocuses": "Who Focuses?",
       "leader": "Led from the front by",
       "leaderNone": "Nobody",
-      "leaderHint": "One individual within the Warband adds their Attack dice to its roll, and suffers the same Damage the Warband does until their next turn. Select their Token to list them.",
+      "leaderHint": "Someone in the Warband can add their own Attack dice to its roll, taking whatever Damage the Warband takes until their next turn. Select their Token to list them.",
       "ledBy": "{name} leads from the front, suffering the same Damage as the Warband until their next turn.",
       "roll": "Roll Attack",
       "against": "Against {names}",
@@ -2382,7 +2306,7 @@
       "strongPrompt": "{count} show 8 or higher, so they could make Strong Gambits.",
       "strongPromptOne": "One shows 8 or higher, so it could make a Strong Gambit.",
       "denyPrompt": "{names} can still Deny: a SPI Save discards one of these dice.",
-      "denyPromptAny": "Whoever this hits, or an ally within arm’s reach, can still Deny one of these dice with a SPI Save.",
+      "denyPromptAny": "Whoever this hits, or an ally close enough to touch, can still Deny one of these dice with a SPI Save.",
       "takeBack": "Click a spent die to take its Gambit back.",
       "gambitHelp": "What a Gambit can do",
       "unarmed": "Unarmed",
@@ -2393,7 +2317,7 @@
       "gambitSaved": "{name} Saved with {total} against {virtue} {target}, and ignores it.",
       "gambitFailed": "{name} failed with {total} against {virtue} {target}, so it takes effect.",
       "gambitNoSave": "No Save against it.",
-      "focusSource": "Focus pays for this Gambit instead of a die. {name} must then pass a CLA Save or become Fatigued.",
+      "focusSource": "Focus pays for this Gambit instead of a die. {name} then makes a CLA Save, or is Fatigued.",
       "focusPassed": "{name} passed the CLA Save with {total} against CLA {target}, and avoids Fatigue.",
       "focusFailed": "{name} failed the CLA Save with {total} against CLA {target}, and is Fatigued until they rest.",
       "whoSaves": "Who makes the {virtue} Save against {gambit}?",
@@ -2458,7 +2382,7 @@
         },
         "stone": {
           "label": "A siege weapon",
-          "hint": "Stone walls can’t be breached by conventional means."
+          "hint": "Stone walls resist ordinary means."
         },
         "warband": {
           "label": "A Blast or large-scale Attack",
@@ -2473,25 +2397,25 @@
         "unharmed": "The Attack can’t harm them.",
         "none": "The blow is turned aside. No Damage.",
         "evaded": "Evades the Attack.",
-        "scar": "Left at exactly 0 GD. Roll a Scar with the die that caused it.",
+        "scar": "Left at exactly 0 GD. Roll a Scar on the die that dealt the blow.",
         "spared": "Non-lethal: already down and out, it takes nothing more.",
         "wounded": "Wounded.",
-        "mortal": "Mortally Wounded: down and dying. They die if left untended for an hour.",
+        "mortal": "Mortally Wounded: dying, and dead within the hour unless someone tends them.",
         "slain": "Slain.",
         "destroyed": "Destroyed."
       },
       "warbandOutcomes": {
-        "mortal": "Routed from the battle.",
-        "slain": "Wiped out entirely."
+        "mortal": "Routed from the field.",
+        "slain": "Wiped out."
       },
       "structureOutcomes": {
         "evaded": "Holds, for now.",
-        "destroyed": "Destroyed at 0 GD. Recovering GD takes a day of repairs."
+        "destroyed": "Destroyed at 0 GD. A day of repairs brings its GD back."
       }
     },
     "scarRoll": {
       "title": "Roll Scar",
-      "die": "The die that caused the Scar",
+      "die": "The die that dealt the Scar",
       "apply": "Record the Scar and apply its Virtue Loss and immediate GD increase",
       "roll": "Roll",
       "lost": "Loses {amount} {virtue}.",
@@ -2507,7 +2431,7 @@
     "revenge": {
       "title": "Revenge?",
       "tagline": "{name}’s {scar} waits on it.",
-      "text": "{foe} is brought down. If this is {name}’s revenge, the Humiliation settles: if max GD is 12 or less, it rises by d6.",
+      "text": "{foe} is brought down. If this is {name}’s revenge, the Humiliation settles: a max GD of 12 or under rises by d6.",
       "settle": "Revenge Is Had",
       "owed": "Revenge on {name} settles it.",
       "owedTag": "revenge on {name}",
@@ -2519,14 +2443,10 @@
     "scars": {
       "label": "Scars",
       "distress": {
-        "name": "Distress",
-        "flavour": "A lucky escape",
-        "effect": "Lose d6 SPI."
+        "name": "Distress"
       },
       "disfigurement": {
         "name": "Disfigurement",
-        "flavour": "A permanent mark",
-        "effect": "Roll d6 for where. If your max GD is 2 or less, increase it by d6.",
         "detail": {
           "1": "Eye",
           "2": "Cheek",
@@ -2537,34 +2457,22 @@
         }
       },
       "smash": {
-        "name": "Smash",
-        "flavour": "A sudden spray of blood",
-        "effect": "Lose d6 VIG."
+        "name": "Smash"
       },
       "stun": {
-        "name": "Stun",
-        "flavour": "Pain drowns the senses",
-        "effect": "Lose d6 CLA. If your max GD is 4 or less, increase it by d6."
+        "name": "Stun"
       },
       "rupture": {
-        "name": "Rupture",
-        "flavour": "Innards pierced and compressed",
-        "effect": "Lose 2d6 VIG."
+        "name": "Rupture"
       },
       "gouge": {
-        "name": "Gouge",
-        "flavour": "Flesh torn from bone",
-        "effect": "When you get stitched up, if your max GD is 6 or less, increase it by d6."
+        "name": "Gouge"
       },
       "concussion": {
-        "name": "Concussion",
-        "flavour": "A heavy blow numbs the mind",
-        "effect": "Lose 2d6 CLA."
+        "name": "Concussion"
       },
       "tear": {
         "name": "Tear",
-        "flavour": "Something taken in violent struggle",
-        "effect": "Roll d6 for what. When you get patched up, if your max GD is 8 or less, increase it by d6.",
         "detail": {
           "1": "Nose",
           "2": "Ear",
@@ -2575,14 +2483,10 @@
         }
       },
       "agony": {
-        "name": "Agony",
-        "flavour": "With a crack, a torturous break",
-        "effect": "Lose 2d6 SPI."
+        "name": "Agony"
       },
       "mutilation": {
         "name": "Mutilation",
-        "flavour": "A limb rendered lost or useless",
-        "effect": "Roll d6 for which. By next Season you have a prosthetic or have learned to get by, and if your max GD is 10 or less, increase it by d6.",
         "detail": {
           "1": "Leg",
           "2": "Leg",
@@ -2593,14 +2497,10 @@
         }
       },
       "doom": {
-        "name": "Doom",
-        "flavour": "A cheated death haunts you",
-        "effect": "If you take a Mortal Wound this Season you are Slain instead."
+        "name": "Doom"
       },
       "humiliation": {
-        "name": "Humiliation",
-        "flavour": "A most dolorous stroke",
-        "effect": "When you achieve revenge, if your max GD is 12 or less, increase it by d6."
+        "name": "Humiliation"
       }
     },
     "item": {
@@ -2610,21 +2510,21 @@
       "damage": "Damage dice",
       "damageHint": "For example d8 or 2d6.",
       "hefty": "Hefty",
-      "heftyHint": "One hand. Only one Hefty item can be wielded at once.",
+      "heftyHint": "One hand, and never two Hefty items at once.",
       "long": "Long",
-      "longHint": "Both hands. Impaired in confined environments.",
+      "longHint": "Both hands. Impaired in tight spaces.",
       "slow": "Slow",
-      "slowHint": "Cannot be used if the wielder moved this turn. Also Long.",
+      "slowHint": "No use to someone who has moved this turn. Also Long.",
       "heftyMounted": "Hefty if mounted",
       "heftyMountedHint": "Counts as Hefty rather than Long when the wielder is mounted, as a lance does.",
       "ranged": "Ranged",
-      "rangedHint": "Cannot be used if the wielder began their turn engaged in melee.",
+      "rangedHint": "Useless to someone who started their turn in melee.",
       "blast": "Blast",
       "blastHint": "Attacks everybody in the area, rolled separately for each.",
       "ignoresArmour": "Ignores Armour",
       "ignoresArmourHint": "Damage isn’t reduced by the target’s Armour.",
       "trample": "Trample",
-      "trampleHint": "A steed’s trample. Its rider adds it to their Attack when charging enemies on foot.",
+      "trampleHint": "A steed’s trample. Its rider adds it to their Attack when charging foes who are on foot.",
       "specialist": "Specialist",
       "specialistSituation": "Situation",
       "specialistPlaceholder": "Such as against the undead",
@@ -2633,7 +2533,7 @@
       "specialistTag": "+{die} {situation}",
       "specialistTagBare": "+{die} specialist",
       "remedy": "Remedy for",
-      "remedyHint": "When used, restores this Virtue to everybody present, and is used up. A person or beast of burden can only carry one at once.",
+      "remedyHint": "Using it restores this Virtue to everybody there, and uses it up. Nobody, person or pack beast, can carry two.",
       "notRemedy": "Not a Remedy",
       "remedyTag": "Remedy, {virtue}",
       "equipped": "Worn or wielded",
@@ -2644,7 +2544,7 @@
       "alternate": "Another way to fight",
       "alternateLabel": "How",
       "alternatePlaceholder": "Such as ranged, or as a pair",
-      "alternateHint": "For a weapon fought two ways, such as a bolt-guisarme, d10 long in melee or d10 slow ranged. The Attack dialog offers each way, and only one at a time. Leave the dice blank if it has none.",
+      "alternateHint": "For a weapon fought two ways, such as a spear that can be thrown: d8 hefty in melee or d6 at range. The Attack dialog offers each way, and only one at a time. Leave the dice blank if it has none.",
       "insteadOf": "Instead of",
       "insteadOfNone": "Nothing: it joins the others",
       "insteadOfHint": "For attacks printed with “or” between them, as “Pound (2d12) or sweep (d12 blast)”. An Attack uses only one of them, and the Attack dialog opens on the harder.",
@@ -2681,7 +2581,7 @@
       "buckler": "Buckler",
       "bucklerHint": "A shield, but not one that makes a shieldwall.",
       "rarity": "Rarity",
-      "rarityHint": "Common items are widely available, uncommon ones need a specialist, and rare ones are truly treasured. A specialist weapon is one category rarer than the weapon it’s made from.",
+      "rarityHint": "Common things are found anywhere, uncommon ones take a specialist, and rare ones are prized. A specialist weapon is a step rarer than the weapon it’s made from.",
       "noRarity": "Not said",
       "quantity": "Carried",
       "quantityOf": "of",
@@ -2698,7 +2598,7 @@
       "broken": "Broken",
       "brokenHint": "No use until it’s mended: a broken weapon can’t Attack, and broken armour adds nothing.",
       "brokenTag": "broken",
-      "displaced": "{name} comes off: only one {kind} can be worn at once.",
+      "displaced": "{name} comes off: nobody wears two of one {kind}.",
       "restocked": "{name}: {items} restocked.",
       "scarRoll": "Scar table result",
       "save": "Save",
@@ -2713,7 +2613,7 @@
     "cruise": {
       "title": "Cruise",
       "button": "Cruise from Here",
-      "buttonHint": "Where 3 Hexes by boat, or by steed on a proper road, can take the Company in one Phase (p18).",
+      "buttonHint": "Where a boat, or a steed on a proper road, carries the Company 3 Hexes in one Phase (p18).",
       "roadHere": "A proper road runs here",
       "roadHint": "Roads are rarely found. Mark each hex one runs through, and a Cruise can follow it.",
       "boat": "By boat",
@@ -2756,7 +2656,7 @@
         },
         "swarm": {
           "label": "Swarm",
-          "hint": "Bats, bees or the like. Individual Attacks at a swarm are Impaired unless they are Blast Attacks."
+          "hint": "Bats, bees or the like. Attacks by one person at a swarm are Impaired, Blast Attacks excepted."
         },
         "warband": {
           "label": "Warband",
@@ -2795,7 +2695,7 @@
         "knownHint": "Once they learn it, say from hunters or those who have fought them, the Attack dialog offers the die against them. Until then nobody attacking them is told."
       },
       "structure": "Counts as a structure",
-      "structureHint": "Only fire, siege weapons or suitably large creatures can harm it.",
+      "structureHint": "Only fire, siege engines or something big enough can hurt it.",
       "wields": {
         "label": "Wields",
         "auto": {
@@ -2821,10 +2721,10 @@
       "paste": {
         "title": "Paste Stat Block",
         "intro": "Paste a stat block, such as one copied from the rulebook. It replaces this NPC’s name, Virtues, GD, Armour, Feats and notes, and swaps their weapons for its attacks.",
-        "placeholder": "Name, Epithet\nVIG 10, CLA 10, SPI 10, 3GD\nA1 (what their Armour is)\nWeapon (d8 hefty)\nAnything else about them.",
+        "placeholder": "Name, Epithet\nVIG 11, CLA 9, SPI 8, 3GD\nA1 (what their Armour is)\nWeapon (d8 hefty)\nAnything else about them.",
         "hint": "Only the VIG, CLA, SPI and GD line is needed. Text above it becomes the name.",
         "apply": "Apply",
-        "noStats": "No stat line found. It should read like VIG 10, CLA 10, SPI 10, 3GD."
+        "noStats": "No stat line found. It should read like VIG 11, CLA 9, SPI 8, 3GD."
       }
     },
     "structure": {
@@ -2832,27 +2732,27 @@
       "kinds": {
         "structure": {
           "label": "Structure",
-          "hint": "Destroyed at 0 GD. Wooden structures ignore Attacks other than fire, siege weapons or suitably large creatures. Stone walls can’t be breached by conventional means, though their gates usually can."
+          "hint": "Destroyed at 0 GD. A wooden one shrugs off every Attack but fire, siege engines or something big enough. Stone walls resist ordinary means, though a gate is usually fair game."
         },
         "ship": {
           "label": "Ship",
-          "hint": "Destroyed at 0 GD, and ignores Attacks other than fire, siege weapons or suitably large creatures. Colliding ships take d12 Damage, or d6 for a ship much larger than the other."
+          "hint": "Destroyed at 0 GD, and shrugs off every Attack but fire, siege engines or something big enough. A collision costs each ship d12 Damage, or only d6 for the much larger one."
         },
         "siege": {
           "label": "Siege Engine",
-          "hint": "A siege tower or engine. Destroyed at 0 GD, and ignores Attacks other than fire, siege weapons or suitably large creatures."
+          "hint": "A siege tower or engine. Destroyed at 0 GD, and shrugs off every Attack but fire, siege engines or something big enough."
         }
       },
       "guardHint": "How much Damage it can take. At 0 GD it’s destroyed.",
       "armourNote": "What its Armour is",
       "carries": "Carries",
       "stone": "Stone",
-      "stoneHint": "Stone walls can’t be breached by conventional means: only siege weapons harm them here (p11). Their gates are usually wood.",
+      "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here (p11). Their gates are usually wood.",
       "carriesPlaceholder": "6 passengers, a Warband…",
       "items": "Weapons & Cargo",
       "destroyed": {
         "label": "Destroyed",
-        "hint": "At 0 GD a ship or structure is destroyed. Recovering GD takes a day of repairs."
+        "hint": "At 0 GD a ship or structure is destroyed. A day of repairs brings its GD back."
       },
       "repair": "Repair",
       "repairHint": "A day of repairs restores its GD.",
@@ -2860,7 +2760,7 @@
       "collide": {
         "title": "Collide",
         "hint": "Roll the Damage this ship takes from colliding with another.",
-        "intro": "{name} collides with another ship. Colliding ships take d12 Damage, but a ship much larger than the other takes d6 instead.",
+        "intro": "{name} collides with another ship. Each takes d12 Damage, except that a much larger ship takes d6.",
         "similar": "Similar or smaller (d12)",
         "larger": "Much the larger (d6)",
         "rolled": "{name} takes d{faces} Damage from the collision: {damage}."
@@ -2923,7 +2823,8 @@
         "spark": "Spark Table",
         "goods": "Arms & Goods:",
         "cityQuest": "City Quest",
-        "rules": "Rules:"
+        "rules": "Rules:",
+        "bookText": "Rules text"
       },
       "rulePages": {
         "creatingRealm": "Creating a Realm"
@@ -2964,9 +2865,14 @@
           "sparkPage": "no Spark Tables could be read from the page",
           "goodsKind": "none could be read, so the compendium goes without them",
           "cityQuestText": "they couldn’t be read, so the City Quest goes without them",
-          "rulesText": "the page couldn’t be read, so the free Blank Realm sheet’s words stand in for it"
-        }
-      }
+          "rulesText": "the page couldn’t be read, so a short summary in the system’s own words stands in for it",
+          "bookText": "its words couldn’t be found on the page, so the system’s own stand in for them"
+        },
+        "bookTextRead": "Rules text: {read} of {total} passages read.",
+        "passageCount": "({count} passages)"
+      },
+      "readingBookText": "Reading the rules text…",
+      "bookTextUpdated": "The rules text was read from your rulebook."
     },
     "chooser": {
       "title": "Choose a Knight",
@@ -2997,7 +2903,7 @@
       },
       "knight": "3. Knight",
       "rollKnight": "Roll d6 and d12",
-      "knightHint": "Read the d6 first, then the d12. Or choose your own. Generally each player should have a different one.",
+      "knightHint": "The d6 is read first, then the d12. Or choose your own. It’s best if no two players share one.",
       "chooseOwn": "Choose your own",
       "unnamed": "Knight {roll}",
       "reference": "{roll}, page {page}",
@@ -3128,7 +3034,7 @@
         "sizeIntro": "A typical Realm is 12 by 12 hexes (p14). Tick Ignore the rules for setup to choose another size.",
         "intro": "Everything below is rolled as Creating a Realm (p14) describes. Untick a part to leave it off the map and draw it yourself with the Realm tools.",
         "ignoreRules": "Ignore the rules for setup",
-        "ignoreRulesHint": "“The guidelines on this page make for a typical Realm, but they can be bent or broken in creating your own Realms” (p14). Tick to set your own numbers.",
+        "ignoreRulesHint": "The book’s numbers make a typical Realm, and yours needn’t be one (p14). Tick to set your own numbers.",
         "parts": {
           "map": "Map",
           "terrain": "Terrain",
@@ -3175,7 +3081,7 @@
         "found": "{name} ran into a hidden Barrier between {from} and {to}. It’s shown on the map now.",
         "someone": "A player",
         "wasted": {
-          "text": "The Company tried to travel through a Barrier, from {from} to {to}. The attempt wastes the {phase}, but still causes a Wilderness Roll.",
+          "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"
         }
       },
@@ -3369,33 +3275,21 @@
         "curse": "Curse",
         "ruin": "Ruin",
       "effects": {
-        "dwelling": {
-          "text": "Humble homes amid the wilds. Whoever lives here knows their own Hex and the ones beside it."
-        },
-        "sanctum": {
-          "text": "The sacred home of a Seer, who knows every Myth of the Realm, its secrets and its weaknesses. Their guidance restores CLA, though such knowledge isn’t given freely."
-        },
         "monument": {
-          "text": "A site of inspiration. Travellers may spend a Phase here to restore SPI, as if they were consuming a Sacrament.",
           "offer": "Spend a Phase: Restore SPI"
         },
         "hazard": {
-          "text": "Nature fights your every step. Devise a solution, push through, or go back the way you came.",
           "offer": "Push Through",
           "also": "Go Back"
         },
-        "curse": {
-          "text": "A blight on the land that throws you off course."
-        },
         "ruin": {
-          "text": "Remnants of the past echo the future, hinting at a Myth the Realm doesn’t hold, though it may yet return.",
           "offer": "Echo a Myth"
         }
       },
       "nobody": "Nobody was ticked, so nothing happens here.",
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
       "monumentHint": "The Phase is spent here, so turn the calendar on when the Company moves.",
-      "hazardWhich": "Pushing through costs d6 in a Virtue, usually VIG. Which does this Hazard take?",
+      "hazardWhich": "Pushing through costs d6 of a Virtue, most often VIG. Which does this Hazard take?",
       "goBack": {
         "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",
         "noToken": "Only the Company’s own Token can be sent back. Move the Company’s Tokens back by hand.",
@@ -3408,7 +3302,7 @@
       "ruinHint": "Hint at it however the ruin would: a carving, a name half-worn away, a warning nobody living remembers. It may yet return to the Realm.",
       "offCourse": {
         "title": "Thrown Off Course",
-        "struck": "If the Company travels in the next Phase, it counts as travelling blind.",
+        "struck": "Travel in the next Phase is travelling blind.",
         "pending": "A Curse has thrown the Company off course. If they travel in the next Phase, roll Travelling Blind.",
         "live": "This is the Phase the Curse blights. Travel now counts as travelling blind.",
         "roll": "Roll Travelling Blind",
@@ -3525,7 +3419,7 @@
     },
     "realmDrawing": {
       "title": "Creating a Realm",
-      "intro": "Players get a copy of the map with Holdings and general terrain marked. They cannot see Myths, Landmarks, and Barriers.",
+      "intro": "The players’ copy of the map shows the Holdings and the lie of the land, but not the Myths, Landmarks or Barriers.",
       "more": "What each one is",
       "paintEveryHex": {
         "heading": "Paint every hex",
@@ -3540,46 +3434,46 @@
       },
       "sections": {
         "terrain": {
-          "text": "Draw clusters of d12 hexes of the same terrain type."
+          "text": "Paint patches of the same terrain, each about d12 hexes."
         },
         "barriers": {
-          "text": "Draw thick outlines for Barriers around the outside of 1-in-6 Hexes. Travel through a Barrier is not possible by normal means."
+          "text": "Outline Barriers along the edges of about one Hex in six. Nothing crosses a Barrier by ordinary means."
         },
         "river": {
-          "text": "Draw navigable river passing through the Realm and a few large lakes spanning whole or multiple Hexes."
+          "text": "Run a navigable river across the Realm, and add a few big lakes, each filling a Hex or more."
         },
         "holdings": {
-          "text": "Draw 4 Holdings a good distance apart, typically castles, walled towns, fortresses, or towers, held by Knights or influential Vassals. Designate one Holding as the Seat of Power."
+          "text": "Place 4 Holdings well apart, such as castles, towers, fortresses or walled towns, each ruled by a Knight or a powerful Vassal. Make one the Seat of Power."
         },
         "myths": {
-          "text": "Mark 6 Myths (p27) in remote places. Number them 1-6 on the map."
+          "text": "Put 6 Myths (p27) somewhere remote, numbered 1 to 6."
         },
         "landmarks": {
-          "text": "Draw 3 or 4 of each type of Landmark. Mark them with their initial or an icon.",
+          "text": "Draw 3 or 4 Landmarks of each kind, each marked with an initial or an icon.",
           "lines": {
             "dwelling": {
               "label": "Dwellings",
-              "text": "Humble homes amid the wilds."
+              "text": "Where ordinary folk live, out in the wild."
             },
             "sanctum": {
               "label": "Sanctums",
-              "text": "Each the sacred home to a Seer. Roll on the Knight table (p26) to find which Seer lives at each Sanctum."
+              "text": "Where a Seer lives. Which Seer is found on the Knight table (p26)."
             },
             "monument": {
               "label": "Monuments",
-              "text": "Sites of inspiration. Travellers may spend a Phase to restore SPI here as if they were consuming a Sacrament."
+              "text": "An inspiring place. Spending a Phase here restores SPI, as a Sacrament would."
             },
             "hazard": {
               "label": "Hazards",
-              "text": "Nature fights your every step. Devise a solution, push through (lose d6 VIG), or go back the way you came."
+              "text": "The land itself resists. Find a way, push on at a cost of d6 VIG, or turn back."
             },
             "curse": {
               "label": "Curses",
-              "text": "Blights on the land that throw you off course. If you travel in the next Phase it counts as travelling blind (p18)."
+              "text": "A blight that leads travellers astray: travel in the next Phase is travelling blind (p18)."
             },
             "ruin": {
               "label": "Ruins",
-              "text": "Remnants of the past echo the future. These hint at a random Myth not currently active in the Realm, though it may return."
+              "text": "A relic that foretells: it hints at a Myth not active in the Realm, which may yet return."
             }
           }
         }
@@ -3607,11 +3501,11 @@
         "button": "Finish the Realm",
         "hint": "Done drawing: bring back Travel and Exploration and whisper the GMs the Realm's key.",
         "title": "Finish the Realm",
-        "short": "This Realm has less than the Blank Realm sheet asks for:",
-        "anyway": "The sheet is a guide, and its rules can be bent or broken (p14). Finish the Realm as it is?",
+        "short": "This Realm has less than a typical one:",
+        "anyway": "These numbers are a guide, not a law (p14). Finish the Realm as it is?",
         "done": "{name} is drawn. Travel and Exploration are back beside the map."
       },
-      "credit": "Creating a Realm, as printed on the free Blank Realm sheet by Chris McDowall, Bastionland Press (p14). Run Import PDF to read the rulebook’s own page here.",
+      "credit": "Creating a Realm (p14), summed up in the system’s own words. Run Import PDF to read the rulebook’s own page here.",
       "bookCredit": "Creating a Realm, read from your copy of the rulebook by Chris McDowall, Bastionland Press (p14)."
     },
     "warband": {
@@ -3632,22 +3526,22 @@
         },
         "mercenaries": {
           "label": "Mercenaries",
-          "hint": "Soldiers who have agreed a price, and expect it paid.",
-          "text": "Mercenaries who have agreed a price, and will hold you to it."
+          "hint": "Soldiers who fight for an agreed price.",
+          "text": "Hired swords with a price agreed, who will see it paid."
         }
       },
       "muster": {
         "title": "Muster a Warband",
         "button": "Muster a Warband",
-        "hint": "A typical Seat of Power musters 3 Warbands, another Holding 2.",
+        "hint": "A Seat of Power can usually raise 3 Warbands, any other Holding 2.",
         "origin": "Where the soldiers are drawn from",
         "intro": "Who takes the field for {name}?",
         "blankIntro": "Who takes the field for {name}? Import PDF brings in the book\u2019s Warbands; until then, raise one and fill in their stats.",
         "blank": "A Warband of Your Own",
         "ok": "Muster Them",
         "newName": "A Warband",
-        "needs": "Whatever their origin, soldiers expect their basic needs to be met during their service.",
-        "marshal": "The Marshal determines their training and armament.",
+        "needs": "Wherever they come from, soldiers expect to be fed and sheltered while they serve.",
+        "marshal": "Their training and arms are the Marshal’s business.",
         "raised": "{name} takes the field for {domain}.",
         "full": "{name} already has {count} Warbands in the field, all it can raise. Muster another anyway?"
       },
@@ -3658,11 +3552,11 @@
       },
       "upkeep": {
         "title": "Upkeep",
-        "hint": "A Warband ill-rested, poorly fed or pushed too far loses d6 SPI.",
+        "hint": "A Warband short of rest or food, or driven too hard, loses d6 SPI.",
         "intro": "What has worn {name} down?",
-        "needs": "Soldiers expect their basic needs to be met during their service.",
+        "needs": "Soldiers expect to be fed and sheltered while they serve.",
         "notDamage": "Virtue Loss is not Damage, so it can never Mortally Wound or Slay them.",
-        "broken": "At SPI 0 {name} will not follow orders, acting only in their self interest.",
+        "broken": "At SPI 0 {name} stops taking orders and looks out only for itself.",
         "strains": {
           "illRested": {
             "label": "Ill-rested",
@@ -3673,7 +3567,7 @@
             "text": "Short rations, and no sight of better."
           },
           "pushedTooFar": {
-            "label": "Pushed too far",
+            "label": "Driven too hard",
             "text": "Asked for more than soldiers have to give."
           }
         }
@@ -3682,7 +3576,7 @@
     "fallen": {
       "title": "A Knight Falls",
       "tagline": "{name} is Slain.",
-      "text": "Even the boldest Knight can die a sudden or ignoble death. Their player makes a new Knight, added to the Company as quickly as possible, or takes up a successor, Squire or follower.",
+      "text": "Death comes for bold Knights too, often suddenly and without honour. Their player makes another Knight, who joins the Company soon, or takes up a successor, Squire or follower.",
       "paths": {
         "newKnight": "Make a New Knight",
         "successor": "Take up Their Successor",
@@ -3709,28 +3603,28 @@
         "title": "Gathering Folklore",
         "intro": "Somebody in {hex} is asked what they know of the Realm.",
         "who": "Who is asked",
-        "freely": "Such vast knowledge isn’t given freely. What they want in return is for the table to settle.",
+        "freely": "Knowledge like that comes at a price. What they want in return is for the table to settle.",
         "ask": "Ask Them",
         "sources": {
           "vassal": {
             "label": "A Vassal",
-            "hint": "Knows their nearest Myth and its general direction, precisely where it lies if it is adjacent to their home, and the Landmarks in their home and neighbouring Hexes."
+            "hint": "Knows the nearest Myth and which way it lies (exactly where, if it’s next to their home), and the Landmarks in and around their home Hex."
           },
           "roamer": {
             "label": "A Knight or Vagabond",
-            "hint": "Has roamed enough to know a random Myth of the Realm and its rough direction, and the nearest Landmark."
+            "hint": "Has travelled enough to know one Myth of the Realm, picked at random, and roughly where it lies, and the nearest Landmark."
           },
           "seer": {
             "label": "A Seer",
-            "hint": "Knows the rules of all Myths, their secrets, weaknesses and cures, their locations, and every Landmark in the Realm."
+            "hint": "Knows every Myth’s rules, secrets, weaknesses and cures, where each lies, and every Landmark in the Realm."
           }
         },
         "mythNumber": "Myth {number}",
         "precise": "{hex}, {where}",
         "at": "{hex}, {where}",
         "nothing": "They know of no Myth and no Landmark from here.",
-        "rumours": "They know rumours that warn of dangers, but not how to avoid or undo them.",
-        "secrets": "They know this Myth’s rules and secrets, its weaknesses, and the cures to its maladies."
+        "rumours": "They’ve heard warnings of danger, but nothing of how to escape or undo it.",
+        "secrets": "They know this Myth’s rules and secrets, what it’s weak to, and how to cure the harm it does."
       },
       "search": {
         "title": "Searching",
@@ -3739,33 +3633,33 @@
         "aims": {
           "sweep": {
             "label": "Sweep the whole Hex",
-            "hint": "A surface level sweep of the entire Hex."
+            "hint": "A quick look over the whole Hex."
           },
           "known": {
             "label": "Search for something known to be here",
-            "hint": "A thorough search for something known to exist there, which is a normal action and calls for a Save."
+            "hint": "Hunting properly for something known to be there: an action like any other, with a Save."
           },
           "vantage": {
-            "label": "Find a vantage point",
+            "label": "Climb somewhere high",
             "hint": "Climb to somewhere the Hex and the land around it can be taken in."
           }
         },
-        "ifItCalls": "If the action calls for a Save",
+        "ifItCalls": "If there’s a Save to make",
         "what": "What they seek",
         "whatPlaceholder": "What are they searching for?",
         "who": "Who rolls",
         "virtue": "Virtue",
-        "virtueHint": "The Company decides who rolls, using their Virtue. Consider the main activity involved in the risky part.",
+        "virtueHint": "The Company picks who rolls, with their own Virtue. Choose the Virtue for whatever the risky part mostly is.",
         "rolled": "Their d20",
         "rolledPlaceholder": "Roll it here",
         "rolledHint": "If they rolled the d20 at the table, enter what it showed. Leave it empty to roll here.",
         "phase": "The Phase passes",
-        "phaseHint": "Searching takes a whole Phase of the day. Untick it where the Referee rules otherwise.",
+        "phaseHint": "A search uses up a whole Phase. Untick it where the Referee rules otherwise.",
         "ok": "Search",
         "saveTitle": "Exploration Save",
         "searching": "Searching the Hex",
         "found": "They find what they sought.",
-        "obstacle": "The goal might still be achievable, but now faces an obstacle, a hostile encounter, or an additional cost. Nature has its own whims: bad weather, shifting land.",
+        "obstacle": "They may still manage it, but something now stands in the way: an obstacle, a hostile meeting, or a price. The land has moods of its own: bad weather, shifting ground.",
         "noOne": "Nobody was chosen to roll the Save, so nothing was rolled."
       },
       "survey": {
@@ -3773,13 +3667,13 @@
         "vantageTitle": "From the Vantage Point",
         "holding": "A Holding stands here: {name}.",
         "seat": "The Seat of Power stands here: {name}.",
-        "myth": "The Hex is clearly affected by the presence of Myth {number}.",
+        "myth": "Myth {number} has plainly left its mark on this Hex.",
         "landmark": "{type} {name}",
         "barrier": "a Barrier between",
         "someHolding": "walls in the distance",
         "unknownLand": "land unmarked on the map",
         "sweepHint": "A sweep takes in the Hex itself. What lies in the Hexes around it waits on the Wilderness Roll.",
-        "vantageHint": "A vantage point gives an overview of this Hex and a general sense of the land around, but not specific details: the Myths and Landmarks hidden out there keep their secrets."
+        "vantageHint": "From up high they take in this Hex and get a rough idea of the land around, but nothing precise: the Myths and Landmarks hidden out there keep their secrets."
       }
     },
     "travelRules": {
@@ -3793,8 +3687,8 @@
       "now": "Now",
       "hardship": "Lose d6 {virtue}",
       "credits": {
-        "left": "Travel, as printed on p18 of Mythic Bastionland by Chris McDowall, Bastionland Press, and on the free Blank Realm sheet.",
-        "right": "Rest and Hardship and Exploration, as printed on p18-19 of Mythic Bastionland by Chris McDowall, Bastionland Press. The worked example of the Goblin is left out."
+        "left": "Travel (p18), from your copy of Mythic Bastionland by Chris McDowall, Bastionland Press.",
+        "right": "Rest and Hardship (p18) and Exploration (p19), from your copy of Mythic Bastionland by Chris McDowall, Bastionland Press."
       },
       "groups": {
         "travel": "On the Road",
@@ -3805,132 +3699,89 @@
       },
       "sections": {
         "methods": {
-          "text": "Travelling consumes a whole Phase of the day and uses one of 3 methods:",
           "lines": {
-            "trek": { "label": "Trek", "text": "1 Hex on foot or steed." },
-            "gallop": { "label": "Gallop", "text": "2 Hexes on a non-Exhausted steed. The steed loses d6 VIG." },
-            "cruise": { "label": "Cruise", "text": "3 Hexes by boat, or by steed on a rarely-found proper road." }
+            "trek": { "label": "Trek" },
+            "gallop": { "label": "Gallop" },
+            "cruise": { "label": "Cruise" }
           },
           "roll": "Gallop"
         },
         "wildernessRoll": {
           "heading": "Wilderness Roll",
-          "text": "When ending a Phase in Wilderness, roll:",
-          "rows": {
-            "randomOmen": "Encounter the next Omen from a random Myth in this Realm.",
-            "nearestOmen": "Encounter the next Omen from the nearest Myth.",
-            "landmark": "Encounter the Hex’s Landmark. Otherwise all clear."
-          },
           "roll": "Wilderness Roll for the Company"
         },
         "mythHexes": {
-          "heading": "Myth Hexes",
-          "text": "Ending a Phase in the Hex containing a Myth always reveals its next Omen without making a Wilderness Roll. When possible, the Knights also get the drop on the Omen."
+          "heading": "Myth Hexes"
         },
         "omens": {
-          "heading": "Omens",
-          "text": "Each Myth has 6 Omens, listed in the order in which they are encountered. The first encounter with a specific Myth is always Omen 1, the second Omen 2 etc.",
-          "note": "Remember primacy of action (p16). If the players want to hunt for the Wyvern’s nest they don’t have to wait for that Omen to appear if they take action themselves."
+          "heading": "Omens"
         },
         "barriers": {
-          "heading": "Barriers",
-          "text": "Travel through a Barrier is not normally possible, though locals might know a way. Attempting to travel through a Barrier wastes that Phase of the day, but still causes a Wilderness Roll."
+          "heading": "Barriers"
         },
         "hospitality": {
-          "heading": "Hospitality",
-          "text": "When sleeping indoors, do not make a Wilderness Roll. Manners dictate that hospitality be granted to travelling Knights. Longer stays warrant a favour in return."
+          "heading": "Hospitality"
         },
         "camping": {
-          "heading": "Camping",
-          "text": "When sleeping outdoors make a Wilderness Roll as normal, ignoring Landmarks. Hostile Omens prevent proper sleep, while others may not occur at all if they are improbable as nighttime activity."
+          "heading": "Camping"
         },
         "supplies": {
-          "heading": "Supplies",
-          "text": "Knights gather food, water, and firewood as they travel, so these are not tracked. In situations where essential needs are deprived the Company each lose d6 VIG each morning."
+          "heading": "Supplies"
         },
         "night": {
-          "heading": "Night",
-          "text": "Travelling or exploring at night causes the Company to lose d6 SPI each. If they lack a guide and light they are also travelling blind."
+          "heading": "Night"
         },
         "sleep": {
-          "heading": "Sleep",
-          "text": "Each morning, all who did not get proper sleep the previous day lose d6 CLA."
+          "heading": "Sleep"
         },
         "winter": {
-          "heading": "Winter",
-          "text": "Anybody camping or travelling at night in Winter loses d6 VIG. Most Realms also risk dire weather during Winter."
+          "heading": "Winter"
         },
         "blind": {
           "heading": "Travelling Blind",
-          "text": "Travellers who find themselves roaming without a proper sense of direction, or shrouded by darkness or mist, must roll when they try to move to a new Hex.",
-          "rows": {
-            "circleBack": "Circle back to where you started.",
-            "drift": "Drift a Hex to the Left (2) or Right (3).",
-            "asPlanned": "Progress as planned."
-          },
           "roll": "Roll Travelling Blind"
         },
         "weather": {
           "heading": "Dire Weather",
-          "text": "When travelling in lands at the mercy of dire weather, roll at the start of each Phase.",
-          "rows": {
-            "dire": "Dire weather. You can’t leave the Hex and can’t get proper sleep.",
-            "looming": "Looming threat. If this is rolled a second consecutive time, treat as dire weather.",
-            "fine": "Fine weather for travel."
-          },
           "roll": "Roll Dire Weather"
         },
         "mood": {
           "heading": "Local Mood",
-          "text": "When arriving in a Holding, roll to gauge the local mood.",
-          "rows": {
-            "woe": "Occupied by a looming or recent woe.",
-            "decline": "There is a sense of things in decline.",
-            "fine": "A fine mood and all seems well enough."
-          },
           "roll": "Roll Local Mood"
         },
         "land": {
-          "heading": "The Lay of the Land",
-          "text": "Each Hex is large and diverse, a land within the land. Some may spend their whole lives within one. A forest Hex might have cliffs, streams, clearings, and caves.",
-          "note": "Use Spark Tables (p22) and the prompts at the base of each Knight and Myth spread to help fill the blanks in your Hexes."
+          "heading": "The Lay of the Land"
         },
         "actions": {
-          "heading": "Exploration Actions",
-          "text": "When ruling exploration actions, follow the standard Action Procedure (p16). In particular, consider whether the action will take a whole Phase of the day to carry out.",
-          "note": "As with other Actions, the players should know the risks before they commit to it."
+          "heading": "Exploration Actions"
         },
         "saves": {
           "heading": "Saves",
-          "text": "If the Action calls for a Save the Company decides who rolls, using their Virtue. Even if they fail the Save, the goal might still be achievable, but now faces an obstacle, a hostile encounter, or an additional cost. While the cause and consequence of failure can be personal, they also represent the whims of nature, bad weather, shifting land.",
-          "lead": "If it is unclear which Virtue to use, consider the main activity involved in the risky part:",
           "lines": {
-            "vig": { "label": "Vigour", "text": "Strength or physical stamina." },
-            "cla": { "label": "Clarity", "text": "Senses or mental quickness." },
-            "spi": { "label": "Spirit", "text": "Social or emotional influence." }
+            "vig": { "label": "Vigour" },
+            "cla": { "label": "Clarity" },
+            "spi": { "label": "Spirit" }
           }
         },
         "searching": {
           "act": "Search the Hex",
-          "heading": "Searching",
-          "text": "It takes a whole Phase to carry out a surface level sweep of an entire Hex, thoroughly search for something known to exist there, or find a vantage point."
+          "heading": "Searching"
         },
         "vision": {
           "act": "Look from a Vantage Point",
-          "heading": "Vision",
-          "text": "From a vantage point it’s possible to get an overview of the current Hex and a general sense of what lies in neighbouring hexes, but not specific details."
+          "heading": "Vision"
         },
         "folklore": {
           "act": "Ask Somebody",
-          "text": "Everybody knows something about Myths. How much depends on who they are.",
           "lines": {
-            "vassals": { "label": "Vassals", "text": "know about their nearest Myth, and its general direction. If it is adjacent to their home then they know its precise location. They know Landmarks in their home and neighbouring Hexes." },
-            "roamers": { "label": "Knights and Vagabonds", "text": "have roamed enough to know about a random Myth of the Realm and its rough direction. They also know of the nearest Landmark." },
-            "everyone": { "label": "All of the above", "text": "know rumours that warn of dangers, but not how to avoid or undo them." },
-            "seers": { "label": "Seers", "text": "know the rules of all Myths, their secrets, and their locations. They know their weaknesses, and cures to their maladies. They know all Landmarks in the Realm. Such vast knowledge isn’t given freely." }
+            "vassals": { "label": "Vassals" },
+            "roamers": { "label": "Knights and Vagabonds" },
+            "everyone": { "label": "All of the above" },
+            "seers": { "label": "Seers" }
           }
         }
-      }
+      },
+      "unread": "Import your rulebook PDF to read these rules here in the book’s own words."
     },
     "settingsTab": {
       "tab": "Settings",
@@ -4006,40 +3857,7 @@
     },
     "keywords": {
       "tip": "{text} (p{page})",
-      "strongGambit": "A Gambit made with a melee die of 8 or higher. Also choose No Save for the target, or a Greater effect such as disarming, breaking a wooden shield or weapon, or removing a helm.",
-      "mortalWound": "Losing half or more of your remaining VIG to Damage. Down and dying: dies if left untended for an hour, but can be patched up in a few moments.",
-      "virtueLoss": "A Virtue reduced by anything but Damage, such as the cost of an action. It never Slays or Mortally Wounds.",
-      "guard": "Guard (GD): skill at avoiding Wounds. Damage comes off GD first. Fully restored, and Fatigue removed, by a moment of peace after the danger has passed.",
-      "vigour": "Vigour (VIG): strong limbs, firm hands, powerful lungs. Damage past GD comes off VIG. At VIG 0 you’re Exhausted. Restored by Sustenance or a full day of warm hospitality.",
-      "clarity": "Clarity (CLA): keen instinct, lucid mind, shrewd eyes. At CLA 0 you’re Exposed. Restored by Stimulant or a Seer’s guidance.",
-      "spirit": "Spirit (SPI): charming tongue, iron will, fierce heart. At SPI 0 your Attacks are Impaired. Restored by Sacrament or indulging a Passion.",
-      "save": "Roll a d20 equal to or under the Virtue to pass. Failing means negative consequences, not always a failed action.",
-      "armour": "Subtracted from an Attack’s Damage. One coat, plates, helm and shield can be worn at once, their scores added together.",
-      "exposed": "Caught with guard down or otherwise defenceless: act as if at 0 GD until the situation is remedied. CLA 0 also leaves you Exposed.",
-      "reaction": "How a non-player character takes something. They react in a way that suits the moment; where that’s uncertain, they make a SPI Save to avoid an unfavourable one.",
-      "fatigue": "Can’t perform Feats until rested. After a Feat, pass its Save or become Fatigued. A moment of peace removes it.",
-      "exhausted": "At VIG 0: can’t Attack after moving this turn.",
-      "impaired": "Rolls a single d4, with no bonus dice and no Feats. Unarmed attacks, Long weapons in confined spaces and SPI 0 are Impaired.",
-      "wounded": "Damage beyond GD comes off VIG and Wounds the target. A Wounded individual must pass a SPI Save or rout or surrender.",
-      "slain": "Damage has reduced VIG to 0. Virtue Loss never Slays.",
-      "evade": "At least 1GD left after the Damage: the Attack is avoided.",
-      "scar": "Gained when Damage leaves exactly 0 GD. Roll the die that caused it again on the Scar table. Only from real, deadly combat.",
-      "gambit": "Discard an Attack die of 4 or higher for one effect: Bolster, Move, Repel, Stop, Impair a weapon, Trap a shield, Dismount, or similar. The foe gets a VIG Save against all but Bolster and Move.",
-      "bolster": "A Gambit: +1 total Damage to the Attack. The target gets no Save against it.",
-      "feat": "Smite, Focus and Deny, known by every Knight. Each can be used once per Attack. After one, pass its Save or become Fatigued.",
-      "smite": "Feat. Before rolling a melee Attack: gain +d12 or Blast. Pass a VIG Save or become Fatigued.",
-      "focus": "Feat. After rolling an Attack: perform a Gambit without using a die. Pass a CLA Save or become Fatigued.",
-      "deny": "Feat. After an Attack roll against you or an ally within arm’s reach: discard one Attack die. Pass a SPI Save or become Fatigued.",
-      "blast": "Targets everybody in its area, rolling separately for each.",
-      "hefty": "One hand. Only one Hefty item can be wielded at once.",
-      "long": "Both hands. Impaired in confined environments.",
-      "slow": "Can’t be used if the wielder has moved this turn. Also Long.",
-      "ranged": "Purely ranged weapons can’t be used if the attacker began their turn engaged in melee. Cover grants +1 Armour against them.",
-      "trample": "A steed’s trample Damage joins its rider’s Attack when charging enemies on foot, but not against a spearwall.",
-      "wall": "3 or more allies in formation. All with shields (not bucklers): +1 Armour. All with spears: enemies can’t Attack on the turn they charge.",
-      "warband": "Two dozen or so fighting as one. Routed by a Mortal Wound, wiped out at VIG 0, broken at SPI 0. Only harmed by Blast or large-scale Attacks. Its Attacks on individuals get +d12 and cause Blast Damage.",
-      "remedy": "A sizeable bundle that takes a whole Phase to use and fully restores a Virtue for all the Company present: Sustenance (VIG), Stimulant (CLA), Sacrament (SPI). A person or beast carries only one.",
-      "glory": "Gained by resolving Myths, winning staked duels, tournaments and remembered battles, and each new Age. Sets a Knight’s rank. At 12 they are worthy of the City Quest."
+      "unread": "Explained on p{page} of the rulebook."
     },
     "portrait": {
       "change": "Change Picture",
@@ -4108,7 +3926,7 @@
       },
       "newRealm": {
         "title": "New Realm",
-        "content": "New Realm makes a Realm for the Company to explore. Roll it from the book’s tables, draw it yourself on a blank map, or import a map you drew on paper."
+        "content": "New Realm makes a Realm for the Company to travel. Roll it from the book’s tables, draw it yourself on a blank map, or import a map you drew on paper."
       }
     },
     "welcome": {
@@ -4116,7 +3934,7 @@
       "open": "Open the Welcome",
       "hint": "The window a new world opens with, where your rulebook PDF is brought in.",
       "kicker": "Welcome to",
-      "lead": "You are Knights, united by a common Oath and visions of the City. You may have dreams of glory, but every Knight must accept the risk of death.",
+      "lead": "A game of Knights, Seers and Myths, by Chris McDowall.",
       "book": {
         "heading": "Your Rulebook",
         "intro": "The rulebook doesn’t come with this system. If you own the PDF, the {pages}-page one, choose it here and this world is filled in from it.",
@@ -4209,6 +4027,22 @@
             }
           }
         }
+      }
+    },
+    "unread": {
+      "scars": {
+        "distress": "Lose d6 SPI.",
+        "disfigurement": "A max GD of 2 or under goes up by d6.",
+        "smash": "Lose d6 VIG.",
+        "stun": "Lose d6 CLA. A max GD of 4 or under goes up by d6.",
+        "rupture": "Lose 2d6 VIG.",
+        "gouge": "Once it’s stitched, a max GD of 6 or under goes up by d6.",
+        "concussion": "Lose 2d6 CLA.",
+        "tear": "Once it’s patched, a max GD of 8 or under goes up by d6.",
+        "agony": "Lose 2d6 SPI.",
+        "mutilation": "By next Season there’s a prosthetic, or a way of managing without, and a max GD of 10 or under goes up by d6.",
+        "doom": "A Mortal Wound this Season Slays instead.",
+        "humiliation": "Once revenge is had, a max GD of 12 or under goes up by d6."
       }
     }
   }

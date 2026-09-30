@@ -147,7 +147,7 @@ describe("cityOmen", () => {
 		expect(cityOmen(5, [3, 9])).toEqual({ omen: 7, ends: false });
 	});
 
-	it("takes the next Omen down the list in place of one already encountered", () => {
+	it("takes the Omen after it in place of one already encountered", () => {
 		expect(cityOmen(5, [7, 2])).toEqual({ omen: 8, ends: false });
 		expect(cityOmen(4, [6, 7, 8])).toEqual({ omen: 9, ends: false });
 	});

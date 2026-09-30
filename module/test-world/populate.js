@@ -53,7 +53,7 @@ import { MAX_INLINE_LENGTH, PAINTING_HEIGHT, PAINTING_WIDTH, PAINT_SCALE } from 
 import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
 import { createRandom } from "../rules/random.js";
-import { scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
+import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { completedMythId, crisisRollsDue } from "../rules/season-log.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
 import { HARDSHIPS, PHASES, nextAge, nextSeason, seasonKey } from "../rules/time.js";
@@ -73,7 +73,7 @@ const REALM_SEED = "gravenmoor";
 const FOLDER_NAME = "Test World";
 const FOLDER_COLOR = "#6b3a8c";
 
-/** The Company are Courtiers: Mature Knights-Gallant with a place in Court at the Seat of Power (p6). */
+/** The Company are Courtiers: Mature Knights-Gallant who begin at Court, in the Seat of Power (p6). */
 const START = "courtier";
 
 const DOMAIN_IMAGE = "icons/environment/settlement/castle.webp";
@@ -91,7 +91,7 @@ const COMPANY = Object.freeze([
 		arms: { division: null, field: ["azure"], charge: { key: "sun-a", tincture: "or" } },
 		fallback: {
 			type: "Lantern",
-			property: ["Longsword (d8 hefty), mail (A1) and helm (A1)", "Kite shield (d4, A1) painted with a lantern", "Steady steed (VIG 11, CLA 9, SPI 5, 3GD)"],
+			property: ["Longsword (d8 hefty), mail (A1) and helm (A1)", "Round shield (d4, A1) painted with a lantern", "Steady steed (VIG 11, CLA 8, SPI 6, 3GD)"],
 			ability: { name: "Lamplight", text: "Once each night, your lantern shows the way to the nearest shelter." },
 			passion: { name: "Vigil", text: "Restore SPI when you keep watch through the whole Night alone." }
 		}
@@ -115,7 +115,7 @@ const COMPANY = Object.freeze([
 		arms: { division: "perChevron", field: ["argent", "vert"], charge: null },
 		fallback: {
 			type: "Anvil",
-			property: ["Warhammer (d8 hefty), ringmail (A1), plate (A1)", "Smith's tools", "Heavy warhorse (VIG 14, CLA 6, SPI 5, 3GD, d6 trample)"],
+			property: ["Warhammer (d8 hefty), ringmail (A1), plate (A1)", "Smith's tools", "Heavy warhorse (VIG 14, CLA 6, SPI 4, 3GD, d6 trample)"],
 			ability: { name: "Mend", text: "Given a forge and a Phase, restore a broken weapon or piece of armour." },
 			passion: { name: "Craft", text: "Restore SPI when you make something worth keeping." }
 		}
@@ -749,7 +749,7 @@ class TestGame {
 		await actor.createEmbeddedDocuments("Item", [{
 			type: "scar",
 			name,
-			system: { roll: scar.roll, season: seasonKey(getCalendar()), description: `<p><em>${text("flavour")}</em></p><p>${text("effect")}</p>` }
+			system: { roll: scar.roll, season: seasonKey(getCalendar()), description: scarDescription(text("flavour"), text("effect")) }
 		}]);
 		await postCard(actor, "scar", { faces, roll: scar.roll, name: text("name"), flavour: text("flavour"), effect: text("effect"), location, lines }, { rolls });
 		return name;
@@ -1177,7 +1177,7 @@ class TestGame {
 			title: t("domain.crisisRoll"),
 			tagline: t("domain.results.crisis.dilemma"),
 			d6: roll.total,
-			entries: [{ name: t(`domain.crises.${chosen}.name`), lines: [t(`domain.crises.${chosen}.flavour`), t(`domain.crises.${chosen}.resolution`)] }]
+			entries: [{ name: t(`domain.crises.${chosen}.name`), lines: [t(`domain.crises.${chosen}.flavour`), t(`domain.crises.${chosen}.resolution`)].filter(Boolean) }]
 		}, { rolls });
 	}
 

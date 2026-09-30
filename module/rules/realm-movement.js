@@ -1,6 +1,5 @@
 /**
- * Moving across a Realm. "Travel through a Barrier is not normally possible"
- * (p18), and nobody walks off the edge of the map. Pure, so it can be tested
+ * Moving across a Realm. A Barrier can't be crossed by ordinary means (p18), and nobody walks off the edge of the map. Pure, so it can be tested
  * without Foundry.
  */
 import { edgeKey, hexAt, hexDistance, hexKey, inRealm, neighbours, sameHex } from "./realm-geometry.js";

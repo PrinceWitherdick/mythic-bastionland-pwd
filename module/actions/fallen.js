@@ -16,9 +16,9 @@ import { COMPANION_FLAG } from "./property.js";
 import { knightSquire } from "./squires.js";
 
 /**
- * What follows a Knight's death (p8): the player makes a new Knight, added to
- * the Company as quickly as possible, or takes up the fallen Knight's Squire or
- * one of their followers. The fallen Knight's own sheet is left as it is: VIG 0
+ * What follows a Knight's death (p8): the player makes another Knight to join
+ * the Company soon, or takes up the fallen Knight's Squire or one of their
+ * followers. The fallen Knight's own sheet is left as it is: VIG 0
  * by Damage is what the book calls Slain, and there is nothing further to write
  * on them.
  */
@@ -156,10 +156,10 @@ export async function carryOnFrom(path, knight) {
 }
 
 /**
- * "The player creates a new Knight and they are added to the Company as quickly
- * as possible": a Knight is made carrying the fallen one's players, and the
- * chooser opens on them to be rolled or picked. Where the Company is well
- * established, the chooser offers to start them with some Glory (p195).
+ * A new Knight for a fallen one's player (p8): a Knight is made carrying the
+ * fallen one's players, and the chooser opens on them to be rolled or picked.
+ * Where the Company has been going a while, the chooser offers them a start in
+ * Glory too (p195).
  * @param {Actor} fallen
  * @returns {Promise<Actor|null>}
  */

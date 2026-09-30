@@ -3,7 +3,7 @@ import { extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { describe, expect, it } from "vitest";
 import { AGES, ARMOUR_KINDS, DERIVED_CONDITIONS, FEATS, GAMBIT_DETAILS, GAMBITS, LINKED_ACTORS, MARKED_CONDITIONS, NPC_SCALES, PROPERTY_TYPES } from "../module/config.js";
-import { CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, RULES_KIND, SPARK_KIND } from "../module/rules/book-art.js";
+import { BOOK_TEXT_KIND, CITY_QUEST_KIND, KINDS, PROBLEM_REASONS, RULES_KIND, SPARK_KIND } from "../module/rules/book-art.js";
 import { RULE_PAGES } from "../module/rules/rule-pages.js";
 import { STANDARD_KIT, STARTS } from "../module/rules/creation.js";
 import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
@@ -44,10 +44,12 @@ import { KNIGHTHOOD_SECTIONS } from "../module/rules/knighthood.js";
 import { DRAWING_RULES } from "../module/rules/realm-drawing.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
 import { VIRTUES } from "../module/rules/virtues.js";
+import { withBookText } from "../module/rules/book-text.js";
 
 const root = join(import.meta.dirname, "..");
 const systemManifest = JSON.parse(readFileSync(join(root, "system.json"), "utf8"));
-const lang = JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8"));
+// As the world lays it: each key the book fills shows its fallback until Import PDF has read the book.
+const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
 
 /** @returns {string[]} Every file under `dir` with the given extension. */
 function walk(dir, extension) {
@@ -135,6 +137,7 @@ describe("localization", () => {
 		`bookArt.kinds.${GOODS_KIND}`,
 		`bookArt.kinds.${CITY_QUEST_KIND}`,
 		`bookArt.kinds.${RULES_KIND}`,
+		`bookArt.kinds.${BOOK_TEXT_KIND}`,
 		...Object.keys(RULE_PAGES).map((key) => `bookArt.rulePages.${key}`),
 		"bookArt.readingRules",
 		"bookArt.report.rulesRead",

@@ -13,17 +13,17 @@ import { cadencesTurned, isCalendar } from "./time.js";
 
 export { pointsBelow };
 
-/** "see below" opening an aside that says more: "(see below, restock each new Season)". */
+/** "see below" opening an aside that says more: "(see below, restock …)". */
 const LEADING = /\(\s*(?:see|as) below(?: for [^,.)]*)?[,.]\s*/gi;
 
-/** "see below" closing a clause: "(A1, can't fly, but see below)", ". See below for repair requirements)". */
+/** "see below" closing a clause: "(A1, but see below)", ". See below for how to mend it)". */
 const TRAILING = /(?:^|[,.]\s*|\s+)(?:but\s+)?(?:see|as) below(?: for [^,.)]*)?(?=[,.)]|$)/gi;
 
 /**
  * A possession's name without its pointers to the table, for a sheet that
  * shows the table right under it. The rest of what the book says is kept.
- * @param {string} name Such as "Beloved steed (VIG 12, CLA 15, SPI 7, 4GD, see below)".
- * @returns {string} Such as "Beloved steed (VIG 12, CLA 15, SPI 7, 4GD)".
+ * @param {string} name Such as "Loyal hound (VIG 6, CLA 11, SPI 8, 3GD, see below)".
+ * @returns {string} Such as "Loyal hound (VIG 6, CLA 11, SPI 8, 3GD)".
  */
 export function withoutSeeBelow(name) {
 	return String(name ?? "").replace(WHOLE_ASIDE, "").replace(LEADING, "(").replace(TRAILING, "").trim();
@@ -32,7 +32,7 @@ export function withoutSeeBelow(name) {
 /**
  * A possession's name as a row shows it, split into its bold head and the gloss
  * after, without the pointers to the table. The aside is taken out of each part
- * apart, so "Unnatural body (see below), concealed beneath…" leaves no comma
+ * apart, so "Iron hand (see below), hidden under a glove…" leaves no comma
  * hanging after the head.
  * @param {{nameHead: string, nameSep: string, nameRest: string}} parts From splitName.
  * @returns {{nameHead: string, nameSep: string, nameRest: string}}
@@ -163,7 +163,7 @@ export const RENEWAL_CADENCES = Object.freeze(RENEWALS.map(([cadence]) => cadenc
 /** "(see below)" and nothing else, left when the rest of the aside was read into tags and notes. */
 const ONLY_POINTER = /^\s*(?:see|as) below\s*$/i;
 
-/** A clause that sets a condition, kept with the clause after it: "If smashed, find a new flask…". */
+/** A clause that sets a condition, kept with the clause after it: "If lost, carve a new one…". */
 const CONDITION = /^(?:if|when|unless|once)\b/i;
 
 /**
@@ -180,7 +180,7 @@ function renewalIn(text) {
 
 /**
  * The words saying when, from the start of their clause to the time they name:
- * "restock each new Season" out of "see below, restock each new Season". A
+ * "restock each …" out of "see below, restock each …". A
  * condition just before is kept with them.
  * @param {string} text
  * @param {{index: number, end: number}} at

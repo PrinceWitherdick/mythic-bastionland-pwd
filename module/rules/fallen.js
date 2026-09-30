@@ -1,8 +1,6 @@
 /**
- * When a Knight dies (p8): "Even the boldest Knight can die a sudden or
- * ignoble death. Prepare yourself for this. When a Knight dies the player
- * creates a new Knight and they are added to the Company as quickly as
- * possible. Alternatively they may assume control of a Squire or follower."
+ * When a Knight dies (p8): their player makes another Knight to join the
+ * Company soon, or takes up a Squire or follower instead.
  *
  * So a fallen Knight leaves their player three ways to carry on, and which of
  * them are open depends on who was riding with them. Their Squire is named on
@@ -13,8 +11,7 @@
 
 /**
  * How a player carries on, in the order the book gives them. p195 adds the
- * successor a Knight named (Succession, p17): "You can make a brand new Knight
- * or you could take on a successor."
+ * successor a Knight named (Succession, p17) as another way to carry on.
  */
 export const FALLEN_PATHS = Object.freeze(["newKnight", "successor", "squire", "follower"]);
 
@@ -119,9 +116,9 @@ export function companyGlory(knights) {
 
 /**
  * Whether a Knight made to replace one who fell may start with some Glory,
- * and how much to suggest. "In most cases I'd start the new Knight as a Young
- * Knight-Errant, but if the Company is well-established then it might make
- * sense to start them with some Glory" (p195). The Company counts as well
+ * and how much to suggest. A new Knight usually starts Young and Errant, but a
+ * Company that has been going a while may give them some Glory (p195). The
+ * Company counts as well
  * established once somebody in it has more Glory than the Start gives, and the
  * suggestion is the least any of them has, so the newcomer outranks nobody.
  * @param {{lowest: number, highest: number}|null} company From companyGlory.

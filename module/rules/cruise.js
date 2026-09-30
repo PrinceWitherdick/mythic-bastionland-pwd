@@ -1,6 +1,6 @@
 /**
- * Cruise (Travel, p18): 3 Hexes in a Phase by boat, or by steed on a
- * rarely-found proper road. A boat goes by the Realm's rivers and lakes; a road
+ * Cruise (Travel, p18): 3 Hexes in a Phase, by boat or by steed along one of
+ * the Realm's few proper roads. A boat goes by the Realm's rivers and lakes; a road
  * is marked hex by hex by the Referee, since the book leaves where roads run to
  * them. Neither passes a Barrier. Pure, so it can be tested without Foundry.
  */

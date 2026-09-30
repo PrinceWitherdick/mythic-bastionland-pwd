@@ -23,8 +23,8 @@ import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./domi
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
- * Council tasks (p20): a seat is given work that takes a Phase, a Week or a
- * full Season, and it's settled as a normal action (p16) when its time comes.
+ * Council tasks (p20): a seat is given work lasting anything from a Phase to a
+ * Season, and it's settled as a normal action (p16) when its time comes.
  * Failure typically brings a Crisis, which is drawn here. Each task is kept
  * under an id of its own, as the Court is, so only setting, settling and
  * setting aside come through here.

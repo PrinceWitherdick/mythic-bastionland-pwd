@@ -1,13 +1,12 @@
 /**
- * The Court (p20): those who serve a Domain outside its Council. Retainers are
- * Vassals taken on by individual Council members, Courtiers are commoners with
- * lesser responsibilities or ceremonial honours who usually hold higher
- * ambitions, Petitioners come from outside the Court for aid, counsel or
- * justice, and Seers visit from their Sanctums or send acolytes in their stead.
+ * The Court (p20): everyone serving a Domain but not on its Council. Retainers
+ * work for one Council member, Courtiers hold small offices or honours and want
+ * more, Petitioners come in from outside asking for help or judgement, and
+ * Seers call now and then, or send someone in their place.
  *
- * Courtly Conflict (p21) says Courtiers breed problems, "especially when they
- * hold leverage over their ruler, whether family influence, dark secrets, or
- * military might", so every member may have leverage written against them and
+ * Courtly Conflict (p21) makes Courtiers trouble, the worst of it coming from
+ * those with some hold over the ruler, so every member may have leverage
+ * written against them and
  * Drama in Court falls to the Courtiers first. Kept by an id in an object, as
  * the Season log is, so the sheet can write one member's line at a time. Pure,
  * so it can be tested without Foundry.
