@@ -8,6 +8,7 @@ import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
 import { hasTable, knightEntryByType, knightRenewal, knightTableFill, knightVerseFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
+import { causedBy } from "./ledger.js";
 
 
 /** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
@@ -67,7 +68,7 @@ export async function fillKnightFromBook(knight, { seer = true, table = true, ve
 		...verseUpdate
 	};
 	if (foundry.utils.isEmpty(update)) return false;
-	await knight.update(update);
+	await knight.update(update, causedBy("book"));
 	return true;
 }
 

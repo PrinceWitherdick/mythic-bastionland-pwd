@@ -6,6 +6,12 @@ import { confirmDialog } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/**
+ * One window per Ledger. By UUID, as an unlinked Token's Knight shares its id with the world's.
+ * @param {Actor} actor
+ */
+const windowId = (actor) => `bastionland-ledger-${actor.uuid.replaceAll(".", "-")}`;
+
 /** The filter's values say whether they pick a whole group or one subject in it. */
 const GROUP_PREFIX = "group:";
 const SUBJECT_PREFIX = "subject:";
@@ -32,7 +38,7 @@ export class LedgerWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @param {Actor} actor */
 	constructor(actor, options = {}) {
-		super({ ...options, id: `bastionland-ledger-${actor.id}` });
+		super({ ...options, id: windowId(actor) });
 		/** Whose Ledger this is; the Ledger hooks look for it to redraw the window. */
 		this.ledgerOf = actor;
 	}
@@ -64,6 +70,10 @@ export class LedgerWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 				category: entry.category ?? "other"
 			});
 		}
+		const groups = ledgerGroups(entries);
+		// A filter whose lines were all deleted would hide everything while the menu read "All changes".
+		const offered = groups.flatMap((group) => [`${GROUP_PREFIX}${group.id}`, ...group.subjects.map((subject) => `${SUBJECT_PREFIX}${subject}`)]);
+		if (!offered.includes(this.#view.filter)) this.#view.filter = "";
 		const { filter } = this.#view;
 		return Object.assign(context, {
 			editable: this.ledgerOf.isOwner,
@@ -71,7 +81,7 @@ export class LedgerWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 			search: this.#view.search,
 			oldestFirst: this.#view.oldestFirst,
 			empty: !entries.length,
-			groups: ledgerGroups(entries).map((group) => ({
+			groups: groups.map((group) => ({
 				value: `${GROUP_PREFIX}${group.id}`,
 				label: t(`ledger.categories.${group.id}`),
 				allLabel: t("ledger.allOf", { category: t(`ledger.categories.${group.id}`), count: group.count }),
@@ -190,7 +200,7 @@ function dayLabel(timestamp) {
  * @returns {LedgerWindow}
  */
 export function openLedger(actor) {
-	const app = foundry.applications.instances.get(`bastionland-ledger-${actor.id}`) ?? new LedgerWindow(actor);
+	const app = foundry.applications.instances.get(windowId(actor)) ?? new LedgerWindow(actor);
 	app.render({ force: true });
 	return app;
 }

@@ -13,7 +13,7 @@ import { countAfter, isCounted } from "../rules/restock.js";
 async function spendRemedy(item) {
 	const { system } = item;
 	const left = isCounted(system) ? countAfter(system.quantity, -1) : 0;
-	if (left > 0 || (isCounted(system) && system.restock)) await item.update({ "system.quantity.value": left });
+	if (left > 0 || (isCounted(system) && system.restock)) await item.update({ "system.quantity.value": left }, causedBy("recovery"));
 	else await item.delete();
 }
 
@@ -106,7 +106,7 @@ export async function useRemedy(actor, item) {
 	const name = item.name;
 	const entries = await Promise.all(company.map(async ({ actor: member }) => {
 		const value = member.system.virtues[virtue].max;
-		await member.update({ [`system.virtues.${virtue}.value`]: value });
+		await member.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
 		return { name: member.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] };
 	}));
 	await spendRemedy(item);

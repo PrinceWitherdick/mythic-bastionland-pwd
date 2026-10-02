@@ -190,7 +190,7 @@ export async function passTime(company, { newAge, before }) {
 		updates.push([actor, update]);
 		entries.push({ name: actor.name, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
 	}
-	await Promise.all(updates.map(([actor, update]) => actor.update(update)));
+	await Promise.all(updates.map(([actor, update]) => actor.update(update, causedBy("season"))));
 	// After the Company's own updates, so a successor who is also in the Company
 	// keeps both what the Season restored and what Knighting or a Legacy gave them.
 	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));
@@ -683,7 +683,7 @@ export async function rollAging(actor, age) {
 		update[`system.virtues.${key}.max`] = scores[key].max;
 		update[`system.virtues.${key}.value`] = scores[key].value;
 	}
-	await actor.update(update);
+	await actor.update(update, causedBy("aging"));
 	await postCard(actor, "creation", {
 		title: t("time.aging.title"),
 		tagline: steps.map((step) => t(`time.aging.${step}`)).join(" · "),

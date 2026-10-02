@@ -6,8 +6,9 @@
  * and the names of linked actors from `nameOf`.
  */
 import { LINKED_ACTORS, MARKED_CONDITIONS } from "../config.js";
-import { VIRTUES } from "./virtues.js";
+import { SCORES, VIRTUES } from "./virtues.js";
 import { RANKS, rankForGlory } from "./glory.js";
+import { seerCurrent } from "./seer-state.js";
 
 /** The flag the Ledger is kept in. */
 export const LEDGER_FLAG = "ledger";
@@ -203,6 +204,9 @@ export function knightChanges(knight, flat, context) {
 		if (entry) entries.push(entry);
 	}
 
+	if (has("system.afflictions")) entries.push(...afflictionEntries(t, getPath(knight, "system.afflictions"), flat["system.afflictions"]));
+	entries.push(...seerHarmEntries(knight, flat, t));
+
 	// Rank follows Glory, so the line that matters is the rank reached.
 	if (has("system.glory")) {
 		const from = rankForGlory(getPath(knight, "system.glory"));
@@ -231,6 +235,68 @@ export function knightChanges(knight, flat, context) {
 			from: shown(table.rolls),
 			to: shown(flat["system.bookTable.rolls"])
 		});
+		if (entry) entries.push(entry);
+	}
+	return entries;
+}
+
+/**
+ * Afflictions taken on, shaken off, or changed, by name.
+ * @param {LedgerContext["t"]} t
+ * @param {object[]} [before]
+ * @param {object[]} [after]
+ * @returns {LedgerEntry[]}
+ */
+function afflictionEntries(t, before, after) {
+	const subject = t("ledger.subjects.affliction");
+	const category = "conditions";
+	const had = new Map((Array.isArray(before) ? before : []).map((affliction) => [affliction?.id, affliction]));
+	const has = new Map((Array.isArray(after) ? after : []).map((affliction) => [affliction?.id, affliction]));
+	const named = (affliction) => affliction?.name || subject;
+	const entries = [];
+	for (const [id, affliction] of has) {
+		const was = had.get(id);
+		if (!was) entries.push({ subject, category, action: t("ledger.phrases.afflicted", { name: named(affliction) }) });
+		else if (["name", "loss", "virtue", "when"].some((key) => was[key] !== affliction[key])) {
+			entries.push({ subject, category, action: t("ledger.phrases.replaced", { subject: named(affliction) }) });
+		}
+	}
+	for (const [id, affliction] of had) {
+		if (!has.has(id)) entries.push({ subject, category, action: t("ledger.phrases.relieved", { name: named(affliction) }) });
+	}
+	return entries;
+}
+
+/**
+ * The harm the Knight's Seer takes and shakes off, as it reads on the Seer
+ * page: a blank score is still at the book's. Naming another Seer clears the
+ * harm, which that line already says.
+ * @param {object} knight
+ * @param {Record<string, *>} flat
+ * @param {LedgerContext["t"]} t
+ * @returns {LedgerEntry[]}
+ */
+function seerHarmEntries(knight, flat, t) {
+	if (!Object.keys(flat).some((path) => path.startsWith("system.seerState."))) return [];
+	const has = (path) => Object.hasOwn(flat, path);
+	if (has("system.seer") && String(flat["system.seer"] ?? "").trim() !== String(getPath(knight, "system.seer") ?? "").trim()) return [];
+	const book = getPath(knight, "system.seerBook");
+	const state = getPath(knight, "system.seerState") ?? {};
+	const after = { ...state };
+	for (const key of [...SCORES, "mortalWound"]) {
+		if (has(`system.seerState.${key}`)) after[key] = flat[`system.seerState.${key}`];
+	}
+	const [from, to] = [seerCurrent(book, state), seerCurrent(book, after)];
+	const seers = (subject) => t("ledger.subjects.seerScore", { subject });
+	const entries = [];
+	for (const key of SCORES) {
+		if (!has(`system.seerState.${key}`)) continue;
+		const abbr = key === "guard" ? t("guard.abbr") : t(`virtues.${key}.abbr`);
+		const entry = valueEntry(t, { subject: seers(abbr), category: "knight", key: `system.seerState.${key}`, from: from[key], to: to[key], merges: true });
+		if (entry) entries.push(entry);
+	}
+	if (has("system.seerState.mortalWound")) {
+		const entry = markEntry(t, { subject: seers(t("conditions.mortalWound.label")), category: "knight", from: state.mortalWound, to: after.mortalWound });
 		if (entry) entries.push(entry);
 	}
 	return entries;
@@ -286,6 +352,13 @@ export function itemChanges(item, flat, context) {
 	}
 	if (item.type === "armour" && has("system.armour")) {
 		const entry = valueEntry(t, { subject: field(t("ledger.subjects.armour")), category, key: `${item._id ?? item.id}.armour`, from: item.system?.armour, to: flat["system.armour"], merges: true });
+		if (entry) entries.push(entry);
+	}
+	if (has("system.broken") && Boolean(flat["system.broken"]) !== Boolean(item.system?.broken)) {
+		entries.push({ subject, category, action: t(flat["system.broken"] ? "ledger.phrases.broke" : "ledger.phrases.mended", { subject }) });
+	}
+	if (has("system.quantity.value")) {
+		const entry = valueEntry(t, { subject: field(t("ledger.subjects.count")), category, key: `${item._id ?? item.id}.count`, from: item.system?.quantity?.value, to: flat["system.quantity.value"], merges: true });
 		if (entry) entries.push(entry);
 	}
 	if (item.type === "scar" && has("system.resolved") && Boolean(flat["system.resolved"]) !== Boolean(item.system?.resolved)) {

@@ -106,7 +106,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 export async function settleScar(item, maxGuard) {
 	const limit = scarForRoll(item.system.roll)?.laterGuardAtMost;
 	const raises = scarRaisesGuardLater(item.system, maxGuard);
-	await item.update({ "system.resolved": true });
+	await item.update({ "system.resolved": true }, causedBy("scar"));
 	if (!raises) return { roll: null, guardMax: maxGuard, line: t("scarRoll.settledNoRaise", { name: item.name, limit }) };
 
 	const roll = await new Roll("1d6").evaluate();

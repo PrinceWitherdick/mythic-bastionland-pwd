@@ -17,6 +17,7 @@ import { getJourney } from "./journey.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { chooseCompany, virtueLoss } from "./time.js";
+import { causedBy } from "./ledger.js";
 
 /**
  * What a Landmark asks of the Company that finds it (p14): a Monument's
@@ -125,7 +126,7 @@ export async function restoreAtMonument() {
 	const updates = [];
 	for (const actor of company) {
 		const value = actor.system.virtues[virtue].max;
-		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: value }));
+		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("landmark")));
 		entries.push({ name: actor.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] });
 	}
 	await Promise.all(updates);

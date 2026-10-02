@@ -30,6 +30,7 @@ import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
+import { causedBy } from "../actions/ledger.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -570,7 +571,7 @@ function greaterOutcome({ actor, effect, name, id }) {
 	if (id) {
 		if (effect !== "break") said.push(t(effect === "disarm" ? "attack.greater.pickUp" : "attack.greater.putOn"));
 		const update = effect === "break" ? { "system.broken": true } : { "system.equipped": false };
-		return { text: said.join(" "), carryOut: () => actor.items.get(id)?.update(update) };
+		return { text: said.join(" "), carryOut: () => actor.items.get(id)?.update(update, causedBy("gambit")) };
 	}
 	const from = Number(actor.system.armour) || 0;
 	const { armour: to, armourNote } = npcArmourWithout(from, actor.system.armourNote, effect === "unhelm" ? "helm" : "shield");

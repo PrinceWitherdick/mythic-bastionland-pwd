@@ -42,6 +42,7 @@ import { openDuelFor, saveDuelChange } from "./duel.js";
 import { canDenyAttack, featContext, payFeat, rollFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
 import { structureHarm } from "../rules/structures.js";
+import { causedBy } from "./ledger.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample"]);
@@ -136,7 +137,7 @@ async function useUpThrown(chosen) {
 	await Promise.all(items.map((item) => {
 		const left = countAfter(item.system.quantity, -1);
 		ui.notifications.info(t("attack.usedOne", { name: item.name, left }));
-		return item.update({ "system.quantity.value": left });
+		return item.update({ "system.quantity.value": left }, causedBy("attack"));
 	}));
 }
 

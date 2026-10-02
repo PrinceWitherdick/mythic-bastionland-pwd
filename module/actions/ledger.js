@@ -18,7 +18,11 @@ export const CAUSE_OPTION = "ledgerCause";
  */
 export const causedBy = (key) => ({ [CAUSE_OPTION]: t(`ledger.causes.${key}`) });
 
-/** The lines an update makes, carried from before it to after it on its options. */
+/**
+ * The lines an update makes, carried from before it to after it on its options,
+ * by the id of the document they're about. One update can change several
+ * documents, and Foundry hands every one of them the same options.
+ */
 const PENDING_OPTION = "bastionlandLedgerEntries";
 
 const LEDGER_PATH = `flags.${SYSTEM_ID}.${LEDGER_FLAG}`;
@@ -101,23 +105,32 @@ export function deleteLedgerEntries(actor, ids) {
 /**
  * Pick up a change as it's asked for, while the actor still holds what it replaces.
  * @param {Actor} actor
+ * @param {ClientDocument} doc The actor, or the item of theirs being changed.
  * @param {object} changes
  * @param {object} options
  * @param {(flat: object) => object[]} read
  */
-function readChanges(actor, changes, options, read) {
+function readChanges(actor, doc, changes, options, read) {
 	if (!keepsLedger(actor) || options[LEDGER_OPTION]) return;
 	const entries = read(foundry.utils.flattenObject(changes));
-	if (entries.length) options[PENDING_OPTION] = entries;
+	// Set or cleared every time, so options passed again to a later update don't carry this one's lines.
+	const pending = options[PENDING_OPTION] ??= {};
+	if (entries.length) pending[doc.id] = entries;
+	else delete pending[doc.id];
 }
 
 /**
- * Write what `readChanges` picked up. Every client hears of an update, but only
- * the one who made it writes, as only they surely may.
+ * Write what `readChanges` picked up for `doc`. Every client hears of an
+ * update, but only the one who made it writes, as only they surely may.
  */
-function writeChanges(actor, options, userId) {
+function writeChanges(actor, doc, options, userId) {
 	if (!keepsLedger(actor) || options[LEDGER_OPTION] || userId !== game.user.id) return;
-	return appendLedger(actor, options[PENDING_OPTION], { userId, cause: options[CAUSE_OPTION] });
+	const pending = options[PENDING_OPTION];
+	const entries = pending?.[doc.id];
+	if (!entries) return;
+	// Written once, even if the hook is heard again.
+	delete pending[doc.id];
+	return appendLedger(actor, entries, { userId, cause: options[CAUSE_OPTION] });
 }
 
 /** Redraw an open Ledger when its lines change. */
@@ -129,13 +142,13 @@ function refreshOpenLedger(actor, changes) {
 }
 
 export function registerLedgerHooks() {
-	Hooks.on("preUpdateActor", (actor, changes, options) => readChanges(actor, changes, options, (flat) => knightChanges(actor, flat, ledgerContext())));
+	Hooks.on("preUpdateActor", (actor, changes, options) => readChanges(actor, actor, changes, options, (flat) => knightChanges(actor, flat, ledgerContext())));
 	Hooks.on("updateActor", (actor, changes, options, userId) => {
 		refreshOpenLedger(actor, changes);
-		writeChanges(actor, options, userId);
+		writeChanges(actor, actor, options, userId);
 	});
-	Hooks.on("preUpdateItem", (item, changes, options) => readChanges(item.parent, changes, options, (flat) => itemChanges(item, flat, ledgerContext())));
-	Hooks.on("updateItem", (item, _changes, options, userId) => writeChanges(item.parent, options, userId));
+	Hooks.on("preUpdateItem", (item, changes, options) => readChanges(item.parent, item, changes, options, (flat) => itemChanges(item, flat, ledgerContext())));
+	Hooks.on("updateItem", (item, _changes, options, userId) => writeChanges(item.parent, item, options, userId));
 	for (const [hook, phrase] of [["createItem", "added"], ["deleteItem", "removed"]]) {
 		Hooks.on(hook, (item, options, userId) => {
 			const actor = item.parent;

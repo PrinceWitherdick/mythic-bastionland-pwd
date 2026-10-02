@@ -283,7 +283,7 @@ export async function takeSeerDamage(knight) {
 	const update = { "system.seerState.guard": result.guard };
 	if (Number.isInteger(now.vig)) update["system.seerState.vig"] = result.vigour;
 	if (result.outcome === "mortal") update["system.seerState.mortalWound"] = true;
-	await knight.update(update);
+	await knight.update(update, causedBy("damage"));
 
 	const name = knight.system.seer || t("seer.label");
 	const outcomes = outcomesFor(result.outcome, { structure });
@@ -444,7 +444,7 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 	const marker = lastingMarkBy(attack);
 	if (marker !== null && !sparring && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
-	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false });
+	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false }, causedBy("damage"));
 	return result;
 }
 
@@ -457,7 +457,7 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
  */
 async function leaveLastingMark(actor, attacker) {
 	const text = t("damage.lastingMark", { name: actor.name, attacker });
-	if (typeof actor.system.notes === "string" && actor.isOwner) await actor.update({ "system.notes": `${actor.system.notes}<p>${escapeHTML(text)}</p>` });
+	if (typeof actor.system.notes === "string" && actor.isOwner) await actor.update({ "system.notes": `${actor.system.notes}<p>${escapeHTML(text)}</p>` }, causedBy("damage"));
 	await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text });
 }
 

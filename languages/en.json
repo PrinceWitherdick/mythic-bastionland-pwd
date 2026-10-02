@@ -474,7 +474,13 @@
         "scar": "a Scar",
         "feat": "a Feat",
         "glory": "Glory",
-        "hardship": "a Season's hardship"
+        "hardship": "a Season's hardship",
+        "attack": "an Attack",
+        "gambit": "a Gambit",
+        "landmark": "a Landmark",
+        "season": "the Season's turn",
+        "aging": "growing older",
+        "book": "the rulebook"
       },
       "gone": "someone since deleted",
       "unknownDay": "Unknown date",
@@ -506,7 +512,10 @@
         "itemField": "{item} {field}",
         "damage": "damage",
         "armour": "Armour",
-        "description": "description"
+        "description": "description",
+        "count": "count",
+        "affliction": "Affliction",
+        "seerScore": "Seer’s {subject}"
       },
       "phrases": {
         "set": "{subject} set to {value}",
@@ -525,7 +534,11 @@
         "equipped": "{subject} taken up",
         "unequipped": "{subject} set aside",
         "settled": "{subject} settled",
-        "unsettled": "{subject} no longer settled"
+        "unsettled": "{subject} no longer settled",
+        "broke": "{subject} broken",
+        "mended": "{subject} mended",
+        "afflicted": "Afflicted with {name}",
+        "relieved": "No longer afflicted with {name}"
       }
     },
     "knighthood": {

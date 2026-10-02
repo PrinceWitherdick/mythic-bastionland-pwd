@@ -60,6 +60,37 @@ describe("knightChanges", () => {
 		expect(entry.action).toBe("ledger.phrases.knighted");
 	});
 
+	it("says when an affliction is taken on, changed or shaken off, by name", () => {
+		const plague = { id: "a1", name: "Plague", loss: "1d6", virtue: "vig", when: "morning" };
+		const read = (from, to) => knightChanges(knight({ afflictions: from }), { "system.afflictions": to }, context).map((entry) => entry.action);
+		expect(read([], [plague])).toEqual([t("ledger.phrases.afflicted", { name: "Plague" })]);
+		expect(read([plague], [])).toEqual([t("ledger.phrases.relieved", { name: "Plague" })]);
+		expect(read([plague], [{ ...plague, loss: "1d8" }])).toEqual([t("ledger.phrases.replaced", { subject: "Plague" })]);
+		expect(read([plague], [{ ...plague }])).toEqual([]);
+		expect(read(undefined, [{ ...plague, name: "" }])).toEqual([t("ledger.phrases.afflicted", { name: "ledger.subjects.affliction" })]);
+	});
+
+	it("reads the Seer's harm as the Seer page shows it, a blank score being the book's", () => {
+		const seerBook = { vig: 12, cla: 10, spi: 14, guard: 4 };
+		const harmed = knight({ seer: "The Hermit", seerBook, seerState: { vig: null, cla: null, spi: null, guard: 1, mortalWound: false } });
+		const entries = knightChanges(harmed, { "system.seerState.vig": 7, "system.seerState.guard": 0, "system.seerState.mortalWound": true }, context);
+		expect(entries.map((entry) => entry.action)).toEqual([
+			t("ledger.phrases.changed", { subject: t("ledger.subjects.seerScore", { subject: "virtues.vig.abbr" }), from: "12", to: "7" }),
+			t("ledger.phrases.changed", { subject: t("ledger.subjects.seerScore", { subject: "guard.abbr" }), from: "1", to: "0" }),
+			t("ledger.phrases.marked", { subject: t("ledger.subjects.seerScore", { subject: "conditions.mortalWound.label" }) })
+		]);
+		// Restored to the book's: blank again, which reads as the book's score.
+		expect(knightChanges(harmed, { "system.seerState.guard": null }, context)[0].action).toContain("\"from\":\"1\",\"to\":\"4\"");
+		// A Seer the book gives no scores has none to harm.
+		expect(knightChanges(knight({ seerBook: null, seerState: {} }), { "system.seerState.vig": 3 }, context)).toEqual([]);
+	});
+
+	it("leaves the harm cleared by naming another Seer to the Seer's own line", () => {
+		const harmed = knight({ seer: "The Hermit", seerBook: { vig: 12 }, seerState: { vig: 3 } });
+		const entries = knightChanges(harmed, { "system.seer": "The Mage", "system.seerState.vig": null }, context);
+		expect(entries.map((entry) => entry.subject)).toEqual(["ledger.subjects.seer"]);
+	});
+
 	it("logs rolls on the Knight's table, but not the book swapping in another table", () => {
 		expect(knightChanges(knight(), { "system.bookTable.rolls": [4] }, context)[0].action).toBe(t("ledger.phrases.set", { subject: "Oddity", value: "4" }));
 		expect(knightChanges(knight(), { "system.bookTable.name": "Other", "system.bookTable.rolls": [4] }, context)).toEqual([]);
@@ -78,6 +109,17 @@ describe("items", () => {
 		const entries = itemChanges(sword, { name: "Longsword", "system.equipped": false, "system.damage": "d8" }, context);
 		expect(entries.map(phraseOf)).toEqual(["ledger.phrases.renamed", "ledger.phrases.unequipped", "ledger.phrases.changed"]);
 		expect(entries.every((entry) => entry.subject === "Sword")).toBe(true);
+	});
+
+	it("says when a thing is broken or mended, and how many are left", () => {
+		const shield = { _id: "s1", name: "Shield", type: "armour", system: { broken: false, equipped: true } };
+		expect(itemChanges(shield, { "system.broken": true }, context).map(phraseOf)).toEqual(["ledger.phrases.broke"]);
+		expect(itemChanges({ ...shield, system: { broken: true } }, { "system.broken": false }, context).map(phraseOf)).toEqual(["ledger.phrases.mended"]);
+		const javelins = { _id: "j1", name: "Javelins", type: "weapon", system: { quantity: { value: 3, max: 3 } } };
+		const [thrown] = itemChanges(javelins, { "system.quantity.value": 2 }, context);
+		expect(thrown.action).toContain("\"from\":\"3\",\"to\":\"2\"");
+		expect(thrown.merge).toMatchObject({ key: "j1.count" });
+		expect(itemChanges(javelins, { "system.quantity.value": 3 }, context)).toEqual([]);
 	});
 });
 
@@ -107,6 +149,14 @@ describe("mergeRuns", () => {
 		expect(line.merge.items).toEqual(["Sword", "Dagger"]);
 		expect(line.action).toContain("Sword, Dagger");
 	});
+
+	it("keeps lines with different causes apart, and starts a new list past its limit", () => {
+		expect(mergeRuns([{ ...at(vig(10, 9), 2000), cause: "Damage" }, at(vig(11, 10), 1000)], t)).toHaveLength(2);
+		const added = (name, timestamp) => at(itemListEntry({ name, type: "weapon" }, "added", context), timestamp);
+		const many = Array.from({ length: 25 }, (_, index) => added(`W${index}`, 1000 + index)).reverse();
+		const folded = mergeRuns(many, t);
+		expect(folded.map((line) => line.merge.items.length)).toEqual([1, 24]);
+	});
 });
 
 describe("writeIntoLedger", () => {
@@ -115,6 +165,13 @@ describe("writeIntoLedger", () => {
 		const ledger = writeIntoLedger(stored, [{ id: "a", action: "first" }, { id: "b", action: "second" }], t);
 		expect(ledger).toHaveLength(LEDGER_MAX_ENTRIES);
 		expect(ledger.slice(0, 3).map((entry) => entry.id)).toEqual(["b", "a", "old0"]);
+	});
+
+	it("starts an empty Ledger, and lets a change undone strike the line it undoes", () => {
+		const vig = (from, to, timestamp) => ({ ...knightChanges(knight({ virtues: { vig: { value: from, max: 12 } } }), { "system.virtues.vig.value": to }, context)[0], timestamp, userId: "u" });
+		expect(writeIntoLedger(undefined, [vig(12, 9, 1000)], t)).toHaveLength(1);
+		const stored = [vig(12, 9, 1000), { id: "older", action: "x" }];
+		expect(writeIntoLedger(stored, [vig(9, 12, 2000)], t)).toEqual([{ id: "older", action: "x" }]);
 	});
 });
 
