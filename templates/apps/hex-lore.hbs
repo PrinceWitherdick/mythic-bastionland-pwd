@@ -102,6 +102,9 @@
 
 	<div class="bastionland-hex-lore__row">
 		<button type="button" data-action="tell"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
+		{{#if journal}}
+		<button type="button" data-action="journal" data-tooltip="{{localize "bastionland.hexJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.hexJournal.open"}}</button>
+		{{/if}}
 	</div>
 	{{/if}}
 </div>

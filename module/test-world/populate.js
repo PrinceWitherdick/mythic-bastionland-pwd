@@ -33,6 +33,7 @@ import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
 import { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
+import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
@@ -267,6 +268,8 @@ async function removeTestWorld() {
 		return ids.length;
 	};
 	const messages = await remove("ChatMessage", game.messages);
+	// The Realm's hex entries are made by the system, not the macro, so they go by the Realm they're for.
+	await deleteHexJournals(game.scenes.filter(isTestDocument).map((scene) => scene.id));
 	const scenes = await remove("Scene", game.scenes);
 	const actors = await remove("Actor", game.actors);
 	const entries = await remove("JournalEntry", game.journal);

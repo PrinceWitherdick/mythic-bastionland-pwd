@@ -68,6 +68,9 @@
 			<button type="button" data-action="showHex"><i class="fa-solid fa-location-dot" inert></i> {{localize "bastionland.gmToolkit.showHex"}}</button>
 			<button type="button" data-action="rollHexSet"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
 			<button type="button" data-action="hexLore"><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.open"}}</button>
+			{{#if journal}}
+			<button type="button" data-action="hexJournal" data-tooltip="{{localize "bastionland.hexJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.hexJournal.open"}}</button>
+			{{/if}}
 			<button type="button" data-action="tellHex"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.hexLore.tell"}}</button>
 			{{#unless visited}}
 			<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>

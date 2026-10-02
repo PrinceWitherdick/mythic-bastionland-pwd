@@ -4,7 +4,7 @@
  * Names for each key live under `bastionland.realm`.
  */
 import { isDie, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
-import { hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+import { directionNames, edgeDirection, hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
 export const REALM_VERSION = 1;
 
@@ -184,6 +184,39 @@ export function hexSummary(realm, g, hex, { showHidden = false, hiddenByHand = {
 		myth: myth && (showHidden || myth.revealed) ? { number: myth.number, revealed: Boolean(myth.revealed) } : null,
 		landmark: landmark && (showHidden || landmark.revealed) ? { type: landmark.type, name: landmark.name ?? "", revealed: Boolean(landmark.revealed) } : null
 	};
+}
+
+/**
+ * The way out of a hex an edge lies, as `realm.directions` names it.
+ * @param {object} g
+ * @param {Hex} hex
+ * @param {string} edge From edgeKey.
+ * @returns {string|null} Null for an edge that isn't one of the hex's own.
+ */
+export function edgeSide(g, hex, edge) {
+	const hexes = parseEdgeKey(g, edge);
+	if (!hexes || !hexes.some((end) => sameHex(end, hex))) return null;
+	const other = sameHex(hexes[0], hex) ? hexes[1] : hexes[0];
+	const direction = edgeDirection(g, hex, other);
+	return direction === null ? null : directionNames(g)[direction];
+}
+
+/**
+ * The Barriers on a hex's edges, clockwise. Players see one only once it's revealed.
+ * @param {Realm} realm
+ * @param {object} g
+ * @param {Hex} hex
+ * @param {object} [options]
+ * @param {boolean} [options.showHidden] For GMs.
+ * @returns {{edge: string, direction: string, revealed: boolean}[]}
+ */
+export function barriersAround(realm, g, hex, { showHidden = false } = {}) {
+	const order = directionNames(g);
+	return (realm.barriers ?? [])
+		.filter((barrier) => showHidden || barrier.revealed)
+		.map((barrier) => ({ edge: barrier.edge, direction: edgeSide(g, hex, barrier.edge), revealed: Boolean(barrier.revealed) }))
+		.filter((barrier) => barrier.direction)
+		.sort((a, b) => order.indexOf(a.direction) - order.indexOf(b.direction));
 }
 
 /**

@@ -8,6 +8,7 @@ import {
 	forgetTold,
 	normaliseShared,
 	normaliseSharedRecord,
+	recordBarrierMet,
 	recordTold,
 	setPartyNote
 } from "../rules/hex-shared.js";
@@ -58,23 +59,28 @@ const queueSharedWrite = serialWrites();
 const flagPath = (...parts) => `flags.${SYSTEM_ID}.${HEX_SHARED_FLAG}.${parts.join(".")}`;
 
 /**
- * Change what's held for one hex, writing that hex's own path whole, so a note
- * rubbed out really goes and a change to another hex isn't written over. GMs only.
+ * Change what's held for a hex, or several, in one write, writing each hex's
+ * own path whole, so a note rubbed out really goes and a change to another
+ * hex isn't written over. GMs only.
  * @param {Scene} scene
- * @param {{col: number, row: number}} hex
+ * @param {{col: number, row: number}|{col: number, row: number}[]} hexes The hexes the edit changes.
  * @param {(shared: object) => object} edit
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export function editHexShared(scene, hex, edit) {
+export function editHexShared(scene, hexes, edit) {
 	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
 	return queueSharedWrite(async () => {
 		const shared = getHexShared(scene);
 		const next = edit(shared);
 		if (next === shared) return false;
-		const key = hexKey(hex);
-		const record = next.hexes[key] ?? null;
-		const [path, value] = record ? replacementEntry(flagPath("hexes", key), record) : deletionEntry(flagPath("hexes", key));
-		await scene.update({ [flagPath("version")]: HEX_SHARED_VERSION, [path]: value });
+		const update = { [flagPath("version")]: HEX_SHARED_VERSION };
+		for (const hex of [hexes].flat()) {
+			const key = hexKey(hex);
+			const record = next.hexes[key] ?? null;
+			const [path, value] = record ? replacementEntry(flagPath("hexes", key), record) : deletionEntry(flagPath("hexes", key));
+			update[path] = value;
+		}
+		await scene.update(update);
 		return true;
 	});
 }
@@ -93,6 +99,23 @@ export const recordToldHex = (scene, hex, { note, messageId = "" }) => editHexSh
 	at: Date.now(),
 	messageId
 }));
+
+/**
+ * Keep the hidden Barriers the Company found by running into them (p18), each
+ * in the hex it was met from, in one write.
+ * @param {Scene} scene
+ * @param {{hex: {col: number, row: number}, edges: string[]}[]} met Where they stood, and the Barriers met from there.
+ * @param {string} byName Who found them.
+ * @returns {Promise<boolean>}
+ */
+export function recordBarriersMet(scene, met, byName) {
+	const when = getCalendar();
+	const at = Date.now();
+	return editHexShared(scene, met.map(({ hex }) => hex), (shared) => met.reduce(
+		(kept, { hex, edges }) => edges.reduce((next, edge) => recordBarrierMet(next, hex, { edge, byName, when, at }), kept),
+		shared
+	));
+}
 
 /** Strike one telling out of a hex. @returns {Promise<boolean>} */
 export const forgetHexTold = (scene, hex, id) => editHexShared(scene, hex, (shared) => forgetTold(shared, hex, id));
@@ -124,7 +147,7 @@ export function hexOpenable(scene, hex) {
  * @param {User} user Who wrote it.
  * @returns {Promise<boolean>}
  */
-const keepPartyNote = (scene, hex, text, user) => editHexShared(scene, hex, (shared) => setPartyNote(shared, hex, {
+export const keepPartyNote = (scene, hex, text, user) => editHexShared(scene, hex, (shared) => setPartyNote(shared, hex, {
 	text,
 	by: user.id,
 	byName: user.name,

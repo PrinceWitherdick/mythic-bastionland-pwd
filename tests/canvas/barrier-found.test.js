@@ -33,9 +33,12 @@ vi.mock("../../module/actions/time.js", () => ({
 	})
 }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ phase: "morning" }) }));
+// Keeping the Barrier in the players' record of the hex is hex-shared.js's to test.
+vi.mock("../../module/actions/hex-shared.js", () => ({ recordBarriersMet: vi.fn(async () => true) }));
 
 const { offerWastedPhase, onTurnedBack, reportTurnedBack } = await import("../../module/canvas/barrier-found.js");
 const { advancePhase } = await import("../../module/actions/time.js");
+const { recordBarriersMet } = await import("../../module/actions/hex-shared.js");
 
 const scene = { id: "realm1" };
 const from = { col: 1, row: 1 };
@@ -49,6 +52,7 @@ beforeEach(() => {
 	answer = null;
 	asked = [];
 	vi.mocked(advancePhase).mockClear();
+	vi.mocked(recordBarriersMet).mockClear();
 	emit = vi.fn();
 	info = vi.fn();
 	globalThis.ui = { notifications: { info } };
@@ -78,6 +82,25 @@ describe("a player's Company running into a hidden Barrier", () => {
 		expect(info).toHaveBeenCalledWith("bastionland.realm.movement.found(Alys,bastionland.realm.hex(1,1),bastionland.realm.hex(2,1))");
 		expect(edits).toHaveLength(1);
 		expect(edits[0].barriers.find((barrier) => barrier.edge === hidden).revealed).toBe(true);
+	});
+
+	it("keeps the Barrier in the hex the Token was turned back into, under who met it", async () => {
+		game.user.isGM = true;
+		await onTurnedBack(turned([hidden], { from: to }));
+		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: to, edges: [hidden] }], "Alys");
+	});
+
+	it("sends the hex the Token stood in with the message", () => {
+		reportTurnedBack(scene, { edges: [hidden], from });
+		expect(emit).toHaveBeenCalledWith(`system.${SYSTEM_ID}`, turned([hidden], { from }));
+	});
+
+	it("keeps nothing for a Barrier already known, nor on a GM who doesn't write", async () => {
+		game.user.isGM = true;
+		await onTurnedBack(turned([shown], { from }));
+		game.users.activeGM = { isSelf: false };
+		await onTurnedBack(turned([hidden], { from }));
+		expect(recordBarriersMet).not.toHaveBeenCalled();
 	});
 
 	it("leaves the writing to the active GM", async () => {
@@ -116,6 +139,8 @@ describe("a Company turned back by a Barrier", () => {
 		await onTurnedBack(turned([hidden], { company: { from, to } }));
 		expect(edits).toHaveLength(1);
 		expect(asked).toHaveLength(1);
+		// With no hex of its own in the message, the Company's is used.
+		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], "Alys");
 	});
 
 	it("keeps the Phase when the window is closed", async () => {

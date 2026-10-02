@@ -942,6 +942,10 @@
         "unknown": "when is unknown",
         "never": "Not visited yet"
       },
+      "met": {
+        "when": "{direction} Barrier: {name} was turned back by it here, in {when}.",
+        "plain": "{direction} Barrier: {name} was turned back by it here."
+      },
       "told": {
         "heading": "What the Referee Told You",
         "when": "told in {when}",
@@ -1722,6 +1726,24 @@
             "open": "Open the Lay of the Land"
           }
         }
+      }
+    },
+    "hexJournal": {
+      "folder": "{realm}: Hexes",
+      "pages": {
+        "rolled": "Rolled",
+        "known": "What the Company Knows",
+        "notes": "Notes"
+      },
+      "rolls": "Rolled Here",
+      "nothingKept": "Nothing is kept for this hex any more.",
+      "met": "Barriers Met",
+      "open": "Journal",
+      "openHint": "Open this hex’s Journal entry: what was rolled here, what the Company knows, and your own notes.",
+      "none": "Nothing has been rolled or written for this hex yet, so it has no Journal entry.",
+      "setting": {
+        "name": "Journal entries for hexes",
+        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Its Rolled page is for GMs. Players can read its What the Company Knows page once they could open the hex in their Places. Its Notes page is yours and is never written over."
       }
     },
     "spark": {
@@ -3224,6 +3246,7 @@
         "myth": "Myth {number}",
         "hiddenMyth": "Myth {number} (hidden)",
         "hidden": "{name} (hidden)",
+        "barrier": "Barrier: {direction}",
         "coordinates": "({col}, {row})",
         "settings": {
           "coordinates": {

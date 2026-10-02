@@ -22,6 +22,9 @@ export const MAX_TOLD = 12;
 
 /** How long one telling, and the Company's note, may run. */
 export const MAX_TOLD_NOTE = 4000;
+
+/** A hex has six edges, so it meets six Barriers at most. */
+const MAX_MET = 6;
 export const MAX_PARTY_NOTE = 2000;
 
 /**
@@ -43,9 +46,18 @@ export const MAX_PARTY_NOTE = 2000;
  */
 
 /**
+ * @typedef {object} BarrierMet A hidden Barrier the Company ran into from this hex, which revealed it (p18).
+ * @property {string} edge      Its edge key.
+ * @property {string} byName    Who moved into it.
+ * @property {object|null} when The world's calendar then.
+ * @property {number} at
+ */
+
+/**
  * @typedef {object} SharedRecord
  * @property {Told[]} told    Oldest first.
  * @property {PartyNote} [party]
+ * @property {BarrierMet[]} [met] Oldest first, one for each edge.
  */
 
 /**
@@ -94,17 +106,29 @@ export function normalisePartyNote(raw) {
 
 /**
  * @param {unknown} raw
- * @returns {SharedRecord|null} Null for a hex with nothing told and no note.
+ * @returns {BarrierMet|null}
+ */
+function normaliseMet(raw) {
+	if (!raw || typeof raw !== "object") return null;
+	const edge = trimmedText(raw.edge);
+	if (!/^\d+,\d+\|\d+,\d+$/.test(edge)) return null;
+	return { edge, byName: trimmedText(raw.byName), when: normaliseWhen(raw.when), at: timeOf(raw.at) };
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {SharedRecord|null} Null for a hex with nothing told, no note and no Barrier met.
  */
 export function normaliseSharedRecord(raw) {
 	if (!raw || typeof raw !== "object") return null;
 	const told = (Array.isArray(raw.told) ? raw.told : []).map(normaliseTold).filter(Boolean).slice(-MAX_TOLD);
 	const party = normalisePartyNote(raw.party);
-	return worthKeeping({ told, ...(party ? { party } : {}) });
+	const met = (Array.isArray(raw.met) ? raw.met : []).map(normaliseMet).filter(Boolean).slice(-MAX_MET);
+	return worthKeeping({ told, ...(party ? { party } : {}), ...(met.length ? { met } : {}) });
 }
 
 /** @returns {SharedRecord|null} A record worth keeping, or null once it holds nothing. */
-const worthKeeping = (record) => (record.told.length || record.party ? record : null);
+const worthKeeping = (record) => (record.told.length || record.party || record.met?.length ? record : null);
 
 /**
  * A store from whatever the Scene flag holds, however old or bad.
@@ -164,6 +188,22 @@ export function recordTold(shared, hex, told) {
 		? [...here.told.slice(0, -1), { ...last, when: added.when, at: added.at, messageId: added.messageId || last.messageId }]
 		: [...here.told, added].slice(-MAX_TOLD);
 	return withRecord(shared, hex, { ...here, told: list });
+}
+
+/**
+ * Keep a Barrier the Company ran into from a hex. Meeting it again only moves
+ * the date on.
+ * @param {HexShared} shared
+ * @param {{col: number, row: number}} hex
+ * @param {Partial<BarrierMet>} met
+ * @returns {HexShared} Unchanged when the edge isn't one.
+ */
+export function recordBarrierMet(shared, hex, met) {
+	const added = normaliseMet(met);
+	if (!added) return shared;
+	const here = recordAt(shared, hex);
+	const list = [...(here.met ?? []).filter((entry) => entry.edge !== added.edge), added].slice(-MAX_MET);
+	return withRecord(shared, hex, { ...here, met: list });
 }
 
 /**

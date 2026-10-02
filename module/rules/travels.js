@@ -9,7 +9,7 @@
  */
 import { visitedNewestFirst, visitsAt } from "./journey.js";
 import { sharedAt } from "./hex-shared.js";
-import { hexSummary } from "./realm.js";
+import { barriersAround, edgeSide, hexSummary } from "./realm.js";
 import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
 
 /**
@@ -49,6 +49,9 @@ export function openableHex({ journey, shared, marks }, hex) {
  * @property {{type: string, name: string}|null} landmark
  * @property {{number: number}|null} myth
  * @property {{note: string}|null} sighted
+ * @property {string[]} barriers The ways out of it a revealed Barrier closes, clockwise.
+ * @property {{direction: string, byName: string, when: object|null}[]} met
+ *   The hidden Barriers the Company found by running into them from here, the latest first.
  * @property {{id: string, note: string, when: object|null}[]} told Newest first.
  * @property {{text: string, byName: string, when: object|null, at: number}|null} party
  * @property {boolean} here     Whether the Company stands there now.
@@ -76,6 +79,10 @@ export function playerHexView(sources, hex) {
 		landmark: seen.landmark ? { type: seen.landmark.type, name: seen.landmark.name } : null,
 		myth: seen.myth ? { number: seen.myth.number } : null,
 		sighted: mark ? { note: mark.note } : null,
+		barriers: barriersAround(realm, g, hex).map((barrier) => barrier.direction),
+		met: [...(record?.met ?? [])].reverse()
+			.map(({ edge, byName, when }) => ({ direction: edgeSide(g, hex, edge), byName, when }))
+			.filter((met) => met.direction),
 		// Kept oldest first; the players read the latest telling first.
 		told: [...(record?.told ?? [])].reverse().map(({ id, note, when }) => ({ id, note, when })),
 		party: record?.party ? { text: record.party.text, byName: record.party.byName, when: record.party.when, at: record.party.at } : null,
@@ -125,7 +132,8 @@ export function viewWords(view, t) {
 	const features = [
 		holding && (view.holding.seat ? t("realm.readout.seat", { name: holding }) : holding),
 		view.myth && t("realm.readout.myth", { number: view.myth.number }),
-		landmark
+		landmark,
+		...(view.barriers ?? []).map((direction) => t("realm.readout.barrier", { direction: t(`realm.directions.${direction}`) }))
 	].filter(Boolean);
 	const place = view.holding?.name || view.landmark?.name || "";
 	return {

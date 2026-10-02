@@ -81,6 +81,14 @@ Players keep their own record of the Realm. A dashed line marks every hex the Co
 
 Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
 
+Each hex the GM rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has three pages:
+
+- **Rolled**, for GMs only: everything kept for the hex
+- **What the Company Knows**, the same page the players' Places shows
+- **Notes**, which belongs to the GM and is never written over
+
+Players can open the entry once they could open the hex in their Places, and they see only the Company's page. The Lay of the Land and the GM Toolkit's hex cards have a **Journal** button that opens it. Turn the entries off with **Journal entries for hexes** in the settings. The entries carry the Spark Table words read from the GM's own book into the world's Journal, which stays in the world and never in this repository.
+
 The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm Appearance** offers other skins, colour sets and your own pictures.
 
 #### Sites

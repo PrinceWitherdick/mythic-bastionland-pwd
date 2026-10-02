@@ -1,22 +1,24 @@
-import { calendarLabel } from "../actions/calendar.js";
 import { takeExplorationAct } from "../actions/exploration.js";
 import {
 	forgetHexSpark,
 	getHexRecord,
 	rollHexSpark,
+	hexFeatureLines,
+	sparkWhen,
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
 import { getHexSharedRecord, partyNoteView, toldLabel } from "../actions/hex-shared.js";
+import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { rollHexPerson, rollUpHolding } from "../actions/people.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { cruiseFrom, hasRoad, setRoad } from "../actions/roads.js";
 import { wildernessRoll } from "../actions/wilderness.js";
-import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
-import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openSparkTables } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
@@ -26,12 +28,6 @@ import { renderWhenIdle } from "./ui.js";
 import { realmKnown } from "../actions/solo.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-/**
- * @param {{when?: object|null}} spark One kept in a hex.
- * @returns {string|null} When in the game it was rolled, as the hex's windows show it.
- */
-export const sparkWhen = (spark) => (spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null);
 
 /**
  * What one hex holds (p19). A Hex is a whole country in little, and what
@@ -61,7 +57,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,
-			cruise: HexLore.#onCruise
+			cruise: HexLore.#onCruise,
+			journal: HexLore.#onJournal
 		}
 	};
 
@@ -101,8 +98,11 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (!entry || !this.hex) return Object.assign(context, { missing: true });
 
 		const { realm } = entry;
+		// Played alone, only what the Company has found here.
+		const known = realmKnown(realm);
+		const g = sceneGeometry(scene);
 		const hex = this.hex;
-		const terrain = terrainAt(realm, sceneGeometry(scene), hex);
+		const terrain = terrainAt(realm, g, hex);
 		const record = getHexRecord(scene, hex);
 		const visits = getHexVisits(scene, hex);
 		const shared = getHexSharedRecord(scene, hex);
@@ -115,8 +115,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		return Object.assign(context, {
 			heading: t("realm.hex", hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
-			// Played alone, only what the Company has found here.
-			features: this.#featuresHere(realmKnown(realm), hex),
+			features: hexFeatureLines(scene, known, g, hex, this.#index),
 			// A Holding's Local Mood is rolled as the Company arrives (p18).
 			holding: Boolean(featureAt(realm, hex).holding),
 			// A proper road runs through it, which a Cruise can take (p18).
@@ -125,6 +124,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			visited: Boolean(visits),
 			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
 			note: record?.note ?? "",
+			// Anything kept here has a Journal entry, where the setting makes them.
+			journal: Boolean(record) && hexJournalsOn(),
 			// The players' own note, and how often they've been told of the hex, beside the GM's.
 			party: partyNoteView(shared?.party),
 			told: toldLabel(shared),
@@ -143,30 +144,6 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				}))
 				.filter(({ tables }) => tables.length)
 		});
-	}
-
-	/**
-	 * What the Realm already says stands in the hex, so the GM improvises around
-	 * it rather than over it.
-	 * @param {object} realm
-	 * @param {{col: number, row: number}} hex
-	 * @returns {string[]}
-	 */
-	#featuresHere(realm, hex) {
-		const { holding, myth, landmark } = featureAt(realm, hex);
-		const lines = [];
-		if (holding) lines.push(holding.name || t(`realm.holdings.${holding.style}`));
-		if (myth) {
-			const { name, page } = mythEntry(this.#index, myth);
-			const seen = t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT });
-			lines.push(`${t("realm.panel.reference", { name, page })} — ${seen}`);
-		}
-		if (landmark) {
-			const named = landmark.name || t(`realm.landmarks.${landmark.type}`);
-			const seer = landmark.seer && seerEntry(this.#index, landmark.seer);
-			lines.push(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named);
-		}
-		return lines;
 	}
 
 	/* -------------------------------------------- */
@@ -271,6 +248,11 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onMood() {
 		return rollRefereeTable("mood");
+	}
+
+	/** @this {HexLore} */
+	static #onJournal() {
+		return openHexJournal(this.scene, this.hex);
 	}
 
 	/** @this {HexLore} */

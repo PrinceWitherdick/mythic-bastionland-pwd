@@ -62,6 +62,7 @@ function allowRealmMove(token, movement) {
 		const hidden = new Set(entry.realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
 		reportTurnedBack(scene, {
 			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
+			from: problem.from,
 			company: movesAsCompany(token) ? { from: problem.from, to: problem.to } : null
 		});
 	}

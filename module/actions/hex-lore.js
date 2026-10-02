@@ -1,4 +1,4 @@
-import { loadArtIndex, sparkPageOf } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, seerEntry, sparkPageOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
@@ -12,18 +12,62 @@ import {
 	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
-import { hexSummary } from "../rules/realm.js";
+import { OMEN_COUNT, barriersAround, featureAt, hexSummary } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { getCalendar } from "./calendar.js";
+import { calendarLabel, getCalendar } from "./calendar.js";
 import { recordToldHex } from "./hex-shared.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
 
 /** The Scene flag holding what the GM has written about each hex of its Realm. */
 export const HEX_LORE_FLAG = "hexLore";
+
+/**
+ * @param {{when?: object|null}} spark One kept in a hex.
+ * @returns {string|null} When in the game it was rolled, as the hex's windows show it.
+ */
+export const sparkWhen = (spark) => (spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null);
+
+/**
+ * What the Realm says stands in a hex, for GMs: its Holding, Myth, Landmark
+ * and the Barriers on its sides, those the players haven't found marked so.
+ * @param {Scene} scene
+ * @param {object} realm The Realm as this GM may know it.
+ * @param {object} g The Realm's geometry.
+ * @param {{col: number, row: number}} hex
+ * @param {object|null} index The art index, for the Myth's and Seer's names.
+ * @param {{full?: boolean}} [options] Full also names a Seat and the Myth's number, and marks a Holding, Myth or Landmark the players haven't found.
+ * @returns {string[]}
+ */
+export function hexFeatureLines(scene, realm, g, hex, index, { full = false } = {}) {
+	const { holding, myth, landmark } = featureAt(realm, hex);
+	const hand = full ? (hexHiddenByHand(scene, hex) ?? {}) : {};
+	const hidden = (text, isHidden) => (full && isHidden ? t("realm.readout.hidden", { name: text }) : text);
+	const lines = [];
+	if (holding) {
+		const name = holding.name || t(`realm.holdings.${holding.style}`);
+		lines.push(hidden(full && holding.seat ? t("realm.readout.seat", { name }) : name, hand.holding || hand.seat));
+	}
+	if (myth) {
+		const { name, page } = mythEntry(index, myth);
+		const seen = t("realm.panel.omensSeen", { omen: myth.omen ?? 0, count: OMEN_COUNT });
+		const text = `${t("realm.panel.reference", { name, page })} — ${seen}`;
+		lines.push(hidden(full ? `${t("realm.readout.myth", { number: myth.number })}: ${text}` : text, !myth.revealed));
+	}
+	if (landmark) {
+		const named = landmark.name || t(`realm.landmarks.${landmark.type}`);
+		const seer = landmark.seer && seerEntry(index, landmark.seer);
+		lines.push(hidden(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named, !landmark.revealed));
+	}
+	for (const barrier of barriersAround(realm, g, hex, { showHidden: true })) {
+		const words = t("realm.readout.barrier", { direction: t(`realm.directions.${barrier.direction}`) });
+		lines.push(barrier.revealed ? words : t("realm.readout.hidden", { name: words }));
+	}
+	return lines;
+}
 
 /** Whether the Lay of the Land opens on a hex the Company has just reached. */
 const PROMPT_SETTING = "hexLorePrompt";
@@ -260,9 +304,10 @@ export async function throwForGms(formula) {
  * @param {{col: number, row: number}} options.hex
  * @param {string} [options.note] What's in the note box now, saved first: a click
  *   straight from typing lands before the box's own change is written.
+ * @param {boolean} [options.quiet] Tell without the "told" notification, for a caller telling many at once.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function tellPlayersAboutHex({ scene, hex, note }) {
+export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	if (typeof note === "string" && note.trim() !== (getHexRecord(scene, hex)?.note ?? "")) {
 		await writeHexNote(scene, hex, note);
@@ -292,7 +337,7 @@ export async function tellPlayersAboutHex({ scene, hex, note }) {
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't keep what the players were told of ${where}`, error);
 		}
-		ui.notifications.info(t("hexLore.told", { hex: where }));
+		if (!quiet) ui.notifications.info(t("hexLore.told", { hex: where }));
 	}
 	return message;
 }

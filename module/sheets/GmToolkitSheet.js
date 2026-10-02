@@ -4,8 +4,9 @@ import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "..
 import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
-import { forgetHexSpark, getHexLore, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
+import { forgetHexSpark, getHexLore, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
+import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { showHexOnMap } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
@@ -17,7 +18,7 @@ import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { openBookFlip } from "../apps/BookFlip.js";
-import { openHexLore, sparkWhen } from "../apps/HexLore.js";
+import { openHexLore } from "../apps/HexLore.js";
 import { openHexVisits } from "../apps/HexVisits.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
@@ -127,6 +128,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			resetCityQuest: () => resetCityQuest(),
 			showHex: GmToolkitSheet.#onShowHex,
 			hexLore: GmToolkitSheet.#onHexLore,
+			hexJournal: GmToolkitSheet.#onHexJournal,
 			rollHexSet: GmToolkitSheet.#onRollHexSet,
 			tellHex: GmToolkitSheet.#onTellHex,
 			forgetSpark: GmToolkitSheet.#onForgetSpark,
@@ -603,6 +605,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			visited: Boolean(visits),
 			visits: visited,
 			note: record?.note ?? "",
+			// Anything kept here has a Journal entry, where the setting makes them.
+			journal: Boolean(record) && hexJournalsOn(),
 			party: partyNoteView(shared?.party),
 			told: toldLabel(shared),
 			sparks,
@@ -1205,6 +1209,12 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	static #onHexLore(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		if (hex && this.scene) return openHexLore({ scene: this.scene, hex });
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onHexJournal(_event, target) {
+		const hex = GmToolkitSheet.#hexFrom(target);
+		if (hex && this.scene) return openHexJournal(this.scene, hex);
 	}
 
 	/** @this {GmToolkitSheet} */

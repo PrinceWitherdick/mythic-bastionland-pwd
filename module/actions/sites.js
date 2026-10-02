@@ -2,6 +2,7 @@ import { addDirectoryButton } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { emptySite, normaliseSite, siteChanges } from "../rules/sites.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { flaggedFolder } from "./folders.js";
 
 /** The flag a Site's Journal entry keeps the Site under. */
 export const SITE_FLAG = "site";
@@ -43,21 +44,7 @@ export const siteUpdate = (before, after) => Object.fromEntries(Object.entries(s
  * The Journal folder Sites are filed in, made the first time it's wanted.
  * @returns {Promise<Folder|null>} Null when it couldn't be made, so the Site goes at the top level instead.
  */
-async function sitesFolder() {
-	const existing = game.folders.find((folder) => folder.type === "JournalEntry" && folder.getFlag(SYSTEM_ID, FOLDER_FLAG));
-	if (existing) return existing;
-	try {
-		return await foundry.utils.getDocumentClass("Folder").create({
-			type: "JournalEntry",
-			name: t("sites.folder"),
-			color: FOLDER_COLOR,
-			flags: { [SYSTEM_ID]: { [FOLDER_FLAG]: true } }
-		});
-	} catch (error) {
-		console.warn(`${SYSTEM_ID} | Couldn't make the Sites folder`, error);
-		return null;
-	}
-}
+const sitesFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, true, { name: t("sites.folder"), color: FOLDER_COLOR });
 
 /**
  * Make a Journal entry for a new, empty Site and open it on the map. GMs only.

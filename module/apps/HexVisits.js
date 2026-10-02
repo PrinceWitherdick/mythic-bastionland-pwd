@@ -1,12 +1,11 @@
 import { calendarLabel } from "../actions/calendar.js";
-import { HEX_LORE_FLAG, forgetHexRecord, forgetHexSpark, getHexRecord, writeHexNote } from "../actions/hex-lore.js";
+import { HEX_LORE_FLAG, forgetHexRecord, forgetHexSpark, getHexRecord, sparkWhen, writeHexNote } from "../actions/hex-lore.js";
 import { forgetHexPartyNote, forgetHexShared, forgetHexTold, getHexSharedRecord, partyNoteView } from "../actions/hex-shared.js";
 import { JOURNEY_FLAG, forgetHexVisit, forgetHexVisits, getHexVisits } from "../actions/journey.js";
 import { t } from "../chat/cards.js";
 import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { sparkWhen } from "./HexLore.js";
 import { confirmDialog } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;

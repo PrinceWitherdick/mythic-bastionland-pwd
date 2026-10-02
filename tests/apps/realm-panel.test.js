@@ -24,7 +24,7 @@ describe("the Realm's Hex panel", () => {
 		expect(template).not.toContain("cycleBarrier");
 		expect(app).not.toContain("cycleBarrier");
 		// The one hex only reports them, so the edges that are clear are not listed.
-		expect(app).toMatch(/\.filter\(\(\{ state \}\) => state !== "none"\)/);
+		expect(app).toContain("barriersAround(known, g, hex, { showHidden: true })");
 	});
 
 	it("leaves the Company to the map and the Toolkit", () => {

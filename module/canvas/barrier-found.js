@@ -1,10 +1,11 @@
 import { getCalendar } from "../actions/calendar.js";
+import { recordBarriersMet } from "../actions/hex-shared.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { keptFromMe } from "../actions/solo.js";
 import { advancePhase } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { setBarrier } from "../rules/realm-edits.js";
-import { parseEdgeKey } from "../rules/realm-geometry.js";
+import { hexKey, parseEdgeKey, sameHex } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /** The system's socket channel, open since system.json asks for one. */
@@ -23,20 +24,21 @@ const TURNED_BACK = "turnedBack";
  * @param {Scene} scene
  * @param {object} turned
  * @param {string[]} turned.edges The hidden Barriers' edge keys.
+ * @param {{col: number, row: number}|null} [turned.from] The hex the Token was turned back into, where the Barrier is noted.
  * @param {{from: object, to: object}|null} [turned.company] Where the Company tried to go, when it was the Company.
  */
-export function reportTurnedBack(scene, { edges, company = null }) {
+export function reportTurnedBack(scene, { edges, from = null, company = null }) {
 	if (game.user.isGM) {
 		// Played alone, the Referee's own Company finds the Barrier as a player's would.
 		if (keptFromMe() && edges.length) {
-			foundBarriers(scene, edges, game.user.name, { company }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show the Barrier found`, error));
+			foundBarriers(scene, edges, game.user.name, { company, from }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show the Barrier found`, error));
 			return;
 		}
 		if (company) offerWastedPhase(scene, company);
 		return;
 	}
 	if (!edges.length && !company) return;
-	game.socket.emit(SOCKET, { action: TURNED_BACK, sceneId: scene.id, edges, userId: game.user.id, ...(company ? { company } : {}) });
+	game.socket.emit(SOCKET, { action: TURNED_BACK, sceneId: scene.id, edges, userId: game.user.id, ...(from ? { from } : {}), ...(company ? { company } : {}) });
 }
 
 /**
@@ -60,22 +62,23 @@ export async function onTurnedBack(message) {
 	const scene = game.scenes.get(message.sceneId);
 	if (!isRealmScene(scene)) return;
 	const name = game.users.get(message.userId)?.name ?? t("realm.movement.someone");
-	await foundBarriers(scene, message.edges, name, { company: message.company, write: Boolean(game.users.activeGM?.isSelf) });
+	await foundBarriers(scene, message.edges, name, { company: message.company, from: message.from, write: Boolean(game.users.activeGM?.isSelf) });
 }
 
 /**
- * Tell of each hidden Barrier found, reveal them, and offer the Phase a
- * Company's attempt wasted. Only Barriers still hidden on that Realm are taken,
+ * Tell of each hidden Barrier found, reveal them, note them in the hex they
+ * were met from, and offer the Phase a Company's attempt wasted. Only Barriers still hidden on that Realm are taken,
  * whatever the edges given say.
  * @param {Scene} scene
  * @param {unknown[]} edges
  * @param {string} name Who ran into them.
  * @param {object} [options]
  * @param {unknown} [options.company] Where the Company tried to go, when it was the Company.
+ * @param {unknown} [options.from] The hex the Token was turned back into.
  * @param {boolean} [options.write] Whether this client reveals them and offers the Phase.
  * @returns {Promise<void>}
  */
-async function foundBarriers(scene, edges, name, { company = null, write = true } = {}) {
+async function foundBarriers(scene, edges, name, { company = null, from = null, write = true } = {}) {
 	const hidden = new Set(getRealm(scene).realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
 	const found = edges.filter((edge) => hidden.has(edge));
 
@@ -86,6 +89,17 @@ async function foundBarriers(scene, edges, name, { company = null, write = true 
 	}
 	if (!write) return;
 	if (found.length) await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
+	// Each is kept in the players' record of the hex they stood in, which its Journal entry and their Places show.
+	const stood = isHex(from) ? from : isHex(company?.from) ? company.from : null;
+	const byHex = new Map();
+	for (const edge of found) {
+		const ends = parseEdgeKey(g, edge);
+		const hex = ends.find((end) => sameHex(end, stood)) ?? ends[0];
+		const key = hexKey(hex);
+		if (!byHex.has(key)) byHex.set(key, { hex, edges: [] });
+		byHex.get(key).edges.push(edge);
+	}
+	if (byHex.size) await recordBarriersMet(scene, [...byHex.values()], name);
 	if (isHex(company?.from) && isHex(company?.to)) await offerWastedPhase(scene, { from: company.from, to: company.to });
 }
 

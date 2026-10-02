@@ -43,13 +43,29 @@ export function travelsSources(scene) {
  * @param {{count: number, last: {when: object|null}}|null} visits
  * @returns {string} How often the Company has been there, and when last.
  */
-function visitsText(visits) {
+export function visitsText(visits) {
 	if (!visits) return t("travels.visits.never");
 	return t(visits.count === 1 ? "travels.visits.once" : "travels.visits.many", {
 		count: visits.count,
 		when: visits.last.when ? calendarLabel(visits.last.when) : t("travels.visits.unknown")
 	});
 }
+
+/**
+ * @param {{direction: string, byName: string, when: object|null}[]} met
+ * @returns {string[]} Each hidden Barrier the Company ran into from a hex, worded.
+ */
+export const barrierMetLines = (met) => (met ?? []).map(({ direction, byName, when }) => t(when ? "travels.met.when" : "travels.met.plain", {
+	direction: t(`realm.directions.${direction}`),
+	when: when ? calendarLabel(when) : "",
+	name: byName || t("travels.party.someone")
+}));
+
+/**
+ * @param {{note: string, when: object|null}[]} told
+ * @returns {{note: string, when: string|null}[]} What the players were told of a hex, each dated.
+ */
+export const toldLines = (told) => told.map(({ note, when }) => ({ note, when: when ? t("travels.told.when", { when: calendarLabel(when) }) : null }));
 
 /**
  * One hex of the list, worded.
@@ -143,10 +159,8 @@ export function travelsHexContext(scene, hex) {
 		visited: Boolean(view.visits),
 		here: view.here,
 		sighted: words.sighted,
-		told: view.told.map((told) => ({
-			note: told.note,
-			when: told.when ? t("travels.told.when", { when: calendarLabel(told.when) }) : null
-		})),
+		met: barrierMetLines(view.met),
+		told: toldLines(view.told),
 		party: view.party?.text ?? "",
 		partyBy: partyNoteBy(view.party),
 		openable: view.openable,

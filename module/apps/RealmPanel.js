@@ -14,6 +14,7 @@ import {
 	REALM_TOOL_ICONS,
 	TERRAIN,
 	barrierCount,
+	barriersAround,
 	featureAt,
 	realmSeats,
 	seatsInOrder,
@@ -23,7 +24,6 @@ import {
 import { realmTextures } from "../rules/realm-documents.js";
 import {
 	FEATURE_KINDS,
-	barrierState,
 	clearRiver,
 	editFeature,
 	paintTerrain,
@@ -33,7 +33,7 @@ import {
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
 import { rollFreeMyth } from "../rules/realm-myths.js";
-import { directionNames, edgeKey, hexKey, neighbour } from "../rules/realm-geometry.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { TERRAIN_MARKS, hidesTerrain } from "../rules/realm-map.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openHexLore } from "./HexLore.js";
@@ -365,11 +365,10 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			landmark,
 			// One line of the edges that are barred, rather than a chip per edge:
 			// they are laid with the brush on the map, so the panel only reports them.
-			barriers: directionNames(g).map((direction, index) => {
-				const other = neighbour(g, hex, index);
-				const state = other ? barrierState(known, edgeKey(hex, other)) : "none";
+			barriers: barriersAround(known, g, hex, { showHidden: true }).map(({ direction, revealed }) => {
+				const state = revealed ? "revealed" : "hidden";
 				return { label: t(`realm.directions.${direction}`), state, stateLabel: t(`realm.panel.barrier.${state}`) };
-			}).filter(({ state }) => state !== "none"),
+			}),
 			noBarriers: t("realm.panel.barrier.none"),
 			// So the GM can see at a glance which hexes they have already written up.
 			written: Boolean(getHexRecord(scene, hex)),

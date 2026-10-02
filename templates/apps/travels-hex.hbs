@@ -23,6 +23,7 @@
 	</div>
 
 	{{#if sighted}}<p class="bastionland-travels-hex__sighted"><i class="fa-solid fa-circle-question" inert></i> {{sighted}}</p>{{/if}}
+	{{#each met}}<p class="bastionland-travels-hex__sighted"><i class="fa-solid fa-road-barrier" inert></i> {{this}}</p>{{/each}}
 
 	<h3 class="bastionland-heading">{{localize "bastionland.travels.told.heading"}}</h3>
 	<ul class="bastionland-hex-lore__rolls bastionland-travels-hex__told">
