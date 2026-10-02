@@ -6,6 +6,7 @@ import { GOODS_PICTURES_STEP, pictureExistingGoods, registerGoodsPictures } from
 import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
 import { registerSightings } from "./module/actions/sighted.js";
+import { registerSolo } from "./module/actions/solo.js";
 import { registerSkyAndWeather } from "./module/actions/sky-weather.js";
 import { registerHomecoming } from "./module/actions/homecoming.js";
 import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
@@ -53,6 +54,7 @@ import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
+import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { openHexLore } from "./module/apps/HexLore.js";
@@ -318,6 +320,8 @@ Hooks.once("init", () => {
 	RealmLayer.listenForPaintAgain();
 	registerRealmHooks();
 	CONFIG.Token.objectClass = BastionlandToken;
+	// Solo play keeps the Realm's secrets off the Referee's map too.
+	registerSoloPlaceables();
 	registerTokenHeraldryHooks();
 	// Foundry's own Undo key reaches the Realm layer; Redo has no key of Foundry's.
 	game.keybindings.register(SYSTEM_ID, "redoRealm", {
@@ -374,6 +378,7 @@ Hooks.once("init", () => {
 	registerSkyAndWeather();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
+	registerSolo();
 	// A ruler back at their Holding from a long absence makes the Crisis Roll.
 	registerHomecoming();
 

@@ -1,5 +1,6 @@
 import { getCalendar } from "../actions/calendar.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { keptFromMe } from "../actions/solo.js";
 import { advancePhase } from "../actions/time.js";
 import { t } from "../chat/cards.js";
 import { setBarrier } from "../rules/realm-edits.js";
@@ -18,7 +19,7 @@ const TURNED_BACK = "turnedBack";
  * Barriers it ran into are drawn for everyone from then on, and a Company's
  * attempt offers the Phase it wasted. Socket messages don't come back to the
  * sender, so a GM's own client offers the Phase itself, and a GM's own move
- * leaves a hidden Barrier hidden.
+ * leaves a hidden Barrier hidden, save in solo play.
  * @param {Scene} scene
  * @param {object} turned
  * @param {string[]} turned.edges The hidden Barriers' edge keys.
@@ -26,6 +27,11 @@ const TURNED_BACK = "turnedBack";
  */
 export function reportTurnedBack(scene, { edges, company = null }) {
 	if (game.user.isGM) {
+		// Played alone, the Referee's own Company finds the Barrier as a player's would.
+		if (keptFromMe() && edges.length) {
+			foundBarriers(scene, edges, game.user.name, { company }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show the Barrier found`, error));
+			return;
+		}
 		if (company) offerWastedPhase(scene, company);
 		return;
 	}
@@ -53,18 +59,33 @@ export async function onTurnedBack(message) {
 	if (message?.action !== TURNED_BACK || !game.user.isGM || !Array.isArray(message.edges)) return;
 	const scene = game.scenes.get(message.sceneId);
 	if (!isRealmScene(scene)) return;
-	const hidden = new Set(getRealm(scene).realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
-	const found = message.edges.filter((edge) => hidden.has(edge));
-
 	const name = game.users.get(message.userId)?.name ?? t("realm.movement.someone");
+	await foundBarriers(scene, message.edges, name, { company: message.company, write: Boolean(game.users.activeGM?.isSelf) });
+}
+
+/**
+ * Tell of each hidden Barrier found, reveal them, and offer the Phase a
+ * Company's attempt wasted. Only Barriers still hidden on that Realm are taken,
+ * whatever the edges given say.
+ * @param {Scene} scene
+ * @param {unknown[]} edges
+ * @param {string} name Who ran into them.
+ * @param {object} [options]
+ * @param {unknown} [options.company] Where the Company tried to go, when it was the Company.
+ * @param {boolean} [options.write] Whether this client reveals them and offers the Phase.
+ * @returns {Promise<void>}
+ */
+async function foundBarriers(scene, edges, name, { company = null, write = true } = {}) {
+	const hidden = new Set(getRealm(scene).realm.barriers.filter((barrier) => !barrier.revealed).map((barrier) => barrier.edge));
+	const found = edges.filter((edge) => hidden.has(edge));
+
 	const g = sceneGeometry(scene);
 	for (const edge of found) {
 		const [from, to] = parseEdgeKey(g, edge);
 		ui.notifications.info(t("realm.movement.found", { name, from: hexName(from), to: hexName(to) }));
 	}
-	if (!game.users.activeGM?.isSelf) return;
+	if (!write) return;
 	if (found.length) await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
-	const { company } = message;
 	if (isHex(company?.from) && isHex(company?.to)) await offerWastedPhase(scene, { from: company.from, to: company.to });
 }
 

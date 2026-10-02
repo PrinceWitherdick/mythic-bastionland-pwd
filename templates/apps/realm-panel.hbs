@@ -60,13 +60,16 @@
 	<div class="form-group">
 		<label for="{{partId}}-kind">{{localize "bastionland.realm.panel.feature"}}</label>
 		<div class="form-fields">
-			<select id="{{partId}}-kind" name="kind">
+			<select id="{{partId}}-kind" name="kind" {{disabled solo}}>
 				{{#each kinds}}
 				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
 				{{/each}}
 			</select>
 		</div>
 	</div>
+	{{#if solo}}
+	<p class="bastionland-realm-panel__hint">{{localize "bastionland.solo.panelLocked"}}</p>
+	{{/if}}
 
 	{{#if holding}}
 	<fieldset class="bastionland-realm-panel__feature">
@@ -101,6 +104,7 @@
 
 	{{#if myth}}
 	<fieldset class="bastionland-realm-panel__feature">
+		{{#unless solo}}
 		<div class="form-group">
 			<label for="{{partId}}-number">{{localize "bastionland.realm.panel.number"}}</label>
 			<div class="form-fields">
@@ -120,16 +124,21 @@
 				<button type="button" data-action="chooseMyth" data-tooltip="{{localize 'bastionland.realm.panel.chooseMythTooltip'}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.realm.panel.chooseMyth"}}</button>
 			</div>
 		</div>
+		{{/unless}}
 		<p class="bastionland-realm-panel__hint">{{myth.reference}}</p>
 		<div class="bastionland-realm-panel__row">
 			<span>{{myth.omens}}</span>
+			{{#unless solo}}
 			<button type="button" data-action="omenStep" data-step="-1" aria-label="{{localize "bastionland.realm.panel.omenLess"}}"><i class="fa-solid fa-minus" inert></i></button>
 			<button type="button" data-action="omenStep" data-step="1" aria-label="{{localize "bastionland.realm.panel.omenMore"}}"><i class="fa-solid fa-plus" inert></i></button>
+			{{/unless}}
 		</div>
+		{{#unless solo}}
 		<button type="button" data-action="toggleReveal" aria-pressed="{{#if myth.revealed}}true{{else}}false{{/if}}">
 			<i class="fa-solid {{#if myth.revealed}}fa-eye{{else}}fa-eye-slash{{/if}}" inert></i>
 			{{#if myth.revealed}}{{localize "bastionland.realm.panel.revealed"}}{{else}}{{localize "bastionland.realm.panel.hidden"}}{{/if}}
 		</button>
+		{{/unless}}
 	</fieldset>
 	{{/if}}
 
@@ -164,10 +173,12 @@
 		<p class="bastionland-realm-panel__hint">{{landmark.reference}}</p>
 		{{/if}}
 		{{/if}}
+		{{#unless solo}}
 		<button type="button" data-action="toggleReveal" aria-pressed="{{#if landmark.revealed}}true{{else}}false{{/if}}">
 			<i class="fa-solid {{#if landmark.revealed}}fa-eye{{else}}fa-eye-slash{{/if}}" inert></i>
 			{{#if landmark.revealed}}{{localize "bastionland.realm.panel.revealed"}}{{else}}{{localize "bastionland.realm.panel.hidden"}}{{/if}}
 		</button>
+		{{/unless}}
 	</fieldset>
 	{{/if}}
 

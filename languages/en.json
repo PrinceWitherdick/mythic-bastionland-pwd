@@ -17,6 +17,23 @@
     }
   },
   "bastionland": {
+    "solo": {
+      "setting": {
+        "name": "Solo play",
+        "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
+      },
+      "welcome": {
+        "label": "Playing alone",
+        "hint": "The Realm's Myths, Landmarks and Barriers stay hidden from you too, and turn up as the Company travels. You can change this later in the Toolkit's Settings."
+      },
+      "unknownMyth": "A Myth not yet met",
+      "unknownMythHint": "Nothing is known of it until one of its Omens is met.",
+      "mythFound": "The Company has found the hex of Myth {number}.",
+      "newMythTitle": "Myth {number}",
+      "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
+      "somethingThere": "something",
+      "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away."
+    },
     "sheet": {
       "title": "Mythic Bastionland",
       "named": "They were named",

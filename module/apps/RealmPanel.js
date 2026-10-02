@@ -40,6 +40,7 @@ import { openHexLore } from "./HexLore.js";
 import { openMythChooser } from "./MythChooser.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
 import { renderWhenIdle } from "./ui.js";
+import { keptFromMe, realmKnown } from "../actions/solo.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -312,7 +313,11 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 
 		const hex = this.hex;
-		const here = featureAt(realm, hex);
+		// Played alone, the hex is shown as the Company knows it, and what stands in it isn't changed here,
+		// since a hex that looks empty may still hold what's to be found.
+		const solo = keptFromMe();
+		const known = realmKnown(realm);
+		const here = featureAt(known, hex);
 		const terrain = terrainAt(realm, g, hex);
 		const option = (value, label, selected) => ({ value, label, selected });
 
@@ -345,6 +350,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 		return Object.assign(context, {
 			hexMode: true,
+			solo,
 			heading: t("realm.hex", hex),
 			terrains: TERRAIN.map((key, index) => ({ value: index + 1, label: t(`realm.terrain.${key}`), active: index + 1 === terrain })),
 			kinds: ["none", ...FEATURE_KINDS].map((value) => option(value, t(`realm.panel.kinds.${value}`), value === kindHere(here))),
@@ -361,13 +367,13 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 			// they are laid with the brush on the map, so the panel only reports them.
 			barriers: directionNames(g).map((direction, index) => {
 				const other = neighbour(g, hex, index);
-				const state = other ? barrierState(realm, edgeKey(hex, other)) : "none";
+				const state = other ? barrierState(known, edgeKey(hex, other)) : "none";
 				return { label: t(`realm.directions.${direction}`), state, stateLabel: t(`realm.panel.barrier.${state}`) };
 			}).filter(({ state }) => state !== "none"),
 			noBarriers: t("realm.panel.barrier.none"),
 			// So the GM can see at a glance which hexes they have already written up.
 			written: Boolean(getHexRecord(scene, hex)),
-			problems: validateRealm(realm, g).filter((problem) => problem.key === hexKey(hex)).map((problem) => t(`realm.problems.${problem.reason}`))
+			problems: solo ? [] : validateRealm(realm, g).filter((problem) => problem.key === hexKey(hex)).map((problem) => t(`realm.problems.${problem.reason}`))
 		});
 	}
 

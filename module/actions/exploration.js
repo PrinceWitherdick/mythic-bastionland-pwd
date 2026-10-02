@@ -18,6 +18,7 @@ import { offerSightings } from "./sighted.js";
 import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
+import { keptFromMe } from "./solo.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -110,8 +111,9 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 		nothing: folklore.myths.length || folklore.landmarks.length ? null : t("explore.folklore.nothing"),
 		rumours: folklore.rumours ? t("explore.folklore.rumours") : null,
 		secrets: folklore.secrets ? t("explore.folklore.secrets") : null,
-		mark: ids.length ? { label: t("explore.mark"), ids: ids.join(",") } : null
+		mark: markButton(ids)
 	}, { rolls, mode: "gm" });
+	if (ids.length && keptFromMe()) await markOnPlayersMap(scene, ids);
 	return folklore;
 }
 
@@ -247,8 +249,9 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 			holding: step.holding ? t("explore.survey.someHolding") : null
 		})),
 		hint: fogged ? t("skyWeather.fog.vantage") : t(vantage ? "explore.survey.vantageHint" : "explore.survey.sweepHint"),
-		mark: ids.length ? { label: t("explore.mark"), ids: ids.join(",") } : null
+		mark: markButton(ids)
 	}, { mode: "gm" });
+	if (ids.length && keptFromMe()) await markOnPlayersMap(scene, ids);
 	if (survey.vantage) await offerSightings({ scene, realm, g, where });
 	return survey;
 }
@@ -283,6 +286,14 @@ async function rollExplorationSave(actor, virtue, what, rolled = null) {
 		hint: ({ passed }) => t(passed ? "explore.search.found" : "explore.search.obstacle")
 	}, { rolled });
 }
+
+/**
+ * A card's button for marking what it told of on the players' map. Played
+ * alone, the Referee is the one told, so it's marked at once instead and there's no button.
+ * @param {string[]} ids Tile and Drawing ids.
+ * @returns {{label: string, ids: string}|null}
+ */
+const markButton = (ids) => (ids.length && !keptFromMe() ? { label: t("explore.mark"), ids: ids.join(",") } : null);
 
 /**
  * Show the players what the Company was told or saw: the Myths, Landmarks and

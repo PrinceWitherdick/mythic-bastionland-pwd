@@ -37,6 +37,8 @@ import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireBareMapFields } from "../apps/bare-map-fields.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
+import { keptFromMe } from "./solo.js";
+
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
 
@@ -782,11 +784,14 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 			realm,
 			roll: () => rollRealmAgain(scene),
 			// A window of its own, like the Knight chooser, loaded only when one is asked for.
-			myths: async () => {
-				const { closeMythChooser, openMythChooser } = await import("../apps/MythChooser.js");
-				closeMyths = closeMythChooser;
-				openMythChooser({ scene });
-			}
+			// Played alone, which six the Realm holds is left to the dice, unseen.
+			myths: keptFromMe()
+				? null
+				: async () => {
+					const { closeMythChooser, openMythChooser } = await import("../apps/MythChooser.js");
+					closeMyths = closeMythChooser;
+					openMythChooser({ scene });
+				}
 		});
 		await closeMyths?.();
 	}
@@ -1002,6 +1007,8 @@ export function drawingCountLabel({ key, count, target, rivers = 0, disputed = f
  * @returns {Promise<ChatMessage|null>}
  */
 async function postRealmKey(scene) {
+	// Played alone, the Referee finds the Realm's Myths and Landmarks by travelling.
+	if (keptFromMe()) return null;
 	const entry = getRealm(scene);
 	if (!entry) return null;
 	const { realm } = entry;

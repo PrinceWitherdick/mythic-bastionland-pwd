@@ -12,6 +12,18 @@
 	{{/if}}
 
 	{{#each myths}}
+	{{#if unknown}}
+	{{!-- Played alone, a Myth no Omen of has been met is a row with no name, and nothing to open. --}}
+	<div class="bastionland-gm-toolkit__card bastionland-gm-toolkit__myth is-unknown" data-number="{{number}}">
+		<div class="bastionland-gm-toolkit__myth-head">
+			<span class="bastionland-gm-toolkit__name">{{number}}. {{name}}</span>
+			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
+				{{#each pips}}<i class="bastionland-gm-toolkit__pip"></i>{{/each}}
+			</span>
+			<span class="bastionland-gm-toolkit__verse">{{localize "bastionland.solo.unknownMythHint"}}</span>
+		</div>
+	</div>
+	{{else}}
 	{{!-- Folded, a Myth is one row that says where it has got to. Opening one folds the one open before. --}}
 	<details class="bastionland-gm-toolkit__card bastionland-gm-toolkit__myth{{#if resolved}} is-resolved{{/if}}" name="{{@root.mythGroup}}" data-number="{{number}}" data-fold="{{fold}}" data-myth-card {{#if open}}open{{/if}}>
 		<summary class="bastionland-gm-toolkit__myth-head">
@@ -21,14 +33,16 @@
 			{{/if}}
 			<span class="bastionland-gm-toolkit__name">{{number}}. {{name}}</span>
 			<span class="bastionland-gm-toolkit__pips" role="img" aria-label="{{seen}}" data-tooltip="{{seen}}">
-				{{#each omens}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}"></i>{{/each}}
+				{{#each pips}}<i class="bastionland-gm-toolkit__pip{{#if met}} is-met{{/if}}{{#if current}} is-current{{/if}}"></i>{{/each}}
 			</span>
 			{{!-- The verse under the Myth's name in the book, its two lines run into one. --}}
 			{{#if verse}}
 			<span class="bastionland-gm-toolkit__verse" data-tooltip="{{verse}}">{{verse}}</span>
 			{{/if}}
 			<span class="bastionland-gm-toolkit__chips">
+				{{#if hexKey}}
 				<button type="button" class="bastionland-gm-toolkit__chip bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
+				{{/if}}
 				{{#if hidden}}
 				<span class="bastionland-gm-toolkit__chip is-hidden">{{localize "bastionland.realm.panel.hidden"}}</span>
 				{{/if}}
@@ -118,11 +132,12 @@
 			</nav>
 		</div>
 	</details>
+	{{/if}}
 	{{else}}
 	<p class="bastionland-empty">{{localize "bastionland.myths.noMyths"}}</p>
 	{{/each}}
 
-	{{#if myths.length}}
+	{{#if choose}}
 	{{!-- Which six the Realm holds, chosen apart from play: rolled again, or picked from the book's table. --}}
 	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.gmToolkit.myths.choose'}}">
 		<button type="button" data-action="settleMyths" data-tooltip="{{localize 'bastionland.gmToolkit.myths.chooseTooltip'}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.gmToolkit.myths.choose"}}</button>

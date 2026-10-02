@@ -20,6 +20,7 @@ import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { keptFromMe } from "./solo.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
@@ -174,7 +175,12 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	const index = loadArtIndex();
 
 	const updates = [];
-	if (outcome.myth && !outcome.complete) updates.push({ _id: outcome.myth.id, [`flags.${SYSTEM_ID}.${REALM_FLAG}.omen`]: outcome.omen });
+	const myth = {};
+	if (outcome.myth && !outcome.complete) myth[`flags.${SYSTEM_ID}.${REALM_FLAG}.omen`] = outcome.omen;
+	// Played alone, a Company in a Myth's own hex has found it, however it came there.
+	if (outcome.result === "mythHex" && !outcome.myth.revealed && keptFromMe()) myth.hidden = false;
+	// One update for the Myth's Tile, which may both count an Omen and come into view.
+	if (Object.keys(myth).length) updates.push({ _id: outcome.myth.id, ...myth });
 	const revealLandmark = outcome.result === "landmark" && !outcome.landmark.revealed;
 	if (revealLandmark) updates.push({ _id: outcome.landmark.id, hidden: false });
 	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
@@ -241,7 +247,8 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		d6: outcome.d6,
 		result: t(`realm.wilderness.results.${outcome.result}`),
 		myth,
-		tied: outcome.tied ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
+		// Played alone, the tie would number Myths not yet met.
+		tied: outcome.tied && !keptFromMe() ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
 		landmark,
 		// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 		cityQuest: city ? t("cityQuest.wildernessHint") : null,

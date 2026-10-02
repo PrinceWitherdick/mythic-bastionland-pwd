@@ -442,6 +442,22 @@ export function hiddenByHand(tiles, g, hex) {
 }
 
 /**
+ * @param {object[]} tiles Tile documents or source data.
+ * @param {object} g
+ * @param {string[]} kinds Realm Tile kinds, such as "myth".
+ * @param {{col: number, row: number}[]} hexes
+ * @returns {object[]} The hidden Tiles of those kinds standing in those hexes.
+ */
+export function hiddenTilesIn(tiles, g, kinds, hexes) {
+	const keys = new Set(hexes.map(hexKey));
+	return tiles.filter((tile) => {
+		if (!tile.hidden || !kinds.includes(realmFlag(tile)?.kind)) return false;
+		const at = hexAt(g, tile);
+		return Boolean(at) && keys.has(hexKey(at));
+	});
+}
+
+/**
  * Read a Realm back from its Scene.
  * @param {object} snapshot
  * @param {object} [snapshot.flags] The Scene's flags.

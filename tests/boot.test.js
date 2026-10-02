@@ -56,7 +56,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, fontDefinitions: {}, queries: {} };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {} };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {
@@ -347,6 +347,28 @@ describe("system boot", () => {
 
 		expect(hooks.preMoveToken).toBeTypeOf("function");
 		expect(hooks.preMoveToken({ parent: { flags: {} } }, {})).toBe(true);
+	});
+
+	it("keeps a Realm's hidden Myths off the Referee's map only in solo play", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "soloPlay", expect.objectContaining({ scope: "world", config: true, type: Boolean, default: false }));
+		const Tile = CONFIG.Tile.objectClass;
+		const tile = (kind, hidden = true) => Object.assign(new Tile(), { document: { hidden, flags: { [SYSTEM_ID]: { realm: { kind } } } } });
+		const solo = (on) => game.settings.get.mockImplementation((_scope, key) => (key === "soloPlay" ? on : undefined));
+		const wasGM = game.user.isGM;
+		game.user.isGM = true;
+		try {
+			solo(false);
+			expect(tile("myth").isVisible).toBe(true);
+			solo(true);
+			expect(tile("myth").isVisible).toBe(false);
+			expect(tile("landmark").isVisible).toBe(false);
+			expect(tile("myth", false).isVisible).toBe(true);
+			// What the GM hid by hand is theirs to see.
+			expect(tile("holding").isVisible).toBe(true);
+		} finally {
+			game.user.isGM = wasGM;
+			game.settings.get.mockReset();
+		}
 	});
 
 	it("keeps the hex readout's column and row off until the GM turns them on for the table", () => {

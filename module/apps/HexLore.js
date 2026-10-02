@@ -22,6 +22,7 @@ import { openBookFlip } from "./BookFlip.js";
 import { openHexVisits } from "./HexVisits.js";
 import { openWildernessHex } from "./WildernessHex.js";
 import { renderWhenIdle } from "./ui.js";
+import { realmKnown } from "../actions/solo.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -112,7 +113,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		return Object.assign(context, {
 			heading: t("realm.hex", hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
-			features: this.#featuresHere(realm, hex),
+			// Played alone, only what the Company has found here.
+			features: this.#featuresHere(realmKnown(realm), hex),
 			// A Holding's Local Mood is rolled as the Company arrives (p18).
 			holding: Boolean(featureAt(realm, hex).holding),
 			// A proper road runs through it, which a Cruise can take (p18).

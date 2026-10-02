@@ -1,5 +1,6 @@
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { getSighted } from "../actions/sighted.js";
+import { realmKnown } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
 import { hexSummary } from "../rules/realm.js";
 import { SIGHTED_FLAG, hiddenThere, sightedAt } from "../rules/sighted.js";
@@ -190,7 +191,8 @@ export function updateHexReadout({ force = false } = {}) {
 	if (!force && shown === hexKey(hex)) return;
 	shown = hexKey(hex);
 	const handHidden = hexHiddenByHand(scene, hex);
-	const summary = hexSummary(entry.realm, g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
+	// In solo play the Referee reads it as the Company knows it.
+	const summary = hexSummary(realmKnown(entry.realm), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
 	// A mark stands only while something there is still hidden. Most hexes have none, so the flag is read whole only where one does.
 	const marked = Boolean(scene.flags?.[SYSTEM_ID]?.[SIGHTED_FLAG]?.[shown]);
 	const sighted = marked && hiddenThere(entry.realm, hex, () => handHidden) ? sightedAt(getSighted(scene), hex) : null;

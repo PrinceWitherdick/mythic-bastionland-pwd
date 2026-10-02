@@ -43,7 +43,7 @@
 		<ul class="bastionland-gm-toolkit__waiting">
 			{{#each resolved}}
 			<li data-number="{{number}}">
-				<span><strong>{{number}}. {{name}}</strong> · {{hex}}</span>
+				<span><strong>{{number}}. {{name}}</strong>{{#if hex}} · {{hex}}{{/if}}</span>
 				<button type="button" class="bastionland-button" data-action="newMyth" data-tooltip="{{localize 'bastionland.gmToolkit.myths.newMythTooltip'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.gmToolkit.myths.newMyth"}}</button>
 			</li>
 			{{/each}}

@@ -13,6 +13,7 @@ import { weatherIn } from "./referee-rolls.js";
 import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { companySituation } from "./wilderness.js";
+import { keptFromMe } from "./solo.js";
 
 /**
  * The end of a Phase of the day (Travel, p18), asked in one window: how the
@@ -76,6 +77,15 @@ function morningRules({ winter, dire }) {
 }
 
 /**
+ * Played alone, a Myth's hex the Company hasn't found yet reads as any other
+ * Wilderness: the roll then finds the Myth there.
+ * @param {string} calls From phaseEndCalls.
+ * @param {{myth?: {revealed?: boolean}|null}} situation
+ * @returns {string} The calls the window's line tells of.
+ */
+const soloCalls = (calls, situation) => (calls === "omen" && !situation.myth?.revealed && keptFromMe() ? "roll" : calls);
+
+/**
  * Ask how the Phase ended. Nothing is asked where no Realm shows the Company
  * and no Night is ending, since there is nothing to say.
  * @param {import("../rules/time.js").Calendar} ending The Phase ending.
@@ -115,7 +125,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 			spent: t("phaseEnd.spent", { phase }),
 			modes: keyChoices(PHASE_END_MODES, "phaseEnd.modes", { chosen: likely }),
 			wilderness: calls
-				? { line: wildernessLine(calls, atBarrier), offered: calls !== "none", checked: wildernessDue({ calls, mode: likely, atBarrier }) }
+				? { line: wildernessLine(soloCalls(calls, standing.situation), atBarrier), offered: calls !== "none", checked: wildernessDue({ calls, mode: likely, atBarrier }) }
 				: null,
 			morning: nightEnds
 				? {

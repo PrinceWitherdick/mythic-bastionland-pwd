@@ -1,12 +1,13 @@
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
-import { realmFlag } from "../rules/realm-documents.js";
-import { directionNames, hexAt, hexKey } from "../rules/realm-geometry.js";
+import { hiddenTilesIn } from "../rules/realm-documents.js";
+import { directionNames, hexKey } from "../rules/realm-geometry.js";
 import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
+import { keptFromMe } from "./solo.js";
 
 /**
  * Seen from afar (p183, p197, p199): the Referee marks on the players' map
@@ -60,7 +61,8 @@ function sightingLabel(g, { direction, hex, landmark, holding }) {
 	return t("seenFromAfar.row", {
 		direction: t(`realm.directions.${directionNames(g)[direction]}`),
 		hex: t("realm.readout.coordinates", hex),
-		what: t("realm.readout.hidden", { name: what })
+		// Played alone, the Referee makes out no more than the Company does.
+		what: keptFromMe() ? t("solo.somethingThere") : t("realm.readout.hidden", { name: what })
 	});
 }
 
@@ -128,17 +130,9 @@ export async function revealSighted(scene, hexes) {
 	const reached = hexes.filter((hex) => sightedAt(sighted, hex));
 	if (!reached.length) return [];
 
-	const g = sceneGeometry(scene);
-	const keys = new Set(reached.map(hexKey));
-	const updates = scene.tiles
-		.filter((tile) => {
-			if (!tile.hidden || !SIGHTED_KINDS.includes(realmFlag(tile)?.kind)) return false;
-			const at = hexAt(g, tile);
-			return Boolean(at) && keys.has(hexKey(at));
-		})
-		.map((tile) => ({ _id: tile.id, hidden: false }));
+	const updates = hiddenTilesIn(scene.tiles, sceneGeometry(scene), SIGHTED_KINDS, reached).map((tile) => ({ _id: tile.id, hidden: false }));
 	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
-	await writeSightings(scene, { drop: [...keys] });
+	await writeSightings(scene, { drop: [...new Set(reached.map(hexKey))] });
 	if (updates.length) ui.notifications.info(t("seenFromAfar.reached"));
 	return reached;
 }

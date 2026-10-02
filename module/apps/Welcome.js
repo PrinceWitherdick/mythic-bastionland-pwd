@@ -9,6 +9,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
 import { showWhereRealmsAreMade } from "./realm-tour.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
+import { SOLO_SETTING, isSolo } from "../actions/solo.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -146,6 +147,7 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 			path,
 			found: foundText(foundRulebook(), this.#busy),
 			busy: this.#busy,
+			solo: isSolo(),
 			company: {
 				count: company,
 				fewest: company <= COMPANY_MIN,
@@ -178,6 +180,12 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		input?.addEventListener("change", () => {
 			const [file] = input.files ?? [];
 			if (file) this.#bringIn(file);
+		});
+		// Played alone, the Realm keeps its secrets from the Referee too.
+		const solo = this.element.querySelector("input[name=soloPlay]");
+		solo?.addEventListener("change", () => {
+			game.settings.set(SYSTEM_ID, SOLO_SETTING, solo.checked)
+				.catch((error) => console.error(`${SYSTEM_ID} | Couldn't set solo play`, error));
 		});
 	}
 

@@ -43,6 +43,7 @@ import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry
 import { latestWilderness } from "../rules/hex-lore.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { placeTabRail, stampRailSide } from "./tab-rail.js";
 import { ViewableMixin } from "./viewable.js";
@@ -238,7 +239,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 		const scene = this.scene;
 		const entry = scene ? getRealm(scene) : null;
-		const realm = entry?.realm ?? null;
+		// Played alone, the Toolkit knows only what the Company has found.
+		const realm = realmKnown(entry?.realm ?? null);
 		return Object.assign(context, {
 			actor: this.actor,
 			system: this.actor.system,
@@ -315,13 +317,29 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		};
 		if (!data) return { noRealm: true, cityQuest };
 
-		const myths = data.realm.myths.map((myth) => this.#mythContext(myth, data, forCast));
+		const myths = data.realm.myths.map((myth) => (myth.unknown ? this.#unknownMythContext(myth) : this.#mythContext(myth, data, forCast)));
 		return {
 			myths,
+			// Played alone, which six the Realm holds is left to the dice.
+			choose: myths.length > 0 && !keptFromMe(),
 			// Opening one Myth folds the one open before, so the other five stay a row each.
 			mythGroup: `${this.id}-myths`,
 			missingText: Boolean(myths.length) && !this.#index?.myths?.length,
 			cityQuest
+		};
+	}
+
+	/**
+	 * A Myth solo play hasn't met an Omen of yet: a row that says so, and no more.
+	 * @param {object} myth From the Realm as the Company knows it.
+	 */
+	#unknownMythContext(myth) {
+		return {
+			number: myth.number,
+			unknown: true,
+			name: t("solo.unknownMyth"),
+			seen: t("realm.panel.omensSeen", { omen: 0, count: OMEN_COUNT }),
+			pips: Array.from({ length: OMEN_COUNT }, () => ({ met: false, current: false }))
 		};
 	}
 
@@ -336,14 +354,34 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const text = (number) => entry?.omens?.[number - 1] ?? null;
 		const kept = mythNoteFor(data.notes, myth);
 		const fold = `myth:${myth.number}`;
+		// Played alone, only the Omens met are read, and a Myth's hex only once the Company has found it.
+		const solo = keptFromMe();
+		const omens = Array.from({ length: OMEN_COUNT }, (_, index) => {
+			const number = index + 1;
+			const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
+			const written = text(number) ?? t("myths.omenNumber", { number });
+			const cut = number !== current && number !== next;
+			const mark = number === current ? t("gmToolkit.myths.unmarkOmen") : t("gmToolkit.myths.markOmen", { number });
+			return {
+				number,
+				parts: omenParts(written),
+				met: number <= myth.omen,
+				past: number < myth.omen,
+				current: number === current,
+				next: number === next,
+				label,
+				cut,
+				mark
+			};
+		});
 		return {
 			number: myth.number,
 			name,
 			reference: page ? t("realm.key.page", { page }) : null,
 			img: entry?.path ?? null,
-			hex: t("realm.hex", myth.hex),
-			hexKey: hexKey(myth.hex),
-			hidden: !myth.revealed,
+			hex: myth.hex ? t("realm.hex", myth.hex) : null,
+			hexKey: myth.hex ? hexKey(myth.hex) : null,
+			hidden: !myth.revealed && !solo,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 			// On one line under the name, so it reads with the card folded.
 			verse: this.#verse(entry, page)?.join(" / ") ?? null,
@@ -351,24 +389,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			// every other cut to a line, which its row reads out on hover instead.
 			// Clicking a row marks that Omen; clicking the one playing out takes
 			// it back, so what each does is said where the pointer is.
-			omens: Array.from({ length: OMEN_COUNT }, (_, index) => {
-				const number = index + 1;
-				const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
-				const written = text(number) ?? t("myths.omenNumber", { number });
-				const cut = number !== current && number !== next;
-				const mark = number === current ? t("gmToolkit.myths.unmarkOmen") : t("gmToolkit.myths.markOmen", { number });
-				return {
-					number,
-					parts: omenParts(written),
-					met: number <= myth.omen,
-					past: number < myth.omen,
-					current: number === current,
-					next: number === next,
-					label,
-					cut,
-					mark
-				};
-			}),
+			omens: solo ? omens.filter((omen) => omen.met) : omens,
+			pips: omens,
 			complete: myth.omen >= OMEN_COUNT,
 			resolved: kept.resolved,
 			note: kept.note,
@@ -677,7 +699,12 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				turn: this.#seasonTurn(record.turn)
 			},
 			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name })),
-			resolved: waiting.map((myth) => ({ number: myth.number, name: mythLookup(this.#index, myth).name, hex: t("realm.hex", myth.hex) })),
+			// Played alone, a Myth not yet met has no name to give, and one not yet found no hex.
+			resolved: waiting.map((myth) => ({
+				number: myth.number,
+				name: myth.unknown ? t("solo.unknownMyth") : mythLookup(this.#index, myth).name,
+				hex: myth.hex ? t("realm.hex", myth.hex) : null
+			})),
 			pastAges: ages.map(({ age, seasons }) => {
 				const past = seasons.filter((entry) => !entry.current).map((entry) => this.#pastSeason(entry));
 				const fold = `age-${age}`;
@@ -1119,6 +1146,19 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const rolled = { number: myth.number, d6: d6.total, d12: d12.total };
 		const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 		if (!written) return;
+		// Played alone, the new Myth is met as the others were: by its first Omen.
+		if (keptFromMe()) {
+			await postCard(null, "omen", {
+				title: t("solo.newMythTitle", { number: myth.number }),
+				tagline: null,
+				img: null,
+				omen: t("solo.newMythText"),
+				text: null,
+				hint: null
+			// The dice would say which Myth it is, so they're left off.
+			}, { mode: "gm" });
+			return;
+		}
 		const { name, page, entry } = mythLookup(this.#index, rolled);
 		await postCard(null, "omen", {
 			title: `${myth.number}. ${name}`,

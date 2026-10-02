@@ -504,6 +504,19 @@
 	background: rgb(255 255 255 / 0.12);
 }
 
+/* Played alone, a Myth no Omen of has been met: a row with nothing to open. */
+.bastionland-gm-toolkit__myth.is-unknown {
+	border-left-color: var(--bastionland-ink-soft);
+}
+
+.bastionland-gm-toolkit__myth.is-unknown > .bastionland-gm-toolkit__myth-head {
+	cursor: default;
+}
+
+.bastionland-gm-toolkit__myth.is-unknown > .bastionland-gm-toolkit__myth-head::after {
+	content: none;
+}
+
 /* The row: its picture, its name and the Omens met, then where it is, with
    the fold's arrow at the far right. */
 .bastionland-gm-toolkit__myth-head {
