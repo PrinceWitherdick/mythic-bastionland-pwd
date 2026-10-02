@@ -4,6 +4,7 @@ import { INK_HEX } from "../rules/colour.js";
 import { hexCentre, hexKey, hexVertices } from "../rules/realm-geometry.js";
 import { visitedMarkHexes } from "../rules/travels.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { refreshTravelsButtons } from "./travels-controls.js";
 
 /**
  * The hexes the Company has been to, pencilled round on the map: a thin dashed
@@ -38,8 +39,8 @@ export function registerVisitedMarksSetting() {
 		default: true,
 		onChange: () => {
 			drawVisitedMarks();
-			// The toggle among the Token tools follows a change made on a Settings page.
-			ui.controls?.render?.({ reset: true });
+			// The button beside the sidebar follows a change made on a Settings page.
+			refreshTravelsButtons();
 		}
 	});
 }

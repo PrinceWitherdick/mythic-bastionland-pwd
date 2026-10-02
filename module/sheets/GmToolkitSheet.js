@@ -7,6 +7,7 @@ import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { showHexOnMap } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
@@ -26,7 +27,7 @@ import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-contr
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
-import { reducesMotion, scrollBehavior } from "../client-settings.js";
+import { scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
 import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
@@ -41,7 +42,7 @@ import { completedMythId, crisisRollsDue, seasonLogView } from "../rules/season-
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
-import { hexCentre, hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -1183,9 +1184,9 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	}
 
 	/**
-	 * Show a hex on the map: view its Realm, pan there, mark it for this GM
-	 * alone, and open the Hex panel on it. A ping would show every player where
-	 * a hidden Myth lies, so none is sent.
+	 * Show a hex on the map: view its Realm, pan there, ping it and ring it in
+	 * green for this GM alone, and open the Hex panel on it. A shared ping would
+	 * show every player where a hidden Myth lies, so none is sent.
 	 * @this {GmToolkitSheet}
 	 */
 	static async #onShowHex(_event, target) {
@@ -1196,9 +1197,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			await scene.view();
 			if (canvas.scene?.id !== scene.id) return;
 		}
-		const point = hexCentre(sceneGeometry(scene), hex);
-		await canvas.animatePan({ ...point, duration: reducesMotion() ? 0 : 400 });
-		canvas.controls?.drawPing?.(point, { style: CONFIG.Canvas.pings?.types?.PULSE ?? "pulse", user: game.user });
+		await showHexOnMap(scene, hex);
 		openRealmPanel({ scene, hex });
 	}
 

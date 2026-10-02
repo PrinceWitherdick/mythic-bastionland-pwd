@@ -6035,14 +6035,20 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* Each place is one row: the whole of its words open it, its chips sit at the
-   right, and the crosshairs show it on the map. */
+   right, and the crosshairs show it on the map, kept at the far right of the
+   title's line, with its column and row, however the chips wrap. */
 .bastionland-travels__row {
+	position: relative;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.35rem;
 	padding: 0.15rem 0 0.15rem 0.4rem;
 	border-left: 3px solid var(--bastionland-rule);
+}
+
+.bastionland-travels__row:has(> .bastionland-icon) {
+	padding-right: 2.2rem;
 }
 
 .bastionland-page .bastionland-travels__open {
@@ -6099,7 +6105,9 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-travels__row > .bastionland-icon {
-	flex: 0 0 auto;
+	position: absolute;
+	top: 0;
+	right: 0;
 	width: 1.8rem;
 	height: 1.8rem;
 }
@@ -7152,4 +7160,39 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-family: var(--bastionland-font-body);
 	line-height: 1.35;
 	white-space: pre-line;
+}
+
+/* The Company's travels, beside the sidebar: Mark the Hexes Visited over
+   Places, a column of two of core's own `.ui-control` squares. Mounted by
+   module/canvas/travels-controls.js at the top of core's chat column,
+   #ui-right-column-1, which is as wide as the sidebar and sits one gap left of
+   it, so a right-aligned child lands against the sidebar and follows it when
+   it folds. Core's chat stack carries `order: 99`, so it stays below. */
+#bastionland-travels-buttons {
+	/* The chat column is a flex column: `none` keeps this its own height, and flex-end is its right edge. */
+	flex: none;
+	align-self: flex-end;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	/* #ui-right's 16px gap is a floor no margin can lower; pulling back 8px leaves
+	   the 8px the sidebar's own tab icons keep between each other. The chat
+	   column's top padding is the sidebar tabs' own 16px, so the first button
+	   lines up with the first tab. */
+	margin: 0 -8px 0 0;
+	pointer-events: none;
+}
+
+#bastionland-travels-buttons[hidden] {
+	display: none;
+}
+
+#bastionland-travels-buttons > .ui-control {
+	pointer-events: all;
+}
+
+/* A click leaves no ring; the keyboard keeps core's. */
+#bastionland-travels-buttons > .ui-control:focus:not(:focus-visible) {
+	outline: none;
+	box-shadow: none;
 }

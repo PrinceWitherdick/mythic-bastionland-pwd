@@ -5,6 +5,7 @@ import { INK_HEX, PAPER_HEX } from "../rules/colour.js";
 import { markedHexLettering } from "../rules/realm-map.js";
 import { hexCentre, hexVertices } from "../rules/realm-geometry.js";
 import { cancelMapClick, takeMapClick, takingMapClick } from "./map-click.js";
+import { traceHex } from "./trace-hex.js";
 
 /**
  * Asking the GM for a hex of the Realm on the map: the hex under the pointer
@@ -41,18 +42,15 @@ export function cancelHexPick() {
  */
 function drawMarks(g, hex, { wash, ring, word, label }) {
 	const { x, y } = hexCentre(g, hex);
-	const [first, ...rest] = hexVertices(g, hex);
 
 	wash.clear();
 	wash.beginFill(OCHRE_HEX, 1);
-	wash.drawPolygon([first, ...rest]);
+	wash.drawPolygon(hexVertices(g, hex));
 	wash.endFill();
 
 	ring.clear();
 	ring.lineStyle({ width: g.size / 14, color: OCHRE_HEX, alpha: 0.95, join: PIXI.LINE_JOIN.ROUND });
-	ring.moveTo(first.x, first.y);
-	for (const corner of rest) ring.lineTo(corner.x, corner.y);
-	ring.closePath();
+	traceHex(ring, g, hex);
 
 	word.text = label(hex);
 	word.position.set(x, y);

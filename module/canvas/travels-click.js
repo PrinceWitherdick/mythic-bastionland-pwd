@@ -3,6 +3,7 @@ import { hexOpenable } from "../actions/hex-shared.js";
 import { isDrawingRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openTravelsHex } from "../apps/TravelsHex.js";
 import { hexAt } from "../rules/realm-geometry.js";
+import { onBoard } from "./board.js";
 import { takingMapClick } from "./map-click.js";
 
 /**
@@ -11,12 +12,6 @@ import { takingMapClick } from "./map-click.js";
  * Token layer, so players can stay on the Token tools; a double-click on a
  * Token still opens its sheet, and every other layer keeps its own.
  */
-
-/**
- * @param {Event} event
- * @returns {boolean} Whether the event happened over the map rather than over a window or the sidebar.
- */
-const onBoard = (event) => event.target instanceof Element && event.target.id === "board";
 
 /**
  * @returns {boolean} Whether a Token, or anything the layer in hand has under the pointer, would take the double-click.

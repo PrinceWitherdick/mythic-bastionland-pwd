@@ -44,6 +44,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/journey.js", () => ({ getJourney: () => journey }));
+vi.mock("../../module/canvas/travels-controls.js", () => ({ refreshTravelsButtons: () => {} }));
 
 const { drawVisitedMarks, setVisitedMarksShown, visitedMarkDashes, visitedMarksShown } = await import("../../module/canvas/visited-marks.js");
 

@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
+import { ringShownHex } from "../canvas/shown-hex.js";
 import { hexCentre } from "../rules/realm-geometry.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { searchable } from "../rules/text.js";
@@ -158,7 +159,9 @@ export function travelsHexContext(scene, hex) {
 }
 
 /**
- * Show a hex on the map this user is looking at, with a ping only they see.
+ * Show a hex on the map this user is looking at, with a ping and a green
+ * ring round its borders that only they see. The ring stays until they click
+ * the map.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @returns {Promise<void>}
@@ -166,6 +169,7 @@ export function travelsHexContext(scene, hex) {
 export async function showHexOnMap(scene, hex) {
 	if (!scene || canvas?.scene?.id !== scene.id) return;
 	const point = hexCentre(sceneGeometry(scene), hex);
+	ringShownHex(scene, hex);
 	await canvas.animatePan({ ...point, duration: reducesMotion() ? 0 : 400 });
 	canvas.controls?.drawPing?.(point, { style: CONFIG.Canvas.pings?.types?.PULSE ?? "pulse", user: game.user });
 }

@@ -2,9 +2,10 @@ import { companyPicture, setCompanyHex } from "../actions/company.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import { INK_HEX } from "../rules/colour.js";
-import { hexCentre, hexVertices } from "../rules/realm-geometry.js";
+import { hexCentre } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { cancelMapClick, takeMapClick, takingMapClick } from "./map-click.js";
+import { traceHex } from "./trace-hex.js";
 
 /** Called as the Company is taken up and as it is put down, so the button that hands it over knows whether it is in hand. */
 export const COMPANY_PLACING_HOOK = `${SYSTEM_ID}.companyPlacing`;
@@ -28,10 +29,7 @@ function drawGhost(g, hex, { ring, ghost }) {
 	const { x, y } = hexCentre(g, hex);
 	ring.clear();
 	ring.lineStyle({ width: g.size / 24, color: INK_HEX, alpha: 0.8, join: PIXI.LINE_JOIN.ROUND });
-	const [first, ...rest] = hexVertices(g, hex);
-	ring.moveTo(first.x, first.y);
-	for (const corner of rest) ring.lineTo(corner.x, corner.y);
-	ring.closePath();
+	traceHex(ring, g, hex);
 	ghost.position.set(x, y);
 }
 

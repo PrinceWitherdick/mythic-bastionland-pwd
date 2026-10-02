@@ -36,7 +36,7 @@
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
 import { INK_HEX, PAPER_HEX as PAPER } from "../rules/colour.js";
-import { hexCentre, hexVertices } from "../rules/realm-geometry.js";
+import { hexCentre } from "../rules/realm-geometry.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { calibrationHexes, fitToMarks, mapRect, markAt, markedHexOutline, markedHexScale, sizeMapRect, slideMapRect, viewOfPicture } from "../rules/realm-map.js";
 import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
@@ -44,6 +44,8 @@ import { placeRealmPicture } from "../actions/realm-map.js";
 import { followMap, hotbarFloor, mapPanelScale, panelScreen } from "../apps/map-screen.js";
 import { phaseBannerFloor } from "../apps/PhaseBanner.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { onBoard } from "./board.js";
+import { traceHex } from "./trace-hex.js";
 
 /** The ink the picture's frame and the hex being pointed out are drawn in. */
 const RING = 0x8b1e1e;
@@ -201,10 +203,7 @@ function drawTarget() {
 	const { x, y } = hexCentre(g, hex);
 
 	lining.ring.lineStyle({ width: g.size / 20, color: RING, alpha: 0.9, join: PIXI.LINE_JOIN.ROUND });
-	const [first, ...rest] = hexVertices(g, hex);
-	lining.ring.moveTo(first.x, first.y);
-	for (const corner of rest) lining.ring.lineTo(corner.x, corner.y);
-	lining.ring.closePath();
+	traceHex(lining.ring, g, hex);
 
 	// A cross on the hex's own centre, which is the point the click stands for.
 	lining.ring.lineStyle({ width: g.size / 28, color: INK_HEX, alpha: 0.9 });
@@ -519,12 +518,6 @@ function pointOut(point) {
 	draw();
 	tell();
 }
-
-/**
- * @param {Event} event
- * @returns {boolean} Whether the event happened over the map rather than over a window or the sidebar.
- */
-const onBoard = (event) => event.target instanceof Element && event.target.id === "board";
 
 /**
  * @param {PointerEvent} event

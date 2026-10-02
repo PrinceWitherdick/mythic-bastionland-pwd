@@ -1,6 +1,7 @@
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { showHexOnMap, travelsListContext } from "../actions/travels.js";
 import { t } from "../chat/cards.js";
+import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { parseHexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openTravelsHex } from "./TravelsHex.js";
@@ -67,6 +68,12 @@ export function wireTravelsList(root, state, redraw) {
 		search.addEventListener("change", (event) => event.stopPropagation());
 	}
 	apply();
+	// The row under the pointer rings its hex on the map, as "Show on the map" does.
+	list.addEventListener("pointerover", (event) => {
+		const button = event.target.closest?.(".bastionland-travels__row")?.querySelector("[data-hex]");
+		const row = button && rowOf(button);
+		if (row) ringHoveredHex(row.scene, row.hex, button.closest(".bastionland-travels__row"));
+	});
 	list.querySelector(".bastionland-travels__realm")?.addEventListener("change", (event) => {
 		event.stopPropagation();
 		state.realm = event.target.value;

@@ -30,7 +30,7 @@ import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
 import { registerTravelsClick } from "./travels-click.js";
-import { registerTravelsControls } from "./travels-controls.js";
+import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
 
 /**
@@ -130,7 +130,6 @@ export function registerRealmHooks() {
 
 	// The hexes the Company has been to, marked on the map for whoever wants them shown.
 	registerVisitedMarksSetting();
-	registerTravelsControls();
 	// A double-click on a hex opens what the Company knows of it.
 	registerTravelsClick();
 
@@ -183,6 +182,8 @@ export function registerRealmHooks() {
 		attachHexReadout();
 		drawSightedMarks();
 		drawVisitedMarks();
+		// Their show-or-hide and the Places window, beside the sidebar.
+		refreshTravelsButtons();
 		showRealmRules();
 		// Where the Company got to while the GM was looking at another Scene.
 		offerWaitingArrival();
@@ -198,6 +199,7 @@ export function registerRealmHooks() {
 				closeTravelRules();
 				closeRealmDrawing();
 				closeCompanyButton();
+				refreshTravelsButtons();
 			}
 		}, 0);
 	});

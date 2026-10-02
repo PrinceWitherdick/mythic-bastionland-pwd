@@ -1,5 +1,6 @@
 import { sceneGeometry } from "../actions/realm.js";
 import { hexAt, sameHex } from "../rules/realm-geometry.js";
+import { watchBoard } from "./board.js";
 
 /**
  * The next click on a hex of the Realm, taken by one thing at a time: carrying
@@ -8,9 +9,6 @@ import { hexAt, sameHex } from "../rules/realm-geometry.js";
  * under it. A right click, Escape or the Realm going away gives up, and a
  * right drag still pans the map.
  */
-
-/** How far the pointer may travel between a right button going down and coming up and still count as a click, not a pan. */
-const CLICK_SLOP = 6;
 
 /**
  * @typedef {object} MapClick
@@ -23,7 +21,7 @@ const CLICK_SLOP = 6;
  * @property {(options: {quiet: boolean}) => void} onCancel `quiet` where nobody gave up, but the Realm went or something else took the click.
  * @property {() => void} [onEnd] Anything else to clear away.
  * @property {{col: number, row: number}|null} hex Where the pointer is now.
- * @property {{x: number, y: number}|null} rightDown Where a right button went down, to tell a click from a pan.
+ * @property {(() => void)|null} unwatch Stops watching the map's presses.
  * @property {number|null} tearDown The `canvasTearDown` hook watching for the Realm going away.
  */
 
@@ -61,12 +59,6 @@ function onPointerMove() {
 }
 
 /**
- * @param {Event} event
- * @returns {boolean} Whether the event happened over the map rather than over a window or the sidebar.
- */
-const onBoard = (event) => event.target instanceof Element && event.target.id === "board";
-
-/**
  * Stop taking the click and clear everything it put up.
  * @returns {MapClick|null} What was taking it.
  */
@@ -74,8 +66,7 @@ function end() {
 	const was = taking;
 	if (!was) return null;
 	canvas?.stage?.off("pointermove", onPointerMove);
-	window.removeEventListener("pointerdown", onPointerDown, true);
-	window.removeEventListener("pointerup", onPointerUp, true);
+	was.unwatch?.();
 	window.removeEventListener("keydown", onKeyDown, true);
 	if (was.tearDown !== null) Hooks.off("canvasTearDown", was.tearDown);
 	if (was.note) ui.notifications.remove(was.note);
@@ -100,33 +91,14 @@ export function cancelMapClick({ quiet = false } = {}) {
  * the same click.
  * @param {PointerEvent} event
  */
-function onPointerDown(event) {
-	if (!taking || !onBoard(event)) return;
-	// A right button is left to the canvas, so the map can still be dragged about.
-	if (event.button === 2) {
-		taking.rightDown = { x: event.clientX, y: event.clientY };
-		return;
-	}
-	if (event.button !== 0) return;
+function onPress(event) {
+	if (!taking || event.button !== 0) return;
 	const hex = hexAtPointer();
 	// Past the edge of the Realm there's no hex to take, and nothing to take the click for.
 	if (!hex) return;
 	event.preventDefault();
 	event.stopImmediatePropagation();
 	end().onPick(hex);
-}
-
-/**
- * A right click gives up; a right drag pans the map and keeps going.
- * @param {PointerEvent} event
- */
-function onPointerUp(event) {
-	if (!taking || event.button !== 2) return;
-	const down = taking.rightDown;
-	taking.rightDown = null;
-	if (!down || !onBoard(event)) return;
-	if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > CLICK_SLOP) return;
-	cancelMapClick();
 }
 
 /**
@@ -143,16 +115,16 @@ function onKeyDown(event) {
 /**
  * Take the next click on a hex of the Realm on the canvas, quietly giving up
  * whatever was taking it before.
- * @param {Omit<MapClick, "hex"|"rightDown"|"tearDown">} options
+ * @param {Omit<MapClick, "hex"|"unwatch"|"tearDown">} options
  */
 export function takeMapClick(options) {
 	cancelMapClick({ quiet: true });
 	options.marks.eventMode = "none";
-	taking = { ...options, hex: null, rightDown: null, tearDown: null };
+	taking = { ...options, hex: null, unwatch: null, tearDown: null };
 	taking.tearDown = Hooks.on("canvasTearDown", () => cancelMapClick({ quiet: true }));
 	canvas.stage.on("pointermove", onPointerMove);
-	window.addEventListener("pointerdown", onPointerDown, true);
-	window.addEventListener("pointerup", onPointerUp, true);
+	// A right click gives up; a right drag pans the map and keeps going.
+	taking.unwatch = watchBoard({ onPress, onRightClick: () => cancelMapClick() });
 	window.addEventListener("keydown", onKeyDown, true);
 	drawAt(hexAtPointer());
 }

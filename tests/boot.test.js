@@ -333,19 +333,8 @@ describe("system boot", () => {
 		expect(game.system.api.openPlaces).toBeTypeOf("function");
 		expect(window.addEventListener).toHaveBeenCalledWith("dblclick", expect.any(Function));
 
-		// Two tools among the Token tools, on a Realm alone.
-		const controls = () => ({ tokens: { tools: { select: { order: 1 }, ruler: { order: 3 } } } });
-		const elsewhere = controls();
-		canvas.scene = { flags: {} };
-		hooks.getSceneControlButtons(elsewhere);
-		expect(Object.keys(elsewhere.tokens.tools)).toEqual(["select", "ruler"]);
-
-		const onRealm = controls();
-		canvas.scene = { flags: { [SYSTEM_ID]: { realm: { size: 160, cols: 12, rows: 12 } } } };
-		hooks.getSceneControlButtons(onRealm);
-		expect(onRealm.tokens.tools.bastionlandVisitedMarks).toMatchObject({ toggle: true, order: 4 });
-		expect(onRealm.tokens.tools.bastionlandPlaces).toMatchObject({ button: true, order: 5 });
-		canvas.scene = null;
+		// Their buttons sit beside the sidebar now, not among the Token tools.
+		expect(hooks.getSceneControlButtons).toBeUndefined();
 	});
 
 	it("adds New Realm to the Scenes directory only for GMs, and checks Token moves on Realm Scenes", () => {
