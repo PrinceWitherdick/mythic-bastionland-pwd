@@ -1,8 +1,9 @@
 import { findCompanyToken, wentSomewhere } from "../actions/company.js";
-import { hexLorePromptMode } from "../actions/hex-lore.js";
+import { hexLorePromptMode, rollFirstArrival, rollsFirstArrivals } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
+import { SYSTEM_ID } from "../system-id.js";
 
 /**
  * Where a Company has just come to rest, waiting to be offered to the GM:
@@ -33,15 +34,21 @@ const GATHER = 250;
 /** Whether the arrivals so far are already waiting their turn to be offered. */
 let gathering = false;
 
+/** @returns {boolean} Whether this browser has anything to do when the Company arrives somewhere. */
+const watchesArrivals = () => game.user.isGM && (hexLorePromptMode() !== "never" || rollsFirstArrivals());
+
 /**
- * Open the Lay of the Land on the hexes just arrived in: everything the GM
- * knows about the place, and every way of finding out more, in one window
- * rather than a notice that says only that they've moved. The window is a help
- * offered, never a write: nothing is recorded here.
+ * Roll the land of each hex just arrived in that's never been rolled, then open
+ * the Lay of the Land on it: everything the GM knows about the place, and every
+ * way of finding out more, in one window rather than a notice that says only
+ * that they've moved. The window is a help offered, never a write; it draws the
+ * rolls again as they're kept.
  */
 function offerArrivals() {
 	const waiting = [...arrived.values()].flatMap((hexes) => [...hexes.values()]);
 	arrived.clear();
+	// Kept whether or not the GM is looking at that Realm, or asked for a window at all.
+	for (const { scene, hex } of waiting) rollFirstArrival({ scene, hex }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't roll the hex the Company reached`, error));
 	if (hexLorePromptMode() === "never") return;
 
 	let opened = false;
@@ -119,13 +126,14 @@ function atRest(movement) {
 /**
  * Notice a player's Token coming to rest in a hex of a Realm. Every client is
  * told about the move, and each GM's browser decides for itself what to do
- * about it, because the setting that decides is that browser's own.
+ * about it, because the window's setting is that browser's own. The roll is
+ * the active GM's alone.
  * @param {TokenDocument} token
  * @param {object} movement The movement from the `moveToken` hook.
  * @param {object} [operation] The update that moved it.
  */
 function noticeArrival(token, movement, operation) {
-	if (!game.user.isGM || hexLorePromptMode() === "never") return;
+	if (!watchesArrivals()) return;
 	const scene = token.parent;
 	if (!isRealmScene(scene)) return;
 	// With a Company Token on the map that Token alone is the Company. Without

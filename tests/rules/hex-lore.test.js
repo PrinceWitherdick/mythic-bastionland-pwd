@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
 	HEX_LORE_VERSION,
 	MAX_HEX_SPARKS,
+	arrivalSparkSet,
 	emptyLore,
 	forgetSpark,
 	latestWilderness,
 	loreAt,
 	normaliseHexLore,
+	normaliseRecord,
 	recordSpark,
+	rollsOnArrival,
 	setNote,
+	sparkFromRoll,
+	sparkKeepTarget,
 	takenEntries,
 	wildernessSparkSet
 } from "../../module/rules/hex-lore.js";
@@ -139,6 +144,34 @@ describe("loreAt", () => {
 
 });
 
+describe("arrivalSparkSet", () => {
+	const page = (count) => ({ tables: Array.from({ length: count }, (_unused, index) => ({ name: `Table ${index}` })) });
+
+	it("takes the land and the feature from a page read whole, leaving the weather to the day", () => {
+		expect(arrivalSparkSet(page(9)).map(({ index }) => index)).toEqual([0, 6]);
+		expect(arrivalSparkSet(page(9)).map(({ table }) => table.name)).toEqual(["Table 0", "Table 6"]);
+	});
+
+	it("rolls nothing unasked from a page read in part, or never read", () => {
+		for (const missing of [page(8), page(2), null, undefined, {}, { tables: [] }]) expect(arrivalSparkSet(missing)).toEqual([]);
+	});
+});
+
+describe("rollsOnArrival", () => {
+	it("rolls a Wilderness hex with nothing kept in it", () => {
+		expect(rollsOnArrival({ record: null, holding: null })).toBe(true);
+	});
+
+	it("leaves a hex the GM has written in or rolled for", () => {
+		expect(rollsOnArrival({ record: normaliseRecord({ note: "A ford" }), holding: null })).toBe(false);
+		expect(rollsOnArrival({ record: normaliseRecord({ sparks: [spark("a")] }), holding: null })).toBe(false);
+	});
+
+	it("leaves a Holding, which isn't Wilderness", () => {
+		expect(rollsOnArrival({ record: null, holding: { name: "Keep" } })).toBe(false);
+	});
+});
+
 describe("wildernessSparkSet", () => {
 	const page = (count) => ({ tables: Array.from({ length: count }, (_unused, index) => ({ name: `Table ${index}` })) });
 
@@ -208,5 +241,44 @@ describe("latestWilderness", () => {
 		const undated = { ...spark("undated", "Sky"), when: null };
 		expect(ids({ note: "", sparks: [at("dated", "Ground", 1), undated] })).toEqual(["dated"]);
 		expect(ids({ note: "", sparks: [undated] })).toEqual(["undated"]);
+	});
+});
+
+describe("sparkFromRoll", () => {
+	const page = { key: "nature", name: "Nature", page: 22 };
+	const table = { name: "Ground" };
+	const when = { age: 1, season: "spring", day: 3, phase: "morning" };
+
+	it("keeps a roll on one table the way a hex holds it", () => {
+		const results = [{ column: "A", roll: 4, entry: "Sunken" }, { column: "B", roll: 9, entry: "Thicket" }];
+		expect(sparkFromRoll({ page, table, results, id: "x", when })).toEqual(spark("x"));
+	});
+
+	it("leaves out a column that gave nothing", () => {
+		const results = [{ column: "A", roll: 4, entry: "Sunken" }, { column: "B", roll: 9, entry: null }];
+		expect(sparkFromRoll({ page, table, results, id: "x" })).toMatchObject({ rolls: [4], entries: ["Sunken"], prompt: "Sunken", when: null });
+	});
+
+	it("is nothing when no column gave anything", () => {
+		expect(sparkFromRoll({ page, table, results: [{ column: "A", roll: 4, entry: null }], id: "x" })).toBeNull();
+		expect(recordSpark(emptyLore(), hex(1, 1), sparkFromRoll({ page, table, results: [], id: "x" }))).toEqual(emptyLore());
+	});
+});
+
+describe("sparkKeepTarget", () => {
+	const lore = { scene: "realm", hex: hex(2, 3) };
+	const company = { scene: "realm", hex: hex(5, 5) };
+
+	it("keeps rolls in the hex the Lay of the Land is open on first", () => {
+		expect(sparkKeepTarget({ lore, company })).toBe(lore);
+	});
+
+	it("falls back to the Company's hex", () => {
+		expect(sparkKeepTarget({ lore: null, company })).toBe(company);
+	});
+
+	it("keeps nothing with neither", () => {
+		expect(sparkKeepTarget({})).toBeNull();
+		expect(sparkKeepTarget()).toBeNull();
 	});
 });

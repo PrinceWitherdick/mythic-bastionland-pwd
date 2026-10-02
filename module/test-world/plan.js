@@ -8,7 +8,7 @@
  */
 import { CHARGE_SCALE, tintCharge } from "../rules/heraldry-charges.js";
 import { FESS_POINT, SHIELD_HEIGHT, SHIELD_PATH, SHIELD_WIDTH, divisionOf, tinctureColor } from "../rules/heraldry.js";
-import { LAKE, terrainAt } from "../rules/realm.js";
+import { LAKE, featureAt, terrainAt } from "../rules/realm.js";
 import { edgeKey, hexDistance, hexKey, neighbours, sameHex } from "../rules/realm-geometry.js";
 
 export { armourKind, companionActorData, isSteed, propertyItems } from "../rules/property.js";
@@ -164,6 +164,17 @@ export function seasonRoad(realm, g, from, stops, { stopShort = false } = {}) {
 	const days = [];
 	for (let index = 0; index < steps.length; index += HEXES_PER_DAY) days.push(steps.slice(index, index + HEXES_PER_DAY));
 	return { days, end: here };
+}
+
+/**
+ * Whether a hex is open country: no Holding, Landmark or Myth stands in it.
+ * @param {import("../rules/realm.js").Realm} realm
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean}
+ */
+export function isWilderness(realm, hex) {
+	const { holding, landmark, myth } = featureAt(realm, hex);
+	return !holding && !landmark && !myth;
 }
 
 /**

@@ -180,6 +180,23 @@ export async function inputDialog({ title, icon, template, context, ok, drawings
 }
 
 /**
+ * A hotkey's second press: a window minimised is brought back, and one in
+ * front is closed.
+ * @param {foundry.applications.api.ApplicationV2|null} app
+ * @returns {boolean} Whether it did either, so the key needn't open the window.
+ */
+export function toggleShown(app) {
+	if (!app?.rendered) return false;
+	if (app.minimized) {
+		app.maximize();
+		return true;
+	}
+	if (ui.activeWindow !== app) return false;
+	app.close();
+	return true;
+}
+
+/**
  * @param {typeof foundry.applications.api.ApplicationV2} AppClass
  * @returns {() => foundry.applications.api.ApplicationV2} Opens the one window of
  *   that kind, bringing it forward if it's already open.

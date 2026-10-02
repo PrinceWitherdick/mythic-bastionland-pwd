@@ -8,7 +8,6 @@ import {
 	landmarkPrompt,
 	offCourseShown,
 	offCourseState,
-	promptSpread,
 	samePhase,
 	throwsOffCourse
 } from "../../module/rules/landmarks.js";
@@ -149,17 +148,5 @@ describe("landmarkPrompt", () => {
 		expect(landmarkPrompt(prompts, "hazard")).toBeNull();
 		expect(landmarkPrompt(prompts, "person")).toBeNull();
 		expect(landmarkPrompt(null, "dwelling")).toBeNull();
-	});
-});
-
-describe("promptSpread", () => {
-	const rolled = { d6: 2, d12: 7 };
-	it("takes a Sanctum's prompt from its Seer's spread and a Ruin's from the Myth it echoes", () => {
-		expect(promptSpread({ type: "sanctum", seer: { d6: 4, d12: 1 } }, rolled)).toEqual({ d6: 4, d12: 1 });
-		expect(promptSpread({ type: "ruin", echo: { d6: 6, d12: 12 } }, rolled)).toEqual({ d6: 6, d12: 12 });
-	});
-	it("takes the rolled spread for anything else", () => {
-		expect(promptSpread({ type: "dwelling", seer: null }, rolled)).toBe(rolled);
-		expect(promptSpread({ type: "sanctum", seer: null }, rolled)).toBe(rolled);
 	});
 });

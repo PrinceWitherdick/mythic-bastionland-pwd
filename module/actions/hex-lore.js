@@ -3,12 +3,15 @@ import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
 	HEX_PROMPT_MODES,
+	arrivalSparkSet,
 	forgetRecord,
 	forgetSpark,
 	normaliseHexLore,
 	normaliseRecord,
 	recordSpark,
+	rollsOnArrival,
 	setNote,
+	sparkFromRoll,
 	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
@@ -72,8 +75,20 @@ export function hexFeatureLines(scene, realm, g, hex, index, { full = false } = 
 /** Whether the Lay of the Land opens on a hex the Company has just reached. */
 const PROMPT_SETTING = "hexLorePrompt";
 
-/** Register what a hex the Company reaches opens for the GM. Called during init. */
+/** Whether a hex's land and one feature of it are rolled the first time the Company rests there. */
+const FIRST_ARRIVAL_SETTING = "hexLoreFirstArrival";
+
+/** Register what a hex the Company reaches opens for the GM, and what's rolled there. Called during init. */
 export function registerHexLoreSettings() {
+	game.settings.register(SYSTEM_ID, FIRST_ARRIVAL_SETTING, {
+		name: "bastionland.hexLore.settings.firstArrival.name",
+		hint: "bastionland.hexLore.settings.firstArrival.hint",
+		// The world's, not each browser's: it writes to the hex, and one GM rolls.
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true
+	});
 	game.settings.register(SYSTEM_ID, PROMPT_SETTING, {
 		name: "bastionland.hexLore.settings.prompt.name",
 		hint: "bastionland.hexLore.settings.prompt.hint",
@@ -156,6 +171,9 @@ export const forgetHexRecord = (scene, hex) => editHexLore(scene, hex, (lore) =>
 /** Keep rolls in a hex in one write, however many there are. @returns {Promise<boolean>} */
 export const keepHexSparkRecords = (scene, hex, sparks) => editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
 
+/** @returns {object|null} A roll on a table, ready to keep, dated now. */
+const sparkNow = ({ page, table, results }) => sparkFromRoll({ page, table, results, id: foundry.utils.randomID(), when: getCalendar() });
+
 /** @returns {Promise<object|null>} One page of Spark Tables the GM's own import read. */
 const sparkPage = async (key) => sparkPageOf(await loadArtIndex(), key);
 
@@ -172,19 +190,11 @@ async function keepSparks(scene, hex, made, rolls = []) {
 	const cards = [];
 	const sparks = [];
 	for (const { page, table, results } of made) {
+		const spark = sparkNow({ page, table, results });
+		if (!spark) continue;
+		sparks.push(spark);
 		const taken = results.filter((result) => result.entry);
-		if (!taken.length) continue;
-		const prompt = taken.map(({ entry }) => entry).join(" ");
-		sparks.push({
-			id: foundry.utils.randomID(),
-			page: page.key,
-			table: table.name,
-			rolls: taken.map((result) => result.roll),
-			entries: taken.map((result) => result.entry),
-			prompt,
-			when: getCalendar()
-		});
-		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt, results: taken });
+		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt: spark.prompt, results: taken });
 	}
 	if (sparks.length) await keepHexSparkRecords(scene, hex, sparks);
 	if (cards.length) await postCard(null, "hex-sparks", { hex: t("realm.hex", hex), sparks: cards }, { rolls, mode: "gm" });
@@ -212,20 +222,20 @@ async function rollInto(scene, hex, chosen) {
 }
 
 /**
- * Roll one Spark Table for a hex and keep it there. GMs only.
+ * Keep a roll already made on one Spark Table in a hex, with no card: the
+ * Spark Tables window posts its own. GMs only.
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
- * @param {string} options.page One of SPARK_PAGES' keys.
- * @param {number} options.index Where the table stands on that page.
- * @returns {Promise<object[]>}
+ * @param {object} options.page The page of Spark Tables, as the art index holds it.
+ * @param {object} options.table
+ * @param {{roll: number, entry: string|null}[]} options.results
+ * @returns {Promise<boolean>} Whether anything was kept.
  */
-export async function rollHexSpark({ scene, hex, page: key, index }) {
-	if (!game.user.isGM || !isRealmScene(scene)) return [];
-	const page = await sparkPage(key);
-	const table = page?.tables?.[index];
-	if (!table) return [];
-	return rollInto(scene, hex, [{ page, table }]);
+export async function keepTableRoll({ scene, hex, page, table, results }) {
+	if (!game.user.isGM || !isRealmScene(scene)) return false;
+	const spark = sparkNow({ page, table, results });
+	return spark ? keepHexSparkRecords(scene, hex, [spark]) : false;
 }
 
 /**
@@ -254,6 +264,39 @@ export async function rollHexSparkSet({ scene, hex }) {
 	const tables = await wildernessHexTables();
 	if (!tables) return [];
 	return rollInto(scene, hex, tables.set.map(({ table }) => ({ page: tables.page, table })));
+}
+
+/** Whether a missing Nature page has been mentioned yet, so the word is said once and not at every hex. */
+let warnedArrivalSet = false;
+
+/** @returns {boolean} Whether this browser rolls a hex the Company first rests in. */
+export const rollsFirstArrivals = () =>
+	Boolean(game.user.isGM && game.users?.activeGM?.isSelf && game.settings.get(SYSTEM_ID, FIRST_ARRIVAL_SETTING));
+
+/**
+ * Roll the land of a hex and one feature of it the first time the Company rests
+ * there, and keep them, so the GM has the blanks filled as the Company arrives
+ * (p19) and finds them unchanged when it comes back. Only the active GM rolls,
+ * and only a Wilderness hex with nothing kept in it yet.
+ * @param {object} options
+ * @param {Scene} options.scene
+ * @param {{col: number, row: number}} options.hex
+ * @returns {Promise<object[]>} What was rolled, or nothing.
+ */
+export async function rollFirstArrival({ scene, hex }) {
+	if (!rollsFirstArrivals() || !isRealmScene(scene)) return [];
+	const holding = featureAt(getRealm(scene).realm, hex).holding;
+	if (!rollsOnArrival({ record: getHexRecord(scene, hex), holding })) return [];
+	const page = await sparkPage(SPARK_PAGES[0].key);
+	const set = arrivalSparkSet(page);
+	if (!set.length) {
+		if (!warnedArrivalSet) warn("hexLore.setMissing");
+		warnedArrivalSet = true;
+		return [];
+	}
+	// Looked at again now the page is in, in case another arrival filled the hex meanwhile.
+	if (getHexRecord(scene, hex)) return [];
+	return rollInto(scene, hex, set.map(({ table }) => ({ page, table })));
 }
 
 /**

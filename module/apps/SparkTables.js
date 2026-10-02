@@ -1,13 +1,17 @@
-import { postPerson, rollPersonTables } from "../actions/people.js";
+import { companyTokenHex } from "../actions/company.js";
+import { keepTableRoll } from "../actions/hex-lore.js";
+import { keepHexPerson, postPerson, rollPersonTables } from "../actions/people.js";
+import { isRealmScene } from "../actions/realm.js";
 import { rollSpark } from "../actions/referee-rolls.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
+import { sparkKeepTarget } from "../rules/hex-lore.js";
 import { PEOPLE_PAGE } from "../rules/people.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { spinTable } from "./roll-spin.js";
-import { singletonOpener } from "./ui.js";
+import { toggleShown } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -36,6 +40,48 @@ export function wireAnimateBox(root) {
 	root.querySelector("[name=animate]")?.addEventListener("change", (event) => {
 		game.settings.set(SYSTEM_ID, ANIMATE_SETTING, event.currentTarget.checked);
 	});
+}
+
+/** The Lay of the Land's window, found by its id since it's the one that opens these tables. */
+const HEX_LORE_ID = "bastionland-hex-lore";
+
+/** @type {SparkTables|null} The window, once opened. */
+let window_ = null;
+
+/**
+ * Where a roll here is kept: the hex the Lay of the Land is open on, or else
+ * the one the Company stands in on the Realm being viewed.
+ * @returns {{scene: Scene, hex: {col: number, row: number}}|null}
+ */
+function keepTarget() {
+	const open = foundry.applications.instances.get(HEX_LORE_ID);
+	const loreScene = open?.rendered && open.hex ? game.scenes.get(open.sceneId) : null;
+	const lore = isRealmScene(loreScene) ? { scene: loreScene, hex: open.hex } : null;
+	const viewed = canvas?.scene ?? null;
+	const companyHex = isRealmScene(viewed) ? companyTokenHex(viewed) : null;
+	return sparkKeepTarget({ lore, company: companyHex ? { scene: viewed, hex: companyHex } : null });
+}
+
+/** @returns {{label: string, disabled: boolean}} What the Keep rolls box says now. */
+function keepWords() {
+	const target = keepTarget();
+	return target
+		? { label: t("spark.keepIn", { hex: t("realm.hex", target.hex) }), disabled: false }
+		: { label: t("spark.keepNone"), disabled: true };
+}
+
+/**
+ * Say again where rolls are kept, as the Lay of the Land opens on a hex, moves
+ * or closes. The box alone is touched: a redraw would cut a running highlight
+ * short and wipe the entries it marked.
+ */
+export function refreshSparkKeep() {
+	const box = window_?.rendered ? window_.element.querySelector("[name=keep]") : null;
+	if (!box) return;
+	const { label, disabled } = keepWords();
+	box.disabled = disabled;
+	const words = box.closest("label")?.querySelector(".bastionland-check__label");
+	if (words) words.textContent = label;
 }
 
 /**
@@ -74,6 +120,14 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** A roll's highlight is still running. */
 	#spinning = false;
 
+	/** Whether rolls made here are kept in a hex. Ticked each time the window opens. */
+	#keep = true;
+
+	/** @returns {{scene: Scene, hex: {col: number, row: number}}|null} Where a roll made now is kept, if anywhere. */
+	#keeping() {
+		return this.#keep ? keepTarget() : null;
+	}
+
 	/** @returns {object|null} The page on show, as the art index holds it. */
 	#shown() {
 		return this.index?.spark?.find((page) => page.key === this.#page) ?? null;
@@ -94,6 +148,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		return Object.assign(context, {
 			notice,
 			animate: animates(),
+			keep: { checked: this.#keep, ...keepWords() },
 			pages: SPARK_PAGES.map(({ key }) => ({
 				key,
 				label: imported.find((page) => page.key === key)?.name ?? t(`spark.pages.${key}`),
@@ -121,6 +176,15 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		wireAnimateBox(this.element);
+		this.element.querySelector("[name=keep]")?.addEventListener("change", (event) => {
+			this.#keep = event.currentTarget.checked;
+		});
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		this.#keep = true;
 	}
 
 	/* -------------------------------------------- */
@@ -163,9 +227,12 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			const spin = spinTable(this.element.querySelector(`table[data-table="${index}"]`), table.columns.map((_, column) => column), results, {
 				reduce: !animates() || reducesMotion()
 			});
-			await Promise.all([card, spin]);
+			const target = this.#keeping();
+			const kept = target ? keepTableRoll({ ...target, page: shown, table, results }) : null;
+			await Promise.all([card, spin, kept]);
 		} finally {
 			this.#spinning = false;
+			refreshSparkKeep();
 		}
 		// No redraw: the entries it landed on are marked already, and a redraw would cut their flash short.
 	}
@@ -201,12 +268,32 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 				results,
 				{ reduce }
 			));
-			await Promise.all([postPerson(person), ...spins]);
+			const target = this.#keeping();
+			const kept = target ? keepHexPerson(target.scene, target.hex, person) : null;
+			await Promise.all([postPerson(person), kept, ...spins]);
 		} finally {
 			this.#spinning = false;
+			// The Company may have moved on since the box last said where rolls go.
+			refreshSparkKeep();
 		}
 	}
 }
 
-/** Open the Spark Tables, bringing the window forward if it's already open. */
-export const openSparkTables = singletonOpener(SparkTables);
+/**
+ * Open the Spark Tables, bringing the window forward if it's already open.
+ * @returns {SparkTables}
+ */
+export function openSparkTables() {
+	window_ ??= new SparkTables();
+	window_.render({ force: true });
+	return window_;
+}
+
+/**
+ * The Spark Tables hotkey: open them, or close them when they're already in front.
+ * @returns {true} The key is taken, so the hotbar's own 6 doesn't run as well.
+ */
+export function toggleSparkTables() {
+	if (!toggleShown(window_)) openSparkTables();
+	return true;
+}

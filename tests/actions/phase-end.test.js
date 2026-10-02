@@ -377,7 +377,7 @@ describe("the day's sky and weather", () => {
 		await advancePhase();
 		expect(asked[0].context.sky).toBe(true);
 		const [card] = cardsOf("sky-weather");
-		expect(card[2].tables.map(({ name }) => name)).toEqual(["T0", "T6"]);
+		expect(card[2].tables.map(({ name }) => name)).toEqual(["T1", "T3"]);
 		expect(calendar.phase).toBe("morning");
 		// Solid Fog hides the way until the day is out.
 		expect(settings.get("fog")).toEqual({ when: { ...calendar } });

@@ -51,7 +51,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.realm)
 }));
 
-const { postPerson, rollHexPerson, rollPersonTables, rollUpHolding } = await import("../../module/actions/people.js");
+const { keepHexPerson, postPerson, rollHexPerson, rollPersonTables, rollUpHolding } = await import("../../module/actions/people.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 const { keepHexSparkRecords } = await import("../../module/actions/hex-lore.js");
 
@@ -136,6 +136,26 @@ describe("rolling a person in a hex", () => {
 	it("is the GM's alone", async () => {
 		game.user.isGM = false;
 		expect(await rollHexPerson({ scene, hex })).toBeNull();
+		expect(keepHexSparkRecords).not.toHaveBeenCalled();
+	});
+});
+
+describe("keeping a person rolled elsewhere in a hex", () => {
+	it("keeps them as the Lay of the Land does, with no card of its own", async () => {
+		thrown = personDice();
+		const person = await rollPersonTables();
+		expect(await keepHexPerson(scene, hex, person)).toBe(true);
+		const [spark] = loreAt(lore, hex).sparks;
+		expect(spark).toMatchObject({ page: "people", rolls: personDice(), when });
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("is the GM's alone, and only on a Realm", async () => {
+		thrown = personDice();
+		const person = await rollPersonTables();
+		expect(await keepHexPerson({ id: "plain" }, hex, person)).toBe(false);
+		game.user.isGM = false;
+		expect(await keepHexPerson(scene, hex, person)).toBe(false);
 		expect(keepHexSparkRecords).not.toHaveBeenCalled();
 	});
 });

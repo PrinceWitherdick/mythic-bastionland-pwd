@@ -138,6 +138,7 @@
 .bastionland-welcome-window .window-content,
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
+.bastionland-book-flip-window .window-content,
 .bastionland-hex-visits-window .window-content,
 .bastionland-travels-hex-window .window-content,
 .bastionland-travels-window .window-content,
@@ -3100,7 +3101,15 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	margin-top: 0.35rem;
 }
 
-/* The tick box on the left, Roll a Person holding its own width on the right. */
+/* The two tick boxes side by side, wrapping under each other in a narrow window. */
+.bastionland-spark__checks {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0 1rem;
+}
+
+/* The tick boxes on the left, Roll a Person holding its own width on the right. */
 .bastionland-spark__tools {
 	display: flex;
 	flex-wrap: wrap;
@@ -5713,6 +5722,23 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	letter-spacing: 0.04em;
 }
 
+/* The Landmark's name: its type as the label, the name's box, and the die that
+   fills it from a random page. */
+.bastionland-hex-lore__landmark {
+	margin: 0;
+}
+
+.bastionland-hex-lore__landmark > label {
+	flex: 0 0 auto;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-hex-lore__landmark > .form-fields {
+	flex: 1 1 auto;
+	align-items: center;
+}
+
 /* The note is a paragraph, not a field, so its label sits above it and the box
    takes the whole width instead of Foundry's label/field split. */
 .bastionland-hex-lore__note {
@@ -5766,25 +5792,46 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.35rem;
 }
 
-/* The Spark Table and its die read as one line: the select takes up the slack
-   and the Roll button holds its own width at the right rather than wrapping
-   underneath. */
-.bastionland-hex-lore__pick {
-	display: flex;
-	flex-wrap: nowrap;
-	align-items: center;
+/* The window's buttons sit in two even columns: every button in a row is the
+   same width and, when one label runs to two lines, its neighbour grows with it.
+   Icons and labels start at the left so they line up down each column. A button
+   left alone on the last row, or marked is-wide, takes the whole row. */
+.bastionland-hex-lore__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.35rem;
 }
 
-.bastionland-hex-lore__pick select {
-	flex: 1 1 auto;
-	min-width: 0;
+.bastionland-hex-lore__grid > button {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.45rem;
+	width: 100%;
+	height: auto;
+	min-height: 2.25rem;
+	margin: 0;
+	padding: 0.3rem 0.55rem;
+	line-height: 1.15;
+	white-space: normal;
+	text-align: left;
+	overflow-wrap: break-word;
 }
 
-.bastionland-hex-lore__pick button {
-	flex: 0 0 auto;
-	width: auto;
-	white-space: nowrap;
+.bastionland-hex-lore__grid > button > i {
+	flex: 0 0 1.1em;
+	width: 1.1em;
+	text-align: center;
+}
+
+.bastionland-hex-lore__grid > .is-wide,
+.bastionland-hex-lore__grid > :last-child:nth-child(odd) {
+	grid-column: 1 / -1;
+}
+
+/* Telling the players closes the window off, set apart from the fieldsets above. */
+.bastionland-hex-lore__footer {
+	margin-top: 0.15rem;
 }
 
 .bastionland-hex-lore__rolls {

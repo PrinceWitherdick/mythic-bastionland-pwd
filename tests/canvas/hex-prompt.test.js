@@ -8,6 +8,13 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 const openHexLore = vi.fn();
 vi.mock("../../module/apps/HexLore.js", () => ({ openHexLore: (...args) => openHexLore(...args) }));
 
+// Rolling the hex is the action's own test's business: here it's watched for being asked.
+const rollFirstArrival = vi.fn(async () => []);
+vi.mock("../../module/actions/hex-lore.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	rollFirstArrival: (...args) => rollFirstArrival(...args)
+}));
+
 const { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } = await import("../../module/canvas/hex-prompt.js");
 
 const g = realmGeometry();
@@ -40,6 +47,7 @@ const leg = (pending = []) => ({ method: "dragging", constrained: false, pending
 beforeEach(() => {
 	vi.useFakeTimers();
 	openHexLore.mockClear();
+	rollFirstArrival.mockClear();
 	globalThis.game = { user: { isGM: true }, settings: { get: () => "open" }, i18n: { localize: (key) => key, format: (key) => key } };
 	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
 	// The GM is looking at the Realm the Company walks across.
@@ -144,6 +152,27 @@ describe("the hex arrival prompt", () => {
 		game.settings.get = () => "never";
 		moveToken(tokenIn({ col: 7, row: 3 }), leg());
 		vi.advanceTimersByTime(GATHER);
+		expect(openHexLore).not.toHaveBeenCalled();
+	});
+
+	it("asks for the hex to be rolled where the Company rests, even with the window turned off", () => {
+		game.users = { activeGM: { isSelf: true } };
+		game.settings.get = (_scope, key) => (key === "hexLorePrompt" ? "never" : true);
+		moveToken(tokenIn({ col: 4, row: 3 }), leg([{ x: 1, y: 1 }]));
+		vi.advanceTimersByTime(GATHER);
+		expect(rollFirstArrival).not.toHaveBeenCalled();
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		expect(rollFirstArrival).toHaveBeenCalledWith({ scene, hex: { col: 4, row: 3 } });
+		expect(openHexLore).not.toHaveBeenCalled();
+	});
+
+	it("asks for the roll even over a Realm the GM isn't looking at", () => {
+		game.users = { activeGM: { isSelf: true } };
+		canvas.scene = { id: "elsewhere" };
+		moveToken(tokenIn({ col: 4, row: 3 }), leg());
+		vi.advanceTimersByTime(GATHER);
+		expect(rollFirstArrival).toHaveBeenCalledOnce();
 		expect(openHexLore).not.toHaveBeenCalled();
 	});
 });

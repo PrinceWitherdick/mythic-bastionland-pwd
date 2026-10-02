@@ -13,12 +13,13 @@ export const DAY_PAGE = SPARK_PAGES[0].key;
 
 /**
  * Where Sky and Weather stand on the Nature page, which prints its nine tables
- * three to a row: Sky first on the top row, Weather first on the bottom one.
- * No table name from the book ships with the system, so they're found by their
- * place, as the Lay of the Land finds its tables.
+ * three to a row and is read left to right along each row: Sky in the middle of
+ * the top row, Weather first on the middle one. No table name from the book
+ * ships with the system, so they're found by their place, as the Lay of the
+ * Land finds its tables.
  */
-export const SKY_POSITION = 0;
-export const WEATHER_POSITION = 6;
+export const SKY_POSITION = 1;
+export const WEATHER_POSITION = 3;
 
 /**
  * Solid Fog, as the dice land on it: Solid is the eighth entry of the Weather

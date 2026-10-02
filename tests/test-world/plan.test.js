@@ -11,6 +11,7 @@ import {
 	companionActorData,
 	heraldrySvg,
 	isSteed,
+	isWilderness,
 	pickPlaces,
 	propertyItems,
 	realmRoad,
@@ -193,6 +194,13 @@ describe("seasonRoad", () => {
 		expect(days.flat()).toHaveLength(3);
 		expect(hexDistance(g, end, to)).toBe(1);
 		expect(days.flat().some((step) => step.arrive)).toBe(false);
+	});
+});
+
+describe("isWilderness", () => {
+	it("is open country only where no Holding, Landmark or Myth stands", () => {
+		const realm = { holdings: [{ hex: { col: 1, row: 1 } }], landmarks: [{ hex: { col: 2, row: 1 } }], myths: [{ hex: { col: 3, row: 1 } }] };
+		expect([1, 2, 3, 4].map((col) => isWilderness(realm, { col, row: 1 }))).toEqual([false, false, false, true]);
 	});
 });
 

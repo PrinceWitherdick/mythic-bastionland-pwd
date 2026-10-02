@@ -4,12 +4,13 @@ import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
 import { mythRollTaken } from "../rules/gm-toolkit.js";
-import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, promptSpread, throwsOffCourse } from "../rules/landmarks.js";
+import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
 import { cameFrom } from "../rules/journey.js";
 import { featureAt } from "../rules/realm.js";
 import { editFeature } from "../rules/realm-edits.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { throwSpread } from "./book-flip.js";
 import { getCalendar } from "./calendar.js";
 import { companyTokenHex, setCompanyHex } from "./company.js";
 import { getJourney } from "./journey.js";
@@ -254,11 +255,26 @@ export async function echoRuin(scene, hex = null) {
 }
 
 /**
+ * Name a Landmark with the prompt a spread prints for its type.
+ * @param {Scene} scene The Realm.
+ * @param {{col: number, row: number}} hex Where the Landmark stands.
+ * @param {string} type The Landmark's type.
+ * @param {{d6: number, d12: number}} spread
+ * @param {object|null} index The art index.
+ * @returns {Promise<{name: string, myth: string, page: number}|null>} Null where the page wasn't read.
+ */
+async function nameFromSpread(scene, hex, type, spread, index) {
+	const { prompt, myth, page } = await spreadPrompt(index, spread, type);
+	if (!prompt) return null;
+	await renameLandmark(scene, hex, prompt);
+	return { name: prompt, myth, page };
+}
+
+/**
  * Give a Landmark met for the first time, and still without a name, the prompt
- * the book prints for its type along the foot of a spread (p14, p16): its
- * Seer's for a Sanctum, the Myth it echoes for a Ruin, and a spread rolled for
- * any other. The prompt becomes its name, kept on the map for the Referee to
- * change. A Ruin rolls the Myth it echoes here too. GMs only.
+ * the book prints for its type along the foot of a random spread (p14, p16).
+ * The prompt becomes its name, kept on the map for the Referee to change. The
+ * dice are rolled quietly: the Wilderness card tells what came of them. GMs only.
  * @param {Scene} scene The Realm.
  * @param {object} landmark As the Realm holds it.
  * @returns {Promise<{name: string, myth: string, page: number}|null>} Null where
@@ -266,17 +282,40 @@ export async function echoRuin(scene, hex = null) {
  */
 export async function nameLandmarkFromPrompt(scene, landmark) {
 	if (!game.user.isGM || !scene || !landmark || landmark.name) return null;
-	let echo = landmark.type === "ruin" ? landmark.echo ?? null : null;
-	if (landmark.type === "ruin" && !echo) ({ echo } = await rollRuinEcho(getRealm(scene).realm));
-	let rolled = null;
-	if (!(landmark.type === "sanctum" && landmark.seer) && landmark.type !== "ruin") {
-		const [d6, d12] = await Promise.all([new Roll("1d6").evaluate(), new Roll("1d12").evaluate()]);
-		rolled = { d6: d6.total, d12: d12.total };
-	}
-	const { prompt, myth, page } = await spreadPrompt(await loadArtIndex(), promptSpread({ ...landmark, echo }, rolled), landmark.type);
-	const changes = { ...(prompt ? { name: prompt } : {}), ...(echo && !landmark.echo ? { echo } : {}) };
-	if (Object.keys(changes).length) await editRealm(scene, (current, g) => editFeature(current, g, landmark.hex, changes));
-	return prompt ? { name: prompt, myth, page } : null;
+	const [d6, d12] = await Promise.all([new Roll("1d6").evaluate(), new Roll("1d12").evaluate()]);
+	return nameFromSpread(scene, landmark.hex, landmark.type, { d6: d6.total, d12: d12.total }, await loadArtIndex());
+}
+
+/**
+ * Flip to a random spread for another name for a Landmark: the prompt that
+ * spread prints for its type (p14, p179). The dice are thrown for the GMs only,
+ * as Flip the Book throws them. GMs only.
+ * @param {Scene} scene The Realm.
+ * @param {{col: number, row: number}} hex Where the Landmark stands.
+ * @returns {Promise<{name: string, myth: string, page: number}|null>} Null where
+ *   no Landmark stands there, or the page wasn't read.
+ */
+export async function rerollLandmarkName(scene, hex) {
+	if (!game.user.isGM || !isRealmScene(scene) || !hex) return null;
+	const landmark = featureAt(getRealm(scene).realm, hex).landmark;
+	if (!landmark) return null;
+	const [spread, index] = await Promise.all([throwSpread(), loadArtIndex()]);
+	const named = await nameFromSpread(scene, hex, landmark.type, spread, index);
+	if (!named) ui.notifications.warn(t("realm.landmarks.promptUnread"));
+	return named;
+}
+
+/**
+ * Give the Landmark in a hex a name of the Referee's own. A blank one leaves it
+ * called by its type, as the Hex panel's box does. GMs only.
+ * @param {Scene} scene The Realm.
+ * @param {{col: number, row: number}} hex
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
+export async function renameLandmark(scene, hex, name) {
+	if (!game.user.isGM || !isRealmScene(scene) || !hex) return;
+	await editRealm(scene, (current, g) => editFeature(current, g, hex, { name }));
 }
 
 /**

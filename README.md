@@ -53,7 +53,7 @@ Weapons, armour and gear sort themselves by die and by armour piece. Worn armour
 Every world gets one **GM Toolkit**, the Referee's own sheet. Press **C** to open it, or use the first slot on the hotbar.
 
 - **Myths and Omens:** each Myth of the Realm on one row, with Omens counted as they're met, its Cast ready to drop into the world, and its d6 table with a roll button. **Myth Resolved** awards the Glory and rolls the Myth that replaces it. The City Quest is kept here too.
-- **Places:** every hex the Company has visited and every place in the Realm, each with its visits, notes and Spark Table rolls, plus the Sites you've made. You can search them. **Flip the book** opens a random spread and the prompts along its foot (p19, p179): click the ones you'll use, then **Save to hex** and click a hex on the map to keep them there.
+- **Places:** every hex the Company has visited and every place in the Realm, each with its visits, notes and Spark Table rolls, plus the Sites you've made. You can search them. **Random Page Prompt** opens a random spread and the prompts along its foot (p19, p179): click the ones you'll use, then **Save to hex** and click a hex on the map to keep them there.
 - **Time:** the current Season, its events, the Crisis Rolls owed, Glory, and a log of past Seasons.
 - **Notes**, and the Referee's settings.
 
@@ -71,7 +71,7 @@ The Phase, Season and Age sit in a bar at the top of the screen. The GM's button
 
 When a new world's GM closes the Welcome window, a short Foundry Tour points them to the Scenes tab and New Realm. They can play it again from **Tour Management** in the Settings tab.
 
-Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there.
+Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there. The first time the Company rests in a Wilderness hex with nothing kept in it, its land and one feature are rolled on the Nature tables and kept, so it's the same place when they come back (the **Roll a new hex's land** setting turns this off).
 
 Players keep their own record of the Realm. A dashed line marks every hex the Company has been to, and anyone can hide the marks for themselves with the footprints among the Token tools or on the Settings page. Double-click a hex, or open **Places** from the Token tools, the players' hotbar or the Knight sheet's **Travels** page, to see what the Company knows of it:
 

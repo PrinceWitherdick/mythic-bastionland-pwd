@@ -2,7 +2,6 @@ import { takeExplorationAct } from "../actions/exploration.js";
 import {
 	forgetHexSpark,
 	getHexRecord,
-	rollHexSpark,
 	hexFeatureLines,
 	sparkWhen,
 	tellPlayersAboutHex,
@@ -11,16 +10,17 @@ import {
 import { getHexSharedRecord, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
+import { renameLandmark, rerollLandmarkName } from "../actions/landmarks.js";
 import { rollHexPerson, rollUpHolding } from "../actions/people.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { cruiseFrom, hasRoad, setRoad } from "../actions/roads.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { openSparkTables } from "./SparkTables.js";
+import { openSparkTables, refreshSparkKeep } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
 import { openHexVisits } from "./HexVisits.js";
 import { openWildernessHex } from "./WildernessHex.js";
@@ -30,8 +30,8 @@ import { realmKnown } from "../actions/solo.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * What one hex holds (p19). A Hex is a whole country in little, and what
- * fills it is the Referee's to improvise, so this is where they roll the Spark
+ * What one hex holds (p19). A Hex is broad and varied, and what fills it
+ * is the Referee's to improvise, so this is where they roll the Spark
  * Tables for it and write down what they made of it. Everything rolled stays
  * in the hex, so a Company coming back finds the hex they left.
  */
@@ -44,7 +44,6 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		window: { icon: "fa-solid fa-feather", resizable: true },
 		form: { handler: HexLore.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
-			rollTable: HexLore.#onRollTable,
 			rollSet: HexLore.#onRollSet,
 			forget: HexLore.#onForget,
 			tell: HexLore.#onTell,
@@ -52,12 +51,12 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			act: HexLore.#onAct,
 			browse: HexLore.#onBrowse,
 			flipBook: () => openBookFlip(),
+			rerollLandmark: HexLore.#onRerollLandmark,
 			rollPerson: HexLore.#onRollPerson,
 			rollHolding: HexLore.#onRollHolding,
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,
-			cruise: HexLore.#onCruise,
 			journal: HexLore.#onJournal
 		}
 	};
@@ -77,6 +76,23 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** A person or a Holding is still being rolled, so a second click doesn't roll it twice. */
 	#rolling = false;
+
+	/** @type {{key: string, myth: string, page: number}|null} The page the Landmark's name was last flipped to, and in which hex. */
+	#prompted = null;
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		// Rolls on the Spark Tables are kept in the hex this is open on.
+		refreshSparkKeep();
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		// Rolls on the Spark Tables go back to the Company's hex.
+		refreshSparkKeep();
+	}
 
 	/** @override */
 	get title() {
@@ -107,6 +123,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const visits = getHexVisits(scene, hex);
 		const shared = getHexSharedRecord(scene, hex);
 		const pages = this.#index?.spark ?? [];
+		const landmark = featureAt(known, hex).landmark;
+		const prompted = this.#prompted?.key === hexKey(hex) ? this.#prompted : null;
 
 		let notice = null;
 		if (!this.#index) notice = t("spark.noIndex");
@@ -118,8 +136,14 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			features: hexFeatureLines(scene, known, g, hex, this.#index),
 			// A Holding's Local Mood is rolled as the Company arrives (p18).
 			holding: Boolean(featureAt(realm, hex).holding),
-			// A proper road runs through it, which a Cruise can take (p18).
-			road: hasRoad(scene, hex),
+			// A Landmark's name, which a random page's prompt for its type can fill (p14).
+			landmark: landmark
+				? {
+					type: t(`realm.landmarks.${landmark.type}`),
+					name: landmark.name ?? "",
+					from: prompted ? t("hexLore.landmark.from", { myth: prompted.myth, page: prompted.page }) : null
+				}
+				: null,
 			// Whether the Company has been here, as the GM Toolkit's Journey counts it.
 			visited: Boolean(visits),
 			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
@@ -136,13 +160,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				prompt: spark.prompt,
 				when: sparkWhen(spark)
 			})).reverse(),
-			notice,
-			pages: pages
-				.map((page) => ({
-					label: page.name || t(`spark.pages.${page.key}`),
-					tables: (page.tables ?? []).map((table, index) => ({ value: `${page.key}:${index}`, name: table.name }))
-				}))
-				.filter(({ tables }) => tables.length)
+			notice
 		});
 	}
 
@@ -151,22 +169,27 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 
 	/**
-	 * Only the note is a field, and it saves as it's typed.
+	 * The note and the Landmark's name are the fields, and each saves as it's changed.
 	 * @this {HexLore}
 	 */
 	static async #onChangeForm(event, _form, formData) {
 		if (!this.hex) return;
-		if (event.target?.name === "road") return setRoad(this.scene, this.hex, Boolean(event.target.checked));
-		if (event.target?.name !== "note") return;
-		await writeHexNote(this.scene, this.hex, formData.object.note ?? "");
+		const field = event.target?.name;
+		if (field === "note") await writeHexNote(this.scene, this.hex, formData.object.note ?? "");
+		else if (field === "landmarkName") await renameLandmark(this.scene, this.hex, (formData.object.landmarkName ?? "").trim());
 	}
 
-	/** @this {HexLore} */
-	static async #onRollTable() {
-		const chosen = this.element.querySelector('[name="table"]')?.value ?? "";
-		const [page, index] = chosen.split(":");
-		if (!page || !index) return;
-		await rollHexSpark({ scene: this.scene, hex: this.hex, page, index: Number(index) });
+	/**
+	 * Name the Landmark here from the prompt a random page prints for its type (p14, p179).
+	 * @this {HexLore}
+	 */
+	static async #onRerollLandmark() {
+		const hex = this.hex;
+		const named = await this.#rollOnce(() => rerollLandmarkName(this.scene, hex));
+		if (!named) return;
+		this.#prompted = { key: hexKey(hex), myth: named.myth, page: named.page };
+		// The Realm's change draws the window again; this shows where the name came from even if it didn't change.
+		this.render();
 	}
 
 	/**
@@ -238,11 +261,6 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {HexLore} */
 	static #onMarkVisited() {
 		return markHexVisited(this.scene, this.hex);
-	}
-
-	/** @this {HexLore} */
-	static #onCruise() {
-		return cruiseFrom({ scene: this.scene, hex: this.hex });
 	}
 
 	/** @this {HexLore} */

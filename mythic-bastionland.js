@@ -41,7 +41,7 @@ import { registerDropdowns } from "./module/apps/dropdown.js";
 import { openSessionEnd } from "./module/apps/SessionEnd.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
-import { openSparkTables, registerSparkTablesSetting } from "./module/apps/SparkTables.js";
+import { openSparkTables, registerSparkTablesSetting, toggleSparkTables } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
 import { registerRealmTour } from "./module/apps/realm-tour.js";
 import { openTimePanel } from "./module/apps/TimePanel.js";
@@ -378,6 +378,14 @@ Hooks.once("init", () => {
 
 	// Whether a Spark Table roll runs its highlight, as each browser left the tick box.
 	registerSparkTablesSetting();
+	// 6 opens them for the GM, ahead of the hotbar's own 6; players' 6 still runs their macro.
+	game.keybindings.register(SYSTEM_ID, "openSparkTables", {
+		name: "bastionland.spark.keybinding.name",
+		hint: "bastionland.spark.keybinding.hint",
+		editable: [{ key: "Digit6" }],
+		restricted: true,
+		onDown: () => toggleSparkTables()
+	});
 
 	// The GM Toolkit: one per world, each GM's character so C opens it, and where the Company has been on each Realm.
 	registerGmToolkitHooks();

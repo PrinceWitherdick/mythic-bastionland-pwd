@@ -1,3 +1,4 @@
+import { toggleShown } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { FrameButtonsMixin } from "../compat.js";
 import { EXPECTED_PAGES } from "../rules/book-art.js";
@@ -359,28 +360,11 @@ export function openReader() {
  * @returns {boolean} Whether the key was used.
  */
 export function toggleRulebook() {
-	const open = openReader();
-	if (open?.minimized) {
-		open.maximize();
-		return true;
-	}
-	if (open && isFrontmost(open)) {
-		open.close();
-		return true;
-	}
-	if (openRulebook()) return true;
+	if (toggleShown(openReader()) || openRulebook()) return true;
 	if (!hasRulebook() && canKeepRulebook()) {
 		openRulebookSetup();
 		return true;
 	}
 	if (!hasRulebook() && canReadRulebook()) ui.notifications.info(t("rulebook.noCopy"));
 	return false;
-}
-
-/**
- * @param {ApplicationV2} app
- * @returns {boolean} Whether it's the window Foundry last brought to the front.
- */
-function isFrontmost(app) {
-	return !app.minimized && ui.activeWindow === app;
 }

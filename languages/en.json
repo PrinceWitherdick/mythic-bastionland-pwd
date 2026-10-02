@@ -1662,7 +1662,7 @@
     },
     "bookFlip": {
       "title": "Flip the Book",
-      "open": "Flip the book",
+      "open": "Random Page Prompt",
       "openHint": "A random page of the book, for a prompt along its foot",
       "hint": "A random spread of the book and the prompts along its foot. Take whatever fits the blank you’re filling: a Hex, a stranger, an explanation (p19, p179). Click the prompts you’ll use, then Save to hex and click a hex on the map.",
       "flip": "Flip again",
@@ -1689,13 +1689,12 @@
       "title": "The Lay of the Land",
       "titleHex": "The Lay of the Land: {hex}",
       "open": "Lay of the Land",
-      "hint": "A Hex is a whole country in little. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
+      "hint": "A Hex is broad and varied, with room enough for a person never to leave it. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
       "spark": "Roll for this hex",
-      "table": "Spark Table",
       "rollSet": "Roll a wilderness hex",
-      "setMissing": "Import PDF hasn’t read enough of page 22 to roll a wilderness hex.",
+      "setMissing": "Import PDF hasn’t read enough of the Nature Spark Tables to roll a wilderness hex.",
       "wildHex": {
         "title": "Wilderness Hex: {hex}",
         "intro": "Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you save the results.",
@@ -1705,6 +1704,12 @@
         "rollColumn": "Roll a d12 for {column}",
         "pick": "Choose this one",
         "keep": "Save results"
+      },
+      "landmark": {
+        "reroll": "Name it from a random page",
+        "rerollHint": "Flip to a random page and take the prompt it prints for this Landmark’s type.",
+        "from": "From the prompts on {myth}’s page (p{page}).",
+        "placeholder": "Called by its type"
       },
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
@@ -1718,6 +1723,10 @@
       "explore": "Find out what’s here",
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
       "settings": {
+        "firstArrival": {
+          "name": "Roll a new hex’s land",
+          "hint": "The first time the Company comes to rest in a Wilderness Hex with nothing written or rolled there, roll its land and one feature on the Nature Spark Tables, keep them in the Hex, and whisper them to the GM. Holdings are left alone."
+        },
         "prompt": {
           "name": "Reaching a new hex",
           "hint": "What to do when the Company comes to rest in a Hex of a Realm you’re looking at. Saved per browser.",
@@ -1749,9 +1758,16 @@
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
+      "keybinding": {
+        "name": "Open the Spark Tables",
+        "hint": "Open the Spark Tables, or close them when they’re already in front. Takes the hotbar’s 6 for the GM."
+      },
       "reference": "page {page}",
       "rollTable": "Roll on {name}",
       "animate": "Animate selection",
+      "keepIn": "Keep rolls in {hex}",
+      "keepNone": "Open a hex’s Lay of the Land to keep rolls there",
+      "keepHint": "Rolls made here are kept in the hex the Lay of the Land is open on, or else the hex the Company stands in, beside the rest rolled there.",
       "tagline": "{page} Spark Table, page {number}",
       "noIndex": "Run the Import PDF macro with your rulebook to bring in the Spark Tables.",
       "noText": "Run Import PDF again with your rulebook to bring in the Spark Tables.",
@@ -2735,18 +2751,6 @@
         "shield": "Shield"
       }
     },
-    "cruise": {
-      "title": "Cruise",
-      "button": "Cruise from Here",
-      "buttonHint": "Where a boat, or a steed on a proper road, carries the Company 3 Hexes in one Phase (p18).",
-      "roadHere": "A proper road runs here",
-      "roadHint": "Roads are rarely found. Mark each hex one runs through, and a Cruise can follow it.",
-      "boat": "By boat",
-      "road": "By road",
-      "place": "{hex} {terrain}, {steps} away",
-      "hint": "A Cruise takes the whole Phase. Barriers stop it.",
-      "nowhere": "No river, lake or road runs on from here, so there is nowhere to Cruise."
-    },
     "afflictions": {
       "label": "{name}: {loss} {virtue} {when}",
       "hint": "Take its toll now. Virtue Loss, not Damage.",
@@ -3437,7 +3441,8 @@
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
       "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
       "ruinPrompt": "Its page suggests a ruin: {prompt}.",
-      "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it on the Places page.",
+      "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it in the Lay of the Land.",
+      "promptUnread": "Import PDF hasn’t read the prompts along the foot of that Myth’s page, so the Landmark keeps its name.",
       "ruinHint": "Hint at it however the ruin would: a carving, a name half-worn away, a warning nobody living remembers. It may yet return to the Realm.",
       "offCourse": {
         "title": "Thrown Off Course",

@@ -19,6 +19,11 @@ describe("dayTables", () => {
 		expect(weather.name).toBe(`Table ${WEATHER_POSITION}`);
 	});
 
+	it("reads the page row by row, as Import PDF does: Land, Sky, Water, then Weather", () => {
+		expect(SKY_POSITION).toBe(1);
+		expect(WEATHER_POSITION).toBe(3);
+	});
+
 	it("gives neither from a page missing a table, since the rest may have shifted", () => {
 		expect(dayTables(page(8))).toBeNull();
 		expect(dayTables(null)).toBeNull();

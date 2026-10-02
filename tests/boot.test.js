@@ -258,6 +258,14 @@ describe("system boot", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "worldSetupDone", expect.objectContaining({ scope: "world", config: false, type: Object }));
 	});
 
+	it("gives the GM's Spark Tables the 6 key", () => {
+		expect(game.keybindings.register).toHaveBeenCalledWith(SYSTEM_ID, "openSparkTables", expect.objectContaining({
+			editable: [{ key: "Digit6" }],
+			restricted: true,
+			onDown: expect.any(Function)
+		}));
+	});
+
 	it("welcomes a new world's GM, who can open the Welcome again from the settings", () => {
 		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "showWelcome", expect.objectContaining({ scope: "world", config: false, type: Boolean, default: true }));
 		expect(game.settings.registerMenu).toHaveBeenCalledWith(SYSTEM_ID, "welcome", expect.objectContaining({ restricted: true }));
@@ -401,6 +409,10 @@ describe("system boot", () => {
 				open: "bastionland.hexLore.settings.prompt.modes.open"
 			}
 		}));
+	});
+
+	it("lets the world say whether a hex the Company first rests in is rolled", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "hexLoreFirstArrival", expect.objectContaining({ scope: "world", config: true, type: Boolean, default: true }));
 	});
 
 	it("watches for a Company coming to rest somewhere new", () => {

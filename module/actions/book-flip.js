@@ -18,7 +18,7 @@ import { isRealmScene } from "./realm.js";
  * the Referee's to take a prompt from, and nothing is told to the table.
  * @returns {Promise<{d6: number, d12: number}>}
  */
-async function throwSpread() {
+export async function throwSpread() {
 	const roll = await throwForGms("1d6 + 1d12");
 	const [d6, d12] = roll.dice.map((die) => die.total);
 	return { d6, d12 };

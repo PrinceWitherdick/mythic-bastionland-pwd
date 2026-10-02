@@ -34,6 +34,13 @@ export const HEX_PROMPT_MODES = Object.freeze(["never", "open"]);
 const WILDERNESS_POSITIONS = Object.freeze([0, 3, 6]);
 
 /**
+ * The two of those rolled on their own the first time the Company rests in a
+ * hex: its land and one feature of it, which stay as they were found. Its
+ * weather is left out, since the day's own is rolled each Morning.
+ */
+const ARRIVAL_POSITIONS = Object.freeze([0, 6]);
+
+/**
  * @typedef {object} HexSpark
  * @property {string} id       So one roll can be struck out without disturbing the rest.
  * @property {string} page     A SPARK_PAGES key, such as "nature".
@@ -167,6 +174,41 @@ export function recordSpark(lore, hex, spark) {
 }
 
 /**
+ * A roll on one Spark Table as a hex keeps it: only the columns that gave an entry.
+ * @param {object} options
+ * @param {{key: string}} options.page The page of Spark Tables the table stands on.
+ * @param {{name: string}} options.table
+ * @param {{roll: number, entry: string|null}[]} options.results One for each column.
+ * @param {string} options.id
+ * @param {HexSpark["when"]} [options.when]
+ * @returns {HexSpark|null} Null when no column gave anything.
+ */
+export function sparkFromRoll({ page, table, results, id, when = null }) {
+	const taken = (results ?? []).filter((result) => result.entry);
+	if (!taken.length) return null;
+	return {
+		id,
+		page: page.key,
+		table: table.name,
+		rolls: taken.map((result) => result.roll),
+		entries: taken.map((result) => result.entry),
+		prompt: taken.map((result) => result.entry).join(" "),
+		when
+	};
+}
+
+/**
+ * The hex a roll on the Spark Tables window is kept in: the one the Lay of the
+ * Land is open on, or else the one the Company stands in.
+ * @template T
+ * @param {object} options
+ * @param {T|null} [options.lore] Where the Lay of the Land is open.
+ * @param {T|null} [options.company] Where the Company stands.
+ * @returns {T|null} Null where neither says, and nothing is kept.
+ */
+export const sparkKeepTarget = ({ lore = null, company = null } = {}) => lore ?? company ?? null;
+
+/**
  * Strike one roll out of a hex, leaving the rest as they were.
  * @param {HexLore} lore
  * @param {{col: number, row: number}} hex
@@ -217,6 +259,30 @@ export function wildernessSparkSet(page) {
 	const places = tables.length === SPARK_TABLES_PER_PAGE ? WILDERNESS_POSITIONS : [0, 1, 2];
 	return places.filter((index) => tables[index]).map((index) => ({ index, table: tables[index] }));
 }
+
+/**
+ * The tables rolled for a hex the Company rests in for the first time, from the
+ * Nature page. Nothing is rolled unasked from a page read in part, since its
+ * tables can't be trusted to stand where the book prints them.
+ * @param {{tables: object[]}|null|undefined} page A page of the art index's spark payload.
+ * @returns {{index: number, table: object}[]} Empty unless the page was read whole.
+ */
+export function arrivalSparkSet(page) {
+	const tables = page?.tables ?? [];
+	if (tables.length !== SPARK_TABLES_PER_PAGE) return [];
+	return ARRIVAL_POSITIONS.map((index) => ({ index, table: tables[index] }));
+}
+
+/**
+ * Whether a hex is rolled as the Company first rests in it: a Wilderness hex
+ * (p14) with nothing written or rolled there yet. A Holding isn't Wilderness,
+ * and a hex the GM has already made something of is left as they made it.
+ * @param {object} options
+ * @param {HexRecord|null} options.record What's kept for the hex, as normaliseRecord reads it.
+ * @param {object|null} options.holding The Holding standing in the hex, if any.
+ * @returns {boolean}
+ */
+export const rollsOnArrival = ({ record, holding }) => !record && !holding;
 
 /**
  * What a table comes to for the rows taken from it, by dice or by hand. A

@@ -34,11 +34,11 @@ const { postCard, warn } = await import("../../module/chat/cards.js");
 /** Twelve rows of a two-column table, each entry naming its column and row. */
 const table = (name, columns) => ({ name, columns, rows: Array.from({ length: 12 }, (_, row) => columns.map((column) => `${column} ${row + 1}`)) });
 
-/** The Nature page as Import PDF reads it: Sky first, Weather first on the bottom row. */
+/** The Nature page as Import PDF reads it: Sky in the middle of the top row, Weather first on the middle one. */
 function naturePage() {
 	const tables = Array.from({ length: 9 }, (_, at) => table(`T${at}`, ["A", "B"]));
-	tables[0] = table("Sky", ["Tone", "Texture"]);
-	tables[6] = table("Weather", ["Description", "Element"]);
+	tables[1] = table("Sky", ["Tone", "Texture"]);
+	tables[3] = table("Weather", ["Description", "Element"]);
 	return { key: "nature", name: "Nature", page: 22, tables };
 }
 

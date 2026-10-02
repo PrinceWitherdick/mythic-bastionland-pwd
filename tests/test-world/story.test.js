@@ -63,7 +63,10 @@ vi.mock("../../module/actions/landmarks.js", () => ({ echoRuin: vi.fn() }));
 
 vi.mock("../../module/actions/myth-cast.js", () => ({ castKey: (_scene, myth) => `${myth.d6}-${myth.d12}` }));
 
-vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(async () => ({ d6: 4, result: "worse" })) }));
+vi.mock("../../module/actions/referee-rolls.js", () => ({
+	rollRefereeTable: vi.fn(async () => ({ d6: 4, result: "worse" })),
+	rollSpark: vi.fn(async () => ({ results: [{ roll: 1, entry: "One" }, { roll: 2, entry: "Two" }] }))
+}));
 
 vi.mock("../../module/actions/season-events.js", () => ({
 	collectionEntry: (collection) => ({ name: collection.key, lines: [] }),
@@ -98,12 +101,25 @@ vi.mock("../../module/actions/glory.js", () => ({
 
 vi.mock("../../module/actions/gm-toolkit.js", () => ({ openGmToolkit: vi.fn(), theGmToolkit: () => world.toolkit }));
 
-vi.mock("../../module/actions/hex-lore.js", () => ({
-	rollHexSpark: vi.fn(),
-	rollHexSparkSet: vi.fn(),
-	tellPlayersAboutHex: vi.fn(),
-	writeHexNote: vi.fn()
-}));
+vi.mock("../../module/actions/hex-lore.js", async () => {
+	const { hexKey: key } = await import("../../module/rules/realm-geometry.js");
+	return {
+		keepTableRoll: vi.fn(),
+		rollHexSparkSet: vi.fn(),
+		// What's told is what the GM's note says then, as the real one tells it.
+		tellPlayersAboutHex: vi.fn(async ({ hex }) => { world.told.push({ hex, note: world.notes[key(hex)], when: { ...world.calendar } }); }),
+		writeHexNote: vi.fn(async (_scene, hex, note) => { world.notes[key(hex)] = note; })
+	};
+});
+
+vi.mock("../../module/actions/hex-shared.js", async () => {
+	const { setPartyNote } = await vi.importActual("../../module/rules/hex-shared.js");
+	return {
+		keepPartyNote: vi.fn(async (_scene, hex, text, user) => {
+			world.shared = setPartyNote(world.shared, hex, { text, by: user.id, byName: user.name, when: { ...world.calendar }, at: Date.now() });
+		})
+	};
+});
 
 vi.mock("../../module/actions/journey.js", () => ({
 	recordHexVisits: vi.fn(async (_scene, hexes) => { world.visits.push(...hexes.map((hex) => ({ hex, when: { ...world.calendar } }))); })
@@ -159,7 +175,7 @@ const { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } = await import
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { editMythNote } = await import("../../module/actions/myth-notes.js");
 const { hardshipFor, rollAging } = await import("../../module/actions/time.js");
-const { rollHexSpark, rollHexSparkSet } = await import("../../module/actions/hex-lore.js");
+const { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex } = await import("../../module/actions/hex-lore.js");
 const { markCollection, markSeasonEvent } = await import("../../module/actions/season-events.js");
 const { settleTask } = await import("../../module/actions/council-tasks.js");
 const { wearWarbandDown } = await import("../../module/actions/warbands.js");
@@ -250,7 +266,10 @@ function fakeIndex() {
 		],
 		seers: every((roll) => ({ roll, name: `The ${roll} Seer`, path: `art/seer-${roll}.webp`, stats: { vig: 8, cla: 10, spi: 14, guard: 3 }, lines: ["Watches."] })),
 		myths: every((roll) => ({ roll, name: `The ${roll} Myth`, path: `art/myth-${roll}.webp`, omens: ["1", "2", "3", "4", "5", "6"], cast: [{ name: `Cast of ${roll}`, stats: { vig: 10, cla: 10, spi: 10, guard: 3 }, lines: [] }] })),
-		spark: [{ key: "nature", tables: [] }, { key: "civilisation", tables: [] }]
+		spark: ["nature", "civilisation", "people", "combat"].map((key) => ({
+			key,
+			tables: Array.from({ length: 9 }, (_, index) => ({ name: `${key} ${index}`, columns: ["A", "B"], rows: [] }))
+		}))
 	};
 }
 
@@ -260,6 +279,9 @@ beforeEach(() => {
 	Object.assign(world, {
 		calendar: { ...BEFORE },
 		visits: [],
+		notes: {},
+		told: [],
+		shared: { version: 1, hexes: {} },
 		actors: [],
 		journal: [],
 		folders: [],
@@ -296,7 +318,8 @@ beforeEach(() => {
 	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } };
 	globalThis.canvas = { scene: null };
 	globalThis.game = {
-		user: { isGM: true, id: "gm" },
+		user: { isGM: true, id: "gm", name: "Gamemaster" },
+		users: [{ isGM: true, id: "gm", name: "Gamemaster" }, { isGM: false, id: "alys", name: "Alys" }, { isGM: false, id: "bram", name: "Bram" }],
 		settings: {
 			get: (_scope, key) => world.settings[key],
 			set: vi.fn(async (_scope, key, value) => { world.settings[key] = value; })
@@ -409,6 +432,52 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(thisSeason.some(({ hex }) => hexKey(hex) === hexKey(camp))).toBe(false);
 	});
 
+	it("writes up open country along the road as well as the places, and tells the players some of it", async () => {
+		await populateTestWorld();
+		const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
+		const [[, camp]] = setCompanyHex.mock.calls;
+		walked.add(hexKey(camp));
+		const { isWilderness } = await import("../../module/test-world/plan.js");
+		const noted = Object.keys(world.notes);
+		const wild = noted.filter((key) => {
+			const [col, row] = key.split(",").map(Number);
+			return isWilderness(world.realm, { col, row });
+		});
+		expect(noted.length).toBeGreaterThanOrEqual(12);
+		expect(wild.length).toBeGreaterThanOrEqual(4);
+		// The GM only writes up the wilds the Company went through.
+		for (const key of wild) expect(walked.has(key)).toBe(true);
+		expect(world.told.length).toBeGreaterThanOrEqual(8);
+		for (const { hex } of world.told) expect(walked.has(hexKey(hex))).toBe(true);
+		// Told quietly, so a notification for each doesn't bury the build's own.
+		for (const [options] of tellPlayersAboutHex.mock.calls) expect(options.quiet).toBe(true);
+	});
+
+	it("keeps what the players were told of the Seat as it was, though the GM's note has moved on", async () => {
+		await populateTestWorld();
+		const seat = world.realm.holdings.find((holding) => holding.seat);
+		const told = world.told.find(({ hex }) => hexKey(hex) === hexKey(seat.hex));
+		expect(told.when).toMatchObject({ age: 1, season: "spring" });
+		expect(told.note).not.toContain("owes money");
+		expect(world.notes[hexKey(seat.hex)]).toContain("owes money");
+	});
+
+	it("has the players take turns writing the Company's notes on places they've been", async () => {
+		await populateTestWorld();
+		const notes = Object.entries(world.shared.hexes).map(([key, record]) => [key, record.party]);
+		expect(notes.length).toBeGreaterThanOrEqual(8);
+		expect(new Set(notes.map(([, party]) => party.byName))).toEqual(new Set(["Alys", "Bram"]));
+		for (const [, party] of notes) expect(party).toMatchObject({ text: expect.any(String), when: expect.objectContaining({ age: expect.any(Number) }) });
+	});
+
+	it("signs the Company's notes as the GM in a world with no players", async () => {
+		game.users = [game.user];
+		await populateTestWorld();
+		const names = Object.values(world.shared.hexes).map((record) => record.party.byName);
+		expect(names.length).toBeGreaterThan(0);
+		expect(new Set(names)).toEqual(new Set(["Gamemaster"]));
+	});
+
 	it("resolves the first Myth and replaces it, and leaves two more part met", async () => {
 		const { editRealm } = await import("../../module/actions/realm.js");
 		await populateTestWorld();
@@ -488,14 +557,18 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		await populateTestWorld();
 		const npcs = world.actors.filter((actor) => actor.type === "npc").map((actor) => actor.name);
 		if (imported) {
-			expect(rollHexSpark).toHaveBeenCalled();
-			expect(rollHexSparkSet).toHaveBeenCalled();
+			expect(keepTableRoll.mock.calls.length).toBeGreaterThanOrEqual(10);
+			expect(new Set(keepTableRoll.mock.calls.map(([{ page }]) => page.key))).toEqual(new Set(["nature", "civilisation", "people", "combat"]));
+			// The Wilderness tables are rolled for a hex once, however often the story passes it.
+			const wilds = rollHexSparkSet.mock.calls.map(([{ hex }]) => hexKey(hex));
+			expect(wilds.length).toBeGreaterThanOrEqual(4);
+			expect(new Set(wilds).size).toBe(wilds.length);
 			expect(npcs.some((name) => / Seer$/.test(name))).toBe(true);
 			const cast = world.actors.find((actor) => /^Cast of /.test(actor.name));
 			expect(cast.flags[SYSTEM_ID].cast).toEqual({ myth: expect.any(String), from: cast.name });
 			expect(world.folders.find((folder) => folder.id === cast.folder).flags[SYSTEM_ID].cast).toBe(cast.flags[SYSTEM_ID].cast.myth);
 		} else {
-			expect(rollHexSpark).not.toHaveBeenCalled();
+			expect(keepTableRoll).not.toHaveBeenCalled();
 			expect(rollHexSparkSet).not.toHaveBeenCalled();
 			// Three steeds, the Squire's pony and the Domain's levy.
 			expect(npcs).toHaveLength(5);

@@ -94,14 +94,27 @@ export async function rollHexPerson({ scene, hex }) {
 	const person = await rollPersonTables();
 	if (!person) return null;
 	await Promise.all([
-		keepHexSparkRecords(scene, hex, [personSpark(person.traits, {
-			id: foundry.utils.randomID(),
-			table: t("people.kept", { page: person.page.page }),
-			when: getCalendar()
-		})]),
+		keepHexPerson(scene, hex, person),
 		postPerson(person, { hex: t("realm.hex", hex), mode: "gm" })
 	]);
 	return person;
+}
+
+/**
+ * Keep a person already rolled on the People tables in a hex, as the Lay of the
+ * Land keeps its rolls. GMs only.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @param {RolledPerson} person
+ * @returns {Promise<boolean>} Whether anything was kept.
+ */
+export function keepHexPerson(scene, hex, person) {
+	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
+	return keepHexSparkRecords(scene, hex, [personSpark(person.traits, {
+		id: foundry.utils.randomID(),
+		table: t("people.kept", { page: person.page.page }),
+		when: getCalendar()
+	})]);
 }
 
 /**
