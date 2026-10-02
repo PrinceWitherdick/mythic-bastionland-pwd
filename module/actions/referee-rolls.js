@@ -1,6 +1,6 @@
 import { chooseDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, LUCK_ODDS, luckAtOdds, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
+import { D6_BANDS, DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, LUCK_ODDS, luckAtOdds, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
 import { samePhase } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -70,7 +70,7 @@ export async function rollRefereeTable(key) {
 	const text = (part, data) => t(`refereeRolls.tables.${key}.${part}`, data);
 	await postCard(null, "referee-roll", {
 		name: text("name"),
-		page: t("refereeRolls.page", { page: table.page }),
+		page: table.cardPage === false ? null : t("refereeRolls.page", { page: table.page }),
 		d6: roll.total,
 		result: text(`results.${read.result}`, { side: read.side ? t(`refereeRolls.sides.${read.side}`) : "" }),
 		hint: streak ? `${t("refereeRolls.loomingAgain")} ${text("hint")}` : text("hint")
@@ -85,11 +85,20 @@ export async function rollRefereeTable(key) {
  * @returns {Promise<object|null>} What was rolled, or null if the question was closed.
  */
 export async function rollLuck(odds) {
+	const luck = REFEREE_TABLES.find(({ key }) => key === "luck");
+	const bands = luck.results.map((result, index) => `<span>${D6_BANDS[index]}</span><span>${t(`refereeRolls.tables.luck.results.${result}`)}</span>`);
 	odds ??= await chooseDialog({
 		title: t("refereeRolls.tables.luck.name"),
 		icon: "fa-solid fa-dice-d6",
-		classes: ["bastionland-referee-rolls"],
-		message: t("refereeRolls.odds.question"),
+		classes: ["bastionland-luck-odds"],
+		message: [
+			t("refereeRolls.odds.intro"),
+			`<strong>${t("refereeRolls.odds.tableHeading")}</strong> ${t("refereeRolls.odds.tableHelp")}`,
+			`<span class="bastionland-luck-odds__bands">${bands.join("")}</span>`,
+			`<span class="hint">${t("refereeRolls.odds.notDomain")}</span>`,
+			`<strong>${t("refereeRolls.odds.oddsHeading")}</strong> ${t("refereeRolls.odds.oddsHelp")}`,
+			`<span class="bastionland-luck-odds__question">${t("refereeRolls.odds.question")}</span>`
+		],
 		buttons: [
 			{ action: "table", label: t("refereeRolls.odds.table"), default: true },
 			...LUCK_ODDS.map(({ key, needs }) => ({ action: key, label: t("refereeRolls.odds.label", { odds: t(`refereeRolls.odds.${key}`), needs }) }))
@@ -102,10 +111,10 @@ export async function rollLuck(odds) {
 	const read = luckAtOdds(odds, roll.total);
 	await postCard(null, "referee-roll", {
 		name: t("refereeRolls.tables.luck.name"),
-		page: t("refereeRolls.page", { page: REFEREE_TABLES.find(({ key }) => key === "luck").page }),
 		d6: roll.total,
 		result: t(read.favoured ? "refereeRolls.odds.favoured" : "refereeRolls.odds.against"),
-		hint: t("refereeRolls.odds.hint", { odds: t(`refereeRolls.odds.${odds}`), needs: read.needs })
+		lead: t(`refereeRolls.odds.${odds}`),
+		hint: t("refereeRolls.odds.hint", { needs: read.needs })
 	}, { rolls: [roll] });
 	return { d6: roll.total, odds, ...read };
 }

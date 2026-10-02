@@ -212,6 +212,8 @@ Hooks.once("init", () => {
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
 		"bastionland.season-turn": templatePath("actor/gm-toolkit/season-turn.hbs"),
 		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
+		"bastionland.pick-list": templatePath("dialogs/parts/pick-list.hbs"),
+		"bastionland.steed-name": templatePath("dialogs/parts/steed-name.hbs"),
 		"bastionland.realm-picture": templatePath("dialogs/parts/realm-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),

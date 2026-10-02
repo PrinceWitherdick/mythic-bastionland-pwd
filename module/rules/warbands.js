@@ -13,6 +13,7 @@
  * what Virtue Loss costs everywhere else in the book. Pure, so it can be
  * tested without Foundry.
  */
+import { formatStatLine, maxStats } from "./stat-blocks.js";
 
 /** Where soldiers are drawn from, in the order the book lists them. */
 export const WARBAND_ORIGINS = Object.freeze(["vassals", "allies", "mercenaries"]);
@@ -100,3 +101,22 @@ export const isOrigin = (origin) => WARBAND_ORIGINS.includes(origin);
  * @returns {boolean} Whether it's one of the ways the book wears a Warband down.
  */
 export const isStrain = (strain) => UPKEEP_STRAINS.includes(strain);
+
+/**
+ * A Warband's stat line as the book prints one, such as "VIG 11, CLA 11, SPI 9,
+ * 3GD, A2, Lance (d8)", to tell one from another when choosing which to raise.
+ * The scores the book gives it are its maximums.
+ * @param {object} system An NPC's system data.
+ * @param {{type: string, name: string, system: {damage?: string}}[]} [items]
+ * @param {Record<string, string>} [labels] Each Virtue's abbreviation, GD's as `guard`, and Armour's as `armour`.
+ * @returns {string} Empty when it has no stats yet.
+ */
+export function warbandStatLine(system, items = [], labels = { vig: "VIG", cla: "CLA", spi: "SPI", guard: "GD", armour: "A" }) {
+	const parts = [formatStatLine(maxStats(system), labels)].filter(Boolean);
+	if (system.armour > 0) parts.push(`${labels.armour}${system.armour}`);
+	for (const item of items) {
+		if (item.type !== "weapon") continue;
+		parts.push(item.system.damage ? `${item.name} (${item.system.damage})` : item.name);
+	}
+	return parts.join(", ");
+}

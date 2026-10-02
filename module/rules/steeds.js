@@ -4,8 +4,7 @@
  * so it can be tested without Foundry.
  */
 import { isSteed } from "./property.js";
-import { formatStatLine } from "./stat-blocks.js";
-import { VIRTUES } from "./virtues.js";
+import { formatStatLine, maxStats } from "./stat-blocks.js";
 
 /** A Gallop costs the steed this die of VIG (p18). */
 export const GALLOP_ROLL = "1d6";
@@ -29,11 +28,7 @@ export const bookSteeds = (beasts) => beasts.filter((beast) => isSteed(beast.nam
  * @returns {string}
  */
 export function steedStatLine(system, items = [], labels) {
-	const stats = {
-		...Object.fromEntries(VIRTUES.map((key) => [key, system.virtues?.[key]?.max ?? null])),
-		guard: system.guard?.max ?? null
-	};
-	const parts = [formatStatLine(stats, labels)].filter(Boolean);
+	const parts = [formatStatLine(maxStats(system), labels)].filter(Boolean);
 	for (const item of items) if (item.type === "weapon" && item.system.trample) parts.push(`${item.system.damage} trample`);
 	return parts.join(", ");
 }

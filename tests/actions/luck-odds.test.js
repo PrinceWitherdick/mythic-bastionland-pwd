@@ -38,7 +38,7 @@ describe("rollLuck", () => {
 	it("asks for the odds, with the table first and each stated odds naming what it needs", async () => {
 		await rollLuck();
 		expect(asked).toHaveLength(1);
-		expect(asked[0].buttons.map(({ action }) => action)).toEqual(["table", "slim", "unlikely", "even", "likely", "high"]);
+		expect(asked[0].buttons.map(({ action }) => action)).toEqual(["table", "high", "likely", "even", "unlikely", "slim"]);
 		expect(asked[0].buttons[0].default).toBe(true);
 		expect(asked[0].buttons[3].label).toContain("\"needs\":4");
 		expect(posted).toEqual([]);
@@ -61,11 +61,19 @@ describe("rollLuck", () => {
 		expect(posted[0].data.result).toBe("refereeRolls.odds.favoured");
 	});
 
+	it("names the odds in bold on the card, with no page link", async () => {
+		await rollLuck("slim");
+		expect(posted[0].data.lead).toBe("refereeRolls.odds.slim");
+		expect(posted[0].data.hint).toBe("refereeRolls.odds.hint {\"needs\":6}");
+		expect(posted[0].data.page).toBeUndefined();
+	});
+
 	it("rolls on the table when that's picked", async () => {
 		d6 = 1;
 		answer = "table";
 		const rolled = await rollLuck();
 		expect(rolled).toEqual({ d6: 1, result: "crisis", side: null });
 		expect(posted[0].data.result).toBe("refereeRolls.tables.luck.results.crisis {\"side\":\"\"}");
+		expect(posted[0].data.page).toBeNull();
 	});
 });

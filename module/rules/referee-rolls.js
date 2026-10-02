@@ -7,9 +7,9 @@
  * Pure, so it can be tested without Foundry.
  */
 
-/** Tables in book order, with the page each is printed on. */
+/** Tables in book order, with the page each is printed on. The Luck Roll's card carries no page link. */
 export const REFEREE_TABLES = Object.freeze([
-	{ key: "luck", page: 16, results: ["crisis", "problem", "blessing"] },
+	{ key: "luck", page: 16, results: ["crisis", "problem", "blessing"], cardPage: false },
 	{ key: "passage", page: 17, results: ["now", "afterNextSession", "continues"] },
 	{ key: "unresolved", page: 17, results: ["worst", "worse", "better"] },
 	{ key: "blind", page: 18, results: ["circleBack", "drift", "asPlanned"] },
@@ -19,6 +19,9 @@ export const REFEREE_TABLES = Object.freeze([
 
 /** Which way Travelling Blind drifts: a Hex to the left on a 2, to the right on a 3. */
 export const DRIFT_SIDES = Object.freeze(["left", "right"]);
+
+/** The rolls each of a table's three results comes up on, as they're written out. */
+export const D6_BANDS = Object.freeze(["1", "2–3", "4–6"]);
 
 /**
  * @param {number} d6
@@ -78,15 +81,15 @@ export const atMercyOfWeather = (risk, season) => risk === "always" || (risk ===
 /**
  * Odds the Referee may state for a Luck Roll instead of reading its table:
  * a slim chance, say, or an even one (p182, p184). Each
- * is the lowest d6 that goes the players' way. Wording lives under
- * `bastionland.refereeRolls.odds`.
+ * is the lowest d6 that goes the players' way, listed from the likeliest
+ * down, as they're offered. Wording lives under `bastionland.refereeRolls.odds`.
  */
 export const LUCK_ODDS = Object.freeze([
-	{ key: "slim", needs: 6 },
-	{ key: "unlikely", needs: 5 },
-	{ key: "even", needs: 4 },
+	{ key: "high", needs: 2 },
 	{ key: "likely", needs: 3 },
-	{ key: "high", needs: 2 }
+	{ key: "even", needs: 4 },
+	{ key: "unlikely", needs: 5 },
+	{ key: "slim", needs: 6 }
 ].map(Object.freeze));
 
 /**

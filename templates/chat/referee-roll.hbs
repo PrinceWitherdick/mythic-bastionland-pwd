@@ -1,8 +1,8 @@
 <section class="bastionland-card bastionland-card--referee">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{name}}</h3>
-		<p class="bastionland-card__tagline">{{page}}</p>
-		<p class="bastionland-card__hint">{{hint}}</p>
+		{{#if page}}<p class="bastionland-card__tagline">{{page}}</p>{{/if}}
+		<p class="bastionland-card__hint">{{#if lead}}<strong>{{lead}}:</strong> {{/if}}{{hint}}</p>
 	</header>
 	<p class="bastionland-card__outcome"><span class="bastionland-card__roll">{{d6}}</span> {{result}}</p>
 </section>

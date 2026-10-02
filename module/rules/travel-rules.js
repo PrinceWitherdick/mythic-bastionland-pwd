@@ -13,7 +13,7 @@ import { REFEREE_TABLES } from "./referee-rolls.js";
 export const TRAVEL_SIDES = Object.freeze(["left", "right"]);
 
 /** The bands every travelling table reads a d6 in, worst first. */
-export const D6_BANDS = Object.freeze(["1", "2-3", "4-6"]);
+export { D6_BANDS } from "./referee-rolls.js";
 
 /** What the Wilderness Roll turns up on a 1, a 2-3 and a 4-6. */
 const WILDERNESS_ROWS = Object.freeze(["randomOmen", "nearestOmen", "landmark"]);

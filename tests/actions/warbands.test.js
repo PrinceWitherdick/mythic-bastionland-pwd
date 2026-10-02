@@ -4,17 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { withBookText } from "../../module/rules/book-text.js";
 
-/** What the confirm and choose dialogs answer with. */
+/** What the confirm, choose and muster dialogs answer with. */
 let confirmed;
 let chosen;
+let mustered;
 
 vi.mock("../../module/apps/ui.js", () => ({
 	confirmDialog: vi.fn(async () => confirmed),
 	chooseDialog: vi.fn(async () => chosen),
-	waitDialog: vi.fn(async () => null)
+	inputDialog: vi.fn(async () => mustered)
 }));
 
-const { MUSTERED_FLAG, ORIGIN_FLAG, dismissWarband, musterView, strainWarband, warbandsOf, wearWarbandDown } =
+const { inputDialog } = await import("../../module/apps/ui.js");
+const { MUSTERED_FLAG, ORIGIN_FLAG, dismissWarband, musterView, musterWarband, strainWarband, warbandsOf, wearWarbandDown } =
 	await import("../../module/actions/warbands.js");
 
 const root = join(import.meta.dirname, "../..");
@@ -35,6 +37,7 @@ function fakeWarband({ id = "w1", name = "The Militia", spi = 7, vig = 10, morta
 		id,
 		uuid: `Actor.${id}`,
 		name,
+		img: "icons/warband.webp",
 		type: "npc",
 		isOwner,
 		system: {
@@ -70,6 +73,7 @@ const fakeDomain = ({ muster = 2, name = "Bramblewatch" } = {}) => ({
 beforeEach(() => {
 	confirmed = true;
 	chosen = null;
+	mustered = null;
 	rolled = 3;
 	cards = [];
 	globalThis.Roll = class {
@@ -117,7 +121,7 @@ describe("warbandsOf and musterView", () => {
 		expect(warbandsOf(domain)).toEqual([mine]);
 		const view = musterView(domain);
 		expect(view.state).toMatchObject({ mustered: 1, muster: 2, full: false });
-		expect(view.lines[0]).toMatchObject({ id: "w1", name: "The Militia", origin: lookup("bastionland.warband.origins.mercenaries.label"), state: null });
+		expect(view.lines[0]).toMatchObject({ id: "w1", img: "icons/warband.webp", name: "The Militia", origin: lookup("bastionland.warband.origins.mercenaries.label"), state: null });
 	});
 
 	it("says what has become of a Warband in the list", () => {
@@ -216,5 +220,47 @@ describe("dismissWarband", () => {
 	it("lets nobody go who isn't the Holding's", async () => {
 		game.actors = [fakeWarband({ flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d9" } })];
 		expect(await dismissWarband(fakeDomain(), "w1")).toBe(false);
+	});
+});
+
+describe("musterWarband", () => {
+	let created;
+
+	beforeEach(() => {
+		created = [];
+		globalThis.Actor = {
+			implementation: {
+				create: vi.fn(async (data) => {
+					const actor = { ...data, id: "w9", sheet: { render: vi.fn() } };
+					created.push(actor);
+					return actor;
+				})
+			}
+		};
+	});
+
+	afterEach(() => {
+		delete globalThis.Actor;
+	});
+
+	it("raises a Warband with no stats yet when the book's aren't imported", async () => {
+		mustered = { warband: "blank", origin: "mercenaries" };
+		const warband = await musterWarband(fakeDomain());
+		expect(inputDialog).toHaveBeenCalledWith(expect.objectContaining({ template: "muster" }));
+		expect(inputDialog.mock.calls[0][0].context.warbands).toEqual([]);
+		expect(warband.name).toBe(lookup("bastionland.warband.muster.newName"));
+		expect(warband.flags[SYSTEM_ID]).toEqual({ [MUSTERED_FLAG]: "d1", [ORIGIN_FLAG]: "mercenaries" });
+	});
+
+	it("raises nobody when the dialog is closed", async () => {
+		mustered = null;
+		expect(await musterWarband(fakeDomain())).toBeNull();
+		expect(created).toEqual([]);
+	});
+
+	it("raises nobody for a choice that isn't on the list", async () => {
+		mustered = { warband: "gone", origin: "vassals" };
+		expect(await musterWarband(fakeDomain())).toBeNull();
+		expect(created).toEqual([]);
 	});
 });

@@ -60,8 +60,8 @@ describe("luckAtOdds", () => {
 		expect(luckAtOdds("high", 1).favoured).toBe(false);
 	});
 
-	it("runs from slimmest to highest, one pip apart", () => {
-		expect(LUCK_ODDS.map(({ needs }) => needs)).toEqual([6, 5, 4, 3, 2]);
+	it("runs from highest to slimmest, one pip apart", () => {
+		expect(LUCK_ODDS.map(({ needs }) => needs)).toEqual([2, 3, 4, 5, 6]);
 	});
 
 	it("has nothing for odds it doesn't know, and rejects a roll that isn't a d6", () => {

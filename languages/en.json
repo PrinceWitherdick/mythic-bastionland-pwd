@@ -665,6 +665,8 @@
       "renameOk": "Name it",
       "blankIntro": "Take a steed with no stats yet, to fill in yourself.",
       "blank": "No stats yet",
+      "blankDetail": "A steed of your own, with a trample to fill in on its sheet.",
+      "which": "Which steed",
       "pickIntro": "Take one of the book’s steeds (p12), or one with no stats yet to fill in yourself.",
       "gallop": {
         "title": "Gallop",
@@ -2227,15 +2229,21 @@
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
       "odds": {
-        "question": "Read it on the Luck Roll table, or at odds you’ve stated?",
-        "table": "The table: Crisis, Problem or Blessing",
+        "intro": "A Luck Roll leaves it to one d6. High goes the players’ way, low goes against them.",
+        "tableHeading": "The Luck Roll table",
+        "tableHelp": "tells you how things turn out. Use it when no one has named the odds.",
+        "oddsHeading": "Stated odds",
+        "oddsHelp": "only answer yes or no. Use them when you’ve already told the players how likely it is, as in “a slim chance”. Fortune favours them on the number shown or higher.",
+        "notDomain": "The table’s Crisis is a bad turn in the moment, not one of a Domain’s Crises.",
+        "question": "Which way will you read it?",
+        "table": "The Luck Roll table",
         "label": "{odds} ({needs}+)",
         "slim": "A slim chance",
         "unlikely": "Unlikely",
         "even": "Straight 50/50",
         "likely": "Likely",
         "high": "A high chance",
-        "hint": "{odds}: fortune favours the players on {needs} or higher.",
+        "hint": "Fortune favours the players on {needs} or higher.",
         "favoured": "Fortune favours them.",
         "against": "Fortune doesn’t favour them."
       },
@@ -3712,6 +3720,7 @@
       "full": "Every Warband this Holding can raise is in the field.",
       "spiritLine": "{abbr} {spi}",
       "cantCreate": "Mustering a Warband creates an actor, so it needs a user who is allowed to create actors. Ask the Referee.",
+      "armourAbbr": "A",
       "origins": {
         "vassals": {
           "label": "Loyal Vassals",
@@ -3736,7 +3745,9 @@
         "origin": "Where the soldiers are drawn from",
         "intro": "Who takes the field for {name}?",
         "blankIntro": "Who takes the field for {name}? Import PDF brings in the book\u2019s Warbands; until then, raise one and fill in their stats.",
+        "which": "Which Warband",
         "blank": "A Warband of Your Own",
+        "blankDetail": "No stats yet. Fill them in on their sheet.",
         "ok": "Muster Them",
         "newName": "A Warband",
         "needs": "Wherever they come from, soldiers expect to be fed and sheltered while they serve.",
@@ -3745,9 +3756,9 @@
         "full": "{name} already has {count} Warbands in the field, all it can raise. Muster another anyway?"
       },
       "dismiss": {
-        "title": "Let Them Go",
-        "confirm": "Do the soldiers of {name} leave the service of {domain}? Their sheet stays in the Actors tab.",
-        "went": "{name} leaves the service of {domain}."
+        "title": "Disband",
+        "confirm": "Disband {name}? Its soldiers leave the service of {domain}. Their sheet stays in the Actors tab.",
+        "went": "{name} is disbanded and leaves the service of {domain}."
       },
       "upkeep": {
         "title": "Upkeep",

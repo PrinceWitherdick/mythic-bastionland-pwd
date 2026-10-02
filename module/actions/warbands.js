@@ -1,6 +1,7 @@
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
-import { chooseDialog, confirmDialog, waitDialog } from "../apps/ui.js";
-import { postCard, t } from "../chat/cards.js";
+import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
+import { postCard, statLabels, t } from "../chat/cards.js";
+import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { escapeHTML } from "../rules/text.js";
 import {
 	UPKEEP_LOSS,
@@ -12,6 +13,7 @@ import {
 	musterState,
 	strainedSpirit,
 	warbandLine,
+	warbandStatLine,
 	willNotFollowOrders
 } from "../rules/warbands.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -30,9 +32,6 @@ export const MUSTERED_FLAG = "musteredBy";
 
 /** Where a Warband was drawn from, kept so the sheet and cards can say. */
 export const ORIGIN_FLAG = "warbandOrigin";
-
-/** The dialog's button for a Warband with no stats yet. */
-const BLANK = "blank";
 
 /**
  * @param {Actor} domain
@@ -59,6 +58,7 @@ export function musterView(domain) {
 			return {
 				id: actor.id,
 				uuid: actor.uuid,
+				img: actor.img,
 				name: line.name,
 				spi: t("warband.spiritLine", { spi: line.spi, abbr: t(`virtues.${UPKEEP_VIRTUE}.abbr`) }),
 				state: line.state ? t(`npc.warband.${line.state}.label`) : null,
@@ -88,26 +88,28 @@ async function warbandsFromBook() {
  * Ask which Warband is raised, and where its soldiers are drawn from.
  * @param {Actor[]} warbands The book's, if they've been imported.
  * @param {string} intro
- * @returns {Promise<{warband: Actor|typeof BLANK, origin: string}|null>} Null if closed.
+ * @returns {Promise<{warband: Actor|typeof PICK_BLANK, origin: string}|null>} Null if closed.
  */
 async function pickWarband(warbands, intro) {
-	const origins = WARBAND_ORIGINS.map((key) => `<label class="bastionland-check" data-tooltip="${escapeHTML(t(`warband.origins.${key}.hint`))}">
-		<input type="radio" name="origin" value="${key}"${key === WARBAND_ORIGINS[0] ? " checked" : ""}>
-		<span class="bastionland-check__label">${escapeHTML(t(`warband.origins.${key}.label`))}</span>
-	</label>`).join("");
-	const lines = warbands.map((warband) => `<strong>${escapeHTML(warband.name)}</strong>: ${escapeHTML(warband.system.epithet || "")}`);
-	const pick = (warband) => (event, button) => ({ warband, origin: button.form.elements.origin.value });
-
-	return waitDialog({
-		window: { title: t("warband.muster.title"), icon: "fa-solid fa-flag" },
-		content: [intro, ...lines].map((line) => `<p>${line}</p>`).join("")
-			+ `<fieldset><legend>${escapeHTML(t("warband.muster.origin"))}</legend>${origins}</fieldset>`
-			+ `<p class="hint">${escapeHTML(t("warband.muster.needs"))}</p>`,
-		buttons: [
-			...warbands.map((warband, index) => ({ action: warband.id, label: warband.name, default: index === 0, callback: pick(warband) })),
-			{ action: BLANK, label: warbands.length ? t("warband.muster.blank") : t("warband.muster.ok"), default: !warbands.length, callback: pick(BLANK) }
-		]
+	const labels = { ...statLabels(), armour: t("warband.armourAbbr") };
+	const data = await inputDialog({
+		title: t("warband.muster.title"),
+		icon: "fa-solid fa-flag",
+		template: "muster",
+		context: {
+			intro,
+			warbands: warbands.map((warband) => ({
+				id: warband.id,
+				name: warband.name,
+				detail: warbandStatLine(warband.system, warband.items.contents.map((item) => item.toObject()), labels) || warband.system.epithet || ""
+			})),
+			origins: WARBAND_ORIGINS.map((key) => ({ key, label: t(`warband.origins.${key}.label`), hint: t(`warband.origins.${key}.hint`) }))
+		},
+		ok: { label: t("warband.muster.ok"), icon: "fa-solid fa-flag" }
 	});
+	if (!data) return null;
+	const warband = pickedFrom(warbands, data.warband);
+	return warband ? { warband, origin: data.origin } : null;
 }
 
 /**
@@ -136,7 +138,7 @@ export async function musterWarband(domain) {
 	const choice = await pickWarband(book, t(book.length ? "warband.muster.intro" : "warband.muster.blankIntro", { name: escapeHTML(domain.name) }));
 	if (!choice || !isOrigin(choice.origin)) return null;
 
-	const blank = choice.warband === BLANK;
+	const blank = choice.warband === PICK_BLANK;
 	const data = blank ? { type: "npc", name: t("warband.muster.newName") } : game.actors.fromCompendium(choice.warband);
 	const warband = await Actor.implementation.create({
 		...data,

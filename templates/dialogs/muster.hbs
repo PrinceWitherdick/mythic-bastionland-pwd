@@ -1,0 +1,16 @@
+<div class="bastionland-dialog__body">
+	<p>{{{intro}}}</p>
+
+	{{> "bastionland.pick-list" name="warband" choices=warbands legend=(localize "bastionland.warband.muster.which") blankLabel=(localize "bastionland.warband.muster.blank") blankDetail=(localize "bastionland.warband.muster.blankDetail")}}
+
+	<fieldset>
+		<legend>{{localize "bastionland.warband.muster.origin"}}</legend>
+		{{#each origins}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="radio" name="origin" value="{{key}}" {{checked @first}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+	<p class="hint">{{localize "bastionland.warband.muster.needs"}}</p>
+</div>

@@ -9,6 +9,7 @@ import {
 	musterState,
 	strainedSpirit,
 	warbandLine,
+	warbandStatLine,
 	warbandState,
 	willNotFollowOrders
 } from "../../module/rules/warbands.js";
@@ -112,5 +113,31 @@ describe("warbandLine", () => {
 
 	it("says nothing of an individual, who has no Warband states", () => {
 		expect(warbandLine({ name: "Sir Ose", spi: 12, warband: null }).state).toBeNull();
+	});
+});
+
+describe("warbandStatLine", () => {
+	const track = (max) => ({ value: max, max });
+	const weapon = (name, damage) => ({ type: "weapon", name, system: { damage } });
+
+	it("prints the scores, Armour and attacks as the book would", () => {
+		const system = { virtues: { vig: track(12), cla: track(8), spi: track(10) }, guard: track(4), armour: 1 };
+		expect(warbandStatLine(system, [weapon("Spears", "d6"), weapon("Bows", "d4")]))
+			.toBe("VIG 12, CLA 8, SPI 10, 4GD, A1, Spears (d6), Bows (d4)");
+	});
+
+	it("leaves out Armour they don't have, and anything that isn't an attack", () => {
+		const system = { virtues: { vig: track(9), cla: track(9), spi: track(9) }, guard: track(2), armour: 0 };
+		expect(warbandStatLine(system, [weapon("Clubs", "d6"), { type: "feature", name: "Banner", system: {} }]))
+			.toBe("VIG 9, CLA 9, SPI 9, 2GD, Clubs (d6)");
+	});
+
+	it("uses the labels it is given", () => {
+		const system = { virtues: { vig: track(9) }, armour: 2 };
+		expect(warbandStatLine(system, [], { vig: "V", cla: "C", spi: "S", guard: "G", armour: "Ar" })).toBe("V 9, Ar2");
+	});
+
+	it("says nothing for a Warband with no stats yet", () => {
+		expect(warbandStatLine({ virtues: {}, armour: 0 })).toBe("");
 	});
 });

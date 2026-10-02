@@ -65,6 +65,16 @@ export function formatStatLine(stats, labels = { vig: "VIG", cla: "CLA", spi: "S
 }
 
 /**
+ * The scores an NPC was made with, which are its maximums, as a stat line reads them.
+ * @param {object} system An NPC's system data.
+ * @returns {Stats}
+ */
+export const maxStats = (system) => ({
+	...Object.fromEntries(VIRTUES.map((key) => [key, system.virtues?.[key]?.max ?? null])),
+	guard: system.guard?.max ?? null
+});
+
+/**
  * "The Heron, That Grey Stalker of the Reeds" is named "The Heron", with the
  * rest as their epithet.
  * @param {string} full

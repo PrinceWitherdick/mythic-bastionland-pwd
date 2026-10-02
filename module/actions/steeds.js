@@ -1,13 +1,10 @@
-import { waitDialog } from "../apps/ui.js";
+import { inputDialog } from "../apps/ui.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { BREED_FLAG, GALLOP_ROLL, bookSteeds, gallopBlocked, steedBreedShown, steedStatLine, vigAfterGallop } from "../rules/steeds.js";
-import { escapeHTML } from "../rules/text.js";
+import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { chooseCompany } from "./time.js";
-
-/** The dialog's button for a steed with no stats yet. */
-const BLANK = "blank";
 
 /**
  * @param {Actor} actor
@@ -36,33 +33,30 @@ async function steedsFromBook() {
 }
 
 /**
- * @param {string} [value]
- * @returns {string} A box to name the steed in.
- */
-const nameField = (value = "") => `<div class="form-group">
-	<label for="bastionland-steed-name">${escapeHTML(t("steed.nameLabel"))}</label>
-	<div class="form-fields"><input id="bastionland-steed-name" type="text" name="name" value="${escapeHTML(value)}" placeholder="${escapeHTML(t("steed.namePlaceholder"))}" autocomplete="off"></div>
-</div>`;
-
-/**
  * Ask which of the book's steeds to take, or one with no stats yet, and what
  * to call it.
  * @param {Actor[]} steeds
- * @returns {Promise<{steed: Actor|typeof BLANK, name: string}|null>} Null if closed.
+ * @returns {Promise<{steed: Actor|typeof PICK_BLANK, name: string}|null>} Null if closed.
  */
 async function pickSteed(steeds) {
-	const intro = steeds.length ? t("steed.pickIntro") : t("steed.blankIntro");
-	const lines = steeds.map((steed) => `<strong>${escapeHTML(steed.name)}</strong>: ${escapeHTML(steedStatLine(steed.system, steed.items.contents.map((item) => item.toObject()), statLabels()))}`);
-	const pick = (steed) => (event, button) => ({ steed, name: button.form.elements.name.value.trim() });
-	return waitDialog({
-		window: { title: t("steed.take"), icon: "fa-solid fa-horse" },
-		classes: ["bastionland-steed-pick"],
-		content: [intro, ...lines].map((line) => `<p>${line}</p>`).join("") + nameField(),
-		buttons: [
-			...steeds.map((steed, index) => ({ action: steed.id, label: steed.name, default: index === 0, callback: pick(steed) })),
-			{ action: BLANK, label: steeds.length ? t("steed.blank") : t("steed.take"), default: !steeds.length, callback: pick(BLANK) }
-		]
+	const labels = statLabels();
+	const data = await inputDialog({
+		title: t("steed.take"),
+		icon: "fa-solid fa-horse",
+		template: "take-steed",
+		context: {
+			intro: steeds.length ? t("steed.pickIntro") : t("steed.blankIntro"),
+			steeds: steeds.map((steed) => ({
+				id: steed.id,
+				name: steed.name,
+				detail: steedStatLine(steed.system, steed.items.contents.map((item) => item.toObject()), labels)
+			}))
+		},
+		ok: { label: t("steed.take"), icon: "fa-solid fa-horse" }
 	});
+	if (!data) return null;
+	const steed = pickedFrom(steeds, data.steed);
+	return steed ? { steed, name: String(data.name ?? "").trim() } : null;
 }
 
 /**
@@ -72,12 +66,12 @@ async function pickSteed(steeds) {
  */
 export async function renameSteed(steed) {
 	if (!steed?.isOwner) return null;
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("steed.rename"), icon: "fa-solid fa-horse" },
-		classes: ["bastionland-dialog"],
-		content: nameField(steed.name),
-		ok: { icon: "fa-solid fa-check", label: t("steed.renameOk") },
-		rejectClose: false
+	const data = await inputDialog({
+		title: t("steed.rename"),
+		icon: "fa-solid fa-horse",
+		template: "rename-steed",
+		context: { name: steed.name },
+		ok: { label: t("steed.renameOk") }
 	});
 	const name = data?.name?.trim();
 	if (!name || name === steed.name) return null;
@@ -106,7 +100,7 @@ export async function takeSteed(knight) {
 	const choice = await pickSteed(await steedsFromBook());
 	if (!choice) return null;
 
-	const blank = choice.steed === BLANK;
+	const blank = choice.steed === PICK_BLANK;
 	const data = blank
 		? { type: "npc", name: t("steed.label"), items: [{ type: "weapon", name: t("steed.trample"), system: { trample: true, equipped: true } }] }
 		: game.actors.fromCompendium(choice.steed);
