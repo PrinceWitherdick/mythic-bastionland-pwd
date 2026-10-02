@@ -242,7 +242,8 @@
 	.bastionland-heraldry-painter__swatch,
 	.bastionland-heraldry-painter__recent-swatch,
 	.bastionland-heraldry-painter__division,
-	.bastionland-heraldry-painter__charge
+	.bastionland-heraldry-painter__charge,
+	.bastionland-heraldry-painter__layer-pick
 ) {
 	appearance: none;
 	width: auto;
@@ -1031,6 +1032,105 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-heraldry-painter__arms-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The frame round the picture or charge that dragging moves, over the painting like the guides. */
+.bastionland-heraldry-painter__frame {
+	position: absolute;
+	top: -4px;
+	left: -4px;
+	width: calc(100% + 8px);
+	height: calc(100% + 8px);
+	overflow: visible;
+	pointer-events: none;
+}
+
+/* Pale underneath and dark dashes over it, so the frame shows on any colour. */
+.bastionland-heraldry-painter__frame rect {
+	fill: none;
+	stroke: var(--bastionland-paper);
+	stroke-width: 2px;
+	vector-effect: non-scaling-stroke;
+}
+
+.bastionland-heraldry-painter__frame rect + rect {
+	stroke: var(--bastionland-ink);
+	stroke-dasharray: 8 6;
+}
+
+/* The layers, front first, each a row to pick it with buttons to move or remove it. */
+.bastionland-heraldry-painter__layers {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.bastionland-heraldry-painter__layers .bastionland-heading {
+	margin: 0;
+}
+
+.bastionland-heraldry-painter__layer-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	max-height: 14rem;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.bastionland-heraldry-painter__layer {
+	display: flex;
+	align-items: center;
+	gap: 0.2rem;
+	padding: 0.1rem 0.2rem;
+	border: 1.5px solid transparent;
+	border-radius: 4px;
+}
+
+.bastionland-heraldry-painter__layer:hover {
+	border-color: var(--bastionland-rule);
+}
+
+.bastionland-heraldry-painter__layer.is-active {
+	border-color: var(--bastionland-ink);
+	background: color-mix(in srgb, var(--bastionland-verdigris) 15%, transparent);
+}
+
+.bastionland-page .bastionland-heraldry-painter__layer-pick {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 0.4rem;
+	min-width: 0;
+}
+
+.bastionland-heraldry-painter__layer-icon {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 3px;
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-heraldry-painter__layer-icon :is(img, svg) {
+	width: 100%;
+	height: 100%;
+	padding: 0.1rem;
+	border: none;
+	object-fit: contain;
+}
+
+.bastionland-heraldry-painter__layer-name {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;

@@ -187,15 +187,46 @@ export function hexToRgba(hex) {
  * @param {number} [options.edgeTolerance]
  * @returns {boolean} Whether anything was painted.
  */
-export function floodFill(pixels, width, height, x, y, color, { inside, tolerance = FILL_TOLERANCE, edgeTolerance = EDGE_TOLERANCE } = {}) {
+export function floodFill(pixels, width, height, x, y, color, options = {}) {
+	const reached = floodReach(pixels, width, height, x, y, color, options);
+	if (!reached) return false;
+	paintReached(pixels, reached, color);
+	return true;
+}
+
+/**
+ * Paint the pixels a fill reached.
+ * @param {Uint8ClampedArray} pixels RGBA, changed in place.
+ * @param {Uint8Array} reached From floodReach.
+ * @param {number[]} color [r, g, b, a]
+ */
+export function paintReached(pixels, reached, color) {
+	for (let index = 0; index < reached.length; index++) {
+		if (reached[index]) pixels.set(color, index * 4);
+	}
+}
+
+/**
+ * Which pixels a paint bucket's fill would paint, as floodFill fills them,
+ * without painting them: a fill may read one picture and paint another.
+ * @param {ArrayLike<number>} pixels RGBA, read only.
+ * @param {number} width
+ * @param {number} height
+ * @param {number} x
+ * @param {number} y
+ * @param {number[]} color [r, g, b, a]
+ * @param {object} [options] As floodFill's.
+ * @returns {Uint8Array|null} Non-zero for each pixel the fill reaches, or null when it would paint nothing.
+ */
+export function floodReach(pixels, width, height, x, y, color, { inside, tolerance = FILL_TOLERANCE, edgeTolerance = EDGE_TOLERANCE } = {}) {
 	const column = Math.floor(x);
 	const row = Math.floor(y);
-	if (column < 0 || row < 0 || column >= width || row >= height) return false;
+	if (column < 0 || row < 0 || column >= width || row >= height) return null;
 	const start = row * width + column;
-	if (inside && !inside[start]) return false;
+	if (inside && !inside[start]) return null;
 
-	const target = pixels.slice(start * 4, start * 4 + 4);
-	if (difference(color, target, 0) === 0) return false;
+	const target = Array.prototype.slice.call(pixels, start * 4, start * 4 + 4);
+	if (difference(color, target, 0) === 0) return null;
 
 	// 0 untouched, 1 filled and spread from, 2 a soft edge filled but not spread from.
 	const reached = new Uint8Array(width * height);
@@ -220,11 +251,7 @@ export function floodFill(pixels, width, height, x, y, color, { inside, toleranc
 		if (index >= width) visit(index - width);
 		if (index < width * (height - 1)) visit(index + width);
 	}
-
-	for (let index = 0; index < reached.length; index++) {
-		if (reached[index]) pixels.set(color, index * 4);
-	}
-	return true;
+	return reached;
 }
 
 /**
@@ -832,17 +859,122 @@ const isColor = (value) => typeof value === "string" && HEX_COLOR.test(value);
  */
 export function readArms(saved, heraldry, charges) {
 	if (!saved || typeof saved !== "object" || !heraldry || saved.stamp !== heraldryStamp(heraldry)) return null;
+	return armsFrom(saved, charges);
+}
+
+/**
+ * @param {object} saved Arms as kept, their stamp checked already.
+ * @param {string[]} charges Keys of the charges there are.
+ * @returns {Arms|null} The arms, or null when they aren't arms.
+ */
+function armsFrom(saved, charges) {
 	const { division = null, field, charge = null } = saved;
 	if (division !== null && !divisionOf(division)) return null;
 	const count = division ? groupCount(divisionOf(division)) : 1;
 	if (!Array.isArray(field) || field.length !== count || !field.every(isColor)) return null;
 	if (charge === null) return { division, field: [...field], charge: null };
-	const { key, color, counterchanged, placement, flip } = charge;
-	const { x, y, scale } = placement ?? {};
-	if (!charges.includes(key) || !isColor(color) || ![x, y, scale].every(Number.isFinite) || !(scale > 0)) return null;
+	const { key, color, counterchanged, flip } = charge;
+	const placement = readPlacement(charge.placement);
+	if (!charges.includes(key) || !isColor(color) || !placement) return null;
 	return {
 		division,
 		field: [...field],
-		charge: { key, color, counterchanged: Boolean(counterchanged) && count > 1, placement: { x, y, scale }, flip: Boolean(flip) }
+		charge: { key, color, counterchanged: Boolean(counterchanged) && count > 1, placement, flip: Boolean(flip) }
 	};
+}
+
+/**
+ * @param {unknown} placement
+ * @returns {Placement|null} The placement, checked, or null when it isn't one.
+ */
+function readPlacement(placement) {
+	const { x, y, scale } = placement ?? {};
+	return [x, y, scale].every(Number.isFinite) && scale > 0 ? { x, y, scale } : null;
+}
+
+/**
+ * The layers a painting is made of, bottom first, as kept on the Knight. A
+ * paint layer holds what was painted by hand, a picture layer a picture from
+ * the user's files, and a charge layer a charge from the gallery. The arms, if
+ * there are any, lie on two: their field, and their charge, which takes its
+ * colours from the field when counterchanged, however far apart the two lie.
+ * @typedef {{kind: "paint", src: string|null}
+ *   | {kind: "picture", src: string, placement: Placement, flip: boolean}
+ *   | {kind: "charge", key: string, color: string, placement: Placement, flip: boolean}
+ *   | {kind: "field"}
+ *   | {kind: "armsCharge"}} KeptLayer
+ */
+
+/**
+ * Move a layer toward the front or the back.
+ * @template T
+ * @param {T[]} layers Bottom first.
+ * @param {number} index The layer to move.
+ * @param {number} by 1 to bring it forward a layer, −1 to send it back one.
+ * @returns {T[]} The layers in their new order, or the same list when the layer can go no further.
+ */
+export function moveLayer(layers, index, by) {
+	const to = index + by;
+	if (index < 0 || index >= layers.length || to < 0 || to >= layers.length || to === index) return layers;
+	const moved = [...layers];
+	const [layer] = moved.splice(index, 1);
+	moved.splice(to, 0, layer);
+	return moved;
+}
+
+/**
+ * @template T
+ * @param {T[]} layers Bottom first.
+ * @param {T} layer
+ * @param {number|null} [above] The index of the layer to put it straight above, or null for the front.
+ * @returns {T[]}
+ */
+export function insertLayer(layers, layer, above = null) {
+	const at = above === null ? layers.length : Math.min(layers.length, Math.max(0, above + 1));
+	return [...layers.slice(0, at), layer, ...layers.slice(at)];
+}
+
+const isSource = (value) => typeof value === "string" && value.length > 0;
+
+/**
+ * @param {unknown} layer
+ * @param {string[]} charges Keys of the charges there are.
+ * @returns {KeptLayer|null}
+ */
+function readLayer(layer, charges) {
+	if (!layer || typeof layer !== "object") return null;
+	const { kind } = layer;
+	if (kind === "field" || kind === "armsCharge") return { kind };
+	if (kind === "paint") {
+		const src = layer.src ?? null;
+		return src === null || isSource(src) ? { kind, src } : null;
+	}
+	const placement = readPlacement(layer.placement);
+	if (!placement) return null;
+	const flip = Boolean(layer.flip);
+	if (kind === "picture") return isSource(layer.src) ? { kind, src: layer.src, placement, flip } : null;
+	if (kind === "charge" && charges.includes(layer.key) && isColor(layer.color)) {
+		return { kind, key: layer.key, color: layer.color, placement, flip };
+	}
+	return null;
+}
+
+/**
+ * A painting's layers as kept on a Knight, checked.
+ * @param {unknown} saved
+ * @param {string} heraldry The Knight's heraldry as saved.
+ * @param {string[]} charges Keys of the charges there are.
+ * @returns {{arms: Arms|null, layers: KeptLayer[]}|null} Null when they aren't layers, or were saved with other heraldry.
+ */
+export function readLayers(saved, heraldry, charges) {
+	if (!saved || typeof saved !== "object" || !Array.isArray(saved.layers)) return null;
+	if (!heraldry || saved.stamp !== heraldryStamp(heraldry)) return null;
+	const arms = saved.arms && typeof saved.arms === "object" ? armsFrom(saved.arms, charges) : null;
+	if (saved.arms && !arms) return null;
+	const layers = saved.layers.map((layer) => readLayer(layer, charges));
+	if (!layers.every(Boolean)) return null;
+	// The arms lie on one field layer, and one more for their charge if they bear one.
+	const count = (kind) => layers.filter((layer) => layer.kind === kind).length;
+	if (count("field") !== (arms ? 1 : 0) || count("armsCharge") !== (arms?.charge ? 1 : 0)) return null;
+	return { arms, layers };
 }

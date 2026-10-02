@@ -15,11 +15,32 @@
 				<div class="bastionland-heraldry-painter__ground">
 					<canvas class="bastionland-heraldry-painter__canvas" width="{{width}}" height="{{height}}" tabindex="0" aria-label="{{localize 'bastionland.heraldry.canvas'}}"></canvas>
 					<svg class="bastionland-heraldry-painter__guides" viewBox="0 0 {{width}} {{height}}" preserveAspectRatio="none" aria-hidden="true" data-division-guides hidden></svg>
+					<svg class="bastionland-heraldry-painter__frame" viewBox="0 0 {{width}} {{height}}" preserveAspectRatio="none" aria-hidden="true" data-frame hidden><rect/><rect/></svg>
 				</div>
 			</div>
 			<button type="button" class="bastionland-button" data-action="browseCharges" data-tooltip="{{localize 'bastionland.heraldry.charges.openHint'}}" aria-pressed="false"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.heraldry.charges.open"}}</button>
 			<button type="button" class="bastionland-button" data-action="randomize" data-tooltip="{{localize 'bastionland.heraldry.randomizeHint'}}"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.heraldry.randomize"}}</button>
 			<button type="button" class="bastionland-button" data-action="editArms" data-tooltip="{{localize 'bastionland.heraldry.arms.editHint'}}" hidden><i class="fa-solid fa-pen-to-square" inert></i> {{localize "bastionland.heraldry.arms.edit"}}</button>
+
+			<section class="bastionland-heraldry-painter__layers" data-layers>
+				<div class="bastionland-heraldry-painter__title-row">
+					<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.heraldry.layers.title"}}</h3>
+					<button type="button" data-action="addLayer" data-tooltip="{{localize 'bastionland.heraldry.layers.addHint'}}"><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.heraldry.layers.add"}}</button>
+				</div>
+				<p class="bastionland-heraldry-painter__hint" data-layers-empty>{{localize "bastionland.heraldry.layers.empty"}}</p>
+				<ol class="bastionland-heraldry-painter__layer-list" data-layer-list aria-label="{{localize 'bastionland.heraldry.layers.list'}}" hidden></ol>
+				<template data-layer-row>
+					<li class="bastionland-heraldry-painter__layer">
+						<button type="button" class="bastionland-heraldry-painter__layer-pick" data-action="selectLayer" aria-pressed="false">
+							<span class="bastionland-heraldry-painter__layer-icon" data-layer-icon></span>
+							<span class="bastionland-heraldry-painter__layer-name" data-layer-name></span>
+						</button>
+						<button type="button" class="bastionland-icon" data-action="layerForward" data-tooltip="{{localize 'bastionland.heraldry.layers.forward'}}" aria-label="{{localize 'bastionland.heraldry.layers.forward'}}"><i class="fa-solid fa-arrow-up" inert></i></button>
+						<button type="button" class="bastionland-icon" data-action="layerBack" data-tooltip="{{localize 'bastionland.heraldry.layers.back'}}" aria-label="{{localize 'bastionland.heraldry.layers.back'}}"><i class="fa-solid fa-arrow-down" inert></i></button>
+						<button type="button" class="bastionland-icon" data-action="removeLayer" data-tooltip="{{localize 'bastionland.heraldry.layers.remove'}}" aria-label="{{localize 'bastionland.heraldry.layers.remove'}}"><i class="fa-solid fa-xmark" inert></i></button>
+					</li>
+				</template>
+			</section>
 		</div>
 
 		<div class="bastionland-heraldry-painter__side">
@@ -96,7 +117,7 @@
 			<div class="bastionland-heraldry-painter__controls" data-arms-controls hidden>
 				<div class="bastionland-heraldry-painter__title-row">
 					<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.heraldry.arms.title"}}</h3>
-					<button type="button" data-action="doneArms" data-tooltip="{{localize 'bastionland.heraldry.arms.doneHint'}}"><i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.heraldry.arms.done"}}</button>
+					<button type="button" data-action="doneLayer" data-tooltip="{{localize 'bastionland.heraldry.arms.doneHint'}}"><i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.heraldry.arms.done"}}</button>
 				</div>
 				<p class="bastionland-heraldry-painter__hint">{{localize "bastionland.heraldry.arms.hint"}}</p>
 
@@ -167,7 +188,7 @@
 			</div>
 
 			<div class="bastionland-heraldry-painter__controls" data-place-controls hidden>
-				<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.heraldry.placing.title"}}</h3>
+				<h3 class="bastionland-heading bastionland-heading--small" data-place-title>{{localize "bastionland.heraldry.placing.title"}}</h3>
 				<p class="bastionland-heraldry-painter__hint">{{localize "bastionland.heraldry.placing.hint"}}</p>
 				<div class="bastionland-heraldry-painter__charge-colors" data-charge-colors hidden>
 					<span>{{localize "bastionland.heraldry.charges.tincture"}}</span>
@@ -184,11 +205,11 @@
 				<div class="bastionland-heraldry-painter__row">
 					<button type="button" data-action="fitImage"><i class="fa-solid fa-compress" inert></i> {{localize "bastionland.heraldry.placing.fit"}}</button>
 					<button type="button" data-action="fillImage"><i class="fa-solid fa-expand" inert></i> {{localize "bastionland.heraldry.placing.fill"}}</button>
-					<button type="button" data-action="flipImage"><i class="fa-solid fa-left-right" inert></i> {{localize "bastionland.heraldry.placing.flip"}}</button>
+					<button type="button" data-action="flipImage" aria-pressed="false"><i class="fa-solid fa-left-right" inert></i> {{localize "bastionland.heraldry.placing.flip"}}</button>
 				</div>
 				<div class="bastionland-heraldry-painter__row">
-					<button type="button" data-action="discardImage"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.heraldry.placing.discard"}}</button>
-					<button type="button" data-action="placeImage"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.heraldry.placing.place"}}</button>
+					<button type="button" data-action="removeSelected"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.heraldry.placing.remove"}}</button>
+					<button type="button" data-action="doneLayer" data-tooltip="{{localize 'bastionland.heraldry.placing.doneHint'}}"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.heraldry.placing.done"}}</button>
 				</div>
 			</div>
 		</div>

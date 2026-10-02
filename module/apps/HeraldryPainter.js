@@ -24,15 +24,19 @@ import {
 	divisionOf,
 	editableArms,
 	fillScale,
-	floodFill,
+	floodReach,
 	heraldryStamp,
 	hexToRgba,
+	insertLayer,
 	isBlank,
 	keepOnPainting,
+	moveLayer,
+	paintReached,
 	placementBox,
 	placementLimits,
 	randomArms,
 	readArms,
+	readLayers,
 	readRecentColors,
 	rechargeArms,
 	redivideArms,
@@ -58,7 +62,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
  */
 const PAINTING = Object.freeze({ width: PAINTING_WIDTH * PAINT_SCALE, height: PAINTING_HEIGHT * PAINT_SCALE });
 
-/** Arrow keys move a picture being placed one of the sheet's pixels, or ten with Shift. */
+/** Arrow keys move a picture or charge one of the sheet's pixels, or ten with Shift. */
 const NUDGES = Object.freeze({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] });
 
 /** Tinctures the division previews show their groups in, in group order. */
@@ -72,22 +76,50 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** The user flag holding the colours they've mixed or taken from a painting, most recent first. */
 const RECENT_COLORS_FLAG = "recentColors";
 
-/** The actor flag keeping the arms a Knight's heraldry was saved as, to edit again. */
+/** The actor flag keeping the layers a Knight's heraldry was saved as, to take up again. */
+const LAYERS_FLAG = "heraldryLayers";
+
+/** The actor flag arms were kept in before layers were. It's read, and cleared on the next save. */
 const ARMS_FLAG = "heraldryArms";
 
 const CHARGE_KEYS = Object.freeze(CHARGES.map(({ key }) => key));
 
-/** How many tinted charges the arms being made keep to hand. Each may be a large canvas. */
+/** How many tinted charges are kept to hand beyond those on show. Each may be a large canvas. */
 const TINT_LIMIT = 8;
 
-/** Changes of one kind to the arms this close together, in milliseconds, are one step to undo, such as each notch of the wheel. */
+/** Changes of one kind this close together, in milliseconds, are one step to undo, such as each notch of the wheel. */
 const MERGE_WINDOW = 800;
 
 /**
- * The painting as it was, to undo or redo back to: its pixels, and the arms
- * they show, if they show some. Arms being made keep no pixels, since they're
- * drawn from the arms.
- * @typedef {{pixels: ImageData|null, arms: import("../rules/heraldry.js").Arms|null}} Snapshot
+ * A picture is kept at most this many times the painting's size, however large
+ * its file: enough to stay sharp when enlarged, without holding a photograph's
+ * every pixel.
+ */
+const PICTURE_LIMIT = 2;
+
+/** Where the arms' charge lies, for working out the tints arms want before they're on the shield. */
+const ARMS_CHARGE_LAYERS = Object.freeze([{ kind: "armsCharge" }]);
+
+/**
+ * One layer of the painting. A paint layer is painted on in place; every other
+ * layer is only ever replaced, so a step to undo can keep it as it is.
+ * @typedef {{id: number, kind: "paint", canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, version: number, kept: {version: number, pixels: ImageData}|null}} PaintLayer
+ * @typedef {{id: number, kind: "charge", key: string, color: string, placement: import("../rules/heraldry.js").Placement, flip: boolean}} ChargeLayer
+ * @typedef {{id: number, kind: "picture", image: HTMLCanvasElement, placement: import("../rules/heraldry.js").Placement, flip: boolean}} PictureLayer
+ * @typedef {{id: number, kind: "field"|"armsCharge"}} ArmsLayer
+ * @typedef {PaintLayer|ChargeLayer|PictureLayer|ArmsLayer} Layer
+ */
+
+/**
+ * The painting as it was, to undo or redo back to: its layers, with each paint
+ * layer's pixels as they were, the arms, the layer picked, and which parts of
+ * the division in hand were painted.
+ * @typedef {{
+ *   layers: (Layer|{id: number, kind: "paint", version: number, pixels: ImageData})[],
+ *   arms: import("../rules/heraldry.js").Arms|null,
+ *   selected: number|null,
+ *   painted: Set<number>
+ * }} Snapshot
  */
 
 const TOOL_ICONS = Object.freeze({
@@ -97,6 +129,9 @@ const TOOL_ICONS = Object.freeze({
 	eraser: "fa-solid fa-eraser",
 	eyedropper: "fa-solid fa-eye-dropper"
 });
+
+/** Icons for the layers that don't show a charge or the field. */
+const LAYER_ICONS = Object.freeze({ paint: "fa-solid fa-paintbrush", picture: "fa-solid fa-image" });
 
 /**
  * @param {string} src
@@ -152,7 +187,7 @@ async function loadSvgImage(svg) {
 
 /**
  * A charge in a colour, drawn once onto a canvas. An SVG picture may be
- * rasterized again each time it's drawn, which a picture dragged about the
+ * rasterized again each time it's drawn, which a charge dragged about the
  * shield is, many times a second.
  * @param {string} svg The charge's file, as shipped.
  * @param {string} color
@@ -181,8 +216,25 @@ function copyCanvas(source) {
 }
 
 /**
- * The painting's canvas is kept in memory rather than on the graphics card,
- * since the painter reads its pixels often. Canvases drawn onto it are kept
+ * A picture drawn onto a canvas no larger than it needs to be. Only its shape
+ * decides where it's placed, so shrinking it moves nothing.
+ * @param {HTMLImageElement|HTMLCanvasElement} image
+ * @returns {HTMLCanvasElement}
+ */
+function pictureCanvas(image) {
+	const width = image.naturalWidth ?? image.width;
+	const height = image.naturalHeight ?? image.height;
+	const shrink = Math.min(1, (PAINTING.width * PICTURE_LIMIT) / width, (PAINTING.height * PICTURE_LIMIT) / height);
+	const canvas = document.createElement("canvas");
+	canvas.width = Math.max(1, Math.round(width * shrink));
+	canvas.height = Math.max(1, Math.round(height * shrink));
+	softwareContext(canvas).drawImage(image, 0, 0, canvas.width, canvas.height);
+	return canvas;
+}
+
+/**
+ * The painting's canvases are kept in memory rather than on the graphics card,
+ * since the painter reads their pixels often. Canvases drawn onto them are kept
  * there too, so drawing one doesn't mean copying it back off the card.
  * @param {HTMLCanvasElement} canvas
  * @returns {CanvasRenderingContext2D}
@@ -263,9 +315,34 @@ function partShield(division, group, clipId) {
 			.filter((part) => part.group === group)
 			.map(({ points }) => svgElement("polygon", { points: polygonPoints(points, SHIELD_WIDTH, SHIELD_HEIGHT), "data-part": "" }))
 		: [svgElement("path", { d: SHIELD_PATH, "data-part": "" })];
+	return smallShield(parts, clipId, { class: "bastionland-heraldry-painter__arms-part" });
+}
+
+/**
+ * A small shield showing the arms' field in its colours.
+ * @param {import("../rules/heraldry.js").Arms} arms
+ * @param {string} clipId
+ * @returns {SVGSVGElement}
+ */
+function fieldShield(arms, clipId) {
+	const division = divisionOf(arms.division);
+	const parts = division
+		? division.parts.map(({ group, points }) => svgElement("polygon", { points: polygonPoints(points, SHIELD_WIDTH, SHIELD_HEIGHT), fill: arms.field[group] }))
+		: [svgElement("path", { d: SHIELD_PATH, fill: arms.field[0] })];
+	return smallShield(parts, clipId);
+}
+
+/**
+ * A small outlined shield with shapes clipped inside it.
+ * @param {SVGElement[]} parts
+ * @param {string} clipId
+ * @param {Record<string, string>} [attributes] More for the svg element.
+ * @returns {SVGSVGElement}
+ */
+function smallShield(parts, clipId, attributes = {}) {
 	return svgElement(
 		"svg",
-		{ class: "bastionland-heraldry-painter__arms-part", viewBox: "-2 -6 140 170", "aria-hidden": "true" },
+		{ ...attributes, viewBox: "-2 -6 140 170", "aria-hidden": "true" },
 		svgElement("clipPath", { id: clipId }, svgElement("path", { d: SHIELD_PATH })),
 		svgElement("g", { "clip-path": `url(#${clipId})` }, ...parts),
 		svgElement("path", { d: SHIELD_PATH, fill: "none", stroke: "currentColor", "stroke-width": "8" })
@@ -310,6 +387,15 @@ function groupPath(division, group) {
 const tintKey = (key, color) => `${key} ${color}`;
 
 /**
+ * @param {string} key
+ * @returns {string} The charge's name, as the gallery gives it.
+ */
+const chargeName = (key) => CHARGES.find((charge) => charge.key === key)?.name ?? key;
+
+/** @param {Layer|{kind: string}|null|undefined} layer */
+const isArmsLayer = (layer) => layer?.kind === "field" || layer?.kind === "armsCharge";
+
+/**
  * @param {DataTransfer|null} transfer
  * @returns {File|undefined} The first picture among files dropped.
  */
@@ -324,20 +410,24 @@ function droppedImage(transfer) {
  * use again on any Knight. Saving uploads the painting when the user may
  * upload files, and otherwise keeps it on the Knight itself.
  *
- * A picture dropped on the shield or chosen from the files floats
- * over the painting until it's placed: dragged into position, resized and
- * flipped, then painted in, or discarded. The file itself isn't kept, only the
- * painting. A picture the painting's own size is taken for a design downloaded
- * from a painter, and opens as the painting itself. A charge picked from the gallery is placed the same way, in the
- * colour in hand, and picking a tincture while it floats recolours it.
+ * The painting is made of layers, listed under the shield front first, each
+ * of which can be brought forward, sent back or removed. Painting by hand goes
+ * onto a paint layer. A charge picked from the gallery, in the colour in hand,
+ * and a picture dropped on the shield or chosen from the files each lie on a
+ * layer of their own, and can be dragged, resized, flipped or recoloured
+ * whenever their layer is picked. A picture the painting's own size is taken
+ * for a design downloaded from a painter, and opens as the painting itself.
  *
  * Randomize makes arms: a field, plain or divided, and perhaps a charge, kept
- * as parts rather than paint, so any part can be changed or rolled again. They
- * stay that way until something is painted over them, and are kept on the
- * Knight beside the heraldry, to edit again the next time the painter opens.
+ * as parts rather than paint, so any part can be changed or rolled again. The
+ * field and its charge lie on layers of their own, and picking either brings
+ * back the arms' controls.
  *
- * The window draws once. Picking a tool or colour updates the buttons in
- * place, since drawing the window again would wipe the painting.
+ * The layers are kept on the Knight beside the heraldry, to take up again the
+ * next time the painter opens.
+ *
+ * The window draws once. Picking a tool, colour or layer updates the controls
+ * in place, since drawing the window again would wipe the painting.
  */
 export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -361,7 +451,6 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			pickCharge: HeraldryPainter.#onPickCharge,
 			randomize: HeraldryPainter.#onRandomize,
 			editArms: HeraldryPainter.#onEditArms,
-			doneArms: HeraldryPainter.#onDoneArms,
 			rollArms: HeraldryPainter.#onRollArms,
 			armsDivision: HeraldryPainter.#onArmsDivision,
 			armsColor: HeraldryPainter.#onArmsColor,
@@ -369,8 +458,13 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			changeArmsCharge: HeraldryPainter.#onChangeArmsCharge,
 			removeArmsCharge: HeraldryPainter.#onRemoveArmsCharge,
 			download: HeraldryPainter.#onDownload,
-			placeImage: HeraldryPainter.#onPlaceImage,
-			discardImage: HeraldryPainter.#onDiscardImage,
+			doneLayer: HeraldryPainter.#onDoneLayer,
+			removeSelected: HeraldryPainter.#onRemoveSelected,
+			selectLayer: HeraldryPainter.#onSelectLayer,
+			layerForward: HeraldryPainter.#onLayerForward,
+			layerBack: HeraldryPainter.#onLayerBack,
+			removeLayer: HeraldryPainter.#onRemoveLayer,
+			addLayer: HeraldryPainter.#onAddLayer,
 			save: HeraldryPainter.#onSave
 		}
 	};
@@ -402,6 +496,9 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	 */
 	#division = null;
 
+	/** @type {Set<number>} The groups of the division in hand painted since it was taken up. Once all are, its lines are hidden. */
+	#painted = new Set();
+
 	#color = tinctureColor("gules");
 
 	/** @type {string[]} Colours mixed or taken from a painting, most recent first. */
@@ -410,7 +507,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** Brush width in the sheet's pixels. */
 	#size = BRUSH.initial;
 
-	/** @type {HTMLCanvasElement|null} */
+	/** @type {HTMLCanvasElement|null} The shield on screen, where every layer is drawn together. */
 	#canvas = null;
 
 	/** @type {CanvasRenderingContext2D|null} */
@@ -422,6 +519,31 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {Uint8Array|null} */
 	#inside = null;
 
+	/** @type {Layer[]} The painting's layers, back first. */
+	#layers = [];
+
+	/**
+	 * The layer picked, whose controls show beside the shield. With none picked,
+	 * the paints show, and paint goes onto the front layer if it's a paint layer,
+	 * or a new one in front.
+	 * @type {number|null}
+	 */
+	#selected = null;
+
+	/** The last layer's id handed out. */
+	#layerIds = 0;
+
+	/** Counts changes to paint layers, so a layer's pixels are only copied to undo when they've changed. */
+	#versions = 0;
+
+	/**
+	 * The arms, drawn from their parts: their field on one layer, and their
+	 * charge on another, with their own controls in place of the paints while
+	 * either is picked.
+	 * @type {import("../rules/heraldry.js").Arms|null}
+	 */
+	#arms = null;
+
 	/** @type {Snapshot[]} The painting before each change, most recent last. */
 	#undo = [];
 
@@ -429,84 +551,66 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	#redo = [];
 
 	/**
-	 * The last change to the arms being made that the next may join as one
-	 * step to undo, and when it was.
+	 * The last change that the next may join as one step to undo, and when it was.
 	 * @type {{merge: string, at: number}|null}
 	 */
 	#lastChange = null;
 
-	/**
-	 * The arms being made: drawn from their parts each time one changes, with
-	 * their own controls in place of the paints.
-	 * @type {import("../rules/heraldry.js").Arms|null}
-	 */
-	#arms = null;
-
-	/**
-	 * Arms the painting shows exactly, having been put down to paint, or
-	 * saved. They can be taken up again until something is painted.
-	 * @type {import("../rules/heraldry.js").Arms|null}
-	 */
-	#bakedArms = null;
-
-	/** @type {Map<string, HTMLCanvasElement>} Charges tinted for the arms, by key and colour, the latest used last. */
+	/** @type {Map<string, HTMLCanvasElement>} Charges tinted, by key and colour, the latest used last. */
 	#tints = new Map();
 
-	/** Whether the pointer is over the shield, where a frame shows round the arms' charge. */
+	/** @type {Set<string>} Charges whose file couldn't be fetched, so they aren't asked for again each time the shield is drawn. */
+	#unreadable = new Set();
+
+	/** Whether the pointer is over the shield, where a frame shows round the arms' charge while their field is picked. */
 	#hovering = false;
 
 	/**
-	 * The pointer dragging a picture being placed, or the arms' charge: where
-	 * the pointer and the picture's middle started, and the arms before it moved.
-	 * @type {{pointerId: number, from: {x: number, y: number}, start: {x: number, y: number}, before: import("../rules/heraldry.js").Arms|null}|null}
+	 * The pointer dragging a picture or charge: where the pointer and the
+	 * picture's middle started, the painting before it moved, and whether it has.
+	 * @type {{pointerId: number, from: {x: number, y: number}, start: {x: number, y: number}, before: Snapshot, moved: boolean}|null}
 	 */
 	#drag = null;
 
 	/**
-	 * The stroke in progress. For a line, `last` is where it started and `backdrop` a copy of the painting underneath it.
-	 * @type {{pointerId: number, last: {x: number, y: number}, backdrop: HTMLCanvasElement|null}|null}
+	 * The stroke in progress, on a paint layer. For a line, `last` is where it
+	 * started and `backdrop` a copy of the layer underneath it.
+	 * @type {{pointerId: number, layer: PaintLayer, last: {x: number, y: number}, backdrop: HTMLCanvasElement|null}|null}
 	 */
 	#stroke = null;
 
 	/**
-	 * The picture being placed, over the painting as it was before it arrived:
-	 * `before` to undo to, and `backdrop` a copy to redraw the picture over.
-	 * `charge` is the charge it was tinted from, to tint again when the colour changes.
-	 * @type {{
-	 *   image: HTMLImageElement|HTMLCanvasElement,
-	 *   natural: {width: number, height: number},
-	 *   limits: {min: number, max: number},
-	 *   before: Snapshot,
-	 *   backdrop: HTMLCanvasElement,
-	 *   placement: import("../rules/heraldry.js").Placement,
-	 *   flip: boolean,
-	 *   charge: {key: string, svg: string}|null
-	 * }|null}
+	 * Whether the gallery of charges shows in place of the other controls: to
+	 * add a charge on a layer of its own, or to give the arms another.
+	 * @type {"add"|"arms"|null}
 	 */
-	#placing = null;
-
-	/** Whether the gallery of charges shows in place of the paints. */
-	#browsing = false;
+	#browsing = null;
 
 	/** Counts charges picked and arms randomized, so only the latest one arrives when several load at once. */
 	#pickRequest = 0;
 
 	/**
-	 * Whether a charge is being tinted, for a picture being placed or the arms.
-	 * One tint runs at a time, and the colour picker moving meanwhile asks for one more.
+	 * Whether charges are being tinted for the shield. One tint runs at a time,
+	 * and the colour picker moving meanwhile asks for one more.
 	 */
 	#tinting = false;
 
-	/** Whether the colour changed while a charge was being tinted. */
+	/** Whether the colours wanted changed while charges were being tinted. */
 	#tintAgain = false;
 
-	/** Whether a redraw of the picture being placed is waiting for the next frame. */
+	/** Whether a redraw of the shield is waiting for the next frame. */
 	#drawQueued = false;
 
 	#saving = false;
 
-	/** @type {HTMLImageElement|null} The Knight's heraldry as last saved, loaded before the window first draws. */
-	#saved = null;
+	/** @type {Set<string>} Folders made ready for uploads, so each layer saved doesn't ask again. */
+	#folders = new Set();
+
+	/**
+	 * The painting as last saved, loaded before the window first draws.
+	 * @type {{arms: import("../rules/heraldry.js").Arms|null, layers: (import("../rules/heraldry.js").KeptLayer & {image?: HTMLImageElement})[]}|null}
+	 */
+	#opening = null;
 
 	/**
 	 * @param {object} options
@@ -576,17 +680,42 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Foundry puts the window on the page before its first-render step and only
-	 * positions it after that step finishes. Waiting for the picture there would
-	 * leave the window unplaced at the far left while the picture loads, so it
-	 * loads here, before the window arrives.
+	 * positions it after that step finishes. Waiting for the pictures there would
+	 * leave the window unplaced at the far left while they load, so they load
+	 * here, before the window arrives.
 	 * @override
 	 */
 	async _preFirstRender(context, options) {
 		await super._preFirstRender(context, options);
+		this.#opening = await this.#readSaved();
+	}
+
+	/**
+	 * The painting as last saved: its layers when they were kept with it, the
+	 * arms when only they were, or else the heraldry itself on one layer.
+	 * @returns {Promise<{arms: import("../rules/heraldry.js").Arms|null, layers: (import("../rules/heraldry.js").KeptLayer & {image?: HTMLImageElement})[]}>}
+	 */
+	async #readSaved() {
 		const { heraldry } = this.#actor.system;
-		this.#saved = heraldry ? await loadImage(heraldry) : null;
-		// Arms kept from the last save can be taken up again, as long as the heraldry is still that save's.
-		if (this.#saved) this.#bakedArms = readArms(this.#actor.getFlag(SYSTEM_ID, ARMS_FLAG), heraldry, CHARGE_KEYS);
+		if (!heraldry) return { arms: null, layers: [] };
+		const kept = readLayers(this.#actor.getFlag(SYSTEM_ID, LAYERS_FLAG), heraldry, CHARGE_KEYS);
+		if (kept) {
+			// The charges are tinted while the pictures load, which they don't wait on.
+			const [layers] = await Promise.all([
+				Promise.all(kept.layers.map(async (layer) => (layer.src ? { ...layer, image: await loadImage(layer.src) } : layer))),
+				this.#loadTints(this.#wantedTints(kept.arms, kept.layers))
+			]);
+			// A layer's file gone missing leaves the heraldry itself to open instead.
+			if (layers.every((layer) => !layer.src || layer.image)) return { arms: kept.arms, layers };
+		}
+		// Arms kept before layers were, which the heraldry showed and nothing else.
+		const arms = readArms(this.#actor.getFlag(SYSTEM_ID, ARMS_FLAG), heraldry, CHARGE_KEYS);
+		if (arms) {
+			await this.#loadTints(this.#wantedTints(arms, ARMS_CHARGE_LAYERS));
+			return { arms, layers: [{ kind: "field" }, ...(arms.charge ? ARMS_CHARGE_LAYERS : [])] };
+		}
+		const image = await loadImage(heraldry);
+		return { arms: null, layers: image ? [{ kind: "paint", src: heraldry, image }] : [] };
 	}
 
 	/** @override */
@@ -626,10 +755,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			event.stopPropagation();
 			this.#placeFile(file);
 		});
-		this.element.querySelector("[data-image-size]").addEventListener("input", (event) => {
-			if (!this.#placing) return;
-			this.#movePlacing(zoomPlacement(this.#placing.placement, Number(event.currentTarget.value) / 100, this.#placing.limits));
-		});
+		this.element.querySelector("[data-image-size]").addEventListener("input", (event) => this.#resizeFromSlider(event.currentTarget));
 		this.element.querySelector("[data-charge-group]").addEventListener("change", (event) => {
 			const group = event.currentTarget.value;
 			for (const list of this.element.querySelectorAll("[data-charge-list]")) list.hidden = list.dataset.chargeList !== group;
@@ -656,10 +782,173 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		// Keys only reach the window while something in it has focus.
 		canvas.focus({ preventScroll: true });
 
-		if (this.#saved) this.#drawImage(this.#saved, { x: 0, y: 0, ...PAINTING });
-		this.#saved = null;
+		const { arms: saved, layers } = this.#opening;
+		this.#opening = null;
+		this.#arms = saved;
+		this.#layers = layers.map((layer) => this.#layerFrom(layer));
+		this.#showSide();
+		this.#compose();
+	}
+
+	/**
+	 * @param {import("../rules/heraldry.js").KeptLayer & {image?: HTMLImageElement}} kept A layer as kept on the Knight, its picture loaded.
+	 * @returns {Layer}
+	 */
+	#layerFrom(kept) {
+		const id = ++this.#layerIds;
+		switch (kept.kind) {
+			case "paint": {
+				const layer = this.#newPaintLayer(id);
+				if (kept.image) this.#drawImage(layer.context, kept.image, { x: 0, y: 0, ...PAINTING });
+				return layer;
+			}
+			case "picture":
+				return { id, kind: "picture", image: pictureCanvas(kept.image), placement: kept.placement, flip: kept.flip };
+			case "charge":
+				return { id, kind: "charge", key: kept.key, color: kept.color, placement: kept.placement, flip: kept.flip };
+			default:
+				return { id, kind: kept.kind };
+		}
+	}
+
+	/**
+	 * @param {number} [id]
+	 * @returns {PaintLayer} An empty layer to paint on.
+	 */
+	#newPaintLayer(id = ++this.#layerIds) {
+		const canvas = document.createElement("canvas");
+		canvas.width = PAINTING.width;
+		canvas.height = PAINTING.height;
+		return { id, kind: "paint", canvas, context: softwareContext(canvas), version: ++this.#versions, kept: null };
+	}
+
+	/* -------------------------------------------- */
+	/*  Layers                                      */
+	/* -------------------------------------------- */
+
+	/** @returns {Layer|null} */
+	#selectedLayer() {
+		return this.#layerById(this.#selected);
+	}
+
+	/**
+	 * @param {number|null} id
+	 * @returns {Layer|null}
+	 */
+	#layerById(id) {
+		return id === null ? null : (this.#layers.find((layer) => layer.id === id) ?? null);
+	}
+
+	/** @returns {number|null} Where the layer picked lies, back first, for a new layer to go straight above it. */
+	#selectedIndex() {
+		const index = this.#layers.findIndex((layer) => layer.id === this.#selected);
+		return index === -1 ? null : index;
+	}
+
+	/** @returns {boolean} Whether painting by hand is in hand: a paint layer is picked, or no layer. */
+	#paintingSelected() {
+		const layer = this.#selectedLayer();
+		return !layer || layer.kind === "paint";
+	}
+
+	/** @returns {boolean} Whether the arms' controls show: their field or their charge is picked. */
+	#armsSelected() {
+		return Boolean(this.#arms) && isArmsLayer(this.#selectedLayer());
+	}
+
+	/**
+	 * Put a new layer straight above another.
+	 * @template {Layer} T
+	 * @param {T} layer
+	 * @param {number|null} above See insertLayer.
+	 * @returns {T}
+	 */
+	#addLayer(layer, above) {
+		this.#layers = insertLayer(this.#layers, layer, above);
+		return layer;
+	}
+
+	/** @param {Layer} layer A layer in place of the one with its id. */
+	#replaceLayer(layer) {
+		this.#layers = this.#layers.map((each) => (each.id === layer.id ? layer : each));
+	}
+
+	/**
+	 * Pick a layer, bringing up its controls, or none to bring up the paints.
+	 * @param {number|null} id
+	 */
+	#select(id) {
+		this.#selected = id;
+		this.#browsing = null;
 		this.#showSide();
 	}
+
+	/** A paint tool was taken up, so a layer picked that can't be painted on is let go. */
+	#takeUpPaint() {
+		if (!this.#paintingSelected()) this.#select(null);
+	}
+
+	/**
+	 * Take the arms up or put them down, as part of a change: their field goes
+	 * straight above the layer picked, and their charge straight above their
+	 * field. Layers they already lie on stay where they are.
+	 * @param {import("../rules/heraldry.js").Arms|null} arms
+	 */
+	#putArms(arms) {
+		this.#arms = arms;
+		let layers = this.#layers;
+		if (!arms) layers = layers.filter((layer) => !isArmsLayer(layer));
+		else {
+			if (!layers.some((layer) => layer.kind === "field")) layers = insertLayer(layers, { id: ++this.#layerIds, kind: "field" }, this.#selectedIndex());
+			const hasCharge = layers.some((layer) => layer.kind === "armsCharge");
+			if (arms.charge && !hasCharge) {
+				const field = layers.findIndex((layer) => layer.kind === "field");
+				layers = insertLayer(layers, { id: ++this.#layerIds, kind: "armsCharge" }, field);
+			} else if (!arms.charge && hasCharge) layers = layers.filter((layer) => layer.kind !== "armsCharge");
+		}
+		this.#layers = layers;
+		// The arms' charge taken off leaves their field picked.
+		if (!this.#selectedLayer()) this.#selected = this.#fieldLayer()?.id ?? null;
+	}
+
+	/** @returns {ArmsLayer|undefined} */
+	#fieldLayer() {
+		return this.#layers.find((layer) => layer.kind === "field");
+	}
+
+	/**
+	 * Bring a layer forward, or send it back.
+	 * @param {number} id
+	 * @param {number} by
+	 */
+	#moveLayer(id, by) {
+		const moved = moveLayer(this.#layers, this.#layers.findIndex((layer) => layer.id === id), by);
+		if (moved === this.#layers) return;
+		this.#change(() => {
+			this.#layers = moved;
+		});
+	}
+
+	/**
+	 * Remove a layer, as a step to undo. The arms' field takes the arms with it.
+	 * @param {number} id
+	 */
+	#removeLayer(id) {
+		const layer = this.#layerById(id);
+		if (!layer || this.#drag || this.#stroke) return;
+		if (layer.kind === "field") this.#changeArms(null);
+		else if (layer.kind === "armsCharge") this.#changeArms({ ...this.#arms, charge: null });
+		else {
+			this.#change(() => {
+				this.#layers = this.#layers.filter((each) => each !== layer);
+				if (this.#selected === id) this.#selected = null;
+			});
+		}
+	}
+
+	/* -------------------------------------------- */
+	/*  Pointer and keys                            */
+	/* -------------------------------------------- */
 
 	/**
 	 * @param {PointerEvent} event
@@ -683,11 +972,11 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (movable) {
 			const { x, y } = movable.placement;
 			this.#canvas.setPointerCapture(event.pointerId);
-			this.#drag = { pointerId: event.pointerId, from: point, start: { x, y }, before: this.#arms };
+			this.#drag = { pointerId: event.pointerId, from: point, start: { x, y }, before: this.#snapshot(), moved: false };
 			return;
 		}
-		// Arms being made are changed from their controls, and nothing is painted over them.
-		if (this.#arms) return;
+		// The arms' field is changed from its controls, and nothing is painted on it.
+		if (!this.#paintingSelected()) return;
 		// Alt-click takes a colour whatever tool is in hand.
 		if (this.#tool === "eyedropper" || event.altKey) {
 			this.#sample(point);
@@ -701,15 +990,16 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			this.#paintDivision(point);
 			return;
 		}
-		this.#remember();
+		const layer = this.#beginPaint();
 		this.#canvas.setPointerCapture(event.pointerId);
 		this.#stroke = {
 			pointerId: event.pointerId,
+			layer,
 			last: point,
-			// A line is drawn again over the painting as it was each time the pointer moves.
-			backdrop: this.#tool === "line" ? copyCanvas(this.#canvas) : null
+			// A line is drawn again over the layer as it was each time the pointer moves.
+			backdrop: this.#tool === "line" ? copyCanvas(layer.canvas) : null
 		};
-		this.#paint(point, point);
+		this.#paint(layer, point, point);
 	}
 
 	/** @param {PointerEvent} event */
@@ -719,7 +1009,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			const point = this.#point(event);
 			const movable = this.#movable();
 			if (movable) {
-				this.#movePlacing({
+				this.#moveSelected({
 					...movable.placement,
 					x: drag.start.x + point.x - drag.from.x,
 					y: drag.start.y + point.y - drag.from.y
@@ -727,90 +1017,108 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			}
 			return;
 		}
-		if (this.#tool === "divide" && !this.#placing && !this.#arms) {
+		if (this.#tool === "divide" && this.#paintingSelected()) {
 			this.#highlightGroup(this.#groupAt(this.#point(event)));
 			return;
 		}
 		if (event.pointerId !== this.#stroke?.pointerId) return;
-		const { backdrop } = this.#stroke;
+		const { backdrop, layer } = this.#stroke;
 		if (backdrop) {
 			const start = this.#stroke.last;
 			const point = this.#point(event);
-			this.#context.clearRect(0, 0, PAINTING.width, PAINTING.height);
-			this.#context.drawImage(backdrop, 0, 0);
-			this.#paint(start, event.shiftKey ? snapLine(start, point) : point);
+			layer.context.clearRect(0, 0, PAINTING.width, PAINTING.height);
+			layer.context.drawImage(backdrop, 0, 0);
+			this.#paint(layer, start, event.shiftKey ? snapLine(start, point) : point);
 			return;
 		}
 		// A fast stroke sends several positions per frame. Following them all keeps curves smooth.
 		const events = event.getCoalescedEvents?.() ?? [];
 		for (const each of events.length ? events : [event]) {
 			const point = this.#point(each);
-			this.#paint(this.#stroke.last, point);
+			this.#paint(layer, this.#stroke.last, point);
 			this.#stroke.last = point;
 		}
 	}
 
-	/** @param {WheelEvent} event Scrolling over a picture being placed, or the arms' charge, resizes it about the pointer. */
+	/** @param {WheelEvent} event Scrolling over the shield resizes the picture or charge picked about the pointer. */
 	#onWheel(event) {
 		const movable = this.#movable();
 		if (!movable || !event.deltaY) return;
 		event.preventDefault();
 		const { placement, limits } = movable;
 		const factor = event.deltaY < 0 ? IMAGE_ZOOM_STEP : 1 / IMAGE_ZOOM_STEP;
-		this.#movePlacing(zoomPlacement(placement, placement.scale * factor, limits, this.#point(event)), { step: "size" });
+		this.#moveSelected(zoomPlacement(placement, placement.scale * factor, limits, this.#point(event)), { step: "size" });
 	}
 
-	/**
-	 * The pointer let go of what it was dragging. A drag of the arms' charge is one step to undo.
-	 */
+	/** The pointer let go of what it was dragging. A drag that moved it is one step to undo. */
 	#endDrag() {
-		const { before } = this.#drag;
+		const { before, moved } = this.#drag;
 		this.#drag = null;
-		if (before && this.#arms && this.#arms !== before) this.#remember({ pixels: null, arms: before });
+		if (moved) this.#remember(before);
 	}
 
 	/**
 	 * The pointer came onto the shield or left it. A frame shows round the arms'
-	 * charge while it's over the shield, to show the charge can be dragged.
+	 * charge while it's over the shield with their field picked, to show the charge can be dragged.
 	 * @param {boolean} hovering
 	 */
 	#hover(hovering) {
 		this.#hovering = hovering;
-		if (this.#arms?.charge) this.#queueDraw();
+		this.#renderFrame();
 	}
 
 	/**
-	 * @returns {{placement: import("../rules/heraldry.js").Placement, limits: {min: number, max: number}}|null}
-	 *   What dragging on the shield moves: a picture being placed, or the arms'
-	 *   charge once it has been tinted, since its size comes from the picture.
+	 * @returns {ChargeLayer|PictureLayer|ArmsLayer|null} What dragging on the
+	 *   shield moves: the picture or charge picked, or the arms' charge while
+	 *   their field is picked.
+	 */
+	#movableLayer() {
+		const layer = this.#selectedLayer();
+		if (layer?.kind === "charge" || layer?.kind === "picture") return layer;
+		if (isArmsLayer(layer) && this.#arms?.charge) return this.#layers.find((each) => each.kind === "armsCharge") ?? null;
+		return null;
+	}
+
+	/**
+	 * @returns {{placement: import("../rules/heraldry.js").Placement, limits: {min: number, max: number}, natural: {width: number, height: number}}|null}
+	 *   Where the layer dragging moves lies, and the sizes it may take. A charge
+	 *   can't move until it has been tinted, since its size comes from the picture.
 	 */
 	#movable() {
 		if (this.#saving) return null;
-		if (this.#placing) return this.#placing;
-		const charge = this.#arms?.charge;
-		const image = charge && this.#tintOf(charge.key);
-		return image ? { placement: charge.placement, limits: placementLimits(image, PAINTING) } : null;
+		const layer = this.#movableLayer();
+		let placement;
+		let natural;
+		if (layer?.kind === "picture") ({ placement, image: natural } = layer);
+		else if (layer?.kind === "charge") {
+			placement = layer.placement;
+			natural = this.#tintOf(layer.key);
+		} else if (layer?.kind === "armsCharge") {
+			placement = this.#arms.charge.placement;
+			natural = this.#tintOf(this.#arms.charge.key);
+		}
+		return natural ? { placement, limits: placementLimits(natural, PAINTING), natural } : null;
 	}
 
 	/**
-	 * Ctrl+Z undoes, and Ctrl+Y or Ctrl+Shift+Z redoes, with Cmd in place of Ctrl
-	 * on a Mac. The key stops here, or Foundry's own Undo would also take back a
-	 * change on the Scene behind the window.
+	 * Escape puts the gallery of charges away, or lets go of the layer picked,
+	 * and Enter on the shield does the same. On the shield, Delete removes a
+	 * picture or charge picked. Ctrl+Z undoes, and Ctrl+Y or Ctrl+Shift+Z
+	 * redoes, with Cmd in place of Ctrl on a Mac. Keys stop here, so Escape
+	 * doesn't also close the window, nor Foundry's own Undo take back a change
+	 * on the Scene behind it.
 	 * @param {KeyboardEvent} event
 	 */
 	#onKeyDown(event) {
-		if (this.#placing) {
-			this.#onPlacingKey(event);
-			return;
-		}
-		// Escape puts the gallery of charges away, rather than closing the window.
-		if (this.#browsing && event.key === "Escape") {
-			event.preventDefault();
-			event.stopPropagation();
-			this.#browse(false, { focus: true });
-			return;
-		}
-		if (this.#arms && this.#onMoveKey(event)) {
+		const { key } = event;
+		const onShield = event.target === this.#canvas;
+		const layer = this.#selectedLayer();
+		let handled = true;
+		if (this.#browsing && key === "Escape") this.#browse(false, { focus: true });
+		else if (layer && layer.kind !== "paint" && (key === "Escape" || (key === "Enter" && onShield))) this.#select(null);
+		else if ((layer?.kind === "charge" || layer?.kind === "picture") && onShield && (key === "Delete" || key === "Backspace")) this.#removeLayer(layer.id);
+		else handled = this.#onMoveKey(event);
+		if (handled) {
 			event.preventDefault();
 			event.stopPropagation();
 			return;
@@ -825,12 +1133,57 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Take the colour under a point and keep it among the recent colours. The
-	 * eyedropper then hands back to the tool used before it. Bare shield has no
-	 * colour, so the eyedropper stays in hand to try again.
+	 * On the shield, arrow keys move the picture or charge picked, and + and − resize it.
+	 * @param {KeyboardEvent} event
+	 * @returns {boolean} Whether the key did so.
+	 */
+	#onMoveKey(event) {
+		const { key } = event;
+		const movable = this.#movable();
+		if (!movable || event.target !== this.#canvas) return false;
+		const { placement, limits } = movable;
+		if (NUDGES[key]) {
+			const [across, down] = NUDGES[key];
+			const step = PAINT_SCALE * (event.shiftKey ? 10 : 1);
+			this.#moveSelected({ ...placement, x: placement.x + across * step, y: placement.y + down * step }, { step: "move" });
+		} else if (["+", "=", "-"].includes(key)) {
+			const factor = key === "-" ? 1 / IMAGE_ZOOM_STEP : IMAGE_ZOOM_STEP;
+			this.#moveSelected(zoomPlacement(placement, placement.scale * factor, limits), { step: "size" });
+		} else return false;
+		return true;
+	}
+
+	/* -------------------------------------------- */
+	/*  Painting by hand                            */
+	/* -------------------------------------------- */
+
+	/**
+	 * Get ready to paint by hand, as a step to undo: onto the paint layer
+	 * picked, or with none picked, onto the front layer if it's a paint layer,
+	 * or else a new one in front.
+	 * @returns {PaintLayer}
+	 */
+	#beginPaint() {
+		this.#remember();
+		let layer = this.#selectedLayer();
+		if (!layer) {
+			const front = this.#layers.at(-1);
+			layer = front?.kind === "paint" ? front : this.#addLayer(this.#newPaintLayer(), null);
+			this.#selected = layer.id;
+			this.#renderLayers();
+		}
+		layer.version = ++this.#versions;
+		return layer;
+	}
+
+	/**
+	 * Take the colour under a point, as the shield shows it, and keep it among
+	 * the recent colours. The eyedropper then hands back to the tool used before
+	 * it. Bare shield has no colour, so the eyedropper stays in hand to try again.
 	 * @param {{x: number, y: number}} point
 	 */
 	#sample(point) {
+		this.#compose();
 		const x = Math.min(PAINTING.width - 1, Math.max(0, Math.floor(point.x)));
 		const y = Math.min(PAINTING.height - 1, Math.max(0, Math.floor(point.y)));
 		const { data } = this.#context.getImageData(x, y, 1, 1);
@@ -842,12 +1195,13 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Brush or erase from one point to another, inside the shield.
+	 * Brush or erase from one point to another on a paint layer, inside the shield.
+	 * @param {PaintLayer} layer
 	 * @param {{x: number, y: number}} from
 	 * @param {{x: number, y: number}} to
 	 */
-	#paint(from, to) {
-		const context = this.#context;
+	#paint(layer, from, to) {
+		const { context } = layer;
 		const width = this.#size * PAINT_SCALE;
 		context.save();
 		context.clip(this.#shield);
@@ -867,15 +1221,26 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			context.stroke();
 		}
 		context.restore();
+		this.#queueDraw();
 	}
 
-	/** @param {{x: number, y: number}} point */
+	/**
+	 * Fill the area around a point as the shield shows it, every layer
+	 * together, so a fill stops at a charge's outline. The paint goes onto the
+	 * paint layer.
+	 * @param {{x: number, y: number}} point
+	 */
 	#fill(point) {
-		const image = this.#context.getImageData(0, 0, PAINTING.width, PAINTING.height);
-		const before = new ImageData(image.data.slice(), PAINTING.width, PAINTING.height);
-		if (!floodFill(image.data, PAINTING.width, PAINTING.height, point.x, point.y, hexToRgba(this.#color), { inside: this.#inside })) return;
-		this.#remember(before);
-		this.#context.putImageData(image, 0, 0);
+		this.#compose();
+		const shown = this.#context.getImageData(0, 0, PAINTING.width, PAINTING.height);
+		const color = hexToRgba(this.#color);
+		const reached = floodReach(shown.data, PAINTING.width, PAINTING.height, point.x, point.y, color, { inside: this.#inside });
+		if (!reached) return;
+		const layer = this.#beginPaint();
+		const image = layer.context.getImageData(0, 0, PAINTING.width, PAINTING.height);
+		paintReached(image.data, reached, color);
+		layer.context.putImageData(image, 0, 0);
+		this.#queueDraw();
 	}
 
 	/**
@@ -893,19 +1258,22 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	#paintDivision(point) {
 		const group = this.#groupAt(point);
 		if (group === null) return;
-		this.#remember();
-		this.#fillGroup(this.#division, group, this.#color);
+		const layer = this.#beginPaint();
+		this.#fillGroup(layer.context, this.#division, group, this.#color);
+		this.#painted.add(group);
+		this.#showGuides();
+		this.#queueDraw();
 	}
 
 	/**
 	 * Paint every part of a division in one group, inside the shield.
+	 * @param {CanvasRenderingContext2D} context
 	 * @param {typeof DIVISIONS[number]} division
 	 * @param {number} group
 	 * @param {string} color
 	 */
-	#fillGroup(division, group, color) {
+	#fillGroup(context, division, group, color) {
 		const path = groupPath(division, group);
-		const context = this.#context;
 		context.save();
 		context.clip(this.#shield);
 		context.fillStyle = color;
@@ -927,8 +1295,20 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 			return polygon;
 		});
 		guides.replaceChildren(...polygons);
-		guides.toggleAttribute("hidden", !this.#division);
 		guides.style.color = this.#color;
+		this.#showGuides();
+	}
+
+	/**
+	 * Show the division in hand's lines, unless there's none, a layer that
+	 * can't be painted on is picked, or every part is painted, when the colours
+	 * show the lines already.
+	 */
+	#showGuides() {
+		const division = this.#division;
+		const painted = division && division.parts.every(({ group }) => this.#painted.has(group));
+		// An SVG element has no `hidden` property, only the attribute.
+		this.element.querySelector("[data-division-guides]").toggleAttribute("hidden", !division || !this.#paintingSelected() || painted);
 	}
 
 	/** @param {number|null} group The group of parts to show the colour in hand over, or null for none. */
@@ -937,65 +1317,103 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		for (const polygon of guides.children) polygon.classList.toggle("is-hovered", polygon.dataset.group === String(group));
 	}
 
+	/* -------------------------------------------- */
+	/*  Drawing the shield                          */
+	/* -------------------------------------------- */
+
+	/** Draw every layer onto the shield, back to front. */
+	#compose() {
+		const context = this.#context;
+		context.clearRect(0, 0, PAINTING.width, PAINTING.height);
+		for (const layer of this.#layers) this.#drawLayer(context, layer);
+		this.#renderFrame();
+	}
+
+	/** Redraw the shield on the next frame, once however many times it changed before then. */
+	#queueDraw() {
+		if (this.#drawQueued) return;
+		this.#drawQueued = true;
+		requestAnimationFrame(() => {
+			this.#drawQueued = false;
+			if (this.rendered) this.#compose();
+		});
+	}
+
 	/**
-	 * Draw a charge taking another tincture over each group of the field. The
-	 * first is drawn whole beneath the others, so no hairline of the field
-	 * shows where the charge crosses a line.
-	 * @param {typeof DIVISIONS[number]|undefined} division
-	 * @param {HTMLCanvasElement[]} images The charge in its tincture over each group, in group order.
-	 * @param {{x: number, y: number, width: number, height: number}} box
-	 * @param {boolean} flip
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {Layer} layer
 	 */
-	#drawCounterchanged(division, images, box, flip) {
-		const [first] = images;
-		this.#drawImage(first, box, { flip });
-		for (const [group, image] of images.entries()) {
-			if (image === first) continue;
-			this.#context.save();
-			this.#context.clip(groupPath(division, group));
-			this.#drawImage(image, box, { flip });
-			this.#context.restore();
+	#drawLayer(context, layer) {
+		switch (layer.kind) {
+			case "paint":
+				context.drawImage(layer.canvas, 0, 0);
+				break;
+			case "picture":
+				this.#drawImage(context, layer.image, placementBox(layer.image, PAINTING, layer.placement), { flip: layer.flip });
+				break;
+			case "charge": {
+				const image = this.#tint(layer.key, layer.color);
+				if (image) this.#drawImage(context, image, placementBox(image, PAINTING, layer.placement), { flip: layer.flip });
+				break;
+			}
+			case "field":
+				this.#drawField(context, this.#arms);
+				break;
+			case "armsCharge":
+				this.#drawArmsCharge(context, this.#arms);
+				break;
 		}
 	}
 
 	/**
-	 * Draw the arms being made from their parts.
-	 * @param {object} [options]
-	 * @param {boolean} [options.frame] Draw a dashed frame round the charge. Off for the painting as it's kept.
-	 * @param {import("../rules/heraldry.js").Arms} [options.arms] The arms to draw, if not those being made.
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {import("../rules/heraldry.js").Arms} arms
 	 */
-	#drawArms({ frame = this.#hovering && !this.#saving, arms = this.#arms } = {}) {
-		const context = this.#context;
+	#drawField(context, arms) {
 		const division = divisionOf(arms.division);
-		context.clearRect(0, 0, PAINTING.width, PAINTING.height);
-		if (division) arms.field.forEach((color, group) => this.#fillGroup(division, group, color));
-		else {
-			context.save();
-			context.fillStyle = arms.field[0];
-			context.fill(this.#shield);
-			context.restore();
+		if (division) {
+			arms.field.forEach((color, group) => this.#fillGroup(context, division, group, color));
+			return;
 		}
+		context.save();
+		context.fillStyle = arms.field[0];
+		context.fill(this.#shield);
+		context.restore();
+	}
+
+	/**
+	 * Draw the arms' charge, taking another tincture over each group of the
+	 * field when counterchanged. The first is drawn whole beneath the others, so
+	 * no hairline shows where the charge crosses a line.
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {import("../rules/heraldry.js").Arms} arms
+	 */
+	#drawArmsCharge(context, arms) {
 		const { charge } = arms;
 		if (!charge) return;
-		const tinted = chargeColors(arms).map((color) => this.#tints.get(tintKey(charge.key, color)));
-		// A colour still being tinted shows in one already tinted meanwhile, rather than leaving a gap.
-		if (!tinted.every(Boolean)) this.#retint();
-		const stand = this.#tintOf(charge.key);
-		if (!stand) return;
-		const images = tinted.map((image) => image ?? stand);
-		const box = placementBox(images[0], PAINTING, charge.placement);
-		this.#drawCounterchanged(division, images, box, charge.flip);
-		if (frame) this.#drawFrame(box);
+		const images = chargeColors(arms).map((color) => this.#tint(charge.key, color));
+		if (!images.every(Boolean)) return;
+		const [first] = images;
+		const box = placementBox(first, PAINTING, charge.placement);
+		const division = divisionOf(arms.division);
+		this.#drawImage(context, first, box, { flip: charge.flip });
+		for (const [group, image] of images.entries()) {
+			if (image === first) continue;
+			context.save();
+			context.clip(groupPath(division, group));
+			this.#drawImage(context, image, box, { flip: charge.flip });
+			context.restore();
+		}
 	}
 
 	/**
-	 * @param {HTMLImageElement} image
+	 * @param {CanvasRenderingContext2D} context
+	 * @param {HTMLImageElement|HTMLCanvasElement} image
 	 * @param {{x: number, y: number, width: number, height: number}} box
 	 * @param {object} [options]
 	 * @param {boolean} [options.flip] Mirror the picture left to right within its box.
 	 */
-	#drawImage(image, box, { flip = false } = {}) {
-		const context = this.#context;
+	#drawImage(context, image, box, { flip = false } = {}) {
 		context.save();
 		context.clip(this.#shield);
 		if (flip) {
@@ -1009,45 +1427,33 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Enter places the picture and Escape or Ctrl+Z discards it. On the shield,
-	 * arrow keys move it and + and − resize it. Keys stop here, so Escape doesn't
-	 * also close the window.
-	 * @param {KeyboardEvent} event
+	 * A dashed frame round the picture or charge dragging moves, over the
+	 * shield rather than on it, so it's never kept in the painting. It shows
+	 * round the arms' charge only while the pointer is over the shield.
 	 */
-	#onPlacingKey(event) {
-		const { key, target } = event;
-		if (key === "Escape" || ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "z")) this.#finishPlacing(false);
-		// Enter on a button presses that button instead.
-		else if (key === "Enter" && target.tagName !== "BUTTON") this.#finishPlacing(true);
-		else if (!this.#onMoveKey(event)) return;
-		event.preventDefault();
-		event.stopPropagation();
-	}
-
-	/**
-	 * On the shield, arrow keys move a picture being placed, or the arms'
-	 * charge, and + and − resize it.
-	 * @param {KeyboardEvent} event
-	 * @returns {boolean} Whether the key did so.
-	 */
-	#onMoveKey(event) {
-		const { key } = event;
+	#renderFrame() {
+		const frame = this.element?.querySelector("[data-frame]");
+		if (!frame) return;
 		const movable = this.#movable();
-		if (!movable || event.target !== this.#canvas) return false;
-		const { placement, limits } = movable;
-		if (NUDGES[key]) {
-			const [across, down] = NUDGES[key];
-			const step = PAINT_SCALE * (event.shiftKey ? 10 : 1);
-			this.#movePlacing({ ...placement, x: placement.x + across * step, y: placement.y + down * step }, { step: "move" });
-		} else if (["+", "=", "-"].includes(key)) {
-			const factor = key === "-" ? 1 / IMAGE_ZOOM_STEP : IMAGE_ZOOM_STEP;
-			this.#movePlacing(zoomPlacement(placement, placement.scale * factor, limits), { step: "size" });
-		} else return false;
-		return true;
+		this.#canvas.classList.toggle("is-placing", Boolean(movable));
+		const show = movable && (this.#hovering || this.#selectedLayer()?.kind !== "field");
+		frame.toggleAttribute("hidden", !show);
+		if (!show) return;
+		const box = placementBox(movable.natural, PAINTING, movable.placement);
+		for (const rect of frame.children) {
+			rect.setAttribute("x", String(box.x));
+			rect.setAttribute("y", String(box.y));
+			rect.setAttribute("width", String(box.width));
+			rect.setAttribute("height", String(box.height));
+		}
 	}
 
+	/* -------------------------------------------- */
+	/*  Charges and pictures                        */
+	/* -------------------------------------------- */
+
 	/**
-	 * Read a picture from the user's computer and start placing it.
+	 * Read a picture from the user's computer and put it on the shield.
 	 * @param {File} file
 	 */
 	async #placeFile(file) {
@@ -1065,64 +1471,123 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Open a design downloaded from a painter as the painting, or start placing any other picture.
+	 * Open a design downloaded from a painter as the painting, in place of every
+	 * layer, or put any other picture on a layer of its own, fitted inside the
+	 * shield, straight above the layer picked.
 	 * @param {HTMLImageElement} image
 	 */
 	#openImage(image) {
-		if (image.naturalWidth !== PAINTING.width || image.naturalHeight !== PAINTING.height) {
-			this.#startPlacing(image);
+		this.#stroke = null;
+		this.#browsing = null;
+		const design = image.naturalWidth === PAINTING.width && image.naturalHeight === PAINTING.height;
+		this.#change(() => {
+			if (design) {
+				const layer = this.#newPaintLayer();
+				this.#drawImage(layer.context, image, { x: 0, y: 0, ...PAINTING });
+				this.#layers = [layer];
+				this.#arms = null;
+				this.#selected = layer.id;
+				return;
+			}
+			const layer = { id: ++this.#layerIds, kind: "picture", image: pictureCanvas(image), placement: centredPlacement(PAINTING), flip: false };
+			this.#selected = this.#addLayer(layer, this.#selectedIndex()).id;
+		});
+		this.#canvas.focus({ preventScroll: true });
+	}
+
+	/**
+	 * Move or resize the picture or charge dragging moves.
+	 * @param {import("../rules/heraldry.js").Placement} placement
+	 * @param {object} [options]
+	 * @param {string|null} [options.step] A kind of change to undo as one step, joining
+	 *   changes of that kind just before it. Dragging makes its step when it's let go.
+	 */
+	#moveSelected(placement, { step = null } = {}) {
+		const layer = this.#movableLayer();
+		if (!layer) return;
+		const kept = keepOnPainting(placement, PAINTING);
+		const apply = () => {
+			if (layer.kind === "armsCharge") this.#arms = { ...this.#arms, charge: { ...this.#arms.charge, placement: kept } };
+			else this.#replaceLayer({ ...layer, placement: kept });
+		};
+		if (step) {
+			this.#change(apply, { merge: `${step}-${layer.id}` });
 			return;
 		}
-		this.#finishPlacing(true);
-		this.#stroke = null;
-		this.#remember();
-		this.#dropArms();
-		this.#context.clearRect(0, 0, PAINTING.width, PAINTING.height);
-		this.#drawImage(image, { x: 0, y: 0, ...PAINTING });
-		this.#canvas.focus({ preventScroll: true });
+		// A drag only moves the layer, so the controls needn't be drawn again each time it moves.
+		apply();
+		if (this.#drag) this.#drag.moved = true;
+		this.#queueDraw();
+	}
+
+	/** @param {HTMLInputElement} slider A size slider moved, resizing the picture or charge dragging moves. */
+	#resizeFromSlider(slider) {
+		const movable = this.#movable();
+		if (movable) this.#moveSelected(zoomPlacement(movable.placement, Number(slider.value) / 100, movable.limits), { step: "size" });
 	}
 
 	/**
-	 * Float a picture over the painting, fitted inside it unless placed otherwise,
-	 * to be moved and resized. A picture already being placed is painted in first.
-	 * @param {HTMLImageElement|HTMLCanvasElement} image
-	 * @param {object} [options]
-	 * @param {{key: string, svg: string}|null} [options.charge] The charge the picture was tinted from.
-	 * @param {import("../rules/heraldry.js").Placement} [options.placement]
+	 * The charges the shield wants, in each colour it wants them in.
+	 * @param {import("../rules/heraldry.js").Arms|null} [arms]
+	 * @param {{kind: string, key?: string, color?: string}[]} [layers]
+	 * @returns {Map<string, Set<string>>} Colours by charge.
 	 */
-	#startPlacing(image, { charge = null, placement = centredPlacement(PAINTING) } = {}) {
-		this.#finishPlacing(true);
-		this.#stroke = null;
-		this.#browsing = false;
-		// The picture floats over arms being made as they'd be kept, and discarding it takes them up again.
-		if (this.#arms) this.#drawArms({ frame: false });
-		const before = this.#snapshot();
-		this.#arms = null;
-		this.#bakedArms = null;
-		const natural = { width: image.naturalWidth ?? image.width, height: image.naturalHeight ?? image.height };
-		const limits = placementLimits(natural, PAINTING);
-		this.#placing = {
-			image,
-			natural,
-			limits,
-			before,
-			backdrop: copyCanvas(this.#canvas),
-			placement,
-			flip: false,
-			charge
+	#wantedTints(arms = this.#arms, layers = this.#layers) {
+		const wanted = new Map();
+		const want = (key, color) => {
+			if (!wanted.has(key)) wanted.set(key, new Set());
+			wanted.get(key).add(color);
 		};
-		this.element.querySelector("[data-image-size]").max = String(Math.ceil(limits.max * 100));
-		this.#showSide();
-		this.#drawPlacing();
-		this.#canvas.focus({ preventScroll: true });
+		for (const layer of layers) {
+			if (layer.kind === "charge") want(layer.key, layer.color);
+			else if (layer.kind === "armsCharge" && arms?.charge) for (const color of chargeColors(arms)) want(arms.charge.key, color);
+		}
+		return wanted;
 	}
 
 	/**
-	 * Tint the charge being placed in the colour in hand, keeping where it is,
-	 * or the arms' charge in the colours they want. While the colour picker is
-	 * dragged, colours that arrive during a tint are skipped for the latest one.
+	 * Tint each charge wanted in each colour it hasn't been tinted in yet.
+	 * @param {Map<string, Set<string>>} wanted
+	 * @returns {Promise<{added: number, failed: string[]}>} How many tints were added, and the charges that couldn't be fetched.
 	 */
-	async #retint() {
+	async #loadTints(wanted) {
+		let added = 0;
+		const failed = [];
+		await Promise.all([...wanted].map(async ([key, colors]) => {
+			const missing = [...colors].filter((color) => !this.#tints.has(tintKey(key, color)));
+			if (!missing.length) return;
+			const svg = await loadChargeFile(key);
+			if (!svg) {
+				failed.push(key);
+				return;
+			}
+			const images = await Promise.all(missing.map((color) => loadTintedCharge(svg, color)));
+			for (const [index, image] of images.entries()) {
+				if (!image) continue;
+				const each = tintKey(key, missing[index]);
+				this.#tints.delete(each);
+				this.#tints.set(each, image);
+				added++;
+			}
+		}));
+		// The first kept are the oldest. Those wanted, or on show, stay.
+		const keep = new Set();
+		for (const tints of [wanted, this.#wantedTints()]) {
+			for (const [key, colors] of tints) for (const color of colors) keep.add(tintKey(key, color));
+		}
+		for (const each of this.#tints.keys()) {
+			if (this.#tints.size <= TINT_LIMIT + keep.size) break;
+			if (!keep.has(each)) this.#tints.delete(each);
+		}
+		return { added, failed };
+	}
+
+	/**
+	 * Tint the charges the shield wants that it hasn't got, and draw them once
+	 * they're ready. While the colour picker is dragged, colours that arrive
+	 * during a tint are skipped for the latest one.
+	 */
+	async #ensureTints() {
 		if (this.#tinting) {
 			this.#tintAgain = true;
 			return;
@@ -1131,22 +1596,14 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		try {
 			do {
 				this.#tintAgain = false;
-				const placing = this.#placing;
-				const arms = this.#arms;
-				if (placing?.charge) {
-					const image = await loadTintedCharge(placing.charge.svg, this.#color);
-					if (!image || this.#placing !== placing) continue;
-					placing.image = image;
-				} else if (arms?.charge) {
-					const loaded = await this.#loadTints(arms);
-					// A charge that can't be fetched is taken off, rather than tried again each time the arms are drawn.
-					if (loaded === null && this.#arms === arms && this.rendered) {
-						ui.notifications.warn(t("heraldry.unreadable"));
-						this.#setArms({ ...arms, charge: null });
-					}
-					if (!loaded) continue;
-				} else return;
-				this.#queueDraw();
+				const wanted = this.#wantedTints();
+				for (const key of this.#unreadable) wanted.delete(key);
+				const { added, failed } = await this.#loadTints(wanted);
+				if (!this.rendered) return;
+				// A charge that can't be fetched is said so once, rather than tried again each time the shield is drawn.
+				if (failed.length) ui.notifications.warn(t("heraldry.unreadable"));
+				for (const key of failed) this.#unreadable.add(key);
+				if (added) this.#queueDraw();
 			} while (this.#tintAgain);
 		} finally {
 			this.#tinting = false;
@@ -1154,51 +1611,34 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Tint the arms' charge before they show, for an action that may have been
-	 * overtaken by another while the charge loaded.
-	 * @param {import("../rules/heraldry.js").Arms} arms
-	 * @param {() => boolean} still Whether the action is still wanted once it has loaded.
+	 * Tint charges before they show, for an action that may have been overtaken
+	 * by another while they loaded.
+	 * @param {Map<string, Set<string>>} wanted
+	 * @param {() => boolean} still Whether the action is still wanted once they've loaded.
 	 * @param {{quiet?: boolean}} [options] Say nothing of a charge that can't be read.
-	 * @returns {Promise<boolean|null>} True when the arms are ready; false when the charge
+	 * @returns {Promise<boolean|null>} True when they're ready; false when a charge
 	 *   can't be read, said so unless quiet; null when the action was overtaken.
 	 */
-	async #tintFor(arms, still, { quiet = false } = {}) {
+	async #tintFor(wanted, still, { quiet = false } = {}) {
 		const request = ++this.#pickRequest;
-		const tinted = await this.#loadTints(arms);
+		const { failed } = await this.#loadTints(wanted);
 		if (request !== this.#pickRequest || !this.rendered || !still()) return null;
-		if (tinted !== null) return true;
+		if (!failed.length) return true;
 		if (!quiet) ui.notifications.warn(t("heraldry.unreadable"));
 		return false;
 	}
 
 	/**
-	 * Tint a charge in each colour the arms want that it hasn't been tinted in yet.
-	 * @param {import("../rules/heraldry.js").Arms} arms
-	 * @returns {Promise<number|null>} How many tints were added, or null when the charge can't be fetched.
+	 * @param {string} key
+	 * @param {string} color
+	 * @returns {HTMLCanvasElement|undefined} The charge in that colour, or while it's
+	 *   being tinted, in whichever colour was tinted last, rather than leaving a gap.
 	 */
-	async #loadTints(arms) {
-		const { charge } = arms;
-		if (!charge) return 0;
-		const missing = [...new Set(chargeColors(arms))].filter((color) => !this.#tints.has(tintKey(charge.key, color)));
-		if (!missing.length) return 0;
-		const svg = await loadChargeFile(charge.key);
-		if (!svg) return null;
-		const images = await Promise.all(missing.map((color) => loadTintedCharge(svg, color)));
-		let added = 0;
-		for (const [index, image] of images.entries()) {
-			if (!image) continue;
-			const key = tintKey(charge.key, missing[index]);
-			this.#tints.delete(key);
-			this.#tints.set(key, image);
-			added++;
-		}
-		// The first kept are the oldest. Those these arms want stay.
-		const wanted = new Set(chargeColors(arms).map((color) => tintKey(charge.key, color)));
-		for (const key of this.#tints.keys()) {
-			if (this.#tints.size <= TINT_LIMIT) break;
-			if (!wanted.has(key)) this.#tints.delete(key);
-		}
-		return added;
+	#tint(key, color) {
+		const image = this.#tints.get(tintKey(key, color));
+		if (image) return image;
+		this.#ensureTints();
+		return this.#tintOf(key);
 	}
 
 	/**
@@ -1211,164 +1651,199 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		return found;
 	}
 
-	/**
-	 * Move or resize a picture being placed, or the arms' charge.
-	 * @param {import("../rules/heraldry.js").Placement} placement
-	 * @param {object} [options]
-	 * @param {string|null} [options.step] For the arms' charge, a kind of change to undo as one step,
-	 *   joining changes of that kind just before it. Dragging makes its step when it's let go.
-	 */
-	#movePlacing(placement, { step = null } = {}) {
-		const kept = keepOnPainting(placement, PAINTING);
-		if (this.#placing) {
-			this.#placing.placement = kept;
-			this.#queueDraw();
-			return;
-		}
-		const charge = this.#arms?.charge;
-		if (!charge) return;
-		const arms = { ...this.#arms, charge: { ...charge, placement: kept } };
-		if (step) this.#changeArms(arms, { merge: step });
-		else {
-			// A drag only moves the charge, so the controls needn't be drawn again each time it moves.
-			this.#arms = arms;
-			this.#queueDraw();
-		}
-	}
-
-	/** Redraw the picture being placed, or the arms, on the next frame, once however many times they changed before then. */
-	#queueDraw() {
-		if (this.#drawQueued) return;
-		this.#drawQueued = true;
-		requestAnimationFrame(() => {
-			this.#drawQueued = false;
-			if (!this.rendered) return;
-			if (this.#placing) this.#drawPlacing();
-			else if (this.#arms) this.#drawArms();
-		});
-	}
+	/* -------------------------------------------- */
+	/*  Controls beside the shield                  */
+	/* -------------------------------------------- */
 
 	/**
-	 * Draw the painting with the picture over it, and a dashed frame round the
-	 * picture while it's still being placed.
-	 * @param {{frame?: boolean}} [options]
-	 */
-	#drawPlacing({ frame = true } = {}) {
-		const { image, natural, backdrop, placement, flip } = this.#placing;
-		const box = placementBox(natural, PAINTING, placement);
-		const context = this.#context;
-		context.clearRect(0, 0, PAINTING.width, PAINTING.height);
-		context.drawImage(backdrop, 0, 0);
-		this.#drawImage(image, box, { flip });
-		this.element.querySelector("[data-image-size]").value = String(Math.round(placement.scale * 100));
-		if (frame) this.#drawFrame(box);
-	}
-
-	/** @param {{x: number, y: number, width: number, height: number}} box Where a picture that can be dragged lies. */
-	#drawFrame(box) {
-		const context = this.#context;
-		context.save();
-		context.lineWidth = PAINT_SCALE;
-		context.setLineDash([4 * PAINT_SCALE, 3 * PAINT_SCALE]);
-		// Dark dashes with pale ones between, so the frame shows on any colour.
-		for (const [color, offset] of [["#1d1a17", 0], ["#f4f0e6", 4 * PAINT_SCALE]]) {
-			context.strokeStyle = color;
-			context.lineDashOffset = offset;
-			context.strokeRect(box.x, box.y, box.width, box.height);
-		}
-		context.restore();
-	}
-
-	/**
-	 * Paint the picture being placed into the painting, or put the painting back
-	 * as it was. A charge put back returns to the gallery, to pick another.
-	 * @param {boolean} keep
-	 */
-	#finishPlacing(keep) {
-		if (!this.#placing) return;
-		if (keep) this.#drawPlacing({ frame: false });
-		const { before, charge } = this.#placing;
-		this.#placing = null;
-		this.#drag = null;
-		if (keep) this.#remember(before);
-		else {
-			this.#restore(before);
-			if (charge) this.#browsing = true;
-		}
-		this.#showSide();
-	}
-
-	/**
-	 * Show the controls for what's in hand beside the shield: a picture being
-	 * placed, the gallery of charges, the arms being made, or the paints.
+	 * Show the controls for what's in hand beside the shield: the gallery of
+	 * charges, the arms, the picture or charge picked, or the paints. The
+	 * layers under the shield follow.
 	 */
 	#showSide() {
-		const placing = Boolean(this.#placing);
-		const browsing = !placing && this.#browsing;
-		const arming = !placing && !browsing && Boolean(this.#arms);
-		this.element.querySelector("[data-paint-controls]").hidden = placing || browsing || arming;
+		const kind = this.#selectedLayer()?.kind;
+		const browsing = Boolean(this.#browsing);
+		const arming = !browsing && this.#armsSelected();
+		const placing = !browsing && (kind === "charge" || kind === "picture");
+		this.element.querySelector("[data-paint-controls]").hidden = browsing || arming || placing;
 		this.element.querySelector("[data-place-controls]").hidden = !placing;
 		this.element.querySelector("[data-charge-controls]").hidden = !browsing;
 		this.element.querySelector("[data-arms-controls]").hidden = !arming;
-		this.element.querySelector("[data-charge-colors]").hidden = !this.#placing?.charge;
-		markActive(this.element.querySelector('[data-action="browseCharges"]'), browsing);
-		this.#canvas.classList.toggle("is-placing", placing || Boolean(this.#arms?.charge));
-		// The division in hand's lines would only get in the way of arms.
-		this.element.querySelector("[data-division-guides]").hidden = !this.#division || Boolean(this.#arms);
-		if (this.#arms) this.#renderArms();
+		markActive(this.element.querySelector('[data-action="browseCharges"]'), this.#browsing === "add");
+		this.#showGuides();
+		if (arming) this.#renderArms();
+		if (placing) this.#renderPlacing();
+		this.#renderLayers();
 		this.#refreshHistory();
+		this.#renderFrame();
+	}
+
+	/** Show the picture or charge picked in its controls. */
+	#renderPlacing() {
+		const layer = this.#selectedLayer();
+		const panel = this.element.querySelector("[data-place-controls]");
+		const charge = layer.kind === "charge";
+		panel.querySelector("[data-place-title]").textContent = charge ? chargeName(layer.key) : t("heraldry.placing.title");
+		const colors = panel.querySelector("[data-charge-colors]");
+		colors.hidden = !charge;
+		for (const swatch of colors.querySelectorAll("[data-color]")) markActive(swatch, charge && swatch.dataset.color === layer.color);
+		markActive(panel.querySelector('[data-action="flipImage"]'), layer.flip);
+		this.#showSize(panel.querySelector("[data-image-size]"), layer.placement);
 	}
 
 	/**
-	 * Open the gallery of charges, painting in any picture being placed, or put it away.
+	 * Set a size slider to a placement, as far as the picked layer may grow.
+	 * @param {HTMLInputElement} size
+	 * @param {{scale: number}} placement
+	 */
+	#showSize(size, placement) {
+		size.max = String(Math.ceil((this.#movable()?.limits ?? IMAGE_SCALE).max * 100));
+		size.value = String(Math.round(placement.scale * 100));
+	}
+
+	/**
+	 * List the layers under the shield, front first, each with buttons to bring
+	 * it forward, send it back or remove it. A button that had focus keeps it.
+	 */
+	#renderLayers() {
+		const list = this.element.querySelector("[data-layer-list]");
+		const focused = list.contains(document.activeElement) ? document.activeElement : null;
+		const refocus = focused && { id: focused.closest("[data-layer-id]")?.dataset.layerId, action: focused.dataset.action };
+		const template = this.element.querySelector("[data-layer-row]").content.firstElementChild;
+		let painted = 0;
+		const rows = this.#layers.map((layer, index) => {
+			const row = template.cloneNode(true);
+			row.dataset.layerId = String(layer.id);
+			const active = layer.id === this.#selected;
+			row.classList.toggle("is-active", active);
+			markActive(row.querySelector('[data-action="selectLayer"]'), active);
+			const { icon, name } = this.#describeLayer(layer, layer.kind === "paint" ? ++painted : 0);
+			row.querySelector("[data-layer-icon]").replaceChildren(icon);
+			row.querySelector("[data-layer-name]").textContent = name;
+			row.querySelector('[data-action="layerForward"]').disabled = this.#saving || index === this.#layers.length - 1;
+			row.querySelector('[data-action="layerBack"]').disabled = this.#saving || index === 0;
+			for (const button of row.querySelectorAll('[data-action="selectLayer"], [data-action="removeLayer"]')) button.disabled = this.#saving;
+			return row;
+		});
+		list.replaceChildren(...rows.reverse());
+		list.hidden = !rows.length;
+		this.element.querySelector("[data-layers-empty]").hidden = Boolean(rows.length);
+		if (!refocus) return;
+		const again = list.querySelector(`[data-layer-id="${refocus.id}"] [data-action="${refocus.action}"]`);
+		// A layer that can go no further hands focus to the button beside it.
+		(again?.disabled ? again.closest("li").querySelector('[data-action="selectLayer"]') : again)?.focus({ preventScroll: true });
+	}
+
+	/**
+	 * @param {Layer} layer
+	 * @param {number} number Which paint layer it is, counting from the back.
+	 * @returns {{icon: Element, name: string}} What the layer's row shows.
+	 */
+	#describeLayer(layer, number) {
+		const glyph = (kind) => {
+			const icon = document.createElement("i");
+			icon.className = LAYER_ICONS[kind];
+			icon.inert = true;
+			return icon;
+		};
+		const picture = (key) => {
+			const image = document.createElement("img");
+			image.src = chargePath(key);
+			image.alt = "";
+			image.draggable = false;
+			return image;
+		};
+		switch (layer.kind) {
+			case "paint":
+				return { icon: glyph("paint"), name: t("heraldry.layers.paint", { number }) };
+			case "picture":
+				return { icon: glyph("picture"), name: t("heraldry.placing.title") };
+			case "charge":
+				return { icon: picture(layer.key), name: chargeName(layer.key) };
+			case "field": {
+				const division = this.#arms.division ? t(`heraldry.divisions.${this.#arms.division}`) : t("heraldry.arms.plain");
+				return { icon: fieldShield(this.#arms, `${this.id}-layer-field`), name: t("heraldry.layers.field", { division }) };
+			}
+			default:
+				return { icon: picture(this.#arms.charge.key), name: t("heraldry.layers.armsCharge", { name: chargeName(this.#arms.charge.key) }) };
+		}
+	}
+
+	/**
+	 * Open the gallery of charges, or put it away.
 	 * @param {boolean} open
 	 * @param {object} [options]
 	 * @param {boolean} [options.focus] Move focus into the gallery, or back to its button.
+	 * @param {boolean} [options.forArms] Pick a charge for the arms, rather than add one on a layer of its own.
 	 */
-	#browse(open, { focus = false } = {}) {
-		if (open) this.#finishPlacing(true);
-		this.#browsing = open;
+	#browse(open, { focus = false, forArms = false } = {}) {
+		this.#browsing = open ? (forArms ? "arms" : "add") : null;
 		this.#showSide();
 		if (!focus) return;
 		const target = open ? "[data-charge-group]" : '[data-action="browseCharges"]';
 		this.element.querySelector(target)?.focus({ preventScroll: true });
 	}
 
-	/** @returns {Snapshot} The painting as it is now: the arms being made, or its pixels and the arms they show. */
+	/* -------------------------------------------- */
+	/*  Undo                                        */
+	/* -------------------------------------------- */
+
+	/** @returns {Snapshot} The painting as it is now. */
 	#snapshot() {
-		if (this.#arms) return { pixels: null, arms: this.#arms };
-		return { pixels: this.#context.getImageData(0, 0, PAINTING.width, PAINTING.height), arms: this.#bakedArms };
+		return {
+			layers: this.#layers.map((layer) => (layer.kind === "paint"
+				? { id: layer.id, kind: "paint", version: layer.version, pixels: this.#pixelsOf(layer) }
+				: layer)),
+			arms: this.#arms,
+			selected: this.#selected,
+			painted: new Set(this.#painted)
+		};
 	}
 
 	/**
-	 * Put the painting back as it was: arms kept without pixels are taken up
-	 * to edit again, and pixels are painted back.
+	 * @param {PaintLayer} layer
+	 * @returns {ImageData} The layer's pixels, copied once each time it changes.
+	 */
+	#pixelsOf(layer) {
+		if (layer.kept?.version !== layer.version) {
+			layer.kept = { version: layer.version, pixels: layer.context.getImageData(0, 0, PAINTING.width, PAINTING.height) };
+		}
+		return layer.kept.pixels;
+	}
+
+	/**
+	 * Put the painting back as it was. Paint layers whose pixels haven't changed since are left be.
 	 * @param {Snapshot} snapshot
 	 */
-	#restore({ pixels, arms }) {
-		if (pixels) {
-			this.#arms = null;
-			this.#bakedArms = arms;
-			this.#context.putImageData(pixels, 0, 0);
-		} else {
-			this.#arms = arms;
-			this.#bakedArms = null;
-			this.#queueDraw();
-		}
+	#restore({ layers, arms, selected, painted }) {
+		const live = new Map(this.#layers.map((layer) => [layer.id, layer]));
+		this.#layers = layers.map((was) => {
+			if (was.kind !== "paint") return was;
+			let layer = live.get(was.id);
+			if (layer?.kind !== "paint") layer = this.#newPaintLayer(was.id);
+			if (layer.version !== was.version) {
+				layer.context.putImageData(was.pixels, 0, 0);
+				layer.version = was.version;
+				layer.kept = { version: was.version, pixels: was.pixels };
+			}
+			return layer;
+		});
+		this.#arms = arms;
+		this.#selected = layers.some((layer) => layer.id === selected) ? selected : null;
+		this.#painted = new Set(painted);
+		this.#drag = null;
 		this.#showSide();
+		this.#queueDraw();
 	}
 
 	/**
-	 * Keep a copy of the painting to undo back to. A new change can't be redone
-	 * past. Something is about to change, so the painting no longer shows
-	 * arms put down to paint.
+	 * Keep a copy of the painting to undo back to. A new change can't be redone past.
 	 * @param {Snapshot} [snapshot] The painting before the change. Defaults to how it is now.
 	 */
 	#remember(snapshot = this.#snapshot()) {
 		this.#undo.push(snapshot);
 		if (this.#undo.length > UNDO_LIMIT) this.#undo.shift();
 		this.#redo = [];
-		this.#bakedArms = null;
 		this.#lastChange = null;
 		this.#refreshHistory();
 	}
@@ -1387,71 +1862,57 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Take up arms to make: drawn from their parts, with their controls beside the shield.
-	 * @param {import("../rules/heraldry.js").Arms} arms
-	 */
-	#setArms(arms) {
-		this.#arms = arms;
-		this.#bakedArms = null;
-		this.#queueDraw();
-		this.#showSide();
-	}
-
-	/**
-	 * Change the arms being made, or make new ones, as a step to undo.
-	 * @param {import("../rules/heraldry.js").Arms} arms
+	 * Change the layers or arms as a step to undo, then show the change.
+	 * @param {() => void} apply
 	 * @param {object} [options]
 	 * @param {string|null} [options.merge] A kind of change, such as a colour picker moving or the wheel
 	 *   turning. One of the same kind just before joins it, so the two are undone together.
 	 */
-	#changeArms(arms, { merge = null } = {}) {
+	#change(apply, { merge = null } = {}) {
 		const last = this.#lastChange;
 		const now = Date.now();
-		const joins = merge && this.#arms && last?.merge === merge && now - last.at < MERGE_WINDOW;
+		const joins = merge && last?.merge === merge && now - last.at < MERGE_WINDOW;
 		if (!joins) this.#remember();
 		this.#lastChange = merge ? { merge, at: now } : null;
-		this.#setArms(arms);
+		apply();
+		// A gesture carried on, such as a slider or a picker dragged, changes the one layer it began on and adds no step,
+		// so only that layer's controls follow it rather than the whole side being drawn again at each step.
+		if (joins) this.#showPicked();
+		else this.#showSide();
+		this.#queueDraw();
+	}
+
+	/** Show the picked layer's controls, and the field's icon in the list of layers, as a change to it goes on. */
+	#showPicked() {
+		if (!this.#browsing && this.#armsSelected()) {
+			this.#renderArms();
+			const field = this.#layers.find((layer) => layer.kind === "field");
+			const icon = field && this.element.querySelector(`[data-layer-id="${field.id}"] [data-layer-icon]`);
+			icon?.replaceChildren(this.#describeLayer(field, 0).icon);
+		} else if (!this.#browsing && ["charge", "picture"].includes(this.#selectedLayer()?.kind)) this.#renderPlacing();
+		this.#renderFrame();
 	}
 
 	/**
-	 * Put the arms being made down to paint by hand. They stay ready to take
-	 * up again until something is painted.
+	 * Change the arms, or make new ones, as a step to undo.
+	 * @param {import("../rules/heraldry.js").Arms|null} arms
+	 * @param {object} [options]
+	 * @param {string|null} [options.merge] See #change.
 	 */
-	#bakeArms() {
-		const arms = this.#arms;
-		if (!arms) return;
-		this.#drawArms({ frame: false });
-		this.#bakedArms = arms;
-		this.#arms = null;
-		this.#drag = null;
-		this.#showSide();
-		// A colour still loading was drawn in a stand-in: paint it in once loaded, unless painted over by then.
-		this.#loadTints(arms).then((added) => {
-			if (added && this.rendered && this.#bakedArms === arms && !this.#arms && !this.#placing) this.#drawArms({ arms, frame: false });
-		});
+	#changeArms(arms, { merge = null } = {}) {
+		this.#change(() => this.#putArms(arms), { merge });
 	}
 
-	/** Draw the arms being made as they're kept: without the frame round the charge, and in every colour they want. */
-	async #paintArms() {
-		if (!this.#arms) return;
-		await this.#loadTints(this.#arms);
-		if (this.#arms && this.rendered) this.#drawArms({ frame: false });
-	}
-
-	/** Let go of the arms being made, as whatever changes next paints over them. */
-	#dropArms() {
-		if (!this.#arms) return;
-		this.#arms = null;
-		this.#drag = null;
-		this.#showSide();
-	}
+	/* -------------------------------------------- */
+	/*  Arms                                        */
+	/* -------------------------------------------- */
 
 	/**
-	 * Colour one part of the arms being made.
+	 * Colour one part of the arms.
 	 * @param {string|undefined} part A group of the field's parts, by number, or "charge".
 	 * @param {string} color
 	 * @param {object} [options]
-	 * @param {string|null} [options.merge] See #changeArms.
+	 * @param {string|null} [options.merge] See #change.
 	 */
 	#colorArms(part, color, { merge = null } = {}) {
 		const arms = this.#arms;
@@ -1469,10 +1930,9 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @param {HTMLElement} target A control in the arms' panel that changed, as a colour picker or slider moves. */
 	#onArmsInput(target) {
-		if (!this.#arms || this.#saving) return;
+		if (!this.#armsSelected() || this.#saving) return;
 		if (target.matches("[data-arms-size]")) {
-			const movable = this.#movable();
-			if (movable) this.#movePlacing(zoomPlacement(movable.placement, Number(target.value) / 100, movable.limits), { step: "size" });
+			this.#resizeFromSlider(target);
 			return;
 		}
 		if (!target.matches("[data-arms-picker]")) return;
@@ -1480,7 +1940,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#colorArms(part, target.value.toLowerCase(), { merge: `color-${part}` });
 	}
 
-	/** Show the arms being made in their controls. The rows of tinctures are only built again when the field's parts change. */
+	/** Show the arms in their controls. The rows of tinctures are only built again when the field's parts change. */
 	#renderArms() {
 		const arms = this.#arms;
 		const panel = this.element.querySelector("[data-arms-controls]");
@@ -1512,16 +1972,14 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		const image = panel.querySelector("[data-arms-charge-image]");
 		const src = chargePath(charge.key);
 		if (image.getAttribute("src") !== src) image.setAttribute("src", src);
-		panel.querySelector("[data-arms-charge-name]").textContent = CHARGES.find(({ key }) => key === charge.key)?.name ?? charge.key;
+		panel.querySelector("[data-arms-charge-name]").textContent = chargeName(charge.key);
 		const divided = arms.field.length > 1;
 		showColor(panel.querySelector('[data-arms-part="charge"]'), charge.counterchanged && divided ? null : charge.color);
 		const counterchange = panel.querySelector('[data-action="armsCounterchange"]');
 		markActive(counterchange, charge.counterchanged && divided);
 		counterchange.disabled = !divided;
 		markActive(panel.querySelector('[data-action="flipImage"]'), charge.flip);
-		const size = panel.querySelector("[data-arms-size]");
-		size.max = String(Math.ceil((this.#movable()?.limits ?? IMAGE_SCALE).max * 100));
-		size.value = String(Math.round(charge.placement.scale * 100));
+		this.#showSize(panel.querySelector("[data-arms-size]"), charge.placement);
 	}
 
 	/** @returns {HTMLUListElement} Every tincture to colour a part of the arms, then a picker for any other colour. */
@@ -1529,21 +1987,19 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		return this.element.querySelector("[data-arms-swatches]").content.firstElementChild.cloneNode(true);
 	}
 
-	/**
-	 * Undo, redo and clear wait while a picture is being placed. Edit arms is
-	 * offered while the painting shows arms put down, so anything painted takes it away.
-	 */
+	/** Undo and redo wait for something to go back or forward to. Edit arms is offered while the arms' controls are away. */
 	#refreshHistory() {
-		const placing = Boolean(this.#placing);
 		const undo = this.element?.querySelector('[data-action="undo"]');
 		const redo = this.element?.querySelector('[data-action="redo"]');
-		const clear = this.element?.querySelector('[data-action="clear"]');
 		const editArms = this.element?.querySelector('[data-action="editArms"]');
-		if (undo) undo.disabled = placing || !this.#undo.length;
-		if (redo) redo.disabled = placing || !this.#redo.length;
-		if (clear) clear.disabled = placing;
-		if (editArms) editArms.hidden = !this.#bakedArms;
+		if (undo) undo.disabled = !this.#undo.length;
+		if (redo) redo.disabled = !this.#redo.length;
+		if (editArms) editArms.hidden = !this.#arms || this.#armsSelected();
 	}
+
+	/* -------------------------------------------- */
+	/*  Tools and colours                           */
+	/* -------------------------------------------- */
 
 	/** @param {string} tool */
 	#pickTool(tool) {
@@ -1561,7 +2017,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * @param {string} color Such as "#b0261e". Picking a colour while erasing picks up the brush, and recolours a charge being placed.
+	 * @param {string} color Such as "#b0261e". Picking a colour while erasing picks up the brush, and recolours a charge picked.
 	 */
 	#pickColor(color) {
 		this.#color = color.toLowerCase();
@@ -1569,7 +2025,10 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		for (const button of this.element.querySelectorAll('[data-action="setColor"]')) markActive(button, button.dataset.color === this.#color);
 		this.element.querySelector("[data-custom-color]").value = this.#color;
 		this.element.querySelector("[data-division-guides]").style.color = this.#color;
-		if (this.#placing?.charge) this.#retint();
+		const layer = this.#selectedLayer();
+		if (layer?.kind === "charge" && layer.color !== this.#color) {
+			this.#change(() => this.#replaceLayer({ ...layer, color: this.#color }), { merge: `color-${layer.id}` });
+		}
 	}
 
 	/**
@@ -1605,41 +2064,95 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		row.hidden = !swatches.length;
 	}
 
+	/* -------------------------------------------- */
+	/*  Saving                                      */
+	/* -------------------------------------------- */
+
 	/** @param {boolean} saving */
 	#setSaving(saving) {
 		this.#saving = saving;
 		const buttons = this.element?.querySelectorAll([
 			".bastionland-heraldry-painter__footer button",
 			"[data-arms-controls] :is(button, input)",
+			"[data-place-controls] :is(button, input)",
+			"[data-layers] button",
 			'[data-action="browseCharges"]',
 			'[data-action="randomize"]',
 			'[data-action="editArms"]'
 		].join(", ")) ?? [];
 		for (const button of buttons) button.disabled = saving;
-		// Counterchanging stays off for a plain field. A save closes the window before this.
-		if (!saving && this.#arms && this.rendered) this.#renderArms();
+		// Counterchanging stays off for a plain field, and the ends of the layers can go no further. A save closes the window before this.
+		if (!saving && this.rendered) this.#showSide();
+		else this.#renderFrame();
+	}
+
+	/** Draw the shield as it's kept, every charge in every colour it wants. */
+	async #composeWhole() {
+		await this.#loadTints(this.#wantedTints());
+		this.#compose();
 	}
 
 	/**
-	 * Upload the painting, or turn it into a data URL when uploading isn't allowed or fails.
-	 * @returns {Promise<string|null>} What to keep as the Knight's heraldry, or null if it's too large to keep.
+	 * Upload a picture, or turn it into a data URL when uploading isn't allowed or fails.
+	 * @param {HTMLCanvasElement} canvas
+	 * @param {string} dir Folder under Data.
+	 * @param {string} name The file's name, without its extension.
+	 * @returns {Promise<string>} Where the picture is, or the picture itself.
 	 */
-	async #store() {
-		const blob = await canvasToBlob(this.#canvas, "image/webp", WEBP_QUALITY);
-		if (blob && game.user.can("FILES_UPLOAD")) {
-			const dir = `worlds/${game.world.id}/heraldry`;
-			await ensureDirectories([dir]);
+	async #storeCanvas(canvas, dir, name) {
+		const blob = game.user.can("FILES_UPLOAD") ? await canvasToBlob(canvas, "image/webp", WEBP_QUALITY) : null;
+		if (blob) {
+			const needed = [`worlds/${game.world.id}/heraldry`, dir].filter((each) => !this.#folders.has(each));
+			await ensureDirectories(needed);
+			for (const each of needed) this.#folders.add(each);
 			// Browsers without WebP encoding hand back a PNG instead.
 			const extension = blob.type.split("/")[1] || "png";
-			const name = `${this.#actor.uuid.replaceAll(".", "-")}.${extension}`;
-			const path = await uploadFile(dir, new File([blob], name, { type: blob.type }));
+			const path = await uploadFile(dir, new File([blob], `${name}.${extension}`, { type: blob.type }));
 			// Each save overwrites the same file, so a version on the end makes browsers fetch the new one.
 			if (path) return `${path}?v=${Date.now()}`;
 		}
-		const dataUrl = this.#canvas.toDataURL("image/webp", WEBP_QUALITY);
-		if (dataUrl.length <= MAX_INLINE_LENGTH) return dataUrl;
+		return canvas.toDataURL("image/webp", WEBP_QUALITY);
+	}
+
+	/**
+	 * Store the painting.
+	 * @returns {Promise<string|null>} What to keep as the Knight's heraldry, or null if it's too large to keep.
+	 */
+	async #store() {
+		const heraldry = await this.#storeCanvas(this.#canvas, `worlds/${game.world.id}/heraldry`, this.#actor.uuid.replaceAll(".", "-"));
+		if (!heraldry.startsWith("data:") || heraldry.length <= MAX_INLINE_LENGTH) return heraldry;
 		ui.notifications.warn(t("heraldry.tooLarge"));
 		return null;
+	}
+
+	/**
+	 * The layers as kept beside the heraldry, to take up again: each paint and
+	 * picture layer stored as a file of its own, or on the Knight when files
+	 * can't be uploaded.
+	 * @param {string} heraldry The heraldry as just stored.
+	 * @returns {Promise<{stamp: string, arms: import("../rules/heraldry.js").Arms|null, layers: import("../rules/heraldry.js").KeptLayer[]}|null>}
+	 *   Null when they're too large to keep on the Knight, which leaves the heraldry itself to open next time.
+	 */
+	async #keepLayers(heraldry) {
+		const dir = `worlds/${game.world.id}/heraldry/layers`;
+		const name = this.#actor.uuid.replaceAll(".", "-");
+		// The layers' pictures are stored all at once rather than one after another.
+		const layers = await Promise.all(this.#layers.map(async (layer, index) => {
+			if (isArmsLayer(layer)) return { kind: layer.kind };
+			if (layer.kind === "charge") {
+				const { key, color, placement, flip } = layer;
+				return { kind: "charge", key, color, placement, flip };
+			}
+			const blank = layer.kind === "paint" && isBlank(this.#pixelsOf(layer).data);
+			const src = blank ? null : await this.#storeCanvas(layer.kind === "paint" ? layer.canvas : layer.image, dir, `${name}-${index}`);
+			return layer.kind === "paint" ? { kind: "paint", src } : { kind: "picture", src, placement: layer.placement, flip: layer.flip };
+		}));
+		const inline = layers.reduce((total, { src }) => total + (src?.startsWith("data:") ? src.length : 0), 0);
+		if (inline > MAX_INLINE_LENGTH) {
+			ui.notifications.warn(t("heraldry.layersTooLarge"));
+			return null;
+		}
+		return { stamp: heraldryStamp(heraldry), arms: this.#arms, layers };
 	}
 
 	/* -------------------------------------------- */
@@ -1647,14 +2160,13 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 
 	/**
-	 * Picking up a tool paints in a picture being placed, puts the charges away,
-	 * and puts arms being made down to paint over.
+	 * Picking up a tool puts the charges away, and lets go of a layer that
+	 * can't be painted on.
 	 * @this {HeraldryPainter}
 	 */
 	static #onSetTool(_event, target) {
-		this.#finishPlacing(true);
-		this.#bakeArms();
 		this.#browse(false);
+		this.#takeUpPaint();
 		this.#pickTool(target.dataset.tool);
 	}
 
@@ -1668,33 +2180,39 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @this {HeraldryPainter}
 	 */
 	static #onSetDivision(_event, target) {
-		this.#finishPlacing(true);
-		this.#bakeArms();
+		this.#takeUpPaint();
 		const division = divisionOf(target.dataset.division);
 		if (!division || (this.#tool === "divide" && this.#division === division)) {
 			this.#pickTool("brush");
 			return;
 		}
 		this.#division = division;
+		this.#painted.clear();
 		this.#pickTool("divide");
 	}
 
 	/** @this {HeraldryPainter} */
 	static #onUndo() {
-		this.#step(this.#undo, this.#redo);
+		if (!this.#stroke && !this.#drag) this.#step(this.#undo, this.#redo);
 	}
 
 	/** @this {HeraldryPainter} */
 	static #onRedo() {
-		this.#step(this.#redo, this.#undo);
+		if (!this.#stroke && !this.#drag) this.#step(this.#redo, this.#undo);
 	}
 
-	/** @this {HeraldryPainter} */
+	/**
+	 * Clear the shield: every layer, and the arms.
+	 * @this {HeraldryPainter}
+	 */
 	static #onClear() {
-		if (this.#placing || this.#drag) return;
-		this.#remember();
-		this.#dropArms();
-		this.#context.clearRect(0, 0, PAINTING.width, PAINTING.height);
+		if (this.#drag || this.#stroke || !this.#layers.length) return;
+		this.#change(() => {
+			this.#layers = [];
+			this.#arms = null;
+			this.#selected = null;
+			this.#painted.clear();
+		});
 	}
 
 	/** @this {HeraldryPainter} */
@@ -1712,29 +2230,29 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {HeraldryPainter} A charge fits clear of the shield's point, where it arrived. */
 	static #onFitImage() {
-		if (this.#placing) this.#movePlacing(this.#placing.charge ? chargePlacement(PAINTING) : centredPlacement(PAINTING));
-		else if (this.#arms?.charge) this.#movePlacing(chargePlacement(PAINTING), { step: "fit" });
+		const layer = this.#movableLayer();
+		if (layer) this.#moveSelected(layer.kind === "picture" ? centredPlacement(PAINTING) : chargePlacement(PAINTING), { step: "fit" });
 	}
 
 	/** @this {HeraldryPainter} */
 	static #onFillImage() {
-		if (this.#placing) this.#movePlacing(centredPlacement(PAINTING, fillScale(this.#placing.natural, PAINTING)));
+		const movable = this.#movable();
+		if (movable) this.#moveSelected(centredPlacement(PAINTING, fillScale(movable.natural, PAINTING)), { step: "fill" });
 	}
 
 	/** @this {HeraldryPainter} */
 	static #onFlipImage() {
-		if (this.#placing) {
-			this.#placing.flip = !this.#placing.flip;
-			this.#drawPlacing();
-			return;
-		}
-		const charge = this.#arms?.charge;
-		if (charge) this.#changeArms({ ...this.#arms, charge: { ...charge, flip: !charge.flip } });
+		const layer = this.#movableLayer();
+		if (!layer) return;
+		if (layer.kind === "armsCharge") {
+			const { charge } = this.#arms;
+			this.#changeArms({ ...this.#arms, charge: { ...charge, flip: !charge.flip } });
+		} else this.#change(() => this.#replaceLayer({ ...layer, flip: !layer.flip }));
 	}
 
-	/** @this {HeraldryPainter} The gallery's button opens it, or puts it away again. */
+	/** @this {HeraldryPainter} The gallery's button opens it to add a charge, or puts it away again. */
 	static #onBrowseCharges() {
-		this.#browse(!this.#browsing, { focus: true });
+		this.#browse(this.#browsing !== "add", { focus: true });
 	}
 
 	/** @this {HeraldryPainter} */
@@ -1743,77 +2261,78 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Place a charge in the colour in hand, or, while arms are being made, make it theirs.
+	 * Put a charge on a layer of its own in the colour in hand, straight above
+	 * the layer picked, or give it to the arms when the gallery was opened for them.
 	 * @this {HeraldryPainter}
 	 */
 	static async #onPickCharge(_event, target) {
 		const charge = CHARGES.find(({ key }) => key === target.dataset.charge);
 		if (!charge || this.#saving) return;
 		const arms = this.#arms;
-		if (arms) {
+		if (this.#browsing === "arms" && arms) {
 			const next = armsWithCharge(arms, charge.key, chargePlacement(PAINTING));
-			if (!(await this.#tintFor(next, () => Boolean(this.#arms)))) return;
-			this.#browsing = false;
+			if (!(await this.#tintFor(this.#wantedTints(next, ARMS_CHARGE_LAYERS), () => Boolean(this.#arms)))) return;
+			this.#browsing = null;
 			// The arms may have changed while the charge loaded, so it joins them as they are now.
 			this.#changeArms(this.#arms === arms ? next : armsWithCharge(this.#arms, charge.key, chargePlacement(PAINTING)));
 			this.#canvas.focus({ preventScroll: true });
 			return;
 		}
-		const request = ++this.#pickRequest;
-		const svg = await loadChargeFile(charge.key);
-		if (request !== this.#pickRequest || !this.rendered) return;
-		if (!svg) {
-			ui.notifications.warn(t("heraldry.unreadable"));
-			return;
-		}
 		const color = this.#color;
-		const image = await loadTintedCharge(svg, color);
-		if (!image || request !== this.#pickRequest || !this.rendered) return;
-		this.#startPlacing(image, { charge: { key: charge.key, svg }, placement: chargePlacement(PAINTING) });
-		// The colour may have changed while the charge loaded.
-		if (color !== this.#color) this.#retint();
+		if (!(await this.#tintFor(new Map([[charge.key, new Set([color])]]), () => true))) return;
+		this.#browsing = null;
+		this.#change(() => {
+			const layer = { id: ++this.#layerIds, kind: "charge", key: charge.key, color: this.#color, placement: chargePlacement(PAINTING), flip: false };
+			this.#selected = this.#addLayer(layer, this.#selectedIndex()).id;
+		});
+		this.#canvas.focus({ preventScroll: true });
 	}
 
 	/**
 	 * Make random arms over the whole shield, as one change to undo: a field,
-	 * plain or divided, and perhaps a charge, in tinctures that read well. A
-	 * picture being placed is painted in first, as every tool does, so Undo
-	 * brings it back. The arms' controls come into view, to change any part.
+	 * plain or divided, and perhaps a charge, in tinctures that read well. Arms
+	 * already made are rolled again where they lie; new ones go straight above
+	 * the layer picked. The arms' controls come into view, to change any part.
 	 * @this {HeraldryPainter}
 	 */
 	static async #onRandomize() {
 		if (this.#saving) return;
 		const arms = editableArms(randomArms({ charges: CHARGE_KEYS }), chargePlacement(PAINTING));
 		// The charge is tinted before the arms show, so they arrive whole. One that won't load leaves the field bare.
-		const tinted = await this.#tintFor(arms, () => true, { quiet: true });
+		const tinted = await this.#tintFor(this.#wantedTints(arms, ARMS_CHARGE_LAYERS), () => true, { quiet: true });
 		if (tinted === null) return;
-		this.#finishPlacing(true);
-		this.#browsing = false;
+		this.#browsing = null;
 		this.#stroke = null;
-		this.#changeArms(tinted ? arms : { ...arms, charge: null });
+		this.#change(() => {
+			this.#putArms(tinted ? arms : { ...arms, charge: null });
+			this.#selected = this.#fieldLayer().id;
+		});
 		this.#canvas.focus({ preventScroll: true });
 	}
 
 	/**
-	 * Take up again the arms the painting shows, to change any part.
+	 * Pick the arms' field, bringing up their controls.
 	 * @this {HeraldryPainter}
 	 */
-	static async #onEditArms() {
-		const arms = this.#bakedArms;
-		if (!arms || this.#saving) return;
-		if (!(await this.#tintFor(arms, () => this.#bakedArms === arms))) return;
-		this.#browsing = false;
-		this.#stroke = null;
-		this.#setArms(arms);
+	static #onEditArms() {
+		const field = this.#fieldLayer();
+		if (!field || this.#saving) return;
+		this.#select(field.id);
 		this.#canvas.focus({ preventScroll: true });
 	}
 
 	/**
-	 * Put the arms being made down, and bring back the paints.
+	 * Let go of the layer picked, and bring back the paints.
 	 * @this {HeraldryPainter}
 	 */
-	static #onDoneArms() {
-		this.#bakeArms();
+	static #onDoneLayer() {
+		this.#select(null);
+		this.#canvas.focus({ preventScroll: true });
+	}
+
+	/** @this {HeraldryPainter} */
+	static #onRemoveSelected() {
+		if (this.#selected !== null) this.#removeLayer(this.#selected);
 		this.#canvas.focus({ preventScroll: true });
 	}
 
@@ -1830,7 +2349,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		else if (roll === "tinctures") next = retinctureArms(arms);
 		else if (roll === "charge") next = rechargeArms(arms, CHARGE_KEYS, chargePlacement(PAINTING));
 		if (next === arms) return;
-		if (!(await this.#tintFor(next, () => this.#arms === arms))) return;
+		if (!(await this.#tintFor(this.#wantedTints(next, ARMS_CHARGE_LAYERS), () => this.#arms === arms))) return;
 		this.#changeArms(next);
 	}
 
@@ -1868,7 +2387,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {HeraldryPainter} */
 	static #onChangeArmsCharge() {
-		this.#browse(true, { focus: true });
+		this.#browse(true, { focus: true, forArms: true });
 	}
 
 	/** @this {HeraldryPainter} */
@@ -1877,14 +2396,53 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
+	 * @param {HTMLElement} target A button in a layer's row.
+	 * @returns {number} The layer's id.
+	 */
+	static #layerIdOf(target) {
+		return Number(target.closest("[data-layer-id]").dataset.layerId);
+	}
+
+	/** @this {HeraldryPainter} Picking the layer already picked lets go of it. */
+	static #onSelectLayer(_event, target) {
+		const id = HeraldryPainter.#layerIdOf(target);
+		this.#select(this.#selected === id ? null : id);
+	}
+
+	/** @this {HeraldryPainter} */
+	static #onLayerForward(_event, target) {
+		this.#moveLayer(HeraldryPainter.#layerIdOf(target), 1);
+	}
+
+	/** @this {HeraldryPainter} */
+	static #onLayerBack(_event, target) {
+		this.#moveLayer(HeraldryPainter.#layerIdOf(target), -1);
+	}
+
+	/** @this {HeraldryPainter} */
+	static #onRemoveLayer(_event, target) {
+		this.#removeLayer(HeraldryPainter.#layerIdOf(target));
+	}
+
+	/**
+	 * Add an empty paint layer straight above the layer picked, and pick it.
+	 * @this {HeraldryPainter}
+	 */
+	static #onAddLayer() {
+		if (this.#saving) return;
+		this.#browsing = null;
+		this.#change(() => {
+			this.#selected = this.#addLayer(this.#newPaintLayer(), this.#selectedIndex()).id;
+		});
+	}
+
+	/**
 	 * Save the painting to the user's computer as a PNG, full size, to open in a painter again later.
 	 * @this {HeraldryPainter}
 	 */
 	static async #onDownload() {
 		if (this.#saving) return;
-		// A picture still being placed is downloaded where it is.
-		this.#finishPlacing(true);
-		await this.#paintArms();
+		await this.#composeWhole();
 		const blob = await canvasToBlob(this.#canvas, "image/png");
 		if (!blob) {
 			ui.notifications.warn(t("heraldry.downloadFailed"));
@@ -1895,36 +2453,22 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/** @this {HeraldryPainter} */
-	static #onPlaceImage() {
-		this.#finishPlacing(true);
-		this.#canvas.focus({ preventScroll: true });
-	}
-
-	/** @this {HeraldryPainter} */
-	static #onDiscardImage() {
-		this.#finishPlacing(false);
-		this.#canvas.focus({ preventScroll: true });
-	}
-
-	/** @this {HeraldryPainter} */
 	static async #onSave() {
 		if (this.#saving) return;
-		// A picture still being placed is saved where it is.
-		this.#finishPlacing(true);
-		// A charge or random arms still loading would paint over the shield while it's being stored.
+		// A charge or random arms still loading would change the shield while it's being stored.
 		this.#pickRequest++;
 		this.#setSaving(true);
 		try {
-			// Nothing draws the frame round the charge again while saving.
-			await this.#paintArms();
+			await this.#composeWhole();
 			const { data } = this.#context.getImageData(0, 0, PAINTING.width, PAINTING.height);
 			const heraldry = isBlank(data) ? "" : await this.#store();
 			if (heraldry === null) return;
-			// Arms the painting shows are kept beside it, to take up again next time.
-			const arms = heraldry ? (this.#arms ?? this.#bakedArms) : null;
+			// The layers are kept beside the heraldry, to take up again next time.
+			const layers = heraldry ? await this.#keepLayers(heraldry) : null;
 			await this.#actor.update({
 				"system.heraldry": heraldry,
-				[`flags.${SYSTEM_ID}.${ARMS_FLAG}`]: arms ? { ...arms, stamp: heraldryStamp(heraldry) } : null
+				[`flags.${SYSTEM_ID}.${LAYERS_FLAG}`]: layers,
+				[`flags.${SYSTEM_ID}.${ARMS_FLAG}`]: null
 			});
 			await this.close();
 		} finally {

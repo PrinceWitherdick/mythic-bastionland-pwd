@@ -30,7 +30,7 @@ Players can make their own Knights. A GM can also make blank Knights ahead of ti
 
 #### Heraldry
 
-Click the shield to paint it with heraldry's tinctures and divisions. **Add a charge** offers 215 lions, towers, wyverns, crosses and more, drawn after public-domain heraldry books. **Randomize** paints a whole coat of arms and follows the rule of tincture. A Knight's Token wears their shield.
+Click the shield to paint it with heraldry's tinctures and divisions. **Add a charge** offers 215 lions, towers, wyverns, crosses and more, drawn after public-domain heraldry books. **Randomize** paints a whole coat of arms and follows the rule of tincture. Every charge, picture and painting, and the arms' field, sits on a layer of its own, listed under the shield, to bring forward, send back, move or remove later. A Knight's Token wears their shield.
 
 #### Combat
 

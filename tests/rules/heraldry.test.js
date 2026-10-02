@@ -23,7 +23,11 @@ import {
 	divisionGroupAt,
 	fillScale,
 	floodFill,
+	floodReach,
 	hexToRgba,
+	insertLayer,
+	moveLayer,
+	readLayers,
 	isBlank,
 	keepOnPainting,
 	placementBox,
@@ -90,6 +94,38 @@ describe("floodFill", () => {
 		expect(floodFill(pixels, 2, 1, 5, 0, SABLE)).toBe(false);
 		expect(floodFill(pixels, 2, 1, 1, 0, SABLE, { inside: Uint8Array.from([1, 0]) })).toBe(false);
 		expect(colorsOf(pixels)).toEqual([GULES, CLEAR]);
+	});
+});
+
+describe("floodReach", () => {
+	it("finds what a fill would paint without painting it", () => {
+		const pixels = row(CLEAR, CLEAR, SABLE, CLEAR);
+		const before = pixels.slice();
+		expect([...floodReach(pixels, 4, 1, 0, 0, GULES)].map(Boolean)).toEqual([true, true, false, false]);
+		expect(pixels).toEqual(before);
+	});
+
+	it("reaches nothing where the fill would paint nothing", () => {
+		expect(floodReach(row(GULES, CLEAR), 2, 1, 0, 0, GULES)).toBeNull();
+		expect(floodReach(row(GULES, CLEAR), 2, 1, 3, 0, SABLE)).toBeNull();
+	});
+});
+
+describe("layers", () => {
+	it("moves a layer forward or back one step, no further than the ends", () => {
+		const layers = ["a", "b", "c"];
+		expect(moveLayer(layers, 0, 1)).toEqual(["b", "a", "c"]);
+		expect(moveLayer(layers, 2, -1)).toEqual(["a", "c", "b"]);
+		expect(moveLayer(layers, 2, 1)).toBe(layers);
+		expect(moveLayer(layers, 0, -1)).toBe(layers);
+		expect(moveLayer(layers, 5, -1)).toBe(layers);
+	});
+
+	it("puts a new layer straight above another, or at the front", () => {
+		expect(insertLayer(["a", "b"], "n", 0)).toEqual(["a", "n", "b"]);
+		expect(insertLayer(["a", "b"], "n", -1)).toEqual(["n", "a", "b"]);
+		expect(insertLayer(["a", "b"], "n")).toEqual(["a", "b", "n"]);
+		expect(insertLayer([], "n")).toEqual(["n"]);
 	});
 });
 
@@ -507,6 +543,49 @@ describe("arms kept editable", () => {
 
 		it("never counterchanges a charge on a plain field", () => {
 			expect(readArms(saved(plainArms(or, bearing(gules, true))), heraldry, charges).charge.counterchanged).toBe(false);
+		});
+	});
+
+	describe("readLayers", () => {
+		const heraldry = "worlds/w/heraldry/Actor-abc.webp?v=5";
+		const stamp = heraldryStamp(heraldry);
+		const arms = { division: "perPale", field: [or, gules], charge: bearing(argent, true) };
+		const layers = [
+			{ kind: "paint", src: "worlds/w/heraldry/layers/Actor-abc-0.webp?v=5" },
+			{ kind: "field" },
+			{ kind: "charge", key: "tower", color: azure, placement, flip: true },
+			{ kind: "armsCharge" },
+			{ kind: "picture", src: "data:image/webp;base64,AAAA", placement, flip: false },
+			{ kind: "paint", src: null }
+		];
+
+		it("reads back layers saved with the heraldry, in their order", () => {
+			expect(readLayers({ stamp, arms, layers }, heraldry, charges)).toEqual({ arms, layers });
+			expect(readLayers({ stamp, arms: null, layers: [layers[2]] }, heraldry, charges)).toEqual({ arms: null, layers: [layers[2]] });
+		});
+
+		it("refuses layers saved with other heraldry, or none", () => {
+			expect(readLayers({ stamp, arms, layers }, "worlds/w/heraldry/Actor-abc.webp?v=6", charges)).toBeNull();
+			expect(readLayers({ arms, layers }, heraldry, charges)).toBeNull();
+			expect(readLayers({ stamp, arms }, heraldry, charges)).toBeNull();
+			expect(readLayers(null, heraldry, charges)).toBeNull();
+		});
+
+		it("refuses layers that don't fit the arms", () => {
+			expect(readLayers({ stamp, arms: null, layers }, heraldry, charges)).toBeNull();
+			expect(readLayers({ stamp, arms: { ...arms, charge: null }, layers }, heraldry, charges)).toBeNull();
+			expect(readLayers({ stamp, arms, layers: layers.filter(({ kind }) => kind !== "field") }, heraldry, charges)).toBeNull();
+			expect(readLayers({ stamp, arms, layers: [...layers, { kind: "field" }] }, heraldry, charges)).toBeNull();
+		});
+
+		it("refuses a layer it can't draw", () => {
+			const refused = (layer) => readLayers({ stamp, arms: null, layers: [layer] }, heraldry, charges);
+			expect(refused({ kind: "charge", key: "dragon", color: azure, placement })).toBeNull();
+			expect(refused({ kind: "charge", key: "tower", color: "blue", placement })).toBeNull();
+			expect(refused({ kind: "charge", key: "tower", color: azure, placement: { x: 1, y: 2 } })).toBeNull();
+			expect(refused({ kind: "picture", src: "", placement })).toBeNull();
+			expect(refused({ kind: "paint", src: 5 })).toBeNull();
+			expect(refused({ kind: "brush" })).toBeNull();
 		});
 	});
 });
