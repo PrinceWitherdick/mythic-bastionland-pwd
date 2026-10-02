@@ -33,7 +33,7 @@ export const LINKED_ACTORS = Object.freeze([
 ]);
 
 /** Conditions marked by hand, and those that follow from a Virtue at 0 (Harm & Scars, p9). */
-export const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "wounded", "mortalWound", "mounted"]);
+export const MARKED_CONDITIONS = Object.freeze(["fatigued", "exposed", "wounded", "mortalWound", "slain", "mounted"]);
 export const DERIVED_CONDITIONS = Object.freeze(["exhausted", "impaired"]);
 
 /** An NPC is one person or creature, or a Warband of two dozen or so fighting as one (Warfare, p11). */

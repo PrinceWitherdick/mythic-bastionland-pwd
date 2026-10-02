@@ -466,7 +466,8 @@ describe("KnightModel", () => {
 			impaired: true,
 			mortalWound: false,
 			wounded: false,
-			mounted: false
+			mounted: false,
+			slain: false
 		});
 		expect(model.knowsFeat("deny")).toBe(true);
 	});

@@ -16,13 +16,13 @@ let hooks;
 let warnings;
 
 /** An NPC as the Morale card reads and writes them. */
-function fakeNpc(uuid, { vig = 10, mortalWound = false, moraleBroken = "", isOwner = true, type = "npc" } = {}) {
+function fakeNpc(uuid, { vig = 10, mortalWound = false, slain = false, moraleBroken = "", isOwner = true, type = "npc" } = {}) {
 	const actor = {
 		uuid,
 		name: uuid.split(".").at(-1),
 		type,
 		isOwner,
-		system: { virtues: { vig: { value: vig } }, mortalWound, moraleBroken, structure: false },
+		system: { virtues: { vig: { value: vig } }, mortalWound, slain, moraleBroken, structure: false },
 		update: vi.fn(async (changes) => {
 			if ("system.moraleBroken" in changes) actor.system.moraleBroken = changes["system.moraleBroken"];
 		})
@@ -116,7 +116,7 @@ describe("breakMorale", () => {
 
 	it("counts those who broke as down, so their side may be asked for its Morale", async () => {
 		const [ann, bo] = [fakeNpc("Actor.ann"), fakeNpc("Actor.bo")];
-		const cole = fakeNpc("Actor.cole", { vig: 0 });
+		const cole = fakeNpc("Actor.cole", { vig: 0, slain: true });
 		const dee = fakeNpc("Actor.dee");
 		game.combats = [fakeCombat([ann, bo, cole, dee].map((actor, index) => fakeCombatant(`c${index}`, actor)))];
 		// One of four down isn't half; Ann fleeing makes it two.

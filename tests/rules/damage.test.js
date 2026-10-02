@@ -95,4 +95,15 @@ describe("resolveDamage", () => {
 		const result = resolveDamage({ damage: 12, guard: 3, vigour: 10, immune: true });
 		expect(result).toEqual({ dealt: 0, guard: 3, vigour: 10, guardLoss: 0, vigourLoss: 0, outcome: "unharmed" });
 	});
+
+	it("Slays somebody Exhausted at VIG 0 whom Damage gets past GD, leaving them at 0 by Damage (p8, p9)", () => {
+		expect(resolveDamage({ damage: 5, guard: 3, vigour: 0 })).toMatchObject({ guard: 0, vigour: 0, vigourLoss: 0, outcome: "slain" });
+		// Their GD still Evades or Scars as anybody's does.
+		expect(resolveDamage({ damage: 2, guard: 3, vigour: 0 }).outcome).toBe("evaded");
+		expect(resolveDamage({ damage: 3, guard: 3, vigour: 0 }).outcome).toBe("scar");
+	});
+
+	it("never Slays with non-lethal Damage, even at VIG 0", () => {
+		expect(resolveDamage({ damage: 5, guard: 3, vigour: 0, nonLethal: true }).outcome).toBe("spared");
+	});
 });

@@ -209,6 +209,39 @@ describe("an Attack in a sparring bout", () => {
 	});
 });
 
+describe("an Attack by somebody down or Exhausted (p8, p9)", () => {
+	const tal = (system = {}) => {
+		const knight = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("mace", "Mace", "d8")] });
+		Object.assign(knight.system, system);
+		return knight;
+	};
+
+	it("isn't made at all by somebody Mortally Wounded, who is down and dying", async () => {
+		expect(await attack(tal({ mortalWound: true }))).toBeNull();
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.conditions.mortalWound.down");
+	});
+
+	it("isn't made by the Slain either", async () => {
+		expect(await attack(tal({ slain: true }))).toBeNull();
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.conditions.slain.down");
+	});
+
+	it("counts a charge as moving, which an Exhausted rider can't Attack after", async () => {
+		inputDialog.mockResolvedValue({ "source.mace": true, charge: true });
+		expect(await attack(tal({ conditions: { exhausted: true } }))).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.refusals.exhausted");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("lets an Exhausted Knight who stood their ground Attack", async () => {
+		inputDialog.mockResolvedValue({ "source.mace": true });
+		await attack(tal({ conditions: { exhausted: true } }));
+		expect(postCard).toHaveBeenCalled();
+	});
+});
+
 describe("joining an Attack (p8)", () => {
 	const boar = combatant({ uuid: "Actor.boar", name: "Boar" });
 	const card = () => ({

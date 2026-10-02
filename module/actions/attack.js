@@ -33,6 +33,7 @@ import {
 import { dieMask } from "../rules/die-shapes.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
+import { downBy } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
 import { alternateText } from "./items.js";
@@ -271,7 +272,8 @@ function countsHands(actor) {
 function readWielding(actor, sources, choice) {
 	const chosen = sources.filter((item) => choice.source?.[item.id]);
 	const check = checkWielding(chosen.map((item) => item.system), {
-		moved: Boolean(choice.moved),
+		// A charge is a move, so it bars an Exhausted rider's Attack and a Slow weapon as moving does.
+		moved: Boolean(choice.moved || choice.charge),
 		engaged: Boolean(choice.engaged),
 		confined: Boolean(choice.confined),
 		exhausted: actor.system.conditions.exhausted,
@@ -395,6 +397,12 @@ function openingWielded(actor, sources, remembered, mounted, marks = []) {
  * @returns {Promise<AttackPlan|null>} Null if the dialog was closed or the Attack can't be made.
  */
 async function planAttack(actor, joining = null) {
+	// The Slain make no Attack, and nor do the Mortally Wounded, down and dying until patched up (p8).
+	const down = downBy(actor.system);
+	if (down) {
+		ui.notifications.warn(t(`conditions.${down}.down`, { name: actor.name }));
+		return null;
+	}
 	const sources = attackSources(actor);
 	const mount = mountOf(actor);
 	const { conditions } = actor.system;

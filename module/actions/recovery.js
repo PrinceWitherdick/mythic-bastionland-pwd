@@ -18,13 +18,23 @@ async function spendRemedy(item) {
 }
 
 /**
- * A moment's calm and rest: GD returns to full and Fatigue is removed
- * (Recovery, p9).
+ * What a short rest restores once the fighting is over (Recovery, p9):
+ * GD returns to full and Fatigue is removed. With their guard back up they've
+ * remedied being caught with it down, so a marked Exposed goes too (p8).
+ * CLA 0 Exposes them still, until their CLA comes back.
+ * @param {Actor} actor
+ * @returns {object} The Actor update.
+ */
+const restUpdate = (actor) => ({ "system.guard.value": actor.system.guard.max, "system.fatigued": false, "system.exposed": false });
+
+/**
+ * A moment's calm and rest: GD returns to full, Fatigue is removed, and they
+ * are no longer Exposed (Recovery, p9).
  * @param {Actor} actor
  */
 export async function rest(actor) {
 	const value = actor.system.guard.max;
-	await actor.update({ "system.guard.value": value, "system.fatigued": false }, causedBy("recovery"));
+	await actor.update(restUpdate(actor), causedBy("recovery"));
 	await postCard(actor, "note", {
 		icon: "fa-solid fa-mug-hot",
 		text: t("recovery.rested", { value })
@@ -33,8 +43,8 @@ export async function rest(actor) {
 
 /**
  * The danger has passed (Recovery, p9): once a Combat ends, offer the active
- * GM to restore Guard and remove Fatigue for everybody in it still standing
- * who needs it, on one card.
+ * GM to restore Guard, remove Fatigue and end a marked Exposed for everybody
+ * in it still standing who needs it, on one card.
  * @param {Combat} combat
  * @returns {Promise<Actor[]|null>} Those rested, or null when nobody was.
  */
@@ -45,14 +55,15 @@ export async function restAfterCombat(combat) {
 		const { actor } = combatant;
 		const guard = actor?.system?.guard;
 		// A ship or wall doesn't catch its breath: its GD comes back by repair.
-		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.virtues?.vig.value === 0) continue;
-		if (guard.value < guard.max || actor.system.fatigued) actors.push(actor);
+		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
+		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain) continue;
+		if (guard.value < guard.max || actor.system.fatigued || actor.system.exposed) actors.push(actor);
 	}
 	if (!actors.length) return null;
 	const names = actors.map((actor) => actor.name).join(", ");
 	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
 	if (!confirmed) return null;
-	await Promise.all(actors.map((actor) => actor.update({ "system.guard.value": actor.system.guard.max, "system.fatigued": false }, causedBy("recovery"))));
+	await Promise.all(actors.map((actor) => actor.update(restUpdate(actor), causedBy("recovery"))));
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text: t("recovery.restedAfterCombat", { names }) });
 	return actors;
 }

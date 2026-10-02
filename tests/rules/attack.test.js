@@ -452,6 +452,10 @@ describe("canDeny", () => {
 		expect(canDeny(attack(), { ...knight, fatigued: true })).toBe(false);
 	});
 
+	it("refuses somebody Mortally Wounded, who is down and dying (p8)", () => {
+		expect(canDeny(attack(), { ...knight, down: true })).toBe(false);
+	});
+
 	it("refuses whoever rolled the Attack, and anybody who already Denied it", () => {
 		expect(canDeny(attack(), { uuid: "Actor.foe" })).toBe(false);
 		const denied = changeAttack(attack(), { type: "deny", die: 0, actor: knight.uuid, name: "Ser K" });

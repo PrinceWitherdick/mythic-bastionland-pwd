@@ -40,6 +40,8 @@ export function clampVirtue(value) {
 /**
  * Conditions marked by hand, and those that follow from a Virtue at 0
  * (Harm & Scars, p9): Exhausted at VIG 0, Exposed at CLA 0, Impaired at SPI 0.
+ * VIG 0 by Damage Slays (p8), but Virtue Loss never does (p9), so Slain is a
+ * mark of its own and only those not Slain at VIG 0 are Exhausted.
  * @param {object} character
  * @param {Record<string, {value: number}>} character.virtues
  * @param {boolean} character.fatigued
@@ -47,19 +49,60 @@ export function clampVirtue(value) {
  * @param {boolean} character.mortalWound
  * @param {boolean} [character.wounded]   Marked when Damage last went past their GD.
  * @param {boolean} [character.mounted]
- * @returns {{fatigued: boolean, exhausted: boolean, exposed: boolean, impaired: boolean, mortalWound: boolean, wounded: boolean, mounted: boolean}}
+ * @param {boolean} [character.slain]     Marked when Damage took them to VIG 0.
+ * @returns {{fatigued: boolean, exhausted: boolean, exposed: boolean, impaired: boolean, mortalWound: boolean, wounded: boolean, mounted: boolean, slain: boolean}}
  */
-export function conditionsFor({ virtues, fatigued, exposed, mortalWound, wounded = false, mounted = false }) {
+export function conditionsFor({ virtues, fatigued, exposed, mortalWound, wounded = false, mounted = false, slain = false }) {
 	return {
 		fatigued,
-		exhausted: virtues.vig.value === 0,
+		exhausted: virtues.vig.value === 0 && !slain,
 		exposed: exposed || virtues.cla.value === 0,
 		impaired: virtues.spi.value === 0,
 		mortalWound,
 		// Wounded lasts until VIG is restored, however that comes about.
 		wounded: Boolean(wounded) && virtues.vig.value < virtues.vig.max,
-		mounted: Boolean(mounted)
+		mounted: Boolean(mounted),
+		slain: Boolean(slain)
 	};
+}
+
+/**
+ * Why somebody can't act at all: Slain, or Mortally Wounded and so down and
+ * dying until patched up (p8).
+ * @param {{slain?: boolean, mortalWound?: boolean}} system
+ * @returns {"slain"|"mortalWound"|null} A condition key, or null when they can act.
+ */
+export function downBy(system) {
+	if (system?.slain) return "slain";
+	if (system?.mortalWound) return "mortalWound";
+	return null;
+}
+
+/**
+ * Whether an update brings a Slain character's VIG back above 0, so the mark
+ * goes: the dead don't heal, so whoever does it is undoing the death, such as
+ * a GM taking back a blow.
+ * @param {{slain?: boolean}} system As it stands.
+ * @param {object} changes An Actor update, expanded.
+ * @returns {boolean}
+ */
+export function revives(system, changes) {
+	const update = changes?.system;
+	if (!system?.slain || !update || "slain" in update) return false;
+	const value = update.virtues?.vig?.value;
+	return value !== undefined && value > 0;
+}
+
+/**
+ * Whether an update marks a Mortally Wounded character Slain, so the wound
+ * goes: the dead are no longer dying, however the mark was made.
+ * @param {{mortalWound?: boolean}} system As it stands.
+ * @param {object} changes An Actor update, expanded.
+ * @returns {boolean}
+ */
+export function endsMortalWound(system, changes) {
+	const update = changes?.system;
+	return Boolean(system?.mortalWound) && update?.slain === true && !("mortalWound" in update);
 }
 
 /**

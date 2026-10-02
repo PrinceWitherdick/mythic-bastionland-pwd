@@ -55,7 +55,8 @@ import { atMercyOfWeather } from "../rules/referee-rolls.js";
  * Ask who takes part in something the Company does together. Those given as
  * present and everybody whose Token is selected are listed ticked, then every
  * Knight, ticked when a player owns them. Players see only the characters they
- * own, since those are all they can change. With pursuits, each picks one too.
+ * own, since those are all they can change. The Slain take no part, so a Season
+ * that restores Virtues doesn't raise them. With pursuits, each picks one too.
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon
@@ -71,7 +72,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included) => {
-		if (!actor?.system?.virtues || (knightsOnly && actor.type !== "knight") || seen.has(actor.uuid)) return;
+		if (!actor?.system?.virtues || actor.system.slain || (knightsOnly && actor.type !== "knight") || seen.has(actor.uuid)) return;
 		if (!game.user.isGM && !actor.isOwner) return;
 		seen.add(actor.uuid);
 		candidates.push({ actor, included });

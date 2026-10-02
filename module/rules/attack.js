@@ -796,13 +796,14 @@ export function hasDeniableDie(attack) {
 /**
  * Whether somebody could still Deny one of this Attack's dice (p10): a die is
  * left to discard, the Damage hasn't landed, they aren't one of those
- * attacking, they aren't Fatigued, and they haven't already Denied this Attack.
+ * attacking, they aren't Fatigued, Slain or dying, and they haven't already
+ * Denied this Attack.
  * @param {AttackState} attack
- * @param {{uuid: string, fatigued?: boolean}} combatant
+ * @param {{uuid: string, fatigued?: boolean, down?: boolean}} combatant `down` while Slain or Mortally Wounded.
  * @returns {boolean}
  */
-export function canDeny(attack, { uuid, fatigued = false }) {
-	if (!attack || attack.appliedTo.length || fatigued) return false;
+export function canDeny(attack, { uuid, fatigued = false, down = false }) {
+	if (!attack || attack.appliedTo.length || fatigued || down) return false;
 	if (isAttacker(attack, uuid) || hasUsedFeat(attack, "deny", uuid)) return false;
 	return hasDeniableDie(attack);
 }

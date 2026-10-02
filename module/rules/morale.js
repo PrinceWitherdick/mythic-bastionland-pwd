@@ -48,13 +48,14 @@ export function moraleTrigger({ outcome, vigourBefore, vigourAfter, vigourMax, p
 }
 
 /**
- * @param {{vigour: number, mortalWound?: boolean, defeated?: boolean, broken?: string}} member
+ * @param {{vigour: number, mortalWound?: boolean, slain?: boolean, warband?: boolean, defeated?: boolean, broken?: string}} member
  *   `broken` is one of MORALE_BREAKS once their Morale has failed, or blank.
  * @returns {boolean} Whether they are out of the fight: Slain, Mortally Wounded, fled or
- *   surrendered, or marked defeated.
+ *   surrendered, or marked defeated. VIG 0 alone only Exhausts somebody (p9), but wipes
+ *   out a Warband however it came about (p11). Without VIG at all they're no fighter.
  */
-export const isDown = ({ vigour, mortalWound = false, defeated = false, broken = "" }) =>
-	defeated || mortalWound || isMoraleBreak(broken) || !(vigour > 0);
+export const isDown = ({ vigour, mortalWound = false, slain = false, warband = false, defeated = false, broken = "" }) =>
+	defeated || mortalWound || slain || isMoraleBreak(broken) || !Number.isFinite(vigour) || (warband && vigour <= 0);
 
 /**
  * isDown, read from an actor.
@@ -67,6 +68,8 @@ export const isDown = ({ vigour, mortalWound = false, defeated = false, broken =
 export const downOf = (actor, { defeated = false, morale = true } = {}) => isDown({
 	vigour: actor.system.virtues?.vig.value,
 	mortalWound: actor.system.mortalWound,
+	slain: Boolean(actor.system.slain),
+	warband: actor.system.scale === "warband",
 	defeated,
 	broken: morale ? actor.system.moraleBroken : ""
 });

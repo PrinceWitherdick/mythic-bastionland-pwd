@@ -2,7 +2,7 @@ import { AGES } from "../config.js";
 import { armourTotal } from "../rules/armour.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { SEER_UNHARMED, namesNewSeer } from "../rules/seer-state.js";
-import { SCORES, conditionsFor, healsWound } from "../rules/virtues.js";
+import { SCORES, conditionsFor, endsMortalWound, healsWound, revives } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -79,7 +79,7 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 
 	/**
 	 * The harm on the Seer page is the Seer's own, so naming another Seer clears it.
-	 * Wounded goes once VIG is whole again.
+	 * Wounded goes once VIG is whole again, and Slain once VIG is above 0.
 	 * @override
 	 */
 	async _preUpdate(changes, options, user) {
@@ -87,6 +87,8 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		if (allowed === false) return false;
 		if (namesNewSeer(changes, this.seer)) foundry.utils.setProperty(changes, "system.seerState", { ...SEER_UNHARMED });
 		if (healsWound(this, changes)) changes.system.wounded = false;
+		if (revives(this, changes)) changes.system.slain = false;
+		if (endsMortalWound(this, changes)) changes.system.mortalWound = false;
 	}
 
 	/**

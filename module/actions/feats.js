@@ -1,6 +1,7 @@
 import { postCard, t } from "../chat/cards.js";
 import { FEATS } from "../config.js";
 import { canDeny } from "../rules/attack.js";
+import { downBy } from "../rules/virtues.js";
 import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
@@ -35,6 +36,13 @@ export async function rollFeat(actor, key) {
 		return null;
 	}
 
+	// Slain, or down and dying until patched up (p8), they perform nothing.
+	const down = downBy(actor.system);
+	if (down) {
+		ui.notifications.warn(t(`conditions.${down}.down`, { name: actor.name }));
+		return null;
+	}
+
 	if (actor.system.fatigued) {
 		ui.notifications.warn(t("feats.alreadyFatigued", { name: actor.name }));
 		return null;
@@ -62,7 +70,7 @@ export async function payFeat(actor, save) {
  */
 export function canDenyAttack(attack, actor) {
 	if (!actor?.system?.virtues || !actor.system.knowsFeat?.("deny")) return false;
-	return canDeny(attack, { uuid: actor.uuid, fatigued: actor.system.fatigued });
+	return canDeny(attack, { uuid: actor.uuid, fatigued: actor.system.fatigued, down: Boolean(downBy(actor.system)) });
 }
 
 /**

@@ -83,8 +83,8 @@ export function gloryOfTheCompany(fallen) {
 		glory: actor.system.glory,
 		isSquire: Boolean(actor.system.isSquire),
 		played: actor.hasPlayerOwner,
-		// VIG 0 by Damage is Slain (p8).
-		slain: (actor.system.virtues?.vig?.value ?? 1) <= 0,
+		// VIG 0 by Damage is Slain (p8), but Virtue Loss to 0 only Exhausts (p9).
+		slain: Boolean(actor.system.slain),
 		unchosen: Boolean(actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG))
 	})));
 }

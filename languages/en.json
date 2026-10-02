@@ -374,19 +374,25 @@
       },
       "exhausted": {
         "label": "Exhausted",
-        "hint": "At VIG 0: no Attack in a turn you’ve already moved."
+        "hint": "At VIG 0 from Virtue Loss: no Attack in a turn you’ve already moved."
       },
       "exposed": {
         "label": "Exposed",
-        "hint": "Treated as having 0 GD. CLA 0 also leaves you Exposed."
+        "hint": "Treated as having 0 GD until they remedy it, as a rest once the danger has passed does. CLA 0 also leaves you Exposed."
       },
       "impaired": {
         "label": "Impaired",
-        "hint": "At SPI 0 your Attacks roll a single d4 only."
+        "hint": "At SPI 0 your Attacks roll a single d4 only, with no bonus dice or Feats."
       },
       "mortalWound": {
         "label": "Mortal Wound",
-        "hint": "Dying: an hour without help kills them, but a few moments’ care patches them up."
+        "hint": "Down and dying: no Attacks or Feats. An hour without help kills them, but a few moments’ care patches them up.",
+        "down": "{name} is Mortally Wounded, down and dying, so they can’t Attack or use Feats until they’re patched up."
+      },
+      "slain": {
+        "label": "Slain",
+        "hint": "Taken to VIG 0 by Damage: dead. VIG 0 from Virtue Loss only leaves them Exhausted. Raising VIG above 0 lifts it.",
+        "down": "{name} is Slain."
       },
       "wounded": {
         "label": "Wounded",
@@ -407,9 +413,9 @@
       "restore": "Restore {virtue}",
       "restored": "{virtue} restored to {value}.",
       "afterCombatTitle": "The Danger Has Passed",
-      "afterCombat": "The fight is over. Restore Guard and remove Fatigue for {names}?",
-      "restedAfterCombat": "The danger has passed: {names} restore Guard and shake off Fatigue.",
-      "rested": "A moment’s calm: GD restored to {value} and Fatigue removed."
+      "afterCombat": "The fight is over. Restore Guard for {names}, and leave them no longer Fatigued or Exposed?",
+      "restedAfterCombat": "The danger has passed: {names} restore Guard, and are no longer Fatigued or Exposed.",
+      "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed."
     },
     "oath": {
       "label": "Oath",

@@ -297,24 +297,34 @@ describe("as Morning comes", () => {
 });
 
 describe("dying untended", () => {
-	const wounded = (name, vig = 4) => ({ name, type: "knight", system: { mortalWound: true, virtues: { vig: { value: vig } } }, update: vi.fn() });
+	const wounded = (name, vig = 4, slain = false) => ({ name, type: "knight", system: { mortalWound: true, slain, virtues: { vig: { value: vig } } }, update: vi.fn() });
 
 	it("asks after the Mortally Wounded even with nothing else to ask, and those left ticked die (p8)", async () => {
 		const tal = wounded("Tal");
 		const moss = wounded("Moss");
-		game.actors = [tal, moss, wounded("Already slain", 0), { name: "Well", system: { mortalWound: false, virtues: { vig: { value: 9 } } } }];
+		game.actors = [tal, moss, wounded("Already slain", 0, true), { name: "Well", system: { mortalWound: false, virtues: { vig: { value: 9 } } } }];
 		const loose = { ...wounded("Bandit"), type: "npc" };
 		canvas.scene = { tokens: [{ actorLink: false, actor: loose }, { actorLink: true, actor: tal }] };
 		answer = () => ({ "dying-0": true, "dying-1": false, "dying-2": true });
 		vi.mocked(announceFallenKnight).mockClear();
 		await advancePhase();
 		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Tal", "Moss", "Bandit"]);
-		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false }, {});
+		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true }, {});
 		expect(moss.update).not.toHaveBeenCalled();
 		expect(loose.update).toHaveBeenCalled();
 		expect(cardsOf("report").at(-1)[2].entries.map(({ name }) => name)).toEqual(["Tal", "Bandit"]);
 		expect(announceFallenKnight).toHaveBeenCalledWith(tal, "slain");
 		expect(calendar.phase).toBe("afternoon");
+	});
+
+	it("asks after somebody dying though Exhausted at VIG 0, who is still alive to die of it (p9)", async () => {
+		const spent = wounded("Spent", 0);
+		game.actors = [spent];
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": true });
+		await advancePhase();
+		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Spent"]);
+		expect(spent.update).toHaveBeenCalledWith(expect.objectContaining({ "system.slain": true }), {});
 	});
 
 	it("lists nobody when nobody is dying", async () => {

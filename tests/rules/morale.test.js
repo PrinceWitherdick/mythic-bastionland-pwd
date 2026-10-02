@@ -29,10 +29,20 @@ describe("moraleTrigger", () => {
 
 describe("isDown", () => {
 	it("counts the Slain, the Mortally Wounded and the defeated as down", () => {
-		expect(isDown({ vigour: 0 })).toBe(true);
+		expect(isDown({ vigour: 0, slain: true })).toBe(true);
 		expect(isDown({ vigour: 5, mortalWound: true })).toBe(true);
 		expect(isDown({ vigour: 5, defeated: true })).toBe(true);
 		expect(isDown({ vigour: 5 })).toBe(false);
+	});
+
+	it("leaves somebody Exhausted at VIG 0 standing, but not a Warband, wiped out at VIG 0 however it came about (p9, p11)", () => {
+		expect(isDown({ vigour: 0 })).toBe(false);
+		expect(isDown({ vigour: 0, warband: true })).toBe(true);
+		expect(isDown({ vigour: 3, warband: true })).toBe(false);
+	});
+
+	it("counts something with no VIG at all as no fighter", () => {
+		expect(isDown({ vigour: undefined })).toBe(true);
 	});
 
 	it("counts those who fled or surrendered as down, and nothing else as broken", () => {

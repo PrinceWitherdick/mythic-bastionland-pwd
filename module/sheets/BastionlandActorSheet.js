@@ -346,8 +346,9 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	static #onToggleCondition(_event, target) {
 		const key = target.dataset.condition;
 		if (!MARKED_CONDITIONS.includes(key)) return;
-		// Wounded lapses once VIG is whole, so the pill flips what it shows rather than the stale mark.
-		const on = key === "wounded" ? this.actor.system.conditions.wounded : this.actor.system[key];
+		// The pill flips what it shows, not the mark beneath: Wounded lapses once VIG is whole, and
+		// CLA 0 Exposes whatever is marked, so a click there mustn't leave a hidden mark for later.
+		const on = this.actor.system.conditions[key];
 		return this.actor.update({ [`system.${key}`]: !on });
 	}
 

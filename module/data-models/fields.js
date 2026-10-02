@@ -73,6 +73,8 @@ export function characterFields() {
 		wounded: booleanField(),
 		// On horseback, so a lance counts as Hefty and a rider's plate counts.
 		mounted: booleanField(),
+		// Taken to VIG 0 by Damage (p8). Virtue Loss to VIG 0 only Exhausts (p9), so it needs a mark.
+		slain: booleanField(),
 		// What eats at them each morning or each round until cured, such as the Plague.
 		afflictions: afflictionsField(),
 		notes: htmlField()

@@ -213,6 +213,8 @@ export async function takeDamage(actor, preset = {}) {
 	if (virtues) update["system.virtues.vig.value"] = result.vigour;
 	// Non-lethal Damage leaves them down, but not dying.
 	if (result.outcome === "mortal" && !preset.nonLethal) update["system.mortalWound"] = true;
+	// VIG 0 by Damage is Slain (p8), which Virtue Loss to 0 never is, so it's marked. The dead aren't dying.
+	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false });
 	// Damage past GD Wounds them (p8), which some armour answers to.
 	if (virtues && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));

@@ -92,8 +92,12 @@ export function resolveDamage({ damage, armour = 0, guard, vigour, exposed = fal
 
 	const vigourLoss = Math.min(dealt - effectiveGuard, nonLethal ? Math.max(0, vigour - 1) : vigour);
 	const vigourAfter = vigour - vigourLoss;
-	// Non-lethal Damage at 1 VIG has nothing left to take, so it leaves no Wound.
-	if (vigourLoss === 0) return { dealt, guard: guardAfter, vigour, guardLoss, vigourLoss, outcome: "spared" };
+	if (vigourLoss === 0) {
+		// Exhausted at VIG 0 by Virtue Loss, Damage past their GD leaves them at 0 by Damage: Slain (p8).
+		if (vigour <= 0 && !nonLethal) return { dealt, guard: guardAfter, vigour: 0, guardLoss, vigourLoss, outcome: "slain" };
+		// Non-lethal Damage at 1 VIG has nothing left to take, so it leaves no Wound.
+		return { dealt, guard: guardAfter, vigour, guardLoss, vigourLoss, outcome: "spared" };
+	}
 
 	let outcome = "wounded";
 	if (vigourAfter <= 0) outcome = "slain";

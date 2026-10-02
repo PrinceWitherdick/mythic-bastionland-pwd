@@ -14,6 +14,7 @@ import { openOfferedKnights, registerUnchosenKnightHooks } from "./module/action
 import { watchTableRenewals } from "./module/actions/knight-tables.js";
 import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
+import { markTheSlain, SLAIN_STEP } from "./module/actions/slain.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, registerWeatherStreakSetting, rollLuck, rollRefereeTable } from "./module/actions/referee-rolls.js";
@@ -486,6 +487,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
 	{ key: KNIGHT_TOKEN_NAMES_STEP, run: showExistingKnightNames },
+	// Worlds from before Slain was a mark, when VIG 0 alone told the dead.
+	{ key: SLAIN_STEP, run: markTheSlain },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
 	// Again, once each Scene has its own look: for terrain pictures named by terrain rather than

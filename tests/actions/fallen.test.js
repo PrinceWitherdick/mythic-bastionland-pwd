@@ -219,14 +219,16 @@ describe("carryOnFrom", () => {
 			knight,
 			rider("a", 4),
 			rider("b", 6),
-			rider("dead", 1, { system: { isSquire: false, glory: 1, virtues: { vig: { value: 0 } } } }),
+			rider("dead", 1, { system: { isSquire: false, glory: 1, slain: true, virtues: { vig: { value: 0 } } } }),
+			// VIG 0 from Virtue Loss only Exhausts them, so they ride on.
+			rider("spent", 2, { system: { isSquire: false, glory: 2, virtues: { vig: { value: 0 } } } }),
 			rider("blank", 0, { flags: { [`${SYSTEM_ID}.unchosen`]: true } }),
 			actor({ id: "npc", name: "Sir Nobody", type: "knight", system: { isSquire: false, glory: 0 } })
 		];
 
-		expect(gloryOfTheCompany(knight)).toEqual({ lowest: 4, highest: 6 });
+		expect(gloryOfTheCompany(knight)).toEqual({ lowest: 2, highest: 6 });
 		const made = await carryOnFrom("newKnight", knight);
-		expect(openKnightChooser).toHaveBeenCalledWith(made, { fresh: true, companyGlory: { lowest: 4, highest: 6 }, replacement: true });
+		expect(openKnightChooser).toHaveBeenCalledWith(made, { fresh: true, companyGlory: { lowest: 2, highest: 6 }, replacement: true });
 	});
 
 	it("opens the chooser with no Glory where nobody rides on", async () => {
