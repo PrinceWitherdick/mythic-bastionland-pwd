@@ -1,11 +1,13 @@
 // A sheet's pages are picked from a column of icon tabs hung off the window's
 // right edge, the way the Stonetop character sheet does it.
 //
-// A sheet renders the rail as a part of its own, templates/actor/tab-rail.hbs,
+// TabRailMixin renders the rail as the sheet's first part, templates/actor/tab-rail.hbs,
 // so it sits straight inside `.window-content`, where Foundry's own tabs look
 // for it. It's positioned against the window frame, which the stylesheet stops
-// clipping, so it can hang outside the window. The sheet also needs the
-// `bastionland-has-tab-rail` class.
+// clipping, so it can hang outside the window. The mixin also gives the sheet
+// the `bastionland-has-tab-rail` class and keeps the rail in place.
+
+import { templatePath } from "../system-id.js";
 
 /** Gap between the bottom of the sheet's header and the top of the rail, in px. */
 const RAIL_HEADER_GAP = 16;
@@ -18,6 +20,36 @@ const railWidths = new WeakMap();
 
 /** @type {WeakMap<HTMLElement, {anchor: HTMLElement, observer: ResizeObserver}>} The header each frame's rail is watching. */
 const watchedAnchors = new WeakMap();
+
+/**
+ * A sheet with the rail: drawn before the sheet's own PARTS, hung below the
+ * header its RAIL_ANCHOR names after each render, and changing sides as the
+ * window is dragged near the screen's edge.
+ * @param {typeof foundry.applications.api.ApplicationV2} Base
+ */
+export const TabRailMixin = (Base) => class extends Base {
+	static DEFAULT_OPTIONS = { classes: ["bastionland-has-tab-rail"] };
+
+	/** The header the rail hangs below. */
+	static RAIL_ANCHOR = "";
+
+	/** @override */
+	_configureRenderParts(options) {
+		return { tabs: { template: templatePath("actor/tab-rail.hbs") }, ...super._configureRenderParts(options) };
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		placeTabRail(this.element, this.constructor.RAIL_ANCHOR);
+	}
+
+	/** @override */
+	_onPosition(position) {
+		super._onPosition(position);
+		stampRailSide(this.element, position);
+	}
+};
 
 /**
  * Start the rail below the sheet's header, on whichever side has room, and

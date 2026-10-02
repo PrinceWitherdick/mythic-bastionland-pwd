@@ -1,7 +1,6 @@
-import { pasteStatBlock, rollNpcVirtues } from "../actions/npc.js";
+import { rollNpcVirtues } from "../actions/npc.js";
 import { COMPANION_FLAG } from "../actions/property.js";
 import { rollMorale, rollReaction } from "../actions/saves.js";
-import { convertToStructure } from "../actions/structures.js";
 import { strainWarband } from "../actions/warbands.js";
 import { keyChoices, t } from "../chat/cards.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
@@ -11,6 +10,7 @@ import { isMoraleBreak } from "../rules/morale.js";
 import { ownerOf } from "../rules/property.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { TabRailMixin } from "./tab-rail.js";
 import { afflictTargets } from "../actions/afflictions.js";
 import { changeAge } from "../actions/time.js";
 
@@ -21,7 +21,7 @@ const ADDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
 const WARBAND_STATES = Object.freeze(["routed", "broken", "wipedOut"]);
 
 /** An NPC's sheet, laid out like the stat blocks the book prints for its Cast. */
-export class NpcSheet extends BastionlandActorSheet {
+export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 	/** @override */
 	static PROPERTY_ORDER = true;
 
@@ -29,7 +29,6 @@ export class NpcSheet extends BastionlandActorSheet {
 		classes: ["bastionland-npc"],
 		position: { width: 740, height: 800 },
 		actions: {
-			pasteStatBlock: NpcSheet.#onPasteStatBlock,
 			rollVirtues: NpcSheet.#onRollVirtues,
 			afflictTargets: NpcSheet.#onAfflictTargets,
 			rollMorale: NpcSheet.#onRollMorale,
@@ -41,8 +40,7 @@ export class NpcSheet extends BastionlandActorSheet {
 			setWields: NpcSheet.#onSetWields,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
-			openOwner: NpcSheet.#onOpenOwner,
-			makeStructure: NpcSheet.#onMakeStructure
+			openOwner: NpcSheet.#onOpenOwner
 		}
 	};
 
@@ -52,6 +50,19 @@ export class NpcSheet extends BastionlandActorSheet {
 			scrollable: [""]
 		}
 	};
+
+	/** The sheet's pages, picked from the rail hung off the window's edge. */
+	static TABS = {
+		primary: {
+			initial: "npc",
+			tabs: [
+				{ id: "npc", icon: "fa-solid fa-chess-pawn", label: "bastionland.npc.tabs.npc" },
+				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.npc.tabs.notes" }
+			]
+		}
+	};
+
+	static RAIL_ANCHOR = ".bastionland-npc-header";
 
 	static PREVIEWED_ART = ".bastionland-npc-header__img[data-name]";
 
@@ -91,19 +102,6 @@ export class NpcSheet extends BastionlandActorSheet {
 		});
 	}
 
-	/**
-	 * Keep the height the Traits & Notes box was dragged to, since the sheet
-	 * redraws on every change to the NPC.
-	 * @override
-	 */
-	_syncPartState(partId, newElement, priorElement, state) {
-		super._syncPartState(partId, newElement, priorElement, state);
-		const box = ".bastionland-npc-notes > prose-mirror, .bastionland-npc-notes > .editor-content";
-		const height = priorElement.querySelector(box)?.style.height;
-		const target = newElement.querySelector(box);
-		if (height && target) target.style.height = height;
-	}
-
 	/** The uuid of the Knight this belonged to when the sheet was last drawn. */
 	#ownerUuid = null;
 
@@ -136,7 +134,6 @@ export class NpcSheet extends BastionlandActorSheet {
 	_headerButtons() {
 		if (!this.isEditable) return [];
 		return [
-			{ action: "pasteStatBlock", icon: "fa-solid fa-paste", label: t("npc.pasteStatBlock") },
 			// Those of the Cast who cause an affliction pass it on to whoever is targeted.
 			...(this.actor.system.inflicts?.length ? [{ action: "afflictTargets", icon: "fa-solid fa-virus", label: t("afflictions.afflict"), tooltip: t("afflictions.afflictHint") }] : []),
 			// Hirelings and other folk have d12+d6 in each Virtue (p13); a Warband's are the book's.
@@ -147,11 +144,6 @@ export class NpcSheet extends BastionlandActorSheet {
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
-
-	/** @this {NpcSheet} */
-	static #onPasteStatBlock() {
-		return pasteStatBlock(this.actor);
-	}
 
 	/** @this {NpcSheet} */
 	static #onAfflictTargets() {
@@ -227,11 +219,6 @@ export class NpcSheet extends BastionlandActorSheet {
 	static #onOpenOwner(_event, target) {
 		const rider = fromUuidSync(target.dataset.uuid);
 		return rider?.sheet.render({ force: true });
-	}
-
-	/** @this {NpcSheet} */
-	static #onMakeStructure() {
-		return convertToStructure(this.actor);
 	}
 
 	/** @this {NpcSheet} */

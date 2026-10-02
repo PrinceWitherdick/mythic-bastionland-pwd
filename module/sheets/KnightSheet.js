@@ -37,7 +37,7 @@ import { SCORES, VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
-import { placeTabRail, stampRailSide } from "./tab-rail.js";
+import { TabRailMixin } from "./tab-rail.js";
 
 /**
  * The Knight character sheet, laid out after the official printed sheet, with
@@ -47,12 +47,11 @@ import { placeTabRail, stampRailSide } from "./tab-rail.js";
  * document, and the same sheet, drawn as the one page p7 gives them; see
  * templates/actor/squire-sheet.hbs.
  */
-export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
+export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorSheet)) {
 	/** @override */
 	static PROPERTY_ORDER = true;
 
 	static DEFAULT_OPTIONS = {
-		classes: ["bastionland-has-tab-rail"],
 		position: { width: 860, height: 920 },
 		actions: {
 			postGambit: KnightSheet.#onPostGambit,
@@ -93,7 +92,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	};
 
 	static PARTS = {
-		tabs: { template: templatePath("actor/tab-rail.hbs") },
 		sheet: {
 			template: templatePath("actor/knight-sheet.hbs"),
 			scrollable: [""]
@@ -104,6 +102,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	static SQUIRE_TAB = Object.freeze({ id: "squire", icon: CARRIER_ICONS.squire, label: "bastionland.sheet.tabs.squire" });
 
 	/** The sheet's pages, picked from the rail hung off the window's edge. */
+	static RAIL_ANCHOR = ".bastionland-header";
+
 	static TABS = {
 		primary: {
 			initial: "knight",
@@ -115,9 +115,10 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 				// Its icon changes with whatever carries the Knight's things; see _prepareTabs.
 				{ id: "property", icon: CARRIER_ICONS.back, label: "bastionland.sheet.tabs.property", squire: false },
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer", squire: false },
-				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// The whole Company travels, Squires with it, so they keep the record too.
 				{ id: "travels", icon: "fa-solid fa-map-location-dot", label: "bastionland.sheet.tabs.travels" },
+				// The notes sit last, under every other page.
+				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// Only on a Knight that is the reader's own.
 				SETTINGS_TAB_ENTRY
 			]
@@ -338,7 +339,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		placeTabRail(this.element, ".bastionland-header");
 		this.#fillFromBook();
 		// Picking a player on a Knight's empty page gives them the Knight; it isn't a field of the Actor's.
 		this.element.querySelector(".bastionland-unchosen__player select")?.addEventListener("change", (event) => {
@@ -485,15 +485,6 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		});
 		buttons.push(ledger);
 		return buttons;
-	}
-
-	/**
-	 * The rail changes sides when the window is dragged near the screen's edge.
-	 * @override
-	 */
-	_onPosition(position) {
-		super._onPosition(position);
-		stampRailSide(this.element, position);
 	}
 
 	/**

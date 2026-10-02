@@ -49,7 +49,7 @@ import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
-import { placeTabRail, stampRailSide } from "./tab-rail.js";
+import { TabRailMixin } from "./tab-rail.js";
 import { ViewableMixin } from "./viewable.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -114,9 +114,9 @@ function bringIntoView(card) {
  * sends them to the Actor: each is written where it lives, on the Realm's Scene,
  * by `#onToolkitField`. Only the notes are the Actor's.
  */
-export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
+export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2)))) {
 	static DEFAULT_OPTIONS = {
-		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-has-tab-rail", "bastionland-gm-toolkit"],
+		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-gm-toolkit"],
 		position: { width: 820, height: 820 },
 		window: { resizable: true },
 		form: { submitOnChange: true },
@@ -156,7 +156,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	};
 
 	static PARTS = {
-		tabs: { template: templatePath("actor/tab-rail.hbs") },
 		header: { template: templatePath("actor/gm-toolkit/header.hbs") },
 		myths: { template: templatePath("actor/gm-toolkit/myths.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
@@ -166,6 +165,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	};
 
 	/** The toolkit's pages, picked from the rail hung off the window's edge. */
+	static RAIL_ANCHOR = ".bastionland-gm-toolkit__header";
+
 	static TABS = {
 		primary: {
 			initial: TOOLKIT_TABS[0],
@@ -847,7 +848,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			});
 			this.#applySearch(part);
 		}
-		placeTabRail(this.element, ".bastionland-gm-toolkit__header");
 	}
 
 	/**
@@ -865,15 +865,6 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 */
 	_showsSettingsTab(user) {
 		return Boolean(user?.isGM);
-	}
-
-	/**
-	 * The rail changes sides when the window is dragged near the screen's edge.
-	 * @override
-	 */
-	_onPosition(position) {
-		super._onPosition(position);
-		stampRailSide(this.element, position);
 	}
 
 	/** @override */

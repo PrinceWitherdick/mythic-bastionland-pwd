@@ -13,13 +13,15 @@ const css = readFileSync(join(root, "styles", "mythic-bastionland.css"), "utf8")
  */
 const CELLS = {
 	".bastionland-scores .bastionland-score__name": 1,
+	// An NPC's or Structure's Armour name, with its note beneath it.
+	".bastionland-scores .bastionland-npc-armour": 1,
 	".bastionland-scores .bastionland-box": 2,
 	".bastionland-scores .bastionland-box--max": 3,
 	".bastionland-armour--score": 4
 };
 
-/** Classes that sit inside a cell rather than being one: the lettering of a name. */
-const INSIDE = ["bastionland-score__abbr", "bastionland-score__tail", "bastionland-score__die"];
+/** Classes that sit inside a cell rather than being one: the lettering of a name, the Armour's note. */
+const INSIDE = ["bastionland-score__abbr", "bastionland-score__tail", "bastionland-score__die", "bastionland-npc-armour-note"];
 
 /** The `display: contents` wrapper standing for a row without taking a cell of its own. */
 const ROW = "bastionland-score";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOOK_PROMPT_PAGE, SPREAD_SIDES, chosenPrompts, pagePrompts, promptSpark, spreadPrompts } from "../../module/rules/book-flip.js";
+import { BOOK_PROMPT_PAGE, SPREAD_SIDES, bookNames, chosenPrompts, pagePrompts, promptSpark, spreadPrompts } from "../../module/rules/book-flip.js";
 import { SPARK_PAGES } from "../../module/rules/spark-tables.js";
 import { emptyLore, latestWilderness, loreAt, recordSpark } from "../../module/rules/hex-lore.js";
 
@@ -77,5 +77,23 @@ describe("promptSpark", () => {
 	it("is filed apart from the Spark Tables' pages, so a hex's wilderness still reads from its Nature rolls alone", () => {
 		expect(SPARK_PAGES.map(({ key }) => key)).not.toContain(BOOK_PROMPT_PAGE);
 		expect(latestWilderness({ note: "", sparks: [spark] })).toEqual([]);
+	});
+});
+
+describe("bookNames", () => {
+	it("gathers each Seer's Name prompt once, whatever its case, in the order read", () => {
+		const seers = [
+			{ page: 28, prompts: KNIGHT },
+			{ page: 30, prompts: [{ label: "Person", value: "Old miller" }, { label: "name", value: "Wenna" }] },
+			{ page: 32, prompts: [{ label: "Name", value: "ODO" }] },
+			{ page: 34, prompts: null },
+			{ page: 36 }
+		];
+		expect(bookNames(seers)).toEqual(["Odo", "Wenna"]);
+	});
+
+	it("gives none for an index without Seers", () => {
+		expect(bookNames(undefined)).toEqual([]);
+		expect(bookNames([])).toEqual([]);
 	});
 });

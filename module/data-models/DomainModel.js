@@ -1,4 +1,5 @@
-import { COUNCIL_SEATS, CRISES, isMisruleDue, musterFor } from "../rules/dominion.js";
+import { RETAINER_SEATS, circleEntries } from "../rules/court.js";
+import { CRISES, isMisruleDue, musterFor } from "../rules/dominion.js";
 import { booleanField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -22,8 +23,11 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			successor: textField(),
 			// The Season it was seized by force in, from seasonKey. Its turmoil lasts that Season (Conquest, p21).
 			seized: textField(),
-			// Who holds each seat, written as the GM likes.
-			council: new fields.SchemaField(Object.fromEntries(COUNCIL_SEATS.map((key) => [key, textField()]))),
+			// Who holds each seat: the id of a Retainer from the Court, or, for the Circle, the ids of the Knights sitting in it.
+			council: new fields.SchemaField({
+				...Object.fromEntries(RETAINER_SEATS.map((key) => [key, textField()])),
+				circle: new fields.ArrayField(new fields.StringField({ required: true, blank: false }))
+			}),
 			// Everyone serving the ruler but not on the Council (The Court, p20), by id. See rules/court.js.
 			court: new fields.ObjectField({ required: true, initial: {} }),
 			// The tasks the Council has in hand (p20), by id. See rules/council-tasks.js.
@@ -38,6 +42,14 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			dramaRolled: textField(),
 			notes: htmlField()
 		};
+	}
+
+	/** @override */
+	static migrateData(source) {
+		// The Circle was once its Knights' names run together with commas.
+		const circle = source.council?.circle;
+		if (circle !== undefined && !Array.isArray(circle)) source.council.circle = circleEntries(circle);
+		return super.migrateData(source);
 	}
 
 	/** @override */

@@ -11,14 +11,15 @@ import {
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { holdingChoices } from "../actions/homecoming.js";
-import { addCourtMember, removeCourtMember } from "../actions/court.js";
+import { editCourtMember, removeCourtMember, seatCircle, seatLabel, takeIntoCourt, worldKnights } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
-import { COURT_ROLES, SERVES_A_SEAT, courtByRole } from "../rules/court.js";
+import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
 import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
-import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil } from "../rules/dominion.js";
+import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil, namesItsDomain } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { TabRailMixin } from "./tab-rail.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -27,7 +28,7 @@ const { ActorSheetV2 } = foundry.applications.sheets;
  * A Domain's sheet: the Holding, its ruler, the Council and the tasks it has in
  * hand, the Court, and the Crises the Domain faces.
  */
-export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSheetV2)) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-domain"],
 		position: { width: 780, height: 780 },
@@ -42,12 +43,15 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			passOn: DomainSheet.#onPassOn,
 			seize: DomainSheet.#onSeize,
 			addCourtMember: DomainSheet.#onAddCourtMember,
+			editCourtMember: DomainSheet.#onEditCourtMember,
 			removeCourtMember: DomainSheet.#onRemoveCourtMember,
+			seatCircle: DomainSheet.#onSeatCircle,
+			openKnight: DomainSheet.#onOpenSheet,
 			addDesign: DomainSheet.#onAddDesign,
 			removeDesign: DomainSheet.#onRemoveDesign,
 			muster: DomainSheet.#onMuster,
 			dismissWarband: DomainSheet.#onDismissWarband,
-			openWarband: DomainSheet.#onOpenWarband,
+			openWarband: DomainSheet.#onOpenSheet,
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
 			setTaskAside: DomainSheet.#onSetTaskAside
@@ -60,6 +64,25 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			scrollable: [""]
 		}
 	};
+
+	/** The sheet's pages, picked from the rail hung off the window's edge. */
+	static RAIL_ANCHOR = ".bastionland-npc-header";
+
+	static TABS = {
+		primary: {
+			initial: "domain",
+			tabs: [
+				{ id: "domain", icon: "fa-solid fa-chess-rook", label: "bastionland.domain.tabs.domain" },
+				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.domain.tabs.notes" }
+			]
+		}
+	};
+
+	/** Its name, as "Tal’s Domain", without Foundry's "Domain:" in front. */
+	get title() {
+		const { name } = this.actor;
+		return namesItsDomain(name, t("domain.button")) ? name : t("domain.title", { name });
+	}
 
 	/** @override */
 	async _prepareContext(options) {
@@ -77,14 +100,15 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				key,
 				label: t(`domain.council.${key}.label`),
 				hint: t(`domain.council.${key}.hint`),
-				value: system.council[key],
+				// Who sits there: a Retainer picked from the Court, or the Knights of the Circle.
+				...(RETAINER_SEATS.includes(key) ? DomainSheet.#retainerSeat(system, key) : DomainSheet.#circleSeat(system)),
 				// The tasks that seat has in hand (p20), each saying when its work is done.
 				tasks: tasks[key],
 				assign: t("domain.tasks.assign", { seat: t(`domain.council.${key}.label`) })
 			})),
 			// A seat left empty invites trouble (p204), so the sheet says which.
 			emptySeats: DomainSheet.#emptySeatsNotice(system.council),
-			court: DomainSheet.#courtContext(system.court),
+			court: DomainSheet.#courtContext(system),
 			designs: DomainSheet.#designsContext(system.designs, calendar),
 			designScales: DESIGN_SCALES.map((scale) => ({ scale, icon: DESIGN_ICONS[scale], label: t(`domain.designs.scales.${scale}.add`), hint: t(`domain.designs.scales.${scale}.hint`) })),
 			crises: system.crises.map((key, index) => ({
@@ -142,27 +166,61 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/**
-	 * The Court by role (p20), every role shown even where nobody serves, so a
-	 * Referee can see what a Court is made of. Only a Retainer names the Council
-	 * seat they were taken on by.
-	 * @param {unknown} court As stored.
+	 * One of the seats granted to a Retainer: the Retainers it may go to, and
+	 * a name written in before seats were filled from the Court, kept until
+	 * world setup makes them a Retainer.
+	 * @param {object} system The Domain's.
+	 * @param {string} seat One of RETAINER_SEATS.
+	 * @returns {object}
+	 */
+	static #retainerSeat(system, seat) {
+		const holder = seatHolder(system.council, system.court, seat);
+		const choices = retainerChoices(system.council, system.court, seat);
+		const nobody = !choices.length && !holder?.legacy;
+		return {
+			retainers: true,
+			choices,
+			legacy: holder?.legacy ? holder.name : "",
+			blank: t(nobody ? "domain.council.noRetainers" : "domain.council.nobody"),
+			blankHint: nobody ? t("domain.council.noRetainersHint") : ""
+		};
+	}
+
+	/**
+	 * The Circle: the Knights sitting in it, each opening their sheet.
+	 * @param {object} system The Domain's.
+	 * @returns {object}
+	 */
+	static #circleSeat(system) {
+		const knights = circleKnights(system.council.circle, worldKnights());
+		return {
+			circle: true,
+			knights: knights.map((knight) => ({ ...knight, uuid: knight.legacy ? "" : game.actors.get(knight.id)?.uuid }))
+		};
+	}
+
+	/**
+	 * The Court (p20) as one list, by role in the book's order: each member's
+	 * name, role and seat on a line, with their note and leverage under it.
+	 * @param {object} system The Domain's.
 	 * @returns {object[]}
 	 */
-	static #courtContext(court) {
-		const seats = COUNCIL_SEATS.map((key) => ({ key, label: t(`domain.council.${key}.label`) }));
-		return courtByRole(court).map(({ role, members }) => ({
-			role,
-			label: t(`domain.court.roles.${role}.label`),
-			hint: t(`domain.court.roles.${role}.hint`),
-			add: t(`domain.court.roles.${role}.add`),
-			notePlaceholder: t(`domain.court.roles.${role}.notePlaceholder`),
-			// A Retainer works for one Council member, so only a Retainer serves a seat.
-			servesASeat: role === SERVES_A_SEAT,
-			members: members.map((member) => ({
-				...member,
-				seats: seats.map((seat) => ({ ...seat, selected: seat.key === member.seat }))
-			}))
-		}));
+	static #courtContext(system) {
+		return courtMembers(system.court).map((member) => {
+			const held = seatOf(system.council, member.id);
+			// A Retainer granted a seat holds it; one who isn't may serve whoever took them on.
+			const serves = member.role === SERVES_A_SEAT && member.seat ? t("domain.court.servesSeat", { seat: seatLabel(member.seat) }) : "";
+			const leverage = member.leverage ? t("domain.court.leverageLine", { leverage: member.leverage }) : "";
+			return {
+				id: member.id,
+				name: member.name || t("domain.court.unnamed"),
+				role: t(`domain.court.roles.${member.role}.one`),
+				roleHint: t(`domain.court.roles.${member.role}.hint`),
+				seat: held ? seatLabel(held) : serves,
+				held: Boolean(held),
+				gloss: [member.note, leverage].filter(Boolean).join(" · ")
+			};
+		});
 	}
 
 	/**
@@ -219,9 +277,28 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/** @this {DomainSheet} */
-	static #onAddCourtMember(_event, target) {
-		const role = target.dataset.role;
-		return COURT_ROLES.includes(role) ? addCourtMember(this.actor, role) : null;
+	static #onAddCourtMember() {
+		return takeIntoCourt(this.actor);
+	}
+
+	/** @this {DomainSheet} */
+	static #onEditCourtMember(_event, target) {
+		return editCourtMember(this.actor, target.closest("[data-member]")?.dataset.member);
+	}
+
+	/** @this {DomainSheet} */
+	static #onSeatCircle() {
+		return seatCircle(this.actor);
+	}
+
+	/**
+	 * Open the sheet of the Knight or Warband clicked, named by the nearest uuid.
+	 * @this {DomainSheet}
+	 */
+	static #onOpenSheet(_event, target) {
+		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		actor?.sheet.render({ force: true });
+		return actor;
 	}
 
 	/** @this {DomainSheet} */
@@ -251,13 +328,6 @@ export class DomainSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/** @this {DomainSheet} */
 	static #onDismissWarband(_event, target) {
 		return dismissWarband(this.actor, target.closest("[data-warband]")?.dataset.warband);
-	}
-
-	/** @this {DomainSheet} */
-	static #onOpenWarband(_event, target) {
-		const warband = fromUuidSync(target.closest("[data-warband]")?.dataset.uuid ?? "");
-		warband?.sheet.render({ force: true });
-		return warband;
 	}
 
 	/** @this {DomainSheet} */

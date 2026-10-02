@@ -79,3 +79,20 @@ export function chosenPrompts(pages, keys) {
 export function promptSpark(prompt, { d6, d12 }, { id, table, when }) {
 	return { id, page: BOOK_PROMPT_PAGE, table, rolls: [d6, d12], entries: [prompt.value], prompt: prompt.value, when };
 }
+
+/**
+ * The names the book gives along the foot of its Knights' pages, each once, in
+ * the order read. The index keeps those prompts on each Knight's Seer.
+ * @param {unknown} seers The index's Seer entries.
+ * @returns {string[]}
+ */
+export function bookNames(seers) {
+	if (!Array.isArray(seers)) return [];
+	const names = new Map();
+	for (const seer of seers) {
+		for (const { label, value } of pagePrompts(seer?.prompts, "knight", seer?.page)) {
+			if (label.toLowerCase() === "name" && !names.has(value.toLowerCase())) names.set(value.toLowerCase(), value);
+		}
+	}
+	return [...names.values()];
+}

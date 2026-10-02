@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KNIGHT_NAMES, rollKnightName, startingName } from "../../module/rules/knight-names.js";
+import { KNIGHT_NAMES, rollFreeName, rollKnightName, startingName } from "../../module/rules/knight-names.js";
 import { createRandom } from "../../module/rules/random.js";
 
 describe("KNIGHT_NAMES", () => {
@@ -45,5 +45,16 @@ describe("startingName", () => {
 		expect(startingName("knight (12)", "Knight")).toBe("");
 		expect(startingName(null, "Knight")).toBe("");
 		expect(startingName(undefined, "Knight")).toBe("");
+	});
+});
+
+describe("rollFreeName", () => {
+	it("rolls from the list it's given, passing over the names to avoid", () => {
+		expect(rollFreeName(["Odo", "Wenna"], () => 0, [" odo "])).toBe("Wenna");
+		expect(rollFreeName(["Odo", "Wenna"], () => 0.99, ["Odo", "Wenna"])).toBe("Wenna");
+	});
+
+	it("gives null for an empty list", () => {
+		expect(rollFreeName([], () => 0.5)).toBeNull();
 	});
 });

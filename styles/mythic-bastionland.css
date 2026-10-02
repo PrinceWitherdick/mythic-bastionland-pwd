@@ -234,6 +234,8 @@
 	.bastionland-condition,
 	.bastionland-icon,
 	.bastionland-item__name,
+	.bastionland-council__knight,
+	.bastionland-council__seat,
 	.bastionland-item__equip,
 	.bastionland-move,
 	.bastionland-add,
@@ -247,7 +249,8 @@
 	.bastionland-heraldry-painter__division,
 	.bastionland-heraldry-painter__charge,
 	.bastionland-heraldry-painter__layer-pick
-) {
+),
+:where(.bastionland-dialog .window-content) .bastionland-icon {
 	appearance: none;
 	width: auto;
 	height: auto;
@@ -325,7 +328,8 @@ a.button:focus:not(:focus-visible) {
 :is(
 	.bastionland-spark__table-header,
 	.bastionland-heraldry-painter__title-row,
-	.bastionland-structure__carries
+	.bastionland-structure__carries,
+	.bastionland-npc-header__scale
 ) .bastionland-heading::after {
 	content: none;
 }
@@ -1202,6 +1206,24 @@ a.button:focus:not(:focus-visible) {
 	opacity: 0.5;
 }
 
+/* An "add a row" entry point at the foot of a sheet's list: a quiet dashed bar
+   the full width of the section, not a solid button. */
+.bastionland-page .bastionland-button--add {
+	display: flex;
+	width: 100%;
+	height: auto;
+	padding: 0.15rem 16px;
+	border: 1px dashed var(--bastionland-rule);
+	background: transparent;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-page .bastionland-button--add:not(:disabled):hover {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+}
+
 /* A sheet's actions in play read as a line of the page rather than a row of
    app buttons: small caps between two hairlines, parted by rubric lozenges.
    The wide gap is only between buttons; a wrapped second line sits close under
@@ -1242,6 +1264,12 @@ a.button:focus:not(:focus-visible) {
 	opacity: 0.6;
 	transform: translate(-50%, -50%) rotate(45deg);
 	pointer-events: none;
+}
+
+/* Starts a fresh line of buttons; the one after it takes no lozenge. */
+.bastionland-toolbar__break {
+	flex-basis: 100%;
+	height: 0;
 }
 
 .bastionland-toolbar--actions button i {
@@ -1880,7 +1908,8 @@ a.button:focus:not(:focus-visible) {
 	}
 }
 
-/* Property is a stock list, not prose, so it rules itself like a ledger: every
+/* Property, and an NPC's Attacks & Gear, are stock lists, not prose, so they
+   rule themselves like a ledger: every
    other row takes a faint wash of ink, which lands on whatever parchment the
    sheet is wearing. The rows close up, since the striping now does the
    separating that the air between them did. */
@@ -2164,8 +2193,8 @@ a.button:focus:not(:focus-visible) {
 	scrollbar-gutter: stable;
 }
 
-/* The Chronicle fills the page below the header, down to the bottom of the window. */
-.bastionland-page > .tab.active[data-tab="chronicle"],
+/* The Chronicle fills the page below the header, down to the bottom of the window, as a Domain's and an NPC's notes do. */
+.bastionland-page > .tab.active:has(> .bastionland-chronicle),
 .bastionland-chronicle {
 	display: flex;
 	flex: 1 0 auto;
@@ -2516,28 +2545,18 @@ button.bastionland-seer__stat:not(:disabled):hover {
  * of rules text, so the box takes a drag handle at its foot. Foundry lays the
  * editor out as a menu above a container the text is stretched inside, and
  * that container is only given a height of its own in a column; `resize`, in
- * turn, only takes on a box that keeps its own overflow. An NPC's Traits &
- * Notes take the same handle, and keep it when shown read-only. The editor's
- * text scrolls inside it, so the box itself only clips.
+ * turn, only takes on a box that keeps its own overflow. The editor's text
+ * scrolls inside it, so the box itself only clips.
  */
-.bastionland-page .bastionland-item-description prose-mirror,
-.bastionland-page .bastionland-npc-notes prose-mirror,
-.bastionland-page .bastionland-npc-notes > .editor-content {
+.bastionland-page .bastionland-item-description prose-mirror {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 	resize: vertical;
 }
 
-/* Read-only text has no editor to stretch, so it stays a plain block and scrolls itself. */
-.bastionland-page .bastionland-npc-notes > .editor-content {
-	display: block;
-	overflow: auto;
-}
-
 /* Whatever height the box is dragged to is the text's to fill. */
-.bastionland-page .bastionland-item-description prose-mirror > .editor-container,
-.bastionland-page .bastionland-npc-notes prose-mirror > .editor-container {
+.bastionland-page .bastionland-item-description prose-mirror > .editor-container {
 	min-height: 0;
 }
 
@@ -2623,6 +2642,18 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	line-height: 1.15;
 }
 
+/* An NPC's Scale, a third column right of the name: the label, then the three stacked. */
+.bastionland-npc-header__scale {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-npc-header__scale .bastionland-heading {
+	margin: 0;
+}
+
 .bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-armour-note, .bastionland-npc-weakness__text) {
 	flex: none;
 	width: 100%;
@@ -2668,9 +2699,26 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	color: var(--bastionland-rubric);
 }
 
+/* What the Armour is, in small print under the word Armour. The row sits a little lower to make room,
+   and the word rides up above the box's middle. A long note ends in an ellipsis and shows in full on
+   hover. It adds no width to the first column, so a long note can't push the boxes over. */
+.bastionland-scores .bastionland-score--noted > * {
+	margin-top: 0.4rem;
+}
+
+.bastionland-scores .bastionland-npc-armour {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	grid-column: 1;
+	min-width: 0;
+	padding-right: 0.5rem;
+}
+
 .bastionland-page .bastionland-npc-armour-note {
-	margin-top: -0.6rem;
-	font-size: 1rem;
+	contain: inline-size;
+	font-size: var(--bastionland-font-note);
+	text-overflow: ellipsis;
 }
 
 .bastionland-npc-weakness__row {
@@ -2678,11 +2726,52 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.3rem 0.8rem;
+	margin-top: 0.6rem;
 }
 
-.bastionland-npc-weakness__row select {
+/*
+ * A bare word with a drawn arrow: an NPC's weakness die, and the Domain's
+ * Holding and seats, which add a line under it below. The browser's own arrow
+ * is dropped, Foundry's tall line-height too so the box fits the word, and the
+ * arrow's middle is put level with the word's: a downward triangle looks
+ * centred when its centroid, a third of the way down, is.
+ */
+.bastionland-page .bastionland-npc-weakness__row select,
+.bastionland-page .bastionland-domain__seats select {
+	height: auto;
+	line-height: 1.2;
+	border: none;
+	border-radius: 0;
+	background-color: transparent;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--bastionland-ink) 50%),
+		linear-gradient(135deg, var(--bastionland-ink) 50%, transparent 50%);
+	background-position: calc(100% - 0.65rem) calc(50% + 0.05rem), calc(100% - 0.35rem) calc(50% + 0.05rem);
+	background-size: 0.3rem 0.3rem;
+	background-repeat: no-repeat;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+}
+
+.bastionland-page .bastionland-npc-weakness__row select:focus:not(:focus-visible),
+.bastionland-page .bastionland-domain__seats select:focus:not(:focus-visible) {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-page .bastionland-npc-weakness__row select:disabled,
+.bastionland-page .bastionland-domain__seats select:disabled {
+	cursor: default;
+}
+
+.bastionland-page .bastionland-npc-weakness__row select {
 	flex: none;
 	width: auto;
+	padding: 0.15rem 1.5rem 0.15rem 0.2rem;
 }
 
 .bastionland-choices--inline {
@@ -2701,6 +2790,48 @@ button.bastionland-seer__stat:not(:disabled):hover {
 /* Domain sheet                                                     */
 /* ---------------------------------------------------------------- */
 
+/*
+ * Wide, the Domain page's blocks share rows across its two columns so the
+ * Council can sit centred beside the Court. Narrow, each column stacks as before.
+ */
+@container (min-width: 641px) {
+	.bastionland-domain__columns {
+		grid-template-areas:
+			"ruler crises"
+			"council court"
+			"authority designs";
+	}
+
+	.bastionland-domain__columns > .bastionland-column {
+		display: contents;
+	}
+
+	.bastionland-domain__ruler {
+		grid-area: ruler;
+	}
+
+	.bastionland-domain__crisis-block {
+		grid-area: crises;
+	}
+
+	.bastionland-domain__court {
+		grid-area: court;
+	}
+
+	.bastionland-domain__authority {
+		grid-area: authority;
+	}
+
+	.bastionland-domain__designs {
+		grid-area: designs;
+	}
+
+	.bastionland-domain__council {
+		grid-area: council;
+		align-self: center;
+	}
+}
+
 .bastionland-domain__seats {
 	display: grid;
 	grid-template-columns: max-content minmax(0, 1fr);
@@ -2712,19 +2843,78 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	width: 100%;
 }
 
+/* Ruler, Successor and Holding get room to breathe between their lines. */
+.bastionland-domain__ruler .bastionland-domain__seats {
+	row-gap: 0.6rem;
+}
+
+.bastionland-page .bastionland-domain__ruler .bastionland-blank {
+	padding-block: 0.15rem;
+}
+
 /*
- * The Council (p20): each seat keeps its line, with a scroll to set it a task
- * and whatever it has in hand written under the line like a clerk's docket. A
+ * Holding and the Council's seats are blanks like the lines beside them: the
+ * same dashed underline, width and start, with the drawn arrow of the NPC's
+ * weakness die. The browser's own arrow would pad the text in past the blanks' start.
+ */
+.bastionland-page .bastionland-domain__seats select {
+	max-width: 18rem;
+	padding: 0.15rem 1.2rem 0.15rem 0.2rem;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	background-position: calc(100% - 0.65rem) 55%, calc(100% - 0.35rem) 55%;
+	font-family: var(--bastionland-font-body);
+	font-size: 1.15rem;
+}
+
+/* Seize by Force sits alone at the foot of the Domain page, under a hairline. */
+.bastionland-domain__footer {
+	display: flex;
+	justify-content: center;
+	margin-top: 1rem;
+	padding: 0.75rem 0 0.5rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-domain__footer .bastionland-button {
+	flex: none;
+	padding: 0 1.25rem;
+}
+
+/* A Crisis is known by its kind, so "Chaos" is bold and its resolution sits indented under it. */
+.bastionland-domain__crises .bastionland-item__name {
+	font-weight: bold;
+}
+
+.bastionland-domain__crises .bastionland-item__description {
+	padding-inline-start: 1.25rem;
+}
+
+/*
+ * The Council (p20): each seat keeps its line, its name setting it a task, and
+ * whatever it has in hand written under the line like a clerk's docket. A
  * task whose Phase, Week or Season is up is marked in the rubric's red ochre,
  * so a glance down the Council says what's waiting to be settled.
  */
+/* Room under the last seat, so the Circle's line isn't crowded by the notice or hint below it. */
 .bastionland-council {
-	grid-template-columns: max-content minmax(0, 1fr) max-content;
+	margin-bottom: 0.75rem;
 }
 
-/* No scroll to set a task on a sheet nobody may edit, so no column to hold one. */
-.bastionland-council--reading {
-	grid-template-columns: max-content minmax(0, 1fr);
+/* The empty-seats notice sits under the heading, a little above the seats. */
+.bastionland-chooser__notice + .bastionland-council {
+	margin-top: 0.6rem;
+}
+
+/* A seat's name, in bold so it reads as something to press, turning red ochre under the pointer. */
+.bastionland-page .bastionland-council__seat {
+	font-weight: bold;
+	/* Foundry centres a button's contents; the names line up on the left of their column. */
+	justify-content: flex-start;
+	justify-self: start;
+}
+
+.bastionland-page .bastionland-council__seat:hover {
+	color: var(--bastionland-rubric);
 }
 
 .bastionland-council__tasks {
@@ -2732,7 +2922,8 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
-	margin: 0 0 0.2rem;
+	/* Set in under the seat whose task it is. */
+	margin: 0 0 0.2rem 1.25rem;
 	padding: 0;
 	list-style: none;
 }
@@ -2769,19 +2960,48 @@ button.bastionland-seer__stat:not(:disabled):hover {
 }
 
 /*
- * The Court (p20): a block for each role, holding a line each for whoever
- * serves. A member's name and the seat they were taken on by share the first
- * line, with their leverage and note written under it like a scribe's gloss.
+ * The Court (p20): one line for each member, as the Crises and Warbands have,
+ * the name in bold, then their role and the seat they hold or serve, with
+ * their note and leverage written small under it. The name opens the window
+ * holding the rest.
  */
-.bastionland-court__role {
-	margin-top: 0.5rem;
+.bastionland-court {
+	gap: 0.35rem;
+	margin-bottom: 0.6rem;
 }
 
-.bastionland-court__role .bastionland-heading--small {
-	margin-bottom: 0.2rem;
+.bastionland-court .bastionland-item__name {
+	font-weight: bold;
 }
 
-.bastionland-court__members {
+.bastionland-court__gloss {
+	margin: 0;
+	padding-inline-start: 1.25rem;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+/* The Circle's Knights, written in a row with the button to seat more after them. */
+.bastionland-council__circle {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.2rem 0.4rem;
+	min-width: 0;
+}
+
+.bastionland-council__knight:hover {
+	text-decoration: underline;
+}
+
+.bastionland-council__nobody {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
+/* Grand Designs: each work in hand on a line of its own, its scale's icon before it. */
+.bastionland-domain__designs-list {
 	display: flex;
 	flex-direction: column;
 	gap: 0.4rem;
@@ -2790,40 +3010,86 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	list-style: none;
 }
 
-.bastionland-court__member {
+.bastionland-domain__design {
 	display: flex;
 	flex-direction: column;
 	gap: 0.15rem;
-	padding-left: 0.45rem;
-	border-left: 2px solid var(--bastionland-rule);
 }
 
-.bastionland-court__line {
+.bastionland-domain__design-line {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
 	gap: 0.3rem 0.5rem;
 }
 
-.bastionland-court__name {
+.bastionland-domain__design-what {
 	flex: 1 1 8rem;
 	font-weight: bold;
 }
 
-.bastionland-court__seat {
-	flex: 0 1 auto;
-	max-width: 10rem;
+/* The Grand Design buttons stand clear of the last work in hand and of each other. */
+.bastionland-domain__design-adds {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
 }
 
-.bastionland-court__leverage,
-.bastionland-court__note {
-	width: 100%;
-	color: var(--bastionland-ink-soft);
-	font-size: var(--bastionland-font-note);
+/*
+ * Raised Warbands under Authority: each its own framed row, a banner of rubric
+ * down its left edge, its picture beside its name, and its Spirit, origin and
+ * plight written under. A Warband that's routed, broken or wiped out greys.
+ */
+.bastionland-warbands {
+	gap: 0.4rem;
+	margin-bottom: 0.6rem;
 }
 
-.bastionland-court__add {
-	margin-top: 0.35rem;
+.bastionland-warband {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-left: 4px solid var(--bastionland-rubric);
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--bastionland-ink) 6%, transparent);
+}
+
+.bastionland-warband__img {
+	flex: none;
+	width: 2.75rem;
+	height: 2.75rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	object-fit: cover;
+	cursor: pointer;
+}
+
+.bastionland-warband__text {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 0.1rem;
+	min-width: 0;
+}
+
+.bastionland-warband .bastionland-item__name {
+	font-weight: bold;
+}
+
+.bastionland-warband.is-spent {
+	border-left-color: var(--bastionland-rule);
+}
+
+.bastionland-warband.is-spent .bastionland-warband__img {
+	filter: grayscale(1);
+	opacity: 0.6;
+}
+
+.bastionland-warband.is-spent .bastionland-item__tags strong {
+	color: var(--bastionland-blood);
 }
 
 /* ---------------------------------------------------------------- */

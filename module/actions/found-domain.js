@@ -54,7 +54,7 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 
 	const choice = foundry.utils.expandObject(data);
 	const ruled = holdingAt(choice.holding);
-	const seated = others.filter((actor) => choice.circle?.[actor.id]).map((actor) => actor.name);
+	const seated = others.filter((actor) => choice.circle?.[actor.id]).map((actor) => actor.id);
 	const name = String(choice.name ?? "").trim() || ruled?.name || t("domain.newName", { knight: knight.name });
 	// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
 	const domain = await Actor.implementation.create({
@@ -65,7 +65,7 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 			ruler: knight.name,
 			holding: ruled ? choice.holding : "",
 			seat: Boolean(ruled?.seat),
-			council: { circle: seated.join(", ") }
+			council: { circle: seated }
 		},
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
 	});

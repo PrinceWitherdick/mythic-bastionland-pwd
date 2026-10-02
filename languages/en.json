@@ -1293,12 +1293,18 @@
       }
     },
     "domain": {
+      "title": "{name} Domain",
+      "tabs": {
+        "domain": "Domain",
+        "notes": "Notes"
+      },
       "seat": "Seat of Power",
       "seatHint": "Where the whole Realm is ruled from, with a Holding’s troubles writ large.",
+      "lordship": "Lordship",
       "ruler": "Ruler",
       "rulerPlaceholder": "Who rules here",
       "successor": "Successor",
-      "successorHint": "Whom the ruler names to follow them. Pass On hands the Domain to them.",
+      "successorHint": "Whom the ruler names to follow them, or whom the Realm’s Seers or Knights-Elector choose instead. Expect some resistance either way. Pass On hands the Domain to them.",
       "successorPlaceholder": "Not yet named",
       "successorFromKnight": "{name}, the ruler’s named successor",
       "holding": {
@@ -1350,6 +1356,9 @@
         "label": "Council",
         "empty": "Nobody sits as {seats}. A Domain runs badly with its great seats empty, and trouble finds it.",
         "hint": "Set a Council member a task that takes anything from a Phase to a whole Season. It’s resolved like any other action, and failing it tends to bring a Crisis. You can grant and take away seats, but whoever loses one won’t forget it.",
+        "nobody": "Nobody",
+        "noRetainers": "No Retainers Available",
+        "noRetainersHint": "A seat goes to one of the Court’s Retainers. Take somebody on in the Court first, then grant them the seat here.",
         "steward": {
           "label": "Steward"
         },
@@ -1363,7 +1372,13 @@
           "label": "Envoy"
         },
         "circle": {
-          "label": "The Circle"
+          "label": "The Circle",
+          "choose": "Seat Knights in the Circle",
+          "empty": "No Knights sit in the Circle",
+          "title": "The Circle",
+          "intro": "Which Knights does {name} seat in its Circle?",
+          "ok": "Seat Them",
+          "noKnights": "There are no other Knights in this world to seat."
         }
       },
       "tasks": {
@@ -1403,6 +1418,7 @@
           "saveAlone": "{virtue} Save"
         },
         "noSheet": "{name} has no sheet to Save with, so it falls to a Luck Roll.",
+        "noOneSaves": "Several Knights sit in the Circle and none makes the Save alone, so it falls to a Luck Roll.",
         "taken": "{who} takes up a task: {what}. {scope}.",
         "settle": "Settle this task",
         "settledTitle": "Council Task",
@@ -1529,35 +1545,40 @@
       },
       "court": {
         "label": "The Court",
-        "hint": "Everyone serving the ruler but not on the Council (p20). Write whoever the Court holds; the drama each Season falls to one of them.",
+        "hint": "Everyone serving the ruler (p20). The Council’s great seats are granted to Retainers from here, and each Season’s drama falls to somebody here.",
+        "add": "Add to the Court",
+        "addTitle": "Take Into the Court",
+        "editTitle": "{name}",
+        "save": "Save",
+        "role": "Role",
+        "nobody": "Nobody serves in the Court yet.",
+        "nameNeeded": "Give them a name first. Nobody joins the Court without one.",
+        "unnamed": "Somebody unnamed",
+        "servesSeat": "serves the {seat}",
+        "holdsSeat": "Sits on the Council as {seat}",
+        "leverageLine": "Leverage: {leverage}",
         "roles": {
           "retainer": {
-            "label": "Retainers",
             "one": "Retainer",
-            "add": "Take on a Retainer",
             "notePlaceholder": "What work do they aid with?"
           },
           "courtier": {
-            "label": "Courtiers",
             "one": "Courtier",
-            "add": "Admit a Courtier",
             "notePlaceholder": "What honour or ambition do they hold?"
           },
           "petitioner": {
-            "label": "Petitioners",
             "one": "Petitioner",
-            "add": "Grant an Audience",
             "notePlaceholder": "What do they ask for: help, advice, or judgement?"
           },
           "seer": {
-            "label": "Seers",
             "one": "Seer",
-            "add": "A Seer Visits",
             "notePlaceholder": "Do they visit, or send an acolyte?"
           }
         },
         "name": "Name",
         "namePlaceholder": "Who are they?",
+        "rollName": "Roll a name from the book",
+        "rollNameUnread": "Import the rulebook first. Its names are read from the Knights’ pages.",
         "serves": "Serves",
         "servesHint": "The Council member who took them on.",
         "servesNobody": "No seat",
@@ -1567,13 +1588,13 @@
         "note": "Note",
         "remove": "They Leave the Court",
         "removeConfirm": "Does {name} leave the Court? What was written about this {role} goes with them.",
+        "removeConfirmSeated": "Does {name} leave the Court? Their seat as {seat} stands empty, and what was written about this {role} goes with them.",
         "holdsLeverage": "Holds leverage over the ruler: {leverage}",
         "noLeverage": "Holds no leverage over the ruler, which is the ruler’s good fortune.",
         "emptyHint": "Nobody serves in the Court yet, so there is nobody for the drama to fall to."
       },
       "authority": "Authority",
       "muster": "Can muster {count} Warbands. The Marshal decides their training and armament.",
-      "succession": "Succession: the ruler usually picks who follows them, though some Realms leave that to gathered Seers or Knights-Elector. Whoever it is meets some resistance.",
       "notes": "Court & Notes",
       "button": "Domain",
       "openHint": "Open the Domain this Knight rules",
@@ -2831,6 +2852,10 @@
       "morning": "Afflictions Take Their Toll"
     },
     "npc": {
+      "tabs": {
+        "npc": "Stat Block",
+        "notes": "Traits & Notes"
+      },
       "rollVirtues": "Roll Virtues",
       "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled (p13).",
       "rollVirtuesTagline": "Each Virtue rolled on d12+d6",
@@ -2886,8 +2911,6 @@
         "known": "The Knights know of it",
         "knownHint": "Once they learn it, say from hunters or those who have fought them, the Attack dialog offers the die against them. Until then nobody attacking them is told."
       },
-      "structure": "Counts as a structure",
-      "structureHint": "Only fire, siege engines or something big enough can hurt it.",
       "wields": {
         "label": "Wields",
         "auto": {
@@ -2904,20 +2927,9 @@
           "hint": "Claws, teeth and the like, or more hands than two: every attack joins in at once."
         }
       },
-      "makeStructure": "Make a Structure",
-      "makeStructureHint": "A thing with only GD, such as a wall, ship or siege tower, is better as a Structure actor. A creature that counts as a structure stays an NPC.",
       "featsHint": "Feats are for Knights, but some of the Cast can perform one. Mark the ones this character can.",
       "items": "Attacks & Gear",
-      "notes": "Traits & Notes",
-      "pasteStatBlock": "Paste Stat Block",
-      "paste": {
-        "title": "Paste Stat Block",
-        "intro": "Paste a stat block, such as one copied from the rulebook. It replaces this NPC’s name, Virtues, GD, Armour, Feats and notes, and swaps their weapons for its attacks.",
-        "placeholder": "Name, Epithet\nVIG 11, CLA 9, SPI 8, 3GD\nA1 (what their Armour is)\nWeapon (d8 hefty)\nAnything else about them.",
-        "hint": "Only the VIG, CLA, SPI and GD line is needed. Text above it becomes the name.",
-        "apply": "Apply",
-        "noStats": "No stat line found. It should read like VIG 11, CLA 9, SPI 8, 3GD."
-      }
+      "notes": "Traits & Notes"
     },
     "structure": {
       "kind": "What it is",
@@ -2958,8 +2970,6 @@
         "rolled": "{name} takes d{faces} Damage from the collision: {damage}."
       },
       "convert": {
-        "title": "Make a Structure",
-        "confirm": "Make {name} a Structure actor? It keeps its GD, Armour, picture, items, notes and Tokens, but loses its Virtues, Feats and scale.",
         "converted": "Made {count} structure NPCs into Structure actors."
       }
     },

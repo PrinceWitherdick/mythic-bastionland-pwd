@@ -21,11 +21,11 @@ const calendar = { age: 1, season: "spring", day: 2, phase: "morning" };
  * applies them, so a test can read back what settling a task left behind.
  * @param {object} options
  */
-function fakeDomain({ tasks = {}, council = {}, crises = [] } = {}) {
+function fakeDomain({ tasks = {}, council = {}, court = {}, crises = [] } = {}) {
 	const domain = {
 		name: "Bramblewatch",
 		isOwner: true,
-		system: { tasks, council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: "", ...council }, crises, misruleDue: false },
+		system: { tasks, council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: [], ...council }, court, crises, misruleDue: false },
 		update: vi.fn(async (changes) => {
 			for (const [path, value] of Object.entries(changes)) {
 				const gone = /^system\.tasks\.-=(.+)$/.exec(path);
@@ -92,6 +92,21 @@ describe("councilActor", () => {
 		game.actors = [{ name: "Alda", system: { virtues: {} } }];
 		expect(councilActor(fakeDomain(), "steward")).toBeNull();
 		expect(councilActor(fakeDomain({ council: { steward: "Hulde" } }), "steward")).toBeNull();
+	});
+
+	it("finds the Retainer granted the seat by their name in the Court", () => {
+		const alda = { name: "Alda", system: { virtues: { cla: { value: 12 } } } };
+		game.actors = [alda];
+		const court = { r1: { role: "retainer", name: "Alda", seat: "", leverage: "", note: "", at: 1 } };
+		expect(councilActor(fakeDomain({ council: { steward: "r1" }, court }), "steward")).toBe(alda);
+	});
+
+	it("finds the one Knight sitting in the Circle, and nobody to Save alone for several", () => {
+		const moss = { id: "k1", type: "knight", name: "Moss", system: { virtues: {} } };
+		const brand = { id: "k2", type: "knight", name: "Brand", system: { virtues: {} } };
+		game.actors = [moss, brand];
+		expect(councilActor(fakeDomain({ council: { circle: ["k1"] } }), "circle")).toBe(moss);
+		expect(councilActor(fakeDomain({ council: { circle: ["k1", "k2"] } }), "circle")).toBeNull();
 	});
 });
 

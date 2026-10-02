@@ -10,4 +10,17 @@
 		</p>
 		{{/if}}
 	</div>
+	{{#if scales}}
+	{{!-- An NPC's Scale in a column of its own to the right; a Structure has none. --}}
+	<div class="bastionland-npc-header__scale">
+		<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.scale"}}</h2>
+		<ul class="bastionland-choices">
+			{{#each scales}}
+			<li>
+				<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setScale" data-scale="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+			</li>
+			{{/each}}
+		</ul>
+	</div>
+	{{/if}}
 </header>

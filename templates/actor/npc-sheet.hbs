@@ -1,4 +1,4 @@
-<div class="bastionland-page bastionland-page--npc">
+<div class="bastionland-page bastionland-page--npc bastionland-page--tabbed">
 	{{> "bastionland.npc-header"}}
 
 	{{#if editable}}
@@ -6,6 +6,8 @@
 		<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
 		<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> <span>{{localize "bastionland.duel.title"}}</span></button>
 		<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
+		{{!-- The fight's three on the first line, as on a Knight's sheet; the rest below. --}}
+		<span class="bastionland-toolbar__break" aria-hidden="true"></span>
 		<button type="button" data-action="rollMorale"><i class="fa-solid fa-flag" inert></i> <span>{{localize "bastionland.morale.title"}}</span></button>
 		<button type="button" data-action="rollReaction" data-tooltip="{{localize 'bastionland.reaction.buttonHint'}}"><i class="fa-solid fa-comments" inert></i> <span>{{localize "bastionland.reaction.title"}}</span></button>
 		{{#if system.warband}}
@@ -15,140 +17,125 @@
 	</nav>
 	{{/if}}
 
-	<div class="bastionland-columns">
-		<div class="bastionland-column">
-			<section class="bastionland-scores">
-				{{> "bastionland.virtue-scores"}}
+	<div class="tab {{tabs.npc.cssClass}}" data-group="primary" data-tab="npc">
+		<div class="bastionland-columns">
+			<div class="bastionland-column">
+				<section class="bastionland-scores">
+					{{> "bastionland.virtue-scores"}}
 
-				<div class="bastionland-score">
-					<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-armour">{{localize "bastionland.sheet.armour"}}</label>
-					<input id="{{rootId}}-armour" class="bastionland-box" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
-				</div>
-			</section>
-			<input class="bastionland-blank bastionland-npc-armour-note" type="text" name="system.armourNote" value="{{system.armourNote}}" placeholder="{{localize 'bastionland.npc.armourNote'}}" aria-label="{{localize 'bastionland.npc.armourNote'}}" autocomplete="off">
+					<div class="bastionland-score bastionland-score--noted">
+						<div class="bastionland-npc-armour">
+							<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-armour">{{localize "bastionland.sheet.armour"}}</label>
+							<input class="bastionland-blank bastionland-npc-armour-note" type="text" name="system.armourNote" value="{{system.armourNote}}" placeholder="{{localize 'bastionland.npc.armourNote'}}" aria-label="{{localize 'bastionland.npc.armourNote'}}" {{#if system.armourNote}}data-tooltip="{{system.armourNote}}"{{/if}} autocomplete="off">
+						</div>
+						<input id="{{rootId}}-armour" class="bastionland-box" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
+					</div>
+				</section>
 
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.scale"}}</h2>
-				<ul class="bastionland-choices bastionland-choices--inline">
-					{{#each scales}}
-					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setScale" data-scale="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-					</li>
-					{{/each}}
-				</ul>
-				{{#if ages.length}}
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.age.label"}}</h2>
-				<ul class="bastionland-choices bastionland-choices--inline">
-					{{#each ages}}
-					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setAge" data-age="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-					</li>
-					{{/each}}
-				</ul>
-				{{/if}}
-				{{#if wields.length}}
-				{{!-- How they hold their weapons: two hands limit an Attack as a Knight's (p12), claws and teeth don't. --}}
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.wields.label"}}</h2>
-				<ul class="bastionland-choices bastionland-choices--inline">
-					{{#each wields}}
-					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setWields" data-wields="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-					</li>
-					{{/each}}
-				</ul>
-				{{/if}}
-				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.structureHint'}}">
-					<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
-					<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
-				</label>
-				{{#if system.structure}}{{#if editable}}
-				<button type="button" class="bastionland-button" data-action="makeStructure" data-tooltip="{{localize 'bastionland.npc.makeStructureHint'}}"><i class="fa-solid fa-chess-rook" inert></i> {{localize "bastionland.npc.makeStructure"}}</button>
-				{{/if}}{{/if}}
-			</section>
-
-			{{!-- What can be turned against them. Once the Knights learn it, every Attack that uses it gets the die (p188). --}}
-			<section class="bastionland-block bastionland-npc-weakness">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.weakness.label"}}</h2>
-				<input class="bastionland-blank bastionland-npc-weakness__text" type="text" name="system.weakness.text" value="{{system.weakness.text}}" placeholder="{{localize 'bastionland.npc.weakness.placeholder'}}" aria-label="{{localize 'bastionland.npc.weakness.label'}}" autocomplete="off">
-				<div class="bastionland-npc-weakness__row">
-					<select name="system.weakness.die" aria-label="{{localize 'bastionland.npc.weakness.die'}}" data-tooltip="{{localize 'bastionland.npc.weakness.dieHint'}}" {{#unless editable}}disabled{{/unless}}>
-						{{selectOptions weaknessDice selected=system.weakness.die}}
-					</select>
-					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.weakness.knownHint'}}">
-						<input type="checkbox" name="system.weakness.known" {{checked system.weakness.known}} {{#unless editable}}disabled{{/unless}}>
-						<span class="bastionland-check__label">{{localize "bastionland.npc.weakness.known"}}</span>
-					</label>
-				</div>
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
-				<ul class="bastionland-conditions">
-					{{> "bastionland.condition-items"}}
-					{{#each warbandStates}}
-					<li>
-						<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
-					</li>
-					{{/each}}
-					{{#if moraleBroken}}
-					<li>
-						<button type="button" class="bastionland-condition is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
-					</li>
+				{{#if (or ages.length wields.length)}}
+				<section class="bastionland-block">
+					{{#if ages.length}}
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.age.label"}}</h2>
+					<ul class="bastionland-choices bastionland-choices--inline">
+						{{#each ages}}
+						<li>
+							<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setAge" data-age="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+						</li>
+						{{/each}}
+					</ul>
 					{{/if}}
-				</ul>
-				{{#if leader}}
-				<p class="bastionland-steed">
-					<span class="bastionland-hint">{{leader}}</span>
-					{{#if editable}}
-					<button type="button" class="bastionland-icon" data-action="clearLeader" data-tooltip="{{localize 'bastionland.npc.leader.clear'}}" aria-label="{{localize 'bastionland.npc.leader.clear'}}">
-						<i class="fa-solid fa-xmark" inert></i>
-					</button>
+					{{#if wields.length}}
+					{{!-- How they hold their weapons: two hands limit an Attack as a Knight's (p12), claws and teeth don't. --}}
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.wields.label"}}</h2>
+					<ul class="bastionland-choices bastionland-choices--inline">
+						{{#each wields}}
+						<li>
+							<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setWields" data-wields="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+						</li>
+						{{/each}}
+					</ul>
 					{{/if}}
-				</p>
+				</section>
 				{{/if}}
-			</section>
 
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.feats.label"}}</h2>
-				<ul class="bastionland-conditions">
-					{{#each featChoices}}
-					<li>
-						<button type="button" class="bastionland-condition bastionland-condition--feat{{#if active}} is-active{{/if}}" data-action="toggleFeat" data-feat="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-					</li>
-					{{/each}}
-				</ul>
-				<p class="bastionland-hint">{{localize "bastionland.npc.featsHint"}}</p>
-				{{#if feats.length}}
-				{{> "bastionland.feat-list"}}
-				{{/if}}
-			</section>
-		</div>
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
+					<ul class="bastionland-conditions">
+						{{> "bastionland.condition-items"}}
+						{{#each warbandStates}}
+						<li>
+							<span class="bastionland-condition bastionland-pill is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
+						</li>
+						{{/each}}
+						{{#if moraleBroken}}
+						<li>
+							<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
+						</li>
+						{{/if}}
+					</ul>
+					{{#if leader}}
+					<p class="bastionland-steed">
+						<span class="bastionland-hint">{{leader}}</span>
+						{{#if editable}}
+						<button type="button" class="bastionland-icon" data-action="clearLeader" data-tooltip="{{localize 'bastionland.npc.leader.clear'}}" aria-label="{{localize 'bastionland.npc.leader.clear'}}">
+							<i class="fa-solid fa-xmark" inert></i>
+						</button>
+						{{/if}}
+					</p>
+					{{/if}}
+				</section>
+			</div>
 
-		<div class="bastionland-column">
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.npc.items"}}</h2>
-				<ul class="bastionland-items">
-					{{#each items}}
-					{{> "bastionland.item-row"}}
-					{{else}}
-					<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
-					{{/each}}
-				</ul>
-				<div class="bastionland-adds">
-					{{#each addTypes}}
-					{{> "bastionland.add-item"}}
-					{{/each}}
-				</div>
-			</section>
+			<div class="bastionland-column">
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading">{{localize "bastionland.npc.items"}}</h2>
+					<ul class="bastionland-items bastionland-items--zebra">
+						{{#each items}}
+						{{> "bastionland.item-row"}}
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
+						{{/each}}
+					</ul>
+					<div class="bastionland-adds">
+						{{#each addTypes}}
+						{{> "bastionland.add-item"}}
+						{{/each}}
+					</div>
+				</section>
 
-			<section class="bastionland-block bastionland-npc-notes">
-				<h2 class="bastionland-heading">{{localize "bastionland.npc.notes"}}</h2>
-				{{#if editable}}
-				<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
-				{{else}}
-				<div class="editor-content">{{{enrichedNotes}}}</div>
-				{{/if}}
-			</section>
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.feats.label"}}</h2>
+					<ul class="bastionland-conditions">
+						{{#each featChoices}}
+						<li>
+							<button type="button" class="bastionland-condition bastionland-pill bastionland-condition--feat{{#if active}} is-active{{/if}}" data-action="toggleFeat" data-feat="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+						</li>
+						{{/each}}
+					</ul>
+					<p class="bastionland-hint">{{localize "bastionland.npc.featsHint"}}</p>
+					{{#if feats.length}}
+					{{> "bastionland.feat-list"}}
+					{{/if}}
+				</section>
+
+				{{!-- What can be turned against them. Once the Knights learn it, every Attack that uses it gets the die (p188). --}}
+				<section class="bastionland-block bastionland-npc-weakness">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.weakness.label"}}</h2>
+					<input class="bastionland-blank bastionland-npc-weakness__text" type="text" name="system.weakness.text" value="{{system.weakness.text}}" placeholder="{{localize 'bastionland.npc.weakness.placeholder'}}" aria-label="{{localize 'bastionland.npc.weakness.label'}}" autocomplete="off">
+					<div class="bastionland-npc-weakness__row">
+						<select name="system.weakness.die" aria-label="{{localize 'bastionland.npc.weakness.die'}}" data-tooltip="{{localize 'bastionland.npc.weakness.dieHint'}}" {{#unless editable}}disabled{{/unless}}>
+							{{selectOptions weaknessDice selected=system.weakness.die}}
+						</select>
+						<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.weakness.knownHint'}}">
+							<input type="checkbox" name="system.weakness.known" {{checked system.weakness.known}} {{#unless editable}}disabled{{/unless}}>
+							<span class="bastionland-check__label">{{localize "bastionland.npc.weakness.known"}}</span>
+						</label>
+					</div>
+				</section>
+			</div>
 		</div>
 	</div>
+
+	{{!-- Their Traits & Notes, a page of their own filling the window, as a Knight's Chronicle does. --}}
+	{{> "bastionland.chronicle-tab" tab="notes" heading="bastionland.npc.notes"}}
 </div>

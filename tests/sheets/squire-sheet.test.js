@@ -62,12 +62,13 @@ describe("the Squire's page", () => {
 	it("is one page: no Property page, no Seer page", () => {
 		expect(squire).toContain('data-tab="squire"');
 		for (const tab of ['data-tab="knight"', 'data-tab="property"', 'data-tab="seer"']) expect(squire).not.toContain(tab);
-		expect(chronicle).toContain('data-tab="chronicle"');
+		expect(squire).toContain('{{> "bastionland.chronicle-tab" tab="chronicle"');
+		expect(chronicle).toContain('data-tab="{{tab}}"');
 		expect(squire).toContain('data-tab="settings"');
 	});
 
 	it("shares the Chronicle page with the Knight's sheet", () => {
-		for (const template of [squire, knight]) expect(template).toContain('{{> "bastionland.chronicle-tab"}}');
+		for (const template of [squire, knight]) expect(template).toContain('{{> "bastionland.chronicle-tab" tab="chronicle" heading="bastionland.sheet.chronicle"}}');
 	});
 });
 

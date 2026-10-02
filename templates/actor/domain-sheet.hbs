@@ -1,4 +1,4 @@
-<div class="bastionland-page bastionland-page--domain">
+<div class="bastionland-page bastionland-page--domain bastionland-page--tabbed">
 	<header class="bastionland-npc-header">
 		<img class="bastionland-npc-header__img" src="{{actor.img}}" alt="{{actor.name}}" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
 		<div class="bastionland-npc-header__text">
@@ -17,93 +17,181 @@
 		<button type="button" data-action="collections" data-tooltip="{{localize 'bastionland.domain.collectionsHint'}}"><i class="fa-solid fa-coins" inert></i> {{localize "bastionland.domain.collections"}}</button>
 		<button type="button" data-action="drama" data-tooltip="{{localize 'bastionland.domain.dramaHint'}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.domain.drama"}}</button>
 		<button type="button" data-action="passOn" data-tooltip="{{localize 'bastionland.domain.passOn.buttonHint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.domain.passOn.button"}}</button>
-		<button type="button" data-action="seize" data-tooltip="{{localize 'bastionland.domain.conquest.buttonHint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.domain.conquest.button"}}</button>
 	</nav>
 	{{/if}}
 
-	{{#if turmoil}}
-	<p class="bastionland-chooser__notice">{{turmoil}}</p>
-	{{/if}}
+	<div class="tab {{tabs.domain.cssClass}}" data-group="primary" data-tab="domain">
+		{{#if turmoil}}
+		<p class="bastionland-chooser__notice">{{turmoil}}</p>
+		{{/if}}
 
-	<div class="bastionland-columns">
-		<div class="bastionland-column">
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.ruler"}}</h2>
-				<input class="bastionland-blank bastionland-domain__field" type="text" name="system.ruler" value="{{system.ruler}}" placeholder="{{localize 'bastionland.domain.rulerPlaceholder'}}" aria-label="{{localize 'bastionland.domain.ruler'}}" autocomplete="off">
-				<div class="bastionland-domain__seats">
-					<label for="{{rootId}}-successor" data-tooltip="{{localize 'bastionland.domain.successorHint'}}">{{localize "bastionland.domain.successor"}}</label>
-					<input id="{{rootId}}-successor" class="bastionland-blank bastionland-domain__field" type="text" name="system.successor" value="{{system.successor}}" placeholder="{{successorPlaceholder}}" autocomplete="off">
-					<label for="{{rootId}}-holding" data-tooltip="{{localize 'bastionland.domain.holding.hint'}}">{{localize "bastionland.domain.holding.label"}}</label>
-					<select id="{{rootId}}-holding" class="bastionland-domain__field" name="system.holding" {{#unless editable}}disabled{{/unless}}>
-						<option value="">{{holdings.blank}}</option>
-						{{#each holdings.options}}
-						<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+		<div class="bastionland-columns bastionland-domain__columns">
+			<div class="bastionland-column">
+				<section class="bastionland-block bastionland-domain__ruler">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.lordship"}}</h2>
+					<div class="bastionland-domain__seats">
+						<label for="{{rootId}}-ruler">{{localize "bastionland.domain.ruler"}}</label>
+						<input id="{{rootId}}-ruler" class="bastionland-blank bastionland-domain__field" type="text" name="system.ruler" value="{{system.ruler}}" placeholder="{{localize 'bastionland.domain.rulerPlaceholder'}}" autocomplete="off">
+						<label for="{{rootId}}-successor" data-tooltip="{{localize 'bastionland.domain.successorHint'}}">{{localize "bastionland.domain.successor"}}</label>
+						<input id="{{rootId}}-successor" class="bastionland-blank bastionland-domain__field" type="text" name="system.successor" value="{{system.successor}}" placeholder="{{successorPlaceholder}}" autocomplete="off">
+						<label for="{{rootId}}-holding" data-tooltip="{{localize 'bastionland.domain.holding.hint'}}">{{localize "bastionland.domain.holding.label"}}</label>
+						<select id="{{rootId}}-holding" class="bastionland-domain__field" name="system.holding" {{#unless editable}}disabled{{/unless}}>
+							<option value="">{{holdings.blank}}</option>
+							{{#each holdings.options}}
+							<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+							{{/each}}
+						</select>
+					</div>
+				</section>
+
+				<section class="bastionland-block bastionland-domain__council">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.council.label"}}</h2>
+					<div class="bastionland-domain__seats bastionland-council">
+						{{#each seats}}
+						{{!-- The seat's name sets it a task. --}}
+						{{#if @root.editable}}
+						<button type="button" class="bastionland-council__seat" data-action="assignTask" data-seat="{{key}}" data-tooltip="{{hint}}" aria-label="{{assign}}">{{label}}</button>
+						{{else}}
+						<label {{#if retainers}}for="{{@root.rootId}}-{{key}}"{{/if}} data-tooltip="{{hint}}">{{label}}</label>
+						{{/if}}
+						{{#if retainers}}
+						{{!-- A great seat is granted to one of the Court's Retainers, never written in. --}}
+						<select id="{{@root.rootId}}-{{key}}" class="bastionland-domain__field" name="system.council.{{key}}" aria-label="{{label}}" {{#if blankHint}}data-tooltip="{{blankHint}}"{{/if}} {{#unless @root.editable}}disabled{{/unless}}>
+							<option value="">{{blank}}</option>
+							{{#if legacy}}<option value="{{legacy}}" selected>{{legacy}}</option>{{/if}}
+							{{#each choices}}
+							<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+							{{/each}}
+						</select>
+						{{else}}
+						{{!-- The Circle seats visiting Knights, chosen from the world's Knights. --}}
+						<div class="bastionland-council__circle">
+							{{#each knights}}
+							<span>{{#if uuid}}<button type="button" class="bastionland-council__knight" data-action="openKnight" data-uuid="{{uuid}}">{{name}}</button>{{else}}{{name}}{{/if}}{{#unless @last}},{{/unless}}</span>
+							{{else}}
+							<span class="bastionland-council__nobody">{{localize "bastionland.domain.council.circle.empty"}}</span>
+							{{/each}}
+							{{#if @root.editable}}
+							<button type="button" class="bastionland-icon" data-action="seatCircle" data-tooltip="{{localize 'bastionland.domain.council.circle.choose'}}" aria-label="{{localize 'bastionland.domain.council.circle.choose'}}">
+								<i class="fa-solid fa-user-plus" inert></i>
+							</button>
+							{{/if}}
+						</div>
+						{{/if}}
+						{{#if tasks.length}}
+						<ul class="bastionland-council__tasks">
+							{{#each tasks}}
+							<li class="bastionland-council__task{{#if due}} is-due{{/if}}" data-task="{{id}}">
+								<div class="bastionland-council__line">
+									<span class="bastionland-council__what"><i class="{{icon}}" inert></i> {{what}}</span>
+									{{#if @root.editable}}
+									<span class="bastionland-item__controls">
+										<button type="button" class="bastionland-icon" data-action="settleTask" data-tooltip="{{localize 'bastionland.domain.tasks.settle'}}" aria-label="{{localize 'bastionland.domain.tasks.settle'}}">
+											<i class="fa-solid fa-dice-d6" inert></i>
+										</button>
+										<button type="button" class="bastionland-icon" data-action="setTaskAside" data-tooltip="{{localize 'bastionland.domain.tasks.setAside'}}" aria-label="{{localize 'bastionland.domain.tasks.setAside'}}">
+											<i class="fa-solid fa-xmark" inert></i>
+										</button>
+									</span>
+									{{/if}}
+								</div>
+								<p class="bastionland-council__gloss">{{gloss}}</p>
+							</li>
+							{{/each}}
+						</ul>
+						{{/if}}
 						{{/each}}
-					</select>
-				</div>
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.council.label"}}</h2>
-				<div class="bastionland-domain__seats bastionland-council{{#unless editable}} bastionland-council--reading{{/unless}}">
-					{{#each seats}}
-					<label for="{{@root.rootId}}-{{key}}" data-tooltip="{{hint}}">{{label}}</label>
-					<input id="{{@root.rootId}}-{{key}}" class="bastionland-blank bastionland-domain__field" type="text" name="system.council.{{key}}" value="{{value}}" autocomplete="off">
-					{{#if @root.editable}}
-					<button type="button" class="bastionland-icon" data-action="assignTask" data-seat="{{key}}" data-tooltip="{{assign}}" aria-label="{{assign}}">
-						<i class="fa-solid fa-scroll" inert></i>
-					</button>
+					</div>
+					{{#if emptySeats}}
+					<p class="bastionland-chooser__notice">{{emptySeats}}</p>
 					{{/if}}
-					{{#if tasks.length}}
-					<ul class="bastionland-council__tasks">
-						{{#each tasks}}
-						<li class="bastionland-council__task{{#if due}} is-due{{/if}}" data-task="{{id}}">
-							<div class="bastionland-council__line">
-								<span class="bastionland-council__what"><i class="{{icon}}" inert></i> {{what}}</span>
-								{{#if @root.editable}}
-								<span class="bastionland-item__controls">
-									<button type="button" class="bastionland-icon" data-action="settleTask" data-tooltip="{{localize 'bastionland.domain.tasks.settle'}}" aria-label="{{localize 'bastionland.domain.tasks.settle'}}">
-										<i class="fa-solid fa-dice-d6" inert></i>
-									</button>
-									<button type="button" class="bastionland-icon" data-action="setTaskAside" data-tooltip="{{localize 'bastionland.domain.tasks.setAside'}}" aria-label="{{localize 'bastionland.domain.tasks.setAside'}}">
-										<i class="fa-solid fa-xmark" inert></i>
-									</button>
-								</span>
-								{{/if}}
+					<p class="bastionland-hint">{{localize "bastionland.domain.council.hint"}}</p>
+				</section>
+
+				<section class="bastionland-block bastionland-domain__authority">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.authority"}}</h2>
+					<p class="bastionland-hint">{{muster}}</p>
+					<p class="bastionland-hint">{{warbands.tally}}</p>
+					{{#if warbands.lines.length}}
+					<ul class="bastionland-items bastionland-warbands">
+						{{#each warbands.lines}}
+						{{!-- Each raised Warband stands in its own framed row, its picture beside its name. --}}
+						<li class="bastionland-item bastionland-warband{{#if state}} is-spent{{/if}}" data-warband="{{id}}" data-uuid="{{uuid}}">
+							<img class="bastionland-warband__img" src="{{img}}" alt="" data-action="openWarband">
+							<div class="bastionland-warband__text">
+								<div class="bastionland-item__line">
+									<button type="button" class="bastionland-item__name bastionland-name-button" data-action="openWarband">{{name}}</button>
+									{{#if @root.editable}}
+									<span class="bastionland-item__controls">
+										<button type="button" class="bastionland-icon" data-action="dismissWarband" data-tooltip="{{localize 'bastionland.warband.dismiss.title'}}" aria-label="{{localize 'bastionland.warband.dismiss.title'}}">
+											<i class="fa-solid fa-person-walking-arrow-right" inert></i>
+										</button>
+									</span>
+									{{/if}}
+								</div>
+								<span class="bastionland-item__tags">{{spi}}{{#if origin}} · {{origin}}{{/if}}{{#if state}} · <strong>{{state}}</strong>{{/if}}</span>
 							</div>
-							<p class="bastionland-council__gloss">{{gloss}}</p>
 						</li>
 						{{/each}}
 					</ul>
 					{{/if}}
-					{{/each}}
-				</div>
-				{{#if emptySeats}}
-				<p class="bastionland-chooser__notice">{{emptySeats}}</p>
-				{{/if}}
-				<p class="bastionland-hint">{{localize "bastionland.domain.council.hint"}}</p>
-			</section>
+					{{#if editable}}
+					<button type="button" class="bastionland-button" data-action="muster" data-tooltip="{{localize 'bastionland.warband.muster.hint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.warband.muster.button"}}</button>
+					{{/if}}
+				</section>
+			</div>
 
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.court.label"}}</h2>
-				<p class="bastionland-hint">{{localize "bastionland.domain.court.hint"}}</p>
-				{{#each court}}
-				<section class="bastionland-court__role">
-					<h3 class="bastionland-heading bastionland-heading--small" data-tooltip="{{hint}}">{{label}}</h3>
-					{{#if members.length}}
-					<ul class="bastionland-court__members">
-						{{#each members}}
-						<li class="bastionland-court__member" data-member="{{id}}">
-							<div class="bastionland-court__line">
-								<input class="bastionland-blank bastionland-court__name" type="text" name="system.court.{{id}}.name" value="{{name}}" placeholder="{{localize 'bastionland.domain.court.namePlaceholder'}}" aria-label="{{localize 'bastionland.domain.court.name'}}" autocomplete="off">
-								{{#if ../servesASeat}}
-								<select class="bastionland-court__seat" name="system.court.{{id}}.seat" aria-label="{{localize 'bastionland.domain.court.serves'}}" data-tooltip="{{localize 'bastionland.domain.court.servesHint'}}">
-									<option value="">{{localize "bastionland.domain.court.servesNobody"}}</option>
-									{{#each seats}}
-									<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-									{{/each}}
-								</select>
+			<div class="bastionland-column">
+				<section class="bastionland-block bastionland-domain__crisis-block">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.crisesLabel"}}</h2>
+					{{#if misruleDue}}
+					<p class="bastionland-chooser__notice">{{misruleDue}}</p>
+					{{/if}}
+					<ul class="bastionland-items bastionland-domain__crises">
+						{{#each crises}}
+						<li class="bastionland-item">
+							<div class="bastionland-item__line">
+								<span class="bastionland-item__name">{{name}}</span>
+								{{#if flavour}}<span class="bastionland-item__tags">({{flavour}})</span>{{/if}}
+								{{#if @root.editable}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="resolveCrisis" data-index="{{index}}" data-tooltip="{{localize 'bastionland.domain.resolve'}}" aria-label="{{localize 'bastionland.domain.resolve'}}">
+										<i class="fa-solid fa-check" inert></i>
+									</button>
+								</span>
 								{{/if}}
+							</div>
+							{{#if resolution}}<div class="bastionland-item__description"><p>{{resolution}}</p></div>{{/if}}
+						</li>
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.domain.noCrises"}}</li>
+						{{/each}}
+					</ul>
+					<p class="bastionland-hint">{{rolled}}</p>
+					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.holding.awayHint'}}">
+						<input type="checkbox" name="system.longAbsence" {{checked system.longAbsence}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.domain.holding.away"}}</span>
+					</label>
+					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.misruleHint'}}">
+						<input type="checkbox" name="system.misrule" {{checked system.misrule}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.domain.misrule"}}</span>
+					</label>
+				</section>
+
+				<section class="bastionland-block bastionland-domain__court">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.court.label"}}</h2>
+					<p class="bastionland-hint">{{localize "bastionland.domain.court.hint"}}</p>
+					{{!-- One line for each member, name, role and seat together; the window behind the name holds the rest. --}}
+					<ul class="bastionland-items bastionland-court">
+						{{#each court}}
+						<li class="bastionland-item bastionland-court__member" data-member="{{id}}">
+							<div class="bastionland-item__line">
+								{{#if @root.editable}}
+								<button type="button" class="bastionland-item__name bastionland-name-button" data-action="editCourtMember">{{name}}</button>
+								{{else}}
+								<span class="bastionland-item__name">{{name}}</span>
+								{{/if}}
+								<span class="bastionland-item__tags"><span data-tooltip="{{roleHint}}">{{role}}</span>{{#if seat}} · {{#if held}}<strong>{{seat}}</strong>{{else}}{{seat}}{{/if}}{{/if}}</span>
 								{{#if @root.editable}}
 								<span class="bastionland-item__controls">
 									<button type="button" class="bastionland-icon" data-action="removeCourtMember" data-tooltip="{{localize 'bastionland.domain.court.remove'}}" aria-label="{{localize 'bastionland.domain.court.remove'}}">
@@ -112,124 +200,59 @@
 								</span>
 								{{/if}}
 							</div>
-							<input class="bastionland-blank bastionland-court__leverage" type="text" name="system.court.{{id}}.leverage" value="{{leverage}}" placeholder="{{localize 'bastionland.domain.court.leveragePlaceholder'}}" aria-label="{{localize 'bastionland.domain.court.leverage'}}" data-tooltip="{{localize 'bastionland.domain.court.leverageHint'}}" autocomplete="off">
-							<input class="bastionland-blank bastionland-court__note" type="text" name="system.court.{{id}}.note" value="{{note}}" placeholder="{{../notePlaceholder}}" aria-label="{{localize 'bastionland.domain.court.note'}}" autocomplete="off">
+							{{#if gloss}}<p class="bastionland-court__gloss">{{gloss}}</p>{{/if}}
+						</li>
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.domain.court.nobody"}}</li>
+						{{/each}}
+					</ul>
+					{{#if editable}}
+					<button type="button" class="bastionland-button bastionland-button--add" data-action="addCourtMember"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.domain.court.add"}}</button>
+					{{/if}}
+				</section>
+
+				<section class="bastionland-block bastionland-domain__designs">
+					<h2 class="bastionland-heading">{{localize "bastionland.domain.designs.label"}}</h2>
+					<p class="bastionland-hint">{{localize "bastionland.domain.designs.hint"}}</p>
+					{{#if designs.length}}
+					<ul class="bastionland-domain__designs-list">
+						{{#each designs}}
+						<li class="bastionland-domain__design bastionland-council__task{{#if done}} is-due{{/if}}" data-design="{{id}}">
+							<div class="bastionland-domain__design-line">
+								<i class="{{icon}}" data-tooltip="{{scale}}" aria-label="{{scale}}"></i>
+								<input class="bastionland-blank bastionland-domain__design-what" type="text" name="system.designs.{{id}}.what" value="{{what}}" placeholder="{{localize 'bastionland.domain.designs.whatPlaceholder'}}" aria-label="{{localize 'bastionland.domain.designs.what'}}" autocomplete="off">
+								{{#if @root.editable}}
+								<span class="bastionland-item__controls">
+									<button type="button" class="bastionland-icon" data-action="removeDesign" data-tooltip="{{localize 'bastionland.domain.designs.remove'}}" aria-label="{{localize 'bastionland.domain.designs.remove'}}">
+										<i class="fa-solid fa-xmark" inert></i>
+									</button>
+								</span>
+								{{/if}}
+							</div>
+							<p class="bastionland-council__gloss">{{when}}</p>
 						</li>
 						{{/each}}
 					</ul>
 					{{/if}}
-					{{#if @root.editable}}
-					<button type="button" class="bastionland-button bastionland-court__add" data-action="addCourtMember" data-role="{{role}}"><i class="fa-solid fa-user-plus" inert></i> {{add}}</button>
+					{{#if editable}}
+					<div class="bastionland-domain__design-adds">
+						{{#each designScales}}
+						<button type="button" class="bastionland-button" data-action="addDesign" data-scale="{{scale}}" data-tooltip="{{hint}}"><i class="{{icon}}" inert></i> {{label}}</button>
+						{{/each}}
+					</div>
 					{{/if}}
 				</section>
-				{{/each}}
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.designs.label"}}</h2>
-				<p class="bastionland-hint">{{localize "bastionland.domain.designs.hint"}}</p>
-				{{#if designs.length}}
-				<ul class="bastionland-court__members">
-					{{#each designs}}
-					<li class="bastionland-court__member bastionland-council__task{{#if done}} is-due{{/if}}" data-design="{{id}}">
-						<div class="bastionland-court__line">
-							<i class="{{icon}}" data-tooltip="{{scale}}" aria-label="{{scale}}"></i>
-							<input class="bastionland-blank bastionland-court__name" type="text" name="system.designs.{{id}}.what" value="{{what}}" placeholder="{{localize 'bastionland.domain.designs.whatPlaceholder'}}" aria-label="{{localize 'bastionland.domain.designs.what'}}" autocomplete="off">
-							<span class="bastionland-tag">{{when}}</span>
-							{{#if @root.editable}}
-							<span class="bastionland-item__controls">
-								<button type="button" class="bastionland-icon" data-action="removeDesign" data-tooltip="{{localize 'bastionland.domain.designs.remove'}}" aria-label="{{localize 'bastionland.domain.designs.remove'}}">
-									<i class="fa-solid fa-xmark" inert></i>
-								</button>
-							</span>
-							{{/if}}
-						</div>
-					</li>
-					{{/each}}
-				</ul>
-				{{/if}}
-				{{#if editable}}
-				{{#each designScales}}
-				<button type="button" class="bastionland-button bastionland-court__add" data-action="addDesign" data-scale="{{scale}}" data-tooltip="{{hint}}"><i class="{{icon}}" inert></i> {{label}}</button>
-				{{/each}}
-				{{/if}}
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.authority"}}</h2>
-				<p class="bastionland-hint">{{muster}}</p>
-				<p class="bastionland-hint">{{warbands.tally}}</p>
-				{{#if warbands.lines.length}}
-				<ul class="bastionland-items">
-					{{#each warbands.lines}}
-					<li class="bastionland-item" data-warband="{{id}}" data-uuid="{{uuid}}">
-						<div class="bastionland-item__line">
-							<button type="button" class="bastionland-item__name bastionland-name-button" data-action="openWarband">{{name}}</button>
-							<span class="bastionland-item__tags">{{spi}}{{#if origin}} · {{origin}}{{/if}}{{#if state}} · {{state}}{{/if}}</span>
-							{{#if @root.editable}}
-							<span class="bastionland-item__controls">
-								<button type="button" class="bastionland-icon" data-action="dismissWarband" data-tooltip="{{localize 'bastionland.warband.dismiss.title'}}" aria-label="{{localize 'bastionland.warband.dismiss.title'}}">
-									<i class="fa-solid fa-person-walking-arrow-right" inert></i>
-								</button>
-							</span>
-							{{/if}}
-						</div>
-					</li>
-					{{/each}}
-				</ul>
-				{{/if}}
-				{{#if editable}}
-				<button type="button" class="bastionland-button" data-action="muster" data-tooltip="{{localize 'bastionland.warband.muster.hint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.warband.muster.button"}}</button>
-				{{/if}}
-				<p class="bastionland-hint">{{localize "bastionland.domain.succession"}}</p>
-			</section>
+			</div>
 		</div>
 
-		<div class="bastionland-column">
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.crisesLabel"}}</h2>
-				{{#if misruleDue}}
-				<p class="bastionland-chooser__notice">{{misruleDue}}</p>
-				{{/if}}
-				<ul class="bastionland-items">
-					{{#each crises}}
-					<li class="bastionland-item">
-						<div class="bastionland-item__line">
-							<span class="bastionland-item__name">{{name}}</span>
-							{{#if flavour}}<span class="bastionland-item__tags">({{flavour}})</span>{{/if}}
-							{{#if @root.editable}}
-							<span class="bastionland-item__controls">
-								<button type="button" class="bastionland-icon" data-action="resolveCrisis" data-index="{{index}}" data-tooltip="{{localize 'bastionland.domain.resolve'}}" aria-label="{{localize 'bastionland.domain.resolve'}}">
-									<i class="fa-solid fa-check" inert></i>
-								</button>
-							</span>
-							{{/if}}
-						</div>
-						{{#if resolution}}<div class="bastionland-item__description"><p>{{resolution}}</p></div>{{/if}}
-					</li>
-					{{else}}
-					<li class="bastionland-empty">{{localize "bastionland.domain.noCrises"}}</li>
-					{{/each}}
-				</ul>
-				<p class="bastionland-hint">{{rolled}}</p>
-				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.holding.awayHint'}}">
-					<input type="checkbox" name="system.longAbsence" {{checked system.longAbsence}} {{#unless editable}}disabled{{/unless}}>
-					<span class="bastionland-check__label">{{localize "bastionland.domain.holding.away"}}</span>
-				</label>
-				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.misruleHint'}}">
-					<input type="checkbox" name="system.misrule" {{checked system.misrule}} {{#unless editable}}disabled{{/unless}}>
-					<span class="bastionland-check__label">{{localize "bastionland.domain.misrule"}}</span>
-				</label>
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.domain.notes"}}</h2>
-				{{#if editable}}
-				<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
-				{{else}}
-				<div class="editor-content">{{{enrichedNotes}}}</div>
-				{{/if}}
-			</section>
-		</div>
+		{{!-- Seizing a Domain by force is a rare and drastic act, kept apart at the foot of the page. --}}
+		{{#if editable}}
+		<footer class="bastionland-domain__footer">
+			<button type="button" class="bastionland-button" data-action="seize" data-tooltip="{{localize 'bastionland.domain.conquest.buttonHint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.domain.conquest.button"}}</button>
+		</footer>
+		{{/if}}
 	</div>
+
+	{{!-- The Domain's notes, a page of their own filling the window, as a Knight's Chronicle does. --}}
+	{{> "bastionland.chronicle-tab" tab="notes" heading="bastionland.domain.notes"}}
 </div>

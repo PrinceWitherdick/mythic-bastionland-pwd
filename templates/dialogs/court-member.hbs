@@ -1,0 +1,50 @@
+<div class="bastionland-dialog__body">
+	<div class="form-group">
+		<label for="bastionland-court-role">{{localize "bastionland.domain.court.role"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-court-role" name="role">
+				{{#each roles}}
+				<option value="{{key}}" data-note="{{notePlaceholder}}" data-hint="{{hint}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint" data-role-hint>{{roleHint}}</p>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-court-name">{{localize "bastionland.domain.court.name"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-court-name" type="text" name="name" value="{{name}}" placeholder="{{localize 'bastionland.domain.court.namePlaceholder'}}" autocomplete="off" required autofocus>
+			<button type="button" class="bastionland-icon" data-roll-name data-tooltip="{{localize 'bastionland.domain.court.rollName'}}" aria-label="{{localize 'bastionland.domain.court.rollName'}}"><i class="fa-solid fa-dice" inert></i></button>
+		</div>
+	</div>
+	{{!-- Only a Retainer serves a seat, and one granted a seat of their own serves nobody else. --}}
+	<div class="form-group" data-serves {{#unless servesShown}}hidden{{/unless}}>
+		<label for="bastionland-court-serves">{{localize "bastionland.domain.court.serves"}}</label>
+		<div class="form-fields">
+			{{#if holdsSeat}}
+			<span>{{holdsSeat}}</span>
+			{{else}}
+			<select id="bastionland-court-serves" name="seat">
+				<option value="">{{localize "bastionland.domain.court.servesNobody"}}</option>
+				{{#each seats}}
+				<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+			{{/if}}
+		</div>
+		<p class="hint">{{localize "bastionland.domain.court.servesHint"}}</p>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-court-leverage">{{localize "bastionland.domain.court.leverage"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-court-leverage" type="text" name="leverage" value="{{leverage}}" placeholder="{{localize 'bastionland.domain.court.leveragePlaceholder'}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.domain.court.leverageHint"}}</p>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-court-note">{{localize "bastionland.domain.court.note"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-court-note" type="text" name="note" value="{{note}}" placeholder="{{notePlaceholder}}" autocomplete="off">
+		</div>
+	</div>
+</div>

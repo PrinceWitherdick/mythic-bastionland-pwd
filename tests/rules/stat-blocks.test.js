@@ -9,7 +9,6 @@ import {
 	parseAttacks,
 	parseStatLine,
 	splitCastName,
-	statBlockFromText,
 	structureFromStatBlock
 } from "../../module/rules/stat-blocks.js";
 
@@ -254,39 +253,6 @@ describe("structureFromStatBlock", () => {
 
 		const spire = structureFromStatBlock({ name: "The Mushroom Keep", stats: { vig: null, cla: null, spi: null, guard: 9 }, lines: ["count as a structure", "A2 (spongy walls)"] });
 		expect(spire.system).toMatchObject({ armour: 2, armourNote: "spongy walls", notes: "" });
-	});
-});
-
-describe("statBlockFromText", () => {
-	it("reads a pasted stat block, rejoining wrapped lines", () => {
-		const text = [
-			"The Lamplighter, Warden",
-			"of Wicks",
-			"VIG 12, CLA 9, SPI 14, 5GD",
-			"A2 (waxed leather, iron cap)",
-			"Wick-hook (d8 hefty, +d6 vs the",
-			"unlit) or snuffer (d6 blast)",
-			"Hates the dark."
-		].join("\r\n");
-		expect(statBlockFromText(text)).toEqual({
-			name: "The Lamplighter, Warden of Wicks",
-			stats: { vig: 12, cla: 9, spi: 14, guard: 5 },
-			lines: ["A2 (waxed leather, iron cap)", "Wick-hook (d8 hefty, +d6 vs the unlit) or snuffer (d6 blast)", "Hates the dark."]
-		});
-	});
-
-	it("finds the stat line partway along a line, and gives no name without one", () => {
-		expect(statBlockFromText("Moth Swarm VIG 5, CLA 10, SPI 3, 2GD Bites (d4)")).toEqual({
-			name: "Moth Swarm",
-			stats: { vig: 5, cla: 10, spi: 3, guard: 2 },
-			lines: ["Bites (d4)"]
-		});
-		expect(statBlockFromText("VIG 5, CLA 10, SPI 3, 2GD").name).toBeNull();
-	});
-
-	it("needs a full stat line", () => {
-		expect(statBlockFromText("A lantern\nA1 (glass)")).toBeNull();
-		expect(statBlockFromText("")).toBeNull();
 	});
 });
 

@@ -16,6 +16,7 @@ import { dramaCandidates } from "../rules/court.js";
 import { escapeHTML } from "../rules/text.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
+import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
 
@@ -97,6 +98,7 @@ export async function crisisRoll(domain) {
 	await domain.update({ "system.crises": crises, "system.crisisRolled": seasonKey(getCalendar()), "system.longAbsence": false });
 	await postCard(domain, "report", {
 		title: t("domain.crisisRoll"),
+		description: t("domain.crisisRollHint"),
 		tagline: t(`domain.results.crisis.${result}`),
 		d6: roll.total,
 		entries: added.map(crisisEntry),
@@ -173,6 +175,7 @@ export async function increasedCollections(domain) {
 
 	await postCard(domain, "report", {
 		title: t("domain.collections"),
+		description: t("domain.collectionsHint"),
 		tagline: t(`domain.results.collections.${result}`),
 		d6: roll.total,
 		entries,
@@ -222,6 +225,7 @@ export async function dramaInCourt(domain) {
 	if (domain.isOwner) await domain.update({ "system.dramaRolled": seasonKey(getCalendar()) });
 	await postCard(domain, "report", {
 		title: t("domain.drama"),
+		description: t("domain.dramaHint"),
 		tagline: t(`domain.results.drama.${result}`),
 		d6: roll.total,
 		entries,
@@ -269,10 +273,11 @@ export async function settleDomains(ended) {
  * @param {string} options.ok
  * @param {string} [options.name] Written in to start with, such as the named successor.
  * @param {string} [options.hint]
+ * @param {boolean} [options.withoutRuler] Leave the Domain's ruler now off the list of Knights.
  * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
  */
-async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null }) {
-	const knights = game.actors.filter((actor) => actor.type === "knight");
+async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null, withoutRuler = false }) {
+	const knights = withoutRuler ? knightsBesidesRuler(domain) : game.actors.filter((actor) => actor.type === "knight");
 	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
 	const data = await inputDialog({
 		title,
@@ -343,7 +348,8 @@ export async function passOnDomain(domain) {
 		intro: t("domain.passOn.intro", { name: escapeHTML(domain.name), ruler: escapeHTML(before || t("domain.conquest.someone")) }),
 		ok: t("domain.passOn.ok"),
 		name: namedSuccessor(domain),
-		hint: t("domain.passOn.hint")
+		hint: t("domain.passOn.hint"),
+		withoutRuler: true
 	});
 	if (!successor) return null;
 

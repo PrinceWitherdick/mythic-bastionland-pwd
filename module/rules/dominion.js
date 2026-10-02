@@ -124,6 +124,17 @@ const nameKey = (text) => String(text ?? "").trim().toLocaleLowerCase();
 export const isSameName = (a, b) => Boolean(nameKey(a)) && nameKey(a) === nameKey(b);
 
 /**
+ * @param {string} name
+ * @param {string} word The word a Domain goes by, such as "Domain".
+ * @returns {boolean} Whether the name already ends with that word, as "Tal’s Domain" does.
+ */
+export const namesItsDomain = (name, word) => {
+	const key = nameKey(name);
+	const end = nameKey(word);
+	return Boolean(end) && (key === end || key.endsWith(` ${end}`));
+};
+
+/**
  * @template {{system: {ruler: string}}} T
  * @param {T[]} domains
  * @param {string} name A Knight's name.

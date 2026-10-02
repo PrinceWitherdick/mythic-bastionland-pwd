@@ -16,6 +16,7 @@ import { watchTableRenewals } from "./module/actions/knight-tables.js";
 import { watchRestocks } from "./module/actions/restock.js";
 import { KNIGHT_TOKEN_NAMES_STEP, registerKnightTokenNames, showExistingKnightNames } from "./module/actions/knight-token-names.js";
 import { markTheSlain, SLAIN_STEP } from "./module/actions/slain.js";
+import { COUNCIL_RETAINERS_STEP, seatCouncilRetainers } from "./module/actions/court.js";
 import { registerLedgerHooks } from "./module/actions/ledger.js";
 import { addNewRealmButton, keepRealmLooks, moveRealmPictures, newRealm, registerRealmSettings, stepRealmHistory } from "./module/actions/realm.js";
 import { openRefereeRolls, registerWeatherStreakSetting, rollLuck, rollRefereeTable } from "./module/actions/referee-rolls.js";
@@ -212,6 +213,7 @@ Hooks.once("init", () => {
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
 		"bastionland.season-turn": templatePath("actor/gm-toolkit/season-turn.hbs"),
 		"bastionland.company-picture": templatePath("dialogs/parts/company-picture.hbs"),
+		"bastionland.circle-knights": templatePath("dialogs/parts/circle-knights.hbs"),
 		"bastionland.pick-list": templatePath("dialogs/parts/pick-list.hbs"),
 		"bastionland.steed-name": templatePath("dialogs/parts/steed-name.hbs"),
 		"bastionland.realm-picture": templatePath("dialogs/parts/realm-picture.hbs"),
@@ -520,6 +522,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: KNIGHT_TOKEN_NAMES_STEP, run: showExistingKnightNames },
 	// Worlds from before Slain was a mark, when VIG 0 alone told the dead.
 	{ key: SLAIN_STEP, run: markTheSlain },
+	// Domains from before the Council was filled from the Court, when its seats were names written in.
+	{ key: COUNCIL_RETAINERS_STEP, run: seatCouncilRetainers },
 	{ key: "realmSheetPictures", run: moveRealmPictures },
 	{ key: "realmLookPerScene", run: keepRealmLooks },
 	// Again, once each Scene has its own look: for terrain pictures named by terrain rather than

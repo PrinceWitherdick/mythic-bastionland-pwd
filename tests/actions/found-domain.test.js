@@ -67,7 +67,7 @@ describe("foundDomain", () => {
 	it("founds the Domain on the Holding picked, named for it, with the ticked Knights in its Circle", async () => {
 		formData = { holding: "Scene.s1.Tile.h1", name: "", "circle.k2": true, "circle.k3": false };
 		const domain = await foundDomain(actors[0]);
-		expect(domain).toMatchObject({ name: "Mill", type: "domain", system: { ruler: "Tal", holding: "Scene.s1.Tile.h1", seat: false, council: { circle: "Moss" } } });
+		expect(domain).toMatchObject({ name: "Mill", type: "domain", system: { ruler: "Tal", holding: "Scene.s1.Tile.h1", seat: false, council: { circle: ["k2"] } } });
 		expect(linkKnightDomain).toHaveBeenCalledWith(actors[0], domain);
 		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
 	});
@@ -76,7 +76,7 @@ describe("foundDomain", () => {
 		formData = { holding: "", name: "  " };
 		const domain = await foundDomain(actors[0]);
 		expect(domain.name).toContain("domain.newName");
-		expect(domain.system).toMatchObject({ holding: "", seat: false, council: { circle: "" } });
+		expect(domain.system).toMatchObject({ holding: "", seat: false, council: { circle: [] } });
 	});
 
 	it("founds nothing when the window is closed", async () => {
@@ -93,7 +93,7 @@ describe("offerRulerDomain", () => {
 		expect(asked[0].buttons.map(({ action }) => action)).toEqual(["k1", "k2", "later"]);
 		expect(asked[1].context.holdings[0].selected).toBe(true);
 		expect(asked[1].context.circle.filter(({ checked }) => checked).map(({ name }) => name)).toEqual(["Tal"]);
-		expect(domain.system).toMatchObject({ ruler: "Moss", council: { circle: "Tal" } });
+		expect(domain.system).toMatchObject({ ruler: "Moss", council: { circle: ["k1"] } });
 		expect(domain.sheet.render).toHaveBeenCalled();
 	});
 

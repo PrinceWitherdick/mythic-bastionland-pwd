@@ -12,7 +12,7 @@
  */
 import { FEATS, NPC_SCALES } from "../config.js";
 import { structureKind } from "./structures.js";
-import { capitalise, logicalLines, paragraphs, parentheticals, splitOutside } from "./text.js";
+import { capitalise, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
 import { afflictionsFromText, immunityFromText } from "./afflictions.js";
 
@@ -452,24 +452,4 @@ function weaponData(attack, fallbackName) {
 
 	system.description = paragraphs(capitalise(parts.join(", ")));
 	return { type: "weapon", name: capitalise(name) || fallbackName, system };
-}
-
-/**
- * Read a stat block pasted as plain text, such as one copied out of a PDF. The
- * full stat line is found wherever it is; anything before it is the name.
- * @param {string} text
- * @returns {{name: string|null, stats: Stats, lines: string[]}|null} Null without a stat line.
- */
-export function statBlockFromText(text) {
-	const printed = String(text ?? "").split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
-	for (const [index, line] of printed.entries()) {
-		const match = STAT_LINE.exec(line);
-		if (!match) continue;
-		const parsed = parseStatLine(line.slice(match.index));
-		const nameParts = [...printed.slice(0, index), line.slice(0, match.index).trim()].filter(Boolean);
-		const after = printed.slice(index + 1);
-		if (parsed.rest) after.unshift(parsed.rest);
-		return { name: nameParts.join(" ") || null, stats: parsed.stats, lines: logicalLines(after) };
-	}
-	return null;
 }

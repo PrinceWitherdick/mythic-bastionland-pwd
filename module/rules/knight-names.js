@@ -33,9 +33,21 @@ export const KNIGHT_NAMES = Object.freeze([
  * @returns {string}
  */
 export function rollKnightName(source = Math.random, avoid = []) {
+	return rollFreeName(KNIGHT_NAMES, source, avoid);
+}
+
+/**
+ * A name from a list, never one of those to avoid while any other is left.
+ * @param {readonly string[]} names
+ * @param {() => number} [source] Numbers in [0, 1).
+ * @param {Iterable<string>} [avoid] Matched whatever their case or spacing.
+ * @returns {string|null} Null for an empty list.
+ */
+export function rollFreeName(names, source = Math.random, avoid = []) {
+	if (!names.length) return null;
 	const taken = new Set(Array.from(avoid, (name) => String(name ?? "").trim().toLowerCase()));
-	const free = KNIGHT_NAMES.filter((name) => !taken.has(name.toLowerCase()));
-	const pool = free.length ? free : KNIGHT_NAMES;
+	const free = names.filter((name) => !taken.has(name.toLowerCase()));
+	const pool = free.length ? free : names;
 	return pool[Math.min(pool.length - 1, Math.floor(source() * pool.length))];
 }
 

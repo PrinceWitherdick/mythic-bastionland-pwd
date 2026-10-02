@@ -1,4 +1,4 @@
-import { chooseDialog, confirmDialog } from "../apps/ui.js";
+import { chooseDialog } from "../apps/ui.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, t } from "../chat/cards.js";
 import { collisionFaces, isStructureNpc, structureFromNpc } from "../rules/structures.js";
@@ -52,20 +52,10 @@ export async function collide(actor) {
  * Make an NPC marked as a structure into a Structure actor, keeping its Tokens,
  * picture, items and notes. Its Virtues, Feats and scale go.
  * @param {Actor} actor
- * @param {object} [options]
- * @param {boolean} [options.confirm=true] Ask first.
  * @returns {Promise<boolean>} Whether it was changed.
  */
-export async function convertToStructure(actor, { confirm = true } = {}) {
+async function convertToStructure(actor) {
 	if (actor?.type !== "npc") return false;
-	if (confirm) {
-		const confirmed = await confirmDialog({
-			title: t("structure.convert.title"),
-			icon: "fa-solid fa-chess-rook",
-			message: t("structure.convert.confirm", { name: escapeHTML(actor.name) })
-		});
-		if (!confirmed) return false;
-	}
 	const system = structureFromNpc(actor.name, actor.toObject().system);
 	// Foundry changes a document's type only when its system data is replaced whole.
 	await actor.update(Object.fromEntries([["type", "structure"], replacementEntry("system", system)]));
@@ -86,7 +76,7 @@ export async function convertStructureNpcs() {
 	let count = 0;
 	for (const actor of actors) {
 		try {
-			if (await convertToStructure(actor, { confirm: false })) count += 1;
+			if (await convertToStructure(actor)) count += 1;
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't make ${actor.uuid} a Structure`, error);
 		}

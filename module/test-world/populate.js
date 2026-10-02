@@ -1214,6 +1214,9 @@ class TestGame {
 	 */
 	async makeDomain(hex) {
 		const { isolde, oswin } = this.knights;
+		const court = this.court();
+		// Each seat is granted to its holder, who serves in the Court as a Retainer.
+		const council = Object.fromEntries(Object.entries(COUNCIL).map(([seat, name]) => [seat, Object.keys(court).find((id) => court[id].name === name) ?? ""]));
 		this.domain = await Actor.implementation.create({
 			name: this.names.domain,
 			type: "domain",
@@ -1223,8 +1226,8 @@ class TestGame {
 			system: {
 				seat: false,
 				successor: oswin.name,
-				council: { ...COUNCIL, circle: oswin.name },
-				court: this.court(),
+				council: { ...council, circle: [oswin.id] },
+				court,
 				notes: html(
 					`Granted to ${isolde.name} after the battle in Spring of Age 2. The old lord's household stayed on; the steward was his.`,
 					"The walls need work before Winter."
@@ -1278,6 +1281,7 @@ class TestGame {
 		await domain.update({ "system.crises": [...domain.system.crises, chosen], "system.crisisRolled": seasonKey(getCalendar()) });
 		await postCard(domain, "report", {
 			title: t("domain.crisisRoll"),
+			description: t("domain.crisisRollHint"),
 			tagline: t("domain.results.crisis.dilemma"),
 			d6: roll.total,
 			entries: [{ name: t(`domain.crises.${chosen}.name`), lines: [t(`domain.crises.${chosen}.flavour`), t(`domain.crises.${chosen}.resolution`)].filter(Boolean) }]
@@ -1285,12 +1289,14 @@ class TestGame {
 	}
 
 	/**
-	 * The Domain's Court (p20), by id as the sheet keeps it, with the Seer at
-	 * the Sanctum sending an acolyte in their stead.
+	 * The Domain's Court (p20), by id as the sheet keeps it: the Retainers
+	 * holding the Council's seats first, and the Seer at the Sanctum sending an
+	 * acolyte in their stead.
 	 * @returns {object}
 	 */
 	court() {
 		const members = [
+			...Object.values(COUNCIL).map((name) => ({ role: "retainer", name })),
 			...COURT,
 			{ role: "seer", name: `An acolyte from ${this.names.sanctum}`, note: "Sent to watch the Knights. Burns something in the chapel every Night." }
 		];
@@ -1310,7 +1316,7 @@ class TestGame {
 		const task = newTask(seat, { ...details, started: getCalendar(), at: Date.now() });
 		if (!task) return;
 		await this.domain.update({ [`system.tasks.${foundry.utils.randomID()}`]: task });
-		const holder = this.domain.system.council[seat] || t(`domain.council.${seat}.label`);
+		const holder = COUNCIL[seat] || (seat === "circle" ? this.knights.oswin?.name : "") || t(`domain.council.${seat}.label`);
 		await postCard(this.domain, "note", {
 			icon: TASK_SCOPE_ICONS[task.scope],
 			text: t("domain.tasks.taken", { who: holder, what: task.what, scope: t(`domain.tasks.scopes.${task.scope}.takes`) })

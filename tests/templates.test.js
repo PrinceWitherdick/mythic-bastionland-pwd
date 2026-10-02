@@ -164,7 +164,7 @@ describe("localization", () => {
 		...Object.entries(LANDMARK_EFFECTS).filter(([, effect]) => effect.also).map(([type]) => `realm.landmarks.effects.${type}.also`),
 		// A lapsed Curse is let go without a word, so it has no line of its own.
 		...OFF_COURSE_SHOWN.map((state) => `realm.landmarks.offCourse.${state}`),
-		...partsOf("domain.court.roles", [...COURT_ROLES], ["label", "one", "add", "hint", "notePlaceholder"]),
+		...partsOf("domain.court.roles", [...COURT_ROLES], ["one", "hint", "notePlaceholder"]),
 		...partsOf("domain.tasks.scopes", [...TASK_SCOPES], ["label", "takes", "took"]),
 		...partsOf("domain.tasks.outcomes", [...TASK_OUTCOMES], ["label", "hint"]),
 		// A Save names the Virtue it's rolled in, so the Virtues share one line between them.

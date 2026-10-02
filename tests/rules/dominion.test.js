@@ -14,8 +14,18 @@ import {
 	holdingRef,
 	isMisruleDue,
 	musterFor,
+	namesItsDomain,
 	parseHoldingRef
 } from "../../module/rules/dominion.js";
+
+describe("namesItsDomain", () => {
+	it("knows a name that already ends with Domain, so the title doesn't say it twice", () => {
+		expect(namesItsDomain("Tal’s Domain", "Domain")).toBe(true);
+		expect(namesItsDomain("  the old domain ", "Domain")).toBe(true);
+		expect(namesItsDomain("Mill", "Domain")).toBe(false);
+		expect(namesItsDomain("Domainsend", "Domain")).toBe(false);
+	});
+});
 
 describe("emptySeats", () => {
 	it("names the seats that must be filled and stand empty, leaving the Circle to be offered (p20, p204)", () => {

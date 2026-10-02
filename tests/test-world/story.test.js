@@ -497,7 +497,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
 		expect(domain.system.crises).toHaveLength(1);
 		expect(domain.system.crisisRolled).toBe("2-2-spring");
-		expect(domain.system.council.circle).toBe("Sir Oswin Hale");
+		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id]);
 		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
 		expect(world.journal.map((entry) => entry.flags.core.sheetClass)).toEqual(["mythic-bastionland-pwd.SiteSheet", "mythic-bastionland-pwd.SiteSheet"]);
 		expect(world.journal[0].flags[SYSTEM_ID].site.points).toBeTruthy();
@@ -507,7 +507,10 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		await populateTestWorld();
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
 		expect(domain.system.successor).toBe("Sir Oswin Hale");
-		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "courtier", "courtier", "petitioner", "seer"]);
+		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "retainer", "retainer", "retainer", "retainer", "courtier", "courtier", "petitioner", "seer"]);
+		// Each of the four great seats is held by one of those Retainers.
+		const seated = ["steward", "marshal", "sheriff", "envoy"].map((seat) => domain.system.court[domain.system.council[seat]]);
+		expect(seated.map((member) => member?.role)).toEqual(["retainer", "retainer", "retainer", "retainer"]);
 		expect(Object.values(domain.system.court).every((member) => member.name)).toBe(true);
 		// The Circle's week is settled; the steward's Season and the envoy's are still in hand.
 		expect(settleTask).toHaveBeenCalledTimes(1);

@@ -1,0 +1,10 @@
+{{!-- A tick box for each Knight who may sit in a Domain's Circle (p20). --}}
+<fieldset>
+	<legend data-tooltip="{{localize 'bastionland.domain.council.circle.hint'}}">{{localize "bastionland.domain.founding.circle"}}</legend>
+	{{#each circle}}
+	<label class="bastionland-check">
+		<input type="checkbox" name="circle.{{id}}" {{checked checked}}>
+		<span class="bastionland-check__label">{{name}}</span>
+	</label>
+	{{/each}}
+</fieldset>
