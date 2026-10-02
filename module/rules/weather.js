@@ -1,6 +1,7 @@
 /**
- * The weather, for a table running FXMaster. The book has no weather rules, so
- * this is only the sky the GM says it is, drawn on the Scene the players are on.
+ * The weather, for a table running FXMaster: the sky the day's Sky and Weather
+ * roll draws (rules/sky-weather.js), or the one the GM says it is, drawn on the
+ * Scene the players are on.
  * The effects are FXMaster particle effects as its scene flag keeps them,
  * `flags.fxmaster.effects.<key> = {type, options}`, with options stored bare;
  * the numbers are stonetop-pwd's, tuned against FXMaster's own ranges.
@@ -57,25 +58,78 @@ export const WEATHER = Object.freeze({
 /** The skies in the order the picker shows them, fairest first. */
 export const WEATHER_KEYS = Object.freeze(Object.keys(WEATHER));
 
+/**
+ * The parts of the sky a world can switch off one at a time, each with the
+ * world setting that does it: an FXMaster effect, or the storm's grey light,
+ * which is an option on its clouds rather than an effect of its own.
+ */
+export const WEATHER_PARTS = Object.freeze([
+	Object.freeze({ type: "clouds", setting: "weatherFxClouds" }),
+	Object.freeze({ type: "fog", setting: "weatherFxFog" }),
+	Object.freeze({ type: "rain", setting: "weatherFxRain" }),
+	Object.freeze({ type: "hail", setting: "weatherFxHail" }),
+	Object.freeze({ type: "snow", setting: "weatherFxSnow" }),
+	Object.freeze({ type: "snowstorm", setting: "weatherFxSnowstorm" }),
+	Object.freeze({ tint: true, setting: "weatherFxStormTint" })
+]);
+
+/**
+ * @typedef {object} PartsOff The parts of the sky switched off.
+ * @property {Set<string>} [types] The FXMaster effects left out.
+ * @property {boolean} [tint] Whether clouds lose their tint.
+ */
+
+/**
+ * The parts switched off, from each part's setting. Only an explicit false is
+ * off, so a world that never touched them gets the whole sky.
+ * @param {(setting: string) => unknown} valueOf
+ * @returns {PartsOff}
+ */
+export function partsOff(valueOf) {
+	const off = { types: new Set(), tint: false };
+	for (const part of WEATHER_PARTS) {
+		if (valueOf(part.setting) !== false) continue;
+		if (part.tint) off.tint = true;
+		else off.types.add(part.type);
+	}
+	return off;
+}
+
 /** @returns {boolean} Whether `sky` is one of ours. */
 export function isWeather(sky) {
 	return Object.hasOwn(WEATHER, String(sky));
 }
 
 /**
+ * The effects a sky draws with some of its parts off, as copies the Scene can keep.
+ * @param {string|null} sky
+ * @param {PartsOff} off
+ * @returns {{type: string, options: object}[]}
+ */
+function effectsOf(sky, off) {
+	return (isWeather(sky) ? WEATHER[sky].effects : [])
+		.filter(({ type }) => !off.types?.has(type))
+		.map(({ type, options }) => {
+			const copy = structuredClone(options);
+			if (off.tint) delete copy.tint;
+			return { type, options: copy };
+		});
+}
+
+/**
  * What to write to a Scene's FXMaster effects so it shows `sky`, and what to take
- * off. Each key names its sky as well as its effect, so a change of weather takes
- * the old keys off whole rather than merging new options into old ones.
+ * off. Each key names its sky as well as its effect, and whether it's tinted, so a
+ * change of weather or of tint takes the old keys off whole rather than merging
+ * new options into old ones, where a tint taken away would stay.
  * @param {string|null} sky Null takes our weather off.
  * @param {object} current The Scene's `flags.fxmaster.effects`.
+ * @param {PartsOff} [off] The parts of the sky switched off.
  * @returns {{set: object, drop: string[]}|null} Null when the Scene already shows it.
  */
-export function weatherEffectsChange(sky, current = {}) {
-	const wanted = Object.fromEntries((isWeather(sky) ? WEATHER[sky].effects : []).map((effect) => [`${WEATHER_KEY_PREFIX}${sky}-${effect.type}`, effect]));
+export function weatherEffectsChange(sky, current = {}, off = {}) {
+	const wanted = Object.fromEntries(effectsOf(sky, off).map((effect) => [`${WEATHER_KEY_PREFIX}${sky}-${effect.type}${effect.options.tint ? "-tint" : ""}`, effect]));
 	const ours = Object.keys(current ?? {}).filter((key) => key.startsWith(WEATHER_KEY_PREFIX));
-	const set = Object.fromEntries(Object.entries(wanted)
-		.filter(([key]) => !ours.includes(key))
-		.map(([key, { type, options }]) => [key, { type, options: structuredClone(options) }]));
+	const set = Object.fromEntries(Object.entries(wanted).filter(([key]) => !ours.includes(key)));
 	const drop = ours.filter((key) => !(key in wanted));
 	return Object.keys(set).length || drop.length ? { set, drop } : null;
 }

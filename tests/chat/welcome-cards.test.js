@@ -8,7 +8,7 @@ vi.mock("../../module/rulebook/store.js", () => ({ hasRulebook: vi.fn(() => fals
 
 const { newRealm } = await import("../../module/actions/realm.js");
 const { hasRulebook } = await import("../../module/rulebook/store.js");
-const { RECOMMENDED_MODULES, WELCOME_CARDS, postWelcomeCards, registerWelcomeCards } = await import("../../module/chat/welcome-cards.js");
+const { RECOMMENDED_MODULES, WELCOME_CARDS, postFxMasterCard, postWelcomeCards, registerWelcomeCards } = await import("../../module/chat/welcome-cards.js");
 
 let created;
 let hooks;
@@ -59,7 +59,7 @@ describe("postWelcomeCards", () => {
 	});
 
 	it("leaves the modules card out when every recommended module is on", async () => {
-		const on = new Set(["dice-so-nice", "sequencer", "JB2A_DnD5e", "soundfxlibrary", "fxmaster"]);
+		const on = new Set(["dice-so-nice", "sequencer", "JB2A_DnD5e", "soundfxlibrary", "fxmaster", "vtta-tokenizer"]);
 		game.modules = { get: (id) => (on.has(id) ? { active: true } : undefined) };
 		await postWelcomeCards(() => true);
 		expect(created.map((data) => data.flags[SYSTEM_ID].welcomeCard)).toEqual(["import", "realm"]);
@@ -74,6 +74,31 @@ describe("postWelcomeCards", () => {
 
 	it("posts nothing to a world already in play", async () => {
 		await postWelcomeCards(() => false);
+		expect(created).toEqual([]);
+	});
+});
+
+describe("postFxMasterCard", () => {
+	it("whispers a world in play one card about the weather on the map, with the modules card's button", async () => {
+		await postFxMasterCard(() => false);
+		expect(created).toHaveLength(1);
+		expect(created[0]).toMatchObject({ mode: "gm", flags: { [SYSTEM_ID]: { welcomeCard: "fxmaster" } } });
+		const [[, context]] = foundry.applications.handlebars.renderTemplate.mock.calls;
+		expect(context.card).toBe("modules");
+		expect(context.modules.map((module) => module.url)).toEqual(["https://foundryvtt.com/packages/fxmaster"]);
+		expect(context.more).toHaveLength(2);
+	});
+
+	it("says nothing where FXMaster, or FXMaster+, is on already", async () => {
+		for (const id of ["fxmaster", "fxmaster-plus"]) {
+			game.modules = { get: (candidate) => (candidate === id ? { active: true } : undefined) };
+			await postFxMasterCard(() => false);
+		}
+		expect(created).toEqual([]);
+	});
+
+	it("says nothing to a new world, whose modules card names FXMaster already", async () => {
+		await postFxMasterCard(() => true);
 		expect(created).toEqual([]);
 	});
 });

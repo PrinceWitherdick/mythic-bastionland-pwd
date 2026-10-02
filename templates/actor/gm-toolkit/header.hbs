@@ -57,7 +57,7 @@
 				</select>
 			</label>
 			{{#if clock.weather}}
-			<button type="button" class="bastionland-gm-toolkit__weather{{#unless clock.weather.key}} is-unset{{/unless}}" data-action="pickWeather" data-tooltip="{{localize 'bastionland.weather.change'}}" data-tooltip-direction="DOWN">
+			<button type="button" class="bastionland-gm-toolkit__weather{{#unless clock.weather.key}} is-unset{{/unless}}{{#if clock.weather.paused}} is-paused{{/if}}" data-action="pickWeather" data-tooltip="{{#if clock.weather.paused}}{{localize 'bastionland.weather.paused'}}{{else}}{{localize 'bastionland.weather.change'}}{{/if}}" data-tooltip-direction="DOWN">
 				<i class="{{clock.weather.icon}}" inert></i> {{clock.weather.label}}
 			</button>
 			{{/if}}

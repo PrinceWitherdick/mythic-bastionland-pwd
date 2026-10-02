@@ -141,7 +141,8 @@ That is all you need. Install it and start a world. Foundry's **Update** button 
 - **[Dice So Nice!](https://foundryvtt.com/packages/dice-so-nice)** rolls the dice on the table in 3D. Every roll in the system uses Foundry's dice, so there's nothing to set up.
 - **[Sequencer](https://foundryvtt.com/packages/sequencer)** and **[JB2A](https://foundryvtt.com/packages/JB2A_DnD5e)** animate Attacks on the map: swords swing, arrows fly, and blood marks whoever loses VIG. Each animation is picked from the weapon's name. The free JB2A is enough.
 - **[SoundFx Library](https://foundryvtt.com/packages/soundfxlibrary)** adds sound to those Attacks, with or without Sequencer.
-- **[FXMaster](https://foundryvtt.com/packages/fxmaster)** draws weather chosen from the GM Toolkit on the players' Scene.
+- **[FXMaster](https://foundryvtt.com/packages/fxmaster)** draws the weather on the players' Scene: the day's Sky and Weather roll sets it each morning, and the GM can pick another from the Toolkit. The weather picker can take it off the map for a while, and the Settings tab can switch single parts of it off, such as the hail or the storm's grey light.
+- **[Tokenizer](https://foundryvtt.com/packages/vtta-tokenizer)** makes round map tokens from Knight and NPC portraits, with a frame and a background of your choosing.
 
 The Attack effects are one world setting, **Attack Effects on the Map**, which is on by default and does nothing when these modules aren't installed. Anyone with **Reduce Motion** turned on hears the sounds but sees no animation.
 

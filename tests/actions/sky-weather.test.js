@@ -28,8 +28,20 @@ vi.mock("../../module/actions/referee-rolls.js", () => ({
 	})
 }));
 
+/** Whether FXMaster is on, for the line saying what the map shows. */
+let fxOn;
+/** Whether the GM has taken the weather off the map. */
+let paused;
+vi.mock("../../module/actions/weather.js", () => ({
+	setWeather: vi.fn(async () => {}),
+	weatherPaused: () => paused,
+	weatherShown: () => fxOn,
+	weatherView: (sky) => ({ label: `weather.skies.${sky}` })
+}));
+
 const { fogHidesTheWay, registerSkyAndWeather, rollSkyAndWeather, setFog } = await import("../../module/actions/sky-weather.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
+const { setWeather } = await import("../../module/actions/weather.js");
 
 /** Twelve rows of a two-column table, each entry naming its column and row. */
 const table = (name, columns) => ({ name, columns, rows: Array.from({ length: 12 }, (_, row) => columns.map((column) => `${column} ${row + 1}`)) });
@@ -48,6 +60,9 @@ beforeEach(() => {
 	index = { spark: [naturePage()] };
 	dice = [];
 	vi.mocked(postCard).mockClear();
+	vi.mocked(setWeather).mockClear();
+	fxOn = false;
+	paused = false;
 	globalThis.game = {
 		user: { isGM: true },
 		settings: {
@@ -73,9 +88,34 @@ describe("rollSkyAndWeather", () => {
 		expect(fogHidesTheWay()).toBe(false);
 	});
 
+	it("sets the map's weather from the roll, and says so on the card with FXMaster on", async () => {
+		fxOn = true;
+		dice = [[4, 2], [12, 1]];
+		expect((await rollSkyAndWeather()).drawn).toBe("downpour");
+		expect(setWeather).toHaveBeenCalledWith("downpour");
+		expect(vi.mocked(postCard).mock.calls[0][2].drawn).toBe('skyWeather.drawn {"sky":"weather.skies.downpour"}');
+	});
+
+	it("says nothing of a map while the GM has the weather paused", async () => {
+		fxOn = true;
+		paused = true;
+		dice = [[4, 2], [12, 1]];
+		expect((await rollSkyAndWeather()).drawn).toBe("downpour");
+		expect(setWeather).toHaveBeenCalledWith("downpour");
+		expect(vi.mocked(postCard).mock.calls[0][2].drawn).toBeNull();
+	});
+
+	it("still sets the weather without FXMaster, but says nothing of a map", async () => {
+		dice = [[4, 2], [1, 7]];
+		expect((await rollSkyAndWeather()).drawn).toBe("storm");
+		expect(setWeather).toHaveBeenCalledWith("storm");
+		expect(vi.mocked(postCard).mock.calls[0][2].drawn).toBeNull();
+	});
+
 	it("brings Solid Fog down for the rest of the day, with a button to lift it", async () => {
 		dice = [[1, 1], [8, 12]];
 		expect((await rollSkyAndWeather()).fog).toBe("solid");
+		expect(setWeather).toHaveBeenCalledWith("fog");
 		expect(fogHidesTheWay()).toBe(true);
 		expect(fogHidesTheWay({ ...calendar, phase: "afternoon" })).toBe(true);
 		expect(fogHidesTheWay({ ...calendar, day: 3 })).toBe(false);

@@ -19,6 +19,40 @@
   "readme": "README.md",
   "bugs": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/issues",
   "changelog": "https://github.com/PrinceWitherdick/mythic-bastionland-pwd/releases",
+  "relationships": {
+    "recommends": [
+      {
+        "id": "dice-so-nice",
+        "type": "module",
+        "reason": "Rolls every Save, Attack and table roll as 3D dice on the table."
+      },
+      {
+        "id": "sequencer",
+        "type": "module",
+        "reason": "Draws Attacks on the map: swords swing, arrows fly, and blood marks whoever loses VIG."
+      },
+      {
+        "id": "JB2A_DnD5e",
+        "type": "module",
+        "reason": "The animations Sequencer plays for Attacks. The free edition is enough."
+      },
+      {
+        "id": "soundfxlibrary",
+        "type": "module",
+        "reason": "Gives Attacks their sound, with or without Sequencer."
+      },
+      {
+        "id": "fxmaster",
+        "type": "module",
+        "reason": "Draws the rolled weather on the Scene the players are on."
+      },
+      {
+        "id": "vtta-tokenizer",
+        "type": "module",
+        "reason": "Makes map tokens from Knight and NPC portraits."
+      }
+    ]
+  },
   "esmodules": [
     "mythic-bastionland.js"
   ],

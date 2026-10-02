@@ -55,6 +55,28 @@ export function fogIn(rolls) {
 }
 
 /**
+ * The sky FXMaster draws for each entry of the Weather table's second column,
+ * by the d12 that lands on it: a key of rules/weather.js's WEATHER. Where
+ * FXMaster has nothing that looks like an entry, its nearest sky. No entry
+ * draws snow, so neither does a roll.
+ */
+export const ELEMENT_SKIES = Object.freeze([null, "rain", "wind", "cloud", "clear", "fog", "fair", "storm", "wind", "clear", "rain", "fair", "fog"]);
+
+/** The first column's d12s that make a rain a downpour: the heavy, long or harsh sorts. */
+export const HEAVY_RAIN = Object.freeze([3, 11, 12]);
+
+/**
+ * The sky a weather roll draws on the map.
+ * @param {number[]} rolls The Weather table's d12s, one for each column.
+ * @returns {string|null} A key of WEATHER, or null for a roll that isn't one.
+ */
+export function rolledSky(rolls) {
+	const [description, element] = rolls ?? [];
+	const sky = ELEMENT_SKIES[element] ?? null;
+	return sky === "rain" && HEAVY_RAIN.includes(description) ? "downpour" : sky;
+}
+
+/**
  * @typedef {object} Fog The fog that came down on a Day.
  * @property {import("./time.js").Calendar} when When it came down.
  */

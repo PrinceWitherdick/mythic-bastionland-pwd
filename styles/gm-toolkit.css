@@ -255,6 +255,12 @@
 	font-style: italic;
 }
 
+/* Kept but off the map: struck through, so it reads as set yet not falling. */
+.bastionland-page button.bastionland-gm-toolkit__weather.is-paused {
+	color: var(--bastionland-ink-soft);
+	text-decoration: line-through;
+}
+
 .bastionland-page button.bastionland-gm-toolkit__weather:hover,
 .bastionland-page button.bastionland-gm-toolkit__weather:hover i {
 	background: none;
@@ -281,6 +287,12 @@
 	border-color: var(--bastionland-blood);
 	box-shadow: inset 0 0 0 1px var(--bastionland-blood);
 	font-weight: bold;
+}
+
+/* Taking the weather off the map, or putting it back: a row of its own under the skies. */
+.bastionland-weather-picker .form-footer button.bastionland-weather-picker__pause {
+	grid-column: 1 / -1;
+	justify-content: center;
 }
 
 .bastionland-gm-toolkit__clock-count {

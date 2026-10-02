@@ -25,7 +25,8 @@ export const RECOMMENDED_MODULES = Object.freeze([
 	{ key: "diceSoNice", url: "https://foundryvtt.com/packages/dice-so-nice", needs: [["dice-so-nice"]] },
 	{ key: "sequencer", url: "https://foundryvtt.com/packages/sequencer", needs: [[SEQUENCER_ID], JB2A_IDS] },
 	{ key: "soundFx", url: "https://foundryvtt.com/packages/soundfxlibrary", needs: [[SOUNDFX_ID]] },
-	{ key: "fxmaster", url: "https://foundryvtt.com/packages/fxmaster", needs: [FXMASTER_IDS] }
+	{ key: "fxmaster", url: "https://foundryvtt.com/packages/fxmaster", needs: [FXMASTER_IDS] },
+	{ key: "tokenizer", url: "https://foundryvtt.com/packages/vtta-tokenizer", needs: [["vtta-tokenizer"]] }
 ]);
 
 /** @returns {boolean} Whether a recommended module isn't on in this world yet. */
@@ -38,6 +39,13 @@ function manageModules() {
 	new foundry.applications.sidebar.apps.ModuleManagement().render({ force: true });
 }
 
+/** @returns {{url: string, name: string, text: string}} A recommended module, as the modules card lists it. */
+const moduleEntry = ({ key, url }) => ({
+	url,
+	name: t(`welcome.chat.modules.list.${key}.name`),
+	text: t(`welcome.chat.modules.list.${key}.text`)
+});
+
 /**
  * The cards, in the order they're posted: each names its icon, what its button
  * does, where it isn't always wanted, when it is, and anything more it shows.
@@ -49,13 +57,7 @@ const CARDS = {
 		icon: "fa-solid fa-puzzle-piece",
 		run: manageModules,
 		wanted: modulesMissing,
-		context: () => ({
-			modules: RECOMMENDED_MODULES.map(({ key, url }) => ({
-				url,
-				name: t(`welcome.chat.modules.list.${key}.name`),
-				text: t(`welcome.chat.modules.list.${key}.text`)
-			}))
-		})
+		context: () => ({ modules: RECOMMENDED_MODULES.map(moduleEntry) })
 	}
 };
 
@@ -65,6 +67,13 @@ export const WELCOME_CARDS = Object.freeze(Object.keys(CARDS));
 const BUTTONS = "[data-welcome-card]";
 
 /**
+ * Whisper the GMs a welcome card.
+ * @param {object} data The card's words.
+ * @param {string} flag What the card is kept as, so its button finds it again.
+ */
+const postWelcomeCard = (data, flag) => postCard(null, "welcome", data, { mode: "gm", flags: { [SYSTEM_ID]: { welcomeCard: flag } }, speaker: { alias: game.system.title } });
+
+/**
  * Post the cards, whispered to every GM. A world setup step: only a world the
  * Welcome still greets gets them, so one already in play never does. A world
  * that already has its rulebook, found kept by another world, isn't asked for it.
@@ -72,18 +81,41 @@ const BUTTONS = "[data-welcome-card]";
  */
 export async function postWelcomeCards(isNewWorld) {
 	if (!isNewWorld()) return;
-	const speaker = { alias: game.system.title };
 	const cards = WELCOME_CARDS.filter((card) => CARDS[card].wanted?.() ?? true);
 	for (const card of cards) {
-		await postCard(null, "welcome", {
+		await postWelcomeCard({
 			card,
 			icon: CARDS[card].icon,
 			title: t(`welcome.chat.${card}.title`),
 			text: t(`welcome.chat.${card}.text`),
 			label: t(`welcome.chat.${card}.button`),
 			...CARDS[card].context?.()
-		}, { mode: "gm", flags: { [SYSTEM_ID]: { welcomeCard: card } }, speaker });
+		}, card);
 	}
+}
+
+/** The world setup step that tells a world already in play about FXMaster, once. */
+export const FXMASTER_CARD_STEP = "fxmasterCard";
+
+/**
+ * Whisper the GMs one card saying the weather can fall on the map, with
+ * FXMaster. A world setup step, so it's said once: not to a world with FXMaster
+ * on already, which then never hears it even if it turns FXMaster off later,
+ * nor to a new world, whose modules card names FXMaster already.
+ * @param {() => boolean} isNewWorld
+ */
+export async function postFxMasterCard(isNewWorld) {
+	if (FXMASTER_IDS.some(moduleActive) || isNewWorld()) return;
+	const fxmaster = RECOMMENDED_MODULES.find(({ key }) => key === "fxmaster");
+	await postWelcomeCard({
+		card: "modules",
+		icon: CARDS.modules.icon,
+		title: t("weather.card.title"),
+		text: t("weather.card.text"),
+		modules: [moduleEntry(fxmaster)],
+		more: [t("weather.card.needs"), t("weather.card.fine")],
+		label: t("welcome.chat.modules.button")
+	}, "fxmaster");
 }
 
 /**

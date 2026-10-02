@@ -1,10 +1,11 @@
 import { loadArtIndex, sparkPageOf } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { DAY_PAGE, dayTables, fogHides, fogIn } from "../rules/sky-weather.js";
+import { DAY_PAGE, dayTables, fogHides, fogIn, rolledSky } from "../rules/sky-weather.js";
 import { sameDay } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { rollSpark } from "./referee-rolls.js";
+import { setWeather, weatherPaused, weatherShown, weatherView } from "./weather.js";
 
 /**
  * The day's sky and weather (p197): rolled on the Nature Spark Tables as the
@@ -63,8 +64,8 @@ function fogView(fog) {
  * Solid Fog comes down at once, to hide the way until the day is out; any
  * other fog is the Referee's to bring down from the card. GMs only.
  * @param {Awaited<ReturnType<typeof daySkyTables>>} [found] The tables, where they've been read already.
- * @returns {Promise<{sky: object[], weather: object[], fog: "solid"|"fog"|null}|null>}
- *   What was rolled, or null where the tables haven't been imported.
+ * @returns {Promise<{sky: object[], weather: object[], fog: "solid"|"fog"|null, drawn: string|null}|null>}
+ *   What was rolled and the sky it drew, or null where the tables haven't been imported.
  */
 export async function rollSkyAndWeather(found) {
 	if (!game.user.isGM) return null;
@@ -76,9 +77,15 @@ export async function rollSkyAndWeather(found) {
 	// One table after the other, so the dice land in the order the card reads.
 	const sky = await rollSpark(tables.sky);
 	const weather = await rollSpark(tables.weather);
-	const fog = fogIn(weather.results.map((result) => result.roll));
-	// Yesterday's fog lapsed with yesterday, so only today's roll can bring it down.
-	if (fog === "solid") await setFog(true);
+	const rolls = weather.results.map((result) => result.roll);
+	const fog = fogIn(rolls);
+	const drawn = rolledSky(rolls);
+	await Promise.all([
+		// Yesterday's fog lapsed with yesterday, so only today's roll can bring it down.
+		fog === "solid" ? setFog(true) : null,
+		// The map follows the roll, till the Referee picks another sky from the Toolkit.
+		drawn ? setWeather(drawn) : null
+	]);
 
 	const when = { ...getCalendar() };
 	const reference = t("spark.tagline", { page: tables.page.name, number: tables.page.page });
@@ -92,6 +99,7 @@ export async function rollSkyAndWeather(found) {
 			results: rolled.results.filter((result) => result.entry)
 		})),
 		fog: fogView(fog),
+		drawn: drawn && weatherShown() && !weatherPaused() ? t("skyWeather.drawn", { sky: weatherView(drawn).label }) : null,
 		hint: t("skyWeather.cardHint")
 	}, {
 		rolls: [sky.roll, weather.roll],
@@ -99,7 +107,7 @@ export async function rollSkyAndWeather(found) {
 		// The day it was rolled for, so the card's fog button can't reach another day.
 		flags: { [SYSTEM_ID]: { skyWeather: { when } } }
 	});
-	return { sky: sky.results, weather: weather.results, fog };
+	return { sky: sky.results, weather: weather.results, fog, drawn };
 }
 
 /** Register the day's fog, and the card's fog button. Called during init. */

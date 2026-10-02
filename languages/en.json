@@ -891,6 +891,7 @@
       "tick": "Roll the day’s sky and weather",
       "tickHint": "The Nature Spark Tables’ Sky and Weather set the scene as the Company wakes and breaks camp (p197).",
       "title": "The Day’s Sky and Weather",
+      "drawn": "The map now shows: {sky}.",
       "cardHint": "Describe it as the Company breaks camp. Be kind by default, but let hard weather bite when the dice call for it (p197).",
       "missing": "Run the Import PDF macro with your rulebook to bring in the Nature Spark Tables’ Sky and Weather.",
       "fog": {
@@ -1806,9 +1807,12 @@
     },
     "weather": {
       "title": "Weather",
-      "hint": "Choose the weather. FXMaster draws it on the Scene the players are on, and it follows them to the next. The book has no weather table; where dire weather rules the land, roll Dire Weather from the Referee Rolls.",
+      "hint": "Choose the weather. FXMaster draws it on the Scene the players are on, and it follows them to the next. Each morning the day’s Sky and Weather roll sets it for you; pick another here if you see the day differently. Where dire weather rules the land, roll Dire Weather from the Referee Rolls.",
       "unset": "Set the weather",
       "change": "Change the weather",
+      "paused": "The weather is off the map. Change it, or put it back",
+      "pause": "Take It Off the Map",
+      "resume": "Put It Back on the Map",
       "skies": {
         "clear": "Clear",
         "fair": "Fair",
@@ -1825,7 +1829,45 @@
         "button": {
           "name": "Show the Weather Button",
           "hint": "With FXMaster on, the GM Toolkit’s banner has a button for the weather. Untick this to hide it if you don’t use the weather. The weather last set stays and still follows the table; set it to Clear first for none. Saved per browser."
+        },
+        "weatherOnMap": {
+          "name": "Weather on the Map",
+          "hint": "With FXMaster on, the weather falls on the Scene the players are on. Untick this to take it off the map and keep it set, the same as Take It Off the Map in the weather picker."
+        },
+        "weatherFxClouds": {
+          "name": "Clouds",
+          "hint": "The clouds drifting over the map, from a fair sky to a storm. Needs FXMaster."
+        },
+        "weatherFxFog": {
+          "name": "Fog",
+          "hint": "The fog over the map. Needs FXMaster."
+        },
+        "weatherFxRain": {
+          "name": "Rain",
+          "hint": "The rain, from a shower to a storm’s. Needs FXMaster."
+        },
+        "weatherFxHail": {
+          "name": "Hail",
+          "hint": "The hail in a storm. Needs FXMaster."
+        },
+        "weatherFxSnow": {
+          "name": "Snow",
+          "hint": "Falling snow. Needs FXMaster."
+        },
+        "weatherFxSnowstorm": {
+          "name": "Blizzard Snow",
+          "hint": "The driven snow of a blizzard. Needs FXMaster."
+        },
+        "weatherFxStormTint": {
+          "name": "Storm Light",
+          "hint": "The grey a storm casts over its clouds. Untick it and the clouds stay, untinted. Needs FXMaster."
         }
+      },
+      "card": {
+        "title": "Weather on the Map",
+        "text": "The weather you pick in the GM Toolkit, and the one the day’s Sky and Weather roll brings each morning, can fall on the Scene your players are on: rain, fog, snow and storm clouds.",
+        "needs": "It’s free. Install it from the Add-on Modules tab on Foundry’s setup screen, then turn it on for this world.",
+        "fine": "Nothing else needs it, and the weather is still kept without it. Once it’s on, the Toolkit’s banner gets a weather button, where you can also take the weather off the map; single parts of it can be turned off under Settings."
       }
     },
     "gmToolkit": {
@@ -3933,7 +3975,8 @@
       "groups": {
         "reading": "Reading",
         "windows": "Windows",
-        "referee": "For the Referee"
+        "referee": "For the Referee",
+        "weather": "Weather on the Map"
       },
       "forTable": "For the whole table.",
       "openAll": "All Settings…",
@@ -4171,7 +4214,11 @@
             },
             "fxmaster": {
               "name": "FXMaster",
-              "text": "draws the weather set from the GM Toolkit on the Scene the players are on."
+              "text": "draws the weather, set from the GM Toolkit or rolled each morning, on the Scene the players are on."
+            },
+            "tokenizer": {
+              "name": "Tokenizer",
+              "text": "makes round map tokens from Knight and NPC portraits."
             }
           }
         }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DAY_PAGE, SKY_POSITION, SOLID_FOG, WEATHER_POSITION, dayTables, fogHides, fogIn } from "../../module/rules/sky-weather.js";
+import { DAY_PAGE, ELEMENT_SKIES, HEAVY_RAIN, SKY_POSITION, SOLID_FOG, WEATHER_POSITION, dayTables, fogHides, fogIn, rolledSky } from "../../module/rules/sky-weather.js";
+import { isWeather } from "../../module/rules/weather.js";
 import { sameDay } from "../../module/rules/time.js";
 import { SPARK_TABLES_PER_PAGE } from "../../module/rules/spark-tables.js";
 
@@ -73,5 +74,44 @@ describe("fogHides", () => {
 		expect(fogHides(fog, { ...morning, day: 5 })).toBe(false);
 		expect(fogHides(null, morning)).toBe(false);
 		expect(fogHides({ when: "public" }, morning)).toBe(false);
+	});
+});
+
+describe("the sky a weather roll draws", () => {
+	const d12 = Array.from({ length: 12 }, (_, index) => index + 1);
+
+	it("draws one of our skies for every second-column d12", () => {
+		for (const element of d12) expect(isWeather(ELEMENT_SKIES[element])).toBe(true);
+	});
+
+	it("never draws snow, which the table has none of", () => {
+		for (const description of d12) {
+			for (const element of d12) expect(["snow", "blizzard"]).not.toContain(rolledSky([description, element]));
+		}
+	});
+
+	it("draws fog wherever the roll is fog, Solid Fog among them", () => {
+		expect(rolledSky(SOLID_FOG)).toBe("fog");
+		for (const description of d12) expect(rolledSky([description, SOLID_FOG[1]])).toBe("fog");
+	});
+
+	it("makes a heavy rain a downpour, and nothing else heavier", () => {
+		const rains = d12.filter((element) => ELEMENT_SKIES[element] === "rain");
+		expect(rains.length).toBeGreaterThan(0);
+		for (const element of rains) {
+			for (const description of d12) {
+				expect(rolledSky([description, element])).toBe(HEAVY_RAIN.includes(description) ? "downpour" : "rain");
+			}
+		}
+		for (const element of d12.filter((candidate) => !rains.includes(candidate))) {
+			for (const description of HEAVY_RAIN) expect(rolledSky([description, element])).toBe(ELEMENT_SKIES[element]);
+		}
+	});
+
+	it("draws nothing for a roll that isn't one", () => {
+		expect(rolledSky(null)).toBeNull();
+		expect(rolledSky([])).toBeNull();
+		expect(rolledSky([1, 0])).toBeNull();
+		expect(rolledSky([1, 13])).toBeNull();
 	});
 });

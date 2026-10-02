@@ -37,8 +37,18 @@ export const SETTING_GROUPS = Object.freeze([
 	{
 		id: "referee",
 		title: "bastionland.settingsTab.groups.referee",
-		keys: ["soloPlay", "hexLorePrompt", "hexLoreFirstArrival", "hexJournals", "hexCoordinates", "direWeather", "weatherButton", "rulebookForPlayers"],
+		keys: ["soloPlay", "hexLorePrompt", "hexLoreFirstArrival", "hexJournals", "hexCoordinates", "direWeather", "rulebookForPlayers"],
 		menus: ["realmAppearance", "welcome"],
+		gmOnly: true
+	},
+	{
+		id: "weather",
+		title: "bastionland.settingsTab.groups.weather",
+		// FXMaster's weather: the banner's button, the whole of it, then each part.
+		keys: [
+			"weatherButton", "weatherOnMap",
+			"weatherFxClouds", "weatherFxFog", "weatherFxRain", "weatherFxHail", "weatherFxSnow", "weatherFxSnowstorm", "weatherFxStormTint"
+		],
 		gmOnly: true
 	}
 ]);

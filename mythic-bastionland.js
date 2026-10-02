@@ -66,7 +66,7 @@ import { registerAttackCards } from "./module/chat/attack-card.js";
 import { registerGambitMarks } from "./module/chat/gambit-marks.js";
 import { t } from "./module/chat/cards.js";
 import { registerMoraleCards } from "./module/chat/morale-card.js";
-import { WELCOME_CARDS_STEP, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
+import { FXMASTER_CARD_STEP, WELCOME_CARDS_STEP, postFxMasterCard, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
@@ -485,6 +485,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: FIND_RULEBOOK_STEP, run: () => findKeptRulebook(welcomesThisWorld) },
 	// Right after it, so only a world it still greets is posted them.
 	{ key: WELCOME_CARDS_STEP, run: () => postWelcomeCards(welcomesThisWorld) },
+	// A world already in play hears of the weather on the map once; a new one has just been told.
+	{ key: FXMASTER_CARD_STEP, run: () => postFxMasterCard(welcomesThisWorld) },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: PLACES_MACRO_STEP, run: seedPlacesMacro },

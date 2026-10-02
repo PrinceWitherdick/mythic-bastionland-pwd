@@ -4,7 +4,7 @@ import { SETTING_GROUPS, formatRange, groupsFor, offersMenu, offersSetting, sett
 describe("the Settings page's groups", () => {
 	it("shows a player their own settings, and the Referee's to GMs alone", () => {
 		expect(groupsFor(false).map((group) => group.id)).toEqual(["reading", "windows"]);
-		expect(groupsFor(true).map((group) => group.id)).toEqual(["reading", "windows", "referee"]);
+		expect(groupsFor(true).map((group) => group.id)).toEqual(["reading", "windows", "referee", "weather"]);
 	});
 
 	it("offers each setting once", () => {
