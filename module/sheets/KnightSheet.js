@@ -21,7 +21,7 @@ import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
 import { titleKnightType } from "../rules/creation.js";
 import { RANKS } from "../rules/glory.js";
-import { hasTable, knightRenewal, knightTableItemId, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
+import { hasTable, knightRenewal, knightTableItemId, knightVerse, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
 import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
@@ -198,6 +198,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			property: propertyRows,
 			// A table about the Knight themself, which no possession points to, gets a row of its own.
 			bookTableRow: tableItem ? null : bookTable,
+			// The verse under their name in the book, while they're still known as that Knight.
+			verse: knightVerse(system),
 			abilities,
 			passions,
 			// A Scar still waiting on its GD increase can be settled, Doom is marked while it
@@ -385,22 +387,27 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 	/** Who the Knight was when the book was last checked for their table. */
 	#tableChecked = null;
 
+	/** Who the Knight was when the book was last checked for the verse under their name. */
+	#verseChecked = null;
+
 	/** What the Seer fields held when the book was last checked, so the index isn't fetched on every render. */
 	#seerChecked = null;
 
 	/**
 	 * Fill in the Seer's picture and what the book says whenever they're missing
-	 * or the Seer changes, and take the table on the Knight's page whenever they
-	 * hold none, or another Knight's.
+	 * or the Seer changes, and take the table and the verse on the Knight's page
+	 * whenever they hold none, or another Knight's.
 	 */
 	#fillFromBook() {
-		const { isSquire, knightType, bookTable, seer, seerImg, seerInfo } = this.actor.system;
+		const { isSquire, knightType, bookTable, bookVerse, seer, seerImg, seerInfo } = this.actor.system;
 		if (!this.isEditable || isSquire) return;
 		const tableKey = JSON.stringify([knightType, bookTable.knight, bookTable.name]);
+		const verseKey = JSON.stringify([knightType, bookVerse.knight]);
 		const seerKey = JSON.stringify([seer, knightType, seerImg, seerInfo]);
-		const parts = { seer: seerKey !== this.#seerChecked, table: tableKey !== this.#tableChecked };
+		const parts = { seer: seerKey !== this.#seerChecked, table: tableKey !== this.#tableChecked, verse: verseKey !== this.#verseChecked };
 		this.#seerChecked = seerKey;
 		this.#tableChecked = tableKey;
+		this.#verseChecked = verseKey;
 		fillKnightFromBook(this.actor, parts);
 	}
 

@@ -1,11 +1,11 @@
 import { loadArtIndex } from "../book-art/art-index.js";
-import { tableForEntry } from "../book-art/myth-tables.js";
+import { tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { seerAutoFill } from "../rules/creation.js";
 import { rollMythTable } from "./referee-rolls.js";
-import { KNIGHT_TABLE_VERSION } from "../rules/book-art.js";
+import { KNIGHT_TABLE_VERSION, KNIGHT_VERSE_VERSION } from "../rules/book-art.js";
 import { asPattern, withSentences } from "../rules/knight-table-sentences.js";
-import { hasTable, knightEntryByType, knightRenewal, knightTableFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
+import { hasTable, knightEntryByType, knightRenewal, knightTableFill, knightVerseFill, clauseMidSentence, renewalDue, withRolls } from "../rules/knight-tables.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
 
@@ -32,19 +32,39 @@ async function knightTableUpdate(knight, index) {
 }
 
 /**
- * Quietly fill in what a Knight takes from their page in the book: their
- * Seer, as seerAutoFill allows, and their page's table. One read of the
- * index and one update for both. Does nothing before Import PDF.
+ * The verse under the Knight's name on their page, as knightVerseFill allows.
+ * An index from before Import PDF read Knights' verses has it read from the rulebook.
  * @param {Actor} knight
- * @param {{seer?: boolean, table?: boolean}} [parts] Which to look at.
+ * @param {object|null} index
+ * @returns {Promise<object>} The update, empty when there's nothing to fill.
+ */
+async function knightVerseUpdate(knight, index) {
+	const { knightType, bookVerse } = knight.system;
+	if (bookVerse.knight === knightType.trim()) return {};
+	const entry = knightEntryByType(index, knightType);
+	if (!entry) return {};
+	return knightVerseFill(await verseForEntry(index, entry, { versionFloor: KNIGHT_VERSE_VERSION }), knight.system);
+}
+
+/**
+ * Quietly fill in what a Knight takes from their page in the book: their
+ * Seer, as seerAutoFill allows, their page's table and the verse under their
+ * name. One read of the index and one update for all. Does nothing before Import PDF.
+ * @param {Actor} knight
+ * @param {{seer?: boolean, table?: boolean, verse?: boolean}} [parts] Which to look at.
  * @returns {Promise<boolean>} Whether anything was filled in.
  */
-export async function fillKnightFromBook(knight, { seer = true, table = true } = {}) {
-	if (!knight?.isOwner || knight.system.isSquire || !(seer || table)) return false;
+export async function fillKnightFromBook(knight, { seer = true, table = true, verse = true } = {}) {
+	if (!knight?.isOwner || knight.system.isSquire || !(seer || table || verse)) return false;
 	const index = await loadArtIndex();
+	const [tableUpdate, verseUpdate] = await Promise.all([
+		table ? knightTableUpdate(knight, index) : {},
+		verse ? knightVerseUpdate(knight, index) : {}
+	]);
 	const update = {
 		...(seer ? seerAutoFill(index, knight.system) : {}),
-		...(table ? await knightTableUpdate(knight, index) : {})
+		...tableUpdate,
+		...verseUpdate
 	};
 	if (foundry.utils.isEmpty(update)) return false;
 	await knight.update(update);

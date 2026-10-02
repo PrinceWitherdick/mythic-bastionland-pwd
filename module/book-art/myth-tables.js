@@ -1,12 +1,12 @@
-import { mythTableFromItems, mythVerseFromItems, promptsFromItems } from "../rules/book-art.js";
+import { knightVerseFromItems, mythTableFromItems, mythVerseFromItems, promptsFromItems } from "../rules/book-art.js";
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { openPdfUrl } from "./pdf.js";
 
 /**
- * The table on a Myth's page, the verse under its name and the prompts along
- * its foot, read straight from the rulebook the world keeps for its reader, for
+ * The table on a Myth's or Knight's page, the verse under their name and the
+ * prompts along its foot, read straight from the rulebook the world keeps for its reader, for
  * an index Import PDF wrote before it read them. Each page is read once a
  * session; nothing is written back.
  */
@@ -64,7 +64,8 @@ function readPage(page) {
 			try {
 				const pdf = await openBook(rulebookPath());
 				const items = (await (await pdf.getPage(page)).getTextContent()).items;
-				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items), prompts: promptsFromItems(items) };
+				// A Myth's verse is found by its Omens and a Knight's by their Property, so neither reads the other's.
+				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items) ?? knightVerseFromItems(items), prompts: promptsFromItems(items) };
 			} catch (error) {
 				// Kept as unread, so the sheet doesn't try again on every redraw.
 				console.warn(`${SYSTEM_ID} | Couldn't read page ${page} of the rulebook`, error);
@@ -83,7 +84,7 @@ function readPage(page) {
 export const mythTableFromRulebook = (page) => readPage(page).then((read) => read?.table ?? null);
 
 /**
- * @param {number} page A Myth's page.
+ * @param {number} page A Myth's or Knight's page.
  * @returns {Promise<string[]|null>} Null without a rulebook, or when the page can't be read.
  */
 export const mythVerseFromRulebook = (page) => readPage(page).then((read) => read?.verse ?? null);
@@ -110,7 +111,7 @@ function peek(page, part) {
 export const peekTable = (page) => peek(page, "table");
 
 /**
- * The verse read from the rulebook for a Myth's page, for a render that can't wait on it.
+ * The verse read from the rulebook for a Myth's or Knight's page, for a render that can't wait on it.
  * @param {number} page
  * @returns {string[]|null|undefined} As peekTable.
  */
@@ -134,10 +135,10 @@ export function tableForEntry(index, entry, { page = entry?.page, versionFloor =
 }
 
 /**
- * The verse under a Myth's name: the index's own, or else the one read from
- * the rulebook, for an index Import PDF wrote before it read the verses.
+ * The verse under a Myth's or Knight's name: the index's own, or else the one read
+ * from the rulebook, for an index Import PDF wrote before it read the verses.
  * @param {object|null} index The art index.
- * @param {{verse?: string[], page?: number}|null} entry The Myth's entry in it.
+ * @param {{verse?: string[], page?: number}|null} entry The Myth's or Knight's entry in it.
  * @param {object} [options]
  * @param {number} [options.page]         The page to read, when there's no entry to give it.
  * @param {number} [options.versionFloor] An index at this version or later had its verses read already.
@@ -147,6 +148,24 @@ export function verseForEntry(index, entry, { page = entry?.page, versionFloor =
 	if (entry?.verse) return Promise.resolve(entry.verse);
 	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
 	return mythVerseFromRulebook(page);
+}
+
+/**
+ * The verse under a Myth's or Knight's name, for a render that can't wait on
+ * it: as verseForEntry, but what's been read so far. The rulebook is read once,
+ * however often the page is drawn meanwhile, and onRead is called when it has been.
+ * @param {object|null} index As verseForEntry.
+ * @param {{verse?: string[], page?: number}|null} entry As verseForEntry.
+ * @param {object} options As verseForEntry's.
+ * @param {(verse: string[]|null) => void} onRead
+ * @returns {string[]|null} One entry a line, or null while it's read or where there's none.
+ */
+export function peekVerseForEntry(index, entry, { page = entry?.page, versionFloor = Infinity }, onRead) {
+	if (entry?.verse) return entry.verse;
+	if (!page || (index?.version ?? 0) >= versionFloor) return null;
+	const read = peekVerse(page);
+	if (read === undefined && canReadTablesFromRulebook()) verseForEntry(index, entry, { page }).then(onRead);
+	return read ?? null;
 }
 
 /**

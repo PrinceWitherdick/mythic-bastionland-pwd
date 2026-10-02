@@ -20,10 +20,6 @@
 				<span class="bastionland-script">{{localize "bastionland.sheet.knight"}}</span>
 			</p>
 			<p class="bastionland-line">
-				<label class="bastionland-script" for="{{rootId}}-seer">{{localize "bastionland.sheet.knightedBy"}}</label>
-				<input id="{{rootId}}-seer" class="bastionland-blank" type="text" name="system.seer" value="{{system.seer}}" autocomplete="off">
-			</p>
-			<p class="bastionland-line">
 				<label class="bastionland-script" for="{{rootId}}-fate">{{localize "bastionland.sheet.fate"}}</label>
 				<input id="{{rootId}}-fate" class="bastionland-blank" type="text" name="system.fate" value="{{system.fate}}" autocomplete="off">
 			</p>
@@ -39,6 +35,10 @@
 			</span>
 			{{/if}}
 		</figure>
+		{{!-- The verse under their name in the book, set under the name lines as the book sets it. --}}
+		{{#if verse}}
+		<p class="bastionland-verse">{{#each verse}}<span>{{this}}</span>{{/each}}</p>
+		{{/if}}
 		{{#if editable}}
 		<nav class="bastionland-toolbar bastionland-toolbar--actions" aria-label="{{localize 'bastionland.sheet.title'}}">
 			<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
@@ -235,7 +235,14 @@
 	<div class="tab {{tabs.seer.cssClass}}" data-group="primary" data-tab="seer">
 		<section class="bastionland-block bastionland-seer">
 			<header class="bastionland-block__header">
+				{{#if editable}}
+				<p class="bastionland-line bastionland-seer__name">
+					<label class="bastionland-script" for="{{rootId}}-seer">{{localize "bastionland.sheet.knightedBy"}}</label>
+					<input id="{{rootId}}-seer" class="bastionland-blank" type="text" name="system.seer" value="{{system.seer}}" placeholder="{{localize 'bastionland.seer.label'}}" autocomplete="off">
+				</p>
+				{{else}}
 				<h2 class="bastionland-heading">{{#if system.seer}}<small class="bastionland-seer__by">{{localize "bastionland.sheet.knightedBy"}}</small> {{system.seer}}{{else}}{{localize "bastionland.seer.label"}}{{/if}}</h2>
+				{{/if}}
 			</header>
 			{{#unless system.seer}}
 			<p class="bastionland-hint">{{localize "bastionland.seer.unnamed"}}</p>

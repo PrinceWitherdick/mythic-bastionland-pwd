@@ -365,17 +365,33 @@ a.button:focus:not(:focus-visible) {
 /* Header: a portrait, the lines to fill in, and the heraldic shield */
 /* ---------------------------------------------------------------- */
 
-/* The Attack, Duel and Take Damage line runs under the name lines only, so the
-   portrait and shield stand the full height of the header beside it. */
+/* The Knight's verse and the Attack, Duel and Take Damage line run under the
+   name lines only, so the portrait and shield stand the full height of the
+   header beside them. */
 .bastionland-header {
 	display: grid;
 	grid-template-areas:
 		"portrait text heraldry"
+		"portrait verse heraldry"
 		"portrait actions heraldry";
 	grid-template-columns: 9rem minmax(0, 1fr) 9rem;
-	grid-template-rows: 1fr auto;
+	grid-template-rows: 1fr auto auto;
 	gap: 0.6rem 1rem;
 	align-items: center;
+}
+
+/* In the header the verse runs as one line, its two lines parted by a slash. */
+.bastionland-header > .bastionland-verse {
+	grid-area: verse;
+	margin: 0;
+}
+
+.bastionland-header > .bastionland-verse span {
+	display: inline;
+}
+
+.bastionland-header > .bastionland-verse span + span::before {
+	content: " / ";
 }
 
 .bastionland-header > .bastionland-toolbar--actions {
@@ -1286,6 +1302,7 @@ a.button:focus:not(:focus-visible) {
 		grid-template-areas:
 			"portrait heraldry"
 			"text text"
+			"verse verse"
 			"actions actions";
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -1687,6 +1704,21 @@ a.button:focus:not(:focus-visible) {
 	margin: 0.1rem 0;
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.25rem;
+}
+
+/* The verse under the Knight's name in the book, a line each, centred under their name. */
+.bastionland-verse {
+	margin: 0 0 0.75rem;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: 1.1rem;
+	font-style: italic;
+	line-height: 1.35;
+	text-align: center;
+}
+
+.bastionland-verse span {
+	display: block;
 }
 
 /* Its words are the book's, so until Import PDF has read them only the heading shows. */
@@ -4231,6 +4263,13 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	font-size: 2rem;
 	font-weight: normal;
 	line-height: 1.05;
+}
+
+/* The verse under the Knight's name, set against the name rather than centred as on their sheet. */
+.bastionland-chooser__text .bastionland-verse {
+	margin: 0 0 0.6rem;
+	font-size: 1rem;
+	text-align: left;
 }
 
 .bastionland-chooser__property {

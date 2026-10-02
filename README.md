@@ -95,7 +95,7 @@ None of Chris McDowall's text ships with the system, and of his art only the fre
 
 - the book's own words for the rules the system shows: Travel and Exploration beside the map, the Knighthood page, the rule word tips, the Scars, the seasonal events, and the Council and Court. Until then each shows the system's own short line or nothing, with the page to read;
 - every Knight's and Seer's portrait and every Myth's illustration;
-- each Knight's Property, Ability, Passion and table, each Seer's traits, each Myth's Omens, Cast and table, the Spark Tables and the City Quest;
+- each Knight's verse, Property, Ability, Passion and table, each Seer's traits, each Myth's Omens, Cast and table, the Spark Tables and the City Quest;
 - **Arms & Goods** and **Beasts, Hirelings & Warbands** compendiums;
 - an **NPCs** compendium of Seers, Myth Casts and the City Quest Cast, visible to GMs only.
 

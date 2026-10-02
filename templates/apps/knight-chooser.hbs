@@ -116,6 +116,9 @@
 			<div class="bastionland-chooser__text">
 				<p class="bastionland-chooser__reference">{{reference}}</p>
 				<h2 class="bastionland-chooser__name">{{name}}</h2>
+				{{#if verse}}
+				<p class="bastionland-verse">{{#each verse}}<span>{{this}}</span>{{/each}}</p>
+				{{/if}}
 				{{#if takenBy}}
 				<p class="bastionland-chooser__taken">{{takenBy}}</p>
 				{{/if}}

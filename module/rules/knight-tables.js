@@ -118,6 +118,27 @@ export function knightTableFill(table, { knightType, bookTable }, page) {
 }
 
 /**
+ * The verse under a Knight's name on their page, whenever they hold none for the Knight they're known as.
+ * @param {string[]|null} verse From the index or the rulebook.
+ * @param {{knightType: string, bookVerse?: {knight: string, lines: string[]}|null}} knight
+ * @returns {object} An Actor update, empty when there's nothing to fill.
+ */
+export function knightVerseFill(verse, { knightType, bookVerse }) {
+	const type = String(knightType ?? "").trim();
+	if (!verse?.length || !type || bookVerse?.knight === type) return {};
+	return { "system.bookVerse": { knight: type, lines: [...verse] } };
+}
+
+/**
+ * @param {{isSquire?: boolean, knightType: string, bookVerse?: {knight: string, lines: string[]}|null}} knight
+ * @returns {string[]|null} The verse under their name, while they're still known as the Knight it was taken for.
+ */
+export function knightVerse({ isSquire, knightType, bookVerse }) {
+	if (isSquire || !bookVerse?.lines?.length || bookVerse.knight !== String(knightType ?? "").trim()) return null;
+	return bookVerse.lines;
+}
+
+/**
  * Set some columns' rows, leaving the others as they were.
  * @param {StoredTable} stored
  * @param {number[]} columns By index.

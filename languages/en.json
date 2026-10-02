@@ -19,10 +19,10 @@
   "bastionland": {
     "sheet": {
       "title": "Mythic Bastionland",
-      "named": "Named",
-      "knownAs": "Called the",
+      "named": "They were named",
+      "knownAs": "Known as the",
       "knight": "Knight",
-      "fate": "In the end",
+      "fate": "Their ultimate fate was",
       "knightedBy": "Knighted by",
       "heraldry": "Heraldry",
       "portrait": "Portrait",
@@ -291,7 +291,7 @@
     },
     "seer": {
       "label": "Seer",
-      "unnamed": "Write the Seer who knighted them on the Knight page, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
+      "unnamed": "Write the Seer who knighted them above, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
       "portrait": "Choose the Seer’s picture",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
       "notes": "Notes",

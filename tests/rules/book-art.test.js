@@ -11,6 +11,7 @@ import {
 	hasPageText,
 	indexEntry,
 	knightTextFromItems,
+	knightVerseFromItems,
 	mythTableFromItems,
 	mythTextFromItems,
 	pickPageArt,
@@ -459,6 +460,7 @@ describe("knightTextFromItems", () => {
 
 	it("reads Property bullets, Ability and Passion", () => {
 		expect(knightTextFromItems(page)).toEqual({
+			verse: ["A couplet about lamps"],
 			property: ["Hooked lamp (d8 hefty), coat (A1), and helm (A1)", "Grumbling mule (VIG 9, GD)"],
 			ability: { name: "Snuff Out", text: "Put out every candle-flame you can see." },
 			passion: { name: "Vigil", text: "Restore SPI when you keep watch all night." },
@@ -479,6 +481,17 @@ describe("knightTextFromItems", () => {
 		expect(knightTextFromItems(page.filter((entry) => !entry.str.startsWith("PASSION")))).toBeNull();
 		expect(knightTextFromItems(page.filter((entry) => entry.str !== "PROPERTY"))).toBeNull();
 		expect(knightTextFromItems([])).toBeNull();
+	});
+
+	it("reads the verse between the name and Property, not the Seer's name set the same size", () => {
+		const couplet = [...page, item("and the wicks they trim", 14, 190, 645)];
+		expect(knightVerseFromItems(couplet)).toEqual(["A couplet about lamps", "and the wicks they trim"]);
+	});
+
+	it("has no verse without one, or without Property to find it by", () => {
+		expect(knightVerseFromItems(page.filter((entry) => entry.str !== "A couplet about lamps"))).toBeNull();
+		expect(knightVerseFromItems(page.filter((entry) => entry.str !== "PROPERTY"))).toBeNull();
+		expect(knightTextFromItems(page.filter((entry) => entry.str !== "A couplet about lamps")).verse).toBeNull();
 	});
 });
 

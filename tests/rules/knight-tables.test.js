@@ -4,6 +4,8 @@ import {
 	knightEntryByType,
 	knightRenewal,
 	knightTableFill,
+	knightVerse,
+	knightVerseFill,
 	clauseMidSentence,
 	namePartsWithoutSeeBelow,
 	pointsBelow,
@@ -107,6 +109,32 @@ describe("knightTableFill", () => {
 	it("does nothing without a table or a Knight", () => {
 		expect(knightTableFill(null, { knightType: "Sack" }, 40)).toEqual({});
 		expect(knightTableFill(table, { knightType: " " }, 40)).toEqual({});
+	});
+});
+
+describe("knightVerseFill and knightVerse", () => {
+	const verse = ["A line about lamps", "and one about wicks"];
+
+	it("copies the verse in for a Knight who holds none, or another Knight's", () => {
+		const update = knightVerseFill(verse, { knightType: " Lantern ", bookVerse: { knight: "", lines: [] } });
+		expect(update).toEqual({ "system.bookVerse": { knight: "Lantern", lines: verse } });
+		expect(update["system.bookVerse"].lines).not.toBe(verse);
+		expect(knightVerseFill(verse, { knightType: "Lantern", bookVerse: { knight: "Sack", lines: ["x"] } })).toMatchObject({ "system.bookVerse": { knight: "Lantern" } });
+	});
+
+	it("leaves the Knight's own alone, and does nothing without a verse or a Knight", () => {
+		expect(knightVerseFill(verse, { knightType: "Lantern", bookVerse: { knight: "Lantern", lines: ["x"] } })).toEqual({});
+		expect(knightVerseFill(null, { knightType: "Lantern" })).toEqual({});
+		expect(knightVerseFill([], { knightType: "Lantern" })).toEqual({});
+		expect(knightVerseFill(verse, { knightType: "" })).toEqual({});
+	});
+
+	it("shows the verse only while they're known as the Knight it was taken for", () => {
+		const bookVerse = { knight: "Lantern", lines: verse };
+		expect(knightVerse({ knightType: "Lantern ", bookVerse })).toBe(verse);
+		expect(knightVerse({ knightType: "Sack", bookVerse })).toBeNull();
+		expect(knightVerse({ knightType: "Lantern", bookVerse, isSquire: true })).toBeNull();
+		expect(knightVerse({ knightType: "Lantern", bookVerse: { knight: "Lantern", lines: [] } })).toBeNull();
 	});
 });
 

@@ -41,6 +41,11 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 				rows: new fields.ArrayField(new fields.ArrayField(new fields.StringField())),
 				rolls: new fields.ArrayField(countField({ max: 6 }))
 			}),
+			// The verse under their name on their page, and the Knight it was taken for; see rules/knight-tables.js.
+			bookVerse: new fields.SchemaField({
+				knight: textField(),
+				lines: new fields.ArrayField(new fields.StringField())
+			}),
 			// "Their ultimate fate was ___"
 			fate: textField(),
 			// The shield painted at the top of the sheet: an uploaded file's path, or a data URL for users who can't upload.

@@ -1,8 +1,9 @@
 import { clearCompanions, knightOwner, makeCompanions, markCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
+import { peekVerseForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { PROPERTY_TYPES } from "../config.js";
-import { spreads } from "../rules/book-art.js";
+import { KNIGHT_VERSE_VERSION, spreads } from "../rules/book-art.js";
 import { COMPANY_START_FLAG, realmStart } from "../rules/company.js";
 import { replacementGlory } from "../rules/fallen.js";
 import { rollKnightName, startingName } from "../rules/knight-names.js";
@@ -156,6 +157,7 @@ export class KnightChooser extends BastionlandChooser {
 				reference: t("chooser.reference", { roll: selected.roll, page: selected.page }),
 				img: selected.knight?.path ?? null,
 				takenBy: takenLabel(selected.roll),
+				verse: this.#verse(selected),
 				property: selected.knight?.property ?? null,
 				ability: selected.knight?.ability ?? null,
 				passion: selected.knight?.passion ?? null,
@@ -226,6 +228,18 @@ export class KnightChooser extends BastionlandChooser {
 			knight: findByRoll(this.index?.knights, roll),
 			seer: findByRoll(this.index?.seers, roll)
 		}));
+	}
+
+	/**
+	 * The verse under a Knight's name: from the index, or else read from the
+	 * world's rulebook for an index imported before the Knights' verses were.
+	 * @param {{page: number, knight: object|null}} entry From #entries.
+	 * @returns {string[]|null} One entry a line, or null while it's read or where there's none.
+	 */
+	#verse({ page, knight }) {
+		if (!knight) return null;
+		// Drawn in if the window's still open.
+		return peekVerseForEntry(this.index, knight, { page, versionFloor: KNIGHT_VERSE_VERSION }, (verse) => verse && this.rendered && this.render());
 	}
 
 	/** @returns {string} The Knight's name, or their roll before the book is imported. */

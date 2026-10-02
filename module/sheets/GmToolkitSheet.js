@@ -22,7 +22,7 @@ import { spinTable } from "../apps/roll-spin.js";
 import { openWildernessHex } from "../apps/WildernessHex.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
-import { canReadTablesFromRulebook, peekTable, peekVerse, tableForEntry, verseForEntry } from "../book-art/myth-tables.js";
+import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { reducesMotion, scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
@@ -429,12 +429,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @returns {string[]|null} One entry a line, or null while it's read or where there's none.
 	 */
 	#verse(entry, page) {
-		if (entry?.verse) return entry.verse;
-		if (!page || (this.#index?.version ?? 0) >= MYTH_VERSE_VERSION) return null;
-		const read = peekVerse(page);
-		// Read once however often the page is drawn meanwhile, as the table is.
-		if (read === undefined && canReadTablesFromRulebook()) verseForEntry(this.#index, entry, { page }).then(() => this.#redraw("myths"));
-		return read ?? null;
+		return peekVerseForEntry(this.#index, entry, { page, versionFloor: MYTH_VERSE_VERSION }, () => this.#redraw("myths"));
 	}
 
 	/**
