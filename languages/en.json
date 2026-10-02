@@ -2975,7 +2975,7 @@
           "realm": "The Realm"
         },
         "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Hex panel. Nothing is rolled.",
-        "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. You slide the picture into place under the hex lines, or mark two of its hexes and fit it to them, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
+        "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. Your map may have hexes drawn on it, or none at all. You line the picture up with the hex lines, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
         "defaultName": "The Realm",
@@ -2988,7 +2988,7 @@
       },
       "picture": {
         "title": "Import map",
-        "intro": "A photograph or scan of a Realm drawn on paper, laid under the hexes in place of the system's own drawings.",
+        "intro": "A photograph or scan of a Realm drawn on paper, or a painted map with no hexes on it, laid under the hexes in place of the system's own drawings.",
         "paintNext": "The picture is only for show. Once it's lined up, go to Wilderness and paint every hex with the terrain drawn on your map.",
         "roles": {
           "players": {
@@ -3010,20 +3010,32 @@
         "relaidTrimmed": "The Realm's hexes now sit the way your map's do. Rivers and Barriers whose hexes no longer meet were cut back.",
         "layouts": {
           "legend": "Which of these looks like your map?",
-          "hint": "Look at the hexes in the top left corner of your map, and pick the drawing that matches them.",
+          "hint": "Look at the hexes in the top left corner of your map, and pick the drawing that matches them. If your map has no hexes, pick No hexes on it.",
           "book": "Default Realm Sheet",
           "names": {
             "oddColumns": "Flat tops, corner low",
             "evenRows": "Pointed tops, corner out",
-            "oddRows": "Pointed tops, corner in"
+            "oddRows": "Pointed tops, corner in",
+            "bare": "No hexes on it"
           },
           "evenColumns": "Flat-topped hexes. The corner hex sits higher than the one beside it.",
           "oddColumns": "Flat-topped hexes. The corner hex sits lower than the one beside it.",
           "evenRows": "Pointed-topped hexes. The corner hex sticks out further left than the one under it.",
-          "oddRows": "Pointed-topped hexes. The corner hex is set in from the one under it."
+          "oddRows": "Pointed-topped hexes. The corner hex is set in from the one under it.",
+          "bare": "No hexes drawn on it, such as a painted map. The Realm lays its own hexes over the whole picture."
         },
-        "lineUpHint": "Once the picture is in, you line it up in two steps: mark two of its hexes and it's sized to them, then slide it the last little way under the hex lines. There's no need to crop it: whatever lies outside the map isn't shown.",
-        "keepsSize": "The imported map can't be sized by hand. Mark two hexes when you line it up, and it's sized to them.",
+        "bare": {
+          "sizeNext": "Your map has no hexes on it, so the Realm lays its own over it. You choose how many on the Map size page.",
+          "keepsRealmSize": "Your map is laid under this Realm's {cols} by {rows} hexes, just large enough to cover them all. A Realm keeps its size once it's made, so for a different number of hexes, make a New Realm from this map.",
+          "sizeIntro": "Your map has no hexes on it, so the Realm lays its own over it. Choose how many go across, and the rows follow your map's shape, so the hexes cover it edge to edge. Change the rows and the hexes across follow instead. It starts at about as many hexes as a typical Realm's 12 by 12. A side can run to {side} hexes, with up to {hexes} in all, so even a very wide or tall map is covered.",
+          "preview": "The hexes as they'll lie over your map. Anything shaded falls outside the Realm and isn't shown.",
+          "noPicture": "Choose your map on the Import map page to see the hexes drawn over it here.",
+          "unreadable": "Your map couldn't be loaded, so the hexes can't be drawn over it. Check it on the Import map page, or choose it again.",
+          "cropped": "Your map is a different shape from this Realm's {cols} by {rows} hexes, so a good part of it falls outside the Realm. For hexes that cover all of it, make a New Realm from this map.",
+          "slideHint": "Your map is laid under the hexes, covering them edge to edge. To move the hexes over it, drag the map; the arrow keys nudge it (Shift for more). Ctrl and the mouse wheel size it about the pointer (Shift for more), which makes the hexes smaller or larger on your map. Then keep it here."
+        },
+        "lineUpHint": "Once the picture is in, you line it up with the hexes. A map with hexes on it is sized to two of them that you mark, then slid the last little way under the hex lines. A map with none is laid under the Realm's hexes edge to edge, ready to slide. There's no need to crop it: whatever lies outside the map isn't shown.",
+        "keepsSize": "The imported map can't be sized by hand. Line it up again: it's sized evenly there, by the hexes you mark or with Ctrl and the mouse wheel.",
         "lineUp": {
           "first": "Click the centre of {hex} on your picture, the first hex of the map, at its top left.",
           "second": "Now click the centre of {hex}, the last hex of the map, at its bottom right. Drag a mark to move it.",
@@ -3037,7 +3049,8 @@
         "slide": {
           "steps": {
             "mark": "Step 1 of 2: Mark two hexes.",
-            "slide": "Step 2 of 2: Slide it into place."
+            "slide": "Step 2 of 2: Slide it into place.",
+            "only": "Slide it into place."
           },
           "hint": "Your picture is sized to the marks. If it's still a little out, drag the map to slide it under the hex lines; the arrow keys nudge it (Shift for more). Ctrl and the mouse wheel size it about the pointer, to match the hexes (Shift for more). Then keep it here.",
           "clicks": "Mark them again",
@@ -3444,7 +3457,7 @@
       "more": "What each one is",
       "paintEveryHex": {
         "heading": "Paint every hex",
-        "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture."
+        "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture. Paint open sea as Lake, the rules' only water, which boats can cross. Nothing stops the Company walking onto a Lake, so rule on that at the table."
       },
       "inspectHint": "Click a hex, then set it in the Hex panel.",
       "groups": {

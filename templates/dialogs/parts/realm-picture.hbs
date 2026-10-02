@@ -17,13 +17,14 @@
 	{{/each}}
 
 	{{#if mapLayouts}}
-	{{!-- Each choice is a drawing of a map's top-left corner, made from the Realm's own geometry: the GM picks the one that looks like theirs. --}}
+	{{!-- Each choice is a drawing of a map's top-left corner, made from the Realm's own geometry: the GM picks the one that looks like theirs.
+	      The last is a corner with no hexes in it, for a map with none on it, which the Realm lays its own over. --}}
 	<fieldset class="bastionland-realm-layout">
 		<legend>{{localize "bastionland.realm.picture.layouts.legend"}}</legend>
 		<p class="hint">{{localize "bastionland.realm.picture.layouts.hint"}}</p>
 		<div class="bastionland-realm-layout__choices">
 			{{#each mapLayouts}}
-			<label class="bastionland-realm-layout__choice" data-tooltip="{{description}}">
+			<label class="bastionland-realm-layout__choice{{#if bare}} bastionland-realm-layout__choice--bare{{/if}}" data-tooltip="{{description}}">
 				<input type="radio" name="layout" value="{{key}}" aria-label="{{description}}"{{#if checked}} checked{{/if}}>
 				<svg class="bastionland-realm-layout__diagram" viewBox="{{diagram.viewBox}}" aria-hidden="true" focusable="false">
 					<path class="bastionland-realm-layout__edge" d="{{diagram.edge}}"></path>
@@ -33,6 +34,7 @@
 			</label>
 			{{/each}}
 		</div>
+		{{#if mapBareHint}}<p class="hint bastionland-realm-layout__bare-hint" data-bare-hint>{{mapBareHint}}</p>{{/if}}
 	</fieldset>
 	{{/if}}
 </div>

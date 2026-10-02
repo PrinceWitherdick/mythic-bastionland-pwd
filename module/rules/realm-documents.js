@@ -375,6 +375,21 @@ export function realmDocuments(realm, g, textures) {
 }
 
 /**
+ * About how much of the map shows on a usual screen beside the sidebar and
+ * under the controls, in screen pixels: room for a typical Realm's whole
+ * height at half its size, which is the zoom a Realm opens at.
+ */
+const OPENING_ROOM = Object.freeze({ width: 1600, height: 1000 });
+
+/**
+ * The zoom a Realm opens at: half size, or further out for a Realm too long
+ * or too tall to be seen whole at that, such as one laid over a very wide map.
+ * @param {object} g
+ * @returns {number}
+ */
+export const openingScale = (g) => Math.min(0.5, OPENING_ROOM.width / g.width, OPENING_ROOM.height / g.height);
+
+/**
  * The complete Scene to create for a new Realm.
  * @param {object} options
  * @param {string} options.name
@@ -396,7 +411,7 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		...noFogSceneData(),
 		grid: { type: g.gridType, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
 		...paperSceneData(LEVEL_ID, name, textures.colours.paper),
-		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: 0.5 },
+		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: openingScale(g) },
 		tiles: tiles.map((tile) => tile.data),
 		drawings: drawings.map((drawing) => drawing.data),
 		flags: flagged(realmSceneFlag(realm, g))

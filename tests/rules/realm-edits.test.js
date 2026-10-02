@@ -357,7 +357,7 @@ describe("a Realm's pictures", () => {
 
 	it("takes a players' map", () => {
 		const open = setMapPicture(blank(), "players", players);
-		expect(open.picture).toEqual({ players });
+		expect(open.picture).toEqual({ players: { ...players, bare: false } });
 		// The Realm it was made from is untouched.
 		expect(blank().picture).toBeUndefined();
 	});
@@ -376,16 +376,22 @@ describe("a Realm's pictures", () => {
 	it("remembers where a picture was lined up, and forgets it when the picture changes", () => {
 		const open = setMapPicture(blank(), "players", players);
 		const lined = placeMapPicture(open, "players", { x: 800, y: 900, width: 1700, height: 2000 });
-		expect(lined.picture.players).toEqual({ ...players, x: 800, y: 900, width: 1700, height: 2000 });
+		expect(lined.picture.players).toEqual({ ...players, bare: false, x: 800, y: 900, width: 1700, height: 2000 });
 		expect(placeMapPicture(open, "referee", { x: 1, y: 2, width: 3, height: 4 })).toBe(open);
 		// Another picture is another thing to line up.
-		expect(setMapPicture(lined, "players", { src: "art/realm-maps/other.webp" }).picture.players).toEqual({ src: "art/realm-maps/other.webp" });
+		expect(setMapPicture(lined, "players", { src: "art/realm-maps/other.webp" }).picture.players).toEqual({ src: "art/realm-maps/other.webp", bare: false });
 	});
 
 	it("moves and sizes a measured picture without stretching it", () => {
 		const laid = setMapPicture(blank(), "players", { ...players, x: 500, y: 600, width: 900, height: 1000 });
 		const moved = placeMapPicture(laid, "players", { x: 520, y: 590, width: 1800, height: 700 });
-		expect(moved.picture.players).toEqual({ ...players, x: 520, y: 590, width: 1800, height: 2000 });
+		expect(moved.picture.players).toEqual({ ...players, bare: false, x: 520, y: 590, width: 1800, height: 2000 });
+	});
+
+	it("keeps a map with no hexes on it bare as it's lined up, until another picture takes its place", () => {
+		const laid = setMapPicture(blank(), "players", { ...players, bare: true, x: 500, y: 600, width: 900, height: 1000 });
+		expect(placeMapPicture(laid, "players", { x: 520, y: 590, width: 1800, height: 700 }).picture.players.bare).toBe(true);
+		expect(setMapPicture(laid, "players", { src: "art/realm-maps/other.webp" }).picture.players.bare).toBe(false);
 	});
 });
 

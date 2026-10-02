@@ -57,13 +57,15 @@
 		{{/if}}
 
 		<section class="bastionland-rail-dialog__page" data-rail-page="setup" hidden>
-			<p class="hint">{{#if draw}}{{localize "bastionland.realm.setup.sizeIntro"}}{{else}}{{localize "bastionland.realm.setup.intro"}}{{/if}}</p>
+			{{!-- A map with no hexes on it swaps the rules for its own: the hexes follow its shape (module/apps/bare-map-fields.js). --}}
+			<p class="hint" data-setup-rules>{{#if draw}}{{localize "bastionland.realm.setup.sizeIntro"}}{{else}}{{localize "bastionland.realm.setup.intro"}}{{/if}}</p>
+			{{#if traced}}<p class="hint" data-bare-map hidden>{{localize "bastionland.realm.picture.bare.sizeIntro" side=bareLimits.side hexes=bareLimits.hexes}}</p>{{/if}}
 
-			<label class="bastionland-check">
+			<label class="bastionland-check" data-setup-rules>
 				<input type="checkbox" name="setup.ignoreRules" data-setup-ignore>
 				<span class="bastionland-check__label">{{localize "bastionland.realm.setup.ignoreRules"}}</span>
 			</label>
-			<p class="hint">{{localize "bastionland.realm.setup.ignoreRulesHint"}}</p>
+			<p class="hint" data-setup-rules>{{localize "bastionland.realm.setup.ignoreRulesHint"}}</p>
 
 			<div class="bastionland-realm-setup__parts">
 				{{#each setupParts}}
@@ -97,6 +99,23 @@
 				</div>
 				{{/each}}
 			</div>
+
+			{{#if traced}}
+			{{!-- The Realm's hexes as they'll lie over a map with no hexes on it, drawn in the picture's own pixels. The paths are filled in as the picture loads and the numbers change. --}}
+			<div class="bastionland-bare-map" data-bare-map hidden>
+				<figure class="bastionland-bare-map__preview" data-bare-preview hidden>
+					<img alt="" data-bare-picture>
+					<svg class="bastionland-bare-map__hexes" preserveAspectRatio="none" aria-hidden="true" focusable="false" data-bare-hexes>
+						<path class="bastionland-bare-map__outside" data-bare-outside></path>
+						<path class="bastionland-bare-map__halo" data-bare-halo></path>
+						<path class="bastionland-bare-map__lines" data-bare-lines></path>
+					</svg>
+				</figure>
+				<p class="hint">{{localize "bastionland.realm.picture.bare.preview"}}</p>
+				<p class="hint" data-bare-waiting>{{localize "bastionland.realm.picture.bare.noPicture"}}</p>
+				<p class="hint" data-bare-broken hidden>{{localize "bastionland.realm.picture.bare.unreadable"}}</p>
+			</div>
+			{{/if}}
 		</section>
 
 		{{!-- A Realm drawn by hand has no hexes to stand in yet: its Company is chosen on the last page of Creating a Realm. --}}

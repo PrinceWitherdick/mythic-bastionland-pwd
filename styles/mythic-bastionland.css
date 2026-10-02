@@ -5203,6 +5203,29 @@ button.bastionland-dice:focus-visible {
 	color: var(--bastionland-ink-soft);
 }
 
+/* A map with no hexes on it, under the four: a bare corner of a map beside
+   its name, across the whole row. */
+.bastionland-realm-layout__choice--bare {
+	grid-column: 1 / -1;
+	flex-direction: row;
+	justify-content: center;
+}
+
+.bastionland-realm-layout__choice--bare .bastionland-realm-layout__diagram {
+	width: 4rem;
+	height: 2.75rem;
+}
+
+/* What follows from a map with no hexes on it, shown only while that's chosen. */
+.bastionland-realm-layout > .bastionland-realm-layout__bare-hint {
+	display: none;
+	margin: 0.4rem 0 0;
+}
+
+.bastionland-realm-layout:has(input[value="bare"]:checked) > .bastionland-realm-layout__bare-hint {
+	display: block;
+}
+
 :is(.bastionland-travel-rules, .bastionland-realm-drawing) button.bastionland-travel-rules__roll.is-active {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);

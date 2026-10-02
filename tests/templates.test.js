@@ -11,11 +11,11 @@ import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
 import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, REALM_BRUSHES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
-import { MAP_ROLES } from "../module/rules/realm-map.js";
+import { BARE_MAP, MAP_ROLES } from "../module/rules/realm-map.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
 import { SETUP_PARTS } from "../module/rules/realm-setup.js";
 import { BARRIER_STATES, FEATURE_KINDS } from "../module/rules/realm-edits.js";
-import { DIRECTIONS } from "../module/rules/realm-geometry.js";
+import { BOOK_LAYOUT, DIRECTIONS, REALM_LAYOUTS } from "../module/rules/realm-geometry.js";
 import { ATTACK_REFUSALS, HARM_BARS, SET_ASIDE_REASONS, STRONG_GAMBITS } from "../module/rules/attack.js";
 import { DRIFT_SIDES, LUCK_ODDS, REFEREE_TABLES } from "../module/rules/referee-rolls.js";
 import { TIME_STEPS } from "../module/rules/session-end.js";
@@ -207,7 +207,10 @@ describe("localization", () => {
 		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),
 		...partsOf("realm.picture.roles", MAP_ROLES, ["label", "hint"]),
 		...["first", "second", "adjust"].map((step) => `realm.picture.lineUp.${step}`),
-		...["steps.mark", "steps.slide", "hint", "clicks", "clicksHint", "noClicks", "fit", "fitHint", "keep", "keepHint"].map((label) => `realm.picture.slide.${label}`),
+		...["steps.mark", "steps.slide", "steps.only", "hint", "clicks", "clicksHint", "noClicks", "fit", "fitHint", "keep", "keepHint"].map((label) => `realm.picture.slide.${label}`),
+		"realm.picture.bare.slideHint",
+		...[...REALM_LAYOUTS, BARE_MAP].map((key) => `realm.picture.layouts.${key}`),
+		...[...REALM_LAYOUTS.filter((key) => key !== BOOK_LAYOUT), BARE_MAP].map((key) => `realm.picture.layouts.names.${key}`),
 		...partsOf("realm.look.skins", REALM_SKINS, ["label", "hint"]),
 		...REALM_PALETTES.map(({ key }) => `realm.look.palettes.${key}`),
 		...RIVER_SHAPES.map((shape) => `realm.look.rivers.${shape}`),

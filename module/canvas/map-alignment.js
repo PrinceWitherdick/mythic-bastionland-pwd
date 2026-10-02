@@ -20,6 +20,10 @@
  * Nothing is written until they keep it, so the picture moves on this screen
  * alone while it's under way, and Escape puts it back.
  *
+ * A map with no hexes on it has none to mark: the Realm's hexes are laid over
+ * it, and it's laid large enough to cover them. So it starts on sliding, the
+ * only step, and the marking is never offered.
+ *
  * While it's under way the rules beside the map wait, Creating a Realm and
  * Travel and Exploration alike, so there's only the picture and the hexes to
  * look at: MAP_ALIGNMENT_HOOK says when it starts and ends.
@@ -103,6 +107,7 @@ export const ALIGNMENT = Object.freeze({ fitted: "fitted", stopped: "stopped", n
  * @property {Rect} start Where the picture lay before, for putting it back.
  * @property {Rect} rect Where it lies now.
  * @property {"slide"|"clicks"} mode Sliding it about, or marking two hexes on it.
+ * @property {boolean} bare Whether the picture has no hexes on it to mark, so it's only slid.
  * @property {boolean} fitted Whether it has been fitted to marked hexes yet, so marking them again can be left for sliding.
  * @property {{col: number, row: number}[]} hexes The two hexes to mark, in order.
  * @property {{x: number, y: number}[]} pins Where the hexes have been marked on the picture so far.
@@ -316,15 +321,17 @@ function tell() {
 	const { bar, mode, pins, hexes } = lining;
 	const marking = mode === "clicks";
 	const placed = pins.length >= hexes.length;
-	let hint = hintHtml("slide.hint");
+	let hint = hintHtml(lining.bare ? "bare.slideHint" : "slide.hint");
 	if (marking && placed) hint = hintHtml("lineUp.adjust", { first: 0, second: 1 });
 	else if (marking) hint = hintHtml(`lineUp.${pins.length === 0 ? "first" : "second"}`, { hex: pins.length });
-	const step = foundry.utils.escapeHTML(t(`realm.picture.slide.steps.${marking ? "mark" : "slide"}`));
+	// Sliding is the one step for a map with no hexes on it.
+	const step = foundry.utils.escapeHTML(t(`realm.picture.slide.steps.${marking ? "mark" : lining.bare ? "only" : "slide"}`));
 	bar.querySelector("[data-slide-hint]").innerHTML = `<strong class="bastionland-map-slide__step">${step}</strong> ${hint}`;
 
-	// Marking comes first, so there's nothing to go back to until the picture has been fitted once.
+	// Marking comes first, so there's nothing to go back to until the picture has been fitted once;
+	// and a map with no hexes on it has none to mark.
 	const clicks = bar.querySelector('[data-slide="clicks"]');
-	clicks.hidden = marking && !lining.fitted;
+	clicks.hidden = lining.bare || (marking && !lining.fitted);
 	clicks.setAttribute("aria-pressed", String(marking));
 	clicks.querySelector("span").textContent = t(`realm.picture.slide.${marking ? "noClicks" : "clicks"}`);
 	const keep = bar.querySelector('[data-slide="keep"]');
@@ -372,7 +379,7 @@ function makeBar() {
  * since the two hexes are at its far corners.
  */
 function toggleClicks() {
-	if (!lining) return;
+	if (!lining || lining.bare) return;
 	lining.mode = lining.mode === "clicks" ? "slide" : "clicks";
 	lining.pins = [];
 	lining.held = -1;
@@ -670,7 +677,8 @@ function onWheel(event) {
 
 /**
  * Hand the GM a picture to line up over the hexes, starting with the two
- * hexes to mark on it, and wait for them:
+ * hexes to mark on it, or with sliding it for a map with no hexes on it, and
+ * wait for them:
  * whatever follows — handing them the Company to stand on the map, say —
  * shouldn't be taking the same clicks.
  * @param {Scene} scene A Realm Scene carrying that picture.
@@ -697,6 +705,7 @@ export function startMapAlignment(scene, { role = "players" } = {}) {
 
 	const g = sceneGeometry(scene);
 	const rect = mapRect(g, picture);
+	const bare = Boolean(picture.bare);
 	const marks = (canvas.controls ?? canvas.stage).addChild(new PIXI.Container());
 	marks.eventMode = "none";
 	const frame = marks.addChild(new PIXI.Graphics());
@@ -710,7 +719,8 @@ export function startMapAlignment(scene, { role = "players" } = {}) {
 			tile,
 			start: { ...rect },
 			rect,
-			mode: "clicks",
+			mode: bare ? "slide" : "clicks",
+			bare,
 			fitted: false,
 			hexes: calibrationHexes(g),
 			pins: [],
@@ -746,7 +756,7 @@ export function startMapAlignment(scene, { role = "players" } = {}) {
 		draw();
 		setCursor();
 		tell();
-		// The two hexes to mark are at the picture's far corners.
+		// The two hexes to mark are at the picture's far corners, and a map with no hexes on it is slid as a whole.
 		viewWholePicture();
 	});
 }

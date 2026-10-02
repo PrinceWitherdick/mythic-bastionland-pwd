@@ -14,6 +14,8 @@ export const SETUP_PARTS = Object.freeze(["terrain", "rivers", "holdings", "myth
 /**
  * @typedef {object} RealmSetup
  * @property {boolean} ignoreRules Whether the numbers are the GM's own rather than the book's.
+ * @property {boolean} [ownSize] Whether only the map's size is the GM's own, as for a map with no hexes on
+ *   it, whose shape sets how many go over it (within OWN_SIZE_LIMITS); every other number stays the book's.
  * @property {number} cols
  * @property {number} rows
  * @property {Record<string, boolean>} roll For each of SETUP_PARTS, whether it's rolled or left to draw by hand.
@@ -69,8 +71,49 @@ export function within(value, fallback, { min, max }) {
 }
 
 /**
+ * How far a map's sides go when its size is the GM's own because the map laid
+ * under it has no hexes on it (`ownSize`): further than SETUP_LIMITS, so a very
+ * wide or tall map is still covered from end to end, but with no more hexes in
+ * all than the largest map with the rules ignored.
+ */
+export const OWN_SIZE_LIMITS = Object.freeze({
+	cols: Object.freeze({ min: 3, max: 60 }),
+	rows: Object.freeze({ min: 3, max: 60 }),
+	hexes: SETUP_LIMITS.cols.max * SETUP_LIMITS.rows.max
+});
+
+/** @type {Readonly<Record<"cols"|"rows", "cols"|"rows">>} */
+const OTHER_SIDE = Object.freeze({ cols: "rows", rows: "cols" });
+
+/**
+ * @param {"cols"|"rows"} side
+ * @param {unknown} [other] How many the other side has, if that's known.
+ * @returns {{min: number, max: number}} How far one side of a map of the GM's own size goes beside the other.
+ */
+export function ownSideLimits(side, other) {
+	const { min, max } = OWN_SIZE_LIMITS[side];
+	const beside = other === undefined ? OWN_SIZE_LIMITS[OTHER_SIDE[side]].min : within(other, BOOK_SETUP[OTHER_SIDE[side]], OWN_SIZE_LIMITS[OTHER_SIDE[side]]);
+	return { min, max: Math.min(max, Math.floor(OWN_SIZE_LIMITS.hexes / beside)) };
+}
+
+/**
+ * A map of the GM's own size within OWN_SIZE_LIMITS: the side named first
+ * keeps all it may have, and the other is held to the hexes that leaves.
+ * @param {unknown} cols
+ * @param {unknown} rows
+ * @param {"cols"|"rows"} [first]
+ * @returns {{cols: number, rows: number}}
+ */
+export function withinOwnSize(cols, rows, first = "cols") {
+	const given = { cols, rows };
+	const second = OTHER_SIDE[first] ?? "rows";
+	const lead = within(given[first], BOOK_SETUP[first], OWN_SIZE_LIMITS[first]);
+	return { [first]: lead, [second]: within(given[second], BOOK_SETUP[second], ownSideLimits(second, lead)) };
+}
+
+/**
  * A setup with nothing missing. Unless the rules are ignored, every number is
- * the book's, whatever was given.
+ * the book's, whatever was given, but for a map whose size is the GM's own.
  * @param {Partial<RealmSetup>|null} [given] Omit for the book's.
  * @returns {RealmSetup}
  */
@@ -78,9 +121,13 @@ export function normaliseRealmSetup(given = null) {
 	// A setup saved before every river was kept alike calls its rivers `river`.
 	const asked = { ...given?.roll, rivers: given?.roll?.rivers ?? given?.roll?.river };
 	const roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, asked[part] !== false]));
-	if (!given?.ignoreRules) return { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks, types: {} } };
-
 	const number = (key, value) => within(value, BOOK_SETUP[key], SETUP_LIMITS[key]);
+	if (!given?.ignoreRules) {
+		const book = { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks, types: {} } };
+		// Not the rules ignored: a map with no hexes on it is only given as many as its shape takes.
+		return given?.ownSize ? { ...book, ownSize: true, ...withinOwnSize(given.cols, given.rows) } : book;
+	}
+
 	const fewest = within(given.landmarks?.min, BOOK_SETUP.landmarks.min, SETUP_LIMITS.landmarks);
 	const most = within(given.landmarks?.max, BOOK_SETUP.landmarks.max, SETUP_LIMITS.landmarks);
 	const barriers = given.barriers;

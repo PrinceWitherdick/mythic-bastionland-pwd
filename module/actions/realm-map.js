@@ -8,11 +8,18 @@ import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js"
 import { ART_ROOT } from "../rules/book-art.js";
 import { t } from "../chat/cards.js";
 import { inputDialog } from "../apps/ui.js";
-import { MAP_ROLES, REALM_MAP_DIR, fittedMapRect, layoutChoices, resizesMapPicture } from "../rules/realm-map.js";
+import { BARE_MAP, MAP_ROLES, REALM_MAP_DIR, coveredCrop, laidMapRect, pictureChoices, resizesMapPicture } from "../rules/realm-map.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { setMapPicture, placeMapPicture } from "../rules/realm-edits.js";
 import { BOOK_LAYOUT, normaliseLayout } from "../rules/realm-geometry.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry, setRealmLayout } from "./realm.js";
+
+/**
+ * How much of a map with no hexes on it may fall outside a Realm that already
+ * stands before the GM is told: about a fifth is a border or a strip of sea,
+ * and more is a map of another shape from the Realm's.
+ */
+const MUCH_CROPPED = 0.2;
 
 /** What a picture's file may be called, once the GM's own name for it is thrown away. */
 const safeExtension = (file) => (String(file?.name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "png";
@@ -54,9 +61,11 @@ export function measurePicture(src) {
  * @param {import("../rules/realm.js").Realm|null} [realm]
  * @param {object} [options]
  * @param {string} [options.layout] How the Realm's hexes are laid out now, one of REALM_LAYOUTS.
+ * @param {boolean} [options.bare] Whether the map has no hexes on it now.
+ * @param {string|null} [options.bareHint] What follows from a map with no hexes on it, shown while that's chosen.
  * @returns {object} What the realm-picture fields need, for a dialog's context.
  */
-export function mapPictureContext(realm = null, { layout = BOOK_LAYOUT } = {}) {
+export function mapPictureContext(realm = null, { layout = BOOK_LAYOUT, bare = false, bareHint = null } = {}) {
 	return {
 		mapRoles: MAP_ROLES.map((key) => ({
 			key,
@@ -67,19 +76,26 @@ export function mapPictureContext(realm = null, { layout = BOOK_LAYOUT } = {}) {
 		mapFromComputer: t("realm.picture.fromComputer"),
 		mapOnServer: t("realm.picture.onServer"),
 		mapEnlarge: t("realm.picture.enlarge"),
-		mapLayouts: layoutChoices(layout).map((choice) => ({
+		mapLayouts: pictureChoices(layout, { bare }).map((choice) => ({
 			...choice,
 			description: t(`realm.picture.layouts.${choice.key}`),
 			caption: t(choice.book ? "realm.picture.layouts.book" : `realm.picture.layouts.names.${choice.key}`)
-		}))
+		})),
+		mapBareHint: bareHint
 	};
 }
 
 /**
  * @param {object} data A dialog's form data.
- * @returns {string} How the map's hexes are laid out, one of REALM_LAYOUTS.
+ * @returns {string} How the map's hexes are laid out, one of REALM_LAYOUTS: the book's for a map with none on it.
  */
 export const readMapLayout = (data) => normaliseLayout(data?.layout);
+
+/**
+ * @param {object} data A dialog's form data.
+ * @returns {boolean} Whether the map has no hexes on it, so the Realm lays its own over it.
+ */
+export const readBareMap = (data) => data?.layout === BARE_MAP;
 
 /**
  * The realm-picture fields in a dialog: a picture from the computer is kept
@@ -108,6 +124,8 @@ export function wireMapPictureFields(element, { name = foundry.utils.randomID() 
 			if (!path || !field) return;
 			field.value = path;
 			show();
+			// Set from here, the field says nothing of it, and the hexes drawn over a map with none on it go by it.
+			field.dispatchEvent(new Event("change", { bubbles: true }));
 		};
 
 		field?.addEventListener("input", show);
@@ -143,13 +161,14 @@ export function wireMapPictureFields(element, { name = foundry.utils.randomID() 
 
 /**
  * @param {object} data A dialog's form data.
- * @returns {{players: {src: string}|null}} The pictures it chose.
+ * @returns {{players: {src: string, bare: boolean}|null}} The pictures it chose, and whether they have no hexes on them.
  */
 export function readMapPictures(data) {
 	const picture = foundry.utils.expandObject(data ?? {}).picture ?? {};
+	const bare = readBareMap(data);
 	const map = (role) => {
 		const src = String(picture[role] ?? "").trim();
-		return src ? { src } : null;
+		return src ? { src, bare } : null;
 	};
 	return { players: map("players") };
 }
@@ -157,7 +176,7 @@ export function readMapPictures(data) {
 /**
  * Give a Realm its pictures, or change them.
  * @param {Scene} scene
- * @param {{players: {src: string}|null}} picture
+ * @param {{players: {src: string, bare?: boolean}|null}} picture
  * @returns {Promise<boolean>} Whether anything changed.
  */
 export function setRealmPicture(scene, picture) {
@@ -185,8 +204,7 @@ export const placeRealmPicture = (scene, role, rect) => editRealm(scene, (realm)
 /**
  * Refuse to size a Realm's picture with Foundry's own Tile handles or the
  * Tile's sheet: a picture stretched out of its shape only throws the hexes
- * out. It's sized evenly, by marking two hexes on it when it's lined up, and
- * moving it is still fine. The Realm's own writes carry the size its flag
+ * out. It's sized evenly when it's lined up, and moving it is still fine. The Realm's own writes carry the size its flag
  * already holds, since the flag is written before the Tiles, so they pass.
  * For `preUpdateTile`.
  * @param {TileDocument} tile
@@ -209,25 +227,36 @@ export const hasRealmPicture = (scene) => Boolean(isRealmScene(scene) && getReal
 
 /**
  * Ask for the pictures a Realm is drawn by, and how the hexes on them are laid
- * out. Used for a Realm that already stands, so a GM can put their own map
- * under a Realm they rolled long ago, or change one that came out crooked.
+ * out, or that it has none. Used for a Realm that already stands, so a GM can
+ * put their own map under a Realm they rolled long ago, or change one that
+ * came out crooked.
  * @param {Scene} scene A Realm Scene.
- * @returns {Promise<{picture: {players: {src: string}|null}, layout: string}|null>} Null if closed.
+ * @returns {Promise<{picture: {players: {src: string, bare: boolean}|null}, layout: string, bare: boolean}|null>} Null if closed.
  */
 export async function askForRealmPicture(scene) {
 	const realm = getRealm(scene)?.realm ?? null;
+	const g = sceneGeometry(scene);
 	const data = await inputDialog({
 		title: t("realm.picture.title"),
 		icon: "fa-solid fa-image",
 		template: "realm-picture",
-		context: { ...mapPictureContext(realm, { layout: sceneGeometry(scene).layout }), intro: t("realm.picture.intro") },
+		context: {
+			...mapPictureContext(realm, {
+				layout: g.layout,
+				bare: Boolean(realm?.picture?.players?.bare),
+				// A Realm keeps its size, so a map with no hexes on it is laid over the hexes it has.
+				bareHint: t("realm.picture.bare.keepsRealmSize", { cols: g.cols, rows: g.rows })
+			}),
+			intro: t("realm.picture.intro")
+		},
 		ok: { label: t("realm.picture.use"), icon: "fa-solid fa-image" },
 		// The layouts are drawn as SVG.
 		drawings: true,
-		position: { width: 480 },
+		// Room for the four layouts in a row, and the map with no hexes on it under them.
+		position: { width: 540 },
 		render: (_event, dialog) => wireMapPictureFields(dialog.element, { name: scene.id })
 	});
-	return data ? { picture: readMapPictures(data), layout: readMapLayout(data) } : null;
+	return data ? { picture: readMapPictures(data), layout: readMapLayout(data), bare: readBareMap(data) } : null;
 }
 
 /**
@@ -274,7 +303,9 @@ export async function changeRealmPicture(scene) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	const asked = await askForRealmPicture(scene);
 	if (!asked) return false;
-	const { picture, layout } = asked;
+	const { picture, bare } = asked;
+	// A map with no hexes on it has none to match, so the Realm keeps the layout it has rather than laying its hexes out anew.
+	const layout = bare ? sceneGeometry(scene).layout : asked.layout;
 	if (!picture.players) {
 		const cleared = await setRealmPicture(scene, picture);
 		if (cleared) ui.notifications.info(t("realm.picture.cleared"));
@@ -283,11 +314,18 @@ export async function changeRealmPicture(scene) {
 	}
 
 	// The picture first, so a Realm laid out anew lays out the picture it's getting.
-	// One chosen before pictures were measured lay stretched over the whole map, so it's laid out again too.
+	// One chosen before pictures were measured lay stretched over the whole map, so it's laid out again too,
+	// and so is one now said to have hexes on it or none, since the two are laid differently.
 	const src = picture.players.src;
 	const kept = getRealm(scene)?.realm.picture?.players;
-	const fresh = src !== kept?.src || !(kept?.width > 0);
-	if (fresh) picture.players = { src, ...fittedMapRect(sceneGeometry(scene), await measurePicture(src)) };
+	const fresh = src !== kept?.src || !(kept?.width > 0) || Boolean(kept?.bare) !== bare;
+	if (fresh) {
+		const g = sceneGeometry(scene);
+		const size = await measurePicture(src);
+		picture.players = { src, bare, ...laidMapRect(g, size, { bare }) };
+		// A Realm keeps its size, so a map of another shape loses its sides, or its top and foot.
+		if (bare && coveredCrop(g, size) > MUCH_CROPPED) ui.notifications.warn(t("realm.picture.bare.cropped", { cols: g.cols, rows: g.rows }));
+	}
 	let changed = await setRealmPicture(scene, picture);
 	const relaid = await layOutAnew(scene, layout);
 	changed ||= relaid;

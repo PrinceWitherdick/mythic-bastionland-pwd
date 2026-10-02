@@ -918,6 +918,72 @@
 }
 
 /*
+ * A map with no hexes on it, with the Realm's hexes drawn over it as they'll
+ * lie. The picture and the drawing fill one box of the picture's own shape, so
+ * the drawing, measured in the picture's pixels, lies exactly on it. The lines
+ * are ink on a paper halo, to show on a dark map and a light one alike.
+ */
+.bastionland-bare-map {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-bare-map > .hint {
+	margin: 0;
+}
+
+/* As wide as fits and 18rem tall at most; a very tall map stands up to 28rem, to be wider than a sliver. */
+.bastionland-bare-map__preview {
+	position: relative;
+	align-self: center;
+	width: min(100%, max(calc(18rem * var(--bastionland-bare-aspect, 1)), min(8rem, calc(28rem * var(--bastionland-bare-aspect, 1)))));
+	aspect-ratio: var(--bastionland-bare-aspect, 1);
+	margin: 0;
+	border: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-bare-map__preview > img,
+.bastionland-bare-map__hexes {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	margin: 0;
+	border: none;
+}
+
+.bastionland-bare-map__hexes {
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.bastionland-bare-map__hexes path {
+	fill: none;
+	stroke-linejoin: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.bastionland-bare-map__hexes .bastionland-bare-map__halo {
+	stroke: var(--bastionland-paper);
+	stroke-opacity: 0.75;
+	stroke-width: 3;
+}
+
+.bastionland-bare-map__hexes .bastionland-bare-map__lines {
+	stroke: var(--bastionland-ink);
+	stroke-width: 1.2;
+}
+
+/* What of the picture falls outside the Realm, and isn't shown on the map. */
+.bastionland-bare-map__hexes .bastionland-bare-map__outside {
+	fill: rgb(0 0 0 / 0.4);
+	fill-rule: evenodd;
+	stroke: none;
+}
+
+/*
  * Creating a Realm on the same rail, under the palette and the page. It fills
  * the window as it's resized rather than holding the dialogs' one height, and
  * its rail is a little narrower, to leave the rules the room.

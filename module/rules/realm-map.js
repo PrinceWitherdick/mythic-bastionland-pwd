@@ -15,10 +15,15 @@
  * second. The GM says which (REALM_LAYOUTS), and the Realm's own hexes are laid
  * out the same way, so the two can meet hex for hex.
  *
+ * Or the map has no hexes on it at all, as a painted map hasn't (BARE_MAP).
+ * Then the Realm lays its own over it: as many as its shape takes, so they
+ * cover it edge to edge, and the picture is laid large enough to cover them.
+ *
  * Pure, so it can be tested without Foundry.
  */
 import { ART_ROOT } from "./book-art.js";
 import { BOOK_LAYOUT, REALM_LAYOUTS, allHexes, hexCentre, hexVertices, normaliseLayout, realmGeometry } from "./realm-geometry.js";
+import { BOOK_SETUP, OWN_SIZE_LIMITS, ownSideLimits, within, withinOwnSize } from "./realm-setup.js";
 
 /** Where pictures of a GM's own Realm maps are saved, under Data rather than a world. */
 export const REALM_MAP_DIR = `${ART_ROOT}/realm-maps`;
@@ -90,6 +95,7 @@ const round = (value) => Math.round(value * 100) / 100;
  *   measurements, kept from before pictures were measured, lies over the whole
  *   map until it's lined up.
  * @property {string} src
+ * @property {boolean} bare Whether the picture has no hexes on it, so the Realm's own are laid over it.
  * @property {number} [x]
  * @property {number} [y]
  * @property {number} [width]
@@ -109,8 +115,10 @@ export function normaliseMapPicture(picture) {
 	const src = typeof picture?.src === "string" ? picture.src.trim() : "";
 	if (!src) return null;
 	const { x, y, width, height } = picture;
+	// Said either way: the Scene's flag is merged into, so a word left out would leave the last one written standing.
+	const bare = picture.bare === true;
 	const measured = [x, y, width, height].every((value) => Number.isFinite(value)) && width > 0 && height > 0;
-	return measured ? { src, x: round(x), y: round(y), width: round(width), height: round(height) } : { src };
+	return measured ? { src, bare, x: round(x), y: round(y), width: round(width), height: round(height) } : { src, bare };
 }
 
 /**
@@ -169,20 +177,200 @@ export function resizesMapPicture(picture, changes) {
 export const fullMapRect = (g) => ({ x: g.width / 2, y: g.height / 2, width: g.width, height: g.height });
 
 /**
- * Where a picture lies before it's lined up: as large as fits on the map
- * without being stretched, in the middle of it. A map drawn edge to edge is
- * then in place already, and only has to be slid; one with a border round it
- * is sized to its hexes by marking two of them.
+ * @param {{width: number, height: number}|null|undefined} size
+ * @returns {boolean} Whether a picture's own size is known.
+ */
+const measured = (size) => Number(size?.width) > 0 && Number(size?.height) > 0;
+
+/**
+ * A picture laid evenly in the middle of the map.
+ * @param {object} g
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
+ * @param {(across: number, down: number) => number} pick Which of the two scales that meet the map's edges.
+ * @returns {{x: number, y: number, width: number, height: number}} The whole map for a picture of no known size.
+ */
+function laid(g, size, pick) {
+	if (!measured(size)) return fullMapRect(g);
+	const scale = pick(g.width / Number(size.width), g.height / Number(size.height));
+	return { x: round(g.width / 2), y: round(g.height / 2), width: round(size.width * scale), height: round(size.height * scale) };
+}
+
+/**
+ * Where a picture with hexes on it lies before it's lined up: as large as
+ * fits on the map without being stretched, in the middle of it, until it's
+ * sized to its hexes by marking two of them.
  * @param {object} g
  * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
  * @returns {{x: number, y: number, width: number, height: number}} The whole map for a picture of no known size.
  */
-export function fittedMapRect(g, size) {
-	const width = Number(size?.width);
-	const height = Number(size?.height);
-	if (!(width > 0) || !(height > 0)) return fullMapRect(g);
-	const scale = Math.min(g.width / width, g.height / height);
-	return { x: round(g.width / 2), y: round(g.height / 2), width: round(width * scale), height: round(height * scale) };
+export const fittedMapRect = (g, size) => laid(g, size, Math.min);
+
+/**
+ * Where a picture with no hexes on it lies before it's lined up: just large
+ * enough to cover the whole map without being stretched, in the middle of it,
+ * so no hex is left on bare paper. Whatever runs past the map's edges isn't shown.
+ * @param {object} g
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
+ * @returns {{x: number, y: number, width: number, height: number}} The whole map for a picture of no known size.
+ */
+export const coveredMapRect = (g, size) => laid(g, size, Math.max);
+
+/**
+ * How much of a map with no hexes on it falls outside the Realm once it's
+ * laid to cover it: none when the two are the same shape.
+ * @param {object} g
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
+ * @returns {number} The share of the picture, 0 to 1; 0 for a picture of no known size.
+ */
+export function coveredCrop(g, size) {
+	if (!measured(size)) return 0;
+	const { width, height } = coveredMapRect(g, size);
+	return Math.max(0, 1 - (g.width * g.height) / (width * height));
+}
+
+/**
+ * @param {object} g
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size, in its pixels.
+ * @param {object} [options]
+ * @param {boolean} [options.bare] Whether the picture has no hexes on it.
+ * @returns {{x: number, y: number, width: number, height: number}} Where the picture lies before it's lined up.
+ */
+export const laidMapRect = (g, size, { bare = false } = {}) => (bare ? coveredMapRect : fittedMapRect)(g, size);
+
+/** The word a dialog gives for a map with no hexes on it, beside the layouts (REALM_LAYOUTS) one with hexes may be drawn in. */
+export const BARE_MAP = "bare";
+
+/**
+ * How far the shape of a map so many hexes across and down is from a
+ * picture's: none for the same shape. Laid to cover the map, the picture loses
+ * 1 - e^-miss of its width or its height past the map's edges.
+ * @param {{width: number, height: number}} size
+ * @param {number} cols
+ * @param {number} rows
+ * @param {string} layout
+ * @returns {number}
+ */
+function shapeMiss(size, cols, rows, layout) {
+	const g = realmGeometry({ cols, rows, layout });
+	return Math.abs(Math.log((g.width / g.height) / (Number(size.width) / Number(size.height))));
+}
+
+/**
+ * @param {"cols"|"rows"} side
+ * @param {number} [other] How many the other side has, if that's settled.
+ * @returns {number[]} Every count that side of a map with no hexes on it may have (OWN_SIZE_LIMITS).
+ */
+const sideCounts = (side, other) => {
+	const { min, max } = ownSideLimits(side, other);
+	return Array.from({ length: max - min + 1 }, (_, index) => min + index);
+};
+
+/**
+ * @param {number[]} counts
+ * @param {(count: number) => number} miss
+ * @returns {number} The count that misses least, the smaller where two miss alike.
+ */
+const closest = (counts, miss) => counts.reduce((best, count) => (miss(count) < miss(best) ? count : best));
+
+/**
+ * How many hexes the other side of a map with no hexes on it takes for so
+ * many along one side, so the Realm comes out as near its shape as whole hexes allow.
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {"cols"|"rows"} side The side that's settled.
+ * @param {number} count How many that side has.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {number|null} Null for a picture of no known size.
+ */
+export function otherSideForPicture(size, side, count, layout = BOOK_LAYOUT) {
+	if (!measured(size)) return null;
+	const given = within(count, BOOK_SETUP[side], OWN_SIZE_LIMITS[side]);
+	const other = side === "cols" ? "rows" : "cols";
+	const miss = (n) => (side === "cols" ? shapeMiss(size, given, n, layout) : shapeMiss(size, n, given, layout));
+	return closest(sideCounts(other, given), miss);
+}
+
+/**
+ * How much a suggested size is held against for having more or fewer hexes
+ * than a typical Realm, beside how much of the picture it loses: twice as many
+ * or half as many weighs as much as losing 3.5% of the picture. Enough to keep
+ * a size near a typical Realm's, but not to crop a long, thin map for it, as
+ * whole rows of hexes would.
+ */
+const STRAY_WEIGHT = 0.05;
+
+/**
+ * How many hexes a map with no hexes on it is given to start with: about as
+ * many as a typical Realm's (p14), in its shape. Of the sizes that fit its
+ * shape, the one that loses least of the picture and strays least from a
+ * typical Realm's count, weighed together (STRAY_WEIGHT).
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number}|null} Null for a picture of no known size.
+ */
+export function suggestedMapSize(size, layout = BOOK_LAYOUT) {
+	if (!measured(size)) return null;
+	const typical = BOOK_SETUP.cols * BOOK_SETUP.rows;
+	const scored = sideCounts("cols").map((cols) => {
+		const rows = otherSideForPicture(size, "cols", cols, layout);
+		const lost = 1 - Math.exp(-shapeMiss(size, cols, rows, layout));
+		return { cols, rows, score: lost + STRAY_WEIGHT * Math.abs(Math.log((cols * rows) / typical)) };
+	});
+	const best = scored.reduce((kept, next) => (next.score < kept.score ? next : kept));
+	return { cols: best.cols, rows: best.rows };
+}
+
+/**
+ * How many hexes go over a map with no hexes on it, as the GM sets them: the
+ * side they set last is kept and the other follows the picture's shape, so the
+ * hexes still cover it edge to edge. Until they set one, it's the suggestion.
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {object} [given]
+ * @param {unknown} [given.cols]
+ * @param {unknown} [given.rows]
+ * @param {"cols"|"rows"|null} [given.lead] The side the GM set last.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number}} Within OWN_SIZE_LIMITS; as given for a picture of no known size.
+ */
+export function bareMapSize(size, { cols, rows, lead = null } = {}, layout = BOOK_LAYOUT) {
+	const given = withinOwnSize(cols, rows, lead ?? "cols");
+	if (!measured(size)) return given;
+	if (lead === "cols") return { cols: given.cols, rows: otherSideForPicture(size, "cols", given.cols, layout) };
+	if (lead === "rows") return { cols: otherSideForPicture(size, "rows", given.rows, layout), rows: given.rows };
+	return suggestedMapSize(size, layout);
+}
+
+/** Kept to the tenth of a pixel, which is finer than a preview is drawn. */
+const tenth = (value) => Math.round(value * 10) / 10;
+
+/**
+ * The Realm's hexes as they'll lie over a map with no hexes on it, drawn in the
+ * picture's own pixels, for a preview: an SVG with this viewBox, stretched over
+ * the picture, lies exactly on it. The picture is laid as coveredMapRect lays it.
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {object} [options]
+ * @param {number} [options.cols]
+ * @param {number} [options.rows]
+ * @param {string} [options.layout] One of REALM_LAYOUTS.
+ * @returns {{viewBox: string, hexes: string, outside: string}|null} SVG path data: every hex, and the
+ *   picture outside the map, filled evenodd, or "" when none of it is. Null for a picture of no known size.
+ */
+export function bareHexOverlay(size, { cols, rows, layout = BOOK_LAYOUT } = {}) {
+	if (!measured(size)) return null;
+	const [width, height] = [Number(size.width), Number(size.height)];
+	const g = realmGeometry({ ...withinOwnSize(cols, rows), layout });
+	// How many of the map's pixels one of the picture's is, and where the map's own edges fall on the picture.
+	const scale = Math.max(g.width / width, g.height / height);
+	const [across, down] = [g.width / scale, g.height / scale];
+	const [left, top] = [(width - across) / 2, (height - down) / 2];
+	const at = ({ x, y }) => `${tenth(left + x / scale)} ${tenth(top + y / scale)}`;
+	const hexes = allHexes(g).map((hex) => {
+		const [first, ...rest] = hexVertices(g, hex);
+		return `M${at(first)}${rest.map((corner) => `L${at(corner)}`).join("")}Z`;
+	}).join("");
+	const outside = left >= 0.5 || top >= 0.5
+		? `M0 0H${width}V${height}H0Z M${tenth(left)} ${tenth(top)}h${tenth(across)}v${tenth(down)}h${tenth(-across)}Z`
+		: "";
+	return { viewBox: `0 0 ${width} ${height}`, hexes, outside };
 }
 
 /** How big, in the diagram's own units, each hex of a layout's little picture is across its flat sides. */
@@ -219,6 +407,22 @@ export function layoutDiagram(layout) {
 export function layoutChoices(current = BOOK_LAYOUT) {
 	const chosen = normaliseLayout(current);
 	return REALM_LAYOUTS.map((key) => ({ key, checked: key === chosen, book: key === BOOK_LAYOUT, diagram: layoutDiagram(key) }));
+}
+
+/**
+ * What a GM can say of the map they import: the layouts its hexes may be drawn
+ * in, then that it has none (BARE_MAP), pictured as a map's corner with nothing on it.
+ * @param {string} [current] The layout chosen now.
+ * @param {object} [options]
+ * @param {boolean} [options.bare] Whether the map has no hexes on it now.
+ * @returns {{key: string, checked: boolean, book: boolean, bare: boolean, diagram: ReturnType<typeof layoutDiagram>}[]}
+ */
+export function pictureChoices(current = BOOK_LAYOUT, { bare = false } = {}) {
+	const { viewBox, edge } = layoutDiagram(BOOK_LAYOUT);
+	return [
+		...layoutChoices(current).map((choice) => ({ ...choice, checked: choice.checked && !bare, bare: false })),
+		{ key: BARE_MAP, checked: bare, book: false, bare: true, diagram: { viewBox, edge, hexes: [] } }
+	];
 }
 
 /**

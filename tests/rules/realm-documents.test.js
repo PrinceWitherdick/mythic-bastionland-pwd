@@ -3,6 +3,7 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
+import { normaliseRealmPicture } from "../../module/rules/realm-map.js";
 import { riverNetworkPieces } from "../../module/rules/realm-rivers.js";
 import { PICTURE_NAME, REALM_PALETTES } from "../../module/rules/realm-skins.js";
 import {
@@ -12,6 +13,7 @@ import {
 	REALM_SORT,
 	hiddenByHand,
 	isRealmDocument,
+	openingScale,
 	planChanges,
 	planRealmSync,
 	realmDocuments,
@@ -371,6 +373,24 @@ describe("planRealmSync", () => {
 	});
 });
 
+describe("the zoom a Realm opens at", () => {
+	it("is half size for a typical Realm, either way its hexes sit", () => {
+		expect(openingScale(g)).toBe(0.5);
+		expect(openingScale(realmGeometry({ layout: "evenRows" }))).toBe(0.5);
+		expect(openingScale(realmGeometry({ cols: 17, rows: 8 }))).toBe(0.5);
+		const scene = realmSceneData({ name: "Opening", realm: generateRealm({ seed: "opening", geometry: g }), geometry: g, textures: realmTextures() });
+		expect(scene.initial).toEqual({ x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: 0.5 });
+	});
+
+	it("is further out for a very long or tall Realm, so it's seen whole along its length", () => {
+		const long = realmGeometry({ cols: 60, rows: 3 });
+		const tall = realmGeometry({ cols: 3, rows: 57 });
+		expect(long.width * openingScale(long)).toBeLessThanOrEqual(1600);
+		expect(tall.height * openingScale(tall)).toBeLessThanOrEqual(1000);
+		expect(openingScale(long)).toBeLessThan(0.5);
+	});
+});
+
 describe("a Realm traced over a picture", () => {
 	const textures = realmTextures();
 	const pictured = (picture) => {
@@ -417,7 +437,7 @@ describe("a Realm traced over a picture", () => {
 			drawings: scene.drawings.map((drawing, index) => ({ _id: `drawing${index}`, ...structuredClone(drawing) }))
 		};
 		const read = realmFromDocuments(snapshot, g);
-		expect(read.realm.picture).toEqual({ players: { ...players, x: Math.round(g.width / 2), y: Math.round(g.height / 2), width: g.width, height: g.height } });
+		expect(read.realm.picture).toEqual({ players: { ...players, bare: false, x: Math.round(g.width / 2), y: Math.round(g.height / 2), width: g.width, height: g.height } });
 		expect(planChanges(planRealmSync(read.realm, g, textures, snapshot))).toBe(false);
 	});
 
@@ -449,7 +469,7 @@ describe("a Realm traced over a picture", () => {
 
 		// The Scene's flag remembers where it was left, so a picture whose Tile is deleted comes back there.
 		const without = { ...snapshot, tiles: tiles.filter((tile) => tile !== map) };
-		expect(realmFromDocuments(without, g).realm.picture.players).toEqual(lined);
+		expect(realmFromDocuments(without, g).realm.picture.players).toEqual({ ...lined, bare: false });
 	});
 
 	it("says in the Scene's flag that it has pictures, and forgets them when it loses them", () => {
@@ -458,6 +478,24 @@ describe("a Realm traced over a picture", () => {
 		expect(flag.picture).toEqual({ players });
 		const { picture: _gone, ...plain } = realm;
 		expect(realmFlagChanges(flag, plain, g)).toEqual({ set: {}, drop: ["picture"] });
+	});
+
+	it("says a picture has hexes on it in so many words, since the flag is merged into and would keep an old bare", () => {
+		const realm = (bare) => ({ ...generateRealm({ seed: "traced", geometry: g }), picture: normaliseRealmPicture({ players: { ...players, bare } }) });
+		const stale = realmSceneFlag(realm(true), g);
+		expect(realmFlagChanges(stale, realm(false), g).set.picture.players.bare).toBe(false);
+		// A flag from before the word was kept is written once, then matches.
+		const old = { ...realmSceneFlag(realm(false), g), picture: { players } };
+		const changes = realmFlagChanges(old, realm(false), g);
+		expect(Object.keys(changes.set)).toEqual(["picture"]);
+		expect(realmFlagChanges({ ...old, ...changes.set }, realm(false), g)).toBeNull();
+	});
+
+	it("reads a map with no hexes on it back from the flag as bare", () => {
+		const realm = { ...generateRealm({ seed: "traced", geometry: g }), picture: { players: { ...players, bare: true } } };
+		const scene = realmSceneData({ name: "Traced", realm, geometry: g, textures });
+		const tiles = scene.tiles.map((tile, index) => ({ _id: `tile${index}`, ...structuredClone(tile) }));
+		expect(realmFromDocuments({ flags: scene.flags, tiles, drawings: [] }, g).realm.picture.players.bare).toBe(true);
 	});
 });
 

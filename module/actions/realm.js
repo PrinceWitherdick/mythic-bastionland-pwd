@@ -23,10 +23,10 @@ import {
 	realmTextures
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
-import { fittedMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
-import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
+import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
+import { mapPictureContext, measurePicture, readBareMap, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
 import { generateRealm } from "../rules/realm-generator.js";
-import { SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
+import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
 import { relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
@@ -35,6 +35,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
+import { wireBareMapFields } from "../apps/bare-map-fields.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
@@ -618,7 +619,9 @@ export async function newRealm() {
 		seed: randomSeed(),
 		// Drawn by hand, only the map's size is left to set.
 		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
-		...(traced ? mapPictureContext() : {}),
+		...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
+		// How far a map with no hexes on it may run, for the Map size page to say.
+		bareLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
@@ -643,6 +646,8 @@ export async function newRealm() {
 			if (traced) {
 				wireMapPictureFields(dialog.element, { name: upload });
 				holdForMapPicture(dialog.element);
+				// After the setup fields, which it hands the size back to when the map turns out to have hexes after all.
+				wireBareMapFields(dialog.element);
 			}
 		}
 	});
@@ -657,6 +662,8 @@ export async function newRealm() {
 
 	const setup = foundry.utils.expandObject(data).setup ?? {};
 	if (draw) setup.roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, false]));
+	// A map with no hexes on it takes as many as its shape needs, which is no rule ignored.
+	if (traced && readBareMap(data)) setup.ownSize = true;
 	const rules = normaliseRealmSetup(setup);
 	const scene = await createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,
@@ -810,16 +817,19 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 }
 
 /**
- * A Realm's pictures, each laid as large as fits on the map without being
- * stretched, in the middle of it, ready to be lined up.
- * @param {object|null} picture The pictures as chosen, each with a `src`.
+ * A Realm's pictures, each laid in the middle of the map without being
+ * stretched, ready to be lined up: as large as fits on it, or for a map with
+ * no hexes on it, just large enough to cover it.
+ * @param {object|null} picture The pictures as chosen, each with a `src`, and `bare` for one with no hexes on it.
  * @param {object} g The Realm's geometry.
  * @returns {Promise<object|null>}
  */
 async function fitRealmPicture(picture, g) {
 	if (!picture) return null;
 	const fitted = {};
-	for (const [role, map] of Object.entries(picture)) fitted[role] = { src: map.src, ...fittedMapRect(g, await measurePicture(map.src)) };
+	for (const [role, map] of Object.entries(picture)) {
+		fitted[role] = { src: map.src, bare: map.bare, ...laidMapRect(g, await measurePicture(map.src), { bare: map.bare }) };
+	}
 	return normaliseRealmPicture(fitted);
 }
 

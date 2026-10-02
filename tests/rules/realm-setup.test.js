@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MYTH_COUNT } from "../../module/rules/realm.js";
-import { BOOK_SETUP, SETUP_LIMITS, SETUP_PARTS, isBookSetup, normaliseRealmSetup, setupBarriers } from "../../module/rules/realm-setup.js";
+import { BOOK_SETUP, OWN_SIZE_LIMITS, SETUP_LIMITS, SETUP_PARTS, isBookSetup, normaliseRealmSetup, ownSideLimits, setupBarriers, withinOwnSize } from "../../module/rules/realm-setup.js";
 
 describe("BOOK_SETUP", () => {
 	it("is a typical Realm (p14)", () => {
@@ -20,6 +20,28 @@ describe("normaliseRealmSetup", () => {
 		const setup = normaliseRealmSetup({ cols: 20, holdings: 9, myths: 2, barriers: 3 });
 		expect(setup).toMatchObject({ ignoreRules: false, cols: 12, holdings: 4, myths: 6, barriers: null });
 		expect(isBookSetup(setup)).toBe(true);
+		expect(setup).not.toHaveProperty("ownSize");
+	});
+
+	it("takes the GM's own size alone for a map with no hexes on it, without ignoring the rules", () => {
+		const setup = normaliseRealmSetup({ ownSize: true, cols: 17, rows: "8", holdings: 9, myths: 2 });
+		expect(setup).toMatchObject({ ignoreRules: false, ownSize: true, cols: 17, rows: 8, holdings: 4, myths: 6, barriers: null });
+		// Made twice over, as a new Realm's setup is, it's still the same size.
+		expect(normaliseRealmSetup(setup)).toEqual(setup);
+		expect(normaliseRealmSetup({ ownSize: true, cols: 99, rows: 1 })).toMatchObject({ cols: 60, rows: 3 });
+	});
+
+	it("lets a map with no hexes on it run further than the rules ignored, but to no more hexes in all", () => {
+		expect(OWN_SIZE_LIMITS.cols.max).toBeGreaterThan(SETUP_LIMITS.cols.max);
+		expect(OWN_SIZE_LIMITS.hexes).toBe(SETUP_LIMITS.cols.max * SETUP_LIMITS.rows.max);
+		expect(normaliseRealmSetup({ ownSize: true, cols: 60, rows: 3 })).toMatchObject({ cols: 60, rows: 3 });
+		expect(normaliseRealmSetup({ ownSize: true, cols: 3, rows: 60 })).toMatchObject({ cols: 3, rows: 60 });
+		// The side named first keeps what it may have, and the other is held to the hexes left.
+		expect(normaliseRealmSetup({ ownSize: true, cols: 60, rows: 60 })).toMatchObject({ cols: 60, rows: 15 });
+		expect(withinOwnSize(60, 60, "rows")).toEqual({ cols: 15, rows: 60 });
+		expect(ownSideLimits("rows", 45)).toEqual({ min: 3, max: 20 });
+		// With the rules ignored, a side still goes no further than before.
+		expect(normaliseRealmSetup({ ignoreRules: true, cols: 60, rows: 3 })).toMatchObject({ cols: 30, rows: 3 });
 	});
 
 	it("leaves parts to draw by hand whether or not the rules are ignored", () => {

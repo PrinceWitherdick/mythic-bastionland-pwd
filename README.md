@@ -66,7 +66,7 @@ The Phase, Season and Age sit in a bar at the top of the screen. The GM's button
 **New Realm**, at the top of the Scenes tab, rolls a Realm onto a Scene the way the book's Creating a Realm page does: terrain, a river, four Holdings, six Myths, Landmarks and Barriers. The same seed always gives the same map. Reroll until you like it, then keep it. You can also:
 
 - **Draw it yourself**, one step at a time, with the book's instructions beside the map.
-- **Import a map** drawn on paper, scanned or photographed, and line the hexes up over it.
+- **Import a map** drawn on paper, scanned or photographed, and line the hexes up over it. A painted map with no hexes on it works too: the Realm lays its own over it, as many as the map's shape takes.
 - Untick any part of the setup to draw it by hand, or ignore the rules and set your own counts.
 
 When a new world's GM closes the Welcome window, a short Foundry Tour points them to the Scenes tab and New Realm. They can play it again from **Tour Management** in the Settings tab.

@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { TERRAIN } from "../../module/rules/realm.js";
-import { BOOK_LAYOUT, REALM_LAYOUTS, hexCentre, hexVertices, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { BOOK_LAYOUT, REALM_LAYOUTS, hexCentre, hexVertices, normaliseLayout, realmGeometry } from "../../module/rules/realm-geometry.js";
 import {
+	BARE_MAP,
 	MAP_ROLES,
 	TERRAIN_MARKS,
+	bareHexOverlay,
+	bareMapSize,
 	calibrationHexes,
+	coveredCrop,
+	coveredMapRect,
 	fitToMarks,
 	fittedMapRect,
 	fullMapRect,
 	hidesTerrain,
+	laidMapRect,
 	layoutChoices,
 	layoutDiagram,
 	mapRect,
@@ -18,10 +24,13 @@ import {
 	markedHexLettering,
 	normaliseMapPicture,
 	normaliseRealmPicture,
+	otherSideForPicture,
+	pictureChoices,
 	realmPictures,
 	resizesMapPicture,
 	sizeMapRect,
 	slideMapRect,
+	suggestedMapSize,
 	terrainMark,
 	viewOfPicture,
 	withMapPlaces
@@ -34,23 +43,30 @@ const marks = () => calibrationHexes(g).map((hex) => hexCentre(g, hex));
 
 describe("normaliseMapPicture", () => {
 	it("keeps a picture with nowhere to be, since it hasn't been lined up yet", () => {
-		expect(normaliseMapPicture({ src: "maps/realm.webp" })).toEqual({ src: "maps/realm.webp" });
-		expect(normaliseMapPicture({ src: " maps/realm.webp " })).toEqual({ src: "maps/realm.webp" });
+		expect(normaliseMapPicture({ src: "maps/realm.webp" })).toEqual({ src: "maps/realm.webp", bare: false });
+		expect(normaliseMapPicture({ src: " maps/realm.webp " })).toEqual({ src: "maps/realm.webp", bare: false });
 	});
 
 	it("keeps where it lies once it has all four measurements", () => {
 		expect(normaliseMapPicture({ src: "a.png", x: 10.005, y: 20, width: 30, height: 40 }))
-			.toEqual({ src: "a.png", x: 10.01, y: 20, width: 30, height: 40 });
+			.toEqual({ src: "a.png", bare: false, x: 10.01, y: 20, width: 30, height: 40 });
 	});
 
 	it("drops measurements that say nothing", () => {
 		for (const bad of [{ width: 0, height: 40 }, { width: 30 }, { width: "30", height: 40 }, { width: 30, height: Number.NaN }]) {
-			expect(normaliseMapPicture({ src: "a.png", x: 0, y: 0, ...bad })).toEqual({ src: "a.png" });
+			expect(normaliseMapPicture({ src: "a.png", x: 0, y: 0, ...bad })).toEqual({ src: "a.png", bare: false });
 		}
 	});
 
 	it("is nothing without a picture", () => {
 		for (const bad of [null, undefined, {}, { src: "" }, { src: "   " }, { src: 7 }]) expect(normaliseMapPicture(bad)).toBeNull();
+	});
+
+	it("always says whether the picture has no hexes on it, so a flag merged into can't keep an old word", () => {
+		expect(normaliseMapPicture({ src: "a.png", bare: true })).toEqual({ src: "a.png", bare: true });
+		expect(normaliseMapPicture({ src: "a.png", bare: true, x: 1, y: 2, width: 3, height: 4 }))
+			.toEqual({ src: "a.png", bare: true, x: 1, y: 2, width: 3, height: 4 });
+		for (const not of [undefined, false, "yes", 1]) expect(normaliseMapPicture({ src: "a.png", bare: not }).bare).toBe(false);
 	});
 });
 
@@ -62,7 +78,7 @@ describe("normaliseRealmPicture", () => {
 
 	it("keeps the players' map, dropping a referee's map and the features tick from before", () => {
 		expect(normaliseRealmPicture({ players: { src: "open.png" }, referee: { src: "secret.png" }, features: 1 }))
-			.toEqual({ players: { src: "open.png" } });
+			.toEqual({ players: { src: "open.png", bare: false } });
 	});
 
 	it("names the players' map alone", () => {
@@ -101,6 +117,10 @@ describe("a picture keeps its size", () => {
 	it("reads where its Tile stands, but not the Tile's size", () => {
 		const read = withMapPlaces({ players: laid }, { players: { x: 520, y: 590, width: 1200, height: 700 } });
 		expect(read.players).toEqual({ ...laid, x: 520, y: 590 });
+	});
+
+	it("still has no hexes on it wherever its Tile stands", () => {
+		expect(withMapPlaces({ players: { ...laid, bare: true } }, { players: { x: 1, y: 2, width: 3, height: 4 } }).players.bare).toBe(true);
 	});
 
 	it("takes the Tile's size for a picture never measured", () => {
@@ -145,6 +165,125 @@ describe("fittedMapRect", () => {
 	});
 });
 
+/** A painted map with no hexes on it, as wide as a screen. */
+const WIDE = Object.freeze({ width: 3840, height: 2160 });
+
+/** A picture the shape of the book's Realm Sheet, 12 hexes by 12. */
+const SHEET = Object.freeze({ width: 1709, height: 2000 });
+
+describe("coveredMapRect", () => {
+	it("lays a map with no hexes on it just large enough to cover the whole map, unstretched, in the middle", () => {
+		expect(coveredMapRect(g, WIDE)).toEqual({ x: 854.5, y: 1000, width: 3555.56, height: 2000 });
+		expect(coveredMapRect(g, SHEET)).toEqual({ x: 854.5, y: 1000, width: 1709, height: 2000 });
+		expect(coveredMapRect(g, null)).toEqual(fullMapRect(g));
+	});
+
+	it("says how much of the picture falls outside the map", () => {
+		// Half of a wide map is lost over the book's 12 by 12, and next to none over hexes laid in its shape.
+		expect(coveredCrop(g, WIDE)).toBeCloseTo(1 - 1709 / 3555.56, 3);
+		expect(coveredCrop(realmGeometry({ cols: 17, rows: 8 }), WIDE)).toBeLessThan(0.01);
+		expect(coveredCrop(g, SHEET)).toBe(0);
+		expect(coveredCrop(g, null)).toBe(0);
+	});
+
+	it("is how a bare picture is laid, and a picture with hexes is still fitted inside", () => {
+		expect(laidMapRect(g, WIDE, { bare: true })).toEqual(coveredMapRect(g, WIDE));
+		expect(laidMapRect(g, WIDE)).toEqual(fittedMapRect(g, WIDE));
+	});
+});
+
+describe("how many hexes go over a map with no hexes on it", () => {
+	it("takes as many rows as the picture's shape needs for so many across, and the other way round", () => {
+		expect(otherSideForPicture(WIDE, "cols", 17)).toBe(8);
+		expect(otherSideForPicture(WIDE, "cols", 18)).toBe(8);
+		expect(otherSideForPicture(WIDE, "cols", 20)).toBe(9);
+		expect(otherSideForPicture(WIDE, "rows", 8)).toBe(17);
+		expect(otherSideForPicture(WIDE, "rows", 10)).toBe(21);
+		expect(otherSideForPicture(WIDE, "rows", 3)).toBe(7);
+		expect(otherSideForPicture(SHEET, "cols", 12)).toBe(12);
+		expect(otherSideForPicture(SHEET, "rows", 12)).toBe(12);
+		expect(otherSideForPicture(SHEET, "cols", 20)).toBe(20);
+	});
+
+	it("keeps within the sizes a map may have", () => {
+		expect(otherSideForPicture({ width: 4000, height: 1000 }, "cols", 3)).toBe(3);
+		expect(otherSideForPicture({ width: 1000, height: 4000 }, "cols", 30)).toBe(30);
+		expect(otherSideForPicture(null, "cols", 12)).toBeNull();
+		expect(otherSideForPicture({ width: 0, height: 10 }, "rows", 12)).toBeNull();
+	});
+
+	it("starts close to a typical Realm's count, in the picture's shape", () => {
+		const { cols, rows } = realmGeometry();
+		expect(suggestedMapSize(SHEET)).toEqual({ cols, rows });
+		expect(suggestedMapSize(WIDE)).toEqual({ cols: 17, rows: 8 });
+		expect(suggestedMapSize({ width: 2048, height: 1536 })).toEqual({ cols: 16, rows: 10 });
+		expect(suggestedMapSize({ width: 2000, height: 2000 })).toEqual({ cols: 13, rows: 11 });
+	});
+
+	it("starts in the picture's shape with pointed tops as well", () => {
+		expect(suggestedMapSize(WIDE, "evenRows")).toEqual({ cols: 14, rows: 9 });
+		expect(suggestedMapSize({ width: 2000, height: 2000 }, "evenRows")).toEqual({ cols: 11, rows: 13 });
+		expect(suggestedMapSize(SHEET, "oddRows")).toEqual({ cols: 10, rows: 14 });
+		expect(suggestedMapSize(null)).toBeNull();
+	});
+
+	it("keeps the side the GM set and follows the picture with the other, until then the suggestion", () => {
+		expect(bareMapSize(WIDE, { cols: 12, rows: 12 })).toEqual({ cols: 17, rows: 8 });
+		expect(bareMapSize(WIDE, { cols: 20, rows: 12, lead: "cols" })).toEqual({ cols: 20, rows: 9 });
+		expect(bareMapSize(WIDE, { cols: 3, rows: 10, lead: "rows" })).toEqual({ cols: 21, rows: 10 });
+		expect(bareMapSize(null, { cols: "40", rows: "", lead: "cols" })).toEqual({ cols: 40, rows: 12 });
+		expect(bareMapSize(null, { cols: 60, rows: 60, lead: "rows" })).toEqual({ cols: 15, rows: 60 });
+	});
+
+	it("covers very wide and very tall maps, losing next to none of them", () => {
+		const shapes = {
+			"8:1": [{ width: 8000, height: 1000 }, { cols: 41, rows: 4 }],
+			"12:1": [{ width: 12000, height: 1000 }, { cols: 48, rows: 3 }],
+			"1:5": [{ width: 1000, height: 5000 }, { cols: 6, rows: 27 }],
+			"1:20": [{ width: 1000, height: 20000 }, { cols: 3, rows: 57 }]
+		};
+		for (const [picture, expected] of Object.values(shapes)) {
+			const suggested = suggestedMapSize(picture);
+			expect(suggested).toEqual(expected);
+			expect(coveredCrop(realmGeometry(suggested), picture)).toBeLessThan(0.02);
+		}
+	});
+
+	it("never gives a map with no hexes on it more hexes than the largest Realm with the rules ignored", () => {
+		// A square map 60 across would want 60 rows: it's held to 15.
+		expect(otherSideForPicture({ width: 2000, height: 2000 }, "cols", 60)).toBe(15);
+		expect(otherSideForPicture({ width: 2000, height: 2000 }, "rows", 60)).toBe(15);
+		expect(bareMapSize({ width: 2000, height: 2000 }, { cols: 60, rows: 12, lead: "cols" })).toEqual({ cols: 60, rows: 15 });
+	});
+});
+
+describe("bareHexOverlay", () => {
+	it("draws every hex in the picture's own pixels, as the picture is laid to cover them", () => {
+		const overlay = bareHexOverlay(WIDE, { cols: 17, rows: 8 });
+		expect(overlay.viewBox).toBe("0 0 3840 2160");
+		expect(overlay.hexes.match(/M/g)).toHaveLength(17 * 8);
+
+		// The first hex's first corner, back on the map through where the picture is laid.
+		const g17 = realmGeometry({ cols: 17, rows: 8 });
+		const rect = coveredMapRect(g17, WIDE);
+		const [x, y] = overlay.hexes.slice(1).split("L")[0].split(" ").map(Number);
+		const onMap = { x: rect.x - rect.width / 2 + x * (rect.width / WIDE.width), y: rect.y - rect.height / 2 + y * (rect.height / WIDE.height) };
+		const corner = hexVertices(g17, { col: 1, row: 1 })[0];
+		expect(onMap.x).toBeCloseTo(corner.x, 0);
+		expect(onMap.y).toBeCloseTo(corner.y, 0);
+	});
+
+	it("shades the strips of picture outside the map, and none where the shapes meet", () => {
+		expect(bareHexOverlay(WIDE, { cols: 17, rows: 8 }).outside).toBe("M0 0H3840V2160H0Z M12.5 0h3814.9v2160h-3814.9Z");
+		expect(bareHexOverlay(SHEET, { cols: 12, rows: 12 }).outside).toBe("");
+	});
+
+	it("lays pointed tops too, and nothing for a picture of no known size", () => {
+		expect(bareHexOverlay(WIDE, { cols: 14, rows: 9, layout: "evenRows" }).hexes.match(/M/g)).toHaveLength(14 * 9);
+		expect(bareHexOverlay(null, { cols: 12, rows: 12 })).toBeNull();
+	});
+});
+
 describe("layoutDiagram and layoutChoices", () => {
 	it("draws four hexes by three inside the map's top and left edges", () => {
 		for (const layout of REALM_LAYOUTS) {
@@ -171,6 +310,20 @@ describe("layoutDiagram and layoutChoices", () => {
 		expect(choices.filter((choice) => choice.checked).map((choice) => choice.key)).toEqual(["oddRows"]);
 		expect(choices.find((choice) => choice.book).key).toBe(BOOK_LAYOUT);
 		expect(layoutChoices("sideways").find((choice) => choice.checked).key).toBe(BOOK_LAYOUT);
+	});
+
+	it("offers a map with no hexes on it after the layouts, laid out the book's way", () => {
+		expect(REALM_LAYOUTS).not.toContain(BARE_MAP);
+		expect(normaliseLayout(BARE_MAP)).toBe(BOOK_LAYOUT);
+		const choices = pictureChoices("oddRows");
+		expect(choices.map((choice) => choice.key)).toEqual([...REALM_LAYOUTS, BARE_MAP]);
+		expect(choices.filter((choice) => choice.checked).map((choice) => choice.key)).toEqual(["oddRows"]);
+
+		const bare = pictureChoices("oddRows", { bare: true });
+		expect(bare.filter((choice) => choice.checked).map((choice) => choice.key)).toEqual([BARE_MAP]);
+		const { diagram } = bare.at(-1);
+		expect(diagram.hexes).toEqual([]);
+		expect(diagram).toMatchObject({ viewBox: layoutDiagram(BOOK_LAYOUT).viewBox, edge: layoutDiagram(BOOK_LAYOUT).edge });
 	});
 });
 
