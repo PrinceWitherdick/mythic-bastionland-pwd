@@ -8,9 +8,9 @@
 		<span class="bastionland-travels__line bastionland-travels__visits">{{visits}}</span>
 	</button>
 	<span class="bastionland-travels__chips">
-		{{#if here}}<span class="bastionland-travels__chip bastionland-travels__chip--here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
-		{{#if told}}<span class="bastionland-travels__chip"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
-		{{#if noted}}<span class="bastionland-travels__chip"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
+		{{#if here}}<span class="bastionland-travels__chip bastionland-pill bastionland-travels__chip--here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
+		{{#if told}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
+		{{#if noted}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
 	</span>
 	{{#if onMap}}
 	<button type="button" class="bastionland-icon" data-action="showTravelsHex" data-hex="{{hex}}" data-tooltip="{{localize 'bastionland.travels.showOnMap'}}" aria-label="{{localize 'bastionland.travels.showOnMap'}}"><i class="fa-solid fa-location-crosshairs" inert></i></button>

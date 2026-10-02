@@ -1,8 +1,9 @@
-<div class="bastionland-save {{#if save.passed}}is-pass{{else}}is-fail{{/if}}">
-	<span class="bastionland-save__label">{{save.label}}</span>
+{{!-- `bare` leaves the label and the target to a card that heads itself with them. --}}
+<div class="bastionland-save {{#if save.passed}}is-pass{{else}}is-fail{{/if}}{{#if bare}} bastionland-save--bare{{/if}}">
+	{{#unless bare}}<span class="bastionland-save__label">{{save.label}}</span>{{/unless}}
 	<span class="bastionland-save__die bastionland-die__face" style="--bastionland-die-mask: {{save.shape}}">
 		<span class="bastionland-save__total">{{save.total}}</span>
 	</span>
-	<span class="bastionland-save__target">{{save.target}}</span>
+	{{#unless bare}}<span class="bastionland-save__target">{{save.target}}</span>{{/unless}}
 	<strong class="bastionland-save__result">{{save.result}}</strong>
 </div>

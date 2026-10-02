@@ -6,6 +6,12 @@
  * here is only what the toolkit has of its own.
  */
 
+/* Foundry's resize stops at the window's min-width and min-height. */
+.application.bastionland-gm-toolkit {
+	min-width: 650px;
+	min-height: 500px;
+}
+
 /* The banner stays put while the page under it scrolls. */
 .bastionland-gm-toolkit > .window-content {
 	display: flex;
@@ -396,11 +402,15 @@
 }
 
 /* A block, not a flex box: text-box trimming only works on block containers,
-   so a flex chip kept its full line box and its letters sat off-centre. */
+   so a flex chip kept its full line box and its letters sat off-centre. The
+   body face carries tall ascender room, so its letters sit low in the line
+   box; the pill rules in the main sheet trim the box to the capitals and
+   baseline, and pad it evenly in whole screen pixels where they can. */
 .bastionland-gm-toolkit__chip {
+	--pill-pad: 0.34rem;
 	display: inline-block;
-	padding: 0.05rem 0.45rem;
-	border: 1px solid var(--bastionland-rule);
+	padding: var(--pill-padding-top, 0.05rem) 0.45rem var(--pill-padding-bottom, 0.05rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
 	border-radius: 999px;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);
@@ -408,31 +418,11 @@
 	line-height: 1.35;
 }
 
-/* The body face carries tall ascender room, so its letters sit low in the
-   line box. The pill rule in the main sheet trims the box to the capitals and
-   baseline; pad it evenly here, after the padding above. */
+/* Trimmed, it is a touch wider at the sides too. */
 @supports (text-box: trim-both cap alphabetic) {
 	.bastionland-gm-toolkit__chip {
-		padding: 0.34rem 0.5rem;
-	}
-}
-
-/* Even padding still left the letters a pixel high or low, so the chip takes
-   its height and baseline in whole screen pixels from the pill sums in the
-   main sheet, and pads itself with what they leave. */
-@supports (text-box: trim-both cap alphabetic) and (padding: round(1cap, 1px)) {
-	.bastionland-gm-toolkit__chip {
-		--pill-pad: 0.34rem;
-		padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
-		padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
-		border-width: var(--pill-border);
-	}
-
-	/* Small capitals stand an x-height tall, so a terrain's are centred on that
-	   and its one full capital rises above them, in a pill the same height. */
-	.bastionland-gm-toolkit__chip.is-terrain {
-		--pill-edge: 1ex;
-		text-box: trim-both ex alphabetic;
+		padding-right: 0.5rem;
+		padding-left: 0.5rem;
 	}
 }
 

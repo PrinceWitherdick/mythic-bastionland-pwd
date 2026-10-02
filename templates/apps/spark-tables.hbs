@@ -7,7 +7,7 @@
 		<ul class="bastionland-choices bastionland-choices--inline">
 			{{#each pages}}
 			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="showPage" data-page="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+				<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="showPage" data-page="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
 			</li>
 			{{/each}}
 		</ul>

@@ -12,10 +12,15 @@ import { SYSTEM_ID } from "../system-id.js";
  */
 
 /**
- * The first page's last slot, the one Foundry labels 0. It's kept for Import
- * PDF, so the macros used in play fill the page from the left.
+ * The first page's last two slots, the ones Foundry labels 9 and 0. A GM's are
+ * kept for Import PDF and End the Session, so the macros used in play fill the
+ * page from the left.
  */
-export const LAST_SLOT = 10;
+export const IMPORT_SLOT = 9;
+export const SESSION_SLOT = 10;
+
+/** The slots on the hotbar's first page. */
+const PAGE_SLOTS = 10;
 
 /**
  * Flag on a macro remembering the picture the system last gave it. A macro
@@ -27,12 +32,15 @@ const GIVEN_IMG_FLAG = "givenImg";
 /**
  * @param {Record<number, string>} hotbar Macro ids by slot.
  * @param {string} macroId
+ * @param {object} [options]
+ * @param {boolean} [options.gm] Whether the hotbar is a GM's, who keeps slot 9 for Import PDF too.
  * @returns {number|null} The first empty slot on the first page short of the
- *   last, or null when those are full or the macro is already on the hotbar somewhere.
+ *   last (a GM's last two), or null when those are full or the macro is already on the hotbar somewhere.
  */
-export function emptySlot(hotbar, macroId) {
+export function emptySlot(hotbar, macroId, { gm = true } = {}) {
 	if (Object.values(hotbar ?? {}).includes(macroId)) return null;
-	for (let slot = 1; slot < LAST_SLOT; slot++) {
+	const end = gm ? IMPORT_SLOT : SESSION_SLOT;
+	for (let slot = 1; slot < end; slot++) {
 		if (!hotbar?.[slot]) return slot;
 	}
 	return null;
@@ -98,7 +106,7 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 		// A macro the user can't run is no use on their bar.
 		if (!(everyone ? macro?.canExecute : macro) || game.user.getFlag(SYSTEM_ID, hotbarFlag)) return;
 
-		const slot = emptySlot(game.user.hotbar, macro.id);
+		const slot = emptySlot(game.user.hotbar, macro.id, { gm: game.user.isGM });
 		if (slot) await game.user.assignHotbarMacro(macro, slot);
 		// Set even when the first page is full, so it never turns up later in a slot the user cleared for something else.
 		await game.user.setFlag(SYSTEM_ID, hotbarFlag, true);
@@ -107,24 +115,11 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 	return { seed, ensure };
 }
 
-/**
- * Put one macro in the first page's last slot. Closing the gap it leaves is
- * orderHotbar's job, which runs straight after and lays out the first slots.
- * @param {Record<number, string>} hotbar Macro ids by slot.
- * @param {string} lastId The macro for the last slot. It's moved there from wherever
- *   it was, or left where it was when the user keeps their own macro in that slot.
- * @returns {Record<number, string>} The new hotbar.
- */
-export function arrangeHotbar(hotbar, lastId) {
-	const arranged = { ...hotbar };
-	const lastWas = Object.keys(arranged).find((slot) => arranged[slot] === lastId);
-	if (lastWas && !arranged[LAST_SLOT]) delete arranged[lastWas];
-	if (!arranged[LAST_SLOT]) arranged[LAST_SLOT] = lastId;
-	return arranged;
-}
-
 /** The most slots a user's hotbar has, over all its pages. */
 const HOTBAR_SLOTS = 50;
+
+/** @returns {number|undefined} The first empty slot on any page. */
+const firstEmpty = (hotbar) => Array.from({ length: HOTBAR_SLOTS }, (_, index) => index + 1).find((slot) => !hotbar[slot]);
 
 /**
  * Put the given macros in the first slots, in order, wherever they were. A
@@ -145,7 +140,36 @@ export function orderHotbar(hotbar, firstIds) {
 		arranged[index + 1] = id;
 	});
 	for (const id of displaced) {
-		const slot = Array.from({ length: HOTBAR_SLOTS }, (_, index) => index + 1).find((entry) => !arranged[entry]);
+		const slot = firstEmpty(arranged);
+		if (slot) arranged[slot] = id;
+	}
+	return arranged;
+}
+
+/**
+ * Put macros in the first page's last slots, wherever they were, and slide the
+ * rest of that page left to close its gaps. A user's own macro with no room
+ * left on the page moves to the first empty slot after it rather than being dropped.
+ * @param {Record<number, string>} hotbar Macro ids by slot.
+ * @param {Record<number, string|undefined>} ends Macro ids by the slot each takes.
+ *   A slot with none is left for the rest of the page.
+ * @returns {Record<number, string>} The new hotbar.
+ */
+export function endHotbar(hotbar, ends) {
+	const endIds = Object.values(ends).filter(Boolean);
+	const arranged = {};
+	const page = [];
+	for (const [slot, id] of Object.entries(hotbar ?? {})) {
+		if (!id || endIds.includes(id)) continue;
+		if (Number(slot) <= PAGE_SLOTS) page.push([Number(slot), id]);
+		else arranged[slot] = id;
+	}
+	for (const [slot, id] of Object.entries(ends)) {
+		if (id) arranged[slot] = id;
+	}
+	page.sort(([a], [b]) => a - b);
+	for (const [, id] of page) {
+		const slot = firstEmpty(arranged);
 		if (slot) arranged[slot] = id;
 	}
 	return arranged;

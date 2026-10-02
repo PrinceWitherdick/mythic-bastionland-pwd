@@ -1,16 +1,16 @@
 <section class="bastionland-card bastionland-card--scar">
 	<header class="bastionland-card__header">
-		<h3 class="bastionland-card__title"><span class="bastionland-card__roll">{{roll}}</span> {{name}}</h3>
+		<h3 class="bastionland-card__title">{{name}}</h3>
 		{{#if flavour}}
 		<p class="bastionland-card__tagline">{{flavour}}</p>
 		{{/if}}
 	</header>
+	<p class="bastionland-card__outcome"><span class="bastionland-card__roll">{{roll}}</span> {{effect}}</p>
 	{{#if location}}
 	<p class="bastionland-card__location">{{location}}</p>
 	{{/if}}
-	<p class="bastionland-card__text">{{effect}}</p>
 	{{#each lines}}
-	<p class="bastionland-card__outcome">{{this}}</p>
+	<p class="bastionland-card__text">{{this}}</p>
 	{{/each}}
 	<p class="bastionland-card__hint">d{{faces}}</p>
 </section>

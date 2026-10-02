@@ -1,9 +1,15 @@
-{{!-- A `tone` (a Phase or a Season) paints the card in its colours. --}}
+{{!-- A `tone` (a Phase or a Season) paints the card in its colours. A card
+with a `d6` reads as the Luck Roll's does: what the roll is under its name,
+then the die and what it gave under the rule. --}}
 <section class="bastionland-card bastionland-card--report{{#if tone}} bastionland-card--painted bastionland-card--{{tone}}{{/if}}">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{#if icon}}<i class="{{icon}}" inert></i> {{/if}}{{title}}</h3>
-		<p class="bastionland-card__tagline">{{#if d6}}<span class="bastionland-card__roll">{{d6}}</span> {{/if}}{{tagline}}</p>
+		{{#if description}}<p class="bastionland-card__hint">{{description}}</p>{{/if}}
+		{{#unless d6}}<p class="bastionland-card__tagline">{{tagline}}</p>{{/unless}}
 	</header>
+	{{#if d6}}
+	<p class="bastionland-card__outcome"><span class="bastionland-card__roll">{{d6}}</span> {{tagline}}</p>
+	{{/if}}
 	{{#if entries.length}}
 	<ul class="bastionland-card__entries">
 		{{#each entries}}

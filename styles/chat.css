@@ -210,6 +210,16 @@
 	background: var(--bastionland-paper-deep);
 }
 
+/* A Save card names the Save and its target over the rule, so under it the die and its result share a row. */
+.bastionland-save--bare {
+	grid-template-columns: auto 1fr;
+	grid-template-areas: "die result";
+}
+
+.bastionland-save--bare .bastionland-save__result {
+	justify-self: start;
+}
+
 .bastionland-save__label {
 	grid-area: label;
 	font-family: var(--bastionland-font-caps);
@@ -638,8 +648,13 @@
 	border-top: 1px solid var(--bastionland-rule);
 }
 
+/* A label too long for its button wraps inside it rather than spilling over. */
 .bastionland-dialog .form-footer button {
 	--button-size: 2.1rem;
+	height: auto;
+	min-height: var(--button-size);
+	padding-block: 0.25rem;
+	line-height: 1.15;
 	border-radius: 3px;
 	font-family: var(--bastionland-font-caps);
 	font-size: 1rem;

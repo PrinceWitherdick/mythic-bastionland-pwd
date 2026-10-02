@@ -10,10 +10,10 @@
 	{{> "bastionland.save-result" save=save}}
 	{{/if}}
 	{{#if luck}}
-	<p class="bastionland-card__tagline"><span class="bastionland-card__roll">{{luck.d6}}</span> {{luck.result}}</p>
+	<p class="bastionland-card__text"><span class="bastionland-card__roll">{{luck.d6}}</span> {{luck.result}}</p>
 	{{/if}}
 	{{#if noRoll}}
-	<p class="bastionland-card__tagline">{{noRoll}}</p>
+	<p class="bastionland-card__text">{{noRoll}}</p>
 	{{/if}}
 	<p class="bastionland-card__outcome">{{outcome}}</p>
 	{{#if crisis}}

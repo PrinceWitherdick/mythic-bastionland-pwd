@@ -1,16 +1,16 @@
 {{#each conditions}}
 <li>
 	{{#if toggle}}
-	<button type="button" class="bastionland-condition{{#if active}} is-active{{/if}}" data-action="toggleCondition" data-condition="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+	<button type="button" class="bastionland-condition bastionland-pill{{#if active}} is-active{{/if}}" data-action="toggleCondition" data-condition="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
 	{{else if affliction}}
-	<span class="bastionland-condition is-mark is-active">
+	<span class="bastionland-condition bastionland-pill is-mark is-active">
 		<button type="button" class="bastionland-blank" data-action="sufferAffliction" data-affliction="{{key}}" data-tooltip="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
 		<button type="button" class="bastionland-blank" data-action="cureAffliction" data-affliction="{{key}}" data-tooltip="{{cureHint}}" aria-label="{{cureHint}}" {{#unless @root.editable}}disabled{{/unless}}><i class="fa-solid fa-xmark" inert></i></button>
 	</span>
 	{{else if dismiss}}
-	<button type="button" class="bastionland-condition is-mark is-active" data-action="clearMark" data-message="{{messageId}}" data-gambit="{{index}}" data-tooltip="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}} <i class="fa-solid fa-xmark" inert></i></button>
+	<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMark" data-message="{{messageId}}" data-gambit="{{index}}" data-tooltip="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}} <i class="fa-solid fa-xmark" inert></i></button>
 	{{else}}
-	<span class="bastionland-condition is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
+	<span class="bastionland-condition bastionland-pill is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
 	{{/if}}
 </li>
 {{/each}}

@@ -53,7 +53,7 @@ import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-fo
 import { CAST_DETAILS_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
-import { ensureImportHotbar, ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
+import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
 import { BastionlandToken, registerTokenHeraldryHooks } from "./module/canvas/BastionlandToken.js";
 import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
@@ -554,10 +554,9 @@ Hooks.once("ready", async () => {
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),
-		// Import PDF takes the hotbar's last slot once every other macro has its own,
-		// then the GM Toolkit (a player's Luck Roll) is put in the first.
+		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,
+		// and a GM's Import PDF and End the Session in the last two.
 		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureSiteHotbar)])
-			.then(ensureImportHotbar)
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.

@@ -9,7 +9,7 @@
 		<ul class="bastionland-choices bastionland-choices--inline" aria-label="{{localize 'bastionland.gmToolkit.places.order'}}">
 			{{#each orders}}
 			<li>
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="placesOrder" data-order="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+				<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="placesOrder" data-order="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
 			</li>
 			{{/each}}
 		</ul>
@@ -48,7 +48,7 @@
 			<div class="bastionland-gm-toolkit__site-line">
 				<span class="bastionland-gm-toolkit__name">{{name}}</span>
 				<span class="bastionland-gm-toolkit__chips">
-					{{#each counts}}<span class="bastionland-gm-toolkit__chip">{{this}}</span>{{/each}}
+					{{#each counts}}<span class="bastionland-gm-toolkit__chip bastionland-pill">{{this}}</span>{{/each}}
 				</span>
 				<span class="bastionland-gm-toolkit__visits">{{found}}</span>
 			</div>

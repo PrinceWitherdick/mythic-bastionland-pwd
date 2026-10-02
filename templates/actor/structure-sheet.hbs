@@ -37,7 +37,7 @@
 				<ul class="bastionland-choices bastionland-choices--inline">
 					{{#each kinds}}
 					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setKind" data-kind="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+						<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setKind" data-kind="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
 					</li>
 					{{/each}}
 				</ul>
@@ -58,7 +58,7 @@
 				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
 				<ul class="bastionland-conditions">
 					<li>
-						<span class="bastionland-condition is-derived{{#if system.destroyed}} is-active{{/if}}" data-tooltip="{{localize 'bastionland.structure.destroyed.hint'}}">{{localize "bastionland.structure.destroyed.label"}}</span>
+						<span class="bastionland-condition bastionland-pill is-derived{{#if system.destroyed}} is-active{{/if}}" data-tooltip="{{localize 'bastionland.structure.destroyed.hint'}}">{{localize "bastionland.structure.destroyed.label"}}</span>
 					</li>
 				</ul>
 			</section>

@@ -23,7 +23,7 @@
 				<ul class="bastionland-choices bastionland-choices--inline">
 					{{#each seasons}}
 					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setSeason" data-season="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
+						<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setSeason" data-season="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
 					</li>
 					{{/each}}
 				</ul>
@@ -32,7 +32,7 @@
 				<ul class="bastionland-choices bastionland-choices--inline">
 					{{#each phases}}
 					<li>
-						<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setPhase" data-phase="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
+						<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setPhase" data-phase="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{disabled @root.locked}}>{{label}}</button>
 					</li>
 					{{/each}}
 				</ul>

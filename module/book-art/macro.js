@@ -1,12 +1,8 @@
-import { arrangeHotbar } from "../actions/hotbar-macro.js";
 import { t } from "../chat/cards.js";
 import { MACROS_PACK, SYSTEM_ID } from "../system-id.js";
 
 /** Import PDF keeps this id in the compendium and in each world. */
 export const IMPORT_MACRO_ID = "mbImportBookArt1";
-
-/** User flag set once Import PDF has been given this GM's last hotbar slot. */
-export const IMPORT_HOTBAR_FLAG = "importBookArtHotbar";
 
 /** The name the macro shipped under before, which a world's copy drops for the new one. */
 const OLD_MACRO_NAME = "Import Book Art";
@@ -58,22 +54,4 @@ export async function ensureImportMacro() {
 	const data = game.macros.fromCompendium(source, { keepId: true });
 	await CONFIG.Macro.documentClass.create(data, { keepId: true });
 	await game.settings.set(SYSTEM_ID, MACRO_SEEDED_SETTING, true);
-}
-
-/**
- * Give Import PDF the last slot on the first page of each GM's hotbar, the one
- * Foundry labels 0. Done once per GM, after the other macros have their slots,
- * so a GM who moves it afterwards keeps it moved.
- */
-export async function ensureImportHotbar() {
-	if (!game.user.isGM || game.user.getFlag(SYSTEM_ID, IMPORT_HOTBAR_FLAG)) return;
-	const macro = game.macros.get(IMPORT_MACRO_ID);
-	if (!macro) return;
-
-	const hotbar = arrangeHotbar(game.user.hotbar ?? {}, macro.id);
-	// Replaced whole, as assignHotbarMacro does, so emptied slots are removed rather than merged back.
-	if (!foundry.utils.objectsEqual(hotbar, game.user.hotbar ?? {})) {
-		await game.user.update({ hotbar }, { diff: false, recursive: false, noHook: true });
-	}
-	await game.user.setFlag(SYSTEM_ID, IMPORT_HOTBAR_FLAG, true);
 }

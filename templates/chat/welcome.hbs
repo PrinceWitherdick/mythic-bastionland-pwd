@@ -10,6 +10,9 @@
 		{{/each}}
 	</ul>
 	{{/if}}
+	{{#each more}}
+	<p class="bastionland-card__text">{{this}}</p>
+	{{/each}}
 	<div class="bastionland-card__actions">
 		<button type="button" data-welcome-card="{{card}}"><i class="{{icon}}" inert></i> {{label}}</button>
 	</div>

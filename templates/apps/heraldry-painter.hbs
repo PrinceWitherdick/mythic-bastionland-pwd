@@ -1,7 +1,7 @@
 <div class="bastionland-page bastionland-heraldry-painter">
 	<div class="bastionland-heraldry-painter__tools" role="toolbar" aria-label="{{localize 'bastionland.heraldry.toolbar'}}">
 		{{#each tools}}
-		<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="setTool" data-tool="{{key}}" {{#if hint}}data-tooltip="{{hint}}"{{/if}} aria-pressed="{{#if active}}true{{else}}false{{/if}}"><i class="{{icon}}" inert></i> {{label}}</button>
+		<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setTool" data-tool="{{key}}" {{#if hint}}data-tooltip="{{hint}}"{{/if}} aria-pressed="{{#if active}}true{{else}}false{{/if}}"><i class="{{icon}}" inert></i> {{label}}</button>
 		{{/each}}
 		<span class="bastionland-heraldry-painter__spacer"></span>
 		<button type="button" class="bastionland-icon" data-action="undo" data-tooltip="{{localize 'bastionland.heraldry.undo'}}" aria-label="{{localize 'bastionland.heraldry.undo'}}" aria-keyshortcuts="Control+Z Meta+Z" disabled><i class="fa-solid fa-rotate-left" inert></i></button>

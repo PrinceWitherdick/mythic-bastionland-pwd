@@ -41,13 +41,13 @@
 			{{/if}}
 			<span class="bastionland-gm-toolkit__chips">
 				{{#if hexKey}}
-				<button type="button" class="bastionland-gm-toolkit__chip bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
+				<button type="button" class="bastionland-gm-toolkit__chip bastionland-pill bastionland-gm-toolkit__chip--button" data-action="showHex" data-hex="{{hexKey}}" data-tooltip="{{localize 'bastionland.gmToolkit.showHex'}}"><i class="fa-solid fa-location-dot" inert></i> {{hex}}</button>
 				{{/if}}
 				{{#if hidden}}
-				<span class="bastionland-gm-toolkit__chip is-hidden">{{localize "bastionland.realm.panel.hidden"}}</span>
+				<span class="bastionland-gm-toolkit__chip bastionland-pill is-hidden">{{localize "bastionland.realm.panel.hidden"}}</span>
 				{{/if}}
 				{{#if resolved}}
-				<span class="bastionland-gm-toolkit__chip is-resolved"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.resolved"}}</span>
+				<span class="bastionland-gm-toolkit__chip bastionland-pill is-resolved"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.gmToolkit.myths.resolved"}}</span>
 				{{/if}}
 			</span>
 		</summary>

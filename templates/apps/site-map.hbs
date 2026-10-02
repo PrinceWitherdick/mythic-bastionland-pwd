@@ -108,7 +108,7 @@
 			<div class="bastionland-site__presets">
 				<span class="bastionland-site__bar-label">{{localize "bastionland.sites.rules.presets"}}</span>
 				{{#each presets}}
-				<button type="button" class="bastionland-choice{{#if active}} is-active{{/if}}" data-action="preset" data-preset="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
+				<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="preset" data-preset="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
 				{{/each}}
 			</div>
 		</details>

@@ -5,13 +5,13 @@
 		<span class="bastionland-gm-toolkit__name">{{title}}</span>
 		{{#if kind}}<span class="bastionland-gm-toolkit__kind">{{kind}}</span>{{/if}}
 		<span class="bastionland-gm-toolkit__chips">
-			{{#if hex}}<span class="bastionland-gm-toolkit__chip">{{hex}}</span>{{/if}}
-			{{#if terrain}}<span class="bastionland-gm-toolkit__chip is-terrain">{{terrain}}</span>{{/if}}
+			{{#if hex}}<span class="bastionland-gm-toolkit__chip bastionland-pill">{{hex}}</span>{{/if}}
+			{{#if terrain}}<span class="bastionland-gm-toolkit__chip bastionland-pill bastionland-pill--small-caps is-terrain">{{terrain}}</span>{{/if}}
 			{{#each features}}
-			<span class="bastionland-gm-toolkit__chip{{#if hidden}} is-hidden{{/if}}" {{#if hidden}}data-tooltip="{{localize 'bastionland.realm.panel.hidden'}}"{{/if}}>{{text}}</span>
+			<span class="bastionland-gm-toolkit__chip bastionland-pill{{#if hidden}} is-hidden{{/if}}" {{#if hidden}}data-tooltip="{{localize 'bastionland.realm.panel.hidden'}}"{{/if}}>{{text}}</span>
 			{{/each}}
 			{{#if companyHere}}
-			<span class="bastionland-gm-toolkit__chip is-company"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyHere"}}</span>
+			<span class="bastionland-gm-toolkit__chip bastionland-pill is-company"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.gmToolkit.companyHere"}}</span>
 			{{/if}}
 		</span>
 		{{#if visits}}
@@ -23,7 +23,7 @@
 		{{#if wild.length}}
 		<span class="bastionland-gm-toolkit__chips bastionland-gm-toolkit__wild" aria-label="{{localize 'bastionland.gmToolkit.wild'}}">
 			{{#each wild}}
-			<span class="bastionland-gm-toolkit__chip is-wild" {{#if when}}data-tooltip="{{when}}"{{/if}}>{{text}}</span>
+			<span class="bastionland-gm-toolkit__chip bastionland-pill is-wild" {{#if when}}data-tooltip="{{when}}"{{/if}}>{{text}}</span>
 			{{/each}}
 		</span>
 		{{/if}}

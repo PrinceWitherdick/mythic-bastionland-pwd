@@ -6,9 +6,9 @@
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.hint"}}</p>
 
 	<div class="bastionland-hex-lore__here">
-		{{#if terrain}}<span class="bastionland-hex-lore__terrain">{{terrain}}</span>{{/if}}
+		{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
 		{{#each features}}
-		<span class="bastionland-hex-lore__feature">{{this}}</span>
+		<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
 		{{/each}}
 	</div>
 

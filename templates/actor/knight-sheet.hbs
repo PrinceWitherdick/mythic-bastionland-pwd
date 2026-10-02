@@ -82,7 +82,7 @@
 						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.rank.hint'}}">{{localize "bastionland.rank.label"}}</h2>
 						<ul class="bastionland-choices">
 							{{#each ranks}}
-							<li class="bastionland-choice bastionland-choice--static{{#if active}} is-active{{/if}}" data-tooltip="{{worthy}}">
+							<li class="bastionland-choice bastionland-pill bastionland-choice--static{{#if active}} is-active{{/if}}" data-tooltip="{{worthy}}">
 								{{label}} <span class="bastionland-choice__glory">{{glory}}</span>
 							</li>
 							{{/each}}
@@ -273,7 +273,7 @@
 							<input class="bastionland-seer__value" type="number" name="system.seerState.{{key}}" value="{{value}}" min="0" step="1" aria-label="{{label}}"><span class="bastionland-seer__max">/{{max}}</span>
 						</span>
 						{{/each}}
-						<button type="button" class="bastionland-condition{{#if mortalWound.active}} is-active{{/if}}" data-action="toggleSeerMortalWound" data-tooltip="{{mortalWound.hint}}" aria-pressed="{{#if mortalWound.active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{mortalWound.label}}</button>
+						<button type="button" class="bastionland-condition bastionland-pill{{#if mortalWound.active}} is-active{{/if}}" data-action="toggleSeerMortalWound" data-tooltip="{{mortalWound.hint}}" aria-pressed="{{#if mortalWound.active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{mortalWound.label}}</button>
 						{{#if @root.editable}}
 						<span class="bastionland-seer__tools">
 							<button type="button" class="bastionland-icon" data-action="takeSeerDamage" data-tooltip="{{takeDamage}}" aria-label="{{takeDamage}}"><i class="fa-solid fa-heart-crack" inert></i></button>

@@ -555,6 +555,12 @@ a.button:focus:not(:focus-visible) {
 	box-shadow: none;
 }
 
+/* No placeholder is ever bold, even in a field whose typed text is (a Court name, a Grand Design). */
+[class*="bastionland"]::placeholder,
+[class*="bastionland"] ::placeholder {
+	font-weight: normal !important;
+}
+
 /*
  * The border is a ring laid over the field (SHIELD_CLIPS in
  * module/rules/heraldry.js), so whatever lies at the paint's edge is under ink.
@@ -1547,10 +1553,11 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-condition {
 	display: inline-block;
-	/* IM Fell leaves more room under its baseline than over its capitals, so
-	   the padding sits on top to centre the letters in the pill. */
-	padding: 0.125rem 0.6rem 0;
-	border: 1px dashed var(--bastionland-rule);
+	/* A pill, padded through the pill sums below. Untrimmed, IM Fell leaves
+	   more room under its baseline than over its capitals, so the padding sits
+	   on top to centre the letters in the pill. */
+	padding: var(--pill-padding-top, 0.125rem) 0.6rem var(--pill-padding-bottom, 0);
+	border: var(--pill-border, 1px) dashed var(--bastionland-rule);
 	border-radius: 999px;
 	color: var(--bastionland-ink-soft);
 	font-size: 0.95rem;
@@ -1559,20 +1566,28 @@ a.button:focus:not(:focus-visible) {
 /* Pills centre their letters exactly by trimming the line box to the
    capitals and baseline, then padding it evenly. Trimming only works on
    block containers, so the button pills stop being flex boxes, and the Site
-   map's flex chips trim their labels instead. Every trimmed pill is listed
-   here, the GM Toolkit's chips too; each pads itself to suit. */
+   map's flex chips trim their labels instead. Every trimmed pill carries the
+   bastionland-pill class, the GM Toolkit's chips too. A pill's own rule
+   writes its padding and border width through --pill-padding-top,
+   --pill-padding-bottom and --pill-border, falling back to what it has
+   untrimmed, so the sums here win without outranking anything else. Each
+   sets --pill-pad, the padding it would have on paper, to suit. */
 @supports (text-box: trim-both cap alphabetic) {
-	.bastionland-condition,
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice,
-	.bastionland-page .bastionland-site__chip > span,
-	.bastionland-gm-toolkit__chip {
+	.bastionland-pill,
+	.bastionland-page .bastionland-site__chip > span {
 		text-box: trim-both cap alphabetic;
 	}
 
-	.bastionland-condition,
+	.bastionland-pill {
+		--pill-padding-top: var(--pill-pad, 0.3em);
+		--pill-padding-bottom: var(--pill-pad, 0.3em);
+	}
+
+	/* A choice takes its padding here, named in its page, so it still outranks
+	   the page's rules for the buttons it sits among. */
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
-		padding-top: 0.3em;
-		padding-bottom: 0.3em;
+		padding-top: var(--pill-padding-top, 0);
+		padding-bottom: var(--pill-padding-bottom, 0);
 	}
 
 	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
@@ -1590,9 +1605,10 @@ a.button:focus:not(:focus-visible) {
    is left above and below the letters. A pill may set --pill-pad (the padding
    it would have on paper), --pill-border-width, and --pill-edge (the height its
    letters are centred on). --pill-border is the width the browser snaps the
-   border to anyway, so the sums agree with what is drawn. */
+   border to anyway, so the sums agree with what is drawn. A Site chip takes
+   the sums too, for its height and its label's baseline. */
 @supports (text-box: trim-both cap alphabetic) and (padding: round(1cap, 1px)) {
-	:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+	:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
 		--pill-dp: calc(1px / var(--bastionland-text-size, 1));
 		--pill-edge: 1cap;
 		--pill-border: max(var(--pill-dp), round(down, var(--pill-border-width, 1px), var(--pill-dp)));
@@ -1601,32 +1617,39 @@ a.button:focus:not(:focus-visible) {
 	}
 
 	@media (resolution: 1.25dppx) {
-		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(0.8px / var(--bastionland-text-size, 1));
 		}
 	}
 
 	@media (resolution: 1.5dppx) {
-		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(2px / 3 / var(--bastionland-text-size, 1));
 		}
 	}
 
 	@media (resolution: 1.75dppx) {
-		:where(.bastionland-condition, :is(.bastionland-page, .bastionland-session-end) .bastionland-choice, .bastionland-page .bastionland-site__chip, .bastionland-gm-toolkit__chip) {
+		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(4px / 7 / var(--bastionland-text-size, 1));
 		}
 	}
 
-	.bastionland-condition,
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
-		padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
-		padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
-		border-width: var(--pill-border);
+	.bastionland-pill {
+		--pill-padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
+		--pill-padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
+	}
+
+	/* Small capitals stand an x-height tall, so a small-caps pill's are centred
+	   on that and its one full capital rises above them, in a pill the same
+	   height. */
+	.bastionland-pill--small-caps {
+		--pill-edge: 1ex;
+		text-box: trim-both ex alphabetic;
 	}
 
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		--pill-border-width: 1.5px;
+		border-width: var(--pill-border, 1.5px);
 	}
 
 	/* A rank is a flex box, which the trim can't reach, so it goes back to
@@ -1656,6 +1679,12 @@ a.button:focus:not(:focus-visible) {
 
 	.bastionland-page .bastionland-site__chip > span:not(.bastionland-site__tally) {
 		margin-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
+	}
+
+	/* An icon in a pill: Font Awesome's glyphs stand about 0.05em higher than
+	   the capitals' middle, so they drop by that, in whole screen pixels. */
+	:is(.bastionland-gm-toolkit__chip, .bastionland-travels__chip, .bastionland-hex-lore__feature) > i {
+		vertical-align: calc(-1 * round(0.05em, var(--pill-dp)));
 	}
 }
 
@@ -3424,7 +3453,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	border-top: none;
 	border-collapse: collapse;
 	background: none;
-	font-size: 0.9rem;
+	font-size: 14px;
 }
 
 .bastionland-spark__table thead th {
@@ -3434,10 +3463,14 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	text-align: left;
 }
 
+/* Rows a whole 22px tall. At 0.9rem they came to 21.04px, and the browser
+   rounded each row's lettering onto the pixel grid its own way, so the words
+   sat a pixel higher in some rows than in others. */
 .bastionland-spark__table th,
 .bastionland-spark__table td {
-	padding: 0.05rem 0.3rem;
+	padding: 1px 0.3rem;
 	border: none;
+	line-height: 20px;
 }
 
 .bastionland-spark__table tbody tr:nth-child(odd) {
@@ -5975,10 +6008,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.3rem;
 }
 
+/* Trimmed to the capitals like every pill (see the pill rules above), then
+   padded back to the height they had, in whole screen pixels where it can. */
 .bastionland-hex-lore__terrain,
 .bastionland-hex-lore__feature {
-	padding: 0.1rem 0.4rem;
-	border: 1px solid var(--bastionland-rule);
+	--pill-pad: 0.45em;
+	padding: var(--pill-padding-top, 0.1rem) 0.4rem var(--pill-padding-bottom, 0.1rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
 	border-radius: 4px;
 	font-size: var(--bastionland-font-note);
 }
@@ -6403,9 +6439,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	gap: 0.25rem;
 }
 
+/* A pill like the GM Toolkit's chips: trimmed to the capitals, then padded
+   evenly, in whole screen pixels where it can (see the pill rules above). */
 .bastionland-travels__chip {
-	padding: 0.05rem 0.4rem;
-	border: 1px solid var(--bastionland-rule);
+	--pill-pad: 0.34rem;
+	padding: var(--pill-padding-top, 0.05rem) 0.4rem var(--pill-padding-bottom, 0.05rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
 	border-radius: 999px;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-floor);
