@@ -101,6 +101,9 @@ import { openRulebook, reopenableReader, toggleRulebook } from "./module/ruleboo
 import { bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
+import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
+import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
+import { openPlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
@@ -211,7 +214,10 @@ Hooks.once("init", () => {
 		"bastionland.realm-picture": templatePath("dialogs/parts/realm-picture.hbs"),
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),
-		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs")
+		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs"),
+		"bastionland.party-note": templatePath("apps/parts/party-note.hbs"),
+		"bastionland.travels-list": templatePath("apps/parts/travels-list.hbs"),
+		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
 	});
 
 	// The sheets' faces, offered by Foundry's font menus as well as the stylesheet.
@@ -300,6 +306,8 @@ Hooks.once("init", () => {
 	registerRulebookSettings();
 	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
 	registerRulebookShare();
+	// A player's note on a hex, written for them by the active GM.
+	registerHexSharedQuery();
 	// v13 doesn't tell a User query's handler who sent it, so it's heard off the socket.
 	watchQuerySenders();
 	// Every "(p16)" in a window or chat card opens the book at that page.
@@ -421,6 +429,8 @@ Hooks.once("init", () => {
 		rollLuck,
 		openSparkTables,
 		openHexLore,
+		// The Company's own record of the places it has been, for the players' Places macro.
+		openPlaces,
 		openTimePanel,
 		openSessionEnd,
 		newSite,
@@ -466,6 +476,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: WELCOME_CARDS_STEP, run: () => postWelcomeCards(welcomesThisWorld) },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
+	{ key: PLACES_MACRO_STEP, run: seedPlacesMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
 	{ key: TOOLKIT_MACRO_STEP, run: seedToolkitMacro },
 	{ key: SESSION_MACRO_STEP, run: seedSessionMacro },
@@ -524,7 +535,7 @@ Hooks.once("ready", async () => {
 		restoreOpenSheets(),
 		// Import PDF takes the hotbar's last slot once every other macro has its own,
 		// then the GM Toolkit (a player's Luck Roll) is put in the first.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureSiteHotbar)])
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureSiteHotbar)])
 			.then(ensureImportHotbar)
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),

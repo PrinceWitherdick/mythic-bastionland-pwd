@@ -1,3 +1,4 @@
+import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 
 /**
@@ -229,4 +230,30 @@ export function renderWhenIdle(app) {
 		waiting.delete(app);
 		if (app.rendered) app.render();
 	}, { once: true });
+}
+
+/**
+ * Show only the rows a search finds, and only the sections that still hold
+ * one. Each row carries its words, already made searchable, in `data-search`;
+ * each section that should go when empty is marked `data-search-section`.
+ * With no search, everything is shown.
+ * @param {HTMLElement|null|undefined} page
+ * @param {string} term As typed.
+ * @param {string} [noMatch] The selector of a line saying nothing was found, shown only then.
+ * @returns {number} How many rows are shown.
+ */
+export function filterBySearch(page, term, noMatch = null) {
+	if (!page) return 0;
+	const words = searchable(String(term ?? "").trim());
+	let found = 0;
+	for (const row of page.querySelectorAll("[data-search]")) {
+		row.hidden = Boolean(words) && !row.dataset.search.includes(words);
+		if (!row.hidden) found++;
+	}
+	for (const section of page.querySelectorAll("[data-search-section]")) {
+		section.hidden = Boolean(words) && !section.querySelector("[data-search]:not([hidden])");
+	}
+	const none = noMatch ? page.querySelector(noMatch) : null;
+	if (none) none.hidden = !words || found > 0;
+	return found;
 }

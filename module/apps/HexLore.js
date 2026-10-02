@@ -7,6 +7,7 @@ import {
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
+import { getHexSharedRecord, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { rollHexPerson, rollUpHolding } from "../actions/people.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
@@ -104,6 +105,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const terrain = terrainAt(realm, sceneGeometry(scene), hex);
 		const record = getHexRecord(scene, hex);
 		const visits = getHexVisits(scene, hex);
+		const shared = getHexSharedRecord(scene, hex);
 		const pages = this.#index?.spark ?? [];
 
 		let notice = null;
@@ -123,6 +125,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			visited: Boolean(visits),
 			visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
 			note: record?.note ?? "",
+			// The players' own note, and how often they've been told of the hex, beside the GM's.
+			party: partyNoteView(shared?.party),
+			told: toldLabel(shared),
 			// Newest first: the roll just made is the one being read.
 			sparks: (record?.sparks ?? []).map((spark) => ({
 				id: spark.id,

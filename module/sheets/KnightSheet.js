@@ -27,6 +27,10 @@ import { portraitStyle } from "../rules/portrait-frame.js";
 import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { SEER_UNHARMED, seerCurrent } from "../rules/seer-state.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
+import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
+import { travelsListContext } from "../actions/travels.js";
+import { openPlaces, openTravelsRow, showTravelsRow, wireTravelsList } from "../apps/TravelsPlaces.js";
+import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
 import { SCORES, VIRTUES } from "../rules/virtues.js";
@@ -81,7 +85,10 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			openDomain: KnightSheet.#onOpenDomain,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
-			openLedger: KnightSheet.#onOpenLedger
+			openLedger: KnightSheet.#onOpenLedger,
+			openTravelsHex: openTravelsRow,
+			showTravelsHex: showTravelsRow,
+			openPlaces: () => openPlaces()
 		}
 	};
 
@@ -109,6 +116,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 				{ id: "property", icon: CARRIER_ICONS.back, label: "bastionland.sheet.tabs.property", squire: false },
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer", squire: false },
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
+				// The whole Company travels, Squires with it, so they keep the record too.
+				{ id: "travels", icon: "fa-solid fa-map-location-dot", label: "bastionland.sheet.tabs.travels" },
 				// Only on a Knight that is the reader's own.
 				SETTINGS_TAB_ENTRY
 			]
@@ -230,8 +239,39 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			seerStats: seer && this.#seerScores(seer),
 			enrichedSeerInfo,
 			enrichedSeerNotes,
-			unchosen: isUnchosen(this.actor) && this.#unchosenContext()
+			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
+			travels: this.#travelsContext(context.tabs)
 		});
+	}
+
+	/**
+	 * The Travels page, gathered only while it's the page open: it reads every
+	 * Realm Scene, so it isn't gathered at each change to the Knight on another page.
+	 * @param {object} [tabs]
+	 * @returns {object|null}
+	 */
+	#travelsContext(tabs) {
+		if (!tabs?.travels) return null;
+		this.#travelsStale = this.tabGroups.primary !== "travels";
+		return this.#travelsStale ? null : travelsListContext(this.#travels.realm);
+	}
+
+	/** @type {import("../apps/TravelsPlaces.js").TravelsListState} The Travels page's Realm and search, kept between draws. */
+	#travels = { realm: null, search: "" };
+
+	/** Whether the Travels page missed a change while another page was open. */
+	#travelsStale = false;
+
+	/**
+	 * A Travels page that missed a change while hidden is drawn again as it's opened.
+	 * @override
+	 */
+	changeTab(tab, group, options) {
+		super.changeTab(tab, group, options);
+		if (tab === "travels" && this.#travelsStale) {
+			this.#travelsStale = false;
+			this.render();
+		}
 	}
 
 	/**
@@ -305,6 +345,8 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 			event.stopPropagation();
 			giveKnightTo(this.actor, event.currentTarget.value);
 		});
+		if (context.travels?.sceneId) this.#travels.realm = context.travels.sceneId;
+		wireTravelsList(this.element.querySelector('.tab[data-tab="travels"]'), this.#travels, () => this.render());
 	}
 
 	/**
@@ -471,6 +513,12 @@ export class KnightSheet extends SettingsTabMixin(BastionlandActorSheet) {
 		this._watchHooks([CALENDAR_HOOK], (after, before, turned) => {
 			const renewal = knightRenewal(this.actor);
 			if (renewal && (turned.includes(renewal.cadence) || compareCalendars(after, before) < 0)) this.render();
+		});
+		// The Company moved, or was told something: the Travels page follows, but only while it's the page open.
+		this._watchHooks([TRAVELS_CHANGED_HOOK], (sceneId) => {
+			if (sceneId !== this.#travels.realm) return;
+			if (this.tabGroups.primary === "travels") renderWhenIdle(this);
+			else this.#travelsStale = true;
 		});
 	}
 

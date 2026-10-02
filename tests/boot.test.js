@@ -322,6 +322,32 @@ describe("system boot", () => {
 		canvas.scene = null;
 	});
 
+	it("gives everyone the Company's places: marks they can hide, a window, a double-click and a way to write", () => {
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, "visitedMarksShown", expect.objectContaining({
+			scope: "client",
+			config: true,
+			type: Boolean,
+			default: true
+		}));
+		expect(CONFIG.queries[`${SYSTEM_ID}.writePartyNote`]).toBeTypeOf("function");
+		expect(game.system.api.openPlaces).toBeTypeOf("function");
+		expect(window.addEventListener).toHaveBeenCalledWith("dblclick", expect.any(Function));
+
+		// Two tools among the Token tools, on a Realm alone.
+		const controls = () => ({ tokens: { tools: { select: { order: 1 }, ruler: { order: 3 } } } });
+		const elsewhere = controls();
+		canvas.scene = { flags: {} };
+		hooks.getSceneControlButtons(elsewhere);
+		expect(Object.keys(elsewhere.tokens.tools)).toEqual(["select", "ruler"]);
+
+		const onRealm = controls();
+		canvas.scene = { flags: { [SYSTEM_ID]: { realm: { size: 160, cols: 12, rows: 12 } } } };
+		hooks.getSceneControlButtons(onRealm);
+		expect(onRealm.tokens.tools.bastionlandVisitedMarks).toMatchObject({ toggle: true, order: 4 });
+		expect(onRealm.tokens.tools.bastionlandPlaces).toMatchObject({ button: true, order: 5 });
+		canvas.scene = null;
+	});
+
 	it("adds New Realm to the Scenes directory only for GMs, and checks Token moves on Realm Scenes", () => {
 		const header = () => {
 			const buttons = [];

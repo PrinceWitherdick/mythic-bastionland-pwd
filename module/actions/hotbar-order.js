@@ -3,12 +3,12 @@ import { orderHotbar } from "./hotbar-macro.js";
 
 /**
  * The system's macros lead each user's hotbar: a GM's opens with the GM
- * Toolkit, a player's with the Luck Roll, the one macro players are given.
+ * Toolkit, a player's with the Luck Roll and then their Places.
  */
 
 /** The macros' flags, in the order they take the first slots. */
 export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "endSessionMacro", "newSiteMacro", "luckRollMacro"]);
-export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro"]);
+export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro"]);
 
 /** User flag set once this user's hotbar has been put in that order. */
 export const HOTBAR_ORDER_FLAG = "hotbarOrder";

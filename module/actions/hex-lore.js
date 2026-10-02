@@ -18,6 +18,7 @@ import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
+import { recordToldHex } from "./hex-shared.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
 
@@ -284,6 +285,14 @@ export async function tellPlayersAboutHex({ scene, hex, note }) {
 		features: named.length ? named.join(", ") : null,
 		note: record.note
 	}, { mode: "public" });
-	if (message) ui.notifications.info(t("hexLore.told", { hex: where }));
+	if (message) {
+		// The players keep what they were told, as it was told, beside their own record of the hex.
+		try {
+			await recordToldHex(scene, hex, { note: record.note, messageId: message.id });
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't keep what the players were told of ${where}`, error);
+		}
+		ui.notifications.info(t("hexLore.told", { hex: where }));
+	}
 	return message;
 }

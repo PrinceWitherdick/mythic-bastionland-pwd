@@ -139,6 +139,8 @@
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
 .bastionland-hex-visits-window .window-content,
+.bastionland-travels-hex-window .window-content,
+.bastionland-travels-window .window-content,
 .bastionland-realm-panel-window .window-content,
 .bastionland-portrait-frame-window .window-content {
 	padding: 0;
@@ -5965,6 +5967,212 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-hex-visits__note {
 	white-space: pre-wrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* The Company's places (module/apps/TravelsPlaces.js, TravelsHex.js, */
+/* and the Knight sheet's Travels page)                             */
+/* ---------------------------------------------------------------- */
+
+/* A GM sees the players' pages as the players do, and is told so. */
+.bastionland-travels__banner {
+	margin: 0;
+	padding: 0.3rem 0.5rem;
+	border-left: 3px solid var(--bastionland-blood);
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
+}
+
+.bastionland-travels-places {
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.bastionland-travels {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-travels .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-travels__bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+.bastionland-travels__bar input[type="search"] {
+	flex: 1 1 10rem;
+	min-width: 0;
+}
+
+.bastionland-travels__bar select {
+	flex: 0 1 12rem;
+}
+
+.bastionland-travels__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-travels__section .bastionland-heading {
+	margin: 0.35rem 0 0;
+}
+
+.bastionland-travels__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Each place is one row: the whole of its words open it, its chips sit at the
+   right, and the crosshairs show it on the map. */
+.bastionland-travels__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.15rem 0 0.15rem 0.4rem;
+	border-left: 3px solid var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-travels__open {
+	flex: 1 1 14rem;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.05rem;
+	width: auto;
+	min-width: 0;
+	height: auto;
+	padding: 0.15rem 0.3rem;
+	border: none;
+	background: none;
+	color: var(--bastionland-ink);
+	font-family: inherit;
+	font-size: 15px;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.bastionland-page .bastionland-travels__open:hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels__title {
+	font-weight: bold;
+}
+
+.bastionland-travels__line {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-travels__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.bastionland-travels__chip {
+	padding: 0.05rem 0.4rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 999px;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+	white-space: nowrap;
+}
+
+.bastionland-travels__chip--here {
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels__row > .bastionland-icon {
+	flex: 0 0 auto;
+	width: 1.8rem;
+	height: 1.8rem;
+}
+
+/* One hex as the Company knows it. */
+.bastionland-travels-hex .bastionland-heading {
+	margin: 0.35rem 0 0;
+}
+
+.bastionland-travels__here {
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels-hex__visits {
+	justify-content: space-between;
+	flex-wrap: wrap;
+}
+
+.bastionland-travels-hex__visits button {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.bastionland-travels-hex__sighted {
+	margin: 0;
+	font-style: italic;
+}
+
+.bastionland-travels-hex__note,
+.bastionland-travels__party-note p {
+	white-space: pre-wrap;
+}
+
+.bastionland-travels-hex__party .bastionland-hint {
+	margin: 0;
+}
+
+.bastionland-travels-hex textarea[readonly] {
+	opacity: 0.7;
+}
+
+/* The Company's note, shown to the GM beside their own. */
+.bastionland-travels__party-note {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	padding: 0.3rem 0.5rem;
+	border-left: 3px solid var(--bastionland-rule);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-travels__party-note p {
+	margin: 0;
+}
+
+.bastionland-travels__party-label {
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+/* The Knight sheet's Travels page: its heading with Open Places beside it. */
+.bastionland-travels-tab__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.bastionland-travels-tab__head button {
+	flex: 0 0 auto;
+	width: auto;
 }
 
 /* ---------------------------------------------------------------- */

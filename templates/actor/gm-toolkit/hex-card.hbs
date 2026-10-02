@@ -34,6 +34,8 @@
 			<span>{{localize "bastionland.hexLore.note"}}</span>
 			<textarea data-toolkit-field="hexNote" rows="3" placeholder="{{localize 'bastionland.hexLore.notePlaceholder'}}">{{note}}</textarea>
 		</label>
+		{{#with party}}{{> "bastionland.party-note"}}{{/with}}
+		{{#if told}}<p class="bastionland-hint">{{told}}</p>{{/if}}
 
 		<ul class="bastionland-hex-lore__rolls bastionland-gm-toolkit__sparks" aria-label="{{localize 'bastionland.gmToolkit.sparks'}}">
 			{{#each sparks}}

@@ -73,6 +73,14 @@ When a new world's GM closes the Welcome window, a short Foundry Tour points the
 
 Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there.
 
+Players keep their own record of the Realm. A dashed line marks every hex the Company has been to, and anyone can hide the marks for themselves with the footprints among the Token tools or on the Settings page. Double-click a hex, or open **Places** from the Token tools, the players' hotbar or the Knight sheet's **Travels** page, to see what the Company knows of it:
+
+- what stands there that they've found, and when they were there
+- what the GM told them with **Tell the players**, kept as it was said
+- a note any player can write for the whole table (a GM has to be online to save it)
+
+Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
+
 The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm Appearance** offers other skins, colour sets and your own pictures.
 
 #### Sites

@@ -44,6 +44,36 @@
 			<li class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.noNote"}}</li>
 			{{/if}}
 		</ul>
+
+		<h3 class="bastionland-heading">{{localize "bastionland.gmToolkit.visits.toldHeading"}}</h3>
+		<ul class="bastionland-hex-lore__rolls bastionland-hex-visits__list">
+			{{#each told}}
+			<li class="bastionland-hex-lore__roll">
+				<div class="bastionland-hex-lore__prompt">
+					<span class="bastionland-hex-visits__note">{{note}}</span>
+					{{#if when}}<span class="bastionland-hex-lore__source">{{when}}</span>{{/if}}
+				</div>
+				<button type="button" data-action="forgetTold" data-told="{{id}}" aria-label="{{localize 'bastionland.gmToolkit.visits.forgetTold'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetTold'}}"><i class="fa-solid fa-xmark" inert></i></button>
+			</li>
+			{{else}}
+			<li class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.noTold"}}</li>
+			{{/each}}
+		</ul>
+
+		<h3 class="bastionland-heading">{{localize "bastionland.travels.party.heading"}}</h3>
+		<ul class="bastionland-hex-lore__rolls bastionland-hex-visits__list">
+			{{#if party}}
+			<li class="bastionland-hex-lore__roll">
+				<div class="bastionland-hex-lore__prompt">
+					<span class="bastionland-hex-visits__note">{{party.text}}</span>
+					<span class="bastionland-hex-lore__source">{{party.by}}</span>
+				</div>
+				<button type="button" data-action="forgetParty" aria-label="{{localize 'bastionland.gmToolkit.visits.forgetParty'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetParty'}}"><i class="fa-solid fa-xmark" inert></i></button>
+			</li>
+			{{else}}
+			<li class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.noParty"}}</li>
+			{{/if}}
+		</ul>
 	</div>
 
 	<nav class="bastionland-toolbar">

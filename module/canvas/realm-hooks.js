@@ -11,6 +11,7 @@ import {
 	sceneGeometry,
 	syncRealmScene
 } from "../actions/realm.js";
+import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
@@ -28,6 +29,9 @@ import { listenForTurnedBack, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
+import { registerTravelsClick } from "./travels-click.js";
+import { registerTravelsControls } from "./travels-controls.js";
+import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
 
 /**
  * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
@@ -74,11 +78,15 @@ function showChanges() {
 		refreshHexLore(sceneId);
 		refreshRealmDrawing(sceneId);
 		refreshMythChooser(sceneId);
+		// The players' record of where the Company has been, in whatever window or sheet shows it.
+		// Not while the Realm is drawn by hand, which players don't see; finishing it updates the Scene, which comes here again.
+		if (!isDrawingRealm(game.scenes.get(sceneId))) Hooks.callAll(TRAVELS_CHANGED_HOOK, sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();
 			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed.
 			drawSightedMarks();
+			drawVisitedMarks();
 		}
 	}
 	changedScenes.clear();
@@ -119,6 +127,12 @@ export function registerRealmHooks() {
 
 	// Whether the hex readout names the column and row as well.
 	registerHexReadoutSetting();
+
+	// The hexes the Company has been to, marked on the map for whoever wants them shown.
+	registerVisitedMarksSetting();
+	registerTravelsControls();
+	// A double-click on a hex opens what the Company knows of it.
+	registerTravelsClick();
 
 	// A Company coming to rest in a hex nothing has been written down for.
 	registerHexPrompt();
@@ -168,6 +182,7 @@ export function registerRealmHooks() {
 	Hooks.on("canvasReady", () => {
 		attachHexReadout();
 		drawSightedMarks();
+		drawVisitedMarks();
 		showRealmRules();
 		// Where the Company got to while the GM was looking at another Scene.
 		offerWaitingArrival();

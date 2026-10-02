@@ -25,6 +25,8 @@ export const MACRO_ICON_CREDITS_FILE = "CREDITS.md";
 export const MACRO_ICONS = Object.freeze([
 	{ key: "luck-roll", name: "Luck Roll", icon: "delapouite/perspective-dice-six-faces-random" },
 	{ key: "new-site", name: "New Site", icon: "delapouite/cave-entrance" },
+	// The Company's places: a map with its way marked.
+	{ key: "places", name: "Places", icon: "lorc/treasure-map" },
 	// Ending a Session turns on how much time passes, so the sand does for it.
 	{ key: "end-session", name: "End the Session", icon: "lorc/sands-of-time" },
 	{ key: "rulebook", name: "Rulebook", icon: "lorc/open-book" },

@@ -49,9 +49,11 @@ export function emptySlot(hotbar, macroId) {
  * @param {() => object} [options.ownership] Who may run it, read when the macro is made rather
  *   than when this module loads, since Foundry's CONST isn't there that early.
  * @param {boolean} [options.everyone] Whether players get a hotbar slot for it too.
+ * @param {() => boolean} [options.forGM] Whether a GM gets a hotbar slot for it, asked
+ *   on each load. A GM still keeps the world's copy current either way.
  * @returns {{seed: () => Promise<void>, ensure: () => Promise<void>}}
  */
-export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, ownership = null, everyone = false }) {
+export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, ownership = null, everyone = false, forGM = () => true }) {
 	/** @returns {Macro|undefined} The world's copy of this macro. */
 	const find = () => game.macros.find((macro) => macro.getFlag(SYSTEM_ID, macroFlag));
 
@@ -92,6 +94,7 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 			}
 			if (Object.keys(update).length) await macro.update(update);
 		}
+		if (game.user.isGM && !forGM()) return;
 		// A macro the user can't run is no use on their bar.
 		if (!(everyone ? macro?.canExecute : macro) || game.user.getFlag(SYSTEM_ID, hotbarFlag)) return;
 

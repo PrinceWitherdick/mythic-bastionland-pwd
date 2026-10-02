@@ -18,6 +18,7 @@ describe("the Settings page's groups", () => {
 		expect(offersSetting("phaseBannerShown", false)).toBe(true);
 		expect(offersSetting("travelRulesShown", false)).toBe(true);
 		expect(offersSetting("hexReadoutShown", false)).toBe(true);
+		expect(offersSetting("visitedMarksShown", false)).toBe(true);
 		expect(offersSetting("rulebookForPlayers", false)).toBe(false);
 		expect(offersSetting("rulebookForPlayers", true)).toBe(true);
 		expect(offersSetting("weatherButton", false)).toBe(false);

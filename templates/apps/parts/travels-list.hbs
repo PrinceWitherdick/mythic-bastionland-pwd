@@ -1,0 +1,60 @@
+{{!-- The Company's places: the hexes it has been to, then those only heard of. Shared by the Places window and the Knight sheet. --}}
+{{#*inline "travels-row"}}
+<li class="bastionland-travels__row" data-search="{{search}}">
+	<button type="button" class="bastionland-travels__open" data-action="openTravelsHex" data-hex="{{hex}}">
+		<span class="bastionland-travels__title">{{title}}</span>
+		{{#if terrain}}<span class="bastionland-travels__line">{{terrain}}{{#if features}} · {{features}}{{/if}}</span>
+		{{else if features}}<span class="bastionland-travels__line">{{features}}</span>{{/if}}
+		<span class="bastionland-travels__line bastionland-travels__visits">{{visits}}</span>
+	</button>
+	<span class="bastionland-travels__chips">
+		{{#if here}}<span class="bastionland-travels__chip bastionland-travels__chip--here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
+		{{#if told}}<span class="bastionland-travels__chip"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
+		{{#if noted}}<span class="bastionland-travels__chip"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
+	</span>
+	{{#if onMap}}
+	<button type="button" class="bastionland-icon" data-action="showTravelsHex" data-hex="{{hex}}" data-tooltip="{{localize 'bastionland.travels.showOnMap'}}" aria-label="{{localize 'bastionland.travels.showOnMap'}}"><i class="fa-solid fa-location-crosshairs" inert></i></button>
+	{{/if}}
+</li>
+{{/inline}}
+<div class="bastionland-travels" data-scene-id="{{sceneId}}">
+	{{#if asPlayers}}<p class="bastionland-travels__banner">{{localize "bastionland.travels.asPlayers"}}</p>{{/if}}
+	{{#if noRealm}}
+	<p class="bastionland-hint">{{localize "bastionland.travels.noRealm"}}</p>
+	{{else}}
+	<div class="bastionland-travels__bar">
+		{{#if chooseRealm}}
+		<select class="bastionland-travels__realm" aria-label="{{localize 'bastionland.travels.realm'}}">
+			{{#each realms}}
+			<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+			{{/each}}
+		</select>
+		{{/if}}
+		<input type="search" class="bastionland-travels__search" placeholder="{{localize 'bastionland.travels.search'}}" aria-label="{{localize 'bastionland.travels.search'}}">
+	</div>
+	<p class="bastionland-hint">{{summary}}</p>
+
+	{{#if none}}
+	<p class="bastionland-hint">{{localize "bastionland.travels.none"}}</p>
+	{{else}}
+	<p class="bastionland-hint bastionland-travels__no-match" hidden>{{localize "bastionland.travels.noMatch"}}</p>
+	{{#if visited.length}}
+	<section class="bastionland-travels__section" data-search-section>
+		<h3 class="bastionland-heading">{{localize "bastionland.travels.sections.visited"}}</h3>
+		<ul class="bastionland-travels__list">
+			{{#each visited}}{{> travels-row}}{{/each}}
+		</ul>
+	</section>
+	{{/if}}
+	{{#if heardOf.length}}
+	<section class="bastionland-travels__section" data-search-section>
+		<h3 class="bastionland-heading">{{localize "bastionland.travels.sections.heardOf"}}</h3>
+		<p class="bastionland-hint">{{localize "bastionland.travels.sections.heardOfHint"}}</p>
+		<ul class="bastionland-travels__list">
+			{{#each heardOf}}{{> travels-row}}{{/each}}
+		</ul>
+	</section>
+	{{/if}}
+	{{/if}}
+	{{/if}}
+</div>

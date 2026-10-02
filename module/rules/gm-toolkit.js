@@ -41,11 +41,12 @@ const byPlace = (a, b) => a.col - b.col || a.row - b.row;
  * @param {import("./realm.js").Realm} realm
  * @param {{hexes: Record<string, unknown>}} lore What the GM has written, from hex-lore.js.
  * @param {import("./journey.js").Journey} [journey] Where the Company has been, from journey.js.
+ * @param {{hexes: Record<string, unknown>}} [shared] What the players were told and wrote, from hex-shared.js.
  * @returns {{holdings: object[], landmarks: object[], others: {col: number, row: number}[],
  *   visited: {col: number, row: number}[], unvisited: {col: number, row: number}[],
  *   recent: {col: number, row: number}[]}}
  */
-export function realmPlaces(realm, lore, journey = null) {
+export function realmPlaces(realm, lore, journey = null, shared = null) {
 	const holdings = [...(realm?.holdings ?? [])].sort((a, b) => byPlace(a.hex, b.hex));
 	// A hex holding both is listed once, as the Holding; its card still says what the Landmark asks.
 	const landmarks = [...(realm?.landmarks ?? [])]
@@ -53,7 +54,8 @@ export function realmPlaces(realm, lore, journey = null) {
 		.sort((a, b) => byPlace(a.hex, b.hex));
 
 	const named = [...holdings, ...landmarks].map((place) => place.hex);
-	const keys = new Set([...Object.keys(lore?.hexes ?? {}), ...Object.keys(journey?.hexes ?? {})]
+	// A hex the players were told of, or wrote about, is a place to find again too.
+	const keys = new Set([...Object.keys(lore?.hexes ?? {}), ...Object.keys(journey?.hexes ?? {}), ...Object.keys(shared?.hexes ?? {})]
 		.map(parseHexKey).filter(Boolean).map(hexKey));
 	const others = [...keys].map(parseHexKey)
 		.filter((hex) => !named.some((place) => sameHex(place, hex)))

@@ -27,6 +27,8 @@
 			<textarea id="{{partId}}-note" name="note" rows="5" placeholder="{{localize "bastionland.hexLore.notePlaceholder"}}">{{note}}</textarea>
 		</div>
 	</div>
+	{{#with party}}{{> "bastionland.party-note"}}{{/with}}
+	{{#if told}}<p class="bastionland-hint">{{told}}</p>{{/if}}
 
 	<fieldset class="bastionland-hex-lore__spark">
 		<legend>{{localize "bastionland.hexLore.spark"}}</legend>

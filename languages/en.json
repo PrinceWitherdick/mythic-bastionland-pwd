@@ -50,8 +50,10 @@
         "squire": "Squire",
         "property": "Property, Steed and Squire",
         "seer": "Seer",
-        "chronicle": "Chronicle"
+        "chronicle": "Chronicle",
+        "travels": "Travels"
       },
+      "travels": "Where the Company Has Been",
       "current": "Current",
       "maximum": "Maximum",
       "toNextRank": "{needed} more Glory to {rank}",
@@ -908,6 +910,61 @@
         }
       }
     },
+    "travels": {
+      "title": "Places",
+      "intro": "The hexes the Company has been to, the last reached first, and the ones it has only heard of. Open one for what the Company knows of it, and write your own note there for everyone at the table.",
+      "hexTitle": "Places: {hex}",
+      "asPlayers": "As the players see it: nothing they haven’t found, and none of your own notes.",
+      "realm": "Realm",
+      "search": "Search the places",
+      "noMatch": "No place matches that.",
+      "noRealm": "There is no Realm yet.",
+      "none": "The Company hasn’t been anywhere on this Realm yet.",
+      "summary": "{count} of {total} hexes visited.",
+      "heardOf": "Not visited yet",
+      "notVisited": "The Company knows nothing of {hex} yet.",
+      "notKnown": "The Company knows nothing of this hex yet.",
+      "here": "The Company is here",
+      "showOnMap": "Show on the map",
+      "openPlaces": "Open Places",
+      "sections": {
+        "visited": "Visited",
+        "heardOf": "Heard Of",
+        "heardOfHint": "Told of, written about or seen from afar, but not reached yet."
+      },
+      "chips": {
+        "told": "Told",
+        "note": "Note"
+      },
+      "visits": {
+        "once": "Visited once: {when}",
+        "many": "Visited {count} times, last: {when}",
+        "unknown": "when is unknown",
+        "never": "Not visited yet"
+      },
+      "told": {
+        "heading": "What the Referee Told You",
+        "when": "told in {when}",
+        "none": "Nothing told of this hex."
+      },
+      "party": {
+        "heading": "The Company’s Note",
+        "placeholder": "What the Company makes of this place, for everyone at the table",
+        "by": "Last written by {name}.",
+        "byWhen": "Last written by {name}, in {when}.",
+        "someone": "someone",
+        "needsGM": "A GM has to be here to keep the Company’s note. Your words are still in the box.",
+        "offline": "The note can be written while a GM is here.",
+        "refused": "The Company’s note couldn’t be kept. Your words are still in the box."
+      },
+      "macro": {
+        "name": "Places"
+      },
+      "controls": {
+        "marks": "Mark the Hexes Visited",
+        "places": "Places"
+      }
+    },
     "seenFromAfar": {
       "title": "Seen from Afar",
       "intro": "From the vantage point the Company can make out that something stands in these hexes, but not what it is.",
@@ -1651,6 +1708,8 @@
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "told": "Told the players about the hex at {hex}.",
+      "toldOnce": "Told the players once, in {when}. They keep what was said in their Places.",
+      "toldMany": "Told the players {count} times, last in {when}. They keep what was said in their Places.",
       "when": "rolled in {when}",
       "explore": "Find out what’s here",
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
@@ -1815,7 +1874,13 @@
         "forgetAll": "Forget Every Visit",
         "forgetEverything": "Forget Everything Here",
         "forgetAllTitle": "Forget Everything Here?",
-        "forgetAllConfirm": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten."
+        "forgetAllConfirm": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten.",
+        "forgetAllConfirmShared": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten. So are what the players were told of it and their own note on it, which goes from their Places too.",
+        "toldHeading": "Told the Players",
+        "forgetTold": "Forget this telling",
+        "noTold": "The players haven’t been told about this hex.",
+        "forgetParty": "Rub out the Company’s note",
+        "noParty": "The players haven’t written about this hex."
       },
       "places": {
         "hint": "Every place in the Realm and every hex the Company has come into, each once, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. These are the same notes as in the Lay of the Land. For your eyes only.",
@@ -3854,6 +3919,10 @@
       "phaseBannerShown": {
         "name": "Phase, Season and Age at the Top of the Screen",
         "hint": "Show the Phase of the Day, the Season and the Age at the top of the screen, the Phase and the Season in the same colours as the cards their changes post to chat. Untick to hide them in this browser only: everyone else keeps theirs."
+      },
+      "visitedMarksShown": {
+        "name": "Mark the Hexes the Company Has Been To",
+        "hint": "Pencil a dashed line round every hex of a Realm the Company has come into. Untick to hide them in this browser only: everyone else keeps theirs. The footprints among the Token tools do the same."
       },
       "hexReadoutShown": {
         "name": "Name the Realm Hex under the Pointer",

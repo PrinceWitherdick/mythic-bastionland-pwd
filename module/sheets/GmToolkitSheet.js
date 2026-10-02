@@ -5,6 +5,7 @@ import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
+import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
@@ -20,6 +21,7 @@ import { openHexVisits } from "../apps/HexVisits.js";
 import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { openWildernessHex } from "../apps/WildernessHex.js";
+import { filterBySearch } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
@@ -250,6 +252,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 				g: sceneGeometry(scene),
 				lore: getHexLore(scene),
 				journey: getJourney(scene),
+				shared: getHexShared(scene),
 				notes: getMythNotes(scene),
 				companyHex: companyTokenHex(scene)
 			}
@@ -497,7 +500,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		if (!data) return { noRealm: true, sites, search };
 
 		const order = this.#placesOrder;
-		const places = realmPlaces(data.realm, data.lore, data.journey);
+		const places = realmPlaces(data.realm, data.lore, data.journey, data.shared);
 		// One fold for a hex in either order, so switching keeps a card as it was left.
 		const card = (hex, open = false) => this.#hexCard(data, hex, { fold: `place:${hexKey(hex)}`, open });
 		const section = (key, cards, hint = false) => ({
@@ -566,6 +569,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 		const offer = landmark ? landmarkOfferView(landmark.type) : null;
 		const record = data.lore.hexes[key] ?? null;
 		const visits = data.journey.hexes[key] ?? null;
+		// What the players were told of it, and their own note on it.
+		const shared = data.shared?.hexes[key] ?? null;
 		const terrain = terrainAt(data.realm, data.g, hex);
 		const label = t("realm.hex", hex);
 		const terrainName = terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null;
@@ -582,7 +587,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			text: t("gmToolkit.wildChip", { table: spark.table, prompt: spark.prompt }),
 			when: sparkWhen(spark)
 		}));
-		const said = [title, kind, label, terrainName, ...features.map((feature) => feature.text), visited, record?.note, ...sparks.flatMap((spark) => [spark.prompt, spark.table, spark.when])];
+		const said = [title, kind, label, terrainName, ...features.map((feature) => feature.text), visited, record?.note, shared?.party?.text, ...sparks.flatMap((spark) => [spark.prompt, spark.table, spark.when])];
 		return {
 			key,
 			// Everything the card says, for the Places page's search.
@@ -597,6 +602,8 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 			visited: Boolean(visits),
 			visits: visited,
 			note: record?.note ?? "",
+			party: partyNoteView(shared?.party),
+			told: toldLabel(shared),
 			sparks,
 			wild,
 			landmark: offer,
@@ -844,19 +851,7 @@ export class GmToolkitSheet extends SettingsTabMixin(ViewableMixin(HandlebarsApp
 	 * @param {string} part The page searched.
 	 */
 	#applySearch(part) {
-		const page = this.parts?.[part];
-		if (!page) return;
-		const term = searchable(this.#searches[part].trim());
-		let found = 0;
-		for (const place of page.querySelectorAll("[data-search]")) {
-			place.hidden = Boolean(term) && !place.dataset.search.includes(term);
-			if (!place.hidden) found++;
-		}
-		for (const section of page.querySelectorAll("[data-search-section]")) {
-			section.hidden = Boolean(term) && !section.querySelector("[data-search]:not([hidden])");
-		}
-		const none = page.querySelector(".bastionland-gm-toolkit__no-match");
-		if (none) none.hidden = !term || found > 0;
+		filterBySearch(this.parts?.[part], this.#searches[part], ".bastionland-gm-toolkit__no-match");
 	}
 
 	/**
