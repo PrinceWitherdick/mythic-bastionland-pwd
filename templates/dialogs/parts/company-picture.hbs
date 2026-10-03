@@ -13,6 +13,14 @@
 			</button>
 		</li>
 		{{/each}}
+		{{#each own}}
+		<li class="bastionland-company-own">
+			<button type="button" class="bastionland-company-picture" data-company-picture="{{path}}" data-company-own data-tooltip="{{name}}" aria-label="{{name}}" aria-pressed="false">
+				<img src="{{path}}" alt="">
+			</button>
+			<button type="button" class="bastionland-company-forget" data-company-forget="{{path}}" data-tooltip="{{localize "bastionland.company.forgetPicture"}}" aria-label="{{localize "bastionland.company.forgetPicture"}}"><i class="fa-solid fa-xmark" inert></i></button>
+		</li>
+		{{/each}}
 	</ul>
 	<p class="hint">{{localize "bastionland.company.pictureHint"}}</p>
 </div>

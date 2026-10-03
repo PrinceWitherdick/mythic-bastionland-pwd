@@ -8,6 +8,7 @@ import { ART_ROOT } from "./book-art.js";
 import { mix } from "./colour.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "./realm.js";
 import { SHORE_SHAPES } from "./realm-rivers.js";
+import { fileName } from "./text.js";
 import { SYSTEM_PATH } from "../system-id.js";
 
 /** Where the shipped pictures live, a folder for each skin and a folder in that for each colour set. */
@@ -261,8 +262,7 @@ const ALIASES = new Map([
  * @returns {string|null} One of REALM_PICTURES.
  */
 export function customPictureName(path) {
-	let file = String(path ?? "").split(/[\\/]/).at(-1) ?? "";
-	try { file = decodeURIComponent(file); } catch { /* A stray "%" in a local file name. */ }
+	const file = fileName(path);
 	const dot = file.lastIndexOf(".");
 	if (dot <= 0 || !IMAGE_EXTENSIONS.includes(file.slice(dot + 1).toLowerCase())) return null;
 	const base = file.slice(0, dot).toLowerCase().trim().replace(/[\s_]+/g, "-");
@@ -282,7 +282,7 @@ export function matchCustomFiles(paths) {
 	for (const path of paths ?? []) {
 		const name = customPictureName(path);
 		if (!name) continue;
-		const file = decodeURIComponent(String(path).split(/[\\/]/).at(-1));
+		const file = fileName(path);
 		const isExact = file.slice(0, file.lastIndexOf(".")).toLowerCase() === name;
 		if (found[name] && (exact.has(name) || !isExact)) continue;
 		found[name] = path;

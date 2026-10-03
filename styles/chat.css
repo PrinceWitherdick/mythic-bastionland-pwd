@@ -1285,6 +1285,41 @@
 	pointer-events: none;
 }
 
+/* A picture of the Referee's own carries an × in its corner, to take it out of the gallery. */
+.bastionland-company-own {
+	position: relative;
+}
+
+.bastionland-dialog .bastionland-company-forget {
+	position: absolute;
+	top: -0.35rem;
+	right: -0.35rem;
+	display: grid;
+	place-items: center;
+	width: 1.25rem;
+	height: 1.25rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 50%;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+	opacity: 0.7;
+	cursor: pointer;
+}
+
+.bastionland-dialog .bastionland-company-own:is(:hover, :focus-within) .bastionland-company-forget {
+	opacity: 1;
+}
+
+.bastionland-dialog .bastionland-company-forget:hover {
+	color: var(--bastionland-blood);
+}
+
 /* The colours the Company's icon can be carried in. */
 .bastionland-dialog .form-group > .bastionland-company-colours {
 	/* A whole line of its own under the label, the way the gallery takes one. */

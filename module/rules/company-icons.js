@@ -12,6 +12,7 @@
 import { contrast, HEX_COLOR, INK } from "./colour.js";
 import { iconSet } from "./game-icons.js";
 import { TINCTURES } from "./heraldry.js";
+import { fileName } from "./text.js";
 import { SYSTEM_PATH } from "../system-id.js";
 
 /** Where the pictures are served from. */
@@ -122,6 +123,39 @@ export function companyIconFromPath(path) {
  * @returns {Array<{key: string, name: string, path: string}>}
  */
 export const companyPictureChoices = () => COMPANY_ICONS.map(({ key, name }) => ({ key, name, path: companyIconPath(key) }));
+
+/** How many of the Referee's own pictures the gallery keeps; the one used longest ago goes first. */
+export const OWN_COMPANY_PICTURES = 12;
+
+/**
+ * The Referee's own pictures with one more taken: it goes to the front, once,
+ * and the gallery's own icons, recoloured or not, are never kept, since they
+ * have tiles already.
+ * @param {unknown} kept The pictures already kept, newest first.
+ * @param {string} [path] The picture just carried.
+ * @returns {string[]}
+ */
+export function keepOwnCompanyPicture(kept, path) {
+	const list = (Array.isArray(kept) ? kept : []).filter((p) => typeof p === "string" && p && !companyIconFromPath(p));
+	const own = String(path ?? "").trim();
+	if (!own || companyIconFromPath(own)) return list.slice(0, OWN_COMPANY_PICTURES);
+	return [own, ...list.filter((p) => p !== own)].slice(0, OWN_COMPANY_PICTURES);
+}
+
+/**
+ * The Referee's own pictures with one struck out of them.
+ * @param {unknown} kept
+ * @param {string} path
+ * @returns {string[]}
+ */
+export const forgetOwnCompanyPicture = (kept, path) => keepOwnCompanyPicture(kept).filter((p) => p !== path);
+
+/**
+ * The Referee's own pictures as gallery tiles, named by their file.
+ * @param {string[]} kept As keepOwnCompanyPicture leaves them.
+ * @returns {Array<{name: string, path: string}>}
+ */
+export const ownCompanyPictureChoices = (kept) => kept.map((path) => ({ name: (fileName(path) || path).replace(/\.[^.]+$/, ""), path }));
 
 /** What this set's pictures are credited as. */
 const CREDITS = iconSet({

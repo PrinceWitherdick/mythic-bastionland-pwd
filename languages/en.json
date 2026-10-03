@@ -1664,9 +1664,10 @@
         "back": "The Company stands at {hex} again.",
         "cannot": "The Company is already on the Realm, or there is nowhere to put them back."
       },
-      "pictureHint": "Choose one, or browse for a picture of your own.",
+      "pictureHint": "Choose one, or browse for a picture of your own. One you carry stays here to choose again.",
       "tokenHint": "One Token stands for the whole Company. It belongs to no Actor, so every player can move it.",
       "browse": "Browse for a picture",
+      "forgetPicture": "Take this picture out of the gallery. The file itself stays where it is.",
       "placed": "The Company stands at {hex}.",
       "starts": {
         "wanderer": {

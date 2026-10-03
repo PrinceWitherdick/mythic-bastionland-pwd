@@ -64,6 +64,7 @@ import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackFx } from "./module/actions/attack-fx.js";
 import { registerAttackMemory } from "./module/actions/attack-memory.js";
+import { registerCompanyPictureSetting } from "./module/apps/company-picture.js";
 import { registerAttackCards } from "./module/chat/attack-card.js";
 import { registerGambitMarks } from "./module/chat/gambit-marks.js";
 import { t } from "./module/chat/cards.js";
@@ -243,6 +244,9 @@ Hooks.once("init", () => {
 
 	// The world's calendar of Ages, Seasons and Phases.
 	registerCalendarSetting();
+
+	// The Referee's own Company pictures, offered in the gallery once used.
+	registerCompanyPictureSetting();
 
 	// What the last session's end left for the next one (p17).
 	registerSessionEndSetting();

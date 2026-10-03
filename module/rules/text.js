@@ -198,3 +198,17 @@ export const trimmedText = (value) => (typeof value === "string" ? value.trim() 
  * @returns {string}
  */
 export const searchable = (text) => String(text ?? "").normalize("NFD").replace(/\p{Mn}/gu, "").toLocaleLowerCase();
+
+/**
+ * @param {string} path A file's path or URL.
+ * @returns {string} Its file name, unescaped: "our%20banner.png" is "our banner.png".
+ */
+export function fileName(path) {
+	const file = String(path ?? "").split(/[\\/]/).at(-1) ?? "";
+	try {
+		return decodeURIComponent(file);
+	} catch {
+		// A stray "%" in a local file name.
+		return file;
+	}
+}

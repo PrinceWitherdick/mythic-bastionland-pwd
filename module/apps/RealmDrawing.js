@@ -368,10 +368,11 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const scene = canvas.scene;
 		if (!scene) return;
 		const value = (name) => this.element.querySelector(`[name="${name}"]`)?.value;
-		const img = await resolveCompanyPicture({ companyImg: value("companyImg"), companyColour: value("companyColour") });
+		const token = findCompanyToken(scene);
+		const was = token?.texture?.src || companyPicture(scene);
+		const img = await resolveCompanyPicture({ companyImg: value("companyImg"), companyColour: value("companyColour") }, { was });
 		// Kept on the Scene, so the Token made when they're put down, or later from the button over the map, carries it.
 		if (scene.getFlag(SYSTEM_ID, COMPANY_IMG_FLAG) !== img) await scene.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);
-		const token = findCompanyToken(scene);
 		if (token && token.texture?.src !== img) await token.update({ "texture.src": img });
 		if (!(await startCompanyPlacement(scene, { img }))) ui.notifications.info(t("company.placing.later"));
 	}

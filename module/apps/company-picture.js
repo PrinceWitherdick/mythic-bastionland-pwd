@@ -21,13 +21,70 @@ import {
 	companyIconFromPath,
 	companyIconPath,
 	companyPictureChoices,
+	forgetOwnCompanyPicture,
+	keepOwnCompanyPicture,
+	ownCompanyPictureChoices,
 	tintCompanyIcon
 } from "../rules/company-icons.js";
 import { ART_ROOT } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { read } from "../client-settings.js";
+import { serialWrites } from "../rules/queue.js";
 
 /** Where recoloured icons are written. */
 const COMPANY_ART_DIR = `${ART_ROOT}/${COMPANY_ART_FOLDER}`;
+
+/** World setting keeping the Referee's own pictures, newest first, so each is a tile in the gallery after. */
+const OWN_PICTURES_SETTING = "companyPictures";
+
+/** Register the setting the Referee's own pictures are kept in. Called during init. */
+export function registerCompanyPictureSetting() {
+	game.settings.register(SYSTEM_ID, OWN_PICTURES_SETTING, {
+		scope: "world",
+		config: false,
+		type: Array,
+		default: []
+	});
+}
+
+/** @returns {string[]} The Referee's own pictures kept so far, newest first. */
+const ownPictures = () => keepOwnCompanyPicture(read(OWN_PICTURES_SETTING, []));
+
+/**
+ * Keep a picture of the Referee's own, so it's offered in the gallery next
+ * time. The gallery's icons are left out, since they have tiles already.
+ * @param {string} path
+ */
+async function keepOwnPicture(path) {
+	await saveOwnPictures((kept) => keepOwnCompanyPicture(kept, path));
+}
+
+/** Writes to the Referee's own pictures, one at a time, so two at once don't each undo the other. */
+const queueOwnPictures = serialWrites();
+
+/**
+ * Write the Referee's own pictures back, changed, if they changed at all.
+ * @param {(kept: string[]) => string[]} change
+ */
+function saveOwnPictures(change) {
+	if (!game.user?.isGM) return Promise.resolve();
+	return queueOwnPictures(async () => {
+		const kept = ownPictures();
+		const next = change(kept);
+		if (foundry.utils.objectsEqual(next, kept)) return;
+		try {
+			await game.settings.set(SYSTEM_ID, OWN_PICTURES_SETTING, next);
+		} catch (error) {
+			console.error(error);
+		}
+	});
+}
+
+/**
+ * @param {string} path
+ * @returns {boolean} Whether the picture is a video, which an `img` tile can't show though the file is there.
+ */
+const isVideo = (path) => Object.hasOwn(CONST.VIDEO_FILE_EXTENSIONS ?? {}, String(path).split(/[?#]/)[0].split(".").pop().toLowerCase());
 
 /**
  * What the shared partial is drawn from.
@@ -43,6 +100,8 @@ export function companyPictureContext(current = COMPANY_IMAGE) {
 		// Which tile and swatch are the chosen ones is marked by `wireCompanyPicture`
 		// when the window is drawn, so it isn't worked out a second time here.
 		pictures: companyPictureChoices(),
+		// The Referee's own, and the one carried now if it's theirs and was chosen before they were kept.
+		own: ownCompanyPictureChoices(keepOwnCompanyPicture(ownPictures(), current)),
 		colours: COMPANY_COLOURS.map(({ key, color }) => ({
 			key,
 			color,
@@ -103,7 +162,10 @@ export function wireCompanyPicture(element) {
 	/** Mark the chosen tile and swatch, and grey the colours out while the picture isn't one of ours. */
 	const markChosen = () => {
 		const chosen = companyIconFromPath(field?.value);
-		for (const button of gallery) markActive(button, button.dataset.companyIcon === chosen?.key);
+		for (const button of gallery) {
+			const icon = button.dataset.companyIcon;
+			markActive(button, icon ? icon === chosen?.key : button.dataset.companyPicture === field?.value.trim());
+		}
 		for (const button of swatches) markActive(button, Boolean(chosen) && button.dataset.companyColour === colourField?.value);
 		colours?.classList.toggle("is-off", !chosen);
 	};
@@ -139,6 +201,24 @@ export function wireCompanyPicture(element) {
 	};
 
 	for (const button of gallery) button.addEventListener("click", () => choose(button.dataset.companyPicture));
+	// The × on a picture of the Referee's own takes it out of the gallery, leaving the file where it is.
+	for (const button of element.querySelectorAll("[data-company-forget]")) {
+		button.addEventListener("click", () => {
+			const path = button.dataset.companyForget;
+			button.closest("li")?.remove();
+			saveOwnPictures((kept) => forgetOwnCompanyPicture(kept, path));
+		});
+	}
+
+	// A kept picture whose file has since gone is left out rather than shown broken,
+	// and forgotten, so it doesn't hold a place in the gallery.
+	for (const picture of element.querySelectorAll("[data-company-own] img")) {
+		picture.addEventListener("error", () => {
+			const path = picture.closest("[data-company-own]")?.dataset.companyPicture;
+			picture.closest("li")?.remove();
+			if (path && !isVideo(path)) saveOwnPictures((kept) => forgetOwnCompanyPicture(kept, path));
+		}, { once: true });
+	}
 	for (const button of swatches) button.addEventListener("click", () => recolour(button.dataset.companyColour));
 	own?.addEventListener("input", () => recolour(own.value));
 	field?.addEventListener("input", markChosen);
@@ -161,12 +241,19 @@ export function wireCompanyPicture(element) {
  * shipped icon while it's drawn in ink, a recoloured one written into the art
  * folder otherwise, and a picture of the Referee's own untouched.
  * @param {object} data The dialog's form data.
+ * @param {object} [options]
+ * @param {string} [options.was] The picture carried before. A picture of the
+ *   Referee's own is kept for the gallery only when they've just chosen it, so
+ *   art the Token came with isn't kept as theirs.
  * @returns {Promise<string>} The path to give the Token.
  */
-export async function resolveCompanyPicture(data) {
+export async function resolveCompanyPicture(data, { was } = {}) {
 	const img = String(data?.companyImg ?? "").trim() || COMPANY_IMAGE;
 	const chosen = companyIconFromPath(img);
-	if (!chosen) return img;
+	if (!chosen) {
+		if (img !== was) await keepOwnPicture(img);
+		return img;
+	}
 
 	const colour = String(data?.companyColour ?? "").trim().toLowerCase();
 	const shipped = companyIconPath(chosen.key);
@@ -206,7 +293,7 @@ export async function changeCompanyPicture(token) {
 	});
 	if (!data) return false;
 
-	const img = await resolveCompanyPicture(data);
+	const img = await resolveCompanyPicture(data, { was: current });
 	if (!img || img === current) return false;
 	await token.update({ "texture.src": img });
 	await token.parent?.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);

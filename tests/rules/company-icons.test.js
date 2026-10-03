@@ -17,6 +17,10 @@ import {
 	companyIconNotice,
 	companyIconPath,
 	companyPictureChoices,
+	forgetOwnCompanyPicture,
+	keepOwnCompanyPicture,
+	OWN_COMPANY_PICTURES,
+	ownCompanyPictureChoices,
 	tintCompanyIcon
 } from "../../module/rules/company-icons.js";
 
@@ -153,5 +157,67 @@ describe("the gallery", () => {
 		expect(gallery).toContain("{{#each colours}}");
 		expect(gallery).toContain('data-company-colour="{{color}}"');
 		expect(gallery).toContain('name="companyColour"');
+	});
+});
+
+describe("the Referee's own Company pictures", () => {
+	const own = "worlds/mythic/art/our%20banner.webp";
+
+	it("keeps one the Referee carried, at the front and only once", () => {
+		expect(keepOwnCompanyPicture([], own)).toEqual([own]);
+		expect(keepOwnCompanyPicture(["a.png", own], own)).toEqual([own, "a.png"]);
+		expect(keepOwnCompanyPicture(["a.png"], `  ${own}  `)).toEqual([own, "a.png"]);
+	});
+
+	it("never keeps the gallery's own icons, recoloured or not", () => {
+		const tinted = `mythic-bastionland-art/company/${companyIconFile(COMPANY_ICONS[1].key, "#aa0000")}`;
+		expect(keepOwnCompanyPicture(["a.png"], COMPANY_IMAGE)).toEqual(["a.png"]);
+		expect(keepOwnCompanyPicture(["a.png"], tinted)).toEqual(["a.png"]);
+		expect(keepOwnCompanyPicture([tinted, "a.png", "", 3], undefined)).toEqual(["a.png"]);
+	});
+
+	it("lets the one used longest ago go once the gallery is full", () => {
+		const many = Array.from({ length: OWN_COMPANY_PICTURES }, (_, i) => `p${i}.png`);
+		const kept = keepOwnCompanyPicture(many, own);
+		expect(kept).toHaveLength(OWN_COMPANY_PICTURES);
+		expect(kept[0]).toBe(own);
+		expect(kept).not.toContain(many.at(-1));
+	});
+
+	it("survives a setting that isn't a list", () => {
+		expect(keepOwnCompanyPicture(null, own)).toEqual([own]);
+		expect(keepOwnCompanyPicture({}, "")).toEqual([]);
+	});
+
+	it("forgets one the Referee strikes out, and only that one", () => {
+		expect(forgetOwnCompanyPicture([own, "a.png"], own)).toEqual(["a.png"]);
+		expect(forgetOwnCompanyPicture([own, "a.png"], "b.png")).toEqual([own, "a.png"]);
+		expect(forgetOwnCompanyPicture(null, own)).toEqual([]);
+	});
+
+	it("gives only the Referee's own tiles an × to forget them by, never the gallery's icons", () => {
+		const icons = gallery.slice(gallery.indexOf("{{#each pictures}}"), gallery.indexOf("{{#each own}}"));
+		expect(icons).not.toContain("data-company-forget");
+		const kept = gallery.slice(gallery.indexOf("{{#each own}}"));
+		expect(kept).toContain('data-company-forget="{{path}}"');
+		expect(kept).toContain('localize "bastionland.company.forgetPicture"');
+	});
+
+	it("names each tile by its file", () => {
+		expect(ownCompanyPictureChoices([own, "bad%zz.png"])).toEqual([
+			{ name: "our banner", path: own },
+			{ name: "bad%zz", path: "bad%zz.png" }
+		]);
+	});
+
+	it("draws them as tiles after the icons, with no icon key, so no colour is put on them", () => {
+		const icons = gallery.indexOf("{{#each pictures}}");
+		const kept = gallery.indexOf("{{#each own}}");
+		expect(icons).toBeGreaterThan(-1);
+		expect(kept).toBeGreaterThan(icons);
+		const tile = gallery.slice(kept, gallery.indexOf("{{/each}}", kept));
+		expect(tile).toContain('data-company-picture="{{path}}"');
+		expect(tile).toContain("data-company-own");
+		expect(tile).not.toContain("data-company-icon");
 	});
 });
