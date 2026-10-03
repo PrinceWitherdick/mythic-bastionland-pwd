@@ -52,20 +52,30 @@
 		<section class="bastionland-rail-dialog__page" data-rail-page="picture" hidden>
 			<p>{{localize "bastionland.realm.picture.intro"}}</p>
 			{{> "bastionland.realm-picture"}}
+			{{!-- Shown once the picture has loaded, when it's far from a typical Realm's shape (module/apps/map-size-fields.js). --}}
+			<p class="hint" data-map-shape="wide" hidden>{{localize "bastionland.realm.picture.shape.wide"}}</p>
+			<p class="hint" data-map-shape="tall" hidden>{{localize "bastionland.realm.picture.shape.tall"}}</p>
 			<p class="hint">{{localize "bastionland.realm.picture.lineUpHint"}}</p>
 		</section>
 		{{/if}}
 
 		<section class="bastionland-rail-dialog__page" data-rail-page="setup" hidden>
-			{{!-- A map with no hexes on it swaps the rules for its own: the hexes follow its shape (module/apps/bare-map-fields.js). --}}
-			<p class="hint" data-setup-rules>{{#if draw}}{{localize "bastionland.realm.setup.sizeIntro"}}{{else}}{{localize "bastionland.realm.setup.intro"}}{{/if}}</p>
-			{{#if traced}}<p class="hint" data-bare-map hidden>{{localize "bastionland.realm.picture.bare.sizeIntro" side=bareLimits.side hexes=bareLimits.hexes}}</p>{{/if}}
+			{{#if traced}}
+			{{!-- A map of the GM's own sets its own size, with no rule ignored: the hexes they count on it, or as many as its shape takes (module/apps/map-size-fields.js). --}}
+			<p class="hint" data-map-mode="drawn">{{localize "bastionland.realm.picture.drawnSizeIntro" side=sizeLimits.side hexes=sizeLimits.hexes}}</p>
+			<p class="hint" data-map-mode="bare" hidden>{{localize "bastionland.realm.picture.bare.sizeIntro" side=sizeLimits.side hexes=sizeLimits.hexes}}</p>
+			{{else}}
+			{{#if draw}}<p class="hint">{{localize "bastionland.realm.setup.sizeIntro"}}</p>{{/if}}
 
-			<label class="bastionland-check" data-setup-rules>
+			{{!-- Ignoring the rules only unlocks the numbers; leaving a part off to draw by hand keeps to them, so the parts' own intro sits just above the parts. --}}
+			<label class="bastionland-check">
 				<input type="checkbox" name="setup.ignoreRules" data-setup-ignore>
 				<span class="bastionland-check__label">{{localize "bastionland.realm.setup.ignoreRules"}}</span>
 			</label>
-			<p class="hint" data-setup-rules>{{localize "bastionland.realm.setup.ignoreRulesHint"}}</p>
+			<p class="hint">{{localize "bastionland.realm.setup.ignoreRulesHint"}}</p>
+
+			{{#unless draw}}<p class="hint">{{localize "bastionland.realm.setup.intro"}}</p>{{/unless}}
+			{{/if}}
 
 			<div class="bastionland-realm-setup__parts">
 				{{#each setupParts}}
@@ -101,19 +111,29 @@
 			</div>
 
 			{{#if traced}}
-			{{!-- The Realm's hexes as they'll lie over a map with no hexes on it, drawn in the picture's own pixels. The paths are filled in as the picture loads and the numbers change. --}}
-			<div class="bastionland-bare-map" data-bare-map hidden>
-				<figure class="bastionland-bare-map__preview" data-bare-preview hidden>
-					<img alt="" data-bare-picture>
-					<svg class="bastionland-bare-map__hexes" preserveAspectRatio="none" aria-hidden="true" focusable="false" data-bare-hexes>
-						<path class="bastionland-bare-map__outside" data-bare-outside></path>
-						<path class="bastionland-bare-map__halo" data-bare-halo></path>
-						<path class="bastionland-bare-map__lines" data-bare-lines></path>
+			{{!-- The Realm's hexes laid over the GM's map, drawn in the picture's own pixels. The paths are filled in as the picture loads and the numbers change. --}}
+			<div class="bastionland-map-size">
+				<figure class="bastionland-map-size__preview" data-map-size-preview hidden>
+					<img alt="" data-map-size-picture>
+					<svg class="bastionland-map-size__hexes" preserveAspectRatio="none" aria-hidden="true" focusable="false" data-map-size-hexes>
+						<path class="bastionland-map-size__outside" data-map-size-outside></path>
+						<path class="bastionland-map-size__halo" data-map-size-halo></path>
+						<path class="bastionland-map-size__lines" data-map-size-lines></path>
 					</svg>
+					{{!-- Over the whole map: clicked, it opens larger in a window of its own, where the size can be set too (module/apps/map-size-window.js). --}}
+					<button type="button" class="bastionland-map-size__enlarge" data-map-size-enlarge aria-label="{{localize "bastionland.realm.picture.sizeWindow.open"}}" data-tooltip="{{localize "bastionland.realm.picture.sizeWindow.open"}}"><i class="fa-solid fa-expand" inert></i></button>
 				</figure>
-				<p class="hint">{{localize "bastionland.realm.picture.bare.preview"}}</p>
-				<p class="hint" data-bare-waiting>{{localize "bastionland.realm.picture.bare.noPicture"}}</p>
-				<p class="hint" data-bare-broken hidden>{{localize "bastionland.realm.picture.bare.unreadable"}}</p>
+				{{!-- More hexes or fewer in one click, the map's shape kept. The count's {cols}, {rows} and {hexes} are filled in as the size changes. --}}
+				<div class="bastionland-map-size__step" data-map-size-step hidden>
+					<button type="button" data-map-size-fewer><i class="fa-solid fa-minus" inert></i> {{localize "bastionland.realm.picture.step.fewer"}}</button>
+					<span class="bastionland-map-size__count" data-map-size-count data-format="{{localize "bastionland.realm.picture.step.count"}}"></span>
+					<button type="button" data-map-size-more><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.realm.picture.step.more"}}</button>
+					<button type="button" class="bastionland-map-size__larger" data-map-size-enlarge aria-label="{{localize "bastionland.realm.picture.sizeWindow.open"}}" data-tooltip="{{localize "bastionland.realm.picture.sizeWindow.open"}}"><i class="fa-solid fa-expand" inert></i></button>
+				</div>
+				<p class="hint" data-map-mode="drawn">{{localize "bastionland.realm.picture.drawnPreview"}}</p>
+				<p class="hint" data-map-mode="bare" hidden>{{localize "bastionland.realm.picture.bare.preview"}}</p>
+				<p class="hint" data-map-size-waiting>{{localize "bastionland.realm.picture.bare.noPicture"}}</p>
+				<p class="hint" data-map-size-broken hidden>{{localize "bastionland.realm.picture.bare.unreadable"}}</p>
 			</div>
 			{{/if}}
 		</section>

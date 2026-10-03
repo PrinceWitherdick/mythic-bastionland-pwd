@@ -8,18 +8,11 @@ import { ensureDirectories, filePicker, uploadFile } from "../book-art/files.js"
 import { ART_ROOT } from "../rules/book-art.js";
 import { t } from "../chat/cards.js";
 import { inputDialog } from "../apps/ui.js";
-import { BARE_MAP, MAP_ROLES, REALM_MAP_DIR, coveredCrop, laidMapRect, pictureChoices, resizesMapPicture } from "../rules/realm-map.js";
+import { BARE_MAP, MAP_ROLES, MUCH_CROPPED, REALM_MAP_DIR, coveredCrop, laidMapRect, pictureChoices, resizesMapPicture } from "../rules/realm-map.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { setMapPicture, placeMapPicture } from "../rules/realm-edits.js";
 import { BOOK_LAYOUT, normaliseLayout } from "../rules/realm-geometry.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry, setRealmLayout } from "./realm.js";
-
-/**
- * How much of a map with no hexes on it may fall outside a Realm that already
- * stands before the GM is told: about a fifth is a border or a strip of sea,
- * and more is a map of another shape from the Realm's.
- */
-const MUCH_CROPPED = 0.2;
 
 /** What a picture's file may be called, once the GM's own name for it is thrown away. */
 const safeExtension = (file) => (String(file?.name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "png";

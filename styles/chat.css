@@ -966,33 +966,33 @@
 }
 
 /*
- * A map with no hexes on it, with the Realm's hexes drawn over it as they'll
- * lie. The picture and the drawing fill one box of the picture's own shape, so
+ * The GM's own map on the Map size page, with the Realm's hexes drawn over it
+ * edge to edge. The picture and the drawing fill one box of the picture's own shape, so
  * the drawing, measured in the picture's pixels, lies exactly on it. The lines
  * are ink on a paper halo, to show on a dark map and a light one alike.
  */
-.bastionland-bare-map {
+.bastionland-map-size {
 	display: flex;
 	flex-direction: column;
 	gap: 0.3rem;
 }
 
-.bastionland-bare-map > .hint {
+.bastionland-map-size > .hint {
 	margin: 0;
 }
 
 /* As wide as fits and 18rem tall at most; a very tall map stands up to 28rem, to be wider than a sliver. */
-.bastionland-bare-map__preview {
+.bastionland-map-size__preview {
 	position: relative;
 	align-self: center;
-	width: min(100%, max(calc(18rem * var(--bastionland-bare-aspect, 1)), min(8rem, calc(28rem * var(--bastionland-bare-aspect, 1)))));
-	aspect-ratio: var(--bastionland-bare-aspect, 1);
+	width: min(100%, max(calc(18rem * var(--bastionland-map-aspect, 1)), min(8rem, calc(28rem * var(--bastionland-map-aspect, 1)))));
+	aspect-ratio: var(--bastionland-map-aspect, 1);
 	margin: 0;
 	border: 1px solid var(--bastionland-rule);
 }
 
-.bastionland-bare-map__preview > img,
-.bastionland-bare-map__hexes {
+.bastionland-map-size__preview > img,
+.bastionland-map-size__hexes {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -1002,33 +1002,156 @@
 	border: none;
 }
 
-.bastionland-bare-map__hexes {
+.bastionland-map-size__hexes {
 	overflow: hidden;
 	pointer-events: none;
 }
 
-.bastionland-bare-map__hexes path {
+.bastionland-map-size__hexes path {
 	fill: none;
 	stroke-linejoin: round;
 	vector-effect: non-scaling-stroke;
 }
 
-.bastionland-bare-map__hexes .bastionland-bare-map__halo {
+.bastionland-map-size__hexes .bastionland-map-size__halo {
 	stroke: var(--bastionland-paper);
 	stroke-opacity: 0.75;
 	stroke-width: 3;
 }
 
-.bastionland-bare-map__hexes .bastionland-bare-map__lines {
+.bastionland-map-size__hexes .bastionland-map-size__lines {
 	stroke: var(--bastionland-ink);
 	stroke-width: 1.2;
 }
 
+/* Fewer hexes, the count, More hexes: one row under the preview. */
+.bastionland-map-size__step:not([hidden]) {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+.bastionland-map-size__step > button {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.bastionland-map-size__count {
+	min-width: 11rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
 /* What of the picture falls outside the Realm, and isn't shown on the map. */
-.bastionland-bare-map__hexes .bastionland-bare-map__outside {
+.bastionland-map-size__hexes .bastionland-map-size__outside {
 	fill: rgb(0 0 0 / 0.4);
 	fill-rule: evenodd;
 	stroke: none;
+}
+
+/*
+ * The whole map is a button that opens it larger, marked by an expand icon in
+ * its corner. No ring when it's clicked, only when it's reached by keyboard.
+ */
+.bastionland-dialog .bastionland-map-size__preview > .bastionland-map-size__enlarge {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-end;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0.3rem;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	cursor: zoom-in;
+}
+
+.bastionland-dialog .bastionland-map-size__preview > .bastionland-map-size__enlarge > i {
+	display: grid;
+	place-items: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	margin: 0;
+	border: 1px solid var(--bastionland-ink);
+	border-radius: 3px;
+	background: var(--bastionland-paper);
+	font-size: 15px;
+}
+
+.bastionland-dialog .bastionland-map-size__preview > .bastionland-map-size__enlarge:hover > i {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-dialog .bastionland-map-size__enlarge:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-dialog .bastionland-map-size__enlarge:focus-visible {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: -2px;
+}
+
+.bastionland-map-size__step > .bastionland-map-size__larger {
+	padding-inline: 0.6rem;
+}
+
+/*
+ * The map seen larger, in a window of its own: the picture and its hexes take
+ * all the room the window has, at the picture's own shape, and the numbers sit
+ * in one row under it. Resizing the window resizes the map.
+ */
+.bastionland-map-size-window .dialog-form {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+
+.bastionland-map-size-window .dialog-content,
+.bastionland-map-size-window__body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.bastionland-map-size-window__body {
+	gap: 0.6rem;
+}
+
+.bastionland-map-size-window__body > .hint {
+	margin: 0;
+	text-align: center;
+}
+
+.bastionland-map-size-window__stage {
+	display: grid;
+	flex: 1 1 auto;
+	place-items: center;
+	min-height: 12rem;
+	container-type: size;
+}
+
+.bastionland-map-size-window .bastionland-map-size-window__preview {
+	align-self: auto;
+	width: min(100cqw, calc(100cqh * var(--bastionland-map-aspect, 1)));
+}
+
+.bastionland-map-size-window__controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem 1rem;
 }
 
 /*

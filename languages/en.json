@@ -3251,12 +3251,28 @@
         "bare": {
           "sizeNext": "Your map has no hexes on it, so the Realm lays its own over it. You choose how many on the Map size page.",
           "keepsRealmSize": "Your map is laid under this Realm's {cols} by {rows} hexes, just large enough to cover them all. A Realm keeps its size once it's made, so for a different number of hexes, make a New Realm from this map.",
-          "sizeIntro": "Your map has no hexes on it, so the Realm lays its own over it. Choose how many go across, and the rows follow your map's shape, so the hexes cover it edge to edge. Change the rows and the hexes across follow instead. It starts at about as many hexes as a typical Realm's 12 by 12. A side can run to {side} hexes, with up to {hexes} in all, so even a very wide or tall map is covered.",
+          "sizeIntro": "Your map has no hexes on it, so the Realm lays its own over it. Choose how many go across, and the rows follow your map's shape, so the hexes cover it edge to edge. Change the rows and the hexes across follow instead. Or use Fewer hexes and More hexes under the map to change both at once. It starts at about as many hexes as a typical Realm's 12 by 12. A side can run to {side} hexes, with up to {hexes} in all, so even a very wide or tall map is covered.",
           "preview": "The hexes as they'll lie over your map. Anything shaded falls outside the Realm and isn't shown.",
           "noPicture": "Choose your map on the Import map page to see the hexes drawn over it here.",
           "unreadable": "Your map couldn't be loaded, so the hexes can't be drawn over it. Check it on the Import map page, or choose it again.",
           "cropped": "Your map is a different shape from this Realm's {cols} by {rows} hexes, so a good part of it falls outside the Realm. For hexes that cover all of it, make a New Realm from this map.",
           "slideHint": "Your map is laid under the hexes, covering them edge to edge. To move the hexes over it, drag the map; the arrow keys nudge it (Shift for more). Ctrl and the mouse wheel size it about the pointer (Shift for more), which makes the hexes smaller or larger on your map. Then keep it here."
+        },
+        "drawnSizeIntro": "Your map needn’t be the book’s 12 by 12 hexes. Count the hexes drawn on it, and set how many go across and how many down. Until you set both, the other follows your map’s shape. Fewer hexes and More hexes under the map change both at once, keeping its shape. A side can run to {side} hexes, with up to {hexes} in all.",
+        "step": {
+          "fewer": "Fewer hexes",
+          "more": "More hexes",
+          "count": "{cols} by {rows}, {hexes} hexes"
+        },
+        "sizeWindow": {
+          "open": "See the map larger, and set its hexes there",
+          "title": "Map size",
+          "done": "Done"
+        },
+        "drawnPreview": "The Realm’s hexes over your map, to count yours against. They needn’t sit exactly on yours yet: you line the two up once the Realm is made.",
+        "shape": {
+          "wide": "Your map is wider than the book’s Realm Sheet, so it starts at a size that fits its shape rather than 12 by 12 hexes. Check it on the Map size page, where the hexes are drawn over your map. If your map has no hexes drawn on it, choose No hexes on it.",
+          "tall": "Your map is taller than the book’s Realm Sheet, so it starts at a size that fits its shape rather than 12 by 12 hexes. Check it on the Map size page, where the hexes are drawn over your map. If your map has no hexes drawn on it, choose No hexes on it."
         },
         "lineUpHint": "Once the picture is in, you line it up with the hexes. A map with hexes on it is sized to two of them that you mark, then slid the last little way under the hex lines. A map with none is laid under the Realm's hexes edge to edge, ready to slide. There's no need to crop it: whatever lies outside the map isn't shown.",
         "keepsSize": "The imported map can't be sized by hand. Line it up again: it's sized evenly there, by the hexes you mark or with Ctrl and the mouse wheel.",

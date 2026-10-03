@@ -1,0 +1,30 @@
+<div class="bastionland-dialog__body bastionland-map-size-window__body">
+	{{!-- The Map size page's map, larger: the picture and the Realm's hexes over it fill the window, and the numbers sit under them (module/apps/map-size-fields.js, wireMapSizeMirror). --}}
+	<div class="bastionland-map-size-window__stage">
+		<figure class="bastionland-map-size__preview bastionland-map-size-window__preview" data-map-size-big-preview hidden>
+			<img alt="" data-map-size-big-picture>
+			<svg class="bastionland-map-size__hexes" preserveAspectRatio="none" aria-hidden="true" focusable="false" data-map-size-big-hexes>
+				<path class="bastionland-map-size__outside" data-map-size-big-outside></path>
+				<path class="bastionland-map-size__halo" data-map-size-big-halo></path>
+				<path class="bastionland-map-size__lines" data-map-size-big-lines></path>
+			</svg>
+		</figure>
+	</div>
+	<div class="bastionland-map-size-window__controls">
+		<label class="bastionland-realm-setup__field">
+			<span>{{localize "bastionland.realm.setup.fields.cols"}}</span>
+			<input type="number" step="1" data-map-size-big-side="cols">
+		</label>
+		<label class="bastionland-realm-setup__field">
+			<span>{{localize "bastionland.realm.setup.fields.rows"}}</span>
+			<input type="number" step="1" data-map-size-big-side="rows">
+		</label>
+		<div class="bastionland-map-size__step">
+			<button type="button" data-map-size-big-fewer><i class="fa-solid fa-minus" inert></i> {{localize "bastionland.realm.picture.step.fewer"}}</button>
+			<span class="bastionland-map-size__count" data-map-size-big-count></span>
+			<button type="button" data-map-size-big-more><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.realm.picture.step.more"}}</button>
+		</div>
+	</div>
+	<p class="hint" data-map-mode="drawn">{{localize "bastionland.realm.picture.drawnPreview"}}</p>
+	<p class="hint" data-map-mode="bare" hidden>{{localize "bastionland.realm.picture.bare.preview"}}</p>
+</div>

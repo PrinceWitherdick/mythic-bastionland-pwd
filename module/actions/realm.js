@@ -24,7 +24,7 @@ import {
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
 import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
-import { mapPictureContext, measurePicture, readBareMap, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
+import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
 import { generateRealm } from "../rules/realm-generator.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
@@ -35,7 +35,8 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
-import { wireBareMapFields } from "../apps/bare-map-fields.js";
+import { wireMapSizeFields } from "../apps/map-size-fields.js";
+import { closeMapSizeWindow, openMapSizeWindow } from "../apps/map-size-window.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
 import { keptFromMe } from "./solo.js";
 
@@ -622,8 +623,8 @@ export async function newRealm() {
 		// Drawn by hand, only the map's size is left to set.
 		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
 		...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
-		// How far a map with no hexes on it may run, for the Map size page to say.
-		bareLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
+		// How far a map of the GM's own may run, for the Map size page to say.
+		sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
 		startHint: t(`company.starts.${firstStart}.hint`)
@@ -648,8 +649,9 @@ export async function newRealm() {
 			if (traced) {
 				wireMapPictureFields(dialog.element, { name: upload });
 				holdForMapPicture(dialog.element);
-				// After the setup fields, which it hands the size back to when the map turns out to have hexes after all.
-				wireBareMapFields(dialog.element);
+				wireMapSizeFields(dialog.element, { enlarge: openMapSizeWindow });
+				// The map seen larger goes with the dialog it sets the size of.
+				dialog.addEventListener("close", closeMapSizeWindow, { once: true });
 			}
 		}
 	});
@@ -664,8 +666,8 @@ export async function newRealm() {
 
 	const setup = foundry.utils.expandObject(data).setup ?? {};
 	if (draw) setup.roll = Object.fromEntries(SETUP_PARTS.map((part) => [part, false]));
-	// A map with no hexes on it takes as many as its shape needs, which is no rule ignored.
-	if (traced && readBareMap(data)) setup.ownSize = true;
+	// A map of the GM's own takes as many hexes as they count on it, or its shape needs, which is no rule ignored.
+	if (traced) setup.ownSize = true;
 	const rules = normaliseRealmSetup(setup);
 	const scene = await createRealmScene({
 		name: String(data.name ?? "").trim() || defaultName,

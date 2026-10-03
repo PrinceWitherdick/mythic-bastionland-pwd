@@ -4,9 +4,11 @@ import { BOOK_LAYOUT, REALM_LAYOUTS, hexCentre, hexVertices, normaliseLayout, re
 import {
 	BARE_MAP,
 	MAP_ROLES,
+	MUCH_CROPPED,
 	TERRAIN_MARKS,
-	bareHexOverlay,
 	bareMapSize,
+	drawnMapSize,
+	hexOverlay,
 	calibrationHexes,
 	coveredCrop,
 	coveredMapRect,
@@ -30,7 +32,9 @@ import {
 	resizesMapPicture,
 	sizeMapRect,
 	slideMapRect,
+	steppedMapSize,
 	suggestedMapSize,
+	unusualMapShape,
 	terrainMark,
 	viewOfPicture,
 	withMapPlaces
@@ -235,6 +239,24 @@ describe("how many hexes go over a map with no hexes on it", () => {
 		expect(bareMapSize(null, { cols: 60, rows: 60, lead: "rows" })).toEqual({ cols: 15, rows: 60 });
 	});
 
+	it("steps to the next size up or down in the picture's shape", () => {
+		expect(steppedMapSize(WIDE, { cols: 17, rows: 8 }, 1)).toEqual({ cols: 18, rows: 8, lead: "cols" });
+		expect(steppedMapSize(WIDE, { cols: 18, rows: 8 }, 1)).toMatchObject({ cols: 19, rows: 9 });
+		expect(steppedMapSize(WIDE, { cols: 17, rows: 8 }, -1)).toMatchObject({ cols: 16, rows: 7 });
+		expect(steppedMapSize(SHEET, { cols: 12, rows: 12 }, 1)).toMatchObject({ cols: 13, rows: 13 });
+		// A size not in the picture's shape steps back into it.
+		expect(steppedMapSize(WIDE, { cols: 20, rows: 14 }, 1)).toMatchObject({ cols: 25, rows: 12 });
+		// Each step has more hexes than the last, as far as they go.
+		let size = { cols: 3, rows: 3 };
+		for (let next; (next = steppedMapSize(WIDE, size, 1)); size = next) expect(next.cols * next.rows).toBeGreaterThan(size.cols * size.rows);
+		expect(size.cols * size.rows).toBeLessThanOrEqual(900);
+	});
+
+	it("has no step past the smallest size, nor for a picture of no known size", () => {
+		expect(steppedMapSize(WIDE, { cols: 3, rows: 3 }, -1)).toBeNull();
+		expect(steppedMapSize(null, { cols: 12, rows: 12 }, 1)).toBeNull();
+	});
+
 	it("covers very wide and very tall maps, losing next to none of them", () => {
 		const shapes = {
 			"8:1": [{ width: 8000, height: 1000 }, { cols: 41, rows: 4 }],
@@ -257,9 +279,49 @@ describe("how many hexes go over a map with no hexes on it", () => {
 	});
 });
 
-describe("bareHexOverlay", () => {
+describe("unusualMapShape", () => {
+	it("tells a map far from a typical Realm's shape from one near it", () => {
+		expect(unusualMapShape(WIDE)).toBe("wide");
+		expect(unusualMapShape({ width: 2160, height: 3840 })).toBe("tall");
+		expect(unusualMapShape(SHEET)).toBeNull();
+		// A square picture, or a sheet of paper stood up, is near enough the book's.
+		expect(unusualMapShape({ width: 2000, height: 2000 })).toBeNull();
+		expect(unusualMapShape({ width: 1000, height: 1414 })).toBeNull();
+		expect(unusualMapShape({ width: 1414, height: 1000 })).toBe("wide");
+		expect(unusualMapShape(null)).toBeNull();
+	});
+
+	it("measures against the Realm laid out the map's way", () => {
+		const pointed = realmGeometry({ layout: "evenRows" });
+		expect(unusualMapShape({ width: pointed.width, height: pointed.height }, "evenRows")).toBeNull();
+		expect(coveredCrop(realmGeometry(), { width: 1414, height: 1000 })).toBeGreaterThan(MUCH_CROPPED);
+	});
+});
+
+describe("drawnMapSize", () => {
+	it("starts at the book's 12 by 12, or the suggestion for a map far from that shape", () => {
+		expect(drawnMapSize(SHEET, { cols: 12, rows: 12 })).toEqual({ cols: 12, rows: 12 });
+		expect(drawnMapSize({ width: 2000, height: 2000 }, { cols: 12, rows: 12 })).toEqual({ cols: 12, rows: 12 });
+		expect(drawnMapSize(WIDE, { cols: 12, rows: 12 })).toEqual({ cols: 17, rows: 8 });
+		expect(drawnMapSize(WIDE, { cols: 12, rows: 12 }, "evenRows")).toEqual({ cols: 14, rows: 9 });
+	});
+
+	it("follows the picture's shape with the side the GM hasn't set, and keeps both once they have", () => {
+		expect(drawnMapSize(WIDE, { cols: 20, rows: 8, typed: ["cols"] })).toEqual({ cols: 20, rows: 9 });
+		expect(drawnMapSize(WIDE, { cols: 17, rows: 10, typed: ["rows"] })).toEqual({ cols: 21, rows: 10 });
+		// The hexes counted on a map with a border needn't keep its shape.
+		expect(drawnMapSize(WIDE, { cols: 20, rows: 14, typed: ["cols", "rows"] })).toEqual({ cols: 20, rows: 14 });
+	});
+
+	it("keeps to the bounds of a Realm of the GM's own size, the side set last kept whole", () => {
+		expect(drawnMapSize(WIDE, { cols: 99, rows: 60, typed: ["rows", "cols"] })).toEqual({ cols: 60, rows: 15 });
+		expect(drawnMapSize(null, { cols: "40", rows: "" })).toEqual({ cols: 40, rows: 12 });
+	});
+});
+
+describe("hexOverlay", () => {
 	it("draws every hex in the picture's own pixels, as the picture is laid to cover them", () => {
-		const overlay = bareHexOverlay(WIDE, { cols: 17, rows: 8 });
+		const overlay = hexOverlay(WIDE, { cols: 17, rows: 8 });
 		expect(overlay.viewBox).toBe("0 0 3840 2160");
 		expect(overlay.hexes.match(/M/g)).toHaveLength(17 * 8);
 
@@ -274,13 +336,13 @@ describe("bareHexOverlay", () => {
 	});
 
 	it("shades the strips of picture outside the map, and none where the shapes meet", () => {
-		expect(bareHexOverlay(WIDE, { cols: 17, rows: 8 }).outside).toBe("M0 0H3840V2160H0Z M12.5 0h3814.9v2160h-3814.9Z");
-		expect(bareHexOverlay(SHEET, { cols: 12, rows: 12 }).outside).toBe("");
+		expect(hexOverlay(WIDE, { cols: 17, rows: 8 }).outside).toBe("M0 0H3840V2160H0Z M12.5 0h3814.9v2160h-3814.9Z");
+		expect(hexOverlay(SHEET, { cols: 12, rows: 12 }).outside).toBe("");
 	});
 
 	it("lays pointed tops too, and nothing for a picture of no known size", () => {
-		expect(bareHexOverlay(WIDE, { cols: 14, rows: 9, layout: "evenRows" }).hexes.match(/M/g)).toHaveLength(14 * 9);
-		expect(bareHexOverlay(null, { cols: 12, rows: 12 })).toBeNull();
+		expect(hexOverlay(WIDE, { cols: 14, rows: 9, layout: "evenRows" }).hexes.match(/M/g)).toHaveLength(14 * 9);
+		expect(hexOverlay(null, { cols: 12, rows: 12 })).toBeNull();
 	});
 });
 

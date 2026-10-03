@@ -14,8 +14,8 @@ export const SETUP_PARTS = Object.freeze(["terrain", "rivers", "holdings", "myth
 /**
  * @typedef {object} RealmSetup
  * @property {boolean} ignoreRules Whether the numbers are the GM's own rather than the book's.
- * @property {boolean} [ownSize] Whether only the map's size is the GM's own, as for a map with no hexes on
- *   it, whose shape sets how many go over it (within OWN_SIZE_LIMITS); every other number stays the book's.
+ * @property {boolean} [ownSize] Whether only the map's size is the GM's own, as for a Realm made from a map
+ *   of theirs, whose hexes or shape set how many it has (within OWN_SIZE_LIMITS); every other number stays the book's.
  * @property {number} cols
  * @property {number} rows
  * @property {Record<string, boolean>} roll For each of SETUP_PARTS, whether it's rolled or left to draw by hand.
@@ -71,8 +71,8 @@ export function within(value, fallback, { min, max }) {
 }
 
 /**
- * How far a map's sides go when its size is the GM's own because the map laid
- * under it has no hexes on it (`ownSize`): further than SETUP_LIMITS, so a very
+ * How far a map's sides go when its size is the GM's own because the Realm is
+ * made from a map of theirs (`ownSize`): further than SETUP_LIMITS, so a very
  * wide or tall map is still covered from end to end, but with no more hexes in
  * all than the largest map with the rules ignored.
  */
@@ -83,7 +83,8 @@ export const OWN_SIZE_LIMITS = Object.freeze({
 });
 
 /** @type {Readonly<Record<"cols"|"rows", "cols"|"rows">>} */
-const OTHER_SIDE = Object.freeze({ cols: "rows", rows: "cols" });
+/** Each side of the map, and the other. */
+export const OTHER_SIDE = Object.freeze({ cols: "rows", rows: "cols" });
 
 /**
  * @param {"cols"|"rows"} side
@@ -124,7 +125,7 @@ export function normaliseRealmSetup(given = null) {
 	const number = (key, value) => within(value, BOOK_SETUP[key], SETUP_LIMITS[key]);
 	if (!given?.ignoreRules) {
 		const book = { ...BOOK_SETUP, roll, landmarks: { ...BOOK_SETUP.landmarks, types: {} } };
-		// Not the rules ignored: a map with no hexes on it is only given as many as its shape takes.
+		// Not the rules ignored: a Realm made from the GM's own map is only given as many as the map takes.
 		return given?.ownSize ? { ...book, ownSize: true, ...withinOwnSize(given.cols, given.rows) } : book;
 	}
 

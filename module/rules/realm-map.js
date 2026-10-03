@@ -19,11 +19,15 @@
  * Then the Realm lays its own over it: as many as its shape takes, so they
  * cover it edge to edge, and the picture is laid large enough to cover them.
  *
+ * Either way, a map of the GM's own needn't be the book's 12 by 12 hexes: a
+ * Realm made from one takes as many as the GM counts on it, or as its shape
+ * takes, without the rules for setup being ignored.
+ *
  * Pure, so it can be tested without Foundry.
  */
 import { ART_ROOT } from "./book-art.js";
 import { BOOK_LAYOUT, REALM_LAYOUTS, allHexes, hexCentre, hexVertices, normaliseLayout, realmGeometry } from "./realm-geometry.js";
-import { BOOK_SETUP, OWN_SIZE_LIMITS, ownSideLimits, within, withinOwnSize } from "./realm-setup.js";
+import { BOOK_SETUP, OTHER_SIDE, OWN_SIZE_LIMITS, ownSideLimits, within, withinOwnSize } from "./realm-setup.js";
 
 /** Where pictures of a GM's own Realm maps are saved, under Data rather than a world. */
 export const REALM_MAP_DIR = `${ART_ROOT}/realm-maps`;
@@ -237,6 +241,27 @@ export function coveredCrop(g, size) {
  */
 export const laidMapRect = (g, size, { bare = false } = {}) => (bare ? coveredMapRect : fittedMapRect)(g, size);
 
+/**
+ * How much of a picture may fall outside a Realm before it's a map of another
+ * shape from the Realm's: about a fifth is a border or a strip of sea, and the
+ * square picture of a Realm Sheet loses less than that.
+ */
+export const MUCH_CROPPED = 0.2;
+
+/**
+ * Whether a map is far from the shape of a typical Realm's, laid out its way,
+ * so it wants more hexes one way than the book's 12 by 12 (p14) and fewer the other.
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {"wide"|"tall"|null} Null for a map of about the book's shape, or a picture of no known size.
+ */
+export function unusualMapShape(size, layout = BOOK_LAYOUT) {
+	if (!measured(size)) return null;
+	const g = realmGeometry({ layout });
+	if (coveredCrop(g, size) <= MUCH_CROPPED) return null;
+	return Number(size.width) / Number(size.height) > g.width / g.height ? "wide" : "tall";
+}
+
 /** The word a dialog gives for a map with no hexes on it, beside the layouts (REALM_LAYOUTS) one with hexes may be drawn in. */
 export const BARE_MAP = "bare";
 
@@ -270,7 +295,15 @@ const sideCounts = (side, other) => {
  * @param {(count: number) => number} miss
  * @returns {number} The count that misses least, the smaller where two miss alike.
  */
-const closest = (counts, miss) => counts.reduce((best, count) => (miss(count) < miss(best) ? count : best));
+const closest = (counts, miss) => {
+	let [best] = counts;
+	let least = miss(best);
+	for (const count of counts.slice(1)) {
+		const next = miss(count);
+		if (next < least) [best, least] = [count, next];
+	}
+	return best;
+};
 
 /**
  * How many hexes the other side of a map with no hexes on it takes for so
@@ -284,7 +317,7 @@ const closest = (counts, miss) => counts.reduce((best, count) => (miss(count) < 
 export function otherSideForPicture(size, side, count, layout = BOOK_LAYOUT) {
 	if (!measured(size)) return null;
 	const given = within(count, BOOK_SETUP[side], OWN_SIZE_LIMITS[side]);
-	const other = side === "cols" ? "rows" : "cols";
+	const other = OTHER_SIDE[side];
 	const miss = (n) => (side === "cols" ? shapeMiss(size, given, n, layout) : shapeMiss(size, n, given, layout));
 	return closest(sideCounts(other, given), miss);
 }
@@ -339,13 +372,92 @@ export function bareMapSize(size, { cols, rows, lead = null } = {}, layout = BOO
 	return suggestedMapSize(size, layout);
 }
 
+/**
+ * How many hexes a map with hexes drawn on it is given, as the GM counts them:
+ * a side they've set is kept, and until they set the other it follows the
+ * picture's shape. Until they set either, it's the book's 12 by 12 (p14), or
+ * the suggestion for a map far from that shape (unusualMapShape).
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {object} [given]
+ * @param {unknown} [given.cols]
+ * @param {unknown} [given.rows]
+ * @param {("cols"|"rows")[]} [given.typed] The sides the GM has set, the last set last.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number}} Within OWN_SIZE_LIMITS; as given for a picture of no known size.
+ */
+export function drawnMapSize(size, { cols, rows, typed = [] } = {}, layout = BOOK_LAYOUT) {
+	const given = withinOwnSize(cols, rows, typed.at(-1) ?? "cols");
+	const [setCols, setRows] = [typed.includes("cols"), typed.includes("rows")];
+	if (!measured(size) || (setCols && setRows)) return given;
+	if (setCols) return { cols: given.cols, rows: otherSideForPicture(size, "cols", given.cols, layout) };
+	if (setRows) return { cols: otherSideForPicture(size, "rows", given.rows, layout), rows: given.rows };
+	return unusualMapShape(size, layout) ? suggestedMapSize(size, layout) : { cols: BOOK_SETUP.cols, rows: BOOK_SETUP.rows };
+}
+
+/** The last picture's sizes, kept: the Map size page asks for them at every keystroke, both ways. */
+let shapedSizesKept = null;
+
+/**
+ * Every size whose one side follows the picture's shape from the other, the
+ * sizes steppedMapSize steps between.
+ * @param {{width: number, height: number}} size The picture's own size, measured.
+ * @param {string} layout One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number, lead: "cols"|"rows", hexes: number, miss: number}[]}
+ */
+function shapedSizes(size, layout) {
+	const kept = shapedSizesKept;
+	if (kept && kept.width === size.width && kept.height === size.height && kept.layout === layout) return kept.sizes;
+	const sizes = ["cols", "rows"].flatMap((lead) => {
+		const other = OTHER_SIDE[lead];
+		return sideCounts(lead).flatMap((count) => {
+			const follows = otherSideForPicture(size, lead, count, layout);
+			const pair = { [lead]: count, [other]: follows, lead };
+			const miss = (n) => (lead === "cols" ? shapeMiss(size, count, n, layout) : shapeMiss(size, n, count, layout));
+			// Held to the hexes in all, rather than the shape: no step to it.
+			if (follows !== closest(sideCounts(other), miss)) return [];
+			return [{ ...pair, hexes: count * follows, miss: shapeMiss(size, pair.cols, pair.rows, layout) }];
+		});
+	});
+	shapedSizesKept = { width: size.width, height: size.height, layout, sizes };
+	return sizes;
+}
+
+/**
+ * The next size up or down that keeps a picture's shape, so the GM can have
+ * more hexes or fewer without setting both sides by hand: of every size whose
+ * one side follows the picture's shape from the other (otherSideForPicture),
+ * the one nearest in hexes past the size now, the closer to the shape where two
+ * have as many. A side the hexes in all (OWN_SIZE_LIMITS) cut short of the
+ * shape isn't stepped to, nor is one past a side's own limit.
+ * @param {{width: number, height: number}|null|undefined} size The picture's own size.
+ * @param {{cols: unknown, rows: unknown}} now The size the map has now.
+ * @param {1|-1} step More hexes, or fewer.
+ * @param {string} [layout] One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number, lead: "cols"|"rows"}|null} With the side the other follows;
+ *   null for a picture of no known size, or with no size further that way.
+ */
+export function steppedMapSize(size, now, step, layout = BOOK_LAYOUT) {
+	if (!measured(size)) return null;
+	const { cols, rows } = withinOwnSize(now?.cols, now?.rows);
+	const hexes = cols * rows;
+	const ahead = shapedSizes(size, layout).filter((next) => Math.sign(next.hexes - hexes) === Math.sign(step));
+	if (!ahead.length) return null;
+	const best = ahead.reduce((kept, next) => {
+		const [far, near] = [Math.abs(next.hexes - hexes), Math.abs(kept.hexes - hexes)];
+		return far < near || (far === near && next.miss < kept.miss) ? next : kept;
+	});
+	return { cols: best.cols, rows: best.rows, lead: best.lead };
+}
+
 /** Kept to the tenth of a pixel, which is finer than a preview is drawn. */
 const tenth = (value) => Math.round(value * 10) / 10;
 
 /**
- * The Realm's hexes as they'll lie over a map with no hexes on it, drawn in the
- * picture's own pixels, for a preview: an SVG with this viewBox, stretched over
- * the picture, lies exactly on it. The picture is laid as coveredMapRect lays it.
+ * The Realm's hexes laid over a map edge to edge, drawn in the picture's own
+ * pixels, for a preview: an SVG with this viewBox, stretched over the picture,
+ * lies exactly on it. The picture is laid as coveredMapRect lays it, which is
+ * where a map with no hexes on it starts; over a map with hexes on it, they
+ * show how many the GM has counted, before the two are lined up.
  * @param {{width: number, height: number}|null|undefined} size The picture's own size.
  * @param {object} [options]
  * @param {number} [options.cols]
@@ -354,7 +466,7 @@ const tenth = (value) => Math.round(value * 10) / 10;
  * @returns {{viewBox: string, hexes: string, outside: string}|null} SVG path data: every hex, and the
  *   picture outside the map, filled evenodd, or "" when none of it is. Null for a picture of no known size.
  */
-export function bareHexOverlay(size, { cols, rows, layout = BOOK_LAYOUT } = {}) {
+export function hexOverlay(size, { cols, rows, layout = BOOK_LAYOUT } = {}) {
 	if (!measured(size)) return null;
 	const [width, height] = [Number(size.width), Number(size.height)];
 	const g = realmGeometry({ ...withinOwnSize(cols, rows), layout });
