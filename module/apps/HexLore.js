@@ -12,7 +12,7 @@ import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { renameLandmark, rerollLandmarkName } from "../actions/landmarks.js";
 import { rollHexPerson, rollUpHolding } from "../actions/people.js";
-import { getRealm, sceneGeometry } from "../actions/realm.js";
+import { getRealm, isDrawingRealm, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { loadArtIndex } from "../book-art/art-index.js";
@@ -24,6 +24,7 @@ import { openSparkTables, refreshSparkKeep } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
 import { openHexVisits } from "./HexVisits.js";
 import { openWildernessHex } from "./WildernessHex.js";
+import { HEX_EDIT_FIELDS, chooseHexMyth, hexEditContext, rollHexMyth, rollHexSeer, stepHexOmen, toggleHexReveal, writeHexField } from "./hex-edit.js";
 import { renderWhenIdle } from "./ui.js";
 import { realmKnown } from "../actions/solo.js";
 
@@ -57,7 +58,14 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			markVisited: HexLore.#onMarkVisited,
 			forgetVisits: HexLore.#onForgetVisits,
 			mood: HexLore.#onMood,
-			journal: HexLore.#onJournal
+			journal: HexLore.#onJournal,
+			rollMyth: HexLore.#onRollMyth,
+			chooseMyth: HexLore.#onChooseMyth,
+			rollSeer: HexLore.#onRollSeer,
+			omenStep: HexLore.#onOmenStep,
+			toggleReveal: HexLore.#onToggleReveal,
+			undo: HexLore.#onUndo,
+			redo: HexLore.#onRedo
 		}
 	};
 
@@ -80,9 +88,21 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {{key: string, myth: string, page: number}|null} The page the Landmark's name was last flipped to, and in which hex. */
 	#prompted = null;
 
+	/** @type {boolean|null} Whether the GM left Edit this hex open or shut; null until they first fold it. */
+	#editOpen = null;
+
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
+		// The fold stays as the GM left it, however often the window is drawn again.
+		// A fold drawn open fires a toggle of its own, which isn't the GM's doing.
+		const fold = this.element.querySelector("[data-hex-edit]");
+		let shown = Boolean(context.edit?.open);
+		fold?.addEventListener("toggle", () => {
+			if (fold.open === shown) return;
+			shown = fold.open;
+			this.#editOpen = fold.open;
+		});
 		// Rolls on the Spark Tables are kept in the hex this is open on.
 		refreshSparkKeep();
 	}
@@ -125,6 +145,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const pages = this.#index?.spark ?? [];
 		const landmark = featureAt(known, hex).landmark;
 		const prompted = this.#prompted?.key === hexKey(hex) ? this.#prompted : null;
+		// The hex itself is the GM's to change: open while the Realm is being drawn, and shut in play.
+		const edit = game.user.isGM ? hexEditContext({ scene, realm, known, g, hex, index: this.#index }) : null;
+		if (edit) edit.open = this.#editOpen ?? isDrawingRealm(scene);
 
 		let notice = null;
 		if (!this.#index) notice = t("spark.noIndex");
@@ -160,7 +183,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				prompt: spark.prompt,
 				when: sparkWhen(spark)
 			})).reverse(),
-			notice
+			notice,
+			edit
 		});
 	}
 
@@ -169,7 +193,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/* -------------------------------------------- */
 
 	/**
-	 * The note and the Landmark's name are the fields, and each saves as it's changed.
+	 * The note, the Landmark's name and the fields of Edit this hex, each saved as it's changed.
 	 * @this {HexLore}
 	 */
 	static async #onChangeForm(event, _form, formData) {
@@ -177,6 +201,42 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		const field = event.target?.name;
 		if (field === "note") await writeHexNote(this.scene, this.hex, formData.object.note ?? "");
 		else if (field === "landmarkName") await renameLandmark(this.scene, this.hex, (formData.object.landmarkName ?? "").trim());
+		else if (HEX_EDIT_FIELDS.includes(field) && game.user.isGM) await writeHexField(this.scene, this.hex, field, formData.object[field]);
+	}
+
+	/** @this {HexLore} */
+	static #onRollMyth() {
+		return rollHexMyth(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onChooseMyth() {
+		return chooseHexMyth(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onRollSeer() {
+		return rollHexSeer(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onOmenStep(_event, target) {
+		return stepHexOmen(this.scene, this.hex, target.dataset.step);
+	}
+
+	/** @this {HexLore} */
+	static #onToggleReveal() {
+		return toggleHexReveal(this.scene, this.hex);
+	}
+
+	/** @this {HexLore} */
+	static #onUndo() {
+		return stepRealmHistory(this.scene, "undo");
+	}
+
+	/** @this {HexLore} */
+	static #onRedo() {
+		return stepRealmHistory(this.scene, "redo");
 	}
 
 	/**
@@ -295,20 +355,6 @@ export function openHexLore({ scene, hex }) {
 	window_.hex = hex;
 	window_.render({ force: true });
 	return window_;
-}
-
-/**
- * Follow the GM to another hex, but only if they already have the window open.
- * Inspecting a hex shouldn't open a window they didn't ask for.
- * @param {object} options
- * @param {Scene} options.scene
- * @param {{col: number, row: number}} options.hex
- */
-export function followHexLore({ scene, hex }) {
-	if (!window_?.rendered) return;
-	window_.sceneId = scene.id;
-	window_.hex = hex;
-	window_.render();
 }
 
 /**

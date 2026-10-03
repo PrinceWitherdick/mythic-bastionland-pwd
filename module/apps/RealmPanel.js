@@ -1,57 +1,29 @@
-import { getHexRecord } from "../actions/hex-lore.js";
-import { editRealm, getRealm, getRealmLook, realmUndoState, sceneGeometry, stepRealmHistory } from "../actions/realm.js";
-import { wildernessRoll } from "../actions/wilderness.js";
-import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { editRealm, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
-import { createRandom, randomSeed } from "../rules/random.js";
 import {
 	HOLDING_COUNT,
 	HOLDING_STYLES,
 	LANDMARK_TYPES,
 	LANDMARKS_PER_TYPE,
-	OMEN_COUNT,
 	REALM_BRUSHES,
 	REALM_TOOL_ICONS,
 	TERRAIN,
 	barrierCount,
-	barriersAround,
-	featureAt,
 	realmSeats,
-	seatsInOrder,
-	terrainAt,
-	validateRealm
+	seatsInOrder
 } from "../rules/realm.js";
 import { realmTextures } from "../rules/realm-documents.js";
-import {
-	FEATURE_KINDS,
-	clearRiver,
-	editFeature,
-	paintTerrain,
-	placeFeature,
-	setOmen,
-	setRevealed,
-	unusedMythNumbers
-} from "../rules/realm-edits.js";
-import { rollFreeMyth } from "../rules/realm-myths.js";
+import { clearRiver } from "../rules/realm-edits.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { TERRAIN_MARKS, hidesTerrain } from "../rules/realm-map.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { openHexLore } from "./HexLore.js";
-import { openMythChooser } from "./MythChooser.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
 import { renderWhenIdle } from "./ui.js";
-import { keptFromMe, realmKnown } from "../actions/solo.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-/** One hex, in one column. */
-const HEX_WIDTH = 340;
-
 /** The whole palette, in two columns, so it stands beside the map rather than down the screen. */
 const PAINT_WIDTH = 620;
-
-/** @returns {string} The kind of feature in a hex, or "none". */
-const kindHere = ({ holding, myth, landmark }) => (holding ? "holding" : myth ? "myth" : landmark ? "landmark" : "none");
 
 /**
  * A swatch's count against what the book asks for: green once it's right, red
@@ -99,9 +71,6 @@ function seatLine(realm) {
 		met: seats.length === 1
 	};
 }
-
-/** @returns {number|undefined} A whole number from a form value, or undefined when there isn't one. */
-const whole = (value) => (value === "" || value === null || !Number.isFinite(Number(value)) ? undefined : Math.trunc(Number(value)));
 
 /**
  * @typedef {object} RealmSwatch One button of the paint palette, as templates/apps/parts/realm-swatch.hbs draws it.
@@ -186,32 +155,22 @@ export function riverState({ rivers }) {
 export const brushHint = (brush) => t(`realm.panel.hints.${brush}`);
 
 /**
- * The GM's window for one hex of a Realm: its terrain, the Holding, Myth or
- * Landmark in it, its Barriers, and a Wilderness Roll there. With the paint
- * tool in hand it shows the palette to paint the Realm with instead: every
- * terrain, the river, Barriers, each style of Holding and each kind of
- * Landmark, in two columns so the palette isn't taller than the screen.
+ * The palette the GM paints a Realm with, while the paint tool is in hand:
+ * every terrain, the river, Barriers, each style of Holding and each kind of
+ * Landmark, in two columns so the palette isn't taller than the screen. One
+ * hex is changed in the Lay of the Land's Edit this hex instead.
  */
 export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-realm-panel",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-realm-panel-window"],
-		tag: "form",
-		position: { width: HEX_WIDTH, height: "auto", top: 90, left: 110 },
+		position: { width: PAINT_WIDTH, height: "auto", top: 90, left: 110 },
 		window: { icon: "fa-solid fa-map", resizable: true },
-		form: { handler: RealmPanel.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			pickBrush: RealmPanel.#onPickBrush,
 			toggleSeat: RealmPanel.#onToggleSeat,
-			rollMyth: RealmPanel.#onRollMyth,
-			chooseMyth: RealmPanel.#onChooseMyth,
-			rollSeer: RealmPanel.#onRollSeer,
-			omenStep: RealmPanel.#onOmenStep,
-			toggleReveal: RealmPanel.#onToggleReveal,
 			undo: RealmPanel.#onUndo,
 			redo: RealmPanel.#onRedo,
-			wilderness: RealmPanel.#onWilderness,
-			lore: RealmPanel.#onLore,
 			clearRiver: RealmPanel.#onClearRiver,
 			appearance: RealmPanel.#onAppearance
 		}
@@ -239,17 +198,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {string|null} */
 	sceneId = null;
 
-	/** @type {{col: number, row: number}|null} */
-	hex = null;
-
-	/** @type {"hex"|"terrain"} */
-	mode = "hex";
-
-	/** Which of the two the window was last sized for. */
-	#shown = null;
-
-	#index;
-
 	/** @override */
 	get title() {
 		return t("realm.panel.title");
@@ -263,138 +211,59 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		if (this.#index === undefined) this.#index = await loadArtIndex();
-
 		const scene = this.scene;
 		const entry = getRealm(scene);
 		if (!entry) return Object.assign(context, { missing: true });
-		const g = sceneGeometry(scene);
 		const { realm } = entry;
 		const { canUndo, canRedo } = realmUndoState(scene);
 		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
-		if (this.mode === "terrain" || !this.hex) {
-			const brush = RealmPanel.brush;
-			const swatches = realmSwatches(scene, realm, brush);
-			const painted = realm.terrain.filter(Boolean).length;
-			// How many Barriers the rules ask this Realm for, which is both the least and the most.
-			const barriers = barrierCount(realm);
-			const landmarks = swatches.landmark.map((swatch) => swatch.tally);
-			return Object.assign(context, {
-				terrainMode: true,
-				// Only the brush in hand says how to use it, so the palette keeps one line of instructions.
-				hint: [brushHint(brush), ...(brush === "terrain" ? [t("realm.panel.hints.beside")] : [])].join(" "),
-				// A count of the painted hexes, so the Terrain has a line of its own like the rest.
-				terrainTally: tallyLine(
-					t("realm.panel.terrainTally", { count: painted, target: realm.terrain.length }),
-					painted,
-					{ min: realm.terrain.length, max: realm.terrain.length }
-				),
-				swatches,
-				river: { active: brush === "river", ...riverState(realm) },
-				barrierTally: tallyLine(
-					t("realm.panel.barrierTally", { count: realm.barriers.length, target: barriers }),
-					realm.barriers.length,
-					{ min: barriers, max: barriers }
-				),
-				holdingTally: tallyLine(
-					t("realm.panel.holdingTally", { count: realm.holdings.length, target: HOLDING_COUNT }),
-					realm.holdings.length,
-					{ min: HOLDING_COUNT, max: HOLDING_COUNT }
-				),
-				seatTally: seatLine(realm),
-				// The line over the Landmarks is green once every kind is right, as the Holdings' line is.
-				landmarkTally: {
-					text: t("realm.panel.landmarkTally", LANDMARKS_PER_TYPE),
-					met: landmarks.every((landmark) => landmark.met),
-					over: landmarks.some((landmark) => landmark.over)
-				}
-			});
-		}
-
-		const hex = this.hex;
-		// Played alone, the hex is shown as the Company knows it, and what stands in it isn't changed here,
-		// since a hex that looks empty may still hold what's to be found.
-		const solo = keptFromMe();
-		const known = realmKnown(realm);
-		const here = featureAt(known, hex);
-		const terrain = terrainAt(realm, g, hex);
-		const option = (value, label, selected) => ({ value, label, selected });
-
-		let myth = null;
-		if (here.myth) {
-			const { name, page } = mythEntry(this.#index, here.myth);
-			myth = {
-				numbers: [here.myth.number, ...unusedMythNumbers(realm)].sort((a, b) => a - b).map((number) => option(number, number, number === here.myth.number)),
-				d6: here.myth.d6,
-				d12: here.myth.d12,
-				reference: t("realm.panel.reference", { name, page }),
-				omens: t("realm.panel.omensSeen", { omen: here.myth.omen, count: OMEN_COUNT }),
-				revealed: here.myth.revealed
-			};
-		}
-
-		let landmark = null;
-		if (here.landmark) {
-			const { seer } = here.landmark;
-			const reference = seer && seerEntry(this.#index, seer);
-			landmark = {
-				types: LANDMARK_TYPES.map((type) => option(type, t(`realm.landmarks.${type}`), type === here.landmark.type)),
-				name: here.landmark.name,
-				sanctum: here.landmark.type === "sanctum",
-				seer,
-				reference: reference ? t("realm.panel.reference", { name: reference.name, page: reference.page }) : null,
-				revealed: here.landmark.revealed
-			};
-		}
-
+		const brush = RealmPanel.brush;
+		const swatches = realmSwatches(scene, realm, brush);
+		const painted = realm.terrain.filter(Boolean).length;
+		// How many Barriers the rules ask this Realm for, which is both the least and the most.
+		const barriers = barrierCount(realm);
+		const landmarks = swatches.landmark.map((swatch) => swatch.tally);
 		return Object.assign(context, {
-			hexMode: true,
-			solo,
-			heading: t("realm.hex", hex),
-			terrains: TERRAIN.map((key, index) => ({ value: index + 1, label: t(`realm.terrain.${key}`), active: index + 1 === terrain })),
-			kinds: ["none", ...FEATURE_KINDS].map((value) => option(value, t(`realm.panel.kinds.${value}`), value === kindHere(here))),
-			holding: here.holding && {
-				styles: HOLDING_STYLES.map((style) => option(style, t(`realm.holdings.${style}`), style === here.holding.style)),
-				name: here.holding.name,
-				seat: here.holding.seat,
-				// Another Holding may claim the Seat too (p202).
-				disputed: Boolean(here.holding.disputed)
-			},
-			myth,
-			landmark,
-			// One line of the edges that are barred, rather than a chip per edge:
-			// they are laid with the brush on the map, so the panel only reports them.
-			barriers: barriersAround(known, g, hex, { showHidden: true }).map(({ direction, revealed }) => {
-				const state = revealed ? "revealed" : "hidden";
-				return { label: t(`realm.directions.${direction}`), state, stateLabel: t(`realm.panel.barrier.${state}`) };
-			}),
-			noBarriers: t("realm.panel.barrier.none"),
-			// So the GM can see at a glance which hexes they have already written up.
-			written: Boolean(getHexRecord(scene, hex)),
-			problems: solo ? [] : validateRealm(realm, g).filter((problem) => problem.key === hexKey(hex)).map((problem) => t(`realm.problems.${problem.reason}`))
+			// Only the brush in hand says how to use it, so the palette keeps one line of instructions.
+			hint: [brushHint(brush), ...(brush === "terrain" ? [t("realm.panel.hints.beside")] : [])].join(" "),
+			// A count of the painted hexes, so the Terrain has a line of its own like the rest.
+			terrainTally: tallyLine(
+				t("realm.panel.terrainTally", { count: painted, target: realm.terrain.length }),
+				painted,
+				{ min: realm.terrain.length, max: realm.terrain.length }
+			),
+			swatches,
+			river: { active: brush === "river", ...riverState(realm) },
+			barrierTally: tallyLine(
+				t("realm.panel.barrierTally", { count: realm.barriers.length, target: barriers }),
+				realm.barriers.length,
+				{ min: barriers, max: barriers }
+			),
+			holdingTally: tallyLine(
+				t("realm.panel.holdingTally", { count: realm.holdings.length, target: HOLDING_COUNT }),
+				realm.holdings.length,
+				{ min: HOLDING_COUNT, max: HOLDING_COUNT }
+			),
+			seatTally: seatLine(realm),
+			// The line over the Landmarks is green once every kind is right, as the Holdings' line is.
+			landmarkTally: {
+				text: t("realm.panel.landmarkTally", LANDMARKS_PER_TYPE),
+				met: landmarks.every((landmark) => landmark.met),
+				over: landmarks.some((landmark) => landmark.over)
+			}
 		});
 	}
 
-	/**
-	 * The palette stands in two columns, so it needs a width the one-hex panel
-	 * doesn't. Set here, where the window is sure to be on screen, and only as
-	 * the panel changes from one to the other, so a size the GM has dragged the
-	 * window to is left alone until they pick up another tool.
-	 * @override
-	 */
+	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		this.#hangAppearanceButton(Boolean(context.terrainMode));
-		if (this.#shown === this.mode) return;
-		this.#shown = this.mode;
-		this.setPosition({ width: this.mode === "terrain" ? PAINT_WIDTH : HEX_WIDTH, height: "auto" });
+		this.#hangAppearanceButton(!context.missing);
 	}
 
 	/**
 	 * The palette's way to Realm Appearance, a labelled button in the window
-	 * header left of Foundry's own controls, as the sheets hang theirs. The
-	 * one-hex panel has none.
+	 * header left of Foundry's own controls, as the sheets hang theirs.
 	 * @param {boolean} shown
 	 */
 	#hangAppearanceButton(shown) {
@@ -429,56 +298,9 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.element?.classList.toggle("is-sized", Number.isFinite(position.height));
 	}
 
-	/**
-	 * @param {(realm: object, g: object) => object} edit
-	 * @returns {Promise<boolean>}
-	 */
-	#edit(edit) {
-		return this.hex ? editRealm(this.scene, edit) : Promise.resolve(false);
-	}
-
 	/* -------------------------------------------- */
 	/*  Actions                                     */
 	/* -------------------------------------------- */
-
-	/**
-	 * Write the field that changed, and only that field: writing the whole form
-	 * could put back what an earlier change, still being saved, had changed.
-	 * @this {RealmPanel}
-	 */
-	static async #onChangeForm(event, _form, formData) {
-		const field = event.target?.name;
-		if (this.mode !== "hex" || !field) return;
-		const value = formData.object[field];
-		const hex = this.hex;
-		await this.#edit((realm, g) => {
-			switch (field) {
-				case "terrain":
-					return paintTerrain(realm, g, [hex], whole(value));
-				case "kind":
-					if (value === kindHere(featureAt(realm, hex))) return realm;
-					return placeFeature(realm, g, hex, value === "none" ? null : { kind: value });
-				case "seat":
-					return editFeature(realm, g, hex, { seat: Boolean(value) });
-				case "disputed":
-					return editFeature(realm, g, hex, { disputed: Boolean(value) });
-				case "number":
-				case "d6":
-				case "d12":
-					return editFeature(realm, g, hex, { [field]: whole(value) });
-				case "seerD6":
-					return editFeature(realm, g, hex, { seer: { d6: whole(value) } });
-				case "seerD12":
-					return editFeature(realm, g, hex, { seer: { d12: whole(value) } });
-				case "style":
-				case "type":
-				case "name":
-					return editFeature(realm, g, hex, { [field]: value });
-				default:
-					return realm;
-			}
-		});
-	}
 
 	/**
 	 * Take up a brush from the palette: a terrain by its number, the river,
@@ -499,65 +321,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		toggleRealmSeat();
 	}
 
-	/**
-	 * Roll the Myth's d6 and d12 on the Myths table (p27). A Realm never holds
-	 * the same Myth twice, so a Myth it already has, the one in this hex
-	 * included, is rolled again. The d6 and d12 fields beside the die still set
-	 * any roll by hand.
-	 * @this {RealmPanel}
-	 */
-	static async #onRollMyth() {
-		const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(this.scene)?.realm?.myths);
-		if (!roll) return;
-		await this.#edit((realm, g) => {
-			const { myth } = featureAt(realm, this.hex);
-			return myth ? placeFeature(realm, g, this.hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12 }) : realm;
-		});
-	}
-
-	/**
-	 * Open the Realm's Myths on the one in this hex, to roll it again against
-	 * the Myths the Realm already holds, or to choose another for it by hand.
-	 * @this {RealmPanel}
-	 */
-	static #onChooseMyth() {
-		const scene = this.scene;
-		const realm = scene ? getRealm(scene)?.realm : null;
-		const myth = realm && this.hex ? featureAt(realm, this.hex).myth : null;
-		if (myth) openMythChooser({ scene, number: myth.number });
-	}
-
-	/**
-	 * Roll which Seer lives at a Sanctum, on the Knights table (p26).
-	 * @this {RealmPanel}
-	 */
-	static async #onRollSeer() {
-		const d6 = await new Roll("1d6").evaluate();
-		const d12 = await new Roll("1d12").evaluate();
-		await this.#edit((realm, g) => {
-			const { landmark } = featureAt(realm, this.hex);
-			return landmark ? placeFeature(realm, g, this.hex, { kind: "landmark", type: landmark.type, seer: { d6: d6.total, d12: d12.total } }) : realm;
-		});
-	}
-
-	/** @this {RealmPanel} */
-	static async #onOmenStep(_event, target) {
-		const step = whole(target.dataset.step) ?? 0;
-		await this.#edit((realm) => {
-			const { myth } = featureAt(realm, this.hex);
-			return myth ? setOmen(realm, myth.number, myth.omen + step) : realm;
-		});
-	}
-
-	/** @this {RealmPanel} */
-	static async #onToggleReveal() {
-		await this.#edit((realm) => {
-			const { myth, landmark } = featureAt(realm, this.hex);
-			const hidden = myth ?? landmark;
-			return hidden ? setRevealed(realm, this.hex, !hidden.revealed) : realm;
-		});
-	}
-
 	/** @this {RealmPanel} */
 	static #onUndo() {
 		return stepRealmHistory(this.scene, "undo");
@@ -566,16 +329,6 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {RealmPanel} */
 	static #onRedo() {
 		return stepRealmHistory(this.scene, "redo");
-	}
-
-	/** @this {RealmPanel} */
-	static #onWilderness() {
-		return wildernessRoll({ scene: this.scene, hex: this.hex });
-	}
-
-	/** @this {RealmPanel} */
-	static #onLore() {
-		return openHexLore({ scene: this.scene, hex: this.hex });
 	}
 
 	/** @this {RealmPanel} */
@@ -597,18 +350,14 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 let panel = null;
 
 /**
- * Show the Hex panel for a hex, or the palette the Realm is painted from.
+ * Show the palette the Realm is painted from.
  * @param {object} options
  * @param {Scene} options.scene
- * @param {{col: number, row: number}|null} [options.hex]
- * @param {"hex"|"terrain"} [options.mode]
  * @returns {RealmPanel}
  */
-export function openRealmPanel({ scene, hex = null, mode = "hex" }) {
+export function openRealmPanel({ scene }) {
 	panel ??= new RealmPanel();
 	panel.sceneId = scene.id;
-	panel.hex = hex;
-	panel.mode = mode;
 	panel.render({ force: true });
 	return panel;
 }
@@ -630,7 +379,7 @@ export function setRealmBrush(brush) {
 	} else if (REALM_BRUSHES.includes(brush)) {
 		RealmPanel.brush = brush;
 	}
-	if (panel?.rendered && panel.mode === "terrain") panel.render();
+	if (panel?.rendered) panel.render();
 	canvas.realm?.redrawTool();
 }
 
@@ -651,23 +400,22 @@ export function toggleRealmSeat() {
 export function setRealmSeat(on) {
 	if (RealmPanel.seat === on) return;
 	RealmPanel.seat = on;
-	if (panel?.rendered && panel.mode === "terrain") panel.render();
+	if (panel?.rendered) panel.render();
 	// Creating a Realm shows the tick as well.
 	canvas.realm?.redrawTool();
 }
 
 /**
  * Close the palette, while Creating a Realm lays each part of it beside the
- * step it draws. The Hex panel stays: the Myths are set there.
+ * step it draws.
  * @returns {Promise<unknown>}
  */
 export function closeRealmPalette() {
-	return panel?.rendered && panel.mode === "terrain" ? panel.close({ animate: false }) : Promise.resolve();
+	return panel?.rendered ? panel.close({ animate: false }) : Promise.resolve();
 }
 
 /**
- * Draw the panel again after its Realm changed, once the GM has finished
- * typing in whichever of its fields they're in.
+ * Draw the palette again after its Realm changed.
  * @param {string} sceneId
  */
 export function refreshRealmPanel(sceneId) {

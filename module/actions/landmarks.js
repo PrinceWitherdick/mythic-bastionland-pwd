@@ -308,7 +308,7 @@ export async function rerollLandmarkName(scene, hex) {
 
 /**
  * Give the Landmark in a hex a name of the Referee's own. A blank one leaves it
- * called by its type, as the Hex panel's box does. GMs only.
+ * called by its type, as Edit this hex's box did. GMs only.
  * @param {Scene} scene The Realm.
  * @param {{col: number, row: number}} hex
  * @param {string} name

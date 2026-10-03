@@ -57,7 +57,7 @@ export function drawingWindowPlacement(room, map, { width, height, gap = 12 }) {
 /**
  * The sheet's steps in its order. Each section names the Realm tool that
  * draws it: everything but the Myths is a brush in the paint tool's one
- * palette, and a Myth is numbered and rolled from the Hex panel. `book` is the
+ * palette, and a Myth is numbered and rolled from Edit this hex in the Lay of the Land. `book` is the
  * heading the rulebook prints over each group, which stays in English, and
  * `icon` the Font Awesome icon its tab on the window's rail wears.
  * @type {readonly {key: string, book: string, icon: string, sections: readonly DrawingSection[]}[]}

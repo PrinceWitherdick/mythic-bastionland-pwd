@@ -112,7 +112,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 			hint: step.brush === brush ? brushHint(brush) : null,
 			clear: step.brush === "river" && !river.none ? river.clear : null
 		} : null);
-		// The Myths are numbered and rolled in the Hex panel, so their step has the tool that opens it.
+		// The Myths are numbered and rolled in the Lay of the Land's Edit this hex, so their step has the tool that opens it.
 		const tool = (step) => (step.brush ? null : {
 			name: step.tool,
 			icon: REALM_TOOL_ICONS[step.tool],

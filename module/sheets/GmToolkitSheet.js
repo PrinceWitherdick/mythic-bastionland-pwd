@@ -21,7 +21,6 @@ import { openArt } from "../apps/ArtPopout.js";
 import { openBookFlip } from "../apps/BookFlip.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { openHexVisits } from "../apps/HexVisits.js";
-import { openRealmPanel } from "../apps/RealmPanel.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { openWildernessHex } from "../apps/WildernessHex.js";
 import { filterBySearch } from "../apps/ui.js";
@@ -1184,7 +1183,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 
 	/**
 	 * Show a hex on the map: view its Realm, pan there, ping it and ring it in
-	 * green for this GM alone, and open the Hex panel on it. A shared ping would
+	 * green for this GM alone, and open the Lay of the Land on it. A shared ping would
 	 * show every player where a hidden Myth lies, so none is sent.
 	 * @this {GmToolkitSheet}
 	 */
@@ -1197,7 +1196,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			if (canvas.scene?.id !== scene.id) return;
 		}
 		await showHexOnMap(scene, hex);
-		openRealmPanel({ scene, hex });
+		openHexLore({ scene, hex });
 	}
 
 	/** @this {GmToolkitSheet} */

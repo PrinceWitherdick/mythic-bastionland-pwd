@@ -261,7 +261,7 @@ export function placeFeature(realm, g, hex, feature) {
 
 		case "landmark": {
 			const type = LANDMARK_TYPES.includes(feature.type) ? feature.type : here.landmark?.type ?? LANDMARK_TYPES[0];
-			// The Hex panel sends a Seer roll one die at a time, so half a roll is kept, with the other die as it was or 1.
+			// Edit this hex sends a Seer roll one die at a time, so half a roll is kept, with the other die as it was or 1.
 			const before = here.landmark?.seer ?? null;
 			const rolled = { d6: isDie(feature.seer?.d6, 6), d12: isDie(feature.seer?.d12, 12) };
 			const seer = type !== "sanctum" ? null
@@ -290,7 +290,7 @@ export function placeFeature(realm, g, hex, feature) {
 /**
  * A disputed Seat whose rivals have all lost the crown, or gone, holds it
  * alone, so its claim is no longer disputed. A lone Seat marked disputed
- * before any rival is crowned keeps its mark, as the Hex panel offers.
+ * before any rival is crowned keeps its mark, as Edit this hex offers.
  * @param {import("./realm.js").Realm} before
  * @param {import("./realm.js").Realm} next Changed in place.
  * @returns {import("./realm.js").Realm} next
@@ -322,7 +322,7 @@ export function featureStands(realm, hex, feature) {
 
 /**
  * Change part of the Holding, Myth or Landmark in a hex and keep the rest of
- * it. The Hex panel writes each field this way as it changes, so two changes
+ * it. Edit this hex writes each field this way as it changes, so two changes
  * made close together can't undo each other.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g

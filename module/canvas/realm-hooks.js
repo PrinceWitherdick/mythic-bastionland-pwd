@@ -69,10 +69,10 @@ function allowRealmMove(token, movement) {
 	return false;
 }
 
-/** Scenes whose Realm changed since the Hex panel, readout and highlight were last drawn. */
+/** Scenes whose Realm changed since the palette, Lay of the Land, readout and highlight were last drawn. */
 const changedScenes = new Set();
 
-/** Draw the Hex panel, readout and highlight again for the Realms that changed. */
+/** Draw the palette, Lay of the Land, readout and highlight again for the Realms that changed. */
 function showChanges() {
 	for (const sceneId of changedScenes) {
 		refreshRealmPanel(sceneId);
@@ -160,9 +160,12 @@ export function registerRealmHooks() {
 		forgetRealmHistory(scene.id);
 		forgetHexArrivals(scene.id);
 	});
-	// The Undo and Redo buttons of the Hex panel and of Creating a Realm.
+	// The Undo and Redo buttons of the palette, of Edit this hex and of Creating a Realm.
+	// After an edit, the Realm's change still to be shown draws them all anyway.
 	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => {
+		if (changedScenes.has(sceneId)) return;
 		refreshRealmPanel(sceneId);
+		refreshHexLore(sceneId);
 		refreshRealmDrawing(sceneId);
 	});
 	// The swatches, in the palette and in Creating a Realm, show the pictures the Realm is drawn with.

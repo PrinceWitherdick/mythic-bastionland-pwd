@@ -1736,6 +1736,7 @@
       "title": "The Lay of the Land",
       "titleHex": "The Lay of the Land: {hex}",
       "open": "Lay of the Land",
+      "edit": "Edit this hex",
       "hint": "A Hex is broad and varied, with room enough for a person never to leave it. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
@@ -1963,7 +1964,7 @@
         "notes": "Notes"
       },
       "myths": {
-        "hint": "The Realm’s Myths, each with the Omen playing out and the one to come. Omens are met in order (p18). The Hex panel and the Wilderness Roll count the same Omens. For your eyes only.",
+        "hint": "The Realm’s Myths, each with the Omen playing out and the one to come. Omens are met in order (p18). The Lay of the Land and the Wilderness Roll count the same Omens. For your eyes only.",
         "noText": "Run Import PDF to quote each Myth’s Omens here.",
         "unrolled": "Myth {number}",
         "current": "Current",
@@ -3197,7 +3198,7 @@
         "pages": {
           "realm": "The Realm"
         },
-        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Hex panel. Nothing is rolled.",
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Lay of the Land. Nothing is rolled.",
         "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. Your map may have hexes drawn on it, or none at all. You line the picture up with the hex lines, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
@@ -3684,7 +3685,7 @@
         "heading": "Paint every hex",
         "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture. Paint open sea as Lake, the rules' only water, which boats can cross. Nothing stops the Company walking onto a Lake, so rule on that at the table."
       },
-      "inspectHint": "Click a hex, then set it in the Hex panel.",
+      "inspectHint": "Click a hex, then set it under Edit this hex in the Lay of the Land.",
       "groups": {
         "wilderness": "Wilderness",
         "holdings": "Holdings",

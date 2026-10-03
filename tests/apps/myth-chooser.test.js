@@ -13,8 +13,9 @@ const keepTemplate = read("templates/dialogs/keep-realm.hbs");
 const realm = read("module/actions/realm.js");
 const hooks = read("module/canvas/realm-hooks.js");
 const styles = read("styles/mythic-bastionland.css");
-const panel = read("module/apps/RealmPanel.js");
-const panelTemplate = read("templates/apps/realm-panel.hbs");
+const lore = read("module/apps/HexLore.js");
+const hexEdit = read("module/apps/hex-edit.js");
+const hexEditTemplate = read("templates/apps/parts/hex-edit.hbs");
 const toolkit = read("module/sheets/GmToolkitSheet.js");
 const toolkitTemplate = read("templates/actor/gm-toolkit/myths.hbs");
 
@@ -97,12 +98,12 @@ describe("settling the Myths while a rolled Realm is looked over", () => {
 });
 
 describe("settling the Myths of a Realm already made", () => {
-	it("is offered on the Hex panel beside the Myth's own roll", () => {
-		expect(panelTemplate).toContain('data-action="chooseMyth"');
-		expect(panelTemplate.indexOf('data-action="rollMyth"')).toBeLessThan(panelTemplate.indexOf('data-action="chooseMyth"'));
-		expect(panel).toContain("chooseMyth: RealmPanel.#onChooseMyth");
+	it("is offered in Edit this hex beside the Myth's own roll", () => {
+		expect(hexEditTemplate).toContain('data-action="chooseMyth"');
+		expect(hexEditTemplate.indexOf('data-action="rollMyth"')).toBeLessThan(hexEditTemplate.indexOf('data-action="chooseMyth"'));
+		expect(lore).toContain("chooseMyth: HexLore.#onChooseMyth");
 		// Opened from a hex, the window opens on the Myth lying in it.
-		expect(panel).toContain("openMythChooser({ scene, number: myth.number })");
+		expect(hexEdit).toContain("openMythChooser({ scene, number: myth.number })");
 	});
 
 	it("is offered on the GM Toolkit's Myths page, where the Realm's Myths are read", () => {

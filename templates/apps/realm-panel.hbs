@@ -1,9 +1,7 @@
 <div class="bastionland-page bastionland-realm-panel">
 	{{#if missing}}
 	<p class="bastionland-realm-panel__hint">{{localize "bastionland.realm.panel.missing"}}</p>
-	{{/if}}
-
-	{{#if terrainMode}}
+	{{else}}
 	<p class="bastionland-realm-panel__hint">{{hint}}</p>
 
 	<div class="bastionland-realm-panel__columns">
@@ -41,172 +39,11 @@
 			</div>
 		</section>
 	</div>
-	{{/if}}
-
-	{{#if hexMode}}
-	<h2 class="bastionland-realm-panel__heading">{{heading}}</h2>
-
-	<div class="form-group">
-		<label for="{{partId}}-terrain">{{localize "bastionland.realm.panel.terrain"}}</label>
-		<div class="form-fields">
-			<select id="{{partId}}-terrain" name="terrain">
-				{{#each terrains}}
-				<option value="{{value}}" {{#if active}}selected{{/if}}>{{label}}</option>
-				{{/each}}
-			</select>
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label for="{{partId}}-kind">{{localize "bastionland.realm.panel.feature"}}</label>
-		<div class="form-fields">
-			<select id="{{partId}}-kind" name="kind" {{disabled solo}}>
-				{{#each kinds}}
-				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-				{{/each}}
-			</select>
-		</div>
-	</div>
-	{{#if solo}}
-	<p class="bastionland-realm-panel__hint">{{localize "bastionland.solo.panelLocked"}}</p>
-	{{/if}}
-
-	{{#if holding}}
-	<fieldset class="bastionland-realm-panel__feature">
-		<div class="form-group">
-			<label for="{{partId}}-style">{{localize "bastionland.realm.panel.style"}}</label>
-			<div class="form-fields">
-				<select id="{{partId}}-style" name="style">
-					{{#each holding.styles}}
-					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-					{{/each}}
-				</select>
-			</div>
-		</div>
-		<div class="form-group">
-			<label for="{{partId}}-name">{{localize "bastionland.realm.panel.name"}}</label>
-			<div class="form-fields">
-				<input id="{{partId}}-name" type="text" name="name" value="{{holding.name}}">
-			</div>
-		</div>
-		<label class="bastionland-check">
-			<input type="checkbox" name="seat" {{checked holding.seat}}>
-			<span class="bastionland-check__label">{{localize "bastionland.realm.key.seat"}}</span>
-		</label>
-		{{#if holding.seat}}
-		<label class="bastionland-check" data-tooltip="{{localize "bastionland.realm.panel.disputedHint"}}">
-			<input type="checkbox" name="disputed" {{checked holding.disputed}}>
-			<span class="bastionland-check__label">{{localize "bastionland.realm.panel.disputed"}}</span>
-		</label>
-		{{/if}}
-	</fieldset>
-	{{/if}}
-
-	{{#if myth}}
-	<fieldset class="bastionland-realm-panel__feature">
-		{{#unless solo}}
-		<div class="form-group">
-			<label for="{{partId}}-number">{{localize "bastionland.realm.panel.number"}}</label>
-			<div class="form-fields">
-				<select id="{{partId}}-number" name="number">
-					{{#each myth.numbers}}
-					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{value}}</option>
-					{{/each}}
-				</select>
-			</div>
-		</div>
-		<div class="form-group bastionland-realm-panel__myth-roll">
-			<label for="{{partId}}-d6">{{localize "bastionland.realm.panel.mythRoll"}}</label>
-			<div class="form-fields">
-				<input id="{{partId}}-d6" type="number" name="d6" value="{{myth.d6}}" min="1" max="6" step="1" aria-label="d6">
-				<input type="number" name="d12" value="{{myth.d12}}" min="1" max="12" step="1" aria-label="d12">
-				<button type="button" data-action="rollMyth"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.realm.panel.roll"}}</button>
-				<button type="button" data-action="chooseMyth" data-tooltip="{{localize 'bastionland.realm.panel.chooseMythTooltip'}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.realm.panel.chooseMyth"}}</button>
-			</div>
-		</div>
-		{{/unless}}
-		<p class="bastionland-realm-panel__hint">{{myth.reference}}</p>
-		<div class="bastionland-realm-panel__row">
-			<span>{{myth.omens}}</span>
-			{{#unless solo}}
-			<button type="button" data-action="omenStep" data-step="-1" aria-label="{{localize "bastionland.realm.panel.omenLess"}}"><i class="fa-solid fa-minus" inert></i></button>
-			<button type="button" data-action="omenStep" data-step="1" aria-label="{{localize "bastionland.realm.panel.omenMore"}}"><i class="fa-solid fa-plus" inert></i></button>
-			{{/unless}}
-		</div>
-		{{#unless solo}}
-		<button type="button" data-action="toggleReveal" aria-pressed="{{#if myth.revealed}}true{{else}}false{{/if}}">
-			<i class="fa-solid {{#if myth.revealed}}fa-eye{{else}}fa-eye-slash{{/if}}" inert></i>
-			{{#if myth.revealed}}{{localize "bastionland.realm.panel.revealed"}}{{else}}{{localize "bastionland.realm.panel.hidden"}}{{/if}}
-		</button>
-		{{/unless}}
-	</fieldset>
-	{{/if}}
-
-	{{#if landmark}}
-	<fieldset class="bastionland-realm-panel__feature">
-		<div class="form-group">
-			<label for="{{partId}}-type">{{localize "bastionland.realm.panel.type"}}</label>
-			<div class="form-fields">
-				<select id="{{partId}}-type" name="type">
-					{{#each landmark.types}}
-					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-					{{/each}}
-				</select>
-			</div>
-		</div>
-		<div class="form-group">
-			<label for="{{partId}}-landmark-name">{{localize "bastionland.realm.panel.name"}}</label>
-			<div class="form-fields">
-				<input id="{{partId}}-landmark-name" type="text" name="name" value="{{landmark.name}}">
-			</div>
-		</div>
-		{{#if landmark.sanctum}}
-		<div class="form-group">
-			<label for="{{partId}}-seer-d6">{{localize "bastionland.realm.panel.seerRoll"}}</label>
-			<div class="form-fields">
-				<input id="{{partId}}-seer-d6" type="number" name="seerD6" value="{{landmark.seer.d6}}" min="1" max="6" step="1" aria-label="d6">
-				<input type="number" name="seerD12" value="{{landmark.seer.d12}}" min="1" max="12" step="1" aria-label="d12">
-				<button type="button" data-action="rollSeer"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.realm.panel.roll"}}</button>
-			</div>
-		</div>
-		{{#if landmark.reference}}
-		<p class="bastionland-realm-panel__hint">{{landmark.reference}}</p>
-		{{/if}}
-		{{/if}}
-		{{#unless solo}}
-		<button type="button" data-action="toggleReveal" aria-pressed="{{#if landmark.revealed}}true{{else}}false{{/if}}">
-			<i class="fa-solid {{#if landmark.revealed}}fa-eye{{else}}fa-eye-slash{{/if}}" inert></i>
-			{{#if landmark.revealed}}{{localize "bastionland.realm.panel.revealed"}}{{else}}{{localize "bastionland.realm.panel.hidden"}}{{/if}}
-		</button>
-		{{/unless}}
-	</fieldset>
-	{{/if}}
-
-	<p class="bastionland-realm-panel__barriers">
-		<strong>{{localize "bastionland.realm.panel.barriers"}}:</strong>
-		{{#each barriers}}<span class="is-{{state}}" data-tooltip="{{stateLabel}}">{{label}}</span>{{/each}}
-		{{#unless barriers.length}}<span class="is-none">{{noBarriers}}</span>{{/unless}}
-	</p>
-
-	{{#if problems.length}}
-	<ul class="bastionland-realm-panel__problems">
-		{{#each problems}}
-		<li>{{this}}</li>
-		{{/each}}
-	</ul>
-	{{/if}}
-
-	<div class="bastionland-realm-panel__actions">
-		<button type="button" data-action="lore" class="{{#if written}}is-written{{/if}}"><i class="fa-solid {{#if written}}fa-feather-pointed{{else}}fa-feather{{/if}}" inert></i> {{localize "bastionland.hexLore.open"}}</button>
-		<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
-	</div>
-	{{/if}}
 
 	<!-- Last in the panel, so the palette above it never moves as it goes from greyed to live. -->
-	{{#unless missing}}
 	<div class="bastionland-realm-panel__history">
 		<button type="button" data-action="undo" {{disabled undoDisabled}}><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.realm.panel.undo"}}</button>
 		<button type="button" data-action="redo" {{disabled redoDisabled}}><i class="fa-solid fa-rotate-right" inert></i> {{localize "bastionland.realm.panel.redo"}}</button>
 	</div>
-	{{/unless}}
+	{{/if}}
 </div>

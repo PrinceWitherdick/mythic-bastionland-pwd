@@ -23,6 +23,8 @@
 	{{#if landmark.from}}<p class="bastionland-hex-lore__hint">{{landmark.from}}</p>{{/if}}
 	{{/if}}
 
+	{{#with edit}}{{> "bastionland.hex-edit"}}{{/with}}
+
 	<div class="bastionland-hex-lore__row bastionland-hex-lore__visits">
 		<span class="bastionland-hex-lore__hint">{{visits}}</span>
 		{{#if visited}}

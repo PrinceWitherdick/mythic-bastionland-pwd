@@ -87,7 +87,7 @@ export function cancelMapClick({ quiet = false } = {}) {
 
 /**
  * A left click on a hex takes it. The click is caught before the canvas sees
- * it, so the tool in hand — the Hex panel, a terrain brush — doesn't act on
+ * it, so the tool in hand — Inspect, a terrain brush — doesn't act on
  * the same click.
  * @param {PointerEvent} event
  */

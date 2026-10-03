@@ -5690,7 +5690,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-height: 100%;
 }
 
-/* The Realm's Hex panel and the palette it's painted from. */
+/* The Realm's palette, the one it's painted from. */
 .bastionland-realm-panel {
 	display: flex;
 	flex-direction: column;
@@ -5722,85 +5722,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-realm-panel__river {
 	margin: 0;
-}
-
-.bastionland-realm-panel__feature {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	margin: 0;
-	padding: 0.4rem 0.5rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
-}
-
-.bastionland-realm-panel .form-fields input[type="number"] {
-	flex: 0 0 3.2rem;
-	width: 3.2rem;
-}
-
-/* The Roll button wraps under the two dice boxes in a narrow panel, so the row
-   carries a gap of its own rather than letting the button sit on them. */
-.bastionland-realm-panel .form-fields {
-	flex-wrap: wrap;
-	gap: 0.35rem;
-}
-
-/* The Myth's two dice and its Roll and Choose buttons read as one line: the
-   label sits above so the row has the panel's whole width, and the buttons
-   share what the boxes leave rather than wrapping underneath. */
-.bastionland-realm-panel__myth-roll {
-	flex-direction: column;
-	align-items: stretch;
-	gap: 0.15rem;
-}
-
-.bastionland-realm-panel__myth-roll > label {
-	flex: 0 0 auto;
-	width: auto;
-}
-
-.bastionland-realm-panel__myth-roll > .form-fields {
-	flex: 1 1 auto;
-	flex-wrap: nowrap;
-	width: 100%;
-}
-
-.bastionland-realm-panel__myth-roll button {
-	flex: 1 1 auto;
-	width: auto;
-	min-width: 0;
-	white-space: nowrap;
-}
-
-.bastionland-realm-panel__row {
-	display: flex;
-	align-items: center;
-	gap: 0.35rem;
-}
-
-.bastionland-realm-panel__row span {
-	flex: 1;
-}
-
-/* Barriers are laid with the brush on the map, so the one hex only names the
-   edges that are barred, on a line: hidden ones in soft ink, revealed in blood. */
-.bastionland-realm-panel__barriers {
-	margin: 0;
-}
-
-.bastionland-realm-panel__barriers span + span::before {
-	content: ", ";
-	color: var(--bastionland-ink);
-}
-
-.bastionland-realm-panel__barriers .is-none,
-.bastionland-realm-panel__barriers .is-hidden {
-	color: var(--bastionland-ink-soft);
-}
-
-.bastionland-realm-panel__barriers .is-revealed {
-	color: var(--bastionland-blood);
 }
 
 /* The palette stands in two columns, terrain in one and everything else in the
@@ -5953,26 +5874,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	border-top: 1px solid var(--bastionland-rule);
 }
 
-.bastionland-realm-panel__problems {
-	margin: 0;
-	padding-left: 1.1rem;
-	color: var(--bastionland-blood);
-	font-size: var(--bastionland-font-note);
-}
-
-
 /* ---------------------------------------------------------------- */
 /* The lay of the land: what the Referee made of one hex            */
 /* ---------------------------------------------------------------- */
 
-.bastionland-realm-panel__actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.35rem;
-}
-
 /* Foundry's fixed button height let these two-word labels spill out; they grow instead. */
-.bastionland-realm-panel__actions button,
 .bastionland-hex-lore__row button {
 	display: flex;
 	align-items: center;
@@ -5987,19 +5893,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	overflow-wrap: break-word;
 }
 
-/* Wide enough that each one keeps a whole row of the 340px panel to itself. */
-.bastionland-realm-panel__actions button {
-	flex: 1 1 10rem;
-}
-
 .bastionland-hex-lore__row button {
 	flex: 1 1 8rem;
-}
-
-/* The Hex panel's way in, marked when that hex has already been written up. */
-.bastionland-realm-panel__actions button.is-written {
-	border-color: var(--bastionland-ink);
-	font-weight: bold;
 }
 
 .bastionland-hex-lore {
@@ -6136,6 +6031,143 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-hex-lore__grid > .is-wide,
 .bastionland-hex-lore__grid > :last-child:nth-child(odd) {
 	grid-column: 1 / -1;
+}
+
+/* Edit this hex: the GM's fold in the Lay of the Land, where the hex itself is
+   changed, shut in play and open while the Realm is drawn. */
+.bastionland-hex-edit {
+	margin: 0;
+	padding: 0.3rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-hex-edit__summary {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	cursor: pointer;
+	list-style: none;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-hex-edit__summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-hex-edit__summary::before {
+	content: "\25B8";
+	flex: none;
+	width: 0.7rem;
+	text-align: center;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-edit[open] > .bastionland-hex-edit__summary::before {
+	content: "\25BE";
+}
+
+.bastionland-hex-edit__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding-top: 0.4rem;
+}
+
+.bastionland-hex-edit__feature {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0.4rem 0.5rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+}
+
+.bastionland-hex-edit .form-fields input[type="number"] {
+	flex: 0 0 3.2rem;
+	width: 3.2rem;
+}
+
+/* The Roll button wraps under the two dice boxes in a narrow window, so the row
+   carries a gap of its own rather than letting the button sit on them. */
+.bastionland-hex-edit .form-fields {
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+/* The Myth's two dice and its Roll and Choose buttons read as one line: the
+   label sits above so the row has the window's whole width, and the buttons
+   share what the boxes leave rather than wrapping underneath. */
+.bastionland-hex-edit__myth-roll {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.15rem;
+}
+
+.bastionland-hex-edit__myth-roll > label {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.bastionland-hex-edit__myth-roll > .form-fields {
+	flex: 1 1 auto;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.bastionland-hex-edit__myth-roll button {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.bastionland-hex-edit__row {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bastionland-hex-edit__row span {
+	flex: 1;
+}
+
+/* Barriers are laid with the brush on the map, so Edit this hex only names the
+   edges that are barred, on a line: hidden ones in soft ink, revealed in blood. */
+.bastionland-hex-edit__barriers {
+	margin: 0;
+}
+
+.bastionland-hex-edit__barriers span + span::before {
+	content: ", ";
+	color: var(--bastionland-ink);
+}
+
+.bastionland-hex-edit__barriers .is-none,
+.bastionland-hex-edit__barriers .is-hidden {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-edit__barriers .is-revealed {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-hex-edit__problems {
+	margin: 0;
+	padding-left: 1.1rem;
+	color: var(--bastionland-blood);
+	font-size: var(--bastionland-font-note);
+}
+
+/* Undo and Redo close the fold, under a rule. */
+.bastionland-hex-edit__history {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--bastionland-rule);
 }
 
 /* Telling the players closes the window off, set apart from the fieldsets above. */

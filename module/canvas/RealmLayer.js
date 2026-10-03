@@ -2,7 +2,7 @@ import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGe
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
-import { followHexLore } from "../apps/HexLore.js";
+import { openHexLore } from "../apps/HexLore.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
@@ -222,7 +222,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	setTool(name) {
 		this.tool = name;
 		// While a Realm is drawn by hand, Creating a Realm holds each part of the palette beside the step it draws.
-		if (name === "terrain" && isRealmScene(canvas.scene) && !isDrawingRealm(canvas.scene)) openRealmPanel({ scene: canvas.scene, mode: name });
+		if (name === "terrain" && isRealmScene(canvas.scene) && !isDrawingRealm(canvas.scene)) openRealmPanel({ scene: canvas.scene });
 		this.redrawTool();
 	}
 
@@ -484,11 +484,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (this.tool === "inspect") {
 			const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
-			if (hex) {
-				openRealmPanel({ scene, hex });
-				// The Lay of the Land follows along, but only if the GM already had it open.
-				followHexLore({ scene, hex });
-			}
+			// The Lay of the Land shows the hex, and its Edit this hex fold changes it.
+			if (hex) openHexLore({ scene, hex });
 			return;
 		}
 

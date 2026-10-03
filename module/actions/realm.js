@@ -451,7 +451,7 @@ export function realmUndoState(scene) {
 
 /**
  * Take back the last Realm edit on a Scene, or put back the last one taken
- * back: painting, Barriers, and changes made in the Hex panel.
+ * back: painting, Barriers, and changes made in Edit this hex.
  * @param {Scene} scene
  * @param {"undo"|"redo"} way
  * @returns {Promise<boolean>} Whether there was anything to take back or put back.
@@ -496,7 +496,7 @@ export async function syncRealmScene(scene) {
 	});
 
 	const problems = [...readProblems, ...validateRealm(realm, g)];
-	// The Hex panel shows these hex by hex; the log is for a GM looking at the Realm as a whole.
+	// Edit this hex shows these hex by hex; the log is for a GM looking at the Realm as a whole.
 	if (problems.length) console.warn(`${SYSTEM_ID} | Realm problems on ${scene.name}`, problems);
 	return { changed, problems };
 }

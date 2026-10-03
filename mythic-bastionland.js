@@ -223,6 +223,7 @@ Hooks.once("init", () => {
 		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs"),
 		"bastionland.party-note": templatePath("apps/parts/party-note.hbs"),
+		"bastionland.hex-edit": templatePath("apps/parts/hex-edit.hbs"),
 		"bastionland.travels-list": templatePath("apps/parts/travels-list.hbs"),
 		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
 	});
