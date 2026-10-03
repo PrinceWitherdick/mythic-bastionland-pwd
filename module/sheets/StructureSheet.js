@@ -1,3 +1,4 @@
+import { editArmour } from "../actions/npc.js";
 import { collide, repair } from "../actions/structures.js";
 import { t } from "../chat/cards.js";
 import { STRUCTURE_KINDS } from "../rules/structures.js";
@@ -15,7 +16,8 @@ export class StructureSheet extends BastionlandActorSheet {
 		actions: {
 			setKind: StructureSheet.#onSetKind,
 			repair: StructureSheet.#onRepair,
-			collide: StructureSheet.#onCollide
+			collide: StructureSheet.#onCollide,
+			editArmour: StructureSheet.#onEditArmour
 		}
 	};
 
@@ -68,5 +70,10 @@ export class StructureSheet extends BastionlandActorSheet {
 	/** @this {StructureSheet} */
 	static #onCollide() {
 		return collide(this.actor);
+	}
+
+	/** @this {StructureSheet} */
+	static #onEditArmour() {
+		return editArmour(this.actor);
 	}
 }

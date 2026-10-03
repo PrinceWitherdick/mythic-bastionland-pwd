@@ -1,0 +1,16 @@
+<div class="bastionland-dialog__body">
+	<p>{{localize "bastionland.warband.upkeep.needs"}}</p>
+
+	<fieldset class="bastionland-choice-list">
+		<legend>{{{intro}}}</legend>
+		{{#each strains}}
+		<label class="bastionland-check">
+			<input type="radio" name="strain" value="{{key}}" {{checked @first}}>
+			<span class="bastionland-check__label">
+				<strong>{{label}}</strong>
+				<span class="bastionland-check__detail">{{text}}</span>
+			</span>
+		</label>
+		{{/each}}
+	</fieldset>
+</div>

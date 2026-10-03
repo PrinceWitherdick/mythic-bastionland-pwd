@@ -23,13 +23,8 @@
 					<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
 				</div>
 
-				<div class="bastionland-score bastionland-score--noted">
-					<div class="bastionland-npc-armour">
-						<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-armour">{{localize "bastionland.sheet.armour"}}</label>
-						<input class="bastionland-blank bastionland-npc-armour-note" type="text" name="system.armourNote" value="{{system.armourNote}}" placeholder="{{localize 'bastionland.structure.armourNote'}}" aria-label="{{localize 'bastionland.structure.armourNote'}}" {{#if system.armourNote}}data-tooltip="{{system.armourNote}}"{{/if}} autocomplete="off">
-					</div>
-					<input id="{{rootId}}-armour" class="bastionland-box" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
-				</div>
+				{{!-- Its Armour beside GD, as an NPC's beside VIG: what it is on hover, a click to change either. --}}
+				{{> "bastionland.armour-badge" label="bastionland.structure.armourEdit.title"}}
 			</section>
 
 			<section class="bastionland-block">

@@ -77,6 +77,7 @@
       "attack": "Attack",
       "takeDamage": "Take Damage",
       "rest": "Rest",
+      "accept": "Accept",
       "rollScar": "Roll Scar",
       "armour": "Armour",
       "rollSave": "Roll a {virtue} Save",
@@ -434,7 +435,10 @@
       "afterCombatTitle": "The Danger Has Passed",
       "afterCombat": "The fight is over. Restore Guard for {names}, and leave them no longer Fatigued or Exposed?",
       "restedAfterCombat": "The danger has passed: {names} restore Guard, and are no longer Fatigued or Exposed.",
-      "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed."
+      "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed.",
+      "restTitle": "Rest: {name}",
+      "restIntro": "{name} takes a moment’s calm, once the danger has passed (Recovery, p9).",
+      "restWhat": "GD returns to full, from {value} to {max}. Fatigue is removed, and they are no longer Exposed. A card in chat says so."
     },
     "oath": {
       "label": "Oath",
@@ -774,6 +778,9 @@
       "breaks": "Routs or surrenders.",
       "hint": "Roll when Wounded, or when a group loses half its number. An organised group rolls once, on its leader’s SPI.",
       "roll": "Roll Morale",
+      "askTitle": "Morale: {name}",
+      "askIntro": "{name} makes a SPI Save to hold firm rather than rout or surrender (Wavering Morale, p10). Roll when Wounded, or when a group loses half its number.",
+      "askWhat": "A d20 is rolled against their SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark them Fled or Surrendered, which takes them out of the Combat’s turn order.",
       "gone": "That character no longer exists.",
       "notOwner": "Only a GM or {name}’s owner can roll their Morale.",
       "broke": {
@@ -899,7 +906,10 @@
       "buttonHint": "A SPI Save for how they take it, when the Referee is uncertain which way they’d go.",
       "favourable": "Nothing unfavourable in how they take it.",
       "unfavourable": "They take it badly.",
-      "hint": "How someone takes things usually follows from the moment (p8). Roll only when it could go either way."
+      "hint": "How someone takes things usually follows from the moment (p8). Roll only when it could go either way.",
+      "askTitle": "Reaction: {name}",
+      "askIntro": "{name} makes a SPI Save for how they take it (Reaction, p8). Roll only when the Referee is uncertain which way they’d go.",
+      "askWhat": "A d20 is rolled against their SPI of {value}: {value} or less, and nothing is unfavourable in how they take it; any higher, and they take it badly. A card in chat shows the result."
     },
     "skyWeather": {
       "legend": "Breaking Camp",
@@ -2864,7 +2874,12 @@
       "epithet": "Epithet",
       "ownedBy": "Owned by",
       "openOwner": "Open their sheet",
-      "armourNote": "What their Armour is",
+      "armourEdit": {
+        "title": "Their Armour",
+        "note": "What it is",
+        "notePlaceholder": "Mail, helm, shield",
+        "ok": "Save"
+      },
       "scale": "Scale",
       "scales": {
         "individual": {
@@ -2948,7 +2963,10 @@
         }
       },
       "guardHint": "How much Damage it can take. At 0 GD it’s destroyed.",
-      "armourNote": "What its Armour is",
+      "armourEdit": {
+        "title": "Its Armour",
+        "notePlaceholder": "Tarred planks"
+      },
       "carries": "Carries",
       "stone": "Stone",
       "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here (p11). Their gates are usually wood.",
@@ -3775,6 +3793,7 @@
         "hint": "A Warband short of rest or food, or driven too hard, loses d6 SPI.",
         "intro": "What has worn {name} down?",
         "needs": "Soldiers expect to be fed and sheltered while they serve.",
+        "ok": "Roll SPI Loss",
         "notDamage": "Virtue Loss is not Damage, so it can never Mortally Wound or Slay them.",
         "broken": "At SPI 0 {name} stops taking orders and looks out only for itself.",
         "strains": {

@@ -1,5 +1,5 @@
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
-import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { escapeHTML } from "../rules/text.js";
@@ -198,16 +198,17 @@ export async function dismissWarband(domain, id) {
  */
 export async function strainWarband(warband) {
 	if (warband?.system?.scale !== "warband" || !warband.isOwner) return null;
-	const strain = await chooseDialog({
+	const data = await inputDialog({
 		title: t("warband.upkeep.title"),
 		icon: "fa-solid fa-utensils",
-		message: [t("warband.upkeep.intro", { name: escapeHTML(warband.name) }), t("warband.upkeep.needs")],
-		buttons: UPKEEP_STRAINS.map((key, index) => ({
-			action: key,
-			label: t(`warband.upkeep.strains.${key}.label`),
-			default: index === 0
-		}))
+		template: "upkeep",
+		context: {
+			intro: t("warband.upkeep.intro", { name: escapeHTML(warband.name) }),
+			strains: UPKEEP_STRAINS.map((key) => ({ key, label: t(`warband.upkeep.strains.${key}.label`), text: t(`warband.upkeep.strains.${key}.text`) }))
+		},
+		ok: { label: t("warband.upkeep.ok"), icon: "fa-solid fa-dice" }
 	});
+	const strain = data?.strain;
 	if (!isStrain(strain)) return null;
 	return wearWarbandDown(warband, strain);
 }

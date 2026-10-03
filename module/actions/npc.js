@@ -1,4 +1,4 @@
-import { confirmDialog } from "../apps/ui.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { FOLK_VIRTUE_ROLL, VIRTUES, clampVirtue, hasUnrolledVirtues } from "../rules/virtues.js";
@@ -12,6 +12,27 @@ import { actorFromStatBlock } from "../rules/stat-blocks.js";
  * @returns {{type: string, name: string, system: object, items: object[]}}
  */
 export const actorData = (block) => actorFromStatBlock(block, { attackName: t("attack.title") });
+
+/**
+ * Change what an NPC's or Structure's Armour is and what it counts for, from
+ * the A beside its first score. Both are typed in by hand, as stat blocks print them.
+ * @param {Actor} actor
+ * @returns {Promise<Actor|undefined>}
+ */
+export async function editArmour(actor) {
+	if (!actor?.isOwner) return;
+	const { armour, armourNote } = actor.system;
+	const data = await inputDialog({
+		title: t(`${actor.type}.armourEdit.title`),
+		icon: "fa-solid fa-shield-halved",
+		template: "npc-armour",
+		context: { armour, note: armourNote, placeholder: t(`${actor.type}.armourEdit.notePlaceholder`) },
+		ok: { label: t("npc.armourEdit.ok") }
+	});
+	if (!data) return;
+	const value = Math.max(0, Math.floor(Number(data.armour) || 0));
+	return actor.update({ "system.armour": value, "system.armourNote": String(data.note ?? "").trim() });
+}
 
 /**
  * Roll an NPC's Virtues on d12+d6, as the book has hirelings rolled (Service,

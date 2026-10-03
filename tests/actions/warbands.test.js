@@ -177,7 +177,7 @@ describe("wearWarbandDown", () => {
 describe("strainWarband", () => {
 	it("asks what wore them down, then takes the SPI", async () => {
 		const warband = fakeWarband({ spi: 9 });
-		chosen = "illRested";
+		mustered = { strain: "illRested" };
 		rolled = 4;
 		expect(await strainWarband(warband)).toEqual({ loss: 4, spi: 5 });
 	});

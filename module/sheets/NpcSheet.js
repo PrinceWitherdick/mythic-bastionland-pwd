@@ -1,6 +1,6 @@
-import { rollNpcVirtues } from "../actions/npc.js";
+import { editArmour, rollNpcVirtues } from "../actions/npc.js";
 import { COMPANION_FLAG } from "../actions/property.js";
-import { rollMorale, rollReaction } from "../actions/saves.js";
+import { rollMoraleIfAccepted, rollReactionIfAccepted } from "../actions/saves.js";
 import { strainWarband } from "../actions/warbands.js";
 import { keyChoices, t } from "../chat/cards.js";
 import { clearMoraleBreak } from "../chat/morale-card.js";
@@ -13,6 +13,7 @@ import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { afflictTargets } from "../actions/afflictions.js";
 import { changeAge } from "../actions/time.js";
+import { restIfAccepted } from "../actions/recovery.js";
 
 /** Item types the sheet offers to add, in sheet order. It lists every item the NPC has. */
 const ADDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
@@ -40,7 +41,9 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 			setWields: NpcSheet.#onSetWields,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
-			openOwner: NpcSheet.#onOpenOwner
+			openOwner: NpcSheet.#onOpenOwner,
+			editArmour: NpcSheet.#onEditArmour,
+			rest: NpcSheet.#onRest
 		}
 	};
 
@@ -157,7 +160,7 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 
 	/** @this {NpcSheet} */
 	static #onRollMorale() {
-		return rollMorale(this.actor);
+		return rollMoraleIfAccepted(this.actor);
 	}
 
 	/** @this {NpcSheet} */
@@ -167,7 +170,7 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 
 	/** @this {NpcSheet} */
 	static #onRollReaction() {
-		return rollReaction(this.actor);
+		return rollReactionIfAccepted(this.actor);
 	}
 
 	/** @this {NpcSheet} */
@@ -219,6 +222,16 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 	static #onOpenOwner(_event, target) {
 		const rider = fromUuidSync(target.dataset.uuid);
 		return rider?.sheet.render({ force: true });
+	}
+
+	/** @this {NpcSheet} */
+	static #onEditArmour() {
+		return editArmour(this.actor);
+	}
+
+	/** @this {NpcSheet} */
+	static #onRest() {
+		return restIfAccepted(this.actor);
 	}
 
 	/** @this {NpcSheet} */

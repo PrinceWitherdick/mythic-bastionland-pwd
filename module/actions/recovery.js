@@ -1,6 +1,7 @@
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { causedBy } from "./ledger.js";
+import { acceptAfterTelling } from "./saves.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { chooseCompany } from "./time.js";
 import { countAfter, isCounted } from "../rules/restock.js";
@@ -39,6 +40,19 @@ export async function rest(actor) {
 		icon: "fa-solid fa-mug-hot",
 		text: t("recovery.rested", { value })
 	});
+}
+
+/**
+ * Rest once the GM has read what it does and accepted: the NPC sheet's Rest,
+ * which has no Recovery list beside it to say so.
+ * @param {Actor} actor
+ * @returns {Promise<boolean>} Whether they rested.
+ */
+export async function restIfAccepted(actor) {
+	const { value, max } = actor.system.guard;
+	if (!(await acceptAfterTelling(actor, "recovery.rest", "fa-solid fa-mug-hot", { value, max }))) return false;
+	await rest(actor);
+	return true;
 }
 
 /**

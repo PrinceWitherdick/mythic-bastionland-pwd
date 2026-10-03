@@ -81,6 +81,8 @@ const START = "courtier";
 
 const DOMAIN_IMAGE = "icons/environment/settlement/castle.webp";
 const STRUCTURE_IMAGE = "icons/environment/settlement/fence-wooden-picket.webp";
+const FERRY_IMAGE = "icons/environment/settlement/ship.webp";
+const PIKE_IMAGE = "icons/creatures/fish/fish-fangtooth-skeletal-green.webp";
 
 /**
  * The three Knights, by their roll on the Knights table (p26). Each has a
@@ -943,6 +945,7 @@ class TestGame {
 					await this.reveal(hex);
 					await this.note(hex, `${this.names.ruin}: a flooded chapel on the old pilgrim road, explored in Harvest of Age 1. See the Site. The bell is still down there somewhere.`);
 					await this.makeSites(hex);
+					await this.makeMere();
 					await this.spark(hex, "nature", 2);
 					await this.tell(hex);
 					await this.partyNote(hex, "Do NOT wade. Pike. The bell is still down there, and so is the reliquary.");
@@ -1419,6 +1422,109 @@ class TestGame {
 		const barrow = rollSite(emptySite(), createRandom(`${REALM_SEED}-barrow`));
 		barrow.notes = "A barrow the Seer mentioned. Rolled up ahead of time; the Company haven't found it yet.";
 		await create("The Barrow of the Nine", barrow);
+	}
+
+	/**
+	 * The ferry that took the Company across the mere to the Drowned Chapel,
+	 * and the pike that holed it: a ship and a beast with every box of their
+	 * sheets filled in, for seeing those sheets full.
+	 */
+	async makeMere() {
+		const track = (value, max = value) => ({ value, max });
+		const folder = this.folders.Actor.id;
+		await Actor.implementation.create({
+			name: "The Grey Heron",
+			type: "structure",
+			img: FERRY_IMAGE,
+			folder,
+			flags: testFlags(),
+			system: {
+				kind: "ship",
+				epithet: `The Ferry of ${this.names.ruin}`,
+				stone: false,
+				guard: track(3, 6),
+				armour: 1,
+				armourNote: "Tarred oak planking, doubled at the bow",
+				carries: "8 passengers, or 4 riders and their steeds",
+				notes: [
+					"<h2>The ferry</h2>",
+					html(
+						"A flat-bottomed pilgrim ferry, poled across the mere by Brother Anselm, who has outlived the chapel it served.",
+						`Holed below the waterline in Harvest of Age 1, when the pike rose under it with ${this.knights.isolde.name} aboard. Anselm patched it with a door from the chapel.`
+					),
+					"<h2>Aboard</h2>",
+					list(
+						"A harpoon on a swivel at the bow, for the pike. Anselm has never hit it.",
+						"Six sacks of pilgrims' salt that nobody has come to buy in years.",
+						"A spare pair of oars, split in the same attack."
+					),
+					`<section class="secret" id="secret-ferry">${html("Anselm rows the barrow-robbers across by night, for a share of what they bring back.")}</section>`
+				].join("")
+			},
+			items: [
+				{
+					name: "Bow harpoon",
+					type: "weapon",
+					system: {
+						damage: "d8",
+						ranged: true,
+						slow: true,
+						rarity: "uncommon",
+						quantity: { value: 3, max: 5 },
+						specialist: { die: "d10", situation: "against anything in the water" },
+						description: html("Lashed to a swivel at the bow. Its line is fifty feet of tarred rope.")
+					}
+				},
+				{ name: "Boathook", type: "weapon", system: { damage: "d6", long: true, description: html("Mostly for fending off the pews.") } },
+				{ name: "Pilgrims' salt", type: "gear", system: { quantity: { value: 6, max: 6 }, rarity: "common", description: html("Six sacks, damp at the bottom.") } },
+				{ name: "Spare oars", type: "gear", system: { broken: true, description: html("Split when the pike struck.") } },
+				{ name: "Cask of eel-oil", type: "gear", system: { remedy: "spi", restock: "season", description: html("Anselm swears by it against the cold. One cup each, shared out round a fire.") } }
+			]
+		});
+
+		await Actor.implementation.create({
+			name: "Old Gullet",
+			type: "npc",
+			img: PIKE_IMAGE,
+			folder,
+			flags: testFlags(),
+			system: {
+				epithet: `The Pike of ${this.names.ruin}`,
+				scale: "individual",
+				age: "old",
+				wields: "free",
+				virtues: { vig: track(13, 17), cla: track(12), spi: track(6, 9) },
+				guard: track(2, 6),
+				armour: 1,
+				armourNote: "Scales like roof slates, green with weed",
+				wounded: true,
+				fatigued: true,
+				immunity: "Can't be harmed while wholly under the water.",
+				weakness: { text: "The chapel bell: its ringing drives it into the deep", die: "d8", known: true },
+				inflicts: [{ id: foundry.utils.randomID(), name: "Mere-rot", loss: "1d4", virtue: "vig", when: "day" }],
+				feats: { smite: false, focus: false, deny: true },
+				notes: [
+					"<h2>Traits</h2>",
+					list(
+						"The length of a man and a half, and older than the flood.",
+						"Rises under anything that wades or floats, and drags it down.",
+						"Its bite festers: those it wounds lose VIG each morning until the wound is cleaned with salt."
+					),
+					"<h2>What the Company know</h2>",
+					html(
+						`${this.knights.isolde.name} was dragged under in Harvest of Age 1 and put a blade in its flank, which is still there.`,
+						"Ringing the bell sent it into the deep. The bell is under the silt now."
+					),
+					`<section class="secret" id="secret-pike">${html("The reliquary of Saint Brannoc is in its belly. Anselm knows, and would sooner keep the pike than lose the pilgrims it scares away.")}</section>`
+				].join("")
+			},
+			items: [
+				{ name: "Rake of teeth", type: "weapon", system: { damage: "d8", hefty: true, description: html("Backward-curved; what it bites, it keeps.") } },
+				{ name: "Tail", type: "weapon", system: { damage: "d6", nonLethal: true, description: html("Swamps a boat or knocks a wader flat.") } },
+				{ name: "Isolde's dagger", type: "weapon", system: { damage: "d6", equipped: false, description: html("Still in its flank, rusted to the hilt.") } },
+				{ name: "Reliquary of Saint Brannoc", type: "gear", system: { rarity: "rare", description: html("Sealed with green wax. In its belly.") } }
+			]
+		});
 	}
 
 	/* -------------------------------------------- */

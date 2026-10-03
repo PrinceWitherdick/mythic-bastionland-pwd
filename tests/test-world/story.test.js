@@ -533,6 +533,18 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		}
 	});
 
+	it("makes the mere's ferry and pike with their sheets filled in", async () => {
+		await populateTestWorld();
+		const ferry = world.actors.find((actor) => actor.name === "The Grey Heron");
+		expect(ferry).toMatchObject({ type: "structure", system: { kind: "ship", armour: 1, guard: { value: 3, max: 6 } } });
+		expect(ferry.system.carries).not.toBe("");
+		expect(ferry.items.map((item) => item.type)).toEqual(["weapon", "weapon", "gear", "gear", "gear"]);
+		const pike = world.actors.find((actor) => actor.name === "Old Gullet");
+		expect(pike).toMatchObject({ type: "npc", system: { age: "old", wields: "free", weakness: { known: true }, feats: { deny: true } } });
+		expect(pike.system.inflicts).toHaveLength(1);
+		expect(pike.flags[SYSTEM_ID][TEST_FLAG]).toBe(true);
+	});
+
 	it("marks each Season's feasts and masses, and its collection as it turns", async () => {
 		await populateTestWorld();
 		expect(markSeasonEvent.mock.calls.map(([key]) => key)).toEqual([
@@ -573,8 +585,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		} else {
 			expect(keepTableRoll).not.toHaveBeenCalled();
 			expect(rollHexSparkSet).not.toHaveBeenCalled();
-			// Three steeds, the Squire's pony and the Domain's levy.
-			expect(npcs).toHaveLength(5);
+			// Three steeds, the Squire's pony, the Domain's levy and the mere's pike.
+			expect(npcs).toHaveLength(6);
 		}
 	});
 });

@@ -1,3 +1,4 @@
+import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
@@ -171,4 +172,49 @@ export async function rollReaction(actor) {
 		outcome: ({ passed }) => t(passed ? "reaction.favourable" : "reaction.unfavourable"),
 		hint: t("reaction.hint")
 	});
+}
+
+/**
+ * Whether the GM accepts what an NPC sheet's button does once told it: Rest,
+ * Morale and Reaction, which have no rules beside them to say so.
+ * @param {Actor} actor
+ * @param {string} key Where its words are kept: `${key}Title`, `${key}Intro` and `${key}What`.
+ * @param {string} icon Font Awesome classes, as its button has.
+ * @param {object} values What `${key}What` is filled in with.
+ * @returns {Promise<boolean>}
+ */
+export function acceptAfterTelling(actor, key, icon, values) {
+	return confirmDialog({
+		title: t(`${key}Title`, { name: actor.name }),
+		icon,
+		message: [t(`${key}Intro`, { name: foundry.utils.escapeHTML(actor.name) }), t(`${key}What`, values)],
+		yes: { label: t("sheet.accept") }
+	});
+}
+
+/**
+ * Whether the GM accepts a SPI Save once told what it does.
+ * @param {Actor} actor
+ * @param {"morale"|"reaction"} key Where its words are kept.
+ * @param {string} icon
+ * @returns {Promise<boolean>}
+ */
+const acceptedSave = (actor, key, icon) => acceptAfterTelling(actor, `${key}.ask`, icon, { value: actor.system.virtues.spi.value });
+
+/**
+ * Roll Morale once the GM has read what it does and accepted.
+ * @param {Actor} actor
+ * @returns {Promise<SaveResult|null>} Null when it wasn't accepted.
+ */
+export async function rollMoraleIfAccepted(actor) {
+	return (await acceptedSave(actor, "morale", "fa-solid fa-flag")) ? rollMorale(actor) : null;
+}
+
+/**
+ * Roll a Reaction once the GM has read what it does and accepted.
+ * @param {Actor} actor
+ * @returns {Promise<SaveResult|null>} Null when it wasn't accepted.
+ */
+export async function rollReactionIfAccepted(actor) {
+	return (await acceptedSave(actor, "reaction", "fa-solid fa-comments")) ? rollReaction(actor) : null;
 }

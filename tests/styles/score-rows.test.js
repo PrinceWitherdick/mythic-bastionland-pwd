@@ -13,15 +13,13 @@ const css = readFileSync(join(root, "styles", "mythic-bastionland.css"), "utf8")
  */
 const CELLS = {
 	".bastionland-scores .bastionland-score__name": 1,
-	// An NPC's or Structure's Armour name, with its note beneath it.
-	".bastionland-scores .bastionland-npc-armour": 1,
 	".bastionland-scores .bastionland-box": 2,
 	".bastionland-scores .bastionland-box--max": 3,
 	".bastionland-armour--score": 4
 };
 
-/** Classes that sit inside a cell rather than being one: the lettering of a name, the Armour's note. */
-const INSIDE = ["bastionland-score__abbr", "bastionland-score__tail", "bastionland-score__die", "bastionland-npc-armour-note"];
+/** Classes that sit inside a cell rather than being one: the lettering of a name. */
+const INSIDE = ["bastionland-score__abbr", "bastionland-score__tail", "bastionland-score__die"];
 
 /** The `display: contents` wrapper standing for a row without taking a cell of its own. */
 const ROW = "bastionland-score";
@@ -61,8 +59,9 @@ function templates(directory) {
 	});
 }
 
-/** The shared partial, spliced in wherever a sheet includes it. */
+/** The shared partials, spliced in wherever a sheet includes them. */
 const partial = readFileSync(join(root, "templates", "actor", "parts", "virtue-scores.hbs"), "utf8");
+const badge = readFileSync(join(root, "templates", "actor", "parts", "armour-badge.hbs"), "utf8");
 
 /**
  * Every scores section in the system, its partial inlined.
@@ -73,7 +72,9 @@ function sections() {
 	for (const path of templates(join(root, "templates"))) {
 		const markup = readFileSync(path, "utf8").replace(/\r/g, "");
 		for (const match of markup.matchAll(/<section class="bastionland-scores"[^>]*>([\s\S]*?)<\/section>/g)) {
-			const inlined = match[1].replace(/\{\{>\s*"bastionland\.virtue-scores"\s*\}\}/g, partial);
+			const inlined = match[1]
+				.replace(/\{\{>\s*"bastionland\.virtue-scores"\s*\}\}/g, partial)
+				.replace(/\{\{>\s*"bastionland\.armour-badge"[^}]*\}\}/g, badge);
 			found.push([path.slice(root.length + 1), inlined]);
 		}
 	}

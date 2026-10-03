@@ -1,0 +1,10 @@
+{{!-- An NPC's or Structure's Armour beside VIG or GD, as on a Knight's sheet: what it is on hover, a click to change either. `label` names the window the click opens. --}}
+{{#if editable}}
+<button type="button" class="bastionland-armour bastionland-armour--score" data-action="editArmour" data-tooltip="{{#if system.armourNote}}{{system.armourNote}}{{else}}{{localize 'bastionland.sheet.armour'}}{{/if}}" aria-label="{{localize label}}">
+	<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
+</button>
+{{else}}
+<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{#if system.armourNote}}{{system.armourNote}}{{else}}{{localize 'bastionland.sheet.armour'}}{{/if}}">
+	<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
+</span>
+{{/if}}

@@ -23,13 +23,8 @@
 				<section class="bastionland-scores">
 					{{> "bastionland.virtue-scores"}}
 
-					<div class="bastionland-score bastionland-score--noted">
-						<div class="bastionland-npc-armour">
-							<label class="bastionland-score__name bastionland-score__name--word" for="{{rootId}}-armour">{{localize "bastionland.sheet.armour"}}</label>
-							<input class="bastionland-blank bastionland-npc-armour-note" type="text" name="system.armourNote" value="{{system.armourNote}}" placeholder="{{localize 'bastionland.npc.armourNote'}}" aria-label="{{localize 'bastionland.npc.armourNote'}}" {{#if system.armourNote}}data-tooltip="{{system.armourNote}}"{{/if}} autocomplete="off">
-						</div>
-						<input id="{{rootId}}-armour" class="bastionland-box" type="number" name="system.armour" value="{{system.armour}}" min="0" step="1">
-					</div>
+					{{!-- Their Armour beside VIG, as on a Knight's sheet: what it is on hover, a click to change either. --}}
+					{{> "bastionland.armour-badge" label="bastionland.npc.armourEdit.title"}}
 				</section>
 
 				{{#if (or ages.length wields.length)}}
@@ -88,23 +83,7 @@
 
 			<div class="bastionland-column">
 				<section class="bastionland-block">
-					<h2 class="bastionland-heading">{{localize "bastionland.npc.items"}}</h2>
-					<ul class="bastionland-items bastionland-items--zebra">
-						{{#each items}}
-						{{> "bastionland.item-row"}}
-						{{else}}
-						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
-						{{/each}}
-					</ul>
-					<div class="bastionland-adds">
-						{{#each addTypes}}
-						{{> "bastionland.add-item"}}
-						{{/each}}
-					</div>
-				</section>
-
-				<section class="bastionland-block">
-					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.feats.label"}}</h2>
+					<h2 class="bastionland-heading">{{localize "bastionland.feats.label"}}</h2>
 					<ul class="bastionland-conditions">
 						{{#each featChoices}}
 						<li>
@@ -120,7 +99,7 @@
 
 				{{!-- What can be turned against them. Once the Knights learn it, every Attack that uses it gets the die (p188). --}}
 				<section class="bastionland-block bastionland-npc-weakness">
-					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.npc.weakness.label"}}</h2>
+					<h2 class="bastionland-heading">{{localize "bastionland.npc.weakness.label"}}</h2>
 					<input class="bastionland-blank bastionland-npc-weakness__text" type="text" name="system.weakness.text" value="{{system.weakness.text}}" placeholder="{{localize 'bastionland.npc.weakness.placeholder'}}" aria-label="{{localize 'bastionland.npc.weakness.label'}}" autocomplete="off">
 					<div class="bastionland-npc-weakness__row">
 						<select name="system.weakness.die" aria-label="{{localize 'bastionland.npc.weakness.die'}}" data-tooltip="{{localize 'bastionland.npc.weakness.dieHint'}}" {{#unless editable}}disabled{{/unless}}>
@@ -130,6 +109,22 @@
 							<input type="checkbox" name="system.weakness.known" {{checked system.weakness.known}} {{#unless editable}}disabled{{/unless}}>
 							<span class="bastionland-check__label">{{localize "bastionland.npc.weakness.known"}}</span>
 						</label>
+					</div>
+				</section>
+
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading">{{localize "bastionland.npc.items"}}</h2>
+					<ul class="bastionland-items bastionland-items--zebra">
+						{{#each items}}
+						{{> "bastionland.item-row"}}
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
+						{{/each}}
+					</ul>
+					<div class="bastionland-adds">
+						{{#each addTypes}}
+						{{> "bastionland.add-item"}}
+						{{/each}}
 					</div>
 				</section>
 			</div>

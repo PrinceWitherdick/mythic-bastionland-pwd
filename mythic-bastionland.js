@@ -191,6 +191,7 @@ Hooks.once("init", () => {
 		"bastionland.item-row": templatePath("actor/parts/item-row.hbs"),
 		"bastionland.add-item": templatePath("actor/parts/add-item.hbs"),
 		"bastionland.virtue-scores": templatePath("actor/parts/virtue-scores.hbs"),
+		"bastionland.armour-badge": templatePath("actor/parts/armour-badge.hbs"),
 		"bastionland.npc-header": templatePath("actor/parts/npc-header.hbs"),
 		"bastionland.condition-items": templatePath("actor/parts/condition-items.hbs"),
 		"bastionland.feat-list": templatePath("actor/parts/feat-list.hbs"),

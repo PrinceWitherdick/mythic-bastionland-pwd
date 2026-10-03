@@ -1820,6 +1820,28 @@ a.button:focus:not(:focus-visible) {
 	white-space: nowrap;
 }
 
+/* An NPC's or Structure's is typed in by hand, so theirs is a button opening the Armour to change:
+   the same lettering as a Knight's, reddening under the pointer. */
+.bastionland-page button.bastionland-armour--score {
+	flex: none;
+	width: auto;
+	min-width: 0;
+	height: auto;
+	margin: 0;
+	padding: 0 0 0 0.7rem;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	line-height: inherit;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-armour--score:hover {
+	color: var(--bastionland-rubric);
+}
+
 /* Item rows read as prose, so nothing is ruled off between them: the name that
    opens each entry does the separating, given air. */
 .bastionland-items {
@@ -2627,6 +2649,13 @@ button.bastionland-seer__stat:not(:disabled):hover {
 /* NPC sheet: a stat block with room to play it                     */
 /* ---------------------------------------------------------------- */
 
+/* Foundry's resize stops at these. */
+.application.bastionland-npc,
+.application.bastionland-structure {
+	min-width: 460px;
+	min-height: 525px;
+}
+
 .bastionland-npc-header {
 	display: flex;
 	align-items: center;
@@ -2683,7 +2712,7 @@ button.bastionland-seer__stat:not(:disabled):hover {
 	margin: 0;
 }
 
-.bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-armour-note, .bastionland-npc-weakness__text) {
+.bastionland-page :is(.bastionland-npc-header__epithet, .bastionland-npc-weakness__text) {
 	flex: none;
 	width: 100%;
 	max-width: none;
@@ -2726,28 +2755,6 @@ button.bastionland-seer__stat:not(:disabled):hover {
 
 .bastionland-page .bastionland-npc-header__owner-name:hover {
 	color: var(--bastionland-rubric);
-}
-
-/* What the Armour is, in small print under the word Armour. The row sits a little lower to make room,
-   and the word rides up above the box's middle. A long note ends in an ellipsis and shows in full on
-   hover. It adds no width to the first column, so a long note can't push the boxes over. */
-.bastionland-scores .bastionland-score--noted > * {
-	margin-top: 0.4rem;
-}
-
-.bastionland-scores .bastionland-npc-armour {
-	display: flex;
-	flex-direction: column;
-	gap: 0.2rem;
-	grid-column: 1;
-	min-width: 0;
-	padding-right: 0.5rem;
-}
-
-.bastionland-page .bastionland-npc-armour-note {
-	contain: inline-size;
-	font-size: var(--bastionland-font-note);
-	text-overflow: ellipsis;
 }
 
 .bastionland-npc-weakness__row {
