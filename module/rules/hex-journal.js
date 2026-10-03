@@ -69,7 +69,7 @@ const dotted = (parts) => parts.filter(Boolean).map(inline).join(" · ");
  * @param {string[]} body Paragraphs or list lines, already markdown.
  * @returns {string} A section, or nothing when there's nothing under the heading.
  */
-function section(heading, body) {
+export function section(heading, body) {
 	const lines = body.filter(Boolean);
 	return lines.length ? [`### ${inline(heading)}`, "", ...lines].join("\n") : "";
 }
@@ -81,7 +81,7 @@ const metSection = (words) => section(words.labels.met ?? "", (words.met ?? []).
 const whenSuffix = (when) => (when ? ` — *${inline(when)}*` : "");
 
 /** @returns {string} The sections with a blank line between, ending in one newline. */
-const joined = (parts) => `${parts.filter(Boolean).join("\n\n")}\n`;
+export const joined = (parts) => `${parts.filter(Boolean).join("\n\n")}\n`;
 
 /**
  * @typedef {object} RolledWords
@@ -174,24 +174,35 @@ export const entrySort = ({ col, row }) => col * 1000 + row;
  * @property {Partial<Record<"rolled"|"known"|"notes", {id: string, markdown: string}>>} pages
  */
 
-/** @returns {number} Where a page stands in its entry: Rolled, then Known, then Notes. */
-const pageSort = (role) => (PAGE_ROLES.indexOf(role) + 1) * 100000;
+/**
+ * @typedef {object} JournalLayout The pages a kind of entry has, and how it's filed.
+ * @property {readonly string[]} roles   Every page, in order.
+ * @property {readonly string[]} written The pages the system writes again on each change; the rest are only made.
+ * @property {Readonly<Record<string, number>>} pageOwnership Who sees each page, as it's made.
+ * @property {((wanted: object) => number)|null} sort Where the entry stands in its folder, or null to leave it.
+ */
+
+/** @type {Readonly<JournalLayout>} A hex's entry. */
+export const HEX_LAYOUT = Object.freeze({ roles: PAGE_ROLES, written: WRITTEN_ROLES, pageOwnership: PAGE_OWNERSHIP, sort: (wanted) => entrySort(wanted.hex) });
+
+/** @returns {number} Where a page stands in its entry, in the layout's order. */
+const pageSort = (layout, role) => (layout.roles.indexOf(role) + 1) * 100000;
 
 /** @returns {object} A text page in markdown. */
 const markdownText = (markdown) => ({ format: MARKDOWN_FORMAT, markdown: markdown ?? "" });
 
 /**
+ * @param {JournalLayout} layout
  * @param {string} role
  * @param {{name: string, markdown?: string}} page
- * @param {number} sort
  * @returns {object} The data for a new page.
  */
-const newPage = (role, page, sort) => ({
+const newPage = (layout, role, page) => ({
 	name: page.name,
 	type: "text",
-	sort,
+	sort: pageSort(layout, role),
 	text: markdownText(page.markdown),
-	ownership: { default: PAGE_OWNERSHIP[role] },
+	ownership: { default: layout.pageOwnership[role] },
 	flags: { [SYSTEM_ID]: { role } }
 });
 
@@ -217,21 +228,23 @@ export function entryOwnership(current, wasOpen, open) {
  * GM deletes it.
  * @param {EntrySnapshot|null} existing
  * @param {WantedEntry} wanted
+ * @param {JournalLayout} [layout] What pages the entry has. A hex's, unless said.
  * @returns {{create: object|null, update: object|null, open: boolean|null, pages: {create: object[], update: object[]}}}
  *   `create` is a new entry's data, pages and all, without its folder or flags,
  *   which the caller adds. `update` is a change to the entry. `open` is what to
  *   remember of whether players were let in, or null to leave it. `pages` are
  *   the changes to its pages.
  */
-export function journalPlan(existing, wanted) {
+export function journalPlan(existing, wanted, layout = HEX_LAYOUT) {
 	const pages = { create: [], update: [] };
+	const sort = layout.sort ? layout.sort(wanted) : null;
 	if (!existing) {
 		return {
 			create: {
 				name: wanted.name,
-				sort: entrySort(wanted.hex),
+				...(sort === null ? {} : { sort }),
 				ownership: { default: wanted.open ? OWNERSHIP.LIMITED : OWNERSHIP.NONE },
-				pages: PAGE_ROLES.map((role) => newPage(role, wanted.pages[role], pageSort(role)))
+				pages: layout.roles.map((role) => newPage(layout, role, wanted.pages[role]))
 			},
 			update: null,
 			open: wanted.open,
@@ -241,18 +254,17 @@ export function journalPlan(existing, wanted) {
 
 	const update = {};
 	if (existing.name !== wanted.name) update.name = wanted.name;
-	const sort = entrySort(wanted.hex);
-	if (existing.sort !== sort) update.sort = sort;
+	if (sort !== null && existing.sort !== sort) update.sort = sort;
 	const opening = existing.open !== wanted.open;
 	if (opening) {
 		const ownership = entryOwnership(existing.ownership, existing.open, wanted.open);
 		if (ownership !== existing.ownership) update["ownership.default"] = ownership;
 	}
 
-	WRITTEN_ROLES.forEach((role) => {
+	layout.written.forEach((role) => {
 		const page = existing.pages[role];
 		const markdown = wanted.pages[role].markdown ?? "";
-		if (!page) pages.create.push(newPage(role, wanted.pages[role], pageSort(role)));
+		if (!page) pages.create.push(newPage(layout, role, wanted.pages[role]));
 		else if (page.markdown !== markdown) pages.update.push({ _id: page.id, text: markdownText(markdown) });
 	});
 

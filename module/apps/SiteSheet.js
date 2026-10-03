@@ -1,3 +1,4 @@
+import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { readSite, siteUpdate } from "../actions/sites.js";
 import { t } from "../chat/cards.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
@@ -96,7 +97,8 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			hideAll: SiteSheet.#onHideAll,
 			undo: SiteSheet.#onUndo,
 			redo: SiteSheet.#onRedo,
-			showPlayers: SiteSheet.#onShowPlayers
+			showPlayers: SiteSheet.#onShowPlayers,
+			journal: SiteSheet.#onJournal
 		}
 	};
 
@@ -231,6 +233,7 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			})),
 			name: this.document.name,
 			notes: site.notes,
+			journal: hasSiteJournal(this.document, site),
 			entrances: ENTRANCE_KINDS.flatMap((kind) => numberedPoints(site)
 				.filter((key) => site.points[key].entrance === kind)
 				.map((key) => {
@@ -760,5 +763,13 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	 */
 	static #onShowPlayers() {
 		return foundry.documents.collections.Journal.showDialog(this.document);
+	}
+
+	/**
+	 * The Site written out in a Journal entry of its own, which players see only once a GM shares it.
+	 * @this {SiteSheet}
+	 */
+	static #onJournal() {
+		return openSiteJournal(this.document);
 	}
 }

@@ -59,6 +59,7 @@ import { registerSoloPlaceables } from "./module/canvas/solo-placeables.js";
 import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { registerHexJournals, syncEveryRealm } from "./module/actions/hex-journals.js";
+import { registerSiteJournals, syncEverySite } from "./module/actions/site-journals.js";
 import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackFx } from "./module/actions/attack-fx.js";
@@ -362,6 +363,8 @@ Hooks.once("init", () => {
 	registerHexLoreSettings();
 	// And a Journal entry for each hex something is kept for, kept up to date as it changes.
 	registerHexJournals();
+	// And one for each Site, hidden till a GM shares it.
+	registerSiteJournals();
 
 	// The Phase of the Day at the top of the screen, turning with the calendar for everyone, and
 	// for GMs the ways of moving time on and End the Session hanging under it.
@@ -552,6 +555,8 @@ Hooks.once("ready", async () => {
 	watchRestocks();
 	// Each hex something is kept for gets its Journal entry, if it has none yet or is behind.
 	syncEveryRealm();
+	// And each Site with something drawn or written on it.
+	syncEverySite();
 	const setup = runWorldSetup(WORLD_SETUP);
 	await Promise.all([
 		restoreOpenSheets(),

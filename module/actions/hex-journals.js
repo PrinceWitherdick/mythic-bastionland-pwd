@@ -1,9 +1,9 @@
 import { loadArtIndex } from "../book-art/art-index.js";
-import { t, warn } from "../chat/cards.js";
+import { t } from "../chat/cards.js";
 import {
 	HEX_JOURNALS_FOLDER_FLAG,
 	HEX_JOURNAL_FLAG,
-	PAGE_ROLES,
+	HEX_LAYOUT,
 	journalPlan,
 	knownMarkdown,
 	rolledMarkdown
@@ -15,6 +15,7 @@ import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { flaggedFolder } from "./folders.js";
+import { afterBurst, entrySnapshot, openKeptJournal } from "./kept-journals.js";
 import { getHexLore, hexFeatureLines, sparkWhen } from "./hex-lore.js";
 import { partyNoteBy, toldLabel } from "./hex-shared.js";
 import { visitsLabel } from "./journey.js";
@@ -138,21 +139,7 @@ function wantedEntry(scene, { lore, sources, index }, hex) {
  * @param {JournalEntry} entry
  * @returns {import("../rules/hex-journal.js").EntrySnapshot}
  */
-function snapshot(entry) {
-	const pages = {};
-	for (const page of entry.pages ?? []) {
-		const role = page.getFlag(SYSTEM_ID, "role");
-		if (PAGE_ROLES.includes(role) && !pages[role]) pages[role] = { id: page.id, markdown: page.text?.markdown ?? "" };
-	}
-	return {
-		id: entry.id,
-		name: entry.name,
-		sort: entry.sort,
-		ownership: entry.ownership?.default ?? 0,
-		open: Boolean(hexJournalFlag(entry)?.open),
-		pages
-	};
-}
+const snapshot = (entry) => entrySnapshot(entry, HEX_LAYOUT, Boolean(hexJournalFlag(entry)?.open));
 
 /**
  * Bring a Realm's hex entries up to date: one for each hex something is kept
@@ -206,13 +193,11 @@ export async function syncHexJournals(scene, loadIndex = loadArtIndex) {
 /** Syncs, taken one at a time, so a hex's entry is never made twice. */
 const queueSync = serialWrites();
 
-/** Realms that changed since their entries were last brought up to date. */
-const waiting = new Set();
-
-/** Bring the waiting Realms' entries up to date, one after another, reading the art index once for them all. */
-function syncWaiting() {
-	const ids = [...waiting];
-	waiting.clear();
+/**
+ * Bring the Realms' entries up to date, one after another, reading the art index once for them all.
+ * @param {string[]} ids
+ */
+function syncRealms(ids) {
 	let index = null;
 	const loadIndex = () => (index ??= loadArtIndex());
 	for (const id of ids) {
@@ -220,20 +205,16 @@ function syncWaiting() {
 	}
 }
 
-/** Waits for a burst of writes to stop, then for the Realm's writes on this browser to land. */
-let syncLater = null;
-
 /**
  * Bring a Realm's entries up to date once the writes in hand have landed. A
  * roll writes the Scene, then its Tiles, each with its own hook, and a first
  * arrival writes again a moment later, so the sync waits for them all.
- * @param {string|undefined} sceneId
  */
+const syncLater = afterBurst(syncRealms, () => realmWritesSettled());
+
+/** @param {string|undefined} sceneId */
 function syncSoon(sceneId) {
-	if (!sceneId || !keepsJournals()) return;
-	waiting.add(sceneId);
-	syncLater ??= foundry.utils.debounce(() => realmWritesSettled().then(syncWaiting), 400);
-	syncLater();
+	if (sceneId && keepsJournals()) syncLater(sceneId);
 }
 
 /** Every Realm's entries, as the world loads or the setting is turned on. */
@@ -241,49 +222,19 @@ export function syncEveryRealm() {
 	for (const scene of game.scenes ?? []) if (isRealmScene(scene)) syncSoon(scene.id);
 }
 
-/** How long another GM waits for the active GM's browser to make a hex's entry. */
-const MADE_ELSEWHERE_MS = 3000;
-
-/**
- * Wait for the active GM's browser to make a hex's entry, as it does a moment
- * after the hex changes.
- * @param {Scene} scene
- * @param {{col: number, row: number}} hex
- * @returns {Promise<void>} Once the entry is there, or the wait is over.
- */
-function entryMadeElsewhere(scene, hex) {
-	return new Promise((resolve) => {
-		const done = () => {
-			Hooks.off("createJournalEntry", made);
-			clearTimeout(timer);
-			resolve();
-		};
-		const made = () => hexJournalEntry(scene, hex) && done();
-		const timer = setTimeout(done, MADE_ELSEWHERE_MS);
-		Hooks.on("createJournalEntry", made);
-	});
-}
-
 /**
  * Open a hex's entry, making it first if it's due one and hasn't got it yet.
- * Another GM's browser waits a moment for the active GM's to make it.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @returns {Promise<JournalEntry|null>}
  */
-export async function openHexJournal(scene, hex) {
-	if (!hexJournalEntry(scene, hex)) {
-		if (keepsJournals()) await queueSync(() => syncHexJournals(scene));
-		else if (game.user?.isGM && game.users?.activeGM && hexJournalsOn()) await entryMadeElsewhere(scene, hex);
-	}
-	const entry = hexJournalEntry(scene, hex);
-	if (!entry) {
-		warn("hexJournal.none");
-		return null;
-	}
-	await entry.sheet.render({ force: true });
-	return entry;
-}
+export const openHexJournal = (scene, hex) => openKeptJournal({
+	find: () => hexJournalEntry(scene, hex),
+	on: hexJournalsOn,
+	keeps: keepsJournals,
+	make: () => queueSync(() => syncHexJournals(scene)),
+	none: "hexJournal.none"
+});
 
 /**
  * Delete the hex entries, and their folders, of Realms that are going.

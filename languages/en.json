@@ -1802,6 +1802,30 @@
         "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Its Rolled page is for GMs. Players can read its What the Company Knows page once they could open the hex in their Places. Its Notes page is yours and is never written over."
       }
     },
+    "siteJournal": {
+      "folder": "Site Journals",
+      "pages": {
+        "site": "The Site",
+        "found": "What the Company Found",
+        "notes": "Notes"
+      },
+      "routes": "Ways Known",
+      "found": "found",
+      "notFound": "not found",
+      "routeOut": "{kind} route from {from} to somewhere not yet explored",
+      "routeAway": "{kind} route between places not yet explored",
+      "entranceAway": "{kind} to somewhere not yet explored",
+      "glimpsed": "Places glimpsed but not yet explored: {count}",
+      "noPoints": "No points are marked yet.",
+      "nothingFound": "Nothing has been found here yet.",
+      "open": "Journal",
+      "openHint": "Open this Site’s Journal entry: the whole Site, what the Company has found, and your own notes. Players can’t see it until you share it.",
+      "none": "Nothing has been drawn or written on this Site yet, so it has no Journal entry.",
+      "setting": {
+        "name": "Journal entries for Sites",
+        "hint": "Each Site with something drawn or written on it gets a Journal entry, kept up to date as you draw and reveal. It starts hidden from players. Share it when you like: players then see only its What the Company Found page, never The Site page or your Notes, which are never written over."
+      }
+    },
     "spark": {
       "title": "Spark Tables",
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",

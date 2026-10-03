@@ -35,6 +35,7 @@ import { collectionEntry, markCollection, markSeasonEvent } from "../actions/sea
 import { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
+import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
@@ -195,7 +196,7 @@ const WAYSIDE = Object.freeze([
 const WAYSIDE_EVERY = 2;
 
 /** The world settings the story changes, to put back as they were. */
-const SETTINGS = Object.freeze(["weather", "cityQuest", "sessionEnd"]);
+const SETTINGS = Object.freeze(["weather", "cityQuest", "sessionEnd", SITE_JOURNALS_SETTING]);
 
 /** The weather the Company is left in. */
 const WEATHER_NOW = "rain";
@@ -296,6 +297,8 @@ async function removeTestWorld() {
 	const messages = await remove("ChatMessage", game.messages);
 	// The Realm's hex entries are made by the system, not the macro, so they go by the Realm they're for.
 	await deleteHexJournals(game.scenes.filter(isTestDocument).map((scene) => scene.id));
+	// So are its Sites' journals, which go by the Site.
+	await deleteSiteJournals(game.journal.filter(isTestDocument).map((entry) => entry.id));
 	const scenes = await remove("Scene", game.scenes);
 	const actors = await remove("Actor", game.actors);
 	const entries = await remove("JournalEntry", game.journal);
@@ -335,6 +338,8 @@ async function buildTestWorld() {
 			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))]))
 		}
 	});
+	// So its Sites get their Journal entries, whatever this world had chosen. Removing it puts the setting back.
+	await game.settings.set(SYSTEM_ID, SITE_JOURNALS_SETTING, true);
 
 	const hook = Hooks.on("preCreateChatMessage", tagMessage);
 	try {
@@ -1395,11 +1400,12 @@ class TestGame {
 	 */
 	async makeSites(hex) {
 		const JournalEntry = foundry.utils.getDocumentClass("JournalEntry");
-		const create = (name, site) => JournalEntry.create({
+		// Each Site's journal is made at once, rather than a moment after, so it's there when the macro says it's done.
+		const create = async (name, site) => keepSiteJournal(await JournalEntry.create({
 			name,
 			folder: this.folders.JournalEntry.id,
 			flags: { core: { sheetClass: SITE_SHEET_CLASS }, [SYSTEM_ID]: { [SITE_FLAG]: site, [TEST_FLAG]: true } }
-		});
+		}));
 
 		let chapel = rollSite(emptySite(), createRandom(`${REALM_SEED}-chapel`));
 		chapel.notes = `${this.names.ruin}, at ${t("realm.hex", hex)}. A pilgrim chapel the mere rose over. Explored in Harvest of Age 1.`;

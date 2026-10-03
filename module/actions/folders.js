@@ -1,6 +1,14 @@
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
+ * @param {string} type The documents it holds, such as "JournalEntry".
+ * @param {string} key The flag that marks it.
+ * @param {unknown} value What the flag holds.
+ * @returns {Folder|null} The folder the flag marks, if there's one.
+ */
+export const findFlaggedFolder = (type, key, value) => game.folders?.find((folder) => folder.type === type && folder.getFlag(SYSTEM_ID, key) === value) ?? null;
+
+/**
  * A folder found by one of the system's flags, so it's found again whatever
  * it's renamed to or moved under, and made the first time it's wanted.
  * @param {string} type The documents it holds, such as "JournalEntry".
@@ -10,7 +18,7 @@ import { SYSTEM_ID } from "../system-id.js";
  * @returns {Promise<Folder|null>} Null when it couldn't be made, so what goes in it goes at the top level instead.
  */
 export async function flaggedFolder(type, key, value, data) {
-	const existing = game.folders.find((folder) => folder.type === type && folder.getFlag(SYSTEM_ID, key) === value);
+	const existing = findFlaggedFolder(type, key, value);
 	if (existing) return existing;
 	try {
 		return await foundry.utils.getDocumentClass("Folder").create({ ...data, type, flags: { [SYSTEM_ID]: { [key]: value } } });

@@ -133,6 +133,8 @@ vi.mock("../../module/actions/season-log.js", () => ({ recordMythCompleted: vi.f
 
 vi.mock("../../module/actions/sites.js", () => ({ SITE_FLAG: "site", SITE_SHEET_CLASS: "mythic-bastionland-pwd.SiteSheet" }));
 
+vi.mock("../../module/actions/site-journals.js", () => ({ SITE_JOURNALS_SETTING: "siteJournals", deleteSiteJournals: vi.fn(), keepSiteJournal: vi.fn() }));
+
 vi.mock("../../module/actions/time.js", () => ({
 	announcePhase: vi.fn(),
 	announceSeason: vi.fn(),
@@ -286,7 +288,7 @@ beforeEach(() => {
 		journal: [],
 		folders: [],
 		index: null,
-		settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null } },
+		settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false },
 		Document: FakeDocument
 	});
 	world.toolkit = new FakeDocument({ type: "gmToolkit", system: { notes: "<p>Mine</p>", seasons: { "3-winter": { notes: "Mine" } } } });
@@ -363,7 +365,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			calendar: BEFORE,
 			notes: "<p>Mine</p>",
 			seasons: { "3-winter": { notes: "Mine" } },
-			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null } }
+			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false }
 		});
 		expect(world.toolkit.system.notes).toContain("<h2>Where we left off</h2>");
 	});
@@ -503,6 +505,17 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(world.journal[0].flags[SYSTEM_ID].site.points).toBeTruthy();
 	});
 
+	it("turns Site journals on and makes each Site's at once, and removing it deletes them", async () => {
+		const { deleteSiteJournals, keepSiteJournal } = await import("../../module/actions/site-journals.js");
+		await populateTestWorld();
+		expect(world.settings.siteJournals).toBe(true);
+		expect(keepSiteJournal.mock.calls.map(([entry]) => entry)).toEqual(world.journal);
+
+		await populateTestWorld();
+		expect(deleteSiteJournals).toHaveBeenCalledWith(world.journal.map((entry) => entry.id));
+		expect(world.settings.siteJournals).toBe(false);
+	});
+
 	it("gives the Domain an heir, a Court, Council tasks and a Warband it feeds too little", async () => {
 		await populateTestWorld();
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
@@ -617,7 +630,7 @@ describe("running it again", () => {
 	});
 
 	it("puts back the weather, the City Quest and the session's memory it kept", async () => {
-		const kept = { weather: "fog", cityQuest: { seen: [] }, sessionEnd: { promised: "season" } };
+		const kept = { weather: "fog", cityQuest: { seen: [] }, sessionEnd: { promised: "season" }, siteJournals: false };
 		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, settings: kept } } };
 		world.toolkit.update = vi.fn();
 		const { drawWeather } = await import("../../module/actions/weather.js");

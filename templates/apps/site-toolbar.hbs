@@ -26,6 +26,11 @@
 		<button type="button" data-action="showPlayers" data-tooltip="{{localize 'bastionland.sites.showPlayersHint'}}">
 			<i class="fa-solid fa-users" inert></i><span>{{localize "bastionland.sites.showPlayers"}}</span>
 		</button>
+		{{#if journal}}
+		<button type="button" data-action="journal" data-tooltip="{{localize 'bastionland.siteJournal.openHint'}}">
+			<i class="fa-solid fa-book" inert></i><span>{{localize "bastionland.siteJournal.open"}}</span>
+		</button>
+		{{/if}}
 	</div>
 
 	<div class="bastionland-site__history">

@@ -7,6 +7,7 @@ import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
+import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
 import { showHexOnMap } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
@@ -135,6 +136,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			markVisited: GmToolkitSheet.#onMarkVisited,
 			forgetVisits: GmToolkitSheet.#onForgetVisits,
 			openSite: GmToolkitSheet.#onOpenSite,
+			siteJournal: GmToolkitSheet.#onSiteJournal,
 			newSite: () => newSite(),
 			flipBook: () => openBookFlip(),
 			newMyth: GmToolkitSheet.#onNewMyth,
@@ -540,7 +542,8 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	 * @returns {object}
 	 */
 	#siteRow(entry) {
-		const points = Object.values(readSite(entry).points).filter((point) => point.kind);
+		const site = readSite(entry);
+		const points = Object.values(site.points).filter((point) => point.kind);
 		const counts = POINT_KINDS.map((kind) => {
 			const count = points.filter((point) => point.kind === kind).length;
 			return count ? `${count} ${t(`sites.points.${kind}.${count === 1 ? "label" : "plural"}`)}` : null;
@@ -551,6 +554,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			name: entry.name,
 			counts,
 			found: points.length ? t("gmToolkit.places.siteFound", { found, total: points.length }) : t("gmToolkit.places.siteEmpty"),
+			journal: hasSiteJournal(entry, site),
 			search: searchable([entry.name, ...counts, ...points.map((point) => point.text)].join(" "))
 		};
 	}
@@ -1293,5 +1297,11 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	static #onOpenSite(_event, target) {
 		const entry = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
 		return entry?.sheet?.render({ force: true });
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onSiteJournal(_event, target) {
+		const entry = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		if (entry) return openSiteJournal(entry);
 	}
 }

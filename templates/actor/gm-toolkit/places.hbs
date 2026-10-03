@@ -52,6 +52,9 @@
 				</span>
 				<span class="bastionland-gm-toolkit__visits">{{found}}</span>
 			</div>
+			{{#if journal}}
+			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="siteJournal" data-tooltip="{{localize "bastionland.siteJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.siteJournal.open"}}</button>
+			{{/if}}
 			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="openSite"><i class="fa-solid fa-dungeon" inert></i> {{localize "bastionland.gmToolkit.places.openSite"}}</button>
 		</article>
 		{{else}}
