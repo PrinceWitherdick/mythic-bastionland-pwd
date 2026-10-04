@@ -20,6 +20,8 @@ const TRAMPLE = /(\d*d\d+)\s+trample/i;
 const BLAST = /\b(\d*d\d+)\s+blast\b/i;
 /** A companion's own attack, such as "d4 talons". */
 const NATURAL_ATTACK = /^(\d*d\d+)\s+(.+)$/i;
+/** "+d8 dropping from above": a specialist weapon's extra die, and when it applies (p12). */
+export const SPECIALIST_NOTE = /^\+\s*(d\d+)\s+(.+)$/i;
 /** How a Property line points at the d6 table on the Knight's page: "(see below)", or "as below" once. */
 const SEE_BELOW = /\b(?:see|as) below\b/i;
 
@@ -273,8 +275,7 @@ function readChunk(chunk) {
 	const [attack] = parseAttacks(`${name} (${group.inner})`).attacks;
 	if (!attack) return [{ item: gearItem(own) }, ...rest];
 	let notes = attack.note ? splitOutside(attack.note, COMMA).filter(aside) : [];
-	// "+d8 dropping from above": a specialist weapon's extra die, and when it applies (p12).
-	const special = notes.map((note) => /^\+\s*(d\d+)\s+(.+)$/i.exec(note)).find((match) => match && SPECIALIST_DICE.includes(match[1].toLowerCase()));
+	const special = notes.map((note) => SPECIALIST_NOTE.exec(note)).find((match) => match && SPECIALIST_DICE.includes(match[1].toLowerCase()));
 	const qualities = new Set(attack.qualities);
 	if (RANGED_NAME.test(name)) qualities.add("ranged");
 	// "2d8 hefty when mounted": Hefty only on horseback, as a lance is (p12).

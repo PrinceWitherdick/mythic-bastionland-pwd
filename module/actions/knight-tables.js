@@ -9,6 +9,7 @@ import { hasTable, knightEntryByType, knightRenewal, knightTableFill, knightVers
 import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
+import { applyTableStats } from "./table-stats.js";
 
 
 /** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
@@ -113,19 +114,22 @@ export function withTableSentences(stored, results) {
 }
 
 /**
- * Choose rows by hand, or clear them with 0.
+ * Choose rows by hand, or clear them with 0. What each row says of the Knight's
+ * Property, such as the form their crossbow takes, is put on it.
  * @param {Actor} knight
  * @param {number[]} columns By index.
  * @param {number[]} rows    A row from 1 for each.
- * @returns {Promise<Actor>|null}
+ * @returns {Promise<Actor|null>}
  */
-export function setKnightTableRows(knight, columns, rows) {
+export async function setKnightTableRows(knight, columns, rows) {
 	const stored = knight?.system.bookTable;
 	if (!knight?.isOwner || !hasTable(stored)) return null;
 	const update = { "system.bookTable.rolls": withRolls(stored, columns, rows) };
 	// A row taken, not cleared, counts as the table rolled now.
 	if (rows.some((row) => row > 0)) update[`flags.${SYSTEM_ID}.${ROLLED_AT}`] = getCalendar();
-	return knight.update(update);
+	const updated = await knight.update(update);
+	for (const line of await applyTableStats(knight, columns)) ui.notifications.info(line);
+	return updated;
 }
 
 /**

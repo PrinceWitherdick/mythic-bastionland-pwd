@@ -568,6 +568,15 @@
       "keepsPlace": "{name} keeps its place: weapons come first, biggest die leading, then shields, then armour from the head outward, then everything else."
     },
     "knightTable": {
+      "apply": {
+        "title": "Which Possession?",
+        "which": "More than one possession could take what {column} gives. Which is it about?",
+        "ok": "Put It There",
+        "blank": "None of them",
+        "blankDetail": "The result stays on the table, and no possession changes.",
+        "applied": "{item} is now as the table says.",
+        "none": "Nothing of {name}’s could take what {column} gives, so it stays on the table."
+      },
       "open": "Roll on {name}",
       "view": "See {name}",
       "reference": "(p{page})",
