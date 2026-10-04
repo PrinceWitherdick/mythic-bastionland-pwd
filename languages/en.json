@@ -1029,8 +1029,37 @@
         "name": "Places"
       },
       "controls": {
-        "marks": "Mark the Hexes Visited",
+        "marks": "Mark the Hexes Visited (right-click to choose the mark)",
         "places": "Places"
+      },
+      "marks": {
+        "title": "Visited Marks",
+        "open": "Choose the Mark",
+        "hint": "How the hexes the Company has been to are marked on a Realm, in this browser only: a pencilled ring, a tick, a cross or the hex’s edge drawn over, each in a colour of your choosing.",
+        "shown": "Mark the hexes the Company has been to",
+        "shownHint": "In this browser only: everyone else keeps their own. The footprints beside the sidebar do the same.",
+        "legend": "The Mark",
+        "colourOf": "Colour of the {mark}",
+        "reset": "Default Colours",
+        "done": "Done",
+        "styles": {
+          "pencil": {
+            "label": "Pencilled Ring",
+            "detail": "A faint dashed line just inside the hex, leaving its middle clear."
+          },
+          "tick": {
+            "label": "Tick",
+            "detail": "A tick across the middle of the hex."
+          },
+          "cross": {
+            "label": "Cross",
+            "detail": "A cross through the middle of the hex."
+          },
+          "edge": {
+            "label": "Hex Edge",
+            "detail": "The hex’s own border drawn over in a strong line."
+          }
+        }
       }
     },
     "seenFromAfar": {
@@ -3446,6 +3475,7 @@
         "hidden": "{name} (hidden)",
         "barrier": "Barrier: {direction}",
         "coordinates": "({col}, {row})",
+        "visited": "visited",
         "settings": {
           "coordinates": {
             "name": "Show hex column and row",
@@ -4149,7 +4179,13 @@
       },
       "visitedMarksShown": {
         "name": "Mark the Hexes the Company Has Been To",
-        "hint": "Pencil a dashed line round every hex of a Realm the Company has come into. Untick to hide them in this browser only: everyone else keeps theirs. The footprints among the Token tools do the same."
+        "hint": "Mark every hex of a Realm the Company has come into. Untick to hide them in this browser only: everyone else keeps theirs. The footprints beside the sidebar do the same, and a right-click on them chooses the mark."
+      },
+      "visitedMarkStyle": {
+        "name": "Visited Mark"
+      },
+      "visitedMarkColours": {
+        "name": "Visited Mark Colours"
       },
       "hexReadoutShown": {
         "name": "Name the Realm Hex under the Pointer",

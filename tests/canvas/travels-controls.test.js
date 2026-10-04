@@ -4,12 +4,14 @@ let shown;
 
 vi.mock("../../module/actions/realm.js", () => ({ isRealmScene: (scene) => Boolean(scene?.isRealm) }));
 vi.mock("../../module/apps/TravelsPlaces.js", () => ({ openPlaces: vi.fn() }));
+vi.mock("../../module/apps/VisitedMarks.js", () => ({ openVisitedMarks: vi.fn() }));
 vi.mock("../../module/canvas/visited-marks.js", () => ({
 	visitedMarksShown: () => shown,
 	setVisitedMarksShown: vi.fn(async (value) => { shown = value; })
 }));
 
 const { openPlaces } = await import("../../module/apps/TravelsPlaces.js");
+const { openVisitedMarks } = await import("../../module/apps/VisitedMarks.js");
 const { setVisitedMarksShown } = await import("../../module/canvas/visited-marks.js");
 const { TRAVELS_BUTTONS_ID, refreshTravelsButtons } = await import("../../module/canvas/travels-controls.js");
 
@@ -106,5 +108,16 @@ describe("the travels buttons beside the sidebar", () => {
 		expect(marks.attributes["aria-pressed"]).toBe("false");
 		places.listeners.click({ preventDefault() {} });
 		expect(openPlaces).toHaveBeenCalled();
+	});
+
+	it("open the Visited Marks window on a right-click of the footprints, and only there", () => {
+		refreshTravelsButtons();
+		const [marks, places] = byId(TRAVELS_BUTTONS_ID).children;
+		const event = { preventDefault: vi.fn() };
+		marks.listeners.contextmenu(event);
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(openVisitedMarks).toHaveBeenCalledTimes(1);
+		expect(setVisitedMarksShown).not.toHaveBeenCalled();
+		expect(places.listeners.contextmenu).toBeUndefined();
 	});
 });

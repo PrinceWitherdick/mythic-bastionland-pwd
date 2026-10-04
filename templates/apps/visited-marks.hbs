@@ -1,0 +1,40 @@
+{{!-- How this browser marks the hexes the Company has been to; see module/apps/VisitedMarks.js.
+      Each control is written as it changes, so there's nothing to send. Each sample is drawn with the map's own strokes. --}}
+<div class="bastionland-visited-marks dialog-form">
+	<div class="dialog-content">
+		<label class="bastionland-check">
+			<input type="checkbox" name="shown" {{checked shown}}>
+			<span class="bastionland-check__label">
+				{{localize "bastionland.travels.marks.shown"}}
+				<span class="bastionland-check__detail">{{localize "bastionland.travels.marks.shownHint"}}</span>
+			</span>
+		</label>
+
+		<fieldset class="bastionland-visited-marks__styles">
+			<legend>{{localize "bastionland.travels.marks.legend"}}</legend>
+			{{#each samples}}
+			<div class="bastionland-visited-marks__style">
+				<label class="bastionland-check">
+					<input type="radio" name="style" value="{{style}}" {{checked selected}}>
+					<svg class="bastionland-visited-marks__sample" data-sample="{{style}}" viewBox="{{viewBox}}" style="--bastionland-mark: {{colour}}" aria-hidden="true">
+						<path class="bastionland-visited-marks__hex" d="{{outline}}" stroke-width="{{outlineWidth}}"></path>
+						{{#if halo}}<path class="bastionland-visited-marks__halo" d="{{path}}" stroke-width="{{halo}}"></path>{{/if}}
+						<path class="bastionland-visited-marks__mark" d="{{path}}" stroke-width="{{width}}" stroke-opacity="{{alpha}}"></path>
+					</svg>
+					<span class="bastionland-check__label">
+						{{label}}
+						<span class="bastionland-check__detail">{{detail}}</span>
+					</span>
+				</label>
+				<input type="color" class="bastionland-visited-marks__colour" value="{{colour}}" data-colour="{{style}}" aria-label="{{colourLabel}}" data-tooltip="{{colourLabel}}">
+			</div>
+			{{/each}}
+			<p class="bastionland-visited-marks__reset">
+				<button type="button" class="bastionland-button" data-action="resetColours"><i class="fa-solid fa-rotate-left" inert></i> {{localize "bastionland.travels.marks.reset"}}</button>
+			</p>
+		</fieldset>
+	</div>
+	<footer class="form-footer">
+		<button type="button" data-action="close"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.travels.marks.done"}}</button>
+	</footer>
+</div>

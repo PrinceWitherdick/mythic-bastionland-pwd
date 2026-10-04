@@ -26,6 +26,7 @@
  * Pure, so it can be tested without Foundry.
  */
 import { ART_ROOT } from "./book-art.js";
+import { colourNumber } from "./colour.js";
 import { BOOK_LAYOUT, REALM_LAYOUTS, allHexes, hexCentre, hexVertices, normaliseLayout, realmGeometry } from "./realm-geometry.js";
 import { BOOK_SETUP, OTHER_SIDE, OWN_SIZE_LIMITS, ownSideLimits, within, withinOwnSize } from "./realm-setup.js";
 
@@ -47,7 +48,7 @@ export const TERRAIN_MARKS = Object.freeze([
 	"#b07423", "#63cc55", "#6b4a26", "#2a7ad4", "#d4557a", "#d6b030"
 ]);
 
-const MARK_NUMBERS = Object.freeze(TERRAIN_MARKS.map((hex) => Number(hex.replace("#", "0x"))));
+const MARK_NUMBERS = Object.freeze(TERRAIN_MARKS.map(colourNumber));
 
 /**
  * @param {number} terrain 1-12.

@@ -1,3 +1,4 @@
+import { getHexVisits } from "../actions/journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { getSighted } from "../actions/sighted.js";
 import { realmKnown } from "../actions/solo.js";
@@ -119,9 +120,10 @@ const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING)
  * @param {object} [options]
  * @param {boolean} [options.coordinates] Lead with the hex's column and row.
  * @param {{note: string}|null} [options.sighted] Something seen standing there from afar and not yet reached (p197).
- * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power". Empty where the hex holds nothing worth naming.
+ * @param {boolean} [options.visited] The Company has been there.
+ * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power · visited". Empty where the hex holds nothing worth naming.
  */
-export function describeHex(summary, { coordinates = false, sighted = null } = {}) {
+export function describeHex(summary, { coordinates = false, sighted = null, visited = false } = {}) {
 	const parts = [];
 	// Only a GM is told of what's hidden, so only a GM sees it marked.
 	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
@@ -138,6 +140,7 @@ export function describeHex(summary, { coordinates = false, sighted = null } = {
 	}
 	// Everybody sees that something stands there, in the Referee's words, but not what it is.
 	if (sighted) parts.push(sighted.note ? t("seenFromAfar.readoutNote", { note: sighted.note }) : t("seenFromAfar.readout"));
+	if (visited) parts.push(t("realm.readout.visited"));
 	const text = parts.join(" · ");
 	if (!coordinates) return text;
 	const where = t("realm.readout.coordinates", summary.hex);
@@ -196,7 +199,8 @@ export function updateHexReadout({ force = false } = {}) {
 	// A mark stands only while something there is still hidden. Most hexes have none, so the flag is read whole only where one does.
 	const marked = Boolean(scene.flags?.[SYSTEM_ID]?.[SIGHTED_FLAG]?.[shown]);
 	const sighted = marked && hiddenThere(entry.realm, hex, () => handHidden) ? sightedAt(getSighted(scene), hex) : null;
-	const text = describeHex(summary, { coordinates: showsCoordinates(), sighted });
+	const visited = Boolean(getHexVisits(scene, hex));
+	const text = describeHex(summary, { coordinates: showsCoordinates(), sighted, visited });
 	chip.textContent = text;
 	chip.hidden = !text;
 	size = null;

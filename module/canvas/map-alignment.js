@@ -35,7 +35,7 @@
  */
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
-import { INK_HEX, PAPER_HEX as PAPER } from "../rules/colour.js";
+import { INK_HEX, PAPER_HEX as PAPER, colourNumber } from "../rules/colour.js";
 import { hexCentre } from "../rules/realm-geometry.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { calibrationHexes, fitToMarks, mapRect, markAt, markedHexOutline, markedHexScale, sizeMapRect, slideMapRect, viewOfPicture } from "../rules/realm-map.js";
@@ -57,7 +57,7 @@ const RING = 0x8b1e1e;
  */
 const MARK_COLOURS = Object.freeze(["#1f6fd1", "#e07b1a"]);
 
-const MARK_NUMBERS = Object.freeze(MARK_COLOURS.map((colour) => Number(colour.replace("#", "0x"))));
+const MARK_NUMBERS = Object.freeze(MARK_COLOURS.map(colourNumber));
 
 /** How a mark is drawn: its fill faint enough to see the drawing under it; its lines and the cross on its centre, in screen pixels. */
 const MARK = Object.freeze({ fill: 0.2, line: 2, held: 3, halo: 5, cross: 7 });

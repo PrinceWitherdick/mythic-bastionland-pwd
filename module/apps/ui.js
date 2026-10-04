@@ -206,6 +206,11 @@ export function toggleShown(app) {
 export function singletonOpener(AppClass) {
 	let app = null;
 	return () => {
+		// Foundry's settings list opens a window of its own under the same id, which takes this one's
+		// place on the page: that one is brought forward, and once it's shut a fresh one is made.
+		const open = AppClass.DEFAULT_OPTIONS?.id ? foundry.applications.instances?.get(AppClass.DEFAULT_OPTIONS.id) : null;
+		if (open instanceof AppClass) app = open;
+		else if (app?.rendered && !app.element?.isConnected) app = null;
 		app ??= new AppClass();
 		app.render({ force: true });
 		return app;

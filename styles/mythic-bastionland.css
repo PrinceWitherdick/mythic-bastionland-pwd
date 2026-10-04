@@ -6384,6 +6384,14 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0.35rem 0 0;
 }
 
+/* The hex's name, with the Company's flag beside it when it is here. */
+.bastionland-travels-hex__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.9rem;
+}
+
 .bastionland-travels__here {
 	border-color: var(--bastionland-blood);
 	color: var(--bastionland-blood);
@@ -7462,4 +7470,74 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 #bastionland-travels-buttons > .ui-control:focus:not(:focus-visible) {
 	outline: none;
 	box-shadow: none;
+}
+
+/* The Visited Marks window (module/apps/VisitedMarks.js): each mark beside a
+   hex drawn with it, and its colour at the row's end. */
+.bastionland-visited-marks__styles {
+	gap: 0.5rem;
+}
+
+.bastionland-visited-marks__style {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.bastionland-visited-marks__style > .bastionland-check {
+	flex: 1;
+	align-items: center;
+}
+
+.bastionland-visited-marks__style > .bastionland-check > input {
+	margin-block-start: 0;
+}
+
+.bastionland-visited-marks__sample {
+	flex: none;
+	width: 3.2rem;
+	height: 3.2rem;
+	fill: none;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.bastionland-visited-marks__hex {
+	fill: #f4ecd8;
+	stroke: var(--bastionland-rule);
+}
+
+.bastionland-visited-marks__halo {
+	stroke: #f4ecd8;
+	stroke-opacity: 0.6;
+}
+
+.bastionland-visited-marks__mark {
+	stroke: var(--bastionland-mark, var(--bastionland-ink));
+}
+
+.bastionland-visited-marks__colour {
+	flex: none;
+	width: 2.4rem;
+	height: 2rem;
+	padding: 2px;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: var(--bastionland-paper);
+	cursor: pointer;
+}
+
+.bastionland-visited-marks__colour:focus:not(:focus-visible) {
+	outline: none;
+	box-shadow: none;
+}
+
+.bastionland-visited-marks__reset {
+	display: flex;
+	justify-content: flex-end;
+	margin: 0.2rem 0 0;
+}
+
+.bastionland-visited-marks-window .form-footer button {
+	flex: 1;
 }

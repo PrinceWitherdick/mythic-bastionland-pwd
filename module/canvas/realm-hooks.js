@@ -21,6 +21,7 @@ import { refreshMythChooser } from "../apps/MythChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
+import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
 import { t } from "../chat/cards.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
@@ -131,6 +132,8 @@ export function registerRealmHooks() {
 
 	// The hexes the Company has been to, marked on the map for whoever wants them shown.
 	registerVisitedMarksSetting();
+	// Which mark, and in what colour, chosen in a window of its own.
+	registerVisitedMarksMenu();
 	// A double-click on a hex opens what the Company knows of it.
 	registerTravelsClick();
 

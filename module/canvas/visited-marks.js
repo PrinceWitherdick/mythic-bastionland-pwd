@@ -1,23 +1,34 @@
 import { getJourney } from "../actions/journey.js";
+import { read } from "../client-settings.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { INK_HEX } from "../rules/colour.js";
-import { hexCentre, hexKey, hexVertices } from "../rules/realm-geometry.js";
+import { PAPER_HEX, colourNumber } from "../rules/colour.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { visitedMarkHexes } from "../rules/travels.js";
+import {
+	DEFAULT_VISITED_MARK_COLOURS,
+	DEFAULT_VISITED_MARK_STYLE,
+	VISITED_MARK_STYLES,
+	visitedMarkColours,
+	visitedMarkPen,
+	visitedMarkStrokes,
+	visitedMarkStyle
+} from "../rules/visited-mark-style.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 
 /**
- * The hexes the Company has been to, pencilled round on the map: a thin dashed
- * line just inside each one, leaving its middle to the Token, the Realm's
- * pictures and the marks of what was seen from afar. Drawn on every client,
- * and shown or hidden by each person for themselves.
+ * The hexes the Company has been to, marked on the map: pencilled round with a
+ * thin dashed line just inside, ticked, crossed or with the hex's edge drawn
+ * over, in a colour of each person's choosing (rules/visited-mark-style.js).
+ * Drawn on every client, and shown or hidden by each person for themselves.
  */
 
 /** Whether this browser draws the marks. */
 export const VISITED_MARKS_SETTING = "visitedMarksShown";
 
-/** How far in from the hex's edge the line runs, its dashes and its weight, in parts of a hex. */
-const MARK = Object.freeze({ inset: 0.12, dash: 0.11, gap: 0.07, line: 0.018, alpha: 0.45 });
+/** Which mark this browser draws, and the colour of each. */
+export const VISITED_MARK_STYLE_SETTING = "visitedMarkStyle";
+export const VISITED_MARK_COLOURS_SETTING = "visitedMarkColours";
 
 /** Above the Realm tools' own drawing, below the marks of what was seen from afar. */
 const Z_INDEX = 955;
@@ -28,7 +39,7 @@ let layer = null;
 /** Where the layer's marks stand, so a Scene change that leaves them as they were draws nothing again. */
 let drawn = null;
 
-/** Register the marks' setting. Called during init. */
+/** Register the marks' settings. Called during init. */
 export function registerVisitedMarksSetting() {
 	game.settings.register(SYSTEM_ID, VISITED_MARKS_SETTING, {
 		name: "bastionland.settings.visitedMarksShown.name",
@@ -42,6 +53,24 @@ export function registerVisitedMarksSetting() {
 			// The button beside the sidebar follows a change made on a Settings page.
 			refreshTravelsButtons();
 		}
+	});
+	// Chosen in the Visited Marks window, which Foundry's settings list opens.
+	game.settings.register(SYSTEM_ID, VISITED_MARK_STYLE_SETTING, {
+		name: "bastionland.settings.visitedMarkStyle.name",
+		scope: "client",
+		config: false,
+		type: String,
+		choices: Object.fromEntries(VISITED_MARK_STYLES.map((style) => [style, `bastionland.travels.marks.styles.${style}.label`])),
+		default: DEFAULT_VISITED_MARK_STYLE,
+		onChange: () => drawVisitedMarks()
+	});
+	game.settings.register(SYSTEM_ID, VISITED_MARK_COLOURS_SETTING, {
+		name: "bastionland.settings.visitedMarkColours.name",
+		scope: "client",
+		config: false,
+		type: Object,
+		default: { ...DEFAULT_VISITED_MARK_COLOURS },
+		onChange: () => drawVisitedMarks()
 	});
 }
 
@@ -64,32 +93,29 @@ export async function setVisitedMarksShown(shown) {
 	return game.settings.set(SYSTEM_ID, VISITED_MARKS_SETTING, Boolean(shown));
 }
 
+/** @returns {Record<string, string>} Each mark's colour as this browser keeps it. */
+export const storedVisitedMarkColours = () => visitedMarkColours(read(VISITED_MARK_COLOURS_SETTING, null));
+
 /**
- * The dashes of one hex's mark: its outline drawn in toward the middle, broken
- * into short strokes the way a pencil goes round a place on a paper map.
- * @param {object} g
- * @param {{col: number, row: number}} hex
- * @returns {{from: {x: number, y: number}, to: {x: number, y: number}}[]}
+ * @returns {{style: string, colour: string}} The mark this browser draws, and its colour.
  */
-export function visitedMarkDashes(g, hex) {
-	const centre = hexCentre(g, hex);
-	const corners = hexVertices(g, hex).map(({ x, y }) => ({
-		x: x + (centre.x - x) * MARK.inset,
-		y: y + (centre.y - y) * MARK.inset
-	}));
-	const dash = g.size * MARK.dash;
-	const gap = g.size * MARK.gap;
-	const dashes = [];
-	corners.forEach((from, index) => {
-		const to = corners[(index + 1) % corners.length];
-		const length = Math.hypot(to.x - from.x, to.y - from.y);
-		// Each side starts and ends on a stroke, so the corners read as corners.
-		const count = Math.max(1, Math.round((length + gap) / (dash + gap)));
-		const step = (length + gap) / count;
-		const along = (distance) => ({ x: from.x + ((to.x - from.x) * distance) / length, y: from.y + ((to.y - from.y) * distance) / length });
-		for (let k = 0; k < count; k++) dashes.push({ from: along(k * step), to: along(Math.min(length, k * step + step - gap)) });
-	});
-	return dashes;
+export function visitedMarkLook() {
+	const style = visitedMarkStyle(read(VISITED_MARK_STYLE_SETTING, undefined));
+	return { style, colour: storedVisitedMarkColours()[style] };
+}
+
+/**
+ * Draw every hex's mark with one line.
+ * @param {PIXI.Graphics} marks
+ * @param {{points: {x: number, y: number}[], closed: boolean}[]} strokes
+ */
+function drawStrokes(marks, strokes) {
+	for (const { points, closed } of strokes) {
+		const [first, ...rest] = points;
+		marks.moveTo(first.x, first.y);
+		for (const { x, y } of rest) marks.lineTo(x, y);
+		if (closed) marks.closePath();
+	}
 }
 
 /**
@@ -112,19 +138,22 @@ export function drawVisitedMarks() {
 		const shown = isRealmScene(scene) && visitedMarksShown();
 		const g = shown ? sceneGeometry(scene) : null;
 		const hexes = shown ? visitedMarkHexes(getJourney(scene)) : [];
-		const key = hexes.length ? JSON.stringify([g, hexes.map(hexKey).sort()]) : "";
+		const look = visitedMarkLook();
+		const key = hexes.length ? JSON.stringify([g, look, hexes.map(hexKey).sort()]) : "";
 		if (key === drawn) return;
 		for (const mark of layer.removeChildren()) mark.destroy({ children: true });
 		drawn = key;
 		if (!hexes.length) return;
 		const marks = layer.addChild(new PIXI.Graphics());
-		marks.lineStyle({ width: Math.max(2, g.size * MARK.line), color: INK_HEX, alpha: MARK.alpha, cap: "round" });
-		for (const hex of hexes) {
-			for (const { from, to } of visitedMarkDashes(g, hex)) {
-				marks.moveTo(from.x, from.y);
-				marks.lineTo(to.x, to.y);
-			}
+		const pen = visitedMarkPen(g, look.style);
+		const strokes = hexes.flatMap((hex) => visitedMarkStrokes(g, hex, look.style));
+		// The paper goes down under every mark first, so one hex's halo never covers its neighbour's line.
+		if (pen.halo) {
+			marks.lineStyle({ width: pen.halo, color: PAPER_HEX, alpha: 0.6, cap: "round", join: "round" });
+			drawStrokes(marks, strokes);
 		}
+		marks.lineStyle({ width: pen.width, color: colourNumber(look.colour), alpha: pen.alpha, cap: "round", join: "round" });
+		drawStrokes(marks, strokes);
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't mark the hexes the Company has been to`, error);
 	}

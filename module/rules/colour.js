@@ -6,8 +6,15 @@
 /** The ink the system draws its own lines and glyphs in, on the page and on the map. */
 export const INK = "#231f1a";
 
-/** The same ink for the canvas, which wants a number rather than a string. */
-export const INK_HEX = Number(INK.replace("#", "0x"));
+/**
+ * A colour as the canvas wants it.
+ * @param {string} hex "#rrggbb"
+ * @returns {number} Such as 0x231f1a.
+ */
+export const colourNumber = (hex) => Number(hex.replace("#", "0x"));
+
+/** The same ink for the canvas. */
+export const INK_HEX = colourNumber(INK);
 
 /** The paper the Realm's names and marks are lettered on, for the canvas. */
 export const PAPER_HEX = 0xf4ecd8;

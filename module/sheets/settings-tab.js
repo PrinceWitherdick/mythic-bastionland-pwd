@@ -98,7 +98,10 @@ export async function changeSetting(key, raw) {
 export function openSettingsMenu(id) {
 	if (!offersMenu(id, Boolean(game.user?.isGM))) return null;
 	const menu = game.settings.menus?.get(`${SYSTEM_ID}.${id}`);
-	return menu?.type ? new menu.type().render({ force: true }) : null;
+	if (!menu?.type) return null;
+	// One already open under the window's own id is brought forward rather than drawn over.
+	const open = menu.type.DEFAULT_OPTIONS?.id ? foundry.applications.instances?.get(menu.type.DEFAULT_OPTIONS.id) : null;
+	return (open instanceof menu.type ? open : new menu.type()).render({ force: true });
 }
 
 /** Open Foundry's settings window on this system's settings. */

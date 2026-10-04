@@ -32,6 +32,11 @@ describe("describeHex", () => {
 		expect(describeHex(summary({ terrain: "hills" }), { sighted: { note: "" } })).toBe("bastionland.realm.terrain.hills · bastionland.seenFromAfar.readout");
 		expect(describeHex(summary(), { sighted: { note: "a structure, smoke rising" } })).toBe("bastionland.seenFromAfar.readoutNote(a structure, smoke rising)");
 	});
+
+	it("ends with visited where the Company has been", () => {
+		expect(describeHex(summary({ terrain: "hills" }), { visited: true })).toBe("bastionland.realm.terrain.hills · bastionland.realm.readout.visited");
+		expect(describeHex(summary(), { coordinates: true, visited: true })).toBe("bastionland.realm.readout.coordinates(5,7) bastionland.realm.readout.visited");
+	});
 });
 
 describe("readoutPlacement", () => {

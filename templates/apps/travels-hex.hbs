@@ -4,11 +4,13 @@
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.noRealm"}}</p>
 	{{else}}
 	{{#if asPlayers}}<p class="bastionland-travels__banner">{{localize "bastionland.travels.asPlayers"}}</p>{{/if}}
-	<h2 class="bastionland-hex-lore__heading">{{title}}</h2>
+	<div class="bastionland-travels-hex__head">
+		<h2 class="bastionland-hex-lore__heading">{{title}}</h2>
+		{{#if openable}}{{#if here}}<span class="bastionland-hex-lore__feature bastionland-pill bastionland-travels__here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}{{/if}}
+	</div>
 
 	{{#if openable}}
 	<div class="bastionland-hex-lore__here">
-		{{#if here}}<span class="bastionland-hex-lore__feature bastionland-pill bastionland-travels__here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
 		{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
 		{{#each features}}
 		<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>

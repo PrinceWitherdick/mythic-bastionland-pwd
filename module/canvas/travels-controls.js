@@ -1,11 +1,13 @@
 import { isRealmScene } from "../actions/realm.js";
 import { openPlaces } from "../apps/TravelsPlaces.js";
+import { openVisitedMarks } from "../apps/VisitedMarks.js";
 import { setVisitedMarksShown, visitedMarksShown } from "./visited-marks.js";
 
 /**
  * Two buttons stacked in a column of their own just left of the sidebar, on a
  * Realm alone: one shows or hides the marks of where the Company has been, the
- * other opens the Company's record of the places it has been. Out of the Token
+ * other opens the Company's record of the places it has been. A right-click on
+ * the first chooses which mark, and its colour. Out of the Token
  * tools, so they are there whichever tool is in hand.
  *
  * They go inside core's chat column, `#ui-right-column-1`, at its top and
@@ -30,9 +32,10 @@ export const TRAVELS_BUTTONS = Object.freeze({ marks: "visitedMarks", places: "p
  * @param {string} icon
  * @param {string} label
  * @param {(event: MouseEvent) => unknown} onClick
+ * @param {(event: MouseEvent) => unknown} [onRightClick]
  * @returns {HTMLButtonElement}
  */
-function controlButton(action, icon, label, onClick) {
+function controlButton(action, icon, label, onClick, onRightClick) {
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "ui-control faded-ui icon";
@@ -48,6 +51,12 @@ function controlButton(action, icon, label, onClick) {
 		event.preventDefault();
 		return onClick(event);
 	});
+	if (onRightClick) {
+		button.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			return onRightClick(event);
+		});
+	}
 	return button;
 }
 
@@ -65,7 +74,7 @@ function mountTravelsButtons() {
 		controlButton(TRAVELS_BUTTONS.marks, "fa-solid fa-shoe-prints", "bastionland.travels.controls.marks", async () => {
 			await setVisitedMarksShown(!visitedMarksShown());
 			refreshTravelsButtons();
-		}),
+		}, openVisitedMarks),
 		controlButton(TRAVELS_BUTTONS.places, "fa-solid fa-map-location-dot", "bastionland.travels.controls.places", () => openPlaces())
 	);
 
