@@ -27,7 +27,6 @@
 					{{> "bastionland.armour-badge" label="bastionland.npc.armourEdit.title"}}
 				</section>
 
-				{{#if (or ages.length wields.length)}}
 				<section class="bastionland-block">
 					{{#if ages.length}}
 					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.age.label"}}</h2>
@@ -50,8 +49,12 @@
 						{{/each}}
 					</ul>
 					{{/if}}
+					{{!-- A creature so big that only what harms a structure harms it (p11). Walls and ships are Structure actors. --}}
+					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.structureHint'}}">
+						<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
+					</label>
 				</section>
-				{{/if}}
 
 				<section class="bastionland-block">
 					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>

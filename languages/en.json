@@ -2903,6 +2903,8 @@
         "ok": "Save"
       },
       "scale": "Scale",
+      "structure": "Counts as a structure",
+      "structureHint": "So big that it is harmed only as a structure is: by fire, siege weapons or something just as large. Walls and ships are Structure actors.",
       "scales": {
         "individual": {
           "label": "Individual",
