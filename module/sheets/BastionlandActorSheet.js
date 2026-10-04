@@ -39,6 +39,50 @@ function sigilRowLabel(system) {
 	return t(Number.isInteger(system.sigilNumber) ? "sigil.rowSpent" : "sigil.rowNone", { number: system.sigilNumber });
 }
 
+/**
+ * The buttons an item's row may carry, in the order they stand, each with what
+ * its tooltip says, or null where the item has no such button, and what it does.
+ * @type {{key: string, icon: string, label: (item: Item, actor: Actor, row: {fighting: boolean}) => string|null,
+ *   run: (actor: Actor, item: Item) => unknown, fadesUnusable?: boolean}[]}
+ */
+const ITEM_ROW_ACTIONS = Object.freeze([
+	{
+		key: "useRemedy",
+		icon: "fa-flask",
+		label: ({ system }) => (system.remedy && isAtHand(system) ? t("remedy.use", { virtue: t(`virtues.${system.remedy}.abbr`) }) : null),
+		run: useRemedy
+	},
+	{
+		key: "addAbilityDie",
+		icon: "fa-dice-d6",
+		// An Ability's die for the fight is offered only while there's a fight.
+		label: ({ type, system }, actor, { fighting }) => (type === "ability" && system.lastingDie && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null),
+		run: addAbilityDie,
+		fadesUnusable: true
+	},
+	// A coin flipped for a life (p120), and a rune etched at sunset (p100).
+	{ key: "throwToChance", icon: "fa-coins", label: ({ type, system }) => (type === "ability" && system.coinFlip ? t("coinFlip.use") : null), run: throwToChance },
+	{ key: "etchRune", icon: "fa-star", label: ({ type, system }) => (type === "ability" && system.sigil ? sigilRowLabel(system) : null), run: etchRune },
+	{
+		key: "sufferLoss",
+		icon: "fa-heart-crack",
+		// A Virtue lost should something befall it, as a banner falling (p62).
+		label: ({ name, system }, actor) => (system.loss?.dice && system.loss.virtue && actor.system.virtues
+			? t("loss.button", { dice: system.loss.dice, virtue: t(`virtues.${system.loss.virtue}.abbr`), when: system.loss.when || t("loss.befalls", { item: splitName(name).nameHead }) })
+			: null),
+		run: sufferLoss
+	},
+	{
+		key: "rollChance",
+		icon: "fa-dice",
+		// Odds a possession holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88).
+		label: ({ system }) => (Number.isInteger(system.chance?.of) && Number.isInteger(system.chance?.in) ? t("chance.roll", { in: system.chance.in, of: system.chance.of }) : null),
+		run: rollChance
+	},
+	// A Passion restores SPI when indulged (p7).
+	{ key: "indulgePassion", icon: "fa-wine-glass", label: ({ type }, actor) => (type === "passion" && actor.system.virtues?.spi ? t("passion.indulge") : null), run: indulgePassion }
+]);
+
 /** Marks the labelled buttons a sheet hangs in its window header. */
 const HEADER_BUTTON = "bastionland-header-button";
 
@@ -83,14 +127,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
 			toggleHolds: BastionlandActorSheet.#onToggleHolds,
 			adjustCount: BastionlandActorSheet.#onAdjustCount,
-			useRemedy: BastionlandActorSheet.#onUseRemedy,
-			indulgePassion: BastionlandActorSheet.#onIndulgePassion,
-			addAbilityDie: BastionlandActorSheet.#onAddAbilityDie,
-			dropLastingDie: BastionlandActorSheet.#onDropLastingDie,
-			throwToChance: BastionlandActorSheet.#onThrowToChance,
-			etchRune: BastionlandActorSheet.#onEtchRune,
-			rollChance: BastionlandActorSheet.#onRollChance,
-			sufferLoss: BastionlandActorSheet.#onSufferLoss
+			itemAction: BastionlandActorSheet.#onItemAction,
+			dropLastingDie: BastionlandActorSheet.#onDropLastingDie
 		}
 	};
 
@@ -316,7 +354,6 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 */
 	#prepareItemRows(items) {
 		const wearer = this.actor.system.conditions ?? {};
-		// An Ability's die for the fight is offered only while there's a fight.
 		const fighting = Boolean(this.#combatant === undefined ? combatantOf(this.actor) : this.#combatant);
 		return Promise.all(items.map(async (item) => {
 			const { system } = item;
@@ -353,17 +390,10 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 					cannotUse: isUsedUp(system),
 					cannotAdd: Number.isInteger(system.quantity.max) && system.quantity.value >= system.quantity.max
 				} : null,
-				remedyLabel: system.remedy && isAtHand(system) ? t("remedy.use", { virtue: t(`virtues.${system.remedy}.abbr`) }) : null,
-				// A Passion restores SPI when indulged (p7).
-				indulgeLabel: item.type === "passion" && this.actor.system.virtues?.spi ? t("passion.indulge") : null,
-				lastingLabel: item.type === "ability" && system.lastingDie && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null,
-				// A coin flipped for a life (p120), and a rune etched at sunset (p100).
-				coinLabel: item.type === "ability" && system.coinFlip ? t("coinFlip.use") : null,
-				sigilLabel: item.type === "ability" && system.sigil ? sigilRowLabel(system) : null,
-				// Odds a possession holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88).
-				chanceLabel: Number.isInteger(system.chance?.of) && Number.isInteger(system.chance?.in) ? t("chance.roll", { in: system.chance.in, of: system.chance.of }) : null,
-				// A Virtue lost should something befall it, as a banner falling (p62).
-				lossLabel: system.loss?.dice && system.loss.virtue && this.actor.system.virtues ? t("loss.button", { dice: system.loss.dice, virtue: t(`virtues.${system.loss.virtue}.abbr`), when: system.loss.when || t("loss.befalls", { item: splitName(item.name).nameHead }) }) : null,
+				actions: ITEM_ROW_ACTIONS.flatMap(({ key, icon, label, fadesUnusable }) => {
+					const text = label(item, this.actor, { fighting });
+					return text ? [{ key, icon, label: text, disabled: Boolean(fadesUnusable) && !isAtHand(system) }] : [];
+				}),
 				description: await this._enrich(system.description)
 			};
 		}));
@@ -507,44 +537,17 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		return item.update({ "system.quantity.value": countAfter(item.system.quantity, Number(target.dataset.by) || 0) });
 	}
 
-	/** @this {BastionlandActorSheet} */
-	static #onUseRemedy(_event, target) {
-		return useRemedy(this.actor, this.#itemFrom(target));
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onIndulgePassion(_event, target) {
-		return indulgePassion(this.actor, this.#itemFrom(target));
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onAddAbilityDie(_event, target) {
-		return addAbilityDie(this.actor, this.#itemFrom(target));
+	/**
+	 * One of ITEM_ROW_ACTIONS, as its button names it.
+	 * @this {BastionlandActorSheet}
+	 */
+	static #onItemAction(_event, target) {
+		const action = ITEM_ROW_ACTIONS.find(({ key }) => key === target.dataset.itemAction);
+		return action?.run(this.actor, this.#itemFrom(target));
 	}
 
 	/** @this {BastionlandActorSheet} */
 	static #onDropLastingDie(_event, target) {
 		return dropLastingDie(this.actor, Number(target.dataset.index));
 	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onThrowToChance(_event, target) {
-		return throwToChance(this.actor, this.#itemFrom(target));
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onEtchRune(_event, target) {
-		return etchRune(this.actor, this.#itemFrom(target));
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onRollChance(_event, target) {
-		return rollChance(this.actor, this.#itemFrom(target));
-	}
-
-	/** @this {BastionlandActorSheet} */
-	static #onSufferLoss(_event, target) {
-		return sufferLoss(this.actor, this.#itemFrom(target));
-	}
 }
-
