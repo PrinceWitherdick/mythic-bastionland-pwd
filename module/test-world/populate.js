@@ -20,7 +20,7 @@ import { setCompanyHex } from "../actions/company.js";
 import { settleTask } from "../actions/council-tasks.js";
 import { linkKnightDomain, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
-import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
+import { openGmToolkit, rollFreeMyth, theGmToolkit } from "../actions/gm-toolkit.js";
 import { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { keepPartyNote, recordBarriersMet } from "../actions/hex-shared.js";
 import { recordHexVisits } from "../actions/journey.js";
@@ -48,7 +48,6 @@ import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
 import { newCourtMember } from "../rules/court.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { crisesDrawn, crisisFor, crisisResult } from "../rules/dominion.js";
-import { mythRollTaken } from "../rules/gm-toolkit.js";
 import { hasTable } from "../rules/knight-tables.js";
 import { CAST_FLAG } from "../rules/myth-cast.js";
 import { SQUIRE_EQUIPMENT, SQUIRE_GUARD, SQUIRE_IMAGE, SQUIRE_VIRTUE_ROLL, ponySystem, squireEquipment, squireItems, squireSystem } from "../rules/squires.js";
@@ -834,14 +833,8 @@ class TestGame {
 	async newMyth(number) {
 		const myth = this.myth(number);
 		if (!myth) return;
-		let d6;
-		let d12;
-		for (let tries = 0; tries < 100; tries++) {
-			d6 = await new Roll("1d6").evaluate();
-			d12 = await new Roll("1d12").evaluate();
-			if (!mythRollTaken(this.realm, { d6: d6.total, d12: d12.total })) break;
-		}
-		const rolled = { number, d6: d6.total, d12: d12.total };
+		const { d6, d12 } = await rollFreeMyth(this.realm);
+		const rolled = { number, d6, d12 };
 		await editRealm(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 		const { name, page, entry } = mythEntry(this.index, rolled);
 		await postCard(null, "omen", {

@@ -2,7 +2,7 @@ import { addDirectoryButton } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { emptySite, normaliseSite, siteChanges } from "../rules/sites.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { flaggedFolder } from "./folders.js";
+import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
 
 /** The flag a Site's Journal entry keeps the Site under. */
 export const SITE_FLAG = "site";
@@ -17,8 +17,6 @@ export const SITE_SHEET_CLASS = `${SYSTEM_ID}.SiteSheet`;
 
 /** Marks the Journal folder Sites are filed in, so it's found again whatever it's renamed to. */
 const FOLDER_FLAG = "sitesFolder";
-
-const FOLDER_COLOR = "#5a5046";
 
 /**
  * @param {JournalEntry} entry
@@ -44,7 +42,7 @@ export const siteUpdate = (before, after) => Object.fromEntries(Object.entries(s
  * The Journal folder Sites are filed in, made the first time it's wanted.
  * @returns {Promise<Folder|null>} Null when it couldn't be made, so the Site goes at the top level instead.
  */
-const sitesFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, true, { name: t("sites.folder"), color: FOLDER_COLOR });
+const sitesFolder = () => flaggedFolder("JournalEntry", FOLDER_FLAG, true, { name: t("sites.folder"), color: JOURNAL_FOLDER_COLOR });
 
 /**
  * Make a Journal entry for a new, empty Site and open it on the map. GMs only.

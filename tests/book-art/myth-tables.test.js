@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const book = vi.hoisted(() => ({ path: "mythic-bastionland-art/mythic-bastionland.pdf", reads: 0 }));
 
 vi.mock("../../module/rulebook/store.js", () => ({ rulebookPath: () => book.path }));
-vi.mock("../../module/book-art/pdf.js", () => ({
+vi.mock("../../module/book-art/pdf.js", async (importOriginal) => ({
+	...(await importOriginal()),
 	openPdfUrl: async () => ({
 		destroy: () => {},
 		getPage: async () => {
 			book.reads++;
-			return { getTextContent: async () => ({ items: [] }) };
+			return { getTextContent: async () => ({ items: [] }), cleanup: () => {} };
 		}
 	})
 }));

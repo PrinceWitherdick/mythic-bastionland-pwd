@@ -3,10 +3,10 @@ import { journalPlan } from "../rules/hex-journal.js";
 import { SITE_JOURNALS_FOLDER_FLAG, SITE_JOURNAL_FLAG, SITE_LAYOUT, foundMarkdown, siteMarkdown } from "../rules/site-journal.js";
 import { isBlankSite } from "../rules/sites.js";
 import { serialWrites } from "../rules/queue.js";
-import { stripHTML } from "../rules/ledger.js";
+import { stripHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
-import { findFlaggedFolder, flaggedFolder } from "./folders.js";
+import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { afterBurst, entrySnapshot, openKeptJournal } from "./kept-journals.js";
 import { isSiteEntry, readSite } from "./sites.js";
 
@@ -21,8 +21,6 @@ import { isSiteEntry, readSite } from "./sites.js";
 
 /** The world setting that turns Site journals on. */
 export const SITE_JOURNALS_SETTING = "siteJournals";
-
-const FOLDER_COLOR = "#5a5046";
 
 /** @returns {boolean} Whether Sites get Journal entries in this world. */
 export const siteJournalsOn = () => read(SITE_JOURNALS_SETTING, false) !== false;
@@ -62,7 +60,7 @@ export const hasSiteJournal = (entry, site = readSite(entry)) => siteJournalsOn(
  */
 const journalsFolder = () => flaggedFolder("JournalEntry", SITE_JOURNALS_FOLDER_FLAG, true, {
 	name: t("siteJournal.folder"),
-	color: FOLDER_COLOR,
+	color: JOURNAL_FOLDER_COLOR,
 	sorting: "a"
 });
 

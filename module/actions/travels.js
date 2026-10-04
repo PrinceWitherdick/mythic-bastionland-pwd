@@ -24,7 +24,7 @@ import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/trave
 import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
 import { getHexShared, partyNoteBy } from "./hex-shared.js";
-import { getJourney } from "./journey.js";
+import { getJourney, visitsLabel } from "./journey.js";
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { getSighted } from "./sighted.js";
 import { keptFromMe, realmKnown } from "./solo.js";
@@ -59,13 +59,7 @@ export function travelsSources(scene) {
  * @param {{count: number, last: {when: object|null}}|null} visits
  * @returns {string} How often the Company has been there, and when last.
  */
-export function visitsText(visits) {
-	if (!visits) return t("travels.visits.never");
-	return t(visits.count === 1 ? "travels.visits.once" : "travels.visits.many", {
-		count: visits.count,
-		when: visits.last.when ? calendarLabel(visits.last.when) : t("travels.visits.unknown")
-	});
-}
+export const visitsText = (visits) => (visits ? visitsLabel(visits) : t("travels.visits.never"));
 
 /**
  * @param {{direction: string, byName: string, when: object|null}[]} met
@@ -78,10 +72,10 @@ export const barrierMetLines = (met) => (met ?? []).map(({ direction, byName, wh
 }));
 
 /**
- * @param {{note: string, when: object|null}[]} told
- * @returns {{note: string, when: string|null}[]} What the players were told of a hex, each dated.
+ * @param {{id: string, note: string, when: object|null}[]} told
+ * @returns {{id: string, note: string, when: string|null}[]} What the players were told of a hex, each dated.
  */
-export const toldLines = (told) => told.map(({ note, when }) => ({ note, when: when ? t("travels.told.when", { when: calendarLabel(when) }) : null }));
+export const toldLines = (told) => told.map(({ id, note, when }) => ({ id, note, when: when ? t("travels.told.when", { when: calendarLabel(when) }) : null }));
 
 /** The words each hex shows, worked out once for each view. */
 const wordsByView = new WeakMap();

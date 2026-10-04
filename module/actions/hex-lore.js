@@ -15,7 +15,7 @@ import {
 	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
-import { OMEN_COUNT, barriersAround, featureAt, hexSummary } from "../rules/realm.js";
+import { OMEN_COUNT, barriersAround, featureAt, hexSummary, holdingName } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { serialWrites } from "../rules/queue.js";
@@ -51,7 +51,7 @@ export function hexFeatureLines(scene, realm, g, hex, index, { full = false } = 
 	const hidden = (text, isHidden) => (full && isHidden ? t("realm.readout.hidden", { name: text }) : text);
 	const lines = [];
 	if (holding) {
-		const name = holding.name || t(`realm.holdings.${holding.style}`);
+		const name = holdingName(holding, t);
 		lines.push(hidden(full && holding.seat ? t("realm.readout.seat", { name }) : name, hand.holding || hand.seat));
 	}
 	if (myth) {
@@ -363,7 +363,7 @@ export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 	const { realm } = getRealm(scene);
 	const seen = hexSummary(realm, sceneGeometry(scene), hex, { showHidden: false, hiddenByHand: hexHiddenByHand(scene, hex) });
 	const named = [
-		seen.holding && (seen.holding.name || t(`realm.holdings.${seen.holding.style}`)),
+		seen.holding && holdingName(seen.holding, t),
 		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))
 	].filter(Boolean);
 	const where = t("realm.hex", hex);

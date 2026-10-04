@@ -6,7 +6,7 @@ import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "./art-index.js";
 import { uploadFile } from "./files.js";
-import { openPdfUrl } from "./pdf.js";
+import { openPdfUrl, withPage } from "./pdf.js";
 
 /**
  * The book's words for the rules text the system shows, laid over the
@@ -39,12 +39,6 @@ function lay(texts) {
 }
 
 /**
- * @param {string} key A key under `bastionland`, such as "keywords.guard".
- * @returns {boolean} Whether the book's own words are shown under it.
- */
-export const hasBookText = (key) => typeof read[key] === "string";
-
-/**
  * @param {string} [prefix] Only keys starting with this, such as "travelRules.".
  * @returns {boolean} Whether any of the book's words were read.
  */
@@ -60,12 +54,7 @@ export async function readBookText(pdf) {
 	for (const number of bookTextPages()) {
 		if (number > pdf.numPages) continue;
 		try {
-			const page = await pdf.getPage(number);
-			try {
-				items.set(number, (await page.getTextContent()).items);
-			} finally {
-				page.cleanup();
-			}
+			items.set(number, await withPage(pdf, number, async (page) => (await page.getTextContent()).items));
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't read page ${number}`, error);
 		}

@@ -9,7 +9,7 @@
  */
 import { visitedNewestFirst, visitsAt } from "./journey.js";
 import { sharedAt } from "./hex-shared.js";
-import { barriersAround, edgeSide, hexSummary } from "./realm.js";
+import { barriersAround, edgeSide, hexSummary, holdingName } from "./realm.js";
 import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
 import { compareCalendars, normalizeCalendar, PHASES, seasonKey } from "./time.js";
 
@@ -314,7 +314,7 @@ export function journeyLog(sources, viewOf = hexViews(sources)) {
  * @returns {{title: string, terrain: string, features: string[], sighted: string}}
  */
 export function viewWords(view, t) {
-	const holding = view.holding && (view.holding.name || t(`realm.holdings.${view.holding.style}`));
+	const holding = view.holding && holdingName(view.holding, t);
 	const landmarkType = view.landmark && t(`realm.landmarks.${view.landmark.type}`);
 	const landmark = view.landmark && (view.landmark.name ? `${landmarkType}: ${view.landmark.name}` : landmarkType);
 	const features = [

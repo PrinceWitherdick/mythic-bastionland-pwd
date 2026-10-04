@@ -1075,9 +1075,6 @@
         "note": "Note"
       },
       "visits": {
-        "once": "Visited once: {when}",
-        "many": "Visited {count} times, last: {when}",
-        "unknown": "when is unknown",
         "never": "Not visited yet"
       },
       "met": {

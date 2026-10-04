@@ -15,6 +15,23 @@ export const escapeHTML = (text) => String(text)
 	.replaceAll("\"", "&quot;");
 
 /**
+ * @param {string} html
+ * @returns {string} Its text alone, on one line.
+ */
+export function stripHTML(html) {
+	return String(html ?? "")
+		.replace(/<[^>]*>/g, " ")
+		.replace(/&nbsp;/g, " ")
+		.replace(/&amp;/g, "&")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, "\"")
+		.replace(/&#39;/g, "'")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+/**
  * @param {string} text
  * @returns {string} The text with its first letter capitalised.
  */

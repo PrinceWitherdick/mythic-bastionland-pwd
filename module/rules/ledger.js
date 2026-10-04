@@ -5,6 +5,7 @@
  * actor. Pure, so it can be tested without Foundry: the words come from `t`,
  * and the names of linked actors from `nameOf`.
  */
+import { stripHTML } from "./text.js";
 import { LINKED_ACTORS, MARKED_CONDITIONS } from "../config.js";
 import { VIRTUES } from "./virtues.js";
 import { RANKS, rankForGlory } from "./glory.js";
@@ -66,23 +67,6 @@ export function shortValue(value) {
 	const slice = text.slice(0, VALUE_MAX_CHARS);
 	const space = slice.lastIndexOf(" ");
 	return `${(space > VALUE_MAX_CHARS * 0.6 ? slice.slice(0, space) : slice).trimEnd()}…`;
-}
-
-/**
- * @param {string} html
- * @returns {string} Its text alone, on one line.
- */
-export function stripHTML(html) {
-	return String(html ?? "")
-		.replace(/<[^>]*>/g, " ")
-		.replace(/&nbsp;/g, " ")
-		.replace(/&amp;/g, "&")
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&quot;/g, "\"")
-		.replace(/&#39;/g, "'")
-		.replace(/\s+/g, " ")
-		.trim();
 }
 
 /**

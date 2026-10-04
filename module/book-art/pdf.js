@@ -63,6 +63,21 @@ export async function openPdfUrl(url) {
 }
 
 /**
+ * Load a page, read it, then free what pdf.js decoded for it.
+ * @param {object} pdf
+ * @param {number} number
+ * @param {(page: object) => Promise<*>} read
+ */
+export async function withPage(pdf, number, read) {
+	const page = await pdf.getPage(number);
+	try {
+		return await read(page);
+	} finally {
+		page.cleanup();
+	}
+}
+
+/**
  * Every image a page paints, in drawing order. Sizes come from the operator
  * list, so nothing has to be decoded to tell the art from the backgrounds.
  * @param {object} page A pdf.js page.

@@ -7,6 +7,7 @@ import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, normaliseSighted, sightable, sightedAt,
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
+import { holdingName } from "../rules/realm.js";
 import { keptFromMe } from "./solo.js";
 
 /**
@@ -56,7 +57,7 @@ export async function writeSightings(scene, { set = {}, drop = [] }) {
 function sightingLabel(g, { direction, hex, landmark, holding }) {
 	const what = [
 		landmark && [t(`realm.landmarks.${landmark.type}`), landmark.name].filter(Boolean).join(": "),
-		holding && (holding.name || t(`realm.holdings.${holding.style}`))
+		holding && holdingName(holding, t)
 	].filter(Boolean).join(", ");
 	return t("seenFromAfar.row", {
 		direction: t(`realm.directions.${directionNames(g)[direction]}`),

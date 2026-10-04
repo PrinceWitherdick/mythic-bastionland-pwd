@@ -1,6 +1,6 @@
 import { AGES, FEATS, NPC_SCALES, NPC_WIELDS, WEAKNESS_DICE } from "../config.js";
 import { MORALE_BREAKS } from "../rules/morale.js";
-import { conditionsFor, endsMortalWound, healsWound, revives } from "../rules/virtues.js";
+import { clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { warbandState } from "../rules/warbands.js";
 import { afflictionsField, booleanField, characterFields, countField, textField } from "./fields.js";
 
@@ -56,15 +56,13 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 	}
 
 	/**
-	 * Wounded goes once VIG is whole again, and Slain once VIG is above 0.
+	 * Clears the marks the update outgrows (clearOutgrownMarks).
 	 * @override
 	 */
 	async _preUpdate(changes, options, user) {
 		const allowed = await super._preUpdate(changes, options, user);
 		if (allowed === false) return false;
-		if (healsWound(this, changes)) changes.system.wounded = false;
-		if (revives(this, changes)) changes.system.slain = false;
-		if (endsMortalWound(this, changes)) changes.system.mortalWound = false;
+		clearOutgrownMarks(this, changes);
 	}
 
 	/**

@@ -2,6 +2,7 @@ import { calendarLabel } from "../actions/calendar.js";
 import { forgetHexRecord, getHexRecord } from "../actions/hex-lore.js";
 import { forgetHexPartyNote, forgetHexShared, forgetHexTold, getHexSharedRecord, partyNoteView } from "../actions/hex-shared.js";
 import { forgetHexVisit, forgetHexVisits, getHexVisits } from "../actions/journey.js";
+import { toldLines } from "../actions/travels.js";
 import { t } from "../chat/cards.js";
 import { confirmDialog } from "./ui.js";
 
@@ -30,11 +31,7 @@ export function hexForgetContext(scene, hex) {
 			label: t("gmToolkit.visits.nth", { count: index + 1 }),
 			when: arrival.when ? calendarLabel(arrival.when) : t("gmToolkit.visits.unknown")
 		})).reverse(),
-		told: [...(shared?.told ?? [])].reverse().map((told) => ({
-			id: told.id,
-			note: told.note,
-			when: told.when ? t("travels.told.when", { when: calendarLabel(told.when) }) : null
-		})),
+		told: toldLines([...(shared?.told ?? [])].reverse()),
 		party: partyNoteView(shared?.party),
 		noVisits: !arrivals.length,
 		nothing: !arrivals.length && !record && !shared

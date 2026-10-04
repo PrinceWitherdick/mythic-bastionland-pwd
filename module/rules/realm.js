@@ -304,3 +304,10 @@ export function validateRealm(realm, g) {
 
 	return problems;
 }
+
+/**
+ * @param {{name: string, style: string}} holding
+ * @param {(key: string) => string} t The language's words for a key.
+ * @returns {string} The Holding's name, or what it is where it has none.
+ */
+export const holdingName = (holding, t) => holding.name || t(`realm.holdings.${holding.style}`);

@@ -7,6 +7,7 @@ import { crisisRoll, worldDomains } from "./dominion.js";
 import { findCompany } from "./wilderness.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { holdingName } from "../rules/realm.js";
 
 /**
  * The Crisis Roll's other time, coming home after a long time away (p20): a
@@ -33,12 +34,6 @@ function domainHolding(domain, realms = realmHoldings()) {
 }
 
 /**
- * @param {{name: string, style: string}} holding
- * @returns {string} The Holding's name, or what it is where it has none.
- */
-const holdingName = (holding) => holding.name || t(`realm.holdings.${holding.style}`);
-
-/**
  * What the Domain sheet's Holding list offers: every Realm's Holdings, the
  * Realm named where there's more than one.
  * @param {Actor} domain
@@ -47,7 +42,7 @@ const holdingName = (holding) => holding.name || t(`realm.holdings.${holding.sty
 export function holdingChoices(domain) {
 	const realms = realmHoldings();
 	const named = domain.system.holding ? null : domainHolding(domain, realms);
-	return { options: holdingOptions(domain.system.holding, realms), blank: named ? t("domain.holding.byName", { name: holdingName(named.holding) }) : t("domain.holding.none") };
+	return { options: holdingOptions(domain.system.holding, realms), blank: named ? t("domain.holding.byName", { name: holdingName(named.holding, t) }) : t("domain.holding.none") };
 }
 
 /**
@@ -60,7 +55,7 @@ export function holdingOptions(selected, realms = realmHoldings()) {
 	const many = realms.length > 1;
 	return realms.flatMap(({ sceneId, holdings }) => holdings.filter((holding) => holding.id).map((holding) => {
 		const value = holdingRef(sceneId, holding.id);
-		const label = `${holdingName(holding)} ${t("realm.readout.coordinates", holding.hex)}`;
+		const label = `${holdingName(holding, t)} ${t("realm.readout.coordinates", holding.hex)}`;
 		return { value, label: many ? `${label}, ${game.scenes.get(sceneId)?.name ?? ""}` : label, selected: value === selected };
 	}));
 }

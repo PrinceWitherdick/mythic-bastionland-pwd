@@ -8,7 +8,7 @@ import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
-import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, validateRealm } from "../rules/realm.js";
+import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
 import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
 import {
 	GRID_ALPHA,
@@ -1026,7 +1026,7 @@ async function postRealmKey(scene) {
 			return { number: myth.number, name, page, where: where(myth.hex) };
 		}),
 		holdings: realm.holdings.map((holding) => ({
-			name: holding.name || t(`realm.holdings.${holding.style}`),
+			name: holdingName(holding, t),
 			seat: holding.seat,
 			where: where(holding.hex)
 		})),

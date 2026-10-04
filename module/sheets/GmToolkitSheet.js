@@ -1,6 +1,7 @@
 import { CALENDAR_HOOK, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
+import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
@@ -33,7 +34,7 @@ import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
 import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
-import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, mythRollTaken, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
+import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
@@ -1128,15 +1129,8 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const scene = this.scene;
 		if (!myth || !scene) return;
 		const { realm } = getRealm(scene);
-		let d6;
-		let d12;
-		// Six Myths of 72 are taken, so a free one turns up within a few rolls.
-		for (let tries = 0; tries < 100; tries++) {
-			d6 = await new Roll("1d6").evaluate();
-			d12 = await new Roll("1d12").evaluate();
-			if (!mythRollTaken(realm, { d6: d6.total, d12: d12.total })) break;
-		}
-		const rolled = { number: myth.number, d6: d6.total, d12: d12.total };
+		const { d6, d12 } = await rollFreeMyth(realm);
+		const rolled = { number: myth.number, d6, d12 };
 		const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 		if (!written) return;
 		// Played alone, the new Myth is met as the others were: by its first Omen.

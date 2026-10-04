@@ -1,5 +1,8 @@
 import { SYSTEM_ID } from "../system-id.js";
 
+/** The colour of the Journal folders the system makes: the hexes', the Sites' and their entries'. */
+export const JOURNAL_FOLDER_COLOR = "#5a5046";
+
 /**
  * @param {string} type The documents it holds, such as "JournalEntry".
  * @param {string} key The flag that marks it.

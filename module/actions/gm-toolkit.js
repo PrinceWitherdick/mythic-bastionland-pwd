@@ -1,4 +1,5 @@
 import { t } from "../chat/cards.js";
+import { mythRollTaken } from "../rules/gm-toolkit.js";
 import { SYSTEM_ID, SYSTEM_PATH } from "../system-id.js";
 
 /**
@@ -248,4 +249,21 @@ export function registerGmToolkitHooks() {
 	Hooks.on("renderDialogV2", hideToolkitType);
 	Hooks.on("createActor", adoptNewToolkit);
 	Hooks.on("preCreateChatMessage", speakAsTheGm);
+}
+
+/**
+ * Roll a d6 and a d12 for a Myth the Realm doesn't hold yet. Six Myths of 72
+ * are in a Realm, so a free one turns up within a few rolls.
+ * @param {import("../rules/realm.js").Realm|null} realm
+ * @returns {Promise<{d6: number, d12: number, rolls: Roll[]}>}
+ */
+export async function rollFreeMyth(realm) {
+	let d6 = null;
+	let d12 = null;
+	for (let tries = 0; tries < 100; tries++) {
+		d6 = await new Roll("1d6").evaluate();
+		d12 = await new Roll("1d12").evaluate();
+		if (!mythRollTaken(realm, { d6: d6.total, d12: d12.total })) break;
+	}
+	return { d6: d6.total, d12: d12.total, rolls: [d6, d12] };
 }

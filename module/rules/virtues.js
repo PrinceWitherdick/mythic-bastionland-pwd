@@ -124,6 +124,19 @@ export function healsWound(system, changes) {
 }
 
 /**
+ * Clear the marks an update leaves behind, writing it into the update itself:
+ * Wounded once VIG is whole again, Slain once VIG is above 0, and a Mortal
+ * Wound once they're Slain.
+ * @param {object} system As it stands.
+ * @param {object} changes An Actor update, expanded.
+ */
+export function clearOutgrownMarks(system, changes) {
+	if (healsWound(system, changes)) changes.system.wounded = false;
+	if (revives(system, changes)) changes.system.slain = false;
+	if (endsMortalWound(system, changes)) changes.system.mortalWound = false;
+}
+
+/**
  * A Save passes when the d20 shows a number equal to or below the Virtue.
  * @param {number} roll   The d20 result.
  * @param {number} virtue The current value of the Virtue being tested.

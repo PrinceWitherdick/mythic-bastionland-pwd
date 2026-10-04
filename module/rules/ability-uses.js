@@ -3,7 +3,7 @@
  * day", "twice each fight", "three times, renewed at sunset". Pure, so it can
  * be tested without Foundry. The words come from the GM's own book at import.
  */
-import { stripHTML } from "./ledger.js";
+import { stripHTML } from "./text.js";
 import { countAfter, isCounted, isUsedUp, restockUpdates } from "./restock.js";
 
 /** How many uses, as a count word or "N times". */

@@ -99,7 +99,7 @@ vi.mock("../../module/actions/glory.js", () => ({
 	})
 }));
 
-vi.mock("../../module/actions/gm-toolkit.js", () => ({ openGmToolkit: vi.fn(), theGmToolkit: () => world.toolkit }));
+vi.mock("../../module/actions/gm-toolkit.js", async (importOriginal) => ({ ...(await importOriginal()), openGmToolkit: vi.fn(), theGmToolkit: () => world.toolkit }));
 
 vi.mock("../../module/actions/hex-lore.js", async () => {
 	const { hexKey: key } = await import("../../module/rules/realm-geometry.js");

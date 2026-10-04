@@ -233,6 +233,6 @@ export function toldLabel(record) {
 	const told = record?.told ?? [];
 	if (!told.length) return "";
 	const last = told.at(-1);
-	const when = last.when ? calendarLabel(last.when) : t("travels.visits.unknown");
+	const when = last.when ? calendarLabel(last.when) : t("gmToolkit.visits.unknown");
 	return t(told.length === 1 ? "hexLore.toldOnce" : "hexLore.toldMany", { count: told.length, when });
 }

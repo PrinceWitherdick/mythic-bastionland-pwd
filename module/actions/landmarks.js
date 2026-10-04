@@ -3,7 +3,6 @@ import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
-import { mythRollTaken } from "../rules/gm-toolkit.js";
 import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
 import { cameFrom } from "../rules/journey.js";
 import { featureAt } from "../rules/realm.js";
@@ -13,6 +12,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { throwSpread } from "./book-flip.js";
 import { getCalendar } from "./calendar.js";
 import { companyTokenHex, setCompanyHex } from "./company.js";
+import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
@@ -196,23 +196,6 @@ export async function goBackTheWayYouCame(scene) {
 }
 
 /**
- * Roll the Myth a Ruin echoes: any the Realm doesn't currently hold.
- * @param {import("../rules/realm.js").Realm} realm
- * @returns {Promise<{echo: {d6: number, d12: number}, rolls: Roll[]}>}
- */
-async function rollRuinEcho(realm) {
-	let d6 = null;
-	let d12 = null;
-	// Six Myths of 72 are in the Realm, so one it doesn't hold turns up within a few rolls.
-	for (let tries = 0; tries < 100; tries++) {
-		d6 = await new Roll("1d6").evaluate();
-		d12 = await new Roll("1d12").evaluate();
-		if (!mythRollTaken(realm, { d6: d6.total, d12: d12.total })) break;
-	}
-	return { echo: { d6: d6.total, d12: d12.total }, rolls: [d6, d12] };
-}
-
-/**
  * The prompt a spread of the book prints for a Landmark of this type.
  * @param {object|null} index The art index.
  * @param {{d6: number, d12: number}} spread
@@ -240,7 +223,10 @@ export async function echoRuin(scene, hex = null) {
 	const { realm } = getRealm(scene);
 	const ruin = hex ? featureAt(realm, hex).landmark : null;
 	const kept = ruin?.type === "ruin" ? ruin.echo ?? null : null;
-	const { echo, rolls } = kept ? { echo: kept, rolls: [] } : await rollRuinEcho(realm);
+	// Unless it already echoes one, any Myth the Realm doesn't currently hold.
+	const rolled = kept ? null : await rollFreeMyth(realm);
+	const echo = kept ?? { d6: rolled.d6, d12: rolled.d12 };
+	const rolls = rolled?.rolls ?? [];
 	if (!kept && ruin?.type === "ruin") await editRealm(scene, (current, g) => editFeature(current, g, hex, { echo }));
 
 	const { prompt, myth, page, entry } = await spreadPrompt(await loadArtIndex(), echo, "ruin");

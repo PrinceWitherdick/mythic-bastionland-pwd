@@ -11,7 +11,7 @@ import {
 	personTraits,
 	sparkDiceCount
 } from "../rules/people.js";
-import { featureAt } from "../rules/realm.js";
+import { featureAt, holdingName } from "../rules/realm.js";
 import { midSentence } from "../rules/text.js";
 import { getCalendar } from "./calendar.js";
 import { keepHexSparkRecords } from "./hex-lore.js";
@@ -182,7 +182,7 @@ export async function rollUpHolding({ scene, hex }) {
 	await keepHexSparkRecords(scene, hex, sparks);
 
 	await postCard(null, "people", {
-		title: here.name || t(`realm.holdings.${here.style}`),
+		title: holdingName(here, t),
 		tagline: t("people.holding.tagline", { hex: t("realm.hex", hex) }),
 		sparks: place.map(({ table, results, prompt }) => ({ name: table.name, reference, prompt, results: results.filter((result) => result.entry) })),
 		people: persons.map(({ number, traits, known }) => ({

@@ -14,7 +14,7 @@ import { playerHexView, viewWords } from "../rules/travels.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
-import { flaggedFolder } from "./folders.js";
+import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
 import { afterBurst, entrySnapshot, openKeptJournal } from "./kept-journals.js";
 import { getHexLore, hexFeatureLines, sparkWhen } from "./hex-lore.js";
 import { partyNoteBy, toldLabel } from "./hex-shared.js";
@@ -33,8 +33,6 @@ import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travel
 
 /** The world setting that turns hex entries on. */
 export const HEX_JOURNALS_SETTING = "hexJournals";
-
-const FOLDER_COLOR = "#5a5046";
 
 /** @returns {boolean} Whether hexes get Journal entries in this world. */
 export const hexJournalsOn = () => read(HEX_JOURNALS_SETTING, false) !== false;
@@ -78,7 +76,7 @@ export function hexJournalEntry(scene, hex) {
  */
 const hexFolder = (scene) => flaggedFolder("JournalEntry", HEX_JOURNALS_FOLDER_FLAG, scene.id, {
 	name: t("hexJournal.folder", { realm: scene.name }),
-	color: FOLDER_COLOR,
+	color: JOURNAL_FOLDER_COLOR,
 	sorting: "m"
 });
 

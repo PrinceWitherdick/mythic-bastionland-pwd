@@ -2,7 +2,7 @@ import { knightVerseFromItems, mythTableFromItems, mythVerseFromItems, promptsFr
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { openPdfUrl } from "./pdf.js";
+import { openPdfUrl, withPage } from "./pdf.js";
 
 /**
  * The table on a Myth's or Knight's page, the verse under their name and the
@@ -63,7 +63,7 @@ function readPage(page) {
 			let read = null;
 			try {
 				const pdf = await openBook(rulebookPath());
-				const items = (await (await pdf.getPage(page)).getTextContent()).items;
+				const items = await withPage(pdf, page, async (read) => (await read.getTextContent()).items);
 				// A Myth's verse is found by its Omens and a Knight's by their Property, so neither reads the other's.
 				read = { table: mythTableFromItems(items), verse: mythVerseFromItems(items) ?? knightVerseFromItems(items), prompts: promptsFromItems(items) };
 			} catch (error) {
@@ -76,18 +76,6 @@ function readPage(page) {
 	}
 	return reads.get(key);
 }
-
-/**
- * @param {number} page A Myth's page.
- * @returns {Promise<import("../rules/book-art.js").MythTable|null>} Null without a rulebook, or when the page can't be read.
- */
-export const mythTableFromRulebook = (page) => readPage(page).then((read) => read?.table ?? null);
-
-/**
- * @param {number} page A Myth's or Knight's page.
- * @returns {Promise<string[]|null>} Null without a rulebook, or when the page can't be read.
- */
-export const mythVerseFromRulebook = (page) => readPage(page).then((read) => read?.verse ?? null);
 
 /**
  * What a finished read of a page found, for a render that can't wait on it.
@@ -118,37 +106,34 @@ export const peekTable = (page) => peek(page, "table");
 export const peekVerse = (page) => peek(page, "verse");
 
 /**
- * The table on an index entry's page: the index's own, or else the one read
- * from the rulebook, for an index Import PDF wrote before it read tables.
+ * One part of an index entry's page: the index's own, or else the one read
+ * from the rulebook, for an index Import PDF wrote before it read that part.
+ * @param {keyof PageRead} part
  * @param {object|null} index The art index.
- * @param {{table?: object, page?: number}|null} entry The Myth's or Knight's entry in it.
+ * @param {{page?: number}|null} entry The Myth's or Knight's entry in it.
  * @param {object} [options]
  * @param {number} [options.page]         The page to read, when there's no entry to give it.
- * @param {number} [options.versionFloor] An index at this version or later had its tables read
- *   already, so a page without one has none. Without it the rulebook is read whatever the version.
- * @returns {Promise<import("../rules/book-art.js").MythTable|null>}
+ * @param {number} [options.versionFloor] An index at this version or later had that part read
+ *   already, so a page without it has none. Without it the rulebook is read whatever the version.
+ * @returns {Promise<unknown|null>} Null without a rulebook, or when the page can't be read.
  */
-export function tableForEntry(index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
-	if (entry?.table) return Promise.resolve(entry.table);
+function partForEntry(part, index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
+	if (entry?.[part]) return Promise.resolve(entry[part]);
 	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
-	return mythTableFromRulebook(page);
+	return readPage(page).then((read) => read?.[part] ?? null);
 }
 
 /**
- * The verse under a Myth's or Knight's name: the index's own, or else the one read
- * from the rulebook, for an index Import PDF wrote before it read the verses.
- * @param {object|null} index The art index.
- * @param {{verse?: string[], page?: number}|null} entry The Myth's or Knight's entry in it.
- * @param {object} [options]
- * @param {number} [options.page]         The page to read, when there's no entry to give it.
- * @param {number} [options.versionFloor] An index at this version or later had its verses read already.
+ * The table on an index entry's page, as partForEntry.
+ * @returns {Promise<import("../rules/book-art.js").MythTable|null>}
+ */
+export const tableForEntry = (index, entry, options) => partForEntry("table", index, entry, options);
+
+/**
+ * The verse under a Myth's or Knight's name, as partForEntry.
  * @returns {Promise<string[]|null>}
  */
-export function verseForEntry(index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
-	if (entry?.verse) return Promise.resolve(entry.verse);
-	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
-	return mythVerseFromRulebook(page);
-}
+export const verseForEntry = (index, entry, options) => partForEntry("verse", index, entry, options);
 
 /**
  * The verse under a Myth's or Knight's name, for a render that can't wait on
@@ -169,20 +154,10 @@ export function peekVerseForEntry(index, entry, { page = entry?.page, versionFlo
 }
 
 /**
- * The prompts along the foot of a Myth's page: the index's own, or else the
- * ones read from the rulebook, for an index Import PDF wrote before it read them.
- * @param {object|null} index The art index.
- * @param {{prompts?: object[], page?: number}|null} entry The Myth's entry in it.
- * @param {object} [options]
- * @param {number} [options.page]         The page to read, when there's no entry to give it.
- * @param {number} [options.versionFloor] An index at this version or later had its prompts read already.
+ * The prompts along the foot of a Myth's page, as partForEntry.
  * @returns {Promise<{label: string, value: string}[]|null>}
  */
-export function promptsForEntry(index, entry, { page = entry?.page, versionFloor = Infinity } = {}) {
-	if (entry?.prompts) return Promise.resolve(entry.prompts);
-	if ((index?.version ?? 0) >= versionFloor) return Promise.resolve(null);
-	return readPage(page).then((read) => read?.prompts ?? null);
-}
+export const promptsForEntry = (index, entry, options) => partForEntry("prompts", index, entry, options);
 
 /** @returns {boolean} Whether there's a rulebook to read a table from. */
 export const canReadTablesFromRulebook = () => Boolean(rulebookPath());

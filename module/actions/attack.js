@@ -38,6 +38,7 @@ import {
 import { dieMask } from "../rules/die-shapes.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
+import { stripHTML } from "../rules/text.js";
 import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, readyForAttack, unmetNeed } from "../rules/ability-uses.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
 import { downBy } from "../rules/virtues.js";
@@ -967,7 +968,7 @@ const NOTE_LENGTH = 160;
  * @returns {string} Empty for a note too long to repeat, or none.
  */
 function plainNote(html) {
-	const text = String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+	const text = stripHTML(html);
 	return text.length <= NOTE_LENGTH ? text : "";
 }
 

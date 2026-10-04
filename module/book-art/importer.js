@@ -49,7 +49,7 @@ import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
 import { NPC_PACK, NPC_PACK_STEP, fillNpcPack } from "./npc-pack.js";
 import { fillPack } from "./packs.js";
-import { imageFormat, listPageImages, openPdf, saveImages } from "./pdf.js";
+import { imageFormat, listPageImages, openPdf, saveImages, withPage } from "./pdf.js";
 import { showImportReport } from "./report.js";
 import { useSquareTokens } from "./square-tokens.js";
 
@@ -138,21 +138,6 @@ async function importFrom(file) {
 		return await extractArt(pdf, OPS);
 	} finally {
 		await pdf.destroy();
-	}
-}
-
-/**
- * Load a page, read it, then free what pdf.js decoded for it.
- * @param {object} pdf
- * @param {number} number
- * @param {(page: object) => Promise<*>} read
- */
-async function withPage(pdf, number, read) {
-	const page = await pdf.getPage(number);
-	try {
-		return await read(page);
-	} finally {
-		page.cleanup();
 	}
 }
 

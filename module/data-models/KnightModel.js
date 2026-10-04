@@ -1,7 +1,7 @@
 import { AGES } from "../config.js";
 import { armourTotal } from "../rules/armour.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
-import { SCORES, conditionsFor, endsMortalWound, healsWound, revives } from "../rules/virtues.js";
+import { SCORES, clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -72,15 +72,13 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 	}
 
 	/**
-	 * Wounded goes once VIG is whole again, and Slain once VIG is above 0.
+	 * Clears the marks the update outgrows (clearOutgrownMarks).
 	 * @override
 	 */
 	async _preUpdate(changes, options, user) {
 		const allowed = await super._preUpdate(changes, options, user);
 		if (allowed === false) return false;
-		if (healsWound(this, changes)) changes.system.wounded = false;
-		if (revives(this, changes)) changes.system.slain = false;
-		if (endsMortalWound(this, changes)) changes.system.mortalWound = false;
+		clearOutgrownMarks(this, changes);
 	}
 
 	/**
