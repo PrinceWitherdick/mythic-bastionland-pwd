@@ -1,0 +1,35 @@
+<div class="bastionland-dialog__body">
+	<fieldset class="bastionland-choice-list">
+		<legend>{{localize "bastionland.domain.arms.which"}}</legend>
+		<label class="bastionland-check">
+			<input type="radio" name="arms" value="ruler" {{checked arms.ruler}}>
+			<span class="bastionland-check__label">
+				<strong>{{localize "bastionland.domain.arms.ruler.label"}}</strong>
+				<span class="bastionland-check__detail">{{rulerDetail}}</span>
+			</span>
+		</label>
+		{{#if knights.length}}
+		<label class="bastionland-check">
+			<input type="radio" name="arms" value="knight" {{checked arms.knight}}>
+			<span class="bastionland-check__label">
+				<strong>{{localize "bastionland.domain.arms.knight.label"}}</strong>
+				<span class="bastionland-check__detail">{{localize "bastionland.domain.arms.knight.detail"}}</span>
+			</span>
+		</label>
+		<div class="form-fields bastionland-domain-arms__knight">
+			<select name="knight" aria-label="{{localize 'bastionland.domain.arms.knight.label'}}">
+				{{#each knights}}
+				<option value="{{uuid}}" {{#if selected}}selected{{/if}}>{{name}}{{#unless painted}} {{localize "bastionland.domain.arms.knight.unpainted"}}{{/unless}}</option>
+				{{/each}}
+			</select>
+		</div>
+		{{/if}}
+		<label class="bastionland-check">
+			<input type="radio" name="arms" value="picture" {{checked arms.picture}}>
+			<span class="bastionland-check__label">
+				<strong>{{localize "bastionland.domain.arms.picture.label"}}</strong>
+				<span class="bastionland-check__detail">{{localize "bastionland.domain.arms.picture.detail"}}</span>
+			</span>
+		</label>
+	</fieldset>
+</div>

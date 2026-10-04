@@ -12,13 +12,14 @@ export const filePicker = () => foundry.applications.apps.FilePicker.implementat
  * @param {foundry.abstract.Document} document
  * @param {string} [field] The path the chosen picture is written to.
  * @param {string} [type] A FilePicker type, such as "image" for a picture that can't be a video.
+ * @param {object} [also] Anything else written with the picture.
  * @returns {Promise<Application>}
  */
-export function pickImageInto(document, field = "img", type = "imagevideo") {
+export function pickImageInto(document, field = "img", type = "imagevideo", also = {}) {
 	const picker = new (filePicker())({
 		type,
 		current: foundry.utils.getProperty(document, field),
-		callback: (path) => document.update({ [field]: path })
+		callback: (path) => document.update({ [field]: path, ...also })
 	});
 	return picker.render({ force: true });
 }

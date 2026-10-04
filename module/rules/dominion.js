@@ -145,6 +145,36 @@ export function domainRuledBy(domains, name) {
 	return key ? domains.find((domain) => nameKey(domain.system.ruler) === key) ?? null : null;
 }
 
+/**
+ * @param {{uuid: string, system: {ruler: string}}} domain
+ * @param {{name: string, system: {domain: string}}[]} knights
+ * @returns {object|null} The Knight ruling it: one linked to it, or else one bearing its ruler's name.
+ */
+export function rulingKnightOf(domain, knights) {
+	return knights.find((knight) => Boolean(domain.uuid) && knight.system.domain === domain.uuid) ?? knights.find((knight) => isSameName(knight.name, domain.system.ruler)) ?? null;
+}
+
+/* -------------------------------------------- */
+/*  The Domain's arms                           */
+/* -------------------------------------------- */
+
+/** What a Domain shows at the head of its sheet: its ruler's arms, another Knight's, or a picture. */
+export const DOMAIN_ARMS = Object.freeze(["ruler", "knight", "picture"]);
+
+/**
+ * What a Domain shows at the head of its sheet. A Knight it was set to who
+ * is gone falls back to the ruler, as does a picture that's been cleared.
+ * @param {{arms: string, img: string}} shown How the Domain is set, and its picture.
+ * @param {{ruler?: {name: string, system: {heraldry: string}}|null, knight?: {name: string, system: {heraldry: string}}|null}} bearers
+ * @returns {{picture: string}|{heraldry: string, bearer: string}} The picture,
+ *   or the arms (the painting, "" when none is painted) and who bears them ("" for nobody).
+ */
+export function domainArms({ arms, img }, { ruler = null, knight = null } = {}) {
+	if (arms === "picture" && img) return { picture: img };
+	const bearer = (arms === "knight" && knight) || ruler;
+	return { heraldry: bearer?.system.heraldry ?? "", bearer: bearer?.name ?? "" };
+}
+
 /* -------------------------------------------- */
 /*  A long absence                              */
 /* -------------------------------------------- */

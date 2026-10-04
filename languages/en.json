@@ -1378,6 +1378,30 @@
       "lordship": "Lordship",
       "ruler": "Ruler",
       "rulerPlaceholder": "Who rules here",
+      "arms": {
+        "title": "{name}: Arms",
+        "choose": "Choose what this Domain shows",
+        "which": "What should this Domain show?",
+        "ok": "Choose",
+        "of": "The arms of {name}",
+        "unpainted": "{name} has no arms painted yet",
+        "noRuler": "No Knight rules here yet",
+        "ruler": {
+          "label": "The ruler’s arms",
+          "detail": "{name}’s arms, changing with whoever rules here.",
+          "none": "No Knight rules here yet, so the shield stays blank until one does."
+        },
+        "knight": {
+          "label": "Another Knight’s arms",
+          "detail": "Shown whoever rules here.",
+          "unpainted": "(no arms yet)"
+        },
+        "picture": {
+          "label": "A picture",
+          "detail": "An image of your choosing, shown square instead of a shield.",
+          "tooltip": "The Domain’s picture"
+        }
+      },
       "successor": "Successor",
       "successorHint": "Whom the ruler names to follow them, or whom the Realm’s Seers or Knights-Elector choose instead. Expect some resistance either way. Pass On hands the Domain to them.",
       "successorPlaceholder": "Not yet named",

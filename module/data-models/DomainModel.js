@@ -1,5 +1,5 @@
 import { RETAINER_SEATS, circleEntries } from "../rules/court.js";
-import { CRISES, isMisruleDue, musterFor } from "../rules/dominion.js";
+import { CRISES, DOMAIN_ARMS, isMisruleDue, musterFor } from "../rules/dominion.js";
 import { booleanField, htmlField, textField } from "./fields.js";
 
 const fields = foundry.data.fields;
@@ -15,6 +15,9 @@ export class DomainModel extends foundry.abstract.TypeDataModel {
 			// The Seat of Power, ruling the whole Realm.
 			seat: booleanField(),
 			ruler: textField(),
+			// What the sheet's head shows, one of DOMAIN_ARMS, and for "knight" the uuid of the Knight whose arms.
+			arms: new fields.StringField({ required: true, blank: false, choices: DOMAIN_ARMS, initial: "ruler" }),
+			armsKnight: textField(),
 			// The Holding on the Realm it rules, from holdingRef. Blank finds the Holding bearing its name.
 			holding: textField(),
 			// Whether Weeks or a Season have passed with its ruler away, so their return brings the Crisis Roll (p20).

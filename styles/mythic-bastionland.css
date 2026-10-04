@@ -2638,6 +2638,24 @@ a.button:focus:not(:focus-visible) {
 	cursor: pointer;
 }
 
+/* A Domain's arms where its picture was: the Knight sheet's shield at two-thirds, padding and all. */
+.bastionland-heraldry.bastionland-heraldry--header {
+	flex: none;
+	width: 96px;
+	height: calc(96px * 170 / 144);
+	padding: calc(4px * 96 / 144);
+}
+
+.bastionland-heraldry--header .bastionland-heraldry__field {
+	width: 100%;
+	height: 100%;
+}
+
+/* The Knight to take arms from, under the choice it belongs to. */
+.bastionland-domain-arms__knight {
+	margin-inline-start: 1.6rem;
+}
+
 .bastionland-npc-header__text {
 	display: flex;
 	flex: 1;

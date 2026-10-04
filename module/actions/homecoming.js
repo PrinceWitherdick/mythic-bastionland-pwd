@@ -1,6 +1,6 @@
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { awayFromHome, cameHome, findDomainHolding, holdingRef, isSameName } from "../rules/dominion.js";
+import { awayFromHome, cameHome, findDomainHolding, holdingRef, rulingKnightOf } from "../rules/dominion.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { escapeHTML } from "../rules/text.js";
 import { crisisRoll, worldDomains } from "./dominion.js";
@@ -69,10 +69,7 @@ export function holdingOptions(selected, realms = realmHoldings()) {
  * @param {Actor} domain
  * @returns {Actor|null} The Knight ruling it who rides with the Company: one a player owns, linked to it or named as its ruler.
  */
-function rulingKnight(domain) {
-	const knights = game.actors.filter((actor) => actor.type === "knight" && actor.hasPlayerOwner);
-	return knights.find((knight) => knight.system.domain === domain.uuid) ?? knights.find((knight) => isSameName(domain.system.ruler, knight.name)) ?? null;
-}
+const rulingKnight = (domain) => rulingKnightOf(domain, game.actors.filter((actor) => actor.type === "knight" && actor.hasPlayerOwner));
 
 /**
  * Where the Company stands on a Realm, found quietly: its own Token, or else

@@ -10,6 +10,7 @@ import {
 	seizeDomain
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
+import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
 import { holdingChoices } from "../actions/homecoming.js";
 import { editCourtMember, removeCourtMember, seatCircle, seatLabel, takeIntoCourt, worldKnights } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
@@ -54,7 +55,8 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			openWarband: DomainSheet.#onOpenSheet,
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
-			setTaskAside: DomainSheet.#onSetTaskAside
+			setTaskAside: DomainSheet.#onSetTaskAside,
+			chooseArms: DomainSheet.#onChooseArms
 		}
 	};
 
@@ -96,7 +98,9 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 		return Object.assign(context, {
 			actor,
 			system,
-			seats: COUNCIL_SEATS.map((key) => ({
+			// Its ruler's arms where its picture was, or whatever it was set to show instead.
+			arms: domainArmsView(actor),
+			seats:COUNCIL_SEATS.map((key) => ({
 				key,
 				label: t(`domain.council.${key}.label`),
 				hint: t(`domain.council.${key}.hint`),
@@ -344,6 +348,40 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 	static #onSetTaskAside(_event, target) {
 		return setTaskAside(this.actor, target.closest("[data-task]")?.dataset.task);
 	}
+
+	/** @this {DomainSheet} */
+	static #onChooseArms() {
+		return chooseDomainArms(this.actor);
+	}
+
+	/** Watches the world's Knights while open, since the arms it shows are one of theirs: [hook, id] pairs. */
+	#knightHooks = [];
+
+	/** @override */
+	_onFirstRender(context, options) {
+		super._onFirstRender(context, options);
+		const redraw = (actor) => actor.type === "knight" && this.render();
+		this.#knightHooks = [
+			["updateActor", Hooks.on("updateActor", (actor, changes) => knightChangesArms(changes) && redraw(actor))],
+			["createActor", Hooks.on("createActor", redraw)],
+			["deleteActor", Hooks.on("deleteActor", redraw)]
+		];
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		for (const [hook, id] of this.#knightHooks) Hooks.off(hook, id);
+		this.#knightHooks = [];
+	}
+}
+
+/**
+ * @param {object} changes A Knight's update.
+ * @returns {boolean} Whether it can change which arms a Domain shows: their painting, which Domain they rule, or their name.
+ */
+function knightChangesArms(changes) {
+	return "name" in changes || foundry.utils.hasProperty(changes, "system.heraldry") || foundry.utils.hasProperty(changes, "system.domain");
 }
 
 /**

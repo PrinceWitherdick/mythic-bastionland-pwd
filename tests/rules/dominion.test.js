@@ -7,6 +7,8 @@ import {
 	crisesDrawn,
 	crisisFor,
 	crisisResult,
+	domainArms,
+	DOMAIN_ARMS,
 	domainRuledBy,
 	dramaResult,
 	emptySeats,
@@ -15,7 +17,8 @@ import {
 	isMisruleDue,
 	musterFor,
 	namesItsDomain,
-	parseHoldingRef
+	parseHoldingRef,
+	rulingKnightOf
 } from "../../module/rules/dominion.js";
 
 describe("namesItsDomain", () => {
@@ -118,5 +121,41 @@ describe("a Domain's Holding", () => {
 		expect(awayFromHome({ col: 3, row: 2 }, null)).toBe(true);
 		expect(cameHome({ col: 3, row: 2 }, [{ col: 4, row: 2 }, { col: 3, row: 2 }])).toBe(true);
 		expect(cameHome({ col: 3, row: 2 }, [{ col: 4, row: 2 }])).toBe(false);
+	});
+});
+
+describe("the Domain's arms", () => {
+	const knight = (name, heraldry = "", domain = "") => ({ name, system: { heraldry, domain } });
+	const tal = knight("Tal", "worlds/w/heraldry/tal.webp", "Actor.d1");
+	const ash = knight("Ash", "worlds/w/heraldry/ash.webp");
+	const domain = (ruler = "") => ({ uuid: "Actor.d1", system: { ruler } });
+
+	it("finds its ruler by the link first, then by name", () => {
+		expect(rulingKnightOf(domain("Ash"), [ash, tal])).toBe(tal);
+		expect(rulingKnightOf({ uuid: "Actor.d2", system: { ruler: " ash " } }, [ash, tal])).toBe(ash);
+		expect(rulingKnightOf({ uuid: "Actor.d2", system: { ruler: "" } }, [ash, tal])).toBeNull();
+	});
+
+	it("shows its ruler's arms by default", () => {
+		expect(domainArms({ arms: "ruler", img: "x.webp" }, { ruler: tal, knight: ash })).toEqual({ heraldry: tal.system.heraldry, bearer: "Tal" });
+	});
+
+	it("shows another Knight's arms, or the ruler's when that Knight is gone", () => {
+		expect(domainArms({ arms: "knight", img: "" }, { ruler: tal, knight: ash })).toEqual({ heraldry: ash.system.heraldry, bearer: "Ash" });
+		expect(domainArms({ arms: "knight", img: "" }, { ruler: tal, knight: null })).toEqual({ heraldry: tal.system.heraldry, bearer: "Tal" });
+	});
+
+	it("shows its picture, or the ruler's arms when it has none", () => {
+		expect(domainArms({ arms: "picture", img: "hall.webp" }, { ruler: tal })).toEqual({ picture: "hall.webp" });
+		expect(domainArms({ arms: "picture", img: "" }, { ruler: tal })).toEqual({ heraldry: tal.system.heraldry, bearer: "Tal" });
+	});
+
+	it("shows a blank shield with nobody to bear arms, or a ruler yet to paint them", () => {
+		expect(domainArms({ arms: "ruler", img: "" })).toEqual({ heraldry: "", bearer: "" });
+		expect(domainArms({ arms: "ruler", img: "" }, { ruler: knight("Bran") })).toEqual({ heraldry: "", bearer: "Bran" });
+	});
+
+	it("keeps to its three choices", () => {
+		expect(DOMAIN_ARMS).toEqual(["ruler", "knight", "picture"]);
 	});
 });

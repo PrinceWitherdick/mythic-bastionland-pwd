@@ -1,6 +1,21 @@
 <div class="bastionland-page bastionland-page--domain bastionland-page--tabbed">
 	<header class="bastionland-npc-header">
-		<img class="bastionland-npc-header__img" src="{{actor.img}}" alt="{{actor.name}}" {{#if editable}}data-action="editImage" data-edit="img"{{/if}}>
+		{{!-- Its ruler's arms, another Knight's, or a picture of its own; clicking asks which. --}}
+		{{#if arms.picture}}
+		<img class="bastionland-npc-header__img" src="{{arms.picture}}" alt="{{actor.name}}" data-tooltip="{{arms.tooltip}}" {{#if editable}}data-action="chooseArms"{{/if}}>
+		{{else}}
+		<figure class="bastionland-heraldry bastionland-heraldry--header" data-tooltip="{{arms.tooltip}}">
+			{{#if editable}}
+			<button type="button" class="bastionland-heraldry__field" data-action="chooseArms" aria-label="{{localize 'bastionland.domain.arms.choose'}}">
+				{{#if arms.heraldry}}<img src="{{arms.heraldry}}" alt="">{{/if}}
+			</button>
+			{{else}}
+			<span class="bastionland-heraldry__field">
+				{{#if arms.heraldry}}<img src="{{arms.heraldry}}" alt="{{arms.tooltip}}">{{/if}}
+			</span>
+			{{/if}}
+		</figure>
+		{{/if}}
 		<div class="bastionland-npc-header__text">
 			<input class="bastionland-npc-header__name" type="text" name="name" value="{{actor.name}}" aria-label="{{localize 'TYPES.Actor.domain'}}" autocomplete="off" spellcheck="false">
 			<label class="bastionland-check" data-tooltip="{{localize 'bastionland.domain.seatHint'}}">
