@@ -13,6 +13,7 @@ import { CALENDAR_HOOK } from "./calendar.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * What some Abilities do outside an Attack, from their row on the sheet: a
@@ -207,7 +208,7 @@ export function watchSunsets() {
 	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
 		if (!turned.includes("night")) return;
 		const writes = [];
-		for (const actor of game.actors.contents.filter((each) => each.type === "knight")) {
+		for (const actor of worldKnights()) {
 			const updates = abilitiesWith(actor.items.contents, "sigil")
 				.map((item) => ({ item, update: fadedUpdate(item.system) }))
 				.filter(({ update }) => update);

@@ -2,14 +2,13 @@ import { inputDialog } from "../apps/ui.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { domainArms, rulingKnightOf } from "../rules/dominion.js";
-
-const knightActors = () => game.actors.filter((actor) => actor.type === "knight");
+import { worldKnights } from "./knights.js";
 
 /**
  * @param {Actor} domain
  * @returns {Actor|null} The Knight ruling it: linked to it, or bearing its ruler's name.
  */
-export const domainRuler = (domain) => rulingKnightOf(domain, knightActors());
+export const domainRuler = (domain) => rulingKnightOf(domain, worldKnights());
 
 /**
  * @param {Actor} domain
@@ -40,7 +39,7 @@ export function domainArmsView(domain) {
  */
 export async function chooseDomainArms(domain) {
 	const ruler = domainRuler(domain);
-	const others = knightActors().filter((knight) => knight !== ruler).sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
+	const others = worldKnights().filter((knight) => knight !== ruler).sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
 	const chosen = armsKnight(domain);
 	const { arms } = domain.system;
 	const data = await inputDialog({

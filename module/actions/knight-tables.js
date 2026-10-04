@@ -10,6 +10,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { applyTableStats } from "./table-stats.js";
+import { worldKnights } from "./knights.js";
 
 
 /** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
@@ -150,7 +151,7 @@ export function knightTableRenewal(knight, now = getCalendar(), renewal = knight
  * @returns {string[]}
  */
 export function tableRenewalNotices(cadences) {
-	return game.actors.filter((actor) => actor.type === "knight").flatMap((knight) => {
+	return worldKnights().flatMap((knight) => {
 		const renewal = knightRenewal(knight);
 		if (!renewal || !cadences.includes(renewal.cadence)) return [];
 		return [renewalNotice(knight, renewal)];

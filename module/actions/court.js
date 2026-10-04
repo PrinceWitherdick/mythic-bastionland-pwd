@@ -17,6 +17,7 @@ import {
 import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Who serves a Domain (The Court, p20), and who sits on its Council. Each
@@ -33,7 +34,7 @@ export const seatLabel = (seat) => t(`domain.council.${seat}.label`);
 /**
  * @returns {{id: string, name: string}[]} The world's Knights, as the Circle finds them.
  */
-export const worldKnights = () => game.actors.filter((actor) => actor.type === "knight").map((actor) => ({ id: actor.id, name: actor.name }));
+export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id, name: actor.name }));
 
 /**
  * @param {Actor} domain
@@ -43,7 +44,7 @@ export const worldKnights = () => game.actors.filter((actor) => actor.type === "
 export function knightsBesidesRuler(domain) {
 	const ruler = trimmedText(domain.system.ruler);
 	const rules = (actor) => (Boolean(domain.uuid) && actor.system?.domain === domain.uuid) || Boolean(ruler && isSameName(actor.name, ruler));
-	return game.actors.filter((actor) => actor.type === "knight" && !rules(actor));
+	return worldKnights((actor) => !rules(actor));
 }
 
 /**
@@ -266,7 +267,7 @@ export async function removeCourtMember(domain, id) {
  */
 export async function seatCircle(domain) {
 	if (!domain?.isOwner) return false;
-	const knights = worldKnights();
+	const knights = knightChoices();
 	const seated = circleKnights(domain.system.council.circle, knights);
 	const besides = new Set(knightsBesidesRuler(domain).map((actor) => actor.id));
 	const offered = knights.filter((knight) => besides.has(knight.id) || seated.some((each) => each.id === knight.id));
@@ -302,7 +303,7 @@ export async function seatCircle(domain) {
  * in a Circle becomes its Knight, so no Domain loses who sits on its Council.
  */
 export async function seatCouncilRetainers() {
-	const knights = worldKnights();
+	const knights = knightChoices();
 	const now = Date.now();
 	const updates = game.actors
 		.filter((actor) => actor.type === "domain")

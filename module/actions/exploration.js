@@ -19,6 +19,7 @@ import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
 import { keptFromMe } from "./solo.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -144,7 +145,7 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	if (!place) return null;
 	const { realm, g, where } = place;
 
-	const knights = game.actors.filter((actor) => actor.type === "knight" && actor.system?.virtues);
+	const knights = worldKnights((actor) => actor.system?.virtues);
 	const data = await inputDialog({
 		title: t("explore.search.title"),
 		icon: "fa-solid fa-magnifying-glass",

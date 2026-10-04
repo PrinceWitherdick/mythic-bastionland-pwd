@@ -1,6 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * @param {Actor} knight
@@ -19,7 +20,7 @@ export function heirOf(knight) {
  */
 export async function chooseSuccessor(knight) {
 	const current = heirOf(knight) ?? (knight.system.squire ? fromUuidSync(knight.system.squire) : null);
-	const candidates = game.actors.filter((actor) => actor.type === "knight" && actor !== knight);
+	const candidates = worldKnights((actor) => actor !== knight);
 	if (!candidates.length) {
 		ui.notifications.info(t("successor.none", { name: knight.name }));
 		return null;

@@ -51,6 +51,7 @@ import { canDenyAttack, featContext, payFeat, rollFeat } from "./feats.js";
 import { leaderCandidates } from "./leading.js";
 import { structureHarm } from "../rules/structures.js";
 import { causedBy } from "./ledger.js";
+import { worldKnights } from "./knights.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
@@ -1134,7 +1135,7 @@ export function poolRerollers(attack) {
  * @returns {{actor: Actor, item: Item, number: number}[]}
  */
 export function sigilHolders(attack) {
-	return (game.actors?.contents ?? []).filter((actor) => actor.type === "knight").flatMap((actor) =>
+	return worldKnights().flatMap((actor) =>
 		abilitiesWith(actor.items.contents, "sigil").flatMap((item) => {
 			const number = etchedNumber(item.system);
 			return number !== null && diceShowing(attack, number).length ? [{ actor, item, number }] : [];

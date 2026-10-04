@@ -14,6 +14,7 @@ import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { companySituation } from "./wilderness.js";
 import { keptFromMe } from "./solo.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * The end of a Phase of the day (Travel, p18), asked in one window: how the
@@ -109,7 +110,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 	const likely = PHASE_END_MODES.includes(mode) ? mode : likelyPhaseMode({ phase: ending.phase, holding, atBarrier, movedTonight });
 	const dire = nightEnds && weatherIn(ending) === "dire";
 	const winter = ending.season === "winter";
-	const knights = nightEnds ? game.actors.filter((actor) => actor.type === "knight" && actor.system?.virtues) : [];
+	const knights = nightEnds ? worldKnights((actor) => actor.system?.virtues) : [];
 	const deprived = new Set(game.settings.get(SYSTEM_ID, DEPRIVED_SETTING) ?? []);
 	const phase = t(`time.phases.${ending.phase}`);
 	// As the Company breaks camp, the Referee rolls the day's Sky and Weather (p197), where Import PDF has read them.

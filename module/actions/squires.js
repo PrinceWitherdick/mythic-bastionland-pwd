@@ -20,11 +20,12 @@ import {
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { worldKnights } from "./knights.js";
 
 /** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
 export function companyKnightCount() {
 	const players = game.users.filter((user) => !user.isGM);
-	return companySize(game.actors.filter((actor) => actor.type === "knight").map((actor) => ({
+	return companySize(worldKnights().map((actor) => ({
 		isSquire: Boolean(actor.system.isSquire),
 		players: players.filter((user) => actor.testUserPermission(user, "OWNER")).map((user) => user.id)
 	})));
@@ -48,10 +49,10 @@ async function recountCompany() {
 	const before = lastCompanyCount;
 	lastCompanyCount = companyKnightCount();
 	if (before !== lastCompanyCount) {
-		for (const actor of game.actors) if (actor.type === "knight" && actor.sheet?.rendered) actor.sheet.render();
+		for (const actor of worldKnights()) if (actor.sheet?.rendered) actor.sheet.render();
 	}
 	if (!outgrewSquires(before, lastCompanyCount) || !game.users.activeGM?.isSelf) return null;
-	const squires = game.actors.filter((actor) => actor.type === "knight" && actor.system.isSquire);
+	const squires = worldKnights((actor) => actor.system.isSquire);
 	if (!squires.length) return null;
 	const names = new Intl.ListFormat(game.i18n.lang, { type: "conjunction" }).format(squires.map((squire) => squire.name));
 	return postCard(null, "note", {

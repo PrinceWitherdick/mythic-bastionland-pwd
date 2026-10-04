@@ -36,6 +36,7 @@ import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, spendUse } from "../actions/abilities.js";
+import { worldKnights } from "../actions/knights.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -654,7 +655,7 @@ function joinCandidates(attack) {
 	const struck = new Set(targetActors(attack).map((actor) => actor.uuid));
 	const pool = [
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
-		...(game.user.isGM ? [] : [game.user.character, ...(game.actors?.filter((actor) => actor.type === "knight") ?? [])])
+		...(game.user.isGM ? [] : [game.user.character, ...worldKnights()])
 	];
 	const seen = new Set();
 	return pool.filter((actor) => {

@@ -4,6 +4,8 @@
  * next turn.
  */
 
+import { worldKnights } from "./knights.js";
+
 /**
  * Who might lead a Warband from the front: whoever leads it now, the
  * individuals whose Tokens are selected, this user's character, and the
@@ -17,7 +19,7 @@ export function leaderCandidates(warband) {
 		current,
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
 		game.user.character,
-		...game.actors.filter((actor) => actor.type === "knight" && actor.testUserPermission(game.user, "OBSERVER"))
+		...worldKnights((actor) => actor.testUserPermission(game.user, "OBSERVER"))
 	];
 	const seen = new Set();
 	return actors.filter((actor) => {

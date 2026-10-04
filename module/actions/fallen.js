@@ -14,6 +14,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
 import { COMPANION_FLAG } from "./property.js";
 import { knightSquire } from "./squires.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * What follows a Knight's death (p8): the player makes another Knight to join
@@ -79,7 +80,7 @@ export function whoRodeWith(knight) {
  * @returns {{lowest: number, highest: number}|null}
  */
 export function gloryOfTheCompany(fallen) {
-	return companyGlory(game.actors.filter((actor) => actor.type === "knight" && actor.id !== fallen.id).map((actor) => ({
+	return companyGlory(worldKnights((actor) => actor.id !== fallen.id).map((actor) => ({
 		glory: actor.system.glory,
 		isSquire: Boolean(actor.system.isSquire),
 		played: actor.hasPlayerOwner,

@@ -20,7 +20,7 @@ import { escapeHTML } from "../rules/text.js";
 import { normalizeCalendar } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { seatLabel, worldKnights } from "./court.js";
+import { knightChoices, seatLabel } from "./court.js";
 import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./dominion.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
@@ -37,7 +37,7 @@ import { evaluateSave, saveContext } from "./saves.js";
  * @param {string} seat
  * @returns {string} Whoever holds a seat, by name, blank where nobody does.
  */
-const seatHolderNames = (domain, seat) => seatHolders(domain?.system, seat, worldKnights()).map((holder) => holder.name).filter(Boolean).join(", ");
+const seatHolderNames = (domain, seat) => seatHolders(domain?.system, seat, knightChoices()).map((holder) => holder.name).filter(Boolean).join(", ");
 
 /**
  * The actor who holds a Council seat, so that a task can be settled with their
@@ -49,7 +49,7 @@ const seatHolderNames = (domain, seat) => seatHolders(domain?.system, seat, worl
  * @returns {Actor|null} Null where nobody of that name has a sheet.
  */
 export function councilActor(domain, seat) {
-	const holders = seatHolders(domain?.system, seat, worldKnights());
+	const holders = seatHolders(domain?.system, seat, knightChoices());
 	if (holders.length !== 1) return null;
 	const [{ id, name, legacy }] = holders;
 	// A Knight of the Circle is found by id; a Retainer's id is their place in the Court.
@@ -157,7 +157,7 @@ export async function settleTask(domain, id) {
 	// Luck Roll, which p16 offers in the same breath as the Save.
 	let risk = task.risk;
 	if (isSaveRisk(risk) && !actor) {
-		const several = seatHolders(domain.system, task.seat, worldKnights()).length > 1;
+		const several = seatHolders(domain.system, task.seat, knightChoices()).length > 1;
 		notes.push(several ? t("domain.tasks.noOneSaves") : t("domain.tasks.noSheet", { name: seatHolderNames(domain, task.seat) || seatLabel(task.seat) }));
 		risk = "luck";
 	}

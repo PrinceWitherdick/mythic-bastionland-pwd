@@ -8,6 +8,7 @@
 
 import { OFFERED_FLAG, UNCHOSEN_FLAG, isBlankKnightData, ownershipGivenTo, playerHolding } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * @param {object} details
@@ -107,5 +108,5 @@ export function registerUnchosenKnightHooks() {
 /** Open the Knights given to a player who wasn't on when they were, now that they are. */
 export function openOfferedKnights() {
 	if (game.user.isGM) return;
-	for (const actor of game.actors) if (actor.type === "knight") openIfOffered(actor);
+	for (const actor of worldKnights()) openIfOffered(actor);
 }

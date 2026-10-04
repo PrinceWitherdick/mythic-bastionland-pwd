@@ -5,6 +5,7 @@ import { escapeHTML } from "../rules/text.js";
 import { linkKnightDomain } from "./dominion.js";
 import { holdingOptions } from "./homecoming.js";
 import { getRealm } from "./realm.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
@@ -37,7 +38,7 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 		ui.notifications.warn(t("domain.cantCreate"));
 		return null;
 	}
-	const others = game.actors.filter((actor) => actor.type === "knight" && actor !== knight);
+	const others = worldKnights((actor) => actor !== knight);
 	const data = await inputDialog({
 		title: t("domain.founding.title"),
 		icon: "fa-solid fa-chess-rook",
@@ -83,8 +84,8 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
  * @returns {Promise<Actor|null>} The Domain, or null where none was founded.
  */
 export async function offerRulerDomain(scene) {
-	const players = game.actors.filter((actor) => actor.type === "knight" && actor.hasPlayerOwner);
-	const knights = players.length ? players : game.actors.filter((actor) => actor.type === "knight");
+	const players = worldKnights((actor) => actor.hasPlayerOwner);
+	const knights = players.length ? players : worldKnights();
 	if (!knights.length) return null;
 	const id = await chooseDialog({
 		title: t("company.starts.ruler.domainTitle"),

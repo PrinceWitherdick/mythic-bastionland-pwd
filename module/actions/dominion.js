@@ -19,6 +19,7 @@ import { getCalendar } from "./calendar.js";
 import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
+import { worldKnights } from "./knights.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -277,7 +278,7 @@ export async function settleDomains(ended) {
  * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
  */
 async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null, withoutRuler = false }) {
-	const knights = withoutRuler ? knightsBesidesRuler(domain) : game.actors.filter((actor) => actor.type === "knight");
+	const knights = withoutRuler ? knightsBesidesRuler(domain) : worldKnights();
 	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
 	const data = await inputDialog({
 		title,
@@ -319,7 +320,7 @@ async function changeRuler(domain, ruler, update) {
  * @returns {Actor[]} The Knights who rule it.
  */
 function domainRulers(domain) {
-	return game.actors.filter((actor) => actor.type === "knight" && actor.system.domain === domain.uuid);
+	return worldKnights((actor) => actor.system.domain === domain.uuid);
 }
 
 /**
@@ -433,7 +434,7 @@ export async function openKnightDomain(knight) {
 	}
 
 	// Domains other Knights already rule aren't offered.
-	const ruled = new Set(game.actors.filter((actor) => actor.type === "knight" && actor !== knight).map((actor) => actor.system.domain));
+	const ruled = new Set(worldKnights((actor) => actor !== knight).map((actor) => actor.system.domain));
 	const named = domainRuledBy(game.actors.filter((actor) => actor.type === "domain" && !ruled.has(actor.uuid)), knight.name);
 
 	let domain = null;

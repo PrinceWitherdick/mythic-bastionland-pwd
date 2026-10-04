@@ -18,6 +18,7 @@ import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
 import { escapeHTML } from "../rules/text.js";
+import { worldKnights } from "./knights.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -116,7 +117,7 @@ function shieldwallOnMap(actor, bearing) {
 	if (!token) return null;
 	const { disposition } = token.document;
 	if (disposition === CONST.TOKEN_DISPOSITIONS.SECRET) return null;
-	const steeds = new Set(game.actors.filter((each) => each.type === "knight" && each.system.steed).map((each) => each.system.steed));
+	const steeds = new Set(worldKnights((each) => each.system.steed).map((each) => each.system.steed));
 	const stander = (placed, bears) => ({
 		name: placed.document.name,
 		bearing: bears,

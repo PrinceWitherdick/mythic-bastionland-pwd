@@ -1,6 +1,7 @@
 import { t } from "../chat/cards.js";
 import { changesKept, keptWith, wantsOwnFolder } from "../rules/knight-folders.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Each Knight made gets a folder of their own in the Actors directory, named
@@ -123,5 +124,5 @@ export function registerKnightFolderHooks() {
 /** File any Knight made while no GM was on to do it. */
 export function fileWaitingKnights() {
 	if (!isKeeper()) return;
-	for (const actor of game.actors) if (actor.type === "knight" && actor.getFlag(SYSTEM_ID, WANTS)) enqueue(() => fileKnight(actor));
+	for (const actor of worldKnights()) if (actor.getFlag(SYSTEM_ID, WANTS)) enqueue(() => fileKnight(actor));
 }

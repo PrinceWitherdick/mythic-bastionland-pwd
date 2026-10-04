@@ -4,6 +4,7 @@ import { knightEntryByType } from "../rules/knight-tables.js";
 import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, possessionDetails, retypedProperty } from "../rules/property.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * The world setup step that reads older Knights' Property into weapons and
@@ -153,7 +154,7 @@ async function retypeKnight(actor) {
  * @returns {Promise<void>}
  */
 export async function retypeKnightProperty() {
-	const knights = game.actors.filter((candidate) => candidate.type === "knight");
+	const knights = worldKnights();
 	const changed = await Promise.all(knights.map((actor) => retypeKnight(actor).catch((error) => {
 		console.error(`${SYSTEM_ID} | Couldn't read ${actor.uuid}'s Property`, error);
 		return false;

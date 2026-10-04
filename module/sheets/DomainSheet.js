@@ -12,7 +12,7 @@ import {
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
 import { holdingChoices } from "../actions/homecoming.js";
-import { editCourtMember, removeCourtMember, seatCircle, seatLabel, takeIntoCourt, worldKnights } from "../actions/court.js";
+import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
@@ -196,7 +196,7 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 	 * @returns {object}
 	 */
 	static #circleSeat(system) {
-		const knights = circleKnights(system.council.circle, worldKnights());
+		const knights = circleKnights(system.council.circle, knightChoices());
 		return {
 			circle: true,
 			knights: knights.map((knight) => ({ ...knight, uuid: knight.legacy ? "" : game.actors.get(knight.id)?.uuid }))

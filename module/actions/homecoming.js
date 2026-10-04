@@ -8,6 +8,7 @@ import { findCompany } from "./wilderness.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * The Crisis Roll's other time, coming home after a long time away (p20): a
@@ -64,7 +65,7 @@ export function holdingOptions(selected, realms = realmHoldings()) {
  * @param {Actor} domain
  * @returns {Actor|null} The Knight ruling it who rides with the Company: one a player owns, linked to it or named as its ruler.
  */
-const rulingKnight = (domain) => rulingKnightOf(domain, game.actors.filter((actor) => actor.type === "knight" && actor.hasPlayerOwner));
+const rulingKnight = (domain) => rulingKnightOf(domain, worldKnights((actor) => actor.hasPlayerOwner));
 
 /**
  * Where the Company stands on a Realm, found quietly: its own Token, or else

@@ -50,6 +50,7 @@ import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -80,7 +81,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	for (const actor of present) add(actor, true);
 	for (const token of canvas?.tokens?.controlled ?? []) add(token.actor, true);
 	for (const actor of others) add(actor, false);
-	for (const actor of game.actors.filter((candidate) => candidate.type === "knight")) add(actor, actor.hasPlayerOwner);
+	for (const actor of worldKnights()) add(actor, actor.hasPlayerOwner);
 
 	const data = await inputDialog({
 		title,

@@ -23,6 +23,7 @@ import { SCORES, VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { confirmDialog } from "./ui.js";
+import { worldKnights } from "../actions/knights.js";
 
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
@@ -357,7 +358,7 @@ export class KnightChooser extends BastionlandChooser {
 	 * @this {KnightChooser}
 	 */
 	static #onRollName() {
-		const others = game.actors.filter((actor) => actor.type === "knight" && actor !== this.actor).map((actor) => actor.name);
+		const others = worldKnights((actor) => actor !== this.actor).map((actor) => actor.name);
 		this.#name = rollKnightName(Math.random, [this.#name, ...others]);
 		const input = this.element.querySelector("input[name=knightName]");
 		if (input) input.value = this.#name;

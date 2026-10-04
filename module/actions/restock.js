@@ -3,6 +3,7 @@ import { t } from "../chat/cards.js";
 import { RESTOCK_CADENCES, restockUpdates } from "../rules/restock.js";
 import { CALENDAR_HOOK } from "./calendar.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * When the calendar brings a new Season or a new day, whatever is restocked
@@ -20,7 +21,7 @@ export function watchRestocks() {
 	// Heard on the active GM's client alone: the Company has left the place it was in.
 	Hooks.on(COMPANY_MOVED_HOOK, (_scene, { entered }) => {
 		if (!entered?.length) return;
-		return Promise.all(game.actors.contents.filter((actor) => actor.type === "knight").map((actor) => refreshAbilities(actor, ["location"])));
+		return Promise.all(worldKnights().map((actor) => refreshAbilities(actor, ["location"])));
 	});
 	Hooks.on(CALENDAR_HOOK, (_after, _before, turned) => {
 		if (!turned.length) return;
