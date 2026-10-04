@@ -90,7 +90,7 @@ function withPrompts(seer, older) {
 /**
  * What the book says of a Seer, for the Seer page of their Knight's sheet: each
  * trait as a bullet. Their scores aren't printed here: they're kept as data, by
- * seerBook, and drawn as boxes that roll their Saves. Nor are the prompts along
+ * seerBook, and drawn as a stat line of their own. Nor are the prompts along
  * the foot of their page, which are the Referee's Spark Table.
  * @param {{lines?: string[]|null}|null} seer From the art index.
  * @returns {string} HTML, or "" when Import PDF couldn't read their text.
@@ -102,8 +102,8 @@ export function seerInfo(seer) {
 
 /**
  * What the book gives a Seer, kept on their Knight as data rather than read
- * back out of the text: the scores that are their maximums, the Armour their
- * first trait grants, and whether they are harmed as a structure.
+ * back out of the text: their scores, the Armour their first trait grants, and
+ * whether they are a structure.
  * @param {{stats?: object|null, lines?: string[]|null}|null} seer From the art index.
  * @returns {{vig: number|null, cla: number|null, spi: number|null, guard: number|null,
  *   armour: number, structure: boolean}|null} Null for a Seer whose stats Import PDF couldn't read.

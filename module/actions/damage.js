@@ -10,7 +10,6 @@ import { marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
-import { seerCurrent } from "../rules/seer-state.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
@@ -249,48 +248,6 @@ export async function takeDamage(actor, preset = {}) {
 	// Which deaths the book leaves alone is knightHasFallen's to judge, so the outcome goes to it.
 	await announceFallenKnight(actor, result.outcome);
 	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
-	return result;
-}
-
-/**
- * Damage to the Seer who knighted a Knight, kept on the Knight's sheet since
- * the Seer has no Actor. The book's Armour for them is filled in, and a Seer
- * that counts as a structure is harmed as one. Nobody rolls Morale from the
- * card, so it only says a Wounded Seer must: their SPI on the Seer page rolls it.
- * @param {Actor} knight
- * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
- */
-export async function takeSeerDamage(knight) {
-	const stats = knight.system.seerBook;
-	if (!stats) return null;
-	const { structure } = stats;
-	const now = seerCurrent(stats, knight.system.seerState);
-	const asked = await askDamage({
-		armour: stats.armour,
-		// CLA 0 Exposes, as it does anyone.
-		exposed: now.cla === 0,
-		character: !structure,
-		warband: false,
-		structure,
-		scores: () => {
-			const at = seerCurrent(stats, knight.system.seerState);
-			return { guard: at.guard, vigour: at.vig ?? 0 };
-		}
-	});
-	if (!asked) return null;
-	const { result, armour, before } = asked;
-
-	const update = { "system.seerState.guard": result.guard };
-	if (Number.isInteger(now.vig)) update["system.seerState.vig"] = result.vigour;
-	if (result.outcome === "mortal") update["system.seerState.mortalWound"] = true;
-	await knight.update(update, causedBy("damage"));
-
-	const name = knight.system.seer || t("seer.label");
-	const outcomes = outcomesFor(result.outcome, { structure });
-	const trigger = moraleTrigger({ outcome: result.outcome, vigourBefore: before.vigour, vigourAfter: result.vigour, vigourMax: stats.vig ?? 0, structure });
-	const morale = moralePrompt({ name }, trigger);
-	// Not getSpeaker, which would speak for whichever Token is selected.
-	await postCard(null, "damage", damageCard(result, armour, before, outcomes, morale), { speaker: { alias: name } });
 	return result;
 }
 

@@ -76,22 +76,6 @@ export async function rollSave(actor, virtue) {
 }
 
 /**
- * Roll a Save for someone with no Actor of their own, such as the Seer who
- * knighted a Knight, whose Virtues are printed only on their Knight's page.
- * The card is spoken in their name.
- * @param {string} name
- * @param {string} virtue
- * @param {number} value
- * @returns {Promise<SaveResult>}
- */
-export async function rollSaveFor(name, virtue, value) {
-	const save = await saveAgainst(virtue, value);
-	// Not getSpeaker, which would speak for whichever Token is selected.
-	await postCard(null, "save", { save: saveContext(save) }, { rolls: [save.roll], speaker: { alias: name } });
-	return save;
-}
-
-/**
  * A Save made for a named reason, posted as a card that says what it was for
  * and what came of it. Morale, a Reaction and a search all read this way, so
  * the card is built in the one place.

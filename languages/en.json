@@ -314,10 +314,7 @@
       "unnamed": "Write the Seer who knighted them above, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
       "portrait": "Choose the Seer’s picture",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
-      "notes": "Notes",
-      "rollSave": "Roll a {virtue} Save for {name}",
-      "takeDamage": "{name} takes Damage",
-      "restore": "Back to the book’s scores, with no Mortal Wound"
+      "notes": "Notes"
     },
     "npcPack": {
       "label": "NPCs",
@@ -518,8 +515,7 @@
         "armour": "Armour",
         "description": "description",
         "count": "count",
-        "affliction": "Affliction",
-        "seerScore": "Seer’s {subject}"
+        "affliction": "Affliction"
       },
       "phrases": {
         "set": "{subject} set to {value}",
