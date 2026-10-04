@@ -69,7 +69,7 @@ beforeEach(() => {
 		users: { activeGM: { isSelf: true } },
 		settings: { get: (scope, key) => (scope === SYSTEM_ID ? settings.get(key) ?? null : null) }
 	};
-	globalThis.foundry = { utils: { randomID: () => Math.random().toString(36).slice(2) } };
+	globalThis.foundry = { utils: { randomID: () => Math.random().toString(36).slice(2) }, data: { operators: { ForcedReplacement: { create: (value) => value } } } };
 });
 
 describe("rolling a hex the Company first rests in", () => {

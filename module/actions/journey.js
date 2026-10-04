@@ -1,11 +1,10 @@
 import { t } from "../chat/cards.js";
-import { JOURNEY_VERSION, WALKED_METHODS, changedHexes, forgetVisit, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
-import { serialWrites } from "../rules/queue.js";
+import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { setOrDeleteEntry } from "../compat.js";
 import { COMPANY_FLAG, findCompanyToken, wentSomewhere } from "./company.js";
+import { hexFlagEditor } from "./hex-flags.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -37,36 +36,11 @@ export function getHexVisits(scene, hex) {
 	return normaliseVisits(scene.getFlag(SYSTEM_ID, JOURNEY_FLAG)?.hexes?.[hexKey(hex)]);
 }
 
-/** Journey writes, taken one at a time. */
-const queueJourneyWrite = serialWrites();
-
-/** @returns {string} An update path into the flag. */
-const flagPath = (...parts) => `flags.${SYSTEM_ID}.${JOURNEY_FLAG}.${parts.join(".")}`;
-
 /**
- * Change where the Company has been, writing only the hexes that changed, so a
- * change to another hex, or to the Realm itself, isn't written over. GMs only.
- * @param {Scene} scene
- * @param {(journey: import("../rules/journey.js").Journey) => import("../rules/journey.js").Journey} edit
- * @returns {Promise<boolean>} Whether anything was written.
+ * Change where the Company has been, in one write. GMs only.
+ * @type {(scene: Scene, edit: (journey: import("../rules/journey.js").Journey) => import("../rules/journey.js").Journey) => Promise<boolean>}
  */
-function editJourney(scene, edit) {
-	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
-	return queueJourneyWrite(async () => {
-		const before = getJourney(scene);
-		const after = edit(before);
-		const keys = changedHexes(before, after);
-		if (!keys.length) return false;
-		const changes = { [flagPath("version")]: JOURNEY_VERSION, [flagPath("next")]: after.next };
-		// A hex forgotten is a key taken out, rather than an empty record left behind.
-		for (const key of keys) {
-			const [path, value] = setOrDeleteEntry(flagPath("hexes", key), after.hexes[key]);
-			changes[path] = value;
-		}
-		await scene.update(changes);
-		return true;
-	});
-}
+const editJourney = hexFlagEditor({ flag: JOURNEY_FLAG, version: JOURNEY_VERSION, read: getJourney, besides: ({ next }) => ({ next }) });
 
 /**
  * Count the Company coming into hexes of a Realm, in order.

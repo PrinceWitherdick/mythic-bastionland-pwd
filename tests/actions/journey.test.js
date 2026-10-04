@@ -45,7 +45,7 @@ beforeEach(() => {
 		users: { activeGM: { isSelf: true } },
 		settings: { get: () => spring }
 	};
-	globalThis.foundry = { data: { operators: { ForcedDeletion } } };
+	globalThis.foundry = { data: { operators: { ForcedDeletion, ForcedReplacement: { create: (value) => value } } } };
 });
 
 afterEach(() => {

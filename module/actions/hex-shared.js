@@ -1,5 +1,5 @@
 import { t, warn } from "../chat/cards.js";
-import { deletionEntry, queryAsker, replacementEntry } from "../compat.js";
+import { queryAsker } from "../compat.js";
 import {
 	HEX_SHARED_FLAG,
 	HEX_SHARED_VERSION,
@@ -12,12 +12,12 @@ import {
 	recordTold,
 	setPartyNote
 } from "../rules/hex-shared.js";
-import { serialWrites } from "../rules/queue.js";
 import { hexKey, inRealm } from "../rules/realm-geometry.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { openableHex } from "../rules/travels.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
+import { hexFlagEditor } from "./hex-flags.js";
 import { getJourney } from "./journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { getSighted } from "./sighted.js";
@@ -52,38 +52,11 @@ export function getHexSharedRecord(scene, hex) {
 	return normaliseSharedRecord(scene.getFlag(SYSTEM_ID, HEX_SHARED_FLAG)?.hexes?.[hexKey(hex)]);
 }
 
-/** Shared writes, taken one at a time. */
-const queueSharedWrite = serialWrites();
-
-/** @returns {string} An update path into the flag. */
-const flagPath = (...parts) => `flags.${SYSTEM_ID}.${HEX_SHARED_FLAG}.${parts.join(".")}`;
-
 /**
- * Change what's held for a hex, or several, in one write, writing each hex's
- * own path whole, so a note rubbed out really goes and a change to another
- * hex isn't written over. GMs only.
- * @param {Scene} scene
- * @param {{col: number, row: number}|{col: number, row: number}[]} hexes The hexes the edit changes.
- * @param {(shared: object) => object} edit
- * @returns {Promise<boolean>} Whether anything was written.
+ * Change what's held for hexes, in one write. GMs only.
+ * @type {(scene: Scene, edit: (shared: object) => object) => Promise<boolean>}
  */
-export function editHexShared(scene, hexes, edit) {
-	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
-	return queueSharedWrite(async () => {
-		const shared = getHexShared(scene);
-		const next = edit(shared);
-		if (next === shared) return false;
-		const update = { [flagPath("version")]: HEX_SHARED_VERSION };
-		for (const hex of [hexes].flat()) {
-			const key = hexKey(hex);
-			const record = next.hexes[key] ?? null;
-			const [path, value] = record ? replacementEntry(flagPath("hexes", key), record) : deletionEntry(flagPath("hexes", key));
-			update[path] = value;
-		}
-		await scene.update(update);
-		return true;
-	});
-}
+const editHexShared = hexFlagEditor({ flag: HEX_SHARED_FLAG, version: HEX_SHARED_VERSION, read: getHexShared });
 
 /**
  * Keep what was just told to the players of a hex, as it was told.
@@ -92,7 +65,7 @@ export function editHexShared(scene, hexes, edit) {
  * @param {{note: string, messageId?: string}} told
  * @returns {Promise<boolean>}
  */
-export const recordToldHex = (scene, hex, { note, messageId = "" }) => editHexShared(scene, hex, (shared) => recordTold(shared, hex, {
+export const recordToldHex = (scene, hex, { note, messageId = "" }) => editHexShared(scene, (shared) => recordTold(shared, hex, {
 	id: foundry.utils.randomID(),
 	note,
 	when: getCalendar(),
@@ -111,20 +84,20 @@ export const recordToldHex = (scene, hex, { note, messageId = "" }) => editHexSh
 export function recordBarriersMet(scene, met, byName) {
 	const when = getCalendar();
 	const at = Date.now();
-	return editHexShared(scene, met.map(({ hex }) => hex), (shared) => met.reduce(
+	return editHexShared(scene, (shared) => met.reduce(
 		(kept, { hex, edges }) => edges.reduce((next, edge) => recordBarrierMet(next, hex, { edge, byName, when, at }), kept),
 		shared
 	));
 }
 
 /** Strike one telling out of a hex. @returns {Promise<boolean>} */
-export const forgetHexTold = (scene, hex, id) => editHexShared(scene, hex, (shared) => forgetTold(shared, hex, id));
+export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) => forgetTold(shared, hex, id));
 
 /** Rub out the Company's note on a hex. @returns {Promise<boolean>} */
-export const forgetHexPartyNote = (scene, hex) => editHexShared(scene, hex, (shared) => forgetPartyNote(shared, hex));
+export const forgetHexPartyNote = (scene, hex) => editHexShared(scene, (shared) => forgetPartyNote(shared, hex));
 
 /** Forget all the players were told of a hex, and their note on it. @returns {Promise<boolean>} */
-export const forgetHexShared = (scene, hex) => editHexShared(scene, hex, (shared) => forgetShared(shared, hex));
+export const forgetHexShared = (scene, hex) => editHexShared(scene, (shared) => forgetShared(shared, hex));
 
 /**
  * Whether the players may open a hex of a Scene's Realm.
@@ -147,7 +120,7 @@ export function hexOpenable(scene, hex) {
  * @param {User} user Who wrote it.
  * @returns {Promise<boolean>}
  */
-export const keepPartyNote = (scene, hex, text, user) => editHexShared(scene, hex, (shared) => setPartyNote(shared, hex, {
+export const keepPartyNote = (scene, hex, text, user) => editHexShared(scene, (shared) => setPartyNote(shared, hex, {
 	text,
 	by: user.id,
 	byName: user.name,

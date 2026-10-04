@@ -18,9 +18,9 @@ import {
 import { OMEN_COUNT, barriersAround, featureAt, hexSummary, holdingName } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
-import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
+import { hexFlagEditor } from "./hex-flags.js";
 import { recordToldHex } from "./hex-shared.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
@@ -128,48 +128,23 @@ export function getHexRecord(scene, hex) {
 	return normaliseRecord(scene.getFlag(SYSTEM_ID, HEX_LORE_FLAG)?.hexes?.[hexKey(hex)]);
 }
 
-/** Hex lore writes, taken one at a time. */
-const queueHexWrite = serialWrites();
-
-/** @returns {string} An update path into the flag. */
-const flagPath = (...parts) => `flags.${SYSTEM_ID}.${HEX_LORE_FLAG}.${parts.join(".")}`;
-
 /**
- * Change what's recorded for one hex, writing that hex's own path so a change
- * to another hex, or to the Realm itself, isn't written over. GMs only.
- * @param {Scene} scene
- * @param {{col: number, row: number}} hex
- * @param {(lore: object) => object} edit
- * @returns {Promise<boolean>} Whether anything was written.
+ * Change what's recorded for hexes, in one write. GMs only.
+ * @type {(scene: Scene, edit: (lore: object) => object) => Promise<boolean>}
  */
-export function editHexLore(scene, hex, edit) {
-	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
-	return queueHexWrite(async () => {
-		const lore = getHexLore(scene);
-		const next = edit(lore);
-		if (next === lore) return false;
-		const key = hexKey(hex);
-		const record = next.hexes[key] ?? null;
-		await scene.update({
-			[flagPath("version")]: HEX_LORE_VERSION,
-			// A hex forgotten is a key taken out, rather than an empty record left behind.
-			...(record ? { [flagPath("hexes", key)]: record } : { [flagPath("hexes", `-=${key}`)]: null })
-		});
-		return true;
-	});
-}
+const editHexLore = hexFlagEditor({ flag: HEX_LORE_FLAG, version: HEX_LORE_VERSION, read: getHexLore });
 
 /** Write what's in a hex, in the GM's own words. @returns {Promise<boolean>} */
-export const writeHexNote = (scene, hex, note) => editHexLore(scene, hex, (lore) => setNote(lore, hex, note));
+export const writeHexNote = (scene, hex, note) => editHexLore(scene, (lore) => setNote(lore, hex, note));
 
 /** Strike one roll out of a hex. @returns {Promise<boolean>} */
-export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, hex, (lore) => forgetSpark(lore, hex, id));
+export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, (lore) => forgetSpark(lore, hex, id));
 
 /** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
-export const forgetHexRecord = (scene, hex) => editHexLore(scene, hex, (lore) => forgetRecord(lore, hex));
+export const forgetHexRecord = (scene, hex) => editHexLore(scene, (lore) => forgetRecord(lore, hex));
 
 /** Keep rolls in a hex in one write, however many there are. @returns {Promise<boolean>} */
-export const keepHexSparkRecords = (scene, hex, sparks) => editHexLore(scene, hex, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
+export const keepHexSparkRecords = (scene, hex, sparks) => editHexLore(scene, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
 
 /** @returns {object|null} A roll on a table, ready to keep, dated now. */
 const sparkNow = ({ page, table, results }) => sparkFromRoll({ page, table, results, id: foundry.utils.randomID(), when: getCalendar() });

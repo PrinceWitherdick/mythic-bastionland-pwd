@@ -46,7 +46,7 @@ beforeEach(() => {
 	scene.update.mockClear();
 	vi.mocked(postCard).mockClear();
 	globalThis.game = { user: { isGM: true } };
-	globalThis.foundry = { utils: { randomID: () => "r1" } };
+	globalThis.foundry = { utils: { randomID: () => "r1" }, data: { operators: { ForcedReplacement: { create: (value) => value } } } };
 });
 
 describe("keeping a roll from the Spark Tables window in a hex", () => {
