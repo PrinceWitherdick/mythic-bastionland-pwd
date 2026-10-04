@@ -1198,20 +1198,14 @@
 	justify-content: flex-end;
 }
 
-/* A wilderness hex's tables from the Nature page, side by side as the book sets them. */
-.bastionland-wilderness-hex-window .window-content {
-	padding: 0;
-	background: var(--bastionland-paper);
-	color: var(--bastionland-ink);
-}
-
+/* A wilderness hex's tables from the Nature page, side by side as the book sets them, on the Spark
+   Tables' Wilderness Hex page (module/apps/SparkTables.js). */
 .bastionland-wilderness-hex {
+	display: flex;
+	flex-direction: column;
 	gap: 0.75rem;
-	padding: 1rem 1.25rem 1.25rem;
-}
-
-.bastionland-wilderness-hex .bastionland-hint {
-	margin: 0;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .bastionland-wilderness-hex__tables {
@@ -1241,11 +1235,6 @@
 	align-items: center;
 }
 
-/* The tick box keeps to the left, the buttons to the right. */
-.bastionland-wilderness-hex__animate {
-	display: inline-flex;
-	margin-right: auto;
-}
 
 /* ---------------------------------------------------------------- */
 /* Hexes and places                                                 */

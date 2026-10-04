@@ -20,10 +20,9 @@ import { t } from "../chat/cards.js";
 import { TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { openSparkTables, refreshSparkKeep } from "./SparkTables.js";
+import { WILD_PAGE, openSparkTables, refreshSparkKeep } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
-import { openHexVisits } from "./HexVisits.js";
-import { openWildernessHex } from "./WildernessHex.js";
+import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
 import { HEX_EDIT_FIELDS, chooseHexMyth, hexEditContext, rollHexMyth, rollHexSeer, stepHexOmen, toggleHexReveal, writeHexField } from "./hex-edit.js";
 import { renderWhenIdle } from "./ui.js";
 import { realmKnown } from "../actions/solo.js";
@@ -56,7 +55,10 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			rollPerson: HexLore.#onRollPerson,
 			rollHolding: HexLore.#onRollHolding,
 			markVisited: HexLore.#onMarkVisited,
-			forgetVisits: HexLore.#onForgetVisits,
+			// Forget what's kept here: each takes this window's hex.
+			...Object.fromEntries(Object.entries(HEX_FORGET_ACTIONS).map(([action, forget]) => [action, function (_event, target) {
+				return forget(this.scene, this.hex, target);
+			}])),
 			mood: HexLore.#onMood,
 			journal: HexLore.#onJournal,
 			rollMyth: HexLore.#onRollMyth,
@@ -91,18 +93,25 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {boolean|null} Whether the GM left Edit this hex open or shut; null until they first fold it. */
 	#editOpen = null;
 
+	/** Whether the GM left Forget what's kept here open. */
+	#forgetOpen = false;
+
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		// The fold stays as the GM left it, however often the window is drawn again.
+		// The folds stay as the GM left them, however often the window is drawn again.
 		// A fold drawn open fires a toggle of its own, which isn't the GM's doing.
-		const fold = this.element.querySelector("[data-hex-edit]");
-		let shown = Boolean(context.edit?.open);
-		fold?.addEventListener("toggle", () => {
-			if (fold.open === shown) return;
-			shown = fold.open;
-			this.#editOpen = fold.open;
-		});
+		const keepFold = (selector, drawnOpen, remember) => {
+			const fold = this.element.querySelector(selector);
+			let shown = Boolean(drawnOpen);
+			fold?.addEventListener("toggle", () => {
+				if (fold.open === shown) return;
+				shown = fold.open;
+				remember(fold.open);
+			});
+		};
+		keepFold("[data-hex-edit]", context.edit?.open, (open) => (this.#editOpen = open));
+		keepFold("[data-hex-forget]", context.forget?.open, (open) => (this.#forgetOpen = open));
 		// Rolls on the Spark Tables are kept in the hex this is open on.
 		refreshSparkKeep();
 	}
@@ -128,6 +137,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		if (this.#index === undefined) this.#index = await loadArtIndex();
+		// Opened from the GM Toolkit's pen, to forget what's kept here.
+		if (options.forget) this.#forgetOpen = true;
 
 		const scene = this.scene;
 		const entry = getRealm(scene);
@@ -148,6 +159,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		// The hex itself is the GM's to change: open while the Realm is being drawn, and shut in play.
 		const edit = game.user.isGM ? hexEditContext({ scene, realm, known, g, hex, index: this.#index }) : null;
 		if (edit) edit.open = this.#editOpen ?? isDrawingRealm(scene);
+		const forget = game.user.isGM ? { ...hexForgetContext(scene, hex), open: this.#forgetOpen } : null;
 
 		let notice = null;
 		if (!this.#index) notice = t("spark.noIndex");
@@ -184,7 +196,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 				when: sparkWhen(spark)
 			})).reverse(),
 			notice,
-			edit
+			edit,
+			forget
 		});
 	}
 
@@ -282,9 +295,13 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		}
 	}
 
-	/** @this {HexLore} */
+	/**
+	 * Roll this hex on the wilderness tables, on the Spark Tables' Wilderness Hex
+	 * page, which keeps what's taken in the hex this window is open on.
+	 * @this {HexLore}
+	 */
 	static #onRollSet() {
-		return openWildernessHex({ scene: this.scene, hex: this.hex });
+		return openSparkTables({ page: WILD_PAGE });
 	}
 
 	/** @this {HexLore} */
@@ -332,11 +349,6 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onJournal() {
 		return openHexJournal(this.scene, this.hex);
 	}
-
-	/** @this {HexLore} */
-	static #onForgetVisits() {
-		return openHexVisits({ scene: this.scene, hex: this.hex });
-	}
 }
 
 /** @type {HexLore|null} */
@@ -347,13 +359,14 @@ let window_ = null;
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
+ * @param {boolean} [options.forget] Open Forget what's kept here as well.
  * @returns {HexLore}
  */
-export function openHexLore({ scene, hex }) {
+export function openHexLore({ scene, hex, forget = false }) {
 	window_ ??= new HexLore();
 	window_.sceneId = scene.id;
 	window_.hex = hex;
-	window_.render({ force: true });
+	window_.render({ force: true, forget });
 	return window_;
 }
 

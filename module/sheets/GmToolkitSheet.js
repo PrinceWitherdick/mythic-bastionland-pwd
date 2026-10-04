@@ -20,9 +20,8 @@ import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { openBookFlip } from "../apps/BookFlip.js";
 import { openHexLore } from "../apps/HexLore.js";
-import { openHexVisits } from "../apps/HexVisits.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { openWildernessHex } from "../apps/WildernessHex.js";
+import { WILD_PAGE, openSparkTables } from "../apps/SparkTables.js";
 import { filterBySearch } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -1211,10 +1210,16 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		if (hex && this.scene) return openHexJournal(this.scene, hex);
 	}
 
-	/** @this {GmToolkitSheet} */
+	/**
+	 * Roll this hex on the wilderness tables: the Lay of the Land opens on it,
+	 * so the Spark Tables' Wilderness Hex page keeps what's taken there.
+	 * @this {GmToolkitSheet}
+	 */
 	static #onRollHexSet(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
-		if (hex && this.scene) return openWildernessHex({ scene: this.scene, hex });
+		if (!hex || !this.scene) return;
+		openHexLore({ scene: this.scene, hex });
+		return openSparkTables({ page: WILD_PAGE });
 	}
 
 	/** @this {GmToolkitSheet} */
@@ -1260,10 +1265,13 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		if (hex) return markHexVisited(this.scene, hex);
 	}
 
-	/** @this {GmToolkitSheet} */
+	/**
+	 * Open the Lay of the Land on this hex with Forget what's kept here unfolded.
+	 * @this {GmToolkitSheet}
+	 */
 	static #onForgetVisits(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
-		if (hex) return openHexVisits({ scene: this.scene, hex });
+		if (hex && this.scene) return openHexLore({ scene: this.scene, hex, forget: true });
 	}
 
 	/**

@@ -1,6 +1,6 @@
 {{!-- The world's calendar (p17): the Season it is in, with what it still holds and what's owed before it
-      turns (p20, p27), and a record of the Seasons before it. The date is the Phase banner's, and what
-      moves it hangs under that banner for GMs. --}}
+      turns (p20, p27), what moves it on, and a record of the Seasons before it. The date is set by
+      hand from the header's clock. --}}
 <section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="time">
 	{{!-- The Season now: its events (p17), marked as they come to pass, and the GM's notes on it, which
 	      the Season keeps in the record below once it has turned. --}}
@@ -9,6 +9,9 @@
 		<p class="bastionland-hint">{{seasonEvents.byname}}. {{localize "bastionland.time.events.hint"}}</p>
 		{{> "bastionland.season-events" seasonEvents}}
 		<p class="bastionland-hint">{{seasonEvents.nextLine}}</p>
+		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.time.events.title'}}">
+			<button type="button" data-action="weeksPass" data-tooltip="{{localize 'bastionland.time.events.weeksHint'}}"><i class="fa-solid fa-forward" inert></i> {{localize "bastionland.time.events.weeks"}}</button>
+		</nav>
 
 		<label class="bastionland-gm-toolkit__note">
 			<span>{{localize "bastionland.gmToolkit.seasons.notes"}}</span>
@@ -20,6 +23,26 @@
 		{{> "bastionland.season-turn" thisSeason.turn}}
 		{{/if}}
 	</section>
+
+	{{!-- What moves the calendar on, carrying out what the book says happens between Phases, Seasons and
+	      Ages; the header's clock sets it by hand. --}}
+	<section class="bastionland-gm-toolkit__section">
+		<h2 class="bastionland-heading">{{localize "bastionland.time.moveOn"}}</h2>
+		<nav class="bastionland-toolbar bastionland-time__moves" aria-label="{{localize 'bastionland.time.moveOn'}}">
+			<button type="button" data-action="nextPhase"><i class="fa-solid fa-sun" inert></i> {{localize "bastionland.time.nextPhase"}}</button>
+			<button type="button" data-action="turnSeason"><i class="fa-solid fa-leaf" inert></i> {{localize "bastionland.time.turnSeason"}}</button>
+			<button type="button" data-action="turnAge"><i class="fa-solid fa-hourglass-end" inert></i> {{localize "bastionland.time.turnAge"}}</button>
+			<button type="button" data-action="journey" data-tooltip="{{localize 'bastionland.time.distant.hint'}}"><i class="fa-solid fa-route" inert></i> {{localize "bastionland.time.distant.button"}}</button>
+			<button type="button" data-action="endSession" data-tooltip="{{localize 'bastionland.sessionEnd.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.sessionEnd.open"}}</button>
+		</nav>
+	</section>
+
+	{{#if offCourse.shown}}
+	<section class="bastionland-gm-toolkit__section bastionland-off-course">
+		<h2 class="bastionland-heading">{{localize "bastionland.realm.landmarks.offCourse.title"}}</h2>
+		{{> "bastionland.off-course" offCourse}}
+	</section>
+	{{/if}}
 
 	{{#if crisisRolls.length}}
 	<section class="bastionland-gm-toolkit__section">

@@ -130,7 +130,6 @@
 .bastionland-item-window .window-content,
 .bastionland-chooser-window .window-content,
 .bastionland-spark-window .window-content,
-.bastionland-time-window .window-content,
 .bastionland-site-window .window-content,
 .bastionland-heraldry-window .window-content,
 .bastionland-rulebook-window .window-content,
@@ -139,7 +138,6 @@
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
 .bastionland-book-flip-window .window-content,
-.bastionland-hex-visits-window .window-content,
 .bastionland-travels-hex-window .window-content,
 .bastionland-travels-window .window-content,
 .bastionland-realm-panel-window .window-content,
@@ -3161,51 +3159,9 @@ a.button:focus:not(:focus-visible) {
 /* Time: the calendar, and what moves it on                         */
 /* ---------------------------------------------------------------- */
 
-.bastionland-time {
-	gap: 0.75rem;
-}
-
-.bastionland-time .bastionland-chooser__name {
-	margin: 0;
-}
-
-.bastionland-time__header {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-/* A GM's window: the date across the top, then the calendar and what moves it
-   on beside what the Season asks of the Referee, and ending the session under both. */
-.bastionland-time--referee .bastionland-time__header {
-	padding-bottom: 0.6rem;
-	border-bottom: 1px solid var(--bastionland-rule);
-}
-
-.bastionland-time__columns,
-.bastionland-time__column {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	min-width: 0;
-}
-
-.bastionland-time--referee .bastionland-time__columns {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	align-items: start;
-	gap: 0.75rem 2rem;
-}
-
-/* Too narrow for two, when the GM has dragged the window in: one column again. */
-@container (width < 40rem) {
-	.bastionland-time--referee .bastionland-time__columns {
-		grid-template-columns: minmax(0, 1fr);
-	}
-}
-
-/* The ways time moves on: the next Phase, pressed most, across the top; the
-   Season and the Age side by side; the long journey across the foot. */
+/* The ways time moves on, on the GM Toolkit's Time page: the next Phase,
+   pressed most, across the top; the Season and the Age side by side; the long
+   journey and ending the session across the foot. */
 .bastionland-time__moves {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3215,37 +3171,8 @@ a.button:focus:not(:focus-visible) {
 	min-width: 0;
 }
 
-.bastionland-time__moves button:is([data-action="nextPhase"], [data-action="journey"]) {
+.bastionland-time__moves button:is([data-action="nextPhase"], [data-action="journey"], [data-action="endSession"]) {
 	grid-column: 1 / -1;
-}
-
-/* Setting the calendar by hand skips what the book says happens between Seasons and Ages, so that is said in bold. */
-.bastionland-hint.bastionland-time__warning {
-	color: var(--bastionland-ink);
-	font-weight: bold;
-}
-
-/* End the Session closes the window, with nothing ruled off under it. */
-.bastionland-time__end {
-	border-bottom: none;
-}
-
-/* The Glory awards fill the column's width as they wrap, rather than leaving a ragged edge. */
-.bastionland-time--referee .bastionland-time__list > li {
-	display: flex;
-	flex: 1 1 auto;
-}
-
-.bastionland-time__fields {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.4rem 0.75rem;
-	margin-bottom: 0.5rem;
-}
-
-.bastionland-time__fields .bastionland-box {
-	width: 4rem;
 }
 
 .bastionland-time__list {
@@ -6290,33 +6217,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	visibility: visible;
 }
 
-/* Everything kept for a hex, to forget a piece at a time (module/apps/HexVisits.js). */
-.bastionland-hex-visits {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 0.5rem 0.6rem;
+/* Forget what's kept here, the GM's second fold in the Lay of the Land (module/apps/hex-forget.js). It
+   borrows Edit this hex's frame. */
+.bastionland-hex-forget .bastionland-heading {
+	margin: 0.2rem 0 0;
 }
 
-.bastionland-hex-visits__lists {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	max-height: 60vh;
-	overflow-y: auto;
-}
-
-.bastionland-hex-visits__lists .bastionland-heading {
-	margin: 0.35rem 0 0;
-}
-
-/* The lists scroll together, so none of them scrolls on its own. */
-.bastionland-hex-visits__list {
+/* The window scrolls the fold whole, so none of its lists scrolls on its own. */
+.bastionland-hex-forget__list {
 	max-height: none;
 	overflow: visible;
 }
 
-.bastionland-hex-visits__note {
+.bastionland-hex-forget__note {
 	white-space: pre-wrap;
 }
 

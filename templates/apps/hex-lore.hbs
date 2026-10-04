@@ -27,12 +27,70 @@
 
 	<div class="bastionland-hex-lore__row bastionland-hex-lore__visits">
 		<span class="bastionland-hex-lore__hint">{{visits}}</span>
-		{{#if visited}}
-		<button type="button" class="bastionland-icon" data-action="forgetVisits" data-tooltip="{{localize 'bastionland.gmToolkit.visits.edit'}}" aria-label="{{localize 'bastionland.gmToolkit.visits.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
-		{{else}}
+		{{#unless visited}}
 		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
-		{{/if}}
+		{{/unless}}
 	</div>
+
+	{{!-- Forget what's kept here: the GM's fold, built by hexForgetContext in module/apps/hex-forget.js. --}}
+	{{#with forget}}
+	<details class="bastionland-hex-edit bastionland-hex-forget" data-hex-forget {{#if open}}open{{/if}}>
+		<summary class="bastionland-hex-edit__summary">{{localize "bastionland.gmToolkit.visits.fold"}}</summary>
+		<div class="bastionland-hex-edit__body">
+			<p class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.foldHint"}}</p>
+
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.gmToolkit.visits.visitsHeading"}}</h3>
+			<ul class="bastionland-hex-lore__rolls bastionland-hex-forget__list">
+				{{#each visits}}
+				<li class="bastionland-hex-lore__roll">
+					<div class="bastionland-hex-lore__prompt">
+						<strong>{{label}}</strong>
+						<span class="bastionland-hex-lore__source">{{when}}</span>
+					</div>
+					<button type="button" data-action="forgetVisit" data-order="{{order}}" aria-label="{{localize 'bastionland.gmToolkit.visits.forgetOne'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetOne'}}"><i class="fa-solid fa-xmark" inert></i></button>
+				</li>
+				{{else}}
+				<li class="bastionland-hint">{{localize "bastionland.hexLore.notVisited"}}</li>
+				{{/each}}
+			</ul>
+
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.gmToolkit.visits.toldHeading"}}</h3>
+			<ul class="bastionland-hex-lore__rolls bastionland-hex-forget__list">
+				{{#each told}}
+				<li class="bastionland-hex-lore__roll">
+					<div class="bastionland-hex-lore__prompt">
+						<span class="bastionland-hex-forget__note">{{note}}</span>
+						{{#if when}}<span class="bastionland-hex-lore__source">{{when}}</span>{{/if}}
+					</div>
+					<button type="button" data-action="forgetTold" data-told="{{id}}" aria-label="{{localize 'bastionland.gmToolkit.visits.forgetTold'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetTold'}}"><i class="fa-solid fa-xmark" inert></i></button>
+				</li>
+				{{else}}
+				<li class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.noTold"}}</li>
+				{{/each}}
+			</ul>
+
+			<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.travels.party.heading"}}</h3>
+			<ul class="bastionland-hex-lore__rolls bastionland-hex-forget__list">
+				{{#if party}}
+				<li class="bastionland-hex-lore__roll">
+					<div class="bastionland-hex-lore__prompt">
+						<span class="bastionland-hex-forget__note">{{party.text}}</span>
+						<span class="bastionland-hex-lore__source">{{party.by}}</span>
+					</div>
+					<button type="button" data-action="forgetParty" aria-label="{{localize 'bastionland.gmToolkit.visits.forgetParty'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetParty'}}"><i class="fa-solid fa-xmark" inert></i></button>
+				</li>
+				{{else}}
+				<li class="bastionland-hint">{{localize "bastionland.gmToolkit.visits.noParty"}}</li>
+				{{/if}}
+			</ul>
+
+			<div class="bastionland-hex-lore__grid">
+				<button type="button" data-action="forgetVisits" {{disabled noVisits}}><i class="fa-solid fa-route" inert></i> {{localize "bastionland.gmToolkit.visits.forgetAll"}}</button>
+				<button type="button" data-action="forgetAll" {{disabled nothing}}><i class="fa-solid fa-eraser" inert></i> {{localize "bastionland.gmToolkit.visits.forgetEverything"}}</button>
+			</div>
+		</div>
+	</details>
+	{{/with}}
 
 	<div class="form-group bastionland-hex-lore__note">
 		<label for="{{partId}}-note">{{localize "bastionland.hexLore.note"}}</label>

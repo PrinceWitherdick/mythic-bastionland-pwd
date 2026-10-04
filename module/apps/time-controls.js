@@ -1,4 +1,4 @@
-import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { getCalendar, setCalendar } from "../actions/calendar.js";
 import { waitDialog } from "./ui.js";
 import { awardGlory } from "../actions/glory.js";
 import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
@@ -10,16 +10,15 @@ import { PHASES, SEASONS } from "../rules/time.js";
 import { openSessionEnd } from "./SessionEnd.js";
 
 /**
- * The world's calendar and what moves it (Time, p17), as the Time window and the GM
- * Toolkit's Time page show them: a Phase, a Season or an Age at a time, carrying out what
- * the book says happens between them, or set by hand.
+ * The world's calendar and what moves it (Time, p17), as the GM Toolkit shows it: a
+ * Phase, a Season or an Age at a time, carrying out what the book says happens between
+ * them, or set by hand.
  */
 
 /**
- * What the buttons beside a calendar do. The Time window and the GM Toolkit's
- * Time page draw the same partials from the same context, so they carry out the
- * same acts too, and a button added to one works on both. Each reads only what
- * its own button says, since Foundry also hands a handler the click.
+ * What the buttons beside a calendar do, on the GM Toolkit's header and Time
+ * page. Each reads only what its own button says, since Foundry also hands a
+ * handler the click.
  */
 export const TIME_ACTIONS = Object.freeze({
 	nextPhase: () => advancePhase(),
@@ -86,12 +85,9 @@ function seasonEventsContext(calendar) {
 export function timeContext({ referee = game.user?.isGM === true } = {}) {
 	const calendar = getCalendar();
 	return {
-		now: calendarLabel(calendar),
 		age: calendar.age,
 		seasons: SEASONS.map((key) => ({ key, label: t(`time.seasons.${key}`), active: key === calendar.season })),
 		phases: PHASES.map((key) => ({ key, label: t(`time.phases.${key}`), active: key === calendar.phase })),
-		phaseHint: t(`time.phaseHints.${calendar.phase}`),
-		winter: calendar.season === "winter",
 		seasonEvents: referee ? seasonEventsContext(calendar) : null,
 		// A Curse's blight, while the Company still carries it (p14).
 		offCourse: referee ? offCourseNow(calendar) : null,

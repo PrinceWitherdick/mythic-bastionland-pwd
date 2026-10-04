@@ -1,11 +1,12 @@
 import { companyTokenHex } from "../actions/company.js";
-import { keepTableRoll } from "../actions/hex-lore.js";
+import { keepHexSparks, keepTableRoll, throwSparkDice, wildernessHexTables } from "../actions/hex-lore.js";
 import { keepHexPerson, postPerson, rollPersonTables } from "../actions/people.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollSpark } from "../actions/referee-rolls.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
+import { tableView } from "../rules/gm-toolkit.js";
 import { sparkKeepTarget } from "../rules/hex-lore.js";
 import { PEOPLE_PAGE } from "../rules/people.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
@@ -29,18 +30,25 @@ export function registerSparkTablesSetting() {
 }
 
 /** @returns {boolean} Whether a roll on any Spark Table window runs its highlight. */
-export const animates = () => read(ANIMATE_SETTING, true) !== false;
+const animates = () => read(ANIMATE_SETTING, true) !== false;
 
 /**
  * Wire an Animate selection tick box to the setting, so each window that shows
  * one leaves it the same for the others.
  * @param {HTMLElement} root
  */
-export function wireAnimateBox(root) {
+function wireAnimateBox(root) {
 	root.querySelector("[name=animate]")?.addEventListener("change", (event) => {
 		game.settings.set(SYSTEM_ID, ANIMATE_SETTING, event.currentTarget.checked);
 	});
 }
+
+/**
+ * The page a wilderness hex is rolled on (p22): the Nature page's tables for
+ * one, chosen by dice or by hand and kept in the hex together. It comes before
+ * the book's own pages.
+ */
+export const WILD_PAGE = "wild";
 
 /** The Lay of the Land's window, found by its id since it's the one that opens these tables. */
 const HEX_LORE_ID = "bastionland-hex-lore";
@@ -62,26 +70,42 @@ function keepTarget() {
 	return sparkKeepTarget({ lore, company: companyHex ? { scene: viewed, hex: companyHex } : null });
 }
 
-/** @returns {{label: string, disabled: boolean}} What the Keep rolls box says now. */
-function keepWords() {
-	const target = keepTarget();
+/** The words for where rolls are kept: the Keep rolls box's, or the Wilderness Hex page's Save button's. */
+const KEEP_IN = "spark.keepIn";
+const WILD_KEEP_IN = "hexLore.wildHex.keepIn";
+
+/**
+ * @param {string} [key] KEEP_IN or WILD_KEEP_IN.
+ * @param {{scene: Scene, hex: {col: number, row: number}}|null} [target] Where it keeps, if not where rolls are kept now.
+ * @returns {{label: string, disabled: boolean}} What the Keep rolls box, or the Save button, says now.
+ */
+function keepWords(key = KEEP_IN, target = keepTarget()) {
 	return target
-		? { label: t("spark.keepIn", { hex: t("realm.hex", target.hex) }), disabled: false }
+		? { label: t(key, { hex: t("realm.hex", target.hex) }), disabled: false }
 		: { label: t("spark.keepNone"), disabled: true };
 }
 
 /**
  * Say again where rolls are kept, as the Lay of the Land opens on a hex, moves
- * or closes. The box alone is touched: a redraw would cut a running highlight
- * short and wipe the entries it marked.
+ * or closes. The box and the Save button alone are touched: a redraw would cut
+ * a running highlight short and wipe the entries it marked.
  */
 export function refreshSparkKeep() {
-	const box = window_?.rendered ? window_.element.querySelector("[name=keep]") : null;
-	if (!box) return;
-	const { label, disabled } = keepWords();
-	box.disabled = disabled;
-	const words = box.closest("label")?.querySelector(".bastionland-check__label");
-	if (words) words.textContent = label;
+	if (!window_?.rendered) return;
+	const box = window_.element.querySelector("[name=keep]");
+	if (box) {
+		const { label, disabled } = keepWords();
+		box.disabled = disabled;
+		const words = box.closest("label")?.querySelector(".bastionland-check__label");
+		if (words) words.textContent = label;
+	}
+	const save = window_.element.querySelector("[data-keep-wild]");
+	if (save) {
+		const { label, disabled } = keepWords(WILD_KEEP_IN, window_.wildTarget);
+		save.disabled = disabled || save.hasAttribute("data-nothing-taken");
+		const words = save.querySelector("[data-keep-label]");
+		if (words) words.textContent = label;
+	}
 }
 
 /**
@@ -97,7 +121,10 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		actions: {
 			showPage: SparkTables.#onShowPage,
 			roll: SparkTables.#onRoll,
-			rollPerson: SparkTables.#onRollPerson
+			rollPerson: SparkTables.#onRollPerson,
+			rollWild: SparkTables.#onRollWild,
+			pickRow: SparkTables.#onPickRow,
+			keepWild: SparkTables.#onKeepWild
 		}
 	};
 
@@ -123,6 +150,33 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** Whether rolls made here are kept in a hex. Ticked each time the window opens. */
 	#keep = true;
 
+	/** @type {{page: object, set: {index: number, table: object}[]}|null|undefined} The wilderness tables: undefined until read, null if the Nature page hasn't been. */
+	#wild;
+
+	/** @type {(number|null)[][]|null} The row taken in each column of each wilderness table, from 1, or null. */
+	#taken = null;
+
+	/** @type {{scene: Scene, hex: {col: number, row: number}}|null} The hex the wilderness rows were taken for, from the first one taken. */
+	#takenFor = null;
+
+	/**
+	 * Where the Wilderness Hex page's Save keeps what's taken: the hex it was
+	 * taken for, so a Lay of the Land turned to another hex since doesn't
+	 * take it, or else where rolls are kept now.
+	 * @returns {{scene: Scene, hex: {col: number, row: number}}|null}
+	 */
+	get wildTarget() {
+		if (this.#takenFor && game.scenes.get(this.#takenFor.scene.id)) return this.#takenFor;
+		return keepTarget();
+	}
+
+	/** Note the hex rows are taken for, as the first is; forget it once none are left. */
+	#noteTakenFor() {
+		const anyTaken = this.#taken?.some((rows) => rows.some((row) => row !== null));
+		if (!anyTaken) this.#takenFor = null;
+		else this.#takenFor ??= keepTarget();
+	}
+
 	/** @returns {{scene: Scene, hex: {col: number, row: number}}|null} Where a roll made now is kept, if anywhere. */
 	#keeping() {
 		return this.#keep ? keepTarget() : null;
@@ -138,7 +192,8 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		const context = await super._prepareContext(options);
 		if (this.index === undefined) this.index = await loadArtIndex();
 		const imported = this.index?.spark ?? [];
-		const shown = this.#shown();
+		const wildShown = this.#page === WILD_PAGE;
+		const shown = wildShown ? null : this.#shown();
 		const last = this.#last?.page === this.#page ? this.#last : null;
 
 		let notice = null;
@@ -149,11 +204,12 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			notice,
 			animate: animates(),
 			keep: { checked: this.#keep, ...keepWords() },
-			pages: SPARK_PAGES.map(({ key }) => ({
+			pages: [WILD_PAGE, ...SPARK_PAGES.map(({ key }) => key)].map((key) => ({
 				key,
 				label: imported.find((page) => page.key === key)?.name ?? t(`spark.pages.${key}`),
 				active: key === this.#page
 			})),
+			wild: wildShown && this.index ? await this.#wildContext() : null,
 			reference: shown ? t("spark.reference", { page: shown.page }) : null,
 			tables: (shown?.tables ?? []).map((table, index) => ({
 				index,
@@ -168,8 +224,29 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 					}))
 				}))
 			})),
-			empty: Boolean(this.index?.spark) && !shown
+			empty: Boolean(this.index?.spark) && !wildShown && !shown
 		});
+	}
+
+	/** @returns {Promise<object>} The Wilderness Hex page: the Nature page's tables for a hex, and what's taken from them. */
+	async #wildContext() {
+		if (this.#wild === undefined) this.#wild = await wildernessHexTables();
+		if (!this.#wild) return { missing: true };
+		const { page, set } = this.#wild;
+		this.#taken ??= set.map(({ table }) => table.columns.map(() => null));
+		const nothingTaken = this.#taken.every((rows) => rows.every((row) => row === null));
+		const save = keepWords(WILD_KEEP_IN, this.wildTarget);
+		return {
+			reference: t("hexLore.wildHex.reference", { page: page.page }),
+			tables: set.map(({ table }, index) => ({
+				index,
+				name: table.name,
+				rollLabel: t("hexLore.wildHex.rollTable", { name: table.name }),
+				...tableView(table, this.#taken[index], (column) => t("hexLore.wildHex.rollColumn", { column }))
+			})),
+			nothingTaken,
+			save: { label: save.label, disabled: save.disabled || nothingTaken }
+		};
 	}
 
 	/** @override */
@@ -195,9 +272,19 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	static #onShowPage(_event, target) {
 		if (this.#spinning) return;
 		const { page } = target.dataset;
-		if (!SPARK_PAGES.some(({ key }) => key === page) || page === this.#page) return;
+		if (page === this.#page) return;
+		return this.turnTo(page);
+	}
+
+	/**
+	 * Show one of the pages: the Wilderness Hex page or one of the book's.
+	 * @param {string} page
+	 * @returns {Promise<SparkTables>|undefined} Undefined when there's no such page, or a roll is still running.
+	 */
+	turnTo(page) {
+		if (this.#spinning || (page !== WILD_PAGE && !SPARK_PAGES.some(({ key }) => key === page))) return;
 		this.#page = page;
-		return this.render();
+		return this.render({ force: true });
 	}
 
 	/**
@@ -235,6 +322,73 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			refreshSparkKeep();
 		}
 		// No redraw: the entries it landed on are marked already, and a redraw would cut their flash short.
+	}
+
+	/**
+	 * Roll every wilderness table, one table's columns, or the column whose
+	 * heading was clicked, where only the GMs see the dice. Every highlight runs
+	 * at once, and the rows stay taken once they land. Nothing is kept yet.
+	 * @this {SparkTables}
+	 */
+	static async #onRollWild(_event, target) {
+		if (this.#spinning || !this.#wild || !this.#taken) return;
+		const { table, column } = target.dataset;
+		const tables = table === undefined ? this.#wild.set.map((_, index) => index) : [Number(table)];
+		const plan = tables.map((index) => ({
+			index,
+			columns: column === undefined ? this.#wild.set[index].table.columns.map((_, at) => at) : [Number(column)]
+		}));
+
+		this.#spinning = true;
+		try {
+			const dice = await throwSparkDice(plan.reduce((count, { columns }) => count + columns.length, 0));
+			// Closed, or turned from, while the dice were still rolling: nothing's left to spin.
+			if (!this.rendered || this.#page !== WILD_PAGE) return;
+			let next = 0;
+			const reduce = !animates() || reducesMotion();
+			// Every row rolled afresh is taken for the hex rolls are kept in now.
+			if (table === undefined && column === undefined) this.#takenFor = null;
+			await Promise.all(plan.map(({ index, columns }) => {
+				const rolls = columns.map(() => dice[next++]);
+				columns.forEach((at, rolled) => (this.#taken[index][at] = rolls[rolled]));
+				this.#noteTakenFor();
+				return spinTable(this.element.querySelector(`table[data-wild-table="${index}"]`), columns, rolls.map((roll) => ({ roll })), { reduce });
+			}));
+		} finally {
+			this.#spinning = false;
+		}
+		return this.render();
+	}
+
+	/**
+	 * Take a wilderness entry by hand, or let it go if it's already the one taken.
+	 * @this {SparkTables}
+	 */
+	static #onPickRow(_event, target) {
+		if (this.#spinning) return;
+		const rows = this.#taken?.[Number(target.dataset.table)];
+		const column = Number(target.dataset.column);
+		const row = Number(target.dataset.row);
+		if (!rows || !(column in rows)) return;
+		rows[column] = rows[column] === row ? null : row;
+		this.#noteTakenFor();
+		return this.render();
+	}
+
+	/**
+	 * Keep what's taken from the wilderness tables in the hex rolls are kept in,
+	 * whisper the GMs its card, and clear the page for the next hex.
+	 * @this {SparkTables}
+	 */
+	static async #onKeepWild() {
+		const target = this.wildTarget;
+		if (this.#spinning || !this.#wild || !this.#taken || !target) return;
+		const taken = this.#wild.set.map(({ table }, index) => ({ table, rows: this.#taken[index] }));
+		const kept = await keepHexSparks({ ...target, page: this.#wild.page, taken });
+		if (!kept.length) return;
+		this.#taken = null;
+		this.#takenFor = null;
+		return this.render();
 	}
 
 	/** The last roll's marks go as the next one starts. */
@@ -281,11 +435,13 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 
 /**
  * Open the Spark Tables, bringing the window forward if it's already open.
+ * @param {object} [options]
+ * @param {string} [options.page] The page to turn to, such as WILD_PAGE for a wilderness hex.
  * @returns {SparkTables}
  */
-export function openSparkTables() {
+export function openSparkTables({ page } = {}) {
 	window_ ??= new SparkTables();
-	window_.render({ force: true });
+	if (!page || !window_.turnTo(page)) window_.render({ force: true });
 	return window_;
 }
 

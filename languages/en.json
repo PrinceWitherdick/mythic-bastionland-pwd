@@ -1118,8 +1118,6 @@
       "age": "Age",
       "season": "Season",
       "phase": "Phase",
-      "setByHand": "Click a Season or Phase to set the calendar by hand. Click the Age to turn it or set it by hand.",
-      "setByHandWarning": "Only the buttons below carry out what happens between Seasons and Ages.",
       "phases": {
         "morning": "Morning",
         "afternoon": "Afternoon",
@@ -1783,14 +1781,13 @@
       "rollSet": "Roll a wilderness hex",
       "setMissing": "Import PDF hasn’t read enough of the Nature Spark Tables to roll a wilderness hex.",
       "wildHex": {
-        "title": "Wilderness Hex: {hex}",
-        "intro": "Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you save the results.",
+        "intro": "A wilderness hex is rolled on the Nature page’s tables set out for it. Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you save the results.",
         "reference": "(p{page})",
         "rollAll": "Roll",
         "rollTable": "Roll {name}",
         "rollColumn": "Roll a d12 for {column}",
         "pick": "Choose this one",
-        "keep": "Save results"
+        "keepIn": "Save to {hex}"
       },
       "landmark": {
         "reroll": "Name it from a random page",
@@ -1884,6 +1881,7 @@
       "noText": "Run Import PDF again with your rulebook to bring in the Spark Tables.",
       "pageMissing": "The Spark Tables on this page couldn’t be read. Import PDF’s report says why.",
       "pages": {
+        "wild": "Wilderness Hex",
         "nature": "Nature",
         "civilisation": "Civilisation",
         "people": "People",
@@ -2054,13 +2052,11 @@
         "edit": "Edit the Visits",
         "forgetTitle": "Forget Every Visit?",
         "forgetConfirm": "Every visit the Company made to {hex} is forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay.",
-        "windowTitle": "Forget: {hex}",
-        "windowHint": "Everything kept for this hex. Strike out one piece with its ×, or forget it all at once below.",
+        "fold": "Forget What’s Kept Here",
+        "foldHint": "Strike out one visit, telling or note with its ×, or forget it all at once below. The Spark Tables rolled here go by their own × further down.",
         "visitsHeading": "Visits",
         "nth": "Visit {count}",
         "forgetOne": "Forget this visit",
-        "forgetNote": "Rub out the note",
-        "noNote": "Nothing written about this hex.",
         "forgetAll": "Forget Every Visit",
         "forgetEverything": "Forget Everything Here",
         "forgetAllTitle": "Forget Everything Here?",

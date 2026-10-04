@@ -1,4 +1,4 @@
-import { getCalendar, registerCalendarSetting, watchCalendar } from "./module/actions/calendar.js";
+import { calendarLabel, getCalendar, registerCalendarSetting, watchCalendar } from "./module/actions/calendar.js";
 import { registerCityQuestSetting, rollCityOmen } from "./module/actions/city-quest.js";
 import { awardGlory } from "./module/actions/glory.js";
 import { assignGmToolkit, ensureGmToolkit, GM_TOOLKIT_TYPE, openGmToolkit, registerGmToolkitHooks } from "./module/actions/gm-toolkit.js";
@@ -45,7 +45,6 @@ import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables, registerSparkTablesSetting, toggleSparkTables } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
 import { registerRealmTour } from "./module/apps/realm-tour.js";
-import { openTimePanel } from "./module/apps/TimePanel.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
@@ -136,7 +135,7 @@ const ITEM_MODELS = {
 const REFEREE_TOOLS = [
 	{ className: "bastionland-referee-rolls", icon: "fa-solid fa-dice-d6", label: "refereeRolls.title", open: openRefereeRolls },
 	{ className: "bastionland-spark-tables", icon: "fa-solid fa-wand-sparkles", label: "spark.title", open: openSparkTables },
-	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: openTimePanel },
+	{ className: "bastionland-time", icon: "fa-solid fa-hourglass-half", label: "time.title", open: () => openGmToolkit("time") },
 	{ className: "bastionland-sites", icon: "fa-solid fa-dungeon", label: "sites.newSite", open: newSite },
 	{ className: "bastionland-gm-toolkit", icon: "fa-solid fa-book-open-reader", label: "gmToolkit.name", open: openGmToolkit }
 ];
@@ -456,7 +455,9 @@ Hooks.once("init", () => {
 		openHexLore,
 		// The Company's own record of the places it has been, for the players' Places macro.
 		openPlaces,
-		openTimePanel,
+		// The Time window became the GM Toolkit's Time page; macros that open it still work, and
+		// a player's, which once showed the calendar to read, says where it stands.
+		openTimePanel: () => (game.user.isGM ? openGmToolkit("time") : ui.notifications.info(calendarLabel(getCalendar()))),
 		openSessionEnd,
 		newSite,
 		openGmToolkit,

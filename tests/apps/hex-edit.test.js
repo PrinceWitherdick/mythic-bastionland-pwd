@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -33,8 +33,9 @@ describe("Edit this hex, in the Lay of the Land", () => {
 	});
 
 	it("keeps the fold as the GM left it, not as the browser's own toggle on drawing it open", () => {
-		expect(loreApp).toContain("let shown = Boolean(context.edit?.open);");
-		expect(loreApp).toMatch(/if \(fold\.open === shown\) return;\s*shown = fold\.open;\s*this\.#editOpen = fold\.open;/);
+		expect(loreApp).toContain("let shown = Boolean(drawnOpen);");
+		expect(loreApp).toMatch(/if \(fold\.open === shown\) return;\s*shown = fold\.open;\s*remember\(fold\.open\);/);
+		expect(loreApp).toContain('keepFold("[data-hex-edit]", context.edit?.open, (open) => (this.#editOpen = open));');
 	});
 
 	it("names its fields so they never clash with the note or the Landmark's name", () => {
@@ -61,5 +62,31 @@ describe("Edit this hex, in the Lay of the Land", () => {
 		expect(history).toBeGreaterThan(template.indexOf("bastionland-hex-edit__barriers"));
 		expect(hooks).toMatch(/Hooks\.on\(REALM_HISTORY_HOOK, \(sceneId\) => \{[^}]*refreshHexLore\(sceneId\);/);
 		expect(styles).toMatch(/\.bastionland-hex-edit__history \{/);
+	});
+});
+
+describe("Forget what's kept here, in the Lay of the Land", () => {
+	const forget = read("module/apps/hex-forget.js");
+
+	it("is the GM's second fold, in place of a window of its own", () => {
+		expect(existsSync(join(root, "module/apps/HexVisits.js"))).toBe(false);
+		expect(existsSync(join(root, "templates/apps/hex-visits.hbs"))).toBe(false);
+		expect(lore).toMatch(/\{\{#with forget\}\}\s*<details class="bastionland-hex-edit bastionland-hex-forget" data-hex-forget \{\{#if open\}\}open\{\{\/if\}\}>/);
+		expect(loreApp).toContain("const forget = game.user.isGM ? { ...hexForgetContext(scene, hex), open: this.#forgetOpen } : null;");
+		expect(loreApp).toContain('keepFold("[data-hex-forget]", context.forget?.open, (open) => (this.#forgetOpen = open));');
+	});
+
+	it("strikes out each visit, telling and party note, or all of them, on the window's own hex", () => {
+		for (const action of ["forgetVisit", "forgetTold", "forgetParty", "forgetVisits", "forgetAll"]) {
+			expect(forget).toMatch(new RegExp(`\\b${action}\\b`));
+			expect(lore).toContain(`data-action="${action}"`);
+		}
+		expect(loreApp).toContain("return forget(this.scene, this.hex, target);");
+	});
+
+	it("opens unfolded from the GM Toolkit's pen", () => {
+		expect(toolkit).toContain("openHexLore({ scene: this.scene, hex, forget: true })");
+		expect(loreApp).toContain("if (options.forget) this.#forgetOpen = true;");
+		expect(loreApp).toContain("window_.render({ force: true, forget });");
 	});
 });
