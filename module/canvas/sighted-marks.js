@@ -4,6 +4,7 @@ import { INK_HEX, PAPER_HEX } from "../rules/colour.js";
 import { hexCentre, hexKey } from "../rules/realm-geometry.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { marksLayer } from "./marks-layer.js";
 
 /**
  * The marks of what the Company saw from afar (p197): an unnamed ring with a
@@ -16,13 +17,7 @@ import { SYSTEM_ID } from "../system-id.js";
 const RING = Object.freeze({ radius: 0.17, line: 0.025 });
 
 /** Above the Realm tools' own drawing, below Foundry's controls. */
-const Z_INDEX = 960;
-
-/** @type {PIXI.Container|null} The marks on this canvas, made again for each Scene drawn. */
-let layer = null;
-
-/** Where the layer's marks stand, so a Scene change that leaves them as they were draws nothing again. */
-let drawn = null;
+const redraw = marksLayer(960);
 
 /**
  * @param {object} g
@@ -65,27 +60,16 @@ function markGlyph(g, hex, style) {
  */
 export function drawSightedMarks() {
 	if (!canvas?.ready || !canvas.interface) return;
-	// Foundry destroys what hangs on its groups as the canvas is torn down, so each Scene drawn gets a layer of its own.
-	if (!layer || layer.destroyed || layer.parent !== canvas.interface) {
-		layer = new PIXI.Container();
-		layer.eventMode = "none";
-		layer.zIndex = Z_INDEX;
-		canvas.interface.addChild(layer);
-		drawn = null;
-	}
-
 	const scene = canvas.scene;
 	const entry = isRealmScene(scene) ? getRealm(scene) : null;
 	try {
 		const g = entry && sceneGeometry(scene);
 		const marks = entry ? sightedMarks(entry.realm, getSighted(scene), (at) => hexHiddenByHand(scene, at)) : [];
 		const key = marks.length ? JSON.stringify([g, marks.map(({ hex }) => hexKey(hex))]) : "";
-		if (key === drawn) return;
-		for (const mark of layer.removeChildren()) mark.destroy({ children: true });
-		drawn = key;
-		if (!marks.length) return;
-		const style = markStyle(g);
-		for (const { hex } of marks) layer.addChild(markGlyph(g, hex, style));
+		redraw(key, (layer) => {
+			const style = markStyle(g);
+			for (const { hex } of marks) layer.addChild(markGlyph(g, hex, style));
+		});
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't draw what the Company saw from afar`, error);
 	}

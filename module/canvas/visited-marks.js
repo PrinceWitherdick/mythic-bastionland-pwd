@@ -15,6 +15,7 @@ import {
 } from "../rules/visited-mark-style.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
+import { marksLayer } from "./marks-layer.js";
 
 /**
  * The hexes the Company has been to, marked on the map: pencilled round with a
@@ -31,13 +32,7 @@ export const VISITED_MARK_STYLE_SETTING = "visitedMarkStyle";
 export const VISITED_MARK_COLOURS_SETTING = "visitedMarkColours";
 
 /** Above the Realm tools' own drawing, below the marks of what was seen from afar. */
-const Z_INDEX = 955;
-
-/** @type {PIXI.Container|null} The marks on this canvas, made again for each Scene drawn. */
-let layer = null;
-
-/** Where the layer's marks stand, so a Scene change that leaves them as they were draws nothing again. */
-let drawn = null;
+const redraw = marksLayer(955);
 
 /** Register the marks' settings. Called during init. */
 export function registerVisitedMarksSetting() {
@@ -75,13 +70,7 @@ export function registerVisitedMarksSetting() {
 }
 
 /** @returns {boolean} Whether this browser shows the marks. */
-export function visitedMarksShown() {
-	try {
-		return game.settings.get(SYSTEM_ID, VISITED_MARKS_SETTING) !== false;
-	} catch {
-		return true;
-	}
-}
+export const visitedMarksShown = () => read(VISITED_MARKS_SETTING, true) !== false;
 
 /**
  * Show or hide the marks in this browser.
@@ -124,15 +113,6 @@ function drawStrokes(marks, strokes) {
  */
 export function drawVisitedMarks() {
 	if (!canvas?.ready || !canvas.interface) return;
-	// Foundry destroys what hangs on its groups as the canvas is torn down, so each Scene drawn gets a layer of its own.
-	if (!layer || layer.destroyed || layer.parent !== canvas.interface) {
-		layer = new PIXI.Container();
-		layer.eventMode = "none";
-		layer.zIndex = Z_INDEX;
-		canvas.interface.addChild(layer);
-		drawn = null;
-	}
-
 	const scene = canvas.scene;
 	try {
 		const shown = isRealmScene(scene) && visitedMarksShown();
@@ -140,20 +120,18 @@ export function drawVisitedMarks() {
 		const hexes = shown ? visitedMarkHexes(getJourney(scene)) : [];
 		const look = visitedMarkLook();
 		const key = hexes.length ? JSON.stringify([g, look, hexes.map(hexKey).sort()]) : "";
-		if (key === drawn) return;
-		for (const mark of layer.removeChildren()) mark.destroy({ children: true });
-		drawn = key;
-		if (!hexes.length) return;
-		const marks = layer.addChild(new PIXI.Graphics());
-		const pen = visitedMarkPen(g, look.style);
-		const strokes = hexes.flatMap((hex) => visitedMarkStrokes(g, hex, look.style));
-		// The paper goes down under every mark first, so one hex's halo never covers its neighbour's line.
-		if (pen.halo) {
-			marks.lineStyle({ width: pen.halo, color: PAPER_HEX, alpha: 0.6, cap: "round", join: "round" });
+		redraw(key, (layer) => {
+			const marks = layer.addChild(new PIXI.Graphics());
+			const pen = visitedMarkPen(g, look.style);
+			const strokes = hexes.flatMap((hex) => visitedMarkStrokes(g, hex, look.style));
+			// The paper goes down under every mark first, so one hex's halo never covers its neighbour's line.
+			if (pen.halo) {
+				marks.lineStyle({ width: pen.halo, color: PAPER_HEX, alpha: 0.6, cap: "round", join: "round" });
+				drawStrokes(marks, strokes);
+			}
+			marks.lineStyle({ width: pen.width, color: colourNumber(look.colour), alpha: pen.alpha, cap: "round", join: "round" });
 			drawStrokes(marks, strokes);
-		}
-		marks.lineStyle({ width: pen.width, color: colourNumber(look.colour), alpha: pen.alpha, cap: "round", join: "round" });
-		drawStrokes(marks, strokes);
+		});
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't mark the hexes the Company has been to`, error);
 	}
