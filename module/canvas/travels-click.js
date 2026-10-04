@@ -1,14 +1,14 @@
 import { t } from "../chat/cards.js";
 import { hexOpenable } from "../actions/hex-shared.js";
 import { isDrawingRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { openTravelsHex } from "../apps/TravelsHex.js";
+import { openPlaces } from "../apps/TravelsPlaces.js";
 import { hexAt } from "../rules/realm-geometry.js";
 import { onBoard } from "./board.js";
 import { takingMapClick } from "./map-click.js";
 
 /**
- * A double-click on open ground of a Realm opens what the Company knows of
- * the hex under it. Foundry does nothing with a double-click there on the
+ * A double-click on open ground of a Realm opens the Company's places with
+ * the hex under it chosen. Foundry does nothing with a double-click there on the
  * Token layer, so players can stay on the Token tools; a double-click on a
  * Token still opens its sheet, and every other layer keeps its own.
  */
@@ -51,7 +51,7 @@ export function onTravelsDoubleClick(event) {
 		ui.notifications.info(t("travels.notVisited", { hex: t("realm.hex", hex) }));
 		return null;
 	}
-	return openTravelsHex({ scene, hex });
+	return openPlaces({ sceneId: scene.id, hex });
 }
 
 /** Called during init. */

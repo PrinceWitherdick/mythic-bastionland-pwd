@@ -1,9 +1,8 @@
-{{!-- One hex as the Company knows it. Nothing here comes from the GM's own notes. --}}
-<div class="bastionland-page bastionland-hex-lore bastionland-travels-hex">
-	{{#if missing}}
-	<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.noRealm"}}</p>
+{{!-- One hex as the Company knows it, beside the Places window's list. Nothing here comes from the GM's own notes. --}}
+<aside class="bastionland-travels-detail bastionland-hex-lore bastionland-travels-hex" aria-live="polite">
+	{{#if empty}}
+	<p class="bastionland-hint bastionland-travels-detail__empty">{{localize "bastionland.travels.detail.empty"}}</p>
 	{{else}}
-	{{#if asPlayers}}<p class="bastionland-travels__banner">{{localize "bastionland.travels.asPlayers"}}</p>{{/if}}
 	<div class="bastionland-travels-hex__head">
 		<h2 class="bastionland-hex-lore__heading">{{title}}</h2>
 		{{#if openable}}{{#if here}}<span class="bastionland-hex-lore__feature bastionland-pill bastionland-travels__here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}{{/if}}
@@ -20,7 +19,7 @@
 	<div class="bastionland-hex-lore__row bastionland-travels-hex__visits">
 		<span class="bastionland-hex-lore__hint">{{visits}}</span>
 		{{#if onMap}}
-		<button type="button" data-action="showOnMap"><i class="fa-solid fa-location-crosshairs" inert></i> {{localize "bastionland.travels.showOnMap"}}</button>
+		<button type="button" data-action="showTravelsHex" data-hex="{{hex}}"><i class="fa-solid fa-location-crosshairs" inert></i> {{localize "bastionland.travels.showOnMap"}}</button>
 		{{/if}}
 	</div>
 
@@ -42,9 +41,9 @@
 	</ul>
 
 	<div class="form-group bastionland-hex-lore__note bastionland-travels-hex__party">
-		<label for="{{partId}}-party">{{localize "bastionland.travels.party.heading"}}</label>
+		<label for="{{@root.partId}}-party">{{localize "bastionland.travels.party.heading"}}</label>
 		<div class="form-fields">
-			<textarea id="{{partId}}-party" name="party" rows="4" maxlength="2000" placeholder="{{localize "bastionland.travels.party.placeholder"}}" {{#unless canWrite}}readonly{{/unless}}>{{party}}</textarea>
+			<textarea id="{{@root.partId}}-party" name="party" data-hex="{{hex}}" rows="4" maxlength="2000" placeholder="{{localize "bastionland.travels.party.placeholder"}}" {{#unless canWrite}}readonly{{/unless}}>{{party}}</textarea>
 		</div>
 		{{#if partyBy}}<p class="bastionland-hint">{{partyBy}}</p>{{/if}}
 		{{#if noGM}}<p class="bastionland-hint">{{localize "bastionland.travels.party.offline"}}</p>{{/if}}
@@ -53,4 +52,4 @@
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.notKnown"}}</p>
 	{{/if}}
 	{{/if}}
-</div>
+</aside>

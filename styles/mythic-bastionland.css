@@ -138,7 +138,6 @@
 .bastionland-realm-appearance-window .window-content,
 .bastionland-hex-lore-window .window-content,
 .bastionland-book-flip-window .window-content,
-.bastionland-travels-hex-window .window-content,
 .bastionland-travels-window .window-content,
 .bastionland-realm-panel-window .window-content,
 .bastionland-portrait-frame-window .window-content {
@@ -4633,6 +4632,23 @@ a.button:focus:not(:focus-visible) {
 	text-overflow: ellipsis;
 }
 
+/* What the players were told of the hex, and their own note, on a line of
+   their own under what stands there, each line cut short where it runs long. */
+.bastionland-hex-readout.has-notes {
+	border-radius: 0.7rem;
+}
+
+.bastionland-hex-readout > span {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.bastionland-hex-readout__notes {
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+}
+
 /*
  * Travel and Exploration down the sides of the screen while a Realm Scene is
  * up, as the Blank Realm sheet prints them beside its map. They're furniture
@@ -6252,8 +6268,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* ---------------------------------------------------------------- */
-/* The Company's places (module/apps/TravelsPlaces.js, TravelsHex.js, */
-/* and the Knight sheet's Travels page)                             */
+/* The Company's places (module/apps/TravelsPlaces.js, and the      */
+/* Knight sheet's Travels page)                                     */
 /* ---------------------------------------------------------------- */
 
 /* A GM sees the players' pages as the players do, and is told so. */
@@ -6267,9 +6283,58 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-style: italic;
 }
 
-.bastionland-travels-places {
-	gap: 0.5rem;
+/* The Places window: the list, chart or journey on the left and the hex
+   chosen on the right, each scrolling on its own. Narrowed, the hex drops
+   under the list and the whole page scrolls instead. */
+.bastionland-travels-window .window-content {
+	container-type: inline-size;
+	overflow-y: auto;
+}
+
+.bastionland-page.bastionland-travels-places {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+	gap: 0;
+	height: 100%;
+	padding: 0;
+	overflow: hidden;
+}
+
+.bastionland-travels-places__main {
+	min-height: 0;
 	padding: 0.5rem 0.75rem 0.75rem;
+	overflow-y: auto;
+}
+
+.bastionland-travels-places .bastionland-travels-detail {
+	min-height: 0;
+	padding: 0.6rem 0.75rem 0.75rem;
+	border-left: 1px solid var(--bastionland-rule);
+	background: rgb(0 0 0 / 3%);
+	overflow-y: auto;
+}
+
+.bastionland-travels-detail__empty {
+	margin: 0;
+	font-style: italic;
+}
+
+@container (max-width: 40rem) {
+	.bastionland-page.bastionland-travels-places {
+		grid-template-columns: minmax(0, 1fr);
+		height: auto;
+		overflow: visible;
+	}
+
+	.bastionland-travels-places__main,
+	.bastionland-travels-places .bastionland-travels-detail {
+		overflow: visible;
+	}
+
+	.bastionland-travels-places .bastionland-travels-detail {
+		border-top: 1px solid var(--bastionland-rule);
+		border-left: none;
+	}
 }
 
 .bastionland-travels {
@@ -6469,11 +6534,284 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;
+	margin-bottom: 0.45rem;
+}
+
+/* The header carries the heading's bottom margin, so the button centres on the words. */
+.bastionland-travels-tab__head .bastionland-heading {
+	margin: 0;
 }
 
 .bastionland-travels-tab__head button {
 	flex: 0 0 auto;
 	width: auto;
+}
+
+/* The pages, Places, Chart and Journey, as tabs, with the count at the right. */
+.bastionland-travels__views {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-page .bastionland-travels__view-tab {
+	flex: 0 0 auto;
+	width: auto;
+	height: auto;
+	margin-bottom: -1px;
+	padding: 0.3rem 0.75rem;
+	border: 1px solid transparent;
+	border-bottom: none;
+	border-radius: 4px 4px 0 0;
+	background: none;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+}
+
+.bastionland-page .bastionland-travels__view-tab:hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page .bastionland-travels__view-tab[aria-pressed="true"] {
+	border-color: var(--bastionland-rule);
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-weight: bold;
+}
+
+.bastionland-travels__summary {
+	margin-left: auto;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+/* What the places can be narrowed to, one at a time. */
+.bastionland-travels__filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.bastionland-page .bastionland-travels__filter {
+	--pill-pad: 0.34rem;
+	flex: 0 0 auto;
+	width: auto;
+	height: auto;
+	padding: var(--pill-padding-top, 0.1rem) 0.6rem var(--pill-padding-bottom, 0.1rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-page .bastionland-travels__filter:hover {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-page .bastionland-travels__filter[aria-pressed="true"] {
+	border-color: var(--bastionland-ink);
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-travels__view {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-travels__view[hidden],
+.bastionland-travels-journey__day[hidden],
+.bastionland-travels-journey__entry[hidden] {
+	display: none;
+}
+
+.bastionland-travels__sort {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	align-self: flex-end;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-travels__sort select {
+	width: auto;
+}
+
+/* The hex chosen, marked in the list as it is on the chart. */
+.bastionland-travels__row.is-selected {
+	border-left-color: var(--bastionland-blood);
+	background: rgb(0 0 0 / 4%);
+}
+
+/* The Company's own chart: the Realm ruled faintly, what they know drawn in. */
+.bastionland-travels-chart {
+	border: 1px solid var(--bastionland-rule);
+	line-height: 0;
+}
+
+.bastionland-travels-chart__svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 70vh;
+}
+
+.bastionland-travels-chart__place {
+	cursor: pointer;
+	outline: none;
+}
+
+.bastionland-travels-chart__place:hover .bastionland-travels-chart__hex {
+	stroke: var(--bastionland-blood);
+	stroke-opacity: 1;
+}
+
+.bastionland-travels-chart__place:focus-visible .bastionland-travels-chart__hex {
+	stroke: var(--bastionland-verdigris);
+	stroke-opacity: 1;
+	stroke-width: 4px;
+}
+
+/* A hex the search or the tag leaves out fades rather than goes, so the chart keeps its shape. */
+.bastionland-travels-chart__place.is-dimmed,
+.bastionland-travels-chart__afar.is-dimmed {
+	opacity: 0.25;
+}
+
+.bastionland-travels-chart__foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 0.5rem 1rem;
+}
+
+.bastionland-travels-chart__route-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-travels-chart__legend {
+	display: flex;
+	flex: 1 1 18rem;
+	flex-wrap: wrap;
+	gap: 0.2rem 0.8rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-travels-chart__legend li {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.bastionland-travels-chart__key {
+	flex: 0 0 auto;
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+/* The journey, the latest Season first, its days parted by a rule. */
+.bastionland-travels-journey__season {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-travels-journey__season .bastionland-heading {
+	margin: 0.35rem 0 0;
+}
+
+.bastionland-travels-journey__day {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin: 0;
+	padding: 0 0 0.35rem;
+	list-style: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+}
+
+.bastionland-travels-journey__day:last-child {
+	border-bottom: none;
+}
+
+.bastionland-travels-journey__entry {
+	display: grid;
+	grid-template-columns: 6rem minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0.5rem;
+}
+
+.bastionland-travels-journey__phase {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+}
+
+.bastionland-page .bastionland-travels-journey__open {
+	display: grid;
+	grid-template-columns: 1.2rem minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0 0.35rem;
+	width: auto;
+	height: auto;
+	padding: 0.1rem 0.2rem;
+	border: none;
+	background: none;
+	color: var(--bastionland-ink);
+	font-family: inherit;
+	font-size: 15px;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.bastionland-page .bastionland-travels-journey__open:hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels-journey__open > i {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+}
+
+.bastionland-travels-journey__open > :not(i) {
+	grid-column: 2;
+}
+
+.bastionland-travels-journey__entry--told .bastionland-travels-journey__open > i,
+.bastionland-travels-journey__entry--met .bastionland-travels-journey__open > i {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels-journey__note {
+	padding-left: 0.5rem;
+	border-left: 2px solid var(--bastionland-rule);
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
+	white-space: pre-wrap;
+}
+
+@container (max-width: 26rem) {
+	.bastionland-travels-journey__entry {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0;
+	}
 }
 
 /* ---------------------------------------------------------------- */

@@ -200,6 +200,20 @@ export const trimmedText = (value) => (typeof value === "string" ? value.trim() 
 export const searchable = (text) => String(text ?? "").normalize("NFD").replace(/\p{Mn}/gu, "").toLocaleLowerCase();
 
 /**
+ * Text cut short to fit a line, at a word where one ends near enough.
+ * @param {string} text
+ * @param {number} most The most characters to keep, the ellipsis among them.
+ * @returns {string} One line, its spaces run together, ending "…" where it was cut.
+ */
+export function clipText(text, most) {
+	const line = String(text ?? "").replace(/\s+/g, " ").trim();
+	if (line.length <= most) return line;
+	const cut = line.slice(0, Math.max(1, most - 1));
+	const space = cut.lastIndexOf(" ");
+	return `${(space > most * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "")}…`;
+}
+
+/**
  * @param {string} path A file's path or URL.
  * @returns {string} Its file name, unescaped: "our%20banner.png" is "our banner.png".
  */

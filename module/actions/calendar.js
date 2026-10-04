@@ -76,3 +76,13 @@ export function chronicleLabel(calendar) {
 export function ordinalLabel(n) {
 	return t(`time.ordinal.${new Intl.PluralRules(game.i18n.lang, { type: "ordinal" }).select(n)}`, { n });
 }
+
+/**
+ * The Season a moment fell in, as a heading names it.
+ * @param {import("../rules/time.js").Calendar} calendar
+ * @returns {string} Such as "Spring of the 2nd Age".
+ */
+export function seasonLabel(calendar) {
+	const { age, season } = normalizeCalendar(calendar);
+	return t("time.seasonOfAge", { season: t(`time.seasons.${season}`), age: ordinalLabel(age) });
+}

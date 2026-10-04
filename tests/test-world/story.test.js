@@ -113,13 +113,22 @@ vi.mock("../../module/actions/hex-lore.js", async () => {
 });
 
 vi.mock("../../module/actions/hex-shared.js", async () => {
-	const { setPartyNote } = await vi.importActual("../../module/rules/hex-shared.js");
+	const { recordBarrierMet, setPartyNote } = await vi.importActual("../../module/rules/hex-shared.js");
 	return {
 		keepPartyNote: vi.fn(async (_scene, hex, text, user) => {
 			world.shared = setPartyNote(world.shared, hex, { text, by: user.id, byName: user.name, when: { ...world.calendar }, at: Date.now() });
+		}),
+		recordBarriersMet: vi.fn(async (_scene, met, byName) => {
+			for (const { hex, edges } of met) {
+				for (const edge of edges) world.shared = recordBarrierMet(world.shared, hex, { edge, byName, when: { ...world.calendar }, at: Date.now() });
+			}
 		})
 	};
 });
+
+vi.mock("../../module/actions/sighted.js", () => ({
+	writeSightings: vi.fn(async (_scene, { set }) => { Object.assign(world.sighted, set); })
+}));
 
 vi.mock("../../module/actions/journey.js", () => ({
 	recordHexVisits: vi.fn(async (_scene, hexes) => { world.visits.push(...hexes.map((hex) => ({ hex, when: { ...world.calendar } }))); })
@@ -284,6 +293,7 @@ beforeEach(() => {
 		notes: {},
 		told: [],
 		shared: { version: 1, hexes: {} },
+		sighted: {},
 		actors: [],
 		journal: [],
 		folders: [],
@@ -455,6 +465,57 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		for (const [options] of tellPlayersAboutHex.mock.calls) expect(options.quiet).toBe(true);
 	});
 
+	it("tells the players more of some wayside hexes in a later Season, and the Company rewrites its note", async () => {
+		await populateTestWorld();
+		const byHex = Object.groupBy(world.told, ({ hex }) => hexKey(hex));
+		const retold = Object.entries(byHex).filter(([, told]) => new Set(told.map(({ note }) => note)).size > 1);
+		expect(retold.length).toBeGreaterThanOrEqual(3);
+		for (const [key, told] of retold) {
+			expect(told.at(-1).note).toBe(world.notes[key]);
+			expect(world.shared.hexes[key]?.party?.text).toBeTruthy();
+		}
+		// A Company's note can run to more than one line.
+		expect(Object.values(world.shared.hexes).some((record) => record.party?.text.includes("\n"))).toBe(true);
+	});
+
+	it("keeps the hidden Barriers the Company ran into, each with who found it", async () => {
+		const { recordBarriersMet } = await import("../../module/actions/hex-shared.js");
+		await populateTestWorld();
+		const walked = new Set(world.visits.map(({ hex }) => hexKey(hex)));
+		expect(recordBarriersMet).toHaveBeenCalled();
+		for (const [, met, byName] of recordBarriersMet.mock.calls) {
+			expect(byName).toBeTruthy();
+			for (const { hex, edges } of met) {
+				expect(walked.has(hexKey(hex))).toBe(true);
+				for (const edge of edges) expect(edge.split("|")).toContain(hexKey(hex));
+			}
+		}
+		const revealed = world.realm.barriers.filter((barrier) => barrier.revealed).map((barrier) => barrier.edge);
+		for (const [, met] of recordBarriersMet.mock.calls) for (const { edges } of met) for (const edge of edges) expect(revealed).toContain(edge);
+	});
+
+	it("marks only hidden things beside the end of the road as seen from afar", async () => {
+		const { neighbours } = await import("../../module/rules/realm-geometry.js");
+		const { hiddenThere } = await import("../../module/rules/sighted.js");
+		await populateTestWorld();
+		const [[, camp]] = setCompanyHex.mock.calls;
+		const near = new Set([camp, ...world.visits.slice(-4).map(({ hex }) => hex)]
+			.flatMap((hex) => neighbours(world.g, hex).map(({ hex: next }) => hexKey(next))));
+		expect(Object.keys(world.sighted).length).toBeGreaterThan(0);
+		for (const [key, mark] of Object.entries(world.sighted)) {
+			const [col, row] = key.split(",").map(Number);
+			expect(near.has(key)).toBe(true);
+			expect(hiddenThere(world.realm, { col, row }, () => ({}))).not.toBeNull();
+			expect(mark.note).toBeTruthy();
+		}
+	});
+
+	it("tells the players of a place heard of at Court before the Company goes there", async () => {
+		await populateTestWorld();
+		const dwelling = world.told.find(({ note }) => note?.includes("Said at Court"));
+		expect(dwelling?.when).toMatchObject({ age: 1, season: "spring" });
+	});
+
 	it("keeps what the players were told of the Seat as it was, though the GM's note has moved on", async () => {
 		await populateTestWorld();
 		const seat = world.realm.holdings.find((holding) => holding.seat);
@@ -466,7 +527,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 
 	it("has the players take turns writing the Company's notes on places they've been", async () => {
 		await populateTestWorld();
-		const notes = Object.entries(world.shared.hexes).map(([key, record]) => [key, record.party]);
+		const notes = Object.entries(world.shared.hexes).filter(([, record]) => record.party).map(([key, record]) => [key, record.party]);
 		expect(notes.length).toBeGreaterThanOrEqual(8);
 		expect(new Set(notes.map(([, party]) => party.byName))).toEqual(new Set(["Alys", "Bram"]));
 		for (const [, party] of notes) expect(party).toMatchObject({ text: expect.any(String), when: expect.objectContaining({ age: expect.any(Number) }) });
@@ -475,7 +536,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 	it("signs the Company's notes as the GM in a world with no players", async () => {
 		game.users = [game.user];
 		await populateTestWorld();
-		const names = Object.values(world.shared.hexes).map((record) => record.party.byName);
+		const names = Object.values(world.shared.hexes).filter((record) => record.party).map((record) => record.party.byName);
 		expect(names.length).toBeGreaterThan(0);
 		expect(new Set(names)).toEqual(new Set(["Gamemaster"]));
 	});

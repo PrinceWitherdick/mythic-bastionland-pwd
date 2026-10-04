@@ -1,3 +1,4 @@
+import { getHexSharedRecord } from "../actions/hex-shared.js";
 import { getHexVisits } from "../actions/journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { getSighted } from "../actions/sighted.js";
@@ -6,6 +7,7 @@ import { t } from "../chat/cards.js";
 import { hexSummary } from "../rules/realm.js";
 import { SIGHTED_FLAG, hiddenThere, sightedAt } from "../rules/sighted.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
+import { clipText } from "../rules/text.js";
 import { read } from "../client-settings.js";
 import { followMap, hotbarFloor, mapOnScreen, panelScreen } from "../apps/map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -33,6 +35,9 @@ let unfollow = null;
 
 /** Whether this browser names the hex under the pointer, kept here so a pointer move doesn't read the setting. */
 let readoutShown = true;
+
+/** The most of a telling or the Company's note the readout shows, in characters. */
+const NOTE_LENGTH = 70;
 
 /** How far below the map's foot the chip stands, and how far it keeps from the hotbar. */
 const GAP = 12;
@@ -147,6 +152,22 @@ export function describeHex(summary, { coordinates = false, sighted = null, visi
 	return text ? `${where} ${text}` : where;
 }
 
+/**
+ * What the players were told of a hex, and what they wrote of it, each cut
+ * short to fit, for the readout's second line. Everyone sees it: both are the
+ * players' already.
+ * @param {object} notes
+ * @param {string} [notes.told] The latest thing the Referee told the players of it.
+ * @param {string} [notes.party] The Company's own note on it.
+ * @returns {string} Empty where there is neither.
+ */
+export function describeHexNotes({ told = "", party = "" } = {}) {
+	return [
+		told && t("realm.readout.told", { note: clipText(told, NOTE_LENGTH) }),
+		party && t("realm.readout.party", { note: clipText(party, NOTE_LENGTH) })
+	].filter(Boolean).join(" · ");
+}
+
 /** Show the hex under the pointer on a Realm Scene. Called when the canvas is ready. */
 export function attachHexReadout() {
 	detachHexReadout();
@@ -201,8 +222,16 @@ export function updateHexReadout({ force = false } = {}) {
 	const sighted = marked && hiddenThere(entry.realm, hex, () => handHidden) ? sightedAt(getSighted(scene), hex) : null;
 	const visited = Boolean(getHexVisits(scene, hex));
 	const text = describeHex(summary, { coordinates: showsCoordinates(), sighted, visited });
-	chip.textContent = text;
-	chip.hidden = !text;
+	const record = getHexSharedRecord(scene, hex);
+	const notes = describeHexNotes({ told: record?.told?.at(-1)?.note, party: record?.party?.text });
+	chip.replaceChildren(...[text, notes].filter(Boolean).map((line, index) => {
+		const span = document.createElement("span");
+		span.className = index ? "bastionland-hex-readout__notes" : "bastionland-hex-readout__line";
+		span.textContent = line;
+		return span;
+	}));
+	chip.classList.toggle("has-notes", Boolean(notes));
+	chip.hidden = !text && !notes;
 	size = null;
 	placeChip();
 }

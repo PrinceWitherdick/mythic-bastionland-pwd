@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MINOR_WORDS, escapeHTML, joinLines, logicalLines, paragraphs, parentheticals, splitOutside, titleCase } from "../../module/rules/text.js";
+import { MINOR_WORDS, clipText, escapeHTML, joinLines, logicalLines, paragraphs, parentheticals, splitOutside, titleCase } from "../../module/rules/text.js";
 
 describe("joinLines", () => {
 	it("joins with a space, or keeps a hyphen that split a word", () => {
@@ -24,6 +24,23 @@ describe("logicalLines", () => {
 
 	it("starts a new line at each bullet, and tidies spacing", () => {
 		expect(logicalLines(["• Hums when", "nobody  listens.", "", "• Wants a quiet life."])).toEqual(["Hums when nobody listens.", "Wants a quiet life."]);
+	});
+});
+
+describe("clipText", () => {
+	it("keeps a short text whole, on one line", () => {
+		expect(clipText("  Old\n stones.  ", 20)).toBe("Old stones.");
+		expect(clipText(null, 20)).toBe("");
+	});
+
+	it("cuts a long one at a word, ending with an ellipsis, within the length", () => {
+		const clipped = clipText("Crows nest there, and the well runs dry by Harvest.", 30);
+		expect(clipped).toBe("Crows nest there, and the…");
+		expect(clipped.length).toBeLessThanOrEqual(30);
+	});
+
+	it("cuts mid-word where no word ends near enough", () => {
+		expect(clipText("Supercalifragilistic", 10)).toBe("Supercali…");
 	});
 });
 

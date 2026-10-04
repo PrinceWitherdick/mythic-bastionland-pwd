@@ -1,15 +1,31 @@
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
 import { ringShownHex } from "../canvas/shown-hex.js";
-import { hexCentre } from "../rules/realm-geometry.js";
+import { hexCentre, parseHexKey } from "../rules/realm-geometry.js";
+import { realmPalette } from "../rules/realm-skins.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { searchable } from "../rules/text.js";
-import { pickTravelsRealm, playerHexView, travelsList, viewSearchWords, viewWords } from "../rules/travels.js";
-import { calendarLabel } from "./calendar.js";
+import {
+	TRAVELS_FILTERS,
+	TRAVELS_SORTS,
+	TRAVELS_VIEWS,
+	holdingsKnown,
+	journeyLog,
+	hexViews,
+	pickTravelsRealm,
+	seasonYearsOn,
+	sortViews,
+	travelsList,
+	viewSearchWords,
+	viewTags,
+	viewWords
+} from "../rules/travels.js";
+import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/travels-chart.js";
+import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
 import { getHexShared, partyNoteBy } from "./hex-shared.js";
 import { getJourney } from "./journey.js";
-import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
+import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { getSighted } from "./sighted.js";
 import { keptFromMe, realmKnown } from "./solo.js";
 
@@ -67,27 +83,130 @@ export const barrierMetLines = (met) => (met ?? []).map(({ direction, byName, wh
  */
 export const toldLines = (told) => told.map(({ note, when }) => ({ note, when: when ? t("travels.told.when", { when: calendarLabel(when) }) : null }));
 
+/** The words each hex shows, worked out once for each view. */
+const wordsByView = new WeakMap();
+
+/**
+ * @param {import("../rules/travels.js").PlayerHexView} view
+ * @returns {ReturnType<typeof viewWords>} The words the hex shows the players.
+ */
+function wordsOf(view) {
+	if (!wordsByView.has(view)) wordsByView.set(view, viewWords(view, t));
+	return wordsByView.get(view);
+}
+
+/**
+ * @param {import("../rules/travels.js").PlayerHexView} view
+ * @returns {string} Everything a hex can be searched by, as one text.
+ */
+const searchText = (view) => searchable(viewSearchWords(view, wordsOf(view)).join(" "));
+
+/** @returns {string} A hex's terrain and features, in a line. */
+const aboutText = (words) => [words.terrain, ...words.features].filter(Boolean).join(", ");
+
+/** @returns {string} How often the Company has been to a hex, or how the players know of it. */
+const visitsLine = (view, words) => (view.visits ? visitsText(view.visits) : (words.sighted || t("travels.heardOf")));
+
 /**
  * One hex of the list, worded.
  * @param {import("../rules/travels.js").PlayerHexView} view
  * @param {boolean} onMap Whether the Realm is the one on the canvas, so the hex can be shown there.
+ * @param {string|null} selected The key of the hex chosen.
  * @returns {object}
  */
-function rowContext(view, onMap) {
-	const words = viewWords(view, t);
+function rowContext(view, onMap, selected) {
+	const words = wordsOf(view);
 	return {
 		key: view.key,
 		hex: view.key,
 		title: words.title,
 		terrain: words.terrain,
 		features: words.features.join(", "),
-		visits: view.visits ? visitsText(view.visits) : (words.sighted || t("travels.heardOf")),
+		visits: visitsLine(view, words),
 		here: view.here,
 		told: view.told.length > 0,
 		noted: Boolean(view.party),
+		selected: view.key === selected,
 		onMap,
-		search: searchable(viewSearchWords(view, words).join(" "))
+		tags: viewTags(view).join(" "),
+		search: searchText(view)
 	};
+}
+
+/**
+ * @param {import("../rules/travels.js").PlayerHexView} view
+ * @returns {string} What a hex of the chart is, for its button and tooltip.
+ */
+function chartLabel(view) {
+	const words = wordsOf(view);
+	return [words.title, aboutText(words), visitsLine(view, words)].filter(Boolean).join(" — ");
+}
+
+/**
+ * One line of the journey log, worded.
+ * @param {import("../rules/travels.js").JourneyEntry} entry
+ * @returns {object}
+ */
+function journeyEntryContext(entry) {
+	const { view } = entry;
+	const words = wordsOf(view);
+	const place = words.title;
+	const about = aboutText(words);
+	const name = entry.byName || t("travels.party.someone");
+	const said = {
+		arrived: () => t(entry.first ? "travels.journey.arrivedFirst" : "travels.journey.arrived", { place }),
+		told: () => t("travels.journey.told", { place }),
+		met: () => t("travels.journey.met", { place, name, direction: t(`realm.directions.${entry.direction}`) }),
+		noted: () => t("travels.journey.noted", { place, name })
+	}[entry.kind]();
+	return {
+		kind: entry.kind,
+		icon: { arrived: entry.first ? "fa-solid fa-flag" : "fa-solid fa-shoe-prints", told: "fa-solid fa-comment", met: "fa-solid fa-road-barrier", noted: "fa-solid fa-pen-nib" }[entry.kind],
+		hex: view.key,
+		phase: entry.when ? t(`time.phases.${entry.when.phase}`) : "",
+		said,
+		// What the hex is, the first time the Company comes into it.
+		about: entry.kind === "arrived" && entry.first ? about : "",
+		note: entry.kind === "told" ? entry.note : "",
+		tags: viewTags(view).join(" "),
+		search: searchable([said, about, entry.note ?? "", searchText(view)].join(" "))
+	};
+}
+
+/**
+ * @param {import("../rules/travels.js").JourneySeason[]} log
+ * @returns {object[]} The journey log, worded: a heading for each Season, and its days.
+ */
+function journeyContext(log) {
+	const yearsOn = seasonYearsOn(log);
+	return log.map((season, index) => ({
+		heading: season.when ? seasonHeading(season.when, yearsOn[index]) : t("travels.journey.undated"),
+		days: season.days.map((day) => ({ entries: day.entries.map(journeyEntryContext) }))
+	}));
+}
+
+/**
+ * @param {import("../rules/time.js").Calendar} when
+ * @param {number} on Years on from the log's first Season of that name, from seasonYearsOn.
+ * @returns {string} Such as "Spring of the 2nd Age", or "Spring of the 2nd Age, a Year On".
+ */
+function seasonHeading(when, on) {
+	const label = seasonLabel(when);
+	if (on < 1) return label;
+	return t(on === 1 ? "travels.journey.yearOn" : "travels.journey.yearsOn", { season: label, n: on });
+}
+
+/**
+ * The hex a page opens with chosen: the one asked for while the players may
+ * open it, else where the Company stands, else the last it reached.
+ * @param {import("../rules/travels.js").PlayerHexView[]} views
+ * @param {string|null} asked
+ * @returns {string|null}
+ */
+function chosenHex(views, asked) {
+	const open = new Set(views.map((view) => view.key));
+	if (asked && open.has(asked)) return asked;
+	return views.find((view) => view.here && view.openable)?.key ?? views.find((view) => view.visits)?.key ?? null;
 }
 
 /**
@@ -116,47 +235,100 @@ export function travelsRealmChoice(chosen = null) {
 }
 
 /**
+ * How the players' record is being looked at: which page, how the places are
+ * narrowed and put in order, and which hex is chosen.
+ * @typedef {object} TravelsLook
+ * @property {string} [view]     One of TRAVELS_VIEWS.
+ * @property {string} [filter]   One of TRAVELS_FILTERS, or "" for every place.
+ * @property {string} [sort]     One of TRAVELS_SORTS.
+ * @property {string|null} [selected] The key of the hex chosen.
+ * @property {boolean} [route]   Whether the chart draws the way the Company went.
+ * @property {boolean} [detail]  Whether the page shows the chosen hex beside its list.
+ */
+
+/**
  * Everything the list of places shows for a Realm.
  * @param {string|null} [chosen] The Realm last chosen.
+ * @param {TravelsLook} [look]
  * @returns {object}
  */
-export function travelsListContext(chosen = null) {
+export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], filter = "", sort = TRAVELS_SORTS[0], selected = null, route = false, detail = false } = {}) {
 	const { scenes, scene } = travelsRealmChoice(chosen);
 	const sources = travelsSources(scene);
 	if (!sources) return { realms: scenes, noRealm: true };
-	const list = travelsList(sources);
+	const viewOf = hexViews(sources);
+	const list = travelsList(sources, viewOf);
 	const onMap = canvas?.scene?.id === scene.id;
+	const every = [...list.visited, ...list.heardOf];
+	const picked = chosenHex(every, selected);
+	const by = TRAVELS_SORTS.includes(sort) ? sort : TRAVELS_SORTS[0];
+	const title = (one) => wordsOf(one).title;
+	const rows = (views) => sortViews(views, by, title).map((one) => rowContext(one, onMap, picked));
+	const shown = TRAVELS_VIEWS.includes(view) ? view : TRAVELS_VIEWS[0];
+	const narrowed = TRAVELS_FILTERS.includes(filter) ? filter : "";
+	const log = journeyContext(journeyLog(sources, viewOf));
+	const palette = realmPalette(getRealmLook(scene).palette);
 	return {
 		realms: scenes,
 		chooseRealm: scenes.length > 1,
 		sceneId: scene.id,
 		summary: t("travels.summary", { count: list.count, total: list.total }),
-		visited: list.visited.map((view) => rowContext(view, onMap)),
-		heardOf: list.heardOf.map((view) => rowContext(view, onMap)),
-		none: !list.visited.length && !list.heardOf.length,
+		views: TRAVELS_VIEWS.map((key) => ({ key, label: t(`travels.views.${key}`), shown: key === shown })),
+		viewShown: Object.fromEntries(TRAVELS_VIEWS.map((key) => [key, key === shown])),
+		filters: [{ key: "", label: t("travels.filters.all") }, ...TRAVELS_FILTERS.map((key) => ({ key, label: t(`travels.filters.${key}`) }))]
+			.map((one) => ({ ...one, pressed: one.key === narrowed })),
+		sorts: TRAVELS_SORTS.map((key) => ({ key, label: t(`travels.sort.${key}`), selected: key === by })),
+		ofNote: rows(list.ofNote),
+		wilderness: rows(list.wilderness),
+		heardOf: rows(list.heardOf),
+		chart: travelsChart(every, sources.g, {
+			palette,
+			title: t("travels.chart.title"),
+			label: chartLabel,
+			selected: picked,
+			route: route ? routeOf(sources.journey) : null,
+			holdings: holdingsKnown(sources, new Set(every.map((one) => one.key)), viewOf)
+		}),
+		route,
+		legend: LEGEND_KINDS.map((kind) => ({ glyph: legendGlyph(kind, palette), label: t(`travels.chart.key.${kind}`) })),
+		journey: log,
+		journeyNone: !log.length,
+		selected: picked,
+		detail: detail ? (picked ? hexDetail(viewOf(parseHexKey(picked)), onMap) : { empty: true }) : null,
+		none: !every.length,
 		// A GM outside solo play sees the page as the players do, and is told so.
 		asPlayers: Boolean(game.user?.isGM) && !keptFromMe()
 	};
 }
 
 /**
- * Everything one hex's window shows.
- * @param {Scene} scene
- * @param {{col: number, row: number}} hex
+ * The chosen hex's detail alone, for a pick that leaves the rest of the page as drawn.
+ * @param {string|null} sceneId The Realm shown.
+ * @param {string} key The hex chosen.
+ * @returns {object|null} Null where the Realm or the hex can't be read.
+ */
+export function travelsHexDetail(sceneId, key) {
+	const scene = sceneId ? game.scenes?.get(sceneId) : null;
+	const sources = scene ? travelsSources(scene) : null;
+	const hex = parseHexKey(key);
+	if (!sources || !hex) return null;
+	return hexDetail(hexViews(sources)(hex), canvas?.scene?.id === scene.id);
+}
+
+/**
+ * Everything the chosen hex shows beside the list.
+ * @param {import("../rules/travels.js").PlayerHexView} view
+ * @param {boolean} onMap Whether the Realm is the one on the canvas.
  * @returns {object}
  */
-export function travelsHexContext(scene, hex) {
-	const sources = travelsSources(scene);
-	if (!sources) return { missing: true };
-	const view = playerHexView(sources, hex);
-	const words = viewWords(view, t);
+function hexDetail(view, onMap) {
+	const words = wordsOf(view);
 	return {
 		hex: view.key,
 		title: words.title,
 		terrain: words.terrain,
 		features: words.features,
 		visits: visitsText(view.visits),
-		visited: Boolean(view.visits),
 		here: view.here,
 		sighted: words.sighted,
 		met: barrierMetLines(view.met),
@@ -167,8 +339,7 @@ export function travelsHexContext(scene, hex) {
 		// A player's note goes through a GM, so with none here the box waits.
 		canWrite: view.openable && (Boolean(game.user?.isGM) || Boolean(game.users?.activeGM)),
 		noGM: !game.user?.isGM && !game.users?.activeGM,
-		onMap: canvas?.scene?.id === scene.id,
-		asPlayers: Boolean(game.user?.isGM) && !keptFromMe()
+		onMap
 	};
 }
 

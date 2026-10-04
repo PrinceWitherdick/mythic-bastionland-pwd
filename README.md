@@ -73,13 +73,19 @@ When a new world's GM closes the Welcome window, a short Foundry Tour points the
 
 Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there. The first time the Company rests in a Wilderness hex with nothing kept in it, its land and one feature are rolled on the Nature tables and kept, so it's the same place when they come back (the **Roll a new hex's land** setting turns this off).
 
-Players keep their own record of the Realm. A dashed line marks every hex the Company has been to, and anyone can hide the marks for themselves with the footprints among the Token tools or on the Settings page. Double-click a hex, or open **Places** from the Token tools, the players' hotbar or the Knight sheet's **Travels** page, to see what the Company knows of it:
+Players keep their own record of the Realm. A dashed line marks every hex the Company has been to, and anyone can hide the marks for themselves with the footprints among the Token tools or on the Settings page. Open **Places** from the Token tools, the players' hotbar or the Knight sheet's **Travels** page, or double-click a hex to open it with that hex chosen. It shows the record three ways:
+
+- **Places:** a list, with the places of note above the plain wilderness and the hexes only heard of after them. Sort it by when each place was last reached, by name or by visits.
+- **Chart:** the Company's own map. Only the hexes it knows are drawn in, with marks for the Holdings, Myths and Landmarks found and the Barriers met, and it can draw the way the Company went.
+- **Journey:** a log by Season and day of each hex come into, each thing told and each Barrier met.
+
+Search and the filters (Holdings, Landmarks, Myths, Told, Noted, Not Visited) narrow all three. The hex chosen shows beside them:
 
 - what stands there that they've found, and when they were there
 - what the GM told them with **Tell the players**, kept as it was said
 - a note any player can write for the whole table (a GM has to be online to save it)
 
-Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
+Pointing at a hex on the map also shows the latest thing told of it and the Company's note. Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
 
 Each hex the GM rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has three pages:
 

@@ -26,7 +26,7 @@ import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { travelsListContext } from "../actions/travels.js";
-import { openPlaces, openTravelsRow, showTravelsRow, wireTravelsList } from "../apps/TravelsPlaces.js";
+import { openPlaces, openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
 import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
@@ -78,9 +78,9 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
-			openTravelsHex: openTravelsRow,
+			pickTravelsHex: openTravelsRow,
 			showTravelsHex: showTravelsRow,
-			openPlaces: () => openPlaces()
+			openPlaces: KnightSheet.#onOpenPlaces
 		}
 	};
 
@@ -249,11 +249,19 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 	#travelsContext(tabs) {
 		if (!tabs?.travels) return null;
 		this.#travelsStale = this.tabGroups.primary !== "travels";
-		return this.#travelsStale ? null : travelsListContext(this.#travels.realm);
+		return this.#travelsStale ? null : travelsListContext(this.#travels.realm, this.#travels);
 	}
 
-	/** @type {import("../apps/TravelsPlaces.js").TravelsListState} The Travels page's Realm and search, kept between draws. */
-	#travels = { realm: null, search: "" };
+	/** @type {import("../apps/TravelsPlaces.js").TravelsListState} The Travels page's Realm, search, page and order, kept between draws. */
+	#travels = travelsState();
+
+	/**
+	 * Open the Places window on the Realm the Travels page shows.
+	 * @this {KnightSheet}
+	 */
+	static #onOpenPlaces() {
+		openPlaces({ sceneId: this.#travels.realm ?? undefined });
+	}
 
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;

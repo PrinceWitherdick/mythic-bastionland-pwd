@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { emptyShared, recordTold, setPartyNote } from "../../module/rules/hex-shared.js";
+import { emptyShared, recordBarrierMet, recordTold, setPartyNote } from "../../module/rules/hex-shared.js";
 import { emptyJourney, recordVisits } from "../../module/rules/journey.js";
 import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
-import { hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { edgeKey, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { sightedMarks } from "../../module/rules/sighted.js";
 import {
+	journeyLog,
+	ofNote,
 	openableHex,
 	pickTravelsRealm,
 	playerHexView,
+	seasonYearsOn,
+	sortViews,
 	travelsList,
 	viewSearchWords,
+	viewTags,
 	viewWords,
 	visitedMarkHexes
 } from "../../module/rules/travels.js";
@@ -121,6 +126,104 @@ describe("travelsList", () => {
 	});
 });
 
+describe("viewTags and ofNote", () => {
+	it("tags what the players know a hex holds, and nothing kept from them", () => {
+		const s = sources();
+		expect(viewTags(playerHexView(s, town))).toEqual(["holding"]);
+		expect(viewTags(playerHexView(s, wild))).toEqual(["landmark", "here"]);
+		expect(viewTags(playerHexView(s, ruin))).toEqual(["told"]);
+		expect(viewTags(playerHexView(s, mythHex))).toEqual([]);
+		expect(viewTags(playerHexView(s, hiddenTown))).toEqual([]);
+		expect(viewTags(playerHexView(s, hex(9, 9)))).toEqual(["noted", "heardOf"]);
+		expect(viewTags(playerHexView(s, seen))).toEqual(["sighted", "heardOf"]);
+	});
+
+	it("counts a hex of note for anything beyond its terrain, but not for being stood in", () => {
+		const s = sources();
+		expect(ofNote(playerHexView(s, town))).toBe(true);
+		expect(ofNote(playerHexView(s, mythHex))).toBe(false);
+		s.companyHex = mythHex;
+		expect(ofNote(playerHexView(s, mythHex))).toBe(false);
+	});
+
+	it("tags a Barrier run into from a hex", () => {
+		const s = sources();
+		s.shared = recordBarrierMet(s.shared, mythHex, { edge: edgeKey(mythHex, hex(4, 5)), byName: "Ada", at: 4 });
+		expect(viewTags(playerHexView(s, mythHex))).toEqual(["barrier"]);
+		expect(ofNote(playerHexView(s, mythHex))).toBe(true);
+	});
+});
+
+describe("travelsList groups", () => {
+	it("splits the visited between places of note and plain wilderness, each last reached first", () => {
+		const list = travelsList(sources());
+		expect(list.ofNote.map((view) => view.key)).toEqual(["5,5", "3,3", "2,2"]);
+		expect(list.wilderness.map((view) => view.key)).toEqual(["7,7", "4,4"]);
+	});
+});
+
+describe("sortViews", () => {
+	it("keeps the last reached first, or puts them by name, or the most visited first", () => {
+		const s = sources();
+		s.journey = recordVisits(s.journey, [town], when(3));
+		const views = travelsList(s).visited;
+		expect(sortViews(views, "last").map((view) => view.key)).toEqual(["2,2", "7,7", "5,5", "4,4", "3,3"]);
+		const names = { "2,2": "Ashford", "3,3": "b", "4,4": "Hex 10", "5,5": "Bog", "7,7": "Hex 9" };
+		expect(sortViews(views, "name", (view) => names[view.key]).map((view) => view.key)).toEqual(["2,2", "3,3", "5,5", "7,7", "4,4"]);
+		expect(sortViews(views, "most").map((view) => view.key)).toEqual(["2,2", "7,7", "5,5", "4,4", "3,3"]);
+		expect(views.map((view) => view.key)).toEqual(["2,2", "7,7", "5,5", "4,4", "3,3"]);
+	});
+});
+
+describe("journeyLog", () => {
+	const keysOf = (day) => day.entries.map((entry) => `${entry.kind}:${entry.view.key}`);
+
+	it("gathers the arrivals by Season and day, the latest day first, each in the order it went", () => {
+		const log = journeyLog(sources());
+		expect(log).toHaveLength(2);
+		expect(log[0].when).toMatchObject({ season: "spring" });
+		expect(log[0].days.map(keysOf)).toEqual([
+			["arrived:5,5", "arrived:7,7"],
+			["arrived:2,2", "arrived:3,3", "arrived:4,4"]
+		]);
+	});
+
+	it("puts what was kept with no date last, as it was written", () => {
+		const undated = journeyLog(sources()).at(-1);
+		expect(undated.when).toBeNull();
+		expect(undated.days.map(keysOf)).toEqual([["told:3,3", "told:3,3", "noted:9,9"]]);
+		expect(undated.days[0].entries.map((entry) => entry.note ?? entry.byName)).toEqual(["Old stones.", "Crows nest there.", "Ada"]);
+	});
+
+	it("marks only a hex's first arrival as the first", () => {
+		const s = sources();
+		s.journey = recordVisits(s.journey, [town], when(3));
+		const [latest] = journeyLog(s)[0].days;
+		expect(latest.entries).toMatchObject([{ kind: "arrived", first: false, view: { key: "2,2" } }]);
+		expect(journeyLog(s)[0].days[2].entries[0]).toMatchObject({ kind: "arrived", first: true, view: { key: "2,2" } });
+	});
+
+	it("follows the arrivals of a day with its tellings and Barriers met, by Phase", () => {
+		const s = sources();
+		s.shared = recordTold(s.shared, wild, { id: "t3", note: "Teeth in the mud.", when: when(2), at: 5 });
+		s.shared = recordBarrierMet(s.shared, wild, { edge: edgeKey(wild, hex(5, 6)), byName: "Ada", when: { ...when(2), phase: "afternoon" }, at: 6 });
+		s.journey = recordVisits(s.journey, [hex(5, 6)], { ...when(2), phase: "night" });
+		const [day] = journeyLog(s)[0].days;
+		expect(keysOf(day)).toEqual(["arrived:5,5", "arrived:7,7", "told:5,5", "met:5,5", "arrived:5,6"]);
+		expect(day.entries[3]).toMatchObject({ direction: "south", byName: "Ada" });
+	});
+
+	it("carries no secret of the Realm", () => {
+		const text = JSON.stringify(journeyLog(sources()));
+		for (const secret of [SECRET_LANDMARK, "Second secret", SECRET_HOLDING, LORE_NOTE]) expect(text).not.toContain(secret);
+		expect(text).toContain("Bog of Teeth");
+	});
+
+	it("is empty for a Company that hasn't set out", () => {
+		expect(journeyLog({ ...sources(), journey: emptyJourney(), shared: emptyShared() })).toEqual([]);
+	});
+});
+
 describe("viewWords", () => {
 	const t = (key, data) => (data ? `${key}${JSON.stringify(data)}` : key);
 
@@ -155,5 +258,14 @@ describe("pickTravelsRealm", () => {
 		expect(pickTravelsRealm(realms.slice(0, 1))).toBe("a");
 		expect(pickTravelsRealm([{ id: "z" }])).toBe("z");
 		expect(pickTravelsRealm([])).toBeNull();
+	});
+});
+
+describe("seasonYearsOn", () => {
+	it("counts the years from the log's first Season of the same name and Age", () => {
+		const at = (age, year, season) => ({ when: { age, year, season, day: 1, phase: "morning" }, days: [] });
+		const log = [at(2, 4, "spring"), at(2, 3, "winter"), at(2, 3, "spring"), at(1, 2, "spring"), { when: null, days: [] }];
+		expect(seasonYearsOn(log)).toEqual([1, 0, 0, 0, 0]);
+		expect(seasonYearsOn([at(1, 1, "summer"), at(1, 3, "summer")])).toEqual([0, 2]);
 	});
 });

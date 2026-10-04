@@ -976,8 +976,6 @@
     },
     "travels": {
       "title": "Places",
-      "intro": "The hexes the Company has been to, the last reached first, and the ones it has only heard of. Open one for what the Company knows of it, and write your own note there for everyone at the table.",
-      "hexTitle": "Places: {hex}",
       "asPlayers": "As the players see it: nothing they haven’t found, and none of your own notes.",
       "realm": "Realm",
       "search": "Search the places",
@@ -991,10 +989,65 @@
       "here": "The Company is here",
       "showOnMap": "Show on the map",
       "openPlaces": "Open Places",
+      "views": {
+        "label": "Pages",
+        "places": "Places",
+        "chart": "Chart",
+        "journey": "Journey"
+      },
+      "filters": {
+        "label": "Show only",
+        "all": "All",
+        "holding": "Holdings",
+        "landmark": "Landmarks",
+        "myth": "Myths",
+        "told": "Told",
+        "noted": "Noted",
+        "heardOf": "Not Visited"
+      },
+      "sort": {
+        "label": "Order",
+        "last": "Last reached first",
+        "name": "By name",
+        "most": "Most visited first"
+      },
       "sections": {
-        "visited": "Visited",
+        "ofNote": "Places of Note",
+        "ofNoteHint": "Where the Company found something, was told something or wrote a note.",
+        "wilderness": "Wilderness",
         "heardOf": "Heard Of",
         "heardOfHint": "Told of, written about or seen from afar, but not reached yet."
+      },
+      "chart": {
+        "title": "The Company’s chart of the Realm",
+        "route": "Show the way the Company went",
+        "legend": "Key to the chart",
+        "key": {
+          "visited": "Visited",
+          "heardOf": "Not visited",
+          "holding": "Holding",
+          "seat": "Seat of Power",
+          "myth": "Myth",
+          "landmark": "Landmark",
+          "told": "Told",
+          "noted": "Company’s note",
+          "company": "The Company",
+          "barrier": "Barrier"
+        }
+      },
+      "journey": {
+        "none": "The Company hasn’t set out on this Realm yet.",
+        "undated": "Before the Calendar Was Kept",
+        "yearOn": "{season}, a Year On",
+        "yearsOn": "{season}, {n} Years On",
+        "arrivedFirst": "Came to {place} for the first time",
+        "arrived": "Came back to {place}",
+        "told": "The Referee told of {place}",
+        "met": "{name} was turned back by the {direction} Barrier of {place}",
+        "noted": "{name} wrote the Company’s note on {place}"
+      },
+      "detail": {
+        "empty": "Choose a hex in the list, on the chart or in the journey to see what the Company knows of it."
       },
       "chips": {
         "told": "Told",
@@ -1128,6 +1181,7 @@
       "title": "Time",
       "now": "Age {age}, {season}, {phase}",
       "chronicle": "{phase}, in the {season} of the {age} Age.",
+      "seasonOfAge": "{season} of the {age} Age",
       "banner": {
         "age": "{age} Age",
         "moves": "Move Time On",
@@ -3500,6 +3554,8 @@
         "barrier": "Barrier: {direction}",
         "coordinates": "({col}, {row})",
         "visited": "visited",
+        "told": "Told: “{note}”",
+        "party": "Company’s note: “{note}”",
         "settings": {
           "coordinates": {
             "name": "Show hex column and row",

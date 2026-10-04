@@ -22,7 +22,7 @@ import { linkKnightDomain, settleDomains, worldDomains } from "../actions/domini
 import { adjustGlory } from "../actions/glory.js";
 import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
-import { keepPartyNote } from "../actions/hex-shared.js";
+import { keepPartyNote, recordBarriersMet } from "../actions/hex-shared.js";
 import { recordHexVisits } from "../actions/journey.js";
 import { fillKnightFromBook, rollKnightTable } from "../actions/knight-tables.js";
 import { echoRuin } from "../actions/landmarks.js";
@@ -36,6 +36,7 @@ import { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } from "../acti
 import { endTheSession } from "../actions/session-end.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
+import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
@@ -59,6 +60,7 @@ import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { completedMythId, crisisRollsDue } from "../rules/season-log.js";
 import { hexKey } from "../rules/realm-geometry.js";
+import { sightable } from "../rules/sighted.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
 import { HARDSHIPS, PHASES, nextAge, nextSeason, seasonKey } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
@@ -177,23 +179,53 @@ const SQUIRE_NAME = "Hugh Fenwick";
  * What the GM wrote about open country the Company passed through, in the
  * order the road reaches it: whether the hex's Wilderness tables were rolled
  * (p22), another Spark Table rolled there, whether the players were told, and
- * the Company's own note on it.
+ * the Company's own note on it. A `later` note is what the GM learns of the
+ * place before the Season is out, told to the players then as a second
+ * telling, with the Company's note rewritten to `laterParty` where there's one.
+ * The last few hexes of open country are left as plain wilderness.
  */
 const WAYSIDE = Object.freeze([
-	{ note: "A shepherd's bothy, empty, with the fire still warm. Whoever left, left in a hurry.", wild: true, tell: true },
+	{
+		note: "A shepherd's bothy, empty, with the fire still warm. Whoever left, left in a hurry.", wild: true, tell: true,
+		later: "The shepherd's bothy again: the shepherd turned up at the Seat's gate, half-starved. He says something came down off the hill at night and stood looking in at the door till dawn.",
+		laterParty: "Bothy shepherd is alive! At the Seat's gate.\nSays something stood at his door all night. Didn't come in. Didn't leave a track.\nOswin wants to sleep there and see. Nobody else does."
+	},
 	{ note: "Fog in the hollow all Morning. Corvin swore he heard church bells where no church stands.", wild: true, party: "Bells in the fog?? Corvin says so. Nobody else heard them." },
-	{ note: "A ford, waist-deep, and a ferryman who wants a coin a horse and won't say who he pays.", spark: ["people", 0], tell: true, party: "Ferryman: a coin a horse. Haggle, he folds." },
-	{ note: "Wolves kept pace with the Company for a whole Phase, and never came closer.", wild: true, spark: ["combat", 0], tell: true },
+	{
+		note: "A ford, waist-deep, and a ferryman who wants a coin a horse and won't say who he pays.", spark: ["people", 0], tell: true, party: "Ferryman: a coin a horse. Haggle, he folds.",
+		later: "The ferryman pays the steward at the Seat, a quarter of every coin. The steward keeps none of it for the Court.",
+		laterParty: "Ferryman: a coin a horse. Haggle, he folds.\nHe pays the STEWARD. A quarter of everything. Tell Isolde before she tells the envoy."
+	},
+	{ note: "Wolves kept pace with the Company for a whole Phase, and never came closer.", wild: true, spark: ["combat", 0], tell: true, party: "Wolves followed us all Afternoon. Never closer than a bowshot. Somebody fed them once." },
 	{ note: "Charcoal-burners' smoke. They'll trade, but won't talk about the woods to the north.", spark: ["people", 4], party: "Charcoal-burners trade salt for news. Don't ask about the woods." },
-	{ note: "Old boundary stones, the arms on them chiselled off. The old lord's, or someone older's?", wild: true },
-	{ note: "A gibbet at the crossroads, its tenant fresh. The sheriff's work, or a warning.", spark: ["civilisation", 3], tell: true },
+	{ note: "Old boundary stones, the arms on them chiselled off. The old lord's, or someone older's?", wild: true, tell: true },
+	{
+		note: "A gibbet at the crossroads, its tenant fresh. The sheriff's work, or a warning.", spark: ["civilisation", 3], tell: true,
+		later: "The gibbet's gone, cut down and burnt where it stood. Nobody on the road will say who did it.",
+		laterParty: "Gibbet at the crossroads. Cut down since. Ask the reeve, not the sheriff."
+	},
 	{ note: "Burnt farms, three in a row. The Famine's work, or someone's.", wild: true, party: "Burnt farms. Ask at the Domain who did this." },
-	{ note: "A spring the locals call holy. The water tastes of iron.", wild: true, spark: ["nature", 4], tell: true },
-	{ note: "Nothing here but rain and heather. The players spent the Phase arguing over the map.", wild: true, party: "Nothing here. Don't come back." }
+	{ note: "A spring the locals call holy. The water tastes of iron.", wild: true, spark: ["nature", 4], tell: true, party: "Holy spring. Iron water: Corvin's cut closed overnight after he washed it. Fill the skins next time." },
+	{ note: "Nothing here but rain and heather. The players spent the Phase arguing over the map.", wild: true, party: "Nothing here. Don't come back." },
+	{
+		note: "A drover's road through the heath, rutted deep. Cattle went north along it not long ago, a great many, and nobody drove them.", wild: true, spark: ["nature", 1], tell: true,
+		party: "Hoofprints, hundreds, going north. No herders' prints anywhere.",
+		later: "The cattle from the drover's road came back, every head, thin and quiet. The farmers won't milk them.",
+		laterParty: "Cattle came back. Farmers won't touch them.\nCorvin says leave it. Isolde says it's the Myth. Oswin bought one."
+	},
+	{ note: "A hermit in a hollow oak, who'll pray for any Knight that brings him bread. He knew each of their names before they said them.", spark: ["people", 2], tell: true, party: "Hermit in the oak. Bring bread. He knows our names. HOW?" },
+	{ note: "A milestone with the distance to the Seat cut on it, and under it in fresher letters a distance to somewhere with no name.", wild: true, spark: ["civilisation", 5], tell: true, party: "Milestone: 4 leagues to the Seat.\nAnd 12 leagues to... nothing written. Cut fresh." },
+	{ note: "Hailstones the size of plums in the Morning, and the Afternoon too hot to ride in. The steeds won't settle here.", spark: ["nature", 3] }
 ]);
 
 /** How often open country on the road gets written up: every this many hexes of it. */
-const WAYSIDE_EVERY = 2;
+const WAYSIDE_EVERY = 1;
+
+/** How many of the wayside's later tellings come at each Season's end. */
+const FOLLOW_UPS_A_SEASON = 2;
+
+/** What the Company makes out of hidden things seen from afar (p197), in the order they're seen. */
+const SIGHTINGS = Object.freeze(["Smoke, and a tower behind it", "Something tall and pale on the ridge", "Lights after dark"]);
 
 /** The world settings the story changes, to put back as they were. */
 const SETTINGS = Object.freeze(["weather", "cityQuest", "sessionEnd", SITE_JOURNALS_SETTING]);
@@ -244,7 +276,7 @@ export async function populateTestWorld() {
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the GM's notes and Spark Table rolls on the places the Company has been, what the players were told and their own notes, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the GM Toolkit's Seasons and notes filled in.`,
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the GM's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the GM Toolkit's Seasons and notes filled in.`,
 			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the GM Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
@@ -445,6 +477,10 @@ class TestGame {
 		this.wildRolled = new Set();
 		/** How many Company's notes the players have written, to take turns writing them. */
 		this.partyNotes = 0;
+		/** @type {{hex: {col: number, row: number}, lore: object}[]} Wayside hexes the GM learns more of later, the next first. */
+		this.followUps = [];
+		/** How many hidden Barriers the Company has run into, to take turns finding them. */
+		this.barriersMet = 0;
 	}
 
 	async play() {
@@ -700,6 +736,34 @@ class TestGame {
 		if (lore.spark) await this.spark(hex, ...lore.spark);
 		if (lore.tell) await this.tell(hex);
 		if (lore.party) await this.partyNote(hex, lore.party);
+		if (lore.later) this.followUps.push({ hex, lore });
+	}
+
+	/**
+	 * What the GM learned since of a few wayside hexes, written over their note
+	 * and told to the players, so those hexes hold two tellings; the Company
+	 * rewrites its note to match.
+	 */
+	async followUp() {
+		for (const { hex, lore } of this.followUps.splice(0, FOLLOW_UPS_A_SEASON)) {
+			await this.note(hex, lore.later);
+			await this.tell(hex);
+			if (lore.laterParty) await this.partyNote(hex, lore.laterParty);
+		}
+	}
+
+	/**
+	 * Mark the hidden things the Company can see from afar (p197) from where it
+	 * camps and the road just behind it, as the Referee's window marks them.
+	 */
+	async sightFromAfar() {
+		const seen = new Map();
+		for (const hex of this.walked.slice(-4).reverse()) {
+			for (const { hex: there } of sightable(this.realm, this.g, hex, () => ({}))) {
+				if (seen.size < SIGHTINGS.length && !seen.has(hexKey(there))) seen.set(hexKey(there), { note: SIGHTINGS[seen.size] });
+			}
+		}
+		if (seen.size) await writeSightings(this.scene, { set: Object.fromEntries(seen) });
 	}
 
 	/** @param {{col: number, row: number}} hex */
@@ -710,7 +774,13 @@ class TestGame {
 	/** Reveal the first hidden Barrier beside the road walked so far, as the Company finds it barring the way. */
 	async findBarrier() {
 		const [edge] = barriersBeside(this.realm, this.walked);
-		if (edge) await editRealm(this.scene, (realm, g) => setBarrier(realm, g, edge, "revealed"));
+		if (!edge) return;
+		await editRealm(this.scene, (realm, g) => setBarrier(realm, g, edge, "revealed"));
+		// Kept in the players' record of the hex the Company stood in, as running into it on the map keeps it.
+		const ends = edge.split("|");
+		const stood = this.walked.findLast((hex) => ends.includes(hexKey(hex)));
+		const finder = Object.values(this.knights)[this.barriersMet++ % COMPANY.length];
+		if (stood) await recordBarriersMet(this.scene, [{ hex: stood, edges: [edge] }], finder?.name ?? "");
 	}
 
 	/**
@@ -864,6 +934,7 @@ class TestGame {
 	 * @param {Record<string, string[]>} [options.more] Lines a Knight's entry gains, by Knight key.
 	 */
 	async turn({ newAge = false, pursuits, more = {} }) {
+		await this.followUp();
 		const before = getCalendar();
 		const after = newAge ? nextAge(before) : nextSeason(before);
 		await setCalendar(after);
@@ -900,6 +971,8 @@ class TestGame {
 		await this.tell(seat?.hex);
 		await this.partyNote(seat?.hex, "Home, sort of. The cook talks if you carry her water. The steward hates Oswin already.");
 		await this.note(dwelling?.hex, `${this.names.dwelling}. Said at Court to take in travellers and ask no questions. Not visited yet.`);
+		// Heard of at Court, so the players' Places hold it before the Company goes there.
+		await this.tell(dwelling?.hex);
 		await this.reveal(dwelling?.hex);
 
 		const road = seasonRoad(this.realm, this.g, this.here, [{ name: "sanctum", hex: sanctum?.hex ?? this.here }]);
@@ -1105,6 +1178,7 @@ class TestGame {
 		if (rumoured) await editMythNote(this.scene, rumoured, { note: "One Omen, met on the road north. The players haven't tied it to anything yet." });
 		// The Journey counts the hex the Company's Token is put in, as it would the Referee placing it.
 		await setCompanyHex(this.scene, final, { name: `The Company of ${REALM_NAME}` });
+		await this.sightFromAfar();
 
 		await isolde.update({ "system.virtues.vig.value": Math.max(1, isolde.system.virtues.vig.max - 3), "system.virtues.spi.value": Math.max(1, isolde.system.virtues.spi.max - 4), "system.guard.value": Math.min(2, isolde.system.guard.max) });
 		await corvin.update({ "system.virtues.cla.value": Math.max(1, corvin.system.virtues.cla.max - 5), "system.guard.value": Math.min(1, corvin.system.guard.max), "system.fatigued": true });

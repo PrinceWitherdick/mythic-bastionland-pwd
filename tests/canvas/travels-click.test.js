@@ -15,10 +15,10 @@ vi.mock("../../module/actions/realm.js", () => ({
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/hex-shared.js", () => ({ hexOpenable: () => openable }));
-vi.mock("../../module/apps/TravelsHex.js", () => ({ openTravelsHex: vi.fn(() => "opened") }));
+vi.mock("../../module/apps/TravelsPlaces.js", () => ({ openPlaces: vi.fn(() => "opened") }));
 vi.mock("../../module/canvas/map-click.js", () => ({ takingMapClick: () => taking }));
 
-const { openTravelsHex } = await import("../../module/apps/TravelsHex.js");
+const { openPlaces } = await import("../../module/apps/TravelsPlaces.js");
 const { onTravelsDoubleClick } = await import("../../module/canvas/travels-click.js");
 
 /** A double-click on the board, or on something over it. */
@@ -53,14 +53,14 @@ afterEach(() => {
 describe("onTravelsDoubleClick", () => {
 	it("opens the hex under the pointer on open ground", () => {
 		expect(onTravelsDoubleClick(click())).toBe("opened");
-		expect(openTravelsHex).toHaveBeenCalledWith({ scene: canvas.scene, hex: hex(4, 5) });
+		expect(openPlaces).toHaveBeenCalledWith({ sceneId: canvas.scene.id, hex: hex(4, 5) });
 	});
 
 	it("says the Company knows nothing of a hex it can't open", () => {
 		openable = false;
 		expect(onTravelsDoubleClick(click())).toBeNull();
 		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining("travels.notVisited"));
-		expect(openTravelsHex).not.toHaveBeenCalled();
+		expect(openPlaces).not.toHaveBeenCalled();
 	});
 
 	it("leaves a Token's own double-click alone", () => {
@@ -70,7 +70,7 @@ describe("onTravelsDoubleClick", () => {
 		canvas.tokens.placeables = [];
 		canvas.tokens.hover = {};
 		expect(onTravelsDoubleClick(click())).toBeNull();
-		expect(openTravelsHex).not.toHaveBeenCalled();
+		expect(openPlaces).not.toHaveBeenCalled();
 	});
 
 	it("leaves other layers, the GM's Realm tools, a hex being asked for, a Realm being drawn, a window and the edge alone", () => {
@@ -90,7 +90,7 @@ describe("onTravelsDoubleClick", () => {
 		expect(onTravelsDoubleClick(click())).toBeNull();
 		canvas.scene = { id: "town" };
 		expect(onTravelsDoubleClick(click())).toBeNull();
-		expect(openTravelsHex).not.toHaveBeenCalled();
+		expect(openPlaces).not.toHaveBeenCalled();
 		expect(ui.notifications.info).not.toHaveBeenCalled();
 	});
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { describeHex, readoutPlacement } from "../../module/canvas/hex-readout.js";
+import { describeHex, describeHexNotes, readoutPlacement } from "../../module/canvas/hex-readout.js";
 
 const summary = (more = {}) => ({ hex: { col: 5, row: 7 }, terrain: null, holding: null, myth: null, landmark: null, ...more });
 
@@ -10,6 +10,17 @@ beforeEach(() => {
 			format: (key, data) => `${key}(${Object.values(data).join(",")})`
 		}
 	};
+});
+
+describe("describeHexNotes", () => {
+	it("gives what the players were told and their note, each cut short to fit", () => {
+		expect(describeHexNotes()).toBe("");
+		expect(describeHexNotes({ told: "Old stones." })).toBe("bastionland.realm.readout.told(Old stones.)");
+		expect(describeHexNotes({ told: "Old stones.", party: "A ford" })).toBe("bastionland.realm.readout.told(Old stones.) · bastionland.realm.readout.party(A ford)");
+		const long = describeHexNotes({ party: "word ".repeat(40) });
+		expect(long.endsWith("…)")).toBe(true);
+		expect(long.length).toBeLessThan(110);
+	});
 });
 
 describe("describeHex", () => {

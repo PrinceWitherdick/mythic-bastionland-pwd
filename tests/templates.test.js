@@ -43,6 +43,8 @@ import { TOOLKIT_TABS } from "../module/rules/gm-toolkit.js";
 import { KNIGHTHOOD_SECTIONS } from "../module/rules/knighthood.js";
 import { DRAWING_RULES } from "../module/rules/realm-drawing.js";
 import { TRAVEL_GROUPS, TRAVEL_RULES, TRAVEL_SIDES } from "../module/rules/travel-rules.js";
+import { TRAVELS_FILTERS, TRAVELS_SORTS, TRAVELS_VIEWS } from "../module/rules/travels.js";
+import { LEGEND_KINDS } from "../module/rules/travels-chart.js";
 import { VIRTUES } from "../module/rules/virtues.js";
 import { withBookText } from "../module/rules/book-text.js";
 
@@ -232,6 +234,11 @@ describe("localization", () => {
 		"rulebook.openPage",
 		...TRAVEL_SIDES.flatMap((side) => [`travelRules.titles.${side}`, `travelRules.credits.${side}`]),
 		...TRAVEL_GROUPS.map((group) => `travelRules.groups.${group}`),
+		...TRAVELS_VIEWS.map((key) => `travels.views.${key}`),
+		...["all", ...TRAVELS_FILTERS].map((key) => `travels.filters.${key}`),
+		...TRAVELS_SORTS.map((key) => `travels.sort.${key}`),
+		...LEGEND_KINDS.map((kind) => `travels.chart.key.${kind}`),
+		...["arrivedFirst", "arrived", "told", "met", "noted"].map((key) => `travels.journey.${key}`),
 		...FALLEN_PATHS.map((path) => `fallen.paths.${path}`),
 		...partsOf("warband.origins", [...WARBAND_ORIGINS], ["label", "hint", "text"]),
 		...partsOf("warband.upkeep.strains", [...UPKEEP_STRAINS], ["label", "text"]),
