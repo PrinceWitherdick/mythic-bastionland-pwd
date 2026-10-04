@@ -1,6 +1,6 @@
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
-import { takeAttack } from "../actions/damage.js";
+import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
@@ -575,9 +575,7 @@ function greaterOptions(attack) {
 		.filter((actor) => actor.isOwner)
 		.flatMap((actor) => {
 			const items = actor.items.map(({ id, name, type, system }) => ({ id, name, type, system }));
-			// A Knight's Armour is the sum of their items; anybody else's is one number with a note.
-			const npc = actor.type === "knight" ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
-			return greaterEffects(items, npc).map((effect) => ({ actor, ...effect }));
+			return greaterEffects(items, singleArmour(actor)).map((effect) => ({ actor, ...effect }));
 		});
 }
 

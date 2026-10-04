@@ -24,30 +24,68 @@ import { worldKnights } from "./knights.js";
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
 
 /**
- * A Knight's armour as the Damage dialog weighs it: every piece, and those
- * worn only in some situation, or in all but one, which the dialog asks about.
- * NPCs and structures have their Armour as a single number.
- * @param {Actor} actor
- * @returns {{pieces: object[], situational: object[], bearing: "shield"|"buckler"|null}}
+ * @typedef {object} WornArmour Somebody's armour, as the Damage dialog and a Greater effect weigh it.
+ * @property {object[]} situational Pieces worn only in some situation, or in all but one, which the dialog asks about.
+ * @property {"shield"|"buckler"|null} bearing What they bring to a shieldwall (p10).
+ * @property {boolean} shielded Whether they've a shield a Trap Gambit can hold.
+ * @property {(ticked: Record<string, boolean>, trapped: boolean) => number} total Their Armour with the
+ *   situational pieces ticked or not, by id, and their shield trapped or not.
+ * @property {{armour: number, armourNote: string}|null} single Armour that's one number with a note,
+ *   as anybody's but a Knight's is; null for a Knight's, which is the sum of their items.
  */
-function armourPieces(actor) {
-	if (actor.type !== "knight") return { pieces: [], situational: [], bearing: null };
-	const wearer = actor.system.conditions;
+
+/**
+ * A Knight's armour is every piece they have. NPCs and structures have their
+ * Armour as a single number, and bring to a shieldwall whichever shield or
+ * buckler their Armour note names. The one place the two are told apart,
+ * with singleArmour.
+ * @param {Actor} actor
+ * @returns {WornArmour}
+ */
+export function wornArmour(actor) {
+	const single = singleArmour(actor);
+	if (single) {
+		const { armour, armourNote } = single;
+		return {
+			situational: [],
+			bearing: noteBearing(armourNote),
+			shielded: noteNamesShield(armourNote),
+			total: (_ticked, trapped) => (trapped ? npcArmourUnshielded(armour, armourNote) : armour),
+			single
+		};
+	}
+	const { conditions } = actor.system;
 	const pieces = actor.items.filter((item) => item.type === "armour").map((item) => ({ ...item.system.toObject(), id: item.id, name: item.name }));
 	const situational = pieces
 		.filter((piece) => piece.equipped && !piece.broken && SITUATION_CONDITIONS.includes(piece.condition))
 		.map((piece) => ({
 			id: piece.id,
 			label: t("damage.situationalPiece", { name: piece.name, armour: piece.armour, when: armourConditionText(piece) }),
-			checked: armourCounts(piece, wearer)
+			checked: armourCounts(piece, conditions)
 		}));
-	return { pieces, situational, bearing: shieldwallBearing(pieces) };
+	const bearing = shieldwallBearing(pieces);
+	return {
+		situational,
+		bearing,
+		shielded: Boolean(bearing),
+		total: (ticked, trapped) => armourWithTicks(pieces, ticked, conditions, trapped),
+		single: null
+	};
+}
+
+/**
+ * @param {Actor} actor
+ * @returns {{armour: number, armourNote: string}|null} Armour that's one number with a note, as
+ *   anybody's but a Knight's is; null for a Knight's, which is the sum of their items.
+ */
+export function singleArmour(actor) {
+	return actor.type === "knight" ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
 }
 
 /**
  * The Armour the Damage dialog's box holds once the pieces worn only
  * sometimes are ticked or not: ticked ones count, and the rest follow the wearer.
- * @param {object[]} pieces From armourPieces.
+ * @param {object[]} pieces A Knight's armour items' data, each with its id and name.
  * @param {Record<string, boolean>} ticked By piece id.
  * @param {object} wearer The target's conditions.
  * @param {boolean} [trapped] A Trap Gambit holds their shield, whose Armour then doesn't count.
@@ -65,7 +103,7 @@ function armourWithTicks(pieces, ticked, wearer, trapped = false) {
  * one, the Trap may have left them open some other way, such as a beast's
  * belly (p186), which the dialog offers unticked, to ignore their Armour.
  * @param {Actor} actor
- * @param {{bearing: string|null}} worn From armourPieces.
+ * @param {WornArmour} worn
  * @param {string[]} [except] Attack cards being applied now: a Gambit bought
  *   by an Attack takes hold after it, and a duel's Gambits all land at once.
  * @returns {{label: string, shielded: boolean}|null} Null when no Trap holds them. Ticked where shielded.
@@ -74,19 +112,7 @@ function trapOn(actor, worn, except = []) {
 	const mark = marksOn(actor).findLast((each) => each.key === "trap" && !except.includes(each.messageId));
 	if (!mark) return null;
 	const name = mark.by || t("gambits.marks.someone");
-	const shielded = actor.type === "knight" ? Boolean(worn.bearing) : noteNamesShield(actor.system.armourNote);
-	return { label: t(shielded ? "damage.trapped" : "damage.trapOpen", { name }), shielded };
-}
-
-/**
- * What somebody brings to a shieldwall (p10): a Knight's shield or buckler
- * among their items, or whichever an NPC's Armour note names.
- * @param {Actor} actor
- * @param {{bearing: string|null}} [worn] From armourPieces, where it's already been worked out.
- * @returns {"shield"|"buckler"|null}
- */
-function bearingOf(actor, worn = null) {
-	return actor.type === "knight" ? (worn ?? armourPieces(actor)).bearing : noteBearing(actor.system.armourNote);
+	return { label: t(worn.shielded ? "damage.trapped" : "damage.trapOpen", { name }), shielded: worn.shielded };
 }
 
 /**
@@ -126,7 +152,7 @@ function shieldwallOnMap(actor, bearing) {
 	const allies = canvas.tokens.placeables
 		.filter((placed) => placed !== token && placed.actor && !placed.document.hidden && placed.document.disposition === disposition)
 		.filter((placed) => canStandInWall(placed.actor, steeds, placed.document.actorId && `Actor.${placed.document.actorId}`))
-		.map((placed) => stander(placed, bearingOf(placed.actor)));
+		.map((placed) => stander(placed, wornArmour(placed.actor).bearing));
 	const wall = shieldwallAround(stander(token, bearing), allies, canvas.grid.size);
 	const hint = t("damage.shieldwallHint");
 	if (wall.formed) return { checked: true, tip: `${hint} ${t("damage.shieldwallFormed", { count: wall.count })}` };
@@ -181,7 +207,7 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
-	const { armour, armourNote, conditions } = actor.system;
+	const { conditions } = actor.system;
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
@@ -190,15 +216,11 @@ export async function takeDamage(actor, preset = {}) {
 	const score = spirit ? "spi" : "vig";
 	// The dead can still be struck, but nobody wards a death already died or mourns it twice.
 	const dead = Boolean(actor.system.slain);
-	const worn = armourPieces(actor);
-	const bearing = bearingOf(actor, worn);
+	const worn = wornArmour(actor);
+	const { bearing } = worn;
 	const trap = trapOn(actor, worn, preset.except);
 	/** Their Armour with the pieces worn only sometimes ticked or not, and their shield trapped or not. */
-	const armourFor = (ticked, trapped) => {
-		if (trapped && trap && !trap.shielded) return 0;
-		if (actor.type === "knight") return armourWithTicks(worn.pieces, ticked, conditions, trapped);
-		return trapped ? npcArmourUnshielded(armour, armourNote) : armour;
-	};
+	const armourFor = (ticked, trapped) => (trapped && trap && !trap.shielded ? 0 : worn.total(ticked, trapped));
 	const target = {
 		armour: armourFor({}, Boolean(trap?.shielded)),
 		situational: worn.situational,
@@ -253,11 +275,16 @@ export async function takeDamage(actor, preset = {}) {
 	});
 	const morale = moralePrompt({ name: actor.name, uuid: actor.uuid }, trigger);
 	const card = damageCard(result, appliedArmour, before, outcomes, morale);
-	// Non-lethal Damage leaves them down, but not dying.
-	if (preset.nonLethal && result.outcome === "mortal" && virtues) card.outcome = t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown");
 	if (spirit && result.vigourLoss) card.vigourLine = t("damage.spiritLine", { from: before.vigour, to: result.vigour });
-	if (spirit && result.outcome === "wounded") card.outcome = t("damage.spiritHurt");
-	if (warden) card.outcome = t("damage.outcomes.warded", { name: warden.name });
+	const said = warden
+		? t("damage.outcomes.warded", { name: warden.name })
+		: spirit && result.outcome === "wounded"
+			? t("damage.spiritHurt")
+			// Non-lethal Damage leaves them down, but not dying.
+			: preset.nonLethal && result.outcome === "mortal" && virtues
+				? t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown")
+				: null;
+	if (said) card.outcome = said;
 	if (preset.cause) card.cause = preset.cause;
 	await postCard(actor, "damage", card);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the

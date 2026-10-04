@@ -238,6 +238,19 @@ function currentTargets() {
 }
 
 /**
+ * Who an Attack is aimed at: the card's targets for a joint Attack, the other
+ * duelist in a duel, and otherwise whoever this user targets.
+ * @param {{targets: {uuid: string, name: string}[]}|null|undefined} joining The card joined, if any.
+ * @param {object|null|undefined} duel The duel it's a blow in, if any.
+ * @returns {{uuid: string, name: string}[]}
+ */
+function aimFor(joining, duel) {
+	if (joining) return joining.targets;
+	if (duel?.opponent.token) return [{ uuid: duel.opponent.token, name: duel.opponent.name }];
+	return currentTargets();
+}
+
+/**
  * How a targeted Token stands: whether it's mounted or a structure, for a
  * steed's trample, which only joins a charge at enemies on foot (p10), and
  * whether it's a swarm, which one person's Attack only harms Impaired unless
@@ -503,9 +516,8 @@ async function planAttack(actor, joining = null) {
 	// riding, steed or no, until they say so.
 	const mounted = duel?.duel.kind === "joust" || Boolean(conditions.mounted) || Boolean(remembered?.mounted);
 	const wielded = openingWielded(actor, sources, remembered, mounted, marks);
-	// Who the Attack is aimed at as the dialog opens: the card's targets for a joint Attack, the
-	// other duelist in a duel, and otherwise whoever this user targets.
-	const aimedAt = joining ? joining.targets : duel?.opponent.token ? [{ uuid: duel.opponent.token, name: duel.opponent.name }] : currentTargets();
+	// Who the Attack is aimed at as the dialog opens.
+	const aimedAt = aimFor(joining, duel);
 	// Nobody on foot among the targets leaves the steed nobody to trample.
 	const chargeBarred = mount ? trampleBarred(aimedAt) : null;
 	// A joint Attack is one Attack, so a weakness whose die is already on the card adds no second (p188).
@@ -673,21 +685,21 @@ async function planAttack(actor, joining = null) {
 	const blast = declared.blast || smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
 	// An Attack in a duel is against the other duelist, whatever else is targeted.
 	const inDuel = duel && choice.duel ? duel : null;
-	let targets = currentTargets();
-	if (joining) targets = joining.targets;
-	else if (inDuel?.opponent.token) targets = [{ uuid: inDuel.opponent.token, name: inDuel.opponent.name }];
+	const targets = aimFor(joining, inDuel);
 
 	// What making the Attack does to the actor, held back until it's certain to count, since
 	// a card can refuse a join after the dialog is answered.
 	const settle = async () => {
 		// Their next Attack with this actor opens on what they chose here.
 		await rememberAttack(actor, choice);
+		const update = {};
 		// Riding or not, as ticked here, is marked on them, so a rider's plate counts while they ride.
-		if (actor.isOwner && typeof actor.system.mounted === "boolean" && actor.system.mounted !== riding) await actor.update({ "system.mounted": riding });
+		if (typeof actor.system.mounted === "boolean" && actor.system.mounted !== riding) update["system.mounted"] = riding;
 		// They share the Warband's Damage until their next turn, so the Warband remembers who leads it,
 		// and forgets a leader who no longer does.
 		const leaderUuid = leader?.uuid ?? "";
-		if (warband && actor.isOwner && actor.system.leader !== leaderUuid) await actor.update({ "system.leader": leaderUuid });
+		if (warband && actor.system.leader !== leaderUuid) update["system.leader"] = leaderUuid;
+		if (actor.isOwner && Object.keys(update).length) await actor.update(update);
 		if (smite) await payFeat(actor, smite.save);
 		await useUpThrown(chosen);
 		// A charge that shatters the lance it's made with (p92).

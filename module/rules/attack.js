@@ -619,6 +619,12 @@ export function attackDamage(attack, counts = null) {
 }
 
 /**
+ * The yes-or-no traits each share of an Attack's dice carries. drain: its maker
+ * takes back the VIG a Wound costs; spirit: it harms SPI rather than VIG, as Abilities may say.
+ */
+const SHARE_TRAITS = Object.freeze(["melee", "ignoresArmour", "nonLethal", "strongGambits", "blast", "largeScale", "drain", "spirit"]);
+
+/**
  * What a die's share of the Attack was made with: the joiner's own, once
  * others have joined it, and the card's for a die rolled by one attacker alone.
  * @param {AttackState} attack
@@ -628,15 +634,7 @@ export function attackDamage(attack, counts = null) {
  */
 export function shareOf(attack, die) {
 	return {
-		melee: Boolean(die?.melee ?? attack.melee),
-		ignoresArmour: Boolean(die?.ignoresArmour ?? attack.ignoresArmour),
-		nonLethal: Boolean(die?.nonLethal ?? attack.nonLethal),
-		strongGambits: Boolean(die?.strongGambits ?? attack.strongGambits),
-		blast: Boolean(die?.blast ?? attack.blast),
-		largeScale: Boolean(die?.largeScale ?? attack.largeScale),
-		// Its maker takes back the VIG a Wound costs, or it harms SPI rather than VIG, as Abilities may say.
-		drain: Boolean(die?.drain ?? attack.drain),
-		spirit: Boolean(die?.spirit ?? attack.spirit),
+		...Object.fromEntries(SHARE_TRAITS.map((key) => [key, Boolean(die?.[key] ?? attack[key])])),
 		// A share stamped with none harms no structure, whatever the whole card could.
 		structureHarm: (die && "structureHarm" in die ? die.structureHarm : attack.structureHarm) ?? null
 	};
@@ -841,14 +839,7 @@ function joinAttack(attack, change) {
 	const joiner = {
 		actor: change.actor,
 		by: name,
-		melee: Boolean(change.melee),
-		ignoresArmour: Boolean(change.ignoresArmour),
-		nonLethal: Boolean(change.nonLethal),
-		strongGambits: Boolean(change.strongGambits),
-		blast: Boolean(change.blast),
-		largeScale: Boolean(change.largeScale),
-		drain: Boolean(change.drain),
-		spirit: Boolean(change.spirit),
+		...Object.fromEntries(SHARE_TRAITS.map((key) => [key, Boolean(change[key])])),
 		structureHarm: change.structureHarm && typeof change.structureHarm === "object" ? change.structureHarm : null
 	};
 	// A die keeps the weapon it was rolled for, so a foe can Impair what the joiner showed (p186).

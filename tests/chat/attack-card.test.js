@@ -10,7 +10,7 @@ vi.mock("../../module/actions/attack.js", () => ({
 	sigilHolders: vi.fn(() => []),
 	showRolls: vi.fn()
 }));
-vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => true) }));
+vi.mock("../../module/actions/damage.js", async (importOriginal) => ({ ...(await importOriginal()), takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
 vi.mock("../../module/apps/ui.js", () => ({
 	chooseDialog: vi.fn(),
