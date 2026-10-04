@@ -1,7 +1,7 @@
 import { SYSTEM_ID } from "../system-id.js";
 import { ART_ROOT, INDEX_FILE, WEBP_QUALITY, tokenFile } from "../rules/book-art.js";
 import { portraitTokens, tokenCrop } from "../rules/knight-tokens.js";
-import { loadArtIndex } from "./art-index.js";
+import { artIndexWritten, loadArtIndex } from "./art-index.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { canvasToBlob, imageFormat } from "./pdf.js";
 
@@ -45,17 +45,17 @@ async function loadImage(path) {
  * Cut the square token from each saved Knight portrait that hasn't one yet,
  * as an import from before tokens were cut left them, and write them into the
  * index. The portraits already saved are used, so the rulebook isn't needed.
- * @param {object} index Changed in place.
- * @returns {Promise<number>} How many were cut.
+ * @param {object} index The index as read, which every reader shares, so it is left alone.
+ * @returns {Promise<object>} The index with the tokens cut, or the one given if none were.
  */
 async function cutMissingTokens(index) {
 	const missing = (index.knights ?? []).filter((entry) => entry?.path && !entry.token);
-	if (!missing.length) return 0;
+	if (!missing.length) return index;
 
 	const format = await imageFormat();
 	const dir = tokenFile(1, 1, null, format.extension).dir;
 	await ensureDirectories([dir]);
-	let cut = 0;
+	const cut = new Map();
 	for (const entry of missing) {
 		const canvas = document.createElement("canvas");
 		try {
@@ -66,18 +66,17 @@ async function cutMissingTokens(index) {
 			const blob = await canvasToBlob(canvas, format.type, WEBP_QUALITY);
 			const { fileName } = tokenFile(entry.d6, entry.d12, entry.name, format.extension);
 			const path = blob && await uploadFile(dir, new File([blob], fileName, { type: format.type }));
-			if (path) {
-				entry.token = path;
-				cut++;
-			}
+			if (path) cut.set(entry, path);
 		} catch (error) {
 			console.error(`${SYSTEM_ID} | Couldn't cut a square token from ${entry.path}`, error);
 		} finally {
 			canvas.width = canvas.height = 0;
 		}
 	}
-	if (cut) await uploadFile(ART_ROOT, new File([JSON.stringify(index, null, "\t")], INDEX_FILE, { type: "application/json" }));
-	return cut;
+	if (!cut.size) return index;
+	const updated = { ...index, knights: index.knights.map((entry) => (cut.has(entry) ? { ...entry, token: cut.get(entry) } : entry)) };
+	if (await uploadFile(ART_ROOT, new File([JSON.stringify(updated, null, "\t")], INDEX_FILE, { type: "application/json" }))) await artIndexWritten();
+	return updated;
 }
 
 /**
@@ -90,8 +89,7 @@ export async function squareKnightTokens() {
 	try {
 		const index = await loadArtIndex();
 		if (!index) return;
-		await cutMissingTokens(index);
-		await useSquareTokens(index);
+		await useSquareTokens(await cutMissingTokens(index));
 	} catch (error) {
 		console.error(`${SYSTEM_ID} | Couldn't give Knights their square tokens`, error);
 	}

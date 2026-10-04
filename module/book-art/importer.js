@@ -43,7 +43,7 @@ import { RULE_PAGES, rulePageFromItems } from "../rules/rule-pages.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkTablesFromItems } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { markSetupDone } from "../world-setup.js";
-import { ART_INDEX_HOOK } from "./art-index.js";
+import { artIndexWritten } from "./art-index.js";
 import { BOOK_TEXT_TOTAL, readBookText } from "./book-text.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { GOODS_PACKS, copyGoodsToWorld } from "./goods-folders.js";
@@ -220,7 +220,7 @@ async function extractArt(pdf, OPS) {
 		systemVersion: game.system.version
 	});
 	const indexPath = await uploadFile(ART_ROOT, new File([JSON.stringify(index, null, "\t")], INDEX_FILE, { type: "application/json" }));
-	if (indexPath) Hooks.callAll(ART_INDEX_HOOK);
+	if (indexPath) await artIndexWritten();
 
 	progress.update({ message: t("bookArt.fillingGoods") });
 	const goodsLines = [];

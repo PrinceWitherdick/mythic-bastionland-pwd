@@ -144,10 +144,9 @@ const snapshot = (entry) => entrySnapshot(entry, HEX_LAYOUT, Boolean(hexJournalF
  * for, and any made before, whose Notes page is the GM's and so is never
  * deleted. Only what changed is written. The active GM's browser alone.
  * @param {Scene|null} scene
- * @param {() => Promise<object|null>} [loadIndex] The art index, shared by Realms synced together.
  * @returns {Promise<void>}
  */
-export async function syncHexJournals(scene, loadIndex = loadArtIndex) {
+export async function syncHexJournals(scene) {
 	if (!keepsJournals() || !isRealmScene(scene) || isDrawingRealm(scene)) return;
 	const sources = travelsSources(scene);
 	if (!sources) return;
@@ -159,7 +158,7 @@ export async function syncHexJournals(scene, loadIndex = loadArtIndex) {
 	const hexes = [...keys].map(parseHexKey).filter(Boolean);
 	if (!hexes.length) return;
 
-	const context = { lore, sources, index: await loadIndex() };
+	const context = { lore, sources, index: await loadArtIndex() };
 	const made = [];
 	const updates = [];
 	const pageWrites = [];
@@ -192,14 +191,12 @@ export async function syncHexJournals(scene, loadIndex = loadArtIndex) {
 const queueSync = serialWrites();
 
 /**
- * Bring the Realms' entries up to date, one after another, reading the art index once for them all.
+ * Bring the Realms' entries up to date, one after another.
  * @param {string[]} ids
  */
 function syncRealms(ids) {
-	let index = null;
-	const loadIndex = () => (index ??= loadArtIndex());
 	for (const id of ids) {
-		queueSync(() => syncHexJournals(game.scenes.get(id), loadIndex)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't bring the Journal entries of a Realm's hexes up to date`, error));
+		queueSync(() => syncHexJournals(game.scenes.get(id))).catch((error) => console.error(`${SYSTEM_ID} | Couldn't bring the Journal entries of a Realm's hexes up to date`, error));
 	}
 }
 

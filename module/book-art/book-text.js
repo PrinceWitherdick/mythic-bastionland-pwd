@@ -4,7 +4,7 @@ import { BOOK_PRINTS, bookTextPages, findBookText, withBookText } from "../rules
 import { routed } from "../rules/rulebook.js";
 import { rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { ART_INDEX_HOOK, loadArtIndex } from "./art-index.js";
+import { ART_INDEX_HOOK, artIndexWritten, loadArtIndex } from "./art-index.js";
 import { uploadFile } from "./files.js";
 import { openPdfUrl, withPage } from "./pdf.js";
 
@@ -94,7 +94,7 @@ async function catchUp(index) {
 		const file = new File([JSON.stringify({ ...index, bookText: texts }, null, "\t")], INDEX_FILE, { type: "application/json" });
 		if (!(await uploadFile(ART_ROOT, file))) return;
 		lay(texts);
-		Hooks.callAll(ART_INDEX_HOOK);
+		await artIndexWritten();
 		ui.notifications.info(t("bookArt.bookTextUpdated"));
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | Couldn't read the rules text from the rulebook`, error);

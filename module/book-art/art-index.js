@@ -3,8 +3,46 @@ import { ART_ROOT, INDEX_FILE } from "../rules/book-art.js";
 import { mythReference, seerReference } from "../rules/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
 
-/** Called on the importing client once Import PDF has written a new index, for windows holding on to the one they read. */
+/** Called on every client once a new index has been written, for windows holding on to the one they read. */
 export const ART_INDEX_HOOK = `${SYSTEM_ID}.artIndexChanged`;
+
+/**
+ * When the index was last written, kept in the world, so the windows open on
+ * every client read the new one.
+ */
+const ART_INDEX_STAMP_SETTING = "artIndexStamp";
+
+/** @type {{tag: string, index: object}|null} The index as this client last read it, with the file's ETag. */
+let kept = null;
+
+/** @type {Promise<object|null>|null} A read under way, which every caller meanwhile shares. */
+let reading = null;
+
+/** Register the index's stamp. Called during init. */
+export function registerArtIndexStamp() {
+	game.settings.register(SYSTEM_ID, ART_INDEX_STAMP_SETTING, {
+		scope: "world",
+		config: false,
+		type: Number,
+		default: 0,
+		onChange: () => {
+			kept = reading = null;
+			Hooks.callAll(ART_INDEX_HOOK);
+		}
+	});
+}
+
+/**
+ * Say a new index has been written: every client reads it afresh. Only a GM
+ * can stamp the world, so for anybody else only this client's windows hear of
+ * it, and the others find it on their next read.
+ * @returns {Promise<unknown>}
+ */
+export async function artIndexWritten() {
+	kept = reading = null;
+	if (game.user.isGM) return game.settings.set(SYSTEM_ID, ART_INDEX_STAMP_SETTING, Date.now());
+	Hooks.callAll(ART_INDEX_HOOK);
+}
 
 /**
  * Fetch a JSON file Import PDF wrote. The browser asks the server each
@@ -23,10 +61,36 @@ export async function loadJson(path) {
 }
 
 /**
- * The index Import PDF writes, or null if it hasn't been run.
+ * The index Import PDF writes, or null if it hasn't been run. The server is
+ * asked each time, as the art folder is shared by every world and any client
+ * may write it, but the file is read afresh only when its ETag has changed.
+ * Shared by every caller, so never changed in place.
  * @returns {Promise<object|null>}
  */
-export const loadArtIndex = () => loadJson(`${ART_ROOT}/${INDEX_FILE}`);
+export function loadArtIndex() {
+	reading ??= readArtIndex().finally(() => {
+		reading = null;
+	});
+	return reading;
+}
+
+/** @returns {Promise<object|null>} */
+async function readArtIndex() {
+	try {
+		const response = await fetch(foundry.utils.getRoute(`${ART_ROOT}/${INDEX_FILE}`), { cache: "no-cache" });
+		if (!response.ok) {
+			kept = null;
+			return null;
+		}
+		const tag = response.headers.get("etag") ?? response.headers.get("last-modified");
+		if (tag && kept?.tag === tag) return kept.index;
+		const index = await response.json();
+		kept = tag ? { tag, index } : null;
+		return index;
+	} catch {
+		return null;
+	}
+}
 
 /**
  * @param {object[]|undefined} list One of the art index's lists, such as `myths`.

@@ -113,6 +113,7 @@ import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
 import { catchUpBookText, loadBookText, registerBookText } from "./module/book-art/book-text.js";
+import { registerArtIndexStamp } from "./module/book-art/art-index.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { watchQuerySenders } from "./module/compat.js";
 import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
@@ -330,6 +331,8 @@ Hooks.once("init", () => {
 	registerPageLinks();
 	// Hovering a rule word, such as Exposed or Hefty, says what it means.
 	registerKeywordTips();
+	// Every client hears when Import PDF writes a new art index.
+	registerArtIndexStamp();
 	// The rules text the system shows is the book's own, read from the GM's PDF.
 	registerBookText();
 	game.keybindings.register(SYSTEM_ID, "openRulebook", {
