@@ -279,7 +279,7 @@ describe("the New Realm Map size page for a map of the GM's own", () => {
 
 		const field = one("[data-map-field]");
 		field.value = "";
-		field.fire("input");
+		field.fire("change");
 		expect(one("[data-map-size-broken]").hidden).toBe(true);
 		expect(one("[data-map-size-waiting]").hidden).toBe(false);
 	});

@@ -65,6 +65,13 @@ function queueWrite(actor, work) {
 }
 
 /**
+ * Lines stamped but not yet written, by actor, so the lines of every item one
+ * update changes, each heard on its own hook, go into the Ledger in one write.
+ * @type {Map<string, {entries: object[], written: Promise}>}
+ */
+const waiting = new Map();
+
+/**
  * Write lines into an actor's Ledger, stamped with who and when.
  * @param {Actor} actor
  * @param {import("../rules/ledger.js").LedgerEntry[]} entries In the order they happened.
@@ -84,10 +91,21 @@ function appendLedger(actor, entries, { userId = game.user.id, cause } = {}) {
 		...(cause ? { cause } : {}),
 		...entry
 	}));
-	return queueWrite(actor, () => actor.update(
-		{ [LEDGER_PATH]: writeIntoLedger(ledgerEntries(actor), stamped, t) },
-		{ [LEDGER_OPTION]: true, render: false }
-	));
+	const key = actor.uuid;
+	const batch = waiting.get(key);
+	if (batch) {
+		batch.entries.push(...stamped);
+		return batch.written;
+	}
+	const written = queueWrite(actor, () => {
+		waiting.delete(key);
+		return actor.update(
+			{ [LEDGER_PATH]: writeIntoLedger(ledgerEntries(actor), stamped, t) },
+			{ [LEDGER_OPTION]: true, render: false }
+		);
+	});
+	waiting.set(key, { entries: stamped, written });
+	return written;
 }
 
 /**

@@ -5895,9 +5895,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-family: inherit;
 }
 
-/* The rolls for a hex and the ways of finding out about it are each penned in. */
+/* The rolls for a hex and the ways of finding out about it are each penned in, and so is each part of Edit this hex. */
 .bastionland-hex-lore__spark,
-.bastionland-hex-lore__explore {
+.bastionland-hex-lore__explore,
+.bastionland-hex-edit__feature {
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
@@ -5997,16 +5998,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex-direction: column;
 	gap: 0.5rem;
 	padding-top: 0.4rem;
-}
-
-.bastionland-hex-edit__feature {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	margin: 0;
-	padding: 0.4rem 0.5rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
 }
 
 .bastionland-hex-edit .form-fields input[type="number"] {

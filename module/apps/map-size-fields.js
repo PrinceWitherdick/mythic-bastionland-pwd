@@ -11,6 +11,9 @@ import { BARE_MAP, bareMapSize, drawnMapSize, hexOverlay, steppedMapSize, unusua
 import { BOOK_LAYOUT, normaliseLayout } from "../rules/realm-geometry.js";
 import { OTHER_SIDE, OWN_SIZE_LIMITS, withinOwnSize } from "../rules/realm-setup.js";
 
+/** How long a map path typed by hand waits for the typing to pause before the picture is looked for. */
+const PATH_TYPING_MS = 300;
+
 /** The map's two sides, each named as its field in the dialog is (`setup.cols`, `setup.rows`). */
 const SIDES = Object.freeze(["cols", "rows"]);
 
@@ -235,7 +238,18 @@ export function wireMapSizeFields(element, { enlarge } = {}) {
 	}
 	for (const step of [-1, 1]) steps[step]?.addEventListener("click", () => controls.stepSize(step));
 	for (const button of enlargers) button.addEventListener("click", () => enlarge?.(controls));
-	for (const type of ["input", "change"]) field?.addEventListener(type, () => load(field.value.trim()));
+	// A path typed by hand is looked for once the typing pauses, not at every letter; one pasted, picked or settled at once.
+	let typing = null;
+	field?.addEventListener("input", (event) => {
+		clearTimeout(typing);
+		const typed = event.inputType === "insertText" || event.inputType?.startsWith("delete");
+		if (!typed) return load(field.value.trim());
+		typing = setTimeout(() => field.isConnected && load(field.value.trim()), PATH_TYPING_MS);
+	});
+	field?.addEventListener("change", () => {
+		clearTimeout(typing);
+		load(field.value.trim());
+	});
 	load(field?.value.trim() ?? "");
 	fit();
 	return controls;

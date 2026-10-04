@@ -156,6 +156,10 @@ export function registerRealmHooks() {
 		Hooks.on(name, onDocument);
 	}
 	Hooks.on("updateScene", (scene, changes) => {
+		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
+		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
+		const touched = Object.keys(changes.flags ?? {}).some((key) => key.replace(/^-=/, "") === SYSTEM_ID);
+		if (!isRealmScene(scene) && !touched) return;
 		realmChanged(scene.id);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
 		// A Realm finished drawing swaps its rules back to Travel and Exploration, on every client.

@@ -318,10 +318,30 @@ const closest = (counts, miss) => {
 export function otherSideForPicture(size, side, count, layout = BOOK_LAYOUT) {
 	if (!measured(size)) return null;
 	const given = within(count, BOOK_SETUP[side], OWN_SIZE_LIMITS[side]);
-	const other = OTHER_SIDE[side];
-	const miss = (n) => (side === "cols" ? shapeMiss(size, given, n, layout) : shapeMiss(size, n, given, layout));
-	return closest(sideCounts(other, given), miss);
+	return closest(sideCounts(OTHER_SIDE[side], given), sideMiss(size, side, given, layout));
 }
+
+/**
+ * How far from the picture's shape each count of the other side is, with one side settled.
+ * @param {{width: number, height: number}} size The picture's own size.
+ * @param {"cols"|"rows"} side The side that's settled.
+ * @param {number} count How many that side has.
+ * @param {string} layout One of REALM_LAYOUTS.
+ * @returns {(n: number) => number}
+ */
+const sideMiss = (size, side, count, layout) =>
+	(n) => (side === "cols" ? shapeMiss(size, count, n, layout) : shapeMiss(size, n, count, layout));
+
+/**
+ * A size with one side kept and the other following the picture's shape.
+ * @param {{width: number, height: number}} size The picture's own size, measured.
+ * @param {"cols"|"rows"} lead The side that's kept.
+ * @param {{cols: number, rows: number}} given
+ * @param {string} layout One of REALM_LAYOUTS.
+ * @returns {{cols: number, rows: number}}
+ */
+const followShape = (size, lead, given, layout) =>
+	({ ...given, [OTHER_SIDE[lead]]: otherSideForPicture(size, lead, given[lead], layout) });
 
 /**
  * How much a suggested size is held against for having more or fewer hexes
@@ -368,9 +388,7 @@ export function suggestedMapSize(size, layout = BOOK_LAYOUT) {
 export function bareMapSize(size, { cols, rows, lead = null } = {}, layout = BOOK_LAYOUT) {
 	const given = withinOwnSize(cols, rows, lead ?? "cols");
 	if (!measured(size)) return given;
-	if (lead === "cols") return { cols: given.cols, rows: otherSideForPicture(size, "cols", given.cols, layout) };
-	if (lead === "rows") return { cols: otherSideForPicture(size, "rows", given.rows, layout), rows: given.rows };
-	return suggestedMapSize(size, layout);
+	return lead === "cols" || lead === "rows" ? followShape(size, lead, given, layout) : suggestedMapSize(size, layout);
 }
 
 /**
@@ -390,8 +408,7 @@ export function drawnMapSize(size, { cols, rows, typed = [] } = {}, layout = BOO
 	const given = withinOwnSize(cols, rows, typed.at(-1) ?? "cols");
 	const [setCols, setRows] = [typed.includes("cols"), typed.includes("rows")];
 	if (!measured(size) || (setCols && setRows)) return given;
-	if (setCols) return { cols: given.cols, rows: otherSideForPicture(size, "cols", given.cols, layout) };
-	if (setRows) return { cols: otherSideForPicture(size, "rows", given.rows, layout), rows: given.rows };
+	if (setCols || setRows) return followShape(size, setCols ? "cols" : "rows", given, layout);
 	return unusualMapShape(size, layout) ? suggestedMapSize(size, layout) : { cols: BOOK_SETUP.cols, rows: BOOK_SETUP.rows };
 }
 
@@ -413,9 +430,8 @@ function shapedSizes(size, layout) {
 		return sideCounts(lead).flatMap((count) => {
 			const follows = otherSideForPicture(size, lead, count, layout);
 			const pair = { [lead]: count, [other]: follows, lead };
-			const miss = (n) => (lead === "cols" ? shapeMiss(size, count, n, layout) : shapeMiss(size, n, count, layout));
 			// Held to the hexes in all, rather than the shape: no step to it.
-			if (follows !== closest(sideCounts(other), miss)) return [];
+			if (follows !== closest(sideCounts(other), sideMiss(size, lead, count, layout))) return [];
 			return [{ ...pair, hexes: count * follows, miss: shapeMiss(size, pair.cols, pair.rows, layout) }];
 		});
 	});
