@@ -7,13 +7,15 @@ import { armourCounts, armourWorn, displacedArmour, SITUATION_CONDITIONS } from 
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { comparePropertyPlace, samePropertyPlace } from "../rules/property-tab.js";
 import { splitName } from "../rules/text.js";
-import { rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
+import { indulgePassion, rest, restoreVirtue, useRemedy } from "../actions/recovery.js";
+import { addAbilityDie, combatantOf, dropLastingDie, lastingDiceOf, lastingDieLabel } from "../actions/lasting-dice.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
+import { renderWhenIdle } from "../apps/ui.js";
 import { dismissGambitMark } from "../chat/attack-card.js";
 import { t } from "../chat/cards.js";
 import { marksOn } from "../chat/gambit-marks.js";
-import { DERIVED_CONDITIONS, FEATS, MARKED_CONDITIONS, PROPERTY_TYPES } from "../config.js";
+import { DERIVED_CONDITIONS, FEATS, MARKED_CONDITIONS } from "../config.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
@@ -67,15 +69,22 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			toggleEquipped: BastionlandActorSheet.#onToggleEquipped,
 			toggleHolds: BastionlandActorSheet.#onToggleHolds,
 			adjustCount: BastionlandActorSheet.#onAdjustCount,
-			useRemedy: BastionlandActorSheet.#onUseRemedy
+			useRemedy: BastionlandActorSheet.#onUseRemedy,
+			indulgePassion: BastionlandActorSheet.#onIndulgePassion,
+			addAbilityDie: BastionlandActorSheet.#onAddAbilityDie,
+			dropLastingDie: BastionlandActorSheet.#onDropLastingDie
 		}
 	};
+
+	/** @type {Combatant|null|undefined} The actor's place in a Combat, looked for once each time the sheet is drawn. */
+	#combatant;
 
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		const actor = this.actor;
 		const system = actor.system;
+		this.#combatant = combatantOf(actor);
 
 		return Object.assign(context, {
 			actor,
@@ -115,6 +124,12 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				label: afflictionLabel(affliction),
 				hint: t("afflictions.hint"),
 				cureHint: t("afflictions.cure")
+			}))).concat(lastingDiceOf(actor, this.#combatant).map((die, index) => ({
+				key: `lasting-${index}`,
+				lasting: true,
+				index,
+				label: lastingDieLabel(die),
+				hint: t("attack.lastingDrop")
 			}))),
 			feats: FEATS.filter(({ key }) => system.knowsFeat(key)).map(({ key, virtue }) => ({
 				key,
@@ -142,6 +157,22 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 */
 	_watchHooks(names, handler) {
 		for (const name of names) this.#watched.push([name, Hooks.on(name, handler)]);
+	}
+
+	/**
+	 * Follow the fights this actor is in: their dice for the fight show among
+	 * their conditions, and an Ability's die is offered only during one.
+	 * @override
+	 */
+	async _onFirstRender(context, options) {
+		await super._onFirstRender(context, options);
+		const theirs = (combatant) => combatant.actor?.uuid === this.actor.uuid;
+		this._watchHooks(["createCombatant", "updateCombatant", "deleteCombatant"], (combatant) => {
+			if (theirs(combatant)) renderWhenIdle(this);
+		});
+		this._watchHooks(["deleteCombat"], (combat) => {
+			if (combat.combatants.some(theirs)) renderWhenIdle(this);
+		});
 	}
 
 	/** @override */
@@ -266,6 +297,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 */
 	#prepareItemRows(items) {
 		const wearer = this.actor.system.conditions ?? {};
+		// An Ability's die for the fight is offered only while there's a fight.
+		const fighting = Boolean(this.#combatant === undefined ? combatantOf(this.actor) : this.#combatant);
 		return Promise.all(items.map(async (item) => {
 			const { system } = item;
 			const armour = item.type === "armour";
@@ -283,8 +316,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				tags: itemTags(item, { counted: false }),
 				equippable: typeof system.equipped === "boolean",
 				equipped: system.equipped,
-				// Broken, or all used: faded until mended or restocked.
-				unusable: PROPERTY_TYPES.includes(item.type) && !isAtHand(system),
+				// Broken, or all used: faded until mended or restocked. An Ability fades once its uses are spent.
+				unusable: !isAtHand(system),
 				idle,
 				// Armour's toggle is a shield, as the Armour total is: on when the piece counts toward it right now.
 				equipIcon: armour ? "fa-shield-halved" : "fa-hand-fist",
@@ -302,6 +335,9 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 					cannotAdd: Number.isInteger(system.quantity.max) && system.quantity.value >= system.quantity.max
 				} : null,
 				remedyLabel: system.remedy && isAtHand(system) ? t("remedy.use", { virtue: t(`virtues.${system.remedy}.abbr`) }) : null,
+				// A Passion restores SPI when indulged (p7).
+				indulgeLabel: item.type === "passion" && this.actor.system.virtues?.spi ? t("passion.indulge") : null,
+				lastingLabel: item.type === "ability" && system.lastingDie && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null,
 				description: await this._enrich(system.description)
 			};
 		}));
@@ -448,6 +484,21 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	/** @this {BastionlandActorSheet} */
 	static #onUseRemedy(_event, target) {
 		return useRemedy(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onIndulgePassion(_event, target) {
+		return indulgePassion(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onAddAbilityDie(_event, target) {
+		return addAbilityDie(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onDropLastingDie(_event, target) {
+		return dropLastingDie(this.actor, Number(target.dataset.index));
 	}
 }
 

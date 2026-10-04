@@ -90,6 +90,17 @@
 		</div>
 		<p class="hint">{{localize "bastionland.attack.bonusHint"}}</p>
 	</div>
+	{{!-- Dice kept for the rest of the fight, as an Ability may give them. Untick one to leave it out of this blow. --}}
+	{{#each lasting}}
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.lastingHint'}}">
+		<input type="checkbox" name="lasting.{{index}}" checked>
+		<span class="bastionland-check__label">{{label}}</span>
+	</label>
+	{{/each}}
+	<label class="bastionland-check" data-tooltip="{{#if canKeep}}{{localize 'bastionland.attack.keepBonusHint'}}{{else}}{{localize 'bastionland.attack.keepBonusNone'}}{{/if}}">
+		<input type="checkbox" name="keepBonus" {{#unless canKeep}}disabled{{/unless}}>
+		<span class="bastionland-check__label">{{localize "bastionland.attack.keepBonus"}}</span>
+	</label>
 
 	<div class="form-group">
 		<label for="bastionland-attack-smite">{{localize "bastionland.feats.smite.name"}}</label>
@@ -103,6 +114,23 @@
 		</div>
 		<p class="hint">{{localize "bastionland.attack.smiteHint"}}</p>
 	</div>
+
+	{{!-- What an Ability, or anything else, lends this one blow. Never carried to the next. --}}
+	<fieldset>
+		<legend>{{localize "bastionland.attack.declared"}}</legend>
+		{{#each abilityOffers}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="checkbox" name="ability.{{id}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+		{{#each declarations}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="checkbox" name="declare.{{key}}">
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
 
 	{{#if warband}}
 	{{!-- Ticked when everybody targeted is an individual, rather than a Warband, a swarm or a structure (p11). --}}

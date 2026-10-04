@@ -89,16 +89,17 @@ describe("cadencesTurned", () => {
 	const at = (season, day, phase, age = 1) => ({ age, season, day, phase });
 
 	it("names what a change of calendar brings round", () => {
-		expect(cadencesTurned(at("spring", 3, "morning"), at("spring", 3, "afternoon"))).toEqual([]);
-		expect(cadencesTurned(at("spring", 3, "afternoon"), at("spring", 3, "night"))).toEqual(["night"]);
-		expect(cadencesTurned(at("spring", 3, "night"), at("spring", 4, "morning"))).toEqual(["day"]);
-		expect(cadencesTurned(at("spring", 3, "night"), at("harvest", 1, "morning"))).toEqual(["season", "day"]);
+		expect(cadencesTurned(at("spring", 3, "morning"), at("spring", 3, "morning"))).toEqual([]);
+		expect(cadencesTurned(at("spring", 3, "morning"), at("spring", 3, "afternoon"))).toEqual(["phase"]);
+		expect(cadencesTurned(at("spring", 3, "afternoon"), at("spring", 3, "night"))).toEqual(["night", "phase"]);
+		expect(cadencesTurned(at("spring", 3, "night"), at("spring", 4, "morning"))).toEqual(["day", "phase"]);
+		expect(cadencesTurned(at("spring", 3, "night"), at("harvest", 1, "morning"))).toEqual(["season", "day", "phase"]);
 	});
 
 	it("counts Winter giving way to the next year's Spring in the same Age as a new Season", () => {
 		const winter = at("winter", 7, "night");
-		expect(cadencesTurned(winter, nextSeason(winter))).toEqual(["season", "day"]);
-		expect(cadencesTurned(at("spring", 3, "morning"), { ...at("spring", 3, "night"), year: 2 })).toEqual(["season", "day", "night"]);
+		expect(cadencesTurned(winter, nextSeason(winter))).toEqual(["season", "day", "phase"]);
+		expect(cadencesTurned(at("spring", 3, "morning"), { ...at("spring", 3, "night"), year: 2 })).toEqual(["season", "day", "night", "phase"]);
 	});
 
 	it("brings nothing round for an Age, a Season or a Day set back", () => {

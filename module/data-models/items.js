@@ -1,9 +1,9 @@
 import { ARMOUR_KINDS } from "../config.js";
 import { RARITIES, specialistRarity } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
-import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "../rules/attack.js";
+import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE } from "../rules/attack.js";
 import { bearsRemedies, overRemedyLimit } from "../rules/remedies.js";
-import { RESTOCK_CADENCES } from "../rules/restock.js";
+import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { booleanField, countField, htmlField, textField } from "./fields.js";
 
@@ -189,7 +189,22 @@ export class GearModel extends PossessionModel {
 }
 
 /** A Knight's unique talent. */
-export class AbilityModel extends DescribedModel {}
+export class AbilityModel extends DescribedModel {
+	static defineSchema() {
+		return {
+			...super.defineSchema(),
+			// Uses left of one that's limited, as "twice a day": blank while it isn't.
+			quantity: new fields.SchemaField({ value: optionalCount(), max: optionalCount() }),
+			// When its uses come back. Named as a possession's restock, so one set of helpers serves both.
+			restock: new fields.StringField({ required: true, blank: true, initial: "", choices: ABILITY_CADENCES }),
+			// What it lends an Attack it's used in, offered in the Attack dialog: a Blast, a blow that
+			// ignores Armour, Gambits that are Strong without an 8+.
+			grants: new fields.SchemaField({ blast: booleanField(), ignoresArmour: booleanField(), strongGambits: booleanField() }),
+			// A die it gives for the rest of a fight, added to each Attack until the Combat ends.
+			lastingDie: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...DIE_SIZES.map((faces) => `d${faces}`)] })
+		};
+	}
+}
 
 /** A special means of restoring SPI. */
 export class PassionModel extends DescribedModel {}

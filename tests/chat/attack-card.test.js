@@ -94,8 +94,8 @@ function renderCard(state) {
 	game.messages = [message];
 	game.messages.get = () => message;
 
-	const data = { "gambit-save": { gambit: "0" }, gambit: { die: "0" } };
-	const buttons = ["deny", "focus", "apply", "gambit-save", "gambit", "join"].map((action) => ({
+	const data = { "gambit-save": { gambit: "0" }, gambit: { die: "0" }, greater: { gambit: "0" } };
+	const buttons = ["deny", "focus", "apply", "gambit-save", "gambit", "join", "greater"].map((action) => ({
 		dataset: { attackAction: action, ...data[action] },
 		disabled: false,
 		hidden: false,
@@ -486,5 +486,76 @@ describe("an Impair naming a weapon", () => {
 		const card = renderCard(attackState());
 		await card.click("gambit");
 		expect(savedState(card.message).gambits[0]).not.toHaveProperty("weapon");
+	});
+});
+
+describe("a Strong Gambit's Greater effect", () => {
+	const strong = () => attackState({ gambits: [{ key: "repel", die: 0, strong: "greater", bonus: null, save: { by: "Ser Kay", total: 15, target: 10, passed: false }, dismissed: false }] });
+	let kay;
+
+	beforeEach(() => {
+		kay = actor({ uuid: "Actor.kay", name: "Ser Kay" });
+		kay.type = "knight";
+		const sword = { id: "sword", name: "Sword", type: "weapon", system: { equipped: true, damage: "d8" }, update: vi.fn(async () => {}) };
+		kay.items = Object.assign([sword], { get: (id) => (id === "sword" ? sword : undefined) });
+		tokens["Scene.s.Token.k"] = { actor: kay };
+		game.user.isGM = true;
+	});
+
+	it("offers the foe's things as a radio list with Something else beside them", async () => {
+		inputDialog.mockResolvedValue({ effect: "0" });
+		const card = renderCard(strong());
+		await card.click("greater");
+		const asked = inputDialog.mock.calls[0][0];
+		expect(asked.template).toBe("greater");
+		expect(asked.context.effects).toEqual([{ id: "0", name: "Ser Kay: bastionland.attack.greater.disarm" }]);
+		expect(savedState(card.message).gambits[0].greater).toBe("bastionland.attack.greater.disarmed bastionland.attack.greater.pickUp");
+		expect(kay.items.get("sword").update).toHaveBeenCalledWith({ "system.equipped": false }, expect.anything());
+	});
+
+	it("records Something else as written, changing nobody's sheet (p114)", async () => {
+		inputDialog.mockResolvedValue({ effect: "blank", other: "  Takes the arm  " });
+		const card = renderCard(strong());
+		await card.click("greater");
+		expect(savedState(card.message).gambits[0].greater).toBe("bastionland.attack.greater.otherDone");
+		expect(kay.items.get("sword").update).not.toHaveBeenCalled();
+	});
+
+	it("asks for the words when Something else is left blank", async () => {
+		inputDialog.mockResolvedValue({ effect: "blank", other: " " });
+		const card = renderCard(strong());
+		await card.click("greater");
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.attack.greater.otherEmpty"]);
+	});
+
+	it("lets an attacker's player, and only theirs, write one in for the GM to record", async () => {
+		const player = { id: "player-1" };
+		const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
+		const other = { type: "greater", index: 0, text: "Greater effect: takes the arm", other: true };
+		kay.testUserPermission = () => false;
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: () => false };
+		const card = renderCard(strong());
+		expect(await ask(other)).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: (user) => user === player };
+		expect(await ask(other)).toBe(true);
+		expect(savedState(card.message).gambits[0].greater).toBe("Greater effect: takes the arm");
+	});
+
+	it("lets the owner of the foe a player targets write one in on a card rolled with no targets", async () => {
+		const player = { id: "player-1" };
+		const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
+		const other = { type: "greater", index: 0, text: "Greater effect: takes the arm", other: true };
+		tokens["Actor.foe"] = { uuid: "Actor.foe", testUserPermission: () => false };
+		tokens["Actor.mine"] = { uuid: "Actor.mine", testUserPermission: (user) => user === player };
+		tokens["Actor.theirs"] = { uuid: "Actor.theirs", testUserPermission: () => false };
+		const card = renderCard({ ...strong(), targets: [] });
+		expect(await ask(other)).toBe(false);
+		expect(await ask({ ...other, actor: "Actor.theirs" })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(await ask({ ...other, actor: "Actor.mine" })).toBe(true);
+		expect(savedState(card.message).gambits[0].greater).toBe("Greater effect: takes the arm");
 	});
 });

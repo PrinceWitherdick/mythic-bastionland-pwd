@@ -45,6 +45,16 @@
 				<i class="fa-solid fa-flask" inert></i>
 			</button>
 			{{/if}}
+			{{#if lastingLabel}}
+			<button type="button" class="bastionland-icon" data-action="addAbilityDie" data-tooltip="{{lastingLabel}}" aria-label="{{lastingLabel}}" {{disabled unusable}}>
+				<i class="fa-solid fa-dice-d6" inert></i>
+			</button>
+			{{/if}}
+			{{#if indulgeLabel}}
+			<button type="button" class="bastionland-icon" data-action="indulgePassion" data-tooltip="{{indulgeLabel}}" aria-label="{{indulgeLabel}}">
+				<i class="fa-solid fa-wine-glass" inert></i>
+			</button>
+			{{/if}}
 			{{#if pending}}
 			<button type="button" class="bastionland-icon" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
 				<i class="fa-solid fa-hand-holding-medical" inert></i>

@@ -1,0 +1,14 @@
+{{!-- How many are left of how many, and when they come back: a possession's stock, or an Ability's uses.
+	Given the field's id, its label, the full count's and the cadence's labels, the cadences to offer, and the hint. --}}
+<div class="form-group bastionland-item-stock">
+	<label for="{{rootId}}-{{id}}">{{localize label}}</label>
+	<div class="form-fields">
+		<input id="{{rootId}}-{{id}}" type="number" name="system.quantity.value" value="{{system.quantity.value}}" min="0" step="1" placeholder="–">
+		<span class="bastionland-item-stock__of">{{localize "bastionland.item.quantityOf"}}</span>
+		<input type="number" name="system.quantity.max" value="{{system.quantity.max}}" min="0" step="1" placeholder="–" aria-label="{{localize maxLabel}}">
+		<select name="system.restock" aria-label="{{localize restockLabel}}">
+			{{selectOptions options selected=system.restock}}
+		</select>
+	</div>
+	<p class="hint">{{localize hint}}</p>
+</div>

@@ -191,6 +191,7 @@ Hooks.once("init", () => {
 	// which render outside any sheet.
 	foundry.applications.handlebars.loadTemplates({
 		"bastionland.item-row": templatePath("actor/parts/item-row.hbs"),
+		"bastionland.item-stock": templatePath("item/parts/stock.hbs"),
 		"bastionland.add-item": templatePath("actor/parts/add-item.hbs"),
 		"bastionland.virtue-scores": templatePath("actor/parts/virtue-scores.hbs"),
 		"bastionland.armour-badge": templatePath("actor/parts/armour-badge.hbs"),

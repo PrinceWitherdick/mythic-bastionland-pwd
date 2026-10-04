@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countAfter, isAtHand, isCounted, isUsedUp, restockUpdates } from "../../module/rules/restock.js";
+import { ABILITY_CADENCES, countAfter, isAtHand, isCounted, isUsedUp, restockUpdates } from "../../module/rules/restock.js";
 
 const stock = (value, max) => ({ quantity: { value, max } });
 
@@ -41,5 +41,25 @@ describe("restockUpdates", () => {
 	it("leaves what a new day doesn't bring round", () => {
 		expect(restockUpdates(items, ["day"])).toEqual([{ _id: "salve", "system.quantity.value": 1 }]);
 		expect(restockUpdates(items, [])).toEqual([]);
+	});
+});
+
+describe("a limited Ability's uses", () => {
+	const abilities = [
+		{ id: "ward", system: { restock: "day", ...stock(0, 1) } },
+		{ id: "rally", system: { restock: "attack", ...stock(0, 1) } },
+		{ id: "sigil", system: { restock: "phase", ...stock(1, 3) } },
+		{ id: "song", system: { restock: "", ...stock(null, null) } }
+	];
+
+	it("come back when their own time comes round, and at no other", () => {
+		expect(ABILITY_CADENCES).toEqual(expect.arrayContaining(["", "attack", "combat", "phase", "night", "day", "location", "season"]));
+		expect(restockUpdates(abilities, ["phase"])).toEqual([{ _id: "sigil", "system.quantity.value": 3 }]);
+		expect(restockUpdates(abilities, ["combat", "attack"])).toEqual([{ _id: "rally", "system.quantity.value": 1 }]);
+		expect(restockUpdates(abilities, ["day", "phase"])).toEqual([
+			{ _id: "ward", "system.quantity.value": 1 },
+			{ _id: "sigil", "system.quantity.value": 3 }
+		]);
+		expect(restockUpdates(abilities, ["location"])).toEqual([]);
 	});
 });

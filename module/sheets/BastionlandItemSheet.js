@@ -2,9 +2,10 @@ import { t } from "../chat/cards.js";
 import { ARMOUR_KINDS, PROPERTY_TYPES } from "../config.js";
 import { RARITIES } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
-import { ALTERNATE_QUALITIES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
+import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
 import { scarForRoll } from "../rules/scars.js";
-import { RESTOCK_CADENCES } from "../rules/restock.js";
+import { ATTACK_GRANTS, usesFrom } from "../rules/ability-uses.js";
+import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
@@ -26,6 +27,7 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		form: { submitOnChange: true },
 		actions: {
 			deleteItem: BastionlandItemSheet.#onDeleteItem,
+			readUses: BastionlandItemSheet.#onReadUses,
 			saveAndClose: BastionlandItemSheet.#onSaveAndClose
 		}
 	};
@@ -86,6 +88,13 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			// A Humiliation settles on revenge, so it names whoever it's owed on (p9).
 			byRevenge: item.type === "scar" && Boolean(scarForRoll(item.system.roll)?.byRevenge),
 			isGear: item.type === "gear",
+			// An Ability may be limited: so many uses, coming back at some time.
+			isAbility: item.type === "ability",
+			abilityCadenceOptions: Object.fromEntries(ABILITY_CADENCES.map((key) => [key, t(`ability.per.${key || "none"}`)])),
+			lastingDieOptions: { "": t("ability.noLastingDie"), ...Object.fromEntries(DIE_SIZES.map((faces) => [`d${faces}`, `d${faces}`])) },
+			abilityGrants: item.type === "ability"
+				? ATTACK_GRANTS.map((key) => ({ key, label: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`), checked: item.system.grants[key] }))
+				: [],
 			// Weapons, armour and gear can be rare, counted, restocked and broken.
 			isPossession: PROPERTY_TYPES.includes(item.type),
 			insteadOf: this.#insteadOf(),
@@ -127,6 +136,24 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 		if (!others.length) return null;
 		const { options, selected } = insteadOfOptions({ id: this.item.id, either: this.item.system.either }, others);
 		return { options: { "": t("item.insteadOfNone"), ...Object.fromEntries(options.map(({ key, label }) => [key, label])) }, selected };
+	}
+
+	/**
+	 * Fill in an Ability's uses from its own words: "twice per day".
+	 * @this {BastionlandItemSheet}
+	 */
+	static async #onReadUses() {
+		const uses = usesFrom(this.item.system.description);
+		if (!uses.restock) {
+			ui.notifications.info(t("ability.noUsesRead", { name: this.item.name }));
+			return;
+		}
+		const changes = { "system.quantity": uses.quantity, "system.restock": uses.restock };
+		// One not yet added is written when the window is saved.
+		if (this.isNew) {
+			this.item.updateSource(changes);
+			await this.render();
+		} else await this.item.update(changes);
 	}
 
 	/**

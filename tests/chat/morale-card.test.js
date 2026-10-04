@@ -52,7 +52,7 @@ function fakeCombatant(id, actor, { defeated = false, flags = {} } = {}) {
 /** A started Combat holding them, which applies Combatant updates as Foundry would. */
 function fakeCombat(combatants, { turn = 0 } = {}) {
 	const flags = {};
-	return {
+	const combat = {
 		combatants,
 		turns: combatants,
 		started: true,
@@ -70,6 +70,8 @@ function fakeCombat(combatants, { turn = 0 } = {}) {
 			}
 		})
 	};
+	for (const combatant of combatants) combatant.parent = combat;
+	return combat;
 }
 
 beforeEach(() => {

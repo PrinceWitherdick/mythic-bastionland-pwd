@@ -515,9 +515,22 @@ export function canFundGambit(attack, index) {
  * @returns {boolean}
  */
 export function canFundStrongGambit(attack, index) {
-	// In a joint Attack each die is melee or not as its own attacker's was.
-	const melee = attack.dice[index]?.melee ?? attack.melee;
-	return Boolean(melee) && canFundGambit(attack, index) && attack.dice[index].result >= STRONG_GAMBIT_MINIMUM;
+	if (!canFundGambit(attack, index)) return false;
+	// In a joint Attack each die is melee or not as its own attacker's was. An Ability may make
+	// every Gambit from its maker's dice Strong, whatever they show.
+	const share = shareOf(attack, attack.dice[index]);
+	return share.strongGambits || (share.melee && attack.dice[index].result >= STRONG_GAMBIT_MINIMUM);
+}
+
+/**
+ * Whether a Gambit bought with this attacker's Focus may be Strong: an Ability
+ * declared for their share of the Attack makes it so.
+ * @param {AttackState} attack
+ * @param {string} actor The uuid of whoever Focuses.
+ * @returns {boolean}
+ */
+export function focusCanBeStrong(attack, actor) {
+	return attack.dice.some((die) => (die.actor ?? attack.attacker) === actor && shareOf(attack, die).strongGambits);
 }
 
 /**
@@ -565,6 +578,7 @@ export function shareOf(attack, die) {
 		melee: Boolean(die?.melee ?? attack.melee),
 		ignoresArmour: Boolean(die?.ignoresArmour ?? attack.ignoresArmour),
 		nonLethal: Boolean(die?.nonLethal ?? attack.nonLethal),
+		strongGambits: Boolean(die?.strongGambits ?? attack.strongGambits),
 		blast: Boolean(die?.blast ?? attack.blast),
 		largeScale: Boolean(die?.largeScale ?? attack.largeScale),
 		// A share stamped with none harms no structure, whatever the whole card could.
@@ -714,6 +728,7 @@ function joinAttack(attack, change) {
 		melee: Boolean(change.melee),
 		ignoresArmour: Boolean(change.ignoresArmour),
 		nonLethal: Boolean(change.nonLethal),
+		strongGambits: Boolean(change.strongGambits),
 		blast: Boolean(change.blast),
 		largeScale: Boolean(change.largeScale),
 		structureHarm: change.structureHarm && typeof change.structureHarm === "object" ? change.structureHarm : null
@@ -874,7 +889,7 @@ export function changeAttack(attack, change) {
 				...attack,
 				declared: true,
 				// `payer` is whoever Focused, whose mark it is (p10).
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), payer: change.actor ?? null, ...saveInOf(change), ...impairedWeaponOf(change) }],
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: STRONG_GAMBITS.includes(change.strong) && focusCanBeStrong(attack, change.actor) ? change.strong : null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), payer: change.actor ?? null, ...saveInOf(change), ...impairedWeaponOf(change) }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
 		}

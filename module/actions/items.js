@@ -85,6 +85,9 @@ export function itemTags(item, { counted = true } = {}) {
 				...stock
 			].filter(Boolean);
 		}
+		case "ability":
+			// When a limited Ability's uses come back: "each day".
+			return [isCounted(system) && system.restock ? t(`ability.per.${system.restock}`) : null, ...stock].filter(Boolean);
 		default:
 			return [];
 	}

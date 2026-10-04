@@ -1,3 +1,4 @@
+import { combatantOf } from "../actions/lasting-dice.js";
 import { rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
 import { BREAK_ICONS, GROUP_ORDER, downOf, groupHalved, isMoraleBreak, moraleRollers, skipsBrokenTurn } from "../rules/morale.js";
@@ -45,8 +46,8 @@ function memberOf(combatant) {
  */
 export async function promptGroupMorale(actor) {
 	if (!game.user.isGM || actor.type !== "npc") return null;
-	const combat = game.combats.find((candidate) => candidate.combatants.some((combatant) => combatant.actor?.uuid === actor.uuid));
-	const own = combat?.combatants.find((combatant) => combatant.actor?.uuid === actor.uuid);
+	const own = combatantOf(actor);
+	const combat = own?.parent;
 	const disposition = own?.token?.disposition;
 	if (disposition === undefined) return null;
 

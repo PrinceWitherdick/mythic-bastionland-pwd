@@ -197,11 +197,11 @@ export const sameDay = (a, b) => isCalendar(a) && isCalendar(b) && compareRanks(
 
 /**
  * Which cadences a change of calendar brings round: a new Season (which is
- * also a new Day), a new Day's Morning, or Night falling. A calendar set back
- * brings nothing round.
+ * also a new Day), a new Day's Morning, Night falling, and, with any step
+ * forward, a new Phase. A calendar set back brings nothing round.
  * @param {Calendar} before
  * @param {Calendar} after
- * @returns {string[]} Some of "season", "day" and "night".
+ * @returns {string[]} Some of "season", "day", "night" and "phase".
  */
 export function cadencesTurned(before, after) {
 	const then = calendarRank(before);
@@ -212,6 +212,7 @@ export function cadencesTurned(before, after) {
 	if (byDay > 0) turned.push("day");
 	const night = PHASES.indexOf("night");
 	if (now[DAY_PARTS] === night && (byDay > 0 || (byDay === 0 && then[DAY_PARTS] !== night))) turned.push("night");
+	if (compareRanks(now, then) > 0) turned.push("phase");
 	return turned;
 }
 

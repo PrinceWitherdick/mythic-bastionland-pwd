@@ -1,0 +1,11 @@
+<div class="bastionland-dialog__body">
+	{{!-- What a Greater effect does (p10): one of the foe's things, or anything else, written in. --}}
+	{{> "bastionland.pick-list" name="effect" choices=effects legend=(localize "bastionland.attack.greater.which") blankLabel=(localize "bastionland.attack.greater.other") blankDetail=(localize "bastionland.attack.greater.otherDetail")}}
+
+	<div class="form-group">
+		<label for="bastionland-greater-other">{{localize "bastionland.attack.greater.otherLabel"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-greater-other" type="text" name="other" placeholder="{{localize 'bastionland.attack.greater.otherPlaceholder'}}" autocomplete="off">
+		</div>
+	</div>
+</div>

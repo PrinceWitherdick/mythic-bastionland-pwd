@@ -14,6 +14,7 @@ import {
 	lastingMarkBy,
 	canFundGambit,
 	canFundStrongGambit,
+	focusCanBeStrong,
 	changeAttack,
 	checkWielding,
 	defaultWielded,
@@ -830,5 +831,35 @@ describe("a joint Attack", () => {
 		expect(lastingMarkBy(moss())).toBeNull();
 		expect(lastingMarkBy({ ...moss(), smiteMark: true })).toBe("Moss");
 		expect(lastingMarkBy(changeAttack(moss(), tal({ smiteMark: true })))).toBe("Tal");
+	});
+});
+
+describe("Gambits made Strong by an Ability", () => {
+	it("lets any die that can buy a Gambit buy a Strong one, ranged or below 8", () => {
+		const attack = rolled([[6, 5], [4, 3]], { melee: false, strongGambits: true });
+		expect(canFundStrongGambit(attack, 0)).toBe(true);
+		expect(changeAttack(attack, { type: "gambit", die: 0, key: "repel", strong: "noSave" }).gambits[0].strong).toBe("noSave");
+		// A 3 buys no Gambit at all, Strong or not.
+		expect(canFundStrongGambit(attack, 1)).toBe(false);
+	});
+
+	it("holds only for the dice of whoever declared it in a joint Attack", () => {
+		const moss = rolled([[8, 6]], { attacker: "Actor.moss", attackerName: "Moss", strongGambits: true });
+		const joint = changeAttack(moss, { type: "join", actor: "Actor.tal", name: "Tal", melee: true, dice: [{ faces: 8, result: 5, label: "Hookhammer" }] });
+		expect(canFundStrongGambit(joint, joint.dice.findIndex((die) => die.actor === "Actor.moss"))).toBe(true);
+		expect(canFundStrongGambit(joint, joint.dice.findIndex((die) => die.actor === "Actor.tal"))).toBe(false);
+		expect(focusCanBeStrong(joint, "Actor.moss")).toBe(true);
+		expect(focusCanBeStrong(joint, "Actor.tal")).toBe(false);
+
+		const both = changeAttack(moss, { type: "join", actor: "Actor.tal", name: "Tal", melee: false, strongGambits: true, dice: [{ faces: 6, result: 4, label: "Sling" }] });
+		expect(canFundStrongGambit(both, both.dice.findIndex((die) => die.actor === "Actor.tal"))).toBe(true);
+	});
+
+	it("lets a Focus buy a Strong Gambit only for whoever's share has it", () => {
+		const attack = rolled([[8, 6]], { attacker: "Actor.moss", strongGambits: true });
+		const focused = changeAttack(attack, { type: "focus", actor: "Actor.moss", key: "repel", strong: "noSave", save: { by: "Moss", total: 4, target: 12, passed: true } });
+		expect(focused.gambits[0].strong).toBe("noSave");
+		const plain = changeAttack(rolled([[8, 6]], { attacker: "Actor.moss" }), { type: "focus", actor: "Actor.moss", key: "repel", strong: "noSave", save: { by: "Moss", total: 4, target: 12, passed: true } });
+		expect(plain.gambits[0].strong).toBeNull();
 	});
 });

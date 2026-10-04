@@ -178,18 +178,7 @@
 		</div>
 		<p class="hint">{{localize "bastionland.item.rarityHint"}}</p>
 	</div>
-	<div class="form-group bastionland-item-stock">
-		<label for="{{rootId}}-quantity">{{localize "bastionland.item.quantity"}}</label>
-		<div class="form-fields">
-			<input id="{{rootId}}-quantity" type="number" name="system.quantity.value" value="{{system.quantity.value}}" min="0" step="1" placeholder="–">
-			<span class="bastionland-item-stock__of">{{localize "bastionland.item.quantityOf"}}</span>
-			<input type="number" name="system.quantity.max" value="{{system.quantity.max}}" min="0" step="1" placeholder="–" aria-label="{{localize 'bastionland.item.quantityMax'}}">
-			<select name="system.restock" aria-label="{{localize 'bastionland.item.restock'}}">
-				{{selectOptions restockOptions selected=system.restock}}
-			</select>
-		</div>
-		<p class="hint">{{localize "bastionland.item.quantityHint"}}</p>
-	</div>
+	{{> "bastionland.item-stock" id="quantity" label="bastionland.item.quantity" maxLabel="bastionland.item.quantityMax" restockLabel="bastionland.item.restock" options=restockOptions hint="bastionland.item.quantityHint"}}
 	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.brokenHint'}}">
 		<input type="checkbox" name="system.broken" {{checked system.broken}}>
 		<span class="bastionland-check__label">{{localize "bastionland.item.broken"}}</span>
@@ -201,6 +190,32 @@
 		<input type="checkbox" name="system.equipped" {{checked system.equipped}}>
 		<span class="bastionland-check__label">{{localize "bastionland.item.equipped"}}</span>
 	</label>
+	{{/if}}
+
+	{{#if isAbility}}
+	{{> "bastionland.item-stock" id="uses" label="bastionland.ability.uses" maxLabel="bastionland.ability.usesMax" restockLabel="bastionland.ability.ready" options=abilityCadenceOptions hint="bastionland.ability.usesHint"}}
+	{{#if editable}}
+	<button type="button" class="bastionland-button" data-action="readUses" data-tooltip="{{localize 'bastionland.ability.readUsesHint'}}"><i class="fa-solid fa-glasses" inert></i> {{localize "bastionland.ability.readUses"}}</button>
+	{{/if}}
+	<fieldset>
+		<legend>{{localize "bastionland.ability.grantsLabel"}}</legend>
+		{{#each abilityGrants}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="checkbox" name="system.grants.{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+		<p class="hint">{{localize "bastionland.ability.grantsHint"}}</p>
+	</fieldset>
+	<div class="form-group">
+		<label for="{{rootId}}-lasting">{{localize "bastionland.ability.lastingDie"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-lasting" name="system.lastingDie">
+				{{selectOptions lastingDieOptions selected=system.lastingDie}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.ability.lastingDieHint"}}</p>
+	</div>
 	{{/if}}
 
 	{{#if isScar}}

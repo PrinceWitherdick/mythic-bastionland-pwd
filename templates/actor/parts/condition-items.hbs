@@ -7,6 +7,8 @@
 		<button type="button" class="bastionland-blank" data-action="sufferAffliction" data-affliction="{{key}}" data-tooltip="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
 		<button type="button" class="bastionland-blank" data-action="cureAffliction" data-affliction="{{key}}" data-tooltip="{{cureHint}}" aria-label="{{cureHint}}" {{#unless @root.editable}}disabled{{/unless}}><i class="fa-solid fa-xmark" inert></i></button>
 	</span>
+	{{else if lasting}}
+	<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="dropLastingDie" data-index="{{index}}" data-tooltip="{{hint}}" aria-label="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}} <i class="fa-solid fa-xmark" inert></i></button>
 	{{else if dismiss}}
 	<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMark" data-message="{{messageId}}" data-gambit="{{index}}" data-tooltip="{{hint}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}} <i class="fa-solid fa-xmark" inert></i></button>
 	{{else}}

@@ -17,6 +17,7 @@ import {
 	canJoin,
 	changeAttack,
 	damageAgainst,
+	focusCanBeStrong,
 	gambitAllowsSave,
 	gambitSaveVirtue,
 	hasUsedFeat,
@@ -26,6 +27,7 @@ import {
 } from "../rules/attack.js";
 import { shownWeapons, weaponShown } from "../rules/gambit-marks.js";
 import { damageReach } from "../rules/property-tab.js";
+import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
@@ -138,8 +140,18 @@ async function onChangeQuery(data, context) {
 	if (!user) return false;
 	const message = game.messages.get(messageId);
 	if (!attackOf(message) || !QUERYABLE_CHANGES.includes(change?.type)) return false;
+	// Writing in some other Greater effect changes nobody's sheet, so the attackers may do it too.
+	if (change.type === "greater" && change.other) {
+		const attack = attackOf(message);
+		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
+		const foe = attack.targets.length
+			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
+			: Boolean(change.actor && fromUuidSync(change.actor)?.testUserPermission?.(user, "OWNER"));
+		if (!foe && !ownsAnAttacker(attack, user)) return false;
+		change = { type: "greater", index: change.index, text: change.text };
+	}
 	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
-	if (change.type === "dismissMark" || change.type === "greater") {
+	else if (change.type === "dismissMark" || change.type === "greater") {
 		const marked = fromUuidSync(change.actor);
 		if (!marked?.testUserPermission(user, "OWNER")) return false;
 		const attack = attackOf(message);
@@ -305,7 +317,7 @@ async function onFocus(message) {
 	const attacker = await chooseActor(able, { title: t("feats.focus.name"), message: t("attack.whoFocuses"), icon: "fa-solid fa-eye" });
 	if (!attacker) return;
 
-	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: false, weapons: impairOptions(attack) });
+	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: focusCanBeStrong(attack, attacker.uuid), weapons: impairOptions(attack) });
 	if (!choice) return;
 	// The CLA Save is rolled now, for the card to keep, but Fatigue follows only once the card takes the Focus.
 	const save = await rollFeat(attacker, "focus");
@@ -313,6 +325,7 @@ async function onFocus(message) {
 	const saved = await saveChange(message, {
 		type: "focus",
 		key: choice.key,
+		strong: choice.strong,
 		saveIn: choice.saveIn,
 		actor: attacker.uuid,
 		bonus: await rollDismount(choice.key),
@@ -590,25 +603,31 @@ async function onGreater(message, button) {
 	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
 
 	const options = greaterOptions(attack);
-	if (!options.length) return warn("attack.greater.nothing");
-	let chosen = options[0];
-	if (options.length > 1) {
-		const action = await chooseDialog({
-			title: t("attack.greater.title"),
-			icon: "fa-solid fa-hand-fist",
-			message: t("attack.greater.which"),
-			buttons: options.map(({ actor, effect, name }, at) => ({
-				action: String(at),
-				label: `${actor.name}: ${t(`attack.greater.${effect}`, { item: name })}`,
-				default: at === 0
-			}))
-		});
-		chosen = typeof action === "string" ? options[Number(action)] ?? null : null;
+	// Anything else it does, as an Ability may say (p114), is written in by the attacker or the foe.
+	const mayWrite = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
+	if (!options.length && !mayWrite) return warn("attack.greater.nothing");
+	const listed = options.map((option, at) => ({ id: String(at), name: `${option.actor.name}: ${t(`attack.greater.${option.effect}`, { item: option.name })}`, option }));
+	const data = await inputDialog({
+		title: t("attack.greater.title"),
+		icon: "fa-solid fa-hand-fist",
+		template: "greater",
+		context: { effects: listed.map(({ id, name }) => ({ id, name })) },
+		ok: { label: t("attack.greater.ok"), icon: "fa-solid fa-hand-fist" }
+	});
+	if (!data) return;
+	const picked = pickedFrom(listed, data.effect);
+	if (picked === PICK_BLANK) {
+		const effect = String(data.other ?? "").trim();
+		if (!effect) return warn("attack.greater.otherEmpty");
+		// On a card rolled with no targets, the GM is told which foe of theirs it lands on.
+		const foe = attack.targets.length ? null : targetActors(attack).find((actor) => actor.isOwner);
+		await saveChange(message, { type: "greater", index, text: t("attack.greater.otherDone", { effect }), other: true, ...(foe ? { actor: foe.uuid } : {}) });
+		return;
 	}
-	if (!chosen) return;
+	if (!picked) return;
 	// Recorded first, so a card that can't be marked done leaves the foe as they were.
-	const { text, carryOut } = greaterOutcome(chosen);
-	if (await saveChange(message, { type: "greater", index, text, actor: chosen.actor.uuid })) await carryOut();
+	const { text, carryOut } = greaterOutcome(picked.option);
+	if (await saveChange(message, { type: "greater", index, text, actor: picked.option.actor.uuid })) await carryOut();
 }
 
 /**

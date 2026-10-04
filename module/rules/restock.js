@@ -7,6 +7,13 @@
 export const RESTOCK_CADENCES = Object.freeze(["", "season", "day"]);
 
 /**
+ * When a limited Ability's uses come back, as Knights' pages word it: at their
+ * next Attack, once the fight is over, each Phase, at nightfall, each day, on
+ * leaving the place, or each Season. Blank for an Ability with no limit.
+ */
+export const ABILITY_CADENCES = Object.freeze(["", "attack", "combat", "phase", "night", "day", "location", "season"]);
+
+/**
  * @typedef {object} Carried An item's count: how many are left, and how many a
  *   full stock holds. Either is null while nobody counts them.
  * @property {number|null} value

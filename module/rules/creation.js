@@ -2,6 +2,7 @@
  * Making a Knight (Beginnings & Glory p6, Knighthood p7). Plain data and
  * functions, so the Knight chooser's choices can be tested without Foundry.
  */
+import { usesFrom } from "./ability-uses.js";
 import { RANKS } from "./glory.js";
 import { propertyGear } from "./property.js";
 import { isStructureBlock, parseArmour } from "./stat-blocks.js";
@@ -262,7 +263,8 @@ export function knightItems(knight, kitNames) {
 	const items = propertyGear(knight?.property);
 	for (const type of ["ability", "passion"]) {
 		const part = knight?.[type];
-		if (part) items.push({ type, name: part.name, system: { description: `<p>${escapeHTML(part.text)}</p>` } });
+		// An Ability limited to so many uses, as its words say, starts counted.
+		if (part) items.push({ type, name: part.name, system: { description: `<p>${escapeHTML(part.text)}</p>`, ...(type === "ability" ? usesFrom(part.text) : {}) } });
 	}
 	for (const { key, type, system } of STANDARD_KIT) {
 		items.push(system ? { type, name: kitNames[key], system: { ...system } } : { type, name: kitNames[key] });

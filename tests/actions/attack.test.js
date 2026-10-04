@@ -436,3 +436,115 @@ describe("a joint Attack card's Damage against its target (p8, p11)", () => {
 		expect(context.dice[0].barred).toBeNull();
 	});
 });
+
+describe("what's declared for one blow, by an Ability or by hand", () => {
+	const ability = (id, name, grants, quantity = { value: null, max: null }, restock = "") => ({ id, name, type: "ability", system: { grants, quantity, restock } });
+	function knight(items) {
+		const actor = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("hammer", "Hookhammer", "d8"), ...items] });
+		actor.updateEmbeddedDocuments = vi.fn(async () => {});
+		return actor;
+	}
+	const state = (call = 0) => postCard.mock.calls[call][3].flags[SYSTEM_ID].attack;
+
+	beforeEach(() => target(combatant({ uuid: "Actor.boar", name: "Boar" }), combatant({ uuid: "Actor.wolf", name: "Wolf" })));
+
+	it("offers each grant by hand, and Abilities that lend one: ticked with no limit, unticked with uses", async () => {
+		await attack(knight([
+			ability("thunder", "Thunder Strike", { blast: true }, { value: 1, max: 1 }, "day"),
+			ability("pierce", "Piercing Gaze", { ignoresArmour: true }),
+			ability("spent", "Spent Already", { blast: true }, { value: 0, max: 1 }, "day"),
+			ability("song", "Song", {})
+		]));
+		expect(opened().declarations.map(({ key }) => key)).toEqual(["blast", "ignoresArmour", "strongGambits"]);
+		expect(opened().abilityOffers.map(({ id, checked }) => [id, checked])).toEqual([["thunder", false], ["pierce", true]]);
+	});
+
+	it("makes a Blast declared by hand strike each target on a card of its own", async () => {
+		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.blast": true });
+		await attack(knight([]));
+		expect(postCard).toHaveBeenCalledTimes(2);
+		expect(state(0)).toMatchObject({ blast: true, ignoresArmour: false, strongGambits: false });
+	});
+
+	it("carries an Ability's grants to the card, and spends one of its uses", async () => {
+		const actor = knight([ability("thunder", "Thunder Strike", { blast: true, ignoresArmour: true }, { value: 2, max: 2 }, "day")]);
+		inputDialog.mockResolvedValue({ "source.hammer": true, "ability.thunder": true });
+		await attack(actor);
+		expect(state(0)).toMatchObject({ blast: true, ignoresArmour: true });
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ _id: "thunder", "system.quantity.value": 1 }]);
+	});
+
+	it("readies an Ability good once an Attack for this one, then spends it if used", async () => {
+		const actor = knight([
+			ability("rally", "Rally", { strongGambits: true }, { value: 0, max: 1 }, "attack"),
+			ability("roar", "Roar", { strongGambits: true }, { value: 0, max: 1 }, "attack")
+		]);
+		inputDialog.mockResolvedValue({ "source.hammer": true, "ability.roar": true });
+		await attack(actor);
+		// Both were spent on the last Attack and are offered again for this one.
+		expect(opened().abilityOffers.map(({ id }) => id)).toEqual(["rally", "roar"]);
+		expect(state(0).strongGambits).toBe(true);
+		expect(actor.updateEmbeddedDocuments).toHaveBeenCalledWith("Item", [
+			{ _id: "rally", "system.quantity.value": 1 },
+			{ _id: "roar", "system.quantity.value": 0 }
+		]);
+	});
+
+	it("keeps a declared Blast when the Attack is Impaired, since it isn't a Feat", async () => {
+		marksOn.mockReturnValue([{ key: "impair", weapon: null, hint: "Impaired" }]);
+		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.blast": true });
+		await attack(knight([]));
+		expect(state(0)).toMatchObject({ impaired: true, blast: true });
+	});
+});
+
+describe("dice kept for the rest of the fight", () => {
+	let flag;
+	let entry;
+	const tal = () => combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items: [weapon("hammer", "Hookhammer", "d8")] });
+
+	beforeEach(() => {
+		flag = [{ faces: 10, label: "Fury" }];
+		target(combatant({ uuid: "Actor.boar", name: "Boar" }));
+	});
+
+	function inCombat(actor) {
+		entry = {
+			actor,
+			getFlag: () => flag,
+			setFlag: vi.fn(async (_scope, _key, value) => { flag = value; })
+		};
+		game.combats = [{ started: true, combatants: [entry] }];
+		return actor;
+	}
+
+	it("offers each one ticked, and rolls those left ticked", async () => {
+		const actor = inCombat(tal());
+		inputDialog.mockResolvedValue({ "source.hammer": true, "lasting.0": true });
+		await attack(actor);
+		expect(opened().lasting).toEqual([{ index: 0, label: "bastionland.attack.lastingDie" }]);
+		expect(opened().canKeep).toBe(true);
+		expect(postCard.mock.calls[0][3].flags[SYSTEM_ID].attack.dice.map((die) => die.label)).toEqual(["Fury", "Hookhammer"]);
+	});
+
+	it("leaves one out of this blow alone when unticked", async () => {
+		const actor = inCombat(tal());
+		inputDialog.mockResolvedValue({ "source.hammer": true });
+		await attack(actor);
+		expect(postCard.mock.calls[0][3].flags[SYSTEM_ID].attack.dice.map((die) => die.label)).toEqual(["Hookhammer"]);
+		expect(flag).toEqual([{ faces: 10, label: "Fury" }]);
+	});
+
+	it("keeps the bonus dice for the rest of the fight when asked", async () => {
+		const actor = inCombat(tal());
+		inputDialog.mockResolvedValue({ "source.hammer": true, bonus: "d8", keepBonus: true });
+		await attack(actor);
+		expect(entry.setFlag).toHaveBeenCalledWith(SYSTEM_ID, "lastingDice", [{ faces: 10, label: "Fury" }, { faces: 8, label: "bastionland.attack.bonus" }]);
+	});
+
+	it("can't keep any outside a Combat", async () => {
+		await attack(tal());
+		expect(opened().canKeep).toBe(false);
+		expect(opened().lasting).toEqual([]);
+	});
+});

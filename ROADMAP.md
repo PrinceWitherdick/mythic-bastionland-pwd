@@ -1,6 +1,6 @@
 # Roadmap
 
-What the system still owes the rulebook, and what's waiting to be tried in a live world. It grew out of the rules audit of 2026-09-26, which covered every page except the Knights. Page numbers are the book's.
+What the system still owes the rulebook, and what's waiting to be tried in a live world. It grew out of the rules audit of 2026-09-26, which covered every page except the Knights; the Knight pages followed on 2026-10-02. Page numbers are the book's.
 
 Each item has an ID so we can refer to it ("do R-12 next"). Tick an item when it's done, and move it to **Done** once it has been tried live.
 
@@ -82,6 +82,13 @@ These were built between 2026-09-26 and 2026-09-28 and pass the unit tests and l
 
 ### Knight pages (2026-10-02)
 - [ ] **T-61** An NPC's Stat Block page has **Counts as a structure** under Age and Wields, whether or not it has either. Ticking it makes the creature harmed only as a structure is (p11): a plain sword's die is struck through on an Attack card at it, and it takes no Morale prompt. A Structure actor's sheet has no such tick.
+- [ ] **T-62** A Passion's row on a Knight's sheet has a wine-glass button, **Indulge this Passion: restore SPI**. It puts SPI back to its maximum and posts "… indulges their Passion, …". With SPI already full it only says so. (p7)
+- [ ] **T-63** An Ability's window has **Uses** (blank, of blank) and **Ready again**: No limit, At their next Attack, Once the fight is over, Each Phase, At nightfall, Each day, On moving on, Each new Season. With uses set, the row shows the −/+ count and "(each day)", and fades when none are left. They come back: Next Phase for Each Phase, Night falling, a new day or Season by the calendar, deleting the Combat for the fight, the Company's Token coming into a new hex for On moving on, and the Knight's next Attack for At their next Attack. A notice says "…: … ready again."
+- [ ] **T-64** A Knight chosen after Import PDF whose Ability says how often ("once per location", "once per day") starts with its uses filled in. An older Knight's Ability window has **Read from its description**, which fills them, or says nothing in it says how many.
+- [ ] **T-65** The Attack dialog's **Declared for this blow** has Blast, Ignores Armour and Gambits are Strong, unticked, and is never remembered. Blast splits the cards per target and holds even when Impaired. Ignores Armour opens the Damage dialog with Ignore Armour ticked. An Ability with **In an Attack** ticks set in its window is offered there by name ("Thunder Strike: Blast"): ticked when it has no limit, unticked when it has uses, and ticking it spends one when the Attack rolls. A spent one isn't offered. (p28, p34, p92)
+- [ ] **T-66** With Gambits are Strong declared, a ranged die of 4–7 offers the Strong Gambit choices, and the card says "Gambits are Strong". In a joint Attack only the declaring attacker's dice can buy them, and Focus offers Strong choices only to whoever's share has it. (p38, p92)
+- [ ] **T-67** A Greater effect's button opens a radio list: each foe's weapon, shield, helm or wooden thing, then **Something else** with a text box ("Takes the limb"). Something else records "Greater effect: …" on the card and changes no sheet. A player who rolled in the Attack can write one in for the GM to record; a player with no part in it can't. Something else left empty asks for words. (p10, p114)
+- [ ] **T-68** In a Combat, the Attack dialog has **Keep the bonus dice for the rest of the fight**; outside one it's greyed out. Kept dice show among the attacker's conditions as pills ("Bonus d8 ×"), and every later Attack lists them ticked; unticking leaves one out of that blow. × drops it, and deleting the Combat drops them all. An Ability with a **Die for the fight** set shows a dice button on its row during a Combat, adding that die and spending a use. (p32, p50, p98)
 
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
@@ -102,7 +109,21 @@ These rules are stated outright in the book, but the system still leaves them to
 
 ## 3. Candidates 💡
 
-C-1 to C-27 are all built and waiting in **Test live**. C-15 to C-27 came from reading the examples of play (Oddpocrypha, pp175–206) against the system on 2026-09-28, and were built the same day as T-48 to T-60. Most of those examples were already covered.
+C-1 to C-27 are all built and waiting in **Test live**.
+
+From the Knight pages (2026-10-02), one-off Abilities that would each need code of their own. Until then the Referee does them by hand, and the generic tools (uses, declared grants, lasting dice, Something else) cover part of each:
+
+- **C-28** p56: merge pooled dice into one bigger die, up to d12, in a joint Attack.
+- **C-29** p62: reroll the whole pool once. Nothing in the attack code rerolls yet. Also p62's Property: d6 SPI is lost should the banner fall.
+- **C-30** p100: change a die that shows the chosen number, as many times a day as that number.
+- **C-31** p120: a coin flip instead of an Attack; heads the target dies, tails the Knight does.
+- **C-32** p66: take an ally's Mortal Wound or death on yourself.
+- **C-33** p68: Damage to SPI instead of VIG, with a break at half SPI. The Damage dialog has no choice of Virtue.
+- **C-34** p166: a d6 bite that, on a Wound, gives back the VIG it took.
+- **C-35** p92: the lance shatters after the charge (mark it broken).
+- **C-36** p60: lashing with both ends of the chain (d6 each), written in the Ability rather than the Property.
+- **C-37** p106: a d8 blast shockwave after a fall of 12ft or more.
+- **C-38** p88: a 1-in-2 chance the books hold something. C-15 to C-27 came from reading the examples of play (Oddpocrypha, pp175–206) against the system on 2026-09-28, and were built the same day as T-48 to T-60. Most of those examples were already covered.
 
 Not taken up from the examples, because they're the Referee's call or are already covered: the Action Procedure (see **Decided against**), reckless fighting (Bonus dice covers it), improvised weapons such as p194's shortspears, the Realm's changes over an Age (p203 has Ref roll them in private; the book gives no table), and a named Seer's-guidance or hospitality button (the Recovery block's Restore does it).
 

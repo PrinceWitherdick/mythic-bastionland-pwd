@@ -86,14 +86,35 @@ export async function restAfterCombat(combat) {
  * Restore a Virtue to its maximum, as a Remedy, Action or new Season does.
  * @param {Actor} actor
  * @param {string} virtue "vig", "cla" or "spi".
+ * @param {{icon: string, text: (value: number) => string}} [card] What the card says, where it isn't the plain restoring.
  */
-export async function restoreVirtue(actor, virtue) {
+export async function restoreVirtue(actor, virtue, card = {
+	icon: "fa-solid fa-heart-pulse",
+	text: (value) => t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
+}) {
 	const value = actor.system.virtues[virtue].max;
 	await actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
-	await postCard(actor, "note", {
-		icon: "fa-solid fa-heart-pulse",
-		text: t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })
+	await postCard(actor, "note", { icon: card.icon, text: card.text(value) });
+}
+
+/**
+ * Indulge a Passion: the Knight's own way of restoring SPI (p7).
+ * @param {Actor} actor
+ * @param {Item|undefined} item The Passion.
+ * @returns {Promise<boolean>} Whether SPI was restored.
+ */
+export async function indulgePassion(actor, item) {
+	const spi = actor.system.virtues?.spi;
+	if (!spi || !item) return false;
+	if (spi.value >= spi.max) {
+		ui.notifications.info(t("passion.full", { name: actor.name }));
+		return false;
+	}
+	await restoreVirtue(actor, "spi", {
+		icon: "fa-solid fa-wine-glass",
+		text: (value) => t("passion.indulged", { name: actor.name, passion: item.name, value })
 	});
+	return true;
 }
 
 /**

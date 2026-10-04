@@ -33,6 +33,8 @@ import {
 import { dieMask } from "../rules/die-shapes.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
+import { ATTACK_GRANTS, abilityOffers, abilityUpdatesAfterAttack, declaredGrants } from "../rules/ability-uses.js";
+import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
 import { downBy } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
@@ -381,6 +383,7 @@ function openingWielded(actor, sources, remembered, mounted, marks = []) {
  * @property {{mode: string, feat: object, roll: Roll, save: object}|null} smite
  * @property {ReturnType<typeof weaknessesOf>} exploited The known weaknesses ticked.
  * @property {boolean} blast
+ * @property {ReturnType<typeof declaredGrants>} declared What was declared for this blow, by an Ability or by hand.
  * @property {object|null} inDuel        The duel this is a blow in.
  * @property {{uuid: string, name: string}[]} targets
  * @property {string|null} impairedWeapon The weapon a foe's Impair holds, when that alone Impairs this Attack.
@@ -435,6 +438,11 @@ async function planAttack(actor, joining = null) {
 	const ticks = rememberedTicks(remembered);
 	// A Warband's Attack at individuals only gets +d12 and Blast (p11), so the targets tick the box.
 	const individuals = warband ? individualsTick(aimedAt, ticks.againstIndividuals) : null;
+	// Abilities that lend a blow something: one with no limit comes ticked, one with uses waits to be spent.
+	const offers = abilityOffers(Array.from(actor.items ?? []));
+	// Dice they keep for the rest of the fight.
+	const combatant = combatantOf(actor);
+	const lasting = lastingDiceOf(actor, combatant).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
 
 	const data = await inputDialog({
 		title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
@@ -471,6 +479,15 @@ async function planAttack(actor, joining = null) {
 				label: text ? t("attack.weakness", { name, text, die }) : t("attack.weaknessBare", { name, die })
 			})),
 			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length || !actor.system.knowsFeat("smite"),
+			abilityOffers: offers.map((offer) => ({
+				id: offer.id,
+				label: t("attack.useAbility", { name: offer.name, grants: offer.grants.map((key) => t(`attack.grant.${key}`)).join(", ") }),
+				hint: t(offer.counted ? "attack.useAbilityHint" : "attack.useAbilityFreeHint"),
+				checked: !offer.counted
+			})),
+			declarations: ATTACK_GRANTS.map((key) => ({ key, label: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`) })),
+			lasting: lasting.map((die, index) => ({ index, label: lastingDieLabel(die) })),
+			canKeep: Boolean(combatant),
 			warband,
 			leaders: leaders.map((leader) => ({ uuid: leader.uuid, name: leader.name, selected: leader.uuid === actor.system.leader }))
 		},
@@ -481,6 +498,7 @@ async function planAttack(actor, joining = null) {
 
 	const choice = foundry.utils.expandObject(data);
 	const { chosen: picked, check } = readWielding(actor, sources, choice);
+	const declared = declaredGrants(choice, offers);
 	if (check.refusal) {
 		ui.notifications.warn(t(`attack.refusals.${check.refusal}`, { name: actor.name }));
 		return null;
@@ -518,7 +536,9 @@ async function planAttack(actor, joining = null) {
 		if (save) smite = { mode: choice.smite, feat: featContext("smite", save), roll: save.roll, save };
 	}
 
-	const bonusDice = parseDice(choice.bonus).map((faces) => ({ faces, label: t("attack.bonus") }));
+	const typedBonus = parseDice(choice.bonus).map((faces) => ({ faces, label: t("attack.bonus") }));
+	// Their dice for the rest of the fight, each left out only when unticked.
+	const bonusDice = [...typedBonus, ...lasting.filter((_die, index) => choice.lasting?.[index]).map(({ faces, label }) => ({ faces, label }))];
 	// A specialist weapon's die joins only when it's wielded in the situation it's made for (p12).
 	for (const item of chosen.filter((candidate) => choice.specialist?.[candidate.id])) {
 		const die = specialistDie(item.system);
@@ -538,7 +558,8 @@ async function planAttack(actor, joining = null) {
 		? [{ faces: 4, label: t(weaponDice.length ? "conditions.impaired.label" : "attack.unarmed") }]
 		: [...weaponDice, ...bonusDice];
 
-	const blast = smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
+	// A Blast declared for an Ability isn't a Feat, so it holds even when the Attack is Impaired.
+	const blast = declared.blast || smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
 	// An Attack in a duel is against the other duelist, whatever else is targeted.
 	const inDuel = duel && choice.duel ? duel : null;
 	let targets = currentTargets();
@@ -558,6 +579,13 @@ async function planAttack(actor, joining = null) {
 		if (warband && actor.isOwner && actor.system.leader !== leaderUuid) await actor.update({ "system.leader": leaderUuid });
 		if (smite) await payFeat(actor, smite.save);
 		await useUpThrown(chosen);
+		// An Ability good once an Attack is ready again for this one, and those used here spend a use.
+		const abilities = abilityUpdatesAfterAttack(Array.from(actor.items ?? []), declared.used.map((offer) => offer.id));
+		// Bonus dice kept with them for the rest of the fight, as an Ability that grows with each blow says.
+		await Promise.all([
+			abilities.length && actor.isOwner ? actor.updateEmbeddedDocuments("Item", abilities) : null,
+			choice.keepBonus ? keepLastingDice(actor, typedBonus) : null
+		]);
 	};
 
 	return {
@@ -577,6 +605,7 @@ async function planAttack(actor, joining = null) {
 		smite,
 		exploited,
 		blast,
+		declared,
 		inDuel,
 		targets,
 		againstIndividuals,
@@ -590,7 +619,7 @@ async function planAttack(actor, joining = null) {
  * @param {AttackPlan} plan
  * @returns {object} Part of an AttackState.
  */
-function madeWith({ actor, chosen, picked, check, pool, smite, leader, warband, blast, impairedWeapon }) {
+function madeWith({ actor, chosen, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
 	return {
 		melee: !chosen.some((item) => item.system.ranged),
 		impaired: pool.impaired,
@@ -600,7 +629,9 @@ function madeWith({ actor, chosen, picked, check, pool, smite, leader, warband, 
 		impairedWeapon,
 		setAside: check.setAside.map(({ index, reason }) => ({ name: picked[index].name, reason })),
 		blast,
-		ignoresArmour: chosen.some((item) => item.system.ignoresArmour),
+		ignoresArmour: Boolean(declared?.ignoresArmour) || chosen.some((item) => item.system.ignoresArmour),
+		// Gambits from this Attack's dice are Strong without an 8+, as an Ability may make them.
+		strongGambits: Boolean(declared?.strongGambits),
 		// Its Damage never Slays or leaves anybody dying (p173).
 		nonLethal: chosen.length > 0 && chosen.every((item) => item.system.nonLethal),
 		// What a Cast member's weapon does besides its dice, as its stat block says: "sets area alight".
@@ -1048,6 +1079,8 @@ export function attackCardContext(attack) {
 		blast: attack.blast,
 		// In a joint Attack, as the die that counts says.
 		ignoresArmour: blow.ignoresArmour && !unharmed,
+		// Somebody's dice buy Strong Gambits without an 8+, as an Ability declared for them says.
+		strongGambits: attack.dice.some((die) => shareOf(attack, die).strongGambits),
 		// Cards rolled before weapon notes were kept have none.
 		weaponNotes: (attack.notes ?? []).map(({ name, note }) => `${name}: ${note}`),
 		// Cards rolled before leading from the front have no leader.
