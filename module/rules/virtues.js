@@ -27,6 +27,9 @@ export const hasUnrolledVirtues = (system) => VIRTUES.every((key) => system?.vir
 export const VIRTUE_MIN = 0;
 export const VIRTUE_MAX = 19;
 
+/** The update that leaves somebody dead outright: VIG 0 and Slain, past any Mortal Wound. */
+export const SLAIN_UPDATE = Object.freeze({ "system.virtues.vig.value": 0, "system.slain": true, "system.mortalWound": false });
+
 /**
  * Keep a Virtue inside the range the rules allow.
  * @param {number} value

@@ -1389,6 +1389,16 @@
 	font-size: var(--bastionland-font-note);
 }
 
+/* What a dialog's choices come to, such as the dice joined before an Attack (p56). */
+.bastionland-dialog__summary {
+	margin: 0;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-dialog__summary.is-warning {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-check {
 	display: flex;
 	align-items: center;

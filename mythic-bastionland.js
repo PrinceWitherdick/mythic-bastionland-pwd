@@ -49,7 +49,7 @@ import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
-import { CAST_DETAILS_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
+import { CAST_DETAILS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
 import { importBookArt } from "./module/book-art/importer.js";
 import { squareKnightTokens } from "./module/book-art/square-tokens.js";
 import { ensureImportMacro, registerBookArtSettings } from "./module/book-art/macro.js";
@@ -121,6 +121,7 @@ import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { restAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
+import { ABILITY_KITS_STEP, fillAbilityKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -291,6 +292,8 @@ Hooks.once("init", () => {
 	registerLeadingHooks();
 	registerSurpriseHooks();
 	registerAfflictionHooks();
+	// A coin flipped for a life whose loser this user couldn't change is killed from the card (p120).
+	registerAbilityCards();
 	// A hireling taken from the book's compendium rolls its Virtues as it's made (p13).
 	Hooks.on("preCreateActor", rollHirelingVirtues);
 	Hooks.on("deleteCombat", (combat) => restAfterCombat(combat));
@@ -528,6 +531,13 @@ const WORLD_SETUP = Object.freeze([
 	{ key: COMPANION_NAMES_STEP, run: dropOwnerFromCompanionNames },
 	// After it too, so the pieces it read get their counts, restocks and armour conditions.
 	{ key: POSSESSION_DETAILS_STEP, run: fillPossessionDetails },
+	// Again, for the odds a possession gives (p88), the Virtue it costs should something befall it (p62)
+	// and Damage that burns on (p173), read since.
+	{ key: "possessionOddsAndLosses", run: fillPossessionDetails },
+	// Knights made before their Ability's settings, and any weapon it gives, came from their page.
+	{ key: ABILITY_KITS_STEP, run: fillAbilityKits },
+	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
+	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
@@ -561,6 +571,8 @@ Hooks.once("ready", async () => {
 	watchCalendar();
 	watchTableRenewals();
 	watchRestocks();
+	// A rune etched for a number fades at sunset, for another to be etched (p100).
+	watchSunsets();
 	// Each hex something is kept for gets its Journal entry, if it has none yet or is behind.
 	syncEveryRealm();
 	// And each Site with something drawn or written on it.

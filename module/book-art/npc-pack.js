@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
 import { castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../rules/cast-npcs.js";
+import { lingeringUpdates } from "../rules/afflictions.js";
 import { CAST_FLAG } from "../rules/myth-cast.js";
 import { seerFolders } from "../rules/seer-npcs.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -140,6 +141,23 @@ export async function seedNpcPack() {
 export function markOrAttacks() {
 	return patchWorldCast(async (actor, data) => {
 		const updates = eitherUpdates([...actor.items], data.items);
+		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+	});
+}
+
+/** The world setup step marking the Cast's weapons whose Damage burns on, as acid does (p173). */
+export const LINGERING_CAST_STEP = "lingeringCast";
+
+/**
+ * A world setup step for a world that imported the book before a weapon whose
+ * Damage burns on each round was read as one (p173). The NPCs compendium is
+ * filled again, and each of a Cast already in the world has those weapons
+ * marked, keeping everything else as it is.
+ * @returns {Promise<boolean>} Always done: a world without the book's text has none to mark.
+ */
+export function markLingeringAttacks() {
+	return patchWorldCast(async (actor, data) => {
+		const updates = lingeringUpdates([...actor.items], data.items);
 		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
 	});
 }

@@ -1,0 +1,18 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{hint}}</p>
+
+	{{!-- Whoever takes the Mortal Wound in the victim's place (p66), or nobody. --}}
+	<fieldset>
+		<legend>{{localize "bastionland.deathWard.who"}}</legend>
+		<label class="bastionland-check">
+			<input type="radio" name="warden" value="" checked>
+			<span class="bastionland-check__label">{{localize "bastionland.deathWard.none"}}</span>
+		</label>
+		{{#each wardens}}
+		<label class="bastionland-check">
+			<input type="radio" name="warden" value="{{uuid}}">
+			<span class="bastionland-check__label">{{name}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+</div>

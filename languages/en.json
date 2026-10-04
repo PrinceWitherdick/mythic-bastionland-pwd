@@ -485,7 +485,8 @@
         "landmark": "a Landmark",
         "season": "the Season's turn",
         "aging": "growing older",
-        "book": "the rulebook"
+        "book": "the rulebook",
+        "ability": "an Ability"
       },
       "gone": "someone since deleted",
       "unknownDay": "Unknown date",
@@ -734,7 +735,27 @@
       "grantsHint": "Offered in the Attack dialog. One with uses is offered unticked, and spends a use when ticked. One with no limit comes ticked.",
       "readUses": "Read from its description",
       "readUsesHint": "Fill in the uses from words such as “twice per day” in the description.",
-      "noUsesRead": "Nothing in {name}’s description says how many uses it has and when they come back."
+      "noUsesRead": "Nothing in {name}’s description says how many uses it has and when they come back.",
+      "bonusDie": "Die it adds",
+      "bonusDieHint": "Added to an Attack it’s used in, as a charge’s +d12. Offered in the Attack dialog.",
+      "needsLabel": "Used only in",
+      "needsHint": "The Attack dialog refuses it in any other kind of Attack.",
+      "needs": {
+        "any": "Any Attack",
+        "melee": "A melee Attack",
+        "charge": "A mounted charge"
+      },
+      "powersLabel": "Besides an Attack",
+      "powers": {
+        "rerollPool": "Rolls a joint Attack’s pool again",
+        "rerollPoolHint": "A joint Attack card offers its Knight a button to roll every die again, once, before anything is spent on them.",
+        "deathWard": "Takes an ally’s Mortal Wound",
+        "deathWardHint": "When somebody nearby would be Mortally Wounded or Slain, applying the Damage asks whether this Knight takes the Mortal Wound instead.",
+        "coinFlip": "Flips a coin for a life",
+        "coinFlipHint": "Its row has a coin: with one Token targeted, heads it dies, tails this Knight does.",
+        "sigil": "Etches a rune for a number",
+        "sigilHint": "Its row has a star: at sunset, pick a number. A die showing it on an Attack card can be turned to another face, as many times as the number, until the next sunset."
+      }
     },
     "passion": {
       "label": "Passion",
@@ -2638,7 +2659,21 @@
         "ignoresArmour": "Ignores Armour",
         "ignoresArmourHint": "Its Damage comes with Ignore Armour ticked.",
         "strongGambits": "Gambits are Strong",
-        "strongGambitsHint": "Any die of 4 or more spent on a Gambit buys a Strong one, not only a melee 8+."
+        "strongGambitsHint": "Any die of 4 or more spent on a Gambit buys a Strong one, not only a melee 8+.",
+        "spirit": "Damage to SPI",
+        "spiritHint": "Past GD, its Damage comes off SPI rather than VIG. Losing at least half their SPI leaves them broken, out of the fight but not dying.",
+        "drain": "Takes back the VIG",
+        "drainHint": "If it Wounds, its maker gets back as much VIG as the target lost, up to their most.",
+        "sleep": "Wound brings sleep",
+        "sleepHint": "If it Wounds, the target falls into a normal sleep.",
+        "memory": "Wound shows a memory",
+        "memoryHint": "If it Wounds, the target is shown one of the attacker’s memories.",
+        "shatters": "Shatters the weapon",
+        "shattersHint": "Each weapon it’s made with is marked broken once the Attack is rolled, until mended. Shields are left whole.",
+        "alone": "Made alone",
+        "aloneHint": "Nobody may join this Attack, and it can’t be made as part of another’s.",
+        "combine": "Join dice together",
+        "combineHint": "Before the roll, a window lets you join your dice into bigger ones, as big as their faces together: a d4 and a d8 make a d12. Nothing joins past a d12."
       },
       "useAbility": "{name}: {grants}",
       "lastingDie": "{label} d{faces}",
@@ -2649,6 +2684,55 @@
       "keepBonusNone": "Only somebody in a Combat can keep dice for the rest of the fight.",
       "useAbilityHint": "Ticked, this blow has it, and one of the Ability’s uses is spent.",
       "useAbilityFreeHint": "An Ability with no limit, so it comes ticked. Untick it for a blow it doesn’t help.",
+      "useAbilityChosenHint": "Used blow by blow, so it waits to be ticked for the blow it’s used in.",
+      "onWoundPick": "If it Wounds",
+      "onWoundNone": "Nothing more",
+      "onWound": {
+        "sleep": "If this Wounds, the target falls into a normal sleep.",
+        "memory": "If this Wounds, the target is shown one of the attacker’s memories."
+      },
+      "needs": {
+        "melee": "{name} is used only in a melee Attack, and a ranged weapon is ticked.",
+        "meleeTag": "melee only",
+        "charge": "{name} is used only on a mounted charge: tick the charge, or Mounted and Moved this turn.",
+        "chargeTag": "mounted charge only"
+      },
+      "aloneJoin": "{name}’s blow is made alone, so it can’t join another’s Attack.",
+      "shattered": "Shattered as it lands: {names}.",
+      "lingers": "{name} burns on {when} where its Damage lands, until washed off.",
+      "combine": {
+        "title": "Join Dice",
+        "hint": "Only with at least one ally attacking too. Put dice in the same group to join them into one die as big as their faces together. Leave a die alone to roll it as it is.",
+        "legend": "Your dice",
+        "die": "d{faces}: {label}",
+        "alone": "Alone",
+        "group": "Group {group}",
+        "rolls": "Rolls: {dice}",
+        "over": "Group {groups} comes to no die up to a d12.",
+        "joined": "Joined {dice}",
+        "ok": "Roll"
+      },
+      "reroll": {
+        "button": "Roll the Pool Again",
+        "hint": "Once per Attack, roll every die on this joint Attack again, before anything is spent or declared on them.",
+        "who": "Who rolls the pool again?",
+        "done": "{name} rolled the whole pool again.",
+        "closed": "The pool can’t be rolled again now: it already was, nobody has joined, or something has been spent on the dice.",
+        "none": "None of the Knights you play in this Attack has an Ability ready to roll the pool again."
+      },
+      "sigil": {
+        "button": "Turn a Die",
+        "hint": "A die shows the number a Knight’s rune is etched for: turn it to another of its faces, spending one of the rune’s turns.",
+        "who": "Whose rune turns it?",
+        "which": "The die",
+        "to": "Turn it to",
+        "toHint": "Any other face of that die.",
+        "turn": "Turn It",
+        "turnHint": "{name}’s rune is etched for {number}, with {left} turns left before sunset.",
+        "turnedDie": "{label} (turned from {from} by {name})",
+        "badValue": "That die shows {result}. Turn it to another face, from 1 to {faces}.",
+        "none": "No Knight you play has a rune etched for a number these dice show."
+      },
       "saveInLabel": "Their Save",
       "saveIn": "{virtue} Save",
       "saveInHint": "VIG as the rules have it, or another where you rule so, such as CLA to dodge a stab at the eye (p187).",
@@ -2801,6 +2885,14 @@
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
       "vigourLine": "VIG {from} → {to}",
+      "spiritLine": "SPI {from} → {to}",
+      "spiritHurt": "Shaken in spirit, but not Wounded.",
+      "drained": "{name} takes back {amount} VIG from {victim}: {from} → {to}.",
+      "drainedAsk": "{name} takes back up to {amount} VIG from {victim}, for their player to write in.",
+      "onWound": {
+        "sleep": "{name} falls into a normal sleep.",
+        "memory": "{name} is shown one of the attacker’s memories."
+      },
       "leaderShares": "{name} leads {warband} from the front, so suffers the same {damage} Damage. Apply it from their sheet.",
       "harm": {
         "immunity": {
@@ -2829,7 +2921,9 @@
         "wounded": "Wounded.",
         "mortal": "Mortally Wounded: dying, and dead within the hour unless someone tends them.",
         "slain": "Slain.",
-        "destroyed": "Destroyed."
+        "destroyed": "Destroyed.",
+        "broken": "Broken: out of the fight, but not dying.",
+        "warded": "{name} takes the Mortal Wound in their place."
       },
       "warbandOutcomes": {
         "mortal": "Routed from the field.",
@@ -2980,6 +3074,21 @@
       "usedUpHint": "Rolling an Attack with it takes one off the count, as throwing a titan bead does.",
       "wooden": "Wooden",
       "woodenHint": "A Strong Gambit’s Greater effect can break it.",
+      "loss": "Costs",
+      "lossVirtue": "Virtue",
+      "lossWhen": "When",
+      "lossWhenPlaceholder": "if it’s lost",
+      "lossNone": "None",
+      "lossHint": "A Virtue its bearer loses should something befall it, as a banner falling. Its row gets a button that takes the loss.",
+      "noHand": "Needs no hand",
+      "noHandHint": "A bite, a shockwave: struck beside whatever is held, so it doesn’t count against two hands. The Attack dialog opens with it unticked.",
+      "lingers": "Burns on",
+      "lingersHint": "Where its Damage gets past GD, it leaves an affliction that deals its dice as Damage again each round or each day, until washed off.",
+      "lingersNever": "No",
+      "chance": "Odds",
+      "chanceIn": "in",
+      "chanceOf": "Out of",
+      "chanceHint": "A chance it holds what’s wanted, as 1 in 2. Its row gets a die to roll it.",
       "poison": "Poison",
       "poisonHint": "As strong as it is rare: set its Rarity below.",
       "poisonTag": "{rarity} poison",
@@ -3051,7 +3160,69 @@
       "took": "{name} is afflicted: {affliction}.",
       "lost": "{affliction} takes {amount} {virtue}, {from} → {to}.",
       "cured": "{name} is cured of {affliction}.",
-      "morning": "Afflictions Take Their Toll"
+      "morning": "Afflictions Take Their Toll",
+      "damageLabel": "{name}: {loss} Damage {when}",
+      "damageLabelIgnores": "{name}: {loss} Damage {when}, ignoring Armour",
+      "damageHint": "Take its toll now: Damage, which can Wound.",
+      "washOff": "Washed off: it burns no more",
+      "burns": "{affliction} burns on: {amount} on {dice}."
+    },
+    "deathWard": {
+      "title": "Take the Mortal Wound?",
+      "hint": "{name} would be Mortally Wounded or Slain. A Knight nearby may take a Mortal Wound in their place.",
+      "who": "Who takes it",
+      "none": "Nobody: let it land",
+      "ok": "Go",
+      "taken": "{name} takes the Mortal Wound in {victim}’s place.",
+      "doomed": "{name} takes the blow in {victim}’s place, and Doom makes it their death."
+    },
+    "coinFlip": {
+      "use": "Flip the coin for the targeted Token",
+      "oneTarget": "Target exactly one Token to flip for.",
+      "noLife": "{name} has no VIG to lose to a coin.",
+      "confirm": "{name} flips a coin for {target}: heads {target} dies, tails {name} does.",
+      "final": "There’s no taking it back.",
+      "flip": "Flip",
+      "heads": "Heads",
+      "tails": "Tails",
+      "targetDies": "{target} is killed.",
+      "selfDies": "{name} is killed.",
+      "carryOut": "Carry it out on {name}",
+      "cantCarry": "Only whoever plays {name}, or the Referee, can carry it out.",
+      "already": "{name} is already Slain."
+    },
+    "sigil": {
+      "hint": "At sunset {name} etches a rune for a number. Until the next sunset, a die showing it can be turned to another face, as many times as the number.",
+      "last": "Last night’s was {number}: tonight’s must be another.",
+      "number": "The number",
+      "numberHint": "Its turns are as many as the number.",
+      "etch": "Etch the Rune",
+      "etched": "{name} etches a rune for {number}.",
+      "notTonight": "{number} can’t be tonight’s number.",
+      "keepHint": "Close the window to keep the face.",
+      "saveDie": "The d20 of this Save, showing {face}",
+      "untilSunset": "{name}’s rune is etched for {number} until sunset. Only the Referee can change it before then.",
+      "faded": "{name}: the sun has set on {items}. Etch a new rune.",
+      "rowEtched": "Rune for {number}: {left} turns left before sunset.",
+      "rowSpent": "The rune for {number} has no turns left until sunset.",
+      "rowNone": "Etch tonight’s rune"
+    },
+    "chance": {
+      "roll": "Roll its {in}-in-{of} chance",
+      "held": "{name}: {total} on the {in}-in-{of}. It holds what’s wanted.",
+      "missed": "{name}: {total} on the {in}-in-{of}. Not this time."
+    },
+    "loss": {
+      "button": "Lose {dice} {virtue}: {when}",
+      "befalls": "should something befall the {item}",
+      "confirm": "{name} loses {dice} {virtue}: {when}. Take it now?",
+      "take": "Lose It",
+      "taken": "{name} loses {amount} {virtue} for the {item}: {from} → {to}."
+    },
+    "abilityKits": {
+      "chain": "Iron chain, lashed with both ends",
+      "shockwave": "Shockwave on landing",
+      "bite": "Bite"
     },
     "npc": {
       "tabs": {

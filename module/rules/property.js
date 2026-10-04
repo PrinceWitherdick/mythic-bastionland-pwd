@@ -4,6 +4,7 @@
  * qualities, armour with its value and type, other gear by name, and any
  * steed or other companion. Pure, so it can be tested without Foundry.
  */
+import { keepsOnFrom } from "./afflictions.js";
 import { RANGED_NAME } from "./arms-and-goods.js";
 import { looksWooden } from "./armour.js";
 import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "./attack.js";
@@ -96,6 +97,36 @@ const RESTOCKS = Object.freeze([
 ]);
 /** Something carried to be used once, as "use once only". */
 const ONCE = /\buse once only\b/i;
+/** Odds a possession gives, as "1-in-2 chance" (p88). */
+const CHANCE = /\b(\d+)-in-(\d+)\s+chance\b/i;
+
+/** A Virtue lost should something befall a possession, as "lose d6 SPI if it's dropped" (p62). */
+const LOSS = /\blose\s+(\d*d\d+)\s+(vig|cla|spi)\b\s*([^,;()]*)/i;
+
+/**
+ * The Virtue a possession's line says its bearer loses should something befall
+ * it, as a banner falling to the ground in battle costs SPI (p62).
+ * @param {string} text The possession as printed.
+ * @returns {{loss?: {dice: string, virtue: string, when: string}}} Nothing for a line that says none.
+ */
+export function lossOf(text) {
+	const match = LOSS.exec(String(text ?? ""));
+	if (!match) return {};
+	return { loss: { dice: match[1].toLowerCase(), virtue: match[2].toLowerCase(), when: tidy(match[3]) } };
+}
+
+/**
+ * The odds a possession's line gives it, as a bag of tomes holding what's
+ * wanted on a 1-in-2 chance (p88).
+ * @param {string} text The possession as printed.
+ * @returns {{chance?: {in: number, of: number}}} Nothing for a line that gives no odds.
+ */
+export function chanceOf(text) {
+	const match = CHANCE.exec(String(text ?? ""));
+	if (!match) return {};
+	const [, hits, of] = match.map(Number);
+	return hits >= 1 && of > hits ? { chance: { in: hits, of } } : {};
+}
 
 /**
  * How many of a possession are carried and whether they come round again, as
@@ -184,7 +215,7 @@ function armourConditionFrom(inner) {
  */
 function gearItem(text) {
 	const { name, count } = countedName(capitalise(tidy(text)));
-	const system = stockOf(text, count);
+	const system = { ...stockOf(text, count), ...chanceOf(text), ...lossOf(text) };
 	return Object.keys(system).length ? { type: "gear", name, system } : { type: "gear", name };
 }
 
@@ -312,6 +343,11 @@ function readChunk(chunk) {
 	for (const quality of ["hefty", "long", "slow", "ranged", "blast", "ignoresArmour", "trample", "heftyMounted"]) system[quality] = qualities.has(quality);
 	// Explosives and the like go with each Attack; a javelin can be picked up again.
 	if (system.blast && counted.count) system.usedUp = true;
+	// Damage that burns on each round once it lands (p173).
+	const keepsOn = keepsOnFrom(attack.note);
+	if (keepsOn) system.lingers = keepsOn;
+	// SPI lost should a banner fall (p62).
+	Object.assign(system, lossOf(own));
 	return [{ item: { type: "weapon", name: counted.name, system } }, ...rest];
 }
 
@@ -413,6 +449,9 @@ export function possessionDetails(items, lines) {
 		if (got.wooden && !had.wooden) update["system.wooden"] = true;
 		if (got.buckler && !had.buckler) update["system.buckler"] = true;
 		if (got.alternate && !had.alternate?.damage) update["system.alternate"] = got.alternate;
+		if (got.chance && !had.chance?.of) update["system.chance"] = got.chance;
+		if (got.lingers && !had.lingers) update["system.lingers"] = got.lingers;
+		if (got.loss && !had.loss?.dice) update["system.loss"] = got.loss;
 		if (got.condition && !had.condition) {
 			update["system.condition"] = got.condition;
 			update["system.situation"] = got.situation;

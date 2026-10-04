@@ -43,8 +43,9 @@ export function booleanField() {
 }
 
 /**
- * A list of afflictions, each a Virtue lost each morning or each round, as a
- * victim carries them or one of the Cast causes them. See rules/afflictions.js.
+ * A list of afflictions, each a Virtue lost, or Damage taken, each morning or
+ * each round, as a victim carries them or one of the Cast causes them. See
+ * rules/afflictions.js.
  * @returns {foundry.data.fields.ArrayField}
  */
 export function afflictionsField() {
@@ -53,7 +54,10 @@ export function afflictionsField() {
 		name: textField(),
 		loss: new fields.StringField({ required: true, blank: false, initial: "1d6" }),
 		virtue: new fields.StringField({ required: true, initial: VIRTUES[0], choices: VIRTUES }),
-		when: new fields.StringField({ required: true, initial: AFFLICTION_TIMES[0], choices: AFFLICTION_TIMES })
+		when: new fields.StringField({ required: true, initial: AFFLICTION_TIMES[0], choices: AFFLICTION_TIMES }),
+		// Damage, as a flask of acid burns (p173), rather than Virtue Loss; and whether it ignores Armour.
+		damage: booleanField(),
+		ignoresArmour: booleanField()
 	}));
 }
 

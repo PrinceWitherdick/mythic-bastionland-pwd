@@ -47,6 +47,9 @@
 		{{/each}}
 	</ol>
 
+	{{#if rerolled}}
+	<p class="bastionland-card__hint">{{rerolled}}</p>
+	{{/if}}
 	{{#if gambitPrompt}}
 	<p class="bastionland-card__prompt">{{gambitPrompt}}{{#if strongPrompt}} {{strongPrompt}}{{/if}}</p>
 	{{/if}}
@@ -131,10 +134,13 @@
 	{{#if ignoresArmour}}
 	<p class="bastionland-card__hint"><strong>{{localize "bastionland.item.ignoresArmour"}}</strong>: {{localize "bastionland.item.ignoresArmourHint"}}</p>
 	{{/if}}
-	{{#if strongGambits}}
-	<p class="bastionland-card__hint"><strong>{{localize "bastionland.attack.grant.strongGambits"}}</strong>: {{localize "bastionland.attack.grant.strongGambitsHint"}}</p>
+	{{#each grantHints}}
+	<p class="bastionland-card__hint"><strong>{{name}}</strong>: {{hint}}</p>
+	{{/each}}
+	{{#if shattered}}
+	<p class="bastionland-card__warning">{{shattered}}</p>
 	{{/if}}
-	{{#each weaponNotes}}
+	{{#each notes}}
 	<p class="bastionland-card__hint">{{this}}</p>
 	{{/each}}
 
@@ -148,6 +154,12 @@
 		{{/if}}
 		{{#if joinable}}
 		<button type="button" data-attack-action="join" data-tooltip="{{localize 'bastionland.attack.joinHint'}}"><i class="fa-solid fa-user-plus"></i> {{localize "bastionland.attack.join"}}</button>
+		{{/if}}
+		{{#if reroll}}
+		<button type="button" data-attack-action="reroll" data-tooltip="{{localize 'bastionland.attack.reroll.hint'}}"><i class="fa-solid fa-rotate"></i> {{localize "bastionland.attack.reroll.button"}}</button>
+		{{/if}}
+		{{#if sigil}}
+		<button type="button" data-attack-action="sigil" data-tooltip="{{localize 'bastionland.attack.sigil.hint'}}"><i class="fa-solid fa-star"></i> {{localize "bastionland.attack.sigil.button"}}</button>
 		{{/if}}
 		{{#unless duel}}
 		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>

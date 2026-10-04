@@ -1,0 +1,18 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{hint}}</p>
+	{{#if last}}
+	<p class="hint">{{last}}</p>
+	{{/if}}
+
+	<div class="form-group">
+		<label for="bastionland-sigil-number">{{localize "bastionland.sigil.number"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-sigil-number" name="number">
+				{{#each choices}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{value}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.sigil.numberHint"}}</p>
+	</div>
+</div>

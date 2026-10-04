@@ -4,7 +4,8 @@ import { RARITIES } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
 import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE, insteadOfChanges, insteadOfOptions } from "../rules/attack.js";
 import { scarForRoll } from "../rules/scars.js";
-import { ATTACK_GRANTS, usesFrom } from "../rules/ability-uses.js";
+import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, usesFrom } from "../rules/ability-uses.js";
+import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -95,6 +96,16 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 			abilityGrants: item.type === "ability"
 				? ATTACK_GRANTS.map((key) => ({ key, label: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`), checked: item.system.grants[key] }))
 				: [],
+			// What else it can do: roll a joint Attack again, ward an ally, flip a coin, etch a rune.
+			abilityPowers: item.type === "ability"
+				? ABILITY_POWERS.map((key) => ({ key, label: t(`ability.powers.${key}`), hint: t(`ability.powers.${key}Hint`), checked: item.system[key] }))
+				: [],
+			// The only kind of Attack an Ability is used in (p68, p92).
+			needsOptions: Object.fromEntries(ABILITY_NEEDS.map((key) => [key, t(`ability.needs.${key || "any"}`)])),
+			// The Virtue a possession costs should something befall it (p62).
+			lossVirtueOptions: { "": t("item.lossNone"), ...Object.fromEntries(VIRTUES.map((key) => [key, t(`virtues.${key}.abbr`)])) },
+			// A weapon's Damage that burns on each round, or each day (p173).
+			lingersOptions: { "": t("item.lingersNever"), ...Object.fromEntries(AFFLICTION_TIMES.map((key) => [key, t(`afflictions.when.${key}`)])) },
 			// Weapons, armour and gear can be rare, counted, restocked and broken.
 			isPossession: PROPERTY_TYPES.includes(item.type),
 			insteadOf: this.#insteadOf(),

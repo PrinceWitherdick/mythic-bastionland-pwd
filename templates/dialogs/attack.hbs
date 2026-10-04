@@ -123,6 +123,19 @@
 			<input type="checkbox" name="ability.{{id}}" {{checked checked}}>
 			<span class="bastionland-check__label">{{label}}</span>
 		</label>
+		{{#if effects.length}}
+		{{!-- What a Wound from it does, picked before the blow (p166). --}}
+		<div class="form-group bastionland-check--nested">
+			<label for="bastionland-attack-effect-{{id}}">{{localize "bastionland.attack.onWoundPick"}}</label>
+			<div class="form-fields">
+				<select id="bastionland-attack-effect-{{id}}" name="effect.{{id}}">
+					{{#each effects}}
+					<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		{{/if}}
 		{{/each}}
 		{{#each declarations}}
 		<label class="bastionland-check" data-tooltip="{{hint}}">
@@ -130,6 +143,20 @@
 			<span class="bastionland-check__label">{{label}}</span>
 		</label>
 		{{/each}}
+		{{#if woundEffects.length}}
+		{{!-- What a Wound does besides, one thing or none (p166). --}}
+		<div class="form-group">
+			<label for="bastionland-attack-on-wound">{{localize "bastionland.attack.onWoundPick"}}</label>
+			<div class="form-fields">
+				<select id="bastionland-attack-on-wound" name="declare.onWound">
+					<option value="">{{localize "bastionland.attack.onWoundNone"}}</option>
+					{{#each woundEffects}}
+					<option value="{{key}}">{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		{{/if}}
 	</fieldset>
 
 	{{#if warband}}

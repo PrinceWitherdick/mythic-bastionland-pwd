@@ -1,6 +1,9 @@
 <section class="bastionland-card bastionland-card--damage is-{{outcomeKey}}">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{localize "bastionland.damage.title"}}</h3>
+		{{#if cause}}
+		<p class="bastionland-card__tagline">{{cause}}</p>
+		{{/if}}
 		{{#if dealt}}
 		<p class="bastionland-card__hint">{{dealt}}</p>
 		{{/if}}

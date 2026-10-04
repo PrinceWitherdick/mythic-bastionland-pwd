@@ -5,9 +5,14 @@ import { GAMBITS } from "../config.js";
 import {
 	ALTERNATE_QUALITIES,
 	HARM_BARS,
+	ON_WOUND,
 	atIndividuals,
+	attackersOf,
 	buildAttackPool,
 	canFundGambit,
+	canReroll,
+	combineDice,
+	diceShowing,
 	canFundStrongGambit,
 	canJoin,
 	checkWielding,
@@ -33,7 +38,7 @@ import {
 import { dieMask } from "../rules/die-shapes.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
 import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
-import { ATTACK_GRANTS, abilityOffers, abilityUpdatesAfterAttack, declaredGrants } from "../rules/ability-uses.js";
+import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, readyForAttack, unmetNeed } from "../rules/ability-uses.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
 import { downBy } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -47,7 +52,7 @@ import { structureHarm } from "../rules/structures.js";
 import { causedBy } from "./ledger.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
-const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample"]);
+const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
 
 /**
  * A specialist weapon's extra die and when it applies, as shown beside the weapon.
@@ -71,7 +76,7 @@ export function specialistLabel(weapon) {
  */
 
 /** What an Attack reads off a weapon's or shield's system data. */
-const WIELDED_KEYS = Object.freeze(["damage", "hefty", "long", "slow", "ranged", "blast", "ignoresArmour", "heftyMounted", "trample", "specialist", "usedUp"]);
+const WIELDED_KEYS = Object.freeze(["damage", "hefty", "long", "slow", "ranged", "blast", "ignoresArmour", "heftyMounted", "trample", "specialist", "usedUp", "noHand", "lingers"]);
 
 /**
  * Worn or wielded items that add Attack dice: weapons, and armour with an
@@ -141,6 +146,74 @@ async function useUpThrown(chosen) {
 		ui.notifications.info(t("attack.usedOne", { name: item.name, left }));
 		return item.update({ "system.quantity.value": left }, causedBy("attack"));
 	}));
+}
+
+/**
+ * The weapons an Attack was made with, each once: not a shield, which a charge
+ * that shatters its lance leaves whole (p92).
+ * @param {AttackSource[]} chosen
+ * @returns {Item[]}
+ */
+const weaponsIn = (chosen) => [...new Set(chosen.map(({ item }) => item))].filter((item) => item.type === "weapon");
+
+/**
+ * Mark broken the weapons an Attack was made with, as a lance is shattered by
+ * the charge it's used in (p92), until mended.
+ * @param {AttackSource[]} chosen
+ */
+async function shatter(chosen) {
+	await Promise.all(weaponsIn(chosen).filter((item) => item.isOwner && !item.system.broken)
+		.map((item) => item.update({ "system.broken": true }, causedBy("attack"))));
+}
+
+/**
+ * Ask which dice to join into bigger ones before the roll, as an Ability may
+ * let its Knight do with allies at their side: a d4 and a d8 make a d12, and
+ * nothing joins past a d12 (p56).
+ * @param {{faces: number, label: string}[]} dice What would be rolled.
+ * @returns {Promise<{faces: number, label: string}[]|null>} The dice to roll, or null if the window was closed.
+ */
+async function chooseCombined(dice) {
+	if (dice.length < 2) return dice;
+	const groups = [1, 2, 3];
+	const data = await inputDialog({
+		title: t("attack.combine.title"),
+		icon: "fa-solid fa-object-group",
+		template: "combine-dice",
+		context: {
+			dice: dice.map((die, index) => ({ index, label: t("attack.combine.die", { faces: die.faces, label: die.label }) })),
+			groups: groups.map((group) => ({ value: group, label: t("attack.combine.group", { group }) }))
+		},
+		ok: { label: t("attack.combine.ok"), icon: "fa-solid fa-dice" },
+		render: (_event, dialog) => watchCombined(dialog, dice)
+	});
+	if (!data) return null;
+	const picked = dice.map((_die, index) => Number(data[`group.${index}`]) || 0);
+	return combineDice(dice, picked).dice.map((die) => (die.joined ? { faces: die.faces, label: t("attack.combine.joined", { dice: die.label }) } : die));
+}
+
+/**
+ * Keep the dice window's line saying what will be rolled, and hold back the
+ * roll while a group comes to more than a d12.
+ * @param {foundry.applications.api.DialogV2} dialog
+ * @param {{faces: number}[]} dice
+ */
+function watchCombined(dialog, dice) {
+	const form = dialog.element.querySelector("form");
+	const line = form?.querySelector("[data-combined]");
+	if (!line) return;
+	const roll = dialog.element.querySelector("[data-action='ok']");
+	const update = () => {
+		const groups = dice.map((_die, index) => Number(form.querySelector(`[name='group.${index}']`)?.value) || 0);
+		const { dice: rolled, over } = combineDice(dice, groups);
+		line.textContent = over.length
+			? t("attack.combine.over", { groups: over.join(", ") })
+			: t("attack.combine.rolls", { dice: rolled.map((die) => `d${die.faces}`).join(", ") });
+		line.classList.toggle("is-warning", over.length > 0);
+		if (roll) roll.disabled = over.length > 0;
+	};
+	form.addEventListener("change", update);
+	update();
 }
 
 /**
@@ -481,11 +554,23 @@ async function planAttack(actor, joining = null) {
 			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length || !actor.system.knowsFeat("smite"),
 			abilityOffers: offers.map((offer) => ({
 				id: offer.id,
-				label: t("attack.useAbility", { name: offer.name, grants: offer.grants.map((key) => t(`attack.grant.${key}`)).join(", ") }),
-				hint: t(offer.counted ? "attack.useAbilityHint" : "attack.useAbilityFreeHint"),
-				checked: !offer.counted
+				label: t("attack.useAbility", {
+					name: offer.name,
+					grants: [
+						offer.bonusDie && `+${offer.bonusDie}`,
+						...offer.grants.filter((key) => !offer.effects.includes(key)).map((key) => t(`attack.grant.${key}`)),
+						offer.needs && t(`attack.needs.${offer.needs}Tag`)
+					].filter(Boolean).join(", ")
+				}),
+				hint: t(offer.counted ? "attack.useAbilityHint" : offer.chosen ? "attack.useAbilityChosenHint" : "attack.useAbilityFreeHint"),
+				// One used blow by blow, such as a bite that drinks, waits to be ticked like one with uses.
+				checked: !offer.counted && !offer.chosen,
+				// What a Wound from it does, picked before the blow where it could do more than one thing (p166).
+				effects: offer.effects.map((key, index) => ({ key, label: t(`attack.grant.${key}`), selected: index === 0 }))
 			})),
-			declarations: ATTACK_GRANTS.map((key) => ({ key, label: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`) })),
+			declarations: declarableBy(actor).filter((key) => !WOUND_EFFECTS.includes(key)).map((key) => ({ key, label: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`) })),
+			// What a Wound does besides is one thing or none (p166), so it's picked rather than ticked.
+			woundEffects: declarableBy(actor).filter((key) => WOUND_EFFECTS.includes(key)).map((key) => ({ key, label: t(`attack.grant.${key}`) })),
 			lasting: lasting.map((die, index) => ({ index, label: lastingDieLabel(die) })),
 			canKeep: Boolean(combatant),
 			warband,
@@ -498,9 +583,24 @@ async function planAttack(actor, joining = null) {
 
 	const choice = foundry.utils.expandObject(data);
 	const { chosen: picked, check } = readWielding(actor, sources, choice);
-	const declared = declaredGrants(choice, offers);
+	const declared = declaredGrants(choice, offers, declarableBy(actor));
 	if (check.refusal) {
 		ui.notifications.warn(t(`attack.refusals.${check.refusal}`, { name: actor.name }));
+		return null;
+	}
+	// A blow made alone, as Pain Strike's is (p68), joins nobody else's.
+	if (joining && declared.alone) {
+		ui.notifications.warn(t("attack.aloneJoin", { name: actor.name }));
+		return null;
+	}
+	// An Ability used only in melee (p68), or only on a mounted charge (p92). Without a steed that
+	// tramples there's no charge box, so riding in after moving is the charge.
+	const unmet = unmetNeed(declared.used, {
+		melee: !picked.some((item) => item.system.ranged),
+		charging: mount ? Boolean(choice.charge) : Boolean(choice.mounted && choice.moved)
+	});
+	if (unmet) {
+		ui.notifications.warn(t(`attack.needs.${unmet.needs}`, { name: unmet.name }));
 		return null;
 	}
 	const riding = Boolean(choice.mounted || choice.charge);
@@ -546,6 +646,8 @@ async function planAttack(actor, joining = null) {
 	}
 	// Smite for a lasting mark adds no dice: the Wound it deals leaves the mark (p187).
 	if (smite?.mode === "d12") bonusDice.push({ faces: 12, label: t("feats.smite.name") });
+	// A die an Ability adds to the blow it's used in, as a charge's +d12 (p92).
+	for (const { die, name } of declared.dice) bonusDice.push(...parseDice(die).map((faces) => ({ faces, label: name })));
 	// A known weakness joins each card at whoever has it, and only while it's ticked.
 	const exploited = weaknesses.filter((_weakness, index) => choice.weakness?.[index]);
 
@@ -554,9 +656,16 @@ async function planAttack(actor, joining = null) {
 		bonus: bonusDice.map((die) => die.faces),
 		impaired
 	});
-	const dice = pool.impaired
+	let dice = pool.impaired
 		? [{ faces: 4, label: t(weaponDice.length ? "conditions.impaired.label" : "attack.unarmed") }]
 		: [...weaponDice, ...bonusDice];
+	// Dice joined into bigger ones before the roll, as an Ability may let them be (p56). A steed's
+	// trample stays its own, since it joins only a charge at foes on foot (p10).
+	if (declared.combine && !pool.impaired) {
+		const joined = await chooseCombined(dice.filter((die) => !die.trample));
+		if (!joined) return null;
+		dice = [...joined, ...dice.filter((die) => die.trample)];
+	}
 
 	// A Blast declared for an Ability isn't a Feat, so it holds even when the Attack is Impaired.
 	const blast = declared.blast || smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
@@ -579,6 +688,8 @@ async function planAttack(actor, joining = null) {
 		if (warband && actor.isOwner && actor.system.leader !== leaderUuid) await actor.update({ "system.leader": leaderUuid });
 		if (smite) await payFeat(actor, smite.save);
 		await useUpThrown(chosen);
+		// A charge that shatters the lance it's made with (p92).
+		if (declared.shatters) await shatter(chosen);
 		// An Ability good once an Attack is ready again for this one, and those used here spend a use.
 		const abilities = abilityUpdatesAfterAttack(Array.from(actor.items ?? []), declared.used.map((offer) => offer.id));
 		// Bonus dice kept with them for the rest of the fight, as an Ability that grows with each blow says.
@@ -632,6 +743,22 @@ function madeWith({ actor, chosen, picked, check, pool, smite, leader, warband, 
 		ignoresArmour: Boolean(declared?.ignoresArmour) || chosen.some((item) => item.system.ignoresArmour),
 		// Gambits from this Attack's dice are Strong without an 8+, as an Ability may make them.
 		strongGambits: Boolean(declared?.strongGambits),
+		// Its maker takes back the VIG a Wound costs (p166), or its Damage comes off SPI (p68).
+		drain: Boolean(declared?.drain),
+		spirit: Boolean(declared?.spirit),
+		// Made alone, so nobody joins it.
+		alone: Boolean(declared?.alone),
+		// What a Wound from it does besides, picked before the blow (p166).
+		onWound: ON_WOUND.filter((key) => declared?.[key]),
+		// What it shatters as it lands, as a charge its lance (p92).
+		shattered: declared?.shatters ? weaponsIn(chosen).map((item) => item.name) : [],
+		// What burns on where its Damage lands, as a flask of acid (p173).
+		lingers: weaponsIn(chosen).filter((item) => item.system.lingers).map((item) => ({
+			name: item.name,
+			damage: item.system.damage,
+			when: item.system.lingers,
+			ignoresArmour: Boolean(item.system.ignoresArmour)
+		})),
 		// Its Damage never Slays or leaves anybody dying (p173).
 		nonLethal: chosen.length > 0 && chosen.every((item) => item.system.nonLethal),
 		// What a Cast member's weapon does besides its dice, as its stat block says: "sets area alight".
@@ -781,7 +908,7 @@ export async function attack(actor) {
  * posted message keeps its tooltip but tumbles nothing.
  * @param {Roll[]} rolls
  */
-function showRolls(rolls) {
+export function showRolls(rolls) {
 	if (!game.dice3d) return;
 	const whisper = chatIsPublic() ? null : game.users.filter((user) => user.isGM).map((user) => user.id);
 	for (const roll of rolls) game.dice3d.showForRoll(roll, game.user, true, whisper);
@@ -987,6 +1114,39 @@ export function cardTarget(attack) {
 }
 
 /**
+ * Those making a joint Attack who could roll its whole pool again: each with
+ * an Ability that does it, ready for this Attack (p62).
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{actor: Actor, item: Item}[]}
+ */
+export function poolRerollers(attack) {
+	return attackersOf(attack).map((uuid) => fromUuidSync(uuid)).filter(Boolean)
+		.flatMap((actor) => abilitiesWith(actor.items?.contents ?? [], "rerollPool")
+			.filter((item) => readyForAttack(item.system))
+			.map((item) => ({ actor, item })));
+}
+
+/**
+ * The Knights whose rune could turn one of a card's dice: etched for a number
+ * one of them shows, with turns left (p100). Any die, whoever rolled it.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{actor: Actor, item: Item, number: number}[]}
+ */
+export function sigilHolders(attack) {
+	return (game.actors?.contents ?? []).filter((actor) => actor.type === "knight").flatMap((actor) =>
+		abilitiesWith(actor.items.contents, "sigil").flatMap((item) => {
+			const number = etchedNumber(item.system);
+			return number !== null && diceShowing(attack, number).length ? [{ actor, item, number }] : [];
+		}));
+}
+
+/**
+ * @param {Record<string, boolean>} shown Which of an Ability's grants the card explains, in the order it does.
+ * @returns {{name: string, hint: string}[]}
+ */
+const grantHints = (shown) => Object.keys(shown).filter((key) => shown[key]).map((key) => ({ name: t(`attack.grant.${key}`), hint: t(`attack.grant.${key}Hint`) }));
+
+/**
  * Template data for an Attack card at any point: fresh from the roll, part way
  * through Deny and Gambits, or settled once the Damage is applied. A joint
  * Attack's Damage is the highest die left of those that can harm its target
@@ -1020,13 +1180,15 @@ export function attackCardContext(attack) {
 			let spentOn = null;
 			if (gambit) spentOn = gambitName(gambit.key);
 			else if (die.deniedBy) spentOn = t("attack.deniedBy", { name: die.deniedBy });
+			// A die a rune turned says what it showed, and whose rune it was (p100).
+			const label = die.adjusted ? t("attack.sigil.turnedDie", { label: dieLabel(die), from: die.adjusted.from, name: die.adjusted.by }) : dieLabel(die);
 			return {
 				index,
 				faces: die.faces,
 				// The outline the card draws behind the result, so a d12 is told from a d6 without reading.
 				shape: dieMask(die.faces),
 				result: die.result,
-				label: spentOn ?? dieLabel(die),
+				label: spentOn ?? label,
 				spent: Boolean(spentOn),
 				// Can't harm this card's target, so it never counts toward its Damage (p11).
 				barred: barred[index] ? t(`attack.barred.${barred[index]}`) : null,
@@ -1079,10 +1241,26 @@ export function attackCardContext(attack) {
 		blast: attack.blast,
 		// In a joint Attack, as the die that counts says.
 		ignoresArmour: blow.ignoresArmour && !unharmed,
-		// Somebody's dice buy Strong Gambits without an 8+, as an Ability declared for them says.
-		strongGambits: attack.dice.some((die) => shareOf(attack, die).strongGambits),
-		// Cards rolled before weapon notes were kept have none.
-		weaponNotes: (attack.notes ?? []).map(({ name, note }) => `${name}: ${note}`),
+		grantHints: grantHints({
+			// Somebody's dice buy Strong Gambits without an 8+, as an Ability declared for them says.
+			strongGambits: attack.dice.some((die) => shareOf(attack, die).strongGambits),
+			// What Abilities declared for the blow do as it lands: Damage to SPI (p68), VIG taken back (p166).
+			spirit: blow.spirit && !unharmed,
+			drain: blow.drain && !unharmed,
+			alone: Boolean(attack.alone) && !settled
+		}),
+		shattered: attack.shattered?.length ? t("attack.shattered", { names: attack.shattered.join(", ") }) : null,
+		notes: [
+			...(attack.lingers ?? []).map(({ name, when }) => t("attack.lingers", { name, when: t(`afflictions.when.${when}`) })),
+			...(unharmed ? [] : (attack.onWound ?? []).map((key) => t(`attack.onWound.${key}`))),
+			// Cards rolled before weapon notes were kept have none.
+			...(attack.notes ?? []).map(({ name, note }) => `${name}: ${note}`)
+		],
+		// The whole pool rolled again, once (p62), and who may still do it.
+		rerolled: attack.rerolled ? t("attack.reroll.done", { name: attack.rerolled.by }) : null,
+		reroll: !settled && canReroll(attack) && poolRerollers(attack).length > 0,
+		// A rune etched for a number a die shows can turn it (p100).
+		sigil: !settled && sigilHolders(attack).length > 0,
 		// Cards rolled before leading from the front have no leader.
 		leader: attack.leader ? t("attack.ledBy", { name: attack.leader.name }) : null,
 		// A duel's Attacks are applied together from the duel card.

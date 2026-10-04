@@ -1,4 +1,4 @@
-import { cardTarget, dieLabel, joinAttack, renderAttackCard } from "../actions/attack.js";
+import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { takeAttack } from "../actions/damage.js";
 import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js";
@@ -15,8 +15,10 @@ import {
 	canFundGambit,
 	canFundStrongGambit,
 	canJoin,
+	canReroll,
 	changeAttack,
 	damageAgainst,
+	diceShowing,
 	focusCanBeStrong,
 	gambitAllowsSave,
 	gambitSaveVirtue,
@@ -33,6 +35,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
+import { askRuneTurn, spendUse } from "../actions/abilities.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -45,7 +48,7 @@ import { causedBy } from "../actions/ledger.js";
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
 /** Changes a player may ask the GM to record on a card they don't own. */
-const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater", "join", "gambit", "withdraw", "focus"]);
+const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater", "join", "gambit", "withdraw", "focus", "reroll", "sigil"]);
 
 /** The kinds of actor that make Attacks, and so can join one. */
 const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
@@ -61,15 +64,15 @@ const attackCard = statefulCard({
 });
 
 /**
- * A joiner's rolls, kept on the card's message beside its own so they have a
- * tooltip too. A message's rolls are stored as JSON, alike in v13 and v14, and
- * Foundry takes only evaluated ones.
+ * A joiner's rolls, or the pool rolled again, kept on the card's message beside
+ * its own so they have a tooltip too. A message's rolls are stored as JSON,
+ * alike in v13 and v14, and Foundry takes only evaluated ones.
  * @param {ChatMessage} message
  * @param {object} change
  * @returns {{rolls?: string[]}}
  */
 function joinedRolls(message, change) {
-	const rolls = change?.type === "join" && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
+	const rolls = ["join", "reroll"].includes(change?.type) && Array.isArray(change.rolls) ? change.rolls.filter((roll) => roll?.evaluated) : [];
 	if (!rolls.length) return {};
 	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
 }
@@ -171,6 +174,15 @@ async function onChangeQuery(data, context) {
 		change = { ...change, name: joiner.name };
 	}
 	if ((change.type === "gambit" || change.type === "withdraw") && !ownsAnAttacker(attackOf(message), user)) return false;
+	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
+	if (change.type === "reroll" || change.type === "sigil") {
+		const by = fromUuidSync(change.actor);
+		if (!by?.testUserPermission(user, "OWNER")) return false;
+		if (change.type === "reroll" && !isAttacker(attackOf(message), change.actor)) return false;
+		// Only a die showing the number their own rune is etched for.
+		if (change.type === "sigil" && !sigilHolders(attackOf(message)).some(({ actor, number }) => actor.uuid === by.uuid && number === change.from)) return false;
+		change = { ...change, by: by.name };
+	}
 	if (change.type === "focus") {
 		const focuser = fromUuidSync(change.actor);
 		if (!isAttacker(attackOf(message), change.actor) || !focuser?.testUserPermission(user, "OWNER")) return false;
@@ -683,7 +695,62 @@ async function onJoin(message) {
 	if (await saveChange(message, joined.change)) await joined.settle();
 }
 
-const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, greater: onGreater, join: onJoin });
+/**
+ * Spend one of an Ability's uses, where it has a limit and this user may.
+ * @param {Item} item
+ */
+async function spendAttackUse(item) {
+	if (item.isOwner) await spendUse(item, causedBy("attack"));
+}
+
+/**
+ * One of those making a joint Attack rolls its whole pool again, as an Ability
+ * carried into a group Attack lets them do once (p62). Only before anything is
+ * spent or declared on the dice, since all of that would be on dice now gone.
+ */
+async function onReroll(message) {
+	const attack = attackOf(message);
+	if (!canReroll(attack)) return warn("attack.reroll.closed");
+	const able = poolRerollers(attack).filter(({ actor }) => actor.isOwner);
+	if (!able.length) return warn("attack.reroll.none");
+	const actor = await chooseActor(able.map((entry) => entry.actor), { title: t("attack.reroll.button"), message: t("attack.reroll.who"), icon: "fa-solid fa-rotate" });
+	const { item } = able.find((entry) => entry.actor === actor) ?? {};
+	if (!item) return;
+	const roll = await new Roll(attack.dice.map((die) => `1d${die.faces}`).join(" + ")).evaluate();
+	const change = { type: "reroll", results: roll.dice.map((die) => die.total), by: actor.name, actor: actor.uuid, rolls: [roll.toJSON()] };
+	if (!(await saveChange(message, change))) return;
+	showRolls([roll]);
+	await spendAttackUse(item);
+}
+
+/**
+ * Turn a die showing the number a Knight's rune is etched for to another of
+ * its faces, spending one of the rune's turns (p100). Any die on the card,
+ * whoever rolled it, until the Damage lands.
+ */
+async function onSigil(message) {
+	const attack = attackOf(message);
+	const holders = sigilHolders(attack).filter(({ actor }) => actor.isOwner);
+	if (!holders.length) return warn("attack.sigil.none");
+	const actor = await chooseActor([...new Set(holders.map((holder) => holder.actor))], { title: t("attack.sigil.button"), message: t("attack.sigil.who"), icon: "fa-solid fa-star" });
+	const holder = holders.find((each) => each.actor === actor);
+	if (!holder) return;
+	const dice = diceShowing(attack, holder.number).map((index) => {
+		const die = attack.dice[index];
+		return { index, faces: die.faces, result: die.result, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: dieLabel(die) }) };
+	});
+	const turn = await askRuneTurn({
+		title: t("attack.sigil.button"),
+		hint: t("attack.sigil.turnHint", { name: actor.name, number: holder.number, left: holder.item.system.quantity.value }),
+		dice,
+		value: Math.max(...dice.map(({ faces }) => faces))
+	});
+	if (!turn) return;
+	const change = { type: "sigil", die: turn.index, from: attack.dice[turn.index].result, value: turn.value, by: actor.name, actor: actor.uuid };
+	if (await saveChange(message, change)) await spendAttackUse(holder.item);
+}
+
+const HANDLERS = Object.freeze({ gambit: onGambit, "gambit-save": onGambitSave, focus: onFocus, deny: onDeny, apply: onApply, greater: onGreater, join: onJoin, reroll: onReroll, sigil: onSigil });
 
 /**
  * Wire up an Attack card's buttons as it renders in the chat log or a popout.
@@ -709,6 +776,9 @@ function activateAttackCard(message, html) {
 		if (attackAction === "apply" || attackAction === "greater") {
 			button.hidden = attack.targets.length > 0 && !targetActors(attack).some((actor) => actor.isOwner);
 		}
+		// Shown to whoever owns the Knight whose Ability or rune it is.
+		if (attackAction === "reroll") button.hidden = !poolRerollers(attack).some(({ actor }) => actor.isOwner);
+		if (attackAction === "sigil") button.hidden = !sigilHolders(attack).some(({ actor }) => actor.isOwner);
 	}
 	if (denyButton) refreshDeny(denyButton, attack);
 	if (joinButton) refreshJoin(joinButton, attack);

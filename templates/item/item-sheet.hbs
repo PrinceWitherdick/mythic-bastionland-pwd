@@ -101,7 +101,21 @@
 			<input type="checkbox" name="system.wooden" {{checked system.wooden}}>
 			<span class="bastionland-check__label">{{localize "bastionland.item.wooden"}}</span>
 		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.item.noHandHint'}}">
+			<input type="checkbox" name="system.noHand" {{checked system.noHand}}>
+			<span class="bastionland-check__label">{{localize "bastionland.item.noHand"}}</span>
+		</label>
 	</fieldset>
+	{{!-- Damage that burns on where it lands, as acid until washed off (p173). --}}
+	<div class="form-group">
+		<label for="{{rootId}}-lingers">{{localize "bastionland.item.lingers"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-lingers" name="system.lingers">
+				{{selectOptions lingersOptions selected=system.lingers}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.item.lingersHint"}}</p>
+	</div>
 	{{/if}}
 
 	{{#if isGear}}
@@ -118,6 +132,16 @@
 		<input type="checkbox" name="system.poison" {{checked system.poison}}>
 		<span class="bastionland-check__label">{{localize "bastionland.item.poison"}}</span>
 	</label>
+	{{!-- Odds it holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88). --}}
+	<div class="form-group">
+		<label for="{{rootId}}-chance-in">{{localize "bastionland.item.chance"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-chance-in" type="number" name="system.chance.in" value="{{system.chance.in}}" min="1" step="1" placeholder="1">
+			<span>{{localize "bastionland.item.chanceIn"}}</span>
+			<input type="number" name="system.chance.of" value="{{system.chance.of}}" min="2" step="1" placeholder="2" aria-label="{{localize 'bastionland.item.chanceOf'}}">
+		</div>
+		<p class="hint">{{localize "bastionland.item.chanceHint"}}</p>
+	</div>
 	{{/if}}
 
 	{{#if isArmour}}
@@ -183,6 +207,18 @@
 		<input type="checkbox" name="system.broken" {{checked system.broken}}>
 		<span class="bastionland-check__label">{{localize "bastionland.item.broken"}}</span>
 	</label>
+	{{!-- A Virtue lost should something befall it, as a banner falling (p62). --}}
+	<div class="form-group">
+		<label for="{{rootId}}-loss-dice">{{localize "bastionland.item.loss"}}</label>
+		<div class="form-fields">
+			<input id="{{rootId}}-loss-dice" type="text" name="system.loss.dice" value="{{system.loss.dice}}" placeholder="d6" autocomplete="off">
+			<select name="system.loss.virtue" aria-label="{{localize 'bastionland.item.lossVirtue'}}">
+				{{selectOptions lossVirtueOptions selected=system.loss.virtue}}
+			</select>
+			<input type="text" name="system.loss.when" value="{{system.loss.when}}" placeholder="{{localize 'bastionland.item.lossWhenPlaceholder'}}" aria-label="{{localize 'bastionland.item.lossWhen'}}" autocomplete="off">
+		</div>
+		<p class="hint">{{localize "bastionland.item.lossHint"}}</p>
+	</div>
 	{{/if}}
 
 	{{#if (or isWeapon isArmour)}}
@@ -216,6 +252,33 @@
 		</div>
 		<p class="hint">{{localize "bastionland.ability.lastingDieHint"}}</p>
 	</div>
+	<div class="form-group">
+		<label for="{{rootId}}-bonus-die">{{localize "bastionland.ability.bonusDie"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-bonus-die" name="system.bonusDie">
+				{{selectOptions lastingDieOptions selected=system.bonusDie}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.ability.bonusDieHint"}}</p>
+	</div>
+	<div class="form-group">
+		<label for="{{rootId}}-needs">{{localize "bastionland.ability.needsLabel"}}</label>
+		<div class="form-fields">
+			<select id="{{rootId}}-needs" name="system.needs">
+				{{selectOptions needsOptions selected=system.needs}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.ability.needsHint"}}</p>
+	</div>
+	<fieldset>
+		<legend>{{localize "bastionland.ability.powersLabel"}}</legend>
+		{{#each abilityPowers}}
+		<label class="bastionland-check" data-tooltip="{{hint}}">
+			<input type="checkbox" name="system.{{key}}" {{checked checked}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
 	{{/if}}
 
 	{{#if isScar}}

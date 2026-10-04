@@ -1,0 +1,21 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{hint}}</p>
+
+	<fieldset>
+		<legend>{{localize "bastionland.attack.sigil.which"}}</legend>
+		{{#each dice}}
+		<label class="bastionland-check">
+			<input type="radio" name="die" value="{{index}}" {{checked @first}}>
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+
+	<div class="form-group">
+		<label for="bastionland-sigil-value">{{localize "bastionland.attack.sigil.to"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-sigil-value" type="number" name="value" value="{{value}}" min="1" max="{{max}}" step="1">
+		</div>
+		<p class="hint">{{localize "bastionland.attack.sigil.toHint"}}</p>
+	</div>
+</div>

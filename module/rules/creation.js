@@ -2,6 +2,8 @@
  * Making a Knight (Beginnings & Glory p6, Knighthood p7). Plain data and
  * functions, so the Knight chooser's choices can be tested without Foundry.
  */
+import { SYSTEM_ID } from "../system-id.js";
+import { kitForPage, kittedAbility, kitWeapons } from "./ability-kits.js";
 import { usesFrom } from "./ability-uses.js";
 import { RANKS } from "./glory.js";
 import { propertyGear } from "./property.js";
@@ -254,18 +256,24 @@ export function knightChoice(knight, seer = null) {
 
 /**
  * Items a Knight starts with: their Property as weapons, armour and gear,
- * their Ability and Passion, and the standard kit.
+ * their Ability and Passion, any weapon their Ability gives, and the standard kit.
  * @param {object|null} knight   A Knight from the art index.
  * @param {Record<string, string>} kitNames Names for STANDARD_KIT, by key.
+ * @param {Record<string, string>} [abilityWeaponNames] Names for the weapons ABILITY_KITS give, by key.
  * @returns {object[]} Item data for `createEmbeddedDocuments`.
  */
-export function knightItems(knight, kitNames) {
+export function knightItems(knight, kitNames, abilityWeaponNames = {}) {
 	const items = propertyGear(knight?.property);
+	// What their Ability does, as the page they're printed on has it.
+	const kit = knight?.ability ? kitForPage(knight.page) : null;
 	for (const type of ["ability", "passion"]) {
 		const part = knight?.[type];
+		if (!part) continue;
 		// An Ability limited to so many uses, as its words say, starts counted.
-		if (part) items.push({ type, name: part.name, system: { description: `<p>${escapeHTML(part.text)}</p>`, ...(type === "ability" ? usesFrom(part.text) : {}) } });
+		const system = { description: `<p>${escapeHTML(part.text)}</p>`, ...(type === "ability" ? usesFrom(part.text) : {}) };
+		items.push({ type, name: part.name, system: type === "ability" ? kittedAbility(system, kit) : system });
 	}
+	items.push(...kitWeapons(kit, (key) => abilityWeaponNames[key] ?? key, SYSTEM_ID));
 	for (const { key, type, system } of STANDARD_KIT) {
 		items.push(system ? { type, name: kitNames[key], system: { ...system } } : { type, name: kitNames[key] });
 	}

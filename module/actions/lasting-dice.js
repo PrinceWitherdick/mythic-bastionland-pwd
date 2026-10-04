@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
-import { countAfter, isCounted, isUsedUp } from "../rules/restock.js";
+import { spendUse } from "./abilities.js";
+import { isUsedUp } from "../rules/restock.js";
 import { parseDice } from "../rules/attack.js";
 import { lastingOf, withLasting, withoutLasting } from "../rules/lasting-dice.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -79,6 +80,6 @@ export async function addAbilityDie(actor, item) {
 		ui.notifications.warn(t("ability.notInCombat", { name: actor.name }));
 		return false;
 	}
-	if (isCounted(item.system)) await item.update({ "system.quantity.value": countAfter(item.system.quantity, -1) });
+	await spendUse(item);
 	return true;
 }

@@ -2,7 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../rules/phase-end.js";
 import { HARDSHIPS, nextPhase } from "../rules/time.js";
-import { downBy } from "../rules/virtues.js";
+import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -168,7 +168,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 export async function dieUntended(dying) {
 	if (!game.user.isGM || !dying.length) return [];
 	// World actors and Tokens' own side by side, so each is written for itself.
-	await Promise.all(dying.map((actor) => actor.update({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true }, causedBy("damage"))));
+	await Promise.all(dying.map((actor) => actor.update(SLAIN_UPDATE, causedBy("damage"))));
 	const names = dying.map((actor) => actor.name);
 	await postCard(null, "report", {
 		title: t("phaseEnd.dying.title"),

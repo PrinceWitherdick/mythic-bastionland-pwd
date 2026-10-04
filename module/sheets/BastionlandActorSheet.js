@@ -21,9 +21,23 @@ import { SYSTEM_ID } from "../system-id.js";
 import { BastionlandItemSheet } from "./BastionlandItemSheet.js";
 import { ViewableMixin } from "./viewable.js";
 import { afflictionLabel, cureAffliction, sufferAffliction } from "../actions/afflictions.js";
+import { etchRune, rollChance, sufferLoss, throwToChance } from "../actions/abilities.js";
+import { etchedNumber } from "../rules/ability-uses.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
+
+/**
+ * What an Ability's rune button says: the number it's etched for tonight and
+ * the turns left, or that none is etched yet (p100).
+ * @param {object} system The Ability's system data.
+ * @returns {string}
+ */
+function sigilRowLabel(system) {
+	const number = etchedNumber(system);
+	if (number !== null) return t("sigil.rowEtched", { number, left: system.quantity.value });
+	return t(Number.isInteger(system.sigilNumber) ? "sigil.rowSpent" : "sigil.rowNone", { number: system.sigilNumber });
+}
 
 /** Marks the labelled buttons a sheet hangs in its window header. */
 const HEADER_BUTTON = "bastionland-header-button";
@@ -72,7 +86,11 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			useRemedy: BastionlandActorSheet.#onUseRemedy,
 			indulgePassion: BastionlandActorSheet.#onIndulgePassion,
 			addAbilityDie: BastionlandActorSheet.#onAddAbilityDie,
-			dropLastingDie: BastionlandActorSheet.#onDropLastingDie
+			dropLastingDie: BastionlandActorSheet.#onDropLastingDie,
+			throwToChance: BastionlandActorSheet.#onThrowToChance,
+			etchRune: BastionlandActorSheet.#onEtchRune,
+			rollChance: BastionlandActorSheet.#onRollChance,
+			sufferLoss: BastionlandActorSheet.#onSufferLoss
 		}
 	};
 
@@ -122,8 +140,9 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				key: affliction.id,
 				affliction: true,
 				label: afflictionLabel(affliction),
-				hint: t("afflictions.hint"),
-				cureHint: t("afflictions.cure")
+				// Damage, as acid burns (p173), can Wound; Virtue Loss can't (p9).
+				hint: t(affliction.damage ? "afflictions.damageHint" : "afflictions.hint"),
+				cureHint: t(affliction.damage ? "afflictions.washOff" : "afflictions.cure")
 			}))).concat(lastingDiceOf(actor, this.#combatant).map((die, index) => ({
 				key: `lasting-${index}`,
 				lasting: true,
@@ -338,6 +357,13 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				// A Passion restores SPI when indulged (p7).
 				indulgeLabel: item.type === "passion" && this.actor.system.virtues?.spi ? t("passion.indulge") : null,
 				lastingLabel: item.type === "ability" && system.lastingDie && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null,
+				// A coin flipped for a life (p120), and a rune etched at sunset (p100).
+				coinLabel: item.type === "ability" && system.coinFlip ? t("coinFlip.use") : null,
+				sigilLabel: item.type === "ability" && system.sigil ? sigilRowLabel(system) : null,
+				// Odds a possession holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88).
+				chanceLabel: Number.isInteger(system.chance?.of) && Number.isInteger(system.chance?.in) ? t("chance.roll", { in: system.chance.in, of: system.chance.of }) : null,
+				// A Virtue lost should something befall it, as a banner falling (p62).
+				lossLabel: system.loss?.dice && system.loss.virtue && this.actor.system.virtues ? t("loss.button", { dice: system.loss.dice, virtue: t(`virtues.${system.loss.virtue}.abbr`), when: system.loss.when || t("loss.befalls", { item: splitName(item.name).nameHead }) }) : null,
 				description: await this._enrich(system.description)
 			};
 		}));
@@ -499,6 +525,26 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	/** @this {BastionlandActorSheet} */
 	static #onDropLastingDie(_event, target) {
 		return dropLastingDie(this.actor, Number(target.dataset.index));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onThrowToChance(_event, target) {
+		return throwToChance(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onEtchRune(_event, target) {
+		return etchRune(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onRollChance(_event, target) {
+		return rollChance(this.actor, this.#itemFrom(target));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onSufferLoss(_event, target) {
+		return sufferLoss(this.actor, this.#itemFrom(target));
 	}
 }
 

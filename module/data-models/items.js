@@ -1,4 +1,6 @@
 import { ARMOUR_KINDS } from "../config.js";
+import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, SIGIL_MAX } from "../rules/ability-uses.js";
+import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 import { RARITIES, specialistRarity } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
 import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE } from "../rules/attack.js";
@@ -34,7 +36,13 @@ class PossessionModel extends DescribedModel {
 			// How often it's refilled, as a Knight's page words it: each Season, each day.
 			restock: new fields.StringField({ required: true, blank: true, initial: "", choices: RESTOCK_CADENCES }),
 			// Broken by a Strong Gambit (p10), or smashed: no use until mended.
-			broken: booleanField()
+			broken: booleanField(),
+			// A Virtue its bearer loses should something befall it, as a banner falling (p62). Blank for none.
+			loss: new fields.SchemaField({
+				dice: textField(),
+				virtue: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...VIRTUES] }),
+				when: textField()
+			})
 		};
 	}
 }
@@ -77,6 +85,10 @@ export class WeaponModel extends PossessionModel {
 			usedUp: booleanField(),
 			// A wooden weapon can be broken by a Strong Gambit (p10).
 			wooden: booleanField(),
+			// Fills no hand, as a bite or a shockwave doesn't, so it's struck alongside whatever is held.
+			noHand: booleanField(),
+			// Its Damage burns on each round, or each day, until washed off, as a flask of acid's (p173).
+			lingers: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...AFFLICTION_TIMES] }),
 			equipped: new fields.BooleanField({ initial: true })
 		};
 	}
@@ -140,7 +152,9 @@ export class GearModel extends PossessionModel {
 			// A Remedy restores this Virtue to everybody present, and is used up (p9). Blank for anything else.
 			remedy: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...VIRTUES] }),
 			// A poison, as strong as it is rare (p12).
-			poison: booleanField()
+			poison: booleanField(),
+			// Odds it holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88). Blank for none.
+			chance: new fields.SchemaField({ in: optionalCount(), of: optionalCount() })
 		};
 	}
 
@@ -197,13 +211,26 @@ export class AbilityModel extends DescribedModel {
 			quantity: new fields.SchemaField({ value: optionalCount(), max: optionalCount() }),
 			// When its uses come back. Named as a possession's restock, so one set of helpers serves both.
 			restock: new fields.StringField({ required: true, blank: true, initial: "", choices: ABILITY_CADENCES }),
-			// What it lends an Attack it's used in, offered in the Attack dialog: a Blast, a blow that
-			// ignores Armour, Gambits that are Strong without an 8+.
-			grants: new fields.SchemaField({ blast: booleanField(), ignoresArmour: booleanField(), strongGambits: booleanField() }),
+			// What it lends an Attack it's used in, offered in the Attack dialog: see ATTACK_GRANTS.
+			grants: new fields.SchemaField(Object.fromEntries(ATTACK_GRANTS.map((key) => [key, booleanField()]))),
+			// A die it adds to an Attack it's used in, as a charge's +d12 (p92).
+			bonusDie: dieField(),
+			// The only kind of Attack it's used in: a melee one (p68), a mounted charge (p92), or any.
+			needs: new fields.StringField({ required: true, blank: true, initial: "", choices: ABILITY_NEEDS }),
 			// A die it gives for the rest of a fight, added to each Attack until the Combat ends.
-			lastingDie: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...DIE_SIZES.map((faces) => `d${faces}`)] })
+			lastingDie: dieField(),
+			// What else it can do: see ABILITY_POWERS.
+			...Object.fromEntries(ABILITY_POWERS.map((key) => [key, booleanField()])),
+			// The number its rune is etched for tonight, and last night's, which can't be tonight's (p100).
+			sigilNumber: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: SIGIL_MAX, initial: null }),
+			sigilLast: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: SIGIL_MAX, initial: null })
 		};
 	}
+}
+
+/** A die picked from those an Ability can add, or none. */
+function dieField() {
+	return new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...DIE_SIZES.map((faces) => `d${faces}`)] });
 }
 
 /** A special means of restoring SPI. */

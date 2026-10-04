@@ -1,3 +1,4 @@
+import { kitWeaponNames } from "../actions/abilities.js";
 import { clearCompanions, knightOwner, makeCompanions, markCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { peekVerseForEntry } from "../book-art/myth-tables.js";
@@ -385,7 +386,7 @@ export class KnightChooser extends BastionlandChooser {
 		const offer = this.#gloryOffer();
 		if (offer) update["system.glory"] = this.#glory ?? offer.suggested;
 		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
-		const items = knightItems(entry.knight, kitNames);
+		const items = knightItems(entry.knight, kitNames, kitWeaponNames());
 
 		const actor = this.actor;
 		if (!actor) {
@@ -448,7 +449,7 @@ export class KnightChooser extends BastionlandChooser {
 		update[`flags.${SYSTEM_ID}.${CHOOSING_FLAG}`] = false;
 
 		const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
-		const items = itemsGained(knightItems(entry.knight, kitNames), actor.items.contents, Object.values(kitNames));
+		const items = itemsGained(knightItems(entry.knight, kitNames, kitWeaponNames()), actor.items.contents, Object.values(kitNames));
 		const { steed, gone } = await makeCompanions(items, knightOwner(actor));
 		if (steed) update["system.steed"] = steed;
 		await actor.update(update);

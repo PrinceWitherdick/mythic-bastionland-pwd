@@ -455,8 +455,26 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 			ability("spent", "Spent Already", { blast: true }, { value: 0, max: 1 }, "day"),
 			ability("song", "Song", {})
 		]));
+		// A Knight's other grants come with the Ability that lends them.
 		expect(opened().declarations.map(({ key }) => key)).toEqual(["blast", "ignoresArmour", "strongGambits"]);
+		expect(opened().woundEffects).toEqual([]);
 		expect(opened().abilityOffers.map(({ id, checked }) => [id, checked])).toEqual([["thunder", false], ["pierce", true]]);
+	});
+
+	it("offers the Referee's Cast every grant, and what a Wound does as one pick (p166)", async () => {
+		const actor = knight([]);
+		actor.type = "npc";
+		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.spirit": true, "declare.onWound": "sleep", "declare.drain": true });
+		await attack(actor);
+		expect(opened().declarations.map(({ key }) => key)).toEqual(["blast", "ignoresArmour", "strongGambits", "spirit", "shatters", "alone", "combine"]);
+		expect(opened().woundEffects.map(({ key }) => key)).toEqual(["drain", "sleep", "memory"]);
+		expect(state(0)).toMatchObject({ spirit: true, drain: false, onWound: ["sleep"] });
+	});
+
+	it("lends a Knight nothing ticked by hand that only an Ability lends", async () => {
+		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.spirit": true, "declare.onWound": "drain" });
+		await attack(knight([]));
+		expect(state(0)).toMatchObject({ spirit: false, drain: false });
 	});
 
 	it("makes a Blast declared by hand strike each target on a card of its own", async () => {
@@ -495,6 +513,104 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.blast": true });
 		await attack(knight([]));
 		expect(state(0)).toMatchObject({ impaired: true, blast: true });
+	});
+});
+
+describe("what the Knight pages' Abilities lend a blow", () => {
+	const ability = (id, name, system) => ({ id, name, type: "ability", system: { grants: {}, quantity: { value: null, max: null }, restock: "", ...system } });
+	const lance = () => ({ ...weapon("lance", "Lance", "d10", { heftyMounted: true }), isOwner: true, update: vi.fn(async () => {}) });
+	function knight(items) {
+		const actor = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items });
+		actor.updateEmbeddedDocuments = vi.fn(async () => {});
+		return actor;
+	}
+	const state = (call = 0) => postCard.mock.calls[call][3].flags[SYSTEM_ID].attack;
+
+	beforeEach(() => target(combatant({ uuid: "Actor.boar", name: "Boar" })));
+
+	it("adds an Ability's die, and shatters the weapons the charge was made with (p92)", async () => {
+		const spear = lance();
+		const charge = ability("charge", "Charge", { grants: { blast: true, shatters: true, alone: true }, bonusDie: "d12" });
+		inputDialog.mockResolvedValue({ "source.lance": true, "ability.charge": true });
+		await attack(knight([spear, charge]));
+		expect(state().dice.map((die) => `${die.label} d${die.faces}`)).toEqual(["Charge d12", "Lance d10"]);
+		expect(state()).toMatchObject({ blast: true, alone: true, shattered: ["Lance"] });
+		expect(spear.update).toHaveBeenCalledWith({ "system.broken": true }, expect.anything());
+		expect(opened().abilityOffers[0]).toMatchObject({ label: "bastionland.attack.useAbility", checked: false, hint: "bastionland.attack.useAbilityChosenHint" });
+	});
+
+	it("marks the card for Damage to SPI, or VIG taken back, and what burns on where it lands", async () => {
+		const flask = weapon("flask", "Flask", "d8", { lingers: "round", ignoresArmour: true });
+		inputDialog.mockResolvedValue({ "source.flask": true, "declare.spirit": true, "declare.onWound": "drain" });
+		const actor = knight([flask]);
+		actor.type = "npc";
+		await attack(actor);
+		expect(state()).toMatchObject({ spirit: true, drain: true, lingers: [{ name: "Flask", damage: "d8", when: "round", ignoresArmour: true }] });
+	});
+
+	it("joins dice into bigger ones as the dice window groups them (p56)", async () => {
+		const items = [weapon("mace", "Mace", "d8"), weapon("knife", "Knife", "d4"), weapon("club", "Club", "d6")];
+		inputDialog
+			.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "source.club": true, "declare.combine": true })
+			.mockResolvedValueOnce({ "group.0": "1", "group.1": "1", "group.2": "0" });
+		const actor = knight(items);
+		actor.system.wields = "free";
+		actor.type = "npc";
+		await attack(actor);
+		expect(inputDialog.mock.calls[1][0].template).toBe("combine-dice");
+		expect(state().dice.map((die) => die.faces)).toEqual([12, 6]);
+	});
+
+	it("rolls nothing when the dice window is closed", async () => {
+		const actor = knight([weapon("mace", "Mace", "d8"), weapon("knife", "Knife", "d4")]);
+		actor.type = "npc";
+		inputDialog.mockResolvedValueOnce({ "source.mace": true, "source.knife": true, "declare.combine": true }).mockResolvedValueOnce(null);
+		expect(await attack(actor)).toBeNull();
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("refuses an Ability outside the only kind of Attack it's used in (p68, p92)", async () => {
+		const strike = ability("strike", "Strike", { grants: { spirit: true, alone: true }, needs: "melee" });
+		inputDialog.mockResolvedValue({ "source.sling": true, "ability.strike": true });
+		expect(await attack(knight([weapon("sling", "Sling", "d4", { ranged: true }), strike]))).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.needs.melee");
+
+		const charge = ability("charge", "Charge", { grants: { shatters: true }, needs: "charge" });
+		inputDialog.mockResolvedValue({ "source.lance": true, "ability.charge": true });
+		expect(await attack(knight([lance(), charge]))).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.needs.charge");
+		inputDialog.mockResolvedValue({ "source.lance": true, "ability.charge": true, mounted: true, moved: true });
+		expect(await attack(knight([lance(), charge]))).not.toBeNull();
+	});
+
+	it("carries the Wound's effect picked for a bite to the card (p166)", async () => {
+		const fangs = ability("fangs", "Fangs", { grants: { drain: true, sleep: true, memory: true } });
+		inputDialog.mockResolvedValue({ "source.bite": true, "ability.fangs": true, "effect.fangs": "memory" });
+		await attack(knight([weapon("bite", "Bite", "d6", { noHand: true }), fangs]));
+		expect(opened().abilityOffers[0].effects.map(({ key }) => key)).toEqual(["drain", "sleep", "memory"]);
+		expect(state()).toMatchObject({ drain: false, onWound: ["memory"] });
+	});
+
+	it("won't join another's Attack with a blow made alone", async () => {
+		const card = { attacker: "Actor.moss", attackerName: "Moss", targets: [{ uuid: "Scene.s.Token.Boar", name: "Boar" }], dice: [{ faces: 8, result: 3, label: "d8", deniedBy: null }], melee: true, gambits: [], feats: [], appliedTo: [] };
+		inputDialog.mockResolvedValue({ "source.mace": true, "declare.alone": true });
+		const actor = knight([weapon("mace", "Mace", "d8")]);
+		actor.type = "npc";
+		expect(await joinAttack(actor, card)).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.aloneJoin");
+	});
+
+	it("says on the card what an Ability declared, and whether the pool may be rolled again", () => {
+		const context = attackCardContext({
+			attacker: "Actor.tal", targets: [], dice: [{ faces: 8, result: 5, label: "d8", deniedBy: null, adjusted: { by: "Ysolde", from: 3 } }],
+			melee: true, gambits: [], feats: [], appliedTo: [], spirit: true, drain: true, alone: true,
+			shattered: ["Lance"], lingers: [{ name: "Flask", damage: "d8", when: "round" }], rerolled: { by: "Tal" }
+		});
+		expect(context).toMatchObject({ shattered: "bastionland.attack.shattered", reroll: false, sigil: false });
+		expect(context.grantHints.map(({ name }) => name)).toEqual(["bastionland.attack.grant.spirit", "bastionland.attack.grant.drain", "bastionland.attack.grant.alone"]);
+		expect(context.notes).toEqual(["bastionland.attack.lingers"]);
+		expect(context.rerolled).toBe("bastionland.attack.reroll.done");
+		expect(context.dice[0].label).toBe("bastionland.attack.sigil.turnedDie");
 	});
 });
 

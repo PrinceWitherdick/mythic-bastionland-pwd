@@ -4,7 +4,7 @@
  */
 
 /**
- * @typedef {"unharmed"|"none"|"evaded"|"scar"|"spared"|"wounded"|"mortal"|"slain"|"destroyed"} DamageOutcome
+ * @typedef {"unharmed"|"none"|"evaded"|"scar"|"spared"|"wounded"|"mortal"|"slain"|"destroyed"|"broken"|"warded"} DamageOutcome
  *
  * @typedef {object} DamageResult
  * @property {number} dealt       Damage left after Armour.
@@ -42,6 +42,29 @@ export function applyDoom(result, vigourBefore) {
 	if (result.outcome !== "mortal") return result;
 	return { ...result, vigour: 0, vigourLoss: vigourBefore, outcome: "slain", doom: true };
 }
+
+/**
+ * Damage taken from SPI rather than VIG, as an Ability may deal it (p68): GD
+ * goes as ever, and losing at least half their SPI leaves them broken
+ * rather than dying, and never Slain.
+ * @param {DamageResult} result resolveDamage's, worked out with their SPI as the score.
+ * @returns {DamageResult} `vigour` and `vigourLoss` there are their SPI.
+ */
+export function spiritOutcome(result) {
+	return ["mortal", "slain"].includes(result.outcome) ? { ...result, outcome: "broken" } : result;
+}
+
+/** Outcomes an ally's ward takes on themself in the victim's place (p66). */
+export const WARDED_OUTCOMES = Object.freeze(["mortal", "slain"]);
+
+/**
+ * The blow as it lands on a victim whose ally took the Mortal Wound in their
+ * place (p66): their GD goes as it would have, but no VIG.
+ * @param {DamageResult} result
+ * @param {number} vigourBefore Their VIG before the blow.
+ * @returns {DamageResult}
+ */
+export const wardedResult = (result, vigourBefore) => ({ ...result, vigour: vigourBefore, vigourLoss: 0, outcome: "warded" });
 
 /**
  * Apply one Attack's Damage to a target.

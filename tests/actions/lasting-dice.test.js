@@ -39,7 +39,7 @@ describe("an Ability's die for the fight", () => {
 		game.combats = [{ started: true, combatants: [entry()] }];
 		const limited = ability({ quantity: { value: 1, max: 1 } });
 		expect(await addAbilityDie(tal, limited)).toBe(true);
-		expect(limited.update).toHaveBeenCalledWith({ "system.quantity.value": 0 });
+		expect(limited.update).toHaveBeenCalledWith({ "system.quantity.value": 0 }, {});
 
 		const spent = ability({ quantity: { value: 0, max: 1 } });
 		expect(await addAbilityDie(tal, spent)).toBe(false);

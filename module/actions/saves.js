@@ -1,5 +1,6 @@
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
+import { abilitiesWith, etchedNumber } from "../rules/ability-uses.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
 import { isSavePassed } from "../rules/virtues.js";
@@ -20,7 +21,28 @@ import { isSavePassed } from "../rules/virtues.js";
  * @returns {Promise<SaveResult>}
  */
 export async function evaluateSave(actor, virtue) {
-	return saveAgainst(virtue, actor.system.virtues[virtue].value);
+	return turnedByRune(actor, await saveAgainst(virtue, actor.system.virtues[virtue].value));
+}
+
+/**
+ * A Save whose d20 shows the number its roller's rune is etched for may be
+ * turned to another face as it's rolled, spending one of the rune's turns
+ * (p100), before anything is made of it. Only whoever plays the Knight is
+ * asked: a GM rolling for a Knight whose player is here, as Surprise does for
+ * everyone at once, lets the die stand.
+ * @param {Actor} actor Whoever rolled it.
+ * @param {SaveResult} save
+ * @returns {Promise<SaveResult>} The Save as it stands once turned, or as rolled.
+ */
+async function turnedByRune(actor, save) {
+	if (actor?.type !== "knight" || !actor.isOwner) return save;
+	if (game.user?.isGM && game.users?.some((user) => user.active && !user.isGM && actor.testUserPermission(user, "OWNER"))) return save;
+	const rune = abilitiesWith(actor.items?.contents ?? [], "sigil").find((item) => etchedNumber(item.system) === save.roll.total);
+	if (!rune) return save;
+	// Fetched only for a rune that could turn it, since the Ability actions reach far beyond Saves.
+	const { turnSaveDie } = await import("./abilities.js");
+	const face = await turnSaveDie(actor, rune, save.roll.total);
+	return face === null ? save : { ...save, roll: d20Showing(face), passed: isSavePassed(face, save.value) };
 }
 
 /**
@@ -93,7 +115,7 @@ export async function rollSave(actor, virtue) {
  * @returns {Promise<SaveResult>}
  */
 export async function rollLabelledSave(actor, virtue, { label, outcome, hint = null }, { rolled = null, extra = null } = {}) {
-	const save = await saveAgainst(virtue, actor.system.virtues[virtue].value, rolled);
+	const save = await turnedByRune(actor, await saveAgainst(virtue, actor.system.virtues[virtue].value, rolled));
 	const read = (words) => (typeof words === "function" ? words(save) : words);
 	await postCard(actor, "save", {
 		save: { ...saveContext(save), label },

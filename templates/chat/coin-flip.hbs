@@ -1,0 +1,12 @@
+<section class="bastionland-card bastionland-card--coin">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title">{{title}}</h3>
+		<p class="bastionland-card__tagline">{{face}}</p>
+	</header>
+	<p class="bastionland-card__outcome">{{outcome}}</p>
+	{{#if pending}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-coin-slay="{{pending.uuid}}"><i class="fa-solid fa-skull" inert></i> {{pending.label}}</button>
+	</div>
+	{{/if}}
+</section>

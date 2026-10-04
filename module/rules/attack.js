@@ -82,6 +82,43 @@ export function parseDice(notation) {
 }
 
 /**
+ * Dice joined into one die as big as their faces together, as an Ability may
+ * let its Knight do before an Attack with allies: a d4 and a d8 make a d12
+ * (p56). Nothing joins past a d12.
+ * @param {{faces: number, label: string}[]} dice What would be rolled.
+ * @param {number[]} groups The group each die joins, by index; 0 or anything
+ *   missing leaves it alone. A group of one is that die alone.
+ * @returns {{dice: {faces: number, label: string, joined?: number[]}[], over: number[]}} The dice to
+ *   roll, the joined ones after those left alone, each carrying the faces it was made of. `over`
+ *   lists the groups that came to more than a d12, or to no die there is, which join nothing.
+ */
+export function combineDice(dice, groups = []) {
+	const byGroup = new Map();
+	const alone = [];
+	dice.forEach((die, index) => {
+		const group = Number(groups[index]) || 0;
+		if (group <= 0) alone.push(die);
+		else byGroup.set(group, [...(byGroup.get(group) ?? []), die]);
+	});
+	const joined = [];
+	const over = [];
+	for (const [group, members] of [...byGroup].sort((a, b) => a[0] - b[0])) {
+		if (members.length === 1) {
+			alone.push(members[0]);
+			continue;
+		}
+		const faces = members.reduce((sum, die) => sum + die.faces, 0);
+		if (!DIE_SIZES.includes(faces)) {
+			over.push(group);
+			alone.push(...members);
+			continue;
+		}
+		joined.push({ faces, label: members.map((die) => `d${die.faces}`).join("+"), joined: members.map((die) => die.faces) });
+	}
+	return { dice: [...alone, ...joined], over };
+}
+
+/**
  * Gather the dice for one Attack. An Attack with no weapon dice is unarmed,
  * and unarmed or Impaired Attacks roll a single d4 with no bonus dice.
  * @param {object} args
@@ -119,6 +156,7 @@ export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays
  * @property {boolean} [slow]         Slow weapons are also Long.
  * @property {boolean} [ranged]
  * @property {boolean} [heftyMounted] Counts as Hefty rather than Long when mounted, as a lance does (p12).
+ * @property {boolean} [noHand]       Fills no hand, as a bite or a shockwave doesn't.
  * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways,
  *                                    or the attacks printed with "or" between them that it is one of.
  */
@@ -162,16 +200,18 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	});
 
 	const isLong = (item) => heldAs(item, mounted).long;
+	// A bite or a shockwave fills no hand, so only the rest are weighed against two.
+	const held = items.filter((item) => !item.noHand);
 	let refusal = null;
 	if (exhausted && moved) refusal = "exhausted";
 	// Charging a spearwall leaves no Attack that turn.
 	else if (spearwall) refusal = "spearwall";
 	// A weapon fought two ways, such as a spear that can be thrown, is fought one way at a time.
 	else if (items.some((item, index) => item.of && items.findIndex((other) => other.of === item.of) !== index)) refusal = "twoWays";
-	else if (hands && items.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
-	else if (hands && items.length > 1 && items.some(isLong)) refusal = "long";
+	else if (hands && held.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
+	else if (hands && held.length > 1 && held.some(isLong)) refusal = "long";
 	// Anything else still takes a hand each, and there are only two.
-	else if (hands && items.length > HANDS) refusal = "hands";
+	else if (hands && held.length > HANDS) refusal = "hands";
 	// Weapons chosen and all of them sitting out leave nothing to Attack with,
 	// which is not the same as fighting unarmed.
 	else if (items.length && !usable.length) refusal = "allSetAside";
@@ -338,6 +378,7 @@ const damagePotential = (item) => parseDice(item?.damage).reduce((sum, faces) =>
  * the hands allow, the hardest-hitting first. A Knight holding a Long weapon
  * needs both hands for it (p12), so only that weapon opens ticked, of two
  * Hefty items only the better one does, and never more than two items in all.
+ * What fills no hand, such as a bite, is a blow of its own and opens unticked.
  * @param {WieldedItem[]} items Each also carrying its `damage` notation.
  * @param {object} [situation]
  * @param {boolean} [situation.mounted] On a steed, so a lance counts as Hefty.
@@ -350,6 +391,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
 		.sort((a, b) => damagePotential(items[b]) - damagePotential(items[a]) || a - b);
 	const kept = [];
 	for (const index of order) {
+		if (hands && items[index].noHand) continue;
 		const tried = [...kept, index].sort((a, b) => a - b);
 		if (checkWielding(tried.map((i) => items[i]), { mounted, hands }).refusal) continue;
 		kept.push(index);
@@ -373,6 +415,9 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {boolean} [blast]     Whether it was a Blast, which harms a Warband (p11).
  * @property {boolean} [largeScale] Whether it was a Warband's, which harms a Warband.
  * @property {object|null} [structureHarm] What in it harms a structure, from structureHarm.
+ * @property {boolean} [drain]  Whether its maker takes back the VIG a Wound from it costs the target.
+ * @property {boolean} [spirit] Whether its Damage comes off SPI rather than VIG.
+ * @property {{by: string, from: number}} [adjusted] Turned to another face after the roll, by whose rune, from what.
  *
  * @typedef {object} Gambit
  * @property {string} key         One of GAMBITS.
@@ -430,7 +475,14 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {string[]} appliedTo Who the Damage was applied to. Once set, the Attack is settled.
  * @property {JoinedAttacker[]} [joined] Those who joined the Attack, rolling with the attacker (p8).
  * @property {boolean} [declared] Whether a Deny, Gambit or Focus has been declared, which closes it to joiners.
+ * @property {boolean} [alone]    Made alone, as an Ability may say, so nobody joins it.
+ * @property {{by: string}|null} [rerolled] Who rolled the whole pool again, which is done once (p62).
+ * @property {string[]} [shattered] What the Attack broke as it landed, as a lance a charge shatters (p92).
+ * @property {string[]} [onWound] What a Wound from it does besides, from ON_WOUND (p166).
  */
+
+/** What a Wound can do besides its Damage, said on the card and once it lands: normal sleep, or a memory shown (p166). */
+export const ON_WOUND = Object.freeze(["sleep", "memory"]);
 
 /**
  * Whoever rolled into an Attack card: the attacker, and each who joined them (p8).
@@ -571,7 +623,8 @@ export function attackDamage(attack, counts = null) {
  * others have joined it, and the card's for a die rolled by one attacker alone.
  * @param {AttackState} attack
  * @param {AttackDie|null} die Null for the card as a whole.
- * @returns {{melee: boolean, ignoresArmour: boolean, nonLethal: boolean, blast: boolean, largeScale: boolean, structureHarm: object|null}}
+ * @returns {{melee: boolean, ignoresArmour: boolean, nonLethal: boolean, blast: boolean, largeScale: boolean,
+ *   drain: boolean, spirit: boolean, structureHarm: object|null}}
  */
 export function shareOf(attack, die) {
 	return {
@@ -581,6 +634,9 @@ export function shareOf(attack, die) {
 		strongGambits: Boolean(die?.strongGambits ?? attack.strongGambits),
 		blast: Boolean(die?.blast ?? attack.blast),
 		largeScale: Boolean(die?.largeScale ?? attack.largeScale),
+		// Its maker takes back the VIG a Wound costs, or it harms SPI rather than VIG, as Abilities may say.
+		drain: Boolean(die?.drain ?? attack.drain),
+		spirit: Boolean(die?.spirit ?? attack.spirit),
 		// A share stamped with none harms no structure, whatever the whole card could.
 		structureHarm: (die && "structureHarm" in die ? die.structureHarm : attack.structureHarm) ?? null
 	};
@@ -624,7 +680,8 @@ export function harmBarred(share, { warband = false, structure = false, stone = 
  * @param {AttackState} attack
  * @param {{warband?: boolean, structure?: boolean, stone?: boolean}} [target]
  * @returns {ReturnType<typeof attackDamage> & {ranged: boolean, ignoresArmour: boolean,
- *   nonLethal: boolean, harm: {warband: boolean, structure: boolean}, unharmed: boolean, dealer: string}}
+ *   nonLethal: boolean, drain: boolean, spirit: boolean, harm: {warband: boolean, structure: boolean},
+ *   unharmed: boolean, dealer: string}}
  */
 export function damageAgainst(attack, { warband = false, structure = false, stone = false } = {}) {
 	const harmsWarband = (share) => share.blast || share.largeScale;
@@ -639,6 +696,8 @@ export function damageAgainst(attack, { warband = false, structure = false, ston
 		ranged: !share.melee,
 		ignoresArmour: share.ignoresArmour,
 		nonLethal: share.nonLethal,
+		drain: share.drain,
+		spirit: share.spirit,
 		harm: { warband: shares.some(harmsWarband), structure: shares.some(harmsIt) },
 		// Nobody's share can harm them at all.
 		unharmed: !anyHarms,
@@ -654,10 +713,67 @@ export function damageAgainst(attack, { warband = false, structure = false, ston
  * @returns {boolean}
  */
 export function canJoin(attack) {
-	if (!attack || attack.appliedTo.length || attack.duel || attack.declared) return false;
+	if (!attack || attack.appliedTo.length || attack.duel || attack.declared || attack.alone) return false;
 	// Cards from before `declared` was kept still show what was declared on them.
 	return !attack.gambits.length && !attack.feats.length && !attack.dice.some((die) => die.deniedBy);
 }
+
+/**
+ * Whether the whole pool of a joint Attack may still be rolled again, as an
+ * Ability carried into a group Attack lets its Knight do once (p62): others
+ * have joined, the dice haven't been rolled again already, and nothing has
+ * been spent or declared on them yet, since all of it would be on dice gone.
+ * @param {AttackState|null} attack
+ * @returns {boolean}
+ */
+export function canReroll(attack) {
+	if (!attack || attack.appliedTo.length || attack.rerolled || !attack.joined?.length) return false;
+	return !attack.gambits.length && !attack.feats.length && !attack.dice.some((die) => die.deniedBy || die.adjusted);
+}
+
+/**
+ * The dice on a card a rune for this number could turn (p100): those showing
+ * it, not yet spent, and only while the Damage hasn't landed.
+ * @param {AttackState|null} attack
+ * @param {number|null} number
+ * @returns {number[]} Indexes into the card's dice.
+ */
+export function diceShowing(attack, number) {
+	if (!attack || attack.appliedTo.length || !Number.isInteger(number)) return [];
+	return attack.dice.flatMap((die, index) => (die.result === number && !isDieSpent(attack, index) ? [index] : []));
+}
+
+/**
+ * @param {number} value The face a die is to be turned to.
+ * @param {number} faces How many faces it has.
+ * @param {number} from What it shows now.
+ * @returns {boolean} Whether it can be turned there: another of its own faces (p100).
+ */
+export const canTurnDie = (value, faces, from) => Number.isInteger(value) && value >= 1 && value <= faces && value !== from;
+
+/**
+ * New dice for a card, sorted highest first again, with each Gambit still on
+ * the die that paid for it.
+ * @param {AttackState} attack
+ * @param {AttackDie[]} dice In the card's order, some of them changed.
+ * @returns {AttackState}
+ */
+function withDiceSorted(attack, dice) {
+	const order = dice.map((_die, index) => index)
+		.sort((a, b) => dice[b].result - dice[a].result || dice[b].faces - dice[a].faces || a - b);
+	const moved = new Map(order.map((from, to) => [from, to]));
+	return {
+		...attack,
+		dice: order.map((index) => dice[index]),
+		gambits: attack.gambits.map((gambit) => (gambit.die === null ? gambit : { ...gambit, die: moved.get(gambit.die) }))
+	};
+}
+
+/**
+ * @param {object} entry A weapon whose Damage keeps on, as a change brings it.
+ * @returns {boolean} Whether it reads as one: a name, its dice, and each round or each day.
+ */
+const lingerEntry = (entry) => typeof entry?.name === "string" && typeof entry.damage === "string" && ["round", "day"].includes(entry.when);
 
 /**
  * Who Smote for a lasting mark on this Attack (p187): the attacker, or the
@@ -731,6 +847,8 @@ function joinAttack(attack, change) {
 		strongGambits: Boolean(change.strongGambits),
 		blast: Boolean(change.blast),
 		largeScale: Boolean(change.largeScale),
+		drain: Boolean(change.drain),
+		spirit: Boolean(change.spirit),
 		structureHarm: change.structureHarm && typeof change.structureHarm === "object" ? change.structureHarm : null
 	};
 	// A die keeps the weapon it was rolled for, so a foe can Impair what the joiner showed (p186).
@@ -743,9 +861,6 @@ function joinAttack(attack, change) {
 		...(weakness ? { weakness: true } : {})
 	}));
 	const pooled = [...attack.dice.map((die) => stamp(die, first)), ...fresh.map((die) => stamp(die, joiner))];
-	const order = pooled.map((_die, index) => index)
-		.sort((a, b) => pooled[b].result - pooled[a].result || pooled[b].faces - pooled[a].faces || a - b);
-	const moved = new Map(order.map((from, to) => [from, to]));
 	const setAside = (Array.isArray(change.setAside) ? change.setAside : [])
 		.filter((entry) => typeof entry?.name === "string" && typeof entry.reason === "string")
 		.map(({ name: item, reason }) => ({ name: item, reason }));
@@ -753,9 +868,7 @@ function joinAttack(attack, change) {
 		.filter((entry) => typeof entry?.name === "string" && typeof entry.note === "string")
 		.map(({ name: item, note }) => ({ name: item, note }));
 	return {
-		...attack,
-		dice: order.map((index) => pooled[index]),
-		gambits: attack.gambits.map((gambit) => (gambit.die === null ? gambit : { ...gambit, die: moved.get(gambit.die) })),
+		...withDiceSorted(attack, pooled),
 		// What the card says of the whole: ranged if any of it is, a Blast if any of it is. The
 		// Damage itself is weighed by the die that counts (damageAgainst).
 		melee: Boolean(attack.melee && joiner.melee),
@@ -764,6 +877,9 @@ function joinAttack(attack, change) {
 		structureHarm: eitherHarm(attack.structureHarm, joiner.structureHarm),
 		nonLethal: Boolean(attack.nonLethal && joiner.nonLethal),
 		notes: [...(attack.notes ?? []), ...notes],
+		lingers: [...(attack.lingers ?? []), ...(Array.isArray(change.lingers) ? change.lingers.filter(lingerEntry) : [])],
+		shattered: [...(attack.shattered ?? []), ...(Array.isArray(change.shattered) ? change.shattered.filter((name) => typeof name === "string") : [])],
+		onWound: [...new Set([...(attack.onWound ?? []), ...(Array.isArray(change.onWound) ? change.onWound.filter((key) => ON_WOUND.includes(key)) : [])])],
 		joined: [...(attack.joined ?? []), {
 			actor: change.actor,
 			name,
@@ -845,6 +961,10 @@ export function canDeny(attack, { uuid, fatigued = false, down = false }) {
  * - `{type: "greater", index, text}` records what a Strong Gambit's Greater
  *   effect did, such as "Eve loses hold of the Longsword". It is carried out
  *   on the foe's sheet, often after the Damage, so a settled card takes it too.
+ * - `{type: "reroll", results, by}` rolls the whole pool of a joint Attack again,
+ *   once, with a result for each die in the card's order (canReroll, p62).
+ * - `{type: "sigil", die, from, value, by}` turns a die showing `from` to another of
+ *   its faces, as a rune etched for that number lets its Knight do (p100).
  *
  * @param {AttackState} attack
  * @param {object} change
@@ -915,6 +1035,22 @@ export function changeAttack(attack, change) {
 		case "applied": {
 			const names = (change.names ?? []).filter((name) => typeof name === "string" && name);
 			return names.length ? { ...attack, appliedTo: names } : null;
+		}
+		case "reroll": {
+			const results = Array.isArray(change.results) ? change.results : [];
+			if (!canReroll(attack) || results.length !== attack.dice.length) return null;
+			if (!results.every((result, index) => Number.isInteger(result) && result >= 1 && result <= attack.dice[index].faces)) return null;
+			// Nobody joins once the pool has been rolled again, since all roll together (p8).
+			const sorted = withDiceSorted(attack, attack.dice.map((die, index) => ({ ...die, result: results[index] })));
+			return { ...sorted, declared: true, rerolled: { by: String(change.by ?? "") } };
+		}
+		case "sigil": {
+			const die = attack.dice[change.die];
+			const { value } = change;
+			if (!die || isDieSpent(attack, change.die) || die.result !== change.from) return null;
+			if (!canTurnDie(value, die.faces, die.result)) return null;
+			const turned = attack.dice.map((each, index) => (index === change.die ? { ...each, result: value, adjusted: { by: String(change.by ?? ""), from: each.result } } : each));
+			return { ...withDiceSorted(attack, turned), declared: true };
 		}
 		default:
 			return null;

@@ -5,7 +5,10 @@ vi.mock("../../module/actions/attack.js", () => ({
 	renderAttackCard: vi.fn(async () => "<section></section>"),
 	dieLabel: (die) => die.label,
 	cardTarget: () => ({}),
-	joinAttack: vi.fn(async () => null)
+	joinAttack: vi.fn(async () => null),
+	poolRerollers: vi.fn(() => []),
+	sigilHolders: vi.fn(() => []),
+	showRolls: vi.fn()
 }));
 vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
@@ -24,7 +27,7 @@ vi.mock("../../module/actions/feats.js", async (importOriginal) => ({
 
 const { chooseDialog, confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { payFeat, postFeat, rollFeat } = await import("../../module/actions/feats.js");
-const { joinAttack } = await import("../../module/actions/attack.js");
+const { joinAttack, poolRerollers, showRolls, sigilHolders } = await import("../../module/actions/attack.js");
 const { rollSave } = await import("../../module/actions/saves.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
 const { registerAttackCards } = await import("../../module/chat/attack-card.js");
@@ -95,7 +98,7 @@ function renderCard(state) {
 	game.messages.get = () => message;
 
 	const data = { "gambit-save": { gambit: "0" }, gambit: { die: "0" }, greater: { gambit: "0" } };
-	const buttons = ["deny", "focus", "apply", "gambit-save", "gambit", "join", "greater"].map((action) => ({
+	const buttons = ["deny", "focus", "apply", "gambit-save", "gambit", "join", "greater", "reroll", "sigil"].map((action) => ({
 		dataset: { attackAction: action, ...data[action] },
 		disabled: false,
 		hidden: false,
@@ -115,6 +118,8 @@ function renderCard(state) {
 		message,
 		deny: find("deny"),
 		join: find("join"),
+		reroll: find("reroll"),
+		sigil: find("sigil"),
 		hover: () => listeners.pointerenter?.(),
 		click: (action) => listeners.click?.({ target: find(action), preventDefault() {} })
 	};
@@ -557,5 +562,117 @@ describe("a Strong Gambit's Greater effect", () => {
 		expect(card.message.update).not.toHaveBeenCalled();
 		expect(await ask({ ...other, actor: "Actor.mine" })).toBe(true);
 		expect(savedState(card.message).gambits[0].greater).toBe("Greater effect: takes the arm");
+	});
+});
+
+/** A Roll whose dice all show the given results in turn. */
+function rollShowing(...results) {
+	return class {
+		constructor(formula) {
+			this.formula = formula;
+		}
+
+		async evaluate() {
+			this.dice = this.formula.split("+").map((_term, index) => ({ total: results[index] ?? 1 }));
+			return this;
+		}
+
+		toJSON() {
+			return { class: "Roll", formula: this.formula, evaluated: true };
+		}
+	};
+}
+
+/** An Ability with uses, as a reroll or a rune spends. */
+const abilityWithUses = (value) => ({ system: { quantity: { value, max: 4 } }, isOwner: true, update: vi.fn(async () => {}) });
+
+describe("rolling the pool again (p62)", () => {
+	const joint = () => attackState({ joined: [{ actor: "Actor.tal", name: "Tal" }] });
+
+	beforeEach(() => {
+		globalThis.Roll = rollShowing(2, 5);
+		poolRerollers.mockReturnValue([]);
+	});
+	afterEach(() => {
+		delete globalThis.Roll;
+	});
+
+	it("shows only to whoever owns an attacker with an Ability that does it", () => {
+		expect(renderCard(joint()).reroll.hidden).toBe(true);
+		poolRerollers.mockReturnValue([{ actor: { uuid: "Actor.tal", name: "Tal", isOwner: false }, item: abilityWithUses(1) }]);
+		expect(renderCard(joint()).reroll.hidden).toBe(true);
+		poolRerollers.mockReturnValue([{ actor: { uuid: "Actor.tal", name: "Tal", isOwner: true }, item: abilityWithUses(1) }]);
+		expect(renderCard(joint()).reroll.hidden).toBe(false);
+	});
+
+	it("rolls every die again, keeps the roll on the card, and spends a use", async () => {
+		const item = abilityWithUses(1);
+		poolRerollers.mockReturnValue([{ actor: { uuid: "Actor.tal", name: "Tal", isOwner: true }, item }]);
+		const card = renderCard(joint());
+		await card.click("reroll");
+		const state = savedState(card.message);
+		expect(state.dice.map((die) => die.result)).toEqual([5, 2]);
+		expect(state.rerolled).toEqual({ by: "Tal" });
+		expect(card.message.update.mock.calls.at(-1)[0].rolls).toHaveLength(1);
+		expect(showRolls).toHaveBeenCalledOnce();
+		expect(item.update).toHaveBeenCalledWith({ "system.quantity.value": 0 }, expect.anything());
+	});
+
+	it("says so, and rolls nothing, once something has been spent on the dice", async () => {
+		poolRerollers.mockReturnValue([{ actor: { uuid: "Actor.tal", name: "Tal", isOwner: true }, item: abilityWithUses(1) }]);
+		const card = renderCard({ ...joint(), gambits: [{ key: "repel", die: 0, strong: null, save: null }] });
+		await card.click("reroll");
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.attack.reroll.closed"]);
+	});
+});
+
+describe("turning a die with a rune (p100)", () => {
+	beforeEach(() => {
+		sigilHolders.mockReturnValue([]);
+	});
+
+	it("shows only to whoever owns a Knight whose rune a die shows", () => {
+		expect(renderCard(attackState()).sigil.hidden).toBe(true);
+		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item: abilityWithUses(3), number: 3 }]);
+		expect(renderCard(attackState()).sigil.hidden).toBe(false);
+	});
+
+	it("turns the die picked to the face asked for, and spends one of the rune's turns", async () => {
+		const item = abilityWithUses(3);
+		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item, number: 3 }]);
+		inputDialog.mockResolvedValueOnce({ die: "1", value: "6" });
+		const card = renderCard(attackState());
+		await card.click("sigil");
+		const state = savedState(card.message);
+		expect(state.dice.map((die) => die.result)).toEqual([6, 6]);
+		expect(state.dice.find((die) => die.adjusted)).toMatchObject({ faces: 6, adjusted: { by: "Ysolde", from: 3 } });
+		expect(item.update).toHaveBeenCalledWith({ "system.quantity.value": 2 }, expect.anything());
+	});
+
+	it("turns nothing to a face the die hasn't", async () => {
+		const item = abilityWithUses(3);
+		sigilHolders.mockReturnValue([{ actor: { uuid: "Actor.y", name: "Ysolde", isOwner: true }, item, number: 3 }]);
+		inputDialog.mockResolvedValueOnce({ die: "1", value: "8" });
+		const card = renderCard(attackState());
+		await card.click("sigil");
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(item.update).not.toHaveBeenCalled();
+		expect(warnings).toEqual(["bastionland.attack.sigil.badValue"]);
+	});
+
+	it("records for a player only a die showing the number their own rune is etched for", async () => {
+		const player = { id: "player-1" };
+		const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
+		const ysolde = { uuid: "Actor.y", name: "Ysolde", isOwner: false, testUserPermission: (user) => user === player };
+		tokens["Actor.y"] = ysolde;
+		const card = renderCard(attackState());
+		const turn = { type: "sigil", die: 1, from: 3, value: 6, actor: "Actor.y" };
+		expect(await ask(turn)).toBe(false);
+		sigilHolders.mockReturnValue([{ actor: ysolde, item: abilityWithUses(3), number: 3 }]);
+		expect(await ask({ ...turn, die: 0, from: 6, value: 1 })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(await ask(turn)).toBe(true);
+		expect(savedState(card.message).dice.map((die) => die.result)).toEqual([6, 6]);
 	});
 });

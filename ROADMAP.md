@@ -10,7 +10,7 @@ Each item has an ID so we can refer to it ("do R-12 next"). Tick an item when it
 
 ## 1. Test live 🧪
 
-These were built between 2026-09-26 and 2026-09-28 and pass the unit tests and lint, but haven't been run in Foundry. T-48 to T-60 (from C-15 to C-27) aren't committed yet. An item built from **Next up** keeps its old ID beside the new one.
+These were built between 2026-09-26 and 2026-10-03 and pass the unit tests and lint, but haven't been run in Foundry. An item built from **Next up**, **Candidates** or **Parked** keeps its old ID beside the new one.
 
 ### Myths and the City Quest
 - [ ] **T-1** A Company with a Knight-Radiant rolls a 1 on the Wilderness Roll. The City Omen replaces the Myth's, and the Myth's Omen count stays where it was. (p172)
@@ -91,6 +91,21 @@ These were built between 2026-09-26 and 2026-09-28 and pass the unit tests and l
 - [ ] **T-68** In a Combat, the Attack dialog has **Keep the bonus dice for the rest of the fight**; outside one it's greyed out. Kept dice show among the attacker's conditions as pills ("Bonus d8 ×"), and every later Attack lists them ticked; unticking leaves one out of that blow. × drops it, and deleting the Combat drops them all. An Ability with a **Die for the fight** set shows a dice button on its row during a Combat, adding that die and spending a use. (p32, p50, p98)
 - [ ] **T-69** Rolling or picking on a Knight's table puts any stats it gives onto the possession it's about: the column's own name first (p38's Special Polearm gets "+d10 vs …" as a specialist die), else the table's (p132's Strange Crossbow becomes a weapon of the rolled form, ranged, keeping its name and place), else the one that says "see below". Rolling again changes the same one; clearing the row, or a row with no stats, puts it back, the crossbow becoming gear again. Where two possessions fit, a radio list asks which, with None of them. A trample result goes on the steed's trample. Where nothing fits, a notice says it stays on the table.
 
+### Knight-page Abilities and burning Damage (2026-10-03)
+Each is an Ability or item setting that can also be ticked by hand. A Knight chosen after Import PDF gets theirs from the page they're printed on, and the world setup steps `abilityKits`, `possessionOddsAndLosses` and `lingeringCast` give Knights and Cast made earlier theirs.
+- [ ] **T-70** *(was C-28)* The Horde Knight's Ability offers **Join dice together** in the Attack dialog, unticked. Ticked, a **Join Dice** window lists the dice about to roll, each Alone or in Group 1–3, with a line saying what will roll; a group past a d12 says so and holds back Roll. A d4 and a d8 roll as one d12 labelled "Joined d4+d8". Closing the window rolls nothing. A steed's trample is never offered for joining. (p56)
+- [ ] **T-71** *(was C-29)* On a joint Attack card, before any Gambit, Deny, Focus or turned die, the Banner Knight's player sees **Roll the Pool Again**. It rolls every die again, keeps the roll's tooltip, says "… rolled the whole pool again", spends the Ability's use, and closes the card to joiners. Nobody else sees the button; a second press is refused. The banner-pike's row has a heart button whose tip gives the SPI it costs and when, read from its Property line; it asks once and takes the Virtue Loss on a card; any possession can be given such a cost in its window. (p62)
+- [ ] **T-72** *(was C-30)* The Rune Knight's Ability row has a star. It opens **Etch the Rune**: a number 1–20, never last night's, giving as many turns. The row's tip reads "Rune for 4: 4 turns left before sunset". Once etched, a player's press is refused until sunset; the GM can still change it. Night falling clears it, with "the sun has set on …". While it has turns, any Attack card with an unspent die showing that number offers **Turn a Die** to the Knight's player: pick the die and the face, and the die reads "… (turned from 4 by …)", is re-sorted, and a turn is spent. A Save of the Knight's own whose d20 shows the number offers the same turn as it's rolled, before anything is made of it (Feats too); closing the window keeps the face. (p100)
+- [ ] **T-73** *(was C-31)* The Coin Knight's Ability row has a coin. With exactly one Token targeted, it asks once more ("There's no taking it back"), flips, and posts Heads or Tails: the target, or the Knight, is Slain (VIG 0), and A Knight Falls follows for a played Knight. A loser this user can't change gets a **Carry it out on …** button for whoever can. (p120)
+- [ ] **T-74** *(was C-32)* When Damage would Mortally Wound or Slay a Knight, a player's character, or someone on the map on the Shield Knight's side, and that Knight is on their feet and on the same Scene, applying it asks **Take the Mortal Wound?**: Nobody, or the Knight. Taken, the victim loses their GD but no VIG ("… takes the Mortal Wound in their place"), and the Knight is marked Mortally Wounded, or Slain by Doom. Foes are never offered. (p66)
+- [ ] **T-75** *(was C-33)* The Whip Knight's Ability offers **Damage to SPI** and **Made alone**, "melee only", unticked; ticked with a ranged weapon it's refused. Used, the card can't be joined and says so; applying it takes the Damage past GD from SPI ("SPI 12 → 6"), and half or more of it lost reads "Broken: out of the fight, but not dying", with no Wound, Mortal Wound, Slain or Morale prompt. Joining another's Attack with a blow made alone is refused. (p68)
+- [ ] **T-76** *(was C-34)* The Fanged Knight has a **Bite** (d6, needs no hand) and their Ability is offered unticked with an **If it Wounds** select: Takes back the VIG, Wound brings sleep, Wound shows a memory. Takes back the VIG gives the biter back the VIG the target lost, up to their most, with a note (a biter this user can't change gets a note asking their player to write it in); the other two say so on the card and post "… falls into a normal sleep" or "… is shown one of the attacker's memories" once it Wounds. A bite opens unticked and fits beside a sword and shield. (p166)
+- [ ] **T-77** *(was C-35)* The Lance Knight's Ability, once a day, offers "+d12, Blast, Gambits are Strong, Shatters the weapon, Made alone, mounted charge only", refused unless the charge is ticked (or, with no steed that tramples, Mounted and Moved this turn). Used, a d12 labelled with the Ability joins the dice, and once rolled the lance (not the shield) is marked broken, the card saying "Shattered as it lands: Lance". (p92)
+- [ ] **T-78** *(was C-36)* The Chain Knight has an **Iron chain** (2d6) among their weapons. (p60)
+- [ ] **T-79** *(was C-37)* The Meteor Knight has a **Shockwave on landing** (d8 Blast, needs no hand), unticked in the Attack dialog until a fall calls for it. (p106)
+- [ ] **T-80** *(was C-38)* The Owl Knight's sack of books has **Odds** 1 in 2 in its window and a dice button on its row: 1 posts "It holds what's wanted", 2 "Not this time". Any gear can be given odds by hand. (p88)
+- [ ] **T-81** *(was P-2)* A Cast member's flask of acid imports as a weapon that **Burns on** each round (a select in its window: No, daily, each round). Its blow getting past GD leaves an affliction pill "…: d8 Damage each round, ignoring Armour". At that combatant's turn the active GM's client rolls it and applies it as Damage, no dialog, on a Damage card headed "… burns on: 5 on d8"; it can Wound, Mortally Wound and Slay. The pill's × washes it off. A daily one burns each morning. The pill's own button takes the toll at once. (p173)
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 
@@ -110,28 +125,16 @@ These rules are stated outright in the book, but the system still leaves them to
 
 ## 3. Candidates 💡
 
-C-1 to C-27 are all built and waiting in **Test live**.
+C-1 to C-38 are all built and waiting in **Test live**. C-15 to C-27 came from reading the examples of play (Oddpocrypha, pp175–206) against the system on 2026-09-28, and were built the same day as T-48 to T-60; most of those examples were already covered. C-28 to C-38, the one-off Abilities from the Knight pages, were built on 2026-10-03 as T-70 to T-80.
 
-From the Knight pages (2026-10-02), one-off Abilities that would each need code of their own. Until then the Referee does them by hand, and the generic tools (uses, declared grants, lasting dice, Something else) cover part of each:
-
-- **C-28** p56: merge pooled dice into one bigger die, up to d12, in a joint Attack.
-- **C-29** p62: reroll the whole pool once. Nothing in the attack code rerolls yet. Also p62's Property: d6 SPI is lost should the banner fall.
-- **C-30** p100: change a die that shows the chosen number, as many times a day as that number.
-- **C-31** p120: a coin flip instead of an Attack; heads the target dies, tails the Knight does.
-- **C-32** p66: take an ally's Mortal Wound or death on yourself.
-- **C-33** p68: Damage to SPI instead of VIG, with a break at half SPI. The Damage dialog has no choice of Virtue.
-- **C-34** p166: a d6 bite that, on a Wound, gives back the VIG it took.
-- **C-35** p92: the lance shatters after the charge (mark it broken).
-- **C-36** p60: lashing with both ends of the chain (d6 each), written in the Ability rather than the Property.
-- **C-37** p106: a d8 blast shockwave after a fall of 12ft or more.
-- **C-38** p88: a 1-in-2 chance the books hold something. C-15 to C-27 came from reading the examples of play (Oddpocrypha, pp175–206) against the system on 2026-09-28, and were built the same day as T-48 to T-60. Most of those examples were already covered.
+Left to the Referee from those Abilities: falling Damage, which p106 waives and the system never deals; whether the Horde Knight has an ally attacking alongside (p56) and the Banner Knight carries a banner (p62), which the system can't see; and Sleep itself, which has no condition of its own.
 
 Not taken up from the examples, because they're the Referee's call or are already covered: the Action Procedure (see **Decided against**), reckless fighting (Bonus dice covers it), improvised weapons such as p194's shortspears, the Realm's changes over an Age (p203 has Ref roll them in private; the book gives no table), and a named Seer's-guidance or hospitality button (the Recovery block's Restore does it).
 
 ## 4. Parked ⏸
 
 - **P-1 Roads drawn on the map.** The per-hex road tick and Cruise from Here were taken out on 2026-10-01 (eefdacb), so roads are the Referee's for now. A road brush with Undo would mean drawing on every Realm skin. Pick this up if roads matter.
-- **P-2 Damage-over-time afflictions** such as a flask of acid that burns every round until washed off (p173). Afflictions cover Virtue Loss only; Damage-type afflictions stay as weapon notes.
+- *P-2, Damage-over-time afflictions, was built on 2026-10-03 as T-81.*
 
 ## 5. Decided against ✗
 

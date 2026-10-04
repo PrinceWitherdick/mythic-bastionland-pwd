@@ -1,5 +1,5 @@
 import { postCard, t } from "../chat/cards.js";
-import { afflictionsAt, withAffliction } from "../rules/afflictions.js";
+import { afflictionsAt, tollsByKind, withAffliction } from "../rules/afflictions.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
@@ -7,17 +7,23 @@ import { rollVirtueLosses } from "./virtue-loss.js";
 /**
  * Afflictions (rules/afflictions.js): what some of the Cast leave in those they
  * touch, as the Plague's d6 VIG lost daily (p29). A victim carries each until
- * it's cured, losing the Virtue each morning or each round. Virtue Loss, never
- * Damage, so it can't Mortally Wound or Slay (p9).
+ * it's cured, losing the Virtue each morning or each round. Most are Virtue
+ * Loss, which can't Mortally Wound or Slay (p9); some are Damage, as acid
+ * burns each round until it's washed off (p173), which can.
  */
+
+/** @returns {string} An affliction's dice as the book writes them: "d6", not "1d6". */
+const lossDice = (affliction) => affliction.loss.replace(/^1d/, "d");
 
 /**
  * @param {object} affliction
- * @returns {string} Such as "The Plague: d6 VIG daily".
+ * @returns {string} Such as "The Plague: d6 VIG daily", or "Acid: d8 Damage each round, ignoring Armour".
  */
 export function afflictionLabel(affliction) {
-	const dice = affliction.loss.replace(/^1d/, "d");
-	return t("afflictions.label", { name: affliction.name, loss: dice, virtue: t(`virtues.${affliction.virtue}.abbr`), when: t(`afflictions.when.${affliction.when}`) });
+	const dice = lossDice(affliction);
+	const when = t(`afflictions.when.${affliction.when}`);
+	if (affliction.damage) return t(affliction.ignoresArmour ? "afflictions.damageLabelIgnores" : "afflictions.damageLabel", { name: affliction.name, loss: dice, when });
+	return t("afflictions.label", { name: affliction.name, loss: dice, virtue: t(`virtues.${affliction.virtue}.abbr`), when });
 }
 
 /**
@@ -60,18 +66,42 @@ export async function afflictTargets(source) {
 }
 
 /**
- * Take afflictions' toll now, each one's dice off its Virtue, in one update.
+ * Take afflictions' toll now: each Virtue Loss's dice off its Virtue, in one
+ * update, and each that deals Damage as a blow of its own, on a Damage card.
  * @param {Actor} actor
  * @param {object[]} afflictions
- * @returns {Promise<{rolls: Roll[], lines: string[]}>} Empty where none took anything.
+ * @returns {Promise<{rolls: Roll[], lines: string[], burned: number}>} The Virtue Loss taken, empty where none
+ *   took anything, and how many dealt Damage.
  */
 async function toll(actor, afflictions) {
-	const { update, taken } = await rollVirtueLosses(actor, afflictions.map(({ name, virtue, loss }) => ({ name, virtue, dice: loss })));
+	const { losses, damage } = tollsByKind(afflictions);
+	const { update, taken } = await rollVirtueLosses(actor, losses.map(({ name, virtue, loss }) => ({ name, virtue, dice: loss })));
 	if (taken.length) await actor.update(update, causedBy("hardship"));
+	let burned = 0;
+	for (const affliction of damage) if (await burn(actor, affliction)) burned++;
 	return {
 		rolls: taken.map(({ roll }) => roll),
-		lines: taken.map(({ name, virtue, roll, from, to }) => t("afflictions.lost", { affliction: name, amount: roll.total, virtue: t(`virtues.${virtue}.abbr`), from, to }))
+		lines: taken.map(({ name, virtue, roll, from, to }) => t("afflictions.lost", { affliction: name, amount: roll.total, virtue: t(`virtues.${virtue}.abbr`), from, to })),
+		burned
 	};
+}
+
+/**
+ * An affliction that deals Damage, as acid burns each round until washed off
+ * (p173): its dice rolled and taken as a blow, against their Armour unless it
+ * ignores it, without a dialog.
+ * @param {Actor} actor
+ * @param {object} affliction
+ * @returns {Promise<boolean>} Whether it was taken.
+ */
+async function burn(actor, affliction) {
+	// Nothing burns on in the dead.
+	if (!actor.system.guard || actor.system.slain) return false;
+	// Fetched when it's needed: damage.js leaves afflictions with whoever a blow reaches, so it imports this.
+	const { takeDamage } = await import("./damage.js");
+	const roll = await new Roll(affliction.loss).evaluate();
+	const cause = t("afflictions.burns", { affliction: affliction.name, amount: roll.total, dice: lossDice(affliction) });
+	return Boolean(await takeDamage(actor, { damage: roll.total, ignoreArmour: Boolean(affliction.ignoresArmour), auto: true, cause }));
 }
 
 /**
@@ -90,8 +120,8 @@ export async function sufferAffliction(actor, id) {
 	const affliction = actor.system.afflictions?.find((each) => each.id === id);
 	if (!affliction || !actor.isOwner) return null;
 	const taken = await toll(actor, [affliction]);
-	if (!taken.lines.length) return null;
-	await postToll(actor, taken);
+	if (!taken.lines.length && !taken.burned) return null;
+	if (taken.lines.length) await postToll(actor, taken);
 	return taken;
 }
 
@@ -122,6 +152,7 @@ export async function sufferMorningAfflictions() {
 	const tolls = await Promise.all(sufferers.map((actor) => toll(actor, afflictionsAt(actor.system, "day"))));
 	const entries = sufferers.flatMap((actor, index) => (tolls[index].lines.length ? [{ name: actor.name, lines: tolls[index].lines }] : []));
 	const rolls = tolls.flatMap(({ rolls }) => rolls);
+	// What burns on as Damage posted its own Damage cards, so only Virtue Loss is said here.
 	if (entries.length) await postCard(null, "report", { title: t("afflictions.morning"), tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
 	return entries;
 }

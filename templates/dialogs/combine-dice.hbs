@@ -1,0 +1,23 @@
+<div class="bastionland-dialog__body">
+	<p class="hint">{{localize "bastionland.attack.combine.hint"}}</p>
+
+	{{!-- Each die stays alone, or joins a group; a group becomes one die as big as its faces together (p56). --}}
+	<fieldset>
+		<legend>{{localize "bastionland.attack.combine.legend"}}</legend>
+		{{#each dice}}
+		<div class="form-group">
+			<label for="bastionland-combine-{{index}}">{{label}}</label>
+			<div class="form-fields">
+				<select id="bastionland-combine-{{index}}" name="group.{{index}}">
+					<option value="0">{{localize "bastionland.attack.combine.alone"}}</option>
+					{{#each ../groups}}
+					<option value="{{value}}">{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		{{/each}}
+	</fieldset>
+
+	<p class="bastionland-dialog__summary" data-combined></p>
+</div>

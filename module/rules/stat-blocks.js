@@ -14,7 +14,7 @@ import { FEATS, NPC_SCALES } from "../config.js";
 import { structureKind } from "./structures.js";
 import { capitalise, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES, clampVirtue } from "./virtues.js";
-import { afflictionsFromText, immunityFromText } from "./afflictions.js";
+import { afflictionsFromText, immunityFromText, keepsOnFrom } from "./afflictions.js";
 
 const STAT_LINE = /VIG\s*(\d+)\s*,\s*CLA\s*(\d+)\s*,\s*SPI\s*(\d+)\s*,\s*(\d+)\s*GD\b[\s,.;]*/i;
 const GUARD_ONLY = /^(\d+)\s*GD\b[\s,.;]*/i;
@@ -449,6 +449,9 @@ function weaponData(attack, fallbackName) {
 	if (daily) system.restock = "day";
 	// Each use of a daily attack, or each firepot thrown, is gone until restocked, as on a Knight's Property.
 	if (daily || (counted && system.blast)) system.usedUp = true;
+	// Acid that burns on each round until it's washed off (p173) leaves an affliction where it lands.
+	const keepsOn = keepsOnFrom(attack.note);
+	if (keepsOn) system.lingers = keepsOn;
 
 	system.description = paragraphs(capitalise(parts.join(", ")));
 	return { type: "weapon", name: capitalise(name) || fallbackName, system };

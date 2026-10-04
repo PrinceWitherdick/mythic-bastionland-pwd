@@ -50,6 +50,26 @@
 				<i class="fa-solid fa-dice-d6" inert></i>
 			</button>
 			{{/if}}
+			{{#if coinLabel}}
+			<button type="button" class="bastionland-icon" data-action="throwToChance" data-tooltip="{{coinLabel}}" aria-label="{{coinLabel}}">
+				<i class="fa-solid fa-coins" inert></i>
+			</button>
+			{{/if}}
+			{{#if sigilLabel}}
+			<button type="button" class="bastionland-icon" data-action="etchRune" data-tooltip="{{sigilLabel}}" aria-label="{{sigilLabel}}">
+				<i class="fa-solid fa-star" inert></i>
+			</button>
+			{{/if}}
+			{{#if lossLabel}}
+			<button type="button" class="bastionland-icon" data-action="sufferLoss" data-tooltip="{{lossLabel}}" aria-label="{{lossLabel}}">
+				<i class="fa-solid fa-heart-crack" inert></i>
+			</button>
+			{{/if}}
+			{{#if chanceLabel}}
+			<button type="button" class="bastionland-icon" data-action="rollChance" data-tooltip="{{chanceLabel}}" aria-label="{{chanceLabel}}">
+				<i class="fa-solid fa-dice" inert></i>
+			</button>
+			{{/if}}
 			{{#if indulgeLabel}}
 			<button type="button" class="bastionland-icon" data-action="indulgePassion" data-tooltip="{{indulgeLabel}}" aria-label="{{indulgeLabel}}">
 				<i class="fa-solid fa-wine-glass" inert></i>

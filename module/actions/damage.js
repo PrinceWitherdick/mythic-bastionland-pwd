@@ -3,7 +3,11 @@ import { postCard, t } from "../chat/cards.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
-import { applyDoom, armourAgainst, resolveDamage } from "../rules/damage.js";
+import { WARDED_OUTCOMES, applyDoom, armourAgainst, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
+import { abilitiesWith } from "../rules/ability-uses.js";
+import { lingeringAffliction } from "../rules/afflictions.js";
+import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
+import { afflict, afflictionLabel } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
 import { marksOn } from "../chat/gambit-marks.js";
@@ -168,6 +172,11 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  * @param {boolean} [preset.nonLethal] The Attack's Damage never Slays or leaves anybody dying.
  * @param {boolean} [preset.sparring] A practice bout's, to be shaken off afterwards (p188): nobody's Morale or revenge rides on it.
  * @param {string[]} [preset.except] Ids of the Attack cards being applied, whose own Trap doesn't hold yet.
+ * @param {"vig"|"spi"} [preset.virtue] The Virtue past GD it comes off: SPI for a blow an Ability
+ *   says harms it rather than VIG (p68), which leaves them broken rather than dying.
+ * @param {boolean} [preset.auto] Taken without asking, as an affliction's Damage is each round (p173):
+ *   their Armour as it stands, unless the Damage ignores it.
+ * @param {string} [preset.cause] What dealt it, said on the card.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
@@ -175,6 +184,11 @@ export async function takeDamage(actor, preset = {}) {
 	const warband = actor.system.scale === "warband";
 	// A Structure actor has only GD. Its Damage card needs no word about VIG, cover, shieldwalls or being Exposed.
 	const virtues = actor.system.virtues ?? null;
+	// Damage to SPI rather than VIG never Wounds, leaves nobody dying, and Slays nobody (p68).
+	const spirit = preset.virtue === "spi" && Boolean(virtues?.spi);
+	const score = spirit ? "spi" : "vig";
+	// The dead can still be struck, but nobody wards a death already died or mourns it twice.
+	const dead = Boolean(actor.system.slain);
 	const worn = armourPieces(actor);
 	const bearing = bearingOf(actor, worn);
 	const trap = trapOn(actor, worn, preset.except);
@@ -184,7 +198,7 @@ export async function takeDamage(actor, preset = {}) {
 		if (actor.type === "knight") return armourWithTicks(worn.pieces, ticked, conditions, trapped);
 		return trapped ? npcArmourUnshielded(armour, armourNote) : armour;
 	};
-	const asked = await askDamage({
+	const target = {
 		armour: armourFor({}, Boolean(trap?.shielded)),
 		situational: worn.situational,
 		trap,
@@ -199,28 +213,34 @@ export async function takeDamage(actor, preset = {}) {
 		stone: Boolean(actor.system.stone),
 		// What keeps some of the Cast from harm, weighed as the blow lands.
 		immunity: actor.system.immunity ?? "",
-		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.vig.value ?? 0 })
-	}, preset);
+		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.[score].value ?? 0 })
+	};
+	const asked = preset.auto ? autoDamage(target, preset) : await askDamage(target, preset);
 	if (!asked) return null;
 	const { armour: appliedArmour, before } = asked;
 	let { result } = asked;
+	if (spirit) result = spiritOutcome(result);
 	const scars = actor.items.filter((item) => item.type === "scar").map((item) => item.system);
 	// Non-lethal Damage never Slays, Doom or not.
 	if (result.outcome === "mortal" && !preset.nonLethal && isDoomed(scars, getCalendar())) result = applyDoom(result, before.vigour);
+	// An ally may take the Mortal Wound, or the death, in their place (p66).
+	const warden = virtues && !dead && !preset.nonLethal && !preset.sparring && WARDED_OUTCOMES.includes(result.outcome) ? await offerWard(actor) : null;
+	if (warden) result = wardedResult(result, before.vigour);
 
 	const update = { "system.guard.value": result.guard };
-	if (virtues) update["system.virtues.vig.value"] = result.vigour;
+	if (virtues) update[`system.virtues.${score}.value`] = result.vigour;
 	// Non-lethal Damage leaves them down, but not dying.
 	if (result.outcome === "mortal" && !preset.nonLethal) update["system.mortalWound"] = true;
 	// VIG 0 by Damage is Slain (p8), which Virtue Loss to 0 never is, so it's marked. The dead aren't dying.
 	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false });
-	// Damage past GD Wounds them (p8), which some armour answers to.
-	if (virtues && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
+	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
+	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));
+	if (warden) await takeWard(warden, actor);
 
 	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
-	// Nobody routs from a practice bout.
-	const trigger = !preset.sparring && moraleTrigger({
+	// Nobody routs from a practice bout, and SPI lost to a blow is no Wound for Morale to weigh.
+	const trigger = !preset.sparring && !spirit && moraleTrigger({
 		outcome: result.outcome,
 		vigourBefore: before.vigour,
 		vigourAfter: result.vigour,
@@ -234,19 +254,23 @@ export async function takeDamage(actor, preset = {}) {
 	const card = damageCard(result, appliedArmour, before, outcomes, morale);
 	// Non-lethal Damage leaves them down, but not dying.
 	if (preset.nonLethal && result.outcome === "mortal" && virtues) card.outcome = t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown");
+	if (spirit && result.vigourLoss) card.vigourLine = t("damage.spiritLine", { from: before.vigour, to: result.vigour });
+	if (spirit && result.outcome === "wounded") card.outcome = t("damage.spiritHurt");
+	if (warden) card.outcome = t("damage.outcomes.warded", { name: warden.name });
+	if (preset.cause) card.cause = preset.cause;
 	await postCard(actor, "damage", card);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
-	if (DOWN_OUTCOMES.includes(result.outcome) && !preset.sparring) {
+	if (DOWN_OUTCOMES.includes(result.outcome) && !preset.sparring && !dead) {
 		await promptGroupMorale(actor);
 		// Bringing down whoever dealt a Humiliation may be the revenge that settles it (p9).
 		await offerRevenge(actor);
 	}
 	// A played Knight taken to VIG 0 is Slain, and their player carries on some other way (p8).
 	// Which deaths the book leaves alone is knightHasFallen's to judge, so the outcome goes to it.
-	await announceFallenKnight(actor, result.outcome);
+	if (!dead) await announceFallenKnight(actor, result.outcome);
 	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
 	return result;
 }
@@ -333,6 +357,106 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 }
 
 /**
+ * Resolve Damage taken without asking, as an affliction's is each round
+ * (p173): their Armour as it stands, unless the Damage ignores it.
+ * @param {object} target As askDamage takes.
+ * @param {{damage?: number, ignoreArmour?: boolean}} preset
+ * @returns {{result: import("../rules/damage.js").DamageResult, armour: number, before: {guard: number, vigour: number}}}
+ */
+function autoDamage(target, { damage = 0, ignoreArmour = false }) {
+	const armour = armourAgainst({ armour: target.armour, ignoreArmour });
+	const before = target.scores();
+	const result = resolveDamage({ damage: Math.max(0, Number(damage) || 0), armour, guard: before.guard, vigour: before.vigour, exposed: target.exposed, structure: target.structure });
+	return { result, armour, before };
+}
+
+/**
+ * The Knights who could take a Mortal Wound in somebody's place (p66): each
+ * with an Ability that does it, on their feet, someone this user can change,
+ * and nearby, which on the map is on the same Scene. Only an ally's: a Knight
+ * or somebody a player owns, or on the map somebody on the warden's side.
+ * Somebody on no map at all leaves nearness for the table to judge.
+ * @param {Actor} victim
+ * @returns {Actor[]}
+ */
+function wardensFor(victim) {
+	const base = victim.token?.baseActor ?? victim;
+	const scene = sceneOf(victim);
+	const placed = scene ? tokensOn(victim, scene) : [];
+	const ours = victim.type === "knight" || Boolean(victim.hasPlayerOwner);
+	return (game.actors?.contents ?? []).filter((actor) => {
+		if (actor.type !== "knight" || actor === base || !actor.isOwner || downBy(actor.system)) return false;
+		if (!abilitiesWith(actor.items.contents, "deathWard").length) return false;
+		if (!scene) return ours;
+		const near = tokensOn(actor, scene);
+		return near.length > 0 && (ours || near.some((token) => placed.some((other) => other.disposition === token.disposition)));
+	});
+}
+
+/**
+ * The Scene somebody stands on: the one being viewed if they're on it, or else
+ * the first they are, as when a blow lands while the GM looks at another map.
+ * @param {Actor} actor
+ * @returns {Scene|null}
+ */
+function sceneOf(actor) {
+	if (canvas?.ready && actor.getActiveTokens(false, true).length) return canvas.scene;
+	if (actor.token?.parent) return actor.token.parent;
+	return (game.scenes?.contents ?? []).find((scene) => tokensOn(actor, scene).length) ?? null;
+}
+
+/**
+ * Somebody's Token documents on a Scene.
+ * @param {Actor} actor
+ * @param {Scene} scene
+ * @returns {TokenDocument[]}
+ */
+function tokensOn(actor, scene) {
+	if (canvas?.ready && scene === canvas.scene) return actor.getActiveTokens(false, true).filter((token) => token.parent === scene);
+	if (actor.token) return actor.token.parent === scene ? [actor.token] : [];
+	return scene.tokens?.filter((token) => token.actorLink && token.actorId === actor.id) ?? [];
+}
+
+/**
+ * Ask whether a nearby Knight takes the Mortal Wound, or the death, in the
+ * victim's place, as an Ability lets them (p66). Letting it land is the first choice.
+ * @param {Actor} victim
+ * @returns {Promise<Actor|null>} Whoever takes it, or null.
+ */
+async function offerWard(victim) {
+	const wardens = wardensFor(victim);
+	if (!wardens.length) return null;
+	const data = await inputDialog({
+		title: t("deathWard.title"),
+		icon: "fa-solid fa-shield-heart",
+		template: "death-ward",
+		context: {
+			hint: t("deathWard.hint", { name: victim.name }),
+			wardens: wardens.map((actor) => ({ uuid: actor.uuid, name: actor.name }))
+		},
+		ok: { label: t("deathWard.ok") }
+	});
+	return wardens.find((actor) => actor.uuid === data?.warden) ?? null;
+}
+
+/**
+ * A Knight takes the Mortal Wound in somebody's place (p66). Doom makes it
+ * their death instead (Scar 11, p9).
+ * @param {Actor} warden
+ * @param {Actor} victim
+ */
+async function takeWard(warden, victim) {
+	const scars = warden.items.filter((item) => item.type === "scar").map((item) => item.system);
+	const doomed = isDoomed(scars, getCalendar());
+	const update = doomed
+		? { ...SLAIN_UPDATE, "system.wounded": true }
+		: { "system.mortalWound": true, "system.wounded": true };
+	await warden.update(update, causedBy("damage"));
+	await postCard(warden, "note", { icon: "fa-solid fa-shield-heart", text: t(doomed ? "deathWard.doomed" : "deathWard.taken", { name: warden.name, victim: victim.name }) });
+	if (doomed) await announceFallenKnight(warden, "slain");
+}
+
+/**
  * Keep the Damage dialog's Armour box in step as pieces worn only sometimes
  * are ticked, or a trapped shield is, so it always reads what the Attack is reduced by.
  * @param {foundry.applications.api.DialogV2} dialog
@@ -394,15 +518,68 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 		nonLethal: sparring || blow.nonLethal,
 		sparring,
 		except,
-		harm: blow.harm
+		harm: blow.harm,
+		// A blow an Ability says harms SPI rather than VIG (p68).
+		virtue: blow.spirit ? "spi" : "vig"
 	});
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });
 	const marker = lastingMarkBy(attack);
-	if (marker !== null && !sparring && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
+	if (marker !== null && !sparring && !blow.spirit && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
 	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
 	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false }, causedBy("damage"));
+	// A bite that takes back the VIG its Wound costs (p166).
+	if (blow.drain && !blow.spirit && result?.vigourLoss > 0 && !sparring) await drainTo(blow.dealer, actor, result.vigourLoss);
+	// Or one that lowers them into normal sleep, or shows them a memory, if it Wounds (p166).
+	if (!blow.spirit && result?.vigourLoss > 0 && !sparring && result.outcome !== "slain") {
+		for (const key of attack.onWound ?? []) await postCard(actor, "note", { icon: ON_WOUND_ICONS[key], text: t(`damage.onWound.${key}`, { name: actor.name }) });
+	}
+	// Acid that burns on, each round, until washed off (p173).
+	if (!sparring && LINGERING_OUTCOMES.includes(result?.outcome)) await leaveLingering(actor, attack.lingers ?? []);
 	return result;
+}
+
+/** The note each of ON_WOUND posts once a Wound lands. */
+const ON_WOUND_ICONS = Object.freeze({ sleep: "fa-solid fa-bed", memory: "fa-solid fa-brain" });
+
+/** Outcomes that leave what burns on where it landed: the blow got past their GD, and they live. */
+const LINGERING_OUTCOMES = Object.freeze(["scar", "spared", "wounded", "mortal", "warded"]);
+
+/**
+ * Whoever dealt a Wound takes back the VIG it cost, as a bite may let them
+ * (p166), up to their most. Somebody this user can't change is told of it on a
+ * card instead, for their owner to write in.
+ * @param {string} dealerUuid
+ * @param {Actor} victim
+ * @param {number} amount The VIG the victim lost.
+ */
+async function drainTo(dealerUuid, victim, amount) {
+	const dealer = fromUuidSync(dealerUuid);
+	const vig = dealer?.system?.virtues?.vig;
+	if (!vig) return;
+	const to = Math.min(vig.max, vig.value + amount);
+	// Already at their most, there's nothing to take back.
+	if (to <= vig.value) return;
+	if (dealer.isOwner) await dealer.update({ "system.virtues.vig.value": to }, causedBy("damage"));
+	const text = dealer.isOwner
+		? t("damage.drained", { name: dealer.name, amount: to - vig.value, victim: victim.name, from: vig.value, to })
+		: t("damage.drainedAsk", { name: dealer.name, amount, victim: victim.name });
+	await postCard(dealer, "note", { icon: "fa-solid fa-droplet", text });
+}
+
+/**
+ * Leave on somebody whatever an Attack's weapons burn on with, as acid does
+ * each round until washed off (p173): an affliction they carry until cured.
+ * @param {Actor} actor
+ * @param {{name: string, damage: string, when: string, ignoresArmour?: boolean}[]} lingers
+ */
+async function leaveLingering(actor, lingers) {
+	const took = [];
+	for (const entry of lingers) {
+		const affliction = lingeringAffliction({ name: entry.name, system: { damage: entry.damage, lingers: entry.when, ignoresArmour: entry.ignoresArmour } });
+		if (affliction && (await afflict(actor, affliction))) took.push(t("afflictions.took", { name: actor.name, affliction: afflictionLabel(affliction) }));
+	}
+	if (took.length) await postCard(actor, "note", { icon: "fa-solid fa-fire", text: took.join(" ") });
 }
 
 /**
