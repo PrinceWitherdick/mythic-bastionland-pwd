@@ -31,6 +31,7 @@ import {
 	gambitSaveVirtue,
 	swarmImpairs,
 	trampleJoins,
+	unappliedTargets,
 	weaknessFaces,
 	gearHeldInHands,
 	insteadOfChanges,
@@ -432,6 +433,37 @@ describe("changeAttack", () => {
 		expect(changeAttack(settled, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
 		expect(changeAttack(settled, { type: "applied", names: ["Goblin"] })).toBeNull();
 		expect(changeAttack(rolled([[8, 6]]), { type: "applied", names: [] })).toBeNull();
+	});
+
+	it("takes the Damage again for targets still waiting, and only those", () => {
+		const targets = [{ uuid: "Token.a", name: "Ser A" }, { uuid: "Token.b", name: "Ser B" }];
+		const first = changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: ["Ser A"], tokens: ["Token.a"] });
+		expect(first.appliedTo).toEqual(["Ser A"]);
+		expect(unappliedTargets(first)).toEqual([targets[1]]);
+		// Settled all the same: no Gambit after the first blow lands.
+		expect(changeAttack(first, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
+		expect(changeAttack(first, { type: "applied", names: ["Ser A"], tokens: ["Token.a"] })).toBeNull();
+		expect(changeAttack(first, { type: "applied", names: ["Ser B"] })).toBeNull();
+
+		const both = changeAttack(first, { type: "applied", names: ["Ser B"], tokens: ["Token.b", "Token.x"] });
+		expect(both.appliedTo).toEqual(["Ser A", "Ser B"]);
+		expect(both.appliedTokens).toEqual(["Token.a", "Token.b"]);
+		expect(unappliedTargets(both)).toEqual([]);
+	});
+
+	it("closes out a settled card's targets with no names, but never settles it without one", () => {
+		const targets = [{ uuid: "Token.a", name: "Ser A" }, { uuid: "Token.b", name: "Ser B" }];
+		expect(changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: [], tokens: ["Token.b"] })).toBeNull();
+		const first = changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: ["Ser A"], tokens: ["Token.a"] });
+		const closed = changeAttack(first, { type: "applied", names: [], tokens: ["Token.b"] });
+		expect(closed.appliedTo).toEqual(["Ser A"]);
+		expect(unappliedTargets(closed)).toEqual([]);
+	});
+
+	it("counts a card settled before the Tokens were kept as done", () => {
+		const old = rolled([[8, 6]], { targets: [{ uuid: "Token.a", name: "Ser A" }, { uuid: "Token.b", name: "Ser B" }], appliedTo: ["Ser A"] });
+		expect(unappliedTargets(old)).toEqual([]);
+		expect(changeAttack(old, { type: "applied", names: ["Ser B"], tokens: ["Token.b"] })).toBeNull();
 	});
 
 	it("ignores unknown changes", () => {

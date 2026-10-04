@@ -473,6 +473,8 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {Gambit[]} gambits
  * @property {{key: string, actor: string}[]} feats Feats used after the roll, by actor UUID.
  * @property {string[]} appliedTo Who the Damage was applied to. Once set, the Attack is settled.
+ * @property {string[]} [appliedTokens] UUIDs of the targeted Tokens the Damage has landed on. The
+ *   others' owners may still apply it to theirs. Cards from before it was kept have none.
  * @property {JoinedAttacker[]} [joined] Those who joined the Attack, rolling with the attacker (p8).
  * @property {boolean} [declared] Whether a Deny, Gambit or Focus has been declared, which closes it to joiners.
  * @property {boolean} [alone]    Made alone, as an Ability may say, so nobody joins it.
@@ -946,7 +948,10 @@ export function canDeny(attack, { uuid, fatigued = false, down = false }) {
  *   Only before any Deny, Gambit or Focus is declared (canJoin).
  * - `{type: "gambitSave", index, by, total, target, passed}` records the target's VIG Save against one Gambit.
  * - `{type: "deny", die, actor, name}` discards any die.
- * - `{type: "applied", names}` settles the Attack.
+ * - `{type: "applied", names, tokens}` settles the Attack, keeping the UUIDs of the targeted
+ *   Tokens it landed on. A card at several targets owned by different users takes it again
+ *   for the Tokens still waiting (unappliedTargets), and closes out with no names those whose
+ *   Tokens were deleted.
  * - `{type: "dismissMark", index}` clears the mark a Gambit left on the foe, which
  *   outlives the Damage, so a settled card still takes it.
  * - `{type: "greater", index, text}` records what a Strong Gambit's Greater
@@ -979,6 +984,8 @@ export function changeAttack(attack, change) {
 		if (!gambit || gambit.strong !== "greater" || gambit.greater || gambitIgnored(gambit) || !text) return null;
 		return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, greater: text } : entry)) };
 	}
+	// The first Damage settles the card; the targets still waiting take theirs after.
+	if (change?.type === "applied") return applyDamage(attack, change);
 	if (attack.appliedTo.length) return null;
 
 	switch (change?.type) {
@@ -1023,10 +1030,6 @@ export function changeAttack(attack, change) {
 				feats: [...attack.feats, { key: "deny", actor: change.actor }]
 			};
 		}
-		case "applied": {
-			const names = (change.names ?? []).filter((name) => typeof name === "string" && name);
-			return names.length ? { ...attack, appliedTo: names } : null;
-		}
 		case "reroll": {
 			const results = Array.isArray(change.results) ? change.results : [];
 			if (!canReroll(attack) || results.length !== attack.dice.length) return null;
@@ -1046,4 +1049,33 @@ export function changeAttack(attack, change) {
 		default:
 			return null;
 	}
+}
+
+/**
+ * Record the Damage landing on some of an Attack's targets. The first settles
+ * the card; after that only targeted Tokens still waiting can take it, so a
+ * card at several targets owned by different users is applied by each. A
+ * settled card takes Tokens with no names, as those deleted are closed out.
+ * @param {AttackState} attack
+ * @param {{names?: string[], tokens?: string[]}} change
+ * @returns {AttackState|null}
+ */
+function applyDamage(attack, change) {
+	const names = (Array.isArray(change.names) ? change.names : []).filter((name) => typeof name === "string" && name);
+	const waiting = new Set(unappliedTargets(attack).map(({ uuid }) => uuid));
+	const tokens = [...new Set(Array.isArray(change.tokens) ? change.tokens : [])].filter((uuid) => waiting.has(uuid));
+	if (attack.appliedTo.length ? !tokens.length : !names.length) return null;
+	return { ...attack, appliedTo: [...attack.appliedTo, ...names], appliedTokens: [...(attack.appliedTokens ?? []), ...tokens] };
+}
+
+/**
+ * The targeted Tokens the Damage hasn't landed on yet. A card rolled with no
+ * targets, or from before the Tokens were kept, is done once it lands.
+ * @param {AttackState} attack
+ * @returns {{uuid: string, name: string}[]}
+ */
+export function unappliedTargets(attack) {
+	if (!attack || (attack.appliedTo.length && !attack.appliedTokens)) return [];
+	const applied = new Set(attack.appliedTokens ?? []);
+	return (attack.targets ?? []).filter(({ uuid }) => !applied.has(uuid));
 }

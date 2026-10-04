@@ -32,6 +32,7 @@ import {
 	specialistDie,
 	swarmImpairs,
 	trampleJoins,
+	unappliedTargets,
 	weaknessFaces,
 	wieldsInHands
 } from "../rules/attack.js";
@@ -896,7 +897,8 @@ export async function attack(actor) {
 		duel: inDuel?.message.id ?? null,
 		gambits: [],
 		feats: [],
-		appliedTo: []
+		appliedTo: [],
+		appliedTokens: []
 	};
 
 	const messages = [];
@@ -1283,6 +1285,9 @@ export function attackCardContext(attack) {
 		// is declared (p8), but never into a duel's blow.
 		joinable: canJoin(attack),
 		settled,
+		// Each target's owner applies the Damage to theirs, so a card at several stays open till all have.
+		// Deleted Tokens wait for nobody.
+		applicable: !attack.duel && (!settled || unappliedTargets(attack).some(({ uuid }) => fromUuidSync(uuid))),
 		appliedTo: settled ? t("attack.applied", { names: attack.appliedTo.join(", ") }) : null
 	};
 }

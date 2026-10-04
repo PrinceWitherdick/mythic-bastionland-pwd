@@ -146,6 +146,11 @@
 
 	{{#if settled}}
 	<p class="bastionland-card__outcome">{{appliedTo}}</p>
+	{{#if applicable}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+	</div>
+	{{/if}}
 	{{else}}
 	<div class="bastionland-card__actions">
 		<button type="button" data-attack-action="deny"><i class="fa-solid fa-shield-halved"></i> {{localize "bastionland.feats.deny.name"}}</button>
@@ -161,9 +166,9 @@
 		{{#if sigil}}
 		<button type="button" data-attack-action="sigil" data-tooltip="{{localize 'bastionland.attack.sigil.hint'}}"><i class="fa-solid fa-star"></i> {{localize "bastionland.attack.sigil.button"}}</button>
 		{{/if}}
-		{{#unless duel}}
+		{{#if applicable}}
 		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
-		{{/unless}}
+		{{/if}}
 	</div>
 	{{#if duel}}
 	<p class="bastionland-card__hint">{{localize "bastionland.duel.heldForDuel"}}</p>

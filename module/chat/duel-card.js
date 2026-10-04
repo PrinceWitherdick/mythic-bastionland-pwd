@@ -45,7 +45,7 @@ async function onResolve(message) {
 		if (duel.bloodless && result.outcome === "scar") {
 			await postCard(target, "note", { icon: "fa-solid fa-hand-fist", text: t("duel.noScar", { name: target.name }) });
 		}
-		await saveAttackChange(card, { type: "applied", names: [target.name] });
+		await saveAttackChange(card, { type: "applied", names: [target.name], tokens: (attack.targets ?? []).map(({ uuid }) => uuid) });
 	}
 
 	if (cards.every((card) => attackOf(card)?.appliedTo.length)) await saveDuelChange(message, { type: "resolved" });

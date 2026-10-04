@@ -25,7 +25,8 @@ import {
 	hasUsedFeat,
 	isAttacker,
 	isDieSpent,
-	parseDice
+	parseDice,
+	unappliedTargets
 } from "../rules/attack.js";
 import { shownWeapons, weaponShown } from "../rules/gambit-marks.js";
 import { damageReach } from "../rules/property-tab.js";
@@ -48,8 +49,71 @@ import { worldKnights } from "../actions/knights.js";
 
 const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 
-/** Changes a player may ask the GM to record on a card they don't own. */
-const QUERYABLE_CHANGES = Object.freeze(["deny", "applied", "gambitSave", "dismissMark", "greater", "join", "gambit", "withdraw", "focus", "reroll", "sigil"]);
+/**
+ * Changes a player may ask the GM to record on a card they don't own, each
+ * with what it takes of them: the change to record, or null when it's refused.
+ * A Deny must come from an actor the player owns, and so must a joiner, a
+ * Focus, and the Gambits spent from the pooled dice of an Attack they roll in.
+ * @type {Record<string, (change: object, attack: import("../rules/attack.js").AttackState, user: User) => object|null>}
+ */
+const CHANGE_GUARDS = Object.freeze({
+	deny: (change, attack, user) => {
+		const roller = ownedBy(change.actor, user);
+		return roller && { ...change, name: roller.name };
+	},
+	// Damage is taken only on those the player owns, as their own client takes it, named as the GM sees them.
+	// A settled card's targets whose Tokens are gone are closed out by whoever presses Apply.
+	applied: (change, attack, user) => {
+		if (attack.targets.length) {
+			const asked = new Set(Array.isArray(change.tokens) ? change.tokens : []);
+			const settled = attack.appliedTo.length > 0;
+			const hit = attack.targets
+				.filter(({ uuid }) => asked.has(uuid))
+				.map(({ uuid }) => ({ uuid, token: fromUuidSync(uuid) }))
+				.filter(({ token }) => (token ? token.actor?.testUserPermission?.(user, "OWNER") : settled));
+			const names = hit.filter(({ token }) => token).map(({ token }) => token.actor.name);
+			return hit.length ? { type: "applied", names, tokens: hit.map(({ uuid }) => uuid) } : null;
+		}
+		// A card rolled with no targets lands on whoever its reader targets, on any Scene.
+		const actors = (Array.isArray(change.actors) ? change.actors : []).map((uuid) => ownedBy(uuid, user)).filter(Boolean);
+		return actors.length ? { type: "applied", names: actors.map((actor) => actor.name) } : null;
+	},
+	gambitSave: (change, attack, user) => {
+		const roller = ownedBy(change.actor, user);
+		return roller && { ...change, by: roller.name };
+	},
+	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
+	dismissMark: (change, attack, user) => (ownsMarkedFoe(change, attack, user) ? change : null),
+	greater: (change, attack, user) => {
+		if (!change.other) return ownsMarkedFoe(change, attack, user) ? change : null;
+		// Writing in some other Greater effect changes nobody's sheet, so the attackers may do it too.
+		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
+		const foe = attack.targets.length
+			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
+			: Boolean(change.actor && fromUuidSync(change.actor)?.testUserPermission?.(user, "OWNER"));
+		if (!foe && !ownsAnAttacker(attack, user)) return null;
+		return { type: "greater", index: change.index, text: change.text };
+	},
+	join: (change, attack, user) => {
+		const joiner = ownedBy(change.actor, user);
+		// A join that arrives after a Deny or Gambit is refused (p8), and changeAttack says so too.
+		return joiner && canJoin(attack) ? { ...change, name: joiner.name } : null;
+	},
+	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
+	withdraw: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
+	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) ? change : null),
+	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
+	reroll: (change, attack, user) => {
+		const by = ownedBy(change.actor, user);
+		return by && isAttacker(attack, change.actor) ? { ...change, by: by.name } : null;
+	},
+	sigil: (change, attack, user) => {
+		const by = ownedBy(change.actor, user);
+		// Only a die showing the number their own rune is etched for.
+		const holds = by && sigilHolders(attack).some(({ actor, number }) => actor.uuid === by.uuid && number === change.from);
+		return holds ? { ...change, by: by.name } : null;
+	}
+});
 
 /** The kinds of actor that make Attacks, and so can join one. */
 const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
@@ -60,7 +124,7 @@ const attackCard = statefulCard({
 	notices: "attack",
 	change: changeAttack,
 	render: renderAttackCard,
-	queryable: (change) => QUERYABLE_CHANGES.includes(change.type),
+	queryable: (change) => Object.hasOwn(CHANGE_GUARDS, change.type),
 	alsoUpdate: joinedRolls
 });
 
@@ -120,6 +184,18 @@ function targetActors(attack) {
 }
 
 /**
+ * Who the Damage would land on now, each with the targeted Token's UUID: the
+ * targets it hasn't landed on yet or, on a card rolled with none, the Tokens
+ * this user targets now.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {{actor: Actor, token: string|null}[]}
+ */
+function waitingTargets(attack) {
+	if (!attack.targets.length) return targetActors(attack).map((actor) => ({ actor, token: null }));
+	return unappliedTargets(attack).map(({ uuid }) => ({ actor: fromUuidSync(uuid)?.actor, token: uuid })).filter(({ actor }) => actor);
+}
+
+/**
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {User} [user] Whoever asks; this user when left out.
  * @returns {boolean} Whether they own one of those making the Attack, whose
@@ -130,65 +206,44 @@ function ownsAnAttacker(attack, user = game.user) {
 }
 
 /**
- * The active GM records a Deny or applied Damage for a player. A Deny must
- * come from an actor the player owns, and so must a joiner, a Focus, and
- * the Gambits spent from the pooled dice of an Attack they roll in.
+ * @param {string} uuid
+ * @param {User} user
+ * @returns {Document|null} The document, when the user owns it.
+ */
+function ownedBy(uuid, user) {
+	const doc = fromUuidSync(uuid);
+	return doc?.testUserPermission?.(user, "OWNER") ? doc : null;
+}
+
+/**
+ * Whether the user owns the foe a mark or Greater effect is on, and the card is aimed at them.
+ * @param {{type: string, actor: string}} change
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {User} user
+ * @returns {boolean}
+ */
+function ownsMarkedFoe(change, attack, user) {
+	const marked = ownedBy(change.actor, user);
+	if (!marked) return false;
+	// A card rolled with no targets lands on whoever its reader targets, as targetActors has it.
+	if (change.type === "greater" && !attack.targets.length) return true;
+	return attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid);
+}
+
+/**
+ * The active GM records a change for a player, as CHANGE_GUARDS lets them.
  * @param {{messageId: string, change: object}} data
  * @param {{user?: User}} context
  * @returns {Promise<boolean>}
  */
-async function onChangeQuery(data, context) {
-	const { messageId } = data;
-	let { change } = data;
+async function onChangeQuery({ messageId, change }, context) {
 	const user = queryAsker(context);
 	if (!user) return false;
 	const message = game.messages.get(messageId);
-	if (!attackOf(message) || !QUERYABLE_CHANGES.includes(change?.type)) return false;
-	// Writing in some other Greater effect changes nobody's sheet, so the attackers may do it too.
-	if (change.type === "greater" && change.other) {
-		const attack = attackOf(message);
-		// A card rolled with no targets lands on whichever foe of theirs its reader targets, as targetActors has it.
-		const foe = attack.targets.length
-			? attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.testUserPermission(user, "OWNER"))
-			: Boolean(change.actor && fromUuidSync(change.actor)?.testUserPermission?.(user, "OWNER"));
-		if (!foe && !ownsAnAttacker(attack, user)) return false;
-		change = { type: "greater", index: change.index, text: change.text };
-	}
-	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
-	else if (change.type === "dismissMark" || change.type === "greater") {
-		const marked = fromUuidSync(change.actor);
-		if (!marked?.testUserPermission(user, "OWNER")) return false;
-		const attack = attackOf(message);
-		// A card rolled with no targets lands on whoever its reader targets, as targetActors has it.
-		const untargeted = change.type === "greater" && !attack.targets.length;
-		if (!untargeted && !attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === marked.uuid)) return false;
-	}
-	if (change.type === "deny" || change.type === "gambitSave") {
-		const roller = fromUuidSync(change.actor);
-		if (!roller?.testUserPermission(user, "OWNER")) return false;
-		change = change.type === "deny" ? { ...change, name: roller.name } : { ...change, by: roller.name };
-	}
-	if (change.type === "join") {
-		const joiner = fromUuidSync(change.actor);
-		// A join that arrives after a Deny or Gambit is refused (p8), and changeAttack says so too.
-		if (!joiner?.testUserPermission(user, "OWNER") || !canJoin(attackOf(message))) return false;
-		change = { ...change, name: joiner.name };
-	}
-	if ((change.type === "gambit" || change.type === "withdraw") && !ownsAnAttacker(attackOf(message), user)) return false;
-	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
-	if (change.type === "reroll" || change.type === "sigil") {
-		const by = fromUuidSync(change.actor);
-		if (!by?.testUserPermission(user, "OWNER")) return false;
-		if (change.type === "reroll" && !isAttacker(attackOf(message), change.actor)) return false;
-		// Only a die showing the number their own rune is etched for.
-		if (change.type === "sigil" && !sigilHolders(attackOf(message)).some(({ actor, number }) => actor.uuid === by.uuid && number === change.from)) return false;
-		change = { ...change, by: by.name };
-	}
-	if (change.type === "focus") {
-		const focuser = fromUuidSync(change.actor);
-		if (!isAttacker(attackOf(message), change.actor) || !focuser?.testUserPermission(user, "OWNER")) return false;
-	}
-	return attackCard.commit(message, change);
+	const attack = attackOf(message);
+	if (!attack || !Object.hasOwn(CHANGE_GUARDS, change?.type)) return false;
+	const allowed = CHANGE_GUARDS[change.type](change, attack, user);
+	return allowed ? attackCard.commit(message, allowed) : false;
 }
 
 /**
@@ -533,20 +588,33 @@ async function confirmApply(attack, actors) {
 	});
 }
 
-/** Take the Damage on each target this user owns, rolling a Scar with the die that caused it. */
+/**
+ * Take the Damage on each waiting target this user owns, rolling a Scar with the
+ * die that caused it. The targets other users own stay waiting for them, and
+ * those of a settled card whose Tokens were deleted are closed out.
+ */
 async function onApply(message) {
 	const attack = attackOf(message);
-	const actors = targetActors(attack);
-	if (!actors.length) return warn(attack.targets.length ? "attack.targetsGone" : "attack.noTarget");
-	const owned = actors.filter((actor) => actor.isOwner);
-	if (!owned.length) return warn("attack.cantApply");
-	if (!(await confirmApply(attack, actors))) return;
-
-	const applied = [];
-	for (const actor of owned) {
-		if (await takeAttack(actor, attack, { except: [message.id] })) applied.push(actor.name);
+	const gone = attack.appliedTo.length ? unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid) : [];
+	const waiting = waitingTargets(attack);
+	if (!waiting.length) {
+		if (gone.length) await saveChange(message, { type: "applied", names: [], tokens: gone });
+		return warn(attack.targets.length ? "attack.targetsGone" : "attack.noTarget");
 	}
-	if (applied.length) await saveChange(message, { type: "applied", names: applied });
+	const owned = waiting.filter(({ actor }) => actor.isOwner);
+	if (!owned.length) return warn("attack.cantApply");
+	if (!(await confirmApply(attack, waiting.map(({ actor }) => actor)))) return;
+
+	const names = [];
+	const tokens = [];
+	const actors = [];
+	for (const { actor, token } of owned) {
+		if (!(await takeAttack(actor, attack, { except: [message.id] }))) continue;
+		names.push(actor.name);
+		actors.push(actor.uuid);
+		if (token) tokens.push(token);
+	}
+	if (names.length) await saveChange(message, { type: "applied", names, tokens: [...tokens, ...gone], actors });
 }
 
 /**

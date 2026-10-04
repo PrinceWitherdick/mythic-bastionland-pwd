@@ -240,6 +240,20 @@ describe("applying the Damage", () => {
 		// A Trap Gambit on this very card holds the shield only after its own blow lands.
 		expect(takeAttack.mock.calls[0][2]).toEqual({ except: ["message-1"] });
 	});
+
+	it("lands only on the targets this user owns that are still waiting", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		tokens["Scene.s.Token.g"] = { actor: actor({ uuid: "Actor.g", name: "Ser Gale", fatigued: true }) };
+		tokens["Scene.s.Token.n"] = { actor: actor({ uuid: "Actor.n", name: "Nell", fatigued: true, isOwner: false }) };
+		const targets = [{ uuid: "Scene.s.Token.k", name: "Ser Kay" }, { uuid: "Scene.s.Token.g", name: "Ser Gale" }, { uuid: "Scene.s.Token.n", name: "Nell" }];
+		const state = attackState({ targets, dice: [{ faces: 6, result: 3, label: "d6", deniedBy: null }], appliedTo: ["Ser Kay"], appliedTokens: ["Scene.s.Token.k"] });
+		const card = renderCard(state);
+		await card.click("apply");
+		expect(takeAttack).toHaveBeenCalledOnce();
+		expect(takeAttack.mock.calls[0][0]).toBe(tokens["Scene.s.Token.g"].actor);
+		expect(savedState(card.message).appliedTo).toEqual(["Ser Kay", "Ser Gale"]);
+		expect(savedState(card.message).appliedTokens).toEqual(["Scene.s.Token.k", "Scene.s.Token.g"]);
+	});
 });
 
 /** A Knight or NPC who could join an Attack, owned by this user unless said otherwise. */
@@ -397,6 +411,29 @@ describe("the GM recording a joint Attack for a player", () => {
 
 		renderCard(attackState({ joined: [{ actor: "Actor.tal", name: "Tal", impaired: false }] }));
 		expect(await ask({ type: "gambit", die: 0, key: "bolster" })).toBe(true);
+	});
+
+	it("records Damage applied only to targets the player owns, under their own names", async () => {
+		tokens["Scene.s.Token.k"] = { actor: combatant({ uuid: "Actor.k", name: "Ser Kay" }) };
+		const card = renderCard(attackState());
+		expect(await ask({ type: "applied", names: ["Ser Kay"], tokens: ["Scene.s.Token.k"] })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+
+		tokens["Scene.s.Token.k"] = { actor: combatant({ uuid: "Actor.k", name: "Ser Kay", owners: ["player-1"] }) };
+		expect(await ask({ type: "applied", names: ["Somebody else"], tokens: ["Scene.s.Token.k", "Scene.s.Token.x"] })).toBe(true);
+		expect(savedState(card.message).appliedTo).toEqual(["Ser Kay"]);
+		expect(savedState(card.message).appliedTokens).toEqual(["Scene.s.Token.k"]);
+	});
+
+	it("lets a second target's owner apply the Damage after the first has", async () => {
+		tokens["Scene.s.Token.k"] = { actor: combatant({ uuid: "Actor.k", name: "Ser Kay", owners: ["player-2"] }) };
+		tokens["Scene.s.Token.g"] = { actor: combatant({ uuid: "Actor.g", name: "Ser Gale", owners: ["player-1"] }) };
+		const targets = [{ uuid: "Scene.s.Token.k", name: "Ser Kay" }, { uuid: "Scene.s.Token.g", name: "Ser Gale" }];
+		const card = renderCard(attackState({ targets, appliedTo: ["Ser Kay"], appliedTokens: ["Scene.s.Token.k"] }));
+		// Ser Kay's Damage has landed, and is never taken twice.
+		expect(await ask({ type: "applied", names: ["Ser Kay"], tokens: ["Scene.s.Token.k"] })).toBe(false);
+		expect(await ask({ type: "applied", names: ["Ser Gale"], tokens: ["Scene.s.Token.g"] })).toBe(true);
+		expect(savedState(card.message).appliedTo).toEqual(["Ser Kay", "Ser Gale"]);
 	});
 
 	it("lets a player Focus only with one of the attackers, and one of theirs", async () => {
