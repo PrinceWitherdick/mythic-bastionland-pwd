@@ -7,7 +7,7 @@
 <div class="bastionland-page bastionland-page--tabbed">
 	<header class="bastionland-header">
 		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
-			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{portraitName}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
 		</figure>
 		<div class="bastionland-header__text">
 			<div class="bastionland-title-row">
@@ -57,7 +57,7 @@
 					{{> "bastionland.virtue-scores"}}
 
 					{{!-- Beside VIG, where the blows land, as on a Knight's page. --}}
-					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{armourTip}}">
 						<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 					</span>
 				</section>
@@ -111,7 +111,7 @@
 				<section class="bastionland-block">
 					<header class="bastionland-block__header">
 						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.property.hint'}}">{{localize "bastionland.property.label"}}</h2>
-						<span class="bastionland-armour" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+						<span class="bastionland-armour" data-tooltip="{{armourTip}}">
 							<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 						</span>
 					</header>

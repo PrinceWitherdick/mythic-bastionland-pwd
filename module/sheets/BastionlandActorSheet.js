@@ -3,7 +3,7 @@ import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
 import { performFeat, showFeat } from "../actions/feats.js";
 import { armourConditionText, itemTags, postItem, quantityText } from "../actions/items.js";
-import { armourCounts, displacedArmour, SITUATION_CONDITIONS } from "../rules/armour.js";
+import { armourCounts, armourWorn, displacedArmour, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { comparePropertyPlace, samePropertyPlace } from "../rules/property-tab.js";
 import { splitName } from "../rules/text.js";
@@ -122,6 +122,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				summary: t(`feats.${key}.summary`),
 				cost: t("feats.saveOrFatigue", { virtue: t(`virtues.${virtue}.abbr`) })
 			})),
+			armourTip: this.#armourTip(),
 			// Foundry's placeholder has nothing worth enlarging, so it gets no data-name and no preview.
 			hasArt: Boolean(actor.img) && actor.img !== Actor.implementation.DEFAULT_ICON,
 			enrichedNotes: await this._enrich(system.notes)
@@ -244,6 +245,19 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 */
 	#itemsOf(types) {
 		return this.actor.items.contents.filter((item) => !types.length || types.includes(item.type));
+	}
+
+	/**
+	 * What the Armour total's hover says: each piece worn, in Property order,
+	 * with its Armour, or that it doesn't count right now.
+	 * @returns {string}
+	 */
+	#armourTip() {
+		const pieces = armourWorn(this.#itemsOf(["armour"]).sort(comparePropertyPlace), this.actor.system.conditions ?? {});
+		if (!pieces.length) return t("sheet.armourNone");
+		return t("sheet.armourTip", {
+			pieces: pieces.map(({ name, armour, counts }) => t(counts ? "sheet.armourPiece" : "sheet.armourPieceIdle", { name, armour })).join(", ")
+		});
 	}
 
 	/**

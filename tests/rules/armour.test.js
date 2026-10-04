@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armourCounts, armourTotal, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
+import { armourCounts, armourTotal, armourWorn, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
 
 const piece = (kind, armour = 1, more = {}) => ({ kind, armour, equipped: true, ...more });
 
@@ -175,5 +175,25 @@ describe("looksWooden", () => {
 		expect(looksWooden("Heavy staff", { type: "weapon" })).toBe(true);
 		expect(looksWooden("Ashwood bow", { type: "weapon" })).toBe(true);
 		expect(looksWooden("Iron mace", { type: "weapon" })).toBe(false);
+	});
+});
+
+describe("armourWorn", () => {
+	const item = (name, ...rest) => ({ name, system: piece(...rest) });
+
+	it("lists each worn piece with its Armour, leaving out what is carried", () => {
+		const items = [item("Mail", "coat"), item("Helm", "helm"), item("Spare helm", "helm", 1, { equipped: false })];
+		expect(armourWorn(items)).toEqual([{ name: "Mail", armour: 1, counts: true }, { name: "Helm", armour: 1, counts: true }]);
+	});
+
+	it("marks a piece that does not count right now", () => {
+		const items = [item("Plate", "plates", 1, { condition: "mounted" }), item("Shield", "shield", 1, { broken: true })];
+		expect(armourWorn(items).map((each) => each.counts)).toEqual([false, false]);
+		expect(armourWorn(items, { mounted: true }).map((each) => each.counts)).toEqual([true, false]);
+	});
+
+	it("counts only the better of two pieces of one type, as the total does", () => {
+		const items = [item("Gambeson", "coat", 1), item("Mail", "coat", 2), item("Old mail", "coat", 2)];
+		expect(armourWorn(items).map((each) => each.counts)).toEqual([false, true, false]);
 	});
 });

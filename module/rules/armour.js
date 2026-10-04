@@ -55,13 +55,31 @@ export function armourCounts(piece, { mounted = false, wounded = false } = {}) {
  * @returns {number}
  */
 export function armourTotal(pieces, wearer = {}) {
+	return armourWorn(pieces.map((system) => ({ name: "", system })), wearer)
+		.reduce((sum, piece) => sum + (piece.counts ? piece.armour : 0), 0);
+}
+
+/**
+ * The pieces a character has on, as their Armour total's hover lists them:
+ * each worn piece with its Armour, and whether it counts toward the total
+ * right now. Of two pieces of one type, only the first of the better counts,
+ * as in armourTotal.
+ * @param {{name: string, system: ArmourPiece}[]} items Their armour items, in the order to list them.
+ * @param {Wearer} [wearer]
+ * @returns {{name: string, armour: number, counts: boolean}[]}
+ */
+export function armourWorn(items, wearer = {}) {
 	const best = new Map();
-	for (const piece of pieces) {
-		if (!armourCounts(piece, wearer)) continue;
-		const value = Math.max(0, Math.trunc(Number(piece.armour)) || 0);
-		best.set(piece.kind, Math.max(best.get(piece.kind) ?? 0, value));
-	}
-	return [...best.values()].reduce((sum, value) => sum + value, 0);
+	return items.filter(({ system }) => system?.equipped).map(({ name, system }) => {
+		const armour = Math.max(0, Math.trunc(Number(system.armour)) || 0);
+		const entry = { name, armour, counts: armourCounts(system, wearer) };
+		const rival = best.get(system.kind);
+		if (entry.counts && (!rival || armour > rival.armour)) {
+			if (rival) rival.counts = false;
+			best.set(system.kind, entry);
+		} else entry.counts = false;
+		return entry;
+	});
 }
 
 /**

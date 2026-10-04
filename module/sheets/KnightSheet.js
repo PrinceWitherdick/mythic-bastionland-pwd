@@ -174,6 +174,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		return Object.assign(context, {
 			// The part of the picture chosen in the portrait window's Frame, if any.
 			portraitStyle: portraitStyle(this.actor.img, actorFrame(this.actor)),
+			// The larger picture on hover is captioned as the title styles them, "Eve the Silk Knight".
+			portraitName: titleKnightType(system) ? this.title : this.actor.name,
 			isSquire: system.isSquire,
 			// A Knight has one Ability and one Passion; a Squire has neither until Knighted (p7).
 			canAddAbility: !system.isSquire && !abilities.length,

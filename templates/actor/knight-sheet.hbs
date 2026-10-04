@@ -1,7 +1,7 @@
 <div class="bastionland-page bastionland-page--tabbed">
 	<header class="bastionland-header">
 		<figure class="bastionland-portrait" {{#unless hasArt}}data-tooltip="{{localize 'bastionland.sheet.portrait'}}"{{/unless}}>
-			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{actor.name}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
+			<img src="{{actor.img}}" alt="{{actor.name}}" {{#if portraitStyle}}style="{{portraitStyle}}"{{/if}} {{#if hasArt}}data-name="{{portraitName}}"{{/if}} {{#if (or hasArt editable)}}data-action="openPortrait"{{/if}}>
 		</figure>
 		<div class="bastionland-header__text">
 			<div class="bastionland-title-row">
@@ -54,8 +54,8 @@
 				<section class="bastionland-scores" data-block="scores" style="--bastionland-narrow-order: 1">
 					{{> "bastionland.virtue-scores"}}
 
-					{{!-- The Property page's Armour, repeated beside VIG where the blows land. --}}
-					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+					{{!-- The Property page's Armour, repeated beside VIG where the blows land; its hover lists the pieces worn. --}}
+					<span class="bastionland-armour bastionland-armour--score" data-tooltip="{{armourTip}}">
 						<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 					</span>
 
@@ -204,7 +204,7 @@
 				<section class="bastionland-block">
 					<header class="bastionland-block__header">
 						<h2 class="bastionland-heading" data-tooltip="{{localize 'bastionland.property.hint'}}">{{localize "bastionland.property.label"}}</h2>
-						<span class="bastionland-armour" data-tooltip="{{localize 'bastionland.sheet.armour'}}">
+						<span class="bastionland-armour" data-tooltip="{{armourTip}}">
 							<i class="fa-solid fa-shield-halved" inert></i> A{{system.armour}}
 						</span>
 					</header>
