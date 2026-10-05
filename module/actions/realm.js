@@ -1,8 +1,9 @@
 import { hexLabel } from "./hex-names.js";
 import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
+import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
-import { startCompanyPlacement } from "../canvas/company-placement.js";
+import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
 import { deletionEntry, scenePaper } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
@@ -684,8 +685,32 @@ export async function newRealm() {
 		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
 		review: SETUP_PARTS.some((part) => rules.roll[part])
 	});
-	if (scene && draw) await openRealmPainter(scene);
+	if (scene && draw) {
+		// Its buttons are shown once it's finished, not while it's still being painted.
+		buttonsShownWhenFinished.add(scene.id);
+		await openRealmPainter(scene);
+	} else if (scene) showRealmButtonsOnceFree();
 	return scene;
+}
+
+/** Realms drawn by hand on this client that show the GM their buttons when first finished, by id. */
+const buttonsShownWhenFinished = new Set();
+
+/**
+ * Show the GM the buttons beside the sidebar, once the Company they may be
+ * carrying is put down or given up: a Tour's overlay would take the click
+ * that puts it in a hex.
+ */
+function showRealmButtonsOnceFree() {
+	if (!isPlacingCompany()) {
+		showRealmButtons();
+		return;
+	}
+	const id = Hooks.on(COMPANY_PLACING_HOOK, () => {
+		if (isPlacingCompany()) return;
+		Hooks.off(COMPANY_PLACING_HOOK, id);
+		showRealmButtons();
+	});
 }
 
 /**
@@ -985,6 +1010,7 @@ export async function finishRealmDrawing(scene) {
 		await scene.unsetFlag(SYSTEM_ID, START_DUE_FLAG);
 		await announceStart(scene, start);
 	}
+	if (buttonsShownWhenFinished.delete(scene.id)) showRealmButtonsOnceFree();
 	return true;
 }
 

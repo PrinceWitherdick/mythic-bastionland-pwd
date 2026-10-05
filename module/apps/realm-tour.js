@@ -2,10 +2,12 @@ import { isRealmDocument } from "../rules/realm-documents.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
- * A Foundry Tour that shows the GM where Realms are made: the Scenes tab, then
- * the New Realm button at its top. A new world starts it when its Welcome is
- * first closed. After that it waits in Foundry's Tours window, under the
- * system's name, to be played again.
+ * Foundry Tours for a new world's GM. The first shows where Realms are made:
+ * the Scenes tab, then the New Realm button at its top. A new world starts it
+ * when its Welcome is first closed. The second shows the two buttons a Realm
+ * puts beside the sidebar, and starts once the world's first Realm is made.
+ * After that both wait in Foundry's Tours window, under the system's name, to
+ * be played again.
  */
 
 /** Its id among the system's Tours; game.tours keys it `${SYSTEM_ID}.newRealm`. */
@@ -42,6 +44,36 @@ export const REALM_TOUR_CONFIG = Object.freeze({
 	]
 });
 
+/** Its id among the system's Tours; game.tours keys it `${SYSTEM_ID}.realmButtons`. */
+export const REALM_BUTTONS_TOUR = "realmButtons";
+
+/** The column of buttons travels-controls.js puts beside the sidebar on a Realm. */
+const REALM_BUTTONS = "#bastionland-travels-buttons";
+
+/** The second Tour: Mark the Hexes Visited, then Places, beside the sidebar. */
+export const REALM_BUTTONS_TOUR_CONFIG = Object.freeze({
+	title: "bastionland.realmButtonsTour.title",
+	description: "bastionland.realmButtonsTour.description",
+	restricted: true,
+	display: true,
+	steps: [
+		{
+			id: "marks",
+			selector: `${REALM_BUTTONS} [data-action='visitedMarks']`,
+			tooltipDirection: "LEFT",
+			title: "bastionland.realmButtonsTour.marks.title",
+			content: "bastionland.realmButtonsTour.marks.content"
+		},
+		{
+			id: "places",
+			selector: `${REALM_BUTTONS} [data-action='places']`,
+			tooltipDirection: "LEFT",
+			title: "bastionland.realmButtonsTour.places.title",
+			content: "bastionland.realmButtonsTour.places.content"
+		}
+	]
+});
+
 /**
  * Bring a sidebar tab forward, opening the sidebar if it was closed, and wait
  * until it is there to point at.
@@ -70,14 +102,30 @@ const realmTourClass = (Tour) => class RealmTour extends Tour {
 	}
 };
 
-/** Register the Tour. Called during setup, once core's settings, which keep each Tour's progress, are there. */
+/** Register the Tours. Called during setup, once core's settings, which keep each Tour's progress, are there. */
 export function registerRealmTour() {
 	const RealmTour = realmTourClass(foundry.nue.Tour);
 	game.tours.register(SYSTEM_ID, REALM_TOUR, new RealmTour(REALM_TOUR_CONFIG));
+	game.tours.register(SYSTEM_ID, REALM_BUTTONS_TOUR, new RealmTour(REALM_BUTTONS_TOUR_CONFIG));
 }
 
 /** @returns {boolean} Whether any Scene in the world holds a Realm. */
 const worldHasRealm = () => game.scenes.some(isRealmDocument);
+
+/**
+ * Start one of the system's Tours, saying in the console if it can't be shown.
+ * @param {string} id
+ * @param {string} failure What couldn't be shown, for the console.
+ */
+async function startTour(id, failure) {
+	const tour = game.tours.get(`${SYSTEM_ID}.${id}`);
+	try {
+		// Started again from its first step, however far a Tour seen in another world got.
+		await tour?.start();
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | ${failure}`, error);
+	}
+}
 
 /**
  * Walk a new world's GM to New Realm once the Welcome that greeted them is
@@ -86,11 +134,17 @@ const worldHasRealm = () => game.scenes.some(isRealmDocument);
  */
 export async function showWhereRealmsAreMade() {
 	if (!game.user.isGM || worldHasRealm() || foundry.nue.Tour.tourInProgress) return;
-	const tour = game.tours.get(`${SYSTEM_ID}.${REALM_TOUR}`);
-	try {
-		// Started again from its first step, however far a Tour seen in another world got.
-		await tour?.start();
-	} catch (error) {
-		console.error(`${SYSTEM_ID} | Couldn't show where Realms are made`, error);
-	}
+	await startTour(REALM_TOUR, "Couldn't show where Realms are made");
+}
+
+/**
+ * Show the GM the buttons beside the sidebar once the world's first Realm is
+ * made and in view. Not for a second Realm, nor while the buttons are hidden
+ * because another Scene is in view, nor over another Tour still on screen.
+ */
+export async function showRealmButtons() {
+	if (!game.user.isGM || foundry.nue.Tour.tourInProgress) return;
+	if (game.scenes.filter(isRealmDocument).length !== 1) return;
+	if (document.querySelector(REALM_BUTTONS)?.hidden !== false) return;
+	await startTour(REALM_BUTTONS_TOUR, "Couldn't show the Realm's buttons");
 }

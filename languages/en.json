@@ -4595,6 +4595,18 @@
         "content": "New Realm makes a Realm for the Company to travel. Roll it from the book’s tables, draw it yourself on a blank map, or import a map you drew on paper."
       }
     },
+    "realmButtonsTour": {
+      "title": "The Realm’s Buttons",
+      "description": "The two buttons beside the sidebar on a Realm: Mark the Hexes Visited, and Places.",
+      "marks": {
+        "title": "Mark the Hexes Visited",
+        "content": "The footprints mark every hex the Company has been to on the map, or hide the marks again. Each player chooses for their own browser.\nRight-click them to choose the mark: a pencilled ring, a tick, a cross or the hex’s edge, each in a colour of your choosing."
+      },
+      "places": {
+        "title": "Places",
+        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nPlayers have the same button, and see only the places their Company has found."
+      }
+    },
     "welcome": {
       "title": "Welcome to Mythic Bastionland",
       "open": "Open the Welcome",
