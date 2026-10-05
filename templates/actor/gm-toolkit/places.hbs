@@ -1,5 +1,5 @@
 {{!-- The Realm's places and where the Company has been, each hex once with what the GM wrote about it,
-      listed the last visited first or by kind; and the Sites. --}}
+      listed the last visited first, by kind, or as the GM chose to track them; and the Sites. --}}
 <section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="places">
 	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.hint"}}</p>
 
@@ -14,10 +14,6 @@
 			{{/each}}
 		</ul>
 	</div>
-	{{!-- A random page of the book for a prompt along its foot, saved to a hex clicked on the map (p19, p179). --}}
-	<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.bookFlip.title'}}">
-		<button type="button" data-action="flipBook" data-tooltip="{{localize 'bastionland.bookFlip.openHint'}}"><i class="fa-solid fa-book-open" inert></i> {{localize "bastionland.bookFlip.open"}}</button>
-	</nav>
 	{{/unless}}
 
 	{{!-- Hides the places whose name, hex, terrain, what stands there, visits, notes and Spark Tables miss what is typed. --}}
@@ -36,6 +32,9 @@
 		{{else}}
 		<p class="bastionland-empty">{{../empty}}</p>
 		{{/each}}
+		{{#if add}}
+		<button type="button" class="bastionland-button bastionland-button--add" data-action="trackAdd"><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.gmToolkit.places.track.add"}}</button>
+		{{/if}}
 	</section>
 	{{/each}}
 	{{/if}}

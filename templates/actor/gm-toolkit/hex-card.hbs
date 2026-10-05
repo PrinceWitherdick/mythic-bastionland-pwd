@@ -20,6 +20,9 @@
 			<button type="button" class="bastionland-icon bastionland-reveal" data-action="forgetVisits" data-tooltip="{{localize 'bastionland.gmToolkit.visits.edit'}}" aria-label="{{localize 'bastionland.gmToolkit.visits.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
 		</span>
 		{{/if}}
+		{{#if removable}}
+		<button type="button" class="bastionland-icon bastionland-gm-toolkit__untrack" data-action="untrackHex" data-tooltip="{{localize 'bastionland.gmToolkit.places.track.remove'}}" aria-label="{{localize 'bastionland.gmToolkit.places.track.remove'}}"><i class="fa-solid fa-xmark" inert></i></button>
+		{{/if}}
 		{{#if wild.length}}
 		<span class="bastionland-gm-toolkit__chips bastionland-gm-toolkit__wild" aria-label="{{localize 'bastionland.gmToolkit.wild'}}">
 			{{#each wild}}
@@ -72,6 +75,11 @@
 			{{#unless visited}}
 			<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
 			{{/unless}}
+			{{#if tracked}}
+			<button type="button" data-action="untrackHex"><i class="fa-solid fa-thumbtack-slash" inert></i> {{localize "bastionland.gmToolkit.places.track.remove"}}</button>
+			{{else}}
+			<button type="button" data-action="trackHex"><i class="fa-solid fa-thumbtack" inert></i> {{localize "bastionland.gmToolkit.places.track.this"}}</button>
+			{{/if}}
 		</nav>
 	</div>
 </details>

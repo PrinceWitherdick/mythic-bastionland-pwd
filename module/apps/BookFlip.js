@@ -3,7 +3,7 @@ import { flipTheBook, promptsLabel, savePromptsToHex } from "../actions/book-fli
 import { isRealmScene } from "../actions/realm.js";
 import { t, warn } from "../chat/cards.js";
 import { SPREAD_SIDES, chosenPrompts } from "../rules/book-flip.js";
-import { pickHex } from "../canvas/hex-pick.js";
+import { pickHexAside } from "../canvas/hex-pick.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -108,16 +108,14 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (!isRealmScene(scene)) return warn("bookFlip.noRealm");
 
 		this.#busy = true;
-		await this.minimize();
 		try {
-			const hex = await pickHex(scene, {
+			const hex = await pickHexAside(this, scene, {
 				message: t("bookFlip.pick", { what: promptsLabel(prompts) }),
 				label: (at) => t("bookFlip.pickHere", { hex: hexLabel(at, scene) })
 			});
 			if (hex && await savePromptsToHex({ scene, hex, spread: this.spread, prompts })) this.#chosen.clear();
 		} finally {
 			this.#busy = false;
-			if (this.rendered) await this.maximize();
 		}
 		return this.render();
 	}

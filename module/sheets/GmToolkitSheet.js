@@ -8,6 +8,7 @@ import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, sparkView, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
+import { getTrackedHexes, setHexTracked } from "../actions/hex-tracked.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { getJourney, markHexVisited, visitsLabel } from "../actions/journey.js";
@@ -20,14 +21,14 @@ import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../a
 import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
-import { openBookFlip } from "../apps/BookFlip.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { WILD_PAGE, openSparkTables } from "../apps/SparkTables.js";
-import { filterBySearch } from "../apps/ui.js";
+import { filterBySearch, inputDialog } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
+import { pickHexAside } from "../canvas/hex-pick.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
@@ -44,8 +45,9 @@ import { completedMythId, crisisRollsDue, seasonLogView } from "../rules/season-
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
-import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { latestWilderness } from "../rules/hex-lore.js";
+import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
@@ -138,7 +140,6 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			openSite: GmToolkitSheet.#onOpenSite,
 			siteJournal: GmToolkitSheet.#onSiteJournal,
 			newSite: () => newSite(),
-			flipBook: () => openBookFlip(),
 			newMyth: GmToolkitSheet.#onNewMyth,
 			settleMyths: GmToolkitSheet.#onSettleMyths,
 			rollMythTable: GmToolkitSheet.#onRollMythTable,
@@ -153,7 +154,10 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			pickWeather: () => pickWeather(),
 			// With no copy yet, the button sets one up rather than doing nothing.
 			openRulebook: () => openRulebook() ?? openRulebookSetup(),
-			placesOrder: GmToolkitSheet.#onPlacesOrder
+			placesOrder: GmToolkitSheet.#onPlacesOrder,
+			trackAdd: GmToolkitSheet.#onTrackAdd,
+			trackHex: GmToolkitSheet.#onTrackHex,
+			untrackHex: GmToolkitSheet.#onUntrackHex
 		}
 	};
 
@@ -213,6 +217,9 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	/** How the Places page lists its hexes, one of PLACE_ORDERS, kept across redraws. */
 	#placesOrder = PLACE_ORDERS[0];
 
+	/** Whether the GM is choosing a hex to put on the Custom list, so a second click waits for it. */
+	#tracking = false;
+
 	/** @returns {Scene|null} The Realm on show: the one chosen, the one on the canvas, or the first there is. */
 	get scene() {
 		const chosen = game.scenes.get(this.sceneId);
@@ -259,6 +266,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 				lore: getHexLore(scene),
 				journey: getJourney(scene),
 				shared: getHexShared(scene),
+				tracked: getTrackedHexes(scene),
 				notes: getMythNotes(scene),
 				companyHex: companyTokenHex(scene)
 			}
@@ -495,7 +503,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	 * Every place in the Realm, each hex once, by column then row: the hexes
 	 * the Company has come into, the last three reached unfolded, then the
 	 * rest; or its Holdings, Landmarks and every other hex visited or written
-	 * about. And the Sites.
+	 * about; or the hexes the GM chose to track, in the order added. And the Sites.
 	 * @param {object|null} data
 	 */
 	#placesContext(data) {
@@ -508,7 +516,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const order = this.#placesOrder;
 		const places = realmPlaces(data.realm, data.lore, data.journey, data.shared);
 		// One fold for a hex in either order, so switching keeps a card as it was left.
-		const card = (hex, open = false) => this.#hexCard(data, hex, { fold: `place:${hexKey(hex)}`, open });
+		const card = (hex, open = false, removable = false) => this.#hexCard(data, hex, { fold: `place:${hexKey(hex)}`, open, removable });
 		const section = (key, cards, hint = false) => ({
 			heading: t(`gmToolkit.places.${key}`),
 			hint: hint ? t(`gmToolkit.places.${key}Hint`) : null,
@@ -516,16 +524,28 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			cards
 		});
 		const latest = places.recent.slice(0, OPEN_VISITS);
-		const sections = order === "visited"
-			? [
-				section("visited", places.visited.map((hex) => card(hex, latest.some((seen) => sameHex(seen, hex))))),
-				section("unvisited", places.unvisited.map((hex) => card(hex)), true)
-			]
-			: [
-				section("holdings", places.holdings.map((holding) => card(holding.hex))),
-				section("landmarks", places.landmarks.map((landmark) => card(landmark.hex))),
-				section("others", places.others.map((hex) => card(hex)), true)
-			];
+		let sections;
+		switch (order) {
+			case "visited":
+				sections = [
+					section("visited", places.visited.map((hex) => card(hex, latest.some((seen) => sameHex(seen, hex))))),
+					section("unvisited", places.unvisited.map((hex) => card(hex)), true)
+				];
+				break;
+			case "kind":
+				sections = [
+					section("holdings", places.holdings.map((holding) => card(holding.hex))),
+					section("landmarks", places.landmarks.map((landmark) => card(landmark.hex))),
+					section("others", places.others.map((hex) => card(hex)), true)
+				];
+				break;
+			default:
+				// A hex a smaller map has left behind isn't shown, though it's kept should the map grow again.
+				sections = [{
+					...section("tracked", trackedInOrder(data.tracked).filter((hex) => inRealm(data.g, hex)).map((hex) => card(hex, false, true)), true),
+					add: true
+				}];
+		}
 		return {
 			summary: t("gmToolkit.places.summary", { count: places.visited.length, total: data.g.cols * data.g.rows }),
 			orders: PLACE_ORDERS.map((key) => ({ key, label: t(`gmToolkit.places.orders.${key}`), active: key === order })),
@@ -567,9 +587,10 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	 * @param {object} options
 	 * @param {string} options.fold  What remembers whether it's unfolded.
 	 * @param {boolean} options.open Whether it starts unfolded.
+	 * @param {boolean} [options.removable] Whether its head has a × taking it off the Custom list.
 	 * @returns {object}
 	 */
-	#hexCard(data, hex, { fold, open }) {
+	#hexCard(data, hex, { fold, open, removable = false }) {
 		const key = hexKey(hex);
 		const place = this.#placeIn(data.realm, hex);
 		const { self, status } = place;
@@ -617,6 +638,8 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			sparks,
 			wild,
 			landmark: offer,
+			tracked: isTracked(data.tracked, hex),
+			removable,
 			fold,
 			open: this.#folds.get(fold) ?? open
 		};
@@ -1279,7 +1302,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	}
 
 	/**
-	 * List the Places page's hexes another way: the last visited first, or by kind.
+	 * List the Places page's hexes another way: the last visited first, by kind, or the GM's own list.
 	 * @this {GmToolkitSheet}
 	 */
 	static #onPlacesOrder(_event, target) {
@@ -1287,6 +1310,63 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		if (!PLACE_ORDERS.includes(order) || order === this.#placesOrder) return;
 		this.#placesOrder = order;
 		this.#redraw("places");
+	}
+
+	/**
+	 * Put a hex on the Custom list: clicked on the map while the Realm is the
+	 * Scene there, the toolkit folding out of the way meanwhile, or else given
+	 * by its column and row. It comes in unfolded.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onTrackAdd() {
+		const scene = this.scene;
+		if (this.#tracking || !scene) return;
+		this.#tracking = true;
+		try {
+			const onMap = canvas?.ready && canvas.scene?.id === scene.id;
+			const hex = onMap
+				? await pickHexAside(this, scene, {
+					message: t("gmToolkit.places.track.pick"),
+					label: (at) => t("gmToolkit.places.track.pickHere", { hex: hexLabel(at, scene) })
+				})
+				: await GmToolkitSheet.#askTrackedHex(scene);
+			if (!hex) return;
+			this.#folds.set(`place:${hexKey(hex)}`, true);
+			await setHexTracked(scene, hex, true);
+		} finally {
+			this.#tracking = false;
+		}
+	}
+
+	/**
+	 * @param {Scene} scene Not on the canvas, so there's no map to click.
+	 * @returns {Promise<{col: number, row: number}|null>} Null if closed, or for a hex outside the Realm.
+	 */
+	static async #askTrackedHex(scene) {
+		const g = sceneGeometry(scene);
+		const answer = await inputDialog({
+			title: t("gmToolkit.places.track.title"),
+			icon: "fa-solid fa-thumbtack",
+			template: "track-hex",
+			context: { cols: g.cols, rows: g.rows },
+			ok: { label: t("gmToolkit.places.track.ok"), icon: "fa-solid fa-thumbtack" }
+		});
+		const hex = answer && { col: Number(answer.col), row: Number(answer.row) };
+		return inRealm(g, hex) ? hex : null;
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onTrackHex(_event, target) {
+		const hex = GmToolkitSheet.#hexFrom(target);
+		if (hex && this.scene) return setHexTracked(this.scene, hex, true);
+	}
+
+	/** @this {GmToolkitSheet} */
+	static #onUntrackHex(event, target) {
+		// The × sits in a card's head, where a click would otherwise fold or unfold it too.
+		event.preventDefault();
+		const hex = GmToolkitSheet.#hexFrom(target);
+		if (hex && this.scene) return setHexTracked(this.scene, hex, false);
 	}
 
 	/** @this {GmToolkitSheet} */

@@ -2208,7 +2208,8 @@
         "order": "List the places",
         "orders": {
           "visited": "By Visit",
-          "kind": "By Kind"
+          "kind": "By Kind",
+          "custom": "Tracking"
         },
         "search": "Search the places…",
         "noMatch": "No place matches.",
@@ -2224,6 +2225,21 @@
         "others": "Other Hexes",
         "othersHint": "Hexes the Company has come into, or with something written or rolled, that hold no Holding or Landmark, such as a Myth’s hex.",
         "othersNone": "The Company hasn’t come into any other hex, and nothing is written about one yet.",
+        "tracked": "Tracked Places",
+        "trackedHint": "The hexes you chose to keep an eye on, in the order you added them.",
+        "trackedNone": "No places tracked yet. Add one below, or use Track This Place on any card.",
+        "track": {
+          "add": "Add a Place",
+          "pick": "Click the hex to track.",
+          "pickHere": "Track {hex}",
+          "this": "Track This Place",
+          "remove": "Stop Tracking",
+          "title": "Track a Hex",
+          "askHint": "This Realm isn’t the scene on the map, so give the hex by its column and row.",
+          "column": "Column",
+          "row": "Row",
+          "ok": "Track"
+        },
         "sites": "Sites",
         "sitesHint": "Places explored in more detail than a Hex (p15).",
         "seat": "Seat of Power",

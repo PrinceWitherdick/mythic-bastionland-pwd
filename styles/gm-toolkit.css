@@ -1277,6 +1277,19 @@
 	font-size: 1.15rem;
 }
 
+/* On the Custom list, the × taking a hex off it stands just left of the fold
+   mark, out of the run of chips, with room kept for it. */
+.bastionland-gm-toolkit__hex-head:has(.bastionland-gm-toolkit__untrack) {
+	padding-right: 4.2rem;
+}
+
+.bastionland-gm-toolkit__hex-head .bastionland-gm-toolkit__untrack {
+	position: absolute;
+	top: 50%;
+	right: 2.1rem;
+	transform: translateY(-50%);
+}
+
 .bastionland-gm-toolkit__visits {
 	display: flex;
 	align-items: center;

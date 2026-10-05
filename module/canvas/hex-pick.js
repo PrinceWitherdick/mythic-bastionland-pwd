@@ -57,6 +57,23 @@ function drawMarks(g, hex, { wash, ring, word, label }) {
 }
 
 /**
+ * Ask the GM to click a hex, with a window folded out of the way while they
+ * choose and back after.
+ * @param {foundry.applications.api.ApplicationV2} app
+ * @param {Scene} scene The Realm, which must be the Scene on the canvas.
+ * @param {{message: string, label: (hex: {col: number, row: number}) => string}} options As pickHex takes them.
+ * @returns {Promise<{col: number, row: number}|null>}
+ */
+export async function pickHexAside(app, scene, options) {
+	await app.minimize();
+	try {
+		return await pickHex(scene, options);
+	} finally {
+		if (app.rendered) await app.maximize();
+	}
+}
+
+/**
  * Ask the GM to click a hex of the Realm on the map.
  * @param {Scene} scene The Realm, which must be the Scene on the canvas.
  * @param {object} options

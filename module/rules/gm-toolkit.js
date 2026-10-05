@@ -68,7 +68,7 @@ export function realmPlaces(realm, lore, journey = null, shared = null) {
 }
 
 /** The orders the Places page can list its hexes in, the first taken until another is chosen. */
-export const PLACE_ORDERS = Object.freeze(["visited", "kind"]);
+export const PLACE_ORDERS = Object.freeze(["visited", "kind", "custom"]);
 
 /**
  * Whether a roll on the Myths table (p27) is a Myth the Realm already has. A
