@@ -997,7 +997,7 @@
     },
     "travels": {
       "title": "Places",
-      "asPlayers": "As the players see it: nothing they haven’t found, and none of your own notes.",
+      "asPlayers": "As the players see it: nothing they haven’t found. Only the chosen hex’s Rolled Here, at the foot of it, is yours alone.",
       "realm": "Realm",
       "search": "Search the places",
       "noMatch": "No place matches that.",
@@ -1069,6 +1069,11 @@
       },
       "detail": {
         "empty": "Choose a hex in the list, on the chart or in the journey to see what the Company knows of it."
+      },
+      "gm": {
+        "heading": "Rolled Here",
+        "hint": "For GMs only: what the players haven’t found here, and what the Lay of the Land keeps for the hex.",
+        "fillHint": "Roll the land, its weather and one feature on the Nature Spark Tables, and keep them in this hex."
       },
       "chips": {
         "told": "Told",

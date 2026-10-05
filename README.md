@@ -85,7 +85,7 @@ Search and the filters (Holdings, Landmarks, Myths, Told, Noted, Not Visited) na
 - what the GM told them with **Tell the players**, kept as it was said
 - a note any player can write for the whole table (a GM has to be online to save it)
 
-Pointing at a hex on the map also shows the latest thing told of it and the Company's note. Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
+Pointing at a hex on the map also shows the latest thing told of it and the Company's note. Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do, and below the chosen hex a **Rolled Here** part of their own: what stands there that the players haven't found, the Spark Table rolls kept there and the GM's note, and a button that opens the hex's Lay of the Land window. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
 
 Each hex the GM rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has three pages:
 

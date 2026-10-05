@@ -1,6 +1,8 @@
 import { renameHex } from "../actions/hex-names.js";
 import { TRAVELS_CHANGED_HOOK, writePartyNote } from "../actions/hex-shared.js";
+import { rollHexSparkSet } from "../actions/hex-lore.js";
 import { showHexOnMap, travelsHexDetail, travelsListContext } from "../actions/travels.js";
+import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
@@ -9,6 +11,7 @@ import { TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { openHexLore } from "./HexLore.js";
 import { wireHexRename } from "./hex-rename.js";
 import { renderWhenIdle } from "./ui.js";
 
@@ -268,7 +271,9 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		window: { icon: "fa-solid fa-map-location-dot", resizable: true },
 		actions: {
 			pickTravelsHex: TravelsPlaces.#onPick,
-			showTravelsHex: showTravelsRow
+			showTravelsHex: showTravelsRow,
+			openHexLore: TravelsPlaces.#onLayOfTheLand,
+			rollWildHex: TravelsPlaces.#onRollWildHex
 		}
 	};
 
@@ -285,6 +290,19 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {[string, number][]} The hooks this window draws again on. */
 	#hooks = [];
 
+	/** Whether a wilderness hex is being rolled, so a second click doesn't roll it twice. */
+	#rolling = false;
+
+	/** @type {object|null|undefined} The art index, read once for a GM: it names the Myths and Seers in the GM's part of the chosen hex. */
+	#index;
+
+	/** @returns {Promise<object|null>} The art index for a GM, null for a player. */
+	async #gmIndex() {
+		if (!game.user?.isGM) return null;
+		if (this.#index === undefined) this.#index = await loadArtIndex();
+		return this.#index;
+	}
+
 	/** @override */
 	get title() {
 		return t("travels.title");
@@ -293,7 +311,7 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		const list = travelsListContext(this.state.realm, { ...this.state, detail: true });
+		const list = travelsListContext(this.state.realm, { ...this.state, detail: true, index: await this.#gmIndex() });
 		if (list.sceneId) this.state.realm = list.sceneId;
 		if (list.selected !== undefined) this.state.selected = list.selected;
 		return Object.assign(context, list);
@@ -363,7 +381,8 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		// Only the chosen hex changes, so only its detail is drawn again, and the pages are marked where they stand.
 		const list = this.element?.querySelector(".bastionland-travels");
 		const shown = this.element?.querySelector(".bastionland-travels-detail");
-		const detail = list && shown && markChosen(list, key) ? travelsHexDetail(this.state.realm, key) : null;
+		const index = await this.#gmIndex();
+		const detail = list && shown && markChosen(list, key) ? travelsHexDetail(this.state.realm, key, index) : null;
 		if (!detail) return this.render();
 		const html = await foundry.applications.handlebars.renderTemplate(templatePath("apps/parts/travels-hex-detail.hbs"), { ...detail, partId: `${this.id}-body` });
 		const drawn = document.createElement("template");
@@ -372,6 +391,37 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (!fresh || !shown.isConnected) return this.render();
 		shown.replaceWith(fresh);
 		this.#wireDetail();
+	}
+
+	/**
+	 * Open the Lay of the Land on the chosen hex, from the GM's part of it.
+	 * @this {TravelsPlaces}
+	 * @param {Event} _event
+	 * @param {HTMLElement} target
+	 */
+	static #onLayOfTheLand(_event, target) {
+		const row = rowOf(target);
+		if (row && game.user.isGM) openHexLore(row);
+	}
+
+	/**
+	 * Roll the chosen hex on the wilderness tables and keep what comes up, from
+	 * the GM's part of it when nothing is rolled there yet.
+	 * @this {TravelsPlaces}
+	 * @param {Event} _event
+	 * @param {HTMLElement} target
+	 */
+	static async #onRollWildHex(_event, target) {
+		const row = rowOf(target);
+		if (!row || !game.user.isGM || this.#rolling) return;
+		this.#rolling = true;
+		target.disabled = true;
+		try {
+			await rollHexSparkSet(row);
+		} finally {
+			this.#rolling = false;
+			target.disabled = false;
+		}
 	}
 }
 
@@ -383,7 +433,7 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
  * @returns {TravelsPlaces}
  */
 export function openPlaces({ sceneId, hex } = {}) {
-	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id) ?? new TravelsPlaces();
+	const app = reopenablePlaces();
 	if (sceneId && sceneId !== app.state.realm) {
 		app.state.realm = sceneId;
 		app.state.selected = null;
@@ -394,4 +444,13 @@ export function openPlaces({ sceneId, hex } = {}) {
 	}
 	app.render({ force: true });
 	return app;
+}
+
+/**
+ * The window to render when it was open as the page last unloaded. It opens
+ * on the Realm it shows first, on the page this browser last chose.
+ * @returns {TravelsPlaces}
+ */
+export function reopenablePlaces() {
+	return foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id) ?? new TravelsPlaces();
 }

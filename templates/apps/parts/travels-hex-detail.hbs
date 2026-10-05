@@ -1,4 +1,4 @@
-{{!-- One hex as the Company knows it, beside the Places window's list. Nothing here comes from the GM's own notes. --}}
+{{!-- One hex as the Company knows it, beside the Places window's list. Only the gm part at the foot, drawn for GMs alone, comes from what the GM keeps. --}}
 <aside class="bastionland-travels-detail bastionland-hex-lore bastionland-travels-hex" aria-live="polite">
 	{{#if empty}}
 	<p class="bastionland-hint bastionland-travels-detail__empty">{{localize "bastionland.travels.detail.empty"}}</p>
@@ -48,6 +48,39 @@
 		{{#if partyBy}}<p class="bastionland-hint">{{partyBy}}</p>{{/if}}
 		{{#if noGM}}<p class="bastionland-hint">{{localize "bastionland.travels.party.offline"}}</p>{{/if}}
 	</div>
+
+	{{#with gm}}
+	<section class="bastionland-travels-hex__gm">
+		<div class="bastionland-hex-lore__row">
+			<h3 class="bastionland-heading">{{localize "bastionland.travels.gm.heading"}}</h3>
+			<button type="button" data-action="openHexLore" data-hex="{{../hex}}"><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.open"}}</button>
+		</div>
+		<p class="bastionland-hint">{{localize "bastionland.travels.gm.hint"}}</p>
+		{{#if features.length}}
+		<div class="bastionland-hex-lore__here">
+			{{#each features}}
+			<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
+			{{/each}}
+		</div>
+		{{/if}}
+		<ul class="bastionland-hex-lore__rolls">
+			{{#each sparks}}
+			<li class="bastionland-hex-lore__roll">
+				{{> "bastionland.hex-spark"}}
+			</li>
+			{{else}}
+			<li class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.noRolls"}}</li>
+			{{/each}}
+		</ul>
+		{{#unless sparks.length}}
+		<button type="button" class="bastionland-travels-hex__fill" data-action="rollWildHex" data-hex="{{../hex}}" data-tooltip="{{localize "bastionland.travels.gm.fillHint"}}"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
+		{{/unless}}
+		{{#if note}}
+		<h4 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.hexLore.note"}}</h4>
+		<p class="bastionland-travels-hex__gm-note">{{note}}</p>
+		{{/if}}
+	</section>
+	{{/with}}
 	{{else}}
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.notKnown"}}</p>
 	{{/if}}

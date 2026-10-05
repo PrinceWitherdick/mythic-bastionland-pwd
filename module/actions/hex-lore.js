@@ -56,29 +56,41 @@ export const sparkView = (spark) => ({ id: spark.id, table: spark.table, prompt:
  * @param {{full?: boolean}} [options] Full also names a Seat and the Myth's number, and marks a Holding, Myth or Landmark the players haven't found.
  * @returns {string[]}
  */
-export function hexFeatureLines(scene, realm, g, hex, index, { full = false } = {}) {
+export const hexFeatureLines = (scene, realm, g, hex, index, options) => hexFeatures(scene, realm, g, hex, index, options).map(({ text }) => text);
+
+/**
+ * The same, each line with what it tells of, so a list can leave out what the players' view already shows.
+ * @param {Scene} scene
+ * @param {object} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @param {object|null} index
+ * @param {{full?: boolean}} [options]
+ * @returns {{kind: "holding"|"myth"|"landmark"|"barrier", direction?: string, seat?: boolean, text: string}[]}
+ */
+export function hexFeatures(scene, realm, g, hex, index, { full = false } = {}) {
 	const { holding, myth, landmark } = featureAt(realm, hex);
 	const hand = full ? (hexHiddenByHand(scene, hex) ?? {}) : {};
 	const hidden = (text, isHidden) => (full && isHidden ? t("realm.readout.hidden", { name: text }) : text);
 	const lines = [];
 	if (holding) {
 		const name = holdingName(holding, t);
-		lines.push(hidden(full && holding.seat ? t("realm.readout.seat", { name }) : name, hand.holding || hand.seat));
+		lines.push({ kind: "holding", seat: Boolean(holding.seat), text: hidden(full && holding.seat ? t("realm.readout.seat", { name }) : name, hand.holding || hand.seat) });
 	}
 	if (myth) {
 		const { name, page } = mythEntry(index, myth);
 		const seen = t("realm.panel.omensSeen", { omen: myth.omen ?? 0, count: OMEN_COUNT });
 		const text = `${t("realm.panel.reference", { name, page })} — ${seen}`;
-		lines.push(hidden(full ? `${t("realm.readout.myth", { number: myth.number })}: ${text}` : text, !myth.revealed));
+		lines.push({ kind: "myth", text: hidden(full ? `${t("realm.readout.myth", { number: myth.number })}: ${text}` : text, !myth.revealed) });
 	}
 	if (landmark) {
 		const named = landmark.name || t(`realm.landmarks.${landmark.type}`);
 		const seer = landmark.seer && seerEntry(index, landmark.seer);
-		lines.push(hidden(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named, !landmark.revealed));
+		lines.push({ kind: "landmark", text: hidden(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named, !landmark.revealed) });
 	}
 	for (const barrier of barriersAround(realm, g, hex, { showHidden: true })) {
 		const words = t("realm.readout.barrier", { direction: t(`realm.directions.${barrier.direction}`) });
-		lines.push(barrier.revealed ? words : t("realm.readout.hidden", { name: words }));
+		lines.push({ kind: "barrier", direction: barrier.direction, text: barrier.revealed ? words : t("realm.readout.hidden", { name: words }) });
 	}
 	return lines;
 }

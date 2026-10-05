@@ -106,7 +106,7 @@ import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
 import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
-import { openPlaces } from "./module/apps/TravelsPlaces.js";
+import { openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
@@ -324,6 +324,8 @@ Hooks.once("init", () => {
 	// hotkey, Show Players, and the book reopening after a reload.
 	registerRulebookSettings();
 	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
+	// The Company's Places window reopens after a reload too.
+	registerRestorableWindow("places", "TravelsPlaces", reopenablePlaces);
 	registerRulebookShare();
 	// A player's note on a hex, written for them by the active GM.
 	registerHexSharedQuery();

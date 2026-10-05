@@ -6715,6 +6715,41 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	opacity: 0.7;
 }
 
+/* What only a GM sees of the hex, ruled off below what the players know. */
+.bastionland-travels-hex__gm {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-top: 0.6rem;
+	padding-top: 0.25rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+.bastionland-travels-hex__gm > .bastionland-hex-lore__row {
+	justify-content: space-between;
+	flex-wrap: wrap;
+}
+
+.bastionland-travels-hex__gm > .bastionland-hex-lore__row button {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+/* Fills an empty hex in one go, sized to its label rather than the column. */
+.bastionland-travels-hex__gm > .bastionland-travels-hex__fill {
+	align-self: flex-start;
+	width: auto;
+}
+
+.bastionland-travels-hex__gm .bastionland-hint,
+.bastionland-travels-hex__gm-note {
+	margin: 0;
+}
+
+.bastionland-travels-hex__gm-note {
+	white-space: pre-wrap;
+}
+
 /* The Company's note, shown to the GM beside their own. */
 .bastionland-travels__party-note {
 	display: flex;
