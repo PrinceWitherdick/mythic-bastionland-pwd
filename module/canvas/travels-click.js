@@ -10,7 +10,9 @@ import { takingMapClick } from "./map-click.js";
  * A double-click on open ground of a Realm opens the Company's places with
  * the hex under it chosen. Foundry does nothing with a double-click there on the
  * Token layer, so players can stay on the Token tools; a double-click on a
- * Token still opens its sheet, and every other layer keeps its own.
+ * Token still opens its sheet, and every other layer keeps its own. The
+ * Company's Token has no sheet, so its own double-click opens the hex it
+ * stands in (BastionlandToken).
  */
 
 /**
@@ -40,18 +42,40 @@ export function travelsClickHex(event) {
 }
 
 /**
+ * Open a hex in the Company's places, or tell them they know nothing of it.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @returns {Promise<unknown>|null}
+ */
+function openHexInPlaces(scene, hex) {
+	if (!hexOpenable(scene, hex)) {
+		// Not one of their places, so they know it by its column and row alone.
+		ui.notifications.info(t("travels.notVisited", { hex: t("realm.hex", hex) }));
+		return null;
+	}
+	return openPlaces({ sceneId: scene.id, hex });
+}
+
+/**
+ * A double-click on the Company's Token opens the hex it stands in: its
+ * centre's, since the square Token reaches past the hex's corners.
+ * @param {Token} token The Company's.
+ * @returns {Promise<unknown>|null}
+ */
+export function onCompanyDoubleClick(token) {
+	const scene = token.document?.parent;
+	if (!isRealmScene(scene) || isDrawingRealm(scene) || takingMapClick()) return null;
+	const hex = hexAt(sceneGeometry(scene), token.center);
+	return hex ? openHexInPlaces(scene, hex) : null;
+}
+
+/**
  * @param {MouseEvent} event
  * @returns {Promise<unknown>|null}
  */
 export function onTravelsDoubleClick(event) {
 	const found = travelsClickHex(event);
-	if (!found) return null;
-	const { scene, hex } = found;
-	if (!hexOpenable(scene, hex)) {
-		ui.notifications.info(t("travels.notVisited", { hex: t("realm.hex", hex) }));
-		return null;
-	}
-	return openPlaces({ sceneId: scene.id, hex });
+	return found ? openHexInPlaces(found.scene, found.hex) : null;
 }
 
 /** Called during init. */

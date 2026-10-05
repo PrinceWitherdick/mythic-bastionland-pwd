@@ -169,6 +169,25 @@ describe("SettingsTabMixin", () => {
 		expect(context.settingGroups).toEqual([]);
 	});
 
+	it("puts a sheet's own buttons in their group, and none in the others", async () => {
+		const button = { action: "companyPicture", label: "bastionland.company.picture", icon: "fa-solid fa-flag" };
+		const ButtonSheet = class extends tab.SettingsTabMixin(Base) {
+			_showsSettingsTab() {
+				return true;
+			}
+			_settingsButtons() {
+				return { reading: [button] };
+			}
+		};
+		const sheet = new ButtonSheet();
+		sheet.document = knight({ player: 3 });
+		const context = await sheet._prepareContext();
+		expect(context.settingGroups.find((group) => group.id === "reading").buttons).toEqual([button]);
+		expect(context.settingGroups.filter((group) => group.id !== "reading").every((group) => !group.buttons.length)).toBe(true);
+		const plain = await sheetFor(knight({ player: 3 }))._prepareContext();
+		expect(plain.settingGroups.every((group) => Array.isArray(group.buttons) && !group.buttons.length)).toBe(true);
+	});
+
 	it("shows the page on no sheet that doesn't ask for it", async () => {
 		const sheet = new (tab.SettingsTabMixin(Base))();
 		sheet.document = knight({ player: 3 });

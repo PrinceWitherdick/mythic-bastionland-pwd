@@ -19,7 +19,7 @@ vi.mock("../../module/apps/TravelsPlaces.js", () => ({ openPlaces: vi.fn(() => "
 vi.mock("../../module/canvas/map-click.js", () => ({ takingMapClick: () => taking }));
 
 const { openPlaces } = await import("../../module/apps/TravelsPlaces.js");
-const { onTravelsDoubleClick } = await import("../../module/canvas/travels-click.js");
+const { onCompanyDoubleClick, onTravelsDoubleClick } = await import("../../module/canvas/travels-click.js");
 
 /** A double-click on the board, or on something over it. */
 const click = (id = "board") => {
@@ -50,6 +50,30 @@ afterEach(() => {
 	vi.clearAllMocks();
 });
 
+describe("onCompanyDoubleClick", () => {
+	const company = (at) => ({ center: hexCentre(g, at), document: { parent: canvas.scene } });
+
+	it("opens the hex the Company's Token stands in", () => {
+		expect(onCompanyDoubleClick(company(hex(7, 2)))).toBe("opened");
+		expect(openPlaces).toHaveBeenCalledWith({ sceneId: canvas.scene.id, hex: hex(7, 2) });
+	});
+
+	it("says the Company knows nothing of a hex it can't open", () => {
+		openable = false;
+		expect(onCompanyDoubleClick(company(hex(7, 2)))).toBeNull();
+		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining("travels.notVisited"));
+	});
+
+	it("does nothing while a Realm is drawn, or a hex is being asked for", () => {
+		drawing = true;
+		expect(onCompanyDoubleClick(company(hex(7, 2)))).toBeNull();
+		drawing = false;
+		taking = true;
+		expect(onCompanyDoubleClick(company(hex(7, 2)))).toBeNull();
+		expect(openPlaces).not.toHaveBeenCalled();
+	});
+});
+
 describe("onTravelsDoubleClick", () => {
 	it("opens the hex under the pointer on open ground", () => {
 		expect(onTravelsDoubleClick(click())).toBe("opened");
@@ -69,6 +93,13 @@ describe("onTravelsDoubleClick", () => {
 		expect(onTravelsDoubleClick(click())).toBeNull();
 		canvas.tokens.placeables = [];
 		canvas.tokens.hover = {};
+		expect(onTravelsDoubleClick(click())).toBeNull();
+		expect(openPlaces).not.toHaveBeenCalled();
+	});
+
+	it("leaves the Company's Token to its own double-click", () => {
+		const point = canvas.mousePosition;
+		canvas.tokens.placeables = [{ isCompany: true, visible: true, bounds: { contains: (x, y) => x === point.x && y === point.y } }];
 		expect(onTravelsDoubleClick(click())).toBeNull();
 		expect(openPlaces).not.toHaveBeenCalled();
 	});

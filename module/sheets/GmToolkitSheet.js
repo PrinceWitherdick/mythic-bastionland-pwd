@@ -2,7 +2,7 @@ import { CALENDAR_HOOK, chronicleLabel, getCalendar } from "../actions/calendar.
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
 import { rollFreeMyth } from "../actions/gm-toolkit.js";
-import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
+import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, sparkView, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
@@ -21,6 +21,7 @@ import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../a
 import { isSiteEntry, newSite, readSite } from "../actions/sites.js";
 import { landmarkOfferView, takeLandmarkOffer } from "../actions/landmarks.js";
 import { openArt } from "../apps/ArtPopout.js";
+import { changeCompanyPicture } from "../apps/company-picture.js";
 import { openHexLore } from "../apps/HexLore.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { WILD_PAGE, openSparkTables } from "../apps/SparkTables.js";
@@ -157,7 +158,8 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			placesOrder: GmToolkitSheet.#onPlacesOrder,
 			trackAdd: GmToolkitSheet.#onTrackAdd,
 			trackHex: GmToolkitSheet.#onTrackHex,
-			untrackHex: GmToolkitSheet.#onUntrackHex
+			untrackHex: GmToolkitSheet.#onUntrackHex,
+			companyPicture: GmToolkitSheet.#onCompanyPicture
 		}
 	};
 
@@ -892,6 +894,31 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	 */
 	_showsSettingsTab(user) {
 		return Boolean(user?.isGM);
+	}
+
+	/**
+	 * The Company's picture, among the Referee's settings: the Token's HUD is
+	 * the only other way to it once the Realm is made.
+	 * @override
+	 */
+	_settingsButtons() {
+		return {
+			referee: [{ action: "companyPicture", label: "bastionland.company.picture", hint: "bastionland.gmToolkit.companyPictureHint", icon: "fa-solid fa-flag" }]
+		};
+	}
+
+	/**
+	 * Choose the picture the Company carries on the Realm on show, whether or
+	 * not their Token is on its map yet.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onCompanyPicture() {
+		const scene = this.scene;
+		if (!scene) {
+			ui.notifications.info(t("myths.noRealm"));
+			return;
+		}
+		await changeCompanyPicture(findCompanyToken(scene), scene);
 	}
 
 	/** @override */

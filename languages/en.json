@@ -2121,6 +2121,7 @@
       "realm": "Realm",
       "companyAt": "The Company is in {hex}",
       "companyHere": "The Company is here",
+      "companyPictureHint": "Change the picture the Company’s Token carries on the Realm, even before they’re on the map. Right-clicking the Token offers the same.",
       "noCompany": "The Company isn’t on this Realm’s map",
       "showHex": "Show on the Map",
       "sparks": "Spark Tables rolled here",

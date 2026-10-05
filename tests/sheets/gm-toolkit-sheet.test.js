@@ -72,6 +72,12 @@ describe("GM Toolkit templates", () => {
 		for (const action of actions) expect(Object.keys(GmToolkitSheet.DEFAULT_OPTIONS.actions), action).toContain(action);
 	});
 
+	it("offer the Company's picture among the Referee's settings, through an action the sheet has", () => {
+		const buttons = GmToolkitSheet.prototype._settingsButtons();
+		expect(buttons.referee.map((button) => button.action)).toEqual(["companyPicture"]);
+		for (const button of Object.values(buttons).flat()) expect(Object.keys(GmToolkitSheet.DEFAULT_OPTIONS.actions)).toContain(button.action);
+	});
+
 	it("give each page a root that is its tab, in the toolkit's tab group", () => {
 		for (const [id, part] of Object.entries(GmToolkitSheet.PARTS)) {
 			if (id === "tabs" || id === "header") continue;

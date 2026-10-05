@@ -5,6 +5,7 @@ import { SHIELD_OUTLINE_PATH, SHIELD_PATH } from "../rules/heraldry.js";
 import { heraldryBadge, pathSteps } from "../rules/token-heraldry.js";
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { onCompanyDoubleClick } from "./travels-click.js";
 
 /** Token flag set when the heraldry badge is hidden on that Token. */
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
@@ -122,25 +123,25 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 	/**
 	 * Foundry asks this before it lets a double click through, and warns that
 	 * the Token's Actor is missing when there is none. The Company's Token has
-	 * none on purpose, so the warning would be wrong: the Referee is let
-	 * through to the picture instead, and nobody else is warned.
+	 * none on purpose, so the warning would be wrong: everyone is let through,
+	 * on the Token tools, to the hex it stands in.
 	 * @inheritDoc
 	 */
 	_canView(user, event) {
 		if (!this.isCompany) return super._canView(user, event);
-		return Boolean(user.isGM) && this.layer.active && !this.isPreview && !this.layer._draggedToken;
+		return Boolean(this.layer.active && !this.isPreview && !this.layer._draggedToken);
 	}
 
 	/**
 	 * A double click opens an Actor's sheet, and the Company's Token has no
-	 * Actor on purpose, so for the Referee it offers the Company's picture
-	 * instead. That's the only way to change it once the Realm is made.
+	 * Actor on purpose, so it opens the hex the Company stands in, in Places,
+	 * as one on open ground opens that hex. Its picture is in the Token HUD.
 	 * @inheritDoc
 	 */
 	_onClickLeft2(event) {
-		if (!this.isCompany || !game.user.isGM) return super._onClickLeft2(event);
+		if (!this.isCompany) return super._onClickLeft2(event);
 		if (!this._propagateLeftClick(event)) event.stopPropagation();
-		changeCompanyPicture(this.document);
+		onCompanyDoubleClick(this);
 	}
 
 	/** @inheritDoc */
@@ -157,8 +158,31 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 }
 
 /**
- * Put a Hide/Show heraldry button in the Token HUD a right click opens, for a
- * Knight who has painted heraldry and a user who owns the Token.
+ * Add a button to the left column of the Token HUD a right click opens.
+ * @param {HTMLElement} element The HUD.
+ * @param {object} options
+ * @param {string} options.icon Its Font Awesome icon, such as "fa-flag".
+ * @param {string} options.label What it says to a screen reader.
+ * @param {boolean} [options.active] Whether it shows as switched on.
+ * @param {(event: MouseEvent) => unknown} options.onClick
+ */
+function addHudButton(element, { icon, label, active = false, onClick }) {
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = `control-icon${active ? " active" : ""}`;
+	button.dataset.tooltip = "";
+	button.ariaLabel = label;
+	button.innerHTML = `<i class="fa-solid ${icon}" inert></i>`;
+	button.addEventListener("click", (event) => {
+		event.preventDefault();
+		onClick(event);
+	});
+	element.querySelector(".col.left")?.append(button);
+}
+
+/**
+ * Put a Hide/Show heraldry button in the Token HUD, for a Knight who has
+ * painted heraldry and a user who owns the Token.
  * @param {TokenHUD} hud
  * @param {HTMLElement} element
  */
@@ -166,22 +190,38 @@ function addHeraldryButton(hud, element) {
 	const token = hud.object;
 	if (!token?.knightHeraldry || !token.document.isOwner) return;
 	const hidden = Boolean(token.document.getFlag(SYSTEM_ID, HIDE_HERALDRY_FLAG));
-	const label = t(hidden ? "heraldry.showOnToken" : "heraldry.hideOnToken");
-	const button = document.createElement("button");
-	button.type = "button";
-	button.className = `control-icon${hidden ? " active" : ""}`;
-	button.dataset.tooltip = "";
-	button.ariaLabel = label;
-	button.innerHTML = `<i class="fa-solid fa-shield-halved" inert></i>`;
-	button.addEventListener("click", async (event) => {
-		event.preventDefault();
-		await token.document.setFlag(SYSTEM_ID, HIDE_HERALDRY_FLAG, !hidden);
-		hud.render();
+	addHudButton(element, {
+		icon: "fa-shield-halved",
+		label: t(hidden ? "heraldry.showOnToken" : "heraldry.hideOnToken"),
+		active: hidden,
+		onClick: async () => {
+			await token.document.setFlag(SYSTEM_ID, HIDE_HERALDRY_FLAG, !hidden);
+			hud.render();
+		}
 	});
-	element.querySelector(".col.left")?.append(button);
 }
 
-/** Keep every Knight's badge in step with their heraldry as it's painted or hidden, and offer the HUD button. */
+/**
+ * Put a Company picture button in the Token HUD a right click opens on the
+ * Company's Token, for the Referee. It's the only way to change the picture
+ * once the Realm is made.
+ * @param {TokenHUD} hud
+ * @param {HTMLElement} element
+ */
+function addCompanyPictureButton(hud, element) {
+	const token = hud.object;
+	if (!token?.isCompany || !game.user.isGM) return;
+	addHudButton(element, {
+		icon: "fa-flag",
+		label: t("company.picture"),
+		onClick: () => {
+			hud.close();
+			changeCompanyPicture(token.document);
+		}
+	});
+}
+
+/** Keep every Knight's badge in step with their heraldry as it's painted or hidden, and offer the HUD buttons. */
 export function registerTokenHeraldryHooks() {
 	Hooks.on("updateActor", (actor, changes) => {
 		if (!foundry.utils.hasProperty(changes, "system.heraldry")) return;
@@ -192,4 +232,5 @@ export function registerTokenHeraldryHooks() {
 		if (touches.some((path) => foundry.utils.hasProperty(changes, path))) document.object?.refreshHeraldry?.();
 	});
 	Hooks.on("renderTokenHUD", addHeraldryButton);
+	Hooks.on("renderTokenHUD", addCompanyPictureButton);
 }

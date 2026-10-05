@@ -173,6 +173,15 @@ export const SettingsTabMixin = (Base) => class extends Base {
 	}
 
 	/**
+	 * Buttons of the sheet's own to draw in a group, after its settings windows,
+	 * by group id. Each runs one of the sheet's actions.
+	 * @returns {Record<string, {action: string, label: string, hint?: string, icon: string}[]>}
+	 */
+	_settingsButtons() {
+		return {};
+	}
+
+	/**
 	 * Only a sheet that is the reader's own shows the page.
 	 * @override
 	 */
@@ -198,7 +207,10 @@ export const SettingsTabMixin = (Base) => class extends Base {
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		context.settingGroups = context.tabs?.[SETTINGS_TAB] ? settingGroupsView() : [];
+		const buttons = this._settingsButtons();
+		context.settingGroups = context.tabs?.[SETTINGS_TAB]
+			? settingGroupsView().map((group) => ({ ...group, buttons: buttons[group.id] ?? [] }))
+			: [];
 		return context;
 	}
 

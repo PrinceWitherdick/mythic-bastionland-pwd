@@ -44,6 +44,14 @@
 			{{#if hint}}<p class="bastionland-hint">{{localize hint}}</p>{{/if}}
 		</div>
 		{{/each}}
+
+		{{!-- The sheet's own buttons for the group, such as the Toolkit's Company picture. --}}
+		{{#each buttons}}
+		<div class="bastionland-settings__row bastionland-settings__row--menu">
+			<button type="button" class="bastionland-button" data-action="{{action}}"><i class="{{icon}}" inert></i> {{localize label}}</button>
+			{{#if hint}}<p class="bastionland-hint">{{localize hint}}</p>{{/if}}
+		</div>
+		{{/each}}
 	</section>
 	{{/each}}
 

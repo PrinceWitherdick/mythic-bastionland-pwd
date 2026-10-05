@@ -1,7 +1,7 @@
 /**
  * The picture the one Company Token carries (p7): the gallery shared by the
- * New Realm dialog and the window a Referee opens by double clicking the
- * Company on a Realm, the colour it's carried in, and the fields that answer
+ * New Realm dialog and the window a Referee opens from the Company Token's
+ * HUD on a Realm or the GM Toolkit's Settings page, the colour it's carried in, and the fields that answer
  * each other inside it.
  *
  * A recoloured icon is a file of its own, written into the system's art folder
@@ -275,13 +275,15 @@ export async function resolveCompanyPicture(data, { was } = {}) {
 /**
  * Ask the Referee which picture the Company carries, and give it to their
  * Token. The Scene keeps it too, so a Company taken off the map and stood in a
- * hex again comes back with the same picture.
- * @param {TokenDocument} token The Company's Token.
+ * hex again comes back with the same picture, and a Company not yet on the map
+ * is put down carrying it.
+ * @param {TokenDocument|null} token The Company's Token, or null when it isn't on the map.
+ * @param {Scene|null} [scene] The Realm, when there's no Token to find it from.
  * @returns {Promise<boolean>} Whether the picture was changed.
  */
-export async function changeCompanyPicture(token) {
-	if (!game.user.isGM || !token) return false;
-	const current = token.texture?.src || companyPicture(token.parent);
+export async function changeCompanyPicture(token, scene = token?.parent ?? null) {
+	if (!game.user.isGM || !(token || scene)) return false;
+	const current = token?.texture?.src || companyPicture(scene);
 	const data = await inputDialog({
 		title: t("company.picture"),
 		icon: "fa-solid fa-flag",
@@ -295,7 +297,7 @@ export async function changeCompanyPicture(token) {
 
 	const img = await resolveCompanyPicture(data, { was: current });
 	if (!img || img === current) return false;
-	await token.update({ "texture.src": img });
-	await token.parent?.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);
+	if (token) await token.update({ "texture.src": img });
+	await scene?.setFlag(SYSTEM_ID, COMPANY_IMG_FLAG, img);
 	return true;
 }
