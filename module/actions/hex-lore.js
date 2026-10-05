@@ -10,12 +10,14 @@ import {
 	normaliseHexLore,
 	normaliseRecord,
 	recordSpark,
+	renameSpark,
 	rollsOnArrival,
 	setNote,
 	sparkFromRoll,
 	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
+import { personView } from "../rules/people.js";
 import { OMEN_COUNT, barriersAround, featureAt, hexSummary, holdingName } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
@@ -34,6 +36,14 @@ export const HEX_LORE_FLAG = "hexLore";
  * @returns {string|null} When in the game it was rolled, as the hex's windows show it.
  */
 export const sparkWhen = (spark) => (spark.when ? t("hexLore.when", { when: calendarLabel(spark.when) }) : null);
+
+/**
+ * A roll kept in a hex, as the hex’s lists show it: a person is read back into their name and traits,
+ * and when it was rolled is the bare date, on a line under its table.
+ * @param {import("../rules/hex-lore.js").HexSpark} spark
+ * @returns {{id: string, table: string, prompt: string, when: string|null, person: ReturnType<typeof personView>}}
+ */
+export const sparkView = (spark) => ({ id: spark.id, table: spark.table, prompt: spark.prompt, when: spark.when ? calendarLabel(spark.when) : null, person: personView(spark) });
 
 /**
  * What the Realm says stands in a hex, for GMs: its Holding, Myth, Landmark
@@ -140,6 +150,9 @@ export const writeHexNote = (scene, hex, note) => editHexLore(scene, (lore) => s
 
 /** Strike one roll out of a hex. @returns {Promise<boolean>} */
 export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, (lore) => forgetSpark(lore, hex, id));
+
+/** Name one roll in a hex, such as a person met there. @returns {Promise<boolean>} */
+export const renameHexSpark = (scene, hex, id, name) => editHexLore(scene, (lore) => renameSpark(lore, hex, id, name));
 
 /** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
 export const forgetHexRecord = (scene, hex) => editHexLore(scene, (lore) => forgetRecord(lore, hex));

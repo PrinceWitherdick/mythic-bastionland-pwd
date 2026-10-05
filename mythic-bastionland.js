@@ -230,6 +230,7 @@ Hooks.once("init", () => {
 		"bastionland.travels-list": templatePath("apps/parts/travels-list.hbs"),
 		"bastionland.travels-hex-detail": templatePath("apps/parts/travels-hex-detail.hbs"),
 		"bastionland.hex-heading": templatePath("apps/parts/hex-heading.hbs"),
+		"bastionland.hex-spark": templatePath("apps/parts/hex-spark.hbs"),
 		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
 	});
 

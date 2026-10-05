@@ -1,0 +1,29 @@
+{{!-- One roll kept in a hex, as sparkView (module/actions/hex-lore.js) reads it. A person is their name over a row
+      for each trait; anything else is its prompt. Given renameable, a GM clicks the name to change it (hex-rename.js).
+      When it was rolled sits at the far right of the name or prompt, and drops under it when the row is narrow. --}}
+<div class="bastionland-hex-lore__prompt">
+	<div class="bastionland-hex-lore__title">
+		{{#if person}}
+		{{#if renameable}}
+		<button type="button" class="bastionland-hex-heading__rename bastionland-person__name bastionland-reveal-host" data-person-rename="{{person.name}}" data-spark="{{id}}" data-tooltip="{{localize 'bastionland.people.rename'}}">{{#if person.name}}{{person.name}}{{else}}<span class="bastionland-person__unnamed">{{localize "bastionland.people.unnamed"}}</span>{{/if}}<i class="fa-solid fa-pen bastionland-hex-heading__pen bastionland-reveal" inert></i></button>
+		{{else if person.name}}
+		<span class="bastionland-person__name">{{person.name}}</span>
+		{{else}}
+		<span class="bastionland-person__name bastionland-person__unnamed">{{localize "bastionland.people.unnamed"}}</span>
+		{{/if}}
+		{{else}}
+		<strong>{{prompt}}</strong>
+		{{/if}}
+		{{#if when}}<span class="bastionland-hex-lore__when">{{when}}</span>{{/if}}
+	</div>
+	{{#if person}}
+	<dl class="bastionland-person__traits">
+		{{#each person.traits}}
+		<dt>{{label}}</dt>
+		<dd>{{text}}</dd>
+		{{/each}}
+	</dl>
+	{{#if person.heard}}<p class="bastionland-person__heard">{{person.heard}}</p>{{/if}}
+	{{/if}}
+	<span class="bastionland-hex-lore__source">{{table}}</span>
+</div>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	HEX_LORE_VERSION,
 	MAX_HEX_SPARKS,
+	MAX_SPARK_NAME,
 	arrivalSparkSet,
 	emptyLore,
 	forgetSpark,
@@ -10,6 +11,7 @@ import {
 	normaliseHexLore,
 	normaliseRecord,
 	recordSpark,
+	renameSpark,
 	rollsOnArrival,
 	setNote,
 	sparkFromRoll,
@@ -117,6 +119,40 @@ describe("forgetSpark", () => {
 		const lore = recordSpark(emptyLore(), hex(3, 4), spark("a"));
 		expect(forgetSpark(lore, hex(3, 4), "z")).toBe(lore);
 		expect(forgetSpark(lore, hex(9, 9), "a")).toBe(lore);
+	});
+});
+
+describe("renameSpark", () => {
+	const two = () => recordSpark(recordSpark(emptyLore(), hex(3, 4), spark("a")), hex(3, 4), spark("b"));
+
+	it("names one roll and leaves the rest", () => {
+		const sparks = renameSpark(two(), hex(3, 4), "a", "  Hamo ").hexes["3,4"].sparks;
+		expect(sparks[0].name).toBe("Hamo");
+		expect(sparks[1]).not.toHaveProperty("name");
+	});
+
+	it("takes the name away when it's rubbed out", () => {
+		const named = renameSpark(two(), hex(3, 4), "a", "Hamo");
+		expect(renameSpark(named, hex(3, 4), "a", " ").hexes["3,4"].sparks[0]).not.toHaveProperty("name");
+	});
+
+	it("cuts a long name to length", () => {
+		const name = renameSpark(two(), hex(3, 4), "a", "x".repeat(MAX_SPARK_NAME + 10)).hexes["3,4"].sparks[0].name;
+		expect(name).toHaveLength(MAX_SPARK_NAME);
+	});
+
+	it("does nothing for a roll that isn't there, or a name that hasn't changed", () => {
+		const lore = renameSpark(two(), hex(3, 4), "a", "Hamo");
+		expect(renameSpark(lore, hex(3, 4), "z", "Odo")).toBe(lore);
+		expect(renameSpark(lore, hex(9, 9), "a", "Odo")).toBe(lore);
+		expect(renameSpark(lore, hex(3, 4), "a", "Hamo")).toBe(lore);
+	});
+
+	it("keeps a person's mark and name through a reload, and gives other rolls neither", () => {
+		const lore = normaliseHexLore(renameSpark(recordSpark(emptyLore(), hex(3, 4), { ...spark("a"), person: true }), hex(3, 4), "a", "Hamo"));
+		expect(lore.hexes["3,4"].sparks[0]).toMatchObject({ person: true, name: "Hamo" });
+		const plain = normaliseHexLore(recordSpark(emptyLore(), hex(3, 4), { ...spark("b"), person: "yes", name: "  " }));
+		expect(plain.hexes["3,4"].sparks[0]).toEqual(spark("b"));
 	});
 });
 

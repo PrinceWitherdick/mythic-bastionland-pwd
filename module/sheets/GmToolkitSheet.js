@@ -5,7 +5,7 @@ import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
-import { forgetHexSpark, getHexLore, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
+import { forgetHexSpark, getHexLore, sparkView, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
@@ -589,18 +589,13 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const terrainName = terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null;
 		const features = [...status, ...this.#featuresIn(data.realm, hex, self)];
 		const visited = visits && visitsLabel(visits);
-		const sparks = [...(record?.sparks ?? [])].reverse().map((spark) => ({
-			id: spark.id,
-			prompt: spark.prompt,
-			table: spark.table,
-			when: sparkWhen(spark)
-		}));
+		const sparks = [...(record?.sparks ?? [])].reverse().map(sparkView);
 		// The wilderness as it was last rolled, read at a glance while the card is folded.
 		const wild = latestWilderness(record).map((spark) => ({
 			text: t("gmToolkit.wildChip", { table: spark.table, prompt: spark.prompt }),
 			when: sparkWhen(spark)
 		}));
-		const said = [title, kind, label, terrainName, ...features.map((feature) => feature.text), visited, record?.note, shared?.party?.text, ...sparks.flatMap((spark) => [spark.prompt, spark.table, spark.when])];
+		const said = [title, kind, label, terrainName, ...features.map((feature) => feature.text), visited, record?.note, shared?.party?.text, ...sparks.flatMap((spark) => [spark.person?.name, spark.prompt, spark.table, spark.when])];
 		return {
 			key,
 			// Everything the card says, for the Places page's search.

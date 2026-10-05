@@ -50,7 +50,15 @@ const ARRIVAL_POSITIONS = Object.freeze([0, 6]);
  * @property {string} prompt   The entries joined, the way the chat card reads them.
  * @property {{age: number, season: string, day: number, phase: string}|null} when
  *   The world's calendar when it was rolled, so a hex says when it was last thought about.
+ * @property {boolean} [person] A person rolled on every People table at once, rather than one table's roll.
+ * @property {string} [name]   What the GM calls them; only a person has one.
  */
+
+/** How long a person's name in a hex may be. */
+export const MAX_SPARK_NAME = 60;
+
+/** @returns {string} A name as a hex keeps it: trimmed and cut to length. */
+export const cleanSparkName = (name) => trimmedText(name).slice(0, MAX_SPARK_NAME).trim();
 
 /**
  * @typedef {object} HexRecord
@@ -94,7 +102,7 @@ function normaliseSpark(raw, index) {
 	const table = trimmedText(raw.table);
 	const entries = (Array.isArray(raw.entries) ? raw.entries : []).map(trimmedText).filter(Boolean);
 	if (!table || !entries.length) return null;
-	return {
+	const spark = {
 		id: trimmedText(raw.id) || String(index),
 		page: trimmedText(raw.page),
 		table,
@@ -103,6 +111,11 @@ function normaliseSpark(raw, index) {
 		prompt: trimmedText(raw.prompt) || entries.join(" "),
 		when: normaliseWhen(raw.when)
 	};
+	// Only a person carries these, so every other roll keeps the shape it always had.
+	if (raw.person === true) spark.person = true;
+	const name = cleanSparkName(raw.name);
+	if (name) spark.name = name;
+	return spark;
 }
 
 /**
@@ -213,6 +226,25 @@ export function forgetSpark(lore, hex, id) {
 	const sparks = here.sparks.filter((spark) => spark.id !== id);
 	if (sparks.length === here.sparks.length) return lore;
 	return withRecord(lore, hex, worthKeeping({ ...here, sparks }));
+}
+
+/**
+ * Name one roll in a hex, such as a person met there. An empty name takes the name away.
+ * @param {HexLore} lore
+ * @param {{col: number, row: number}} hex
+ * @param {string} id
+ * @param {string} name
+ * @returns {HexLore} Unchanged when no roll there has that id, or it already has that name.
+ */
+export function renameSpark(lore, hex, id, name) {
+	const here = loreAt(lore, hex);
+	const spark = here?.sparks.find((each) => each.id === id);
+	if (!spark) return lore;
+	const clean = cleanSparkName(name);
+	if ((spark.name ?? "") === clean) return lore;
+	const { name: _was, ...rest } = spark;
+	const renamed = clean ? { ...rest, name: clean } : rest;
+	return withRecord(lore, hex, { ...here, sparks: here.sparks.map((each) => (each === spark ? renamed : each)) });
 }
 
 /**

@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
 import { MAX_HEX_NAME, cleanHexName } from "../rules/hex-names.js";
+import { MAX_SPARK_NAME, cleanSparkName } from "../rules/hex-lore.js";
 
 /**
  * A name a GM changes where it's shown: a click on its button turns it into a
@@ -70,5 +71,22 @@ export function wireHexRename(root, save) {
 		hint: t("realm.hexName.hint"),
 		clean: cleanHexName,
 		save
+	});
+}
+
+/**
+ * The names of people kept in a hex, as a GM changes them in the Lay of the Land (hex-spark.hbs).
+ * @param {HTMLElement|null|undefined} root Where the hex's rolls are drawn.
+ * @param {(id: string, name: string) => Promise<unknown>} save Writes the name of the roll with that id.
+ */
+export function wirePersonRename(root, save) {
+	wireRenameInPlace(root, "data-person-rename", {
+		className: "bastionland-hex-heading__input bastionland-person__input",
+		maxLength: MAX_SPARK_NAME,
+		placeholder: t("people.unnamed"),
+		label: t("people.nameLabel"),
+		hint: t("people.nameHint"),
+		clean: cleanSparkName,
+		save: (name, button) => save(button.dataset.spark, name)
 	});
 }

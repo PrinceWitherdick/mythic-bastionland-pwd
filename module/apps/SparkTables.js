@@ -1,7 +1,7 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { companyTokenHex } from "../actions/company.js";
 import { keepHexSparks, keepTableRoll, throwSparkDice, wildernessHexTables } from "../actions/hex-lore.js";
-import { keepHexPerson, postPerson, rollPersonTables } from "../actions/people.js";
+import { keepHexPerson, namesForHex, postPerson, rollPersonTables } from "../actions/people.js";
 import { isRealmScene } from "../actions/realm.js";
 import { rollSpark } from "../actions/referee-rolls.js";
 import { loadArtIndex } from "../book-art/art-index.js";
@@ -424,8 +424,9 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 				{ reduce }
 			));
 			const target = this.#keeping();
-			const kept = target ? keepHexPerson(target.scene, target.hex, person) : null;
-			await Promise.all([postPerson(person), kept, ...spins]);
+			const [name] = namesForHex(target?.scene ?? null, target?.hex ?? null, 1);
+			const kept = target ? keepHexPerson(target.scene, target.hex, person, name) : null;
+			await Promise.all([postPerson(person, { name }), kept, ...spins]);
 		} finally {
 			this.#spinning = false;
 			// The Company may have moved on since the box last said where rolls go.

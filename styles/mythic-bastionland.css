@@ -6201,11 +6201,105 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
+/* A kept roll's name or prompt, with when it was rolled at the far right; the date wraps under it when there's no room. */
+.bastionland-hex-lore__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: 0.75rem;
+}
+
+.bastionland-hex-lore__when {
+	margin-left: auto;
+	color: color-mix(in srgb, var(--bastionland-ink-soft), var(--bastionland-ink-faint));
+	font-size: var(--bastionland-font-floor);
+	white-space: nowrap;
+}
+
 .bastionland-hex-lore__roll button {
 	flex: 0 0 auto;
 	width: 1.6rem;
 	height: 1.6rem;
 	line-height: 1;
+}
+
+/* A person kept in a hex (hex-spark.hbs): their name, then a row for each trait, the table's name beside what it
+   gave, rather than every trait run together in bold. The rows stack once the column is too narrow for both. */
+.bastionland-hex-lore__prompt {
+	container-type: inline-size;
+	min-width: 0;
+}
+
+.bastionland .bastionland-person__name {
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-size: 1.3rem;
+	font-weight: normal;
+	line-height: 1.2;
+}
+
+/* The name's button is drawn as the name, not the small square the roll's other buttons are. */
+.bastionland .bastionland-hex-lore__roll button.bastionland-person__name {
+	flex: none;
+	align-self: flex-start;
+	width: auto;
+	height: auto;
+	line-height: 1.2;
+}
+
+.bastionland .bastionland-hex-lore__roll button.bastionland-person__name:hover {
+	color: var(--bastionland-blood);
+}
+
+.bastionland .bastionland-person__unnamed {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: 1rem;
+	font-style: italic;
+	font-weight: normal;
+}
+
+.bastionland .bastionland-person__input {
+	font-family: var(--bastionland-font-display);
+	font-size: 1.3rem;
+}
+
+.bastionland-person__traits {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.15rem 0.7rem;
+	margin: 0.25rem 0 0.2rem;
+}
+
+.bastionland-person__traits dt {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+	font-size: var(--bastionland-font-note);
+	font-variant: small-caps;
+	font-weight: normal;
+	letter-spacing: 0.03em;
+}
+
+.bastionland-person__traits dd {
+	margin: 0;
+	font-weight: normal;
+}
+
+@container (max-width: 18rem) {
+	.bastionland-person__traits {
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+
+	.bastionland-person__traits dd {
+		margin-bottom: 0.2rem;
+	}
+}
+
+.bastionland-person__heard {
+	margin: 0 0 0.15rem;
+	color: var(--bastionland-ink-soft);
+	font-style: italic;
 }
 
 /* Flip the Book (module/apps/BookFlip.js): a random spread's prompts, the Knight's page on the left and the

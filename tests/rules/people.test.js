@@ -9,6 +9,7 @@ import {
 	personLine,
 	personSpark,
 	personTraits,
+	personView,
 	sparkDiceCount
 } from "../../module/rules/people.js";
 
@@ -79,6 +80,7 @@ describe("a person", () => {
 		expect(spark).toEqual({
 			id: "p1",
 			page: "people",
+			person: true,
 			table: "A person",
 			rolls: [2, 3, 4, 5],
 			entries: ["Look: Look-a2 Look-b3", "Voice: Voice-a4 Voice-b5", "Has heard of the Heron"],
@@ -87,6 +89,44 @@ describe("a person", () => {
 		});
 		const hex = { col: 3, row: 4 };
 		expect(loreAt(recordSpark(emptyLore(), hex, spark), hex).sparks).toEqual([spark]);
+	});
+
+	it("keeps their name in the hex", () => {
+		const spark = personSpark(traits, { id: "p1", table: "A person", name: "Hamo" });
+		expect(spark.name).toBe("Hamo");
+		const hex = { col: 3, row: 4 };
+		expect(loreAt(recordSpark(emptyLore(), hex, spark), hex).sparks[0].name).toBe("Hamo");
+		expect(personSpark(traits, { id: "p2", table: "A person" })).not.toHaveProperty("name");
+	});
+});
+
+describe("personView", () => {
+	const traits = personTraits(dealSparkDice([table("Look"), table("Voice")], [2, 3, 4, 5]));
+
+	it("reads a person back into their name, a row for each trait, and what they've heard of", () => {
+		const spark = personSpark(traits, { id: "p1", table: "A person", heard: "Has heard of the Heron", name: "Hamo" });
+		expect(personView(spark)).toEqual({
+			name: "Hamo",
+			traits: [
+				{ label: "Look", text: "Look-a2 Look-b3" },
+				{ label: "Voice", text: "Voice-a4 Voice-b5" }
+			],
+			heard: "Has heard of the Heron"
+		});
+	});
+
+	it("gives an unnamed person an empty name and nothing heard", () => {
+		expect(personView(personSpark(traits, { id: "p1", table: "A person" }))).toMatchObject({ name: "", heard: null });
+	});
+
+	it("knows a person kept before people were marked by their entries", () => {
+		const { person: _person, ...old } = personSpark(traits, { id: "p1", table: "A person" });
+		expect(personView(old)?.traits).toHaveLength(2);
+	});
+
+	it("leaves one People table rolled on its own, and other pages' rolls, as rolls", () => {
+		expect(personView({ id: "a", page: PEOPLE_PAGE, table: "Look", entries: ["Look-a2", "Look-b3"] })).toBeNull();
+		expect(personView({ id: "b", page: "nature", table: "Land", entries: ["Land: Wet", "Sky: Grey"] })).toBeNull();
 	});
 });
 

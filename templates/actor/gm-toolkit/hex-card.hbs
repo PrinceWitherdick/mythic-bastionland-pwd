@@ -40,10 +40,7 @@
 		<ul class="bastionland-hex-lore__rolls bastionland-gm-toolkit__sparks" aria-label="{{localize 'bastionland.gmToolkit.sparks'}}">
 			{{#each sparks}}
 			<li class="bastionland-hex-lore__roll">
-				<div class="bastionland-hex-lore__prompt">
-					<strong>{{prompt}}</strong>
-					<span class="bastionland-hex-lore__source">{{table}}{{#if when}} · {{when}}{{/if}}</span>
-				</div>
+				{{> "bastionland.hex-spark"}}
 				<button type="button" data-action="forgetSpark" data-spark="{{id}}" aria-label="{{localize 'bastionland.hexLore.forget'}}" data-tooltip="{{localize 'bastionland.hexLore.forget'}}"><i class="fa-solid fa-xmark" inert></i></button>
 			</li>
 			{{else}}

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyLore, loreAt } from "../../module/rules/hex-lore.js";
+import { KNIGHT_NAMES } from "../../module/rules/knight-names.js";
 
 // Invented, so no book text lives in the repository.
 const table = (name) => ({
@@ -40,6 +41,7 @@ vi.mock("../../module/book-art/art-index.js", () => ({
 }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => when }));
 vi.mock("../../module/actions/hex-lore.js", () => ({
+	getHexRecord: (_scene, at) => lore.hexes[`${at.col},${at.row}`] ?? null,
 	keepHexSparkRecords: vi.fn(async (_scene, hex, sparks) => {
 		const { recordSpark } = await import("../../module/rules/hex-lore.js");
 		lore = sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore);
@@ -133,6 +135,28 @@ describe("rolling a person in a hex", () => {
 		expect(vi.mocked(postCard).mock.calls[0][3].mode).toBe("gm");
 	});
 
+	it("names them from the Knight names, on the card as well, never as somebody already there", async () => {
+		thrown = personDice();
+		await rollHexPerson({ scene, hex });
+		const [first] = loreAt(lore, hex).sparks;
+		expect(first.person).toBe(true);
+		expect(KNIGHT_NAMES).toContain(first.name);
+		expect(vi.mocked(postCard).mock.calls[0][2].title).toBe(first.name);
+
+		const random = vi.spyOn(Math, "random").mockReturnValue(0);
+		try {
+			lore = emptyLore();
+			thrown = personDice();
+			await rollHexPerson({ scene, hex });
+			thrown = personDice();
+			await rollHexPerson({ scene, hex });
+			const names = loreAt(lore, hex).sparks.map(({ name }) => name);
+			expect(names).toEqual([KNIGHT_NAMES[0], KNIGHT_NAMES[1]]);
+		} finally {
+			random.mockRestore();
+		}
+	});
+
 	it("is the GM's alone", async () => {
 		game.user.isGM = false;
 		expect(await rollHexPerson({ scene, hex })).toBeNull();
@@ -144,18 +168,18 @@ describe("keeping a person rolled elsewhere in a hex", () => {
 	it("keeps them as the Lay of the Land does, with no card of its own", async () => {
 		thrown = personDice();
 		const person = await rollPersonTables();
-		expect(await keepHexPerson(scene, hex, person)).toBe(true);
+		expect(await keepHexPerson(scene, hex, person, "Wren")).toBe(true);
 		const [spark] = loreAt(lore, hex).sparks;
-		expect(spark).toMatchObject({ page: "people", rolls: personDice(), when });
+		expect(spark).toMatchObject({ page: "people", rolls: personDice(), when, name: "Wren" });
 		expect(postCard).not.toHaveBeenCalled();
 	});
 
 	it("is the GM's alone, and only on a Realm", async () => {
 		thrown = personDice();
 		const person = await rollPersonTables();
-		expect(await keepHexPerson({ id: "plain" }, hex, person)).toBe(false);
+		expect(await keepHexPerson({ id: "plain" }, hex, person, "Wren")).toBe(false);
 		game.user.isGM = false;
-		expect(await keepHexPerson(scene, hex, person)).toBe(false);
+		expect(await keepHexPerson(scene, hex, person, "Wren")).toBe(false);
 		expect(keepHexSparkRecords).not.toHaveBeenCalled();
 	});
 });
@@ -199,6 +223,16 @@ describe("rolling up a Holding", () => {
 		expect(options).toMatchObject({ mode: "gm" });
 		expect(options.rolls).toHaveLength(2);
 		expect(options.rolls[1].dice.at(-1).faces).toBe(3);
+	});
+
+	it("gives each person there a name of their own, on the card as well", async () => {
+		thrown = holdingDice(2, [3, 1, 2]);
+		await rollUpHolding({ scene, hex });
+		const names = loreAt(lore, hex).sparks.filter(({ person }) => person).map(({ name }) => name);
+		expect(names).toHaveLength(3);
+		expect(new Set(names).size).toBe(3);
+		for (const name of names) expect(KNIGHT_NAMES).toContain(name);
+		expect(vi.mocked(postCard).mock.calls[0][2].people[0].label).toBe(`people.holding.personNamed ${JSON.stringify({ name: names[0], number: 1, count: 3 })}`);
 	});
 
 	it("rolls two people on a d2 of 1", async () => {

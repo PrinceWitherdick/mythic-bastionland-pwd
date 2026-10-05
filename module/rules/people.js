@@ -94,18 +94,48 @@ export const personLine = (traits, heard = null) => [...traits.map(({ name, prom
  * @param {string} options.table What the hex's lists show beside them, such as "A person".
  * @param {string|null} [options.heard] The Myth they've heard of, in words.
  * @param {object|null} [options.when] The world's calendar when they were rolled.
+ * @param {string|null} [options.name] What they're called.
  * @returns {import("./hex-lore.js").HexSpark}
  */
-export function personSpark(traits, { id, table, heard = null, when = null }) {
-	return {
+export function personSpark(traits, { id, table, heard = null, when = null, name = null }) {
+	const spark = {
 		id,
 		page: PEOPLE_PAGE,
+		person: true,
 		table,
 		rolls: traits.flatMap((trait) => trait.rolls),
-		entries: [...traits.map(({ name, prompt }) => `${name}: ${prompt}`), heard].filter(Boolean),
+		entries: [...traits.map(({ name: trait, prompt }) => `${trait}: ${prompt}`), heard].filter(Boolean),
 		prompt: personLine(traits, heard),
 		when
 	};
+	if (name) spark.name = name;
+	return spark;
+}
+
+/** A trait as a person's entry holds it, "Voice: Soothing Blunt": the table, then what it gave. */
+const TRAIT_ENTRY = /^([^:]+):\s+(.+)$/;
+
+/**
+ * A person kept in a hex, read back into their parts for a tidy list: their
+ * name, a row for each trait, and what they've heard of the Realm's Myths.
+ * People kept before they were marked as such are known by their entries, a
+ * trait to each; a roll on one People table on its own isn't a person.
+ * @param {import("./hex-lore.js").HexSpark} spark
+ * @returns {{name: string, traits: {label: string, text: string}[], heard: string|null}|null}
+ *   Null for anything but a person.
+ */
+export function personView(spark) {
+	const entries = spark?.entries ?? [];
+	const traits = [];
+	const others = [];
+	for (const entry of entries) {
+		const match = TRAIT_ENTRY.exec(entry);
+		if (match) traits.push({ label: match[1].trim(), text: match[2].trim() });
+		else others.push(entry);
+	}
+	const person = spark?.person === true || (spark?.page === PEOPLE_PAGE && traits.length >= 2);
+	if (!person) return null;
+	return { name: spark.name ?? "", traits, heard: others.join(" ") || null };
 }
 
 /**

@@ -12,10 +12,11 @@ import {
 	personTraits,
 	sparkDiceCount
 } from "../rules/people.js";
+import { rollKnightName } from "../rules/knight-names.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { midSentence } from "../rules/text.js";
 import { getCalendar } from "./calendar.js";
-import { keepHexSparkRecords } from "./hex-lore.js";
+import { getHexRecord, keepHexSparkRecords } from "./hex-lore.js";
 import { getRealm, isRealmScene } from "./realm.js";
 
 /**
@@ -51,6 +52,21 @@ const pageReference = (page) => t("spark.tagline", { page: page.name || t(`spark
 const traitLines = (traits) => traits.map(({ name, prompt, rolls }) => ({ name, prompt, rolls }));
 
 /**
+ * Names for people met in a hex, from the names the Knight chooser rolls:
+ * never one already given to somebody there while any other is left.
+ * @param {Scene|null} scene Left out, a name is rolled with nothing to avoid.
+ * @param {{col: number, row: number}|null} hex
+ * @param {number} count
+ * @returns {string[]}
+ */
+export function namesForHex(scene, hex, count) {
+	const taken = ((scene && hex ? getHexRecord(scene, hex) : null)?.sparks ?? []).map((spark) => spark.name).filter(Boolean);
+	const names = [];
+	for (let each = 0; each < count; each++) names.push(rollKnightName(Math.random, [...taken, ...names]));
+	return names;
+}
+
+/**
  * Roll every People Spark Table at once (p24), as the Referee does to make a
  * ruler or a stranger (p200, p202). Nothing is posted.
  * @returns {Promise<RolledPerson|null>} Null, with a word to the user, where Import PDF hasn't read the page.
@@ -71,12 +87,13 @@ export async function rollPersonTables() {
  * @param {RolledPerson} person
  * @param {object} [options]
  * @param {string|null} [options.hex] Where they were rolled, for the card's heading.
+ * @param {string|null} [options.name] What they're called, as the card's title.
  * @param {"gm"} [options.mode] Left out, the card goes as the user's chat mode says.
  * @returns {Promise<ChatMessage|null>}
  */
-export function postPerson({ page, traits, roll }, { hex = null, mode } = {}) {
+export function postPerson({ page, traits, roll }, { hex = null, name = null, mode } = {}) {
 	return postCard(null, "people", {
-		title: t("people.title"),
+		title: name || t("people.title"),
 		tagline: hex ? t("people.taglineHex", { hex, reference: pageReference(page) }) : pageReference(page),
 		people: [{ traits: traitLines(traits) }]
 	}, { rolls: [roll], mode });
@@ -94,9 +111,10 @@ export async function rollHexPerson({ scene, hex }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
 	const person = await rollPersonTables();
 	if (!person) return null;
+	const [name] = namesForHex(scene, hex, 1);
 	await Promise.all([
-		keepHexPerson(scene, hex, person),
-		postPerson(person, { hex: hexLabel(hex, scene), mode: "gm" })
+		keepHexPerson(scene, hex, person, name),
+		postPerson(person, { hex: hexLabel(hex, scene), name, mode: "gm" })
 	]);
 	return person;
 }
@@ -107,14 +125,16 @@ export async function rollHexPerson({ scene, hex }) {
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {RolledPerson} person
+ * @param {string} name What they're called, as namesForHex gives it.
  * @returns {Promise<boolean>} Whether anything was kept.
  */
-export function keepHexPerson(scene, hex, person) {
+export function keepHexPerson(scene, hex, person, name) {
 	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve(false);
 	return keepHexSparkRecords(scene, hex, [personSpark(person.traits, {
 		id: foundry.utils.randomID(),
 		table: t("people.kept", { page: person.page.page }),
-		when: getCalendar()
+		when: getCalendar(),
+		name
 	})]);
 }
 
@@ -155,12 +175,13 @@ export async function rollUpHolding({ scene, hex }) {
 	const place = rolled.slice(0, set.length).filter(({ prompt }) => prompt);
 	const when = getCalendar();
 	const reference = pageReference(civilisation);
+	const names = namesForHex(scene, hex, folk);
 	const persons = Array.from({ length: folk }, (_, number) => {
 		const start = set.length + number * people.tables.length;
 		const traits = personTraits(rolled.slice(start, start + people.tables.length));
 		const myth = myths.length ? heardOfMyth(realm, others[number]) : null;
 		const known = myth ? mythEntry(index, myth) : null;
-		return { number: number + 1, traits, known };
+		return { number: number + 1, name: names[number], traits, known };
 	});
 
 	const sparks = [
@@ -173,11 +194,12 @@ export async function rollUpHolding({ scene, hex }) {
 			prompt,
 			when
 		})),
-		...persons.map(({ number, traits, known }) => personSpark(traits, {
+		...persons.map(({ number, name, traits, known }) => personSpark(traits, {
 			id: foundry.utils.randomID(),
 			table: t("people.holding.kept", { number, count: folk }),
 			heard: known ? t("people.heardOf", { name: midSentence(known.name) }) : null,
-			when
+			when,
+			name
 		}))
 	];
 	await keepHexSparkRecords(scene, hex, sparks);
@@ -186,8 +208,8 @@ export async function rollUpHolding({ scene, hex }) {
 		title: holdingName(here, t),
 		tagline: t("people.holding.tagline", { hex: hexLabel(hex, scene) }),
 		sparks: place.map(({ table, results, prompt }) => ({ name: table.name, reference, prompt, results: results.filter((result) => result.entry) })),
-		people: persons.map(({ number, traits, known }) => ({
-			label: t("people.holding.person", { number, count: folk }),
+		people: persons.map(({ number, name, traits, known }) => ({
+			label: t("people.holding.personNamed", { name, number, count: folk }),
 			traits: traitLines(traits),
 			heard: known ? t("people.heardOfPage", { name: midSentence(known.name), page: known.page }) : null
 		})),

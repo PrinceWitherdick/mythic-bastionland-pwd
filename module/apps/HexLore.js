@@ -3,7 +3,8 @@ import {
 	forgetHexSpark,
 	getHexRecord,
 	hexFeatureLines,
-	sparkWhen,
+	renameHexSpark,
+	sparkView,
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
@@ -24,7 +25,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { WILD_PAGE, openSparkTables, refreshSparkKeep } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
-import { wireHexRename } from "./hex-rename.js";
+import { wireHexRename, wirePersonRename } from "./hex-rename.js";
 import { HEX_EDIT_FIELDS, chooseHexMyth, hexEditContext, rollHexMyth, rollHexSeer, stepHexOmen, toggleHexReveal, writeHexField } from "./hex-edit.js";
 import { renderWhenIdle } from "./ui.js";
 import { realmKnown } from "../actions/solo.js";
@@ -116,6 +117,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		keepFold("[data-hex-forget]", context.forget?.open, (open) => (this.#forgetOpen = open));
 		// A GM names the hex by clicking its heading.
 		wireHexRename(this.element, (name) => renameHex(this.scene, this.hex, name));
+		// And names the people kept here by clicking theirs.
+		wirePersonRename(this.element, (id, name) => renameHexSpark(this.scene, this.hex, id, name));
 		// Rolls on the Spark Tables are kept in the hex this is open on.
 		refreshSparkKeep();
 	}
@@ -200,12 +203,9 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 			party: partyNoteView(shared?.party),
 			told: toldLabel(shared),
 			// Newest first: the roll just made is the one being read.
-			sparks: (record?.sparks ?? []).map((spark) => ({
-				id: spark.id,
-				table: spark.table,
-				prompt: spark.prompt,
-				when: sparkWhen(spark)
-			})).reverse(),
+			sparks: (record?.sparks ?? []).map(sparkView).reverse(),
+			// Only a GM names the people kept here.
+			renameable: game.user.isGM,
 			notice,
 			edit,
 			forget
