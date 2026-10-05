@@ -11,24 +11,26 @@ import { LANDMARK_TYPES } from "../rules/realm.js";
  * The Custom Realm rows: the map's size, then each part the generator rolls,
  * with the book's numbers (p14) filled in.
  * @returns {{key: string, label: string, rollable: boolean, note: string|null,
- *   fields: {name: string, label: string|null, value: number, min: number, max: number}[],
+ *   fields: {name: string, label: string|null, value: number, min: number, max: number, tight?: boolean, after?: string}[],
  *   more: object[], moreNote: string|null}[]} `more` are fields a part may fill in beyond its own, such as a count for one type of Landmark.
+ *   A `tight` field's number runs straight on from its label, as d12 does; `after` is read on the same line after the number.
  */
 export function setupParts() {
 	const field = (key, value, name = key, label = null) => ({ name: `setup.${name}`, label, value, ...SETUP_LIMITS[key] });
 	const labelled = (key, value) => field(key, value, key, t(`realm.setup.fields.${key}`));
 	const fields = {
-		terrain: [labelled("cluster", BOOK_SETUP.cluster), labelled("lakes", BOOK_SETUP.lakes)],
+		terrain: [{ ...labelled("cluster", BOOK_SETUP.cluster), tight: true }, labelled("lakes", BOOK_SETUP.lakes)],
 		rivers: [],
 		holdings: [field("holdings", BOOK_SETUP.holdings)],
 		myths: [field("myths", BOOK_SETUP.myths)],
+		// "From 3 to 4 of each type", read as one line.
 		landmarks: [
 			field("landmarks", BOOK_SETUP.landmarks.min, "landmarks.min", t("realm.setup.fields.landmarksMin")),
-			field("landmarks", BOOK_SETUP.landmarks.max, "landmarks.max", t("realm.setup.fields.landmarksMax"))
+			{ ...field("landmarks", BOOK_SETUP.landmarks.max, "landmarks.max", t("realm.setup.fields.landmarksMax")), after: t("realm.setup.notes.landmarks") }
 		],
 		barriers: [field("barriers", setupBarriers(BOOK_SETUP))]
 	};
-	const notes = ["rivers", "holdings", "myths", "landmarks", "barriers"];
+	const notes = ["rivers", "holdings", "myths", "barriers"];
 	// Each type of Landmark may be given a count of its own (p202); left blank, it takes the range above.
 	const more = {
 		landmarks: LANDMARK_TYPES.map((type) => ({ ...field("landmarks", "", `landmarks.types.${type}`, t(`realm.landmarks.${type}`)), placeholder: "—" }))
@@ -67,6 +69,8 @@ export function wireSetupFields(element) {
 			part.classList.toggle("is-off", off);
 			for (const input of part.querySelectorAll("[data-setup-number]")) input.disabled = !ignore.checked || off;
 		}
+		// A type of Landmark's own count is only asked for once the rules are ignored.
+		for (const more of element.querySelectorAll("[data-setup-more]")) more.hidden = !ignore.checked;
 	};
 	ignore.addEventListener("change", () => {
 		if (!ignore.checked) {

@@ -750,32 +750,47 @@
 }
 
 /*
- * The New Realm dialog's Custom Realm page: a part to a row, its name and
- * roll box on the left, its numbers on the right. Locked numbers are the
- * book's, so they stay readable.
+ * The New Realm dialog's Custom Realm page: a part to a ruled row, its name
+ * and roll box on the left, its numbers and note on one line on the right.
+ * Locked numbers are the book's, written in as words are, so they take no
+ * more room than their digits.
  */
 .bastionland-realm-setup__parts {
-	display: grid;
-	grid-template-columns: 7rem 1fr;
-	align-items: center;
-	gap: 0.35rem 0.6rem;
 	margin-top: 0.2rem;
 }
 
 .bastionland-realm-setup__part {
-	display: contents;
+	display: grid;
+	grid-template-columns: 7.5rem minmax(0, 1fr);
+	align-items: start;
+	gap: 0 0.6rem;
+	padding-block: 0.45rem;
 }
 
+.bastionland-realm-setup__part + .bastionland-realm-setup__part {
+	border-top: 1px solid color-mix(in srgb, var(--bastionland-rule) 40%, transparent);
+}
+
+/* As tall as a line of numbers, so the name sits level with the first of them. */
 .bastionland-realm-setup__name {
+	display: flex;
+	align-items: center;
+	min-height: 1.9rem;
 	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.03em;
+}
+
+.bastionland-realm-setup__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
 }
 
 .bastionland-realm-setup__numbers {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.25rem 0.6rem;
+	gap: 0.25rem 1.2rem;
 	min-height: 1.9rem;
 }
 
@@ -786,6 +801,11 @@
 	white-space: nowrap;
 }
 
+/* Clusters of d12: the die and its size read as one word. */
+.bastionland-realm-setup__field.is-tight {
+	gap: 0;
+}
+
 .bastionland-dialog .bastionland-realm-setup__field input {
 	flex: none;
 	width: 3.4rem;
@@ -794,7 +814,10 @@
 
 /* Locked, a number reads as the book's: written in, not a box to fill. */
 .bastionland-dialog .bastionland-realm-setup__field input:disabled {
-	padding-inline: 0.1rem;
+	width: 3ch;
+	min-width: 1ch;
+	field-sizing: content;
+	padding-inline: 0;
 	border-color: transparent;
 	background: none;
 	opacity: 1;
@@ -803,13 +826,38 @@
 }
 
 .bastionland-realm-setup__note {
+	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
 	font-style: italic;
 }
 
+/* A part with no numbers, such as the River: its note takes the first line. */
+.bastionland-realm-setup__body > .bastionland-realm-setup__note:first-child {
+	display: flex;
+	align-items: center;
+	min-height: 1.9rem;
+}
+
+/* No display of its own, so its hidden attribute still hides it. */
+.bastionland-realm-setup__more {
+	margin-top: 0.3rem;
+}
+
+/* A box to each type of Landmark, lined up in columns: three abreast where there's room. */
+.bastionland-realm-setup__types {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+	gap: 0.3rem 1rem;
+	margin-top: 0.3rem;
+}
+
+.bastionland-realm-setup__types > .bastionland-realm-setup__field {
+	justify-content: space-between;
+}
+
 /* A part left to draw by hand. */
-.bastionland-realm-setup__part.is-off > .bastionland-realm-setup__numbers {
+.bastionland-realm-setup__part.is-off > .bastionland-realm-setup__body {
 	opacity: 0.4;
 }
 

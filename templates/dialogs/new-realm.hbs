@@ -88,22 +88,35 @@
 					{{else}}
 					<span class="bastionland-realm-setup__name">{{label}}</span>
 					{{/if}}
-					<div class="bastionland-realm-setup__numbers">
-						{{#each fields}}
-						<label class="bastionland-realm-setup__field">
-							{{#if label}}<span>{{label}}</span>{{/if}}
-							<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" disabled data-setup-number data-book="{{value}}"{{#unless label}} aria-label="{{../label}}"{{/unless}}>
-						</label>
-						{{/each}}
-						{{#if note}}<span class="bastionland-realm-setup__note">{{note}}</span>{{/if}}
+					{{!-- The numbers and the note read as one line, the note wrapping under them only where there's no room. --}}
+					<div class="bastionland-realm-setup__body">
+						{{#if fields.length}}
+						<div class="bastionland-realm-setup__numbers">
+							{{#each fields}}
+							<label class="bastionland-realm-setup__field{{#if tight}} is-tight{{/if}}">
+								{{#if label}}<span>{{label}}</span>{{/if}}
+								<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" disabled data-setup-number data-book="{{value}}"{{#unless label}} aria-label="{{../label}}"{{/unless}}>
+								{{#if after}}<span>{{after}}</span>{{/if}}
+							</label>
+							{{/each}}
+							{{#if note}}<span class="bastionland-realm-setup__note">{{note}}</span>{{/if}}
+						</div>
+						{{else if note}}
+						<p class="bastionland-realm-setup__note">{{note}}</p>
+						{{/if}}
+						{{!-- Shown only once the rules are ignored: until then there's nothing to fill in (module/apps/realm-setup-fields.js). --}}
 						{{#if more.length}}
-						<span class="bastionland-realm-setup__note bastionland-realm-setup__more">{{moreNote}}</span>
-						{{#each more}}
-						<label class="bastionland-realm-setup__field">
-							<span>{{label}}</span>
-							<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" placeholder="{{placeholder}}" disabled data-setup-number data-book="{{value}}">
-						</label>
-						{{/each}}
+						<div class="bastionland-realm-setup__more" data-setup-more hidden>
+							<p class="bastionland-realm-setup__note">{{moreNote}}</p>
+							<div class="bastionland-realm-setup__types">
+								{{#each more}}
+								<label class="bastionland-realm-setup__field">
+									<span>{{label}}</span>
+									<input type="number" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="1" placeholder="{{placeholder}}" disabled data-setup-number data-book="{{value}}">
+								</label>
+								{{/each}}
+							</div>
+						</div>
 						{{/if}}
 					</div>
 				</div>
