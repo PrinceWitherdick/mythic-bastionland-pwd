@@ -4,7 +4,10 @@ import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexIndex, hexKey, parseHexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { REALM_PALETTES } from "../../module/rules/realm-skins.js";
 import { emptyShared, recordTold } from "../../module/rules/hex-shared.js";
-import { LEGEND_KINDS, chartScrollBy, haloPoints, legendGlyph, routeOf, routeStretches, travelsChart } from "../../module/rules/travels-chart.js";
+import {
+	CHART_MAX_ZOOM, LEGEND_KINDS, chartBoxHolding, chartBoxText, chartScrollBy, chartZoomed, clampChartBox, haloPoints, legendGlyph,
+	panChartBox, parseChartBox, routeOf, routeStretches, travelsChart, wheelZoomFactor, zoomChartBox
+} from "../../module/rules/travels-chart.js";
 import { holdingsKnown, travelsList } from "../../module/rules/travels.js";
 
 const g = realmGeometry({ cols: 12, rows: 12 });
@@ -183,5 +186,65 @@ describe("haloPoints", () => {
 			expect(x).toBeCloseTo(pairs(ring)[index][0], 0);
 			expect(y).toBeCloseTo(pairs(ring)[index][1], 0);
 		});
+	});
+});
+
+describe("zooming the chart", () => {
+	const whole = { x: -10, y: -10, width: 400, height: 300 };
+
+	it("reads and writes a viewBox", () => {
+		expect(parseChartBox("-10 -10 400 300")).toEqual(whole);
+		expect(parseChartBox("0,0, 4,3")).toEqual({ x: 0, y: 0, width: 4, height: 3 });
+		expect(parseChartBox("0 0 0 3")).toBeNull();
+		expect(parseChartBox(null)).toBeNull();
+		expect(chartBoxText({ x: 1.23456, y: 0, width: 2, height: 1.5 })).toBe("1.235 0 2 1.5");
+	});
+
+	it("zooms about the pointer, which stays put on the page", () => {
+		const at = { x: 90, y: 140 };
+		const box = zoomChartBox(whole, whole, 2, at);
+		expect(box.width).toBe(200);
+		expect(box.height).toBe(150);
+		// The pointer is as far across the box, and down it, as it was across the whole.
+		expect((at.x - box.x) / box.width).toBeCloseTo((at.x - whole.x) / whole.width);
+		expect((at.y - box.y) / box.height).toBeCloseTo((at.y - whole.y) / whole.height);
+		expect(chartZoomed(whole, box)).toBe(true);
+	});
+
+	it("goes no further out than the whole chart, nor closer than its limit", () => {
+		expect(zoomChartBox(whole, whole, 0.5, { x: 0, y: 0 })).toEqual(whole);
+		expect(chartZoomed(whole, whole)).toBe(false);
+		const close = zoomChartBox(whole, whole, 1000, { x: 100, y: 100 });
+		expect(close.width).toBeCloseTo(whole.width / CHART_MAX_ZOOM);
+		expect(close.height / close.width).toBeCloseTo(whole.height / whole.width);
+	});
+
+	it("keeps a box on the chart and to its shape", () => {
+		expect(clampChartBox(whole, { x: 1000, y: -1000, width: 100, height: 999 })).toEqual({ x: 290, y: -10, width: 100, height: 75 });
+		expect(clampChartBox(whole, { x: 5, y: 5, width: 9999, height: 1 })).toEqual(whole);
+	});
+
+	it("drags the drawing with the pointer, as far as its edges", () => {
+		const box = { x: 100, y: 100, width: 100, height: 75 };
+		expect(panChartBox(whole, box, 20, -10)).toEqual({ x: 80, y: 110, width: 100, height: 75 });
+		expect(panChartBox(whole, box, 500, 0).x).toBe(-10);
+	});
+
+	it("moves to hold a point only when it's out of view", () => {
+		const box = { x: 100, y: 100, width: 100, height: 75 };
+		expect(chartBoxHolding(whole, box, { x: 150, y: 120 })).toBe(box);
+		expect(chartBoxHolding(whole, box, { x: 300, y: 200 })).toEqual({ x: 250, y: 162.5, width: 100, height: 75 });
+	});
+
+	it("turns the wheel into steps, a trackpad's into part of one", () => {
+		expect(wheelZoomFactor(-100)).toBeCloseTo(1.2);
+		expect(wheelZoomFactor(100)).toBeCloseTo(1 / 1.2);
+		expect(wheelZoomFactor(-3, 1)).toBeCloseTo(1.2);
+		expect(wheelZoomFactor(-10)).toBeGreaterThan(1);
+		expect(wheelZoomFactor(-10)).toBeLessThan(1.2);
+		expect(wheelZoomFactor(0)).toBe(1);
+		// A wheel spun freely goes a step a turn at most.
+		expect(wheelZoomFactor(-100000)).toBeCloseTo(1.2);
+		expect(wheelZoomFactor(100000)).toBeCloseTo(1 / 1.2);
 	});
 });

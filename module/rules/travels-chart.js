@@ -247,3 +247,116 @@ export function chartScrollBy(place, pane) {
 	if (place.top >= pane.top && place.bottom <= pane.bottom) return 0;
 	return Math.round((place.top + place.bottom) / 2 - (pane.top + pane.bottom) / 2);
 }
+
+/* -------------------------------------------- */
+/*  Zooming the chart                           */
+/* -------------------------------------------- */
+
+/**
+ * The part of the chart shown, in the chart's own units, as an SVG viewBox.
+ * @typedef {object} ChartBox
+ * @property {number} x
+ * @property {number} y
+ * @property {number} width
+ * @property {number} height
+ */
+
+/** How close the chart can be brought: a sixth of its width across the page. */
+export const CHART_MAX_ZOOM = 6;
+
+/** How much one notch of the wheel brings the chart closer, or takes it away. */
+export const CHART_ZOOM_STEP = 1.2;
+
+/**
+ * @param {string|null|undefined} text An SVG viewBox attribute.
+ * @returns {ChartBox|null}
+ */
+export function parseChartBox(text) {
+	const [x, y, width, height] = String(text ?? "").trim().split(/[\s,]+/).map(Number);
+	return [x, y, width, height].every(Number.isFinite) && width > 0 && height > 0 ? { x, y, width, height } : null;
+}
+
+/**
+ * @param {ChartBox} box
+ * @returns {string} The box as an SVG viewBox attribute.
+ */
+export const chartBoxText = (box) => [box.x, box.y, box.width, box.height].map((value) => Math.round(value * 1000) / 1000).join(" ");
+
+/**
+ * A box kept to the chart: no larger than the whole of it nor closer than
+ * CHART_MAX_ZOOM, the chart's own shape, and never past its edges.
+ * @param {ChartBox} whole The chart's own viewBox.
+ * @param {ChartBox} box
+ * @returns {ChartBox}
+ */
+export function clampChartBox(whole, box) {
+	const width = Math.min(whole.width, Math.max(whole.width / CHART_MAX_ZOOM, box.width));
+	const height = (whole.height * width) / whole.width;
+	return {
+		x: Math.min(Math.max(box.x, whole.x), whole.x + whole.width - width),
+		y: Math.min(Math.max(box.y, whole.y), whole.y + whole.height - height),
+		width,
+		height
+	};
+}
+
+/**
+ * @param {ChartBox} whole
+ * @param {ChartBox} box
+ * @returns {boolean} Whether the box shows less than the whole chart.
+ */
+export const chartZoomed = (whole, box) => box.width < whole.width * 0.999;
+
+/**
+ * The box once the chart is brought closer or taken away about a point, the
+ * point staying where it was on the page.
+ * @param {ChartBox} whole
+ * @param {ChartBox} box What's shown now.
+ * @param {number} factor Above 1 brings it closer.
+ * @param {{x: number, y: number}} at In the chart's units.
+ * @returns {ChartBox}
+ */
+export function zoomChartBox(whole, box, factor, at) {
+	const width = clampChartBox(whole, { ...box, width: box.width / factor }).width;
+	const scale = width / box.width;
+	return clampChartBox(whole, { x: at.x - (at.x - box.x) * scale, y: at.y - (at.y - box.y) * scale, width, height: box.height * scale });
+}
+
+/**
+ * The box dragged by so much of the chart, the drawing following the pointer.
+ * @param {ChartBox} whole
+ * @param {ChartBox} box Where the drag began.
+ * @param {number} dx In the chart's units, rightwards.
+ * @param {number} dy Downwards.
+ * @returns {ChartBox}
+ */
+export const panChartBox = (whole, box, dx, dy) => clampChartBox(whole, { ...box, x: box.x - dx, y: box.y - dy });
+
+/**
+ * The box moved to hold a point of the chart, where it doesn't already.
+ * @param {ChartBox} whole
+ * @param {ChartBox} box
+ * @param {{x: number, y: number}} at
+ * @returns {ChartBox} The same box while the point is in it, else one centred on it.
+ */
+export function chartBoxHolding(whole, box, at) {
+	const inside = at.x >= box.x && at.x <= box.x + box.width && at.y >= box.y && at.y <= box.y + box.height;
+	return inside ? box : clampChartBox(whole, { ...box, x: at.x - box.width / 2, y: at.y - box.height / 2 });
+}
+
+/** How much closer a double-click on the whole chart brings it. */
+export const CHART_DOUBLE_CLICK_ZOOM = 3;
+
+/**
+ * How far one turn of the wheel brings the chart closer. A mouse's notch is
+ * a step; a trackpad's small turns make part of one, and a wheel spun freely
+ * goes no more than a step a turn, so the chart doesn't leap past where it was wanted.
+ * @param {number} deltaY From the wheel event, below 0 turned away from the reader.
+ * @param {number} [deltaMode] 0 for pixels, 1 for lines, 2 for pages.
+ * @returns {number} Above 1 to bring it closer, 1 for no turn.
+ */
+export function wheelZoomFactor(deltaY, deltaMode = 0) {
+	const perNotch = [100, 3, 1][deltaMode] ?? 100;
+	const notches = Math.max(-1, Math.min(1, (Number(deltaY) || 0) / perNotch));
+	return CHART_ZOOM_STEP ** -notches;
+}

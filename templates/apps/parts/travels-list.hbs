@@ -81,7 +81,13 @@
 	<section class="bastionland-travels__view" data-view="chart" {{#unless viewShown.chart}}hidden{{/unless}}>
 		<div class="bastionland-travels-chart">{{{chart}}}</div>
 		<div class="bastionland-travels-chart__foot">
-			<label class="bastionland-travels-chart__route-toggle">
+			<p class="bastionland-travels-chart__hint">{{localize "bastionland.travels.chart.zoomHint"}}</p>
+			<button type="button" class="bastionland-travels-chart__whole" data-travels-whole hidden>
+				<i class="fa-solid fa-expand" aria-hidden="true"></i>
+				<span>{{localize "bastionland.travels.chart.whole"}}</span>
+			</button>
+			{{!-- Hidden for now; the path code stays (travelsState.route). --}}
+			<label class="bastionland-travels-chart__route-toggle" hidden>
 				<input type="checkbox" data-travels-route {{checked route}}>
 				<span>{{localize "bastionland.travels.chart.route"}}</span>
 			</label>

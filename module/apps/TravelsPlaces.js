@@ -11,6 +11,7 @@ import { TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { holdChartPlace, wireChartZoom } from "./chart-zoom.js";
 import { openHexLore } from "./HexLore.js";
 import { wireHexRename } from "./hex-rename.js";
 import { renderWhenIdle } from "./ui.js";
@@ -40,7 +41,8 @@ function storedView() {
  * How a list of the Company's places is being looked at, kept while the page
  * is drawn again: the Realm it shows, what was typed in its search, the page
  * shown, the tag it's narrowed to, its order, the hex chosen, whether the
- * chart draws the way the Company went, and whether the chart has been shown yet.
+ * chart draws the way the Company went, whether the chart has been shown yet,
+ * and how close it was brought.
  * @typedef {object} TravelsListState
  * @property {string|null} realm
  * @property {string} search
@@ -50,10 +52,11 @@ function storedView() {
  * @property {string|null} selected
  * @property {boolean} route
  * @property {boolean} charted
+ * @property {{realm: string|null, box: object}|null} zoom The part of a zoomed chart shown, and its Realm.
  */
 
 /** @returns {TravelsListState} A list's state as it first opens. */
-export const travelsState = () => ({ realm: null, search: "", view: storedView(), filter: "", sort: TRAVELS_SORTS[0], selected: null, route: false, charted: false });
+export const travelsState = () => ({ realm: null, search: "", view: storedView(), filter: "", sort: TRAVELS_SORTS[0], selected: null, route: false, charted: false, zoom: null });
 
 /**
  * @param {HTMLElement|SVGElement} target Anything standing for a hex.
@@ -134,8 +137,9 @@ function scrollerOf(element) {
 }
 
 /**
- * Scroll the chart so a hex of it is in view, once it's laid out: the one
- * asked for, else where the Company stands, else the hex chosen.
+ * Bring a hex of the chart into view once it's laid out, a zoomed chart
+ * moving to it and the page scrolling to it: the one asked for, else where
+ * the Company stands, else the hex chosen.
  * @param {HTMLElement} list
  * @param {string|null} [key]
  */
@@ -145,7 +149,9 @@ export function showChartPlace(list, key = null) {
 		?? list.querySelector(`${places}.is-here`) ?? list.querySelector(`${places}.is-selected`);
 	if (!place) return;
 	requestAnimationFrame(() => {
-		const scroller = place.isConnected && scrollerOf(place);
+		if (!place.isConnected) return;
+		holdChartPlace(place);
+		const scroller = scrollerOf(place);
 		if (scroller) scroller.scrollTop += chartScrollBy(place.getBoundingClientRect(), scroller.getBoundingClientRect());
 	});
 }
@@ -196,6 +202,7 @@ export function wireTravelsList(root, state, redraw) {
 		});
 	}
 	apply();
+	wireChartZoom(list, state);
 	// The chart opens on where the Company stands, the first time it's shown; drawn again, it stays where it was.
 	if (state.view === "chart" && !state.charted) {
 		state.charted = true;

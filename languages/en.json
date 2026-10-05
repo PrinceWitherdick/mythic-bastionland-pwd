@@ -1043,6 +1043,8 @@
         "title": "The Company’s chart of the Realm",
         "route": "Show the way the Company went",
         "legend": "Key to the chart",
+        "zoomHint": "Hold Ctrl and turn the wheel over the chart, or double-click it, to zoom in; then drag it about with either button.",
+        "whole": "Whole chart",
         "key": {
           "visited": "Visited",
           "heardOf": "Not visited",

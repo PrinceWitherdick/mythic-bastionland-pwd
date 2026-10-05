@@ -6932,6 +6932,14 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	line-height: 0;
 }
 
+/* On a Knight or Squire sheet the chart keeps the size it has when the sheet first
+   opens; widening the sheet gives it margin, not a bigger chart. */
+.bastionland-travels-tab .bastionland-travels-chart {
+	width: 100%;
+	max-width: 50rem;
+	margin-inline: auto;
+}
+
 .bastionland-travels-chart__svg {
 	display: block;
 	width: 100%;
@@ -6942,6 +6950,33 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-travels-chart__place {
 	cursor: pointer;
 	outline: none;
+}
+
+/* Zoomed in, the chart's paper is taken hold of and dragged, by a finger too; its hexes are still buttons. */
+.bastionland-travels-chart__svg.is-zoomed {
+	cursor: grab;
+	touch-action: none;
+}
+
+.bastionland-travels-chart__svg.is-dragging,
+.bastionland-travels-chart__svg.is-dragging .bastionland-travels-chart__place {
+	cursor: grabbing;
+}
+
+.bastionland-travels-chart__hint {
+	flex: 1 0 100%;
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-travels-chart__whole {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 0.35rem;
+	width: auto;
+	font-size: var(--bastionland-font-note);
 }
 
 .bastionland-travels-chart__place:hover .bastionland-travels-chart__hex {
@@ -6977,7 +7012,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-travels-chart__legend {
 	display: flex;
-	flex: 1 1 18rem;
+	flex: 1 1 100%;
 	flex-wrap: wrap;
 	gap: 0.2rem 0.8rem;
 	margin: 0;
