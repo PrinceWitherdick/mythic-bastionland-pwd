@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
@@ -93,6 +94,6 @@ export async function savePromptsToHex({ scene, hex, spread, prompts }) {
 		when
 	}));
 	const saved = await keepHexSparkRecords(scene, hex, sparks);
-	if (saved) ui.notifications.info(t("bookFlip.saved", { what: promptsLabel(prompts), hex: t("realm.hex", hex) }));
+	if (saved) ui.notifications.info(t("bookFlip.saved", { what: promptsLabel(prompts), hex: hexLabel(hex, scene) }));
 	return saved;
 }

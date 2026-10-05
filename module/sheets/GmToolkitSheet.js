@@ -6,6 +6,7 @@ import { COMPANY_FLAG, companyTokenHex } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { awardGlory } from "../actions/glory.js";
 import { forgetHexSpark, getHexLore, sparkWhen, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
+import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
@@ -292,7 +293,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			onlyRealm: realms.length === 1 ? realms[0].name : null,
 			clock: this.#clockContext(),
 			rulebook: { have: hasRulebook(), tooltip: t(hasRulebook() ? "gmToolkit.rulebook" : "gmToolkit.rulebookSetup") },
-			company: data?.companyHex ? { label: t("realm.hex", data.companyHex), key: hexKey(data.companyHex) } : null,
+			company: data?.companyHex ? { label: hexLabel(data.companyHex, data.scene), key: hexKey(data.companyHex) } : null,
 			noCompany: Boolean(data) && !data.companyHex
 		};
 	}
@@ -387,7 +388,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			name,
 			reference: page ? t("realm.key.page", { page }) : null,
 			img: entry?.path ?? null,
-			hex: myth.hex ? t("realm.hex", myth.hex) : null,
+			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
 			hexKey: myth.hex ? hexKey(myth.hex) : null,
 			hidden: !myth.revealed && !solo,
 			seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
@@ -570,7 +571,12 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	 */
 	#hexCard(data, hex, { fold, open }) {
 		const key = hexKey(hex);
-		const { title, kind, self, status } = this.#placeIn(data.realm, hex);
+		const place = this.#placeIn(data.realm, hex);
+		const { self, status } = place;
+		// The GM's name for the hex heads its card, and what stands there follows it.
+		const given = hexName(data.scene, hex);
+		const title = given || place.title;
+		const kind = given ? [place.title, place.kind].filter(Boolean).join(", ") || null : place.kind;
 		// What a Landmark here asks of travellers who are there (p14), Holding or no.
 		const { landmark } = featureAt(data.realm, hex);
 		const offer = landmark ? landmarkOfferView(landmark.type) : null;
@@ -719,7 +725,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			resolved: waiting.map((myth) => ({
 				number: myth.number,
 				name: myth.unknown ? t("solo.unknownMyth") : mythLookup(this.#index, myth).name,
-				hex: myth.hex ? t("realm.hex", myth.hex) : null
+				hex: myth.hex ? hexLabel(myth.hex, this.scene) : null
 			})),
 			pastAges: ages.map(({ age, seasons }) => {
 				const past = seasons.filter((entry) => !entry.current).map((entry) => this.#pastSeason(entry));
@@ -1151,7 +1157,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			title: `${myth.number}. ${name}`,
 			tagline: page ? t("realm.key.page", { page }) : null,
 			img: entry?.path ?? null,
-			omen: t("gmToolkit.myths.newMythRolled", { hex: t("realm.hex", myth.hex) }),
+			omen: t("gmToolkit.myths.newMythRolled", { hex: hexLabel(myth.hex, scene) }),
 			text: null,
 			hint: t("gmToolkit.myths.newMythHint")
 		}, { rolls: [d6, d12], mode: "gm" });

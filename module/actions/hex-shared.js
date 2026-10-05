@@ -13,14 +13,13 @@ import {
 	setPartyNote
 } from "../rules/hex-shared.js";
 import { hexKey, inRealm } from "../rules/realm-geometry.js";
-import { sightedMarks } from "../rules/sighted.js";
-import { openableHex } from "../rules/travels.js";
+import { knownToPlayers } from "../rules/travels.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { hexFlagEditor } from "./hex-flags.js";
-import { getJourney } from "./journey.js";
-import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
-import { getSighted } from "./sighted.js";
+import { getHexVisits } from "./journey.js";
+import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { sightedMarkAt } from "./sighted.js";
 
 /**
  * What the players hold about each hex: what the Referee told them, and the
@@ -108,8 +107,8 @@ export const forgetHexShared = (scene, hex) => editHexShared(scene, (shared) => 
 export function hexOpenable(scene, hex) {
 	const entry = getRealm(scene);
 	if (!entry) return false;
-	const marks = sightedMarks(entry.realm, getSighted(scene), (at) => hexHiddenByHand(scene, at));
-	return openableHex({ journey: getJourney(scene), shared: getHexShared(scene), marks }, hex);
+	// Read for this hex alone: a card can ask of several.
+	return knownToPlayers({ visits: getHexVisits(scene, hex), record: getHexSharedRecord(scene, hex), mark: sightedMarkAt(scene, entry.realm, hex) });
 }
 
 /**

@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { getCalendar } from "../actions/calendar.js";
 import { recordBarriersMet } from "../actions/hex-shared.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
@@ -41,12 +42,6 @@ export function reportTurnedBack(scene, { edges, from = null, company = null }) 
 	game.socket.emit(SOCKET, { action: TURNED_BACK, sceneId: scene.id, edges, userId: game.user.id, ...(from ? { from } : {}), ...(company ? { company } : {}) });
 }
 
-/**
- * @param {{col: number, row: number}} hex
- * @returns {string} "Column 5, Row 7"
- */
-const hexName = (hex) => t("realm.hex", hex);
-
 /** @returns {boolean} Whether a message's hex is one. */
 const isHex = (hex) => Number.isInteger(hex?.col) && Number.isInteger(hex?.row);
 
@@ -85,7 +80,7 @@ async function foundBarriers(scene, edges, name, { company = null, from = null, 
 	const g = sceneGeometry(scene);
 	for (const edge of found) {
 		const [from, to] = parseEdgeKey(g, edge);
-		ui.notifications.info(t("realm.movement.found", { name, from: hexName(from), to: hexName(to) }));
+		ui.notifications.info(t("realm.movement.found", { name, from: hexLabel(from, scene), to: hexLabel(to, scene) }));
 	}
 	if (!write) return;
 	if (found.length) await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
@@ -120,7 +115,7 @@ export async function offerWastedPhase(scene, { from, to }) {
 	offering = true;
 	try {
 		const phase = t(`time.phases.${getCalendar().phase}`);
-		const note = t("realm.movement.wasted.text", { from: hexName(from), to: hexName(to), phase });
+		const note = t("realm.movement.wasted.text", { from: hexLabel(from, scene), to: hexLabel(to, scene), phase });
 		return Boolean(await advancePhase({ scene, mode: "travel", atBarrier: true, note }));
 	} finally {
 		offering = false;

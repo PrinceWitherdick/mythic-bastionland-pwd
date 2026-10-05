@@ -2,7 +2,7 @@
 	{{#if missing}}
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.realm.panel.missing"}}</p>
 	{{else}}
-	<h2 class="bastionland-hex-lore__heading">{{heading}}</h2>
+	{{#with heading}}{{> "bastionland.hex-heading"}}{{/with}}
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.hint"}}</p>
 
 	<div class="bastionland-hex-lore__here">

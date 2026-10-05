@@ -8,6 +8,7 @@
  * can be tested without Foundry.
  */
 import { visitedNewestFirst, visitsAt } from "./journey.js";
+import { hexLabelText, hexNameAt } from "./hex-names.js";
 import { sharedAt } from "./hex-shared.js";
 import { barriersAround, edgeSide, hexSummary, holdingName } from "./realm.js";
 import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
@@ -19,31 +20,42 @@ import { compareCalendars, normalizeCalendar, PHASES, seasonKey } from "./time.j
  * @property {object} g         Its geometry.
  * @property {object} journey   Where the Company has been.
  * @property {object} shared    What was told, and the Company's notes.
+ * @property {object} [names]   The names the GM gave hexes.
  * @property {{hex: {col: number, row: number}, note: string}[]} marks
  *   The marks of what was seen from afar that still stand for something hidden.
  * @property {(hex: {col: number, row: number}) => object} handHidden What the GM hid by hand in a hex.
  * @property {{col: number, row: number}|null} [companyHex] Where the Company stands.
+ * @property {boolean} [gm]    Whether a GM is looking, who reads every hex's name; the players read only their places' names.
  */
 
 /** @returns {{hex: object, note: string}|null} */
 const markAt = (marks, hex) => (marks ?? []).find((mark) => sameHex(mark.hex, hex)) ?? null;
 
 /**
- * Whether the players may open a hex: one the Company has been to, one the
- * Referee told them of, one they've written about, or one where something
- * was seen from afar.
+ * Whether a hex is one of the players' places: one the Company has been to,
+ * one the Referee told them of, one they've written about, or one where
+ * something was seen from afar. The one rule for what they may open and
+ * whose name they may read, given what's held for that hex alone.
+ * @param {{visits?: object|null, record?: object|null, mark?: object|null}} held
+ * @returns {boolean}
+ */
+export const knownToPlayers = ({ visits, record, mark }) => Boolean(visits || record || mark);
+
+/**
+ * Whether the players may open a hex.
  * @param {Pick<TravelsSources, "journey"|"shared"|"marks">} sources
  * @param {{col: number, row: number}} hex
  * @returns {boolean}
  */
 export function openableHex({ journey, shared, marks }, hex) {
-	return Boolean(visitsAt(journey, hex) || sharedAt(shared, hex) || markAt(marks, hex));
+	return knownToPlayers({ visits: visitsAt(journey, hex), record: sharedAt(shared, hex), mark: markAt(marks, hex) });
 }
 
 /**
  * @typedef {object} PlayerHexView
  * @property {{col: number, row: number}} hex
  * @property {string} key
+ * @property {string} name      The name the GM gave it, if any.
  * @property {{count: number, first: {when: object|null}, last: {when: object|null, order: number}}|null} visits
  * @property {string|null} terrain
  * @property {{style: string, name: string, seat: boolean}|null} holding
@@ -66,14 +78,16 @@ export function openableHex({ journey, shared, marks }, hex) {
  * @returns {PlayerHexView}
  */
 export function playerHexView(sources, hex) {
-	const { realm, g, journey, shared, marks, handHidden, companyHex = null } = sources;
+	const { realm, g, journey, shared, names, marks, handHidden, companyHex = null } = sources;
 	const seen = hexSummary(realm, g, hex, { showHidden: false, hiddenByHand: handHidden?.(hex) ?? {} });
 	const visits = visitsAt(journey, hex);
 	const record = sharedAt(shared, hex);
 	const mark = markAt(marks, hex);
+	const openable = knownToPlayers({ visits, record, mark });
 	return {
 		hex: { col: hex.col, row: hex.row },
 		key: hexKey(hex),
+		name: openable || sources.gm ? hexNameAt(names, hex) : "",
 		visits: visits ? { count: visits.count, first: { when: visits.first.when }, last: { when: visits.last.when, order: visits.last.order } } : null,
 		terrain: seen.terrain,
 		holding: seen.holding ? { style: seen.holding.style, name: seen.holding.name, seat: seen.holding.seat } : null,
@@ -88,7 +102,7 @@ export function playerHexView(sources, hex) {
 		told: [...(record?.told ?? [])].reverse().map(({ id, note, when }) => ({ id, note, when })),
 		party: record?.party ? { text: record.party.text, byName: record.party.byName, when: record.party.when, at: record.party.at } : null,
 		here: sameHex(companyHex, hex),
-		openable: Boolean(visits || record || mark)
+		openable
 	};
 }
 
@@ -311,7 +325,8 @@ export function journeyLog(sources, viewOf = hexViews(sources)) {
  * view goes in, so search can't find what the view doesn't show.
  * @param {PlayerHexView} view
  * @param {(key: string, data?: object) => string} t The language's words for a key.
- * @returns {{title: string, terrain: string, features: string[], sighted: string}}
+ * @returns {{title: string, name: string, coords: string, terrain: string, features: string[], sighted: string}}
+ *   `title` is the name and the column and row in one line; a heading shows `name`, with `coords` under it.
  */
 export function viewWords(view, t) {
 	const holding = view.holding && holdingName(view.holding, t);
@@ -323,9 +338,12 @@ export function viewWords(view, t) {
 		landmark,
 		...(view.barriers ?? []).map((direction) => t("realm.readout.barrier", { direction: t(`realm.directions.${direction}`) }))
 	].filter(Boolean);
-	const place = view.holding?.name || view.landmark?.name || "";
+	// The GM's name for the hex comes first, then the name of what stands there.
+	const place = view.name || view.holding?.name || view.landmark?.name || "";
 	return {
-		title: place ? `${place} (${t("realm.hex", view.hex)})` : t("realm.hex", view.hex),
+		title: hexLabelText(view.hex, place, t),
+		name: place,
+		coords: t("realm.hex", view.hex),
 		terrain: view.terrain ? t(`realm.terrain.${view.terrain}`) : "",
 		features,
 		sighted: view.sighted ? (view.sighted.note ? t("seenFromAfar.readoutNote", { note: view.sighted.note }) : t("seenFromAfar.readout")) : ""

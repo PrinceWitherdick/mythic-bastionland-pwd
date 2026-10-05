@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
@@ -56,7 +57,7 @@ export function companyHexOrWarn(scene, g) {
 		ui.notifications.warn(t("realm.wilderness.noToken"));
 		return null;
 	}
-	if (company.split) ui.notifications.warn(t("realm.wilderness.split", { hex: t("realm.hex", company.hex) }));
+	if (company.split) ui.notifications.warn(t("realm.wilderness.split", { hex: hexLabel(company.hex, scene) }));
 	return company.hex;
 }
 
@@ -106,14 +107,15 @@ export function companySituation(scene = null) {
 
 /**
  * Ask whether the Company ends a travelling Phase or makes camp.
+ * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @returns {Promise<"travel"|"camp"|null>}
  */
-async function chooseMode(hex) {
+async function chooseMode(scene, hex) {
 	const choice = await chooseDialog({
 		title: t("realm.wilderness.title"),
 		icon: "fa-solid fa-tree",
-		message: t("realm.wilderness.chooseMode", { hex: t("realm.hex", hex) }),
+		message: t("realm.wilderness.chooseMode", { hex: hexLabel(hex, scene) }),
 		buttons: [
 			{ action: "travel", label: t("realm.wilderness.modes.travel"), icon: "fa-solid fa-person-hiking", default: true },
 			{ action: "camp", label: t("realm.wilderness.modes.camp"), icon: "fa-solid fa-campground" }
@@ -154,7 +156,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 	let city = false;
 	if (calls === "roll") {
-		mode = known ?? (await chooseMode(where));
+		mode = known ?? (await chooseMode(scene, where));
 		if (!mode) return null;
 		const roll = await new Roll("1d6").evaluate();
 		rolls.push(roll);
@@ -241,7 +243,7 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 	return {
 		// A Ruin's echo reads the Myths of the Realm the roll was made for, whichever Scene is on the canvas.
 		scene: scene?.id ?? null,
-		hex: t("realm.hex", where),
+		hex: hexLabel(where, scene),
 		terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 		mode: outcome.d6 === null ? null : t(`realm.wilderness.modes.${mode}`),
 		d6: outcome.d6,

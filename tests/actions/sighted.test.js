@@ -27,7 +27,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	hexHiddenByHand: (_scene, at) => ({ terrain: false, holding: handHidden.has(hexKey(at)), seat: false })
 }));
 
-const { getSighted, offerSightings, registerSightings, revealSighted } = await import("../../module/actions/sighted.js");
+const { getSighted, offerSightings, registerSightings, revealSighted, sightedMarkAt } = await import("../../module/actions/sighted.js");
 
 /** A Tile standing in the middle of a hex, as a Realm draws it. */
 const tile = (id, kind, at, hidden = true) => ({ id, hidden, ...hexCentre(g, at), flags: { [SYSTEM_ID]: { [REALM_FLAG]: { kind } } } });
@@ -71,6 +71,16 @@ afterEach(() => {
 	delete globalThis.game;
 	delete globalThis.ui;
 	vi.clearAllMocks();
+});
+
+describe("sightedMarkAt", () => {
+	it("reads a hex's mark while something there is still hidden, and none where there's no mark or nothing hidden", () => {
+		const scene = fakeScene({ sighted: { [hexKey(west)]: { note: "smoke" }, [hexKey(east)]: { note: "a wall" } } });
+		const realm = realmWith({ landmarks: [{ hex: west }, { hex: east, revealed: true }] });
+		expect(sightedMarkAt(scene, realm, west)).toEqual({ note: "smoke" });
+		expect(sightedMarkAt(scene, realm, east)).toBeNull();
+		expect(sightedMarkAt(scene, realm, here)).toBeNull();
+	});
 });
 
 describe("offerSightings", () => {

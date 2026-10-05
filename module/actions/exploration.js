@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
@@ -67,7 +68,7 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 		icon: "fa-solid fa-comments",
 		template: "folklore",
 		context: {
-			intro: t("explore.folklore.intro", { hex: t("realm.hex", where) }),
+			intro: t("explore.folklore.intro", { hex: hexLabel(where, scene) }),
 			sources: keyChoices(FOLK_SOURCES, "explore.folklore.sources")
 		},
 		ok: { label: t("explore.folklore.ask"), icon: "fa-solid fa-comments" }
@@ -93,7 +94,7 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 		scene: scene?.id ?? null,
 		title: t("explore.folklore.title"),
 		source: t(`explore.folklore.sources.${folklore.source}.label`),
-		hex: t("realm.hex", where),
+		hex: hexLabel(where, scene),
 		myths: folklore.myths.map((known) => {
 			const myth = realm.myths.find((candidate) => candidate.number === known.number);
 			const { name, page } = myth ? mythEntry(index, myth) : { name: null, page: null };
@@ -101,13 +102,13 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 				number: known.number,
 				name,
 				page,
-				where: known.precise ? t("explore.folklore.precise", { hex: t("realm.hex", known.hex), where: whereItLies(g, known) }) : whereItLies(g, known)
+				where: known.precise ? t("explore.folklore.precise", { hex: hexLabel(known.hex, scene), where: whereItLies(g, known) }) : whereItLies(g, known)
 			};
 		}),
 		landmarks: folklore.landmarks.map((known) => ({
 			type: t(`realm.landmarks.${known.type}`),
 			name: known.name || null,
-			where: t("explore.folklore.at", { hex: t("realm.hex", known.hex), where: whereItLies(g, known) })
+			where: t("explore.folklore.at", { hex: hexLabel(known.hex, scene), where: whereItLies(g, known) })
 		})),
 		nothing: folklore.myths.length || folklore.landmarks.length ? null : t("explore.folklore.nothing"),
 		rumours: folklore.rumours ? t("explore.folklore.rumours") : null,
@@ -151,7 +152,7 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 		icon: "fa-solid fa-magnifying-glass",
 		template: "search-hex",
 		context: {
-			intro: t("explore.search.intro", { hex: t("realm.hex", where) }),
+			intro: t("explore.search.intro", { hex: hexLabel(where, scene) }),
 			aims: keyChoices(SEARCH_AIMS, "explore.search.aims"),
 			knights: knights.map((knight, index) => ({ id: knight.id, name: knight.name, selected: index === 0 })),
 			virtues: VIRTUES.map((key) => ({
@@ -237,14 +238,14 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 	await postCard(null, "survey", {
 		scene: scene?.id ?? null,
 		title: t(vantage ? "explore.survey.vantageTitle" : "explore.survey.sweepTitle"),
-		hex: t("realm.hex", here.hex),
+		hex: hexLabel(here.hex, scene),
 		terrain: here.terrain ? t(`realm.terrain.${here.terrain}`) : null,
 		holding: here.holding ? t(here.holding.seat ? "explore.survey.seat" : "explore.survey.holding", { name: here.holding.name || t(`realm.holdings.${here.holding.style}`) }) : null,
 		myth: here.myth ? t("explore.survey.myth", { number: here.myth.number }) : null,
 		landmark: landmark ? t("explore.survey.landmark", { type: t(`realm.landmarks.${landmark.type}`), name: landmark.name || "" }).trim() : null,
 		around: survey.around.map((step) => ({
 			direction: directionName(g, step.direction),
-			hex: t("realm.hex", step.hex),
+			hex: hexLabel(step.hex, scene),
 			terrain: step.terrain ? t(`realm.terrain.${step.terrain}`) : t("explore.survey.unknownLand"),
 			barrier: step.barrier ? t("explore.survey.barrier") : null,
 			holding: step.holding ? t("explore.survey.someHolding") : null

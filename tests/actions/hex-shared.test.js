@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyJourney, recordVisits } from "../../module/rules/journey.js";
+import { emptyJourney, recordVisits, visitsAt } from "../../module/rules/journey.js";
 import { emptyRealm } from "../../module/rules/realm.js";
 import { realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
@@ -16,8 +16,8 @@ vi.mock("../../module/chat/cards.js", () => ({
 	warn: vi.fn()
 }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => when, calendarLabel: () => "spring day 2" }));
-vi.mock("../../module/actions/journey.js", () => ({ getJourney: () => journey }));
-vi.mock("../../module/actions/sighted.js", () => ({ getSighted: () => ({}) }));
+vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: (_scene, at) => visitsAt(journey, at) }));
+vi.mock("../../module/actions/sighted.js", () => ({ sightedMarkAt: () => null }));
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.isRealm),
 	sceneGeometry: () => g,

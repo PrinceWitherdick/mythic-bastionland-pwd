@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { calendarLabel } from "../actions/calendar.js";
 import { forgetHexRecord, getHexRecord } from "../actions/hex-lore.js";
 import { forgetHexPartyNote, forgetHexShared, forgetHexTold, getHexSharedRecord, partyNoteView } from "../actions/hex-shared.js";
@@ -56,7 +57,7 @@ export const HEX_FORGET_ACTIONS = Object.freeze({
 		const confirmed = await confirmDialog({
 			title: t("gmToolkit.visits.forgetTitle"),
 			icon: "fa-solid fa-route",
-			message: t("gmToolkit.visits.forgetConfirm", { hex: t("realm.hex", hex) })
+			message: t("gmToolkit.visits.forgetConfirm", { hex: hexLabel(hex, scene) })
 		});
 		if (confirmed) await forgetHexVisits(scene, hex);
 	},
@@ -65,7 +66,7 @@ export const HEX_FORGET_ACTIONS = Object.freeze({
 			title: t("gmToolkit.visits.forgetAllTitle"),
 			icon: "fa-solid fa-eraser",
 			// Everything means the players' side of it too, and the Referee is told so before it goes.
-			message: t(getHexSharedRecord(scene, hex) ? "gmToolkit.visits.forgetAllConfirmShared" : "gmToolkit.visits.forgetAllConfirm", { hex: t("realm.hex", hex) })
+			message: t(getHexSharedRecord(scene, hex) ? "gmToolkit.visits.forgetAllConfirmShared" : "gmToolkit.visits.forgetAllConfirm", { hex: hexLabel(hex, scene) })
 		});
 		if (!confirmed) return;
 		await forgetHexVisits(scene, hex);

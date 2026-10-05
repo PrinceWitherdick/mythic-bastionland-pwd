@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
@@ -191,7 +192,7 @@ export async function goBackTheWayYouCame(scene) {
 		return null;
 	}
 	await setCompanyHex(scene, back);
-	ui.notifications.info(t("realm.landmarks.goBack.done", { hex: t("realm.hex", back) }));
+	ui.notifications.info(t("realm.landmarks.goBack.done", { hex: hexLabel(back, scene) }));
 	return back;
 }
 

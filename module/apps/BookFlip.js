@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { flipTheBook, promptsLabel, savePromptsToHex } from "../actions/book-flip.js";
 import { isRealmScene } from "../actions/realm.js";
 import { t, warn } from "../chat/cards.js";
@@ -111,7 +112,7 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 		try {
 			const hex = await pickHex(scene, {
 				message: t("bookFlip.pick", { what: promptsLabel(prompts) }),
-				label: (at) => t("bookFlip.pickHere", { hex: t("realm.hex", at) })
+				label: (at) => t("bookFlip.pickHere", { hex: hexLabel(at, scene) })
 			});
 			if (hex && await savePromptsToHex({ scene, hex, spread: this.spread, prompts })) this.#chosen.clear();
 		} finally {

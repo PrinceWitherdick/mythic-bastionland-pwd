@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { loadArtIndex, mythEntry, sparkTablesOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
@@ -95,7 +96,7 @@ export async function rollHexPerson({ scene, hex }) {
 	if (!person) return null;
 	await Promise.all([
 		keepHexPerson(scene, hex, person),
-		postPerson(person, { hex: t("realm.hex", hex), mode: "gm" })
+		postPerson(person, { hex: hexLabel(hex, scene), mode: "gm" })
 	]);
 	return person;
 }
@@ -183,7 +184,7 @@ export async function rollUpHolding({ scene, hex }) {
 
 	await postCard(null, "people", {
 		title: holdingName(here, t),
-		tagline: t("people.holding.tagline", { hex: t("realm.hex", hex) }),
+		tagline: t("people.holding.tagline", { hex: hexLabel(hex, scene) }),
 		sparks: place.map(({ table, results, prompt }) => ({ name: table.name, reference, prompt, results: results.filter((result) => result.entry) })),
 		people: persons.map(({ number, traits, known }) => ({
 			label: t("people.holding.person", { number, count: folk }),

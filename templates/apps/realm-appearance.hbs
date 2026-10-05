@@ -15,7 +15,7 @@
 			</button>
 			{{/each}}
 			{{#each ownSkins}}
-			<div class="bastionland-realm-appearance__own" data-own-skin="{{index}}">
+			<div class="bastionland-realm-appearance__own bastionland-reveal-host" data-own-skin="{{index}}">
 				<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickOwnSkin" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
 					<span class="bastionland-realm-appearance__samples" inert>
 						{{#each samples}}<img src="{{this}}" alt="">{{/each}}
@@ -23,7 +23,7 @@
 					<strong>{{label}}</strong>
 					<span class="hint">{{hint}}</span>
 				</button>
-				<span class="bastionland-realm-appearance__own-tools">
+				<span class="bastionland-realm-appearance__own-tools bastionland-reveal">
 					<button type="button" class="icon" data-action="editOwnSkin" data-tooltip="bastionland.realm.look.own.edit" aria-label="{{localize "bastionland.realm.look.own.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
 					<button type="button" class="icon" data-action="removeOwnSkin" data-tooltip="bastionland.realm.look.own.remove" aria-label="{{localize "bastionland.realm.look.own.remove"}}"><i class="fa-solid fa-trash" inert></i></button>
 				</span>

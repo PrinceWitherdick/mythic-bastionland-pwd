@@ -3524,6 +3524,13 @@
       "newRealm": "New Realm",
       "units": "Hex",
       "hex": "Column {col}, Row {row}",
+      "hexNamed": "{name} ({hex})",
+      "hexName": {
+        "rename": "Name this hex",
+        "label": "The hex’s name",
+        "placeholder": "Name this hex",
+        "hint": "Enter keeps it, Escape leaves it as it was, and a blank name takes it away."
+      },
       "dialog": {
         "title": "New Realm",
         "chooseMaking": "Roll a Realm the way Creating a Realm describes (p14), start from a blank map and draw it yourself, or bring in a map you have already drawn on paper?",

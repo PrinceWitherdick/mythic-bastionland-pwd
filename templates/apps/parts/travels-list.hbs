@@ -2,7 +2,12 @@
 {{#*inline "travels-row"}}
 <li class="bastionland-travels__row{{#if selected}} is-selected{{/if}}" data-search="{{search}}" data-tags="{{tags}}">
 	<button type="button" class="bastionland-travels__open" data-action="pickTravelsHex" data-hex="{{hex}}"{{#if selected}} aria-current="true"{{/if}}>
+		{{#if name}}
+		<span class="bastionland-travels__title">{{name}}</span>
+		<span class="bastionland-travels__line bastionland-travels__coords">{{coords}}</span>
+		{{else}}
 		<span class="bastionland-travels__title">{{title}}</span>
+		{{/if}}
 		{{#if terrain}}<span class="bastionland-travels__line">{{terrain}}{{#if features}} · {{features}}{{/if}}</span>
 		{{else if features}}<span class="bastionland-travels__line">{{features}}</span>{{/if}}
 		<span class="bastionland-travels__line bastionland-travels__visits">{{visits}}</span>

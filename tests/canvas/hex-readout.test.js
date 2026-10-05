@@ -34,6 +34,13 @@ describe("describeHex", () => {
 		expect(describeHex(summary({ terrain: "forest" }), { coordinates: true })).toBe("bastionland.realm.readout.coordinates(5,7) bastionland.realm.terrain.forest");
 	});
 
+	it("leads with a hex's name, its column and row after it, set off from what's there", () => {
+		expect(describeHex(summary({ terrain: "bog" }), { name: "The Weeping Fen" })).toBe("The Weeping Fen · bastionland.realm.terrain.bog");
+		expect(describeHex(summary({ terrain: "bog" }), { name: "The Weeping Fen", coordinates: true }))
+			.toBe("The Weeping Fen bastionland.realm.readout.coordinates(5,7) · bastionland.realm.terrain.bog");
+		expect(describeHex(summary(), { name: "The Weeping Fen" })).toBe("The Weeping Fen");
+	});
+
 	it("marks for a GM the terrain and Holding hidden by hand", () => {
 		const text = describeHex(summary({ terrain: "forest", terrainRevealed: false, holding: { style: "town", name: "Oakwall", seat: false, revealed: false } }));
 		expect(text).toBe("bastionland.realm.readout.hidden(bastionland.realm.terrain.forest) · bastionland.realm.readout.hidden(Oakwall)");

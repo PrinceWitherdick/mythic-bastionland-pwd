@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { drawingCountLabel, editRealm, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
@@ -221,7 +222,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		return {
 			picture,
 			standing: Boolean(token),
-			intro: hex ? t("realmDrawing.company.standing", { hex: t("realm.hex", hex) }) : t("realmDrawing.company.intro"),
+			intro: hex ? t("realmDrawing.company.standing", { hex: hexLabel(hex, scene) }) : t("realmDrawing.company.intro"),
 			button: t(token ? "realmDrawing.company.move" : "company.placing.button"),
 			hint: `${t("company.placing.hint")} ${t("company.placing.stop")}`
 		};

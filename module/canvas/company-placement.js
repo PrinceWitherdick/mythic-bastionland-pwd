@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { companyPicture, setCompanyHex } from "../actions/company.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
@@ -52,7 +53,7 @@ export function cancelCompanyPlacement({ quiet = false } = {}) {
  */
 async function placeHere(scene, hex) {
 	const token = await setCompanyHex(scene, hex);
-	if (token) ui.notifications.info(t("company.placed", { hex: t("realm.hex", hex) }));
+	if (token) ui.notifications.info(t("company.placed", { hex: hexLabel(hex, scene) }));
 	// Once the Token is there, or once it turns out it could not be made.
 	Hooks.callAll(COMPANY_PLACING_HOOK);
 }

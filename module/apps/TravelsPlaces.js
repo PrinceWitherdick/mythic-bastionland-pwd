@@ -1,3 +1,4 @@
+import { renameHex } from "../actions/hex-names.js";
 import { TRAVELS_CHANGED_HOOK, writePartyNote } from "../actions/hex-shared.js";
 import { showHexOnMap, travelsHexDetail, travelsListContext } from "../actions/travels.js";
 import { t } from "../chat/cards.js";
@@ -8,6 +9,7 @@ import { TRAVELS_SORTS, TRAVELS_VIEWS } from "../rules/travels.js";
 import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { wireHexRename } from "./hex-rename.js";
 import { renderWhenIdle } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -318,6 +320,10 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 			const hex = parseHexKey(event.target.dataset.hex ?? "");
 			if (scene && hex) writePartyNote(scene, hex, event.target.value);
 		});
+		// A GM names the chosen hex by clicking its heading.
+		const scene = game.scenes.get(this.state.realm);
+		const hex = parseHexKey(this.state.selected ?? "");
+		if (scene && hex) wireHexRename(this.element.querySelector(".bastionland-travels-detail"), (name) => renameHex(scene, hex, name));
 	}
 
 	/**

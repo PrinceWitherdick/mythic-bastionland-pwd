@@ -1,11 +1,12 @@
+import { hexName } from "../actions/hex-names.js";
 import { getHexSharedRecord } from "../actions/hex-shared.js";
 import { getHexVisits } from "../actions/journey.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { getSighted } from "../actions/sighted.js";
+import { sightedMarkAt } from "../actions/sighted.js";
 import { realmKnown } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
 import { hexSummary } from "../rules/realm.js";
-import { SIGHTED_FLAG, hiddenThere, sightedAt } from "../rules/sighted.js";
+import { knownToPlayers } from "../rules/travels.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { clipText } from "../rules/text.js";
 import { read } from "../client-settings.js";
@@ -124,11 +125,13 @@ const showsCoordinates = () => game.settings.get(SYSTEM_ID, COORDINATES_SETTING)
  * @param {ReturnType<typeof hexSummary>} summary
  * @param {object} [options]
  * @param {boolean} [options.coordinates] Lead with the hex's column and row.
+ * @param {string} [options.name] The name the GM gave the hex, which leads before them.
  * @param {{note: string}|null} [options.sighted] Something seen standing there from afar and not yet reached (p197).
  * @param {boolean} [options.visited] The Company has been there.
- * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power · visited". Empty where the hex holds nothing worth naming.
+ * @returns {string} e.g. "(5, 7) Forest · Castle, Seat of Power · visited", or "The Weeping Fen (5, 7) · Bog"
+ *   for a hex with a name. Empty where the hex holds nothing worth naming.
  */
-export function describeHex(summary, { coordinates = false, sighted = null, visited = false } = {}) {
+export function describeHex(summary, { coordinates = false, name = "", sighted = null, visited = false } = {}) {
 	const parts = [];
 	// Only a GM is told of what's hidden, so only a GM sees it marked.
 	const marked = (text, revealed) => (revealed === false ? t("realm.readout.hidden", { name: text }) : text);
@@ -147,8 +150,9 @@ export function describeHex(summary, { coordinates = false, sighted = null, visi
 	if (sighted) parts.push(sighted.note ? t("seenFromAfar.readoutNote", { note: sighted.note }) : t("seenFromAfar.readout"));
 	if (visited) parts.push(t("realm.readout.visited"));
 	const text = parts.join(" · ");
-	if (!coordinates) return text;
-	const where = t("realm.readout.coordinates", summary.hex);
+	const where = coordinates ? t("realm.readout.coordinates", summary.hex) : "";
+	if (name) return [where ? `${name} ${where}` : name, text].filter(Boolean).join(" · ");
+	if (!where) return text;
 	return text ? `${where} ${text}` : where;
 }
 
@@ -217,12 +221,14 @@ export function updateHexReadout({ force = false } = {}) {
 	const handHidden = hexHiddenByHand(scene, hex);
 	// In solo play the Referee reads it as the Company knows it.
 	const summary = hexSummary(realmKnown(entry.realm), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
-	// A mark stands only while something there is still hidden. Most hexes have none, so the flag is read whole only where one does.
-	const marked = Boolean(scene.flags?.[SYSTEM_ID]?.[SIGHTED_FLAG]?.[shown]);
-	const sighted = marked && hiddenThere(entry.realm, hex, () => handHidden) ? sightedAt(getSighted(scene), hex) : null;
+	// A mark stands only while something there is still hidden.
+	const sighted = sightedMarkAt(scene, entry.realm, hex, () => handHidden);
 	const visited = Boolean(getHexVisits(scene, hex));
-	const text = describeHex(summary, { coordinates: showsCoordinates(), sighted, visited });
 	const record = getHexSharedRecord(scene, hex);
+	// The players see a hex's name once it's one of their places, so naming a hex ahead of them gives nothing away.
+	const named = hexName(scene, hex);
+	const name = named && (game.user.isGM || knownToPlayers({ visits: visited, record, mark: sighted })) ? named : "";
+	const text = describeHex(summary, { coordinates: showsCoordinates(), name, sighted, visited });
 	const notes = describeHexNotes({ told: record?.told?.at(-1)?.note, party: record?.party?.text });
 	chip.replaceChildren(...[text, notes].filter(Boolean).map((line, index) => {
 		const span = document.createElement("span");

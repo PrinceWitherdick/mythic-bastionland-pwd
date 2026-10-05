@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -812,7 +813,7 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 	// Referee chooses, so the Company is put in their hand to carry to a hex (p6).
 	if (company) {
 		const placed = await placeCompanyAtStart(scene, company);
-		if (placed) ui.notifications.info(t("company.begins", { hex: t("realm.hex", companyTokenHex(scene)) }));
+		if (placed) ui.notifications.info(t("company.begins", { hex: hexLabel(companyTokenHex(scene), scene) }));
 		else if (!await startCompanyPlacement(scene, company)) ui.notifications.info(t("company.placing.later"));
 	}
 
@@ -1015,7 +1016,7 @@ async function postRealmKey(scene) {
 	if (!entry) return null;
 	const { realm } = entry;
 	const index = await loadArtIndex();
-	const where = ({ col, row }) => t("realm.hex", { col, row });
+	const where = ({ col, row }) => hexLabel({ col, row }, scene);
 
 	return postCard(null, "realm-key", {
 		title: scene.name,

@@ -229,6 +229,7 @@ Hooks.once("init", () => {
 		"bastionland.hex-edit": templatePath("apps/parts/hex-edit.hbs"),
 		"bastionland.travels-list": templatePath("apps/parts/travels-list.hbs"),
 		"bastionland.travels-hex-detail": templatePath("apps/parts/travels-hex-detail.hbs"),
+		"bastionland.hex-heading": templatePath("apps/parts/hex-heading.hbs"),
 		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
 	});
 

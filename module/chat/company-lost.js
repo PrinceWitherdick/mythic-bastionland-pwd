@@ -4,6 +4,7 @@
  * is noticed here: the Realm remembers where it stood, and the GMs are
  * whispered a card that puts it back in that hex with the picture it carried.
  */
+import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_FLAG, lastCompanyHex, rememberCompany, standCompanyAgain } from "../actions/company.js";
 import { isRealmScene } from "../actions/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -26,7 +27,7 @@ async function noticeCompanyDeleted(token) {
 	const hex = lastCompanyHex(scene);
 	await postCard(null, "company-lost", {
 		scene: scene.id,
-		text: hex ? t("company.lost.text", { hex: t("realm.hex", hex) }) : t("company.lost.textAway"),
+		text: hex ? t("company.lost.text", { hex: hexLabel(hex, scene) }) : t("company.lost.textAway"),
 		title: t("company.lost.title"),
 		label: t("company.lost.button"),
 		// Nowhere to put them back, so the card only says they've gone.
@@ -44,7 +45,7 @@ function activateCompanyLost(_message, html) {
 	onCardClick(html, BUTTONS, async (button) => {
 		const scene = game.scenes.get(button.dataset.companyRestore);
 		const token = await standCompanyAgain(scene);
-		if (token) ui.notifications.info(t("company.lost.back", { hex: t("realm.hex", lastCompanyHex(scene)) }));
+		if (token) ui.notifications.info(t("company.lost.back", { hex: hexLabel(lastCompanyHex(scene), scene) }));
 		else ui.notifications.warn(t("company.lost.cannot"));
 	});
 }

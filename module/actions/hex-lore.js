@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { loadArtIndex, mythEntry, seerEntry, sparkPageOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
@@ -172,7 +173,7 @@ async function keepSparks(scene, hex, made, rolls = []) {
 		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt: spark.prompt, results: taken });
 	}
 	if (sparks.length) await keepHexSparkRecords(scene, hex, sparks);
-	if (cards.length) await postCard(null, "hex-sparks", { hex: t("realm.hex", hex), sparks: cards }, { rolls, mode: "gm" });
+	if (cards.length) await postCard(null, "hex-sparks", { hex: hexLabel(hex, scene), sparks: cards }, { rolls, mode: "gm" });
 	return cards;
 }
 
@@ -341,7 +342,7 @@ export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 		seen.holding && holdingName(seen.holding, t),
 		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))
 	].filter(Boolean);
-	const where = t("realm.hex", hex);
+	const where = hexLabel(hex, scene);
 	const message = await postCard(null, "hex-lore", {
 		hex: where,
 		terrain: seen.terrain ? t(`realm.terrain.${seen.terrain}`) : null,

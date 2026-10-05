@@ -1,6 +1,7 @@
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
 import { ringShownHex } from "../canvas/shown-hex.js";
+import { headingWords } from "../rules/hex-names.js";
 import { hexCentre, parseHexKey } from "../rules/realm-geometry.js";
 import { realmPalette } from "../rules/realm-skins.js";
 import { sightedMarks } from "../rules/sighted.js";
@@ -23,6 +24,7 @@ import {
 import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/travels-chart.js";
 import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
+import { getHexNames } from "./hex-names.js";
 import { getHexShared, partyNoteBy } from "./hex-shared.js";
 import { getJourney, visitsLabel } from "./journey.js";
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
@@ -48,10 +50,12 @@ export function travelsSources(scene) {
 		g: sceneGeometry(scene),
 		journey: getJourney(scene),
 		shared: getHexShared(scene),
+		names: getHexNames(scene),
 		// The marks are read off the whole Realm, as the map draws them, whoever is looking.
 		marks: sightedMarks(entry.realm, getSighted(scene), handHidden),
 		handHidden,
-		companyHex: companyTokenHex(scene)
+		companyHex: companyTokenHex(scene),
+		gm: Boolean(game.user?.isGM)
 	};
 }
 
@@ -114,6 +118,8 @@ function rowContext(view, onMap, selected) {
 		key: view.key,
 		hex: view.key,
 		title: words.title,
+		name: words.name,
+		coords: words.coords,
 		terrain: words.terrain,
 		features: words.features.join(", "),
 		visits: visitsLine(view, words),
@@ -320,6 +326,8 @@ function hexDetail(view, onMap) {
 	return {
 		hex: view.key,
 		title: words.title,
+		// Its name over its column and row; only a GM names a hex, by clicking it.
+		heading: { ...headingWords(words.name, words.coords), rename: game.user?.isGM ? { value: view.name } : null },
 		terrain: words.terrain,
 		features: words.features,
 		visits: visitsText(view.visits),

@@ -1,3 +1,4 @@
+import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../rules/phase-end.js";
@@ -122,7 +123,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 		template: "phase-end",
 		context: {
 			note,
-			where: standing ? t("phaseEnd.where", { hex: t("realm.hex", standing.situation.hex) }) : t("phaseEnd.nowhere"),
+			where: standing ? t("phaseEnd.where", { hex: hexLabel(standing.situation.hex, standing.scene) }) : t("phaseEnd.nowhere"),
 			spent: t("phaseEnd.spent", { phase }),
 			modes: keyChoices(PHASE_END_MODES, "phaseEnd.modes", { chosen: likely }),
 			wilderness: calls

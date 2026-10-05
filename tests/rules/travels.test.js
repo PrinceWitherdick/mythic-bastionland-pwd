@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { emptyHexNames, setHexName } from "../../module/rules/hex-names.js";
 import { emptyShared, recordBarrierMet, recordTold, setPartyNote } from "../../module/rules/hex-shared.js";
 import { emptyJourney, recordVisits } from "../../module/rules/journey.js";
 import { emptyRealm, TERRAIN } from "../../module/rules/realm.js";
@@ -6,6 +7,7 @@ import { edgeKey, hexIndex, hexKey, realmGeometry } from "../../module/rules/rea
 import { sightedMarks } from "../../module/rules/sighted.js";
 import {
 	journeyLog,
+	knownToPlayers,
 	ofNote,
 	openableHex,
 	pickTravelsRealm,
@@ -99,6 +101,15 @@ describe("playerHexView", () => {
 		s.realm.landmarks[1].revealed = true;
 		s.marks = sightedMarks(s.realm, { [hexKey(seen)]: { note: "a tower on the hill" } }, handHidden);
 		expect(playerHexView(s, seen).sighted).toBeNull();
+	});
+});
+
+describe("knownToPlayers", () => {
+	it("knows a hex by any one of a visit, a record or a mark, and not by none", () => {
+		expect(knownToPlayers({ visits: { count: 1 } })).toBe(true);
+		expect(knownToPlayers({ record: { told: [] } })).toBe(true);
+		expect(knownToPlayers({ mark: { note: "" } })).toBe(true);
+		expect(knownToPlayers({ visits: null, record: null, mark: null })).toBe(false);
 	});
 });
 
@@ -229,9 +240,43 @@ describe("viewWords", () => {
 
 	it("names a hex by its place, and lists what stands there", () => {
 		const words = viewWords(playerHexView(sources(), wild), t);
-		expect(words.title).toBe(`Bog of Teeth (realm.hex${JSON.stringify(wild)})`);
+		expect(words.title).toBe(t("realm.hexNamed", { name: "Bog of Teeth", hex: t("realm.hex", wild) }));
 		expect(words.terrain).toBe("realm.terrain.forest");
 		expect(words.features).toEqual(["realm.landmarks.hazard: Bog of Teeth"]);
+		expect(words).toMatchObject({ name: "Bog of Teeth", coords: `realm.hex${JSON.stringify(wild)}` });
+	});
+
+	it("names a hex the GM named by that name first, with its column and row apart", () => {
+		const named = { ...sources(), names: setHexName(emptyHexNames(), wild, "The Weeping Fen") };
+		const view = playerHexView(named, wild);
+		expect(view.name).toBe("The Weeping Fen");
+		const words = viewWords(view, t);
+		expect(words).toMatchObject({ name: "The Weeping Fen", coords: `realm.hex${JSON.stringify(wild)}` });
+		expect(words.title).toBe(t("realm.hexNamed", { name: "The Weeping Fen", hex: t("realm.hex", wild) }));
+	});
+
+	it("gives a hex with no name its column and row alone", () => {
+		const words = viewWords(playerHexView(sources(), mythHex), t);
+		expect(words.name).toBe("");
+		expect(words.title).toBe(words.coords);
+	});
+});
+
+describe("openableHex", () => {
+	it("never opens a hex to the players for its name alone", () => {
+		const s = sources();
+		const nowhere = hex(11, 11);
+		const names = setHexName(emptyHexNames(), nowhere, "Dragon's lair");
+		expect(openableHex({ ...s, names }, nowhere)).toBe(false);
+		expect(playerHexView({ ...s, names }, nowhere).openable).toBe(false);
+	});
+
+	it("tells the players a hex's name only once it's one of their places, and a GM always", () => {
+		const s = sources();
+		const nowhere = hex(11, 11);
+		const names = setHexName(emptyHexNames(), nowhere, "Dragon's lair");
+		expect(playerHexView({ ...s, names }, nowhere).name).toBe("");
+		expect(playerHexView({ ...s, names, gm: true }, nowhere).name).toBe("Dragon's lair");
 	});
 });
 

@@ -1,7 +1,7 @@
 {{!-- One hex of a Realm in the GM Toolkit: what stands there, when the Company was there,
       what the GM wrote, and the Spark Tables rolled for it. One to a hex on the Places page. --}}
 <details class="bastionland-gm-toolkit__card bastionland-gm-toolkit__hex" data-hex="{{key}}" data-fold="{{fold}}" data-search="{{search}}" {{#if open}}open{{/if}}>
-	<summary class="bastionland-gm-toolkit__hex-head">
+	<summary class="bastionland-gm-toolkit__hex-head bastionland-reveal-host">
 		<span class="bastionland-gm-toolkit__name">{{title}}</span>
 		{{#if kind}}<span class="bastionland-gm-toolkit__kind">{{kind}}</span>{{/if}}
 		<span class="bastionland-gm-toolkit__chips">
@@ -17,7 +17,7 @@
 		{{#if visits}}
 		<span class="bastionland-gm-toolkit__visits">
 			{{visits}}
-			<button type="button" class="bastionland-icon" data-action="forgetVisits" data-tooltip="{{localize 'bastionland.gmToolkit.visits.edit'}}" aria-label="{{localize 'bastionland.gmToolkit.visits.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
+			<button type="button" class="bastionland-icon bastionland-reveal" data-action="forgetVisits" data-tooltip="{{localize 'bastionland.gmToolkit.visits.edit'}}" aria-label="{{localize 'bastionland.gmToolkit.visits.edit'}}"><i class="fa-solid fa-pen" inert></i></button>
 		</span>
 		{{/if}}
 		{{#if wild.length}}

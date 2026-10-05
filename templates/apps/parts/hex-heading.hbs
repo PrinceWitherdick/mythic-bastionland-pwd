@@ -1,0 +1,12 @@
+{{!-- A hex's heading in the Places window and the Lay of the Land: its name, with the column and row
+      under it in small print, or the column and row alone. A GM clicks it to name the hex (hex-rename.js). --}}
+<div class="bastionland-hex-heading">
+	<h2 class="bastionland-hex-lore__heading">
+		{{#if rename}}
+		<button type="button" class="bastionland-hex-heading__rename bastionland-reveal-host" data-hex-rename="{{rename.value}}" data-tooltip="{{localize 'bastionland.realm.hexName.rename'}}">{{title}}<i class="fa-solid fa-pen bastionland-hex-heading__pen bastionland-reveal" inert></i></button>
+		{{else}}
+		{{title}}
+		{{/if}}
+	</h2>
+	{{#if coords}}<p class="bastionland-hex-heading__coords">{{coords}}</p>{{/if}}
+</div>

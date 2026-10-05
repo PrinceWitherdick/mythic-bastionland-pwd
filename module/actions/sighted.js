@@ -3,7 +3,7 @@ import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { hiddenTilesIn } from "../rules/realm-documents.js";
 import { directionNames, hexKey } from "../rules/realm-geometry.js";
-import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
+import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, hiddenThere, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
@@ -31,6 +31,21 @@ export const getSighted = (scene) => normaliseSighted(scene?.flags?.[SYSTEM_ID]?
  * @returns {(hex: {col: number, row: number}) => {holding: boolean}} What the GM hid by hand in each hex.
  */
 const handHiddenOn = (scene) => (hex) => hexHiddenByHand(scene, hex);
+
+/**
+ * The mark on one hex, while something there is still hidden: read for a
+ * single hex, since the readout asks at every hex crossed.
+ * @param {Scene} scene
+ * @param {object} realm The Realm the Scene holds.
+ * @param {{col: number, row: number}} hex
+ * @param {(hex: {col: number, row: number}) => object} [handHidden] What the GM hid by hand, when already read.
+ * @returns {{note: string}|null}
+ */
+export function sightedMarkAt(scene, realm, hex, handHidden = handHiddenOn(scene)) {
+	// Most hexes have none, so the flag is read whole only where one does.
+	if (!scene?.flags?.[SYSTEM_ID]?.[SIGHTED_FLAG]?.[hexKey(hex)]) return null;
+	return hiddenThere(realm, hex, handHidden) ? sightedAt(getSighted(scene), hex) : null;
+}
 
 /**
  * Write the marks that changed, one hex at a time, so a mark set elsewhere at

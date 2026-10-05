@@ -6,7 +6,7 @@
  * and last did. Pure, so it can be tested without Foundry.
  */
 import { normaliseWhen } from "./hex-lore.js";
-import { hexDistance, hexKey, hexLine, parseHexKey, sameHex } from "./realm-geometry.js";
+import { hexDistance, hexKey, hexLine, hexRecords, parseHexKey, sameHex } from "./realm-geometry.js";
 
 export const JOURNEY_VERSION = 1;
 
@@ -122,15 +122,8 @@ export function normaliseVisits(raw) {
 export function normaliseJourney(raw) {
 	const journey = emptyJourney();
 	if (!raw || typeof raw !== "object") return journey;
-	const hexes = raw.hexes && typeof raw.hexes === "object" ? raw.hexes : {};
-	let latest = 0;
-	for (const [key, value] of Object.entries(hexes)) {
-		if (!parseHexKey(key)) continue;
-		const visits = normaliseVisits(value);
-		if (!visits) continue;
-		journey.hexes[key] = visits;
-		latest = Math.max(latest, visits.last.order);
-	}
+	journey.hexes = hexRecords(raw, normaliseVisits);
+	const latest = Math.max(0, ...Object.values(journey.hexes).map((visits) => visits.last.order));
 	// Never behind a hex already come into, or the next one would sort among the old.
 	journey.next = Math.max(atLeast(raw.next, 1), Math.floor(latest) + 1);
 	return journey;

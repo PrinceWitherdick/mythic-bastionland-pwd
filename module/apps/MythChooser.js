@@ -6,6 +6,7 @@
  * a time or all at once, or chosen by hand from the whole table. Only the roll
  * changes: each Myth keeps its number and stays in its hex.
  */
+import { hexLabel } from "../actions/hex-names.js";
 import { editRealm, getRealm } from "../actions/realm.js";
 import { mythEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -241,7 +242,7 @@ export class MythChooser extends BastionlandChooser {
 			number: myth.number ?? null,
 			name,
 			img: entry?.path ?? null,
-			hex: myth.hex ? t("realm.hex", myth.hex) : null,
+			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
 			reference: t("mythChooser.reference", { roll, page }),
 			selected: myth.number !== undefined && myth.number === this.number
 		};

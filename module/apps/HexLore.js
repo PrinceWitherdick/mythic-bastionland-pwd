@@ -7,6 +7,7 @@ import {
 	tellPlayersAboutHex,
 	writeHexNote
 } from "../actions/hex-lore.js";
+import { hexHeading, hexLabel, renameHex } from "../actions/hex-names.js";
 import { getHexSharedRecord, partyNoteView, toldLabel } from "../actions/hex-shared.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { getHexVisits, markHexVisited, visitsLabel } from "../actions/journey.js";
@@ -23,6 +24,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { WILD_PAGE, openSparkTables, refreshSparkKeep } from "./SparkTables.js";
 import { openBookFlip } from "./BookFlip.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
+import { wireHexRename } from "./hex-rename.js";
 import { HEX_EDIT_FIELDS, chooseHexMyth, hexEditContext, rollHexMyth, rollHexSeer, stepHexOmen, toggleHexReveal, writeHexField } from "./hex-edit.js";
 import { renderWhenIdle } from "./ui.js";
 import { realmKnown } from "../actions/solo.js";
@@ -112,6 +114,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		};
 		keepFold("[data-hex-edit]", context.edit?.open, (open) => (this.#editOpen = open));
 		keepFold("[data-hex-forget]", context.forget?.open, (open) => (this.#forgetOpen = open));
+		// A GM names the hex by clicking its heading.
+		wireHexRename(this.element, (name) => renameHex(this.scene, this.hex, name));
 		// Rolls on the Spark Tables are kept in the hex this is open on.
 		refreshSparkKeep();
 	}
@@ -124,8 +128,15 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/** @override */
+	_configureRenderOptions(options) {
+		super._configureRenderOptions(options);
+		// Foundry titles the window only as it opens; a hex renamed, or another hex opened in it, titles it again.
+		if (!options.isFirstRender && this.hasFrame) (options.window ??= {}).title = this.title;
+	}
+
+	/** @override */
 	get title() {
-		return this.hex ? t("hexLore.titleHex", { hex: t("realm.hex", this.hex) }) : t("hexLore.title");
+		return this.hex ? t("hexLore.titleHex", { hex: hexLabel(this.hex, this.scene) }) : t("hexLore.title");
 	}
 
 	/** @returns {Scene|null} */
@@ -166,7 +177,7 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		else if (!pages.length) notice = t("spark.noText");
 
 		return Object.assign(context, {
-			heading: t("realm.hex", hex),
+			heading: hexHeading(scene, hex),
 			terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 			features: hexFeatureLines(scene, known, g, hex, this.#index),
 			// A Holding's Local Mood is rolled as the Company arrives (p18).

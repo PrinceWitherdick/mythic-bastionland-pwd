@@ -84,6 +84,18 @@ describe("a player's Company running into a hidden Barrier", () => {
 		expect(edits[0].barriers.find((barrier) => barrier.edge === hidden).revealed).toBe(true);
 	});
 
+	it("tells the GM a hex by the name they gave it, as the readout does", async () => {
+		game.user.isGM = true;
+		scene.flags = { [SYSTEM_ID]: { hexNames: { version: 1, hexes: { "2,1": { name: "Weeping Fen" } } } } };
+		try {
+			await onTurnedBack(turned([hidden], { company: { from, to } }));
+			expect(info.mock.calls[0][0]).toContain("Weeping Fen");
+			expect(asked[0].note).toContain("Weeping Fen");
+		} finally {
+			delete scene.flags;
+		}
+	});
+
 	it("keeps the Barrier in the hex the Token was turned back into, under who met it", async () => {
 		game.user.isGM = true;
 		await onTurnedBack(turned([hidden], { from: to }));

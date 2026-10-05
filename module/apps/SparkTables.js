@@ -1,3 +1,4 @@
+import { hexLabel } from "../actions/hex-names.js";
 import { companyTokenHex } from "../actions/company.js";
 import { keepHexSparks, keepTableRoll, throwSparkDice, wildernessHexTables } from "../actions/hex-lore.js";
 import { keepHexPerson, postPerson, rollPersonTables } from "../actions/people.js";
@@ -81,7 +82,7 @@ const WILD_KEEP_IN = "hexLore.wildHex.keepIn";
  */
 function keepWords(key = KEEP_IN, target = keepTarget()) {
 	return target
-		? { label: t(key, { hex: t("realm.hex", target.hex) }), disabled: false }
+		? { label: t(key, { hex: hexLabel(target.hex, target.scene) }), disabled: false }
 		: { label: t("spark.keepNone"), disabled: true };
 }
 

@@ -6,7 +6,7 @@
  * tested without Foundry.
  */
 import { normaliseWhen } from "./hex-lore.js";
-import { hexKey, parseHexKey } from "./realm-geometry.js";
+import { hexKey, hexRecords } from "./realm-geometry.js";
 import { trimmedText } from "./text.js";
 
 export const HEX_SHARED_VERSION = 1;
@@ -136,15 +136,7 @@ const worthKeeping = (record) => (record.told.length || record.party || record.m
  * @returns {HexShared}
  */
 export function normaliseShared(raw) {
-	const shared = emptyShared();
-	const hexes = raw && typeof raw === "object" ? raw.hexes : null;
-	if (!hexes || typeof hexes !== "object") return shared;
-	for (const [key, value] of Object.entries(hexes)) {
-		if (!parseHexKey(key)) continue;
-		const record = normaliseSharedRecord(value);
-		if (record) shared.hexes[key] = record;
-	}
-	return shared;
+	return { ...emptyShared(), hexes: hexRecords(raw, normaliseSharedRecord) };
 }
 
 /**

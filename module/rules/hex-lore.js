@@ -5,7 +5,7 @@
  * roll is kept where it was made, beside whatever the GM wrote down about the
  * place. Pure, so it can be tested without Foundry.
  */
-import { hexKey, parseHexKey } from "./realm-geometry.js";
+import { hexKey, hexRecords } from "./realm-geometry.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkPrompt } from "./spark-tables.js";
 import { compareCalendars } from "./time.js";
 import { trimmedText } from "./text.js";
@@ -122,15 +122,7 @@ export function normaliseRecord(raw) {
  * @returns {HexLore}
  */
 export function normaliseHexLore(raw) {
-	const lore = emptyLore();
-	const hexes = raw && typeof raw === "object" ? raw.hexes : null;
-	if (!hexes || typeof hexes !== "object") return lore;
-	for (const [key, value] of Object.entries(hexes)) {
-		if (!parseHexKey(key)) continue;
-		const record = normaliseRecord(value);
-		if (record) lore.hexes[key] = record;
-	}
-	return lore;
+	return { ...emptyLore(), hexes: hexRecords(raw, normaliseRecord) };
 }
 
 /**

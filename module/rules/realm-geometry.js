@@ -129,6 +129,27 @@ export function parseHexKey(key) {
 }
 
 /**
+ * The records of a store kept a hex at a time in a Scene flag, `{hexes: {[key]: record}}`,
+ * from whatever the flag holds, however old or bad: each under a hex's key that comes
+ * through `clean`.
+ * @template T
+ * @param {unknown} raw
+ * @param {(value: unknown) => T|null|undefined} clean A record as it's kept, or nothing to drop it.
+ * @returns {Record<string, T>}
+ */
+export function hexRecords(raw, clean) {
+	const hexes = raw && typeof raw === "object" ? raw.hexes : null;
+	const kept = {};
+	if (!hexes || typeof hexes !== "object") return kept;
+	for (const [key, value] of Object.entries(hexes)) {
+		if (!parseHexKey(key)) continue;
+		const record = clean(value);
+		if (record) kept[key] = record;
+	}
+	return kept;
+}
+
+/**
  * @param {{col: number, row: number}|null} a
  * @param {{col: number, row: number}|null} b
  */
