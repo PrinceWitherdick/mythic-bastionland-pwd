@@ -90,7 +90,7 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
 		id: "bastionland-welcome",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-welcome-window"],
-		position: { width: 580, height: "auto" },
+		position: { width: 960, height: "auto" },
 		window: { title: "bastionland.welcome.title", icon: "fa-solid fa-chess-rook", resizable: true },
 		actions: {
 			choose: Welcome.#onChoose,

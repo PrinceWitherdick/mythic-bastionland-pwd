@@ -5,6 +5,8 @@
 		<p class="bastionland-welcome__lead">{{localize "bastionland.welcome.lead"}}</p>
 	</header>
 
+	<div class="bastionland-welcome__columns bastionland-columns">
+	<div class="bastionland-welcome__column">
 	<section class="bastionland-welcome__section">
 		<h2 class="bastionland-heading">{{localize "bastionland.welcome.book.heading"}}</h2>
 		{{#if found}}
@@ -58,7 +60,9 @@
 		</button>
 		<p class="hint">{{localize "bastionland.welcome.book.later"}}</p>
 	</section>
+	</div>
 
+	<div class="bastionland-welcome__column">
 	<section class="bastionland-welcome__section bastionland-welcome__company">
 		<h2 class="bastionland-heading">{{localize "bastionland.welcome.company.heading"}}</h2>
 		<label class="bastionland-welcome__question" for="bastionland-welcome-company">{{localize "bastionland.welcome.company.question"}}</label>
@@ -113,6 +117,8 @@
 			<dd>{{localize "bastionland.welcome.where.referee.text"}}</dd>
 		</dl>
 	</section>
+	</div>
+	</div>
 
 	<footer class="bastionland-welcome__footer">
 		<button type="button" class="bastionland-button" data-action="finish">

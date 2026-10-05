@@ -60,7 +60,10 @@ export const TabRailMixin = (Base) => class extends Base {
  * @param {string} anchorSelector  The header the rail hangs below.
  */
 export function placeTabRail(frame, anchorSelector) {
-	requestAnimationFrame(() => stampRailSide(frame));
+	requestAnimationFrame(() => {
+		stampRailSide(frame);
+		measureRailHeight(frame);
+	});
 	const anchor = frame.querySelector(anchorSelector);
 	const watched = watchedAnchors.get(frame);
 	if (watched?.anchor === anchor) return;
@@ -92,6 +95,18 @@ export function placeTabRail(frame, anchorSelector) {
 function hangRailBelow(frame, anchor) {
 	const bottom = anchorBottom(frame, anchor);
 	if (bottom !== null) frame.style.setProperty("--bastionland-rail-top", `${bottom + RAIL_HEADER_GAP}px`);
+}
+
+/**
+ * Note the rail's full height, borders and all, so the stylesheet can keep its
+ * middle within the top third of a window too short to hang it below the
+ * header. Read past the height cap, which the stylesheet works out from this.
+ * @param {HTMLElement} frame
+ */
+function measureRailHeight(frame) {
+	const rail = frame.querySelector(".window-content > nav.bastionland-tab-rail");
+	if (!rail?.scrollHeight) return;
+	frame.style.setProperty("--bastionland-rail-height", `${rail.scrollHeight + rail.offsetHeight - rail.clientHeight}px`);
 }
 
 /**

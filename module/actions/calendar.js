@@ -52,7 +52,7 @@ export function setCalendar(calendar) {
  * The book names the Phase, the Season and the Age (p17) and never numbers the Days, so no label
  * shows the calendar's Day tally.
  * @param {import("../rules/time.js").Calendar} calendar
- * @returns {string} Such as "Age 2, Winter, Night".
+ * @returns {string} Such as "Night, Winter, Age 2".
  */
 export function calendarLabel(calendar) {
 	const { age, season, phase } = normalizeCalendar(calendar);

@@ -1215,19 +1215,16 @@
 	gap: 1rem;
 }
 
-.bastionland-wilderness-hex .bastionland-myth-table {
-	margin: 0;
-	border: 1px solid var(--bastionland-ink);
+/* Drawn as the window's other pages draw their tables (.bastionland-spark__table), but a column's
+   heading rolls it and an entry takes it by hand: both plain words in their cell until pointed at. */
+.bastionland-wilderness-hex .bastionland-knight-table__pick {
+	line-height: inherit;
+	text-align: inherit;
 }
 
-.bastionland-wilderness-hex .bastionland-myth-table caption {
-	padding: 0.2rem 0.45rem;
-	background: var(--bastionland-ink);
-	color: var(--bastionland-paper);
-	font-family: var(--bastionland-font-caps);
-	font-weight: bold;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
+.bastionland-wilderness-hex .bastionland-knight-table__pick:is(:hover, :focus-visible) {
+	background: none;
+	color: var(--bastionland-blood);
 }
 
 .bastionland-wilderness-hex .bastionland-toolbar {

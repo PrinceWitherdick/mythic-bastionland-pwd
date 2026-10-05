@@ -46,29 +46,34 @@
 	<section class="bastionland-wilderness-hex">
 		<div class="bastionland-wilderness-hex__tables">
 			{{#each tables}}
-			<table class="bastionland-myth-table" data-wild-table="{{index}}">
-				<caption>{{name}}</caption>
-				<thead>
-					<tr>
-						<th scope="col" class="bastionland-myth-table__die">
-							<button type="button" data-action="rollWild" data-table="{{index}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}"><i class="fa-solid fa-dice" inert></i></button>
-						</th>
-						{{#each columns}}
-						<th scope="col"><button type="button" data-action="rollWild" data-table="{{../index}}" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
+			<div class="bastionland-spark__table">
+				<header class="bastionland-spark__table-header">
+					<h2 class="bastionland-heading bastionland-heading--small">{{name}}</h2>
+					<button type="button" class="bastionland-icon" data-action="rollWild" data-table="{{index}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}">
+						<i class="fa-solid fa-dice" inert></i>
+					</button>
+				</header>
+				<table data-wild-table="{{index}}">
+					<thead>
+						<tr>
+							<th scope="col"></th>
+							{{#each columns}}
+							<th scope="col"><button type="button" class="bastionland-knight-table__pick" data-action="rollWild" data-table="{{../index}}" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
+							{{/each}}
+						</tr>
+					</thead>
+					<tbody>
+						{{#each rows}}
+						<tr>
+							<th scope="row">{{number}}</th>
+							{{#each entries}}
+							<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}><button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-table="{{../../index}}" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.hexLore.wildHex.pick'}}">{{text}}</button></td>
+							{{/each}}
+						</tr>
 						{{/each}}
-					</tr>
-				</thead>
-				<tbody>
-					{{#each rows}}
-					<tr>
-						<th scope="row">{{number}}</th>
-						{{#each entries}}
-						<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}><button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-table="{{../../index}}" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.hexLore.wildHex.pick'}}">{{text}}</button></td>
-						{{/each}}
-					</tr>
-					{{/each}}
-				</tbody>
-			</table>
+					</tbody>
+				</table>
+			</div>
 			{{/each}}
 		</div>
 		<nav class="bastionland-toolbar">

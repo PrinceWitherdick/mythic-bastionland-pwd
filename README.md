@@ -1,8 +1,10 @@
 # Mythic Bastionland for Foundry VTT
 
+An unofficial [Foundry VTT](https://foundryvtt.com) system for playing [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall, made with his permission. It is not an official Bastionland Press product.
+
 [![Watch the video on YouTube](https://img.youtube.com/vi/R_7xp_46yaM/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_7xp_46yaM)
 
-An unofficial [Foundry VTT](https://foundryvtt.com) system for playing [Mythic Bastionland](https://www.bastionland.com) by Chris McDowall, made with his permission. It is not an official Bastionland Press product.
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V8L6287YU9)
 
 > **You need the rulebook PDF.** Without a purchased copy of the Mythic Bastionland PDF, this system is practically useless: no Knights, Seers or Myths to choose from, no Spark Tables, no portraits and no compendiums, just empty sheets and a blank map. [Buy the book](https://bastionlandpress.com/collections/all), then import your PDF with the **Import PDF** macro or the Welcome window.
 

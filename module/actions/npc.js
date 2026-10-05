@@ -77,8 +77,10 @@ export function rollHirelingVirtues(actor, data, _options, userId) {
 	if (userId !== game.user.id || actor.type !== "npc" || actor.system.scale === "warband") return;
 	const source = actor._stats?.compendiumSource ?? data?._stats?.compendiumSource ?? "";
 	if (!source.includes(`.${GOODS_PACKS.actors.name}.`) || !hasUnrolledVirtues(actor.system)) return;
+	// The hook can't wait on dice, and v14 won't roll them synchronously, so each die
+	// takes a face from Foundry's own random source. The formula only adds dice.
 	const virtues = Object.fromEntries(VIRTUES.map((key) => {
-		const score = clampVirtue(new Roll(FOLK_VIRTUE_ROLL).evaluateSync().total);
+		const score = clampVirtue(new Roll(FOLK_VIRTUE_ROLL).dice.reduce((sum, die) => sum + die.randomFace(), 0));
 		return [key, { value: score, max: score }];
 	}));
 	actor.updateSource({ system: { virtues } });

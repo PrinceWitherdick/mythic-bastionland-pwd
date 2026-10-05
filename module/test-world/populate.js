@@ -833,7 +833,7 @@ class TestGame {
 	async newMyth(number) {
 		const myth = this.myth(number);
 		if (!myth) return;
-		const { d6, d12 } = await rollFreeMyth(this.realm);
+		const { d6, d12, rolls } = await rollFreeMyth(this.realm);
 		const rolled = { number, d6, d12 };
 		await editRealm(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 		const { name, page, entry } = mythEntry(this.index, rolled);
@@ -844,7 +844,7 @@ class TestGame {
 			omen: t("gmToolkit.myths.newMythRolled", { hex: t("realm.hex", myth.hex) }),
 			text: null,
 			hint: t("gmToolkit.myths.newMythHint")
-		}, { rolls: [d6, d12], mode: "gm" });
+		}, { rolls, mode: "gm" });
 	}
 
 	/**
@@ -951,7 +951,7 @@ class TestGame {
 	/*  The Seasons                                 */
 	/* -------------------------------------------- */
 
-	/** Age 1, Spring: presented at Court, then out to find the Seer at the Sanctum. */
+	/** Spring, Age 1: presented at Court, then out to find the Seer at the Sanctum. */
 	async springOfAgeOne() {
 		const { isolde, corvin, oswin } = this.knights;
 		const { seat, sanctum, dwelling } = this.places;
@@ -994,7 +994,7 @@ class TestGame {
 		await this.turn({ pursuits: { isolde: "courtesy", corvin: "pilgrimage", oswin: "service" } });
 	}
 
-	/** Age 1, Harvest: the Drowned Chapel explored, and the tourney won. */
+	/** Harvest, Age 1: the Drowned Chapel explored, and the tourney won. */
 	async harvestOfAgeOne() {
 		const { isolde } = this.knights;
 		const { ruin, tourney, monument } = this.places;
@@ -1040,7 +1040,7 @@ class TestGame {
 		await this.turn({ pursuits: { isolde: "service", corvin: "courtesy", oswin: "pilgrimage" } });
 	}
 
-	/** Age 1, Winter: a hard road, and the first Myth met to its end. */
+	/** Winter, Age 1: a hard road, and the first Myth met to its end. */
 	async winterOfAgeOne() {
 		const { isolde, corvin, oswin } = this.knights;
 		const { first } = this.mythNumbers;
@@ -1091,7 +1091,7 @@ class TestGame {
 		this.deeds.isolde.push("Between the Ages: grew Old. Grey at the temples now, and slower in the mornings.");
 	}
 
-	/** Age 2, Spring: a new Myth, a battle, and a Holding granted. */
+	/** Spring, Age 2: a new Myth, a battle, and a Holding granted. */
 	async springOfAgeTwo() {
 		const { isolde, corvin, oswin } = this.knights;
 		const { domain } = this.places;
@@ -1126,7 +1126,7 @@ class TestGame {
 		await this.turn({ pursuits: { isolde: "service", corvin: "pilgrimage", oswin: "courtesy" } });
 	}
 
-	/** Age 2, Harvest, where the game has got to: on the road toward the next Myth. */
+	/** Harvest, Age 2, where the game has got to: on the road toward the next Myth. */
 	async harvestOfAgeTwo() {
 		const { isolde, corvin, oswin } = this.knights;
 		const { second, third } = this.mythNumbers;

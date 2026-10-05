@@ -2125,16 +2125,24 @@ a.button:focus:not(:focus-visible) {
 	-webkit-backdrop-filter: none;
 }
 
+/*
+ * Placed as the Stonetop sheets place theirs: below the header, but with the
+ * rail's middle never lower than a third of the way down the window, so a
+ * window shrunk shorter than its header lifts the rail back up its side. It
+ * never climbs over the title bar, and past the window's bottom it scrolls.
+ */
 .bastionland-sheet > .window-content > nav.bastionland-tab-rail {
+	--bastionland-rail-y: max(var(--header-height, 36px), min(var(--bastionland-rail-top, 150px),
+		calc(33% - var(--bastionland-rail-height, 0px) / 2)));
 	position: absolute;
-	top: var(--bastionland-rail-top, 150px);
+	top: var(--bastionland-rail-y);
 	left: 100%;
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 	box-sizing: border-box;
 	height: auto;
-	max-height: max(96px, calc(100% - var(--bastionland-rail-top, 150px)));
+	max-height: max(96px, calc(100% - var(--bastionland-rail-y)));
 	margin: 0;
 	padding: 5px;
 	overflow: hidden auto;
@@ -3348,9 +3356,16 @@ a.button:focus:not(:focus-visible) {
 /* Spark Tables: a page of nine tables, the way the book sets them  */
 /* ---------------------------------------------------------------- */
 
+/* The tables scroll right to the window's bottom edge: the page's bottom padding moves inside the
+   scrolling grid (and the Wilderness Hex section), so it only shows once scrolled to the end. */
 .bastionland-spark {
 	gap: 0.75rem;
+	padding-bottom: 0;
 	overflow: hidden;
+}
+
+.bastionland-spark :is(.bastionland-spark__grid, .bastionland-wilderness-hex) {
+	padding-bottom: 1.5rem;
 }
 
 .bastionland-spark__header .bastionland-choices--inline {
@@ -6399,6 +6414,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
+/* Save to hex waits, greyed, till a prompt is chosen. */
+.bastionland-book-flip__footer button:disabled {
+	opacity: 0.5;
+}
+
 .bastionland-book-flip__roll {
 	color: var(--bastionland-ink-soft);
 	font-style: italic;
@@ -7797,6 +7817,18 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin-top: 0.3rem;
 	color: var(--bastionland-ink-soft);
 	font-style: italic;
+}
+
+/* The book on the left, the Company and where things are on the right; one
+   column when the window is narrowed. Each column measures its own width, so
+   the where-list stacks to fit it. */
+.bastionland-welcome__columns {
+	gap: 1.1rem 1.6rem;
+}
+
+.bastionland-welcome__column {
+	gap: 1.1rem;
+	container-type: inline-size;
 }
 
 .bastionland-welcome__section {

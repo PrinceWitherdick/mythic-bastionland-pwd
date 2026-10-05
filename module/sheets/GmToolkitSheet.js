@@ -30,6 +30,7 @@ import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-contr
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
+import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { postCard, statLabels, t } from "../chat/cards.js";
 import { scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
@@ -808,6 +809,13 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	/** @override */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
+		// Whatever stands for a hex rings it on the map while the pointer is over it, when that Realm is on the canvas.
+		this.element.addEventListener("pointerover", (event) => {
+			const holder = event.target.closest?.("[data-hex]");
+			const hex = parseHexKey(holder?.dataset.hex);
+			const scene = hex && this.scene;
+			if (scene) ringHoveredHex(scene, hex, holder);
+		});
 		const onRealmDocument = (document) => {
 			const sceneId = document.documentName === "Scene" ? document.id : document.parent?.id;
 			if (sceneId === this.scene?.id) this.#redraw(...REALM_PARTS);
@@ -1180,7 +1188,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const scene = this.scene;
 		if (!myth || !scene) return;
 		const { realm } = getRealm(scene);
-		const { d6, d12 } = await rollFreeMyth(realm);
+		const { d6, d12, rolls } = await rollFreeMyth(realm);
 		const rolled = { number: myth.number, d6, d12 };
 		const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 		if (!written) return;
@@ -1205,7 +1213,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			omen: t("gmToolkit.myths.newMythRolled", { hex: hexLabel(myth.hex, scene) }),
 			text: null,
 			hint: t("gmToolkit.myths.newMythHint")
-		}, { rolls: [d6, d12], mode: "gm" });
+		}, { rolls, mode: "gm" });
 	}
 
 	/**

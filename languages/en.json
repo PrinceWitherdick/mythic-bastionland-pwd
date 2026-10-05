@@ -1204,7 +1204,7 @@
     },
     "time": {
       "title": "Time",
-      "now": "Age {age}, {season}, {phase}",
+      "now": "{phase}, {season}, Age {age}",
       "chronicle": "{phase}, in the {season} of the {age} Age.",
       "seasonOfAge": "{season} of the {age} Age",
       "banner": {
@@ -4670,7 +4670,7 @@
           "text": "Referee Rolls, Spark Tables, Time and the GM Toolkit, where the Myths and their Omens are kept, wait in the Roll Tables tab."
         }
       },
-      "finish": "Close",
+      "finish": "Done",
       "chat": {
         "import": {
           "title": "Your Rulebook",
