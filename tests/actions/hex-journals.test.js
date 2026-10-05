@@ -41,12 +41,10 @@ vi.mock("../../module/actions/hex-lore.js", async (importOriginal) => ({ ...(awa
 vi.mock("../../module/actions/hex-shared.js", () => ({
 	getHexShared: () => shared,
 	getHexSharedRecord: () => null,
-	partyNoteBy: () => "",
-	toldLabel: () => ""
+	partyNoteBy: () => ""
 }));
 vi.mock("../../module/actions/journey.js", () => ({
-	getHexVisits: () => journey.hexes["3,3"] ?? null,
-	visitsLabel: () => "visited"
+	getHexVisits: () => journey.hexes["3,3"] ?? null
 }));
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: (scene) => (scene?.isRealm ? { realm: realmWith() } : null),
@@ -81,6 +79,9 @@ function fakeEntry(data) {
 		createEmbeddedDocuments: vi.fn(),
 		updateEmbeddedDocuments: vi.fn(async (_type, updates) => {
 			for (const { _id, text } of updates) Object.assign(entry.pages.find((page) => page.id === _id).text, text);
+		}),
+		deleteEmbeddedDocuments: vi.fn(async (_type, ids) => {
+			entry.pages = entry.pages.filter((page) => !ids.includes(page.id));
 		})
 	};
 	return entry;
@@ -103,7 +104,9 @@ beforeEach(() => {
 	};
 	folders.find = Array.prototype.find.bind(folders);
 	globalThis.foundry = {
+		applications: { sheets: { journal: { JournalEntryPageTextSheet: { _converter: { makeHtml: (markdown) => `<p>${markdown}</p>` } } } } },
 		utils: {
+			cleanHTML: (html) => html,
 			setProperty: (object, path, value) => {
 				const keys = path.split(".");
 				const last = keys.pop();
@@ -139,25 +142,32 @@ describe("syncHexJournals", () => {
 		expect(entry.folder).toBe("f1");
 		expect(entry.flags[SYSTEM_ID].hexJournal).toEqual({ scene: "realm", hex: "3,3", open: false });
 		expect(entry.ownership.default).toBe(0);
-		const [rolled, known, notes] = entry.pages;
-		expect(rolled.text.markdown).toContain("Mossy Hollow");
-		expect(rolled.text.markdown).toContain(SECRET_LANDMARK);
+		const [known, notes] = entry.pages;
+		expect(entry.pages.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["known", "notes"]);
 		expect(known.text.markdown + entry.name).not.toContain(SECRET_LANDMARK);
+		// What the GM rolled is read in Places, not in the Journal.
+		expect(known.text.markdown).not.toContain("Mossy Hollow");
 		expect(notes.text.markdown).toBe("");
+		// The server makes no HTML for pages made inside their entry, so they bring their own.
+		expect(known.text.content).toBe(`<p>${known.text.markdown}</p>`);
+		expect(notes.text.content).toBeUndefined();
 	});
 
-	it("writes nothing the second time, and only the Rolled page once a roll is added", async () => {
+	it("writes nothing the second time, nor for the GM's own note, and the Company's page once it has been there", async () => {
 		await syncHexJournals(scene);
 		const entry = hexJournalEntry(scene, ruin);
+		await syncHexJournals(scene);
+		lore.hexes["3,3"].note = "A well.";
 		await syncHexJournals(scene);
 		expect(entry.update).not.toHaveBeenCalled();
 		expect(entry.updateEmbeddedDocuments).not.toHaveBeenCalled();
 
-		lore.hexes["3,3"].note = "A well.";
+		journey = recordVisits(emptyJourney(), [ruin], when);
 		await syncHexJournals(scene);
 		expect(entry.updateEmbeddedDocuments).toHaveBeenCalledTimes(1);
 		expect(entry.updateEmbeddedDocuments.mock.calls[0][1].map((update) => update._id)).toEqual(["p0"]);
-		expect(entry.pages[0].text.markdown).toContain("A well.");
+		expect(entry.pages[0].text.markdown).toContain("been");
+		expect(entry.pages[0].text.markdown).not.toContain("A well.");
 	});
 
 	it("lets players see the entry once the Company has been there", async () => {
@@ -169,19 +179,18 @@ describe("syncHexJournals", () => {
 		expect(entry.flags[SYSTEM_ID].hexJournal.open).toBe(true);
 	});
 
-	it("keeps an entry whose hex was forgotten, and says nothing is kept", async () => {
+	it("keeps an entry whose hex was forgotten, Notes and all", async () => {
 		await syncHexJournals(scene);
 		lore = { version: 1, hexes: {} };
 		await syncHexJournals(scene);
 		const entry = hexJournalEntry(scene, ruin);
-		expect(entry.pages[0].text.markdown).toContain("hexJournal.nothingKept");
+		expect(entry.pages.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["known", "notes"]);
+		expect(entry.deleteEmbeddedDocuments).not.toHaveBeenCalled();
 	});
 
-	it("lists a hidden Barrier on the Rolled page alone, marked hidden", async () => {
+	it("never lists a hidden Barrier on the Company's page", async () => {
 		await syncHexJournals(scene);
-		const [rolled, known] = hexJournalEntry(scene, ruin).pages;
-		expect(rolled.text.markdown).toContain("realm.readout.hidden");
-		expect(rolled.text.markdown).toContain("realm.readout.barrier");
+		const [known] = hexJournalEntry(scene, ruin).pages;
 		expect(known.text.markdown).not.toContain("realm.readout.barrier");
 	});
 
@@ -191,14 +200,11 @@ describe("syncHexJournals", () => {
 		shared = recordBarrierMet(emptyShared(), ruin, { edge: barrierEdge, byName: "Alys", when, at: 1 });
 		await syncHexJournals(scene);
 		const entry = hexJournalEntry(scene, ruin);
-		const [rolled, known] = entry.pages;
+		const [known] = entry.pages;
 		expect(entry.ownership.default).toBe(1);
-		for (const page of [rolled, known]) {
-			expect(page.text.markdown).toContain("### hexJournal.met");
-			expect(page.text.markdown).toContain("north by Alys");
-			expect(page.text.markdown).toContain("realm.readout.barrier");
-		}
-		expect(rolled.text.markdown).not.toContain("hexJournal.nothingKept");
+		expect(known.text.markdown).toContain("### hexJournal.met");
+		expect(known.text.markdown).toContain("north by Alys");
+		expect(known.text.markdown).toContain("realm.readout.barrier");
 	});
 
 	it("leaves it to the active GM, and to worlds that want entries", async () => {

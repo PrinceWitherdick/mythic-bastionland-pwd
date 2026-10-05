@@ -111,6 +111,8 @@ import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
+import { registerWrittenNotices } from "./module/apps/written-notice.js";
+import { tidyKeptJournals } from "./module/actions/kept-journals.js";
 import { registerKeywordTips } from "./module/rulebook/keyword-tips.js";
 import { catchUpBookText, loadBookText, registerBookText } from "./module/book-art/book-text.js";
 import { registerArtIndexStamp } from "./module/book-art/art-index.js";
@@ -333,6 +335,8 @@ Hooks.once("init", () => {
 	watchQuerySenders();
 	// Every "(p16)" in a window or chat card opens the book at that page.
 	registerPageLinks();
+	// A hex's Journal entry has a button to the hex in the Lay of the Land.
+	registerWrittenNotices();
 	// Hovering a rule word, such as Exposed or Hefty, says what it means.
 	registerKeywordTips();
 	// Every client hears when Import PDF writes a new art index.
@@ -558,7 +562,10 @@ const WORLD_SETUP = Object.freeze([
 	// Again, once each Scene has its own look: for terrain pictures named by terrain rather than
 	// number, and for Scenes drawn when a river through a Valley had a picture of its own, now that
 	// it is the river laid over the Valley's own picture. One pass redraws a Scene for both.
-	{ key: "realmValleyRivers", run: moveRealmPictures }
+	{ key: "realmValleyRivers", run: moveRealmPictures },
+	// Hex and Site entries older versions made: a hex's Rolled page goes, its Notes are the GM Notes by
+	// name, and pages the server left with nothing to show get their HTML.
+	{ key: "keptJournalPages", run: tidyKeptJournals }
 ]);
 
 Hooks.once("ready", async () => {

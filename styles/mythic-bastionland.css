@@ -1572,11 +1572,12 @@ a.button:focus:not(:focus-visible) {
    sets --pill-pad, the padding it would have on paper, to suit. */
 @supports (text-box: trim-both cap alphabetic) {
 	.bastionland-pill,
+	.bastionland-page section.secret > button.reveal,
 	.bastionland-page .bastionland-site__chip > span {
 		text-box: trim-both cap alphabetic;
 	}
 
-	.bastionland-pill {
+	:is(.bastionland-pill, .bastionland-page section.secret > button.reveal) {
 		--pill-padding-top: var(--pill-pad, 0.3em);
 		--pill-padding-bottom: var(--pill-pad, 0.3em);
 	}
@@ -1606,7 +1607,7 @@ a.button:focus:not(:focus-visible) {
    border to anyway, so the sums agree with what is drawn. A Site chip takes
    the sums too, for its height and its label's baseline. */
 @supports (text-box: trim-both cap alphabetic) and (padding: round(1cap, 1px)) {
-	:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
+	:where(.bastionland-pill, .bastionland-page section.secret > button.reveal, .bastionland-page .bastionland-site__chip) {
 		--pill-dp: calc(1px / var(--bastionland-text-size, 1));
 		--pill-edge: 1cap;
 		--pill-border: max(var(--pill-dp), round(down, var(--pill-border-width, 1px), var(--pill-dp)));
@@ -1615,24 +1616,24 @@ a.button:focus:not(:focus-visible) {
 	}
 
 	@media (resolution: 1.25dppx) {
-		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
+		:where(.bastionland-pill, .bastionland-page section.secret > button.reveal, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(0.8px / var(--bastionland-text-size, 1));
 		}
 	}
 
 	@media (resolution: 1.5dppx) {
-		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
+		:where(.bastionland-pill, .bastionland-page section.secret > button.reveal, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(2px / 3 / var(--bastionland-text-size, 1));
 		}
 	}
 
 	@media (resolution: 1.75dppx) {
-		:where(.bastionland-pill, .bastionland-page .bastionland-site__chip) {
+		:where(.bastionland-pill, .bastionland-page section.secret > button.reveal, .bastionland-page .bastionland-site__chip) {
 			--pill-dp: calc(4px / 7 / var(--bastionland-text-size, 1));
 		}
 	}
 
-	.bastionland-pill {
+	:is(.bastionland-pill, .bastionland-page section.secret > button.reveal) {
 		--pill-padding-top: calc(var(--pill-baseline) - var(--pill-border) - var(--pill-edge));
 		--pill-padding-bottom: calc(var(--pill-height) - var(--pill-baseline) - var(--pill-border));
 	}
@@ -2460,6 +2461,38 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-page .editor-content :is(h4, h5, h6) {
 	font-size: 1rem;
+}
+
+/* A secret written in the text: Foundry rules it above and below only. It's
+   closed at the sides too, with rounded corners, so it reads as one box. The
+   word on a kept Journal page that edits there are written over is drawn the
+   same way. */
+:is(.bastionland-page section.secret, section.secret.bastionland-written-notice) {
+	padding: 0 0.6rem;
+	border-width: 1px;
+	border-radius: 4px;
+}
+
+/* Foundry's Reveal button unsets its line height, and IM Fell's deep descent
+   then leaves the word sitting high. It takes the pills' trim instead, which
+   centres the letters between the capitals and the baseline. */
+.bastionland-page section.secret > button.reveal {
+	display: inline-block;
+	padding: var(--pill-padding-top, 0.15rem) 1rem var(--pill-padding-bottom, 0.15rem);
+	border-width: var(--pill-border, 1px);
+	border-radius: 3px;
+	font-size: 0.95rem;
+}
+
+/* The written-over notice's button to the hex in the Lay of the Land, sized to its words. */
+.bastionland-written-notice .bastionland-lay-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	width: auto;
+	height: auto;
+	padding: 0.15rem 0.8rem;
+	font-size: 0.95rem;
 }
 
 /* ---------------------------------------------------------------- */

@@ -1,32 +1,28 @@
-import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import {
 	HEX_JOURNALS_FOLDER_FLAG,
 	HEX_JOURNAL_FLAG,
 	HEX_LAYOUT,
 	journalPlan,
-	knownMarkdown,
-	rolledMarkdown
+	knownMarkdown
 } from "../rules/hex-journal.js";
-import { TERRAIN, terrainAt } from "../rules/realm.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { playerHexView, viewWords } from "../rules/travels.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
-import { afterBurst, entrySnapshot, openKeptJournal } from "./kept-journals.js";
-import { getHexLore, hexFeatureLines, sparkWhen } from "./hex-lore.js";
-import { partyNoteBy, toldLabel } from "./hex-shared.js";
-import { visitsLabel } from "./journey.js";
+import { afterBurst, entrySnapshot, openKeptJournal, withHtml, writePlannedPages } from "./kept-journals.js";
+import { getHexLore } from "./hex-lore.js";
+import { partyNoteBy } from "./hex-shared.js";
 import { isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
 import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travels.js";
 
 /**
  * Each hex something is rolled or written for gets a Journal entry, kept up to
- * date as the hex changes: a Rolled page for GMs, a page of what the Company
- * knows that players can read once they could open the hex in their Places,
- * and a Notes page that is the GM's alone. The pages' words are made in
+ * date as the hex changes: a page of what the Company knows that players can
+ * read once they could open the hex in their Places, and a Notes page that is
+ * the GM's alone. What was rolled there the GM reads in Places. The pages' words are made in
  * rules/hex-journal.js. The active GM's browser does the writing, so two GMs
  * don't each make an entry for the same hex.
  */
@@ -82,33 +78,13 @@ const hexFolder = (scene) => flaggedFolder("JournalEntry", HEX_JOURNALS_FOLDER_F
 
 /**
  * Everything a hex's entry should say.
- * @param {Scene} scene
- * @param {object} context What's read once for the whole Realm.
+ * @param {import("../rules/travels.js").TravelsSources} sources The Realm as the players know it.
  * @param {{col: number, row: number}} hex
  * @returns {import("../rules/hex-journal.js").WantedEntry}
  */
-function wantedEntry(scene, { lore, sources, index }, hex) {
-	const { realm, g } = sources;
-	const key = hexKey(hex);
-	const record = lore.hexes[key] ?? null;
-	const visits = sources.journey.hexes[key] ?? null;
-	const shared = sources.shared.hexes[key] ?? null;
-	const terrain = terrainAt(realm, g, hex);
-
+function wantedEntry(sources, hex) {
 	const view = playerHexView(sources, hex);
 	const words = viewWords(view, t);
-
-	const rolled = rolledMarkdown({
-		terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : "",
-		features: hexFeatureLines(scene, realm, g, hex, index, { full: true }),
-		met: barrierMetLines(view.met),
-		visits: visits ? visitsLabel(visits) : t("hexLore.notVisited"),
-		told: toldLabel(shared),
-		sparks: (record?.sparks ?? []).map((spark) => ({ table: spark.table, rolls: spark.rolls, prompt: spark.prompt, when: sparkWhen(spark) })),
-		note: record?.note ?? "",
-		kept: Boolean(record) || view.met.length > 0,
-		labels: { rolls: t("hexJournal.rolls"), note: t("hexLore.note"), nothingKept: t("hexJournal.nothingKept"), met: t("hexJournal.met") }
-	});
 	const known = knownMarkdown({
 		terrain: words.terrain,
 		features: words.features,
@@ -121,12 +97,11 @@ function wantedEntry(scene, { lore, sources, index }, hex) {
 	});
 
 	return {
-		key,
+		key: hexKey(hex),
 		hex,
 		name: words.title,
 		open: view.openable,
 		pages: {
-			rolled: { name: t("hexJournal.pages.rolled"), markdown: rolled },
 			known: { name: t("hexJournal.pages.known"), markdown: known },
 			notes: { name: t("hexJournal.pages.notes"), markdown: "" }
 		}
@@ -151,29 +126,26 @@ export async function syncHexJournals(scene) {
 	const sources = travelsSources(scene);
 	if (!sources) return;
 	const existing = entriesOf(scene.id);
-	const lore = getHexLore(scene);
 	// A Barrier the Company ran into is kept for the hex it was met from, as a roll is.
 	const met = Object.entries(sources.shared.hexes).filter(([, record]) => record.met?.length).map(([key]) => key);
-	const keys = new Set([...Object.keys(lore.hexes), ...met, ...existing.keys()]);
+	const keys = new Set([...Object.keys(getHexLore(scene).hexes), ...met, ...existing.keys()]);
 	const hexes = [...keys].map(parseHexKey).filter(Boolean);
 	if (!hexes.length) return;
 
-	const context = { lore, sources, index: await loadArtIndex() };
 	const made = [];
 	const updates = [];
 	const pageWrites = [];
 	for (const hex of hexes) {
-		const wanted = wantedEntry(scene, context, hex);
+		const wanted = wantedEntry(sources, hex);
 		const document = existing.get(wanted.key);
 		const plan = journalPlan(document ? snapshot(document) : null, wanted);
 		if (plan.create) {
-			made.push({ ...plan.create, flags: { [SYSTEM_ID]: { [HEX_JOURNAL_FLAG]: { scene: scene.id, hex: wanted.key, open: plan.open } } } });
+			made.push({ ...plan.create, pages: withHtml(plan.create.pages), flags: { [SYSTEM_ID]: { [HEX_JOURNAL_FLAG]: { scene: scene.id, hex: wanted.key, open: plan.open } } } });
 			continue;
 		}
 		const update = { ...plan.update, ...(plan.open === null ? {} : { [`flags.${SYSTEM_ID}.${HEX_JOURNAL_FLAG}.open`]: plan.open }) };
 		if (Object.keys(update).length) updates.push({ _id: document.id, ...update });
-		if (plan.pages.create.length) pageWrites.push(() => document.createEmbeddedDocuments("JournalEntryPage", plan.pages.create));
-		if (plan.pages.update.length) pageWrites.push(() => document.updateEmbeddedDocuments("JournalEntryPage", plan.pages.update));
+		if (plan.pages.create.length || plan.pages.update.length) pageWrites.push(() => writePlannedPages(document, plan.pages));
 	}
 	// The entries' own changes go in one write, and different entries' pages side by side.
 	const JournalEntry = foundry.utils.getDocumentClass("JournalEntry");

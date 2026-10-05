@@ -7,8 +7,7 @@ import {
 	entrySort,
 	inline,
 	journalPlan,
-	knownMarkdown,
-	rolledMarkdown
+	knownMarkdown
 } from "../../module/rules/hex-journal.js";
 import { emptyJourney, recordVisits } from "../../module/rules/journey.js";
 import { emptyShared } from "../../module/rules/hex-shared.js";
@@ -19,22 +18,7 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 
 // Invented words throughout, so no book text lives in the repository.
 const SECRET_LANDMARK = "Gallows of the Grey Wife";
-const labels = { rolls: "Rolled Here", note: "What’s here", nothingKept: "Nothing kept.", told: "Told", party: "Company’s Note" };
-
-const rolledWords = (overrides = {}) => ({
-	terrain: "Forest",
-	features: ["Ashford, Seat of Power", "Bog of Teeth (hidden)"],
-	visits: "Visited twice",
-	told: "",
-	sparks: [
-		{ table: "Land", rolls: [4, 9], prompt: "Mossy Hollow", when: "rolled in Spring" },
-		{ table: "Sky", rolls: [], prompt: "Low *clouds*", when: null }
-	],
-	note: "A well.\nSomeone lives in it.",
-	kept: true,
-	labels,
-	...overrides
-});
+const labels = { told: "Told", party: "Company’s Note" };
 
 const wanted = (overrides = {}) => ({
 	key: "5,7",
@@ -42,7 +26,6 @@ const wanted = (overrides = {}) => ({
 	name: "Column 5, Row 7",
 	open: false,
 	pages: {
-		rolled: { name: "Rolled", markdown: "rolled\n" },
 		known: { name: "What the Company Knows", markdown: "known\n" },
 		notes: { name: "Notes", markdown: "" }
 	},
@@ -55,7 +38,7 @@ const snapshot = (overrides = {}) => ({
 	sort: entrySort({ col: 5, row: 7 }),
 	ownership: OWNERSHIP.NONE,
 	open: false,
-	pages: { rolled: { id: "p1", markdown: "rolled\n" }, known: { id: "p2", markdown: "known\n" }, notes: { id: "p3", markdown: "mine" } },
+	pages: { known: { id: "p2", markdown: "known\n" }, notes: { id: "p3", markdown: "mine" } },
 	...overrides
 });
 
@@ -66,24 +49,6 @@ describe("inline and block", () => {
 
 	it("keeps someone's lines as lines", () => {
 		expect(block("one\ntwo\n")).toBe("one  \ntwo");
-	});
-});
-
-describe("rolledMarkdown", () => {
-	it("sets out what stands there, the visits, each roll and the note", () => {
-		const markdown = rolledMarkdown(rolledWords());
-		expect(markdown).toContain("Forest · Ashford, Seat of Power · Bog of Teeth (hidden)");
-		expect(markdown).toContain("### Rolled Here");
-		expect(markdown).toContain("- **Land** (4, 9): Mossy Hollow — *rolled in Spring*");
-		expect(markdown).toContain("- **Sky**: Low \\*clouds\\*");
-		expect(markdown).toContain("A well.  \nSomeone lives in it.");
-		expect(markdown).not.toContain("Nothing kept.");
-	});
-
-	it("says so when nothing is kept any more, and leaves out empty sections", () => {
-		const markdown = rolledMarkdown(rolledWords({ sparks: [], note: "", kept: false }));
-		expect(markdown).toContain("*Nothing kept.*");
-		expect(markdown).not.toContain("###");
 	});
 });
 
@@ -129,15 +94,20 @@ describe("entryOwnership", () => {
 });
 
 describe("journalPlan", () => {
-	it("makes a new entry with all three pages in markdown, the Company's alone open to players", () => {
+	it("makes a new entry with both pages in markdown, the Company's open to players", () => {
 		const plan = journalPlan(null, wanted({ open: true }));
 		expect(plan.open).toBe(true);
 		expect(plan.create).toMatchObject({ name: "Column 5, Row 7", sort: entrySort({ col: 5, row: 7 }), ownership: { default: OWNERSHIP.LIMITED } });
 		const pages = plan.create.pages;
-		expect(pages.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["rolled", "known", "notes"]);
-		expect(pages.map((page) => page.ownership.default)).toEqual([OWNERSHIP.NONE, OWNERSHIP.OBSERVER, OWNERSHIP.NONE]);
+		expect(pages.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["known", "notes"]);
+		expect(pages.map((page) => page.ownership.default)).toEqual([OWNERSHIP.OBSERVER, OWNERSHIP.NONE]);
 		expect(pages.every((page) => page.type === "text" && page.text.format === MARKDOWN_FORMAT)).toBe(true);
 		expect(pages[0].sort).toBeLessThan(pages[1].sort);
+	});
+
+	it("writes only the page's own words, the notice that edits are lost being drawn as it shows", () => {
+		const [known, notes] = journalPlan(null, wanted()).create.pages.map((page) => page.text.markdown);
+		expect([known, notes]).toEqual(["known\n", ""]);
 	});
 
 	it("writes nothing when nothing changed", () => {
@@ -145,14 +115,14 @@ describe("journalPlan", () => {
 	});
 
 	it("rewrites only the pages that changed, and never the GM's Notes", () => {
-		const plan = journalPlan(snapshot(), wanted({ pages: { ...wanted().pages, rolled: { name: "Rolled", markdown: "new\n" }, notes: { name: "Notes", markdown: "" } } }));
-		expect(plan.pages.update).toEqual([{ _id: "p1", text: { format: MARKDOWN_FORMAT, markdown: "new\n" } }]);
+		const plan = journalPlan(snapshot(), wanted({ pages: { known: { name: "What the Company Knows", markdown: "new\n" }, notes: { name: "Notes", markdown: "" } } }));
+		expect(plan.pages.update).toEqual([{ _id: "p2", text: { format: MARKDOWN_FORMAT, markdown: "new\n" } }]);
 		expect(plan.update).toBeNull();
 	});
 
 	it("makes a written page again if it was deleted, but not the Notes page", () => {
-		const plan = journalPlan(snapshot({ pages: { known: { id: "p2", markdown: "known\n" } } }), wanted());
-		expect(plan.pages.create.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["rolled"]);
+		const plan = journalPlan(snapshot({ pages: {} }), wanted());
+		expect(plan.pages.create.map((page) => page.flags[SYSTEM_ID].role)).toEqual(["known"]);
 	});
 
 	it("renames the entry and opens it to players once they could open the hex", () => {

@@ -1,5 +1,6 @@
-import { warn } from "../chat/cards.js";
-import { HEX_LAYOUT } from "../rules/hex-journal.js";
+import { t, warn } from "../chat/cards.js";
+import { HEX_JOURNAL_FLAG, HEX_LAYOUT } from "../rules/hex-journal.js";
+import { SITE_JOURNAL_FLAG } from "../rules/site-journal.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -29,6 +30,73 @@ export function entrySnapshot(entry, layout = HEX_LAYOUT, open = false) {
 		open,
 		pages
 	};
+}
+
+/**
+ * Markdown as the HTML Foundry shows for it: read by the text page sheet's own
+ * converter, and cleaned as the server cleans what it converts, since the
+ * players' notes are in it.
+ * @param {string} markdown
+ * @returns {string}
+ */
+const markdownHtml = (markdown) => foundry.utils.cleanHTML(foundry.applications.sheets.journal.JournalEntryPageTextSheet._converter.makeHtml(markdown));
+
+/**
+ * New pages with their HTML filled in. Foundry's server turns a page's markdown
+ * into the HTML it shows only when that page is itself created or updated, not
+ * when it comes inside its entry's creation, so a new page brings its own.
+ * @param {object[]} pages The data for new pages.
+ * @returns {object[]}
+ */
+export function withHtml(pages) {
+	return pages.map((page) => (page.text?.markdown ? { ...page, text: { ...page.text, content: markdownHtml(page.text.markdown) } } : page));
+}
+
+/**
+ * Write what a plan changes in an entry's pages, side by side.
+ * @param {JournalEntry} entry
+ * @param {{create: object[], update: object[]}} pages As journalPlan plans them.
+ * @returns {Promise<unknown>}
+ */
+export function writePlannedPages(entry, pages) {
+	return Promise.all([
+		pages.create.length ? entry.createEmbeddedDocuments("JournalEntryPage", withHtml(pages.create)) : null,
+		pages.update.length ? entry.updateEmbeddedDocuments("JournalEntryPage", pages.update) : null
+	]);
+}
+
+/**
+ * Bring the hex and Site entries older versions made up to date, once a world:
+ * a hex's Rolled page goes, now that Places shows the GM those rolls; its
+ * Notes page still called that is the GM Notes by name too; and a page made
+ * inside its entry, which the server left with nothing to show, gets its HTML.
+ * A world setup step.
+ * @returns {Promise<void>}
+ */
+export async function tidyKeptJournals() {
+	const notesWas = t("hexJournal.pages.notesWas");
+	await Promise.all((game.journal ?? []).map((entry) => {
+		const flags = entry.flags?.[SYSTEM_ID];
+		const hex = Boolean(flags?.[HEX_JOURNAL_FLAG]);
+		if (!hex && !flags?.[SITE_JOURNAL_FLAG]) return null;
+		const gone = [];
+		const updates = [];
+		for (const page of entry.pages ?? []) {
+			const role = page.getFlag(SYSTEM_ID, "role");
+			if (hex && role === "rolled") {
+				gone.push(page.id);
+				continue;
+			}
+			const update = {};
+			if (hex && role === "notes" && page.name === notesWas) update.name = t("hexJournal.pages.notes");
+			if (page.text?.markdown && !page.text?.content) update["text.content"] = markdownHtml(page.text.markdown);
+			if (Object.keys(update).length) updates.push({ _id: page.id, ...update });
+		}
+		return Promise.all([
+			gone.length ? entry.deleteEmbeddedDocuments("JournalEntryPage", gone) : null,
+			updates.length ? entry.updateEmbeddedDocuments("JournalEntryPage", updates) : null
+		]);
+	}));
 }
 
 /**

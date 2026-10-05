@@ -7,7 +7,7 @@ import { stripHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
-import { afterBurst, entrySnapshot, openKeptJournal } from "./kept-journals.js";
+import { afterBurst, entrySnapshot, openKeptJournal, withHtml, writePlannedPages } from "./kept-journals.js";
 import { isSiteEntry, readSite } from "./sites.js";
 
 /**
@@ -117,13 +117,12 @@ export async function syncSiteJournal(siteEntry) {
 	const JournalEntry = foundry.utils.getDocumentClass("JournalEntry");
 	if (plan.create) {
 		const folder = await journalsFolder();
-		await JournalEntry.create({ ...plan.create, folder: folder?.id ?? null, flags: { [SYSTEM_ID]: { [SITE_JOURNAL_FLAG]: { site: siteEntry.id } } } });
+		await JournalEntry.create({ ...plan.create, pages: withHtml(plan.create.pages), folder: folder?.id ?? null, flags: { [SYSTEM_ID]: { [SITE_JOURNAL_FLAG]: { site: siteEntry.id } } } });
 		return;
 	}
 	await Promise.all([
 		plan.update ? document.update(plan.update) : null,
-		plan.pages.create.length ? document.createEmbeddedDocuments("JournalEntryPage", plan.pages.create) : null,
-		plan.pages.update.length ? document.updateEmbeddedDocuments("JournalEntryPage", plan.pages.update) : null
+		writePlannedPages(document, plan.pages)
 	]);
 }
 

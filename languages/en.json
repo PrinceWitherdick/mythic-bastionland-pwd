@@ -1954,19 +1954,18 @@
     "hexJournal": {
       "folder": "{realm}: Hexes",
       "pages": {
-        "rolled": "Rolled",
         "known": "What the Company Knows",
-        "notes": "Notes"
+        "notes": "GM Notes",
+        "notesWas": "Notes"
       },
-      "rolls": "Rolled Here",
-      "nothingKept": "Nothing is kept for this hex any more.",
       "met": "Barriers Met",
+      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex in the Lay of the Land, or write in the GM Notes page.",
       "open": "Journal",
-      "openHint": "Open this hex’s Journal entry: what was rolled here, what the Company knows, and your own notes.",
+      "openHint": "Open this hex’s Journal entry: what the Company knows, and your own notes.",
       "none": "Nothing has been rolled or written for this hex yet, so it has no Journal entry.",
       "setting": {
         "name": "Journal entries for hexes",
-        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Its Rolled page is for GMs. Players can read its What the Company Knows page once they could open the hex in their Places. Its Notes page is yours and is never written over."
+        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Players can read its What the Company Knows page once they could open the hex in their Places. Its GM Notes page is yours and is never written over. What was rolled in a hex shows in Places and the Lay of the Land."
       }
     },
     "siteJournal": {
@@ -1976,6 +1975,7 @@
         "found": "What the Company Found",
         "notes": "Notes"
       },
+      "writtenOver": "This page is written again whenever the Site changes, so edits made here will be lost. Change the Site on its map, or write in the Notes page.",
       "routes": "Ways Known",
       "found": "found",
       "notFound": "not found",

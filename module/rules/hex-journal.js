@@ -1,10 +1,11 @@
 /**
  * A Journal entry for each hex something has been rolled or written for, so
- * the GM can read the Realm's hexes in Foundry's own Journal: what was rolled
- * there, which only GMs see; what the Company knows of it, which players read
- * once they could open the hex in their Places; and a Notes page that is the
- * GM's own and never written over. Everything here is worded before it comes
- * in, so this is pure and can be tested without Foundry.
+ * the Realm's hexes can be read in Foundry's own Journal: what the Company
+ * knows of it, which players read once they could open the hex in their
+ * Places, and a Notes page that is the GM's own and never written over. What
+ * was rolled there the GM reads in Places and the Lay of the Land. Everything
+ * here is worded before it comes in, so this is pure and can be tested without
+ * Foundry.
  */
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -15,10 +16,10 @@ export const HEX_JOURNAL_FLAG = "hexJournal";
 export const HEX_JOURNALS_FOLDER_FLAG = "hexJournalsFolder";
 
 /** Each page's part, kept in the page's own flag so it's found whatever it's renamed to. */
-export const PAGE_ROLES = Object.freeze(["rolled", "known", "notes"]);
+export const PAGE_ROLES = Object.freeze(["known", "notes"]);
 
 /** The pages the system writes again whenever the hex changes. Notes is only ever made. */
-const WRITTEN_ROLES = Object.freeze(["rolled", "known"]);
+const WRITTEN_ROLES = Object.freeze(["known"]);
 
 /** CONST.DOCUMENT_OWNERSHIP_LEVELS, which the tests can't reach. */
 export const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2 });
@@ -30,7 +31,7 @@ export const MARKDOWN_FORMAT = 2;
  * Who sees each page, as it's made. The entry decides whether players see the
  * entry at all; Limited on it shows them only the pages they may observe.
  */
-const PAGE_OWNERSHIP = Object.freeze({ rolled: OWNERSHIP.NONE, known: OWNERSHIP.OBSERVER, notes: OWNERSHIP.NONE });
+const PAGE_OWNERSHIP = Object.freeze({ known: OWNERSHIP.OBSERVER, notes: OWNERSHIP.NONE });
 
 /**
  * Text from a person or the book, made safe to set in markdown: the marks
@@ -84,40 +85,6 @@ const whenSuffix = (when) => (when ? ` — *${inline(when)}*` : "");
 export const joined = (parts) => `${parts.filter(Boolean).join("\n\n")}\n`;
 
 /**
- * @typedef {object} RolledWords
- * @property {string} terrain
- * @property {string[]} features What stands in the hex, hidden things marked so.
- * @property {string} visits
- * @property {string} told       How often the players were told of it.
- * @property {{table: string, rolls: number[], prompt: string, when: string|null}[]} sparks Oldest first.
- * @property {string} note       The GM's own note from the Lay of the Land.
- * @property {string[]} [met]   The Barriers the Company found by running into them from here.
- * @property {boolean} kept      Whether anything is still kept for the hex.
- * @property {{rolls: string, note: string, nothingKept: string, met?: string}} labels
- */
-
-/**
- * The Rolled page: everything kept for the hex, for GMs.
- * @param {RolledWords} words
- * @returns {string} Markdown.
- */
-export function rolledMarkdown(words) {
-	const { labels } = words;
-	const sparks = words.sparks.map(({ table, rolls, prompt, when }) => {
-		const dice = rolls?.length ? ` (${rolls.join(", ")})` : "";
-		return `- **${inline(table)}**${dice}: ${inline(prompt)}${whenSuffix(when)}`;
-	});
-	return joined([
-		dotted([words.terrain, ...words.features]),
-		dotted([words.visits, words.told]),
-		words.kept ? "" : `*${inline(labels.nothingKept)}*`,
-		metSection(words),
-		section(labels.rolls, sparks),
-		section(labels.note, [block(words.note)])
-	]);
-}
-
-/**
  * @typedef {object} KnownWords
  * @property {string} terrain
  * @property {string[]} features What the players can see stands there.
@@ -161,7 +128,7 @@ export const entrySort = ({ col, row }) => col * 1000 + row;
  * @property {{col: number, row: number}} hex
  * @property {string} name      What the players may know it by: never a secret.
  * @property {boolean} open     Whether players could open the hex in their Places.
- * @property {Record<"rolled"|"known"|"notes", {name: string, markdown?: string}>} pages
+ * @property {Record<"known"|"notes", {name: string, markdown?: string}>} pages
  */
 
 /**
@@ -171,7 +138,7 @@ export const entrySort = ({ col, row }) => col * 1000 + row;
  * @property {number} sort
  * @property {number} ownership The entry's default ownership.
  * @property {boolean} open     Whether the entry was last opened to players.
- * @property {Partial<Record<"rolled"|"known"|"notes", {id: string, markdown: string}>>} pages
+ * @property {Partial<Record<"known"|"notes", {id: string, markdown: string}>>} pages
  */
 
 /**
@@ -237,6 +204,7 @@ export function entryOwnership(current, wasOpen, open) {
  */
 export function journalPlan(existing, wanted, layout = HEX_LAYOUT) {
 	const pages = { create: [], update: [] };
+	const wantedPages = wanted.pages;
 	const sort = layout.sort ? layout.sort(wanted) : null;
 	if (!existing) {
 		return {
@@ -244,7 +212,7 @@ export function journalPlan(existing, wanted, layout = HEX_LAYOUT) {
 				name: wanted.name,
 				...(sort === null ? {} : { sort }),
 				ownership: { default: wanted.open ? OWNERSHIP.LIMITED : OWNERSHIP.NONE },
-				pages: layout.roles.map((role) => newPage(layout, role, wanted.pages[role]))
+				pages: layout.roles.map((role) => newPage(layout, role, wantedPages[role]))
 			},
 			update: null,
 			open: wanted.open,
@@ -263,8 +231,8 @@ export function journalPlan(existing, wanted, layout = HEX_LAYOUT) {
 
 	layout.written.forEach((role) => {
 		const page = existing.pages[role];
-		const markdown = wanted.pages[role].markdown ?? "";
-		if (!page) pages.create.push(newPage(layout, role, wanted.pages[role]));
+		const markdown = wantedPages[role].markdown ?? "";
+		if (!page) pages.create.push(newPage(layout, role, wantedPages[role]));
 		else if (page.markdown !== markdown) pages.update.push({ _id: page.id, text: markdownText(markdown) });
 	});
 

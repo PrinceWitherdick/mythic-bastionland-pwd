@@ -50,7 +50,9 @@ beforeEach(() => {
 	};
 	folders.find = Array.prototype.find.bind(folders);
 	globalThis.foundry = {
+		applications: { sheets: { journal: { JournalEntryPageTextSheet: { _converter: { makeHtml: (markdown) => `<p>${markdown}</p>` } } } } },
 		utils: {
+			cleanHTML: (html) => html,
 			setProperty: (object, path, value) => {
 				const keys = path.split(".");
 				const last = keys.pop();
