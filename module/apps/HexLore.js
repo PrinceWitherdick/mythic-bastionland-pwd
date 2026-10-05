@@ -43,7 +43,8 @@ export class HexLore extends HandlebarsApplicationMixin(ApplicationV2) {
 		id: "bastionland-hex-lore",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-hex-lore-window"],
 		tag: "form",
-		position: { width: 460, height: "auto", top: 90, left: 470 },
+		// Wide enough for the hex and its rolls side by side; narrowed, they stack.
+		position: { width: 860, height: "auto", top: 90, left: 470 },
 		window: { icon: "fa-solid fa-feather", resizable: true },
 		form: { handler: HexLore.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
 		actions: {

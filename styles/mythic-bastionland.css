@@ -1209,9 +1209,11 @@ a.button:focus:not(:focus-visible) {
 }
 
 /* An "add a row" entry point at the foot of a sheet's list: a quiet dashed bar
-   the full width of the section, not a solid button. */
+   the full width of the section, not a solid button. No flex grow or 8rem
+   basis from the base button, or a column section stretches it 8rem tall. */
 .bastionland-page .bastionland-button--add {
 	display: flex;
+	flex: none;
 	width: 100%;
 	height: auto;
 	padding: 0.15rem 16px;
@@ -5907,6 +5909,45 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	flex-direction: column;
 	gap: 0.5rem;
 	padding: 0.5rem 0.6rem;
+	container-type: inline-size;
+}
+
+/* Two columns side by side, each its own stack so a tall part of one leaves no
+   gap in the other, run one after the other in a container under 44rem. The
+   window or page sets the gaps. */
+.bastionland-columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+}
+
+.bastionland-columns > * {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+@container (width < 44rem) {
+	.bastionland-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* The hex on the left and the rolls for it on the right. Narrowed, the two
+   stacks run one after the other, as the window always used to. */
+.bastionland-hex-lore__columns {
+	gap: 0.5rem 0.9rem;
+}
+
+.bastionland-hex-lore__column {
+	gap: 0.5rem;
+}
+
+/* Side by side, the rolls kept here have room to run longer. */
+@container (width >= 44rem) {
+	.bastionland-hex-lore__column .bastionland-hex-lore__rolls {
+		max-height: 22rem;
+	}
 }
 
 .bastionland-hex-lore__here {
