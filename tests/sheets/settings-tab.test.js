@@ -78,6 +78,25 @@ describe("settingGroupsView", () => {
 		expect(referee.rows).toEqual([expect.objectContaining({ key: "rulebookForPlayers", checked: true, forTable: true })]);
 		expect(referee.menus).toEqual([{ id: "welcome", label: "Open the Welcome", hint: "hi", icon: "fa-solid fa-chess-rook" }]);
 	});
+
+	it("gathers the weather's parts into one drop-down that counts the ticked ones", async () => {
+		game.settings.settings.set(...setting("weatherOnMap", { name: "On the map", type: Boolean, scope: "world", default: true }));
+		game.settings.settings.set(...setting("weatherFxClouds", { name: "Clouds", hint: "c", type: Boolean, scope: "world", default: true }));
+		game.settings.settings.set(...setting("weatherFxHail", { name: "Hail", type: Boolean, scope: "world", default: true }));
+		Object.assign(values, { weatherOnMap: true, weatherFxClouds: true, weatherFxHail: false });
+		game.i18n = { format: (key, data) => `${key} ${data.count}/${data.total}` };
+		const weather = tab.settingGroupsView({ isGM: true }).find((group) => group.id === "weather");
+		expect(weather.rows.map((row) => row.key)).toEqual(["weatherOnMap"]);
+		expect(weather.picks).toEqual([expect.objectContaining({
+			id: "weatherParts",
+			summary: "bastionland.settingsTab.pick.some 1/2",
+			forTable: true,
+			rows: [expect.objectContaining({ key: "weatherFxClouds", checked: true }), expect.objectContaining({ key: "weatherFxHail", checked: false })]
+		})]);
+		expect(await tab.changeSetting("weatherFxHail", true)).toBe(false);
+		game.user.isGM = true;
+		expect(await tab.changeSetting("weatherFxHail", true)).toBe(true);
+	});
 });
 
 describe("changeSetting", () => {

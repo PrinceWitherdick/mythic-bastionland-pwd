@@ -91,6 +91,76 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
 	text-align: right;
 }
 
+/*
+ * A drop-down of tick boxes: shut, a box like a select's that reads how many
+ * are ticked; open, the boxes on the parchment below it, over whatever follows.
+ */
+.bastionland-settings__pick {
+	position: relative;
+}
+
+.bastionland-settings__pick-box {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	min-height: var(--input-height, 1.9rem);
+	padding: 0.15rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	cursor: pointer;
+	list-style: none;
+}
+
+.bastionland-settings__pick-box::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-settings__pick-box:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.bastionland-settings__pick-box:focus-visible {
+	outline: 2px solid var(--bastionland-verdigris);
+	outline-offset: 1px;
+}
+
+.bastionland-settings__pick-box > i {
+	flex: none;
+	font-size: 0.85em;
+	transition: transform 120ms ease-out;
+}
+
+.bastionland-settings__pick[open] > .bastionland-settings__pick-box > i {
+	transform: rotate(180deg);
+}
+
+.bastionland-settings__pick-list {
+	position: absolute;
+	top: calc(100% + 2px);
+	left: 0;
+	right: 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	/* Its parchment is the drop-downs' own (mythic-bastionland.css). */
+}
+
+.bastionland-settings__pick-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.3rem 0.75rem;
+	cursor: pointer;
+}
+
+.bastionland-settings__pick-item input[type="checkbox"] {
+	flex: none;
+	margin: 0;
+}
+
 .bastionland-settings__table {
 	color: var(--bastionland-rubric);
 	font-family: var(--bastionland-font-caps);

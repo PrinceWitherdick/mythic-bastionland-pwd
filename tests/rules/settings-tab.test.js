@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SETTING_GROUPS, formatRange, groupsFor, offersMenu, offersSetting, settingRow, settingValue } from "../../module/rules/settings-tab.js";
+import { SETTING_GROUPS, formatRange, groupKeys, groupsFor, offersMenu, offersSetting, pickSummary, settingRow, settingValue } from "../../module/rules/settings-tab.js";
+import { WEATHER_PARTS } from "../../module/rules/weather.js";
 
 describe("the Settings page's groups", () => {
 	it("shows a player their own settings, and the Referee's to GMs alone", () => {
@@ -8,8 +9,17 @@ describe("the Settings page's groups", () => {
 	});
 
 	it("offers each setting once", () => {
-		const keys = SETTING_GROUPS.flatMap((group) => group.keys);
+		const keys = SETTING_GROUPS.flatMap(groupKeys);
 		expect(new Set(keys).size).toBe(keys.length);
+	});
+
+	it("gathers the parts of the weather into one drop-down, each still offered to GMs alone", () => {
+		const weather = SETTING_GROUPS.find((group) => group.id === "weather");
+		expect(weather.keys).toEqual(["weatherButton", "weatherOnMap"]);
+		expect(weather.picks.map((pick) => pick.id)).toEqual(["weatherParts"]);
+		expect(weather.picks[0].keys).toEqual(WEATHER_PARTS.map((part) => part.setting));
+		expect(offersSetting("weatherFxHail", true)).toBe(true);
+		expect(offersSetting("weatherFxHail", false)).toBe(false);
 	});
 
 	it("lets a player change only what they are shown", () => {
@@ -39,6 +49,14 @@ describe("formatRange", () => {
 		expect(formatRange("1.25", 0.05)).toBe("1.25");
 		expect(formatRange(1.5, 0.1)).toBe("1.5");
 		expect(formatRange(3, 1)).toBe("3");
+	});
+});
+
+describe("pickSummary", () => {
+	it("reads all, some or none of a drop-down's boxes as ticked", () => {
+		expect(pickSummary(7, 7)).toEqual({ key: "bastionland.settingsTab.pick.all", data: { count: 7, total: 7 } });
+		expect(pickSummary(5, 7)).toEqual({ key: "bastionland.settingsTab.pick.some", data: { count: 5, total: 7 } });
+		expect(pickSummary(0, 7)).toEqual({ key: "bastionland.settingsTab.pick.none", data: { count: 0, total: 7 } });
 	});
 });
 

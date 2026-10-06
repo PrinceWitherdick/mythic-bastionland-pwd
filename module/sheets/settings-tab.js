@@ -1,6 +1,6 @@
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
-import { SETTINGS_TAB, formatRange, groupsFor, offersMenu, offersSetting, settingRow, settingValue } from "../rules/settings-tab.js";
+import { SETTINGS_TAB, formatRange, groupsFor, offersMenu, offersSetting, pickSummary, settingRow, settingValue } from "../rules/settings-tab.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -47,6 +47,28 @@ export function isOwnCharacter(actor, user = game.user) {
 }
 
 /**
+ * @param {Map<string, object>} settings Every registered setting.
+ * @param {string[]} keys
+ * @returns {object[]} The rows for the settings that are registered.
+ */
+const rowsFor = (settings, keys) => keys.map((key) => {
+	const config = settings.get(`${SYSTEM_ID}.${key}`);
+	const row = settingRow(key, config, currentValue(key));
+	// The rest are this person's own; these change the game for everyone.
+	return row && { ...row, forTable: config.scope === "world" };
+}).filter(Boolean);
+
+/**
+ * @param {number} ticked
+ * @param {number} total
+ * @returns {string} A drop-down of tick boxes' summary, as it reads while shut.
+ */
+const pickText = (ticked, total) => {
+	const { key, data } = pickSummary(ticked, total);
+	return game.i18n?.format?.(key, data) ?? key;
+};
+
+/**
  * The groups as the page draws them, with each setting's current value. Built
  * afresh each time the sheet draws, since a value can change from Foundry's
  * settings window or another sheet.
@@ -60,11 +82,20 @@ export function settingGroupsView(user = game.user) {
 		.map((group) => ({
 			id: group.id,
 			title: group.title,
-			rows: group.keys.map((key) => {
-				const config = settings.get(`${SYSTEM_ID}.${key}`);
-				const row = settingRow(key, config, currentValue(key));
-				// The rest are this person's own; these change the game for everyone.
-				return row && { ...row, forTable: config.scope === "world" };
+			rows: rowsFor(settings, group.keys),
+			picks: (group.picks ?? []).map((pick) => {
+				// Only tick boxes go in a drop-down of them.
+				const rows = rowsFor(settings, pick.keys).filter((row) => row.isCheck);
+				if (!rows.length) return null;
+				const ticked = rows.filter((row) => row.checked).length;
+				return {
+					id: pick.id,
+					label: pick.label,
+					hint: pick.hint,
+					rows,
+					summary: pickText(ticked, rows.length),
+					forTable: rows.some((row) => row.forTable)
+				};
 			}).filter(Boolean),
 			menus: (group.menus ?? []).map((id) => {
 				const menu = game.settings.menus?.get(`${SYSTEM_ID}.${id}`);
@@ -72,7 +103,7 @@ export function settingGroupsView(user = game.user) {
 			}).filter(Boolean)
 		}))
 		// A group with nothing registered would be a heading over nothing.
-		.filter((group) => group.rows.length || group.menus.length);
+		.filter((group) => group.rows.length || group.picks.length || group.menus.length);
 }
 
 /**
@@ -128,6 +159,17 @@ function showValue(control, value) {
 }
 
 /**
+ * Read a drop-down of tick boxes' summary again from its boxes.
+ * @param {HTMLElement|null} pick The drop-down's `details`.
+ */
+function showPickSummary(pick) {
+	const summary = pick?.querySelector("[data-pick-summary]");
+	if (!summary) return;
+	const boxes = pick.querySelectorAll('input[type="checkbox"][data-setting]');
+	summary.textContent = pickText([...boxes].filter((box) => box.checked).length, boxes.length);
+}
+
+/**
  * Keep every open Settings page showing each setting as it is, whether it was
  * changed from another sheet's page, Foundry's settings window or a macro,
  * without drawing a sheet again. Called during init.
@@ -140,7 +182,10 @@ export function registerSettingsTabHooks() {
 		const controls = document.querySelectorAll(`.bastionland-settings [data-setting="${CSS.escape(key)}"]`);
 		if (!controls.length) return;
 		const value = currentValue(key);
-		for (const control of controls) showValue(control, value);
+		for (const control of controls) {
+			showValue(control, value);
+			showPickSummary(control.closest("[data-settings-pick]"));
+		}
 	};
 	Hooks.on("clientSettingChanged", (id) => sync(id));
 	// A world setting is a document, made the first time it's set.
@@ -222,6 +267,7 @@ export const SettingsTabMixin = (Base) => class extends Base {
 		const control = event.target;
 		const key = control?.dataset?.setting;
 		if (!key) return super._onChangeForm(formConfig, event);
+		showPickSummary(control.closest?.("[data-settings-pick]"));
 		changeSetting(key, control.type === "checkbox" ? control.checked : control.value).catch((error) => {
 			console.error(error);
 			ui.notifications.error(t("settingsTab.notSaved"));
@@ -230,11 +276,25 @@ export const SettingsTabMixin = (Base) => class extends Base {
 
 	/**
 	 * A slider's number follows the handle while it's dragged. The setting is
-	 * written once, when the handle is let go.
+	 * written once, when the handle is let go. An open drop-down of tick boxes
+	 * shuts on a click anywhere else on the sheet, or on Escape.
 	 * @override
 	 */
 	_attachFrameListeners() {
 		super._attachFrameListeners();
+		this.element.addEventListener("pointerdown", (event) => {
+			for (const pick of this.element.querySelectorAll("[data-settings-pick][open]")) {
+				if (!pick.contains(event.target)) pick.open = false;
+			}
+		});
+		this.element.addEventListener("keydown", (event) => {
+			const pick = event.key === "Escape" ? event.target.closest?.("[data-settings-pick][open]") : null;
+			if (!pick) return;
+			// Or Foundry closes the sheet.
+			event.stopPropagation();
+			pick.open = false;
+			pick.querySelector("summary")?.focus();
+		});
 		this.element.addEventListener("input", (event) => {
 			const control = event.target.closest?.('.bastionland-settings input[type="range"][data-setting]');
 			const readout = control?.closest(".bastionland-settings__range")?.querySelector("output");

@@ -7435,14 +7435,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	box-sizing: border-box;
 	width: max-content;
 	max-width: 90vw;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+/* The parchment, which the Settings page's drop-down of tick boxes wears too (styles/settings.css). */
+.bastionland-dropdown,
+.bastionland-settings__pick-list {
 	padding: 0.25rem 0;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;
 	background: var(--bastionland-paper);
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
 	color: var(--bastionland-ink);
-	overflow-y: auto;
-	overscroll-behavior: contain;
 	animation: bastionland-dropdown-in 100ms ease-out;
 }
 
@@ -7470,7 +7475,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
  * the parchment's deeper tone and the rubric's red, as every other pointed-at
  * word on the page does.
  */
-.bastionland-dropdown__option.is-active {
+.bastionland-dropdown__option.is-active,
+.bastionland-settings__pick-item:hover {
 	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-rubric);
 }

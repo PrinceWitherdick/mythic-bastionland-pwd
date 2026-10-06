@@ -4448,6 +4448,17 @@
         "weather": "Weather on the Map"
       },
       "forTable": "For the whole table.",
+      "picks": {
+        "weatherParts": {
+          "name": "Types of Weather",
+          "hint": "Untick a type to keep it off the map, such as the hail or a storm’s grey light. The rest of the weather still falls. Needs FXMaster."
+        }
+      },
+      "pick": {
+        "all": "All {total} on",
+        "some": "{count} of {total} on",
+        "none": "All off"
+      },
       "openAll": "All Settings…",
       "notSaved": "That setting couldn’t be saved."
     },

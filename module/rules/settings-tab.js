@@ -19,8 +19,10 @@ export const SETTINGS_TAB = "settings";
  * The groups, in the order the page draws them.
  *
  * `gmOnly` groups are drawn for GMs alone, and their settings are refused to
- * anyone else. `menus` are registered settings windows, offered as buttons
- * under the group's rows.
+ * anyone else. `picks` gather tick boxes that belong together into one
+ * drop-down of tick boxes under the group's rows, so a long run of them
+ * doesn't fill the page. `menus` are registered settings windows, offered as
+ * buttons under the rest.
  */
 export const SETTING_GROUPS = Object.freeze([
 	{
@@ -45,11 +47,14 @@ export const SETTING_GROUPS = Object.freeze([
 	{
 		id: "weather",
 		title: "bastionland.settingsTab.groups.weather",
-		// FXMaster's weather: the banner's button, the whole of it, then each part.
-		keys: [
-			"weatherButton", "weatherOnMap",
-			"weatherFxClouds", "weatherFxFog", "weatherFxRain", "weatherFxHail", "weatherFxSnow", "weatherFxSnowstorm", "weatherFxStormTint"
-		],
+		// FXMaster's weather: the banner's button, the whole of it, then each part in one drop-down.
+		keys: ["weatherButton", "weatherOnMap"],
+		picks: [{
+			id: "weatherParts",
+			label: "bastionland.settingsTab.picks.weatherParts.name",
+			hint: "bastionland.settingsTab.picks.weatherParts.hint",
+			keys: ["weatherFxClouds", "weatherFxFog", "weatherFxRain", "weatherFxHail", "weatherFxSnow", "weatherFxSnowstorm", "weatherFxStormTint"]
+		}],
 		gmOnly: true
 	}
 ]);
@@ -61,13 +66,19 @@ export const SETTING_GROUPS = Object.freeze([
 export const groupsFor = (isGM) => SETTING_GROUPS.filter((group) => isGM || !group.gmOnly);
 
 /**
+ * @param {typeof SETTING_GROUPS[number]} group
+ * @returns {string[]} Every setting the group offers, its rows' and its drop-downs'.
+ */
+export const groupKeys = (group) => [...group.keys, ...(group.picks ?? []).flatMap((pick) => pick.keys)];
+
+/**
  * @param {string} key
  * @param {boolean} isGM
  * @returns {boolean} Whether this person may change the setting from the page.
  *   Controls say which setting they write in a data attribute, so without this
  *   any element that grew one could write any setting, the world's included.
  */
-export const offersSetting = (key, isGM) => groupsFor(isGM).some((group) => group.keys.includes(key));
+export const offersSetting = (key, isGM) => groupsFor(isGM).some((group) => groupKeys(group).includes(key));
 
 /**
  * @param {string} id
@@ -86,6 +97,19 @@ export const offersMenu = (id, isGM) => groupsFor(isGM).some((group) => group.me
 export function formatRange(value, step = 1) {
 	const decimals = String(step).split(".")[1]?.length ?? 0;
 	return Number(value).toFixed(decimals);
+}
+
+/**
+ * What a drop-down of tick boxes reads while it's shut: how many are ticked.
+ * @param {number} ticked
+ * @param {number} total
+ * @returns {{key: string, data: {count: number, total: number}}} A string to localize with its data.
+ */
+export function pickSummary(ticked, total) {
+	const data = { count: ticked, total };
+	if (ticked >= total) return { key: "bastionland.settingsTab.pick.all", data };
+	if (ticked <= 0) return { key: "bastionland.settingsTab.pick.none", data };
+	return { key: "bastionland.settingsTab.pick.some", data };
 }
 
 /**

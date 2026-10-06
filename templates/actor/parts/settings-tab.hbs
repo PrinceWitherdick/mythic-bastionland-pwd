@@ -38,6 +38,28 @@
 		</div>
 		{{/each}}
 
+		{{!-- Tick boxes that belong together, such as the parts of the weather, in one drop-down that reads how many are ticked while it's shut.
+		      Each part's hint is its box's tooltip. --}}
+		{{#each picks}}
+		<div class="bastionland-settings__row">
+			<span class="bastionland-settings__label">{{localize label}}</span>
+			<details class="bastionland-settings__pick" data-settings-pick="{{id}}">
+				<summary class="bastionland-settings__pick-box"><span data-pick-summary>{{summary}}</span><i class="fa-solid fa-chevron-down" inert></i></summary>
+				<div class="bastionland-settings__pick-list" role="group" aria-label="{{localize label}}">
+					{{#each rows}}
+					<label class="bastionland-settings__pick-item" {{#if hint}}data-tooltip="{{localize hint}}"{{/if}}>
+						<input type="checkbox" data-setting="{{key}}" {{checked checked}}>
+						<span>{{localize label}}</span>
+					</label>
+					{{/each}}
+				</div>
+			</details>
+			{{#if hint}}
+			<p class="bastionland-hint">{{#if forTable}}<strong class="bastionland-settings__table">{{localize "bastionland.settingsTab.forTable"}}</strong> {{/if}}{{localize hint}}</p>
+			{{/if}}
+		</div>
+		{{/each}}
+
 		{{#each menus}}
 		<div class="bastionland-settings__row bastionland-settings__row--menu">
 			<button type="button" class="bastionland-button" data-action="openSettingsMenu" data-menu="{{id}}"><i class="{{icon}}" inert></i> {{localize label}}</button>

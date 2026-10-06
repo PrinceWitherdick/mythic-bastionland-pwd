@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SETTING_GROUPS } from "../module/rules/settings-tab.js";
+import { SETTING_GROUPS, groupKeys } from "../module/rules/settings-tab.js";
 import { WEATHER, WEATHER_KEYS, WEATHER_KEY_PREFIX, WEATHER_PARTS, isWeather, partsOff, weatherEffectsChange } from "../module/rules/weather.js";
 
 /** A Scene's FXMaster effects after a change is written, as FXMaster would keep them. */
@@ -72,7 +72,7 @@ describe("the parts of the sky", () => {
 
 	it("is the Settings page's weather group, every switch of it", () => {
 		const group = SETTING_GROUPS.find((candidate) => candidate.id === "weather");
-		for (const { setting } of WEATHER_PARTS) expect(group.keys).toContain(setting);
+		for (const { setting } of WEATHER_PARTS) expect(groupKeys(group)).toContain(setting);
 	});
 
 	it("reads a switch nobody touched as on, and only false as off", () => {
