@@ -51,7 +51,7 @@ describe("the test world", () => {
 
 	it("is left to GMs", async () => {
 		await populate.populateTestWorld();
-		expect(ui.notifications.warn).toHaveBeenCalledWith("Only a GM can populate or remove the test world.");
+		expect(ui.notifications.warn).toHaveBeenCalledWith("Only a Referee can populate or remove the test world.");
 	});
 
 	it("knows a world holding any of its documents, or the toolkit's record of what it changed, has one", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ensureToolkitHotbar, seedToolkitMacro } from "../module/actions/toolkit-macro.js";
+import { ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "../module/actions/toolkit-macro.js";
 import { SYSTEM_ID } from "../module/system-id.js";
 import { macroIconPath } from "../module/rules/macro-icons.js";
 
@@ -26,8 +26,8 @@ function installWorld({ isGM = true, macro = null, hotbar = {}, placed = false }
 }
 
 /** A world macro carrying the system's flag. `given` is the picture the system remembers giving it; null for a world made before it remembered. */
-const worldMacro = ({ command = COMMAND, img = IMAGE, given = IMAGE } = {}) => ({
-	id: "toolkit", command, img, update: vi.fn(),
+const worldMacro = ({ name = "bastionland.gmToolkit.name", command = COMMAND, img = IMAGE, given = IMAGE } = {}) => ({
+	id: "toolkit", name, command, img, update: vi.fn(),
 	getFlag: (scope, key) => scope === SYSTEM_ID && (key === "givenImg" ? given : key === "gmToolkitMacro")
 });
 
@@ -103,5 +103,26 @@ describe("ensureToolkitHotbar", () => {
 		installWorld({ macro: stale, placed: true });
 		await ensureToolkitHotbar();
 		expect(stale.update).toHaveBeenCalledWith({ command: COMMAND });
+	});
+
+	it("renames a toolkit and macro still called GM Toolkit, once, and keeps a name the GM chose", async () => {
+		const old = worldMacro({ name: "GM Toolkit" });
+		installWorld({ macro: old, placed: true });
+		const toolkit = { type: "gmToolkit", name: "GM Toolkit", update: vi.fn() };
+		game.actors = [toolkit];
+		await renameOldToolkit();
+		expect(old.update).toHaveBeenCalledWith({ name: "bastionland.gmToolkit.name" });
+		expect(toolkit.update).toHaveBeenCalledWith({ name: "bastionland.gmToolkit.name" });
+		// The hotbar's own upkeep leaves the name alone.
+		old.update.mockClear();
+		await ensureToolkitHotbar();
+		expect(old.update).not.toHaveBeenCalledWith(expect.objectContaining({ name: expect.anything() }));
+
+		const own = worldMacro({ name: "My Notes" });
+		installWorld({ macro: own, placed: true });
+		game.actors = [{ ...toolkit, name: "My Notes", update: vi.fn() }];
+		await renameOldToolkit();
+		expect(own.update).not.toHaveBeenCalled();
+		expect(game.actors[0].update).not.toHaveBeenCalled();
 	});
 });

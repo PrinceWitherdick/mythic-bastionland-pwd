@@ -33,7 +33,7 @@ import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/st
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
-import { TOOLKIT_MACRO_STEP, ensureToolkitHotbar, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
+import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
 import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
@@ -565,7 +565,9 @@ const WORLD_SETUP = Object.freeze([
 	{ key: "realmValleyRivers", run: moveRealmPictures },
 	// Hex and Site entries older versions made: a hex's Rolled page goes, its Notes are the GM Notes by
 	// name, and pages the server left with nothing to show get their HTML.
-	{ key: "keptJournalPages", run: tidyKeptJournals }
+	{ key: "keptJournalPages", run: tidyKeptJournals },
+	// Worlds from before the toolkit was the Referee's, whose toolkit and macro are still called GM Toolkit.
+	{ key: REFEREE_NAME_STEP, run: renameOldToolkit }
 ]);
 
 Hooks.once("ready", async () => {

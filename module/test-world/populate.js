@@ -256,7 +256,7 @@ let running = false;
  */
 export async function populateTestWorld() {
 	if (!game.user.isGM) {
-		ui.notifications.warn("Only a GM can populate or remove the test world.");
+		ui.notifications.warn("Only a Referee can populate or remove the test world.");
 		return;
 	}
 	if (running) {
@@ -269,14 +269,14 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, and put the calendar, the weather, the City Quest and the GM Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the GM's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the GM Toolkit's Seasons and notes filled in.`,
-			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the GM Toolkit back.",
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the Referee Toolkit's Seasons and notes filled in.`,
+			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the Referee Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
 		if (confirmed) await buildTestWorld();
@@ -349,7 +349,7 @@ async function removeTestWorld() {
 		]));
 	}
 	if (!canvas.scene && game.scenes.active) await game.scenes.active.view();
-	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the GM Toolkit are as they were." : ""}`);
+	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the Referee Toolkit are as they were." : ""}`);
 }
 
 /** Build the test world, keeping what it changes so removing it can put that back. */
@@ -357,7 +357,7 @@ async function buildTestWorld() {
 	if (!theGmToolkit()) await openGmToolkit();
 	const toolkit = theGmToolkit();
 	if (!toolkit) {
-		ui.notifications.warn("The world has no GM Toolkit yet. Relaunch the world, then run the macro again.");
+		ui.notifications.warn("The world has no Referee Toolkit yet. Relaunch the world, then run the macro again.");
 		return;
 	}
 	ui.notifications.info("Building the test world. Leave Foundry be until it says it's done.");

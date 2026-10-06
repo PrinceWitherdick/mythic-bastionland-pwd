@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/foundryvtt-system-manifest.json",
   "id": "mythic-bastionland-pwd",
   "title": "Mythic Bastionland",
-  "description": "<p>An unofficial system for playing Mythic Bastionland, the game of Knights, Seers and Myths by Chris McDowall, made with his permission. It is not an official Bastionland Press product.</p><p>Knight, NPC, Domain and Structure sheets, the book's Attack, Damage and Scar rules, a Realm map rolled or drawn the book's way with its travel and exploration rules beside it, and a GM Toolkit for Myths, Omens, Places and the calendar.</p><p>Mythic Bastionland, its text, art and trade dress are &copy; Chris McDowall, Bastionland Press. All rights reserved.</p>",
+  "description": "<p>An unofficial system for playing Mythic Bastionland, the game of Knights, Seers and Myths by Chris McDowall, made with his permission. It is not an official Bastionland Press product.</p><p>Knight, NPC, Domain and Structure sheets, the book's Attack, Damage and Scar rules, a Realm map rolled or drawn the book's way with its travel and exploration rules beside it, and a Referee Toolkit for Myths, Omens, Places and the calendar.</p><p>Mythic Bastionland, its text, art and trade dress are &copy; Chris McDowall, Bastionland Press. All rights reserved.</p>",
   "version": "0.9.2",
   "compatibility": {
     "minimum": "13",

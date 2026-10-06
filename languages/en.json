@@ -5,7 +5,7 @@
       "npc": "NPC",
       "domain": "Domain",
       "structure": "Structure",
-      "gmToolkit": "GM Toolkit"
+      "gmToolkit": "Referee Toolkit"
     },
     "Item": {
       "weapon": "Weapon",
@@ -199,7 +199,7 @@
         "field": "Field, {division}",
         "armsCharge": "{name}, of the arms"
       },
-      "layersTooLarge": "The layers were too large to keep on the Knight, so the heraldry was saved as one picture. Ask the GM to let you upload files to keep them.",
+      "layersTooLarge": "The layers were too large to keep on the Knight, so the heraldry was saved as one picture. Ask the Referee to let you upload files to keep them.",
       "charges": {
         "open": "Add a charge",
         "openHint": "Place a lion, a tower, a star or another charge on the shield, in the colour in hand, on a layer of its own.",
@@ -243,7 +243,7 @@
       },
       "save": "Save",
       "unreadable": "That picture couldn’t be loaded onto the shield.",
-      "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the GM to let you upload files."
+      "tooLarge": "This heraldry is too detailed to keep on the Knight. Simplify it, or ask the Referee to let you upload files."
     },
     "virtues": {
       "vig": {
@@ -694,11 +694,11 @@
         "noSteed": "{name} rides no steed.",
         "exhausted": "{name}’s {steed} is Exhausted."
       },
-      "cantCreate": "Taking a steed creates it as an NPC, so it needs a user who is allowed to create actors. Ask the GM, or drag a steed here from the Actors tab.",
+      "cantCreate": "Taking a steed creates it as an NPC, so it needs a user who is allowed to create actors. Ask the Referee, or drag a steed here from the Actors tab.",
       "clear": "No longer ride this steed",
       "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat.",
       "trample": "Trample",
-      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the GM to make them NPCs, then drag the steed onto the Steed box."
+      "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box."
     },
     "remedy": {
       "use": "Use Remedy ({virtue})",
@@ -841,7 +841,7 @@
       "askIntro": "{name} makes a SPI Save to hold firm rather than rout or surrender (Wavering Morale, p10). Roll when Wounded, or when a group loses half its number.",
       "askWhat": "A d20 is rolled against their SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark them Fled or Surrendered, which takes them out of the Combat’s turn order.",
       "gone": "That character no longer exists.",
-      "notOwner": "Only a GM or {name}’s owner can roll their Morale.",
+      "notOwner": "Only a Referee or {name}’s owner can roll their Morale.",
       "broke": {
         "fled": {
           "label": "Fled",
@@ -858,7 +858,7 @@
           "did": "{names} surrender."
         },
         "clear": "Clear it: they’re back in the fight",
-        "notOwner": "Only a GM or their owner can say how their Morale broke.",
+        "notOwner": "Only a Referee or their owner can say how their Morale broke.",
         "already": "That’s already marked on their sheet."
       },
       "triggers": {
@@ -924,7 +924,7 @@
       "exchanges": "Exchanges resolved: {count}",
       "stakeNote": "Glory is staked: the victor gains 1, and the loser loses 1.",
       "bloodlessNote": "Bloodless: a blow that would cause a Scar leaves none.",
-      "howTo": "Each duelist presses Attack on their sheet, then uses Feats and declares Gambits on their card. A GM, or whoever owns both, then resolves the two Attacks together.",
+      "howTo": "Each duelist presses Attack on their sheet, then uses Feats and declares Gambits on their card. A Referee, or whoever owns both, then resolves the two Attacks together.",
       "resolve": "Resolve Both Attacks",
       "wins": "{name} wins",
       "noVictor": "No victor",
@@ -937,13 +937,13 @@
       "notReady": "Both duelists need to roll their Attack first.",
       "gone": "One of the duelists no longer exists.",
       "attackGone": "One of the duel’s Attack cards has been deleted.",
-      "cantResolve": "Only a GM, or somebody who owns both duelists, can resolve their Attacks.",
-      "cantEnd": "Only a GM, or somebody who owns both duelists, can end the duel.",
+      "cantResolve": "Only a Referee, or somebody who owns both duelists, can resolve their Attacks.",
+      "cantEnd": "Only a Referee, or somebody who owns both duelists, can end the duel.",
       "noScar": "{name} would take a Scar, but a bloodless duel leaves none.",
       "endConfirmTitle": "End the Duel?",
       "endConfirm": "{outcome} This can’t be undone.",
       "endTitle": "Glory Staked",
-      "needsGM": "A GM needs to be logged in to change somebody else’s duel card.",
+      "needsGM": "A Referee needs to be logged in to change somebody else’s duel card.",
       "changeRefused": "The duel card changed before that could be recorded."
     },
     "surprise": {
@@ -1099,8 +1099,8 @@
         "by": "Last written by {name}.",
         "byWhen": "Last written by {name}, in {when}.",
         "someone": "someone",
-        "needsGM": "A GM has to be here to keep the Company’s note. Your words are still in the box.",
-        "offline": "The note can be written while a GM is here.",
+        "needsGM": "A Referee has to be here to keep the Company’s note. Your words are still in the box.",
+        "offline": "The note can be written while a Referee is here.",
         "refused": "The Company’s note couldn’t be kept. Your words are still in the box."
       },
       "macro": {
@@ -1324,9 +1324,9 @@
       "doomLifts": "The Season of their Doom has passed, and a Mortal Wound no longer Slays them.",
       "due": {
         "title": "Due this Season",
-        "crisis": "The Crisis Roll for {domains} (p20), from the GM Toolkit’s Time page or each Domain’s sheet.",
+        "crisis": "The Crisis Roll for {domains} (p20), from the Referee Toolkit’s Time page or each Domain’s sheet.",
         "drama": "Drama in Court for {domains} (p21), from each Domain’s sheet.",
-        "myths": "A new Myth in place of each one resolved: {myths} (p27), from the GM Toolkit’s Time page.",
+        "myths": "A new Myth in place of each one resolved: {myths} (p27), from the Referee Toolkit’s Time page.",
         "emptySeats": "{domain} has nobody as {seats} (p20). A Domain runs smoothly only with its seats filled.",
         "designs": "Grand Designs done (p21): {works}. Strike them off each Domain’s sheet."
       },
@@ -1941,7 +1941,7 @@
       "settings": {
         "firstArrival": {
           "name": "Roll a new hex’s land",
-          "hint": "The first time the Company comes to rest in a Wilderness Hex with nothing written or rolled there, roll its land and one feature on the Nature Spark Tables, keep them in the Hex, and whisper them to the GM. Holdings are left alone."
+          "hint": "The first time the Company comes to rest in a Wilderness Hex with nothing written or rolled there, roll its land and one feature on the Nature Spark Tables, keep them in the Hex, and whisper them to the Referee. Holdings are left alone."
         },
         "prompt": {
           "name": "Reaching a new hex",
@@ -2000,7 +2000,7 @@
       "hint": "Roll a table for a d12 in each column, and combine the two into a prompt to improvise from.",
       "keybinding": {
         "name": "Open the Spark Tables",
-        "hint": "Open the Spark Tables, or close them when they’re already in front. Takes the hotbar’s 6 for the GM."
+        "hint": "Open the Spark Tables, or close them when they’re already in front. Takes the hotbar’s 6 for the Referee."
       },
       "reference": "page {page}",
       "rollTable": "Roll on {name}",
@@ -2072,7 +2072,7 @@
       "settings": {
         "button": {
           "name": "Show the Weather Button",
-          "hint": "With FXMaster on, the GM Toolkit’s banner has a button for the weather. Untick this to hide it if you don’t use the weather. The weather last set stays and still follows the table; set it to Clear first for none. Saved per browser."
+          "hint": "With FXMaster on, the Referee Toolkit’s banner has a button for the weather. Untick this to hide it if you don’t use the weather. The weather last set stays and still follows the table; set it to Clear first for none. Saved per browser."
         },
         "weatherOnMap": {
           "name": "Weather on the Map",
@@ -2109,13 +2109,13 @@
       },
       "card": {
         "title": "Weather on the Map",
-        "text": "The weather you pick in the GM Toolkit, and the one the day’s Sky and Weather roll brings each morning, can fall on the Scene your players are on: rain, fog, snow and storm clouds.",
+        "text": "The weather you pick in the Referee Toolkit, and the one the day’s Sky and Weather roll brings each morning, can fall on the Scene your players are on: rain, fog, snow and storm clouds.",
         "needs": "It’s free. Install it from the Add-on Modules tab on Foundry’s setup screen, then turn it on for this world.",
         "fine": "Nothing else needs it, and the weather is still kept without it. Once it’s on, the Toolkit’s banner gets a weather button, where you can also take the weather off the map; single parts of it can be turned off under Settings."
       }
     },
     "gmToolkit": {
-      "name": "GM Toolkit",
+      "name": "Referee Toolkit",
       "rulebook": "Open the Rulebook",
       "rulebookSetup": "Point this world at your rulebook PDF",
       "realm": "Realm",
@@ -2127,10 +2127,10 @@
       "sparks": "Spark Tables rolled here",
       "wild": "The wilderness as last rolled",
       "wildChip": "{table}: {prompt}",
-      "relaunch": "Launch the world again to get the GM Toolkit. The world was already open when the system added it.",
-      "gmOnly": "Only a GM can make the GM Toolkit.",
-      "onlyOne": "This world already has a GM Toolkit.",
-      "keep": "The GM Toolkit holds your notes, so the world’s last one can’t be deleted.",
+      "relaunch": "Launch the world again to get the Referee Toolkit. The world was already open when the system added it.",
+      "gmOnly": "Only a Referee can make the Referee Toolkit.",
+      "onlyOne": "This world already has a Referee Toolkit.",
+      "keep": "The Referee Toolkit holds your notes, so the world’s last one can’t be deleted.",
       "tabs": {
         "myths": "Myths and Omens",
         "places": "Places",
@@ -2879,8 +2879,8 @@
       "featUsed": "{name} has already used {feat} on this Attack.",
       "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
       "targetsGone": "The Tokens this Attack targeted are gone.",
-      "cantApply": "Only a GM or the target’s owner can apply this Damage.",
-      "needsGM": "A GM needs to be logged in to change somebody else’s Attack card.",
+      "cantApply": "Only a Referee or the target’s owner can apply this Damage.",
+      "needsGM": "A Referee needs to be logged in to change somebody else’s Attack card.",
       "changeRefused": "The Attack card changed before that could be recorded."
     },
     "damage": {
@@ -3400,7 +3400,7 @@
     },
     "bookArt": {
       "title": "Import PDF",
-      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. So is Creating a Realm (p14), shown beside a Realm you draw by hand. A GM also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
+      "intro": "Choose your copy of the Mythic Bastionland rulebook, the {pages}-page PDF. Every Knight’s and Seer’s portrait and every Myth’s illustration is saved for this system to use. So is the text the choosers fill characters in from: each Knight’s Property, Ability and Passion, each Seer’s Virtues, each Myth’s Omens and Cast, and the Spark Tables. So is Creating a Realm (p14), shown beside a Realm you draw by hand. A Referee also gets compendiums of the weapons, armour, gear, beasts, hirelings, Warbands and structures from Arms & Goods.",
       "choose": "Rulebook PDF",
       "chooseHint": "The file is read in your browser and never uploaded.",
       "outputHint": "Pictures are saved to {root} in your Foundry data folder, replacing any from an earlier import.",
@@ -3447,11 +3447,11 @@
         "cityQuestRead": "City Quest: {omens} of {total} Omens and {cast} of the Cast read",
         "rulesRead": "Rules pages: {read} of {total} read",
         "goods": "Arms & Goods: {items} items in the {itemsPack} compendium, and {actors} beasts, hirelings, Warbands and structures in {actorsPack}",
-        "goodsNotGM": "Arms & Goods and the Seers were read, but only a GM can fill their compendiums. Run the import again as a GM.",
+        "goodsNotGM": "Arms & Goods and the Seers were read, but only a Referee can fill their compendiums. Run the import again as a Referee.",
         "goodsFailed": "The Arms & Goods compendiums couldn’t be filled. If either is locked, unlock it and run the import again.",
         "goodsFolders": "Arms & Goods copied into the world: {items} new items and {actors} new NPCs, in folders named for each compendium",
         "goodsFoldersFailed": "Arms & Goods couldn’t be copied into the Items and Actors directories. Run the import again.",
-        "npcs": "NPCs: {seers} Seers and {cast} of the Myths’ and the City Quest’s Casts in the {pack} compendium, each in their own folder, left out of the world for the GM to drag in as they’re met",
+        "npcs": "NPCs: {seers} Seers and {cast} of the Myths’ and the City Quest’s Casts in the {pack} compendium, each in their own folder, left out of the world for the Referee to drag in as they’re met",
         "npcsFailed": "The NPCs compendium couldn’t be filled. If it’s locked, unlock it and run the import again.",
         "knightTokens": "Knight tokens: {actors} Knights and {tokens} tokens on scenes now show the square cut around the Knight’s face",
         "knightTokensFailed": "Existing Knights couldn’t be given their square tokens. Run the import again.",
@@ -3710,8 +3710,8 @@
         }
       },
       "key": {
-        "tagline": "Realm Key for seed {seed}. Only GMs see this.",
-        "taglineCustom": "Realm Key for seed {seed}, set up your own way. Only GMs see this.",
+        "tagline": "Realm Key for seed {seed}. Only Referees see this.",
+        "taglineCustom": "Realm Key for seed {seed}, set up your own way. Only Referees see this.",
         "myths": "Myths",
         "holdings": "Holdings",
         "sanctums": "Seers at the Sanctums",
@@ -4150,7 +4150,7 @@
       },
       "finish": {
         "button": "Finish the Realm",
-        "hint": "Done drawing: bring back Travel and Exploration and whisper the GMs the Realm's key.",
+        "hint": "Done drawing: bring back Travel and Exploration and whisper the Referees the Realm's key.",
         "title": "Finish the Realm",
         "short": "This Realm has less than a typical one:",
         "anyway": "These numbers are a guide, not a law (p14). Finish the Realm as it is?",
@@ -4476,7 +4476,7 @@
       },
       "travelRulesShown": {
         "name": "Travel Rules beside the Realm Map",
-        "hint": "Show Travel on the left of a Realm’s map and Rest and Exploration on its right. Untick to hide them in this browser only: everyone else keeps theirs. A GM who hides them hides the rolls and the Lose d6 buttons they hold too."
+        "hint": "Show Travel on the left of a Realm’s map and Rest and Exploration on its right. Untick to hide them in this browser only: everyone else keeps theirs. A Referee who hides them hides the rolls and the Lose d6 buttons they hold too."
       },
       "restoreOpenSheets": {
         "name": "Reopen Sheets on Reload",
@@ -4505,7 +4505,7 @@
       },
       "reduceMotion": {
         "name": "Reduce Motion",
-        "hint": "Turn off the fades on Mythic Bastionland’s sheets and windows, and move the map straight to a hex shown from the GM Toolkit instead of panning there."
+        "hint": "Turn off the fades on Mythic Bastionland’s sheets and windows, and move the map straight to a hex shown from the Referee Toolkit instead of panning there."
       },
       "keywordTips": {
         "name": "Rule Word Popups",
@@ -4551,7 +4551,7 @@
       "shownPlayers": "Showed page {page} to the players.",
       "nobodyToShow": "No one else is signed in to show the page to.",
       "stillOpening": "The rulebook is still opening.",
-      "noCopy": "The GM hasn’t given this world a copy of the rulebook yet.",
+      "noCopy": "The Referee hasn’t given this world a copy of the rulebook yet.",
       "otherEdition": "This PDF has {pages} pages, but the rulebook this system’s page numbers come from has {expected}, so a jump to a page may land in the wrong place.",
       "notPdf": "That file doesn’t look like a PDF. It’s been saved anyway, in case it is one.",
       "copying": "Copying the rulebook into the world…",
@@ -4565,7 +4565,7 @@
       "settings": {
         "forPlayers": {
           "name": "Let Players Open the Rulebook",
-          "hint": "Players get the Rulebook button and hotkey too. Pages the GM shows them open either way."
+          "hint": "Players get the Rulebook button and hotkey too. Pages the Referee shows them open either way."
         }
       },
       "setup": {
@@ -4667,7 +4667,7 @@
         },
         "referee": {
           "term": "The Referee’s Tables",
-          "text": "Referee Rolls, Spark Tables, Time and the GM Toolkit, where the Myths and their Omens are kept, wait in the Roll Tables tab."
+          "text": "Referee Rolls, Spark Tables, Time and the Referee Toolkit, where the Myths and their Omens are kept, wait in the Roll Tables tab."
         }
       },
       "finish": "Done",
@@ -4701,7 +4701,7 @@
             },
             "fxmaster": {
               "name": "FXMaster",
-              "text": "draws the weather, set from the GM Toolkit or rolled each morning, on the Scene the players are on."
+              "text": "draws the weather, set from the Referee Toolkit or rolled each morning, on the Scene the players are on."
             },
             "tokenizer": {
               "name": "Tokenizer",

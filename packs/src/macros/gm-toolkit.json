@@ -1,7 +1,7 @@
 {
   "_id": "mbGmToolkitMacro",
   "_key": "!macros!mbGmToolkitMacro",
-  "name": "GM Toolkit",
+  "name": "Referee Toolkit",
   "type": "script",
   "img": "systems/mythic-bastionland-pwd/assets/icons/macros/gm-toolkit.svg",
   "scope": "global",

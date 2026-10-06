@@ -28,7 +28,7 @@ Hover a rule word such as Exposed, Hefty or Gambit, or a heading such as Glory o
 
 **New Knight** makes a Knight the way the book does. Pick a Start, roll Virtues and GD, then roll for one of the 72 Knights or pick one yourself. Name them, or roll a name. Applying fills in the whole sheet: portrait, Seer, Property, Ability, Passion, the Knight's d6 table and the kit every Knight carries.
 
-Players can make their own Knights. A GM can also make blank Knights ahead of time and hand each one to a player, who chooses the Knight when they open it. **Take a Squire** and **Take a Steed** add the rest of the retinue. **Knight this Squire** promotes a Squire who has earned it.
+Players can make their own Knights. A Referee can also make blank Knights ahead of time and hand each one to a player, who chooses the Knight when they open it. **Take a Squire** and **Take a Steed** add the rest of the retinue. **Knight this Squire** promotes a Squire who has earned it.
 
 #### Heraldry
 
@@ -50,9 +50,9 @@ Weapons, armour and gear sort themselves by die and by armour piece. Worn armour
 
 ### For Game Masters
 
-#### GM Toolkit
+#### Referee Toolkit
 
-Every world gets one **GM Toolkit**, the Referee's own sheet. Press **C** to open it, or use the first slot on the hotbar.
+Every world gets one **Referee Toolkit**, the Referee's own sheet. Press **C** to open it, or use the first slot on the hotbar.
 
 - **Myths and Omens:** each Myth of the Realm on one row, with Omens counted as they're met, its Cast ready to drop into the world, and its d6 table with a roll button. **Myth Resolved** awards the Glory and rolls the Myth that replaces it. The City Quest is kept here too.
 - **Places:** every hex the Company has visited and every place in the Realm, each with its visits, notes and Spark Table rolls, plus the Sites you've made. You can search them. List them by visit, by kind, or as **Tracking**: your own list of hexes to keep an eye on, added by clicking them on the map or with **Track This Place** on any card.
@@ -61,7 +61,7 @@ Every world gets one **GM Toolkit**, the Referee's own sheet. Press **C** to ope
 
 #### Time and the Calendar
 
-The Phase, Season and Age sit in a bar at the top of the screen. The GM's buttons move time on: **Next Phase**, **Weeks Pass** (each Season's feast, mass and Tax, Tithe or Levy), **Turn the Season** with its pursuits, and **Turn the Age** with Duty, Succession or Legacy, ageing and Glory. **End the Session** walks through the book's end-of-session steps and keeps the recap with that Season.
+The Phase, Season and Age sit in a bar at the top of the screen. The Referee's buttons move time on: **Next Phase**, **Weeks Pass** (each Season's feast, mass and Tax, Tithe or Levy), **Turn the Season** with its pursuits, and **Turn the Age** with Duty, Succession or Legacy, ageing and Glory. **End the Session** walks through the book's end-of-session steps and keeps the recap with that Season.
 
 #### The Realm
 
@@ -71,9 +71,9 @@ The Phase, Season and Age sit in a bar at the top of the screen. The GM's button
 - **Import a map** drawn on paper, scanned or photographed, and line the hexes up over it. A painted map with no hexes on it works too: the Realm lays its own over it, as many as the map's shape takes.
 - Untick any part of the setup to draw it by hand, or ignore the rules and set your own counts.
 
-When a new world's GM closes the Welcome window, a short Foundry Tour points them to the Scenes tab and New Realm. They can play it again from **Tour Management** in the Settings tab.
+When a new world's Referee closes the Welcome window, a short Foundry Tour points them to the Scenes tab and New Realm. They can play it again from **Tour Management** in the Settings tab.
 
-Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with GM buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there. The first time the Company rests in a Wilderness hex with nothing kept in it, its land and one feature are rolled on the Nature tables and kept, so it's the same place when they come back (the **Roll a new hex's land** setting turns this off). Its **Random Page Prompt** opens a random spread and the prompts along its foot (p19, p179): click the ones you'll use, then **Save to hex** and click a hex on the map to keep them there.
+Players see the terrain, the river and the Holdings. Myths, Landmarks and Barriers stay hidden until revealed, and Tokens can't walk through a Barrier. One **Company** Token stands for the whole party. The **Travel** and **Rest and Exploration** rules sit on either side of the map, with Referee buttons for the Wilderness Roll, weather, hardships, gathering folklore, searching and looking from a vantage point. When the Company reaches a new hex, **The Lay of the Land** opens with what's known about it and keeps the Spark Table rolls made there. The first time the Company rests in a Wilderness hex with nothing kept in it, its land and one feature are rolled on the Nature tables and kept, so it's the same place when they come back (the **Roll a new hex's land** setting turns this off). Its **Random Page Prompt** opens a random spread and the prompts along its foot (p19, p179): click the ones you'll use, then **Save to hex** and click a hex on the map to keep them there.
 
 Players keep their own record of the Realm. A dashed line marks every hex the Company has been to, and anyone can hide the marks for themselves with the footprints among the Token tools or on the Settings page. Open **Places** from the Token tools, the players' hotbar or the Knight sheet's **Travels** page, or double-click a hex to open it with that hex chosen. It shows the record three ways:
 
@@ -84,17 +84,17 @@ Players keep their own record of the Realm. A dashed line marks every hex the Co
 Search and the filters (Holdings, Landmarks, Myths, Told, Noted, Not Visited) narrow all three. The hex chosen shows beside them:
 
 - what stands there that they've found, and when they were there
-- what the GM told them with **Tell the players**, kept as it was said
-- a note any player can write for the whole table (a GM has to be online to save it)
+- what the Referee told them with **Tell the players**, kept as it was said
+- a note any player can write for the whole table (a Referee has to be online to save it)
 
-Pointing at a hex on the map also shows the latest thing told of it and the Company's note. Nothing they haven't found shows, and none of the GM's own notes or Spark Table rolls. A GM sees the same pages as the players do, and below the chosen hex a **Rolled Here** part of their own: what stands there that the players haven't found, the Spark Table rolls kept there and the GM's note, and a button that opens the hex's Lay of the Land window. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
+Pointing at a hex on the map also shows the latest thing told of it and the Company's note. Nothing they haven't found shows, and none of the Referee's own notes or Spark Table rolls. A Referee sees the same pages as the players do, and below the chosen hex a **Rolled Here** part of their own: what stands there that the players haven't found, the Spark Table rolls kept there and the Referee's note, and a button that opens the hex's Lay of the Land window. What the players were told and their note live in the Scene, so like everything else on it they reach every browser.
 
-Each hex the GM rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has two pages:
+Each hex the Referee rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has two pages:
 
 - **What the Company Knows**, the same page the players' Places shows
 - **GM Notes**, which belongs to the GM and is never written over
 
-Players can open the entry once they could open the hex in their Places, and they see only the Company's page. The Lay of the Land and the GM Toolkit's hex cards have a **Journal** button that opens it. Turn the entries off with **Journal entries for hexes** in the settings.
+Players can open the entry once they could open the hex in their Places, and they see only the Company's page. The Lay of the Land and the Referee Toolkit's hex cards have a **Journal** button that opens it. Turn the entries off with **Journal entries for hexes** in the settings.
 
 The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm Appearance** offers other skins, colour sets and your own pictures.
 
@@ -110,7 +110,7 @@ The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm
 
 #### Referee Tools
 
-Buttons in the Roll Tables tab roll the book's quick tables (the Luck Roll, Passage of Time, Travelling Blind, Dire Weather and more) and open the **Spark Tables**. Each GM's hotbar gets the Toolkit, the Rulebook, End the Session, New Site and the Luck Roll.
+Buttons in the Roll Tables tab roll the book's quick tables (the Luck Roll, Passage of Time, Travelling Blind, Dire Weather and more) and open the **Spark Tables**. Each Referee's hotbar gets the Toolkit, the Rulebook, End the Session, New Site and the Luck Roll.
 
 ### Art and text from your own book
 
@@ -120,11 +120,11 @@ None of Chris McDowall's text ships with the system, and of his art only the fre
 - every Knight's and Seer's portrait and every Myth's illustration;
 - each Knight's verse, Property, Ability, Passion and table, each Seer's traits, each Myth's Omens, Cast and table, the Spark Tables and the City Quest;
 - **Arms & Goods** and **Beasts, Hirelings & Warbands** compendiums;
-- an **NPCs** compendium of Seers, Myth Casts and the City Quest Cast, visible to GMs only.
+- an **NPCs** compendium of Seers, Myth Casts and the City Quest Cast, visible to Referees only.
 
 Nothing is uploaded anywhere. The pictures and text are saved under `mythic-bastionland-art/` in your own Foundry data folder, never in the system folder. Anyone who can reach your Foundry server can fetch files from that folder.
 
-The same PDF can be opened in Foundry as a **Rulebook** reader, bound to the **B** key. Every page number in the system's windows and chat cards, such as "(p16)", opens the book at that page, and a GM can show a page to the table.
+The same PDF can be opened in Foundry as a **Rulebook** reader, bound to the **B** key. Every page number in the system's windows and chat cards, such as "(p16)", opens the book at that page, and a Referee can show a page to the table.
 
 ---
 
@@ -148,7 +148,7 @@ That is all you need. Install it and start a world. Foundry's **Update** button 
 - **[Dice So Nice!](https://foundryvtt.com/packages/dice-so-nice)** rolls the dice on the table in 3D. Every roll in the system uses Foundry's dice, so there's nothing to set up.
 - **[Sequencer](https://foundryvtt.com/packages/sequencer)** and **[JB2A](https://foundryvtt.com/packages/JB2A_DnD5e)** animate Attacks on the map: swords swing, arrows fly, and blood marks whoever loses VIG. Each animation is picked from the weapon's name. The free JB2A is enough.
 - **[SoundFx Library](https://foundryvtt.com/packages/soundfxlibrary)** adds sound to those Attacks, with or without Sequencer.
-- **[FXMaster](https://foundryvtt.com/packages/fxmaster)** draws the weather on the players' Scene: the day's Sky and Weather roll sets it each morning, and the GM can pick another from the Toolkit. The weather picker can take it off the map for a while, and the Settings tab can switch single parts of it off, such as the hail or the storm's grey light.
+- **[FXMaster](https://foundryvtt.com/packages/fxmaster)** draws the weather on the players' Scene: the day's Sky and Weather roll sets it each morning, and the Referee can pick another from the Toolkit. The weather picker can take it off the map for a while, and the Settings tab can switch single parts of it off, such as the hail or the storm's grey light.
 - **[Tokenizer](https://foundryvtt.com/packages/vtta-tokenizer)** makes round map tokens from Knight and NPC portraits, with a frame and a background of your choosing.
 
 The Attack effects are one world setting, **Attack Effects on the Map**, which is on by default and does nothing when these modules aren't installed. Anyone with **Reduce Motion** turned on hears the sounds but sees no animation.
@@ -179,7 +179,7 @@ No words of the book belong in the repository, code comments and tests included.
 - **Mythic Bastionland** © Chris McDowall, [Bastionland Press](https://www.bastionland.com). The Realm's terrain, Holdings and Landmarks are traced from the free Blank Realm sheet's map legend. The rules shown in the book's words are read from your own copy.
 - **Fonts:** [IM Fell English](https://fonts.google.com/specimen/IM+Fell+English), [UnifrakturCook](https://fonts.google.com/specimen/UnifrakturCook), [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) and [Pirata One](https://fonts.google.com/specimen/Pirata+One), under the SIL Open Font License (`assets/fonts/licenses`).
 - **Heraldic charges and the Armorial Realm skin** are adapted from the [Book of Traceable Heraldic Art](https://heraldicart.org), digital illustration by Mathghamhain Ua Ruadháin, © 2016–2023 Matthew Simon Ryan Cavalletto. Only drawings after public-domain books are used. They're shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), which covers those drawings and the pictures made from them (`assets/heraldry/charges/`, `assets/realm/armorial/` and each skin's `seat.svg`). Per-drawing credits are in [assets/heraldry/charges/CREDITS.md](assets/heraldry/charges/CREDITS.md) and in each file.
-- **Icons** from [game-icons.net](https://game-icons.net) by Delapouite, Lorc, Skoll, Caro Asercion, Carl Olsen, Cathelineau, HeavenlyDog, Lucas and sbed, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), recoloured. They're used for goods, macros, Company Tokens, the Realm's towns and castles, the GM Toolkit and the Squire. Each picture carries its credit, and the lists are in [goods](assets/icons/goods/CREDITS.md), [macro](assets/icons/macros/CREDITS.md) and [Company](assets/icons/company/CREDITS.md) CREDITS.md files.
+- **Icons** from [game-icons.net](https://game-icons.net) by Delapouite, Lorc, Skoll, Caro Asercion, Carl Olsen, Cathelineau, HeavenlyDog, Lucas and sbed, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), recoloured. They're used for goods, macros, Company Tokens, the Realm's towns and castles, the Referee Toolkit and the Squire. Each picture carries its credit, and the lists are in [goods](assets/icons/goods/CREDITS.md), [macro](assets/icons/macros/CREDITS.md) and [Company](assets/icons/company/CREDITS.md) CREDITS.md files.
 
 ## Licence
 

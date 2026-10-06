@@ -15,6 +15,9 @@ import { SYSTEM_ID, SYSTEM_PATH } from "../system-id.js";
 /** The toolkit's Actor type, as system.json declares it. */
 export const GM_TOOLKIT_TYPE = "gmToolkit";
 
+/** What the system named the toolkit before it took the book's word, Referee. */
+export const OLD_TOOLKIT_NAME = "GM Toolkit";
+
 /** The toolkit's portrait: somebody reading behind an open book, as on Stonetop's. */
 export const GM_TOOLKIT_IMAGE = `${SYSTEM_PATH}/assets/icons/gm-toolkit.svg`;
 

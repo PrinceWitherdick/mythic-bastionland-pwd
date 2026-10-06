@@ -31,7 +31,7 @@ export const MACRO_ICONS = Object.freeze([
 	{ key: "end-session", name: "End the Session", icon: "lorc/sands-of-time" },
 	{ key: "rulebook", name: "Rulebook", icon: "lorc/open-book" },
 	// The same drawing the toolkit wears as its portrait, on a tile rather than its disc.
-	{ key: "gm-toolkit", name: "GM Toolkit", icon: "skoll/read" },
+	{ key: "gm-toolkit", name: "Referee Toolkit", icon: "skoll/read" },
 	// The same drawing Stonetop's Import PDF macro wears.
 	{ key: "import-pdf", name: "Import PDF", icon: "delapouite/spell-book" }
 ]);
