@@ -1,7 +1,7 @@
 <section class="bastionland-card bastionland-card--wilderness">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{localize "bastionland.realm.wilderness.title"}}</h3>
-		<p class="bastionland-card__tagline">{{hex}}{{#if terrain}}, {{terrain}}{{/if}}{{#if mode}}. {{mode}}{{/if}}</p>
+		<p class="bastionland-card__tagline">{{> "bastionland.hex-target" hex}}{{#if terrain}}, {{terrain}}{{/if}}{{#if mode}}. {{mode}}{{/if}}</p>
 	</header>
 
 	<p>{{#if d6}}<span class="bastionland-card__roll">{{d6}}</span> {{/if}}<span class="bastionland-card__outcome">{{result}}</span></p>

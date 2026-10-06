@@ -6,8 +6,8 @@
 	<p class="bastionland-card__outcome">{{prompt}}</p>
 	<ul class="bastionland-card__entries">
 		{{#each results}}
-		{{!-- A Knight's table tells each result as a sentence, and a column that finishes the line before it shares that line, with a die shown for each. --}}
-		<li>{{#if rolls}}{{#each rolls}}<span class="bastionland-card__roll">{{this}}</span>{{/each}}{{else}}<span class="bastionland-card__roll">{{roll}}</span>{{/if}} {{#if sentence}}{{> "bastionland.table-sentence" parts=sentence.parts}}{{else}}{{column}}: {{entry}}{{/if}}</li>
+		{{!-- A Knight's table tells each result as a sentence, and a column that finishes the line before it shares that line. --}}
+		<li>{{#if sentence}}{{> "bastionland.table-sentence" parts=sentence.parts}}{{else}}{{column}}: {{entry}}{{/if}}</li>
 		{{/each}}
 	</ul>
 </section>

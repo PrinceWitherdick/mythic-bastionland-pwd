@@ -1,4 +1,5 @@
 import { hexLabel } from "./hex-names.js";
+import { hexTarget } from "../chat/hex-target.js";
 import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
@@ -1042,7 +1043,7 @@ async function postRealmKey(scene) {
 	if (!entry) return null;
 	const { realm } = entry;
 	const index = await loadArtIndex();
-	const where = ({ col, row }) => hexLabel({ col, row }, scene);
+	const where = ({ col, row }) => hexTarget({ col, row }, scene);
 
 	return postCard(null, "realm-key", {
 		title: scene.name,

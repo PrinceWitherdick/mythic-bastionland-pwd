@@ -1,6 +1,7 @@
 <section class="bastionland-card bastionland-card--welcome">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{title}}</h3>
+		{{#if target}}<p class="bastionland-card__tagline">{{> "bastionland.hex-target" target}}</p>{{/if}}
 	</header>
 	<p class="bastionland-card__text">{{text}}</p>
 	{{#if restorable}}

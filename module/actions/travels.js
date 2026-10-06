@@ -24,6 +24,7 @@ import {
 import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/travels-chart.js";
 import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
+import { hexesWithPeopleIn } from "./hex-lore.js";
 import { getHexNames } from "./hex-names.js";
 import { getHexShared, partyNoteBy } from "./hex-shared.js";
 import { getJourney, visitsLabel } from "./journey.js";
@@ -106,6 +107,19 @@ function wordsOf(view) {
  */
 const searchText = (view) => searchable(viewSearchWords(view, wordsOf(view)).join(" "));
 
+/**
+ * The tag only a Referee narrows the places to, from their own hex lore: the
+ * hexes with someone rolled up in them. The players' record never holds it.
+ */
+const PEOPLE_FILTER = "people";
+
+/**
+ * @param {import("../rules/travels.js").PlayerHexView} view
+ * @param {Set<string>|null} people The hexes with someone rolled up in them, for a Referee.
+ * @returns {string} What the hex holds, for the filters.
+ */
+const tagsOf = (view, people) => [...viewTags(view), ...(people?.has(view.key) ? [PEOPLE_FILTER] : [])].join(" ");
+
 /** @returns {string} A hex's terrain and features, in a line. */
 const aboutText = (words) => [words.terrain, ...words.features].filter(Boolean).join(", ");
 
@@ -117,25 +131,26 @@ const visitsLine = (view, words) => (view.visits ? visitsText(view.visits) : (wo
  * @param {import("../rules/travels.js").PlayerHexView} view
  * @param {boolean} onMap Whether the Realm is the one on the canvas, so the hex can be shown there.
  * @param {string|null} selected The key of the hex chosen.
+ * @param {Set<string>|null} [people] The hexes with someone rolled up in them, for a Referee.
  * @returns {object}
  */
-function rowContext(view, onMap, selected) {
+function rowContext(view, onMap, selected, people = null) {
 	const words = wordsOf(view);
 	return {
 		key: view.key,
 		hex: view.key,
 		title: words.title,
 		name: words.name,
-		coords: words.coords,
 		terrain: words.terrain,
-		features: words.features.join(", "),
+		// Under the title: where a named hex is, then what stands in it.
+		lines: [words.name && words.coords, words.features.join(", ")].filter(Boolean),
 		visits: visitsLine(view, words),
 		here: view.here,
 		told: view.told.length > 0,
 		noted: Boolean(view.party),
 		selected: view.key === selected,
 		onMap,
-		tags: viewTags(view).join(" "),
+		tags: tagsOf(view, people),
 		search: searchText(view)
 	};
 }
@@ -153,9 +168,10 @@ function chartLabel(view) {
  * One line of the journey log, worded.
  * @param {import("../rules/travels.js").JourneyEntry} entry
  * @param {boolean} [forgettable] Whether it has an × to forget it, for a GM in the Places window.
+ * @param {Set<string>|null} [people] The hexes with someone rolled up in them, for a Referee.
  * @returns {object}
  */
-function journeyEntryContext(entry, forgettable = false) {
+function journeyEntryContext(entry, forgettable = false, people = null) {
 	const { view } = entry;
 	const words = wordsOf(view);
 	const place = words.title;
@@ -177,7 +193,7 @@ function journeyEntryContext(entry, forgettable = false) {
 		about: entry.kind === "arrived" && entry.first ? about : "",
 		note: entry.kind === "told" ? entry.note : "",
 		forget: forgettable ? { ref: entry.ref, label: t(`travels.journey.forget.${entry.kind}`) } : null,
-		tags: viewTags(view).join(" "),
+		tags: tagsOf(view, people),
 		search: searchable([said, about, entry.note ?? "", searchText(view)].join(" "))
 	};
 }
@@ -185,13 +201,14 @@ function journeyEntryContext(entry, forgettable = false) {
 /**
  * @param {import("../rules/travels.js").JourneySeason[]} log
  * @param {boolean} [forgettable] Whether each line has an × to forget it.
+ * @param {Set<string>|null} [people] The hexes with someone rolled up in them, for a Referee.
  * @returns {object[]} The journey log, worded: a heading for each Season, and its days.
  */
-function journeyContext(log, forgettable = false) {
+function journeyContext(log, forgettable = false, people = null) {
 	const yearsOn = seasonYearsOn(log);
 	return log.map((season, index) => ({
 		heading: season.when ? seasonHeading(season.when, yearsOn[index]) : t("travels.journey.undated"),
-		days: season.days.map((day) => ({ entries: day.entries.map((entry) => journeyEntryContext(entry, forgettable)) }))
+		days: season.days.map((day) => ({ entries: day.entries.map((entry) => journeyEntryContext(entry, forgettable, people)) }))
 	}));
 }
 
@@ -280,22 +297,28 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 		const one = viewOf(parseHexKey(picked));
 		return hexDetail(one, onMap, gmPart?.(scene, one) ?? null);
 	};
+	// In the Places window, the one that builds a GM's part, a GM can narrow it to the hexes with People rolled up in them.
+	const people = gmPart ? hexesWithPeopleIn(scene) : null;
+	// People follow the Myths among the filters.
+	const filterKeys = people ? TRAVELS_FILTERS.flatMap((key) => (key === "myth" ? [key, PEOPLE_FILTER] : [key])) : TRAVELS_FILTERS;
 	const by = TRAVELS_SORTS.includes(sort) ? sort : TRAVELS_SORTS[0];
 	const title = (one) => wordsOf(one).title;
-	const rows = (views) => sortViews(views, by, title).map((one) => rowContext(one, onMap, picked));
+	const rows = (views) => sortViews(views, by, title).map((one) => rowContext(one, onMap, picked, people));
 	const shown = TRAVELS_VIEWS.includes(view) ? view : TRAVELS_VIEWS[0];
-	const narrowed = TRAVELS_FILTERS.includes(filter) ? filter : "";
-	// A GM forgets a line of the journey in the Places window, the one that builds a GM's part, never on a Knight's sheet.
-	const log = journeyContext(journeyLog(sources, viewOf), Boolean(gmPart));
+	const narrowed = filterKeys.includes(filter) ? filter : "";
+	// A GM forgets a line of the journey in the Places window, never on a Knight's sheet.
+	const log = journeyContext(journeyLog(sources, viewOf), Boolean(gmPart), people);
 	const palette = realmPalette(getRealmLook(scene).palette);
+	// A GM outside solo play sees the page as the players do, and the summary says so.
+	const asPlayers = Boolean(game.user?.isGM) && !keptFromMe();
 	return {
 		realms: scenes,
 		chooseRealm: scenes.length > 1,
 		sceneId: scene.id,
-		summary: t("travels.summary", { count: list.count, total: list.total }),
+		summary: t(asPlayers ? "travels.summaryGM" : "travels.summary", { count: list.count, total: list.total }),
 		views: TRAVELS_VIEWS.map((key) => ({ key, label: t(`travels.views.${key}`), shown: key === shown })),
 		viewShown: Object.fromEntries(TRAVELS_VIEWS.map((key) => [key, key === shown])),
-		filters: [{ key: "", label: t("travels.filters.all") }, ...TRAVELS_FILTERS.map((key) => ({ key, label: t(`travels.filters.${key}`) }))]
+		filters: [{ key: "", label: t("travels.filters.all") }, ...filterKeys.map((key) => ({ key, label: t(`travels.filters.${key}`) }))]
 			.map((one) => ({ ...one, pressed: one.key === narrowed })),
 		sorts: TRAVELS_SORTS.map((key) => ({ key, label: t(`travels.sort.${key}`), selected: key === by })),
 		ofNote: rows(list.ofNote),
@@ -316,8 +339,7 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 		selected: picked,
 		detail: detail ? chosenDetail() : null,
 		none: !every.length,
-		// A GM outside solo play sees the page as the players do, and is told so.
-		asPlayers: Boolean(game.user?.isGM) && !keptFromMe()
+		asPlayers
 	};
 }
 

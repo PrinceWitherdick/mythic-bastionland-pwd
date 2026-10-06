@@ -153,7 +153,7 @@ const partsOf = ({ before, entry, after }) => [{ text: before, bold: false }, { 
  * @param {R[]} results
  * @param {(roll: string, column: number) => string|{line: string, join?: string}|null} patternFor
  *   By the column's number from 1.
- * @returns {(R & {sentence: {parts: {text: string, bold: boolean}[]}|null, rolls: number[]})[]}
+ * @returns {(R & {sentence: {parts: {text: string, bold: boolean}[]}|null})[]}
  */
 export function withSentences(stored, results, patternFor) {
 	const roll = rollForKnightPage(stored?.page);
@@ -168,11 +168,10 @@ export function withSentences(stored, results, patternFor) {
 			const before = previous.sentence.parts;
 			const spaced = /\s$/.test(before.at(-1).text) ? before : [...before, { text: " ", bold: false }];
 			previous.sentence = { parts: [...spaced, ...partsOf(joined)] };
-			previous.rolls = [...previous.rolls, result.roll].filter(Number.isInteger);
 			continue;
 		}
 		const line = pattern ? tableSentence(pattern.line, result.entry) : null;
-		lines.push({ ...result, sentence: line ? { parts: partsOf(line) } : null, rolls: [result.roll].filter(Number.isInteger) });
+		lines.push({ ...result, sentence: line ? { parts: partsOf(line) } : null });
 	}
 	return lines;
 }

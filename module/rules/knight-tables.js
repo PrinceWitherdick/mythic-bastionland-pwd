@@ -6,7 +6,7 @@
  * so they can be tested without Foundry.
  */
 import { PROPERTY_TYPES } from "../config.js";
-import { knightTypeFromName } from "./creation.js";
+import { knightTypeKey } from "./creation.js";
 import { WHOLE_ASIDE, pointsBelow } from "./property.js";
 import { parentheticals } from "./text.js";
 import { cadencesTurned, isCalendar } from "./time.js";
@@ -72,9 +72,9 @@ export function knightTableItemId(actor) {
  * @returns {object|null}
  */
 export function knightEntryByType(index, knightType) {
-	const type = String(knightType ?? "").trim().toLowerCase();
+	const type = knightTypeKey(knightType);
 	if (!type) return null;
-	return (index?.knights ?? []).find((entry) => entry.name && knightTypeFromName(entry.name).toLowerCase() === type) ?? null;
+	return (index?.knights ?? []).find((entry) => entry.name && knightTypeKey(entry.name) === type) ?? null;
 }
 
 /**

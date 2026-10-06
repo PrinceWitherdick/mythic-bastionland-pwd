@@ -88,11 +88,27 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 			this.search = event.target.value;
 			this._applySearch();
 		});
-		// Choosing a d6 result means looking at all of it, so the search is let go first.
-		root.querySelector(".bastionland-chooser__groups")?.addEventListener("click", () => {
-			this.search = "";
-		});
 		this._applySearch();
+	}
+
+	/**
+	 * What every card carries for its d6 result and the search box. Every card
+	 * is drawn, so a search finds one in any d6 result; the rest are hidden.
+	 * @param {{d6: number, d12: number, roll: string}} roll
+	 * @param {string} name What the card is called.
+	 * @returns {{d6: number, inGroup: boolean, searchText: string}}
+	 */
+	_cardFields({ d6, d12, roll }, name) {
+		return { d6, inGroup: d6 === this.group, searchText: searchable(`${name} ${d6}-${d12} ${roll}`) };
+	}
+
+	/**
+	 * Whether a roll may be picked. A chooser that says no says why.
+	 * @param {string} _roll
+	 * @returns {boolean}
+	 */
+	_canPick(_roll) {
+		return true;
 	}
 
 	/**
@@ -115,15 +131,28 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 		if (none) none.hidden = shown > 0;
 	}
 
-	/** @this {BastionlandChooser} */
+	/**
+	 * Show one d6 result. Choosing one means looking at all of it, so the search is let go.
+	 * Every card is drawn already, so nothing is drawn again.
+	 * @this {BastionlandChooser}
+	 */
 	static #onShowGroup(_event, target) {
 		this.group = Number(target.dataset.d6);
-		return this.render();
+		this.search = "";
+		const box = this.element.querySelector("[name=search]");
+		if (box) box.value = "";
+		this._applySearch();
 	}
 
-	/** @this {BastionlandChooser} */
+	/**
+	 * Pick a roll. One found by a search is among its own d6 result once the search is let go.
+	 * @this {BastionlandChooser}
+	 */
 	static #onPick(_event, target) {
-		this.roll = target.dataset.roll;
+		const roll = target.dataset.roll;
+		if (!this._canPick(roll)) return;
+		this.roll = roll;
+		this.group = Number(target.closest("[data-d6]")?.dataset.d6) || this.group;
 		return this.render();
 	}
 }

@@ -2,7 +2,7 @@
 <section class="bastionland-card bastionland-card--survey">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title"><i class="fa-solid fa-binoculars" inert></i> {{title}}</h3>
-		<p class="bastionland-card__tagline">{{hex}}{{#if terrain}}, {{terrain}}{{/if}}</p>
+		<p class="bastionland-card__tagline">{{> "bastionland.hex-target" hex}}{{#if terrain}}, {{terrain}}{{/if}}</p>
 	</header>
 
 	{{#if holding}}
@@ -19,7 +19,7 @@
 	<ul class="bastionland-card__entries">
 		{{#each around}}
 		<li>
-			<strong>{{direction}}</strong> · {{hex}}
+			<strong>{{direction}}</strong> · {{> "bastionland.hex-target" hex}}
 			<p class="bastionland-card__text">{{terrain}}{{#if holding}} · {{holding}}{{/if}}{{#if barrier}} · {{barrier}}{{/if}}</p>
 		</li>
 		{{/each}}

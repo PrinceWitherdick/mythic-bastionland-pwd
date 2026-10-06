@@ -99,8 +99,8 @@ export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) =
 /** Forget a Barrier was met from a hex; it stays on the map. @returns {Promise<boolean>} */
 export const forgetHexBarrierMet = (scene, hex, edge) => editHexShared(scene, (shared) => forgetBarrierMet(shared, hex, edge));
 
-/** Forget all the players were told of a hex, and their note on it. @returns {Promise<boolean>} */
-export const forgetHexShared = (scene, hex) => editHexShared(scene, (shared) => forgetShared(shared, hex));
+/** Forget all the players hold of a hex, or whichever parts `parts` names. @returns {Promise<boolean>} */
+export const forgetHexShared = (scene, hex, parts) => editHexShared(scene, (shared) => forgetShared(shared, hex, parts));
 
 /**
  * Whether the players may open a hex of a Scene's Realm.

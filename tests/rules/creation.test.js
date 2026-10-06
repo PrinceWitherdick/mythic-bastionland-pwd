@@ -5,6 +5,7 @@ import {
 	STARTS,
 	knightItems,
 	knightTypeFromName,
+	knightTypeTakenBy,
 	knightUpdate,
 	seerAutoFill,
 	seerForKnight,
@@ -86,6 +87,39 @@ describe("takenKnights", () => {
 
 	it("ignores the Knight being chosen for", () => {
 		expect(takenKnights([{ id: "a", name: "Sir Aled", knightType: "Lantern" }], entries, "a").size).toBe(0);
+	});
+
+	it("reads a type written out in full", () => {
+		expect(takenKnights([{ id: "a", name: "Sir Aled", knightType: "The Lantern Knight" }], entries)).toEqual(new Map([["1-01", "Sir Aled"]]));
+	});
+
+	it("frees a slain Knight's Knight, and a Squire isn't one yet", () => {
+		const knights = [
+			{ id: "a", name: "Sir Aled", knightType: "Lantern", slain: true },
+			{ id: "b", name: "Young Brin", knightType: "Bell", isSquire: true }
+		];
+		expect(takenKnights(knights, entries).size).toBe(0);
+	});
+});
+
+describe("knightTypeTakenBy", () => {
+	const knights = [
+		{ id: "a", name: "Sir Aled", knightType: "Lantern" },
+		{ id: "b", name: "Dame Brin", knightType: "Bell", slain: true },
+		{ id: "c", name: "Young Cai", knightType: "Candle", isSquire: true }
+	];
+
+	it("names the living Knight who already is it, however it's typed", () => {
+		expect(knightTypeTakenBy(knights, "lantern")).toBe("Sir Aled");
+		expect(knightTypeTakenBy(knights, " The Lantern Knight ")).toBe("Sir Aled");
+	});
+
+	it("leaves it free for the Knight themselves, a slain Knight's, a Squire's, or a blank", () => {
+		expect(knightTypeTakenBy(knights, "Lantern", "a")).toBeNull();
+		expect(knightTypeTakenBy(knights, "Bell")).toBeNull();
+		expect(knightTypeTakenBy(knights, "Candle")).toBeNull();
+		expect(knightTypeTakenBy(knights, "Moth")).toBeNull();
+		expect(knightTypeTakenBy(knights, "  ")).toBeNull();
 	});
 });
 

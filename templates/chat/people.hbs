@@ -2,7 +2,7 @@
 <section class="bastionland-card bastionland-card--spark">
 	<header class="bastionland-card__header">
 		<h3 class="bastionland-card__title">{{title}}</h3>
-		<p class="bastionland-card__tagline">{{tagline}}</p>
+		<p class="bastionland-card__tagline">{{#if lead}}{{lead}} {{/if}}{{#if target}}{{> "bastionland.hex-target" target}}{{#if tagline}} · {{/if}}{{/if}}{{tagline}}</p>
 	</header>
 	{{#each sparks}}
 	{{> "bastionland.spark-entries"}}
@@ -11,7 +11,7 @@
 	{{#if label}}<p class="bastionland-card__outcome">{{label}}</p>{{/if}}
 	<ul class="bastionland-card__entries">
 		{{#each traits}}
-		<li>{{#each rolls}}<span class="bastionland-card__roll">{{this}}</span>{{/each}} <strong>{{name}}:</strong> {{prompt}}</li>
+		<li><strong>{{name}}:</strong> {{prompt}}</li>
 		{{/each}}
 		{{#if heard}}
 		<li>{{heard}}</li>

@@ -111,17 +111,24 @@ describe("Forgetting what's kept in a hex, from the Journey page and the visits 
 		expect(existsSync(join(root, "templates/apps/hex-visits.hbs"))).toBe(false);
 		expect(gm).not.toContain("data-hex-forget");
 		expect(gm).not.toContain("forgetVisit");
-		expect(gmPart).toContain("forget: hexForgetContext(scene, hex)");
+		expect(gmPart).toContain("forget: hexForgetContext(scene, hex, { lore: record, visits })");
 		expect(gmPart).not.toContain("state.forget");
 		expect(places).not.toContain("hexGm.forget");
 		expect(styles).not.toContain("bastionland-hex-forget");
 	});
 
-	it("forgets every visit, or everything, from two icons on the visits line", () => {
-		for (const action of ["forgetVisits", "forgetAll"]) {
-			expect(forget).toMatch(new RegExp(`\\b${action}\\b`));
-			expect(detail).toContain(`data-action="${action}"`);
-		}
+	it("forgets what's ticked, kind by kind, from one button on the visits line and a dialog", () => {
+		expect(detail).toContain('data-action="forgetHex"');
+		expect(detail).not.toMatch(/data-action="forget(Visits|All)"/);
+		expect(forget).toMatch(/\bforgetHex\(/);
+		expect(forget).toContain('template: "hex-forget"');
+		expect(forget).not.toContain("confirmDialog");
+		expect(forget).toContain('HEX_FORGET_PARTS = Object.freeze(["visits", "sparks", "note", "told", "met", "party"])');
+		const dialog = read("templates/dialogs/hex-forget.hbs");
+		expect(dialog).toContain('<input type="checkbox" name="{{key}}" data-forget-part {{checked checked}}>');
+		expect(dialog).toMatch(/\{\{#if many\}\}\s*<label class="bastionland-check">\s*<input type="checkbox" data-forget-all>/);
+		// Every inputDialog links its own Everything Here box.
+		expect(read("module/apps/ui.js")).toMatch(/render: \(event, dialog\) => \{\s*linkEverything\(dialog\.element\);/);
 		expect(forget).not.toMatch(/\bforgetVisit\b/);
 		expect(detail).toMatch(/\{\{#with gm\.forget\}\}\s*<span class="bastionland-travels-hex__forget">/);
 		expect(gmPart).toContain("...HEX_FORGET_ACTIONS");
@@ -132,6 +139,6 @@ describe("Forgetting what's kept in a hex, from the Journey page and the visits 
 		expect(places).toContain("forgetJourney: forgetJourneyLine,");
 		expect(places).toMatch(/function forgetJourneyLine\(_event, target\) \{\s*if \(!game\.user\.isGM\) return;/);
 		for (const kind of ["arrived", "told", "met", "noted"]) expect(places).toMatch(new RegExp(`\\b${kind}[(:]`));
-		expect(read("module/actions/travels.js")).toContain("journeyContext(journeyLog(sources, viewOf), Boolean(gmPart))");
+		expect(read("module/actions/travels.js")).toContain("journeyContext(journeyLog(sources, viewOf), Boolean(gmPart), people)");
 	});
 });

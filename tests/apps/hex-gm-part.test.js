@@ -69,8 +69,8 @@ vi.mock("../../module/apps/SeerChooser.js", () => ({ openSeerChooser: (...args) 
 const showMyth = vi.fn();
 vi.mock("../../module/actions/gm-toolkit.js", () => ({ openGmToolkit: vi.fn(), theGmToolkit: () => ({ sheet: { showMyth } }) }));
 vi.mock("../../module/apps/hex-forget.js", () => ({
-	HEX_FORGET_ACTIONS: { forgetVisits: vi.fn(), forgetAll: vi.fn() },
-	hexForgetContext: () => ({ noVisits: true, nothing: false })
+	HEX_FORGET_ACTIONS: { forgetHex: vi.fn() },
+	hexForgetContext: () => ({ nothing: false })
 }));
 vi.mock("../../module/apps/HexEditor.js", () => ({ openHexEditor: (...args) => openHexEditor(...args) }));
 vi.mock("../../module/apps/hex-rename.js", () => ({ wirePersonRename: vi.fn() }));
@@ -105,14 +105,14 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 	it("holds the GM's note to change, the rolls newest first, and what there is to forget", () => {
 		const part = hexGmContext({ scene, hex, view, index: { spark: [{}] }, state: hexGmState() });
 		expect(part.note).toBe("Smoke to the north.");
-		expect(part.land.sparks.map((spark) => spark.id)).toEqual(["s2", "s1"]);
-		expect(part.forget).toEqual({ noVisits: true, nothing: false });
+		expect(part.land.goes.flatMap((go) => go.sparks.map((spark) => spark.id))).toEqual(["s2", "s1"]);
+		expect(part.forget).toEqual({ nothing: false });
 		// The hex itself is changed in a window of its own, opened from the pen beside its terrain.
 		expect(part).not.toHaveProperty("edit");
 		expect(part.journal).toBe(true);
 	});
 
-	it("shows the latest go of rolls in full and folds each earlier one into a dated row", () => {
+	it("shows each go of rolls as one row dated when it was made, newest first", () => {
 		heldRecord = {
 			note: "",
 			sparks: [
@@ -122,14 +122,13 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 				{ id: "d", table: "Ground", batch: "z", when: "Night" }
 			]
 		};
-		const state = hexGmState();
-		state.older.add("a");
-		const part = hexGmContext({ scene, hex, view, index: null, state });
-		expect(part.land.sparks.map((spark) => spark.id)).toEqual(["d"]);
-		expect(part.land.older).toEqual([
-			{ key: "c", when: "Noon", names: "Mood", open: false, sparks: [heldRecord.sparks[2]] },
-			{ key: "a", when: "Morning", names: "Sky, Ground", open: true, sparks: [heldRecord.sparks[1], heldRecord.sparks[0]] }
+		const part = hexGmContext({ scene, hex, view, index: null, state: hexGmState() });
+		expect(part.land.goes).toEqual([
+			{ ids: "d", when: "Night", sparks: [heldRecord.sparks[3]] },
+			{ ids: "c", when: "Noon", sparks: [heldRecord.sparks[2]] },
+			{ ids: "b,a", when: "Morning", sparks: [heldRecord.sparks[1], heldRecord.sparks[0]] }
 		]);
+		expect(part.land.count).toBe(4);
 	});
 
 	it("keeps every person met here in full, whenever they were rolled", () => {
@@ -144,8 +143,7 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		};
 		const part = hexGmContext({ scene, hex, view, index: null, state: hexGmState() });
 		expect(part.people.map((spark) => spark.id)).toEqual(["p2", "p1"]);
-		expect(part.land.sparks.map((spark) => spark.id)).toEqual(["b"]);
-		expect(part.land.older.map((row) => row.sparks.map((spark) => spark.id))).toEqual([["a"]]);
+		expect(part.land.goes.map((go) => go.sparks.map((spark) => spark.id))).toEqual([["b"], ["a"]]);
 	});
 
 	it("sorts what's kept into tabs: people, the land, and the Holding where one stands", () => {
@@ -178,8 +176,8 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		// The Landmark's tab is named by its type.
 		expect(full.tabs[2].label).toBe("realm.landmarks.sanctum");
 		expect(full.tabs.map(({ count }) => count)).toEqual([1, 1, 0, 1]);
-		expect(full.holding.sparks.map((spark) => spark.id)).toEqual(["h1"]);
-		expect(full.land.sparks.map((spark) => spark.id)).toEqual(["n1"]);
+		expect(full.holding.goes.flatMap((go) => go.sparks.map((spark) => spark.id))).toEqual(["h1"]);
+		expect(full.land.goes.flatMap((go) => go.sparks.map((spark) => spark.id))).toEqual(["n1"]);
 	});
 
 	it("opens on the tab last chosen, or the land's where this hex hasn't that tab", () => {

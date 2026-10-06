@@ -77,27 +77,33 @@
 		</div>
 
 		<section class="bastionland-chooser__browse" id="{{partId}}-browse" aria-label="{{localize 'bastionland.chooser.knight'}}">
-			<ul class="bastionland-chooser__groups">
-				{{#each groups}}
-				<li>
-					<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
-				</li>
-				{{/each}}
-			</ul>
+			<div class="bastionland-myth-chooser__find bastionland-knight-chooser__find{{#if searchOpen}} is-open{{/if}}">
+				<ul class="bastionland-chooser__groups">
+					{{#each groups}}
+					<li>
+						<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
+					</li>
+					{{/each}}
+					<li class="bastionland-knight-chooser__search-item">
+						<button type="button" class="bastionland-knight-chooser__search-toggle" data-action="toggleSearch" aria-expanded="{{#if searchOpen}}true{{else}}false{{/if}}" aria-controls="{{partId}}-search" data-tooltip="{{localize 'bastionland.chooser.search'}}" aria-label="{{localize 'bastionland.chooser.search'}}">
+							<i class="fa-solid fa-magnifying-glass" inert></i>
+						</button>
+					</li>
+				</ul>
+				<input type="search" id="{{partId}}-search" name="search" class="bastionland-myth-chooser__search" value="{{search}}" placeholder="{{localize 'bastionland.chooser.search'}}" aria-label="{{localize 'bastionland.chooser.search'}}" autocomplete="off"{{#unless searchOpen}} hidden{{/unless}}>
+			</div>
+			<p class="bastionland-empty bastionland-myth-chooser__none" hidden>{{localize "bastionland.chooser.noMatch"}}</p>
 			<ul class="bastionland-chooser__grid">
 				{{#each cards}}
-				<li>
-					<button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if takenBy}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
-						<span class="bastionland-chooser__card-roll">{{d12}}</span>
+				<li data-d6="{{d6}}" data-search="{{searchText}}" {{#unless inGroup}}hidden{{/unless}}>
+					<button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if takenTip}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}"{{#if takenTip}} aria-disabled="true" data-tooltip="{{takenTip}}"{{/if}}>
+						<span class="bastionland-chooser__card-roll"><span class="bastionland-myth-chooser__card-d6">{{d6}}-</span>{{d12}}</span>
 						{{#if img}}
 						<img class="bastionland-chooser__thumb" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
 						{{else}}
 						<span class="bastionland-chooser__thumb is-empty"><i class="fa-solid fa-chess-knight" inert></i></span>
 						{{/if}}
 						<span class="bastionland-chooser__card-name">{{name}}</span>
-						{{#if takenBy}}
-						<span class="bastionland-chooser__taken">{{takenBy}}</span>
-						{{/if}}
 					</button>
 				</li>
 				{{/each}}
@@ -121,6 +127,7 @@
 				{{/if}}
 				{{#if takenBy}}
 				<p class="bastionland-chooser__taken">{{takenBy}}</p>
+				<p class="bastionland-hint">{{localize "bastionland.chooser.takenHint"}}</p>
 				{{/if}}
 
 				{{#if property}}

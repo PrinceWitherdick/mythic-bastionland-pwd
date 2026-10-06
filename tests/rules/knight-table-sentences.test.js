@@ -105,17 +105,15 @@ describe("withSentences", () => {
 		const lines = withSentences(page, [{ index: 0, roll: 3, entry: "Cellar" }, { index: 1, roll: 5, entry: "Smoke" }], patternFor);
 		expect(asked).toEqual([[first.roll, 1], [first.roll, 2]]);
 		expect(lines.map(said)).toEqual([undefined, "It smells of [smoke]."]);
-		expect(lines.map((line) => line.rolls)).toEqual([[3], [5]]);
 	});
 
-	it("joins a column that finishes the line before it, keeping both dice", () => {
+	it("joins a column that finishes the line before it", () => {
 		const patternFor = (_roll, column) => (column === 1
 			? "Your tapestry shows the {entry}"
 			: { line: "Its subject is {entry}.", join: "{entry}." });
 		const lines = withSentences(page, [{ index: 0, roll: 1, entry: "Birth of..." }, { index: 1, roll: 4, entry: "A wandering Seer" }], patternFor);
 		expect(lines).toHaveLength(1);
 		expect(said(lines[0])).toBe("Your tapestry shows the [birth of...] [a wandering Seer].");
-		expect(lines[0].rolls).toEqual([1, 4]);
 	});
 
 	it("leaves a joining column on its own line when the column before it wasn't rolled", () => {
@@ -125,7 +123,7 @@ describe("withSentences", () => {
 	});
 
 	it("tells nothing for a table not on a Knight's page", () => {
-		expect(withSentences({ page: 1 }, [{ index: 0, roll: 2, entry: "Cellar" }], () => "At the {entry}.")).toEqual([{ index: 0, roll: 2, entry: "Cellar", sentence: null, rolls: [2] }]);
+		expect(withSentences({ page: 1 }, [{ index: 0, roll: 2, entry: "Cellar" }], () => "At the {entry}.")).toEqual([{ index: 0, roll: 2, entry: "Cellar", sentence: null }]);
 	});
 });
 

@@ -159,6 +159,29 @@ export function uncleanedContent(html) {
 }
 
 /**
+ * A box that ticks or clears every box marked to go with it, and reads whether
+ * all, some or none are ticked: `data-forget-all` on it, `data-forget-part` on
+ * each of the others. Every inputDialog links its own.
+ * @param {HTMLElement} element The dialog's.
+ */
+export function linkEverything(element) {
+	const all = element.querySelector("[data-forget-all]");
+	if (!all) return;
+	const boxes = [...element.querySelectorAll("[data-forget-part]")];
+	const sync = () => {
+		const ticked = boxes.filter((box) => box.checked).length;
+		all.checked = boxes.length > 0 && ticked === boxes.length;
+		all.indeterminate = ticked > 0 && ticked < boxes.length;
+	};
+	all.addEventListener("change", () => {
+		for (const box of boxes) box.checked = all.checked;
+		sync();
+	});
+	for (const box of boxes) box.addEventListener("change", sync);
+	sync();
+}
+
+/**
  * Ask for a form's worth of answers.
  * @param {object} options
  * @param {string} options.title
@@ -170,7 +193,7 @@ export function uncleanedContent(html) {
  * @param {object} [options.rest]   Anything else DialogV2.input takes, such as `render`.
  * @returns {Promise<object|null>} The form data, or null if closed.
  */
-export async function inputDialog({ title, icon, template, context, ok, drawings = false, ...rest }) {
+export async function inputDialog({ title, icon, template, context, ok, drawings = false, render, ...rest }) {
 	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
 	const content = drawings ? uncleanedContent(html) : html;
 	return foundry.applications.api.DialogV2.input({
@@ -179,6 +202,10 @@ export async function inputDialog({ title, icon, template, context, ok, drawings
 		content,
 		ok: { icon: "fa-solid fa-check", ...ok },
 		rejectClose: false,
+		render: (event, dialog) => {
+			linkEverything(dialog.element);
+			return render?.(event, dialog);
+		},
 		...rest
 	});
 }

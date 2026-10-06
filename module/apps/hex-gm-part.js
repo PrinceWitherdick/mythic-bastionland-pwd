@@ -1,6 +1,8 @@
 import { takeExplorationAct } from "../actions/exploration.js";
 import { openGmToolkit, theGmToolkit } from "../actions/gm-toolkit.js";
 import {
+	editHexPerson,
+	editHexSparks,
 	forgetHexSpark,
 	getHexRecord,
 	hexFeatures,
@@ -15,7 +17,7 @@ import { grantHolding, rulersOf } from "../actions/holding-ruler.js";
 import { getHexVisits, markHexVisited } from "../actions/journey.js";
 import { landmarkOfferView, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
 import { rollUpHolding } from "../actions/people.js";
-import { momentLabel } from "../actions/calendar.js";
+import { calendarLabel, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
@@ -26,9 +28,9 @@ import { t } from "../chat/cards.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { omenStage } from "../rules/gm-toolkit.js";
 import { toldState } from "../rules/hex-shared.js";
-import { sparkBatches } from "../rules/hex-lore.js";
+import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
 import { gatherCast } from "../rules/myth-cast.js";
-import { CIVILISATION_PAGE, PEOPLE_PAGE } from "../rules/people.js";
+import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
@@ -37,6 +39,7 @@ import { openHexEditor } from "./HexEditor.js";
 import { wirePersonRename } from "./hex-rename.js";
 import { openRollPerson } from "./RollPerson.js";
 import { openSeerChooser } from "./SeerChooser.js";
+import { inputDialog } from "./ui.js";
 
 /**
  * The Lay of the Land (p19): the GM's own part of a hex, at the foot of the
@@ -49,18 +52,17 @@ import { openSeerChooser } from "./SeerChooser.js";
  */
 
 /**
- * What the window showing the part keeps between draws: the earlier goes of
- * rolls unfolded, the tab of rolls last shown, the page the Landmark's name was
- * last flipped to, and whether a roll is under way.
+ * What the window showing the part keeps between draws: the tab of rolls last
+ * shown, the page the Landmark's name was last flipped to, and whether a roll
+ * is under way.
  * @typedef {object} HexGmState
- * @property {Set<string>} older The earlier goes of rolls the GM unfolded, by their first roll's id. People never fold.
  * @property {HexGmTab} tab
  * @property {{key: string, myth: string, page: number}|null} prompted
  * @property {boolean} rolling
  */
 
 /** @returns {HexGmState} */
-export const hexGmState = () => ({ older: new Set(), prompted: null, rolling: false, tab: "land" });
+export const hexGmState = () => ({ prompted: null, rolling: false, tab: "land" });
 
 /** The line under the GM's note for each way the players' telling can stand beside it, and its icon. */
 const TOLD_SAYS = Object.freeze({
@@ -121,13 +123,13 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	const prompted = state.prompted?.key === hexKey(hex) ? state.prompted : null;
 	const holdingHere = featureAt(entry.realm, hex).holding;
 	const holding = Boolean(holdingHere);
-	// The people met here stay, each in full. Of the land's rolls and the Holding's, the go just made is the one being read,
-	// and every earlier one folds into a row dated when it was made. Newest first, all of them.
+	// The people met here stay, each in full. The land's rolls and the Holding's are each a row for every go of them,
+	// dated when it was made. Newest first, all of them.
 	const kept = record?.sparks ?? [];
 	const under = (tab) => kept.filter((spark) => sparkTab(spark, holding) === tab);
 	const people = under("people").map(sparkView).reverse();
-	const land = keptRolls(under("land"), state);
-	const held = holding ? keptRolls(under("holding"), state) : null;
+	const land = keptRolls(under("land"));
+	const held = holding ? keptRolls(under("holding")) : null;
 	const shown = { people: true, land: true, myth: Boolean(myth), landmark: Boolean(landmark), holding };
 	const tab = shown[state.tab] ? state.tab : "land";
 	const counts = { people: people.length, land: land.count, myth: 0, landmark: 0, holding: held?.count ?? 0 };
@@ -172,7 +174,7 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		// Who rules the Holding (p20), and the offer to grant it to a Knight.
 		ruler: holding ? rulerContext(scene, holdingHere) : null,
 		notice,
-		forget: hexForgetContext(scene, hex)
+		forget: hexForgetContext(scene, hex, { lore: record, visits })
 	};
 }
 
@@ -263,32 +265,86 @@ function rulerContext(scene, holding) {
 }
 
 /**
- * The rolls kept under one tab: the latest go in full, and each earlier one folded.
+ * The rolls kept under one tab, each go of them one row dated when it was made, newest first.
  * @param {import("../rules/hex-lore.js").HexSpark[]} sparks Oldest first.
- * @param {HexGmState} state
- * @returns {{sparks: object[], older: object[], count: number}}
+ * @returns {{goes: {ids: string, when: string|null, sparks: object[]}[], count: number}}
  */
-function keptRolls(sparks, state) {
-	const [latest = [], ...earlier] = sparkBatches(sparks).reverse();
-	return { sparks: latest.map(sparkView).reverse(), older: earlier.map((batch) => olderRolls(batch, state)), count: sparks.length };
+function keptRolls(sparks) {
+	const goes = sparkBatches(sparks).reverse().map((batch) => {
+		const shown = batch.map(sparkView).reverse();
+		return { ids: shown.map(({ id }) => id).join(","), when: shown[0].when, sparks: shown };
+	});
+	return { goes, count: sparks.length };
+}
+
+/** @returns {string} An edit dialog's heading: when what's in it was rolled, where that's known. */
+const rolledLegend = (when) => (when ? t("hexGm.editGo.legend", { when: calendarLabel(when) }) : t("hexGm.editGo.legendUndated"));
+
+/**
+ * Edit one go of rolls from the pen on its row: each roll's words in a box, a
+ * box to tick to forget it, and one to forget the lot.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @param {string[]} ids
+ * @returns {Promise<unknown>|undefined}
+ */
+async function editGo(scene, hex, ids) {
+	const sparks = (getHexRecord(scene, hex)?.sparks ?? []).filter(({ id }) => ids.includes(id)).reverse();
+	if (!sparks.length) return;
+	const data = await inputDialog({
+		title: t("hexGm.editGo.title"),
+		icon: "fa-solid fa-pen",
+		template: "hex-go-edit",
+		context: {
+			legend: rolledLegend(sparks[0].when),
+			many: sparks.length > 1,
+			max: MAX_SPARK_PROMPT,
+			rolls: sparks.map(({ id, table, prompt, entries }) => ({ id, table, prompt, rolled: entries.join(" ") }))
+		},
+		ok: { label: t("hexGm.editGo.save"), icon: "fa-solid fa-check" }
+	});
+	if (!data) return;
+	return editHexSparks(scene, hex, {
+		prompts: Object.fromEntries(sparks.map(({ id }) => [id, String(data[`prompt-${id}`] ?? "")])),
+		forget: sparks.filter(({ id }) => data[`forget-${id}`]).map(({ id }) => id)
+	});
 }
 
 /**
- * An earlier go of rolls, folded into one row: when it was made, and what it gave.
- * @param {import("../rules/hex-lore.js").HexSpark[]} batch Oldest first.
- * @param {HexGmState} state
- * @returns {{key: string, when: string, names: string, open: boolean, sparks: object[]}}
+ * Edit a person kept here from the pen on their row: their name, each trait,
+ * what they've heard, and a box to tick to forget them. A roll under People
+ * that isn't a whole person, such as one People table rolled on its own, is
+ * edited as a go of one roll.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @param {string} id
+ * @returns {Promise<unknown>|undefined}
  */
-function olderRolls(batch, state) {
-	const sparks = batch.map(sparkView).reverse();
-	const key = batch[0].id;
-	return {
-		key,
-		when: sparks[0].when ?? t("hexLore.earlier"),
-		names: sparks.map(({ table }) => table).join(", "),
-		open: Boolean(state.older?.has(key)),
-		sparks
-	};
+async function editPerson(scene, hex, id) {
+	const spark = getHexRecord(scene, hex)?.sparks.find((each) => each.id === id);
+	if (!spark) return;
+	const person = personView(spark);
+	if (!person) return editGo(scene, hex, [id]);
+	const data = await inputDialog({
+		title: t("hexGm.editPerson.title"),
+		icon: "fa-solid fa-pen",
+		template: "hex-person-edit",
+		context: {
+			legend: rolledLegend(spark.when),
+			name: person.name,
+			maxName: MAX_SPARK_NAME,
+			traits: person.traits.map(({ label, text }, index) => ({ index, label, text })),
+			heard: person.heard
+		},
+		ok: { label: t("hexGm.editGo.save"), icon: "fa-solid fa-check" }
+	});
+	if (!data) return;
+	if (data.forget) return forgetHexSpark(scene, hex, id);
+	return editHexPerson(scene, hex, id, {
+		name: String(data.name ?? ""),
+		traits: person.traits.map((_trait, index) => String(data[`trait-${index}`] ?? "")),
+		heard: String(data.heard ?? "")
+	});
 }
 
 /**
@@ -320,9 +376,8 @@ export function writeHexGmField(scene, hex, field) {
 }
 
 /**
- * Hang the GM's part on a freshly drawn hex: the folds remember how the GM
- * left them, the fields save as they're changed, and the people kept here are
- * named by clicking theirs.
+ * Hang the GM's part on a freshly drawn hex: the tabs switch, the fields save
+ * as they're changed, and the people kept here are named by clicking theirs.
  * @param {HTMLElement|null|undefined} root
  * @param {object} at
  * @param {Scene} at.scene
@@ -332,10 +387,6 @@ export function writeHexGmField(scene, hex, field) {
 export function wireHexGmPart(root, { scene, hex, state }) {
 	const part = root?.querySelector(".bastionland-travels-hex__gm");
 	if (!part) return;
-	// A fold is drawn open only when it's already remembered open, so the toggle that fires as it's drawn changes nothing.
-	for (const fold of part.querySelectorAll("[data-hex-older]")) {
-		fold.addEventListener("toggle", () => state.older[fold.open ? "add" : "delete"](fold.dataset.hexOlder));
-	}
 	wireHexGmTabs(part, state);
 	wireToldState(part);
 	part.addEventListener("change", (event) => {
@@ -440,9 +491,10 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	// Gathering Folklore, searching, or what a vantage point shows, whichever the button names (p19).
 	act: ({ scene, hex }, target) => takeExplorationAct(target.dataset.act, { scene, hex }),
 	mood: () => rollRefereeTable("mood"),
-	forgetSpark({ scene, hex }, target) {
+	editGo: ({ scene, hex }, target) => editGo(scene, hex, (target.dataset.sparks ?? "").split(",").filter(Boolean)),
+	editPerson({ scene, hex }, target) {
 		const { spark } = target.dataset;
-		if (spark) return forgetHexSpark(scene, hex, spark);
+		if (spark) return editPerson(scene, hex, spark);
 	},
 	// The note as it stands in its box, saved or not.
 	tellHex({ scene, hex }, target) {
@@ -478,6 +530,6 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	},
 	// The pen beside the hex's terrain: change the hex itself, in a window of its own.
 	editHex: ({ scene, hex }) => openHexEditor({ scene, hex }),
-	// Forget every visit here, or everything kept here, from the icons on the visits line.
+	// The eraser on the visits line: forget every visit here, or everything kept here.
 	...HEX_FORGET_ACTIONS
 });

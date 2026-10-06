@@ -1,10 +1,12 @@
-import { hexLabel } from "./hex-names.js";
+import { hexTarget } from "../chat/hex-target.js";
 import { loadArtIndex, mythEntry, seerEntry, sparkPageOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
 	HEX_PROMPT_MODES,
 	arrivalSparkSet,
+	changeSpark,
+	editSparks,
 	forgetRecord,
 	forgetSpark,
 	normaliseHexLore,
@@ -17,7 +19,7 @@ import {
 	takenEntries,
 	wildernessSparkSet
 } from "../rules/hex-lore.js";
-import { personView } from "../rules/people.js";
+import { editedPerson, hexesWithPeople, personView } from "../rules/people.js";
 import { OMEN_COUNT, barriersAround, featureAt, hexSummary, holdingName } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
@@ -142,6 +144,14 @@ export function getHexRecord(scene, hex) {
 }
 
 /**
+ * The hexes of a Realm someone has been rolled up in. Reads the flag as it's
+ * kept, not tidied, since Places asks on every draw.
+ * @param {Scene|null} scene
+ * @returns {Set<string>} Their keys.
+ */
+export const hexesWithPeopleIn = (scene) => hexesWithPeople(isRealmScene(scene) ? scene.getFlag(SYSTEM_ID, HEX_LORE_FLAG) : null);
+
+/**
  * Change what's recorded for hexes, in one write. GMs only.
  * @type {(scene: Scene, edit: (lore: object) => object) => Promise<boolean>}
  */
@@ -164,8 +174,14 @@ export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, (lore) => f
 /** Name one roll in a hex, such as a person met there. @returns {Promise<boolean>} */
 export const renameHexSpark = (scene, hex, id, name) => editHexLore(scene, (lore) => renameSpark(lore, hex, id, name));
 
-/** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
-export const forgetHexRecord = (scene, hex) => editHexLore(scene, (lore) => forgetRecord(lore, hex));
+/** Reword some rolls in a hex and forget others, in one write. @returns {Promise<boolean>} */
+export const editHexSparks = (scene, hex, changes) => editHexLore(scene, (lore) => editSparks(lore, hex, changes));
+
+/** Change a person kept in a hex: their name, traits and what they've heard (editedPerson). @returns {Promise<boolean>} */
+export const editHexPerson = (scene, hex, id, changes) => editHexLore(scene, (lore) => changeSpark(lore, hex, id, (spark) => editedPerson(spark, changes)));
+
+/** Forget the note and every roll kept for a hex, or whichever of the two `parts` names. @returns {Promise<boolean>} */
+export const forgetHexRecord = (scene, hex, parts) => editHexLore(scene, (lore) => forgetRecord(lore, hex, parts));
 
 /**
  * Keep rolls in a hex in one write, however many there are. They share a batch, so the hex's list
@@ -203,7 +219,7 @@ async function keepSparks(scene, hex, made, rolls = []) {
 		cards.push({ name: table.name, reference: t("spark.tagline", { page: page.name, number: page.page }), prompt: spark.prompt, results: taken });
 	}
 	if (sparks.length) await keepHexSparkRecords(scene, hex, sparks);
-	if (cards.length) await postCard(null, "hex-sparks", { hex: hexLabel(hex, scene), sparks: cards }, { rolls, mode: "gm" });
+	if (cards.length) await postCard(null, "hex-sparks", { hex: hexTarget(hex, scene), sparks: cards }, { rolls, mode: "gm" });
 	return cards;
 }
 
@@ -372,9 +388,10 @@ export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 		seen.holding && holdingName(seen.holding, t),
 		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))
 	].filter(Boolean);
-	const where = hexLabel(hex, scene);
+	const target = hexTarget(hex, scene);
+	const where = target.label;
 	const message = await postCard(null, "hex-lore", {
-		hex: where,
+		hex: target,
 		terrain: seen.terrain ? t(`realm.terrain.${seen.terrain}`) : null,
 		features: named.length ? named.join(", ") : null,
 		note: record.note

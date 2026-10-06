@@ -1255,6 +1255,7 @@
 	display: flex;
 	flex: 1;
 	flex-wrap: wrap;
+	justify-content: flex-start;
 	align-items: center;
 	gap: 0.3rem 0.6rem;
 	min-width: 0;

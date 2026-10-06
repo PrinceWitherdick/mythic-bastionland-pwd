@@ -1,4 +1,4 @@
-import { hexLabel } from "./hex-names.js";
+import { hexTarget } from "../chat/hex-target.js";
 import { loadArtIndex, mythEntry, sparkTablesOf } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
@@ -46,13 +46,6 @@ async function throwTables(tables, others = []) {
 const pageReference = (page) => t("spark.tagline", { page: page.name || t(`spark.pages.${page.key}`), number: page.page });
 
 /**
- * A person's lines on a card.
- * @param {ReturnType<typeof personTraits>} traits
- * @returns {{name: string, prompt: string, rolls: number[]}[]}
- */
-const traitLines = (traits) => traits.map(({ name, prompt, rolls }) => ({ name, prompt, rolls }));
-
-/**
  * Names for people met in a hex, from the names the Knight chooser rolls:
  * never one already given to somebody there while any other is left.
  * @param {Scene|null} scene Left out, a name is rolled with nothing to avoid.
@@ -94,7 +87,7 @@ export async function rollPersonTables() {
  * Post a person rolled on the People tables.
  * @param {Pick<RolledPerson, "page" | "traits"> & {roll: Roll|null}} person With no roll where they were chosen by hand.
  * @param {object} [options]
- * @param {string|null} [options.hex] Where they were rolled, for the card's heading.
+ * @param {ReturnType<typeof hexTarget>|null} [options.hex] Where they were rolled, for the card's heading.
  * @param {string|null} [options.name] What they're called, as the card's title.
  * @param {"gm"} [options.mode] Left out, the card goes as the user's chat mode says.
  * @returns {Promise<ChatMessage|null>}
@@ -102,8 +95,9 @@ export async function rollPersonTables() {
 export function postPerson({ page, traits, roll }, { hex = null, name = null, mode } = {}) {
 	return postCard(null, "people", {
 		title: name || t("people.title"),
-		tagline: hex ? t("people.taglineHex", { hex, reference: pageReference(page) }) : pageReference(page),
-		people: [{ traits: traitLines(traits) }]
+		target: hex,
+		tagline: pageReference(page),
+		people: [{ traits }]
 	}, { rolls: roll ? [roll] : [], mode });
 }
 
@@ -125,7 +119,7 @@ export async function saveHexPerson({ scene, hex, page, taken }) {
 	const [name] = namesForHex(scene, hex, 1);
 	await Promise.all([
 		keepHexPerson(scene, hex, person, name),
-		postPerson(person, { hex: hexLabel(hex, scene), name, mode: "gm" })
+		postPerson(person, { hex: hexTarget(hex, scene), name, mode: "gm" })
 	]);
 	return { name, traits };
 }
@@ -217,11 +211,12 @@ export async function rollUpHolding({ scene, hex }) {
 
 	await postCard(null, "people", {
 		title: holdingName(here, t),
-		tagline: t("people.holding.tagline", { hex: hexLabel(hex, scene) }),
+		lead: t("people.holding.tagline"),
+		target: hexTarget(hex, scene),
 		sparks: place.map(({ table, results, prompt }) => ({ name: table.name, reference, prompt, results: results.filter((result) => result.entry) })),
 		people: persons.map(({ number, name, traits, known }) => ({
 			label: t("people.holding.personNamed", { name, number, count: folk }),
-			traits: traitLines(traits),
+			traits,
 			heard: known ? t("people.heardOfPage", { name: midSentence(known.name), page: known.page }) : null
 		})),
 		note: myths.length ? null : t("people.holding.noMyths")

@@ -1,0 +1,28 @@
+<div class="bastionland-dialog__body">
+	{{!-- Edit This Person (editPerson in module/apps/hex-gm-part.js): their name, a box for each trait, what they've
+	      heard where they've heard anything, and a box to tick to forget them. --}}
+	<fieldset class="bastionland-choice-list bastionland-go-edit">
+		<legend>{{legend}}</legend>
+		<div class="bastionland-go-edit__roll">
+			<label for="bastionland-person-edit-name"><strong>{{localize "bastionland.hexGm.editPerson.name"}}</strong></label>
+			<input id="bastionland-person-edit-name" type="text" name="name" value="{{name}}" maxlength="{{maxName}}" placeholder="{{localize "bastionland.people.unnamed"}}" autocomplete="off">
+		</div>
+		{{#each traits}}
+		<div class="bastionland-go-edit__roll">
+			<label for="bastionland-person-edit-trait-{{index}}"><strong>{{label}}</strong></label>
+			<input id="bastionland-person-edit-trait-{{index}}" type="text" name="trait-{{index}}" value="{{text}}" placeholder="{{text}}" autocomplete="off">
+		</div>
+		{{/each}}
+		{{#if heard}}
+		<div class="bastionland-go-edit__roll">
+			<label for="bastionland-person-edit-heard"><strong>{{localize "bastionland.hexGm.editPerson.heard"}}</strong></label>
+			<textarea id="bastionland-person-edit-heard" name="heard" rows="2" placeholder="{{heard}}">{{heard}}</textarea>
+		</div>
+		{{/if}}
+		<label class="bastionland-check bastionland-go-edit__all">
+			<input type="checkbox" name="forget">
+			<span class="bastionland-check__label"><strong>{{localize "bastionland.hexGm.editPerson.forget"}}</strong></span>
+		</label>
+		<p class="bastionland-hint">{{localize "bastionland.hexGm.editPerson.hint"}}</p>
+	</fieldset>
+</div>

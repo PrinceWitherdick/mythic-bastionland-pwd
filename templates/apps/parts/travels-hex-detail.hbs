@@ -35,11 +35,10 @@
 		{{#if gm}}{{#unless gm.visited}}
 		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
 		{{/unless}}
-		{{!-- Forget every visit here, or everything kept here; each asks first. One visit goes by its × on the Journey page. --}}
+		{{!-- Opens a dialog to forget every visit here, or everything kept here (hex-forget.js). One visit goes by its × on the Journey page. --}}
 		{{#with gm.forget}}
 		<span class="bastionland-travels-hex__forget">
-			<button type="button" class="bastionland-icon" data-action="forgetVisits" {{disabled noVisits}} aria-label="{{localize 'bastionland.gmToolkit.visits.forgetAll'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetAll'}}"><i class="fa-solid fa-route" inert></i></button>
-			<button type="button" class="bastionland-icon" data-action="forgetAll" {{disabled nothing}} aria-label="{{localize 'bastionland.gmToolkit.visits.forgetEverything'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetEverything'}}"><i class="fa-solid fa-eraser" inert></i></button>
+			<button type="button" class="bastionland-icon" data-action="forgetHex" {{disabled nothing}} aria-label="{{localize 'bastionland.gmToolkit.visits.forget'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forget'}}"><i class="fa-solid fa-eraser" inert></i></button>
 		</span>
 		{{/with}}{{/if}}
 	</div>

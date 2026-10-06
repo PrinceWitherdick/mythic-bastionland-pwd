@@ -3,8 +3,12 @@ import {
 	HEX_LORE_VERSION,
 	MAX_HEX_SPARKS,
 	MAX_SPARK_NAME,
+	MAX_SPARK_PROMPT,
 	arrivalSparkSet,
+	changeSpark,
+	editSparks,
 	emptyLore,
+	forgetRecord,
 	forgetSpark,
 	latestWilderness,
 	loreAt,
@@ -123,6 +127,52 @@ describe("forgetSpark", () => {
 	});
 });
 
+describe("editSparks", () => {
+	const three = () => [spark("a"), spark("b"), spark("c")].reduce((lore, each) => recordSpark(lore, hex(3, 4), each), emptyLore());
+	const kept = (lore) => lore.hexes["3,4"].sparks;
+
+	it("rewords some rolls and forgets others in one go, leaving the rest", () => {
+		const sparks = kept(editSparks(three(), hex(3, 4), { prompts: { a: "  A drowned wood ", b: "Sunken Thicket" }, forget: ["c"] }));
+		expect(sparks.map(({ id, prompt }) => [id, prompt])).toEqual([["a", "A drowned wood"], ["b", "Sunken Thicket"]]);
+		expect(sparks[0].entries).toEqual(["Sunken", "Thicket"]);
+	});
+
+	it("goes back to what was rolled when the words are rubbed out", () => {
+		const reworded = editSparks(three(), hex(3, 4), { prompts: { a: "Changed" } });
+		expect(kept(editSparks(reworded, hex(3, 4), { prompts: { a: "  " } }))[0].prompt).toBe("Sunken Thicket");
+	});
+
+	it("cuts long words to length", () => {
+		const prompt = kept(editSparks(three(), hex(3, 4), { prompts: { a: "x".repeat(MAX_SPARK_PROMPT + 10) } }))[0].prompt;
+		expect(prompt).toHaveLength(MAX_SPARK_PROMPT);
+	});
+
+	it("forgets the hex once every roll goes and nothing is written", () => {
+		expect(editSparks(three(), hex(3, 4), { forget: ["a", "b", "c"] }).hexes).toEqual({});
+	});
+
+	it("does nothing when nothing changes", () => {
+		const lore = three();
+		expect(editSparks(lore, hex(3, 4), { prompts: { a: "Sunken Thicket", z: "Gone" }, forget: ["z"] })).toBe(lore);
+		expect(editSparks(lore, hex(9, 9), { forget: ["a"] })).toBe(lore);
+	});
+});
+
+describe("changeSpark", () => {
+	const two = () => recordSpark(recordSpark(emptyLore(), hex(3, 4), spark("a")), hex(3, 4), spark("b"));
+
+	it("makes over one roll and leaves the rest", () => {
+		const sparks = changeSpark(two(), hex(3, 4), "b", (each) => ({ ...each, prompt: "Changed" })).hexes["3,4"].sparks;
+		expect(sparks.map(({ prompt }) => prompt)).toEqual(["Sunken Thicket", "Changed"]);
+	});
+
+	it("does nothing for a roll that isn't there, or a change that changes nothing", () => {
+		const lore = two();
+		expect(changeSpark(lore, hex(3, 4), "z", () => spark("z"))).toBe(lore);
+		expect(changeSpark(lore, hex(3, 4), "a", (each) => each)).toBe(lore);
+	});
+});
+
 describe("renameSpark", () => {
 	const two = () => recordSpark(recordSpark(emptyLore(), hex(3, 4), spark("a")), hex(3, 4), spark("b"));
 
@@ -154,6 +204,25 @@ describe("renameSpark", () => {
 		expect(lore.hexes["3,4"].sparks[0]).toMatchObject({ person: true, name: "Hamo" });
 		const plain = normaliseHexLore(recordSpark(emptyLore(), hex(3, 4), { ...spark("b"), person: "yes", name: "  " }));
 		expect(plain.hexes["3,4"].sparks[0]).toEqual(spark("b"));
+	});
+});
+
+describe("forgetRecord", () => {
+	const lore = setNote(recordSpark(emptyLore(), hex(2, 2), spark("a")), hex(2, 2), "cliffs");
+
+	it("forgets the whole hex, or nothing", () => {
+		expect(forgetRecord(lore, hex(2, 2)).hexes).toEqual({});
+		expect(forgetRecord(lore, hex(3, 3))).toBe(lore);
+	});
+
+	it("forgets only the note, or only the rolls", () => {
+		expect(loreAt(forgetRecord(lore, hex(2, 2), { sparks: false }), hex(2, 2))).toEqual({ note: "", sparks: [expect.objectContaining({ id: "a" })] });
+		expect(loreAt(forgetRecord(lore, hex(2, 2), { note: false }), hex(2, 2))).toEqual({ note: "cliffs", sparks: [] });
+	});
+
+	it("leaves the store alone when the part named isn't there", () => {
+		const noted = setNote(emptyLore(), hex(2, 2), "cliffs");
+		expect(forgetRecord(noted, hex(2, 2), { note: false })).toBe(noted);
 	});
 });
 

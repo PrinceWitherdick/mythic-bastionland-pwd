@@ -230,6 +230,36 @@
 	--button-focus-outline-color: var(--bastionland-verdigris);
 }
 
+/*
+ * Parchment stays light whichever theme Foundry is in. Its dark theme colours
+ * headings, dt and dd, table heads, rules, read-only boxes and content links
+ * from these, so each holds the value Foundry's light theme gives it.
+ */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) {
+	--color-text-emphatic: var(--color-dark-1);
+	--color-text-primary: var(--color-dark-2);
+	--color-text-secondary: var(--color-dark-3);
+	--color-text-subtle: var(--color-dark-5);
+	--hr-border: 2px groove var(--color-light-2);
+	--hr-gradient: none;
+	--table-background-color: none;
+	--table-header-bg-color: rgb(0 0 0 / 0.1);
+	--table-header-border-color: var(--color-dark-1);
+	--table-row-color-even: rgb(0 0 0 / 0.1);
+	--table-row-color-odd: transparent;
+	--content-link-background: #ddd;
+	--content-link-border-color: var(--color-dark-4);
+	--content-link-icon-color: var(--color-dark-6);
+	--content-link-text-color: var(--color-dark-2);
+}
+
+/* An editor's menu bar is themed on the editor itself, so it's held there. */
+:is(.bastionland-page, .bastionland-dialog .window-content) :is(prose-mirror, .prosemirror) {
+	--menu-background: rgb(0 0 0 / 0.1);
+	--color-control-hover: #f0f0e0;
+	--color-form-label-hover: var(--color-dark-1);
+}
+
 /* Text-like buttons: strip Foundry's button chrome, then style each below. */
 :is(.bastionland-page, .bastionland-session-end) :where(
 	.bastionland-score__name,
@@ -245,6 +275,7 @@
 	.bastionland-unchosen__by-hand,
 	.bastionland-chooser__start,
 	.bastionland-chooser__group,
+	.bastionland-knight-chooser__search-toggle,
 	.bastionland-chooser__card,
 	button.bastionland-heraldry__field,
 	.bastionland-heraldry-painter__swatch,
@@ -369,6 +400,22 @@ a.button:focus:not(:focus-visible) {
 .bastionland-icon:hover {
 	background: var(--bastionland-paper-deep);
 	color: var(--bastionland-ink);
+}
+
+/* A die that fills a field sits at the field's right end, on its line, never
+   under it: the field gives up the width the die takes. Outside Foundry's
+   standard forms a text box is the row's full width and would push it down. */
+.form-fields:has(> .bastionland-icon) {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.form-fields:has(> .bastionland-icon) > :is(input, select) {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
 }
 
 /* ---------------------------------------------------------------- */
@@ -4249,7 +4296,7 @@ a.button:focus:not(:focus-visible) {
 .bastionland-chooser__layout {
 	display: grid;
 	flex: 1;
-	grid-template-columns: 15.75rem minmax(0, 1fr) minmax(0, 1.35fr);
+	grid-template-columns: 15.75rem minmax(0, 1fr) minmax(0, 1fr);
 	gap: 1.25rem;
 	min-height: 0;
 }
@@ -4258,7 +4305,7 @@ a.button:focus:not(:focus-visible) {
    opens from nothing as the window widens (module/apps/KnightChooser.js), and
    the half gaps either side of it make the one gap the other two had. */
 .bastionland-chooser__layout.is-folded {
-	grid-template-columns: 15.75rem minmax(0, 0fr) minmax(0, 1.35fr);
+	grid-template-columns: 15.75rem minmax(0, 0fr) minmax(0, 1fr);
 	column-gap: 0.625rem;
 }
 
@@ -4295,7 +4342,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-chooser-window.is-sliding .bastionland-chooser__browse > * {
-	min-width: 22rem;
+	min-width: 35rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4407,14 +4454,18 @@ a.button:focus:not(:focus-visible) {
 	list-style: none;
 }
 
-/* Whole pixels around whole pixels, as .bastionland-icon explains. */
-.bastionland-page .bastionland-chooser__group {
+/* Whole pixels around whole pixels, as .bastionland-icon explains. The Knight chooser's
+   search toggle is a box of the same size beside them. */
+.bastionland-page :is(.bastionland-chooser__group, .bastionland-knight-chooser__search-toggle) {
 	display: grid;
 	place-items: center;
 	width: 2.25rem;
 	height: 2.25rem;
 	border: 1.5px solid var(--bastionland-rule);
 	border-radius: 6px;
+}
+
+.bastionland-page .bastionland-chooser__group {
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.25rem;
 	text-align: center;
@@ -4435,6 +4486,47 @@ a.button:focus:not(:focus-visible) {
 	padding: 0;
 	overflow-y: auto;
 	list-style: none;
+}
+
+/* The Knights to pick from, four to a row whatever the window's width. */
+.bastionland-knight-chooser .bastionland-chooser__grid {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Each Knight's whole picture, in the art's own shape, as the large one beside them. */
+.bastionland-knight-chooser .bastionland-chooser__thumb {
+	aspect-ratio: 465 / 1094;
+}
+
+/* The search waits behind a magnifying glass right of the d6 results, as in
+   Stonetop, and opens beside it (module/apps/KnightChooser.js). */
+.bastionland-page .bastionland-knight-chooser__search-toggle {
+	flex: none;
+	font-size: 1rem;
+}
+
+/* In the d6 results' own row, so it lines up with them, set a little apart. */
+.bastionland-knight-chooser__search-item {
+	margin-left: 0.45rem;
+}
+
+.bastionland-page .bastionland-knight-chooser__find.is-open .bastionland-knight-chooser__search-toggle {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-knight-chooser__find.is-opening .bastionland-myth-chooser__search {
+	animation: bastionland-search-open 0.2s ease-out;
+}
+
+@keyframes bastionland-search-open {
+	from {
+		max-width: 0;
+		opacity: 0;
+	}
+
+	to {
+		max-width: 100%;
+	}
 }
 
 /* A hover preview pops up over the window and goes again. Chrome would redraw
@@ -4471,6 +4563,15 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-chooser__card.is-taken .bastionland-chooser__thumb {
 	opacity: 0.45;
+}
+
+/* Another character is this Knight, so it can't be picked; a click says why. Only its picture fades. */
+.bastionland-page .bastionland-chooser__card.is-taken {
+	cursor: not-allowed;
+}
+
+.bastionland-page .bastionland-chooser__card.is-taken:hover {
+	border-color: transparent;
 }
 
 .bastionland-chooser__card-roll {
@@ -4564,11 +4665,10 @@ a.button:focus:not(:focus-visible) {
 	line-height: 1.05;
 }
 
-/* The verse under the Knight's name, set against the name rather than centred as on their sheet. */
+/* The verse under the Knight's name, centred as on their sheet. */
 .bastionland-chooser__text .bastionland-verse {
 	margin: 0 0 0.6rem;
 	font-size: 1rem;
-	text-align: left;
 }
 
 .bastionland-chooser__property {
@@ -6322,6 +6422,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0;
 }
 
+/* Roll a Person stands a little apart from the people over it. */
+.bastionland-hex-lore__panel[data-hex-panel="people"] > .bastionland-hex-lore__grid {
+	margin-top: 0.5rem;
+}
+
 /* Edit this hex, in its own window (HexEditor.js). */
 .bastionland-page.bastionland-hex-edit {
 	gap: 0.5rem;
@@ -6463,43 +6568,73 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	white-space: nowrap;
 }
 
-/* An earlier go of rolls, folded into one row: when it was made, over what it gave. */
-.bastionland-hex-lore__older-summary {
+/* One go of rolls as one row: its rolls side by side, no more than three across and fewer where the pane is
+   narrow, with when it was made once, in italics, at the row's foot. */
+.bastionland-hex-lore__go {
 	display: grid;
-	grid-template-columns: 0.7rem 1fr;
-	column-gap: 0.35rem;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.2rem 0.35rem;
 	padding: 0.3rem 0.4rem;
-	border-left: 3px solid color-mix(in srgb, var(--bastionland-rule), transparent 50%);
-	cursor: pointer;
+	border-left: 3px solid var(--bastionland-rule);
+}
+
+.bastionland-hex-lore__go-rolls {
+	--go-gap: 0.6rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(max(9rem, (100% - 2 * var(--go-gap)) / 3), 1fr));
+	gap: 0.3rem var(--go-gap);
+	margin: 0;
+	padding: 0;
 	list-style: none;
 }
 
-.bastionland-hex-lore__older-summary::-webkit-details-marker {
-	display: none;
+.bastionland-hex-lore__go-rolls > .bastionland-hex-lore__roll {
+	min-width: 0;
+	padding: 0;
+	border-left: none;
 }
 
-.bastionland-hex-lore__older-summary::before {
-	content: "\25B8";
-	grid-row: span 2;
-	text-align: center;
-	color: var(--bastionland-ink-soft);
+.bastionland-hex-lore__go-when {
+	grid-column: 1;
+	color: color-mix(in srgb, var(--bastionland-ink-soft), var(--bastionland-ink-faint));
+	font-size: var(--bastionland-font-floor);
+	font-style: italic;
 }
 
-.bastionland-hex-lore__older[open] > .bastionland-hex-lore__older-summary::before {
-	content: "\25BE";
-}
-
-.bastionland-hex-lore__older-when {
-	color: var(--bastionland-ink-soft);
-}
-
-.bastionland-hex-lore__older .bastionland-hex-lore__source {
+/* The pen that edits the row's rolls stands in its top right corner, beside the rolls rather than over them. */
+.bastionland-hex-lore__go-edit {
 	grid-column: 2;
+	grid-row: 1;
+	align-self: start;
 }
 
-/* Unfolded, its rolls sit under the row. */
-.bastionland-hex-lore__older > .bastionland-hex-lore__rolls {
-	padding: 0.3rem 0 0 1.1rem;
+/* A person's pen in their top right corner (bastionland-reveal), shown on hover of their row. The row isn't a
+   bastionland-reveal-host, which would show the pen on their name too: only the pen that's its own child shows. */
+.bastionland-hex-lore__roll:is(:hover, :focus-within) > .bastionland-reveal {
+	opacity: 1;
+}
+
+/* Edit These Rolls: each roll's table over the box with its words, and the box to forget it. */
+.bastionland-go-edit {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.bastionland-go-edit__roll {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.bastionland-go-edit__roll :is(textarea, input) {
+	width: 100%;
+	resize: vertical;
+}
+
+.bastionland-go-edit__all {
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--bastionland-rule);
 }
 
 .bastionland-hex-lore__roll button {
@@ -6567,8 +6702,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	letter-spacing: 0.03em;
 }
 
+/* Foundry colours every dd itself, light under its dark theme. */
 .bastionland-person__traits dd {
 	margin: 0;
+	color: var(--bastionland-ink);
 	font-weight: normal;
 }
 
@@ -6725,17 +6862,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 /* Knight sheet's Travels page)                                     */
 /* ---------------------------------------------------------------- */
 
-/* A GM sees the players' pages as the players do, and is told so. */
-.bastionland-travels__banner {
-	margin: 0;
-	padding: 0.3rem 0.5rem;
-	border-left: 3px solid var(--bastionland-blood);
-	background: var(--bastionland-paper-deep);
-	color: var(--bastionland-ink-soft);
-	font-size: var(--bastionland-font-note);
-	font-style: italic;
-}
-
 /* The Places window: the list, chart or journey on the left and the hex
    chosen on the right, each scrolling on its own. The left keeps its width
    and a wider window goes to the hex. Narrowed, the hex drops under the
@@ -6836,29 +6962,27 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	list-style: none;
 }
 
-/* Each place is one row: the whole of its words open it, its chips sit at the
-   right, and the crosshairs show it on the map, kept at the far right of the
-   title's line, with its column and row, however the chips wrap. */
+/* Each place is one row: the whole of its words open it, its chips get a line
+   of their own above the visits, and the far right of the title's line holds
+   the Company's here chip and the crosshairs that show it on the map. The words
+   share the row's columns, so only the title gives way to that corner; every
+   line under it runs the full width. */
 .bastionland-travels__row {
-	position: relative;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.35rem;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	column-gap: 0.5rem;
 	padding: 0.15rem 0 0.15rem 0.4rem;
 	border-left: 3px solid var(--bastionland-rule);
 }
 
-.bastionland-travels__row:has(> .bastionland-icon) {
-	padding-right: 2.2rem;
-}
-
 .bastionland-page .bastionland-travels__open {
-	flex: 1 1 14rem;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 0.05rem;
+	grid-column: 1 / -1;
+	grid-row: 1;
+	display: grid;
+	grid-template-columns: subgrid;
+	justify-items: start;
+	row-gap: 0.05rem;
 	width: auto;
 	min-width: 0;
 	height: auto;
@@ -6877,8 +7001,32 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-blood);
 }
 
+.bastionland-travels__open > * {
+	grid-column: 1 / -1;
+}
+
+/* The title's line, beside the corner: the title, then the hex's terrain in the
+   Lay of the Land's square chip, which wraps under the title when it can't fit.
+   A line that the Told and Note chips end wraps under it the same way. */
+.bastionland-travels__open > .bastionland-travels__head,
+.bastionland-travels__more {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.15rem 0.5rem;
+}
+
+.bastionland-travels__open > .bastionland-travels__head {
+	grid-column: 1;
+	min-height: 1.8rem;
+}
+
 .bastionland-travels__title {
 	font-weight: bold;
+}
+
+.bastionland-travels__head > .bastionland-hex-lore__terrain {
+	font-size: var(--bastionland-font-floor);
 }
 
 .bastionland-travels__line {
@@ -6886,10 +7034,15 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
+.bastionland-travels__visits {
+	font-style: italic;
+}
+
 .bastionland-travels__chips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.25rem;
+	margin: 0.1rem 0;
 }
 
 /* A pill like the GM Toolkit's chips: trimmed to the capitals, then padded
@@ -6909,10 +7062,19 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-blood);
 }
 
-.bastionland-travels__row > .bastionland-icon {
-	position: absolute;
-	top: 0;
-	right: 0;
+.bastionland-travels__corner {
+	grid-column: 2;
+	grid-row: 1;
+	/* Down by the words' top padding, so it centres on the title's line. */
+	margin-top: 0.15rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 1.8rem;
+}
+
+.bastionland-travels__corner > .bastionland-icon {
+	flex: none;
 	width: 1.8rem;
 	height: 1.8rem;
 }
@@ -6935,6 +7097,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-blood);
 }
 
+/* The flag sits at the heading line's right end. */
+.bastionland-travels-hex__head .bastionland-travels__here {
+	margin-inline-start: auto;
+}
+
 .bastionland-travels-hex__visits {
 	justify-content: space-between;
 	flex-wrap: wrap;
@@ -6945,10 +7112,9 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
-/* A GM's Forget Every Visit and Forget Everything Here, at the far end of the visits line (module/apps/hex-forget.js). */
+/* A GM's eraser at the far end of the visits line, opening Forget What's Kept Here (module/apps/hex-forget.js). */
 .bastionland-travels-hex__forget {
 	display: inline-flex;
-	gap: 0.15rem;
 	margin-left: auto;
 }
 
@@ -6968,15 +7134,25 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	cursor: default;
 }
 
+/* Forget What's Kept Here: six kinds at most, so the list stands at full length; each sits under Everything Here. */
+.bastionland-choice-list.bastionland-forget-kept {
+	max-height: none;
+	overflow: visible;
+}
+
+.bastionland-forget-kept__part {
+	margin-inline-start: 1.6rem;
+}
+
 /* A GM's pen beside the hex's terrain, shown on hover (bastionland-reveal), that opens Edit this
-   hex, and the × that forgets a Journey line: bare icons that redden rather than fill on hover. */
-.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-travels-journey__forget) {
+   hex, the pens on a go of rolls and on a person, and the × that forgets a Journey line: bare icons that redden rather than fill on hover. */
+.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget) {
 	width: 1.75rem;
 	height: 1.75rem;
 	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-travels-journey__forget):hover {
+.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget):hover {
 	background: none;
 	color: var(--bastionland-blood);
 }
@@ -7002,14 +7178,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	opacity: 0.7;
 }
 
-/* The Lay of the Land: what only a GM sees of the hex, ruled off below what the players know. */
+/* The Lay of the Land: what only a GM sees of the hex, below what the players know. */
 .bastionland-travels-hex__gm {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
 	margin-top: 0.6rem;
-	padding-top: 0.25rem;
-	border-top: 1px solid var(--bastionland-rule);
 }
 
 .bastionland-travels-hex__gm > .bastionland-hint {
@@ -7041,7 +7215,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
-/* The pages, Places, Chart and Journey, as tabs, with the count at the right. */
+/* The pages, Places, Chart and Journey, as tabs; the count sits on its own line below. */
 .bastionland-travels__views {
 	display: flex;
 	flex-wrap: wrap;
@@ -7077,10 +7251,16 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-weight: bold;
 }
 
+/* The count of hexes visited, under the Places of Note hint in the same small print. */
 .bastionland-travels__summary {
-	margin-left: auto;
+	margin: 0;
 	color: var(--bastionland-ink-soft);
 	font-size: var(--bastionland-font-note);
+}
+
+/* The count tops the page only while the Places of Note section isn't there to hold it. */
+.bastionland-travels__view:has(> [data-counted]:not([hidden])) > .bastionland-travels__summary--top {
+	display: none;
 }
 
 /* What the places can be narrowed to, one at a time. */
@@ -7874,6 +8054,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-realm-appearance__palette {
 	display: flex;
 	flex-direction: column;
+	justify-content: flex-start;
 	align-items: stretch;
 	gap: 0.25rem;
 	height: auto;

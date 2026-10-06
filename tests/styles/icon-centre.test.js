@@ -24,7 +24,7 @@ const BADGES = [
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-knighthood-help" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-heraldry-painter__arms-counterchange" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-site__step-number" },
-	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-chooser__group" },
+	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page :is(.bastionland-chooser__group, .bastionland-knight-chooser__search-toggle)", font: ".bastionland-page .bastionland-chooser__group" },
 	{ sheet: "mythic-bastionland.css", selector: ".bastionland-page .bastionland-welcome__read", box: ["height"] },
 	{ sheet: "chat.css", selector: ".bastionland-save__die" },
 	{ sheet: "chat.css", selector: ".bastionland-card__roll", box: ["min-width", "height"] }
@@ -62,10 +62,11 @@ describe("the badges that centre a glyph or a figure", () => {
 	 * glyph a pixel and a half above the middle of the circle, which showed on
 	 * the Knight sheet's Recovery rows. Whole pixels leave nothing to round.
 	 */
-	it.each(BADGES)("sizes $selector in whole pixels", ({ sheet, selector, box = ["width", "height"] }) => {
+	it.each(BADGES)("sizes $selector in whole pixels", ({ sheet, selector, box = ["width", "height"], font = selector }) => {
 		const declarations = rule(sheet, selector);
 		for (const side of box) expect(pixels(declarations[side]) % 1, `${side} of ${selector}`).toBe(0);
-		expect(pixels(declarations["font-size"]) % 1, `font-size of ${selector}`).toBe(0);
+		// Where badges share their box, each sets its own lettering size.
+		expect(pixels(rule(sheet, font)["font-size"]) % 1, `font-size of ${font}`).toBe(0);
 	});
 
 	/*

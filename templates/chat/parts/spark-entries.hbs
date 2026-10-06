@@ -1,8 +1,8 @@
-{{!-- One Spark Table rolled on a card: what it gave, then the table and each column's roll. --}}
+{{!-- One Spark Table rolled on a card: what it gave, then the table and each column's entry. --}}
 <p class="bastionland-card__outcome">{{prompt}}</p>
 <ul class="bastionland-card__entries">
 	<li><strong>{{name}}</strong> — {{reference}}</li>
 	{{#each results}}
-	<li><span class="bastionland-card__roll">{{roll}}</span> {{column}}: {{entry}}</li>
+	<li>{{column}}: {{entry}}</li>
 	{{/each}}
 </ul>

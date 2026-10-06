@@ -16,7 +16,6 @@ import { seerForKnight } from "../rules/creation.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { featureAt } from "../rules/realm.js";
 import { sameHex } from "../rules/realm-geometry.js";
-import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { renderWhenIdle } from "./ui.js";
@@ -105,10 +104,8 @@ export class SeerChooser extends BastionlandChooser {
 			const lives = elsewhere(roll);
 			return {
 				roll: roll.roll,
-				d6: roll.d6,
 				d12: roll.d12,
-				inGroup: roll.d6 === this.group,
-				searchText: searchable(`${name} ${roll.d6}-${roll.d12} ${roll.roll}`),
+				...this._cardFields(roll, name),
 				name,
 				img: entry?.path ?? null,
 				selected: roll.roll === this.roll,

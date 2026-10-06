@@ -4,7 +4,9 @@ import {
 	CIVILISATION_PAGE,
 	PEOPLE_PAGE,
 	dealSparkDice,
+	editedPerson,
 	heardOfMyth,
+	hexesWithPeople,
 	holdingSparkSet,
 	personLine,
 	personSpark,
@@ -85,6 +87,7 @@ describe("a person", () => {
 			rolls: [2, 3, 4, 5],
 			entries: ["Look: Look-a2 Look-b3", "Voice: Voice-a4 Voice-b5", "Has heard of the Heron"],
 			prompt: "Look: Look-a2 Look-b3 · Voice: Voice-a4 Voice-b5 · Has heard of the Heron",
+			traitCount: 2,
 			when
 		});
 		const hex = { col: 3, row: 4 };
@@ -97,6 +100,52 @@ describe("a person", () => {
 		const hex = { col: 3, row: 4 };
 		expect(loreAt(recordSpark(emptyLore(), hex, spark), hex).sparks[0].name).toBe("Hamo");
 		expect(personSpark(traits, { id: "p2", table: "A person" })).not.toHaveProperty("name");
+	});
+});
+
+describe("editedPerson", () => {
+	const traits = personTraits(dealSparkDice([table("Look"), table("Voice")], [2, 3, 4, 5]));
+	const hamo = () => personSpark(traits, { id: "p1", table: "A person", heard: "Has heard of the Heron", name: "Hamo" });
+
+	it("rewrites their name, traits and what they've heard, and the line the hex reads", () => {
+		const edited = editedPerson(hamo(), { name: " Odo ", traits: ["Tall and grey", "Soft"], heard: "Knows the Wyrm" });
+		expect(personView(edited)).toEqual({
+			name: "Odo",
+			traits: [
+				{ label: "Look", text: "Tall and grey" },
+				{ label: "Voice", text: "Soft" }
+			],
+			heard: "Knows the Wyrm"
+		});
+		expect(edited.prompt).toBe("Look: Tall and grey · Voice: Soft · Knows the Wyrm");
+		expect(edited.rolls).toEqual(hamo().rolls);
+	});
+
+	it("keeps what a trait or what they've heard said when its box is left empty, and leaves them unnamed without a name", () => {
+		const edited = editedPerson(hamo(), { name: "", traits: ["", "Soft"], heard: " " });
+		expect(edited).not.toHaveProperty("name");
+		expect(personView(edited).traits[0]).toEqual({ label: "Look", text: "Look-a2 Look-b3" });
+		expect(personView(edited).heard).toBe("Has heard of the Heron");
+	});
+
+	it("keeps what they've heard as heard when it reads like a trait", () => {
+		const edited = editedPerson(hamo(), { heard: "Rumour: the Wyrm walks" });
+		expect(personView(edited).traits).toHaveLength(2);
+		expect(personView(edited).heard).toBe("Rumour: the Wyrm walks");
+		const hex = { col: 3, row: 4 };
+		expect(personView(loreAt(recordSpark(emptyLore(), hex, edited), hex).sparks[0]).heard).toBe("Rumour: the Wyrm walks");
+	});
+
+	it("marks a person kept before people were marked, and counts their traits, once edited", () => {
+		const { person: _person, traitCount: _count, ...old } = hamo();
+		const edited = editedPerson(old, { heard: "Rumour: the Wyrm walks" });
+		expect(edited).toMatchObject({ person: true, traitCount: 2 });
+		expect(personView(edited).heard).toBe("Rumour: the Wyrm walks");
+	});
+
+	it("gives back the person it was handed when nothing changes", () => {
+		const spark = hamo();
+		expect(editedPerson(spark, { name: "Hamo", traits: ["Look-a2 Look-b3", ""], heard: "" })).toBe(spark);
 	});
 });
 
@@ -127,6 +176,21 @@ describe("personView", () => {
 	it("leaves one People table rolled on its own, and other pages' rolls, as rolls", () => {
 		expect(personView({ id: "a", page: PEOPLE_PAGE, table: "Look", entries: ["Look-a2", "Look-b3"] })).toBeNull();
 		expect(personView({ id: "b", page: "nature", table: "Land", entries: ["Land: Wet", "Sky: Grey"] })).toBeNull();
+	});
+});
+
+describe("hexesWithPeople", () => {
+	it("finds the hexes with someone kept in them, not those with other rolls", () => {
+		const person = { id: "p", page: PEOPLE_PAGE, table: "A person", person: true, entries: ["Look: Tall", "Voice: Low"] };
+		const roll = { id: "r", page: "nature", table: "Land", entries: ["Wet"] };
+		const lore = { hexes: { "1,2": { note: "", sparks: [roll, person] }, "3,4": { note: "", sparks: [roll] }, "5,6": { note: "Quiet", sparks: [] } } };
+		expect([...hexesWithPeople(lore)]).toEqual(["1,2"]);
+		expect(hexesWithPeople(emptyLore()).size).toBe(0);
+		expect(hexesWithPeople(null).size).toBe(0);
+	});
+
+	it("passes over a hex whose rolls aren't a list", () => {
+		expect(hexesWithPeople({ hexes: { "1,2": { sparks: {} }, "3,4": { sparks: "bad" }, "5,6": null } }).size).toBe(0);
 	});
 });
 

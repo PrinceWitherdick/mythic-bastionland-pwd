@@ -265,9 +265,21 @@ export function forgetBarrierMet(shared, hex, edge) {
 }
 
 /**
- * Forget all that was told of a hex and the Company's note on it.
+ * Forget what the players hold of a hex: what was told of it, the Barriers met
+ * from it and the Company's note on it. All of it, or the parts named.
  * @param {HexShared} shared
  * @param {{col: number, row: number}} hex
+ * @param {{told?: boolean, met?: boolean, party?: boolean}} [parts] Which go; all three when not given.
  * @returns {HexShared} Unchanged when there was nothing.
  */
-export const forgetShared = (shared, hex) => (sharedAt(shared, hex) ? withRecord(shared, hex, null) : shared);
+export function forgetShared(shared, hex, { told = true, met = true, party = true } = {}) {
+	const here = sharedAt(shared, hex);
+	if (!here || !((told && here.told.length) || (met && here.met?.length) || (party && here.party))) return shared;
+	const { met: wasMet, party: wasParty, ...rest } = here;
+	return withRecord(shared, hex, worthKeeping({
+		...rest,
+		told: told ? [] : here.told,
+		...(!met && wasMet ? { met: wasMet } : {}),
+		...(!party && wasParty ? { party: wasParty } : {})
+	}));
+}

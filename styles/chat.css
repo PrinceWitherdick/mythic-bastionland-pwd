@@ -214,6 +214,25 @@
 	margin-right: 0.2rem;
 }
 
+/* The hex as a card's title: the title's own letters, with the crosshair
+   before them to say it goes somewhere. */
+.bastionland-hex-target--heading {
+	display: inline;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	font: inherit;
+	letter-spacing: normal;
+	line-height: inherit;
+}
+
+.bastionland-hex-target--heading i {
+	font-size: 0.75em;
+	vertical-align: 0.1em;
+}
+
 .bastionland-card__damage {
 	display: flex;
 	align-items: baseline;

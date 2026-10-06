@@ -5,6 +5,7 @@
  * whispered a card that puts it back in that hex with the picture it carried.
  */
 import { hexLabel } from "../actions/hex-names.js";
+import { hexTarget } from "./hex-target.js";
 import { COMPANY_FLAG, lastCompanyHex, rememberCompany, standCompanyAgain } from "../actions/company.js";
 import { isRealmScene } from "../actions/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -27,7 +28,8 @@ async function noticeCompanyDeleted(token) {
 	const hex = lastCompanyHex(scene);
 	await postCard(null, "company-lost", {
 		scene: scene.id,
-		text: hex ? t("company.lost.text", { hex: hexLabel(hex, scene) }) : t("company.lost.textAway"),
+		target: hex ? hexTarget(hex, scene) : null,
+		text: t(hex ? "company.lost.text" : "company.lost.textAway"),
 		title: t("company.lost.title"),
 		label: t("company.lost.button"),
 		// Nowhere to put them back, so the card only says they've gone.

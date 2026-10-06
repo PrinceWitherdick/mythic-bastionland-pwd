@@ -1,5 +1,6 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
+import { allowsDuplicateKnights, knightRows } from "../actions/knights.js";
 import { fillKnightFromBook, knightTableRenewal, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
@@ -17,7 +18,7 @@ import { openLedger } from "../apps/LedgerWindow.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { AGES, GAMBITS, LINKED_ACTORS, PROPERTY_TYPES } from "../config.js";
-import { titleKnightType } from "../rules/creation.js";
+import { knightTypeFromName, knightTypeKey, knightTypeTakenBy, titleKnightType } from "../rules/creation.js";
 import { RANKS } from "../rules/glory.js";
 import { hasTable, knightRenewal, knightTableItemId, knightVerse, namePartsWithoutSeeBelow, clauseMidSentence, splitAtRenewal, tableResults } from "../rules/knight-tables.js";
 import { CARRIER_ICONS, propertyTabIcon } from "../rules/property-tab.js";
@@ -350,6 +351,24 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		});
 		if (context.travels?.sceneId) this.#travels.realm = context.travels.sceneId;
 		wireTravelsList(this.element.querySelector('.tab[data-tab="travels"]'), this.#travels, () => this.render());
+	}
+
+	/**
+	 * A Knight another living character already is can't be typed in as this
+	 * one's, unless the Referee lets two be the same. The rest of the form saves.
+	 * @override
+	 */
+	_processFormData(event, form, formData) {
+		const data = super._processFormData(event, form, formData);
+		const typed = data.system?.knightType;
+		if (typed === undefined || allowsDuplicateKnights() || knightTypeKey(typed) === knightTypeKey(this.actor.system.knightType)) return data;
+		const takenBy = knightTypeTakenBy(knightRows(), typed, this.actor.id);
+		if (!takenBy) return data;
+		ui.notifications.warn(t("sheet.knightTypeTaken", { name: takenBy, type: knightTypeFromName(typed) }));
+		delete data.system.knightType;
+		const box = form.querySelector('[name="system.knightType"]');
+		if (box) box.value = this.actor.system.knightType;
+		return data;
 	}
 
 	/**

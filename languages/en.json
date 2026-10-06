@@ -45,10 +45,17 @@
         "turnedOff": "Solo play is off. You see the whole Realm as its Referee again."
       }
     },
+    "duplicateKnights": {
+      "setting": {
+        "name": "Allow the same Knight twice",
+        "hint": "Lets more than one character be the same Knight from the book, by rolling, choosing or typing it in. Off, a Knight that a living character already is can’t be taken again; a slain Knight’s can."
+      }
+    },
     "sheet": {
       "title": "Mythic Bastionland",
       "named": "They were named",
       "knownAs": "Known as the",
+      "knightTypeTaken": "{name} is already the {type} Knight, and no two characters can be the same Knight. The Referee can allow it by turning on Allow the same Knight twice in the settings.",
       "knight": "Knight",
       "fate": "Their ultimate fate was",
       "knightedBy": "Knighted by",
@@ -1008,13 +1015,14 @@
     },
     "travels": {
       "title": "Places",
-      "asPlayers": "As the players see it: nothing they haven’t found. Only the chosen hex’s Lay of the Land, at the foot of it, is yours alone, and you can choose any hex from the map or the Toolkit.",
+      "asPlayers": "The players see these same pages, with nothing the Company hasn’t found. Only the Lay of the Land, under a chosen hex, is yours alone.",
       "realm": "Realm",
       "search": "Search the places",
       "noMatch": "No place matches that.",
       "noRealm": "There is no Realm yet.",
       "none": "The Company hasn’t been anywhere on this Realm yet.",
       "summary": "{count} of {total} hexes visited.",
+      "summaryGM": "{count} of {total} hexes visited, as the players see them.",
       "heardOf": "Not visited yet",
       "notVisited": "The Company knows nothing of {hex} yet.",
       "notKnown": "The Company knows nothing of this hex yet.",
@@ -1035,6 +1043,7 @@
         "holding": "Holdings",
         "landmark": "Landmarks",
         "myth": "Myths",
+        "people": "People",
         "told": "Told",
         "noted": "Noted",
         "heardOf": "Not Visited"
@@ -1857,7 +1866,7 @@
       "colourFailed": "The Company's colour could not be saved, so the icon is carried in ink.",
       "lost": {
         "title": "The Company has left the map",
-        "text": "Their Token was deleted at {hex}. One Token stands for the whole Company, and it has no Actor to reopen it from, so put them back here or stand them in a hex with Place the Company over the map.",
+        "text": "Their Token was deleted in this hex. One Token stands for the whole Company, and it has no Actor to reopen it from, so put them back here or stand them in a hex with Place the Company over the map.",
         "textAway": "Their Token was deleted. Stand them in a hex again with Place the Company over the map.",
         "button": "Put them back",
         "back": "The Company stands at {hex} again.",
@@ -1986,6 +1995,22 @@
       "landmarkName": "Name",
       "noPeople": "No one met here yet.",
       "noHolding": "Nothing rolled for the Holding yet.",
+      "editGo": {
+        "title": "Edit These Rolls",
+        "legend": "Rolled in {when}",
+        "legendUndated": "Rolled together",
+        "forget": "Forget this roll",
+        "forgetAll": "Forget all of them",
+        "hint": "Leave a box empty to go back to what was rolled.",
+        "save": "Save"
+      },
+      "editPerson": {
+        "title": "Edit This Person",
+        "name": "Name",
+        "heard": "Heard of",
+        "forget": "Forget this person",
+        "hint": "A trait left empty keeps what it said. Leave the name empty to leave them unnamed."
+      },
       "told": {
         "current": "The Company was told this in {when}.",
         "currentUndated": "The Company was told this.",
@@ -2020,9 +2045,7 @@
         "from": "From the prompts on {myth}’s page (p{page}).",
         "placeholder": "Called by its type"
       },
-      "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
-      "earlier": "An earlier roll",
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "told": "Told the players about the hex at {hex}.",
@@ -2123,7 +2146,6 @@
         "save": "Save"
       },
       "title": "A Person",
-      "taglineHex": "{hex} · {reference}",
       "kept": "A person (p{page})",
       "missing": "Run Import PDF with your rulebook to bring in the People Spark Tables.",
       "heardOf": "Has heard of {name}",
@@ -2135,7 +2157,7 @@
       "holding": {
         "roll": "Roll Up This Holding",
         "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex (p181).",
-        "tagline": "Rolled up at {hex}",
+        "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
         "noMyths": "This Realm has no Myths yet, so nobody here has heard of one.",
@@ -2284,13 +2306,37 @@
         "many": "Visited {count} times, last: {when}",
         "unknown": "when is unknown",
         "mark": "Count a Visit",
-        "forgetTitle": "Forget Every Visit?",
-        "forgetConfirm": "Every visit the Company made to {hex} is forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay.",
-        "forgetAll": "Forget Every Visit",
+        "forget": "Forget What’s Kept Here",
+        "forgetTitle": "Forget What’s Kept Here?",
+        "forgetIntro": "What should be forgotten at {hex}?",
+        "forgetOk": "Forget",
         "forgetEverything": "Forget Everything Here",
-        "forgetAllTitle": "Forget Everything Here?",
-        "forgetAllConfirm": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten.",
-        "forgetAllConfirmShared": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten. So are what the players were told of it and their own note on it, which goes from their Places too."
+        "forgetParts": {
+          "visits": {
+            "label": "The Company’s visits ({count})",
+            "detail": "The hex no longer counts as visited, and its arrivals go from the Journey page."
+          },
+          "sparks": {
+            "label": "Spark Table rolls ({count})",
+            "detail": "Everything rolled on the Spark Tables here, the people met among them."
+          },
+          "note": {
+            "label": "Your note",
+            "detail": "What you wrote about the hex. What the players were already told of it stays theirs."
+          },
+          "told": {
+            "label": "What the players were told ({count})",
+            "detail": "Each telling goes from their Places too."
+          },
+          "met": {
+            "label": "Barriers met from here ({count})",
+            "detail": "The Barriers stay on the map; only the Journey’s line about running into them goes."
+          },
+          "party": {
+            "label": "The players’ note",
+            "detail": "What the players wrote about the hex in their Places."
+          }
+        }
       },
       "places": {
         "hint": "Every place in the Realm and every hex the Company has come into, each once (p19). Click a place to open it in Places, where you read and change everything kept for it. A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
@@ -3630,6 +3676,12 @@
       "unnamed": "Knight {roll}",
       "reference": "{roll}, page {page}",
       "takenBy": "Already {name}’s Knight",
+      "takenNotice": "{name} is already {knight}, and no two characters can be the same Knight, so choose another. The Referee can allow it by turning on Allow the same Knight twice in the settings.",
+      "takenHint": "No two characters can be the same Knight. The Referee can allow it in the settings.",
+      "takenTip": "Already {name}’s Knight. No two characters can be the same Knight. The Referee can allow it in the settings.",
+      "search": "Search the Knights…",
+      "noMatch": "No Knight matches.",
+      "allTaken": "Every Knight in the book is already taken, and no two characters can be the same Knight. The Referee can allow it by turning on Allow the same Knight twice in the settings.",
       "noSelection": "Roll or pick a Knight to see them here.",
       "name": "Name:",
       "namePlaceholder": "Your Knight’s name",

@@ -245,14 +245,14 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 	await postCard(null, "survey", {
 		scene: scene?.id ?? null,
 		title: t(vantage ? "explore.survey.vantageTitle" : "explore.survey.sweepTitle"),
-		hex: hexLabel(here.hex, scene),
+		hex: hexTarget(here.hex, scene),
 		terrain: here.terrain ? t(`realm.terrain.${here.terrain}`) : null,
 		holding: here.holding ? t(here.holding.seat ? "explore.survey.seat" : "explore.survey.holding", { name: here.holding.name || t(`realm.holdings.${here.holding.style}`) }) : null,
 		myth: here.myth ? t("explore.survey.myth", { number: here.myth.number }) : null,
 		landmark: landmark ? t("explore.survey.landmark", { type: t(`realm.landmarks.${landmark.type}`), name: landmark.name || "" }).trim() : null,
 		around: survey.around.map((step) => ({
 			direction: directionName(g, step.direction),
-			hex: hexLabel(step.hex, scene),
+			hex: hexTarget(step.hex, scene),
 			terrain: step.terrain ? t(`realm.terrain.${step.terrain}`) : t("explore.survey.unknownLand"),
 			barrier: step.barrier ? t("explore.survey.barrier") : null,
 			holding: step.holding ? t("explore.survey.someHolding") : null

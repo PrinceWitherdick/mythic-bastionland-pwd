@@ -1,32 +1,48 @@
 {{!-- The Company's places on one Realm: as a list, as a chart, and as the journey's log. Shared by the Places window and the Knight sheet. --}}
+{{#*inline "travels-chips"}}
+{{#if (or told noted)}}
+<span class="bastionland-travels__chips">
+	{{#if told}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
+	{{#if noted}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
+</span>
+{{/if}}
+{{/inline}}
 {{#*inline "travels-row"}}
 <li class="bastionland-travels__row{{#if selected}} is-selected{{/if}}" data-search="{{search}}" data-tags="{{tags}}">
 	<button type="button" class="bastionland-travels__open" data-action="pickTravelsHex" data-hex="{{hex}}"{{#if selected}} aria-current="true"{{/if}}>
-		{{#if name}}
-		<span class="bastionland-travels__title">{{name}}</span>
-		<span class="bastionland-travels__line bastionland-travels__coords">{{coords}}</span>
-		{{else}}
-		<span class="bastionland-travels__title">{{title}}</span>
-		{{/if}}
-		{{#if terrain}}<span class="bastionland-travels__line">{{terrain}}{{#if features}} · {{features}}{{/if}}</span>
-		{{else if features}}<span class="bastionland-travels__line">{{features}}</span>{{/if}}
+		{{!-- The terrain chip sits beside the title while there's room, and wraps under it when there isn't.
+		      The Told and Note chips do the same at the end of the last line above the visits. --}}
+		<span class="bastionland-travels__head">
+			<span class="bastionland-travels__title">{{#if name}}{{name}}{{else}}{{title}}{{/if}}</span>
+			{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
+			{{#unless lines.length}}{{> travels-chips}}{{/unless}}
+		</span>
+		{{#each lines}}
+		<span class="bastionland-travels__line bastionland-travels__more"><span>{{this}}</span>{{#if @last}}{{> travels-chips ..}}{{/if}}</span>
+		{{/each}}
 		<span class="bastionland-travels__line bastionland-travels__visits">{{visits}}</span>
 	</button>
-	<span class="bastionland-travels__chips">
+	{{!-- The title line's right end: where the Company is, then the crosshairs that show it on the map. --}}
+	{{#if (or here onMap)}}
+	<span class="bastionland-travels__corner">
 		{{#if here}}<span class="bastionland-travels__chip bastionland-pill bastionland-travels__chip--here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}
-		{{#if told}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-comment" inert></i> {{localize "bastionland.travels.chips.told"}}</span>{{/if}}
-		{{#if noted}}<span class="bastionland-travels__chip bastionland-pill"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.travels.chips.note"}}</span>{{/if}}
+		{{#if onMap}}
+		<button type="button" class="bastionland-icon" data-action="showTravelsHex" data-hex="{{hex}}" data-tooltip="{{localize 'bastionland.travels.showOnMap'}}" aria-label="{{localize 'bastionland.travels.showOnMap'}}"><i class="fa-solid fa-location-crosshairs" inert></i></button>
+		{{/if}}
 	</span>
-	{{#if onMap}}
-	<button type="button" class="bastionland-icon" data-action="showTravelsHex" data-hex="{{hex}}" data-tooltip="{{localize 'bastionland.travels.showOnMap'}}" aria-label="{{localize 'bastionland.travels.showOnMap'}}"><i class="fa-solid fa-location-crosshairs" inert></i></button>
 	{{/if}}
 </li>
 {{/inline}}
+{{!-- How many hexes the Company has visited. --}}
+{{#*inline "travels-summary"}}
+<p class="bastionland-travels__summary{{#if top}} bastionland-travels__summary--top{{/if}}">{{summary}}</p>
+{{/inline}}
 {{#*inline "travels-section"}}
 {{#if rows.length}}
-<section class="bastionland-travels__section" data-search-section>
+<section class="bastionland-travels__section" data-search-section{{#if counted}} data-counted{{/if}}>
 	<h3 class="bastionland-heading">{{heading}}</h3>
 	{{#if hint}}<p class="bastionland-hint">{{hint}}</p>{{/if}}
+	{{#if counted}}{{> travels-summary}}{{/if}}
 	<ul class="bastionland-travels__list">
 		{{#each rows}}{{> travels-row}}{{/each}}
 	</ul>
@@ -34,10 +50,11 @@
 {{/if}}
 {{/inline}}
 <div class="bastionland-travels" data-scene-id="{{sceneId}}">
-	{{#if asPlayers}}<p class="bastionland-travels__banner">{{localize "bastionland.travels.asPlayers"}}</p>{{/if}}
 	{{#if noRealm}}
 	<p class="bastionland-hint">{{localize "bastionland.travels.noRealm"}}</p>
 	{{else}}
+	{{!-- A GM outside solo play is told that the pages hold only what the players have found. --}}
+	{{#if asPlayers}}<p class="bastionland-hint">{{localize "bastionland.travels.asPlayers"}}</p>{{/if}}
 	<div class="bastionland-travels__bar">
 		{{#if chooseRealm}}
 		<select class="bastionland-travels__realm" aria-label="{{localize 'bastionland.travels.realm'}}">
@@ -53,7 +70,6 @@
 		{{#each views}}
 		<button type="button" class="bastionland-travels__view-tab" data-travels-view="{{key}}" aria-pressed="{{#if shown}}true{{else}}false{{/if}}">{{label}}</button>
 		{{/each}}
-		<span class="bastionland-travels__summary">{{summary}}</span>
 	</div>
 
 	{{#if none}}
@@ -73,7 +89,10 @@
 				{{#each sorts}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
 			</select>
 		</label>
-		{{> travels-section rows=ofNote heading=(localize "bastionland.travels.sections.ofNote") hint=(localize "bastionland.travels.sections.ofNoteHint")}}
+		{{!-- The count sits under the Places of Note hint, or tops the page while that section is missing or hidden
+		      by a search or filter. --}}
+		{{> travels-summary top=true}}
+		{{> travels-section rows=ofNote heading=(localize "bastionland.travels.sections.ofNote") hint=(localize "bastionland.travels.sections.ofNoteHint") counted=true}}
 		{{> travels-section rows=wilderness heading=(localize "bastionland.travels.sections.wilderness") hint=""}}
 		{{> travels-section rows=heardOf heading=(localize "bastionland.travels.sections.heardOf") hint=(localize "bastionland.travels.sections.heardOfHint")}}
 	</section>

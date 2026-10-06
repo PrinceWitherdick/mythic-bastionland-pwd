@@ -1,0 +1,24 @@
+<div class="bastionland-dialog__body">
+	{{!-- Edit a go of rolls (editGo in module/apps/hex-gm-part.js): each roll's words in a box, with a box to tick to forget it,
+	      and Forget All of Them over them when there's more than one. --}}
+	<fieldset class="bastionland-choice-list bastionland-go-edit">
+		<legend>{{legend}}</legend>
+		{{#each rolls}}
+		<div class="bastionland-go-edit__roll">
+			<label for="bastionland-go-edit-{{id}}"><strong>{{table}}</strong></label>
+			<textarea id="bastionland-go-edit-{{id}}" name="prompt-{{id}}" rows="2" maxlength="{{@root.max}}" placeholder="{{rolled}}">{{prompt}}</textarea>
+			<label class="bastionland-check">
+				<input type="checkbox" name="forget-{{id}}" data-forget-part>
+				<span class="bastionland-check__label">{{localize "bastionland.hexGm.editGo.forget"}}</span>
+			</label>
+		</div>
+		{{/each}}
+		{{#if many}}
+		<label class="bastionland-check bastionland-go-edit__all">
+			<input type="checkbox" data-forget-all>
+			<span class="bastionland-check__label"><strong>{{localize "bastionland.hexGm.editGo.forgetAll"}}</strong></span>
+		</label>
+		{{/if}}
+		<p class="bastionland-hint">{{localize "bastionland.hexGm.editGo.hint"}}</p>
+	</fieldset>
+</div>

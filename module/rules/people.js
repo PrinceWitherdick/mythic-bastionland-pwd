@@ -6,7 +6,9 @@
  * the Myths each of them has heard of (p181). Pure, so it can be tested
  * without Foundry.
  */
+import { namedSpark } from "./hex-lore.js";
 import { SPARK_PAGES, SPARK_TABLES_PER_PAGE, sparkPrompt } from "./spark-tables.js";
+import { trimmedText } from "./text.js";
 
 /** The Spark Table page a person is rolled from. */
 export const PEOPLE_PAGE = SPARK_PAGES[2].key;
@@ -120,6 +122,7 @@ export function personSpark(traits, { id, table, heard = null, when = null, name
 		rolls: traits.flatMap((trait) => trait.rolls),
 		entries: [...traits.map(({ name: trait, prompt }) => `${trait}: ${prompt}`), heard].filter(Boolean),
 		prompt: personLine(traits, heard),
+		traitCount: traits.length,
 		when
 	};
 	if (name) spark.name = name;
@@ -130,27 +133,77 @@ export function personSpark(traits, { id, table, heard = null, when = null, name
 const TRAIT_ENTRY = /^([^:]+):\s+(.+)$/;
 
 /**
+ * A person's entries split into their traits, in order, and the rest: what they've heard.
+ * A person who says how many traits they have is split by that count, so what
+ * they've heard may hold a colon of its own; one kept before that is split by
+ * what each entry looks like.
+ * @param {string[]} entries
+ * @param {number} [traitCount]
+ * @returns {{traits: {label: string, text: string, entry: string}[], others: string[]}}
+ */
+function splitEntries(entries, traitCount) {
+	const counted = Number.isInteger(traitCount);
+	const traits = [];
+	const others = [];
+	entries.forEach((entry, index) => {
+		const match = !counted || index < traitCount ? TRAIT_ENTRY.exec(entry) : null;
+		if (match) traits.push({ label: match[1].trim(), text: match[2].trim(), entry });
+		else others.push(entry);
+	});
+	return { traits, others };
+}
+
+/**
+ * Whether a roll kept in a hex is a person. People kept before they were
+ * marked as such are known by their entries, a trait to each; a roll on one
+ * People table on its own isn't a person.
+ * @param {import("./hex-lore.js").HexSpark} spark
+ * @returns {boolean}
+ */
+export const isPerson = (spark) => spark?.person === true
+	|| (spark?.page === PEOPLE_PAGE && (spark.entries ?? []).filter((entry) => TRAIT_ENTRY.test(entry)).length >= 2);
+
+/**
+ * A person kept in a hex as the Referee edits them: their name, the words of
+ * each trait in turn, and what they've heard. A trait or what they've heard
+ * left empty keeps what it said; an empty name leaves them unnamed.
+ * @param {import("./hex-lore.js").HexSpark} spark
+ * @param {{name?: string, traits?: string[], heard?: string}} changes The traits in the order personView lists them.
+ * @returns {import("./hex-lore.js").HexSpark} The one it was handed where nothing changes.
+ */
+export function editedPerson(spark, { name = spark.name ?? "", traits = [], heard = "" } = {}) {
+	const parts = splitEntries(spark.entries, spark.traitCount);
+	const kept = parts.traits.map(({ label, entry }, index) => {
+		const text = trimmedText(traits[index]);
+		return text ? `${label}: ${text}` : entry;
+	});
+	const heardText = trimmedText(heard);
+	const entries = [...kept, ...(heardText ? [heardText] : parts.others)];
+	const same = entries.length === spark.entries.length && entries.every((entry, index) => entry === spark.entries[index]);
+	return namedSpark(same ? spark : { ...spark, person: true, entries, prompt: entries.join(" · "), traitCount: kept.length }, name);
+}
+
+/**
  * A person kept in a hex, read back into their parts for a tidy list: their
  * name, a row for each trait, and what they've heard of the Realm's Myths.
- * People kept before they were marked as such are known by their entries, a
- * trait to each; a roll on one People table on its own isn't a person.
  * @param {import("./hex-lore.js").HexSpark} spark
  * @returns {{name: string, traits: {label: string, text: string}[], heard: string|null}|null}
  *   Null for anything but a person.
  */
 export function personView(spark) {
-	const entries = spark?.entries ?? [];
-	const traits = [];
-	const others = [];
-	for (const entry of entries) {
-		const match = TRAIT_ENTRY.exec(entry);
-		if (match) traits.push({ label: match[1].trim(), text: match[2].trim() });
-		else others.push(entry);
-	}
-	const person = spark?.person === true || (spark?.page === PEOPLE_PAGE && traits.length >= 2);
-	if (!person) return null;
-	return { name: spark.name ?? "", traits, heard: others.join(" ") || null };
+	if (!isPerson(spark)) return null;
+	const { traits, others } = splitEntries(spark.entries ?? [], spark.traitCount);
+	return { name: spark.name ?? "", traits: traits.map(({ label, text }) => ({ label, text })), heard: others.join(" ") || null };
 }
+
+/**
+ * The hexes someone has been rolled up in and kept.
+ * @param {import("./hex-lore.js").HexLore} lore
+ * @returns {Set<string>} Their keys.
+ */
+export const hexesWithPeople = (lore) => new Set(Object.entries(lore?.hexes ?? {})
+	.filter(([, record]) => Array.isArray(record?.sparks) && record.sparks.some(isPerson))
+	.map(([key]) => key));
 
 /**
  * The Myth of the Realm someone has heard of, by a die as big as the Realm has

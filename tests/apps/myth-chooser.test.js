@@ -24,7 +24,8 @@ describe("the window for a Realm's Myths", () => {
 		expect(template).toContain('data-action="chooseMyth"');
 		expect(template).toContain('data-action="showGroup"');
 		expect(template).toContain('data-action="pick"');
-		expect(app).toContain("inGroup: roll.d6 === this.group");
+		expect(app).toContain("...this._cardFields(roll, name),");
+		expect(chooserBase).toContain("inGroup: d6 === this.group");
 		expect(template).toContain("{{#unless inGroup}}hidden{{/unless}}");
 	});
 
@@ -35,8 +36,8 @@ describe("the window for a Realm's Myths", () => {
 		expect(app).toContain("cards: mythRolls().map((roll) => {");
 		expect(chooserBase).toContain("card.dataset.search.includes(term)");
 		expect(chooserBase).not.toMatch(/addEventListener\("input"[^}]*this\.render\(/);
-		// Choosing a d6 result lets the search go.
-		expect(chooserBase).toContain('querySelector(".bastionland-chooser__groups")?.addEventListener("click"');
+		// Choosing a d6 result lets the search go, and draws nothing again.
+		expect(chooserBase).toMatch(/static #onShowGroup\(_event, target\) \{\s*this\.group = Number\(target\.dataset\.d6\);\s*this\.search = "";[^}]*this\._applySearch\(\);\s*\}/);
 		expect(template).toContain("bastionland-myth-chooser__none");
 	});
 

@@ -13,7 +13,6 @@ import { t } from "../chat/cards.js";
 import { createRandom, randomSeed } from "../rules/random.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { mythRolls, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../rules/realm-myths.js";
-import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { fitCards, renderWhenIdle } from "./ui.js";
@@ -102,10 +101,8 @@ export class MythChooser extends BastionlandChooser {
 				const inRealm = mythWithRoll(myths, roll);
 				return {
 					roll: roll.roll,
-					d6: roll.d6,
 					d12: roll.d12,
-					inGroup: roll.d6 === this.group,
-					searchText: searchable(`${name} ${roll.d6}-${roll.d12} ${roll.roll}`),
+					...this._cardFields(roll, name),
 					name,
 					img: entry?.path ?? null,
 					selected: roll.roll === this.roll,

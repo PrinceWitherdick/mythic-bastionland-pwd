@@ -154,4 +154,22 @@ describe("forgetShared", () => {
 		expect(forgetShared(shared, hex(1, 1))).toEqual(emptyShared());
 		expect(forgetShared(shared, hex(2, 2))).toBe(shared);
 	});
+
+	it("forgets only the parts named", () => {
+		const told = recordTold(emptyShared(), hex(1, 1), { id: "a", note: "One." });
+		const shared = recordBarrierMet(setPartyNote(told, hex(1, 1), { text: "Two" }), hex(1, 1), { edge: "1,1|1,0" });
+		const met = sharedAt(shared, hex(1, 1)).met;
+		expect(met).toHaveLength(1);
+		const partyOnly = sharedAt(forgetShared(shared, hex(1, 1), { told: false, met: false }), hex(1, 1));
+		expect(partyOnly).toEqual({ told: [expect.objectContaining({ id: "a" })], met });
+		const toldOnly = sharedAt(forgetShared(shared, hex(1, 1), { met: false, party: false }), hex(1, 1));
+		expect(toldOnly.told).toEqual([]);
+		expect(toldOnly.party.text).toBe("Two");
+		expect(toldOnly.met).toEqual(met);
+	});
+
+	it("leaves the store alone when the part named isn't there", () => {
+		const told = recordTold(emptyShared(), hex(1, 1), { note: "One." });
+		expect(forgetShared(told, hex(1, 1), { told: false })).toBe(told);
+	});
 });

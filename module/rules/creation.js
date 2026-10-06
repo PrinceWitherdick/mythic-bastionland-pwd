@@ -52,6 +52,12 @@ export function knightTypeFromName(name) {
 }
 
 /**
+ * @param {string} type As typed or as the book names them.
+ * @returns {string} "lantern" for "Lantern", " lantern " or "The Lantern Knight", so they match.
+ */
+export const knightTypeKey = (type) => knightTypeFromName(type).toLowerCase();
+
+/**
  * The Knight their sheet's title calls them, as in "Eve the Silk Knight".
  * @param {{isSquire?: boolean, knightType?: string}} knight
  * @returns {string} "Silk", or "" for a Squire or a Knight not yet chosen.
@@ -138,8 +144,8 @@ export function seerForKnight(index, { seer = "", knightType = "" }) {
 	const named = seerKey(seer);
 	const byName = named && seers.find((entry) => seerKey(entry.name) === named);
 	if (byName) return byName;
-	const type = String(knightType).trim().toLowerCase();
-	const knight = type && (index?.knights ?? []).find((entry) => entry.name && knightTypeFromName(entry.name).toLowerCase() === type);
+	const type = knightTypeKey(knightType);
+	const knight = type && (index?.knights ?? []).find((entry) => entry.name && knightTypeKey(entry.name) === type);
 	return (knight && seers.find((entry) => entry.roll === knight.roll)) || null;
 }
 
@@ -184,9 +190,22 @@ export function seerAutoFill(index, knight) {
 }
 
 /**
- * Knights other characters already are, so the chooser can steer each player
- * to a different one.
- * @param {{id: string, name: string, knightType: string}[]} knights Knight actors in the world.
+ * @typedef {{id: string, name: string, knightType: string, slain?: boolean, isSquire?: boolean}} KnightRow
+ *   A Knight actor in the world, as far as who's taken which Knight goes.
+ */
+
+/**
+ * The other characters who are their Knight: alive, and not a Squire, who
+ * isn't one yet. A slain Knight's Knight may be taken again.
+ * @param {KnightRow[]} knights
+ * @param {string|null} exceptId The Knight being chosen for.
+ * @returns {KnightRow[]}
+ */
+const holders = (knights, exceptId) => knights.filter((knight) => knight.id !== exceptId && !knight.slain && !knight.isSquire);
+
+/**
+ * Knights other characters already are, so no two players are the same one.
+ * @param {KnightRow[]} knights Knight actors in the world.
  * @param {{roll: string, name: string|null}[]} entries Knights from the art index.
  * @param {string|null} [exceptId] The Knight being chosen for.
  * @returns {Map<string, string>} Roll to the name of the character who took it.
@@ -194,15 +213,27 @@ export function seerAutoFill(index, knight) {
 export function takenKnights(knights, entries, exceptId = null) {
 	const rollsByType = new Map(entries
 		.filter((entry) => entry.name)
-		.map((entry) => [knightTypeFromName(entry.name).toLowerCase(), entry.roll]));
+		.map((entry) => [knightTypeKey(entry.name), entry.roll]));
 
 	const taken = new Map();
-	for (const knight of knights) {
-		if (knight.id === exceptId) continue;
-		const roll = rollsByType.get(String(knight.knightType ?? "").trim().toLowerCase());
+	for (const knight of holders(knights, exceptId)) {
+		const roll = rollsByType.get(knightTypeKey(knight.knightType));
 		if (roll && !taken.has(roll)) taken.set(roll, knight.name);
 	}
 	return taken;
+}
+
+/**
+ * Who already is the Knight typed in, art index or none.
+ * @param {KnightRow[]} knights Knight actors in the world.
+ * @param {string} knightType Such as "Lantern" or "The Lantern Knight".
+ * @param {string|null} [exceptId] The Knight it's typed for.
+ * @returns {string|null} Their name, or null where it's free or blank.
+ */
+export function knightTypeTakenBy(knights, knightType, exceptId = null) {
+	const key = knightTypeKey(knightType);
+	if (!key) return null;
+	return holders(knights, exceptId).find((knight) => knightTypeKey(knight.knightType) === key)?.name ?? null;
 }
 
 /**

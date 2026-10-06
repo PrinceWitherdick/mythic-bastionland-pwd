@@ -1,0 +1,23 @@
+<div class="bastionland-dialog__body">
+	{{!-- Forget What's Kept Here (module/apps/hex-forget.js): a box for each kind of thing the hex keeps, and Everything Here over them when there's more than one. --}}
+	<fieldset class="bastionland-choice-list bastionland-forget-kept">
+		<legend>{{legend}}</legend>
+		{{#if many}}
+		<label class="bastionland-check">
+			<input type="checkbox" data-forget-all>
+			<span class="bastionland-check__label">
+				<strong>{{localize "bastionland.gmToolkit.visits.forgetEverything"}}</strong>
+			</span>
+		</label>
+		{{/if}}
+		{{#each parts}}
+		<label class="bastionland-check{{#if @root.many}} bastionland-forget-kept__part{{/if}}">
+			<input type="checkbox" name="{{key}}" data-forget-part {{checked checked}}>
+			<span class="bastionland-check__label">
+				<strong>{{label}}</strong>
+				<span class="bastionland-check__detail">{{detail}}</span>
+			</span>
+		</label>
+		{{/each}}
+	</fieldset>
+</div>

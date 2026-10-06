@@ -44,35 +44,45 @@
 		{{/each}}
 	</div>
 
+	{{!-- A roll in a go is edited and forgotten by the pen on its row. A person has a pen of their own in their top
+	      right corner, shown on hover, that opens them to edit; a People roll that isn't a whole person opens as a go of one. --}}
 	{{#*inline "keptRoll"}}
 	<li class="bastionland-hex-lore__roll">
 		{{> "bastionland.hex-spark" renameable=true}}
-		<button type="button" data-action="forgetSpark" data-spark="{{id}}" aria-label="{{localize "bastionland.hexLore.forget"}}" data-tooltip="{{localize "bastionland.hexLore.forget"}}"><i class="fa-solid fa-xmark" inert></i></button>
+		{{#unless inGo}}
+		{{#if person}}
+		<button type="button" class="bastionland-icon bastionland-hex-lore__person-edit bastionland-reveal" data-action="editPerson" data-spark="{{id}}" aria-label="{{localize "bastionland.hexGm.editPerson.title"}}" data-tooltip="{{localize "bastionland.hexGm.editPerson.title"}}"><i class="fa-solid fa-pen" inert></i></button>
+		{{else}}
+		<button type="button" class="bastionland-icon bastionland-hex-lore__person-edit bastionland-reveal" data-action="editPerson" data-spark="{{id}}" aria-label="{{localize "bastionland.hexGm.editGo.title"}}" data-tooltip="{{localize "bastionland.hexGm.editGo.title"}}"><i class="fa-solid fa-pen" inert></i></button>
+		{{/if}}
+		{{/unless}}
 	</li>
 	{{/inline}}
-	{{!-- The latest go of rolls, and each earlier go folded into one row dated when it was made. --}}
+	{{!-- One go of rolls as one row: its rolls side by side, up to three across, and when it was made once at its foot,
+	      with a pen in its top right corner, shown on hover, that opens them to edit. --}}
+	{{#*inline "keptGo"}}
+	<li class="bastionland-hex-lore__go bastionland-reveal-host">
+		<ul class="bastionland-hex-lore__go-rolls">
+			{{#each sparks}}
+			{{> keptRoll when=false inGo=true}}
+			{{/each}}
+		</ul>
+		<button type="button" class="bastionland-icon bastionland-hex-lore__go-edit bastionland-reveal" data-action="editGo" data-sparks="{{ids}}" aria-label="{{localize "bastionland.hexGm.editGo.title"}}" data-tooltip="{{localize "bastionland.hexGm.editGo.title"}}"><i class="fa-solid fa-pen" inert></i></button>
+		{{#if when}}<span class="bastionland-hex-lore__go-when">{{when}}</span>{{/if}}
+	</li>
+	{{/inline}}
+	{{!-- People each in full, or each go of rolls as one row; newest first either way. --}}
 	{{#*inline "keptRolls"}}
 	<ul class="bastionland-hex-lore__rolls">
+		{{#each goes}}
+		{{> keptGo}}
+		{{/each}}
 		{{#each sparks}}
 		{{> keptRoll}}
-		{{else}}
+		{{/each}}
+		{{#unless (or goes.length sparks.length)}}
 		<li class="bastionland-hex-lore__hint">{{empty}}</li>
-		{{/each}}
-		{{#each older}}
-		<li>
-			<details class="bastionland-hex-lore__older" data-hex-older="{{key}}" {{#if open}}open{{/if}}>
-				<summary class="bastionland-hex-lore__older-summary">
-					<span class="bastionland-hex-lore__older-when">{{when}}</span>
-					<span class="bastionland-hex-lore__source">{{names}}</span>
-				</summary>
-				<ul class="bastionland-hex-lore__rolls">
-					{{#each sparks}}
-					{{> keptRoll}}
-					{{/each}}
-				</ul>
-			</details>
-		</li>
-		{{/each}}
+		{{/unless}}
 	</ul>
 	{{/inline}}
 	{{#*inline "panel"}}

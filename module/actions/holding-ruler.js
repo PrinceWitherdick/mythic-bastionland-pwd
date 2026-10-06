@@ -2,7 +2,7 @@ import { filterBySearch, inputDialog } from "../apps/ui.js";
 import { findByRoll, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
-import { knightTypeFromName } from "../rules/creation.js";
+import { knightTypeKey } from "../rules/creation.js";
 import { domainRuledBy, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { escapeHTML, searchable } from "../rules/text.js";
@@ -79,12 +79,12 @@ export function grantChoices({ index, knights, domains, ruling }) {
 		return choice(`knight:${knight.id}`, knight.name, t("hexGm.ruler.hasDomain", { domain: domain.name }), { domain, knight });
 	});
 	const placed = new Set(domained.map(({ knight }) => knight));
-	const byType = new Map(knights.map((knight) => [String(knight.system.knightType ?? "").trim().toLowerCase(), knight]).filter(([type]) => type));
+	const byType = new Map(knights.map((knight) => [knightTypeKey(knight.system.knightType), knight]).filter(([type]) => type));
 
 	const table = spreads().map(({ roll }) => {
 		const entry = findByRoll(index?.knights, roll);
 		const name = entry?.name ?? t("chooser.unnamed", { roll });
-		const knight = entry?.name ? byType.get(knightTypeFromName(entry.name).toLowerCase()) ?? null : null;
+		const knight = entry?.name ? byType.get(knightTypeKey(entry.name)) ?? null : null;
 		if (knight && placed.has(knight)) return null;
 		if (knight) {
 			placed.add(knight);

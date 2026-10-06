@@ -19,21 +19,23 @@ import {
 	startFor,
 	takenKnights
 } from "../rules/creation.js";
+import { midSentence } from "../rules/text.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SCORES, VIRTUES, VIRTUE_MAX, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
-import { confirmDialog } from "./ui.js";
-import { worldKnights } from "../actions/knights.js";
+import { confirmDialog, renderWhenIdle } from "./ui.js";
+import { allowsDuplicateKnights, knightRows, worldKnights } from "../actions/knights.js";
 
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
 
 /**
- * How many pixels wider the window grows to show the Knights to pick from. From
- * the starting width, the chosen Knight's column keeps its width as they slide in.
+ * How many pixels wider the window grows to show the Knights to pick from. Their
+ * column opens as wide as the chosen Knight's, which widens a little with it:
+ * room for four Knights to a row, each picture whole.
  */
-const BROWSE_WIDTH = 390;
+const BROWSE_WIDTH = 620;
 
 /**
  * Makes a Knight the way the book does (p6-7, p26): choose a Start, roll
@@ -62,6 +64,7 @@ export class KnightChooser extends BastionlandChooser {
 
 	static DEFAULT_OPTIONS = {
 		tag: "form",
+		classes: ["bastionland-knight-chooser"],
 		position: { width: 822, height: 1000 },
 		window: { icon: "fa-solid fa-chess-knight" },
 		form: { handler: KnightChooser.#onChangeForm, submitOnChange: true, closeOnSubmit: false },
@@ -71,9 +74,13 @@ export class KnightChooser extends BastionlandChooser {
 			rollKnight: KnightChooser.#onRollKnight,
 			rollName: KnightChooser.#onRollName,
 			browse: KnightChooser.#onBrowse,
+			toggleSearch: KnightChooser.#onToggleSearch,
 			apply: KnightChooser.#onApply
 		}
 	};
+
+	/** Every picture in the grid, the picked one too: the window may be too narrow to show its large copy beside them. */
+	static PREVIEWED_ART = ".bastionland-chooser__card img.bastionland-chooser__thumb";
 
 	static PARTS = {
 		chooser: {
@@ -99,6 +106,9 @@ export class KnightChooser extends BastionlandChooser {
 	/** Whether the Knights to pick from are shown, after Choose your own. */
 	#browsing = false;
 
+	/** Whether the search box beside the d6 results is open, after its magnifying glass. */
+	#searchOpen = false;
+
 	/** How far the window really widened to show them, so folding them away gives it back. */
 	#widened = 0;
 
@@ -107,6 +117,17 @@ export class KnightChooser extends BastionlandChooser {
 
 	/** The Knight's name, as typed or rolled beside Apply. Starts as their own, unless Create Actor only gave them a stand-in. */
 	#name = startingName(this.actor?.name, game.i18n.localize(CONFIG.Actor.typeLabels.knight));
+
+	/** @type {[string, number][]} The hooks that draw the window again when who's taken which Knight changes. */
+	#hooks = [];
+
+	/** @type {Map<string, string>} #taken as the window was last drawn: the hooks draw it again whenever that changes. */
+	#takenNow = new Map();
+
+	/** Whether the search box is open: after its magnifying glass, or while something is searched for. */
+	get #searchShown() {
+		return this.#searchOpen || Boolean(this.search);
+	}
 
 	/** @override */
 	get title() {
@@ -118,7 +139,7 @@ export class KnightChooser extends BastionlandChooser {
 		const context = await super._prepareContext(options);
 
 		const entries = this.#entries();
-		const taken = this.#taken();
+		const taken = this.#takenNow = this.#taken();
 		const takenLabel = (roll) => (taken.has(roll) ? t("chooser.takenBy", { name: taken.get(roll) }) : null);
 		const selected = entries.find((entry) => entry.roll === this.roll);
 
@@ -147,14 +168,20 @@ export class KnightChooser extends BastionlandChooser {
 				kept: [...VIRTUES.map((key) => ({ abbr: t(`virtues.${key}.abbr`), value: this.actor.system.virtues[key].max })),
 					{ abbr: t("guard.abbr"), value: this.actor.system.guard.max }]
 			},
-			cards: entries.filter((entry) => entry.d6 === this.group).map((entry) => ({
-				roll: entry.roll,
-				d12: entry.d12,
-				name: this.#knightName(entry),
-				img: entry.knight?.path ?? null,
-				takenBy: takenLabel(entry.roll),
-				selected: entry.roll === this.roll
-			})),
+			searchOpen: this.#searchShown,
+			cards: entries.map((entry) => {
+				const name = this.#knightName(entry);
+				return {
+					roll: entry.roll,
+					d12: entry.d12,
+					...this._cardFields(entry, name),
+					name,
+					img: entry.knight?.path ?? null,
+					// Said on hover, so the card carries no line saying who has it.
+					takenTip: taken.has(entry.roll) ? t("chooser.takenTip", { name: taken.get(entry.roll) }) : null,
+					selected: entry.roll === this.roll
+				};
+			}),
 			selected: selected && {
 				name: this.#knightName(selected),
 				reference: t("chooser.reference", { roll: selected.roll, page: selected.page }),
@@ -173,8 +200,31 @@ export class KnightChooser extends BastionlandChooser {
 			},
 			applyLabel: this.actor ? t("chooser.apply", { name: this.actor.name }) : t("chooser.create"),
 			name: this.#name,
-			canApply: this.#canApply()
+			canApply: this.#canApply(taken)
 		});
+	}
+
+	/** @override */
+	async _onFirstRender(context, options) {
+		await super._onFirstRender(context, options);
+		// Another player choosing, or a Knight falling, changes which Knights are free. Not under a name being typed.
+		const redraw = () => renderWhenIdle(this);
+		const onUpdate = (actor, changes) => {
+			if (actor.type !== "knight") return;
+			const system = changes.system ?? {};
+			if ("knightType" in system || "slain" in system || "isSquire" in system || "name" in changes) redraw();
+		};
+		const onKnight = (actor) => actor.type === "knight" && redraw();
+		this.#hooks = [["updateActor", Hooks.on("updateActor", onUpdate)],
+			["createActor", Hooks.on("createActor", onKnight)],
+			["deleteActor", Hooks.on("deleteActor", onKnight)]];
+	}
+
+	/** @override */
+	_onClose(options) {
+		for (const [hook, id] of this.#hooks) Hooks.off(hook, id);
+		this.#hooks = [];
+		super._onClose(options);
 	}
 
 	/** @override */
@@ -185,6 +235,13 @@ export class KnightChooser extends BastionlandChooser {
 		input?.addEventListener("input", () => {
 			this.#name = input.value;
 			this.#syncApply();
+		});
+		// Escape shuts the search rather than the window.
+		this.element.querySelector("input[name=search]")?.addEventListener("keydown", (event) => {
+			if (event.key !== "Escape") return;
+			event.preventDefault();
+			event.stopPropagation();
+			this.#showSearch(false);
 		});
 	}
 
@@ -207,9 +264,12 @@ export class KnightChooser extends BastionlandChooser {
 		};
 	}
 
-	/** @returns {boolean} Whether a Knight is picked and named. */
-	#canApply() {
-		return Boolean(this.roll && this.#name.trim());
+	/**
+	 * @param {Map<string, string>} [taken] From #taken; as last drawn where not given.
+	 * @returns {boolean} Whether a Knight no one else is has been picked, and named.
+	 */
+	#canApply(taken = this.#takenNow) {
+		return Boolean(this.roll && !taken.has(this.roll) && this.#name.trim());
 	}
 
 	/** Enable Apply once there's a Knight and a name, without re-rendering under the cursor. */
@@ -250,12 +310,13 @@ export class KnightChooser extends BastionlandChooser {
 		return entry.knight?.name ?? t("chooser.unnamed", { roll: entry.roll });
 	}
 
-	/** @returns {Map<string, string>} Rolls other characters already are, to who. */
+	/**
+	 * @returns {Map<string, string>} Rolls other living Knights already are, to who. None where the Referee
+	 *   lets two characters be the same Knight.
+	 */
 	#taken() {
-		const knights = game.actors
-			.filter((actor) => actor.type === "knight")
-			.map((actor) => ({ id: actor.id, name: actor.name, knightType: actor.system.knightType }));
-		return takenKnights(knights, this.index?.knights ?? [], this.actor?.id);
+		if (allowsDuplicateKnights()) return new Map();
+		return takenKnights(knightRows(), this.index?.knights ?? [], this.actor?.id);
 	}
 
 	/* -------------------------------------------- */
@@ -306,16 +367,70 @@ export class KnightChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * Roll d6 then d12 and show the Knight they land on. Nothing goes to chat.
+	 * Roll for a Knight and show the one rolled. Rolling d6 then d12 again on one
+	 * another character already is lands on each free Knight as often as one die
+	 * across the free Knights does, so that's what's rolled. Nothing goes to chat.
 	 * @this {KnightChooser}
 	 */
 	static async #onRollKnight() {
-		const d6 = await new Roll("1d6").evaluate();
-		const d12 = await new Roll("1d12").evaluate();
-		const entry = this.#entries().find((candidate) => candidate.d6 === d6.total && candidate.d12 === d12.total);
+		const free = this.#entries().filter((entry) => !this.#takenNow.has(entry.roll));
+		if (!free.length) return ui.notifications.warn(t("chooser.allTaken"));
+		const roll = await new Roll(`1d${free.length}`).evaluate();
+		const entry = free[roll.total - 1];
+		// The Knight rolled shows among their d6 result, whatever was searched for.
+		this.search = "";
 		this.group = entry.d6;
 		this.roll = entry.roll;
 		return this.render();
+	}
+
+	/**
+	 * A Knight another character already is can't be picked, and the Referee is told why.
+	 * @override
+	 */
+	_canPick(roll) {
+		const takenBy = this.#takenNow.get(roll);
+		if (takenBy) this.#warnTaken(this.#entries().find((entry) => entry.roll === roll), takenBy);
+		return !takenBy;
+	}
+
+	/**
+	 * Open the search box beside the d6 results, or shut it and show the d6 result again.
+	 * @this {KnightChooser}
+	 */
+	static #onToggleSearch() {
+		this.#showSearch(!this.#searchShown);
+	}
+
+	/**
+	 * Open or shut the search box; shut, what was searched for is let go. Nothing is
+	 * drawn again, so the box keeps its place and the Knights theirs.
+	 * @param {boolean} open
+	 */
+	#showSearch(open) {
+		this.#searchOpen = open;
+		if (!open) this.search = "";
+		const find = this.element.querySelector(".bastionland-knight-chooser__find");
+		const box = find?.querySelector("input[name=search]");
+		if (!box) return;
+		const toggle = find.querySelector("[data-action=toggleSearch]");
+		box.hidden = !open;
+		find.classList.toggle("is-open", open);
+		find.classList.toggle("is-opening", open);
+		toggle?.setAttribute("aria-expanded", String(open));
+		if (open) return box.focus();
+		box.value = "";
+		toggle?.focus();
+		this._applySearch();
+	}
+
+	/**
+	 * Say who already is this Knight, that no two characters may be, and that the Referee can allow it.
+	 * @param {object} entry From #entries.
+	 * @param {string} takenBy Who is.
+	 */
+	#warnTaken(entry, takenBy) {
+		ui.notifications.warn(t("chooser.takenNotice", { name: takenBy, knight: midSentence(this.#knightName(entry)) }));
 	}
 
 	/**
@@ -370,6 +485,12 @@ export class KnightChooser extends BastionlandChooser {
 		const entry = this.#entries().find((candidate) => candidate.roll === this.roll);
 		const name = this.#name.trim();
 		if (!entry || !name) return;
+		// Someone else may have become this Knight while the window was open.
+		const takenBy = this.#taken().get(entry.roll);
+		if (takenBy) {
+			this.#warnTaken(entry, takenBy);
+			return this.render();
+		}
 		if (this.#knighting) return this.#applyKnighted(entry, name);
 
 		const knightName = this.#knightName(entry);

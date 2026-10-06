@@ -53,6 +53,7 @@ const ARRIVAL_POSITIONS = Object.freeze([0, 6]);
  * @property {boolean} [person] A person rolled on every People table at once, rather than one table's roll.
  * @property {string} [batch] Shared by the rolls kept in one go, such as a wilderness hex's three, so the hex's list can fold them away together.
  * @property {string} [name]   What the GM calls them; only a person has one.
+ * @property {number} [traitCount] How many of a person's entries are traits; the rest is what they've heard.
  */
 
 /** How long a person's name in a hex may be. */
@@ -114,6 +115,7 @@ function normaliseSpark(raw, index) {
 	};
 	// Only a person carries these, so every other roll keeps the shape it always had.
 	if (raw.person === true) spark.person = true;
+	if (spark.person && Number.isInteger(raw.traitCount) && raw.traitCount >= 0) spark.traitCount = raw.traitCount;
 	const name = cleanSparkName(raw.name);
 	if (name) spark.name = name;
 	const batch = trimmedText(raw.batch);
@@ -240,12 +242,19 @@ export const sparkKeepTarget = ({ lore = null, company = null } = {}) => lore ??
  * @param {string} id
  * @returns {HexLore} Unchanged when no roll there has that id.
  */
-export function forgetSpark(lore, hex, id) {
-	const here = loreAt(lore, hex);
-	if (!here) return lore;
-	const sparks = here.sparks.filter((spark) => spark.id !== id);
-	if (sparks.length === here.sparks.length) return lore;
-	return withRecord(lore, hex, worthKeeping({ ...here, sparks }));
+export const forgetSpark = (lore, hex, id) => changeSpark(lore, hex, id, () => null);
+
+/**
+ * A roll with a name, or with none where the name is empty.
+ * @param {HexSpark} spark
+ * @param {string} name
+ * @returns {HexSpark} The one it was handed where it already has that name.
+ */
+export function namedSpark(spark, name) {
+	const clean = cleanSparkName(name);
+	if ((spark.name ?? "") === clean) return spark;
+	const { name: _was, ...rest } = spark;
+	return clean ? { ...rest, name: clean } : rest;
 }
 
 /**
@@ -256,25 +265,68 @@ export function forgetSpark(lore, hex, id) {
  * @param {string} name
  * @returns {HexLore} Unchanged when no roll there has that id, or it already has that name.
  */
-export function renameSpark(lore, hex, id, name) {
+export const renameSpark = (lore, hex, id, name) => changeSpark(lore, hex, id, (spark) => namedSpark(spark, name));
+
+/** How long the words of one roll may run once the GM has rewritten them. */
+export const MAX_SPARK_PROMPT = 500;
+
+/**
+ * Reword some rolls in a hex and strike others out, in one write. A roll's
+ * words left empty go back to what was rolled.
+ * @param {HexLore} lore
+ * @param {{col: number, row: number}} hex
+ * @param {{prompts?: Record<string, string>, forget?: string[]}} [changes] The new words by roll id, and the ids to forget.
+ * @returns {HexLore} Unchanged when nothing changes.
+ */
+export function editSparks(lore, hex, { prompts = {}, forget = [] } = {}) {
 	const here = loreAt(lore, hex);
-	const spark = here?.sparks.find((each) => each.id === id);
-	if (!spark) return lore;
-	const clean = cleanSparkName(name);
-	if ((spark.name ?? "") === clean) return lore;
-	const { name: _was, ...rest } = spark;
-	const renamed = clean ? { ...rest, name: clean } : rest;
-	return withRecord(lore, hex, { ...here, sparks: here.sparks.map((each) => (each === spark ? renamed : each)) });
+	if (!here) return lore;
+	const gone = new Set(forget);
+	let changed = false;
+	const sparks = here.sparks.flatMap((spark) => {
+		if (gone.has(spark.id)) {
+			changed = true;
+			return [];
+		}
+		if (!Object.hasOwn(prompts, spark.id)) return [spark];
+		const prompt = trimmedText(prompts[spark.id]).slice(0, MAX_SPARK_PROMPT).trim() || spark.entries.join(" ");
+		if (prompt === spark.prompt) return [spark];
+		changed = true;
+		return [{ ...spark, prompt }];
+	});
+	return changed ? withRecord(lore, hex, worthKeeping({ ...here, sparks })) : lore;
 }
 
 /**
- * Forget all that's written and rolled for a hex.
+ * Change one roll in a hex as `change` makes it over, such as a person edited, or strike it out.
  * @param {HexLore} lore
  * @param {{col: number, row: number}} hex
+ * @param {string} id
+ * @param {(spark: HexSpark) => HexSpark|null} change Gives back the roll it was handed where
+ *   nothing changes, and null to strike it out.
+ * @returns {HexLore} Unchanged when no roll there has that id, or nothing changes.
+ */
+export function changeSpark(lore, hex, id, change) {
+	const here = loreAt(lore, hex);
+	const spark = here?.sparks.find((each) => each.id === id);
+	if (!spark) return lore;
+	const changed = change(spark);
+	if (changed === spark) return lore;
+	const sparks = changed ? here.sparks.map((each) => (each === spark ? changed : each)) : here.sparks.filter((each) => each !== spark);
+	return withRecord(lore, hex, worthKeeping({ ...here, sparks }));
+}
+
+/**
+ * Forget what's written and rolled for a hex: all of it, or the parts named.
+ * @param {HexLore} lore
+ * @param {{col: number, row: number}} hex
+ * @param {{note?: boolean, sparks?: boolean}} [parts] Which go; both when not given.
  * @returns {HexLore} Unchanged when nothing was.
  */
-export function forgetRecord(lore, hex) {
-	return loreAt(lore, hex) ? withRecord(lore, hex, null) : lore;
+export function forgetRecord(lore, hex, { note = true, sparks = true } = {}) {
+	const here = loreAt(lore, hex);
+	if (!here || !((note && here.note) || (sparks && here.sparks.length))) return lore;
+	return withRecord(lore, hex, worthKeeping({ ...here, note: note ? "" : here.note, sparks: sparks ? [] : here.sparks }));
 }
 
 /**

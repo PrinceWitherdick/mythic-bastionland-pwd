@@ -24,6 +24,9 @@ vi.mock("../../module/apps/BastionlandChooser.js", () => ({
 		async _prepareContext() {
 			return { groups: [] };
 		}
+		_cardFields({ d6 }) {
+			return { d6, inGroup: d6 === this.group };
+		}
 		render = vi.fn();
 	}
 }));

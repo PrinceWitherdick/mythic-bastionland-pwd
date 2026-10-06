@@ -7,6 +7,7 @@ import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
 import { registerSightings } from "./module/actions/sighted.js";
 import { registerSolo } from "./module/actions/solo.js";
+import { registerDuplicateKnightGuard, registerDuplicateKnights } from "./module/actions/knights.js";
 import { registerSkyAndWeather } from "./module/actions/sky-weather.js";
 import { registerHomecoming } from "./module/actions/homecoming.js";
 import { registerPhaseEndSettings } from "./module/actions/phase-end.js";
@@ -431,6 +432,9 @@ Hooks.once("init", () => {
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
 	registerSolo();
+	// No two characters are the same Knight from the book, unless the Referee says they may be.
+	registerDuplicateKnights();
+	registerDuplicateKnightGuard();
 	// A ruler back at their Holding from a long absence makes the Crisis Roll.
 	registerHomecoming();
 

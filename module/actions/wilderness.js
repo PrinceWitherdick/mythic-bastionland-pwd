@@ -1,4 +1,5 @@
 import { hexLabel } from "./hex-names.js";
+import { hexTarget } from "../chat/hex-target.js";
 import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
@@ -243,7 +244,7 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 	return {
 		// A Ruin's echo reads the Myths of the Realm the roll was made for, whichever Scene is on the canvas.
 		scene: scene?.id ?? null,
-		hex: hexLabel(where, scene),
+		hex: hexTarget(where, scene),
 		terrain: terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
 		mode: outcome.d6 === null ? null : t(`realm.wilderness.modes.${mode}`),
 		d6: outcome.d6,
