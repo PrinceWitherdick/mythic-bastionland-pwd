@@ -16,12 +16,12 @@ import { movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
-import { refreshHexLore } from "../apps/HexLore.js";
 import { refreshMythChooser } from "../apps/MythChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
-import { registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
+import { refreshHexEditor } from "../apps/HexEditor.js";
+import { refreshPlaces, registerTravelsViewSetting } from "../apps/TravelsPlaces.js";
 import { registerVisitedMarksMenu } from "../apps/VisitedMarks.js";
 import { t } from "../chat/cards.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
@@ -71,19 +71,21 @@ function allowRealmMove(token, movement) {
 	return false;
 }
 
-/** Scenes whose Realm changed since the palette, Lay of the Land, readout and highlight were last drawn. */
+/** Scenes whose Realm changed since the palette, Places, readout and highlight were last drawn. */
 const changedScenes = new Set();
 
-/** Draw the palette, Lay of the Land, readout and highlight again for the Realms that changed. */
+/** Draw the palette, Places, readout and highlight again for the Realms that changed. */
 function showChanges() {
 	for (const sceneId of changedScenes) {
 		refreshRealmPanel(sceneId);
-		refreshHexLore(sceneId);
 		refreshRealmDrawing(sceneId);
 		refreshMythChooser(sceneId);
+		refreshHexEditor(sceneId);
 		// The players' record of where the Company has been, in whatever window or sheet shows it.
 		// Not while the Realm is drawn by hand, which players don't see; finishing it updates the Scene, which comes here again.
-		if (!isDrawingRealm(game.scenes.get(sceneId))) Hooks.callAll(TRAVELS_CHANGED_HOOK, sceneId);
+		// Meanwhile the GM's hex in Places, which shows the Realm being drawn, is drawn again alone.
+		if (isDrawingRealm(game.scenes.get(sceneId))) refreshPlaces(sceneId);
+		else Hooks.callAll(TRAVELS_CHANGED_HOOK, sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
 			canvas.realm?.refreshHighlight();
@@ -175,7 +177,8 @@ export function registerRealmHooks() {
 	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => {
 		if (changedScenes.has(sceneId)) return;
 		refreshRealmPanel(sceneId);
-		refreshHexLore(sceneId);
+		refreshPlaces(sceneId);
+		refreshHexEditor(sceneId);
 		refreshRealmDrawing(sceneId);
 	});
 	// The swatches, in the palette and in Creating a Realm, show the pictures the Realm is drawn with.

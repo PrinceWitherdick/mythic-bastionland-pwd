@@ -107,7 +107,7 @@
 			{{#each days}}
 			<ol class="bastionland-travels-journey__day" data-search-section>
 				{{#each entries}}
-				<li class="bastionland-travels-journey__entry bastionland-travels-journey__entry--{{kind}}" data-search="{{search}}" data-tags="{{tags}}">
+				<li class="bastionland-travels-journey__entry bastionland-travels-journey__entry--{{kind}}{{#if forget}} bastionland-travels-journey__entry--forgettable bastionland-reveal-host{{/if}}" data-search="{{search}}" data-tags="{{tags}}">
 					<span class="bastionland-travels-journey__phase">{{phase}}</span>
 					<button type="button" class="bastionland-travels-journey__open" data-action="pickTravelsHex" data-hex="{{hex}}">
 						<i class="{{icon}}" inert></i>
@@ -115,6 +115,10 @@
 						{{#if about}}<span class="bastionland-travels__line">{{about}}</span>{{/if}}
 						{{#if note}}<span class="bastionland-travels-journey__note">{{note}}</span>{{/if}}
 					</button>
+					{{!-- A GM's × in the Places window forgets the line, and what it stands for. --}}
+					{{#with forget}}
+					<button type="button" class="bastionland-icon bastionland-travels-journey__forget bastionland-reveal" data-action="forgetJourney" data-kind="{{../kind}}" data-hex="{{../hex}}" data-ref="{{ref}}" aria-label="{{label}}" data-tooltip="{{label}}"><i class="fa-solid fa-xmark" inert></i></button>
+					{{/with}}
 				</li>
 				{{/each}}
 			</ol>

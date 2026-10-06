@@ -1008,7 +1008,7 @@
     },
     "travels": {
       "title": "Places",
-      "asPlayers": "As the players see it: nothing they haven’t found. Only the chosen hex’s Rolled Here, at the foot of it, is yours alone.",
+      "asPlayers": "As the players see it: nothing they haven’t found. Only the chosen hex’s Lay of the Land, at the foot of it, is yours alone, and you can choose any hex from the map or the Toolkit.",
       "realm": "Realm",
       "search": "Search the places",
       "noMatch": "No place matches that.",
@@ -1020,6 +1020,8 @@
       "notKnown": "The Company knows nothing of this hex yet.",
       "here": "The Company is here",
       "showOnMap": "Show on the map",
+      "ping": "Ping",
+      "pingHint": "Show this hex on the map, ringed in green until you next click.",
       "openPlaces": "Open Places",
       "views": {
         "label": "Pages",
@@ -1077,16 +1079,19 @@
         "arrivedFirst": "Came to {place} for the first time",
         "arrived": "Came back to {place}",
         "told": "The Referee told of {place}",
-        "met": "{name} was turned back by the {direction} Barrier of {place}",
-        "noted": "{name} wrote the Company’s note on {place}"
+        "toldGM": "The Company was told of {place}",
+        "met":"{name} was turned back by the {direction} Barrier of {place}",
+        "noted": "{name} wrote the Company’s note on {place}",
+        "forget": {
+          "arrived": "Forget this visit",
+          "told": "Forget this telling",
+          "met": "Forget this line. The Barrier stays on the map.",
+          "noted": "Forget the Company’s note"
+        }
       },
       "detail": {
-        "empty": "Choose a hex in the list, on the chart or in the journey to see what the Company knows of it."
-      },
-      "gm": {
-        "heading": "Rolled Here",
-        "hint": "For GMs only: what the players haven’t found here, and what the Lay of the Land keeps for the hex.",
-        "fillHint": "Roll the land, its weather and one feature on the Nature Spark Tables, and keep them in this hex."
+        "empty": "Choose a hex in the list, on the chart or in the journey to see what the Company knows of it.",
+        "emptyGM": "Choose a hex in the list, on the chart, in the journey or on the map to see what the Company knows of it and its Lay of the Land."
       },
       "chips": {
         "told": "Told",
@@ -1218,6 +1223,21 @@
       "now": "{phase}, {season}, Age {age}",
       "chronicle": "{phase}, in the {season} of the {age} Age.",
       "seasonOfAge": "{season} of the {age} Age",
+      "moment": "the {phase} of {season} in the {age} Age",
+      "ordinalWords": {
+        "1": "First",
+        "2": "Second",
+        "3": "Third",
+        "4": "Fourth",
+        "5": "Fifth",
+        "6": "Sixth",
+        "7": "Seventh",
+        "8": "Eighth",
+        "9": "Ninth",
+        "10": "Tenth",
+        "11": "Eleventh",
+        "12": "Twelfth"
+      },
       "banner": {
         "age": "{age} Age",
         "moves": "Move Time On",
@@ -1890,8 +1910,8 @@
     "bookFlip": {
       "title": "Flip the Book",
       "open": "Random Page Prompt",
-      "openHint": "A random page of the book, for a prompt along its foot",
-      "hint": "A random spread of the book and the prompts along its foot. Take whatever fits the blank you’re filling: a Hex, a stranger, an explanation (p19, p179). Click the prompts you’ll use, then Save to hex and click a hex on the map.",
+      "openHint": "A random page of the book, for a prompt along its foot to keep in this hex",
+      "hint": "A random spread of the book and the prompts along its foot. Take whatever fits the blank you’re filling: a Hex, a stranger, an explanation (p19, p179). Click the prompts you’ll use and save them to the hex chosen in Places, or with Places closed to a hex you click on the map.",
       "flip": "Flip again",
       "rolled": "Spread {roll}",
       "page": "page {page}",
@@ -1912,16 +1932,55 @@
     "hexPick": {
       "stop": "Right-click or press Esc to stop."
     },
+    "hexEdit": {
+      "title": "Edit {hex}"
+    },
+    "hexGm": {
+      "heading": "The Lay of the Land",
+      "hint": "Only you see this part. A Hex is broad and varied, with room enough for a person never to leave it: roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
+      "wildHint": "Roll the land, its weather and one feature on the Nature Spark Tables, and keep them in this hex.",
+      "tabs": {
+        "label": "What to roll for",
+        "people": "People",
+        "land": "The Land",
+        "myth": "Myth",
+        "holding": "Holding"
+      },
+      "myth": {
+        "noOmen": "No Omen met yet.",
+        "castMissing": "Run Import PDF to read this Myth’s Cast here.",
+        "unmade": "Not made yet. Make them from the Myth’s card in the Referee Toolkit.",
+        "toolkit": "Open in the Toolkit",
+        "toolkitHint": "This Myth’s card on the Referee Toolkit’s Myths page, with all six Omens, its table, and its Cast to make."
+      },
+      "seer": {
+        "label": "Seer",
+        "none": "No Seer rolled for this Sanctum yet.",
+        "roll": "Roll the Seer",
+        "again": "Roll Another Seer",
+        "hint": "Roll d6 and d12 on the Knights table (p26) for the Seer who lives here."
+      },
+      "landmarkName": "Name",
+      "noPeople": "No one met here yet.",
+      "noHolding": "Nothing rolled for the Holding yet.",
+      "told": {
+        "current": "The Company was told this in {when}.",
+        "currentUndated": "The Company was told this.",
+        "stale": "Out of date: this note has changed since the Company was told of the hex in {when}.",
+        "staleUndated": "Out of date: this note has changed since the Company was told of the hex.",
+        "unsaid": "The Company hasn’t been told this yet.",
+        "kept": "This note is empty, but the Company still holds what they were told in {when}.",
+        "keptUndated": "This note is empty, but the Company still holds what they were told.",
+        "tellAgain": "Update the players"
+      }
+    },
     "hexLore": {
       "title": "The Lay of the Land",
-      "titleHex": "The Lay of the Land: {hex}",
-      "open": "Lay of the Land",
+      "open": "Open in Places",
       "edit": "Edit this hex",
-      "hint": "A Hex is broad and varied, with room enough for a person never to leave it. Roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
-      "spark": "Roll for this hex",
-      "rollSet": "Roll a wilderness hex",
+      "rollSet": "Roll the Land",
       "setMissing": "Import PDF hasn’t read enough of the Nature Spark Tables to roll a wilderness hex.",
       "wildHex": {
         "intro": "A wilderness hex is rolled on the Nature page’s tables set out for it. Roll a d12 for each column, or click a table’s die or a heading to roll just that. Click an entry to choose it instead. Nothing is kept in the hex until you save the results.",
@@ -1940,14 +1999,11 @@
       },
       "forget": "Forget this roll",
       "noRolls": "Nothing rolled here yet.",
-      "notVisited": "The Company hasn’t been here.",
+      "earlier": "An earlier roll",
       "tell": "Tell the players",
       "nothingToTell": "Write what’s in the hex before telling the players about it.",
       "told": "Told the players about the hex at {hex}.",
-      "toldOnce": "Told the players once, in {when}. They keep what was said in their Places.",
-      "toldMany": "Told the players {count} times, last in {when}. They keep what was said in their Places.",
       "when": "rolled in {when}",
-      "explore": "Find out what’s here",
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
       "settings": {
         "firstArrival": {
@@ -1959,7 +2015,7 @@
           "hint": "What to do when the Company comes to rest in a Hex of a Realm you’re looking at. Saved per browser.",
           "modes": {
             "never": "Nothing",
-            "open": "Open the Lay of the Land"
+            "open": "Open the hex in Places"
           }
         }
       }
@@ -2017,8 +2073,8 @@
       "rollTable": "Roll on {name}",
       "animate": "Animate selection",
       "keepIn": "Keep rolls in {hex}",
-      "keepNone": "Open a hex’s Lay of the Land to keep rolls there",
-      "keepHint": "Rolls made here are kept in the hex the Lay of the Land is open on, or else the hex the Company stands in, beside the rest rolled there.",
+      "keepNone": "Choose a hex in Places to keep rolls there",
+      "keepHint": "Rolls made here are kept in the hex chosen in Places, or else the hex the Company stands in, beside the rest rolled there.",
       "tagline": "{page} Spark Table, page {number}",
       "noIndex": "Run the Import PDF macro with your rulebook to bring in the Spark Tables.",
       "noText": "Run Import PDF again with your rulebook to bring in the Spark Tables.",
@@ -2034,6 +2090,14 @@
     "people": {
       "roll": "Roll a Person",
       "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot (p200, p202).",
+      "rollHexHint": "Roll every People Spark Table for someone met here, then reroll or choose what you like and save them to this hex (p200, p202).",
+      "window": {
+        "hint": "For {hex}. Every table is rolled as this opens. Click a table’s die or a column’s heading to reroll just that, or click an entry to choose it instead. Nothing is kept in the hex until you save.",
+        "rerollAll": "Reroll All",
+        "rollTable": "Reroll {name}",
+        "rollColumn": "Reroll {column}",
+        "save": "Save"
+      },
       "title": "A Person",
       "taglineHex": "{hex} · {reference}",
       "kept": "A person (p{page})",
@@ -2135,7 +2199,6 @@
       "companyPictureHint": "Change the picture the Company’s Token carries on the Realm, even before they’re on the map. Right-clicking the Token offers the same.",
       "noCompany": "The Company isn’t on this Realm’s map",
       "showHex": "Show on the Map",
-      "sparks": "Spark Tables rolled here",
       "wild": "The wilderness as last rolled",
       "wildChip": "{table}: {prompt}",
       "relaunch": "Launch the world again to get the Referee Toolkit. The world was already open when the system added it.",
@@ -2197,27 +2260,17 @@
         "many": "Visited {count} times, last: {when}",
         "unknown": "when is unknown",
         "mark": "Count a Visit",
-        "edit": "Edit the Visits",
         "forgetTitle": "Forget Every Visit?",
         "forgetConfirm": "Every visit the Company made to {hex} is forgotten. What you wrote about the hex, and the Spark Tables rolled there, stay.",
-        "fold": "Forget What’s Kept Here",
-        "foldHint": "Strike out one visit, telling or note with its ×, or forget it all at once below. The Spark Tables rolled here go by their own × further down.",
-        "visitsHeading": "Visits",
-        "nth": "Visit {count}",
-        "forgetOne": "Forget this visit",
         "forgetAll": "Forget Every Visit",
         "forgetEverything": "Forget Everything Here",
         "forgetAllTitle": "Forget Everything Here?",
         "forgetAllConfirm": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten.",
-        "forgetAllConfirmShared": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten. So are what the players were told of it and their own note on it, which goes from their Places too.",
-        "toldHeading": "Told the Players",
-        "forgetTold": "Forget this telling",
-        "noTold": "The players haven’t been told about this hex.",
-        "forgetParty": "Rub out the Company’s note",
-        "noParty": "The players haven’t written about this hex."
+        "forgetAllConfirmShared": "Every visit the Company made to {hex}, the Spark Tables rolled there and what you wrote about it are all forgotten. So are what the players were told of it and their own note on it, which goes from their Places too."
       },
       "places": {
-        "hint": "Every place in the Realm and every hex the Company has come into, each once, with what you wrote about it and the Spark Tables rolled there (p19). A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. These are the same notes as in the Lay of the Land. For your eyes only.",
+        "hint": "Every place in the Realm and every hex the Company has come into, each once (p19). Click a place to open it in Places, where you read and change everything kept for it. A hex counts as visited once the Company’s Token walks into it, or when you count a visit by hand. For your eyes only.",
+        "openHex": "Open in Places",
         "summary": "{count} of {total} hexes visited.",
         "order": "List the places",
         "orders": {
@@ -2228,7 +2281,7 @@
         "search": "Search the places…",
         "noMatch": "No place matches.",
         "visited": "Visited",
-        "visitedNone": "The Company hasn’t come into any hex of this Realm yet. Move its Token, or count a visit on a place below.",
+        "visitedNone": "The Company hasn’t come into any hex of this Realm yet. Move its Token, or count a visit on a hex in Places.",
         "unvisited": "Not Visited Yet",
         "unvisitedHint": "The Holdings and Landmarks, found or not, and any other hex you’ve written about or rolled for.",
         "unvisitedNone": "The Company has been to every place in the Realm.",
@@ -2241,12 +2294,13 @@
         "othersNone": "The Company hasn’t come into any other hex, and nothing is written about one yet.",
         "tracked": "Tracked Places",
         "trackedHint": "The hexes you chose to keep an eye on, in the order you added them.",
-        "trackedNone": "No places tracked yet. Add one below, or use Track This Place on any card.",
+        "trackedNone": "No places tracked yet. Add one below, or pin any place in the other lists.",
         "track": {
           "add": "Add a Place",
           "pick": "Click the hex to track.",
           "pickHere": "Track {hex}",
           "this": "Track This Place",
+          "site": "Track This Site",
           "remove": "Stop Tracking",
           "title": "Track a Hex",
           "askHint": "This Realm isn’t the scene on the map, so give the hex by its column and row.",
@@ -2256,6 +2310,7 @@
         },
         "sites": "Sites",
         "sitesHint": "Places explored in more detail than a Hex (p15).",
+        "sitesTrackedHint": "The Sites you chose to keep an eye on, in the order you added them.",
         "seat": "Seat of Power",
         "seer": "Seer: {name}",
         "notFound": "Not found yet",
@@ -3581,7 +3636,7 @@
         "pages": {
           "realm": "The Realm"
         },
-        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set from the Lay of the Land. Nothing is rolled.",
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set in each hex’s Lay of the Land in Places. Nothing is rolled.",
         "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. Your map may have hexes drawn on it, or none at all. You line the picture up with the hex lines, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
@@ -3866,6 +3921,13 @@
         "mythRoll": "Myth rolled",
         "chooseMyth": "Choose",
         "chooseMythTooltip": "Open the Realm’s Myths on this one, to roll it again or choose another for it.",
+        "moveMyth": {
+          "title": "Move a Myth Here",
+          "intro": "A Realm has six Myths, and all six already stand on the map. Choose one to move to {hex}. It keeps its roll and the Omens seen.",
+          "which": "Which Myth",
+          "from": "Myth {number}, now at {hex}",
+          "ok": "Move Here"
+        },
         "seerRoll": "Seer rolled",
         "roll": "Roll",
         "reference": "{name}, page {page}",
@@ -3959,7 +4021,7 @@
       "hazardIntro": "Everybody who pushes through loses d6 {virtue}.",
       "ruinEchoes": "The ruin echoes this Myth, which the Realm doesn’t hold.",
       "ruinPrompt": "Its page suggests a ruin: {prompt}.",
-      "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it in the Lay of the Land.",
+      "promptFrom": "Named from the prompts on {myth}’s page (p{page}). Rename it in the hex’s Lay of the Land in Places.",
       "promptUnread": "Import PDF hasn’t read the prompts along the foot of that Myth’s page, so the Landmark keeps its name.",
       "ruinHint": "Hint at it however the ruin would: a carving, a name half-worn away, a warning nobody living remembers. It may yet return to the Realm.",
       "offCourse": {
@@ -4087,7 +4149,7 @@
         "heading": "Paint every hex",
         "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture. Paint open sea as Lake, the rules' only water, which boats can cross. Nothing stops the Company walking onto a Lake, so rule on that at the table."
       },
-      "inspectHint": "Click a hex, then set it under Edit this hex in the Lay of the Land.",
+      "inspectHint": "Click a hex to open it in Places, then click the pen beside its terrain to edit it.",
       "groups": {
         "wilderness": "Wilderness",
         "holdings": "Holdings",
@@ -4634,7 +4696,7 @@
       },
       "places": {
         "title": "Places",
-        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nPlayers have the same button, and see only the places their Company has found."
+        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nFor you, any hex can be opened here, and under what the players know of it is its Lay of the Land: your note and the Spark Tables rolled there. The pen beside a hex’s terrain edits the hex itself.\nPlayers have the same button, and see only the places their Company has found."
       }
     },
     "welcome": {

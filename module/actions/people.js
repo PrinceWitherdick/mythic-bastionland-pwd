@@ -10,7 +10,8 @@ import {
 	holdingSparkSet,
 	personSpark,
 	personTraits,
-	sparkDiceCount
+	sparkDiceCount,
+	takenTraits
 } from "../rules/people.js";
 import { rollKnightName } from "../rules/knight-names.js";
 import { featureAt, holdingName } from "../rules/realm.js";
@@ -67,16 +68,23 @@ export function namesForHex(scene, hex, count) {
 }
 
 /**
+ * The People page of Spark Tables (p24), as the art index holds it.
+ * @returns {Promise<object|null>} Null, with a word to the user, where Import PDF hasn't read it.
+ */
+export async function peopleTables() {
+	const page = sparkTablesOf(await loadArtIndex(), PEOPLE_PAGE);
+	if (!page) warn("people.missing");
+	return page;
+}
+
+/**
  * Roll every People Spark Table at once (p24), as the Referee does to make a
  * ruler or a stranger (p200, p202). Nothing is posted.
  * @returns {Promise<RolledPerson|null>} Null, with a word to the user, where Import PDF hasn't read the page.
  */
 export async function rollPersonTables() {
-	const page = sparkTablesOf(await loadArtIndex(), PEOPLE_PAGE);
-	if (!page) {
-		warn("people.missing");
-		return null;
-	}
+	const page = await peopleTables();
+	if (!page) return null;
 	const { roll, d12s } = await throwTables(page.tables);
 	const rolled = dealSparkDice(page.tables, d12s);
 	return { page, rolled, traits: personTraits(rolled), roll };
@@ -84,7 +92,7 @@ export async function rollPersonTables() {
 
 /**
  * Post a person rolled on the People tables.
- * @param {RolledPerson} person
+ * @param {Pick<RolledPerson, "page" | "traits"> & {roll: Roll|null}} person With no roll where they were chosen by hand.
  * @param {object} [options]
  * @param {string|null} [options.hex] Where they were rolled, for the card's heading.
  * @param {string|null} [options.name] What they're called, as the card's title.
@@ -96,27 +104,30 @@ export function postPerson({ page, traits, roll }, { hex = null, name = null, mo
 		title: name || t("people.title"),
 		tagline: hex ? t("people.taglineHex", { hex, reference: pageReference(page) }) : pageReference(page),
 		people: [{ traits: traitLines(traits) }]
-	}, { rolls: [roll], mode });
+	}, { rolls: roll ? [roll] : [], mode });
 }
 
 /**
- * Roll a person met in a hex, keep them there as the Lay of the Land keeps its
- * rolls, and whisper the GMs the card. GMs only.
+ * Keep a person met in a hex, as chosen from the People tables in the Roll a
+ * Person window, with a name of their own, and whisper the GMs the card. GMs only.
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
- * @returns {Promise<RolledPerson|null>}
+ * @param {object} options.page The People page, as the art index holds it.
+ * @param {(number|null)[][]} options.taken The row taken in each column of each table, from 1, or null.
+ * @returns {Promise<{name: string, traits: object[]}|null>} Null where nothing was kept.
  */
-export async function rollHexPerson({ scene, hex }) {
+export async function saveHexPerson({ scene, hex, page, taken }) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	const person = await rollPersonTables();
-	if (!person) return null;
+	const traits = takenTraits(page.tables, taken);
+	if (!traits.length) return null;
+	const person = { page, traits, roll: null };
 	const [name] = namesForHex(scene, hex, 1);
 	await Promise.all([
 		keepHexPerson(scene, hex, person, name),
 		postPerson(person, { hex: hexLabel(hex, scene), name, mode: "gm" })
 	]);
-	return person;
+	return { name, traits };
 }
 
 /**
@@ -124,7 +135,7 @@ export async function rollHexPerson({ scene, hex }) {
  * Land keeps its rolls. GMs only.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
- * @param {RolledPerson} person
+ * @param {Pick<RolledPerson, "page" | "traits">} person
  * @param {string} name What they're called, as namesForHex gives it.
  * @returns {Promise<boolean>} Whether anything was kept.
  */

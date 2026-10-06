@@ -283,3 +283,36 @@ export function filterBySearch(page, term, noMatch = null) {
 	if (none) none.hidden = !words || found > 0;
 	return found;
 }
+
+/**
+ * Hang labelled buttons in a window's title bar, left of Foundry's own
+ * controls, in place of any hung before under the same class. Their
+ * data-action is the window's to handle.
+ * @param {HTMLElement|null|undefined} element The window.
+ * @param {string} className Marks these buttons apart from Foundry's and other hangers'.
+ * @param {{action: string, icon: string, label: string, tooltip?: string, muted?: boolean}[]} buttons None takes them all down.
+ *   A muted one is greyed, for what's offered but not yet to hand.
+ */
+export function hangHeaderButtons(element, className, buttons) {
+	const header = element?.querySelector(".window-header");
+	if (!header) return;
+	header.querySelectorAll(`.${className}`).forEach((button) => button.remove());
+	const doc = header.ownerDocument;
+	const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
+	for (const { action, icon, label, tooltip, muted } of buttons) {
+		const button = doc.createElement("button");
+		button.type = "button";
+		button.classList.add("header-control", "bastionland-header-button", className);
+		button.classList.toggle("bastionland-header-button--muted", Boolean(muted));
+		button.dataset.action = action;
+		if (tooltip) button.dataset.tooltip = tooltip;
+		const glyph = doc.createElement("i");
+		glyph.className = icon;
+		glyph.inert = true;
+		const text = doc.createElement("span");
+		text.textContent = label;
+		button.append(glyph, text);
+		if (controls) controls.before(button);
+		else header.append(button);
+	}
+}

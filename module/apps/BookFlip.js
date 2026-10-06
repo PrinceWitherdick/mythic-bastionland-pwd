@@ -5,13 +5,15 @@ import { t, warn } from "../chat/cards.js";
 import { SPREAD_SIDES, chosenPrompts } from "../rules/book-flip.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { placesChosenHex } from "./places-hex.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
  * Flip the book to a random spread and take a prompt from its foot (p19,
- * p179). The Referee clicks the prompts that fit, then Save to hex and a hex
- * of the Realm on the map, where they're kept beside its Spark Table rolls.
+ * p179). The Referee clicks the prompts that fit, then Save, and they're kept
+ * beside its Spark Table rolls in the hex chosen in Places, or with Places
+ * closed in a hex clicked on the map.
  */
 export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -36,14 +38,23 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {Set<string>} The keys of the prompts chosen from it. */
 	#chosen = new Set();
 
+	/** @type {string|null} The Save button's words as last drawn, so Places moving to the same hex draws nothing. */
+	savesTo = null;
+
 	/** The dice are out, or a hex is being chosen, so the buttons wait. */
 	#busy = false;
+
+	/** @returns {boolean} Whether the dice are out or a hex is being chosen. */
+	get busy() {
+		return this.#busy;
+	}
 
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
 		const spread = this.spread;
 		const count = this.#chosen.size;
+		this.savesTo = saveLabel();
 		return Object.assign(context, {
 			busy: this.#busy,
 			spread: spread && {
@@ -57,7 +68,8 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 			},
 			anyPrompts: Boolean(spread && SPREAD_SIDES.some((side) => spread[side].prompts.length)),
 			chosenLabel: count ? t(count === 1 ? "bookFlip.chosenOne" : "bookFlip.chosenMany", { count }) : t("bookFlip.chooseHint"),
-			noneChosen: !count
+			noneChosen: !count,
+			saveLabel: this.savesTo
 		});
 	}
 
@@ -96,20 +108,22 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 	}
 
 	/**
-	 * Ask for a hex on the map and keep the chosen prompts there. The window
-	 * folds out of the way while the GM chooses, and comes back after.
+	 * Keep the chosen prompts in the hex chosen in Places, or with Places closed
+	 * ask for a hex on the map. The window folds out of the way while the GM
+	 * chooses, and comes back after.
 	 * @this {BookFlip}
 	 */
 	static async #onSaveToHex() {
 		if (this.#busy || !this.spread) return;
 		const prompts = chosenPrompts(this.spread, this.#chosen);
 		if (!prompts.length) return warn("bookFlip.chooseFirst");
-		const scene = canvas?.ready ? canvas.scene : null;
+		const chosen = placesChosenHex();
+		const scene = chosen?.scene ?? (canvas?.ready ? canvas.scene : null);
 		if (!isRealmScene(scene)) return warn("bookFlip.noRealm");
 
 		this.#busy = true;
 		try {
-			const hex = await pickHexAside(this, scene, {
+			const hex = chosen?.hex ?? await pickHexAside(this, scene, {
 				message: t("bookFlip.pick", { what: promptsLabel(prompts) }),
 				label: (at) => t("bookFlip.pickHere", { hex: hexLabel(at, scene) })
 			});
@@ -123,6 +137,20 @@ export class BookFlip extends HandlebarsApplicationMixin(ApplicationV2) {
 
 /** @type {BookFlip|null} */
 let window_ = null;
+
+/** @returns {string} The Save button's words: the hex chosen in Places, else a hex to click on the map. */
+function saveLabel() {
+	const target = placesChosenHex();
+	return target ? t("bookFlip.pickHere", { hex: hexLabel(target.hex, target.scene) }) : t("bookFlip.saveToHex");
+}
+
+/**
+ * Say again where Save keeps the prompts, as Places opens on a hex, moves or
+ * closes. Not while the dice are out or a hex is being chosen on the map.
+ */
+export function refreshBookFlip() {
+	if (window_?.rendered && !window_.busy && window_.savesTo !== saveLabel()) window_.render();
+}
 
 /**
  * Open the window, flipping the book the first time: opening it is reaching

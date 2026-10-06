@@ -53,7 +53,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.realm)
 }));
 
-const { keepHexPerson, postPerson, rollHexPerson, rollPersonTables, rollUpHolding } = await import("../../module/actions/people.js");
+const { keepHexPerson, peopleTables, postPerson, rollPersonTables, rollUpHolding, saveHexPerson } = await import("../../module/actions/people.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
 const { keepHexSparkRecords } = await import("../../module/actions/hex-lore.js");
 
@@ -124,32 +124,52 @@ describe("rolling a person", () => {
 	});
 });
 
-describe("rolling a person in a hex", () => {
-	it("keeps them there as one roll and whispers the GMs", async () => {
-		thrown = personDice();
-		await rollHexPerson({ scene, hex });
+describe("saving a person chosen in Roll a Person", () => {
+	/** A row taken in each column of each table: each table's number and the next, as personDice throws them. */
+	const allTaken = () => Array.from({ length: 9 }, (_, index) => [index + 1, index + 2]);
+	const save = async (taken = allTaken()) => saveHexPerson({ scene, hex, page: await peopleTables(), taken });
+
+	it("keeps them there as one roll and whispers the GMs a card with no dice on it", async () => {
+		await save();
 		const [spark] = loreAt(lore, hex).sparks;
 		expect(spark).toMatchObject({ page: "people", rolls: personDice(), when });
 		expect(spark.entries).toHaveLength(9);
 		expect(spark.prompt.startsWith("P0: P0-a1 P0-b2 · P1: P1-a2 P1-b3")).toBe(true);
-		expect(vi.mocked(postCard).mock.calls[0][3].mode).toBe("gm");
+		const [, , context, options] = vi.mocked(postCard).mock.calls[0];
+		expect(options).toMatchObject({ mode: "gm", rolls: [] });
+		expect(context.people[0].traits).toHaveLength(9);
+	});
+
+	it("leaves out a column or a table with nothing taken", async () => {
+		const taken = allTaken();
+		taken[0] = [null, 4];
+		taken[1] = [null, null];
+		await save(taken);
+		const [spark] = loreAt(lore, hex).sparks;
+		expect(spark.entries).toHaveLength(8);
+		expect(spark.entries[0]).toBe("P0: P0-b4");
+		expect(spark.rolls.slice(0, 3)).toEqual([4, 3, 4]);
+	});
+
+	it("keeps nothing when nothing is taken", async () => {
+		expect(await save(Array.from({ length: 9 }, () => [null, null]))).toBeNull();
+		expect(keepHexSparkRecords).not.toHaveBeenCalled();
+		expect(postCard).not.toHaveBeenCalled();
 	});
 
 	it("names them from the Knight names, on the card as well, never as somebody already there", async () => {
-		thrown = personDice();
-		await rollHexPerson({ scene, hex });
+		const saved = await save();
 		const [first] = loreAt(lore, hex).sparks;
 		expect(first.person).toBe(true);
 		expect(KNIGHT_NAMES).toContain(first.name);
+		expect(saved.name).toBe(first.name);
 		expect(vi.mocked(postCard).mock.calls[0][2].title).toBe(first.name);
 
 		const random = vi.spyOn(Math, "random").mockReturnValue(0);
 		try {
 			lore = emptyLore();
-			thrown = personDice();
-			await rollHexPerson({ scene, hex });
-			thrown = personDice();
-			await rollHexPerson({ scene, hex });
+			await save();
+			await save();
 			const names = loreAt(lore, hex).sparks.map(({ name }) => name);
 			expect(names).toEqual([KNIGHT_NAMES[0], KNIGHT_NAMES[1]]);
 		} finally {
@@ -159,7 +179,7 @@ describe("rolling a person in a hex", () => {
 
 	it("is the GM's alone", async () => {
 		game.user.isGM = false;
-		expect(await rollHexPerson({ scene, hex })).toBeNull();
+		expect(await save()).toBeNull();
 		expect(keepHexSparkRecords).not.toHaveBeenCalled();
 	});
 });

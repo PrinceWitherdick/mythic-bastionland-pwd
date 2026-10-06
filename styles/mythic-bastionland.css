@@ -136,9 +136,9 @@
 .bastionland-rulebook-setup-window .window-content,
 .bastionland-welcome-window .window-content,
 .bastionland-realm-appearance-window .window-content,
-.bastionland-hex-lore-window .window-content,
 .bastionland-book-flip-window .window-content,
 .bastionland-travels-window .window-content,
+.bastionland-hex-editor-window .window-content,
 .bastionland-realm-panel-window .window-content,
 .bastionland-portrait-frame-window .window-content {
 	padding: 0;
@@ -149,8 +149,7 @@
 /* The sheets' own header buttons, such as Domain and Knight Squire, and the
    Realm palette's Appearance, carry a label, where Foundry's header controls
    are bare icons. */
-.bastionland-sheet .window-header button.bastionland-header-button,
-.bastionland-realm-panel-window .window-header button.bastionland-header-button {
+.bastionland .window-header button.bastionland-header-button {
 	display: inline-flex;
 	flex: none;
 	align-items: center;
@@ -5981,23 +5980,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	}
 }
 
-/* The hex on the left and the rolls for it on the right. Narrowed, the two
-   stacks run one after the other, as the window always used to. */
-.bastionland-hex-lore__columns {
-	gap: 0.5rem 0.9rem;
-}
-
-.bastionland-hex-lore__column {
-	gap: 0.5rem;
-}
-
-/* Side by side, the rolls kept here have room to run longer. */
-@container (width >= 44rem) {
-	.bastionland-hex-lore__column .bastionland-hex-lore__rolls {
-		max-height: 22rem;
-	}
-}
-
 .bastionland-hex-lore__here {
 	display: flex;
 	flex-wrap: wrap;
@@ -6037,6 +6019,61 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: center;
 }
 
+/* The Myth tab: the Omens seen with their steppers, the Omen playing out and
+   the one to come, each under a small-caps label, and its Cast as pills. */
+.bastionland-hex-lore__omen-count {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.bastionland-hex-lore__omen-count > span {
+	flex: 1 1 auto;
+}
+
+.bastionland-hex-lore__omens {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	line-height: 1.4;
+}
+
+.bastionland-hex-lore__omen-label {
+	margin-right: 0.25rem;
+	font-variant: small-caps;
+	letter-spacing: 0.04em;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-lore__cast {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.bastionland-hex-lore__cast > .bastionland-pill {
+	--pill-pad: 0.45em;
+	padding: var(--pill-padding-top, 0.1rem) 0.4rem var(--pill-padding-bottom, 0.1rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
+	border-radius: 4px;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-hex-lore__cast > button.bastionland-pill {
+	width: auto;
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+
+.bastionland-hex-lore__cast > .is-unmade {
+	border-style: dashed;
+	opacity: 0.75;
+}
+
 /* The note is a paragraph, not a field, so its label sits above it and the box
    takes the whole width instead of Foundry's label/field split. */
 .bastionland-hex-lore__note {
@@ -6065,9 +6102,63 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-family: inherit;
 }
 
-/* The rolls for a hex and the ways of finding out about it are each penned in, and so is each part of Edit this hex. */
-.bastionland-hex-lore__spark,
-.bastionland-hex-lore__explore,
+/* Under the GM's note: whether the players hold it as it reads, over every telling folded. */
+.bastionland-hex-lore__told {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-hex-lore__told-state {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+/* Tell the players, a word at the end of the line that says they're behind: no box, the rubric's red, blood on hover. */
+.bastionland-page button.bastionland-hex-lore__told-tell {
+	display: inline;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	/* A space more than the one that parts it from the sentence, which HTML would fold away. */
+	margin: 0 0 0 0.3em;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-rubric);
+	font: inherit;
+	font-weight: bold;
+	line-height: inherit;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-hex-lore__told-tell:hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-hex-lore__told-state.is-current > i {
+	color: var(--bastionland-verdigris);
+}
+
+/* Out of date stands out: the players hold an older telling than the note. */
+.bastionland-hex-lore__told-state.is-stale {
+	padding: 0.3rem 0.5rem;
+	border-left: 3px solid var(--bastionland-rubric);
+	background: color-mix(in srgb, var(--bastionland-rubric), transparent 90%);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-hex-lore__told-state.is-stale > i {
+	color: var(--bastionland-rubric);
+}
+
+/* Each part of Edit this hex is penned in. */
 .bastionland-hex-edit__feature {
 	display: flex;
 	flex-direction: column;
@@ -6076,13 +6167,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0.4rem 0.5rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;
-}
-
-.bastionland-hex-lore__spark legend,
-.bastionland-hex-lore__explore legend {
-	padding: 0 0.3rem;
-	font-variant: small-caps;
-	letter-spacing: 0.04em;
 }
 
 .bastionland-hex-lore__row {
@@ -6094,7 +6178,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 /* The window's buttons sit in two even columns: every button in a row is the
    same width and, when one label runs to two lines, its neighbour grows with it.
    Icons and labels start at the left so they line up down each column. A button
-   left alone on the last row, or marked is-wide, takes the whole row. */
+   left alone on the last row takes the whole row. */
 .bastionland-hex-lore__grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6123,51 +6207,84 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	text-align: center;
 }
 
-.bastionland-hex-lore__grid > .is-wide,
 .bastionland-hex-lore__grid > :last-child:nth-child(odd) {
 	grid-column: 1 / -1;
 }
 
-/* Edit this hex: the GM's fold in the Lay of the Land, where the hex itself is
-   changed, shut in play and open while the Realm is drawn. */
-.bastionland-hex-edit {
-	margin: 0;
-	padding: 0.3rem 0.5rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 4px;
-}
-
-.bastionland-hex-edit__summary {
+/* The tabs of rolls for a hex: People, The Land, and the Landmark and Holding
+   where the hex has one. The chosen tab is underlined in rubric and opens onto
+   its own penned-in panel of buttons and what's been rolled. */
+.bastionland-hex-lore__tabs {
 	display: flex;
+	flex-wrap: wrap;
+	gap: 0 0.15rem;
+	margin: 0.15rem 0 0;
+	border-bottom: 1px solid var(--bastionland-rule);
+}
+
+/* Written out in full, not through the button variables: Foundry's button is a filled, centred box. */
+.bastionland-page button.bastionland-hex-lore__tab {
+	display: inline-flex;
+	flex: 0 1 auto;
 	align-items: center;
-	gap: 0.35rem;
-	cursor: pointer;
-	list-style: none;
-	font-variant: small-caps;
-	letter-spacing: 0.04em;
-}
-
-.bastionland-hex-edit__summary::-webkit-details-marker {
-	display: none;
-}
-
-.bastionland-hex-edit__summary::before {
-	content: "\25B8";
-	flex: none;
-	width: 0.7rem;
-	text-align: center;
+	gap: 0.4rem;
+	width: auto;
+	height: auto;
+	min-height: 2rem;
+	margin: 0 0 -1px;
+	padding: 0.25rem 0.65rem;
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
 	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+	line-height: 1.2;
+	white-space: nowrap;
 }
 
-.bastionland-hex-edit[open] > .bastionland-hex-edit__summary::before {
-	content: "\25BE";
+.bastionland-page button.bastionland-hex-lore__tab:is(:hover, :focus-visible) {
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
 }
 
-.bastionland-hex-edit__body {
+.bastionland-page button.bastionland-hex-lore__tab.is-active {
+	border-bottom-color: var(--bastionland-rubric);
+	color: var(--bastionland-ink);
+}
+
+/* How many rolls the tab holds. */
+.bastionland-hex-lore__tab-count {
+	min-width: 1.4em;
+	padding: 0 0.3em;
+	border-radius: 999px;
+	background: rgb(0 0 0 / 0.08);
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-floor);
+	line-height: 1.4;
+	text-align: center;
+}
+
+.bastionland-hex-lore__panel {
 	display: flex;
 	flex-direction: column;
+	gap: 0.45rem;
+	padding: 0.5rem 0.1rem 0.25rem;
+}
+
+.bastionland-hex-lore__panel > .bastionland-hex-lore__hint,
+.bastionland-hex-lore__panel > .bastionland-hint {
+	margin: 0;
+}
+
+/* Edit this hex, in its own window (HexEditor.js). */
+.bastionland-page.bastionland-hex-edit {
 	gap: 0.5rem;
-	padding-top: 0.4rem;
+	padding: 1rem 1.25rem 1.25rem;
 }
 
 .bastionland-hex-edit .form-fields input[type="number"] {
@@ -6246,7 +6363,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
-/* Undo and Redo close the fold, under a rule. */
+/* Undo and Redo close the window, under a rule. */
 .bastionland-hex-edit__history {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6255,20 +6372,20 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	border-top: 1px solid var(--bastionland-rule);
 }
 
-/* Telling the players closes the window off, set apart from the fieldsets above. */
-.bastionland-hex-lore__footer {
-	margin-top: 0.15rem;
-}
-
+/* The pane scrolls, so the rolls run their full length rather than in a box of their own. */
 .bastionland-hex-lore__rolls {
 	display: flex;
 	flex-direction: column;
 	gap: 0.3rem;
-	max-height: 16rem;
 	margin: 0;
-	overflow-y: auto;
 	padding: 0;
 	list-style: none;
+}
+
+/* What the players were told of a hex is the one list kept to a box of its own. */
+.bastionland-travels-hex__told {
+	max-height: 16rem;
+	overflow-y: auto;
 }
 
 .bastionland-hex-lore__roll {
@@ -6290,7 +6407,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
-/* A kept roll's name or prompt, with when it was rolled at the far right; the date wraps under it when there's no room. */
+/* A kept roll's name or table, with when it was rolled at the far right; the date wraps under it when there's no room. */
 .bastionland-hex-lore__title {
 	display: flex;
 	flex-wrap: wrap;
@@ -6305,6 +6422,45 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	white-space: nowrap;
 }
 
+/* An earlier go of rolls, folded into one row: when it was made, over what it gave. */
+.bastionland-hex-lore__older-summary {
+	display: grid;
+	grid-template-columns: 0.7rem 1fr;
+	column-gap: 0.35rem;
+	padding: 0.3rem 0.4rem;
+	border-left: 3px solid color-mix(in srgb, var(--bastionland-rule), transparent 50%);
+	cursor: pointer;
+	list-style: none;
+}
+
+.bastionland-hex-lore__older-summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-hex-lore__older-summary::before {
+	content: "\25B8";
+	grid-row: span 2;
+	text-align: center;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-lore__older[open] > .bastionland-hex-lore__older-summary::before {
+	content: "\25BE";
+}
+
+.bastionland-hex-lore__older-when {
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-lore__older .bastionland-hex-lore__source {
+	grid-column: 2;
+}
+
+/* Unfolded, its rolls sit under the row. */
+.bastionland-hex-lore__older > .bastionland-hex-lore__rolls {
+	padding: 0.3rem 0 0 1.1rem;
+}
+
 .bastionland-hex-lore__roll button {
 	flex: 0 0 auto;
 	width: 1.6rem;
@@ -6313,7 +6469,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* A person kept in a hex (hex-spark.hbs): their name, then a row for each trait, the table's name beside what it
-   gave, rather than every trait run together in bold. The rows stack once the column is too narrow for both. */
+   gave, rather than every trait run together in bold. The rows stack once the column is too narrow for both, and
+   pair off two to a row once it is wide. */
 .bastionland-hex-lore__prompt {
 	container-type: inline-size;
 	min-width: 0;
@@ -6382,6 +6539,17 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 	.bastionland-person__traits dd {
 		margin-bottom: 0.2rem;
+	}
+}
+
+/* With room for two, the traits pair off across the row, read left to right, so a person is half as tall. */
+@container (min-width: 28rem) {
+	.bastionland-person__traits {
+		grid-template-columns: max-content 1fr max-content 1fr;
+	}
+
+	.bastionland-person__traits dt:nth-of-type(even) {
+		padding-left: 1rem;
 	}
 }
 
@@ -6511,22 +6679,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	visibility: visible;
 }
 
-/* Forget what's kept here, the GM's second fold in the Lay of the Land (module/apps/hex-forget.js). It
-   borrows Edit this hex's frame. */
-.bastionland-hex-forget .bastionland-heading {
-	margin: 0.2rem 0 0;
-}
-
-/* The window scrolls the fold whole, so none of its lists scrolls on its own. */
-.bastionland-hex-forget__list {
-	max-height: none;
-	overflow: visible;
-}
-
-.bastionland-hex-forget__note {
-	white-space: pre-wrap;
-}
-
 /* ---------------------------------------------------------------- */
 /* The Company's places (module/apps/TravelsPlaces.js, and the      */
 /* Knight sheet's Travels page)                                     */
@@ -6544,8 +6696,9 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* The Places window: the list, chart or journey on the left and the hex
-   chosen on the right, each scrolling on its own. Narrowed, the hex drops
-   under the list and the whole page scrolls instead. */
+   chosen on the right, each scrolling on its own. The left keeps its width
+   and a wider window goes to the hex. Narrowed, the hex drops under the
+   list and the whole page scrolls instead. */
 .bastionland-travels-window .window-content {
 	container-type: inline-size;
 	overflow-y: auto;
@@ -6553,7 +6706,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-page.bastionland-travels-places {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+	grid-template-columns: minmax(0, 26rem) minmax(16rem, 1fr);
 	gap: 0;
 	height: 100%;
 	padding: 0;
@@ -6580,7 +6733,8 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 @container (max-width: 40rem) {
-	.bastionland-page.bastionland-travels-places {
+	.bastionland-page.bastionland-travels-places,
+	.bastionland-page.bastionland-travels-places:has(.bastionland-travels-hex__gm) {
 		grid-template-columns: minmax(0, 1fr);
 		height: auto;
 		overflow: visible;
@@ -6750,13 +6904,52 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
+/* A GM's Forget Every Visit and Forget Everything Here, at the far end of the visits line (module/apps/hex-forget.js). */
+.bastionland-travels-hex__forget {
+	display: inline-flex;
+	gap: 0.15rem;
+	margin-left: auto;
+}
+
+.bastionland-travels-hex__forget .bastionland-icon {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+.bastionland-travels-hex__forget .bastionland-icon:hover {
+	color: var(--bastionland-blood);
+}
+
+.bastionland-travels-hex__forget .bastionland-icon:disabled {
+	background: none;
+	color: var(--bastionland-ink-soft);
+	opacity: 0.4;
+	cursor: default;
+}
+
+/* A GM's pen beside the hex's terrain, shown on hover (bastionland-reveal), that opens Edit this
+   hex, and the × that forgets a Journey line: bare icons that redden rather than fill on hover. */
+.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-travels-journey__forget) {
+	width: 1.75rem;
+	height: 1.75rem;
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-travels-journey__forget):hover {
+	background: none;
+	color: var(--bastionland-blood);
+}
+
+.bastionland-hex-lore__here.bastionland-reveal-host {
+	align-items: center;
+}
+
 .bastionland-travels-hex__sighted {
 	margin: 0;
 	font-style: italic;
 }
 
-.bastionland-travels-hex__note,
-.bastionland-travels__party-note p {
+.bastionland-travels-hex__note {
 	white-space: pre-wrap;
 }
 
@@ -6768,58 +6961,23 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	opacity: 0.7;
 }
 
-/* What only a GM sees of the hex, ruled off below what the players know. */
+/* The Lay of the Land: what only a GM sees of the hex, ruled off below what the players know. */
 .bastionland-travels-hex__gm {
 	display: flex;
 	flex-direction: column;
-	gap: 0.35rem;
+	gap: 0.5rem;
 	margin-top: 0.6rem;
 	padding-top: 0.25rem;
 	border-top: 1px solid var(--bastionland-rule);
 }
 
-.bastionland-travels-hex__gm > .bastionland-hex-lore__row {
-	justify-content: space-between;
-	flex-wrap: wrap;
-}
-
-.bastionland-travels-hex__gm > .bastionland-hex-lore__row button {
-	flex: 0 0 auto;
-	width: auto;
-}
-
-/* Fills an empty hex in one go, sized to its label rather than the column. */
-.bastionland-travels-hex__gm > .bastionland-travels-hex__fill {
-	align-self: flex-start;
-	width: auto;
-}
-
-.bastionland-travels-hex__gm .bastionland-hint,
-.bastionland-travels-hex__gm-note {
+.bastionland-travels-hex__gm > .bastionland-hint {
 	margin: 0;
 }
 
-.bastionland-travels-hex__gm-note {
-	white-space: pre-wrap;
-}
-
-/* The Company's note, shown to the GM beside their own. */
-.bastionland-travels__party-note {
-	display: flex;
-	flex-direction: column;
-	gap: 0.1rem;
-	padding: 0.3rem 0.5rem;
-	border-left: 3px solid var(--bastionland-rule);
-	background: var(--bastionland-paper-deep);
-}
-
-.bastionland-travels__party-note p {
-	margin: 0;
-}
-
-.bastionland-travels__party-label {
-	font-variant: small-caps;
-	letter-spacing: 0.04em;
+/* A GM's hex holds the Lay of the Land as well, so it takes more of the window. */
+.bastionland-page.bastionland-travels-places:has(.bastionland-travels-hex__gm) {
+	grid-template-columns: minmax(0, 30rem) minmax(20rem, 1fr);
 }
 
 /* The Knight sheet's Travels page: its heading with Open Places beside it. */
@@ -7137,10 +7295,32 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	white-space: pre-wrap;
 }
 
+/* A GM's × at the end of a line, shown on hover (bastionland-reveal), that forgets it. */
+.bastionland-travels-journey__entry--forgettable {
+	grid-template-columns: 6rem minmax(0, 1fr) auto;
+}
+
+.bastionland-travels-journey__forget {
+	align-self: center;
+}
+
 @container (max-width: 26rem) {
 	.bastionland-travels-journey__entry {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 0;
+	}
+
+	.bastionland-travels-journey__entry--forgettable {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	.bastionland-travels-journey__entry--forgettable > :not(.bastionland-travels-journey__forget) {
+		grid-column: 1;
+	}
+
+	.bastionland-travels-journey__forget {
+		grid-column: 2;
+		grid-row: 1 / span 2;
 	}
 }
 

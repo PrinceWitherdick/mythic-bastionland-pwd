@@ -1,5 +1,5 @@
 {{!-- The Realm's places and where the Company has been, each hex once with what the GM wrote about it,
-      listed the last visited first, by kind, or as the GM chose to track them; and the Sites. --}}
+      listed the last visited first, by kind, or as the GM chose to track them; and the Sites, or the tracked ones. --}}
 <section class="tab bastionland-page bastionland-gm-toolkit__page {{tab.cssClass}}" data-group="primary" data-tab="places">
 	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.hint"}}</p>
 
@@ -39,10 +39,12 @@
 	{{/each}}
 	{{/if}}
 
+	{{!-- On the Tracking list only the Sites the GM tracks, and no Sites part at all while none is. --}}
+	{{#with sites}}
 	<section class="bastionland-gm-toolkit__section" data-search-section>
 		<h2 class="bastionland-heading">{{localize "bastionland.gmToolkit.places.sites"}}</h2>
-		<p class="bastionland-hint">{{localize "bastionland.gmToolkit.places.sitesHint"}}</p>
-		{{#each sites}}
+		<p class="bastionland-hint">{{hint}}</p>
+		{{#each rows}}
 		<article class="bastionland-gm-toolkit__card bastionland-gm-toolkit__site" data-uuid="{{uuid}}" data-search="{{search}}">
 			<div class="bastionland-gm-toolkit__site-line">
 				<span class="bastionland-gm-toolkit__name">{{name}}</span>
@@ -55,12 +57,16 @@
 			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="siteJournal" data-tooltip="{{localize "bastionland.siteJournal.openHint"}}"><i class="fa-solid fa-book" inert></i> {{localize "bastionland.siteJournal.open"}}</button>
 			{{/if}}
 			<button type="button" class="bastionland-gm-toolkit__site-open" data-action="openSite"><i class="fa-solid fa-dungeon" inert></i> {{localize "bastionland.gmToolkit.places.openSite"}}</button>
+			{{> "bastionland.track-pin" kind="Site" trackLabel="bastionland.gmToolkit.places.track.site"}}
 		</article>
 		{{else}}
 		<p class="bastionland-empty">{{localize "bastionland.gmToolkit.places.noSites"}}</p>
 		{{/each}}
+		{{#if add}}
 		<nav class="bastionland-toolbar" aria-label="{{localize 'bastionland.gmToolkit.places.sites'}}">
 			<button type="button" data-action="newSite"><i class="fa-solid fa-plus" inert></i> {{localize "bastionland.sites.newSite"}}</button>
 		</nav>
+		{{/if}}
 	</section>
+	{{/with}}
 </section>

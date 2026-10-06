@@ -1,6 +1,6 @@
 {{!-- A random spread of the book and the prompts along its foot: the Knight's page on the left, the Myth's on
-      the right, as the book prints them. Clicking a prompt chooses it; Save to hex keeps the chosen ones in a
-      hex clicked on the map. --}}
+      the right, as the book prints them. Clicking a prompt chooses it; Save keeps the chosen ones in the hex
+      chosen in Places, or with Places closed in a hex clicked on the map. --}}
 <div class="bastionland-page bastionland-book-flip">
 	<p class="bastionland-hint">{{localize "bastionland.bookFlip.hint"}}</p>
 
@@ -35,7 +35,7 @@
 	{{#if anyPrompts}}
 	<footer class="bastionland-book-flip__footer">
 		<span class="bastionland-hint">{{chosenLabel}}</span>
-		<button type="button" data-action="saveToHex" {{disabled noneChosen}}><i class="fa-solid fa-location-dot" inert></i> {{localize "bastionland.bookFlip.saveToHex"}}</button>
+		<button type="button" data-action="saveToHex" {{disabled noneChosen}}><i class="fa-solid fa-location-dot" inert></i> {{saveLabel}}</button>
 	</footer>
 	{{/if}}
 	{{/if}}

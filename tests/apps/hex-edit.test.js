@@ -6,45 +6,66 @@ const root = join(import.meta.dirname, "..", "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
 
 const template = read("templates/apps/parts/hex-edit.hbs");
-const lore = read("templates/apps/hex-lore.hbs");
-const loreApp = read("module/apps/HexLore.js");
+const gm = read("templates/apps/parts/hex-gm.hbs");
+const gmPart = read("module/apps/hex-gm-part.js");
+const places = read("module/apps/TravelsPlaces.js");
 const app = read("module/apps/hex-edit.js");
+const editor = read("module/apps/HexEditor.js");
+const detail = read("templates/apps/parts/travels-hex-detail.hbs");
 const layer = read("module/canvas/RealmLayer.js");
 const toolkit = read("module/sheets/GmToolkitSheet.js");
 const hooks = read("module/canvas/realm-hooks.js");
 const styles = read("styles/mythic-bastionland.css");
 const boot = read("mythic-bastionland.js");
 
-describe("Edit this hex, in the Lay of the Land", () => {
-	it("is what Inspect and Show on the map open, with no Hex panel beside it", () => {
-		expect(layer).toMatch(/if \(this\.tool === "inspect"\) \{[\s\S]*?if \(hex\) openHexLore\(\{ scene, hex \}\);/);
-		expect(layer).not.toContain("followHexLore");
-		expect(loreApp).not.toContain("followHexLore");
-		expect(toolkit).toMatch(/await showHexOnMap\(scene, hex\);\s*openHexLore\(\{ scene, hex \}\);/);
+describe("Edit this hex, opened from the pen beside a hex in Places", () => {
+	it("is what Inspect and Show on the map open, with no window of its own beside Places", () => {
+		expect(existsSync(join(root, "module/apps/HexLore.js"))).toBe(false);
+		expect(existsSync(join(root, "templates/apps/hex-lore.hbs"))).toBe(false);
+		expect(layer).toMatch(/if \(this\.tool === "inspect"\) \{[\s\S]*?if \(hex\) openHex\(\{ scene, hex \}\);/);
+		expect(toolkit).toContain("if (await viewAndShowHex(scene, hex)) openHex({ scene, hex });");
 		expect(toolkit).not.toContain("openRealmPanel");
+		// Old macros that opened the window open the hex in Places.
+		expect(boot).toContain("openHexLore: openHex,");
 	});
 
-	it("is a fold of the Lay of the Land, the GM's alone, open while the Realm is drawn", () => {
-		expect(boot).toContain('"bastionland.hex-edit": templatePath("apps/parts/hex-edit.hbs")');
-		expect(lore).toContain('{{#with edit}}{{> "bastionland.hex-edit"}}{{/with}}');
-		expect(template).toMatch(/<details class="bastionland-hex-edit" data-hex-edit \{\{#if open\}\}open\{\{\/if\}\}>/);
-		expect(loreApp).toContain("const edit = game.user.isGM ? hexEditContext({ scene, realm, known, g, hex, index: this.#index }) : null;");
-		expect(loreApp).toContain("edit.open = this.#editOpen ?? isDrawingRealm(scene);");
+	it("is a window of its own, no longer a fold of the Lay of the Land", () => {
+		expect(boot).not.toContain('"bastionland.hex-edit"');
+		expect(gm).not.toContain("bastionland.hex-edit");
+		expect(gmPart).not.toContain("hexEditContext");
+		expect(template).not.toContain("<details");
+		expect(editor).toContain('body: { template: templatePath("apps/parts/hex-edit.hbs") }');
+		expect(editor).toMatch(/export async function openHexEditor\(\{ scene, hex \}\) \{\s*if \(!game\.user\?\.isGM/);
+		// Only a GM's Places builds the pen, as only a GM's builds the Lay of the Land.
+		expect(gmPart).toMatch(/export function hexGmContext\([^)]*\) \{\s*if \(!game\.user\?\.isGM\) return null;/);
 	});
 
-	it("keeps the fold as the GM left it, not as the browser's own toggle on drawing it open", () => {
-		expect(loreApp).toContain("let shown = Boolean(drawnOpen);");
-		expect(loreApp).toMatch(/if \(fold\.open === shown\) return;\s*shown = fold\.open;\s*remember\(fold\.open\);/);
-		expect(loreApp).toContain('keepFold("[data-hex-edit]", context.edit?.open, (open) => (this.#editOpen = open));');
+	it("is opened by a pen beside the hex's terrain, shown on hover", () => {
+		expect(detail).toMatch(/<button type="button" class="bastionland-icon bastionland-travels-hex__edit bastionland-reveal" data-action="editHex"/);
+		expect(detail).toContain('<div class="bastionland-hex-lore__here{{#if gm}} bastionland-reveal-host{{/if}}">');
+		// A hex the players don't know has the pen beside the line saying so.
+		expect(detail).toContain('<div class="bastionland-hex-lore__row{{#if gm}} bastionland-reveal-host{{/if}}">');
+		expect(gmPart).toContain("editHex: ({ scene, hex }) => openHexEditor({ scene, hex }),");
+		expect(places).toContain("hexGm = hexGmState();");
+	});
+
+	it("has an action for every button it draws", () => {
+		const drawn = new Set([...template.matchAll(/data-action="([^"]+)"/g)].map(([, action]) => action));
+		// Its own, or those it shares with the Lay of the Land.
+		const shared = app.slice(app.indexOf("export const HEX_FEATURE_ACTIONS"));
+		expect(editor).toContain("...Object.fromEntries(Object.entries(HEX_FEATURE_ACTIONS).map(");
+		expect(gmPart).toContain("...HEX_FEATURE_ACTIONS,");
+		for (const action of drawn) expect(`${editor}\n${shared}`, action).toMatch(new RegExp(`\\b${action}: (HexEditor\\.#at\\(|\\(\\{ scene, hex \\})`));
 	});
 
 	it("names its fields so they never clash with the note or the Landmark's name", () => {
 		expect(template).toContain('name="holdingName"');
 		expect(template).not.toMatch(/name="name"/);
 		// The Landmark's name stays in the Lay of the Land's own box, with its die.
-		expect(lore).toContain('name="landmarkName"');
+		expect(gm).toContain('name="landmarkName"');
 		expect(app).toContain('case "holdingName":');
-		expect(loreApp).toContain("HEX_EDIT_FIELDS.includes(field) && game.user.isGM");
+		expect(app).toContain("if (!HEX_EDIT_FIELDS.includes(name) || !game.user.isGM) return;");
+		expect(editor).toContain("const written = await writeHexEditField(scene, this.hex, field);");
 	});
 
 	it("names the barred edges on one line, and leaves the laying to the brush", () => {
@@ -57,36 +78,60 @@ describe("Edit this hex, in the Lay of the Land", () => {
 		expect(template).toContain('<input id="{{@root.partId}}-d6" type="number" name="d6"');
 	});
 
-	it("keeps Undo and Redo last in the fold, and current as the Realm's history moves", () => {
+	it("moves a Myth here from another hex once all six stand, asking which on a radio list", () => {
+		expect(app).toMatch(/if \(kind !== "myth" \|\| !realm \|\| featureAt\(realm, hex\)\.myth \|\| unusedMythNumbers\(realm\)\.length\) return writeHexField\(scene, hex, "kind", kind\);/);
+		expect(app).toContain('return editRealm(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));');
+		const dialog = read("templates/dialogs/move-myth.hbs");
+		// The book's radio list, with no blank one to choose.
+		expect(dialog).toContain('{{> "bastionland.pick-list" name="myth" choices=myths legend=');
+		expect(dialog).not.toContain("blankLabel");
+		// Shut unchosen, the select goes back to what stands in the hex.
+		expect(editor).toContain('if (field.name === "kind" && !written) field.value = field.querySelector("option[selected]")?.value ?? "none";');
+	});
+
+	it("keeps Undo and Redo last in the window, and current as the Realm's history moves", () => {
 		const history = template.indexOf("bastionland-hex-edit__history");
 		expect(history).toBeGreaterThan(template.indexOf("bastionland-hex-edit__barriers"));
-		expect(hooks).toMatch(/Hooks\.on\(REALM_HISTORY_HOOK, \(sceneId\) => \{[^}]*refreshHexLore\(sceneId\);/);
+		expect(hooks).toMatch(/Hooks\.on\(REALM_HISTORY_HOOK, \(sceneId\) => \{[^}]*refreshHexEditor\(sceneId\);/);
 		expect(styles).toMatch(/\.bastionland-hex-edit__history \{/);
+	});
+
+	it("is drawn again as the Realm changes, and Places while it is drawn by hand", () => {
+		expect(hooks).toMatch(/refreshMythChooser\(sceneId\);\s*refreshHexEditor\(sceneId\);/);
+		expect(hooks).toMatch(/if \(isDrawingRealm\(game\.scenes\.get\(sceneId\)\)\) refreshPlaces\(sceneId\);\s*else Hooks\.callAll\(TRAVELS_CHANGED_HOOK, sceneId\);/);
 	});
 });
 
-describe("Forget what's kept here, in the Lay of the Land", () => {
+describe("Forgetting what's kept in a hex, from the Journey page and the visits line", () => {
 	const forget = read("module/apps/hex-forget.js");
+	const list = read("templates/apps/parts/travels-list.hbs");
 
-	it("is the GM's second fold, in place of a window of its own", () => {
+	it("has no fold of its own in the Lay of the Land, nor a window", () => {
 		expect(existsSync(join(root, "module/apps/HexVisits.js"))).toBe(false);
 		expect(existsSync(join(root, "templates/apps/hex-visits.hbs"))).toBe(false);
-		expect(lore).toMatch(/\{\{#with forget\}\}\s*<details class="bastionland-hex-edit bastionland-hex-forget" data-hex-forget \{\{#if open\}\}open\{\{\/if\}\}>/);
-		expect(loreApp).toContain("const forget = game.user.isGM ? { ...hexForgetContext(scene, hex), open: this.#forgetOpen } : null;");
-		expect(loreApp).toContain('keepFold("[data-hex-forget]", context.forget?.open, (open) => (this.#forgetOpen = open));');
+		expect(gm).not.toContain("data-hex-forget");
+		expect(gm).not.toContain("forgetVisit");
+		expect(gmPart).toContain("forget: hexForgetContext(scene, hex)");
+		expect(gmPart).not.toContain("state.forget");
+		expect(places).not.toContain("hexGm.forget");
+		expect(styles).not.toContain("bastionland-hex-forget");
 	});
 
-	it("strikes out each visit, telling and party note, or all of them, on the window's own hex", () => {
-		for (const action of ["forgetVisit", "forgetTold", "forgetParty", "forgetVisits", "forgetAll"]) {
+	it("forgets every visit, or everything, from two icons on the visits line", () => {
+		for (const action of ["forgetVisits", "forgetAll"]) {
 			expect(forget).toMatch(new RegExp(`\\b${action}\\b`));
-			expect(lore).toContain(`data-action="${action}"`);
+			expect(detail).toContain(`data-action="${action}"`);
 		}
-		expect(loreApp).toContain("return forget(this.scene, this.hex, target);");
+		expect(forget).not.toMatch(/\bforgetVisit\b/);
+		expect(detail).toMatch(/\{\{#with gm\.forget\}\}\s*<span class="bastionland-travels-hex__forget">/);
+		expect(gmPart).toContain("...HEX_FORGET_ACTIONS");
 	});
 
-	it("opens unfolded from the GM Toolkit's pen", () => {
-		expect(toolkit).toContain("openHexLore({ scene: this.scene, hex, forget: true })");
-		expect(loreApp).toContain("if (options.forget) this.#forgetOpen = true;");
-		expect(loreApp).toContain("window_.render({ force: true, forget });");
+	it("forgets one line of the journey by its ×, for a GM in Places alone", () => {
+		expect(list).toMatch(/\{\{#with forget\}\}\s*<button type="button" class="bastionland-icon bastionland-travels-journey__forget bastionland-reveal" data-action="forgetJourney"/);
+		expect(places).toContain("forgetJourney: forgetJourneyLine,");
+		expect(places).toMatch(/function forgetJourneyLine\(_event, target\) \{\s*if \(!game\.user\.isGM\) return;/);
+		for (const kind of ["arrived", "told", "met", "noted"]) expect(places).toMatch(new RegExp(`\\b${kind}[(:]`));
+		expect(read("module/actions/travels.js")).toContain("journeyContext(journeyLog(sources, viewOf), Boolean(gmPart))");
 	});
 });

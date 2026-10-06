@@ -77,6 +77,20 @@ export function personTraits(rolled) {
 }
 
 /**
+ * A person as chosen from the People tables by hand or by dice, a row for
+ * each column: a trait for each table with anything taken from it.
+ * @param {{columns: string[], rows: string[][]}[]} tables The People page's tables.
+ * @param {(number|null)[][]} taken The row taken in each column of each table, from 1, or null.
+ * @returns {ReturnType<typeof personTraits>}
+ */
+export function takenTraits(tables, taken) {
+	return personTraits(tables.map((table, index) => {
+		const results = sparkPrompt(table, taken[index] ?? []).filter((result) => Number.isInteger(result.roll) && result.entry);
+		return { table, results, prompt: results.map(({ entry }) => entry).join(" ") };
+	}));
+}
+
+/**
  * A person in one line, as a hex's list of rolls shows it.
  * @param {ReturnType<typeof personTraits>} traits
  * @param {string|null} [heard] What they know of the Realm's Myths, in words, as its own last part.

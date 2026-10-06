@@ -539,9 +539,9 @@
 	display: none;
 }
 
-/* A folding card's arrow, a Myth's or a hex's, at the far right: Font
-   Awesome's chevron-down, and chevron-up once the card is open. */
-:is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head)::after {
+/* A Myth's folding card's arrow at the far right: Font Awesome's
+   chevron-down, and chevron-up once the card is open. */
+.bastionland-gm-toolkit__myth-head::after {
 	content: "\f078";
 	color: var(--bastionland-ink-soft);
 	font-family: var(--font-awesome);
@@ -549,11 +549,11 @@
 	font-weight: 900;
 }
 
-:is(.bastionland-gm-toolkit__myth, .bastionland-gm-toolkit__hex)[open] > :is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head)::after {
+.bastionland-gm-toolkit__myth[open] > .bastionland-gm-toolkit__myth-head::after {
 	content: "\f077";
 }
 
-:is(.bastionland-gm-toolkit__myth-head, .bastionland-gm-toolkit__hex-head):hover::after {
+.bastionland-gm-toolkit__myth-head:hover::after {
 	color: var(--bastionland-ink);
 }
 
@@ -1237,54 +1237,61 @@
 /* Hexes and places                                                 */
 /* ---------------------------------------------------------------- */
 
-.bastionland-gm-toolkit__hex {
-	gap: 0;
-	padding: 0;
+/* A hex on one row, like a Site's: the row opens the hex in Places, and the
+   pin keeping it on the Tracking list stands at the right. */
+.bastionland-gm-toolkit__card.bastionland-gm-toolkit__hex {
+	flex-direction: row;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0 0.8rem 0 0;
 }
 
-.bastionland-gm-toolkit__hex[open] {
+.bastionland-gm-toolkit__card.bastionland-gm-toolkit__hex:hover {
 	border-left-color: var(--bastionland-verdigris);
 }
 
-/* Its lines wrap as they need to; the arrow (drawn with the Myths') keeps
-   the right edge to itself, level with the Myth rows' arrows. */
-.bastionland-gm-toolkit__hex-head {
-	position: relative;
+/* Its lines wrap as they need to. Foundry's button look gives way to the card's. */
+.bastionland-page button.bastionland-gm-toolkit__hex-head {
 	display: flex;
+	flex: 1;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.3rem 0.6rem;
-	padding: 0.55rem 2.35rem 0.55rem 0.9rem;
-	list-style: none;
+	min-width: 0;
+	height: auto;
+	padding: 0.55rem 0 0.55rem 0.9rem;
+	border: none;
+	background: none;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	line-height: inherit;
+	text-align: left;
+	white-space: normal;
 	cursor: pointer;
-}
-
-.bastionland-gm-toolkit__hex-head::-webkit-details-marker {
-	display: none;
-}
-
-.bastionland-gm-toolkit__hex-head::after {
-	position: absolute;
-	top: 50%;
-	right: 0.8rem;
-	transform: translateY(-50%);
 }
 
 .bastionland-gm-toolkit__hex-head .bastionland-gm-toolkit__name {
 	font-size: 1.15rem;
 }
 
-/* On the Custom list, the × taking a hex off it stands just left of the fold
-   mark, out of the run of chips, with room kept for it. */
-.bastionland-gm-toolkit__hex-head:has(.bastionland-gm-toolkit__untrack) {
-	padding-right: 4.2rem;
+.bastionland-gm-toolkit__hex-head:hover .bastionland-gm-toolkit__name {
+	color: var(--bastionland-blood);
 }
 
-.bastionland-gm-toolkit__hex-head .bastionland-gm-toolkit__untrack {
-	position: absolute;
-	top: 50%;
-	right: 2.1rem;
-	transform: translateY(-50%);
+.bastionland-gm-toolkit__track {
+	flex: none;
+}
+
+/* A hex already tracked shows its pin struck in; one not tracked only shows it on hover. */
+.bastionland-gm-toolkit__track:not(.is-tracked) {
+	opacity: 0.45;
+}
+
+.bastionland-gm-toolkit__hex:hover .bastionland-gm-toolkit__track,
+.bastionland-gm-toolkit__site:hover .bastionland-gm-toolkit__track,
+.bastionland-gm-toolkit__track:focus-visible {
+	opacity: 1;
 }
 
 .bastionland-gm-toolkit__visits {
@@ -1297,46 +1304,9 @@
 	font-style: italic;
 }
 
-/* The wilderness as last rolled, on a line of its own under the heading. It
-   says only what the Spark Tables list in the open card already says, so it
-   shows while the card is folded. */
+/* The wilderness as last rolled, on a line of its own under the heading. */
 .bastionland-gm-toolkit__wild {
 	flex-basis: 100%;
-}
-
-.bastionland-gm-toolkit__hex[open] .bastionland-gm-toolkit__wild {
-	display: none;
-}
-
-.bastionland-gm-toolkit__hex-body {
-	display: flex;
-	flex-direction: column;
-	gap: 0.55rem;
-	padding: 0 0.9rem 0.75rem;
-}
-
-.bastionland-gm-toolkit__sparks {
-	max-height: none;
-}
-
-.bastionland-gm-toolkit__actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.35rem;
-}
-
-/* Foundry gives buttons a fixed height, which clips a wrapped label; these grow to fit. */
-.bastionland-gm-toolkit__actions button {
-	display: inline-flex;
-	flex: 1 1 9rem;
-	align-items: center;
-	justify-content: center;
-	gap: 0.3rem;
-	height: auto;
-	min-height: var(--button-size, 2rem);
-	padding: 0.25rem 0.5rem;
-	line-height: 1.15;
-	white-space: normal;
 }
 
 /* A Site on one row like a hex's head, with the button opening its editor at the right. */
@@ -1542,19 +1512,9 @@
 /* What a Landmark asks of travellers who are there (p14)           */
 /* ---------------------------------------------------------------- */
 
-.bastionland-gm-toolkit__landmark {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-}
-
-.bastionland-gm-toolkit__landmark .bastionland-hint {
-	margin: 0;
-}
-
 /* What the Landmark offers is what the GM came to the hex for, so it's struck
    in the rubric's red ochre, set apart from the plain buttons under it. */
-.bastionland-page .bastionland-gm-toolkit__actions button.is-landmark {
+.bastionland-hex-lore__grid button.is-landmark {
 	border: 1px solid var(--bastionland-rubric);
 	background: var(--bastionland-rubric);
 	color: var(--bastionland-paper);
@@ -1564,30 +1524,10 @@
 	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.25);
 }
 
-.bastionland-page .bastionland-gm-toolkit__actions button.is-landmark:hover {
+.bastionland-hex-lore__grid button.is-landmark:hover {
 	background: color-mix(in srgb, var(--bastionland-rubric) 82%, black);
 	border-color: color-mix(in srgb, var(--bastionland-rubric) 82%, black);
 	color: var(--bastionland-paper);
-}
-
-/* ---------------------------------------------------------------- */
-/* The Lay of the Land's line on the Company's visits               */
-/* ---------------------------------------------------------------- */
-
-.bastionland-hex-lore__visits > span {
-	flex: 1;
-}
-
-.bastionland-hex-lore__row.bastionland-hex-lore__visits button {
-	flex: 0 1 auto;
-}
-
-/* The pencil opening the visits to edit keeps its round badge, not the row's button size. */
-.bastionland-hex-lore__row.bastionland-hex-lore__visits button.bastionland-icon {
-	flex: none;
-	min-height: 0;
-	height: 1.5rem;
-	padding: 0;
 }
 
 /* ---------------------------------------------------------------- */

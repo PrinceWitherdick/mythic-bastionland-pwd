@@ -183,6 +183,22 @@ export function recordTold(shared, hex, told) {
 }
 
 /**
+ * How what the players were last told of a hex stands beside the GM's note
+ * now: told just as it reads ("current"), told but changed since ("stale"),
+ * written but never told ("unsaid"), told and the note since rubbed out
+ * ("kept"), or neither ("none").
+ * @param {string} note The GM's note as it reads.
+ * @param {string|null|undefined} latest What the players were last told.
+ * @returns {"current"|"stale"|"unsaid"|"kept"|"none"}
+ */
+export function toldState(note, latest) {
+	const now = capped(note, MAX_TOLD_NOTE);
+	if (!latest) return now ? "unsaid" : "none";
+	if (!now) return "kept";
+	return now === latest ? "current" : "stale";
+}
+
+/**
  * Keep a Barrier the Company ran into from a hex. Meeting it again only moves
  * the date on.
  * @param {HexShared} shared
@@ -196,21 +212,6 @@ export function recordBarrierMet(shared, hex, met) {
 	const here = recordAt(shared, hex);
 	const list = [...(here.met ?? []).filter((entry) => entry.edge !== added.edge), added].slice(-MAX_MET);
 	return withRecord(shared, hex, { ...here, met: list });
-}
-
-/**
- * Strike one telling out of a hex.
- * @param {HexShared} shared
- * @param {{col: number, row: number}} hex
- * @param {string} id
- * @returns {HexShared} Unchanged when no telling there has that id.
- */
-export function forgetTold(shared, hex, id) {
-	const here = sharedAt(shared, hex);
-	if (!here) return shared;
-	const told = here.told.filter((entry) => entry.id !== id);
-	if (told.length === here.told.length) return shared;
-	return withRecord(shared, hex, worthKeeping({ ...here, told }));
 }
 
 /**
@@ -234,6 +235,34 @@ export function setPartyNote(shared, hex, note) {
  * @returns {HexShared} Unchanged when the hex had no note.
  */
 export const forgetPartyNote = (shared, hex) => (sharedAt(shared, hex)?.party ? setPartyNote(shared, hex, null) : shared);
+
+/**
+ * Forget one telling of a hex, as though it was never said.
+ * @param {HexShared} shared
+ * @param {{col: number, row: number}} hex
+ * @param {string} id The telling's.
+ * @returns {HexShared} Unchanged when the hex has no such telling.
+ */
+export function forgetTold(shared, hex, id) {
+	const here = sharedAt(shared, hex);
+	if (!here?.told.some((told) => told.id === id)) return shared;
+	return withRecord(shared, hex, worthKeeping({ ...here, told: here.told.filter((told) => told.id !== id) }));
+}
+
+/**
+ * Forget the Company ran into a Barrier from a hex. The Barrier stays on the map.
+ * @param {HexShared} shared
+ * @param {{col: number, row: number}} hex
+ * @param {string} edge The Barrier's edge key.
+ * @returns {HexShared} Unchanged when no Barrier was met there.
+ */
+export function forgetBarrierMet(shared, hex, edge) {
+	const here = sharedAt(shared, hex);
+	if (!here?.met?.some((met) => met.edge === edge)) return shared;
+	const { met, ...rest } = here;
+	const kept = met.filter((one) => one.edge !== edge);
+	return withRecord(shared, hex, worthKeeping(kept.length ? { ...rest, met: kept } : rest));
+}
 
 /**
  * Forget all that was told of a hex and the Company's note on it.

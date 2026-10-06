@@ -51,6 +51,7 @@ const ARRIVAL_POSITIONS = Object.freeze([0, 6]);
  * @property {{age: number, season: string, day: number, phase: string}|null} when
  *   The world's calendar when it was rolled, so a hex says when it was last thought about.
  * @property {boolean} [person] A person rolled on every People table at once, rather than one table's roll.
+ * @property {string} [batch] Shared by the rolls kept in one go, such as a wilderness hex's three, so the hex's list can fold them away together.
  * @property {string} [name]   What the GM calls them; only a person has one.
  */
 
@@ -115,6 +116,8 @@ function normaliseSpark(raw, index) {
 	if (raw.person === true) spark.person = true;
 	const name = cleanSparkName(raw.name);
 	if (name) spark.name = name;
+	const batch = trimmedText(raw.batch);
+	if (batch) spark.batch = batch;
 	return spark;
 }
 
@@ -176,6 +179,23 @@ export function recordSpark(lore, hex, spark) {
 	const added = normaliseSpark(spark, here.sparks.length);
 	if (!added) return lore;
 	return withRecord(lore, hex, { ...here, sparks: [...here.sparks, added].slice(-MAX_HEX_SPARKS) });
+}
+
+/**
+ * The rolls kept in a hex, gathered into the goes they were made in: those sharing a batch, or,
+ * for rolls kept before batches were, those side by side made at the same moment on the calendar.
+ * @param {HexSpark[]} sparks Oldest first, as a hex keeps them.
+ * @returns {HexSpark[][]} Oldest first, each go in the order it was kept.
+ */
+export function sparkBatches(sparks) {
+	const sameWhen = (a, b) => (a && b ? compareCalendars(a, b) === 0 : !a && !b);
+	const together = (a, b) => (a.batch || b.batch ? a.batch === b.batch : sameWhen(a.when, b.when));
+	return (sparks ?? []).reduce((batches, spark) => {
+		const last = batches.at(-1);
+		if (last && together(last.at(-1), spark)) last.push(spark);
+		else batches.push([spark]);
+		return batches;
+	}, []);
 }
 
 /**

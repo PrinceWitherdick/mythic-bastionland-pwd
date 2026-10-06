@@ -3,6 +3,7 @@ import { queryAsker } from "../compat.js";
 import {
 	HEX_SHARED_FLAG,
 	HEX_SHARED_VERSION,
+	forgetBarrierMet,
 	forgetPartyNote,
 	forgetShared,
 	forgetTold,
@@ -89,11 +90,14 @@ export function recordBarriersMet(scene, met, byName) {
 	));
 }
 
-/** Strike one telling out of a hex. @returns {Promise<boolean>} */
-export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) => forgetTold(shared, hex, id));
-
 /** Rub out the Company's note on a hex. @returns {Promise<boolean>} */
 export const forgetHexPartyNote = (scene, hex) => editHexShared(scene, (shared) => forgetPartyNote(shared, hex));
+
+/** Forget one telling of a hex. @returns {Promise<boolean>} */
+export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) => forgetTold(shared, hex, id));
+
+/** Forget a Barrier was met from a hex; it stays on the map. @returns {Promise<boolean>} */
+export const forgetHexBarrierMet = (scene, hex, edge) => editHexShared(scene, (shared) => forgetBarrierMet(shared, hex, edge));
 
 /** Forget all the players were told of a hex, and their note on it. @returns {Promise<boolean>} */
 export const forgetHexShared = (scene, hex) => editHexShared(scene, (shared) => forgetShared(shared, hex));
@@ -189,22 +193,4 @@ export function partyNoteBy(party) {
 	if (!party) return "";
 	const name = party.byName || t("travels.party.someone");
 	return party.when ? t("travels.party.byWhen", { name, when: calendarLabel(party.when) }) : t("travels.party.by", { name });
-}
-
-/**
- * @param {{text: string, byName: string, when: object|null}|null|undefined} party
- * @returns {{text: string, by: string}|null} The Company's note as a window shows it.
- */
-export const partyNoteView = (party) => (party ? { text: party.text, by: partyNoteBy(party) } : null);
-
-/**
- * @param {import("../rules/hex-shared.js").SharedRecord|null} record
- * @returns {string} How often the players were told of a hex, and when last, for the GM.
- */
-export function toldLabel(record) {
-	const told = record?.told ?? [];
-	if (!told.length) return "";
-	const last = told.at(-1);
-	const when = last.when ? calendarLabel(last.when) : t("gmToolkit.visits.unknown");
-	return t(told.length === 1 ? "hexLore.toldOnce" : "hexLore.toldMany", { count: told.length, when });
 }

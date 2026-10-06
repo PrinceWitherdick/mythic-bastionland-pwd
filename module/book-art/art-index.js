@@ -1,5 +1,5 @@
 import { t } from "../chat/cards.js";
-import { ART_ROOT, INDEX_FILE } from "../rules/book-art.js";
+import { ART_ROOT, INDEX_FILE, isTableRoll } from "../rules/book-art.js";
 import { mythReference, seerReference } from "../rules/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -126,6 +126,18 @@ export function mythEntry(index, myth) {
 	const { roll, page } = mythReference(myth);
 	const entry = findByRoll(index?.myths, roll);
 	return { roll, page, entry, name: entry?.name ?? t("realm.key.unnamedMyth", { roll }) };
+}
+
+/**
+ * A Myth's entry in the art index, or its number alone for a Myth whose dice
+ * don't read as a roll on the Myths table.
+ * @param {object|null} index
+ * @param {{number: number, d6: number, d12: number}} myth
+ * @returns {{name: string, page: number|null, entry: object|null}}
+ */
+export function mythLookup(index, myth) {
+	if (!isTableRoll(myth)) return { name: t("gmToolkit.myths.unrolled", { number: myth.number }), page: null, entry: null };
+	return mythEntry(index, myth);
 }
 
 /**

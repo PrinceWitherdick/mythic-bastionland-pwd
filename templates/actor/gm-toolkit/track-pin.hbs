@@ -1,0 +1,9 @@
+{{!-- The pin that keeps a hex or Site on the Toolkit's Places page, or the × that takes one added by hand off it.
+      kind is "Hex" or "Site", naming the actions; trackLabel is what pinning it says. --}}
+{{#if removable}}
+<button type="button" class="bastionland-icon bastionland-gm-toolkit__track" data-action="untrack{{kind}}" data-tooltip="{{localize 'bastionland.gmToolkit.places.track.remove'}}" aria-label="{{localize 'bastionland.gmToolkit.places.track.remove'}}"><i class="fa-solid fa-xmark" inert></i></button>
+{{else if tracked}}
+<button type="button" class="bastionland-icon bastionland-gm-toolkit__track is-tracked" data-action="untrack{{kind}}" data-tooltip="{{localize 'bastionland.gmToolkit.places.track.remove'}}" aria-label="{{localize 'bastionland.gmToolkit.places.track.remove'}}" aria-pressed="true"><i class="fa-solid fa-thumbtack" inert></i></button>
+{{else}}
+<button type="button" class="bastionland-icon bastionland-gm-toolkit__track" data-action="track{{kind}}" data-tooltip="{{localize trackLabel}}" aria-label="{{localize trackLabel}}" aria-pressed="false"><i class="fa-solid fa-thumbtack" inert></i></button>
+{{/if}}

@@ -1,6 +1,6 @@
 {{!-- One roll kept in a hex, as sparkView (module/actions/hex-lore.js) reads it. A person is their name over a row
-      for each trait; anything else is its prompt. Given renameable, a GM clicks the name to change it (hex-rename.js).
-      When it was rolled sits at the far right of the name or prompt, and drops under it when the row is narrow. --}}
+      for each trait; anything else is its table's name over what it gave. Given renameable, a GM clicks the name to change it (hex-rename.js).
+      When it was rolled sits at the far right of the name or table, and drops under it when the row is narrow. --}}
 <div class="bastionland-hex-lore__prompt">
 	<div class="bastionland-hex-lore__title">
 		{{#if person}}
@@ -12,7 +12,7 @@
 		<span class="bastionland-person__name bastionland-person__unnamed">{{localize "bastionland.people.unnamed"}}</span>
 		{{/if}}
 		{{else}}
-		<strong>{{prompt}}</strong>
+		<strong>{{table}}</strong>
 		{{/if}}
 		{{#if when}}<span class="bastionland-hex-lore__when">{{when}}</span>{{/if}}
 	</div>
@@ -24,6 +24,7 @@
 		{{/each}}
 	</dl>
 	{{#if person.heard}}<p class="bastionland-person__heard">{{person.heard}}</p>{{/if}}
+	{{else}}
+	<span class="bastionland-hex-lore__source">{{prompt}}</span>
 	{{/if}}
-	<span class="bastionland-hex-lore__source">{{table}}</span>
 </div>

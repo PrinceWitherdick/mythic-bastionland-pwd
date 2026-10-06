@@ -34,6 +34,7 @@ beforeEach(() => {
 	taking = false;
 	globalThis.Element = class Element {};
 	globalThis.ui = { notifications: { info: vi.fn() } };
+	globalThis.game = { user: { isGM: false } };
 	const tokens = { hover: null, placeables: [] };
 	globalThis.canvas = {
 		ready: true,
@@ -46,7 +47,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	for (const key of ["Element", "ui", "canvas"]) delete globalThis[key];
+	for (const key of ["Element", "ui", "canvas", "game"]) delete globalThis[key];
 	vi.clearAllMocks();
 });
 
@@ -85,6 +86,14 @@ describe("onTravelsDoubleClick", () => {
 		expect(onTravelsDoubleClick(click())).toBeNull();
 		expect(ui.notifications.info).toHaveBeenCalledWith(expect.stringContaining("travels.notVisited"));
 		expect(openPlaces).not.toHaveBeenCalled();
+	});
+
+	it("opens a hex nobody has found for a GM, to read and change its Lay of the Land", () => {
+		openable = false;
+		game.user.isGM = true;
+		expect(onTravelsDoubleClick(click())).toBe("opened");
+		expect(openPlaces).toHaveBeenCalledWith({ sceneId: canvas.scene.id, hex: hex(4, 5) });
+		expect(ui.notifications.info).not.toHaveBeenCalled();
 	});
 
 	it("leaves a Token's own double-click alone", () => {

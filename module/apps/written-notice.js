@@ -3,7 +3,7 @@ import { HEX_JOURNAL_FLAG, HEX_LAYOUT } from "../rules/hex-journal.js";
 import { parseHexKey } from "../rules/realm-geometry.js";
 import { SITE_JOURNAL_FLAG, SITE_LAYOUT } from "../rules/site-journal.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { openHexLore } from "./HexLore.js";
+import { openHex } from "./TravelsPlaces.js";
 
 /**
  * A page of a hex's or a Site's Journal entry that the system writes again
@@ -44,7 +44,7 @@ function layLink(sceneId, key) {
 	button.append(icon, ` ${t("hexLore.open")}`);
 	button.addEventListener("click", (event) => {
 		event.preventDefault();
-		openHexLore({ scene, hex });
+		openHex({ scene, hex });
 	});
 	return button;
 }

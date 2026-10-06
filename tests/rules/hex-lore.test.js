@@ -14,6 +14,7 @@ import {
 	renameSpark,
 	rollsOnArrival,
 	setNote,
+	sparkBatches,
 	sparkFromRoll,
 	sparkKeepTarget,
 	takenEntries,
@@ -247,6 +248,35 @@ describe("takenEntries", () => {
 
 	it("leaves out a row the table doesn't have", () => {
 		expect(takenEntries(table, [13, 1]).map(({ column }) => column)).toEqual(["Cover"]);
+	});
+});
+
+describe("sparkBatches", () => {
+	const at = (id, phase, batch) => ({ ...spark(id), when: { age: 1, season: "spring", day: 3, phase }, ...(batch ? { batch } : {}) });
+	const ids = (sparks) => sparkBatches(sparks).map((batch) => batch.map(({ id }) => id));
+
+	it("gathers the rolls kept in one go, oldest first", () => {
+		expect(ids([at("a", "morning", "x"), at("b", "morning", "x"), at("c", "morning", "y"), at("d", "night", "z")])).toEqual([["a", "b"], ["c"], ["d"]]);
+	});
+
+	it("gathers rolls kept before batches by the moment they were made, side by side", () => {
+		expect(ids([at("a", "morning"), at("b", "morning"), at("c", "night"), at("d", "morning")])).toEqual([["a", "b"], ["c"], ["d"]]);
+		expect(ids([{ ...spark("a"), when: null }, { ...spark("b"), when: null }])).toEqual([["a", "b"]]);
+	});
+
+	it("keeps a batched roll apart from an old one made at the same moment", () => {
+		expect(ids([at("a", "morning"), at("b", "morning", "x")])).toEqual([["a"], ["b"]]);
+	});
+
+	it("gives nothing for no rolls", () => {
+		expect(sparkBatches([])).toEqual([]);
+		expect(sparkBatches(undefined)).toEqual([]);
+	});
+
+	it("is kept through a store's normalising", () => {
+		const lore = normaliseHexLore(recordSpark(emptyLore(), hex(1, 1), { ...spark("a"), batch: "x" }));
+		expect(loreAt(lore, hex(1, 1)).sparks[0].batch).toBe("x");
+		expect(loreAt(normaliseHexLore(recordSpark(emptyLore(), hex(1, 1), spark("b"))), hex(1, 1)).sparks[0]).not.toHaveProperty("batch");
 	});
 });
 

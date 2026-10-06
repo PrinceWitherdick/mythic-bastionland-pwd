@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
-vi.mock("../../module/apps/HexLore.js", () => ({ openHexLore: vi.fn() }));
+vi.mock("../../module/apps/TravelsPlaces.js", () => ({ openHex: vi.fn() }));
 
 const { addWrittenNotice } = await import("../../module/apps/written-notice.js");
-const { openHexLore } = await import("../../module/apps/HexLore.js");
+const { openHex } = await import("../../module/apps/TravelsPlaces.js");
 
 /** Just enough of an element for the notice to be built and read back. */
 function element(tag) {
@@ -73,7 +73,7 @@ afterEach(() => {
 describe("addWrittenNotice", () => {
 	const hexFlags = { hexJournal: { scene: "realm", hex: "5,7", open: false } };
 
-	it("opens a hex's written page with the notice and a GM's button to the hex in the Lay of the Land", () => {
+	it("opens a hex's written page with the notice and a GM's button to the hex in Places", () => {
 		const { sheet: page, root, content } = sheet(hexFlags, "known");
 		addWrittenNotice(page, root);
 		const [notice] = content.children;
@@ -81,7 +81,7 @@ describe("addWrittenNotice", () => {
 		expect(within(notice).some((node) => node.textContent === "hexJournal.writtenOver")).toBe(true);
 		const button = within(notice).find((node) => node.className === "bastionland-lay-link");
 		button.click();
-		expect(openHexLore).toHaveBeenCalledWith({ scene: realm, hex: { col: 5, row: 7 } });
+		expect(openHex).toHaveBeenCalledWith({ scene: realm, hex: { col: 5, row: 7 } });
 	});
 
 	it("gives a player who owns the page the notice alone", () => {

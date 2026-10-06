@@ -60,7 +60,6 @@ import { RealmLayer } from "./module/canvas/RealmLayer.js";
 import { registerHexLoreSettings } from "./module/actions/hex-lore.js";
 import { registerHexJournals, syncEveryRealm } from "./module/actions/hex-journals.js";
 import { registerSiteJournals, syncEverySite } from "./module/actions/site-journals.js";
-import { openHexLore } from "./module/apps/HexLore.js";
 import { registerRealmHooks } from "./module/canvas/realm-hooks.js";
 import { registerAttackFx } from "./module/actions/attack-fx.js";
 import { registerAttackMemory } from "./module/actions/attack-memory.js";
@@ -107,7 +106,7 @@ import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
 import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
-import { openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
+import { openHex, openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
@@ -217,6 +216,7 @@ Hooks.once("init", () => {
 		"bastionland.season-events": templatePath("apps/parts/season-events.hbs"),
 		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
+		"bastionland.track-pin": templatePath("actor/gm-toolkit/track-pin.hbs"),
 		"bastionland.gm-toolkit-cast": templatePath("actor/gm-toolkit/cast.hbs"),
 		"bastionland.gm-toolkit-cast-actor": templatePath("actor/gm-toolkit/cast-actor.hbs"),
 		"bastionland.season-turn": templatePath("actor/gm-toolkit/season-turn.hbs"),
@@ -228,12 +228,12 @@ Hooks.once("init", () => {
 		"bastionland.save-result": templatePath("chat/parts/save-result.hbs"),
 		"bastionland.spark-entries": templatePath("chat/parts/spark-entries.hbs"),
 		"bastionland.settings-tab": templatePath("actor/parts/settings-tab.hbs"),
-		"bastionland.party-note": templatePath("apps/parts/party-note.hbs"),
-		"bastionland.hex-edit": templatePath("apps/parts/hex-edit.hbs"),
+		"bastionland.hex-gm": templatePath("apps/parts/hex-gm.hbs"),
 		"bastionland.travels-list": templatePath("apps/parts/travels-list.hbs"),
 		"bastionland.travels-hex-detail": templatePath("apps/parts/travels-hex-detail.hbs"),
 		"bastionland.hex-heading": templatePath("apps/parts/hex-heading.hbs"),
 		"bastionland.hex-spark": templatePath("apps/parts/hex-spark.hbs"),
+		"bastionland.spark-pick-tables": templatePath("apps/parts/spark-pick-tables.hbs"),
 		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
 	});
 
@@ -471,7 +471,8 @@ Hooks.once("init", () => {
 		rollRefereeTable,
 		rollLuck,
 		openSparkTables,
-		openHexLore,
+		// The Lay of the Land is the GM's part of a hex in Places now; macros that open it open that.
+		openHexLore: openHex,
 		// The Company's own record of the places it has been, for the players' Places macro.
 		openPlaces,
 		// The Time window became the GM Toolkit's Time page; macros that open it still work, and

@@ -48,24 +48,14 @@ export const sparkView = (spark) => ({ id: spark.id, table: spark.table, prompt:
 /**
  * What the Realm says stands in a hex, for GMs: its Holding, Myth, Landmark
  * and the Barriers on its sides, those the players haven't found marked so.
+ * Each line says what it tells of, so a list can leave out what the players'
+ * view already shows.
  * @param {Scene} scene
  * @param {object} realm The Realm as this GM may know it.
  * @param {object} g The Realm's geometry.
  * @param {{col: number, row: number}} hex
  * @param {object|null} index The art index, for the Myth's and Seer's names.
  * @param {{full?: boolean}} [options] Full also names a Seat and the Myth's number, and marks a Holding, Myth or Landmark the players haven't found.
- * @returns {string[]}
- */
-export const hexFeatureLines = (scene, realm, g, hex, index, options) => hexFeatures(scene, realm, g, hex, index, options).map(({ text }) => text);
-
-/**
- * The same, each line with what it tells of, so a list can leave out what the players' view already shows.
- * @param {Scene} scene
- * @param {object} realm
- * @param {object} g
- * @param {{col: number, row: number}} hex
- * @param {object|null} index
- * @param {{full?: boolean}} [options]
  * @returns {{kind: "holding"|"myth"|"landmark"|"barrier", direction?: string, seat?: boolean, text: string}[]}
  */
 export function hexFeatures(scene, realm, g, hex, index, { full = false } = {}) {
@@ -169,8 +159,15 @@ export const renameHexSpark = (scene, hex, id, name) => editHexLore(scene, (lore
 /** Forget the note and every roll kept for a hex. @returns {Promise<boolean>} */
 export const forgetHexRecord = (scene, hex) => editHexLore(scene, (lore) => forgetRecord(lore, hex));
 
-/** Keep rolls in a hex in one write, however many there are. @returns {Promise<boolean>} */
-export const keepHexSparkRecords = (scene, hex, sparks) => editHexLore(scene, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, spark), lore));
+/**
+ * Keep rolls in a hex in one write, however many there are. They share a batch, so the hex's list
+ * shows them as one go and folds them away together once another is made.
+ * @returns {Promise<boolean>}
+ */
+export function keepHexSparkRecords(scene, hex, sparks) {
+	const batch = foundry.utils.randomID();
+	return editHexLore(scene, (lore) => sparks.reduce((next, spark) => recordSpark(next, hex, { ...spark, batch }), lore));
+}
 
 /** @returns {object|null} A roll on a table, ready to keep, dated now. */
 const sparkNow = ({ page, table, results }) => sparkFromRoll({ page, table, results, id: foundry.utils.randomID(), when: getCalendar() });

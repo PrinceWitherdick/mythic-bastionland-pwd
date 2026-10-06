@@ -36,48 +36,16 @@
 		</div>
 	</header>
 
-	{{!-- A wilderness hex (p22): the Nature page's tables for one, laid out as the book prints them. The die
-	      rolls every table, a table's own die both its columns, a heading its column, and a click on an entry
-	      takes it by hand. Nothing is kept in the hex until Save. --}}
+	{{!-- A wilderness hex (p22): the Nature page's tables for one. The die below rolls every table, and the
+	      tables roll or take their own entries (spark-pick-tables.hbs). Nothing is kept in the hex until Save. --}}
 	{{#with wild}}
 	{{#if missing}}
 	<p class="bastionland-empty">{{localize "bastionland.spark.pageMissing"}}</p>
 	{{else}}
 	<section class="bastionland-wilderness-hex">
-		<div class="bastionland-wilderness-hex__tables">
-			{{#each tables}}
-			<div class="bastionland-spark__table">
-				<header class="bastionland-spark__table-header">
-					<h2 class="bastionland-heading bastionland-heading--small">{{name}}</h2>
-					<button type="button" class="bastionland-icon" data-action="rollWild" data-table="{{index}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}">
-						<i class="fa-solid fa-dice" inert></i>
-					</button>
-				</header>
-				<table data-wild-table="{{index}}">
-					<thead>
-						<tr>
-							<th scope="col"></th>
-							{{#each columns}}
-							<th scope="col"><button type="button" class="bastionland-knight-table__pick" data-action="rollWild" data-table="{{../index}}" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
-							{{/each}}
-						</tr>
-					</thead>
-					<tbody>
-						{{#each rows}}
-						<tr>
-							<th scope="row">{{number}}</th>
-							{{#each entries}}
-							<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}><button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-table="{{../../index}}" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.hexLore.wildHex.pick'}}">{{text}}</button></td>
-							{{/each}}
-						</tr>
-						{{/each}}
-					</tbody>
-				</table>
-			</div>
-			{{/each}}
-		</div>
+		{{> "bastionland.spark-pick-tables"}}
 		<nav class="bastionland-toolbar">
-			<button type="button" data-action="rollWild"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.hexLore.wildHex.rollAll"}}</button>
+			<button type="button" data-action="rollPick"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.hexLore.wildHex.rollAll"}}</button>
 			<button type="button" data-action="keepWild" data-keep-wild {{#if nothingTaken}}data-nothing-taken{{/if}} {{disabled save.disabled}}><i class="fa-solid fa-feather" inert></i> <span data-keep-label>{{save.label}}</span></button>
 		</nav>
 	</section>

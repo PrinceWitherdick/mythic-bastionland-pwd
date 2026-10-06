@@ -1,7 +1,7 @@
 import { findCompanyToken, wentSomewhere } from "../actions/company.js";
 import { hexLorePromptMode, rollFirstArrival, rollsFirstArrivals } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
-import { openHexLore } from "../apps/HexLore.js";
+import { openHex } from "../apps/TravelsPlaces.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -66,7 +66,7 @@ function offerArrivals() {
 }
 
 /**
- * Open the Lay of the Land where the Company has come to rest, unless they were
+ * Open the hex in Places where the Company has come to rest, unless they were
  * already standing there when the GM last saw them.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
@@ -77,7 +77,7 @@ function showArrival(scene, hex) {
 	if (standing.get(scene.id) === key) return false;
 	standing.set(scene.id, key);
 	// Already open, and it moves to the new hex rather than opening again.
-	openHexLore({ scene, hex });
+	openHex({ scene, hex });
 	return true;
 }
 

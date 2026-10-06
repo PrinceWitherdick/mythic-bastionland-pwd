@@ -1,4 +1,5 @@
-{{!-- Choose one of a list, or a blank one, valued PICK_BLANK (rules/pick-list.js): name, legend, choices ({id, name, detail}), blankLabel, blankDetail. --}}
+{{!-- Choose one of a list, or a blank one, valued PICK_BLANK (rules/pick-list.js): name, legend, choices ({id, name, detail}), blankLabel, blankDetail.
+      Without blankLabel there's no blank one to choose. --}}
 {{#if choices.length}}
 <fieldset class="bastionland-choice-list">
 	<legend>{{legend}}</legend>
@@ -11,6 +12,7 @@
 		</span>
 	</label>
 	{{/each}}
+	{{#if blankLabel}}
 	<label class="bastionland-check">
 		<input type="radio" name="{{name}}" value="blank">
 		<span class="bastionland-check__label">
@@ -18,7 +20,8 @@
 			<span class="bastionland-check__detail">{{blankDetail}}</span>
 		</span>
 	</label>
+	{{/if}}
 </fieldset>
-{{else}}
+{{else if blankLabel}}
 <input type="hidden" name="{{name}}" value="blank">
 {{/if}}

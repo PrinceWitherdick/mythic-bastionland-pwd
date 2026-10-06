@@ -18,7 +18,7 @@ import { hexKey } from "../rules/realm-geometry.js";
 import { TERRAIN_MARKS, hidesTerrain } from "../rules/realm-map.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { openRealmAppearance } from "./RealmAppearance.js";
-import { renderWhenIdle } from "./ui.js";
+import { hangHeaderButtons, renderWhenIdle } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -158,7 +158,7 @@ export const brushHint = (brush) => t(`realm.panel.hints.${brush}`);
  * The palette the GM paints a Realm with, while the paint tool is in hand:
  * every terrain, the river, Barriers, each style of Holding and each kind of
  * Landmark, in two columns so the palette isn't taller than the screen. One
- * hex is changed in the Lay of the Land's Edit this hex instead.
+ * hex is changed in Edit this hex instead, opened from Places.
  */
 export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -267,25 +267,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @param {boolean} shown
 	 */
 	#hangAppearanceButton(shown) {
-		const header = this.element?.querySelector(".window-header");
-		if (!header) return;
-		const hung = header.querySelector(".bastionland-header-button[data-action=appearance]");
-		if (!shown) return hung?.remove();
-		if (hung) return;
-		const doc = header.ownerDocument;
-		const button = doc.createElement("button");
-		button.type = "button";
-		button.className = "header-control bastionland-header-button";
-		button.dataset.action = "appearance";
-		const glyph = doc.createElement("i");
-		glyph.className = "fa-solid fa-palette";
-		glyph.inert = true;
-		const text = doc.createElement("span");
-		text.textContent = t("realm.panel.appearance");
-		button.append(glyph, text);
-		const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
-		if (controls) controls.before(button);
-		else header.append(button);
+		hangHeaderButtons(this.element, "bastionland-realm-appearance", shown ? [{ action: "appearance", icon: "fa-solid fa-palette", label: t("realm.panel.appearance") }] : []);
 	}
 
 	/**

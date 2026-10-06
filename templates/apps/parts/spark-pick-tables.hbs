@@ -1,0 +1,35 @@
+{{!-- Spark Tables laid out as the book prints them, to roll or choose from by hand: the Spark Tables' Wilderness Hex
+      page (SparkTables.js) and Roll a Person (RollPerson.js). A table's die rolls its columns, a heading its column,
+      and a click on an entry takes it. Each table is as tableView (rules/gm-toolkit.js) draws it. --}}
+<div class="bastionland-wilderness-hex__tables">
+	{{#each tables}}
+	<div class="bastionland-spark__table">
+		<header class="bastionland-spark__table-header">
+			<h2 class="bastionland-heading bastionland-heading--small">{{name}}</h2>
+			<button type="button" class="bastionland-icon" data-action="rollPick" data-table="{{index}}" data-tooltip="{{rollLabel}}" aria-label="{{rollLabel}}">
+				<i class="fa-solid fa-dice" inert></i>
+			</button>
+		</header>
+		<table data-pick-table="{{index}}">
+			<thead>
+				<tr>
+					<th scope="col"></th>
+					{{#each columns}}
+					<th scope="col"><button type="button" class="bastionland-knight-table__pick" data-action="rollPick" data-table="{{../index}}" data-column="{{index}}" data-tooltip="{{tooltip}}">{{label}}</button></th>
+					{{/each}}
+				</tr>
+			</thead>
+			<tbody>
+				{{#each rows}}
+				<tr>
+					<th scope="row">{{number}}</th>
+					{{#each entries}}
+					<td data-column="{{column}}"{{#if rolled}} class="is-rolled"{{/if}}><button type="button" class="bastionland-knight-table__pick" data-action="pickRow" data-table="{{../../index}}" data-column="{{column}}" data-row="{{row}}" data-tooltip="{{localize 'bastionland.hexLore.wildHex.pick'}}">{{text}}</button></td>
+					{{/each}}
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+	</div>
+	{{/each}}
+</div>

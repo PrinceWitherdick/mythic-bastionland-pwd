@@ -11,7 +11,7 @@ import { indulgePassion, rest, restoreVirtue, useRemedy } from "../actions/recov
 import { addAbilityDie, combatantOf, dropLastingDie, lastingDiceOf, lastingDieLabel } from "../actions/lasting-dice.js";
 import { rollSave } from "../actions/saves.js";
 import { ArtPreviewMixin } from "../apps/art-preview.js";
-import { renderWhenIdle } from "../apps/ui.js";
+import { hangHeaderButtons, renderWhenIdle } from "../apps/ui.js";
 import { dismissGambitMark } from "../chat/attack-card.js";
 import { t } from "../chat/cards.js";
 import { marksOn } from "../chat/gambit-marks.js";
@@ -260,27 +260,7 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 * read, follows the actor, and on a Knight's sheet the Domain they rule.
 	 */
 	refreshHeaderButtons() {
-		const header = this.element?.querySelector(".window-header");
-		if (!header) return;
-		const doc = header.ownerDocument;
-		header.querySelectorAll(`.${HEADER_BUTTON}`).forEach((button) => button.remove());
-		const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
-		for (const { action, icon, label, tooltip, muted } of this._headerButtons()) {
-			const button = doc.createElement("button");
-			button.type = "button";
-			button.className = `header-control ${HEADER_BUTTON}`;
-			button.classList.toggle(`${HEADER_BUTTON}--muted`, Boolean(muted));
-			button.dataset.action = action;
-			if (tooltip) button.dataset.tooltip = tooltip;
-			const glyph = doc.createElement("i");
-			glyph.className = icon;
-			glyph.inert = true;
-			const text = doc.createElement("span");
-			text.textContent = label;
-			button.append(glyph, text);
-			if (controls) controls.before(button);
-			else header.append(button);
-		}
+		hangHeaderButtons(this.element, HEADER_BUTTON, this._headerButtons());
 	}
 
 	/**

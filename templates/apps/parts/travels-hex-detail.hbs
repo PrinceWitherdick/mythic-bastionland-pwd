@@ -1,31 +1,56 @@
-{{!-- One hex as the Company knows it, beside the Places window's list. Only the gm part at the foot, drawn for GMs alone, comes from what the GM keeps. --}}
-<aside class="bastionland-travels-detail bastionland-hex-lore bastionland-travels-hex" aria-live="polite">
+{{!-- One hex as the Company knows it, beside the Places window's list. A GM changes what the players know where it's shown,
+      and the Lay of the Land at the foot (hex-gm.hbs), drawn for GMs alone, holds what the GM keeps. The pen beside
+      the hex's terrain, shown to a GM on hover, opens Edit this hex (HexEditor.js).
+      Ping hangs in the window's title bar where data-ping says the hex is on the map. --}}
+<aside class="bastionland-travels-detail bastionland-hex-lore bastionland-travels-hex"{{#unless empty}}{{#if onMap}}{{#if (or openable gm)}} data-ping{{/if}}{{/if}}{{/unless}} aria-live="polite">
 	{{#if empty}}
-	<p class="bastionland-hint bastionland-travels-detail__empty">{{localize "bastionland.travels.detail.empty"}}</p>
+	<p class="bastionland-hint bastionland-travels-detail__empty">{{empty}}</p>
 	{{else}}
 	<div class="bastionland-travels-hex__head">
 		{{#with heading}}{{> "bastionland.hex-heading"}}{{/with}}
 		{{#if openable}}{{#if here}}<span class="bastionland-hex-lore__feature bastionland-pill bastionland-travels__here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}{{/if}}
 	</div>
 
+	{{#*inline "editPen"}}
+	<button type="button" class="bastionland-icon bastionland-travels-hex__edit bastionland-reveal" data-action="editHex" aria-label="{{localize "bastionland.hexLore.edit"}}" data-tooltip="{{localize "bastionland.hexLore.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
+	{{/inline}}
 	{{#if openable}}
-	<div class="bastionland-hex-lore__here">
+	<div class="bastionland-hex-lore__here{{#if gm}} bastionland-reveal-host{{/if}}">
 		{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
 		{{#each features}}
 		<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
 		{{/each}}
+		{{#if gm}}{{> editPen}}{{/if}}
 	</div>
+	{{else}}
+	<div class="bastionland-hex-lore__row{{#if gm}} bastionland-reveal-host{{/if}}">
+		<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.notKnown"}}</p>
+		{{#if gm}}{{> editPen}}{{/if}}
+	</div>
+	{{/if}}
 
+	{{#if (or openable gm)}}
 	<div class="bastionland-hex-lore__row bastionland-travels-hex__visits">
 		<span class="bastionland-hex-lore__hint">{{visits}}</span>
-		{{#if onMap}}
-		<button type="button" data-action="showTravelsHex" data-hex="{{hex}}"><i class="fa-solid fa-location-crosshairs" inert></i> {{localize "bastionland.travels.showOnMap"}}</button>
-		{{/if}}
+		{{#if gm}}{{#unless gm.visited}}
+		<button type="button" data-action="markVisited"><i class="fa-solid fa-shoe-prints" inert></i> {{localize "bastionland.gmToolkit.visits.mark"}}</button>
+		{{/unless}}
+		{{!-- Forget every visit here, or everything kept here; each asks first. One visit goes by its × on the Journey page. --}}
+		{{#with gm.forget}}
+		<span class="bastionland-travels-hex__forget">
+			<button type="button" class="bastionland-icon" data-action="forgetVisits" {{disabled noVisits}} aria-label="{{localize 'bastionland.gmToolkit.visits.forgetAll'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetAll'}}"><i class="fa-solid fa-route" inert></i></button>
+			<button type="button" class="bastionland-icon" data-action="forgetAll" {{disabled nothing}} aria-label="{{localize 'bastionland.gmToolkit.visits.forgetEverything'}}" data-tooltip="{{localize 'bastionland.gmToolkit.visits.forgetEverything'}}"><i class="fa-solid fa-eraser" inert></i></button>
+		</span>
+		{{/with}}{{/if}}
 	</div>
+	{{/if}}
 
+	{{#if openable}}
 	{{#if sighted}}<p class="bastionland-travels-hex__sighted"><i class="fa-solid fa-circle-question" inert></i> {{sighted}}</p>{{/if}}
 	{{#each met}}<p class="bastionland-travels-hex__sighted"><i class="fa-solid fa-road-barrier" inert></i> {{this}}</p>{{/each}}
 
+	{{!-- A GM reads what was told under their note in the Lay of the Land, beside whether it's out of date. --}}
+	{{#unless gm}}
 	<h3 class="bastionland-heading">{{localize "bastionland.travels.told.heading"}}</h3>
 	<ul class="bastionland-hex-lore__rolls bastionland-travels-hex__told">
 		{{#each told}}
@@ -39,50 +64,19 @@
 		<li class="bastionland-hint">{{localize "bastionland.travels.told.none"}}</li>
 		{{/each}}
 	</ul>
+	{{/unless}}
 
+	{{!-- A heading of its own, as the told list has, so the box doesn't read as part of that list. --}}
+	<h3 class="bastionland-heading" id="{{@root.partId}}-party-heading">{{localize "bastionland.travels.party.heading"}}</h3>
 	<div class="form-group bastionland-hex-lore__note bastionland-travels-hex__party">
-		<label for="{{@root.partId}}-party">{{localize "bastionland.travels.party.heading"}}</label>
 		<div class="form-fields">
-			<textarea id="{{@root.partId}}-party" name="party" data-hex="{{hex}}" rows="4" maxlength="2000" placeholder="{{localize "bastionland.travels.party.placeholder"}}" {{#unless canWrite}}readonly{{/unless}}>{{party}}</textarea>
+			<textarea id="{{@root.partId}}-party" name="party" aria-labelledby="{{@root.partId}}-party-heading" data-hex="{{hex}}" rows="4" maxlength="2000" placeholder="{{localize "bastionland.travels.party.placeholder"}}" {{#unless canWrite}}readonly{{/unless}}>{{party}}</textarea>
 		</div>
 		{{#if partyBy}}<p class="bastionland-hint">{{partyBy}}</p>{{/if}}
 		{{#if noGM}}<p class="bastionland-hint">{{localize "bastionland.travels.party.offline"}}</p>{{/if}}
 	</div>
-
-	{{#with gm}}
-	<section class="bastionland-travels-hex__gm">
-		<div class="bastionland-hex-lore__row">
-			<h3 class="bastionland-heading">{{localize "bastionland.travels.gm.heading"}}</h3>
-			<button type="button" data-action="openHexLore" data-hex="{{../hex}}"><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.hexLore.open"}}</button>
-		</div>
-		<p class="bastionland-hint">{{localize "bastionland.travels.gm.hint"}}</p>
-		{{#if features.length}}
-		<div class="bastionland-hex-lore__here">
-			{{#each features}}
-			<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
-			{{/each}}
-		</div>
-		{{/if}}
-		<ul class="bastionland-hex-lore__rolls">
-			{{#each sparks}}
-			<li class="bastionland-hex-lore__roll">
-				{{> "bastionland.hex-spark"}}
-			</li>
-			{{else}}
-			<li class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.noRolls"}}</li>
-			{{/each}}
-		</ul>
-		{{#unless sparks.length}}
-		<button type="button" class="bastionland-travels-hex__fill" data-action="rollWildHex" data-hex="{{../hex}}" data-tooltip="{{localize "bastionland.travels.gm.fillHint"}}"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
-		{{/unless}}
-		{{#if note}}
-		<h4 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.hexLore.note"}}</h4>
-		<p class="bastionland-travels-hex__gm-note">{{note}}</p>
-		{{/if}}
-	</section>
-	{{/with}}
-	{{else}}
-	<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.notKnown"}}</p>
 	{{/if}}
+
+	{{#with gm}}{{> "bastionland.hex-gm"}}{{/with}}
 	{{/if}}
 </aside>

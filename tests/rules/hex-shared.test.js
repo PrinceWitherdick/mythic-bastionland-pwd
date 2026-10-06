@@ -4,13 +4,16 @@ import {
 	MAX_TOLD,
 	MAX_TOLD_NOTE,
 	emptyShared,
+	forgetBarrierMet,
 	forgetPartyNote,
 	forgetShared,
 	forgetTold,
 	normaliseShared,
+	recordBarrierMet,
 	recordTold,
 	setPartyNote,
-	sharedAt
+	sharedAt,
+	toldState
 } from "../../module/rules/hex-shared.js";
 
 const hex = (col, row) => ({ col, row });
@@ -67,15 +70,16 @@ describe("recordTold", () => {
 	});
 });
 
-describe("forgetTold", () => {
-	it("strikes one telling, and the hex once nothing is left", () => {
-		let shared = recordTold(emptyShared(), hex(1, 1), { id: "a", note: "One." });
-		shared = recordTold(shared, hex(1, 1), { id: "b", note: "Two." });
-		const less = forgetTold(shared, hex(1, 1), "a");
-		expect(sharedAt(less, hex(1, 1)).told.map((t) => t.id)).toEqual(["b"]);
-		expect(sharedAt(forgetTold(less, hex(1, 1), "b"), hex(1, 1))).toBeNull();
-		expect(forgetTold(shared, hex(1, 1), "nope")).toBe(shared);
-		expect(forgetTold(shared, hex(9, 9), "a")).toBe(shared);
+describe("toldState", () => {
+	it("says whether the players' last telling still reads as the GM's note does", () => {
+		expect(toldState("", null)).toBe("none");
+		expect(toldState("  A well.  ", null)).toBe("unsaid");
+		expect(toldState("A well. ", "A well.")).toBe("current");
+		expect(toldState("A dry well.", "A well.")).toBe("stale");
+		expect(toldState("   ", "A well.")).toBe("kept");
+		// A note longer than a telling holds is told cut short, and still counts as told.
+		const long = "x".repeat(MAX_TOLD_NOTE + 50);
+		expect(toldState(long, "x".repeat(MAX_TOLD_NOTE))).toBe("current");
 	});
 });
 
@@ -104,6 +108,43 @@ describe("the Company's note", () => {
 		const told = recordTold(shared, hex(1, 1), { id: "a", note: "One." });
 		expect(sharedAt(forgetPartyNote(told, hex(1, 1)), hex(1, 1))).toEqual({ told: [expect.objectContaining({ id: "a" })] });
 		expect(forgetPartyNote(emptyShared(), hex(1, 1))).toEqual(emptyShared());
+	});
+});
+
+describe("forgetTold", () => {
+	it("forgets one telling, the hex going with its last", () => {
+		const one = recordTold(emptyShared(), hex(1, 1), { id: "a", note: "One." });
+		const two = recordTold(one, hex(1, 1), { id: "b", note: "Two." });
+		expect(sharedAt(forgetTold(two, hex(1, 1), "a"), hex(1, 1)).told.map((told) => told.id)).toEqual(["b"]);
+		expect(forgetTold(one, hex(1, 1), "a")).toEqual(emptyShared());
+		const noted = setPartyNote(one, hex(1, 1), { text: "Ours" });
+		expect(sharedAt(forgetTold(noted, hex(1, 1), "a"), hex(1, 1))).toMatchObject({ told: [], party: { text: "Ours" } });
+	});
+
+	it("leaves the store alone for a telling it hasn't got", () => {
+		const one = recordTold(emptyShared(), hex(1, 1), { id: "a", note: "One." });
+		expect(forgetTold(one, hex(1, 1), "z")).toBe(one);
+		expect(forgetTold(one, hex(2, 2), "a")).toBe(one);
+	});
+});
+
+describe("forgetBarrierMet", () => {
+	const north = "1,1|1,0";
+	const east = "1,1|2,1";
+
+	it("forgets one Barrier met, the hex going with its last", () => {
+		const one = recordBarrierMet(emptyShared(), hex(1, 1), { edge: north, byName: "Ada" });
+		const two = recordBarrierMet(one, hex(1, 1), { edge: east, byName: "Bo" });
+		expect(sharedAt(forgetBarrierMet(two, hex(1, 1), north), hex(1, 1)).met.map((met) => met.edge)).toEqual([east]);
+		expect(forgetBarrierMet(one, hex(1, 1), north)).toEqual(emptyShared());
+		const told = recordTold(one, hex(1, 1), { id: "a", note: "One." });
+		expect(sharedAt(forgetBarrierMet(told, hex(1, 1), north), hex(1, 1))).toEqual({ told: [expect.objectContaining({ id: "a" })] });
+	});
+
+	it("leaves the store alone for a Barrier not met there", () => {
+		const one = recordBarrierMet(emptyShared(), hex(1, 1), { edge: north });
+		expect(forgetBarrierMet(one, hex(1, 1), east)).toBe(one);
+		expect(forgetBarrierMet(one, hex(2, 2), north)).toBe(one);
 	});
 });
 

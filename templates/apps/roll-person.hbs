@@ -1,0 +1,26 @@
+<div class="bastionland-page bastionland-spark">
+	{{#if missing}}
+	<p class="bastionland-chooser__notice">{{localize "bastionland.people.missing"}}</p>
+	{{else}}
+	<header class="bastionland-spark__header">
+		<p class="bastionland-hint">{{hint}} {{reference}}</p>
+		<div class="bastionland-spark__tools">
+			<div class="bastionland-spark__checks">
+				<label class="bastionland-check bastionland-spark__animate">
+					<input type="checkbox" name="animate" {{checked animate}}>
+					<span class="bastionland-check__label">{{localize "bastionland.spark.animate"}}</span>
+				</label>
+			</div>
+		</div>
+	</header>
+
+	{{!-- The People page's tables, rolled or taken by hand (spark-pick-tables.hbs). Nothing is kept in the hex until Save. --}}
+	<section class="bastionland-wilderness-hex">
+		{{> "bastionland.spark-pick-tables"}}
+		<nav class="bastionland-toolbar">
+			<button type="button" data-action="rollPick"><i class="fa-solid fa-dice" inert></i> {{localize "bastionland.people.window.rerollAll"}}</button>
+			<button type="button" data-action="save" {{disabled nothingTaken}}><i class="fa-solid fa-feather" inert></i> {{localize "bastionland.people.window.save"}}</button>
+		</nav>
+	</section>
+	{{/if}}
+</div>

@@ -2,7 +2,7 @@ import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGe
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
-import { openHexLore } from "../apps/HexLore.js";
+import { openHex } from "../apps/TravelsPlaces.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
@@ -484,8 +484,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (this.tool === "inspect") {
 			const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
-			// The Lay of the Land shows the hex, and its Edit this hex fold changes it.
-			if (hex) openHexLore({ scene, hex });
+			// Places shows the hex, and the pen beside its terrain opens Edit this hex.
+			if (hex) openHex({ scene, hex });
 			return;
 		}
 

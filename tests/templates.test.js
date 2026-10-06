@@ -238,7 +238,9 @@ describe("localization", () => {
 		...["all", ...TRAVELS_FILTERS].map((key) => `travels.filters.${key}`),
 		...TRAVELS_SORTS.map((key) => `travels.sort.${key}`),
 		...LEGEND_KINDS.map((kind) => `travels.chart.key.${kind}`),
-		...["arrivedFirst", "arrived", "told", "met", "noted"].map((key) => `travels.journey.${key}`),
+		...["arrivedFirst", "arrived", "told", "toldGM", "met", "noted"].map((key) => `travels.journey.${key}`),
+		// Built with a GM twin by forReader in actions/travels.js.
+		"travels.detail.empty", "travels.detail.emptyGM",
 		...FALLEN_PATHS.map((path) => `fallen.paths.${path}`),
 		...partsOf("warband.origins", [...WARBAND_ORIGINS], ["label", "hint", "text"]),
 		...partsOf("warband.upkeep.strains", [...UPKEEP_STRAINS], ["label", "text"]),

@@ -224,6 +224,26 @@ describe("journeyLog", () => {
 		expect(day.entries[3]).toMatchObject({ direction: "south", byName: "Ada" });
 	});
 
+	it("keeps only the Company's latest note of a Phase", () => {
+		const s = sources();
+		s.shared = setPartyNote(s.shared, wild, { text: "Bog.", byName: "Ada", when: when(2), at: 5 });
+		s.shared = setPartyNote(s.shared, town, { text: "Inn.", byName: "Bo", when: when(2), at: 7 });
+		s.shared = setPartyNote(s.shared, ruin, { text: "Stones.", byName: "Cy", when: { ...when(2), phase: "night" }, at: 6 });
+		const [day] = journeyLog(s)[0].days;
+		expect(keysOf(day)).toEqual(["arrived:5,5", "arrived:7,7", "noted:2,2", "noted:3,3"]);
+	});
+
+	it("names each line's own record, to forget it by", () => {
+		const s = sources();
+		const edge = edgeKey(wild, hex(5, 6));
+		s.shared = recordTold(s.shared, wild, { id: "t3", note: "Teeth in the mud.", when: when(2), at: 5 });
+		s.shared = recordBarrierMet(s.shared, wild, { edge, byName: "Ada", when: when(2), at: 6 });
+		s.shared = setPartyNote(s.shared, wild, { text: "Bog.", byName: "Ada", when: when(2), at: 7 });
+		const [day] = journeyLog(s)[0].days;
+		const refs = Object.fromEntries(day.entries.filter((entry) => entry.view.key === "5,5").map((entry) => [entry.kind, entry.ref]));
+		expect(refs).toEqual({ arrived: String(s.journey.hexes["5,5"].arrivals.at(-1).order), told: "t3", met: edge, noted: "" });
+	});
+
 	it("carries no secret of the Realm", () => {
 		const text = JSON.stringify(journeyLog(sources()));
 		for (const secret of [SECRET_LANDMARK, "Second secret", SECRET_HOLDING, LORE_NOTE]) expect(text).not.toContain(secret);

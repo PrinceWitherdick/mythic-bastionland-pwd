@@ -8,8 +8,8 @@ const gone = (path) => !existsSync(join(root, path));
 
 const spark = read("module/apps/SparkTables.js");
 const sparkTemplate = read("templates/apps/spark-tables.hbs");
-const loreApp = read("module/apps/HexLore.js");
-const toolkit = read("module/sheets/GmToolkitSheet.js");
+const gmPart = read("module/apps/hex-gm-part.js");
+const gmTemplate = read("templates/apps/parts/hex-gm.hbs");
 const timePage = read("templates/actor/gm-toolkit/time.hbs");
 const boot = read("mythic-bastionland.js");
 const lang = JSON.parse(read("languages/en.json")).bastionland;
@@ -27,21 +27,22 @@ describe("Wilderness Hex, a page of the Spark Tables", () => {
 	});
 
 	it("rolls, takes by hand and saves to the hex rolls are kept in", () => {
-		for (const action of ["rollWild", "pickRow", "keepWild"]) expect(sparkTemplate).toContain(`data-action="${action}"`);
+		for (const action of ["rollPick", "keepWild"]) expect(sparkTemplate).toContain(`data-action="${action}"`);
+		expect(sparkTemplate).toContain('{{> "bastionland.spark-pick-tables"}}');
 		expect(spark).toContain("const kept = await keepHexSparks({ ...target, page: this.#wild.page, taken });");
 		expect(spark).toContain("const target = this.wildTarget;");
 		// Rolls aren't kept one by one there, so the tick box and Roll a Person stay on the book's pages.
 		expect(sparkTemplate).toMatch(/\{\{#unless wild\}\}\s*<label class="bastionland-check bastionland-spark__animate" data-tooltip="\{\{localize "bastionland\.spark\.keepHint"\}\}">/);
 	});
 
-	it("says where it saves as the Lay of the Land moves", () => {
+	it("says where it saves as the hex chosen in Places moves", () => {
 		expect(sparkTemplate).toContain("data-keep-wild");
 		expect(spark).toContain('const save = window_.element.querySelector("[data-keep-wild]");');
 	});
 
-	it("is what Roll a wilderness hex opens, from the Lay of the Land and the GM Toolkit", () => {
-		expect(loreApp).toContain("return openSparkTables({ page: WILD_PAGE });");
-		expect(toolkit).toMatch(/openHexLore\(\{ scene: this\.scene, hex \}\);\s*return openSparkTables\(\{ page: WILD_PAGE \}\);/);
+	it("is no button in a hex's Lay of the Land, while Roll the Land rolls straight into it", () => {
+		expect(gmTemplate).not.toContain('data-action="browseSparks"');
+		expect(gmPart).toContain("rollOnce(state, () => rollHexSparkSet({ scene, hex }))");
 	});
 });
 

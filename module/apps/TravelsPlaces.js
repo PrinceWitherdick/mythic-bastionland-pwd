@@ -1,6 +1,6 @@
 import { renameHex } from "../actions/hex-names.js";
-import { TRAVELS_CHANGED_HOOK, writePartyNote } from "../actions/hex-shared.js";
-import { rollHexSparkSet } from "../actions/hex-lore.js";
+import { TRAVELS_CHANGED_HOOK, forgetHexBarrierMet, forgetHexPartyNote, forgetHexTold, writePartyNote } from "../actions/hex-shared.js";
+import { forgetHexVisit } from "../actions/journey.js";
 import { showHexOnMap, travelsHexDetail, travelsListContext } from "../actions/travels.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
@@ -12,11 +12,20 @@ import { chartScrollBy, haloPoints } from "../rules/travels-chart.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { holdChartPlace, wireChartZoom } from "./chart-zoom.js";
-import { openHexLore } from "./HexLore.js";
+import { HEX_GM_ACTIONS, hexGmContext, hexGmHeaderButtons, hexGmState, wireHexGmPart } from "./hex-gm-part.js";
 import { wireHexRename } from "./hex-rename.js";
-import { renderWhenIdle } from "./ui.js";
+import { refreshBookFlip } from "./BookFlip.js";
+import { PLACES_ID } from "./places-hex.js";
+import { refreshSparkKeep } from "./SparkTables.js";
+import { hangHeaderButtons, renderWhenIdle } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/** Tell the windows that keep things in the hex chosen here that it's moved, or Places has closed. */
+function chosenHexMoved() {
+	refreshSparkKeep();
+	refreshBookFlip();
+}
 
 /** Client setting: which page of the players' record this browser opens on. */
 export const TRAVELS_VIEW_SETTING = "travelsView";
@@ -87,6 +96,34 @@ export function openTravelsRow(_event, target) {
 export function showTravelsRow(_event, target) {
 	const row = rowOf(target);
 	if (row) return showHexOnMap(row.scene, row.hex);
+}
+
+/**
+ * What a line of the journey stands for, forgotten by its × in the Places
+ * window, each handed its Scene, hex and the ref the line carries.
+ * @type {Record<string, (scene: Scene, hex: {col: number, row: number}, ref: string) => Promise<boolean>|undefined>}
+ */
+const FORGET_JOURNEY = Object.freeze({
+	arrived(scene, hex, ref) {
+		const order = Number(ref);
+		if (ref !== "" && Number.isInteger(order)) return forgetHexVisit(scene, hex, order);
+	},
+	told: (scene, hex, ref) => (ref ? forgetHexTold(scene, hex, ref) : undefined),
+	met: (scene, hex, ref) => (ref ? forgetHexBarrierMet(scene, hex, ref) : undefined),
+	noted: (scene, hex) => forgetHexPartyNote(scene, hex)
+});
+
+/**
+ * Forget a line of the journey: a visit, a telling, a Barrier met or the
+ * Company's note. GMs only.
+ * @param {Event} _event
+ * @param {HTMLElement} target
+ */
+function forgetJourneyLine(_event, target) {
+	if (!game.user.isGM) return;
+	const row = rowOf(target);
+	const forget = FORGET_JOURNEY[target.dataset.kind];
+	if (row && forget) return forget(row.scene, row.hex, target.dataset.ref ?? "");
 }
 
 /**
@@ -268,19 +305,26 @@ export function wireTravelsList(root, state, redraw) {
  * The places the Company has been to, and those it has only heard of, on one
  * Realm, as a list, a chart and a journey, with the hex chosen among them
  * beside: what stands there that they've found, when they were there, what
- * the Referee told them of it, and their own note.
+ * the Referee told them of it, and their own note. For a GM, the hex beside
+ * is the one place it's read and changed: any hex of the Realm can be chosen,
+ * and the Lay of the Land under it holds what the GM keeps there.
  */
 export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
-		id: "bastionland-travels",
+		id: PLACES_ID,
 		classes: [SYSTEM_ID, "bastionland", "bastionland-travels-window"],
 		position: { width: 800, height: 640 },
 		window: { icon: "fa-solid fa-map-location-dot", resizable: true },
 		actions: {
 			pickTravelsHex: TravelsPlaces.#onPick,
 			showTravelsHex: showTravelsRow,
-			openHexLore: TravelsPlaces.#onLayOfTheLand,
-			rollWildHex: TravelsPlaces.#onRollWildHex
+			forgetJourney: forgetJourneyLine,
+			pingHex: TravelsPlaces.#onPing,
+			// The GM's part of the chosen hex: each takes the hex shown.
+			...Object.fromEntries(Object.entries(HEX_GM_ACTIONS).map(([action, act]) => [action, function (_event, target) {
+				const at = game.user.isGM ? this.gmAt() : null;
+				if (at) return act(at, target);
+			}]))
 		}
 	};
 
@@ -297,8 +341,8 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @type {[string, number][]} The hooks this window draws again on. */
 	#hooks = [];
 
-	/** Whether a wilderness hex is being rolled, so a second click doesn't roll it twice. */
-	#rolling = false;
+	/** @type {import("./hex-gm-part.js").HexGmState} How the GM left the Lay of the Land, kept from hex to hex. */
+	hexGm = hexGmState();
 
 	/** @type {object|null|undefined} The art index, read once for a GM: it names the Myths and Seers in the GM's part of the chosen hex. */
 	#index;
@@ -310,15 +354,57 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		return this.#index;
 	}
 
+	/**
+	 * Show the hex chosen on the map, ringed till the next click.
+	 * @this {TravelsPlaces}
+	 */
+	static #onPing() {
+		const at = this.chosen();
+		if (at) return showHexOnMap(at.scene, at.hex);
+	}
+
+	/** @override */
+	_initializeApplicationOptions(options) {
+		const initial = super._initializeApplicationOptions(options);
+		// A GM's hex holds the Lay of the Land as well, so the window opens wider for them.
+		if (game.user?.isGM) initial.position.width = Math.max(initial.position.width ?? 0, 960);
+		return initial;
+	}
+
 	/** @override */
 	get title() {
 		return t("travels.title");
 	}
 
+	/** @returns {{scene: Scene, hex: {col: number, row: number}}|null} The hex chosen, and its Realm. */
+	chosen() {
+		const scene = game.scenes.get(this.state.realm);
+		const hex = parseHexKey(this.state.selected ?? "");
+		return scene && hex ? { scene, hex } : null;
+	}
+
+	/**
+	 * The hex chosen, for the GM's part of it.
+	 * @returns {{scene: Scene, hex: {col: number, row: number}, state: object, redraw: () => Promise<unknown>}|null}
+	 */
+	gmAt() {
+		const at = this.chosen();
+		return at && { ...at, state: this.hexGm, redraw: () => this.#drawDetail() };
+	}
+
+	/**
+	 * @returns {Promise<((scene: Scene, view: object) => object|null)|null>} What builds the GM's part of a hex, none for a player.
+	 */
+	async #gmPart() {
+		if (!game.user?.isGM) return null;
+		const index = await this.#gmIndex();
+		return (scene, view) => hexGmContext({ scene, hex: view.hex, view, index, state: this.hexGm });
+	}
+
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		const list = travelsListContext(this.state.realm, { ...this.state, detail: true, index: await this.#gmIndex() });
+		const list = travelsListContext(this.state.realm, { ...this.state, detail: true, gmPart: await this.#gmPart() });
 		if (list.sceneId) this.state.realm = list.sceneId;
 		if (list.selected !== undefined) this.state.selected = list.selected;
 		return Object.assign(context, list);
@@ -329,13 +415,32 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		await super._onRender(context, options);
 		wireTravelsList(this.element, this.state, () => this.render());
 		this.#wireDetail();
+		// Rolls on the Spark Tables, and prompts from Flip the Book, are kept in the hex a GM has chosen here.
+		chosenHexMoved();
 		if (this.reveal) {
 			this.reveal = false;
-			this.element.querySelector(".bastionland-travels__row.is-selected")?.scrollIntoView({ block: "nearest" });
-			// Opened on a hex, the chart shows that hex rather than the Company.
-			const list = this.element.querySelector(".bastionland-travels");
-			if (list && this.state.view === "chart") showChartPlace(list, this.state.selected);
+			this.showChosen();
 		}
+	}
+
+	/** Bring the chosen hex into view: its row scrolled to, and on the chart, the chart moved to it rather than the Company. */
+	showChosen() {
+		this.element?.querySelector(".bastionland-travels__row.is-selected")?.scrollIntoView({ block: "nearest" });
+		const list = this.element?.querySelector(".bastionland-travels");
+		if (list && this.state.view === "chart") showChartPlace(list, this.state.selected);
+	}
+
+	/**
+	 * Choose a hex of the Realm shown. Only the chosen hex changes, so only its
+	 * detail is drawn again, and the pages are marked where they stand.
+	 * @param {string} key
+	 * @returns {Promise<unknown>}
+	 */
+	choose(key) {
+		this.state.selected = key;
+		const list = this.element?.querySelector(".bastionland-travels");
+		if (!list || !markChosen(list, key)) return this.render();
+		return this.#drawDetail();
 	}
 
 	/** Write the Company's note when its box is left, not at every key. */
@@ -345,10 +450,38 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 			const hex = parseHexKey(event.target.dataset.hex ?? "");
 			if (scene && hex) writePartyNote(scene, hex, event.target.value);
 		});
+		// A GM's Journal of the hex, then Ping, follow the hex chosen, in the title bar.
+		hangHeaderButtons(this.element, "bastionland-places-header", [
+			...(game.user.isGM ? hexGmHeaderButtons(this.element) : []),
+			...(this.element.querySelector(".bastionland-travels-detail[data-ping]")
+				? [{ action: "pingHex", icon: "fa-solid fa-location-crosshairs", label: t("travels.ping"), tooltip: t("travels.pingHint") }]
+				: [])
+		]);
 		// A GM names the chosen hex by clicking its heading.
-		const scene = game.scenes.get(this.state.realm);
-		const hex = parseHexKey(this.state.selected ?? "");
-		if (scene && hex) wireHexRename(this.element.querySelector(".bastionland-travels-detail"), (name) => renameHex(scene, hex, name));
+		const at = this.chosen();
+		if (!at) return;
+		const { scene, hex } = at;
+		const detail = this.element.querySelector(".bastionland-travels-detail");
+		wireHexRename(detail, (name) => renameHex(scene, hex, name));
+		if (game.user.isGM) wireHexGmPart(detail, { scene, hex, state: this.hexGm });
+	}
+
+	/**
+	 * Draw the chosen hex again, leaving the rest of the page as drawn.
+	 * @returns {Promise<unknown>}
+	 */
+	async #drawDetail() {
+		const shown = this.element?.querySelector(".bastionland-travels-detail");
+		const detail = shown && this.state.selected ? travelsHexDetail(this.state.realm, this.state.selected, await this.#gmPart()) : null;
+		if (!detail) return this.render();
+		const html = await foundry.applications.handlebars.renderTemplate(templatePath("apps/parts/travels-hex-detail.hbs"), { ...detail, partId: `${this.id}-body` });
+		const drawn = document.createElement("template");
+		drawn.innerHTML = html;
+		const fresh = drawn.content.querySelector(".bastionland-travels-detail");
+		if (!fresh || !shown.isConnected) return this.render();
+		shown.replaceWith(fresh);
+		this.#wireDetail();
+		chosenHexMoved();
 	}
 
 	/**
@@ -372,6 +505,8 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 		super._onClose(options);
 		for (const [name, id] of this.#hooks) Hooks.off(name, id);
 		this.#hooks = [];
+		// Rolls on the Spark Tables go back to the Company's hex, and Flip the Book to a hex clicked on the map.
+		chosenHexMoved();
 	}
 
 	/**
@@ -382,58 +517,13 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
 	 */
 	static async #onPick(_event, target) {
 		const hex = parseHexKey(target.dataset.hex ?? "");
-		if (!hex) return;
-		const key = hexKey(hex);
-		this.state.selected = key;
-		// Only the chosen hex changes, so only its detail is drawn again, and the pages are marked where they stand.
-		const list = this.element?.querySelector(".bastionland-travels");
-		const shown = this.element?.querySelector(".bastionland-travels-detail");
-		const index = await this.#gmIndex();
-		const detail = list && shown && markChosen(list, key) ? travelsHexDetail(this.state.realm, key, index) : null;
-		if (!detail) return this.render();
-		const html = await foundry.applications.handlebars.renderTemplate(templatePath("apps/parts/travels-hex-detail.hbs"), { ...detail, partId: `${this.id}-body` });
-		const drawn = document.createElement("template");
-		drawn.innerHTML = html;
-		const fresh = drawn.content.querySelector(".bastionland-travels-detail");
-		if (!fresh || !shown.isConnected) return this.render();
-		shown.replaceWith(fresh);
-		this.#wireDetail();
-	}
-
-	/**
-	 * Open the Lay of the Land on the chosen hex, from the GM's part of it.
-	 * @this {TravelsPlaces}
-	 * @param {Event} _event
-	 * @param {HTMLElement} target
-	 */
-	static #onLayOfTheLand(_event, target) {
-		const row = rowOf(target);
-		if (row && game.user.isGM) openHexLore(row);
-	}
-
-	/**
-	 * Roll the chosen hex on the wilderness tables and keep what comes up, from
-	 * the GM's part of it when nothing is rolled there yet.
-	 * @this {TravelsPlaces}
-	 * @param {Event} _event
-	 * @param {HTMLElement} target
-	 */
-	static async #onRollWildHex(_event, target) {
-		const row = rowOf(target);
-		if (!row || !game.user.isGM || this.#rolling) return;
-		this.#rolling = true;
-		target.disabled = true;
-		try {
-			await rollHexSparkSet(row);
-		} finally {
-			this.#rolling = false;
-			target.disabled = false;
-		}
+		if (hex) return this.choose(hexKey(hex));
 	}
 }
 
 /**
  * Open the Company's places, bringing the window forward if it's already open.
+ * A GM opens any hex of the Realm in it, and its Lay of the Land with it.
  * @param {object} [options]
  * @param {string} [options.sceneId] The Realm to show.
  * @param {{col: number, row: number}} [options.hex] The hex to choose in it.
@@ -441,6 +531,12 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
  */
 export function openPlaces({ sceneId, hex } = {}) {
 	const app = reopenablePlaces();
+	// Open on this Realm already: only the hex chosen is drawn again.
+	if (hex && app.rendered && !app.minimized && (!sceneId || sceneId === app.state.realm)) {
+		app.bringToFront();
+		app.choose(hexKey(hex)).then(() => app.showChosen());
+		return app;
+	}
 	if (sceneId && sceneId !== app.state.realm) {
 		app.state.realm = sceneId;
 		app.state.selected = null;
@@ -454,10 +550,31 @@ export function openPlaces({ sceneId, hex } = {}) {
 }
 
 /**
+ * Open one hex of a Realm in Places: for a GM, any hex, with its Lay of the
+ * Land under what the players know of it.
+ * @param {object} options
+ * @param {Scene} options.scene
+ * @param {{col: number, row: number}} options.hex
+ * @returns {TravelsPlaces}
+ */
+export const openHex = ({ scene, hex }) => openPlaces({ sceneId: scene.id, hex });
+
+/**
  * The window to render when it was open as the page last unloaded. It opens
  * on the Realm it shows first, on the page this browser last chose.
  * @returns {TravelsPlaces}
  */
 export function reopenablePlaces() {
 	return foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id) ?? new TravelsPlaces();
+}
+
+/**
+ * Draw the Places window again after its Realm changed, once the GM has
+ * finished typing: while a Realm is drawn by hand, or its Undo changes,
+ * nothing else tells it.
+ * @param {string} sceneId
+ */
+export function refreshPlaces(sceneId) {
+	const app = foundry.applications.instances.get(TravelsPlaces.DEFAULT_OPTIONS.id);
+	if (app?.rendered && app.state.realm === sceneId) renderWhenIdle(app);
 }

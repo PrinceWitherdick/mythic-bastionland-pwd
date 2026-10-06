@@ -2,7 +2,7 @@ import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
 import { ringShownHex } from "../canvas/shown-hex.js";
 import { headingWords } from "../rules/hex-names.js";
-import { hexCentre, parseHexKey } from "../rules/realm-geometry.js";
+import { hexCentre, inRealm, parseHexKey } from "../rules/realm-geometry.js";
 import { realmPalette } from "../rules/realm-skins.js";
 import { sightedMarks } from "../rules/sighted.js";
 import { searchable } from "../rules/text.js";
@@ -24,7 +24,6 @@ import {
 import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/travels-chart.js";
 import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
-import { getHexRecord, hexFeatures, sparkView } from "./hex-lore.js";
 import { getHexNames } from "./hex-names.js";
 import { getHexShared, partyNoteBy } from "./hex-shared.js";
 import { getJourney, visitsLabel } from "./journey.js";
@@ -75,6 +74,13 @@ export const barrierMetLines = (met) => (met ?? []).map(({ direction, byName, wh
 	when: when ? calendarLabel(when) : "",
 	name: byName || t("travels.party.someone")
 }));
+
+/**
+ * @param {string} key Under bastionland, with a twin ending in GM.
+ * @param {object} [data] What fills its blanks.
+ * @returns {string} The GM's wording where one is reading, else the players'.
+ */
+const forReader = (key, data) => t(game.user?.isGM ? `${key}GM` : key, data);
 
 /**
  * @param {{id: string, note: string, when: object|null}[]} told
@@ -146,9 +152,10 @@ function chartLabel(view) {
 /**
  * One line of the journey log, worded.
  * @param {import("../rules/travels.js").JourneyEntry} entry
+ * @param {boolean} [forgettable] Whether it has an × to forget it, for a GM in the Places window.
  * @returns {object}
  */
-function journeyEntryContext(entry) {
+function journeyEntryContext(entry, forgettable = false) {
 	const { view } = entry;
 	const words = wordsOf(view);
 	const place = words.title;
@@ -156,7 +163,7 @@ function journeyEntryContext(entry) {
 	const name = entry.byName || t("travels.party.someone");
 	const said = {
 		arrived: () => t(entry.first ? "travels.journey.arrivedFirst" : "travels.journey.arrived", { place }),
-		told: () => t("travels.journey.told", { place }),
+		told: () => forReader("travels.journey.told", { place }),
 		met: () => t("travels.journey.met", { place, name, direction: t(`realm.directions.${entry.direction}`) }),
 		noted: () => t("travels.journey.noted", { place, name })
 	}[entry.kind]();
@@ -169,6 +176,7 @@ function journeyEntryContext(entry) {
 		// What the hex is, the first time the Company comes into it.
 		about: entry.kind === "arrived" && entry.first ? about : "",
 		note: entry.kind === "told" ? entry.note : "",
+		forget: forgettable ? { ref: entry.ref, label: t(`travels.journey.forget.${entry.kind}`) } : null,
 		tags: viewTags(view).join(" "),
 		search: searchable([said, about, entry.note ?? "", searchText(view)].join(" "))
 	};
@@ -176,13 +184,14 @@ function journeyEntryContext(entry) {
 
 /**
  * @param {import("../rules/travels.js").JourneySeason[]} log
+ * @param {boolean} [forgettable] Whether each line has an × to forget it.
  * @returns {object[]} The journey log, worded: a heading for each Season, and its days.
  */
-function journeyContext(log) {
+function journeyContext(log, forgettable = false) {
 	const yearsOn = seasonYearsOn(log);
 	return log.map((season, index) => ({
 		heading: season.when ? seasonHeading(season.when, yearsOn[index]) : t("travels.journey.undated"),
-		days: season.days.map((day) => ({ entries: day.entries.map(journeyEntryContext) }))
+		days: season.days.map((day) => ({ entries: day.entries.map((entry) => journeyEntryContext(entry, forgettable)) }))
 	}));
 }
 
@@ -199,14 +208,17 @@ function seasonHeading(when, on) {
 
 /**
  * The hex a page opens with chosen: the one asked for while the players may
- * open it, else where the Company stands, else the last it reached.
+ * open it, or any hex of the Realm for a GM, else where the Company stands,
+ * else the last it reached.
  * @param {import("../rules/travels.js").PlayerHexView[]} views
  * @param {string|null} asked
+ * @param {object|null} [anyIn] The Realm's geometry, for a GM, who may choose any of its hexes.
  * @returns {string|null}
  */
-function chosenHex(views, asked) {
+export function chosenHex(views, asked, anyIn = null) {
 	const open = new Set(views.map((view) => view.key));
 	if (asked && open.has(asked)) return asked;
+	if (asked && anyIn && inRealm(anyIn, parseHexKey(asked))) return asked;
 	return views.find((view) => view.here && view.openable)?.key ?? views.find((view) => view.visits)?.key ?? null;
 }
 
@@ -245,7 +257,7 @@ export function travelsRealmChoice(chosen = null) {
  * @property {string|null} [selected] The key of the hex chosen.
  * @property {boolean} [route]   Whether the chart draws the way the Company went.
  * @property {boolean} [detail]  Whether the page shows the chosen hex beside its list.
- * @property {object|null} [index] The art index, for the Myth's and Seer's names in a GM's part of the hex.
+ * @property {((scene: Scene, view: object) => object|null)|null} [gmPart] Builds what only a GM sees of the chosen hex.
  */
 
 /**
@@ -254,7 +266,7 @@ export function travelsRealmChoice(chosen = null) {
  * @param {TravelsLook} [look]
  * @returns {object}
  */
-export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], filter = "", sort = TRAVELS_SORTS[0], selected = null, route = false, detail = false, index = null } = {}) {
+export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], filter = "", sort = TRAVELS_SORTS[0], selected = null, route = false, detail = false, gmPart = null } = {}) {
 	const { scenes, scene } = travelsRealmChoice(chosen);
 	const sources = travelsSources(scene);
 	if (!sources) return { realms: scenes, noRealm: true };
@@ -262,18 +274,19 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
 	const list = travelsList(sources, viewOf);
 	const onMap = canvas?.scene?.id === scene.id;
 	const every = [...list.visited, ...list.heardOf];
-	const picked = chosenHex(every, selected);
+	const picked = chosenHex(every, selected, sources.gm ? sources.g : null);
 	const chosenDetail = () => {
-		if (!picked) return { empty: true };
+		if (!picked) return { empty: forReader("travels.detail.empty") };
 		const one = viewOf(parseHexKey(picked));
-		return hexDetail(one, onMap, gmHexPart(scene, sources, one, index));
+		return hexDetail(one, onMap, gmPart?.(scene, one) ?? null);
 	};
 	const by = TRAVELS_SORTS.includes(sort) ? sort : TRAVELS_SORTS[0];
 	const title = (one) => wordsOf(one).title;
 	const rows = (views) => sortViews(views, by, title).map((one) => rowContext(one, onMap, picked));
 	const shown = TRAVELS_VIEWS.includes(view) ? view : TRAVELS_VIEWS[0];
 	const narrowed = TRAVELS_FILTERS.includes(filter) ? filter : "";
-	const log = journeyContext(journeyLog(sources, viewOf));
+	// A GM forgets a line of the journey in the Places window, the one that builds a GM's part, never on a Knight's sheet.
+	const log = journeyContext(journeyLog(sources, viewOf), Boolean(gmPart));
 	const palette = realmPalette(getRealmLook(scene).palette);
 	return {
 		realms: scenes,
@@ -312,44 +325,16 @@ export function travelsListContext(chosen = null, { view = TRAVELS_VIEWS[0], fil
  * The chosen hex's detail alone, for a pick that leaves the rest of the page as drawn.
  * @param {string|null} sceneId The Realm shown.
  * @param {string} key The hex chosen.
- * @param {object|null} [index] The art index, for a GM's part of the hex.
+ * @param {((scene: Scene, view: object) => object|null)|null} [gmPart] Builds what only a GM sees of the hex, under what the players know.
  * @returns {object|null} Null where the Realm or the hex can't be read.
  */
-export function travelsHexDetail(sceneId, key, index = null) {
+export function travelsHexDetail(sceneId, key, gmPart = null) {
 	const scene = sceneId ? game.scenes?.get(sceneId) : null;
 	const sources = scene ? travelsSources(scene) : null;
 	const hex = parseHexKey(key);
 	if (!sources || !hex) return null;
 	const view = hexViews(sources)(hex);
-	return hexDetail(view, canvas?.scene?.id === scene.id, gmHexPart(scene, sources, view, index));
-}
-
-/**
- * What only a GM sees of the chosen hex, below what the players know: what
- * stands there that the players haven't found, and what the Lay of the Land
- * keeps for it, its Spark Table rolls and the GM's note.
- * @param {Scene} scene
- * @param {import("../rules/travels.js").TravelsSources} sources
- * @param {import("../rules/travels.js").PlayerHexView} view
- * @param {object|null} index
- * @returns {object|null} Null for a player.
- */
-function gmHexPart(scene, sources, view, index) {
-	if (!game.user?.isGM) return null;
-	const record = getHexRecord(scene, view.hex);
-	// The two lists word a feature differently, so what the players know is told by what it is, not by its words.
-	// A Seat of Power the players don't see, hidden by hand, still has its line.
-	const shown = ({ kind, direction, seat }) => {
-		if (kind === "barrier") return view.barriers.includes(direction);
-		if (kind === "holding") return Boolean(view.holding) && (!seat || view.holding.seat);
-		return Boolean(view[kind]);
-	};
-	return {
-		features: hexFeatures(scene, sources.realm, sources.g, view.hex, index, { full: true }).filter((feature) => !shown(feature)).map(({ text }) => text),
-		// Newest first, as the Lay of the Land lists them.
-		sparks: (record?.sparks ?? []).map(sparkView).reverse(),
-		note: record?.note ?? ""
-	};
+	return hexDetail(view, canvas?.scene?.id === scene.id, gmPart?.(scene, view) ?? null);
 }
 
 /**
@@ -398,4 +383,19 @@ export async function showHexOnMap(scene, hex) {
 	ringShownHex(scene, hex);
 	await canvas.animatePan({ ...point, duration: reducesMotion() ? 0 : 400 });
 	canvas.controls?.drawPing?.(point, { style: CONFIG.Canvas.pings?.types?.PULSE ?? "pulse", user: game.user });
+}
+
+/**
+ * Show a hex on the map as showHexOnMap does, bringing its Realm up first
+ * when another Scene is on show.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @returns {Promise<boolean>} Whether the Realm came up and the hex was shown.
+ */
+export async function viewAndShowHex(scene, hex) {
+	if (!scene || !hex) return false;
+	if (canvas?.scene?.id !== scene.id) await scene.view();
+	if (canvas?.scene?.id !== scene.id) return false;
+	await showHexOnMap(scene, hex);
+	return true;
 }

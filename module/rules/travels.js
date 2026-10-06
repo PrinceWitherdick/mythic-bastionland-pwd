@@ -247,6 +247,7 @@ const phaseIndex = (when) => Math.max(0, PHASES.indexOf(when?.phase));
  * @property {string} [note]        For a telling, what was told.
  * @property {string} [direction]   For a Barrier met, which way it closed.
  * @property {string} [byName]      For a Barrier met or a note written, who.
+ * @property {string} ref           Which of the hex's kind it is, to forget it by: an arrival's order, a telling's id, a Barrier's edge; "" for the note.
  */
 
 /**
@@ -272,7 +273,7 @@ export function seasonYearsOn(log) {
 
 /**
  * The Company's journey on a Realm, as a log: each time it came into a hex,
- * each telling, each hidden Barrier run into and the Company's latest notes,
+ * each telling, each hidden Barrier run into and the Company's latest note of each Phase,
  * gathered by Season and by day. Only the players' own record goes in, and
  * each hex as they know it.
  * @param {TravelsSources} sources
@@ -286,25 +287,30 @@ export function journeyLog(sources, viewOf = hexViews(sources)) {
 		const hex = parseHexKey(key);
 		if (!hex) continue;
 		visits.arrivals.forEach((arrival, index) => entries.push({
-			kind: "arrived", view: viewOf(hex), when: arrival.when, first: index === 0, rank: arrival.order
+			kind: "arrived", view: viewOf(hex), when: arrival.when, first: index === 0, ref: String(arrival.order), rank: arrival.order
 		}));
 	}
 	for (const [key, record] of Object.entries(sources.shared?.hexes ?? {})) {
 		const hex = parseHexKey(key);
 		if (!hex) continue;
 		// Kept beside the arrivals, they follow them within their Phase, in the order they were written.
-		for (const told of record.told ?? []) entries.push({ kind: "told", view: viewOf(hex), when: told.when ?? null, note: told.note, rank: Infinity, at: told.at ?? 0 });
+		for (const told of record.told ?? []) entries.push({ kind: "told", view: viewOf(hex), when: told.when ?? null, note: told.note, ref: told.id, rank: Infinity, at: told.at ?? 0 });
 		for (const met of record.met ?? []) {
 			const direction = edgeSide(sources.g, hex, met.edge);
-			if (direction) entries.push({ kind: "met", view: viewOf(hex), when: met.when ?? null, direction, byName: met.byName, rank: Infinity, at: met.at ?? 0 });
+			if (direction) entries.push({ kind: "met", view: viewOf(hex), when: met.when ?? null, direction, byName: met.byName, ref: met.edge, rank: Infinity, at: met.at ?? 0 });
 		}
-		if (record.party) entries.push({ kind: "noted", view: viewOf(hex), when: record.party.when ?? null, byName: record.party.byName, rank: Infinity, at: record.party.at ?? 0 });
+		if (record.party) entries.push({ kind: "noted", view: viewOf(hex), when: record.party.when ?? null, byName: record.party.byName, ref: "", rank: Infinity, at: record.party.at ?? 0 });
 	}
 	// Within a day, by Phase, then the arrivals in the order travelled and the rest as written.
 	entries.sort((a, b) => phaseIndex(a.when) - phaseIndex(b.when) || a.rank - b.rank || (a.at ?? 0) - (b.at ?? 0));
+	// Of the Company's notes written in one Phase, only the latest goes in.
+	const phaseOf = (entry) => (entry.kind === "noted" && entry.when ? `${dayOf(entry.when)}|${phaseIndex(entry.when)}` : null);
+	const latestNote = new Map();
+	for (const entry of entries) if (phaseOf(entry)) latestNote.set(phaseOf(entry), entry);
+	const logged = entries.filter((entry) => !phaseOf(entry) || latestNote.get(phaseOf(entry)) === entry);
 
 	const seasons = new Map();
-	for (const { rank: _rank, at: _at, ...entry } of entries) {
+	for (const { rank: _rank, at: _at, ...entry } of logged) {
 		const season = seasonOf(entry.when);
 		if (!seasons.has(season)) seasons.set(season, { when: entry.when, days: new Map() });
 		const days = seasons.get(season).days;

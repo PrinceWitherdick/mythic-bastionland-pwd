@@ -42,13 +42,14 @@ export function travelsClickHex(event) {
 }
 
 /**
- * Open a hex in the Company's places, or tell them they know nothing of it.
+ * Open a hex in the Company's places, or tell players they know nothing of it.
+ * A GM opens any hex, to read and change its Lay of the Land.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @returns {Promise<unknown>|null}
  */
 function openHexInPlaces(scene, hex) {
-	if (!hexOpenable(scene, hex)) {
+	if (!game.user?.isGM && !hexOpenable(scene, hex)) {
 		// Not one of their places, so they know it by its column and row alone.
 		ui.notifications.info(t("travels.notVisited", { hex: t("realm.hex", hex) }));
 		return null;

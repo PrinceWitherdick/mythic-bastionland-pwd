@@ -151,3 +151,38 @@ export function tableView(table, rolled, tooltip) {
 		}))
 	};
 }
+
+/**
+ * @param {{columns: string[]}[]} tables Tables drawn by spark-pick-tables.hbs.
+ * @returns {null[][]} Nothing taken yet from any column of them.
+ */
+export const noPicks = (tables) => tables.map((table) => table.columns.map(() => null));
+
+/**
+ * The tables spark-pick-tables.hbs draws, with what's taken from each.
+ * @param {{name: string, columns: string[]}[]} tables
+ * @param {(number|null)[][]} taken The row taken in each column of each table, from 1, or null.
+ * @param {{table: (name: string) => string, column: (column: string) => string}} labels What rolling a whole table, and one column, say.
+ * @returns {{tables: object[], nothingTaken: boolean}}
+ */
+export function pickTablesView(tables, taken, labels) {
+	return {
+		tables: tables.map((table, index) => ({ index, name: table.name, rollLabel: labels.table(table.name), ...tableView(table, taken[index], labels.column) })),
+		nothingTaken: taken.every((rows) => rows.every((row) => row === null))
+	};
+}
+
+/**
+ * Take an entry of a table drawn by spark-pick-tables.hbs by hand, or let it
+ * go if it's already the one taken.
+ * @param {(number|null)[][]} taken Changed in place.
+ * @param {{table?: string, column?: string, row?: string}} entry The clicked entry's dataset.
+ * @returns {boolean} Whether there was such an entry.
+ */
+export function pickRow(taken, { table, column, row }) {
+	const rows = taken?.[Number(table)];
+	const at = Number(column);
+	if (!rows || !(at in rows)) return false;
+	rows[at] = rows[at] === Number(row) ? null : Number(row);
+	return true;
+}

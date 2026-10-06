@@ -7,11 +7,12 @@ import { rollSpark } from "../actions/referee-rolls.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { read, reducesMotion } from "../client-settings.js";
-import { tableView } from "../rules/gm-toolkit.js";
+import { noPicks, pickRow, pickTablesView } from "../rules/gm-toolkit.js";
 import { sparkKeepTarget } from "../rules/hex-lore.js";
 import { PEOPLE_PAGE } from "../rules/people.js";
 import { SPARK_PAGES } from "../rules/spark-tables.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { placesChosenHex } from "./places-hex.js";
 import { spinTable } from "./roll-spin.js";
 import { toggleShown } from "./ui.js";
 
@@ -31,17 +32,48 @@ export function registerSparkTablesSetting() {
 }
 
 /** @returns {boolean} Whether a roll on any Spark Table window runs its highlight. */
-const animates = () => read(ANIMATE_SETTING, true) !== false;
+export const animates = () => read(ANIMATE_SETTING, true) !== false;
 
 /**
  * Wire an Animate selection tick box to the setting, so each window that shows
  * one leaves it the same for the others.
  * @param {HTMLElement} root
  */
-function wireAnimateBox(root) {
+export function wireAnimateBox(root) {
 	root.querySelector("[name=animate]")?.addEventListener("change", (event) => {
 		game.settings.set(SYSTEM_ID, ANIMATE_SETTING, event.currentTarget.checked);
 	});
+}
+
+/**
+ * Roll tables drawn by spark-pick-tables.hbs, where only the GMs see the dice:
+ * every table, one table's columns, or one column. Every highlight runs at
+ * once, and each column's row is taken once it lands.
+ * @param {{columns: string[]}[]} tables
+ * @param {(number|null)[][]} taken The row taken in each column of each table, from 1, or null; changed in place.
+ * @param {{table?: string, column?: string}} which From the clicked button's dataset: neither for every table.
+ * @param {() => HTMLElement|null} shown The window's element, or null once it no longer shows these tables.
+ * @param {() => void} [landed] Called once the rows are taken, before the highlights stop spinning.
+ * @returns {Promise<boolean>} False, with nothing taken, when the tables went from view while the dice rolled.
+ */
+export async function rollPicks(tables, taken, { table, column }, shown, landed = () => {}) {
+	const plan = (table === undefined ? tables.map((_, index) => index) : [Number(table)]).map((index) => ({
+		index,
+		columns: column === undefined ? tables[index].columns.map((_, at) => at) : [Number(column)]
+	}));
+	const dice = await throwSparkDice(plan.reduce((count, { columns }) => count + columns.length, 0));
+	const root = shown();
+	if (!root) return false;
+	let next = 0;
+	const reduce = !animates() || reducesMotion();
+	const spins = plan.map(({ index, columns }) => {
+		const rolls = columns.map(() => dice[next++]);
+		columns.forEach((at, rolled) => (taken[index][at] = rolls[rolled]));
+		return spinTable(root.querySelector(`table[data-pick-table="${index}"]`), columns, rolls.map((roll) => ({ roll })), { reduce });
+	});
+	landed();
+	await Promise.all(spins);
+	return true;
 }
 
 /**
@@ -51,24 +83,18 @@ function wireAnimateBox(root) {
  */
 export const WILD_PAGE = "wild";
 
-/** The Lay of the Land's window, found by its id since it's the one that opens these tables. */
-const HEX_LORE_ID = "bastionland-hex-lore";
-
 /** @type {SparkTables|null} The window, once opened. */
 let window_ = null;
 
 /**
- * Where a roll here is kept: the hex the Lay of the Land is open on, or else
+ * Where a roll here is kept: the hex a GM has chosen in Places, or else
  * the one the Company stands in on the Realm being viewed.
  * @returns {{scene: Scene, hex: {col: number, row: number}}|null}
  */
 function keepTarget() {
-	const open = foundry.applications.instances.get(HEX_LORE_ID);
-	const loreScene = open?.rendered && open.hex ? game.scenes.get(open.sceneId) : null;
-	const lore = isRealmScene(loreScene) ? { scene: loreScene, hex: open.hex } : null;
 	const viewed = canvas?.scene ?? null;
 	const companyHex = isRealmScene(viewed) ? companyTokenHex(viewed) : null;
-	return sparkKeepTarget({ lore, company: companyHex ? { scene: viewed, hex: companyHex } : null });
+	return sparkKeepTarget({ lore: placesChosenHex(), company: companyHex ? { scene: viewed, hex: companyHex } : null });
 }
 
 /** The words for where rolls are kept: the Keep rolls box's, or the Wilderness Hex page's Save button's. */
@@ -87,7 +113,7 @@ function keepWords(key = KEEP_IN, target = keepTarget()) {
 }
 
 /**
- * Say again where rolls are kept, as the Lay of the Land opens on a hex, moves
+ * Say again where rolls are kept, as Places opens on a hex, moves
  * or closes. The box and the Save button alone are touched: a redraw would cut
  * a running highlight short and wipe the entries it marked.
  */
@@ -123,7 +149,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 			showPage: SparkTables.#onShowPage,
 			roll: SparkTables.#onRoll,
 			rollPerson: SparkTables.#onRollPerson,
-			rollWild: SparkTables.#onRollWild,
+			rollPick: SparkTables.#onRollPick,
 			pickRow: SparkTables.#onPickRow,
 			keepWild: SparkTables.#onKeepWild
 		}
@@ -162,7 +188,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Where the Wilderness Hex page's Save keeps what's taken: the hex it was
-	 * taken for, so a Lay of the Land turned to another hex since doesn't
+	 * taken for, so a Places turned to another hex since doesn't
 	 * take it, or else where rolls are kept now.
 	 * @returns {{scene: Scene, hex: {col: number, row: number}}|null}
 	 */
@@ -234,19 +260,17 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (this.#wild === undefined) this.#wild = await wildernessHexTables();
 		if (!this.#wild) return { missing: true };
 		const { page, set } = this.#wild;
-		this.#taken ??= set.map(({ table }) => table.columns.map(() => null));
-		const nothingTaken = this.#taken.every((rows) => rows.every((row) => row === null));
+		const tables = set.map(({ table }) => table);
+		this.#taken ??= noPicks(tables);
+		const view = pickTablesView(tables, this.#taken, {
+			table: (name) => t("hexLore.wildHex.rollTable", { name }),
+			column: (column) => t("hexLore.wildHex.rollColumn", { column })
+		});
 		const save = keepWords(WILD_KEEP_IN, this.wildTarget);
 		return {
 			reference: t("hexLore.wildHex.reference", { page: page.page }),
-			tables: set.map(({ table }, index) => ({
-				index,
-				name: table.name,
-				rollLabel: t("hexLore.wildHex.rollTable", { name: table.name }),
-				...tableView(table, this.#taken[index], (column) => t("hexLore.wildHex.rollColumn", { column }))
-			})),
-			nothingTaken,
-			save: { label: save.label, disabled: save.disabled || nothingTaken }
+			...view,
+			save: { label: save.label, disabled: save.disabled || view.nothingTaken }
 		};
 	}
 
@@ -327,34 +351,23 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/**
 	 * Roll every wilderness table, one table's columns, or the column whose
-	 * heading was clicked, where only the GMs see the dice. Every highlight runs
-	 * at once, and the rows stay taken once they land. Nothing is kept yet.
+	 * heading was clicked (rollPicks). Nothing is kept yet.
 	 * @this {SparkTables}
 	 */
-	static async #onRollWild(_event, target) {
+	static async #onRollPick(_event, target) {
 		if (this.#spinning || !this.#wild || !this.#taken) return;
 		const { table, column } = target.dataset;
-		const tables = table === undefined ? this.#wild.set.map((_, index) => index) : [Number(table)];
-		const plan = tables.map((index) => ({
-			index,
-			columns: column === undefined ? this.#wild.set[index].table.columns.map((_, at) => at) : [Number(column)]
-		}));
-
 		this.#spinning = true;
 		try {
-			const dice = await throwSparkDice(plan.reduce((count, { columns }) => count + columns.length, 0));
 			// Closed, or turned from, while the dice were still rolling: nothing's left to spin.
-			if (!this.rendered || this.#page !== WILD_PAGE) return;
-			let next = 0;
-			const reduce = !animates() || reducesMotion();
-			// Every row rolled afresh is taken for the hex rolls are kept in now.
-			if (table === undefined && column === undefined) this.#takenFor = null;
-			await Promise.all(plan.map(({ index, columns }) => {
-				const rolls = columns.map(() => dice[next++]);
-				columns.forEach((at, rolled) => (this.#taken[index][at] = rolls[rolled]));
+			const shown = () => (this.rendered && this.#page === WILD_PAGE ? this.element : null);
+			// Noted as the dice land, so a hex chosen in Places while the highlights spin isn't where these rows go.
+			const landed = () => {
+				// Every row rolled afresh is taken for the hex rolls are kept in now.
+				if (table === undefined && column === undefined) this.#takenFor = null;
 				this.#noteTakenFor();
-				return spinTable(this.element.querySelector(`table[data-wild-table="${index}"]`), columns, rolls.map((roll) => ({ roll })), { reduce });
-			}));
+			};
+			if (!(await rollPicks(this.#wild.set.map((each) => each.table), this.#taken, target.dataset, shown, landed))) return;
 		} finally {
 			this.#spinning = false;
 		}
@@ -366,12 +379,7 @@ export class SparkTables extends HandlebarsApplicationMixin(ApplicationV2) {
 	 * @this {SparkTables}
 	 */
 	static #onPickRow(_event, target) {
-		if (this.#spinning) return;
-		const rows = this.#taken?.[Number(target.dataset.table)];
-		const column = Number(target.dataset.column);
-		const row = Number(target.dataset.row);
-		if (!rows || !(column in rows)) return;
-		rows[column] = rows[column] === row ? null : row;
+		if (this.#spinning || !pickRow(this.#taken, target.dataset)) return;
 		this.#noteTakenFor();
 		return this.render();
 	}

@@ -1,0 +1,206 @@
+{{!-- The Lay of the Land: the GM's own part of a hex in Places, under what the players know of it.
+      Built by hexGmContext in module/apps/hex-gm-part.js; its buttons are HEX_GM_ACTIONS.
+      The hex's Journal hangs in the window's title bar (hexGmHeaderButtons), only where data-journal says it has one. --}}
+<section class="bastionland-travels-hex__gm"{{#if journal}} data-journal{{/if}}>
+	<h3 class="bastionland-heading">{{localize "bastionland.hexGm.heading"}}</h3>
+	<p class="bastionland-hint">{{localize "bastionland.hexGm.hint"}}</p>
+
+	{{#if (or terrain features.length)}}
+	<div class="bastionland-hex-lore__here">
+		{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
+		{{#each features}}
+		<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
+		{{/each}}
+	</div>
+	{{/if}}
+
+	<div class="form-group bastionland-hex-lore__note">
+		<label for="{{@root.partId}}-note">{{localize "bastionland.hexLore.note"}}</label>
+		<div class="form-fields">
+			<textarea id="{{@root.partId}}-note" name="note" rows="4" placeholder="{{localize "bastionland.hexLore.notePlaceholder"}}">{{note}}</textarea>
+		</div>
+	</div>
+	{{!-- Whether the players hold the note as it reads, against the last telling. Where they don't, Tell the players
+	      ends the line. wireHexGmPart shows the line that fits as the note is typed. --}}
+	{{#with told}}
+	<div class="bastionland-hex-lore__told" data-told-latest="{{latest}}">
+		{{#each says}}
+		<p class="bastionland-hex-lore__told-state is-{{key}}" data-told-say="{{key}}" {{#unless (eq key ../state)}}hidden{{/unless}}>
+			<i class="{{icon}}" inert></i>
+			<span>{{text}}{{#if tell}} <button type="button" class="bastionland-hex-lore__told-tell" data-action="tellHex">{{tell}}</button>{{/if}}</span>
+		</p>
+		{{/each}}
+	</div>
+	{{/with}}
+
+	{{!-- A tab for each kind of roll here: the people met, the land itself, and the Landmark and Holding where the hex has one.
+	      wireHexGmPart switches them without drawing the hex again, and remembers the one chosen. --}}
+	{{#if notice}}<p class="bastionland-hex-lore__hint">{{notice}}</p>{{/if}}
+	<div class="bastionland-hex-lore__tabs" role="tablist" aria-label="{{localize "bastionland.hexGm.tabs.label"}}">
+		{{#each tabs}}
+		<button type="button" role="tab" id="{{@root.partId}}-tab-{{key}}" class="bastionland-hex-lore__tab{{#if active}} is-active{{/if}}" data-hex-tab="{{key}}" aria-controls="{{@root.partId}}-panel-{{key}}" aria-selected="{{#if active}}true{{else}}false{{/if}}" tabindex="{{#if active}}0{{else}}-1{{/if}}">
+			<i class="{{icon}}" inert></i> {{label}}{{#if count}} <span class="bastionland-hex-lore__tab-count">{{count}}</span>{{/if}}
+		</button>
+		{{/each}}
+	</div>
+
+	{{#*inline "keptRoll"}}
+	<li class="bastionland-hex-lore__roll">
+		{{> "bastionland.hex-spark" renameable=true}}
+		<button type="button" data-action="forgetSpark" data-spark="{{id}}" aria-label="{{localize "bastionland.hexLore.forget"}}" data-tooltip="{{localize "bastionland.hexLore.forget"}}"><i class="fa-solid fa-xmark" inert></i></button>
+	</li>
+	{{/inline}}
+	{{!-- The latest go of rolls, and each earlier go folded into one row dated when it was made. --}}
+	{{#*inline "keptRolls"}}
+	<ul class="bastionland-hex-lore__rolls">
+		{{#each sparks}}
+		{{> keptRoll}}
+		{{else}}
+		<li class="bastionland-hex-lore__hint">{{empty}}</li>
+		{{/each}}
+		{{#each older}}
+		<li>
+			<details class="bastionland-hex-lore__older" data-hex-older="{{key}}" {{#if open}}open{{/if}}>
+				<summary class="bastionland-hex-lore__older-summary">
+					<span class="bastionland-hex-lore__older-when">{{when}}</span>
+					<span class="bastionland-hex-lore__source">{{names}}</span>
+				</summary>
+				<ul class="bastionland-hex-lore__rolls">
+					{{#each sparks}}
+					{{> keptRoll}}
+					{{/each}}
+				</ul>
+			</details>
+		</li>
+		{{/each}}
+	</ul>
+	{{/inline}}
+	{{#*inline "panel"}}
+	<div class="bastionland-hex-lore__panel" role="tabpanel" id="{{@root.partId}}-panel-{{key}}" aria-labelledby="{{@root.partId}}-tab-{{key}}" data-hex-panel="{{key}}" {{#unless (eq key tab)}}hidden{{/unless}}>
+		{{> @partial-block}}
+	</div>
+	{{/inline}}
+
+	{{!-- Each tab's rolls come first, and the buttons that roll more stand under them. --}}
+	{{#> panel key="people"}}
+	{{> keptRolls sparks=people empty=(localize "bastionland.hexGm.noPeople")}}
+	{{#unless notice}}
+	<div class="bastionland-hex-lore__grid">
+		<button type="button" data-action="rollPerson" data-tooltip="{{localize "bastionland.people.rollHexHint"}}"><i class="fa-solid fa-user" inert></i> {{localize "bastionland.people.roll"}}</button>
+	</div>
+	{{/unless}}
+	{{/panel}}
+
+	{{#> panel key="land"}}
+	{{#with land}}{{> keptRolls empty=(localize "bastionland.hexLore.noRolls")}}{{/with}}
+	{{#unless notice}}
+	<div class="bastionland-hex-lore__grid">
+		<button type="button" data-action="rollWildHex" data-tooltip="{{localize "bastionland.hexGm.wildHint"}}"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
+	</div>
+	{{/unless}}
+	<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.exploreHint"}}</p>
+	<div class="bastionland-hex-lore__grid">
+		<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
+		<button type="button" data-action="act" data-act="folklore"><i class="fa-solid fa-comments" inert></i> {{localize "bastionland.travelRules.sections.folklore.act"}}</button>
+		<button type="button" data-action="act" data-act="search"><i class="fa-solid fa-magnifying-glass" inert></i> {{localize "bastionland.travelRules.sections.searching.act"}}</button>
+		<button type="button" data-action="act" data-act="vantage"><i class="fa-solid fa-binoculars" inert></i> {{localize "bastionland.travelRules.sections.vision.act"}}</button>
+	</div>
+	{{/panel}}
+
+	{{#if landmark}}
+	{{#> panel key="landmark"}}
+	<div class="form-group bastionland-hex-lore__landmark">
+		<label for="{{@root.partId}}-landmark">{{localize "bastionland.hexGm.landmarkName"}}</label>
+		<div class="form-fields">
+			<input id="{{@root.partId}}-landmark" type="text" name="landmarkName" value="{{landmark.name}}" placeholder="{{localize "bastionland.hexLore.landmark.placeholder"}}">
+			<button type="button" class="bastionland-icon" data-action="rerollLandmark" data-tooltip="{{localize "bastionland.hexLore.landmark.rerollHint"}}" aria-label="{{localize "bastionland.hexLore.landmark.reroll"}}"><i class="fa-solid fa-dice" inert></i></button>
+		</div>
+	</div>
+	{{#if landmark.from}}<p class="bastionland-hex-lore__hint">{{landmark.from}}</p>{{/if}}
+	{{!-- A Sanctum's Seer, by name and page once rolled. --}}
+	{{#with landmark.seer}}
+	<div class="form-group bastionland-hex-lore__landmark">
+		<label>{{localize "bastionland.hexGm.seer.label"}}</label>
+		<div class="form-fields">
+			{{#if name}}<span>{{name}}</span>{{else}}<span class="bastionland-hex-lore__hint">{{localize "bastionland.hexGm.seer.none"}}</span>{{/if}}
+		</div>
+	</div>
+	{{/with}}
+	{{#with landmark.offer}}
+	<p class="bastionland-hint">{{text}}</p>
+	{{#if offers.length}}
+	<div class="bastionland-hex-lore__grid">
+		{{#each offers}}
+		<button type="button" class="is-landmark" data-action="landmarkOffer" data-landmark-offer="{{key}}"><i class="{{icon}}" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
+	{{/with}}
+	{{#with landmark.seer}}
+	<div class="bastionland-hex-lore__grid">
+		<button type="button" data-action="rollSeer" data-tooltip="{{localize "bastionland.hexGm.seer.hint"}}"><i class="fa-solid fa-dice" inert></i> {{roll}}</button>
+	</div>
+	{{/with}}
+	{{/panel}}
+	{{/if}}
+
+	{{!-- The Myth here: the Omens met, the one playing out and the one to come, and its Cast. Its table and the
+	      rest are on its card in the Toolkit; which Myth stands here is changed in Edit this hex. --}}
+	{{#if myth}}
+	{{#> panel key="myth"}}
+	{{#with myth}}
+	<div class="form-group bastionland-hex-lore__landmark">
+		<label>{{localize "bastionland.hexGm.tabs.myth"}}</label>
+		<div class="form-fields"><span>{{name}}</span></div>
+	</div>
+	<div class="bastionland-hex-lore__omen-count">
+		<span>{{seen}}</span>
+		<button type="button" class="bastionland-icon" data-action="omenStep" data-step="-1" {{disabled none}} aria-label="{{localize "bastionland.realm.panel.omenLess"}}" data-tooltip="{{localize "bastionland.realm.panel.omenLess"}}"><i class="fa-solid fa-minus" inert></i></button>
+		<button type="button" class="bastionland-icon" data-action="omenStep" data-step="1" {{disabled all}} aria-label="{{localize "bastionland.realm.panel.omenMore"}}" data-tooltip="{{localize "bastionland.realm.panel.omenMore"}}"><i class="fa-solid fa-plus" inert></i></button>
+	</div>
+	<ul class="bastionland-hex-lore__omens">
+		{{#each omens}}
+		<li><span class="bastionland-hex-lore__omen-label">{{label}}</span> {{text}}</li>
+		{{else}}
+		<li class="bastionland-hex-lore__hint">{{localize "bastionland.hexGm.myth.noOmen"}}</li>
+		{{/each}}
+	</ul>
+	{{#if cast.length}}
+	<div class="bastionland-hex-lore__cast">
+		<span class="bastionland-hex-lore__omen-label">{{localize "bastionland.gmToolkit.cast.title"}}</span>
+		{{#each cast}}
+		{{#if uuid}}
+		<button type="button" class="bastionland-pill" data-action="openActor" data-uuid="{{uuid}}" data-tooltip="{{localize "bastionland.gmToolkit.cast.open"}}">{{name}}</button>
+		{{else}}
+		<span class="bastionland-pill is-unmade" data-tooltip="{{localize "bastionland.hexGm.myth.unmade"}}">{{name}}</span>
+		{{/if}}
+		{{/each}}
+	</div>
+	{{else if castMissing}}
+	<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexGm.myth.castMissing"}}</p>
+	{{/if}}
+	<div class="bastionland-hex-lore__grid">
+		<button type="button" data-action="mythInToolkit" data-myth="{{number}}" data-tooltip="{{localize "bastionland.hexGm.myth.toolkitHint"}}"><i class="fa-solid fa-dragon" inert></i> {{localize "bastionland.hexGm.myth.toolkit"}}</button>
+		{{#unless solo}}
+		<button type="button" data-action="toggleReveal" aria-pressed="{{#if revealed}}true{{else}}false{{/if}}">
+			<i class="fa-solid {{#if revealed}}fa-eye{{else}}fa-eye-slash{{/if}}" inert></i>
+			{{#if revealed}}{{localize "bastionland.realm.panel.revealed"}}{{else}}{{localize "bastionland.realm.panel.hidden"}}{{/if}}
+		</button>
+		{{/unless}}
+	</div>
+	{{/with}}
+	{{/panel}}
+	{{/if}}
+
+	{{#if holding}}
+	{{#> panel key="holding"}}
+	{{#with holding}}{{> keptRolls empty=(localize "bastionland.hexGm.noHolding")}}{{/with}}
+	<div class="bastionland-hex-lore__grid">
+		{{#unless notice}}
+		<button type="button" data-action="rollHolding" data-tooltip="{{localize "bastionland.people.holding.rollHint"}}"><i class="fa-solid fa-chess-rook" inert></i> {{localize "bastionland.people.holding.roll"}}</button>
+		{{/unless}}
+		<button type="button" data-action="mood" data-tooltip="{{localize "bastionland.refereeRolls.tables.mood.hint"}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.refereeRolls.tables.mood.name"}}</button>
+	</div>
+	{{/panel}}
+	{{/if}}
+</section>

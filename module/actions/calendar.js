@@ -70,6 +70,25 @@ export function chronicleLabel(calendar) {
 }
 
 /**
+ * A moment of the calendar as a sentence says it.
+ * @param {import("../rules/time.js").Calendar} calendar
+ * @returns {string} Such as "the Afternoon of Harvest in the Second Age".
+ */
+export function momentLabel(calendar) {
+	const { age, season, phase } = normalizeCalendar(calendar);
+	return t("time.moment", { phase: t(`time.phases.${phase}`), season: t(`time.seasons.${season}`), age: ordinalWord(age) });
+}
+
+/**
+ * @param {number} n
+ * @returns {string} Such as "Second", spelled out while there's a word for it, then as "13th".
+ */
+export function ordinalWord(n) {
+	const key = `time.ordinalWords.${n}`;
+	return game.i18n.has(`bastionland.${key}`) ? t(key) : ordinalLabel(n);
+}
+
+/**
  * @param {number} n
  * @returns {string} Such as "2nd".
  */

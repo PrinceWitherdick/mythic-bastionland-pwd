@@ -30,6 +30,24 @@ export const isSiteEntry = (entry) => Boolean(entry?.flags?.[SYSTEM_ID]?.[SITE_F
  */
 export const readSite = (entry) => normaliseSite(entry?.flags?.[SYSTEM_ID]?.[SITE_FLAG]);
 
+/** When the GM put a Site on the GM Toolkit's Tracking list, kept beside the Site rather than in it. */
+const TRACKED_FLAG = "siteTracked";
+
+/**
+ * @param {JournalEntry} entry
+ * @returns {number|null} When the GM chose to track the Site, or null when it isn't tracked.
+ */
+export const siteTrackedAt = (entry) => entry?.flags?.[SYSTEM_ID]?.[TRACKED_FLAG] ?? null;
+
+/**
+ * Put a Site on the GM Toolkit's Tracking list, or take it off.
+ * @param {JournalEntry} entry
+ * @param {boolean} tracked
+ */
+export const setSiteTracked = (entry, tracked) => tracked
+	? entry.setFlag(SYSTEM_ID, TRACKED_FLAG, Date.now())
+	: entry.unsetFlag(SYSTEM_ID, TRACKED_FLAG);
+
 /**
  * @param {import("../rules/sites.js").Site} before
  * @param {import("../rules/sites.js").Site} after
