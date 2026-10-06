@@ -52,13 +52,18 @@ function installSidebar({ expanded = true, rendered = true } = {}) {
  * @param {object} [options]
  * @param {boolean} [options.isGM]
  * @param {object[]} [options.scenes]
+ * @param {boolean} [options.shown] Whether the Tours start by themselves.
  */
-function installWorld({ isGM = true, scenes = [] } = {}) {
+function installWorld({ isGM = true, scenes = [], shown = true } = {}) {
 	registered = null;
 	registry = new Map();
 	globalThis.game = {
 		user: { isGM },
 		scenes,
+		settings: {
+			register: vi.fn(),
+			get: (namespace, key) => (namespace === SYSTEM_ID && key === tours.TOURS_SETTING ? shown : undefined)
+		},
 		tours: {
 			register: vi.fn((namespace, id, tour) => {
 				registry.set(`${namespace}.${id}`, tour);
@@ -95,6 +100,19 @@ afterEach(() => {
 	delete globalThis.game;
 	delete globalThis.ui;
 	delete globalThis.document;
+});
+
+describe("the Tours setting", () => {
+	it("is kept in the browser, so it holds in every world, and on to start with", () => {
+		tours.registerToursSetting();
+		expect(game.settings.register).toHaveBeenCalledWith(SYSTEM_ID, tours.TOURS_SETTING, expect.objectContaining({
+			scope: "client", config: true, type: Boolean, default: true
+		}));
+		const [[, , { name, hint }]] = game.settings.register.mock.calls;
+		for (const key of [name, hint, "bastionland.realmTour.welcome.label", "bastionland.realmTour.welcome.hint"]) {
+			expect(typeof lookup(key), key).toBe("string");
+		}
+	});
 });
 
 describe("where Realms are made", () => {
@@ -152,11 +170,12 @@ describe("where Realms are made", () => {
 		expect(registered.tour.start).toHaveBeenCalledTimes(1);
 	});
 
-	it("leaves players, worlds with a Realm, and other Tours alone", async () => {
+	it("leaves players, worlds with a Realm, the Tours turned off, and other Tours alone", async () => {
 		const realmScene = { flags: { [SYSTEM_ID]: { realm: { cols: 12 } } } };
 		const cases = [
 			["a player", () => installWorld({ isGM: false })],
 			["a Realm made", () => installWorld({ scenes: [{ flags: {} }, realmScene] })],
+			["the Tours turned off", () => installWorld({ shown: false })],
 			["another Tour on screen", () => { installWorld(); Tour.tourInProgress = true; }]
 		];
 		for (const [name, install] of cases) {
@@ -214,10 +233,11 @@ describe("the Realm's buttons", () => {
 		expect(buttonsTour().start).toHaveBeenCalledTimes(1);
 	});
 
-	it("leaves players, second Realms, hidden buttons and other Tours alone", async () => {
+	it("leaves players, second Realms, the Tours turned off, hidden buttons and other Tours alone", async () => {
 		const cases = [
 			["a player", () => { installWorld({ isGM: false, scenes: [realmScene] }); installButtons(false); }],
 			["a second Realm", () => { installWorld({ scenes: [realmScene, realmScene] }); installButtons(false); }],
+			["the Tours turned off", () => { installWorld({ scenes: [realmScene], shown: false }); installButtons(false); }],
 			["buttons hidden", () => { installWorld({ scenes: [realmScene] }); installButtons(true); }],
 			["no buttons drawn", () => { installWorld({ scenes: [realmScene] }); installButtons(null); }],
 			["another Tour on screen", () => { installWorld({ scenes: [realmScene] }); installButtons(false); Tour.tourInProgress = true; }]

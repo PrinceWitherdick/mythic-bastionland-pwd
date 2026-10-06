@@ -10,6 +10,28 @@ import { SYSTEM_ID } from "../system-id.js";
  * be played again.
  */
 
+/**
+ * Client setting: whether the Tours start by themselves. Off, they only wait in
+ * Foundry's Tours window. Kept in the browser, so a GM who skipped them in one
+ * world isn't walked through them again in the next.
+ */
+export const TOURS_SETTING = "showTours";
+
+/** Register the setting, among the system's settings for GMs. Called during init, before the Welcome reads it. */
+export function registerToursSetting() {
+	game.settings.register(SYSTEM_ID, TOURS_SETTING, {
+		name: "bastionland.realmTour.setting.name",
+		hint: "bastionland.realmTour.setting.hint",
+		scope: "client",
+		config: true,
+		type: Boolean,
+		default: true
+	});
+}
+
+/** @returns {boolean} Whether the Tours start by themselves in this browser. */
+export const toursShown = () => Boolean(game.settings.get(SYSTEM_ID, TOURS_SETTING));
+
 /** Its id among the system's Tours; game.tours keys it `${SYSTEM_ID}.newRealm`. */
 export const REALM_TOUR = "newRealm";
 
@@ -100,6 +122,13 @@ const realmTourClass = (Tour) => class RealmTour extends Tour {
 		await super._preStep();
 		await showSidebarTab(this.currentStep?.sidebarTab);
 	}
+
+	/** @override */
+	async _renderStep() {
+		await super._renderStep();
+		// Marks the step as one of ours, for its spacing. Core clears the tooltip's classes each time it shows one.
+		if (this.currentStep?.selector) game.tooltip?.tooltip?.classList.add("bastionland-tour");
+	}
 };
 
 /** Register the Tours. Called during setup, once core's settings, which keep each Tour's progress, are there. */
@@ -130,20 +159,22 @@ async function startTour(id, failure) {
 /**
  * Walk a new world's GM to New Realm once the Welcome that greeted them is
  * closed. Not once a Realm is made, as the chat card beside the Welcome may
- * already have done, nor over another Tour still on screen.
+ * already have done, nor over another Tour still on screen, nor once the GM
+ * has turned the Tours off.
  */
 export async function showWhereRealmsAreMade() {
-	if (!game.user.isGM || worldHasRealm() || foundry.nue.Tour.tourInProgress) return;
+	if (!game.user.isGM || !toursShown() || worldHasRealm() || foundry.nue.Tour.tourInProgress) return;
 	await startTour(REALM_TOUR, "Couldn't show where Realms are made");
 }
 
 /**
  * Show the GM the buttons beside the sidebar once the world's first Realm is
  * made and in view. Not for a second Realm, nor while the buttons are hidden
- * because another Scene is in view, nor over another Tour still on screen.
+ * because another Scene is in view, nor over another Tour still on screen,
+ * nor once the GM has turned the Tours off.
  */
 export async function showRealmButtons() {
-	if (!game.user.isGM || foundry.nue.Tour.tourInProgress) return;
+	if (!game.user.isGM || !toursShown() || foundry.nue.Tour.tourInProgress) return;
 	if (game.scenes.filter(isRealmDocument).length !== 1) return;
 	if (document.querySelector(REALM_BUTTONS)?.hidden !== false) return;
 	await startTour(REALM_BUTTONS_TOUR, "Couldn't show the Realm's buttons");

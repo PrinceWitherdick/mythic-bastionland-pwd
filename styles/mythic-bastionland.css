@@ -8176,6 +8176,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	box-shadow: none;
 }
 
+/* A step of the system's Tours that opens to the left of what it points at
+   (module/apps/realm-tour.js) sits only core's 5px off it, near enough to touch
+   the button. Core anchors it by `right`, so a right margin moves it further out. */
+#tooltip.bastionland-tour.text-left {
+	margin-right: 12px;
+}
+
 /* The Visited Marks window (module/apps/VisitedMarks.js): each mark beside a
    hex drawn with it, and its colour at the row's end. */
 .bastionland-visited-marks__styles {

@@ -4,6 +4,7 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 let settings;
 let opened;
 let welcome;
+let realmTour;
 let worldSetup;
 let tour;
 
@@ -36,6 +37,7 @@ function installWorld({ isGM = true, done = {}, actors = 0, scenes = 0, journal 
 	};
 	worldSetup.registerWorldSetup();
 	welcome.registerWelcome();
+	realmTour.registerToursSetting();
 	settings.worldSetupDone = { ...done };
 }
 
@@ -67,6 +69,7 @@ beforeAll(async () => {
 	};
 	worldSetup = await import("../../module/world-setup.js");
 	welcome = await import("../../module/apps/Welcome.js");
+	realmTour = await import("../../module/apps/realm-tour.js");
 });
 
 beforeEach(() => {
@@ -105,6 +108,14 @@ describe("the Welcome", () => {
 
 		welcome.openWelcome()._onClose({});
 		expect(tour.start).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows no Tour once the GM has skipped them", async () => {
+		await load();
+		settings[realmTour.TOURS_SETTING] = false;
+		opened.at(-1)._onClose({});
+		expect(settings.showWelcome).toBe(false);
+		expect(tour.start).not.toHaveBeenCalled();
 	});
 
 	it("stays away from a world that was in play before it existed", async () => {

@@ -44,7 +44,7 @@ import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
 import { openSparkTables, registerSparkTablesSetting, toggleSparkTables } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
-import { registerRealmTour } from "./module/apps/realm-tour.js";
+import { registerRealmTour, registerToursSetting } from "./module/apps/realm-tour.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
@@ -443,6 +443,9 @@ Hooks.once("init", () => {
 
 	// The window a new world greets its GM with, offering to bring in the rulebook PDF.
 	registerWelcome();
+
+	// Whether the Tours that follow it start by themselves, which the Welcome offers to turn off.
+	registerToursSetting();
 
 	// And the chat cards waiting beside it, to import the PDF and create a Realm.
 	registerWelcomeCards();

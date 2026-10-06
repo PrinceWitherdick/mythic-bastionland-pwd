@@ -7,7 +7,7 @@ import { bringInRulebook, importKeptRulebook } from "../rulebook/bring-in.js";
 import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath, setFoundRulebook } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
-import { showWhereRealmsAreMade } from "./realm-tour.js";
+import { TOURS_SETTING, showWhereRealmsAreMade, toursShown } from "./realm-tour.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
 import { SOLO_SETTING, isSolo } from "../actions/solo.js";
 
@@ -148,6 +148,7 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 			found: foundText(foundRulebook(), this.#busy),
 			busy: this.#busy,
 			solo: isSolo(),
+			skipTours: !toursShown(),
 			company: {
 				count: company,
 				fewest: company <= COMPANY_MIN,
@@ -186,6 +187,12 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		solo?.addEventListener("change", () => {
 			game.settings.set(SYSTEM_ID, SOLO_SETTING, solo.checked)
 				.catch((error) => console.error(`${SYSTEM_ID} | Couldn't set solo play`, error));
+		});
+		// Skipped, the Tours wait in Foundry's Tours window instead of starting by themselves.
+		const skip = this.element.querySelector("input[name=skipTours]");
+		skip?.addEventListener("change", () => {
+			game.settings.set(SYSTEM_ID, TOURS_SETTING, !skip.checked)
+				.catch((error) => console.error(`${SYSTEM_ID} | Couldn't turn the Tours on or off`, error));
 		});
 	}
 

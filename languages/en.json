@@ -4604,6 +4604,14 @@
       "newRealm": {
         "title": "New Realm",
         "content": "New Realm makes a Realm for the Company to travel. Roll it from the book’s tables, draw it yourself on a blank map, or import a map you drew on paper."
+      },
+      "setting": {
+        "name": "Start the Tours by Themselves",
+        "hint": "A Tour shows where Realms are made once the Welcome is closed, and another shows the Realm’s buttons once the first Realm is made. Off, they wait in the Tours window to play when you like. Kept in this browser, for every world you open in it."
+      },
+      "welcome": {
+        "label": "Skip the Tours",
+        "hint": "Once this window is closed, a Tour shows where Realms are made, and another shows the Realm’s buttons once the first is made. Skipped, both wait in the Tours window to play when you like, here and in any new world you open in this browser."
       }
     },
     "realmButtonsTour": {
