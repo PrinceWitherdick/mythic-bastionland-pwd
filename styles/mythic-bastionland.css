@@ -122,6 +122,14 @@
 	--bastionland-font-floor: 14px;
 }
 
+/* No text casts a shadow. Foundry embosses every dt, glows links and active tabs
+   on hover and shades table heads; none of it is wanted on anything the system
+   draws. body is left out: a Realm map slide marks it for a moment. */
+[class*="bastionland"]:not(body),
+[class*="bastionland"]:not(body) * {
+	text-shadow: none !important;
+}
+
 /* ---------------------------------------------------------------- */
 /* Window and page                                                  */
 /* ---------------------------------------------------------------- */
@@ -4687,28 +4695,26 @@ a.button:focus:not(:focus-visible) {
 	max-width: min(40rem, 70vw);
 	padding: 0.2rem 0.7rem;
 	border: 1px solid var(--bastionland-rule);
-	border-radius: 999px;
+	border-radius: 0.7rem;
 	background: var(--bastionland-paper);
 	box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-body);
 	font-size: 0.95rem;
 	pointer-events: none;
-	white-space: nowrap;
+	overflow-wrap: anywhere;
+	/* Wraps to five rows at most, all told, and the last is cut short with an ellipsis. */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 5;
+	line-clamp: 5;
 	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
-/* What the players were told of the hex, and their own note, on a line of
-   their own under what stands there, each line cut short where it runs long. */
-.bastionland-hex-readout.has-notes {
-	border-radius: 0.7rem;
-}
-
+/* What the players were told of the hex, and their own note, starting a row of
+   their own under what stands there. */
 .bastionland-hex-readout > span {
 	display: block;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .bastionland-hex-readout__notes {
@@ -4875,7 +4881,6 @@ a.bastionland-page-link:hover,
 a.bastionland-page-link:focus-visible {
 	color: var(--bastionland-blood, #8b1e1e);
 	text-decoration-style: solid;
-	text-shadow: none;
 }
 
 /* A rule word, such as Exposed or Hefty, saying what it means on hover.
@@ -4953,7 +4958,6 @@ button.bastionland-dice:focus-visible {
 	background: none;
 	box-shadow: none;
 	color: var(--bastionland-blood);
-	text-shadow: none;
 }
 
 /* What the die gave, kept beside it while the GM paints to it. */
@@ -5049,7 +5053,6 @@ button.bastionland-dice:focus-visible {
 	margin: 0;
 	color: var(--bastionland-ink);
 	font-size: inherit;
-	text-shadow: none;
 }
 
 .bastionland-travel-rules__lines dt {
@@ -8240,12 +8243,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0;
 }
 
-/* Foundry colours a definition list for its dark theme, and embosses the terms. */
+/* Foundry colours a definition list for its dark theme. */
 .bastionland-welcome__where :is(dt, dd) {
 	margin: 0;
 	padding: 0;
 	color: inherit;
-	text-shadow: none;
 }
 
 .bastionland-welcome__where dt {

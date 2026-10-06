@@ -1640,9 +1640,9 @@ class TestGame {
 					`${COUNCIL.steward}'s search for the grain is due. Settle it on the Domain sheet, and let her lie about it.`,
 					this.warband ? `${this.warband.name} went hungry at the Feast of the Stars. Another lean week and they'll stop following orders.` : null,
 					`${SQUIRE_NAME} squires for ${isolde.name}, though a Company of three shouldn't take Squires by the book. I allowed it; he's the steward's spy.`,
-					`${this.names.dwelling} is still unvisited. Someone there knows who holds the Seat's debts.`
-				),
-				`<section class="secret" id="secret-testworld">${html(`The steward at ${this.names.domain} is still loyal to the old lord, and is starving the stores on purpose.`)}</section>`
+					`${this.names.dwelling} is still unvisited. Someone there knows who holds the Seat's debts.`,
+					`The steward at ${this.names.domain} is still loyal to the old lord, and is starving the stores on purpose.`
+				)
 			].join("")
 		});
 	}

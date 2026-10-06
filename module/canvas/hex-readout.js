@@ -37,8 +37,8 @@ let unfollow = null;
 /** Whether this browser names the hex under the pointer, kept here so a pointer move doesn't read the setting. */
 let readoutShown = true;
 
-/** The most of a telling or the Company's note the readout shows, in characters. */
-const NOTE_LENGTH = 70;
+/** The most of a telling or the Company's note the readout shows, in characters, so one can't fill all its rows alone. */
+const NOTE_LENGTH = 140;
 
 /** How far below the map's foot the chip stands, and how far it keeps from the hotbar. */
 const GAP = 12;
@@ -236,7 +236,6 @@ export function updateHexReadout({ force = false } = {}) {
 		span.textContent = line;
 		return span;
 	}));
-	chip.classList.toggle("has-notes", Boolean(notes));
 	chip.hidden = !text && !notes;
 	size = null;
 	placeChip();

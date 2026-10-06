@@ -2146,13 +2146,12 @@
 	color: var(--bastionland-ink);
 }
 
-/* Foundry gives every dt a black shadow and bold, which the caps face, having
+/* Foundry gives every dt bold, which the caps face, having
    no bold of its own, smears. */
 .bastionland-knighthood__terms dt {
 	font-family: var(--bastionland-font-caps);
 	font-weight: normal;
 	letter-spacing: 0.04em;
-	text-shadow: none;
 	text-transform: uppercase;
 }
 
@@ -2177,7 +2176,6 @@
 	border: none;
 	background: none;
 	color: var(--bastionland-ink);
-	text-shadow: none;
 }
 
 .bastionland-knighthood__table :is(th, td) {

@@ -51,7 +51,7 @@
 		<ul class="bastionland-gm-toolkit__waiting">
 			{{#each crisisRolls}}
 			<li data-actor-id="{{id}}">
-				<span><strong>{{name}}</strong></span>
+				<span><strong>{{name}}</strong>{{#if ruler}} · {{ruler}}{{/if}}</span>
 				<button type="button" class="bastionland-button" data-action="crisisRoll"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.time.crisisRoll"}}</button>
 			</li>
 			{{/each}}

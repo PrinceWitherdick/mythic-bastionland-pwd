@@ -4,6 +4,7 @@ import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "..
 import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
+import { worldKnights } from "../actions/knights.js";
 import { awardGlory } from "../actions/glory.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
@@ -36,6 +37,7 @@ import { RULEBOOK_HOOK, hasRulebook } from "../rulebook/store.js";
 import { isTableRoll, MYTH_VERSE_VERSION } from "../rules/book-art.js";
 import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-quest.js";
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
+import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
@@ -724,6 +726,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const waiting = data ? resolvedMyths(data.realm, data.notes) : [];
 		// The log by Age, the newest first, and each Age's Seasons the newest first too.
 		const ages = seasonLogView(this.actor.system.seasons, calendar).map(({ age, seasons }) => ({ age, seasons: [...seasons].reverse() }));
+		const knights = worldKnights();
 		const { record, ...now } = ages.flatMap(({ seasons }) => seasons).find((entry) => entry.current);
 		return {
 			...timeContext(),
@@ -734,7 +737,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 				notes: record.notes,
 				turn: this.#seasonTurn(record.turn)
 			},
-			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name })),
+			crisisRolls: crisisRollsDue(worldDomains(), calendar).map((domain) => ({ id: domain.id, name: domain.name, ruler: rulingKnightOf(domain, knights)?.name ?? null })),
 			// Played alone, a Myth not yet met has no name to give, and one not yet found no hex.
 			resolved: waiting.map((myth) => ({
 				number: myth.number,

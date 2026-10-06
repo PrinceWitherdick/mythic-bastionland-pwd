@@ -19,7 +19,7 @@ describe("describeHexNotes", () => {
 		expect(describeHexNotes({ told: "Old stones.", party: "A ford" })).toBe("bastionland.realm.readout.told(Old stones.) · bastionland.realm.readout.party(A ford)");
 		const long = describeHexNotes({ party: "word ".repeat(40) });
 		expect(long.endsWith("…)")).toBe(true);
-		expect(long.length).toBeLessThan(110);
+		expect(long.length).toBeLessThan(180);
 	});
 });
 
