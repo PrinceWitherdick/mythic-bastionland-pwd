@@ -55,7 +55,7 @@ describe("the Glory a Knight made in place of one who fell may start with (p195)
 	it("is given to the Knight in place of the Start's Glory", () => {
 		expect(app).toContain('if (offer) update["system.glory"] = this.#glory ?? offer.suggested;');
 		// Set before the Knight is made or filled in, which both take the one update.
-		expect(app.indexOf('update["system.glory"]')).toBeLessThan(app.indexOf("Actor.implementation.create({ name, type: \"knight\""));
+		expect(app.indexOf('update["system.glory"]')).toBeLessThan(app.indexOf("createKnightWithCompanions({ name, update, items })"));
 	});
 });
 

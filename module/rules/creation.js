@@ -8,7 +8,7 @@ import { usesFrom } from "./ability-uses.js";
 import { RANKS } from "./glory.js";
 import { propertyGear } from "./property.js";
 import { isStructureBlock, parseArmour } from "./stat-blocks.js";
-import { escapeHTML } from "./text.js";
+import { escapeHTML, searchable } from "./text.js";
 import { VIRTUES } from "./virtues.js";
 
 const gloryFor = (rankKey) => RANKS.find((rank) => rank.key === rankKey).glory;
@@ -123,6 +123,9 @@ export function seerBook(seer) {
 	};
 }
 
+/** "The Dice Seer", "dice seer" and "Dice" all name one Seer. */
+const seerKey = (name) => searchable(String(name ?? "").trim()).replace(/^the\s+/, "").replace(/\s+seer$/, "").trim();
+
 /**
  * The Seer who knighted a Knight, found in the art index by the Seer's name,
  * or else by the Knight's own roll, since each Seer shares their Knight's page.
@@ -132,8 +135,8 @@ export function seerBook(seer) {
  */
 export function seerForKnight(index, { seer = "", knightType = "" }) {
 	const seers = index?.seers ?? [];
-	const named = String(seer).trim().toLowerCase();
-	const byName = named && seers.find((entry) => entry.name?.trim().toLowerCase() === named);
+	const named = seerKey(seer);
+	const byName = named && seers.find((entry) => seerKey(entry.name) === named);
 	if (byName) return byName;
 	const type = String(knightType).trim().toLowerCase();
 	const knight = type && (index?.knights ?? []).find((entry) => entry.name && knightTypeFromName(entry.name).toLowerCase() === type);

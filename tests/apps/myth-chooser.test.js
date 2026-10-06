@@ -7,6 +7,7 @@ const root = join(import.meta.dirname, "..", "..");
 const read = (path) => readFileSync(join(root, path), "utf8");
 
 const app = read("module/apps/MythChooser.js");
+const chooserBase = read("module/apps/BastionlandChooser.js");
 const template = read("templates/apps/myth-chooser.hbs");
 const keepApp = read("module/apps/keep-realm.js");
 const keepTemplate = read("templates/dialogs/keep-realm.hbs");
@@ -33,10 +34,10 @@ describe("the window for a Realm's Myths", () => {
 		expect(template).toContain('data-search="{{searchText}}"');
 		// Every d6 result's Myths are drawn, and the search only hides the ones it doesn't find.
 		expect(app).toContain("cards: mythRolls().map((roll) => {");
-		expect(app).toContain("card.dataset.search.includes(term)");
-		expect(app).not.toMatch(/addEventListener\("input"[^}]*this\.render\(/);
+		expect(chooserBase).toContain("card.dataset.search.includes(term)");
+		expect(chooserBase).not.toMatch(/addEventListener\("input"[^}]*this\.render\(/);
 		// Choosing a d6 result lets the search go.
-		expect(app).toContain('querySelector(".bastionland-chooser__groups")?.addEventListener("click"');
+		expect(chooserBase).toContain('querySelector(".bastionland-chooser__groups")?.addEventListener("click"');
 		expect(template).toContain("bastionland-myth-chooser__none");
 	});
 
@@ -181,7 +182,7 @@ describe("the Myths table filling the window", () => {
 	it("is fitted again as the window is resized and as a search finds more or fewer", () => {
 		expect(app).toContain("new ResizeObserver(() => this.#fitTable())");
 		expect(app).toContain("this.#resizing?.disconnect();");
-		expect(app.slice(app.indexOf("#applySearch() {"))).toContain("this.#fitTable();");
+		expect(app.slice(app.indexOf("_applySearch() {"))).toContain("this.#fitTable();");
 		expect(styles).toContain("grid-template-columns: repeat(var(--myth-columns), var(--myth-card));");
 		expect(styles).toContain("height: var(--myth-art);");
 	});

@@ -1,6 +1,8 @@
 import { loadArtIndex } from "../book-art/art-index.js";
+import { searchable } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { ArtPreviewMixin } from "./art-preview.js";
+import { markActive } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -25,6 +27,9 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	/** Art that shows a larger copy on hover: the pictures in the grid not already shown large. */
 	static PREVIEWED_ART = ".bastionland-chooser__card:not(.is-selected) img.bastionland-chooser__thumb";
 
+	/** The list of cards a search box, where the chooser has one, shows and hides. */
+	static SEARCHED = ".bastionland-chooser__grid";
+
 	/** @type {Actor|null} */
 	#actor;
 
@@ -39,6 +44,9 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 
 	/** @type {string|null} The chosen roll, such as "3-07". */
 	roll = null;
+
+	/** What the table is searched for. While there's any, the table shows every d6 result's matches. */
+	search = "";
 
 	/**
 	 * @param {object} [options]
@@ -68,6 +76,43 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 		return Object.assign(context, {
 			groups: D6_RESULTS.map((d6) => ({ d6, active: d6 === this.group }))
 		});
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		const root = this.element;
+		const box = root.querySelector("[name=search]");
+		if (!box) return;
+		box.addEventListener("input", (event) => {
+			this.search = event.target.value;
+			this._applySearch();
+		});
+		// Choosing a d6 result means looking at all of it, so the search is let go first.
+		root.querySelector(".bastionland-chooser__groups")?.addEventListener("click", () => {
+			this.search = "";
+		});
+		this._applySearch();
+	}
+
+	/**
+	 * Show the cards the search finds, from every d6 result, or with no search
+	 * the d6 result on show. No d6 result is pressed while a search is.
+	 */
+	_applySearch() {
+		const root = this.element;
+		const list = this.constructor.SEARCHED;
+		const term = searchable(this.search.trim());
+		let shown = 0;
+		for (const card of root.querySelectorAll(`${list} > li`)) {
+			const visible = term ? card.dataset.search.includes(term) : Number(card.dataset.d6) === this.group;
+			card.hidden = !visible;
+			if (visible) shown++;
+		}
+		for (const group of root.querySelectorAll(".bastionland-chooser__group")) markActive(group, !term && Number(group.dataset.d6) === this.group);
+		root.querySelector(list)?.classList.toggle("is-searching", Boolean(term));
+		const none = root.querySelector(".bastionland-myth-chooser__none");
+		if (none) none.hidden = shown > 0;
 	}
 
 	/** @this {BastionlandChooser} */

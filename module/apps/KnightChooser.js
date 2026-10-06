@@ -1,5 +1,6 @@
 import { kitWeaponNames } from "../actions/abilities.js";
-import { clearCompanions, knightOwner, makeCompanions, markCompanions } from "../actions/property.js";
+import { createKnightWithCompanions, rollStartScores } from "../actions/new-knight.js";
+import { clearCompanions, knightOwner, makeCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { peekVerseForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
@@ -290,12 +291,8 @@ export class KnightChooser extends BastionlandChooser {
 	 */
 	static async #onRollScores() {
 		const start = startFor(this.#start);
-		const rolls = [];
-		for (const key of SCORES) {
-			const roll = await new Roll(key === "guard" ? start.guard : start.virtues).evaluate();
-			rolls.push(roll);
-			this.#scores[key] = key === "guard" ? roll.total : clampVirtue(roll.total);
-		}
+		const { scores, rolls } = await rollStartScores(start);
+		Object.assign(this.#scores, scores);
 
 		await postCard(this.actor, "creation", {
 			title: t("chooser.card.scores"),
@@ -391,12 +388,7 @@ export class KnightChooser extends BastionlandChooser {
 
 		const actor = this.actor;
 		if (!actor) {
-			// The steed and other companions are made first, so the Knight is made riding it in one go.
-			const { made, steed, gone } = await makeCompanions(items);
-			if (steed) update["system.steed"] = steed;
-			const kept = items.filter((item) => !gone.has(item));
-			const created = await Actor.implementation.create({ name, type: "knight", ...foundry.utils.expandObject(update), items: kept });
-			if (created) await markCompanions(made, created);
+			const created = await createKnightWithCompanions({ name, update, items });
 			created?.sheet.render({ force: true });
 			return this.close();
 		}

@@ -64,9 +64,6 @@ export class MythChooser extends BastionlandChooser {
 	/** @type {number|null} Which of the Realm's Myths a chosen roll would become. */
 	number = null;
 
-	/** What the table is searched for. While there's any, the table shows every d6 result's matches. */
-	search = "";
-
 	/** @type {ResizeObserver|null} Watches the table for the window being made larger or smaller. */
 	#resizing = null;
 
@@ -132,15 +129,6 @@ export class MythChooser extends BastionlandChooser {
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		const root = this.element;
-		root.querySelector("[name=search]")?.addEventListener("input", (event) => {
-			this.search = event.target.value;
-			this.#applySearch();
-		});
-		// Choosing a d6 result means looking at all of it, so the search is let go first.
-		root.querySelector(".bastionland-chooser__groups")?.addEventListener("click", () => {
-			this.search = "";
-		});
-		this.#applySearch();
 		// The table's cards grow and shrink with the window. Each draw brings a new grid to watch.
 		this.#resizing?.disconnect();
 		const grid = root.querySelector(".bastionland-chooser__grid");
@@ -206,27 +194,9 @@ export class MythChooser extends BastionlandChooser {
 		if (second?.columns !== first?.columns || second?.size !== first?.size || second?.art !== first?.art) apply(second);
 	}
 
-	/**
-	 * Show the Myths the search finds, from every d6 result, or with no search
-	 * the d6 result on show. No d6 result is pressed while a search is.
-	 */
-	#applySearch() {
-		const root = this.element;
-		const term = searchable(this.search.trim());
-		let shown = 0;
-		for (const card of root.querySelectorAll(".bastionland-chooser__grid > li")) {
-			const visible = term ? card.dataset.search.includes(term) : Number(card.dataset.d6) === this.group;
-			card.hidden = !visible;
-			if (visible) shown++;
-		}
-		for (const group of root.querySelectorAll(".bastionland-chooser__group")) {
-			const active = !term && Number(group.dataset.d6) === this.group;
-			group.classList.toggle("is-active", active);
-			group.setAttribute("aria-pressed", String(active));
-		}
-		root.querySelector(".bastionland-chooser__grid")?.classList.toggle("is-searching", Boolean(term));
-		const none = root.querySelector(".bastionland-myth-chooser__none");
-		if (none) none.hidden = shown > 0;
+	/** @override */
+	_applySearch() {
+		super._applySearch();
 		// Fewer Myths found can each be drawn larger.
 		this.#fitTable();
 	}

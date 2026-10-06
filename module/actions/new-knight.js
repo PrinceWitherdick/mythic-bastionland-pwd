@@ -7,8 +7,44 @@
  */
 
 import { OFFERED_FLAG, UNCHOSEN_FLAG, isBlankKnightData, ownershipGivenTo, playerHolding } from "../rules/unchosen-knight.js";
+import { SCORES, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
+import { makeCompanions, markCompanions } from "./property.js";
+
+/**
+ * Roll each Virtue in order, then GD, with a Start's dice.
+ * @param {{virtues: string, guard: string}} start
+ * @returns {Promise<{scores: Record<string, number>, rolls: Roll[]}>}
+ */
+export async function rollStartScores(start) {
+	const scores = {};
+	const rolls = [];
+	for (const key of SCORES) {
+		const roll = await new Roll(key === "guard" ? start.guard : start.virtues).evaluate();
+		rolls.push(roll);
+		scores[key] = key === "guard" ? roll.total : clampVirtue(roll.total);
+	}
+	return { scores, rolls };
+}
+
+/**
+ * Make a Knight with their Property. The steed and other companions are made
+ * first, beside them, so the Knight is made riding it in one go.
+ * @param {object} details
+ * @param {string} details.name
+ * @param {object} details.update The Knight's flat update, as knightUpdate gives it.
+ * @param {object[]} details.items Their Property, as knightItems gives it.
+ * @param {string|null} [details.folder]
+ * @returns {Promise<Actor|null>}
+ */
+export async function createKnightWithCompanions({ name, update, items, folder = null }) {
+	const { made, steed, gone } = await makeCompanions(items, { folder });
+	if (steed) update["system.steed"] = steed;
+	const created = await Actor.implementation.create({ name, type: "knight", folder, ...foundry.utils.expandObject(update), items: items.filter((item) => !gone.has(item)) });
+	if (created) await markCompanions(made, created);
+	return created ?? null;
+}
 
 /**
  * @param {object} details
