@@ -1,6 +1,7 @@
 import { t, warn } from "../chat/cards.js";
-import { HEX_JOURNAL_FLAG, HEX_LAYOUT } from "../rules/hex-journal.js";
+import { HEX_JOURNAL_FLAG, HEX_LAYOUT, MARKDOWN_FORMAT } from "../rules/hex-journal.js";
 import { SITE_JOURNAL_FLAG } from "../rules/site-journal.js";
+import { stripHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
@@ -8,6 +9,19 @@ import { SYSTEM_ID } from "../system-id.js";
  * from, gathering a burst of changes before syncing, and opening an entry
  * that another GM's browser may still be making.
  */
+
+/**
+ * @param {JournalEntry} entry
+ * @param {string} role A page's part, such as "notes".
+ * @returns {JournalEntryPage|null} The entry's page with that part.
+ */
+export const pageByRole = (entry, role) => (entry.pages?.contents ?? [...(entry.pages ?? [])]).find((page) => page.getFlag(SYSTEM_ID, "role") === role) ?? null;
+
+/**
+ * @param {JournalEntryPage|null} page
+ * @returns {string} What's written on a page, whichever way it's kept: empty for none.
+ */
+export const pageWords = (page) => page?.text?.markdown?.trim() || stripHTML(page?.text?.content ?? "").trim();
 
 /**
  * What's in the world for an entry the system keeps, to plan its writes from.
@@ -40,6 +54,19 @@ export function entrySnapshot(entry, layout = HEX_LAYOUT, open = false) {
  * @returns {string}
  */
 const markdownHtml = (markdown) => foundry.utils.cleanHTML(foundry.applications.sheets.journal.JournalEntryPageTextSheet._converter.makeHtml(markdown));
+
+/**
+ * What's written on a page as markdown, links and pictures kept: a page written
+ * in HTML is read by the converter Foundry uses to open one in its markdown editor.
+ * @param {JournalEntryPage|null} page
+ * @returns {string} Empty for none.
+ */
+export function pageMarkdown(page) {
+	const text = page?.text;
+	if (!text) return "";
+	if (text.format === MARKDOWN_FORMAT || !text.content?.trim()) return (text.markdown ?? "").trim();
+	return foundry.applications.sheets.journal.JournalEntryPageTextSheet._converter.makeMarkdown(text.content.trim()).trim();
+}
 
 /**
  * New pages with their HTML filled in. Foundry's server turns a page's markdown

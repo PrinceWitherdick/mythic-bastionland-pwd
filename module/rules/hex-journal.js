@@ -2,10 +2,10 @@
  * A Journal entry for each hex something has been rolled or written for, so
  * the Realm's hexes can be read in Foundry's own Journal: what the Company
  * knows of it, which players read once they could open the hex in their
- * Places, and a Notes page that is the GM's own and never written over. What
- * was rolled there the GM reads in Places and the Lay of the Land. Everything
- * here is worded before it comes in, so this is pure and can be tested without
- * Foundry.
+ * Places, and a page for the GM alone copying what they wrote in the hex's
+ * What's here, so there is one place to write it. What was rolled there the GM
+ * reads in the hex's Lay of the Land in Places. Everything here is worded
+ * before it comes in, so this is pure and can be tested without Foundry.
  */
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -18,8 +18,14 @@ export const HEX_JOURNALS_FOLDER_FLAG = "hexJournalsFolder";
 /** Each page's part, kept in the page's own flag so it's found whatever it's renamed to. */
 export const PAGE_ROLES = Object.freeze(["known", "notes"]);
 
-/** The pages the system writes again whenever the hex changes. Notes is only ever made. */
-const WRITTEN_ROLES = Object.freeze(["known"]);
+/**
+ * The page flag a hex's notes page carries once it copies the GM's note. A
+ * notes page without it is an older one the GM wrote in by hand.
+ */
+export const MIRROR_FLAG = "mirror";
+
+/** Flags each new page carries beside its part. */
+const PAGE_FLAGS = Object.freeze({ notes: Object.freeze({ [MIRROR_FLAG]: true }) });
 
 /** CONST.DOCUMENT_OWNERSHIP_LEVELS, which the tests can't reach. */
 export const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2 });
@@ -116,6 +122,28 @@ export function knownMarkdown(words) {
 }
 
 /**
+ * The GM's page: what they wrote in the hex's What's here, kept as their lines.
+ * @param {string} note
+ * @returns {string} Markdown, empty for no note.
+ */
+export const noteMarkdown = (note) => (String(note ?? "").trim() ? joined([block(note)]) : "");
+
+/**
+ * The GM's note with what they wrote on an older entry's own notes page added
+ * at its foot, so nothing is lost as that page becomes a copy of the note.
+ * @param {string} note What the hex's What's here holds.
+ * @param {string} written What the GM wrote on the page.
+ * @returns {string|null} The note to keep, or null where the note is the page's words or already ends with them.
+ */
+export function noteWithPage(note, written) {
+	const page = String(written ?? "").trim();
+	const kept = String(note ?? "").trim();
+	// Only whole: a page saying "Bog" isn't held by a note saying "Bogwater ford".
+	if (!page || kept === page || kept.endsWith(`\n\n${page}`)) return null;
+	return kept ? `${kept}\n\n${page}` : page;
+}
+
+/**
  * Entries run down the folder by column, then row.
  * @param {{col: number, row: number}} hex
  * @returns {number}
@@ -146,11 +174,12 @@ export const entrySort = ({ col, row }) => col * 1000 + row;
  * @property {readonly string[]} roles   Every page, in order.
  * @property {readonly string[]} written The pages the system writes again on each change; the rest are only made.
  * @property {Readonly<Record<string, number>>} pageOwnership Who sees each page, as it's made.
+ * @property {Readonly<Record<string, object>>} [pageFlags] Flags a page carries beside its part, as it's made.
  * @property {((wanted: object) => number)|null} sort Where the entry stands in its folder, or null to leave it.
  */
 
 /** @type {Readonly<JournalLayout>} A hex's entry. */
-export const HEX_LAYOUT = Object.freeze({ roles: PAGE_ROLES, written: WRITTEN_ROLES, pageOwnership: PAGE_OWNERSHIP, sort: (wanted) => entrySort(wanted.hex) });
+export const HEX_LAYOUT = Object.freeze({ roles: PAGE_ROLES, written: PAGE_ROLES, pageOwnership: PAGE_OWNERSHIP, pageFlags: PAGE_FLAGS, sort: (wanted) => entrySort(wanted.hex) });
 
 /** @returns {number} Where a page stands in its entry, in the layout's order. */
 const pageSort = (layout, role) => (layout.roles.indexOf(role) + 1) * 100000;
@@ -170,7 +199,7 @@ const newPage = (layout, role, page) => ({
 	sort: pageSort(layout, role),
 	text: markdownText(page.markdown),
 	ownership: { default: layout.pageOwnership[role] },
-	flags: { [SYSTEM_ID]: { role } }
+	flags: { [SYSTEM_ID]: { role, ...layout.pageFlags?.[role] } }
 });
 
 /**
@@ -191,8 +220,8 @@ export function entryOwnership(current, wasOpen, open) {
 
 /**
  * The writes that bring a hex's entry up to date. Nothing that's already right
- * is written, and the Notes page is made once and then left alone, even if the
- * GM deletes it.
+ * is written, and a page the layout only makes is made once and then left
+ * alone, even if the GM deletes it.
  * @param {EntrySnapshot|null} existing
  * @param {WantedEntry} wanted
  * @param {JournalLayout} [layout] What pages the entry has. A hex's, unless said.

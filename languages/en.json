@@ -2024,17 +2024,18 @@
       "folder": "{realm}: Hexes",
       "pages": {
         "known": "What the Company Knows",
-        "notes": "GM Notes",
-        "notesWas": "Notes"
+        "notes": "What’s Here",
+        "notesWas": "Notes",
+        "gmNotesWas": "GM Notes"
       },
       "met": "Barriers Met",
-      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex in the Lay of the Land, or write in the GM Notes page.",
+      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex, and write what’s here, in the hex’s Lay of the Land in Places.",
       "open": "Journal",
       "openHint": "Open this hex’s Journal entry: what the Company knows, and your own notes.",
       "none": "Nothing has been rolled or written for this hex yet, so it has no Journal entry.",
       "setting": {
         "name": "Journal entries for hexes",
-        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Players can read its What the Company Knows page once they could open the hex in their Places. Its GM Notes page is yours and is never written over. What was rolled in a hex shows in Places and the Lay of the Land."
+        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
       }
     },
     "siteJournal": {

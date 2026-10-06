@@ -37,7 +37,17 @@ vi.mock("../../module/book-art/art-index.js", () => ({
 	mythEntry: () => ({ name: "Myth", page: 1 }),
 	seerEntry: () => ({ name: "Seer", page: 1 })
 }));
-vi.mock("../../module/actions/hex-lore.js", async (importOriginal) => ({ ...(await importOriginal()), getHexLore: () => lore }));
+vi.mock("../../module/actions/hex-lore.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	getHexLore: () => lore,
+	getHexRecord: (_scene, hex) => lore.hexes[`${hex.col},${hex.row}`] ?? null,
+	writeHexNotes: vi.fn(async (_scene, notes) => {
+		for (const [hex, note] of notes) {
+			const key = `${hex.col},${hex.row}`;
+			lore.hexes[key] = { sparks: [], ...lore.hexes[key], note };
+		}
+	})
+}));
 vi.mock("../../module/actions/hex-shared.js", () => ({
 	getHexShared: () => shared,
 	getHexSharedRecord: () => null,
@@ -63,6 +73,7 @@ vi.mock("../../module/actions/travels.js", () => ({
 }));
 
 const { syncHexJournals, hexJournalEntry } = await import("../../module/actions/hex-journals.js");
+const { writeHexNotes } = await import("../../module/actions/hex-lore.js");
 
 /** A Journal entry whose writes land on it. */
 function fakeEntry(data) {
@@ -71,7 +82,14 @@ function fakeEntry(data) {
 		...data,
 		id: `e${game.journal.length}`,
 		ownership: { ...data.ownership },
-		pages: data.pages.map((page, index) => ({ ...page, id: `p${index}`, text: { ...page.text }, getFlag: getFlag(page) })),
+		pages: data.pages.map((page, index) => {
+			const made = { ...page, id: `p${index}`, text: { ...page.text }, flags: structuredClone(page.flags ?? {}) };
+			made.getFlag = getFlag(made);
+			made.update = vi.fn(async (changes) => {
+				for (const [path, value] of Object.entries(changes)) foundry.utils.setProperty(made, path, value);
+			});
+			return made;
+		}),
 		getFlag: getFlag(data),
 		update: vi.fn(async (changes) => {
 			for (const [path, value] of Object.entries(changes)) foundry.utils.setProperty(entry, path, value);
@@ -87,7 +105,8 @@ function fakeEntry(data) {
 	return entry;
 }
 
-const scene = { id: "realm", name: "Gravenmoor", isRealm: true };
+const realmScene = { id: "realm", name: "Gravenmoor", isRealm: true };
+const scene = realmScene;
 
 beforeEach(() => {
 	barrierRevealed = false;
@@ -104,7 +123,7 @@ beforeEach(() => {
 	};
 	folders.find = Array.prototype.find.bind(folders);
 	globalThis.foundry = {
-		applications: { sheets: { journal: { JournalEntryPageTextSheet: { _converter: { makeHtml: (markdown) => `<p>${markdown}</p>` } } } } },
+		applications: { sheets: { journal: { JournalEntryPageTextSheet: { _converter: { makeHtml: (markdown) => `<p>${markdown}</p>`, makeMarkdown: (html) => html.replace(/<\/?em>/g, "*").replace(/<[^>]+>/g, "") } } } } },
 		utils: {
 			cleanHTML: (html) => html,
 			setProperty: (object, path, value) => {
@@ -148,26 +167,76 @@ describe("syncHexJournals", () => {
 		// What the GM rolled is read in Places, not in the Journal.
 		expect(known.text.markdown).not.toContain("Mossy Hollow");
 		expect(notes.text.markdown).toBe("");
+		expect(notes.name).toBe("hexJournal.pages.notes");
+		expect(notes.flags[SYSTEM_ID].mirror).toBe(true);
 		// The server makes no HTML for pages made inside their entry, so they bring their own.
 		expect(known.text.content).toBe(`<p>${known.text.markdown}</p>`);
 		expect(notes.text.content).toBeUndefined();
 	});
 
-	it("writes nothing the second time, nor for the GM's own note, and the Company's page once it has been there", async () => {
+	it("writes nothing the second time, the GM's page as their note changes, and the Company's page once it has been there", async () => {
 		await syncHexJournals(scene);
 		const entry = hexJournalEntry(scene, ruin);
-		await syncHexJournals(scene);
-		lore.hexes["3,3"].note = "A well.";
 		await syncHexJournals(scene);
 		expect(entry.update).not.toHaveBeenCalled();
 		expect(entry.updateEmbeddedDocuments).not.toHaveBeenCalled();
 
-		journey = recordVisits(emptyJourney(), [ruin], when);
+		lore.hexes["3,3"].note = "A well.";
 		await syncHexJournals(scene);
 		expect(entry.updateEmbeddedDocuments).toHaveBeenCalledTimes(1);
-		expect(entry.updateEmbeddedDocuments.mock.calls[0][1].map((update) => update._id)).toEqual(["p0"]);
+		expect(entry.updateEmbeddedDocuments.mock.calls[0][1].map((update) => update._id)).toEqual(["p1"]);
+		expect(entry.pages[1].text.markdown).toBe("A well.\n");
+		expect(writeHexNotes).not.toHaveBeenCalled();
+
+		journey = recordVisits(emptyJourney(), [ruin], when);
+		await syncHexJournals(scene);
+		expect(entry.updateEmbeddedDocuments).toHaveBeenCalledTimes(2);
+		expect(entry.updateEmbeddedDocuments.mock.calls[1][1].map((update) => update._id)).toEqual(["p0"]);
 		expect(entry.pages[0].text.markdown).toContain("been");
+		// The GM's note never reaches the page players read.
 		expect(entry.pages[0].text.markdown).not.toContain("A well.");
+	});
+
+	it("folds what the GM wrote on an older entry's own notes page into the hex's note, once, before copying the note there", async () => {
+		// A Realm not yet looked over in this browser: the others before have been.
+		const scene = { ...realmScene };
+		lore.hexes["3,3"].note = "Camp by the road.";
+		game.journal.push(fakeEntry({
+			name: "Column 3, Row 3",
+			flags: { [SYSTEM_ID]: { hexJournal: { scene: "realm", hex: "3,3", open: false } } },
+			ownership: { default: 0 },
+			pages: [
+				{ name: "hexJournal.pages.known", text: { markdown: "" }, flags: { [SYSTEM_ID]: { role: "known" } } },
+				{ name: "hexJournal.pages.gmNotesWas", text: { markdown: "The miller lies." }, flags: { [SYSTEM_ID]: { role: "notes" } } }
+			]
+		}));
+		await syncHexJournals(scene);
+		expect(writeHexNotes).toHaveBeenCalledTimes(1);
+		expect(lore.hexes["3,3"].note).toBe("Camp by the road.\n\nThe miller lies.");
+		const notes = hexJournalEntry(scene, ruin).pages[1];
+		expect(notes.name).toBe("hexJournal.pages.notes");
+		expect(notes.flags[SYSTEM_ID].mirror).toBe(true);
+		expect(notes.text.markdown).toBe("Camp by the road.  \n  \nThe miller lies.\n");
+
+		await syncHexJournals(scene);
+		expect(writeHexNotes).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps the name a GM gave an older notes page, and reads one kept as HTML, its emphasis kept", async () => {
+		const scene = { ...realmScene };
+		game.journal.push(fakeEntry({
+			name: "Column 3, Row 3",
+			flags: { [SYSTEM_ID]: { hexJournal: { scene: "realm", hex: "3,3", open: false } } },
+			ownership: { default: 0 },
+			pages: [
+				{ name: "hexJournal.pages.known", text: { markdown: "" }, flags: { [SYSTEM_ID]: { role: "known" } } },
+				{ name: "Rumours", text: { format: 1, markdown: "", content: "<p>The <em>miller</em> lies.</p>" }, flags: { [SYSTEM_ID]: { role: "notes" } } }
+			]
+		}));
+		await syncHexJournals(scene);
+		const notes = hexJournalEntry(scene, ruin).pages[1];
+		expect(notes.name).toBe("Rumours");
+		expect(lore.hexes["3,3"].note).toBe("The *miller* lies.");
 	});
 
 	it("lets players see the entry once the Company has been there", async () => {

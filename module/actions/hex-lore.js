@@ -150,6 +150,14 @@ const editHexLore = hexFlagEditor({ flag: HEX_LORE_FLAG, version: HEX_LORE_VERSI
 /** Write what's in a hex, in the GM's own words. @returns {Promise<boolean>} */
 export const writeHexNote = (scene, hex, note) => editHexLore(scene, (lore) => setNote(lore, hex, note));
 
+/**
+ * Write the GM's notes for several hexes in one write.
+ * @param {Scene} scene
+ * @param {[{col: number, row: number}, string][]} notes Each hex with its note.
+ * @returns {Promise<boolean>}
+ */
+export const writeHexNotes = (scene, notes) => editHexLore(scene, (lore) => notes.reduce((each, [hex, note]) => setNote(each, hex, note), lore));
+
 /** Strike one roll out of a hex. @returns {Promise<boolean>} */
 export const forgetHexSpark = (scene, hex, id) => editHexLore(scene, (lore) => forgetSpark(lore, hex, id));
 

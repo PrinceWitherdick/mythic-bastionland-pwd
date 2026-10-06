@@ -3,8 +3,11 @@ import {
 	HEX_JOURNALS_FOLDER_FLAG,
 	HEX_JOURNAL_FLAG,
 	HEX_LAYOUT,
+	MIRROR_FLAG,
 	journalPlan,
-	knownMarkdown
+	knownMarkdown,
+	noteMarkdown,
+	noteWithPage
 } from "../rules/hex-journal.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { playerHexView, viewWords } from "../rules/travels.js";
@@ -12,8 +15,8 @@ import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
-import { afterBurst, entrySnapshot, openKeptJournal, withHtml, writePlannedPages } from "./kept-journals.js";
-import { getHexLore } from "./hex-lore.js";
+import { afterBurst, entrySnapshot, openKeptJournal, pageByRole, pageMarkdown, withHtml, writePlannedPages } from "./kept-journals.js";
+import { getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
 import { partyNoteBy } from "./hex-shared.js";
 import { isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
 import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travels.js";
@@ -21,8 +24,8 @@ import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travel
 /**
  * Each hex something is rolled or written for gets a Journal entry, kept up to
  * date as the hex changes: a page of what the Company knows that players can
- * read once they could open the hex in their Places, and a Notes page that is
- * the GM's alone. What was rolled there the GM reads in Places. The pages' words are made in
+ * read once they could open the hex in their Places, and a page for the GM
+ * alone copying the hex's What's here. What was rolled there the GM reads in Places. The pages' words are made in
  * rules/hex-journal.js. The active GM's browser does the writing, so two GMs
  * don't each make an entry for the same hex.
  */
@@ -78,11 +81,12 @@ const hexFolder = (scene) => flaggedFolder("JournalEntry", HEX_JOURNALS_FOLDER_F
 
 /**
  * Everything a hex's entry should say.
+ * @param {Scene} scene
  * @param {import("../rules/travels.js").TravelsSources} sources The Realm as the players know it.
  * @param {{col: number, row: number}} hex
  * @returns {import("../rules/hex-journal.js").WantedEntry}
  */
-function wantedEntry(sources, hex) {
+function wantedEntry(scene, sources, hex) {
 	const view = playerHexView(sources, hex);
 	const words = viewWords(view, t);
 	const known = knownMarkdown({
@@ -103,9 +107,43 @@ function wantedEntry(sources, hex) {
 		open: view.openable,
 		pages: {
 			known: { name: t("hexJournal.pages.known"), markdown: known },
-			notes: { name: t("hexJournal.pages.notes"), markdown: "" }
+			notes: { name: t("hexJournal.pages.notes"), markdown: noteMarkdown(getHexRecord(scene, hex)?.note) }
 		}
 	};
+}
+
+/** The Realms whose older notes pages this browser has carried into their hexes' notes since it loaded. */
+const carried = new WeakSet();
+
+/**
+ * Before a Realm's notes pages become copies of the hexes' What's here, fold
+ * what the GM wrote by hand on each older one into its hex's note, and mark the
+ * page a copy. A page still called by an older name takes the new one; one the
+ * GM renamed keeps theirs.
+ * @param {Scene} scene
+ * @param {Map<string, JournalEntry>} existing
+ * @returns {Promise<void>}
+ */
+async function carryOldNotes(scene, existing) {
+	const oldNames = new Set([t("hexJournal.pages.notesWas"), t("hexJournal.pages.gmNotesWas")]);
+	const notes = [];
+	const marked = [];
+	for (const [key, entry] of existing) {
+		const hex = parseHexKey(key);
+		const page = pageByRole(entry, "notes");
+		if (!hex || !page || page.getFlag(SYSTEM_ID, MIRROR_FLAG)) continue;
+		const note = noteWithPage(getHexRecord(scene, hex)?.note, pageMarkdown(page));
+		if (note !== null) notes.push([hex, note]);
+		marked.push(() => page.update({
+			...(oldNames.has(page.name) ? { name: t("hexJournal.pages.notes") } : {}),
+			[`flags.${SYSTEM_ID}.${MIRROR_FLAG}`]: true
+		}));
+	}
+	// Every note in one write, so the Realm is drawn again once rather than once a hex.
+	if (notes.length) await writeHexNotes(scene, notes);
+	await Promise.all(marked.map((mark) => mark()));
+	// Every page made since carries the mark, so the Realm needn't be looked over again.
+	carried.add(scene);
 }
 
 /**
@@ -116,8 +154,8 @@ const snapshot = (entry) => entrySnapshot(entry, HEX_LAYOUT, Boolean(hexJournalF
 
 /**
  * Bring a Realm's hex entries up to date: one for each hex something is kept
- * for, and any made before, whose Notes page is the GM's and so is never
- * deleted. Only what changed is written. The active GM's browser alone.
+ * for, and any made before, which are never deleted: their notes pages held
+ * what GMs wrote by hand. Only what changed is written. The active GM's browser alone.
  * @param {Scene|null} scene
  * @returns {Promise<void>}
  */
@@ -126,6 +164,7 @@ export async function syncHexJournals(scene) {
 	const sources = travelsSources(scene);
 	if (!sources) return;
 	const existing = entriesOf(scene.id);
+	if (!carried.has(scene)) await carryOldNotes(scene, existing);
 	// A Barrier the Company ran into is kept for the hex it was met from, as a roll is.
 	const met = Object.entries(sources.shared.hexes).filter(([, record]) => record.met?.length).map(([key]) => key);
 	const keys = new Set([...Object.keys(getHexLore(scene).hexes), ...met, ...existing.keys()]);
@@ -136,7 +175,7 @@ export async function syncHexJournals(scene) {
 	const updates = [];
 	const pageWrites = [];
 	for (const hex of hexes) {
-		const wanted = wantedEntry(sources, hex);
+		const wanted = wantedEntry(scene, sources, hex);
 		const document = existing.get(wanted.key);
 		const plan = journalPlan(document ? snapshot(document) : null, wanted);
 		if (plan.create) {

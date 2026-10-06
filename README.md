@@ -92,9 +92,9 @@ Pointing at a hex on the map also shows the latest thing told of it and the Comp
 Each hex the Referee rolls or writes something for also gets a markdown **Journal entry**, filed in a folder for its Realm and kept up to date as the hex changes. It has two pages:
 
 - **What the Company Knows**, the same page the players' Places shows
-- **GM Notes**, which belongs to the GM and is never written over
+- **What's Here**, for the Referee alone
 
-Players can open the entry once they could open the hex in their Places, and they see only the Company's page. The Lay of the Land and the Referee Toolkit's hex cards have a **Journal** button that opens it. Turn the entries off with **Journal entries for hexes** in the settings.
+Players can open the entry once they could open the hex in their Places, and they see only the Company's page. The hex's Lay of the Land in Places has a **Journal** button that opens it. The entry's **What's Here** page, for the Referee alone, is a copy of the hex's What's here, so there's one place to write it; what a Referee wrote by hand on an older entry's notes page is added to the hex's note the first time the entry is brought up to date. Turn the entries off with **Journal entries for hexes** in the settings.
 
 The map looks like the Realm Sheets, traced from the Blank Realm legend. **Realm Appearance** offers other skins, colour sets and your own pictures.
 

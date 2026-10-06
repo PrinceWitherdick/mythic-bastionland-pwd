@@ -91,15 +91,21 @@ describe("addWrittenNotice", () => {
 		expect(within(content.children[0]).some((node) => node.className === "bastionland-lay-link")).toBe(false);
 	});
 
+	it("gives the GM's What's Here page the notice too, now that it copies the hex's note", () => {
+		const { sheet: page, root, content } = sheet(hexFlags, "notes");
+		addWrittenNotice(page, root);
+		expect(within(content.children[0]).some((node) => node.textContent === "hexJournal.writtenOver")).toBe(true);
+	});
+
 	it("sets a Site's written pages its own notice", () => {
 		const { sheet: page, root, content } = sheet({ siteJournal: { site: "s1" } }, "found");
 		addWrittenNotice(page, root);
 		expect(within(content.children[0]).some((node) => node.textContent === "siteJournal.writtenOver")).toBe(true);
 	});
 
-	it("leaves the Notes page, other entries, the page's editor, and those who can't edit it", () => {
+	it("leaves a Site's Notes page, other entries, the page's editor, and those who can't edit it", () => {
 		const cases = [
-			sheet(hexFlags, "notes"),
+			sheet({ siteJournal: { site: "s1" } }, "notes"),
 			sheet({}, "known"),
 			sheet(hexFlags, "known", { isView: false }),
 			sheet(hexFlags, "known", { isOwner: false })

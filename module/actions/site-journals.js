@@ -3,11 +3,10 @@ import { journalPlan } from "../rules/hex-journal.js";
 import { SITE_JOURNALS_FOLDER_FLAG, SITE_JOURNAL_FLAG, SITE_LAYOUT, foundMarkdown, siteMarkdown } from "../rules/site-journal.js";
 import { isBlankSite } from "../rules/sites.js";
 import { serialWrites } from "../rules/queue.js";
-import { stripHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
-import { afterBurst, entrySnapshot, openKeptJournal, withHtml, writePlannedPages } from "./kept-journals.js";
+import { afterBurst, entrySnapshot, openKeptJournal, pageByRole, pageWords, withHtml, writePlannedPages } from "./kept-journals.js";
 import { isSiteEntry, readSite } from "./sites.js";
 
 /**
@@ -172,9 +171,7 @@ export const openSiteJournal = (siteEntry) => openKeptJournal({
  * @returns {boolean} Whether the GM has written nothing on its Notes page, or it's gone.
  */
 function notesBlank(entry) {
-	const notes = (entry.pages ?? []).find((page) => page.getFlag(SYSTEM_ID, "role") === "notes");
-	if (!notes) return true;
-	return !String(notes.text?.markdown ?? "").trim() && !stripHTML(notes.text?.content).trim();
+	return !pageWords(pageByRole(entry, "notes"));
 }
 
 /**
