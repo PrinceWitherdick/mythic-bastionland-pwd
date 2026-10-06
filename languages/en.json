@@ -23,7 +23,7 @@
         "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
       },
       "welcome": {
-        "label": "Playing alone",
+        "label": "Solo Mode",
         "hint": "The Realm's Myths, Landmarks and Barriers stay hidden from you too, and turn up as the Company travels. You can change this later in the Toolkit's Settings."
       },
       "unknownMyth": "A Myth not yet met",
@@ -32,7 +32,18 @@
       "newMythTitle": "Myth {number}",
       "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
       "somethingThere": "something",
-      "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away."
+      "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away.",
+      "tag": {
+        "label": "Solo Play",
+        "hint": "You're playing alone, so the Realm keeps its secrets from you too. Click to read more, or to let friends join.",
+        "title": "Solo Play",
+        "what": "This world is set for playing alone. You're the Referee and the Company both, so the Realm keeps its Myths, Landmarks and Barriers from you as it would from players, until the Company finds them.",
+        "changes": "A Myth is named once one of its Omens is met, and its hex is shown once the Company stands in it. Hidden things don't show on the map, under it as you point at a hex, or in the Toolkit, and what stands in a hex can't be changed in the Lay of the Land.",
+        "friends": "If friends are joining and you'll be their Referee, turn solo play off. You'll see the whole Realm at once, every secret still to be found included, while the players still see only what they've found. It can be turned back on in the Toolkit's Settings.",
+        "turnOff": "Turn Off, Let Friends Join",
+        "keep": "Keep Playing Alone",
+        "turnedOff": "Solo play is off. You see the whole Realm as its Referee again."
+      }
     },
     "sheet": {
       "title": "Mythic Bastionland",

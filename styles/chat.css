@@ -1712,9 +1712,10 @@
 	font-size: 0.8em;
 }
 
-/* No card is posted in the Age's colours, so its tab is the sheet's own parchment, its hourglass in red ochre; the GM's buttons under the bar are the same parchment. */
+/* No card is posted in the Age's colours, so its tab is the sheet's own parchment, its hourglass in red ochre; the GM's buttons under the bar and the Solo Play tag are the same parchment. */
 .bastionland-time-banner__age,
-.bastionland-time-banner__moves {
+.bastionland-time-banner__moves,
+#players .bastionland-solo-tag {
 	--bastionland-card-icon: var(--bastionland-rubric);
 	--bastionland-paper: #f3ecdc;
 	--bastionland-ink: #231f1a;
@@ -1726,6 +1727,38 @@
 /* A GM's tabs let the ways of moving time on down under the bar, and say so when the pointer is over them. */
 #ui-top > .bastionland-time-banner > button {
 	cursor: pointer;
+}
+
+/* Over the players list, a Referee playing alone is told so, in the Age tab's parchment. */
+#players .bastionland-solo-tag {
+	display: inline-flex;
+	align-self: flex-start;
+	align-items: center;
+	gap: 0.4em;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0 0 0.35rem;
+	padding: 0.2em 0.6em;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 15px;
+	line-height: 1.2;
+	letter-spacing: 0.03em;
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+#players .bastionland-solo-tag > i {
+	color: var(--bastionland-card-icon);
+	font-size: 14px;
+}
+
+#players .bastionland-solo-tag:hover {
+	color: var(--bastionland-blood);
 }
 
 #ui-top > .bastionland-time-banner > button:hover {

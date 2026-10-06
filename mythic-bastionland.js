@@ -47,6 +47,7 @@ import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.
 import { registerRealmTour, registerToursSetting } from "./module/apps/realm-tour.js";
 import { registerTravelRulesSetting } from "./module/apps/TravelRules.js";
 import { WELCOME_STEP, greetGM, openWelcome, registerWelcome, welcomeOnlyNewWorlds, welcomesThisWorld } from "./module/apps/Welcome.js";
+import { addSoloTag } from "./module/apps/solo-tag.js";
 import { addDirectoryButton } from "./module/apps/ui.js";
 import { GOODS_FOLDERS_STEP, seedGoodsFolders } from "./module/book-art/goods-folders.js";
 import { CAST_DETAILS_STEP, LINGERING_CAST_STEP, NPC_PACK_STEP, OR_ATTACKS_STEP, fillCastDetails, markLingeringAttacks, markOrAttacks, openNpcPack, seedNpcPack } from "./module/book-art/npc-pack.js";
@@ -644,6 +645,9 @@ Hooks.on("renderJournalDirectory", (_directory, element) => {
 Hooks.on(RULEBOOK_HOOK, () => ui.journal?.render());
 
 Hooks.on("renderSceneDirectory", (_directory, element) => addNewRealmButton(element));
+
+// A Referee playing alone is told so over the players list, and how to let friends in.
+Hooks.on("renderPlayers", (_players, element) => addSoloTag(element));
 
 Hooks.on("renderRollTableDirectory", (_directory, element) => {
 	if (!game.user.isGM) return;

@@ -61,6 +61,8 @@ function redrawForSolo() {
 	for (const app of foundry.applications.instances.values()) {
 		if (app.rendered && app.options?.classes?.includes(SYSTEM_ID)) app.render();
 	}
+	// The players list carries the Solo Play tag.
+	ui.players?.render();
 }
 
 /** Register the setting and follow the Company. Called during init. */
