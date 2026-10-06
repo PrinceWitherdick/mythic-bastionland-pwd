@@ -14,6 +14,7 @@ import {
 	emptySeats,
 	findDomainHolding,
 	holdingRef,
+	holdingRulers,
 	isMisruleDue,
 	musterFor,
 	namesItsDomain,
@@ -108,6 +109,17 @@ describe("a Domain's Holding", () => {
 		expect(findDomainHolding(realms, domain("Elsewhere"))).toBeNull();
 		// A Holding given but since taken off the map isn't found by name instead.
 		expect(findDomainHolding(realms, domain("Hollowmere", "Scene.s1.Tile.gone"))).toBeNull();
+	});
+
+	it("names who rules a Holding: the Domains given it, or else one bearing its name", () => {
+		const named = domain("Hollowmere");
+		const given = domain("Anywhere", "Scene.s1.Tile.t1");
+		expect(holdingRulers(realms, [named], "s1", "t1")).toEqual([named]);
+		// Granting the Holding to another Domain settles it: the name alone no longer counts.
+		expect(holdingRulers(realms, [named, given], "s1", "t1")).toEqual([given]);
+		expect(holdingRulers(realms, [named, given], "s1", "t2")).toEqual([]);
+		// A Domain given another Holding doesn't rule this one by its name.
+		expect(holdingRulers(realms, [domain("Hollowmere", "Scene.s1.Tile.t2")], "s1", "t1")).toEqual([]);
 	});
 
 	it("finds nothing by a name two Holdings share", () => {

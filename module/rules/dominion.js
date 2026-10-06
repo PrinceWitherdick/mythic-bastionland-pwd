@@ -220,6 +220,29 @@ export function findDomainHolding(realms, domain) {
 }
 
 /**
+ * The Domains ruling one Holding: those given it, or where none was, any
+ * that finds it by its name. A Domain given a Holding outranks one that only
+ * shares its name, so granting a Holding settles who rules it.
+ * @param {RealmHoldings[]} realms Every Realm's Holdings.
+ * @param {{name: string, system: {holding?: string}}[]} domains
+ * @param {string} sceneId
+ * @param {string} holdingId The Holding's Tile id.
+ * @returns {object[]} Some of `domains`.
+ */
+export function holdingRulers(realms, domains, sceneId, holdingId) {
+	const given = domains.filter((domain) => {
+		const ref = parseHoldingRef(domain.system.holding);
+		return ref?.sceneId === sceneId && ref.holdingId === holdingId;
+	});
+	if (given.length) return given;
+	return domains.filter((domain) => {
+		if (domain.system.holding) return false;
+		const found = findDomainHolding(realms, domain);
+		return found?.sceneId === sceneId && found.holding.id === holdingId;
+	});
+}
+
+/**
  * Whether time passing leaves a Domain's ruler away long enough that
  * "returning from a long absence" brings the Crisis Roll (p20): Weeks or a
  * Season passed while the Company was somewhere other than the Holding.

@@ -1,0 +1,73 @@
+{{#*inline "seerCard"}}
+<button type="button" class="bastionland-chooser__card{{#if selected}} is-selected{{/if}}{{#if takenLabel}} is-taken{{/if}}" data-action="pick" data-roll="{{roll}}" aria-pressed="{{#if selected}}true{{else}}false{{/if}}">
+	<span class="bastionland-chooser__card-roll"><span class="bastionland-myth-chooser__card-d6">{{d6}}-</span>{{d12}}</span>
+	{{#if img}}
+	<img class="bastionland-chooser__thumb" src="{{img}}" alt="" loading="lazy" data-name="{{name}}">
+	{{else}}
+	<span class="bastionland-chooser__thumb is-empty"><i class="fa-solid fa-eye" inert></i></span>
+	{{/if}}
+	<span class="bastionland-chooser__card-name">{{name}}</span>
+	{{#if knighted}}<span class="bastionland-seer-chooser__knighted">{{knighted}}</span>{{/if}}
+	{{#if here}}
+	<span class="bastionland-seer-chooser__here">{{localize "bastionland.seerChooser.here"}}</span>
+	{{else if takenLabel}}
+	<span class="bastionland-chooser__taken">{{takenLabel}}</span>
+	{{/if}}
+</button>
+{{/inline}}
+<div class="bastionland-page bastionland-chooser bastionland-seer-chooser">
+	{{#if notice}}
+	<p class="bastionland-chooser__notice">{{notice}}</p>
+	{{/if}}
+
+	<p class="bastionland-hint">{{intro}}</p>
+
+	{{!-- The Seers who knighted the players' Knights, always in sight; the table below holds every other. --}}
+	{{#if company.length}}
+	<section class="bastionland-seer-chooser__company" aria-label="{{localize 'bastionland.seerChooser.company'}}">
+		<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.seerChooser.company"}}</h2>
+		<ul class="bastionland-chooser__grid">
+			{{#each company}}
+			<li>{{> seerCard}}</li>
+			{{/each}}
+		</ul>
+	</section>
+	{{/if}}
+
+	<section class="bastionland-chooser__browse" aria-label="{{localize 'bastionland.seerChooser.table'}}">
+		{{#if company.length}}<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.seerChooser.others"}}</h2>{{/if}}
+		<div class="bastionland-myth-chooser__find">
+			<ul class="bastionland-chooser__groups">
+				{{#each groups}}
+				<li>
+					<button type="button" class="bastionland-chooser__group{{#if active}} is-active{{/if}}" data-action="showGroup" data-d6="{{d6}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{d6}}</button>
+				</li>
+				{{/each}}
+			</ul>
+			<input type="search" name="search" class="bastionland-myth-chooser__search" value="{{search}}" placeholder="{{localize 'bastionland.seerChooser.search'}}" aria-label="{{localize 'bastionland.seerChooser.search'}}" autocomplete="off">
+		</div>
+
+		<p class="bastionland-empty bastionland-myth-chooser__none" hidden>{{localize "bastionland.seerChooser.noMatch"}}</p>
+
+		<ul class="bastionland-chooser__grid" data-seer-table>
+			{{#each cards}}
+			<li data-d6="{{d6}}" data-search="{{searchText}}" {{#unless inGroup}}hidden{{/unless}}>
+				{{> seerCard}}
+			</li>
+			{{/each}}
+		</ul>
+
+		<div class="bastionland-chooser__footer bastionland-myth-chooser__footer">
+			{{#with picked}}
+			<h3 class="bastionland-chooser__name">{{name}}</h3>
+			<p class="bastionland-chooser__reference">{{reference}}</p>
+			{{else}}
+			<p class="bastionland-empty">{{localize "bastionland.seerChooser.noPick"}}</p>
+			{{/with}}
+			<button type="button" class="bastionland-button{{#unless offer}} is-held{{/unless}}" data-action="useSeer" {{#unless picked.free}}disabled{{/unless}}>
+				<i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.seerChooser.use"}}
+			</button>
+			<p class="bastionland-hint bastionland-myth-chooser__note">{{#if picked.note}}{{picked.note}}{{else}}&nbsp;{{/if}}</p>
+		</div>
+	</section>
+</div>

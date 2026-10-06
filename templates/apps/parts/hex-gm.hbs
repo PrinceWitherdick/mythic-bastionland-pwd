@@ -139,6 +139,7 @@
 	{{#with landmark.seer}}
 	<div class="bastionland-hex-lore__grid">
 		<button type="button" data-action="rollSeer" data-tooltip="{{localize "bastionland.hexGm.seer.hint"}}"><i class="fa-solid fa-dice" inert></i> {{roll}}</button>
+		<button type="button" data-action="chooseSeer" data-tooltip="{{localize "bastionland.hexGm.seer.chooseHint"}}"><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.hexGm.seer.choose"}}</button>
 	</div>
 	{{/with}}
 	{{/panel}}
@@ -194,12 +195,31 @@
 
 	{{#if holding}}
 	{{#> panel key="holding"}}
+	{{!-- Who rules it: the Knight and their Domain, each opening its sheet. --}}
+	{{#with ruler}}
+	<div class="form-group bastionland-hex-lore__landmark">
+		<label>{{localize "bastionland.hexGm.ruler.label"}}</label>
+		<div class="form-fields bastionland-hex-lore__rulers">
+			{{#each rulers}}
+			<span class="bastionland-hex-lore__ruler">
+				{{#if knight}}<button type="button" class="bastionland-hex-lore__sheet" data-action="openActor" data-uuid="{{knight.uuid}}">{{knight.name}}</button>{{else if named}}{{named}}{{/if}}
+				<button type="button" class="bastionland-hex-lore__sheet is-domain" data-action="openActor" data-uuid="{{domain.uuid}}" data-tooltip="{{localize "bastionland.hexGm.ruler.openDomain"}}">{{domain.name}}</button>
+			</span>
+			{{else}}
+			<span class="bastionland-hex-lore__hint">{{localize "bastionland.hexGm.ruler.none"}}</span>
+			{{/each}}
+		</div>
+	</div>
+	{{/with}}
 	{{#with holding}}{{> keptRolls empty=(localize "bastionland.hexGm.noHolding")}}{{/with}}
 	<div class="bastionland-hex-lore__grid">
 		{{#unless notice}}
 		<button type="button" data-action="rollHolding" data-tooltip="{{localize "bastionland.people.holding.rollHint"}}"><i class="fa-solid fa-chess-rook" inert></i> {{localize "bastionland.people.holding.roll"}}</button>
 		{{/unless}}
 		<button type="button" data-action="mood" data-tooltip="{{localize "bastionland.refereeRolls.tables.mood.hint"}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.refereeRolls.tables.mood.name"}}</button>
+		{{#with ruler}}
+		<button type="button" data-action="grantHolding" data-tooltip="{{localize "bastionland.hexGm.ruler.grantHint"}}"><i class="fa-solid fa-crown" inert></i> {{grant}}</button>
+		{{/with}}
 	</div>
 	{{/panel}}
 	{{/if}}

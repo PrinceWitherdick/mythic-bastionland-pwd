@@ -57,17 +57,26 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 	const ruled = holdingAt(choice.holding);
 	const seated = others.filter((actor) => choice.circle?.[actor.id]).map((actor) => actor.id);
 	const name = String(choice.name ?? "").trim() || ruled?.name || t("domain.newName", { knight: knight.name });
+	return createDomain(knight, { name, holding: ruled ? choice.holding : "", seat: Boolean(ruled?.seat), circle: seated });
+}
+
+/**
+ * Make a Knight's Domain beside them in the Actors directory, and make it theirs.
+ * @param {Actor} knight
+ * @param {object} details
+ * @param {string} details.name
+ * @param {string} [details.holding] The Holding it rules, from holdingRef.
+ * @param {boolean} [details.seat] Whether that Holding is a Seat of Power.
+ * @param {string[]} [details.circle] The ids of the Knights in its Circle.
+ * @returns {Promise<Actor|null>}
+ */
+export async function createDomain(knight, { name, holding = "", seat = false, circle = [] }) {
 	// Players who can see the Knight can see their Domain. Only a GM may hand ownership to others.
 	const domain = await Actor.implementation.create({
 		name,
 		type: "domain",
 		folder: knight.folder?.id ?? null,
-		system: {
-			ruler: knight.name,
-			holding: ruled ? choice.holding : "",
-			seat: Boolean(ruled?.seat),
-			council: { circle: seated }
-		},
+		system: { ruler: knight.name, holding, seat, council: { circle } },
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(knight.ownership) } : {})
 	});
 	if (!domain) return null;

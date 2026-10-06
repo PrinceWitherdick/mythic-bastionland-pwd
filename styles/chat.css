@@ -1497,6 +1497,29 @@
 	overflow-y: auto;
 }
 
+/* Granting a Holding: the Knights with Domains, the book's 72 and any others
+   scroll as one list under the search, rather than each in a box of its own. */
+.bastionland-grant__search {
+	width: 100%;
+}
+
+.bastionland-grant__lists {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	max-height: 24rem;
+	overflow-y: auto;
+}
+
+.bastionland-grant__lists > .bastionland-choice-list {
+	max-height: none;
+	overflow: visible;
+}
+
+.bastionland-grant__none {
+	margin: 0;
+}
+
 /* A choice that belongs to the one above it, such as a weapon's specialist die. */
 .bastionland-check--nested {
 	margin-inline-start: 1.6rem;

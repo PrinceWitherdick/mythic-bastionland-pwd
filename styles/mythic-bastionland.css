@@ -6019,6 +6019,44 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: center;
 }
 
+/* Who rules a Holding: the Knight in bold, then their Domain, each opening its
+   sheet, read as words rather than drawn as buttons. */
+.bastionland-hex-lore__rulers {
+	flex-wrap: wrap;
+	gap: 0.2rem 1rem;
+}
+
+.bastionland-hex-lore__ruler {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem;
+}
+
+.bastionland-hex-lore__ruler > .bastionland-hex-lore__sheet {
+	flex: none;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	padding: 0;
+	border: none;
+	background: none;
+	color: inherit;
+	font: inherit;
+	font-weight: bold;
+	line-height: inherit;
+	cursor: pointer;
+}
+
+.bastionland-hex-lore__ruler > .bastionland-hex-lore__sheet.is-domain {
+	font-weight: normal;
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-hex-lore__ruler > .bastionland-hex-lore__sheet:hover {
+	text-decoration: underline;
+}
+
 /* The Myth tab: the Omens seen with their steppers, the Omen playing out and
    the one to come, each under a small-caps label, and its Cast as pills. */
 .bastionland-hex-lore__omen-count {
@@ -7553,6 +7591,47 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-myth-chooser__note {
 	flex-basis: 100%;
+}
+
+/* The Seer chooser (module/apps/SeerChooser.js): the Seers of the players'
+   Knights in a row on top, then the Myth chooser's table of every other, its
+   grid taking the rest of the window's height, with the Seer living at the
+   Sanctum now marked on their card. */
+.bastionland-seer-chooser > .bastionland-chooser__browse {
+	flex: 1;
+}
+
+.bastionland-seer-chooser [data-seer-table] {
+	flex: 1;
+	min-height: 0;
+}
+
+.bastionland-seer-chooser__company {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-seer-chooser :is(.bastionland-seer-chooser__company, .bastionland-chooser__browse) > .bastionland-heading {
+	margin: 0;
+}
+
+/* Out of the table's d6 pages, the Company's Seers name their whole roll. */
+.bastionland-seer-chooser__company .bastionland-myth-chooser__card-d6 {
+	display: inline;
+}
+
+.bastionland-seer-chooser__company .bastionland-chooser__card-roll {
+	padding: 0 0.35rem;
+	border-radius: 0.75rem;
+}
+
+.bastionland-seer-chooser__knighted,
+.bastionland-seer-chooser__here {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+	font-style: italic;
 }
 
 /* ---------------------------------------------------------------- */

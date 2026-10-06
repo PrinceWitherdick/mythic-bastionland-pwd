@@ -11,6 +11,7 @@ import {
 	writeHexNote
 } from "../actions/hex-lore.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
+import { grantHolding, rulersOf } from "../actions/holding-ruler.js";
 import { getHexVisits, markHexVisited } from "../actions/journey.js";
 import { landmarkOfferView, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
 import { rollUpHolding } from "../actions/people.js";
@@ -35,6 +36,7 @@ import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
 import { openHexEditor } from "./HexEditor.js";
 import { wirePersonRename } from "./hex-rename.js";
 import { openRollPerson } from "./RollPerson.js";
+import { openSeerChooser } from "./SeerChooser.js";
 
 /**
  * The Lay of the Land (p19): the GM's own part of a hex, at the foot of the
@@ -167,6 +169,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		land,
 		// A Holding's Local Mood is rolled as the Company arrives (p18).
 		holding: held,
+		// Who rules the Holding (p20), and the offer to grant it to a Knight.
+		ruler: holding ? rulerContext(scene, holdingHere) : null,
 		notice,
 		forget: hexForgetContext(scene, hex)
 	};
@@ -239,6 +243,23 @@ function seerContext(seer, index) {
 	if (!seer?.d6 || !seer?.d12) return { name: null, roll: t("hexGm.seer.roll") };
 	const { name, page } = seerEntry(index, seer);
 	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again") };
+}
+
+/**
+ * Who rules a Holding: each Domain given it, by its Knight where one is known,
+ * or else by the ruler its sheet names.
+ * @param {Scene} scene
+ * @param {{id: string|null}} holding
+ * @returns {{rulers: object[], grant: string}|null} Null for a Holding not yet on the map as a Tile, which nothing can be given.
+ */
+function rulerContext(scene, holding) {
+	if (!holding.id) return null;
+	const rulers = rulersOf(scene, holding).map(({ domain, knight }) => ({
+		domain: { uuid: domain.uuid, name: domain.name },
+		knight: knight ? { uuid: knight.uuid, name: knight.name } : null,
+		named: knight ? null : String(domain.system.ruler ?? "").trim() || null
+	}));
+	return { rulers, grant: t(rulers.length ? "hexGm.ruler.change" : "hexGm.ruler.grant") };
 }
 
 /**
@@ -444,7 +465,11 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	landmarkOffer: ({ scene, hex }, target) => takeLandmarkOffer(target.dataset.landmarkOffer, { scene, hex }),
 	// Roll the Seer, step the Omens, reveal: as in Edit this hex.
 	...HEX_FEATURE_ACTIONS,
-	// A sheet named in the part: one of the Cast.
+	// Choose the Seer at the Sanctum here by hand, from the Knights table (p26).
+	chooseSeer: ({ scene, hex }) => openSeerChooser({ scene, hex }),
+	// Grant the Holding here to a Knight, through their Domain (p20).
+	grantHolding: ({ scene, hex }) => grantHolding(scene, hex),
+	// A sheet named in the part: one of the Cast, or the Knight or Domain ruling a Holding.
 	openActor: (_at, target) => fromUuidSync(target.dataset.uuid ?? "")?.sheet?.render({ force: true }),
 	// The Myth's card in the Toolkit, with all its Omens, its table and its Cast to make.
 	async mythInToolkit({ scene }, target) {

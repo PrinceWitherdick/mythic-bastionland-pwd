@@ -61,6 +61,11 @@ vi.mock("../../module/apps/hex-edit.js", () => ({
 }));
 let heldActors = [];
 vi.mock("../../module/actions/myth-cast.js", () => ({ castActors: () => heldActors, castKey: () => "1-01" }));
+let heldRulers = [];
+const grantHolding = vi.fn();
+vi.mock("../../module/actions/holding-ruler.js", () => ({ grantHolding: (...args) => grantHolding(...args), rulersOf: () => heldRulers }));
+const openSeerChooser = vi.fn();
+vi.mock("../../module/apps/SeerChooser.js", () => ({ openSeerChooser: (...args) => openSeerChooser(...args) }));
 const showMyth = vi.fn();
 vi.mock("../../module/actions/gm-toolkit.js", () => ({ openGmToolkit: vi.fn(), theGmToolkit: () => ({ sheet: { showMyth } }) }));
 vi.mock("../../module/apps/hex-forget.js", () => ({
@@ -84,6 +89,7 @@ afterEach(() => {
 	heldRecord = twoRolls;
 	heldRealm = emptyRealm(g);
 	heldActors = [];
+	heldRulers = [];
 	solo = false;
 	delete globalThis.game;
 	vi.clearAllMocks();
@@ -279,6 +285,34 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toEqual({ name: "realm.panel.reference", roll: "hexGm.seer.again" });
 		heldRealm.landmarks[0].type = "dwelling";
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toBeNull();
+	});
+
+	it("names who rules a Holding, by Knight and Domain, once it's on the map", () => {
+		heldRealm = { ...emptyRealm(g), holdings: [{ id: "tile", hex, style: "castle", seat: false, name: "Ashford" }] };
+		heldRulers = [
+			{ domain: { uuid: "Actor.d1", name: "Ashford", system: { ruler: "" } }, knight: { uuid: "Actor.k1", name: "Sir Brand" } },
+			{ domain: { uuid: "Actor.d2", name: "The Old Claim", system: { ruler: " Dame Wren " } }, knight: null }
+		];
+		const ruler = hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).ruler;
+		expect(ruler.rulers).toEqual([
+			{ domain: { uuid: "Actor.d1", name: "Ashford" }, knight: { uuid: "Actor.k1", name: "Sir Brand" }, named: null },
+			{ domain: { uuid: "Actor.d2", name: "The Old Claim" }, knight: null, named: "Dame Wren" }
+		]);
+		expect(ruler.grant).toBe("hexGm.ruler.change");
+		heldRulers = [];
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).ruler.grant).toBe("hexGm.ruler.grant");
+		// A Holding not yet drawn as a Tile has nothing a Domain can name.
+		heldRealm.holdings[0].id = null;
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).ruler).toBeNull();
+		heldRealm.holdings = [];
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).ruler).toBeNull();
+	});
+
+	it("chooses a Sanctum's Seer and grants a Holding from the hex shown", () => {
+		HEX_GM_ACTIONS.chooseSeer({ scene, hex });
+		expect(openSeerChooser).toHaveBeenCalledWith({ scene, hex });
+		HEX_GM_ACTIONS.grantHolding({ scene, hex });
+		expect(grantHolding).toHaveBeenCalledWith(scene, hex);
 	});
 
 	it("steps the Myth's Omens, rolls the Seer, and opens the Myth in the Toolkit", async () => {

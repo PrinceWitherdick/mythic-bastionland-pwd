@@ -18,7 +18,7 @@ import { worldKnights } from "./knights.js";
  */
 
 /** @returns {import("../rules/dominion.js").RealmHoldings[]} Every Realm's Holdings. */
-function realmHoldings() {
+export function realmHoldings() {
 	return game.scenes.filter((scene) => isRealmScene(scene)).map((scene) => ({ sceneId: scene.id, holdings: getRealm(scene)?.realm.holdings ?? [] }));
 }
 

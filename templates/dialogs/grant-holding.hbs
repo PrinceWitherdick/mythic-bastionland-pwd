@@ -1,0 +1,39 @@
+<div class="bastionland-dialog__body bastionland-grant">
+	{{!-- Who a Holding is granted to: the Knights with a Domain first, then every Knight of the book's table, then any
+	      other Knight of the world. One radio list across them, one button, and a search over all of it. --}}
+	{{#*inline "grantRow"}}
+	<label class="bastionland-check" data-search="{{search}}">
+		<input type="radio" name="ruler" value="{{value}}" {{checked checked}}>
+		<span class="bastionland-check__label">
+			<strong>{{name}}</strong>
+			{{#if detail}}<span class="bastionland-check__detail">{{detail}}</span>{{/if}}
+		</span>
+	</label>
+	{{/inline}}
+	<p>{{{intro}}}</p>
+
+	<input type="search" class="bastionland-grant__search" placeholder="{{localize "bastionland.hexGm.ruler.search"}}" aria-label="{{localize "bastionland.hexGm.ruler.search"}}" autocomplete="off">
+
+	<div class="bastionland-grant__lists">
+		{{#if domained.length}}
+		<fieldset class="bastionland-choice-list" data-search-section>
+			<legend>{{localize "bastionland.hexGm.ruler.domained"}}</legend>
+			{{#each domained}}{{> grantRow}}{{/each}}
+		</fieldset>
+		{{/if}}
+
+		<fieldset class="bastionland-choice-list" data-search-section>
+			<legend>{{localize "bastionland.hexGm.ruler.table"}}</legend>
+			{{#each table}}{{> grantRow}}{{/each}}
+		</fieldset>
+
+		{{#if others.length}}
+		<fieldset class="bastionland-choice-list" data-search-section>
+			<legend>{{localize "bastionland.hexGm.ruler.others"}}</legend>
+			{{#each others}}{{> grantRow}}{{/each}}
+		</fieldset>
+		{{/if}}
+
+		<p class="bastionland-empty bastionland-grant__none" hidden>{{localize "bastionland.hexGm.ruler.noMatch"}}</p>
+	</div>
+</div>

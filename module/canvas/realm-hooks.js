@@ -17,6 +17,7 @@ import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
 import { refreshMythChooser } from "../apps/MythChooser.js";
+import { refreshSeerChooser } from "../apps/SeerChooser.js";
 import { refreshRealmPanel } from "../apps/RealmPanel.js";
 import { closeRealmDrawing, refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
 import { closeTravelRules, showTravelRules } from "../apps/TravelRules.js";
@@ -81,6 +82,7 @@ function showChanges() {
 		refreshRealmDrawing(sceneId);
 		refreshMythChooser(sceneId);
 		refreshHexEditor(sceneId);
+		refreshSeerChooser(sceneId);
 		// The players' record of where the Company has been, in whatever window or sheet shows it.
 		// Not while the Realm is drawn by hand, which players don't see; finishing it updates the Scene, which comes here again.
 		// Meanwhile the GM's hex in Places, which shows the Realm being drawn, is drawn again alone.

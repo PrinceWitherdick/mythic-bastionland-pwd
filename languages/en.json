@@ -1958,7 +1958,30 @@
         "none": "No Seer rolled for this Sanctum yet.",
         "roll": "Roll the Seer",
         "again": "Roll Another Seer",
-        "hint": "Roll d6 and d12 on the Knights table (p26) for the Seer who lives here."
+        "hint": "Roll d6 and d12 on the Knights table (p26) for the Seer who lives here.",
+        "choose": "Choose the Seer",
+        "chooseHint": "Pick the Seer who lives here from the Knights table (p26)."
+      },
+      "ruler": {
+        "label": "Ruler",
+        "none": "No Knight rules it yet.",
+        "openDomain": "Open the Domain",
+        "grant": "Grant to a Knight",
+        "change": "Grant to Another Knight",
+        "grantHint": "Make a Knight its ruler (p20). A Knight with a Domain has it rule this Holding; one without founds a Domain here.",
+        "grantTitle": "Grant {name}",
+        "grantIntro": "Which Knight rules <strong>{name}</strong>? Their Domain rules it from now on, and any other Domain given it gives it up.",
+        "search": "Search the Knights…",
+        "noMatch": "No Knight matches.",
+        "domained": "Knights with Domains",
+        "table": "The Knights Table",
+        "others": "Other Knights in the World",
+        "rulesHere": "Rules it now.",
+        "hasDomain": "Their Domain, {domain}, moves to rule it.",
+        "noDomain": "No Domain yet: you found one for them here.",
+        "isKnight": "{roll}, {book}. No Domain yet: you found one for them here.",
+        "namedDomain": "{roll}. Made as an NPC Knight, ruling {domain}, which moves to rule it.",
+        "bookKnight": "{roll}. Made as an NPC Knight, with a Domain ruling it."
       },
       "landmarkName": "Name",
       "noPeople": "No one met here yet.",
@@ -3447,6 +3470,28 @@
       "convert": {
         "converted": "Made {count} structure NPCs into Structure actors."
       }
+    },
+    "npcFolder": {
+      "name": "NPCs"
+    },
+    "seerChooser": {
+      "title": "Choose the Seer",
+      "intro": "Which Seer lives at the Sanctum in {hex}? Each stands on the Knights table (p26) beside the Knight they knighted.",
+      "gone": "The Sanctum this window was opened for is gone.",
+      "table": "The Seers",
+      "company": "The Company’s Seers",
+      "others": "Every Other Seer",
+      "knighted": "Knighted {knights}",
+      "noIndex": "Run the Import PDF macro to see the Seers by name and picture. Until then they go by their roll.",
+      "reference": "{roll}, page {page}",
+      "search": "Search the Seers…",
+      "noMatch": "No Seer matches.",
+      "noPick": "Pick a Seer to have them live at this Sanctum.",
+      "use": "Make Them This Sanctum’s Seer",
+      "here": "Lives here",
+      "already": "This Seer lives here already.",
+      "livesAt": "At {hex}",
+      "alsoAt": "This Seer lives at the Sanctum in {hex} too."
     },
     "mythChooser": {
       "title": "The Realm’s Myths",
