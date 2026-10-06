@@ -4366,6 +4366,9 @@
       "notYours": "{name} was another player\u2019s Knight. Only their player, or the Referee, says who carries on.",
       "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
     },
+    "hexTarget": {
+      "hint": "Point at it to ring the hex on the map. Click to go there."
+    },
     "explore": {
       "here": "in this very Hex",
       "away": "{distance} Hexes to the {direction}",
@@ -4393,12 +4396,14 @@
             "hint": "Knows every Myth’s rules, secrets, weaknesses and cures, where each lies, and every Landmark in the Realm."
           }
         },
+        "asked": "{source}, asked in",
+        "myths": "Myths",
+        "landmarks": "Landmarks",
         "mythNumber": "Myth {number}",
-        "precise": "{hex}, {where}",
-        "at": "{hex}, {where}",
+        "rough": "{where}, as near as they can say.",
         "nothing": "They know of no Myth and no Landmark from here.",
         "rumours": "They’ve heard warnings of danger, but nothing of how to escape or undo it.",
-        "secrets": "They know this Myth’s rules and secrets, what it’s weak to, and how to cure the harm it does."
+        "secrets": "They know each Myth’s rules and secrets, what it’s weak to, and how to cure the harm it does."
       },
       "search": {
         "title": "Searching",

@@ -160,6 +160,26 @@ describe("gatherFolklore", () => {
 		expect(card.secrets).toBeNull();
 	});
 
+	it("names each hex it mentions as a chip for the map, and says plainly where things lie", async () => {
+		answer = { source: "vassal" };
+		await gatherFolklore({ scene: { id: "scene" } });
+		const card = lastCard();
+		expect(card.asked).toBe(format("bastionland.explore.folklore.asked", { source: lookup("bastionland.explore.folklore.sources.vassal.label") }));
+		expect(card.home).toMatchObject({ key: "6,6", scene: "scene" });
+		// The Myth next door is placed exactly, so its hex is named.
+		expect(card.myths[0].target).toMatchObject({ key: "6,7", scene: "scene" });
+		expect(card.myths[0].where).toMatch(/^The next Hex to the .+\.$/);
+		expect(card.landmarks[0]).toMatchObject({ where: "In this very Hex.", target: { key: "6,6" } });
+	});
+
+	it("names no hex for a Myth the teller can only point towards", async () => {
+		answer = { source: "roamer" };
+		await gatherFolklore({ scene: { id: "scene" } });
+		const [myth] = lastCard().myths;
+		expect(myth.target).toBeNull();
+		expect(myth.where).toMatch(/, as near as they can say\.$/);
+	});
+
 	it("whispers the card to the Referee", async () => {
 		answer = { source: "vassal" };
 		await gatherFolklore({ scene: { id: "scene" } });

@@ -71,6 +71,7 @@ import { registerMoraleCards } from "./module/chat/morale-card.js";
 import { FXMASTER_CARD_STEP, WELCOME_CARDS_STEP, postFxMasterCard, postWelcomeCards, registerWelcomeCards } from "./module/chat/welcome-cards.js";
 import { registerCompanyLostCard } from "./module/chat/company-lost.js";
 import { registerExplorationCards } from "./module/chat/exploration-card.js";
+import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
@@ -210,6 +211,7 @@ Hooks.once("init", () => {
 		"bastionland.book-table-line": templatePath("actor/parts/book-table-line.hbs"),
 		"bastionland.table-sentence": templatePath("actor/parts/table-sentence.hbs"),
 		"bastionland.renewal-die": templatePath("actor/parts/renewal-die.hbs"),
+		"bastionland.hex-target": templatePath("chat/parts/hex-target.hbs"),
 		"bastionland.realm-tally": templatePath("apps/parts/realm-tally.hbs"),
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.realm-swatch": templatePath("apps/parts/realm-swatch.hbs"),
@@ -287,6 +289,8 @@ Hooks.once("init", () => {
 	// A Wilderness card offers what the Landmark it found asks of the Company.
 	registerLandmarkCards();
 	registerExplorationCards();
+	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
+	registerHexTargets();
 	registerFallenCards();
 	// A Humiliation's dealer brought down asks whether that was the revenge (p9).
 	registerRevengeCards();

@@ -177,6 +177,43 @@
 	letter-spacing: 0.04em;
 }
 
+/* A hex a card names, as a chip in its sentence: pointing at it rings the hex
+   on the map, and a click goes there. A block, not a flex box, so the pill
+   rules can trim it. */
+.bastionland-hex-target {
+	--pill-pad: 0.3rem;
+	display: inline-block;
+	width: auto;
+	height: auto;
+	min-height: 0;
+	margin: 0.1rem 0;
+	padding: var(--pill-padding-top, 0.1rem) 0.5rem var(--pill-padding-bottom, 0.1rem);
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: var(--bastionland-font-note);
+	font-style: normal;
+	line-height: 1.35;
+	letter-spacing: 0.04em;
+	/* A long hex name wraps inside the chip rather than running out of the chat. */
+	max-width: 100%;
+	text-align: start;
+	vertical-align: baseline;
+	cursor: pointer;
+}
+
+.bastionland-hex-target:hover {
+	border-color: var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+	box-shadow: none;
+}
+
+.bastionland-hex-target i {
+	margin-right: 0.2rem;
+}
+
 .bastionland-card__damage {
 	display: flex;
 	align-items: baseline;

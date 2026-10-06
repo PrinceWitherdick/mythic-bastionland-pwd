@@ -2,6 +2,7 @@ import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
+import { hexTarget } from "../chat/hex-target.js";
 import {
 	FOLK_SOURCES,
 	SEARCH_AIMS,
@@ -12,6 +13,7 @@ import {
 	surveyFrom
 } from "../rules/exploration.js";
 import { directionNames, sameHex } from "../rules/realm-geometry.js";
+import { capitalise } from "../rules/text.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
 import { rollLabelledSave } from "./saves.js";
@@ -93,22 +95,25 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 	await postCard(null, "folklore", {
 		scene: scene?.id ?? null,
 		title: t("explore.folklore.title"),
-		source: t(`explore.folklore.sources.${folklore.source}.label`),
-		hex: hexLabel(where, scene),
+		asked: t("explore.folklore.asked", { source: t(`explore.folklore.sources.${folklore.source}.label`) }),
+		home: hexTarget(where, scene),
 		myths: folklore.myths.map((known) => {
 			const myth = realm.myths.find((candidate) => candidate.number === known.number);
 			const { name, page } = myth ? mythEntry(index, myth) : { name: null, page: null };
+			// Only a teller who knows just where it lies names its hex.
 			return {
 				number: known.number,
 				name,
 				page,
-				where: known.precise ? t("explore.folklore.precise", { hex: hexLabel(known.hex, scene), where: whereItLies(g, known) }) : whereItLies(g, known)
+				where: known.precise ? `${capitalise(whereItLies(g, known))}.` : t("explore.folklore.rough", { where: capitalise(whereItLies(g, known)) }),
+				target: known.precise ? hexTarget(known.hex, scene) : null
 			};
 		}),
 		landmarks: folklore.landmarks.map((known) => ({
 			type: t(`realm.landmarks.${known.type}`),
 			name: known.name || null,
-			where: t("explore.folklore.at", { hex: hexLabel(known.hex, scene), where: whereItLies(g, known) })
+			where: `${capitalise(whereItLies(g, known))}.`,
+			target: hexTarget(known.hex, scene)
 		})),
 		nothing: folklore.myths.length || folklore.landmarks.length ? null : t("explore.folklore.nothing"),
 		rumours: folklore.rumours ? t("explore.folklore.rumours") : null,
@@ -162,7 +167,9 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 				selected: key === "cla"
 			}))
 		},
-		ok: { label: t("explore.search.ok"), icon: "fa-solid fa-magnifying-glass" }
+		ok: { label: t("explore.search.ok"), icon: "fa-solid fa-magnifying-glass" },
+		// Tall enough that the whole form shows without the body scrolling.
+		position: { height: 620 }
 	});
 	if (!data || !SEARCH_AIMS.includes(data.aim)) return null;
 
