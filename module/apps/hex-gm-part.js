@@ -46,8 +46,8 @@ import { inputDialog } from "./ui.js";
  * Places window's hex beside what the players know. A Hex is broad and
  * varied, and what fills it is the Referee's to improvise, so this is where
  * they roll the Spark Tables for it and write down what they made of it; the
- * hex itself is changed in Edit this hex (HexEditor.js), opened from the pen
- * beside its terrain. Everything rolled stays in the hex, so a Company
+ * hex itself is changed in Edit this hex (HexEditor.js), opened from Edit hex
+ * in the window's title bar. Everything rolled stays in the hex, so a Company
  * coming back finds the hex they left.
  */
 
@@ -412,14 +412,19 @@ function wireToldState(part) {
 }
 
 /**
- * The hex's Journal, where it has one, as a button for the title bar of a
- * window showing the GM's part of a hex: none when the part isn't shown.
+ * The hex's Journal, made on the click if it has none, as a button for the
+ * title bar of a window showing the GM's part of a hex: none when the part
+ * isn't shown or the setting makes no entries.
  * @param {HTMLElement|null|undefined} element The window.
  * @returns {{action: string, icon: string, label: string, tooltip: string}[]}
  */
 export function hexGmHeaderButtons(element) {
-	const journal = element?.querySelector(".bastionland-travels-hex__gm[data-journal]");
-	return journal ? [{ action: "hexJournal", icon: "fa-solid fa-book", label: t("hexJournal.open"), tooltip: t("hexJournal.openHint") }] : [];
+	const part = element?.querySelector(".bastionland-travels-hex__gm");
+	if (!part) return [];
+	return [
+		{ action: "editHex", icon: "fa-solid fa-pen-to-square", label: t("hexLore.editShort"), tooltip: t("hexLore.editHint") },
+		...(part.hasAttribute("data-journal") ? [{ action: "hexJournal", icon: "fa-solid fa-book", label: t("hexJournal.open"), tooltip: t("hexJournal.openHint") }] : [])
+	];
 }
 
 /**
@@ -528,7 +533,7 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		const sheet = theGmToolkit()?.sheet ?? (await openGmToolkit("myths"));
 		return sheet?.showMyth?.(scene, Number(target.dataset.myth));
 	},
-	// The pen beside the hex's terrain: change the hex itself, in a window of its own.
+	// Edit hex, in the title bar: change the hex itself, in a window of its own.
 	editHex: ({ scene, hex }) => openHexEditor({ scene, hex }),
 	// The eraser on the visits line: forget every visit here, or everything kept here.
 	...HEX_FORGET_ACTIONS

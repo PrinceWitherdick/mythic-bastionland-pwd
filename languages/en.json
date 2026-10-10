@@ -38,7 +38,7 @@
         "hint": "You're playing alone, so the Realm keeps its secrets from you too. Click to read more, or to let friends join.",
         "title": "Solo Play",
         "what": "This world is set for playing alone. You're the Referee and the Company both, so the Realm keeps its Myths, Landmarks and Barriers from you as it would from players, until the Company finds them.",
-        "changes": "A Myth is named once one of its Omens is met, and its hex is shown once the Company stands in it. Hidden things don't show on the map, under it as you point at a hex, or in the Toolkit, and what stands in a hex can't be changed in the Lay of the Land.",
+        "changes": "A Myth is named once one of its Omens is met, and its hex is shown once the Company stands in it. Hidden things don't show on the map, under it as you point at a hex, or in the Toolkit, and what stands in a hex can't be changed in Edit this hex.",
         "friends": "If friends are joining and you'll be their Referee, turn solo play off. You'll see the whole Realm at once, every secret still to be found included, while the players still see only what they've found. It can be turned back on in the Toolkit's Settings.",
         "turnOff": "Turn Off, Let Friends Join",
         "keep": "Keep Playing Alone",
@@ -2026,6 +2026,8 @@
       "title": "The Lay of the Land",
       "open": "Open in Places",
       "edit": "Edit this hex",
+      "editShort": "Edit hex",
+      "editHint": "Change the hex itself, such as its terrain or the Myth or Holding in it, in a window of its own.",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
       "rollSet": "Roll the Land",
@@ -2075,7 +2077,7 @@
         "gmNotesWas": "GM Notes"
       },
       "met": "Barriers Met",
-      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex, and write what’s here, in the hex’s Lay of the Land in Places.",
+      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Write what’s here in the hex’s Lay of the Land in Places, and change the hex itself with Edit hex in the title bar of Places.",
       "open": "Journal",
       "openHint": "Open this hex’s Journal entry, making it if it has none: what the Company knows, and your own notes.",
       "none": "This hex has no Journal entry yet. The Referee whose browser keeps the Journals can make it from the hex in Places.",
@@ -3734,7 +3736,7 @@
         "pages": {
           "realm": "The Realm"
         },
-        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set in each hex’s Lay of the Land in Places. Nothing is rolled.",
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are placed with the Inspect tool: click a hex and Edit this hex opens beside it. Nothing is rolled.",
         "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. Your map may have hexes drawn on it, or none at all. You line the picture up with the hex lines, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
@@ -4247,7 +4249,7 @@
         "heading": "Paint every hex",
         "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture. Paint open sea as Lake, the rules' only water, which boats can cross. Nothing stops the Company walking onto a Lake, so rule on that at the table."
       },
-      "inspectHint": "Click a hex to open it in Places, then click the pen beside its terrain to edit it.",
+      "inspectHint": "Take up the Inspect tool and click a hex: Edit this hex opens beside Places. Under In this hex, choose Myth, then pick its number and roll or choose which Myth it is.",
       "groups": {
         "wilderness": "Wilderness",
         "holdings": "Holdings",
@@ -4807,7 +4809,7 @@
       },
       "places": {
         "title": "Places",
-        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nFor you, any hex can be opened here, and under what the players know of it is its Lay of the Land: your note and the Spark Tables rolled there. The pen beside a hex’s terrain edits the hex itself.\nPlayers have the same button, and see only the places their Company has found."
+        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nFor you, any hex can be opened here, and under what the players know of it is its Lay of the Land: your note and the Spark Tables rolled there. Edit hex, in the window’s title bar, changes the hex itself, such as the Myth or Holding in it.\nPlayers have the same button, and see only the places their Company has found."
       }
     },
     "welcome": {

@@ -29,7 +29,7 @@ import { openMythChooser } from "./MythChooser.js";
 import { inputDialog } from "./ui.js";
 
 /**
- * Edit this hex, the GM's window opened from the pen beside a hex in Places
+ * Edit this hex, the GM's window opened from Edit hex in the title bar of Places
  * (HexEditor.js): the hex's terrain, the Holding, Myth or Landmark in it, and its Barriers. The paint palette lays
  * most of a Realm; this is where a Myth is placed and rolled, a Holding named,
  * a Sanctum's Seer rolled, and a Myth or Landmark hidden or revealed.

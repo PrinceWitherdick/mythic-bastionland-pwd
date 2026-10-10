@@ -3,6 +3,7 @@ import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
 import { openHex } from "../apps/TravelsPlaces.js";
+import { openHexEditor } from "../apps/HexEditor.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
@@ -484,8 +485,11 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (this.tool === "inspect") {
 			const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
-			// Places shows the hex, and the pen beside its terrain opens Edit this hex.
-			if (hex) openHex({ scene, hex });
+			if (!hex) return;
+			// Places shows the hex, and Edit hex in its title bar opens the editor. While the Realm is being
+			// drawn, placing its Myths and Holdings is what the click is for, so the editor opens beside Places.
+			const places = openHex({ scene, hex });
+			if (isDrawingRealm(scene)) openHexEditor({ scene, hex, beside: places });
 			return;
 		}
 

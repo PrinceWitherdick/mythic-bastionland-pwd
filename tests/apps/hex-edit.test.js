@@ -22,7 +22,9 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 	it("is what Inspect and Show on the map open, with no window of its own beside Places", () => {
 		expect(existsSync(join(root, "module/apps/HexLore.js"))).toBe(false);
 		expect(existsSync(join(root, "templates/apps/hex-lore.hbs"))).toBe(false);
-		expect(layer).toMatch(/if \(this\.tool === "inspect"\) \{[\s\S]*?if \(hex\) openHex\(\{ scene, hex \}\);/);
+		expect(layer).toMatch(/if \(this\.tool === "inspect"\) \{[\s\S]*?const places = openHex\(\{ scene, hex \}\);/);
+		// While the Realm is drawn, Inspect opens the editor too, beside Places, as the Myth step says.
+		expect(layer).toContain("if (isDrawingRealm(scene)) openHexEditor({ scene, hex, beside: places });");
 		expect(toolkit).toContain("if (await viewAndShowHex(scene, hex)) openHex({ scene, hex });");
 		expect(toolkit).not.toContain("openRealmPanel");
 		// Old macros that opened the window open the hex in Places.
@@ -35,16 +37,19 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 		expect(gmPart).not.toContain("hexEditContext");
 		expect(template).not.toContain("<details");
 		expect(editor).toContain('body: { template: templatePath("apps/parts/hex-edit.hbs") }');
-		expect(editor).toMatch(/export async function openHexEditor\(\{ scene, hex \}\) \{\s*if \(!game\.user\?\.isGM/);
+		expect(editor).toMatch(/export async function openHexEditor\(\{ scene, hex, beside \}\) \{\s*if \(!game\.user\?\.isGM/);
+		expect(editor).toContain("if (opening && beside) placeBeside(editor, beside);");
 		// Only a GM's Places builds the pen, as only a GM's builds the Lay of the Land.
 		expect(gmPart).toMatch(/export function hexGmContext\([^)]*\) \{\s*if \(!game\.user\?\.isGM\) return null;/);
 	});
 
-	it("is opened by a pen beside the hex's terrain, shown on hover", () => {
-		expect(detail).toMatch(/<button type="button" class="bastionland-icon bastionland-travels-hex__edit bastionland-reveal" data-action="editHex"/);
-		expect(detail).toContain('<div class="bastionland-hex-lore__here{{#if gm}} bastionland-reveal-host{{/if}}">');
-		// A hex the players don't know has the pen beside the line saying so.
-		expect(detail).toContain('<div class="bastionland-hex-lore__row{{#if gm}} bastionland-reveal-host{{/if}}">');
+	it("is opened by Edit hex in the title bar of Places, left of the Journal", () => {
+		// A worded button, always showing: a Referee placing Myths missed a hover pen. It hangs in the
+		// title bar rather than in the hex's terrain row, for any hex with the Lay of the Land, known or not.
+		expect(detail).not.toContain('data-action="editHex"');
+		expect(detail).not.toContain("bastionland-reveal");
+		expect(gmPart).toMatch(/const part = element\?\.querySelector\("\.bastionland-travels-hex__gm"\);\s*if \(!part\) return \[\];/);
+		expect(gmPart).toMatch(/\{ action: "editHex", icon: "fa-solid fa-pen-to-square", label: t\("hexLore\.editShort"\), tooltip: t\("hexLore\.editHint"\) \},\s*\.\.\.\(part\.hasAttribute\("data-journal"\) \? \[\{ action: "hexJournal"/);
 		expect(gmPart).toContain("editHex: ({ scene, hex }) => openHexEditor({ scene, hex }),");
 		expect(places).toContain("hexGm = hexGmState();");
 	});

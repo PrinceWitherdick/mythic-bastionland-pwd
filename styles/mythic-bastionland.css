@@ -7218,19 +7218,15 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 /* A GM's pen beside the hex's terrain, shown on hover (bastionland-reveal), that opens Edit this
    hex, the pens on a go of rolls and on a person, and the × that forgets a Journey line: bare icons that redden rather than fill on hover. */
-.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget) {
+.bastionland-icon:is(.bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget) {
 	width: 1.75rem;
 	height: 1.75rem;
 	font-size: var(--bastionland-font-note);
 }
 
-.bastionland-icon:is(.bastionland-travels-hex__edit, .bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget):hover {
+.bastionland-icon:is(.bastionland-hex-lore__go-edit, .bastionland-hex-lore__person-edit, .bastionland-travels-journey__forget):hover {
 	background: none;
 	color: var(--bastionland-blood);
-}
-
-.bastionland-hex-lore__here.bastionland-reveal-host {
-	align-items: center;
 }
 
 .bastionland-travels-hex__sighted {
