@@ -7,6 +7,7 @@ import {
 	TRAVEL_RULES,
 	TRAVEL_SIDES,
 	groupsOnSide,
+	normaliseTravelRulesScroll,
 	normaliseTravelRulesView,
 	pressingSections,
 	travelRulesPlacement
@@ -148,5 +149,19 @@ describe("normaliseTravelRulesView", () => {
 
 	it("folds nothing from anything else", () => {
 		expect(normaliseTravelRulesView({ folded: "yes", closed: "travel" })).toEqual({ folded: [], closed: [] });
+	});
+});
+
+describe("normaliseTravelRulesScroll", () => {
+	it("starts both sides at the top", () => {
+		expect(normaliseTravelRulesScroll(undefined)).toEqual({ left: 0, right: 0 });
+	});
+
+	it("keeps each side its own whole-pixel scroll and drops the rest", () => {
+		expect(normaliseTravelRulesScroll({ left: 120.6, right: 48, top: 9 })).toEqual({ left: 121, right: 48 });
+	});
+
+	it("starts at the top from anything that isn't a distance down", () => {
+		expect(normaliseTravelRulesScroll({ left: -40, right: "far" })).toEqual({ left: 0, right: 0 });
 	});
 });
