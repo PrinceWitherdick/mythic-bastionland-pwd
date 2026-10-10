@@ -156,8 +156,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		visited: Boolean(visits),
 		note: record?.note ?? "",
 		told: toldContext(record?.note ?? "", view.told),
-		// Anything kept here has a Journal entry, where the setting makes them.
-		journal: Boolean(record) && hexJournalsOn(),
+		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
+		journal: hexJournalsOn(),
 		// A tab for each kind of roll here, the Landmark's named by its type; only the one last chosen is shown.
 		tab,
 		tabs: HEX_GM_TABS.filter(({ key }) => shown[key]).map(({ key, icon }) => ({

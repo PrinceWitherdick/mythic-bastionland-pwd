@@ -219,6 +219,24 @@ export function entryOwnership(current, wasOpen, open) {
 }
 
 /**
+ * The hexes due an entry: those with something kept (a roll or the GM's note),
+ * a Barrier met from them, or a name the GM gave them, those that have one
+ * already, and any the GM asked for by hand.
+ * @param {object} kept
+ * @param {Record<string, object>} [kept.lore] The hexes' kept records, by key.
+ * @param {Record<string, {met?: object[]}>} [kept.shared] What the Company shares of each hex, by key.
+ * @param {Record<string, {name?: string}>} [kept.names] The GM's names for hexes, by key.
+ * @param {Iterable<string>} [kept.existing] The keys of hexes with an entry.
+ * @param {Iterable<string>} [kept.also] The keys of hexes the GM asked an entry for.
+ * @returns {Set<string>}
+ */
+export function dueHexKeys({ lore = {}, shared = {}, names = {}, existing = [], also = [] }) {
+	const met = Object.entries(shared).filter(([, record]) => record?.met?.length).map(([key]) => key);
+	const named = Object.entries(names).filter(([, record]) => record?.name?.trim()).map(([key]) => key);
+	return new Set([...Object.keys(lore), ...met, ...named, ...existing, ...also]);
+}
+
+/**
  * The writes that bring a hex's entry up to date. Nothing that's already right
  * is written, and a page the layout only makes is made once and then left
  * alone, even if the GM deletes it.

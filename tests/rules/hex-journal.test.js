@@ -4,6 +4,7 @@ import {
 	MIRROR_FLAG,
 	OWNERSHIP,
 	block,
+	dueHexKeys,
 	entryOwnership,
 	entrySort,
 	inline,
@@ -93,6 +94,27 @@ describe("entryOwnership", () => {
 		expect(entryOwnership(OWNERSHIP.LIMITED, true, false)).toBe(OWNERSHIP.NONE);
 		expect(entryOwnership(OWNERSHIP.OBSERVER, true, false)).toBe(OWNERSHIP.OBSERVER);
 		expect(entryOwnership(OWNERSHIP.OBSERVER, true, true)).toBe(OWNERSHIP.OBSERVER);
+	});
+});
+
+describe("dueHexKeys", () => {
+	it("takes hexes with something kept, a Barrier met, a name, or an entry already", () => {
+		const keys = dueHexKeys({
+			lore: { "1,1": { note: "A well" } },
+			shared: { "2,2": { met: [{ edge: 0 }] }, "3,3": { met: [] } },
+			names: { "4,4": { name: "Crow Hill" } },
+			existing: ["5,5"]
+		});
+		expect([...keys].sort()).toEqual(["1,1", "2,2", "4,4", "5,5"]);
+	});
+
+	it("leaves out a blank name", () => {
+		expect(dueHexKeys({ names: { "4,4": { name: "  " } } }).size).toBe(0);
+	});
+
+	it("adds the hexes the GM asked for, each once", () => {
+		const keys = dueHexKeys({ lore: { "1,1": {} }, existing: ["1,1"], also: ["1,1", "6,6"] });
+		expect([...keys].sort()).toEqual(["1,1", "6,6"]);
 	});
 });
 

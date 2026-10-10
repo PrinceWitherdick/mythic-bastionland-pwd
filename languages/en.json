@@ -2077,11 +2077,11 @@
       "met": "Barriers Met",
       "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex, and write what’s here, in the hex’s Lay of the Land in Places.",
       "open": "Journal",
-      "openHint": "Open this hex’s Journal entry: what the Company knows, and your own notes.",
-      "none": "Nothing has been rolled or written for this hex yet, so it has no Journal entry.",
+      "openHint": "Open this hex’s Journal entry, making it if it has none: what the Company knows, and your own notes.",
+      "none": "This hex has no Journal entry yet. The Referee whose browser keeps the Journals can make it from the hex in Places.",
       "setting": {
         "name": "Journal entries for hexes",
-        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
+        "hint": "Each hex of a Realm that something is rolled, written or named for gets a Journal entry, kept up to date as you roll; any other hex gets one when you click Journal on it in Places. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
       }
     },
     "siteJournal": {

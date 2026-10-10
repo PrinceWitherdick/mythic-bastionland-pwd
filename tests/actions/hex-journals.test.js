@@ -14,10 +14,12 @@ const when = { age: 1, season: "spring", day: 2, phase: "morning" };
 const beyond = { col: 3, row: 2 };
 const barrierEdge = edgeKey(ruin, beyond);
 let barrierRevealed = false;
+let drawing = false;
 
 let lore;
 let journey;
 let shared;
+let names;
 
 function realmWith() {
 	const realm = emptyRealm(g);
@@ -54,25 +56,26 @@ vi.mock("../../module/actions/hex-shared.js", () => ({
 	partyNoteBy: () => ""
 }));
 vi.mock("../../module/actions/journey.js", () => ({
+	JOURNEY_FLAG: "journey",
 	getHexVisits: () => journey.hexes["3,3"] ?? null
 }));
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: (scene) => (scene?.isRealm ? { realm: realmWith() } : null),
 	hexHiddenByHand: () => ({}),
-	isDrawingRealm: () => false,
+	isDrawingRealm: () => drawing,
 	isRealmScene: (scene) => Boolean(scene?.isRealm),
 	realmWritesSettled: async () => {},
 	sceneGeometry: () => g
 }));
 vi.mock("../../module/actions/solo.js", () => ({ realmKnown: (realm) => realm }));
 vi.mock("../../module/actions/travels.js", () => ({
-	travelsSources: () => ({ realm: realmWith(), g, journey, shared, marks: [], handHidden: () => ({}) }),
+	travelsSources: () => ({ realm: realmWith(), g, journey, shared, names, marks: [], handHidden: () => ({}) }),
 	visitsText: (visits) => (visits ? "been" : "never"),
 	barrierMetLines: (met) => met.map(({ direction, byName }) => `${direction} by ${byName}`),
 	toldLines: (told) => told
 }));
 
-const { syncHexJournals, hexJournalEntry } = await import("../../module/actions/hex-journals.js");
+const { syncDue, syncHexJournals, hexJournalEntry } = await import("../../module/actions/hex-journals.js");
 const { writeHexNotes } = await import("../../module/actions/hex-lore.js");
 
 /** A Journal entry whose writes land on it. */
@@ -110,9 +113,11 @@ const scene = realmScene;
 
 beforeEach(() => {
 	barrierRevealed = false;
+	drawing = false;
 	lore = { version: 1, hexes: { "3,3": { note: "", sparks: [{ id: "s1", table: "Land", rolls: [4], entries: ["Mossy Hollow"], prompt: "Mossy Hollow", when }] } } };
 	journey = emptyJourney();
 	shared = emptyShared();
+	names = { version: 1, hexes: {} };
 	const folders = [];
 	globalThis.game = {
 		user: { isGM: true },
@@ -274,6 +279,46 @@ describe("syncHexJournals", () => {
 		expect(known.text.markdown).toContain("### hexJournal.met");
 		expect(known.text.markdown).toContain("north by Alys");
 		expect(known.text.markdown).toContain("realm.readout.barrier");
+	});
+
+	it("makes an entry for a hex the GM named, though nothing is kept there", async () => {
+		names = { version: 1, hexes: { "7,7": { name: "Crow Hill" } } };
+		await syncHexJournals(scene);
+		expect(hexJournalEntry(scene, { col: 7, row: 7 })).toBeTruthy();
+	});
+
+	it("makes an entry for an empty hex only when the GM asks for it, and keeps it after", async () => {
+		const empty = { col: 8, row: 8 };
+		await syncHexJournals(scene);
+		expect(hexJournalEntry(scene, empty)).toBeNull();
+		await syncHexJournals(scene, { also: ["8,8"] });
+		const entry = hexJournalEntry(scene, empty);
+		expect(entry).toBeTruthy();
+		journey = recordVisits(emptyJourney(), [empty], when);
+		await syncHexJournals(scene);
+		expect(hexJournalEntry(scene, empty)).toBe(entry);
+	});
+
+	it("keeps entries up to date while the Realm is drawn by hand again", async () => {
+		drawing = true;
+		await syncHexJournals(scene);
+		const entry = hexJournalEntry(scene, ruin);
+		expect(entry).toBeTruthy();
+		lore.hexes["3,3"].note = "Painted over.";
+		await syncHexJournals(scene);
+		expect(entry.pages[1].text.markdown).toBe("Painted over.\n");
+	});
+
+	it("waits out a Realm's paint strokes, but not a note written while it's drawn", () => {
+		const flags = (changed) => ({ flags: { [SYSTEM_ID]: changed } });
+		expect(syncDue(scene, flags({ realm: {} }))).toBe(true);
+		expect(syncDue(scene)).toBe(true);
+		expect(syncDue(scene, { name: "Renamed" })).toBe(false);
+		drawing = true;
+		expect(syncDue(scene, flags({ realm: {} }))).toBe(false);
+		expect(syncDue(scene)).toBe(false);
+		expect(syncDue(scene, flags({ hexLore: {} }))).toBe(true);
+		expect(syncDue(scene, flags({ "-=hexNames": null }))).toBe(true);
 	});
 
 	it("leaves it to the active GM, and to worlds that want entries", async () => {

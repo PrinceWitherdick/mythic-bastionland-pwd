@@ -4,26 +4,31 @@ import {
 	HEX_JOURNAL_FLAG,
 	HEX_LAYOUT,
 	MIRROR_FLAG,
+	dueHexKeys,
 	journalPlan,
 	knownMarkdown,
 	noteMarkdown,
 	noteWithPage
 } from "../rules/hex-journal.js";
+import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
+import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
+import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { playerHexView, viewWords } from "../rules/travels.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
 import { afterBurst, entrySnapshot, openKeptJournal, pageByRole, pageMarkdown, withHtml, writePlannedPages } from "./kept-journals.js";
-import { getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
+import { HEX_LORE_FLAG, getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
 import { partyNoteBy } from "./hex-shared.js";
+import { JOURNEY_FLAG } from "./journey.js";
 import { isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
 import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travels.js";
 
 /**
- * Each hex something is rolled or written for gets a Journal entry, kept up to
- * date as the hex changes: a page of what the Company knows that players can
+ * Each hex something is rolled, written or named for gets a Journal entry, and
+ * any other the GM asks for one, kept up to date as the hex changes: a page of what the Company knows that players can
  * read once they could open the hex in their Places, and a page for the GM
  * alone copying the hex's What's here. What was rolled there the GM reads in Places. The pages' words are made in
  * rules/hex-journal.js. The active GM's browser does the writing, so two GMs
@@ -154,20 +159,23 @@ const snapshot = (entry) => entrySnapshot(entry, HEX_LAYOUT, Boolean(hexJournalF
 
 /**
  * Bring a Realm's hex entries up to date: one for each hex something is kept
- * for, and any made before, which are never deleted: their notes pages held
+ * for or the GM named, and any made before, which are never deleted: their notes pages held
  * what GMs wrote by hand. Only what changed is written. The active GM's browser alone.
+ * A Realm being drawn by hand is kept up to date too: a finished one goes back into
+ * drawing as the GM picks up the paint tool, and a note written then is due its
+ * entry. Its strokes alone are not (syncDue).
  * @param {Scene|null} scene
+ * @param {object} [options]
+ * @param {string[]} [options.also] The keys of hexes the GM asked an entry for, though nothing is kept for them.
  * @returns {Promise<void>}
  */
-export async function syncHexJournals(scene) {
-	if (!keepsJournals() || !isRealmScene(scene) || isDrawingRealm(scene)) return;
+export async function syncHexJournals(scene, { also = [] } = {}) {
+	if (!keepsJournals() || !isRealmScene(scene)) return;
 	const sources = travelsSources(scene);
 	if (!sources) return;
 	const existing = entriesOf(scene.id);
 	if (!carried.has(scene)) await carryOldNotes(scene, existing);
-	// A Barrier the Company ran into is kept for the hex it was met from, as a roll is.
-	const met = Object.entries(sources.shared.hexes).filter(([, record]) => record.met?.length).map(([key]) => key);
-	const keys = new Set([...Object.keys(getHexLore(scene).hexes), ...met, ...existing.keys()]);
+	const keys = dueHexKeys({ lore: getHexLore(scene).hexes, shared: sources.shared.hexes, names: sources.names.hexes, existing: existing.keys(), also });
 	const hexes = [...keys].map(parseHexKey).filter(Boolean);
 	if (!hexes.length) return;
 
@@ -238,7 +246,8 @@ export const openHexJournal = (scene, hex) => openKeptJournal({
 	find: () => hexJournalEntry(scene, hex),
 	on: hexJournalsOn,
 	keeps: keepsJournals,
-	make: () => queueSync(() => syncHexJournals(scene)),
+	// A hex with nothing kept gets its entry when the GM asks for it.
+	make: () => queueSync(() => syncHexJournals(scene, { also: [hexKey(hex)] })),
 	none: "hexJournal.none"
 });
 
@@ -256,6 +265,25 @@ export async function deleteHexJournals(sceneIds) {
 	return entries.length;
 }
 
+/** The Scene's flags that hold what's kept for its hexes, as against the Realm's own. */
+const hexFlags = () => [HEX_LORE_FLAG, HEX_SHARED_FLAG, HEX_NAMES_FLAG, JOURNEY_FLAG, SIGHTED_FLAG];
+
+/**
+ * Whether a change to a Scene is due its hexes' entries brought up to date.
+ * A Realm being drawn by hand writes itself, its Tiles and its Drawings with
+ * every stroke: only a change to what's kept for a hex, such as a note written,
+ * is due one then, and the rest waits for the drawing to be done.
+ * @param {Scene|null} scene
+ * @param {object|null} [changes] An updateScene's changes, or none for a Tile's or Drawing's.
+ * @returns {boolean}
+ */
+export function syncDue(scene, changes = null) {
+	const flags = changes?.flags?.[SYSTEM_ID];
+	if (changes && !flags) return false;
+	if (!isDrawingRealm(scene)) return true;
+	return Boolean(flags) && hexFlags().some((key) => key in flags || `-=${key}` in flags);
+}
+
 /** Register the setting, and follow every Realm's changes. Called during init. */
 export function registerHexJournals() {
 	game.settings.register(SYSTEM_ID, HEX_JOURNALS_SETTING, {
@@ -270,10 +298,12 @@ export function registerHexJournals() {
 
 	// What's kept for a hex, its visits, what was told and the Company's note are all the Scene's flags.
 	Hooks.on("updateScene", (scene, changes) => {
-		if (changes.flags?.[SYSTEM_ID]) syncSoon(scene.id);
+		if (syncDue(scene, changes)) syncSoon(scene.id);
 	});
 	// A Realm is read from its Tiles and Drawings, so a Holding renamed or a Myth found changes its hex's entry.
-	const onDocument = (document) => syncSoon(document.parent?.id);
+	const onDocument = (document) => {
+		if (syncDue(document.parent)) syncSoon(document.parent?.id);
+	};
 	for (const name of ["createTile", "updateTile", "deleteTile", "createDrawing", "updateDrawing", "deleteDrawing"]) {
 		Hooks.on(name, onDocument);
 	}
