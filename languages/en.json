@@ -1396,7 +1396,7 @@
         "ends": "Ends the Season",
         "endsHint": "The Realm’s collection ends the Season, so it comes to pass as the Season turns.",
         "weeks": "Weeks Pass",
-        "weeksHint": "On to the next seasonal event that matters (p17). Reaching the Realm’s collection turns the Season instead.",
+        "weeksHint": "On to the next seasonal event that matters. Reaching the Realm’s collection turns the Season instead.",
         "weeksPassed": "Weeks pass on the road, and a new Morning dawns.",
         "nextIs": "Weeks passing carries the Company on to {event}.",
         "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
@@ -1531,7 +1531,7 @@
         "byName": "{name}, by its name",
         "none": "Not on the map",
         "away": "Away long",
-        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll (p20). Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
+        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
       },
       "homecoming": {
         "title": "Home from a Long Absence",
@@ -1967,9 +1967,9 @@
         "none": "No Seer rolled for this Sanctum yet.",
         "roll": "Roll the Seer",
         "again": "Roll Another Seer",
-        "hint": "Roll d6 and d12 on the Knights table (p26) for the Seer who lives here.",
+        "hint": "Roll d6 and d12 on the Knights table for the Seer who lives here.",
         "choose": "Choose the Seer",
-        "chooseHint": "Pick the Seer who lives here from the Knights table (p26)."
+        "chooseHint": "Pick the Seer who lives here from the Knights table."
       },
       "ruler": {
         "label": "Ruler",
@@ -1977,7 +1977,7 @@
         "openDomain": "Open the Domain",
         "grant": "Grant to a Knight",
         "change": "Grant to Another Knight",
-        "grantHint": "Make a Knight its ruler (p20). A Knight with a Domain has it rule this Holding; one without founds a Domain here.",
+        "grantHint": "Make a Knight its ruler. A Knight with a Domain has it rule this Holding; one without founds a Domain here.",
         "grantTitle": "Grant {name}",
         "grantIntro": "Which Knight rules <strong>{name}</strong>? Their Domain rules it from now on, and any other Domain given it gives it up.",
         "search": "Search the Knights…",
@@ -2136,8 +2136,8 @@
     },
     "people": {
       "roll": "Roll a Person",
-      "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot (p200, p202).",
-      "rollHexHint": "Roll every People Spark Table for someone met here, then reroll or choose what you like and save them to this hex (p200, p202).",
+      "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot.",
+      "rollHexHint": "Roll every People Spark Table for someone met here, then reroll or choose what you like and save them to this hex.",
       "window": {
         "hint": "For {hex}. Every table is rolled as this opens. Click a table’s die or a column’s heading to reroll just that, or click an entry to choose it instead. Nothing is kept in the hex until you save.",
         "rerollAll": "Reroll All",
@@ -2156,7 +2156,7 @@
       "nameHint": "Enter keeps the name, Esc leaves it as it was",
       "holding": {
         "roll": "Roll Up This Holding",
-        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex (p181).",
+        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex.",
         "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
@@ -2272,9 +2272,9 @@
         "resolvedHint": "Once the table agrees a Myth is over, another takes its place next Season (p27).",
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",
-        "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
+        "newMythTooltip": "Roll d6 and d12 on the Myths table for the Myth that replaces this one, in the same hex and under the same number.",
         "choose": "Choose the Myths",
-        "chooseTooltip": "Which six Myths the Realm holds: roll one again, roll them all again, or choose them from the book’s table (p27).",
+        "chooseTooltip": "Which six Myths the Realm holds: roll one again, roll them all again, or choose them from the book’s table.",
         "newMythRolled": "A new Myth in {hex}, replacing one resolved",
         "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth.",
         "table": "The Myth’s table",
@@ -2397,7 +2397,7 @@
         "crisisRollsHint": "Every Domain makes its Crisis Roll as a Season begins (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
-      "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons (p17).",
+      "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons.",
       "seasons": {
         "title": "Past Seasons",
         "hint": "Each Season you wrote about, the Myths resolved in it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
@@ -2693,7 +2693,7 @@
       "title": "Ending a Session",
       "hint": "As each session ends (p16): settle how much time passes, see what became of anything left hanging, and ask the players what they plan next.",
       "open": "End the Session",
-      "openHint": "Walk the book’s end-of-session procedure (p16).",
+      "openHint": "Walk the book’s end-of-session procedure.",
       "finish": "End the Session",
       "needStep": "Settle how much time passes before ending the session.",
       "notices": {
@@ -2703,7 +2703,7 @@
         "title": "How much time passes?",
         "hint": "The group decides (p17). Roll if they’re uncertain.",
         "roll": "Uncertain",
-        "rollHint": "Roll Passage of Time (p17) and let the die settle it.",
+        "rollHint": "Roll Passage of Time and let the die settle it.",
         "rolled": "Passage of Time, {d6}: {result}",
         "steps": {
           "none": {
@@ -2734,7 +2734,7 @@
         "add": "Add a situation",
         "placeholder": "What was left hanging",
         "roll": "Roll",
-        "rollHint": "Roll Unresolved Situations (p17) for this one.",
+        "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
         "unnamed": "A situation left unresolved"
       },
@@ -3391,7 +3391,7 @@
         "notes": "Traits & Notes"
       },
       "rollVirtues": "Roll Virtues",
-      "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled (p13).",
+      "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled.",
       "rollVirtuesTagline": "Each Virtue rolled on d12+d6",
       "rollVirtuesAgain": "{name} already has Virtues of their own. Roll new ones on d12+d6?",
       "name": "Name",
@@ -3495,7 +3495,7 @@
       },
       "carries": "Carries",
       "stone": "Stone",
-      "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here (p11). Their gates are usually wood.",
+      "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here. Their gates are usually wood.",
       "carriesPlaceholder": "6 passengers, a Warband…",
       "items": "Weapons & Cargo",
       "destroyed": {
@@ -4045,7 +4045,7 @@
         "seatDisputed": "The Holdings at {hexes} dispute the Seat of Power.",
         "seatMany": "The Holdings at {hexes} all wear the crown, where a Realm has one Seat. Tick Disputed on a Seat to let them.",
         "disputed": "Disputed",
-        "disputedHint": "Another Holding claims the Seat of Power too, as on p202’s island. A second Seat placed now leaves this one its crown. Untick it to settle the claim here, and any other Seat loses its crown.",
+        "disputedHint": "Another Holding claims the Seat of Power too. A second Seat placed now leaves this one its crown. Untick it to settle the claim here, and any other Seat loses its crown.",
         "holdings": "Holdings",
         "landmarks": "Landmarks",
         "landmarkTally": "{min} or {max} of each kind is typical.",
@@ -4718,8 +4718,7 @@
       "result": "→ {total}"
     },
     "keywords": {
-      "tip": "{text} (p{page})",
-      "unread": "Explained on p{page} of the rulebook."
+      "unread": "Import your rulebook PDF to read what this means here."
     },
     "portrait": {
       "change": "Change Picture",

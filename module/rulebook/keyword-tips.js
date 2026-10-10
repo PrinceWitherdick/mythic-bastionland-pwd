@@ -1,6 +1,7 @@
 import { t } from "../chat/cards.js";
 import { showsKeywordTips } from "../client-settings.js";
 import { findKeywords } from "../rules/keywords.js";
+import { withoutPageReferences } from "../rules/rulebook.js";
 import { addTextMark, leaveAlone } from "./text-marks.js";
 
 /**
@@ -29,11 +30,10 @@ export const KEYWORD_TIPS = Object.freeze({
 	// "Polished mace (d8 hefty)". Its words take the hover, and a click still posts the item.
 	markAnyway: ".bastionland-item__gloss",
 	find: findKeywords,
-	make: (document, { key, page }, words) => {
+	make: (document, { key }, words) => {
 		const word = document.createElement("span");
 		word.className = KEYWORD_CLASS;
 		word.dataset.keyword = key;
-		word.dataset.keywordPage = String(page);
 		word.textContent = words;
 		return word;
 	}
@@ -41,15 +41,15 @@ export const KEYWORD_TIPS = Object.freeze({
 
 /**
  * What a rule word's tip says: the book's own words for it, read by Import
- * PDF, or where it's explained until then. Read as it's hovered, so a word
- * marked before the book was read has the book's words once it is.
+ * PDF, or that Import PDF brings them until then. Read as it's hovered, so a
+ * word marked before the book was read has the book's words once it is. The
+ * book's own page references, such as Feat's "(p10)", are taken out: a tip
+ * can't be clicked through to the rulebook.
  * @param {string} key Its entry in KEYWORDS.
- * @param {number|string} page
  * @returns {string}
  */
-export function keywordTip(key, page) {
-	const text = t(`keywords.${key}`);
-	return text ? t("keywords.tip", { text, page }) : t("keywords.unread", { page });
+export function keywordTip(key) {
+	return withoutPageReferences(t(`keywords.${key}`)) || t("keywords.unread");
 }
 
 /**
@@ -61,7 +61,7 @@ export function keywordTip(key, page) {
 export function offerTip(event) {
 	const word = event.target;
 	if (!word?.classList?.contains(KEYWORD_CLASS)) return;
-	if (showsKeywordTips()) word.dataset.tooltip = keywordTip(word.dataset.keyword, word.dataset.keywordPage);
+	if (showsKeywordTips()) word.dataset.tooltip = keywordTip(word.dataset.keyword);
 	else delete word.dataset.tooltip;
 }
 

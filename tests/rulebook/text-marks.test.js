@@ -234,22 +234,30 @@ describe("a rule word's tip", () => {
 	const hover = () => {
 		const word = el("span", { classes: ["bastionland-keyword"] });
 		word.dataset.keyword = "exposed";
-		word.dataset.keywordPage = "8";
 		return word;
 	};
 
 	it("is offered as the word is hovered, in the words laid by then", () => {
 		const word = hover();
 		keywords.offerTip({ target: word });
-		expect(word.dataset.tooltip).toBe("bastionland.keywords.tip:bastionland.keywords.exposed");
+		expect(word.dataset.tooltip).toBe("bastionland.keywords.exposed");
 	});
 
-	it("says where the word is explained while the book's words aren't read", () => {
+	it("leaves out the page the book's words cite, which a tip can't open", () => {
+		const localize = game.i18n.localize;
+		game.i18n.localize = (key) => (key === "bastionland.keywords.exposed" ? "Open to harm, as the rules say (p8)." : localize(key));
+		const word = hover();
+		keywords.offerTip({ target: word });
+		expect(word.dataset.tooltip).toBe("Open to harm, as the rules say.");
+		game.i18n.localize = localize;
+	});
+
+	it("sends the reader to Import PDF while the book's words aren't read", () => {
 		const localize = game.i18n.localize;
 		game.i18n.localize = (key) => (key === "bastionland.keywords.exposed" ? "" : localize(key));
 		const word = hover();
 		keywords.offerTip({ target: word });
-		expect(word.dataset.tooltip).toBe("bastionland.keywords.unread:8");
+		expect(word.dataset.tooltip).toBe("bastionland.keywords.unread");
 		game.i18n.localize = localize;
 	});
 
