@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { replacementEntry } from "../../module/compat.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
@@ -363,6 +364,19 @@ describe("planRealmSync", () => {
 		const settled = planRealmSync(read, g, textures, scene);
 		const fallen = scene.tiles.find((tile) => flagOf(tile).kind === "seat" && hexKey(hexAt(g, tile)) === hexKey(first.hex));
 		expect(settled.Tile.delete).toEqual([fallen._id]);
+	});
+
+	it("writes a changed flag whole, so a dispute settled leaves no mark on the Tile", () => {
+		const { snapshot } = onScene();
+		const tile = snapshot.tiles.find((candidate) => flagOf(candidate).kind === "holding" && flagOf(candidate).seat);
+		flagOf(tile).disputed = true;
+		const { realm } = realmFromDocuments(snapshot, g);
+		delete realm.holdings.find((holding) => holding.id === tile._id).disputed;
+		const [path] = replacementEntry(`flags.${SYSTEM_ID}.${REALM_FLAG}`, {});
+		const update = planRealmSync(realm, g, textures, snapshot).Tile.update.find(({ _id }) => _id === tile._id);
+		expect(update).not.toHaveProperty("flags");
+		const { disputed: _disputed, ...settled } = flagOf(tile);
+		expect(update[path]).toStrictEqual(settled);
 	});
 
 	it("creates the pieces of a Realm that has none yet", () => {

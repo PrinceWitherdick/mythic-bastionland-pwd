@@ -9,7 +9,7 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
-import { noFogSceneData, paperSceneData } from "../compat.js";
+import { noFogSceneData, paperSceneData, replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures } from "./realm-skins.js";
@@ -586,7 +586,11 @@ function changesFor(existing, desired) {
 	for (const [key, value] of Object.entries(desired)) {
 		if (kept.includes(key)) continue;
 		if (key === "flags") {
-			if (differs(realmFlag(existing), realmFlag(desired))) changes.flags = value;
+			// Written whole: merged, a mark the Realm has dropped, such as a settled dispute, would stay on the Tile.
+			if (differs(realmFlag(existing), realmFlag(desired))) {
+				const [path, flag] = replacementEntry(`flags.${SYSTEM_ID}.${REALM_FLAG}`, realmFlag(desired));
+				changes[path] = flag;
+			}
 			continue;
 		}
 		if (value && typeof value === "object" && !Array.isArray(value)) {

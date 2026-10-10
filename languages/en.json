@@ -3923,7 +3923,7 @@
         "barrier": "Barrier: {direction}",
         "coordinates": "({col}, {row})",
         "visited": "visited",
-        "told": "Told: “{note}”",
+        "told": "What’s here: “{note}”",
         "party": "Company’s note: “{note}”",
         "settings": {
           "coordinates": {
