@@ -29,7 +29,7 @@ export const SETTING_GROUPS = Object.freeze([
 		id: "reading",
 		title: "bastionland.settingsTab.groups.reading",
 		// Text size first: it's the one most often looked for.
-		keys: ["textSize", "contrast", "typeface", "noItalics", "reduceMotion", "keywordTips"]
+		keys: ["textSize", "colourScheme", "contrast", "typeface", "noItalics", "reduceMotion", "keywordTips"]
 	},
 	{
 		id: "windows",

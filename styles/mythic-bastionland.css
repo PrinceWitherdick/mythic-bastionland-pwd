@@ -96,6 +96,17 @@
 	--bastionland-spring: #4f8a2a;
 	--bastionland-harvest: #9a5a14;
 	--bastionland-winter: #3f6e9a;
+	/*
+	 * What a colour scheme turns besides the colours above: whether the
+	 * browser's own scrollbars and pickers are light or dark, the colour a
+	 * zebra row or a table head is shaded with, and the light a page's sheen
+	 * and its pale wells are lit with, with how strongly. A dark scheme
+	 * shades in light and all but puts the sheen out (styles/settings.css).
+	 */
+	--bastionland-color-scheme: light;
+	--bastionland-shade-rgb: 0 0 0;
+	--bastionland-sheen-rgb: 255 255 255;
+	--bastionland-sheen: 1;
 	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
 	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
 	--bastionland-font-caps: "Bastionland Caps", Georgia, "Times New Roman", serif;
@@ -187,10 +198,10 @@
 	padding: 1.25rem 1.5rem 1.5rem;
 	overflow-y: auto;
 	background:
-		radial-gradient(ellipse at top left, rgb(255 255 255 / 0.35), transparent 60%),
+		radial-gradient(ellipse at top left, rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen))), transparent 60%),
 		var(--bastionland-paper);
 	color: var(--bastionland-ink);
-	color-scheme: light;
+	color-scheme: var(--bastionland-color-scheme);
 	font-family: var(--bastionland-font-body);
 	font-size: 15px;
 	font-variant-numeric: lining-nums;
@@ -243,9 +254,9 @@
 	--hr-border: 2px groove var(--color-light-2);
 	--hr-gradient: none;
 	--table-background-color: none;
-	--table-header-bg-color: rgb(0 0 0 / 0.1);
+	--table-header-bg-color: rgb(var(--bastionland-shade-rgb) / 0.1);
 	--table-header-border-color: var(--color-dark-1);
-	--table-row-color-even: rgb(0 0 0 / 0.1);
+	--table-row-color-even: rgb(var(--bastionland-shade-rgb) / 0.1);
 	--table-row-color-odd: transparent;
 	--content-link-background: #ddd;
 	--content-link-border-color: var(--color-dark-4);
@@ -255,9 +266,38 @@
 
 /* An editor's menu bar is themed on the editor itself, so it's held there. */
 :is(.bastionland-page, .bastionland-dialog .window-content) :is(prose-mirror, .prosemirror) {
-	--menu-background: rgb(0 0 0 / 0.1);
+	--menu-background: rgb(var(--bastionland-shade-rgb) / 0.1);
 	--color-control-hover: #f0f0e0;
 	--color-form-label-hover: var(--color-dark-1);
+}
+
+/*
+ * A dark Colour Scheme turns the same values to its own inks, so neither of
+ * Foundry's themes can leave its writing on paper it wasn't meant for: light
+ * Foundry would put dark ink on the dark page. They're read from the tokens, so
+ * a card painted in its own colours inside a dark scheme takes its own ink.
+ */
+:root.bastionland-dark :is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet, .chat-message:has(.bastionland-card)) {
+	color-scheme: var(--bastionland-color-scheme);
+	--color-text-emphatic: var(--bastionland-ink);
+	--color-text-primary: var(--bastionland-ink);
+	--color-text-secondary: var(--bastionland-ink-soft);
+	--color-text-subtle: var(--bastionland-ink-soft);
+	--color-form-label: var(--bastionland-ink);
+	--color-form-hint: var(--bastionland-ink-soft);
+	--color-fieldset-border: var(--bastionland-rule);
+	--color-select-option-bg: var(--bastionland-paper);
+	--hr-border: 1px solid var(--bastionland-rule);
+	--table-header-border-color: var(--bastionland-ink);
+	--content-link-background: var(--bastionland-paper-deep);
+	--content-link-border-color: var(--bastionland-rule);
+	--content-link-icon-color: var(--bastionland-ink-soft);
+	--content-link-text-color: var(--bastionland-ink);
+}
+
+:root.bastionland-dark :is(.bastionland-page, .bastionland-dialog .window-content) :is(prose-mirror, .prosemirror) {
+	--color-control-hover: var(--bastionland-paper-deep);
+	--color-form-label-hover: var(--bastionland-ink);
 }
 
 /* Text-like buttons: strip Foundry's button chrome, then style each below. */
@@ -2238,7 +2278,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-sheet > .window-content > nav.bastionland-tab-rail .bastionland-tab-rail__item:is(:hover, :focus-visible) {
-	background: rgb(138 125 106 / 0.22);
+	background: color-mix(in srgb, var(--bastionland-rule) 22%, transparent);
 	color: var(--bastionland-ink);
 }
 
@@ -2446,7 +2486,7 @@ a.button:focus:not(:focus-visible) {
 	padding: 0.4rem 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
-	background: rgb(255 255 255 / 0.25);
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
 	color: var(--bastionland-ink);
 }
 
@@ -2826,7 +2866,7 @@ a.button:focus:not(:focus-visible) {
 }
 
 .bastionland-npc-header__owner-label {
-	color: var(--bastionland-ink-faint);
+	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-caps);
 	letter-spacing: 0.03em;
 }
@@ -3342,7 +3382,7 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-season-events__event.is-next {
 	border-left-color: var(--bastionland-rubric);
-	background: rgb(154 53 32 / 6%);
+	background: color-mix(in srgb, var(--bastionland-rubric) 6%, transparent);
 }
 
 .bastionland-season-events__event.is-passed {
@@ -3726,7 +3766,7 @@ a.button:focus:not(:focus-visible) {
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 6px;
 	background:
-		radial-gradient(circle at center, rgb(255 255 255 / 0.4), transparent 70%),
+		radial-gradient(circle at center, rgb(var(--bastionland-sheen-rgb) / calc(0.4 * var(--bastionland-sheen))), transparent 70%),
 		var(--bastionland-paper);
 }
 
@@ -3747,6 +3787,38 @@ a.button:focus:not(:focus-visible) {
 .bastionland-site-map [role="button"] {
 	outline: none;
 	cursor: pointer;
+}
+
+/*
+ * The drawing carries parchment's paper and ink (rules/site-diagram.js); on the
+ * page they're taken from the tokens instead, so the map follows the Colour
+ * Scheme and High Contrast with the page around it. The parchment values are
+ * the drawing's own, so on parchment nothing changes.
+ */
+.bastionland-site-map :is(.bastionland-site-map__routes, .bastionland-site-map__entrances, .bastionland-site-map__points) {
+	stroke: var(--bastionland-ink);
+}
+
+.bastionland-site-map :is(.bastionland-site-map__entrances, .bastionland-site-map__points) {
+	fill: var(--bastionland-paper);
+}
+
+.bastionland-site-map__number {
+	fill: var(--bastionland-ink);
+}
+
+.bastionland-site-map__faint,
+.bastionland-site-map__guide,
+.bastionland-site-map__glimpse .bastionland-site-map__shape {
+	stroke: var(--bastionland-rule);
+}
+
+.bastionland-site-map__glimpse .bastionland-site-map__number {
+	fill: var(--bastionland-rule);
+}
+
+.bastionland-site-map__halo {
+	stroke: var(--bastionland-blood);
 }
 
 /* Hovering or tabbing to a part inks it in verdigris. The selection is blood. */
@@ -4869,11 +4941,11 @@ a.button:focus:not(:focus-visible) {
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 6px;
 	background:
-		radial-gradient(ellipse at top left, rgb(255 255 255 / 0.35), transparent 60%),
+		radial-gradient(ellipse at top left, rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen))), transparent 60%),
 		var(--bastionland-paper);
 	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
 	color: var(--bastionland-ink);
-	color-scheme: light;
+	color-scheme: var(--bastionland-color-scheme);
 	font-family: var(--bastionland-font-body);
 	font-size: 15px;
 	line-height: 1.35;
@@ -4979,7 +5051,7 @@ a.bastionland-page-link {
 
 a.bastionland-page-link:hover,
 a.bastionland-page-link:focus-visible {
-	color: var(--bastionland-blood, #8b1e1e);
+	color: var(--bastionland-blood);
 	text-decoration-style: solid;
 }
 
@@ -5114,7 +5186,7 @@ button.bastionland-dice:focus-visible {
 	margin-inline: -0.35rem;
 	padding-inline: 0.3rem 0.35rem;
 	border-left: 3px solid var(--bastionland-blood);
-	background: rgb(139 30 30 / 0.07);
+	background: color-mix(in srgb, var(--bastionland-blood) 7%, transparent);
 }
 
 .bastionland-travel-rules__heading {
@@ -5560,7 +5632,7 @@ button.bastionland-dice:focus-visible {
 	padding: 0.5rem 0.4rem;
 	border: 1.5px solid transparent;
 	border-radius: 4px;
-	background: rgb(255 255 255 / 0.35);
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
 	line-height: 1.2;
 	text-align: center;
 	cursor: pointer;
@@ -6402,7 +6474,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-width: 1.4em;
 	padding: 0 0.3em;
 	border-radius: 999px;
-	background: rgb(0 0 0 / 0.08);
+	background: rgb(var(--bastionland-shade-rgb) / 0.08);
 	color: var(--bastionland-ink-soft);
 	font-family: var(--bastionland-font-body);
 	font-size: var(--bastionland-font-floor);
@@ -6890,7 +6962,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	min-height: 0;
 	padding: 0.6rem 0.75rem 0.75rem;
 	border-left: 1px solid var(--bastionland-rule);
-	background: rgb(0 0 0 / 3%);
+	background: rgb(var(--bastionland-shade-rgb) / 3%);
 	overflow-y: auto;
 }
 
@@ -7322,7 +7394,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 /* The hex chosen, marked in the list as it is on the chart. */
 .bastionland-travels__row.is-selected {
 	border-left-color: var(--bastionland-blood);
-	background: rgb(0 0 0 / 4%);
+	background: rgb(var(--bastionland-shade-rgb) / 4%);
 }
 
 /* The Company's own chart: the Realm ruled faintly, what they know drawn in. */
@@ -7890,6 +7962,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	background: var(--bastionland-paper);
 	box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
 	color: var(--bastionland-ink);
+	color-scheme: var(--bastionland-color-scheme);
 	animation: bastionland-dropdown-in 100ms ease-out;
 }
 
@@ -8298,7 +8371,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	padding: 0.6rem 0.75rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
-	background: rgb(255 255 255 / 0.25);
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
 	list-style: none;
 }
 
@@ -8404,7 +8477,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0;
 	border-inline: none;
 	border-radius: 0;
-	background: rgb(255 255 255 / 0.35);
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
 	text-align: center;
@@ -8558,7 +8631,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 .bastionland-frame__error {
-	color: var(--bastionland-rubric, #8b1a1a);
+	color: var(--bastionland-rubric);
 }
 
 .bastionland-frame__footer {

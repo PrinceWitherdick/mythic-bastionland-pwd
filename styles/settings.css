@@ -254,6 +254,125 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
 }
 
 /* ---------------------------------------------------------------- */
+/* Colour Scheme                                                    */
+/* ---------------------------------------------------------------- */
+
+/*
+ * The dark schemes are the same tokens turned: pale ink on a dark page, the
+ * coloured inks lightened until each reads on it at least as clearly as on
+ * parchment, and every colour still in its own family. paper-deep, the raised
+ * surface of a button or a box, is a step lighter than the page, as it is a
+ * step darker on parchment. tests/styles/colour-schemes.test.js measures each
+ * against the page and the raised surface.
+ *
+ * Lamplit is the dark base, on :root.bastionland-dark; Midnight and Ashen
+ * redraw it. High Contrast on top of a dark scheme comes after all three, and
+ * each scheme then tints its own near-black page. The order matters as much as
+ * the classes: a dark scheme's High Contrast must outweigh both the scheme and
+ * parchment's High Contrast above.
+ */
+
+/* Lamplit: parchment read by lamplight. */
+:root.bastionland-dark {
+	--bastionland-paper: #1f1a14;
+	--bastionland-paper-deep: #2b241c;
+	--bastionland-ink: #ebe2cf;
+	--bastionland-ink-soft: #c2b59e;
+	--bastionland-ink-faint: #7d705d;
+	--bastionland-rule: #86785f;
+	--bastionland-blood: #e07a6e;
+	--bastionland-rubric: #e08a5e;
+	--bastionland-verdigris: #6fb59b;
+	--bastionland-spring: #8cc06a;
+	--bastionland-harvest: #d9a24e;
+	--bastionland-winter: #84aed6;
+	--bastionland-color-scheme: dark;
+	--bastionland-shade-rgb: 255 255 255;
+	--bastionland-sheen-rgb: 255 244 224;
+	--bastionland-sheen: 0.25;
+}
+
+/* Midnight: the Night card's indigo. */
+:root.bastionland-dark.bastionland-scheme-midnight {
+	--bastionland-paper: #1b1f30;
+	--bastionland-paper-deep: #252a40;
+	--bastionland-ink: #ece6f6;
+	--bastionland-ink-soft: #b9b3d2;
+	--bastionland-ink-faint: #7a7899;
+	--bastionland-rule: #6f73a3;
+	--bastionland-blood: #ec8a8a;
+	--bastionland-rubric: #e8996e;
+	--bastionland-verdigris: #7cc4ac;
+	--bastionland-spring: #94c878;
+	--bastionland-harvest: #e0b060;
+	--bastionland-winter: #8fb8e8;
+	--bastionland-sheen-rgb: 232 228 255;
+}
+
+/* Ashen: charcoal, neither warm nor cool. */
+:root.bastionland-dark.bastionland-scheme-ashen {
+	--bastionland-paper: #1c1c1b;
+	--bastionland-paper-deep: #282826;
+	--bastionland-ink: #e6e4df;
+	--bastionland-ink-soft: #b5b2aa;
+	--bastionland-ink-faint: #76736c;
+	--bastionland-rule: #7c7870;
+	--bastionland-blood: #e27b7b;
+	--bastionland-rubric: #e0866a;
+	--bastionland-verdigris: #74b8a2;
+	--bastionland-spring: #8fc070;
+	--bastionland-harvest: #d6a050;
+	--bastionland-winter: #88b0d8;
+	--bastionland-sheen-rgb: 255 255 255;
+}
+
+/* High Contrast on a dark scheme: the page near black, the writing near white. Lamplit's, the base. */
+:root.bastionland-dark.bastionland-high-contrast {
+	--bastionland-paper: #14110d;
+	--bastionland-paper-deep: #1f1a14;
+	--bastionland-ink: #f6f1e6;
+	--bastionland-ink-soft: #e4dccd;
+	--bastionland-ink-faint: #a89c88;
+	--bastionland-rule: #b8aa92;
+	--bastionland-blood: #f4a59b;
+	--bastionland-rubric: #f3a982;
+	--bastionland-verdigris: #93d8bd;
+	--bastionland-spring: #ade08c;
+	--bastionland-harvest: #efc471;
+	--bastionland-winter: #a9cbef;
+}
+
+:root.bastionland-dark.bastionland-scheme-midnight.bastionland-high-contrast {
+	--bastionland-paper: #10132a;
+	--bastionland-paper-deep: #1a1e38;
+	--bastionland-ink: #f4f1fb;
+	--bastionland-ink-soft: #ddd8ee;
+	--bastionland-ink-faint: #a29fbf;
+	--bastionland-rule: #a6a9d4;
+	--bastionland-blood: #f6abab;
+	--bastionland-rubric: #f5b48f;
+	--bastionland-verdigris: #9cdcc6;
+	--bastionland-spring: #b3e09b;
+	--bastionland-harvest: #efcb85;
+	--bastionland-winter: #accff3;
+}
+
+:root.bastionland-dark.bastionland-scheme-ashen.bastionland-high-contrast {
+	--bastionland-paper: #111111;
+	--bastionland-paper-deep: #1c1c1b;
+	--bastionland-ink: #f4f3f0;
+	--bastionland-ink-soft: #dedcd7;
+	--bastionland-ink-faint: #a29f98;
+	--bastionland-rule: #b0ada6;
+	--bastionland-blood: #f4a6a6;
+	--bastionland-rubric: #f3ac93;
+	--bastionland-verdigris: #97d6c0;
+	--bastionland-spring: #aedb92;
+	--bastionland-harvest: #ecc37a;
+	--bastionland-winter: #aacbec;
+}
+
+/* ---------------------------------------------------------------- */
 /* No Italic Text                                                   */
 /* ---------------------------------------------------------------- */
 

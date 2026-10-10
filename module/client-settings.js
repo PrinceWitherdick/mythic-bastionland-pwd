@@ -17,7 +17,21 @@ export const TEXT_SIZE_RANGE = Object.freeze({ min: 0.9, max: 1.4, step: 0.05 })
 /** The typefaces offered, the book's own first. */
 export const TYPEFACES = Object.freeze(["book", "serif", "signika"]);
 
+/**
+ * The colour schemes offered: the book's parchment first, then the dark ones,
+ * then one that follows Foundry's own light or dark windows.
+ */
+export const COLOUR_SCHEMES = Object.freeze(["parchment", "lamplit", "midnight", "ashen", "auto"]);
+
+/** The dark schemes. Lamplit is the stylesheet's dark base, and the others are drawn over it. */
+const DARK_SCHEMES = Object.freeze(["lamplit", "midnight", "ashen"]);
+
+/** The scheme Follow Foundry takes while Foundry's windows are dark. */
+const FOLLOWED_DARK = "lamplit";
+
 /** Root classes, each marking one setting turned away from its default. */
+const DARK = "bastionland-dark";
+const SCHEME_CLASS = (scheme) => `bastionland-scheme-${scheme}`;
 const HIGH_CONTRAST = "bastionland-high-contrast";
 const NO_ITALICS = "bastionland-no-italics";
 const REDUCE_MOTION = "bastionland-reduce-motion";
@@ -71,6 +85,59 @@ export const textSizeScale = () => Number.parseFloat(root()?.style.getPropertyVa
 /** @param {unknown} value */
 export function applyContrast(value) {
 	root()?.classList.toggle(HIGH_CONTRAST, value === "high");
+}
+
+/**
+ * @returns {boolean} Whether Foundry draws its windows dark for this person:
+ *   their own choice in Foundry's interface settings, or their browser's while
+ *   they've left it at the default.
+ */
+export function foundryAppsAreDark() {
+	let chosen = "";
+	try {
+		chosen = game.settings.get("core", "uiConfig")?.colorScheme?.applications ?? "";
+	} catch {
+		// Not readable yet: the browser's preference stands in, as it does for Foundry.
+	}
+	if (chosen) return chosen === "dark";
+	return Boolean(globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string} The scheme the page is drawn in: Follow Foundry settled to
+ *   one of the others, and an unknown value read as parchment.
+ */
+export function shownScheme(value) {
+	if (value === "auto") return foundryAppsAreDark() ? FOLLOWED_DARK : "parchment";
+	return COLOUR_SCHEMES.includes(value) ? value : "parchment";
+}
+
+/** @param {unknown} value */
+export function applyColourScheme(value) {
+	const classes = root()?.classList;
+	if (!classes) return;
+	const scheme = shownScheme(value);
+	classes.toggle(DARK, DARK_SCHEMES.includes(scheme));
+	// Lamplit is the dark base itself, and needs no class of its own.
+	for (const dark of DARK_SCHEMES) {
+		if (dark !== FOLLOWED_DARK) classes.toggle(SCHEME_CLASS(dark), dark === scheme);
+	}
+}
+
+/**
+ * Follow Foundry keeps up with Foundry's windows as they turn light or dark,
+ * whether from Foundry's own setting or, while that's left at its default, the
+ * browser's.
+ */
+function watchFoundryTheme() {
+	const follow = () => {
+		if (read("colourScheme", "parchment") === "auto") applyColourScheme("auto");
+	};
+	globalThis.Hooks?.on?.("clientSettingChanged", (key) => {
+		if (key === "core.uiConfig") follow();
+	});
+	globalThis.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", follow);
 }
 
 /** @param {unknown} value An unknown typeface is the book's own. */
@@ -128,8 +195,9 @@ export const showsKeywordTips = () => read("keywordTips", true) !== false;
  */
 const CLIENT_SETTINGS = Object.freeze({
 	textSize: { type: Number, range: TEXT_SIZE_RANGE, default: 1, apply: applyTextSize },
-	// A choice rather than a tick box, so a light-on-dark palette could join it later.
+	// A choice rather than a tick box, kept apart from the colour scheme so either can be high contrast.
 	contrast: { type: String, choices: ["normal", "high"], default: "normal", apply: applyContrast },
+	colourScheme: { type: String, choices: COLOUR_SCHEMES, default: "parchment", apply: applyColourScheme },
 	typeface: { type: String, choices: TYPEFACES, default: "book", apply: applyTypeface },
 	noItalics: { type: Boolean, default: false, apply: applyNoItalics },
 	reduceMotion: { type: Boolean, default: false, apply: applyReduceMotion },
@@ -156,4 +224,5 @@ export function registerClientSettings() {
 		});
 		apply?.(read(key, fallback));
 	}
+	watchFoundryTheme();
 }
