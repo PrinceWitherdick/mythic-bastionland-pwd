@@ -1,0 +1,29 @@
+<div class="bastionland-dialog__body bastionland-timeline-entry">
+	{{!-- A Timeline entry, new or edited (promptTimelineEntry in module/apps/timeline-ui.js): when, a title, a place and what happened. --}}
+	<div class="form-group">
+		<label for="bastionland-timeline-when">{{localize "bastionland.timeline.entry.when"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-timeline-when" name="season">
+				{{#each dates}}
+				<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-timeline-title">{{localize "bastionland.timeline.entry.title"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-timeline-title" type="text" name="title" value="{{title}}" autocomplete="off" autofocus>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="bastionland-timeline-place">{{localize "bastionland.timeline.entry.place"}}</label>
+		<div class="form-fields">
+			<input id="bastionland-timeline-place" type="text" name="place" value="{{place}}" autocomplete="off">
+		</div>
+	</div>
+	<div class="form-group stacked">
+		<label for="bastionland-timeline-body">{{localize "bastionland.timeline.entry.body"}}</label>
+		<textarea id="bastionland-timeline-body" name="body" rows="5">{{body}}</textarea>
+	</div>
+</div>

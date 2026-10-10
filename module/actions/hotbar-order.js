@@ -5,12 +5,12 @@ import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar } from "./hotbar-macr
 /**
  * The system's macros lead each user's hotbar: a GM's opens with the GM
  * Toolkit and ends with Import PDF and End the Session, in the slots Foundry
- * labels 9 and 0; a player's opens with the Luck Roll and then their Places.
+ * labels 9 and 0; a player's opens with the Luck Roll, then their Places and the Timeline.
  */
 
 /** The macros' flags, in the order they take the first slots. */
 export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro"]);
-export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro"]);
+export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro", "timelineMacro"]);
 
 /** User flag set once this user's hotbar has been put in that order. */
 export const HOTBAR_ORDER_FLAG = "hotbarOrder";

@@ -217,10 +217,16 @@ function journeyContext(log, forgettable = false, people = null) {
  * @param {number} on Years on from the log's first Season of that name, from seasonYearsOn.
  * @returns {string} Such as "Spring of the 2nd Age", or "Spring of the 2nd Age, a Year On".
  */
-function seasonHeading(when, on) {
-	const label = seasonLabel(when);
-	if (on < 1) return label;
-	return t(on === 1 ? "travels.journey.yearOn" : "travels.journey.yearsOn", { season: label, n: on });
+const seasonHeading = (when, on) => yearsOnHeading(seasonLabel(when), on);
+
+/**
+ * @param {string} season A Season's name or heading.
+ * @param {number} on Years on from the first Season of that name, from seasonYearsOn.
+ * @returns {string} Such as "Spring", or "Spring, a Year On".
+ */
+export function yearsOnHeading(season, on) {
+	if (!(on >= 1)) return season;
+	return t(on === 1 ? "travels.journey.yearOn" : "travels.journey.yearsOn", { season, n: on });
 }
 
 /**

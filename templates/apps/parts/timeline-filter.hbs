@@ -1,0 +1,27 @@
+{{!-- The Timeline's Filter: the kinds of entry to show and, on the full Timeline, the threads. Kept for each reader (module/apps/timeline-ui.js). --}}
+<details class="bastionland-timeline__filter{{#if filtered}} is-filtered{{/if}}">
+	<summary class="bastionland-button"><i class="fa-solid fa-filter" inert></i> {{localize "bastionland.timeline.filter.label"}}</summary>
+	<div class="bastionland-timeline__filter-menu">
+		<fieldset>
+			<legend>{{localize "bastionland.timeline.filter.kinds"}}</legend>
+			{{#each kinds}}
+			<label class="bastionland-check">
+				<input type="checkbox" data-timeline-kind="{{group}}" {{checked shown}}>
+				<span class="bastionland-check__label">{{label}}</span>
+			</label>
+			{{/each}}
+		</fieldset>
+		{{#if threads}}
+		<fieldset>
+			<legend>{{localize "bastionland.timeline.filter.threads"}}</legend>
+			{{#each threads}}
+			<label class="bastionland-check">
+				<input type="checkbox" data-timeline-thread="{{trackId}}" {{checked shown}}>
+				<span class="bastionland-check__label">{{label}} <span class="bastionland-check__detail">{{kindLabel}}</span></span>
+			</label>
+			{{/each}}
+		</fieldset>
+		{{/if}}
+		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="showAll">{{localize "bastionland.timeline.filter.showAll"}}</button>
+	</div>
+</details>

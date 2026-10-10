@@ -1,0 +1,39 @@
+{{!-- The full Timeline (module/apps/TimelineWindow.js): every thread side by side, a column each, a row for each Season any of them has anything in. --}}
+<div class="bastionland-page bastionland-timeline">
+	<div class="bastionland-timeline__toolbar">
+		{{#if canWrite}}
+		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
+		{{/if}}
+		{{> "bastionland.timeline-filter"}}
+	</div>
+	{{#unless hasJournal}}
+	<p class="bastionland-empty bastionland-timeline__empty">{{localize "bastionland.timeline.noJournal"}}</p>
+	{{else if ages.length}}
+	<div class="bastionland-timeline__scroll">
+		<div class="bastionland-timeline__board" style="--timeline-lanes: {{columns}}">
+			<div class="bastionland-timeline__corner"></div>
+			{{#each lanes}}
+			<div class="bastionland-timeline__lane-head bastionland-timeline__lane-head--{{kind}}">
+				<strong>{{name}}</strong>
+				<span class="bastionland-timeline__lane-kind">{{kindLabel}}</span>
+			</div>
+			{{/each}}
+			{{#each ages}}
+			<h3 class="bastionland-timeline__age-head bastionland-timeline__age-head--board">{{heading}}</h3>
+			{{#each periods}}
+			<h4 class="bastionland-timeline__period-head bastionland-timeline__period-head--board{{#if isNow}} is-now{{/if}}">
+				{{heading}}{{#if isNow}} <span class="bastionland-pill bastionland-timeline__now">{{localize "bastionland.timeline.now"}}</span>{{/if}}
+			</h4>
+			{{#each cells}}
+			<div class="bastionland-timeline__cell{{#if ../isNow}} is-now{{/if}}" data-track-id="{{trackId}}">
+				{{#each entries}}{{> "bastionland.timeline-card"}}{{/each}}
+			</div>
+			{{/each}}
+			{{/each}}
+			{{/each}}
+		</div>
+	</div>
+	{{else}}
+	<p class="bastionland-empty bastionland-timeline__empty">{{#if allHidden}}{{localize "bastionland.timeline.allHidden"}}{{else}}{{localize "bastionland.timeline.boardEmpty"}}{{/if}}</p>
+	{{/unless}}
+</div>

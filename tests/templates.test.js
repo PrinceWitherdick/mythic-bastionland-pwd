@@ -28,6 +28,7 @@ import { TASK_OUTCOMES, TASK_RISKS, TASK_SCOPES } from "../module/rules/council-
 import { FOLK_SOURCES, SEARCH_AIMS } from "../module/rules/exploration.js";
 import { FALLEN_PATHS } from "../module/rules/fallen.js";
 import { UPKEEP_STRAINS, WARBAND_ORIGINS } from "../module/rules/warbands.js";
+import { KIND_GROUPS, TIMELINE_SOURCES, TRACK_KINDS } from "../module/rules/timeline.js";
 import { LANDMARK_EFFECTS, OFF_COURSE_SHOWN } from "../module/rules/landmarks.js";
 import { EVENT_KEYS, EVENT_STAGES, MIDPOINT_STAGE } from "../module/rules/season-events.js";
 import { AGE_PURSUITS, HARDSHIPS, PHASES, SEASON_PURSUITS, SEASONS } from "../module/rules/time.js";
@@ -254,12 +255,16 @@ describe("localization", () => {
 			...(note ? ["note"] : []),
 			...(roll ? ["roll"] : []),
 			...(act ? ["act"] : [])
-		].map((part) => `travelRules.sections.${key}.${part}`)))
+		].map((part) => `travelRules.sections.${key}.${part}`))),
+		...TIMELINE_SOURCES.map((source) => `timeline.sources.${source}`),
+		...Object.keys(KIND_GROUPS).map((group) => `timeline.kinds.${group}`),
+		...TRACK_KINDS.map((kind) => `timeline.threads.${kind}`)
 	].map((key) => `bastionland.${key}`);
 
 	const typeKeys = [
 		...Object.keys(systemManifest.documentTypes.Actor).map((type) => `TYPES.Actor.${type}`),
 		...Object.keys(systemManifest.documentTypes.Item).map((type) => `TYPES.Item.${type}`),
+		...Object.keys(systemManifest.documentTypes.JournalEntryPage).map((type) => `TYPES.JournalEntryPage.${type}`),
 		...PROPERTY_TYPES.map((type) => `TYPES.Item.${type}`)
 	];
 

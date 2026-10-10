@@ -1,0 +1,5 @@
+{{!-- A thread of the Timeline as its journal page shows it, to read (module/apps/TimelinePageSheet.js). It's written from the Timeline window. --}}
+<div class="bastionland-page bastionland-timeline bastionland-timeline--page">
+	<p class="bastionland-hint">{{localize "bastionland.timeline.readOnly"}}</p>
+	{{#with timeline}}{{> "bastionland.timeline-thread"}}{{/with}}
+</div>

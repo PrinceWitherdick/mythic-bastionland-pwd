@@ -1,0 +1,14 @@
+{{!-- The Timeline tab on a Knight's, a Squire's and a Domain's sheet: their own thread, from trackContext in module/apps/timeline-ui.js, built only while the tab is open. --}}
+<div class="tab {{tabs.timeline.cssClass}}" data-group="primary" data-tab="timeline">
+	<section class="bastionland-block bastionland-timeline bastionland-timeline--tab" data-track-id="{{timeline.trackId}}" data-track-kind="{{timeline.kind}}" data-track-name="{{timeline.name}}">
+		<div class="bastionland-timeline__toolbar">
+			<h2 class="bastionland-heading">{{localize "bastionland.timeline.title"}}</h2>
+			{{#if timeline.canEdit}}
+			<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
+			{{/if}}
+			<button type="button" class="bastionland-button" data-action="timeline" data-timeline="openFull"><i class="fa-solid fa-timeline" inert></i> {{localize "bastionland.timeline.openFull"}}</button>
+			{{#with timeline}}{{> "bastionland.timeline-filter"}}{{/with}}
+		</div>
+		{{#if timeline}}{{#with timeline}}{{> "bastionland.timeline-thread"}}{{/with}}{{/if}}
+	</section>
+</div>

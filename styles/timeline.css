@@ -1,0 +1,329 @@
+/*
+ * The Timeline: every thread of the tale side by side in its window, one
+ * thread on a sheet's Timeline tab, and a thread's journal page. Each entry
+ * is a card edged in the colour of its kind, so a Myth reads apart from a
+ * Scar at a glance; its kind is also named on its chip.
+ */
+
+/* ---------------------------------------------------------------- */
+/* Window                                                           */
+/* ---------------------------------------------------------------- */
+
+.application.bastionland-timeline-window {
+	min-width: 480px;
+	min-height: 360px;
+}
+
+.bastionland-timeline-window > .window-content {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.bastionland-timeline-window .bastionland-page.bastionland-timeline {
+	min-height: 0;
+	padding-bottom: 0;
+	overflow: hidden;
+}
+
+.bastionland-timeline__toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__toolbar > .bastionland-heading {
+	flex: 1 1 auto;
+	margin: 0;
+}
+
+.bastionland-timeline__toolbar .bastionland-button {
+	flex: none;
+	width: auto;
+}
+
+.bastionland-timeline__empty {
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* Filter                                                           */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__filter {
+	position: relative;
+}
+
+.bastionland-timeline__filter > summary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-timeline__filter > summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-timeline__filter.is-filtered > summary {
+	border-color: var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+}
+
+.bastionland-timeline__filter-menu {
+	position: absolute;
+	top: calc(100% + 0.25rem);
+	right: 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	width: max-content;
+	max-width: 22rem;
+	max-height: 26rem;
+	padding: 0.75rem;
+	overflow-y: auto;
+}
+
+.bastionland-timeline__filter-menu fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-timeline__filter-menu legend {
+	padding: 0 0 0.25rem;
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+}
+
+/* ---------------------------------------------------------------- */
+/* One thread, down the page                                        */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__thread {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 0.75rem;
+}
+
+.bastionland-timeline__age-head {
+	margin: 0 0 0.5rem;
+	padding: 0 0 0.2rem;
+	border-bottom: 1px solid var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.15rem;
+	font-weight: normal;
+}
+
+.bastionland-timeline__period {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0 0 0.75rem;
+	padding-left: 0.85rem;
+	border-left: 2px solid var(--bastionland-rule);
+}
+
+.bastionland-timeline__period.is-now {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+.bastionland-timeline__period-head {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	font-weight: normal;
+}
+
+/* The Season it is now, and each card's kind, are named on a pill. */
+.bastionland-timeline__now,
+.bastionland-timeline__kind {
+	--pill-pad: 0.25em;
+	display: inline-block;
+	padding: var(--pill-padding-top, 0.25em) 0.55em var(--pill-padding-bottom, 0.25em);
+	border: var(--pill-border, 1px) solid;
+	border-radius: 999px;
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+}
+
+.bastionland-timeline__now {
+	border-color: var(--bastionland-verdigris);
+	color: var(--bastionland-verdigris);
+	font-family: var(--bastionland-font-body);
+}
+
+/* ---------------------------------------------------------------- */
+/* Every thread side by side                                        */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__scroll {
+	flex: 1;
+	min-height: 0;
+	margin: 0 -1.5rem;
+	padding: 0 1.5rem 1.5rem;
+	overflow: auto;
+}
+
+.bastionland-timeline__board {
+	display: grid;
+	grid-template-columns: 9rem repeat(var(--timeline-lanes, 1), minmax(15rem, 1fr));
+	gap: 0 0.75rem;
+	align-items: start;
+}
+
+/* The threads' names stay at the top, and each Season's name at the left, as the board scrolls. */
+.bastionland-timeline__corner,
+.bastionland-timeline__lane-head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	align-self: stretch;
+	padding: 0.5rem 0;
+	border-bottom: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper);
+}
+
+.bastionland-timeline__corner {
+	left: 0;
+	z-index: 3;
+}
+
+.bastionland-timeline__lane-head {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.bastionland-timeline__lane-head strong {
+	overflow: hidden;
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bastionland-timeline__lane-kind {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-timeline__age-head--board {
+	grid-column: 1 / -1;
+	margin: 1rem 0 0.5rem;
+}
+
+.bastionland-timeline__period-head--board {
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	flex-wrap: wrap;
+	align-self: stretch;
+	padding: 0.5rem 0.5rem 0.5rem 0;
+	border-top: 1px solid var(--bastionland-rule);
+	background: var(--bastionland-paper);
+}
+
+.bastionland-timeline__period-head--board.is-now {
+	color: var(--bastionland-verdigris);
+}
+
+.bastionland-timeline__cell {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-self: stretch;
+	min-width: 0;
+	padding: 0.5rem 0;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+/* ---------------------------------------------------------------- */
+/* An entry                                                         */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__card {
+	--timeline-kind: var(--bastionland-ink-soft);
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	padding: 0.45rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-left: 4px solid var(--timeline-kind);
+	border-radius: 3px;
+	background: var(--bastionland-paper-deep);
+}
+
+.bastionland-timeline__card--time { --timeline-kind: var(--bastionland-harvest); }
+.bastionland-timeline__card--myth { --timeline-kind: var(--bastionland-verdigris); }
+.bastionland-timeline__card--glory { --timeline-kind: var(--bastionland-rubric); }
+.bastionland-timeline__card--wounds { --timeline-kind: var(--bastionland-blood); }
+.bastionland-timeline__card--lineage { --timeline-kind: var(--bastionland-spring); }
+.bastionland-timeline__card--dominion { --timeline-kind: var(--bastionland-ink); }
+.bastionland-timeline__card--travels { --timeline-kind: var(--bastionland-winter); }
+
+.bastionland-timeline__card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-timeline__kind {
+	flex: none;
+	border-color: color-mix(in srgb, var(--timeline-kind) 60%, var(--bastionland-rule));
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-timeline__title {
+	flex: 1 1 8rem;
+	min-width: 0;
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+}
+
+.bastionland-timeline__tools {
+	display: inline-flex;
+	flex: none;
+	gap: 0.1rem;
+	margin-left: auto;
+}
+
+.bastionland-timeline__tools .bastionland-icon {
+	padding: 0;
+	border: none;
+	background: none;
+}
+
+.bastionland-timeline__place {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-timeline__body {
+	overflow-wrap: anywhere;
+	white-space: pre-line;
+}
+
+/* ---------------------------------------------------------------- */
+/* A sheet's tab and a journal page                                 */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline--page {
+	padding: 0.5rem 0;
+	background: none;
+}

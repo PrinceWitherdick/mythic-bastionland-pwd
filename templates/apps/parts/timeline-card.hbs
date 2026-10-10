@@ -1,0 +1,17 @@
+{{!-- One Timeline entry: its kind, its title, where and what happened, and, for those who can write on its thread, buttons to move, edit and remove it. --}}
+<article class="bastionland-timeline__card bastionland-timeline__card--{{group}} bastionland-reveal-host" data-entry-id="{{id}}">
+	<header class="bastionland-timeline__card-head">
+		<span class="bastionland-pill bastionland-timeline__kind">{{sourceLabel}}</span>
+		{{#if title}}<strong class="bastionland-timeline__title">{{title}}</strong>{{/if}}
+		{{#if canEdit}}
+		<span class="bastionland-timeline__tools bastionland-reveal">
+			{{#if earlier}}<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="earlier" aria-label="{{localize "bastionland.timeline.earlier"}}" data-tooltip="{{localize "bastionland.timeline.earlier"}}"><i class="fa-solid fa-arrow-up" inert></i></button>{{/if}}
+			{{#if later}}<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="later" aria-label="{{localize "bastionland.timeline.later"}}" data-tooltip="{{localize "bastionland.timeline.later"}}"><i class="fa-solid fa-arrow-down" inert></i></button>{{/if}}
+			<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="edit" aria-label="{{localize "bastionland.timeline.edit"}}" data-tooltip="{{localize "bastionland.timeline.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
+			<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="remove" aria-label="{{localize "bastionland.timeline.remove"}}" data-tooltip="{{localize "bastionland.timeline.remove"}}"><i class="fa-solid fa-trash" inert></i></button>
+		</span>
+		{{/if}}
+	</header>
+	{{#if placeHtml}}<p class="bastionland-timeline__place"><i class="fa-solid fa-location-dot" inert></i> {{{placeHtml}}}</p>{{/if}}
+	{{#if bodyHtml}}<div class="bastionland-timeline__body">{{{bodyHtml}}}</div>{{/if}}
+</article>

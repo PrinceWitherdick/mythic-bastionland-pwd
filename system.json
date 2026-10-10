@@ -60,7 +60,8 @@
     "styles/mythic-bastionland.css",
     "styles/chat.css",
     "styles/gm-toolkit.css",
-    "styles/settings.css"
+    "styles/settings.css",
+    "styles/timeline.css"
   ],
   "languages": [
     {
@@ -118,6 +119,9 @@
       "scar": {
         "htmlFields": ["description"]
       }
+    },
+    "JournalEntryPage": {
+      "timeline": {}
     }
   },
   "primaryTokenAttribute": "guard",

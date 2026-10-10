@@ -114,6 +114,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
 			rollCityOmen: () => rollCityOmen(),
+			openTimeline: () => game.system.api.openTimeline(),
 			resetCityQuest: () => resetCityQuest(),
 			showHex: GmToolkitSheet.#onShowHex,
 			openHex: GmToolkitSheet.#onOpenHex,

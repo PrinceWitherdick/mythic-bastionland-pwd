@@ -14,6 +14,7 @@ import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
 import { holdingChoices } from "../actions/homecoming.js";
 import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
+import { TimelineTab, onTimelineAction } from "../apps/timeline-ui.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
 import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
@@ -56,7 +57,8 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
 			setTaskAside: DomainSheet.#onSetTaskAside,
-			chooseArms: DomainSheet.#onChooseArms
+			chooseArms: DomainSheet.#onChooseArms,
+			timeline: onTimelineAction
 		}
 	};
 
@@ -75,6 +77,8 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			initial: "domain",
 			tabs: [
 				{ id: "domain", icon: "fa-solid fa-chess-rook", label: "bastionland.domain.tabs.domain" },
+				// The Domain's thread of the campaign's Timeline.
+				{ id: "timeline", icon: "fa-solid fa-timeline", label: "bastionland.domain.tabs.timeline" },
 				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.domain.tabs.notes" }
 			]
 		}
@@ -135,8 +139,27 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
 				secrets: actor.isOwner,
 				relativeTo: actor
-			})
+			}),
+			timeline: await this.#timeline.context(context.tabs)
 		});
+	}
+
+	/** The Timeline page: the Domain's own thread. */
+	#timeline = new TimelineTab(this);
+
+	/**
+	 * A Timeline page that missed a change while hidden is drawn again as it's opened.
+	 * @override
+	 */
+	changeTab(tab, group, options) {
+		super.changeTab(tab, group, options);
+		this.#timeline.shown(tab);
+	}
+
+	/** @override */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		this.#timeline.wire(this.element);
 	}
 
 	/**
@@ -366,6 +389,7 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			["createActor", Hooks.on("createActor", redraw)],
 			["deleteActor", Hooks.on("deleteActor", redraw)]
 		];
+		this.#timeline.watch();
 	}
 
 	/** @override */
@@ -373,6 +397,7 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 		super._onClose(options);
 		for (const [hook, id] of this.#knightHooks) Hooks.off(hook, id);
 		this.#knightHooks = [];
+		this.#timeline.unwatch();
 	}
 }
 

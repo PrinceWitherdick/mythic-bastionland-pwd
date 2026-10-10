@@ -1,0 +1,16 @@
+{{!-- One thread of the Timeline, down the page: each Age, each Season with anything in it, and its entries. From trackContext in module/apps/timeline-ui.js. --}}
+<div class="bastionland-timeline__thread">
+	{{#each ages}}
+	<section class="bastionland-timeline__age">
+		<h3 class="bastionland-timeline__age-head">{{heading}}</h3>
+		{{#each periods}}
+		<div class="bastionland-timeline__period{{#if isNow}} is-now{{/if}}">
+			<h4 class="bastionland-timeline__period-head">{{heading}}{{#if isNow}} <span class="bastionland-pill bastionland-timeline__now">{{localize "bastionland.timeline.now"}}</span>{{/if}}</h4>
+			{{#each entries}}{{> "bastionland.timeline-card"}}{{/each}}
+		</div>
+		{{/each}}
+	</section>
+	{{else}}
+	<p class="bastionland-empty bastionland-timeline__empty">{{#if allHidden}}{{localize "bastionland.timeline.allHidden"}}{{else}}{{localize "bastionland.timeline.empty"}}{{/if}}</p>
+	{{/each}}
+</div>

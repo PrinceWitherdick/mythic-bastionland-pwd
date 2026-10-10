@@ -14,6 +14,9 @@
       "ability": "Ability",
       "passion": "Passion",
       "scar": "Scar"
+    },
+    "JournalEntryPage": {
+      "timeline": "Timeline Thread"
     }
   },
   "bastionland": {
@@ -69,7 +72,8 @@
         "property": "Property, Steed and Squire",
         "seer": "Seer",
         "chronicle": "Chronicle",
-        "travels": "Travels"
+        "travels": "Travels",
+        "timeline": "Timeline"
       },
       "travels": "Where the Company Has Been",
       "current": "Current",
@@ -1490,6 +1494,7 @@
       "title": "{name} Domain",
       "tabs": {
         "domain": "Domain",
+        "timeline": "Timeline",
         "notes": "Notes"
       },
       "seat": "Seat of Power",
@@ -2237,6 +2242,110 @@
         "fine": "Nothing else needs it, and the weather is still kept without it. Once it’s on, the Toolkit’s banner gets a weather button, where you can also take the weather off the map; single parts of it can be turned off under Settings."
       }
     },
+    "timeline": {
+      "title": "Timeline",
+      "journal": "Timeline",
+      "company": "The Company",
+      "undated": "Before the Tale",
+      "age": "The {age} Age",
+      "now": "Now",
+      "nowChoice": "Now: {season}",
+      "kinds": {
+        "hand": "Written by Hand",
+        "time": "Seasons and Sessions",
+        "myth": "Myths",
+        "glory": "Glory",
+        "wounds": "Scars and Death",
+        "lineage": "Squires and Successors",
+        "dominion": "Domains and Holdings",
+        "travels": "Travels"
+      },
+      "sources": {
+        "hand": "Note",
+        "season": "Season's End",
+        "age": "Age's End",
+        "distant": "Distant Realm",
+        "session": "Session",
+        "myth": "Myth",
+        "rank": "Rank",
+        "scar": "Scar",
+        "death": "Death",
+        "knighted": "Knighted",
+        "succeeded": "Succeeded",
+        "tookUp": "Took Up",
+        "founded": "Founded",
+        "crisis": "Crisis Roll",
+        "seized": "Seized",
+        "passed": "Passed On",
+        "rules": "New Ruler",
+        "granted": "Holding",
+        "visit": "Arrival",
+        "note": "Party Note"
+      },
+      "threads": {
+        "company": "Company",
+        "knight": "Knight",
+        "domain": "Domain",
+        "realm": "Realm"
+      },
+      "filter": {
+        "label": "Filter",
+        "kinds": "Show",
+        "threads": "Threads",
+        "showAll": "Show All"
+      },
+      "newEntry": "New Entry",
+      "openFull": "Open the Timeline",
+      "edit": "Edit this entry",
+      "remove": "Remove this entry",
+      "earlier": "Move earlier",
+      "later": "Move later",
+      "empty": "Nothing has been written on this thread yet.",
+      "allHidden": "Everything here is hidden by the Filter.",
+      "boardEmpty": "Nothing has been written on the Timeline yet.",
+      "noJournal": "The Timeline is made the next time a Referee joins the game.",
+      "writeFailed": "Couldn't write on the Timeline.",
+      "readOnly": "This thread is written from the Timeline window.",
+      "entry": {
+        "newTitle": "New Entry",
+        "editTitle": "Edit Entry",
+        "when": "When",
+        "title": "Title",
+        "place": "Place",
+        "body": "What Happened",
+        "save": "Save"
+      },
+      "pickThread": {
+        "title": "Write on Which Thread?",
+        "save": "Write"
+      },
+      "removeEntry": {
+        "title": "Remove this Entry?",
+        "body": "Remove “{title}” from {thread}?",
+        "untitled": "this entry"
+      },
+      "macro": {
+        "name": "Timeline"
+      },
+      "auto": {
+        "pursuit": "Between Seasons: {pursuit}",
+        "mythCompleted": "{name} Completed",
+        "session": "A Session Played",
+        "rank": "Became a {rank}",
+        "scarBy": "Dealt by {name}",
+        "knighted": "Knighted",
+        "served": "Squire to {name} until now.",
+        "fell": "{name} Fell",
+        "carriedOn": "{name} Carried On",
+        "tookUp": "Took Up the Journey of {name}",
+        "foundedBy": "Founded by {name}",
+        "founded": "{domain} Founded",
+        "granted": "{holding} Granted to {name}",
+        "arrived": "Came to {place}",
+        "mythHex": "the hex of Myth {number}",
+        "partyNote": "{name} Wrote of It"
+      }
+    },
     "gmToolkit": {
       "name": "Referee Toolkit",
       "rulebook": "Open the Rulebook",
@@ -2397,7 +2506,8 @@
         "resolved": "Myths to Replace",
         "crisisRolls": "Crisis Rolls Due",
         "crisisRollsHint": "Every Domain makes its Crisis Roll as a Season begins (p20). These haven’t made it this Season yet.",
-        "crisisRoll": "Crisis Roll"
+        "crisisRoll": "Crisis Roll",
+        "timelineHint": "The campaign’s record that everyone can read: the Company’s thread, each Knight’s, each Domain’s and each Realm’s, side by side. Most of it writes itself as things happen; anyone can add to it."
       },
       "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons.",
       "seasons": {

@@ -157,6 +157,7 @@
 .bastionland-realm-appearance-window .window-content,
 .bastionland-book-flip-window .window-content,
 .bastionland-travels-window .window-content,
+.bastionland-timeline-window .window-content,
 .bastionland-hex-editor-window .window-content,
 .bastionland-realm-panel-window .window-content,
 .bastionland-portrait-frame-window .window-content {
@@ -7949,9 +7950,11 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	overscroll-behavior: contain;
 }
 
-/* The parchment, which the Settings page's drop-down of tick boxes wears too (styles/settings.css). */
+/* The parchment, which the Settings page's drop-down of tick boxes (styles/settings.css)
+   and the Timeline's Filter (styles/timeline.css) wear too. */
 .bastionland-dropdown,
-.bastionland-settings__pick-list {
+.bastionland-settings__pick-list,
+.bastionland-timeline__filter-menu {
 	padding: 0.25rem 0;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;

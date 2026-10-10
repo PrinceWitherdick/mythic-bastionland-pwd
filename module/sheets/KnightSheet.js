@@ -28,6 +28,7 @@ import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { travelsListContext } from "../actions/travels.js";
 import { openPlaces, openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
+import { TimelineTab, onTimelineAction } from "../apps/timeline-ui.js";
 import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
@@ -81,7 +82,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			openLedger: KnightSheet.#onOpenLedger,
 			pickTravelsHex: openTravelsRow,
 			showTravelsHex: showTravelsRow,
-			openPlaces: KnightSheet.#onOpenPlaces
+			openPlaces: KnightSheet.#onOpenPlaces,
+			timeline: onTimelineAction
 		}
 	};
 
@@ -111,6 +113,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer", squire: false },
 				// The whole Company travels, Squires with it, so they keep the record too.
 				{ id: "travels", icon: "fa-solid fa-map-location-dot", label: "bastionland.sheet.tabs.travels" },
+				// Their thread of the campaign's Timeline, Squires' too, which carries on once they're Knighted.
+				{ id: "timeline", icon: "fa-solid fa-timeline", label: "bastionland.sheet.tabs.timeline" },
 				// The notes sit last, under every other page.
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// Only on a Knight that is the reader's own.
@@ -237,7 +241,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			enrichedSeerInfo,
 			enrichedSeerNotes,
 			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
-			travels: this.#travelsContext(context.tabs)
+			travels: this.#travelsContext(context.tabs),
+			timeline: await this.#timeline.context(context.tabs)
 		});
 	}
 
@@ -264,6 +269,9 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		openPlaces({ sceneId: this.#travels.realm ?? undefined });
 	}
 
+	/** The Timeline page: the Knight's own thread. */
+	#timeline = new TimelineTab(this);
+
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;
 
@@ -273,6 +281,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 	 */
 	changeTab(tab, group, options) {
 		super.changeTab(tab, group, options);
+		this.#timeline.shown(tab);
 		if (tab === "travels" && this.#travelsStale) {
 			this.#travelsStale = false;
 			this.render();
@@ -351,6 +360,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		});
 		if (context.travels?.sceneId) this.#travels.realm = context.travels.sceneId;
 		wireTravelsList(this.element.querySelector('.tab[data-tab="travels"]'), this.#travels, () => this.render());
+		this.#timeline.wire(this.element);
 	}
 
 	/**
@@ -518,6 +528,13 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			if (this.tabGroups.primary === "travels") renderWhenIdle(this);
 			else this.#travelsStale = true;
 		});
+		this.#timeline.watch();
+	}
+
+	/** @override */
+	_onClose(options) {
+		super._onClose(options);
+		this.#timeline.unwatch();
 	}
 
 	/**

@@ -8,6 +8,7 @@ const MAIN = read("mythic-bastionland.css");
 const SETTINGS = read("settings.css");
 const CHAT = read("chat.css");
 const TOOLKIT = read("gm-toolkit.css");
+const TIMELINE = read("timeline.css");
 
 /** The twelve colours every scheme sets. */
 const COLOURS = [
@@ -135,7 +136,7 @@ describe("cards painted in their own colours", () => {
 });
 
 describe("colours the stylesheets no longer write out", () => {
-	const ALL = { "mythic-bastionland.css": MAIN, "chat.css": CHAT, "gm-toolkit.css": TOOLKIT };
+	const ALL = { "mythic-bastionland.css": MAIN, "chat.css": CHAT, "gm-toolkit.css": TOOLKIT, "timeline.css": TIMELINE };
 
 	/*
 	 * Copies of a token's value, which wouldn't turn with the scheme, and white
