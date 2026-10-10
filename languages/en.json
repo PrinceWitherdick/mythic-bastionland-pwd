@@ -2868,7 +2868,8 @@
       "recap": {
         "title": "This session",
         "hint": "Written into the Season’s notes on the Toolkit’s Time page.",
-        "placeholder": "What the session came to"
+        "placeholder": "What the session came to",
+        "share": "Write it on the Timeline too, for everyone to read"
       },
       "recapHeading": "Session · {when}",
       "card": {

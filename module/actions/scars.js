@@ -5,6 +5,7 @@ import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaise
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
+import { timelineScar } from "./timeline-events.js";
 
 /**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
@@ -68,7 +69,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 	const name = text("name");
 	if (apply) {
 		if (!foundry.utils.isEmpty(update)) await actor.update(update, causedBy("scar"));
-		await actor.createEmbeddedDocuments("Item", [{
+		const [item] = await actor.createEmbeddedDocuments("Item", [{
 			type: "scar",
 			name: location ? `${name} (${location})` : name,
 			system: {
@@ -80,6 +81,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 				description: scarDescription(text("flavour"), text("effect"))
 			}
 		}]);
+		if (item) await timelineScar(actor, item, text("effect"));
 	}
 
 	await postCard(actor, "scar", {

@@ -3,6 +3,7 @@ import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { chooseCompany } from "./time.js";
+import { timelineRank } from "./timeline-events.js";
 
 /**
  * Lines for a report card saying how a Knight's Glory changed.
@@ -25,6 +26,8 @@ export async function adjustGlory(actor, amount) {
 	if (!actor.system.gainsGlory) return [t("glory.squire")];
 	const change = changeGlory(actor.system.glory, amount);
 	if (change.to !== actor.system.glory) await actor.update({ "system.glory": change.to }, causedBy("glory"));
+	// A Rank fallen to is no milestone reached.
+	if (change.rank && change.to > change.from) await timelineRank(actor, change.rank);
 	return gloryLines(change);
 }
 
@@ -36,6 +39,15 @@ export async function adjustGlory(actor, amount) {
  * @returns {Promise<object[]|null>} The report's entries.
  */
 export async function awardGlory(key) {
+	return (await awardGloryTo(key))?.entries ?? null;
+}
+
+/**
+ * Award 1 Glory as awardGlory does, saying who to.
+ * @param {string} key One of GLORY_AWARDS.
+ * @returns {Promise<{knights: Actor[], entries: object[]}|null>} Null if nobody was given it.
+ */
+export async function awardGloryTo(key) {
 	if (!game.user.isGM || !GLORY_AWARDS.includes(key)) return null;
 	const title = t(`glory.awards.${key}.label`);
 	const company = await chooseCompany({
@@ -53,5 +65,5 @@ export async function awardGlory(key) {
 
 	const entries = await Promise.all(company.map(async ({ actor }) => ({ name: actor.name, lines: await adjustGlory(actor, 1) })));
 	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) });
-	return entries;
+	return { knights: company.map(({ actor }) => actor), entries };
 }

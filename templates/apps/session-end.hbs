@@ -97,6 +97,10 @@
 			<h3 class="bastionland-heading">{{localize "bastionland.sessionEnd.recap.title"}}</h3>
 			<p class="bastionland-hint">{{localize "bastionland.sessionEnd.recap.hint"}}</p>
 			<textarea name="recap" rows="3" placeholder="{{localize 'bastionland.sessionEnd.recap.placeholder'}}">{{recap}}</textarea>
+			<label class="bastionland-check">
+				<input type="checkbox" name="shareRecap" {{checked shareRecap}}>
+				<span class="bastionland-check__label">{{localize "bastionland.sessionEnd.recap.share"}}</span>
+			</label>
 		</section>
 	</div>
 

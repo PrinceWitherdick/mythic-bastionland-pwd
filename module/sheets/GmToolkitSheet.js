@@ -5,7 +5,7 @@ import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { worldKnights } from "../actions/knights.js";
-import { awardGlory } from "../actions/glory.js";
+import { awardGloryTo } from "../actions/glory.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared } from "../actions/hex-shared.js";
@@ -15,9 +15,10 @@ import { getJourney, visitsLabel } from "../actions/journey.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
+import { resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
-import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../actions/season-log.js";
+import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
@@ -42,7 +43,7 @@ import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { POINT_KINDS } from "../rules/sites.js";
-import { completedMythId, crisisRollsDue, seasonLogView } from "../rules/season-log.js";
+import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { placeFeature, setOmen } from "../rules/realm-edits.js";
@@ -1153,18 +1154,17 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await Promise.all([
-			editMythNote(this.scene, myth, { resolved: true }),
-			recordMythCompleted({ id: completedMythId(this.scene.id, myth), name: mythLookup(this.#index, myth).name }),
-			awardGlory("myth")
-		]);
+		await resolveMyth(this.scene, myth, {
+			name: mythLookup(this.#index, myth).name,
+			award: async () => (await awardGloryTo("myth"))?.knights ?? []
+		});
 	}
 
 	/** @this {GmToolkitSheet} */
 	static async #onMythUnresolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await Promise.all([editMythNote(this.scene, myth, { resolved: false }), forgetMythCompleted(completedMythId(this.scene.id, myth))]);
+		await unresolveMyth(this.scene, myth);
 	}
 
 	/**

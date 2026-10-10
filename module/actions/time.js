@@ -37,6 +37,7 @@ import { tableRenewalNotices } from "./knight-tables.js";
 import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
+import { timelineRank, timelineSeasonTurn } from "./timeline-events.js";
 import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
@@ -150,7 +151,9 @@ async function bequeathGlory(knight, glory) {
  * @param {object} options
  * @param {boolean} options.newAge
  * @param {import("../rules/time.js").Calendar} options.before The Season that ended, whose Doom lifts.
- * @returns {Promise<{rolls: Roll[], entries: object[]}>}
+ * @returns {Promise<{rolls: Roll[], entries: {name: string, actorId: string, pursuit: string|null, lines: string[]}[]}>}
+ *   An entry for each of the Company, in its order. Its lines are what befell them beyond the Virtues
+ *   every turn restores, which closeSeason says on the report.
  */
 export async function passTime(company, { newAge, before }) {
 	const rolls = [];
@@ -158,10 +161,11 @@ export async function passTime(company, { newAge, before }) {
 	const updates = [];
 	const successions = [];
 	const legacies = [];
+	const ranks = [];
 	for (const { actor, pursuit } of company) {
 		const { system } = actor;
 		const update = Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
-		const lines = [t("time.restored")];
+		const lines = [];
 		// Doom lasts the Season it was taken in.
 		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
 
@@ -169,6 +173,7 @@ export async function passTime(company, { newAge, before }) {
 			const change = changeGlory(system.glory, 1);
 			update["system.glory"] = change.to;
 			lines.push(...gloryLines(change));
+			if (change.rank) ranks.push([actor, change.rank]);
 		}
 		if (newAge && system.age === "old") {
 			const roll = await new Roll(OLD_AGE_LOSS).evaluate();
@@ -189,9 +194,10 @@ export async function passTime(company, { newAge, before }) {
 		if (newAge && pursuit === "legacy") legacies.push({ actor, glory: update["system.glory"] ?? system.glory, lines });
 
 		updates.push([actor, update]);
-		entries.push({ name: actor.name, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
+		entries.push({ name: actor.name, actorId: actor.id, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
 	}
 	await Promise.all(updates.map(([actor, update]) => actor.update(update, causedBy("season"))));
+	await Promise.all(ranks.map(([actor, rank]) => timelineRank(actor, rank)));
 	// After the Company's own updates, so a successor who is also in the Company
 	// keeps both what the Season restored and what Knighting or a Legacy gave them.
 	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));
@@ -316,14 +322,34 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
 	const collection = await markCollection(ended, before.season);
 	const domains = await settleDomains(ended);
-	const title = turned(after);
-	const all = [...(collection ? [collectionEntry(collection)] : []), ...entries, ...domains];
-	await Promise.all([
-		announceSeason(after, { title, entries: all, note }, { rolls }),
-		recordSeasonTurn(ended, { kind, title, entries: all, note })
-	]);
+	await closeSeason(after, ended, { kind, title: turned(after), note, rolls, collection: collection ? collectionEntry(collection) : null, knights: entries, domains });
 	if (newAge) await growOlder(company.map(({ actor }) => actor));
 	return after;
+}
+
+/**
+ * The Season, or the Age, has turned: post its report, keep it in the Season
+ * log, and write it on the Timeline. The report and the log say each Knight's
+ * Virtues were restored; the Timeline keeps only what else befell them.
+ * @param {import("../rules/time.js").Calendar} after The Season begun.
+ * @param {string} ended The Season that ended, from seasonKey.
+ * @param {object} turn
+ * @param {string} turn.kind One of SEASON_TURNS in rules/season-log.js.
+ * @param {string} turn.title
+ * @param {string|null} [turn.note] Said on the report before anything else.
+ * @param {Roll[]} [turn.rolls]
+ * @param {{name: string, lines: string[]}|null} [turn.collection] The Realm's collection, from collectionEntry.
+ * @param {object[]} turn.knights The Company's entries, from passTime.
+ * @param {{domainId: string, lines: string[]}[]} turn.domains From settleDomains.
+ */
+export async function closeSeason(after, ended, { kind, title, note = null, rolls = [], collection = null, knights, domains }) {
+	const restored = t("time.restored");
+	const entries = [...(collection ? [collection] : []), ...knights.map((entry) => ({ ...entry, lines: [restored, ...entry.lines] })), ...domains];
+	await Promise.all([
+		announceSeason(after, { title, entries, note }, { rolls }),
+		recordSeasonTurn(ended, { kind, title, entries, note }),
+		timelineSeasonTurn(ended, { kind, title, note, collection, knights, domains })
+	]);
 }
 
 /**

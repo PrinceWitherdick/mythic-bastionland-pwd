@@ -144,16 +144,18 @@ vi.mock("../../module/actions/sites.js", () => ({ SITE_FLAG: "site", SITE_SHEET_
 
 vi.mock("../../module/actions/site-journals.js", () => ({ SITE_JOURNALS_SETTING: "siteJournals", deleteSiteJournals: vi.fn(), keepSiteJournal: vi.fn() }));
 
+vi.mock("../../module/actions/timeline-events.js", async (importOriginal) => ({ ...(await importOriginal()), timelineMythCompleted: vi.fn() }));
+
 vi.mock("../../module/actions/time.js", () => ({
 	announcePhase: vi.fn(),
-	announceSeason: vi.fn(),
+	closeSeason: vi.fn(),
 	hardshipFor: vi.fn(async () => []),
 	// The Season turn's own work is tested with it; here it gives the Glory a new Age brings.
 	passTime: vi.fn(async (company, { newAge }) => ({
 		rolls: [],
 		entries: company.map(({ actor, pursuit }) => {
 			if (newAge) actor.system.glory += 1;
-			return { name: actor.name, pursuit, lines: ["Virtues restored."] };
+			return { name: actor.name, actorId: actor.id, pursuit, lines: [] };
 		})
 	})),
 	rollAging: vi.fn(async (actor, age) => { actor.system.age = age; })
@@ -182,10 +184,11 @@ vi.mock("../../module/chat/cards.js", () => ({
 }));
 
 const { populateTestWorld, BEFORE_FLAG, TEST_FLAG } = await import("../../module/test-world/populate.js");
-const { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } = await import("../../module/actions/season-log.js");
+const { recordMythCompleted, writeSeasonNotes } = await import("../../module/actions/season-log.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { editMythNote } = await import("../../module/actions/myth-notes.js");
-const { hardshipFor, rollAging } = await import("../../module/actions/time.js");
+const { closeSeason, hardshipFor, rollAging } = await import("../../module/actions/time.js");
+const { timelineMythCompleted } = await import("../../module/actions/timeline-events.js");
 const { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex } = await import("../../module/actions/hex-lore.js");
 const { markCollection, markSeasonEvent } = await import("../../module/actions/season-events.js");
 const { settleTask } = await import("../../module/actions/council-tasks.js");
@@ -419,10 +422,13 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 
 	it("turns three Seasons and one Age, and writes about all five", async () => {
 		await populateTestWorld();
-		expect(recordSeasonTurn.mock.calls.map(([key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-2-spring", "season"]]);
+		expect(closeSeason.mock.calls.map(([, key, turn]) => [key, turn.kind])).toEqual([["1-spring", "season"], ["1-harvest", "season"], ["1-winter", "age"], ["2-2-spring", "season"]]);
 		expect(writeSeasonNotes.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring", "2-2-harvest"]);
 		expect(recordMythCompleted).toHaveBeenCalledTimes(1);
-		const succession = recordSeasonTurn.mock.calls[2][1].entries.find((entry) => entry.name === "Sir Corvin Ashby");
+		// The Myth goes on the Timeline too, with the Knights who took Glory for it.
+		expect(timelineMythCompleted).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(timelineMythCompleted).mock.calls[0][0].knights).toHaveLength(3);
+		const succession = closeSeason.mock.calls[2][2].knights.find((entry) => entry.name === "Sir Corvin Ashby");
 		expect(succession.pursuit).toBe("time.pursuits.succession.label");
 		expect(hardshipFor).toHaveBeenCalledWith(expect.objectContaining({ key: "winter" }), expect.any(Array));
 	});
@@ -625,7 +631,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			"feastOfTheSun", "sceptremass", "feastOfTheStars", "eldermass", "feastOfTheMoon", "kindlemass", "feastOfTheSun", "sceptremass", "feastOfTheStars"
 		]);
 		expect(markCollection.mock.calls.map(([key]) => key)).toEqual(["1-spring", "1-harvest", "1-winter", "2-2-spring"]);
-		expect(recordSeasonTurn.mock.calls[0][1].entries[0].name).toBe("tax");
+		expect(closeSeason.mock.calls[0][2].collection.name).toBe("tax");
 	});
 
 	it("leaves it raining, with two City Omens met, a Ruin's echo and the session ended", async () => {

@@ -20,6 +20,7 @@ import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
 import { worldKnights } from "./knights.js";
+import { timelineCrisisRoll, timelineNewRuler } from "./timeline-events.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -105,6 +106,7 @@ export async function crisisRoll(domain) {
 		entries: added.map(crisisEntry),
 		hint: [...notes, misruleWarning(domain)].filter(Boolean).join(" ")
 	}, { rolls: [roll, ...drawn.rolls] });
+	await timelineCrisisRoll(domain, { result, crises: added.map(crisisName) });
 	return added;
 }
 
@@ -260,7 +262,7 @@ export async function settleDomains(ended) {
 		}
 	}
 	if (updates.size) await Actor.implementation.updateDocuments([...updates.values()]);
-	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines }));
+	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines, domainId: domain.id }));
 }
 
 /**
@@ -355,13 +357,11 @@ export async function passOnDomain(domain) {
 	if (!successor) return null;
 
 	await changeRuler(domain, successor, { "system.successor": "" });
-	await postCard(domain, "report", {
-		title: t("domain.passOn.title"),
-		tagline: before
-			? t("domain.passOn.tagline", { name: successor.name, ruler: before, domain: domain.name })
-			: t("domain.passOn.taglineBare", { name: successor.name, domain: domain.name }),
-		hint: t("domain.passOn.resistance")
-	});
+	const tagline = before
+		? t("domain.passOn.tagline", { name: successor.name, ruler: before, domain: domain.name })
+		: t("domain.passOn.taglineBare", { name: successor.name, domain: domain.name });
+	await postCard(domain, "report", { title: t("domain.passOn.title"), tagline, hint: t("domain.passOn.resistance") });
+	await timelineNewRuler(domain, "passed", successor, tagline);
 	return successor;
 }
 
@@ -384,13 +384,11 @@ export async function seizeDomain(domain) {
 	if (!conqueror) return null;
 
 	await changeRuler(domain, conqueror, { "system.seized": seasonKey(getCalendar()), "system.successor": "" });
-	await postCard(domain, "report", {
-		title: t("domain.conquest.title"),
-		tagline: before
-			? t("domain.conquest.tagline", { name: conqueror.name, ruler: before, domain: domain.name })
-			: t("domain.conquest.taglineBare", { name: conqueror.name, domain: domain.name }),
-		hint: t("domain.conquest.turmoil")
-	});
+	const tagline = before
+		? t("domain.conquest.tagline", { name: conqueror.name, ruler: before, domain: domain.name })
+		: t("domain.conquest.taglineBare", { name: conqueror.name, domain: domain.name });
+	await postCard(domain, "report", { title: t("domain.conquest.title"), tagline, hint: t("domain.conquest.turmoil") });
+	await timelineNewRuler(domain, "seized", conqueror, tagline);
 	return conqueror;
 }
 

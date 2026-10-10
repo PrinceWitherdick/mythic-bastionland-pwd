@@ -18,6 +18,7 @@ vi.mock("../../module/chat/cards.js", () => ({
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => when, calendarLabel: () => "spring day 2" }));
 vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: (_scene, at) => visitsAt(journey, at) }));
 vi.mock("../../module/actions/sighted.js", () => ({ sightedMarkAt: () => null }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelinePartyNote: vi.fn(async () => {}), timelineNoteForgotten: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.isRealm),
 	sceneGeometry: () => g,
@@ -99,6 +100,24 @@ describe("forgetting", () => {
 		expect(getHexShared(scene).hexes["3,4"].party).toBeUndefined();
 		await forgetHexShared(scene, visited);
 		expect(scene.flags[SYSTEM_ID].hexShared.hexes).toEqual({});
+	});
+
+	it("takes a forgotten party note off the Timeline, and only a party note", async () => {
+		const { timelineNoteForgotten } = await import("../../module/actions/timeline-events.js");
+		vi.mocked(timelineNoteForgotten).mockClear();
+		await writePartyNote(scene, visited, "Camp here");
+		await forgetHexPartyNote(scene, visited);
+		expect(timelineNoteForgotten).toHaveBeenCalledTimes(1);
+
+		await recordToldHex(scene, visited, { note: "A ford." });
+		await forgetHexShared(scene, visited);
+		expect(timelineNoteForgotten).toHaveBeenCalledTimes(1);
+
+		await writePartyNote(scene, visited, "Camp here");
+		await forgetHexShared(scene, visited, { told: true, met: true, party: false });
+		expect(timelineNoteForgotten).toHaveBeenCalledTimes(1);
+		await forgetHexShared(scene, visited);
+		expect(timelineNoteForgotten).toHaveBeenCalledTimes(2);
 	});
 });
 

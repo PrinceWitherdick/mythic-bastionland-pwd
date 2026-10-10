@@ -28,17 +28,18 @@ import { fillKnightFromBook, rollKnightTable } from "../actions/knight-tables.js
 import { echoRuin } from "../actions/landmarks.js";
 import { castKey } from "../actions/myth-cast.js";
 import { editMythNote } from "../actions/myth-notes.js";
+import { resolveMyth } from "../actions/myth-resolve.js";
 import { actorData } from "../actions/npc.js";
 import { createRealmScene, editRealm, getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable, rollSpark } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
-import { recordMythCompleted, recordSeasonTurn, writeSeasonNotes } from "../actions/season-log.js";
+import { writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
-import { announcePhase, announceSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
+import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
 import { drawWeather, setWeather } from "../actions/weather.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -57,7 +58,7 @@ import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
 import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
-import { completedMythId, crisisRollsDue } from "../rules/season-log.js";
+import { crisisRollsDue } from "../rules/season-log.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { sightable } from "../rules/sighted.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
@@ -941,10 +942,15 @@ class TestGame {
 		const ended = seasonKey(before);
 		// Every Season ends with the Realm's collection (p17), as the Time page's own turn has it.
 		const collection = await markCollection(ended, before.season);
-		const all = [...(collection ? [collectionEntry(collection)] : []), ...entries, ...(await settleDomains(ended))];
 		const title = newAge ? t("time.ageTurned", { age: after.age }) : t("time.seasonTurned", { season: t(`time.seasons.${after.season}`) });
-		await announceSeason(after, { title, entries: all }, { rolls });
-		await recordSeasonTurn(ended, { kind: newAge ? "age" : "season", title, entries: all, note: null });
+		await closeSeason(after, ended, {
+			kind: newAge ? "age" : "season",
+			title,
+			rolls,
+			collection: collection ? collectionEntry(collection) : null,
+			knights: entries,
+			domains: await settleDomains(ended)
+		});
 	}
 
 	/* -------------------------------------------- */
@@ -1064,12 +1070,14 @@ class TestGame {
 				await this.reveal(hex);
 				const myth = this.myth(first);
 				const name = this.mythName(myth);
-				await editMythNote(this.scene, myth, {
+				await resolveMyth(this.scene, myth, {
+					name,
 					note: `${name}: all six Omens met between Spring and Winter of Age 1. It ended at ${t("realm.hex", hex)}, with ${oswin.name} holding the line. The Knights each took Glory for it.`,
-					resolved: true
+					award: async () => {
+						await this.award("myth", this.company);
+						return this.company;
+					}
 				});
-				await recordMythCompleted({ id: completedMythId(this.scene.id, myth), name });
-				await this.award("myth", this.company);
 				await this.note(hex, `Where ${name} ended, in the deep of Winter. Burnt ground; nothing grows here yet.`);
 				await this.spark(hex, "nature", 1);
 				await this.tell(hex);

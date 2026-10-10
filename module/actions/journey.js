@@ -6,6 +6,7 @@ import { calendarLabel, getCalendar } from "./calendar.js";
 import { COMPANY_FLAG, findCompanyToken, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
+import { timelineArrivals } from "./timeline-events.js";
 
 /**
  * Where the Company has been on each Realm, kept on the Realm's Scene beside
@@ -132,7 +133,12 @@ function writeArrivals() {
 	const waiting = [...arriving.values()];
 	arriving.clear();
 	for (const { scene, hexes, entered, ended } of waiting) {
-		recordHexVisits(scene, onceEach(hexes)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
+		const visited = onceEach(hexes);
+		// Read before they're counted: the hexes it comes to for the first time go on the Timeline.
+		const first = visited.filter((hex) => !getHexVisits(scene, hex)?.count);
+		recordHexVisits(scene, visited)
+			.then(() => timelineArrivals(scene, first))
+			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
 		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: onceEach(entered), ended });
 	}
 }
