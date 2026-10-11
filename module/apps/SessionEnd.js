@@ -8,6 +8,7 @@ import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
 import { calendarTurn, offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { timelineShown } from "./timeline-ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -124,6 +125,8 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 			plans: this.#plans,
 			recap: this.#recap,
 			shareRecap: this.#shareRecap,
+			// A world with the Timeline turned off has nowhere to write the recap.
+			timeline: timelineShown(),
 			ready: Boolean(timeStep(this.#step))
 		});
 	}
@@ -249,7 +252,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,
 				recap: this.#recap,
-				shareRecap: this.#shareRecap,
+				shareRecap: this.#shareRecap && timelineShown(),
 				promised: this.#promised
 			});
 			if (ended) return this.close();
