@@ -14,7 +14,6 @@ import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
 import { holdingChoices } from "../actions/homecoming.js";
 import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
-import { TimelineTab, onTimelineAction } from "../apps/timeline-ui.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
 import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
@@ -22,6 +21,7 @@ import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil, namesIt
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -30,7 +30,7 @@ const { ActorSheetV2 } = foundry.applications.sheets;
  * A Domain's sheet: the Holding, its ruler, the Council and the tasks it has in
  * hand, the Court, and the Crises the Domain faces.
  */
-export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSheetV2)) {
+export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-domain"],
 		position: { width: 780, height: 780 },
@@ -57,8 +57,7 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			assignTask: DomainSheet.#onAssignTask,
 			settleTask: DomainSheet.#onSettleTask,
 			setTaskAside: DomainSheet.#onSetTaskAside,
-			chooseArms: DomainSheet.#onChooseArms,
-			timeline: onTimelineAction
+			chooseArms: DomainSheet.#onChooseArms
 		}
 	};
 
@@ -139,27 +138,8 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
 				secrets: actor.isOwner,
 				relativeTo: actor
-			}),
-			timeline: await this.#timeline.context(context.tabs)
+			})
 		});
-	}
-
-	/** The Timeline page: the Domain's own thread. */
-	#timeline = new TimelineTab(this);
-
-	/**
-	 * A Timeline page that missed a change while hidden is drawn again as it's opened.
-	 * @override
-	 */
-	changeTab(tab, group, options) {
-		super.changeTab(tab, group, options);
-		this.#timeline.shown(tab);
-	}
-
-	/** @override */
-	async _onRender(context, options) {
-		await super._onRender(context, options);
-		this.#timeline.wire(this.element);
 	}
 
 	/**
@@ -389,7 +369,6 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			["createActor", Hooks.on("createActor", redraw)],
 			["deleteActor", Hooks.on("deleteActor", redraw)]
 		];
-		this.#timeline.watch();
 	}
 
 	/** @override */
@@ -397,7 +376,6 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 		super._onClose(options);
 		for (const [hook, id] of this.#knightHooks) Hooks.off(hook, id);
 		this.#knightHooks = [];
-		this.#timeline.unwatch();
 	}
 }
 

@@ -1,6 +1,6 @@
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { boardContext, onTimelineAction, unwatchTimeline, watchTimeline, wireTimelineFilter } from "./timeline-ui.js";
+import { TimelineHost, boardContext, onTimelineAction, refuseHiddenTimeline, timelineShown, unwatchTimeline, watchTimeline } from "./timeline-ui.js";
 import { renderWhenIdle, singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -11,7 +11,8 @@ const REDRAW_DELAY = 150;
 /**
  * The full Timeline, after Stonetop's: every thread of the tale side by side,
  * the Company's, each Knight's, each Domain's and each Realm's, a row for
- * each Season. Anyone can open it; anyone who owns the Timeline can write on it.
+ * each Season, or a lane each across the page. Anyone can open it; anyone who
+ * owns the Timeline can write on it.
  */
 export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
@@ -23,7 +24,7 @@ export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 	};
 
 	static PARTS = {
-		board: { template: templatePath("apps/timeline.hbs"), scrollable: [".bastionland-timeline__scroll"] }
+		board: { template: templatePath("apps/timeline.hbs") }
 	};
 
 	/** @override */
@@ -37,11 +38,8 @@ export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** A burst of writes is let settle before the Timeline is drawn again; one landing after it closes draws nothing. */
 	#redraw = foundry.utils.debounce(() => renderWhenIdle(this), REDRAW_DELAY);
 
-	/** Whether it has been scrolled to the Season it is now, which it is once. */
-	#placed = false;
-
-	/** The Filter stays open across a redraw it caused. */
-	#filter = { open: false };
+	/** Its board's place, zoom, menus and keyboard, kept across redraws. */
+	#host = new TimelineHost("window");
 
 	/** The threads the board offers, as last drawn. */
 	#trackIds = [];
@@ -62,13 +60,7 @@ export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
-		const root = this.element;
-		wireTimelineFilter(root, { trackIds: this.#trackIds, state: this.#filter });
-		if (!this.#placed) {
-			this.#placed = true;
-			const now = root.querySelector(".bastionland-timeline__period-head.is-now") ?? [...root.querySelectorAll(".bastionland-timeline__period-head")].at(-1);
-			now?.scrollIntoView({ block: "center" });
-		}
+		this.#host.wire(this.element, this.#trackIds);
 	}
 
 	/** @override */
@@ -76,15 +68,17 @@ export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 		super._onClose(options);
 		unwatchTimeline(this.#hooks);
 		this.#hooks = [];
-		this.#placed = false;
+		this.#host.close();
 	}
 }
 
-/** Open the full Timeline, bringing it forward if it's already open. */
-export const openTimeline = singletonOpener(TimelineWindow);
+const openWindow = singletonOpener(TimelineWindow);
+
+/** Open the full Timeline, bringing it forward if it's already open; nothing while the world has it off. */
+export const openTimeline = () => (refuseHiddenTimeline() ? null : openWindow());
 
 /**
- * The window to render when restoring it after a reload.
- * @returns {TimelineWindow}
+ * The window to render when restoring it after a reload; none while the world has the Timeline off.
+ * @returns {TimelineWindow|null}
  */
-export const reopenableTimeline = () => foundry.applications.instances.get(TimelineWindow.DEFAULT_OPTIONS.id) ?? new TimelineWindow();
+export const reopenableTimeline = () => (timelineShown() ? (foundry.applications.instances.get(TimelineWindow.DEFAULT_OPTIONS.id) ?? new TimelineWindow()) : null);

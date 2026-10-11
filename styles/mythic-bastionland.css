@@ -7951,10 +7951,10 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* The parchment, which the Settings page's drop-down of tick boxes (styles/settings.css)
-   and the Timeline's Filter (styles/timeline.css) wear too. */
+   and the Timeline's Filter and Colours menus (styles/timeline.css) wear too. */
 .bastionland-dropdown,
 .bastionland-settings__pick-list,
-.bastionland-timeline__filter-menu {
+.bastionland-timeline__menu-box {
 	padding: 0.25rem 0;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 4px;

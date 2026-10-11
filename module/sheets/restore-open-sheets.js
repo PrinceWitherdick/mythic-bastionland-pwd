@@ -55,6 +55,9 @@ let saveTimer;
 /** Set while sheets are reopening, so a reload partway through keeps the ones still to come. */
 let restoring = false;
 
+/** @returns {boolean} Whether the windows open at the last unload are being opened again, so a window drawn now can take up where it was left. */
+export const reopeningWindows = () => restoring;
+
 /** Register the settings and start following sheets. Called during init. */
 export function registerSheetRestore() {
 	game.settings.register(SYSTEM_ID, RESTORE_SETTING, {

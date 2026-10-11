@@ -1,0 +1,46 @@
+{{!-- Every thread side by side, from boardContext in module/apps/timeline-ui.js: the Timeline window's page and the Referee Toolkit's Timeline page. Down the page, a column for each thread and a row for each Season any of them has anything in; across it, a row for each thread and a column for each Season, an Age's rule running down through every thread where it begins. The thread names and the Season names stay pinned as it scrolls. The Company's Season turns are written in the Season's heading. --}}
+{{#unless hasJournal}}
+<p class="bastionland-empty bastionland-timeline__empty">{{localize "bastionland.timeline.noJournal"}}</p>
+{{else if allHidden}}
+{{> "bastionland.timeline-invite"}}
+{{else if empty}}
+<p class="bastionland-empty bastionland-timeline__empty">{{localize "bastionland.timeline.boardEmpty"}}</p>
+{{else}}
+<div class="bastionland-timeline__scroll" tabindex="0" role="region" aria-label="{{localize "bastionland.timeline.title"}}">
+	<div class="bastionland-timeline__canvas">
+		{{#if across}}
+		<div class="bastionland-timeline__swim" style="--timeline-swim-columns: {{swimColumns}};">
+			{{#each periods}}
+			{{#if ageHeading}}<h3 class="bastionland-timeline__swim-age" data-age="{{ageKey}}"><span class="bastionland-pill bastionland-timeline__age-chip">{{ageHeading}}</span></h3>{{/if}}
+			<div class="bastionland-timeline__swim-head bastionland-timeline__period-head{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">{{> "bastionland.timeline-heading"}}</div>
+			{{/each}}
+			{{#each swimlanes}}
+			<div class="bastionland-timeline__lane-head bastionland-timeline__swim-lane-head bastionland-timeline__lane-head--{{kind}}">{{> "bastionland.timeline-lane-head"}}</div>
+			{{#each cells}}
+			{{#if startsAge}}<span class="bastionland-timeline__swim-rule" aria-hidden="true"></span>{{/if}}
+			<div class="bastionland-timeline__cell{{#if ghost}} is-ghost{{/if}}" data-track-id="{{trackId}}" data-period="{{season}}" data-age="{{ageKey}}">
+				{{> "bastionland.timeline-cards"}}
+			</div>
+			{{/each}}
+			{{/each}}
+		</div>
+		{{else}}
+		<div class="bastionland-timeline__board" style="--timeline-lanes: {{columns}}">
+			<div class="bastionland-timeline__corner"></div>
+			{{#each lanes}}
+			<div class="bastionland-timeline__lane-head bastionland-timeline__lane-head--{{kind}}">{{> "bastionland.timeline-lane-head"}}</div>
+			{{/each}}
+			{{#each periods}}
+			{{#if ageHeading}}<h3 class="bastionland-timeline__age-head bastionland-timeline__age-head--board" data-age="{{ageKey}}"><span class="bastionland-timeline__age-cell"><span class="bastionland-pill bastionland-timeline__age-chip">{{ageHeading}}</span></span></h3>{{/if}}
+			<div class="bastionland-timeline__period-head bastionland-timeline__period-head--board{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">{{> "bastionland.timeline-heading"}}</div>
+			{{#each cells}}
+			<div class="bastionland-timeline__cell{{#if ../isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-track-id="{{trackId}}" data-period="{{season}}" data-age="{{ageKey}}">
+				{{> "bastionland.timeline-cards"}}
+			</div>
+			{{/each}}
+			{{/each}}
+		</div>
+		{{/if}}
+	</div>
+</div>
+{{/unless}}

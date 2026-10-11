@@ -1,11 +1,13 @@
 /**
- * The Timeline, shaped for its pages: one thread down a sheet's tab, or
- * every thread side by side in the Timeline window, a column each. Both are
- * gathered under an Age, a row for each Season with anything in it. Pure,
- * so it can be tested without Foundry; the window puts words to it.
+ * The Timeline, shaped for its pages: one thread on a sheet's tab, or every
+ * thread side by side in the Timeline window, a lane each. Either is a list of
+ * the Seasons with anything in them, oldest first, each marked where its Age
+ * begins, so it can be laid down the page or across it. Pure, so it can be
+ * tested without Foundry; timeline-ui.js puts words to it.
  */
 import { parseSeasonKey } from "./time.js";
-import { KIND_GROUPS, canMove, groupByPeriod, periodRank, readEntries, sortEntries, sourceGroup } from "./timeline.js";
+import { KIND_GROUPS, COMPANY_TRACK, canMove, groupByPeriod, isSeasonTurn, periodRank, readEntries, sortEntries } from "./timeline.js";
+import { CUSTOM_TAG_ICON, KIND_ICONS, THREAD_ICONS, entryChip, filterKey, indexCustomTags } from "./timeline-tags.js";
 import { seasonYearsOn } from "./travels.js";
 
 /**
@@ -49,112 +51,186 @@ export function periodFacts(season, { nowKey = "", yearsOn = new Map() } = {}) {
  * One entry as its card shows it.
  * @param {import("./timeline.js").TimelineEntry} entry
  * @param {{earlier: boolean, later: boolean}} moves
+ * @param {Map<string, object>} tags
  */
-function cardView(entry, moves) {
-	return {
-		...entry,
-		group: sourceGroup(entry.source),
-		earlier: moves.earlier,
-		later: moves.later
-	};
-}
-
-/** One Season's entries as cards, each knowing whether it can move. */
-function cardsOf(entries) {
-	return entries.map((entry, at) => cardView(entry, canMove(entries, at)));
+function cardView(entry, moves, tags) {
+	const chip = entryChip(entry, tags);
+	return { ...entry, group: chip.kind, chip, earlier: moves.earlier, later: moves.later };
 }
 
 /**
- * Seasons gathered under their Age, before the tale first.
- * @template {{age: number|null}} P
+ * One Season's entries as cards, each knowing whether it can move. A Season's
+ * turn is left out, for its heading, unless `turns` keeps it a card.
+ */
+function cardsOf(entries, tags, { turns = false } = {}) {
+	const cards = turns ? entries : entries.filter((entry) => !isSeasonTurn(entry));
+	return cards.map((entry, at) => cardView(entry, canMove(cards, at), tags));
+}
+
+/**
+ * A Season's turn as its heading shows it.
+ * @param {import("./timeline.js").TimelineEntry} entry
+ * @param {string} trackId Its thread: a heading on the board sits in no lane.
+ */
+const noteView = (entry, trackId) => ({ id: entry.id, trackId, title: entry.title, body: entry.body, source: entry.source });
+
+/**
+ * @param {{age: number|null, undated: boolean}} period
+ * @returns {string} The Age it falls in, as the scrubber stops at it: its number, or "undated" before the tale.
+ */
+export const ageKey = ({ age, undated }) => (undated ? "undated" : String(age));
+
+/**
+ * Mark the first Season of each Age, and which side of the line across each
+ * Season's cards hang: one above, the next below, so neighbours never crowd.
+ * @template {{age: number|null, undated: boolean}} P
  * @param {P[]} periods In order.
- * @returns {{age: number|null, periods: P[]}[]}
+ * @returns {(P & {startsAge: boolean, ageKey: string, above: boolean})[]}
  */
-function underAges(periods) {
-	const ages = [];
-	for (const period of periods) {
-		const last = ages.at(-1);
-		if (last && last.age === period.age) last.periods.push(period);
-		else ages.push({ age: period.age, periods: [period] });
-	}
-	return ages;
+function markAges(periods) {
+	let last;
+	return periods.map((period, at) => {
+		const startsAge = at === 0 || period.age !== last;
+		last = period.age;
+		return { ...period, startsAge, ageKey: ageKey(period), above: at % 2 === 0 };
+	});
 }
 
-const shownEntries = (entries, hidden) => entries.filter((entry) => !hidden.has(sourceGroup(entry.source)));
+/**
+ * The Seasons with the one it is now added, empty, when nothing shown is in it:
+ * somewhere to write in the Season the table is playing, without picking it.
+ * @param {string[]} seasons In order.
+ * @param {string} nowKey
+ * @returns {{season: string, ghost: boolean}[]} In order.
+ */
+function withNow(seasons, nowKey) {
+	const rows = seasons.map((season) => ({ season, ghost: false }));
+	if (!parseSeasonKey(nowKey) || seasons.includes(nowKey)) return rows;
+	return [...rows, { season: nowKey, ghost: true }].sort((a, b) => periodRank(a.season) - periodRank(b.season));
+}
 
 /**
- * One thread, down a page.
- * @param {TimelineTrack} track
- * @param {{hidden?: string[], nowKey?: string, seasons?: Iterable<string>}} [options]
- *   `hidden` the Filter lines unticked; `seasons` every Season on the Timeline.
+ * @typedef {object} ViewOptions
+ * @property {string[]} [hidden]      The Filter lines unticked: kinds, and the table's own tags by id.
+ * @property {string} [nowKey]        The Season it is now.
+ * @property {Iterable<string>} [seasons] Every Season on the Timeline, to count years on by.
+ * @property {object[]} [tags]        The world's own tags (rules/timeline-tags.js).
  */
-export function trackView(track, { hidden = [], nowKey = "", seasons } = {}) {
+
+/**
+ * One thread, as a sheet's tab and its journal page show it.
+ * @param {TimelineTrack} track
+ * @param {ViewOptions & {canEdit?: boolean}} [options] `canEdit` offers an add slot in each Season, and the Season it is now.
+ */
+export function trackView(track, { hidden = [], nowKey = "", seasons, tags = [], canEdit = false } = {}) {
+	const index = indexCustomTags(tags);
+	const off = new Set(hidden);
 	const all = readEntries(track?.entries);
-	const shown = shownEntries(all, new Set(hidden));
-	const periods = groupByPeriod(shown);
-	const yearsOn = yearsOnBySeason(seasons ?? periods.map((p) => p.season));
+	const shown = all.filter((entry) => !off.has(filterKey(entry, index)));
+	const allHidden = all.length > 0 && !shown.length;
+	const groups = new Map(groupByPeriod(shown).map((period) => [period.season, period.entries]));
+	const rows = withNow([...groups.keys()], canEdit && !allHidden ? nowKey : "");
+	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
+	const trackId = track?.trackId ?? "";
 	return {
-		trackId: track?.trackId ?? "",
+		trackId,
 		kind: track?.kind ?? "",
-		allHidden: all.length > 0 && !shown.length,
-		ages: underAges(periods.map((period) => ({
-			...periodFacts(period.season, { nowKey, yearsOn }),
-			entries: cardsOf(period.entries)
-		})))
+		allHidden,
+		empty: !all.length && !rows.length,
+		periods: markAges(rows.map(({ season, ghost }) => {
+			const entries = groups.get(season) ?? [];
+			return {
+				...periodFacts(season, { nowKey, yearsOn }),
+				ghost,
+				notes: entries.filter(isSeasonTurn).map((entry) => noteView(entry, trackId)),
+				entries: cardsOf(entries, index),
+				add: canEdit ? { season } : null
+			};
+		}))
 	};
 }
 
 /**
- * Every thread side by side: a column each, a row for each Season any of
- * them has something in, so the threads stay level with each other. A thread
- * with nothing in a Season leaves its cell empty; one with nothing at all is
- * still a column, to write in. A thread the reader unticked is left out.
+ * Every thread side by side: a lane each, a row for each Season any of them
+ * has something in, so the threads stay level. A thread with nothing in a
+ * Season leaves its cell empty; one with nothing at all is still a lane, to
+ * write in. A thread the reader unticked is left out. The Company's Season
+ * turns are written in the Season's heading, which spans the board; each other
+ * thread's stay cards in its lane.
  * @param {TimelineTrack[]} tracks
- * @param {{hidden?: string[], hiddenTracks?: string[], nowKey?: string, seasons?: Iterable<string>}} [options]
+ * @param {ViewOptions & {hiddenTracks?: string[], canEdit?: (trackId: string) => boolean}} [options]
  */
-export function boardView(tracks = [], { hidden = [], hiddenTracks = [], nowKey = "", seasons } = {}) {
+export function boardView(tracks = [], { hidden = [], hiddenTracks = [], nowKey = "", seasons, tags = [], canEdit = () => false } = {}) {
+	const index = indexCustomTags(tags);
 	const offKinds = new Set(hidden);
 	const offTracks = new Set(hiddenTracks);
 	const lanes = tracks.filter((track) => !offTracks.has(track.trackId));
 	let total = 0;
 	for (const track of tracks) total += readEntries(track.entries).length;
 	const buckets = new Map();
+	const notes = new Map();
 	const periods = new Set();
 	for (const track of lanes) {
 		const bucket = new Map();
 		buckets.set(track.trackId, bucket);
-		for (const entry of shownEntries(sortEntries(track.entries), offKinds)) {
+		for (const entry of sortEntries(track.entries)) {
+			if (offKinds.has(filterKey(entry, index))) continue;
 			periods.add(entry.season);
+			if (track.trackId === COMPANY_TRACK && isSeasonTurn(entry)) {
+				if (!notes.has(entry.season)) notes.set(entry.season, []);
+				notes.get(entry.season).push(noteView(entry, track.trackId));
+				continue;
+			}
 			if (!bucket.has(entry.season)) bucket.set(entry.season, []);
 			bucket.get(entry.season).push(entry);
 		}
 	}
+	const allHidden = total > 0 && !periods.size;
+	const writable = new Map(lanes.map(({ trackId }) => [trackId, Boolean(canEdit(trackId))]));
 	const ordered = [...periods].sort((a, b) => periodRank(a) - periodRank(b));
-	const yearsOn = yearsOnBySeason(seasons ?? ordered);
+	const rows = withNow(ordered, !allHidden && [...writable.values()].some(Boolean) ? nowKey : "");
+	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
+	const marked = markAges(rows.map(({ season, ghost }) => ({ ...periodFacts(season, { nowKey, yearsOn }), ghost })));
 	return {
-		lanes: lanes.map(({ trackId, kind }) => ({ trackId, kind })),
-		allHidden: total > 0 && !ordered.length,
-		ages: underAges(ordered.map((season) => ({
-			...periodFacts(season, { nowKey, yearsOn }),
-			cells: lanes.map(({ trackId }) => ({ trackId, entries: cardsOf(buckets.get(trackId).get(season) ?? []) }))
-		})))
+		lanes: lanes.map(({ trackId, kind, portrait = "" }) => ({ trackId, kind, portrait })),
+		allHidden,
+		empty: total === 0 && !rows.length,
+		periods: marked.map((period) => {
+			const { season, ghost, startsAge, ageKey } = period;
+			return {
+				...period,
+				notes: notes.get(season) ?? [],
+				// Each cell carries its Season's Age, for a lane read across.
+				cells: lanes.map(({ trackId }) => {
+					const entries = cardsOf(buckets.get(trackId).get(season) ?? [], index, { turns: true });
+					return { trackId, season, ghost, startsAge, ageKey, empty: !entries.length, entries, add: writable.get(trackId) ? { season, trackId } : null };
+				})
+			};
+		})
 	};
 }
 
 /**
- * The Filter menu's kinds, each ticked unless the reader hid it.
+ * The Filter menu's kinds, each ticked unless the reader hid it, then the
+ * world's own tags by name.
  * @param {string[]} hidden
- * @returns {{group: string, shown: boolean}[]}
+ * @param {object[]} [tags]
+ * @returns {{key: string, kind: string, icon: string, tagName: string, colour: string, shown: boolean}[]}
  */
-export const kindMenu = (hidden = []) => Object.keys(KIND_GROUPS).map((group) => ({ group, shown: !hidden.includes(group) }));
+export function kindMenu(hidden = [], tags = []) {
+	const off = new Set(hidden);
+	const kinds = Object.keys(KIND_GROUPS).map((kind) => ({ key: kind, kind, icon: KIND_ICONS[kind], tagName: "", colour: "", shown: !off.has(kind) }));
+	const own = [...indexCustomTags(tags).values()].map((tag) => ({ key: tag.id, kind: "custom", icon: CUSTOM_TAG_ICON, tagName: tag.name, colour: tag.colour, shown: !off.has(tag.id) }));
+	return [...kinds, ...own];
+}
 
 /**
  * The Filter menu's threads, in the board's order.
  * @param {{trackId: string, kind: string}[]} tracks
  * @param {string[]} hiddenTracks
- * @returns {{trackId: string, kind: string, shown: boolean}[]}
+ * @returns {{trackId: string, kind: string, icon: string, shown: boolean}[]}
  */
-export const threadMenu = (tracks = [], hiddenTracks = []) => tracks.map(({ trackId, kind }) => ({ trackId, kind, shown: !hiddenTracks.includes(trackId) }));
+export const threadMenu = (tracks = [], hiddenTracks = []) => tracks.map(({ trackId, kind }) => ({ trackId, kind, icon: THREAD_ICONS[kind] ?? THREAD_ICONS.company, shown: !hiddenTracks.includes(trackId) }));
 
 /**
  * The threads a player's board hides until they choose: all but the
@@ -170,6 +246,16 @@ export function defaultHiddenTracks(tracks = [], owns = () => false) {
 	const kept = new Set([...mine.map((track) => track.trackId), ...tracks.filter((track) => track.kind === "company").map((track) => track.trackId)]);
 	return tracks.map((track) => track.trackId).filter((id) => !kept.has(id));
 }
+
+/**
+ * How many Filter lines the reader has unticked: the kinds and tags the world
+ * still has, and the threads still on the board.
+ * @param {string[]} hidden
+ * @param {string[]} hiddenTracks
+ * @param {{kinds: string[], tracks: string[]}} offered What the menu offers.
+ * @returns {number}
+ */
+export const hiddenCount = (hidden, hiddenTracks, { kinds, tracks }) => hidden.filter((key) => kinds.includes(key)).length + hiddenTracks.filter((id) => tracks.includes(id)).length;
 
 /**
  * The Seasons a hand entry can be dated by: now, every Season the Timeline

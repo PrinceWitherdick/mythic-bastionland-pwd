@@ -2292,7 +2292,8 @@
         "label": "Filter",
         "kinds": "Show",
         "threads": "Threads",
-        "showAll": "Show All"
+        "showAll": "Show All",
+        "hidden": "{count} hidden"
       },
       "newEntry": "New Entry",
       "openFull": "Open the Timeline",
@@ -2313,7 +2314,23 @@
         "title": "Title",
         "place": "Place",
         "body": "What Happened",
-        "save": "Save"
+        "save": "Save",
+        "tag": "Tag",
+        "noTag": "None",
+        "newTag": "New Tag",
+        "tagName": "Tag name",
+        "tagNamePlaceholder": "Such as Feasts",
+        "tagColour": "Tag colour",
+        "tagAdd": "Add Tag",
+        "tagRefused": {
+          "name": "Give the tag a name.",
+          "colour": "Choose a colour for the tag.",
+          "journal": "Tags can be made once the Timeline is made, the next time a Referee joins."
+        },
+        "linked": "Linked",
+        "linkedTooltip": "This place links to what was dropped on it. Type to make it a plain name.",
+        "placeHint": "Drop a Scene, an actor or a Journal entry here to link it.",
+        "bodyHint": "Drop a Scene, an actor, an Item or a Journal entry here to write a link to it."
       },
       "pickThread": {
         "title": "Write on Which Thread?",
@@ -2344,6 +2361,46 @@
         "arrived": "Came to {place}",
         "mythHex": "the hex of Myth {number}",
         "partyNote": "{name} Wrote of It"
+      },
+      "setting": {
+        "name": "Campaign Timeline",
+        "hint": "Keep a Timeline of the campaign: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. Turned off, none of them are shown, though what happens is still written down for when it’s turned on again."
+      },
+      "turnedOff": "The Timeline is turned off for this world.",
+      "kindChips": {
+        "hand": "Note",
+        "time": "Seasons",
+        "myth": "Myth",
+        "glory": "Glory",
+        "wounds": "Wounds",
+        "lineage": "Lineage",
+        "dominion": "Dominion",
+        "travels": "Travels"
+      },
+      "colours": {
+        "label": "Colours",
+        "tooltip": "Choose the colour each kind of entry wears, for everyone",
+        "hint": "Each kind of entry wears its colour on its edge and its chip. A colour shows here as you pick it, and everyone sees it once you save.",
+        "pick": "Colour for {kind}",
+        "reset": "Put {kind} back to its own colour",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "layout": {
+        "label": "Layout",
+        "down": "Down",
+        "across": "Across",
+        "downTooltip": "Lay the Timeline down the page",
+        "acrossTooltip": "Lay the Timeline across the page"
+      },
+      "add": "Add",
+      "addHere": "Write an entry in {season}",
+      "addHereThread": "Write an entry on {thread} in {season}",
+      "editNote": "Edit what the Season’s turn wrote",
+      "removeNote": "Remove what the Season’s turn wrote",
+      "scrub": {
+        "label": "Age",
+        "tooltip": "Slide to an Age"
       }
     },
     "gmToolkit": {

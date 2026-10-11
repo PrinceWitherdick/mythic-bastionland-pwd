@@ -1,0 +1,3 @@
+{{!-- A Season's cards, in a thread or in one lane's cell of the board, and its "+ Add" where the reader can write. --}}
+{{#each entries}}{{> "bastionland.timeline-card"}}{{/each}}
+{{#if add}}<div class="bastionland-timeline__add-slot">{{> "bastionland.timeline-add" add label=addLabel}}</div>{{/if}}

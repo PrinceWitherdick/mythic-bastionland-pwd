@@ -1,0 +1,18 @@
+{{!-- What a Season is called wherever the Timeline names it, down a thread, at the head of a board's row or on the line across: its name, Now on the Season it is, and the Season's turn written under it (module/rules/timeline-view.js#isSeasonTurn) rather than as a card filed in it. A turn is still an entry, so it can be edited and removed where the reader can write. --}}
+<h4 class="bastionland-timeline__period-name">{{heading}}{{#if isNow}} <span class="bastionland-pill bastionland-timeline__now">{{localize "bastionland.timeline.now"}}</span>{{/if}}</h4>
+{{#if notes.length}}
+<div class="bastionland-timeline__notes">
+	{{#each notes}}
+	<div class="bastionland-timeline__note bastionland-reveal-host" data-entry-id="{{id}}" data-track-id="{{trackId}}">
+		{{#if title}}<p class="bastionland-timeline__note-title">{{title}}</p>{{/if}}
+		{{#if bodyHtml}}<div class="bastionland-timeline__body">{{{bodyHtml}}}</div>{{/if}}
+		{{#if canEdit}}
+		<footer class="bastionland-timeline__tools bastionland-reveal">
+			<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="edit" data-timeline-focus="edit-{{id}}" aria-label="{{localize "bastionland.timeline.editNote"}}" data-tooltip="{{localize "bastionland.timeline.editNote"}}"><i class="fa-solid fa-pen" inert></i></button>
+			<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="remove" data-timeline-focus="remove-{{id}}" aria-label="{{localize "bastionland.timeline.removeNote"}}" data-tooltip="{{localize "bastionland.timeline.removeNote"}}"><i class="fa-solid fa-trash" inert></i></button>
+		</footer>
+		{{/if}}
+	</div>
+	{{/each}}
+</div>
+{{/if}}

@@ -89,7 +89,7 @@ import { registerTimelineStoreHooks, syncTrackPages } from "./module/actions/tim
 import { TIMELINE_PAGE_TYPE } from "./module/rules/timeline.js";
 import { openTimeline, reopenableTimeline } from "./module/apps/TimelineWindow.js";
 import { createTimelinePageSheet } from "./module/apps/TimelinePageSheet.js";
-import { registerTimelineSettings } from "./module/apps/timeline-ui.js";
+import { applyKindColours, registerTimelineSettings } from "./module/apps/timeline-ui.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -255,7 +255,16 @@ Hooks.once("init", () => {
 		"bastionland.timeline-tab": templatePath("actor/parts/timeline-tab.hbs"),
 		"bastionland.timeline-thread": templatePath("apps/parts/timeline-thread.hbs"),
 		"bastionland.timeline-card": templatePath("apps/parts/timeline-card.hbs"),
-		"bastionland.timeline-filter": templatePath("apps/parts/timeline-filter.hbs")
+		"bastionland.timeline-filter": templatePath("apps/parts/timeline-filter.hbs"),
+		"bastionland.timeline-board": templatePath("apps/parts/timeline-board.hbs"),
+		"bastionland.timeline-toolbar": templatePath("apps/parts/timeline-toolbar.hbs"),
+		"bastionland.timeline-heading": templatePath("apps/parts/timeline-heading.hbs"),
+		"bastionland.timeline-add": templatePath("apps/parts/timeline-add.hbs"),
+		"bastionland.timeline-cards": templatePath("apps/parts/timeline-cards.hbs"),
+		"bastionland.timeline-invite": templatePath("apps/parts/timeline-invite.hbs"),
+		"bastionland.timeline-lane-head": templatePath("apps/parts/timeline-lane-head.hbs"),
+		"bastionland.timeline-scrub": templatePath("apps/parts/timeline-scrub.hbs"),
+		"bastionland.timeline-entry-tag": templatePath("dialogs/parts/timeline-entry-tag.hbs")
 	});
 
 	// The sheets' faces, offered by Foundry's font menus as well as the stylesheet.
@@ -613,6 +622,8 @@ const WORLD_SETUP = Object.freeze([
 Hooks.once("ready", async () => {
 	// The Phase at the top of the screen, for everyone at the table.
 	showPhaseBanner();
+	// Each kind of Timeline entry in the colour the Referee chose for it.
+	applyKindColours();
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// A world imported before the rules text was read has it found in the rulebook it keeps.

@@ -28,7 +28,6 @@ import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { travelsListContext } from "../actions/travels.js";
 import { openPlaces, openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
-import { TimelineTab, onTimelineAction } from "../apps/timeline-ui.js";
 import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
@@ -37,6 +36,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 
 /**
  * The Knight character sheet, laid out after the official printed sheet, with
@@ -46,7 +46,7 @@ import { TabRailMixin } from "./tab-rail.js";
  * document, and the same sheet, drawn as the one page p7 gives them; see
  * templates/actor/squire-sheet.hbs.
  */
-export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorSheet)) {
+export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(BastionlandActorSheet))) {
 	/** @override */
 	static PROPERTY_ORDER = true;
 
@@ -82,8 +82,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			openLedger: KnightSheet.#onOpenLedger,
 			pickTravelsHex: openTravelsRow,
 			showTravelsHex: showTravelsRow,
-			openPlaces: KnightSheet.#onOpenPlaces,
-			timeline: onTimelineAction
+			openPlaces: KnightSheet.#onOpenPlaces
 		}
 	};
 
@@ -241,8 +240,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			enrichedSeerInfo,
 			enrichedSeerNotes,
 			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
-			travels: this.#travelsContext(context.tabs),
-			timeline: await this.#timeline.context(context.tabs)
+			travels: this.#travelsContext(context.tabs)
 		});
 	}
 
@@ -269,9 +267,6 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		openPlaces({ sceneId: this.#travels.realm ?? undefined });
 	}
 
-	/** The Timeline page: the Knight's own thread. */
-	#timeline = new TimelineTab(this);
-
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;
 
@@ -281,7 +276,6 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 	 */
 	changeTab(tab, group, options) {
 		super.changeTab(tab, group, options);
-		this.#timeline.shown(tab);
 		if (tab === "travels" && this.#travelsStale) {
 			this.#travelsStale = false;
 			this.render();
@@ -360,7 +354,6 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		});
 		if (context.travels?.sceneId) this.#travels.realm = context.travels.sceneId;
 		wireTravelsList(this.element.querySelector('.tab[data-tab="travels"]'), this.#travels, () => this.render());
-		this.#timeline.wire(this.element);
 	}
 
 	/**
@@ -528,13 +521,6 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 			if (this.tabGroups.primary === "travels") renderWhenIdle(this);
 			else this.#travelsStale = true;
 		});
-		this.#timeline.watch();
-	}
-
-	/** @override */
-	_onClose(options) {
-		super._onClose(options);
-		this.#timeline.unwatch();
 	}
 
 	/**
