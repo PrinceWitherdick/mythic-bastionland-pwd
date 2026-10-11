@@ -11,6 +11,15 @@ const tags = (source) => [...source.matchAll(/<([a-z-]+)\b[^>]*>/g)].map((match)
 
 let GmToolkitSheet;
 
+/** @returns {string[]} The actions the sheet answers: its own, and those its mixins bring, as Foundry merges them. */
+function sheetActions() {
+	const names = new Set();
+	for (let cls = GmToolkitSheet; cls; cls = Object.getPrototypeOf(cls)) {
+		if (Object.hasOwn(cls, "DEFAULT_OPTIONS")) for (const name of Object.keys(cls.DEFAULT_OPTIONS.actions ?? {})) names.add(name);
+	}
+	return [...names];
+}
+
 beforeAll(async () => {
 	// Just enough of Foundry for the sheet and what it imports to load.
 	globalThis.foundry = {
@@ -69,13 +78,13 @@ describe("GM Toolkit templates", () => {
 		const actions = new Set(Object.values(templates).flatMap((source) => [...source.matchAll(/data-action="(\w+)"/g)].map((match) => match[1])));
 		// Foundry's own document sheets pick a new picture this way.
 		actions.delete("editImage");
-		for (const action of actions) expect(Object.keys(GmToolkitSheet.DEFAULT_OPTIONS.actions), action).toContain(action);
+		for (const action of actions) expect(sheetActions(), action).toContain(action);
 	});
 
 	it("offer the Company's picture among the Referee's settings, through an action the sheet has", () => {
 		const buttons = GmToolkitSheet.prototype._settingsButtons();
 		expect(buttons.referee.map((button) => button.action)).toEqual(["companyPicture"]);
-		for (const button of Object.values(buttons).flat()) expect(Object.keys(GmToolkitSheet.DEFAULT_OPTIONS.actions)).toContain(button.action);
+		for (const button of Object.values(buttons).flat()) expect(sheetActions()).toContain(button.action);
 	});
 
 	it("give each page a root that is its tab, in the toolkit's tab group", () => {

@@ -2297,6 +2297,7 @@
       },
       "newEntry": "New Entry",
       "openFull": "Open the Timeline",
+      "popOut": "Open in a Window",
       "edit": "Edit this entry",
       "remove": "Remove this entry",
       "earlier": "Move earlier",
@@ -2423,6 +2424,7 @@
         "myths": "Myths and Omens",
         "places": "Places",
         "time": "Time",
+        "timeline": "Timeline",
         "notes": "Notes"
       },
       "myths": {
@@ -2563,9 +2565,9 @@
         "resolved": "Myths to Replace",
         "crisisRolls": "Crisis Rolls Due",
         "crisisRollsHint": "Every Domain makes its Crisis Roll as a Season begins (p20). These haven’t made it this Season yet.",
-        "crisisRoll": "Crisis Roll",
-        "timelineHint": "The campaign’s record that everyone can read: the Company’s thread, each Knight’s, each Domain’s and each Realm’s, side by side. Most of it writes itself as things happen; anyone can add to it."
+        "crisisRoll": "Crisis Roll"
       },
+      "timelineHint": "The campaign’s record that everyone can read: the Company’s thread, each Knight’s, each Domain’s and each Realm’s, side by side. Most of it writes itself as things happen; anyone can add to it.",
       "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons.",
       "seasons": {
         "title": "Past Seasons",

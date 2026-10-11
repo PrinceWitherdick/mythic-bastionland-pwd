@@ -55,6 +55,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 import { ViewableMixin } from "./viewable.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -65,6 +66,7 @@ const TAB_ICONS = Object.freeze({
 	myths: "fa-solid fa-dragon",
 	places: "fa-solid fa-map-location-dot",
 	time: "fa-solid fa-hourglass-half",
+	timeline: "fa-solid fa-timeline",
 	notes: "fa-solid fa-feather-pointed"
 });
 
@@ -75,7 +77,7 @@ const TAB_ICONS = Object.freeze({
 const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
 
 /** A field a redraw would take the typing out of. */
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea, select';
+const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select';
 
 /** How long to wait for a burst of changes to land before redrawing. */
 const REDRAW_DELAY = 50;
@@ -97,14 +99,14 @@ function bringIntoView(card) {
 /**
  * The GM Toolkit's sheet: a Realm's Myths and their Omens, the places of the
  * Realm and the hexes the Company has been to, with what the GM wrote and the
- * Spark Tables rolled for each, and the GM's own notes. Its pages
+ * Spark Tables rolled for each, the campaign's Timeline, and the GM's own notes. Its pages
  * hang off a tab rail, as the Knight sheet's do. Only GMs ever open it.
  *
  * The fields on the Realm's pages have no names, so the sheet's own form never
  * sends them to the Actor: each is written where it lives, on the Realm's Scene,
  * by `#onToolkitField`. Only the notes are the Actor's.
  */
-export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2)))) {
+export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2)))), { board: true }) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-gm-toolkit"],
 		position: { width: 820, height: 820 },
@@ -115,7 +117,6 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
 			rollCityOmen: () => rollCityOmen(),
-			openTimeline: () => game.system.api.openTimeline(),
 			resetCityQuest: () => resetCityQuest(),
 			showHex: GmToolkitSheet.#onShowHex,
 			openHex: GmToolkitSheet.#onOpenHex,
@@ -150,6 +151,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		myths: { template: templatePath("actor/gm-toolkit/myths.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
+		timeline: { template: templatePath("actor/gm-toolkit/timeline.hbs") },
 		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] },
 		settings: { template: templatePath("actor/gm-toolkit/settings.hbs"), scrollable: [""] }
 	};
@@ -203,6 +205,15 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 
 	/** Whether the GM is choosing a hex to put on the Custom list, so a second click waits for it. */
 	#tracking = false;
+
+	/**
+	 * The Timeline page, every thread side by side as the Timeline window shows
+	 * them, is drawn again on its own, once a batch of changes has landed.
+	 * @override
+	 */
+	_redrawTimeline() {
+		this.#redraw("timeline");
+	}
 
 	/** @returns {Scene|null} The Realm on show: the one chosen, the one on the canvas, or the first there is. */
 	get scene() {

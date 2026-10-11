@@ -1,0 +1,15 @@
+{{!-- The campaign's Timeline on its own page, as the Timeline window shows it: every thread side by side. Built only while the page is open, by TimelineTab in module/apps/timeline-ui.js. --}}
+<section class="tab bastionland-page bastionland-gm-toolkit__page bastionland-timeline{{#if timeline.across}} bastionland-timeline--across{{/if}} {{tab.cssClass}}" data-group="primary" data-tab="timeline">
+	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.timelineHint"}}</p>
+	{{#with timeline}}
+	<div class="bastionland-timeline__toolbar">
+		{{#if canWrite}}
+		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new" data-timeline-focus="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
+		{{/if}}
+		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="openFull" data-timeline-focus="open-full"><i class="fa-solid fa-up-right-from-square" inert></i> {{localize "bastionland.timeline.popOut"}}</button>
+		{{> "bastionland.timeline-toolbar"}}
+	</div>
+	{{> "bastionland.timeline-board"}}
+	{{> "bastionland.timeline-scrub"}}
+	{{/with}}
+</section>
