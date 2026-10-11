@@ -209,7 +209,7 @@ export function timelineHoldingGranted(realm, holding, name, domain, knight) {
 	const seen = !keptFromPlayers(domain) || !keptFromPlayers(knight);
 	return recordOnTracks([seen ? realm : null, domain, knight], {
 		source: "granted",
-		key: timelineKeys.holding(realm.id, holding.id),
+		key: timelineKeys.holding(realm.id, holding.id, timelineNow(), knight.id),
 		title: t("timeline.auto.granted", { holding: name, name: knight.name }),
 		refresh: ["title"]
 	});
@@ -259,6 +259,7 @@ function worthNoting(view) {
  * @param {{col: number, row: number}[]} hexes Each come into for the first time.
  */
 export async function timelineArrivals(scene, hexes) {
+	if (!hexes.length) return;
 	const sources = playersSources(scene);
 	const arrivals = hexes.flatMap((hex) => {
 		const view = seenAt(sources, hex);
@@ -270,7 +271,8 @@ export async function timelineArrivals(scene, hexes) {
 
 /**
  * The Company keeps a note on a hex: on the Company's thread and the Realm's,
- * the latest words written over the last. A note cleared takes its row with it.
+ * the latest words written over the last, in the Season they were written.
+ * A note cleared takes its row with it.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {string} text
@@ -285,7 +287,7 @@ export function timelinePartyNote(scene, hex, text, user) {
 		title: t("timeline.auto.partyNote", { name: user.name }),
 		place: view?.name || worthNoting(view) || scene.name,
 		body: text.trim(),
-		refresh: ["body", "title"]
+		refresh: ["body", "title", "season"]
 	});
 }
 

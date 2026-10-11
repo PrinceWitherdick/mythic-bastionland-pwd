@@ -1,6 +1,6 @@
 import { SYSTEM_ID } from "../system-id.js";
 import { IMPORT_MACRO_ID } from "../book-art/macro.js";
-import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar } from "./hotbar-macro.js";
+import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar, slotWanted } from "./hotbar-macro.js";
 
 /**
  * The system's macros lead each user's hotbar: a GM's opens with the GM
@@ -44,6 +44,7 @@ export async function ensureHotbarOrder() {
 	if (user.getFlag(SYSTEM_ID, HOTBAR_ORDER_FLAG)) return moveToEnds();
 	const order = user.isGM ? GM_HOTBAR_ORDER : PLAYER_HOTBAR_ORDER;
 	const ids = order
+		.filter(slotWanted)
 		.map(macroOf)
 		.filter((macro) => macro && (user.isGM || macro.canExecute))
 		.map((macro) => macro.id);

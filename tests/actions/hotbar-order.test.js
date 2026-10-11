@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { IMPORT_SLOT, SESSION_SLOT, emptySlot, endHotbar, orderHotbar } from "../../module/actions/hotbar-macro.js";
-import { GM_HOTBAR_ORDER, HOTBAR_ENDS_FLAG, HOTBAR_ORDER_FLAG, ensureHotbarOrder } from "../../module/actions/hotbar-order.js";
+import { IMPORT_SLOT, SESSION_SLOT, emptySlot, endHotbar, hotbarMacro, orderHotbar } from "../../module/actions/hotbar-macro.js";
+import { GM_HOTBAR_ORDER, HOTBAR_ENDS_FLAG, HOTBAR_ORDER_FLAG, PLAYER_HOTBAR_ORDER, ensureHotbarOrder } from "../../module/actions/hotbar-order.js";
 import { IMPORT_MACRO_ID } from "../../module/book-art/macro.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -102,6 +102,23 @@ describe("ensureHotbarOrder", () => {
 		const { update } = installWorld({ isGM: false, hotbar: { 1: "mine", 2: "luckRollMacro" } });
 		await ensureHotbarOrder();
 		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "luckRollMacro", 2: "mine" });
+	});
+
+	it("leaves a macro that isn't wanted now off a user's bar until it is", async () => {
+		let shown = false;
+		const { ensure } = hotbarMacro({ macroFlag: "timelineMacro", hotbarFlag: "timelineHotbar", nameKey: "x", img: "x", command: "x", everyone: true, wanted: () => shown });
+		const { update, setFlag } = installWorld({ isGM: false, macros: PLAYER_HOTBAR_ORDER.map((flag) => systemMacro(flag, flag)) });
+		game.user.assignHotbarMacro = vi.fn();
+		await ensure();
+		expect(game.user.assignHotbarMacro).not.toHaveBeenCalled();
+		expect(setFlag).not.toHaveBeenCalled();
+		await ensureHotbarOrder();
+		expect(update.mock.calls[0][0].hotbar).toEqual({ 1: "luckRollMacro", 2: "placesMacro" });
+
+		shown = true;
+		await ensure();
+		expect(game.user.assignHotbarMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "timelineMacro" }), 1);
+		expect(setFlag).toHaveBeenCalledWith(SYSTEM_ID, "timelineHotbar", true);
 	});
 
 	it("waits for the macros to exist, and orders a user only once", async () => {

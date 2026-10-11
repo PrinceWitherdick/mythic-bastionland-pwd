@@ -89,7 +89,8 @@ export const timelineKeys = Object.freeze({
 	seized: (season, at) => `seized:${season}:${at}`,
 	passed: (season, at) => `passed:${season}:${at}`,
 	rules: (domainId, season, at) => `rules:${domainId}:${season}:${at}`,
-	holding: (sceneId, holdingId) => `holding:${sceneId}:${holdingId}`,
+	// A Holding granted again, in another Season or to another Knight, is a row of its own.
+	holding: (sceneId, holdingId, season, knightId) => `holding:${sceneId}:${holdingId}:${season}:${knightId}`,
 	visit: (sceneId, hex) => `visit:${sceneId}:${hex.col},${hex.row}`,
 	note: (sceneId, hex) => `note:${sceneId}:${hex.col},${hex.row}`
 });

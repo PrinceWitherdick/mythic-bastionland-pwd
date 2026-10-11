@@ -130,6 +130,16 @@ describe("Domains", () => {
 		expect(second[0]).toBeNull();
 	});
 
+	it("gives a Holding granted again, in another Season or to another Knight, a row of its own", async () => {
+		const realm = { id: "s1", name: "The Vale" };
+		const domain = { id: "d1", name: "Holt" };
+		await events.timelineHoldingGranted(realm, { id: "h1" }, "Holt", domain, knight("a"));
+		await events.timelineHoldingGranted(realm, { id: "h1" }, "Holt", domain, knight("b"));
+		const [[, first], [, second]] = calls(record.recordOnTracks);
+		expect(first.key).toBe("holding:s1:h1:2-harvest:a");
+		expect(second.key).toBe("holding:s1:h1:2-harvest:b");
+	});
+
 	it("writes a new ruler on the Domain's thread and, when a Knight, on theirs", async () => {
 		const domain = { id: "d1", type: "domain" };
 		const now = vi.spyOn(Date, "now").mockReturnValue(7);
@@ -164,7 +174,7 @@ describe("travels", () => {
 		view = { name: "The Old Mill", holding: null, landmark: null, myth: null };
 		await events.timelinePartyNote(scene, hex, "Beware the miller.", { name: "Ann" });
 		const [[, milestone]] = calls(record.recordOnTracks);
-		expect(milestone).toMatchObject({ source: "note", key: "note:s1:2,3", place: "The Old Mill", body: "Beware the miller.", refresh: ["body", "title"] });
+		expect(milestone).toMatchObject({ source: "note", key: "note:s1:2,3", place: "The Old Mill", body: "Beware the miller.", refresh: ["body", "title", "season"] });
 		vi.mocked(record.recordOnTracks).mockClear();
 		await events.timelinePartyNote(scene, hex, "  ", { name: "Ann" });
 		expect(calls(record.recordOnTracks)).toHaveLength(0);
