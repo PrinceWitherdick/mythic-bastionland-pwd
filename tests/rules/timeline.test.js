@@ -39,9 +39,15 @@ describe("normalizeEntry", () => {
 
 	it("makes a stored row whole, trusting nothing", () => {
 		expect(normalizeEntry({ id: "a.b", source: "levelup", order: -2, title: " Hi " }, 3)).toEqual({
-			id: "ab", season: "", order: 0, title: "Hi", place: "", body: "", source: "hand", key: "", createdAt: 0, authorId: ""
+			id: "ab", season: "", order: 0, title: "Hi", place: "", placeUuid: "", body: "", tag: "", source: "hand", key: "", createdAt: 0, authorId: ""
 		});
 		expect(normalizeEntry(null, 4).id).toBe("entry-4");
+	});
+
+	it("keeps a place's UUID only when it is one, since it's written into a link's brackets", () => {
+		expect(normalizeEntry({ placeUuid: " Compendium.world.my-pack.Actor.abc123 " }).placeUuid).toBe("Compendium.world.my-pack.Actor.abc123");
+		expect(normalizeEntry({ placeUuid: "Actor.x]{a} <img src=x onerror=alert(1)> @UUID[Actor.y" }).placeUuid).toBe("");
+		expect(normalizeEntry({ placeUuid: "Actor.a b" }).placeUuid).toBe("");
 	});
 
 	it("drops leftovers: rows with no id", () => {

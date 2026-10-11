@@ -18,7 +18,11 @@ export class TimelinePageModel extends foundry.abstract.TypeDataModel {
 				order: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 				title: string(),
 				place: string(),
+				// The document the place is, when one was dropped on it.
+				placeUuid: string(),
 				body: string(),
+				// A typed entry's tag: a kind it reads as, or a custom tag's id (rules/timeline-tags.js).
+				tag: string(),
 				// One of TIMELINE_SOURCES. Not a choice, so a row from a newer version still loads.
 				source: new StringField({ required: true, blank: false, initial: "hand" }),
 				key: string(),

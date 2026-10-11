@@ -111,13 +111,26 @@ const slot = (value) => {
 const text = (value) => String(value ?? "").trim();
 
 /**
+ * A document's UUID, or "" for anything else: it is written into a link's
+ * brackets, so a bracket, a space or markup in it would break out of them.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export const documentUuid = (value) => {
+	const uuid = text(value);
+	return /^[\w.-]+$/.test(uuid) ? uuid : "";
+};
+
+/**
  * @typedef {object} TimelineEntry
  * @property {string} id        Never holding a dot, since it is a key in the page's data.
  * @property {string} season    The Season it falls in, or UNDATED.
  * @property {number} order     Where it stands among the others of its Season.
  * @property {string} title
  * @property {string} place
+ * @property {string} placeUuid The document the place is, when one was dropped on it; "" for a name typed.
  * @property {string} body      Plain lines; links written @UUID[...] still work.
+ * @property {string} tag       On a typed entry, a kind it reads as (a KIND_GROUPS line) or a custom tag's id; "" for none.
  * @property {string} source    One of TIMELINE_SOURCES.
  * @property {string} key       What a milestone is (timelineKeys); "" on a typed entry.
  * @property {number} createdAt In milliseconds; the last word on order.
@@ -138,7 +151,9 @@ export function normalizeEntry(raw, index = 0) {
 		order: slot(raw?.order),
 		title: text(raw?.title),
 		place: text(raw?.place),
+		placeUuid: documentUuid(raw?.placeUuid),
 		body: String(raw?.body ?? "").trim(),
+		tag: text(raw?.tag),
 		source: TIMELINE_SOURCES.includes(raw?.source) ? raw.source : "hand",
 		key: text(raw?.key),
 		createdAt: Number(raw?.createdAt) || 0,
@@ -203,7 +218,10 @@ export function periodRank(season) {
 	return (parsed.age * 10000 + parsed.year) * SEASONS.length + SEASONS.indexOf(parsed.season);
 }
 
-const closing = (entry) => (SEASON_TURNS.includes(entry.source) ? 1 : 0);
+/** @returns {boolean} Whether it's a Season's turn, which is written into its Season's heading rather than as a card. */
+export const isSeasonTurn = (entry) => SEASON_TURNS.includes(entry?.source);
+
+const closing = (entry) => (isSeasonTurn(entry) ? 1 : 0);
 
 const withinPeriod = (a, b) => closing(a) - closing(b) || a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
 
