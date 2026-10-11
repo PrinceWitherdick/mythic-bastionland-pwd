@@ -44,7 +44,8 @@ const PLAIN_SKIN = Object.freeze({
 /**
  * The hexes of the Realm Sheets' example Realm that scripts/realm-sheet-art.py
  * traced each terrain's other pictures from, in its VARIANTS order. That map
- * is laid out as the book's sheet is, 12 hexes by 12.
+ * is laid out as the book's sheet is, 12 hexes by 12. These and EXAMPLE_GROUPS
+ * are held to the script's tables by tests/rules/realm-sheet-places.test.js.
  */
 const EXAMPLE_PLACES = Object.freeze({
 	marsh: ["9,8", "10,8", "11,8"],
