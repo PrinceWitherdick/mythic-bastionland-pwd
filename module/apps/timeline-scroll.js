@@ -1,8 +1,7 @@
-import { reducesMotion } from "../client-settings.js";
-import { GLIDE_WINDOW_MS, glideStep, throwVelocity, worthGliding } from "../rules/glide.js";
 import {
 	SCRUB_MAX, anchoredScroll, centredScroll, clampScale, gutterFor, nearestStop, scrollForValue, stepZoom, tickShares, valueForScroll, wheelNotches
 } from "../rules/timeline-scroll.js";
+import { wirePanDrag } from "./pan-drag.js";
 
 /**
  * Moving about the Timeline, after Stonetop's: drag the board and throw it,
@@ -15,9 +14,6 @@ import {
  * CSS `zoom` on the picture, which lays it out larger rather than stretching
  * it, so the scroll grows with it and the sticky heads still pin.
  */
-
-/** How far a press travels before it's a drag rather than a click. */
-const LIFT_PX = 4;
 
 /** What a left press never drags from: anything aimed at rather than grabbed. */
 const CONTROLS = "a, button, input, select, textarea, summary, label, [contenteditable], [draggable='true'], [role='button']";
@@ -71,130 +67,41 @@ export const hostState = () => ({ zoom: 1, view: null, menus: {}, focus: null })
  * @returns {() => void} Takes it off.
  */
 function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {}) {
-	let press = null;
+	/** How much larger the box is drawn than laid out, as the press found it. */
 	let scale = 1;
-	let marks = [];
-	let glide = null;
-	let frame = 0;
-	let swallowClick = false;
-	let swallowMenu = false;
-	const now = () => performance.now();
-
-	const mark = (event) => {
-		const t = now();
-		marks.push({ t, x: event.clientX, y: event.clientY });
-		while (marks.length > 2 && t - marks[0].t > GLIDE_WINDOW_MS) marks.shift();
-	};
-	const stopGlide = () => {
-		const running = Boolean(glide);
-		if (frame) cancelAnimationFrame(frame);
-		frame = 0;
-		glide = null;
-		return running;
-	};
-	const glideFrame = () => {
-		frame = 0;
-		if (!glide || !el.isConnected) return stopGlide();
-		const t = now();
-		const { dx, dy, velocity } = glideStep(glide.velocity, t - glide.at);
-		glide.at = t;
-		glide.velocity = velocity;
-		const left = el.scrollLeft - dx / scale;
-		const top = el.scrollTop - dy / scale;
-		el.scrollLeft = left;
-		el.scrollTop = top;
-		// An axis that couldn't go any further is done.
-		if (Math.abs(el.scrollLeft - left) >= 1) glide.velocity.x = 0;
-		if (Math.abs(el.scrollTop - top) >= 1) glide.velocity.y = 0;
-		if (worthGliding(glide.velocity)) frame = requestAnimationFrame(glideFrame);
-		else stopGlide();
-	};
 
 	// A press on the box's own scrollbar drags the thumb, which already scrolls.
 	const onScrollbar = (event, box, s) => event.target === el && (event.clientX >= box.left + (el.clientLeft + el.clientWidth) * s || event.clientY >= box.top + (el.clientTop + el.clientHeight) * s);
 
-	const onDown = (event) => {
-		// A hand put down on a sliding board stops it, and a left press that did only that opens nothing.
-		swallowClick = stopGlide() && event.button === 0;
-		if (press || event.pointerType === "touch") return;
-		const right = event.button === 2;
-		if ((event.button !== 0 && !right) || event.buttons > 2) return;
-		if (!right && event.target.closest?.(CONTROLS)) return;
-		const box = el.getBoundingClientRect();
-		const s = drawnScale(el, box);
-		if (onScrollbar(event, box, s)) return;
-		scale = s;
-		press = { id: event.pointerId, button: event.button, x: event.clientX, y: event.clientY, left: el.scrollLeft, top: el.scrollTop, lifted: false };
-		marks = [{ t: now(), x: event.clientX, y: event.clientY }];
-	};
-	const onMove = (event) => {
-		if (!press || event.pointerId !== press.id) return;
-		const dx = event.clientX - press.x;
-		const dy = event.clientY - press.y;
-		if (!press.lifted) {
-			if (Math.hypot(dx, dy) < LIFT_PX) return;
-			// Only now is it a drag: a click that never moved lands where it was aimed.
-			press.lifted = true;
-			el.setPointerCapture?.(event.pointerId);
-			el.classList.add("is-panning");
-			globalThis.getSelection?.()?.removeAllRanges();
+	const drag = wirePanDrag(el, {
+		draggingClass: "is-panning",
+		grab(event) {
+			// A finger already scrolls the box.
+			if (event.pointerType === "touch") return null;
+			if (event.button === 0 && event.target.closest?.(CONTROLS)) return null;
+			const box = el.getBoundingClientRect();
+			const s = drawnScale(el, box);
+			if (onScrollbar(event, box, s)) return null;
+			scale = s;
+			return { left: el.scrollLeft, top: el.scrollTop };
+		},
+		pan(from, dx, dy) {
+			el.scrollLeft = from.left - dx / scale;
+			el.scrollTop = from.top - dy / scale;
+		},
+		slide(dx, dy) {
+			const left = el.scrollLeft - dx / scale;
+			const top = el.scrollTop - dy / scale;
+			el.scrollLeft = left;
+			el.scrollTop = top;
+			// An axis that couldn't go any further is done.
+			return { x: Math.abs(el.scrollLeft - left) >= 1, y: Math.abs(el.scrollTop - top) >= 1 };
 		}
-		event.preventDefault();
-		el.scrollLeft = press.left - dx / scale;
-		el.scrollTop = press.top - dy / scale;
-		mark(event);
-	};
-	const finish = (event, released) => {
-		if (!press || event.pointerId !== press.id) return;
-		const { lifted, button } = press;
-		press = null;
-		if (!lifted) return;
-		el.releasePointerCapture?.(event.pointerId);
-		el.classList.remove("is-panning");
-		if (released) {
-			// The click or menu a drag's release makes wasn't asked for.
-			if (button === 0) swallowClick = true;
-			else swallowMenu = true;
-			mark(event);
-			const velocity = throwVelocity(marks, now());
-			if (worthGliding(velocity) && !reducesMotion()) {
-				glide = { velocity, at: now() };
-				frame = requestAnimationFrame(glideFrame);
-			}
-		}
-		marks = [];
-	};
-	const onUp = (event) => finish(event, true);
-	// Only while a press is live: lostpointercapture also follows every ordinary release, before its click.
-	const onCancel = (event) => {
-		if (!press || event.pointerId !== press.id) return;
-		swallowClick = false;
-		finish(event, false);
-	};
-	const onClick = (event) => {
-		if (!swallowClick) return;
-		swallowClick = false;
-		event.preventDefault();
-		event.stopImmediatePropagation();
-	};
-	const onMenu = (event) => {
-		if (!swallowMenu) return;
-		swallowMenu = false;
-		event.preventDefault();
-		event.stopPropagation();
-	};
+	});
 	const onEnter = () => el.classList.toggle("is-pannable", el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth);
-
 	const listeners = [
-		["pointerdown", onDown],
-		["pointermove", onMove],
-		["pointerup", onUp],
-		["pointercancel", onCancel],
-		["lostpointercapture", onCancel],
 		["pointerenter", onEnter],
-		["wheel", stopGlide, { passive: true }],
-		["click", onClick, { capture: true }],
-		["contextmenu", onMenu, { capture: true }]
+		["wheel", drag.stop, { passive: true }]
 	];
 	for (const [type, fn, options] of listeners) el.addEventListener(type, fn, options);
 
@@ -223,7 +130,7 @@ function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {
 	resizes?.observe(el);
 
 	return () => {
-		stopGlide();
+		drag.off();
 		resizes?.disconnect();
 		for (const [type, fn, options] of listeners) el.removeEventListener(type, fn, options);
 	};
