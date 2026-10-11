@@ -99,7 +99,7 @@ describe("painting a group drawn as one", () => {
 	for (let step = 0; step < 3; step++) ridge.push(neighbour(g, ridge.at(-1), 0));
 
 	it("lays the whole group along a stroke of its shape", () => {
-		const painted = paintTerrain(blankRealm(), g, ridge, CRAG, () => 0.5);
+		const painted = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
 		expect(ridge.map((place) => pictureOf(CRAG, painted.variants[hexIndex(g, place)]))).toEqual([0, 1, 2, 3].map((n) => pictureCount(CRAG) + n));
 		expect(brokenPictures(g, painted)).toEqual([]);
 	});
@@ -110,8 +110,8 @@ describe("painting a group drawn as one", () => {
 	});
 
 	it("picks the rest again when one of its hexes is painted, so none is left broken", () => {
-		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, () => 0.5);
-		const stepped = paintTerrain(laid, g, [ridge[1]], CRAG);
+		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
+		const stepped = paintTerrain(laid, g, [ridge[1]], CRAG, { step: true });
 		expect(pictureOf(CRAG, stepped.variants[hexIndex(g, ridge[1])])).toBeLessThan(pictureCount(CRAG));
 		expect(brokenPictures(g, stepped)).toEqual([]);
 		expect(ridge.some((place) => isJoined(stepped, place))).toBe(false);
@@ -122,9 +122,9 @@ describe("painting a group drawn as one", () => {
 	});
 
 	it("leaves the terrain a stroke passes over as it was, so extending a patch keeps its pictures", () => {
-		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, () => 0.5);
+		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
 		const beyond = neighbour(g, ridge.at(-1), 0);
-		const extended = paintTerrain(laid, g, [...ridge, beyond], CRAG, () => 0.5);
+		const extended = paintTerrain(laid, g, [...ridge, beyond], CRAG, { random: () => 0.5 });
 		expect(ridge.map((place) => extended.variants[hexIndex(g, place)])).toEqual(ridge.map((place) => laid.variants[hexIndex(g, place)]));
 		expect(extended.variants[hexIndex(g, beyond)]).toBeGreaterThan(0);
 		expect(paintTerrain(laid, g, ridge, CRAG)).toBe(laid);
@@ -132,10 +132,10 @@ describe("painting a group drawn as one", () => {
 
 	it("never lays one over a river or a Holding, and picks one again that a new one cuts through", () => {
 		const wet = { ...blankRealm(), rivers: [[ridge[1], neighbour(g, ridge[1], 1)]] };
-		const painted = paintTerrain(wet, g, ridge, CRAG, () => 0.5);
+		const painted = paintTerrain(wet, g, ridge, CRAG, { random: () => 0.5 });
 		expect(ridge.some((place) => isJoined(painted, place))).toBe(false);
 
-		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, () => 0.5);
+		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
 		const crossed = layRiver(laid, g, [ridge[2], neighbour(g, ridge[2], 1)]);
 		expect(ridge.some((place) => isJoined(crossed, place))).toBe(false);
 		expect(brokenPictures(g, crossed)).toEqual([]);
@@ -145,7 +145,7 @@ describe("painting a group drawn as one", () => {
 	});
 
 	it("picks one again when the Realm's hexes are laid out another way and its hexes no longer lie as drawn", () => {
-		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, () => 0.5);
+		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
 		const rows = realmGeometry({ layout: "evenRows" });
 		expect(brokenPictures(rows, laid)).not.toEqual([]);
 		const relaid = relayRealm(laid, rows);

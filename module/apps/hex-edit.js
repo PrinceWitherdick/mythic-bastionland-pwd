@@ -131,7 +131,7 @@ export function writeHexField(scene, hex, field, value) {
 	return editRealm(scene, (realm, g) => {
 		switch (field) {
 			case "terrain":
-				return paintTerrain(realm, g, [hex], whole(value));
+				return paintTerrain(realm, g, [hex], whole(value), { step: true });
 			case "kind":
 				if (value === kindHere(featureAt(realm, hex))) return realm;
 				return placeFeature(realm, g, hex, value === "none" ? null : { kind: value });

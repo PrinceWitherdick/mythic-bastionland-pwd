@@ -190,6 +190,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 	/** @type {PaintDrag|null} */
 	#drag = null;
 
+	/** A click on a hex of the brush's terrain, waiting to see whether it starts a drag. */
+	#stepping = null;
+
 	/** @type {PIXI.Graphics|null} */
 	#preview = null;
 
@@ -566,7 +569,21 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			return;
 		}
 		if (erase) return;
-		editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], RealmPanel.terrain));
+		const terrain = RealmPanel.terrain;
+		if (terrainAt(realm, g, hex) !== terrain) {
+			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
+			return;
+		}
+		// Clicking a hex of the brush's terrain steps it on to its next picture. Foundry calls the click
+		// when the button goes down, before it knows whether a drag follows, and a drag out from a forest
+		// should leave the forest be, so the step waits for the button to come up and a drag calls it off.
+		const stepping = {};
+		this.#stepping = stepping;
+		window.addEventListener("pointerup", () => {
+			if (this.#stepping !== stepping) return;
+			this.#stepping = null;
+			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
+		}, { once: true, capture: true });
 	}
 
 	/**
@@ -590,6 +607,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 	/** @override */
 	_onDragLeftStart(event) {
+		this.#stepping = null;
 		const g = sceneGeometry(canvas.scene);
 		// Where the drag began, not where the pointer has got to by now.
 		const origin = event.interactionData?.origin;

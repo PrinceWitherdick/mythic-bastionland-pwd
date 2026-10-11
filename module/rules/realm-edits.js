@@ -35,29 +35,30 @@ const copyRealm = (realm) => ({
  * Each hex painted picks which of its skin's pictures of the terrain it shows,
  * matching it to its neighbours of that terrain as the example map drew them,
  * hexes painted earlier in the stroke among them, or laying a group drawn as
- * one across hexes painted in the stroke. One hex painted on its own with the
- * terrain it has moves on to its next picture, so painting it over and over
- * goes through every one; a stroke across many passes over those, so
- * extending a forest leaves the forest as it was. A group a painted hex was
- * part of is picked again.
+ * one across hexes painted in the stroke. A hex that already has the terrain
+ * is passed over, so extending a forest leaves the forest as it was, unless
+ * `step` is set: then it moves on to its next picture, so clicking it over
+ * and over goes through every one. A group a painted hex was part of is
+ * picked again.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}[]} hexes
  * @param {number} terrain 1-12.
- * @param {() => number} [random] From 0 up to 1, for the pictures' rolls.
+ * @param {object} [options]
+ * @param {boolean} [options.step] Move a hex that already has the terrain on to its next picture.
+ * @param {() => number} [options.random] From 0 up to 1, for the pictures' rolls.
  * @returns {import("./realm.js").Realm}
  */
-export function paintTerrain(realm, g, hexes, terrain, random = Math.random) {
+export function paintTerrain(realm, g, hexes, terrain, { step = false, random = Math.random } = {}) {
 	if (!isDie(terrain, TERRAIN.length)) return realm;
 	const next = copyRealm(realm);
 	next.variants ??= new Array(next.terrain.length).fill(0);
 	const painted = [];
-	const stroke = hexes.length > 1;
 	for (const hex of hexes) {
 		if (!inRealm(g, hex) || painted.some((done) => sameHex(done.hex, hex))) continue;
 		const index = hexIndex(g, hex);
 		const same = next.terrain[index] === terrain;
-		if (same && stroke) continue;
+		if (same && !step) continue;
 		painted.push({ hex, same });
 		next.terrain[index] = terrain;
 	}
