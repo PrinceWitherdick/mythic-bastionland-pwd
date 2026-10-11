@@ -204,6 +204,9 @@ function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {
 	let gutter = { x: 0, y: 0, top: 0, left: 0 };
 	const size = () => {
 		if (!el.isConnected) return;
+		// A tab that isn't showing measures nothing: its room is kept as it was, rather than folded
+		// away and moving the board by all of it when the tab is shown again.
+		if (!el.clientWidth || !el.clientHeight) return;
 		const s = drawnScale(el);
 		const measured = gutterFor({ width: el.clientWidth, height: el.clientHeight }, { width: innerWidth / s, height: innerHeight / s }, GUTTER_SHARE);
 		const next = { x: measured.x, y: pinBottom ? 0 : measured.y, top: pinTop ? 0 : measured.y, left: pinLeft ? 0 : measured.x };
