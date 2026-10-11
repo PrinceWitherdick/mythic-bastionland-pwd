@@ -146,6 +146,22 @@ vi.mock("../../module/actions/site-journals.js", () => ({ SITE_JOURNALS_SETTING:
 
 vi.mock("../../module/actions/timeline-events.js", async (importOriginal) => ({ ...(await importOriginal()), timelineMythCompleted: vi.fn() }));
 
+// Each thread kept as a list of rows by its id, so the recorders and the story's own rows can be read back.
+vi.mock("../../module/actions/timeline-store.js", () => ({
+	ensureTimelineJournal: vi.fn(),
+	findTimelineJournal: () => world.timelineJournal,
+	timelinePages: (journal) => journal?.pages ?? [],
+	trackFor: (target) => {
+		if (target === "company") return { trackId: "company", kind: "company", name: "The Company" };
+		return target?.id ? { trackId: target.id, kind: target.type ?? "realm", name: target.name } : null;
+	},
+	mutateTrack: vi.fn(async (track, change) => {
+		const result = change(world.timeline[track.trackId]?.entries ?? []);
+		world.timeline[track.trackId] = { kind: track.kind, name: track.name, entries: result.entries };
+		return result;
+	})
+}));
+
 vi.mock("../../module/actions/time.js", () => ({
 	announcePhase: vi.fn(),
 	closeSeason: vi.fn(),
@@ -253,8 +269,9 @@ class FakeDocument {
 	}
 
 	async createEmbeddedDocuments(_type, items) {
-		this.items.push(...items);
-		return items;
+		const made = items.map((item) => ({ ...item, id: `item${++nextId}` }));
+		this.items.push(...made);
+		return made;
 	}
 
 	getFlag(scope, key) {
@@ -297,6 +314,8 @@ beforeEach(() => {
 		told: [],
 		shared: { version: 1, hexes: {} },
 		sighted: {},
+		timeline: {},
+		timelineJournal: null,
 		actors: [],
 		journal: [],
 		folders: [],
@@ -378,9 +397,33 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 			calendar: BEFORE,
 			notes: "<p>Mine</p>",
 			seasons: { "3-winter": { notes: "Mine" } },
-			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false }
+			settings: { weather: "clear", cityQuest: { seen: [4] }, sessionEnd: { promised: null }, siteJournals: false },
+			// No Timeline yet, so removing the test world removes the one it made.
+			timeline: null
 		});
 		expect(world.toolkit.system.notes).toContain("<h2>Where we left off</h2>");
+	});
+
+	it("writes the Timeline as the story goes: every thread, by hand and by itself, each row in its Season", async () => {
+		await populateTestWorld();
+		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
+		const squire = world.actors.find((actor) => actor.system.isSquire);
+		const domain = world.actors.find((actor) => actor.type === "domain");
+		const rows = (target) => world.timeline[target]?.entries ?? [];
+		const titled = (target) => rows(target).map((row) => [row.season, row.source, row.title]);
+		// Every thread has rows written by hand, and the Company's begins at Court.
+		for (const thread of ["company", isolde.id, corvin.id, oswin.id, squire.id, domain.id, world.scene.id]) {
+			expect(rows(thread).some((row) => row.source === "hand")).toBe(true);
+		}
+		expect(titled("company")[0]).toEqual(["1-spring", "hand", "Presented at Court"]);
+		expect(titled(isolde.id)).toContainEqual(["2-2-spring", "hand", "Grew Old"]);
+		// What the game writes by itself, though the story makes it by hand: Scars, the Domain's founding and its Crisis Roll.
+		expect(rows(corvin.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-spring", "2-2-harvest"]);
+		expect(rows(isolde.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-harvest"]);
+		expect(rows(domain.id).map((row) => row.source)).toEqual(expect.arrayContaining(["founded", "crisis", "hand"]));
+		expect(rows(world.scene.id).some((row) => row.source === "founded")).toBe(true);
+		// The recap goes on the Timeline, as the Ending a Session window's tickbox has it.
+		expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ shareRecap: true }));
 	});
 
 	it("flags everything it makes", async () => {
@@ -705,6 +748,29 @@ describe("running it again", () => {
 		await populateTestWorld();
 		expect(world.settings).toEqual(kept);
 		expect(drawWeather).toHaveBeenCalled();
+	});
+
+	it("takes back what it wrote on the Timeline, leaving what was there before", async () => {
+		const page = (id, entries) => ({ id, system: { entries } });
+		const company = page("company-page", { a: { title: "Mine" }, b: { title: "The story's" } });
+		const isolde = page("isolde-page", { c: { title: "The story's" } });
+		world.timelineJournal = { pages: [company, isolde], delete: vi.fn(), updateEmbeddedDocuments: vi.fn(), deleteEmbeddedDocuments: vi.fn(async (_type, ids) => { world.timelineJournal.pages = world.timelineJournal.pages.filter((each) => !ids.includes(each.id)); }) };
+		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, timeline: { pages: { "company-page": ["a"] } } } } };
+		world.toolkit.update = vi.fn();
+
+		await populateTestWorld();
+		expect(world.timelineJournal.deleteEmbeddedDocuments).toHaveBeenCalledWith("JournalEntryPage", ["isolde-page"]);
+		expect(world.timelineJournal.updateEmbeddedDocuments).toHaveBeenCalledWith("JournalEntryPage", [{ _id: "company-page", "system.entries.b": expect.any(foundry.data.operators.ForcedDeletion) }]);
+		expect(world.timelineJournal.delete).not.toHaveBeenCalled();
+	});
+
+	it("deletes the Timeline it made", async () => {
+		world.timelineJournal = { pages: [], delete: vi.fn(), deleteEmbeddedDocuments: vi.fn() };
+		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, timeline: null } } };
+		world.toolkit.update = vi.fn();
+
+		await populateTestWorld();
+		expect(world.timelineJournal.delete).toHaveBeenCalled();
 	});
 
 	it("does nothing unless the GM confirms", async () => {

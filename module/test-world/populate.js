@@ -40,6 +40,9 @@ import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../a
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
+import { timelineCrisisRoll, timelineFounded, timelineScar } from "../actions/timeline-events.js";
+import { timelineNow } from "../actions/timeline-record.js";
+import { ensureTimelineJournal, findTimelineJournal, mutateTrack, timelinePages, trackFor } from "../actions/timeline-store.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
 import { drawWeather, setWeather } from "../actions/weather.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -59,6 +62,7 @@ import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../
 import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { crisisRollsDue } from "../rules/season-log.js";
+import { COMPANY_TRACK, addEntry } from "../rules/timeline.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { sightable } from "../rules/sighted.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
@@ -270,13 +274,13 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; and the Referee Toolkit's Seasons and notes filled in.`,
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
 			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the Referee Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
@@ -340,6 +344,7 @@ async function removeTestWorld() {
 	const before = toolkit?.getFlag(SYSTEM_ID, BEFORE_FLAG);
 	if (before) {
 		await setCalendar(before.calendar);
+		await removeTimelineRows(before);
 		// A test world made before the settings were kept leaves them as they are.
 		for (const [key, value] of Object.entries(before.settings ?? {})) await game.settings.set(SYSTEM_ID, key, value);
 		if (before.settings) await drawWeather();
@@ -351,6 +356,37 @@ async function removeTestWorld() {
 	}
 	if (!canvas.scene && game.scenes.active) await game.scenes.active.view();
 	ui.notifications.info(`Removed the test world: ${actors} actors, ${scenes} Realm, ${entries} Sites and ${messages} chat messages.${before ? " The calendar, the weather, the City Quest and the Referee Toolkit are as they were." : ""}`);
+}
+
+/**
+ * Take what the test world wrote off the Timeline: the Timeline itself when
+ * the test world made it, or else every page and row it added. A test world
+ * made before the Timeline was kept leaves it as it is.
+ * @param {object} before The toolkit's BEFORE_FLAG.
+ */
+async function removeTimelineRows(before) {
+	const journal = findTimelineJournal();
+	if (!journal || !("timeline" in before)) return;
+	if (!before.timeline) {
+		await journal.delete();
+		return;
+	}
+	const kept = before.timeline.pages ?? {};
+	const added = timelinePages(journal).filter((page) => !(page.id in kept)).map((page) => page.id);
+	if (added.length) await journal.deleteEmbeddedDocuments("JournalEntryPage", added);
+	const updates = timelinePages(journal).flatMap((page) => {
+		const rows = Object.keys(page.system?.entries ?? {}).filter((id) => !kept[page.id]?.includes(id));
+		return rows.length ? [{ _id: page.id, ...Object.fromEntries(rows.map((id) => deletionEntry(`system.entries.${id}`))) }] : [];
+	});
+	if (updates.length) await journal.updateEmbeddedDocuments("JournalEntryPage", updates);
+}
+
+/**
+ * @returns {{pages: Record<string, string[]>}|null} Each of the Timeline's pages and its rows, by id, or null while there's no Timeline.
+ */
+function timelineBefore() {
+	const journal = findTimelineJournal();
+	return journal ? { pages: Object.fromEntries(timelinePages(journal).map((page) => [page.id, Object.keys(page.system?.entries ?? {})])) } : null;
 }
 
 /** Build the test world, keeping what it changes so removing it can put that back. */
@@ -367,9 +403,12 @@ async function buildTestWorld() {
 			calendar: getCalendar(),
 			notes: toolkit.system.notes,
 			seasons: foundry.utils.deepClone(toolkit.system.seasons ?? {}),
-			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))]))
+			settings: Object.fromEntries(SETTINGS.map((key) => [key, foundry.utils.deepClone(game.settings.get(SYSTEM_ID, key))])),
+			timeline: timelineBefore()
 		}
 	});
+	// So the story's rows have somewhere to go from its first.
+	await ensureTimelineJournal();
 	// So its Sites get their Journal entries, whatever this world had chosen. Removing it puts the setting back.
 	await game.settings.set(SYSTEM_ID, SITE_JOURNALS_SETTING, true);
 
@@ -519,6 +558,24 @@ class TestGame {
 	/** @param {object} myth @returns {string} Its name, from the GM's import where there is one. */
 	mythName(myth) {
 		return myth ? mythEntry(this.index, myth).name : "the Myth";
+	}
+
+	/**
+	 * Write a row on a thread of the Timeline by hand, as its New Entry button
+	 * does, in the Season it is now.
+	 * @param {Actor|Scene|string} target An actor, the Realm, or COMPANY_TRACK.
+	 * @param {string} title
+	 * @param {{place?: string, body?: string}} [details]
+	 */
+	async chronicle(target, title, { place = "", body = "" } = {}) {
+		const track = trackFor(target);
+		if (!track) return;
+		const entry = { season: timelineNow(), title, place, body, source: "hand", createdAt: Date.now(), authorId: game.user.id };
+		try {
+			await mutateTrack(track, (entries) => addEntry(entries, entry, foundry.utils.randomID), { create: true });
+		} catch (error) {
+			console.warn(`${SYSTEM_ID} | Couldn't write "${title}" on the Timeline`, error);
+		}
 	}
 
 	/** @param {object} changes Parts of the calendar to move on. */
@@ -901,12 +958,13 @@ class TestGame {
 		}
 		if (!foundry.utils.isEmpty(update)) await actor.update(update);
 		const name = location ? `${text("name")} (${location})` : text("name");
-		await actor.createEmbeddedDocuments("Item", [{
+		const [item] = await actor.createEmbeddedDocuments("Item", [{
 			type: "scar",
 			name,
 			system: { roll: scar.roll, season: seasonKey(getCalendar()), description: scarDescription(text("flavour"), text("effect")) }
 		}]);
 		await postCard(actor, "scar", { faces, roll: scar.roll, name: text("name"), flavour: text("flavour"), effect: text("effect"), location, lines }, { rolls });
+		if (item) await timelineScar(actor, item, text("effect"));
 		return name;
 	}
 
@@ -969,6 +1027,9 @@ class TestGame {
 		await this.spark(seat?.hex, "civilisation", 0);
 		await this.tell(seat?.hex);
 		await this.partyNote(seat?.hex, "Home, sort of. The cook talks if you carry her water. The steward hates Oswin already.");
+		await this.chronicle(COMPANY_TRACK, "Presented at Court", { place: this.names.seat, body: "The Company take their places as Courtiers. The steward keeps a cold hall; the kitchens are warmer, and the cook talks." });
+		await this.chronicle(isolde, "Charmed the envoy", { place: this.names.seat, body: "Courtesy at the high table, and a place riding with the envoy's household." });
+		await this.chronicle(oswin, "Crossed the steward", { place: this.names.seat, body: "A word too many at the high table. The steward hasn't forgotten it." });
 		await this.note(dwelling?.hex, `${this.names.dwelling}. Said at Court to take in travellers and ask no questions. Not visited yet.`);
 		// Heard of at Court, so the players' Places hold it before the Company goes there.
 		await this.tell(dwelling?.hex);
@@ -988,6 +1049,7 @@ class TestGame {
 				await this.spark(hex, "people", 1);
 				await this.tell(hex);
 				await this.partyNote(hex, "The Seer took a lock of hair from each of us. WHY? Don't give them anything else.");
+				await this.chronicle(COMPANY_TRACK, "The Seer's price", { place: this.names.sanctum, body: "A lock of hair from each Knight, and no reason given." });
 				await this.omen(first);
 				const scar = await this.scar(corvin, 6, 1);
 				this.deeds.corvin.push(`Spring, Age 1: ambushed on the road to ${this.names.sanctum}, and took ${scar}.`);
@@ -1026,6 +1088,7 @@ class TestGame {
 					await this.spark(hex, "nature", 2);
 					await this.tell(hex);
 					await this.partyNote(hex, "Do NOT wade. Pike. The bell is still down there, and so is the reliquary.");
+					await this.chronicle(this.scene, `The bell of ${this.names.ruin}`, { place: this.names.ruin, body: "Rung once to drive the pike off, then lost in the silt. The reliquary is still down there." });
 					// A Ruin hints at a Myth the Realm doesn't hold (p14), whispered to the Referee.
 					await echoRuin(this.scene);
 					const scar = await this.scar(isolde, 10, 10);
@@ -1038,6 +1101,7 @@ class TestGame {
 					await this.partyNote(hex, "Isolde won the tourney! The reeve owes us a supper. Collect it.");
 					await this.omen(first);
 					await this.award("tournament", [isolde]);
+					await this.chronicle(isolde, "Won the Harvest tourney", { place: this.names.tourney, body: "Unhorsed the champion on Eldermass, in front of half the Realm." });
 					this.deeds.isolde.push(`Harvest, Age 1: won the Harvest tourney at ${this.names.tourney}.`);
 				}
 			}
@@ -1063,6 +1127,7 @@ class TestGame {
 					await this.findBarrier();
 					// A pilgrim at the fire tells of the City (p172), and the Referee rolls its first Omen.
 					await rollCityOmen();
+					await this.chronicle(COMPANY_TRACK, "A pilgrim's tale", { body: "At the fire, a pilgrim told of a City that walks. Nobody slept well." });
 				}
 			},
 			onArrive: async (_stop, hex) => {
@@ -1096,6 +1161,7 @@ class TestGame {
 		this.deeds.corvin.push(`Between the Ages: named ${oswin.name} his successor.`);
 		// The group decides who grows older as the Age turns (p17).
 		await rollAging(isolde, "old");
+		await this.chronicle(isolde, "Grew Old", { body: "Grey at the temples now, and slower in the mornings." });
 		this.deeds.isolde.push("Between the Ages: grew Old. Grey at the temples now, and slower in the mornings.");
 	}
 
@@ -1117,12 +1183,16 @@ class TestGame {
 			},
 			onArrive: async (_stop, hex) => {
 				await this.award("battle", [isolde, oswin]);
+				await this.chronicle(COMPANY_TRACK, `The battle at ${this.names.domain}`, { place: this.names.domain, body: `${isolde.name} led the charge and ${oswin.name} held the gate. ${corvin.name} kept the baggage.` });
+				await this.chronicle(corvin, "Kept the baggage", { place: this.names.domain, body: "While the others fought. He won't hear the end of it." });
 				const scar = await this.scar(oswin, 12, 12);
 				this.deeds.oswin.push(`Spring, Age 2: fought at ${this.names.domain} and took ${scar} from a man he'll meet again.`);
 				await this.makeDomain(hex);
 				this.deeds.isolde.push(`Spring, Age 2: led the charge at ${this.names.domain}, and was granted it after.`);
 				this.deeds.corvin.push(`Spring, Age 2: kept the baggage while the others fought at ${this.names.domain}. Won't hear the end of it.`);
-				await this.makeSquire(isolde);
+				const squire = await this.makeSquire(isolde);
+				await this.chronicle(isolde, `Took ${SQUIRE_NAME} as her Squire`, { place: this.names.domain, body: "The steward's boy. Eager, clumsy, and reports everything to his mother." });
+				await this.chronicle(squire, `Squire to ${isolde.name}`, { place: this.names.domain, body: "Given to her the day she was granted the Domain. Rides a pony that bites." });
 				this.deeds.isolde.push(`Spring, Age 2: took ${SQUIRE_NAME}, the steward's boy, as her Squire.`);
 				await this.feast("sceptremass");
 				// The Circle's week riding the bounds is up before the Season is.
@@ -1174,6 +1244,9 @@ class TestGame {
 		await this.note(final, `The Company's camp on the road to ${this.mythName(myth)}. Smoke to the north at dusk; nobody has gone to look yet. It's been raining since noon.`);
 		await this.spark(final, "people", 2);
 		await this.partyNote(final, "Camp. Smoke to the north: look in the Morning. Corvin wants a rest day.");
+		await this.chronicle(COMPANY_TRACK, "Smoke to the north", { place: REALM_NAME, body: "Seen from camp at dusk. Nobody has gone to look yet." });
+		await this.chronicle(oswin, "Courting the envoy", { place: this.names.domain, body: `He sits in the Circle at ${this.names.domain}, and finds reasons to stay.` });
+		await this.chronicle(this.scene, "The villagers blame the Company", { place: this.names.domain, body: `Omens of ${this.mythName(myth)} keep turning up around ${this.names.domain}.` });
 		await editMythNote(this.scene, myth, { note: `Its Omens keep turning up around ${this.names.domain}, and the villagers are starting to blame the Company. They're a day or two from it now.` });
 		const rumoured = this.myth(third);
 		if (rumoured) await editMythNote(this.scene, rumoured, { note: "One Omen, met on the road north. The players haven't tied it to anything yet." });
@@ -1247,6 +1320,7 @@ class TestGame {
 	 * their pony. By the book only a Company of one or two Knights takes
 	 * Squires; the Referee allowed this one, as Take a Squire lets a GM.
 	 * @param {Actor} knight
+	 * @returns {Promise<Actor>} The Squire.
 	 */
 	async makeSquire(knight) {
 		const rolls = [];
@@ -1288,6 +1362,7 @@ class TestGame {
 			lines,
 			note: t("squire.hint")
 		}, { rolls });
+		return squire;
 	}
 
 	/**
@@ -1318,6 +1393,8 @@ class TestGame {
 			}
 		});
 		await linkKnightDomain(isolde, this.domain);
+		await timelineFounded(isolde, this.domain, this.scene);
+		await this.chronicle(this.domain, "The palisade burns", { body: "Burnt in two places during the battle, and only half mended. Famine in the stores." });
 		await this.crisis(this.domain);
 		await this.setTask("steward", { what: "Find where the grain went, before the Famine takes the village", scope: "season", risk: "none" });
 		await this.setTask("circle", { what: "Ride the bounds and count the burnt farms", scope: "week", risk: "vig" });
@@ -1362,6 +1439,7 @@ class TestGame {
 		const [chosen] = drawn;
 		if (!chosen) return;
 		await domain.update({ "system.crises": [...domain.system.crises, chosen], "system.crisisRolled": seasonKey(getCalendar()) });
+		await timelineCrisisRoll(domain, { result: "dilemma", crises: [t(`domain.crises.${chosen}.name`)] });
 		await postCard(domain, "report", {
 			title: t("domain.crisisRoll"),
 			description: t("domain.crisisRollHint"),
@@ -1673,7 +1751,8 @@ class TestGame {
 			situations,
 			glory: [],
 			plans: `Go and look at the smoke in the Morning, then on to ${this.mythName(this.myth(this.mythNumbers.second))}. ${corvin.name} wants to rest a day first; nobody else does.`,
-			recap: "A skirmish on the road in the Morning, and a wet Afternoon in camp. Short session: two players were late."
+			recap: "A skirmish on the road in the Morning, and a wet Afternoon in camp. Short session: two players were late.",
+			shareRecap: true
 		});
 	}
 }
