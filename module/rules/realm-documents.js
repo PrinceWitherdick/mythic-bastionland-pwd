@@ -12,7 +12,8 @@
 import { noFogSceneData, paperSceneData, replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
-import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures } from "./realm-skins.js";
+import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
+import { pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
 import { MAP_ROLES, hidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
@@ -74,13 +75,14 @@ const pieceSize = (g) => ({ width: 2 * g.radius, height: g.size });
  * Each picture is the GM's own where they've given one, otherwise the look's
  * skin in its colour set.
  * @param {import("./realm-skins.js").RealmLook|null} [look] The world's Realm look. Omit for the default.
- * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean}>, holding: Record<string, {src: string}>,
- *   landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>, seat: {src: string},
- *   river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
+ * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean, pictures?: string[]}>,
+ *   holding: Record<string, {src: string}>, landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>,
+ *   seat: {src: string}, river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
  *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null}} A terrain picture
  *   is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex
- *   takes its place, as on the Blank Realm sheet. `lake` is there when the skin joins its lakes up; a GM's own Lake
- *   picture is left as it is.
+ *   takes its place, as on the Blank Realm sheet. It has `pictures`, its own first, when the skin draws the terrain
+ *   more than one way, in pictureOf's order; a GM's own picture is the only one. `lake` is there when the skin joins
+ *   its lakes up; a GM's own Lake picture is left as it is.
  */
 export function realmTextures(look = null) {
 	const { skin, palette, custom } = normaliseRealmLook(look);
@@ -94,7 +96,16 @@ export function realmTextures(look = null) {
 		terrain: Object.fromEntries(TERRAIN.map((key, index) => {
 			const name = PICTURE_NAME.terrain(index + 1);
 			const own = custom.files[name];
-			if (!own) return [index + 1, { src: `${dir}/${name}.svg`, icon: false, givesWay: features.holdingsGiveWay }];
+			if (!own) {
+				const extras = terrainExtraPictures(skin, index + 1);
+				const src = `${dir}/${name}.svg`;
+				return [index + 1, {
+					src,
+					icon: false,
+					givesWay: features.holdingsGiveWay,
+					...(extras.length ? { pictures: [src, ...extras.map((extra) => `${dir}/${extra}.svg`)] } : {})
+				}];
+			}
 			const icon = custom.terrainFit === "icon";
 			return [index + 1, { src: own, icon, givesWay: icon }];
 		})),
@@ -111,6 +122,14 @@ export function realmTextures(look = null) {
 		colours: sceneColours(palette)
 	};
 }
+
+/**
+ * @param {{src: string, pictures?: string[]}} picture A terrain's, from realmTextures.
+ * @param {number} terrain 1-12.
+ * @param {number} roll The hex's roll for its picture, or 0 for the skin's own.
+ * @returns {string} The picture of the terrain that hex shows: the skin's own where it has no other.
+ */
+export const terrainPicture = (picture, terrain, roll) => picture.pictures?.[pictureOf(terrain, roll)] ?? picture.src;
 
 /**
  * @param {object|null|undefined} data A Scene, Tile or Drawing, or its data.
@@ -263,7 +282,8 @@ export function realmDocuments(realm, g, textures) {
 		if (!terrain) continue;
 		const key = hexKey(hex);
 		const picture = textures.terrain[terrain];
-		const src = openWater.has(key) ? textures.lake.water.src : picture.src;
+		const roll = realm.variants?.[hexIndex(g, hex)] || 0;
+		const src = openWater.has(key) ? textures.lake.water.src : terrainPicture(picture, terrain, roll);
 		// An icon of the GM's own stands upright inside the hex's box; a picture of the whole hex is turned to fit it.
 		const shape = picture.icon
 			? { width: g.hexWidth * ICON_SCALE.terrain, height: g.hexHeight * ICON_SCALE.terrain, rotation: 0 }
@@ -277,7 +297,7 @@ export function realmDocuments(realm, g, textures) {
 				alpha: showing(traced || (picture.givesWay && holdingHexes.has(key))),
 				sort: REALM_SORT.terrain,
 				locked: true,
-				flag: { kind: "terrain", terrain }
+				flag: { kind: "terrain", terrain, ...(roll ? { variant: roll } : {}) }
 			})
 		});
 	}
@@ -491,7 +511,11 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				if (!hex) break;
 				const index = hexIndex(g, hex);
 				if (realm.terrain[index]) problems.push({ kind: "terrain", reason: "duplicate", key: where });
-				else realm.terrain[index] = Number(flag.terrain) || 0;
+				else {
+					realm.terrain[index] = Number(flag.terrain) || 0;
+					const roll = Math.trunc(Number(flag.variant)) || 0;
+					if (roll > 0) (realm.variants ??= new Array(realm.terrain.length).fill(0))[index] = roll;
+				}
 				break;
 			}
 			case "holding":

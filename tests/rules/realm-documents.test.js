@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { replacementEntry } from "../../module/compat.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
-import { LAKE, REALM_FLAG, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
+import { LAKE, PICTURE_ROLL, REALM_FLAG, RIVER_SHAPES, TERRAIN, emptyRealm } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
 import { normaliseRealmPicture } from "../../module/rules/realm-map.js";
 import { riverNetworkPieces } from "../../module/rules/realm-rivers.js";
-import { PICTURE_NAME, REALM_PALETTES } from "../../module/rules/realm-skins.js";
+import { PICTURE_NAME, REALM_PALETTES, terrainExtraPictures } from "../../module/rules/realm-skins.js";
+import { pictureCount } from "../../module/rules/realm-pictures.js";
 import {
 	GRID_ALPHA,
 	ICON_SCALE,
@@ -22,7 +23,8 @@ import {
 	realmFromDocuments,
 	realmSceneData,
 	realmSceneFlag,
-	realmTextures
+	realmTextures,
+	terrainPicture
 } from "../../module/rules/realm-documents.js";
 
 const g = realmGeometry();
@@ -69,6 +71,77 @@ describe("realmTextures", () => {
 		expect(textures.seat.src).toBe("mine/crown.png");
 		expect(textures.holding.castle.src).toMatch(/woodcut\/parchment\/holding-castle\.svg$/);
 		expect(realmTextures({ custom: { files: { "terrain-marsh": "mine/marsh.png" } } }).terrain[1]).toMatchObject({ icon: false, givesWay: false });
+	});
+
+	it("lists the Blank Realm's other pictures of a terrain after its own", () => {
+		const peaks = realmTextures().terrain[TERRAIN.indexOf("peaks") + 1];
+		expect(peaks.pictures[0]).toBe(peaks.src);
+		expect(peaks.pictures.slice(1)).toEqual(terrainExtraPictures("sheet", TERRAIN.indexOf("peaks") + 1).map((name) => expect.stringMatching(new RegExp(`sheet/parchment/${name}\\.svg$`))));
+		expect(peaks.pictures.length).toBeGreaterThan(1);
+		// The legend's Lake is the only one, as is a GM's own picture.
+		expect(realmTextures().terrain[LAKE].pictures).toBeUndefined();
+		expect(realmTextures({ custom: { files: { "terrain-peaks": "mine/peaks.png" } } }).terrain[TERRAIN.indexOf("peaks") + 1].pictures).toBeUndefined();
+	});
+});
+
+describe("a hex's picture of its terrain", () => {
+	const PEAKS = TERRAIN.indexOf("peaks") + 1;
+	const realmOf = (variants) => ({ ...emptyRealm(g), terrain: new Array(g.cols * g.rows).fill(PEAKS), ...(variants ? { variants } : {}) });
+	const terrainTiles = (realm, textures = realmTextures()) => realmDocuments(realm, g, textures).tiles.filter(({ match }) => match.startsWith("terrain:"));
+
+	it("shows the picture its roll picks, and keeps the roll on its Tile", () => {
+		const textures = realmTextures();
+		const { pictures } = textures.terrain[PEAKS];
+		const [a, b, c] = [{ col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }];
+		const variants = new Array(g.cols * g.rows).fill(0);
+		variants[hexIndex(g, a)] = 3;
+		variants[hexIndex(g, b)] = pictureCount(PEAKS);
+		const tiles = terrainTiles(realmOf(variants), textures);
+		const [first, second, third] = [a, b, c].map((hex) => tiles.find(({ match }) => match === `terrain:${hexKey(hex)}`).data);
+		expect(first.texture.src).toBe(pictures[3]);
+		expect(flagOf(first)).toEqual({ kind: "terrain", terrain: PEAKS, variant: 3 });
+		expect(second.texture.src).toBe(pictures[0]);
+		expect(third.texture.src).toBe(pictures[0]);
+		expect(flagOf(third)).toEqual({ kind: "terrain", terrain: PEAKS });
+		expect(terrainPicture(textures.terrain[PEAKS], PEAKS, 0)).toBe(textures.terrain[PEAKS].src);
+	});
+
+	it("shows a group's pictures for rolls past PICTURE_ROLL, and its own picture where the skin has none", () => {
+		const peaks = realmTextures().terrain[PEAKS];
+		expect(terrainPicture(peaks, PEAKS, PICTURE_ROLL + 2)).toMatch(/sheet\/parchment\/terrain-peaks-joined-2\.svg$/);
+		expect(terrainPicture(peaks, PEAKS, PICTURE_ROLL + 99)).toBe(peaks.src);
+		const classic = realmTextures({ skin: "classic" }).terrain[PEAKS];
+		expect(terrainPicture(classic, PEAKS, PICTURE_ROLL + 2)).toBe(classic.src);
+	});
+
+	it("draws a Realm whose hexes never rolled just as before", () => {
+		expect(terrainTiles(realmOf(null)).every(({ data }) => data.texture.src === realmTextures().terrain[PEAKS].src)).toBe(true);
+		expect(terrainTiles(realmOf(null))).toEqual(terrainTiles(realmOf(new Array(g.cols * g.rows).fill(0))));
+	});
+
+	it("shows a GM's own picture, whatever the roll", () => {
+		const textures = realmTextures({ custom: { files: { "terrain-peaks": "mine/peaks.png" } } });
+		expect(terrainTiles(realmOf(new Array(g.cols * g.rows).fill(5)), textures).every(({ data }) => data.texture.src === "mine/peaks.png")).toBe(true);
+	});
+
+	it("reads the rolls back from the Tiles", () => {
+		const variants = new Array(g.cols * g.rows).fill(0);
+		variants[7] = 42;
+		const tiles = terrainTiles(realmOf(variants)).map(({ data }) => data);
+		expect(realmFromDocuments({ tiles }, g).realm.variants).toEqual(variants);
+		expect(realmFromDocuments({ tiles: terrainTiles(realmOf(null)).map(({ data }) => data) }, g).realm.variants).toBeUndefined();
+	});
+
+	it("rewrites a Tile whose roll changed, and drops a roll the Realm no longer has", () => {
+		const variants = new Array(g.cols * g.rows).fill(0);
+		variants[hexIndex(g, { col: 2, row: 2 })] = 2;
+		const tiles = terrainTiles(realmOf(variants)).map(({ match, data }) => ({ _id: match, ...data }));
+		const plan = planRealmSync(realmOf(null), g, realmTextures(), { tiles });
+		expect(plan.Tile.update).toHaveLength(1);
+		const [update] = plan.Tile.update;
+		expect(update).toMatchObject({ _id: "terrain:2,2", texture: { src: realmTextures().terrain[PEAKS].src } });
+		const [path, flag] = replacementEntry(`flags.${SYSTEM_ID}.${REALM_FLAG}`, { kind: "terrain", terrain: PEAKS });
+		expect(update[path]).toEqual(flag);
 	});
 });
 

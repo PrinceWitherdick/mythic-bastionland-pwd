@@ -139,9 +139,8 @@ describe("Realm pictures", () => {
 			...Object.values(textures.myth),
 			textures.seat,
 			...Object.values(textures.river),
-			...(textures.lake ? [textures.lake.water, ...Object.values(textures.lake.shore), textures.lake.mouth] : []),
-			...(textures.valley ? [textures.valley.floor, ...Object.values(textures.valley.river)] : [])
-		].map(({ src }) => src);
+			...(textures.lake ? [textures.lake.water, ...Object.values(textures.lake.shore), textures.lake.mouth] : [])
+		].flatMap(({ src, pictures, joined }) => [...(pictures ?? [src]), ...(joined ?? [])]);
 	});
 
 	it("ships every picture of every skin in every colour set", () => {

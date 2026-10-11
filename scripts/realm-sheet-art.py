@@ -11,10 +11,18 @@ and Landmarks also get a paper silhouette, filling the spaces their ink
 encloses, so their walls stay paper-coloured on any terrain, and the middle of
 those spaces, which is where the picture hangs in its hex.
 
-Needs Python 3 with PyMuPDF, numpy and potracer (pip install pymupdf numpy
-potracer). Run from the repository with the sheet's PDF:
+Given the Realm Sheets as well, it also traces the other pictures of each
+terrain that their example Realm is drawn with, into
+scripts/data/realm-sheet-variants.json, so that a Realm's hexes needn't all
+look alike. Only hexes whose picture sits whole inside them are taken, and
+groups of hexes drawn as one picture across their shared edges, each hex's
+part running right up to the edges it shares, to be laid together whole.
 
-    python scripts/realm-sheet-art.py path/to/Mythic_Bastionland_Blank_Realm.pdf
+Needs Python 3 with PyMuPDF, numpy and potracer (pip install pymupdf numpy
+potracer). Run from the repository with the sheet's PDF, and the Realm
+Sheets' if wanted:
+
+    python scripts/realm-sheet-art.py path/to/Mythic_Bastionland_Blank_Realm.pdf [path/to/Mythic_Bastionland_Realm_Sheets.pdf]
 """
 import json
 import sys
@@ -44,6 +52,58 @@ LANDMARKS = ["dwelling", "sanctum", "monument", "hazard", "curse", "ruin"]
 LEGEND_TOP = 0.83
 HOLDINGS_LEFT = 0.68
 LANDMARKS_LEFT = 0.5
+
+VARIANTS_OUT = Path(__file__).parent / "data" / "realm-sheet-variants.json"
+
+VARIANTS_SOURCE = "Traced from the example Realm on the Mythic Bastionland Realm Sheets, by Chris McDowall (Bastionland Press)."
+
+# The example Realm's hexes, as column,row on its map, whose picture of their
+# terrain lies whole inside them: none with a river, a Holding or a lake's
+# shore, and none drawn across into the next hex. Each Lake and Valley there
+# has a river or spills over, so those keep only the legend's picture.
+VARIANTS = {
+    "marsh": ["9,8", "10,8", "11,8"],
+    "heath": ["6,1", "6,2", "6,3", "7,1", "7,2", "8,1", "8,2", "10,6", "11,6", "11,7"],
+    "crag": ["9,11", "10,11", "10,12"],
+    "peaks": ["1,4", "1,5", "1,6", "2,4", "2,5", "2,6", "9,1", "10,1", "11,1", "3,7", "6,12", "7,12"],
+    "forest": ["1,2", "4,8", "3,9"],
+    "hills": ["6,6", "6,7", "9,5", "9,6"],
+    "meadow": ["9,3", "9,4", "10,3", "10,4", "10,10", "12,10", "11,11", "12,11"],
+    "bog": ["12,8", "8,9", "9,9", "10,9", "11,9", "12,9", "9,10", "11,10"],
+    "glade": ["4,1", "4,3", "3,4", "10,5", "11,5", "12,5"],
+    "plains": ["6,4", "5,6", "7,5", "8,5", "7,6", "8,6", "6,9", "4,11", "4,12", "9,7"],
+}
+
+# Groups of the example Realm's hexes, as column,row, drawn as one picture of
+# their terrain across the edges they share, as a forest's trees or a ridge of
+# crags run on from hex to hex. None has a river or a Holding.
+GROUPS = {
+    "marsh": [["9,8", "10,8"], ["10,7", "11,8"]],
+    "heath": [["12,6", "12,7"]],
+    "crag": [["9,11", "10,11", "11,12", "12,12"]],
+    "peaks": [["11,1", "12,1", "11,2", "12,2"], ["1,8", "2,8", "1,9", "2,9", "1,10", "1,11"]],
+    "forest": [["1,1", "2,1", "3,1", "2,2", "2,3"], ["1,2", "1,3"], ["4,8", "4,9", "3,9"]],
+    "hills": [["7,3", "8,3", "7,4", "8,4", "9,5"], ["4,5", "3,6", "4,6", "5,7"]],
+    "meadow": [["10,3", "10,4"]],
+    "glade": [["3,2", "3,3"], ["3,4", "4,3", "4,4"], ["12,4", "12,5"]],
+}
+
+# The six ways out of a hex in axial steps, clockwise from south-east, as
+# module/rules/realm-geometry.js has them.
+STEPS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
+
+# The example map's flat-topped hexes on the players' sheet (the second page,
+# which has no red ink), in that page's pixels: the middle of the first hex,
+# how far apart columns and rows stand, and a hex's size. Even columns stand
+# half a row lower.
+MAP_FIRST = (204.5, 191.4)
+MAP_STEP = (141, 156.8)
+MAP_HEX = (188, 157)
+# How far inside its outline a hex is cut out, leaving the printed grid behind.
+MAP_INSET = 5
+# Ink that reaches a hex's edge and is less than this share of its ink is a
+# neighbour's picture poking in, and is left out.
+NEIGHBOUR_SHARE = 0.12
 
 
 def legend_pictures(page):
@@ -98,9 +158,9 @@ def box_blur(values, radius, axis):
     return np.moveaxis((sums[2 * radius + 1:] - sums[:-2 * radius - 1]) / (2 * radius + 1), 0, axis)
 
 
-def enlarged_ink(rgb):
-    """The picture's ink, enlarged, as a mask. Twice over, a box blur rounds off the steps its pixels leave."""
-    ink = stretch(stretch(coverage(rgb), 1), 0)
+def enlarged_ink(inked):
+    """The picture's ink, from its coverage, enlarged, as a mask. Twice over, a box blur rounds off the steps its pixels leave."""
+    ink = stretch(stretch(inked, 1), 0)
     for _ in range(2):
         ink = box_blur(box_blur(ink, SCALE // 2, 1), SCALE // 2, 0)
     return ink > 0.5
@@ -175,18 +235,134 @@ def trace(mask, turdsize):
     return d
 
 
+def rgb_of(document, xref):
+    picture = fitz.Pixmap(document, xref)
+    if picture.colorspace is None or picture.colorspace.n != 3 or picture.alpha:
+        picture = fitz.Pixmap(fitz.csRGB, picture)
+    return np.frombuffer(picture.samples, np.uint8).reshape(picture.height, picture.width, 3).astype(float)
+
+
+def inside_hex(width, height, middle, inset):
+    """Which pixels of a box lie inside the flat-topped hex standing in it at `middle`, pulled in by `inset`."""
+    ys, xs = np.mgrid[0:height, 0:width] + 0.5
+    across, down = np.abs(xs - middle[0]), np.abs(ys - middle[1])
+    half_height = MAP_HEX[1] / 2 - inset
+    half_width = MAP_HEX[0] / 2 - inset * 2 / np.sqrt(3)
+    return (down <= half_height) & (across <= half_width - down * half_width / (2 * half_height))
+
+
+def neighbours_ink(ink, edge):
+    """The pieces of ink that reach the edge but are too small to be the hex's own picture."""
+    height, width = ink.shape
+    seen = np.zeros_like(ink)
+    poking = np.zeros_like(ink)
+    total = ink.sum()
+    for start in zip(*np.nonzero(ink & edge)):
+        if seen[start]:
+            continue
+        seen[start] = True
+        piece, queue = [start], deque([start])
+        while queue:
+            y, x = queue.popleft()
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    if 0 <= ny < height and 0 <= nx < width and ink[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True
+                        piece.append((ny, nx))
+                        queue.append((ny, nx))
+        if len(piece) < total * NEIGHBOUR_SHARE:
+            for at in piece:
+                poking[at] = True
+    return poking
+
+
+def axial(place):
+    """A column,row on the example map as axial steps, even columns standing half a row lower."""
+    column, row = map(int, place.split(","))
+    return column - 1, row - 1 - (column - 1) // 2
+
+
+def direction(place, other):
+    """The way from one hex to its neighbour, as an index into STEPS, or None when they aren't neighbours."""
+    (q, r), (q2, r2) = axial(place), axial(other)
+    step = (q2 - q, r2 - r)
+    return STEPS.index(step) if step in STEPS else None
+
+
+def sides(width, height, middle):
+    """Which of its six edges each pixel of a hex's box lies toward, by direction: the edge between corners k and k+1."""
+    ys, xs = np.mgrid[0:height, 0:width] + 0.5
+    angle = np.degrees(np.arctan2(ys - middle[1], xs - middle[0])) % 360
+    corner = np.degrees(np.arctan2(MAP_HEX[1] / 2, MAP_HEX[0] / 4))
+    return np.digitize(angle, [corner, 180 - corner, 180, 180 + corner, 360 - corner])
+
+
+def cut_hex(rgb, place, joined=()):
+    """A hex's coverage cut out of the map, and where its middle falls in that. Toward the
+    edges in `joined` its picture runs on into the next hex, so it is kept right up to them."""
+    width, height = MAP_HEX
+    column, row = map(int, place.split(","))
+    x = MAP_FIRST[0] + MAP_STEP[0] * (column - 1)
+    y = MAP_FIRST[1] + MAP_STEP[1] * (row - 1) + (MAP_STEP[1] / 2 if column % 2 == 0 else 0)
+    left, top = round(x - width / 2), round(y - height / 2)
+    inked = coverage(rgb[top:top + height, left:left + width])
+    middle = (x - left, y - top)
+    facing = np.isin(sides(width, height, middle), list(joined))
+    keep = inside_hex(width, height, middle, MAP_INSET) | (inside_hex(width, height, middle, 0) & facing)
+    # The edge is a thin band just inside where the hex is cut.
+    edge = keep & ~inside_hex(width, height, middle, MAP_INSET + 3) & ~facing
+    inked[~keep | neighbours_ink(keep & (inked > 0.3), edge)] = 0
+    return inked, middle
+
+
+def example_hexes(document):
+    """The coverage of each picked hex on the example map, cut out of the map, with the name its picture carries,
+    its place, and where its middle falls for those drawn as one with their neighbours."""
+    page = document[1]
+    images = page.get_images(full=True)
+    if len(images) != 1:
+        sys.exit("This doesn't look like the Realm Sheets: their second page should be one picture of the map.")
+    rgb = rgb_of(document, images[0][0])
+    for terrain in TERRAIN:
+        for number, place in enumerate(VARIANTS.get(terrain, []), start=2):
+            inked, _ = cut_hex(rgb, place)
+            yield f"terrain-{terrain}-{number}", place, None, inked
+    for terrain in TERRAIN:
+        number = 0
+        for group in GROUPS.get(terrain, []):
+            for place in group:
+                number += 1
+                joined = [side for side in (direction(place, other) for other in group) if side is not None]
+                inked, middle = cut_hex(rgb, place, joined)
+                yield f"terrain-{terrain}-joined-{number}", place, middle, inked
+
+
+def trace_variants(path):
+    document = fitz.open(path)
+    # A hex's height is how far apart rows stand, and its width across its corners four thirds of how far apart columns do.
+    art = {"$source": VARIANTS_SOURCE, "$hexHeight": MAP_STEP[1], "$hexWidth": round(MAP_STEP[0] * 4 / 3, 1)}
+    for name, place, middle, inked in example_hexes(document):
+        height, width = inked.shape
+        # Where it stood, so pictures that stood side by side can be laid side by side again.
+        entry = {"place": place, "width": width, "height": height, "ink": trace(enlarged_ink(inked), turdsize=8)}
+        if middle is not None:
+            # A picture drawn on into its neighbours must meet theirs exactly, so it hangs by its hex's middle.
+            entry = {"place": place, "middle": [round(middle[0], 1), round(middle[1], 1)], **entry}
+        art[name] = entry
+        print(f"{name}: {len(art[name]['ink'])} characters")
+    VARIANTS_OUT.write_text(json.dumps(art, indent="\t") + "\n", encoding="utf-8", newline="\n")
+    print(f"Wrote {VARIANTS_OUT}")
+
+
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3):
         sys.exit(__doc__)
     document = fitz.open(sys.argv[1])
     art = {"$source": SOURCE}
     for name, xref in legend_pictures(document[0]).items():
-        picture = fitz.Pixmap(document, xref)
-        if picture.colorspace is None or picture.colorspace.n != 3 or picture.alpha:
-            picture = fitz.Pixmap(fitz.csRGB, picture)
-        rgb = np.frombuffer(picture.samples, np.uint8).reshape(picture.height, picture.width, 3).astype(float)
-        ink = enlarged_ink(rgb)
-        entry = {"width": picture.width, "height": picture.height, "ink": trace(ink, turdsize=8)}
+        rgb = rgb_of(document, xref)
+        ink = enlarged_ink(coverage(rgb))
+        entry = {"width": rgb.shape[1], "height": rgb.shape[0], "ink": trace(ink, turdsize=8)}
         if not name.startswith("terrain"):
             solid = silhouette(ink)
             enclosed = solid & ~ink
@@ -205,6 +381,8 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(art, indent="\t") + "\n", encoding="utf-8", newline="\n")
     print(f"Wrote {OUT}")
+    if len(sys.argv) == 3:
+        trace_variants(sys.argv[2])
 
 
 if __name__ == "__main__":

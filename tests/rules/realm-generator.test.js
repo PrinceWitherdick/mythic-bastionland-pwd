@@ -26,6 +26,15 @@ const sidesOf = ({ col, row }) => [
 ].filter(Boolean);
 
 describe("generateRealm", () => {
+	it("rolls a picture for every hex of terrain, apart from the rest of the Realm's rolls", () => {
+		for (const realm of realms) {
+			expect(realm.variants).toHaveLength(realm.terrain.length);
+			expect(realm.variants.every((roll, index) => (realm.terrain[index] ? roll >= 1 : roll === 0))).toBe(true);
+		}
+		expect(new Set(realms[0].variants).size).toBeGreaterThan(10);
+		expect(generateRealm({ seed: seeds[0], geometry: g }).variants).toEqual(realms[0].variants);
+	});
+
 	it("rolls the same Realm from the same seed, and another from another", () => {
 		expect(generateRealm({ seed: "same", geometry: g })).toEqual(generateRealm({ seed: "same", geometry: g }));
 		expect(generateRealm({ seed: "same", geometry: g })).not.toEqual(generateRealm({ seed: "other", geometry: g }));
@@ -177,6 +186,7 @@ describe("generateRealm with a setup of the GM's own", () => {
 		for (const seed of ["k1", "k2", "k3"]) {
 			const realm = generateRealm({ seed, setup, geometry: g, base });
 			expect(realm.terrain).toEqual(base.terrain);
+			expect(realm.variants).toEqual(base.variants);
 			expect(realm.rivers).toEqual(base.rivers);
 			expect(realm.holdings).toEqual(base.holdings);
 			expect(realm.myths).not.toEqual(base.myths);

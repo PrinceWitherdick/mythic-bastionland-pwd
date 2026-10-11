@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexDistance, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { PICTURE_ROLL, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
+import { edgeKey, hexDistance, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { pictureCount, pictureOf } from "../../module/rules/realm-pictures.js";
 import {
 	barrierState,
 	clearRiver,
@@ -41,6 +42,37 @@ describe("paintTerrain", () => {
 		expect(terrainAt(painted, g, hex(3, 3))).toBe(10);
 		expect(terrainAt(realm, g, hex(1, 1))).toBe(8);
 		expect(paintTerrain(realm, g, [hex(1, 1)], 13)).toBe(realm);
+	});
+
+	it("rolls a lone hex's picture, and moves a hex painted the same on to its next", () => {
+		const realm = sampleRealm();
+		const at = (painted, place) => painted.variants[hexIndex(g, place)];
+		const painted = paintTerrain(realm, g, [hex(1, 1)], 4, () => 0.5);
+		expect(at(painted, hex(1, 1))).toBe(1 + PICTURE_ROLL / 2);
+		expect(at(painted, hex(3, 3))).toBe(0);
+		expect(realm.variants).toBeUndefined();
+
+		const again = paintTerrain(painted, g, [hex(1, 1)], 4, () => 0.9);
+		expect(pictureOf(4, at(again, hex(1, 1)))).toBe((pictureOf(4, 1 + PICTURE_ROLL / 2) + 1) % pictureCount(4));
+		expect(at(painted, hex(1, 1))).toBe(1 + PICTURE_ROLL / 2);
+		// The last picture comes round again to the skin's own, and a hex never rolled moves on from the skin's own.
+		const last = { ...again, variants: again.variants.map(() => pictureCount(4) - 1) };
+		expect(pictureOf(4, at(paintTerrain(last, g, [hex(1, 1)], 4), hex(1, 1)))).toBe(0);
+		expect(pictureOf(8, at(paintTerrain(realm, g, [hex(1, 1)], 8), hex(1, 1)))).toBe(1);
+	});
+
+	it("lays a painted hex's picture beside its neighbours' as the example map drew them", () => {
+		const realm = sampleRealm();
+		const at = (painted, place) => pictureOf(4, painted.variants[hexIndex(g, place)]);
+		// Peaks' first traced picture stood at 1,4 on the example map, with 1,5 south of it and 2,4 south-east.
+		const first = { ...realm, terrain: [...realm.terrain], variants: new Array(realm.terrain.length).fill(0) };
+		first.terrain[hexIndex(g, hex(5, 5))] = 4;
+		first.variants[hexIndex(g, hex(5, 5))] = 1;
+		const stroke = paintTerrain(first, g, [hex(5, 6), hex(6, 5)], 4, () => 0.5);
+		expect(at(stroke, hex(5, 6))).toBe(2);
+		expect(at(stroke, hex(6, 5))).toBe(4);
+		// Painted again, a hex goes through the pictures that fit before the rest.
+		expect(at(paintTerrain(stroke, g, [hex(5, 6)], 4), hex(5, 6))).not.toBe(2);
 	});
 });
 

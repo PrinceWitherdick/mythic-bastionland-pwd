@@ -8,6 +8,7 @@
  */
 import { createRandom } from "./random.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, TERRAIN, emptyRealm } from "./realm.js";
+import { keptHexes, mendPictures, rollPictures } from "./realm-pictures.js";
 import { BOOK_SETUP, SETUP_PARTS, isBookSetup, normaliseRealmSetup, setupBarriers } from "./realm-setup.js";
 import {
 	allHexes,
@@ -72,8 +73,17 @@ export function generateRealm({ seed, setup = null, geometry = null, base = null
 	const dry = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
 	const blocked = new Set(realm.barriers.map((barrier) => barrier.edge));
 	if (rules.roll.terrain) realm.terrain = generateTerrain(random, g, rules, dry);
+	else if (base?.terrain && base.variants) realm.variants = [...base.variants];
 	if (rules.roll.rivers) realm.rivers = [generateRiver(random, g, realm.terrain, blocked)].filter((course) => course.length);
 	if (rules.roll.holdings) realm.holdings = placeHoldings(random, g, realm, rules.holdings);
+	if (rules.roll.terrain) {
+		// Rolled apart from the rest, so the same seed still rolls the same Realm as before hexes had pictures to pick from.
+		// A group drawn as one keeps off rivers and Holdings, which would cut through it.
+		realm.variants = rollPictures(g, realm.terrain, createRandom(`${seed}:pictures`).float, keptHexes(g, realm));
+	} else if (realm.variants && (rules.roll.rivers || rules.roll.holdings)) {
+		// The kept pictures, but a group a new river or Holding now cuts through is picked again.
+		mendPictures(g, realm, createRandom(`${seed}:pictures`).float);
+	}
 	if (rules.roll.myths) realm.myths = placeMyths(random, g, realm, rules.myths);
 	if (rules.roll.landmarks) realm.landmarks = placeLandmarks(random, g, realm, rules.landmarks);
 	if (rules.roll.barriers) realm.barriers = placeBarriers(random, g, realm, setupBarriers({ ...rules, cols: g.cols, rows: g.rows }));
