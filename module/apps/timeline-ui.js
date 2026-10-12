@@ -6,7 +6,7 @@ import { companyPicture } from "../actions/company.js";
 import { read } from "../client-settings.js";
 import { COMPANY_TRACK, KIND_GROUPS, addEntry, documentUuid, isSeasonTurn, moveEntry, patchEntry, readEntries, realmSceneId, removeEntry } from "../rules/timeline.js";
 import { CUSTOM_TAG_ICON, DEFAULT_TAG_COLOUR, KIND_ICONS, TAG_NAME_MAX, TIMELINE_TAGS_FLAG, cleanColour, isKindTag, kindColourProperty, readKindColours } from "../rules/timeline-tags.js";
-import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadMenu, trackView } from "../rules/timeline-view.js";
+import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadGroups, threadMenu, trackView } from "../rules/timeline-view.js";
 import { clampScale, scrubTicks } from "../rules/timeline-scroll.js";
 import { escapeHTML } from "../rules/text.js";
 import { toHex } from "../rules/colour.js";
@@ -297,10 +297,13 @@ function toolbarContext({ hidden, tags, threads = [], hiddenTracks = [] }) {
 	const kinds = kindMenu(hidden, tags).map((line) => ({ ...line, label: line.tagName || t(`timeline.kinds.${line.kind}`), style: kindStyle(line.colour) }));
 	const count = hiddenCount(hidden, hiddenTracks, { kinds: kinds.map((line) => line.key), tracks: threads.map((thread) => thread.trackId) });
 	const chosen = chosenColours();
+	// A lone thread isn't offered to tick off.
+	const listed = threads.length > 1 ? threads : [];
 	return {
 		across: layoutAcross(),
 		kinds,
-		threads: threads.length > 1 ? threads : [],
+		threads: listed,
+		threadGroups: threadGroups(listed).map((group) => ({ ...group, label: t(`timeline.filter.groups.${group.kind}`) })),
 		hiddenCount: count,
 		hiddenLabel: t("timeline.filter.hidden", { count }),
 		colours: game.user?.isGM ? Object.keys(KIND_GROUPS).map((kind) => ({ kind, icon: KIND_ICONS[kind], label: kindName(kind), value: chosen[kind] ?? "", repainted: Boolean(chosen[kind]) })) : null
@@ -375,7 +378,7 @@ export async function boardContext() {
 		canEdit
 	});
 	const nameOf = (trackId) => byId.get(trackId)?.name ?? trackId;
-	const threads = threadMenu(tracks, hiddenTracks).map((line) => ({ ...line, label: nameOf(line.trackId), kindLabel: t(`timeline.threads.${line.kind}`) }));
+	const threads = threadMenu(tracks, hiddenTracks).map((line) => ({ ...line, label: nameOf(line.trackId) }));
 	const lanes = view.lanes.map((head) => ({ ...head, name: nameOf(head.trackId), kindLabel: t(`timeline.threads.${head.kind}`) }));
 	const periods = await wordPeriods(view.periods, canEdit, async (period, heading) => ({
 		cells: await Promise.all(period.cells.map(async (cell) => ({
@@ -669,8 +672,10 @@ export async function onTimelineAction(event, target) {
 	if (what === "layout") return game.settings.set(SYSTEM_ID, LAYOUT_SETTING, TIMELINE_LAYOUTS.includes(target.dataset.layout) ? target.dataset.layout : "down");
 	if (what === "coloursReset") {
 		coloursDraft.set(target.dataset.kind, null);
-		target.closest("[data-kind]")?.classList.remove("is-repainted");
-		return previewColours(timeline);
+		previewColours(timeline);
+		const row = target.closest("li[data-kind]");
+		if (row) fillColourRow(row);
+		return null;
 	}
 	if (what === "coloursCancel") return closeColours(timeline);
 	if (what === "coloursSave") {
@@ -728,6 +733,21 @@ function shownColour(row) {
 }
 
 /**
+ * Set a Colours row's picker, and its reset mark, from the draft, or from the
+ * saved colour where the kind has none. A draft outlives a redraw, and one
+ * reset (null) wears the kind's own colour rather than the saved one, which
+ * the redrawn row was given. After previewColours, so the row wears the draft.
+ * @param {HTMLElement} row
+ */
+function fillColourRow(row) {
+	const { kind, value } = row.dataset;
+	const drafted = coloursDraft.has(kind);
+	const colour = drafted ? coloursDraft.get(kind) : value;
+	if (drafted) row.classList.toggle("is-repainted", Boolean(colour));
+	row.querySelector("input[type=color]").value = colour || shownColour(row);
+}
+
+/**
  * Tick boxes in a Filter write the reader's Filter, and never reach the
  * form they're in: on a sheet they'd be taken for its own fields. The
  * Referee's colour pickers show their colour on the Timeline as they move.
@@ -752,13 +772,10 @@ function wireMenus(timeline, trackIds, signal) {
 	}, { signal });
 	const colours = timeline.querySelector('details[data-timeline-menu="colours"]');
 	if (!colours) return;
-	const fill = () => {
-		for (const row of colours.querySelectorAll("[data-kind]")) {
-			const picker = row.querySelector("input[type=color]");
-			const draft = coloursDraft.get(row.dataset.kind);
-			picker.value = draft || row.dataset.value || shownColour(row);
-		}
-	};
+	// The rows only: each row's reset button carries its kind too.
+	const fill = () => colours.querySelectorAll("li[data-kind]").forEach(fillColourRow);
+	// The draft on the redrawn Timeline before the open menu reads its colours.
+	previewColours(timeline);
 	if (colours.open) fill();
 	// Shut any way but Save, the draft is let go, as Cancel does.
 	colours.addEventListener("toggle", () => {
@@ -769,7 +786,7 @@ function wireMenus(timeline, trackIds, signal) {
 	let frame = 0;
 	signal.addEventListener("abort", () => cancelAnimationFrame(frame), { once: true });
 	colours.addEventListener("input", (event) => {
-		const row = event.target.closest("[data-kind]");
+		const row = event.target.closest("li[data-kind]");
 		if (!row) return;
 		coloursDraft.set(row.dataset.kind, cleanColour(event.target.value) || null);
 		row.classList.add("is-repainted");
@@ -779,7 +796,6 @@ function wireMenus(timeline, trackIds, signal) {
 		});
 	}, { signal });
 	colours.addEventListener("change", (event) => event.stopPropagation(), { signal });
-	previewColours(timeline);
 }
 
 /**

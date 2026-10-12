@@ -328,7 +328,7 @@
 /* ---------------------------------------------------------------- */
 
 .bastionland-gm-toolkit__page {
-	gap: 0.85rem;
+	--bastionland-page-gap: 0.85rem;
 }
 
 .bastionland-gm-toolkit__section {

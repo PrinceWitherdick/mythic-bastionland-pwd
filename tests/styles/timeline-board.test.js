@@ -12,16 +12,29 @@ const ruleOf = (selector) => {
 };
 
 describe("the corner over the Season column, read down", () => {
-	it("is painted the page's own colour", () => {
-		expect(ruleOf(".bastionland-timeline__corner,\n.bastionland-timeline__board > .bastionland-timeline__lane-head")).toMatch(/background: var\(--bastionland-paper\);/);
+	// User, 2026-10-10: on the page's sheen the corner stood out as a box in the top left.
+	// User, 2026-10-12: but a plain page didn't match the other tabs. So the page keeps its sheen,
+	// and the backings wear it too, laid where the page's lies behind them.
+	it("is painted the page's own colour, sheen and all", () => {
+		expect(ruleOf(".bastionland-timeline__corner,\n.bastionland-timeline__board > .bastionland-timeline__lane-head")).toMatch(/background: var\(--timeline-backing\);/);
+		for (const backing of [".bastionland-timeline__swim-age", ".bastionland-timeline__swim-lane-head"]) expect(ruleOf(backing)).toMatch(/background: var\(--timeline-backing\);/);
+		// The one sheen the page wears, so retuning it retunes the backings too.
+		expect(ruleOf(".bastionland-timeline__canvas")).toContain("--timeline-backing: var(--bastionland-page-sheen) 0 0 / 0 0 no-repeat, var(--bastionland-paper);");
+		expect(readFileSync(join(root, "styles", "mythic-bastionland.css"), "utf8")).toMatch(/\.bastionland-page \{[^}]*background:\s*var\(--bastionland-page-sheen\),\s*var\(--bastionland-paper\);/);
 	});
 
-	// User, 2026-10-10: on the page's sheen the corner stood out as a box in the top left.
-	// Stonetop's page is plain, so its corner can't be seen until something slides under it.
-	it("sits on a page with no sheen, so it can't be told from the page", () => {
-		const page = ruleOf(".bastionland-gm-toolkit .bastionland-gm-toolkit__page.bastionland-timeline");
-		expect(page).toMatch(/background: var\(--bastionland-paper\);/);
-		expect(page).not.toMatch(/gradient/);
+	it("sits on a page with the sheen every other page has", () => {
+		expect(ruleOf(".bastionland-gm-toolkit .bastionland-gm-toolkit__page.bastionland-timeline")).not.toMatch(/background/);
+		expect(ruleOf(".bastionland-timeline--tab .bastionland-timeline__scroll")).not.toMatch(/background/);
+	});
+});
+
+describe("the scrub under the board", () => {
+	// Review, 2026-10-12: pulled up by its page's own gap, not a copy of each host's.
+	it("is pulled up by the gap its page parts its rows by", () => {
+		expect(ruleOf(".bastionland-timeline__scroll + .bastionland-timeline__scrub")).toContain("margin-top: calc(-1 * var(--bastionland-page-gap, 1rem));");
+		expect(css).toContain(".bastionland-timeline--tab {\n\tgap: var(--bastionland-page-gap, 1rem);\n}");
+		expect(readFileSync(join(root, "styles", "gm-toolkit.css"), "utf8")).toMatch(/\.bastionland-gm-toolkit__page \{\s*--bastionland-page-gap: [\d.]+rem;/);
 	});
 });
 

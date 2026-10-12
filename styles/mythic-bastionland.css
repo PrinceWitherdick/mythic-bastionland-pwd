@@ -151,6 +151,8 @@
 	--bastionland-shade-rgb: 0 0 0;
 	--bastionland-sheen-rgb: 255 255 255;
 	--bastionland-sheen: 1;
+	/* The sheen in a page's top left, and on the Timeline's backings that pass for the page. */
+	--bastionland-page-sheen: radial-gradient(ellipse at top left, rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen))), transparent 60%);
 }
 
 /* No text casts a shadow. Foundry embosses every dt, glows links and active tabs
@@ -224,11 +226,13 @@
 	display: flex;
 	flex: 1;
 	flex-direction: column;
-	gap: 1rem;
+	/* Its rows' gap, for a row pulled up against the one above (the Timeline's scrub). */
+	--bastionland-page-gap: 1rem;
+	gap: var(--bastionland-page-gap);
 	padding: 1.25rem 1.5rem 1.5rem;
 	overflow-y: auto;
 	background:
-		radial-gradient(ellipse at top left, rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen))), transparent 60%),
+		var(--bastionland-page-sheen),
 		var(--bastionland-paper);
 	color: var(--bastionland-ink);
 	color-scheme: var(--bastionland-color-scheme);

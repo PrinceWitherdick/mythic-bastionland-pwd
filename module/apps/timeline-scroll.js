@@ -214,6 +214,72 @@ function wireZoom(el, state, moved, signal) {
 	};
 }
 
+/** The pinned heads' backings in the page's colour, which hide what slides under them. */
+const BACKINGS = ".bastionland-timeline__corner, .bastionland-timeline__board > .bastionland-timeline__lane-head, .bastionland-timeline__swim-age, .bastionland-timeline__swim-lane-head";
+
+/**
+ * Lay the page's sheen on the board's backings, each where the page's own lies
+ * behind it, so a pinned head's backing can't be told from the page round it.
+ * The stylesheet draws it (--timeline-backing) and keeps it folded away till
+ * it's laid. Laid again as either changes size, and as the board or the page
+ * scrolls or the board zooms: a few backings, a thread's or an Age's each, never
+ * every card, and only those that moved against the page are written to.
+ * @param {HTMLElement} el The box that scrolls.
+ * @param {HTMLElement} page What wears the sheen.
+ * @param {() => number} zoom The board's zoom now.
+ * @param {AbortSignal} signal Takes its listeners off.
+ * @returns {{lay: () => void, off: () => void}} Lay it now, in the scroll that moved it; take the rest off.
+ */
+function wireSheen(el, page, zoom, signal) {
+	const backings = [...el.querySelectorAll(BACKINGS)];
+	if (!backings.length) return { lay() {}, off() {} };
+	let frame = 0;
+	// What each backing was last given, so one the scroll didn't move isn't written to.
+	const laid = [];
+	const lay = () => {
+		if (frame) cancelAnimationFrame(frame);
+		frame = 0;
+		if (!el.isConnected || !el.clientWidth) return;
+		const rect = page.getBoundingClientRect();
+		const drawn = drawnScale(page, rect);
+		// The page's sheen lies on its padding box, inside its edge and clear of its scrollbar.
+		const left = rect.left + page.clientLeft * drawn;
+		const top = rect.top + page.clientTop * drawn;
+		const right = left + page.clientWidth * drawn;
+		const bottom = top + page.clientHeight * drawn;
+		// In the board's own pixels, which its zoom and Foundry's UI scale both enlarge.
+		const s = drawn * zoom();
+		const rects = backings.map((backing) => backing.getBoundingClientRect());
+		const size = `${(right - left) / s}px ${(bottom - top) / s}px`;
+		backings.forEach((backing, at) => {
+			const r = rects[at];
+			if (!r.width || r.right < left || r.left > right || r.bottom < top || r.top > bottom) return;
+			const position = `${(left - r.left) / s}px ${(top - r.top) / s}px`;
+			if (laid[at] === `${size} ${position}`) return;
+			laid[at] = `${size} ${position}`;
+			backing.style.backgroundSize = size;
+			backing.style.backgroundPosition = position;
+		});
+	};
+	// A change of size is told after layout, so it's laid on the next frame rather than laying the page out twice.
+	const layLater = () => {
+		frame ||= requestAnimationFrame(lay);
+	};
+	lay();
+	// A sheet too short for the board scrolls the page round it, whose sheen stays put.
+	page.addEventListener("scroll", lay, { passive: true, signal });
+	const resizes = typeof ResizeObserver === "function" ? new ResizeObserver(layLater) : null;
+	resizes?.observe(el);
+	resizes?.observe(page);
+	return {
+		lay,
+		off() {
+			if (frame) cancelAnimationFrame(frame);
+			resizes?.disconnect();
+		}
+	};
+}
+
 /**
  * The view's own rectangle on screen, less its scrollbars, and how much
  * larger it's drawn than laid out.
@@ -460,9 +526,13 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			const { x, y } = gutterOf(canvas);
 			state.view = { zoom: state.zoom, left: Math.round(scroll.scrollLeft - x), top: Math.round(scroll.scrollTop - y) };
 		};
+		// A journal's page wears no sheen of its own.
+		const page = timeline.classList.contains("bastionland-timeline--page") ? null : (timeline.closest?.(".bastionland-page") ?? null);
+		let sheen = null;
 		const onScroll = () => {
 			noteView();
 			onView(state.view);
+			sheen?.lay();
 		};
 		// The zoom goes on before the board is placed, so a kept scroll isn't clamped against a smaller picture.
 		offs.push(wireZoom(scroll, state, onScroll, signal));
@@ -482,6 +552,11 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			if (span) scroll[across ? "scrollLeft" : "scrollTop"] = centredAlong(scroll, viewRect(scroll), span, across, { fromStart: false });
 		}
 		scroll.addEventListener("scroll", onScroll, { passive: true, signal });
+		// Laid once the board is where it's shown.
+		if (page) {
+			sheen = wireSheen(scroll, page, () => clampScale(state.zoom), signal);
+			offs.push(sheen.off);
+		}
 		scrubber = wireScrubber(scroll, timeline.querySelector(".bastionland-timeline__scrub"), { across, centre: !board, zoom: () => state.zoom, signal });
 		offs.push(scrubber.off);
 	}

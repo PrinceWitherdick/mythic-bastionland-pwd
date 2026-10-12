@@ -2311,6 +2311,12 @@
         "label": "Filter",
         "kinds": "Show",
         "threads": "Threads",
+        "groups": {
+          "company": "Company",
+          "knight": "Knights",
+          "domain": "Domains",
+          "realm": "Realms"
+        },
         "showAll": "Show All",
         "hidden": "{count} hidden"
       },

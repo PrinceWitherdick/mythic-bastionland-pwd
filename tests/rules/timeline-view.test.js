@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadMenu, trackView, yearsOnBySeason } from "../../module/rules/timeline-view.js";
+import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadGroups, threadMenu, trackView, yearsOnBySeason } from "../../module/rules/timeline-view.js";
 
 const entries = (...rows) => Object.fromEntries(rows.map((row, i) => [row.id ?? `e${i}`, { id: `e${i}`, ...row }]));
 
@@ -174,6 +174,16 @@ describe("menus", () => {
 		expect(menu.find((k) => k.key === "myth").shown).toBe(false);
 		expect(menu.at(-1)).toMatchObject({ key: "tag-a", kind: "custom", tagName: "Alpha", shown: false });
 		expect(threadMenu([{ trackId: "a", kind: "realm" }], ["a"])).toEqual([{ trackId: "a", kind: "realm", icon: "fa-solid fa-map", shown: false }]);
+	});
+
+	it("puts the threads under a heading for each kind, in the board's order", () => {
+		const lines = [{ trackId: "company", kind: "company" }, { trackId: "k1", kind: "knight" }, { trackId: "d1", kind: "domain" }, { trackId: "k2", kind: "knight" }];
+		expect(threadGroups(lines).map((group) => [group.kind, group.threads.map((line) => line.trackId)])).toEqual([["company", ["company"]], ["knight", ["k1", "k2"]], ["domain", ["d1"]]]);
+	});
+
+	// Review, 2026-10-12: a thread of no kind the Filter heads gave a heading of a missing key.
+	it("puts a thread of no known kind under the Company's, whose icon it wears", () => {
+		expect(threadGroups([{ trackId: "x", kind: "" }, { trackId: "y", kind: "toString" }]).map((group) => group.kind)).toEqual(["company"]);
 	});
 
 	it("counts only what the menu still offers as hidden", () => {

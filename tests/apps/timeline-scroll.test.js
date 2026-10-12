@@ -156,3 +156,85 @@ describe("a Timeline whose tab is hidden and shown again", () => {
 		});
 	}
 });
+
+// User, 2026-10-12: the Timeline's page didn't match the other tabs, which wear a sheen in their
+// top left; the pinned heads' backings wear it too, laid where the page's lies behind them.
+describe("the backings over a board", () => {
+	let frames;
+
+	beforeEach(() => {
+		frames = [];
+		globalThis.requestAnimationFrame = (fn) => frames.push(fn);
+		globalThis.cancelAnimationFrame = () => {};
+	});
+
+	afterEach(() => {
+		delete globalThis.requestAnimationFrame;
+		delete globalThis.cancelAnimationFrame;
+	});
+
+	const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
+
+	/** A page laid out `w` by `h`, drawn at `left`, `top`, with room for a scrollbar of `bar`. */
+	const pageAt = (left, top, w, h, { bar = 0 } = {}) => ({ offsetWidth: w, offsetHeight: h, clientLeft: 0, clientTop: 0, clientWidth: w - bar, clientHeight: h, getBoundingClientRect: () => rect(left, top, w, h), addEventListener() {} });
+
+	/** A backing that counts what's written to it. */
+	const backingAt = (at) => {
+		const written = {};
+		const backing = { writes: 0, written, getBoundingClientRect: () => at() };
+		backing.style = new Proxy(written, { set: (target, key, value) => { backing.writes += 1; target[key] = value; return true; } });
+		return backing;
+	};
+
+	const boardOn = (box, page, backings, zoom = 1) => {
+		box.querySelectorAll = (selector) => (selector.includes(".bastionland-timeline__corner") ? backings : []);
+		const timeline = { ...timelineAround(box, { across: false }), closest: (selector) => (selector === ".bastionland-page" ? page : null) };
+		const state = hostState();
+		state.zoom = zoom;
+		return wireTimeline(timeline, state);
+	};
+
+	it("wear the page's sheen in the board's own pixels, where the page's lies behind them", () => {
+		const box = scrollBox();
+		const corner = backingAt(() => rect(100, 120, 176, 40));
+		// Off past the page's right edge until the board is scrolled along.
+		const name = backingAt(() => rect(2000 - box.scrollLeft, 120, 300, 40));
+		const unwire = boardOn(box, pageAt(100, 50, 800, 600), [corner, name], 2);
+
+		expect(corner.written).toEqual({ backgroundSize: "400px 300px", backgroundPosition: "0px -35px" });
+		expect(name.written).toEqual({});
+
+		// Laid in the scroll itself, not a frame behind the pinned heads.
+		box.scrollTo(1500, 0);
+		expect(frames).toEqual([]);
+		expect(name.written).toEqual({ backgroundSize: "400px 300px", backgroundPosition: "-200px -35px" });
+		unwire();
+	});
+
+	// Review, 2026-10-12: the page's sheen lies on its padding box, so a scrollbar narrows it.
+	it("are sized as the page's sheen is, clear of its scrollbar", () => {
+		const corner = backingAt(() => rect(100, 120, 176, 40));
+		boardOn(scrollBox(), pageAt(100, 50, 800, 600, { bar: 15 }), [corner])();
+		expect(corner.written.backgroundSize).toBe("785px 600px");
+	});
+
+	// Review, 2026-10-12: a scroll that leaves the pinned heads where they were rewrites nothing.
+	it("are left alone by a scroll that doesn't move them against the page", () => {
+		const box = scrollBox();
+		const corner = backingAt(() => rect(100, 120, 176, 40));
+		const unwire = boardOn(box, pageAt(100, 50, 800, 600), [corner]);
+		const writes = corner.writes;
+		box.scrollTo(0, 400);
+		expect(corner.writes).toBe(writes);
+		unwire();
+	});
+
+	it("are left the plain paper on a journal's page, which wears no sheen", () => {
+		const box = scrollBox();
+		const corner = { style: {}, getBoundingClientRect: () => rect(0, 0, 176, 40) };
+		box.querySelectorAll = () => [corner];
+		const timeline = { ...timelineAround(box), classList: { contains: (cls) => cls === "bastionland-timeline--page" }, closest: () => ({ getBoundingClientRect: () => rect(0, 0, 800, 600), addEventListener() {} }) };
+		wireTimeline(timeline, hostState())();
+		expect(corner.style).toEqual({});
+	});
+});

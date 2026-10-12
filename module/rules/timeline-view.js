@@ -269,6 +269,24 @@ export function kindMenu(hidden = [], tags = []) {
 export const threadMenu = (tracks = [], hiddenTracks = []) => tracks.map(({ trackId, kind }) => ({ trackId, kind, icon: THREAD_ICONS[kind] ?? THREAD_ICONS.company, shown: !hiddenTracks.includes(trackId) }));
 
 /**
+ * The Filter's threads under a heading for each kind, the kinds and the
+ * threads in each in the board's order. A thread of a kind with no heading
+ * goes under the Company's, whose icon it wears.
+ * @template {{kind: string}} T
+ * @param {T[]} lines From threadMenu.
+ * @returns {{kind: string, threads: T[]}[]}
+ */
+export function threadGroups(lines = []) {
+	const byKind = new Map();
+	for (const line of lines) {
+		const kind = Object.hasOwn(THREAD_ICONS, line.kind) ? line.kind : "company";
+		if (!byKind.has(kind)) byKind.set(kind, []);
+		byKind.get(kind).push(line);
+	}
+	return [...byKind].map(([kind, threads]) => ({ kind, threads }));
+}
+
+/**
  * The threads a player's board hides until they choose: all but the
  * Company's and their own Knights' and Domains'. Someone with none of their
  * own hides nothing, so the board never opens on only a Filter.

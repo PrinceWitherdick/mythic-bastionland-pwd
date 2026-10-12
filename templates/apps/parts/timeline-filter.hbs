@@ -3,14 +3,19 @@
 	<summary class="bastionland-button" data-timeline-focus="filter"><i class="fa-solid fa-filter" inert></i> {{localize "bastionland.timeline.filter.label"}}{{#if hiddenCount}} <span class="bastionland-pill bastionland-timeline__hidden-count">{{hiddenLabel}}</span>{{/if}}</summary>
 	<div class="bastionland-timeline__menu-box">
 		<div class="bastionland-timeline__filter-columns">
-			{{#if threads}}
+			{{#if threadGroups}}
 			<fieldset>
 				<legend>{{localize "bastionland.timeline.filter.threads"}}</legend>
-				{{#each threads}}
-				<label class="bastionland-check">
-					<input type="checkbox" data-timeline-thread="{{trackId}}" data-timeline-focus="thread-{{trackId}}" {{checked shown}}>
-					<span class="bastionland-check__label"><i class="{{icon}}" inert></i> {{label}} <span class="bastionland-check__detail">{{kindLabel}}</span></span>
-				</label>
+				{{#each threadGroups}}
+				<fieldset class="bastionland-timeline__thread-group">
+					<legend>{{label}}</legend>
+					{{#each threads}}
+					<label class="bastionland-check">
+						<input type="checkbox" data-timeline-thread="{{trackId}}" data-timeline-focus="thread-{{trackId}}" {{checked shown}}>
+						<span class="bastionland-check__label"><i class="{{icon}}" inert></i> {{label}}</span>
+					</label>
+					{{/each}}
+				</fieldset>
 				{{/each}}
 			</fieldset>
 			{{/if}}
