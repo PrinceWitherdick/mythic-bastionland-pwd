@@ -41,6 +41,17 @@ export const TimelineTabMixin = (Base, { board = false } = {}) => class extends 
 	}
 
 	/**
+	 * For the sheet's own `_prepareContext` and `_onRender` to skip their work
+	 * when the page is drawn on its own: it reads none of the sheet's context,
+	 * and leaves the rest of the sheet as it was, already wired.
+	 * @param {object} options A render's options, once configured.
+	 * @returns {boolean} Whether the render draws nothing but the Timeline page.
+	 */
+	_drawsTimelineOnly(options) {
+		return Boolean(options.parts?.every((id) => id === TIMELINE_TAB));
+	}
+
+	/**
 	 * A world with the Timeline turned off has no Timeline page.
 	 * @override
 	 */

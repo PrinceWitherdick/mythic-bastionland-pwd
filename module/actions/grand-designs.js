@@ -36,6 +36,6 @@ export async function strikeOffDesign(domain, id) {
 	const design = grandDesigns(domain.system.designs).find((each) => each.id === id);
 	const calendar = getCalendar();
 	await domain.update(deletionUpdate(`system.designs.${id}`));
-	if (design && !designDone(design, calendar) && seasonKey(design.started) === seasonKey(calendar)) await timelineDesignForgotten(id);
+	if (design && !designDone(design, calendar) && seasonKey(design.started) === seasonKey(calendar)) await timelineDesignForgotten(domain, id);
 	return id;
 }

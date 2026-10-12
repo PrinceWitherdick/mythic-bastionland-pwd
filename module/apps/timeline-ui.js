@@ -14,9 +14,9 @@ import { parseSeasonKey, seasonKey } from "../rules/time.js";
 import { t, warn } from "../chat/cards.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { reopeningWindows } from "../sheets/restore-open-sheets.js";
-import { allSeasons, allTracks, findTimelineJournal, findTrackPage, isTimelinePage, mutateTrack, pageTrackId, trackDisplayName, trackFor } from "../actions/timeline-store.js";
+import { allSeasons, allTracks, findTimelineJournal, findTrackPage, isTimelinePage, mutateTrack, pageTrackId, readOncePerWrite, trackDisplayName, trackFor } from "../actions/timeline-store.js";
 import { hostState, timelineIn, wireTimeline } from "./timeline-scroll.js";
-import { confirmDialog, inputDialog, renderWhenIdle } from "./ui.js";
+import { HANDLING, confirmDialog, inputDialog, renderWhenIdle } from "./ui.js";
 
 /**
  * What the Timeline window, a sheet's Timeline tab, the Referee Toolkit's
@@ -45,15 +45,14 @@ const TIMELINE_LAYOUTS = Object.freeze(["down", "across"]);
 /** How long a burst of writes is let settle before a Timeline is drawn again: one event can write on several threads. */
 const TIMELINE_REDRAW_DELAY = 150;
 
-/** A control in a Timeline that a redraw would snatch from the hand: a colour picker held open, or the scrubber being dragged. */
-const HANDLED = 'input:not([type="checkbox"]):not([type="radio"])';
-
 /**
  * @param {foundry.applications.api.ApplicationV2} app
  * @param {string} [part] The one part to draw, on an app that draws its Timeline as a part of its own.
- * @returns {() => void} Draws the app, or that part of it, again once a burst of Timeline writes has settled; one landing after it closes draws nothing.
+ * @returns {() => void} Draws the app, or that part of it, again once a burst of Timeline writes has settled, and once
+ *   nobody is dragging its scrubber or holding a colour picker open: a Timeline has nothing to type in, and puts the
+ *   keyboard back where it was. One landing after it closes draws nothing.
  */
-export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => renderWhenIdle(app, part ? { parts: [part], busy: HANDLED } : {}), TIMELINE_REDRAW_DELAY);
+export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => renderWhenIdle(app, { parts: part ? [part] : undefined, busy: HANDLING }), TIMELINE_REDRAW_DELAY);
 
 /** Called by everything showing a Timeline when the reader's Filter or layout changes. */
 const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;
@@ -838,23 +837,14 @@ export function watchTimeline(trackId, onChange) {
 /** A page with no Season turns, as seasonTurnsOf writes it. */
 const NO_TURNS = "[]";
 
-/** Each Timeline page's Season turns as last read, by its entries, so every open sheet reads them once a write. */
-const turnsRead = new WeakMap();
+/** A thread's Season turns, read once a write, so every open sheet doesn't read them again. */
+const seasonTurnsIn = readOncePerWrite((entries) => JSON.stringify(readEntries(entries).filter(isSeasonTurn)), NO_TURNS);
 
 /**
  * @param {JournalEntryPage|null|undefined} page
  * @returns {string} The page's Season turns, to tell whether they moved.
  */
-function seasonTurnsOf(page) {
-	const entries = page?.system?.entries;
-	if (!entries || typeof entries !== "object") return NO_TURNS;
-	let read = turnsRead.get(entries);
-	if (read === undefined) {
-		read = JSON.stringify(readEntries(entries).filter(isSeasonTurn));
-		turnsRead.set(entries, read);
-	}
-	return read;
-}
+const seasonTurnsOf = (page) => seasonTurnsIn(page?.system?.entries);
 
 /**
  * @param {[string, number][]} hooks From watchTimeline.

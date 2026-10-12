@@ -129,7 +129,7 @@ import { registerRulebookShare } from "./module/rulebook/share.js";
 import { watchQuerySenders } from "./module/compat.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
-import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
+import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { restAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
@@ -642,12 +642,15 @@ Hooks.once("ready", async () => {
 	syncEveryRealm();
 	// And each Site with something drawn or written on it.
 	syncEverySite();
-	// A world with no rulebook takes up the one another world kept on this server, however old the world,
-	// and before setup, so a new world's welcome cards don't ask for one.
+	// A world with no rulebook takes up the one another world kept on this server, however old the world.
+	// Setup waits on the look only while a new world's welcome cards are still to post, so they don't ask
+	// for a book that's already there; after that, the hotbars and the Toolkit don't wait on the server.
 	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
-	const setup = finding.then(() => runWorldSetup(WORLD_SETUP));
-	// Its import runs beside the load rather than holding it up; it logs a failure rather than throwing one.
-	setup.then(() => adoptKeptRulebook(welcomesThisWorld));
+	const setup = (isSetupDone(WELCOME_CARDS_STEP) ? Promise.resolve() : finding).then(() => runWorldSetup(WORLD_SETUP));
+	// Its import runs beside the load rather than holding it up, and a failure is logged rather than thrown.
+	Promise.all([finding, setup])
+		.then(() => adoptKeptRulebook(welcomesThisWorld))
+		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),
 		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,

@@ -57,8 +57,8 @@ async function settleFoundRulebook() {
 }
 
 /**
- * Import the book this world took up from another (findKeptRulebook, run
- * before world setup), when it is still pending. Run on every load by the
+ * Import the book this world took up from another (findKeptRulebook), when
+ * it is still pending, once world setup is done. Run on every load by the
  * active GM. A world the Welcome still greets leaves the import to it, where
  * the GM sees it happen. A failed import is logged, never thrown, so the
  * load carries on.

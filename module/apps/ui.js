@@ -270,7 +270,17 @@ export function chooseLocalFiles(element) {
 const waiting = new WeakMap();
 
 /** A field a redraw would take the typing out of. */
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
+export const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea';
+
+/**
+ * A control a redraw would snatch from the hand: a slider while it's being
+ * dragged, or a colour picker held open. A slider keeps the focus once let go,
+ * so only its press counts, or a window would wait on it until clicked away from.
+ */
+export const HANDLING = 'input[type="range"]:active, input[type="color"]';
+
+/** Every field a redraw would disturb, typed in or handled. */
+export const IN_USE = `${TYPING}, ${HANDLING}`;
 
 /** How often to look again whether whoever is typing has left the field. */
 const TYPING_RECHECK = 300;
@@ -284,9 +294,9 @@ const TYPING_RECHECK = 300;
  * @param {foundry.applications.api.ApplicationV2} app
  * @param {object} [options]
  * @param {string[]} [options.parts] Draw only these parts, waiting only on a field inside them.
- * @param {string} [options.busy] The fields worth waiting on, if not every one typed in.
+ * @param {string} [options.busy] The fields worth waiting on, if not every one in use: one of TYPING, HANDLING or IN_USE, or one built from them.
  */
-export function renderWhenIdle(app, { parts, busy = TYPING } = {}) {
+export function renderWhenIdle(app, { parts, busy = IN_USE } = {}) {
 	if (!app?.rendered) return;
 	const pending = waiting.get(app);
 	if (pending) {

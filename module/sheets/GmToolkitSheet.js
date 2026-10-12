@@ -25,7 +25,7 @@ import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
 import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
+import { IN_USE, filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythLookup, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
@@ -77,8 +77,8 @@ const TAB_ICONS = Object.freeze({
  */
 const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
 
-/** A field a redraw would take the typing out of. */
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select';
+/** A field a redraw would disturb: any in use, and a dropdown, which a redraw would close while it's open. */
+const BUSY = `${IN_USE}, select`;
 
 /** How long to wait for a burst of changes to land before redrawing. */
 const REDRAW_DELAY = 50;
@@ -259,8 +259,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	/** @override */
 	async _prepareContext(options) {
 		const context = Object.assign(await super._prepareContext(options), { actor: this.actor, system: this.actor.system });
-		// The Timeline's own redraw reads none of the Realm.
-		if (options.parts?.every((id) => id === "timeline")) return context;
+		if (this._drawsTimelineOnly(options)) return context;
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 		const scene = this.scene;
 		const entry = scene ? getRealm(scene) : null;
@@ -959,7 +958,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			this.#redrawing = false;
 			const stale = [...this.#stale];
 			this.#stale.clear();
-			if (stale.length) renderWhenIdle(this, { parts: stale, busy: TYPING });
+			if (stale.length) renderWhenIdle(this, { parts: stale, busy: BUSY });
 		}, REDRAW_DELAY);
 	}
 

@@ -220,12 +220,15 @@ export function foundRulebook() {
  */
 export const setFoundRulebook = (state) => game.settings.set(SYSTEM_ID, FOUND_SETTING, state);
 
+/** How long to wait on the server to say whether a kept copy is there, before going on as if not. */
+const KEPT_LOOK_TIMEOUT = 5000;
+
 /**
- * @returns {Promise<boolean>} Whether a copy kept by some world is on the server.
+ * @returns {Promise<boolean>} Whether a copy kept by some world is on the server; false when it can't say in time.
  */
 async function keptRulebookThere() {
 	try {
-		const response = await fetch(foundry.utils.getRoute(KEPT_RULEBOOK), { method: "HEAD", cache: "no-cache" });
+		const response = await fetch(foundry.utils.getRoute(KEPT_RULEBOOK), { method: "HEAD", cache: "no-cache", signal: AbortSignal.timeout(KEPT_LOOK_TIMEOUT) });
 		return response.ok;
 	} catch {
 		return false;
@@ -235,9 +238,9 @@ async function keptRulebookThere() {
 /**
  * Point a world with no book at the one another world already kept, so its GM
  * isn't asked for the PDF again, and leave its import pending. Run by the
- * active GM on every load, before world setup, so a new world's welcome cards
- * know not to ask either, and so a world made before any world kept a book
- * takes it up too. A book the GM sent away with Forget stays away.
+ * active GM on every load, so a world made before any world kept a book takes
+ * it up too, and before a new world's setup, so its welcome cards know not to
+ * ask either. A book the GM sent away with Forget stays away.
  * @returns {Promise<boolean>} Whether this world took up the kept copy.
  */
 export async function findKeptRulebook() {

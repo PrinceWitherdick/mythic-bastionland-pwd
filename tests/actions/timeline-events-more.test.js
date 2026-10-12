@@ -192,7 +192,7 @@ describe("Omens", () => {
 
 	it("takes back the rows of Omens unmarked", async () => {
 		await events.timelineOmens(scene, myth, { from: 3, to: 1 });
-		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:2", "omen:s1.3.2-7:3"]]]);
+		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:2", "omen:s1.3.2-7:3"], ["company", scene]]]);
 		expect(calls(record.recordOnTracks)).toEqual([]);
 	});
 
@@ -225,10 +225,11 @@ describe("Domains", () => {
 	});
 
 	it("writes a Grand Design begun, and forgets it when struck off by mistake", async () => {
-		await events.timelineDesignBegun(domain(), "g1", { scale: "building" });
+		const d = domain();
+		await events.timelineDesignBegun(d, "g1", { scale: "building" });
 		expect(rows()[0][1]).toMatchObject({ source: "design", key: "design:g1", body: "domain.designs.scales.building.label" });
-		await events.timelineDesignForgotten("g1");
-		expect(calls(record.forgetEverywhere)).toEqual([["design:g1"]]);
+		await events.timelineDesignForgotten(d, "g1");
+		expect(calls(record.forgetEverywhere)).toEqual([["design:g1", [d]]]);
 	});
 
 	it("writes the Court's comings and goings, and Warbands mustered and dismissed", async () => {

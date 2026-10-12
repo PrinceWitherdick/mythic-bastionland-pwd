@@ -99,9 +99,10 @@ export function timelineSession(played, { recap = "", plans = "", passed = "" })
  * A Knight reaches a new Rank.
  * @param {Actor} knight
  * @param {string} rank One of RANKS' keys.
+ * @param {{when?: string}} [options] Its Season, when it isn't now.
  */
-export function timelineRank(knight, rank) {
-	return recordOnTrack(knight, { source: "rank", key: timelineKeys.rank(rank), title: t("timeline.auto.rank", { rank: t(`rank.${rank}`) }) });
+export function timelineRank(knight, rank, options) {
+	return recordOnTrack(knight, { source: "rank", key: timelineKeys.rank(rank), title: t("timeline.auto.rank", { rank: t(`rank.${rank}`) }) }, options);
 }
 
 /**
@@ -314,7 +315,7 @@ export function timelinePartyNote(scene, hex, text, user) {
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  */
-export const timelineNoteForgotten = (scene, hex) => forgetEverywhere(timelineKeys.note(scene.id, hex));
+export const timelineNoteForgotten = (scene, hex) => forgetEverywhere(timelineKeys.note(scene.id, hex), [COMPANY_TRACK, scene]);
 
 /**
  * A duel ends: on each duelist's thread, who won and the Glory it moved. A
@@ -388,13 +389,14 @@ export function timelineGloryAwarded(award, entries) {
  * @param {Actor} knight
  * @param {Item} scar
  * @param {string} line What settling it did, as the card says.
+ * @param {{when?: string}} [options] Its Season, when it isn't now.
  */
-export function timelineScarSettled(knight, scar, line) {
+export function timelineScarSettled(knight, scar, line, options) {
 	const foe = scarForRoll(scar.system?.roll)?.byRevenge ? scar.system?.foeName : "";
 	const key = timelineKeys.settled(scar.id);
 	return recordOnTrack(knight, foe
 		? { source: "revenge", key, title: t("timeline.auto.revenge", { name: foe }), body: lines(scar.name, line) }
-		: { source: "settled", key, title: t("timeline.auto.settled", { scar: scar.name }), body: line });
+		: { source: "settled", key, title: t("timeline.auto.settled", { scar: scar.name }), body: line }, options);
 }
 
 /**
@@ -473,7 +475,7 @@ export const omensMet = (context) => ({ [OMENS_OPTION]: context });
  */
 export async function timelineOmens(scene, myth, { from, to, hex = null, news = false }) {
 	const id = completedMythId(scene.id, myth);
-	if (to < from) await forgetEverywhere(Array.from({ length: from - to }, (_, index) => timelineKeys.omen(id, to + index + 1)));
+	if (to < from) await forgetEverywhere(Array.from({ length: from - to }, (_, index) => timelineKeys.omen(id, to + index + 1)), [COMPANY_TRACK, scene]);
 	if (to <= from) return;
 	const { place } = placeOf(scene, hex);
 	const title = t(news ? "timeline.auto.omenNews" : "timeline.auto.omen", { number: myth.number });
@@ -545,9 +547,10 @@ export function timelineDesignBegun(domain, id, design) {
 
 /**
  * A Grand Design struck off by mistake takes its row with it.
+ * @param {Actor} domain Whose it was, on whose thread alone it's written.
  * @param {string} id
  */
-export const timelineDesignForgotten = (id) => forgetEverywhere(timelineKeys.design(id));
+export const timelineDesignForgotten = (domain, id) => forgetEverywhere(timelineKeys.design(id), [domain]);
 
 /**
  * Somebody comes to a Domain's Court, or goes from it, with the role they had there.

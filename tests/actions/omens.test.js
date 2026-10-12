@@ -141,7 +141,7 @@ describe("an Omen marked by the Referee", () => {
 
 	it("steps from the count as it stands, takes rows back when lowered, and writes nothing that changes nothing", async () => {
 		await markMythOmen(scene, 3, (myth) => myth.omen - 1);
-		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:1"]]]);
+		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:1"], ["company", scene]]]);
 		vi.clearAllMocks();
 		expect(await markMythOmen(scene, 3, 0)).toBe(false);
 		expect(await markMythOmen(scene, 9, 2)).toBe(false);
@@ -159,7 +159,7 @@ describe("Undo and Redo", () => {
 		await markMythOmen(scene, 3, 3);
 		vi.clearAllMocks();
 		await step("t3", { kind: "myth", number: 3, d6: 2, d12: 7, omen: 1 });
-		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:2", "omen:s1.3.2-7:3"]]]);
+		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:2", "omen:s1.3.2-7:3"], ["company", scene]]]);
 		expect(calls(record.recordOnTracks)).toEqual([]);
 
 		await step("t3", { kind: "myth", number: 3, d6: 2, d12: 7, omen: 3 });

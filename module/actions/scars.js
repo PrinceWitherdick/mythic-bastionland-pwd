@@ -5,6 +5,7 @@ import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaise
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
+import { seenName } from "./seen-name.js";
 import { timelineScar, timelineScarSettled } from "./timeline-events.js";
 
 /**
@@ -64,7 +65,8 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 
 	// Revenge on whoever dealt a Humiliation settles it (p9).
 	const foe = scar.byRevenge && by ? fromUuidSync(by) : null;
-	if (foe) lines.push(t("revenge.owed", { name: foe.name }));
+	const foeName = foe ? seenName(by) : "";
+	if (foe) lines.push(t("revenge.owed", { name: foeName }));
 
 	const name = text("name");
 	let item = null;
@@ -78,7 +80,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 				// Doom lasts the Season it was taken in.
 				season: seasonKey(getCalendar()),
 				foe: foe?.uuid ?? "",
-				foeName: foe?.name ?? "",
+				foeName,
 				description: scarDescription(text("flavour"), text("effect"))
 			}
 		}]);
@@ -108,14 +110,15 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
  * @param {Actor} actor   Who bears it.
  * @param {Item} item     A Scar item.
  * @param {number} maxGuard Max GD before settling.
+ * @param {{when?: string}} [options] The Season it's settled in, on the Timeline, when it isn't now.
  * @returns {Promise<{roll: Roll|null, guardMax: number, line: string}>} The caller saves `guardMax`.
  */
-export async function settleScar(actor, item, maxGuard) {
+export async function settleScar(actor, item, maxGuard, options) {
 	const limit = scarForRoll(item.system.roll)?.laterGuardAtMost;
 	const raises = scarRaisesGuardLater(item.system, maxGuard);
 	await item.update({ "system.resolved": true }, causedBy("scar"));
 	const settled = raises ? await raiseGuard(item, maxGuard) : { roll: null, guardMax: maxGuard, line: t("scarRoll.settledNoRaise", { name: item.name, limit }) };
-	await timelineScarSettled(actor, item, settled.line);
+	await timelineScarSettled(actor, item, settled.line, options);
 	return settled;
 }
 
@@ -135,13 +138,14 @@ async function raiseGuard(item, maxGuard) {
  * @param {Actor} actor Who bears them.
  * @param {Item[]} items Scar items.
  * @param {number} guardMax Max GD before the first.
+ * @param {{when?: string}} [options] The Season they're settled in, on the Timeline, when it isn't now.
  * @returns {Promise<{rolls: Roll[], lines: string[], guardMax: number}>} The caller saves `guardMax`.
  */
-export async function settleScars(actor, items, guardMax) {
+export async function settleScars(actor, items, guardMax, options) {
 	const rolls = [];
 	const lines = [];
 	for (const item of items) {
-		const settled = await settleScar(actor, item, guardMax);
+		const settled = await settleScar(actor, item, guardMax, options);
 		if (settled.roll) rolls.push(settled.roll);
 		guardMax = settled.guardMax;
 		lines.push(settled.line);

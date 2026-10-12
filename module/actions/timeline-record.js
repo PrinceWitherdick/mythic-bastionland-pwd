@@ -88,22 +88,32 @@ export async function recordOnTrack(target, milestones, { when } = {}) {
  * @param {Milestone|Milestone[]} milestones
  * @param {{when?: string}} [options]
  */
-export async function recordOnTracks(targets, milestones, options) {
+export function recordOnTracks(targets, milestones, options) {
+	return Promise.all(tracksOf(targets).map((track) => recordOnTrack(track, milestones, options)));
+}
+
+/**
+ * @param {(Actor|Scene|string|{trackId: string}|null)[]} targets
+ * @returns {object[]} Their threads, each once.
+ */
+function tracksOf(targets) {
 	const tracks = new Map();
 	for (const target of targets) {
 		const track = target ? asTrack(target) : null;
 		if (track && !tracks.has(track.trackId)) tracks.set(track.trackId, track);
 	}
-	return Promise.all([...tracks.values()].map((track) => recordOnTrack(track, milestones, options)));
+	return [...tracks.values()];
 }
 
 /**
- * Take milestones' rows off every thread, as when a Myth is unresolved.
+ * Take milestones' rows off every thread, as when a Myth is unresolved, or off
+ * the only threads they were written on, so the rest aren't each read for them.
  * @param {string|string[]} key One key, or several taken off together.
+ * @param {(Actor|Scene|string|{trackId: string}|null)[]} [targets] Those threads, as recordOnTracks takes them; every thread if not given.
  */
-export async function forgetEverywhere(key) {
+export async function forgetEverywhere(key, targets) {
 	try {
-		await removeKeyEverywhere(key);
+		await removeKeyEverywhere(key, targets && tracksOf(targets));
 	} catch (error) {
 		console.warn(`${SYSTEM_ID} | Couldn't take a milestone off the Timeline`, error);
 	}

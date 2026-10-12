@@ -54,7 +54,7 @@ describe("Grand Designs", () => {
 		const actor = domain();
 		await beginDesign(actor, "building");
 		await strikeOffDesign(actor, "g1");
-		expect(timeline.timelineDesignForgotten).toHaveBeenCalledWith("g1");
+		expect(timeline.timelineDesignForgotten).toHaveBeenCalledWith(actor, "g1");
 
 		vi.clearAllMocks();
 		await beginDesign(actor, "building");

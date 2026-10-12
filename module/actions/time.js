@@ -106,11 +106,12 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 /**
  * Settle every Scar whose GD increase comes with the next Season.
  * @param {Actor} actor
+ * @param {string} ended The Season that ended, from seasonKey: the Timeline has them settled as it turned.
  * @returns {Promise<{rolls: Roll[], lines: string[], guardMax: number}>}
  */
-function settleSeasonScars(actor) {
+function settleSeasonScars(actor, ended) {
 	const due = actor.items.filter((item) => item.type === "scar" && isScarPending(item.system) && scarForRoll(item.system.roll)?.bySeason);
-	return settleScars(actor, due, actor.system.guard.max);
+	return settleScars(actor, due, actor.system.guard.max, { when: ended });
 }
 
 /**
@@ -157,6 +158,8 @@ async function bequeathGlory(knight, glory) {
  *   every turn restores, which closeSeason says on the report.
  */
 export async function passTime(company, { newAge, before }) {
+	// The calendar has already moved on: what the turn brings goes on the Timeline beside the turn's own row.
+	const ended = seasonKey(before);
 	const rolls = [];
 	const entries = [];
 	const updates = [];
@@ -186,7 +189,7 @@ export async function passTime(company, { newAge, before }) {
 			if (diesPeacefully) lines.push(t("time.diesPeacefully"));
 		}
 
-		const scars = await settleSeasonScars(actor);
+		const scars = await settleSeasonScars(actor, ended);
 		rolls.push(...scars.rolls);
 		lines.push(...scars.lines);
 		if (scars.guardMax !== system.guard.max) update["system.guard.max"] = scars.guardMax;
@@ -199,7 +202,7 @@ export async function passTime(company, { newAge, before }) {
 	}
 	await Promise.all(updates.map(([actor, update]) => actor.update(update, causedBy("season"))));
 	// Written once the Glory is, as adjustGlory does, which the Age's turn doesn't go through.
-	await Promise.all(ranks.map(([actor, change]) => recordRankReached(actor, change)));
+	await Promise.all(ranks.map(([actor, change]) => recordRankReached(actor, change, { when: ended })));
 	// After the Company's own updates, so a successor who is also in the Company
 	// keeps both what the Season restored and what Knighting or a Legacy gave them.
 	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));

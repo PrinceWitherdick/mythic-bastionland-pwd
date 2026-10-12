@@ -17,7 +17,7 @@ vi.mock("../../module/actions/timeline-store.js", () => ({
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ age: 2, year: 1, season: "harvest", day: 1, phase: "morning" }) }));
 
 const { forgetEverywhere, keptFromPlayers, recordOnTrack, recordOnTracks, timelineNow } = await import("../../module/actions/timeline-record.js");
-const { mutateTrack } = await import("../../module/actions/timeline-store.js");
+const { mutateTrack, removeKeyEverywhere } = await import("../../module/actions/timeline-store.js");
 
 beforeEach(() => {
 	entries = [];
@@ -48,6 +48,16 @@ describe("recordOnTrack", () => {
 		await expect(recordOnTrack("company", { source: "myth", key: "k" })).resolves.toBeNull();
 		await expect(forgetEverywhere("k")).resolves.toBeUndefined();
 		warn.mockRestore();
+	});
+
+	it("forgets on every thread, or on just the threads it's given, each once", async () => {
+		vi.mocked(removeKeyEverywhere).mockClear();
+		await forgetEverywhere("k");
+		await forgetEverywhere("k", ["company", { id: "d1" }, null, "company"]);
+		expect(vi.mocked(removeKeyEverywhere).mock.calls).toEqual([
+			["k", undefined],
+			["k", [{ trackId: "company", kind: "company" }, { trackId: "d1", kind: "knight", secret: false }]]
+		]);
 	});
 
 	it("keeps a row about someone kept from the players off every thread they read, and never stores who it's about", async () => {

@@ -159,22 +159,26 @@ export function allTracks() {
 		.map(trackOfPage);
 }
 
-/** Each page's Seasons as last read, by its entries, which every write to the page replaces. */
-const seasonsRead = new WeakMap();
-
 /**
- * @param {object|object[]|undefined} entries A thread's entries, as kept.
- * @returns {string[]} The Seasons they fall in, read once for each write.
+ * Something read from a thread's entries once for each write, rather than on
+ * every look: every write to a page replaces its entries, so what was read
+ * from the ones it had is kept by them, and let go with them.
+ * @template T
+ * @param {(entries: object|object[]) => T} read
+ * @param {T} none What a page with no entries reads as.
+ * @returns {(entries: object|object[]|undefined) => T} Takes a thread's entries, as kept.
  */
-function seasonsOf(entries) {
-	if (!entries || typeof entries !== "object") return [];
-	let seasons = seasonsRead.get(entries);
-	if (!seasons) {
-		seasons = [...new Set(readEntries(entries).map((entry) => entry.season).filter(Boolean))];
-		seasonsRead.set(entries, seasons);
-	}
-	return seasons;
+export function readOncePerWrite(read, none) {
+	const kept = new WeakMap();
+	return (entries) => {
+		if (!entries || typeof entries !== "object") return none;
+		if (!kept.has(entries)) kept.set(entries, read(entries));
+		return kept.get(entries);
+	};
 }
+
+/** The Seasons a thread's entries fall in. */
+const seasonsOf = readOncePerWrite((entries) => [...new Set(readEntries(entries).map((entry) => entry.season).filter(Boolean))], []);
 
 /**
  * @param {{entries: object}[]} [tracks] Every thread's page this user can read, as it's kept, when none are given.
@@ -294,15 +298,17 @@ export function mutateTrack(track, change, { create = false } = {}) {
 }
 
 /**
- * Take milestones' rows out of every thread, as when a Myth is unresolved:
- * each thread read and written once, however many go.
+ * Take milestones' rows out of every thread, as when a Myth is unresolved, or
+ * out of the only threads they can be on: each thread read and written once,
+ * however many go.
  * @param {string|string[]} keys
+ * @param {Track[]} [tracks] The threads to look on, if not every one.
  * @returns {Promise<void>}
  */
-export async function removeKeyEverywhere(keys) {
+export async function removeKeyEverywhere(keys, tracks = allTracks()) {
 	const list = [keys].flat();
 	if (!list.length) return;
-	await Promise.all(allTracks().map((track) => mutateTrack(track, (entries) => ({
+	await Promise.all(tracks.map((track) => mutateTrack(track, (entries) => ({
 		entries: list.reduce((current, key) => removeByKey(current, key).entries, entries)
 	}))));
 }

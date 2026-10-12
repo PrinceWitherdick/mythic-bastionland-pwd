@@ -14,6 +14,7 @@ import { marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
+import { seenName } from "./seen-name.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
@@ -266,7 +267,7 @@ export async function takeDamage(actor, preset = {}) {
 	if (warden) await takeWard(warden, actor);
 	// A Mortal Wound that will be shaken off, or one somebody died of, is no milestone of its own.
 	else if (virtues && !dead && result.outcome === "mortal" && !preset.nonLethal && !preset.sparring) {
-		const dealer = preset.by ? fromUuidSync(preset.by)?.name : "";
+		const dealer = seenName(preset.by);
 		recorded = timelineMortalWound(actor, preset.cause || (dealer ? t("timeline.auto.scarBy", { name: dealer }) : ""));
 	}
 

@@ -190,6 +190,6 @@ describe("travels", () => {
 		vi.mocked(record.recordOnTracks).mockClear();
 		await events.timelinePartyNote(scene, hex, "  ", { name: "Ann" });
 		expect(calls(record.recordOnTracks)).toHaveLength(0);
-		expect(calls(record.forgetEverywhere)).toEqual([["note:s1:2,3"]]);
+		expect(calls(record.forgetEverywhere)).toEqual([["note:s1:2,3", ["company", scene]]]);
 	});
 });

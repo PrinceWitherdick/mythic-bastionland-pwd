@@ -205,6 +205,15 @@ describe("writing", () => {
 		expect(store.allTracks().every((t) => !Object.keys(t.entries).length)).toBe(true);
 	});
 
+	it("takes a milestone out of only the threads it's told to look on", async () => {
+		const mark = (id) => (entries) => addEntry(entries, { id, key: "note:x", season: "1-spring" });
+		await store.mutateTrack(track, mark("a"), { create: true });
+		await store.mutateTrack({ trackId: "company", kind: "company" }, mark("b"), { create: true });
+		await store.removeKeyEverywhere("note:x", [{ trackId: "company", kind: "company" }]);
+		expect(Object.keys(store.findTrackPage("company").system.entries)).toEqual([]);
+		expect(Object.keys(store.findTrackPage("k1").system.entries)).toEqual(["a"]);
+	});
+
 	it("takes several milestones out of every thread in one write each", async () => {
 		await store.mutateTrack(track, (entries) => ({ entries: ["a", "b", "c"].reduce((current, id) => addEntry(current, { id, key: `omen:${id}`, season: "1-spring" }).entries, entries) }), { create: true });
 		const { updates } = store.findTrackPage("k1");

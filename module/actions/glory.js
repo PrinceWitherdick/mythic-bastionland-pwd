@@ -21,9 +21,10 @@ export function gloryLines(change) {
  * however the Glory came: a Rank fallen to is no milestone reached.
  * @param {Actor} actor
  * @param {ReturnType<typeof changeGlory>} change
+ * @param {{when?: string}} [options] The Season it was reached in, when it isn't now.
  * @returns {Promise<unknown>|null}
  */
-export const recordRankReached = (actor, change) => (change.rank && change.to > change.from ? timelineRank(actor, change.rank) : null);
+export const recordRankReached = (actor, change, options) => (change.rank && change.to > change.from ? timelineRank(actor, change.rank, options) : null);
 
 /**
  * Change one Knight's Glory, unless they are a Squire, who can't gain it.

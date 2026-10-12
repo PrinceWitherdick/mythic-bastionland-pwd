@@ -95,8 +95,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		// The Timeline drawn on its own needs none of the sheet's.
-		if (!options.parts?.includes("sheet")) return context;
+		if (this._drawsTimelineOnly(options)) return context;
 		const actor = this.actor;
 		const { system } = actor;
 		const calendar = getCalendar();
