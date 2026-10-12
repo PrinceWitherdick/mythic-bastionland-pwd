@@ -85,6 +85,27 @@ describe("findKeptRulebook", () => {
 		expect(foundRulebook()).toBe("");
 	});
 
+	it("doesn't take up a book sent away by a Forget from before Forget was remembered", async () => {
+		installServer(true);
+		game.settings.storage = new Map([["world", { getSetting: (key) => (key === `${SYSTEM_ID}.rulebookPdf` ? { key, value: "\"\"" } : undefined) }]]);
+		expect(wasRulebookForgotten()).toBe(true);
+		await expect(findKeptRulebook()).resolves.toBe(false);
+		expect(rulebookPath()).toBe("");
+	});
+
+	it("takes up the kept book in a world that never saved a path", async () => {
+		installServer(true);
+		game.settings.storage = new Map([["world", { getSetting: () => undefined }]]);
+		await expect(findKeptRulebook()).resolves.toBe(true);
+	});
+
+	it("stops waiting on a found book once the GM chooses one of their own", async () => {
+		installServer(true);
+		await expect(findKeptRulebook()).resolves.toBe(true);
+		await saveRulebookPath("elsewhere/book.pdf");
+		expect(foundRulebook()).toBe("");
+	});
+
 	it("takes it up again once the GM chooses a book after a Forget", async () => {
 		await forgetRulebook();
 		await saveRulebookPath("elsewhere/book.pdf");

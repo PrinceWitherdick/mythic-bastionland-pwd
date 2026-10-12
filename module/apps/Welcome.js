@@ -246,6 +246,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 
 		try {
 			await importFoundRulebook();
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't import the kept rulebook`, error);
 		} finally {
 			this.#busy = false;
 			this.#index = null;

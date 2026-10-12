@@ -62,10 +62,16 @@ describe("importFoundRulebook", () => {
 		expect(setFoundRulebook).toHaveBeenCalledWith("done");
 	});
 
-	it("gives up on it, rather than trying every load, when the import fails", async () => {
+	it("gives up on it, rather than trying every load, when nothing could be read", async () => {
+		importBookArt.mockResolvedValueOnce(null);
+		await expect(importFoundRulebook()).resolves.toBeNull();
+		expect(setFoundRulebook).toHaveBeenCalledWith("");
+	});
+
+	it("leaves it pending, to try again next load, when the import throws", async () => {
 		importBookArt.mockRejectedValueOnce(new Error("unreadable"));
 		await expect(importFoundRulebook()).rejects.toThrow("unreadable");
-		expect(setFoundRulebook).toHaveBeenCalledWith("");
+		expect(setFoundRulebook).not.toHaveBeenCalled();
 	});
 
 	it("runs once when called again while it runs, as the Welcome and a load can", async () => {
@@ -117,7 +123,7 @@ describe("adoptKeptRulebook", () => {
 		importBookArt.mockRejectedValueOnce(new Error("unreadable"));
 		await expect(adoptKeptRulebook(() => false)).resolves.toBeUndefined();
 		expect(error).toHaveBeenCalled();
-		expect(setFoundRulebook).toHaveBeenCalledWith("");
+		expect(setFoundRulebook).not.toHaveBeenCalled();
 		error.mockRestore();
 	});
 

@@ -37,7 +37,9 @@ let importing = null;
 /**
  * Import the book this world found kept by another, and settle what became of
  * it. Given up on, the world goes back to asking for the PDF, rather than
- * trying again on every load. A second call while one runs waits on that one.
+ * trying again on every load. An import that throws, as on a network hiccup,
+ * is left pending, to be tried again next load. A second call while one runs
+ * waits on that one.
  * @returns {Promise<object|null>} The art index, or null if nothing was read.
  */
 export function importFoundRulebook() {
@@ -49,12 +51,8 @@ export function importFoundRulebook() {
 
 /** @returns {Promise<object|null>} importFoundRulebook's import, run once. */
 async function settleFoundRulebook() {
-	let index = null;
-	try {
-		index = await importKeptRulebook();
-	} finally {
-		await setFoundRulebook(index ? "done" : "");
-	}
+	const index = await importKeptRulebook();
+	await setFoundRulebook(index ? "done" : "");
 	return index;
 }
 

@@ -1,5 +1,6 @@
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
+import { read } from "../client-settings.js";
 import { ART_ROOT } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -105,13 +106,16 @@ export function hasRulebook() {
 }
 
 /**
- * Record where the book lives. A book chosen again undoes a Forget.
+ * Record where the book lives. A book chosen again undoes a Forget, and is the
+ * GM's own, so a found one waiting to be imported waits no more: its caller
+ * imports it, and the next load doesn't take it for one kept by another world.
  * @param {string} path
  */
 export async function saveRulebookPath(path) {
 	const kept = String(path ?? "").trim();
 	await game.settings.set(SYSTEM_ID, PATH_SETTING, kept);
 	if (kept && wasRulebookForgotten()) await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, false);
+	if (foundRulebook() === "pending") await setFoundRulebook("");
 }
 
 /**
@@ -125,10 +129,16 @@ export async function forgetRulebook() {
 	if (foundRulebook() === "pending") await setFoundRulebook("");
 }
 
-/** @returns {boolean} Whether the GM sent this world's book away with Forget. */
+/**
+ * Before the world remembered a Forget, Forget only emptied the path. A world
+ * that once saved a path and now holds none was sent away that way, as no
+ * other way in saves an empty one.
+ * @returns {boolean} Whether the GM sent this world's book away with Forget.
+ */
 export function wasRulebookForgotten() {
+	if (read(FORGOTTEN_SETTING, false) === true) return true;
 	try {
-		return game.settings.get(SYSTEM_ID, FORGOTTEN_SETTING) === true;
+		return !hasRulebook() && !!game.settings.storage?.get("world")?.getSetting(`${SYSTEM_ID}.${PATH_SETTING}`);
 	} catch {
 		return false;
 	}
