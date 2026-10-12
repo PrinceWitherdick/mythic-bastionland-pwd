@@ -52,6 +52,9 @@ export const REALM_LOOK_FLAG = "realmLook";
 /** Called when what Undo and Redo can take back on a Realm changes, with the Scene's id. */
 export const REALM_HISTORY_HOOK = `${SYSTEM_ID}.realmHistoryChanged`;
 
+/** Called on this GM's client once Undo or Redo is written to a Realm Scene, with the Scene and its Realm before and after. */
+export const REALM_STEPPED_HOOK = `${SYSTEM_ID}.realmStepped`;
+
 /** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
 
@@ -468,6 +471,7 @@ export async function stepRealmHistory(scene, way) {
 		if (!step) return false;
 		await writeRealm(scene, step.target, sceneGeometry(scene), currentRealmTextures(scene));
 		setHistory(scene.id, step.history);
+		Hooks.callAll(REALM_STEPPED_HOOK, scene, realm, step.target);
 		return true;
 	});
 }

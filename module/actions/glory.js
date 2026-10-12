@@ -3,7 +3,7 @@ import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { chooseCompany } from "./time.js";
-import { timelineRank } from "./timeline-events.js";
+import { timelineGloryAwarded, timelineRank } from "./timeline-events.js";
 
 /**
  * Lines for a report card saying how a Knight's Glory changed.
@@ -64,6 +64,7 @@ export async function awardGloryTo(key) {
 	}
 
 	const entries = await Promise.all(company.map(async ({ actor }) => ({ name: actor.name, lines: await adjustGlory(actor, 1) })));
+	await timelineGloryAwarded(key, company.map(({ actor }, index) => ({ actor, lines: entries[index].lines })));
 	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) });
 	return { knights: company.map(({ actor }) => actor), entries };
 }

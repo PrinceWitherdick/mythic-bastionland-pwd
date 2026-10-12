@@ -23,6 +23,7 @@ import { findCompanyToken } from "./company.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { keptFromMe } from "./solo.js";
+import { timelineLandmarkFound, timelineOmens } from "./timeline-events.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
@@ -190,6 +191,9 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	// A Landmark met for the first time takes its name from a prompt of the book's (p14).
 	const named = outcome.result === "landmark" ? await nameLandmarkFromPrompt(scene, outcome.landmark) : null;
 	if (named) outcome.landmark = { ...outcome.landmark, name: named.name };
+	// Written once the reveal and the name are, so the Timeline reads the hex as the players now know it.
+	if (outcome.myth && !outcome.complete) await timelineOmens(scene, outcome.myth, { from: outcome.myth.omen, to: outcome.omen, hex: where });
+	if (revealLandmark) await timelineLandmarkFound(scene, outcome.landmark.hex);
 
 	const calendar = getCalendar();
 	// A Curse throws the Company off course, so the next travelling Phase is blind (p14).

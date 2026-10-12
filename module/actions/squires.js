@@ -21,7 +21,7 @@ import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
-import { timelineKnighted } from "./timeline-events.js";
+import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
 
 /** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
 export function companyKnightCount() {
@@ -146,6 +146,7 @@ export async function takeSquire(knight) {
 	}
 	if (pony) lines.push({ label: t("steed.label"), value: pony.name });
 	await knight.update({ "system.squire": squire.uuid });
+	await timelineSquireTaken(knight, squire);
 
 	await postCard(knight, "creation", {
 		title: t("squire.title"),

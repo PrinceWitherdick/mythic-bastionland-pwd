@@ -23,6 +23,7 @@ import { calendarLabel, getCalendar } from "./calendar.js";
 import { knightChoices, seatLabel } from "./court.js";
 import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./dominion.js";
 import { evaluateSave, saveContext } from "./saves.js";
+import { timelineTaskSettled } from "./timeline-events.js";
 
 /**
  * Council tasks (p20): a seat is given work lasting anything from a Phase to a
@@ -185,11 +186,19 @@ export async function settleTask(domain, id) {
 
 	await domain.update({ [`system.tasks.-=${id}`]: null });
 	const holder = seatHolderNames(domain, task.seat);
+	const by = holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat);
+	const what = task.what || t("domain.tasks.whatUnwritten");
+	await timelineTaskSettled(domain, id, {
+		what,
+		by,
+		outcome: t(`domain.tasks.outcomes.${outcome}.label`),
+		crisis: crisis ? crisisEntry(crisis).name : null
+	});
 	await postCard(domain, "council-task", {
 		icon: TASK_SCOPE_ICONS[task.scope],
 		title: t("domain.tasks.settledTitle"),
-		tagline: holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat),
-		what: task.what || t("domain.tasks.whatUnwritten"),
+		tagline: by,
+		what,
 		scope: t(`domain.tasks.scopes.${task.scope}.took`),
 		save: save ? saveContext(save) : null,
 		luck: luck === null ? null : { d6: luck, result: t(`refereeRolls.tables.luck.results.${readRefereeTable("luck", luck).result}`) },

@@ -16,6 +16,7 @@ import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
+import { markMythOmen } from "../actions/omens.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
@@ -46,7 +47,7 @@ import { POINT_KINDS } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
-import { placeFeature, setOmen } from "../rules/realm-edits.js";
+import { placeFeature } from "../rules/realm-edits.js";
 import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
@@ -1092,7 +1093,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const myth = this.#mythFrom(target);
 		const number = Number(target.dataset.omen);
 		if (!myth || !Number.isInteger(number)) return;
-		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, number === myth.omen ? number - 1 : number));
+		return markMythOmen(this.scene, myth.number, number === myth.omen ? number - 1 : number);
 	}
 
 	/**

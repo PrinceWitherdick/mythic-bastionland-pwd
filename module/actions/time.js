@@ -37,7 +37,7 @@ import { tableRenewalNotices } from "./knight-tables.js";
 import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
-import { timelineRank, timelineSeasonTurn } from "./timeline-events.js";
+import { timelineAged, timelineRank, timelineSeasonTurn } from "./timeline-events.js";
 import { adjustGlory, gloryLines } from "./glory.js";
 import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
@@ -120,7 +120,8 @@ function settleSeasonScars(actor) {
  * @returns {Promise<string[]>} Lines for the Age's card.
  */
 async function establishSuccessor(knight) {
-	const heir = await chooseSuccessor(knight);
+	// The Age's row on their thread says who they named.
+	const heir = await chooseSuccessor(knight, { record: false });
 	if (!heir) return [t("successor.unnamed")];
 	const lines = [t("successor.named", { name: heir.name })];
 	if (heir.system.isSquire && heir.isOwner && (await knightSquire(heir))) lines.push(t("successor.knighted", { name: heir.name }));
@@ -135,7 +136,7 @@ async function establishSuccessor(knight) {
  * @returns {Promise<string[]>} Lines for the Age's card.
  */
 async function bequeathGlory(knight, glory) {
-	const heir = heirOf(knight) ?? (await chooseSuccessor(knight));
+	const heir = heirOf(knight) ?? (await chooseSuccessor(knight, { record: false }));
 	if (!heir) return [t("successor.noLegacy")];
 	const amount = legacyGlory(glory);
 	const lines = [t("successor.legacy", { name: heir.name, amount })];
@@ -711,6 +712,7 @@ export async function rollAging(actor, age) {
 		update[`system.virtues.${key}.value`] = scores[key].value;
 	}
 	await actor.update(update, causedBy("aging"));
+	await timelineAged(actor, age, lines.map(({ label, value }) => `${label}: ${value}`));
 	await postCard(actor, "creation", {
 		title: t("time.aging.title"),
 		tagline: steps.map((step) => t(`time.aging.${step}`)).join(" · "),

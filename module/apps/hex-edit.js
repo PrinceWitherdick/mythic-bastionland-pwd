@@ -18,12 +18,12 @@ import {
 	editFeature,
 	paintTerrain,
 	placeFeature,
-	setOmen,
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
 import { rollFreeMyth } from "../rules/realm-myths.js";
 import { hexKey } from "../rules/realm-geometry.js";
+import { markMythOmen } from "../actions/omens.js";
 import { keptFromMe } from "../actions/solo.js";
 import { openMythChooser } from "./MythChooser.js";
 import { inputDialog } from "./ui.js";
@@ -277,10 +277,9 @@ export async function rollHexSeer(scene, hex) {
  */
 export async function stepHexOmen(scene, hex, step) {
 	const by = whole(step) ?? 0;
-	await editRealm(scene, (realm) => {
-		const { myth } = featureAt(realm, hex);
-		return myth ? setOmen(realm, myth.number, myth.omen + by) : realm;
-	});
+	const realm = getRealm(scene)?.realm;
+	const myth = realm ? featureAt(realm, hex).myth : null;
+	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by);
 }
 
 /**

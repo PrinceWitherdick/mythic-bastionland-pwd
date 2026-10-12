@@ -20,7 +20,7 @@ import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
 import { worldKnights } from "./knights.js";
-import { timelineCrisisRoll, timelineNewRuler } from "./timeline-events.js";
+import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -152,6 +152,7 @@ export async function resolveCrisis(domain, index) {
 		icon: "fa-solid fa-check",
 		text: t("domain.resolved", { crisis: crisisName(key), name: domain.name })
 	});
+	await timelineCrisisResolved(domain, key, crisisName(key));
 	return key;
 }
 
@@ -210,10 +211,11 @@ export async function dramaInCourt(domain) {
 	// The Court is where the drama breeds (p21), so one of them is at the heart of it.
 	const candidates = dramaCandidates(domain.system.court);
 	const entries = [];
+	let member = null;
 	if (candidates.length) {
 		const who = await new Roll(`1d${candidates.length}`).evaluate();
 		rolls.push(who);
-		const member = candidates[who.total - 1];
+		member = candidates[who.total - 1];
 		// A report card sets its second slot beside the name, which here carries their role.
 		entries.push({
 			name: member.name,
@@ -234,6 +236,11 @@ export async function dramaInCourt(domain) {
 		entries,
 		hint: [prompt, candidates.length ? null : t("domain.court.emptyHint")].filter(Boolean).join(" ") || null
 	}, { rolls });
+	await timelineDrama(domain, {
+		said: t(`domain.results.drama.${result}`),
+		who: member ? t("timeline.auto.courtier", { name: member.name, role: t(`domain.court.roles.${member.role}.one`) }) : null,
+		leverage: member?.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : null
+	});
 	return result;
 }
 

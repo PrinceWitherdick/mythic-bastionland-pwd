@@ -18,6 +18,7 @@ import {
 } from "../rules/warbands.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { causedBy } from "./ledger.js";
+import { timelineDismissed, timelineMustered } from "./timeline-events.js";
 
 /**
  * Raising soldiers and keeping them (p11). A Holding musters its Warbands
@@ -152,6 +153,7 @@ export async function musterWarband(domain) {
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(domain.ownership) } : {})
 	});
 	if (!warband) return null;
+	await timelineMustered(domain, warband, t(`warband.origins.${choice.origin}.label`));
 
 	await postCard(domain, "report", {
 		title: t("warband.muster.title"),
@@ -184,6 +186,7 @@ export async function dismissWarband(domain, id) {
 	}))) return false;
 
 	await warband.unsetFlag(SYSTEM_ID, MUSTERED_FLAG);
+	await timelineDismissed(domain, warband);
 	await postCard(domain, "note", {
 		icon: "fa-solid fa-person-walking-arrow-right",
 		text: t("warband.dismiss.went", { name: warband.name, domain: domain.name })

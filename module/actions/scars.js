@@ -5,7 +5,7 @@ import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaise
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
-import { timelineScar } from "./timeline-events.js";
+import { timelineScar, timelineScarSettled } from "./timeline-events.js";
 
 /**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
@@ -173,6 +173,7 @@ export async function resolveScar(actor, item) {
 	const maxGuard = actor.system.guard.max;
 	const settled = await settleScar(item, maxGuard);
 	if (settled.guardMax !== maxGuard) await actor.update({ "system.guard.max": settled.guardMax }, causedBy("scar"));
+	await timelineScarSettled(actor, item, settled.line);
 	await postCard(actor, "note", { icon: "fa-solid fa-bone-break", text: settled.line }, { rolls: settled.roll ? [settled.roll] : [] });
 	return settled;
 }

@@ -18,6 +18,7 @@ import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
+import { timelineCircle, timelineCourtJoined, timelineCourtLeft } from "./timeline-events.js";
 
 /**
  * Who serves a Domain (The Court, p20), and who sits on its Council. Each
@@ -68,6 +69,7 @@ export async function addCourtMember(domain, role, fields = {}) {
 	const member = { ...newCourtMember(role, Date.now()), ...fields };
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.court.${id}`]: member });
+	if (member.name) await timelineCourtJoined(domain, id, member);
 	return id;
 }
 
@@ -200,6 +202,7 @@ export async function takeIntoCourt(domain) {
 	if (!member) return null;
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.court.${id}`]: member });
+	await timelineCourtJoined(domain, id, member);
 	return id;
 }
 
@@ -256,6 +259,7 @@ export async function removeCourtMember(domain, id) {
 		[`system.court.-=${id}`]: null,
 		...(held ? { [`system.council.${held}`]: "" } : {})
 	});
+	if (member.name) await timelineCourtLeft(domain, id, member);
 	return true;
 }
 
@@ -293,6 +297,13 @@ export async function seatCircle(domain) {
 			...offered.filter((knight) => chosen[knight.id]).map((knight) => knight.id),
 			...written.filter(({ key }) => chosen[key]).map(({ name }) => name)
 		]
+	});
+	// Only the Knights this choice seated or unseated: names written in by hand have no thread.
+	const sat = (knight) => seated.some((each) => !each.legacy && each.id === knight.id);
+	const withActor = (knight) => ({ ...knight, actor: game.actors.get(knight.id) ?? null });
+	await timelineCircle(domain, {
+		joined: offered.filter((knight) => chosen[knight.id] && !sat(knight)).map(withActor),
+		left: offered.filter((knight) => !chosen[knight.id] && sat(knight)).map(withActor)
 	});
 	return true;
 }

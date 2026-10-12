@@ -11,12 +11,13 @@ import {
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
+import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
 import { holdingChoices } from "../actions/homecoming.js";
 import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
-import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
+import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns } from "../rules/grand-designs.js";
 import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil, namesItsDomain } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -315,16 +316,12 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 
 	/** @this {DomainSheet} */
 	static #onAddDesign(_event, target) {
-		const design = newDesign(target.dataset.scale, getCalendar(), Date.now());
-		if (!design) return null;
-		return this.actor.update({ [`system.designs.${foundry.utils.randomID()}`]: design });
+		return beginDesign(this.actor, target.dataset.scale);
 	}
 
 	/** @this {DomainSheet} */
 	static #onRemoveDesign(_event, target) {
-		const id = target.closest("[data-design]")?.dataset.design;
-		if (!id) return null;
-		return this.actor.update({ [`system.designs.-=${id}`]: null });
+		return strikeOffDesign(this.actor, target.closest("[data-design]")?.dataset.design);
 	}
 
 	/** @this {DomainSheet} */

@@ -14,8 +14,10 @@ vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(a
 vi.mock("../../module/actions/scars.js", () => ({ offerRevenge: vi.fn(async () => {}), rollScar: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}), calendarLabel: () => "" }));
 vi.mock("../../module/actions/items.js", () => ({ armourConditionText: () => "" }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineMortalWound: vi.fn(async () => null), timelineWarded: vi.fn(async () => null) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
+const timeline = await import("../../module/actions/timeline-events.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { takeAttack, takeDamage } = await import("../../module/actions/damage.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
@@ -273,5 +275,35 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		const dodger = character({ uuid: "Actor.fox", name: "Fox", guard: 10, armour: 0 });
 		await takeAttack(dodger, card({ lingers: [{ name: "Lye", damage: "d6", when: "round" }] }));
 		expect(dodger.system.afflictions).toEqual([]);
+	});
+});
+
+describe("the Timeline", () => {
+	const kay = () => character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight", vig: 8, guard: 2 });
+
+	it("writes a Mortal Wound, naming who dealt it", async () => {
+		actors["Actor.wolf"] = { name: "The Wolf" };
+		inputDialog.mockResolvedValueOnce({ damage: "9", armour: "0" });
+		await takeDamage(kay(), { damage: 9, by: "Actor.wolf" });
+		expect(timeline.timelineMortalWound).toHaveBeenCalledWith(expect.objectContaining({ name: "Ser Kay" }), expect.stringContaining("timeline.auto.scarBy"));
+	});
+
+	it("writes nothing of a death, a sparring bout's blow, or Damage that never Slays", async () => {
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		expect((await takeDamage(kay(), { damage: 20 })).outcome).toBe("slain");
+		inputDialog.mockResolvedValue({ damage: "9", armour: "0" });
+		await takeDamage(kay(), { damage: 9, sparring: true, nonLethal: true });
+		await takeDamage(kay(), { damage: 9, nonLethal: true });
+		expect(timeline.timelineMortalWound).not.toHaveBeenCalled();
+	});
+
+	it("writes a ward in place of the Mortal Wound it spared", async () => {
+		const ward = character({ uuid: "Actor.ward", name: "Ser Ward", type: "knight", items: [{ type: "ability", system: { deathWard: true } }] });
+		game.actors.contents.push(ward);
+		const victim = kay();
+		inputDialog.mockResolvedValueOnce({ damage: "9", armour: "0" }).mockResolvedValueOnce({ warden: ward.uuid });
+		await takeDamage(victim, { damage: 9 });
+		expect(timeline.timelineWarded).toHaveBeenCalledWith(ward, victim, { doomed: false });
+		expect(timeline.timelineMortalWound).not.toHaveBeenCalled();
 	});
 });

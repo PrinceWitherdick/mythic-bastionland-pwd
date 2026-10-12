@@ -34,13 +34,13 @@ export const UNDATED = "";
  */
 export const KIND_GROUPS = Object.freeze({
 	hand: Object.freeze(["hand"]),
-	time: Object.freeze(["season", "age", "distant", "session"]),
-	myth: Object.freeze(["myth"]),
-	glory: Object.freeze(["rank"]),
-	wounds: Object.freeze(["scar", "death"]),
-	lineage: Object.freeze(["knighted", "succeeded", "tookUp"]),
-	dominion: Object.freeze(["founded", "crisis", "seized", "passed", "rules", "granted"]),
-	travels: Object.freeze(["visit", "note"])
+	time: Object.freeze(["season", "age", "distant", "session", "aged"]),
+	myth: Object.freeze(["myth", "omen"]),
+	glory: Object.freeze(["rank", "duel", "award"]),
+	wounds: Object.freeze(["scar", "death", "mortal", "ward", "settled", "revenge"]),
+	lineage: Object.freeze(["knighted", "succeeded", "tookUp", "joined", "squire", "heir"]),
+	dominion: Object.freeze(["founded", "crisis", "seized", "passed", "rules", "granted", "resolved", "drama", "task", "design", "court", "circle", "warband"]),
+	travels: Object.freeze(["visit", "note", "found"])
 });
 
 /** What wrote each entry, every KIND_GROUPS line's sources in turn. */
@@ -92,7 +92,31 @@ export const timelineKeys = Object.freeze({
 	// A Holding granted again, in another Season or to another Knight, is a row of its own.
 	holding: (sceneId, holdingId, season, knightId) => `holding:${sceneId}:${holdingId}:${season}:${knightId}`,
 	visit: (sceneId, hex) => `visit:${sceneId}:${hex.col},${hex.row}`,
-	note: (sceneId, hex) => `note:${sceneId}:${hex.col},${hex.row}`
+	note: (sceneId, hex) => `note:${sceneId}:${hex.col},${hex.row}`,
+	duel: (messageId) => `duel:${messageId}`,
+	// Each wound, ward, award, Crisis resolved, Drama, seat in a Circle and heir named is its own row.
+	mortal: (season, at) => `mortal:${season}:${at}`,
+	ward: (season, at) => `ward:${season}:${at}`,
+	award: (award, season, at) => `award:${award}:${season}:${at}`,
+	resolved: (crisis, season, at) => `resolved:${crisis}:${season}:${at}`,
+	drama: (season, at) => `drama:${season}:${at}`,
+	circle: (knightId, season, at) => `circle:${knightId}:${season}:${at}`,
+	// So a Knight who names another heir, or the first again, has each naming on their thread.
+	heir: (heirId, season, at) => `heir:${heirId}:${season}:${at}`,
+	// A Scar settles once, by revenge or otherwise.
+	settled: (itemId) => `settled:${itemId}`,
+	joined: (knightId = "") => (knightId ? `joined:${knightId}` : "joined"),
+	squire: (squireId) => `squire:${squireId}`,
+	serves: (knightId) => `serves:${knightId}`,
+	aged: (age) => `aged:${age}`,
+	// The Myth's id is completedMythId's, so the Myth that replaces it counts its Omens afresh.
+	omen: (mythId, omen) => `omen:${mythId}:${omen}`,
+	task: (taskId) => `task:${taskId}`,
+	design: (designId) => `design:${designId}`,
+	court: (memberId) => `court:${memberId}`,
+	courtLeft: (memberId) => `courtLeft:${memberId}`,
+	warband: (actorId) => `warband:${actorId}`,
+	warbandGone: (actorId) => `warbandGone:${actorId}`
 });
 
 /**

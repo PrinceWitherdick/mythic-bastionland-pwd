@@ -42,7 +42,14 @@ const asTrack = (target) => (target?.trackId ? target : trackFor(target));
  * @param {Actor|Scene|string|{trackId: string}|null} target
  * @returns {boolean} Whether its thread is kept for the Referee alone, so nothing of it belongs on a thread the players read.
  */
-export const keptFromPlayers = (target) => Boolean(target && asTrack(target)?.secret);
+export function keptFromPlayers(target) {
+	try {
+		return Boolean(target && asTrack(target)?.secret);
+	} catch {
+		// Where it can't be told, it's kept back: a row the players shouldn't read is worse than one missing.
+		return true;
+	}
+}
 
 /**
  * Write milestones on one thread, each once.
@@ -74,11 +81,17 @@ export async function recordOnTrack(target, milestones, { when } = {}) {
  * @param {Milestone|Milestone[]} milestones
  * @param {{when?: string}} [options]
  */
-export function recordOnTracks(targets, milestones, options) {
+export async function recordOnTracks(targets, milestones, options) {
 	const tracks = new Map();
-	for (const target of targets) {
-		const track = target ? asTrack(target) : null;
-		if (track && !tracks.has(track.trackId)) tracks.set(track.trackId, track);
+	try {
+		for (const target of targets) {
+			const track = target ? asTrack(target) : null;
+			if (track && !tracks.has(track.trackId)) tracks.set(track.trackId, track);
+		}
+	} catch (error) {
+		if (!warned) console.warn(`${SYSTEM_ID} | Couldn't write on the Timeline`, error);
+		warned = true;
+		return [];
 	}
 	return Promise.all([...tracks.values()].map((track) => recordOnTrack(track, milestones, options)));
 }

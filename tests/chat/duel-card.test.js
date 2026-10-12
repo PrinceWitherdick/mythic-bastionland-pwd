@@ -16,6 +16,7 @@ vi.mock("../../module/chat/attack-card.js", () => ({
 vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(async () => []) }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: (key) => ({ cause: key }) }));
 vi.mock("../../module/actions/calendar.js", () => ({ CALENDAR_HOOK: "calendarChanged" }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDuel: vi.fn(async () => null) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
 const { postCard } = await import("../../module/chat/cards.js");
@@ -194,6 +195,15 @@ describe("a sparring duel's buttons", () => {
 		await renderDuel(createDuel({ duelists })).press({ duelAction: "end", victor: "" });
 		expect(actors["Actor.ada"].update).not.toHaveBeenCalled();
 		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("writes the duel's end on the Timeline once, with its victor", async () => {
+		const { timelineDuel } = await import("../../module/actions/timeline-events.js");
+		const { message, press } = renderDuel(createDuel({ duelists }));
+		await press({ duelAction: "end", victor: "Actor.ada" });
+		await press({ duelAction: "end", victor: "Actor.ada" });
+		expect(timelineDuel).toHaveBeenCalledTimes(1);
+		expect(timelineDuel).toHaveBeenCalledWith(message.id, expect.objectContaining({ kind: "duel" }), [actors["Actor.ada"], actors["Actor.bram"]], "Actor.ada", {});
 	});
 
 	/** A Combat ending, with Combatants for these actors. */

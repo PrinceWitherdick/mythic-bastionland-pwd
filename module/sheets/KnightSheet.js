@@ -8,7 +8,7 @@ import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../act
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
-import { chooseSuccessor, heirOf } from "../actions/succession.js";
+import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
 import { openPortrait } from "../apps/ArtPopout.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
@@ -563,7 +563,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
 		if (actor.type === "knight" && !squire) {
 			if (this.actor.system.isSquire || actor.pack) return null;
-			await this.actor.update({ "system.successor": actor.uuid });
+			await nameSuccessor(this.actor, actor);
 			return actor;
 		}
 		if (actor.type !== "npc" && !squire) return null;

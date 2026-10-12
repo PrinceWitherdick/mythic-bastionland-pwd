@@ -11,6 +11,7 @@ import { SCORES, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
 import { makeCompanions, markCompanions } from "./property.js";
+import { timelineJoined } from "./timeline-events.js";
 
 /**
  * Roll each Virtue in order, then GD, with a Start's dice.
@@ -118,6 +119,18 @@ export async function giveKnightTo(actor, userId) {
 	if (was?.character?.id === actor.id) await was.update({ character: null });
 	const now = game.users.get(userId);
 	if (now && !now.character) await now.update({ character: actor.id });
+	await knightJoined(actor);
+}
+
+/**
+ * A Knight joins the Company, once both chosen and given to a player: on
+ * their Timeline thread and the Company's. NPC Knights and Squires never join
+ * this way, and a Knight still to be chosen joins once they are.
+ * @param {Actor|null} actor
+ */
+export async function knightJoined(actor) {
+	if (actor?.type !== "knight" || actor.system.isSquire || !actor.hasPlayerOwner || isUnchosen(actor)) return;
+	await timelineJoined(actor);
 }
 
 /**
