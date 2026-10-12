@@ -1684,26 +1684,16 @@
 	background: linear-gradient(160deg, #f3d39c, #dc9a58);
 }
 
-/* Night is dark whatever the Colour Scheme, so it takes Midnight's coloured inks, which read on it. */
+/*
+ * Night is dark whatever the Colour Scheme. Its paper and rule are its own;
+ * its inks are Midnight's, which read on it, and its light a dark scheme's,
+ * both given it beside the scheme's in settings.css.
+ */
 .bastionland-card--night,
 .chat-message:has(.bastionland-card--night) {
 	--bastionland-card-icon: #e8dfa8;
 	--bastionland-paper: #1c2038;
-	--bastionland-paper-deep: #252a40;
-	--bastionland-ink: #ece6f6;
-	--bastionland-ink-soft: #b9b3d2;
-	--bastionland-ink-faint: #7a7899;
 	--bastionland-rule: #4d4f7c;
-	--bastionland-blood: #ec8a8a;
-	--bastionland-rubric: #e8996e;
-	--bastionland-verdigris: #7cc4ac;
-	--bastionland-spring: #94c878;
-	--bastionland-harvest: #e0b060;
-	--bastionland-winter: #8fb8e8;
-	--bastionland-color-scheme: dark;
-	--bastionland-shade-rgb: 255 255 255;
-	--bastionland-sheen-rgb: 232 228 255;
-	--bastionland-sheen: 0.25;
 	background: linear-gradient(160deg, #262b4a, #11142a);
 }
 
@@ -2014,42 +2004,10 @@
 }
 
 /*
- * The painted cards in daylight colours, and the Age's parchment tab with the
- * buttons and the tag that share it, set their own paper and ink but would take
- * every other colour from the page. Under a dark Colour Scheme those are the
- * pale inks meant for dark paper, which wouldn't read on these, so here they
- * keep parchment's own (the :root block in mythic-bastionland.css).
+ * Under a dark Colour Scheme the daylight cards and the Age's parchment tab
+ * keep parchment's other colours, given them beside the page's own in the
+ * second :root rule of mythic-bastionland.css.
  */
-:root.bastionland-dark :is(
-	.bastionland-card--morning,
-	.bastionland-card--afternoon,
-	.bastionland-card--spring,
-	.bastionland-card--harvest,
-	.bastionland-card--winter,
-	.bastionland-time-banner__age,
-	.bastionland-time-banner__moves,
-	#players .bastionland-solo-tag
-),
-:root.bastionland-dark .chat-message:has(:is(
-	.bastionland-card--morning,
-	.bastionland-card--afternoon,
-	.bastionland-card--spring,
-	.bastionland-card--harvest,
-	.bastionland-card--winter
-)) {
-	--bastionland-paper-deep: #e3d9c3;
-	--bastionland-ink-faint: #a39680;
-	--bastionland-blood: #8b1e1e;
-	--bastionland-rubric: #9a3520;
-	--bastionland-verdigris: #2f6150;
-	--bastionland-spring: #4f8a2a;
-	--bastionland-harvest: #9a5a14;
-	--bastionland-winter: #3f6e9a;
-	--bastionland-color-scheme: light;
-	--bastionland-shade-rgb: 0 0 0;
-	--bastionland-sheen-rgb: 255 255 255;
-	--bastionland-sheen: 1;
-}
 
 /*
  * A long window broken into sections, picked from a column of named tabs down

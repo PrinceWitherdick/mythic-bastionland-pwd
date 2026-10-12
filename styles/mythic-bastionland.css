@@ -80,33 +80,15 @@
 	display: none !important;
 }
 
+/*
+ * Parchment, the book's own colours. Its paper, ink and rule are here; the
+ * rest of its colours and its light are in the rule after.
+ */
 :root {
 	--bastionland-paper: #efe8d8;
-	--bastionland-paper-deep: #e3d9c3;
 	--bastionland-ink: #231f1a;
 	--bastionland-ink-soft: #5a5046;
-	/* Placeholder writing: pale enough not to pass for something already filled in. */
-	--bastionland-ink-faint: #a39680;
 	--bastionland-rule: #8a7d6a;
-	--bastionland-blood: #8b1e1e;
-	/* Red ochre, the ink a scribe headed a section with. */
-	--bastionland-rubric: #9a3520;
-	--bastionland-verdigris: #2f6150;
-	/* Each Season's colour, shared by its chat card and its Toolkit leaf. */
-	--bastionland-spring: #4f8a2a;
-	--bastionland-harvest: #9a5a14;
-	--bastionland-winter: #3f6e9a;
-	/*
-	 * What a colour scheme turns besides the colours above: whether the
-	 * browser's own scrollbars and pickers are light or dark, the colour a
-	 * zebra row or a table head is shaded with, and the light a page's sheen
-	 * and its pale wells are lit with, with how strongly. A dark scheme
-	 * shades in light and all but puts the sheen out (styles/settings.css).
-	 */
-	--bastionland-color-scheme: light;
-	--bastionland-shade-rgb: 0 0 0;
-	--bastionland-sheen-rgb: 255 255 255;
-	--bastionland-sheen: 1;
 	--bastionland-font-display: "Bastionland Display", "Old English Text MT", serif;
 	--bastionland-font-body: "Bastionland Body", Georgia, "Times New Roman", serif;
 	--bastionland-font-caps: "Bastionland Caps", Georgia, "Times New Roman", serif;
@@ -131,6 +113,55 @@
 	--bastionland-figure-nudge: 0.11em;
 	--bastionland-font-note: 15px;
 	--bastionland-font-floor: 14px;
+}
+
+/*
+ * The cards painted in daylight colours, and the Age's parchment tab with the
+ * buttons and the tag that share it, set their own paper, ink and rule
+ * (chat.css) and would take every other colour from the page. Under a dark
+ * Colour Scheme those are the pale inks meant for dark paper, which wouldn't
+ * read on these, so there they keep parchment's own.
+ */
+:root,
+:root.bastionland-dark :is(
+	.bastionland-card--morning,
+	.bastionland-card--afternoon,
+	.bastionland-card--spring,
+	.bastionland-card--harvest,
+	.bastionland-card--winter,
+	.bastionland-time-banner__age,
+	.bastionland-time-banner__moves,
+	#players .bastionland-solo-tag
+),
+:root.bastionland-dark .chat-message:has(:is(
+	.bastionland-card--morning,
+	.bastionland-card--afternoon,
+	.bastionland-card--spring,
+	.bastionland-card--harvest,
+	.bastionland-card--winter
+)) {
+	--bastionland-paper-deep: #e3d9c3;
+	/* Placeholder writing: pale enough not to pass for something already filled in. */
+	--bastionland-ink-faint: #a39680;
+	--bastionland-blood: #8b1e1e;
+	/* Red ochre, the ink a scribe headed a section with. */
+	--bastionland-rubric: #9a3520;
+	--bastionland-verdigris: #2f6150;
+	/* Each Season's colour, shared by its chat card and its Toolkit leaf. */
+	--bastionland-spring: #4f8a2a;
+	--bastionland-harvest: #9a5a14;
+	--bastionland-winter: #3f6e9a;
+	/*
+	 * What a colour scheme turns besides the colours: whether the browser's
+	 * own scrollbars and pickers are light or dark, the colour a zebra row or
+	 * a table head is shaded with, and the light a page's sheen and its pale
+	 * wells are lit with, with how strongly. A dark scheme shades in light and
+	 * all but puts the sheen out (styles/settings.css).
+	 */
+	--bastionland-color-scheme: light;
+	--bastionland-shade-rgb: 0 0 0;
+	--bastionland-sheen-rgb: 255 255 255;
+	--bastionland-sheen: 1;
 }
 
 /* No text casts a shadow. Foundry embosses every dt, glows links and active tabs

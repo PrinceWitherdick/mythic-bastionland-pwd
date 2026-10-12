@@ -17,16 +17,47 @@ const COLOURS = [
 ];
 
 /**
- * The custom properties a rule declares, by name without the `--bastionland-`.
+ * Each innermost rule in a stylesheet: the selectors in its list, written on
+ * one line each, and the custom properties it declares, by name without the
+ * `--bastionland-`.
  * @param {string} css
- * @param {string} selector Exactly as the stylesheet writes it.
+ * @returns {{selectors: string[], tokens: Record<string, string>}[]}
+ */
+function rules(css) {
+	const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	return [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, list, body]) => {
+		const selectors = [];
+		let depth = 0;
+		let current = "";
+		for (const char of list) {
+			if (char === "," && depth === 0) {
+				selectors.push(current);
+				current = "";
+				continue;
+			}
+			if (char === "(") depth += 1;
+			if (char === ")") depth -= 1;
+			current += char;
+		}
+		selectors.push(current);
+		return {
+			selectors: selectors.map((selector) => selector.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim()),
+			tokens: Object.fromEntries([...body.matchAll(/--bastionland-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]))
+		};
+	});
+}
+
+/**
+ * The custom properties a selector is given, from every rule that lists it,
+ * the later over the earlier.
+ * @param {string} css
+ * @param {string} selector One of a rule's selectors, on one line.
  * @returns {Record<string, string>}
  */
 function block(css, selector) {
-	const start = css.indexOf(`${selector} {`);
-	expect(start, `${selector} is in the stylesheet`).toBeGreaterThanOrEqual(0);
-	const body = css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
-	return Object.fromEntries([...body.matchAll(/--bastionland-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
+	const given = rules(css).filter((rule) => rule.selectors.includes(selector));
+	expect(given.length, `${selector} is in the stylesheet`).toBeGreaterThan(0);
+	return Object.assign({}, ...given.map((rule) => rule.tokens));
 }
 
 const ROOT = block(MAIN, ":root");
@@ -115,22 +146,40 @@ describe("the dark colour schemes", () => {
 });
 
 describe("cards painted in their own colours", () => {
+	const DAYLIGHT = ["morning", "afternoon", "spring", "harvest", "winter"];
+
 	it("keep parchment's coloured inks under a dark scheme, so none of the pale ones lands on their light paper", () => {
-		const start = CHAT.indexOf(":root.bastionland-dark :is(\n\t.bastionland-card--morning");
-		expect(start).toBeGreaterThanOrEqual(0);
-		const body = CHAT.slice(CHAT.indexOf("{", CHAT.indexOf(")) {", start)) + 1, CHAT.indexOf("}", CHAT.indexOf(")) {", start)));
-		const pinned = Object.fromEntries([...body.matchAll(/--bastionland-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
-		for (const colour of COLOURS.filter((name) => !["paper", "ink", "ink-soft", "rule"].includes(name))) {
-			expect(pinned[colour], colour).toBe(ROOT[colour]);
+		const own = ["paper", "ink", "ink-soft", "rule"];
+		for (const name of DAYLIGHT) {
+			const card = block(CHAT, `.bastionland-card--${name}`);
+			expect(Object.keys(card).filter((token) => COLOURS.includes(token)).sort(), name).toEqual([...own].sort());
 		}
-		expect(pinned).toMatchObject({ "color-scheme": "light", "shade-rgb": ROOT["shade-rgb"], "sheen-rgb": ROOT["sheen-rgb"], sheen: ROOT.sheen });
+		// The rest are given them from the very rule that gives the page parchment's, so there is no copy to drift.
+		const pinned = rules(MAIN).find((rule) => rule.selectors.includes(":root") && "blood" in rule.tokens);
+		const card = pinned.selectors.find((selector) => selector.startsWith(":root.bastionland-dark :is("));
+		const message = pinned.selectors.find((selector) => selector.startsWith(":root.bastionland-dark .chat-message:has("));
+		for (const name of DAYLIGHT) {
+			expect(card, name).toContain(`.bastionland-card--${name}`);
+			expect(message, name).toContain(`.bastionland-card--${name}`);
+		}
+		for (const colour of COLOURS.filter((name) => !own.includes(name))) expect(pinned.tokens[colour], colour).toBe(ROOT[colour]);
+		expect(pinned.tokens).toMatchObject({ "color-scheme": "light", "shade-rgb": "0 0 0", "sheen-rgb": "255 255 255", sheen: "1" });
+		// Nothing later in the cascade gives them anything else.
+		const others = [CHAT, TOOLKIT, SETTINGS, TIMELINE].flatMap(rules).filter((rule) => rule.selectors.some((selector) => DAYLIGHT.some((name) => selector.includes(`card--${name}`))));
+		for (const rule of others) expect(Object.keys(rule.tokens).filter((token) => COLOURS.includes(token) && !own.includes(token))).toEqual([]);
 	});
 
 	it("give the Night card Midnight's coloured inks, which read on its dark paper in any scheme", () => {
-		const night = block(CHAT, ".bastionland-card--night,\n.chat-message:has(.bastionland-card--night)");
-		for (const colour of ["paper-deep", "ink-faint", "blood", "rubric", "verdigris", "spring", "harvest", "winter"]) {
+		const night = { ...block(CHAT, ".bastionland-card--night"), ...block(SETTINGS, ".bastionland-card--night") };
+		expect(night).toEqual({ ...block(CHAT, ".chat-message:has(.bastionland-card--night)"), ...block(SETTINGS, ".chat-message:has(.bastionland-card--night)") });
+		for (const colour of COLOURS) expect(night[colour], colour).toMatch(/^#[0-9a-f]{6}$/);
+		// Its inks come from Midnight's own rule, and its light from the dark schemes' own.
+		const midnight = rules(SETTINGS).find((rule) => rule.selectors.includes(":root.bastionland-dark.bastionland-scheme-midnight") && "blood" in rule.tokens);
+		expect(midnight.selectors).toContain(".bastionland-card--night");
+		for (const colour of ["paper-deep", "ink", "ink-soft", "ink-faint", "blood", "rubric", "verdigris", "spring", "harvest", "winter"]) {
 			expect(night[colour], colour).toBe(MIDNIGHT[colour]);
 		}
+		expect(night).toMatchObject({ "color-scheme": "dark", "shade-rgb": DARK["shade-rgb"], "sheen-rgb": MIDNIGHT["sheen-rgb"], sheen: DARK.sheen });
 		for (const colour of ["blood", "rubric", "verdigris"]) expect(contrast(night[colour], night.paper)).toBeGreaterThanOrEqual(4.5);
 	});
 });

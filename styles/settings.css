@@ -286,20 +286,32 @@ label.bastionland-settings__label:has(input[type="checkbox"]) {
 	--bastionland-spring: #8cc06a;
 	--bastionland-harvest: #d9a24e;
 	--bastionland-winter: #84aed6;
+	--bastionland-sheen-rgb: 255 244 224;
+}
+
+/* Every dark scheme's light, and the Night card's, which is dark whatever the scheme (chat.css). */
+:root.bastionland-dark,
+.bastionland-card--night,
+.chat-message:has(.bastionland-card--night) {
 	--bastionland-color-scheme: dark;
 	--bastionland-shade-rgb: 255 255 255;
-	--bastionland-sheen-rgb: 255 244 224;
 	--bastionland-sheen: 0.25;
 }
 
 /* Midnight: the Night card's indigo. */
 :root.bastionland-dark.bastionland-scheme-midnight {
 	--bastionland-paper: #1b1f30;
+	--bastionland-rule: #6f73a3;
+}
+
+/* Midnight's inks and its light, which the Night card takes on its own paper and rule. */
+:root.bastionland-dark.bastionland-scheme-midnight,
+.bastionland-card--night,
+.chat-message:has(.bastionland-card--night) {
 	--bastionland-paper-deep: #252a40;
 	--bastionland-ink: #ece6f6;
 	--bastionland-ink-soft: #b9b3d2;
 	--bastionland-ink-faint: #7a7899;
-	--bastionland-rule: #6f73a3;
 	--bastionland-blood: #ec8a8a;
 	--bastionland-rubric: #e8996e;
 	--bastionland-verdigris: #7cc4ac;

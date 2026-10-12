@@ -21,7 +21,7 @@ export const TYPEFACES = Object.freeze(["book", "serif", "signika"]);
  * The colour schemes offered: the book's parchment first, then the dark ones,
  * then one that follows Foundry's own light or dark windows.
  */
-export const COLOUR_SCHEMES = Object.freeze(["parchment", "lamplit", "midnight", "ashen", "auto"]);
+const COLOUR_SCHEMES = Object.freeze(["parchment", "lamplit", "midnight", "ashen", "auto"]);
 
 /** The dark schemes. Lamplit is the stylesheet's dark base, and the others are drawn over it. */
 const DARK_SCHEMES = Object.freeze(["lamplit", "midnight", "ashen"]);
@@ -92,7 +92,7 @@ export function applyContrast(value) {
  *   their own choice in Foundry's interface settings, or their browser's while
  *   they've left it at the default.
  */
-export function foundryAppsAreDark() {
+function foundryAppsAreDark() {
 	let chosen = "";
 	try {
 		chosen = game.settings.get("core", "uiConfig")?.colorScheme?.applications ?? "";
@@ -108,7 +108,7 @@ export function foundryAppsAreDark() {
  * @returns {string} The scheme the page is drawn in: Follow Foundry settled to
  *   one of the others, and an unknown value read as parchment.
  */
-export function shownScheme(value) {
+function shownScheme(value) {
 	if (value === "auto") return foundryAppsAreDark() ? FOLLOWED_DARK : "parchment";
 	return COLOUR_SCHEMES.includes(value) ? value : "parchment";
 }
