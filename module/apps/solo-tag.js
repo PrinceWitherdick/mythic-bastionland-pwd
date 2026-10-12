@@ -1,7 +1,7 @@
 import { SOLO_SETTING, keptFromMe } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { confirmDialog } from "./ui.js";
+import { PAINTED, confirmDialog } from "./ui.js";
 
 /** Marks the tag, so a redraw of the players list doesn't add a second. */
 const TAG_CLASS = "bastionland-solo-tag";
@@ -35,7 +35,7 @@ export function addSoloTag(element) {
 	if (!keptFromMe()) return;
 	const tag = document.createElement("button");
 	tag.type = "button";
-	tag.className = TAG_CLASS;
+	tag.className = `${TAG_CLASS} ${PAINTED}`;
 	tag.dataset.tooltipText = t("solo.tag.hint");
 	tag.dataset.tooltipDirection = "RIGHT";
 	const glyph = document.createElement("i");

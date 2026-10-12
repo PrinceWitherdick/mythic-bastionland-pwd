@@ -12,6 +12,7 @@ import { t } from "../chat/cards.js";
 import { TEXT_SIZE_HOOK, read, reducesMotion } from "../client-settings.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { PAINTED } from "./ui.js";
 
 /** Whether this browser shows the banner. Everyone else at the table keeps their own choice. */
 const SHOWN_SETTING = "phaseBannerShown";
@@ -93,7 +94,7 @@ const faceHTML = ({ icon, label }) => `<i class="${icon}" inert></i><span class=
  * @param {ReturnType<typeof timeBannerTabs>[number]} face
  */
 function dress(tab, face) {
-	tab.className = `bastionland-time-banner__tab bastionland-time-banner__tab--${face.part} ${face.light}`;
+	tab.className = `bastionland-time-banner__tab bastionland-time-banner__tab--${face.part} ${PAINTED} ${face.light}`;
 	tab.dataset.value = face.value;
 	tab.innerHTML = faceHTML(face);
 }
@@ -105,7 +106,7 @@ function dress(tab, face) {
  */
 function turn(tab, face) {
 	const cover = document.createElement("span");
-	cover.className = `bastionland-time-banner__face ${face.light}`;
+	cover.className = `bastionland-time-banner__face ${PAINTED} ${face.light}`;
 	cover.innerHTML = faceHTML(face);
 	tab.dataset.value = face.value;
 	const finish = () => {
@@ -160,7 +161,7 @@ function labelMoves() {
 function openMoves() {
 	if (!banner || menu) return;
 	menu = document.createElement("nav");
-	menu.className = "bastionland-time-banner__moves";
+	menu.className = `bastionland-time-banner__moves ${PAINTED}`;
 	menu.setAttribute("aria-label", t("time.banner.moves"));
 	// The bar reads each new date out; the buttons coming and going aren't news.
 	menu.setAttribute("aria-live", "off");

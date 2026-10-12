@@ -116,30 +116,19 @@
 }
 
 /*
- * The cards painted in daylight colours, and the Age's parchment tab with the
- * buttons and the tag that share it, set their own paper, ink and rule
- * (chat.css) and would take every other colour from the page. Under a dark
- * Colour Scheme those are the pale inks meant for dark paper, which wouldn't
- * read on these, so there they keep parchment's own.
+ * What is painted in its own colours (a card given a Phase's or a Season's
+ * tone, the calendar banner's tabs and buttons, the solo tag) sets its own
+ * paper, ink and rule (chat.css) and would take every other colour from the
+ * page. Under a dark Colour Scheme those are the pale inks meant for dark
+ * paper, which wouldn't read on its light paper, so there it keeps
+ * parchment's own. The Night is painted dark whatever the scheme (settings.css).
+ * A card goes by the class report.hbs has always given a toned card, so those
+ * already in the chat log are kept too; anything else is marked PAINTED
+ * (module/apps/ui.js).
  */
 :root,
-:root.bastionland-dark :is(
-	.bastionland-card--morning,
-	.bastionland-card--afternoon,
-	.bastionland-card--spring,
-	.bastionland-card--harvest,
-	.bastionland-card--winter,
-	.bastionland-time-banner__age,
-	.bastionland-time-banner__moves,
-	#players .bastionland-solo-tag
-),
-:root.bastionland-dark .chat-message:has(:is(
-	.bastionland-card--morning,
-	.bastionland-card--afternoon,
-	.bastionland-card--spring,
-	.bastionland-card--harvest,
-	.bastionland-card--winter
-)) {
+:root.bastionland-dark :is(.bastionland-painted, .bastionland-card--painted):not(.bastionland-card--night),
+:root.bastionland-dark .chat-message:has(.bastionland-card--painted:not(.bastionland-card--night)) {
 	--bastionland-paper-deep: #e3d9c3;
 	/* Placeholder writing: pale enough not to pass for something already filled in. */
 	--bastionland-ink-faint: #a39680;

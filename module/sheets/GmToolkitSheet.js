@@ -25,7 +25,7 @@ import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
 import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { filterBySearch, inputDialog } from "../apps/ui.js";
+import { filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythLookup, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
@@ -82,9 +82,6 @@ const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="rang
 
 /** How long to wait for a burst of changes to land before redrawing. */
 const REDRAW_DELAY = 50;
-
-/** How often to look again whether the GM has left the field a redraw is waiting on. */
-const TYPING_RECHECK = 300;
 
 /**
  * Show as much of a card just unfolded as the page has room for: all of it,
@@ -958,29 +955,12 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		for (const part of parts) this.#stale.add(part);
 		if (this.#redrawing) return;
 		this.#redrawing = true;
-		setTimeout(() => this.#redrawStale(), REDRAW_DELAY);
-	}
-
-	/**
-	 * Draw the parts waiting to be drawn, unless the GM is typing in one of
-	 * them. Then it looks again shortly, rather than waiting on the field's blur,
-	 * which never comes for a field swept away by some other redraw.
-	 */
-	#redrawStale() {
-		if (!this.rendered) {
+		setTimeout(() => {
 			this.#redrawing = false;
+			const stale = [...this.#stale];
 			this.#stale.clear();
-			return;
-		}
-		const parts = [...this.#stale];
-		const field = document.activeElement;
-		if (field?.matches?.(TYPING) && parts.some((part) => this.parts?.[part]?.contains(field))) {
-			setTimeout(() => this.#redrawStale(), TYPING_RECHECK);
-			return;
-		}
-		this.#redrawing = false;
-		this.#stale.clear();
-		if (parts.length) this.render({ parts });
+			if (stale.length) renderWhenIdle(this, { parts: stale, busy: TYPING });
+		}, REDRAW_DELAY);
 	}
 
 	/* -------------------------------------------- */

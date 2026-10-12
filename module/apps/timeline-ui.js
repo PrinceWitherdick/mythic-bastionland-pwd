@@ -53,7 +53,7 @@ const HANDLED = 'input:not([type="checkbox"]):not([type="radio"])';
  * @param {string} [part] The one part to draw, on an app that draws its Timeline as a part of its own.
  * @returns {() => void} Draws the app, or that part of it, again once a burst of Timeline writes has settled; one landing after it closes draws nothing.
  */
-export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => renderWhenIdle(app, part ? { part, busy: HANDLED } : {}), TIMELINE_REDRAW_DELAY);
+export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => renderWhenIdle(app, part ? { parts: [part], busy: HANDLED } : {}), TIMELINE_REDRAW_DELAY);
 
 /** Called by everything showing a Timeline when the reader's Filter or layout changes. */
 const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;

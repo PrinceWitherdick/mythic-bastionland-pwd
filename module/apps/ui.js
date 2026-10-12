@@ -1,6 +1,9 @@
 import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 
+/** Marks something painted in its own light colours, which keeps parchment's inks under a dark Colour Scheme (mythic-bastionland.css). */
+export const PAINTED = "bastionland-painted";
+
 /**
  * Add a button to a directory's header, beside Foundry's own. Callers decide
  * who gets one.
@@ -258,40 +261,60 @@ export function chooseLocalFiles(element) {
 	input.click();
 }
 
-/** Windows waiting for whoever is using them to leave the field they're typing in. */
-const waiting = new WeakSet();
-
-/** Windows waiting the same way to draw just one part of themselves. */
-const partsWaiting = new WeakSet();
+/**
+ * Windows waiting for whoever is using them to leave the field they're typing
+ * in: the parts each will draw (null for the whole window), and the fields
+ * worth waiting on.
+ * @type {WeakMap<object, {parts: Set<string>|null, busy: Set<string>}>}
+ */
+const waiting = new WeakMap();
 
 /** A field a redraw would take the typing out of. */
 const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
 
+/** How often to look again whether whoever is typing has left the field. */
+const TYPING_RECHECK = 300;
+
 /**
  * Draw a window again once whoever is using it has finished typing. Drawing
  * puts every field back to its saved value, so a redraw mid-sentence would take
- * the sentence away.
+ * the sentence away. While it waits, it looks again every so often rather than
+ * waiting on the field's blur, which never comes for a field swept away by some
+ * other redraw. Asked again while waiting, it draws what each asked for at once.
  * @param {foundry.applications.api.ApplicationV2} app
  * @param {object} [options]
- * @param {string} [options.part] Draw only this part, waiting only on a field inside it.
+ * @param {string[]} [options.parts] Draw only these parts, waiting only on a field inside them.
  * @param {string} [options.busy] The fields worth waiting on, if not every one typed in.
  */
-export function renderWhenIdle(app, { part, busy = TYPING } = {}) {
+export function renderWhenIdle(app, { parts, busy = TYPING } = {}) {
 	if (!app?.rendered) return;
-	const draw = () => (part ? app.render({ parts: [part] }) : app.render());
-	const field = document.activeElement;
-	const holder = part ? app.parts?.[part] : app.element;
-	if (!field || !holder?.contains(field) || !field.matches(busy)) {
-		draw();
+	const pending = waiting.get(app);
+	if (pending) {
+		if (!parts) pending.parts = null;
+		else for (const part of parts) pending.parts?.add(part);
+		pending.busy.add(busy);
 		return;
 	}
-	const pending = part ? partsWaiting : waiting;
-	if (pending.has(app)) return;
-	pending.add(app);
-	field.addEventListener("blur", () => {
-		pending.delete(app);
-		if (app.rendered) draw();
-	}, { once: true });
+	waiting.set(app, { parts: parts ? new Set(parts) : null, busy: new Set([busy]) });
+	drawWhenIdle(app);
+}
+
+/** @param {foundry.applications.api.ApplicationV2} app Waiting in `waiting`. */
+function drawWhenIdle(app) {
+	const { parts, busy } = waiting.get(app);
+	if (!app.rendered) {
+		waiting.delete(app);
+		return;
+	}
+	const field = document.activeElement;
+	const holders = parts ? [...parts].map((part) => app.parts?.[part]) : [app.element];
+	if (field?.matches?.([...busy].join(", ")) && holders.some((holder) => holder?.contains(field))) {
+		setTimeout(() => drawWhenIdle(app), TYPING_RECHECK);
+		return;
+	}
+	waiting.delete(app);
+	if (parts) app.render({ parts: [...parts] });
+	else app.render();
 }
 
 /**

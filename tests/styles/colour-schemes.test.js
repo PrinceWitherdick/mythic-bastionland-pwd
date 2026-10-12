@@ -9,6 +9,7 @@ const SETTINGS = read("settings.css");
 const CHAT = read("chat.css");
 const TOOLKIT = read("gm-toolkit.css");
 const TIMELINE = read("timeline.css");
+const REPORT = readFileSync(join(import.meta.dirname, "..", "..", "templates", "chat", "report.hbs"), "utf8");
 
 /** The twelve colours every scheme sets. */
 const COLOURS = [
@@ -154,14 +155,15 @@ describe("cards painted in their own colours", () => {
 			const card = block(CHAT, `.bastionland-card--${name}`);
 			expect(Object.keys(card).filter((token) => COLOURS.includes(token)).sort(), name).toEqual([...own].sort());
 		}
-		// The rest are given them from the very rule that gives the page parchment's, so there is no copy to drift.
+		// The rest are given them from the very rule that gives the page parchment's, so there is no copy to drift:
+		// every card report.hbs paints in a tone but the Night's, and whatever else is marked painted.
 		const pinned = rules(MAIN).find((rule) => rule.selectors.includes(":root") && "blood" in rule.tokens);
-		const card = pinned.selectors.find((selector) => selector.startsWith(":root.bastionland-dark :is("));
-		const message = pinned.selectors.find((selector) => selector.startsWith(":root.bastionland-dark .chat-message:has("));
-		for (const name of DAYLIGHT) {
-			expect(card, name).toContain(`.bastionland-card--${name}`);
-			expect(message, name).toContain(`.bastionland-card--${name}`);
-		}
+		expect(pinned.selectors).toEqual([
+			":root",
+			":root.bastionland-dark :is(.bastionland-painted, .bastionland-card--painted):not(.bastionland-card--night)",
+			":root.bastionland-dark .chat-message:has(.bastionland-card--painted:not(.bastionland-card--night))"
+		]);
+		expect(REPORT).toContain("bastionland-card--painted bastionland-card--{{tone}}");
 		for (const colour of COLOURS.filter((name) => !own.includes(name))) expect(pinned.tokens[colour], colour).toBe(ROOT[colour]);
 		expect(pinned.tokens).toMatchObject({ "color-scheme": "light", "shade-rgb": "0 0 0", "sheen-rgb": "255 255 255", sheen: "1" });
 		// Nothing later in the cascade gives them anything else.
