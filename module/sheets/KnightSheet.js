@@ -8,8 +8,9 @@ import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../act
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
-import { chooseSuccessor, heirOf } from "../actions/succession.js";
+import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
+import { timelineSquireTaken } from "../actions/timeline-events.js";
 import { openPortrait } from "../apps/ArtPopout.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { openKnightTable } from "../apps/KnightTable.js";
@@ -36,6 +37,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 
 /**
  * The Knight character sheet, laid out after the official printed sheet, with
@@ -45,7 +47,7 @@ import { TabRailMixin } from "./tab-rail.js";
  * document, and the same sheet, drawn as the one page p7 gives them; see
  * templates/actor/squire-sheet.hbs.
  */
-export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorSheet)) {
+export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(BastionlandActorSheet))) {
 	/** @override */
 	static PROPERTY_ORDER = true;
 
@@ -89,7 +91,9 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		sheet: {
 			template: templatePath("actor/knight-sheet.hbs"),
 			scrollable: [""]
-		}
+		},
+		// Drawn on its own and put into the sheet's page, so the Timeline and the rest of the sheet don't draw each other.
+		timeline: { template: templatePath("actor/parts/timeline-tab.hbs") }
 	};
 
 	/** A Squire's own page, in place of the Knight's, under the figure from their portrait. */
@@ -111,6 +115,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 				{ id: "seer", icon: "fa-solid fa-eye", label: "bastionland.sheet.tabs.seer", squire: false },
 				// The whole Company travels, Squires with it, so they keep the record too.
 				{ id: "travels", icon: "fa-solid fa-map-location-dot", label: "bastionland.sheet.tabs.travels" },
+				// Their thread of the campaign's Timeline, Squires' too, which carries on once they're Knighted.
+				{ id: "timeline", icon: "fa-solid fa-timeline", label: "bastionland.sheet.tabs.timeline" },
 				// The notes sit last, under every other page.
 				{ id: "chronicle", icon: "fa-solid fa-feather-pointed", label: "bastionland.sheet.tabs.chronicle" },
 				// Only on a Knight that is the reader's own.
@@ -147,6 +153,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
+		if (this._drawsTimelineOnly(options)) return context;
 		const system = this.actor.system;
 		const [property, abilities, passions, scars] = await Promise.all([
 			this._preparePropertyItems(...PROPERTY_TYPES),
@@ -344,6 +351,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		this.#fillFromBook();
+		if (this._drawsTimelineOnly(options)) return;
 		// Picking a player on a Knight's empty page gives them the Knight; it isn't a field of the Actor's.
 		this.element.querySelector(".bastionland-unchosen__player select")?.addEventListener("change", (event) => {
 			event.stopPropagation();
@@ -560,7 +568,7 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
 		if (actor.type === "knight" && !squire) {
 			if (this.actor.system.isSquire || actor.pack) return null;
-			await this.actor.update({ "system.successor": actor.uuid });
+			await nameSuccessor(this.actor, actor);
 			return actor;
 		}
 		if (actor.type !== "npc" && !squire) return null;
@@ -574,6 +582,8 @@ export class KnightSheet extends TabRailMixin(SettingsTabMixin(BastionlandActorS
 		}
 		await this.actor.update({ "system.squire": actor.uuid });
 		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
+		// On both threads, as taking a new Squire writes it.
+		await timelineSquireTaken(this.actor, actor);
 		return actor;
 	}
 

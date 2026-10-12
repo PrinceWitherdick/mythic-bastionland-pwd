@@ -11,6 +11,7 @@ import { createDomain, foundDomain } from "./found-domain.js";
 import { realmHoldings } from "./homecoming.js";
 import { worldKnights } from "./knights.js";
 import { makeNpcKnight } from "./npc-knights.js";
+import { timelineHoldingGranted } from "./timeline-events.js";
 import { getRealm } from "./realm.js";
 
 /**
@@ -163,5 +164,6 @@ export async function grantHolding(scene, hex) {
 	for (const { domain: other } of before) {
 		if (other !== domain && parseHoldingRef(other.system.holding)) await other.update({ "system.holding": "" });
 	}
+	await timelineHoldingGranted(scene, holding, name, domain, knight);
 	return domain;
 }

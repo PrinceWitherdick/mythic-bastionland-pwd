@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { contrast, mix } from "../../module/rules/colour.js";
 import { chargeNotice, recolourCharge } from "../../module/rules/heraldry-charges.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, RIVER_SHAPES, TERRAIN } from "../../module/rules/realm.js";
-import { PICTURE_NAME, realmPalette, skinPictures } from "../../module/rules/realm-skins.js";
+import { PICTURE_NAME, realmPalette, skinPictures, terrainExtraPictures } from "../../module/rules/realm-skins.js";
 import { SHORE_SHAPES } from "../../module/rules/realm-rivers.js";
 import { escapeHTML } from "../../module/rules/text.js";
 import { curvePath, drawInk, inkNumeral, inkRing } from "./realm-ink.js";
@@ -225,6 +225,11 @@ const SHEET_ART = JSON.parse(readFileSync(join(import.meta.dirname, "..", "data"
 
 const SHEET_CREDIT = `<desc>${SHEET_ART.$source}</desc>`;
 
+/** The terrain of the Realm Sheets' example Realm, each hex cut out whole and traced by scripts/realm-sheet-art.py. */
+const SHEET_VARIANTS = JSON.parse(readFileSync(join(import.meta.dirname, "..", "data", "realm-sheet-variants.json"), "utf8"));
+
+const VARIANTS_CREDIT = `<desc>${SHEET_VARIANTS.$source}</desc>`;
+
 /**
  * On the sheet each terrain's picture is a little larger than its hex, and
  * centred on it: this much of the hex's height for each of the picture's
@@ -232,6 +237,9 @@ const SHEET_CREDIT = `<desc>${SHEET_ART.$source}</desc>`;
  * measured across the hex's height.
  */
 const SHEET_TERRAIN_SCALE = (HEX_H / 158) * 0.97;
+
+/** The same for the example Realm's hexes, measured by how far apart its rows stand. */
+const VARIANT_TERRAIN_SCALE = (HEX_H / SHEET_VARIANTS.$hexHeight) * 0.97;
 
 /**
  * A traced picture from the sheet, hung inside a box by its middle, which the
@@ -245,13 +253,38 @@ const SHEET_TERRAIN_SCALE = (HEX_H / 158) * 0.97;
  * @returns {string}
  */
 function sheetArt(name, { x, y, width, height, scale, ink, paper }) {
-	const art = SHEET_ART[name];
+	const art = SHEET_ART[name] ?? SHEET_VARIANTS[name];
 	// Terrain is traced without a middle of its own, so it hangs by the middle of its box.
 	const middle = art.middle ?? [art.width / 2, art.height / 2];
 	const reach = [Math.max(middle[0], art.width - middle[0]), Math.max(middle[1], art.height - middle[1])];
 	const size = scale ?? Math.min(width / (2 * reach[0]), height / (2 * reach[1]));
 	const body = (art.paper ? `<path d="${art.paper}" fill="${paper}"/>` : "") + `<path d="${art.ink}" fill="${ink}"/>`;
 	return `<g transform="translate(${f(x - middle[0] * size)} ${f(y - middle[1] * size)}) scale(${f(size)})">${body}</g>`;
+}
+
+/**
+ * How the example Realm's pictures drawn on into their neighbours' are fitted
+ * to a hex: its hex to this one exactly, across and down, so that where the
+ * hexes meet their strokes do too. The example map's hexes are a touch wider
+ * than true ones.
+ */
+const JOINED_SCALE = Object.freeze([HEX_W / SHEET_VARIANTS.$hexWidth, HEX_H / SHEET_VARIANTS.$hexHeight]);
+
+/** Finer than `f`, so a stroke lands on the same spot from either side of an edge. */
+const fine = (value) => Number(value.toFixed(4));
+
+/**
+ * One of the example Realm's pictures drawn on into its neighbours', hung by
+ * the middle of the hex it was traced from.
+ * @param {string} name Such as "terrain-crag-joined-1".
+ * @param {string} ink
+ * @returns {string}
+ */
+function joinedArt(name, ink) {
+	const art = SHEET_VARIANTS[name];
+	const [across, down] = JOINED_SCALE;
+	return `<g transform="translate(${fine(HEX_W / 2 - art.middle[0] * across)} ${fine(HEX_H / 2 - art.middle[1] * down)}) `
+		+ `scale(${fine(across)} ${fine(down)})"><path d="${art.ink}" fill="${ink}"/></g>`;
 }
 
 /** @returns {string} A drawing from realm-ink.js, drawn `size` wide with its middle at (x, y). */
@@ -664,10 +697,18 @@ const SKINS = {
 	 * Realm Sheets ink them, numerals drawn to go with them, and the heraldic crown every skin's Seat wears.
 	 */
 	sheet: {
-		terrain: (key, index, p) => svg(HEX_W, HEX_H, SHEET_CREDIT
+		// Given a variant, one of the example Realm's other pictures of the terrain in place of the legend's. One drawn on
+		// into its neighbours' keeps its rule inside its hex, so a neighbour's never crosses its strokes where they meet.
+		terrain: (key, index, p, variant = null) => (SHEET_VARIANTS[variant]?.middle ? svg(HEX_W, HEX_H, VARIANTS_CREDIT
+			+ `<defs><clipPath id="hex"><polygon points="${hexPoints()}"/></clipPath></defs>`
+			+ `<polygon points="${hexPoints()}" fill="${p.terrain[index]}"/>`
+			+ `<g clip-path="url(#hex)"><polygon points="${hexPoints()}" fill="none" stroke="${p.rule}" stroke-width="${3 * SCALE}"/>`
+			+ `${joinedArt(variant, p.ink)}</g>`) : svg(HEX_W, HEX_H, (variant ? VARIANTS_CREDIT : SHEET_CREDIT)
 			+ `<defs><clipPath id="hex"><polygon points="${hexPoints()}"/></clipPath></defs>`
 			+ `<polygon points="${hexPoints()}" fill="${p.terrain[index]}" stroke="${p.rule}" stroke-width="${1.5 * SCALE}"/>`
-			+ `<g clip-path="url(#hex)">${sheetArt(PICTURE_NAME.terrain(index + 1), { x: HEX_W / 2, y: HEX_H / 2, scale: SHEET_TERRAIN_SCALE, ink: p.ink, paper: p.terrain[index] })}</g>`),
+			+ `<g clip-path="url(#hex)">${sheetArt(variant ?? PICTURE_NAME.terrain(index + 1), {
+				x: HEX_W / 2, y: HEX_H / 2, scale: variant ? VARIANT_TERRAIN_SCALE : SHEET_TERRAIN_SCALE, ink: p.ink, paper: p.terrain[index]
+			})}</g>`)),
 		holding: (style, p) => svg(BADGE, BADGE, SHEET_CREDIT + sheetArt(PICTURE_NAME.holding(style), { x: 150, y: 150, width: 292, height: 292, ink: p.ink, paper: p.paper })),
 		landmark: (type, p) => svg(BADGE, BADGE, SHEET_CREDIT + sheetArt(PICTURE_NAME.landmark(type), { x: 150, y: 150, width: 292, height: 292, ink: p.accent, paper: p.paper })),
 		// Myths are the GM's secret, so they're numbered in the red pen the sheet marks Landmarks in.
@@ -799,6 +840,7 @@ export function drawRealmSet(skin, paletteKey) {
 	for (const shape of RIVER_SHAPES) files[`${PICTURE_NAME.river(shape)}.svg`] = draw.river(shape, p);
 	// The skin's own extras, by the picture names skinPictures gives.
 	const extras = new Map([
+		...TERRAIN.flatMap((key, index) => terrainExtraPictures(skin, index + 1).map((name) => [name, () => draw.terrain(key, index, p, name)])),
 		[PICTURE_NAME.water, () => draw.lake.water(p)],
 		...SHORE_SHAPES.map((shape) => [PICTURE_NAME.shore(shape), () => draw.lake.shore(shape, p)]),
 		[PICTURE_NAME.mouth, () => draw.lake.mouth(p)]

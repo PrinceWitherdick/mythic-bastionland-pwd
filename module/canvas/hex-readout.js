@@ -211,7 +211,8 @@ export function updateHexReadout({ force = false } = {}) {
 	const g = entry && sceneGeometry(scene);
 	const hex = g && pointer && readoutShown ? hexAt(g, canvas.mousePosition) : null;
 	if (!hex) {
-		chip.hidden = true;
+		// Every pointer move off the hexes comes here: hiding it again would style it again.
+		if (!chip.hidden) chip.hidden = true;
 		shown = null;
 		return;
 	}

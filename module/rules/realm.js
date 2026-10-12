@@ -85,6 +85,9 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {number} rows
  * @property {string|null} seed
  * @property {number[]} terrain   One entry per hex in `hexIndex` order: 1-12, or 0 where unset.
+ * @property {number[]} [variants] One entry per hex in `hexIndex` order: which of its skin's pictures of its terrain a hex
+ *   shows, as a roll from 1 to PICTURE_ROLL taken modulo how many there are, or 0 for the skin's own. Missing on a Realm
+ *   none of whose hexes has rolled.
  * @property {Hex[][]} rivers      Each from one end to the other, each hex beside the one before. One that starts or ends on a
  *   hex of another joins it there. The book makes no one of them the navigable one.
  * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string, disputed?: true}[]} holdings
@@ -97,6 +100,18 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {import("./realm-map.js").RealmPicture} [picture] The pictures a Realm traced from a map drawn on paper
  *   is drawn by, in place of the system's own ink.
  */
+
+/**
+ * How many ways a hex's picture roll can come up. It divides evenly by every
+ * count of pictures up to fifteen, so none is likelier than another.
+ */
+export const PICTURE_ROLL = 360360;
+
+/**
+ * @param {() => number} random From 0 up to 1.
+ * @returns {number} A hex's roll for which picture of its terrain it shows.
+ */
+export const rollPicture = (random) => 1 + Math.floor(random() * PICTURE_ROLL);
 
 /**
  * @param {{cols: number, rows: number}} g

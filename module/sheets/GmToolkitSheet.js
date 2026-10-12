@@ -5,7 +5,7 @@ import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { worldKnights } from "../actions/knights.js";
-import { awardGlory } from "../actions/glory.js";
+import { awardGloryTo } from "../actions/glory.js";
 import { getHexLore, sparkWhen } from "../actions/hex-lore.js";
 import { hexLabel, hexName } from "../actions/hex-names.js";
 import { getHexShared } from "../actions/hex-shared.js";
@@ -15,15 +15,17 @@ import { getJourney, visitsLabel } from "../actions/journey.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
+import { resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
+import { markMythOmen } from "../actions/omens.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
-import { forgetMythCompleted, recordMythCompleted, writeSeasonNotes } from "../actions/season-log.js";
+import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
 import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
-import { filterBySearch, inputDialog } from "../apps/ui.js";
+import { IN_USE, filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythLookup, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
@@ -42,10 +44,10 @@ import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { POINT_KINDS } from "../rules/sites.js";
-import { completedMythId, crisisRollsDue, seasonLogView } from "../rules/season-log.js";
+import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
-import { placeFeature, setOmen } from "../rules/realm-edits.js";
+import { placeFeature } from "../rules/realm-edits.js";
 import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
@@ -54,6 +56,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 import { ViewableMixin } from "./viewable.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -64,6 +67,7 @@ const TAB_ICONS = Object.freeze({
 	myths: "fa-solid fa-dragon",
 	places: "fa-solid fa-map-location-dot",
 	time: "fa-solid fa-hourglass-half",
+	timeline: "fa-solid fa-timeline",
 	notes: "fa-solid fa-feather-pointed"
 });
 
@@ -73,14 +77,11 @@ const TAB_ICONS = Object.freeze({
  */
 const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
 
-/** A field a redraw would take the typing out of. */
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea, select';
+/** A field a redraw would disturb: any in use, and a dropdown, which a redraw would close while it's open. */
+const BUSY = `${IN_USE}, select`;
 
 /** How long to wait for a burst of changes to land before redrawing. */
 const REDRAW_DELAY = 50;
-
-/** How often to look again whether the GM has left the field a redraw is waiting on. */
-const TYPING_RECHECK = 300;
 
 /**
  * Show as much of a card just unfolded as the page has room for: all of it,
@@ -96,14 +97,14 @@ function bringIntoView(card) {
 /**
  * The GM Toolkit's sheet: a Realm's Myths and their Omens, the places of the
  * Realm and the hexes the Company has been to, with what the GM wrote and the
- * Spark Tables rolled for each, and the GM's own notes. Its pages
+ * Spark Tables rolled for each, the campaign's Timeline, and the GM's own notes. Its pages
  * hang off a tab rail, as the Knight sheet's do. Only GMs ever open it.
  *
  * The fields on the Realm's pages have no names, so the sheet's own form never
  * sends them to the Actor: each is written where it lives, on the Realm's Scene,
  * by `#onToolkitField`. Only the notes are the Actor's.
  */
-export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2)))) {
+export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(ViewableMixin(HandlebarsApplicationMixin(ActorSheetV2)))), { board: true }) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-gm-toolkit"],
 		position: { width: 820, height: 820 },
@@ -148,6 +149,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		myths: { template: templatePath("actor/gm-toolkit/myths.hbs"), scrollable: [""] },
 		places: { template: templatePath("actor/gm-toolkit/places.hbs"), scrollable: [""] },
 		time: { template: templatePath("actor/gm-toolkit/time.hbs"), scrollable: [""] },
+		timeline: { template: templatePath("actor/gm-toolkit/timeline.hbs") },
 		notes: { template: templatePath("actor/gm-toolkit/notes.hbs"), scrollable: [""] },
 		settings: { template: templatePath("actor/gm-toolkit/settings.hbs"), scrollable: [""] }
 	};
@@ -202,6 +204,15 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	/** Whether the GM is choosing a hex to put on the Custom list, so a second click waits for it. */
 	#tracking = false;
 
+	/**
+	 * The Timeline page, every thread side by side as the Timeline window shows
+	 * them, is drawn again on its own, once a batch of changes has landed.
+	 * @override
+	 */
+	_redrawTimeline() {
+		this.#redraw("timeline");
+	}
+
 	/** @returns {Scene|null} The Realm on show: the one chosen, the one on the canvas, or the first there is. */
 	get scene() {
 		const chosen = game.scenes.get(this.sceneId);
@@ -247,15 +258,14 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 
 	/** @override */
 	async _prepareContext(options) {
-		const context = await super._prepareContext(options);
+		const context = Object.assign(await super._prepareContext(options), { actor: this.actor, system: this.actor.system });
+		if (this._drawsTimelineOnly(options)) return context;
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 		const scene = this.scene;
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
 		const realm = realmKnown(entry?.realm ?? null);
 		return Object.assign(context, {
-			actor: this.actor,
-			system: this.actor.system,
 			realmData: realm && {
 				scene,
 				realm,
@@ -944,29 +954,12 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		for (const part of parts) this.#stale.add(part);
 		if (this.#redrawing) return;
 		this.#redrawing = true;
-		setTimeout(() => this.#redrawStale(), REDRAW_DELAY);
-	}
-
-	/**
-	 * Draw the parts waiting to be drawn, unless the GM is typing in one of
-	 * them. Then it looks again shortly, rather than waiting on the field's blur,
-	 * which never comes for a field swept away by some other redraw.
-	 */
-	#redrawStale() {
-		if (!this.rendered) {
+		setTimeout(() => {
 			this.#redrawing = false;
+			const stale = [...this.#stale];
 			this.#stale.clear();
-			return;
-		}
-		const parts = [...this.#stale];
-		const field = document.activeElement;
-		if (field?.matches?.(TYPING) && parts.some((part) => this.parts?.[part]?.contains(field))) {
-			setTimeout(() => this.#redrawStale(), TYPING_RECHECK);
-			return;
-		}
-		this.#redrawing = false;
-		this.#stale.clear();
-		if (parts.length) this.render({ parts });
+			if (stale.length) renderWhenIdle(this, { parts: stale, busy: BUSY });
+		}, REDRAW_DELAY);
 	}
 
 	/* -------------------------------------------- */
@@ -1079,7 +1072,7 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 		const myth = this.#mythFrom(target);
 		const number = Number(target.dataset.omen);
 		if (!myth || !Number.isInteger(number)) return;
-		return editRealm(this.scene, (realm) => setOmen(realm, myth.number, number === myth.omen ? number - 1 : number));
+		return markMythOmen(this.scene, myth.number, number === myth.omen ? number - 1 : number);
 	}
 
 	/**
@@ -1152,18 +1145,17 @@ export class GmToolkitSheet extends TabRailMixin(SettingsTabMixin(ViewableMixin(
 	static async #onMythResolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await Promise.all([
-			editMythNote(this.scene, myth, { resolved: true }),
-			recordMythCompleted({ id: completedMythId(this.scene.id, myth), name: mythLookup(this.#index, myth).name }),
-			awardGlory("myth")
-		]);
+		await resolveMyth(this.scene, myth, {
+			name: mythLookup(this.#index, myth).name,
+			award: async () => (await awardGloryTo("myth"))?.knights ?? []
+		});
 	}
 
 	/** @this {GmToolkitSheet} */
 	static async #onMythUnresolved(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (!myth) return;
-		await Promise.all([editMythNote(this.scene, myth, { resolved: false }), forgetMythCompleted(completedMythId(this.scene.id, myth))]);
+		await unresolveMyth(this.scene, myth);
 	}
 
 	/**

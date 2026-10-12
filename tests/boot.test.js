@@ -33,17 +33,18 @@ function installFoundryStubs() {
 				HTMLField: Field,
 				NumberField: Field,
 				SchemaField: Field,
-				StringField: Field
+				StringField: Field,
+				TypedObjectField: Field
 			}
 		},
 		applications: {
 			api: { ApplicationV2: class {}, DocumentSheetV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} },
 			apps: { DocumentSheetConfig: { registerSheet: vi.fn() }, ImagePopout: class {} },
 			handlebars: { loadTemplates: vi.fn(), renderTemplate: vi.fn() },
-			sheets: { ActorSheetV2: class {}, ItemSheetV2: class {} },
+			sheets: { ActorSheetV2: class {}, ItemSheetV2: class {}, journal: { JournalEntryPageHandlebarsSheet: class { static EDIT_PARTS = { header: {}, footer: {} }; } } },
 			ux: { TextEditor: { implementation: {} } }
 		},
-		documents: { JournalEntry: class JournalEntry {} },
+		documents: { JournalEntry: class JournalEntry {}, JournalEntryPage: class JournalEntryPage {} },
 		nue: { Tour: class Tour {} },
 		canvas: {
 			placeables: { Token: class Token {} },
@@ -56,7 +57,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {
@@ -124,6 +125,7 @@ describe("system boot", () => {
 		const { default: manifest } = await import("../system.json", { with: { type: "json" } });
 		expect(Object.keys(CONFIG.Actor.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.Actor).sort());
 		expect(Object.keys(CONFIG.Item.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.Item).sort());
+		expect(Object.keys(CONFIG.JournalEntryPage.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.JournalEntryPage).sort());
 	});
 
 	it("registers the Knight, NPC, Domain, Structure and item sheets as defaults", () => {

@@ -37,6 +37,12 @@ export function deletionEntry(path) {
 }
 
 /**
+ * @param {string} path Dotted path to the key.
+ * @returns {object} An update that deletes only that key.
+ */
+export const deletionUpdate = (path) => Object.fromEntries([deletionEntry(path)]);
+
+/**
  * The update entry that writes a key, or deletes it where there's nothing to write.
  * @param {string} path Dotted path to the key.
  * @param {*} value Null or undefined deletes it.

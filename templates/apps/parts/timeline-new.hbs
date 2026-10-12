@@ -1,0 +1,4 @@
+{{!-- A Timeline's "New entry" button, leading its toolbar wherever the reader may write: `show` is the host's own gate (canWrite on a board, canEdit on a thread). --}}
+{{#if show}}
+<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new" data-timeline-focus="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
+{{/if}}

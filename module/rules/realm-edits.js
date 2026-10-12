@@ -8,6 +8,7 @@ import { isDie } from "./book-art.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt, realmSeats } from "./realm.js";
 import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
 import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+import { brokenPictures, emptyVariants, mendPictures, paintPictures } from "./realm-pictures.js";
 
 /** What a hex can hold, one at a time. */
 export const FEATURE_KINDS = Object.freeze(["holding", "myth", "landmark"]);
@@ -22,6 +23,7 @@ export const BARRIER_STATES = Object.freeze(["none", "hidden", "revealed"]);
 const copyRealm = (realm) => ({
 	...realm,
 	terrain: [...realm.terrain],
+	...(realm.variants ? { variants: [...realm.variants] } : {}),
 	rivers: realm.rivers.map((course) => course.map((hex) => ({ ...hex }))),
 	holdings: realm.holdings.map((holding) => ({ ...holding, hex: { ...holding.hex } })),
 	myths: realm.myths.map((myth) => ({ ...myth, hex: { ...myth.hex } })),
@@ -30,18 +32,55 @@ const copyRealm = (realm) => ({
 });
 
 /**
+ * An edit that picks again, once it's made, any group of pictures a river or a
+ * Holding now cuts through, or that no longer lies as drawn. The edits that
+ * lay a river or a Holding, or lay the hexes out anew, are made this way, so
+ * they needn't see to the pictures themselves. Painting sees to its own, and a
+ * Barrier cuts no picture. A group comes apart only when something cuts it, so
+ * where nothing has, the pictures stay as they were.
+ * @template {(realm: import("./realm.js").Realm, g: object, ...rest: any[]) => import("./realm.js").Realm} Edit
+ * @param {Edit} edit Returns a Realm of its own, or the one it was given when nothing changed.
+ * @returns {Edit}
+ */
+const mending = (edit) => (realm, g, ...rest) => {
+	const next = edit(realm, g, ...rest);
+	if (next !== realm && next.variants) mendPictures(g, next);
+	return next;
+};
+
+/**
+ * Each hex painted picks which of its skin's pictures of the terrain it shows,
+ * matching it to its neighbours of that terrain as the example map drew them,
+ * hexes painted earlier in the stroke among them, or laying a group drawn as
+ * one across hexes painted in the stroke. A hex that already has the terrain
+ * is passed over, so extending a forest leaves the forest as it was, unless
+ * `step` is set: then it moves on to its next picture, so clicking it over
+ * and over goes through every one. A group a painted hex was part of is
+ * picked again.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}[]} hexes
  * @param {number} terrain 1-12.
+ * @param {object} [options]
+ * @param {boolean} [options.step] Move a hex that already has the terrain on to its next picture.
+ * @param {() => number} [options.random] From 0 up to 1, for the pictures' rolls.
  * @returns {import("./realm.js").Realm}
  */
-export function paintTerrain(realm, g, hexes, terrain) {
+export function paintTerrain(realm, g, hexes, terrain, { step = false, random = Math.random } = {}) {
 	if (!isDie(terrain, TERRAIN.length)) return realm;
 	const next = copyRealm(realm);
+	next.variants ??= emptyVariants(next.terrain);
+	const painted = [];
 	for (const hex of hexes) {
-		if (inRealm(g, hex)) next.terrain[hexIndex(g, hex)] = terrain;
+		if (!inRealm(g, hex) || painted.some((done) => sameHex(done.hex, hex))) continue;
+		const index = hexIndex(g, hex);
+		const same = next.terrain[index] === terrain;
+		if (same && !step) continue;
+		painted.push({ hex, same });
+		next.terrain[index] = terrain;
 	}
+	if (!painted.length) return realm;
+	paintPictures(g, realm, next, painted, random);
 	return next;
 }
 
@@ -106,7 +145,7 @@ export function riverEnds(realm) {
  * @param {{col: number, row: number}[]} course Neighbouring hexes, in the order they were drawn.
  * @returns {import("./realm.js").Realm} Unchanged when no new water was drawn.
  */
-export function layRiver(realm, g, course) {
+export const layRiver = mending(function layRiver(realm, g, course) {
 	const drawn = course.filter((hex) => inRealm(g, hex));
 	if (drawn.length < 2) return realm;
 	const courses = realm.rivers;
@@ -134,7 +173,7 @@ export function layRiver(realm, g, course) {
 	const carried = courses[onEnd];
 	const fromSource = carried.length > 1 && sameHex(carried[0], start);
 	return withCourses(realm, courses.with(onEnd, fromSource ? [...added.reverse(), ...carried] : [...carried, ...added]));
-}
+});
 
 /**
  * Take a hex off a river, with everything from it to the nearer end. Where
@@ -207,7 +246,7 @@ function seatClaim(realm, feature, before) {
  *   `{kind: "landmark", type, name, seer, revealed}`, or null to clear the hex.
  * @returns {import("./realm.js").Realm}
  */
-export function placeFeature(realm, g, hex, feature) {
+export const placeFeature = mending(function placeFeature(realm, g, hex, feature) {
 	if (!inRealm(g, hex)) return realm;
 	const here = featureAt(realm, hex);
 	const next = copyRealm(realm);
@@ -285,7 +324,7 @@ export function placeFeature(realm, g, hex, feature) {
 			return realm;
 	}
 	return settleDispute(realm, next);
-}
+});
 
 /**
  * A disputed Seat whose rivals have all lost the crown, or gone, holds it
@@ -449,12 +488,13 @@ export function placeMapPicture(realm, role, rect) {
  * A Realm about to have its hexes laid out another way (REALM_LAYOUTS). Each
  * hex keeps what it holds, since a hex is still the same column and row; but
  * which hexes meet changes, so a river is kept a stretch at a time where its
- * hexes still meet, and a Barrier only where its two hexes still share an edge.
+ * hexes still meet, a Barrier only where its two hexes still share an edge,
+ * and a group of hexes drawn as one only where its hexes still lie as drawn.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g The new layout's geometry.
  * @returns {import("./realm.js").Realm} The Realm itself when all of it still holds together.
  */
-export function relayRealm(realm, g) {
+export const relayRealm = mending(function relayRealm(realm, g) {
 	const rivers = realm.rivers.flatMap((course) => {
 		const stretches = [[]];
 		for (const hex of course) {
@@ -466,13 +506,14 @@ export function relayRealm(realm, g) {
 		return stretches.length > 1 ? stretches.filter((stretch) => stretch.length > 1) : stretches;
 	});
 	const barriers = realm.barriers.filter((barrier) => parseEdgeKey(g, barrier.edge));
+	const broken = brokenPictures(g, realm).length > 0;
 	const unchanged = barriers.length === realm.barriers.length
 		&& rivers.length === realm.rivers.length
 		&& rivers.every((course, index) => course.length === realm.rivers[index].length);
-	if (unchanged) return realm;
+	if (unchanged && !broken) return realm;
 	return {
 		...copyRealm(realm),
 		rivers: rivers.map((course) => course.map(({ col, row }) => ({ col, row }))),
 		barriers: barriers.map((barrier) => ({ ...barrier }))
 	};
-}
+});

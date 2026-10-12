@@ -1,6 +1,9 @@
 import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 
+/** Marks something painted in its own light colours, which keeps parchment's inks under a dark Colour Scheme (mythic-bastionland.css). */
+export const PAINTED = "bastionland-painted";
+
 /**
  * Add a button to a directory's header, beside Foundry's own. Callers decide
  * who gets one.
@@ -258,31 +261,70 @@ export function chooseLocalFiles(element) {
 	input.click();
 }
 
-/** Windows waiting for whoever is using them to leave the field they're typing in. */
-const waiting = new WeakSet();
+/**
+ * Windows waiting for whoever is using them to leave the field they're typing
+ * in: the parts each will draw (null for the whole window), and the fields
+ * worth waiting on.
+ * @type {WeakMap<object, {parts: Set<string>|null, busy: Set<string>}>}
+ */
+const waiting = new WeakMap();
 
 /** A field a redraw would take the typing out of. */
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
+export const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea';
+
+/**
+ * A control a redraw would snatch from the hand: a slider while it's being
+ * dragged, or a colour picker held open. A slider keeps the focus once let go,
+ * so only its press counts, or a window would wait on it until clicked away from.
+ */
+export const HANDLING = 'input[type="range"]:active, input[type="color"]';
+
+/** Every field a redraw would disturb, typed in or handled. */
+export const IN_USE = `${TYPING}, ${HANDLING}`;
+
+/** How often to look again whether whoever is typing has left the field. */
+const TYPING_RECHECK = 300;
 
 /**
  * Draw a window again once whoever is using it has finished typing. Drawing
  * puts every field back to its saved value, so a redraw mid-sentence would take
- * the sentence away.
+ * the sentence away. While it waits, it looks again every so often rather than
+ * waiting on the field's blur, which never comes for a field swept away by some
+ * other redraw. Asked again while waiting, it draws what each asked for at once.
  * @param {foundry.applications.api.ApplicationV2} app
+ * @param {object} [options]
+ * @param {string[]} [options.parts] Draw only these parts, waiting only on a field inside them.
+ * @param {string} [options.busy] The fields worth waiting on, if not every one in use: one of TYPING, HANDLING or IN_USE, or one built from them.
  */
-export function renderWhenIdle(app) {
+export function renderWhenIdle(app, { parts, busy = IN_USE } = {}) {
 	if (!app?.rendered) return;
-	const field = document.activeElement;
-	if (!field || !app.element.contains(field) || !field.matches(TYPING)) {
-		app.render();
+	const pending = waiting.get(app);
+	if (pending) {
+		if (!parts) pending.parts = null;
+		else for (const part of parts) pending.parts?.add(part);
+		pending.busy.add(busy);
 		return;
 	}
-	if (waiting.has(app)) return;
-	waiting.add(app);
-	field.addEventListener("blur", () => {
+	waiting.set(app, { parts: parts ? new Set(parts) : null, busy: new Set([busy]) });
+	drawWhenIdle(app);
+}
+
+/** @param {foundry.applications.api.ApplicationV2} app Waiting in `waiting`. */
+function drawWhenIdle(app) {
+	const { parts, busy } = waiting.get(app);
+	if (!app.rendered) {
 		waiting.delete(app);
-		if (app.rendered) app.render();
-	}, { once: true });
+		return;
+	}
+	const field = document.activeElement;
+	const holders = parts ? [...parts].map((part) => app.parts?.[part]) : [app.element];
+	if (field?.matches?.([...busy].join(", ")) && holders.some((holder) => holder?.contains(field))) {
+		setTimeout(() => drawWhenIdle(app), TYPING_RECHECK);
+		return;
+	}
+	waiting.delete(app);
+	if (parts) app.render({ parts: [...parts] });
+	else app.render();
 }
 
 /**

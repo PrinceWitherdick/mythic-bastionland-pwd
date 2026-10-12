@@ -14,6 +14,9 @@
       "ability": "Ability",
       "passion": "Passion",
       "scar": "Scar"
+    },
+    "JournalEntryPage": {
+      "timeline": "Timeline Thread"
     }
   },
   "bastionland": {
@@ -38,7 +41,7 @@
         "hint": "You're playing alone, so the Realm keeps its secrets from you too. Click to read more, or to let friends join.",
         "title": "Solo Play",
         "what": "This world is set for playing alone. You're the Referee and the Company both, so the Realm keeps its Myths, Landmarks and Barriers from you as it would from players, until the Company finds them.",
-        "changes": "A Myth is named once one of its Omens is met, and its hex is shown once the Company stands in it. Hidden things don't show on the map, under it as you point at a hex, or in the Toolkit, and what stands in a hex can't be changed in the Lay of the Land.",
+        "changes": "A Myth is named once one of its Omens is met, and its hex is shown once the Company stands in it. Hidden things don't show on the map, under it as you point at a hex, or in the Toolkit, and what stands in a hex can't be changed in Edit this hex.",
         "friends": "If friends are joining and you'll be their Referee, turn solo play off. You'll see the whole Realm at once, every secret still to be found included, while the players still see only what they've found. It can be turned back on in the Toolkit's Settings.",
         "turnOff": "Turn Off, Let Friends Join",
         "keep": "Keep Playing Alone",
@@ -69,7 +72,8 @@
         "property": "Property, Steed and Squire",
         "seer": "Seer",
         "chronicle": "Chronicle",
-        "travels": "Travels"
+        "travels": "Travels",
+        "timeline": "Timeline"
       },
       "travels": "Where the Company Has Been",
       "current": "Current",
@@ -1396,7 +1400,7 @@
         "ends": "Ends the Season",
         "endsHint": "The Realm’s collection ends the Season, so it comes to pass as the Season turns.",
         "weeks": "Weeks Pass",
-        "weeksHint": "On to the next seasonal event that matters (p17). Reaching the Realm’s collection turns the Season instead.",
+        "weeksHint": "On to the next seasonal event that matters. Reaching the Realm’s collection turns the Season instead.",
         "weeksPassed": "Weeks pass on the road, and a new Morning dawns.",
         "nextIs": "Weeks passing carries the Company on to {event}.",
         "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
@@ -1490,6 +1494,7 @@
       "title": "{name} Domain",
       "tabs": {
         "domain": "Domain",
+        "timeline": "Timeline",
         "notes": "Notes"
       },
       "seat": "Seat of Power",
@@ -1531,7 +1536,7 @@
         "byName": "{name}, by its name",
         "none": "Not on the map",
         "away": "Away long",
-        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll (p20). Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
+        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
       },
       "homecoming": {
         "title": "Home from a Long Absence",
@@ -1967,9 +1972,9 @@
         "none": "No Seer rolled for this Sanctum yet.",
         "roll": "Roll the Seer",
         "again": "Roll Another Seer",
-        "hint": "Roll d6 and d12 on the Knights table (p26) for the Seer who lives here.",
+        "hint": "Roll d6 and d12 on the Knights table for the Seer who lives here.",
         "choose": "Choose the Seer",
-        "chooseHint": "Pick the Seer who lives here from the Knights table (p26)."
+        "chooseHint": "Pick the Seer who lives here from the Knights table."
       },
       "ruler": {
         "label": "Ruler",
@@ -1977,7 +1982,7 @@
         "openDomain": "Open the Domain",
         "grant": "Grant to a Knight",
         "change": "Grant to Another Knight",
-        "grantHint": "Make a Knight its ruler (p20). A Knight with a Domain has it rule this Holding; one without founds a Domain here.",
+        "grantHint": "Make a Knight its ruler. A Knight with a Domain has it rule this Holding; one without founds a Domain here.",
         "grantTitle": "Grant {name}",
         "grantIntro": "Which Knight rules <strong>{name}</strong>? Their Domain rules it from now on, and any other Domain given it gives it up.",
         "search": "Search the Knights…",
@@ -2026,6 +2031,8 @@
       "title": "The Lay of the Land",
       "open": "Open in Places",
       "edit": "Edit this hex",
+      "editShort": "Edit hex",
+      "editHint": "Change the hex itself, such as its terrain or the Myth or Holding in it, in a window of its own.",
       "note": "What’s here",
       "notePlaceholder": "The cliffs, the streams, the clearings and the caves.",
       "rollSet": "Roll the Land",
@@ -2075,13 +2082,13 @@
         "gmNotesWas": "GM Notes"
       },
       "met": "Barriers Met",
-      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Change the hex, and write what’s here, in the hex’s Lay of the Land in Places.",
+      "writtenOver": "This page is written again whenever the hex changes, so edits made here will be lost. Write what’s here in the hex’s Lay of the Land in Places, and change the hex itself with Edit hex in the title bar of Places.",
       "open": "Journal",
-      "openHint": "Open this hex’s Journal entry: what the Company knows, and your own notes.",
-      "none": "Nothing has been rolled or written for this hex yet, so it has no Journal entry.",
+      "openHint": "Open this hex’s Journal entry, making it if it has none: what the Company knows, and your own notes.",
+      "none": "This hex has no Journal entry yet. The Referee whose browser keeps the Journals can make it from the hex in Places.",
       "setting": {
         "name": "Journal entries for hexes",
-        "hint": "Each hex of a Realm that something is rolled or written for gets a Journal entry, kept up to date as you roll. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
+        "hint": "Each hex of a Realm that something is rolled, written or named for gets a Journal entry, kept up to date as you roll; any other hex gets one when you click Journal on it in Places. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
       }
     },
     "siteJournal": {
@@ -2136,8 +2143,8 @@
     },
     "people": {
       "roll": "Roll a Person",
-      "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot (p200, p202).",
-      "rollHexHint": "Roll every People Spark Table for someone met here, then reroll or choose what you like and save them to this hex (p200, p202).",
+      "rollHint": "Roll every People Spark Table at once, for a ruler or a stranger to read from the lot.",
+      "rollHexHint": "Roll every People Spark Table for someone met here, then reroll or choose what you like and save them to this hex.",
       "window": {
         "hint": "For {hex}. Every table is rolled as this opens. Click a table’s die or a column’s heading to reroll just that, or click an entry to choose it instead. Nothing is kept in the hex until you save.",
         "rerollAll": "Reroll All",
@@ -2156,7 +2163,7 @@
       "nameHint": "Enter keeps the name, Esc leaves it as it was",
       "holding": {
         "roll": "Roll Up This Holding",
-        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex (p181).",
+        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex.",
         "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
@@ -2235,6 +2242,228 @@
         "fine": "Nothing else needs it, and the weather is still kept without it. Once it’s on, the Toolkit’s banner gets a weather button, where you can also take the weather off the map; single parts of it can be turned off under Settings."
       }
     },
+    "timeline": {
+      "title": "Timeline",
+      "journal": "Timeline",
+      "company": "The Company",
+      "undated": "Before the Tale",
+      "age": "The {age} Age",
+      "now": "Now",
+      "nowChoice": "Now: {season}",
+      "kinds": {
+        "hand": "Written by Hand",
+        "time": "Seasons and Sessions",
+        "myth": "Myths",
+        "glory": "Glory",
+        "wounds": "Scars and Death",
+        "lineage": "Squires and Successors",
+        "dominion": "Domains and Holdings",
+        "travels": "Travels"
+      },
+      "sources": {
+        "hand": "Note",
+        "season": "Season's End",
+        "age": "Age's End",
+        "distant": "Distant Realm",
+        "session": "Session",
+        "myth": "Myth",
+        "rank": "Rank",
+        "scar": "Scar",
+        "death": "Death",
+        "knighted": "Knighted",
+        "succeeded": "Succeeded",
+        "tookUp": "Took Up",
+        "founded": "Founded",
+        "crisis": "Crisis Roll",
+        "seized": "Seized",
+        "passed": "Passed On",
+        "rules": "New Ruler",
+        "granted": "Holding",
+        "visit": "Arrival",
+        "note": "Party Note",
+        "aged": "Aging",
+        "omen": "Omen",
+        "duel": "Duel",
+        "award": "Glory",
+        "mortal": "Mortal Wound",
+        "ward": "Ward",
+        "settled": "Scar Settled",
+        "revenge": "Revenge",
+        "joined": "Joined",
+        "squire": "Squire",
+        "heir": "Successor",
+        "resolved": "Crisis Resolved",
+        "drama": "Drama",
+        "task": "Council Task",
+        "design": "Grand Design",
+        "court": "Court",
+        "circle": "Circle",
+        "warband": "Warband",
+        "found": "Found"
+      },
+      "threads": {
+        "company": "Company",
+        "knight": "Knight",
+        "domain": "Domain",
+        "realm": "Realm"
+      },
+      "filter": {
+        "label": "Filter",
+        "kinds": "Show",
+        "threads": "Threads",
+        "groups": {
+          "company": "Company",
+          "knight": "Knights",
+          "domain": "Domains",
+          "realm": "Realms"
+        },
+        "showAll": "Show All",
+        "hidden": "{count} hidden"
+      },
+      "newEntry": "New Entry",
+      "openFull": "Open the Timeline",
+      "popOut": "Open in a Window",
+      "edit": "Edit this entry",
+      "remove": "Remove this entry",
+      "earlier": "Move earlier",
+      "later": "Move later",
+      "empty": "Nothing has been written on this thread yet.",
+      "allHidden": "Everything here is hidden by the Filter.",
+      "boardEmpty": "Nothing has been written on the Timeline yet.",
+      "noJournal": "The Timeline is made the next time a Referee joins the game.",
+      "writeFailed": "Couldn't write on the Timeline.",
+      "readOnly": "This thread is written from the Timeline window.",
+      "entry": {
+        "newTitle": "New Entry",
+        "editTitle": "Edit Entry",
+        "when": "When",
+        "title": "Title",
+        "place": "Place",
+        "body": "What Happened",
+        "save": "Save",
+        "tag": "Tag",
+        "noTag": "None",
+        "newTag": "New Tag",
+        "tagName": "Tag name",
+        "tagNamePlaceholder": "Such as Feasts",
+        "tagColour": "Tag colour",
+        "tagAdd": "Add Tag",
+        "tagRefused": {
+          "name": "Give the tag a name.",
+          "colour": "Choose a colour for the tag.",
+          "journal": "Tags can be made once the Timeline is made, the next time a Referee joins."
+        },
+        "linked": "Linked",
+        "linkedTooltip": "This place links to what was dropped on it. Type to make it a plain name.",
+        "placeHint": "Drop a Scene, an actor or a Journal entry here to link it.",
+        "bodyHint": "Drop a Scene, an actor, an Item or a Journal entry here to write a link to it."
+      },
+      "pickThread": {
+        "title": "Write on Which Thread?",
+        "save": "Write"
+      },
+      "removeEntry": {
+        "title": "Remove this Entry?",
+        "body": "Remove “{title}” from {thread}?",
+        "untitled": "this entry"
+      },
+      "macro": {
+        "name": "Timeline"
+      },
+      "auto": {
+        "pursuit": "Between Seasons: {pursuit}",
+        "mythCompleted": "{name} Completed",
+        "session": "A Session Played",
+        "rank": "Became a {rank}",
+        "scarBy": "Dealt by {name}",
+        "knighted": "Knighted",
+        "served": "Squire to {name} until now.",
+        "fell": "{name} Fell",
+        "carriedOn": "{name} Carried On",
+        "tookUp": "Took Up the Journey of {name}",
+        "foundedBy": "Founded by {name}",
+        "founded": "{domain} Founded",
+        "granted": "{holding} Granted to {name}",
+        "arrived": "Came to {place}",
+        "mythHex": "the hex of Myth {number}",
+        "partyNote": "{name} Wrote of It",
+        "duelWon": "Won a {kind} against {name}",
+        "duelLost": "Lost a {kind} to {name}",
+        "duelNone": "A {kind} with {name}, No Victor",
+        "mortal": "Mortally Wounded",
+        "warded": "Took the Mortal Wound for {name}",
+        "spared": "Spared by {name}",
+        "settled": "{scar} Settled",
+        "revenge": "Had Revenge on {name}",
+        "joined": "Joined the Company",
+        "joinedCompany": "{name} Joined the Company",
+        "tookSquire": "Took a Squire",
+        "becameSquire": "Became Squire to {name}",
+        "aged": "Grew {age}",
+        "heir": "Named {name} Successor",
+        "omen": "An Omen of Myth {number}",
+        "omenNews": "News of an Omen of Myth {number}",
+        "found": "Found {place}",
+        "crisisResolved": "{crisis} Resolved",
+        "courtier": "{name}, {role}",
+        "taskCrisis": "Brought {crisis}",
+        "designBegun": "Grand Design Begun",
+        "courtJoined": "{name} Joined the Court",
+        "courtLeft": "{name} Left the Court",
+        "circleJoined": "{name} Joined the Circle",
+        "circleLeft": "{name} Left the Circle",
+        "circleJoinedOf": "Joined the Circle of {domain}",
+        "circleLeftOf": "Left the Circle of {domain}",
+        "mustered": "{name} Mustered",
+        "dismissed": "{name} Dismissed"
+      },
+      "setting": {
+        "name": "Campaign Timeline",
+        "hint": "Keep a Timeline of the campaign: a tab on each Knight, Squire and Domain sheet, a page in the Referee Toolkit and a window for everyone. Turned off, none of them are shown, though what happens is still written down for when it’s turned on again."
+      },
+      "turnedOff": "The Timeline is turned off for this world.",
+      "kindChips": {
+        "hand": "Note",
+        "time": "Seasons",
+        "myth": "Myth",
+        "glory": "Glory",
+        "wounds": "Wounds",
+        "lineage": "Lineage",
+        "dominion": "Dominion",
+        "travels": "Travels"
+      },
+      "colours": {
+        "label": "Colours",
+        "tooltip": "Choose the colour each kind of entry wears, for everyone",
+        "hint": "Each kind of entry wears its colour on its edge and its chip. A colour shows here as you pick it, and everyone sees it once you save.",
+        "pick": "Colour for {kind}",
+        "reset": "Put {kind} back to its own colour",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "layout": {
+        "label": "Layout",
+        "down": "Down",
+        "across": "Across",
+        "downTooltip": "Lay the Timeline down the page",
+        "acrossTooltip": "Lay the Timeline across the page"
+      },
+      "add": "Add",
+      "addHere": "Write an entry in {season}",
+      "addHereThread": "Write an entry on {thread} in {season}",
+      "editNote": "Edit what the Season’s turn wrote",
+      "removeNote": "Remove what the Season’s turn wrote",
+      "scrub": {
+        "age": {
+          "label": "Age",
+          "tooltip": "Slide to an Age"
+        },
+        "period": {
+          "label": "Season",
+          "tooltip": "Slide to a Season"
+        }
+      }
+    },
     "gmToolkit": {
       "name": "Referee Toolkit",
       "rulebook": "Open the Rulebook",
@@ -2255,6 +2484,7 @@
         "myths": "Myths and Omens",
         "places": "Places",
         "time": "Time",
+        "timeline": "Timeline",
         "notes": "Notes"
       },
       "myths": {
@@ -2272,9 +2502,9 @@
         "resolvedHint": "Once the table agrees a Myth is over, another takes its place next Season (p27).",
         "unresolve": "Not Resolved",
         "newMyth": "Roll the New Myth",
-        "newMythTooltip": "Roll d6 and d12 on the Myths table (p27) for the Myth that replaces this one, in the same hex and under the same number.",
+        "newMythTooltip": "Roll d6 and d12 on the Myths table for the Myth that replaces this one, in the same hex and under the same number.",
         "choose": "Choose the Myths",
-        "chooseTooltip": "Which six Myths the Realm holds: roll one again, roll them all again, or choose them from the book’s table (p27).",
+        "chooseTooltip": "Which six Myths the Realm holds: roll one again, roll them all again, or choose them from the book’s table.",
         "newMythRolled": "A new Myth in {hex}, replacing one resolved",
         "newMythHint": "Its Omens start again from the first. Undo on the Realm takes the roll back, with your notes on the old Myth.",
         "table": "The Myth’s table",
@@ -2397,7 +2627,8 @@
         "crisisRollsHint": "Every Domain makes its Crisis Roll as a Season begins (p20). These haven’t made it this Season yet.",
         "crisisRoll": "Crisis Roll"
       },
-      "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons (p17).",
+      "timelineHint": "The campaign’s record that everyone can read: the Company’s thread, each Knight’s, each Domain’s and each Realm’s, side by side. Most of it writes itself as things happen; anyone can add to it.",
+      "clockHint": "Change the Season or Phase here to set the calendar by hand, and click the Age to turn it or set it by hand. Only the Time window’s buttons carry out what happens between Seasons.",
       "seasons": {
         "title": "Past Seasons",
         "hint": "Each Season you wrote about, the Myths resolved in it, and what passed as it ended, as its card told the table. Turning the Season, the Age, or journeying to a distant Realm fills it in. Setting the calendar by hand doesn’t. For your eyes only.",
@@ -2693,7 +2924,7 @@
       "title": "Ending a Session",
       "hint": "As each session ends (p16): settle how much time passes, see what became of anything left hanging, and ask the players what they plan next.",
       "open": "End the Session",
-      "openHint": "Walk the book’s end-of-session procedure (p16).",
+      "openHint": "Walk the book’s end-of-session procedure.",
       "finish": "End the Session",
       "needStep": "Settle how much time passes before ending the session.",
       "notices": {
@@ -2703,7 +2934,7 @@
         "title": "How much time passes?",
         "hint": "The group decides (p17). Roll if they’re uncertain.",
         "roll": "Uncertain",
-        "rollHint": "Roll Passage of Time (p17) and let the die settle it.",
+        "rollHint": "Roll Passage of Time and let the die settle it.",
         "rolled": "Passage of Time, {d6}: {result}",
         "steps": {
           "none": {
@@ -2734,7 +2965,7 @@
         "add": "Add a situation",
         "placeholder": "What was left hanging",
         "roll": "Roll",
-        "rollHint": "Roll Unresolved Situations (p17) for this one.",
+        "rollHint": "Roll Unresolved Situations for this one.",
         "remove": "Take this situation off the list",
         "unnamed": "A situation left unresolved"
       },
@@ -2756,7 +2987,8 @@
       "recap": {
         "title": "This session",
         "hint": "Written into the Season’s notes on the Toolkit’s Time page.",
-        "placeholder": "What the session came to"
+        "placeholder": "What the session came to",
+        "share": "Write it on the Timeline too, for everyone to read"
       },
       "recapHeading": "Session · {when}",
       "card": {
@@ -3391,7 +3623,7 @@
         "notes": "Traits & Notes"
       },
       "rollVirtues": "Roll Virtues",
-      "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled (p13).",
+      "rollVirtuesHint": "Roll each Virtue on d12+d6, as the book has hirelings rolled.",
       "rollVirtuesTagline": "Each Virtue rolled on d12+d6",
       "rollVirtuesAgain": "{name} already has Virtues of their own. Roll new ones on d12+d6?",
       "name": "Name",
@@ -3495,7 +3727,7 @@
       },
       "carries": "Carries",
       "stone": "Stone",
-      "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here (p11). Their gates are usually wood.",
+      "stoneHint": "Stone walls resist ordinary means: only siege engines harm them here. Their gates are usually wood.",
       "carriesPlaceholder": "6 passengers, a Warband…",
       "items": "Weapons & Cargo",
       "destroyed": {
@@ -3734,7 +3966,7 @@
         "pages": {
           "realm": "The Realm"
         },
-        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are set in each hex’s Lay of the Land in Places. Nothing is rolled.",
+        "drawIntro": "Makes a blank Realm for you to draw with the Realm tools. Paint its terrain, draw its river, and lay its Barriers and Landmarks, all from the one palette; its Holdings and Myths are placed with the Inspect tool: click a hex and Edit this hex opens beside it. Nothing is rolled.",
         "tracedIntro": "Lays a picture of your own map under the hexes and rolls nothing. Your map may have hexes drawn on it, or none at all. You line the picture up with the hex lines, then mark what each hex holds with the terrain brush, so Travel and the Wilderness Roll know the land as well as you do. The players see the whole picture, so use a copy without the Myths, Landmarks and Barriers, and place those on the map afterwards.",
         "intro": "Rolls a Realm the way Creating a Realm describes, on a Scene of 12 by 12 hexes: terrain, a river, four Holdings, six Myths, Landmarks and Barriers.",
         "name": "Name",
@@ -3921,7 +4153,7 @@
         "barrier": "Barrier: {direction}",
         "coordinates": "({col}, {row})",
         "visited": "visited",
-        "told": "Told: “{note}”",
+        "told": "What’s here: “{note}”",
         "party": "Company’s note: “{note}”",
         "settings": {
           "coordinates": {
@@ -4045,7 +4277,7 @@
         "seatDisputed": "The Holdings at {hexes} dispute the Seat of Power.",
         "seatMany": "The Holdings at {hexes} all wear the crown, where a Realm has one Seat. Tick Disputed on a Seat to let them.",
         "disputed": "Disputed",
-        "disputedHint": "Another Holding claims the Seat of Power too, as on p202’s island. A second Seat placed now leaves this one its crown. Untick it to settle the claim here, and any other Seat loses its crown.",
+        "disputedHint": "Another Holding claims the Seat of Power too. A second Seat placed now leaves this one its crown. Untick it to settle the claim here, and any other Seat loses its crown.",
         "holdings": "Holdings",
         "landmarks": "Landmarks",
         "landmarkTally": "{min} or {max} of each kind is typical.",
@@ -4247,7 +4479,7 @@
         "heading": "Paint every hex",
         "text": "Your map is only a picture: the system can't see what's drawn on it. Pick a terrain below and paint each hex that holds it on your map, until every hex is painted. Travel, the Wilderness Roll and the Lay of the Land go by the terrain you paint, not by the picture. Paint open sea as Lake, the rules' only water, which boats can cross. Nothing stops the Company walking onto a Lake, so rule on that at the table."
       },
-      "inspectHint": "Click a hex to open it in Places, then click the pen beside its terrain to edit it.",
+      "inspectHint": "Take up the Inspect tool and click a hex: Edit this hex opens beside Places. Under In this hex, choose Myth, then pick its number and roll or choose which Myth it is.",
       "groups": {
         "wilderness": "Wilderness",
         "holdings": "Holdings",
@@ -4673,10 +4905,19 @@
         "name": "Text Size",
         "hint": "Make the writing on Mythic Bastionland’s sheets, windows and chat cards larger or smaller, and the pictures beside it with it. 1.00 is the size they were drawn at."
       },
+      "colourScheme": {
+        "name": "Colour Scheme",
+        "hint": "The paper and ink of Mythic Bastionland’s sheets, windows and chat cards. Parchment is the book’s look. Lamplit, Midnight and Ashen are dark: warm brown, deep blue and plain charcoal. Follow Foundry takes Parchment or Lamplit as Foundry’s own windows are light or dark. Only affects this browser.",
+        "parchment": "Parchment",
+        "lamplit": "Lamplit (Dark, Warm)",
+        "midnight": "Midnight (Dark, Blue)",
+        "ashen": "Ashen (Dark, Charcoal)",
+        "auto": "Follow Foundry"
+      },
       "contrast": {
         "name": "Contrast",
-        "hint": "High Contrast puts Mythic Bastionland’s sheets, windows and chat cards on plain white paper in black ink, and darkens the faint and coloured writing on them. Pair it with a larger Text Size.",
-        "normal": "Parchment",
+        "hint": "High Contrast sharpens whichever Colour Scheme you read in: Parchment turns to plain white paper in black ink, a dark scheme to near-black paper in near-white ink, and the faint and coloured writing is made clearer on either. Pair it with a larger Text Size.",
+        "normal": "Normal",
         "high": "High Contrast"
       },
       "typeface": {
@@ -4709,8 +4950,7 @@
       "result": "→ {total}"
     },
     "keywords": {
-      "tip": "{text} (p{page})",
-      "unread": "Explained on p{page} of the rulebook."
+      "unread": "Import your rulebook PDF to read what this means here."
     },
     "portrait": {
       "change": "Change Picture",
@@ -4745,6 +4985,7 @@
       "copied": "The rulebook is ready to read.",
       "copyFailed": "The rulebook couldn’t be copied into the world. Check that you’re allowed to upload files and that there’s space.",
       "keepFailed": "The rulebook was copied in, but the world couldn’t record where it went.",
+      "adopted": "Your rulebook is already on this server, kept by another world, so this world reads it too. Bringing in its art and tables…",
       "keybinding": {
         "name": "Open the Rulebook",
         "hint": "Open the rulebook, or close it when it’s already in front."
@@ -4799,7 +5040,7 @@
       },
       "places": {
         "title": "Places",
-        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nFor you, any hex can be opened here, and under what the players know of it is its Lay of the Land: your note and the Spark Tables rolled there. The pen beside a hex’s terrain edits the hex itself.\nPlayers have the same button, and see only the places their Company has found."
+        "content": "Places opens the record of where the Company has been: each hex it has visited, what was found there and the notes kept on it.\nFor you, any hex can be opened here, and under what the players know of it is its Lay of the Land: your note and the Spark Tables rolled there. Edit hex, in the window’s title bar, changes the hex itself, such as the Myth or Holding in it.\nPlayers have the same button, and see only the places their Company has found."
       }
     },
     "welcome": {

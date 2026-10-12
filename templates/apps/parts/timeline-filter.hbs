@@ -1,0 +1,34 @@
+{{!-- The Timeline's Filter: the kinds of entry and the table's own tags to show and, on the full Timeline, the threads. Kept for each reader (module/apps/timeline-ui.js); it hides, never deletes. The count on the button says something is hidden with the menu shut. --}}
+<details class="bastionland-timeline__menu bastionland-timeline__filter{{#if hiddenCount}} is-filtered{{/if}}" data-timeline-menu="filter">
+	<summary class="bastionland-button" data-timeline-focus="filter"><i class="fa-solid fa-filter" inert></i> {{localize "bastionland.timeline.filter.label"}}{{#if hiddenCount}} <span class="bastionland-pill bastionland-timeline__hidden-count">{{hiddenLabel}}</span>{{/if}}</summary>
+	<div class="bastionland-timeline__menu-box">
+		<div class="bastionland-timeline__filter-columns">
+			{{#if threadGroups}}
+			<fieldset>
+				<legend>{{localize "bastionland.timeline.filter.threads"}}</legend>
+				{{#each threadGroups}}
+				<fieldset class="bastionland-timeline__thread-group">
+					<legend>{{label}}</legend>
+					{{#each threads}}
+					<label class="bastionland-check">
+						<input type="checkbox" data-timeline-thread="{{trackId}}" data-timeline-focus="thread-{{trackId}}" {{checked shown}}>
+						<span class="bastionland-check__label"><i class="{{icon}}" inert></i> {{label}}</span>
+					</label>
+					{{/each}}
+				</fieldset>
+				{{/each}}
+			</fieldset>
+			{{/if}}
+			<fieldset>
+				<legend>{{localize "bastionland.timeline.filter.kinds"}}</legend>
+				{{#each kinds}}
+				<label class="bastionland-check bastionland-timeline--kind-{{kind}}"{{#if style}} style="{{style}}"{{/if}}>
+					<input type="checkbox" data-timeline-kind="{{key}}" data-timeline-focus="kind-{{key}}" {{checked shown}}>
+					<span class="bastionland-check__label"><i class="{{icon}} bastionland-timeline__kind-icon" inert></i> {{label}}</span>
+				</label>
+				{{/each}}
+			</fieldset>
+		</div>
+		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="showAll" data-timeline-focus="show-all">{{localize "bastionland.timeline.filter.showAll"}}</button>
+	</div>
+</details>

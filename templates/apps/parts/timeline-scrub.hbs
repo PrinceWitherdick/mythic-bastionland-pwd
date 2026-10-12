@@ -1,0 +1,12 @@
+{{!-- The Age scrubber (module/apps/timeline-scroll.js): slide to an Age and the board brings it into view; move the board and the thumb follows. A tick for each Age drawn, Before the Tale too, moved to where it falls once the board is laid out; the Age in view is said in words beside it. A sheet's thread short of two Ages stops at each Season instead (scrub.by "period"). Only with two stops or more. --}}
+{{#if scrub}}
+<footer class="bastionland-timeline__scrub" data-stop-by="{{scrub.by}}">
+	<output class="bastionland-timeline__scrub-readout" aria-hidden="true">{{scrub.first}}</output>
+	<div class="bastionland-timeline__scrub-track">
+		<ol class="bastionland-timeline__scrub-ticks" aria-hidden="true">
+			{{#each scrub.stops}}<li class="bastionland-timeline__scrub-tick" data-stop="{{key}}" data-label="{{label}}" style="--at: {{at}};"></li>{{/each}}
+		</ol>
+		<input type="range" min="0" max="1000" step="any" value="0" data-timeline-focus="scrub" aria-label="{{scrub.label}}" aria-valuetext="{{scrub.first}}" data-tooltip="{{scrub.tooltip}}">
+	</div>
+</footer>
+{{/if}}

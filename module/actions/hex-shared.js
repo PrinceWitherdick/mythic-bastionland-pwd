@@ -21,6 +21,7 @@ import { hexFlagEditor } from "./hex-flags.js";
 import { getHexVisits } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { sightedMarkAt } from "./sighted.js";
+import { timelineNoteForgotten, timelinePartyNote } from "./timeline-events.js";
 
 /**
  * What the players hold about each hex: what the Referee told them, and the
@@ -90,8 +91,15 @@ export function recordBarriersMet(scene, met, byName) {
 	));
 }
 
-/** Rub out the Company's note on a hex. @returns {Promise<boolean>} */
-export const forgetHexPartyNote = (scene, hex) => editHexShared(scene, (shared) => forgetPartyNote(shared, hex));
+/**
+ * Rub out the Company's note on a hex, on the Timeline too.
+ * @returns {Promise<boolean>}
+ */
+export async function forgetHexPartyNote(scene, hex) {
+	const forgot = await editHexShared(scene, (shared) => forgetPartyNote(shared, hex));
+	if (forgot) await timelineNoteForgotten(scene, hex);
+	return forgot;
+}
 
 /** Forget one telling of a hex. @returns {Promise<boolean>} */
 export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) => forgetTold(shared, hex, id));
@@ -99,8 +107,17 @@ export const forgetHexTold = (scene, hex, id) => editHexShared(scene, (shared) =
 /** Forget a Barrier was met from a hex; it stays on the map. @returns {Promise<boolean>} */
 export const forgetHexBarrierMet = (scene, hex, edge) => editHexShared(scene, (shared) => forgetBarrierMet(shared, hex, edge));
 
-/** Forget all the players hold of a hex, or whichever parts `parts` names. @returns {Promise<boolean>} */
-export const forgetHexShared = (scene, hex, parts) => editHexShared(scene, (shared) => forgetShared(shared, hex, parts));
+/**
+ * Forget all the players hold of a hex, or whichever parts `parts` names. A
+ * party note forgotten comes off the Timeline too.
+ * @returns {Promise<boolean>}
+ */
+export async function forgetHexShared(scene, hex, parts) {
+	const noted = parts?.party !== false && Boolean(getHexSharedRecord(scene, hex)?.party);
+	const forgot = await editHexShared(scene, (shared) => forgetShared(shared, hex, parts));
+	if (forgot && noted) await timelineNoteForgotten(scene, hex);
+	return forgot;
+}
 
 /**
  * Whether the players may open a hex of a Scene's Realm.
@@ -123,13 +140,17 @@ export function hexOpenable(scene, hex) {
  * @param {User} user Who wrote it.
  * @returns {Promise<boolean>}
  */
-export const keepPartyNote = (scene, hex, text, user) => editHexShared(scene, (shared) => setPartyNote(shared, hex, {
-	text,
-	by: user.id,
-	byName: user.name,
-	when: getCalendar(),
-	at: Date.now()
-}));
+export async function keepPartyNote(scene, hex, text, user) {
+	const kept = await editHexShared(scene, (shared) => setPartyNote(shared, hex, {
+		text,
+		by: user.id,
+		byName: user.name,
+		when: getCalendar(),
+		at: Date.now()
+	}));
+	if (kept) await timelinePartyNote(scene, hex, String(text ?? ""), user);
+	return kept;
+}
 
 /**
  * Write the Company's note on a hex. A GM writes it at once; a player asks the

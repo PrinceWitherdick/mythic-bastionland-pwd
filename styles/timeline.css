@@ -1,0 +1,1279 @@
+/*
+ * The Timeline: every thread of the tale side by side in its window and on
+ * the Referee Toolkit, one thread on a sheet's Timeline tab, and a thread's
+ * journal page, each laid down the page or across it. Each entry is a card
+ * edged in the colour of its kind, so a Myth reads apart from a Scar at a
+ * glance; its kind is also named on its chip, beside its glyph.
+ */
+
+/* ---------------------------------------------------------------- */
+/* Each kind's colour                                               */
+/* ---------------------------------------------------------------- */
+
+/* The Referee's choice for the world is set on the page's root (applyKindColours in
+   module/apps/timeline-ui.js), and a pick in the Colours menu on the Timeline itself while
+   it waits to be saved. A tag of the table's own brings its colour inline. */
+.bastionland-timeline--kind-hand { --timeline-kind: var(--timeline-colour-hand, var(--bastionland-ink-soft)); }
+.bastionland-timeline--kind-time { --timeline-kind: var(--timeline-colour-time, var(--bastionland-harvest)); }
+.bastionland-timeline--kind-myth { --timeline-kind: var(--timeline-colour-myth, var(--bastionland-verdigris)); }
+.bastionland-timeline--kind-glory { --timeline-kind: var(--timeline-colour-glory, var(--bastionland-rubric)); }
+.bastionland-timeline--kind-wounds { --timeline-kind: var(--timeline-colour-wounds, var(--bastionland-blood)); }
+.bastionland-timeline--kind-lineage { --timeline-kind: var(--timeline-colour-lineage, var(--bastionland-spring)); }
+.bastionland-timeline--kind-dominion { --timeline-kind: var(--timeline-colour-dominion, var(--bastionland-ink)); }
+.bastionland-timeline--kind-travels { --timeline-kind: var(--timeline-colour-travels, var(--bastionland-winter)); }
+
+.bastionland-timeline__kind-icon {
+	color: var(--timeline-kind);
+}
+
+/* ---------------------------------------------------------------- */
+/* Window                                                           */
+/* ---------------------------------------------------------------- */
+
+.application.bastionland-timeline-window {
+	min-width: 480px;
+	min-height: 360px;
+}
+
+.bastionland-timeline-window > .window-content {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* The board scrolls inside its page, so its threads' names stay at the top:
+   in the window, and on the Referee Toolkit's Timeline page. The page wears the sheen in its
+   top left as every other page does, and so do the backings that hide what slides under the
+   pinned heads (--timeline-backing, below). The page doesn't scroll, so it keeps no room for a
+   scrollbar either, which the Toolkit's other pages do, and the board runs to the window's side. */
+.bastionland-timeline-window .bastionland-page.bastionland-timeline,
+.bastionland-gm-toolkit .bastionland-gm-toolkit__page.bastionland-timeline {
+	min-height: 0;
+	padding-bottom: 0;
+	overflow: hidden;
+	scrollbar-gutter: auto;
+}
+
+/* ---------------------------------------------------------------- */
+/* Toolbar                                                          */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__toolbar .bastionland-button {
+	flex: none;
+	width: auto;
+}
+
+/* The reader's own controls at the far end; once the toolbar wraps, laid from the left
+   under the buttons above them (module/apps/timeline-scroll.js). */
+.bastionland-timeline__toolbar-end {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-left: auto;
+}
+
+.bastionland-timeline__toolbar.is-wrapped > .bastionland-timeline__toolbar-end {
+	flex-basis: 100%;
+	margin-left: 0;
+}
+
+/* Down or Across stays at the right edge, wrapped or not, as in Stonetop. */
+.bastionland-timeline__toolbar.is-wrapped .bastionland-timeline__layout {
+	margin-left: auto;
+}
+
+/* Down or Across: two buttons joined, as Stonetop's are. The one in use is filled in ink and
+   the other left on the plain page, so which is pressed reads at a glance; the base button's
+   own fill is the deep paper, which the pressed one used to wear too. */
+.bastionland-timeline__layout {
+	display: inline-flex;
+}
+
+.bastionland-timeline__layout > .bastionland-button {
+	min-width: 2.25rem;
+	border-radius: 0;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-timeline__layout > .bastionland-button[aria-pressed="false"]:not(:disabled):hover {
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-timeline__layout > .bastionland-button:first-child {
+	border-radius: 4px 0 0 4px;
+}
+
+.bastionland-timeline__layout > .bastionland-button:last-child {
+	margin-left: -1px;
+	border-radius: 0 4px 4px 0;
+}
+
+.bastionland-timeline__layout > .bastionland-button[aria-pressed="true"] {
+	background: var(--bastionland-ink);
+	color: var(--bastionland-paper);
+}
+
+.bastionland-timeline__empty {
+	margin: 0;
+}
+
+.bastionland-timeline__invite {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__invite > p {
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* The toolbar's menus: Filter, and the Referee's Colours           */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__menu {
+	position: relative;
+}
+
+.bastionland-timeline__menu > summary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-timeline__menu > summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-timeline__filter.is-filtered > summary {
+	border-color: var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+}
+
+/* How many lines are unticked, said with the menu shut. */
+.bastionland-timeline__hidden-count {
+	--pill-pad: 0.2em;
+	padding: var(--pill-padding-top, 0.2em) 0.5em var(--pill-padding-bottom, 0.2em);
+	border: var(--pill-border, 1px) solid var(--bastionland-rubric);
+	border-radius: 999px;
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+}
+
+/* Capped at the room down to the Timeline's foot, which a sheet's tab can't be dragged past. */
+.bastionland-timeline__menu-box {
+	position: absolute;
+	top: calc(100% + 0.25rem);
+	right: 0;
+	z-index: 6;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	width: max-content;
+	max-width: min(32rem, 90vw);
+	max-height: min(28rem, var(--timeline-menu-room, 28rem));
+	padding: 0.75rem;
+	overflow-y: auto;
+}
+
+.bastionland-timeline__toolbar.is-wrapped .bastionland-timeline__menu-box {
+	right: auto;
+	left: 0;
+}
+
+.bastionland-timeline__menu-box .bastionland-hint {
+	max-width: 22rem;
+	margin: 0;
+}
+
+.bastionland-timeline__filter-columns {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.5rem;
+}
+
+.bastionland-timeline__menu-box fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-timeline__menu-box legend {
+	padding: 0 0 0.25rem;
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+}
+
+/* The Filter's threads, a heading for each kind under Threads. */
+.bastionland-timeline__menu-box .bastionland-timeline__thread-group + .bastionland-timeline__thread-group {
+	margin-block-start: 0.4rem;
+}
+
+.bastionland-timeline__menu-box .bastionland-timeline__thread-group > legend {
+	padding: 0 0 0.1rem;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-timeline__menu-box > .bastionland-button {
+	align-self: flex-start;
+	width: auto;
+}
+
+/* The Filter's ticks a little under Foundry's size, so the long list sits tighter. */
+.bastionland-timeline__filter .bastionland-timeline__menu-box {
+	--checkbox-size: 16px;
+}
+
+.bastionland-timeline__colour-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-timeline__colour {
+	display: grid;
+	grid-template-columns: minmax(8rem, 1fr) 2.5rem 1.5rem;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__colour input[type="color"] {
+	width: 2.5rem;
+	height: 1.75rem;
+	padding: 0;
+	border: 1px solid var(--bastionland-rule);
+	background: none;
+	cursor: pointer;
+}
+
+/* Back to its own colour, offered only once it has another. */
+.bastionland-timeline__colour:not(.is-repainted) .bastionland-timeline__colour-reset {
+	visibility: hidden;
+}
+
+.bastionland-timeline__menu-actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__menu-actions > .bastionland-button {
+	width: auto;
+}
+
+/* ---------------------------------------------------------------- */
+/* The board: a box that scrolls, drags and zooms                   */
+/* ---------------------------------------------------------------- */
+
+/* Ruled off from the toolbar above, and with no scrollbars, in the window, on the Toolkit and on a
+   sheet's tab alike, as Stonetop's are: the board is dragged, wheeled and scrubbed. */
+.bastionland-timeline__scroll {
+	flex: 1;
+	min-height: 0;
+	margin: 0 -1.5rem;
+	padding: 0 1.5rem;
+	overflow: auto;
+	border-top: 1px solid var(--bastionland-rule);
+	scrollbar-width: none;
+}
+
+/* A click leaves no ring; the keyboard's place is shown. */
+.bastionland-timeline__scroll:focus {
+	outline: none;
+}
+
+.bastionland-timeline__scroll:focus-visible {
+	outline: 2px solid var(--bastionland-rubric);
+	outline-offset: -2px;
+}
+
+.bastionland-timeline__scroll.is-pannable {
+	cursor: grab;
+}
+
+.bastionland-timeline__scroll.is-panning {
+	cursor: grabbing;
+	user-select: none;
+}
+
+/* The room past the board's edges, set on the canvas itself and kept from its children: a
+   window being resized sets it every frame, and only the canvas need be styled again. */
+@property --timeline-gutter-x { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-y { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-top { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-left { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* The board, with empty room past its edges to drag it into (module/apps/timeline-scroll.js
+   sizes it on the canvas). Content-box, so the room is added round the board rather than taken from it.
+   Down, as wide as the box, and wider by the zoom, so a zoomed board runs off the right edge
+   for the drag to bring back; across, as wide as its Seasons need. The heads' wash is set here
+   for every board's heads below, and the backings in the page's colour: the page's own sheen
+   (.bastionland-page) over its paper, folded away until module/apps/timeline-scroll.js#wireSheen
+   lays it on each pinned backing where the page's lies behind it. */
+.bastionland-timeline__canvas {
+	--timeline-head-wash: color-mix(in srgb, var(--bastionland-paper-deep) 55%, var(--bastionland-paper));
+	--timeline-backing: var(--bastionland-page-sheen) 0 0 / 0 0 no-repeat, var(--bastionland-paper);
+	box-sizing: content-box;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+	width: calc(100% * var(--timeline-zoom, 1));
+	padding: var(--timeline-gutter-top, 0px) var(--timeline-gutter-x, 0px) var(--timeline-gutter-y, 0px) var(--timeline-gutter-left, 0px);
+}
+
+/* CSS zoom lays the board out larger rather than stretching it, so the scroll grows with it,
+   the type stays sharp and the pinned heads still pin. On the board only, never its room. */
+.bastionland-timeline__canvas > * {
+	zoom: var(--timeline-zoom, 1);
+}
+
+.bastionland-timeline--across .bastionland-timeline__canvas {
+	grid-template-columns: auto;
+	width: fit-content;
+	min-width: 100%;
+}
+
+.bastionland-timeline__canvas:has(> .bastionland-timeline__axis) {
+	min-height: 100%;
+}
+
+/* The Season scrubber along the foot: the Season in view in words, then the slider. The
+   right keeps room for the window's resize grip. */
+.bastionland-timeline__scrub {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.75rem;
+	margin: 0 -1.5rem;
+	padding: 0.4rem 2.25rem 0.5rem 1.5rem;
+	border-top: 1px solid var(--bastionland-rule);
+}
+
+/* Straight under the board, its rule the board's foot, rather than a page's gap below it: pulled
+   up by the gap its page, or a sheet's tab spaced as the page round it is, parts its rows by. */
+.bastionland-timeline__scroll + .bastionland-timeline__scrub {
+	margin-top: calc(-1 * var(--bastionland-page-gap, 1rem));
+}
+
+.bastionland-timeline__scrub-readout {
+	flex: none;
+	min-width: 13em;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	white-space: nowrap;
+}
+
+.bastionland-timeline__scrub-track {
+	--scrub-thumb: 14px;
+	position: relative;
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	min-width: 6em;
+}
+
+.bastionland-timeline__scrub-ticks {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	pointer-events: none;
+}
+
+/* Where each Season falls along the slider, allowing for the thumb, whose middle passes over it. */
+.bastionland-timeline__scrub-tick {
+	position: absolute;
+	top: 50%;
+	left: calc(var(--scrub-thumb) / 2 + (100% - var(--scrub-thumb)) * var(--at, 0));
+	width: 2px;
+	height: 14px;
+	border-radius: 1px;
+	background: var(--bastionland-ink-soft);
+	transform: translate(-50%, -50%);
+}
+
+.bastionland-timeline__scrub input[type="range"] {
+	position: relative;
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	accent-color: var(--bastionland-rubric);
+	cursor: pointer;
+}
+
+.bastionland-timeline__scrub input[type="range"]::-webkit-slider-thumb {
+	width: var(--scrub-thumb);
+}
+
+/* ---------------------------------------------------------------- */
+/* A Season's heading, its notes, and its "+ Add"                   */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__period-name {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	border: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.05rem;
+	font-weight: normal;
+}
+
+/* Each Season's heading is a card in its own colour, as its chat card and its Toolkit leaf are:
+   its edge in the Season's colour, a heavier band of it down the left like a pennon's hoist, and
+   a tint of it mixed into the opaque page, so a pinned head still hides what slides under it.
+   The words stay full ink: a Season's colour as type reads under 3:1 on parchment. An undated
+   heading keeps the rule and the heads' wash. The Season it is now is told by its Now pill and
+   its verdigris edge. */
+.bastionland-timeline__period-head {
+	--timeline-season-edge: var(--bastionland-rule);
+	--timeline-season-tint: var(--timeline-head-wash, var(--bastionland-paper));
+}
+
+.bastionland-timeline__season--spring { --timeline-season: var(--bastionland-spring); }
+.bastionland-timeline__season--harvest { --timeline-season: var(--bastionland-harvest); }
+.bastionland-timeline__season--winter { --timeline-season: var(--bastionland-winter); }
+
+:is(.bastionland-timeline__season--spring, .bastionland-timeline__season--harvest, .bastionland-timeline__season--winter) {
+	--timeline-season-edge: var(--timeline-season);
+	--timeline-season-tint: color-mix(in srgb, var(--timeline-season) 20%, var(--bastionland-paper));
+}
+
+/* The Now pill keeps the plain page under its words, which lose too much on a tint. */
+.bastionland-timeline__period-head .bastionland-timeline__now {
+	background: var(--bastionland-paper);
+}
+
+/* The Season it is now, with nothing in it yet: there to write in. */
+.is-ghost .bastionland-timeline__period-name,
+.bastionland-timeline__period-head.is-ghost > .bastionland-timeline__period-name {
+	opacity: 0.75;
+}
+
+/* The Season's turn, written under its name. */
+.bastionland-timeline__notes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-top: 0.35rem;
+}
+
+.bastionland-timeline__note {
+	padding: 0.3rem 0 0.1rem 0.6rem;
+	border-left: 2px solid var(--timeline-season-edge, var(--bastionland-harvest));
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-note);
+	text-align: left;
+}
+
+.bastionland-timeline__note-title {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-caps);
+}
+
+/* The Season it is now, and each card's kind, are named on a pill. */
+.bastionland-timeline__now,
+.bastionland-timeline__kind {
+	--pill-pad: 0.25em;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: var(--pill-padding-top, 0.25em) 0.55em var(--pill-padding-bottom, 0.25em);
+	border: var(--pill-border, 1px) solid;
+	border-radius: 999px;
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+}
+
+.bastionland-timeline__now {
+	border-color: var(--bastionland-verdigris);
+	color: var(--bastionland-verdigris);
+	font-family: var(--bastionland-font-body);
+}
+
+/* The last thing in a Season, where an entry written there lands. Shown while its Season or
+   cell is hovered, or it has the keyboard; always on a touch screen and in the Season it is now
+   when that holds nothing. Opacity, never display: it keeps its room, so nothing moves. */
+.bastionland-timeline__add-slot {
+	display: flex;
+	opacity: 0;
+	transition: opacity 120ms;
+}
+
+.bastionland-timeline__period:hover .bastionland-timeline__add-slot,
+.bastionland-timeline__axis-period:hover .bastionland-timeline__add-slot,
+.bastionland-timeline__cell:hover .bastionland-timeline__add-slot,
+.bastionland-timeline__add-slot:focus-within,
+.is-ghost .bastionland-timeline__add-slot {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.bastionland-timeline__add-slot {
+		opacity: 1;
+	}
+}
+
+.bastionland-timeline__add-slot > .bastionland-timeline__add {
+	flex: 1;
+	justify-content: center;
+	width: auto;
+	border-style: dashed;
+	background: none;
+	color: var(--bastionland-ink-soft);
+}
+
+/* ---------------------------------------------------------------- */
+/* One thread, down the page                                        */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline__thread {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.75rem 0.5rem 1rem 0;
+}
+
+.bastionland-timeline__age-head {
+	margin: 0.25rem 0 0;
+	padding: 0 0 0.2rem;
+	border-bottom: 1px solid var(--bastionland-rubric);
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.15rem;
+	font-weight: normal;
+}
+
+/* Each Season hangs off a spine, a dot on it for each card in the card's own colour. */
+.bastionland-timeline__period {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0 0 0 0.35rem;
+	padding-left: 0.85rem;
+	border-left: 2px solid var(--bastionland-rule);
+}
+
+.bastionland-timeline__period.is-now {
+	border-left-color: var(--bastionland-verdigris);
+}
+
+/* The Season's card hung on the spine: its band laid over the line, centred on it, the card
+   running out across the column from there. */
+.bastionland-timeline__period > .bastionland-timeline__period-head {
+	margin-left: calc(-0.85rem - 4px);
+	padding: 0.3rem 0.75rem 0.35rem;
+	border: 2px solid var(--timeline-season-edge);
+	border-left-width: 6px;
+	border-radius: 3px;
+	background: var(--timeline-season-tint);
+}
+
+.bastionland-timeline__period.is-now > .bastionland-timeline__period-head {
+	border-color: var(--bastionland-verdigris);
+	border-left-color: var(--timeline-season-edge);
+}
+
+.bastionland-timeline__period.is-ghost > .bastionland-timeline__period-head {
+	border-style: dashed;
+	border-left-style: solid;
+	background: var(--bastionland-paper);
+}
+
+.bastionland-timeline__period > .bastionland-timeline__card {
+	position: relative;
+}
+
+.bastionland-timeline__period > .bastionland-timeline__card::before {
+	content: "";
+	position: absolute;
+	top: 0.75rem;
+	left: calc(-0.85rem - 11px);
+	width: 8px;
+	height: 8px;
+	border: 2px solid var(--bastionland-paper);
+	border-radius: 50%;
+	background: var(--timeline-kind);
+}
+
+/* ---------------------------------------------------------------- */
+/* One thread, across the page                                      */
+/* ---------------------------------------------------------------- */
+
+/* One line across, a node on it for each Season, its cards hanging off on a stalk: above the
+   line for one Season, below it for the next. Every Season is a column of three shared rows
+   (cards above, the line, cards below), so the line runs level whatever hangs off it. */
+.bastionland-timeline__axis {
+	display: grid;
+	grid-template-rows: auto auto auto;
+	grid-auto-columns: auto;
+	grid-auto-flow: column;
+	align-content: center;
+	justify-content: start;
+	min-height: 100%;
+	margin: 0;
+	padding: 0.75rem 0;
+	list-style: none;
+}
+
+.bastionland-timeline__axis-period,
+.bastionland-timeline__axis-age {
+	display: grid;
+	grid-row: 1 / -1;
+	grid-template-rows: subgrid;
+	padding: 0 0.5rem;
+}
+
+.bastionland-timeline__axis-period {
+	width: 17rem;
+}
+
+/* The line is drawn by each node, across its whole column, so it never breaks. */
+.bastionland-timeline__axis-node,
+.bastionland-timeline__axis-age > .bastionland-timeline__age-chip {
+	position: relative;
+	grid-row: 2;
+}
+
+.bastionland-timeline__axis-node {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem 0;
+	overflow-x: visible;
+	overflow-y: clip;
+}
+
+.bastionland-timeline__axis-node::before,
+.bastionland-timeline__axis-age::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: -0.5rem;
+	left: -0.5rem;
+	border-top: 3px solid var(--bastionland-rule);
+	transform: translateY(-50%);
+}
+
+.bastionland-timeline__axis-age {
+	position: relative;
+	align-items: center;
+}
+
+.bastionland-timeline__axis-age::before {
+	grid-row: 2;
+}
+
+.bastionland-timeline__axis-node > .bastionland-timeline__period-head {
+	position: relative;
+	max-width: 100%;
+	padding: 0.3rem 0.85rem;
+	border: 2px solid var(--timeline-season-edge);
+	border-radius: 999px;
+	background: var(--timeline-season-tint);
+	text-align: center;
+}
+
+.bastionland-timeline__axis-period.is-now .bastionland-timeline__axis-node > .bastionland-timeline__period-head {
+	border-color: var(--bastionland-verdigris);
+}
+
+.bastionland-timeline__axis-period.is-ghost .bastionland-timeline__axis-node > .bastionland-timeline__period-head {
+	border-style: dashed;
+	background: var(--bastionland-paper);
+}
+
+/* A heading holding its Season's turn is a box the notes fit in. */
+.bastionland-timeline__axis-node > .bastionland-timeline__period-head:has(.bastionland-timeline__notes) {
+	border-radius: 6px;
+}
+
+.bastionland-timeline__axis-node .bastionland-timeline__period-name {
+	justify-content: center;
+}
+
+.bastionland-timeline__axis-cards {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bastionland-timeline__axis-period.is-above .bastionland-timeline__axis-cards {
+	grid-row: 1;
+	align-self: end;
+	padding-bottom: 1rem;
+}
+
+.bastionland-timeline__axis-period.is-below .bastionland-timeline__axis-cards {
+	grid-row: 3;
+	align-self: start;
+	padding-top: 1rem;
+}
+
+/* The stalk, from the cards all the way to the node: the node's piece is overlong, and the
+   node's clip cuts it at the row's edge, however tall the row of nodes is. */
+.bastionland-timeline__axis-period.has-cards .bastionland-timeline__axis-cards::after,
+.bastionland-timeline__axis-period.has-cards .bastionland-timeline__axis-node > .bastionland-timeline__period-head::before {
+	content: "";
+	position: absolute;
+	left: 50%;
+	border-left: 2px solid var(--bastionland-rule);
+	transform: translateX(-50%);
+}
+
+.bastionland-timeline__axis-period.has-cards .bastionland-timeline__axis-cards::after {
+	height: 1rem;
+}
+
+.bastionland-timeline__axis-period.has-cards .bastionland-timeline__axis-node > .bastionland-timeline__period-head::before {
+	height: 100vh;
+}
+
+.bastionland-timeline__axis-period.is-above .bastionland-timeline__axis-cards::after {
+	bottom: 0;
+}
+
+.bastionland-timeline__axis-period.is-below .bastionland-timeline__axis-cards::after {
+	top: 0;
+}
+
+.bastionland-timeline__axis-period.is-above .bastionland-timeline__axis-node > .bastionland-timeline__period-head::before {
+	bottom: 100%;
+}
+
+.bastionland-timeline__axis-period.is-below .bastionland-timeline__axis-node > .bastionland-timeline__period-head::before {
+	top: 100%;
+}
+
+/* An Age's name, sitting on the line where the Age begins, or pinned over the board's
+   column that opens it across. On an opaque fill, so the line doesn't strike it through. */
+.bastionland-timeline__age-chip {
+	--pill-pad: 0.2em;
+	--pill-border-width: 2px;
+	display: inline-block;
+	margin: 0;
+	padding: var(--pill-padding-top, 0.2em) 0.75rem var(--pill-padding-bottom, 0.2em);
+	border: var(--pill-border, 2px) solid var(--bastionland-rubric);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	color: var(--bastionland-rubric);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	font-weight: normal;
+	white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* Every thread side by side, down the page                         */
+/* ---------------------------------------------------------------- */
+
+/* The heads, read down or across, are boxes as the cards are, on a wash between the page and
+   the cards' own fill, so a head reads as a head and still hides what slides under it. A
+   thread's name has its box drawn by ::before, inside a backing in the page's colour. A Season's
+   head is its Season's card, band and all. */
+.bastionland-timeline__board > .bastionland-timeline__lane-head::before,
+.bastionland-timeline__swim-lane-head::before {
+	border: 2px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: var(--timeline-head-wash);
+}
+
+.bastionland-timeline__period-head--board,
+.bastionland-timeline__swim-head {
+	border: 2px solid var(--timeline-season-edge);
+	border-left-width: 6px;
+	border-radius: 3px;
+	background: var(--timeline-season-tint);
+}
+
+/* Laid out as Stonetop's board: the rows parted by their gap rather than by rules, the Season
+   column a fixed width so the names row, the Age rows and the Season rows line up. */
+.bastionland-timeline__board {
+	display: grid;
+	grid-template-columns: 11rem repeat(var(--timeline-lanes, 1), minmax(15rem, 1fr));
+	gap: 14px 10px;
+	align-items: start;
+	padding-bottom: 1.5rem;
+}
+
+/* The threads' names stay at the top, and each Season's name at the left, as the board scrolls.
+   The names row is a band in the page's colour, so the cards going up under it are hidden in the
+   gaps between the names too: each name reaches half the column gap either side, and its box is
+   drawn inside that by ::before. The corner over the Season column is the band's colour, bare.
+   Stacked as Stonetop's: the names under the corner, and both under the Season cells and the Age
+   chips pinned at the left, which pass in front of them. */
+.bastionland-timeline__corner,
+.bastionland-timeline__board > .bastionland-timeline__lane-head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	align-self: stretch;
+	background: var(--timeline-backing);
+}
+
+.bastionland-timeline__corner {
+	left: 0;
+	z-index: 3;
+}
+
+/* Centred over its column. The padding is the box's own (8px 10px inside a 2px edge), plus the
+   band's 6px above and the 5px reach into the gap either side. None below: the box sits on the
+   band's foot, so the cards go up under its edge rather than vanishing in a strip of page under it. */
+.bastionland-timeline__board > .bastionland-timeline__lane-head {
+	justify-content: center;
+	margin-inline: -5px;
+	padding: 16px 17px 10px;
+}
+
+.bastionland-timeline__board > .bastionland-timeline__lane-head::before {
+	content: "";
+	position: absolute;
+	inset: 6px 5px 0;
+	z-index: -1;
+}
+
+.bastionland-timeline__lane-head {
+	display: flex;
+	min-width: 0;
+}
+
+.bastionland-timeline__lane-who {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.bastionland-timeline__lane-portrait {
+	flex: none;
+	width: 44px;
+	height: 44px;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.bastionland-timeline__lane-label {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	line-height: 1.15;
+}
+
+.bastionland-timeline__lane-label strong {
+	overflow: hidden;
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bastionland-timeline__lane-kind {
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+/* Where an Age begins: its chip centred over the Season column and pinned at the left with it,
+   so a board dragged across keeps it in view, and a rule out to the edge. 10px under it and
+   26px over it when a row comes before, as Stonetop's year row has, out of the board's 14px gap. */
+.bastionland-timeline__age-head--board {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 0 -4px;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-timeline__cell + .bastionland-timeline__age-head--board {
+	margin-top: 12px;
+}
+
+.bastionland-timeline__age-head--board::after {
+	content: "";
+	flex: 1 1 auto;
+	border-top: 2px solid var(--bastionland-rubric);
+}
+
+/* SAFE centring: an Age's name wider than the cell (a longer translation) starts at the cell's
+   left and runs on, rather than spilling half of it past the window's left edge. */
+.bastionland-timeline__age-cell {
+	position: sticky;
+	left: 0;
+	z-index: 4;
+	display: flex;
+	flex: none;
+	justify-content: safe center;
+	width: 11rem;
+}
+
+/* The Season's own cell, at the head of its row and as tall as it, pinned at the left while the
+   lanes slide under it. It goes in front of the names row and its corner, as across the page the
+   column heads go under the row heads. */
+.bastionland-timeline__period-head--board {
+	position: sticky;
+	left: 0;
+	z-index: 4;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	align-self: stretch;
+	padding: 8px 10px;
+}
+
+/* The Season it is now wears verdigris on its edge, its band still the Season's; the ghost Season,
+   with nothing written in it yet, is dashed on the plain page, a place to write, its band whole.
+   Across the page too. */
+.bastionland-timeline__period-head--board.is-now,
+.bastionland-timeline__swim-head.is-now {
+	border-color: var(--bastionland-verdigris);
+	border-left-color: var(--timeline-season-edge);
+}
+
+.bastionland-timeline__period-head--board.is-ghost,
+.bastionland-timeline__swim-head.is-ghost {
+	border-style: dashed;
+	border-left-style: solid;
+	background: var(--bastionland-paper);
+}
+
+.bastionland-timeline__cell {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-self: stretch;
+	min-width: 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* Every thread side by side, across the page                       */
+/* ---------------------------------------------------------------- */
+
+/* A row for each thread and a column for each Season, in one grid so a Season's column lines
+   up down every thread. The Season heads pin to the top and the thread names to the left; the
+   corner where they meet is left bare, so the heads start in the second column. */
+.bastionland-timeline--across .bastionland-timeline__scroll {
+	padding-left: 0;
+}
+
+/* The board's Season heads pin at the left as well, and a sticky left: 0 pins inside the
+   scroll's padding, leaving a strip the cards scroll visibly through; so it runs to the window's
+   sides, as Stonetop's does, and the heads carry the inset themselves. */
+.bastionland-timeline__scroll:has(> .bastionland-timeline__canvas > .bastionland-timeline__board) {
+	padding-right: 0;
+	padding-left: 0;
+}
+
+.bastionland-timeline__swim {
+	display: grid;
+	grid-template-columns: var(--timeline-swim-columns);
+	gap: 10px;
+	align-items: start;
+	padding-bottom: 1rem;
+}
+
+.bastionland-timeline__swim > :first-child {
+	grid-column-start: 2;
+}
+
+/* Each Season's head a box of its own, as tall as its words; its turn's notes wrap under the name. */
+.bastionland-timeline__swim-head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+}
+
+.bastionland-timeline__swim-head > .bastionland-timeline__notes {
+	flex: none;
+	width: 100%;
+	min-width: 0;
+	margin-top: 0;
+}
+
+/* Where an Age begins: its name pinned in the heads row, and a rule down through every thread. */
+.bastionland-timeline__swim-age {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-self: stretch;
+	align-items: center;
+	margin: 0;
+	padding-top: 0.5rem;
+	border: none;
+	background: var(--timeline-backing);
+}
+
+.bastionland-timeline__swim-age::after {
+	content: "";
+	flex: 1 1 auto;
+	border-left: 2px solid var(--bastionland-rubric);
+}
+
+.bastionland-timeline__swim-rule {
+	align-self: stretch;
+	justify-self: center;
+	margin-top: -10px;
+	border-left: 2px solid var(--bastionland-rubric);
+}
+
+/* A thread's name at the top of its lane, level with its first card, pinned at the left and over
+   the heads row. Nothing peeks between the names: the cell is a backing in the page's colour
+   reaching half the 10px row gap up and down, so two neighbours meet, and the name's box is drawn
+   inside it by ::before. Not into the column gap on the right, or the Seasons sliding under are cut
+   off short of the box's edge. Scrolled down, a name goes up and off with its lane. */
+.bastionland-timeline__swim-lane-head {
+	position: sticky;
+	left: 0;
+	z-index: 3;
+	align-self: stretch;
+	align-items: flex-start;
+	margin-block: -5px;
+	padding: 15px 10px 13px 14px;
+	background: var(--timeline-backing);
+}
+
+.bastionland-timeline__swim-lane-head::before {
+	content: "";
+	position: absolute;
+	inset: 5px 0;
+	z-index: -1;
+}
+
+/* ---------------------------------------------------------------- */
+/* An entry                                                         */
+/* ---------------------------------------------------------------- */
+
+/* Every card wears its kind's class, which gives it its colour. */
+.bastionland-timeline__card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	padding: 0.45rem 0.6rem;
+	border: 1px solid var(--bastionland-rule);
+	border-left: 4px solid var(--timeline-kind);
+	border-radius: 3px;
+	background: var(--bastionland-paper-deep);
+}
+
+/* The title on the left and the kind's chip on the right, as Stonetop lays its cards out;
+   a long title wraps beside the chip rather than pushing it under. */
+.bastionland-timeline__card-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.4rem;
+}
+
+/* Kept to the right on a card with no title too. */
+.bastionland-timeline__card-head > .bastionland-timeline__kind {
+	margin-left: auto;
+}
+
+.bastionland-timeline__kind {
+	flex: none;
+	border-color: color-mix(in srgb, var(--timeline-kind) 60%, var(--bastionland-rule));
+	color: var(--bastionland-ink-soft);
+}
+
+.bastionland-timeline__title {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-family: var(--bastionland-font-caps);
+	font-weight: normal;
+}
+
+/* The tools are a row at the card's foot, as Stonetop has them, so the head is
+   the kind and the title alone and a long title never leaves them a gap. */
+.bastionland-timeline__tools {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.1rem;
+}
+
+.bastionland-timeline__tools .bastionland-icon {
+	padding: 0;
+	border: none;
+	background: none;
+}
+
+.bastionland-timeline__place {
+	margin: 0;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-timeline__body {
+	overflow-wrap: anywhere;
+	white-space: pre-line;
+}
+
+/* ---------------------------------------------------------------- */
+/* A sheet's tab and a journal page                                 */
+/* ---------------------------------------------------------------- */
+
+/* The tab fills the sheet below its header and runs out to the window's sides and foot, as
+   Stonetop's does and as the Timeline window's board does: the page gives up its foot padding
+   and the room it keeps for a scrollbar, and the board scrolls inside. A window too short for
+   the board's least height scrolls the page as any other tab does. */
+.bastionland-page--tabbed:has(> .tab.active > .bastionland-timeline--tab) {
+	padding-bottom: 0;
+	scrollbar-gutter: auto;
+}
+
+.bastionland-page > .tab.active:has(> .bastionland-timeline--tab),
+.bastionland-timeline--tab {
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* Spaced as the page it's on is. */
+.bastionland-timeline--tab {
+	gap: var(--bastionland-page-gap, 1rem);
+}
+
+.bastionland-timeline--tab .bastionland-timeline__scroll {
+	min-height: 14rem;
+}
+
+.bastionland-timeline--page {
+	padding: 0.5rem 0;
+	background: none;
+}
+
+/* ---------------------------------------------------------------- */
+/* The entry dialog                                                 */
+/* ---------------------------------------------------------------- */
+
+.bastionland-timeline-entry__tag-set {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-timeline-entry__tag-set > legend {
+	padding: 0 0 0.35rem;
+	font-weight: bold;
+}
+
+/* One tag pressed: each a chip in its kind's colour, the radio beneath it kept for the keyboard. */
+.bastionland-timeline-entry__tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+.bastionland-timeline-entry__tag {
+	position: relative;
+	display: inline-flex;
+	cursor: pointer;
+}
+
+.bastionland-timeline-entry__tag > input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+}
+
+.bastionland-timeline-entry__tag > input:checked + .bastionland-timeline__kind {
+	border-color: var(--timeline-kind);
+	background: color-mix(in srgb, var(--timeline-kind) 22%, transparent);
+	color: var(--bastionland-ink);
+}
+
+.bastionland-timeline-entry__tag > input:focus-visible + .bastionland-timeline__kind {
+	outline: 2px solid var(--bastionland-rubric);
+	outline-offset: 2px;
+}
+
+.bastionland-timeline-entry__new-tag > summary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	width: auto;
+	list-style: none;
+	cursor: pointer;
+}
+
+.bastionland-timeline-entry__new-tag > summary::-webkit-details-marker {
+	display: none;
+}
+
+.bastionland-timeline-entry__new-tag-fields {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.bastionland-timeline-entry__new-tag-fields > input[type="text"] {
+	flex: 1;
+}
+
+.bastionland-timeline-entry__new-tag-fields > input[type="color"] {
+	flex: none;
+	width: 2.5rem;
+	height: 1.75rem;
+	padding: 0;
+	border: 1px solid var(--bastionland-rule);
+	background: none;
+}
+
+.bastionland-timeline-entry__new-tag-fields > .bastionland-button {
+	flex: none;
+	width: auto;
+}
+
+/* A place dropped on the field links to what it is, and says so. */
+.bastionland-timeline-entry__linked {
+	display: none;
+	flex: none;
+	align-items: center;
+	gap: 0.3rem;
+	color: var(--bastionland-verdigris);
+	font-size: var(--bastionland-font-note);
+}
+
+.bastionland-timeline-entry__place.is-linked > .bastionland-timeline-entry__linked {
+	display: inline-flex;
+}

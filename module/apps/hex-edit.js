@@ -18,18 +18,18 @@ import {
 	editFeature,
 	paintTerrain,
 	placeFeature,
-	setOmen,
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
 import { rollFreeMyth } from "../rules/realm-myths.js";
 import { hexKey } from "../rules/realm-geometry.js";
+import { markMythOmen } from "../actions/omens.js";
 import { keptFromMe } from "../actions/solo.js";
 import { openMythChooser } from "./MythChooser.js";
 import { inputDialog } from "./ui.js";
 
 /**
- * Edit this hex, the GM's window opened from the pen beside a hex in Places
+ * Edit this hex, the GM's window opened from Edit hex in the title bar of Places
  * (HexEditor.js): the hex's terrain, the Holding, Myth or Landmark in it, and its Barriers. The paint palette lays
  * most of a Realm; this is where a Myth is placed and rolled, a Holding named,
  * a Sanctum's Seer rolled, and a Myth or Landmark hidden or revealed.
@@ -131,7 +131,7 @@ export function writeHexField(scene, hex, field, value) {
 	return editRealm(scene, (realm, g) => {
 		switch (field) {
 			case "terrain":
-				return paintTerrain(realm, g, [hex], whole(value));
+				return paintTerrain(realm, g, [hex], whole(value), { step: true });
 			case "kind":
 				if (value === kindHere(featureAt(realm, hex))) return realm;
 				return placeFeature(realm, g, hex, value === "none" ? null : { kind: value });
@@ -277,10 +277,9 @@ export async function rollHexSeer(scene, hex) {
  */
 export async function stepHexOmen(scene, hex, step) {
 	const by = whole(step) ?? 0;
-	await editRealm(scene, (realm) => {
-		const { myth } = featureAt(realm, hex);
-		return myth ? setOmen(realm, myth.number, myth.omen + by) : realm;
-	});
+	const realm = getRealm(scene)?.realm;
+	const myth = realm ? featureAt(realm, hex).myth : null;
+	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by);
 }
 
 /**

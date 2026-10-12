@@ -53,12 +53,14 @@ describe("registerClientSettings", () => {
 	it("registers each person's own settings, shown in Foundry's settings window", () => {
 		settings.registerClientSettings();
 		const registered = registrations();
-		expect(Object.keys(registered)).toEqual(["textSize", "contrast", "typeface", "noItalics", "reduceMotion", "keywordTips", "artPreviews"]);
+		expect(Object.keys(registered)).toEqual(["textSize", "contrast", "colourScheme", "typeface", "noItalics", "reduceMotion", "keywordTips", "artPreviews"]);
 		for (const config of Object.values(registered)) expect(config).toMatchObject({ scope: "client", config: true });
 		expect(registered.textSize).toMatchObject({ type: Number, range: settings.TEXT_SIZE_RANGE, default: 1 });
 		expect(Object.keys(registered.typeface.choices)).toEqual([...settings.TYPEFACES]);
 		expect(registered.typeface.default).toBe("book");
 		expect(Object.keys(registered.contrast.choices)).toEqual(["normal", "high"]);
+		expect(Object.keys(registered.colourScheme.choices)).toEqual(["parchment", "lamplit", "midnight", "ashen", "auto"]);
+		expect(registered.colourScheme.default).toBe("parchment");
 		expect(registered.artPreviews.default).toBe(true);
 	});
 
@@ -152,5 +154,81 @@ describe("reading a setting while it can't be read", () => {
 		Object.assign(saved, { artPreviews: false, reduceMotion: true });
 		expect(settings.showsArtPreviews()).toBe(false);
 		expect(settings.reducesMotion()).toBe(true);
+	});
+});
+
+describe("applyColourScheme", () => {
+	const dark = () => [...root.classes].filter((name) => name === "bastionland-dark" || name.startsWith("bastionland-scheme-")).sort();
+
+	it("marks a dark scheme, with Lamplit as the dark base and the others drawn over it", () => {
+		settings.applyColourScheme("lamplit");
+		expect(dark()).toEqual(["bastionland-dark"]);
+		settings.applyColourScheme("midnight");
+		expect(dark()).toEqual(["bastionland-dark", "bastionland-scheme-midnight"]);
+		settings.applyColourScheme("ashen");
+		expect(dark()).toEqual(["bastionland-dark", "bastionland-scheme-ashen"]);
+		settings.applyColourScheme("parchment");
+		expect(dark()).toEqual([]);
+	});
+
+	it("reads an unknown scheme as parchment", () => {
+		settings.applyColourScheme("midnight");
+		settings.applyColourScheme("neon");
+		expect(dark()).toEqual([]);
+	});
+
+	it("leaves High Contrast to its own setting, so either scheme can have it", () => {
+		settings.applyContrast("high");
+		settings.applyColourScheme("ashen");
+		expect(root.classes.has("bastionland-high-contrast")).toBe(true);
+		settings.applyColourScheme("parchment");
+		expect(root.classes.has("bastionland-high-contrast")).toBe(true);
+	});
+
+	it("follows Foundry's windows: its own choice first, then the browser's while that's left at the default", () => {
+		saved.colourScheme = "auto";
+		const uiConfig = { colorScheme: { applications: "dark" } };
+		game.settings.get.mockImplementation((namespace, key) => (namespace === "core" ? uiConfig : saved[key]));
+		let browserDark = false;
+		globalThis.matchMedia = () => ({ matches: browserDark });
+		try {
+			settings.applyColourScheme("auto");
+			expect(dark()).toEqual(["bastionland-dark"]);
+			uiConfig.colorScheme.applications = "light";
+			settings.applyColourScheme("auto");
+			expect(dark()).toEqual([]);
+			uiConfig.colorScheme.applications = "";
+			browserDark = true;
+			settings.applyColourScheme("auto");
+			expect(dark()).toEqual(["bastionland-dark"]);
+		} finally {
+			delete globalThis.matchMedia;
+		}
+	});
+
+	it("turns with Foundry's interface setting while following it, and not otherwise", () => {
+		const hooks = {};
+		globalThis.Hooks = { on: (name, fn) => (hooks[name] = fn), callAll: () => {} };
+		const uiConfig = { colorScheme: { applications: "light" } };
+		game.settings.get.mockImplementation((namespace, key) => {
+			if (namespace === "core") return uiConfig;
+			if (!(key in saved)) throw new Error(`${key} is not registered`);
+			return saved[key];
+		});
+		try {
+			saved.colourScheme = "auto";
+			settings.registerClientSettings();
+			expect(dark()).toEqual([]);
+			uiConfig.colorScheme.applications = "dark";
+			hooks.clientSettingChanged("core.uiConfig");
+			expect(dark()).toEqual(["bastionland-dark"]);
+			saved.colourScheme = "midnight";
+			settings.applyColourScheme("midnight");
+			uiConfig.colorScheme.applications = "light";
+			hooks.clientSettingChanged("core.uiConfig");
+			expect(dark()).toEqual(["bastionland-dark", "bastionland-scheme-midnight"]);
+		} finally {
+			delete globalThis.Hooks;
+		}
 	});
 });

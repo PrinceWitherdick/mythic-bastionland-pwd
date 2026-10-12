@@ -1,5 +1,5 @@
 import { kitWeaponNames } from "../actions/abilities.js";
-import { createKnightWithCompanions, rollStartScores } from "../actions/new-knight.js";
+import { createKnightWithCompanions, knightJoined, rollStartScores } from "../actions/new-knight.js";
 import { clearCompanions, knightOwner, makeCompanions } from "../actions/property.js";
 import { findByRoll } from "../book-art/art-index.js";
 import { peekVerseForEntry } from "../book-art/myth-tables.js";
@@ -511,6 +511,7 @@ export class KnightChooser extends BastionlandChooser {
 		if (!actor) {
 			const created = await createKnightWithCompanions({ name, update, items });
 			created?.sheet.render({ force: true });
+			await knightJoined(created);
 			return this.close();
 		}
 
@@ -538,6 +539,7 @@ export class KnightChooser extends BastionlandChooser {
 		await actor.update(update);
 		if (replaced.length) await actor.deleteEmbeddedDocuments("Item", replaced);
 		await actor.createEmbeddedDocuments("Item", items.filter((item) => !gone.has(item)));
+		await knightJoined(actor);
 		return this.close();
 	}
 

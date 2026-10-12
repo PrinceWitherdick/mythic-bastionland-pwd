@@ -24,6 +24,7 @@ describe("the Settings page's groups", () => {
 
 	it("lets a player change only what they are shown", () => {
 		expect(offersSetting("textSize", false)).toBe(true);
+		expect(offersSetting("colourScheme", false)).toBe(true);
 		expect(offersSetting("restoreOpenSheets", false)).toBe(true);
 		expect(offersSetting("phaseBannerShown", false)).toBe(true);
 		expect(offersSetting("travelRulesShown", false)).toBe(true);

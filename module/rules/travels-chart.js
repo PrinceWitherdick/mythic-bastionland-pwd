@@ -8,6 +8,7 @@
 import { allHexes, directionNames, hexCentre, hexDistance, hexKey, hexVertices, parseHexKey } from "./realm-geometry.js";
 import { TERRAIN } from "./realm.js";
 import { escapeHTML } from "./text.js";
+import { wheelNotches } from "./timeline-scroll.js";
 
 /**
  * @typedef {object} ChartPalette
@@ -356,7 +357,5 @@ export const CHART_DOUBLE_CLICK_ZOOM = 3;
  * @returns {number} Above 1 to bring it closer, 1 for no turn.
  */
 export function wheelZoomFactor(deltaY, deltaMode = 0) {
-	const perNotch = [100, 3, 1][deltaMode] ?? 100;
-	const notches = Math.max(-1, Math.min(1, (Number(deltaY) || 0) / perNotch));
-	return CHART_ZOOM_STEP ** -notches;
+	return CHART_ZOOM_STEP ** wheelNotches({ deltaY, deltaMode });
 }

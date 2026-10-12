@@ -104,6 +104,36 @@ export function pageReferences(text) {
 	return found;
 }
 
+/** The word that sends the reader to a page: "see p10", "on page 12". */
+const LEAD_IN = /\b(?:see(?:\s+also)?|cf\.|on|at|in|from)\s+$/i;
+
+/** A sentence that does nothing but send the reader to a page. */
+const SEE_SENTENCE = new RegExp(String.raw`(^|[.!?]\s+)See\b[^.!?]*?${PAGE_REFERENCE.source}[^.!?]*(?:[.!?]|$)`, "g");
+
+/**
+ * A run of text with its page references taken out, for somewhere a page can't
+ * be clicked through to the rulebook, such as a tooltip. A bracket left holding
+ * only the reference goes with it: "described (p10)." reads "described.", and
+ * "(Recovery, p9)" reads "(Recovery)". So does the word leading into it, as
+ * "explained on page 12." reads "explained.", and a sentence that only sends
+ * the reader to a page, "See p151 for the Gargoyle.", goes whole.
+ * @param {string} text
+ * @returns {string}
+ */
+export function withoutPageReferences(text) {
+	let left = String(text ?? "").replace(SEE_SENTENCE, "$1");
+	for (const { index, length } of pageReferences(left).reverse()) {
+		const start = index - (left.slice(0, index).match(LEAD_IN)?.[0].length ?? 0);
+		left = left.slice(0, start) + left.slice(index + length);
+	}
+	return left
+		.replace(/\(\s*(?:(?:,|and)\s*)*\)/g, "")
+		.replace(/,\s*\)/g, ")")
+		.replace(/\s+([.,;:)])/g, "$1")
+		.replace(/\s{2,}/g, " ")
+		.trim();
+}
+
 /**
  * One notch of the wheel, flat. pdf.js's own step compounds and reads one
  * mouse flick as three steps, which takes a page from 100% to 170% at once.

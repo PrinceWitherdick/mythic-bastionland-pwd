@@ -529,13 +529,23 @@ export class TravelsPlaces extends HandlebarsApplicationMixin(ApplicationV2) {
  * @param {{col: number, row: number}} [options.hex] The hex to choose in it.
  * @returns {TravelsPlaces}
  */
-export function openPlaces({ sceneId, hex } = {}) {
+export function openPlaces(options) {
+	return showPlaces(options).app;
+}
+
+/**
+ * Open the Company's places, as openPlaces does.
+ * @param {object} [options] As openPlaces takes them.
+ * @param {string} [options.sceneId]
+ * @param {{col: number, row: number}} [options.hex]
+ * @returns {{app: TravelsPlaces, drawn: Promise<TravelsPlaces>}} The window, and when it has been drawn and put where it goes.
+ */
+function showPlaces({ sceneId, hex } = {}) {
 	const app = reopenablePlaces();
 	// Open on this Realm already: only the hex chosen is drawn again.
 	if (hex && app.rendered && !app.minimized && (!sceneId || sceneId === app.state.realm)) {
 		app.bringToFront();
-		app.choose(hexKey(hex)).then(() => app.showChosen());
-		return app;
+		return { app, drawn: app.choose(hexKey(hex)).then(() => app.showChosen()).then(() => app) };
 	}
 	if (sceneId && sceneId !== app.state.realm) {
 		app.state.realm = sceneId;
@@ -545,8 +555,7 @@ export function openPlaces({ sceneId, hex } = {}) {
 		app.state.selected = hexKey(hex);
 		app.reveal = true;
 	}
-	app.render({ force: true });
-	return app;
+	return { app, drawn: app.render({ force: true }) };
 }
 
 /**
@@ -555,9 +564,9 @@ export function openPlaces({ sceneId, hex } = {}) {
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
- * @returns {TravelsPlaces}
+ * @returns {Promise<TravelsPlaces>} Once the window has been drawn and put where it goes, so another can be placed beside it.
  */
-export const openHex = ({ scene, hex }) => openPlaces({ sceneId: scene.id, hex });
+export const openHex = ({ scene, hex }) => showPlaces({ sceneId: scene.id, hex }).drawn;
 
 /**
  * The window to render when it was open as the page last unloaded. It opens

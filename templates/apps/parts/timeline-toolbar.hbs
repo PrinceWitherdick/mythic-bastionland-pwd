@@ -1,0 +1,31 @@
+{{!-- The far end of a Timeline's toolbar: the Referee's Colours, the reader's Filter, and Down or Across. Each host leads it with its own buttons (module/apps/timeline-ui.js#toolbarContext). Every control is named by data-timeline-focus, so the keyboard comes back to it when a write anywhere at the table draws the Timeline again. --}}
+<div class="bastionland-timeline__toolbar-end">
+	{{#if colours}}
+	{{!-- The colour each kind wears, for the whole world. A pick shows on the Timeline as it moves, and is written only on Save. --}}
+	<details class="bastionland-timeline__menu" data-timeline-menu="colours">
+		<summary class="bastionland-button" data-timeline-focus="colours" data-tooltip="{{localize "bastionland.timeline.colours.tooltip"}}"><i class="fa-solid fa-palette" inert></i> {{localize "bastionland.timeline.colours.label"}}</summary>
+		<div class="bastionland-timeline__menu-box bastionland-timeline__colours">
+			<p class="bastionland-hint">{{localize "bastionland.timeline.colours.hint"}}</p>
+			<ul class="bastionland-timeline__colour-list">
+				{{#each colours}}
+				<li class="bastionland-timeline__colour bastionland-timeline--kind-{{kind}}{{#if repainted}} is-repainted{{/if}}" data-kind="{{kind}}" data-value="{{value}}">
+					<span class="bastionland-pill bastionland-timeline__kind"><i class="{{icon}} bastionland-timeline__kind-icon" inert></i> {{label}}</span>
+					<input type="color" data-timeline-focus="colour-{{kind}}" aria-label="{{localize "bastionland.timeline.colours.pick" kind=label}}" data-tooltip="{{localize "bastionland.timeline.colours.pick" kind=label}}">
+					<button type="button" class="bastionland-icon bastionland-timeline__colour-reset" data-action="timeline" data-timeline="coloursReset" data-kind="{{kind}}" data-timeline-focus="reset-{{kind}}" aria-label="{{localize "bastionland.timeline.colours.reset" kind=label}}" data-tooltip="{{localize "bastionland.timeline.colours.reset" kind=label}}"><i class="fa-solid fa-rotate-left" inert></i></button>
+				</li>
+				{{/each}}
+			</ul>
+			<div class="bastionland-timeline__menu-actions">
+				<button type="button" class="bastionland-button" data-action="timeline" data-timeline="coloursSave" data-timeline-focus="colours-save"><i class="fa-solid fa-check" inert></i> {{localize "bastionland.timeline.colours.save"}}</button>
+				<button type="button" class="bastionland-button" data-action="timeline" data-timeline="coloursCancel" data-timeline-focus="colours-cancel">{{localize "bastionland.timeline.colours.cancel"}}</button>
+			</div>
+		</div>
+	</details>
+	{{/if}}
+	{{> "bastionland.timeline-filter"}}
+	{{!-- Two buttons, each saying which way it lays the Timeline and whether it's the one in use. --}}
+	<div class="bastionland-timeline__layout" role="group" aria-label="{{localize "bastionland.timeline.layout.label"}}">
+		<button type="button" class="bastionland-button{{#unless across}} is-pressed{{/unless}}" data-action="timeline" data-timeline="layout" data-layout="down" data-timeline-focus="layout-down" aria-pressed="{{#if across}}false{{else}}true{{/if}}" aria-label="{{localize "bastionland.timeline.layout.down"}}" data-tooltip="{{localize "bastionland.timeline.layout.downTooltip"}}"><i class="fa-solid fa-arrow-down-long" inert></i></button>
+		<button type="button" class="bastionland-button{{#if across}} is-pressed{{/if}}" data-action="timeline" data-timeline="layout" data-layout="across" data-timeline-focus="layout-across" aria-pressed="{{#if across}}true{{else}}false{{/if}}" aria-label="{{localize "bastionland.timeline.layout.across"}}" data-tooltip="{{localize "bastionland.timeline.layout.acrossTooltip"}}"><i class="fa-solid fa-arrow-right-long" inert></i></button>
+	</div>
+</div>

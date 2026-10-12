@@ -1,0 +1,9 @@
+{{!-- The full Timeline (module/apps/TimelineWindow.js): every thread side by side, laid down the page or across it. --}}
+<div class="bastionland-page bastionland-timeline{{#if across}} bastionland-timeline--across{{/if}}">
+	<div class="bastionland-timeline__toolbar">
+		{{> "bastionland.timeline-new" show=canWrite}}
+		{{> "bastionland.timeline-toolbar"}}
+	</div>
+	{{~> "bastionland.timeline-board"}}
+	{{> "bastionland.timeline-scrub"}}
+</div>

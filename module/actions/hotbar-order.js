@@ -1,16 +1,16 @@
 import { SYSTEM_ID } from "../system-id.js";
 import { IMPORT_MACRO_ID } from "../book-art/macro.js";
-import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar } from "./hotbar-macro.js";
+import { IMPORT_SLOT, SESSION_SLOT, endHotbar, orderHotbar, slotWanted } from "./hotbar-macro.js";
 
 /**
  * The system's macros lead each user's hotbar: a GM's opens with the GM
  * Toolkit and ends with Import PDF and End the Session, in the slots Foundry
- * labels 9 and 0; a player's opens with the Luck Roll and then their Places.
+ * labels 9 and 0; a player's opens with the Luck Roll, then their Places and the Timeline.
  */
 
 /** The macros' flags, in the order they take the first slots. */
 export const GM_HOTBAR_ORDER = Object.freeze(["gmToolkitMacro", "rulebookMacro", "newSiteMacro", "luckRollMacro"]);
-export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro"]);
+export const PLAYER_HOTBAR_ORDER = Object.freeze(["luckRollMacro", "placesMacro", "timelineMacro"]);
 
 /** User flag set once this user's hotbar has been put in that order. */
 export const HOTBAR_ORDER_FLAG = "hotbarOrder";
@@ -44,6 +44,7 @@ export async function ensureHotbarOrder() {
 	if (user.getFlag(SYSTEM_ID, HOTBAR_ORDER_FLAG)) return moveToEnds();
 	const order = user.isGM ? GM_HOTBAR_ORDER : PLAYER_HOTBAR_ORDER;
 	const ids = order
+		.filter(slotWanted)
 		.map(macroOf)
 		.filter((macro) => macro && (user.isGM || macro.canExecute))
 		.map((macro) => macro.id);

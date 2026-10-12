@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { councilActor, settleTask, tasksBySeat, tasksDueNotices } from "../../module/actions/council-tasks.js";
 import { withBookText } from "../../module/rules/book-text.js";
+import { timelineTaskSettled } from "../../module/actions/timeline-events.js";
+
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineTaskSettled: vi.fn(async () => null) }));
 
 const root = join(import.meta.dirname, "../..");
 const lang = withBookText(JSON.parse(readFileSync(join(root, "languages/en.json"), "utf8")));
@@ -126,6 +129,10 @@ describe("settleTask", () => {
 		rolled = [17, 3];
 		expect(await settleTask(domain, "one")).toBe("crisis");
 		expect(domain.system.crises).toEqual(["famine"]);
+		expect(timelineTaskSettled).toHaveBeenCalledWith(domain, "one", expect.objectContaining({
+			outcome: lookup("bastionland.domain.tasks.outcomes.crisis.label"),
+			crisis: lookup("bastionland.domain.crises.famine.name")
+		}));
 		expect(cards[0].save.passed).toBe(false);
 		expect(cards[0].crisis.name).toBe(lookup("bastionland.domain.crises.famine.name"));
 	});

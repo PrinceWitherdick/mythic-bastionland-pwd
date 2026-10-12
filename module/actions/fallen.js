@@ -15,6 +15,7 @@ import { makeFreshKnight } from "./new-knight.js";
 import { COMPANION_FLAG } from "./property.js";
 import { knightSquire } from "./squires.js";
 import { worldKnights } from "./knights.js";
+import { timelineFallen, timelineTookUp } from "./timeline-events.js";
 
 /**
  * What follows a Knight's death (p8): the player makes another Knight to join
@@ -105,6 +106,7 @@ export async function announceFallenKnight(knight, outcome) {
 	// A successor who is their Squire is taken up as their Squire, and named so on that button.
 	const heir = successor && successor !== squire ? successor : null;
 	const paths = fallenPaths({ squire: Boolean(squire), followers: followers.length, successor: Boolean(heir) });
+	await timelineFallen(knight);
 
 	return postCard(knight, "fallen", {
 		title: t("fallen.title"),
@@ -209,6 +211,7 @@ async function takeUpSuccessor(fallen, successor) {
 async function takeUpSquire(fallen, squire) {
 	if (!(await knightSquire(squire))) return null;
 	await handOver(squire, fallen);
+	await timelineTookUp(fallen, squire);
 	squire.sheet.render({ force: true });
 	await postCard(squire, "note", { icon: "fa-solid fa-khanda", text: t("fallen.tookUp", { name: squire.name, fallen: fallen.name }) });
 	return squire;
@@ -250,6 +253,7 @@ async function takeUp(fallen, taken, icon) {
 	// They're their own character now, not a line of the dead Knight's Property,
 	// so re-rolling that Knight's gear can never sweep them away.
 	if (taken.getFlag(SYSTEM_ID, COMPANION_FLAG)) await taken.unsetFlag(SYSTEM_ID, COMPANION_FLAG);
+	await timelineTookUp(fallen, taken);
 	taken.sheet.render({ force: true });
 	await postCard(taken, "note", { icon, text: t("fallen.tookUp", { name: taken.name, fallen: fallen.name }) });
 	return taken;

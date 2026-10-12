@@ -3,6 +3,7 @@ import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
 import { openHex } from "../apps/TravelsPlaces.js";
+import { openHexEditor } from "../apps/HexEditor.js";
 import { openRealmAppearance } from "../apps/RealmAppearance.js";
 import { RealmPanel, openRealmPanel, setRealmBrush, setRealmSeat } from "../apps/RealmPanel.js";
 import { refreshRealmDrawing, showRealmDrawing } from "../apps/RealmDrawing.js";
@@ -188,6 +189,9 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 	/** @type {PaintDrag|null} */
 	#drag = null;
+
+	/** A click on a hex of the brush's terrain, waiting to see whether it starts a drag. */
+	#stepping = null;
 
 	/** @type {PIXI.Graphics|null} */
 	#preview = null;
@@ -484,8 +488,12 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		if (this.tool === "inspect") {
 			const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
-			// Places shows the hex, and the pen beside its terrain opens Edit this hex.
-			if (hex) openHex({ scene, hex });
+			if (!hex) return;
+			// Places shows the hex, and Edit hex in its title bar opens the editor. While the Realm is being
+			// drawn, placing its Myths and Holdings is what the click is for, so the editor opens beside Places,
+			// placed once Places has been drawn where it goes.
+			const places = openHex({ scene, hex });
+			if (isDrawingRealm(scene)) openHexEditor({ scene, hex, beside: places });
 			return;
 		}
 
@@ -562,7 +570,21 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			return;
 		}
 		if (erase) return;
-		editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], RealmPanel.terrain));
+		const terrain = RealmPanel.terrain;
+		if (terrainAt(realm, g, hex) !== terrain) {
+			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
+			return;
+		}
+		// Clicking a hex of the brush's terrain steps it on to its next picture. Foundry calls the click
+		// when the button goes down, before it knows whether a drag follows, and a drag out from a forest
+		// should leave the forest be, so the step waits for the button to come up and a drag calls it off.
+		const stepping = {};
+		this.#stepping = stepping;
+		window.addEventListener("pointerup", () => {
+			if (this.#stepping !== stepping) return;
+			this.#stepping = null;
+			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
+		}, { once: true, capture: true });
 	}
 
 	/**
@@ -586,6 +608,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 	/** @override */
 	_onDragLeftStart(event) {
+		this.#stepping = null;
 		const g = sceneGeometry(canvas.scene);
 		// Where the drag began, not where the pointer has got to by now.
 		const origin = event.interactionData?.origin;

@@ -3,6 +3,7 @@ import { GLORY_AWARDS, changeGlory } from "../rules/glory.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { chooseCompany } from "./time.js";
+import { timelineGloryAwarded, timelineRank } from "./timeline-events.js";
 
 /**
  * Lines for a report card saying how a Knight's Glory changed.
@@ -16,6 +17,16 @@ export function gloryLines(change) {
 }
 
 /**
+ * Write a Rank a Glory change reached on the Knight's Timeline thread,
+ * however the Glory came: a Rank fallen to is no milestone reached.
+ * @param {Actor} actor
+ * @param {ReturnType<typeof changeGlory>} change
+ * @param {{when?: string}} [options] The Season it was reached in, when it isn't now.
+ * @returns {Promise<unknown>|null}
+ */
+export const recordRankReached = (actor, change, options) => (change.rank && change.to > change.from ? timelineRank(actor, change.rank, options) : null);
+
+/**
  * Change one Knight's Glory, unless they are a Squire, who can't gain it.
  * @param {Actor} actor
  * @param {number} amount
@@ -25,6 +36,7 @@ export async function adjustGlory(actor, amount) {
 	if (!actor.system.gainsGlory) return [t("glory.squire")];
 	const change = changeGlory(actor.system.glory, amount);
 	if (change.to !== actor.system.glory) await actor.update({ "system.glory": change.to }, causedBy("glory"));
+	await recordRankReached(actor, change);
 	return gloryLines(change);
 }
 
@@ -36,6 +48,15 @@ export async function adjustGlory(actor, amount) {
  * @returns {Promise<object[]|null>} The report's entries.
  */
 export async function awardGlory(key) {
+	return (await awardGloryTo(key))?.entries ?? null;
+}
+
+/**
+ * Award 1 Glory as awardGlory does, saying who to.
+ * @param {string} key One of GLORY_AWARDS.
+ * @returns {Promise<{knights: Actor[], entries: object[]}|null>} Null if nobody was given it.
+ */
+export async function awardGloryTo(key) {
 	if (!game.user.isGM || !GLORY_AWARDS.includes(key)) return null;
 	const title = t(`glory.awards.${key}.label`);
 	const company = await chooseCompany({
@@ -52,6 +73,9 @@ export async function awardGlory(key) {
 	}
 
 	const entries = await Promise.all(company.map(async ({ actor }) => ({ name: actor.name, lines: await adjustGlory(actor, 1) })));
-	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) });
-	return entries;
+	await Promise.all([
+		timelineGloryAwarded(key, company.map(({ actor }, index) => ({ actor, lines: entries[index].lines }))),
+		postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) })
+	]);
+	return { knights: company.map(({ actor }) => actor), entries };
 }

@@ -9,7 +9,7 @@ import { BOOK_TEXT_HOOK, bookTextRead } from "../book-art/book-text.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { RULEBOOK_HOOK } from "../rulebook/store.js";
-import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesView, pressingSections } from "../rules/travel-rules.js";
+import { D6_BANDS, TRAVEL_SIDES, groupsOnSide, normaliseTravelRulesScroll, normaliseTravelRulesView, pressingSections } from "../rules/travel-rules.js";
 import { HARDSHIPS } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { MapSidePanel } from "./MapSidePanel.js";
@@ -20,6 +20,9 @@ const VIEW_SETTING = "travelRules";
 /** Whether this browser shows the rules at all. Everyone else at the table keeps their own choice. */
 const SHOWN_SETTING = "travelRulesShown";
 
+/** How far down each side this browser has scrolled, so the rules open where they were left. */
+const SCROLL_SETTING = "travelRulesScroll";
+
 /** Register where each browser left the rules, and whether it shows them. Called during init. */
 export function registerTravelRulesSetting() {
 	game.settings.register(SYSTEM_ID, VIEW_SETTING, {
@@ -27,6 +30,12 @@ export function registerTravelRulesSetting() {
 		config: false,
 		type: Object,
 		default: { folded: [], closed: [] }
+	});
+	game.settings.register(SYSTEM_ID, SCROLL_SETTING, {
+		scope: "client",
+		config: false,
+		type: Object,
+		default: {}
 	});
 	game.settings.register(SYSTEM_ID, SHOWN_SETTING, {
 		name: "bastionland.settings.travelRulesShown.name",
@@ -51,6 +60,9 @@ const getView = () => normaliseTravelRulesView(game.settings.get(SYSTEM_ID, VIEW
  * @returns {Promise<unknown>}
  */
 const setView = (changes) => game.settings.set(SYSTEM_ID, VIEW_SETTING, normaliseTravelRulesView({ ...getView(), ...changes }));
+
+/** @returns {ReturnType<typeof normaliseTravelRulesScroll>} */
+const getScroll = () => normaliseTravelRulesScroll(read(SCROLL_SETTING, {}));
 
 /**
  * A hardship's button, naming what it costs.
@@ -137,6 +149,14 @@ export class TravelRules extends MapSidePanel {
 		});
 	}
 
+	/** @type {number|null} How far down this side is scrolled, kept while it's folded or taken down. */
+	#scrollTop = null;
+
+	/** Save this side's scroll once it has come to rest. */
+	#saveScroll = foundry.utils.debounce(() => {
+		game.settings.set(SYSTEM_ID, SCROLL_SETTING, { ...getScroll(), [this.side]: this.#scrollTop });
+	}, 300);
+
 	/** @override */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
@@ -144,6 +164,17 @@ export class TravelRules extends MapSidePanel {
 		for (const details of this.element.querySelectorAll("details[data-group]")) {
 			details.addEventListener("toggle", () => this.#rememberGroups());
 		}
+		// Foundry keeps the scroll when the rules are drawn again in place, but not
+		// once they've been folded, taken down for another Scene or reloaded, so
+		// the side opens where it was left. Placed first, so it's as tall as it'll be.
+		const body = this.element.querySelector(".bastionland-travel-rules__body");
+		if (!body) return;
+		this.#scrollTop ??= getScroll()[this.side];
+		body.scrollTop = this.#scrollTop;
+		body.addEventListener("scroll", () => {
+			this.#scrollTop = Math.round(body.scrollTop);
+			this.#saveScroll();
+		}, { passive: true });
 	}
 
 	/** Remember which groups this browser has closed, without drawing the rules again. */

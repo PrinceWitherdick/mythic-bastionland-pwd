@@ -1,8 +1,19 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGE_LICENCE, HERALDIC_ART, HERALDIC_ART_COPYRIGHT, HERALDIC_ART_ILLUSTRATOR } from "../module/rules/heraldry-charges.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES } from "../module/rules/realm.js";
-import { PICTURE_NAME, REALM_PALETTES, REALM_PICTURES, REALM_SKINS, realmPalette, skinPictures } from "../module/rules/realm-skins.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import {
+	PICTURE_NAME,
+	REALM_PALETTES,
+	REALM_PICTURES,
+	REALM_SKINS,
+	realmPalette,
+	skinFeatures,
+	skinPictures,
+	terrainJoinedPictures,
+	terrainVariantPictures
+} from "../module/rules/realm-skins.js";
 import { SHORE_SHAPES } from "../module/rules/realm-rivers.js";
 import { checkChargeSvg } from "../scripts/lib/charge-svg.js";
 import { DRAWN_SKINS, drawRealmSet } from "../scripts/lib/realm-drawings.js";
@@ -167,8 +178,33 @@ describe("the Blank Realm skin", () => {
 
 	it("keeps each terrain's drawing inside its hex", () => {
 		for (let number = 1; number <= 12; number++) {
-			expect(blank[`${PICTURE_NAME.terrain(number)}.svg`]).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
+			for (const name of [PICTURE_NAME.terrain(number), ...terrainVariantPictures("sheet", number), ...terrainJoinedPictures("sheet", number)]) {
+				expect(blank[`${name}.svg`]).toMatch(/<clipPath id="hex">.*clip-path="url\(#hex\)"/s);
+			}
 		}
+	});
+
+	it("draws every other picture of a terrain traced from the example Realm, and credits the Realm Sheets", () => {
+		const traced = JSON.parse(readFileSync(join(import.meta.dirname, "..", "scripts", "data", "realm-sheet-variants.json"), "utf8"));
+		const variants = TERRAIN.flatMap((_, index) => [...terrainVariantPictures("sheet", index + 1), ...terrainJoinedPictures("sheet", index + 1)]);
+		expect(variants.sort()).toEqual(Object.keys(traced).filter((name) => !name.startsWith("$")).sort());
+		for (const name of variants) {
+			expect(blank[`${name}.svg`]).toMatch(/<desc>Traced from the example Realm on the Mythic Bastionland Realm Sheets/);
+			expect(blank[`${name}.svg`]).toContain(traced[name].ink);
+		}
+		// Each picture is known by where on the example map it was traced from, so neighbours there can be laid together.
+		const { terrainPlaces, terrainGroups } = skinFeatures("sheet");
+		for (const [index, key] of TERRAIN.entries()) {
+			expect(terrainVariantPictures("sheet", index + 1).map((name) => traced[name].place)).toEqual(terrainPlaces[key] ?? []);
+			expect(terrainJoinedPictures("sheet", index + 1).map((name) => traced[name].place)).toEqual((terrainGroups[key] ?? []).flat());
+		}
+	});
+
+	it("fits a picture drawn on into its neighbours' to its hex exactly, with its rule kept inside it", () => {
+		const svg = blank["terrain-crag-joined-1.svg"];
+		// Across and down by the example map's hex, so strokes meet their neighbours' where the hexes do.
+		expect(svg).toMatch(/scale\(2\.94\d* 3\.06\d*\)/);
+		expect(svg).toMatch(/<g clip-path="url\(#hex\)"><polygon [^>]*fill="none" stroke=/);
 	});
 
 	const shadowed = [...HOLDING_STYLES.map(PICTURE_NAME.holding), ...LANDMARK_TYPES.map(PICTURE_NAME.landmark)];

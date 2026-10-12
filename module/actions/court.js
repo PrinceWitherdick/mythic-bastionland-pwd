@@ -1,4 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { deletionUpdate } from "../compat.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
@@ -18,6 +19,7 @@ import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
+import { timelineCircle, timelineCourtJoined, timelineCourtLeft } from "./timeline-events.js";
 
 /**
  * Who serves a Domain (The Court, p20), and who sits on its Council. Each
@@ -68,6 +70,7 @@ export async function addCourtMember(domain, role, fields = {}) {
 	const member = { ...newCourtMember(role, Date.now()), ...fields };
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.court.${id}`]: member });
+	if (member.name) await timelineCourtJoined(domain, id, member);
 	return id;
 }
 
@@ -200,6 +203,7 @@ export async function takeIntoCourt(domain) {
 	if (!member) return null;
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.court.${id}`]: member });
+	await timelineCourtJoined(domain, id, member);
 	return id;
 }
 
@@ -251,11 +255,25 @@ export async function removeCourtMember(domain, id) {
 		});
 		if (!confirmed) return false;
 	}
+	return removeFromCourt(domain, id);
+}
 
+/**
+ * Let Go's work once it's confirmed: they leave the Court, and any seat on the
+ * Council they held, and one who was named leaves it on the Timeline.
+ * @param {Actor} domain
+ * @param {string} id
+ * @returns {Promise<boolean>} Whether they left.
+ */
+export async function removeFromCourt(domain, id) {
+	const member = normalizeCourt(domain?.system.court)[id];
+	if (!member || !domain.isOwner) return false;
+	const held = seatOf(domain.system.council, id);
 	await domain.update({
-		[`system.court.-=${id}`]: null,
+		...deletionUpdate(`system.court.${id}`),
 		...(held ? { [`system.council.${held}`]: "" } : {})
 	});
+	if (member.name) await timelineCourtLeft(domain, id, member);
 	return true;
 }
 
@@ -293,6 +311,13 @@ export async function seatCircle(domain) {
 			...offered.filter((knight) => chosen[knight.id]).map((knight) => knight.id),
 			...written.filter(({ key }) => chosen[key]).map(({ name }) => name)
 		]
+	});
+	// Only the Knights this choice seated or unseated: names written in by hand have no thread.
+	const sat = (knight) => seated.some((each) => !each.legacy && each.id === knight.id);
+	const withActor = (knight) => ({ ...knight, actor: game.actors.get(knight.id) ?? null });
+	await timelineCircle(domain, {
+		joined: offered.filter((knight) => chosen[knight.id] && !sat(knight)).map(withActor),
+		left: offered.filter((knight) => !chosen[knight.id] && sat(knight)).map(withActor)
 	});
 	return true;
 }

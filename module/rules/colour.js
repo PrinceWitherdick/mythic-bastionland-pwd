@@ -28,7 +28,11 @@ export const HEX_COLOR = /^#[0-9a-f]{6}$/;
  */
 export const channels = (hex) => [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
 
-const toHex = (values) => `#${values.map((value) => Math.round(Math.min(255, Math.max(0, value))).toString(16).padStart(2, "0")).join("")}`;
+/**
+ * @param {number[]} values [r, g, b], kept to 0 to 255.
+ * @returns {string} "#rrggbb"
+ */
+export const toHex = (values) => `#${values.map((value) => Math.round(Math.min(255, Math.max(0, value))).toString(16).padStart(2, "0")).join("")}`;
 
 /**
  * @param {string} from "#rrggbb"

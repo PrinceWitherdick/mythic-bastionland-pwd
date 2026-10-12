@@ -10,7 +10,7 @@ import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
 import { headingText } from "./text.js";
 
 /** The toolkit's pages, in the order its tab rail lists them. Names live under `bastionland.gmToolkit.tabs`. */
-export const TOOLKIT_TABS = Object.freeze(["myths", "places", "time", "notes"]);
+export const TOOLKIT_TABS = Object.freeze(["myths", "places", "time", "timeline", "notes"]);
 
 /** The pages about one Realm, which follow the Realm chosen at the top of the sheet. */
 export const REALM_TABS = Object.freeze(["myths", "places"]);

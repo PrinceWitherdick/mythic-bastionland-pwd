@@ -6,6 +6,7 @@ import { linkKnightDomain } from "./dominion.js";
 import { holdingOptions } from "./homecoming.js";
 import { getRealm } from "./realm.js";
 import { worldKnights } from "./knights.js";
+import { timelineFounded } from "./timeline-events.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
@@ -81,6 +82,7 @@ export async function createDomain(knight, { name, holding = "", seat = false, c
 	});
 	if (!domain) return null;
 	await linkKnightDomain(knight, domain);
+	await timelineFounded(knight, domain, game.scenes?.get(parseHoldingRef(holding)?.sceneId) ?? null);
 	return domain;
 }
 

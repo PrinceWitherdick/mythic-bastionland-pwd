@@ -27,6 +27,8 @@ export const MACRO_ICONS = Object.freeze([
 	{ key: "new-site", name: "New Site", icon: "delapouite/cave-entrance" },
 	// The Company's places: a map with its way marked.
 	{ key: "places", name: "Places", icon: "lorc/treasure-map" },
+	// The campaign's Timeline: the tale written out on a scroll.
+	{ key: "timeline", name: "Timeline", icon: "lorc/scroll-unfurled" },
 	// Ending a Session turns on how much time passes, so the sand does for it.
 	{ key: "end-session", name: "End the Session", icon: "lorc/sands-of-time" },
 	{ key: "rulebook", name: "Rulebook", icon: "lorc/open-book" },

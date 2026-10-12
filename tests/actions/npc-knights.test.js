@@ -16,6 +16,7 @@ vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
 vi.mock("../../module/actions/abilities.js", () => ({ kitWeaponNames: () => ({}) }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 vi.mock("../../module/actions/property.js", () => ({ makeCompanions: (...args) => makeCompanions(...args), markCompanions: (...args) => markCompanions(...args) }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineJoined: () => null }));
 
 const { NPC_FOLDER_FLAG, makeNpcKnight, npcFolder } = await import("../../module/actions/npc-knights.js");
 

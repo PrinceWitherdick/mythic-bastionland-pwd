@@ -40,4 +40,11 @@ describe("placeArt", () => {
 		expect(placeArt({ top: 0, bottom: 100, left: 300, right: 400 }, popup, viewport)).toEqual({ top: 12, left: 412 });
 		expect(placeArt({ top: 980, bottom: 1080, left: 300, right: 400 }, popup, viewport)).toEqual({ top: 768, left: 412 });
 	});
+
+	it("sits level with the art's top when asked, still inside the window", () => {
+		const top = { align: "top" };
+		expect(placeArt({ top: 400, bottom: 560, left: 300, right: 400 }, popup, viewport, top)).toEqual({ top: 400, left: 412 });
+		expect(placeArt({ top: 400, bottom: 560, left: 1700, right: 1800 }, popup, viewport, top)).toEqual({ top: 400, left: 1416 });
+		expect(placeArt({ top: 980, bottom: 1080, left: 300, right: 400 }, popup, viewport, top)).toEqual({ top: 768, left: 412 });
+	});
 });

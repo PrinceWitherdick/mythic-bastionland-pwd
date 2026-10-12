@@ -1,0 +1,16 @@
+{{!-- The Timeline tab on a Knight's, a Squire's and a Domain's sheet: their own thread, from trackContext in module/apps/timeline-ui.js, built only while the tab is open, laid down the page or across it in a board of its own that drags, zooms and scrubs as the full Timeline does. A part of the sheet's own, drawn apart from the rest and put into the slot its page keeps for it (module/sheets/timeline-tab.js). --}}
+<div class="tab {{tabs.timeline.cssClass}}" data-group="primary" data-tab="timeline">
+	<section class="bastionland-block bastionland-timeline bastionland-timeline--tab{{#if timeline.across}} bastionland-timeline--across{{/if}}" data-track-id="{{timeline.trackId}}" data-track-kind="{{timeline.kind}}" data-track-name="{{timeline.name}}">
+		<div class="bastionland-timeline__toolbar">
+			{{> "bastionland.timeline-new" show=timeline.canEdit}}
+			<button type="button" class="bastionland-button" data-action="timeline" data-timeline="openFull" data-timeline-focus="open-full"><i class="fa-solid fa-timeline" inert></i> {{localize "bastionland.timeline.openFull"}}</button>
+			{{#with timeline}}{{> "bastionland.timeline-toolbar"}}{{/with}}
+		</div>
+		{{#with timeline}}
+		<div class="bastionland-timeline__scroll" tabindex="0" role="region" aria-label="{{name}}">
+			{{~> "bastionland.timeline-thread"}}
+		</div>
+		{{> "bastionland.timeline-scrub"}}
+		{{/with}}
+	</section>
+</div>

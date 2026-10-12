@@ -1,5 +1,6 @@
 import { ensureDirectories, uploadFile } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
+import { read } from "../client-settings.js";
 import { ART_ROOT } from "../rules/book-art.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -43,8 +44,11 @@ export const KEPT_RULEBOOK = `${RULEBOOK_DIR}/${RULEBOOK_FILE}`;
  */
 const FOUND_SETTING = "rulebookFound";
 
-/** The world setup step that looks for a book another world kept. */
-export const FIND_RULEBOOK_STEP = "findRulebook";
+/**
+ * World setting: whether the GM sent this world's book away with Forget, so the
+ * copy another world kept, still on the server, isn't taken up again next load.
+ */
+const FORGOTTEN_SETTING = "rulebookForgotten";
 
 /** Called on every client when the world's copy changes. */
 export const RULEBOOK_HOOK = `${SYSTEM_ID}.rulebookChanged`;
@@ -64,6 +68,12 @@ export function registerRulebookSettings() {
 		type: String,
 		default: "",
 		onChange: () => Hooks.callAll(RULEBOOK_HOOK)
+	});
+	game.settings.register(SYSTEM_ID, FORGOTTEN_SETTING, {
+		scope: "world",
+		config: false,
+		type: Boolean,
+		default: false
 	});
 	game.settings.register(SYSTEM_ID, PLAYERS_SETTING, {
 		name: "bastionland.rulebook.settings.forPlayers.name",
@@ -96,12 +106,42 @@ export function hasRulebook() {
 }
 
 /**
- * Record where the book lives, or forget it when given nothing.
+ * Record where the book lives. A book chosen again undoes a Forget, and is the
+ * GM's own, so a found one waiting to be imported waits no more: its caller
+ * imports it, and the next load doesn't take it for one kept by another world.
  * @param {string} path
- * @returns {Promise<unknown>}
  */
-export function saveRulebookPath(path) {
-	return game.settings.set(SYSTEM_ID, PATH_SETTING, String(path ?? "").trim());
+export async function saveRulebookPath(path) {
+	const kept = String(path ?? "").trim();
+	await game.settings.set(SYSTEM_ID, PATH_SETTING, kept);
+	if (kept && wasRulebookForgotten()) await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, false);
+	if (foundRulebook() === "pending") await setFoundRulebook("");
+}
+
+/**
+ * Send the world's book away. The copy stays on the server, so the world
+ * remembers it was sent away, or the next load would take it up again. A
+ * found book still waiting to be imported waits no more.
+ */
+export async function forgetRulebook() {
+	await game.settings.set(SYSTEM_ID, PATH_SETTING, "");
+	await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, true);
+	if (foundRulebook() === "pending") await setFoundRulebook("");
+}
+
+/**
+ * Before the world remembered a Forget, Forget only emptied the path. A world
+ * that once saved a path and now holds none was sent away that way, as no
+ * other way in saves an empty one.
+ * @returns {boolean} Whether the GM sent this world's book away with Forget.
+ */
+export function wasRulebookForgotten() {
+	if (read(FORGOTTEN_SETTING, false) === true) return true;
+	try {
+		return !hasRulebook() && !!game.settings.storage?.get("world")?.getSetting(`${SYSTEM_ID}.${PATH_SETTING}`);
+	} catch {
+		return false;
+	}
 }
 
 /** @returns {boolean} Whether this user is offered the book at all. */
@@ -180,12 +220,15 @@ export function foundRulebook() {
  */
 export const setFoundRulebook = (state) => game.settings.set(SYSTEM_ID, FOUND_SETTING, state);
 
+/** How long to wait on the server to say whether a kept copy is there, before going on as if not. */
+const KEPT_LOOK_TIMEOUT = 5000;
+
 /**
- * @returns {Promise<boolean>} Whether a copy kept by some world is on the server.
+ * @returns {Promise<boolean>} Whether a copy kept by some world is on the server; false when it can't say in time.
  */
 async function keptRulebookThere() {
 	try {
-		const response = await fetch(foundry.utils.getRoute(KEPT_RULEBOOK), { method: "HEAD", cache: "no-cache" });
+		const response = await fetch(foundry.utils.getRoute(KEPT_RULEBOOK), { method: "HEAD", cache: "no-cache", signal: AbortSignal.timeout(KEPT_LOOK_TIMEOUT) });
 		return response.ok;
 	} catch {
 		return false;
@@ -193,16 +236,19 @@ async function keptRulebookThere() {
 }
 
 /**
- * Point a new world at the book another world already kept, so its GM isn't
- * asked for the PDF again, and leave its import to the Welcome. A world setup
- * step, run before the welcome cards so they know not to ask either.
- * @param {() => boolean} isNewWorld
+ * Point a world with no book at the one another world already kept, so its GM
+ * isn't asked for the PDF again, and leave its import pending. Run by the
+ * active GM on every load, so a world made before any world kept a book takes
+ * it up too, and before a new world's setup, so its welcome cards know not to
+ * ask either. A book the GM sent away with Forget stays away.
+ * @returns {Promise<boolean>} Whether this world took up the kept copy.
  */
-export async function findKeptRulebook(isNewWorld) {
-	if (!isNewWorld() || hasRulebook()) return;
-	if (!(await keptRulebookThere())) return;
+export async function findKeptRulebook() {
+	if (hasRulebook() || wasRulebookForgotten()) return false;
+	if (!(await keptRulebookThere())) return false;
 	await saveRulebookPath(KEPT_RULEBOOK);
 	await setFoundRulebook("pending");
+	return true;
 }
 
 /**

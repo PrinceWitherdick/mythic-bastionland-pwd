@@ -14,9 +14,11 @@ import { marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
+import { seenName } from "./seen-name.js";
 import { getCalendar } from "./calendar.js";
 import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
+import { timelineMortalWound, timelineWarded } from "./timeline-events.js";
 import { escapeHTML } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
 
@@ -204,6 +206,7 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  * @param {boolean} [preset.auto] Taken without asking, as an affliction's Damage is each round (p173):
  *   their Armour as it stands, unless the Damage ignores it.
  * @param {string} [preset.cause] What dealt it, said on the card.
+ * @param {string} [preset.by] Actor UUID of whoever dealt it, when an Attack card knows: the Timeline names them.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
@@ -259,7 +262,14 @@ export async function takeDamage(actor, preset = {}) {
 	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
 	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));
+	// The Timeline's row is written beside the card, which needn't wait for it.
+	let recorded = null;
 	if (warden) await takeWard(warden, actor);
+	// A Mortal Wound that will be shaken off, or one somebody died of, is no milestone of its own.
+	else if (virtues && !dead && result.outcome === "mortal" && !preset.nonLethal && !preset.sparring) {
+		const dealer = seenName(preset.by);
+		recorded = timelineMortalWound(actor, preset.cause || (dealer ? t("timeline.auto.scarBy", { name: dealer }) : ""));
+	}
 
 	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
 	// Nobody routs from a practice bout, and SPI lost to a blow is no Wound for Morale to weigh.
@@ -286,7 +296,7 @@ export async function takeDamage(actor, preset = {}) {
 				: null;
 	if (said) card.outcome = said;
 	if (preset.cause) card.cause = preset.cause;
-	await postCard(actor, "damage", card);
+	await Promise.all([postCard(actor, "damage", card), recorded]);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
@@ -480,7 +490,10 @@ async function takeWard(warden, victim) {
 		? { ...SLAIN_UPDATE, "system.wounded": true }
 		: { "system.mortalWound": true, "system.wounded": true };
 	await warden.update(update, causedBy("damage"));
-	await postCard(warden, "note", { icon: "fa-solid fa-shield-heart", text: t(doomed ? "deathWard.doomed" : "deathWard.taken", { name: warden.name, victim: victim.name }) });
+	await Promise.all([
+		timelineWarded(warden, victim, { doomed }),
+		postCard(warden, "note", { icon: "fa-solid fa-shield-heart", text: t(doomed ? "deathWard.doomed" : "deathWard.taken", { name: warden.name, victim: victim.name }) })
+	]);
 	if (doomed) await announceFallenKnight(warden, "slain");
 }
 
@@ -548,7 +561,8 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 		except,
 		harm: blow.harm,
 		// A blow an Ability says harms SPI rather than VIG (p68).
-		virtue: blow.spirit ? "spi" : "vig"
+		virtue: blow.spirit ? "spi" : "vig",
+		by: blow.dealer
 	});
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });

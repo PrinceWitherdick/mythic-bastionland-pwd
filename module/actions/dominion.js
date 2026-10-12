@@ -20,6 +20,7 @@ import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
 import { worldKnights } from "./knights.js";
+import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -97,14 +98,17 @@ export async function crisisRoll(domain) {
 	const crises = [...facing, ...added];
 	// A roll made while the ruler is away answers for the time already gone.
 	await domain.update({ "system.crises": crises, "system.crisisRolled": seasonKey(getCalendar()), "system.longAbsence": false });
-	await postCard(domain, "report", {
-		title: t("domain.crisisRoll"),
-		description: t("domain.crisisRollHint"),
-		tagline: t(`domain.results.crisis.${result}`),
-		d6: roll.total,
-		entries: added.map(crisisEntry),
-		hint: [...notes, misruleWarning(domain)].filter(Boolean).join(" ")
-	}, { rolls: [roll, ...drawn.rolls] });
+	await Promise.all([
+		postCard(domain, "report", {
+			title: t("domain.crisisRoll"),
+			description: t("domain.crisisRollHint"),
+			tagline: t(`domain.results.crisis.${result}`),
+			d6: roll.total,
+			entries: added.map(crisisEntry),
+			hint: [...notes, misruleWarning(domain)].filter(Boolean).join(" ")
+		}, { rolls: [roll, ...drawn.rolls] }),
+		timelineCrisisRoll(domain, { result, crises: added.map(crisisName) })
+	]);
 	return added;
 }
 
@@ -146,10 +150,13 @@ export async function resolveCrisis(domain, index) {
 	const key = domain.system.crises[index];
 	if (!key) return null;
 	await domain.update({ "system.crises": domain.system.crises.toSpliced(index, 1) });
-	await postCard(domain, "note", {
-		icon: "fa-solid fa-check",
-		text: t("domain.resolved", { crisis: crisisName(key), name: domain.name })
-	});
+	await Promise.all([
+		postCard(domain, "note", {
+			icon: "fa-solid fa-check",
+			text: t("domain.resolved", { crisis: crisisName(key), name: domain.name })
+		}),
+		timelineCrisisResolved(domain, key, crisisName(key))
+	]);
 	return key;
 }
 
@@ -208,10 +215,11 @@ export async function dramaInCourt(domain) {
 	// The Court is where the drama breeds (p21), so one of them is at the heart of it.
 	const candidates = dramaCandidates(domain.system.court);
 	const entries = [];
+	let member = null;
 	if (candidates.length) {
 		const who = await new Roll(`1d${candidates.length}`).evaluate();
 		rolls.push(who);
-		const member = candidates[who.total - 1];
+		member = candidates[who.total - 1];
 		// A report card sets its second slot beside the name, which here carries their role.
 		entries.push({
 			name: member.name,
@@ -224,14 +232,21 @@ export async function dramaInCourt(domain) {
 	}
 
 	if (domain.isOwner) await domain.update({ "system.dramaRolled": seasonKey(getCalendar()) });
-	await postCard(domain, "report", {
-		title: t("domain.drama"),
-		description: t("domain.dramaHint"),
-		tagline: t(`domain.results.drama.${result}`),
-		d6: roll.total,
-		entries,
-		hint: [prompt, candidates.length ? null : t("domain.court.emptyHint")].filter(Boolean).join(" ") || null
-	}, { rolls });
+	await Promise.all([
+		postCard(domain, "report", {
+			title: t("domain.drama"),
+			description: t("domain.dramaHint"),
+			tagline: t(`domain.results.drama.${result}`),
+			d6: roll.total,
+			entries,
+			hint: [prompt, candidates.length ? null : t("domain.court.emptyHint")].filter(Boolean).join(" ") || null
+		}, { rolls }),
+		timelineDrama(domain, {
+			said: t(`domain.results.drama.${result}`),
+			who: member ? t("timeline.auto.courtier", { name: member.name, role: t(`domain.court.roles.${member.role}.one`) }) : null,
+			leverage: member?.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : null
+		})
+	]);
 	return result;
 }
 
@@ -260,7 +275,7 @@ export async function settleDomains(ended) {
 		}
 	}
 	if (updates.size) await Actor.implementation.updateDocuments([...updates.values()]);
-	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines }));
+	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines, domainId: domain.id }));
 }
 
 /**
@@ -355,13 +370,13 @@ export async function passOnDomain(domain) {
 	if (!successor) return null;
 
 	await changeRuler(domain, successor, { "system.successor": "" });
-	await postCard(domain, "report", {
-		title: t("domain.passOn.title"),
-		tagline: before
-			? t("domain.passOn.tagline", { name: successor.name, ruler: before, domain: domain.name })
-			: t("domain.passOn.taglineBare", { name: successor.name, domain: domain.name }),
-		hint: t("domain.passOn.resistance")
-	});
+	const tagline = before
+		? t("domain.passOn.tagline", { name: successor.name, ruler: before, domain: domain.name })
+		: t("domain.passOn.taglineBare", { name: successor.name, domain: domain.name });
+	await Promise.all([
+		postCard(domain, "report", { title: t("domain.passOn.title"), tagline, hint: t("domain.passOn.resistance") }),
+		timelineNewRuler(domain, "passed", successor, tagline)
+	]);
 	return successor;
 }
 
@@ -384,13 +399,13 @@ export async function seizeDomain(domain) {
 	if (!conqueror) return null;
 
 	await changeRuler(domain, conqueror, { "system.seized": seasonKey(getCalendar()), "system.successor": "" });
-	await postCard(domain, "report", {
-		title: t("domain.conquest.title"),
-		tagline: before
-			? t("domain.conquest.tagline", { name: conqueror.name, ruler: before, domain: domain.name })
-			: t("domain.conquest.taglineBare", { name: conqueror.name, domain: domain.name }),
-		hint: t("domain.conquest.turmoil")
-	});
+	const tagline = before
+		? t("domain.conquest.tagline", { name: conqueror.name, ruler: before, domain: domain.name })
+		: t("domain.conquest.taglineBare", { name: conqueror.name, domain: domain.name });
+	await Promise.all([
+		postCard(domain, "report", { title: t("domain.conquest.title"), tagline, hint: t("domain.conquest.turmoil") }),
+		timelineNewRuler(domain, "seized", conqueror, tagline)
+	]);
 	return conqueror;
 }
 

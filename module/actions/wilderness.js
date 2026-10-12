@@ -23,6 +23,7 @@ import { findCompanyToken } from "./company.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { keptFromMe } from "./solo.js";
+import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
@@ -186,17 +187,24 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	if (Object.keys(myth).length) updates.push({ _id: outcome.myth.id, ...myth });
 	const revealLandmark = outcome.result === "landmark" && !outcome.landmark.revealed;
 	if (revealLandmark) updates.push({ _id: outcome.landmark.id, hidden: false });
-	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
+	// The Tile hooks in omens.js write the Omen met on the Timeline, where the Company stands.
+	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates, omensMet({ hex: where }));
 	// A Landmark met for the first time takes its name from a prompt of the book's (p14).
 	const named = outcome.result === "landmark" ? await nameLandmarkFromPrompt(scene, outcome.landmark) : null;
 	if (named) outcome.landmark = { ...outcome.landmark, name: named.name };
+	// Written once the reveal and the name are, so the Timeline reads the hex as the players now know it,
+	// and beside the card, which needn't wait for it.
+	const recorded = revealLandmark ? timelineLandmarkFound(scene, outcome.landmark.hex) : null;
 
 	const calendar = getCalendar();
 	// A Curse throws the Company off course, so the next travelling Phase is blind (p14).
 	if (outcome.landmark && throwsOffCourse(outcome.landmark.type)) await strikeOffCourse(calendar);
 
 	const winter = calendar.season === "winter";
-	await postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }), { rolls, mode: "gm" });
+	await Promise.all([
+		postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }), { rolls, mode: "gm" }),
+		recorded
+	]);
 	if (city) await rollCityOmen();
 	return outcome;
 }

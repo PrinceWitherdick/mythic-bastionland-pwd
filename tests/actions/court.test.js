@@ -17,8 +17,10 @@ vi.mock("../../module/apps/ui.js", () => ({
 	})
 }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineCircle: vi.fn(), timelineCourtJoined: vi.fn(), timelineCourtLeft: vi.fn() }));
 
-const { editCourtMember, removeCourtMember, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
+const { addCourtMember, editCourtMember, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
+const timeline = await import("../../module/actions/timeline-events.js");
 
 const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, ...extra });
 
@@ -41,12 +43,16 @@ function fakeDomain(system = {}) {
 
 const knight = (id, name) => ({ id, name, type: "knight" });
 
+/** @returns {Actor[]} The world's Actors, looked up by id as Foundry's collection is. */
+const actors = (...list) => Object.assign(list, { get: (id) => list.find((actor) => actor.id === id) });
+
 beforeEach(() => {
+	vi.clearAllMocks();
 	formData = null;
 	confirmed = true;
 	asked = [];
 	updates = [];
-	globalThis.game = { actors: [knight("k1", "Tal"), knight("k2", "Moss")] };
+	globalThis.game = { actors: actors(knight("k1", "Tal"), knight("k2", "Moss")) };
 	globalThis.ui = { notifications: { warn: vi.fn() } };
 	let next = 0;
 	globalThis.foundry = { utils: {
@@ -123,6 +129,22 @@ describe("removeCourtMember", () => {
 		expect(await removeCourtMember(fakeDomain(), "r1")).toBe(false);
 		expect(updates).toEqual([]);
 	});
+
+	it("lets them go without asking, seat and all", async () => {
+		const domain = fakeDomain();
+		expect(await removeFromCourt(domain, "r1")).toBe(true);
+		expect(asked).toEqual([]);
+		expect(updates[0]).toEqual({ "system.court.-=r1": null, "system.council.steward": "" });
+		expect(timeline.timelineCourtLeft).toHaveBeenCalledWith(domain, "r1", expect.objectContaining({ name: "Coll" }));
+		expect(await removeFromCourt(domain, "nobody")).toBe(false);
+	});
+
+	it("lets nobody go from a Domain this user doesn't own", async () => {
+		const domain = { ...fakeDomain(), isOwner: false };
+		expect(await removeFromCourt(domain, "r1")).toBe(false);
+		expect(updates).toEqual([]);
+		expect(timeline.timelineCourtLeft).not.toHaveBeenCalled();
+	});
 });
 
 describe("seatCircle", () => {
@@ -145,7 +167,7 @@ describe("seatCouncilRetainers", () => {
 		globalThis.Actor = { implementation: { updateDocuments } };
 		const older = fakeDomain({ council: { steward: "Piers", marshal: "", sheriff: "", envoy: "", circle: ["Moss"] }, court: {} });
 		const current = fakeDomain();
-		game.actors = [...game.actors, older, { ...current, id: "d2" }];
+		game.actors = actors(...game.actors, older, { ...current, id: "d2" });
 		await seatCouncilRetainers();
 		expect(updateDocuments).toHaveBeenCalledTimes(1);
 		const [[sent]] = updateDocuments.mock.calls;
@@ -155,5 +177,37 @@ describe("seatCouncilRetainers", () => {
 			"system.council.steward": "new1",
 			"system.council.circle": ["k2"]
 		}]);
+	});
+});
+
+describe("the Timeline", () => {
+	it("writes who joins the Court by name, and nobody nameless", async () => {
+		formData = { role: "petitioner", name: "Anne", seat: "", leverage: "", note: "" };
+		const domain = fakeDomain();
+		await takeIntoCourt(domain);
+		expect(timeline.timelineCourtJoined).toHaveBeenCalledWith(domain, "new1", expect.objectContaining({ name: "Anne" }));
+		vi.mocked(timeline.timelineCourtJoined).mockClear();
+		await addCourtMember(domain, "courtier");
+		expect(timeline.timelineCourtJoined).not.toHaveBeenCalled();
+	});
+
+	it("writes who leaves, but never an edit", async () => {
+		const domain = fakeDomain();
+		await removeCourtMember(domain, "c1");
+		expect(timeline.timelineCourtLeft).toHaveBeenCalledWith(domain, "c1", expect.objectContaining({ name: "Alda" }));
+		formData = { role: "courtier", name: "Alda", leverage: "Letters", note: "" };
+		await editCourtMember(domain, "c1");
+		expect(timeline.timelineCourtJoined).not.toHaveBeenCalled();
+	});
+
+	it("writes only the Knights a new Circle seats or unseats", async () => {
+		const moss = knight("k2", "Moss");
+		const reed = knight("k3", "Reed");
+		game.actors = actors(knight("k1", "Tal"), moss, reed);
+		formData = { "circle.k3": true };
+		await seatCircle(fakeDomain({ council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: ["k2"] } }));
+		const [[, change]] = vi.mocked(timeline.timelineCircle).mock.calls;
+		expect(change.joined).toEqual([expect.objectContaining({ id: "k3", actor: reed })]);
+		expect(change.left).toEqual([expect.objectContaining({ id: "k2", actor: moss })]);
 	});
 });

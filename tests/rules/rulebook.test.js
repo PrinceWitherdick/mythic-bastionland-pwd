@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { VIEWER_PATH, isPdfPath, looksLikeTheRulebook, pageReferences, readerPage, rulebookViewerUrl, zoomStepTarget } from "../../module/rules/rulebook.js";
+import { VIEWER_PATH, isPdfPath, looksLikeTheRulebook, pageReferences, readerPage, rulebookViewerUrl, withoutPageReferences, zoomStepTarget } from "../../module/rules/rulebook.js";
 
 describe("pageReferences", () => {
 	it("finds a cited page and where it sits", () => {
@@ -21,6 +21,35 @@ describe("pageReferences", () => {
 	it("reads a spelled-out \"page 151\" too, as the Myth cards write it", () => {
 		expect(pageReferences("The Gargoyle, page 151 · Omens seen")).toEqual([{ index: 14, length: 8, page: 151 }]);
 		expect(pageReferences("Page 16")[0].page).toBe(16);
+	});
+});
+
+describe("withoutPageReferences", () => {
+	it("takes a bracketed reference out with its brackets", () => {
+		expect(withoutPageReferences("Rest a while (p9). Then go on.")).toBe("Rest a while. Then go on.");
+		expect(withoutPageReferences("Two tables (p200, p202) to read")).toBe("Two tables to read");
+	});
+
+	it("keeps the rest of a bracket that held more than the page", () => {
+		expect(withoutPageReferences("A moment's calm (Recovery, p9).")).toBe("A moment's calm (Recovery).");
+	});
+
+	it("takes the word leading into a reference with it", () => {
+		expect(withoutPageReferences("As described (see p10).")).toBe("As described.");
+		expect(withoutPageReferences("A moment's calm (Recovery, see p9).")).toBe("A moment's calm (Recovery).");
+		expect(withoutPageReferences("As explained on page 12.")).toBe("As explained.");
+		expect(withoutPageReferences("Rolled as before (on pp20-21), then kept.")).toBe("Rolled as before, then kept.");
+	});
+
+	it("drops a sentence that only sends the reader to a page", () => {
+		expect(withoutPageReferences("See page 151 for the Gargoyle.")).toBe("");
+		expect(withoutPageReferences("It bites. See p151 for more. It flies.")).toBe("It bites. It flies.");
+		expect(withoutPageReferences("Seen at dusk.")).toBe("Seen at dusk.");
+	});
+
+	it("leaves text without a reference alone", () => {
+		expect(withoutPageReferences("Nothing to strip, step3 or top12.")).toBe("Nothing to strip, step3 or top12.");
+		expect(withoutPageReferences(null)).toBe("");
 	});
 });
 

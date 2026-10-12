@@ -37,7 +37,8 @@ import { tableRenewalNotices } from "./knight-tables.js";
 import { settleDomains, worldDomains } from "./dominion.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
-import { adjustGlory, gloryLines } from "./glory.js";
+import { timelineAged, timelineSeasonTurn } from "./timeline-events.js";
+import { adjustGlory, gloryLines, recordRankReached } from "./glory.js";
 import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
@@ -105,11 +106,12 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 /**
  * Settle every Scar whose GD increase comes with the next Season.
  * @param {Actor} actor
+ * @param {string} ended The Season that ended, from seasonKey: the Timeline has them settled as it turned.
  * @returns {Promise<{rolls: Roll[], lines: string[], guardMax: number}>}
  */
-function settleSeasonScars(actor) {
+function settleSeasonScars(actor, ended) {
 	const due = actor.items.filter((item) => item.type === "scar" && isScarPending(item.system) && scarForRoll(item.system.roll)?.bySeason);
-	return settleScars(due, actor.system.guard.max);
+	return settleScars(actor, due, actor.system.guard.max, { when: ended });
 }
 
 /**
@@ -119,7 +121,8 @@ function settleSeasonScars(actor) {
  * @returns {Promise<string[]>} Lines for the Age's card.
  */
 async function establishSuccessor(knight) {
-	const heir = await chooseSuccessor(knight);
+	// The Age's row on their thread says who they named.
+	const heir = await chooseSuccessor(knight, { record: false });
 	if (!heir) return [t("successor.unnamed")];
 	const lines = [t("successor.named", { name: heir.name })];
 	if (heir.system.isSquire && heir.isOwner && (await knightSquire(heir))) lines.push(t("successor.knighted", { name: heir.name }));
@@ -134,7 +137,7 @@ async function establishSuccessor(knight) {
  * @returns {Promise<string[]>} Lines for the Age's card.
  */
 async function bequeathGlory(knight, glory) {
-	const heir = heirOf(knight) ?? (await chooseSuccessor(knight));
+	const heir = heirOf(knight) ?? (await chooseSuccessor(knight, { record: false }));
 	if (!heir) return [t("successor.noLegacy")];
 	const amount = legacyGlory(glory);
 	const lines = [t("successor.legacy", { name: heir.name, amount })];
@@ -150,18 +153,23 @@ async function bequeathGlory(knight, glory) {
  * @param {object} options
  * @param {boolean} options.newAge
  * @param {import("../rules/time.js").Calendar} options.before The Season that ended, whose Doom lifts.
- * @returns {Promise<{rolls: Roll[], entries: object[]}>}
+ * @returns {Promise<{rolls: Roll[], entries: {name: string, actorId: string, pursuit: string|null, lines: string[]}[]}>}
+ *   An entry for each of the Company, in its order. Its lines are what befell them beyond the Virtues
+ *   every turn restores, which closeSeason says on the report.
  */
 export async function passTime(company, { newAge, before }) {
+	// The calendar has already moved on: what the turn brings goes on the Timeline beside the turn's own row.
+	const ended = seasonKey(before);
 	const rolls = [];
 	const entries = [];
 	const updates = [];
 	const successions = [];
 	const legacies = [];
+	const ranks = [];
 	for (const { actor, pursuit } of company) {
 		const { system } = actor;
 		const update = Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
-		const lines = [t("time.restored")];
+		const lines = [];
 		// Doom lasts the Season it was taken in.
 		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
 
@@ -169,6 +177,7 @@ export async function passTime(company, { newAge, before }) {
 			const change = changeGlory(system.glory, 1);
 			update["system.glory"] = change.to;
 			lines.push(...gloryLines(change));
+			ranks.push([actor, change]);
 		}
 		if (newAge && system.age === "old") {
 			const roll = await new Roll(OLD_AGE_LOSS).evaluate();
@@ -180,7 +189,7 @@ export async function passTime(company, { newAge, before }) {
 			if (diesPeacefully) lines.push(t("time.diesPeacefully"));
 		}
 
-		const scars = await settleSeasonScars(actor);
+		const scars = await settleSeasonScars(actor, ended);
 		rolls.push(...scars.rolls);
 		lines.push(...scars.lines);
 		if (scars.guardMax !== system.guard.max) update["system.guard.max"] = scars.guardMax;
@@ -189,9 +198,11 @@ export async function passTime(company, { newAge, before }) {
 		if (newAge && pursuit === "legacy") legacies.push({ actor, glory: update["system.glory"] ?? system.glory, lines });
 
 		updates.push([actor, update]);
-		entries.push({ name: actor.name, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
+		entries.push({ name: actor.name, actorId: actor.id, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
 	}
 	await Promise.all(updates.map(([actor, update]) => actor.update(update, causedBy("season"))));
+	// Written once the Glory is, as adjustGlory does, which the Age's turn doesn't go through.
+	await Promise.all(ranks.map(([actor, change]) => recordRankReached(actor, change, { when: ended })));
 	// After the Company's own updates, so a successor who is also in the Company
 	// keeps both what the Season restored and what Knighting or a Legacy gave them.
 	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));
@@ -316,14 +327,34 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
 	const collection = await markCollection(ended, before.season);
 	const domains = await settleDomains(ended);
-	const title = turned(after);
-	const all = [...(collection ? [collectionEntry(collection)] : []), ...entries, ...domains];
-	await Promise.all([
-		announceSeason(after, { title, entries: all, note }, { rolls }),
-		recordSeasonTurn(ended, { kind, title, entries: all, note })
-	]);
+	await closeSeason(after, ended, { kind, title: turned(after), note, rolls, collection: collection ? collectionEntry(collection) : null, knights: entries, domains });
 	if (newAge) await growOlder(company.map(({ actor }) => actor));
 	return after;
+}
+
+/**
+ * The Season, or the Age, has turned: post its report, keep it in the Season
+ * log, and write it on the Timeline. The report and the log say each Knight's
+ * Virtues were restored; the Timeline keeps only what else befell them.
+ * @param {import("../rules/time.js").Calendar} after The Season begun.
+ * @param {string} ended The Season that ended, from seasonKey.
+ * @param {object} turn
+ * @param {string} turn.kind One of SEASON_TURNS in rules/season-log.js.
+ * @param {string} turn.title
+ * @param {string|null} [turn.note] Said on the report before anything else.
+ * @param {Roll[]} [turn.rolls]
+ * @param {{name: string, lines: string[]}|null} [turn.collection] The Realm's collection, from collectionEntry.
+ * @param {object[]} turn.knights The Company's entries, from passTime.
+ * @param {{domainId: string, lines: string[]}[]} turn.domains From settleDomains.
+ */
+export async function closeSeason(after, ended, { kind, title, note = null, rolls = [], collection = null, knights, domains }) {
+	const restored = t("time.restored");
+	const entries = [...(collection ? [collection] : []), ...knights.map((entry) => ({ ...entry, lines: [restored, ...entry.lines] })), ...domains];
+	await Promise.all([
+		announceSeason(after, { title, entries, note }, { rolls }),
+		recordSeasonTurn(ended, { kind, title, entries, note }),
+		timelineSeasonTurn(ended, { kind, title, note, collection, knights, domains })
+	]);
 }
 
 /**
@@ -649,9 +680,22 @@ export async function changeAge(actor, age) {
 			{ action: "skip", label: t("time.aging.skip"), icon: "fa-solid fa-forward" }
 		]
 	});
-	if (choice === "skip") return actor.update({ "system.age": age });
+	if (choice === "skip") return skipAging(actor, age);
 	if (choice !== "roll") return null;
 	return rollAging(actor, age);
+}
+
+/**
+ * Grow a character older with their Virtues as they are. Their thread still
+ * says they aged, with no rolls under it.
+ * @param {Actor} actor
+ * @param {string} age One of AGES, older than theirs.
+ * @returns {Promise<Actor>}
+ */
+async function skipAging(actor, age) {
+	await actor.update({ "system.age": age }, causedBy("aging"));
+	await timelineAged(actor, age);
+	return actor;
 }
 
 /**
@@ -685,10 +729,13 @@ export async function rollAging(actor, age) {
 		update[`system.virtues.${key}.value`] = scores[key].value;
 	}
 	await actor.update(update, causedBy("aging"));
-	await postCard(actor, "creation", {
-		title: t("time.aging.title"),
-		tagline: steps.map((step) => t(`time.aging.${step}`)).join(" · "),
-		lines
-	}, { rolls });
+	await Promise.all([
+		timelineAged(actor, age, lines.map(({ label, value }) => `${label}: ${value}`)),
+		postCard(actor, "creation", {
+			title: t("time.aging.title"),
+			tagline: steps.map((step) => t(`time.aging.${step}`)).join(" · "),
+			lines
+		}, { rolls })
+	]);
 	return scores;
 }

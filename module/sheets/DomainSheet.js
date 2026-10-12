@@ -11,16 +11,18 @@ import {
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
+import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
 import { holdingChoices } from "../actions/homecoming.js";
 import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
 import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
-import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns, newDesign } from "../rules/grand-designs.js";
+import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns } from "../rules/grand-designs.js";
 import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil, namesItsDomain } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { TabRailMixin } from "./tab-rail.js";
+import { TimelineTabMixin } from "./timeline-tab.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -29,7 +31,7 @@ const { ActorSheetV2 } = foundry.applications.sheets;
  * A Domain's sheet: the Holding, its ruler, the Council and the tasks it has in
  * hand, the Court, and the Crises the Domain faces.
  */
-export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSheetV2)) {
+export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplicationMixin(ActorSheetV2))) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-sheet", "bastionland-domain"],
 		position: { width: 780, height: 780 },
@@ -64,7 +66,9 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 		sheet: {
 			template: templatePath("actor/domain-sheet.hbs"),
 			scrollable: [""]
-		}
+		},
+		// Drawn on its own and put into the sheet's page, so the Timeline and the rest of the sheet don't draw each other.
+		timeline: { template: templatePath("actor/parts/timeline-tab.hbs") }
 	};
 
 	/** The sheet's pages, picked from the rail hung off the window's edge. */
@@ -75,6 +79,8 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 			initial: "domain",
 			tabs: [
 				{ id: "domain", icon: "fa-solid fa-chess-rook", label: "bastionland.domain.tabs.domain" },
+				// The Domain's thread of the campaign's Timeline.
+				{ id: "timeline", icon: "fa-solid fa-timeline", label: "bastionland.domain.tabs.timeline" },
 				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.domain.tabs.notes" }
 			]
 		}
@@ -89,6 +95,7 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
+		if (this._drawsTimelineOnly(options)) return context;
 		const actor = this.actor;
 		const { system } = actor;
 		const calendar = getCalendar();
@@ -312,16 +319,12 @@ export class DomainSheet extends TabRailMixin(HandlebarsApplicationMixin(ActorSh
 
 	/** @this {DomainSheet} */
 	static #onAddDesign(_event, target) {
-		const design = newDesign(target.dataset.scale, getCalendar(), Date.now());
-		if (!design) return null;
-		return this.actor.update({ [`system.designs.${foundry.utils.randomID()}`]: design });
+		return beginDesign(this.actor, target.dataset.scale);
 	}
 
 	/** @this {DomainSheet} */
 	static #onRemoveDesign(_event, target) {
-		const id = target.closest("[data-design]")?.dataset.design;
-		if (!id) return null;
-		return this.actor.update({ [`system.designs.-=${id}`]: null });
+		return strikeOffDesign(this.actor, target.closest("[data-design]")?.dataset.design);
 	}
 
 	/** @this {DomainSheet} */

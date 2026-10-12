@@ -151,3 +151,16 @@ export function normaliseTravelRulesView(raw) {
 		closed: TRAVEL_GROUPS.filter((key) => closed.includes(key))
 	};
 }
+
+/**
+ * How far down each side's rules someone has scrolled, in whole pixels, so a
+ * side drawn again opens where they left it.
+ * @param {unknown} raw As saved.
+ * @returns {Record<string, number>} Each side's scroll, 0 for one never scrolled.
+ */
+export function normaliseTravelRulesScroll(raw) {
+	return Object.fromEntries(TRAVEL_SIDES.map((side) => {
+		const top = Number(raw?.[side]);
+		return [side, Number.isFinite(top) && top > 0 ? Math.round(top) : 0];
+	}));
+}

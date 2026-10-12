@@ -15,7 +15,10 @@ vi.mock("../../module/apps/ui.js", () => ({
 	inputDialog: vi.fn(async () => mustered)
 }));
 
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDismissed: vi.fn(async () => null), timelineMustered: vi.fn(async () => null) }));
+
 const { inputDialog } = await import("../../module/apps/ui.js");
+const timeline = await import("../../module/actions/timeline-events.js");
 const { MUSTERED_FLAG, ORIGIN_FLAG, dismissWarband, musterView, musterWarband, strainWarband, warbandsOf, wearWarbandDown } =
 	await import("../../module/actions/warbands.js");
 
@@ -204,6 +207,7 @@ describe("dismissWarband", () => {
 
 		expect(await dismissWarband(domain, "w1")).toBe(true);
 		expect(warband.unsetFlag).toHaveBeenCalledWith(SYSTEM_ID, MUSTERED_FLAG);
+		expect(timeline.timelineDismissed).toHaveBeenCalledWith(domain, warband);
 		expect(lastCard().text).toBe(format("bastionland.warband.dismiss.went", { name: "The Militia", domain: "Bramblewatch" }));
 	});
 
@@ -215,6 +219,7 @@ describe("dismissWarband", () => {
 
 		expect(await dismissWarband(domain, "w1")).toBe(false);
 		expect(warband.unsetFlag).not.toHaveBeenCalled();
+		expect(timeline.timelineDismissed).not.toHaveBeenCalled();
 	});
 
 	it("lets nobody go who isn't the Holding's", async () => {
@@ -245,7 +250,9 @@ describe("musterWarband", () => {
 
 	it("raises a Warband with no stats yet when the book's aren't imported", async () => {
 		mustered = { warband: "blank", origin: "mercenaries" };
-		const warband = await musterWarband(fakeDomain());
+		const domain = fakeDomain();
+		const warband = await musterWarband(domain);
+		expect(timeline.timelineMustered).toHaveBeenCalledWith(domain, warband, lookup("bastionland.warband.origins.mercenaries.label"));
 		expect(inputDialog).toHaveBeenCalledWith(expect.objectContaining({ template: "muster" }));
 		expect(inputDialog.mock.calls[0][0].context.warbands).toEqual([]);
 		expect(warband.name).toBe(lookup("bastionland.warband.muster.newName"));
@@ -256,6 +263,7 @@ describe("musterWarband", () => {
 		mustered = null;
 		expect(await musterWarband(fakeDomain())).toBeNull();
 		expect(created).toEqual([]);
+		expect(timeline.timelineMustered).not.toHaveBeenCalled();
 	});
 
 	it("raises nobody for a choice that isn't on the list", async () => {

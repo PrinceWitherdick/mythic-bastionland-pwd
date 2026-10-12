@@ -221,11 +221,13 @@ const queueRealmWrite = serialWrites();
  * @param {object} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
- * @param {object} [options] Passed to planRealmSync.
+ * @param {object} [options]
+ * @param {boolean} [options.replacing] Passed to planRealmSync.
+ * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function writeRealm(scene, realm, g, textures, options) {
-	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), options);
+async function writeRealm(scene, realm, g, textures, { replacing = false, operation = {} } = {}) {
+	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
 	if (flag) {
@@ -238,7 +240,8 @@ async function writeRealm(scene, realm, g, textures, options) {
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
-			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step])));
+			// A copy each, as Foundry writes into the options it's handed.
+			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], { ...operation })));
 	}
 	return true;
 }
@@ -409,9 +412,10 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
  * write whatever that changed.
  * @param {Scene} scene
  * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export async function editRealm(scene, edit) {
+export async function editRealm(scene, edit, operation = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const textures = currentRealmTextures(scene);
@@ -419,7 +423,7 @@ export async function editRealm(scene, edit) {
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
 		if (!next || next === realm) return false;
-		const written = await writeRealm(scene, next, g, textures);
+		const written = await writeRealm(scene, next, g, textures, { operation });
 		if (written) setHistory(scene.id, recordChange(realmHistory(scene.id), realm));
 		return written;
 	});

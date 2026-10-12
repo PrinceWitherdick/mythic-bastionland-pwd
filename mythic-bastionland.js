@@ -84,6 +84,12 @@ import { GmToolkitModel } from "./module/data-models/GmToolkitModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
 import { NpcModel } from "./module/data-models/NpcModel.js";
 import { StructureModel } from "./module/data-models/StructureModel.js";
+import { TimelinePageModel } from "./module/data-models/TimelinePageModel.js";
+import { registerTimelineStoreHooks, syncTrackPages } from "./module/actions/timeline-store.js";
+import { TIMELINE_PAGE_TYPE } from "./module/rules/timeline.js";
+import { openTimeline, reopenableTimeline } from "./module/apps/TimelineWindow.js";
+import { createTimelinePageSheet } from "./module/apps/TimelinePageSheet.js";
+import { applyKindColours, registerTimelineSettings } from "./module/apps/timeline-ui.js";
 import {
 	AbilityModel,
 	ArmourModel,
@@ -103,10 +109,11 @@ import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
-import { bringInRulebook } from "./module/rulebook/bring-in.js";
+import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
+import { TIMELINE_MACRO_STEP, ensureTimelineHotbar, seedTimelineMacro } from "./module/actions/timeline-macro.js";
 import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
 import { openHex, openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
@@ -120,9 +127,9 @@ import { catchUpBookText, loadBookText, registerBookText } from "./module/book-a
 import { registerArtIndexStamp } from "./module/book-art/art-index.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { watchQuerySenders } from "./module/compat.js";
-import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
+import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
-import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
+import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { restAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
@@ -153,6 +160,7 @@ Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.structure = StructureModel;
 	CONFIG.Actor.dataModels[GM_TOOLKIT_TYPE] = GmToolkitModel;
 	Object.assign(CONFIG.Item.dataModels, ITEM_MODELS);
+	CONFIG.JournalEntryPage.dataModels[TIMELINE_PAGE_TYPE] = TimelinePageModel;
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
 	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, KnightSheet, {
@@ -190,6 +198,12 @@ Hooks.once("init", () => {
 		makeDefault: false,
 		canBeDefault: false,
 		label: "bastionland.sites.sheet"
+	});
+	// A thread of the Timeline reads in the sidebar as its journal page; it's written from the Timeline window.
+	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntryPage, SYSTEM_ID, createTimelinePageSheet(), {
+		types: [TIMELINE_PAGE_TYPE],
+		makeDefault: true,
+		label: "bastionland.timeline.title"
 	});
 
 	// Partials shared by the Knight, NPC and Structure sheets, and used inside chat cards,
@@ -237,7 +251,20 @@ Hooks.once("init", () => {
 		"bastionland.hex-heading": templatePath("apps/parts/hex-heading.hbs"),
 		"bastionland.hex-spark": templatePath("apps/parts/hex-spark.hbs"),
 		"bastionland.spark-pick-tables": templatePath("apps/parts/spark-pick-tables.hbs"),
-		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs")
+		"bastionland.travels-tab": templatePath("actor/parts/travels-tab.hbs"),
+		"bastionland.timeline-thread": templatePath("apps/parts/timeline-thread.hbs"),
+		"bastionland.timeline-card": templatePath("apps/parts/timeline-card.hbs"),
+		"bastionland.timeline-filter": templatePath("apps/parts/timeline-filter.hbs"),
+		"bastionland.timeline-board": templatePath("apps/parts/timeline-board.hbs"),
+		"bastionland.timeline-toolbar": templatePath("apps/parts/timeline-toolbar.hbs"),
+		"bastionland.timeline-new": templatePath("apps/parts/timeline-new.hbs"),
+		"bastionland.timeline-heading": templatePath("apps/parts/timeline-heading.hbs"),
+		"bastionland.timeline-add": templatePath("apps/parts/timeline-add.hbs"),
+		"bastionland.timeline-cards": templatePath("apps/parts/timeline-cards.hbs"),
+		"bastionland.timeline-invite": templatePath("apps/parts/timeline-invite.hbs"),
+		"bastionland.timeline-lane-head": templatePath("apps/parts/timeline-lane-head.hbs"),
+		"bastionland.timeline-scrub": templatePath("apps/parts/timeline-scrub.hbs"),
+		"bastionland.timeline-entry-tag": templatePath("dialogs/parts/timeline-entry-tag.hbs")
 	});
 
 	// The sheets' faces, offered by Foundry's font menus as well as the stylesheet.
@@ -318,6 +345,10 @@ Hooks.once("init", () => {
 	// A Knight made blank shows an empty page until they're chosen, and opens for the player they're given to.
 	registerUnchosenKnightHooks();
 
+	// The Timeline keeps a page for each Knight, Domain and Realm as they come, and each reader their own Filter.
+	registerTimelineStoreHooks();
+	registerTimelineSettings();
+
 	// Sheets left open come back where they were after a reload.
 	registerSheetRestore();
 
@@ -334,6 +365,8 @@ Hooks.once("init", () => {
 	registerRestorableWindow("rulebook", "BookReader", reopenableReader);
 	// The Company's Places window reopens after a reload too.
 	registerRestorableWindow("places", "TravelsPlaces", reopenablePlaces);
+	// And the Timeline.
+	registerRestorableWindow("timeline", "TimelineWindow", reopenableTimeline);
 	registerRulebookShare();
 	// A player's note on a hex, written for them by the active GM.
 	registerHexSharedQuery();
@@ -483,6 +516,8 @@ Hooks.once("init", () => {
 		openHexLore: openHex,
 		// The Company's own record of the places it has been, for the players' Places macro.
 		openPlaces,
+		// The campaign's Timeline, every thread side by side, for the players' Timeline macro.
+		openTimeline,
 		// The Time window became the GM Toolkit's Time page; macros that open it still work, and
 		// a player's, which once showed the calendar to read, says where it stands.
 		openTimePanel: () => (game.user.isGM ? openGmToolkit("time") : ui.notifications.info(calendarLabel(getCalendar()))),
@@ -524,8 +559,6 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	// First, so it sees whether any other step has been done here before.
 	{ key: WELCOME_STEP, run: welcomeOnlyNewWorlds },
-	// A new world takes up the book another world kept, before the cards ask for one.
-	{ key: FIND_RULEBOOK_STEP, run: () => findKeptRulebook(welcomesThisWorld) },
 	// Right after it, so only a world it still greets is posted them.
 	{ key: WELCOME_CARDS_STEP, run: () => postWelcomeCards(welcomesThisWorld) },
 	// A world already in play hears of the weather on the map once; a new one has just been told.
@@ -533,6 +566,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
 	{ key: PLACES_MACRO_STEP, run: seedPlacesMacro },
+	{ key: TIMELINE_MACRO_STEP, run: seedTimelineMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
 	{ key: TOOLKIT_MACRO_STEP, run: seedToolkitMacro },
 	{ key: SESSION_MACRO_STEP, run: seedSessionMacro },
@@ -586,6 +620,8 @@ const WORLD_SETUP = Object.freeze([
 Hooks.once("ready", async () => {
 	// The Phase at the top of the screen, for everyone at the table.
 	showPhaseBanner();
+	// Each kind of Timeline entry in the colour the Referee chose for it.
+	applyKindColours();
 	// Nothing else waits on this.
 	squareKnightTokens();
 	// A world imported before the rules text was read has it found in the rulebook it keeps.
@@ -606,17 +642,27 @@ Hooks.once("ready", async () => {
 	syncEveryRealm();
 	// And each Site with something drawn or written on it.
 	syncEverySite();
-	const setup = runWorldSetup(WORLD_SETUP);
+	// A world with no rulebook takes up the one another world kept on this server, however old the world.
+	// Setup waits on the look only while a new world's welcome cards are still to post, so they don't ask
+	// for a book that's already there; after that, the hotbars and the Toolkit don't wait on the server.
+	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
+	const setup = (isSetupDone(WELCOME_CARDS_STEP) ? Promise.resolve() : finding).then(() => runWorldSetup(WORLD_SETUP));
+	// Its import runs beside the load rather than holding it up, and a failure is logged rather than thrown.
+	Promise.all([finding, setup])
+		.then(() => adoptKeptRulebook(welcomesThisWorld))
+		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),
 		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,
 		// and a GM's Import PDF and End the Session in the last two.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureSiteHotbar)])
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.
 		// Every GM, not only the one who made it, is then given it as their character.
-		setup.then(ensureGmToolkit).then(assignGmToolkit)
+		setup.then(ensureGmToolkit).then(assignGmToolkit),
+		// The Timeline has a page for every thread, and each is named after its thread.
+		setup.then(syncTrackPages)
 	]);
 	// A new world's GM is welcomed last, on top of any sheets that came back.
 	greetGM();

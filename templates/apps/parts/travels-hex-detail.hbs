@@ -1,7 +1,6 @@
 {{!-- One hex as the Company knows it, beside the Places window's list. A GM changes what the players know where it's shown,
-      and the Lay of the Land at the foot (hex-gm.hbs), drawn for GMs alone, holds what the GM keeps. The pen beside
-      the hex's terrain, shown to a GM on hover, opens Edit this hex (HexEditor.js).
-      Ping hangs in the window's title bar where data-ping says the hex is on the map. --}}
+      and the Lay of the Land at the foot (hex-gm.hbs), drawn for GMs alone, holds what the GM keeps. Edit hex, a GM's alone,
+      hangs in the window's title bar and opens the window that changes the hex itself (HexEditor.js). Ping hangs in the window's title bar where data-ping says the hex is on the map. --}}
 <aside class="bastionland-travels-detail bastionland-hex-lore bastionland-travels-hex"{{#unless empty}}{{#if onMap}}{{#if (or openable gm)}} data-ping{{/if}}{{/if}}{{/unless}} aria-live="polite">
 	{{#if empty}}
 	<p class="bastionland-hint bastionland-travels-detail__empty">{{empty}}</p>
@@ -11,21 +10,16 @@
 		{{#if openable}}{{#if here}}<span class="bastionland-hex-lore__feature bastionland-pill bastionland-travels__here"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.travels.here"}}</span>{{/if}}{{/if}}
 	</div>
 
-	{{#*inline "editPen"}}
-	<button type="button" class="bastionland-icon bastionland-travels-hex__edit bastionland-reveal" data-action="editHex" aria-label="{{localize "bastionland.hexLore.edit"}}" data-tooltip="{{localize "bastionland.hexLore.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
-	{{/inline}}
 	{{#if openable}}
-	<div class="bastionland-hex-lore__here{{#if gm}} bastionland-reveal-host{{/if}}">
+	<div class="bastionland-hex-lore__here">
 		{{#if terrain}}<span class="bastionland-hex-lore__terrain bastionland-pill bastionland-pill--small-caps">{{terrain}}</span>{{/if}}
 		{{#each features}}
 		<span class="bastionland-hex-lore__feature bastionland-pill">{{this}}</span>
 		{{/each}}
-		{{#if gm}}{{> editPen}}{{/if}}
 	</div>
 	{{else}}
-	<div class="bastionland-hex-lore__row{{#if gm}} bastionland-reveal-host{{/if}}">
+	<div class="bastionland-hex-lore__row">
 		<p class="bastionland-hex-lore__hint">{{localize "bastionland.travels.notKnown"}}</p>
-		{{#if gm}}{{> editPen}}{{/if}}
 	</div>
 	{{/if}}
 

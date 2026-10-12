@@ -2,6 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
+import { timelineHeirNamed } from "./timeline-events.js";
 
 /**
  * @param {Actor} knight
@@ -13,12 +14,26 @@ export function heirOf(knight) {
 }
 
 /**
+ * Name a Knight's successor, and write it on their Timeline thread.
+ * @param {Actor} knight
+ * @param {Actor} heir
+ * @param {object} [options]
+ * @param {boolean} [options.record=true] False where the Age's turn already says it on the same thread.
+ */
+export async function nameSuccessor(knight, heir, { record = true } = {}) {
+	if (knight.system.successor === heir.uuid) return;
+	await knight.update({ "system.successor": heir.uuid });
+	if (record) await timelineHeirNamed(knight, heir);
+}
+
+/**
  * Name a Knight's successor (Succession, p17): any other Knight in the world,
  * their own Squire offered first.
  * @param {Actor} knight
+ * @param {object} [options] As nameSuccessor takes.
  * @returns {Promise<Actor|null>} The successor, or null if closed or left unnamed.
  */
-export async function chooseSuccessor(knight) {
+export async function chooseSuccessor(knight, options) {
 	const current = heirOf(knight) ?? (knight.system.squire ? fromUuidSync(knight.system.squire) : null);
 	const candidates = worldKnights((actor) => actor !== knight);
 	if (!candidates.length) {
@@ -40,6 +55,6 @@ export async function chooseSuccessor(knight) {
 		ok: { label: t("successor.name"), icon: "fa-solid fa-crown" }
 	});
 	const heir = candidates.find((actor) => actor.uuid === data?.successor) ?? null;
-	if (heir && knight.system.successor !== heir.uuid) await knight.update({ "system.successor": heir.uuid });
+	if (heir) await nameSuccessor(knight, heir, options);
 	return heir;
 }

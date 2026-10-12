@@ -3,6 +3,7 @@ import { DUEL_QUERY, duelistScores, duelOf, onDuelQuery, saveDuelChange } from "
 import { CALENDAR_HOOK } from "../actions/calendar.js";
 import { adjustGlory } from "../actions/glory.js";
 import { causedBy } from "../actions/ledger.js";
+import { timelineDuel } from "../actions/timeline-events.js";
 import { confirmDialog } from "../apps/ui.js";
 import { readyToResolve, shakenOff, sparringOpen, stakeChanges } from "../rules/duel.js";
 import { escapeHTML } from "../rules/text.js";
@@ -74,11 +75,16 @@ async function onEnd(message, victorUuid) {
 
 	// The duel ends first, so a refused or repeated end never moves the Glory twice.
 	if (!(await saveDuelChange(message, { type: "end", victor: victor?.uuid ?? null }))) return;
+	const glory = {};
 	const entries = await Promise.all(stakeChanges(duel, victor?.uuid ?? null).map(async ({ uuid, amount }) => {
 		const actor = actors[duel.duelists.findIndex((duelist) => duelist.uuid === uuid)];
-		return { name: actor.name, lines: await adjustGlory(actor, amount) };
+		glory[uuid] = await adjustGlory(actor, amount);
+		return { name: actor.name, lines: glory[uuid] };
 	}));
-	if (entries.length) await postCard(null, "report", { title: t("duel.endTitle"), tagline: outcome, entries });
+	await Promise.all([
+		timelineDuel(message.id, duel, actors, victor?.uuid ?? null, glory),
+		entries.length ? postCard(null, "report", { title: t("duel.endTitle"), tagline: outcome, entries }) : null
+	]);
 	if (duel.sparring) await shakeOff(duel, actors, outcome);
 }
 

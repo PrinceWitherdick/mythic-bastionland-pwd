@@ -8,6 +8,7 @@ import { GLORY_BUTTONS } from "../rules/glory.js";
 import { crisisRollsDue } from "../rules/season-log.js";
 import { calendarTurn, offeredStep, passageStep, TIME_STEPS, timeStep, turnsSeasonOrAge } from "../rules/session-end.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { timelineShown } from "./timeline-ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -67,6 +68,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 	#plans = "";
 	#recap = "";
 
+	/** Whether the recap goes on the Timeline too, which everyone reads, as well as in the Season's notes. */
+	#shareRecap = true;
+
 	/** Why a step is offered before one is picked: "promised", or null. */
 	#offered = null;
 
@@ -120,6 +124,9 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 			crises: crisisRollsDue(worldDomains(), getCalendar()).map((domain) => ({ id: domain.id, name: domain.name })),
 			plans: this.#plans,
 			recap: this.#recap,
+			shareRecap: this.#shareRecap,
+			// A world with the Timeline turned off has nowhere to write the recap.
+			timeline: timelineShown(),
 			ready: Boolean(timeStep(this.#step))
 		});
 	}
@@ -131,6 +138,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 		// Kept as they're typed, so a roll or an award redrawing the window doesn't take the words away.
 		root.querySelector("[name=plans]")?.addEventListener("input", (event) => { this.#plans = event.target.value; });
 		root.querySelector("[name=recap]")?.addEventListener("input", (event) => { this.#recap = event.target.value; });
+		root.querySelector("[name=shareRecap]")?.addEventListener("change", (event) => { this.#shareRecap = event.target.checked; });
 		root.querySelector(".bastionland-session-end__situations")?.addEventListener("input", (event) => {
 			if (!event.target.matches("[name=situation]")) return;
 			const row = this.#row(event.target);
@@ -244,6 +252,7 @@ export class SessionEnd extends HandlebarsApplicationMixin(ApplicationV2) {
 				glory: this.#glory.map(({ key, names }) => t("sessionEnd.glory.awarded", { award: t(`glory.awards.${key}.label`), names })),
 				plans: this.#plans,
 				recap: this.#recap,
+				shareRecap: this.#shareRecap && timelineShown(),
 				promised: this.#promised
 			});
 			if (ended) return this.close();

@@ -46,6 +46,15 @@ export function emptySlot(hotbar, macroId, { gm = true } = {}) {
 	return null;
 }
 
+/** Each declared macro's `wanted`, by its flag. */
+const WANTED = new Map();
+
+/**
+ * @param {string} macroFlag
+ * @returns {boolean} Whether the macro carrying this flag is wanted on hotbars now.
+ */
+export const slotWanted = (macroFlag) => WANTED.get(macroFlag)?.() ?? true;
+
 /**
  * Declare one of the system's macros.
  * @param {object} options
@@ -59,9 +68,13 @@ export function emptySlot(hotbar, macroId, { gm = true } = {}) {
  * @param {boolean} [options.everyone] Whether players get a hotbar slot for it too.
  * @param {() => boolean} [options.forGM] Whether a GM gets a hotbar slot for it, asked
  *   on each load. A GM still keeps the world's copy current either way.
+ * @param {() => boolean} [options.wanted] Whether anyone gets a hotbar slot for it, asked on
+ *   each load. Until it is, nobody is marked as given one, so the slot comes on a later load.
  * @returns {{seed: () => Promise<void>, ensure: () => Promise<void>}}
  */
-export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, ownership = null, everyone = false, forGM = () => true }) {
+export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, ownership = null, everyone = false, forGM = () => true, wanted = () => true }) {
+	WANTED.set(macroFlag, wanted);
+
 	/** @returns {Macro|undefined} The world's copy of this macro. */
 	const find = () => game.macros.find((macro) => macro.getFlag(SYSTEM_ID, macroFlag));
 
@@ -102,7 +115,7 @@ export function hotbarMacro({ macroFlag, hotbarFlag, nameKey, img, command, owne
 			}
 			if (Object.keys(update).length) await macro.update(update);
 		}
-		if (game.user.isGM && !forGM()) return;
+		if (!wanted() || (game.user.isGM && !forGM())) return;
 		// A macro the user can't run is no use on their bar.
 		if (!(everyone ? macro?.canExecute : macro) || game.user.getFlag(SYSTEM_ID, hotbarFlag)) return;
 

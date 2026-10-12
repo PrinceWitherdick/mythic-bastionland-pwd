@@ -21,6 +21,7 @@ import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
+import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
 
 /** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
 export function companyKnightCount() {
@@ -145,13 +146,15 @@ export async function takeSquire(knight) {
 	}
 	if (pony) lines.push({ label: t("steed.label"), value: pony.name });
 	await knight.update({ "system.squire": squire.uuid });
-
-	await postCard(knight, "creation", {
-		title: t("squire.title"),
-		tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
-		lines,
-		note: t("squire.hint")
-	}, { rolls });
+	await Promise.all([
+		timelineSquireTaken(knight, squire),
+		postCard(knight, "creation", {
+			title: t("squire.title"),
+			tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
+			lines,
+			note: t("squire.hint")
+		}, { rolls })
+	]);
 	squire.sheet.render({ force: true });
 	return squire;
 }
@@ -211,15 +214,17 @@ export async function knightSquire(squire) {
 		...knightedLooks(squire, Actor.implementation.DEFAULT_ICON)
 	});
 	if (master?.isOwner && master.system.squire === squire.uuid) await master.update({ "system.squire": "" });
-
-	await postCard(squire, "creation", {
-		title: t("squire.knightedTitle"),
-		tagline: t("squire.knightedTagline", { name: squire.name }),
-		lines: VIRTUES.map((key) => ({
-			label: t(`virtues.${key}.abbr`),
-			value: t("squire.knightedValue", { gain: gains[key], from: before[key], to: virtues[key].max })
-		}))
-	}, { rolls });
+	await Promise.all([
+		timelineKnighted(squire, master),
+		postCard(squire, "creation", {
+			title: t("squire.knightedTitle"),
+			tagline: t("squire.knightedTagline", { name: squire.name }),
+			lines: VIRTUES.map((key) => ({
+				label: t(`virtues.${key}.abbr`),
+				value: t("squire.knightedValue", { gain: gains[key], from: before[key], to: virtues[key].max })
+			}))
+		}, { rolls })
+	]);
 	chooseKnightedSquire(squire);
 	return virtues;
 }

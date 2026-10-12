@@ -6,6 +6,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
 import { offerRulerDomain } from "./found-domain.js";
+import { omensMet } from "./timeline-events.js";
 
 /**
  * What the Start the players chose sets going once the Realm is made (p6),
@@ -43,7 +44,9 @@ async function courtNews(scene) {
 	const next = myth ? nextOmen(myth) : null;
 	if (!next || next.complete) return null;
 	const { omen } = next;
-	await scene.updateEmbeddedDocuments("Tile", [{ _id: myth.id, [`flags.${SYSTEM_ID}.${REALM_FLAG}.omen`]: omen }]);
+	// Written straight to the Tile rather than through editRealm, so Undo doesn't take it back.
+	// The Tile hooks in omens.js write its row on the Timeline, as news heard at the Seat.
+	await scene.updateEmbeddedDocuments("Tile", [{ _id: myth.id, [`flags.${SYSTEM_ID}.${REALM_FLAG}.omen`]: omen }], omensMet({ hex: seat.hex, news: true }));
 
 	const { name, page, entry } = mythEntry(await loadArtIndex(), myth);
 	return postCard(null, "omen", {

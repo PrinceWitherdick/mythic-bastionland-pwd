@@ -1,0 +1,8 @@
+{{!-- Who a thread is, at the head of its lane, read down or across: its picture and its name over what kind of thread it is. --}}
+<span class="bastionland-timeline__lane-who">
+	{{#if portrait}}<img class="bastionland-timeline__lane-portrait" src="{{portrait}}" alt="" draggable="false">{{/if}}
+	<span class="bastionland-timeline__lane-label">
+		<strong>{{name}}</strong>
+		<span class="bastionland-timeline__lane-kind">{{kindLabel}}</span>
+	</span>
+</span>

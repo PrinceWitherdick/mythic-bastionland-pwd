@@ -25,15 +25,71 @@ export const REALM_SKINS = Object.freeze(["sheet", "classic", "woodcut", "atlas"
  * @property {boolean} holdingsGiveWay Its terrain drawing gives way to a Holding in its hex, as on the Blank Realm, rather than lying under it.
  * @property {boolean} joinsLakes It draws a lake inside its hex, so lakes side by side are drawn as one water,
  *   with a shore where they meet land and a mouth where a river runs in.
+ * @property {Readonly<Record<string, readonly string[]>>} terrainPlaces The other pictures it has of a terrain besides
+ *   its own, by its key, so that a Realm's hexes needn't all look alike: where on the map they were traced from each
+ *   stood, as "col,row" in order, so pictures drawn side by side there can be laid side by side again.
+ * @property {Readonly<Record<string, readonly (readonly string[])[]>>} terrainGroups Groups of hexes on that map drawn
+ *   as one picture of a terrain across the edges they share, as "col,row", by its key. Each hex of a group has a picture
+ *   of its own besides those above, which runs on into the others' and so is only ever laid with all of them.
  */
 
 /** @type {Readonly<SkinFeatures>} */
-const PLAIN_SKIN = Object.freeze({ holdingsGiveWay: false, joinsLakes: false });
+const PLAIN_SKIN = Object.freeze({
+	holdingsGiveWay: false,
+	joinsLakes: false,
+	terrainPlaces: Object.freeze({}),
+	terrainGroups: Object.freeze({})
+});
+
+/**
+ * The hexes of the Realm Sheets' example Realm that scripts/realm-sheet-art.py
+ * traced each terrain's other pictures from, in its VARIANTS order. That map
+ * is laid out as the book's sheet is, 12 hexes by 12. These and EXAMPLE_GROUPS
+ * are held to the script's tables by tests/rules/realm-sheet-places.test.js.
+ */
+const EXAMPLE_PLACES = Object.freeze({
+	marsh: ["9,8", "10,8", "11,8"],
+	heath: ["6,1", "6,2", "6,3", "7,1", "7,2", "8,1", "8,2", "10,6", "11,6", "11,7"],
+	crag: ["9,11", "10,11", "10,12"],
+	peaks: ["1,4", "1,5", "1,6", "2,4", "2,5", "2,6", "9,1", "10,1", "11,1", "3,7", "6,12", "7,12"],
+	forest: ["1,2", "4,8", "3,9"],
+	hills: ["6,6", "6,7", "9,5", "9,6"],
+	meadow: ["9,3", "9,4", "10,3", "10,4", "10,10", "12,10", "11,11", "12,11"],
+	bog: ["12,8", "8,9", "9,9", "10,9", "11,9", "12,9", "9,10", "11,10"],
+	glade: ["4,1", "4,3", "3,4", "10,5", "11,5", "12,5"],
+	plains: ["6,4", "5,6", "7,5", "8,5", "7,6", "8,6", "6,9", "4,11", "4,12", "9,7"]
+});
+
+/** The example Realm's groups of hexes drawn as one, in scripts/realm-sheet-art.py's GROUPS order. */
+const EXAMPLE_GROUPS = Object.freeze({
+	marsh: [["9,8", "10,8"], ["10,7", "11,8"]],
+	heath: [["12,6", "12,7"]],
+	crag: [["9,11", "10,11", "11,12", "12,12"]],
+	peaks: [["11,1", "12,1", "11,2", "12,2"], ["1,8", "2,8", "1,9", "2,9", "1,10", "1,11"]],
+	forest: [["1,1", "2,1", "3,1", "2,2", "2,3"], ["1,2", "1,3"], ["4,8", "4,9", "3,9"]],
+	hills: [["7,3", "8,3", "7,4", "8,4", "9,5"], ["4,5", "3,6", "4,6", "5,7"]],
+	meadow: [["10,3", "10,4"]],
+	glade: [["3,2", "3,3"], ["3,4", "4,3", "4,4"], ["12,4", "12,5"]]
+});
 
 /** @type {Readonly<Record<string, Readonly<SkinFeatures>>>} The skins that draw more than PLAIN_SKIN. */
 const SKIN_FEATURES = Object.freeze({
-	sheet: Object.freeze({ holdingsGiveWay: true, joinsLakes: true })
+	// The Realm Sheets' example Realm draws each terrain many ways, traced by scripts/realm-sheet-art.py.
+	sheet: Object.freeze({
+		holdingsGiveWay: true,
+		joinsLakes: true,
+		terrainPlaces: Object.freeze(Object.fromEntries(Object.entries(EXAMPLE_PLACES).map(([key, places]) => [key, Object.freeze(places)]))),
+		terrainGroups: Object.freeze(Object.fromEntries(Object.entries(EXAMPLE_GROUPS)
+			.map(([key, groups]) => [key, Object.freeze(groups.map((group) => Object.freeze(group)))])))
+	})
 });
+
+/**
+ * The skin whose other pictures of a terrain a hex's picture roll is matched
+ * to its neighbours by. A roll is kept with the Realm whatever skin draws it,
+ * and this is the only skin with more than one picture of a terrain.
+ */
+export const PAIRED_SKIN = "sheet";
 
 /**
  * @param {string} skin
@@ -51,6 +107,10 @@ export const TERRAIN_FITS = Object.freeze(["hex", "icon"]);
  */
 export const PICTURE_NAME = Object.freeze({
 	terrain: (number) => `terrain-${TERRAIN[number - 1]}`,
+	// A skin's other pictures of a terrain, numbered on from its own, which is the first.
+	terrainVariant: (number, variant) => `terrain-${TERRAIN[number - 1]}-${variant}`,
+	// A skin's pictures of a terrain drawn on into their neighbours', numbered from 1 through its groups in order.
+	terrainJoined: (number, picture) => `terrain-${TERRAIN[number - 1]}-joined-${picture}`,
 	holding: (style) => `holding-${style}`,
 	landmark: (type) => `landmark-${type}`,
 	myth: (number) => `myth-${number}`,
@@ -64,11 +124,39 @@ export const PICTURE_NAME = Object.freeze({
 
 /**
  * @param {string} skin
- * @returns {string[]} The pictures that skin draws besides REALM_PICTURES, for joining its lakes up.
+ * @param {number} number A terrain's d12 number, from 1.
+ * @returns {string[]} The skin's other pictures of that terrain, besides its own.
  */
-export const skinPictures = (skin) => (skinFeatures(skin).joinsLakes
-	? [PICTURE_NAME.water, ...SHORE_SHAPES.map(PICTURE_NAME.shore), PICTURE_NAME.mouth]
-	: []);
+export const terrainVariantPictures = (skin, number) => Array.from(
+	{ length: (skinFeatures(skin).terrainPlaces[TERRAIN[number - 1]] ?? []).length },
+	(_, index) => PICTURE_NAME.terrainVariant(number, index + 2)
+);
+
+/**
+ * @param {string} skin
+ * @param {number} number A terrain's d12 number, from 1.
+ * @returns {string[]} The skin's pictures of that terrain drawn on into their neighbours', through its groups in order.
+ */
+export const terrainJoinedPictures = (skin, number) => Array.from(
+	{ length: (skinFeatures(skin).terrainGroups[TERRAIN[number - 1]] ?? []).flat().length },
+	(_, index) => PICTURE_NAME.terrainJoined(number, index + 1)
+);
+
+/**
+ * @param {string} skin
+ * @param {number} number A terrain's d12 number, from 1.
+ * @returns {string[]} All the skin's pictures of that terrain besides its own: those shown on their own, then those drawn on into their neighbours'.
+ */
+export const terrainExtraPictures = (skin, number) => [...terrainVariantPictures(skin, number), ...terrainJoinedPictures(skin, number)];
+
+/**
+ * @param {string} skin
+ * @returns {string[]} The pictures that skin draws besides REALM_PICTURES: other pictures of its terrain, and those for joining its lakes up.
+ */
+export const skinPictures = (skin) => [
+	...TERRAIN.flatMap((_, index) => terrainExtraPictures(skin, index + 1)),
+	...(skinFeatures(skin).joinsLakes ? [PICTURE_NAME.water, ...SHORE_SHAPES.map(PICTURE_NAME.shore), PICTURE_NAME.mouth] : [])
+];
 
 /** What each terrain picture was called when terrain went by number, as "terrain-05", to its name now. */
 const NUMBERED_TERRAIN = new Map(TERRAIN.map((_, index) => [`terrain-${String(index + 1).padStart(2, "0")}`, PICTURE_NAME.terrain(index + 1)]));

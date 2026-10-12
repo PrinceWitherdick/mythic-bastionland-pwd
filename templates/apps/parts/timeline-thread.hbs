@@ -1,0 +1,36 @@
+{{!-- One thread of the Timeline, from trackContext in module/apps/timeline-ui.js: down the page, each Age's heading and each Season with its entries, or across it, the Seasons strung along one line with their cards hanging above and below it by turns. Where the reader can write, each Season ends in its "+ Add", and the Season it is now is drawn even with nothing in it yet. --}}
+{{#if allHidden}}
+{{> "bastionland.timeline-invite"}}
+{{else if empty}}
+<p class="bastionland-empty bastionland-timeline__empty">{{localize "bastionland.timeline.empty"}}</p>
+{{else}}
+<div class="bastionland-timeline__canvas">
+	{{#if across}}
+	<ol class="bastionland-timeline__axis">
+		{{#each periods}}
+		{{#if ageHeading}}
+		<li class="bastionland-timeline__axis-age" data-age="{{ageKey}}"><h3 class="bastionland-pill bastionland-timeline__age-chip">{{ageHeading}}</h3></li>
+		{{/if}}
+		<li class="bastionland-timeline__axis-period {{#if above}}is-above{{else}}is-below{{/if}}{{#if entries.length}} has-cards{{/if}}{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">
+			<div class="bastionland-timeline__axis-node">
+				<div class="bastionland-timeline__period-head{{#if name}} bastionland-timeline__season--{{name}}{{/if}}">{{> "bastionland.timeline-heading"}}</div>
+			</div>
+			<div class="bastionland-timeline__axis-cards">
+				{{~> "bastionland.timeline-cards"}}
+			</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{else}}
+	<div class="bastionland-timeline__thread">
+		{{#each periods}}
+		{{#if ageHeading}}<h3 class="bastionland-timeline__age-head" data-age="{{ageKey}}">{{ageHeading}}</h3>{{/if}}
+		<section class="bastionland-timeline__period{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">
+			<div class="bastionland-timeline__period-head{{#if name}} bastionland-timeline__season--{{name}}{{/if}}">{{> "bastionland.timeline-heading"}}</div>
+			{{~> "bastionland.timeline-cards"}}
+		</section>
+		{{/each}}
+	</div>
+	{{/if}}
+</div>
+{{/if}}

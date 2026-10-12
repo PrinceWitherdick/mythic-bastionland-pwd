@@ -1,0 +1,5 @@
+{{!-- One tag a typed Timeline entry can wear, in the entry dialog: drawn for each on offer, and alone for a tag made while the dialog is open (module/apps/timeline-ui.js), so the two never differ. --}}
+<label class="bastionland-timeline-entry__tag bastionland-timeline--kind-{{kind}}"{{#if style}} style="{{style}}"{{/if}}>
+	<input type="radio" name="tag" value="{{value}}" {{checked checked}}>
+	<span class="bastionland-pill bastionland-timeline__kind"><i class="{{icon}} bastionland-timeline__kind-icon" inert></i> {{label}}</span>
+</label>

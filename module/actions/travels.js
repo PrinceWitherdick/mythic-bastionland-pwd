@@ -12,6 +12,7 @@ import {
 	TRAVELS_VIEWS,
 	holdingsKnown,
 	journeyLog,
+	hexViewOf,
 	hexViews,
 	pickTravelsRealm,
 	seasonYearsOn,
@@ -25,11 +26,11 @@ import { LEGEND_KINDS, legendGlyph, routeOf, travelsChart } from "../rules/trave
 import { calendarLabel, seasonLabel } from "./calendar.js";
 import { companyTokenHex, findCompanyToken } from "./company.js";
 import { hexesWithPeopleIn } from "./hex-lore.js";
-import { getHexNames } from "./hex-names.js";
-import { getHexShared, partyNoteBy } from "./hex-shared.js";
-import { getJourney, visitsLabel } from "./journey.js";
+import { getHexNames, hexName } from "./hex-names.js";
+import { getHexShared, getHexSharedRecord, partyNoteBy } from "./hex-shared.js";
+import { getHexVisits, getJourney, visitsLabel } from "./journey.js";
 import { getRealm, getRealmLook, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
-import { getSighted } from "./sighted.js";
+import { getSighted, sightedMarkAt } from "./sighted.js";
 import { keptFromMe, realmKnown } from "./solo.js";
 
 /**
@@ -58,6 +59,27 @@ export function travelsSources(scene) {
 		companyHex: companyTokenHex(scene),
 		gm: Boolean(game.user?.isGM)
 	};
+}
+
+/**
+ * One hex as the players know it, never as the Referee does, whoever is
+ * looking: what playerHexView reads off travelsSources, but read for that hex
+ * alone, so a row on the Timeline needn't build the whole Realm's record.
+ * @param {Scene|null} scene
+ * @param {{col: number, row: number}} hex
+ * @returns {import("../rules/travels.js").PlayerHexView|null} Null for a Scene that isn't a Realm.
+ */
+export function playersHexView(scene, hex) {
+	const entry = getRealm(scene);
+	if (!entry) return null;
+	const handHidden = (at) => hexHiddenByHand(scene, at);
+	return hexViewOf({ realm: realmKnown(entry.realm), g: sceneGeometry(scene), handHidden, companyHex: companyTokenHex(scene), gm: false }, hex, {
+		visits: getHexVisits(scene, hex),
+		record: getHexSharedRecord(scene, hex),
+		// Read off the whole Realm, as travelsSources' marks are.
+		mark: sightedMarkAt(scene, entry.realm, hex, handHidden),
+		name: hexName(scene, hex)
+	});
 }
 
 /**
@@ -217,10 +239,16 @@ function journeyContext(log, forgettable = false, people = null) {
  * @param {number} on Years on from the log's first Season of that name, from seasonYearsOn.
  * @returns {string} Such as "Spring of the 2nd Age", or "Spring of the 2nd Age, a Year On".
  */
-function seasonHeading(when, on) {
-	const label = seasonLabel(when);
-	if (on < 1) return label;
-	return t(on === 1 ? "travels.journey.yearOn" : "travels.journey.yearsOn", { season: label, n: on });
+const seasonHeading = (when, on) => yearsOnHeading(seasonLabel(when), on);
+
+/**
+ * @param {string} season A Season's name or heading.
+ * @param {number} on Years on from the first Season of that name, from seasonYearsOn.
+ * @returns {string} Such as "Spring", or "Spring, a Year On".
+ */
+export function yearsOnHeading(season, on) {
+	if (!(on >= 1)) return season;
+	return t(on === 1 ? "travels.journey.yearOn" : "travels.journey.yearsOn", { season, n: on });
 }
 
 /**

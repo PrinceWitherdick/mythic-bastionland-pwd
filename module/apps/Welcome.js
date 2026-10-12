@@ -3,8 +3,8 @@ import { loadArtIndex } from "../book-art/art-index.js";
 import { ART_ROOT, EXPECTED_PAGES } from "../rules/book-art.js";
 import { COMPANY_MAX, COMPANY_MIN, clampCompany, suggestedCompany } from "../rules/welcome-company.js";
 import { openRulebook } from "../rulebook/BookReader.js";
-import { bringInRulebook, importKeptRulebook } from "../rulebook/bring-in.js";
-import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath, setFoundRulebook } from "../rulebook/store.js";
+import { bringInRulebook, importFoundRulebook } from "../rulebook/bring-in.js";
+import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
 import { TOURS_SETTING, showWhereRealmsAreMade, toursShown } from "./realm-tour.js";
@@ -244,15 +244,14 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		this.#busy = true;
 		await this.render();
 
-		let index;
 		try {
-			index = await importKeptRulebook();
+			await importFoundRulebook();
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't import the kept rulebook`, error);
 		} finally {
 			this.#busy = false;
 			this.#index = null;
 		}
-		// Given up on, the Welcome goes back to asking for the PDF, rather than trying again each time it opens.
-		await setFoundRulebook(index ? "done" : "");
 		if (this.rendered) await this.render();
 	}
 

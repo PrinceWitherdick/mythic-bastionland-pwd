@@ -1,4 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { deletionUpdate } from "../compat.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import {
 	TASK_SCOPES,
@@ -23,6 +24,7 @@ import { calendarLabel, getCalendar } from "./calendar.js";
 import { knightChoices, seatLabel } from "./court.js";
 import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./dominion.js";
 import { evaluateSave, saveContext } from "./saves.js";
+import { timelineTaskSettled } from "./timeline-events.js";
 
 /**
  * Council tasks (p20): a seat is given work lasting anything from a Phase to a
@@ -183,13 +185,22 @@ export async function settleTask(domain, id) {
 		if (!crisis) notes.push(t("domain.tasks.everyCrisis"));
 	}
 
-	await domain.update({ [`system.tasks.-=${id}`]: null });
+	await domain.update(deletionUpdate(`system.tasks.${id}`));
 	const holder = seatHolderNames(domain, task.seat);
+	const by = holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat);
+	const what = task.what || t("domain.tasks.whatUnwritten");
+	// The Timeline's row is written beside the card, which needn't wait for it.
+	const recorded = timelineTaskSettled(domain, id, {
+		what,
+		by,
+		outcome: t(`domain.tasks.outcomes.${outcome}.label`),
+		crisis: crisis ? crisisEntry(crisis).name : null
+	});
 	await postCard(domain, "council-task", {
 		icon: TASK_SCOPE_ICONS[task.scope],
 		title: t("domain.tasks.settledTitle"),
-		tagline: holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat),
-		what: task.what || t("domain.tasks.whatUnwritten"),
+		tagline: by,
+		what,
 		scope: t(`domain.tasks.scopes.${task.scope}.took`),
 		save: save ? saveContext(save) : null,
 		luck: luck === null ? null : { d6: luck, result: t(`refereeRolls.tables.luck.results.${readRefereeTable("luck", luck).result}`) },
@@ -198,6 +209,7 @@ export async function settleTask(domain, id) {
 		crisis: crisis ? crisisEntry(crisis) : null,
 		hint: [t(`domain.tasks.outcomes.${outcome}.hint`), ...notes, misruleWarning(domain)].filter(Boolean).join(" ")
 	}, { rolls });
+	await recorded;
 	return outcome;
 }
 
@@ -218,7 +230,7 @@ export async function setTaskAside(domain, id) {
 		message: t("domain.tasks.setAsideConfirm", { what: escapeHTML(task.what), seat: seatLabel(task.seat) })
 	}))) return false;
 
-	await domain.update({ [`system.tasks.-=${id}`]: null });
+	await domain.update(deletionUpdate(`system.tasks.${id}`));
 	return true;
 }
 

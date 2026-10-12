@@ -1,4 +1,5 @@
 import { t } from "../chat/cards.js";
+import { deletionEntry } from "../compat.js";
 import { changesKept, keptWith, wantsOwnFolder } from "../rules/knight-folders.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
@@ -87,7 +88,7 @@ async function fileKnight(knight) {
 			flags: { [SYSTEM_ID]: { knight: knight.id } }
 		});
 	}
-	await knight.update({ folder: folder.id, [`flags.${SYSTEM_ID}.-=${WANTS}`]: null });
+	await knight.update(Object.fromEntries([["folder", folder.id], deletionEntry(`flags.${SYSTEM_ID}.${WANTS}`)]));
 	await fileKept(knight);
 }
 

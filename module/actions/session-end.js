@@ -4,6 +4,7 @@ import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { seasonRecord, writeSeasonNotes } from "./season-log.js";
+import { timelineSession } from "./timeline-events.js";
 import { turnAge, turnSeason, weeksPass } from "./time.js";
 
 /**
@@ -116,12 +117,13 @@ function sessionEntries({ situations = [], glory = [], plans = "" }, passed) {
  * @param {string[]} [session.glory] Lines naming the Glory awarded this session.
  * @param {string} [session.plans] What the players plan for next session (p16).
  * @param {string} [session.recap] What the Referee wrote about the session.
+ * @param {boolean} [session.shareRecap] Whether it goes on the Timeline, which everyone reads, too.
  * @param {"season"|"age"|null} [session.promised] A turn a roll put at the end of the next session.
  * @returns {Promise<boolean>} Whether the session ended.
  */
 export async function endTheSession(session) {
 	if (!game.user.isGM) return false;
-	const { step, passed = "", recap = "", plans = "", promised = null } = session;
+	const { step, passed = "", recap = "", plans = "", promised = null, shareRecap = false } = session;
 	if (!timeStep(step)) return false;
 
 	const before = getCalendar();
@@ -132,6 +134,7 @@ export async function endTheSession(session) {
 	// kept only once the time has passed, so a turn the Referee closed doesn't keep them twice.
 	await keepRecap(played, t("sessionEnd.recapHeading", { when: calendarLabel(before) }), sessionRecap(recap, plans, t("sessionEnd.card.plans")));
 	await rememberPromise(promised);
+	await timelineSession(played, { recap: shareRecap ? recap : "", plans, passed });
 	await postCard(null, "report", {
 		icon: SESSION_ICON,
 		title: t("sessionEnd.title"),

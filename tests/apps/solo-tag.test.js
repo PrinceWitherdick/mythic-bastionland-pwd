@@ -5,7 +5,7 @@ let kept = false;
 let answer = false;
 const confirmDialog = vi.fn(async () => answer);
 vi.mock("../../module/actions/solo.js", () => ({ SOLO_SETTING: "soloPlay", keptFromMe: () => kept }));
-vi.mock("../../module/apps/ui.js", () => ({ confirmDialog }));
+vi.mock("../../module/apps/ui.js", () => ({ PAINTED: "bastionland-painted", confirmDialog }));
 
 const { addSoloTag, openSoloHelp } = await import("../../module/apps/solo-tag.js");
 
@@ -21,7 +21,7 @@ function fakeElement(tag = "div") {
 			const name = selector.slice(1);
 			const find = (list) => {
 				for (const kid of list) {
-					if (kid.className === name || kid.id === name) return kid;
+					if (kid.className.split(" ").includes(name) || kid.id === name) return kid;
 					const deeper = find(kid.children ?? []);
 					if (deeper) return deeper;
 				}
@@ -60,7 +60,7 @@ describe("addSoloTag", () => {
 		addSoloTag(list);
 		addSoloTag(list);
 		expect(active.children).toHaveLength(1);
-		expect(active.children[0].className).toBe("bastionland-solo-tag");
+		expect(active.children[0].className).toBe("bastionland-solo-tag bastionland-painted");
 	});
 
 	it("leaves the list alone, and takes an old tag off, when nothing is kept from this client", () => {

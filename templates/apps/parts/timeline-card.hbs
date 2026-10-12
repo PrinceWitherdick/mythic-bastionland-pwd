@@ -1,0 +1,17 @@
+{{!-- One Timeline entry: its title, with its kind's chip (its glyph, and its source's name or its tag's) on the right as Stonetop has it, where and what happened, and, for those who can write on its thread, a row of buttons at its foot to move, edit and remove it. A tag of the table's own brings its colour inline. --}}
+<article class="bastionland-timeline__card bastionland-timeline--kind-{{chip.kind}} bastionland-reveal-host" data-entry-id="{{id}}"{{#if chipStyle}} style="{{chipStyle}}"{{/if}}>
+	<header class="bastionland-timeline__card-head">
+		{{#if title}}<strong class="bastionland-timeline__title">{{title}}</strong>{{/if}}
+		<span class="bastionland-pill bastionland-timeline__kind"><i class="{{chip.icon}} bastionland-timeline__kind-icon" inert></i> {{sourceLabel}}</span>
+	</header>
+	{{#if placeHtml}}<p class="bastionland-timeline__place"><i class="fa-solid fa-location-dot" inert></i> {{{placeHtml}}}</p>{{/if}}
+	{{#if bodyHtml}}<div class="bastionland-timeline__body">{{{bodyHtml}}}</div>{{/if}}
+	{{#if canEdit}}
+	<footer class="bastionland-timeline__tools bastionland-reveal">
+		{{#if earlier}}<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="earlier" data-timeline-focus="earlier-{{id}}" aria-label="{{localize "bastionland.timeline.earlier"}}" data-tooltip="{{localize "bastionland.timeline.earlier"}}"><i class="fa-solid fa-arrow-up" inert></i></button>{{/if}}
+		{{#if later}}<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="later" data-timeline-focus="later-{{id}}" aria-label="{{localize "bastionland.timeline.later"}}" data-tooltip="{{localize "bastionland.timeline.later"}}"><i class="fa-solid fa-arrow-down" inert></i></button>{{/if}}
+		<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="edit" data-timeline-focus="edit-{{id}}" aria-label="{{localize "bastionland.timeline.edit"}}" data-tooltip="{{localize "bastionland.timeline.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
+		<button type="button" class="bastionland-icon" data-action="timeline" data-timeline="remove" data-timeline-focus="remove-{{id}}" aria-label="{{localize "bastionland.timeline.remove"}}" data-tooltip="{{localize "bastionland.timeline.remove"}}"><i class="fa-solid fa-trash" inert></i></button>
+	</footer>
+	{{/if}}
+</article>
