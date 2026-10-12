@@ -1,6 +1,8 @@
 import { chooseRulebookPdf, importBookArt } from "../book-art/importer.js";
 import { openReader } from "./BookReader.js";
-import { fetchRulebook, keepRulebook } from "./store.js";
+import { t } from "../chat/cards.js";
+import { SYSTEM_ID } from "../system-id.js";
+import { fetchRulebook, foundRulebook, hasRulebook, keepRulebook, setFoundRulebook } from "./store.js";
 
 /**
  * The one gesture behind every way a GM hands the system their PDF: the Welcome,
@@ -27,4 +29,51 @@ export async function bringInRulebook(given) {
 export async function importKeptRulebook() {
 	const file = await fetchRulebook();
 	return file ? importBookArt(file) : null;
+}
+
+/** The import of a found book under way, which the Welcome and a load share rather than run twice. */
+let importing = null;
+
+/**
+ * Import the book this world found kept by another, and settle what became of
+ * it. Given up on, the world goes back to asking for the PDF, rather than
+ * trying again on every load. A second call while one runs waits on that one.
+ * @returns {Promise<object|null>} The art index, or null if nothing was read.
+ */
+export function importFoundRulebook() {
+	importing ??= settleFoundRulebook().finally(() => {
+		importing = null;
+	});
+	return importing;
+}
+
+/** @returns {Promise<object|null>} importFoundRulebook's import, run once. */
+async function settleFoundRulebook() {
+	let index = null;
+	try {
+		index = await importKeptRulebook();
+	} finally {
+		await setFoundRulebook(index ? "done" : "");
+	}
+	return index;
+}
+
+/**
+ * Import the book this world took up from another (findKeptRulebook, run
+ * before world setup), when it is still pending. Run on every load by the
+ * active GM. A world the Welcome still greets leaves the import to it, where
+ * the GM sees it happen. A failed import is logged, never thrown, so the
+ * load carries on.
+ * @param {() => boolean} isGreeted Whether the Welcome opens for this world.
+ */
+export async function adoptKeptRulebook(isGreeted) {
+	if (!game.user?.isGM || !game.users.activeGM?.isSelf) return;
+	if (!hasRulebook() || foundRulebook() !== "pending" || isGreeted()) return;
+	ui.notifications.info(t("rulebook.adopted"));
+	openReader()?.reload();
+	try {
+		await importFoundRulebook();
+	} catch (error) {
+		console.error(`${SYSTEM_ID} | Couldn't import the kept rulebook`, error);
+	}
 }

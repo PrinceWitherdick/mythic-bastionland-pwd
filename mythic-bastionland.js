@@ -109,7 +109,7 @@ import { registerSettingsTabHooks } from "./module/sheets/settings-tab.js";
 import { StructureSheet } from "./module/sheets/StructureSheet.js";
 import { registerRestorableWindow, registerSheetRestore, restoreOpenSheets } from "./module/sheets/restore-open-sheets.js";
 import { openRulebook, reopenableReader, toggleRulebook } from "./module/rulebook/BookReader.js";
-import { bringInRulebook } from "./module/rulebook/bring-in.js";
+import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
@@ -127,7 +127,7 @@ import { catchUpBookText, loadBookText, registerBookText } from "./module/book-a
 import { registerArtIndexStamp } from "./module/book-art/art-index.js";
 import { registerRulebookShare } from "./module/rulebook/share.js";
 import { watchQuerySenders } from "./module/compat.js";
-import { FIND_RULEBOOK_STEP, RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
+import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
 import { restAfterCombat } from "./module/actions/recovery.js";
@@ -559,8 +559,6 @@ Hooks.on("getCombatContextOptions", addSurpriseOption);
 const WORLD_SETUP = Object.freeze([
 	// First, so it sees whether any other step has been done here before.
 	{ key: WELCOME_STEP, run: welcomeOnlyNewWorlds },
-	// A new world takes up the book another world kept, before the cards ask for one.
-	{ key: FIND_RULEBOOK_STEP, run: () => findKeptRulebook(welcomesThisWorld) },
 	// Right after it, so only a world it still greets is posted them.
 	{ key: WELCOME_CARDS_STEP, run: () => postWelcomeCards(welcomesThisWorld) },
 	// A world already in play hears of the weather on the map once; a new one has just been told.
@@ -644,7 +642,12 @@ Hooks.once("ready", async () => {
 	syncEveryRealm();
 	// And each Site with something drawn or written on it.
 	syncEverySite();
-	const setup = runWorldSetup(WORLD_SETUP);
+	// A world with no rulebook takes up the one another world kept on this server, however old the world,
+	// and before setup, so a new world's welcome cards don't ask for one.
+	const finding = game.users.activeGM?.isSelf ? findKeptRulebook().catch((error) => console.error(`${SYSTEM_ID} | Couldn't look for a kept rulebook`, error)) : Promise.resolve();
+	const setup = finding.then(() => runWorldSetup(WORLD_SETUP));
+	// Its import runs beside the load rather than holding it up; it logs a failure rather than throwing one.
+	setup.then(() => adoptKeptRulebook(welcomesThisWorld));
 	await Promise.all([
 		restoreOpenSheets(),
 		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,

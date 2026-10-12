@@ -10,6 +10,7 @@ import {
 	RULEBOOK_HOOK,
 	canBrowseRulebooks,
 	canKeepRulebook,
+	forgetRulebook,
 	rulebookPath,
 	saveRulebookPath
 } from "./store.js";
@@ -107,9 +108,9 @@ export class RulebookSetup extends HandlebarsApplicationMixin(ApplicationV2) {
 		}).render({ force: true });
 	}
 
-	/** The copied file stays on the server; only the world's pointer to it goes. */
+	/** The copied file stays on the server; only the world's pointer to it goes, and it isn't taken up again. */
 	static async #onForget() {
-		await saveRulebookPath("");
+		await forgetRulebook();
 		await openReader()?.close();
 	}
 

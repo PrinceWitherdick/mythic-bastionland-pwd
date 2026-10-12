@@ -43,8 +43,11 @@ export const KEPT_RULEBOOK = `${RULEBOOK_DIR}/${RULEBOOK_FILE}`;
  */
 const FOUND_SETTING = "rulebookFound";
 
-/** The world setup step that looks for a book another world kept. */
-export const FIND_RULEBOOK_STEP = "findRulebook";
+/**
+ * World setting: whether the GM sent this world's book away with Forget, so the
+ * copy another world kept, still on the server, isn't taken up again next load.
+ */
+const FORGOTTEN_SETTING = "rulebookForgotten";
 
 /** Called on every client when the world's copy changes. */
 export const RULEBOOK_HOOK = `${SYSTEM_ID}.rulebookChanged`;
@@ -64,6 +67,12 @@ export function registerRulebookSettings() {
 		type: String,
 		default: "",
 		onChange: () => Hooks.callAll(RULEBOOK_HOOK)
+	});
+	game.settings.register(SYSTEM_ID, FORGOTTEN_SETTING, {
+		scope: "world",
+		config: false,
+		type: Boolean,
+		default: false
 	});
 	game.settings.register(SYSTEM_ID, PLAYERS_SETTING, {
 		name: "bastionland.rulebook.settings.forPlayers.name",
@@ -96,12 +105,33 @@ export function hasRulebook() {
 }
 
 /**
- * Record where the book lives, or forget it when given nothing.
+ * Record where the book lives. A book chosen again undoes a Forget.
  * @param {string} path
- * @returns {Promise<unknown>}
  */
-export function saveRulebookPath(path) {
-	return game.settings.set(SYSTEM_ID, PATH_SETTING, String(path ?? "").trim());
+export async function saveRulebookPath(path) {
+	const kept = String(path ?? "").trim();
+	await game.settings.set(SYSTEM_ID, PATH_SETTING, kept);
+	if (kept && wasRulebookForgotten()) await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, false);
+}
+
+/**
+ * Send the world's book away. The copy stays on the server, so the world
+ * remembers it was sent away, or the next load would take it up again. A
+ * found book still waiting to be imported waits no more.
+ */
+export async function forgetRulebook() {
+	await game.settings.set(SYSTEM_ID, PATH_SETTING, "");
+	await game.settings.set(SYSTEM_ID, FORGOTTEN_SETTING, true);
+	if (foundRulebook() === "pending") await setFoundRulebook("");
+}
+
+/** @returns {boolean} Whether the GM sent this world's book away with Forget. */
+export function wasRulebookForgotten() {
+	try {
+		return game.settings.get(SYSTEM_ID, FORGOTTEN_SETTING) === true;
+	} catch {
+		return false;
+	}
 }
 
 /** @returns {boolean} Whether this user is offered the book at all. */
@@ -193,16 +223,19 @@ async function keptRulebookThere() {
 }
 
 /**
- * Point a new world at the book another world already kept, so its GM isn't
- * asked for the PDF again, and leave its import to the Welcome. A world setup
- * step, run before the welcome cards so they know not to ask either.
- * @param {() => boolean} isNewWorld
+ * Point a world with no book at the one another world already kept, so its GM
+ * isn't asked for the PDF again, and leave its import pending. Run by the
+ * active GM on every load, before world setup, so a new world's welcome cards
+ * know not to ask either, and so a world made before any world kept a book
+ * takes it up too. A book the GM sent away with Forget stays away.
+ * @returns {Promise<boolean>} Whether this world took up the kept copy.
  */
-export async function findKeptRulebook(isNewWorld) {
-	if (!isNewWorld() || hasRulebook()) return;
-	if (!(await keptRulebookThere())) return;
+export async function findKeptRulebook() {
+	if (hasRulebook() || wasRulebookForgotten()) return false;
+	if (!(await keptRulebookThere())) return false;
 	await saveRulebookPath(KEPT_RULEBOOK);
 	await setFoundRulebook("pending");
+	return true;
 }
 
 /**

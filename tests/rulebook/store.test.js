@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
-import { KEPT_RULEBOOK, fetchRulebook, findKeptRulebook, foundRulebook, registerRulebookSettings, rulebookPath } from "../../module/rulebook/store.js";
+import {
+	KEPT_RULEBOOK,
+	fetchRulebook,
+	findKeptRulebook,
+	forgetRulebook,
+	foundRulebook,
+	registerRulebookSettings,
+	rulebookPath,
+	saveRulebookPath,
+	wasRulebookForgotten
+} from "../../module/rulebook/store.js";
 
 let settings;
 
@@ -32,9 +42,9 @@ afterEach(() => {
 });
 
 describe("findKeptRulebook", () => {
-	it("points a new world at the copy another world kept, and leaves its import pending", async () => {
+	it("points a world with no book at the copy another world kept, and leaves its import pending", async () => {
 		installServer(true);
-		await findKeptRulebook(() => true);
+		await expect(findKeptRulebook()).resolves.toBe(true);
 		expect(rulebookPath()).toBe(KEPT_RULEBOOK);
 		expect(foundRulebook()).toBe("pending");
 		expect(fetch).toHaveBeenCalledWith(`/${KEPT_RULEBOOK}`, expect.objectContaining({ method: "HEAD" }));
@@ -42,21 +52,43 @@ describe("findKeptRulebook", () => {
 
 	it("finds nothing when no world has kept one", async () => {
 		installServer(false);
-		await findKeptRulebook(() => true);
+		await expect(findKeptRulebook()).resolves.toBe(false);
 		expect(rulebookPath()).toBe("");
 		expect(foundRulebook()).toBe("");
 	});
 
-	it("leaves a world already in play, or one already pointed at a book, as it is", async () => {
+	it("leaves a world already pointed at a book as it is", async () => {
 		installServer(true);
-		await findKeptRulebook(() => false);
-		expect(rulebookPath()).toBe("");
-
 		settings.rulebookPdf = "elsewhere/book.pdf";
-		await findKeptRulebook(() => true);
+		await expect(findKeptRulebook()).resolves.toBe(false);
 		expect(rulebookPath()).toBe("elsewhere/book.pdf");
 		expect(foundRulebook()).toBe("");
 		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it("doesn't take up again a book the GM sent away with Forget", async () => {
+		installServer(true);
+		settings.rulebookPdf = KEPT_RULEBOOK;
+		await forgetRulebook();
+		expect(rulebookPath()).toBe("");
+		expect(wasRulebookForgotten()).toBe(true);
+		await expect(findKeptRulebook()).resolves.toBe(false);
+		expect(rulebookPath()).toBe("");
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it("stops waiting to import a found book the GM sent away", async () => {
+		installServer(true);
+		await expect(findKeptRulebook()).resolves.toBe(true);
+		expect(foundRulebook()).toBe("pending");
+		await forgetRulebook();
+		expect(foundRulebook()).toBe("");
+	});
+
+	it("takes it up again once the GM chooses a book after a Forget", async () => {
+		await forgetRulebook();
+		await saveRulebookPath("elsewhere/book.pdf");
+		expect(wasRulebookForgotten()).toBe(false);
 	});
 });
 
