@@ -66,7 +66,9 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		sheet: {
 			template: templatePath("actor/domain-sheet.hbs"),
 			scrollable: [""]
-		}
+		},
+		// Drawn on its own and put into the sheet's page, so the Timeline and the rest of the sheet don't draw each other.
+		timeline: { template: templatePath("actor/parts/timeline-tab.hbs") }
 	};
 
 	/** The sheet's pages, picked from the rail hung off the window's edge. */
@@ -93,6 +95,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
+		// The Timeline drawn on its own needs none of the sheet's.
+		if (!options.parts?.includes("sheet")) return context;
 		const actor = this.actor;
 		const { system } = actor;
 		const calendar = getCalendar();

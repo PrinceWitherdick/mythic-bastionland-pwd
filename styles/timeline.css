@@ -309,8 +309,10 @@
 /* The board, with empty room past its edges to drag it into (module/apps/timeline-scroll.js
    sizes it on the canvas). Content-box, so the room is added round the board rather than taken from it.
    Down, as wide as the box, and wider by the zoom, so a zoomed board runs off the right edge
-   for the drag to bring back; across, as wide as its Seasons need. */
+   for the drag to bring back; across, as wide as its Seasons need. The heads' wash is set here
+   for every board's heads below. */
 .bastionland-timeline__canvas {
+	--timeline-head-wash: color-mix(in srgb, var(--bastionland-paper-deep) 55%, var(--bastionland-paper));
 	box-sizing: content-box;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
@@ -724,9 +726,15 @@
 /* ---------------------------------------------------------------- */
 
 /* The heads, read down or across, are boxes as the cards are, on a wash between the page and
-   the cards' own fill, so a head reads as a head and still hides what slides under it. */
-.bastionland-timeline__canvas {
-	--timeline-head-wash: color-mix(in srgb, var(--bastionland-paper-deep) 55%, var(--bastionland-paper));
+   the cards' own fill, so a head reads as a head and still hides what slides under it. A
+   thread's name has its box drawn by ::before, inside a backing in the page's colour. */
+.bastionland-timeline__period-head--board,
+.bastionland-timeline__swim-head,
+.bastionland-timeline__board > .bastionland-timeline__lane-head::before,
+.bastionland-timeline__swim-lane-head::before {
+	border: 2px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: var(--timeline-head-wash);
 }
 
 /* Laid out as Stonetop's board: the rows parted by their gap rather than by rules, the Season
@@ -772,9 +780,6 @@
 	position: absolute;
 	inset: 6px 5px;
 	z-index: -1;
-	border: 2px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: var(--timeline-head-wash);
 }
 
 .bastionland-timeline__lane-head {
@@ -867,9 +872,6 @@
 	gap: 4px;
 	align-self: stretch;
 	padding: 8px 10px;
-	border: 2px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: var(--timeline-head-wash);
 }
 
 /* The Season it is now wears its colour on its edge; the ghost Season, with nothing written in it
@@ -934,9 +936,6 @@
 	align-items: center;
 	gap: 8px;
 	padding: 8px 10px;
-	border: 2px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: var(--timeline-head-wash);
 }
 
 .bastionland-timeline__swim-head > .bastionland-timeline__notes {
@@ -995,9 +994,6 @@
 	position: absolute;
 	inset: 5px 0;
 	z-index: -1;
-	border: 2px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: var(--timeline-head-wash);
 }
 
 /* ---------------------------------------------------------------- */

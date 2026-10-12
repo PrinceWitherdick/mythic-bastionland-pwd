@@ -11,6 +11,7 @@
  * moved", so a caller can skip a write that would redraw every open sheet to
  * no effect.
  */
+import { hexKey } from "./realm-geometry.js";
 import { SEASON_TURNS } from "./season-log.js";
 import { SEASONS, parseSeasonKey, seasonKey } from "./time.js";
 
@@ -24,7 +25,7 @@ export const TRACK_KINDS = Object.freeze(["company", "knight", "domain", "realm"
 export const COMPANY_TRACK = "company";
 
 /** Where entries with no Season are gathered: what came before the tale. */
-export const UNDATED = "";
+const UNDATED = "";
 
 /**
  * The Filter menu's lines, each the sources it shows or hides, in the menu's
@@ -88,8 +89,8 @@ export const timelineKeys = Object.freeze({
 	domain: (domainId) => `domain:${domainId}`,
 	// A Holding granted again, in another Season or to another Knight, is a row of its own.
 	holding: (sceneId, holdingId, season, knightId) => `holding:${sceneId}:${holdingId}:${season}:${knightId}`,
-	visit: (sceneId, hex) => `visit:${sceneId}:${hex.col},${hex.row}`,
-	note: (sceneId, hex) => `note:${sceneId}:${hex.col},${hex.row}`,
+	visit: (sceneId, hex) => `visit:${sceneId}:${hexKey(hex)}`,
+	note: (sceneId, hex) => `note:${sceneId}:${hexKey(hex)}`,
 	duel: (messageId) => `duel:${messageId}`,
 	// A Scar settles once, by revenge or otherwise.
 	settled: (itemId) => `settled:${itemId}`,
@@ -238,7 +239,11 @@ const closing = (entry) => (isSeasonTurn(entry) ? 1 : 0);
 
 const withinPeriod = (a, b) => closing(a) - closing(b) || a.order - b.order || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
 
-const inOrder = (entries) => [...entries].sort((a, b) => periodRank(a.season) - periodRank(b.season) || withinPeriod(a, b));
+/**
+ * @param {TimelineEntry[]} entries Already read.
+ * @returns {TimelineEntry[]} As sortEntries orders them.
+ */
+export const inOrder = (entries) => [...entries].sort((a, b) => periodRank(a.season) - periodRank(b.season) || withinPeriod(a, b));
 
 /**
  * @param {unknown} entries

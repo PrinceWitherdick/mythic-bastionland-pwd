@@ -1,9 +1,7 @@
 {{!-- The full Timeline (module/apps/TimelineWindow.js): every thread side by side, laid down the page or across it. --}}
 <div class="bastionland-page bastionland-timeline{{#if across}} bastionland-timeline--across{{/if}}">
 	<div class="bastionland-timeline__toolbar">
-		{{#if canWrite}}
-		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new" data-timeline-focus="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
-		{{/if}}
+		{{> "bastionland.timeline-new" show=canWrite}}
 		{{> "bastionland.timeline-toolbar"}}
 	</div>
 	{{~> "bastionland.timeline-board"}}

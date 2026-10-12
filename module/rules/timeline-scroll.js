@@ -18,14 +18,12 @@ export const SCRUB_MAX = 1000;
 
 /**
  * @param {unknown} scale
- * @param {number} [min]
- * @param {number} [max]
  * @returns {number} A zoom inside the range; nonsense is 1.
  */
-export function clampScale(scale, min = ZOOM_MIN, max = ZOOM_MAX) {
+export function clampScale(scale) {
 	const n = Number(scale);
 	if (!Number.isFinite(n) || n <= 0) return 1;
-	return Math.min(max, Math.max(min, n));
+	return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, n));
 }
 
 /**
@@ -44,14 +42,13 @@ export function wheelNotches({ deltaY = 0, deltaMode = 0 } = {}) {
 /**
  * @param {number} scale
  * @param {number} notches Signed, and need not be whole.
- * @param {{step?: number, min?: number, max?: number}} [options]
  * @returns {number} The zoom after them.
  */
-export function stepZoom(scale, notches, { step = ZOOM_STEP, min = ZOOM_MIN, max = ZOOM_MAX } = {}) {
-	const from = clampScale(scale, min, max);
+export function stepZoom(scale, notches) {
+	const from = clampScale(scale);
 	const n = Number(notches);
 	if (!Number.isFinite(n) || !n) return from;
-	return clampScale(from * step ** n, min, max);
+	return clampScale(from * ZOOM_STEP ** n);
 }
 
 /**

@@ -218,6 +218,10 @@ describe("writing", () => {
 		await store.mutateTrack(track, (entries) => addEntry(entries, { id: "a", season: "2-winter" }), { create: true });
 		await store.mutateTrack({ trackId: "company", kind: "company" }, (entries) => addEntry(entries, { id: "b", season: "" }), { create: true });
 		expect([...store.allSeasons()]).toEqual(["2-winter"]);
+		// Read again for a page whose entries were written anew, as every write leaves them.
+		const page = store.findTrackPage("k1");
+		page.system.entries = { ...page.system.entries, c: { id: "c", season: "1-spring" } };
+		expect([...store.allSeasons()]).toEqual(["2-winter", "1-spring"]);
 		expect(store.allTracks().map((t) => t.trackId)).toEqual(["company", "k1"]);
 	});
 });

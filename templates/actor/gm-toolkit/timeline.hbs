@@ -3,9 +3,7 @@
 	<p class="bastionland-hint">{{localize "bastionland.gmToolkit.timelineHint"}}</p>
 	{{#with timeline}}
 	<div class="bastionland-timeline__toolbar">
-		{{#if canWrite}}
-		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="new" data-timeline-focus="new"><i class="fa-solid fa-feather-pointed" inert></i> {{localize "bastionland.timeline.newEntry"}}</button>
-		{{/if}}
+		{{> "bastionland.timeline-new" show=canWrite}}
 		<button type="button" class="bastionland-button" data-action="timeline" data-timeline="openFull" data-timeline-focus="open-full"><i class="fa-solid fa-up-right-from-square" inert></i> {{localize "bastionland.timeline.popOut"}}</button>
 		{{> "bastionland.timeline-toolbar"}}
 	</div>

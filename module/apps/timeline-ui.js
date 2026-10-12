@@ -40,13 +40,48 @@ const COLOURS_SETTING = "timelineKindColours";
 const SHOW_SETTING = "showTimeline";
 
 /** The ways a Timeline can be laid out. */
-export const TIMELINE_LAYOUTS = Object.freeze(["down", "across"]);
+const TIMELINE_LAYOUTS = Object.freeze(["down", "across"]);
 
 /** How long a burst of writes is let settle before a Timeline is drawn again: one event can write on several threads. */
-export const TIMELINE_REDRAW_DELAY = 150;
+const TIMELINE_REDRAW_DELAY = 150;
+
+/**
+ * @param {foundry.applications.api.ApplicationV2} app
+ * @param {string} [part] The one part to draw, on an app that draws its Timeline as a part of its own.
+ * @returns {() => void} Draws the app, or that part of it, again once a burst of Timeline writes has settled; one landing after it closes draws nothing.
+ */
+export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => (part ? renderPartWhenIdle(app, part) : renderWhenIdle(app)), TIMELINE_REDRAW_DELAY);
+
+/** A control in a Timeline that a redraw would snatch from the hand: a colour picker held open, or the scrubber being dragged. */
+const HANDLED = 'input:not([type="checkbox"]):not([type="radio"])';
+
+/** Apps waiting for a control in their Timeline part to be let go of. */
+const partsWaiting = new WeakSet();
+
+/**
+ * Draw one part of an app again, once whoever is using a control in it has let
+ * go. A field being typed in elsewhere in the app is left alone, as the part
+ * drawn doesn't hold it.
+ * @param {foundry.applications.api.ApplicationV2} app
+ * @param {string} part
+ */
+function renderPartWhenIdle(app, part) {
+	if (!app?.rendered) return;
+	const field = document.activeElement;
+	if (!field || !app.parts?.[part]?.contains(field) || !field.matches(HANDLED)) {
+		app.render({ parts: [part] });
+		return;
+	}
+	if (partsWaiting.has(app)) return;
+	partsWaiting.add(app);
+	field.addEventListener("blur", () => {
+		partsWaiting.delete(app);
+		if (app.rendered) app.render({ parts: [part] });
+	}, { once: true });
+}
 
 /** Called by everything showing a Timeline when the reader's Filter or layout changes. */
-export const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;
+const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;
 
 /** Register the Timeline's settings. Called during init. */
 export function registerTimelineSettings() {
@@ -107,7 +142,7 @@ export function refuseHiddenTimeline() {
 }
 
 /** @returns {boolean} Whether this reader lays the Timeline across the page. */
-export const layoutAcross = () => read(LAYOUT_SETTING, "down") === "across";
+const layoutAcross = () => read(LAYOUT_SETTING, "down") === "across";
 
 /** @returns {string} This reader's layout, one of TIMELINE_LAYOUTS. */
 const layoutName = () => (layoutAcross() ? "across" : "down");
@@ -133,7 +168,7 @@ export function applyKindColours() {
 }
 
 /** @returns {{kinds: string[], tracks: string[]|null}} */
-export function readFilter() {
+function readFilter() {
 	const { kinds, tracks } = read(FILTER_SETTING, {});
 	return { kinds: Array.isArray(kinds) ? kinds : [], tracks: Array.isArray(tracks) ? tracks : null };
 }
@@ -187,13 +222,13 @@ const ageHeading = ({ age }) => (age ? t("timeline.age", { age: ordinalWord(age)
  * @param {{undated: boolean, name: string|null, yearsOn: number}} period
  * @returns {string} Such as "Harvest", or "Harvest, a Year On" for the next in the same Age.
  */
-export const periodHeading = ({ undated, name, yearsOn }) => (undated ? t("timeline.undated") : yearsOnHeading(t(`time.seasons.${name}`), yearsOn));
+const periodHeading = ({ undated, name, yearsOn }) => (undated ? t("timeline.undated") : yearsOnHeading(t(`time.seasons.${name}`), yearsOn));
 
 /**
  * @param {{trackId: string, page?: JournalEntryPage}} track
  * @returns {boolean} Whether this user can write on the thread.
  */
-export function canWriteTrack({ trackId, page = findTrackPage(trackId) }) {
+function canWriteTrack({ trackId, page = findTrackPage(trackId) }) {
 	if (page) return page.isOwner;
 	return Boolean(game.user?.isGM || findTimelineJournal()?.isOwner);
 }
@@ -319,11 +354,13 @@ export async function trackContext(track, { editable = true } = {}) {
 	const page = findTrackPage(track.trackId);
 	const canEdit = editable && canWriteTrack({ trackId: track.trackId, page });
 	// Another thread writes the Company's Season turns in its headings (rules/timeline-view.js#trackView).
-	const company = track.trackId === COMPANY_TRACK ? null : findTrackPage(COMPANY_TRACK)?.system?.entries;
+	const companyPage = track.trackId === COMPANY_TRACK ? null : findTrackPage(COMPANY_TRACK);
+	const company = companyPage?.system?.entries;
 	const view = trackView({ ...track, entries: page?.system?.entries ?? {} }, { hidden: filter.kinds, nowKey: timelineNow(), seasons: allSeasons(), tags, canEdit, company });
 	const toolbar = toolbarContext({ hidden: filter.kinds, tags });
-	// A Company turn's Edit writes on the Company's thread, so it asks that page.
-	const canEditNote = (trackId) => (trackId === track.trackId ? canEdit : editable && canWriteTrack({ trackId }));
+	// A Company turn's Edit writes on the Company's thread, so it asks that page, once for every turn.
+	let companyWritable;
+	const canEditNote = (trackId) => (trackId === track.trackId ? canEdit : (companyWritable ??= editable && canWriteTrack({ trackId: COMPANY_TRACK, page: companyPage })));
 	const periods = await wordPeriods(view.periods, canEditNote, async (period, heading) => ({
 		entries: await wordCards(period.entries, canEdit),
 		addLabel: period.add ? addLabel(heading) : ""
@@ -525,7 +562,7 @@ function wireEntryDialog(element) {
  * @param {{season?: string}} [options] The Season a new one is dated, from the add slot pressed.
  * @returns {Promise<{season: string, tag: string, title: string, place: string, placeUuid: string, body: string}|null>}
  */
-export async function promptTimelineEntry(entry = null, { season } = {}) {
+async function promptTimelineEntry(entry = null, { season } = {}) {
 	const typed = !entry || entry.source === "hand";
 	const answer = await inputDialog({
 		title: t(entry ? "timeline.entry.editTitle" : "timeline.entry.newTitle"),
@@ -754,12 +791,18 @@ function wireMenus(timeline, trackIds, signal) {
 		if (colours.open) fill();
 		else if (coloursDraft.size) closeColours(timeline);
 	}, { signal });
+	// A picker dragged sends a stream of inputs: the Timeline is repainted once a frame, with the last.
+	let frame = 0;
+	signal.addEventListener("abort", () => cancelAnimationFrame(frame), { once: true });
 	colours.addEventListener("input", (event) => {
 		const row = event.target.closest("[data-kind]");
 		if (!row) return;
 		coloursDraft.set(row.dataset.kind, cleanColour(event.target.value) || null);
 		row.classList.add("is-repainted");
-		previewColours(timeline);
+		frame ||= requestAnimationFrame(() => {
+			frame = 0;
+			previewColours(timeline);
+		});
 	}, { signal });
 	colours.addEventListener("change", (event) => event.stopPropagation(), { signal });
 	previewColours(timeline);
@@ -918,18 +961,21 @@ export class TimelineTab {
 	 * @param {foundry.applications.api.ApplicationV2 & {actor: Actor}} sheet
 	 * @param {object} [options]
 	 * @param {boolean} [options.board] Every thread side by side, as the Timeline window shows them, rather than the actor's own.
-	 * @param {() => void} [options.redraw] How the sheet draws the tab again; the whole sheet, by default.
+	 * @param {() => void} options.redraw How the sheet draws the tab again, once a burst of writes has settled.
+	 * @param {() => void} [options.show] How it draws the tab at once, as it's opened having missed a change.
 	 */
-	constructor(sheet, { board = false, redraw = () => renderWhenIdle(sheet) } = {}) {
+	constructor(sheet, { board = false, redraw, show = redraw }) {
 		this.#sheet = sheet;
 		this.#board = board;
 		this.#redraw = redraw;
+		this.#show = show;
 		this.#host = new TimelineHost(board ? "toolkit" : `actor:${sheet.actor?.id ?? sheet.id}`);
 	}
 
 	#sheet;
 	#board;
 	#redraw;
+	#show;
 	#host;
 	#stale = false;
 	#hooks = [];
@@ -952,21 +998,17 @@ export class TimelineTab {
 			return this.#last;
 		}
 		this.#stale = false;
-		if (this.#board) {
-			this.#last = await boardContext();
-			return this.#last;
-		}
-		const track = trackFor(this.#sheet.actor);
-		this.#last = track ? await trackContext(track) : null;
+		const track = this.#board ? null : trackFor(this.#sheet.actor);
+		this.#last = this.#board ? await boardContext() : track && (await trackContext(track));
 		return this.#last;
 	}
 
-	/** Called as the sheet changes tab: a tab that missed a change is drawn again. */
+	/** Called as the sheet changes tab: a tab that missed a change is drawn again, then and there. */
 	shown(tab) {
 		if (tab !== "timeline") return;
 		if (this.#stale) {
 			this.#stale = false;
-			this.#redraw();
+			this.#show();
 		} else this.wire(this.#sheet.element);
 	}
 

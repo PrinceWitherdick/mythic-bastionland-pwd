@@ -58,7 +58,7 @@ export function cleanColour(value) {
 export const isKindTag = (tag) => tag !== "hand" && Object.hasOwn(KIND_GROUPS, tag);
 
 /** @returns {boolean} Whether it's one of the table's own tags' ids, kept or not. */
-export function isCustomTagId(tag) {
+function isCustomTagId(tag) {
 	const id = String(tag ?? "");
 	return id.startsWith(CUSTOM_TAG_PREFIX) && id.length > CUSTOM_TAG_PREFIX.length;
 }

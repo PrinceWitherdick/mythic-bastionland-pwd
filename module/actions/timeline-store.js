@@ -3,6 +3,7 @@ import { deletionEntry } from "../compat.js";
 import { serialWrites } from "../rules/queue.js";
 import { COMPANY_TRACK, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { afterBurst } from "./kept-journals.js";
 import { worldKnights } from "./knights.js";
 import { isRealmScene } from "./realm.js";
 
@@ -109,7 +110,7 @@ export function trackFor(target) {
  * something first happens to it.
  * @returns {Track[]}
  */
-export function worldTracks() {
+function worldTracks() {
 	return [
 		trackFor(COMPANY_TRACK),
 		...worldKnights((knight) => knight.hasPlayerOwner).map(trackFor),
@@ -158,13 +159,30 @@ export function allTracks() {
 		.map(trackOfPage);
 }
 
+/** Each page's Seasons as last read, by its entries, which every write to the page replaces. */
+const seasonsRead = new WeakMap();
+
+/**
+ * @param {object|object[]|undefined} entries A thread's entries, as kept.
+ * @returns {string[]} The Seasons they fall in, read once for each write.
+ */
+function seasonsOf(entries) {
+	if (!entries || typeof entries !== "object") return [];
+	let seasons = seasonsRead.get(entries);
+	if (!seasons) {
+		seasons = [...new Set(readEntries(entries).map((entry) => entry.season).filter(Boolean))];
+		seasonsRead.set(entries, seasons);
+	}
+	return seasons;
+}
+
 /**
  * @param {{entries: object}[]} [tracks] Every thread's page this user can read, as it's kept, when none are given.
  * @returns {Set<string>} Every Season anything on the Timeline falls in.
  */
 export function allSeasons(tracks = readablePages(findTimelineJournal()).map((page) => ({ entries: page.system?.entries }))) {
 	const seasons = new Set();
-	for (const track of tracks) for (const entry of readEntries(track.entries)) if (entry.season) seasons.add(entry.season);
+	for (const track of tracks) for (const season of seasonsOf(track.entries)) seasons.add(season);
 	return seasons;
 }
 
@@ -234,7 +252,7 @@ export function ensureTrackPage(track) {
  * @param {object[]} entries
  * @returns {Promise<boolean>} Whether anything changed.
  */
-export async function writeEntries(page, entries) {
+async function writeEntries(page, entries) {
 	const diff = entriesDiff(page.system?.entries, entries);
 	if (!diff) return false;
 	const update = {};
@@ -319,16 +337,7 @@ export function syncTrackPages({ seen = [] } = {}) {
 }
 
 /** Pages are synced once a burst of changes has settled: a pack imported, several Knights made at once. */
-let later = null;
-const seenChanged = new Set();
-const syncSoon = (seenBy = null) => {
-	if (seenBy) seenChanged.add(seenBy);
-	(later ??= foundry.utils.debounce(() => {
-		const seen = [...seenChanged];
-		seenChanged.clear();
-		syncTrackPages({ seen });
-	}, 250))();
-};
+const syncSoon = afterBurst((ids) => syncTrackPages({ seen: ids.filter(Boolean) }));
 
 /** Keep a page for each new thread, and each page named after its thread. */
 export function registerTimelineStoreHooks() {
@@ -343,7 +352,7 @@ export function registerTimelineStoreHooks() {
 	});
 	Hooks.on("updateScene", (scene, changes) => {
 		// A Realm's own flags change with every step and stroke: only its first wants a page.
-		if (!isRealmScene(scene)) return;
+		if (!isRealmScene(scene) || !keepsTheTimeline()) return;
 		if ("name" in changes || (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}`) && !findTrackPage(realmTrackId(scene.id)))) syncSoon();
 	});
 }

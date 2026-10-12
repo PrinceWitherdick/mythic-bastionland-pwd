@@ -90,7 +90,9 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		sheet: {
 			template: templatePath("actor/knight-sheet.hbs"),
 			scrollable: [""]
-		}
+		},
+		// Drawn on its own and put into the sheet's page, so the Timeline and the rest of the sheet don't draw each other.
+		timeline: { template: templatePath("actor/parts/timeline-tab.hbs") }
 	};
 
 	/** A Squire's own page, in place of the Knight's, under the figure from their portrait. */
@@ -150,6 +152,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
+		// The Timeline drawn on its own needs none of the sheet's.
+		if (!options.parts?.includes("sheet")) return context;
 		const system = this.actor.system;
 		const [property, abilities, passions, scars] = await Promise.all([
 			this._preparePropertyItems(...PROPERTY_TYPES),
@@ -347,6 +351,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		this.#fillFromBook();
+		// The Timeline drawn on its own left the rest as it was, already wired.
+		if (!options.parts?.includes("sheet")) return;
 		// Picking a player on a Knight's empty page gives them the Knight; it isn't a field of the Actor's.
 		this.element.querySelector(".bastionland-unchosen__player select")?.addEventListener("change", (event) => {
 			event.stopPropagation();

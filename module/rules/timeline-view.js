@@ -6,7 +6,7 @@
  * tested without Foundry; timeline-ui.js puts words to it.
  */
 import { parseSeasonKey } from "./time.js";
-import { KIND_GROUPS, COMPANY_TRACK, canMove, groupByPeriod, isSeasonTurn, periodRank, readEntries, sortEntries } from "./timeline.js";
+import { KIND_GROUPS, COMPANY_TRACK, canMove, groupByPeriod, isSeasonTurn, inOrder, periodRank, readEntries } from "./timeline.js";
 import { CUSTOM_TAG_ICON, KIND_ICONS, THREAD_ICONS, entryChip, filterKey, indexCustomTags } from "./timeline-tags.js";
 import { seasonYearsOn } from "./travels.js";
 
@@ -35,7 +35,7 @@ export function yearsOnBySeason(seasons) {
  * @param {{nowKey?: string, yearsOn?: Map<string, number>}} context
  * @returns {{season: string, undated: boolean, age: number|null, name: string|null, yearsOn: number, isNow: boolean}}
  */
-export function periodFacts(season, { nowKey = "", yearsOn = new Map() } = {}) {
+function periodFacts(season, { nowKey = "", yearsOn = new Map() } = {}) {
 	const parsed = parseSeasonKey(season);
 	return {
 		season,
@@ -195,24 +195,21 @@ export function boardView(tracks = [], { hidden = [], hiddenTracks = [], nowKey 
 	const offKinds = new Set(hidden);
 	const offTracks = new Set(hiddenTracks);
 	const lanes = tracks.filter((track) => !offTracks.has(track.trackId));
-	let total = 0;
-	for (const track of tracks) total += readEntries(track.entries).length;
+	// Each thread read once: hidden ones count too, so a board filtered empty says so.
+	const read = new Map(tracks.map((track) => [track.trackId, readEntries(track.entries)]));
+	const total = [...read.values()].reduce((sum, entries) => sum + entries.length, 0);
+	const pushTo = (map, key, value) => (map.get(key) ?? map.set(key, []).get(key)).push(value);
 	const buckets = new Map();
 	const notes = new Map();
 	const periods = new Set();
 	for (const track of lanes) {
 		const bucket = new Map();
 		buckets.set(track.trackId, bucket);
-		for (const entry of sortEntries(track.entries)) {
+		for (const entry of inOrder(read.get(track.trackId))) {
 			if (offKinds.has(filterKey(entry, index))) continue;
 			periods.add(entry.season);
-			if (track.trackId === COMPANY_TRACK && isSeasonTurn(entry)) {
-				if (!notes.has(entry.season)) notes.set(entry.season, []);
-				notes.get(entry.season).push(noteView(entry, track.trackId));
-				continue;
-			}
-			if (!bucket.has(entry.season)) bucket.set(entry.season, []);
-			bucket.get(entry.season).push(entry);
+			if (track.trackId === COMPANY_TRACK && isSeasonTurn(entry)) pushTo(notes, entry.season, noteView(entry, track.trackId));
+			else pushTo(bucket, entry.season, entry);
 		}
 	}
 	const allHidden = total > 0 && !periods.size;

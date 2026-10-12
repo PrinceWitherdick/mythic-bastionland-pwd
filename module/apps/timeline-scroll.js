@@ -71,9 +71,12 @@ const canvasOf = (el) => el.querySelector(":scope > .bastionland-timeline__canva
  * @param {HTMLElement} el The box that scrolls.
  * @param {HTMLElement|null} canvas What it scrolls, which takes the room past the edges.
  * @param {{pinTop?: boolean, pinLeft?: boolean, pinBottom?: boolean}} pins Edges with no room past them, for the sticky heads there.
- * @returns {() => void} Takes it off.
+ * @param {object} wiring
+ * @param {AbortSignal} wiring.signal Takes its listeners off.
+ * @param {() => void} [wiring.resized] Told whenever the box or the board in it changes size.
+ * @returns {() => void} Takes the rest off.
  */
-function wireDrag(el, canvas, { pinTop = false, pinLeft = false, pinBottom = false } = {}) {
+function wireDrag(el, canvas, { pinTop = false, pinLeft = false, pinBottom = false } = {}, { signal, resized = () => {} }) {
 	/** How much larger the box is drawn than laid out, as the press found it. */
 	let scale = 1;
 
@@ -105,12 +108,8 @@ function wireDrag(el, canvas, { pinTop = false, pinLeft = false, pinBottom = fal
 			return { x: Math.abs(el.scrollLeft - left) >= 1, y: Math.abs(el.scrollTop - top) >= 1 };
 		}
 	});
-	const onEnter = () => el.classList.toggle("is-pannable", el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth);
-	const listeners = [
-		["pointerenter", onEnter],
-		["wheel", drag.stop, { passive: true }]
-	];
-	for (const [type, fn, options] of listeners) el.addEventListener(type, fn, options);
+	el.addEventListener("pointerenter", () => el.classList.toggle("is-pannable", el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth), { signal });
+	el.addEventListener("wheel", drag.stop, { passive: true, signal });
 
 	// The room past the edges, sized now and whenever the box changes size. Each change moves the
 	// scroll by as much, so the board stays where it was on screen; read before the room moves and
@@ -135,13 +134,18 @@ function wireDrag(el, canvas, { pinTop = false, pinLeft = false, pinBottom = fal
 		el.scrollTop = top;
 	};
 	size();
-	const resizes = typeof ResizeObserver === "function" ? new ResizeObserver(size) : null;
+	// The board in it too, which is laid out again without the box changing size when, say, a font comes in late.
+	const resizes = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
+		size();
+		resized();
+	}) : null;
 	resizes?.observe(el);
+	const picture = canvas?.firstElementChild;
+	if (picture) resizes?.observe(picture);
 
 	return () => {
 		drag.off();
 		resizes?.disconnect();
-		for (const [type, fn, options] of listeners) el.removeEventListener(type, fn, options);
 	};
 }
 
@@ -158,9 +162,10 @@ const gutterOf = (canvas) => ({ x: Number.parseFloat(canvas?.style.getPropertyVa
  * @param {HTMLElement} el The box that scrolls.
  * @param {TimelineHostState} state
  * @param {() => void} moved Told after each zoom.
- * @returns {() => void}
+ * @param {AbortSignal} signal Takes its listener off.
+ * @returns {() => void} Takes a zoom still to come off.
  */
-function wireZoom(el, state, moved) {
+function wireZoom(el, state, moved, signal) {
 	const paint = (scale) => el.style.setProperty(ZOOM_VAR, String(scale));
 	paint(clampScale(state.zoom));
 	const picture = () => el.querySelector(".bastionland-timeline__canvas > *");
@@ -203,9 +208,8 @@ function wireZoom(el, state, moved) {
 		cursor = { x: event.clientX, y: event.clientY };
 		frame ||= requestAnimationFrame(apply);
 	};
-	el.addEventListener("wheel", onWheel, { passive: false });
+	el.addEventListener("wheel", onWheel, { passive: false, signal });
 	return () => {
-		el.removeEventListener("wheel", onWheel, { passive: false });
 		if (frame) cancelAnimationFrame(frame);
 	};
 }
@@ -263,20 +267,29 @@ function stopRects(el, by = "age") {
  * follows it.
  * @param {HTMLElement} el The box that scrolls.
  * @param {HTMLElement} bar The scrubber.
- * @param {{across: boolean, centre: boolean}} options Centre: a scrub puts the line back in the middle the other way too.
- * @returns {() => void}
+ * @param {object} options
+ * @param {boolean} options.across
+ * @param {boolean} options.centre A scrub puts the line back in the middle the other way too.
+ * @param {() => number} options.zoom The board's zoom now.
+ * @param {AbortSignal} options.signal Takes its listeners off.
+ * @returns {{stale: () => void, off: () => void}} Tell it the board was laid out again; take a frame still to come off.
  */
-function wireScrubber(el, bar, { across, centre }) {
+function wireScrubber(el, bar, { across, centre, zoom, signal }) {
 	const range = bar?.querySelector("input[type=range]");
 	const stops = [...(bar?.querySelectorAll(".bastionland-timeline__scrub-tick") ?? [])].map((tick) => ({ key: tick.dataset.stop, label: tick.dataset.label, tick }));
-	if (!range || stops.length < 2) return () => {};
-	// Never a sheet's own field.
-	const onChange = (event) => event.stopPropagation();
+	if (!range || stops.length < 2) return { stale() {}, off() {} };
 	const readout = bar.querySelector("output");
 	const inset = 12;
 	let wrote = null;
 	let frame = 0;
 
+	// Each Age's scroll is the scroll now plus how far its stop is from the view, which a scroll moves
+	// by as much the other way; the heads that pin, pin across the Timeline, not along it. So they're
+	// measured once and kept, not on every frame of a drag or a glide, where every cell on the board
+	// would be read: again only once the box or the board changes size, or the zoom does.
+	let measured = null;
+	/** @type {(number|null)[]|null} What the ticks were last laid by. */
+	let placed = null;
 	const measure = () => {
 		const view = viewRect(el);
 		const room = across ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
@@ -288,6 +301,11 @@ function wireScrubber(el, bar, { across, centre }) {
 			return Math.min(Math.max(0, room), Math.max(0, target));
 		});
 	};
+	const targetsNow = () => {
+		const scale = zoom();
+		if (measured?.scale !== scale) measured = { scale, targets: measure() };
+		return measured.targets;
+	};
 	const show = (value, targets) => {
 		range.value = String(Number(value.toFixed(1)));
 		const stop = stops[nearestStop(targets, value)];
@@ -295,7 +313,7 @@ function wireScrubber(el, bar, { across, centre }) {
 		range.setAttribute("aria-valuetext", stop.label);
 		if (readout) readout.textContent = stop.label;
 	};
-	const go = (value, targets = measure()) => {
+	const go = (value, targets = targetsNow()) => {
 		const main = scrollForValue(targets, value);
 		if (main === null) return;
 		// The other way, a sheet's own thread is put back in the middle, as a scrub finds a line dragged off;
@@ -322,19 +340,22 @@ function wireScrubber(el, bar, { across, centre }) {
 		if (event.key === "Home") return go(0);
 		if (event.key === "End") return go(SCRUB_MAX);
 		const value = Number(range.value) || 0;
-		const targets = measure();
+		const targets = targetsNow();
 		const marks = tickShares(targets).filter((share) => share !== null).map((share) => share * SCRUB_MAX);
 		go(dir > 0 ? (marks.find((m) => m > value + 0.5) ?? SCRUB_MAX) : (marks.findLast((m) => m < value - 0.5) ?? 0), targets);
 	};
 	const follow = () => {
 		frame = 0;
 		if (!el.isConnected || echo()) return;
-		const targets = measure();
-		tickShares(targets).forEach((share, at) => {
-			const { tick } = stops[at];
-			tick.hidden = share === null;
-			if (share !== null) tick.style.setProperty("--at", String(share));
-		});
+		const targets = targetsNow();
+		if (targets !== placed) {
+			tickShares(targets).forEach((share, at) => {
+				const { tick } = stops[at];
+				tick.hidden = share === null;
+				if (share !== null) tick.style.setProperty("--at", String(share));
+			});
+			placed = targets;
+		}
 		wrote = null;
 		const value = valueForScroll(targets, across ? el.scrollLeft : el.scrollTop);
 		if (value >= 0 && Math.abs(value - Number(range.value)) > 0.05) show(value, targets);
@@ -342,17 +363,19 @@ function wireScrubber(el, bar, { across, centre }) {
 	const onScroll = () => {
 		frame ||= requestAnimationFrame(follow);
 	};
-	range.addEventListener("change", onChange);
-	range.addEventListener("input", onInput);
-	range.addEventListener("keydown", onKey);
-	el.addEventListener("scroll", onScroll, { passive: true });
+	// Never a sheet's own field.
+	range.addEventListener("change", (event) => event.stopPropagation(), { signal });
+	range.addEventListener("input", onInput, { signal });
+	range.addEventListener("keydown", onKey, { signal });
+	el.addEventListener("scroll", onScroll, { passive: true, signal });
 	onScroll();
-	return () => {
-		range.removeEventListener("change", onChange);
-		range.removeEventListener("input", onInput);
-		range.removeEventListener("keydown", onKey);
-		el.removeEventListener("scroll", onScroll);
-		if (frame) cancelAnimationFrame(frame);
+	return {
+		stale() {
+			measured = null;
+		},
+		off() {
+			if (frame) cancelAnimationFrame(frame);
+		}
 	};
 }
 
@@ -421,7 +444,10 @@ function wireToolbarWrap(toolbar) {
 export function wireTimeline(root, state, { onView = () => {} } = {}) {
 	const timeline = timelineIn(root);
 	if (!timeline) return () => {};
-	const offs = [];
+	// Every listener comes off with this; `offs` is what else there is to stop.
+	const wiring = new AbortController();
+	const { signal } = wiring;
+	const offs = [() => wiring.abort()];
 	const scroll = timeline.querySelector(".bastionland-timeline__scroll");
 	const across = timeline.classList.contains("bastionland-timeline--across");
 	const board = Boolean(timeline.querySelector(".bastionland-timeline__board, .bastionland-timeline__swim"));
@@ -434,13 +460,17 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			const { x, y } = gutterOf(canvas);
 			state.view = { zoom: state.zoom, left: Math.round(scroll.scrollLeft - x), top: Math.round(scroll.scrollTop - y) };
 		};
-		// The zoom goes on before the board is placed, so a kept scroll isn't clamped against a smaller picture.
-		offs.push(wireZoom(scroll, state, () => {
+		const onScroll = () => {
 			noteView();
 			onView(state.view);
-		}));
-		// A board's heads are pinned to its top and left; one thread has room either side of its line.
-		offs.push(wireDrag(scroll, canvas, board ? { pinTop: true, pinLeft: true, pinBottom: true } : { pinTop: !across, pinLeft: across, pinBottom: !across }));
+		};
+		// The zoom goes on before the board is placed, so a kept scroll isn't clamped against a smaller picture.
+		offs.push(wireZoom(scroll, state, onScroll, signal));
+		// A board's heads are pinned to its top and left; one thread has room either side of its line. The
+		// scrubber, wired below, measures again once the board changes size.
+		let scrubber = null;
+		const pins = board ? { pinTop: true, pinLeft: true, pinBottom: true } : { pinTop: !across, pinLeft: across, pinBottom: !across };
+		offs.push(wireDrag(scroll, canvas, pins, { signal, resized: () => scrubber?.stale() }));
 		if (state.view) {
 			const { x, y } = gutterOf(canvas);
 			scroll.scrollLeft = x + state.view.left;
@@ -451,19 +481,13 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			const span = now?.getBoundingClientRect();
 			if (span) scroll[across ? "scrollLeft" : "scrollTop"] = centredAlong(scroll, viewRect(scroll), span, across, { fromStart: false });
 		}
-		const onScroll = () => {
-			noteView();
-			onView(state.view);
-		};
-		scroll.addEventListener("scroll", onScroll, { passive: true });
-		offs.push(() => scroll.removeEventListener("scroll", onScroll));
-		offs.push(wireScrubber(scroll, timeline.querySelector(".bastionland-timeline__scrub"), { across, centre: !board }));
+		scroll.addEventListener("scroll", onScroll, { passive: true, signal });
+		scrubber = wireScrubber(scroll, timeline.querySelector(".bastionland-timeline__scrub"), { across, centre: !board, zoom: () => state.zoom, signal });
+		offs.push(scrubber.off);
 	}
 
 	// Each menu keeps whether it's open across the redraws its own ticks cause, fits the room below
 	// it, and shuts on a press anywhere outside it.
-	const menus = new AbortController();
-	offs.push(() => menus.abort());
 	for (const menu of timeline.querySelectorAll("details[data-timeline-menu]")) {
 		const name = menu.dataset.timelineMenu;
 		menu.open = Boolean(state.menus[name]);
@@ -471,13 +495,11 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 		menu.addEventListener("toggle", () => {
 			state.menus[name] = menu.open;
 			fitMenu(menu);
-		}, { signal: menus.signal });
+		}, { signal });
 	}
-	const onPress = (event) => {
+	document.addEventListener("pointerdown", (event) => {
 		for (const menu of timeline.querySelectorAll("details[data-timeline-menu][open]")) if (!menu.contains(event.target)) menu.open = false;
-	};
-	document.addEventListener("pointerdown", onPress, true);
-	offs.push(() => document.removeEventListener("pointerdown", onPress, true));
+	}, { capture: true, signal });
 	offs.push(wireToolbarWrap(timeline.querySelector(".bastionland-timeline__toolbar")));
 
 	// The keyboard comes back to the control it was on: a write anywhere at the table draws the Timeline again.
@@ -496,12 +518,8 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			if (left.isConnected && state.focus === left.closest?.("[data-timeline-focus]")?.dataset.timelineFocus) state.focus = null;
 		});
 	};
-	timeline.addEventListener("focusin", onFocus);
-	timeline.addEventListener("focusout", onBlur);
-	offs.push(() => {
-		timeline.removeEventListener("focusin", onFocus);
-		timeline.removeEventListener("focusout", onBlur);
-	});
+	timeline.addEventListener("focusin", onFocus, { signal });
+	timeline.addEventListener("focusout", onBlur, { signal });
 	const lost = !document.activeElement || document.activeElement === document.body;
 	if (state.focus && lost) timeline.querySelector(`[data-timeline-focus="${CSS.escape(state.focus)}"]`)?.focus({ preventScroll: true });
 
