@@ -7,7 +7,7 @@
  */
 
 /** What one notch of the wheel multiplies the zoom by: gentle, since a board of words is read, not looked over. */
-export const ZOOM_STEP = 1.08;
+const ZOOM_STEP = 1.08;
 
 /** How far the board zooms: a long campaign seen whole, to a card large enough to read under a magnifier. */
 export const ZOOM_MIN = 0.25;

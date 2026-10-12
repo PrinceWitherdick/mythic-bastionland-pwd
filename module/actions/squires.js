@@ -214,16 +214,17 @@ export async function knightSquire(squire) {
 		...knightedLooks(squire, Actor.implementation.DEFAULT_ICON)
 	});
 	if (master?.isOwner && master.system.squire === squire.uuid) await master.update({ "system.squire": "" });
-	await timelineKnighted(squire, master);
-
-	await postCard(squire, "creation", {
-		title: t("squire.knightedTitle"),
-		tagline: t("squire.knightedTagline", { name: squire.name }),
-		lines: VIRTUES.map((key) => ({
-			label: t(`virtues.${key}.abbr`),
-			value: t("squire.knightedValue", { gain: gains[key], from: before[key], to: virtues[key].max })
-		}))
-	}, { rolls });
+	await Promise.all([
+		timelineKnighted(squire, master),
+		postCard(squire, "creation", {
+			title: t("squire.knightedTitle"),
+			tagline: t("squire.knightedTagline", { name: squire.name }),
+			lines: VIRTUES.map((key) => ({
+				label: t(`virtues.${key}.abbr`),
+				value: t("squire.knightedValue", { gain: gains[key], from: before[key], to: virtues[key].max })
+			}))
+		}, { rolls })
+	]);
 	chooseKnightedSquire(squire);
 	return virtues;
 }

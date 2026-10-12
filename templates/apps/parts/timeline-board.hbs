@@ -25,7 +25,7 @@
 			{{/each}}
 		</div>
 		{{else}}
-		<div class="bastionland-timeline__board" style="--timeline-lanes: {{columns}}">
+		<div class="bastionland-timeline__board" style="--timeline-lanes: {{lanes.length}}">
 			<div class="bastionland-timeline__corner"></div>
 			{{#each lanes}}
 			<div class="bastionland-timeline__lane-head bastionland-timeline__lane-head--{{kind}}">{{> "bastionland.timeline-lane-head"}}</div>

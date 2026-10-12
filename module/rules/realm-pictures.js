@@ -268,7 +268,7 @@ function nextPicture(g, realm, hex, roll = realm.variants?.[hexIndex(g, hex)]) {
  * @param {{col: number, row: number}} hex
  * @param {() => number} random
  * @param {object} options
- * @param {(index: number) => boolean} options.free Whether a group may take the hex with that hexIndex.
+ * @param {(index: number) => boolean} options.free Whether a group may take the hex with that hexIndex, this one among them.
  * @param {Map<number, Set<number>>} [options.laid] The groups already laid in the Realm, by terrain, none of which may be
  *   laid again; added to as one is. None where any group may be laid again.
  * @param {(hex: {col: number, row: number}) => boolean} [options.open] See pickPicture.
@@ -279,12 +279,12 @@ function layHex(g, realm, hex, random, { free, laid, open }) {
 	const { groups } = picturesOf(terrain);
 	const laidAlready = laid?.get(terrain);
 	const fitting = groups.flatMap((group, number) => (laidAlready?.has(number) ? [] : group)).flatMap((picture) => {
-		const laid = groupFrom(g, hex, terrain, picture);
-		const fits = laid?.every(({ hex: at }) => {
+		const members = groupFrom(g, hex, terrain, picture);
+		const fits = members?.every(({ hex: at }) => {
 			const there = hexIndex(g, at);
-			return realm.terrain[there] === terrain && (there === index || free(there));
+			return realm.terrain[there] === terrain && free(there);
 		});
-		return fits ? [laid] : [];
+		return fits ? [members] : [];
 	});
 	if (fitting.length) {
 		const chosen = fitting[Math.floor(random() * fitting.length)];
@@ -331,7 +331,7 @@ export function paintPictures(g, was, realm, painted, random) {
 		const index = hexIndex(g, hex);
 		if (realm.variants[index] || !realm.terrain[index]) continue;
 		if (stepping.has(index)) realm.variants[index] = nextPicture(g, realm, hex, before[index]);
-		else layHex(g, realm, hex, random, { free: kept.has(index) ? () => false : free });
+		else layHex(g, realm, hex, random, { free });
 	}
 }
 
@@ -370,7 +370,7 @@ export function rollPictures(g, terrain, random, kept = new Set()) {
 		while (queue.length) {
 			const hex = queue.shift();
 			const index = hexIndex(g, hex);
-			if (!realm.variants[index]) layHex(g, realm, hex, random, { free: kept.has(index) ? () => false : free, laid, open });
+			if (!realm.variants[index]) layHex(g, realm, hex, random, { free, laid, open });
 			for (const { hex: next } of neighbours(g, hex)) {
 				const at = hexIndex(g, next);
 				if (terrain[at] !== terrain[index] || queued.has(at)) continue;

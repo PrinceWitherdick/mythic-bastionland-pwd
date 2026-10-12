@@ -1,5 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
-import { deletionEntry } from "../compat.js";
+import { deletionUpdate } from "../compat.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
@@ -270,7 +270,7 @@ export async function removeFromCourt(domain, id) {
 	if (!member || !domain.isOwner) return false;
 	const held = seatOf(domain.system.council, id);
 	await domain.update({
-		...Object.fromEntries([deletionEntry(`system.court.${id}`)]),
+		...deletionUpdate(`system.court.${id}`),
 		...(held ? { [`system.council.${held}`]: "" } : {})
 	});
 	if (member.name) await timelineCourtLeft(domain, id, member);

@@ -67,9 +67,10 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 	if (foe) lines.push(t("revenge.owed", { name: foe.name }));
 
 	const name = text("name");
+	let item = null;
 	if (apply) {
 		if (!foundry.utils.isEmpty(update)) await actor.update(update, causedBy("scar"));
-		const [item] = await actor.createEmbeddedDocuments("Item", [{
+		[item] = await actor.createEmbeddedDocuments("Item", [{
 			type: "scar",
 			name: location ? `${name} (${location})` : name,
 			system: {
@@ -81,18 +82,20 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 				description: scarDescription(text("flavour"), text("effect"))
 			}
 		}]);
-		if (item) await timelineScar(actor, item, text("effect"));
 	}
 
-	await postCard(actor, "scar", {
-		faces,
-		roll: scar.roll,
-		name,
-		flavour: text("flavour"),
-		effect: text("effect"),
-		location,
-		lines
-	}, { rolls });
+	await Promise.all([
+		item && timelineScar(actor, item, text("effect")),
+		postCard(actor, "scar", {
+			faces,
+			roll: scar.roll,
+			name,
+			flavour: text("flavour"),
+			effect: text("effect"),
+			location,
+			lines
+		}, { rolls })
+	]);
 
 	return scar;
 }

@@ -261,6 +261,9 @@ export function chooseLocalFiles(element) {
 /** Windows waiting for whoever is using them to leave the field they're typing in. */
 const waiting = new WeakSet();
 
+/** Windows waiting the same way to draw just one part of themselves. */
+const partsWaiting = new WeakSet();
+
 /** A field a redraw would take the typing out of. */
 const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
 
@@ -269,19 +272,25 @@ const TYPING = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
  * puts every field back to its saved value, so a redraw mid-sentence would take
  * the sentence away.
  * @param {foundry.applications.api.ApplicationV2} app
+ * @param {object} [options]
+ * @param {string} [options.part] Draw only this part, waiting only on a field inside it.
+ * @param {string} [options.busy] The fields worth waiting on, if not every one typed in.
  */
-export function renderWhenIdle(app) {
+export function renderWhenIdle(app, { part, busy = TYPING } = {}) {
 	if (!app?.rendered) return;
+	const draw = () => (part ? app.render({ parts: [part] }) : app.render());
 	const field = document.activeElement;
-	if (!field || !app.element.contains(field) || !field.matches(TYPING)) {
-		app.render();
+	const holder = part ? app.parts?.[part] : app.element;
+	if (!field || !holder?.contains(field) || !field.matches(busy)) {
+		draw();
 		return;
 	}
-	if (waiting.has(app)) return;
-	waiting.add(app);
+	const pending = part ? partsWaiting : waiting;
+	if (pending.has(app)) return;
+	pending.add(app);
 	field.addEventListener("blur", () => {
-		waiting.delete(app);
-		if (app.rendered) app.render();
+		pending.delete(app);
+		if (app.rendered) draw();
 	}, { once: true });
 }
 

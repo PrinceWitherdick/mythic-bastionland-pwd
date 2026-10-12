@@ -1,5 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
-import { deletionEntry } from "../compat.js";
+import { deletionUpdate } from "../compat.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import {
 	TASK_SCOPES,
@@ -185,7 +185,7 @@ export async function settleTask(domain, id) {
 		if (!crisis) notes.push(t("domain.tasks.everyCrisis"));
 	}
 
-	await domain.update(Object.fromEntries([deletionEntry(`system.tasks.${id}`)]));
+	await domain.update(deletionUpdate(`system.tasks.${id}`));
 	const holder = seatHolderNames(domain, task.seat);
 	const by = holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat);
 	const what = task.what || t("domain.tasks.whatUnwritten");
@@ -230,7 +230,7 @@ export async function setTaskAside(domain, id) {
 		message: t("domain.tasks.setAsideConfirm", { what: escapeHTML(task.what), seat: seatLabel(task.seat) })
 	}))) return false;
 
-	await domain.update(Object.fromEntries([deletionEntry(`system.tasks.${id}`)]));
+	await domain.update(deletionUpdate(`system.tasks.${id}`));
 	return true;
 }
 

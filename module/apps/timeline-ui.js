@@ -45,40 +45,15 @@ const TIMELINE_LAYOUTS = Object.freeze(["down", "across"]);
 /** How long a burst of writes is let settle before a Timeline is drawn again: one event can write on several threads. */
 const TIMELINE_REDRAW_DELAY = 150;
 
+/** A control in a Timeline that a redraw would snatch from the hand: a colour picker held open, or the scrubber being dragged. */
+const HANDLED = 'input:not([type="checkbox"]):not([type="radio"])';
+
 /**
  * @param {foundry.applications.api.ApplicationV2} app
  * @param {string} [part] The one part to draw, on an app that draws its Timeline as a part of its own.
  * @returns {() => void} Draws the app, or that part of it, again once a burst of Timeline writes has settled; one landing after it closes draws nothing.
  */
-export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => (part ? renderPartWhenIdle(app, part) : renderWhenIdle(app)), TIMELINE_REDRAW_DELAY);
-
-/** A control in a Timeline that a redraw would snatch from the hand: a colour picker held open, or the scrubber being dragged. */
-const HANDLED = 'input:not([type="checkbox"]):not([type="radio"])';
-
-/** Apps waiting for a control in their Timeline part to be let go of. */
-const partsWaiting = new WeakSet();
-
-/**
- * Draw one part of an app again, once whoever is using a control in it has let
- * go. A field being typed in elsewhere in the app is left alone, as the part
- * drawn doesn't hold it.
- * @param {foundry.applications.api.ApplicationV2} app
- * @param {string} part
- */
-function renderPartWhenIdle(app, part) {
-	if (!app?.rendered) return;
-	const field = document.activeElement;
-	if (!field || !app.parts?.[part]?.contains(field) || !field.matches(HANDLED)) {
-		app.render({ parts: [part] });
-		return;
-	}
-	if (partsWaiting.has(app)) return;
-	partsWaiting.add(app);
-	field.addEventListener("blur", () => {
-		partsWaiting.delete(app);
-		if (app.rendered) app.render({ parts: [part] });
-	}, { once: true });
-}
+export const timelineRedrawer = (app, part) => foundry.utils.debounce(() => renderWhenIdle(app, part ? { part, busy: HANDLED } : {}), TIMELINE_REDRAW_DELAY);
 
 /** Called by everything showing a Timeline when the reader's Filter or layout changes. */
 const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;
@@ -194,9 +169,10 @@ const pendingViews = {};
 /**
  * @param {string} key
  * @param {{zoom: number, left: number, top: number}} view
+ * @param {string} layout The reader's layout as it was drawn in.
  */
-function keepView(key, view) {
-	pendingViews[key] = { ...view, layout: layoutName() };
+function keepView(key, view, layout) {
+	pendingViews[key] = { ...view, layout };
 	keepViews ??= foundry.utils.debounce(writeViews, 500);
 	keepViews();
 }
@@ -401,7 +377,7 @@ export async function boardContext() {
 	});
 	const nameOf = (trackId) => byId.get(trackId)?.name ?? trackId;
 	const threads = threadMenu(tracks, hiddenTracks).map((line) => ({ ...line, label: nameOf(line.trackId), kindLabel: t(`timeline.threads.${line.kind}`) }));
-	const lane = (head) => ({ ...head, name: nameOf(head.trackId), kindLabel: t(`timeline.threads.${head.kind}`) });
+	const lanes = view.lanes.map((head) => ({ ...head, name: nameOf(head.trackId), kindLabel: t(`timeline.threads.${head.kind}`) }));
 	const periods = await wordPeriods(view.periods, canEdit, async (period, heading) => ({
 		cells: await Promise.all(period.cells.map(async (cell) => ({
 			...cell,
@@ -414,11 +390,10 @@ export async function boardContext() {
 		...toolbarContext({ hidden: filter.kinds, tags, threads, hiddenTracks }),
 		hasJournal: Boolean(findTimelineJournal()),
 		canWrite: [...writable.values()].some(Boolean) || Boolean(game.user?.isGM),
-		lanes: view.lanes.map(lane),
-		columns: view.lanes.length,
+		lanes,
 		periods,
 		// Read across, a thread's row holds the same worded cells as the Seasons read down.
-		swimlanes: view.lanes.map((head, at) => ({ ...lane(head), cells: periods.map((period) => period.cells[at]) })),
+		swimlanes: lanes.map((head, at) => ({ ...head, cells: periods.map((period) => period.cells[at]) })),
 		// Across, the thread names' column, then each Season's, with a narrow one for an Age's rule where it begins.
 		swimColumns: ["13rem", ...periods.flatMap((period) => [...(period.startsAge ? ["auto"] : []), "minmax(15rem, 1fr)"])].join(" "),
 		scrub: scrubContext(periods)
@@ -929,7 +904,9 @@ export class TimelineHost {
 		this.#across = across;
 		const wiring = new AbortController();
 		wireMenus(timeline, trackIds, wiring.signal);
-		const unwire = wireTimeline(timeline, this.#state, { onView: (view) => keepView(this.#key, view) });
+		// Read once here, not on every scroll: a change of layout draws and wires again.
+		const layout = layoutName();
+		const unwire = wireTimeline(timeline, this.#state, { onView: (view) => keepView(this.#key, view, layout) });
 		this.#unwire = () => {
 			wiring.abort();
 			unwire();

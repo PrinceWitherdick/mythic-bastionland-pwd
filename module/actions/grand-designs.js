@@ -1,4 +1,4 @@
-import { deletionEntry } from "../compat.js";
+import { deletionUpdate } from "../compat.js";
 import { designDone, grandDesigns, newDesign } from "../rules/grand-designs.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -35,7 +35,7 @@ export async function strikeOffDesign(domain, id) {
 	if (!id) return null;
 	const design = grandDesigns(domain.system.designs).find((each) => each.id === id);
 	const calendar = getCalendar();
-	await domain.update(Object.fromEntries([deletionEntry(`system.designs.${id}`)]));
+	await domain.update(deletionUpdate(`system.designs.${id}`));
 	if (design && !designDone(design, calendar) && seasonKey(design.started) === seasonKey(calendar)) await timelineDesignForgotten(id);
 	return id;
 }

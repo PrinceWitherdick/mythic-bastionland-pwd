@@ -212,8 +212,12 @@ export function entriesDiff(stored, next) {
 	for (const entry of readEntries(next)) {
 		const old = was.get(entry.id);
 		was.delete(entry.id);
-		if (!old) added[entry.id] = entry;
-		else if (!sameEntry(old, entry)) changed[entry.id] = Object.fromEntries(Object.keys(entry).filter((field) => old[field] !== entry[field]).map((field) => [field, entry[field]]));
+		if (!old) {
+			added[entry.id] = entry;
+			continue;
+		}
+		const fields = Object.keys(entry).filter((field) => old[field] !== entry[field]);
+		if (fields.length) changed[entry.id] = Object.fromEntries(fields.map((field) => [field, entry[field]]));
 	}
 	const removed = [...was.keys()];
 	if (!Object.keys(added).length && !Object.keys(changed).length && !removed.length) return null;
@@ -243,7 +247,10 @@ const withinPeriod = (a, b) => closing(a) - closing(b) || a.order - b.order || a
  * @param {TimelineEntry[]} entries Already read.
  * @returns {TimelineEntry[]} As sortEntries orders them.
  */
-export const inOrder = (entries) => [...entries].sort((a, b) => periodRank(a.season) - periodRank(b.season) || withinPeriod(a, b));
+export function inOrder(entries) {
+	const rank = new Map(entries.map((entry) => [entry, periodRank(entry.season)]));
+	return [...entries].sort((a, b) => rank.get(a) - rank.get(b) || withinPeriod(a, b));
+}
 
 /**
  * @param {unknown} entries

@@ -1,5 +1,5 @@
 {{!-- One Timeline entry: its title, with its kind's chip (its glyph, and its source's name or its tag's) on the right as Stonetop has it, where and what happened, and, for those who can write on its thread, a row of buttons at its foot to move, edit and remove it. A tag of the table's own brings its colour inline. --}}
-<article class="bastionland-timeline__card bastionland-timeline--kind-{{group}} bastionland-reveal-host" data-entry-id="{{id}}"{{#if chipStyle}} style="{{chipStyle}}"{{/if}}>
+<article class="bastionland-timeline__card bastionland-timeline--kind-{{chip.kind}} bastionland-reveal-host" data-entry-id="{{id}}"{{#if chipStyle}} style="{{chipStyle}}"{{/if}}>
 	<header class="bastionland-timeline__card-head">
 		{{#if title}}<strong class="bastionland-timeline__title">{{title}}</strong>{{/if}}
 		<span class="bastionland-pill bastionland-timeline__kind"><i class="{{chip.icon}} bastionland-timeline__kind-icon" inert></i> {{sourceLabel}}</span>

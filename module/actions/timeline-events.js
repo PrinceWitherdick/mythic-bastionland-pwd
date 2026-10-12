@@ -228,42 +228,25 @@ export function timelineHoldingGranted(realm, holding, name, domain, knight) {
 }
 
 /**
+ * @template T
+ * @param {() => T} read
+ * @returns {T|null} What it reads, or null where it can't be read.
+ */
+function readable(read) {
+	try {
+		return read();
+	} catch {
+		return null;
+	}
+}
+
+/**
  * @param {Scene} scene
  * @returns {object|null} What the players know of the Realm, never what the Referee does, or null where it can't be read.
  */
 function playersSources(scene) {
-	try {
-		const sources = travelsSources(scene);
-		return sources ? { ...sources, gm: false } : null;
-	} catch {
-		return null;
-	}
-}
-
-/**
- * A hex as the players know it, or null where it can't be read.
- * @param {object|null} sources From playersSources.
- * @param {{col: number, row: number}} hex
- */
-function seenAt(sources, hex) {
-	try {
-		return sources ? playerHexView(sources, hex) : null;
-	} catch {
-		return null;
-	}
-}
-
-/**
- * One hex as the players know it, read for that hex alone, or null where it can't be read.
- * @param {Scene} scene
- * @param {{col: number, row: number}} hex
- */
-function oneSeenAt(scene, hex) {
-	try {
-		return playersHexView(scene, hex);
-	} catch {
-		return null;
-	}
+	const sources = readable(() => travelsSources(scene));
+	return sources ? { ...sources, gm: false } : null;
 }
 
 /**
@@ -284,7 +267,7 @@ function worthNoting(view) {
  * @returns {{view: ReturnType<typeof playerHexView>|null, place: string}} The hex's name, or what there is in it, or else the Realm's name.
  */
 function placeOf(scene, hex) {
-	const view = hex ? oneSeenAt(scene, hex) : null;
+	const view = hex ? readable(() => playersHexView(scene, hex)) : null;
 	return { view, place: view?.name || worthNoting(view) || scene.name };
 }
 
@@ -298,7 +281,7 @@ export async function timelineArrivals(scene, hexes) {
 	if (!hexes.length) return;
 	const sources = playersSources(scene);
 	const arrivals = hexes.flatMap((hex) => {
-		const view = seenAt(sources, hex);
+		const view = sources ? readable(() => playerHexView(sources, hex)) : null;
 		const thing = worthNoting(view);
 		return thing ? [{ source: "visit", key: timelineKeys.visit(scene.id, hex), title: t("timeline.auto.arrived", { place: view.name || thing }), place: scene.name }] : [];
 	});

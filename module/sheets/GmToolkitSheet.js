@@ -261,15 +261,15 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 
 	/** @override */
 	async _prepareContext(options) {
-		const context = await super._prepareContext(options);
+		const context = Object.assign(await super._prepareContext(options), { actor: this.actor, system: this.actor.system });
+		// The Timeline's own redraw reads none of the Realm.
+		if (options.parts?.every((id) => id === "timeline")) return context;
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 		const scene = this.scene;
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
 		const realm = realmKnown(entry?.realm ?? null);
 		return Object.assign(context, {
-			actor: this.actor,
-			system: this.actor.system,
 			realmData: realm && {
 				scene,
 				realm,

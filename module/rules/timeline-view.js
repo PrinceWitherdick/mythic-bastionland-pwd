@@ -55,7 +55,7 @@ function periodFacts(season, { nowKey = "", yearsOn = new Map() } = {}) {
  */
 function cardView(entry, moves, tags) {
 	const chip = entryChip(entry, tags);
-	return { ...entry, group: chip.kind, chip, earlier: moves.earlier, later: moves.later };
+	return { ...entry, chip, earlier: moves.earlier, later: moves.later };
 }
 
 /**
@@ -78,7 +78,7 @@ const noteView = (entry, trackId) => ({ id: entry.id, trackId, title: entry.titl
  * @param {{age: number|null, undated: boolean}} period
  * @returns {string} The Age it falls in, as the scrubber stops at it: its number, or "undated" before the tale.
  */
-export const ageKey = ({ age, undated }) => (undated ? "undated" : String(age));
+const ageKey = ({ age, undated }) => (undated ? "undated" : String(age));
 
 /**
  * Mark the first Season of each Age, and which side of the line across each
@@ -107,6 +107,19 @@ function withNow(seasons, nowKey) {
 	const rows = seasons.map((season) => ({ season, ghost: false }));
 	if (!parseSeasonKey(nowKey) || seasons.includes(nowKey)) return rows;
 	return [...rows, { season: nowKey, ghost: true }].sort((a, b) => periodRank(a.season) - periodRank(b.season));
+}
+
+/**
+ * Each Season's row, worded and marked for its Age.
+ * @param {string[]} ordered The Seasons with something shown, in order.
+ * @param {string} ghostKey The Season to add, empty, when nothing shown is in it (withNow).
+ * @param {string} nowKey
+ * @param {Iterable<string>} [seasons] Every Season on the Timeline, to count years on by; else those drawn.
+ */
+function seasonRows(ordered, ghostKey, nowKey, seasons) {
+	const rows = withNow(ordered, ghostKey);
+	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
+	return markAges(rows.map(({ season, ghost }) => ({ ...periodFacts(season, { nowKey, yearsOn }), ghost })));
 }
 
 /**
@@ -159,24 +172,22 @@ export function trackView(track, { hidden = [], nowKey = "", seasons, tags = [],
 	const shared = company && !allHidden && trackId !== COMPANY_TRACK ? companyTurnsWithin(shown, company, isShown, ghostKey) : [];
 	const sharedIds = new Set(shared.map((entry) => entry.id));
 	const groups = new Map(groupByPeriod([...shown, ...shared]).map((period) => [period.season, period.entries]));
-	const rows = withNow([...groups.keys()], ghostKey);
-	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
+	const rows = seasonRows([...groups.keys()], ghostKey, nowKey, seasons);
 	return {
 		trackId,
 		kind: track?.kind ?? "",
 		allHidden,
 		empty: !all.length && !rows.length,
-		periods: markAges(rows.map(({ season, ghost }) => {
-			const entries = groups.get(season) ?? [];
+		periods: rows.map((period) => {
+			const entries = groups.get(period.season) ?? [];
 			return {
-				...periodFacts(season, { nowKey, yearsOn }),
-				ghost,
+				...period,
 				// The Company's turns name its thread, so their Edit writes there.
 				notes: entries.filter(isSeasonTurn).map((entry) => noteView(entry, sharedIds.has(entry.id) ? COMPANY_TRACK : trackId)),
 				entries: cardsOf(entries, index),
-				add: canEdit ? { season } : null
+				add: canEdit ? { season: period.season } : null
 			};
-		}))
+		})
 	};
 }
 
@@ -215,14 +226,12 @@ export function boardView(tracks = [], { hidden = [], hiddenTracks = [], nowKey 
 	const allHidden = total > 0 && !periods.size;
 	const writable = new Map(lanes.map(({ trackId }) => [trackId, Boolean(canEdit(trackId))]));
 	const ordered = [...periods].sort((a, b) => periodRank(a) - periodRank(b));
-	const rows = withNow(ordered, !allHidden && [...writable.values()].some(Boolean) ? nowKey : "");
-	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
-	const marked = markAges(rows.map(({ season, ghost }) => ({ ...periodFacts(season, { nowKey, yearsOn }), ghost })));
+	const rows = seasonRows(ordered, !allHidden && [...writable.values()].some(Boolean) ? nowKey : "", nowKey, seasons);
 	return {
 		lanes: lanes.map(({ trackId, kind, portrait = "" }) => ({ trackId, kind, portrait })),
 		allHidden,
 		empty: total === 0 && !rows.length,
-		periods: marked.map((period) => {
+		periods: rows.map((period) => {
 			const { season, ghost, startsAge, ageKey } = period;
 			return {
 				...period,

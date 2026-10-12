@@ -33,7 +33,7 @@ describe("trackView", () => {
 		const [, spring] = trackView(track).periods;
 		expect(spring.entries.map((e) => e.title)).toEqual(["Squired"]);
 		expect(spring.notes).toEqual([{ id: "e2", trackId: "k1", title: "Summer Begins", body: "Virtues restored.", source: "season" }]);
-		expect(spring.entries[0]).toMatchObject({ group: "hand", earlier: false, later: false, chip: { kind: "hand", tagged: false } });
+		expect(spring.entries[0]).toMatchObject({ earlier: false, later: false, chip: { kind: "hand", tagged: false } });
 	});
 
 	it("hides a Filter line's kinds, and says when everything is hidden", () => {
@@ -59,7 +59,7 @@ describe("trackView", () => {
 		const tags = [{ id: "tag-feast", name: "Feasts", colour: "#aa3300" }];
 		const tagged = { trackId: "k", entries: entries({ season: "1-spring", tag: "wounds" }, { season: "1-spring", tag: "tag-feast" }, { season: "1-spring", tag: "tag-gone" }) };
 		const cards = trackView(tagged, { tags }).periods[0].entries;
-		expect(cards.map((c) => [c.group, c.chip.tagged])).toEqual([["wounds", true], ["custom", true], ["hand", false]]);
+		expect(cards.map((c) => [c.chip.kind, c.chip.tagged])).toEqual([["wounds", true], ["custom", true], ["hand", false]]);
 		expect(cards[1].chip).toMatchObject({ tagName: "Feasts", colour: "#aa3300" });
 		expect(trackView(tagged, { tags, hidden: ["wounds", "tag-feast"] }).periods[0].entries).toHaveLength(1);
 	});
