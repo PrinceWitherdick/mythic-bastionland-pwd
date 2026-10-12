@@ -89,6 +89,12 @@ vi.mock("../../module/actions/dominion.js", () => ({
 		domain.system.ruler ||= knight.name;
 	}),
 	settleDomains: vi.fn(async () => []),
+	dramaInCourt: vi.fn(async () => "intrigue"),
+	resolveCrisis: vi.fn(async (domain, index) => {
+		const key = domain.system.crises[index];
+		domain.system.crises = domain.system.crises.toSpliced(index, 1);
+		return key;
+	}),
 	worldDomains: () => world.actors.filter((actor) => actor.type === "domain")
 }));
 
@@ -144,7 +150,8 @@ vi.mock("../../module/actions/sites.js", () => ({ SITE_FLAG: "site", SITE_SHEET_
 
 vi.mock("../../module/actions/site-journals.js", () => ({ SITE_JOURNALS_SETTING: "siteJournals", deleteSiteJournals: vi.fn(), keepSiteJournal: vi.fn() }));
 
-vi.mock("../../module/actions/timeline-events.js", async (importOriginal) => ({ ...(await importOriginal()), timelineMythCompleted: vi.fn() }));
+// Where a Landmark is seen is read from the players' Travels, which aren't kept here.
+vi.mock("../../module/actions/timeline-events.js", async (importOriginal) => ({ ...(await importOriginal()), timelineLandmarkFound: vi.fn(), timelineMythCompleted: vi.fn() }));
 
 // Each thread kept as a list of rows by its id, so the recorders and the story's own rows can be read back.
 vi.mock("../../module/actions/timeline-store.js", () => ({
@@ -204,7 +211,8 @@ const { recordMythCompleted, writeSeasonNotes } = await import("../../module/act
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { editMythNote } = await import("../../module/actions/myth-notes.js");
 const { closeSeason, hardshipFor, rollAging } = await import("../../module/actions/time.js");
-const { timelineMythCompleted } = await import("../../module/actions/timeline-events.js");
+const { timelineLandmarkFound, timelineMythCompleted } = await import("../../module/actions/timeline-events.js");
+const { dramaInCourt, resolveCrisis } = await import("../../module/actions/dominion.js");
 const { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex } = await import("../../module/actions/hex-lore.js");
 const { markCollection, markSeasonEvent } = await import("../../module/actions/season-events.js");
 const { settleTask } = await import("../../module/actions/council-tasks.js");
@@ -219,7 +227,10 @@ function setPath(target, path, value) {
 	const keys = path.split(".");
 	let node = target;
 	for (const key of keys.slice(0, -1)) node = node[key] ??= {};
-	node[keys.at(-1)] = value;
+	const last = keys.at(-1);
+	if (last.startsWith("-=")) delete node[last.slice(2)];
+	else if (value instanceof (globalThis.foundry?.data.operators.ForcedDeletion ?? class {})) delete node[last];
+	else node[last] = value;
 }
 
 /** @returns {object} Dotted keys made nested. */
@@ -261,6 +272,7 @@ class FakeDocument {
 		if (this.type === "domain") this.system = { ruler: "", crises: [], crisisRolled: "", ...this.system };
 		this.items = items.map((item) => structuredClone(item));
 		this.sheet = { render: vi.fn() };
+		this.isOwner = true;
 	}
 
 	async update(changes) {
@@ -269,13 +281,18 @@ class FakeDocument {
 	}
 
 	async createEmbeddedDocuments(_type, items) {
-		const made = items.map((item) => ({ ...item, id: `item${++nextId}` }));
+		const made = items.map((item) => ({ ...structuredClone(item), id: `item${++nextId}`, update: FakeDocument.prototype.update }));
 		this.items.push(...made);
 		return made;
 	}
 
 	getFlag(scope, key) {
 		return this.flags?.[scope]?.[key];
+	}
+
+	async unsetFlag(scope, key) {
+		delete this.flags?.[scope]?.[key];
+		return this;
 	}
 }
 
@@ -347,6 +364,7 @@ beforeEach(() => {
 		data: { operators: { ForcedReplacement: { create: (value) => ({ replaced: value }) }, ForcedDeletion: class {} } }
 	};
 	globalThis.Actor = { implementation: world.classes.Actor };
+	globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 } };
 	globalThis.Roll = FakeRoll;
 	globalThis.Hooks = { on: vi.fn(() => 7), off: vi.fn() };
 	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } };
@@ -372,7 +390,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.restoreAllMocks();
-	for (const key of ["foundry", "Actor", "Roll", "Hooks", "ui", "canvas", "game"]) delete globalThis[key];
+	for (const key of ["foundry", "Actor", "CONST", "Roll", "Hooks", "ui", "canvas", "game"]) delete globalThis[key];
 });
 
 /** The Knights, by name. */
@@ -405,6 +423,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 	});
 
 	it("writes the Timeline as the story goes: every thread, by hand and by itself, each row in its Season", async () => {
+		// A Timeline the GM owns, so the story's Rumours tag has somewhere to go.
+		world.timelineJournal = new FakeDocument({ pages: [] });
 		await populateTestWorld();
 		const { "Dame Isolde Marrow": isolde, "Sir Corvin Ashby": corvin, "Sir Oswin Hale": oswin } = knights();
 		const squire = world.actors.find((actor) => actor.system.isSquire);
@@ -415,13 +435,56 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		for (const thread of ["company", isolde.id, corvin.id, oswin.id, squire.id, domain.id, world.scene.id]) {
 			expect(rows(thread).some((row) => row.source === "hand")).toBe(true);
 		}
-		expect(titled("company")[0]).toEqual(["1-spring", "hand", "Presented at Court"]);
-		expect(titled(isolde.id)).toContainEqual(["2-2-spring", "hand", "Grew Old"]);
+		// The Company's begins with the three Knights joining it, then at Court.
+		expect(titled("company").slice(0, 4)).toEqual([
+			...["Dame Isolde Marrow", "Sir Corvin Ashby", "Sir Oswin Hale"].map((name) => ["1-spring", "joined", `timeline.auto.joinedCompany ${JSON.stringify({ name })}`]),
+			["1-spring", "hand", "Presented at Court"]
+		]);
+		for (const knight of [isolde, corvin, oswin]) expect(titled(knight.id)[0]).toEqual(["1-spring", "joined", "timeline.auto.joined"]);
+		expect(titled(isolde.id)).toContainEqual(["2-2-spring", "hand", "Grey at the temples"]);
+		// Glory for the tourney and the battle, the Squire taken, the Levy mustered and the Omens met.
+		expect(rows(isolde.id).filter((row) => row.source === "award").map((row) => row.title)).toEqual(["glory.awards.tournament.label", "glory.awards.battle.label"]);
+		expect(rows(oswin.id).some((row) => row.source === "award")).toBe(true);
+		expect(rows("company").filter((row) => row.source === "award")).toHaveLength(2);
+		expect(rows(isolde.id).some((row) => row.source === "squire")).toBe(true);
+		expect(rows(squire.id).some((row) => row.source === "squire")).toBe(true);
+		expect(rows(domain.id).some((row) => row.source === "warband")).toBe(true);
+		const omens = rows("company").filter((row) => row.source === "omen");
+		expect(omens.length).toBeGreaterThan(0);
+		expect(rows(world.scene.id).filter((row) => row.source === "omen")).toHaveLength(omens.length);
 		// What the game writes by itself, though the story makes it by hand: Scars, the Domain's founding and its Crisis Roll.
 		expect(rows(corvin.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-spring", "2-2-harvest"]);
+		expect(corvin.items.find((item) => item.type === "scar" && item.system.roll === 6).system.resolved).toBe(true);
 		expect(rows(isolde.id).filter((row) => row.source === "scar").map((row) => row.season)).toEqual(["1-harvest"]);
 		expect(rows(domain.id).map((row) => row.source)).toEqual(expect.arrayContaining(["founded", "crisis", "hand"]));
 		expect(rows(world.scene.id).some((row) => row.source === "founded")).toBe(true);
+		// Knights' lives: the joust at the tourney, the Mortal Wounds, the Gouge stitched, and the heir Isolde named; Corvin's is in the Age's own row.
+		const sources = (target, source) => rows(target).filter((row) => row.source === source).map((row) => row.season);
+		expect(sources(isolde.id, "duel")).toEqual(["1-harvest"]);
+		expect(rows(corvin.id).find((row) => row.source === "duel").title).toContain("timeline.auto.duelLost");
+		expect([sources(corvin.id, "mortal"), sources(isolde.id, "mortal"), sources(oswin.id, "mortal")]).toEqual([["1-spring"], ["1-harvest"], ["2-2-spring"]]);
+		expect(sources(corvin.id, "settled")).toEqual(["1-spring"]);
+		expect(sources(isolde.id, "heir")).toEqual(["2-2-harvest"]);
+		expect(sources(corvin.id, "heir")).toEqual([]);
+		// The Domain's: Oswin seated in its Circle, two Warbands mustered and one let go, the Court's comings and goings, and the walls begun.
+		expect(sources(domain.id, "circle")).toEqual(["2-2-spring"]);
+		expect(sources(oswin.id, "circle")).toEqual(["2-2-spring"]);
+		expect(rows(domain.id).filter((row) => row.source === "warband").map((row) => row.title.split(" ")[0])).toEqual(["timeline.auto.mustered", "timeline.auto.mustered", "timeline.auto.dismissed"]);
+		expect(rows(domain.id).filter((row) => row.source === "court").map((row) => row.title)).toEqual([
+			`timeline.auto.courtLeft ${JSON.stringify({ name: "Goodwife Anne of the Mill" })}`,
+			`timeline.auto.courtJoined ${JSON.stringify({ name: "Master Quill" })}`
+		]);
+		expect(sources(domain.id, "design")).toEqual(["2-2-harvest"]);
+		expect(dramaInCourt).toHaveBeenCalledWith(domain);
+		expect(resolveCrisis).toHaveBeenCalledWith(domain, 0);
+		expect(timelineLandmarkFound).toHaveBeenCalledWith(world.scene, expect.objectContaining({ col: expect.any(Number) }));
+		// Hand rows at the Domain link to it, and the hearsay wears the GM's own tag.
+		expect(rows(oswin.id).find((row) => row.title === "Courting the envoy").placeUuid).toBe(domain.uuid);
+		const [tag] = Object.values(world.timelineJournal.flags[SYSTEM_ID].timelineTags);
+		expect(tag).toMatchObject({ name: "Rumours" });
+		expect(rows("company").filter((row) => row.tag === tag.id).map((row) => row.title)).toEqual(["A pilgrim's tale", "Smoke to the north"]);
+		// Every Knight, the Squire and the Domain are seen by the players, so none of their threads is kept from them.
+		for (const actor of [isolde, corvin, oswin, squire, domain]) expect(actor.ownership).toEqual({ default: 2 });
 		// The recap goes on the Timeline, as the Ending a Session window's tickbox has it.
 		expect(endTheSession).toHaveBeenCalledWith(expect.objectContaining({ shareRecap: true }));
 	});
@@ -458,7 +521,7 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		const scars = Object.fromEntries(Object.entries(knights()).map(([name, actor]) => [name, actor.items.filter((item) => item.type === "scar").map((item) => [item.system.roll, item.system.season])]));
 		expect(scars).toEqual({
 			"Dame Isolde Marrow": [[10, "1-harvest"]],
-			"Sir Corvin Ashby": [[1, "1-spring"], [11, "2-2-harvest"]],
+			"Sir Corvin Ashby": [[6, "1-spring"], [11, "2-2-harvest"]],
 			"Sir Oswin Hale": [[12, "2-2-spring"]]
 		});
 	});
@@ -604,10 +667,11 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(editRealm).toHaveBeenCalled();
 	});
 
-	it("grants a Domain facing one Crisis from its Spring roll, and makes two Sites", async () => {
+	it("grants a Domain facing one Crisis from its Spring roll, resolved by Harvest, and makes two Sites", async () => {
 		await populateTestWorld();
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
-		expect(domain.system.crises).toHaveLength(1);
+		expect(resolveCrisis).toHaveBeenCalledTimes(1);
+		expect(domain.system.crises).toEqual([]);
 		expect(domain.system.crisisRolled).toBe("2-2-spring");
 		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id]);
 		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
@@ -630,7 +694,9 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		await populateTestWorld();
 		const [domain] = world.actors.filter((actor) => actor.type === "domain");
 		expect(domain.system.successor).toBe("Sir Oswin Hale");
-		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "retainer", "retainer", "retainer", "retainer", "courtier", "courtier", "petitioner", "seer"]);
+		// The petitioner has left by Harvest of Age 2, and a courtier come.
+		expect(Object.values(domain.system.court).map((member) => member.role)).toEqual(["retainer", "retainer", "retainer", "retainer", "retainer", "courtier", "courtier", "seer", "courtier"]);
+		expect(Object.values(domain.system.designs)).toEqual([expect.objectContaining({ scale: "works", what: "Rebuild the burnt palisade in stone" })]);
 		// Each of the four great seats is held by one of those Retainers.
 		const seated = ["steward", "marshal", "sheriff", "envoy"].map((seat) => domain.system.court[domain.system.council[seat]]);
 		expect(seated.map((member) => member?.role)).toEqual(["retainer", "retainer", "retainer", "retainer"]);
@@ -638,8 +704,10 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		// The Circle's week is settled; the steward's Season and the envoy's are still in hand.
 		expect(settleTask).toHaveBeenCalledTimes(1);
 		expect(Object.values(domain.system.tasks).map((task) => [task.seat, task.scope, task.started.season])).toEqual([["steward", "season", "spring"], ["envoy", "season", "harvest"]]);
-		const [warband] = world.actors.filter((actor) => actor.system.scale === "warband");
+		const [warband, sellswords] = world.actors.filter((actor) => actor.system.scale === "warband");
 		expect(warband.flags[SYSTEM_ID]).toMatchObject({ musteredBy: domain.id, warbandOrigin: "vassals", [TEST_FLAG]: true });
+		// The sellswords are let go, though their sheet stays.
+		expect(sellswords.flags[SYSTEM_ID]).toEqual({ warbandOrigin: "mercenaries", [TEST_FLAG]: true });
 		expect(wearWarbandDown).toHaveBeenCalledWith(warband, "poorlyFed");
 	});
 
@@ -708,8 +776,8 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		} else {
 			expect(keepTableRoll).not.toHaveBeenCalled();
 			expect(rollHexSparkSet).not.toHaveBeenCalled();
-			// Three steeds, the Squire's pony, the Domain's levy and the mere's pike.
-			expect(npcs).toHaveLength(6);
+			// Three steeds, the Squire's pony, the Domain's levy and sellswords, and the mere's pike.
+			expect(npcs).toHaveLength(7);
 		}
 	});
 });
@@ -754,14 +822,31 @@ describe("running it again", () => {
 		const page = (id, entries) => ({ id, system: { entries } });
 		const company = page("company-page", { a: { title: "Mine" }, b: { title: "The story's" } });
 		const isolde = page("isolde-page", { c: { title: "The story's" } });
-		world.timelineJournal = { pages: [company, isolde], delete: vi.fn(), updateEmbeddedDocuments: vi.fn(), deleteEmbeddedDocuments: vi.fn(async (_type, ids) => { world.timelineJournal.pages = world.timelineJournal.pages.filter((each) => !ids.includes(each.id)); }) };
-		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, timeline: { pages: { "company-page": ["a"] } } } } };
+		world.timelineJournal = {
+			pages: [company, isolde],
+			getFlag: (scope, key) => (scope === SYSTEM_ID && key === "timelineTags" ? { "tag-mine": {}, "tag-story": {} } : undefined),
+			update: vi.fn(),
+			delete: vi.fn(),
+			updateEmbeddedDocuments: vi.fn(),
+			deleteEmbeddedDocuments: vi.fn(async (_type, ids) => { world.timelineJournal.pages = world.timelineJournal.pages.filter((each) => !ids.includes(each.id)); })
+		};
+		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, timeline: { pages: { "company-page": ["a"] }, tags: ["tag-mine"] } } } };
 		world.toolkit.update = vi.fn();
 
 		await populateTestWorld();
 		expect(world.timelineJournal.deleteEmbeddedDocuments).toHaveBeenCalledWith("JournalEntryPage", ["isolde-page"]);
 		expect(world.timelineJournal.updateEmbeddedDocuments).toHaveBeenCalledWith("JournalEntryPage", [{ _id: "company-page", "system.entries.b": expect.any(foundry.data.operators.ForcedDeletion) }]);
+		expect(world.timelineJournal.update).toHaveBeenCalledWith({ [`flags.${SYSTEM_ID}.timelineTags.tag-story`]: expect.any(foundry.data.operators.ForcedDeletion) });
 		expect(world.timelineJournal.delete).not.toHaveBeenCalled();
+	});
+
+	it("leaves the Timeline's tags be when the test world was made before they were kept", async () => {
+		world.timelineJournal = { pages: [], getFlag: () => ({ "tag-mine": {} }), update: vi.fn(), delete: vi.fn(), updateEmbeddedDocuments: vi.fn(), deleteEmbeddedDocuments: vi.fn() };
+		world.toolkit.flags = { [SYSTEM_ID]: { [BEFORE_FLAG]: { calendar: BEFORE, notes: "", seasons: {}, timeline: { pages: {} } } } };
+		world.toolkit.update = vi.fn();
+
+		await populateTestWorld();
+		expect(world.timelineJournal.update).not.toHaveBeenCalled();
 	});
 
 	it("deletes the Timeline it made", async () => {

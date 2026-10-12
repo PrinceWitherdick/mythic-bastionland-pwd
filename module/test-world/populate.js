@@ -18,8 +18,10 @@ import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js"
 import { rollCityOmen } from "../actions/city-quest.js";
 import { setCompanyHex } from "../actions/company.js";
 import { settleTask } from "../actions/council-tasks.js";
-import { linkKnightDomain, settleDomains, worldDomains } from "../actions/dominion.js";
+import { addCourtMember } from "../actions/court.js";
+import { dramaInCourt, linkKnightDomain, resolveCrisis, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
+import { beginDesign } from "../actions/grand-designs.js";
 import { openGmToolkit, rollFreeMyth, theGmToolkit } from "../actions/gm-toolkit.js";
 import { keepTableRoll, rollHexSparkSet, tellPlayersAboutHex, writeHexNote } from "../actions/hex-lore.js";
 import { keepPartyNote, recordBarriersMet } from "../actions/hex-shared.js";
@@ -30,18 +32,21 @@ import { castKey } from "../actions/myth-cast.js";
 import { editMythNote } from "../actions/myth-notes.js";
 import { resolveMyth } from "../actions/myth-resolve.js";
 import { actorData } from "../actions/npc.js";
+import { resolveScar } from "../actions/scars.js";
 import { createRealmScene, editRealm, getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable, rollSpark } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { endTheSession } from "../actions/session-end.js";
+import { nameSuccessor } from "../actions/succession.js";
 import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
-import { timelineCrisisRoll, timelineFounded, timelineScar } from "../actions/timeline-events.js";
+import { timelineCircle, timelineCourtLeft, timelineCrisisRoll, timelineDismissed, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineOmens, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
 import { timelineNow } from "../actions/timeline-record.js";
+import { createCustomTag } from "../actions/timeline-tags.js";
 import { ensureTimelineJournal, findTimelineJournal, mutateTrack, timelinePages, trackFor } from "../actions/timeline-store.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
 import { drawWeather, setWeather } from "../actions/weather.js";
@@ -52,6 +57,7 @@ import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
 import { newCourtMember } from "../rules/court.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
 import { crisesDrawn, crisisFor, crisisResult } from "../rules/dominion.js";
+import { createDuel } from "../rules/duel.js";
 import { hasTable } from "../rules/knight-tables.js";
 import { CAST_FLAG } from "../rules/myth-cast.js";
 import { SQUIRE_EQUIPMENT, SQUIRE_GUARD, SQUIRE_IMAGE, SQUIRE_VIRTUE_ROLL, ponySystem, squireEquipment, squireItems, squireSystem } from "../rules/squires.js";
@@ -63,6 +69,7 @@ import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { crisisRollsDue } from "../rules/season-log.js";
 import { COMPANY_TRACK, addEntry } from "../rules/timeline.js";
+import { TIMELINE_TAGS_FLAG } from "../rules/timeline-tags.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { sightable } from "../rules/sighted.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
@@ -179,6 +186,19 @@ const LEVY = Object.freeze({ vig: 12, cla: 8, spi: 10, guard: 4, armour: 1, armo
 /** The Squire Dame Isolde takes when she's granted her Domain. */
 const SQUIRE_NAME = "Hugh Fenwick";
 
+/** Hired to hold the Domain's walls after the battle, and let go when the stores run out (p21). */
+const SELLSWORDS = Object.freeze({ name: "Gaunt's Free Company", vig: 13, cla: 10, spi: 7, guard: 5, armour: 1, armourNote: "brigandines", epithet: "Sellswords who fought for whoever paid last" });
+
+/** Who comes to the Domain's Court in Harvest of Age 2, and who leaves it. */
+const NEWCOMER = Object.freeze({ role: "courtier", name: "Master Quill", leverage: "Kept the old lord's tax rolls, and hid them.", note: "The old lord's clerk, back from hiding once the Famine bit." });
+const LEAVES_COURT = "Goodwife Anne of the Mill";
+
+/** The work the Domain begins on its walls (p21). */
+const DESIGN = Object.freeze({ scale: "works", what: "Rebuild the burnt palisade in stone" });
+
+/** The world's own Timeline tag the GM makes for the hearsay the Company picks up. */
+const RUMOUR_TAG = Object.freeze({ name: "Rumours", colour: "#8a5a2b" });
+
 /**
  * What the GM wrote about open country the Company passed through, in the
  * order the road reaches it: whether the hex's Wilderness tables were rolled
@@ -245,6 +265,12 @@ const WEATHER_NOW = "rain";
 const isTestDocument = (document) => document?.flags?.[SYSTEM_ID]?.[TEST_FLAG] === true;
 
 const testFlags = () => ({ [SYSTEM_ID]: { [TEST_FLAG]: true } });
+
+/**
+ * Seen by every player, as a played Knight is by their own: so their Timeline
+ * threads aren't kept from the players, and the Company's rows name them.
+ */
+const seenByAll = () => ({ default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER });
 
 /** @returns {boolean} Whether the world holds a test world already. */
 export function hasTestWorld() {
@@ -379,14 +405,22 @@ async function removeTimelineRows(before) {
 		return rows.length ? [{ _id: page.id, ...Object.fromEntries(rows.map((id) => deletionEntry(`system.entries.${id}`))) }] : [];
 	});
 	if (updates.length) await journal.updateEmbeddedDocuments("JournalEntryPage", updates);
+	// A test world made before its tags were kept leaves every tag be.
+	const keptTags = before.timeline.tags;
+	const tags = Array.isArray(keptTags) ? Object.keys(journal.getFlag?.(SYSTEM_ID, TIMELINE_TAGS_FLAG) ?? {}).filter((id) => !keptTags.includes(id)) : [];
+	if (tags.length) await journal.update(Object.fromEntries(tags.map((id) => deletionEntry(`flags.${SYSTEM_ID}.${TIMELINE_TAGS_FLAG}.${id}`))));
 }
 
 /**
- * @returns {{pages: Record<string, string[]>}|null} Each of the Timeline's pages and its rows, by id, or null while there's no Timeline.
+ * @returns {{pages: Record<string, string[]>, tags: string[]}|null} Each of the Timeline's pages and its rows, and its own tags, by id, or null while there's no Timeline.
  */
 function timelineBefore() {
 	const journal = findTimelineJournal();
-	return journal ? { pages: Object.fromEntries(timelinePages(journal).map((page) => [page.id, Object.keys(page.system?.entries ?? {})])) } : null;
+	if (!journal) return null;
+	return {
+		pages: Object.fromEntries(timelinePages(journal).map((page) => [page.id, Object.keys(page.system?.entries ?? {})])),
+		tags: Object.keys(journal.getFlag?.(SYSTEM_ID, TIMELINE_TAGS_FLAG) ?? {})
+	};
 }
 
 /** Build the test world, keeping what it changes so removing it can put that back. */
@@ -426,6 +460,17 @@ async function buildTestWorld() {
 /* -------------------------------------------- */
 /*  Helpers                                     */
 /* -------------------------------------------- */
+
+/**
+ * A Warband's actor data, for one of the story's own.
+ * @param {string} name
+ * @param {{vig: number, cla: number, spi: number, guard: number, armour: number, armourNote: string, epithet: string}} stats
+ * @returns {object}
+ */
+function warbandData(name, { vig, cla, spi, guard, armour, armourNote, epithet }) {
+	const track = (value) => ({ value, max: value });
+	return { type: "npc", name, system: { epithet, virtues: { vig: track(vig), cla: track(cla), spi: track(spi) }, guard: track(guard), armour, armourNote } };
+}
 
 /**
  * Roll until the dice land as wanted, for a result the story needs, such as
@@ -520,6 +565,12 @@ class TestGame {
 		this.followUps = [];
 		/** How many hidden Barriers the Company has run into, to take turns finding them. */
 		this.barriersMet = 0;
+		/** @type {Actor|null} Dame Isolde's Squire. */
+		this.squire = null;
+		/** @type {Actor|null} The sellswords the Domain hires after the battle. */
+		this.sellswords = null;
+		/** @type {string|null} The GM's Rumours tag on the Timeline, once made. */
+		this.rumourTag = null;
 	}
 
 	async play() {
@@ -565,17 +616,28 @@ class TestGame {
 	 * does, in the Season it is now.
 	 * @param {Actor|Scene|string} target An actor, the Realm, or COMPANY_TRACK.
 	 * @param {string} title
-	 * @param {{place?: string, body?: string}} [details]
+	 * @param {object} [details]
+	 * @param {string} [details.place]
+	 * @param {Document|null} [details.at] The place's document, as one dropped on the Place box links it.
+	 * @param {string} [details.body]
+	 * @param {boolean} [details.rumour] Tagged with the GM's Rumours tag.
 	 */
-	async chronicle(target, title, { place = "", body = "" } = {}) {
+	async chronicle(target, title, { place = "", at = null, body = "", rumour = false } = {}) {
 		const track = trackFor(target);
 		if (!track) return;
-		const entry = { season: timelineNow(), title, place, body, source: "hand", createdAt: Date.now(), authorId: game.user.id };
+		const tag = rumour ? await this.rumours() : "";
+		const entry = { season: timelineNow(), title, place, placeUuid: at?.uuid ?? "", body, tag, source: "hand", createdAt: Date.now(), authorId: game.user.id };
 		try {
 			await mutateTrack(track, (entries) => addEntry(entries, entry, foundry.utils.randomID), { create: true });
 		} catch (error) {
 			console.warn(`${SYSTEM_ID} | Couldn't write "${title}" on the Timeline`, error);
 		}
+	}
+
+	/** @returns {Promise<string>} The id of the GM's Rumours tag, made the first time it's wanted, as the entry dialog's New Tag makes one. */
+	async rumours() {
+		this.rumourTag ??= (await createCustomTag(RUMOUR_TAG)).tag?.id ?? "";
+		return this.rumourTag;
 	}
 
 	/** @param {object} changes Parts of the calendar to move on. */
@@ -659,6 +721,7 @@ class TestGame {
 				type: "knight",
 				folder: this.folders.Actor.id,
 				flags: testFlags(),
+				ownership: seenByAll(),
 				...foundry.utils.expandObject(update),
 				items: [...items, ...knightItems({ ...knight, property: [] }, kitNames)]
 			});
@@ -691,6 +754,8 @@ class TestGame {
 			}
 			await actor.update(changes);
 			await this.knightTable(actor);
+			// Chosen and given to a player, as Give to a Player has them join (new-knight.js); here nobody holds them.
+			await timelineJoined(actor);
 		}
 	}
 
@@ -872,6 +937,7 @@ class TestGame {
 		if (!myth || myth.omen >= OMEN_COUNT) return;
 		const omen = myth.omen + 1;
 		await editRealm(this.scene, (realm) => setOmen(realm, number, omen));
+		await timelineOmens(this.scene, myth, { from: myth.omen, to: omen, hex: this.here });
 		const { name, page, entry } = mythEntry(this.index, myth);
 		await postCard(null, "omen", {
 			title: `${myth.number}. ${name}`,
@@ -913,12 +979,24 @@ class TestGame {
 	async award(key, knights) {
 		const entries = [];
 		for (const actor of knights) entries.push({ name: actor.name, lines: await adjustGlory(actor, 1) });
+		await timelineGloryAwarded(key, knights.map((actor, index) => ({ actor, lines: entries[index].lines })));
 		await postCard(null, "report", {
 			title: t(`glory.awards.${key}.label`),
 			tagline: calendarLabel(getCalendar()),
 			entries,
 			hint: t(`glory.awards.${key}.hint`)
 		});
+	}
+
+	/**
+	 * A joust between two of the Company in the lists, ended as the duel card
+	 * ends one: nothing staked, so no Glory moves.
+	 * @param {Actor} victor
+	 * @param {Actor} loser
+	 */
+	joust(victor, loser) {
+		const duel = createDuel({ kind: "joust", duelists: [victor, loser].map(({ uuid, name }) => ({ uuid, name })) });
+		return timelineDuel(foundry.utils.randomID(), duel, [victor, loser], victor.uuid);
 	}
 
 	/**
@@ -1042,17 +1120,22 @@ class TestGame {
 				if (index === 0) await this.wilderness(steps.at(-1).hex);
 			},
 			onArrive: async (_stop, hex) => {
+				// Ambushed in sight of the Sanctum: Gouged and Mortally Wounded, and carried the last mile.
+				const scar = await this.scar(corvin, 6, 6);
+				await timelineMortalWound(corvin, `Cut down by brigands in sight of ${this.names.sanctum}.`);
 				await this.reveal(hex);
 				const seer = sanctum?.seer ? seerEntry(this.index, sanctum.seer) : null;
-				await this.note(hex, `${this.names.sanctum}, where ${seer?.name ?? "the Seer"} keeps their vigil. They asked each Knight for a lock of hair and would not say why.`);
+				await this.note(hex, `${this.names.sanctum}, where ${seer?.name ?? "the Seer"} keeps their vigil. They stitched ${corvin.name}, then asked each Knight for a lock of hair and would not say why.`);
 				await this.makeSeer(seer);
+				// Stitched up by the Seer (p9), settled from his sheet as the Referee judges it.
+				const gouge = corvin.items.find((item) => item.type === "scar" && item.system.roll === 6);
+				if (gouge) await resolveScar(corvin, gouge);
 				await this.spark(hex, "people", 1);
 				await this.tell(hex);
-				await this.partyNote(hex, "The Seer took a lock of hair from each of us. WHY? Don't give them anything else.");
+				await this.partyNote(hex, "The Seer stitched Corvin, then took a lock of hair from each of us. WHY? Don't give them anything else.");
 				await this.chronicle(COMPANY_TRACK, "The Seer's price", { place: this.names.sanctum, body: "A lock of hair from each Knight, and no reason given." });
 				await this.omen(first);
-				const scar = await this.scar(corvin, 6, 1);
-				this.deeds.corvin.push(`Spring, Age 1: ambushed on the road to ${this.names.sanctum}, and took ${scar}.`);
+				this.deeds.corvin.push(`Spring, Age 1: ambushed on the road to ${this.names.sanctum}, and took ${scar}. The Seer stitched it.`);
 				await this.feast("sceptremass");
 			}
 		});
@@ -1064,7 +1147,7 @@ class TestGame {
 
 	/** Harvest, Age 1: the Drowned Chapel explored, and the tourney won. */
 	async harvestOfAgeOne() {
-		const { isolde } = this.knights;
+		const { isolde, corvin } = this.knights;
 		const { ruin, tourney, monument } = this.places;
 		const { first, second } = this.mythNumbers;
 		const stops = [{ name: "ruin", hex: ruin?.hex }, { name: "tourney", hex: tourney?.hex }].filter((stop) => stop.hex);
@@ -1076,6 +1159,7 @@ class TestGame {
 				if (index === 1) {
 					await this.omen(second);
 					await this.reveal(monument?.hex);
+					if (monument?.hex) await timelineLandmarkFound(this.scene, monument.hex);
 					await this.note(monument?.hex, `${this.names.monument}, seen from the road: standing stones that seem to lean away from whoever looks at them.`);
 				}
 			},
@@ -1085,6 +1169,7 @@ class TestGame {
 					await this.note(hex, `${this.names.ruin}: a flooded chapel on the old pilgrim road, explored in Harvest of Age 1. See the Site. The bell is still down there somewhere.`);
 					await this.makeSites(hex);
 					await this.makeMere();
+					await timelineMortalWound(isolde, "Dragged under by Old Gullet, the pike of the mere.");
 					await this.spark(hex, "nature", 2);
 					await this.tell(hex);
 					await this.partyNote(hex, "Do NOT wade. Pike. The bell is still down there, and so is the reliquary.");
@@ -1100,6 +1185,7 @@ class TestGame {
 					await this.tell(hex);
 					await this.partyNote(hex, "Isolde won the tourney! The reeve owes us a supper. Collect it.");
 					await this.omen(first);
+					await this.joust(isolde, corvin);
 					await this.award("tournament", [isolde]);
 					await this.chronicle(isolde, "Won the Harvest tourney", { place: this.names.tourney, body: "Unhorsed the champion on Eldermass, in front of half the Realm." });
 					this.deeds.isolde.push(`Harvest, Age 1: won the Harvest tourney at ${this.names.tourney}.`);
@@ -1127,7 +1213,7 @@ class TestGame {
 					await this.findBarrier();
 					// A pilgrim at the fire tells of the City (p172), and the Referee rolls its first Omen.
 					await rollCityOmen();
-					await this.chronicle(COMPANY_TRACK, "A pilgrim's tale", { body: "At the fire, a pilgrim told of a City that walks. Nobody slept well." });
+					await this.chronicle(COMPANY_TRACK, "A pilgrim's tale", { body: "At the fire, a pilgrim told of a City that walks. Nobody slept well.", rumour: true });
 				}
 			},
 			onArrive: async (_stop, hex) => {
@@ -1152,7 +1238,8 @@ class TestGame {
 			}
 		});
 		await writeSeasonNotes(seasonKey(getCalendar()), `A hard Winter on the road: everyone lost VIG to the cold. ${this.mythName(this.myth(first))} ended at last. Good session; ${corvin.name}'s player cried.`);
-		await corvin.update({ "system.successor": oswin.uuid });
+		// Named as the Time page's Succession names them: the Age's own row says so on his thread.
+		await nameSuccessor(corvin, oswin, { record: false });
 		await this.turn({
 			newAge: true,
 			pursuits: { isolde: "duty", corvin: "succession", oswin: "duty" },
@@ -1161,7 +1248,7 @@ class TestGame {
 		this.deeds.corvin.push(`Between the Ages: named ${oswin.name} his successor.`);
 		// The group decides who grows older as the Age turns (p17).
 		await rollAging(isolde, "old");
-		await this.chronicle(isolde, "Grew Old", { body: "Grey at the temples now, and slower in the mornings." });
+		await this.chronicle(isolde, "Grey at the temples", { body: "Slower in the mornings now, and quicker to the point." });
 		this.deeds.isolde.push("Between the Ages: grew Old. Grey at the temples now, and slower in the mornings.");
 	}
 
@@ -1183,6 +1270,7 @@ class TestGame {
 			},
 			onArrive: async (_stop, hex) => {
 				await this.award("battle", [isolde, oswin]);
+				await timelineMortalWound(oswin, "Felled at the gate, and left for dead by the man who shamed him.");
 				await this.chronicle(COMPANY_TRACK, `The battle at ${this.names.domain}`, { place: this.names.domain, body: `${isolde.name} led the charge and ${oswin.name} held the gate. ${corvin.name} kept the baggage.` });
 				await this.chronicle(corvin, "Kept the baggage", { place: this.names.domain, body: "While the others fought. He won't hear the end of it." });
 				const scar = await this.scar(oswin, 12, 12);
@@ -1191,8 +1279,8 @@ class TestGame {
 				this.deeds.isolde.push(`Spring, Age 2: led the charge at ${this.names.domain}, and was granted it after.`);
 				this.deeds.corvin.push(`Spring, Age 2: kept the baggage while the others fought at ${this.names.domain}. Won't hear the end of it.`);
 				const squire = await this.makeSquire(isolde);
-				await this.chronicle(isolde, `Took ${SQUIRE_NAME} as her Squire`, { place: this.names.domain, body: "The steward's boy. Eager, clumsy, and reports everything to his mother." });
-				await this.chronicle(squire, `Squire to ${isolde.name}`, { place: this.names.domain, body: "Given to her the day she was granted the Domain. Rides a pony that bites." });
+				await this.chronicle(isolde, `${SQUIRE_NAME} reports to his mother`, { place: this.names.domain, at: this.domain, body: "The steward's boy. Eager, clumsy, and tells her everything." });
+				await this.chronicle(squire, "Rides a pony that bites", { place: this.names.domain, at: this.domain, body: "Given to her the day she was granted the Domain." });
 				this.deeds.isolde.push(`Spring, Age 2: took ${SQUIRE_NAME}, the steward's boy, as her Squire.`);
 				await this.feast("sceptremass");
 				// The Circle's week riding the bounds is up before the Season is.
@@ -1212,7 +1300,11 @@ class TestGame {
 		await this.feast("feastOfTheStars");
 		// Famine in the stores: the Warband goes short before the Company rides out.
 		if (this.warband) await wearWarbandDown(this.warband, "poorlyFed");
-		if (this.domain) await this.setTask("envoy", { what: "Carry the Domain's greetings, and its excuses, to the Seat of Power", scope: "season", risk: "luck" });
+		if (this.domain) await this.domainSeason();
+		if (this.squire) {
+			await nameSuccessor(isolde, this.squire);
+			this.deeds.isolde.push(`Harvest, Age 2: named ${SQUIRE_NAME} her successor, to the steward's delight.`);
+		}
 		const road = seasonRoad(this.realm, this.g, this.here, target ? [{ name: "myth", hex: target }] : [], { stopShort: true });
 		await this.travel(road, {
 			camp: true,
@@ -1244,9 +1336,9 @@ class TestGame {
 		await this.note(final, `The Company's camp on the road to ${this.mythName(myth)}. Smoke to the north at dusk; nobody has gone to look yet. It's been raining since noon.`);
 		await this.spark(final, "people", 2);
 		await this.partyNote(final, "Camp. Smoke to the north: look in the Morning. Corvin wants a rest day.");
-		await this.chronicle(COMPANY_TRACK, "Smoke to the north", { place: REALM_NAME, body: "Seen from camp at dusk. Nobody has gone to look yet." });
-		await this.chronicle(oswin, "Courting the envoy", { place: this.names.domain, body: `He sits in the Circle at ${this.names.domain}, and finds reasons to stay.` });
-		await this.chronicle(this.scene, "The villagers blame the Company", { place: this.names.domain, body: `Omens of ${this.mythName(myth)} keep turning up around ${this.names.domain}.` });
+		await this.chronicle(COMPANY_TRACK, "Smoke to the north", { place: REALM_NAME, body: "Seen from camp at dusk. Nobody has gone to look yet.", rumour: true });
+		await this.chronicle(oswin, "Courting the envoy", { place: this.names.domain, at: this.domain, body: `He sits in the Circle at ${this.names.domain}, and finds reasons to stay.` });
+		await this.chronicle(this.scene, "The villagers blame the Company", { place: this.names.domain, at: this.domain, body: `Omens of ${this.mythName(myth)} keep turning up around ${this.names.domain}.`, rumour: true });
 		await editMythNote(this.scene, myth, { note: `Its Omens keep turning up around ${this.names.domain}, and the villagers are starting to blame the Company. They're a day or two from it now.` });
 		const rumoured = this.myth(third);
 		if (rumoured) await editMythNote(this.scene, rumoured, { note: "One Omen, met on the road north. The players haven't tied it to anything yet." });
@@ -1346,6 +1438,7 @@ class TestGame {
 			img: SQUIRE_IMAGE,
 			folder,
 			flags: testFlags(),
+			ownership: seenByAll(),
 			system: {
 				...squireSystem(virtues),
 				serves: knight.uuid,
@@ -1356,6 +1449,8 @@ class TestGame {
 		});
 		lines.push({ label: t("steed.label"), value: pony.name });
 		await knight.update({ "system.squire": squire.uuid });
+		await timelineSquireTaken(knight, squire);
+		this.squire = squire;
 		await postCard(knight, "creation", {
 			title: t("squire.title"),
 			tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
@@ -1381,6 +1476,7 @@ class TestGame {
 			img: DOMAIN_IMAGE,
 			folder: this.folders.Actor.id,
 			flags: testFlags(),
+			ownership: seenByAll(),
 			system: {
 				seat: false,
 				successor: oswin.name,
@@ -1394,11 +1490,14 @@ class TestGame {
 		});
 		await linkKnightDomain(isolde, this.domain);
 		await timelineFounded(isolde, this.domain, this.scene);
-		await this.chronicle(this.domain, "The palisade burns", { body: "Burnt in two places during the battle, and only half mended. Famine in the stores." });
+		// Seated in the Circle as Seat the Circle seats a Knight (court.js).
+		await timelineCircle(this.domain, { joined: [{ id: oswin.id, name: oswin.name, actor: oswin }] });
+		await this.chronicle(this.domain, "The palisade burns", { at: this.domain, body: "Burnt in two places during the battle, and only half mended. Famine in the stores." });
 		await this.crisis(this.domain);
 		await this.setTask("steward", { what: "Find where the grain went, before the Famine takes the village", scope: "season", risk: "none" });
 		await this.setTask("circle", { what: "Ride the bounds and count the burnt farms", scope: "week", risk: "vig" });
 		await this.musterLevy(this.domain);
+		await this.hireSellswords(this.domain);
 		await Actor.implementation.create({
 			name: `${this.names.domain} palisade`,
 			type: "structure",
@@ -1502,34 +1601,82 @@ class TestGame {
 	 */
 	async musterLevy(domain) {
 		const book = await this.bookWarband();
-		const origin = "vassals";
-		const track = (value) => ({ value, max: value });
-		const data = book ?? {
-			type: "npc",
-			name: `The Levy of ${domain.name}`,
-			system: {
-				epithet: LEVY.epithet,
-				virtues: { vig: track(LEVY.vig), cla: track(LEVY.cla), spi: track(LEVY.spi) },
-				guard: track(LEVY.guard),
-				armour: LEVY.armour,
-				armourNote: LEVY.armourNote
-			}
-		};
-		this.warband = await Actor.implementation.create({
+		this.warband = await this.muster(domain, "vassals", book ?? warbandData(`The Levy of ${domain.name}`, LEVY), `Raised at ${domain.name} after the battle. Half of them fought for the old lord.`);
+	}
+
+	/**
+	 * Hire sellswords to hold the Domain's walls while the Levy mends them (p21).
+	 * @param {Actor} domain
+	 */
+	async hireSellswords(domain) {
+		this.sellswords = await this.muster(domain, "mercenaries", warbandData(SELLSWORDS.name, SELLSWORDS), "Hired after the battle to hold the walls. Paid to the end of Spring, and fed till the stores run out.");
+	}
+
+	/**
+	 * Muster a Warband for a Domain, as Muster a Warband does.
+	 * @param {Actor} domain
+	 * @param {string} origin Where they were drawn from, one of the Warband origins.
+	 * @param {object} data Their actor data.
+	 * @param {string} notes
+	 * @returns {Promise<Actor>}
+	 */
+	async muster(domain, origin, data, notes) {
+		const warband = await Actor.implementation.create({
 			...data,
-			system: { ...data.system, scale: "warband", notes: html(`Raised at ${domain.name} after the battle. Half of them fought for the old lord.`) },
+			system: { ...data.system, scale: "warband", notes: html(notes) },
 			folder: this.folders.Actor.id,
 			flags: { ...data.flags, [SYSTEM_ID]: { ...data.flags?.[SYSTEM_ID], [TEST_FLAG]: true, [MUSTERED_FLAG]: domain.id, [ORIGIN_FLAG]: origin } }
 		});
+		await timelineMustered(domain, warband, t(`warband.origins.${origin}.label`));
 		await postCard(domain, "report", {
 			title: t("warband.muster.title"),
-			tagline: t("warband.muster.raised", { name: this.warband.name, domain: domain.name }),
+			tagline: t("warband.muster.raised", { name: warband.name, domain: domain.name }),
 			entries: [{
-				name: this.warband.name,
+				name: warband.name,
 				pursuit: t(`warband.origins.${origin}.label`),
 				lines: [t(`warband.origins.${origin}.text`), t("warband.muster.needs")]
 			}],
 			hint: t("warband.muster.marshal")
+		});
+		return warband;
+	}
+
+	/**
+	 * The Domain's Harvest of Age 2, before the Company rides out: the
+	 * sellswords let go for want of food, Drama in Court and the Crisis it
+	 * stirred settled, one leaving the Court and one coming to it, the walls
+	 * begun in stone, and the envoy sent to the Seat.
+	 */
+	async domainSeason() {
+		const domain = this.domain;
+		if (this.sellswords) await this.dismiss(domain, this.sellswords);
+		await dramaInCourt(domain);
+		if (domain.system.crises?.length) await resolveCrisis(domain, 0);
+		const [leaving] = Object.entries(domain.system.court ?? {}).find(([, member]) => member?.name === LEAVES_COURT) ?? [];
+		if (leaving) {
+			// Let go as Let Go does (court.js), without the confirming the story needs no one to click.
+			const member = domain.system.court[leaving];
+			await domain.update(Object.fromEntries([deletionEntry(`system.court.${leaving}`)]));
+			await timelineCourtLeft(domain, leaving, member);
+		}
+		const { role, ...newcomer } = NEWCOMER;
+		await addCourtMember(domain, role, newcomer);
+		const design = await beginDesign(domain, DESIGN.scale);
+		if (design) await domain.update({ [`system.designs.${design}.what`]: DESIGN.what });
+		await this.setTask("envoy", { what: "Carry the Domain's greetings, and its excuses, to the Seat of Power", scope: "season", risk: "luck" });
+	}
+
+	/**
+	 * Let a Warband go, as Dismiss does (warbands.js), without its confirming.
+	 * @param {Actor} domain
+	 * @param {Actor} warband
+	 */
+	async dismiss(domain, warband) {
+		await warband.unsetFlag(SYSTEM_ID, MUSTERED_FLAG);
+		await timelineDismissed(domain, warband);
+		await postCard(domain, "note", {
+			icon: "fa-solid fa-person-walking-arrow-right",
+			text: t("warband.dismiss.went", { name: warband.name, domain: domain.name })
 		});
 	}
 
