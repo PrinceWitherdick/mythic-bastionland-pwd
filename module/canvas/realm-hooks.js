@@ -2,7 +2,6 @@ import {
 	REALM_HISTORY_HOOK,
 	REALM_LOOK_FLAG,
 	REALM_LOOK_HOOK,
-	REALM_STEPPED_HOOK,
 	forgetRealm,
 	forgetRealmHistory,
 	getRealm,
@@ -13,7 +12,7 @@ import {
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
-import { followOmenSteps } from "../actions/omens.js";
+import { readOmens, writeOmens } from "../actions/omens.js";
 import { movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
@@ -161,6 +160,10 @@ export function registerRealmHooks() {
 	for (const name of ["createTile", "updateTile", "deleteTile", "createDrawing", "updateDrawing", "deleteDrawing"]) {
 		Hooks.on(name, onDocument);
 	}
+	// A Myth's Omens met or taken back, by any write, go on the Timeline. After the Realm is
+	// forgotten above, so the row reads the hex as the write left it.
+	Hooks.on("preUpdateTile", readOmens);
+	Hooks.on("updateTile", writeOmens);
 	Hooks.on("updateScene", (scene, changes) => {
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
@@ -185,8 +188,6 @@ export function registerRealmHooks() {
 		refreshHexEditor(sceneId);
 		refreshRealmDrawing(sceneId);
 	});
-	// A Myth's Omens taken back or put back by Undo or Redo take their Timeline rows with them.
-	Hooks.on(REALM_STEPPED_HOOK, followOmenSteps);
 	// The swatches, in the palette and in Creating a Realm, show the pictures the Realm is drawn with.
 	Hooks.on(REALM_LOOK_HOOK, (sceneId) => {
 		if (!sceneId) return;

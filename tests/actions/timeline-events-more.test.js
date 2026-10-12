@@ -188,7 +188,7 @@ describe("Omens", () => {
 
 	it("takes back the rows of Omens unmarked", async () => {
 		await events.timelineOmens(scene, myth, { from: 3, to: 1 });
-		expect(calls(record.forgetEverywhere)).toEqual([["omen:s1.3.2-7:2"], ["omen:s1.3.2-7:3"]]);
+		expect(calls(record.forgetEverywhere)).toEqual([[["omen:s1.3.2-7:2", "omen:s1.3.2-7:3"]]]);
 		expect(calls(record.recordOnTracks)).toEqual([]);
 	});
 

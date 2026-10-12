@@ -261,12 +261,17 @@ export function mutateTrack(track, change, { create = false } = {}) {
 }
 
 /**
- * Take a milestone's rows out of every thread, as when a Myth is unresolved.
- * @param {string} key
+ * Take milestones' rows out of every thread, as when a Myth is unresolved:
+ * each thread read and written once, however many go.
+ * @param {string|string[]} keys
  * @returns {Promise<void>}
  */
-export async function removeKeyEverywhere(key) {
-	await Promise.all(allTracks().map((track) => mutateTrack(track, (entries) => removeByKey(entries, key))));
+export async function removeKeyEverywhere(keys) {
+	const list = [keys].flat();
+	if (!list.length) return;
+	await Promise.all(allTracks().map((track) => mutateTrack(track, (entries) => ({
+		entries: list.reduce((current, key) => removeByKey(current, key).entries, entries)
+	}))));
 }
 
 /**

@@ -453,9 +453,22 @@ export function timelineHeirNamed(knight, heir) {
 	return recordOnTrack(knight, { source: "heir", key: timelineKeys.heir(heir.id, timelineNow(), Date.now()), title: t("timeline.auto.heir", { name: heir.name }) });
 }
 
+/** The update option saying where a Myth's Omens were met, and how, for the Tile hooks in omens.js. */
+export const OMENS_OPTION = "bastionlandOmens";
+
+/**
+ * Document update options for a write that marks a Myth's Omens, so the row
+ * the Tile hooks write says where the Company stood. A write without them,
+ * such as Undo or Redo, writes its rows with no hex.
+ * @param {{hex?: {col: number, row: number}|null, news?: boolean}} context As timelineOmens takes them.
+ * @returns {object} Options to pass alongside the update.
+ */
+export const omensMet = (context) => ({ [OMENS_OPTION]: context });
+
 /**
  * Omens of a Myth are met, or taken back: one row for each met, on the
- * Company's thread and the Realm's. Only what the players saw is written: the
+ * Company's thread and the Realm's. The Tile hooks in omens.js call it for
+ * every write that changes a Myth's count. Only what the players saw is written: the
  * Myth by its number, and where the Company stood, never the Myth's own hex.
  * @param {Scene} scene
  * @param {{number: number, d6: number, d12: number}} myth
@@ -467,7 +480,7 @@ export function timelineHeirNamed(knight, heir) {
  */
 export async function timelineOmens(scene, myth, { from, to, hex = null, news = false }) {
 	const id = completedMythId(scene.id, myth);
-	for (let omen = to + 1; omen <= from; omen++) await forgetEverywhere(timelineKeys.omen(id, omen));
+	if (to < from) await forgetEverywhere(Array.from({ length: from - to }, (_, index) => timelineKeys.omen(id, to + index + 1)));
 	if (to <= from) return;
 	const { place } = placeOf(scene, hex);
 	const title = t(news ? "timeline.auto.omenNews" : "timeline.auto.omen", { number: myth.number });

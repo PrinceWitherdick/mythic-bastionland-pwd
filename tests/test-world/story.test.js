@@ -26,10 +26,17 @@ vi.mock("../../module/actions/realm.js", async () => {
 			world.scene = new world.Document({ name, flags: {} });
 			return world.scene;
 		}),
-		editRealm: vi.fn(async (_scene, edit) => {
+		editRealm: vi.fn(async (scene, edit, operation = {}) => {
 			const next = edit(world.realm, world.g);
 			if (!next || next === world.realm) return false;
+			const before = world.realm;
 			world.realm = next;
+			// Standing in for the Tile hooks in omens.js, which write a Myth's Omens met on the Timeline.
+			const { OMENS_OPTION, timelineOmens } = await import("../../module/actions/timeline-events.js");
+			for (const myth of next.myths) {
+				const was = before.myths.find((candidate) => candidate.number === myth.number && candidate.d6 === myth.d6 && candidate.d12 === myth.d12);
+				if (was && was.omen !== myth.omen) await timelineOmens(scene, myth, { from: was.omen, to: myth.omen, ...operation[OMENS_OPTION] });
+			}
 			return true;
 		}),
 		getRealm: () => ({ realm: world.realm }),

@@ -6,18 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 let calendar = { age: 1, year: 1, season: "spring", day: 1, phase: "morning" };
-let realm;
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => calendar }));
-vi.mock("../../module/actions/realm.js", () => ({
-	editRealm: vi.fn(async (_scene, edit) => {
-		const next = edit(realm, {});
-		if (next === realm) return false;
-		realm = next;
-		return true;
-	}),
-	sceneGeometry: () => ({})
-}));
-vi.mock("../../module/actions/wilderness.js", () => ({ findCompany: () => ({ hex: { col: 2, row: 2 } }) }));
 vi.mock("../../module/apps/ui.js", () => ({ inputDialog: vi.fn() }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
@@ -26,13 +15,11 @@ vi.mock("../../module/actions/timeline-events.js", () => ({
 	timelineDesignBegun: vi.fn(),
 	timelineDesignForgotten: vi.fn(),
 	timelineHeirNamed: vi.fn(),
-	timelineJoined: vi.fn(),
-	timelineOmens: vi.fn()
+	timelineJoined: vi.fn()
 }));
 
 const timeline = await import("../../module/actions/timeline-events.js");
 const { beginDesign, strikeOffDesign } = await import("../../module/actions/grand-designs.js");
-const { followOmenSteps, markMythOmen } = await import("../../module/actions/omens.js");
 const { nameSuccessor } = await import("../../module/actions/succession.js");
 const { knightJoined } = await import("../../module/actions/new-knight.js");
 const { UNCHOSEN_FLAG } = await import("../../module/rules/unchosen-knight.js");
@@ -74,39 +61,6 @@ describe("Grand Designs", () => {
 		calendar = { ...calendar, season: "harvest" };
 		await strikeOffDesign(actor, "g1");
 		expect(timeline.timelineDesignForgotten).not.toHaveBeenCalled();
-	});
-});
-
-describe("an Omen marked by hand", () => {
-	const scene = { id: "s1" };
-
-	beforeEach(() => {
-		realm = { terrain: [], rivers: [], holdings: [], landmarks: [], barriers: [], myths: [{ number: 3, d6: 2, d12: 7, omen: 1, hex: { col: 9, row: 9 } }] };
-	});
-
-	it("writes the Omens met, where the Company stands", async () => {
-		expect(await markMythOmen(scene, 3, 3)).toBe(true);
-		expect(timeline.timelineOmens).toHaveBeenCalledWith(scene, expect.objectContaining({ number: 3 }), { from: 1, to: 3, hex: { col: 2, row: 2 } });
-	});
-
-	it("steps from the count as it stands, and writes nothing that changes nothing", async () => {
-		await markMythOmen(scene, 3, (myth) => myth.omen - 1);
-		expect(timeline.timelineOmens).toHaveBeenCalledWith(scene, expect.anything(), expect.objectContaining({ from: 1, to: 0 }));
-		vi.clearAllMocks();
-		expect(await markMythOmen(scene, 3, 0)).toBe(false);
-		expect(await markMythOmen(scene, 9, 2)).toBe(false);
-		expect(timeline.timelineOmens).not.toHaveBeenCalled();
-	});
-
-	it("follows Undo and Redo, for the same Myth only", async () => {
-		const myth = realm.myths[0];
-		const marked = { ...realm, myths: [{ ...myth, omen: 2 }] };
-		await followOmenSteps(scene, marked, realm);
-		expect(timeline.timelineOmens).toHaveBeenCalledWith(scene, myth, { from: 2, to: 1 });
-		vi.clearAllMocks();
-		await followOmenSteps(scene, realm, realm);
-		await followOmenSteps(scene, marked, { ...realm, myths: [{ ...myth, d12: 8 }] });
-		expect(timeline.timelineOmens).not.toHaveBeenCalled();
 	});
 });
 

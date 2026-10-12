@@ -52,9 +52,6 @@ export const REALM_LOOK_FLAG = "realmLook";
 /** Called when what Undo and Redo can take back on a Realm changes, with the Scene's id. */
 export const REALM_HISTORY_HOOK = `${SYSTEM_ID}.realmHistoryChanged`;
 
-/** Called on this GM's client once Undo or Redo is written to a Realm Scene, with the Scene and its Realm before and after. */
-export const REALM_STEPPED_HOOK = `${SYSTEM_ID}.realmStepped`;
-
 /** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
 
@@ -224,11 +221,13 @@ const queueRealmWrite = serialWrites();
  * @param {object} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
- * @param {object} [options] Passed to planRealmSync.
+ * @param {object} [options]
+ * @param {boolean} [options.replacing] Passed to planRealmSync.
+ * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function writeRealm(scene, realm, g, textures, options) {
-	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), options);
+async function writeRealm(scene, realm, g, textures, { replacing = false, operation = {} } = {}) {
+	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
 	if (flag) {
@@ -241,7 +240,8 @@ async function writeRealm(scene, realm, g, textures, options) {
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
-			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step])));
+			// A copy each, as Foundry writes into the options it's handed.
+			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], { ...operation })));
 	}
 	return true;
 }
@@ -412,9 +412,10 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
  * write whatever that changed.
  * @param {Scene} scene
  * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export async function editRealm(scene, edit) {
+export async function editRealm(scene, edit, operation = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const textures = currentRealmTextures(scene);
@@ -422,7 +423,7 @@ export async function editRealm(scene, edit) {
 		const { realm } = getRealm(scene);
 		const next = edit(realm, g);
 		if (!next || next === realm) return false;
-		const written = await writeRealm(scene, next, g, textures);
+		const written = await writeRealm(scene, next, g, textures, { operation });
 		if (written) setHistory(scene.id, recordChange(realmHistory(scene.id), realm));
 		return written;
 	});
@@ -471,7 +472,6 @@ export async function stepRealmHistory(scene, way) {
 		if (!step) return false;
 		await writeRealm(scene, step.target, sceneGeometry(scene), currentRealmTextures(scene));
 		setHistory(scene.id, step.history);
-		Hooks.callAll(REALM_STEPPED_HOOK, scene, realm, step.target);
 		return true;
 	});
 }

@@ -97,8 +97,8 @@ export async function recordOnTracks(targets, milestones, options) {
 }
 
 /**
- * Take a milestone's rows off every thread, as when a Myth is unresolved.
- * @param {string} key
+ * Take milestones' rows off every thread, as when a Myth is unresolved.
+ * @param {string|string[]} key One key, or several taken off together.
  */
 export async function forgetEverywhere(key) {
 	try {

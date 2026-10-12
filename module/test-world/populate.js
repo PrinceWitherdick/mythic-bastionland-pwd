@@ -44,7 +44,7 @@ import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../a
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
-import { timelineCircle, timelineCourtLeft, timelineCrisisRoll, timelineDismissed, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineOmens, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
+import { omensMet, timelineCircle, timelineCourtLeft, timelineCrisisRoll, timelineDismissed, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
 import { timelineNow } from "../actions/timeline-record.js";
 import { createCustomTag } from "../actions/timeline-tags.js";
 import { ensureTimelineJournal, findTimelineJournal, mutateTrack, timelinePages, trackFor } from "../actions/timeline-store.js";
@@ -936,8 +936,8 @@ class TestGame {
 		const myth = this.myth(number);
 		if (!myth || myth.omen >= OMEN_COUNT) return;
 		const omen = myth.omen + 1;
-		await editRealm(this.scene, (realm) => setOmen(realm, number, omen));
-		await timelineOmens(this.scene, myth, { from: myth.omen, to: omen, hex: this.here });
+		// The Tile hooks in omens.js write it on the Timeline, where the Company stands.
+		await editRealm(this.scene, (realm) => setOmen(realm, number, omen), omensMet({ hex: this.here }));
 		const { name, page, entry } = mythEntry(this.index, myth);
 		await postCard(null, "omen", {
 			title: `${myth.number}. ${name}`,
