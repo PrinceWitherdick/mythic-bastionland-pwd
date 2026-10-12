@@ -17,6 +17,15 @@ export function gloryLines(change) {
 }
 
 /**
+ * Write a Rank a Glory change reached on the Knight's Timeline thread,
+ * however the Glory came: a Rank fallen to is no milestone reached.
+ * @param {Actor} actor
+ * @param {ReturnType<typeof changeGlory>} change
+ * @returns {Promise<unknown>|null}
+ */
+export const recordRankReached = (actor, change) => (change.rank && change.to > change.from ? timelineRank(actor, change.rank) : null);
+
+/**
  * Change one Knight's Glory, unless they are a Squire, who can't gain it.
  * @param {Actor} actor
  * @param {number} amount
@@ -26,8 +35,7 @@ export async function adjustGlory(actor, amount) {
 	if (!actor.system.gainsGlory) return [t("glory.squire")];
 	const change = changeGlory(actor.system.glory, amount);
 	if (change.to !== actor.system.glory) await actor.update({ "system.glory": change.to }, causedBy("glory"));
-	// A Rank fallen to is no milestone reached.
-	if (change.rank && change.to > change.from) await timelineRank(actor, change.rank);
+	await recordRankReached(actor, change);
 	return gloryLines(change);
 }
 
@@ -64,7 +72,9 @@ export async function awardGloryTo(key) {
 	}
 
 	const entries = await Promise.all(company.map(async ({ actor }) => ({ name: actor.name, lines: await adjustGlory(actor, 1) })));
-	await timelineGloryAwarded(key, company.map(({ actor }, index) => ({ actor, lines: entries[index].lines })));
-	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) });
+	await Promise.all([
+		timelineGloryAwarded(key, company.map(({ actor }, index) => ({ actor, lines: entries[index].lines }))),
+		postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t(`glory.awards.${key}.hint`) })
+	]);
 	return { knights: company.map(({ actor }) => actor), entries };
 }

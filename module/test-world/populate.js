@@ -18,7 +18,7 @@ import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js"
 import { rollCityOmen } from "../actions/city-quest.js";
 import { setCompanyHex } from "../actions/company.js";
 import { settleTask } from "../actions/council-tasks.js";
-import { addCourtMember } from "../actions/court.js";
+import { addCourtMember, removeFromCourt } from "../actions/court.js";
 import { dramaInCourt, linkKnightDomain, resolveCrisis, settleDomains, worldDomains } from "../actions/dominion.js";
 import { adjustGlory } from "../actions/glory.js";
 import { beginDesign } from "../actions/grand-designs.js";
@@ -44,11 +44,11 @@ import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../a
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
-import { omensMet, timelineCircle, timelineCourtLeft, timelineCrisisRoll, timelineDismissed, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
+import { omensMet, timelineCircle, timelineCrisisRoll, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
 import { timelineNow } from "../actions/timeline-record.js";
 import { createCustomTag } from "../actions/timeline-tags.js";
 import { ensureTimelineJournal, findTimelineJournal, mutateTrack, timelinePages, trackFor } from "../actions/timeline-store.js";
-import { MUSTERED_FLAG, ORIGIN_FLAG, wearWarbandDown } from "../actions/warbands.js";
+import { MUSTERED_FLAG, ORIGIN_FLAG, letWarbandGo, wearWarbandDown } from "../actions/warbands.js";
 import { drawWeather, setWeather } from "../actions/weather.js";
 import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
@@ -1649,35 +1649,17 @@ class TestGame {
 	 */
 	async domainSeason() {
 		const domain = this.domain;
-		if (this.sellswords) await this.dismiss(domain, this.sellswords);
+		// Let go as Dismiss and Let Go do, without the confirming the story needs no one to click.
+		if (this.sellswords) await letWarbandGo(domain, this.sellswords);
 		await dramaInCourt(domain);
 		if (domain.system.crises?.length) await resolveCrisis(domain, 0);
 		const [leaving] = Object.entries(domain.system.court ?? {}).find(([, member]) => member?.name === LEAVES_COURT) ?? [];
-		if (leaving) {
-			// Let go as Let Go does (court.js), without the confirming the story needs no one to click.
-			const member = domain.system.court[leaving];
-			await domain.update(Object.fromEntries([deletionEntry(`system.court.${leaving}`)]));
-			await timelineCourtLeft(domain, leaving, member);
-		}
+		if (leaving) await removeFromCourt(domain, leaving);
 		const { role, ...newcomer } = NEWCOMER;
 		await addCourtMember(domain, role, newcomer);
 		const design = await beginDesign(domain, DESIGN.scale);
 		if (design) await domain.update({ [`system.designs.${design}.what`]: DESIGN.what });
 		await this.setTask("envoy", { what: "Carry the Domain's greetings, and its excuses, to the Seat of Power", scope: "season", risk: "luck" });
-	}
-
-	/**
-	 * Let a Warband go, as Dismiss does (warbands.js), without its confirming.
-	 * @param {Actor} domain
-	 * @param {Actor} warband
-	 */
-	async dismiss(domain, warband) {
-		await warband.unsetFlag(SYSTEM_ID, MUSTERED_FLAG);
-		await timelineDismissed(domain, warband);
-		await postCard(domain, "note", {
-			icon: "fa-solid fa-person-walking-arrow-right",
-			text: t("warband.dismiss.went", { name: warband.name, domain: domain.name })
-		});
 	}
 
 	/** @returns {Promise<object|null>} The book's first Warband (p11), from the Beasts & Hirelings compendium Import PDF fills. */

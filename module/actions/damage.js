@@ -261,11 +261,13 @@ export async function takeDamage(actor, preset = {}) {
 	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
 	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	await actor.update(update, causedBy("damage"));
+	// The Timeline's row is written beside the card, which needn't wait for it.
+	let recorded = null;
 	if (warden) await takeWard(warden, actor);
 	// A Mortal Wound that will be shaken off, or one somebody died of, is no milestone of its own.
 	else if (virtues && !dead && result.outcome === "mortal" && !preset.nonLethal && !preset.sparring) {
 		const dealer = preset.by ? fromUuidSync(preset.by)?.name : "";
-		await timelineMortalWound(actor, preset.cause || (dealer ? t("timeline.auto.scarBy", { name: dealer }) : ""));
+		recorded = timelineMortalWound(actor, preset.cause || (dealer ? t("timeline.auto.scarBy", { name: dealer }) : ""));
 	}
 
 	const outcomes = outcomesFor(result.outcome, { warband, structure: Boolean(actor.system.structure) });
@@ -293,7 +295,7 @@ export async function takeDamage(actor, preset = {}) {
 				: null;
 	if (said) card.outcome = said;
 	if (preset.cause) card.cause = preset.cause;
-	await postCard(actor, "damage", card);
+	await Promise.all([postCard(actor, "damage", card), recorded]);
 	// What the blow looks like where it landed (module/actions/attack-fx.js): after the
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
@@ -487,8 +489,10 @@ async function takeWard(warden, victim) {
 		? { ...SLAIN_UPDATE, "system.wounded": true }
 		: { "system.mortalWound": true, "system.wounded": true };
 	await warden.update(update, causedBy("damage"));
-	await timelineWarded(warden, victim, { doomed });
-	await postCard(warden, "note", { icon: "fa-solid fa-shield-heart", text: t(doomed ? "deathWard.doomed" : "deathWard.taken", { name: warden.name, victim: victim.name }) });
+	await Promise.all([
+		timelineWarded(warden, victim, { doomed }),
+		postCard(warden, "note", { icon: "fa-solid fa-shield-heart", text: t(doomed ? "deathWard.doomed" : "deathWard.taken", { name: warden.name, victim: victim.name }) })
+	]);
 	if (doomed) await announceFallenKnight(warden, "slain");
 }
 

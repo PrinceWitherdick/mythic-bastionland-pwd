@@ -83,7 +83,7 @@ vi.mock("../../module/actions/season-events.js", () => ({
 
 vi.mock("../../module/actions/session-end.js", () => ({ endTheSession: vi.fn(async () => true) }));
 
-vi.mock("../../module/actions/warbands.js", () => ({ MUSTERED_FLAG: "musteredBy", ORIGIN_FLAG: "warbandOrigin", wearWarbandDown: vi.fn() }));
+vi.mock("../../module/actions/warbands.js", async (importOriginal) => ({ ...(await importOriginal()), wearWarbandDown: vi.fn() }));
 
 vi.mock("../../module/actions/weather.js", () => ({
 	drawWeather: vi.fn(),

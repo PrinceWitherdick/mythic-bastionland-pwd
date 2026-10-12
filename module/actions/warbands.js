@@ -153,18 +153,19 @@ export async function musterWarband(domain) {
 		...(game.user.isGM ? { ownership: foundry.utils.deepClone(domain.ownership) } : {})
 	});
 	if (!warband) return null;
-	await timelineMustered(domain, warband, t(`warband.origins.${choice.origin}.label`));
-
-	await postCard(domain, "report", {
-		title: t("warband.muster.title"),
-		tagline: t("warband.muster.raised", { name: warband.name, domain: domain.name }),
-		entries: [{
-			name: warband.name,
-			pursuit: t(`warband.origins.${choice.origin}.label`),
-			lines: [t(`warband.origins.${choice.origin}.text`), t("warband.muster.needs")]
-		}],
-		hint: t("warband.muster.marshal")
-	});
+	await Promise.all([
+		timelineMustered(domain, warband, t(`warband.origins.${choice.origin}.label`)),
+		postCard(domain, "report", {
+			title: t("warband.muster.title"),
+			tagline: t("warband.muster.raised", { name: warband.name, domain: domain.name }),
+			entries: [{
+				name: warband.name,
+				pursuit: t(`warband.origins.${choice.origin}.label`),
+				lines: [t(`warband.origins.${choice.origin}.text`), t("warband.muster.needs")]
+			}],
+			hint: t("warband.muster.marshal")
+		})
+	]);
 	warband.sheet.render({ force: true });
 	return warband;
 }
@@ -184,14 +185,25 @@ export async function dismissWarband(domain, id) {
 		icon: "fa-solid fa-person-walking-arrow-right",
 		message: t("warband.dismiss.confirm", { name: escapeHTML(warband.name), domain: escapeHTML(domain.name) })
 	}))) return false;
-
-	await warband.unsetFlag(SYSTEM_ID, MUSTERED_FLAG);
-	await timelineDismissed(domain, warband);
-	await postCard(domain, "note", {
-		icon: "fa-solid fa-person-walking-arrow-right",
-		text: t("warband.dismiss.went", { name: warband.name, domain: domain.name })
-	});
+	await letWarbandGo(domain, warband);
 	return true;
+}
+
+/**
+ * Dismiss's work once it's confirmed: the Warband is no longer the Domain's,
+ * and the Timeline and the chat say so.
+ * @param {Actor} domain
+ * @param {Actor} warband
+ */
+export async function letWarbandGo(domain, warband) {
+	await warband.unsetFlag(SYSTEM_ID, MUSTERED_FLAG);
+	await Promise.all([
+		timelineDismissed(domain, warband),
+		postCard(domain, "note", {
+			icon: "fa-solid fa-person-walking-arrow-right",
+			text: t("warband.dismiss.went", { name: warband.name, domain: domain.name })
+		})
+	]);
 }
 
 /**

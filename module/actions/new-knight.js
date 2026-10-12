@@ -81,12 +81,15 @@ export function isUnchosen(actor) {
 }
 
 /**
- * Show the whole sheet of a Knight made blank, to be filled in by hand.
+ * Show the whole sheet of a Knight made blank, to be filled in by hand. Chosen
+ * now, a Knight already given to a player joins the Company.
  * @param {Actor} actor
  * @returns {Promise<Actor>}
  */
-export function fillKnightByHand(actor) {
-	return actor.setFlag(SYSTEM_ID, UNCHOSEN_FLAG, false);
+export async function fillKnightByHand(actor) {
+	await actor.setFlag(SYSTEM_ID, UNCHOSEN_FLAG, false);
+	await knightJoined(actor);
+	return actor;
 }
 
 /**

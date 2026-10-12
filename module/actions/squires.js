@@ -146,14 +146,15 @@ export async function takeSquire(knight) {
 	}
 	if (pony) lines.push({ label: t("steed.label"), value: pony.name });
 	await knight.update({ "system.squire": squire.uuid });
-	await timelineSquireTaken(knight, squire);
-
-	await postCard(knight, "creation", {
-		title: t("squire.title"),
-		tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
-		lines,
-		note: t("squire.hint")
-	}, { rolls });
+	await Promise.all([
+		timelineSquireTaken(knight, squire),
+		postCard(knight, "creation", {
+			title: t("squire.title"),
+			tagline: t("squire.tagline", { name: squire.name, knight: knight.name }),
+			lines,
+			note: t("squire.hint")
+		}, { rolls })
+	]);
 	squire.sheet.render({ force: true });
 	return squire;
 }

@@ -121,3 +121,12 @@ describe("the sheets' templates", () => {
 		}
 	});
 });
+
+describe("a Squire dropped on a Knight", () => {
+	it("is written on both threads, as a Squire taken anew is", () => {
+		const sheetSource = read("module/sheets/KnightSheet.js");
+		const start = sheetSource.indexOf("async _onDropActor(");
+		const body = sheetSource.slice(start, sheetSource.indexOf("\n\t}\n", start));
+		expect(body).toMatch(/"system\.squire": actor\.uuid[\s\S]*timelineSquireTaken\(this\.actor, actor\)/);
+	});
+});

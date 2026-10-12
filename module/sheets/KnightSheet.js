@@ -10,6 +10,7 @@ import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../a
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { changeAge } from "../actions/time.js";
+import { timelineSquireTaken } from "../actions/timeline-events.js";
 import { openPortrait } from "../apps/ArtPopout.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { openKnightTable } from "../apps/KnightTable.js";
@@ -583,6 +584,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		}
 		await this.actor.update({ "system.squire": actor.uuid });
 		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
+		// On both threads, as taking a new Squire writes it.
+		await timelineSquireTaken(this.actor, actor);
 		return actor;
 	}
 

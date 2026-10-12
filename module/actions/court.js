@@ -1,4 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { deletionEntry } from "../compat.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { t } from "../chat/cards.js";
@@ -254,9 +255,22 @@ export async function removeCourtMember(domain, id) {
 		});
 		if (!confirmed) return false;
 	}
+	return removeFromCourt(domain, id);
+}
 
+/**
+ * Let Go's work once it's confirmed: they leave the Court, and any seat on the
+ * Council they held, and one who was named leaves it on the Timeline.
+ * @param {Actor} domain
+ * @param {string} id
+ * @returns {Promise<boolean>} Whether they left.
+ */
+export async function removeFromCourt(domain, id) {
+	const member = normalizeCourt(domain?.system.court)[id];
+	if (!member || !domain.isOwner) return false;
+	const held = seatOf(domain.system.council, id);
 	await domain.update({
-		[`system.court.-=${id}`]: null,
+		...Object.fromEntries([deletionEntry(`system.court.${id}`)]),
 		...(held ? { [`system.council.${held}`]: "" } : {})
 	});
 	if (member.name) await timelineCourtLeft(domain, id, member);

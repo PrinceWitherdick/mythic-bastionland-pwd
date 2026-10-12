@@ -19,7 +19,7 @@ vi.mock("../../module/apps/ui.js", () => ({
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineCircle: vi.fn(), timelineCourtJoined: vi.fn(), timelineCourtLeft: vi.fn() }));
 
-const { addCourtMember, editCourtMember, removeCourtMember, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
+const { addCourtMember, editCourtMember, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 
 const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, ...extra });
@@ -128,6 +128,22 @@ describe("removeCourtMember", () => {
 		confirmed = false;
 		expect(await removeCourtMember(fakeDomain(), "r1")).toBe(false);
 		expect(updates).toEqual([]);
+	});
+
+	it("lets them go without asking, seat and all", async () => {
+		const domain = fakeDomain();
+		expect(await removeFromCourt(domain, "r1")).toBe(true);
+		expect(asked).toEqual([]);
+		expect(updates[0]).toEqual({ "system.court.-=r1": null, "system.council.steward": "" });
+		expect(timeline.timelineCourtLeft).toHaveBeenCalledWith(domain, "r1", expect.objectContaining({ name: "Coll" }));
+		expect(await removeFromCourt(domain, "nobody")).toBe(false);
+	});
+
+	it("lets nobody go from a Domain this user doesn't own", async () => {
+		const domain = { ...fakeDomain(), isOwner: false };
+		expect(await removeFromCourt(domain, "r1")).toBe(false);
+		expect(updates).toEqual([]);
+		expect(timeline.timelineCourtLeft).not.toHaveBeenCalled();
 	});
 });
 

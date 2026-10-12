@@ -81,8 +81,10 @@ async function onEnd(message, victorUuid) {
 		glory[uuid] = await adjustGlory(actor, amount);
 		return { name: actor.name, lines: glory[uuid] };
 	}));
-	await timelineDuel(message.id, duel, actors, victor?.uuid ?? null, glory);
-	if (entries.length) await postCard(null, "report", { title: t("duel.endTitle"), tagline: outcome, entries });
+	await Promise.all([
+		timelineDuel(message.id, duel, actors, victor?.uuid ?? null, glory),
+		entries.length ? postCard(null, "report", { title: t("duel.endTitle"), tagline: outcome, entries }) : null
+	]);
 	if (duel.sparring) await shakeOff(duel, actors, outcome);
 }
 

@@ -1,4 +1,5 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
+import { deletionEntry } from "../compat.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import {
 	TASK_SCOPES,
@@ -184,11 +185,12 @@ export async function settleTask(domain, id) {
 		if (!crisis) notes.push(t("domain.tasks.everyCrisis"));
 	}
 
-	await domain.update({ [`system.tasks.-=${id}`]: null });
+	await domain.update(Object.fromEntries([deletionEntry(`system.tasks.${id}`)]));
 	const holder = seatHolderNames(domain, task.seat);
 	const by = holder ? t("domain.tasks.by", { seat: seatLabel(task.seat), name: holder }) : seatLabel(task.seat);
 	const what = task.what || t("domain.tasks.whatUnwritten");
-	await timelineTaskSettled(domain, id, {
+	// The Timeline's row is written beside the card, which needn't wait for it.
+	const recorded = timelineTaskSettled(domain, id, {
 		what,
 		by,
 		outcome: t(`domain.tasks.outcomes.${outcome}.label`),
@@ -207,6 +209,7 @@ export async function settleTask(domain, id) {
 		crisis: crisis ? crisisEntry(crisis) : null,
 		hint: [t(`domain.tasks.outcomes.${outcome}.hint`), ...notes, misruleWarning(domain)].filter(Boolean).join(" ")
 	}, { rolls });
+	await recorded;
 	return outcome;
 }
 
@@ -227,7 +230,7 @@ export async function setTaskAside(domain, id) {
 		message: t("domain.tasks.setAsideConfirm", { what: escapeHTML(task.what), seat: seatLabel(task.seat) })
 	}))) return false;
 
-	await domain.update({ [`system.tasks.-=${id}`]: null });
+	await domain.update(Object.fromEntries([deletionEntry(`system.tasks.${id}`)]));
 	return true;
 }
 

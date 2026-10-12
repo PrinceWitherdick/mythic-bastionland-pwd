@@ -567,14 +567,26 @@ export function timelineDesignBegun(domain, id, design) {
 export const timelineDesignForgotten = (id) => forgetEverywhere(timelineKeys.design(id));
 
 /**
+ * Somebody comes to a Domain's Court, or goes from it, with the role they had there.
+ * @param {Actor} domain
+ * @param {{name: string, role: string}} member
+ * @param {string} key
+ * @param {string} said Its title's, under timeline.auto.
+ */
+const courtRow = (domain, member, key, said) => recordOnTrack(domain, {
+	source: "court",
+	key,
+	title: t(`timeline.auto.${said}`, { name: member.name }),
+	body: t(`domain.court.roles.${member.role}.one`)
+});
+
+/**
  * Somebody joins a Domain's Court.
  * @param {Actor} domain
  * @param {string} id
  * @param {{name: string, role: string}} member
  */
-export function timelineCourtJoined(domain, id, member) {
-	return recordOnTrack(domain, { source: "court", key: timelineKeys.court(id), title: t("timeline.auto.courtJoined", { name: member.name }), body: t(`domain.court.roles.${member.role}.one`) });
-}
+export const timelineCourtJoined = (domain, id, member) => courtRow(domain, member, timelineKeys.court(id), "courtJoined");
 
 /**
  * Somebody leaves a Domain's Court. The row they joined by stays.
@@ -582,9 +594,7 @@ export function timelineCourtJoined(domain, id, member) {
  * @param {string} id
  * @param {{name: string, role: string}} member
  */
-export function timelineCourtLeft(domain, id, member) {
-	return recordOnTrack(domain, { source: "court", key: timelineKeys.courtLeft(id), title: t("timeline.auto.courtLeft", { name: member.name }), body: t(`domain.court.roles.${member.role}.one`) });
-}
+export const timelineCourtLeft = (domain, id, member) => courtRow(domain, member, timelineKeys.courtLeft(id), "courtLeft");
 
 /**
  * Knights take their seats in a Domain's Circle, or leave them: on the
@@ -609,20 +619,26 @@ export function timelineCircle(domain, { joined = [], left = [] }) {
 }
 
 /**
+ * A Warband comes to a Domain, or goes from it.
+ * @param {Actor} domain
+ * @param {Actor} warband
+ * @param {string} key
+ * @param {string} said Its title's, under timeline.auto.
+ * @param {{body?: string}} [more]
+ */
+const warbandRow = (domain, warband, key, said, more = {}) => recordOnTrack(domain, { source: "warband", key, title: t(`timeline.auto.${said}`, { name: warband.name }), ...more });
+
+/**
  * A Domain musters a Warband.
  * @param {Actor} domain
  * @param {Actor} warband
  * @param {string} origin Where its soldiers were drawn from.
  */
-export function timelineMustered(domain, warband, origin) {
-	return recordOnTrack(domain, { source: "warband", key: timelineKeys.warband(warband.id), title: t("timeline.auto.mustered", { name: warband.name }), body: origin });
-}
+export const timelineMustered = (domain, warband, origin) => warbandRow(domain, warband, timelineKeys.warband(warband.id), "mustered", { body: origin });
 
 /**
  * A Domain lets a Warband go.
  * @param {Actor} domain
  * @param {Actor} warband
  */
-export function timelineDismissed(domain, warband) {
-	return recordOnTrack(domain, { source: "warband", key: timelineKeys.warbandGone(warband.id), title: t("timeline.auto.dismissed", { name: warband.name }) });
-}
+export const timelineDismissed = (domain, warband) => warbandRow(domain, warband, timelineKeys.warbandGone(warband.id), "dismissed");

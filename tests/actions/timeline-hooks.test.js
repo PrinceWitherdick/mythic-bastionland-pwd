@@ -67,7 +67,15 @@ describe("a Scar", () => {
 		expect(timeline.timelineScarSettled).toHaveBeenCalledWith(knight, item, expect.any(String));
 	});
 
-	it("writes nothing for being patched up", async () => {
+	it("writes a Gouge settled by being patched up, as from the sheet", async () => {
+		const knight = { ...actor({ guard: { max: 6 }, mortalWound: false }), name: "Sir a", items: [] };
+		const item = { type: "scar", name: "Gouge", system: { roll: 6, resolved: false }, update: vi.fn(async () => {}) };
+		knight.items.push(item);
+		await patchUp(knight);
+		expect(timeline.timelineScarSettled).toHaveBeenCalledWith(knight, item, expect.any(String));
+	});
+
+	it("writes nothing for a Mortal Wound patched up with no Scar to settle", async () => {
 		const knight = { ...actor({ guard: { max: 6 }, mortalWound: true }), name: "Sir a", items: [] };
 		await patchUp(knight);
 		expect(timeline.timelineScarSettled).not.toHaveBeenCalled();
