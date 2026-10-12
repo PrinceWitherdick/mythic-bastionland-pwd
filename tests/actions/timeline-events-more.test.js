@@ -9,7 +9,7 @@ vi.mock("../../module/actions/timeline-record.js", () => ({
 	timelineNow: () => "2-harvest"
 }));
 let view = null;
-vi.mock("../../module/actions/travels.js", () => ({ travelsSources: () => ({}) }));
+vi.mock("../../module/actions/travels.js", () => ({ travelsSources: () => ({}), playersHexView: (_scene, hex) => view?.(hex) ?? null }));
 vi.mock("../../module/rules/travels.js", () => ({ playerHexView: (sources, hex) => (sources.gm === false ? view?.(hex) ?? null : null) }));
 
 const record = await import("../../module/actions/timeline-record.js");

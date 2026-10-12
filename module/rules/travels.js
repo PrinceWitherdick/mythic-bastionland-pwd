@@ -78,16 +78,30 @@ export function openableHex({ journey, shared, marks }, hex) {
  * @returns {PlayerHexView}
  */
 export function playerHexView(sources, hex) {
-	const { realm, g, journey, shared, names, marks, handHidden, companyHex = null } = sources;
+	const { journey, shared, names, marks } = sources;
+	return hexViewOf(sources, hex, { visits: visitsAt(journey, hex), record: sharedAt(shared, hex), mark: markAt(marks, hex), name: hexNameAt(names, hex) });
+}
+
+/**
+ * One hex as the players know it, from what's held for that hex alone, so a
+ * caller asking of one hex needn't read the whole Realm's record.
+ * @param {Pick<TravelsSources, "realm"|"g"|"handHidden"|"companyHex"|"gm">} sources
+ * @param {{col: number, row: number}} hex
+ * @param {object} held
+ * @param {object|null} held.visits From visitsAt.
+ * @param {object|null} held.record From sharedAt.
+ * @param {{note: string}|null} held.mark The mark of what was seen from afar there, while it stands for something hidden.
+ * @param {string} held.name The name the GM gave it, or "".
+ * @returns {PlayerHexView}
+ */
+export function hexViewOf(sources, hex, { visits, record, mark, name }) {
+	const { realm, g, handHidden, companyHex = null } = sources;
 	const seen = hexSummary(realm, g, hex, { showHidden: false, hiddenByHand: handHidden?.(hex) ?? {} });
-	const visits = visitsAt(journey, hex);
-	const record = sharedAt(shared, hex);
-	const mark = markAt(marks, hex);
 	const openable = knownToPlayers({ visits, record, mark });
 	return {
 		hex: { col: hex.col, row: hex.row },
 		key: hexKey(hex),
-		name: openable || sources.gm ? hexNameAt(names, hex) : "",
+		name: openable || sources.gm ? name : "",
 		visits: visits ? { count: visits.count, first: { when: visits.first.when }, last: { when: visits.last.when, order: visits.last.order } } : null,
 		terrain: seen.terrain,
 		holding: seen.holding ? { style: seen.holding.style, name: seen.holding.name, seat: seen.holding.seat } : null,

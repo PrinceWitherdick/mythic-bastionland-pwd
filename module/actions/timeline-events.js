@@ -6,7 +6,7 @@ import { COMPANY_TRACK, timelineKeys } from "../rules/timeline.js";
 import { sessionRecap } from "../rules/session-end.js";
 import { playerHexView } from "../rules/travels.js";
 import { forgetEverywhere, keptFromPlayers, recordOnTrack, recordOnTracks, timelineNow } from "./timeline-record.js";
-import { travelsSources } from "./travels.js";
+import { playersHexView, travelsSources } from "./travels.js";
 
 /**
  * What the game writes on the Timeline by itself, one recorder for each
@@ -244,6 +244,19 @@ function seenAt(sources, hex) {
 }
 
 /**
+ * One hex as the players know it, read for that hex alone, or null where it can't be read.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ */
+function oneSeenAt(scene, hex) {
+	try {
+		return playersHexView(scene, hex);
+	} catch {
+		return null;
+	}
+}
+
+/**
  * @param {ReturnType<typeof playerHexView>|null} view
  * @returns {string|null} What there is in it worth a row: a Holding, a Landmark, or a Myth, unnamed.
  */
@@ -252,6 +265,17 @@ function worthNoting(view) {
 	if (view?.landmark) return view.landmark.name || t(`realm.landmarks.${view.landmark.type}`);
 	if (view?.myth) return t("timeline.auto.mythHex", { number: view.myth.number });
 	return null;
+}
+
+/**
+ * A hex as the players know it, and where a row about it says it was.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}|null} hex
+ * @returns {{view: ReturnType<typeof playerHexView>|null, place: string}} The hex's name, or what there is in it, or else the Realm's name.
+ */
+function placeOf(scene, hex) {
+	const view = hex ? oneSeenAt(scene, hex) : null;
+	return { view, place: view?.name || worthNoting(view) || scene.name };
 }
 
 /**
@@ -282,12 +306,11 @@ export async function timelineArrivals(scene, hexes) {
  */
 export function timelinePartyNote(scene, hex, text, user) {
 	if (!text.trim()) return timelineNoteForgotten(scene, hex);
-	const view = seenAt(playersSources(scene), hex);
 	return recordOnTracks([COMPANY_TRACK, scene], {
 		source: "note",
 		key: timelineKeys.note(scene.id, hex),
 		title: t("timeline.auto.partyNote", { name: user.name }),
-		place: view?.name || worthNoting(view) || scene.name,
+		place: placeOf(scene, hex).place,
 		body: text.trim(),
 		refresh: ["body", "title", "season"]
 	});
@@ -446,8 +469,7 @@ export async function timelineOmens(scene, myth, { from, to, hex = null, news = 
 	const id = completedMythId(scene.id, myth);
 	for (let omen = to + 1; omen <= from; omen++) await forgetEverywhere(timelineKeys.omen(id, omen));
 	if (to <= from) return;
-	const view = hex ? seenAt(playersSources(scene), hex) : null;
-	const place = view?.name || worthNoting(view) || scene.name;
+	const { place } = placeOf(scene, hex);
 	const title = t(news ? "timeline.auto.omenNews" : "timeline.auto.omen", { number: myth.number });
 	const met = Array.from({ length: to - from }, (_, index) => ({ source: "omen", key: timelineKeys.omen(id, from + index + 1), title, place }));
 	await recordOnTracks([COMPANY_TRACK, scene], met);
@@ -461,12 +483,12 @@ export async function timelineOmens(scene, myth, { from, to, hex = null, news = 
  * @param {{col: number, row: number}} hex
  */
 export function timelineLandmarkFound(scene, hex) {
-	const view = seenAt(playersSources(scene), hex);
+	const { view, place } = placeOf(scene, hex);
 	if (!view?.landmark) return null;
 	return recordOnTracks([COMPANY_TRACK, scene], {
 		source: "found",
 		key: timelineKeys.visit(scene.id, hex),
-		title: t("timeline.auto.found", { place: view.name || worthNoting(view) }),
+		title: t("timeline.auto.found", { place }),
 		place: scene.name
 	});
 }
