@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PICTURE_ROLL, TERRAIN, emptyRealm } from "../../module/rules/realm.js";
 import { allHexes, edgeDirection, hexIndex, hexKey, neighbour, neighbours, parseHexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { generateRealm } from "../../module/rules/realm-generator.js";
-import { layRiver, paintTerrain, placeFeature, relayRealm } from "../../module/rules/realm-edits.js";
-import { brokenPictures, pickPicture, pictureCount, pictureOf, rollFor, rollPictures } from "../../module/rules/realm-pictures.js";
+import { editFeature, layRiver, paintTerrain, placeFeature, relayRealm } from "../../module/rules/realm-edits.js";
+import { brokenPictures, mendPictures, pickPicture, pictureCount, pictureOf, rollFor, rollPictures } from "../../module/rules/realm-pictures.js";
 import { skinFeatures } from "../../module/rules/realm-skins.js";
 import { createRandom } from "../../module/rules/random.js";
 
@@ -142,6 +142,44 @@ describe("painting a group drawn as one", () => {
 		const settled = placeFeature(laid, g, ridge[0], { kind: "holding", style: "castle" });
 		expect(ridge.some((place) => isJoined(settled, place))).toBe(false);
 		expect(brokenPictures(g, settled)).toEqual([]);
+	});
+
+	it("picks one again whichever edit lays the river or Holding that cuts it, as mending it by hand would", () => {
+		const laid = paintTerrain(blankRealm(), g, ridge, CRAG, { random: () => 0.5 });
+		const whole = (realm) => ridge.every((place) => isJoined(realm, place));
+		/** The edit's Realm, and the Realm before it with only the edit's rivers and Holdings, mended by hand, on the same rolls. */
+		const both = (before, edit) => {
+			const random = vi.spyOn(Math, "random").mockImplementation(createRandom("mend").float);
+			const edited = edit(before);
+			random.mockImplementation(createRandom("mend").float);
+			const byHand = { ...before, variants: [...before.variants], rivers: edited.rivers, holdings: edited.holdings };
+			mendPictures(g, byHand);
+			random.mockRestore();
+			return { edited, byHand };
+		};
+		const cut = ({ edited, byHand }) => {
+			expect(whole(edited)).toBe(false);
+			expect(brokenPictures(g, edited)).toEqual([]);
+			expect(edited.variants).toEqual(byHand.variants);
+		};
+		expect(whole(laid)).toBe(true);
+
+		// A new river, and one carried on from its mouth into the group.
+		cut(both(laid, (realm) => layRiver(realm, g, [ridge[2], neighbour(g, ridge[2], 1)])));
+		const beside = neighbour(g, ridge[2], 1);
+		const begun = layRiver(laid, g, [neighbour(g, beside, 1), beside]);
+		expect(whole(begun)).toBe(true);
+		cut(both(begun, (realm) => layRiver(realm, g, [beside, ridge[2]])));
+
+		// A Holding placed, in a hex of its own or over a Landmark; a Landmark cuts nothing.
+		cut(both(laid, (realm) => placeFeature(realm, g, ridge[0], { kind: "holding", style: "castle" })));
+		const marked = placeFeature(laid, g, ridge[1], { kind: "landmark", type: "ruin" });
+		expect(whole(marked)).toBe(true);
+		cut(both(marked, (realm) => placeFeature(realm, g, ridge[1], { kind: "holding", style: "tower" })));
+
+		// Renaming the Holding cuts nothing more, so the pictures it was given stay.
+		const settled = placeFeature(laid, g, ridge[0], { kind: "holding", style: "castle" });
+		expect(editFeature(settled, g, ridge[0], { name: "Stillwatch" }).variants).toEqual(settled.variants);
 	});
 
 	it("picks one again when the Realm's hexes are laid out another way and its hexes no longer lie as drawn", () => {

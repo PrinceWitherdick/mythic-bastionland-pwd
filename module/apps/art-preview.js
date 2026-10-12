@@ -44,16 +44,18 @@ export function fitArt(natural, viewport) {
 
 /**
  * Where a popup goes: right of the art, or left when the right has no room,
- * level with the art's middle and kept inside the window.
+ * level with the art's middle, or its top, and kept inside the window.
  * @param {{top: number, bottom: number, left: number, right: number}} anchor The art's box.
  * @param {{width: number, height: number}} popup
  * @param {{width: number, height: number}} viewport
+ * @param {object} [options]
+ * @param {"middle"|"top"} [options.align] What of the art the popup is level with.
  * @returns {{top: number, left: number}}
  */
-export function placeArt(anchor, popup, viewport) {
+export function placeArt(anchor, popup, viewport, { align = "middle" } = {}) {
 	let left = anchor.right + GAP;
 	if (left + popup.width > viewport.width - GAP) left = anchor.left - GAP - popup.width;
-	const top = (anchor.top + anchor.bottom - popup.height) / 2;
+	const top = align === "top" ? anchor.top : (anchor.top + anchor.bottom - popup.height) / 2;
 	const clamp = (value, max) => Math.round(Math.max(GAP, Math.min(value, max)));
 	return {
 		top: clamp(top, viewport.height - GAP - popup.height),

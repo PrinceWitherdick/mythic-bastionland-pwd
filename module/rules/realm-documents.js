@@ -13,7 +13,7 @@ import { noFogSceneData, paperSceneData, replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
-import { pictureOf } from "./realm-pictures.js";
+import { emptyVariants, pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
 import { MAP_ROLES, hidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
@@ -514,7 +514,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				else {
 					realm.terrain[index] = Number(flag.terrain) || 0;
 					const roll = Math.trunc(Number(flag.variant)) || 0;
-					if (roll > 0) (realm.variants ??= new Array(realm.terrain.length).fill(0))[index] = roll;
+					if (roll > 0) (realm.variants ??= emptyVariants(realm.terrain))[index] = roll;
 				}
 				break;
 			}

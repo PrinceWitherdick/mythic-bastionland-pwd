@@ -490,7 +490,8 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			const hex = hexAt(sceneGeometry(scene), canvas.mousePosition);
 			if (!hex) return;
 			// Places shows the hex, and Edit hex in its title bar opens the editor. While the Realm is being
-			// drawn, placing its Myths and Holdings is what the click is for, so the editor opens beside Places.
+			// drawn, placing its Myths and Holdings is what the click is for, so the editor opens beside Places,
+			// placed once Places has been drawn where it goes.
 			const places = openHex({ scene, hex });
 			if (isDrawingRealm(scene)) openHexEditor({ scene, hex, beside: places });
 			return;

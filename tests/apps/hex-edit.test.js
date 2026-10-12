@@ -38,7 +38,7 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 		expect(template).not.toContain("<details");
 		expect(editor).toContain('body: { template: templatePath("apps/parts/hex-edit.hbs") }');
 		expect(editor).toMatch(/export async function openHexEditor\(\{ scene, hex, beside \}\) \{\s*if \(!game\.user\?\.isGM/);
-		expect(editor).toContain("if (opening && beside) placeBeside(editor, beside);");
+		expect(editor).toContain("if (opening && beside) placeBeside(editor, await beside);");
 		// Only a GM's Places builds the pen, as only a GM's builds the Lay of the Land.
 		expect(gmPart).toMatch(/export function hexGmContext\([^)]*\) \{\s*if \(!game\.user\?\.isGM\) return null;/);
 	});

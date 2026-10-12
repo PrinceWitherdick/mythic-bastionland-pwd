@@ -144,6 +144,12 @@ function groupAt(g, realm, hex) {
 }
 
 /**
+ * @param {number[]} terrain A Realm's terrain, in `hexIndex` order.
+ * @returns {number[]} A picture roll for each hex, all 0: none rolled yet, so each shows the skin's own.
+ */
+export const emptyVariants = (terrain) => new Array(terrain.length).fill(0);
+
+/**
  * Hexes no group drawn as one may cover: a river or a Holding would cut through it.
  * @param {object} g
  * @param {{rivers?: {col: number, row: number}[][], holdings?: {hex: {col: number, row: number}}[]}} realm
@@ -246,7 +252,7 @@ export function pickPicture(g, realm, hex, terrain, random, open = () => false) 
  * @param {number} [roll] The roll it had, if not the one it has now.
  * @returns {number} From 1 to PICTURE_ROLL.
  */
-export function nextPicture(g, realm, hex, roll = realm.variants?.[hexIndex(g, hex)]) {
+function nextPicture(g, realm, hex, roll = realm.variants?.[hexIndex(g, hex)]) {
 	const terrain = realm.terrain[hexIndex(g, hex)];
 	const counts = fits(g, realm, hex, terrain).slice(0, pictureCount(terrain));
 	const order = counts.map((_, picture) => picture).sort((a, b) => counts[b] - counts[a] || a - b);
@@ -352,7 +358,7 @@ export function mendPictures(g, realm, random = Math.random) {
  * @returns {number[]} In `hexIndex` order: 0 where there's no terrain.
  */
 export function rollPictures(g, terrain, random, kept = new Set()) {
-	const realm = { terrain, variants: new Array(terrain.length).fill(0) };
+	const realm = { terrain, variants: emptyVariants(terrain) };
 	const laid = new Map();
 	const queued = new Set();
 	const open = (hex) => !realm.variants[hexIndex(g, hex)];

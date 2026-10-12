@@ -4,9 +4,10 @@ import { realmKnown } from "../actions/solo.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { placeArt } from "./art-preview.js";
 import { HEX_FEATURE_ACTIONS, chooseHexMyth, hexEditContext, rollHexMyth, writeHexEditField } from "./hex-edit.js";
 import { panelScreen } from "./map-screen.js";
-import { renderWhenIdle } from "./ui.js";
+import { renderWhenIdle, viewport } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -120,7 +121,8 @@ let editor = null;
  * @param {object} options
  * @param {Scene} options.scene
  * @param {{col: number, row: number}} options.hex
- * @param {foundry.applications.api.ApplicationV2} [options.beside] A window to open beside, the first time it opens, rather than over.
+ * @param {foundry.applications.api.ApplicationV2|Promise<foundry.applications.api.ApplicationV2>} [options.beside] A window
+ *   to open beside, the first time it opens, rather than over; or one still opening, as openHex gives it, to wait for.
  * @returns {Promise<HexEditor|null>}
  */
 export async function openHexEditor({ scene, hex, beside }) {
@@ -131,29 +133,24 @@ export async function openHexEditor({ scene, hex, beside }) {
 	const opening = !editor.rendered;
 	await editor.render({ force: true });
 	editor.bringToFront();
-	if (opening && beside) placeBeside(editor, beside);
+	// A window's render settles once Foundry has put it where it goes, so the other is in its place by now.
+	if (opening && beside) placeBeside(editor, await beside);
 	return editor;
 }
 
 /**
  * Move a window that has just opened beside another, to its right or else to
- * its left, short of the sidebar. The other may still be opening, so it waits
- * for it to be drawn.
+ * its left, short of the sidebar, level with its top.
  * @param {foundry.applications.api.ApplicationV2} app
  * @param {foundry.applications.api.ApplicationV2} other
  */
 function placeBeside(app, other) {
-	const place = () => {
-		const box = other.element?.getBoundingClientRect();
-		if (!box?.width || !app.rendered) return;
-		const width = app.element.offsetWidth;
-		const edge = panelScreen().right;
-		const gap = 8;
-		const left = box.right + gap + width <= edge ? box.right + gap : box.left - gap - width;
-		if (left >= 0) app.setPosition({ left, top: box.top });
-	};
-	if (other.rendered) place();
-	else Hooks.once(`render${other.constructor.name}`, () => requestAnimationFrame(place));
+	const box = other?.element?.getBoundingClientRect();
+	if (!box?.width || !app.rendered) return;
+	const size = { width: app.element.offsetWidth, height: app.element.offsetHeight };
+	const place = placeArt(box, size, { ...viewport(), width: panelScreen().right }, { align: "top" });
+	// With room on neither side it would cover the other, so it stays where Foundry opened it.
+	if (place.left + size.width <= box.left || place.left >= box.right) app.setPosition(place);
 }
 
 /**
