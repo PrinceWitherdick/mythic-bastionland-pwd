@@ -61,12 +61,19 @@ export const timelineIn = (root) => (root?.matches?.(".bastionland-timeline") ? 
 export const hostState = () => ({ zoom: 1, view: null, menus: {}, focus: null });
 
 /**
+ * @param {HTMLElement} el The box that scrolls.
+ * @returns {HTMLElement|null} What it scrolls, padded by the room past the board's edges.
+ */
+const canvasOf = (el) => el.querySelector(":scope > .bastionland-timeline__canvas");
+
+/**
  * Drag the board and throw it.
  * @param {HTMLElement} el The box that scrolls.
+ * @param {HTMLElement|null} canvas What it scrolls, which takes the room past the edges.
  * @param {{pinTop?: boolean, pinLeft?: boolean, pinBottom?: boolean}} pins Edges with no room past them, for the sticky heads there.
  * @returns {() => void} Takes it off.
  */
-function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {}) {
+function wireDrag(el, canvas, { pinTop = false, pinLeft = false, pinBottom = false } = {}) {
 	/** How much larger the box is drawn than laid out, as the press found it. */
 	let scale = 1;
 
@@ -107,10 +114,12 @@ function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {
 
 	// The room past the edges, sized now and whenever the box changes size. Each change moves the
 	// scroll by as much, so the board stays where it was on screen; read before the room moves and
-	// written as a sum after, since the browser's scroll anchoring may nudge it in between.
+	// written as a sum after, since the browser's scroll anchoring may nudge it in between. The room
+	// goes on the canvas, whose children don't inherit it: on the box, every frame of a window being
+	// resized would style the whole board again.
 	let gutter = { x: 0, y: 0, top: 0, left: 0 };
 	const size = () => {
-		if (!el.isConnected) return;
+		if (!el.isConnected || !canvas) return;
 		// A tab that isn't showing measures nothing: its room is kept as it was, rather than folded
 		// away and moving the board by all of it when the tab is shown again.
 		if (!el.clientWidth || !el.clientHeight) return;
@@ -121,7 +130,7 @@ function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {
 		const left = el.scrollLeft + next.left - gutter.left;
 		const top = el.scrollTop + next.top - gutter.top;
 		gutter = next;
-		for (const [key, name] of Object.entries(GUTTER)) el.style.setProperty(name, `${next[key]}px`);
+		for (const [key, name] of Object.entries(GUTTER)) canvas.style.setProperty(name, `${next[key]}px`);
 		el.scrollLeft = left;
 		el.scrollTop = top;
 	};
@@ -139,9 +148,9 @@ function wireDrag(el, { pinTop = false, pinLeft = false, pinBottom = false } = {
 /**
  * The room before the board, as the drag last sized it: a view is kept from
  * the board's own corner, since the box may be another size next time.
- * @param {HTMLElement} el
+ * @param {HTMLElement|null} canvas
  */
-const gutterOf = (el) => ({ x: Number.parseFloat(el.style.getPropertyValue(GUTTER.left)) || 0, y: Number.parseFloat(el.style.getPropertyValue(GUTTER.top)) || 0 });
+const gutterOf = (canvas) => ({ x: Number.parseFloat(canvas?.style.getPropertyValue(GUTTER.left)) || 0, y: Number.parseFloat(canvas?.style.getPropertyValue(GUTTER.top)) || 0 });
 
 /**
  * The wheel zooms the board about the pointer, as Stonetop's does; a swipe
@@ -415,10 +424,11 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 	const board = Boolean(timeline.querySelector(".bastionland-timeline__board, .bastionland-timeline__swim"));
 
 	if (scroll) {
+		const canvas = canvasOf(scroll);
 		// A tab that isn't showing measures nothing, and keeps the view it had.
 		const noteView = () => {
 			if (!scroll.clientHeight) return;
-			const { x, y } = gutterOf(scroll);
+			const { x, y } = gutterOf(canvas);
 			state.view = { zoom: state.zoom, left: Math.round(scroll.scrollLeft - x), top: Math.round(scroll.scrollTop - y) };
 		};
 		// The zoom goes on before the board is placed, so a kept scroll isn't clamped against a smaller picture.
@@ -427,9 +437,9 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 			onView(state.view);
 		}));
 		// A board's heads are pinned to its top and left; one thread has room either side of its line.
-		offs.push(wireDrag(scroll, board ? { pinTop: true, pinLeft: true, pinBottom: true } : { pinTop: !across, pinLeft: across, pinBottom: !across }));
+		offs.push(wireDrag(scroll, canvas, board ? { pinTop: true, pinLeft: true, pinBottom: true } : { pinTop: !across, pinLeft: across, pinBottom: !across }));
 		if (state.view) {
-			const { x, y } = gutterOf(scroll);
+			const { x, y } = gutterOf(canvas);
 			scroll.scrollLeft = x + state.view.left;
 			scroll.scrollTop = y + state.view.top;
 		} else {

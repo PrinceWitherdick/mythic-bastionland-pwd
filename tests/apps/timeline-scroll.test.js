@@ -40,12 +40,20 @@ afterEach(() => {
 	delete globalThis.document;
 });
 
+/** An element's inline style, kept in `vars`. */
+const styled = (vars) => ({
+	setProperty: (name, value) => { vars[name] = value; },
+	getPropertyValue: (name) => vars[name] ?? ""
+});
+
 /**
  * The board's scroll box, whose range grows with the room its canvas is padded by,
  * and which reads 0 both ways and takes no scroll while `hidden`.
  */
 function scrollBox({ w = 400, h = 300, cw = 3000, ch = 1500 } = {}) {
 	const vars = {};
+	const ownVars = {};
+	const canvas = { style: styled(vars), vars };
 	const listeners = new Map();
 	const room = (name) => Number.parseFloat(vars[name]) || 0;
 	let left = 0;
@@ -68,13 +76,11 @@ function scrollBox({ w = 400, h = 300, cw = 3000, ch = 1500 } = {}) {
 		set scrollTop(v) {
 			if (!box.hidden) top = Math.min(Math.max(v, 0), Math.max(ch + room("--timeline-gutter-top") + room("--timeline-gutter-y") - h, 0));
 		},
-		style: {
-			setProperty: (name, value) => { vars[name] = value; },
-			getPropertyValue: (name) => vars[name] ?? ""
-		},
-		vars,
+		style: styled(ownVars),
+		ownVars,
+		canvas,
 		classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
-		querySelector: () => null,
+		querySelector: (selector) => (selector === ":scope > .bastionland-timeline__canvas" ? canvas : null),
 		querySelectorAll: () => [],
 		addEventListener: (type, fn) => listeners.set(type, fn),
 		removeEventListener: (type) => listeners.delete(type),
@@ -106,7 +112,7 @@ function resized(box) {
 	for (const observer of observers) if (observer.targets.has(box)) observer.fn([{ target: box }]);
 }
 
-const gutterOf = (box) => Object.fromEntries(GUTTER_VARS.map((name) => [name, box.vars[name]]));
+const gutterOf = (box) => Object.fromEntries(GUTTER_VARS.map((name) => [name, box.canvas.vars[name]]));
 
 describe("a Timeline whose tab is hidden and shown again", () => {
 	for (const across of [true, false]) {
@@ -118,6 +124,8 @@ describe("a Timeline whose tab is hidden and shown again", () => {
 			box.scrollTo(333, 444);
 			const room = gutterOf(box);
 			expect(Number.parseFloat(room[across ? "--timeline-gutter-top" : "--timeline-gutter-left"])).toBeGreaterThan(0);
+			// On the canvas alone: on the box, its whole board would inherit it and be styled again.
+			expect(Object.keys(box.ownVars).filter((name) => GUTTER_VARS.includes(name))).toEqual([]);
 
 			box.hidden = true;
 			resized(box);

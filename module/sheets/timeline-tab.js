@@ -5,7 +5,7 @@
 // The sheet lists the page among its TABS where it wants it on the rail. A
 // world with the Timeline turned off has no Timeline page.
 
-import { TimelineTab, onTimelineAction, timelineShown } from "../apps/timeline-ui.js";
+import { TIMELINE_REDRAW_DELAY, TimelineTab, onTimelineAction, timelineShown } from "../apps/timeline-ui.js";
 import { renderWhenIdle } from "../apps/ui.js";
 
 /** The page's id, among a sheet's TABS and, where it's a part of its own, its PARTS. */
@@ -26,9 +26,12 @@ export const TimelineTabMixin = (Base, { board = false } = {}) => class extends 
 		return Boolean(this.constructor.PARTS?.[TIMELINE_TAB]);
 	}
 
+	/** The whole sheet drawn again, once a burst of writes has settled. */
+	#redrawSoon = foundry.utils.debounce(() => renderWhenIdle(this), TIMELINE_REDRAW_DELAY);
+
 	/** Draw the page again: the whole sheet, unless the sheet draws it as a part of its own. */
 	_redrawTimeline() {
-		renderWhenIdle(this);
+		this.#redrawSoon();
 	}
 
 	/**

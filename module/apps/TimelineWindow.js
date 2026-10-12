@@ -1,12 +1,9 @@
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { TimelineHost, boardContext, onTimelineAction, refuseHiddenTimeline, timelineShown, unwatchTimeline, watchTimeline } from "./timeline-ui.js";
+import { TIMELINE_REDRAW_DELAY, TimelineHost, boardContext, onTimelineAction, refuseHiddenTimeline, timelineShown, unwatchTimeline, watchTimeline } from "./timeline-ui.js";
 import { renderWhenIdle, singletonOpener } from "./ui.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-/** How long a burst of writes is let settle before the Timeline is drawn again. */
-const REDRAW_DELAY = 150;
 
 /**
  * The full Timeline, after Stonetop's: every thread of the tale side by side,
@@ -36,7 +33,7 @@ export class TimelineWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 	#hooks = [];
 
 	/** A burst of writes is let settle before the Timeline is drawn again; one landing after it closes draws nothing. */
-	#redraw = foundry.utils.debounce(() => renderWhenIdle(this), REDRAW_DELAY);
+	#redraw = foundry.utils.debounce(() => renderWhenIdle(this), TIMELINE_REDRAW_DELAY);
 
 	/** Its board's place, zoom, menus and keyboard, kept across redraws. */
 	#host = new TimelineHost("window");

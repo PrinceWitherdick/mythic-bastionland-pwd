@@ -299,8 +299,15 @@
 	user-select: none;
 }
 
+/* The room past the board's edges, set on the canvas itself and kept from its children: a
+   window being resized sets it every frame, and only the canvas need be styled again. */
+@property --timeline-gutter-x { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-y { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-top { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --timeline-gutter-left { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
 /* The board, with empty room past its edges to drag it into (module/apps/timeline-scroll.js
-   sizes it). Content-box, so the room is added round the board rather than taken from it.
+   sizes it on the canvas). Content-box, so the room is added round the board rather than taken from it.
    Down, as wide as the box, and wider by the zoom, so a zoomed board runs off the right edge
    for the drag to bring back; across, as wide as its Seasons need. */
 .bastionland-timeline__canvas {

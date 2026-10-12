@@ -10,7 +10,7 @@ import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, t
 import { clampScale, scrubTicks } from "../rules/timeline-scroll.js";
 import { escapeHTML } from "../rules/text.js";
 import { toHex } from "../rules/colour.js";
-import { parseSeasonKey } from "../rules/time.js";
+import { parseSeasonKey, seasonKey } from "../rules/time.js";
 import { t, warn } from "../chat/cards.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { reopeningWindows } from "../sheets/restore-open-sheets.js";
@@ -41,6 +41,9 @@ const SHOW_SETTING = "showTimeline";
 
 /** The ways a Timeline can be laid out. */
 export const TIMELINE_LAYOUTS = Object.freeze(["down", "across"]);
+
+/** How long a burst of writes is let settle before a Timeline is drawn again: one event can write on several threads. */
+export const TIMELINE_REDRAW_DELAY = 150;
 
 /** Called by everything showing a Timeline when the reader's Filter or layout changes. */
 export const TIMELINE_FILTER_HOOK = `${SYSTEM_ID}.timelineFilter`;
@@ -769,6 +772,11 @@ export function watchTimeline(trackId, onChange) {
 	const onTags = (journal, changes) => {
 		if (foundry.utils.hasProperty(changes ?? {}, `flags.${SYSTEM_ID}.${TIMELINE_TAGS_FLAG}`) && journal?.id === findTimelineJournal()?.id) onChange();
 	};
+	// The Timeline reads only the Season it is now (timelineNow): a Phase or a Day passing draws nothing new,
+	// and a whole board drawn again for each would be a stall at every turn of the clock.
+	const onCalendar = (after, before) => {
+		if (!after || !before || seasonKey(after) !== seasonKey(before)) onChange();
+	};
 	return [
 		["createJournalEntryPage", onPage],
 		["updateJournalEntryPage", onPage],
@@ -776,7 +784,7 @@ export function watchTimeline(trackId, onChange) {
 		["updateJournalEntry", onTags],
 		["updateActor", onLooks],
 		["updateScene", onLooks],
-		[CALENDAR_HOOK, () => onChange()],
+		[CALENDAR_HOOK, onCalendar],
 		[TIMELINE_FILTER_HOOK, () => onChange()]
 	].map(([name, handler]) => [name, Hooks.on(name, handler)]);
 }

@@ -1,6 +1,6 @@
 import { pageTrackId, trackOfPage } from "../actions/timeline-store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { trackContext, unwatchTimeline, watchTimeline } from "./timeline-ui.js";
+import { TIMELINE_REDRAW_DELAY, trackContext, unwatchTimeline, watchTimeline } from "./timeline-ui.js";
 import { renderWhenIdle } from "./ui.js";
 
 /**
@@ -38,7 +38,7 @@ export function createTimelinePageSheet() {
 		/** @override */
 		async _onFirstRender(context, options) {
 			await super._onFirstRender(context, options);
-			this.#hooks = watchTimeline(pageTrackId(this.document), () => renderWhenIdle(this));
+			this.#hooks = watchTimeline(pageTrackId(this.document), foundry.utils.debounce(() => renderWhenIdle(this), TIMELINE_REDRAW_DELAY));
 		}
 
 		/** @override */

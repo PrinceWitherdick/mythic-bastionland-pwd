@@ -141,6 +141,15 @@
 	text-shadow: none !important;
 }
 
+/* Foundry fades a button's every property (`transition: 0.5s`), scrollbar-color among them, and
+   Chrome starts that one afresh each time the button is styled again, though it never changes:
+   a board of buttons then animated, and was styled again, every frame the pointer was over it.
+   Only what a hover or focus changes fades. No specificity, so a rule of ours with its own wins. */
+:where([class*="bastionland"]:not(body)) :where(button, a.button),
+:where(button, a.button):where([class*="bastionland"]) {
+	transition-property: background-color, border-color, color, outline-color, box-shadow;
+}
+
 /* ---------------------------------------------------------------- */
 /* Window and page                                                  */
 /* ---------------------------------------------------------------- */
