@@ -247,14 +247,22 @@ const wordPeriods = (periods, canEdit, wordInside) => Promise.all(periods.map(as
 }));
 
 /**
- * The scrubber's stops: each Age drawn, before the tale too. None under two.
- * @param {{startsAge: boolean, ageKey: string, age: number|null}[]} periods Worded.
+ * The scrubber's stops: each Age drawn, before the tale too. A sheet's own
+ * thread, short of two Ages, stops at each Season instead, as Stonetop's
+ * does. None under two.
+ * @param {{startsAge: boolean, ageKey: string, age: number|null, season: string, heading: string}[]} periods Worded.
+ * @param {{bySeason?: boolean}} [options]
  */
-function scrubContext(periods) {
-	const stops = periods.filter((period) => period.startsAge).map((period) => ({ key: period.ageKey, label: ageHeading(period) }));
+function scrubContext(periods, { bySeason = false } = {}) {
+	let by = "age";
+	let stops = periods.filter((period) => period.startsAge).map((period) => ({ key: period.ageKey, label: ageHeading(period) }));
+	if (stops.length < 2 && bySeason) {
+		by = "period";
+		stops = periods.filter((period) => period.season).map((period) => ({ key: period.season, label: period.heading }));
+	}
 	if (stops.length < 2) return null;
 	const at = scrubTicks(stops);
-	return { first: stops[0].label, stops: stops.map((stop, i) => ({ ...stop, at: at[i] })) };
+	return { by, label: t(`timeline.scrub.${by}.label`), tooltip: t(`timeline.scrub.${by}.tooltip`), first: stops[0].label, stops: stops.map((stop, i) => ({ ...stop, at: at[i] })) };
 }
 
 /**
@@ -327,7 +335,7 @@ export async function trackContext(track, { editable = true } = {}) {
 		name: track.name,
 		canEdit,
 		periods,
-		scrub: editable ? scrubContext(periods) : null
+		scrub: editable ? scrubContext(periods, { bySeason: true }) : null
 	};
 }
 

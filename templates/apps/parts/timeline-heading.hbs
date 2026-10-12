@@ -1,5 +1,5 @@
-{{!-- What a Season is called wherever the Timeline names it, down a thread, at the head of a board's row or on the line across: its name, Now on the Season it is, and the Season's turn written under it (module/rules/timeline-view.js#isSeasonTurn) rather than as a card filed in it. A turn is still an entry, so it can be edited and removed where the reader can write. --}}
-<h4 class="bastionland-timeline__period-name">{{heading}}{{#if isNow}} <span class="bastionland-pill bastionland-timeline__now">{{localize "bastionland.timeline.now"}}</span>{{/if}}</h4>
+{{!-- What a Season is called wherever the Timeline names it, down a thread, at the head of a board's row or on the line across: its name in the Season's colour, Now on the Season it is, and the Season's turn written under it (module/rules/timeline-view.js#isSeasonTurn) rather than as a card filed in it. A turn is still an entry, so it can be edited and removed where the reader can write. --}}
+<h4 class="bastionland-timeline__period-name{{#if name}} bastionland-timeline__period-name--{{name}}{{/if}}">{{heading}}{{#if isNow}} <span class="bastionland-pill bastionland-timeline__now">{{localize "bastionland.timeline.now"}}</span>{{/if}}</h4>
 {{#if notes.length}}
 <div class="bastionland-timeline__notes">
 	{{#each notes}}

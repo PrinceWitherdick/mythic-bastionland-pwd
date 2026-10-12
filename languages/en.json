@@ -2400,8 +2400,14 @@
       "editNote": "Edit what the Season’s turn wrote",
       "removeNote": "Remove what the Season’s turn wrote",
       "scrub": {
-        "label": "Age",
-        "tooltip": "Slide to an Age"
+        "age": {
+          "label": "Age",
+          "tooltip": "Slide to an Age"
+        },
+        "period": {
+          "label": "Season",
+          "tooltip": "Slide to a Season"
+        }
       }
     },
     "gmToolkit": {

@@ -238,14 +238,16 @@ const centredAlong = (el, view, span, across, at = {}) => centredOnScreen(view, 
 	: { scroll: el.scrollTop, viewStart: view.top, viewSize: view.height, spanStart: span.top, spanSize: span.bottom - span.top, ...at });
 
 /**
- * Each Age's extent on screen, from every Season and cell stamped with it.
+ * Each Age's extent on screen, from every Season and cell stamped with it; or
+ * each Season's, by its own stamp.
  * @param {HTMLElement} el
+ * @param {"age"|"period"} [by]
  * @returns {Map<string, {left: number, top: number, right: number, bottom: number}>}
  */
-function ageRects(el) {
+function stopRects(el, by = "age") {
 	const rects = new Map();
-	for (const part of el.querySelectorAll("[data-age]")) {
-		const key = part.dataset.age;
+	for (const part of el.querySelectorAll(`[data-${by}]`)) {
+		const key = part.dataset[by];
 		if (!key) continue;
 		const r = part.getBoundingClientRect();
 		if (!r.width && !r.height) continue;
@@ -256,14 +258,15 @@ function ageRects(el) {
 }
 
 /**
- * The Age scrubber: slide and the board follows, bringing that Age into view;
- * move the board any other way and the thumb follows it.
+ * The Age scrubber: slide and the board follows, bringing that Age (or a
+ * sheet's Season) into view; move the board any other way and the thumb
+ * follows it.
  * @param {HTMLElement} el The box that scrolls.
  * @param {HTMLElement} bar The scrubber.
- * @param {{across: boolean}} options
+ * @param {{across: boolean, centre: boolean}} options Centre: a scrub puts the line back in the middle the other way too.
  * @returns {() => void}
  */
-function wireScrubber(el, bar, { across }) {
+function wireScrubber(el, bar, { across, centre }) {
 	const range = bar?.querySelector("input[type=range]");
 	const stops = [...(bar?.querySelectorAll(".bastionland-timeline__scrub-tick") ?? [])].map((tick) => ({ key: tick.dataset.stop, label: tick.dataset.label, tick }));
 	if (!range || stops.length < 2) return () => {};
@@ -277,7 +280,7 @@ function wireScrubber(el, bar, { across }) {
 	const measure = () => {
 		const view = viewRect(el);
 		const room = across ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
-		const spans = ageRects(el);
+		const spans = stopRects(el, bar.dataset.stopBy === "period" ? "period" : "age");
 		return stops.map(({ key }) => {
 			const span = spans.get(key);
 			if (!span) return null;
@@ -295,15 +298,15 @@ function wireScrubber(el, bar, { across }) {
 	const go = (value, targets = measure()) => {
 		const main = scrollForValue(targets, value);
 		if (main === null) return;
-		// The other way, the board is put back in the middle: a scrub is how a board dragged off is found again.
-		const view = viewRect(el);
-		const whole = el.querySelector(".bastionland-timeline__canvas > *")?.getBoundingClientRect();
+		// The other way, a sheet's own thread is put back in the middle, as a scrub finds a line dragged off;
+		// the full board stays where it was left.
+		const whole = centre ? el.querySelector(".bastionland-timeline__canvas > *")?.getBoundingClientRect() : null;
 		if (across) {
 			el.scrollLeft = main;
-			if (whole) el.scrollTop = centredAlong(el, view, whole, false, { fromStart: false });
+			if (whole) el.scrollTop = centredAlong(el, viewRect(el), whole, false, { fromStart: false });
 		} else {
 			el.scrollTop = main;
-			if (whole) el.scrollLeft = centredAlong(el, view, whole, true, { inset });
+			if (whole) el.scrollLeft = centredAlong(el, viewRect(el), whole, true, { inset });
 		}
 		show(value, targets);
 		wrote = { left: el.scrollLeft, top: el.scrollTop };
@@ -454,7 +457,7 @@ export function wireTimeline(root, state, { onView = () => {} } = {}) {
 		};
 		scroll.addEventListener("scroll", onScroll, { passive: true });
 		offs.push(() => scroll.removeEventListener("scroll", onScroll));
-		offs.push(wireScrubber(scroll, timeline.querySelector(".bastionland-timeline__scrub"), { across }));
+		offs.push(wireScrubber(scroll, timeline.querySelector(".bastionland-timeline__scrub"), { across, centre: !board }));
 	}
 
 	// Each menu keeps whether it's open across the redraws its own ticks cause, fits the room below
