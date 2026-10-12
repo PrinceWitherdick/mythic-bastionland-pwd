@@ -23,7 +23,7 @@ describe("thread keys", () => {
 
 	it("spells each milestone once", () => {
 		expect(timelineKeys.visit("s1", { col: 2, row: 3 })).toBe("visit:s1:2,3");
-		expect(timelineKeys.crisis("2-winter", 5)).toBe("crisis:2-winter:5");
+		expect(timelineKeys.omen("s1.3.2-7", 2)).toBe("omen:s1.3.2-7:2");
 		expect(timelineKeys.death()).toBe("death");
 		expect(timelineKeys.death("k1")).toBe("death:k1");
 	});

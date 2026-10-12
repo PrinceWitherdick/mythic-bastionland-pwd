@@ -111,6 +111,30 @@ describe("threads", () => {
 		expect(await store.mutateTrack({ trackId: "d2" }, (entries) => addEntry(entries, { title: "x" }))).toBeNull();
 	});
 
+	it("never throws before Foundry is ready, keeping a Knight's or Domain's thread from the players", () => {
+		delete globalThis.CONST;
+		expect(store.trackFor(game.actors.get("k1"))).toMatchObject({ trackId: "k1", secret: true });
+		delete globalThis.game;
+		expect(store.trackFor("company")).toMatchObject({ trackId: "company", name: "company" });
+		expect(store.trackFor(actor("d1", "domain")).secret).toBe(true);
+	});
+
+	it("finds the Timeline again once it's gone or unflagged, without searching while it stands", () => {
+		const other = fakeJournal();
+		journal.id = "j1";
+		other.id = "j2";
+		const all = [journal, other];
+		const find = vi.fn((test) => all.find(test));
+		game.journal = { find, get: (id) => all.find((entry) => entry.id === id) };
+		expect(store.findTimelineJournal()).toBe(journal);
+		expect(store.findTimelineJournal()).toBe(journal);
+		expect(find).toHaveBeenCalledTimes(1);
+		journal.flags = {};
+		expect(store.findTimelineJournal()).toBe(other);
+		all.splice(1, 1);
+		expect(store.findTimelineJournal()).toBeNull();
+	});
+
 	it("shows a thread to the players, or hides it, as its actor comes to be seen or not", async () => {
 		await store.syncTrackPages();
 		const d2 = journal.pages.find((page) => store.pageTrackId(page) === "d2");

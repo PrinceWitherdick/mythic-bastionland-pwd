@@ -70,7 +70,9 @@ export const realmSceneId = (trackId) => String(trackId ?? "").slice(REALM_PREFI
 
 /**
  * What each milestone is, so the same thing recorded twice finds the row it
- * already wrote (upsertByKey). Kept here so each is spelled once.
+ * already wrote (upsertByKey). Kept here so each is spelled once. One that is
+ * a row of its own each time it happens (a Crisis Roll, a wound, a seat in a
+ * Circle) is keyed by its Season and moment, by eachTime in timeline-events.js.
  */
 export const timelineKeys = Object.freeze({
 	turn: (ended) => `turn:${ended}`,
@@ -84,25 +86,11 @@ export const timelineKeys = Object.freeze({
 	tookUp: (fallenId) => `tookUp:${fallenId}`,
 	founded: (domainId = "") => (domainId ? `founded:${domainId}` : "founded"),
 	domain: (domainId) => `domain:${domainId}`,
-	// Each roll and each change of ruler is its own row, however many fall in one Season.
-	crisis: (season, at) => `crisis:${season}:${at}`,
-	seized: (season, at) => `seized:${season}:${at}`,
-	passed: (season, at) => `passed:${season}:${at}`,
-	rules: (domainId, season, at) => `rules:${domainId}:${season}:${at}`,
 	// A Holding granted again, in another Season or to another Knight, is a row of its own.
 	holding: (sceneId, holdingId, season, knightId) => `holding:${sceneId}:${holdingId}:${season}:${knightId}`,
 	visit: (sceneId, hex) => `visit:${sceneId}:${hex.col},${hex.row}`,
 	note: (sceneId, hex) => `note:${sceneId}:${hex.col},${hex.row}`,
 	duel: (messageId) => `duel:${messageId}`,
-	// Each wound, ward, award, Crisis resolved, Drama, seat in a Circle and heir named is its own row.
-	mortal: (season, at) => `mortal:${season}:${at}`,
-	ward: (season, at) => `ward:${season}:${at}`,
-	award: (award, season, at) => `award:${award}:${season}:${at}`,
-	resolved: (crisis, season, at) => `resolved:${crisis}:${season}:${at}`,
-	drama: (season, at) => `drama:${season}:${at}`,
-	circle: (knightId, season, at) => `circle:${knightId}:${season}:${at}`,
-	// So a Knight who names another heir, or the first again, has each naming on their thread.
-	heir: (heirId, season, at) => `heir:${heirId}:${season}:${at}`,
 	// A Scar settles once, by revenge or otherwise.
 	settled: (itemId) => `settled:${itemId}`,
 	joined: (knightId = "") => (knightId ? `joined:${knightId}` : "joined"),

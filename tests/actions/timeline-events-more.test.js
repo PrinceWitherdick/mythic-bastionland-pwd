@@ -136,9 +136,13 @@ describe("the Company", () => {
 		expect(joined).toMatchObject({ key: "joined:a", refresh: ["title"] });
 	});
 
-	it("keeps a Knight the players can't see off the Company's thread", async () => {
-		await events.timelineJoined(knight("a", { secret: true }));
-		expect(rows().map(([target]) => target.id)).toEqual(["a"]);
+	it("writes the Company's row as about the Knight, so one the players can't see stays off it", async () => {
+		const hidden = knight("a", { secret: true });
+		await events.timelineJoined(hidden);
+		const [[, own], [company, joined]] = rows();
+		expect(own.about).toBeUndefined();
+		expect(company).toBe("company");
+		expect(joined.about).toEqual([hidden]);
 	});
 
 	it("writes a Squire taken on both threads", async () => {
@@ -236,16 +240,20 @@ describe("Domains", () => {
 		expect(rows().map(([, row]) => [row.source, row.key])).toEqual([["court", "court:c1"], ["court", "courtLeft:c1"], ["warband", "warband:w1"], ["warband", "warbandGone:w1"]]);
 	});
 
-	it("writes the Circle on the Domain's thread and each Knight's, but never names a hidden Domain on a seen Knight's", async () => {
+	it("writes the Circle on the Domain's thread in one go and on each Knight's, but never names a hidden Domain on a seen Knight's", async () => {
 		const seen = knight("a");
 		await events.timelineCircle(domain(), { joined: [{ id: "a", name: "Sir a", actor: seen }], left: [{ id: "b", name: "Sir b", actor: null }] });
-		expect(rows().map(([target, row]) => [target.id, row.title.split(" ")[0]])).toEqual([
-			["d1", "timeline.auto.circleJoined"],
-			["a", "timeline.auto.circleJoinedOf"],
-			["d1", "timeline.auto.circleLeft"]
+		const said = (row) => row.title.split(" ")[0];
+		expect(rows().map(([target, row]) => [target.id, [row].flat().map(said)])).toEqual([
+			["d1", ["timeline.auto.circleJoined", "timeline.auto.circleLeft"]],
+			["a", ["timeline.auto.circleJoinedOf"]]
 		]);
-		vi.mocked(record.recordOnTrack).mockClear();
-		await events.timelineCircle(domain({ secret: true }), { joined: [{ id: "a", name: "Sir a", actor: seen }] });
-		expect(rows().map(([target]) => target.id)).toEqual(["d1"]);
+		const [[, [joined, left]], [, knightRow]] = rows();
+		expect(joined.key).toBe("circle:a:2-harvest:1000");
+		expect(left.key).toBe("circle:b:2-harvest:1000");
+		expect(knightRow.key).toBe(joined.key);
+		// Each Knight's row is about the Domain, so a hidden Domain stays off a seen Knight's thread.
+		expect(knightRow.about).toEqual([domain()]);
+		expect(joined.about).toBeUndefined();
 	});
 });

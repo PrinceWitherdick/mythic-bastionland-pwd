@@ -111,13 +111,25 @@ describe("Domains", () => {
 		expect(first.body).toContain("Chaos\nDebt");
 	});
 
-	it("writes a founding on the Realm's thread only when the players can see the Domain", async () => {
+	it("writes a founding on the Realm's thread as about the Domain, so a Domain kept from the players stays off it", async () => {
 		const realm = { id: "s1", name: "The Vale" };
-		await events.timelineFounded(knight("a"), { id: "d1", name: "Tal's Domain" }, realm);
-		expect(calls(record.recordOnTrack).map(([target]) => target)).toContain(realm);
-		vi.mocked(record.recordOnTrack).mockClear();
-		await events.timelineFounded(knight("n"), { id: "d2", name: "Rival", secret: true }, realm);
-		expect(calls(record.recordOnTrack).map(([target]) => target)).not.toContain(realm);
+		const domain = { id: "d1", name: "Tal's Domain" };
+		await events.timelineFounded(knight("a"), domain, realm);
+		const [[, own], [, ruler], [target, realmRow]] = calls(record.recordOnTrack);
+		expect(target).toBe(realm);
+		expect(realmRow.about).toEqual([domain]);
+		expect(own.about).toBeUndefined();
+		expect(ruler.about).toBeUndefined();
+	});
+
+	it("writes a new ruler on their own thread as about the Domain", async () => {
+		const domain = { id: "d1", name: "Tal's Domain" };
+		await events.timelineNewRuler(domain, "seized", { name: "Sir a", knight: knight("a") }, "Sir a seizes it");
+		const [[, own], [target, ruler]] = calls(record.recordOnTrack);
+		expect(own).toMatchObject({ source: "seized", title: "Sir a seizes it" });
+		expect(own.about).toBeUndefined();
+		expect(target.id).toBe("a");
+		expect(ruler).toMatchObject({ source: "rules", about: [domain] });
 	});
 
 	it("writes a Holding granted on the Realm's thread unless no player can see who was granted it, or by whom", async () => {

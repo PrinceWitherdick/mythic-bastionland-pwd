@@ -15,10 +15,21 @@ import { isRealmScene } from "./realm.js";
  */
 
 /** The flag that marks the Timeline's Journal entry, found by it whatever it's renamed to. */
-export const TIMELINE_JOURNAL_FLAG = "timelineJournal";
+const TIMELINE_JOURNAL_FLAG = "timelineJournal";
+
+/** The Timeline's entry's id as last found: a render asks for it many times, and each search goes through every journal. */
+let timelineJournalId = null;
 
 /** @returns {JournalEntry|null} */
-export const findTimelineJournal = () => game.journal?.find((entry) => entry.getFlag(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) ?? null;
+export function findTimelineJournal() {
+	const journals = game.journal;
+	const known = timelineJournalId ? journals?.get?.(timelineJournalId) : null;
+	// Still there and still the Timeline: neither deleted nor unflagged since.
+	if (known?.getFlag(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) return known;
+	const found = journals?.find((entry) => entry.getFlag(SYSTEM_ID, TIMELINE_JOURNAL_FLAG)) ?? null;
+	timelineJournalId = found?.id ?? null;
+	return found;
+}
 
 /**
  * @param {JournalEntry|null} journal
@@ -60,10 +71,12 @@ const readablePages = (journal) => timelinePages(journal).filter(readable);
  * Whether any player can see an actor, now or once they join: one seen by
  * nobody but the Referee, such as a rival Domain, has its thread kept from players.
  * @param {Actor} actor
- * @returns {boolean}
+ * @returns {boolean} False where it can't be told, before Foundry is ready:
+ *   a row the players shouldn't read is worse than one missing.
  */
 function seenByPlayers(actor) {
-	const { OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+	const OBSERVER = globalThis.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER;
+	if (OBSERVER === undefined || !globalThis.game) return false;
 	return Object.entries(actor.ownership ?? {}).some(([id, level]) => level >= OBSERVER && (id === "default" || game.users?.get(id)?.isGM === false));
 }
 
@@ -77,11 +90,13 @@ function seenByPlayers(actor) {
 
 /**
  * The thread something has: the Company's, a Knight's, a Domain's or a Realm's.
+ * Never throws: before Foundry is ready a Knight's or Domain's thread is kept
+ * from the players, and the Company's goes by its id.
  * @param {Actor|Scene|string} target An actor, a Realm's Scene, or COMPANY_TRACK.
  * @returns {Track|null}
  */
 export function trackFor(target) {
-	if (target === COMPANY_TRACK) return { trackId: COMPANY_TRACK, kind: "company", name: t("timeline.company") };
+	if (target === COMPANY_TRACK) return { trackId: COMPANY_TRACK, kind: "company", name: globalThis.game?.i18n ? t("timeline.company") : COMPANY_TRACK };
 	if (!target?.id) return null;
 	if (target.documentName === "Scene") return isRealmScene(target) ? { trackId: realmTrackId(target.id), kind: "realm", name: target.name } : null;
 	if (target.type === "knight" || target.type === "domain") return { trackId: target.id, kind: target.type, name: target.name, secret: !seenByPlayers(target) };

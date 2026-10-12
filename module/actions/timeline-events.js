@@ -17,6 +17,14 @@ import { playersHexView, travelsSources } from "./travels.js";
 const lines = (...parts) => parts.flat().filter(Boolean).join("\n");
 
 /**
+ * The key of a milestone that is a row of its own each time it happens, however
+ * many fall in one Season: a Crisis Roll, a wound, a seat in a Circle.
+ * @param {...string} parts What it is, such as "crisis", or "heir" and the heir's id.
+ * @returns {string} Those, then the Season and the moment it was written.
+ */
+const eachTime = (...parts) => [...parts, timelineNow(), Date.now()].join(":");
+
+/**
  * The Season, or the Age, turns: a row closing the Season on the Company's
  * thread, one on each Knight's that something befell, and one on each Domain's.
  * @param {string} ended The Season that ended.
@@ -161,7 +169,7 @@ export function timelineFounded(knight, domain, realm = null) {
 	return Promise.all([
 		recordOnTrack(domain, { source: "founded", key: timelineKeys.founded(), title: t("timeline.auto.foundedBy", { name: knight.name }) }),
 		recordOnTrack(knight, { source: "founded", key: timelineKeys.founded(domain.id), title: t("timeline.auto.founded", { domain: domain.name }) }),
-		realm && !keptFromPlayers(domain) ? recordOnTrack(realm, { source: "founded", key: timelineKeys.domain(domain.id), title: t("timeline.auto.founded", { domain: domain.name }) }) : null
+		realm ? recordOnTrack(realm, { source: "founded", key: timelineKeys.domain(domain.id), title: t("timeline.auto.founded", { domain: domain.name }), about: [domain] }) : null
 	]);
 }
 
@@ -175,7 +183,7 @@ export function timelineFounded(knight, domain, realm = null) {
 export function timelineCrisisRoll(domain, { result, crises }) {
 	return recordOnTrack(domain, {
 		source: "crisis",
-		key: timelineKeys.crisis(timelineNow(), Date.now()),
+		key: eachTime("crisis"),
 		title: t("domain.crisisRoll"),
 		body: lines(t(`domain.results.crisis.${result}`), crises)
 	});
@@ -183,18 +191,18 @@ export function timelineCrisisRoll(domain, { result, crises }) {
 
 /**
  * A Domain passes to a new ruler, by succession or conquest: on its thread,
- * and on the new ruler's when they're a Knight.
+ * and on the new ruler's when they're a Knight, unless that would tell a
+ * player's Knight's readers of a Domain kept from them.
  * @param {Actor} domain
  * @param {"passed"|"seized"} how
  * @param {{name: string, knight: Actor|null}} ruler
  * @param {string} said What the card says of it, such as "Eve seizes Tal's Domain from Tal".
  */
 export function timelineNewRuler(domain, how, ruler, said) {
-	const season = timelineNow();
-	const at = Date.now();
+	const now = eachTime();
 	return Promise.all([
-		recordOnTrack(domain, { source: how, key: timelineKeys[how](season, at), title: said }),
-		ruler.knight ? recordOnTrack(ruler.knight, { source: "rules", key: timelineKeys.rules(domain.id, season, at), title: said }) : null
+		recordOnTrack(domain, { source: how, key: `${how}:${now}`, title: said }),
+		ruler.knight ? recordOnTrack(ruler.knight, { source: "rules", key: `rules:${domain.id}:${now}`, title: said, about: [domain] }) : null
 	]);
 }
 
@@ -208,6 +216,8 @@ export function timelineNewRuler(domain, how, ruler, said) {
  * @param {Actor} knight
  */
 export function timelineHoldingGranted(realm, holding, name, domain, knight) {
+	// Not `about`, which keeps a row back when any one it tells of is hidden: the Realm's
+	// row names the Holding and the Knight alone, so it's kept back only when the players see neither.
 	const seen = !keptFromPlayers(domain) || !keptFromPlayers(knight);
 	return recordOnTracks([seen ? realm : null, domain, knight], {
 		source: "granted",
@@ -354,7 +364,7 @@ export function timelineDuel(messageId, duel, actors, victorUuid, glory = {}) {
  * @param {string} [cause] What dealt it, as a line.
  */
 export function timelineMortalWound(actor, cause = "") {
-	return recordOnTrack(actor, { source: "mortal", key: timelineKeys.mortal(timelineNow(), Date.now()), title: t("timeline.auto.mortal"), body: cause });
+	return recordOnTrack(actor, { source: "mortal", key: eachTime("mortal"), title: t("timeline.auto.mortal"), body: cause });
 }
 
 /**
@@ -365,7 +375,7 @@ export function timelineMortalWound(actor, cause = "") {
  * @param {{doomed?: boolean}} [options]
  */
 export function timelineWarded(warden, victim, { doomed = false } = {}) {
-	const key = timelineKeys.ward(timelineNow(), Date.now());
+	const key = eachTime("ward");
 	return Promise.all([
 		doomed ? null : recordOnTrack(warden, { source: "ward", key, title: t("timeline.auto.warded", { name: victim.name }) }),
 		recordOnTrack(victim, { source: "ward", key, title: t("timeline.auto.spared", { name: warden.name }) })
@@ -381,8 +391,7 @@ export function timelineWarded(warden, victim, { doomed = false } = {}) {
  */
 export function timelineGloryAwarded(award, entries) {
 	if (award === "myth" || !entries.length) return null;
-	const season = timelineNow();
-	const key = timelineKeys.award(award, season, Date.now());
+	const key = eachTime("award", award);
 	const title = t(`glory.awards.${award}.label`);
 	const seen = entries.filter(({ actor }) => !keptFromPlayers(actor)).map(({ actor }) => actor.name);
 	return Promise.all([
@@ -413,11 +422,12 @@ export function timelineScarSettled(knight, scar, line) {
 export function timelineJoined(knight) {
 	return Promise.all([
 		recordOnTrack(knight, { source: "joined", key: timelineKeys.joined(), title: t("timeline.auto.joined") }),
-		keptFromPlayers(knight) ? null : recordOnTrack(COMPANY_TRACK, {
+		recordOnTrack(COMPANY_TRACK, {
 			source: "joined",
 			key: timelineKeys.joined(knight.id),
 			title: t("timeline.auto.joinedCompany", { name: knight.name }),
-			refresh: ["title"]
+			refresh: ["title"],
+			about: [knight]
 		})
 	]);
 }
@@ -450,7 +460,7 @@ export function timelineAged(actor, age, said = []) {
  * @param {Actor} heir
  */
 export function timelineHeirNamed(knight, heir) {
-	return recordOnTrack(knight, { source: "heir", key: timelineKeys.heir(heir.id, timelineNow(), Date.now()), title: t("timeline.auto.heir", { name: heir.name }) });
+	return recordOnTrack(knight, { source: "heir", key: eachTime("heir", heir.id), title: t("timeline.auto.heir", { name: heir.name }) });
 }
 
 /** The update option saying where a Myth's Omens were met, and how, for the Tile hooks in omens.js. */
@@ -513,7 +523,7 @@ export function timelineLandmarkFound(scene, hex) {
  * @param {string} name Its name.
  */
 export function timelineCrisisResolved(domain, crisis, name) {
-	return recordOnTrack(domain, { source: "resolved", key: timelineKeys.resolved(crisis, timelineNow(), Date.now()), title: t("timeline.auto.crisisResolved", { crisis: name }) });
+	return recordOnTrack(domain, { source: "resolved", key: eachTime("resolved", crisis), title: t("timeline.auto.crisisResolved", { crisis: name }) });
 }
 
 /**
@@ -522,7 +532,7 @@ export function timelineCrisisResolved(domain, crisis, name) {
  * @param {{said: string, who?: string|null, leverage?: string|null}} drama
  */
 export function timelineDrama(domain, { said, who = null, leverage = null }) {
-	return recordOnTrack(domain, { source: "drama", key: timelineKeys.drama(timelineNow(), Date.now()), title: t("domain.drama"), body: lines(said, who, leverage) });
+	return recordOnTrack(domain, { source: "drama", key: eachTime("drama"), title: t("domain.drama"), body: lines(said, who, leverage) });
 }
 
 /**
@@ -584,17 +594,18 @@ export function timelineCourtLeft(domain, id, member) {
  * @param {{joined: {id: string, name: string, actor: Actor|null}[], left: {id: string, name: string, actor: Actor|null}[]}} change
  */
 export function timelineCircle(domain, { joined = [], left = [] }) {
-	const season = timelineNow();
-	const at = Date.now();
-	const hidden = keptFromPlayers(domain);
-	const rows = (knights, said, saidOf) => knights.flatMap(({ id, name, actor }) => {
-		const key = timelineKeys.circle(id, season, at);
-		return [
-			recordOnTrack(domain, { source: "circle", key, title: t(`timeline.auto.${said}`, { name }) }),
-			actor && !(hidden && !keptFromPlayers(actor)) ? recordOnTrack(actor, { source: "circle", key, title: t(`timeline.auto.${saidOf}`, { domain: domain.name }) }) : null
-		];
-	});
-	return Promise.all([...rows(joined, "circleJoined", "circleJoinedOf"), ...rows(left, "circleLeft", "circleLeftOf")]);
+	const now = eachTime();
+	const seats = [
+		...joined.map((knight) => ({ ...knight, said: "circleJoined", saidOf: "circleJoinedOf" })),
+		...left.map((knight) => ({ ...knight, said: "circleLeft", saidOf: "circleLeftOf" }))
+	].map((seat) => ({ ...seat, key: `circle:${seat.id}:${now}` }));
+	return Promise.all([
+		// The Domain's rows in one write, however many came and went.
+		seats.length ? recordOnTrack(domain, seats.map(({ name, said, key }) => ({ source: "circle", key, title: t(`timeline.auto.${said}`, { name }) }))) : null,
+		...seats.map(({ actor, saidOf, key }) => (actor
+			? recordOnTrack(actor, { source: "circle", key, title: t(`timeline.auto.${saidOf}`, { domain: domain.name }), about: [domain] })
+			: null))
+	]);
 }
 
 /**

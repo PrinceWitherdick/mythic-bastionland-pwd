@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let entries = [];
 let fails = false;
 vi.mock("../../module/actions/timeline-store.js", () => ({
-	trackFor: (target) => (target === "company" ? { trackId: "company", kind: "company" } : target?.id ? { trackId: target.id, kind: "knight" } : null),
+	trackFor: (target) => (target === "company" ? { trackId: "company", kind: "company" } : target?.id ? { trackId: target.id, kind: "knight", secret: Boolean(target.secret) } : null),
 	removeKeyEverywhere: vi.fn(async () => {
 		if (fails) throw new Error("no");
 	}),
@@ -16,7 +16,7 @@ vi.mock("../../module/actions/timeline-store.js", () => ({
 }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ age: 2, year: 1, season: "harvest", day: 1, phase: "morning" }) }));
 
-const { forgetEverywhere, recordOnTrack, recordOnTracks, timelineNow } = await import("../../module/actions/timeline-record.js");
+const { forgetEverywhere, keptFromPlayers, recordOnTrack, recordOnTracks, timelineNow } = await import("../../module/actions/timeline-record.js");
 const { mutateTrack } = await import("../../module/actions/timeline-store.js");
 
 beforeEach(() => {
@@ -48,6 +48,25 @@ describe("recordOnTrack", () => {
 		await expect(recordOnTrack("company", { source: "myth", key: "k" })).resolves.toBeNull();
 		await expect(forgetEverywhere("k")).resolves.toBeUndefined();
 		warn.mockRestore();
+	});
+
+	it("keeps a row about someone kept from the players off every thread they read, and never stores who it's about", async () => {
+		const rival = { id: "d2", secret: true };
+		const seen = { id: "d1" };
+		expect(keptFromPlayers(rival)).toBe(true);
+		expect(keptFromPlayers(null)).toBe(false);
+		await expect(recordOnTrack("company", { source: "founded", key: "a", about: [rival] })).resolves.toBeNull();
+		await recordOnTrack("company", [{ source: "founded", key: "b", about: [seen, null] }, { source: "founded", key: "c", about: [rival] }]);
+		expect(entries.map((entry) => entry.key)).toEqual(["b"]);
+		expect(entries[0]).not.toHaveProperty("about");
+		// A thread kept for the Referee may tell of anyone.
+		await recordOnTrack({ id: "k9", secret: true }, { source: "rules", key: "d", about: [rival] });
+		expect(entries.map((entry) => entry.key)).toEqual(["b", "d"]);
+	});
+
+	it("writes a row about someone hidden on the hidden threads of several, and none of the rest", async () => {
+		await recordOnTracks(["company", { id: "k1" }, { id: "k9", secret: true }], { source: "circle", key: "e", about: [{ id: "d2", secret: true }] });
+		expect(vi.mocked(mutateTrack).mock.calls.map(([track]) => track.trackId)).toEqual(["k9"]);
 	});
 
 	it("writes on each thread once, however often it's named", async () => {

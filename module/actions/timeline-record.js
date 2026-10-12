@@ -20,6 +20,10 @@ export function timelineNow() {
 }
 
 let warned = false;
+const warnOnce = (error) => {
+	if (!warned) console.warn(`${SYSTEM_ID} | Couldn't write on the Timeline`, error);
+	warned = true;
+};
 
 /**
  * @typedef {object} Milestone
@@ -30,6 +34,7 @@ let warned = false;
  * @property {string} [place]
  * @property {string} [season] Its Season, when it isn't now's.
  * @property {string[]} [refresh] What a milestone written again changes on its row.
+ * @property {(Actor|null)[]} [about] Who it tells of: kept off every thread the players read while any of them is kept from the players. Never written on the row.
  */
 
 /**
@@ -43,13 +48,16 @@ const asTrack = (target) => (target?.trackId ? target : trackFor(target));
  * @returns {boolean} Whether its thread is kept for the Referee alone, so nothing of it belongs on a thread the players read.
  */
 export function keptFromPlayers(target) {
-	try {
-		return Boolean(target && asTrack(target)?.secret);
-	} catch {
-		// Where it can't be told, it's kept back: a row the players shouldn't read is worse than one missing.
-		return true;
-	}
+	// trackFor counts a thread it can't tell as kept back: a row the players shouldn't read is worse than one missing.
+	return Boolean(target && asTrack(target)?.secret);
 }
+
+/**
+ * @param {{secret?: boolean}} track
+ * @param {Milestone} milestone
+ * @returns {boolean} Whether it may go on that thread: a thread the players read never tells of anyone kept from them.
+ */
+const belongsOn = (track, { about = [] }) => Boolean(track.secret) || !about.some(keptFromPlayers);
 
 /**
  * Write milestones on one thread, each once.
@@ -59,18 +67,17 @@ export function keptFromPlayers(target) {
  * @returns {Promise<object|null>}
  */
 export async function recordOnTrack(target, milestones, { when } = {}) {
-	const list = (Array.isArray(milestones) ? milestones : [milestones]).filter(Boolean);
+	const track = asTrack(target);
+	const list = track ? (Array.isArray(milestones) ? milestones : [milestones]).filter((milestone) => milestone && belongsOn(track, milestone)) : [];
+	if (!list.length) return null;
 	try {
-		const track = asTrack(target);
-		if (!track || !list.length) return null;
 		const season = when ?? timelineNow();
 		const stamp = { createdAt: Date.now(), authorId: game.user?.id ?? "" };
 		return await mutateTrack(track, (entries) => ({
-			entries: list.reduce((current, { refresh = [], ...milestone }) => upsertByKey(current, { season, ...stamp, ...milestone }, { refresh, makeId: foundry.utils.randomID }).entries, entries)
+			entries: list.reduce((current, { refresh = [], about: _about, ...milestone }) => upsertByKey(current, { season, ...stamp, ...milestone }, { refresh, makeId: foundry.utils.randomID }).entries, entries)
 		}), { create: true });
 	} catch (error) {
-		if (!warned) console.warn(`${SYSTEM_ID} | Couldn't write on the Timeline`, error);
-		warned = true;
+		warnOnce(error);
 		return null;
 	}
 }
@@ -83,15 +90,9 @@ export async function recordOnTrack(target, milestones, { when } = {}) {
  */
 export async function recordOnTracks(targets, milestones, options) {
 	const tracks = new Map();
-	try {
-		for (const target of targets) {
-			const track = target ? asTrack(target) : null;
-			if (track && !tracks.has(track.trackId)) tracks.set(track.trackId, track);
-		}
-	} catch (error) {
-		if (!warned) console.warn(`${SYSTEM_ID} | Couldn't write on the Timeline`, error);
-		warned = true;
-		return [];
+	for (const target of targets) {
+		const track = target ? asTrack(target) : null;
+		if (track && !tracks.has(track.trackId)) tracks.set(track.trackId, track);
 	}
 	return Promise.all([...tracks.values()].map((track) => recordOnTrack(track, milestones, options)));
 }
