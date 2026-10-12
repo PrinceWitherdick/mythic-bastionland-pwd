@@ -4,7 +4,7 @@ import { createCustomTag, worldCustomTags } from "../actions/timeline-tags.js";
 import { yearsOnHeading } from "../actions/travels.js";
 import { companyPicture } from "../actions/company.js";
 import { read } from "../client-settings.js";
-import { KIND_GROUPS, addEntry, documentUuid, moveEntry, patchEntry, readEntries, realmSceneId, removeEntry } from "../rules/timeline.js";
+import { COMPANY_TRACK, KIND_GROUPS, addEntry, documentUuid, isSeasonTurn, moveEntry, patchEntry, readEntries, realmSceneId, removeEntry } from "../rules/timeline.js";
 import { CUSTOM_TAG_ICON, DEFAULT_TAG_COLOUR, KIND_ICONS, TAG_NAME_MAX, TIMELINE_TAGS_FLAG, cleanColour, isKindTag, kindColourProperty, readKindColours } from "../rules/timeline-tags.js";
 import { boardView, defaultHiddenTracks, hiddenCount, kindMenu, periodChoices, threadMenu, trackView } from "../rules/timeline-view.js";
 import { clampScale, scrubTicks } from "../rules/timeline-scroll.js";
@@ -310,9 +310,13 @@ export async function trackContext(track, { editable = true } = {}) {
 	const tags = worldCustomTags();
 	const page = findTrackPage(track.trackId);
 	const canEdit = editable && canWriteTrack({ trackId: track.trackId, page });
-	const view = trackView({ ...track, entries: page?.system?.entries ?? {} }, { hidden: filter.kinds, nowKey: timelineNow(), seasons: allSeasons(), tags, canEdit });
+	// Another thread writes the Company's Season turns in its headings (rules/timeline-view.js#trackView).
+	const company = track.trackId === COMPANY_TRACK ? null : findTrackPage(COMPANY_TRACK)?.system?.entries;
+	const view = trackView({ ...track, entries: page?.system?.entries ?? {} }, { hidden: filter.kinds, nowKey: timelineNow(), seasons: allSeasons(), tags, canEdit, company });
 	const toolbar = toolbarContext({ hidden: filter.kinds, tags });
-	const periods = await wordPeriods(view.periods, () => canEdit, async (period, heading) => ({
+	// A Company turn's Edit writes on the Company's thread, so it asks that page.
+	const canEditNote = (trackId) => (trackId === track.trackId ? canEdit : editable && canWriteTrack({ trackId }));
+	const periods = await wordPeriods(view.periods, canEditNote, async (period, heading) => ({
 		entries: await wordCards(period.entries, canEdit),
 		addLabel: period.add ? addLabel(heading) : ""
 	}));
@@ -762,9 +766,25 @@ function wireMenus(timeline, trackIds, signal) {
  * @returns {[string, number][]} The hooks, to take off on close.
  */
 export function watchTimeline(trackId, onChange) {
-	const ours = (page) => isTimelinePage(page) && (!trackId || pageTrackId(page) === trackId);
-	const onPage = (page) => {
-		if (ours(page)) onChange();
+	// One thread reads the Company's Season turns too (trackContext), so it redraws for the Company's
+	// page as well as its own: but only when those turns moved. The Company's is the busiest thread
+	// at the table, and a write to one of its cards changes nothing another thread draws.
+	const readsCompany = Boolean(trackId) && trackId !== COMPANY_TRACK;
+	let companySeen = readsCompany ? seasonTurnsOf(findTrackPage(COMPANY_TRACK)) : null;
+	// A page made or deleted is always news; only an update can leave the turns as they were.
+	const follows = (page, change, changes) => {
+		const id = pageTrackId(page);
+		if (id === trackId) return true;
+		if (!readsCompany || id !== COMPANY_TRACK) return false;
+		if (change === "update" && !("entries" in (changes?.system ?? {}))) return false;
+		const now = change === "delete" ? NO_TURNS : seasonTurnsOf(page);
+		if (change === "update" && now === companySeen) return false;
+		companySeen = now;
+		return true;
+	};
+	const ours = (page, change, changes) => isTimelinePage(page) && (!trackId || follows(page, change, changes));
+	const onPage = (change) => (page, changes) => {
+		if (ours(page, change, changes)) onChange();
 	};
 	const onLooks = (document, changes) => {
 		if (!trackId && ("name" in (changes ?? {}) || "img" in (changes ?? {}) || "thumb" in (changes ?? {})) && trackFor(document)) onChange();
@@ -778,15 +798,36 @@ export function watchTimeline(trackId, onChange) {
 		if (!after || !before || seasonKey(after) !== seasonKey(before)) onChange();
 	};
 	return [
-		["createJournalEntryPage", onPage],
-		["updateJournalEntryPage", onPage],
-		["deleteJournalEntryPage", onPage],
+		["createJournalEntryPage", onPage("create")],
+		["updateJournalEntryPage", onPage("update")],
+		["deleteJournalEntryPage", onPage("delete")],
 		["updateJournalEntry", onTags],
 		["updateActor", onLooks],
 		["updateScene", onLooks],
 		[CALENDAR_HOOK, onCalendar],
 		[TIMELINE_FILTER_HOOK, () => onChange()]
 	].map(([name, handler]) => [name, Hooks.on(name, handler)]);
+}
+
+/** A page with no Season turns, as seasonTurnsOf writes it. */
+const NO_TURNS = "[]";
+
+/** Each Timeline page's Season turns as last read, by its entries, so every open sheet reads them once a write. */
+const turnsRead = new WeakMap();
+
+/**
+ * @param {JournalEntryPage|null|undefined} page
+ * @returns {string} The page's Season turns, to tell whether they moved.
+ */
+function seasonTurnsOf(page) {
+	const entries = page?.system?.entries;
+	if (!entries || typeof entries !== "object") return NO_TURNS;
+	let read = turnsRead.get(entries);
+	if (read === undefined) {
+		read = JSON.stringify(readEntries(entries).filter(isSeasonTurn));
+		turnsRead.set(entries, read);
+	}
+	return read;
 }
 
 /**

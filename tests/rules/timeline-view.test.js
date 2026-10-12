@@ -65,6 +65,59 @@ describe("trackView", () => {
 	});
 });
 
+// A Knight's thread reads the Seasons turning between the things they did, from the Company's own
+// Season turns, over the Seasons that thread spans and no further.
+describe("the Company's Season turns on another thread", () => {
+	const company = entries(
+		{ id: "c0", season: "1-spring", title: "Harvest Begins", source: "season" },
+		{ id: "c1", season: "1-2-spring", title: "Harvest Begins", source: "season" },
+		{ id: "c2", season: "1-2-harvest", title: "Winter Begins", source: "season" },
+		{ id: "c3", season: "1-2-winter", title: "Spring Begins", source: "season" },
+		{ id: "c4", season: "1-2-harvest", title: "Set out", source: "hand" }
+	);
+	const knight = (...rows) => ({ trackId: "k1", kind: "knight", entries: entries(...rows) });
+	const twoSeasons = knight({ id: "a", season: "1-2-spring", source: "hand" }, { id: "b", season: "1-2-winter", source: "hand" });
+
+	it("writes them only over the Seasons the thread spans", () => {
+		const view = trackView(twoSeasons, { company });
+		expect(view.periods.map((p) => p.season)).toEqual(["1-2-spring", "1-2-harvest", "1-2-winter"]);
+		expect(view.periods.flatMap((p) => p.notes.map((n) => n.id))).toEqual(["c1", "c2", "c3"]);
+	});
+
+	it("never brings the Company's cards across, only its turns", () => {
+		const view = trackView(twoSeasons, { company });
+		expect(view.periods.flatMap((p) => p.entries.map((e) => e.id))).toEqual(["a", "b"]);
+	});
+
+	it("names the Company's thread on each turn, so its Edit writes there", () => {
+		const [spring] = trackView(twoSeasons, { company }).periods;
+		expect(spring.notes[0]).toMatchObject({ id: "c1", trackId: "company" });
+	});
+
+	it("leaves out the Company's turn in a Season the thread closed itself", () => {
+		const turned = knight({ id: "a", season: "1-2-spring", source: "hand" }, { id: "k2", season: "1-2-harvest", title: "Winter Begins", source: "season" }, { id: "b", season: "1-2-winter", source: "hand" });
+		const view = trackView(turned, { company });
+		expect(view.periods.flatMap((p) => p.notes.map((n) => [n.id, n.trackId]))).toEqual([["c1", "company"], ["k2", "k1"], ["c3", "company"]]);
+	});
+
+	it("reaches as far as the Season it is now, for one who can write", () => {
+		const view = trackView(knight({ id: "a", season: "1-2-spring", source: "hand" }), { company, canEdit: true, nowKey: "1-2-harvest" });
+		expect(view.periods.flatMap((p) => p.notes.map((n) => n.id))).toEqual(["c1", "c2"]);
+	});
+
+	it("hides them with the Filter's line, as the board does", () => {
+		const view = trackView(twoSeasons, { company, hidden: ["time"] });
+		expect(view.periods.flatMap((p) => p.notes)).toEqual([]);
+	});
+
+	it("writes none on a thread with nothing of its own, one the Filter has emptied, or the Company's own", () => {
+		expect(trackView(knight(), { company })).toMatchObject({ empty: true, periods: [] });
+		expect(trackView(twoSeasons, { company, hidden: ["hand"] }).periods).toEqual([]);
+		const own = trackView({ trackId: "company", kind: "company", entries: company }, { company });
+		expect(own.periods.flatMap((p) => p.notes.map((n) => n.id))).toEqual(["c0", "c1", "c2", "c3"]);
+	});
+});
+
 describe("boardView", () => {
 	const tracks = [
 		{ trackId: "company", kind: "company", portrait: "c.webp", entries: entries({ season: "1-spring", title: "Set out" }, { season: "1-spring", title: "Summer Begins", source: "season" }) },

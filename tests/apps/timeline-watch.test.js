@@ -47,3 +47,44 @@ describe("a Timeline following the calendar", () => {
 		expect(handlers.has(CALENDAR_HOOK)).toBe(false);
 	});
 });
+
+describe("a thread following the Company's Season turns", () => {
+	const journal = { getFlag: () => true, pages: [] };
+	const page = (entries) => ({ type: "timeline", parent: journal, system: { trackId: "company", entries } });
+	const turn = { id: "t1", season: "1-spring", source: "season", title: "Harvest Begins" };
+	const card = { id: "c1", season: "1-spring", source: "hand", title: "Set out" };
+
+	beforeEach(() => {
+		journal.pages = [];
+		globalThis.game = { journal: [journal] };
+	});
+
+	afterEach(() => {
+		delete globalThis.game;
+	});
+
+	it("is drawn again when the Company's turns move, and not for its cards", () => {
+		let drawn = 0;
+		const hooks = watchTimeline("k1", () => drawn++);
+		const made = page({ c1: card });
+		handlers.get("createJournalEntryPage")(made);
+		expect(drawn).toBe(1);
+
+		// A card written: the turns are as the page was made with.
+		handlers.get("updateJournalEntryPage")(page({ c1: { ...card, title: "Set out at dawn" } }), { system: { entries: {} } });
+		// Something other than the entries.
+		handlers.get("updateJournalEntryPage")(page({ c1: card }), { name: "Company" });
+		expect(drawn).toBe(1);
+
+		handlers.get("updateJournalEntryPage")(page({ c1: card, t1: turn }), { system: { entries: {} } });
+		expect(drawn).toBe(2);
+
+		handlers.get("deleteJournalEntryPage")(made);
+		handlers.get("createJournalEntryPage")(page({}));
+		expect(drawn).toBe(4);
+		// The page made again has no turns, as the watcher now knows.
+		handlers.get("updateJournalEntryPage")(page({ c1: card }), { system: { entries: {} } });
+		expect(drawn).toBe(4);
+		unwatchTimeline(hooks);
+	});
+});

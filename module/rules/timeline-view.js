@@ -110,6 +110,30 @@ function withNow(seasons, nowKey) {
 }
 
 /**
+ * The Company's Season turns, for another thread (a Knight's, a Domain's, a
+ * Realm's): the Seasons turning between the things that thread did. Only over
+ * the Seasons the thread itself spans, from its first dated entry to its last
+ * (or the Season it is now, for one who can write there), so a Knight knighted
+ * in the third year doesn't open on two years of a Company they weren't part
+ * of. A Season in that span with nothing of the thread's own still opens,
+ * under the Company's turn: that's the point. The reader's Filter hides them
+ * as it does on the board.
+ * @param {object[]} own The thread's own shown entries.
+ * @param {unknown} company The Company's entries, as its page keeps them.
+ * @param {(entry: object) => boolean} shown The reader's Filter.
+ * @param {string} nowKey The Season it is now, or "" when it isn't drawn.
+ */
+function companyTurnsWithin(own, company, shown, nowKey) {
+	const ranks = own.map((entry) => periodRank(entry.season)).filter(Number.isFinite);
+	if (!ranks.length) return [];
+	const first = Math.min(...ranks);
+	const last = Math.max(...ranks, periodRank(nowKey));
+	// A Season the thread closed itself, as a Knight's or a Domain's does when something befell it, keeps its own turn.
+	const turned = new Set(own.filter(isSeasonTurn).map((entry) => entry.season));
+	return readEntries(company).filter((entry) => isSeasonTurn(entry) && shown(entry) && !turned.has(entry.season) && periodRank(entry.season) >= first && periodRank(entry.season) <= last);
+}
+
+/**
  * @typedef {object} ViewOptions
  * @property {string[]} [hidden]      The Filter lines unticked: kinds, and the table's own tags by id.
  * @property {string} [nowKey]        The Season it is now.
@@ -120,18 +144,23 @@ function withNow(seasons, nowKey) {
 /**
  * One thread, as a sheet's tab and its journal page show it.
  * @param {TimelineTrack} track
- * @param {ViewOptions & {canEdit?: boolean}} [options] `canEdit` offers an add slot in each Season, and the Season it is now.
+ * @param {ViewOptions & {canEdit?: boolean, company?: unknown}} [options] `canEdit` offers an add slot in each Season, and the Season it is now. `company` is the Company's entries, whose Season turns another thread writes in its headings (companyTurnsWithin).
  */
-export function trackView(track, { hidden = [], nowKey = "", seasons, tags = [], canEdit = false } = {}) {
+export function trackView(track, { hidden = [], nowKey = "", seasons, tags = [], canEdit = false, company } = {}) {
 	const index = indexCustomTags(tags);
 	const off = new Set(hidden);
+	const isShown = (entry) => !off.has(filterKey(entry, index));
 	const all = readEntries(track?.entries);
-	const shown = all.filter((entry) => !off.has(filterKey(entry, index)));
+	const shown = all.filter(isShown);
 	const allHidden = all.length > 0 && !shown.length;
-	const groups = new Map(groupByPeriod(shown).map((period) => [period.season, period.entries]));
-	const rows = withNow([...groups.keys()], canEdit && !allHidden ? nowKey : "");
-	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
 	const trackId = track?.trackId ?? "";
+	const ghostKey = canEdit && !allHidden ? nowKey : "";
+	// Never on a thread the Filter has emptied: that reads as filtered, not as the Company's Seasons.
+	const shared = company && !allHidden && trackId !== COMPANY_TRACK ? companyTurnsWithin(shown, company, isShown, ghostKey) : [];
+	const sharedIds = new Set(shared.map((entry) => entry.id));
+	const groups = new Map(groupByPeriod([...shown, ...shared]).map((period) => [period.season, period.entries]));
+	const rows = withNow([...groups.keys()], ghostKey);
+	const yearsOn = yearsOnBySeason(seasons ?? rows.map((row) => row.season));
 	return {
 		trackId,
 		kind: track?.kind ?? "",
@@ -142,7 +171,8 @@ export function trackView(track, { hidden = [], nowKey = "", seasons, tags = [],
 			return {
 				...periodFacts(season, { nowKey, yearsOn }),
 				ghost,
-				notes: entries.filter(isSeasonTurn).map((entry) => noteView(entry, trackId)),
+				// The Company's turns name its thread, so their Edit writes there.
+				notes: entries.filter(isSeasonTurn).map((entry) => noteView(entry, sharedIds.has(entry.id) ? COMPANY_TRACK : trackId)),
 				entries: cardsOf(entries, index),
 				add: canEdit ? { season } : null
 			};
