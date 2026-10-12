@@ -19,7 +19,7 @@
 			{{#each cells}}
 			{{#if startsAge}}<span class="bastionland-timeline__swim-rule" aria-hidden="true"></span>{{/if}}
 			<div class="bastionland-timeline__cell{{#if ghost}} is-ghost{{/if}}" data-track-id="{{trackId}}" data-period="{{season}}" data-age="{{ageKey}}">
-				{{> "bastionland.timeline-cards"}}
+				{{~> "bastionland.timeline-cards"}}
 			</div>
 			{{/each}}
 			{{/each}}
@@ -35,7 +35,7 @@
 			<div class="bastionland-timeline__period-head bastionland-timeline__period-head--board{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">{{> "bastionland.timeline-heading"}}</div>
 			{{#each cells}}
 			<div class="bastionland-timeline__cell{{#if ../isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-track-id="{{trackId}}" data-period="{{season}}" data-age="{{ageKey}}">
-				{{> "bastionland.timeline-cards"}}
+				{{~> "bastionland.timeline-cards"}}
 			</div>
 			{{/each}}
 			{{/each}}

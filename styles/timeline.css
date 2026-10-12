@@ -835,13 +835,15 @@
 	border-top: 2px solid var(--bastionland-rubric);
 }
 
+/* SAFE centring: an Age's name wider than the cell (a longer translation) starts at the cell's
+   left and runs on, rather than spilling half of it past the window's left edge. */
 .bastionland-timeline__age-cell {
 	position: sticky;
 	left: 0;
 	z-index: 4;
 	display: flex;
 	flex: none;
-	justify-content: center;
+	justify-content: safe center;
 	width: 11rem;
 }
 

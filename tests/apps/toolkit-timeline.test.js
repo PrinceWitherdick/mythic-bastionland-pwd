@@ -18,8 +18,8 @@ describe("the Referee Toolkit's Timeline page", () => {
 	});
 
 	it("shows the board the Timeline window shows", () => {
-		expect(page).toContain('{{> "bastionland.timeline-board"}}');
-		expect(windowPage).toContain('{{> "bastionland.timeline-board"}}');
+		expect(page).toContain('{{~> "bastionland.timeline-board"}}');
+		expect(windowPage).toContain('{{~> "bastionland.timeline-board"}}');
 		expect(sheet).toMatch(/TimelineTabMixin\(.*\{ board: true \}\)/);
 	});
 

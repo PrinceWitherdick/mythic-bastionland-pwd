@@ -16,7 +16,7 @@
 				<div class="bastionland-timeline__period-head">{{> "bastionland.timeline-heading"}}</div>
 			</div>
 			<div class="bastionland-timeline__axis-cards">
-				{{> "bastionland.timeline-cards"}}
+				{{~> "bastionland.timeline-cards"}}
 			</div>
 		</li>
 		{{/each}}
@@ -27,7 +27,7 @@
 		{{#if ageHeading}}<h3 class="bastionland-timeline__age-head" data-age="{{ageKey}}">{{ageHeading}}</h3>{{/if}}
 		<section class="bastionland-timeline__period{{#if isNow}} is-now{{/if}}{{#if ghost}} is-ghost{{/if}}" data-period="{{season}}" data-age="{{ageKey}}">
 			<div class="bastionland-timeline__period-head">{{> "bastionland.timeline-heading"}}</div>
-			{{> "bastionland.timeline-cards"}}
+			{{~> "bastionland.timeline-cards"}}
 		</section>
 		{{/each}}
 	</div>
