@@ -284,15 +284,21 @@ function impairOptions(attack) {
 }
 
 /**
- * Show the Gambit window's choice of weapon only while Impair is picked.
+ * Show the Gambit window's choice of weapon only while Impair is picked, and
+ * the foe's Save only while the Gambit gives them one: not for Bolster or Move,
+ * nor a Strong Gambit taken as No Save.
  * @param {foundry.applications.api.DialogV2} dialog
  */
-function watchImpairChoice(dialog) {
+function watchGambitChoice(dialog) {
 	const form = dialog.element.querySelector("form");
-	const row = form?.querySelector("[data-impair-weapon]");
-	if (!row) return;
+	if (!form) return;
+	const weapon = form.querySelector("[data-impair-weapon]");
+	const save = form.querySelector("[data-gambit-save]");
 	const update = () => {
-		row.hidden = form.querySelector("[name='gambit']:checked")?.value !== "impair";
+		const key = form.querySelector("[name='gambit']:checked")?.value;
+		const strong = form.querySelector("[name='strong']:checked")?.value ?? "";
+		if (weapon) weapon.hidden = key !== "impair";
+		if (save) save.hidden = !gambitAllowsSave({ key, strong });
 	};
 	form.addEventListener("change", update);
 	update();
@@ -320,7 +326,7 @@ async function chooseGambit({ source, strong, weapons = [] }) {
 			weapons: weapons.map(({ value, label }) => ({ value, label }))
 		},
 		ok: { label: t("attack.declare") },
-		render: (_event, dialog) => watchImpairChoice(dialog)
+		render: (_event, dialog) => watchGambitChoice(dialog)
 	});
 	if (!data || !GAMBITS.includes(data.gambit)) return null;
 	const chosen = { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null, saveIn: SAVE_VIRTUES.includes(data.saveIn) ? data.saveIn : SAVE_VIRTUES[0] };
@@ -520,6 +526,8 @@ function denyOptions(attack) {
  */
 function refreshDeny(button, attack) {
 	const { pool, able } = denyOptions(attack);
+	// A player with nobody who knows the Feat isn't shown it; a Referee is, to be told to select whoever Denies.
+	button.hidden = !pool.length && !game.user.isGM;
 	button.disabled = !able.length;
 	if (able.length) delete button.dataset.tooltip;
 	else button.dataset.tooltip = t(pool.length ? "attack.cantDeny" : "attack.noDenier");
@@ -593,7 +601,7 @@ async function confirmApply(attack, actors) {
  * die that caused it. The targets other users own stay waiting for them, and
  * those of a settled card whose Tokens were deleted are closed out.
  */
-async function onApply(message) {
+async function onApply(message, _button, event) {
 	const attack = attackOf(message);
 	const gone = attack.appliedTo.length ? unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid) : [];
 	const waiting = waitingTargets(attack);
@@ -609,7 +617,8 @@ async function onApply(message) {
 	const tokens = [];
 	const actors = [];
 	for (const { actor, token } of owned) {
-		if (!(await takeAttack(actor, attack, { except: [message.id] }))) continue;
+		// Taken as the card has it unless something wants judging; Shift opens the Damage window regardless.
+		if (!(await takeAttack(actor, attack, { except: [message.id], quick: !event?.shiftKey }))) continue;
 		names.push(actor.name);
 		actors.push(actor.uuid);
 		if (token) tokens.push(token);
@@ -858,7 +867,7 @@ function activateAttackCard(message, html) {
 		});
 	}
 
-	onCardClick(card, "[data-attack-action]", (button) => HANDLERS[button.dataset.attackAction]?.(message, button));
+	onCardClick(card, "[data-attack-action]", (button, event) => HANDLERS[button.dataset.attackAction]?.(message, button, event));
 }
 
 /** Called during init. */

@@ -214,6 +214,14 @@ async function skipBrokenMorale(combat) {
  */
 function activateMoraleButtons(message, html) {
 	if (!html.querySelector(MORALE_BUTTONS)) return;
+	// A Morale roll, or a broken NPC's mark, is only for whoever may change them.
+	for (const button of html.querySelectorAll(MORALE_BUTTONS)) {
+		const uuids = button.dataset.moraleRoll ? [button.dataset.moraleRoll] : actorUuidsOf(button);
+		const actors = uuids.map((uuid) => fromUuidSync(uuid));
+		// The Referee keeps a button whose characters are all gone, so a click says so.
+		const gone = game.user.isGM && actors.every((actor) => !actor);
+		if (uuids.length && !gone && !actors.some((actor) => actor?.isOwner)) button.hidden = true;
+	}
 	onCardClick(html, MORALE_BUTTONS, async (button) => {
 		if (button.dataset.moraleRoll) await rollFor(button.dataset.moraleRoll);
 		else if (GROUP_ORDER.includes(button.dataset.moraleGroup)) await rollGroup(message, button.dataset.moraleGroup);
@@ -222,11 +230,17 @@ function activateMoraleButtons(message, html) {
 }
 
 /**
+ * @param {HTMLElement} button
+ * @returns {string[]} The UUIDs of those a group's button stands for.
+ */
+const actorUuidsOf = (button) => (button.dataset.actors ?? "").split(",").filter(Boolean);
+
+/**
  * Mark whoever a failed Morale card stood for, as its button says.
  * @param {HTMLElement} button
  */
 async function breakFrom(button) {
-	const actors = (button.dataset.actors ?? "").split(",").filter(Boolean).map((uuid) => fromUuidSync(uuid)).filter(Boolean);
+	const actors = actorUuidsOf(button).map((uuid) => fromUuidSync(uuid)).filter(Boolean);
 	if (!actors.length) return warn("morale.gone");
 	return breakMorale(actors, button.dataset.moraleBreak);
 }

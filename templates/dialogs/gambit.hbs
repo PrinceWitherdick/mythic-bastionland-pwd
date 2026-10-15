@@ -26,7 +26,8 @@
 		<p class="hint">{{localize "bastionland.attack.impairWhichHint"}}</p>
 	</div>
 
-	<div class="form-group">
+	{{!-- The foe's Save, shown only while the Gambit picked gives them one. --}}
+	<div class="form-group" data-gambit-save>
 		<label for="bastionland-gambit-save">{{localize "bastionland.attack.saveInLabel"}}</label>
 		<div class="form-fields">
 			<select id="bastionland-gambit-save" name="saveIn">

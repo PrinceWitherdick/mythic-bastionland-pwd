@@ -152,9 +152,18 @@ describe("the Deny button", () => {
 		expect(renderCard(denied).deny.disabled).toBe(true);
 	});
 
-	it("asks for a Token when this user has nobody to Deny with", () => {
+	it("stays hidden from a player with nobody to Deny with", () => {
 		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", isOwner: false }) };
 		const { deny } = renderCard(attackState());
+		expect(deny.hidden).toBe(true);
+		expect(deny.disabled).toBe(true);
+	});
+
+	it("asks a Referee with nobody to Deny with for a Token", () => {
+		game.user.isGM = true;
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", isOwner: false }) };
+		const { deny } = renderCard(attackState());
+		expect(deny.hidden).toBe(false);
 		expect(deny.disabled).toBe(true);
 		expect(deny.dataset.tooltip).toBe("bastionland.attack.noDenier");
 	});
@@ -166,6 +175,7 @@ describe("the Deny button", () => {
 
 		canvas.tokens.controlled = [{ actor: actor({ uuid: "Actor.ally", name: "Ser Ban" }) }];
 		card.hover();
+		expect(card.deny.hidden).toBe(false);
 		expect(card.deny.disabled).toBe(false);
 	});
 });
@@ -238,7 +248,7 @@ describe("applying the Damage", () => {
 		expect(confirmDialog).not.toHaveBeenCalled();
 		expect(takeAttack).toHaveBeenCalledOnce();
 		// A Trap Gambit on this very card holds the shield only after its own blow lands.
-		expect(takeAttack.mock.calls[0][2]).toEqual({ except: ["message-1"] });
+		expect(takeAttack.mock.calls[0][2]).toEqual({ except: ["message-1"], quick: true });
 	});
 
 	it("lands only on the targets this user owns that are still waiting", async () => {

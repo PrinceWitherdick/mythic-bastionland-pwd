@@ -33,6 +33,7 @@ import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dr
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
+import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
@@ -329,6 +330,8 @@ Hooks.once("init", () => {
 
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
+	// The players act first in a fight (p8): nobody rolls initiative.
+	registerTurnOrder();
 	registerSurpriseHooks();
 	registerAfflictionHooks();
 	// A coin flipped for a life whose loser this user couldn't change is killed from the card (p120).

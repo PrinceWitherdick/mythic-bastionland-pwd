@@ -46,10 +46,6 @@
 			<input type="checkbox" name="engaged" {{checked engaged}}>
 			<span class="bastionland-check__label">{{localize "bastionland.attack.engaged"}}</span>
 		</label>
-		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.confinedHint'}}">
-			<input type="checkbox" name="confined" {{checked confined}}>
-			<span class="bastionland-check__label">{{localize "bastionland.attack.confined"}}</span>
-		</label>
 		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.mountedHint'}}">
 			<input type="checkbox" name="mounted" {{checked mounted}}>
 			<span class="bastionland-check__label">{{localize "bastionland.attack.mounted"}}</span>
@@ -61,10 +57,6 @@
 			<span class="bastionland-check__label">{{charge}}</span>
 		</label>
 		{{/if}}
-		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.spearwallHint'}}">
-			<input type="checkbox" name="spearwall" {{checked spearwall}}>
-			<span class="bastionland-check__label">{{localize "bastionland.attack.spearwall"}}</span>
-		</label>
 		{{#if exhausted}}
 		<p class="hint">{{localize "bastionland.conditions.exhausted.hint"}}</p>
 		{{/if}}
@@ -97,11 +89,16 @@
 		<span class="bastionland-check__label">{{label}}</span>
 	</label>
 	{{/each}}
-	<label class="bastionland-check" data-tooltip="{{#if canKeep}}{{localize 'bastionland.attack.keepBonusHint'}}{{else}}{{localize 'bastionland.attack.keepBonusNone'}}{{/if}}">
-		<input type="checkbox" name="keepBonus" {{#unless canKeep}}disabled{{/unless}}>
+	{{!-- Only in a Combat is there a rest of the fight to keep them for. --}}
+	{{#if canKeep}}
+	<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.keepBonusHint'}}">
+		<input type="checkbox" name="keepBonus">
 		<span class="bastionland-check__label">{{localize "bastionland.attack.keepBonus"}}</span>
 	</label>
+	{{/if}}
 
+	{{!-- Only somebody who knows the Feat is offered it; a Fatigued or Impaired one sees why they can't. --}}
+	{{#if smiteKnown}}
 	<div class="form-group">
 		<label for="bastionland-attack-smite">{{localize "bastionland.feats.smite.name"}}</label>
 		<div class="form-fields">
@@ -114,8 +111,10 @@
 		</div>
 		<p class="hint">{{localize "bastionland.attack.smiteHint"}}</p>
 	</div>
+	{{/if}}
 
-	{{!-- What an Ability, or anything else, lends this one blow. Never carried to the next. --}}
+	{{!-- What an Ability lends this one blow, named for it. Never carried to the next. --}}
+	{{#if abilityOffers.length}}
 	<fieldset>
 		<legend>{{localize "bastionland.attack.declared"}}</legend>
 		{{#each abilityOffers}}
@@ -137,6 +136,20 @@
 		</div>
 		{{/if}}
 		{{/each}}
+	</fieldset>
+	{{/if}}
+
+	{{!-- What seldom comes up, folded away: open as it's drawn where a remembered tick is in it. --}}
+	<details class="bastionland-attack__more" {{#if moreOpen}}open{{/if}}>
+		<summary>{{localize "bastionland.attack.more"}}</summary>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.confinedHint'}}">
+			<input type="checkbox" name="confined" {{checked confined}}>
+			<span class="bastionland-check__label">{{localize "bastionland.attack.confined"}}</span>
+		</label>
+		<label class="bastionland-check" data-tooltip="{{localize 'bastionland.attack.spearwallHint'}}">
+			<input type="checkbox" name="spearwall" {{checked spearwall}}>
+			<span class="bastionland-check__label">{{localize "bastionland.attack.spearwall"}}</span>
+		</label>
 		{{#each declarations}}
 		<label class="bastionland-check" data-tooltip="{{hint}}">
 			<input type="checkbox" name="declare.{{key}}">
@@ -157,7 +170,7 @@
 			</div>
 		</div>
 		{{/if}}
-	</fieldset>
+	</details>
 
 	{{#if warband}}
 	{{!-- Ticked when everybody targeted is an individual, rather than a Warband, a swarm or a structure (p11). --}}

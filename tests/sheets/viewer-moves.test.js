@@ -105,6 +105,15 @@ describe("a sheet the user can only view", () => {
 		});
 	});
 
+	it("shows a Feat without its Save to the owner too, since it's performed in an Attack", async () => {
+		const actor = knight();
+		const performFeat = BastionlandActorSheet.DEFAULT_OPTIONS.actions.performFeat;
+		await performFeat.call({ isEditable: true, actor }, null, { dataset: { feat: "deny" } });
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(messages).toHaveLength(1);
+		expect(messages[0].rolls).toEqual([]);
+	});
+
 	it("shows nothing for a Feat the actor can't perform", async () => {
 		const actor = { ...knight(), system: { knowsFeat: (key) => key === "deny" } };
 		const performFeat = BastionlandActorSheet.DEFAULT_OPTIONS.actions.performFeat;

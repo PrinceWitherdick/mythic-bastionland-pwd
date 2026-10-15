@@ -192,3 +192,48 @@ describe("the turn order", () => {
 		expect(combat.nextTurn).not.toHaveBeenCalled();
 	});
 });
+
+describe("the Morale buttons on a card", () => {
+	/** Draw a card holding these buttons for this user, as the chat log does. */
+	function render(buttons) {
+		registerMoraleCards();
+		const html = {
+			querySelector: () => buttons[0],
+			querySelectorAll: () => buttons,
+			addEventListener: () => {}
+		};
+		hooks.renderChatMessageHTML({ id: "message-1" }, html);
+		return buttons;
+	}
+
+	const button = (dataset) => ({ dataset, hidden: false });
+
+	it("hides a roll or a broken mark from somebody who doesn't own the NPC", () => {
+		const boar = fakeNpc("Actor.boar", { isOwner: false });
+		const wolf = fakeNpc("Actor.wolf");
+		globalThis.fromUuidSync = (uuid) => ({ "Actor.boar": boar, "Actor.wolf": wolf })[uuid] ?? null;
+		const [roll, broken, mine, group] = render([
+			button({ moraleRoll: "Actor.boar" }),
+			button({ moraleBreak: "fled", actors: "Actor.boar" }),
+			button({ moraleBreak: "fled", actors: "Actor.boar,Actor.wolf" }),
+			button({ moraleGroup: "each" })
+		]);
+		expect(roll.hidden).toBe(true);
+		expect(broken.hidden).toBe(true);
+		expect(mine.hidden).toBe(false);
+		expect(group.hidden).toBe(false);
+		delete globalThis.fromUuidSync;
+	});
+
+	it("keeps the Referee's button for characters who are gone, so its click can say so", () => {
+		globalThis.fromUuidSync = () => null;
+		const [roll, broken] = render([button({ moraleRoll: "Actor.gone" }), button({ moraleBreak: "fled", actors: "Actor.gone" })]);
+		expect(roll.hidden).toBe(false);
+		expect(broken.hidden).toBe(false);
+		game.user.isGM = false;
+		const [theirs] = render([button({ moraleRoll: "Actor.gone" })]);
+		expect(theirs.hidden).toBe(true);
+		game.user.isGM = true;
+		delete globalThis.fromUuidSync;
+	});
+});

@@ -241,7 +241,9 @@ export async function takeDamage(actor, preset = {}) {
 		immunity: actor.system.immunity ?? "",
 		scores: () => ({ guard: actor.system.guard.value, vigour: virtues?.[score].value ?? 0 })
 	};
-	const asked = preset.auto ? autoDamage(target, preset) : await askDamage(target, preset);
+	const asked = preset.auto
+		? unaskedDamage(target, preset)
+		: preset.quick && !wantsJudging(target, preset) ? unaskedDamage(target, preset, cardBlow(target, preset)) : await askDamage(target, preset);
 	if (!asked) return null;
 	const { armour: appliedArmour, before } = asked;
 	let { result } = asked;
@@ -395,16 +397,44 @@ async function askDamage(target, { damage = null, ignoreArmour = false, ranged =
 }
 
 /**
- * Resolve Damage taken without asking, as an affliction's is each round
- * (p173): their Armour as it stands, unless the Damage ignores it.
+ * Whether an Attack card's Damage needs the Damage window before it lands: a
+ * ranged blow, where cover is the table's call (p10); Armour worn only
+ * sometimes, or a shield a Trap may hold; or a Warband, structure or a
+ * creature kept from harm that the card can't say this blow reaches.
  * @param {object} target As askDamage takes.
- * @param {{damage?: number, ignoreArmour?: boolean}} preset
+ * @param {object} preset As takeDamage takes.
+ * @returns {boolean}
+ */
+export function wantsJudging(target, { ranged = null, harm = {} } = {}) {
+	if (ranged !== false || target.situational?.length || target.trap || target.immunity) return true;
+	return (target.warband && harm.warband === undefined) || (target.structure && harm.structure === undefined);
+}
+
+/**
+ * What an Attack card's blow meets beyond Armour: a shieldwall as the map
+ * shows it, and whether it can harm a Warband or structure as the card worked out.
+ * @param {object} target As askDamage takes.
+ * @param {object} preset As takeDamage takes.
+ * @returns {{shieldwall: boolean, immune: boolean}}
+ */
+const cardBlow = (target, { harm = {} }) => ({
+	shieldwall: Boolean(target.shieldwall?.checked),
+	immune: Boolean((target.warband && !harm.warband) || (target.structure && !harm.structure))
+});
+
+/**
+ * Resolve Damage without asking: their Armour as it stands, unless the Damage
+ * ignores it, as an affliction's is each round (p173), and whatever else an
+ * Attack card's blow meets.
+ * @param {object} target As askDamage takes.
+ * @param {{damage?: number, ignoreArmour?: boolean, nonLethal?: boolean}} preset
+ * @param {{shieldwall?: boolean, immune?: boolean}} [blow] From cardBlow.
  * @returns {{result: import("../rules/damage.js").DamageResult, armour: number, before: {guard: number, vigour: number}}}
  */
-function autoDamage(target, { damage = 0, ignoreArmour = false }) {
-	const armour = armourAgainst({ armour: target.armour, ignoreArmour });
+function unaskedDamage(target, { damage = 0, ignoreArmour = false, nonLethal = false }, { shieldwall = false, immune = false } = {}) {
+	const armour = armourAgainst({ armour: target.armour, ignoreArmour, shieldwall });
 	const before = target.scores();
-	const result = resolveDamage({ damage: Math.max(0, Number(damage) || 0), armour, guard: before.guard, vigour: before.vigour, exposed: target.exposed, structure: target.structure });
+	const result = resolveDamage({ damage: Math.max(0, Number(damage) || 0), armour, guard: before.guard, vigour: before.vigour, exposed: target.exposed, immune, structure: target.structure, nonLethal });
 	return { result, armour, before };
 }
 
@@ -546,7 +576,7 @@ function damageCard(result, armour, before, outcomes, morale) {
  * @param {boolean} [options.sparring] A practice bout's blow: non-lethal, and leaving no lasting mark.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
-export async function takeAttack(actor, attack, { scars = true, except = [], sparring = false } = {}) {
+export async function takeAttack(actor, attack, { scars = true, except = [], sparring = false, quick = false } = {}) {
 	// Only Blast or large-scale Attacks harm a Warband, and only fire, siege weapons or large
 	// creatures a structure, or siege weapons stone (p11). In a joint Attack only the dice of
 	// shares that can harm them count, and cover, Armour and Slaying follow the die that does (p8).
@@ -562,7 +592,8 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 		harm: blow.harm,
 		// A blow an Ability says harms SPI rather than VIG (p68).
 		virtue: blow.spirit ? "spi" : "vig",
-		by: blow.dealer
+		by: blow.dealer,
+		quick
 	});
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });

@@ -57,7 +57,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Combatant: { documentClass: class Combatant {} }, Combat: { documentClass: class Combat {} }, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {

@@ -3103,6 +3103,17 @@ a.button:focus:not(:focus-visible) {
 	margin-bottom: 0.75rem;
 }
 
+/* The Attack dialog's fold of what seldom comes up: a quiet line until opened. */
+.bastionland-attack__more > summary {
+	color: var(--bastionland-ink-soft);
+	cursor: pointer;
+	font-size: 0.95rem;
+}
+
+.bastionland-attack__more[open] > summary {
+	margin-bottom: 0.3rem;
+}
+
 /* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other. */
 .bastionland-domain__unworthy {
 	margin-top: 0.5rem;

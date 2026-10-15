@@ -1,7 +1,7 @@
 import { attack } from "../actions/attack.js";
 import { takeDamage } from "../actions/damage.js";
 import { challengeToDuel } from "../actions/duel.js";
-import { performFeat, showFeat } from "../actions/feats.js";
+import { showFeat } from "../actions/feats.js";
 import { armourConditionText, itemTags, postItem, quantityText } from "../actions/items.js";
 import { armourCounts, armourWorn, displacedArmour, SITUATION_CONDITIONS } from "../rules/armour.js";
 import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
@@ -192,7 +192,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				key,
 				name: t(`feats.${key}.name`),
 				summary: t(`feats.${key}.summary`),
-				cost: t("feats.saveOrFatigue", { virtue: t(`virtues.${virtue}.abbr`) })
+				cost: t("feats.saveOrFatigue", { virtue: t(`virtues.${virtue}.abbr`) }),
+				where: t(`feats.${key}.where`)
 			})),
 			armourTip: this.#armourTip(),
 			// Foundry's placeholder has nothing worth enlarging, so it gets no data-name and no preview.
@@ -398,9 +399,9 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 
 	/** @this {BastionlandActorSheet} */
 	static #onPerformFeat(_event, target) {
-		const { feat } = target.dataset;
-		// Only someone who can act for the actor makes the Save. A viewer shows the Feat.
-		return this.isEditable ? performFeat(this.actor, feat) : showFeat(this.actor, feat);
+		// A Feat is performed in an Attack, where its Save is made and what it does is done: Smite in the
+		// Attack dialog, Focus and Deny on the Attack card. From the sheet it's only shown to the table.
+		return showFeat(this.actor, target.dataset.feat);
 	}
 
 	/** @this {BastionlandActorSheet} */

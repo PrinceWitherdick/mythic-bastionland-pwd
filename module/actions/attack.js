@@ -423,6 +423,11 @@ function watchWielding(dialog, actor, sources, marks) {
 	};
 	form.addEventListener("change", update);
 	update();
+	// A charge is what runs onto a spearwall (p10), so ticking it opens the fold its box is in.
+	const more = form.querySelector(".bastionland-attack__more");
+	form.addEventListener("change", (event) => {
+		if (more && event.target.name === "charge" && event.target.checked) more.open = true;
+	});
 }
 
 /**
@@ -566,7 +571,11 @@ async function planAttack(actor, joining = null) {
 				index,
 				label: text ? t("attack.weakness", { name, text, die }) : t("attack.weaknessBare", { name, die })
 			})),
-			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length || !actor.system.knowsFeat("smite"),
+			smiteKnown: Boolean(actor.system.knowsFeat?.("smite")),
+			// Drawn only for a Knight who knows it, so all that bars it is how they stand.
+			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length,
+			// The fold of what seldom comes up opens on its own where a tick in it was remembered.
+			moreOpen: ticks.confined,
 			abilityOffers: offers.map((offer) => ({
 				id: offer.id,
 				label: t("attack.useAbility", {

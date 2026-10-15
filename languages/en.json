@@ -790,15 +790,18 @@
       "knightHint": "All three Feats are known to every Knight.",
       "smite": {
         "name": "Smite",
-        "summary": "A melee Attack gains d12, or Blast."
+        "summary": "A melee Attack gains d12, or Blast.",
+        "where": "Smite is chosen in the Attack window, which makes its Save. Clicking here shows it to the table."
       },
       "focus": {
         "name": "Focus",
-        "summary": "A Gambit that costs no die."
+        "summary": "A Gambit that costs no die.",
+        "where": "Focus is pressed on the Attack card, which makes its Save. Clicking here shows it to the table."
       },
       "deny": {
         "name": "Deny",
-        "summary": "Strike out one die of an Attack on you or an ally beside you."
+        "summary": "Strike out one die of an Attack on you or an ally beside you.",
+        "where": "Deny is pressed on the Attack card, which makes its Save. Clicking here shows it to the table."
       },
       "saveOrFatigue": "{virtue} Save or become Fatigued.",
       "alreadyFatigued": "{name} is Fatigued: no Feats again until they’ve rested.",
@@ -3104,7 +3107,7 @@
       "lastingDrop": "A die for the rest of the fight. Click to drop it.",
       "keepBonus": "Keep the bonus dice for the rest of the fight",
       "keepBonusHint": "They join every Attack this one makes until the Combat ends, as an Ability that grows with each blow says. Each shows among their conditions, with × to drop it.",
-      "keepBonusNone": "Only somebody in a Combat can keep dice for the rest of the fight.",
+      "more": "More for this blow: confined, spearwall, and what else is declared",
       "useAbilityHint": "Ticked, this blow has it, and one of the Ability’s uses is spent.",
       "useAbilityFreeHint": "An Ability with no limit, so it comes ticked. Untick it for a blow it doesn’t help.",
       "useAbilityChosenHint": "Used blow by blow, so it waits to be ticked for the blow it’s used in.",
@@ -3271,6 +3274,7 @@
       "denier": "Who Denies",
       "denyDie": "The die to discard",
       "apply": "Apply Damage",
+      "applyHint": "Takes the Damage as the card has it. A ranged blow, or anything else for the table to judge, opens the Damage window first. Shift-click to open it anyway.",
       "applied": "Damage applied to {names}.",
       "noDenier": "Select the Token of whoever Denies, or give your User a character.",
       "cantDeny": "Nobody you control can Deny this Attack: they are Fatigued, have already Denied it, or don’t know the Feat.",
