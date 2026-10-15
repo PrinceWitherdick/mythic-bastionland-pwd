@@ -27,15 +27,23 @@ import { getRealm } from "./realm.js";
 const rulingKnights = () => worldKnights((actor) => !actor.system.isSquire);
 
 /**
+ * The Domains ruling a Holding.
+ * @param {Scene} scene
+ * @param {{id: string|null}} holding
+ * @returns {Actor[]} Empty for a Holding not yet on the map as a Tile.
+ */
+export const domainsRuling = (scene, holding) => (scene && holding?.id ? holdingRulers(realmHoldings(), worldDomains(), scene.id, holding.id) : []);
+
+/**
  * The Domains ruling a Holding, each with the Knight ruling it.
  * @param {Scene} scene
  * @param {{id: string|null}} holding
  * @returns {{domain: Actor, knight: Actor|null}[]} Empty for a Holding not yet on the map as a Tile.
  */
 export function rulersOf(scene, holding) {
-	if (!scene || !holding?.id) return [];
-	const knights = rulingKnights();
-	return holdingRulers(realmHoldings(), worldDomains(), scene.id, holding.id).map((domain) => ({ domain, knight: rulingKnightOf(domain, knights) }));
+	const domains = domainsRuling(scene, holding);
+	const knights = domains.length ? rulingKnights() : [];
+	return domains.map((domain) => ({ domain, knight: rulingKnightOf(domain, knights) }));
 }
 
 /**

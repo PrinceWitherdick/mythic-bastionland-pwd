@@ -1,18 +1,22 @@
-import { chooseDialog, inputDialog } from "../apps/ui.js";
+import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { holdingRef, parseHoldingRef } from "../rules/dominion.js";
+import { courtKnight, courtMembers } from "../rules/court.js";
+import { holdingRef, holdingRulers, parseHoldingRef } from "../rules/dominion.js";
 import { escapeHTML } from "../rules/text.js";
-import { linkKnightDomain } from "./dominion.js";
-import { holdingOptions } from "./homecoming.js";
+import { addCourtMember } from "./court.js";
+import { linkKnightDomain, worldDomains } from "./dominion.js";
+import { holdingOptions, realmHoldings } from "./homecoming.js";
+import { realmSeats } from "../rules/realm.js";
 import { getRealm } from "./realm.js";
-import { worldKnights } from "./knights.js";
+import { playersOf, worldKnights } from "./knights.js";
 import { timelineFounded } from "./timeline-events.js";
 
 /**
  * Founding a Knight's Domain (Dominion, p20): which Holding it rules, what it's
  * called, and which of the other Knights sit in its Circle. A Ruler Start (p6),
  * where one Knight rules and the rest sit in their Circle, founds one as the
- * Realm is made, once there are Knights to rule it.
+ * Realm is made, once there are Knights to rule it. A Courtier Start seats the
+ * Knights at the Court of the Seat of Power.
  */
 
 /**
@@ -95,19 +99,21 @@ export async function createDomain(knight, { name, holding = "", seat = false, c
  * @returns {Promise<Actor|null>} The Domain, or null where none was founded.
  */
 export async function offerRulerDomain(scene) {
-	const players = worldKnights((actor) => actor.hasPlayerOwner);
-	const knights = players.length ? players : worldKnights();
+	const players = worldKnights((actor) => actor.hasPlayerOwner && canHoldPost(actor));
+	const knights = players.length ? players : worldKnights(canHoldPost);
 	if (!knights.length) return null;
-	const id = await chooseDialog({
+	const data = await inputDialog({
 		title: t("company.starts.ruler.domainTitle"),
 		icon: "fa-solid fa-chess-rook",
-		message: t("company.starts.ruler.domainQuestion"),
-		buttons: [
-			...knights.map((knight, index) => ({ action: knight.id, label: knight.name, default: index === 0 })),
-			{ action: "later", icon: "fa-solid fa-hourglass", label: t("company.starts.ruler.domainLater") }
-		]
+		template: "who-rules",
+		context: {
+			intro: t("company.starts.ruler.domainQuestion"),
+			knights: knights.map(({ id, name }) => ({ id, name }))
+		},
+		ok: { label: t("company.starts.ruler.domainOk") }
 	});
-	const ruler = knights.find((knight) => knight.id === id);
+	// Left for later, or closed, nobody rules yet.
+	const ruler = knights.find((knight) => knight.id === data?.ruler);
 	if (!ruler) return null;
 	// Any Holding will do, so the first that isn't the Seat of Power, which is under a wicked influence, is offered.
 	const holdings = getRealm(scene)?.realm.holdings.filter((holding) => holding.id) ?? [];
@@ -118,4 +124,82 @@ export async function offerRulerDomain(scene) {
 	});
 	domain?.sheet.render({ force: true });
 	return domain;
+}
+
+/**
+ * Whoever plays a Knight can look at the Court they sit in, but the Seat's
+ * Domain stays the Referee's to run.
+ * @param {Actor[]} knights
+ * @returns {Record<string, number>}
+ */
+function courtiersLook(knights) {
+	const { NONE, OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+	return { default: NONE, ...Object.fromEntries(knights.flatMap(playersOf).map((id) => [id, OBSERVER])) };
+}
+
+/**
+ * @param {Scene} scene
+ * @returns {object|null} The Realm's Seat of Power, once it's on the map as a Tile.
+ */
+export const seatOfPower = (scene) => realmSeats(getRealm(scene)?.realm).find((holding) => holding.id) ?? null;
+
+/**
+ * @param {object} seat
+ * @returns {string} What the Seat is called, as its Domain is.
+ */
+export const seatName = (seat) => seat.name || t("company.starts.courtier.seatDomain");
+
+/**
+ * Courtier (p6): the Knights hold places at the Seat of Power's Court. They
+ * join the Court of the Domain ruling the Seat as Courtiers, and where no
+ * Domain rules it yet, one is made for it, ruled by nobody of the Company.
+ * Nothing is done before there are Knights, or on a Realm with no Seat.
+ * @param {Scene} scene The Realm just made.
+ * @returns {Promise<Actor|null>} The Seat's Domain, or null where nobody was seated.
+ */
+export async function seatCourtiers(scene) {
+	const seat = seatOfPower(scene);
+	const players = worldKnights((actor) => actor.hasPlayerOwner && canHoldPost(actor));
+	const knights = players.length ? players : worldKnights(canHoldPost);
+	if (!seat || !knights.length) return null;
+	const holding = holdingRef(scene.id, seat.id);
+	const ruling = holdingRulers(realmHoldings(), worldDomains(), scene.id, seat.id)[0];
+	const domain = ruling ?? await Actor.implementation.create({
+		name: seatName(seat),
+		type: "domain",
+		system: { ruler: "", holding, seat: true },
+		ownership: courtiersLook(knights)
+	});
+	if (!domain) return null;
+	// Each is seated as their Knight, so one renamed since is still known and not seated twice.
+	const everyKnight = worldKnights();
+	const sitting = new Set(courtMembers(domain.system.court).map((member) => courtKnight(member, everyKnight)?.id));
+	const newcomers = knights.filter((knight) => !sitting.has(knight.id));
+	const note = t("company.starts.courtier.courtNote");
+	for (const knight of newcomers) await addCourtMember(domain, "courtier", { name: knight.name, note, knight: knight.id });
+	// A Domain that already ruled the Seat lets its new Courtiers' players look at it too.
+	if (ruling) {
+		const look = lookFor(domain, newcomers);
+		if (Object.keys(look).length) await domain.update({ ownership: look });
+	}
+	ui.notifications.info(t(newcomers.length ? "company.starts.courtier.seated" : "company.starts.courtier.allSeated", { domain: domain.name }));
+	return domain;
+}
+
+/**
+ * A Knight who can rule, or take a place at Court: knighted (p7), and alive.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+const canHoldPost = (actor) => !actor.system?.isSquire && !actor.system?.slain;
+
+/**
+ * @param {Actor} domain
+ * @param {Actor[]} knights
+ * @returns {Record<string, number>} An Observer's look for each of these Knights' players who can't see the Domain yet.
+ */
+function lookFor(domain, knights) {
+	const { OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+	const level = (user) => domain.ownership?.[user] ?? domain.ownership?.default ?? 0;
+	return Object.fromEntries(knights.flatMap(playersOf).filter((user) => level(user) < OBSERVER).map((user) => [user, OBSERVER]));
 }

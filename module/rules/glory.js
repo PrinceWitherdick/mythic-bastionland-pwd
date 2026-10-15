@@ -62,3 +62,22 @@ export function nextRank(glory) {
 	const next = RANKS.find((rank) => rank.glory > value);
 	return next ? { key: next.key, needed: next.glory - value } : null;
 }
+
+/**
+ * The Rank each post of a Domain is worthy of (Rank, p6): a Council or Court
+ * seat for a Knight-Gallant, rule of a Holding for a Knight-Tenant, and of a
+ * Seat of Power for a Knight-Dominant.
+ */
+const POST_RANKS = Object.freeze({ court: "gallant", council: "gallant", holding: "tenant", seat: "dominant" });
+
+/**
+ * Rank alone doesn't grant a post, and a Knight may hold one their Rank isn't
+ * worthy of yet, facing opposition until they prove themselves (Worthiness, p6).
+ * @param {number} glory
+ * @param {string} post One of POST_RANKS' keys.
+ * @returns {string|null} The key of the Rank the post asks for, where this Glory falls short of it.
+ */
+export function unworthyOf(glory, post) {
+	const needed = RANKS.find((rank) => rank.key === POST_RANKS[post]);
+	return needed && (Number(glory) || 0) < needed.glory ? needed.key : null;
+}

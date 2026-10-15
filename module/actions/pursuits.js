@@ -51,7 +51,7 @@ async function joinCourt(actor, season) {
 		domain = domains.find((each) => each.id === id);
 		if (!domain) return null;
 	}
-	await addCourtMember(domain, "courtier", { name: actor.name, note: t("time.pursuitMakes.courtesy.courtNote", { season }) });
+	await addCourtMember(domain, "courtier", { name: actor.name, note: t("time.pursuitMakes.courtesy.courtNote", { season }), knight: actor.id });
 	return domain.name;
 }
 

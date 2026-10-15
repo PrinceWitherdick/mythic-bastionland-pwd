@@ -1493,7 +1493,8 @@
     "domain": {
       "title": "{name} Domain",
       "tabs": {
-        "domain": "Domain",
+        "domain": "Rule",
+        "court": "Court and Crises",
         "timeline": "Timeline",
         "notes": "Notes"
       },
@@ -1502,6 +1503,19 @@
       "lordship": "Lordship",
       "ruler": "Ruler",
       "rulerPlaceholder": "Who rules here",
+      "lands": {
+        "line": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each.",
+        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them: {landmarks}."
+      },
+      "unworthy": {
+        "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
+        "posts": {
+          "seat": "the Seat of Power",
+          "holding": "a Holding",
+          "council": "a seat in Council",
+          "court": "a place at Court"
+        }
+      },
       "arms": {
         "title": "{name}: Arms",
         "choose": "Choose what this Domain shows",
@@ -1892,7 +1906,16 @@
           "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power.",
           "newsTitle": "News at Court",
           "newsTagline": "{name} (p{page})",
-          "newsHint": "Word of the nearest Myth’s first Omen reaches the Court as news (p6). It counts as met."
+          "newsHint": "Word of the nearest Myth’s first Omen reaches the Court as news (p6). It counts as met.",
+          "seatDomain": "The Seat of Power",
+          "courtNote": "A Courtier since the Company began.",
+          "seated": "The Knights have their places at the Court of {domain}.",
+          "allSeated": "Every Knight already has a place at the Court of {domain}.",
+          "later": "There are no Knights yet to take their places at the Court of {seat}. Once they’re made, seat them here.",
+          "seatNow": "Seat the Knights at Court",
+          "noKnights": "There are no Knights to seat yet.",
+          "realmGone": "The Realm these Knights were to be seated in is gone.",
+          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map."
         },
         "ruler": {
           "name": "Ruler",
@@ -1904,7 +1927,10 @@
           "influenceHint": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Where the Knights aren’t made yet, found the Domain later from the ruling Knight’s Domain button, ticking the others into the Circle.",
           "domainTitle": "Who Rules?",
           "domainQuestion": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Which Knight rules?",
-          "domainLater": "Decide Later"
+          "domainWhich": "Which Knight rules",
+          "domainOk": "Found the Domain",
+          "domainLater": "Decide Later",
+          "domainLaterDetail": "Found it later from the ruling Knight’s Domain button, ticking the others into the Circle."
         }
       },
       "begins": "The Company begins at the Seat of Power, {hex}.",
@@ -1953,6 +1979,10 @@
       "heading": "The Lay of the Land",
       "hint": "Only you see this part. A Hex is broad and varied, with room enough for a person never to leave it: roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "wildHint": "Roll the land, its weather and one feature on the Nature Spark Tables, and keep them in this hex.",
+      "ruledFrom": {
+        "holding": "Under the rule of {holding}, the nearest Holding.",
+        "domain": "Under the rule of {holding}, the nearest Holding, and so of {domain}."
+      },
       "tabs": {
         "label": "What to roll for",
         "people": "People",

@@ -13,6 +13,7 @@
 		{{/each}}
 	</div>
 	{{/if}}
+	{{#if ruledFrom}}<p class="bastionland-hex-lore__hint">{{ruledFrom}}</p>{{/if}}
 
 	<div class="form-group bastionland-hex-lore__note">
 		<label for="{{@root.partId}}-note">{{localize "bastionland.hexLore.note"}}</label>

@@ -13,7 +13,7 @@ import {
 	writeHexNote
 } from "../actions/hex-lore.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
-import { grantHolding, rulersOf } from "../actions/holding-ruler.js";
+import { domainsRuling, grantHolding, rulersOf } from "../actions/holding-ruler.js";
 import { getHexVisits, markHexVisited } from "../actions/journey.js";
 import { landmarkOfferView, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
 import { rollUpHolding } from "../actions/people.js";
@@ -31,7 +31,8 @@ import { toldState } from "../rules/hex-shared.js";
 import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
 import { gatherCast } from "../rules/myth-cast.js";
 import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
-import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { rulingHolding } from "../rules/dominion.js";
+import { OMEN_COUNT, TERRAIN, featureAt, holdingName, terrainAt } from "../rules/realm.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
@@ -173,6 +174,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		holding: held,
 		// Who rules the Holding (p20), and the offer to grant it to a Knight.
 		ruler: holding ? rulerContext(scene, holdingHere) : null,
+		// Out in the wilderness, the nearest Holding's rule (p20).
+		ruledFrom: holding ? null : ruledFrom(scene, entry.realm, g, hex),
 		notice,
 		forget: hexForgetContext(scene, hex, { lore: record, visits })
 	};
@@ -262,6 +265,23 @@ function rulerContext(scene, holding) {
 		named: knight ? null : String(domain.system.ruler ?? "").trim() || null
 	}));
 	return { rulers, grant: t(rulers.length ? "hexGm.ruler.change" : "hexGm.ruler.grant") };
+}
+
+/**
+ * Whose rule a wilderness hex falls under: the nearest Holding's (p20), and the
+ * Domain ruling it where there is one.
+ * @param {Scene} scene
+ * @param {object} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {string|null} Null in a Realm with no Holding.
+ */
+function ruledFrom(scene, realm, g, hex) {
+	const holding = rulingHolding(realm, g, hex);
+	if (!holding) return null;
+	const domains = domainsRuling(scene, holding).map((domain) => domain.name);
+	const name = holdingName(holding, t);
+	return domains.length ? t("hexGm.ruledFrom.domain", { holding: name, domain: domains.join(", ") }) : t("hexGm.ruledFrom.holding", { holding: name });
 }
 
 /**

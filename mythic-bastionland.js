@@ -33,6 +33,7 @@ import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dr
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
+import { registerSeatingLater } from "./module/actions/starts.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -462,6 +463,8 @@ Hooks.once("init", () => {
 	registerPhaseEndSettings();
 	// The day's sky and weather, rolled as the Company breaks camp, and the fog that hides the way (p197).
 	registerSkyAndWeather();
+	// A Courtier Start made before the Knights seats them at Court from the Referee's card later.
+	registerSeatingLater();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
 	registerSolo();

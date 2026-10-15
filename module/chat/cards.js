@@ -104,7 +104,7 @@ export function onCardClick(element, selector, handler) {
 		event.preventDefault();
 		button.disabled = true;
 		try {
-			await handler(button);
+			await handler(button, event);
 		} finally {
 			button.disabled = false;
 		}
@@ -117,15 +117,30 @@ export function onCardClick(element, selector, handler) {
  * none of them is left alone. Called during init.
  * @param {object} card
  * @param {string} card.selector   What marks its buttons, such as "[data-fallen-path]".
- * @param {boolean} [card.gmOnly]  Whether they're the Referee's alone, as a card whispered to them is.
+ * @param {boolean} [card.gmOnly]  Whether they're the Referee's alone, as a card whispered to them is:
+ *   anybody else who sees the card, such as a player who asked for it, sees it without them.
  * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
  * @returns {void}
  */
 export function registerCardButtons({ selector, gmOnly = false, handler }) {
 	Hooks.on("renderChatMessageHTML", (message, html) => {
-		if ((gmOnly && !game.user.isGM) || !html.querySelector(selector)) return;
+		if (!html.querySelector(selector)) return;
+		if (gmOnly && !game.user.isGM) return dropButtons(html, selector);
 		onCardClick(html, selector, (button) => handler(button, message));
 	});
+}
+
+/**
+ * Take buttons off a card, and the row that held them once it's empty.
+ * @param {HTMLElement} html
+ * @param {string} selector
+ */
+function dropButtons(html, selector) {
+	for (const button of html.querySelectorAll(selector)) {
+		const row = button.closest(".bastionland-card__actions");
+		button.remove();
+		if (row && !row.querySelector("button")) row.remove();
+	}
 }
 
 /**

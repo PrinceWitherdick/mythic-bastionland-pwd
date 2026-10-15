@@ -1,3 +1,8 @@
 <section class="bastionland-card bastionland-card--note">
 	<p class="bastionland-card__text"><i class="{{icon}}" inert></i> {{text}}</p>
+	{{#if action}}
+	<div class="bastionland-card__actions">
+		<button type="button" data-{{action.data}}><i class="{{action.icon}}" inert></i> {{action.label}}</button>
+	</div>
+	{{/if}}
 </section>

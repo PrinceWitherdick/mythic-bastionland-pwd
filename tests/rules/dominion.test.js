@@ -21,6 +21,8 @@ import {
 	parseHoldingRef,
 	rulingKnightOf
 } from "../../module/rules/dominion.js";
+import { holdingLands, rulingHolding } from "../../module/rules/dominion.js";
+import { realmGeometry } from "../../module/rules/realm-geometry.js";
 
 describe("namesItsDomain", () => {
 	it("knows a name that already ends with Domain, so the title doesn't say it twice", () => {
@@ -169,5 +171,36 @@ describe("the Domain's arms", () => {
 
 	it("keeps to its three choices", () => {
 		expect(DOMAIN_ARMS).toEqual(["ruler", "knight", "picture"]);
+	});
+});
+
+describe("rulingHolding and holdingLands", () => {
+	const g = realmGeometry({ cols: 7, rows: 1 });
+	const realm = {
+		holdings: [
+			{ id: "west", hex: { col: 1, row: 1 } },
+			{ id: "east", hex: { col: 7, row: 1 }, seat: true }
+		],
+		landmarks: [
+			{ type: "ruin", hex: { col: 2, row: 1 } },
+			{ type: "sanctum", hex: { col: 4, row: 1 } }
+		]
+	};
+
+	it("puts a hex under its nearest Holding, a Seat of Power first at an even distance (p20)", () => {
+		expect(rulingHolding(realm, g, { col: 2, row: 1 }).id).toBe("west");
+		expect(rulingHolding(realm, g, { col: 6, row: 1 }).id).toBe("east");
+		expect(rulingHolding(realm, g, { col: 4, row: 1 }).id).toBe("east");
+		expect(rulingHolding({ holdings: [] }, g, { col: 4, row: 1 })).toBeNull();
+	});
+
+	it("gives a Holding the wilderness nearer it than any other, without the Holdings' own hexes, and the Landmarks there", () => {
+		const west = holdingLands(realm, g, "west");
+		expect(west.hexes).toEqual([{ col: 2, row: 1 }, { col: 3, row: 1 }]);
+		expect(west.landmarks.map(({ type }) => type)).toEqual(["ruin"]);
+		const east = holdingLands(realm, g, "east");
+		expect(east.hexes).toHaveLength(3);
+		expect(east.landmarks.map(({ type }) => type)).toEqual(["sanctum"]);
+		expect(holdingLands(realm, g, "nowhere")).toEqual({ hexes: [], landmarks: [] });
 	});
 });

@@ -4,6 +4,14 @@ import { knightTypeFromName, knightTypeKey, knightTypeTakenBy } from "../rules/c
 import { SYSTEM_ID } from "../system-id.js";
 
 /**
+ * @param {Actor} actor
+ * @returns {string[]} The players who own them, never a GM.
+ */
+export const playersOf = (actor) => Object.entries(actor.ownership ?? {})
+	.filter(([user, level]) => user !== "default" && level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && !game.users.get(user)?.isGM)
+	.map(([user]) => user);
+
+/**
  * The world's Knights, Squires among them, as the Actors directory holds them:
  * not a Token's own copy.
  * @param {(knight: Actor) => boolean} [keep] Only those this says yes to.

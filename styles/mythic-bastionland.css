@@ -3103,6 +3103,11 @@ a.button:focus:not(:focus-visible) {
 	margin-bottom: 0.75rem;
 }
 
+/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other. */
+.bastionland-domain__unworthy {
+	margin-top: 0.5rem;
+}
+
 /* The empty-seats notice sits under the heading, a little above the seats. */
 .bastionland-chooser__notice + .bastionland-council {
 	margin-top: 0.6rem;
