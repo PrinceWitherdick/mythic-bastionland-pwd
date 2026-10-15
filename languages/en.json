@@ -1290,8 +1290,6 @@
       },
       "moveOn": "Move Time On",
       "nextPhase": "Next Phase",
-      "turnSeason": "Turn the Season",
-      "turnAge": "Turn the Age",
       "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
       "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
       "agePick": {
@@ -1299,7 +1297,7 @@
         "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored, gains 1 Glory and chooses a pursuit, and Old Knights lose d12 VIG.",
         "set": "Set the Age",
         "setHint": "Setting the Age only puts the number right. Nothing that comes between Ages happens.",
-        "change": "Turn the Age, or set it by hand"
+        "change": "A Year Passes, or set the Age by hand"
       },
       "company": "Who takes part",
       "pursuit": "Pursuit",
@@ -1325,6 +1323,8 @@
         }
       },
       "pursuitMakes": {
+        "label": "What came of it",
+        "later": "Ask once the Season turns",
         "service": {
           "question": "What small improvement to the Realm did {name}’s Service make?",
           "dwelling": "A Dwelling added to the map",
@@ -1408,7 +1408,7 @@
         "nextIs": "Weeks passing carries the Company on to {event}.",
         "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
         "collected": "Collected by {domains}, whose Stewards may press their Vassals for more to pay for a war or a great work.",
-        "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Turn the Season.",
+        "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Let Months Pass.",
         "notThisSeason": "{event} isn’t an event of this Season, or has already come to pass.",
         "kinds": {
           "feastOfTheSun": {
@@ -1484,7 +1484,9 @@
         "title": "Growing Older",
         "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
         "oldNpcs": "The Old Grow Frailer",
-        "newAge": "A new Age begins. Tick each character who grows a stage older. Each Virtue is rolled again on d12+d6: someone turning Mature keeps the higher result, someone turning Old the lower (p17).",
+        "grows": "Grows {age}",
+        "growsHint": "A new Age makes them a stage older. Each Virtue is rolled again on d12+d6: turning Mature keeps the higher result, turning Old the lower.",
+        "newAgeOthers": "A new Age begins for the rest of the world too. Tick anybody else given an Age who grows a stage older. Each Virtue is rolled again on d12+d6: someone turning Mature keeps the higher result, someone turning Old the lower (p17).",
         "roll": "Roll Virtues",
         "skip": "Just change Age",
         "mature": "Becoming Mature keeps the higher",
@@ -1553,7 +1555,7 @@
         "byName": "{name}, by its name",
         "none": "Not on the map",
         "away": "Away long",
-        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
+        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and Months Pass tick this for a ruler away from the Holding; a Crisis Roll clears it."
       },
       "homecoming": {
         "title": "Home from a Long Absence",
@@ -2872,6 +2874,7 @@
       },
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
+      "roll": "Roll",
       "odds": {
         "intro": "A Luck Roll leaves it to one d6. High goes the players’ way, low goes against them.",
         "tableHeading": "The Luck Roll table",
@@ -2880,7 +2883,7 @@
         "oddsHelp": "only answer yes or no. Use them when you’ve already told the players how likely it is, as in “a slim chance”. Fortune favours them on the number shown or higher.",
         "notDomain": "The table’s Crisis is a bad turn in the moment, not one of a Domain’s Crises.",
         "question": "Which way will you read it?",
-        "table": "The Luck Roll table",
+        "pickHint": "The table tells you how things turn out. Stated odds only answer yes or no, on the number shown or higher.",
         "label": "{odds} ({needs}+)",
         "slim": "A slim chance",
         "unlikely": "Unlikely",

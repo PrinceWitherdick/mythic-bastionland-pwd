@@ -1,6 +1,5 @@
 import { postCard, t } from "../chat/cards.js";
 import { afflictionsAt, tollsByKind, withAffliction } from "../rules/afflictions.js";
-import { calendarLabel, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 
@@ -70,15 +69,16 @@ export async function afflictTargets(source) {
  * update, and each that deals Damage as a blow of its own, on a Damage card.
  * @param {Actor} actor
  * @param {object[]} afflictions
+ * @param {{burns?: boolean}} [options] `burns: false` leaves the Damage for later.
  * @returns {Promise<{rolls: Roll[], lines: string[], burned: number}>} The Virtue Loss taken, empty where none
  *   took anything, and how many dealt Damage.
  */
-async function toll(actor, afflictions) {
+async function toll(actor, afflictions, { burns = true } = {}) {
 	const { losses, damage } = tollsByKind(afflictions);
 	const { update, taken } = await rollVirtueLosses(actor, losses.map(({ name, virtue, loss }) => ({ name, virtue, dice: loss })));
 	if (taken.length) await actor.update(update, causedBy("hardship"));
 	let burned = 0;
-	for (const affliction of damage) if (await burn(actor, affliction)) burned++;
+	if (burns) for (const affliction of damage) if (await burn(actor, affliction)) burned++;
 	return {
 		rolls: taken.map(({ roll }) => roll),
 		lines: taken.map(({ name, virtue, roll, from, to }) => t("afflictions.lost", { affliction: name, amount: roll.total, virtue: t(`virtues.${virtue}.abbr`), from, to })),
@@ -140,21 +140,40 @@ export async function cureAffliction(actor, id) {
 }
 
 /**
- * Each morning, everybody carrying a daily affliction loses what it takes, on
- * one card. GMs only; called as the Day moves into Morning.
- * @returns {Promise<object[]>} The card's entries.
+ * Each morning, everybody carrying a daily affliction loses what it takes.
+ * GMs only; called as the Day moves into Morning, whose own card says it.
+ * What burns on as Damage is left for burnMorningAfflictions, once the card is posted.
+ * @returns {Promise<{section: object, rolls: Roll[]}|null>} The Morning card's section, or null if nobody lost anything.
  */
 export async function sufferMorningAfflictions() {
-	if (!game.user.isGM) return [];
-	// An unlinked Token keeps its afflictions on itself, apart from the world's actors.
-	const unlinked = game.scenes.contents.flatMap((scene) => scene.tokens.filter((token) => !token.actorLink && token.actor).map((token) => token.actor));
-	const sufferers = [...game.actors, ...unlinked].filter((actor) => afflictionsAt(actor.system, "day").length);
-	const tolls = await Promise.all(sufferers.map((actor) => toll(actor, afflictionsAt(actor.system, "day"))));
+	if (!game.user.isGM) return null;
+	const sufferers = dailySufferers();
+	const tolls = await Promise.all(sufferers.map((actor) => toll(actor, afflictionsAt(actor.system, "day"), { burns: false })));
 	const entries = sufferers.flatMap((actor, index) => (tolls[index].lines.length ? [{ name: actor.name, lines: tolls[index].lines }] : []));
 	const rolls = tolls.flatMap(({ rolls }) => rolls);
-	// What burns on as Damage posted its own Damage cards, so only Virtue Loss is said here.
-	if (entries.length) await postCard(null, "report", { title: t("afflictions.morning"), tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
-	return entries;
+	if (!entries.length) return null;
+	return { section: { title: t("afflictions.morning"), entries, hint: t("time.hardship.notDamage") }, rolls };
+}
+
+/**
+ * Each morning, a daily affliction that deals Damage is taken as a blow, each
+ * on a Damage card of its own. GMs only; called once the Morning's card is
+ * posted, so the harm follows the day it falls in.
+ * @returns {Promise<number>} How many dealt Damage.
+ */
+export async function burnMorningAfflictions() {
+	if (!game.user.isGM) return 0;
+	let burned = 0;
+	for (const actor of dailySufferers()) {
+		for (const affliction of tollsByKind(afflictionsAt(actor.system, "day")).damage) if (await burn(actor, affliction)) burned++;
+	}
+	return burned;
+}
+
+/** @returns {Actor[]} Everybody carrying a daily affliction. An unlinked Token keeps its afflictions on itself, apart from the world's actors. */
+function dailySufferers() {
+	const unlinked = game.scenes.contents.flatMap((scene) => scene.tokens.filter((token) => !token.actorLink && token.actor).map((token) => token.actor));
+	return [...game.actors, ...unlinked].filter((actor) => afflictionsAt(actor.system, "day").length);
 }
 
 /**

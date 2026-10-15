@@ -16,6 +16,21 @@
 				{{/each}}
 			</select>
 			{{/if}}
+			{{!-- What a Service or Courtesy made (p17), offered only once the pursuit picked makes something. --}}
+			{{#if ../makings.length}}
+			<select name="making-{{index}}" aria-label="{{localize 'bastionland.time.pursuitMakes.label'}}" data-making hidden>
+				<option value="">{{localize "bastionland.time.pursuitMakes.later"}}</option>
+				{{#each ../makings}}
+				<option value="{{value}}" data-pursuit="{{pursuit}}">{{label}}</option>
+				{{/each}}
+			</select>
+			{{/if}}
+			{{#if older}}
+			<label class="bastionland-check bastionland-company__older" data-tooltip="{{localize 'bastionland.time.aging.growsHint'}}">
+				<input type="checkbox" name="older-{{index}}" checked>
+				<span class="bastionland-check__label">{{older}}</span>
+			</label>
+			{{/if}}
 		</div>
 		{{else}}
 		<p class="hint">{{localize "bastionland.time.noCompany"}}</p>

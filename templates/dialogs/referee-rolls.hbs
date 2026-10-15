@@ -1,0 +1,16 @@
+<div class="bastionland-dialog__body">
+	{{> "bastionland.pick-list" name="table" legend=intro choices=tables}}
+
+	{{!-- A Luck Roll is read on its table, or at odds already told to the players (p182, p184). Shown while it's picked. --}}
+	<div class="form-group" data-luck-odds>
+		<label for="bastionland-referee-odds">{{localize "bastionland.refereeRolls.odds.question"}}</label>
+		<div class="form-fields">
+			<select id="bastionland-referee-odds" name="odds">
+				{{#each odds}}
+				<option value="{{key}}">{{label}}</option>
+				{{/each}}
+			</select>
+		</div>
+		<p class="hint">{{localize "bastionland.refereeRolls.odds.pickHint"}}</p>
+	</div>
+</div>

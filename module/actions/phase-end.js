@@ -189,10 +189,10 @@ export async function dieUntended(dying) {
  * is remembered for the next Morning. GMs only.
  * @param {PhaseEnd} answers
  * @param {import("../rules/time.js").Calendar} ending The Night that ended.
- * @returns {Promise<object[]>} The card's entries.
+ * @returns {Promise<{section: object, rolls: Roll[]}|null>} The new Phase card's section, or null if nobody lost anything.
  */
 export async function takeMorningLosses({ mode, dire, members }, ending) {
-	if (!game.user.isGM) return [];
+	if (!game.user.isGM) return null;
 	await game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, members.filter(({ deprived }) => deprived).map(({ actor }) => actor.id));
 	const winter = ending.season === "winter";
 	const rolls = [];
@@ -210,13 +210,7 @@ export async function takeMorningLosses({ mode, dire, members }, ending) {
 		updates.push(actor.update(update, causedBy("hardship")));
 		entries.push({ name: actor.name, lines });
 	}
-	if (!entries.length) return entries;
+	if (!entries.length) return null;
 	await Promise.all(updates);
-	await postCard(null, "report", {
-		title: t("phaseEnd.morning.title"),
-		tagline: calendarLabel(getCalendar()),
-		entries,
-		hint: t("time.hardship.notDamage")
-	}, { rolls });
-	return entries;
+	return { section: { title: t("phaseEnd.morning.title"), entries, hint: t("time.hardship.notDamage") }, rolls };
 }

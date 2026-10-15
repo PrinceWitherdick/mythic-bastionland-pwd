@@ -135,7 +135,7 @@ export async function pickAge() {
 			</div>
 			<p class="hint">${t("time.agePick.setHint")}</p>`,
 		buttons: [
-			{ action: "turn", label: t("time.turnAge"), icon: "fa-solid fa-hourglass-end" },
+			{ action: "turn", label: t("time.banner.year"), icon: "fa-solid fa-hourglass-end" },
 			{ action: "set", label: t("time.agePick.set"), icon: "fa-solid fa-pen", default: true, callback: (_event, button) => ({ age: button.form.elements.age.value }) }
 		]
 	});

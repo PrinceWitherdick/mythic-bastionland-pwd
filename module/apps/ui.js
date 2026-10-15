@@ -193,15 +193,16 @@ export function linkEverything(element) {
  * @param {object} options.context  Data for the template.
  * @param {{label: string, icon?: string}} options.ok
  * @param {boolean} [options.drawings] Whether the template draws with SVG, which must skip Foundry's HTML cleaning.
+ * @param {string[]} [options.classes] More classes for the window, beside the system's own.
  * @param {object} [options.rest]   Anything else DialogV2.input takes, such as `render`.
  * @returns {Promise<object|null>} The form data, or null if closed.
  */
-export async function inputDialog({ title, icon, template, context, ok, drawings = false, render, ...rest }) {
+export async function inputDialog({ title, icon, template, context, ok, drawings = false, classes = [], render, ...rest }) {
 	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
 	const content = drawings ? uncleanedContent(html) : html;
 	return foundry.applications.api.DialogV2.input({
 		window: { title, icon },
-		classes: ["bastionland-dialog"],
+		classes: ["bastionland-dialog", ...classes],
 		content,
 		ok: { icon: "fa-solid fa-check", ...ok },
 		rejectClose: false,

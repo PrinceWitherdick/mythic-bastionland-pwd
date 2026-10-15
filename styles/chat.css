@@ -735,21 +735,6 @@
 	flex: 1 1 40%;
 }
 
-/* The Luck Roll's table stands apart from the stated odds, which run as one
-   ladder from the highest chance down to the slimmest. */
-.bastionland-luck-odds .form-footer {
-	flex-direction: column;
-}
-
-.bastionland-luck-odds .form-footer button {
-	flex: none;
-	width: 100%;
-}
-
-.bastionland-luck-odds .form-footer button:first-child {
-	margin-bottom: 0.4rem;
-}
-
 /* The table's three results, each beside the rolls that give it. */
 .bastionland-luck-odds .bastionland-luck-odds__bands {
 	display: grid;
@@ -764,16 +749,16 @@
 	text-align: right;
 }
 
+/* The stated odds stand apart from the table, as one ladder from the highest chance down to the slimmest. */
 .bastionland-luck-odds__question {
-	display: block;
-	margin-top: 0.3rem;
-	font-weight: bold;
+	margin: 0.6rem 0 0;
 }
 
 .bastionland-company__member {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.3rem 0.5rem;
 }
 
 .bastionland-company__member .bastionland-check {
@@ -782,6 +767,15 @@
 
 .bastionland-company__member select {
 	flex: 0 0 9rem;
+}
+
+/* What a pursuit made, and growing older, take the row's room after the pursuit. */
+.bastionland-company__member [data-making] {
+	flex-basis: 11rem;
+}
+
+.bastionland-company__member .bastionland-company__older {
+	flex: 0 0 auto;
 }
 
 /*
@@ -1966,7 +1960,8 @@
 	border-radius: 3px;
 }
 
-.bastionland-card__due-title {
+.bastionland-card__due-title,
+.bastionland-card__section-title {
 	margin: 0;
 	font-weight: bold;
 	font-variant: small-caps;
@@ -2569,4 +2564,15 @@
 
 .bastionland-session-end__finish:disabled {
 	opacity: 0.5;
+}
+
+/* What befell everybody as a Phase began: each part under its own small-caps heading, apart from the next. */
+.bastionland-card__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.bastionland-card__section .bastionland-card__entries {
+	margin: 0;
 }

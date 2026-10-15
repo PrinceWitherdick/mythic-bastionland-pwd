@@ -69,17 +69,19 @@ async function markDwelling() {
 }
 
 /**
- * Ask each Knight who chose Service or Courtesy what it made, carry it out, and
- * add a line saying so to their entry on the Season's report.
- * @param {{actor: Actor, pursuit: string|null}[]} company
+ * Ask each Knight who chose Service or Courtesy what it made, unless it was said
+ * beside their pursuit, carry it out, and add a line saying so to their entry
+ * on the Season's report.
+ * @param {{actor: Actor, pursuit: string|null, making?: string|null}[]} company
  * @param {{lines: string[]}[]} entries The report's entry for each of the Company, in the same order.
  * @param {string} season The Season just begun, by name.
  */
 export async function followPursuits(company, entries, season) {
 	let dwelling = false;
-	for (const [index, { actor, pursuit }] of company.entries()) {
+	for (const [index, { actor, pursuit, making: said = null }] of company.entries()) {
 		if (!pursuitMakings(pursuit).length) continue;
-		const making = await askMaking(actor, pursuit);
+		// Said beside the pursuit as the Season turned, or else asked now.
+		const making = pursuitMakings(pursuit).includes(said) ? said : await askMaking(actor, pursuit);
 		if (!making) continue;
 		const lines = entries[index].lines;
 		if (making === "court") {

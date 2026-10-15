@@ -1,0 +1,27 @@
+<div class="bastionland-dialog__body">
+	<p>{{intro}}</p>
+	<fieldset class="bastionland-choice-list">
+		<legend>{{question}}</legend>
+		{{!-- The table tells how things turn out; its three results stand under it, each beside the rolls that give it. --}}
+		<label class="bastionland-check">
+			<input type="radio" name="odds" value="table" checked>
+			<span class="bastionland-check__label">
+				<strong>{{tableHeading}}</strong>
+				<span class="bastionland-check__detail">{{tableHelp}}</span>
+			</span>
+		</label>
+		<span class="bastionland-luck-odds__bands">
+			{{#each bands}}<span>{{d6}}</span><span>{{result}}</span>{{/each}}
+		</span>
+		<p class="hint">{{notDomain}}</p>
+
+		{{!-- Odds already told to the players only answer yes or no, running from the highest chance down to the slimmest. --}}
+		<p class="bastionland-luck-odds__question"><strong>{{oddsHeading}}</strong> {{oddsHelp}}</p>
+		{{#each odds}}
+		<label class="bastionland-check">
+			<input type="radio" name="odds" value="{{key}}">
+			<span class="bastionland-check__label">{{label}}</span>
+		</label>
+		{{/each}}
+	</fieldset>
+</div>

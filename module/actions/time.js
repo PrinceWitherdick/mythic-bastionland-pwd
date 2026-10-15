@@ -21,6 +21,7 @@ import {
 	agingSteps,
 	olderAge,
 	legacyGlory,
+	pursuitMakings,
 	nextAge,
 	nextDay,
 	nextPhase,
@@ -42,7 +43,7 @@ import { adjustGlory, gloryLines, recordRankReached } from "./glory.js";
 import { settleScars } from "./scars.js";
 import { knightSquire } from "./squires.js";
 import { chooseSuccessor, heirOf } from "./succession.js";
-import { sufferMorningAfflictions } from "./afflictions.js";
+import { burnMorningAfflictions, sufferMorningAfflictions } from "./afflictions.js";
 import { companySituation, wildernessRoll } from "./wilderness.js";
 import { askPhaseEnd, dieUntended, takeMorningLosses } from "./phase-end.js";
 import { followPursuits } from "./pursuits.js";
@@ -58,7 +59,9 @@ import { worldKnights } from "./knights.js";
  * present and everybody whose Token is selected are listed ticked, then every
  * Knight, ticked when a player owns them. Players see only the characters they
  * own, since those are all they can change. The Slain take no part, so a Season
- * that restores Virtues doesn't raise them. With pursuits, each picks one too.
+ * that restores Virtues doesn't raise them. With pursuits, each picks one too,
+ * and says beside it what a pursuit that makes something made (p17). As an Age
+ * turns, each who has a stage of life to grow into is ticked to grow older.
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon
@@ -68,9 +71,12 @@ import { worldKnights } from "./knights.js";
  * @param {Actor[]} [options.others] Listed unticked, for the Referee to tick any that take part.
  * @param {string[]} [options.pursuits]
  * @param {boolean} [options.knightsOnly] Leave out selected Tokens that aren't Knights.
- * @returns {Promise<{actor: Actor, pursuit: string|null}[]|null>} Those ticked, or null if closed.
+ * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
+ * @param {boolean} [options.onlyGiven] List only those given, not the selected Tokens or the world's Knights.
+ * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
+ *   Those ticked, or null if closed. `making` is one of the pursuit's PURSUIT_MAKINGS, or null where not said yet.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included) => {
@@ -79,28 +85,70 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 		seen.add(actor.uuid);
 		candidates.push({ actor, included });
 	};
-	for (const actor of present) add(actor, true);
-	for (const token of canvas?.tokens?.controlled ?? []) add(token.actor, true);
+	const selected = onlyGiven ? [] : (canvas?.tokens?.controlled ?? []).map((token) => token.actor);
+	for (const actor of [...present, ...selected]) add(actor, true);
 	for (const actor of others) add(actor, false);
-	for (const actor of worldKnights()) add(actor, actor.hasPlayerOwner);
+	if (!onlyGiven) for (const actor of worldKnights()) add(actor, actor.hasPlayerOwner);
 
+	// What each pursuit offered could make, one list for every row, shown under the pursuit picked.
+	const makings = pursuits.flatMap((pursuit) => pursuitMakings(pursuit).map((making) => ({
+		value: making,
+		pursuit,
+		label: t(`time.pursuitMakes.${pursuit}.${making}`)
+	})));
 	const data = await inputDialog({
 		title,
 		icon,
 		template: "company",
 		context: {
 			intro,
-			members: candidates.map(({ actor, included }, index) => ({ index, name: actor.name, included })),
-			pursuits: pursuits.map((key) => ({ key, label: t(`time.pursuits.${key}.label`), hint: t(`time.pursuits.${key}.hint`) }))
+			members: candidates.map(({ actor, included }, index) => {
+				const older = aging ? olderAge(actor.system.age) : null;
+				return { index, name: actor.name, included, older: older ? t("time.aging.grows", { age: t(`age.${older}`) }) : null };
+			}),
+			pursuits: pursuits.map((key) => ({ key, label: t(`time.pursuits.${key}.label`), hint: t(`time.pursuits.${key}.hint`) })),
+			makings
 		},
-		ok: { label: ok }
+		ok: { label: ok },
+		render: makings.length ? (_event, dialog) => watchMakings(dialog) : undefined
 	});
 	if (!data) return null;
 
 	return candidates
-		.map(({ actor }, index) => ({ actor, included: data[`include-${index}`], pursuit: data[`pursuit-${index}`] }))
+		.map(({ actor }, index) => ({ actor, included: data[`include-${index}`], pursuit: data[`pursuit-${index}`], making: data[`making-${index}`], older: data[`older-${index}`] }))
 		.filter(({ included }) => included)
-		.map(({ actor, pursuit }) => ({ actor, pursuit: pursuits.includes(pursuit) ? pursuit : null }));
+		.map(({ actor, pursuit, making, older }) => {
+			const picked = pursuits.includes(pursuit) ? pursuit : null;
+			return { actor, pursuit: picked, making: pursuitMakings(picked).includes(making) ? making : null, older: Boolean(aging && older) };
+		});
+}
+
+/**
+ * Show what a row's pursuit could make only once one that makes something is
+ * picked, offering only its own outcomes.
+ * @param {foundry.applications.api.DialogV2} dialog
+ */
+function watchMakings(dialog) {
+	const form = dialog.element.querySelector("form");
+	if (!form) return;
+	const update = (row) => {
+		const pursuit = row.querySelector("[name^='pursuit-']")?.value ?? "";
+		const select = row.querySelector("[data-making]");
+		if (!select) return;
+		let any = false;
+		for (const option of select.querySelectorAll("option[data-pursuit]")) {
+			option.hidden = option.disabled = option.dataset.pursuit !== pursuit;
+			any ||= !option.hidden;
+		}
+		if (select.selectedOptions[0]?.disabled) select.value = "";
+		select.hidden = !any;
+	};
+	const rows = form.querySelectorAll(".bastionland-company__member");
+	for (const row of rows) update(row);
+	form.addEventListener("change", (event) => {
+		const row = event.target.closest?.(".bastionland-company__member");
+		if (row && event.target.name?.startsWith("pursuit-")) update(row);
+	});
 }
 
 /**
@@ -251,12 +299,17 @@ async function endPhase(known) {
 	}
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
-	await announcePhase(calendar);
-	if (answers.members.length) await takeMorningLosses(answers, ending);
+	// What the Night cost and the Morning's afflictions go on the new Phase's own card, not cards of their own.
+	const befell = [
+		answers.members.length ? await takeMorningLosses(answers, ending) : null,
+		// Each morning, a daily affliction takes its toll.
+		calendar.phase === "morning" ? await sufferMorningAfflictions() : null
+	].filter(Boolean);
+	await announcePhase(calendar, { sections: befell.map(({ section }) => section), rolls: befell.flatMap(({ rolls }) => rolls) });
+	// What a daily affliction burns as Damage comes after, on Damage cards of its own.
+	if (calendar.phase === "morning") await burnMorningAfflictions();
 	// Nobody lies untended through a Phase and lives (p8).
 	if (answers.dying?.length) await dieUntended(answers.dying);
-	// Each morning, a daily affliction takes its toll.
-	if (calendar.phase === "morning") await sufferMorningAfflictions();
 	// The new day's Sky and Weather, rolled as the Company breaks camp (p197).
 	if (answers.sky) await rollSkyAndWeather(answers.sky);
 	await phaseWeather(calendar);
@@ -280,11 +333,16 @@ async function phaseWeather(calendar) {
 /**
  * Tell the table the Day has moved into a Phase, on a card painted in that
  * Phase's light, with any Council task whose time has come (p20) and any
- * Knight's table that comes round with it.
+ * Knight's table that comes round with it, and what befell the Company as the
+ * Phase began.
  * @param {import("../rules/time.js").Calendar} calendar
+ * @param {object} [befell]
+ * @param {{title: string, entries: object[], hint?: string}[]} [befell.sections]
+ * @param {Roll[]} [befell.rolls]
  */
-export function announcePhase(calendar) {
+export function announcePhase(calendar, { sections = [], rolls = [] } = {}) {
 	return postCard(null, "report", {
+		sections,
 		tone: calendar.phase,
 		icon: PHASE_ICONS[calendar.phase],
 		title: t(`time.phases.${calendar.phase}`),
@@ -292,7 +350,7 @@ export function announcePhase(calendar) {
 		// Night brings round a table rolled each night, and Morning a new Day's.
 		due: [...tasksDueNotices(calendar), ...tableRenewalNotices(calendar.phase === "night" ? ["night"] : calendar.phase === "morning" ? ["day"] : [])],
 		hint: t(`time.phaseHints.${calendar.phase}`)
-	});
+	}, { rolls });
 }
 
 /**
@@ -314,7 +372,7 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	if (!game.user.isGM) return null;
 	const before = getCalendar();
 	const after = next(before);
-	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, knightsOnly: true });
+	const company = await chooseCompany({ title: t(label), icon, intro: intro(before, after), ok: t(label), pursuits, knightsOnly: true, aging: newAge });
 	if (!company) return null;
 
 	await setCalendar(after);
@@ -328,7 +386,7 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	const collection = await markCollection(ended, before.season);
 	const domains = await settleDomains(ended);
 	await closeSeason(after, ended, { kind, title: turned(after), note, rolls, collection: collection ? collectionEntry(collection) : null, knights: entries, domains });
-	if (newAge) await growOlder(company.map(({ actor }) => actor));
+	if (newAge) await growOlder(company.filter(({ older }) => older).map(({ actor }) => actor));
 	return after;
 }
 
@@ -384,26 +442,26 @@ async function npcsOldAge() {
 }
 
 /**
- * A new Age of the world (p17): ask which of the Company grow a stage older,
- * Young to Mature or Mature to Old, and reroll their Virtues for it.
- * @param {Actor[]} actors Those who took part in the Age's turn.
+ * A new Age of the world (p17): the Company ticked to grow a stage older, Young
+ * to Mature or Mature to Old, reroll their Virtues for it. Anybody else in the
+ * world given an Age is asked about afterwards, only where there is somebody.
+ * @param {Actor[]} actors Those of the Company who grow older, as ticked when the Age turned.
  */
 async function growOlder(actors) {
 	await npcsOldAge();
-	// The Company, and anybody else in the world given an Age that has one to grow into.
 	const npcs = game.actors.filter((actor) => actor.type === "npc" && olderAge(actor.system.age));
-	const company = actors.filter((actor) => olderAge(actor.system.age));
-	if (!company.length && !npcs.length) return;
-	const chosen = await chooseCompany({
-		title: t("time.aging.title"),
-		icon: "fa-solid fa-hourglass-half",
-		intro: t("time.aging.newAge"),
-		ok: t("time.aging.roll"),
-		present: company,
-		// Anybody else given an Age is offered, not ticked, so a new Age doesn't reroll the whole world by default.
-		others: npcs
-	});
-	for (const { actor } of chosen ?? []) {
+	// Offered, not ticked, so a new Age doesn't reroll the whole world by default.
+	const others = npcs.length
+		? await chooseCompany({
+			title: t("time.aging.title"),
+			icon: "fa-solid fa-hourglass-half",
+			intro: t("time.aging.newAgeOthers"),
+			ok: t("time.aging.roll"),
+			others: npcs,
+			onlyGiven: true
+		})
+		: [];
+	for (const actor of [...actors, ...(others ?? []).map(({ actor }) => actor)]) {
 		const age = olderAge(actor.system.age);
 		if (age) await rollAging(actor, age);
 	}
@@ -498,7 +556,7 @@ export function turnSeason() {
 		newAge: false,
 		next: nextSeason,
 		kind: "season",
-		label: "time.turnSeason",
+		label: "time.banner.months",
 		icon: "fa-solid fa-leaf",
 		pursuits: SEASON_PURSUITS,
 		intro: (before, after) => t("time.seasonIntro", { season: season(before), next: season(after) }),
@@ -517,7 +575,7 @@ export function turnAge() {
 		newAge: true,
 		next: nextAge,
 		kind: "age",
-		label: "time.turnAge",
+		label: "time.banner.year",
 		icon: "fa-solid fa-hourglass-end",
 		pursuits: AGE_PURSUITS,
 		intro: (_before, after) => t("time.ageIntro", { age: after.age }),

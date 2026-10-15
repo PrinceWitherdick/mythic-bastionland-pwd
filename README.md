@@ -61,7 +61,7 @@ Every world gets one **Referee Toolkit**, the Referee's own sheet. Press **C** t
 
 #### Time and the Calendar
 
-The Phase, Season and Age sit in a bar at the top of the screen. The Referee's buttons move time on: **Next Phase**, **Weeks Pass** (each Season's feast, mass and Tax, Tithe or Levy), **Turn the Season** with its pursuits, and **Turn the Age** with Duty, Succession or Legacy, ageing and Glory. **End the Session** walks through the book's end-of-session steps and keeps the recap with that Season.
+The Phase, Season and Age sit in a bar at the top of the screen. The Referee's buttons move time on: **Next Phase**, **Weeks Pass** (each Season's feast, mass and Tax, Tithe or Levy), **Months Pass** to turn the Season with its pursuits, and **A Year Passes** to turn the Age with Duty, Succession or Legacy, ageing and Glory. **End the Session** walks through the book's end-of-session steps and keeps the recap with that Season.
 
 #### The Realm
 

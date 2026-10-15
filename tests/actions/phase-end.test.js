@@ -61,7 +61,7 @@ vi.mock("../../module/actions/landmarks.js", () => ({
 }));
 vi.mock("../../module/actions/council-tasks.js", () => ({ tasksDueNotices: () => [] }));
 vi.mock("../../module/actions/knight-tables.js", () => ({ tableRenewalNotices: () => [] }));
-vi.mock("../../module/actions/afflictions.js", () => ({ sufferMorningAfflictions: vi.fn() }));
+vi.mock("../../module/actions/afflictions.js", () => ({ burnMorningAfflictions: vi.fn(), sufferMorningAfflictions: vi.fn() }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: () => ({}) }));
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn() }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({
@@ -239,7 +239,7 @@ describe("as Morning comes", () => {
 		expect(calendar.phase).toBe("morning");
 	});
 
-	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on one card", async () => {
+	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on the Morning's own card", async () => {
 		standAt(hex(6, 6));
 		calendar.season = "winter";
 		const alys = knight("Alys");
@@ -247,9 +247,13 @@ describe("as Morning comes", () => {
 		answer = { mode: "travel", "include-0": true };
 		await advancePhase();
 		expect(alys.system.virtues).toEqual({ vig: { value: 5 }, cla: { value: 5 }, spi: { value: 5 } });
-		const morning = cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.morning.title");
-		expect(morning).toHaveLength(1);
-		expect(morning[0][2].entries[0].lines).toHaveLength(3);
+		expect(cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.morning.title")).toEqual([]);
+		const phase = cardsOf("report").filter(([, , context]) => context.sections?.length);
+		expect(phase).toHaveLength(1);
+		const [section] = phase[0][2].sections;
+		expect(section.title).toBe("phaseEnd.morning.title");
+		expect(section.entries[0].lines).toHaveLength(3);
+		expect(phase[0][3].rolls).toHaveLength(3);
 	});
 
 	it("takes each one's own lost sleep and hunger, and remembers who went without", async () => {
