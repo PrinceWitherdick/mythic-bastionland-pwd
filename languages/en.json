@@ -22,7 +22,7 @@
   "bastionland": {
     "solo": {
       "setting": {
-        "name": "Solo play",
+        "name": "Solo Play",
         "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
       },
       "welcome": {
@@ -50,7 +50,7 @@
     },
     "duplicateKnights": {
       "setting": {
-        "name": "Allow the same Knight twice",
+        "name": "Allow the Same Knight Twice",
         "hint": "Lets more than one character be the same Knight from the book, by rolling, choosing or typing it in. Off, a Knight that a living character already is can’t be taken again; a slain Knight’s can."
       }
     },
@@ -1980,6 +1980,13 @@
     "hexEdit": {
       "title": "Edit {hex}"
     },
+    "askReferee": {
+      "button": "Ask the Referee: {what}",
+      "hint": "Exploring is the Referee’s to carry out. This tells them what the Company wants to do, with a button that does it.",
+      "asks": "{name} asks the Referee: {what}",
+      "sent": "The Referee has been asked.",
+      "noScene": "The Realm they asked about is gone, and no other is on the map."
+    },
     "hexGm": {
       "heading": "The Lay of the Land",
       "hint": "Only you see this part. A Hex is broad and varied, with room enough for a person never to leave it: roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
@@ -2095,11 +2102,11 @@
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
       "settings": {
         "firstArrival": {
-          "name": "Roll a new hex’s land",
+          "name": "Roll a New Hex’s Land",
           "hint": "The first time the Company comes to rest in a Wilderness Hex with nothing written or rolled there, roll its land and one feature on the Nature Spark Tables, keep them in the Hex, and whisper them to the Referee. Holdings are left alone."
         },
         "prompt": {
-          "name": "Reaching a new hex",
+          "name": "Reaching a New Hex",
           "hint": "What to do when the Company comes to rest in a Hex of a Realm you’re looking at. Saved per browser.",
           "modes": {
             "never": "Nothing",
@@ -2122,7 +2129,7 @@
       "openHint": "Open this hex’s Journal entry, making it if it has none: what the Company knows, and your own notes.",
       "none": "This hex has no Journal entry yet. The Referee whose browser keeps the Journals can make it from the hex in Places.",
       "setting": {
-        "name": "Journal entries for hexes",
+        "name": "Journal Entries for Hexes",
         "hint": "Each hex of a Realm that something is rolled, written or named for gets a Journal entry, kept up to date as you roll; any other hex gets one when you click Journal on it in Places. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
       }
     },
@@ -2147,7 +2154,7 @@
       "openHint": "Open this Site’s Journal entry: the whole Site, what the Company has found, and your own notes. Players can’t see it until you share it.",
       "none": "Nothing has been drawn or written on this Site yet, so it has no Journal entry.",
       "setting": {
-        "name": "Journal entries for Sites",
+        "name": "Journal Entries for Sites",
         "hint": "Each Site with something drawn or written on it gets a Journal entry, kept up to date as you draw and reveal. It starts hidden from players. Share it when you like: players then see only its What the Company Found page, never The Site page or your Notes, which are never written over."
       }
     },
@@ -4194,7 +4201,7 @@
         "party": "Company’s note: “{note}”",
         "settings": {
           "coordinates": {
-            "name": "Show hex column and row",
+            "name": "Show Hex Column and Row",
             "hint": "Pointing at a hex of a Realm names its column and row, such as (5, 7), before what’s there. Everyone at the table sees them."
           }
         }
@@ -5144,6 +5151,8 @@
         }
       },
       "finish": "Done",
+      "newRealm": "Make Your First Realm",
+      "newRealmHint": "Close the Welcome and make the Realm the Company will explore. New Realm in the Scenes tab makes more.",
       "chat": {
         "import": {
           "title": "Your Rulebook",

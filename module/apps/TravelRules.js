@@ -1,10 +1,7 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
-import { takeExplorationAct } from "../actions/exploration.js";
+import { askReferee, askable, doFromRules } from "../actions/ask-referee.js";
 import { isDrawingRealm, isRealmScene } from "../actions/realm.js";
-import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { gallop } from "../actions/steeds.js";
 import { sufferHardship } from "../actions/time.js";
-import { wildernessRoll } from "../actions/wilderness.js";
 import { BOOK_TEXT_HOOK, bookTextRead } from "../book-art/book-text.js";
 import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
@@ -93,6 +90,7 @@ export class TravelRules extends MapSidePanel {
 			fold: TravelRules.#onFold,
 			roll: TravelRules.#onRoll,
 			act: TravelRules.#onAct,
+			ask: TravelRules.#onAsk,
 			hardship: TravelRules.#onHardship
 		}
 	};
@@ -140,6 +138,8 @@ export class TravelRules extends MapSidePanel {
 						note: section.note ? text(`${key}.note`) : null,
 						roll: isGM && section.roll ? { key: section.roll, label: text(`${key}.roll`) } : null,
 						act: isGM && section.act ? { key: section.act, label: text(`${key}.act`) } : null,
+						// A player asks the Referee for what the Referee's button there does.
+						ask: isGM ? null : askFor(section, key, text),
 						hardship: isGM && section.hardship ? hardshipButton(section.hardship) : null
 					};
 				})
@@ -203,7 +203,16 @@ export class TravelRules extends MapSidePanel {
 	 * @this {TravelRules}
 	 */
 	static #onAct(_event, target) {
-		return takeExplorationAct(target.dataset.act, { scene: canvas.scene });
+		return doFromRules("act", target.dataset.act);
+	}
+
+	/**
+	 * A player asks the Referee to do what their button there does.
+	 * @this {TravelRules}
+	 */
+	static async #onAsk(_event, target) {
+		const { kind, key, label } = target.dataset;
+		if (await askReferee(kind, key, label)) ui.notifications.info(t("askReferee.sent"));
 	}
 
 	/**
@@ -216,11 +225,21 @@ export class TravelRules extends MapSidePanel {
 
 	/** @this {TravelRules} */
 	static #onRoll(_event, target) {
-		if (!game.user.isGM) return null;
-		const { roll } = target.dataset;
-		if (roll === "gallop") return gallop();
-		return roll === "wilderness" ? wildernessRoll({ scene: canvas.scene }) : rollRefereeTable(roll);
+		return doFromRules("roll", target.dataset.roll);
 	}
+}
+
+/**
+ * What a player's button in a section asks the Referee for: its act or roll.
+ * @param {{act?: string, roll?: string}} section
+ * @param {string} key The section's strings, below `travelRules.`
+ * @param {(key: string) => string} text
+ * @returns {{kind: string, key: string, label: string}|null}
+ */
+function askFor(section, key, text) {
+	if (section.act && askable("act", section.act)) return { kind: "act", key: section.act, label: text(`${key}.act`) };
+	if (section.roll && askable("roll", section.roll)) return { kind: "roll", key: section.roll, label: text(`${key}.roll`) };
+	return null;
 }
 
 /** @type {Map<string, TravelRules>} Each side's rules. */

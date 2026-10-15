@@ -2072,16 +2072,26 @@ a.button:focus:not(:focus-visible) {
 	display: flex;
 	gap: 0.1rem;
 	margin-left: auto;
+}
+
+/* Each tool shows as the row is hovered or holds the focus; settling a Scar and
+   the pencil show faintly before then, so they're there to be found. */
+.bastionland-item__controls > * {
 	opacity: 0;
 	transition: opacity 120ms;
 }
 
-.bastionland-item:is(:hover, :focus-within) .bastionland-item__controls {
+.bastionland-item__controls > .bastionland-item__resting {
+	opacity: 0.45;
+}
+
+/* A Council task and a Grand Design (whose row is styled as a task) show theirs the same way. */
+:is(.bastionland-item, .bastionland-council__task):is(:hover, :focus-within) .bastionland-item__controls > * {
 	opacity: 1;
 }
 
 @media (hover: none) {
-	.bastionland-item__controls {
+	.bastionland-item__controls > * {
 		opacity: 1;
 	}
 }
@@ -8580,6 +8590,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-welcome__footer {
 	display: flex;
 	justify-content: flex-end;
+	gap: 0.6rem;
 	padding-top: 0.8rem;
 	border-top: 1px solid var(--bastionland-rule);
 }

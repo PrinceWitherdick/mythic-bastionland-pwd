@@ -33,6 +33,7 @@
 		</span>
 		{{/if}}
 		{{#if @root.editable}}
+		{{!-- Settling a Scar and the pencil show faintly at rest, so they're found without hovering; the rest show on hover. --}}
 		<span class="bastionland-item__controls">
 			{{#if holds}}
 			{{!-- Armour worn only in some situation, or in all but one: whether it holds right now. --}}
@@ -46,13 +47,13 @@
 			</button>
 			{{/each}}
 			{{#if pending}}
-			<button type="button" class="bastionland-icon" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
+			<button type="button" class="bastionland-icon bastionland-item__resting" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
 				<i class="fa-solid fa-hand-holding-medical" inert></i>
 			</button>
 			{{/if}}
 			{{!-- No trash beside the pencil: deleting lives in the item's own window,
 			      so a possession can only go once it's been opened and read. --}}
-			<button type="button" class="bastionland-icon" data-action="editItem" data-tooltip="{{localize 'bastionland.sheet.edit'}}" aria-label="{{localize 'bastionland.sheet.edit'}}">
+			<button type="button" class="bastionland-icon bastionland-item__resting" data-action="editItem" data-tooltip="{{localize 'bastionland.sheet.edit'}}" aria-label="{{localize 'bastionland.sheet.edit'}}">
 				<i class="fa-solid fa-pen" inert></i>
 			</button>
 		</span>

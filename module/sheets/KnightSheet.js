@@ -9,6 +9,7 @@ import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js"
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
+import { rollLuck } from "../actions/referee-rolls.js";
 import { changeAge } from "../actions/time.js";
 import { timelineSquireTaken } from "../actions/timeline-events.js";
 import { openPortrait } from "../apps/ArtPopout.js";
@@ -78,6 +79,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			pickSeerImage: KnightSheet.#onPickSeerImage,
 			openPortrait: KnightSheet.#onOpenPortrait,
 			openDomain: KnightSheet.#onOpenDomain,
+			rollLuck: KnightSheet.#onRollLuck,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
@@ -708,6 +710,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/** The Luck Roll (p16), asked the odds as the hotbar's is, so the sheet holds everything a player rolls. */
+	static #onRollLuck() {
+		return rollLuck();
 	}
 
 	/** @this {KnightSheet} */

@@ -119,6 +119,8 @@ export async function changeSetting(key, raw) {
 	const value = settingValue(config, raw);
 	if (value === undefined) return false;
 	await game.settings.set(SYSTEM_ID, key, value);
+	// One that only takes hold on a reload asks for it, as Foundry's own settings window does.
+	if (config.requiresReload) await foundry.applications.settings.SettingsConfig.reloadConfirm({ world: config.scope === "world" });
 	return true;
 }
 
