@@ -717,10 +717,6 @@
 	letter-spacing: 0.03em;
 }
 
-.bastionland-referee-rolls .form-footer {
-	flex-wrap: wrap;
-}
-
 /* New Realm's three ways of making it stay on one row, each as wide as its label. */
 .realm-making-dialog .form-footer {
 	flex-wrap: nowrap;
@@ -729,10 +725,6 @@
 .realm-making-dialog .form-footer button {
 	flex: 1 1 auto;
 	white-space: nowrap;
-}
-
-.bastionland-referee-rolls .form-footer button {
-	flex: 1 1 40%;
 }
 
 /* The table's three results, each beside the rolls that give it. */

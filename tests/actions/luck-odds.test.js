@@ -81,13 +81,13 @@ describe("rollLuck", () => {
 });
 
 describe("openRefereeRolls", () => {
-	it("lists the tables to pick one, with the Luck Roll's odds asked in the same window", async () => {
+	it("lists the tables to pick one, then asks a Luck Roll's odds in the Luck Roll's own window", async () => {
 		d6 = 6;
 		answer = { table: "luck", odds: "slim" };
 		const rolled = await openRefereeRolls();
-		expect(asked).toHaveLength(1);
+		expect(asked.map(({ template }) => template)).toEqual(["referee-rolls", "luck-odds"]);
 		expect(asked[0].context.tables.map(({ id }) => id)).toEqual(["luck", "passage", "unresolved", "blind", "weather", "mood"]);
-		expect(asked[0].context.odds.map(({ key }) => key)).toEqual(["table", "high", "likely", "even", "unlikely", "slim"]);
+		expect(asked[0].context.odds).toBeUndefined();
 		expect(rolled).toMatchObject({ odds: "slim", favoured: true });
 	});
 

@@ -2891,7 +2891,6 @@
         "oddsHelp": "only answer yes or no. Use them when you’ve already told the players how likely it is, as in “a slim chance”. Fortune favours them on the number shown or higher.",
         "notDomain": "The table’s Crisis is a bad turn in the moment, not one of a Domain’s Crises.",
         "question": "Which way will you read it?",
-        "pickHint": "The table tells you how things turn out. Stated odds only answer yes or no, on the number shown or higher.",
         "label": "{odds} ({needs}+)",
         "slim": "A slim chance",
         "unlikely": "Unlikely",

@@ -574,8 +574,9 @@ async function planAttack(actor, joining = null) {
 			smiteKnown: Boolean(actor.system.knowsFeat?.("smite")),
 			// Drawn only for a Knight who knows it, so all that bars it is how they stand.
 			smiteDisabled: conditions.fatigued || startsImpaired || !sources.length,
-			// The fold of what seldom comes up opens on its own where a tick in it was remembered.
-			moreOpen: ticks.confined,
+			// The fold of what seldom comes up opens on its own where a tick in it was remembered,
+			// or a remembered charge, which runs onto the spearwall in it (p10), opens ticked.
+			moreOpen: ticks.confined || Boolean(mount && !chargeBarred && ticks.chargeChecked),
 			abilityOffers: offers.map((offer) => ({
 				id: offer.id,
 				label: t("attack.useAbility", {

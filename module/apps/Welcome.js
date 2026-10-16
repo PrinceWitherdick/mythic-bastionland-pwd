@@ -309,11 +309,17 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {Welcome} */
 	static async #onNewRealm() {
+		// Only a Welcome that opened by itself ends by showing where Realms are made.
+		const welcoming = welcomesThisWorld();
 		this.#makingRealm = true;
-		await this.close();
+		try {
+			await this.close();
+		} finally {
+			this.#makingRealm = false;
+		}
 		const scene = await newRealm();
-		// Left without a Realm after all, the GM is still shown where one is made.
-		if (!scene) showWhereRealmsAreMade();
+		// Left without a Realm after all, the Referee is still shown where one is made.
+		if (!scene && welcoming) showWhereRealmsAreMade();
 		return scene;
 	}
 }

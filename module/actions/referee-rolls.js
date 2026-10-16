@@ -134,31 +134,14 @@ export async function openRefereeRolls() {
 		template: "referee-rolls",
 		context: {
 			intro: t("refereeRolls.intro"),
-			tables: REFEREE_TABLES.map(({ key }) => ({ id: key, name: t(`refereeRolls.tables.${key}.name`), detail: t(`refereeRolls.tables.${key}.hint`) })),
-			// The Luck Roll's odds are asked here, rather than in a window of their own after.
-			odds: [{ key: "table", label: t("refereeRolls.odds.tableHeading") }, ...oddsChoices()]
+			tables: REFEREE_TABLES.map(({ key }) => ({ id: key, name: t(`refereeRolls.tables.${key}.name`), detail: t(`refereeRolls.tables.${key}.hint`) }))
 		},
-		ok: { label: t("refereeRolls.roll"), icon: "fa-solid fa-dice-d6" },
-		render: (_event, dialog) => watchLuckOdds(dialog)
+		ok: { label: t("refereeRolls.roll"), icon: "fa-solid fa-dice-d6" }
 	});
 	const key = data?.table;
-	if (key === "luck") return rollLuck(data.odds ?? "table");
+	// The Luck Roll's odds are asked in its own window, the one a Luck Roll opens anywhere.
+	if (key === "luck") return rollLuck();
 	return REFEREE_TABLES.some((table) => table.key === key) ? rollRefereeTable(key) : null;
-}
-
-/**
- * Show the Luck Roll's odds only while the Luck Roll is picked.
- * @param {foundry.applications.api.DialogV2} dialog
- */
-function watchLuckOdds(dialog) {
-	const form = dialog.element.querySelector("form");
-	const row = form?.querySelector("[data-luck-odds]");
-	if (!row) return;
-	const update = () => {
-		row.hidden = form.querySelector("[name='table']:checked")?.value !== "luck";
-	};
-	form.addEventListener("change", update);
-	update();
 }
 
 /**
