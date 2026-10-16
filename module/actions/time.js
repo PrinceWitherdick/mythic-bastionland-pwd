@@ -299,17 +299,15 @@ async function endPhase(known) {
 	}
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
+	// Nobody lies untended through a Phase and lives (p8). They die as it ends, so the new Phase takes nothing more from them.
+	if (answers.dying?.length) await dieUntended(answers.dying);
+	// Each morning, a daily affliction takes its toll.
+	const afflicted = calendar.phase === "morning" ? await sufferMorningAfflictions() : null;
 	// What the Night cost and the Morning's afflictions go on the new Phase's own card, not cards of their own.
-	const befell = [
-		answers.members.length ? await takeMorningLosses(answers, ending) : null,
-		// Each morning, a daily affliction takes its toll.
-		calendar.phase === "morning" ? await sufferMorningAfflictions() : null
-	].filter(Boolean);
+	const befell = [answers.members.length ? await takeMorningLosses(answers, ending) : null, afflicted?.section ? afflicted : null].filter(Boolean);
 	await announcePhase(calendar, { sections: befell.map(({ section }) => section), rolls: befell.flatMap(({ rolls }) => rolls) });
 	// What a daily affliction burns as Damage comes after, on Damage cards of its own.
-	if (calendar.phase === "morning") await burnMorningAfflictions();
-	// Nobody lies untended through a Phase and lives (p8).
-	if (answers.dying?.length) await dieUntended(answers.dying);
+	if (afflicted) await burnMorningAfflictions(afflicted.sufferers);
 	// The new day's Sky and Weather, rolled as the Company breaks camp (p197).
 	if (answers.sky) await rollSkyAndWeather(answers.sky);
 	await phaseWeather(calendar);

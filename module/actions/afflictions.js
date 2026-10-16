@@ -143,7 +143,8 @@ export async function cureAffliction(actor, id) {
  * Each morning, everybody carrying a daily affliction loses what it takes.
  * GMs only; called as the Day moves into Morning, whose own card says it.
  * What burns on as Damage is left for burnMorningAfflictions, once the card is posted.
- * @returns {Promise<{section: object, rolls: Roll[]}|null>} The Morning card's section, or null if nobody lost anything.
+ * @returns {Promise<{section: object|null, rolls: Roll[], sufferers: Actor[]}|null>} The Morning card's
+ *   section (null if nobody lost anything) and who carries a daily affliction, or null for a player.
  */
 export async function sufferMorningAfflictions() {
 	if (!game.user.isGM) return null;
@@ -151,29 +152,33 @@ export async function sufferMorningAfflictions() {
 	const tolls = await Promise.all(sufferers.map((actor) => toll(actor, afflictionsAt(actor.system, "day"), { burns: false })));
 	const entries = sufferers.flatMap((actor, index) => (tolls[index].lines.length ? [{ name: actor.name, lines: tolls[index].lines }] : []));
 	const rolls = tolls.flatMap(({ rolls }) => rolls);
-	if (!entries.length) return null;
-	return { section: { title: t("afflictions.morning"), entries, hint: t("time.hardship.notDamage") }, rolls };
+	const section = entries.length ? { title: t("afflictions.morning"), entries, hint: t("time.hardship.notDamage") } : null;
+	return { section, rolls, sufferers };
 }
 
 /**
  * Each morning, a daily affliction that deals Damage is taken as a blow, each
  * on a Damage card of its own. GMs only; called once the Morning's card is
  * posted, so the harm follows the day it falls in.
+ * @param {Actor[]} [sufferers] Who carries a daily affliction, as sufferMorningAfflictions found them.
  * @returns {Promise<number>} How many dealt Damage.
  */
-export async function burnMorningAfflictions() {
+export async function burnMorningAfflictions(sufferers = dailySufferers()) {
 	if (!game.user.isGM) return 0;
 	let burned = 0;
-	for (const actor of dailySufferers()) {
+	for (const actor of sufferers) {
 		for (const affliction of tollsByKind(afflictionsAt(actor.system, "day")).damage) if (await burn(actor, affliction)) burned++;
 	}
 	return burned;
 }
 
-/** @returns {Actor[]} Everybody carrying a daily affliction. An unlinked Token keeps its afflictions on itself, apart from the world's actors. */
+/**
+ * @returns {Actor[]} Everybody living who carries a daily affliction. An unlinked Token keeps its afflictions
+ *   on itself, apart from the world's actors.
+ */
 function dailySufferers() {
 	const unlinked = game.scenes.contents.flatMap((scene) => scene.tokens.filter((token) => !token.actorLink && token.actor).map((token) => token.actor));
-	return [...game.actors, ...unlinked].filter((actor) => afflictionsAt(actor.system, "day").length);
+	return [...game.actors, ...unlinked].filter((actor) => !actor.system?.slain && afflictionsAt(actor.system, "day").length);
 }
 
 /**

@@ -168,6 +168,8 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
  * @returns {Promise<string[]>} Their names.
  */
 export async function dieUntended(dying) {
+	// Anybody slain since the window was answered has fallen already.
+	dying = dying.filter((actor) => !actor.system.slain);
 	if (!game.user.isGM || !dying.length) return [];
 	// World actors and Tokens' own side by side, so each is written for itself.
 	await Promise.all(dying.map((actor) => actor.update(SLAIN_UPDATE, causedBy("damage"))));
@@ -199,6 +201,8 @@ export async function takeMorningLosses({ mode, dire, members }, ending) {
 	const entries = [];
 	const updates = [];
 	for (const { actor, noSleep, deprived } of members) {
+		// Who died untended through the Night isn't there by Morning to lose more.
+		if (actor.system.slain) continue;
 		const kinds = morningHardships({ mode, winter, dire }, { noSleep, deprived });
 		if (!kinds.length) continue;
 		const { update, taken } = await rollVirtueLosses(actor, kinds.map((kind) => ({ kind, virtue: HARDSHIPS.find(({ key }) => key === kind).virtue })));
