@@ -32,6 +32,23 @@ const crisisName = (key) => t(`domain.crises.${key}.name`);
 export const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)].filter(Boolean) });
 
 /**
+ * Ask which of some Crises to take, one to a line with how it's resolved.
+ * @param {string[]} keys
+ * @param {{title: string, icon: string, intro: string, ok: string}} options
+ * @returns {Promise<string|null>} The Crisis picked, or null if closed.
+ */
+async function pickCrisis(keys, { title, icon, intro, ok }) {
+	const data = await inputDialog({
+		title,
+		icon,
+		template: "crisis-pick",
+		context: { intro, crises: keys.map((key) => ({ id: key, name: crisisName(key), detail: t(`domain.crises.${key}.resolution`) })) },
+		ok: { label: ok, icon }
+	});
+	return keys.includes(data?.crisis) ? data.crisis : null;
+}
+
+/**
  * @param {Actor} domain Once its Crises are saved.
  * @returns {string|null} A warning when it faces enough to fall into misrule.
  */
@@ -82,16 +99,13 @@ export async function crisisRoll(domain) {
 	let added = drawn.crises;
 	const notes = [];
 	if (result === "dilemma" && drawn.crises.length > 1) {
-		const choice = await chooseDialog({
+		const choice = await pickCrisis(drawn.crises, {
 			title: t("domain.dilemmaTitle"),
 			icon: "fa-solid fa-scale-unbalanced",
-			message: [
-				t("domain.dilemmaIntro", { name: escapeHTML(domain.name) }),
-				...drawn.crises.map((key) => `<strong>${crisisName(key)}</strong>: ${t(`domain.crises.${key}.resolution`)}`)
-			],
-			buttons: drawn.crises.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
+			intro: t("domain.dilemmaIntro", { name: domain.name }),
+			ok: t("domain.dilemmaTake")
 		});
-		added = drawn.crises.includes(choice) ? [choice] : [];
+		added = choice ? [choice] : [];
 		if (!added.length) notes.push(t("domain.dilemmaOpen", { options: drawn.crises.map(crisisName).join(", ") }));
 	}
 
@@ -122,14 +136,13 @@ export async function addCrisis(domain) {
 		ui.notifications.info(t("domain.allCrises", { name: domain.name }));
 		return null;
 	}
-	const choice = await chooseDialog({
+	const choice = await pickCrisis(open, {
 		title: t("domain.addCrisis"),
 		icon: "fa-solid fa-fire",
-		classes: ["bastionland-referee-rolls"],
-		message: t("domain.addCrisisIntro", { name: escapeHTML(domain.name) }),
-		buttons: open.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
+		intro: t("domain.addCrisisIntro", { name: domain.name }),
+		ok: t("domain.addCrisis")
 	});
-	if (!open.includes(choice)) return null;
+	if (!choice) return null;
 
 	await domain.update({ "system.crises": [...domain.system.crises, choice] });
 	await postCard(domain, "report", {

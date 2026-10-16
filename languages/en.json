@@ -1739,6 +1739,7 @@
       },
       "dilemmaTitle": "Dilemma",
       "dilemmaIntro": "{name} must take on one of these Crises.",
+      "dilemmaTake": "Take this Crisis",
       "dilemmaOpen": "No choice was made between {options}. Add the one chosen from the sheet.",
       "misrule": "Misrule",
       "misruleHint": "Vassals rise up, Knights ride away and pretenders press their claims.",

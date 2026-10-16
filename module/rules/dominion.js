@@ -154,6 +154,14 @@ export function rulingKnightOf(domain, knights) {
 	return knights.find((knight) => Boolean(domain.uuid) && knight.system.domain === domain.uuid) ?? knights.find((knight) => isSameName(knight.name, domain.system.ruler)) ?? null;
 }
 
+/**
+ * A Knight who can rule, or hold a post at Court: knighted (p7), so not a
+ * Squire, and alive.
+ * @param {{system?: {isSquire?: boolean, slain?: boolean}}} knight
+ * @returns {boolean}
+ */
+export const canHoldPost = (knight) => !knight.system?.isSquire && !knight.system?.slain;
+
 /* -------------------------------------------- */
 /*  The Domain's arms                           */
 /* -------------------------------------------- */

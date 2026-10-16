@@ -11,7 +11,7 @@
  * the Season log is, so the sheet can write one member's line at a time. Pure,
  * so it can be tested without Foundry.
  */
-import { COUNCIL_SEATS, SEATS_TO_FILL, isSameName, rulingKnightOf } from "./dominion.js";
+import { COUNCIL_SEATS, SEATS_TO_FILL, canHoldPost, isSameName, rulingKnightOf } from "./dominion.js";
 import { unworthyOf } from "./glory.js";
 import { trimmedText } from "./text.js";
 
@@ -273,7 +273,7 @@ const COURT_POSTS = Object.freeze(["retainer", "courtier"]);
  */
 export function unworthyPosts(domain, knights) {
 	const { system } = domain;
-	const knighted = knights.filter((knight) => !knight.system?.isSquire && !knight.system?.slain);
+	const knighted = knights.filter(canHoldPost);
 	const posts = new Map();
 	const hold = (knight, post) => {
 		if (knight && !posts.has(knight.id)) posts.set(knight.id, { knight, post });

@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { courtKnight, courtMembers } from "../rules/court.js";
-import { holdingRef, holdingRulers, parseHoldingRef } from "../rules/dominion.js";
+import { canHoldPost, holdingRef, holdingRulers, parseHoldingRef } from "../rules/dominion.js";
 import { escapeHTML } from "../rules/text.js";
 import { addCourtMember } from "./court.js";
 import { linkKnightDomain, worldDomains } from "./dominion.js";
@@ -99,8 +99,7 @@ export async function createDomain(knight, { name, holding = "", seat = false, c
  * @returns {Promise<Actor|null>} The Domain, or null where none was founded.
  */
 export async function offerRulerDomain(scene) {
-	const players = worldKnights((actor) => actor.hasPlayerOwner && canHoldPost(actor));
-	const knights = players.length ? players : worldKnights(canHoldPost);
+	const knights = startKnights();
 	if (!knights.length) return null;
 	const data = await inputDialog({
 		title: t("company.starts.ruler.domainTitle"),
@@ -132,10 +131,7 @@ export async function offerRulerDomain(scene) {
  * @param {Actor[]} knights
  * @returns {Record<string, number>}
  */
-function courtiersLook(knights) {
-	const { NONE, OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
-	return { default: NONE, ...Object.fromEntries(knights.flatMap(playersOf).map((id) => [id, OBSERVER])) };
-}
+const courtiersLook = (knights) => ({ default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, ...lookFor({ ownership: {} }, knights) });
 
 /**
  * @param {Scene} scene
@@ -159,8 +155,7 @@ export const seatName = (seat) => seat.name || t("company.starts.courtier.seatDo
  */
 export async function seatCourtiers(scene) {
 	const seat = seatOfPower(scene);
-	const players = worldKnights((actor) => actor.hasPlayerOwner && canHoldPost(actor));
-	const knights = players.length ? players : worldKnights(canHoldPost);
+	const knights = startKnights();
 	if (!seat || !knights.length) return null;
 	const holding = holdingRef(scene.id, seat.id);
 	const ruling = holdingRulers(realmHoldings(), worldDomains(), scene.id, seat.id)[0];
@@ -187,14 +182,16 @@ export async function seatCourtiers(scene) {
 }
 
 /**
- * A Knight who can rule, or take a place at Court: knighted (p7), and alive.
- * @param {Actor} actor
- * @returns {boolean}
+ * @returns {Actor[]} Who a Start seats or offers to rule: the players' Knights who can hold a post,
+ *   or every Knight who can where no player has one.
  */
-const canHoldPost = (actor) => !actor.system?.isSquire && !actor.system?.slain;
+function startKnights() {
+	const players = worldKnights((actor) => actor.hasPlayerOwner && canHoldPost(actor));
+	return players.length ? players : worldKnights(canHoldPost);
+}
 
 /**
- * @param {Actor} domain
+ * @param {{ownership?: Record<string, number>}} domain
  * @param {Actor[]} knights
  * @returns {Record<string, number>} An Observer's look for each of these Knights' players who can't see the Domain yet.
  */
