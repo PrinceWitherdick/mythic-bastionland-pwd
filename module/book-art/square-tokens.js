@@ -23,7 +23,8 @@ export async function useSquareTokens(index) {
 
 	const sceneUpdates = game.scenes
 		.map((scene) => [scene, scene.tokens
-			.filter((token) => token.actor?.type === "knight" && squares.has(token.texture.src))
+			// The picture first: reading an unlinked Token's actor makes it a copy of its own.
+			.filter((token) => squares.has(token.texture.src) && token.actor?.type === "knight")
 			.map((token) => ({ _id: token.id, "texture.src": squares.get(token.texture.src) }))])
 		.filter(([, updates]) => updates.length);
 	await Promise.all(sceneUpdates.map(([scene, updates]) => scene.updateEmbeddedDocuments("Token", updates)));

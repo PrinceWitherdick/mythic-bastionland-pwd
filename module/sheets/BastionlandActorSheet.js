@@ -86,6 +86,26 @@ const ITEM_ROW_ACTIONS = Object.freeze([
 /** Marks the labelled buttons a sheet hangs in its window header. */
 const HEADER_BUTTON = "bastionland-header-button";
 
+/** How many enriched texts are kept, for every sheet. */
+const ENRICHED_KEPT = 500;
+
+/** @type {Map<string, Promise<string>>} Text enriched before, by whether secrets showed and the text, longest unasked for first. */
+const enrichedTexts = new Map();
+
+/**
+ * @param {string} html
+ * @returns {boolean} Whether any enricher registered beside Foundry's own finds something in it.
+ */
+function othersEnrich(html) {
+	return (globalThis.CONFIG?.TextEditor?.enrichers ?? []).some(({ pattern }) => {
+		if (!(pattern instanceof RegExp)) return true;
+		pattern.lastIndex = 0;
+		const found = pattern.test(html);
+		pattern.lastIndex = 0;
+		return found;
+	});
+}
+
 /**
  * @typedef {object} HeaderButton
  * @property {string} action    One of the sheet's actions.
@@ -225,8 +245,12 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
 		const theirs = (combatant) => combatant.actor?.uuid === this.actor.uuid;
-		this._watchHooks(["createCombatant", "updateCombatant", "deleteCombatant"], (combatant) => {
+		this._watchHooks(["createCombatant", "deleteCombatant"], (combatant) => {
 			if (theirs(combatant)) renderWhenIdle(this);
+		});
+		// Their dice for the fight are kept in the combatant's flags; an initiative rolled shows nowhere here.
+		this._watchHooks(["updateCombatant"], (combatant, changes) => {
+			if (theirs(combatant) && ("flags" in changes || "defeated" in changes)) renderWhenIdle(this);
 		});
 		this._watchHooks(["deleteCombat"], (combat) => {
 			if (combat.combatants.some(theirs)) renderWhenIdle(this);
@@ -269,10 +293,28 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 * @returns {Promise<string>}
 	 */
 	_enrich(html) {
-		return foundry.applications.ux.TextEditor.implementation.enrichHTML(html, {
-			secrets: this.actor.isOwner,
-			relativeTo: this.actor
-		});
+		const secrets = this.actor.isOwner;
+		// Every item's description is enriched at each redraw, and most never change, so what came of
+		// one is kept. Not with a link, whose label follows what it names, nor a roll, rolled each time.
+		// Neither of which is the text left, so it's the same whichever actor it's enriched for.
+		// Nor one another module's enricher picks out, which may read what it likes.
+		const keep = typeof html === "string" && !/@|\[\[/.test(html) && !othersEnrich(html);
+		const key = `${secrets}|${html}`;
+		if (keep && enrichedTexts.has(key)) {
+			// Kept as the latest asked for, so the texts every redraw shows outlast those shown once.
+			const enriched = enrichedTexts.get(key);
+			enrichedTexts.delete(key);
+			enrichedTexts.set(key, enriched);
+			return enriched;
+		}
+		const enriched = foundry.applications.ux.TextEditor.implementation.enrichHTML(html, { secrets, relativeTo: this.actor });
+		if (keep) {
+			// The longest unasked for goes first; a draw already waiting on it shares it.
+			if (enrichedTexts.size >= ENRICHED_KEPT) enrichedTexts.delete(enrichedTexts.keys().next().value);
+			enrichedTexts.set(key, enriched);
+			enriched.catch(() => enrichedTexts.delete(key));
+		}
+		return enriched;
 	}
 
 	/**

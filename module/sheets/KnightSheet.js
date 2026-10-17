@@ -41,6 +41,16 @@ import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
 
 /**
+ * @param {object} changes From `updateActor`, to a steed, Squire, master, Domain or successor.
+ * @returns {boolean} Whether it changed what the Knight's page shows of them: their name and
+ *   picture, a steed's breed, and whether this user may rename it.
+ */
+function shownOfLinked(changes) {
+	if (["name", "img", "ownership"].some((key) => key in changes)) return true;
+	return Object.keys(changes.flags?.[SYSTEM_ID] ?? {}).some((key) => key.replace(/^-=/, "") === BREED_FLAG);
+}
+
+/**
  * The Knight character sheet, laid out after the official printed sheet, with
  * the player's own settings on a page of its own.
  *
@@ -512,11 +522,14 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	 */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
-		const redraw = (actor) => {
-			const system = this.actor.system;
-			if (LINKED_ACTORS.some(({ key }) => system[key] === actor.uuid)) this.render();
-		};
-		this._watchHooks(["updateActor", "deleteActor"], redraw);
+		const linked = (actor) => LINKED_ACTORS.some(({ key }) => this.actor.system[key] === actor.uuid);
+		// Only what the page shows of them: a steed's GD falling in a fight, or a Squire's Ledger written, changes nothing here.
+		this._watchHooks(["updateActor"], (actor, changes) => {
+			if (shownOfLinked(changes) && linked(actor)) renderWhenIdle(this);
+		});
+		this._watchHooks(["deleteActor"], (actor) => {
+			if (linked(actor)) renderWhenIdle(this);
+		});
 		// The Knight's table shows due once it comes round, or no longer due once the calendar is set back.
 		this._watchHooks([CALENDAR_HOOK], (after, before, turned) => {
 			const renewal = knightRenewal(this.actor);

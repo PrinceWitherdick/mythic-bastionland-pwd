@@ -688,7 +688,7 @@ const refreshDomainButtons = (actor) => {
 		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshHeaderButtons();
 	}
 };
-Hooks.on("updateActor", refreshDomainButtons);
+Hooks.on("updateActor", (actor, changes) => "name" in changes && refreshDomainButtons(actor));
 Hooks.on("deleteActor", refreshDomainButtons);
 
 // New Site sits in the Journal directory for GMs, and the rulebook for GMs and
