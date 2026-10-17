@@ -276,6 +276,23 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		await takeAttack(dodger, card({ lingers: [{ name: "Lye", damage: "d6", when: "round" }] }));
 		expect(dodger.system.afflictions).toEqual([]);
 	});
+
+	it("writes a blow that Wounds, unhorses, marks and burns in one update, and says each on its card", async () => {
+		const boar = character({ guard: 2, armour: 0 });
+		Object.assign(boar.system, { notes: "<p>Old.</p>", mounted: true });
+		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
+		await takeAttack(boar, card({
+			smiteMark: true,
+			attackerName: "Tal",
+			gambits: [{ key: "dismount" }],
+			lingers: [{ name: "Lye", damage: "d6", when: "round" }, { name: "Lye", damage: "d6", when: "round" }]
+		}));
+		expect(boar.update).toHaveBeenCalledTimes(1);
+		expect(boar.system).toMatchObject({ mounted: false, wounded: true, notes: expect.stringContaining("bastionland.damage.lastingMark") });
+		// The same burn twice is taken once.
+		expect(boar.system.afflictions).toHaveLength(1);
+		expect(postCard.mock.calls.filter((call) => call[1] === "note").map((call) => call[2].icon)).toEqual(["fa-solid fa-eye-slash", "fa-solid fa-fire"]);
+	});
 });
 
 describe("the Timeline", () => {

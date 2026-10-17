@@ -1,5 +1,6 @@
 import { postCard, t } from "../chat/cards.js";
 import { afflictionsAt, tollsByKind, withAffliction } from "../rules/afflictions.js";
+import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 
@@ -26,40 +27,46 @@ export function afflictionLabel(affliction) {
 }
 
 /**
- * Give an affliction to somebody, unless they already carry it.
+ * Give somebody afflictions, leaving out those they already carry.
  * @param {Actor} actor
- * @param {object} affliction Without an id.
- * @returns {Promise<boolean>} Whether they took it.
+ * @param {object[]} afflictions Without ids.
+ * @returns {{update: object, took: string[]}} Their afflictions to write, or nothing where this user may
+ *   not or they took none, and a line for each they took, for the card that says so.
  */
-export async function afflict(actor, affliction) {
-	if (!actor?.isOwner || !actor.system.afflictions) return false;
-	const list = withAffliction(actor.system.afflictions, affliction, foundry.utils.randomID());
-	if (!list) return false;
-	await actor.update({ "system.afflictions": list }, causedBy("hardship"));
-	return true;
+export function afflictionsUpdate(actor, afflictions) {
+	const took = [];
+	if (!actor.isOwner || !actor.system.afflictions) return { update: {}, took };
+	let list = actor.system.afflictions;
+	for (const affliction of afflictions) {
+		const more = withAffliction(list, affliction, foundry.utils.randomID());
+		if (!more) continue;
+		list = more;
+		took.push(t("afflictions.took", { name: actor.name, affliction: afflictionLabel(affliction) }));
+	}
+	return { update: took.length ? { "system.afflictions": list } : {}, took };
 }
 
 /**
  * One of the Cast passes on what it causes to everybody this user has
- * targeted, such as infection to those it touched. Whether they caught it at
- * all, a VIG Save for the Plague, is the Referee's to settle first.
+ * targeted, such as infection to those it touched, unless they already carry
+ * it. Whether they caught it at all, a VIG Save for the Plague, is the
+ * Referee's to settle first.
  * @param {Actor} source The NPC that causes it.
  * @returns {Promise<string[]|null>} Who took it, or null with nobody targeted.
  */
 export async function afflictTargets(source) {
-	const inflicts = source?.system.inflicts ?? [];
+	const inflicts = (source?.system.inflicts ?? []).map(({ id: _id, ...affliction }) => affliction);
 	if (!inflicts.length) return null;
-	const victims = [...game.user.targets].map((token) => token.actor).filter(Boolean);
+	// Once each, though two of the Tokens targeted are one linked actor.
+	const victims = [...new Set([...game.user.targets].map((token) => token.actor).filter(Boolean))];
 	if (!victims.length) {
 		ui.notifications.warn(t("afflictions.noTargets"));
 		return null;
 	}
-	const took = [];
-	for (const victim of victims) {
-		for (const { id: _id, ...affliction } of inflicts) {
-			if (await afflict(victim, affliction)) took.push(t("afflictions.took", { name: victim.name, affliction: afflictionLabel(affliction) }));
-		}
-	}
+	// Everything each victim takes in one write, and every victim at once.
+	const given = victims.map((victim) => [victim, afflictionsUpdate(victim, inflicts)]);
+	await updateActors(given.filter(([, { took }]) => took.length).map(([victim, { update }]) => [victim, update]), causedBy("hardship"));
+	const took = given.flatMap(([, { took }]) => took);
 	if (took.length) await postCard(source, "note", { icon: "fa-solid fa-virus", text: took.join(" ") });
 	return took;
 }

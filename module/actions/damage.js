@@ -7,7 +7,7 @@ import { WARDED_OUTCOMES, applyDoom, armourAgainst, resolveDamage, spiritOutcome
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
 import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
-import { afflict, afflictionLabel } from "./afflictions.js";
+import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
 import { marksOn } from "../chat/gambit-marks.js";
@@ -207,6 +207,8 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
  *   their Armour as it stands, unless the Damage ignores it.
  * @param {string} [preset.cause] What dealt it, said on the card.
  * @param {string} [preset.by] Actor UUID of whoever dealt it, when an Attack card knows: the Timeline names them.
+ * @param {(result: import("../rules/damage.js").DamageResult) => object} [preset.also] More of the actor
+ *   to change with the blow, by the outcome, written in the same update as the Damage.
  * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
  */
 export async function takeDamage(actor, preset = {}) {
@@ -263,6 +265,8 @@ export async function takeDamage(actor, preset = {}) {
 	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false });
 	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
 	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
+	// Whatever else the blow leaves on them goes in the same write.
+	if (preset.also) Object.assign(update, preset.also(result));
 	await actor.update(update, causedBy("damage"));
 	// The Timeline's row is written beside the card, which needn't wait for it.
 	let recorded = null;
@@ -581,6 +585,10 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 	// creatures a structure, or siege weapons stone (p11). In a joint Attack only the dice of
 	// shares that can harm them count, and cover, Armour and Slaying follow the die that does (p8).
 	const blow = damageAgainst(attack, harmTargetOf(actor.system));
+	const marker = lastingMarkBy(attack);
+	const marks = (result) => marker !== null && !sparring && !blow.spirit && WOUNDING_OUTCOMES.includes(result?.outcome);
+	/** What burns on, given to them with the blow; said on a card of its own after. */
+	let took = [];
 	const result = await takeDamage(actor, {
 		damage: blow.damage,
 		ignoreArmour: blow.ignoresArmour,
@@ -593,22 +601,31 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 		// A blow an Ability says harms SPI rather than VIG (p68).
 		virtue: blow.spirit ? "spi" : "vig",
 		by: blow.dealer,
-		quick
+		quick,
+		also: (landed) => {
+			const also = {};
+			if (marks(landed)) Object.assign(also, lastingMarkUpdate(actor, marker));
+			// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
+			if (dismountLanded(attack) && actor.system.mounted === true) also["system.mounted"] = false;
+			// Acid that burns on, each round, until washed off (p173).
+			if (!sparring && LINGERING_OUTCOMES.includes(landed.outcome)) {
+				const lingering = afflictionsUpdate(actor, lingeringAfflictions(attack.lingers ?? []));
+				Object.assign(also, lingering.update);
+				took = lingering.took;
+			}
+			return also;
+		}
 	});
 	// A Humiliation remembers whoever rolled the die that counted, in a joint Attack.
 	if (scars && result?.outcome === "scar") await rollScar(actor, { faces: blow.faces, by: blow.dealer });
-	const marker = lastingMarkBy(attack);
-	if (marker !== null && !sparring && !blow.spirit && WOUNDING_OUTCOMES.includes(result?.outcome)) await leaveLastingMark(actor, marker);
-	// Dismounted (p10): off their steed, whose trample no longer joins their Attacks.
-	if (result && dismountLanded(attack) && actor.system.mounted === true) await actor.update({ "system.mounted": false }, causedBy("damage"));
+	if (marks(result)) await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text: lastingMarkText(actor, marker) });
 	// A bite that takes back the VIG its Wound costs (p166).
 	if (blow.drain && !blow.spirit && result?.vigourLoss > 0 && !sparring) await drainTo(blow.dealer, actor, result.vigourLoss);
 	// Or one that lowers them into normal sleep, or shows them a memory, if it Wounds (p166).
 	if (!blow.spirit && result?.vigourLoss > 0 && !sparring && result.outcome !== "slain") {
 		for (const key of attack.onWound ?? []) await postCard(actor, "note", { icon: ON_WOUND_ICONS[key], text: t(`damage.onWound.${key}`, { name: actor.name }) });
 	}
-	// Acid that burns on, each round, until washed off (p173).
-	if (!sparring && LINGERING_OUTCOMES.includes(result?.outcome)) await leaveLingering(actor, attack.lingers ?? []);
+	if (took.length) await postCard(actor, "note", { icon: "fa-solid fa-fire", text: took.join(" ") });
 	return result;
 }
 
@@ -641,31 +658,32 @@ async function drainTo(dealerUuid, victim, amount) {
 }
 
 /**
- * Leave on somebody whatever an Attack's weapons burn on with, as acid does
- * each round until washed off (p173): an affliction they carry until cured.
- * @param {Actor} actor
+ * Whatever an Attack's weapons burn on with, as acid does each round until
+ * washed off (p173): afflictions those it lands on carry until cured.
  * @param {{name: string, damage: string, when: string, ignoresArmour?: boolean}[]} lingers
+ * @returns {object[]}
  */
-async function leaveLingering(actor, lingers) {
-	const took = [];
-	for (const entry of lingers) {
-		const affliction = lingeringAffliction({ name: entry.name, system: { damage: entry.damage, lingers: entry.when, ignoresArmour: entry.ignoresArmour } });
-		if (affliction && (await afflict(actor, affliction))) took.push(t("afflictions.took", { name: actor.name, affliction: afflictionLabel(affliction) }));
-	}
-	if (took.length) await postCard(actor, "note", { icon: "fa-solid fa-fire", text: took.join(" ") });
-}
+const lingeringAfflictions = (lingers) => lingers
+	.map((entry) => lingeringAffliction({ name: entry.name, system: { damage: entry.damage, lingers: entry.when, ignoresArmour: entry.ignoresArmour } }))
+	.filter(Boolean);
 
 /**
  * A Smite made to leave a lasting mark rather than more Damage, such as a
- * dagger through the eye, leaves it once the blow Wounds (p187). The card says
+ * dagger through the eye, leaves it once the blow Wounds (p187). A card says
  * so and the target's notes keep it, for the table to describe.
  * @param {Actor} actor
  * @param {string} attacker Who Smote for it, from lastingMarkBy.
  */
-async function leaveLastingMark(actor, attacker) {
-	const text = t("damage.lastingMark", { name: actor.name, attacker });
-	if (typeof actor.system.notes === "string" && actor.isOwner) await actor.update({ "system.notes": `${actor.system.notes}<p>${escapeHTML(text)}</p>` }, causedBy("damage"));
-	await postCard(actor, "note", { icon: "fa-solid fa-eye-slash", text });
+const lastingMarkText = (actor, attacker) => t("damage.lastingMark", { name: actor.name, attacker });
+
+/**
+ * @param {Actor} actor
+ * @param {string} attacker
+ * @returns {object} Their notes with the mark kept at the foot, where this user may write them.
+ */
+function lastingMarkUpdate(actor, attacker) {
+	if (typeof actor.system.notes !== "string" || !actor.isOwner) return {};
+	return { "system.notes": `${actor.system.notes}<p>${escapeHTML(lastingMarkText(actor, attacker))}</p>` };
 }
 
 /**
