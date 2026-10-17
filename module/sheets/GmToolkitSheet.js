@@ -12,6 +12,7 @@ import { getHexShared } from "../actions/hex-shared.js";
 import { getTrackedHexes, setHexTracked } from "../actions/hex-tracked.js";
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { getJourney, visitsLabel } from "../actions/journey.js";
+import { hexStoreFlags, realmSceneChanges } from "../actions/scene-changes.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
@@ -76,6 +77,36 @@ const TAB_ICONS = Object.freeze({
  * Time page lists the Realm's resolved Myths, waiting on the Season's turn.
  */
 const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
+
+/** Pages drawn from the Realm that, while another page is open, wait to be drawn again until they're opened. */
+const DEFERRED_PARTS = new Set([...REALM_TABS, "time"]);
+
+/**
+ * The parts one of the Realm's per-hex flags shows in, as scene-changes.js lists them.
+ * @param {string} flag
+ * @returns {readonly string[]}
+ */
+const hexFlagParts = (flag) => (hexStoreFlags().get(flag)?.toolkit ?? []).flatMap((part) => (part === "realm" ? REALM_PARTS : [part]));
+
+/**
+ * @param {object} known
+ * @param {Record<string, () => unknown>} reads
+ * @returns {object} `known`, with a field for each of `reads`, read the first time it's asked for and kept.
+ */
+function readWhenAsked(known, reads) {
+	for (const [key, read] of Object.entries(reads)) {
+		Object.defineProperty(known, key, {
+			configurable: true,
+			enumerable: true,
+			get() {
+				const value = read();
+				Object.defineProperty(this, key, { value, enumerable: true });
+				return value;
+			}
+		});
+	}
+	return known;
+}
 
 /** A field a redraw would disturb: any in use, and a dropdown, which a redraw would close while it's open. */
 const BUSY = `${IN_USE}, select`;
@@ -265,18 +296,16 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
 		const realm = realmKnown(entry?.realm ?? null);
+		// The rest is read only when a part being drawn asks for it: most redraws are of a page or two.
 		return Object.assign(context, {
-			realmData: realm && {
-				scene,
-				realm,
-				g: sceneGeometry(scene),
-				lore: getHexLore(scene),
-				journey: getJourney(scene),
-				shared: getHexShared(scene),
-				tracked: getTrackedHexes(scene),
-				notes: getMythNotes(scene),
-				companyHex: companyTokenHex(scene)
-			}
+			realmData: realm && readWhenAsked({ scene, realm, g: sceneGeometry(scene) }, {
+				lore: () => getHexLore(scene),
+				journey: () => getJourney(scene),
+				shared: () => getHexShared(scene),
+				tracked: () => getTrackedHexes(scene),
+				notes: () => getMythNotes(scene),
+				companyHex: () => companyTokenHex(scene)
+			})
 		});
 	}
 
@@ -284,6 +313,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	async _preparePartContext(partId, context, options) {
 		const part = { ...(await super._preparePartContext(partId, context, options)) };
 		part.tab = context.tabs?.[partId];
+		this.#hiddenStale.delete(partId);
 		const data = context.realmData;
 		switch (partId) {
 			case "header": return Object.assign(part, this.#headerContext(data));
@@ -823,13 +853,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			if (scene) ringHoveredHex(scene, hex, holder);
 		});
 		const onRealmDocument = (document) => {
-			const sceneId = document.documentName === "Scene" ? document.id : document.parent?.id;
-			if (sceneId === this.scene?.id) this.#redraw(...REALM_PARTS);
+			if (document.parent?.id === this.scene?.id) this.#redraw(...REALM_PARTS);
 		};
 		// A Realm made, renamed, unmade or deleted changes the choice of Realms, and can change the one on show.
-		// Other changes to a Scene only matter when it's the one on show, which onRealmDocument hears.
 		const onScenes = () => this.#redraw(...REALM_PARTS);
-		const onSceneChange = (_scene, changes) => ("name" in changes || changes.flags?.[SYSTEM_ID]) && onScenes();
+		// Most writes to the Realm on show are what's kept for its hexes, which only some pages show,
+		// or the weather, which none does. Another Realm's hexes don't show here at all.
+		const onSceneChange = (scene, changes) => {
+			const { realm, system, hexFlags } = realmSceneChanges(changes);
+			if ("name" in changes || (realm && (system || scene.id === this.scene?.id))) return onScenes();
+			if (scene.id === this.scene?.id) this.#redraw(...[...hexFlags].flatMap(hexFlagParts));
+		};
 		const onCompany = (token) => {
 			if (token.parent?.id === this.scene?.id && token.getFlag?.(SYSTEM_ID, COMPANY_FLAG)) this.#redraw("header", "places");
 		};
@@ -845,7 +879,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
 		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
 		this.#hooks = [
-			...["createTile", "updateTile", "deleteTile", "updateScene"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
+			...["createTile", "updateTile", "deleteTile"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
 			...["createScene", "deleteScene"].map((name) => [name, Hooks.on(name, onScenes)]),
 			["updateScene", Hooks.on("updateScene", onSceneChange)],
 			...["createToken", "deleteToken"].map((name) => [name, Hooks.on(name, onCompany)]),
@@ -952,14 +986,32 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	#redraw(...parts) {
 		for (const part of parts) this.#stale.add(part);
-		if (this.#redrawing) return;
+		if (this.#redrawing || !this.#stale.size) return;
 		this.#redrawing = true;
 		setTimeout(() => {
 			this.#redrawing = false;
-			const stale = [...this.#stale];
+			// A page drawn from the Realm that isn't open waits until it is.
+			const open = this.tabGroups.primary;
+			const stale = [...this.#stale].filter((part) => {
+				if (!DEFERRED_PARTS.has(part) || part === open) return true;
+				this.#hiddenStale.add(part);
+				return false;
+			});
 			this.#stale.clear();
 			if (stale.length) renderWhenIdle(this, { parts: stale, busy: BUSY });
 		}, REDRAW_DELAY);
+	}
+
+	/** Pages that missed a change while another was open. */
+	#hiddenStale = new Set();
+
+	/**
+	 * A page that missed a change while hidden is drawn again as it's opened.
+	 * @override
+	 */
+	changeTab(tab, group, options) {
+		super.changeTab(tab, group, options);
+		if (this.#hiddenStale.has(tab)) renderWhenIdle(this, { parts: [tab], busy: BUSY });
 	}
 
 	/* -------------------------------------------- */

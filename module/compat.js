@@ -66,6 +66,22 @@ export function replacementEntry(path, value) {
 	return [`${path.slice(0, i + 1)}==${path.slice(i + 1)}`, value];
 }
 
+/**
+ * How a key of the changes an update hook is handed was written. v13's keep
+ * the `-=` and `==` prefixes they were asked with; v14's keep the
+ * ForcedDeletion or ForcedReplacement, and read the old prefixes as those.
+ * @param {string} key
+ * @param {*} value
+ * @returns {{name: string, whole: boolean}} The key's own name, and whether it was deleted or replaced whole
+ *   rather than merged into.
+ */
+export function changedKey(key, value) {
+	const prefixed = /^(-=|==)/.test(key);
+	const operators = globalThis.foundry?.data?.operators;
+	const is = (operator) => typeof operator === "function" && value instanceof operator;
+	return { name: prefixed ? key.slice(2) : key, whole: prefixed || is(operators?.ForcedDeletion) || is(operators?.ForcedReplacement) };
+}
+
 /** v13's name for each of v14's message modes. */
 const ROLL_MODES = Object.freeze({ public: "publicroll", gm: "gmroll", blind: "blindroll", self: "selfroll" });
 

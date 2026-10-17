@@ -102,7 +102,8 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 	});
 
 	it("is drawn again as the Realm changes, and Places while it is drawn by hand", () => {
-		expect(hooks).toMatch(/refreshMythChooser\(sceneId\);\s*refreshHexEditor\(sceneId\);/);
+		// Whatever changed, the Realm or only what's kept for its hexes.
+		expect(hooks).toMatch(/refreshSeerChooser\(sceneId\);\s*\}\s*refreshHexEditor\(sceneId\);/);
 		expect(hooks).toMatch(/if \(isDrawingRealm\(game\.scenes\.get\(sceneId\)\)\) refreshPlaces\(sceneId\);\s*else Hooks\.callAll\(TRAVELS_CHANGED_HOOK, sceneId\);/);
 	});
 });

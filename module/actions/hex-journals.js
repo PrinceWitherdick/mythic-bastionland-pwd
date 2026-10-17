@@ -10,20 +10,17 @@ import {
 	noteMarkdown,
 	noteWithPage
 } from "../rules/hex-journal.js";
-import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
-import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
 import { hexKey, parseHexKey } from "../rules/realm-geometry.js";
-import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { playerHexView, viewWords } from "../rules/travels.js";
 import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { read } from "../client-settings.js";
 import { JOURNAL_FOLDER_COLOR, flaggedFolder } from "./folders.js";
 import { afterBurst, entrySnapshot, openKeptJournal, pageByRole, pageMarkdown, withHtml, writePlannedPages } from "./kept-journals.js";
-import { HEX_LORE_FLAG, getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
+import { getHexLore, getHexRecord, writeHexNotes } from "./hex-lore.js";
 import { partyNoteBy } from "./hex-shared.js";
-import { JOURNEY_FLAG } from "./journey.js";
 import { isDrawingRealm, isRealmScene, realmWritesSettled } from "./realm.js";
+import { changedHexKeys, hexStoreFlags, realmSceneChanges } from "./scene-changes.js";
 import { barrierMetLines, toldLines, travelsSources, visitsText } from "./travels.js";
 
 /**
@@ -167,16 +164,19 @@ const snapshot = (entry) => entrySnapshot(entry, HEX_LAYOUT, Boolean(hexJournalF
  * @param {Scene|null} scene
  * @param {object} [options]
  * @param {string[]} [options.also] The keys of hexes the GM asked an entry for, though nothing is kept for them.
+ * @param {Set<string>|null} [options.only] The keys of the only hexes that changed, when that's known:
+ *   each entry is made from its own hex alone, so the rest are as they were.
  * @returns {Promise<void>}
  */
-export async function syncHexJournals(scene, { also = [] } = {}) {
-	if (!keepsJournals() || !isRealmScene(scene)) return;
+export async function syncHexJournals(scene, { also = [], only = null } = {}) {
+	// Nothing an entry shows changed, as when a hex was only tracked: the whole Realm's record needn't be read.
+	if (!keepsJournals() || !isRealmScene(scene) || only?.size === 0) return;
 	const sources = travelsSources(scene);
 	if (!sources) return;
 	const existing = entriesOf(scene.id);
 	if (!carried.has(scene)) await carryOldNotes(scene, existing);
 	const keys = dueHexKeys({ lore: getHexLore(scene).hexes, shared: sources.shared.hexes, names: sources.names.hexes, existing: existing.keys(), also });
-	const hexes = [...keys].map(parseHexKey).filter(Boolean);
+	const hexes = [...keys].filter((key) => !only || only.has(key)).map(parseHexKey).filter(Boolean);
 	if (!hexes.length) return;
 
 	const made = [];
@@ -215,9 +215,18 @@ const queueSync = serialWrites();
  */
 function syncRealms(ids) {
 	for (const id of ids) {
-		queueSync(() => syncHexJournals(game.scenes.get(id))).catch((error) => console.error(`${SYSTEM_ID} | Couldn't bring the Journal entries of a Realm's hexes up to date`, error));
+		const only = dueHexes.get(id) ?? null;
+		dueHexes.delete(id);
+		queueSync(() => syncHexJournals(game.scenes.get(id), { only })).catch((error) => console.error(`${SYSTEM_ID} | Couldn't bring the Journal entries of a Realm's hexes up to date`, error));
 	}
 }
+
+/**
+ * The hexes each Realm's waiting sync is for, by Scene id: a Set of their keys,
+ * or null for every hex, as for a change to the Realm itself.
+ * @type {Map<string, Set<string>|null>}
+ */
+const dueHexes = new Map();
 
 /**
  * Bring a Realm's entries up to date once the writes in hand have landed. A
@@ -226,9 +235,34 @@ function syncRealms(ids) {
  */
 const syncLater = afterBurst(syncRealms, () => realmWritesSettled());
 
-/** @param {string|undefined} sceneId */
-function syncSoon(sceneId) {
-	if (sceneId && keepsJournals()) syncLater(sceneId);
+/**
+ * @param {string|undefined} sceneId
+ * @param {string[]|null} [keys] The hexes that changed, or null for any of them.
+ */
+function syncSoon(sceneId, keys = null) {
+	if (!sceneId || !keepsJournals()) return;
+	const due = dueHexes.has(sceneId) ? dueHexes.get(sceneId) : new Set();
+	if (!keys || !due) dueHexes.set(sceneId, null);
+	else dueHexes.set(sceneId, new Set([...due, ...keys]));
+	syncLater(sceneId);
+}
+
+/**
+ * @param {object} changes An updateScene's.
+ * @returns {string[]|null} The hexes whose entries a write of what's kept for them changed, or null
+ *   when the Realm itself changed, or a flag was written some way that doesn't say.
+ */
+function changedHexes(changes) {
+	const { realm, hexFlags: written } = realmSceneChanges(changes);
+	if (realm) return null;
+	const keys = [];
+	for (const flag of hexFlags()) {
+		if (!written.has(flag)) continue;
+		const changed = changedHexKeys(changes, flag);
+		if (!changed) return null;
+		keys.push(...changed);
+	}
+	return keys;
 }
 
 /** Every Realm's entries, as the world loads or the setting is turned on. */
@@ -265,8 +299,8 @@ export async function deleteHexJournals(sceneIds) {
 	return entries.length;
 }
 
-/** The Scene's flags that hold what's kept for its hexes, as against the Realm's own. */
-const hexFlags = () => [HEX_LORE_FLAG, HEX_SHARED_FLAG, HEX_NAMES_FLAG, JOURNEY_FLAG, SIGHTED_FLAG];
+/** The Scene's flags that hold what's kept for its hexes and their entries show, as against the Realm's own. */
+const hexFlags = () => [...hexStoreFlags()].filter(([, { journal }]) => journal).map(([flag]) => flag);
 
 /**
  * Whether a change to a Scene is due its hexes' entries brought up to date.
@@ -281,7 +315,8 @@ export function syncDue(scene, changes = null) {
 	const flags = changes?.flags?.[SYSTEM_ID];
 	if (changes && !flags) return false;
 	if (!isDrawingRealm(scene)) return true;
-	return Boolean(flags) && hexFlags().some((key) => key in flags || `-=${key}` in flags);
+	const { hexFlags: written } = realmSceneChanges(changes);
+	return hexFlags().some((key) => written.has(key));
 }
 
 /** Register the setting, and follow every Realm's changes. Called during init. */
@@ -298,7 +333,7 @@ export function registerHexJournals() {
 
 	// What's kept for a hex, its visits, what was told and the Company's note are all the Scene's flags.
 	Hooks.on("updateScene", (scene, changes) => {
-		if (syncDue(scene, changes)) syncSoon(scene.id);
+		if (syncDue(scene, changes)) syncSoon(scene.id, changedHexes(changes));
 	});
 	// A Realm is read from its Tiles and Drawings, so a Holding renamed or a Myth found changes its hex's entry.
 	const onDocument = (document) => {
