@@ -81,16 +81,8 @@ const waiting = new Map();
  */
 function appendLedger(actor, entries, { userId = game.user.id, cause } = {}) {
 	if (!keepsLedger(actor) || !entries?.length) return;
-	const user = game.users.get(userId);
 	// Stamped now, not when their turn to be written comes.
-	const stamped = entries.map((entry) => ({
-		id: foundry.utils.randomID(),
-		timestamp: Date.now(),
-		userId,
-		userName: user?.name ?? "",
-		...(cause ? { cause } : {}),
-		...entry
-	}));
+	const stamped = stamp(entries, { userId, cause });
 	const key = actor.uuid;
 	const batch = waiting.get(key);
 	if (batch) {
@@ -133,8 +125,81 @@ function readChanges(actor, doc, changes, options, read) {
 	const entries = read(foundry.utils.flattenObject(changes));
 	// Set or cleared every time, so options passed again to a later update don't carry this one's lines.
 	const pending = options[PENDING_OPTION] ??= {};
-	if (entries.length) pending[doc.id] = entries;
-	else delete pending[doc.id];
+	delete pending[doc.id];
+	if (options[LANDING_OPTION]) delete options[LANDING_OPTION][doc.id];
+	if (!entries.length) return;
+	if (doc === actor && writeWithChange(actor, changes, entries, options)) return;
+	pending[doc.id] = entries;
+}
+
+/**
+ * Write a Knight's own change's lines into their Ledger in the same update as
+ * the change, rather than in a second one after it: every client hears each
+ * update of an actor, and the Ledger is sent whole each time. Not while
+ * another write of their Ledger is on its way, which this one would undo, nor
+ * into an update that replaces what it doesn't name, which would lose the rest
+ * of their flags, nor for a Token's own copy of a Knight, whose update goes by
+ * way of the Token.
+ * @param {Actor} actor
+ * @param {object} changes As `preUpdateActor` hands them, which may still be changed.
+ * @param {object[]} entries
+ * @param {object} options
+ * @returns {boolean} Whether the lines went in.
+ */
+function writeWithChange(actor, changes, entries, options) {
+	if (actor.isToken || options.recursive === false || writes.has(actor.uuid) || foundry.utils.hasProperty(changes, LEDGER_PATH)) return false;
+	foundry.utils.setProperty(changes, LEDGER_PATH, writeIntoLedger(ledgerEntries(actor), stamp(entries, { cause: options[CAUSE_OPTION] }), t));
+	// Every later write of their Ledger, in an update of its own or another's, waits for this one to be heard
+	// back, as it reads what this one sends. A change refused is never heard back, and waited for only so long.
+	const id = foundry.utils.randomID();
+	(options[LANDING_OPTION] ??= {})[actor.id] = id;
+	const heard = new Promise((resolve) => {
+		const timer = setTimeout(() => landing.delete(id) && resolve(), LANDING_WAIT);
+		landing.set(id, () => {
+			clearTimeout(timer);
+			resolve();
+		});
+	});
+	queueWrite(actor, () => heard);
+	return true;
+}
+
+/** Carries the id of each Knight's change whose update has their Ledger in it, by the Knight's id. */
+const LANDING_OPTION = "bastionlandLedgerLanding";
+
+/** How long a Ledger written with a change is waited for, in milliseconds. */
+const LANDING_WAIT = 10000;
+
+/** @type {Map<string, () => void>} Each Ledger written with a change still to be heard back, by the change's id. */
+const landing = new Map();
+
+/**
+ * @param {Actor} actor
+ * @param {object} options An `updateActor`'s.
+ */
+function landed(actor, options) {
+	const id = options[LANDING_OPTION]?.[actor.id];
+	landing.get(id)?.();
+	landing.delete(id);
+}
+
+/**
+ * @param {import("../rules/ledger.js").LedgerEntry[]} entries
+ * @param {object} [options]
+ * @param {string} [options.userId] Who made the change.
+ * @param {string} [options.cause]
+ * @returns {object[]} Them stamped with who and when.
+ */
+function stamp(entries, { userId = game.user.id, cause } = {}) {
+	const user = game.users.get(userId);
+	return entries.map((entry) => ({
+		id: foundry.utils.randomID(),
+		timestamp: Date.now(),
+		userId,
+		userName: user?.name ?? "",
+		...(cause ? { cause } : {}),
+		...entry
+	}));
 }
 
 /**
@@ -163,6 +228,7 @@ export function registerLedgerHooks() {
 	Hooks.on("preUpdateActor", (actor, changes, options) => readChanges(actor, actor, changes, options, (flat) => knightChanges(actor, flat, ledgerContext())));
 	Hooks.on("updateActor", (actor, changes, options, userId) => {
 		refreshOpenLedger(actor, changes);
+		landed(actor, options);
 		writeChanges(actor, actor, options, userId);
 	});
 	Hooks.on("preUpdateItem", (item, changes, options) => readChanges(item.parent, item, changes, options, (flat) => itemChanges(item, flat, ledgerContext())));
