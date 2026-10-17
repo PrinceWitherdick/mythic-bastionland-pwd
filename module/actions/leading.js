@@ -4,6 +4,7 @@
  * next turn.
  */
 
+import { updateActors } from "./actor-updates.js";
 import { worldKnights } from "./knights.js";
 
 /**
@@ -46,7 +47,7 @@ async function onTurnChange(combat, _prior, current) {
 	for (const actor of [...game.actors, ...combat.combatants.map((combatant) => combatant.actor)]) {
 		if (actor?.type === "npc" && actor.system.leader === leader.uuid) led.set(actor.uuid, actor);
 	}
-	await Promise.all([...led.values()].map((warband) => warband.update({ "system.leader": "" })));
+	await updateActors([...led.values()].map((warband) => [warband, { "system.leader": "" }]));
 }
 
 /** Called during init. */

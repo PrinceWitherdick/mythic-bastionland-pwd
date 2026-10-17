@@ -18,7 +18,7 @@ import { getJourney } from "./journey.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { chooseCompany, virtueLoss } from "./time.js";
-import { causedBy } from "./ledger.js";
+import { restoreVirtueOfEach } from "./recovery.js";
 
 /**
  * What a Landmark asks of the Company that finds it (p14): a Monument's
@@ -123,14 +123,7 @@ export async function restoreAtMonument() {
 	});
 	if (!company) return null;
 
-	const entries = [];
-	const updates = [];
-	for (const actor of company) {
-		const value = actor.system.virtues[virtue].max;
-		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("landmark")));
-		entries.push({ name: actor.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] });
-	}
-	await Promise.all(updates);
+	const entries = await restoreVirtueOfEach(company, virtue, "landmark");
 	await postCard(null, "report", {
 		title: t("realm.landmarks.effects.monument.offer"),
 		tagline: t("realm.landmarks.monument"),

@@ -1,3 +1,5 @@
+import { updateActors } from "./actor-updates.js";
+
 /** The world setup step that marks the dead of worlds from before Slain was a mark. */
 export const SLAIN_STEP = "slainMark";
 
@@ -19,10 +21,7 @@ const unmarkedAtZero = (actor) => actor?.system?.slain === false && actor.system
  */
 export async function markTheSlain() {
 	const steeds = new Set(game.actors.map((actor) => actor.system?.steed).filter(Boolean));
-	const updates = game.actors
-		.filter((actor) => unmarkedAtZero(actor) && !steeds.has(actor.uuid))
-		.map((actor) => ({ _id: actor.id, "system.slain": true }));
-	if (updates.length) await Actor.implementation.updateDocuments(updates);
-	const loose = game.scenes.contents.flatMap((scene) => scene.tokens.filter((token) => !token.actorLink && unmarkedAtZero(token.actor)));
-	await Promise.all(loose.map((token) => token.actor.update({ "system.slain": true })));
+	const world = game.actors.filter((actor) => unmarkedAtZero(actor) && !steeds.has(actor.uuid));
+	const loose = game.scenes.contents.flatMap((scene) => scene.tokens.filter((token) => !token.actorLink && unmarkedAtZero(token.actor)).map((token) => token.actor));
+	await updateActors([...world, ...loose].map((actor) => [actor, { "system.slain": true }]));
 }

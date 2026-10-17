@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /** passTime runs once the calendar has moved on: what the turn brings is dated the Season that ended, beside the turn's own row. */
 
+// Each actor written on its own, so a test reads what each was given.
+vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn(), inputDialog: vi.fn() }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythEntry: () => null }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => null), t: (key) => key }));

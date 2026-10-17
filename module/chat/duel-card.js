@@ -2,6 +2,7 @@ import { takeAttack } from "../actions/damage.js";
 import { DUEL_QUERY, duelistScores, duelOf, onDuelQuery, saveDuelChange } from "../actions/duel.js";
 import { CALENDAR_HOOK } from "../actions/calendar.js";
 import { adjustGlory } from "../actions/glory.js";
+import { updateActors } from "../actions/actor-updates.js";
 import { causedBy } from "../actions/ledger.js";
 import { timelineDuel } from "../actions/timeline-events.js";
 import { confirmDialog } from "../apps/ui.js";
@@ -103,11 +104,12 @@ async function shakeOff(duel, actors, outcome, { quiet = false } = {}) {
 	const changes = shakenOff(duel, now);
 	if (quiet && !changes.length) return;
 	const entries = [];
+	const updates = [];
 	for (const { uuid, from, to } of changes) {
 		const actor = actors[duel.duelists.findIndex((duelist) => duelist.uuid === uuid)];
 		const update = { "system.guard.value": to.guard, "system.wounded": to.wounded };
 		if (to.vigour !== null) update["system.virtues.vig.value"] = to.vigour;
-		await actor.update(update, causedBy("recovery"));
+		updates.push([actor, update]);
 		const lines = [
 			to.guard !== from.guard && t("duel.shaken.guard", { from: from.guard, to: to.guard }),
 			to.vigour !== from.vigour && t("duel.shaken.vigour", { from: from.vigour, to: to.vigour }),
@@ -115,6 +117,8 @@ async function shakeOff(duel, actors, outcome, { quiet = false } = {}) {
 		].filter(Boolean);
 		entries.push({ name: actor.name, lines });
 	}
+	// Both duelists in one write.
+	await updateActors(updates, causedBy("recovery"));
 	await postCard(null, "report", {
 		title: t("duel.shaken.title"),
 		tagline: outcome,

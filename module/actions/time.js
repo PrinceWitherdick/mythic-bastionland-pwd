@@ -28,6 +28,7 @@ import {
 	nextSeason,
 	seasonKey
 } from "../rules/time.js";
+import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
@@ -248,7 +249,7 @@ export async function passTime(company, { newAge, before }) {
 		updates.push([actor, update]);
 		entries.push({ name: actor.name, actorId: actor.id, pursuit: pursuit ? t(`time.pursuits.${pursuit}.label`) : null, lines });
 	}
-	await Promise.all(updates.map(([actor, update]) => actor.update(update, causedBy("season"))));
+	await updateActors(updates, causedBy("season"));
 	// Written once the Glory is, as adjustGlory does, which the Age's turn doesn't go through.
 	await Promise.all(ranks.map(([actor, change]) => recordRankReached(actor, change, { when: ended })));
 	// After the Company's own updates, so a successor who is also in the Company
@@ -697,10 +698,10 @@ export async function virtueLoss(actors, virtue, { title }) {
 		if (!taken.length) continue;
 		const [{ roll, from, to }] = taken;
 		rolls.push(roll);
-		updates.push(actor.update(update, causedBy("hardship")));
+		updates.push([actor, update]);
 		entries.push({ name: actor.name, lines: [t("time.hardship.lost", { amount: roll.total, virtue: abbr, from, to })] });
 	}
-	await Promise.all(updates);
+	await updateActors(updates, causedBy("hardship"));
 	await postCard(null, "report", { title, tagline: calendarLabel(getCalendar()), entries, hint: t("time.hardship.notDamage") }, { rolls });
 	return entries;
 }

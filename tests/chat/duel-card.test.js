@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDuel } from "../../module/rules/duel.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
+// Each actor written on its own, so a test reads what each was given.
+vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/apps/ui.js", () => ({ inputDialog: vi.fn(async () => null), confirmDialog: vi.fn(async () => true) }));
 vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	...(await importOriginal()),
