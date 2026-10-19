@@ -5807,6 +5807,7 @@ button.bastionland-dice:focus-visible {
    RealmDrawing, and Place the Company over it, placed by CompanyButton. */
 button.bastionland-realm-drawing__finish,
 button.bastionland-company-button {
+	--map-button-lift: 0 2px 8px rgb(0 0 0 / 45%);
 	position: fixed;
 	z-index: calc(var(--z-index-canvas, 0) + 1);
 	width: auto;
@@ -5816,7 +5817,7 @@ button.bastionland-company-button {
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	box-shadow: var(--map-button-lift);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
@@ -5835,6 +5836,61 @@ button.bastionland-company-button:hover,
 button.bastionland-company-button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
+}
+
+/* The Company off the map is the one thing standing between the Referee and
+   play, so its button is filled in rubric and a ring swells out from it until
+   it's hovered. The ring is a layer of its own that only grows and fades, so
+   it never repaints over the canvas, and the button's transform (its scale) is
+   left alone. Drawn under the words; the button is a stacking context, being
+   fixed, so the ring stays inside it. */
+button.bastionland-company-button {
+	border-color: var(--bastionland-rubric);
+	background: var(--bastionland-rubric);
+	color: var(--bastionland-paper);
+}
+
+button.bastionland-company-button::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: -1px;
+	border-radius: inherit;
+	background: color-mix(in srgb, var(--bastionland-rubric) 70%, transparent);
+	pointer-events: none;
+	animation: bastionland-company-call 2.2s ease-out infinite;
+}
+
+button.bastionland-company-button:hover,
+button.bastionland-company-button:focus-visible {
+	border-color: var(--bastionland-ink);
+}
+
+button.bastionland-company-button:is(:hover, :focus-visible)::after {
+	content: none;
+}
+
+@keyframes bastionland-company-call {
+	0% {
+		opacity: 1;
+		scale: 1;
+	}
+
+	70%,
+	100% {
+		opacity: 0;
+		scale: 1.12 1.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	button.bastionland-company-button::after {
+		content: none;
+	}
+
+	button.bastionland-company-button {
+		box-shadow: var(--map-button-lift), 0 0 0 3px color-mix(in srgb, var(--bastionland-rubric) 45%, transparent);
+	}
 }
 
 /* While a Realm's picture is slid into place: what to do and the buttons that
