@@ -95,7 +95,7 @@ vi.mock("../../module/actions/dominion.js", () => ({
 		knight.system.domain = domain.uuid;
 		domain.system.ruler ||= knight.name;
 	}),
-	settleDomains: vi.fn(async () => []),
+	settleDomains: vi.fn(async () => ({ entries: [], fell: [] })),
 	dramaInCourt: vi.fn(async () => "intrigue"),
 	resolveCrisis: vi.fn(async (domain, index) => {
 		const key = domain.system.crises[index];

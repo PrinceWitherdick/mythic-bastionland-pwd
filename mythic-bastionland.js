@@ -37,6 +37,7 @@ import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
+import { registerRulerDeaths } from "./module/actions/dominion.js";
 import { registerUnhorsed } from "./module/actions/damage.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
@@ -475,6 +476,8 @@ Hooks.once("init", () => {
 	registerSeatingLater();
 	// The Season card's buttons that roll a new Myth for each resolved one (p27).
 	registerReplaceMyth();
+	// A ruling Knight's death passes their Domain on (p21).
+	registerRulerDeaths();
 	// A steed brought down throws its rider, for d6 (p10).
 	registerUnhorsed();
 	registerCollisions();

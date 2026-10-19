@@ -37,6 +37,7 @@ import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
 import { tableRenewalNotices } from "./knight-tables.js";
 import { settleDomains, worldDomains } from "./dominion.js";
+import { seatCircle } from "./court.js";
 import { collectionEntry, markCollection, markSeasonEvent, seasonEventsNow } from "./season-events.js";
 import { recordSeasonTurn } from "./season-log.js";
 import { timelineAged, timelineSeasonTurn } from "./timeline-events.js";
@@ -432,8 +433,12 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	const ended = seasonKey(before);
 	// Every Season ends with the Realm's collection (p17), whether the Age turns with it or not.
 	const collection = await markCollection(ended, before.season);
-	const domains = await settleDomains(ended);
+	const { entries: domains, fell } = await settleDomains(ended);
 	await closeSeason(after, ended, { kind, title: turned(after), note, rolls, collection: collection ? collectionEntry(collection) : null, knights: entries, domains });
+	// In misrule Knights leave (p20): the Referee unticks those of its Circle who ride away.
+	for (const domain of fell) {
+		if (domain.system.council.circle.length) await seatCircle(domain, { intro: t("domain.misruleLeave", { name: domain.name }) });
+	}
 	if (newAge) await growOlder(company.filter(({ older }) => older).map(({ actor }) => actor), ticked);
 	return after;
 }

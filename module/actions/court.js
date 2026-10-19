@@ -284,9 +284,11 @@ export async function removeFromCourt(domain, id) {
  * Choose which Knights sit in a Domain's Circle (p20), from the world's
  * Knights other than its ruler.
  * @param {Actor} domain
+ * @param {object} [options]
+ * @param {string|null} [options.intro] Said in place of the usual line, such as Knights leaving in misrule.
  * @returns {Promise<boolean>} Whether the Circle was changed.
  */
-export async function seatCircle(domain) {
+export async function seatCircle(domain, { intro = null } = {}) {
 	if (!domain?.isOwner) return false;
 	const knights = knightChoices();
 	const seated = circleKnights(domain.system.council.circle, knights);
@@ -299,7 +301,7 @@ export async function seatCircle(domain) {
 		icon: "fa-solid fa-users",
 		template: "circle",
 		context: {
-			intro: t("domain.council.circle.intro", { name: domain.name }),
+			intro: intro ?? t("domain.council.circle.intro", { name: domain.name }),
 			circle: [
 				...offered.map((knight) => ({ ...knight, checked: seated.some((each) => each.id === knight.id) })),
 				...written.map(({ key, name }) => ({ id: key, name, checked: true }))

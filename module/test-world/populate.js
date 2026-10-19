@@ -1085,7 +1085,7 @@ class TestGame {
 			rolls,
 			collection: collection ? collectionEntry(collection) : null,
 			knights: entries,
-			domains: await settleDomains(ended)
+			domains: (await settleDomains(ended)).entries
 		});
 	}
 
