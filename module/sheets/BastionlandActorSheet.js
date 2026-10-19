@@ -298,15 +298,16 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 		// one is kept. Not with a link, whose label follows what it names, nor a roll, rolled each time.
 		// Neither of which is the text left, so it's the same whichever actor it's enriched for.
 		// Nor one another module's enricher picks out, which may read what it likes.
-		const keep = typeof html === "string" && !/@|\[\[/.test(html) && !othersEnrich(html);
+		// Only a text that passed is ever kept, so one found kept is looked up before it's weighed again.
 		const key = `${secrets}|${html}`;
-		if (keep && enrichedTexts.has(key)) {
+		if (enrichedTexts.has(key)) {
 			// Kept as the latest asked for, so the texts every redraw shows outlast those shown once.
 			const enriched = enrichedTexts.get(key);
 			enrichedTexts.delete(key);
 			enrichedTexts.set(key, enriched);
 			return enriched;
 		}
+		const keep = typeof html === "string" && !/@|\[\[/.test(html) && !othersEnrich(html);
 		const enriched = foundry.applications.ux.TextEditor.implementation.enrichHTML(html, { secrets, relativeTo: this.actor });
 		if (keep) {
 			// The longest unasked for goes first; a draw already waiting on it shares it.
