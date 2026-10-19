@@ -1,7 +1,8 @@
 import { getCalendar, setCalendar } from "../actions/calendar.js";
 import { waitDialog } from "./ui.js";
 import { awardGlory } from "../actions/glory.js";
-import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
+import { offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
+import { clearOffCourse } from "../actions/off-course.js";
 import { eventLabel, markSeasonEvent, seasonEventsNow, stageLabel } from "../actions/season-events.js";
 import { advancePhase, announcePhase, journeyToDistantRealm, turnAge, turnSeason, weeksPass } from "../actions/time.js";
 import { t } from "../chat/cards.js";

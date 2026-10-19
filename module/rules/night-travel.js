@@ -5,6 +5,7 @@
  * which is why a Company seen on the move by night is remembered. Pure, so it
  * can be tested without Foundry.
  */
+import { edgeDirection, neighbour, sameHex } from "./realm-geometry.js";
 import { samePhase } from "./time.js";
 
 /**
@@ -49,4 +50,24 @@ export function fogMove(said, now, fogged) {
 	if (!fogged || now?.phase === "night") return "clear";
 	if (!samePhase(said?.when, now) || typeof said.blind !== "boolean") return "ask";
 	return said.blind ? "blind" : "course";
+}
+
+/**
+ * Where a blind move leaves the Company (Travelling Blind, p18): back where it
+ * set off from, or a hex to the left or right of the one it made for, as seen
+ * by travellers heading that way. Pure.
+ * @param {object} g
+ * @param {{col: number, row: number}|null} from The hex it set off from.
+ * @param {{col: number, row: number}|null} to The hex it made for.
+ * @param {{result: string, side?: string|null}} read The Travelling Blind table's result.
+ * @returns {{col: number, row: number}|null} The hex it ends in instead, or null where it goes
+ *   where it meant to: as planned, without a way it's known to have come, or drifting off the Realm.
+ */
+export function blindLanding(g, from, to, { result, side = null }) {
+	if (!from || !to || sameHex(from, to) || result === "asPlanned") return null;
+	if (result === "circleBack") return from;
+	const heading = edgeDirection(g, from, to);
+	if (result !== "drift" || heading === null) return null;
+	// The six ways out of a hex run clockwise, so a traveller's right is the next of them.
+	return neighbour(g, from, (heading + (side === "left" ? 5 : 1)) % 6);
 }

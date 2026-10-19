@@ -1,7 +1,7 @@
 import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
-import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../rules/phase-end.js";
+import { likelyPhaseMode, morningHardships, PHASE_END_MODES, wildernessDue, wildernessTicked } from "../rules/phase-end.js";
 import { HARDSHIPS, nextPhase } from "../rules/time.js";
 import { SLAIN_UPDATE, isDying, unwrittenFate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
@@ -13,7 +13,7 @@ import { companyMovedThisNight } from "./night-travel.js";
 import { weatherIn } from "./referee-rolls.js";
 import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
-import { companySituation } from "./wilderness.js";
+import { companySituation, omenShownOnEntering } from "./wilderness.js";
 import { keptFromMe } from "./solo.js";
 import { worldKnights } from "./knights.js";
 
@@ -128,7 +128,11 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 			spent: t("phaseEnd.spent", { phase }),
 			modes: keyChoices(PHASE_END_MODES, "phaseEnd.modes", { chosen: likely }),
 			wilderness: calls
-				? { line: wildernessLine(soloCalls(calls, standing.situation), atBarrier), offered: calls !== "none", checked: wildernessDue({ calls, mode: likely, atBarrier }) }
+				? {
+					line: wildernessLine(soloCalls(calls, standing.situation), atBarrier),
+					offered: calls !== "none",
+					checked: wildernessTicked({ calls, mode: likely, atBarrier, omenShown: omenShownOnEntering(standing.scene, standing.situation.hex, ending) })
+				}
 				: null,
 			morning: nightEnds
 				? {

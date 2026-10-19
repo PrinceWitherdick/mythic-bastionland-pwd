@@ -41,7 +41,8 @@ import { registerRulerDeaths } from "./module/actions/dominion.js";
 import { registerUnhorsed } from "./module/actions/damage.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
-import { wildernessRoll } from "./module/actions/wilderness.js";
+import { registerOmenEntered, wildernessRoll } from "./module/actions/wilderness.js";
+import { registerArrivals } from "./module/actions/arrivals.js";
 import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
@@ -82,7 +83,7 @@ import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
-import { registerLandmarkSettings } from "./module/actions/landmarks.js";
+import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -296,7 +297,7 @@ Hooks.once("init", () => {
 	registerSessionEndSetting();
 
 	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
-	registerLandmarkSettings();
+	registerOffCourse();
 
 	// The weather, for a table with FXMaster to draw it; it follows the active Scene.
 	registerWeatherSetting();
@@ -467,6 +468,9 @@ Hooks.once("init", () => {
 	registerJourneyHooks();
 	// Without a guide and light the Company travels blind by night, and what the Night cost is taken as it ends.
 	registerNightTravel();
+	// What coming into a hex calls for: a Myth's Omen, dire weather, a Gallop, a Holding's mood (p18, p27).
+	registerOmenEntered();
+	registerArrivals();
 	registerPhaseEndSettings();
 	// The day's sky and weather, rolled as the Company breaks camp, and the fog that hides the way (p197).
 	registerSkyAndWeather();

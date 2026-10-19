@@ -47,6 +47,15 @@ export const WALKED_METHODS = Object.freeze(["dragging", "keyboard"]);
  * @property {Record<string, HexVisits>} hexes Keyed by `hexKey`, such as "5,7".
  */
 
+/**
+ * How the Company travels, by the hexes it comes into in one Phase (p18): a
+ * Trek is one, a Gallop two, a Cruise three, and more than that is no way the
+ * book gives.
+ * @param {number} hexes
+ * @returns {"trek"|"gallop"|"cruise"|"beyond"}
+ */
+export const companyPace = (hexes) => (hexes <= 1 ? "trek" : hexes === 2 ? "gallop" : hexes === 3 ? "cruise" : "beyond");
+
 /** @returns {Journey} */
 export const emptyJourney = () => ({ version: JOURNEY_VERSION, next: 1, hexes: {} });
 

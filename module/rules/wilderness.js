@@ -119,6 +119,12 @@ export function wildernessOutcome(realm, situation, { mode = "travel", d6 = null
 }
 
 /**
+ * @param {{result: string, complete?: boolean}|null} outcome What a Wilderness Roll turned up.
+ * @returns {boolean} Whether it showed an Omen: a Myth's next, or the City's in its place.
+ */
+export const showedOmen = (outcome) => Boolean(outcome) && ["randomOmen", "nearestOmen", "mythHex"].includes(outcome.result) && !outcome.complete;
+
+/**
  * How many Myths a random Omen or a tie chooses between, so the roll that picks one can be made.
  * @param {ReturnType<typeof wildernessSituation>} situation
  * @param {string} result From wildernessResult.

@@ -82,6 +82,7 @@ const { postCard } = await import("../../module/chat/cards.js");
 const { rollRefereeTable } = await import("../../module/actions/referee-rolls.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
 const { burnMorningAfflictions, sufferMorningAfflictions } = await import("../../module/actions/afflictions.js");
+const { chooseDialog } = await import("../../module/apps/ui.js");
 
 /** A Realm Scene with the Company's own Token standing in a hex. */
 function realmScene(id, where) {
@@ -280,6 +281,28 @@ describe("as Morning comes", () => {
 		game.actors = [alys];
 		answer = { mode: "travel", "include-0": false };
 		await advancePhase();
+		expect(alys.update).not.toHaveBeenCalled();
+	});
+
+	it("lets a hostile Omen met camping keep everybody from sleep, as the Referee says (p18)", async () => {
+		standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
+		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
+		expect(alys.system.virtues.cla.value).toBe(5);
+	});
+
+	it("asks nothing of an Omen when nobody camped, and lets a calm one be", async () => {
+		standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		vi.mocked(chooseDialog).mockClear();
+		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(chooseDialog).toHaveBeenCalledTimes(1);
 		expect(alys.update).not.toHaveBeenCalled();
 	});
 

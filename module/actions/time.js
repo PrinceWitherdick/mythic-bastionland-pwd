@@ -54,6 +54,7 @@ import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
+import { showedOmen } from "../rules/wilderness.js";
 import { playerCharacter, worldKnights } from "./knights.js";
 import { announceFallenKnight } from "./fallen.js";
 
@@ -343,9 +344,11 @@ async function endPhase(known) {
 	const answers = await askPhaseEnd(ending, known);
 	if (!answers) return null;
 	// Rolled while the Phase it ends is still the Phase, so a Curse it finds blinds the one after.
-	if (answers.wilderness) {
-		await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) });
-	}
+	const met = answers.wilderness
+		? await wildernessRoll({ scene: answers.scene, phase: ending.phase, mode: answers.mode === "camp" ? "camp" : "travel", atBarrier: Boolean(known.atBarrier) })
+		: null;
+	// A hostile Omen in the night keeps those camping from proper sleep (p18).
+	if (await omenBrokeSleep(ending, answers, met)) answers.members = answers.members.map((member) => ({ ...member, noSleep: true }));
 	const calendar = nextPhase(getCalendar());
 	await setCalendar(calendar);
 	// Nobody lies untended through a Phase and lives (p8). They die as it ends, so the new Phase takes nothing more from them.
@@ -361,6 +364,29 @@ async function endPhase(known) {
 	if (answers.sky) await rollSkyAndWeather(answers.sky);
 	await phaseWeather(calendar);
 	return calendar;
+}
+
+/**
+ * Whether the Omen a night's camping met kept the Company from sleeping (p18):
+ * a hostile Omen does, and only the Referee can say whether this one was.
+ * @param {import("../rules/time.js").Calendar} ending
+ * @param {{mode: string|null, members: {noSleep: boolean}[]}} answers From askPhaseEnd.
+ * @param {object|null} met What the Wilderness Roll turned up.
+ * @returns {Promise<boolean>}
+ */
+async function omenBrokeSleep(ending, answers, met) {
+	if (ending.phase !== "night" || answers.mode !== "camp" || !showedOmen(met)) return false;
+	if (answers.members.every((member) => member.noSleep)) return false;
+	const choice = await chooseDialog({
+		title: t("phaseEnd.hostileOmen.title"),
+		icon: "fa-solid fa-campground",
+		message: t("phaseEnd.hostileOmen.text"),
+		buttons: [
+			{ action: "hostile", label: t("phaseEnd.hostileOmen.hostile"), icon: "fa-solid fa-bed-pulse" },
+			{ action: "calm", label: t("phaseEnd.hostileOmen.calm"), icon: "fa-solid fa-bed", default: true }
+		]
+	});
+	return choice === "hostile";
 }
 
 /**

@@ -47,6 +47,16 @@ export function wildernessDue({ calls, mode, atBarrier = false }) {
 }
 
 /**
+ * Whether the Phase's end window ticks the Wilderness Roll to start with: when
+ * it's due, except a Myth's Omen that showed already as the Company came into
+ * its hex this Phase, which isn't shown again as the Phase ends (p27).
+ * @param {object} args As wildernessDue takes, and:
+ * @param {boolean} [args.omenShown] The Omen of the Myth in this hex showed on entering.
+ * @returns {boolean}
+ */
+export const wildernessTicked = ({ omenShown = false, ...due }) => wildernessDue(due) && !(due.calls === "omen" && omenShown);
+
+/**
  * What one of the Company loses as Morning comes, by the HARDSHIPS of rules/time.js
  * (p18): d6 SPI for travelling or exploring through the Night, d6 VIG for
  * a Winter night camped out or on the road, d6 CLA without proper sleep, and

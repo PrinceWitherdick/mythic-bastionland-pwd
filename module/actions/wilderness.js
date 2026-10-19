@@ -4,7 +4,7 @@ import { chooseDialog } from "../apps/ui.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { postCard, t } from "../chat/cards.js";
 import { OMEN_COUNT, REALM_FLAG, TERRAIN, terrainAt } from "../rules/realm.js";
-import { hexAt, hexKey } from "../rules/realm-geometry.js";
+import { hexAt, hexKey, sameHex } from "../rules/realm-geometry.js";
 import {
 	WILDERNESS_MODES,
 	companyHex,
@@ -18,6 +18,7 @@ import { throwsOffCourse } from "../rules/landmarks.js";
 import { cityOmenReplaces, worthyOfCityQuest } from "../rules/city-quest.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
+import { samePhase } from "../rules/time.js";
 import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
@@ -106,6 +107,36 @@ export function companySituation(scene = null) {
 	const g = sceneGeometry(realm);
 	const { hex } = findCompany(realm, g);
 	return hex ? { scene: realm, situation: wildernessSituation(liveRealm(realm), g, hex) } : null;
+}
+
+/** The Myth hex whose Omen showed as the Company came in (p27): {when, scene, hex}, or null. */
+const OMEN_ENTERED_SETTING = "omenEntered";
+
+/** Register where a Myth's Omen showed on entering. Called during init. */
+export function registerOmenEntered() {
+	game.settings.register(SYSTEM_ID, OMEN_ENTERED_SETTING, { scope: "world", config: false, type: Object, default: null });
+}
+
+/**
+ * Keep that a Myth's Omen showed as the Company came into its hex this Phase. GMs only.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ * @returns {Promise<unknown>}
+ */
+export const markOmenOnEntering = (scene, hex) =>
+	game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...getCalendar() }, scene: scene.id, hex: { col: hex.col, row: hex.row } });
+
+/**
+ * Whether the Omen of the Myth in this hex has already shown this Phase, as the
+ * Company came in, so ending the Phase there doesn't show another.
+ * @param {Scene|null} scene
+ * @param {{col: number, row: number}} hex
+ * @param {import("../rules/time.js").Calendar} [now]
+ * @returns {boolean}
+ */
+export function omenShownOnEntering(scene, hex, now = getCalendar()) {
+	const said = game.settings.get(SYSTEM_ID, OMEN_ENTERED_SETTING);
+	return Boolean(said && said.scene === scene?.id && samePhase(said.when, now) && sameHex(said.hex, hex));
 }
 
 /**

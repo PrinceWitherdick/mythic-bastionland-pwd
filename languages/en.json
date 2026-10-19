@@ -1185,6 +1185,20 @@
       "readout": "Something stands here",
       "readoutNote": "Something stands here: {note}"
     },
+    "arrival": {
+      "title": "Where the Company Came",
+      "dire": "The weather is dire, and in dire weather the Company can’t leave the Hex. They set out from {hex}.",
+      "stay": "Keep them where they were",
+      "gallop": "Two Hexes this Phase is a Gallop: only on steeds that aren’t Exhausted, and each steed loses d6 VIG.",
+      "gallopButton": "Gallop",
+      "cruise": "Three Hexes this Phase is a Cruise: only afloat, or riding along one of the few true roads.",
+      "beyond": "More than three Hexes in one Phase is further than any way of travelling goes.",
+      "myth": "They came into a Myth’s Hex at {hex}. Entering or exploring it reveals the Myth’s next Omen.",
+      "omen": "Reveal its next Omen",
+      "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
+      "mood": "Local Mood",
+      "realmGone": "That Realm is no longer in this world."
+    },
     "phaseEnd": {
       "title": "The {phase} Ends",
       "where": "The Company stands at {hex}.",
@@ -1192,6 +1206,12 @@
       "spent": "How did the Company spend the {phase}?",
       "ok": "Move On to the {next}",
       "alreadyOpen": "The Phase is already ending. Finish that window first.",
+      "hostileOmen": {
+        "title": "An Omen in the Night",
+        "text": "Camping out, the Company met an Omen. A hostile Omen keeps them from proper sleep, so each loses d6 CLA come the Morning. Was this one hostile?",
+        "hostile": "Hostile: nobody sleeps",
+        "calm": "Not hostile"
+      },
       "modes": {
         "travel": {
           "label": "Travelling or exploring",
@@ -1456,7 +1476,8 @@
         "title": "Travelling by Night",
         "text": "The Company is on the move by night. With no guide and no light they’re travelling blind, rolling for every Hex they try to enter this Night. What the Night costs is taken as it ends.",
         "sighted": "With a guide and light",
-        "blind": "Travelling blind"
+        "blind": "Travelling blind",
+        "landed": "Travelling blind, the Company ends up at {hex}."
       },
       "hardship": {
         "intro": "Tick everybody who suffers it.",
@@ -4426,7 +4447,7 @@
         "pending": "A Curse has thrown the Company off course. If they travel in the next Phase, roll Travelling Blind.",
         "live": "This is the Phase the Curse blights. Travel now counts as travelling blind.",
         "roll": "Roll Travelling Blind",
-        "rollHint": "Roll Travelling Blind for the Company, and let the Curse’s blight go.",
+        "rollHint": "Roll Travelling Blind for the Company. Before the Phase the Curse blights, this lets the blight go; during it, each move of the Company Token is rolled for already, so roll here only for travel off the map.",
         "hold": "They Hold Their Course",
         "holdHint": "Let the blight go without rolling, because the Company didn’t travel or found their way regardless."
       }
