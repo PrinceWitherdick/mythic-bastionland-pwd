@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STRUCTURE_KINDS, carriesFrom, collisionFaces, harmsStructure, isStructureNpc, structureFromNpc, structureHarm, structureKind } from "../../module/rules/structures.js";
+import { STRUCTURE_KINDS, builtOfStone, carriesFrom, collisionFaces, harmsStructure, isStructureNpc, structureFromNpc, structureHarm, structureKind } from "../../module/rules/structures.js";
 
 const virtues = (value = 10, max = value) => ({ vig: { value, max }, cla: { value, max }, spi: { value, max } });
 
@@ -13,6 +13,16 @@ describe("structureKind", () => {
 		expect(structureKind({ name: "Rampart" })).toBe("structure");
 		expect(structureKind()).toBe("structure");
 		expect(STRUCTURE_KINDS).toContain(structureKind({ name: "Anything" }));
+	});
+});
+
+describe("builtOfStone", () => {
+	it("knows a castle's wall for stone, and its gate and a palisade for wood (p11)", () => {
+		expect(builtOfStone("Castle Wall")).toBe(true);
+		expect(builtOfStone("Stone walls")).toBe(true);
+		expect(builtOfStone("Gate")).toBe(false);
+		expect(builtOfStone("Palisade")).toBe(false);
+		expect(builtOfStone(undefined)).toBe(false);
 	});
 });
 

@@ -10,7 +10,7 @@ import { looksWooden } from "./armour.js";
 import { ALTERNATE_QUALITIES } from "./attack.js";
 import { textLines } from "./book-art.js";
 import { countsAsHeftyMounted, npcFromStatBlock, parseArmour, parseStatLine } from "./stat-blocks.js";
-import { carriesFrom, structureKind } from "./structures.js";
+import { builtOfStone, carriesFrom, structureKind } from "./structures.js";
 import { capitalise, joinLines, logicalLines, paragraphs } from "./text.js";
 
 /** The pages read, in book order. */
@@ -396,6 +396,7 @@ export function goodsDocuments(goods, labels) {
 						kind: structureKind({ name: structure.name, carries, siege: structure.siege }),
 						guard: { value: structure.guard, max: structure.guard },
 						armour: structure.armour,
+						stone: builtOfStone(structure.name),
 						carries,
 						notes: paragraphs(capitalise(rest))
 					},

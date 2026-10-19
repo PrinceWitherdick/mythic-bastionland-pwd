@@ -30,13 +30,14 @@ import { addNewSiteButton, newSite } from "./module/actions/sites.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
-import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
+import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
+import { registerUnhorsed } from "./module/actions/damage.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -474,6 +475,9 @@ Hooks.once("init", () => {
 	registerSeatingLater();
 	// The Season card's buttons that roll a new Myth for each resolved one (p27).
 	registerReplaceMyth();
+	// A steed brought down throws its rider, for d6 (p10).
+	registerUnhorsed();
+	registerCollisions();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
 	registerSolo();

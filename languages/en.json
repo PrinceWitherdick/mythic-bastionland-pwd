@@ -3290,6 +3290,7 @@
       "applied": "Damage applied to {names}.",
       "noDenier": "Select the Token of whoever Denies, or give your User a character.",
       "cantDeny": "Nobody you control can Deny this Attack: they are Fatigued, have already Denied it, or don’t know the Feat.",
+      "denyOutOfReach": "Nobody you control is within arm’s reach of a target of this Attack, on their side, so nobody can Deny it.",
       "featUsed": "{name} has already used {feat} on this Attack.",
       "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
       "targetsGone": "The Tokens this Attack targeted are gone.",
@@ -3298,6 +3299,11 @@
       "changeRefused": "The Attack card changed before that could be recorded."
     },
     "damage": {
+      "unhorsed": "{steed} goes down, and {name} is thrown: being dismounted causes d6 Damage.",
+      "unhorsedRoll": "Take the d6",
+      "unhorsedRolled": "{name} takes {damage} from the fall.",
+      "unhorsedCause": "Thrown from their steed",
+      "unhorsedNotYours": "Only the rider’s owner or the Referee can deal this.",
       "lastingMark": "{attacker}’s Smite leaves {name} a lasting mark (p187).",
       "title": "Take Damage",
       "amount": "Damage",
@@ -3315,6 +3321,7 @@
       "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",
       "situationalPiece": "{name} (A{armour}, {when})",
       "trapped": "{name}’s Trap holds their shield, so its Armour doesn’t count",
+      "twoHanded": "Their last blow was two-handed, so their shield isn’t in hand and its Armour doesn’t count",
       "trapOpen": "{name}’s Trap left them open: their Armour doesn’t count",
       "exposed": "Exposed (take it as if at 0 GD)",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
@@ -3786,10 +3793,16 @@
       "collide": {
         "title": "Collide",
         "hint": "Roll the Damage this ship takes from colliding with another.",
-        "intro": "{name} collides with another ship. Each takes d12 Damage, except that a much larger ship takes d6.",
-        "similar": "Similar or smaller (d12)",
+        "intro": "{name} collides with another ship. Each takes d12 Damage, except that a much larger ship takes d6. Target the other ship first and it takes its Damage too.",
+        "introWith": "{name} collides with {other}. Each takes d12 Damage, except that a much larger ship takes d6. How does {name} measure against it?",
+        "similar": "Of a size (d12 each)",
         "larger": "Much the larger (d6)",
-        "rolled": "{name} takes d{faces} Damage from the collision: {damage}."
+        "smaller": "Much the smaller (d12)",
+        "size": "This ship beside the other",
+        "roll": "Roll the Damage",
+        "rolled": "{name} takes d{faces} Damage from the collision: {damage}.",
+        "take": "Take the Damage",
+        "notYours": "Only the ship’s owner or the Referee can deal this."
       },
       "convert": {
         "converted": "Made {count} structure NPCs into Structure actors."

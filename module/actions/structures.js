@@ -1,8 +1,7 @@
-import { chooseDialog } from "../apps/ui.js";
+import { inputDialog } from "../apps/ui.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { collisionFaces, isStructureNpc, structureFromNpc } from "../rules/structures.js";
-import { escapeHTML } from "../rules/text.js";
 import { replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { takeDamage } from "./damage.js";
@@ -21,31 +20,98 @@ export async function repair(actor) {
 }
 
 /**
- * A ship collides with another: roll the d12 it takes, or the d6 if it's much
- * the larger (p11), and take that Damage. A collision needs no fire or siege
- * weapon to harm a ship.
+ * The one other ship or structure this user has targeted, which a collision is with.
+ * @param {Actor} actor The ship colliding.
+ * @returns {Actor|null}
+ */
+function targetedVessel(actor) {
+	const others = [...new Set([...(game.user.targets ?? [])].map((token) => token.actor))]
+		.filter((other) => other?.type === "structure" && other !== actor);
+	return others.length === 1 ? others[0] : null;
+}
+
+/** How the colliding ship measures against the other. */
+const COLLISION_SIZES = Object.freeze(["similar", "larger", "smaller"]);
+
+/** What marks the button on a collision card for a ship its roller couldn't change. */
+const COLLISION_SELECTOR = "[data-collision]";
+
+/**
+ * What a collision does to a ship, as takeDamage takes it.
+ * @param {number} damage
+ * @returns {object}
+ */
+const collisionDamage = (damage) => ({ damage, ranged: false, harm: { structure: true } });
+
+/**
+ * Roll a collision's Damage for one ship and have it take it. A ship this user
+ * can't change has its Damage offered on the card instead, for its owner or the
+ * Referee to take.
+ * @param {Actor} ship
+ * @param {boolean} muchLarger
+ * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null where the Damage was only offered.
+ */
+async function takeCollision(ship, muchLarger) {
+	const faces = collisionFaces(muchLarger);
+	const roll = await new Roll(`1d${faces}`).evaluate();
+	const text = t("structure.collide.rolled", { name: ship.name, faces, damage: roll.total });
+	if (!ship.isOwner) {
+		await postCard(ship, "note", {
+			icon: "fa-solid fa-sailboat",
+			text,
+			action: { data: "collision", icon: "fa-solid fa-burst", label: t("structure.collide.take") }
+		}, { rolls: [roll], flags: { [SYSTEM_ID]: { collision: { ship: ship.uuid, damage: roll.total } } } });
+		return null;
+	}
+	await postCard(ship, "note", { icon: "fa-solid fa-sailboat", text }, { rolls: [roll] });
+	return takeDamage(ship, collisionDamage(roll.total));
+}
+
+/** Wire the card offering a collision's Damage to the other ship. Called during init. */
+export function registerCollisions() {
+	registerCardButtons({
+		selector: COLLISION_SELECTOR,
+		once: true,
+		handler: async (_button, message) => {
+			const { ship: uuid = "", damage } = message?.flags?.[SYSTEM_ID]?.collision ?? {};
+			const ship = fromUuidSync(uuid);
+			if (!ship?.isOwner || !Number.isFinite(damage)) {
+				warn("structure.collide.notYours");
+				return false;
+			}
+			return Boolean(await takeDamage(ship, collisionDamage(damage)));
+		}
+	});
+}
+
+/**
+ * Ships collide: each takes d12 Damage, or d6 if it's much the larger (p11). A
+ * collision needs no fire or siege weapon to harm a ship. With the other ship
+ * targeted, it takes its own Damage too, or has it offered on a card where this
+ * user can't change it.
  * @param {Actor} actor
- * @returns {Promise<import("../rules/damage.js").DamageResult|null>} Null if the dialog was closed.
+ * @returns {Promise<import("../rules/damage.js").DamageResult|null>} This ship's, or null if the dialog was closed.
  */
 export async function collide(actor) {
-	const size = await chooseDialog({
+	const other = targetedVessel(actor);
+	const data = await inputDialog({
 		title: t("structure.collide.title"),
 		icon: "fa-solid fa-sailboat",
-		message: t("structure.collide.intro", { name: escapeHTML(actor.name) }),
-		buttons: [
-			{ action: "similar", label: t("structure.collide.similar"), default: true },
-			{ action: "larger", label: t("structure.collide.larger") }
-		]
+		template: "collide",
+		context: {
+			intro: other
+				? t("structure.collide.introWith", { name: actor.name, other: other.name })
+				: t("structure.collide.intro", { name: actor.name }),
+			sizes: COLLISION_SIZES.map((id) => ({ id, name: t(`structure.collide.${id}`) }))
+		},
+		ok: { label: t("structure.collide.roll"), icon: "fa-solid fa-dice-d12" }
 	});
-	if (size !== "similar" && size !== "larger") return null;
+	const size = data?.size;
+	if (!COLLISION_SIZES.includes(size)) return null;
 
-	const faces = collisionFaces(size === "larger");
-	const roll = await new Roll(`1d${faces}`).evaluate();
-	await postCard(actor, "note", {
-		icon: "fa-solid fa-sailboat",
-		text: t("structure.collide.rolled", { name: actor.name, faces, damage: roll.total })
-	}, { rolls: [roll] });
-	return takeDamage(actor, { damage: roll.total, ranged: false, harm: { structure: true } });
+	const result = await takeCollision(actor, size === "larger");
+	if (other) await takeCollision(other, size === "smaller");
+	return result;
 }
 
 /**

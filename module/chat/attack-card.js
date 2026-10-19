@@ -5,7 +5,7 @@ import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js"
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout } from "../rules/armour.js";
+import { greaterEffects, npcArmourWithout, tokenBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -515,7 +515,27 @@ function denyOptions(attack) {
 		...targetActors(attack),
 		game.user.character
 	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
-	return { pool, able: pool.filter((actor) => canDenyAttack(attack, actor)) };
+	const allowed = pool.filter((actor) => canDenyAttack(attack, actor));
+	if (!allowed.length) return { pool, allowed, able: allowed };
+	const targets = canvas?.ready ? attack.targets.map((target) => fromUuidSync(target.uuid)).filter((token) => token?.object) : [];
+	return { pool, allowed, able: allowed.filter((actor) => inDenyReach(targets, actor)) };
+}
+
+/**
+ * Whether somebody stands where they could Deny (p10): a target of the Attack,
+ * or an ally close enough to touch one. Where the map can't say, with nobody
+ * targeted or the Denier or the targets off it, they're let be.
+ * @param {TokenDocument[]} targets The Attack's targets on the map, none where the map can't say.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function inDenyReach(targets, actor) {
+	if (!targets.length) return true;
+	if (targets.some((token) => token.actor === actor || token.actor?.uuid === actor.uuid)) return true;
+	const placed = actor.getActiveTokens?.(false, false)?.[0];
+	if (!placed) return true;
+	const denier = { box: tokenBox(placed), side: placed.document.disposition };
+	return targets.some((token) => withinArmsReach(denier, { box: tokenBox(token.object), side: token.disposition }, canvas.grid.size));
 }
 
 /**
@@ -525,19 +545,30 @@ function denyOptions(attack) {
  * @param {import("../rules/attack.js").AttackState} attack
  */
 function refreshDeny(button, attack) {
-	const { pool, able } = denyOptions(attack);
+	const { pool, allowed, able } = denyOptions(attack);
 	// A player with nobody who knows the Feat isn't shown it; a Referee is, to be told to select whoever Denies.
 	button.hidden = !pool.length && !game.user.isGM;
 	button.disabled = !able.length;
 	if (able.length) delete button.dataset.tooltip;
-	else button.dataset.tooltip = t(pool.length ? "attack.cantDeny" : "attack.noDenier");
+	else button.dataset.tooltip = t(denyRefusal(pool, allowed));
+}
+
+/**
+ * Why nobody this user controls can Deny.
+ * @param {Actor[]} pool Those who know the Feat.
+ * @param {Actor[]} allowed Those the Attack still allows to Deny, wherever they stand.
+ * @returns {string} Path below `bastionland.`
+ */
+function denyRefusal(pool, allowed) {
+	if (!pool.length) return "attack.noDenier";
+	return allowed.length ? "attack.denyOutOfReach" : "attack.cantDeny";
 }
 
 /** The target, or an ally close enough to touch, discards one die, paying with a SPI Save. */
 async function onDeny(message) {
 	const attack = attackOf(message);
-	const { pool, able: deniers } = denyOptions(attack);
-	if (!deniers.length) return warn(pool.length ? "attack.cantDeny" : "attack.noDenier");
+	const { pool, allowed, able: deniers } = denyOptions(attack);
+	if (!deniers.length) return warn(denyRefusal(pool, allowed));
 
 	const dice = attack.dice
 		.map((die, index) => ({ index, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: dieLabel(die) }) }))

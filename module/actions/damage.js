@@ -1,8 +1,9 @@
 import { inputDialog } from "../apps/ui.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
-import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS } from "../rules/armour.js";
-import { damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
+import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS, tokenBox } from "../rules/armour.js";
+import { DISMOUNT_FACES, damageAgainst, dismountLanded, harmTargetOf, lastingMarkBy } from "../rules/attack.js";
 import { WARDED_OUTCOMES, applyDoom, armourAgainst, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
@@ -10,9 +11,10 @@ import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
 import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
-import { marksOn } from "../chat/gambit-marks.js";
+import { SCANNED_MESSAGES, marksOn } from "../chat/gambit-marks.js";
 import { chatIsPublic, playDamageFx } from "./attack-fx.js";
 import { announceFallenKnight } from "./fallen.js";
+import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { seenName } from "./seen-name.js";
 import { getCalendar } from "./calendar.js";
@@ -118,6 +120,34 @@ function trapOn(actor, worn, except = []) {
 }
 
 /**
+ * A shield out of hand because its bearer's own last blow in this fight was
+ * two-handed (p12): it counts as a Trap does, ticked from the start.
+ * @param {Actor} actor
+ * @param {WornArmour} worn
+ * @returns {{label: string, shielded: boolean}|null}
+ */
+const twoHandedOn = (actor, worn) => (worn.shielded && foughtTwoHanded(actor) ? { label: t("damage.twoHanded"), shielded: true } : null);
+
+/**
+ * Whether somebody's last Attack in the fight now running was made with a Long
+ * weapon, which takes both hands (p12) and leaves no hand for a shield until
+ * they attack again. Outside a Combat, nobody's last blow says how they stand now.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function foughtTwoHanded(actor) {
+	const combat = game.combat;
+	if (!combat?.started || !actor?.uuid) return false;
+	const log = game.messages?.contents ?? [];
+	for (let i = log.length - 1; i >= Math.max(0, log.length - SCANNED_MESSAGES); i--) {
+		const attack = log[i].flags?.[SYSTEM_ID]?.attack;
+		if (attack?.attacker !== actor.uuid) continue;
+		return attack.place?.combat === combat.id && Boolean(attack.twoHanded);
+	}
+	return false;
+}
+
+/**
  * Whether someone on the map can stand in a wall: a character, not a ship or
  * wall, still on their feet, and not a steed, which is ridden rather than
  * lined up with.
@@ -146,11 +176,7 @@ function shieldwallOnMap(actor, bearing) {
 	const { disposition } = token.document;
 	if (disposition === CONST.TOKEN_DISPOSITIONS.SECRET) return null;
 	const steeds = new Set(worldKnights((each) => each.system.steed).map((each) => each.system.steed));
-	const stander = (placed, bears) => ({
-		name: placed.document.name,
-		bearing: bears,
-		box: { x: placed.document.x, y: placed.document.y, w: placed.w, h: placed.h }
-	});
+	const stander = (placed, bears) => ({ name: placed.document.name, bearing: bears, box: tokenBox(placed) });
 	const allies = canvas.tokens.placeables
 		.filter((placed) => placed !== token && placed.actor && !placed.document.hidden && placed.document.disposition === disposition)
 		.filter((placed) => canStandInWall(placed.actor, steeds, placed.document.actorId && `Actor.${placed.document.actorId}`))
@@ -185,6 +211,51 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
 	if (warband && DOWN_OUTCOMES.includes(outcome)) return "warbandOutcomes";
 	if (structure && STRUCTURE_OUTCOMES.includes(outcome)) return "structureOutcomes";
 	return "outcomes";
+}
+
+/** What marks the button on an unhorsed rider's card. */
+const UNHORSED_SELECTOR = "[data-unhorsed]";
+
+/**
+ * A steed brought down throws its riders: off it, and being dismounted causes
+ * d6 Damage (p10), which their card offers to whoever can deal it.
+ * @param {Actor} steed
+ * @returns {Promise<Actor[]>} The riders thrown.
+ */
+async function unhorseRiders(steed) {
+	// Nobody rides a Knight.
+	if (steed.type === "knight") return [];
+	const as = new Set([steed.uuid, steed.isToken ? steed.token?.baseActor?.uuid : null].filter(Boolean));
+	const riders = worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner);
+	if (!riders.length) return riders;
+	await updateActors(riders.map((rider) => [rider, { "system.mounted": false }]));
+	await Promise.all(riders.map((rider) => postCard(rider, "note", {
+		icon: "fa-solid fa-horse",
+		text: t("damage.unhorsed", { name: rider.name, steed: steed.name }),
+		action: { data: "unhorsed", icon: "fa-solid fa-dice-d6", label: t("damage.unhorsedRoll") }
+	}, { flags: { [SYSTEM_ID]: { unhorsed: rider.uuid } } })));
+	return riders;
+}
+
+/** Wire the unhorsed rider's card, which deals the d6 of the fall. Called during init. */
+export function registerUnhorsed() {
+	registerCardButtons({
+		selector: UNHORSED_SELECTOR,
+		// The fall is dealt once, kept on the card so a reload doesn't offer it again.
+		once: true,
+		handler: async (_button, message) => {
+			const rider = fromUuidSync(message?.flags?.[SYSTEM_ID]?.unhorsed ?? "");
+			if (!rider?.isOwner) {
+				warn("damage.unhorsedNotYours");
+				return false;
+			}
+			const roll = await new Roll(`1d${DISMOUNT_FACES}`).evaluate();
+			await postCard(rider, "note", { icon: "fa-solid fa-horse", text: t("damage.unhorsedRolled", { name: rider.name, damage: roll.total }) }, { rolls: [roll] });
+			// Rolled and posted, the fall is spent even if the Damage window is closed.
+			await takeDamage(rider, { damage: roll.total, ranged: false, cause: t("damage.unhorsedCause") });
+			return true;
+		}
+	});
 }
 
 /**
@@ -223,7 +294,7 @@ export async function takeDamage(actor, preset = {}) {
 	const dead = Boolean(actor.system.slain);
 	const worn = wornArmour(actor);
 	const { bearing } = worn;
-	const trap = trapOn(actor, worn, preset.except);
+	const trap = trapOn(actor, worn, preset.except) ?? twoHandedOn(actor, worn);
 	/** Their Armour with the pieces worn only sometimes ticked or not, and their shield trapped or not. */
 	const armourFor = (ticked, trapped) => (trapped && trap && !trap.shielded ? 0 : worn.total(ticked, trapped));
 	const target = {
@@ -308,6 +379,8 @@ export async function takeDamage(actor, preset = {}) {
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
 	if (DOWN_OUTCOMES.includes(result.outcome) && !preset.sparring && !dead) {
+		// A steed going down throws whoever rode it (p10).
+		await unhorseRiders(actor);
 		await promptGroupMorale(actor);
 		// Bringing down whoever dealt a Humiliation may be the revenge that settles it (p9).
 		await offerRevenge(actor);
@@ -315,7 +388,7 @@ export async function takeDamage(actor, preset = {}) {
 	// A played Knight taken to VIG 0 is Slain, and their player carries on some other way (p8).
 	// Which deaths the book leaves alone is knightHasFallen's to judge, so the outcome goes to it.
 	if (!dead) await announceFallenKnight(actor, result.outcome);
-	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt);
+	if (warband && actor.system.leader && result.dealt > 0) await shareWithLeader(actor, result.dealt, { faces: preset.faces, by: preset.by });
 	return result;
 }
 
@@ -601,6 +674,8 @@ export async function takeAttack(actor, attack, { scars = true, except = [], spa
 		// A blow an Ability says harms SPI rather than VIG (p68).
 		virtue: blow.spirit ? "spi" : "vig",
 		by: blow.dealer,
+		// The die that counted, which a leader sharing a Warband's Scar rolls again (p9, p11).
+		faces: blow.faces,
 		quick,
 		also: (landed) => {
 			const also = {};
@@ -692,13 +767,14 @@ function lastingMarkUpdate(actor, attacker) {
  * @param {Actor} warband
  * @param {number} dealt
  */
-async function shareWithLeader(warband, dealt) {
+async function shareWithLeader(warband, dealt, { faces, by } = {}) {
 	const leader = fromUuidSync(warband.system.leader);
 	if (!leader?.system?.virtues) return;
 	if (!leader.isOwner) {
 		await postCard(warband, "note", { icon: "fa-solid fa-flag", text: t("damage.leaderShares", { name: leader.name, warband: warband.name, damage: dealt }) });
 		return;
 	}
-	const result = await takeDamage(leader, { damage: dealt, ignoreArmour: true });
-	if (result?.outcome === "scar") await rollScar(leader);
+	const result = await takeDamage(leader, { damage: dealt, ignoreArmour: true, by });
+	// Their Scar is the blow's: the die that dealt it, and a Humiliation remembers who did (p9).
+	if (result?.outcome === "scar") await rollScar(leader, { faces, by });
 }

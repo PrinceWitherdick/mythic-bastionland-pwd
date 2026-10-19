@@ -467,6 +467,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  *   running Combat's turn order the Attack was rolled, so a Gambit's mark knows
  *   when it lapses. Null when no Combat was running.
  * @property {boolean} melee
+ * @property {boolean} [twoHanded] Made with a Long weapon, which takes both hands, so the attacker holds no shield (p12).
  * @property {boolean} impaired
  * @property {string} attacker Actor UUID of whoever rolled it.
  * @property {{uuid: string, name: string}[]} targets The Tokens it was rolled against.

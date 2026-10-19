@@ -9,7 +9,7 @@ import { t } from "./cards.js";
  */
 
 /** How far back in the chat log a mark could still be holding. */
-const SCANNED_MESSAGES = 200;
+export const SCANNED_MESSAGES = 200;
 
 /**
  * Where the running Combat stands.

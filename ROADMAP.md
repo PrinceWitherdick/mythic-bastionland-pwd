@@ -119,6 +119,12 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 ### Audit of 2026-10-18
 - [ ] **T-89** A resolved Myth, or one whose six Omens are all seen, is never the random or nearest Myth on a Wilderness Roll, and nobody tells of a resolved Myth in Folklore. A resolved Myth's own hex rolls as plain Wilderness. With no Myth left to show an Omen, a 1–3 reads "No Myth of this Realm has an Omen left to show". (p27)
 - [ ] **T-90** The Season card has a **Roll a Myth to replace …** button for each resolved Myth, for the Referee only. It rolls the new Myth as the Toolkit's New Myth does. A second press, or a Myth already replaced, says so. (p27)
+- [ ] **T-95** After Import PDF, the Castle Wall in Arms & Goods is stone: only siege weapons harm it. (p11)
+- [ ] **T-96** With another ship targeted, Collide asks Of a size / Much the larger / Much the smaller, and both ships take their own die. A ship this user can't change is left alone. (p11)
+- [ ] **T-104** Deny is offered only to a target of the Attack, or an ally beside one on the map. Somebody who could Deny but stands too far off is told so. With nobody targeted, or nobody on the map, it works as before. (p10)
+- [ ] **T-105** A steed Mortally Wounded, Slain or at VIG 0 adds no trample to a charge. Damage that brings a ridden steed down clears its rider's Mounted mark and posts **Take the d6** for the fall. (p10)
+- [ ] **T-106** A leader sharing a Warband's Damage rolls their Scar on the die that dealt the blow, naming its dealer. Deleting the Combat clears every Warband's leader. (p9, p11)
+- [ ] **T-109** In a running Combat, someone whose last Attack used a Long or Slow weapon takes Damage with "Their last blow was two-handed…" ticked: the shield's Armour doesn't count. A one-handed Attack since, or a different Combat, leaves it unticked. (p12)
 
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)

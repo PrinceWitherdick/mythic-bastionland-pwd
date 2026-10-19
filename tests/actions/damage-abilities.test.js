@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SYSTEM_ID } from "../../module/system-id.js";
 
 // Only what reaches past the Damage itself is stubbed: the dialogs, the chat,
 // Morale, Scars and the effects on the map.
@@ -8,12 +9,13 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	postCard: vi.fn(async () => ({ id: "message-1" }))
 }));
 vi.mock("../../module/chat/morale-card.js", () => ({ moralePrompt: () => null, promptGroupMorale: vi.fn(async () => {}) }));
-vi.mock("../../module/chat/gambit-marks.js", () => ({ marksOn: () => [] }));
+vi.mock("../../module/chat/gambit-marks.js", () => ({ SCANNED_MESSAGES: 200, marksOn: () => [] }));
 vi.mock("../../module/actions/attack-fx.js", () => ({ chatIsPublic: () => true, playDamageFx: vi.fn() }));
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null) }));
 vi.mock("../../module/actions/scars.js", () => ({ offerRevenge: vi.fn(async () => {}), rollScar: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}), calendarLabel: () => "" }));
 vi.mock("../../module/actions/items.js", () => ({ armourConditionText: () => "" }));
+vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineMortalWound: vi.fn(async () => null), timelineWarded: vi.fn(async () => null) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
@@ -292,6 +294,56 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		// The same burn twice is taken once.
 		expect(boar.system.afflictions).toHaveLength(1);
 		expect(postCard.mock.calls.filter((call) => call[1] === "note").map((call) => call[2].icon)).toEqual(["fa-solid fa-eye-slash", "fa-solid fa-fire"]);
+	});
+});
+
+describe("a shield and a two-handed blow (p12)", () => {
+	const shielded = () => {
+		const guard = character({ uuid: "Actor.guard", name: "Guard" });
+		guard.system.armourNote = "mail, shield";
+		return guard;
+	};
+	const attackBy = (attacker, twoHanded, combat = "c1") => ({ flags: { [SYSTEM_ID]: { attack: { attacker, twoHanded, place: { combat, round: 1, turn: 0 } } } } });
+
+	it("leaves the shield out while their last blow in this fight was two-handed", async () => {
+		game.combat = { id: "c1", started: true };
+		game.messages = { contents: [attackBy("Actor.guard", true)] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls[0][0].context.trap).toMatchObject({ label: "bastionland.damage.twoHanded", shielded: true });
+	});
+
+	it("keeps it once they last struck one-handed, or outside the fight it was in", async () => {
+		game.combat = { id: "c1", started: true };
+		game.messages = { contents: [attackBy("Actor.guard", true), attackBy("Actor.guard", false)] };
+		await takeDamage(shielded(), { damage: 3 });
+		game.messages = { contents: [attackBy("Actor.guard", true, "c0")] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap)).toEqual([null, null]);
+	});
+});
+
+describe("a steed brought down (p10)", () => {
+	it("throws its rider, off it and offered the d6 of the fall", async () => {
+		const horse = character({ uuid: "Actor.horse", name: "Bayard", vig: 4, guard: 0, armour: 0 });
+		const rider = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		Object.assign(rider.system, { steed: "Actor.horse", mounted: true });
+		game.actors.contents.push(rider);
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		await takeDamage(horse, { damage: 20 });
+		expect(rider.update.mock.calls.at(-1)[0]).toEqual({ "system.mounted": false });
+		const thrown = postCard.mock.calls.find(([actor, template]) => actor === rider && template === "note");
+		expect(thrown[2].action.data).toBe("unhorsed");
+		expect(Object.values(thrown[3].flags)[0].unhorsed).toBe("Actor.kay");
+	});
+
+	it("leaves a rider on foot, or a steed only hurt, alone", async () => {
+		const horse = character({ uuid: "Actor.horse", name: "Bayard", vig: 12, guard: 0, armour: 0 });
+		const rider = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		Object.assign(rider.system, { steed: "Actor.horse", mounted: true });
+		game.actors.contents.push(rider);
+		inputDialog.mockResolvedValue({ damage: "2", armour: "0" });
+		await takeDamage(horse, { damage: 2 });
+		expect(rider.update).not.toHaveBeenCalled();
 	});
 });
 

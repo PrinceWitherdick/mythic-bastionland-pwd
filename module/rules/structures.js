@@ -46,6 +46,15 @@ export function carriesFrom(note) {
 /** Siege engines, named for what they are (Artillery and Siegery, p11). */
 const SIEGE_WORDS = /\b(?:siege|trebuchets?|stone throwers?|battering rams?|bolt launchers?|catapults?|ballistae?|mangonels?)\b/i;
 
+/** Walls of stone, which can't be breached by conventional means (Wood and Stone, p11). */
+const STONE_WORDS = /\b(?:castle walls?|stone walls?|stonework|masonry)\b/i;
+
+/**
+ * @param {string} name A structure's name, as the book gives it.
+ * @returns {boolean} Whether it's built of stone: a castle's wall is, its gate isn't.
+ */
+export const builtOfStone = (name) => STONE_WORDS.test(String(name ?? ""));
+
 /** Fire, as a weapon's name or note gives it. */
 const FIRE_WORDS = /\b(?:fire|firepots?|flames?|flaming|burning|torch(?:es)?|incendiary|alight)\b/i;
 

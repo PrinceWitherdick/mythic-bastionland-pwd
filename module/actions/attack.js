@@ -16,6 +16,7 @@ import {
 	canFundStrongGambit,
 	canJoin,
 	checkWielding,
+	heldAs,
 	damageAgainst,
 	defaultWielded,
 	gambitAllowsSave,
@@ -221,11 +222,13 @@ function watchCombined(dialog, dice) {
 
 /**
  * A Knight's steed and its trample, which joins a mounted charge at enemies on foot (p10).
+ * A steed that's down, or Exhausted at VIG 0, carries nobody into a charge.
  * @param {Actor} actor
  * @returns {{steed: Actor, trample: Item[]}|null} Null without a steed that tramples.
  */
 function mountOf(actor) {
 	const steed = actor.system.steed ? fromUuidSync(actor.system.steed) : null;
+	if (steed && (downBy(steed.system) || steed.system.virtues?.vig.value === 0)) return null;
 	const trample = steed?.items?.filter((item) => item.type === "weapon" && item.system.trample && parseDice(item.system.damage).length) ?? [];
 	return trample.length ? { steed, trample } : null;
 }
@@ -755,9 +758,11 @@ async function planAttack(actor, joining = null) {
  * @param {AttackPlan} plan
  * @returns {object} Part of an AttackState.
  */
-function madeWith({ actor, chosen, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
+function madeWith({ actor, choice, chosen, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
 	return {
 		melee: !chosen.some((item) => item.system.ranged),
+		// A Long weapon takes both hands (p12), so no shield is held while it's fought with.
+		twoHanded: chosen.some((item) => !item.system.noHand && heldAs(item.system, Boolean(choice?.mounted || choice?.charge)).long),
 		impaired: pool.impaired,
 		// A Long weapon in a confined space is why this Attack is Impaired.
 		confined: check.impaired,
