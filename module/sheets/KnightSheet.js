@@ -30,7 +30,7 @@ import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { travelsListContext } from "../actions/travels.js";
-import { openPlaces, openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
+import { openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
 import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
@@ -96,8 +96,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
 			pickTravelsHex: openTravelsRow,
-			showTravelsHex: showTravelsRow,
-			openPlaces: KnightSheet.#onOpenPlaces
+			showTravelsHex: showTravelsRow
 		}
 	};
 
@@ -278,14 +277,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 
 	/** @type {import("../apps/TravelsPlaces.js").TravelsListState} The Travels page's Realm, search, page and order, kept between draws. */
 	#travels = travelsState();
-
-	/**
-	 * Open the Places window on the Realm the Travels page shows.
-	 * @this {KnightSheet}
-	 */
-	static #onOpenPlaces() {
-		openPlaces({ sceneId: this.#travels.realm ?? undefined });
-	}
 
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;

@@ -2,10 +2,7 @@
 {{#if tabs.travels}}
 <div class="tab {{tabs.travels.cssClass}}" data-group="primary" data-tab="travels">
 	<section class="bastionland-block bastionland-travels-tab">
-		<header class="bastionland-travels-tab__head">
-			<h2 class="bastionland-heading">{{localize "bastionland.sheet.travels"}}</h2>
-			<button type="button" data-action="openPlaces"><i class="fa-solid fa-up-right-from-square" inert></i> {{localize "bastionland.travels.openPlaces"}}</button>
-		</header>
+		<h2 class="bastionland-heading">{{localize "bastionland.sheet.travels"}}</h2>
 		{{#with travels}}{{> "bastionland.travels-list"}}{{/with}}
 	</section>
 </div>

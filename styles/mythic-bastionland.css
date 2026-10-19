@@ -7403,26 +7403,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	grid-template-columns: minmax(0, 30rem) minmax(20rem, 1fr);
 }
 
-/* The Knight sheet's Travels page: its heading with Open Places beside it. */
-.bastionland-travels-tab__head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-	margin-bottom: 0.45rem;
-}
-
-/* The header carries the heading's bottom margin, so the button centres on the words. */
-.bastionland-travels-tab__head .bastionland-heading {
-	margin: 0;
-}
-
-.bastionland-travels-tab__head button {
-	flex: 0 0 auto;
-	width: auto;
-}
-
 /* The pages, Places, Chart and Journey, as tabs; the count sits on its own line below. */
 .bastionland-travels__views {
 	display: flex;

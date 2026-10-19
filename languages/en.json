@@ -1041,7 +1041,6 @@
       "showOnMap": "Show on the map",
       "ping": "Ping",
       "pingHint": "Show this hex on the map, ringed in green until you next click.",
-      "openPlaces": "Open Places",
       "views": {
         "label": "Pages",
         "places": "Places",
