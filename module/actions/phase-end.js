@@ -3,7 +3,7 @@ import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import { likelyPhaseMode, morningHardships, PHASE_END_MODES, wildernessDue, wildernessTicked } from "../rules/phase-end.js";
 import { HARDSHIPS, nextPhase } from "../rules/time.js";
-import { SLAIN_UPDATE, isDying, unwrittenFate } from "../rules/virtues.js";
+import { isDying, slainUpdate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -178,7 +178,7 @@ export async function dieUntended(dying) {
 	if (!game.user.isGM || !dying.length) return [];
 	// World actors and Tokens' own side by side, so each is written for itself.
 	// A Knight with no Ultimate fate written dies with this one.
-	await Promise.all(dying.map((actor) => actor.update({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("fallen.fateUntended")) }, causedBy("damage"))));
+	await Promise.all(dying.map((actor) => actor.update(slainUpdate(actor, t("fallen.fateUntended")), causedBy("damage"))));
 	const names = dying.map((actor) => actor.name);
 	await postCard(null, "report", {
 		title: t("phaseEnd.dying.title"),

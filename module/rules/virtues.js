@@ -39,6 +39,15 @@ export const SLAIN_UPDATE = Object.freeze({ "system.virtues.vig.value": 0, "syst
 export const unwrittenFate = (actor, fate) => (actor.type === "knight" && !actor.system.fate ? { "system.fate": fate } : {});
 
 /**
+ * The update that leaves somebody dead outright, with a Knight's Ultimate fate
+ * where nobody has written one yet.
+ * @param {Actor} actor
+ * @param {string} fate
+ * @returns {object}
+ */
+export const slainUpdate = (actor, fate) => ({ ...SLAIN_UPDATE, ...unwrittenFate(actor, fate) });
+
+/**
  * @param {{virtues: Record<string, {max: number}>}} system
  * @returns {object} The update restoring every Virtue to its max.
  */

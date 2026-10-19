@@ -7,7 +7,7 @@ import { DISMOUNT_FACES, damageAgainst, dismountLanded, harmTargetOf, lastingMar
 import { WARDED_OUTCOMES, applyDoom, armourAgainst, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
-import { SLAIN_UPDATE, downBy, unwrittenFate } from "../rules/virtues.js";
+import { downBy, slainUpdate, unwrittenFate } from "../rules/virtues.js";
 import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
@@ -247,7 +247,7 @@ async function unhorseRiders(steed) {
 	const as = new Set([steed.uuid, steed.isToken ? steed.token?.baseActor?.uuid : null].filter(Boolean));
 	const riders = worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner);
 	if (!riders.length) return riders;
-	await updateActors(riders.map((rider) => [rider, { "system.mounted": false }]));
+	await updateActors(riders.map((rider) => [rider, { "system.mounted": false }]), causedBy("damage"));
 	await Promise.all(riders.map((rider) => postCard(rider, "note", {
 		icon: "fa-solid fa-horse",
 		text: t("damage.unhorsed", { name: rider.name, steed: steed.name }),
@@ -613,7 +613,7 @@ async function takeWard(warden, victim) {
 	const scars = warden.items.filter((item) => item.type === "scar").map((item) => item.system);
 	const doomed = isDoomed(scars, getCalendar());
 	const update = doomed
-		? { ...SLAIN_UPDATE, "system.wounded": true, ...unwrittenFate(warden, t("fallen.fateWarded", { name: victim.name })) }
+		? { ...slainUpdate(warden, t("fallen.fateWarded", { name: victim.name })), "system.wounded": true }
 		: { "system.mortalWound": true, "system.wounded": true };
 	await warden.update(update, causedBy("damage"));
 	await Promise.all([

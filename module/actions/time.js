@@ -32,7 +32,7 @@ import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
-import { SLAIN_UPDATE, VIRTUES, downBy, fullVirtues, unwrittenFate } from "../rules/virtues.js";
+import { VIRTUES, downBy, fullVirtues, slainUpdate } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
 import { tableRenewalNotices } from "./knight-tables.js";
@@ -276,7 +276,7 @@ export async function passTime(company, { newAge, before }) {
  * @param {Actor} actor
  * @returns {object}
  */
-const diedOfAge = (actor) => ({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("time.fateOldAge")) });
+const diedOfAge = (actor) => slainUpdate(actor, t("time.fateOldAge"));
 
 /**
  * Whether skipping to a new Season restores somebody's Virtues (p9): anybody
@@ -535,7 +535,7 @@ async function npcsOldAge(company) {
 		entries.push({ name: actor.name, lines: [t("time.oldAge", { amount: roll.total, from, to: max }), ...(diesPeacefully ? [t("time.diesPeacefully")] : [])] });
 	}
 	// Every one a world actor, so one write takes them all.
-	await Actor.updateDocuments(updates);
+	await Actor.updateDocuments(updates, causedBy("season"));
 	await postCard(null, "report", { title: t("time.aging.oldNpcs"), tagline: calendarLabel(getCalendar()), entries }, { rolls });
 	return entries;
 }

@@ -7,7 +7,7 @@ import { SIGIL_MAX, abilitiesWith, etchUpdate, fadedUpdate, sigilChoices } from 
 import { knightEntryByType } from "../rules/knight-tables.js";
 import { countAfter, isCounted } from "../rules/restock.js";
 import { escapeHTML, splitName } from "../rules/text.js";
-import { SLAIN_UPDATE, downBy, unwrittenFate } from "../rules/virtues.js";
+import { downBy, slainUpdate } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK } from "./calendar.js";
 import { announceFallenKnight } from "./fallen.js";
@@ -27,7 +27,7 @@ import { worldKnights } from "./knights.js";
  * @param {Actor} actor
  */
 async function slay(actor) {
-	await actor.update({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("fallen.fateChance")) }, causedBy("damage"));
+	await actor.update(slainUpdate(actor, t("fallen.fateChance")), causedBy("damage"));
 	await announceFallenKnight(actor, "slain");
 }
 
