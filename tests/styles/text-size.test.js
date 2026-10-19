@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { split } from "../mocks/css.js";
 
 const root = join(import.meta.dirname, "..", "..");
 const system = JSON.parse(readFileSync(join(root, "system.json"), "utf8"));
@@ -60,24 +61,6 @@ function pixels(value, tokens) {
 	if (size[2] === "rem") return amount * REM;
 	if (size[2] === "em") return amount * BASE;
 	return amount;
-}
-
-/**
- * The selectors a rule lists. The commas inside an `:is(…)` belong to the one
- * selector that holds it, so only the commas outside the brackets divide.
- * @param {string} selectors
- * @returns {string[]}
- */
-function split(selectors) {
-	const each = [""];
-	let depth = 0;
-	for (const character of selectors) {
-		if (character === "(") depth += 1;
-		else if (character === ")") depth -= 1;
-		if (character === "," && depth === 0) each.push("");
-		else each[each.length - 1] += character;
-	}
-	return each;
 }
 
 /**

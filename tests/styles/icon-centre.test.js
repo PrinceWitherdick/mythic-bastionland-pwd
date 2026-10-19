@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SHEET_FONTS } from "../../module/fonts.js";
+import { split } from "../mocks/css.js";
 
 const root = join(import.meta.dirname, "..", "..");
 const sheets = Object.fromEntries(
@@ -89,5 +91,115 @@ describe("the badges that centre a glyph or a figure", () => {
 		const icon = rule("mythic-bastionland.css", ".bastionland-icon");
 		expect(icon.width).toBe(icon.height);
 		expect(pixels(icon.width) - pixels(icon["font-size"])).toBeGreaterThanOrEqual(8);
+	});
+});
+
+/*
+ * Letters off the middle of the chip, button or row that holds them: three
+ * causes, each guarded below, over every stylesheet the system loads.
+ */
+const system = JSON.parse(readFileSync(join(root, "system.json"), "utf8"));
+const css = system.styles.map((path) => readFileSync(join(root, path), "utf8")).join("\n").replace(/\/\*[\s\S]*?\*\//g, "");
+
+/** Every rule, its selectors split apart. Rules inside @supports and @media come out as their own. */
+const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
+	selectors: split(match[1].trim()).map((one) => one.trim()),
+	body: match[2]
+}));
+
+/** Every template and script of the system's, as text. */
+const sources = ["templates", "module"].flatMap((dir) =>
+	readdirSync(join(root, dir), { recursive: true, withFileTypes: true })
+		.filter((entry) => entry.isFile() && /\.(hbs|js)$/.test(entry.name))
+		.map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"))
+);
+
+/** The system's own classes in a class attribute, its Handlebars left out. */
+const classesIn = (value) => value.replace(/\{\{[^}]*\}\}/g, " ").split(/\s+/).filter((name) => /^bastionland-[\w-]+$/.test(name));
+
+/** Each class's test for a selector whose last element carries it, built once. */
+const lastElement = new Map();
+
+/**
+ * Whether a selector's last element is the one that carries the class. What
+ * follows the class may hold brackets with spaces in them, as `:is(:hover, .a)`
+ * does, a bracket within a bracket too.
+ */
+const endsWith = (selector, name) => {
+	if (!selector.includes(name)) return false;
+	if (!lastElement.has(name)) lastElement.set(name, new RegExp(`\\.${name}(?![\\w-])(?:[^\\s>+~()]|\\((?:[^()]|\\([^()]*\\))*\\))*$`));
+	return lastElement.get(name).test(selector);
+};
+
+describe("centring the letters", () => {
+	/*
+	 * IM Fell's line box sat 0.07em under the middle of its capitals, so
+	 * whatever was centred by it (a flex button, an icon and its words, a
+	 * bullet and its label) came out a pixel or two high. Each face shares the
+	 * same height out so the line box centres on the capitals, in the
+	 * stylesheet and in the register Foundry draws from.
+	 */
+	it("gives every IM Fell face a line box centred on its capitals", () => {
+		const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((match) => match[1]).filter((body) => body.includes("IMFell"));
+		const registered = Object.values(SHEET_FONTS).flat().filter(({ urls }) => urls.some((url) => url.includes("IMFell")));
+		expect([faces.length, registered.length]).toEqual([3, 3]);
+		const pairs = new Set([
+			...faces.map((face) => `${/ascent-override:\s*([\d.]+%)/.exec(face)?.[1]} ${/descent-override:\s*([\d.]+%)/.exec(face)?.[1]}`),
+			...registered.map((font) => `${font.ascentOverride} ${font.descentOverride}`)
+		]);
+		expect([...pairs], "one pair, on every face").toHaveLength(1);
+		// Chrome's measures of IM Fell, in em: ascent 0.905, descent 0.363, capitals 0.6875.
+		const [ascent, descent] = [...pairs][0].split(" ").map(parseFloat);
+		expect(ascent + descent).toBeCloseTo(90.5 + 36.3, 0);
+		expect(ascent - descent).toBeCloseTo(68.75, 0);
+	});
+
+	/*
+	 * A pill centres its letters by trimming its line box to them, which only
+	 * a block can do. A button pill left as Foundry's flex box (the Chart's
+	 * filters) kept the trim's padding without the trim, and its words rode
+	 * high. The shared rule makes every button pill a block; no pill's own rule
+	 * may turn it back into a flex box or a grid.
+	 */
+	it("never lays a pill out as a flex box or a grid", () => {
+		const pillClasses = new Set(["bastionland-pill"]);
+		for (const text of sources) {
+			for (const match of text.matchAll(/class="([^"]*\bbastionland-pill\b[^"]*)"/g)) {
+				for (const name of classesIn(match[1])) if (!name.startsWith("bastionland-pill")) pillClasses.add(name);
+			}
+		}
+		expect(pillClasses.size).toBeGreaterThan(5);
+		const flexed = rules.flatMap(({ selectors, body }) =>
+			/(^|;|\s)display:\s*(inline-)?(flex|grid)/.test(body)
+				? selectors.filter((selector) => [...pillClasses].some((name) => endsWith(selector, name)))
+				: []
+		);
+		expect(flexed).toEqual([]);
+		expect(css).toMatch(/button\.bastionland-pill[,\s][^{]*\{\s*display: inline-block;/);
+	});
+
+	/*
+	 * Foundry's margin under every list entry but the last made a row of them
+	 * taller than its last entry, which then sat lower than the rest: the
+	 * Chart's key. Every list drawn across sets its entries' margin aside: a
+	 * flex box that isn't a column, one a modifier turns into a row (NPC age
+	 * pills), or a grid whose entries flow into columns (a single thread's
+	 * Timeline).
+	 */
+	it("sets Foundry's entry margin aside in every list drawn as a row", () => {
+		const lists = new Set();
+		for (const text of sources) {
+			for (const match of text.matchAll(/<(?:ul|ol)\b[^>]*class="([^"]*)"/g)) for (const name of classesIn(match[1])) lists.add(name);
+		}
+		const across = [...lists].filter((name) => {
+			const own = rules.filter(({ selectors }) => selectors.some((selector) => endsWith(selector, name) && !/\s(li|>\s*li)\b/.test(selector)));
+			const flexRow = own.some(({ body }) => /display:\s*(inline-)?flex/.test(body)) && !own.some(({ body }) => /flex-direction:\s*column/.test(body));
+			return flexRow || own.some(({ body }) => /flex-direction:\s*row|grid-auto-flow:\s*column/.test(body));
+		});
+		expect(across.length).toBeGreaterThan(5);
+		const shared = /:is\(([^)]*)\)\s*>\s*li\s*\{\s*margin: 0;/.exec(css);
+		expect(shared, "the shared rule for lists drawn across").not.toBeNull();
+		const named = new Set(shared[1].split(",").map((one) => one.trim().slice(1)));
+		expect(across.filter((name) => !named.has(name))).toEqual([]);
 	});
 });

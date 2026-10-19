@@ -30,11 +30,23 @@
 	unicode-range: U+006B;
 }
 
+/*
+ * IM Fell stands 0.905em above its baseline and 0.363em below, but its
+ * capitals only 0.688em tall, so the middle of its line box sat 0.07em under
+ * the middle of the capitals, and anything centred by its line box, a flex
+ * button, an icon and its words, a list bullet and its label, came out a
+ * pixel or two high. The same height is shared out so the line box centres on
+ * the capitals: 0.978em above and 0.29em below. Each IM Fell face carries
+ * the pair here and in module/fonts.js, whose faces Foundry adds after these
+ * and so are the ones drawn (tests/styles/icon-centre.test.js).
+ */
 @font-face {
 	font-family: "Bastionland Body";
 	src: url("../assets/fonts/IMFellEnglish-Regular.ttf") format("truetype");
 	font-style: normal;
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 @font-face {
@@ -42,12 +54,16 @@
 	src: url("../assets/fonts/IMFellEnglish-Italic.ttf") format("truetype");
 	font-style: italic;
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 @font-face {
 	font-family: "Bastionland Caps";
 	src: url("../assets/fonts/IMFellEnglishSC-Regular.ttf") format("truetype");
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 /*
@@ -81,6 +97,32 @@
 }
 
 /*
+ * Foundry puts a margin under every list entry but the last. A list laid out
+ * as a row spaces its entries with its gap instead, and the margin only made
+ * the row taller than the last entry, which a stretched row then centred lower
+ * than the rest. Every list drawn across is named here, the chat cards' too
+ * (tests/styles/icon-centre.test.js).
+ */
+:is(
+	.bastionland-time__list,
+	.bastionland-conditions,
+	.bastionland-heraldry-painter__recent-list,
+	.bastionland-chooser__groups,
+	.bastionland-travels-chart__legend,
+	.bastionland-realm-drawing__tally,
+	.bastionland-site__tallies,
+	.bastionland-site__legend,
+	.bastionland-dice,
+	.bastionland-card__tally,
+	.bastionland-company-colours,
+	.bastionland-choices--inline,
+	.bastionland-session-end__list--row,
+	.bastionland-timeline__axis
+) > li {
+	margin: 0;
+}
+
+/*
  * Parchment, the book's own colours. Its paper, ink and rule are here; the
  * rest of its colours and its light are in the rule after.
  */
@@ -99,18 +141,6 @@
 	 * not by being shrunk. The floor is for the words penned inside tight
 	 * furniture only: a die chip, a numbered disc, a tally, a tab.
 	 */
-	/*
-	 * A small box centres its line, not its figures. Foundry sets every
-	 * number field's line-height to 2rem, which overflows a box shorter
-	 * than that, and the line it centres is struck from IM Fell, whose deep
-	 * descent (0.363em) hangs under a baseline the shallower EB Garamond
-	 * digits (0.65em tall) never reach: the numbers ride 0.054em above the
-	 * middle. Padding half of that back on at the top drops them into it,
-	 * since the field centres what is left of its content box. Only a box
-	 * that short wants it: the taller Virtue, Guard and Glory boxes hold
-	 * their figures in the middle on their own.
-	 */
-	--bastionland-figure-nudge: 0.11em;
 	--bastionland-font-note: 15px;
 	--bastionland-font-floor: 14px;
 }
@@ -1652,10 +1682,14 @@ a.button:focus:not(:focus-visible) {
 	color: var(--bastionland-ink);
 }
 
+/* A rank: plain lines, the Glory beside the name on the same baseline, and a
+   block, so the pill's trim reaches its letters. */
 .bastionland-choice--static {
-	display: flex;
-	align-items: baseline;
-	gap: 0.5rem;
+	display: block;
+}
+
+.bastionland-choice--static .bastionland-choice__glory {
+	margin-left: 0.25rem;
 }
 
 .bastionland-choice__glory {
@@ -1679,10 +1713,9 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-condition {
 	display: inline-block;
-	/* A pill, padded through the pill sums below. Untrimmed, IM Fell leaves
-	   more room under its baseline than over its capitals, so the padding sits
-	   on top to centre the letters in the pill. */
-	padding: var(--pill-padding-top, 0.125rem) 0.6rem var(--pill-padding-bottom, 0);
+	/* A pill, padded through the pill sums below. Untrimmed, IM Fell's line
+	   box already centres on its capitals, so the padding is even. */
+	padding: var(--pill-padding-top, 0.0625rem) 0.6rem var(--pill-padding-bottom, 0.0625rem);
 	border: var(--pill-border, 1px) dashed var(--bastionland-rule);
 	border-radius: 999px;
 	color: var(--bastionland-ink-soft);
@@ -1710,17 +1743,23 @@ a.button:focus:not(:focus-visible) {
 		--pill-padding-bottom: var(--pill-pad, 0.3em);
 	}
 
+	/* Foundry draws every button as a flex box of a set height, which the trim
+	   can't reach, so a button pill's letters sat off the middle. Every one is
+	   a plain block here, whatever page it sits in, and its own rule never sets
+	   a display (tests/styles/icon-centre.test.js). A choice is named in its page
+	   too, to outrank the page's rules for the buttons it sits among. */
+	button.bastionland-pill,
+	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
+		display: inline-block;
+		height: auto;
+		min-height: 0;
+	}
+
 	/* A choice takes its padding here, named in its page, so it still outranks
 	   the page's rules for the buttons it sits among. */
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		padding-top: var(--pill-padding-top, 0);
 		padding-bottom: var(--pill-padding-bottom, 0);
-	}
-
-	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
-		display: inline-block;
-		height: auto;
-		min-height: 0;
 	}
 }
 
@@ -1777,16 +1816,6 @@ a.button:focus:not(:focus-visible) {
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		--pill-border-width: 1.5px;
 		border-width: var(--pill-border, 1.5px);
-	}
-
-	/* A rank is a flex box, which the trim can't reach, so it goes back to
-	   plain lines, the Glory beside the name on the same baseline. */
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static {
-		display: block;
-	}
-
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static .bastionland-choice__glory {
-		margin-left: 0.25rem;
 	}
 
 	/* A Site chip keeps its set height, rounded, and stays a flex box so its
@@ -2619,9 +2648,9 @@ a.button:focus:not(:focus-visible) {
 	border-radius: 4px;
 }
 
-/* Foundry's Reveal button unsets its line height, and IM Fell's deep descent
-   then leaves the word sitting high. It takes the pills' trim instead, which
-   centres the letters between the capitals and the baseline. */
+/* Foundry's Reveal button unsets its line height and lays its word out as a
+   flex box. It takes the pills' trim instead, as a block, which centres the
+   letters between the capitals and the baseline. */
 .bastionland-page section.secret > button.reveal {
 	display: inline-block;
 	padding: var(--pill-padding-top, 0.15rem) 1rem var(--pill-padding-bottom, 0.15rem);

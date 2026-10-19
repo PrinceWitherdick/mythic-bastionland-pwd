@@ -495,13 +495,13 @@
 	font-family: var(--bastionland-font-caps);
 }
 
-/* The Season it is now, and each card's kind, are named on a pill. */
+/* The Season it is now, and each card's kind, are named on a pill: a block, so
+   the pill's trim reaches its letters, with the icon set in the line before them. */
 .bastionland-timeline__now,
 .bastionland-timeline__kind {
 	--pill-pad: 0.25em;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35em;
+	display: inline-block;
+	white-space: nowrap;
 	padding: var(--pill-padding-top, 0.25em) 0.55em var(--pill-padding-bottom, 0.25em);
 	border: var(--pill-border, 1px) solid;
 	border-radius: 999px;
