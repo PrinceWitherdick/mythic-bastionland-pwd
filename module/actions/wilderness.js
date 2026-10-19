@@ -118,13 +118,14 @@ export function registerOmenEntered() {
 }
 
 /**
- * Keep that a Myth's Omen showed as the Company came into its hex this Phase. GMs only.
+ * Keep that a Myth's Omen showed as the Company came into its hex. GMs only.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
+ * @param {import("../rules/time.js").Calendar} [when] The Phase they came in, this one by default.
  * @returns {Promise<unknown>}
  */
-export const markOmenOnEntering = (scene, hex) =>
-	game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...getCalendar() }, scene: scene.id, hex: { col: hex.col, row: hex.row } });
+export const markOmenOnEntering = (scene, hex, when = getCalendar()) =>
+	game.settings.set(SYSTEM_ID, OMEN_ENTERED_SETTING, { when: { ...when }, scene: scene.id, hex: { col: hex.col, row: hex.row } });
 
 /**
  * Whether the Omen of the Myth in this hex has already shown this Phase, as the

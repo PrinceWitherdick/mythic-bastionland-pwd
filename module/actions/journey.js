@@ -1,5 +1,5 @@
 import { t } from "../chat/cards.js";
-import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
+import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -104,8 +104,8 @@ export function movesAsCompany(token) {
 
 /**
  * Called on the active GM's client once a Company's move is gathered, with the
- * Scene and `{entered, ended, from, chosen}`: the hexes it came into, each once,
- * whether a move ended in a new hex, the hex it set off from, and whether the
+ * Scene and `{entered, ended, from, chosen}`: the hexes it came into, each once
+ * where it was last come into, so the last is where it ended, whether a move ended in a new hex, the hex it set off from, and whether the
  * Company chose to go, rather than being put there as a blind drift puts it.
  * So each rule that follows the Company hears of a move once, however many
  * Knights' Tokens made it.
@@ -141,7 +141,7 @@ function writeArrivals() {
 		recordHexVisits(scene, visited)
 			.then(() => timelineArrivals(scene, first))
 			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
-		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: onceEach(entered), ended, from, chosen });
+		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen });
 	}
 }
 

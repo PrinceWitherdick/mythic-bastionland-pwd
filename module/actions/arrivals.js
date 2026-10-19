@@ -48,38 +48,55 @@ function mythsEntered(scene, entered) {
 /**
  * Count the hexes come into this Phase, and say what pace that makes (p18).
  * @param {number} entered
- * @returns {Promise<{before: string, after: string}>}
+ * @param {import("../rules/time.js").Calendar} now
+ * @returns {Promise<{before: string, after: string, counted: number}>} With the hexes kept in the count.
  */
-async function countPace(entered) {
-	const now = getCalendar();
+async function countPace(entered, now) {
 	const said = game.settings.get(SYSTEM_ID, PACE_SETTING);
 	const before = samePhase(said?.when, now) ? Number(said.count) || 0 : 0;
 	const count = before + entered;
-	const pace = { before: companyPace(before), after: companyPace(count) };
+	const pace = { before: companyPace(before), after: companyPace(count), counted: 0 };
 	// Past a Cruise, more hexes make no other pace, so there's nothing new to keep.
-	if (pace.before !== "beyond") await game.settings.set(SYSTEM_ID, PACE_SETTING, { when: { ...now }, count });
+	if (pace.before !== "beyond") {
+		await game.settings.set(SYSTEM_ID, PACE_SETTING, { when: { ...now }, count });
+		pace.counted = entered;
+	}
 	return pace;
+}
+
+/**
+ * Take a move's hexes back off the Phase's pace, as dire weather sends the
+ * Company back where it set off (p18): it travelled no hexes at all. Only
+ * while the count is still the Phase's it was counted in.
+ * @param {{when?: object, paced?: number}|undefined} arrived As the arrival card keeps it.
+ * @returns {Promise<unknown>}
+ */
+async function uncountPace({ when, paced } = {}) {
+	const said = game.settings.get(SYSTEM_ID, PACE_SETTING);
+	if (!paced || !said || !samePhase(said.when, when)) return null;
+	return game.settings.set(SYSTEM_ID, PACE_SETTING, { ...said, count: Math.max(0, (Number(said.count) || 0) - paced) });
 }
 
 /**
  * What the Referee is told of a move, and the buttons that act on it.
  * @param {Scene} scene
  * @param {{entered: object[], ended: boolean, from: object|null}} move
- * @returns {Promise<{lines: string[], actions: object[]}>}
+ * @param {import("../rules/time.js").Calendar} now
+ * @returns {Promise<{lines: string[], actions: object[], paced: number}>} With the hexes counted toward the pace.
  */
-async function arrivalNotes(scene, { entered, ended, from }) {
+async function arrivalNotes(scene, { entered, ended, from }, now) {
 	const lines = [];
 	const actions = [];
 	const here = entered.at(-1) ?? null;
 
 	// Dire weather keeps the Company in the hex it's in (p18).
-	if (ended && here && from && !sameHex(from, here) && weatherIn(getCalendar()) === "dire") {
+	if (ended && here && from && !sameHex(from, here) && weatherIn(now) === "dire") {
 		lines.push(t("arrival.dire", { hex: hexLabel(from, scene) }));
 		actions.push({ key: "stay", hex: hexKey(from), icon: "fa-solid fa-cloud-showers-heavy", label: t("arrival.stay") });
 	}
 
 	// Trek is a hex a Phase; a second is a Gallop, and a third only by boat or road (p18).
-	const pace = await countPace(entered.length);
+	const pace = await countPace(entered.length, now);
 	if (pace.after !== pace.before && pace.after !== "trek") {
 		lines.push(t(`arrival.${pace.after}`));
 		if (pace.after === "gallop") actions.push({ key: "gallop", icon: "fa-solid fa-horse", label: t("arrival.gallopButton") });
@@ -97,7 +114,7 @@ async function arrivalNotes(scene, { entered, ended, from }) {
 		lines.push(t("arrival.holding", { hex: hexLabel(here, scene) }));
 		actions.push({ key: "mood", icon: "fa-solid fa-masks-theater", label: t("arrival.mood") });
 	}
-	return { lines, actions };
+	return { lines, actions, paced: pace.counted };
 }
 
 /**
@@ -109,15 +126,18 @@ async function arrivalNotes(scene, { entered, ended, from }) {
  */
 export async function noticeArrival(scene, { entered = [], ended = false, from = null, chosen = true }) {
 	if (!game.user.isGM || !chosen || !isRealmScene(scene) || !entered.length) return null;
-	const { lines, actions } = await arrivalNotes(scene, { entered, ended, from });
+	const now = getCalendar();
+	const { lines, actions, paced } = await arrivalNotes(scene, { entered, ended, from }, now);
 	if (!lines.length) return null;
 	const here = entered.at(-1);
+	// The Phase it came in and the hexes counted toward its pace, kept for buttons pressed later.
+	const arrived = { when: { ...now }, paced };
 	return postCard(null, "arrival", {
 		title: t("arrival.title"),
 		target: hexTarget(here, scene),
 		lines,
 		actions
-	}, { mode: "gm", flags: { [SYSTEM_ID]: { arrival: scene.id } } });
+	}, { mode: "gm", flags: { [SYSTEM_ID]: { arrival: scene.id, arrived } } });
 }
 
 /**
@@ -148,17 +168,24 @@ async function followMove(scene, moved) {
 }
 
 /**
- * What each of the arrival card's buttons does. GMs only.
- * @type {Record<string, (scene: Scene, hex: {col: number, row: number}|null) => Promise<unknown>>}
+ * What each of the arrival card's buttons does, with the Phase the Company
+ * came in and the hexes it counted toward the pace. GMs only.
+ * @type {Record<string, (scene: Scene, hex: {col: number, row: number}|null, arrived: {when?: object, paced?: number}) => Promise<unknown>>}
  */
 const ARRIVAL_ACTIONS = {
-	// Back where it was, put there rather than gone there by choice.
-	stay: (scene, hex) => (hex ? setCompanyHex(scene, hex, { forced: true }) : null),
+	// Back where it was, put there rather than gone there by choice, having travelled nowhere.
+	async stay(scene, hex, arrived) {
+		if (!hex) return null;
+		const moved = await setCompanyHex(scene, hex, { forced: true });
+		await uncountPace(arrived);
+		return moved;
+	},
 	gallop: () => gallop(),
-	async omen(scene, hex) {
+	async omen(scene, hex, arrived) {
 		if (!hex) return null;
 		const outcome = await wildernessRoll({ scene, hex });
-		if (outcome) await markOmenOnEntering(scene, hex);
+		// Shown as they came in, so the Phase they came in has had its Omen, whenever the button was pressed.
+		if (outcome) await markOmenOnEntering(scene, hex, arrived.when ?? getCalendar());
 		return outcome;
 	},
 	mood: () => rollRefereeTable("mood")
@@ -183,7 +210,7 @@ export function registerArrivals() {
 			}
 			const act = ARRIVAL_ACTIONS[button.dataset.arrival];
 			const hex = button.dataset.arrivalHex ? parseHexKey(button.dataset.arrivalHex) : null;
-			return Boolean(act && (await act(scene, hex)));
+			return Boolean(act && (await act(scene, hex, message.flags[SYSTEM_ID].arrived ?? {})));
 		}
 	});
 }

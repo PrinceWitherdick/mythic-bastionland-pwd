@@ -168,6 +168,14 @@ export function hexesEntered(path, from = null, { walkedAcross = null } = {}) {
 }
 
 /**
+ * The hexes a gathered move came into, each once, where it was last come
+ * into, so a move that doubles back still ends in the hex it ended in.
+ * @param {{col: number, row: number}[]} hexes In the order they were come into.
+ * @returns {{col: number, row: number}[]}
+ */
+export const lastOfEach = (hexes) => hexes.filter((hex, index) => index === hexes.findLastIndex((other) => sameHex(other, hex)));
+
+/**
  * Count the Company coming into each hex given, one after another.
  * @param {Journey} journey
  * @param {{col: number, row: number}[]} hexes In the order they were come into.

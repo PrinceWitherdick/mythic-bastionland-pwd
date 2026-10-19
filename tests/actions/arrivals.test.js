@@ -37,7 +37,9 @@ vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
 vi.mock("../../module/actions/wilderness.js", () => ({ markOmenOnEntering: vi.fn(), wildernessRoll: vi.fn() }));
 
 const { noticeArrival } = await import("../../module/actions/arrivals.js");
-const { postCard } = await import("../../module/chat/cards.js");
+const { postCard, registerCardButtons } = await import("../../module/chat/cards.js");
+const { setCompanyHex } = await import("../../module/actions/company.js");
+const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
 
 const scene = { id: "realm", realm: true };
 
@@ -128,6 +130,38 @@ describe("a move followed", () => {
 		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
 		expect(lastCard().target).toEqual(hex(2, 2));
 		expect(lastCard().actions.map(({ key }) => key)).toEqual(["mood"]);
+	});
+
+	/**
+	 * Press one of the last arrival card's buttons.
+	 * @param {string} key
+	 * @param {string} [at] The hex it carries.
+	 */
+	const press = (key, at) => {
+		const { handler } = vi.mocked(registerCardButtons).mock.calls.at(-1)[0];
+		const [, , , { flags }] = vi.mocked(postCard).mock.calls.at(-1);
+		game.scenes = { get: () => scene };
+		return handler({ dataset: { arrival: key, arrivalHex: at } }, { flags });
+	};
+
+	it("takes a move dire weather sent back off the Phase's pace, so the next hex is no Gallop (p18)", async () => {
+		weather = "dire";
+		await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		await press("stay", "5,4");
+		expect(setCompanyHex).toHaveBeenCalledWith(scene, hex(5, 4), { forced: true });
+		expect(settings.get("companyPace").count).toBe(0);
+
+		weather = null;
+		vi.mocked(postCard).mockClear();
+		expect(await noticeArrival(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) })).toBeNull();
+	});
+
+	it("keeps an Omen shown on entering for the Phase the Company came in, though pressed later (p27)", async () => {
+		vi.mocked(wildernessRoll).mockResolvedValueOnce({});
+		await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		calendar.phase = "afternoon";
+		await press("omen", "8,6");
+		expect(markOmenOnEntering).toHaveBeenCalledWith(scene, hex(8, 6), expect.objectContaining({ phase: "morning" }));
 	});
 
 	it("tells nothing where a blind roll sent the Company back where it set off", async () => {
