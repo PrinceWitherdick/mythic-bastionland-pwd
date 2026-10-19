@@ -2103,8 +2103,9 @@ a.button:focus:not(:focus-visible) {
 	margin-left: auto;
 }
 
-/* Each tool shows as the row is hovered or holds the focus; settling a Scar and
-   the pencil show faintly before then, so they're there to be found. */
+/* Each tool shows as the row is hovered or holds the focus; settling a Scar
+   shows faintly before then, so it's there to be found. The pencil stays hidden
+   till then (the user's call). */
 .bastionland-item__controls > * {
 	opacity: 0;
 	transition: opacity 120ms;
