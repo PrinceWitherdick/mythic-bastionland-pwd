@@ -626,7 +626,7 @@ class TestGame {
 		const track = trackFor(target);
 		if (!track) return;
 		const tag = rumour ? await this.rumours() : "";
-		const entry = { season: timelineNow(), title, place, placeUuid: at?.uuid ?? "", body, tag, source: "hand", createdAt: Date.now(), authorId: game.user.id };
+		const entry = { season: timelineNow(), title, place: place || at?.name || "", placeUuid: at?.uuid ?? "", body, tag, source: "hand", createdAt: Date.now(), authorId: game.user.id };
 		try {
 			await mutateTrack(track, (entries) => addEntry(entries, entry, foundry.utils.randomID), { create: true });
 		} catch (error) {

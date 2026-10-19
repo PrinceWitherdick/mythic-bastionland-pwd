@@ -516,8 +516,8 @@
 }
 
 /* The last thing in a Season, where an entry written there lands. Shown while its Season or
-   cell is hovered, or it has the keyboard; always on a touch screen and in the Season it is now
-   when that holds nothing. Opacity, never display: it keeps its room, so nothing moves. */
+   cell is hovered, or it has the keyboard; always on a touch screen, across a single thread
+   (below), and in the Season it is now when that holds nothing. Opacity, never display: it keeps its room, so nothing moves. */
 .bastionland-timeline__add-slot {
 	display: flex;
 	opacity: 0;
@@ -525,10 +525,15 @@
 }
 
 .bastionland-timeline__period:hover .bastionland-timeline__add-slot,
-.bastionland-timeline__axis-period:hover .bastionland-timeline__add-slot,
 .bastionland-timeline__cell:hover .bastionland-timeline__add-slot,
 .bastionland-timeline__add-slot:focus-within,
 .is-ghost .bastionland-timeline__add-slot {
+	opacity: 1;
+}
+
+/* Across a single thread the "+ Add" and the tools of the cards and the Season's note always show, rather than
+   leaving a strip of bare card under the words until it is hovered. */
+.bastionland-timeline__axis-period :is(.bastionland-timeline__add-slot, .bastionland-timeline__tools.bastionland-reveal) {
 	opacity: 1;
 }
 
@@ -652,14 +657,12 @@
 	width: 17rem;
 }
 
-/* The line is drawn by each node, across its whole column, so it never breaks. */
-.bastionland-timeline__axis-node,
-.bastionland-timeline__axis-age > .bastionland-timeline__age-chip {
+/* The line is drawn by each node, across its whole column, so it never breaks: a Season's and an
+   Age's alike. Drawn by the node rather than its column, as a line placed in a subgrid's row
+   falls to the middle of the whole column instead, among the cards hanging below. */
+.bastionland-timeline__axis-node {
 	position: relative;
 	grid-row: 2;
-}
-
-.bastionland-timeline__axis-node {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -668,8 +671,7 @@
 	overflow-y: clip;
 }
 
-.bastionland-timeline__axis-node::before,
-.bastionland-timeline__axis-age::before {
+.bastionland-timeline__axis-node::before {
 	content: "";
 	position: absolute;
 	top: 50%;
@@ -679,13 +681,9 @@
 	transform: translateY(-50%);
 }
 
-.bastionland-timeline__axis-age {
+/* Over the line, which would otherwise strike it through. */
+.bastionland-timeline__axis-node > .bastionland-timeline__age-chip {
 	position: relative;
-	align-items: center;
-}
-
-.bastionland-timeline__axis-age::before {
-	grid-row: 2;
 }
 
 .bastionland-timeline__axis-node > .bastionland-timeline__period-head {
