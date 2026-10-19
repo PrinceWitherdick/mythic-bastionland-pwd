@@ -320,6 +320,31 @@ describe("a shield and a two-handed blow (p12)", () => {
 		await takeDamage(shielded(), { damage: 3 });
 		expect(inputDialog.mock.calls.map(([options]) => options.context.trap)).toEqual([null, null]);
 	});
+
+	it("goes by their own share of an Attack they joined", async () => {
+		game.combat = { id: "c1", started: true };
+		const joinedBy = (twoHanded) => {
+			const message = attackBy("Actor.knight", false);
+			message.flags[SYSTEM_ID].attack.joined = [{ actor: "Actor.guard", twoHanded }];
+			return message;
+		};
+		game.messages = { contents: [joinedBy(true)] };
+		await takeDamage(shielded(), { damage: 3 });
+		// A one-handed join after a two-handed blow of their own puts the shield back.
+		game.messages = { contents: [attackBy("Actor.guard", true), joinedBy(false)] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap?.label ?? null)).toEqual(["bastionland.damage.twoHanded", null]);
+	});
+
+	it("goes by how they stood when the blow being applied was rolled, not by an Attack of theirs since", async () => {
+		game.combat = { id: "c1", started: true };
+		const blow = { id: "m1", ...attackBy("Actor.boar", false) };
+		game.messages = { contents: [blow, { id: "m2", ...attackBy("Actor.guard", true) }] };
+		await takeDamage(shielded(), { damage: 3, except: ["m1"] });
+		game.messages = { contents: [{ id: "m0", ...attackBy("Actor.guard", true) }, blow, { id: "m2", ...attackBy("Actor.guard", false) }] };
+		await takeDamage(shielded(), { damage: 3, except: ["m1"] });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap?.label ?? null)).toEqual([null, "bastionland.damage.twoHanded"]);
+	});
 });
 
 describe("a steed brought down (p10)", () => {

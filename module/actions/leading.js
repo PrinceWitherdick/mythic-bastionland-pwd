@@ -59,16 +59,26 @@ async function onTurnChange(combat, _prior, current) {
 }
 
 /**
+ * Everybody fighting in some Combats. An unlinked Token's Warband fights for
+ * the world's one too.
+ * @param {Combat[]} combats
+ * @returns {Set<string>} Their actors' uuids.
+ */
+const fightersIn = (combats) => new Set(combats.flatMap((combat) => [...combat.combatants])
+	.flatMap(({ actor }) => [actor?.uuid, actor?.isToken ? actor.token?.baseActor?.uuid : null]).filter(Boolean));
+
+/**
  * The fight is over, so nobody in it leads a Warband from the front any longer,
  * even a leader whose next turn never came. A fight on another Scene keeps its
- * own leaders. The active GM makes the change.
+ * own leaders, and a Warband still fighting there keeps its leader whoever
+ * fought here. The active GM makes the change.
  * @param {Combat} combat
  */
 async function onCombatEnd(combat) {
 	if (!game.users.activeGM?.isSelf) return;
-	// An unlinked Token's Warband fights for the world's one too.
-	const fought = new Set(combat.combatants.flatMap(({ actor }) => [actor?.uuid, actor?.isToken ? actor.token?.baseActor?.uuid : null]).filter(Boolean));
-	await clearLeaders(combat, (leader, warband) => fought.has(leader) || fought.has(warband.uuid));
+	const fought = fightersIn([combat]);
+	const fighting = fightersIn([...(game.combats ?? [])].filter((other) => other.id !== combat.id));
+	await clearLeaders(combat, (leader, warband) => (fought.has(leader) || fought.has(warband.uuid)) && !fighting.has(warband.uuid));
 }
 
 /** Called during init. */

@@ -124,25 +124,33 @@ function trapOn(actor, worn, except = []) {
  * two-handed (p12): it counts as a Trap does, ticked from the start.
  * @param {Actor} actor
  * @param {WornArmour} worn
+ * @param {string[]} [except] Attack cards being applied now.
  * @returns {{label: string, shielded: boolean}|null}
  */
-const twoHandedOn = (actor, worn) => (worn.shielded && foughtTwoHanded(actor) ? { label: t("damage.twoHanded"), shielded: true } : null);
+const twoHandedOn = (actor, worn, except) => (worn.shielded && foughtTwoHanded(actor, except) ? { label: t("damage.twoHanded"), shielded: true } : null);
 
 /**
  * Whether somebody's last Attack in the fight now running was made with a Long
  * weapon, which takes both hands (p12) and leaves no hand for a shield until
  * they attack again. Outside a Combat, nobody's last blow says how they stand now.
  * @param {Actor} actor
+ * @param {string[]} [except] Attack cards being applied now: how they stood when
+ *   the first of them was rolled is what counts, not any Attack of their own since.
  * @returns {boolean}
  */
-function foughtTwoHanded(actor) {
+function foughtTwoHanded(actor, except = []) {
 	const combat = game.combat;
 	if (!combat?.started || !actor?.uuid) return false;
 	const log = game.messages?.contents ?? [];
-	for (let i = log.length - 1; i >= Math.max(0, log.length - SCANNED_MESSAGES); i--) {
+	const applied = except.map((id) => log.findIndex((message) => message.id === id)).filter((index) => index >= 0);
+	const end = applied.length ? Math.min(...applied) : log.length;
+	for (let i = end - 1; i >= Math.max(0, end - SCANNED_MESSAGES); i--) {
 		const attack = log[i].flags?.[SYSTEM_ID]?.attack;
-		if (attack?.attacker !== actor.uuid) continue;
-		return attack.place?.combat === combat.id && Boolean(attack.twoHanded);
+		if (!attack) continue;
+		// Their share of it, whether they made the Attack or rolled into another's.
+		const share = attack.attacker === actor.uuid ? attack : attack.joined?.find((entry) => entry.actor === actor.uuid);
+		if (!share) continue;
+		return attack.place?.combat === combat.id && Boolean(share.twoHanded);
 	}
 	return false;
 }
@@ -305,7 +313,7 @@ export async function takeDamage(actor, preset = {}) {
 	const dead = Boolean(actor.system.slain);
 	const worn = wornArmour(actor);
 	const { bearing } = worn;
-	const trap = trapOn(actor, worn, preset.except) ?? twoHandedOn(actor, worn);
+	const trap = trapOn(actor, worn, preset.except) ?? twoHandedOn(actor, worn, preset.except);
 	/** Their Armour with the pieces worn only sometimes ticked or not, and their shield trapped or not. */
 	const armourFor = (ticked, trapped) => (trapped && trap && !trap.shielded ? 0 : worn.total(ticked, trapped));
 	const target = {
