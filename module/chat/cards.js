@@ -120,23 +120,71 @@ export function onCardClick(element, selector, handler) {
  * @param {boolean} [card.gmOnly]  Whether they're the Referee's alone, as a card whispered to them is:
  *   anybody else who sees the card, such as a player who asked for it, sees it without them.
  * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
+ * @param {boolean} [card.once]    Whether each button does its work once only: a press whose handler
+ *   returns something truthy is kept on the message, and the button is gone from then on, for everybody.
  * @returns {void}
  */
-export function registerCardButtons({ selector, gmOnly = false, handler }) {
+export function registerCardButtons({ selector, gmOnly = false, handler, once = false }) {
+	if (once) CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
 	Hooks.on("renderChatMessageHTML", (message, html) => {
 		if (!html.querySelector(selector)) return;
 		if (gmOnly && !game.user.isGM) return dropButtons(html, selector);
-		onCardClick(html, selector, (button) => handler(button, message));
+		if (!once) return onCardClick(html, selector, (button) => handler(button, message));
+		const spent = spentButtons(message);
+		const keys = new Map([...html.querySelectorAll(selector)].map((button, index) => [button, `${selector}#${index}`]));
+		dropButtons(html, selector, (button) => spent.includes(keys.get(button)));
+		onCardClick(html, selector, async (button) => {
+			const key = keys.get(button);
+			if (spentButtons(message).includes(key)) return;
+			if (await handler(button, message)) await spendButton(message, key);
+		});
 	});
+}
+
+/** Where a card keeps the buttons that have done their work for good. */
+const SPENT_FLAG = "spentButtons";
+
+/** The GM query that keeps a pressed button on a card its presser can't update. */
+const SPEND_QUERY = `${SYSTEM_ID}.spendButton`;
+
+/**
+ * @param {ChatMessage} message
+ * @returns {string[]} The keys of its buttons that have done their work.
+ */
+const spentButtons = (message) => message?.flags?.[SYSTEM_ID]?.[SPENT_FLAG] ?? [];
+
+/**
+ * Keep on a card that one of its buttons has done its work, asking the active
+ * GM where the presser can't update the card.
+ * @param {ChatMessage} message
+ * @param {string} key
+ * @returns {Promise<unknown>}
+ */
+function spendButton(message, key) {
+	if (message.isOwner) return message.setFlag(SYSTEM_ID, SPENT_FLAG, [...new Set([...spentButtons(message), key])]);
+	return game.users.activeGM?.query(SPEND_QUERY, { messageId: message.id, key });
+}
+
+/**
+ * A user's press of a once-only button, kept for them by the active GM.
+ * @param {{messageId: string, key: string}} data
+ * @returns {Promise<boolean>}
+ */
+async function onSpendQuery({ messageId, key } = {}) {
+	const message = game.messages.get(messageId);
+	if (!message || typeof key !== "string") return false;
+	await spendButton(message, key);
+	return true;
 }
 
 /**
  * Take buttons off a card, and the row that held them once it's empty.
  * @param {HTMLElement} html
  * @param {string} selector
+ * @param {(button: HTMLElement) => boolean} [which] Those of them to take off, all by default.
  */
-function dropButtons(html, selector) {
-	for (const button of html.querySelectorAll(selector)) {
+function dropButtons(html, selector, which = () => true) {
+	for (const button of [...html.querySelectorAll(selector)].filter(which)) {
 		const row = button.closest(".bastionland-card__actions");
 		button.remove();
 		if (row && !row.querySelector("button")) row.remove();
