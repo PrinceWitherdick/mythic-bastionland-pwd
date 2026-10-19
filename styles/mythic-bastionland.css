@@ -7295,12 +7295,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	cursor: default;
 }
 
-/* Forget What's Kept Here: six kinds at most, so the list stands at full length; each sits under Everything Here. */
-.bastionland-choice-list.bastionland-forget-kept {
-	max-height: none;
-	overflow: visible;
-}
-
+/* Forget What's Kept Here: each kind sits under Everything Here. */
 .bastionland-forget-kept__part {
 	margin-inline-start: 1.6rem;
 }

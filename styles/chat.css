@@ -1539,6 +1539,14 @@
 	overflow-y: auto;
 }
 
+/* A list that stands at full length: one that never grows long (the Luck Roll's
+   table and five odds, the six kinds Forget What's Kept Here offers), or the
+   grant's, whose lists scroll together. */
+.bastionland-choice-list--full {
+	max-height: none;
+	overflow: visible;
+}
+
 /* Granting a Holding: the Knights with Domains, the book's 72 and any others
    scroll as one list under the search, rather than each in a box of its own. */
 .bastionland-grant__search {
@@ -1551,11 +1559,6 @@
 	gap: 0.6rem;
 	max-height: 24rem;
 	overflow-y: auto;
-}
-
-.bastionland-grant__lists > .bastionland-choice-list {
-	max-height: none;
-	overflow: visible;
 }
 
 .bastionland-grant__none {

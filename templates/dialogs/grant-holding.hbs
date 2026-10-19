@@ -16,19 +16,19 @@
 
 	<div class="bastionland-grant__lists">
 		{{#if domained.length}}
-		<fieldset class="bastionland-choice-list" data-search-section>
+		<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-search-section>
 			<legend>{{localize "bastionland.hexGm.ruler.domained"}}</legend>
 			{{#each domained}}{{> grantRow}}{{/each}}
 		</fieldset>
 		{{/if}}
 
-		<fieldset class="bastionland-choice-list" data-search-section>
+		<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-search-section>
 			<legend>{{localize "bastionland.hexGm.ruler.table"}}</legend>
 			{{#each table}}{{> grantRow}}{{/each}}
 		</fieldset>
 
 		{{#if others.length}}
-		<fieldset class="bastionland-choice-list" data-search-section>
+		<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-search-section>
 			<legend>{{localize "bastionland.hexGm.ruler.others"}}</legend>
 			{{#each others}}{{> grantRow}}{{/each}}
 		</fieldset>
