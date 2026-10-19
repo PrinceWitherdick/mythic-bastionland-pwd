@@ -1374,6 +1374,8 @@
         "crisis": "The Crisis Roll for {domains} (p20), from the Referee Toolkit’s Time page or each Domain’s sheet.",
         "drama": "Drama in Court for {domains} (p21), from each Domain’s sheet.",
         "myths": "A new Myth in place of each one resolved: {myths} (p27), from the Referee Toolkit’s Time page.",
+        "replaceMyth": "Roll a Myth to replace {myth}",
+        "mythGone": "That Myth has already been replaced, or isn’t resolved any more.",
         "emptySeats": "{domain} has nobody as {seats} (p20). A Domain runs smoothly only with its seats filled.",
         "designs": "Grand Designs done (p21): {works}. Strike them off each Domain’s sheet."
       },
@@ -4223,7 +4225,8 @@
           "nearestOmen": "An Omen from the nearest Myth.",
           "landmark": "The hex’s Landmark.",
           "allClear": "All clear.",
-          "noMyths": "This Realm has no Myths, so all is quiet."
+          "noMyths": "This Realm has no Myths, so all is quiet.",
+          "noOmens": "No Myth of this Realm has an Omen left to show, so all is quiet."
         },
         "omen": "Omen {omen} of {count}",
         "omensComplete": "All of its Omens have been seen.",

@@ -36,6 +36,7 @@ import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
+import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { wildernessRoll } from "./module/actions/wilderness.js";
@@ -471,6 +472,8 @@ Hooks.once("init", () => {
 	registerAskReferee();
 	// A Courtier Start made before the Knights seats them at Court from the Referee's card later.
 	registerSeatingLater();
+	// The Season card's buttons that roll a new Myth for each resolved one (p27).
+	registerReplaceMyth();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
 	registerSolo();

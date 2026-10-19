@@ -1,7 +1,6 @@
 import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
-import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { worldKnights } from "../actions/knights.js";
@@ -16,9 +15,9 @@ import { hexStoreFlags, realmSceneChanges } from "../actions/scene-changes.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
-import { resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
+import { replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { markMythOmen } from "../actions/omens.js";
-import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
@@ -48,7 +47,6 @@ import { POINT_KINDS } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
-import { placeFeature } from "../rules/realm-edits.js";
 import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
@@ -1220,35 +1218,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	static async #onNewMyth(_event, target) {
 		const myth = this.#mythFrom(target);
-		const scene = this.scene;
-		if (!myth || !scene) return;
-		const { realm } = getRealm(scene);
-		const { d6, d12, rolls } = await rollFreeMyth(realm);
-		const rolled = { number: myth.number, d6, d12 };
-		const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
-		if (!written) return;
-		// Played alone, the new Myth is met as the others were: by its first Omen.
-		if (keptFromMe()) {
-			await postCard(null, "omen", {
-				title: t("solo.newMythTitle", { number: myth.number }),
-				tagline: null,
-				img: null,
-				omen: t("solo.newMythText"),
-				text: null,
-				hint: null
-			// The dice would say which Myth it is, so they're left off.
-			}, { mode: "gm" });
-			return;
-		}
-		const { name, page, entry } = mythLookup(this.#index, rolled);
-		await postCard(null, "omen", {
-			title: `${myth.number}. ${name}`,
-			tagline: page ? t("realm.key.page", { page }) : null,
-			img: entry?.path ?? null,
-			omen: t("gmToolkit.myths.newMythRolled", { hex: hexLabel(myth.hex, scene) }),
-			text: null,
-			hint: t("gmToolkit.myths.newMythHint")
-		}, { rolls, mode: "gm" });
+		if (myth && this.scene) await replaceMyth(this.scene, myth, this.#index);
 	}
 
 	/**

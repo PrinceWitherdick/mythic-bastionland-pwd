@@ -38,6 +38,7 @@ vi.mock("../../module/actions/wilderness.js", () => ({
 		return { realm, g, where: where ?? hex(6, 6) };
 	}
 }));
+vi.mock("../../module/actions/myth-notes.js", () => ({ liveRealm: () => realm }));
 vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => { phases += 1; }) }));
 vi.mock("../../module/book-art/art-index.js", () => ({
 	loadArtIndex: async () => null,

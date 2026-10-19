@@ -75,6 +75,19 @@ export function mythNoteFor(notes, myth) {
 }
 
 /**
+ * The Realm as the Myths still at work in it see it: a resolved Myth shows no
+ * more Omens, and nobody tells of it, until another takes its place next Season (p27).
+ * @template {{myths: object[]}} R
+ * @param {R} realm
+ * @param {MythNotes} notes
+ * @returns {R} The same Realm when none is resolved.
+ */
+export function withoutResolved(realm, notes) {
+	const myths = realm.myths.filter((myth) => !mythNoteFor(notes, myth).resolved);
+	return myths.length === realm.myths.length ? realm : { ...realm, myths };
+}
+
+/**
  * @param {MythNotes} notes
  * @param {{number: number, d6: number, d12: number}} myth
  * @param {{note?: string, resolved?: boolean}} changes

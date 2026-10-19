@@ -59,6 +59,7 @@ vi.mock("../../module/actions/landmarks.js", () => ({
 	nameLandmarkFromPrompt: async () => null,
 	strikeOffCourse: vi.fn()
 }));
+vi.mock("../../module/actions/myth-notes.js", () => ({ getMythNotes: () => ({ version: 1, myths: {} }), liveRealm: () => realm }));
 vi.mock("../../module/actions/council-tasks.js", () => ({ tasksDueNotices: () => [] }));
 vi.mock("../../module/actions/knight-tables.js", () => ({ tableRenewalNotices: () => [] }));
 vi.mock("../../module/actions/afflictions.js", () => ({ burnMorningAfflictions: vi.fn(), sufferMorningAfflictions: vi.fn() }));

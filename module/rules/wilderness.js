@@ -13,23 +13,23 @@ import { hexDistance, hexKey } from "./realm-geometry.js";
 export const WILDERNESS_MODES = Object.freeze(["travel", "camp"]);
 
 /** What a Wilderness Roll comes to. Wording lives under `bastionland.realm.wilderness.results`. */
-export const WILDERNESS_RESULTS = Object.freeze(["holding", "mythHex", "randomOmen", "nearestOmen", "landmark", "allClear", "noMyths"]);
+export const WILDERNESS_RESULTS = Object.freeze(["holding", "mythHex", "randomOmen", "nearestOmen", "landmark", "allClear", "noMyths", "noOmens"]);
 
 /**
  * What's in and around a hex that a Wilderness Roll cares about.
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {{col: number, row: number}} hex
- * @returns {{hex: object, holding: object|null, myth: object|null, landmark: object|null, nearest: object[]}}
- *   `nearest` is every Myth at the shortest distance, by number.
+ * @returns {{hex: object, holding: object|null, myth: object|null, landmark: object|null, nearest: object[], bearing: object[]}}
+ *   `bearing` is every Myth with an Omen yet to show, by number, and `nearest` those of them at the
+ *   shortest distance: a Myth whose six Omens have all been seen has none left to give a roll.
  */
 export function wildernessSituation(realm, g, hex) {
 	const { holding, myth, landmark } = featureAt(realm, hex);
-	const closest = Math.min(...realm.myths.map((candidate) => hexDistance(g, candidate.hex, hex)));
-	const nearest = realm.myths
-		.filter((candidate) => hexDistance(g, candidate.hex, hex) === closest)
-		.sort((a, b) => a.number - b.number);
-	return { hex, holding, myth, landmark, nearest };
+	const bearing = realm.myths.filter((candidate) => !nextOmen(candidate).complete).sort((a, b) => a.number - b.number);
+	const closest = Math.min(...bearing.map((candidate) => hexDistance(g, candidate.hex, hex)));
+	const nearest = bearing.filter((candidate) => hexDistance(g, candidate.hex, hex) === closest);
+	return { hex, holding, myth, landmark, nearest, bearing };
 }
 
 /**
@@ -79,8 +79,18 @@ export function nextOmen(myth) {
 }
 
 /**
+ * What a d6 turns up in the Company's surroundings.
+ * @param {number|null} d6
+ * @param {"travel"|"camp"} mode
+ * @param {ReturnType<typeof wildernessSituation>} situation
+ * @returns {string} As wildernessResult gives it.
+ */
+export const situationResult = (d6, mode, situation) =>
+	wildernessResult(d6, { mode, hasLandmark: Boolean(situation.landmark), hasMyths: situation.bearing.length > 0 });
+
+/**
  * Everything a Wilderness Roll turned up.
- * @param {import("./realm.js").Realm} realm
+ * @param {import("./realm.js").Realm} realm The whole Realm, resolved Myths and all: only whether it has any Myths is asked of it.
  * @param {ReturnType<typeof wildernessSituation>} situation
  * @param {object} rolled
  * @param {"travel"|"camp"} [rolled.mode]
@@ -92,10 +102,11 @@ export function wildernessOutcome(realm, situation, { mode = "travel", d6 = null
 	if (situation.holding) return { result: "holding", d6: null };
 	if (situation.myth) return { result: "mythHex", d6: null, myth: situation.myth, ...nextOmen(situation.myth) };
 
-	const result = wildernessResult(d6, { mode, hasLandmark: Boolean(situation.landmark), hasMyths: realm.myths.length > 0 });
+	const result = situationResult(d6, mode, situation);
+	// Myths there are, but every one has shown all its Omens or been resolved.
+	if (result === "noMyths" && realm.myths.length) return { result: "noOmens", d6 };
 	if (result === "randomOmen") {
-		const myths = [...realm.myths].sort((a, b) => a.number - b.number);
-		const myth = myths[pick % myths.length];
+		const myth = situation.bearing[pick % situation.bearing.length];
 		return { result, d6, myth, ...nextOmen(myth) };
 	}
 	if (result === "nearestOmen") {
@@ -109,13 +120,12 @@ export function wildernessOutcome(realm, situation, { mode = "travel", d6 = null
 
 /**
  * How many Myths a random Omen or a tie chooses between, so the roll that picks one can be made.
- * @param {import("./realm.js").Realm} realm
  * @param {ReturnType<typeof wildernessSituation>} situation
  * @param {string} result From wildernessResult.
  * @returns {number} 1 when there's no choice to make.
  */
-export function mythChoices(realm, situation, result) {
-	if (result === "randomOmen") return Math.max(1, realm.myths.length);
+export function mythChoices(situation, result) {
+	if (result === "randomOmen") return Math.max(1, situation.bearing.length);
 	if (result === "nearestOmen") return Math.max(1, situation.nearest.length);
 	return 1;
 }

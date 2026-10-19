@@ -39,6 +39,14 @@ then the die and what it gave under the rule. --}}
 		{{/each}}
 	</div>
 	{{/if}}
+	{{!-- The Referee's buttons for what's due, such as a new Myth for each resolved one. Players see the card without them. --}}
+	{{#if replaceMyths.length}}
+	<div class="bastionland-card__actions">
+		{{#each replaceMyths}}
+		<button type="button" data-replace-myth="{{number}}" data-replace-myth-scene="{{scene}}"><i class="fa-solid fa-dice" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
 	{{#if hint}}
 	<p class="bastionland-card__hint{{#if hintAside}} bastionland-card__hint--aside{{/if}}">{{hint}}</p>
 	{{/if}}

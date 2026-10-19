@@ -467,16 +467,16 @@ async function growOlder(actors) {
 }
 
 /**
- * The names of every Realm's resolved Myths, each owed a new Myth in its place
- * now the Season has turned (p27).
- * @returns {Promise<string[]>}
+ * Every Realm's resolved Myths, each owed a new Myth in its place now the
+ * Season has turned (p27).
+ * @returns {Promise<{scene: string, number: number, name: string}[]>}
  */
 async function mythsToReplace() {
-	const scenes = game.scenes.filter((scene) => isRealmScene(scene));
-	const waiting = scenes.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)));
+	const waiting = game.scenes.filter((scene) => isRealmScene(scene))
+		.flatMap((scene) => resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).map((myth) => ({ scene: scene.id, myth })));
 	if (!waiting.length) return [];
 	const index = await loadArtIndex();
-	return waiting.map((myth) => mythEntry(index, myth).name);
+	return waiting.map(({ scene, myth }) => ({ scene, number: myth.number, name: mythEntry(index, myth).name }));
 }
 
 /**
@@ -531,7 +531,7 @@ export async function announceSeason(calendar, { title, entries, note = null }, 
 		due: [
 			...(due.length ? [t("time.due.crisis", { domains: due.map((domain) => domain.name).join(", ") })] : []),
 			...(drama.length ? [t("time.due.drama", { domains: drama.map((domain) => domain.name).join(", ") })] : []),
-			...(myths.length ? [t("time.due.myths", { myths: myths.join(", ") })] : []),
+			...(myths.length ? [t("time.due.myths", { myths: myths.map((myth) => myth.name).join(", ") })] : []),
 			// Seats left empty, which invite trouble (p204).
 			...emptySeatNotices(domains),
 			// Works whose time has come (p21), until they're struck off.
@@ -540,6 +540,7 @@ export async function announceSeason(calendar, { title, entries, note = null }, 
 			// Tables a Knight rolls on again each Season, and each Day, since a Season begins on a new one.
 			...tableRenewalNotices(["season", "day"])
 		],
+		replaceMyths: myths.map((myth) => ({ ...myth, label: t("time.due.replaceMyth", { myth: myth.name }) })),
 		hint: [note, t("time.unresolvedHint")].filter(Boolean).join(" ")
 	}, options);
 }

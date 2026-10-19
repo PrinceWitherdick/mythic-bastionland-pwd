@@ -10,8 +10,8 @@ import {
 	companyHex,
 	mythChoices,
 	phaseEndCalls,
+	situationResult,
 	wildernessOutcome,
-	wildernessResult,
 	wildernessSituation
 } from "../rules/wilderness.js";
 import { throwsOffCourse } from "../rules/landmarks.js";
@@ -24,6 +24,7 @@ import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./la
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { keptFromMe } from "./solo.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
+import { liveRealm } from "./myth-notes.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
@@ -104,7 +105,7 @@ export function companySituation(scene = null) {
 	if (!realm || !isRealmScene(realm)) return null;
 	const g = sceneGeometry(realm);
 	const { hex } = findCompany(realm, g);
-	return hex ? { scene: realm, situation: wildernessSituation(getRealm(realm).realm, g, hex) } : null;
+	return hex ? { scene: realm, situation: wildernessSituation(liveRealm(realm), g, hex) } : null;
 }
 
 /**
@@ -143,7 +144,9 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	if (!game.user.isGM) return null;
 	const place = realmAndCompany(scene, hex);
 	if (!place) return null;
-	const { realm, g, where } = place;
+	const { realm: whole, g, where } = place;
+	// A resolved Myth is done with Omens, even in its own hex, until another replaces it (p27).
+	const realm = liveRealm(scene, whole);
 
 	const around = wildernessSituation(realm, g, where);
 	// A Phase wasted at a Barrier was spent out at it, so it still causes the roll even setting out from a Holding (p18).
@@ -164,16 +167,17 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		rolls.push(roll);
 		d6 = roll.total;
 
-		const result = wildernessResult(d6, { mode, hasLandmark: Boolean(situation.landmark), hasMyths: realm.myths.length > 0 });
+		const result = situationResult(d6, mode, situation);
 		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors), cityOmensSeen());
-		const choices = city ? 1 : mythChoices(realm, situation, result);
+		const choices = city ? 1 : mythChoices(situation, result);
 		if (choices > 1) {
 			const choice = await new Roll(`1d${choices}`).evaluate();
 			rolls.push(choice);
 			pick = choice.total - 1;
 		}
 	}
-	const rolled = wildernessOutcome(realm, situation, { mode, d6, pick });
+	// The whole Realm, so one whose Myths are all resolved has nothing left to show rather than no Myths.
+	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick });
 	// No Myth's Omen is spent when the City's stands in for it.
 	const outcome = city ? { result: rolled.result, d6: rolled.d6 } : rolled;
 	const index = loadArtIndex();
