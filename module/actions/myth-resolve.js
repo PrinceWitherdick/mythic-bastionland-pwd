@@ -100,13 +100,17 @@ export function registerReplaceMyth() {
 	registerCardButtons({
 		selector: "[data-replace-myth]",
 		gmOnly: true,
+		// Gone for everybody once its Myth is rolled.
+		once: true,
 		handler: async (button) => {
 			const scene = game.scenes.get(button.dataset.replaceMythScene ?? "");
-			if (!isRealmScene(scene)) return warn("time.due.mythGone");
 			const number = Number(button.dataset.replaceMyth);
-			const myth = resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).find((resolved) => resolved.number === number);
-			if (!myth) return warn("time.due.mythGone");
-			if (await replaceMyth(scene, myth)) button.remove();
+			const myth = isRealmScene(scene) ? resolvedMyths(getRealm(scene).realm, getMythNotes(scene)).find((resolved) => resolved.number === number) : null;
+			if (!myth) {
+				warn("time.due.mythGone");
+				return false;
+			}
+			return Boolean(await replaceMyth(scene, myth));
 		}
 	});
 }

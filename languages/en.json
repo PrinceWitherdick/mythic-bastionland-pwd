@@ -4745,6 +4745,9 @@
       "notYours": "{name} was another player\u2019s Knight. Only their player, or the Referee, says who carries on.",
       "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
     },
+    "cardButtons": {
+      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card."
+    },
     "hexTarget": {
       "hint": "Point at it to ring the hex on the map. Click to go there."
     },

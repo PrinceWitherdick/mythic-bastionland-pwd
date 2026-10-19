@@ -24,12 +24,13 @@ beforeEach(() => {
 	hooks = {};
 	globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
 	globalThis.canvas = { scene: realm };
+	globalThis.CONFIG = { queries: {} };
 	globalThis.game = { user: { isGM: false, name: "Ana", character: { name: "Tal" } }, scenes: { get: (id) => (id === "s1" ? realm : null) } };
 	globalThis.ui = { notifications: { warn: vi.fn() } };
 });
 
 afterEach(() => {
-	for (const key of ["Hooks", "canvas", "game", "ui"]) delete globalThis[key];
+	for (const key of ["Hooks", "canvas", "CONFIG", "game", "ui"]) delete globalThis[key];
 	vi.clearAllMocks();
 });
 
@@ -58,7 +59,13 @@ describe("asking the Referee", () => {
 		const row = { querySelector: () => null, remove: vi.fn() };
 		const asked = { closest: () => row, remove: vi.fn() };
 		const html = { querySelector: () => ({}), querySelectorAll: () => [asked], addEventListener: (_type, fn) => { clicked = fn; } };
-		const message = { flags: { [SYSTEM_ID]: { askReferee: { kind: "roll", key: "wilderness", scene: "s1" } } } };
+		const message = {
+			isOwner: true,
+			flags: { [SYSTEM_ID]: { askReferee: { kind: "roll", key: "wilderness", scene: "s1" } } },
+			setFlag: vi.fn(async (scope, key, value) => {
+				message.flags[scope][key] = value;
+			})
+		};
 		hooks.renderChatMessageHTML(message, html);
 		// The player who asked sees the card without the Referee's button.
 		expect(clicked).toBeUndefined();
@@ -67,9 +74,12 @@ describe("asking the Referee", () => {
 
 		game.user.isGM = true;
 		hooks.renderChatMessageHTML(message, html);
-		const button = { disabled: false };
-		await clicked({ target: { closest: () => button }, preventDefault() {} });
+		wildernessRoll.mockResolvedValueOnce({});
+		await clicked({ target: { closest: () => asked }, preventDefault() {} });
 		expect(wildernessRoll).toHaveBeenCalledWith({ scene: realm });
+		// Done once: pressed again, nothing more is rolled.
+		await clicked({ target: { closest: () => asked }, preventDefault() {} });
+		expect(wildernessRoll).toHaveBeenCalledTimes(1);
 	});
 
 	it("does nothing for a player pressing the panel's own buttons", () => {

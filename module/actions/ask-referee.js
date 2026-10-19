@@ -66,13 +66,18 @@ export function registerAskReferee() {
 	registerCardButtons({
 		selector: ASK_SELECTOR,
 		gmOnly: true,
-		handler: (_button, message) => {
+		// Done once: a second gallop would cost the steeds twice, a second Phase pass the calendar.
+		once: true,
+		handler: async (_button, message) => {
 			const asked = message?.flags?.[SYSTEM_ID]?.askReferee;
-			if (!asked || !askable(asked.kind, asked.key)) return null;
+			if (!asked || !askable(asked.kind, asked.key)) return false;
 			// Done where they asked it: the Realm then on the canvas, if it's still there.
 			const scene = (asked.scene && game.scenes.get(asked.scene)) || canvas?.scene;
-			if (!scene) return warn("askReferee.noScene");
-			return doFromRules(asked.kind, asked.key, { scene });
+			if (!scene) {
+				warn("askReferee.noScene");
+				return false;
+			}
+			return Boolean(await doFromRules(asked.kind, asked.key, { scene }));
 		}
 	});
 }

@@ -97,4 +97,36 @@ describe("once-only card buttons", () => {
 		await CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-test]#0" });
 		expect(kept.flags[SYSTEM_ID].spentButtons).toEqual(["[data-test]#0"]);
 	});
+
+	it("never spend the Referee's own buttons for somebody who asks", async () => {
+		registerCardButtons({ selector: "[data-referee]", gmOnly: true, handler: async () => true, once: true });
+		const kept = chatMessage(true);
+		game.messages.set("m1", kept);
+		expect(await CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-referee]#0" })).toBe(false);
+		expect(kept.setFlag).not.toHaveBeenCalled();
+	});
+
+	it("never spend a button for somebody who can't see its card", async () => {
+		registerCardButtons({ selector: "[data-test]", handler: async () => true, once: true });
+		const kept = { ...chatMessage(true), whisper: ["u1"], author: { id: "u1" } };
+		game.messages.set("m1", kept);
+		const ask = (user) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-test]#0" }, { user });
+		expect(await ask({ id: "u2" })).toBe(false);
+		expect(kept.setFlag).not.toHaveBeenCalled();
+		expect(await ask({ id: "u1" })).toBe(true);
+		expect(kept.setFlag).toHaveBeenCalled();
+	});
+
+	it("do nothing on somebody else's card while no GM is here to keep the press", async () => {
+		const handler = vi.fn(async () => true);
+		registerCardButtons({ selector: "[data-test]", handler, once: true });
+		game.users.activeGM = null;
+		game.i18n = { localize: (key) => key };
+		globalThis.ui = { notifications: { warn: vi.fn() } };
+		const card = drawnCard(1);
+		hooks.get("renderChatMessageHTML")(chatMessage(false), card.html);
+		await card.click(card.buttons[0]);
+		expect(handler).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.cardButtons.needsGM");
+	});
 });

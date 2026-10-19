@@ -125,7 +125,10 @@ export function onCardClick(element, selector, handler) {
  * @returns {void}
  */
 export function registerCardButtons({ selector, gmOnly = false, handler, once = false }) {
-	if (once) CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
+	if (once) {
+		CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
+		if (!gmOnly) askedSpends.add(selector);
+	}
 	Hooks.on("renderChatMessageHTML", (message, html) => {
 		if (!html.querySelector(selector)) return;
 		if (gmOnly && !game.user.isGM) return dropButtons(html, selector);
@@ -136,6 +139,8 @@ export function registerCardButtons({ selector, gmOnly = false, handler, once = 
 		onCardClick(html, selector, async (button) => {
 			const key = keys.get(button);
 			if (spentButtons(message).includes(key)) return;
+			// Nobody could keep it spent, so it would do its work again after a reload.
+			if (!message.isOwner && !game.users.activeGM) return warn("cardButtons.needsGM");
 			if (await handler(button, message)) await spendButton(message, key);
 		});
 	});
@@ -166,13 +171,33 @@ function spendButton(message, key) {
 }
 
 /**
- * A user's press of a once-only button, kept for them by the active GM.
+ * The selectors, as a key begins, of the once-only buttons somebody besides
+ * the Referee may press. The Referee can update any card, so never asks.
+ * @type {Set<string>}
+ */
+const askedSpends = new Set();
+
+/**
+ * Whether a user sees a card, and so its buttons: a whisper only its author
+ * and those it's whispered to.
+ * @param {ChatMessage} message
+ * @param {User} user
+ * @returns {boolean}
+ */
+const seesCard = (message, user) => !message.whisper?.length || message.author?.id === user.id || message.whisper.includes(user.id);
+
+/**
+ * A user's press of a once-only button, kept for them by the active GM. A
+ * button only the Referee has is never spent by asking, nor one on a card the
+ * asker can't see. Foundry 13 doesn't say who asked, so there only the first holds.
  * @param {{messageId: string, key: string}} data
+ * @param {{user?: User}} [context] Who asked, from Foundry 14.
  * @returns {Promise<boolean>}
  */
-async function onSpendQuery({ messageId, key } = {}) {
+async function onSpendQuery({ messageId, key } = {}, { user } = {}) {
 	const message = game.messages.get(messageId);
-	if (!message || typeof key !== "string") return false;
+	if (!message || typeof key !== "string" || !askedSpends.has(key.slice(0, key.lastIndexOf("#")))) return false;
+	if (user && !seesCard(message, user)) return false;
 	await spendButton(message, key);
 	return true;
 }
