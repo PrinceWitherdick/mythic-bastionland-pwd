@@ -3032,48 +3032,6 @@ a.button:focus:not(:focus-visible) {
 /* Domain sheet                                                     */
 /* ---------------------------------------------------------------- */
 
-/*
- * Wide, the Domain page's blocks share rows across its two columns so the
- * Council can sit centred beside the Court. Narrow, each column stacks as before.
- */
-@container (min-width: 641px) {
-	.bastionland-domain__columns {
-		grid-template-areas:
-			"ruler crises"
-			"council court"
-			"authority designs";
-	}
-
-	.bastionland-domain__columns > .bastionland-column {
-		display: contents;
-	}
-
-	.bastionland-domain__ruler {
-		grid-area: ruler;
-	}
-
-	.bastionland-domain__crisis-block {
-		grid-area: crises;
-	}
-
-	.bastionland-domain__court {
-		grid-area: court;
-	}
-
-	.bastionland-domain__authority {
-		grid-area: authority;
-	}
-
-	.bastionland-domain__designs {
-		grid-area: designs;
-	}
-
-	.bastionland-domain__council {
-		grid-area: council;
-		align-self: center;
-	}
-}
-
 .bastionland-domain__seats {
 	display: grid;
 	grid-template-columns: max-content minmax(0, 1fr);
