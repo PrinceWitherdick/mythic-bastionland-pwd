@@ -16,7 +16,7 @@ import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
-import { chooseCompany, virtueLoss } from "./time.js";
+import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
 import { restoreVirtueOfEach } from "./recovery.js";
 import { clearOffCourse, getOffCourse, setOffCourse } from "./off-course.js";
 
@@ -82,9 +82,8 @@ export async function rollTravellingBlind() {
 
 /**
  * A Monument's Sacrament (p14): a Phase spent there restores SPI just as a
- * Sacrament would. The Phase isn't moved on, as a Remedy
- * doesn't move it either: the Referee turns the calendar when they're ready.
- * GMs only.
+ * Sacrament would, so the Phase's end is offered once it's done, as a Remedy's
+ * is (p9). Closing that window lets the Phase stand. GMs only.
  * @returns {Promise<object[]|null>} The card's entries, or null if nobody took part.
  */
 export async function restoreAtMonument() {
@@ -106,6 +105,7 @@ export async function restoreAtMonument() {
 		entries,
 		hint: t("realm.landmarks.monumentHint")
 	});
+	await advancePhase();
 	return entries;
 }
 

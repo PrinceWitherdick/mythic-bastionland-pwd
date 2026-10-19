@@ -151,6 +151,9 @@
 	<div class="bastionland-hex-lore__grid">
 		<button type="button" data-action="rollSeer" data-tooltip="{{localize "bastionland.hexGm.seer.hint"}}"><i class="fa-solid fa-dice" inert></i> {{roll}}</button>
 		<button type="button" data-action="chooseSeer" data-tooltip="{{localize "bastionland.hexGm.seer.chooseHint"}}"><i class="fa-solid fa-eye" inert></i> {{localize "bastionland.hexGm.seer.choose"}}</button>
+		{{#if make}}
+		<button type="button" data-action="makeSeer" data-tooltip="{{localize "bastionland.seer.makeHint"}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.seer.make"}}</button>
+		{{/if}}
 	</div>
 	{{/with}}
 	{{/panel}}

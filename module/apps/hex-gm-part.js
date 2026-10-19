@@ -32,7 +32,8 @@ import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lor
 import { gatherCast } from "../rules/myth-cast.js";
 import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
 import { rulingHolding } from "../rules/dominion.js";
-import { OMEN_COUNT, TERRAIN, featureAt, holdingName, terrainAt } from "../rules/realm.js";
+import { OMEN_COUNT, TERRAIN, featureAt, holdingName, seerReference, terrainAt } from "../rules/realm.js";
+import { makeSeer } from "../actions/seers.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
@@ -246,8 +247,8 @@ function mythContext(scene, myth, index) {
  */
 function seerContext(seer, index) {
 	if (!seer?.d6 || !seer?.d12) return { name: null, roll: t("hexGm.seer.roll") };
-	const { name, page } = seerEntry(index, seer);
-	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again") };
+	const { name, page, entry } = seerEntry(index, seer);
+	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again"), make: Boolean(entry?.stats) };
 }
 
 /**
@@ -544,6 +545,11 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	...HEX_FEATURE_ACTIONS,
 	// Choose the Seer at the Sanctum here by hand, from the Knights table (p26).
 	chooseSeer: ({ scene, hex }) => openSeerChooser({ scene, hex }),
+	// Bring the Sanctum's Seer into the world as an NPC of their own.
+	makeSeer({ scene, hex }) {
+		const seer = featureAt(getRealm(scene).realm, hex).landmark?.seer;
+		return seer?.d6 && seer?.d12 ? makeSeer({ roll: seerReference(seer).roll }) : null;
+	},
 	// Grant the Holding here to a Knight, through their Domain (p20).
 	grantHolding: ({ scene, hex }) => grantHolding(scene, hex),
 	// A sheet named in the part: one of the Cast, or the Knight or Domain ruling a Holding.

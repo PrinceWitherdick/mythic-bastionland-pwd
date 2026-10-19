@@ -6,6 +6,7 @@ import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
+import { makeSeer } from "../actions/seers.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
@@ -87,6 +88,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
 			pickSeerImage: KnightSheet.#onPickSeerImage,
+			makeSeer: KnightSheet.#onMakeSeer,
 			openPortrait: KnightSheet.#onOpenPortrait,
 			openDomain: KnightSheet.#onOpenDomain,
 			rollLuck: KnightSheet.#onRollLuck,
@@ -253,6 +255,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			},
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
 			seerStats: seer && this.#seerScores(seer),
+			// The Referee may bring the Seer into the world as an NPC of their own, whose harm is theirs.
+			canMakeSeer: game.user.isGM && Boolean(seer && system.seer),
 			enrichedSeerInfo,
 			enrichedSeerNotes,
 			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
@@ -433,6 +437,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			tooltip: t(this.isEditable ? "knightTable.open" : "knightTable.view", { name: stored.name }),
 			results: withTableSentences(stored, tableResults(stored))
 		};
+	}
+
+	/** @this {KnightSheet} */
+	static async #onMakeSeer() {
+		return makeSeer({ knight: this.actor.system });
 	}
 
 	/**

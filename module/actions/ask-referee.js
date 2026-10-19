@@ -3,6 +3,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { EXPLORATION_ACTS, takeExplorationAct } from "./exploration.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { gallop } from "./steeds.js";
+import { advancePhase } from "./time.js";
 import { wildernessRoll } from "./wilderness.js";
 
 // The rules beside the map offer the Referee a button for each thing the
@@ -12,7 +13,7 @@ import { wildernessRoll } from "./wilderness.js";
 // whispers the Referee a card with the same button on it.
 
 /** What a player may ask for: an act of exploring, or a roll from the rules. */
-const ASKABLE = Object.freeze({ act: Object.keys(EXPLORATION_ACTS), roll: ["gallop", "wilderness"] });
+const ASKABLE = Object.freeze({ act: Object.keys(EXPLORATION_ACTS), roll: ["gallop", "wilderness", "phase"] });
 
 /** Marks the button on the Referee's card, as "act:search". */
 const ASK_SELECTOR = "[data-ask-referee]";
@@ -36,6 +37,8 @@ export function doFromRules(kind, key, { scene = canvas?.scene } = {}) {
 	if (!game.user.isGM) return null;
 	if (kind === "act") return takeExplorationAct(key, { scene });
 	if (key === "gallop") return gallop();
+	// Something that takes a whole Phase, such as a Remedy (p9): its end is offered as any Phase's is.
+	if (key === "phase") return advancePhase();
 	return key === "wilderness" ? wildernessRoll({ scene }) : rollRefereeTable(key);
 }
 

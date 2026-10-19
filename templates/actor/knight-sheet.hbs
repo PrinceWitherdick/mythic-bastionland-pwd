@@ -273,6 +273,11 @@
 					</div>
 					{{/if}}
 					{{{enrichedSeerInfo}}}
+					{{#if canMakeSeer}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-add" data-action="makeSeer" data-tooltip="{{localize 'bastionland.seer.makeHint'}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.seer.make"}}</button>
+					</div>
+					{{/if}}
 				</div>
 				{{else}}
 				<p class="bastionland-hint">{{localize "bastionland.seer.infoEmpty"}}</p>

@@ -340,6 +340,9 @@
       "unnamed": "Write the Seer who knighted them above, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
       "portrait": "Choose the Seer’s picture",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
+      "make": "Make this Seer",
+      "makeHint": "Bring this Seer into the world as an NPC of their own, from the book’s stat block, or open the one made already.",
+      "noStatBlock": "The book gives this Seer no stat block, or Import PDF hasn’t read it yet.",
       "notes": "Notes"
     },
     "npcPack": {
@@ -726,6 +729,7 @@
       "use": "Use Remedy ({virtue})",
       "intro": "Tick everybody present. Each has their {virtue} restored, and the Remedy is used up.",
       "tagline": "A Remedy used",
+      "passPhase": "Move on a Phase for the Remedy",
       "hint": "A Remedy takes a whole Phase to use, and its Virtue comes back before anything the Phase brings, Omens included.",
       "limit": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. Give it to somebody else to carry.",
       "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it."
@@ -4428,7 +4432,7 @@
       },
       "nobody": "Nobody was ticked, so nothing happens here.",
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
-      "monumentHint": "The Phase is spent here, so turn the calendar on when the Company moves.",
+      "monumentHint": "The Phase is spent here, so its end comes next.",
       "hazardWhich": "Pushing through costs d6 of a Virtue, most often VIG. Which does this Hazard take?",
       "goBack": {
         "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",

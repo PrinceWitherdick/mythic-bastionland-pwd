@@ -135,7 +135,10 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 - [ ] **T-104** Deny is offered only to a target of the Attack, or an ally beside one on the map. Somebody who could Deny but stands too far off is told so. With nobody targeted, or nobody on the map, it works as before. (p10)
 - [ ] **T-105** A steed Mortally Wounded, Slain or at VIG 0 adds no trample to a charge. Damage that brings a ridden steed down clears its rider's Mounted mark and posts **Take the d6** for the fall. (p10)
 - [ ] **T-106** A leader sharing a Warband's Damage rolls their Scar on the die that dealt the blow, naming its dealer. Deleting the Combat clears every Warband's leader. (p9, p11)
+- [ ] **T-107** An NPC sheet with a Mortal Wound (not a Warband) shows **Patch Up**. (p8)
+- [ ] **T-108** Using a Remedy, the Referee gets the Phase's end window, and a player's use whispers the Referee a "Move on a Phase for the Remedy" card. A Monument's Sacrament also offers the Phase's end. Closing the window lets the Phase stand. (p9, p14)
 - [ ] **T-109** In a running Combat, someone whose last Attack used a Long or Slow weapon takes Damage with "Their last blow was two-handed…" ticked: the shield's Armour doesn't count. A one-handed Attack since, or a different Combat, leaves it unticked. (p12)
+- [ ] **T-110** A Knight's Seer page and a Sanctum's Seer row have **Make this Seer** for the Referee, once Import PDF has read the stat block. It makes the Seer as an NPC in the NPCs folder, or opens the one made already.
 
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
@@ -157,6 +160,8 @@ These rules are stated outright in the book, but the system still leaves them to
 ## 3. Candidates 💡
 
 C-1 to C-38 are all built and waiting in **Test live**. C-15 to C-27 came from reading the examples of play (Oddpocrypha, pp175–206) against the system on 2026-09-28, and were built the same day as T-48 to T-60; most of those examples were already covered. C-28 to C-38, the one-off Abilities from the Knight pages, were built on 2026-10-03 as T-70 to T-80.
+
+From the audit of 2026-10-18, not built (the user didn't choose them): a spearwall spotted from the map, as shieldwalls are (p10); a warning when a Stopped foe's Token moves on its next turn (p10); and an NPC's own trample, such as the Knights Warband's charger, treated like a steed's charge (p11). Poison stays a tag, since the book gives it no numbers (p12). Dismount stays offered at foes on foot, as decided on 2026-10-15. Closing the Dilemma window already leaves a note saying which Crises to add from the sheet.
 
 Left to the Referee from those Abilities: falling Damage, which p106 waives and the system never deals; whether the Horde Knight has an ally attacking alongside (p56) and the Banner Knight carries a banner (p62), which the system can't see; and Sleep itself, which has no condition of its own.
 

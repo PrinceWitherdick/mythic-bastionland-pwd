@@ -4,7 +4,8 @@ import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { acceptAfterTelling } from "./saves.js";
 import { VIRTUES } from "../rules/virtues.js";
-import { chooseCompany } from "./time.js";
+import { advancePhase, chooseCompany } from "./time.js";
+import { askReferee } from "./ask-referee.js";
 import { countAfter, isCounted } from "../rules/restock.js";
 
 /**
@@ -156,5 +157,9 @@ export async function useRemedy(actor, item) {
 	const entries = await restoreVirtueOfEach(company.map(({ actor: member }) => member), virtue, "recovery");
 	await spendRemedy(item);
 	await postCard(actor, "report", { title: name, tagline: t("remedy.tagline"), entries, hint: t("remedy.hint") });
+	// Using it takes a whole Phase (p9), restored before anything the Phase brings: the Referee
+	// moves the calendar on, or a player asks them to.
+	if (game.user.isGM) await advancePhase();
+	else await askReferee("roll", "phase", t("remedy.passPhase"));
 	return entries;
 }
