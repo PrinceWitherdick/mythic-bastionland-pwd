@@ -32,7 +32,7 @@ import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { getMythNotes } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
-import { VIRTUES } from "../rules/virtues.js";
+import { SLAIN_UPDATE, VIRTUES, downBy, fullVirtues, unwrittenFate } from "../rules/virtues.js";
 import { calendarLabel, getCalendar, setCalendar } from "./calendar.js";
 import { tasksDueNotices } from "./council-tasks.js";
 import { tableRenewalNotices } from "./knight-tables.js";
@@ -53,7 +53,8 @@ import { rollVirtueLosses } from "./virtue-loss.js";
 import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
-import { worldKnights } from "./knights.js";
+import { playerCharacter, worldKnights } from "./knights.js";
+import { announceFallenKnight } from "./fallen.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -215,9 +216,11 @@ export async function passTime(company, { newAge, before }) {
 	const successions = [];
 	const legacies = [];
 	const ranks = [];
+	// Those the Age's turn takes to VIG 0, who die peacefully (p17).
+	const peaceful = [];
 	for (const { actor, pursuit } of company) {
 		const { system } = actor;
-		const update = Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
+		const update = fullVirtues(system);
 		const lines = [];
 		// Doom lasts the Season it was taken in.
 		if (isDoomed(actor.items.filter((item) => item.type === "scar").map((item) => item.system), before)) lines.push(t("time.doomLifts"));
@@ -235,7 +238,11 @@ export async function passTime(company, { newAge, before }) {
 			update["system.virtues.vig.max"] = max;
 			update["system.virtues.vig.value"] = max;
 			lines.push(t("time.oldAge", { amount: roll.total, from: system.virtues.vig.max, to: max }));
-			if (diesPeacefully) lines.push(t("time.diesPeacefully"));
+			if (diesPeacefully) {
+				lines.push(t("time.diesPeacefully"));
+				Object.assign(update, diedOfAge(actor));
+				peaceful.push(actor);
+			}
 		}
 
 		const scars = await settleSeasonScars(actor, ended);
@@ -256,7 +263,47 @@ export async function passTime(company, { newAge, before }) {
 	// keeps both what the Season restored and what Knighting or a Legacy gave them.
 	for (const { actor, lines } of successions) lines.push(...(await establishSuccessor(actor)));
 	for (const { actor, glory, lines } of legacies) lines.push(...(await bequeathGlory(actor, glory)));
+	// A played Knight's player carries on some other way, as from any death (p8).
+	for (const actor of peaceful) await announceFallenKnight(actor, "slain");
 	return { rolls, entries };
+}
+
+/**
+ * What dying peacefully of old age writes on somebody (p17): Slain at VIG 0,
+ * and for a Knight with no Ultimate fate yet, that one.
+ * @param {Actor} actor
+ * @returns {object}
+ */
+const diedOfAge = (actor) => ({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("time.fateOldAge")) });
+
+/**
+ * Whether skipping to a new Season restores somebody's Virtues (p9): anybody
+ * outside the Company, the world's NPCs and every Knight left unticked, a
+ * player's among them, short of their max. Only aging (othersOfAge) is kept to
+ * those the Referee plays. The dead and the dying are left as they are.
+ * @param {Actor} actor
+ * @param {Set<Actor>} company Those passTime has restored already.
+ * @returns {boolean}
+ */
+function restoredBySeason(actor, company) {
+	const virtues = actor.system?.virtues;
+	if (!virtues || company.has(actor) || !actor.isOwner || downBy(actor.system)) return false;
+	return virtues.vig.value > 0 && VIRTUES.some((key) => virtues[key].value < virtues[key].max);
+}
+
+/**
+ * Restore the Virtues of everybody the Season restores (p9) besides the
+ * Company. As an Age turns, the Old among them are restored with their old
+ * age's toll instead, in the one write (npcsOldAge).
+ * @param {Set<Actor>} company Those passTime has restored already.
+ * @param {boolean} newAge
+ * @returns {Promise<void>}
+ */
+async function restoreOthers(company, newAge) {
+	const aging = new Set(newAge ? oldOthers(company) : []);
+	const others = game.actors.filter((actor) => restoredBySeason(actor, company) && !aging.has(actor));
+	if (!others.length) return;
+	await updateActors(others.map((actor) => [actor, fullVirtues(actor.system)]), causedBy("season"));
 }
 
 /**
@@ -378,6 +425,8 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	// A ruler away from their Holding as the Season turns returns from a long absence (p20).
 	await markLongAbsences();
 	const { rolls, entries } = await passTime(company, { newAge, before });
+	const ticked = new Set(company.map(({ actor }) => actor));
+	await restoreOthers(ticked, newAge);
 	// What a Service or Courtesy made goes on the report with the rest (p17, p192).
 	await followPursuits(company, entries, t(`time.seasons.${after.season}`));
 	const ended = seasonKey(before);
@@ -385,7 +434,7 @@ async function turnTime({ newAge, next, label, icon, pursuits, intro, turned, ki
 	const collection = await markCollection(ended, before.season);
 	const domains = await settleDomains(ended);
 	await closeSeason(after, ended, { kind, title: turned(after), note, rolls, collection: collection ? collectionEntry(collection) : null, knights: entries, domains });
-	if (newAge) await growOlder(company.filter(({ older }) => older).map(({ actor }) => actor));
+	if (newAge) await growOlder(company.filter(({ older }) => older).map(({ actor }) => actor), ticked);
 	return after;
 }
 
@@ -415,13 +464,31 @@ export async function closeSeason(after, ended, { kind, title, note = null, roll
 }
 
 /**
+ * Everybody in the world who isn't one of the players' own or in the Company
+ * as time turns: the NPCs, and the Knights the Referee plays. Not the dead.
+ * @param {Set<Actor>} company
+ * @returns {Actor[]}
+ */
+const othersOfAge = (company) => game.actors.filter((actor) => actor.system?.virtues && actor.isOwner && !actor.system.slain
+	&& !company.has(actor) && !playerCharacter(actor));
+
+/**
+ * @param {Set<Actor>} company
+ * @returns {Actor[]} Those of othersOfAge given an Age of Old.
+ */
+const oldOthers = (company) => othersOfAge(company).filter((actor) => actor.system.age === "old");
+
+/**
  * The Old lose d12 VIG as each Age ends, and a quiet death comes to any it
- * takes to VIG 0 (p17): every NPC in the world given an Age of Old, on one card. The
- * Company's own Old are taken care of as the Age turns for them.
+ * takes to VIG 0 (p17): every NPC in the world given an Age of Old, and every
+ * Old Knight the Referee plays, on one card. The Company's own Old are taken
+ * care of as the Age turns for them. The Season's restoring (restoreOthers) is
+ * written with the toll, so each is written once.
+ * @param {Set<Actor>} company
  * @returns {Promise<object[]>} The card's entries.
  */
-async function npcsOldAge() {
-	const old = game.actors.filter((actor) => actor.type === "npc" && actor.system.age === "old" && actor.isOwner);
+async function npcsOldAge(company) {
+	const old = oldOthers(company);
 	if (!old.length) return [];
 	const rolls = [];
 	const entries = [];
@@ -431,7 +498,9 @@ async function npcsOldAge() {
 		rolls.push(roll);
 		const from = actor.system.virtues.vig.max;
 		const { max, diesPeacefully } = afterOldAge(from, roll.total);
-		updates.push({ _id: actor.id, "system.virtues.vig.max": max, "system.virtues.vig.value": Math.min(actor.system.virtues.vig.value, max) });
+		const restored = restoredBySeason(actor, company) ? fullVirtues(actor.system) : {};
+		const vig = restored["system.virtues.vig.value"] ?? actor.system.virtues.vig.value;
+		updates.push({ _id: actor.id, ...restored, "system.virtues.vig.max": max, "system.virtues.vig.value": Math.min(vig, max), ...(diesPeacefully ? diedOfAge(actor) : {}) });
 		entries.push({ name: actor.name, lines: [t("time.oldAge", { amount: roll.total, from, to: max }), ...(diesPeacefully ? [t("time.diesPeacefully")] : [])] });
 	}
 	// Every one a world actor, so one write takes them all.
@@ -445,10 +514,11 @@ async function npcsOldAge() {
  * to Mature or Mature to Old, reroll their Virtues for it. Anybody else in the
  * world given an Age is asked about afterwards, only where there is somebody.
  * @param {Actor[]} actors Those of the Company who grow older, as ticked when the Age turned.
+ * @param {Set<Actor>} company Everybody in the Company, whom the Age's turn has seen to already.
  */
-async function growOlder(actors) {
-	await npcsOldAge();
-	const npcs = game.actors.filter((actor) => actor.type === "npc" && olderAge(actor.system.age));
+async function growOlder(actors, company) {
+	await npcsOldAge(company);
+	const npcs = othersOfAge(company).filter((actor) => olderAge(actor.system.age));
 	// Offered, not ticked, so a new Age doesn't reroll the whole world by default.
 	const others = npcs.length
 		? await chooseCompany({

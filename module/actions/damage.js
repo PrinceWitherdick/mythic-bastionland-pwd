@@ -7,7 +7,7 @@ import { DISMOUNT_FACES, damageAgainst, dismountLanded, harmTargetOf, lastingMar
 import { WARDED_OUTCOMES, applyDoom, armourAgainst, resolveDamage, spiritOutcome, wardedResult } from "../rules/damage.js";
 import { abilitiesWith } from "../rules/ability-uses.js";
 import { lingeringAffliction } from "../rules/afflictions.js";
-import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
+import { SLAIN_UPDATE, downBy, unwrittenFate } from "../rules/virtues.js";
 import { afflictionsUpdate } from "./afflictions.js";
 import { downOf, moraleTrigger } from "../rules/morale.js";
 import { isDoomed } from "../rules/scars.js";
@@ -22,7 +22,7 @@ import { armourConditionText } from "./items.js";
 import { offerRevenge, rollScar } from "./scars.js";
 import { timelineMortalWound, timelineWarded } from "./timeline-events.js";
 import { escapeHTML } from "../rules/text.js";
-import { worldKnights } from "./knights.js";
+import { playerCharacter, worldKnights } from "./knights.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -213,6 +213,17 @@ function outcomesFor(outcome, { warband = false, structure = false } = {}) {
 	return "outcomes";
 }
 
+/**
+ * A Knight's Ultimate fate, as Damage slays them, where nobody has written one yet.
+ * @param {Actor} actor
+ * @param {object|null} [by] Who dealt the blow.
+ * @returns {object} The update, or nothing to write.
+ */
+function slainFate(actor, by) {
+	const dealer = seenName(by);
+	return unwrittenFate(actor, dealer ? t("fallen.fateSlainBy", { name: dealer }) : t("fallen.fateSlain"));
+}
+
 /** What marks the button on an unhorsed rider's card. */
 const UNHORSED_SELECTOR = "[data-unhorsed]";
 
@@ -333,7 +344,7 @@ export async function takeDamage(actor, preset = {}) {
 	// Non-lethal Damage leaves them down, but not dying.
 	if (result.outcome === "mortal" && !preset.nonLethal) update["system.mortalWound"] = true;
 	// VIG 0 by Damage is Slain (p8), which Virtue Loss to 0 never is, so it's marked. The dead aren't dying.
-	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false });
+	if (virtues && result.outcome === "slain") Object.assign(update, { "system.slain": true, "system.mortalWound": false }, slainFate(actor, preset.by));
 	// Damage past GD Wounds them (p8), which some armour answers to. SPI lost to a blow is no Wound.
 	if (virtues && !spirit && WOUNDING_OUTCOMES.includes(result.outcome)) update["system.wounded"] = true;
 	// Whatever else the blow leaves on them goes in the same write.
@@ -355,8 +366,8 @@ export async function takeDamage(actor, preset = {}) {
 		vigourBefore: before.vigour,
 		vigourAfter: result.vigour,
 		vigourMax: virtues?.vig.max ?? 0,
-		// Squires are Knights too, and Morale doesn't affect player characters.
-		playerCharacter: actor.type === "knight",
+		// Morale doesn't affect player characters, though the Referee's own Knights waver as any NPC does.
+		playerCharacter: playerCharacter(actor),
 		structure: Boolean(actor.system.structure),
 		warband
 	});
@@ -594,7 +605,7 @@ async function takeWard(warden, victim) {
 	const scars = warden.items.filter((item) => item.type === "scar").map((item) => item.system);
 	const doomed = isDoomed(scars, getCalendar());
 	const update = doomed
-		? { ...SLAIN_UPDATE, "system.wounded": true }
+		? { ...SLAIN_UPDATE, "system.wounded": true, ...unwrittenFate(warden, t("fallen.fateWarded", { name: victim.name })) }
 		: { "system.mortalWound": true, "system.wounded": true };
 	await warden.update(update, causedBy("damage"));
 	await Promise.all([

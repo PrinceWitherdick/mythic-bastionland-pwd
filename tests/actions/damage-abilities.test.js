@@ -366,6 +366,19 @@ describe("the Timeline", () => {
 		expect(timeline.timelineMortalWound).not.toHaveBeenCalled();
 	});
 
+	it("writes a slain Knight's Ultimate fate, naming who slew them, unless one is written", async () => {
+		actors["Actor.wolf"] = { name: "The Wolf" };
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		const victim = kay();
+		victim.system.fate = "";
+		await takeDamage(victim, { damage: 20, by: "Actor.wolf" });
+		expect(victim.update.mock.calls[0][0]["system.fate"]).toBe("bastionland.fallen.fateSlainBy");
+		const written = kay();
+		written.system.fate = "Lost at sea";
+		await takeDamage(written, { damage: 20 });
+		expect(written.update.mock.calls[0][0]).not.toHaveProperty("system.fate");
+	});
+
 	it("writes a ward in place of the Mortal Wound it spared", async () => {
 		const ward = character({ uuid: "Actor.ward", name: "Ser Ward", type: "knight", items: [{ type: "ability", system: { deathWard: true } }] });
 		game.actors.contents.push(ward);

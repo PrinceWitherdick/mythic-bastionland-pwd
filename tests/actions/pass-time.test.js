@@ -13,11 +13,13 @@ vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(), gloryLin
 vi.mock("../../module/actions/scars.js", () => ({ settleScars: vi.fn(async (actor, items, guardMax) => ({ rolls: [], lines: items.map(() => "settled"), guardMax })) }));
 vi.mock("../../module/actions/squires.js", () => ({ knightSquire: vi.fn() }));
 vi.mock("../../module/actions/succession.js", () => ({ chooseSuccessor: vi.fn(), heirOf: () => null }));
+vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineAged: vi.fn(), timelineSeasonTurn: vi.fn() }));
 
 const { passTime } = await import("../../module/actions/time.js");
 const { recordRankReached } = await import("../../module/actions/glory.js");
 const { settleScars } = await import("../../module/actions/scars.js");
+const { announceFallenKnight } = await import("../../module/actions/fallen.js");
 
 const virtue = { value: 1, max: 10 };
 
@@ -40,5 +42,33 @@ describe("passTime", () => {
 		expect(due).toHaveLength(1);
 		expect(options).toEqual({ when: "1-harvest" });
 		expect(vi.mocked(recordRankReached).mock.calls[0][2]).toEqual({ when: "1-harvest" });
+	});
+
+	it("lets an Old Knight taken to VIG 0 die peacefully: Slain, with their fate written (p17)", async () => {
+		const actor = knight();
+		actor.type = "knight";
+		actor.system.age = "old";
+		actor.system.fate = "";
+		actor.system.virtues = { vig: { value: 3, max: 3 }, cla: virtue, spi: virtue };
+		globalThis.Roll = class {
+			async evaluate() {
+				this.total = 5;
+				return this;
+			}
+		};
+		const { entries } = await passTime([{ actor, pursuit: null }], { newAge: true, before: { age: 1, year: 1, season: "winter" } });
+		expect(actor.update).toHaveBeenCalledWith(expect.objectContaining({ "system.virtues.vig.max": 0, "system.slain": true, "system.fate": "time.fateOldAge" }), {});
+		expect(entries[0].lines).toContain("time.diesPeacefully");
+		expect(announceFallenKnight).toHaveBeenCalledWith(actor, "slain");
+	});
+
+	it("keeps a fate already written", async () => {
+		const actor = knight();
+		actor.type = "knight";
+		actor.system.age = "old";
+		actor.system.fate = "Lost at sea";
+		actor.system.virtues = { vig: { value: 2, max: 2 }, cla: virtue, spi: virtue };
+		await passTime([{ actor, pursuit: null }], { newAge: true, before: { age: 1, year: 1, season: "winter" } });
+		expect(actor.update.mock.calls[0][0]).not.toHaveProperty("system.fate");
 	});
 });

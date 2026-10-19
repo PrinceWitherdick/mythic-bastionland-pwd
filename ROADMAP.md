@@ -119,8 +119,13 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 ### Audit of 2026-10-18
 - [ ] **T-89** A resolved Myth, or one whose six Omens are all seen, is never the random or nearest Myth on a Wilderness Roll, and nobody tells of a resolved Myth in Folklore. A resolved Myth's own hex rolls as plain Wilderness. With no Myth left to show an Omen, a 1–3 reads "No Myth of this Realm has an Omen left to show". (p27)
 - [ ] **T-90** The Season card has a **Roll a Myth to replace …** button for each resolved Myth, for the Referee only. It rolls the new Myth as the Toolkit's New Myth does. A second press, or a Myth already replaced, says so. (p27)
+- [ ] **T-91** A routed Warband (Mortally Wounded) isn't listed under Dying Untended. (p11)
+- [ ] **T-92** A Knight the Referee plays (no player owner, outside solo play) makes Morale Saves when Wounded and counts in group Morale: their going down asks for their side's Morale too. Players' Knights and every Squire never do. (p10)
+- [ ] **T-93** An Old Knight taken to VIG 0 by A Year Passes is Slain, gets "Died peacefully of old age" as their Ultimate fate if none is written, and a played Knight gets A Knight Falls. (p17)
+- [ ] **T-94** A Year Passes ages Knights the Referee plays as it does NPCs: Old ones lose d12 VIG, and the others are offered the Mature or Old reroll. Months Pass restores the Virtues of every NPC and unticked Knight still alive and not dying. (p9, p17)
 - [ ] **T-95** After Import PDF, the Castle Wall in Arms & Goods is stone: only siege weapons harm it. (p11)
 - [ ] **T-96** With another ship targeted, Collide asks Of a size / Much the larger / Much the smaller, and both ships take their own die. A ship this user can't change is left alone. (p11)
+- [ ] **T-103** A Knight slain by Damage gets "Slain by …" (or "Slain in battle") as their Ultimate fate, one Dying Untended gets "Died of their wounds, untended", one who loses a coin flipped for a life gets "Lost to the flip of a coin", and a doomed Knight who takes a Death Ward gets "Died in …'s place", unless a fate is already written.
 - [ ] **T-104** Deny is offered only to a target of the Attack, or an ally beside one on the map. Somebody who could Deny but stands too far off is told so. With nobody targeted, or nobody on the map, it works as before. (p10)
 - [ ] **T-105** A steed Mortally Wounded, Slain or at VIG 0 adds no trample to a charge. Damage that brings a ridden steed down clears its rider's Mounted mark and posts **Take the d6** for the fall. (p10)
 - [ ] **T-106** A leader sharing a Warband's Damage rolls their Scar on the die that dealt the blow, naming its dealer. Deleting the Combat clears every Warband's leader. (p9, p11)

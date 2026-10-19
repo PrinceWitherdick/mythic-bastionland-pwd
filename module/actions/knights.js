@@ -2,6 +2,7 @@ import { t } from "../chat/cards.js";
 import { read } from "../client-settings.js";
 import { knightTypeFromName, knightTypeKey, knightTypeTakenBy } from "../rules/creation.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { isSolo } from "./solo.js";
 
 /**
  * @param {Actor} actor
@@ -10,6 +11,16 @@ import { SYSTEM_ID } from "../system-id.js";
 export const playersOf = (actor) => Object.entries(actor.ownership ?? {})
 	.filter(([user, level]) => user !== "default" && level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && !game.users.get(user)?.isGM)
 	.map(([user]) => user);
+
+/**
+ * Whether a character is one of the players' own, whom Morale doesn't touch
+ * (p10): a Knight or Squire a player owns, a Squire whoever owns them, and in
+ * solo play any Knight, since the Referee plays the Company there. The Referee's
+ * other Knights, such as a Holding's ruler, are NPCs, and waver as NPCs do.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+export const playerCharacter = (actor) => actor?.type === "knight" && (Boolean(actor.hasPlayerOwner) || Boolean(actor.system?.isSquire) || isSolo());
 
 /**
  * The world's Knights, Squires among them, as the Actors directory holds them:

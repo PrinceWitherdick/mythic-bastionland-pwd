@@ -1368,6 +1368,7 @@
       "glory": "Glory {from} → {to}.",
       "oldAge": "Old age: loses {amount} VIG, max VIG {from} → {to}.",
       "diesPeacefully": "At VIG 0, they die peacefully.",
+      "fateOldAge": "Died peacefully of old age",
       "doomLifts": "The Season of their Doom has passed, and a Mortal Wound no longer Slays them.",
       "due": {
         "title": "Due this Season",
@@ -4692,6 +4693,11 @@
       }
     },
     "fallen": {
+      "fateSlain": "Slain in battle",
+      "fateSlainBy": "Slain by {name}",
+      "fateUntended": "Died of their wounds, untended",
+      "fateChance": "Lost to the flip of a coin",
+      "fateWarded": "Died in {name}'s place",
       "title": "A Knight Falls",
       "tagline": "{name} is Slain.",
       "text": "Death comes for bold Knights too, often suddenly and without honour. Their player makes another Knight, who joins the Company soon, or takes up a successor, Squire or follower.",

@@ -3,7 +3,7 @@ import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
 import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../rules/phase-end.js";
 import { HARDSHIPS, nextPhase } from "../rules/time.js";
-import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
+import { SLAIN_UPDATE, isDying, unwrittenFate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -45,13 +45,14 @@ export function registerPhaseEndSettings() {
 /**
  * Everybody still Mortally Wounded: an hour without care is fatal (p8), and a
  * Phase is longer than that. The world's own, and anybody placed
- * on the Scene in view without an actor of their own.
+ * on the Scene in view without an actor of their own. A Warband's Mortal Wound
+ * routs it from the battle rather than leaving it dying (p11), so none is listed.
  * @returns {Actor[]}
  */
 function mortallyWounded() {
 	const loose = (canvas?.scene?.tokens ?? []).filter((token) => !token.actorLink).map((token) => token.actor);
 	// Exhausted at VIG 0 by Virtue Loss, somebody dying is still alive to die of it.
-	return [...game.actors, ...loose].filter((actor) => downBy(actor?.system) === "mortalWound" && actor.system.virtues);
+	return [...game.actors, ...loose].filter((actor) => actor?.system?.virtues && isDying(actor.system));
 }
 
 /**
@@ -172,7 +173,8 @@ export async function dieUntended(dying) {
 	dying = dying.filter((actor) => !actor.system.slain);
 	if (!game.user.isGM || !dying.length) return [];
 	// World actors and Tokens' own side by side, so each is written for itself.
-	await Promise.all(dying.map((actor) => actor.update(SLAIN_UPDATE, causedBy("damage"))));
+	// A Knight with no Ultimate fate written dies with this one.
+	await Promise.all(dying.map((actor) => actor.update({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("fallen.fateUntended")) }, causedBy("damage"))));
 	const names = dying.map((actor) => actor.name);
 	await postCard(null, "report", {
 		title: t("phaseEnd.dying.title"),

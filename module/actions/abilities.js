@@ -7,7 +7,7 @@ import { SIGIL_MAX, abilitiesWith, etchUpdate, fadedUpdate, sigilChoices } from 
 import { knightEntryByType } from "../rules/knight-tables.js";
 import { countAfter, isCounted } from "../rules/restock.js";
 import { escapeHTML, splitName } from "../rules/text.js";
-import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
+import { SLAIN_UPDATE, downBy, unwrittenFate } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { CALENDAR_HOOK } from "./calendar.js";
 import { announceFallenKnight } from "./fallen.js";
@@ -23,11 +23,11 @@ import { worldKnights } from "./knights.js";
 
 /**
  * Somebody is killed outright, as a coin flipped for a life decides (p120):
- * VIG 0 by more than Virtue Loss, so Slain.
+ * VIG 0 by more than Virtue Loss, so Slain, with that for a Knight's Ultimate fate if none is written.
  * @param {Actor} actor
  */
 async function slay(actor) {
-	await actor.update(SLAIN_UPDATE, causedBy("damage"));
+	await actor.update({ ...SLAIN_UPDATE, ...unwrittenFate(actor, t("fallen.fateChance")) }, causedBy("damage"));
 	await announceFallenKnight(actor, "slain");
 }
 

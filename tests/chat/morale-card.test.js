@@ -10,7 +10,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 
 const { postCard } = await import("../../module/chat/cards.js");
 const { offerRevenge } = await import("../../module/actions/scars.js");
-const { breakMorale, clearMoraleBreak, registerMoraleCards } = await import("../../module/chat/morale-card.js");
+const { breakMorale, clearMoraleBreak, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
 
 let hooks;
 let warnings;
@@ -90,6 +90,24 @@ beforeEach(() => {
 afterEach(() => {
 	for (const key of ["Hooks", "ui", "game"]) delete globalThis[key];
 	vi.clearAllMocks();
+});
+
+describe("promptGroupMorale", () => {
+	it("asks for the side's Morale when a Knight the Referee plays goes down, as for an NPC (p10)", async () => {
+		const ruler = Object.assign(fakeNpc("Actor.ruler", { type: "knight", vig: 0, slain: true }), { hasPlayerOwner: false });
+		const guard = fakeNpc("Actor.guard");
+		game.combats = [fakeCombat([fakeCombatant("c1", ruler), fakeCombatant("c2", guard)])];
+		await promptGroupMorale(ruler);
+		const group = postCard.mock.calls.find(([, template]) => template === "morale-group");
+		expect(group[3].flags[SYSTEM_ID].moraleGroup.actors).toEqual(["Actor.guard"]);
+	});
+
+	it("asks nothing when a player's Knight goes down", async () => {
+		const kay = Object.assign(fakeNpc("Actor.kay", { type: "knight", vig: 0, slain: true }), { hasPlayerOwner: true });
+		game.combats = [fakeCombat([fakeCombatant("c1", kay), fakeCombatant("c2", fakeNpc("Actor.guard"))])];
+		expect(await promptGroupMorale(kay)).toBeNull();
+		expect(postCard).not.toHaveBeenCalled();
+	});
 });
 
 describe("breakMorale", () => {

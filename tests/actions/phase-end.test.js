@@ -315,7 +315,7 @@ describe("dying untended", () => {
 		vi.mocked(announceFallenKnight).mockClear();
 		await advancePhase();
 		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Tal", "Moss", "Bandit"]);
-		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true }, {});
+		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true, "system.fate": "fallen.fateUntended" }, {});
 		expect(moss.update).not.toHaveBeenCalled();
 		expect(loose.update).toHaveBeenCalled();
 		const died = cardsOf("report").find(([, , context]) => context.title === "phaseEnd.dying.title");
@@ -367,6 +367,17 @@ describe("dying untended", () => {
 		await advancePhase();
 		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Spent"]);
 		expect(spent.update).toHaveBeenCalledWith(expect.objectContaining({ "system.slain": true }), {});
+	});
+
+	it("leaves out a routed Warband, whose Mortal Wound isn't dying (p11)", async () => {
+		const routed = { ...wounded("Militia"), type: "npc" };
+		routed.system.scale = "warband";
+		game.actors = [routed, wounded("Tal")];
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": true });
+		await advancePhase();
+		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Tal"]);
+		expect(routed.update).not.toHaveBeenCalled();
 	});
 
 	it("lists nobody when nobody is dying", async () => {

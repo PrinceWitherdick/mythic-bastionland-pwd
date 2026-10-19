@@ -1,3 +1,4 @@
+import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
 import { rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
@@ -23,10 +24,11 @@ const BROKE_FLAG = "moraleBroke";
 const MORALE_BUTTONS = "[data-morale-roll], [data-morale-group], [data-morale-break]";
 
 /**
- * @param {Combatant} combatant
- * @returns {boolean} Whether they belong in a group whose Morale can waver: an NPC who isn't a structure.
+ * @param {Actor|null} actor
+ * @returns {boolean} Whether they belong in a group whose Morale can waver: anybody not the players'
+ *   own who isn't a structure, the Referee's Knights among them.
  */
-const wavers = (combatant) => combatant.actor?.type === "npc" && !combatant.actor.system.structure;
+const wavers = (actor) => Boolean(actor?.system?.virtues) && !playerCharacter(actor) && !actor.system.structure;
 
 /**
  * @param {Combatant} combatant
@@ -38,14 +40,14 @@ function memberOf(combatant) {
 }
 
 /**
- * After an NPC goes down in combat, ask the GM for the group's Morale once half
+ * After an NPC, or a Knight the Referee plays, goes down in combat, ask the GM for the group's Morale once half
  * of those on its side are down. Each side is asked once per combat. GMs only,
  * since only they can mark the combat.
  * @param {Actor} actor Who just took Damage.
  * @returns {Promise<ChatMessage|null>}
  */
 export async function promptGroupMorale(actor) {
-	if (!game.user.isGM || actor.type !== "npc") return null;
+	if (!game.user.isGM || !wavers(actor)) return null;
 	const own = combatantOf(actor);
 	const combat = own?.parent;
 	const disposition = own?.token?.disposition;
@@ -54,7 +56,7 @@ export async function promptGroupMorale(actor) {
 	const prompted = combat.getFlag(SYSTEM_ID, PROMPTED_FLAG) ?? [];
 	if (prompted.includes(disposition)) return null;
 
-	const members = combat.combatants.filter((combatant) => combatant.token?.disposition === disposition && wavers(combatant)).map(memberOf);
+	const members = combat.combatants.filter((combatant) => combatant.token?.disposition === disposition && wavers(combatant.actor)).map(memberOf);
 	const standing = members.filter((member) => !member.down);
 	// Nobody left standing has any Morale left to roll, as when an organised group broke together.
 	if (!groupHalved(members) || !standing.length) return null;
