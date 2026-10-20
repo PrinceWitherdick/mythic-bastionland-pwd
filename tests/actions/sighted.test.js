@@ -24,6 +24,8 @@ vi.mock("../../module/actions/journey.js", () => ({ COMPANY_MOVED_HOOK: "mythic-
 vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => scene?.isRealm !== false,
 	sceneGeometry: () => g,
+	// Source data, as the real one gives: each Tile's `_id`, and its centre in x and y.
+	centredTiles: (scene) => scene.tiles.map(({ id, ...data }) => ({ _id: id, ...data })),
 	hexHiddenByHand: (_scene, at) => ({ terrain: false, holding: handHidden.has(hexKey(at)), seat: false })
 }));
 

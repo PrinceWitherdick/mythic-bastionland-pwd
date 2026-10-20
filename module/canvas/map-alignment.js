@@ -35,6 +35,7 @@
  */
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
+import { tilePlaced } from "../compat.js";
 import { INK_HEX, PAPER_HEX as PAPER, colourNumber } from "../rules/colour.js";
 import { hexCentre } from "../rules/realm-geometry.js";
 import { realmFlag } from "../rules/realm-documents.js";
@@ -170,7 +171,7 @@ const mapTile = (scene, role) => scene.tiles.find((tile) => {
  *   picture stays where it's shown until the write that follows moves it.
  */
 function showTileAt(tile, rect, { redraw = true } = {}) {
-	tile.updateSource({ x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) });
+	tile.updateSource(tilePlaced({ x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) }));
 	if (redraw && tile.object && !tile.object.destroyed) tile.object.renderFlags.set({ refreshTransform: true });
 }
 

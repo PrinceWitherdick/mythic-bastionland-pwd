@@ -218,6 +218,49 @@ export function paperSceneData(levelId, name, paper) {
 	return { levels: [{ _id: levelId, name, background: { color: paper } }], initialLevel: levelId };
 }
 
+/**
+ * Half a Tile's width or height, in whole pixels, so a centre turned into a
+ * corner and back comes out where it started.
+ * @param {number} size
+ */
+const halfOf = (size) => Math.floor((Number(size) || 0) / 2);
+
+/**
+ * A Tile's data with its x and y at its centre. On v14 they already are, since
+ * a Tile is placed by the point its texture is anchored on, the middle for every
+ * Tile the system draws; on v13 they're its top-left corner.
+ * @param {object} data Tile source data or a TileDocument.
+ * @returns {object} Source data on either version, never the document: read its `_id`, not `id`.
+ *   On v13 it's a copy with x and y moved to the centre.
+ */
+export function tileCentred(data) {
+	const source = data?._source ?? data;
+	if (!isV13() || !source) return source;
+	return { ...source, x: source.x + halfOf(source.width), y: source.y + halfOf(source.height) };
+}
+
+/**
+ * Tile data to write, from data whose x and y are its centre: on v13 they're
+ * moved to its top-left corner. An update that changes its size or place but
+ * not both carries x and y worked out from what the Tile holds now.
+ * @param {object} data Creation data, or an update's changes.
+ * @param {object} [current] The Tile as it is, centred (tileCentred), for an update.
+ * @returns {object}
+ */
+export function tilePlaced(data, current = {}) {
+	if (!isV13() || !["x", "y", "width", "height"].some((key) => key in data)) return data;
+	const at = (key) => data[key] ?? current[key] ?? 0;
+	return { ...data, x: at("x") - halfOf(at("width")), y: at("y") - halfOf(at("height")) };
+}
+
+/**
+ * A Tile's name, as Tile data: v13 Tiles have none, and one written there is
+ * dropped, so every comparison with what the Tile holds would find it changed.
+ * @param {string} name
+ * @returns {{name?: string}}
+ */
+export const tileNameData = (name) => (isV13() ? {} : { name });
+
 /** @returns {object} The Scene data that turns off Fog of War exploration. */
 export function noFogSceneData() {
 	return isV13() ? { fog: { exploration: false } } : { fog: { mode: 0 } };

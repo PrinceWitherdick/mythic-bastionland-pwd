@@ -9,7 +9,7 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
-import { noFogSceneData, paperSceneData, replacementEntry } from "../compat.js";
+import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileNameData, tilePlaced } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
@@ -140,11 +140,27 @@ export const realmFlag = (data) => data?.flags?.[SYSTEM_ID]?.[REALM_FLAG] ?? nul
 const flagged = (flag) => ({ [SYSTEM_ID]: { [REALM_FLAG]: flag } });
 
 /**
+ * The Scene flag of a Realm whose Tiles stand by their top-left corners, as v13
+ * places a Tile. A Realm laid on v13 before the system knew that has each
+ * Tile's centre in its x and y, and is read that way until its Tiles are moved
+ * (settleRealmTiles in actions/realm.js).
+ */
+export const TILE_CORNERS_FLAG = "tileCorners";
+
+/**
+ * @param {object} [flags] A Realm Scene's flags.
+ * @returns {boolean} Whether its Tiles stand where this Foundry places a Tile, so tileCentred finds their centres:
+ *   always on v14, and on v13 once they stand by their corners.
+ */
+export const tilesSettled = (flags) => !isV13() || Boolean(flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]);
+
+/**
  * @returns {object} Tile data with everything this module decides about a Tile.
+ *   Every Tile is anchored on its middle, as tileCentred and tilePlaced count on.
  */
 function tileData({ centre, width, height, texture, sort, locked, hidden = false, alpha = 1, rotation = 0, name = "", flag }) {
 	return {
-		name,
+		...tileNameData(name),
 		x: Math.round(centre.x),
 		y: Math.round(centre.y),
 		width: Math.max(1, Math.round(width)),
@@ -155,7 +171,7 @@ function tileData({ centre, width, height, texture, sort, locked, hidden = false
 		sort,
 		hidden,
 		locked,
-		texture: { src: texture.src, anchorX: texture.anchorX ?? 0.5, anchorY: texture.anchorY ?? 0.5, fit: texture.fit ?? "fill" },
+		texture: { src: texture.src, anchorX: 0.5, anchorY: 0.5, fit: texture.fit ?? "fill" },
 		flags: flagged(flag)
 	};
 }
@@ -432,9 +448,9 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		grid: { type: g.gridType, size: g.size, style: "solidLines", thickness: 2, color: textures.colours.grid, alpha: GRID_ALPHA, distance: 1, units },
 		...paperSceneData(LEVEL_ID, name, textures.colours.paper),
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: openingScale(g) },
-		tiles: tiles.map((tile) => tile.data),
+		tiles: tiles.map((tile) => tilePlaced(tile.data)),
 		drawings: drawings.map((drawing) => drawing.data),
-		flags: flagged(realmSceneFlag(realm, g))
+		flags: { [SYSTEM_ID]: { [REALM_FLAG]: realmSceneFlag(realm, g), ...(isV13() ? { [TILE_CORNERS_FLAG]: true } : {}) } }
 	};
 }
 
@@ -443,7 +459,7 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
  * Seat Tile on the Scene. The Realm doesn't record these, since only Myths,
  * Landmarks and Barriers are hidden by the rules, but a sync keeps them hidden
  * (KEPT_ON_UPDATE), so what players are told should keep quiet about them too.
- * @param {object[]} tiles Tile source data.
+ * @param {object[]} tiles Tile source data, centred (tileCentred).
  * @param {object} g
  * @param {{col: number, row: number}} hex
  * @returns {{terrain: boolean, holding: boolean, seat: boolean}}
@@ -462,7 +478,7 @@ export function hiddenByHand(tiles, g, hex) {
 }
 
 /**
- * @param {object[]} tiles Tile documents or source data.
+ * @param {object[]} tiles Tile source data, each with `_id`, centred (tileCentred).
  * @param {object} g
  * @param {string[]} kinds Realm Tile kinds, such as "myth".
  * @param {{col: number, row: number}[]} hexes
@@ -481,7 +497,7 @@ export function hiddenTilesIn(tiles, g, kinds, hexes) {
  * Read a Realm back from its Scene.
  * @param {object} snapshot
  * @param {object} [snapshot.flags] The Scene's flags.
- * @param {object[]} [snapshot.tiles] Tile source data, each with `_id`.
+ * @param {object[]} [snapshot.tiles] Tile source data, each with `_id`, centred (tileCentred).
  * @param {object[]} [snapshot.drawings] Drawing source data, each with `_id`.
  * @param {object} g
  * @returns {{realm: import("./realm.js").Realm, problems: {kind: string, reason: string, key: string}[]}}
@@ -634,7 +650,7 @@ function changesFor(existing, desired) {
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
- * @param {{tiles?: object[], drawings?: object[]}} existing Source data, each with `_id`.
+ * @param {{tiles?: object[], drawings?: object[]}} existing Source data, each with `_id`; Tiles centred (tileCentred).
  * @param {object} [options]
  * @param {boolean} [options.replacing] The Realm replaces the Scene's old one, so icons off the map go too.
  * @returns {{Tile: {create: object[], update: object[], delete: string[]}, Drawing: {create: object[], update: object[], delete: string[]}}}
@@ -642,6 +658,8 @@ function changesFor(existing, desired) {
 export function planRealmSync(realm, g, textures, existing, { replacing = false } = {}) {
 	const desired = realmDocuments(realm, g, textures);
 	const plan = (wanted, current, kind) => {
+		// Tiles are compared by their centres, and written back however this Foundry places them.
+		const placed = kind === "tile" ? tilePlaced : (data) => data;
 		const byMatch = new Map();
 		const deletions = [];
 		for (const data of current) {
@@ -657,12 +675,12 @@ export function planRealmSync(realm, g, textures, existing, { replacing = false 
 		for (const { match, data } of wanted) {
 			const found = byMatch.get(match);
 			if (!found || used.has(match)) {
-				create.push(data);
+				create.push(placed(data));
 				continue;
 			}
 			used.add(match);
 			const changes = changesFor(found, data);
-			if (changes) update.push({ _id: found._id, ...changes });
+			if (changes) update.push({ _id: found._id, ...placed(changes, found) });
 		}
 		for (const [match, data] of byMatch) {
 			if (!used.has(match)) deletions.push(data._id);

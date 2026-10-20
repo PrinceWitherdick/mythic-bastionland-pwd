@@ -10,6 +10,9 @@ import {
 	queryAsker,
 	replacementEntry,
 	scenePaper,
+	tileCentred,
+	tileNameData,
+	tilePlaced,
 	toolActivated,
 	watchQuerySenders
 } from "../module/compat.js";
@@ -156,6 +159,40 @@ describe("scene control tools", () => {
 		globalThis.ui = { controls: { tool: coming } };
 		expect(toolActivated(coming, undefined)).toBe(true);
 		expect(toolActivated(going, undefined)).toBe(false);
+	});
+});
+
+describe("where a Tile stands", () => {
+	it("is its centre on v14, as the system works in", () => {
+		run(14);
+		const tile = { x: 100, y: 200, width: 185, height: 160 };
+		expect(tileCentred(tile)).toBe(tile);
+		expect(tilePlaced(tile)).toBe(tile);
+		// A TileDocument gives its source data, as it does on v13, so no caller leans on the document's getters.
+		expect(tileCentred({ id: "a", _source: tile })).toBe(tile);
+	});
+
+	it("is its top-left corner on v13, turned to and from the centre", () => {
+		run(13);
+		expect(tilePlaced({ x: 100, y: 200, width: 185, height: 160, alpha: 1 })).toEqual({ x: 8, y: 120, width: 185, height: 160, alpha: 1 });
+		expect(tileCentred({ x: 8, y: 120, width: 185, height: 160 })).toEqual({ x: 100, y: 200, width: 185, height: 160 });
+		// A TileDocument is read from its source.
+		expect(tileCentred({ _source: { x: 8, y: 120, width: 185, height: 160 } })).toMatchObject({ x: 100, y: 200 });
+	});
+
+	it("has a name only on v14", () => {
+		run(14);
+		expect(tileNameData("Hill Fort")).toEqual({ name: "Hill Fort" });
+		run(13);
+		expect(tileNameData("Hill Fort")).toEqual({});
+	});
+
+	it("moves a v13 Tile's corner when an update changes only its size or only its place", () => {
+		run(13);
+		const current = { x: 100, y: 200, width: 185, height: 160 };
+		expect(tilePlaced({ width: 85 }, current)).toEqual({ width: 85, x: 58, y: 120 });
+		expect(tilePlaced({ x: 300 }, current)).toEqual({ x: 208, y: 120 });
+		expect(tilePlaced({ hidden: true }, current)).toEqual({ hidden: true });
 	});
 });
 

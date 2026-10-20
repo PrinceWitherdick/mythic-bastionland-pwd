@@ -6,7 +6,7 @@ import { directionNames, hexKey } from "../rules/realm-geometry.js";
 import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, hiddenThere, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
-import { hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
+import { centredTiles, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
 import { keptFromMe } from "./solo.js";
 
@@ -146,7 +146,7 @@ export async function revealSighted(scene, hexes) {
 	const reached = hexes.filter((hex) => sightedAt(sighted, hex));
 	if (!reached.length) return [];
 
-	const updates = hiddenTilesIn(scene.tiles, sceneGeometry(scene), SIGHTED_KINDS, reached).map((tile) => ({ _id: tile.id, hidden: false }));
+	const updates = hiddenTilesIn(centredTiles(scene), sceneGeometry(scene), SIGHTED_KINDS, reached).map(({ _id }) => ({ _id, hidden: false }));
 	if (updates.length) await scene.updateEmbeddedDocuments("Tile", updates);
 	await writeSightings(scene, { drop: [...new Set(reached.map(hexKey))] });
 	if (updates.length) ui.notifications.info(t("seenFromAfar.reached"));
