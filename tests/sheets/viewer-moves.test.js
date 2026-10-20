@@ -89,6 +89,13 @@ describe("a sheet the user can only view", () => {
 		expect(edit.disabled).toBe(true);
 	});
 
+	it("lets nobody but its owner or the Referee drag a possession off it", () => {
+		// Foundry's sheets drag only `.draggable` (dragSelector), on v13 and v14 alike, so a row a viewer
+		// sees without the class can't be picked up, nor shows the hand that says it can.
+		const row = readFileSync(join(root, "templates/actor/parts/item-row.hbs"), "utf8").match(/<li\b[^>]*>/)[0];
+		expect(row).toContain("{{#if @root.editable}} draggable{{/if}}");
+	});
+
 	it("shows a Feat without making its Save", async () => {
 		const actor = knight();
 		const performFeat = BastionlandActorSheet.DEFAULT_OPTIONS.actions.performFeat;
