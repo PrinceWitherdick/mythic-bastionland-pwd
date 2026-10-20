@@ -6,6 +6,7 @@
  * it can be tested without Foundry; the sheet puts words to it.
  */
 import { crisisRolledThisSeason, dramaRolledThisSeason } from "./dominion.js";
+import { ownMythKey } from "./own-myths.js";
 import { normalizeEvents } from "./season-events.js";
 import { SEASONS, normalizeCalendar, parseSeasonKey, seasonKey } from "./time.js";
 
@@ -38,10 +39,10 @@ export const SEASON_TURNS = Object.freeze(["season", "age", "distant"]);
 
 /**
  * @param {string} sceneId The Realm's Scene.
- * @param {{number: number, d6: number, d12: number}} myth
+ * @param {{number: number, d6: number|null, d12: number|null, own?: string}} myth
  * @returns {string} The same for the same Myth in the same Realm, and for no other.
  */
-export const completedMythId = (sceneId, myth) => `${sceneId}.${myth.number}.${myth.d6}-${myth.d12}`;
+export const completedMythId = (sceneId, myth) => `${sceneId}.${myth.number}.${ownMythKey(myth) ?? `${myth.d6}-${myth.d12}`}`;
 
 /**
  * @param {CompletedMyth[]} myths

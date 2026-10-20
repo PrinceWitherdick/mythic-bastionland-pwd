@@ -2589,7 +2589,8 @@
         "showArt": "See the picture larger",
         "tableTagline": "{name}’s table (p{page})",
         "tableReading": "Reading this Myth’s table from your rulebook…",
-        "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table."
+        "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table.",
+        "ownTableTagline": "{name}’s table"
       },
       "cast": {
         "title": "The Cast",
@@ -3866,7 +3867,7 @@
     },
     "mythChooser": {
       "title": "The Realm’s Myths",
-      "hint": "Six Myths lie hidden in a Realm (p14), each rolled on the Myths table (p27). Roll one again, roll them all again, or choose one yourself. Every Myth keeps its number and stays in its hex: only which Myth it is changes.",
+      "hint": "Six Myths lie hidden in a Realm (p14), each rolled on the Myths table (p27). Roll one again, roll them all again, or choose one yourself, from the table or from the Myths you have written. Every Myth keeps its number and stays in its hex: only which Myth it is changes. One taken out leaves its number empty, for another Myth in a hex of its own.",
       "inRealm": "In the Realm",
       "table": "The Myths table",
       "noIndex": "Run the Import PDF macro to see the Myths by name and picture. Until then they go by their roll.",
@@ -3879,7 +3880,42 @@
       "already": "This is Myth {number} already.",
       "takenBy": "Myth {number}",
       "search": "Search the Myths…",
-      "noMatch": "No Myth matches."
+      "noMatch": "No Myth matches.",
+      "yours": "Yours",
+      "yoursTooltip": "The Myths you have written",
+      "write": "Write a Myth",
+      "ownReference": "Your own Myth",
+      "remove": "Take this Myth out of the Realm",
+      "removeTitle": "Take a Myth Out of the Realm",
+      "removeConfirm": "<strong>{name}</strong> leaves the Realm, with the Omens met of it, and its hex is left empty. Myth {number} can be given another Myth afterwards, in a remote hex of its own.",
+      "removeYes": "Take It Out",
+      "empty": "No Myth",
+      "emptyWhere": "Not in the Realm",
+      "emptyNote": "It goes in a remote hex, hidden, as the Realm’s Myths were placed. Move it with Edit this hex.",
+      "rollInto": "Roll a Myth for this number"
+    },
+    "ownMyth": {
+      "sheet": "Written Myth",
+      "newMyth": "New Myth",
+      "folder": "Your Myths",
+      "defaultName": "New Myth",
+      "hint": "A Myth of your own, to stand among a Realm’s six. Give it to the Realm in The Realm’s Myths, under Yours. Only Referees see it.",
+      "name": "Name",
+      "verse": "Verse",
+      "verseLine": "Verse, line {number} of {count}",
+      "pickPicture": "Choose a picture",
+      "clearPicture": "No Picture",
+      "omens": "Omens",
+      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table.",
+      "cast": "Cast",
+      "castHint": "A word on who belongs to this Myth. Drag actors onto the Myth in the Referee Toolkit to make them its Cast.",
+      "table": "Table",
+      "tableHint": "Rolled in the Referee Toolkit with a d6 for each column. Leave it empty if the Myth has none.",
+      "tableName": "Table name",
+      "column": "Column {number}",
+      "cell": "Row {row}, {column}",
+      "edit": "Edit this Myth",
+      "editTooltip": "Open the Myth you wrote, to change it"
     },
     "bookArt": {
       "title": "Import PDF",

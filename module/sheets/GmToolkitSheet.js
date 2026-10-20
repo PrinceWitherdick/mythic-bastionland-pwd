@@ -20,6 +20,7 @@ import { markMythOmen } from "../actions/omens.js";
 import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
+import { isOwnMythEntry, openOwnMyth } from "../actions/own-myths.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
@@ -27,7 +28,7 @@ import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { IN_USE, filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
-import { loadArtIndex, mythLookup, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythLookup, pageNote, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
@@ -43,11 +44,13 @@ import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
 import { POINT_KINDS } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
 import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { mythSlots } from "../rules/realm-myths.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
 import { searchable } from "../rules/text.js";
@@ -155,6 +158,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			rollMythTable: GmToolkitSheet.#onRollMythTable,
 			showMythTable: GmToolkitSheet.#onShowMythTable,
 			showMythArt: GmToolkitSheet.#onShowMythArt,
+			editOwnMyth: GmToolkitSheet.#onEditOwnMyth,
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
@@ -372,8 +376,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const myths = data.realm.myths.map((myth) => (myth.unknown ? this.#unknownMythContext(myth) : this.#mythContext(myth, data, forCast)));
 		return {
 			myths,
-			// Played alone, which six the Realm holds is left to the dice.
-			choose: myths.length > 0 && !keptFromMe(),
+			// Played alone, which six the Realm holds is left to the dice. With none left, the window is how one is given back.
+			choose: mythSlots(data.realm) > 0 && !keptFromMe(),
 			// Opening one Myth folds the one open before, so the other five stay a row each.
 			mythGroup: `${this.id}-myths`,
 			missingText: Boolean(myths.length) && !this.#index?.myths?.length,
@@ -429,7 +433,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		return {
 			number: myth.number,
 			name,
-			reference: page ? t("realm.key.page", { page }) : null,
+			// A Myth the Referee wrote, while the world still has it, opens to be changed.
+			own: isOwnMyth(myth) && entry ? myth.own : null,
+			reference: pageNote(page),
 			img: entry?.path ?? null,
 			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
 			hexKey: myth.hex ? hexKey(myth.hex) : null,
@@ -867,7 +873,12 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		};
 		// Only a move, or the Company mark itself, changes where the Company is.
 		const onCompanyChange = (token, changes) => ["x", "y", "flags"].some((key) => key in changes) && onCompany(token);
-		const onSite = (entry) => isSiteEntry(entry) && this.#redraw("places");
+		// A Myth the Referee wrote is named wherever the Realm's Myths are, once the Realm on show holds it.
+		const onJournal = (entry) => {
+			if (isSiteEntry(entry)) this.#redraw("places");
+			const scene = this.scene;
+			if (isOwnMythEntry(entry) && scene && mythWithOwn(getRealm(scene)?.realm.myths ?? [], entry.id)) this.#redraw(...REALM_TABS, "time");
+		};
 		const onDomain = (actor) => actor.type === "domain" && this.#redraw("time");
 		// An actor made, deleted, renamed, repictured, put in a Cast or taken out of one changes the Myths page.
 		const onCast = (actor) => couldJoinCast(actor) && this.#redraw("myths");
@@ -882,7 +893,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			["updateScene", Hooks.on("updateScene", onSceneChange)],
 			...["createToken", "deleteToken"].map((name) => [name, Hooks.on(name, onCompany)]),
 			["updateToken", Hooks.on("updateToken", onCompanyChange)],
-			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onSite)]),
+			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onJournal)]),
 			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
 			// One listener for each, fanning out to the pages that care, rather than
 			// a pair of them running down every actor the world writes.
@@ -1149,7 +1160,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			// GMs only, as with the Omen card: it names a Myth the players may not know.
 			const card = postCard(null, "spark", {
 				name: table.name,
-				tagline: t("gmToolkit.myths.tableTagline", { name, page }),
+				tagline: page ? t("gmToolkit.myths.tableTagline", { name, page }) : t("gmToolkit.myths.ownTableTagline", { name }),
 				prompt,
 				results
 			}, { rolls: [roll], mode: "gm" });
@@ -1219,6 +1230,15 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static async #onNewMyth(_event, target) {
 		const myth = this.#mythFrom(target);
 		if (myth && this.scene) await replaceMyth(this.scene, myth, this.#index);
+	}
+
+	/**
+	 * Open a Myth the Referee wrote, to read or change what they wrote.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onEditOwnMyth(_event, target) {
+		const myth = this.#mythFrom(target);
+		if (isOwnMyth(myth)) openOwnMyth(myth.own);
 	}
 
 	/**

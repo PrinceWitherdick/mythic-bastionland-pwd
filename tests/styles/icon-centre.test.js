@@ -92,6 +92,18 @@ describe("the badges that centre a glyph or a figure", () => {
 		expect(icon.width).toBe(icon.height);
 		expect(pixels(icon.width) - pixels(icon["font-size"])).toBeGreaterThanOrEqual(8);
 	});
+
+	/*
+	 * The Referee's own Myths take a word, Yours, in the row of d6 results.
+	 * Only the width gives way to the word: the height and the lettering stay
+	 * the whole pixels the d6 results are centred by.
+	 */
+	it("widens the Myths window's Yours button and changes nothing else of the d6 results' box", () => {
+		const own = rule("mythic-bastionland.css", ".bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group");
+		expect(Object.keys(own).sort()).toEqual(["padding", "width"]);
+		expect(own.width).toBe("auto");
+		expect(own.padding).toMatch(/^0 /);
+	});
 });
 
 /*

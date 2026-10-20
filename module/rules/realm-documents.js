@@ -17,6 +17,7 @@ import { emptyVariants, pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
 import { MAP_ROLES, hidesTerrain, normaliseRealmPicture, realmPictures, withMapPlaces } from "./realm-map.js";
 import { normaliseRealmSetup } from "./realm-setup.js";
+import { isOwnMyth } from "./own-myths.js";
 import {
 	BOOK_LAYOUT,
 	allHexes,
@@ -386,7 +387,7 @@ export function realmDocuments(realm, g, textures) {
 			match: myth.id ? `id:${myth.id}` : `new:myth:${myth.number}`,
 			data: icon("myth", textures.myth[myth.number] ?? textures.myth[1], myth.hex, {
 				hidden: !myth.revealed,
-				flag: { kind: "myth", number: myth.number, d6: myth.d6, d12: myth.d12, omen: myth.omen ?? 0 }
+				flag: { kind: "myth", number: myth.number, d6: myth.d6, d12: myth.d12, ...(myth.own ? { own: myth.own } : {}), omen: myth.omen ?? 0 }
 			})
 		});
 	}
@@ -549,7 +550,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				break;
 			case "myth":
 				if (!hex) problems.push({ kind: "myth", reason: "offMap", key: where });
-				else realm.myths.push({ id: tile._id ?? null, hex, number: flag.number, d6: flag.d6, d12: flag.d12, omen: flag.omen ?? 0, revealed: !tile.hidden });
+				else realm.myths.push({ id: tile._id ?? null, hex, number: flag.number, d6: flag.d6, d12: flag.d12, ...(isOwnMyth(flag) ? { own: flag.own } : {}), omen: flag.omen ?? 0, revealed: !tile.hidden });
 				break;
 			case "landmark":
 				if (!hex) problems.push({ kind: "landmark", reason: "offMap", key: where });

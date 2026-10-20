@@ -11,7 +11,7 @@ import {
 	validateRealm
 } from "../../module/rules/realm.js";
 import { edgeKey, hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, realmGeometry } from "../../module/rules/realm-geometry.js";
-import { generateRealm, generateRiver, isConnected } from "../../module/rules/realm-generator.js";
+import { generateRealm, generateRiver, isConnected, remoteMythHex } from "../../module/rules/realm-generator.js";
 
 const g = realmGeometry();
 const seeds = Array.from({ length: 40 }, (_, index) => `seed-${index}`);
@@ -281,5 +281,24 @@ describe("isConnected", () => {
 		expect(isConnected(g, new Set())).toBe(true);
 		const corner = { col: 1, row: 1 };
 		expect(isConnected(g, new Set([edgeKey(corner, { col: 2, row: 1 }), edgeKey(corner, { col: 1, row: 2 })]))).toBe(false);
+	});
+});
+
+describe("remoteMythHex", () => {
+	it("places a Myth given back to the Realm on a free hex, remote from the Holdings and apart from the other Myths", async () => {
+		const { createRandom } = await import("../../module/rules/random.js");
+		const realm = generateRealm({ seed: "remote-myth", geometry: g });
+		const [gone, ...rest] = realm.myths;
+		const without = { ...realm, myths: rest };
+		const taken = new Set([...realm.holdings, ...rest, ...realm.landmarks].map((feature) => hexKey(feature.hex)));
+		const nearestHolding = (hex) => Math.min(...realm.holdings.map((holding) => hexDistance(g, holding.hex, hex)));
+		for (let seed = 0; seed < 20; seed++) {
+			const hex = remoteMythHex(createRandom(`remote-${seed}`), g, without);
+			expect(inRealm(g, hex)).toBe(true);
+			expect(taken.has(hexKey(hex))).toBe(false);
+			// As remote as the hex the Realm first gave the Myth, give or take the spread.
+			expect(nearestHolding(hex)).toBeGreaterThanOrEqual(Math.min(nearestHolding(gone.hex), 3));
+			expect(rest.every((myth) => hexDistance(g, myth.hex, hex) >= 1)).toBe(true);
+		}
 	});
 });

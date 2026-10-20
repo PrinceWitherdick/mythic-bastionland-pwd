@@ -6,6 +6,7 @@
  * rather than inheriting the old one's. Pure, so it can be tested without Foundry.
  */
 import { isDie, isTableRoll, rollLabel } from "./book-art.js";
+import { ownMythKey } from "./own-myths.js";
 import { MYTH_COUNT } from "./realm.js";
 
 export const MYTH_NOTES_VERSION = 1;
@@ -27,10 +28,11 @@ export const MYTH_NOTES_VERSION = 1;
 export const emptyMythNotes = () => ({ version: MYTH_NOTES_VERSION, myths: {} });
 
 /**
- * @param {{d6: number, d12: number}} myth
- * @returns {string} Its roll, or "" for a Myth whose dice don't read as a roll.
+ * @param {{d6: number|null, d12: number|null, own?: string}} myth
+ * @returns {string} Its roll, what tells a Myth the Referee wrote from any
+ *   other, or "" for a Myth whose dice don't read as a roll.
  */
-export const mythRoll = (myth) => (isTableRoll(myth) ? rollLabel(myth.d6, myth.d12) : "");
+export const mythRoll = (myth) => ownMythKey(myth) ?? (isTableRoll(myth) ? rollLabel(myth.d6, myth.d12) : "");
 
 /**
  * @param {unknown} raw

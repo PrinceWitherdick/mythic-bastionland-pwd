@@ -1,0 +1,79 @@
+{{!-- A Myth the Referee writes: what a Myth's page in the book has, to be filled in. --}}
+<section class="bastionland-page bastionland-own-myth">
+	<p class="bastionland-hint">{{localize "bastionland.ownMyth.hint"}}</p>
+
+	<div class="bastionland-own-myth__top">
+		{{!-- The picture, chosen with Foundry's file picker. --}}
+		<div class="bastionland-own-myth__picture">
+			<button type="button" class="bastionland-own-myth__art{{#unless img}} is-empty{{/unless}}" data-action="pickPicture" {{#unless editable}}disabled{{/unless}} data-tooltip="{{localize 'bastionland.ownMyth.pickPicture'}}" aria-label="{{localize 'bastionland.ownMyth.pickPicture'}}">
+				{{#if img}}<img src="{{img}}" alt="">{{else}}<i class="fa-solid fa-image" inert></i>{{/if}}
+			</button>
+			{{#if img}}{{#if editable}}
+			<button type="button" class="bastionland-button bastionland-own-myth__clear" data-action="clearPicture"><i class="fa-solid fa-xmark" inert></i> {{localize "bastionland.ownMyth.clearPicture"}}</button>
+			{{/if}}{{/if}}
+		</div>
+
+		<div class="bastionland-own-myth__heading">
+			<div class="bastionland-own-myth__field">
+				<label class="bastionland-own-myth__label" for="{{rootId}}-name">{{localize "bastionland.ownMyth.name"}}</label>
+				<input id="{{rootId}}-name" class="bastionland-own-myth__name" type="text" name="name" value="{{name}}" {{#unless editable}}disabled{{/unless}}>
+			</div>
+			<fieldset class="bastionland-own-myth__field bastionland-own-myth__verse">
+				<legend class="bastionland-own-myth__label">{{localize "bastionland.ownMyth.verse"}}</legend>
+				{{#each verse}}
+				<input type="text" name="{{name}}" value="{{value}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}>
+				{{/each}}
+			</fieldset>
+		</div>
+	</div>
+
+	<section class="bastionland-own-myth__section">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownMyth.omens"}}</h3>
+		<p class="bastionland-hint">{{localize "bastionland.ownMyth.omensHint"}}</p>
+		<ol class="bastionland-own-myth__omens">
+			{{#each omens}}
+			<li>
+				<span class="bastionland-own-myth__omen-number" aria-hidden="true">{{number}}</span>
+				<textarea name="{{name}}" rows="2" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}>{{value}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+
+	<section class="bastionland-own-myth__section">
+		<h3 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownMyth.cast"}}</h3>
+		<p class="bastionland-hint">{{localize "bastionland.ownMyth.castHint"}}</p>
+		<textarea name="castNote" rows="3" aria-label="{{localize 'bastionland.ownMyth.cast'}}" {{#unless editable}}disabled{{/unless}}>{{castNote}}</textarea>
+	</section>
+
+	{{#with table}}
+	<details class="bastionland-own-myth__section bastionland-own-myth__table-fold" {{#if open}}open{{/if}}>
+		<summary class="bastionland-heading bastionland-heading--small">{{localize "bastionland.ownMyth.table"}}</summary>
+		<p class="bastionland-hint">{{localize "bastionland.ownMyth.tableHint"}}</p>
+		<div class="bastionland-own-myth__field">
+			<label class="bastionland-own-myth__label" for="{{@root.rootId}}-table-name">{{localize "bastionland.ownMyth.tableName"}}</label>
+			<input id="{{@root.rootId}}-table-name" type="text" name="table.name" value="{{name}}" {{#unless @root.editable}}disabled{{/unless}}>
+		</div>
+		<table class="bastionland-own-myth__table">
+			<thead>
+				<tr>
+					<th scope="col" class="bastionland-own-myth__die"><i class="fa-solid fa-dice-d6" inert></i></th>
+					{{#each columns}}
+					<th scope="col"><input type="text" name="{{name}}" value="{{value}}" placeholder="{{label}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}></th>
+					{{/each}}
+				</tr>
+			</thead>
+			<tbody>
+				{{#each rows}}
+				<tr>
+					<th scope="row">{{number}}</th>
+					{{#each entries}}
+					<td><input type="text" name="{{name}}" value="{{value}}" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}></td>
+					{{/each}}
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+	</details>
+	{{/with}}
+</section>

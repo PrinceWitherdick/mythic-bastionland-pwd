@@ -8,7 +8,7 @@
 	<h4 class="bastionland-card__heading">{{localize "bastionland.realm.key.myths"}}</h4>
 	<ul class="bastionland-card__list">
 		{{#each myths}}
-		<li><strong>{{number}}</strong> {{name}} <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=page}}, {{> "bastionland.hex-target" where}}</span></li>
+		<li><strong>{{number}}</strong> {{name}} <span class="bastionland-card__hint">{{#if page}}{{localize "bastionland.realm.key.page" page=page}}, {{/if}}{{> "bastionland.hex-target" where}}</span></li>
 		{{/each}}
 	</ul>
 	{{/if}}

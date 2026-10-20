@@ -5,6 +5,7 @@
  * replaced. Pure, so it can be tested without Foundry.
  */
 import { isDie } from "./book-art.js";
+import { isOwnMyth } from "./own-myths.js";
 import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt, realmSeats } from "./realm.js";
 import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
 import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
@@ -285,12 +286,17 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 			const moving = next.myths.find((myth) => myth.number === number);
 			next.myths = next.myths.filter((myth) => myth.number !== number);
 			const base = here.myth ?? moving ?? null;
+			// A Myth the Referee wrote has no roll. Naming one makes the Myth that one, and
+			// dice make it one of the book's again; given neither, it stays whichever it was.
+			const rolled = isDie(feature.d6, 6) || isDie(feature.d12, 12);
+			const own = isOwnMyth(feature) ? feature.own : feature.own === undefined && !rolled && isOwnMyth(base) ? base.own : null;
 			next.myths.push({
 				id: base?.id ?? null,
 				hex: { ...hex },
 				number,
-				d6: isDie(feature.d6, 6) ? feature.d6 : base?.d6 ?? 1,
-				d12: isDie(feature.d12, 12) ? feature.d12 : base?.d12 ?? 1,
+				d6: own ? null : isDie(feature.d6, 6) ? feature.d6 : base?.d6 ?? 1,
+				d12: own ? null : isDie(feature.d12, 12) ? feature.d12 : base?.d12 ?? 1,
+				...(own ? { own } : {}),
 				omen: Math.min(OMEN_COUNT, Math.max(0, Number.isInteger(feature.omen) ? feature.omen : base?.omen ?? 0)),
 				revealed: feature.revealed ?? base?.revealed ?? false
 			});
@@ -376,6 +382,9 @@ export function editFeature(realm, g, hex, changes) {
 	const { id: _id, hex: _hex, ...current } = here[kind];
 	const merged = { ...current, ...changes, kind };
 	if (changes.seer) merged.seer = { ...current.seer, ...changes.seer };
+	// A die typed in for a Myth the Referee wrote makes it a Myth of the book's table.
+	// One that isn't a die leaves the Myth as it was.
+	if (kind === "myth" && !("own" in changes) && (isDie(changes.d6, 6) || isDie(changes.d12, 12))) merged.own = null;
 	return placeFeature(realm, g, hex, merged);
 }
 

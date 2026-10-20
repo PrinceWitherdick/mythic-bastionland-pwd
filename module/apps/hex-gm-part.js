@@ -23,7 +23,7 @@ import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { wildernessRoll } from "../actions/wilderness.js";
-import { mythLookup, seerEntry } from "../book-art/art-index.js";
+import { mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { omenStage } from "../rules/gm-toolkit.js";
@@ -223,7 +223,7 @@ function mythContext(scene, myth, index) {
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));
 	return {
 		number: myth.number,
-		name: page ? t("realm.panel.reference", { name, page }) : name,
+		name: withPage(name, page),
 		seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 		none: myth.omen <= 0,
 		all: myth.omen >= OMEN_COUNT,

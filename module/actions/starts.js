@@ -90,7 +90,7 @@ async function courtNews(scene) {
 	const { name, page, entry } = mythEntry(await loadArtIndex(), myth);
 	return postCard(null, "omen", {
 		title: t("company.starts.courtier.newsTitle"),
-		tagline: t("company.starts.courtier.newsTagline", { name, page }),
+		tagline: page ? t("company.starts.courtier.newsTagline", { name, page }) : name,
 		img: entry?.path ?? null,
 		omen: t("realm.wilderness.omen", { omen, count: OMEN_COUNT }),
 		text: entry?.omens?.[omen - 1] ?? null,

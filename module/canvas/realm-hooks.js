@@ -16,6 +16,7 @@ import { realmSceneChanges } from "../actions/scene-changes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
+import { isOwnMythEntry } from "../actions/own-myths.js";
 import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
@@ -193,6 +194,16 @@ export function registerRealmHooks() {
 	// forgotten above, so the row reads the hex as the write left it.
 	Hooks.on("preUpdateTile", readOmens);
 	Hooks.on("updateTile", writeOmens);
+	// A Myth the Referee wrote is named and pictured in the windows of each Realm that holds it,
+	// and among the Myths to choose from in any of them.
+	const onOwnMyth = (entry) => {
+		if (!isOwnMythEntry(entry)) return;
+		refreshMythChooser();
+		for (const scene of game.scenes ?? []) {
+			if (isRealmScene(scene) && getRealm(scene)?.realm.myths.some((myth) => myth.own === entry.id)) showLater(scene.id, "names");
+		}
+	};
+	for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);
 	Hooks.on("updateScene", (scene, changes) => {
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").

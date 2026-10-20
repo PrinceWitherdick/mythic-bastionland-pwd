@@ -9,6 +9,12 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const D6_RESULTS = Object.freeze([1, 2, 3, 4, 5, 6]);
 
 /**
+ * @param {string|undefined} value A group's `data-d6`.
+ * @returns {number|string} A d6 result as a number, or a group of a chooser's own by its name.
+ */
+const groupOf = (value) => (/^\d+$/.test(value ?? "") ? Number(value) : value);
+
+/**
  * What the Knight and NPC choosers share: the book's d6-then-d12 table, read
  * from the art index and shown one d6 result at a time, with one roll picked
  * and a larger copy of each picture on hover. A chooser fills in the actor it
@@ -39,7 +45,7 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	/** @type {object|null|undefined} The art index: undefined until loaded, null if never imported. */
 	index;
 
-	/** The d6 result whose entries are on show. */
+	/** @type {number|string} The d6 result whose entries are on show, or a set of a chooser's own, such as the Referee's Myths. */
 	group = 1;
 
 	/** @type {string|null} The chosen roll, such as "3-07". */
@@ -112,6 +118,14 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	}
 
 	/**
+	 * Take a roll as the one picked. A chooser with something else to pick lets go of it here.
+	 * @param {string} roll
+	 */
+	_pickRoll(roll) {
+		this.roll = roll;
+	}
+
+	/**
 	 * Show the cards the search finds, from every d6 result, or with no search
 	 * the d6 result on show. No d6 result is pressed while a search is.
 	 */
@@ -121,11 +135,11 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 		const term = searchable(this.search.trim());
 		let shown = 0;
 		for (const card of root.querySelectorAll(`${list} > li`)) {
-			const visible = term ? card.dataset.search.includes(term) : Number(card.dataset.d6) === this.group;
+			const visible = term ? card.dataset.search.includes(term) : card.dataset.d6 === String(this.group);
 			card.hidden = !visible;
 			if (visible) shown++;
 		}
-		for (const group of root.querySelectorAll(".bastionland-chooser__group")) markActive(group, !term && Number(group.dataset.d6) === this.group);
+		for (const group of root.querySelectorAll(".bastionland-chooser__group")) markActive(group, !term && group.dataset.d6 === String(this.group));
 		root.querySelector(list)?.classList.toggle("is-searching", Boolean(term));
 		const none = root.querySelector(".bastionland-myth-chooser__none");
 		if (none) none.hidden = shown > 0;
@@ -137,7 +151,7 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	 * @this {BastionlandChooser}
 	 */
 	static #onShowGroup(_event, target) {
-		this.group = Number(target.dataset.d6);
+		this.group = groupOf(target.dataset.d6);
 		this.search = "";
 		const box = this.element.querySelector("[name=search]");
 		if (box) box.value = "";
@@ -151,7 +165,7 @@ export class BastionlandChooser extends ArtPreviewMixin(HandlebarsApplicationMix
 	static #onPick(_event, target) {
 		const roll = target.dataset.roll;
 		if (!this._canPick(roll)) return;
-		this.roll = roll;
+		this._pickRoll(roll);
 		this.group = Number(target.closest("[data-d6]")?.dataset.d6) || this.group;
 		return this.render();
 	}

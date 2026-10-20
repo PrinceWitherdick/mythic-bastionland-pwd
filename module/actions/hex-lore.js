@@ -1,5 +1,5 @@
 import { hexTarget } from "../chat/hex-target.js";
-import { loadArtIndex, mythEntry, seerEntry, sparkPageOf } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, seerEntry, sparkPageOf, withPage } from "../book-art/art-index.js";
 import { postCard, t, warn } from "../chat/cards.js";
 import {
 	HEX_LORE_VERSION,
@@ -72,7 +72,8 @@ export function hexFeatures(scene, realm, g, hex, index, { full = false } = {}) 
 	if (myth) {
 		const { name, page } = mythEntry(index, myth);
 		const seen = t("realm.panel.omensSeen", { omen: myth.omen ?? 0, count: OMEN_COUNT });
-		const text = `${t("realm.panel.reference", { name, page })} — ${seen}`;
+		// A Myth the Referee wrote has no page.
+		const text = `${withPage(name, page)} — ${seen}`;
 		lines.push({ kind: "myth", text: hidden(full ? `${t("realm.readout.myth", { number: myth.number })}: ${text}` : text, !myth.revealed) });
 	}
 	if (landmark) {

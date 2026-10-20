@@ -1,4 +1,4 @@
-import { loadArtIndex, mythLookup } from "../book-art/art-index.js";
+import { loadArtIndex, mythLookup, pageNote } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { placeFeature } from "../rules/realm-edits.js";
 import { resolvedMyths } from "../rules/gm-toolkit.js";
@@ -83,7 +83,7 @@ export async function replaceMyth(scene, myth, index = null) {
 	const { name, page, entry } = mythLookup(index ?? (await loadArtIndex()), rolled);
 	await postCard(null, "omen", {
 		title: `${myth.number}. ${name}`,
-		tagline: page ? t("realm.key.page", { page }) : null,
+		tagline: pageNote(page),
 		img: entry?.path ?? null,
 		omen: t("gmToolkit.myths.newMythRolled", { hex: hexLabel(myth.hex, scene) }),
 		text: null,

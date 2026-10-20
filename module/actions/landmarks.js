@@ -1,6 +1,6 @@
 import { hexLabel } from "./hex-names.js";
 import { chooseDialog } from "../apps/ui.js";
-import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, pageNote } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
@@ -202,7 +202,7 @@ export async function echoRuin(scene, hex = null) {
 	const { prompt, myth, page, entry } = await spreadPrompt(await loadArtIndex(), echo, "ruin");
 	await postCard(null, "omen", {
 		title: myth,
-		tagline: page ? t("realm.key.page", { page }) : null,
+		tagline: pageNote(page),
 		img: entry?.path ?? null,
 		omen: t("realm.landmarks.ruinEchoes"),
 		text: prompt ? t("realm.landmarks.ruinPrompt", { prompt }) : null,

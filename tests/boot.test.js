@@ -195,6 +195,20 @@ describe("system boot", () => {
 		expect(hooks.renderJournalDirectory).toBeTypeOf("function");
 	});
 
+	it("opens a written Myth's Journal entry to be written, and offers that sheet to no other entry", async () => {
+		const { OWN_MYTH_SHEET_CLASS } = await import("../module/actions/own-myths.js");
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const registered = registerSheet.mock.calls.filter(([registeredClass]) => registeredClass === foundry.documents.JournalEntry);
+		const [, scope, mythSheet, options] = registered.find(([, , sheet]) => sheet.name === "OwnMythSheet");
+		expect(options).toMatchObject({ makeDefault: false, canBeDefault: false, label: "bastionland.ownMyth.sheet" });
+		// Each written Myth's entry stores the sheet by its scope and class name.
+		expect(`${scope}.${mythSheet.name}`).toBe(OWN_MYTH_SHEET_CLASS);
+		for (const part of Object.values(mythSheet.PARTS)) {
+			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+		}
+		expect(game.system.api.newOwnMyth).toBeTypeOf("function");
+	});
+
 	it("preloads partials that exist on disk", () => {
 		const [[partials]] = foundry.applications.handlebars.loadTemplates.mock.calls;
 		expect(Object.keys(partials)).toEqual(expect.arrayContaining(["bastionland.item-row", "bastionland.add-item", "bastionland.save-result"]));

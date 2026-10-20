@@ -3,32 +3,44 @@
  * a Realm (p14) puts six Myths in remote places and rolls each on the Myths
  * table (p27); which six they are matters more to a Referee than where the
  * rivers ran, so this window lists them and lets them be rolled again, one at
- * a time or all at once, or chosen by hand from the whole table. Only the roll
+ * a time or all at once, or chosen by hand from the whole table, or from the
+ * Myths the Referee has written for themselves. Only which Myth it is
  * changes: each Myth keeps its number and stays in its hex.
  */
 import { hexLabel } from "../actions/hex-names.js";
+import { newOwnMyth, openOwnMyth, ownMythEntries, readOwnMyth } from "../actions/own-myths.js";
 import { editRealm, getRealm } from "../actions/realm.js";
 import { mythEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
+import { isDie } from "../rules/book-art.js";
+import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
 import { createRandom, randomSeed } from "../rules/random.js";
 import { placeFeature } from "../rules/realm-edits.js";
-import { mythRolls, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../rules/realm-myths.js";
+import { remoteMythHex } from "../rules/realm-generator.js";
+import { mythRolls, mythSlots, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../rules/realm-myths.js";
+import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
-import { fitCards, renderWhenIdle } from "./ui.js";
+import { confirmDialog, fitCards, renderWhenIdle } from "./ui.js";
+
+/** The group of the table's cards that holds the Referee's own Myths, beside the d6 results. */
+const OWN_GROUP = "own";
+
+/** The Myths on one d6 result of the table, one for each face of the d12. */
+const D6_RESULT_MYTHS = 12;
 
 /** A fresh source of random numbers for one press of a button. */
 const freshRandom = () => createRandom(randomSeed());
 
 /**
- * Put a Myth of the book under one of the Realm's numbers, in its hex. Its
- * Omens start unmet: they belong to the Myth, not to the place.
+ * Put a Myth of the book, or one the Referee wrote, under one of the Realm's
+ * numbers, in its hex. Its Omens start unmet: they belong to the Myth, not to the place.
  * @param {object} realm
  * @param {object} g
- * @param {{number: number, hex: object, d6: number, d12: number}} myth
+ * @param {{number: number, hex: object, d6?: number, d12?: number, own?: string}} myth
  * @returns {object} The Realm with it.
  */
-const placeMyth = (realm, g, { number, hex, d6, d12 }) => placeFeature(realm, g, hex, { kind: "myth", number, d6, d12, omen: 0 });
+const placeMyth = (realm, g, { number, hex, d6, d12, own }) => placeFeature(realm, g, hex, { kind: "myth", number, ...(own ? { own } : { d6, d12 }), omen: 0 });
 
 /**
  * The Referee's window for which Myths a Realm holds: the Realm's own down one
@@ -41,9 +53,13 @@ export class MythChooser extends BastionlandChooser {
 		window: { icon: "fa-solid fa-dragon" },
 		actions: {
 			chooseMyth: MythChooser.#onChooseMyth,
+			removeMyth: MythChooser.#onRemoveMyth,
 			rollMyth: MythChooser.#onRollMyth,
 			rollAll: MythChooser.#onRollAll,
-			useRoll: MythChooser.#onUseRoll
+			useRoll: MythChooser.#onUseRoll,
+			pickOwn: MythChooser.#onPickOwn,
+			writeMyth: () => newOwnMyth(),
+			editOwnMyth: MythChooser.#onEditOwnMyth
 		}
 	};
 
@@ -63,8 +79,20 @@ export class MythChooser extends BastionlandChooser {
 	/** @type {number|null} Which of the Realm's Myths a chosen roll would become. */
 	number = null;
 
+	/** @type {string|null} The Journal entry of the Referee's own Myth picked, in place of a roll. */
+	own = null;
+
 	/** @type {ResizeObserver|null} Watches the table for the window being made larger or smaller. */
 	#resizing = null;
+
+	/**
+	 * A Myth of the book's table picked lets go of one of the Referee's own.
+	 * @override
+	 */
+	_pickRoll(roll) {
+		this.own = null;
+		super._pickRoll(roll);
+	}
 
 	/** @returns {Scene|null} */
 	get scene() {
@@ -76,24 +104,42 @@ export class MythChooser extends BastionlandChooser {
 		return t("mythChooser.title");
 	}
 
+	/** @returns {object|null} The Realm whose Myths are being settled. */
+	get #realm() {
+		const scene = this.scene;
+		return scene ? getRealm(scene)?.realm ?? null : null;
+	}
+
 	/** @returns {object[]} The Myths the Realm holds, in number order. */
 	get #myths() {
-		const scene = this.scene;
-		return scene ? getRealm(scene)?.realm.myths ?? [] : [];
+		return this.#realm?.myths ?? [];
 	}
 
 	/** @override */
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		const myths = this.#myths;
-		// A Myth that's gone, or a window opened before any was chosen, settles on the first.
-		if (!myths.some((myth) => myth.number === this.number)) this.number = myths[0]?.number ?? null;
-		const picked = mythRolls().find((roll) => roll.roll === this.roll) ?? null;
-		const held = picked ? mythWithRoll(myths, picked) : null;
+		const realm = this.#realm;
+		const myths = realm?.myths ?? [];
+		const slots = realm ? mythSlots(realm) : 0;
+		// A window opened before any was chosen settles on the first Myth, or on the first number when there's none.
+		if (!isDie(this.number, slots)) this.number = myths[0]?.number ?? (slots ? 1 : null);
+		const emptyHere = !myths.some((myth) => myth.number === this.number);
+		const written = ownMythEntries();
+		// A Myth of the Referee's that's been deleted can't be picked any more.
+		const pickedOwn = written.find((entry) => entry.id === this.own) ?? null;
+		if (!pickedOwn) this.own = null;
+		const picked = pickedOwn ? null : mythRolls().find((roll) => roll.roll === this.roll) ?? null;
+		const held = pickedOwn ? mythWithOwn(myths, pickedOwn.id) : picked ? mythWithRoll(myths, picked) : null;
+		const chosen = pickedOwn ? this.#ownLine(pickedOwn) : picked ? this.#line(picked) : null;
 
 		return Object.assign(context, {
 			notice: this.index ? null : t("mythChooser.noIndex"),
-			myths: myths.map((myth) => this.#line(myth)),
+			anyMyths: myths.length > 0,
+			// Every number the Realm's Myths go by, one taken out of the Realm left empty to be given another.
+			myths: Array.from({ length: slots }, (_, index) => {
+				const myth = myths.find((candidate) => candidate.number === index + 1);
+				return myth ? this.#line(myth) : this.#emptyLine(index + 1);
+			}),
 			search: this.search,
 			// Every roll is drawn, so a search can find a Myth on any d6 result without drawing the window again.
 			cards: mythRolls().map((roll) => {
@@ -110,15 +156,33 @@ export class MythChooser extends BastionlandChooser {
 					takenLabel: inRealm ? t("mythChooser.takenBy", { number: inRealm.number }) : null
 				};
 			}),
-			picked: picked && {
-				...this.#line(picked),
+			// The Referee's own Myths make a group of their own after the d6 results, with a card to write another.
+			ownGroup: { d6: OWN_GROUP, active: this.group === OWN_GROUP },
+			ownCards: written.map((entry) => {
+				const inRealm = mythWithOwn(myths, entry.id);
+				return {
+					own: entry.id,
+					d6: OWN_GROUP,
+					inGroup: this.group === OWN_GROUP,
+					searchText: searchable(entry.name),
+					name: entry.name,
+					img: readOwnMyth(entry).img || null,
+					selected: entry.id === this.own,
+					taken: Boolean(inRealm),
+					takenLabel: inRealm ? t("mythChooser.takenBy", { number: inRealm.number }) : null
+				};
+			}),
+			writeCard: { d6: OWN_GROUP, inGroup: this.group === OWN_GROUP },
+			picked: chosen && {
+				...chosen,
 				// A Myth already in the Realm can be looked at, but not had twice.
-				note: held ? t(held.number === this.number ? "mythChooser.already" : "mythChooser.taken", { number: held.number }) : null,
-				free: !held
+				note: held ? t(held.number === this.number ? "mythChooser.already" : "mythChooser.taken", { number: held.number }) : emptyHere ? t("mythChooser.emptyNote") : null,
+				free: !held,
+				own: pickedOwn?.id ?? null
 			},
 			useLabel: this.number === null ? null : t("mythChooser.use", { number: this.number }),
 			// The button is always drawn, only unseen until there's a Myth to give, so picking one moves nothing.
-			offer: Boolean(picked && this.number !== null)
+			offer: Boolean(chosen && this.number !== null)
 		});
 	}
 
@@ -151,6 +215,9 @@ export class MythChooser extends BastionlandChooser {
 		const grid = this.element?.querySelector(".bastionland-chooser__grid");
 		if (!grid) return;
 		const cards = [...grid.children].filter((item) => !item.hidden).map((item) => item.firstElementChild);
+		// The Referee's own Myths are drawn the size of the book's, however few have been written.
+		const own = this.group === OWN_GROUP && !this.search.trim();
+		const count = own ? Math.max(cards.length, D6_RESULT_MYTHS) : cards.length;
 		const style = getComputedStyle(grid);
 		const em = Number.parseFloat(style.fontSize) || 16;
 		const measure = () => {
@@ -164,7 +231,7 @@ export class MythChooser extends BastionlandChooser {
 				extra = Math.max(extra, card.offsetHeight - art.offsetHeight);
 			}
 			return fitCards({
-				count: cards.length,
+				count,
 				width: grid.clientWidth,
 				height: grid.clientHeight,
 				gap: Number.parseFloat(style.rowGap) || 0,
@@ -199,8 +266,8 @@ export class MythChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * How one Myth reads, whether it's the Realm's or the book's.
-	 * @param {{d6: number, d12: number, number?: number, hex?: object}} myth
+	 * How one Myth reads, whether it's the Realm's, the book's or the Referee's own.
+	 * @param {{d6: number|null, d12: number|null, own?: string, number?: number, hex?: object}} myth
 	 * @returns {object}
 	 */
 	#line(myth) {
@@ -210,9 +277,27 @@ export class MythChooser extends BastionlandChooser {
 			name,
 			img: entry?.path ?? null,
 			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
-			reference: t("mythChooser.reference", { roll, page }),
+			reference: isOwnMyth(myth) ? t("mythChooser.ownReference") : t("mythChooser.reference", { roll, page }),
 			selected: myth.number !== undefined && myth.number === this.number
 		};
+	}
+
+	/**
+	 * A number of the Realm's that holds no Myth, since one was taken out.
+	 * @param {number} number
+	 * @returns {object}
+	 */
+	#emptyLine(number) {
+		return { number, empty: true, name: t("mythChooser.empty"), img: null, hex: null, reference: t("mythChooser.emptyWhere"), selected: number === this.number };
+	}
+
+	/**
+	 * How one of the Referee's own Myths reads, picked from the table.
+	 * @param {JournalEntry} entry
+	 * @returns {object}
+	 */
+	#ownLine(entry) {
+		return { number: null, name: entry.name, img: readOwnMyth(entry).img || null, hex: null, reference: t("mythChooser.ownReference"), selected: false };
 	}
 
 	/**
@@ -231,15 +316,20 @@ export class MythChooser extends BastionlandChooser {
 	/**
 	 * Put a Myth of the book under one of the Realm's numbers, in the hex that
 	 * Myth's number already lies in. Its Omens start unmet: they belong to the
-	 * Myth, not to the place.
+	 * Myth, not to the place. A number with no Myth gets one in a remote hex,
+	 * as the Realm's Myths were placed when it was made (p14), hidden.
 	 * @param {number|null} number
-	 * @param {{d6: number, d12: number}|null} roll
+	 * @param {{d6: number, d12: number}|{own: string}|null} roll A roll on the table, or the Referee's own Myth.
 	 * @returns {Promise<void>}
 	 */
 	async #setMyth(number, roll) {
-		const myth = this.#myths.find((candidate) => candidate.number === number);
-		if (!myth || !roll) return;
-		await this.#edit((realm, g) => placeMyth(realm, g, { ...myth, d6: roll.d6, d12: roll.d12 }));
+		const realm = this.#realm;
+		if (!realm || !isDie(number, mythSlots(realm)) || !roll) return;
+		const myth = realm.myths.find((candidate) => candidate.number === number);
+		await this.#edit((realm, g) => {
+			const hex = myth?.hex ?? remoteMythHex(freshRandom(), g, realm);
+			return hex ? placeMyth(realm, g, { number, hex, ...roll }) : realm;
+		});
 	}
 
 	/* -------------------------------------------- */
@@ -253,7 +343,30 @@ export class MythChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * Roll one of the Realm's Myths again, on a Myth the Realm hasn't got.
+	 * Take a Myth out of the Realm, leaving its hex empty and its number free
+	 * for another, once the Referee says so: its Omens met go with it.
+	 * @this {MythChooser}
+	 */
+	static async #onRemoveMyth(_event, target) {
+		const number = Number(target.dataset.number);
+		const myth = this.#myths.find((candidate) => candidate.number === number);
+		if (!myth) return;
+		const { name } = mythEntry(this.index, myth);
+		const confirmed = await confirmDialog({
+			title: t("mythChooser.removeTitle"),
+			icon: "fa-solid fa-dragon",
+			message: t("mythChooser.removeConfirm", { name: foundry.utils.escapeHTML(name), number }),
+			yes: { label: t("mythChooser.removeYes"), icon: "fa-solid fa-xmark" }
+		});
+		if (!confirmed) return;
+		// The number taken out is the one on show, ready to be given another Myth.
+		this.number = number;
+		await this.#edit((realm, g) => placeFeature(realm, g, myth.hex, null));
+	}
+
+	/**
+	 * Roll one of the Realm's Myths again, on a Myth the Realm hasn't got, or a
+	 * Myth for a number that has none.
 	 * @this {MythChooser}
 	 */
 	static #onRollMyth(_event, target) {
@@ -272,12 +385,32 @@ export class MythChooser extends BastionlandChooser {
 	}
 
 	/**
-	 * Give the Myth chosen from the table to the Myth of the Realm on show.
+	 * Give the Myth chosen from the table, or the Referee's own one picked, to the Myth of the Realm on show.
 	 * @this {MythChooser}
 	 */
 	static #onUseRoll() {
+		if (this.own) return this.#setMyth(this.number, { own: this.own });
 		const roll = mythRolls().find((candidate) => candidate.roll === this.roll);
-		return roll ? this.#setMyth(this.number, roll) : Promise.resolve();
+		return roll ? this.#setMyth(this.number, { d6: roll.d6, d12: roll.d12 }) : Promise.resolve();
+	}
+
+	/**
+	 * Pick one of the Referee's own Myths.
+	 * @this {MythChooser}
+	 */
+	static #onPickOwn(_event, target) {
+		this.own = target.dataset.own;
+		this.roll = null;
+		this.group = OWN_GROUP;
+		return this.render();
+	}
+
+	/**
+	 * Open the Referee's own Myth picked, to read or change it.
+	 * @this {MythChooser}
+	 */
+	static #onEditOwnMyth() {
+		if (this.own) openOwnMyth(this.own);
 	}
 }
 
@@ -298,12 +431,13 @@ export function openMythChooser({ scene, number = null }) {
 		chooser.sceneId = scene.id;
 		chooser.number = null;
 		chooser.roll = null;
+		chooser.own = null;
 	}
 	// Opened on one Myth, the table opens at its page too, so its neighbours on the roll are there to compare.
 	if (Number.isInteger(number)) {
 		chooser.number = number;
 		const myth = getRealm(scene)?.realm.myths.find((candidate) => candidate.number === number);
-		if (myth) chooser.group = myth.d6;
+		if (myth) chooser.group = isOwnMyth(myth) ? OWN_GROUP : myth.d6;
 	}
 	chooser.render({ force: true });
 	return chooser;
@@ -311,11 +445,11 @@ export function openMythChooser({ scene, number = null }) {
 
 /**
  * Draw the window again after its Realm changed, such as when the Realm is
- * rolled again under it.
- * @param {string} sceneId
+ * rolled again under it, or after one of the Referee's own Myths changed.
+ * @param {string|null} [sceneId] The Realm changed, or null for whichever is on show.
  */
-export function refreshMythChooser(sceneId) {
-	if (chooser?.rendered && chooser.sceneId === sceneId) renderWhenIdle(chooser);
+export function refreshMythChooser(sceneId = null) {
+	if (chooser?.rendered && (sceneId === null || chooser.sceneId === sceneId)) renderWhenIdle(chooser);
 }
 
 /**

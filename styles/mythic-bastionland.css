@@ -7826,6 +7826,21 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	border-color: var(--bastionland-rule);
 }
 
+/* A number with no Myth, since one was taken out: an outline waiting to be filled. */
+.bastionland-myth-chooser__myth.is-empty {
+	border-style: dashed;
+	border-color: var(--bastionland-rule);
+	background: transparent;
+}
+
+.bastionland-myth-chooser__myth.is-empty.is-selected {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-page .bastionland-myth-chooser__remove:hover {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-page .bastionland-myth-chooser__pick {
 	display: flex;
 	flex: 1;
@@ -7989,6 +8004,199 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-myth-chooser__note {
 	flex-basis: 100%;
+}
+
+/* The Referee's own Myths, a word in the row of d6 results. */
+.bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group {
+	width: auto;
+	padding: 0 0.6rem;
+}
+
+/* ---------------------------------------------------------------- */
+/* A Myth the Referee writes (module/apps/OwnMythSheet.js)          */
+/* ---------------------------------------------------------------- */
+
+.bastionland-own-myth-window .window-content {
+	padding: 0;
+}
+
+/* The picture beside the name and verse, as the book sets them over the Omens. */
+.bastionland-own-myth__top {
+	display: grid;
+	grid-template-columns: 12rem minmax(0, 1fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+@container (max-width: 480px) {
+	.bastionland-own-myth__top {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bastionland-own-myth__picture {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* Straight in a flex column, a button would take its flex basis as its height. */
+.bastionland-page .bastionland-own-myth__picture > button {
+	flex: none;
+}
+
+.bastionland-page .bastionland-own-myth__art {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 2 / 1;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rule);
+	font-size: 1.8rem;
+}
+
+.bastionland-page .bastionland-own-myth__art:hover {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-own-myth__art img {
+	width: 100%;
+	height: 100%;
+	border: none;
+	object-fit: cover;
+}
+
+.bastionland-own-myth__heading,
+.bastionland-own-myth__field,
+.bastionland-own-myth__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-own-myth__heading {
+	gap: 0.6rem;
+}
+
+.bastionland-own-myth__label {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+}
+
+.bastionland-own-myth__verse {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-own-myth__verse legend {
+	padding: 0;
+}
+
+.bastionland-page .bastionland-own-myth__name {
+	height: auto;
+	padding: 0 0.3rem;
+	border: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	font-family: var(--bastionland-font-display);
+	font-size: 1.9rem;
+}
+
+.bastionland-page .bastionland-own-myth__name:focus {
+	border-bottom: 1px solid var(--bastionland-ink);
+	outline: none;
+	background: var(--bastionland-paper-deep);
+}
+
+/* The verse is italic, as the book sets it under the name. */
+.bastionland-page .bastionland-own-myth__verse input {
+	font-style: italic;
+}
+
+.bastionland-page.bastionland-own-myth textarea {
+	width: 100%;
+	min-height: 3.4rem;
+	resize: vertical;
+	font-family: var(--bastionland-font-body);
+	font-size: 0.95rem;
+	line-height: 1.3;
+}
+
+.bastionland-page .bastionland-own-myth__section h3 {
+	margin: 0;
+}
+
+/* Each Omen's number in the margin, on its box's first line. */
+.bastionland-own-myth__omens {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-own-myth__omens > li {
+	display: grid;
+	grid-template-columns: 1.4rem minmax(0, 1fr);
+	gap: 0.4rem;
+	align-items: start;
+	margin: 0;
+}
+
+.bastionland-own-myth__omen-number {
+	padding-top: 0.35rem;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+	font-variant-numeric: lining-nums;
+	text-align: right;
+}
+
+.bastionland-own-myth__table-fold > summary {
+	cursor: pointer;
+}
+
+.bastionland-own-myth__table {
+	width: 100%;
+	margin: 0;
+	border: none;
+	border-collapse: collapse;
+	table-layout: fixed;
+	background: none;
+}
+
+/* Boxes to write in, not a printed table: none of Foundry's heading bar or stripes. */
+.bastionland-own-myth__table :is(thead, tr) {
+	border: none;
+	background: none;
+}
+
+.bastionland-own-myth__table th,
+.bastionland-own-myth__table td {
+	padding: 0.15rem 0.2rem;
+}
+
+.bastionland-own-myth__table :is(thead th:first-child, tbody th) {
+	width: 2rem;
+	font-family: var(--bastionland-font-caps);
+	font-variant-numeric: lining-nums;
+	text-align: center;
+}
+
+.bastionland-page .bastionland-own-myth__table input {
+	width: 100%;
+}
+
+.bastionland-page .bastionland-own-myth__table thead input {
+	font-weight: bold;
 }
 
 /* The Seer chooser (module/apps/SeerChooser.js): the Seers of the players'

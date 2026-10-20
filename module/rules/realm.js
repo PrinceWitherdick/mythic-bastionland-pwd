@@ -3,7 +3,7 @@
  * shares. Plain data and functions, so they can be tested without Foundry.
  * Names for each key live under `bastionland.realm`.
  */
-import { isDie, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
+import { isDie, isOwnMyth, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
 import { directionNames, edgeDirection, hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 
 export const REALM_VERSION = 1;
@@ -92,7 +92,8 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  *   hex of another joins it there. The book makes no one of them the navigable one.
  * @property {{id: string|null, hex: Hex, style: string, seat: boolean, name: string, disputed?: true}[]} holdings
  *   `disputed` marks a Seat whose claim another Holding disputes (p202), so two may wear the crown.
- * @property {{id: string|null, hex: Hex, number: number, d6: number, d12: number, omen: number, revealed: boolean}[]} myths
+ * @property {{id: string|null, hex: Hex, number: number, d6: number|null, d12: number|null, own?: string, omen: number, revealed: boolean}[]} myths
+ *   `own` is the Journal entry of a Myth the Referee wrote (own-myths.js), which has no roll.
  * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
  *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
  * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
@@ -295,7 +296,7 @@ export function validateRealm(realm, g) {
 		if (!isDie(myth.number, MYTH_COUNT)) report("myth", "number", myth.number);
 		else if (numbers.has(myth.number)) report("myth", "duplicate", myth.number);
 		numbers.add(myth.number);
-		if (!isTableRoll(myth)) report("myth", "roll", myth.number);
+		if (!isTableRoll(myth) && !isOwnMyth(myth)) report("myth", "roll", myth.number);
 		if (!Number.isInteger(myth.omen) || myth.omen < 0 || myth.omen > OMEN_COUNT) report("myth", "omen", myth.number);
 	}
 
