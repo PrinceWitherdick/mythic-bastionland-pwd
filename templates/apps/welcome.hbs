@@ -126,6 +126,11 @@
 	</div>
 
 	<footer class="bastionland-welcome__footer">
+		{{#if firstRealm}}
+		<button type="button" class="bastionland-button" data-action="newRealm" data-tooltip="{{localize 'bastionland.welcome.newRealmHint'}}">
+			<i class="fa-solid fa-map" inert></i> {{localize "bastionland.welcome.newRealm"}}
+		</button>
+		{{/if}}
 		<button type="button" class="bastionland-button" data-action="finish">
 			<i class="fa-solid fa-check" inert></i> {{localize "bastionland.welcome.finish"}}
 		</button>

@@ -1,6 +1,8 @@
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { awayFromHome, cameHome, findDomainHolding, holdingRef, rulingKnightOf } from "../rules/dominion.js";
+import { awayFromHome, cameHome, findDomainHolding, holdingLands, holdingRef, rulingKnightOf } from "../rules/dominion.js";
+import { soloRealm } from "../rules/solo.js";
+import { realmKnown } from "./solo.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { escapeHTML } from "../rules/text.js";
 import { crisisRoll, worldDomains } from "./dominion.js";
@@ -38,12 +40,31 @@ function domainHolding(domain, realms = realmHoldings()) {
  * What the Domain sheet's Holding list offers: every Realm's Holdings, the
  * Realm named where there's more than one.
  * @param {Actor} domain
+ * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
  * @returns {{options: {value: string, label: string, selected: boolean}[], blank: string}}
  */
-export function holdingChoices(domain) {
-	const realms = realmHoldings();
+export function holdingChoices(domain, realms = realmHoldings()) {
 	const named = domain.system.holding ? null : domainHolding(domain, realms);
 	return { options: holdingOptions(domain.system.holding, realms), blank: named ? t("domain.holding.byName", { name: holdingName(named.holding, t) }) : t("domain.holding.none") };
+}
+
+/**
+ * The lands a Domain rules beyond its Holding's walls (p20): how many hexes of
+ * wilderness, and the Landmarks in them this user knows of. A player knows of
+ * a Landmark once it's revealed; a Referee playing alone, once it's found.
+ * @param {Actor} domain
+ * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
+ * @returns {string|null} Its line on the sheet, or null for a Domain ruling no Holding on a map.
+ */
+export function domainLands(domain, realms = realmHoldings()) {
+	const found = domainHolding(domain, realms);
+	const realm = found ? getRealm(found.scene)?.realm : null;
+	if (!realm || !found.holding.id) return null;
+	const known = game.user.isGM ? realmKnown(realm) : soloRealm(realm);
+	const { hexes, landmarks } = holdingLands(known, sceneGeometry(found.scene), found.holding.id);
+	const named = landmarks.map((landmark) => landmark.name || t(`realm.landmarks.${landmark.type}`));
+	if (!named.length) return t("domain.lands.line", { count: hexes.length });
+	return t("domain.lands.withLandmarks", { count: hexes.length, landmarks: named.join(", ") });
 }
 
 /**

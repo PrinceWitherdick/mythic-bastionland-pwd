@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../../module/rules/phase-end.js";
+import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue, wildernessTicked } from "../../module/rules/phase-end.js";
 import { HARDSHIPS } from "../../module/rules/time.js";
 
 describe("likelyPhaseMode", () => {
@@ -34,6 +34,15 @@ describe("wildernessDue", () => {
 		expect(wildernessDue({ calls: "none", mode: "travel" })).toBe(false);
 		expect(wildernessDue({ calls: null, mode: "travel" })).toBe(false);
 		expect(wildernessDue({ calls: "none", mode: "travel", atBarrier: true })).toBe(true);
+	});
+});
+
+describe("wildernessTicked", () => {
+	it("leaves a Myth's Omen unticked once it showed on entering, but nothing else (p27)", () => {
+		expect(wildernessTicked({ calls: "omen", mode: "travel" })).toBe(true);
+		expect(wildernessTicked({ calls: "omen", mode: "travel", omenShown: true })).toBe(false);
+		expect(wildernessTicked({ calls: "roll", mode: "travel", omenShown: true })).toBe(true);
+		expect(wildernessTicked({ calls: "omen", mode: "indoors" })).toBe(false);
 	});
 });
 

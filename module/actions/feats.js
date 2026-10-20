@@ -6,19 +6,6 @@ import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
- * Pay for a Feat: refuse while Fatigued, otherwise make the Feat's Save and
- * become Fatigued on a failure (Specifics of Combat, p10).
- * @param {Actor} actor
- * @param {string} key "smite", "focus" or "deny".
- * @returns {Promise<import("./saves.js").SaveResult|null>} Null if the Feat could not be used.
- */
-export async function resolveFeat(actor, key) {
-	const save = await rollFeat(actor, key);
-	if (save) await payFeat(actor, save);
-	return save;
-}
-
-/**
  * Make a Feat's Save without paying for it yet, for a Feat that only counts
  * once a card has taken it: refuse while Fatigued, otherwise roll the Save.
  * Pay with payFeat once it counts.
@@ -101,18 +88,6 @@ export function featContext(key, save) {
 }
 
 /**
- * Use a Feat from the sheet and post it to chat.
- * @param {Actor} actor
- * @param {string} key
- */
-export async function performFeat(actor, key) {
-	const save = await resolveFeat(actor, key);
-	if (!save) return null;
-	await postFeat(actor, key, save);
-	return save;
-}
-
-/**
  * Post a Feat and the Save it cost to chat.
  * @param {Actor} actor
  * @param {string} key
@@ -123,9 +98,9 @@ export function postFeat(actor, key, save) {
 }
 
 /**
- * Show a Feat in chat without performing it: no Save and no Fatigue. This is
- * for someone who can see a sheet but not act for it, as a move's text is
- * posted for them in Stonetop.
+ * Show a Feat in chat without performing it: no Save and no Fatigue. A sheet's
+ * Feats do this for everyone, as a move's text is posted in Stonetop, since a
+ * Feat is performed in an Attack, where its Save is made.
  * @param {Actor} actor
  * @param {string} key
  * @returns {Promise<ChatMessage>|null} Null if the actor doesn't know the Feat.

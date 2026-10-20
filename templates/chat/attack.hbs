@@ -148,7 +148,7 @@
 	<p class="bastionland-card__outcome">{{appliedTo}}</p>
 	{{#if applicable}}
 	<div class="bastionland-card__actions">
-		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
 	</div>
 	{{/if}}
 	{{else}}
@@ -167,7 +167,7 @@
 		<button type="button" data-attack-action="sigil" data-tooltip="{{localize 'bastionland.attack.sigil.hint'}}"><i class="fa-solid fa-star"></i> {{localize "bastionland.attack.sigil.button"}}</button>
 		{{/if}}
 		{{#if applicable}}
-		<button type="button" data-attack-action="apply"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
+		<button type="button" data-attack-action="apply" data-tooltip="{{localize 'bastionland.attack.applyHint'}}"><i class="fa-solid fa-heart-crack"></i> {{localize "bastionland.attack.apply"}}</button>
 		{{/if}}
 	</div>
 	{{#if duel}}

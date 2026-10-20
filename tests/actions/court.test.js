@@ -22,7 +22,7 @@ vi.mock("../../module/actions/timeline-events.js", () => ({ timelineCircle: vi.f
 const { addCourtMember, editCourtMember, removeCourtMember, removeFromCourt, seatCircle, seatCouncilRetainers, takeIntoCourt } = await import("../../module/actions/court.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 
-const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, ...extra });
+const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, knight: "", ...extra });
 
 /** A Domain with Coll, a Retainer, as its Steward. */
 function fakeDomain(system = {}) {
@@ -103,6 +103,16 @@ describe("editCourtMember", () => {
 		await editCourtMember(fakeDomain(), "r1");
 		expect(asked[0].context.holdsSeat).toContain("domain.council.steward.label");
 		expect(updates[0]).toEqual({ "system.court.r1": member("retainer", "Coll") });
+	});
+
+	it("keeps the Knight a member was seated as while their name stands, and lets go once they're renamed as somebody else", async () => {
+		const court = { c1: member("courtier", "Tal", { knight: "k1" }) };
+		formData = { role: "courtier", name: "tal", leverage: "", note: "A favourite" };
+		await editCourtMember(fakeDomain({ court }), "c1");
+		expect(updates[0]["system.court.c1"].knight).toBe("k1");
+		formData = { role: "courtier", name: "Alda", leverage: "", note: "" };
+		await editCourtMember(fakeDomain({ court }), "c1");
+		expect(updates[1]["system.court.c1"].knight).toBe("");
 	});
 
 	it("gives up the seat of a Retainer made anything else", async () => {

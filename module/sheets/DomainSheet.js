@@ -12,11 +12,12 @@ import {
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
 import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
 import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
-import { holdingChoices } from "../actions/homecoming.js";
+import { domainLands, holdingChoices, realmHoldings } from "../actions/homecoming.js";
+import { worldKnights } from "../actions/knights.js";
 import { editCourtMember, knightChoices, removeCourtMember, seatCircle, seatLabel, takeIntoCourt } from "../actions/court.js";
 import { dismissWarband, musterView, musterWarband } from "../actions/warbands.js";
 import { t } from "../chat/cards.js";
-import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf } from "../rules/court.js";
+import { RETAINER_SEATS, SERVES_A_SEAT, circleKnights, courtMembers, retainerChoices, seatHolder, seatOf, unworthyPosts } from "../rules/court.js";
 import { DESIGN_ICONS, DESIGN_SCALES, designDone, designReady, grandDesigns } from "../rules/grand-designs.js";
 import { COUNCIL_SEATS, crisisRolledThisSeason, emptySeats, isInTurmoil, namesItsDomain } from "../rules/dominion.js";
 import { seasonKey } from "../rules/time.js";
@@ -79,6 +80,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			initial: "domain",
 			tabs: [
 				{ id: "domain", icon: "fa-solid fa-chess-rook", label: "bastionland.domain.tabs.domain" },
+				// Its Crises, its Court and its Grand Designs, apart from who rules and what they command.
+				{ id: "court", icon: "fa-solid fa-chess-king", label: "bastionland.domain.tabs.court" },
 				// The Domain's thread of the campaign's Timeline.
 				{ id: "timeline", icon: "fa-solid fa-timeline", label: "bastionland.domain.tabs.timeline" },
 				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.domain.tabs.notes" }
@@ -99,6 +102,8 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		const actor = this.actor;
 		const { system } = actor;
 		const calendar = getCalendar();
+		// Read once for the Holding it rules and the lands around it.
+		const realms = realmHoldings();
 		// Read once between the seats, since every one of them is drawn here.
 		const tasks = tasksBySeat(actor, calendar);
 
@@ -116,6 +121,14 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 				// The tasks that seat has in hand (p20), each saying when its work is done.
 				tasks: tasks[key],
 				assign: t("domain.tasks.assign", { seat: t(`domain.council.${key}.label`) })
+			})),
+			// The wilderness nearer its Holding than any other falls under its rule (p20).
+			lands: domainLands(actor, realms),
+			// Knights holding a post their Rank isn't worthy of yet face opposition (p6).
+			unworthy: unworthyPosts(actor, worldKnights()).map(({ name, post, rank }) => t("domain.unworthy.line", {
+				name,
+				post: t(`domain.unworthy.posts.${post}`),
+				rank: t(`rank.${rank}`)
 			})),
 			// A seat left empty invites trouble (p204), so the sheet says which.
 			emptySeats: DomainSheet.#emptySeatsNotice(system.council),
@@ -137,7 +150,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 			warbands: DomainSheet.#musterContext(actor),
 			successorPlaceholder: successorPlaceholder(actor),
 			// The Holding it rules, which a ruler comes home to from a long absence (p20).
-			holdings: holdingChoices(actor),
+			holdings: holdingChoices(actor, realms),
 			turmoil: isInTurmoil(system.seized, seasonKey(calendar)) ? t("domain.conquest.inTurmoil") : null,
 			enrichedNotes: await foundry.applications.ux.TextEditor.implementation.enrichHTML(system.notes, {
 				secrets: actor.isOwner,

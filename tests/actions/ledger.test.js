@@ -44,6 +44,12 @@ const knightActor = (id = "k1") => {
 
 const item = (parent, id, name, system = {}) => ({ id, _id: id, name, type: "armour", parent, system: { equipped: false, armour: 1, ...system } });
 
+/** What a Knight's own update wrote into their Ledger, as Foundry would write it with the change. */
+const land = (actor, changes) => {
+	const written = changes.flags?.[SYSTEM_ID]?.ledger;
+	if (written) actor.ledger = written;
+};
+
 /** The lines the Ledger holds, oldest first. */
 const lines = (actor) => actor.ledger.map((entry) => entry.action).reverse();
 
@@ -63,7 +69,12 @@ beforeEach(() => {
 		utils: {
 			flattenObject,
 			randomID: () => `id${next++}`,
-			hasProperty: (object, path) => Object.hasOwn(object, path) || path.split(".").reduce((node, part) => node?.[part], object) !== undefined
+			hasProperty: (object, path) => Object.hasOwn(object, path) || path.split(".").reduce((node, part) => node?.[part], object) !== undefined,
+			setProperty: (object, path, value) => {
+				const keys = path.split(".");
+				const last = keys.pop();
+				keys.reduce((node, key) => (node[key] ??= {}), object)[last] = value;
+			}
 		},
 		applications: { instances: new Map() }
 	};
@@ -106,8 +117,11 @@ describe("Ledger hooks", () => {
 	it("keeps two Knights' lines apart when they're updated together", async () => {
 		const [tristan, isolde] = [knightActor("k1"), knightActor("k2")];
 		const options = {};
-		call("preUpdateActor", tristan, { system: { fatigued: true } }, options);
-		call("preUpdateActor", isolde, { system: { glory: 1 } }, options);
+		const [tristanChange, isoldeChange] = [{ system: { fatigued: true } }, { system: { glory: 1 } }];
+		call("preUpdateActor", tristan, tristanChange, options);
+		call("preUpdateActor", isolde, isoldeChange, options);
+		land(tristan, tristanChange);
+		land(isolde, isoldeChange);
 		call("updateActor", tristan, {}, options, "u1");
 		call("updateActor", isolde, {}, options, "u1");
 		await settle();
@@ -118,13 +132,79 @@ describe("Ledger hooks", () => {
 	it("doesn't write a stale line again when the same options are passed to a later update with nothing to say", async () => {
 		const knight = knightActor();
 		const options = {};
-		call("preUpdateActor", knight, { system: { fatigued: true } }, options);
+		const change = { system: { fatigued: true } };
+		call("preUpdateActor", knight, change, options);
+		land(knight, change);
 		call("updateActor", knight, {}, options, "u1");
 		knight.system.fatigued = true;
 		call("preUpdateActor", knight, { system: { fatigued: true } }, options);
 		call("updateActor", knight, {}, options, "u1");
 		await settle();
 		expect(lines(knight)).toEqual(["ledger.phrases.marked conditions.fatigued.label"]);
+	});
+
+	it("writes a Knight's own change's lines with the change, rather than in an update of its own", async () => {
+		const knight = knightActor();
+		const change = { system: { fatigued: true } };
+		const options = { ledgerCause: "Rest" };
+		call("preUpdateActor", knight, change, options);
+		expect(change.flags[SYSTEM_ID].ledger.map((entry) => [entry.action, entry.cause])).toEqual([["ledger.phrases.marked conditions.fatigued.label", "Rest"]]);
+		land(knight, change);
+		call("updateActor", knight, change, options, "u1");
+		await settle();
+		expect(knight.update).not.toHaveBeenCalled();
+		expect(lines(knight)).toEqual(["ledger.phrases.marked conditions.fatigued.label"]);
+	});
+
+	it("writes the lines after the change into an update that replaces what it doesn't name, or while another write is on its way", async () => {
+		const knight = knightActor();
+		const whole = { system: { fatigued: true } };
+		const options = { recursive: false };
+		call("preUpdateActor", knight, whole, options);
+		expect(whole.flags).toBeUndefined();
+		call("updateActor", knight, whole, options, "u1");
+		// A line written after an item, still on its way, which the next change's lines mustn't write over.
+		call("createItem", item(knight, "a", "Helm"), {}, "u1");
+		const glory = { system: { glory: 1 } };
+		const gloryOptions = {};
+		call("preUpdateActor", knight, glory, gloryOptions);
+		expect(glory.flags).toBeUndefined();
+		call("updateActor", knight, glory, gloryOptions, "u1");
+		await settle();
+		expect(lines(knight)).toEqual([
+			"ledger.phrases.marked conditions.fatigued.label",
+			"ledger.phrases.added Armour|Helm",
+			"ledger.phrases.changed glory.label|0|1"
+		]);
+	});
+
+	it("keeps both lines of two changes to one Knight sent together", async () => {
+		const knight = knightActor();
+		const [first, second] = [{ system: { fatigued: true } }, { system: { glory: 1 } }];
+		const [firstOptions, secondOptions] = [{}, {}];
+		call("preUpdateActor", knight, first, firstOptions);
+		call("preUpdateActor", knight, second, secondOptions);
+		// The second waits for the first's Ledger to be heard back, rather than sending the one it read before it.
+		expect(second.flags).toBeUndefined();
+		land(knight, first);
+		call("updateActor", knight, first, firstOptions, "u1");
+		call("updateActor", knight, second, secondOptions, "u1");
+		await settle();
+		expect(lines(knight)).toEqual(["ledger.phrases.marked conditions.fatigued.label", "ledger.phrases.changed glory.label|0|1"]);
+	});
+
+	it("writes a line of its own only once a change's Ledger still on its way is heard back", async () => {
+		const knight = knightActor();
+		const change = { system: { fatigued: true } };
+		const options = {};
+		call("preUpdateActor", knight, change, options);
+		call("createItem", item(knight, "a", "Helm"), {}, "u1");
+		await settle();
+		expect(knight.update).not.toHaveBeenCalled();
+		land(knight, change);
+		call("updateActor", knight, change, options, "u1");
+		await settle();
+		expect(lines(knight)).toEqual(["ledger.phrases.marked conditions.fatigued.label", "ledger.phrases.added Armour|Helm"]);
 	});
 
 	it("is written by the one who made the change, not by everyone who hears of it", async () => {

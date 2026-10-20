@@ -216,7 +216,7 @@ describe("goodsDocuments", () => {
 		expect(actors.structures[1]).toEqual({
 			type: "structure",
 			name: "Raft",
-			system: { kind: "ship", guard: { value: 3, max: 3 }, armour: 0, carries: "4 passengers", notes: "" },
+			system: { kind: "ship", guard: { value: 3, max: 3 }, armour: 0, stone: false, carries: "4 passengers", notes: "" },
 			items: []
 		});
 	});

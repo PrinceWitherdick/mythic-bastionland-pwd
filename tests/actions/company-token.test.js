@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COMPANY_LAST_HEX_FLAG, lastCompanyHex, rememberCompany, setCompanyHex, standCompanyAgain } from "../../module/actions/company.js";
+import { COMPANY_LAST_HEX_FLAG, forcedMove, lastCompanyHex, rememberCompany, setCompanyHex, standCompanyAgain } from "../../module/actions/company.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexTopLeft, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
@@ -68,8 +68,16 @@ describe("setCompanyHex", () => {
 		const standing = companyToken();
 		const scene = realmScene([standing]);
 		await expect(setCompanyHex(scene, hex)).resolves.toBe(standing);
-		expect(standing.update).toHaveBeenCalledWith({ x: Math.round(corner.x), y: Math.round(corner.y) });
+		expect(standing.update).toHaveBeenCalledWith({ x: Math.round(corner.x), y: Math.round(corner.y) }, {});
 		expect(scene.createEmbeddedDocuments).not.toHaveBeenCalled();
+	});
+
+	it("marks a move the Company didn't choose, such as a blind drift", async () => {
+		const standing = companyToken();
+		await setCompanyHex(realmScene([standing]), hex, { forced: true });
+		const [, options] = standing.update.mock.calls[0];
+		expect(forcedMove(options)).toBe(true);
+		expect(forcedMove({})).toBe(false);
 	});
 
 	it("leaves Scenes that aren't Realms, hexless calls and players alone", async () => {

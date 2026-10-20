@@ -7,7 +7,7 @@
  * Wording lives in the language file under `bastionland.domain`. Pure, so it
  * can be tested without Foundry.
  */
-import { sameHex } from "./realm-geometry.js";
+import { allHexes, hexDistance, hexKey, sameHex } from "./realm-geometry.js";
 import { d6Band } from "./referee-rolls.js";
 import { seasonKey } from "./time.js";
 
@@ -154,6 +154,14 @@ export function rulingKnightOf(domain, knights) {
 	return knights.find((knight) => Boolean(domain.uuid) && knight.system.domain === domain.uuid) ?? knights.find((knight) => isSameName(knight.name, domain.system.ruler)) ?? null;
 }
 
+/**
+ * A Knight who can rule, or hold a post at Court: knighted (p7), so not a
+ * Squire, and alive.
+ * @param {{system?: {isSquire?: boolean, slain?: boolean}}} knight
+ * @returns {boolean}
+ */
+export const canHoldPost = (knight) => !knight.system?.isSquire && !knight.system?.slain;
+
 /* -------------------------------------------- */
 /*  The Domain's arms                           */
 /* -------------------------------------------- */
@@ -258,3 +266,40 @@ export const awayFromHome = (home, company) => !sameHex(home, company);
  * @returns {boolean} Whether the move brought the Company home.
  */
 export const cameHome = (home, entered) => entered.some((hex) => sameHex(hex, home));
+
+/**
+ * The Holding whose rule a hex falls under (Ruling a Domain, p20): the nearest
+ * one. At an even distance a Seat of Power comes first, then whichever the
+ * Realm holds first.
+ * @param {{holdings: {id?: string|null, hex: {col: number, row: number}, seat?: boolean}[]}} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {object|null} One of the Realm's Holdings, or null for a Realm with none.
+ */
+export function rulingHolding(realm, g, hex) {
+	let best = null;
+	let bestDistance = Infinity;
+	for (const holding of realm.holdings) {
+		const distance = hexDistance(g, holding.hex, hex);
+		if (distance < bestDistance || (distance === bestDistance && holding.seat && !best.seat)) {
+			best = holding;
+			bestDistance = distance;
+		}
+	}
+	return best;
+}
+
+/**
+ * What a Holding rules beyond its walls (p20): the wilderness hexes nearer it
+ * than any other Holding, and the Landmarks in them.
+ * @param {{holdings: object[], landmarks: {hex: {col: number, row: number}}[]}} realm
+ * @param {object} g
+ * @param {string} holdingId The Holding's Tile id.
+ * @returns {{hexes: {col: number, row: number}[], landmarks: object[]}} Empty for a Holding the Realm doesn't have.
+ */
+export function holdingLands(realm, g, holdingId) {
+	const held = new Set(realm.holdings.map((holding) => hexKey(holding.hex)));
+	const hexes = allHexes(g).filter((hex) => !held.has(hexKey(hex)) && rulingHolding(realm, g, hex)?.id === holdingId);
+	const ruled = new Set(hexes.map(hexKey));
+	return { hexes, landmarks: realm.landmarks.filter((landmark) => ruled.has(hexKey(landmark.hex))) };
+}

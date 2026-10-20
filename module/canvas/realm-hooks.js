@@ -12,8 +12,12 @@ import {
 	syncRealmScene
 } from "../actions/realm.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
+import { realmSceneChanges } from "../actions/scene-changes.js";
+import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
+import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
-import { movesAsCompany } from "../actions/journey.js";
+import { isOwnMythEntry } from "../actions/own-myths.js";
+import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
 import { closeCompanyButton, showCompanyButton } from "../apps/CompanyButton.js";
@@ -73,17 +77,29 @@ function allowRealmMove(token, movement) {
 	return false;
 }
 
-/** Scenes whose Realm changed since the palette, Places, readout and highlight were last drawn. */
-const changedScenes = new Set();
+/**
+ * Scenes whose Realm changed since the palette, Places, readout and highlight
+ * were last drawn, with how far: "realm" for the Realm itself, "names" for
+ * hex names, which the Realm's windows write too, and "hex" for anything else
+ * kept for its hexes, which only Places, Edit this hex and the marks show,
+ * and which of those per-hex flags were written.
+ * @type {Map<string, {kind: "realm"|"names"|"hex", flags: Set<string>}>}
+ */
+const changedScenes = new Map();
+
+/** How far each kind of change reaches, the furthest first. */
+const CHANGE_REACH = ["realm", "names", "hex"];
 
 /** Draw the palette, Places, readout and highlight again for the Realms that changed. */
 function showChanges() {
-	for (const sceneId of changedScenes) {
-		refreshRealmPanel(sceneId);
-		refreshRealmDrawing(sceneId);
-		refreshMythChooser(sceneId);
+	for (const [sceneId, { kind, flags }] of changedScenes) {
+		if (kind !== "hex") {
+			refreshRealmPanel(sceneId);
+			refreshRealmDrawing(sceneId);
+			refreshMythChooser(sceneId);
+			refreshSeerChooser(sceneId);
+		}
 		refreshHexEditor(sceneId);
-		refreshSeerChooser(sceneId);
 		// The players' record of where the Company has been, in whatever window or sheet shows it.
 		// Not while the Realm is drawn by hand, which players don't see; finishing it updates the Scene, which comes here again.
 		// Meanwhile the GM's hex in Places, which shows the Realm being drawn, is drawn again alone.
@@ -91,10 +107,11 @@ function showChanges() {
 		else Hooks.callAll(TRAVELS_CHANGED_HOOK, sceneId);
 		if (sceneId === canvas?.scene?.id) {
 			updateHexReadout({ force: true });
-			canvas.realm?.refreshHighlight();
-			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed.
-			drawSightedMarks();
-			drawVisitedMarks();
+			if (kind === "realm") canvas.realm?.refreshHighlight();
+			// What the Company saw from afar, which the Realm's Tiles or the Scene's marks may have changed,
+			// and where it has been, which only its Journey changes.
+			if (kind === "realm" || flags.has(SIGHTED_FLAG)) drawSightedMarks();
+			if (kind === "realm" || flags.has(JOURNEY_FLAG)) drawVisitedMarks();
 		}
 	}
 	changedScenes.clear();
@@ -109,9 +126,22 @@ function showChanges() {
  */
 function realmChanged(sceneId) {
 	forgetRealm(sceneId);
+	showLater(sceneId, "realm");
+}
+
+/**
+ * Show what changed of a Realm when this client's Realm writes have landed.
+ * @param {string|undefined} sceneId
+ * @param {"realm"|"names"|"hex"} kind
+ * @param {Iterable<string>} [flags] The per-hex flags written.
+ */
+function showLater(sceneId, kind, flags = []) {
 	if (!sceneId) return;
 	if (!changedScenes.size) realmWritesSettled().then(() => setTimeout(showChanges, 0));
-	changedScenes.add(sceneId);
+	const before = changedScenes.get(sceneId) ?? { kind, flags: new Set() };
+	if (CHANGE_REACH.indexOf(kind) < CHANGE_REACH.indexOf(before.kind)) before.kind = kind;
+	for (const flag of flags) before.flags.add(flag);
+	changedScenes.set(sceneId, before);
 }
 
 /**
@@ -164,12 +194,25 @@ export function registerRealmHooks() {
 	// forgotten above, so the row reads the hex as the write left it.
 	Hooks.on("preUpdateTile", readOmens);
 	Hooks.on("updateTile", writeOmens);
+	// A Myth the Referee wrote is named and pictured in the windows of each Realm that holds it,
+	// and among the Myths to choose from in any of them.
+	const onOwnMyth = (entry) => {
+		if (!isOwnMythEntry(entry)) return;
+		refreshMythChooser();
+		for (const scene of game.scenes ?? []) {
+			if (isRealmScene(scene) && getRealm(scene)?.realm.myths.some((myth) => myth.own === entry.id)) showLater(scene.id, "names");
+		}
+	};
+	for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);
 	Hooks.on("updateScene", (scene, changes) => {
 		// Nothing to read again on a Scene that isn't a Realm and hasn't been made one, or stopped being one,
 		// as it does when the system's flags are deleted whole ("flags.-=mythic-bastionland").
-		const touched = Object.keys(changes.flags ?? {}).some((key) => key.replace(/^-=/, "") === SYSTEM_ID);
-		if (!isRealmScene(scene) && !touched) return;
-		realmChanged(scene.id);
+		const { realm, system, hexFlags } = realmSceneChanges(changes);
+		if (!isRealmScene(scene) && !system) return;
+		// Most writes are what's kept for its hexes -- the Company's visits, a hex's notes or name --
+		// which leave the Realm as it was read, and the weather, which no Realm window shows.
+		if (realm) realmChanged(scene.id);
+		else if (hexFlags.size) showLater(scene.id, hexFlags.has(HEX_NAMES_FLAG) ? "names" : "hex", hexFlags);
 		if (foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`)) Hooks.callAll(REALM_LOOK_HOOK, scene.id);
 		// A Realm finished drawing swaps its rules back to Travel and Exploration, on every client.
 		if (scene.id === canvas?.scene?.id && foundry.utils.hasProperty(changes, `flags.${SYSTEM_ID}.${REALM_DRAWING_FLAG}`)) showRealmRules();

@@ -7,7 +7,7 @@ let d6;
 let posted;
 
 vi.mock("../../module/apps/ui.js", () => ({
-	chooseDialog: vi.fn(async (options) => {
+	inputDialog: vi.fn(async (options) => {
 		asked.push(options);
 		return answer;
 	})
@@ -18,7 +18,7 @@ vi.mock("../../module/chat/cards.js", () => ({
 }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}) }));
 
-const { rollLuck } = await import("../../module/actions/referee-rolls.js");
+const { openRefereeRolls, rollLuck } = await import("../../module/actions/referee-rolls.js");
 
 beforeEach(() => {
 	answer = null;
@@ -35,12 +35,14 @@ beforeEach(() => {
 });
 
 describe("rollLuck", () => {
-	it("asks for the odds, with the table first and each stated odds naming what it needs", async () => {
+	it("asks for the odds in one pick list, the table with its results and then each stated odds naming what it needs", async () => {
 		await rollLuck();
 		expect(asked).toHaveLength(1);
-		expect(asked[0].buttons.map(({ action }) => action)).toEqual(["table", "high", "likely", "even", "unlikely", "slim"]);
-		expect(asked[0].buttons[0].default).toBe(true);
-		expect(asked[0].buttons[3].label).toContain("\"needs\":4");
+		expect(asked[0].template).toBe("luck-odds");
+		expect(asked[0].buttons).toBeUndefined();
+		expect(asked[0].context.bands.map(({ d6 }) => d6)).toEqual(["1", "2–3", "4–6"]);
+		expect(asked[0].context.odds.map(({ key }) => key)).toEqual(["high", "likely", "even", "unlikely", "slim"]);
+		expect(asked[0].context.odds[2].label).toContain("\"needs\":4");
 		expect(posted).toEqual([]);
 	});
 
@@ -55,7 +57,7 @@ describe("rollLuck", () => {
 
 	it("favours the players on a 6 at a slim chance", async () => {
 		d6 = 6;
-		answer = "slim";
+		answer = { odds: "slim" };
 		const rolled = await rollLuck();
 		expect(rolled.favoured).toBe(true);
 		expect(posted[0].data.result).toBe("refereeRolls.odds.favoured");
@@ -70,10 +72,32 @@ describe("rollLuck", () => {
 
 	it("rolls on the table when that's picked", async () => {
 		d6 = 1;
-		answer = "table";
+		answer = { odds: "table" };
 		const rolled = await rollLuck();
 		expect(rolled).toEqual({ d6: 1, result: "crisis", side: null });
 		expect(posted[0].data.result).toBe("refereeRolls.tables.luck.results.crisis {\"side\":\"\"}");
 		expect(posted[0].data.page).toBeNull();
+	});
+});
+
+describe("openRefereeRolls", () => {
+	it("lists the tables to pick one, then asks a Luck Roll's odds in the Luck Roll's own window", async () => {
+		d6 = 6;
+		answer = { table: "luck", odds: "slim" };
+		const rolled = await openRefereeRolls();
+		expect(asked.map(({ template }) => template)).toEqual(["referee-rolls", "luck-odds"]);
+		expect(asked[0].context.tables.map(({ id }) => id)).toEqual(["luck", "passage", "unresolved", "blind", "weather", "mood"]);
+		expect(asked[0].context.odds).toBeUndefined();
+		expect(rolled).toMatchObject({ odds: "slim", favoured: true });
+	});
+
+	it("reads the Luck Roll on its table where that's picked, and rolls nothing when closed", async () => {
+		d6 = 1;
+		answer = { table: "luck", odds: "table" };
+		expect(await openRefereeRolls()).toEqual({ d6: 1, result: "crisis", side: null });
+		answer = null;
+		posted = [];
+		expect(await openRefereeRolls()).toBeNull();
+		expect(posted).toEqual([]);
 	});
 });

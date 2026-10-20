@@ -1,7 +1,6 @@
 import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
-import { rollFreeMyth } from "../actions/gm-toolkit.js";
 import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { worldKnights } from "../actions/knights.js";
@@ -12,14 +11,16 @@ import { getHexShared } from "../actions/hex-shared.js";
 import { getTrackedHexes, setHexTracked } from "../actions/hex-tracked.js";
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { getJourney, visitsLabel } from "../actions/journey.js";
+import { hexStoreFlags, realmSceneChanges } from "../actions/scene-changes.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMember, removeFromCast } from "../actions/myth-cast.js";
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
-import { resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
+import { replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { markMythOmen } from "../actions/omens.js";
-import { editRealm, getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
+import { isOwnMythEntry, openOwnMyth } from "../actions/own-myths.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
 import { openArt } from "../apps/ArtPopout.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
@@ -27,7 +28,7 @@ import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
 import { IN_USE, filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.js";
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
-import { loadArtIndex, mythLookup, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythLookup, pageNote, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
@@ -43,12 +44,13 @@ import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
 import { mythNoteFor } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
 import { POINT_KINDS } from "../rules/sites.js";
 import { crisisRollsDue, seasonLogView } from "../rules/season-log.js";
 import { formatStatLine } from "../rules/stat-blocks.js";
 import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
-import { placeFeature } from "../rules/realm-edits.js";
 import { hexKey, inRealm, parseHexKey, sameHex } from "../rules/realm-geometry.js";
+import { mythSlots } from "../rules/realm-myths.js";
 import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
 import { searchable } from "../rules/text.js";
@@ -76,6 +78,36 @@ const TAB_ICONS = Object.freeze({
  * Time page lists the Realm's resolved Myths, waiting on the Season's turn.
  */
 const REALM_PARTS = Object.freeze(["header", ...REALM_TABS, "time"]);
+
+/** Pages drawn from the Realm that, while another page is open, wait to be drawn again until they're opened. */
+const DEFERRED_PARTS = new Set([...REALM_TABS, "time"]);
+
+/**
+ * The parts one of the Realm's per-hex flags shows in, as scene-changes.js lists them.
+ * @param {string} flag
+ * @returns {readonly string[]}
+ */
+const hexFlagParts = (flag) => (hexStoreFlags().get(flag)?.toolkit ?? []).flatMap((part) => (part === "realm" ? REALM_PARTS : [part]));
+
+/**
+ * @param {object} known
+ * @param {Record<string, () => unknown>} reads
+ * @returns {object} `known`, with a field for each of `reads`, read the first time it's asked for and kept.
+ */
+function readWhenAsked(known, reads) {
+	for (const [key, read] of Object.entries(reads)) {
+		Object.defineProperty(known, key, {
+			configurable: true,
+			enumerable: true,
+			get() {
+				const value = read();
+				Object.defineProperty(this, key, { value, enumerable: true });
+				return value;
+			}
+		});
+	}
+	return known;
+}
 
 /** A field a redraw would disturb: any in use, and a dropdown, which a redraw would close while it's open. */
 const BUSY = `${IN_USE}, select`;
@@ -126,6 +158,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			rollMythTable: GmToolkitSheet.#onRollMythTable,
 			showMythTable: GmToolkitSheet.#onShowMythTable,
 			showMythArt: GmToolkitSheet.#onShowMythArt,
+			editOwnMyth: GmToolkitSheet.#onEditOwnMyth,
 			makeCastMember: GmToolkitSheet.#onMakeCastMember,
 			openCastActor: GmToolkitSheet.#onOpenCastActor,
 			dropFromCast: GmToolkitSheet.#onDropFromCast,
@@ -265,18 +298,16 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
 		const realm = realmKnown(entry?.realm ?? null);
+		// The rest is read only when a part being drawn asks for it: most redraws are of a page or two.
 		return Object.assign(context, {
-			realmData: realm && {
-				scene,
-				realm,
-				g: sceneGeometry(scene),
-				lore: getHexLore(scene),
-				journey: getJourney(scene),
-				shared: getHexShared(scene),
-				tracked: getTrackedHexes(scene),
-				notes: getMythNotes(scene),
-				companyHex: companyTokenHex(scene)
-			}
+			realmData: realm && readWhenAsked({ scene, realm, g: sceneGeometry(scene) }, {
+				lore: () => getHexLore(scene),
+				journey: () => getJourney(scene),
+				shared: () => getHexShared(scene),
+				tracked: () => getTrackedHexes(scene),
+				notes: () => getMythNotes(scene),
+				companyHex: () => companyTokenHex(scene)
+			})
 		});
 	}
 
@@ -284,6 +315,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	async _preparePartContext(partId, context, options) {
 		const part = { ...(await super._preparePartContext(partId, context, options)) };
 		part.tab = context.tabs?.[partId];
+		this.#hiddenStale.delete(partId);
 		const data = context.realmData;
 		switch (partId) {
 			case "header": return Object.assign(part, this.#headerContext(data));
@@ -344,8 +376,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const myths = data.realm.myths.map((myth) => (myth.unknown ? this.#unknownMythContext(myth) : this.#mythContext(myth, data, forCast)));
 		return {
 			myths,
-			// Played alone, which six the Realm holds is left to the dice.
-			choose: myths.length > 0 && !keptFromMe(),
+			// Played alone, which six the Realm holds is left to the dice. With none left, the window is how one is given back.
+			choose: mythSlots(data.realm) > 0 && !keptFromMe(),
 			// Opening one Myth folds the one open before, so the other five stay a row each.
 			mythGroup: `${this.id}-myths`,
 			missingText: Boolean(myths.length) && !this.#index?.myths?.length,
@@ -401,7 +433,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		return {
 			number: myth.number,
 			name,
-			reference: page ? t("realm.key.page", { page }) : null,
+			// A Myth the Referee wrote, while the world still has it, opens to be changed.
+			own: isOwnMyth(myth) && entry ? myth.own : null,
+			reference: pageNote(page),
 			img: entry?.path ?? null,
 			hex: myth.hex ? hexLabel(myth.hex, this.scene) : null,
 			hexKey: myth.hex ? hexKey(myth.hex) : null,
@@ -823,19 +857,28 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			if (scene) ringHoveredHex(scene, hex, holder);
 		});
 		const onRealmDocument = (document) => {
-			const sceneId = document.documentName === "Scene" ? document.id : document.parent?.id;
-			if (sceneId === this.scene?.id) this.#redraw(...REALM_PARTS);
+			if (document.parent?.id === this.scene?.id) this.#redraw(...REALM_PARTS);
 		};
 		// A Realm made, renamed, unmade or deleted changes the choice of Realms, and can change the one on show.
-		// Other changes to a Scene only matter when it's the one on show, which onRealmDocument hears.
 		const onScenes = () => this.#redraw(...REALM_PARTS);
-		const onSceneChange = (_scene, changes) => ("name" in changes || changes.flags?.[SYSTEM_ID]) && onScenes();
+		// Most writes to the Realm on show are what's kept for its hexes, which only some pages show,
+		// or the weather, which none does. Another Realm's hexes don't show here at all.
+		const onSceneChange = (scene, changes) => {
+			const { realm, system, hexFlags } = realmSceneChanges(changes);
+			if ("name" in changes || (realm && (system || scene.id === this.scene?.id))) return onScenes();
+			if (scene.id === this.scene?.id) this.#redraw(...[...hexFlags].flatMap(hexFlagParts));
+		};
 		const onCompany = (token) => {
 			if (token.parent?.id === this.scene?.id && token.getFlag?.(SYSTEM_ID, COMPANY_FLAG)) this.#redraw("header", "places");
 		};
 		// Only a move, or the Company mark itself, changes where the Company is.
 		const onCompanyChange = (token, changes) => ["x", "y", "flags"].some((key) => key in changes) && onCompany(token);
-		const onSite = (entry) => isSiteEntry(entry) && this.#redraw("places");
+		// A Myth the Referee wrote is named wherever the Realm's Myths are, once the Realm on show holds it.
+		const onJournal = (entry) => {
+			if (isSiteEntry(entry)) this.#redraw("places");
+			const scene = this.scene;
+			if (isOwnMythEntry(entry) && scene && mythWithOwn(getRealm(scene)?.realm.myths ?? [], entry.id)) this.#redraw(...REALM_TABS, "time");
+		};
 		const onDomain = (actor) => actor.type === "domain" && this.#redraw("time");
 		// An actor made, deleted, renamed, repictured, put in a Cast or taken out of one changes the Myths page.
 		const onCast = (actor) => couldJoinCast(actor) && this.#redraw("myths");
@@ -845,12 +888,12 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// Only a Crisis Roll or a new name changes the Time page's list of Domains.
 		const onDomainChange = (actor, changes) => ("name" in changes || changes.system?.crisisRolled !== undefined) && onDomain(actor);
 		this.#hooks = [
-			...["createTile", "updateTile", "deleteTile", "updateScene"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
+			...["createTile", "updateTile", "deleteTile"].map((name) => [name, Hooks.on(name, onRealmDocument)]),
 			...["createScene", "deleteScene"].map((name) => [name, Hooks.on(name, onScenes)]),
 			["updateScene", Hooks.on("updateScene", onSceneChange)],
 			...["createToken", "deleteToken"].map((name) => [name, Hooks.on(name, onCompany)]),
 			["updateToken", Hooks.on("updateToken", onCompanyChange)],
-			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onSite)]),
+			...["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"].map((name) => [name, Hooks.on(name, onJournal)]),
 			[CITY_QUEST_HOOK, Hooks.on(CITY_QUEST_HOOK, () => this.#redraw("myths"))],
 			// One listener for each, fanning out to the pages that care, rather than
 			// a pair of them running down every actor the world writes.
@@ -952,14 +995,32 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	#redraw(...parts) {
 		for (const part of parts) this.#stale.add(part);
-		if (this.#redrawing) return;
+		if (this.#redrawing || !this.#stale.size) return;
 		this.#redrawing = true;
 		setTimeout(() => {
 			this.#redrawing = false;
-			const stale = [...this.#stale];
+			// A page drawn from the Realm that isn't open waits until it is.
+			const open = this.tabGroups.primary;
+			const stale = [...this.#stale].filter((part) => {
+				if (!DEFERRED_PARTS.has(part) || part === open) return true;
+				this.#hiddenStale.add(part);
+				return false;
+			});
 			this.#stale.clear();
 			if (stale.length) renderWhenIdle(this, { parts: stale, busy: BUSY });
 		}, REDRAW_DELAY);
+	}
+
+	/** Pages that missed a change while another was open. */
+	#hiddenStale = new Set();
+
+	/**
+	 * A page that missed a change while hidden is drawn again as it's opened.
+	 * @override
+	 */
+	changeTab(tab, group, options) {
+		super.changeTab(tab, group, options);
+		if (this.#hiddenStale.has(tab)) renderWhenIdle(this, { parts: [tab], busy: BUSY });
 	}
 
 	/* -------------------------------------------- */
@@ -1099,7 +1160,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			// GMs only, as with the Omen card: it names a Myth the players may not know.
 			const card = postCard(null, "spark", {
 				name: table.name,
-				tagline: t("gmToolkit.myths.tableTagline", { name, page }),
+				tagline: page ? t("gmToolkit.myths.tableTagline", { name, page }) : t("gmToolkit.myths.ownTableTagline", { name }),
 				prompt,
 				results
 			}, { rolls: [roll], mode: "gm" });
@@ -1168,35 +1229,16 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 */
 	static async #onNewMyth(_event, target) {
 		const myth = this.#mythFrom(target);
-		const scene = this.scene;
-		if (!myth || !scene) return;
-		const { realm } = getRealm(scene);
-		const { d6, d12, rolls } = await rollFreeMyth(realm);
-		const rolled = { number: myth.number, d6, d12 };
-		const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
-		if (!written) return;
-		// Played alone, the new Myth is met as the others were: by its first Omen.
-		if (keptFromMe()) {
-			await postCard(null, "omen", {
-				title: t("solo.newMythTitle", { number: myth.number }),
-				tagline: null,
-				img: null,
-				omen: t("solo.newMythText"),
-				text: null,
-				hint: null
-			// The dice would say which Myth it is, so they're left off.
-			}, { mode: "gm" });
-			return;
-		}
-		const { name, page, entry } = mythLookup(this.#index, rolled);
-		await postCard(null, "omen", {
-			title: `${myth.number}. ${name}`,
-			tagline: page ? t("realm.key.page", { page }) : null,
-			img: entry?.path ?? null,
-			omen: t("gmToolkit.myths.newMythRolled", { hex: hexLabel(myth.hex, scene) }),
-			text: null,
-			hint: t("gmToolkit.myths.newMythHint")
-		}, { rolls, mode: "gm" });
+		if (myth && this.scene) await replaceMyth(this.scene, myth, this.#index);
+	}
+
+	/**
+	 * Open a Myth the Referee wrote, to read or change what they wrote.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onEditOwnMyth(_event, target) {
+		const myth = this.#mythFrom(target);
+		if (isOwnMyth(myth)) openOwnMyth(myth.own);
 	}
 
 	/**

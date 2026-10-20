@@ -1,0 +1,17 @@
+{{!-- What the Company's move calls for, whispered to the Referee: each line a rule the book has follow, each button what it has them do. --}}
+<section class="bastionland-card bastionland-card--arrival">
+	<header class="bastionland-card__header">
+		<h3 class="bastionland-card__title"><i class="fa-solid fa-route" inert></i> {{title}}</h3>
+		{{#if target}}<p class="bastionland-card__tagline">{{> "bastionland.hex-target" target}}</p>{{/if}}
+	</header>
+	{{#each lines}}
+	<p class="bastionland-card__text">{{this}}</p>
+	{{/each}}
+	{{#if actions.length}}
+	<div class="bastionland-card__actions">
+		{{#each actions}}
+		<button type="button" data-arrival="{{key}}"{{#if hex}} data-arrival-hex="{{hex}}"{{/if}}><i class="{{icon}}" inert></i> {{label}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
+</section>

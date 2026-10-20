@@ -1,25 +1,30 @@
 import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { OMEN_COUNT, REALM_FLAG } from "../rules/realm.js";
 import { nextOmen, wildernessSituation } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
-import { offerRulerDomain } from "./found-domain.js";
+import { offerRulerDomain, seatCourtiers, seatName, seatOfPower } from "./found-domain.js";
 import { omensMet } from "./timeline-events.js";
 
 /**
  * What the Start the players chose sets going once the Realm is made (p6),
- * besides where the Company begins. A Courtier's Court hears news of the
- * nearest Myth's first Omen; something wicked has hold of a Ruler's Seat of
- * Power. Whispered to the Referee.
+ * besides where the Company begins. Courtiers take their places at the Seat's
+ * Court, which hears news of the nearest Myth's first Omen; something wicked
+ * has hold of a Ruler's Seat of Power. The news is whispered to the Referee.
  * @param {Scene} scene The Realm.
  * @param {string} start One of COMPANY_STARTS.
  * @returns {Promise<ChatMessage|null>}
  */
 export async function announceStart(scene, start) {
 	if (!game.user.isGM || !isRealmScene(scene)) return null;
-	if (start === "courtier") return courtNews(scene);
+	if (start === "courtier") {
+		const card = await courtNews(scene);
+		// The Knights hold their places at the Seat's Court, or once they're made, at the Referee's word.
+		if (!await seatCourtiers(scene)) await offerSeatingLater(scene);
+		return card;
+	}
 	if (start === "ruler") {
 		const card = await wickedInfluence();
 		// One Knight rules, and the others sit in their Circle.
@@ -27,6 +32,40 @@ export async function announceStart(scene, start) {
 		return card;
 	}
 	return null;
+}
+
+/** Marks the Referee's button that seats the Knights at Court later. */
+const SEAT_LATER_SELECTOR = "[data-seat-courtiers]";
+
+/**
+ * A Realm with a Seat of Power made before there were Knights to seat at its
+ * Court: whisper the Referee a card whose button seats them once they're made.
+ * @param {Scene} scene
+ * @returns {Promise<ChatMessage|null>} Null in a Realm with no Seat.
+ */
+async function offerSeatingLater(scene) {
+	const seat = seatOfPower(scene);
+	if (!seat) return null;
+	return postCard(null, "note", {
+		icon: "fa-solid fa-chess-king",
+		text: t("company.starts.courtier.later", { seat: seatName(seat) }),
+		action: { data: "seat-courtiers", icon: "fa-solid fa-user-plus", label: t("company.starts.courtier.seatNow") }
+	},{ mode: "gm", flags: { [SYSTEM_ID]: { seatCourtiers: scene.id } } });
+}
+
+/** Wire up the Referee's button that seats the Knights at Court later. Called during init. */
+export function registerSeatingLater() {
+	registerCardButtons({
+		selector: SEAT_LATER_SELECTOR,
+		gmOnly: true,
+		handler: async (_button, message) => {
+			const scene = game.scenes.get(message?.flags?.[SYSTEM_ID]?.seatCourtiers ?? "");
+			if (!scene) return warn("company.starts.courtier.realmGone");
+			if (!seatOfPower(scene)) return warn("company.starts.courtier.seatGone");
+			// Nobody is seated twice, so a second click only seats Knights made since.
+			return (await seatCourtiers(scene)) ?? warn("company.starts.courtier.noKnights");
+		}
+	});
 }
 
 /**
@@ -51,7 +90,7 @@ async function courtNews(scene) {
 	const { name, page, entry } = mythEntry(await loadArtIndex(), myth);
 	return postCard(null, "omen", {
 		title: t("company.starts.courtier.newsTitle"),
-		tagline: t("company.starts.courtier.newsTagline", { name, page }),
+		tagline: page ? t("company.starts.courtier.newsTagline", { name, page }) : name,
 		img: entry?.path ?? null,
 		omen: t("realm.wilderness.omen", { omen, count: OMEN_COUNT }),
 		text: entry?.omens?.[omen - 1] ?? null,

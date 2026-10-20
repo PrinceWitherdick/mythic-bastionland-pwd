@@ -27,15 +27,23 @@ import { SESSION_MACRO_STEP, ensureSessionHotbar, seedSessionMacro } from "./mod
 import { SITE_MACRO_STEP, ensureSiteHotbar, seedSiteMacro } from "./module/actions/site-macro.js";
 import { pickWeather, registerWeatherHooks, registerWeatherSetting } from "./module/actions/weather.js";
 import { addNewSiteButton, newSite } from "./module/actions/sites.js";
+import { addNewMythButton, newOwnMyth } from "./module/actions/own-myths.js";
 import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
-import { STRUCTURE_ACTORS_STEP, convertStructureNpcs } from "./module/actions/structures.js";
+import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
+import { registerTurnOrder } from "./module/actions/turn-order.js";
+import { registerAskReferee } from "./module/actions/ask-referee.js";
+import { registerSeatingLater } from "./module/actions/starts.js";
+import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
+import { registerRulerDeaths } from "./module/actions/dominion.js";
+import { registerUnhorsed } from "./module/actions/damage.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
-import { wildernessRoll } from "./module/actions/wilderness.js";
+import { registerOmenEntered, wildernessRoll } from "./module/actions/wilderness.js";
+import { registerArrivals } from "./module/actions/arrivals.js";
 import { registerCompanyButton } from "./module/apps/CompanyButton.js";
 import { openKnightChooser } from "./module/apps/KnightChooser.js";
 import { openRealmAppearance, registerRealmAppearanceMenu } from "./module/apps/RealmAppearance.js";
@@ -43,6 +51,7 @@ import { registerDropdowns } from "./module/apps/dropdown.js";
 import { openSessionEnd } from "./module/apps/SessionEnd.js";
 import { installShieldClips } from "./module/apps/shield-clips.js";
 import { SiteSheet } from "./module/apps/SiteSheet.js";
+import { OwnMythSheet } from "./module/apps/OwnMythSheet.js";
 import { openSparkTables, registerSparkTablesSetting, toggleSparkTables } from "./module/apps/SparkTables.js";
 import { registerPhaseBanner, showPhaseBanner } from "./module/apps/PhaseBanner.js";
 import { registerRealmTour, registerToursSetting } from "./module/apps/realm-tour.js";
@@ -76,7 +85,7 @@ import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
-import { registerLandmarkSettings } from "./module/actions/landmarks.js";
+import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
@@ -199,6 +208,12 @@ Hooks.once("init", () => {
 		canBeDefault: false,
 		label: "bastionland.sites.sheet"
 	});
+	// So does a Myth the Referee wrote, so it opens to be written.
+	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntry, SYSTEM_ID, OwnMythSheet, {
+		makeDefault: false,
+		canBeDefault: false,
+		label: "bastionland.ownMyth.sheet"
+	});
 	// A thread of the Timeline reads in the sidebar as its journal page; it's written from the Timeline window.
 	DocumentSheetConfig.registerSheet(foundry.documents.JournalEntryPage, SYSTEM_ID, createTimelinePageSheet(), {
 		types: [TIMELINE_PAGE_TYPE],
@@ -290,7 +305,7 @@ Hooks.once("init", () => {
 	registerSessionEndSetting();
 
 	// The blight a Curse leaves: the next travelling Phase counts as travelling blind.
-	registerLandmarkSettings();
+	registerOffCourse();
 
 	// The weather, for a table with FXMaster to draw it; it follows the active Scene.
 	registerWeatherSetting();
@@ -328,6 +343,8 @@ Hooks.once("init", () => {
 
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
+	// The players act first in a fight (p8): nobody rolls initiative.
+	registerTurnOrder();
 	registerSurpriseHooks();
 	registerAfflictionHooks();
 	// A coin flipped for a life whose loser this user couldn't change is killed from the card (p120).
@@ -459,9 +476,23 @@ Hooks.once("init", () => {
 	registerJourneyHooks();
 	// Without a guide and light the Company travels blind by night, and what the Night cost is taken as it ends.
 	registerNightTravel();
+	// What coming into a hex calls for: a Myth's Omen, dire weather, a Gallop, a Holding's mood (p18, p27).
+	registerOmenEntered();
+	registerArrivals();
 	registerPhaseEndSettings();
 	// The day's sky and weather, rolled as the Company breaks camp, and the fog that hides the way (p197).
 	registerSkyAndWeather();
+	// A player's ask for a search, a Wilderness Roll and the like, done from the Referee's card.
+	registerAskReferee();
+	// A Courtier Start made before the Knights seats them at Court from the Referee's card later.
+	registerSeatingLater();
+	// The Season card's buttons that roll a new Myth for each resolved one (p27).
+	registerReplaceMyth();
+	// A ruling Knight's death passes their Domain on (p21).
+	registerRulerDeaths();
+	// A steed brought down throws its rider, for d6 (p10).
+	registerUnhorsed();
+	registerCollisions();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
 	registerSolo();
@@ -523,6 +554,7 @@ Hooks.once("init", () => {
 		openTimePanel: () => (game.user.isGM ? openGmToolkit("time") : ui.notifications.info(calendarLabel(getCalendar()))),
 		openSessionEnd,
 		newSite,
+		newOwnMyth,
 		openGmToolkit,
 		// The Myths window became the GM Toolkit's first page; macros that open it still work.
 		openMythsPanel: () => openGmToolkit("myths"),
@@ -679,13 +711,14 @@ const refreshDomainButtons = (actor) => {
 		if (app instanceof KnightSheet && app.actor.system.domain === actor.uuid) app.refreshHeaderButtons();
 	}
 };
-Hooks.on("updateActor", refreshDomainButtons);
+Hooks.on("updateActor", (actor, changes) => "name" in changes && refreshDomainButtons(actor));
 Hooks.on("deleteActor", refreshDomainButtons);
 
 // New Site sits in the Journal directory for GMs, and the rulebook for GMs and
 // for players the GM offers it to.
 Hooks.on("renderJournalDirectory", (_directory, element) => {
 	addNewSiteButton(element);
+	addNewMythButton(element);
 	const canSetUp = canKeepRulebook() && !hasRulebook();
 	if (!canSetUp && !(hasRulebook() && canReadRulebook())) return;
 	addDirectoryButton(element, {

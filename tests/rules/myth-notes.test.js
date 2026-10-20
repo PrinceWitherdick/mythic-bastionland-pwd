@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYTH_NOTES_VERSION, emptyMythNotes, mythNoteFor, mythRoll, normaliseMythNotes, withMythNote } from "../../module/rules/myth-notes.js";
+import { MYTH_NOTES_VERSION, emptyMythNotes, mythNoteFor, mythRoll, normaliseMythNotes, withMythNote, withoutResolved } from "../../module/rules/myth-notes.js";
 
 const wyvern = { number: 3, d6: 1, d12: 5 };
 // The same number rolled afresh: a new Myth replacing the old (p27).
@@ -82,5 +82,25 @@ describe("withMythNote", () => {
 		const copy = structuredClone(start);
 		withMythNote(start, wyvern, { note: "Moved" });
 		expect(start).toEqual(copy);
+	});
+});
+
+describe("withoutResolved", () => {
+	const myths = [
+		{ number: 1, d6: 1, d12: 1 },
+		{ number: 2, d6: 2, d12: 5 }
+	];
+
+	it("leaves out a resolved Myth, and keeps the same Realm when none is", () => {
+		const realm = { myths, holdings: [] };
+		expect(withoutResolved(realm, emptyMythNotes())).toBe(realm);
+		const notes = withMythNote(emptyMythNotes(), myths[1], { resolved: true });
+		expect(withoutResolved(realm, notes).myths.map((myth) => myth.number)).toEqual([1]);
+	});
+
+	it("doesn't count a note kept for the Myth that was replaced", () => {
+		const notes = withMythNote(emptyMythNotes(), myths[1], { resolved: true });
+		const replaced = { myths: [myths[0], { number: 2, d6: 3, d12: 4 }] };
+		expect(withoutResolved(replaced, notes)).toBe(replaced);
 	});
 });

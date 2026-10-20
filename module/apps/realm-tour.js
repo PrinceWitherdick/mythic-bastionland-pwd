@@ -139,7 +139,7 @@ export function registerRealmTour() {
 }
 
 /** @returns {boolean} Whether any Scene in the world holds a Realm. */
-const worldHasRealm = () => game.scenes.some(isRealmDocument);
+export const worldHasRealm = () => game.scenes.some(isRealmDocument);
 
 /**
  * Start one of the system's Tours, saying in the console if it can't be shown.

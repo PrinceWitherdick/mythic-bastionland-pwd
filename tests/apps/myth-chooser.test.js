@@ -37,7 +37,7 @@ describe("the window for a Realm's Myths", () => {
 		expect(chooserBase).toContain("card.dataset.search.includes(term)");
 		expect(chooserBase).not.toMatch(/addEventListener\("input"[^}]*this\.render\(/);
 		// Choosing a d6 result lets the search go, and draws nothing again.
-		expect(chooserBase).toMatch(/static #onShowGroup\(_event, target\) \{\s*this\.group = Number\(target\.dataset\.d6\);\s*this\.search = "";[^}]*this\._applySearch\(\);\s*\}/);
+		expect(chooserBase).toMatch(/static #onShowGroup\(_event, target\) \{\s*this\.group = groupOf\(target\.dataset\.d6\);\s*this\.search = "";[^}]*this\._applySearch\(\);\s*\}/);
 		expect(template).toContain("bastionland-myth-chooser__none");
 	});
 
@@ -50,8 +50,9 @@ describe("the window for a Realm's Myths", () => {
 
 	it("changes only which Myth it is: the number and the hex stay as they were", () => {
 		// Every change goes through the one place, which puts the Myth back in its own hex under its own number.
-		expect(app).toContain('const placeMyth = (realm, g, { number, hex, d6, d12 }) => placeFeature(realm, g, hex, { kind: "myth", number, d6, d12, omen: 0 });');
-		expect(app).toContain("placeMyth(realm, g, { ...myth, d6: roll.d6, d12: roll.d12 })");
+		expect(app).toContain('const placeMyth = (realm, g, { number, hex, d6, d12, own }) => placeFeature(realm, g, hex, { kind: "myth", number, ...(own ? { own } : { d6, d12 }), omen: 0 });');
+		expect(app).toContain("const hex = myth?.hex ?? remoteMythHex(freshRandom(), g, realm);");
+		expect(app).toContain("return hex ? placeMyth(realm, g, { number, hex, ...roll }) : realm;");
 		expect(app).toContain("rolled.reduce((next, myth) => placeMyth(next, g, myth), realm)");
 	});
 
@@ -116,7 +117,70 @@ describe("settling the Myths of a Realm already made", () => {
 	});
 
 	it("turns the table to the page of the Myth it was opened on", () => {
-		expect(app).toContain("if (myth) chooser.group = myth.d6;");
+		expect(app).toContain("if (myth) chooser.group = isOwnMyth(myth) ? OWN_GROUP : myth.d6;");
+	});
+});
+
+describe("taking a Myth out of the Realm, and filling its number again", () => {
+	it("offers each Myth of the Realm a way out, after asking", () => {
+		expect(template).toContain('data-action="removeMyth" data-number="{{number}}"');
+		expect(app).toContain("removeMyth: MythChooser.#onRemoveMyth,");
+		expect(app).toMatch(/static async #onRemoveMyth\(_event, target\) \{[\s\S]*?const confirmed = await confirmDialog\(\{[\s\S]*?if \(!confirmed\) return;[\s\S]*?placeFeature\(realm, g, myth\.hex, null\)/);
+	});
+
+	it("lists every number the Realm was set up with, a Myth's or empty, and a die or a Myth chosen fills an empty one", () => {
+		expect(app).toContain("myths: Array.from({ length: slots }, (_, index) => {");
+		expect(app).toContain("if (!realm || !isDie(number, mythSlots(realm)) || !roll) return;");
+		expect(app).toContain("return myth ? this.#line(myth) : this.#emptyLine(index + 1);");
+		expect(template).toContain("{{#if empty}} is-empty{{/if}}");
+		expect(template).toContain("bastionland.mythChooser.rollInto");
+		// An empty number has nothing to take out.
+		const emptyRow = template.slice(template.indexOf("{{#if empty}}\n"), template.indexOf("{{else}}", template.indexOf("{{#if empty}}\n")));
+		expect(emptyRow).not.toContain("removeMyth");
+	});
+
+	it("can be opened from the Toolkit with no Myth left in the Realm, unless it was made with none", () => {
+		expect(toolkit).toContain("choose: mythSlots(data.realm) > 0 && !keptFromMe(),");
+	});
+});
+
+describe("the Referee's own Myths in the window", () => {
+	it("are a group of their own after the d6 results, with a card to write another", () => {
+		expect(template).toContain("{{#with ownGroup}}");
+		expect(template).toContain('data-action="writeMyth"');
+		expect(template).toContain('data-action="pickOwn" data-own="{{own}}"');
+		expect(app).toContain("writeMyth: () => newOwnMyth(),");
+		expect(app).toContain('const OWN_GROUP = "own";');
+		// The group isn't a d6 result, so cards and buttons are matched by their text.
+		expect(chooserBase).toContain("card.dataset.d6 === String(this.group)");
+		expect(chooserBase).toContain("group.dataset.d6 === String(this.group)");
+	});
+
+	it("are given to the Realm by Use, as a Myth of the table is, and never twice", () => {
+		expect(app).toContain("if (this.own) return this.#setMyth(this.number, { own: this.own });");
+		expect(app).toContain("const held = pickedOwn ? mythWithOwn(myths, pickedOwn.id) : picked ? mythWithRoll(myths, picked) : null;");
+		// Picking one lets go of a roll picked, and the other way about.
+		expect(app).toMatch(/static #onPickOwn\(_event, target\) \{\s*this\.own = target\.dataset\.own;\s*this\.roll = null;/);
+		expect(app).toMatch(/_pickRoll\(roll\) \{\s*this\.own = null;\s*super\._pickRoll\(roll\);/);
+	});
+
+	it("open to be changed from the footer, which keeps its size either way", () => {
+		expect(template).toContain('data-action="editOwnMyth" {{#unless picked.own}}disabled{{/unless}}');
+		expect(app).toContain("editOwnMyth: MythChooser.#onEditOwnMyth");
+	});
+
+	it("draw the window again when one is written, renamed or deleted", () => {
+		expect(hooks).toContain("if (!isOwnMythEntry(entry)) return;");
+		expect(hooks).toContain('for (const name of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"]) Hooks.on(name, onOwnMyth);');
+	});
+
+	it("are drawn the size of the book's Myths, however few there are", () => {
+		expect(app).toContain("const count = own ? Math.max(cards.length, D6_RESULT_MYTHS) : cards.length;");
+		expect(app).toContain("const D6_RESULT_MYTHS = 12;");
+	});
+
+	it("are shown in the Realm's list without a roll or page", () => {
+		expect(app).toContain('reference: isOwnMyth(myth) ? t("mythChooser.ownReference") : t("mythChooser.reference", { roll, page }),');
 	});
 });
 

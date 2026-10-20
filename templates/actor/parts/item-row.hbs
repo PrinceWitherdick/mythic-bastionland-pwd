@@ -1,4 +1,4 @@
-<li class="bastionland-item draggable{{#if unusable}} is-unusable{{/if}}" data-item-id="{{id}}">
+<li class="bastionland-item{{#if @root.editable}} draggable{{/if}}{{#if unusable}} is-unusable{{/if}}" data-item-id="{{id}}">
 	<div class="bastionland-item__line">
 		{{#if equippable}}
 		<button type="button" class="bastionland-item__equip{{#if equipped}} is-active{{/if}}{{#if idle}} is-idle{{/if}}" data-action="toggleEquipped" data-tooltip="{{equipLabel}}" aria-label="{{equipLabel}}" aria-pressed="{{#if equipped}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>
@@ -33,6 +33,7 @@
 		</span>
 		{{/if}}
 		{{#if @root.editable}}
+		{{!-- Settling a Scar and the pencil show faintly at rest, so they're found without hovering; the rest show on hover. --}}
 		<span class="bastionland-item__controls">
 			{{#if holds}}
 			{{!-- Armour worn only in some situation, or in all but one: whether it holds right now. --}}
@@ -46,7 +47,7 @@
 			</button>
 			{{/each}}
 			{{#if pending}}
-			<button type="button" class="bastionland-icon" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
+			<button type="button" class="bastionland-icon bastionland-item__resting" data-action="settleScar" data-tooltip="{{localize 'bastionland.scarRoll.settle'}}" aria-label="{{localize 'bastionland.scarRoll.settle'}}">
 				<i class="fa-solid fa-hand-holding-medical" inert></i>
 			</button>
 			{{/if}}

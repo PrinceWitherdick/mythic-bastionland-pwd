@@ -62,7 +62,8 @@ const courtNames = (domain, except) => Object.entries(normalizeCourt(domain.syst
  * Take somebody new into the Court.
  * @param {Actor} domain
  * @param {string} role One of COURT_ROLES.
- * @param {{name?: string, note?: string}} [fields] What's already known of them.
+ * @param {{name?: string, note?: string, knight?: string}} [fields] What's already known of them,
+ *   with the id of the Knight they are where a Knight joins.
  * @returns {Promise<string|null>} Their id, or null for a role the Court doesn't have.
  */
 export async function addCourtMember(domain, role, fields = {}) {
@@ -179,7 +180,9 @@ function memberFromAnswers(data, member) {
 		seat: data.seat ?? member.seat,
 		leverage: data.leverage,
 		note: data.note,
-		at: member.at
+		at: member.at,
+		// Still the Knight they were seated as, unless they're renamed as somebody else.
+		knight: isSameName(data.name, member.name) ? member.knight : ""
 	});
 	if (!answered) return null;
 	if (!answered.name) {
@@ -281,9 +284,11 @@ export async function removeFromCourt(domain, id) {
  * Choose which Knights sit in a Domain's Circle (p20), from the world's
  * Knights other than its ruler.
  * @param {Actor} domain
+ * @param {object} [options]
+ * @param {string|null} [options.intro] Said in place of the usual line, such as Knights leaving in misrule.
  * @returns {Promise<boolean>} Whether the Circle was changed.
  */
-export async function seatCircle(domain) {
+export async function seatCircle(domain, { intro = null } = {}) {
 	if (!domain?.isOwner) return false;
 	const knights = knightChoices();
 	const seated = circleKnights(domain.system.council.circle, knights);
@@ -296,7 +301,7 @@ export async function seatCircle(domain) {
 		icon: "fa-solid fa-users",
 		template: "circle",
 		context: {
-			intro: t("domain.council.circle.intro", { name: domain.name }),
+			intro: intro ?? t("domain.council.circle.intro", { name: domain.name }),
 			circle: [
 				...offered.map((knight) => ({ ...knight, checked: seated.some((each) => each.id === knight.id) })),
 				...written.map(({ key, name }) => ({ id: key, name, checked: true }))

@@ -5,6 +5,7 @@
 import { t } from "../chat/cards.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { CAST_FLAG, CITY_CAST } from "../rules/myth-cast.js";
+import { ownMythKey } from "../rules/own-myths.js";
 import { mythReference } from "../rules/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { actorData } from "./npc.js";
@@ -15,13 +16,14 @@ export { CITY_CAST };
 const CAST_TYPES = ["npc", "structure"];
 
 /**
- * Which Cast an actor would belong to: the Myth's roll on the Myths table, or,
+ * Which Cast an actor would belong to: the Myth's roll on the Myths table, the
+ * Myth the Referee wrote, so its Cast goes with it from Realm to Realm, or,
  * for a Myth whose dice aren't one, its place in the Realm it belongs to.
  * @param {Scene|null} scene The Realm.
- * @param {{number: number, d6: number, d12: number}} myth
+ * @param {{number: number, d6: number|null, d12: number|null, own?: string}} myth
  * @returns {string}
  */
-export const castKey = (scene, myth) => (isTableRoll(myth) ? mythReference(myth).roll : `${scene?.id ?? ""}:${myth.number}`);
+export const castKey = (scene, myth) => ownMythKey(myth) ?? (isTableRoll(myth) ? mythReference(myth).roll : `${scene?.id ?? ""}:${myth.number}`);
 
 /**
  * @param {Actor} actor

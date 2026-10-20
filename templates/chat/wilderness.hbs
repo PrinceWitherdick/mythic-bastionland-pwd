@@ -11,7 +11,7 @@
 		{{#if myth.img}}
 		<img class="bastionland-card__art" src="{{myth.img}}" alt="">
 		{{/if}}
-		<p><strong>{{myth.number}}. {{myth.name}}</strong> <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=myth.page}}</span></p>
+		<p><strong>{{myth.number}}. {{myth.name}}</strong>{{#if myth.page}} <span class="bastionland-card__hint">{{localize "bastionland.realm.key.page" page=myth.page}}</span>{{/if}}</p>
 		{{#if myth.complete}}
 		<p class="bastionland-card__hint">{{localize "bastionland.realm.wilderness.omensComplete"}}</p>
 		{{else}}

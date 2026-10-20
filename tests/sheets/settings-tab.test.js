@@ -107,6 +107,18 @@ describe("changeSetting", () => {
 		expect(values.contrast).toBe("high");
 	});
 
+	it("asks for a reload after writing one that only takes hold on a reload", async () => {
+		const reloadConfirm = vi.fn(async () => {});
+		globalThis.foundry = { applications: { settings: { SettingsConfig: { reloadConfirm } } } };
+		game.settings.settings.set(...setting("showTimeline", { name: "Timeline", type: Boolean, scope: "world", default: true, requiresReload: true }));
+		game.user.isGM = true;
+		expect(await tab.changeSetting("showTimeline", false)).toBe(true);
+		expect(reloadConfirm).toHaveBeenCalledWith({ world: true });
+		expect(await tab.changeSetting("textSize", "1.1")).toBe(true);
+		expect(reloadConfirm).toHaveBeenCalledOnce();
+		delete globalThis.foundry;
+	});
+
 	it("refuses what the page doesn't offer this person", async () => {
 		expect(await tab.changeSetting("rulebookForPlayers", false)).toBe(false);
 		expect(await tab.changeSetting("calendar", "{}")).toBe(false);

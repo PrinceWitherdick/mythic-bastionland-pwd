@@ -1,6 +1,6 @@
 import { hexLabel } from "./hex-names.js";
 import { chooseDialog } from "../apps/ui.js";
-import { loadArtIndex, mythEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, pageNote } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
@@ -9,7 +9,6 @@ import { cameFrom } from "../rules/journey.js";
 import { featureAt } from "../rules/realm.js";
 import { editFeature } from "../rules/realm-edits.js";
 import { VIRTUES } from "../rules/virtues.js";
-import { SYSTEM_ID } from "../system-id.js";
 import { throwSpread } from "./book-flip.js";
 import { getCalendar } from "./calendar.js";
 import { companyTokenHex, setCompanyHex } from "./company.js";
@@ -17,8 +16,9 @@ import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
 import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
-import { chooseCompany, virtueLoss } from "./time.js";
-import { causedBy } from "./ledger.js";
+import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
+import { restoreVirtueOfEach } from "./recovery.js";
+import { clearOffCourse, getOffCourse, setOffCourse } from "./off-course.js";
 
 /**
  * What a Landmark asks of the Company that finds it (p14): a Monument's
@@ -26,9 +26,6 @@ import { causedBy } from "./ledger.js";
  * the Realm doesn't hold. The rules themselves are in rules/landmarks.js; here
  * they are rolled, written and told to the table.
  */
-
-/** Where the Curse that threw the Company off course is kept: the calendar it struck in, or null. */
-const OFF_COURSE_SETTING = "offCourse";
 
 /**
  * Ask who among the Company takes a Landmark up on what it offers. A Referee
@@ -46,29 +43,6 @@ async function whoTakesPart(ask) {
 	}
 	return company.map(({ actor }) => actor);
 }
-
-/** Register the blight a Curse leaves. Called during init. */
-export function registerLandmarkSettings() {
-	game.settings.register(SYSTEM_ID, OFF_COURSE_SETTING, {
-		scope: "world",
-		config: false,
-		type: Object,
-		default: null
-	});
-}
-
-/** @returns {object|null} The calendar the Curse struck in, or null while the Company holds its course. */
-export const getOffCourse = () => game.settings.get(SYSTEM_ID, OFF_COURSE_SETTING) ?? null;
-
-/**
- * @param {object|null} calendar The Phase the Curse struck in.
- * @returns {Promise<unknown>|undefined} GMs only.
- */
-const setOffCourse = (calendar) =>
-	(game.user.isGM ? game.settings.set(SYSTEM_ID, OFF_COURSE_SETTING, calendar) : undefined);
-
-/** Let go of a Curse's blight, once it's been rolled for or has lapsed. GMs only. */
-export const clearOffCourse = () => setOffCourse(null);
 
 /**
  * A Curse throws the Company off course, so travel in the next Phase counts as
@@ -93,22 +67,23 @@ export function offCourseNow(calendar = getCalendar()) {
 }
 
 /**
- * Roll Travelling Blind (p18) for a Company thrown off course, and let the
- * Curse's blight go, since it only touches the one Phase. GMs only.
+ * Roll Travelling Blind (p18) for a Company thrown off course. Before the Phase
+ * the Curse blights, the roll stands for that Phase's travel and the blight is let
+ * go; in it, the blight stays, since each of the Company's moves then is rolled
+ * for (travelCursed), and this roll is for travel made off the map. GMs only.
  * @returns {Promise<object|null>}
  */
 export async function rollTravellingBlind() {
 	if (!game.user.isGM) return null;
 	const rolled = await rollRefereeTable("blind");
-	await clearOffCourse();
+	if (offCourseState(getOffCourse(), getCalendar()) !== "live") await clearOffCourse();
 	return rolled;
 }
 
 /**
  * A Monument's Sacrament (p14): a Phase spent there restores SPI just as a
- * Sacrament would. The Phase isn't moved on, as a Remedy
- * doesn't move it either: the Referee turns the calendar when they're ready.
- * GMs only.
+ * Sacrament would, so the Phase's end is offered once it's done, as a Remedy's
+ * is (p9). Closing that window lets the Phase stand. GMs only.
  * @returns {Promise<object[]|null>} The card's entries, or null if nobody took part.
  */
 export async function restoreAtMonument() {
@@ -123,20 +98,14 @@ export async function restoreAtMonument() {
 	});
 	if (!company) return null;
 
-	const entries = [];
-	const updates = [];
-	for (const actor of company) {
-		const value = actor.system.virtues[virtue].max;
-		updates.push(actor.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("landmark")));
-		entries.push({ name: actor.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] });
-	}
-	await Promise.all(updates);
+	const entries = await restoreVirtueOfEach(company, virtue, "landmark");
 	await postCard(null, "report", {
 		title: t("realm.landmarks.effects.monument.offer"),
 		tagline: t("realm.landmarks.monument"),
 		entries,
 		hint: t("realm.landmarks.monumentHint")
 	});
+	await advancePhase();
 	return entries;
 }
 
@@ -233,7 +202,7 @@ export async function echoRuin(scene, hex = null) {
 	const { prompt, myth, page, entry } = await spreadPrompt(await loadArtIndex(), echo, "ruin");
 	await postCard(null, "omen", {
 		title: myth,
-		tagline: page ? t("realm.key.page", { page }) : null,
+		tagline: pageNote(page),
 		img: entry?.path ?? null,
 		omen: t("realm.landmarks.ruinEchoes"),
 		text: prompt ? t("realm.landmarks.ruinPrompt", { prompt }) : null,

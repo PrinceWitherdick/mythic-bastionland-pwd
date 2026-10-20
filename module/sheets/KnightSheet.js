@@ -6,9 +6,11 @@ import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
+import { makeSeer } from "../actions/seers.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
+import { rollLuck } from "../actions/referee-rolls.js";
 import { changeAge } from "../actions/time.js";
 import { timelineSquireTaken } from "../actions/timeline-events.js";
 import { openPortrait } from "../apps/ArtPopout.js";
@@ -28,7 +30,7 @@ import { isDoomed, isScarPending, scarForRoll } from "../rules/scars.js";
 import { mayTakeSquires, squireTabs } from "../rules/squires.js";
 import { TRAVELS_CHANGED_HOOK } from "../actions/hex-shared.js";
 import { travelsListContext } from "../actions/travels.js";
-import { openPlaces, openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
+import { openTravelsRow, showTravelsRow, travelsState, wireTravelsList } from "../apps/TravelsPlaces.js";
 import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
@@ -38,6 +40,16 @@ import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
+
+/**
+ * @param {object} changes From `updateActor`, to a steed, Squire, master, Domain or successor.
+ * @returns {boolean} Whether it changed what the Knight's page shows of them: their name and
+ *   picture, a steed's breed, and whether this user may rename it.
+ */
+function shownOfLinked(changes) {
+	if (["name", "img", "ownership"].some((key) => key in changes)) return true;
+	return Object.keys(changes.flags?.[SYSTEM_ID] ?? {}).some((key) => key.replace(/^-=/, "") === BREED_FLAG);
+}
 
 /**
  * The Knight character sheet, laid out after the official printed sheet, with
@@ -76,14 +88,15 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			clearSuccessor: KnightSheet.#onClearSuccessor,
 			paintHeraldry: KnightSheet.#onPaintHeraldry,
 			pickSeerImage: KnightSheet.#onPickSeerImage,
+			makeSeer: KnightSheet.#onMakeSeer,
 			openPortrait: KnightSheet.#onOpenPortrait,
 			openDomain: KnightSheet.#onOpenDomain,
+			rollLuck: KnightSheet.#onRollLuck,
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
 			pickTravelsHex: openTravelsRow,
-			showTravelsHex: showTravelsRow,
-			openPlaces: KnightSheet.#onOpenPlaces
+			showTravelsHex: showTravelsRow
 		}
 	};
 
@@ -241,6 +254,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			},
 			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
 			seerStats: seer && this.#seerScores(seer),
+			// The Referee may bring the Seer into the world as an NPC of their own, whose harm is theirs.
+			canMakeSeer: game.user.isGM && Boolean(seer && system.seer),
 			enrichedSeerInfo,
 			enrichedSeerNotes,
 			unchosen: isUnchosen(this.actor) && this.#unchosenContext(),
@@ -262,14 +277,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 
 	/** @type {import("../apps/TravelsPlaces.js").TravelsListState} The Travels page's Realm, search, page and order, kept between draws. */
 	#travels = travelsState();
-
-	/**
-	 * Open the Places window on the Realm the Travels page shows.
-	 * @this {KnightSheet}
-	 */
-	static #onOpenPlaces() {
-		openPlaces({ sceneId: this.#travels.realm ?? undefined });
-	}
 
 	/** Whether the Travels page missed a change while another page was open. */
 	#travelsStale = false;
@@ -423,6 +430,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		};
 	}
 
+	/** @this {KnightSheet} */
+	static async #onMakeSeer() {
+		return makeSeer({ knight: this.actor.system });
+	}
+
 	/**
 	 * The Seer's scores as the book gives them, to read only: their harm is
 	 * kept on their own NPC sheet.
@@ -510,11 +522,14 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	 */
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
-		const redraw = (actor) => {
-			const system = this.actor.system;
-			if (LINKED_ACTORS.some(({ key }) => system[key] === actor.uuid)) this.render();
-		};
-		this._watchHooks(["updateActor", "deleteActor"], redraw);
+		const linked = (actor) => LINKED_ACTORS.some(({ key }) => this.actor.system[key] === actor.uuid);
+		// Only what the page shows of them: a steed's GD falling in a fight, or a Squire's Ledger written, changes nothing here.
+		this._watchHooks(["updateActor"], (actor, changes) => {
+			if (shownOfLinked(changes) && linked(actor)) renderWhenIdle(this);
+		});
+		this._watchHooks(["deleteActor"], (actor) => {
+			if (linked(actor)) renderWhenIdle(this);
+		});
 		// The Knight's table shows due once it comes round, or no longer due once the calendar is set back.
 		this._watchHooks([CALENDAR_HOOK], (after, before, turned) => {
 			const renewal = knightRenewal(this.actor);
@@ -708,6 +723,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onOpenDomain() {
 		return openKnightDomain(this.actor);
+	}
+
+	/** The Luck Roll (p16), asked the odds as the hotbar's is, so the sheet holds everything a player rolls. */
+	static #onRollLuck() {
+		return rollLuck();
 	}
 
 	/** @this {KnightSheet} */

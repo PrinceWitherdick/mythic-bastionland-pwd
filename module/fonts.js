@@ -3,6 +3,9 @@ import { SYSTEM_PATH } from "./system-id.js";
 /** Where the faces the stylesheet declares are served from. */
 export const FONT_ROOT = `${SYSTEM_PATH}/assets/fonts`;
 
+/** IM Fell's line box, centred on its capitals as its `@font-face` rules have it. */
+const FELL_CENTRED = Object.freeze({ ascentOverride: "97.8%", descentOverride: "29%" });
+
 /**
  * The faces the stylesheet draws the sheets with. Foundry keeps its own
  * register of fonts, and offers only what is in it from the Chronicle's font
@@ -12,6 +15,10 @@ export const FONT_ROOT = `${SYSTEM_PATH}/assets/fonts`;
  * The order within a family follows the stylesheet's: EB Garamond's figures
  * come last, so its lining digits win over IM Fell's old-style ones, and the
  * Display family's second face lends it nothing but a legible lowercase k.
+ *
+ * Foundry adds these faces after the stylesheet's, so they are the ones drawn,
+ * and IM Fell's carry the same line box as the stylesheet gives them, centred
+ * on the capitals (see the note on its `@font-face` rules).
  */
 export const SHEET_FONTS = Object.freeze({
 	"Bastionland Display": [
@@ -19,12 +26,12 @@ export const SHEET_FONTS = Object.freeze({
 		{ urls: [`${FONT_ROOT}/PirataOne-Regular.ttf`], unicodeRange: "U+006B", sizeAdjust: "97.5%" }
 	],
 	"Bastionland Body": [
-		{ urls: [`${FONT_ROOT}/IMFellEnglish-Regular.ttf`] },
-		{ urls: [`${FONT_ROOT}/IMFellEnglish-Italic.ttf`], style: "italic" },
+		{ urls: [`${FONT_ROOT}/IMFellEnglish-Regular.ttf`], ...FELL_CENTRED },
+		{ urls: [`${FONT_ROOT}/IMFellEnglish-Italic.ttf`], style: "italic", ...FELL_CENTRED },
 		{ urls: [`${FONT_ROOT}/EBGaramond-Figures.ttf`], unicodeRange: "U+0030-0039" }
 	],
 	"Bastionland Caps": [
-		{ urls: [`${FONT_ROOT}/IMFellEnglishSC-Regular.ttf`] },
+		{ urls: [`${FONT_ROOT}/IMFellEnglishSC-Regular.ttf`], ...FELL_CENTRED },
 		{ urls: [`${FONT_ROOT}/EBGaramond-Figures.ttf`], unicodeRange: "U+0030-0039" }
 	]
 });

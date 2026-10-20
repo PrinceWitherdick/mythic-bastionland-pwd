@@ -7,6 +7,7 @@
  * without Foundry.
  */
 import { spreads } from "./book-art.js";
+import { MYTH_COUNT } from "./realm.js";
 
 /** @type {readonly {d6: number, d12: number, roll: string}[]|null} Reckoned once: the table is the same in every copy of the book. */
 let allRolls = null;
@@ -29,6 +30,17 @@ export const mythRollKey = ({ d6, d12 }) => `${d6}-${d12}`;
  * @returns {object|null} The Myth of the Realm on that roll, if it has one.
  */
 export const mythWithRoll = (myths, roll) => myths.find((myth) => mythRollKey(myth) === mythRollKey(roll)) ?? null;
+
+/**
+ * How many numbers a Realm's Myths go by: as many as it was set up with, six
+ * by the book (p14), or more where a Myth has since been put under a higher one.
+ * @param {{myths: {number: number}[], setup?: {myths?: number}}} realm
+ * @returns {number}
+ */
+export function mythSlots(realm) {
+	const setUp = realm.setup?.myths;
+	return Math.max(Number.isInteger(setUp) ? setUp : MYTH_COUNT, ...realm.myths.map((myth) => myth.number));
+}
 
 /**
  * @param {{d6: number, d12: number}[]} [myths] The Myths a Realm holds.
@@ -60,5 +72,6 @@ export function rollFreeMyth(random, myths = []) {
  */
 export function rollMythsAgain(random, myths = []) {
 	const rolls = random.shuffle([...mythRolls()]);
-	return myths.slice(0, rolls.length).map((myth, index) => ({ ...myth, d6: rolls[index].d6, d12: rolls[index].d12 }));
+	// One the Referee wrote is rolled again too, and becomes one of the book's.
+	return myths.slice(0, rolls.length).map(({ own: _own, ...myth }, index) => ({ ...myth, d6: rolls[index].d6, d12: rolls[index].d12 }));
 }

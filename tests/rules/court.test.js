@@ -16,11 +16,12 @@ import {
 	normalizeCourtMember,
 	retainerChoices,
 	seatHolder,
-	seatOf
+	seatOf,
+	unworthyPosts
 } from "../../module/rules/court.js";
 import { COUNCIL_SEATS } from "../../module/rules/dominion.js";
 
-const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, ...extra });
+const member = (role, name, extra = {}) => ({ role, name, seat: "", leverage: "", note: "", at: 1, knight: "", ...extra });
 
 describe("COURT_ROLES", () => {
 	it("holds the four the book lists, in its order", () => {
@@ -266,5 +267,52 @@ describe("councilSeatPlan", () => {
 	it("turns the Circle's names into its Knights' ids, keeping a name no Knight has", () => {
 		ids = [];
 		expect(councilSeatPlan({ council: { circle: "Moss, Sir Nobody" }, court: {} }, knights, makeId, 100)).toEqual({ "system.council.circle": ["k1", "Sir Nobody"] });
+	});
+});
+
+describe("unworthyPosts", () => {
+	const knight = (id, name, glory, extra = {}) => ({ id, name, system: { glory, ...extra } });
+	const tal = knight("aaaaaaaaaaaaaaaa", "Tal", 4, { domain: "Actor.d1" });
+	const moss = knight("bbbbbbbbbbbbbbbb", "Moss", 1);
+	const brand = knight("cccccccccccccccc", "Brand", 2);
+	const wren = knight("dddddddddddddddd", "Wren", 0, { isSquire: true });
+	const knights = [tal, moss, brand, wren];
+
+	it("names each Knight once, for the highest post they hold above their Rank (p6)", () => {
+		const domain = {
+			uuid: "Actor.d1",
+			system: {
+				ruler: "",
+				seat: false,
+				council: { steward: "r1", circle: [moss.id] },
+				court: { r1: { role: "retainer", name: "Brand" }, c1: { role: "courtier", name: "Moss" }, p1: { role: "petitioner", name: "Wren" } }
+			}
+		};
+		expect(unworthyPosts(domain, knights)).toEqual([
+			{ name: "Tal", post: "holding", rank: "tenant" },
+			{ name: "Moss", post: "council", rank: "gallant" },
+			{ name: "Brand", post: "council", rank: "gallant" }
+		]);
+	});
+
+	it("knows a Courtier seated as a Knight by id, though the Knight has been renamed since", () => {
+		const domain = { system: { ruler: "", seat: false, council: {}, court: { c1: { role: "courtier", name: "Moss the Green", knight: moss.id } } } };
+		expect(unworthyPosts(domain, knights)).toEqual([{ name: "Moss", post: "court", rank: "gallant" }]);
+	});
+
+	it("weighs a Seat of Power's ruler found by name against Knight-Dominant, and passes over the worthy", () => {
+		const domain = { system: { ruler: "Tal", seat: true, council: {}, court: { c1: { role: "courtier", name: "Tal" } } } };
+		expect(unworthyPosts(domain, knights)).toEqual([{ name: "Tal", post: "seat", rank: "dominant" }]);
+		expect(unworthyPosts(domain, [knight("aaaaaaaaaaaaaaaa", "Tal", 9)])).toEqual([]);
+	});
+
+	it("leaves out the slain, who face no opposition", () => {
+		const domain = { system: { ruler: "", seat: false, council: {}, court: { c1: { role: "courtier", name: "Moss" } } } };
+		expect(unworthyPosts(domain, [{ ...moss, system: { ...moss.system, slain: true } }])).toEqual([]);
+	});
+
+	it("leaves out Squires, a Petitioner, and names no Knight goes by", () => {
+		const domain = { system: { ruler: "Wren", council: { circle: ["Somebody"] }, court: { p1: { role: "petitioner", name: "Moss" }, c1: { role: "courtier", name: "Stranger" } } } };
+		expect(unworthyPosts(domain, knights)).toEqual([]);
 	});
 });

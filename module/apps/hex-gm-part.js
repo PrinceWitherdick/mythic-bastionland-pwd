@@ -13,7 +13,7 @@ import {
 	writeHexNote
 } from "../actions/hex-lore.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
-import { grantHolding, rulersOf } from "../actions/holding-ruler.js";
+import { domainsRuling, grantHolding, rulersOf } from "../actions/holding-ruler.js";
 import { getHexVisits, markHexVisited } from "../actions/journey.js";
 import { landmarkOfferView, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
 import { rollUpHolding } from "../actions/people.js";
@@ -23,7 +23,7 @@ import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
 import { keptFromMe, realmKnown } from "../actions/solo.js";
 import { wildernessRoll } from "../actions/wilderness.js";
-import { mythLookup, seerEntry } from "../book-art/art-index.js";
+import { mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { omenStage } from "../rules/gm-toolkit.js";
@@ -31,7 +31,9 @@ import { toldState } from "../rules/hex-shared.js";
 import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lore.js";
 import { gatherCast } from "../rules/myth-cast.js";
 import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
-import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
+import { rulingHolding } from "../rules/dominion.js";
+import { OMEN_COUNT, TERRAIN, featureAt, holdingName, seerReference, terrainAt } from "../rules/realm.js";
+import { makeSeer } from "../actions/seers.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
@@ -173,6 +175,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		holding: held,
 		// Who rules the Holding (p20), and the offer to grant it to a Knight.
 		ruler: holding ? rulerContext(scene, holdingHere) : null,
+		// Out in the wilderness, the nearest Holding's rule (p20).
+		ruledFrom: holding ? null : ruledFrom(scene, entry.realm, g, hex),
 		notice,
 		forget: hexForgetContext(scene, hex, { lore: record, visits })
 	};
@@ -219,7 +223,7 @@ function mythContext(scene, myth, index) {
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));
 	return {
 		number: myth.number,
-		name: page ? t("realm.panel.reference", { name, page }) : name,
+		name: withPage(name, page),
 		seen: t("realm.panel.omensSeen", { omen: myth.omen, count: OMEN_COUNT }),
 		none: myth.omen <= 0,
 		all: myth.omen >= OMEN_COUNT,
@@ -243,8 +247,8 @@ function mythContext(scene, myth, index) {
  */
 function seerContext(seer, index) {
 	if (!seer?.d6 || !seer?.d12) return { name: null, roll: t("hexGm.seer.roll") };
-	const { name, page } = seerEntry(index, seer);
-	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again") };
+	const { name, page, entry } = seerEntry(index, seer);
+	return { name: t("realm.panel.reference", { name, page }), roll: t("hexGm.seer.again"), make: Boolean(entry?.stats) };
 }
 
 /**
@@ -262,6 +266,23 @@ function rulerContext(scene, holding) {
 		named: knight ? null : String(domain.system.ruler ?? "").trim() || null
 	}));
 	return { rulers, grant: t(rulers.length ? "hexGm.ruler.change" : "hexGm.ruler.grant") };
+}
+
+/**
+ * Whose rule a wilderness hex falls under: the nearest Holding's (p20), and the
+ * Domain ruling it where there is one.
+ * @param {Scene} scene
+ * @param {object} realm
+ * @param {object} g
+ * @param {{col: number, row: number}} hex
+ * @returns {string|null} Null in a Realm with no Holding.
+ */
+function ruledFrom(scene, realm, g, hex) {
+	const holding = rulingHolding(realm, g, hex);
+	if (!holding) return null;
+	const domains = domainsRuling(scene, holding).map((domain) => domain.name);
+	const name = holdingName(holding, t);
+	return domains.length ? t("hexGm.ruledFrom.domain", { holding: name, domain: domains.join(", ") }) : t("hexGm.ruledFrom.holding", { holding: name });
 }
 
 /**
@@ -524,6 +545,11 @@ export const HEX_GM_ACTIONS = Object.freeze({
 	...HEX_FEATURE_ACTIONS,
 	// Choose the Seer at the Sanctum here by hand, from the Knights table (p26).
 	chooseSeer: ({ scene, hex }) => openSeerChooser({ scene, hex }),
+	// Bring the Sanctum's Seer into the world as an NPC of their own.
+	makeSeer({ scene, hex }) {
+		const seer = featureAt(getRealm(scene).realm, hex).landmark?.seer;
+		return seer?.d6 && seer?.d12 ? makeSeer({ roll: seerReference(seer).roll }) : null;
+	},
 	// Grant the Holding here to a Knight, through their Domain (p20).
 	grantHolding: ({ scene, hex }) => grantHolding(scene, hex),
 	// A sheet named in the part: one of the Cast, or the Knight or Domain ruling a Holding.

@@ -6,7 +6,7 @@ import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { postCard, t } from "../chat/cards.js";
-import { deletionEntry, scenePaper } from "../compat.js";
+import { deletionEntry, scenePaper, tileCentred, tilePlaced } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
@@ -16,6 +16,7 @@ import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js
 import {
 	GRID_ALPHA,
 	LEVEL_ID,
+	TILE_CORNERS_FLAG,
 	hiddenByHand,
 	planChanges,
 	planRealmSync,
@@ -23,7 +24,8 @@ import {
 	realmFlagChanges,
 	realmFromDocuments,
 	realmSceneData,
-	realmTextures
+	realmTextures,
+	tilesSettled
 } from "../rules/realm-documents.js";
 import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
 import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
@@ -182,7 +184,7 @@ export function hexHiddenByHand(scene, hex) {
 	const entry = getRealm(scene);
 	let hidden = entry && hiddenTiles.get(entry);
 	if (!hidden) {
-		hidden = scene.tiles.filter((tile) => tile._source.hidden).map((tile) => tile._source);
+		hidden = centredTiles(scene).filter((tile) => tile.hidden);
 		if (entry) hiddenTiles.set(entry, hidden);
 	}
 	return hiddenByHand(hidden, sceneGeometry(scene), hex);
@@ -201,12 +203,42 @@ export function forgetRealm(sceneId) {
 
 /**
  * @param {Scene} scene
- * @returns {{tiles: object[], drawings: object[]}} The source data planRealmSync compares against.
+ * @returns {{tiles: object[], drawings: object[]}} The source data planRealmSync compares against,
+ *   each Tile centred, as the Realm's rules read every Tile.
  */
 const existingDocuments = (scene) => ({
-	tiles: scene.tiles.map((tile) => tile._source),
+	tiles: centredTiles(scene),
 	drawings: scene.drawings.map((drawing) => drawing._source)
 });
+
+/**
+ * @param {Scene} scene
+ * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand (tilesSettled).
+ */
+const tileCentreOn = (scene) => (tilesSettled(scene.flags) ? tileCentred : (tile) => tile._source);
+
+/**
+ * @param {Scene} scene A Realm Scene.
+ * @returns {object[]} Each of its Tiles' source data, with its `_id` and its centre in x and y, as the Realm's rules read a Tile.
+ */
+export const centredTiles = (scene) => scene.tiles.map(tileCentreOn(scene));
+
+/**
+ * Move each Tile of a Realm laid on v13 before Tiles were placed there by their
+ * corners from its centre to its corner, once, so every write after places
+ * them all alike. Nothing to do on v14, or on a Realm already moved.
+ * @param {Scene} scene
+ */
+async function settleRealmTiles(scene) {
+	if (tilesSettled(scene.flags)) return;
+	const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => {
+		const { x, y, width, height } = tile._source;
+		const corner = tilePlaced({ x, y, width, height });
+		return { _id: tile.id, x: corner.x, y: corner.y };
+	});
+	if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+	await scene.update({ [`flags.${SYSTEM_ID}.${TILE_CORNERS_FLAG}`]: true });
+}
 
 /** Realm writes, taken one at a time. */
 const queueRealmWrite = serialWrites();
@@ -227,6 +259,7 @@ const queueRealmWrite = serialWrites();
  * @returns {Promise<boolean>} Whether anything was written.
  */
 async function writeRealm(scene, realm, g, textures, { replacing = false, operation = {} } = {}) {
+	await settleRealmTiles(scene);
 	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
@@ -909,9 +942,10 @@ export async function setRealmLayout(scene, layout) {
 			to.layout === BOOK_LAYOUT ? deletionEntry(flag) : [flag, to.layout]
 		]));
 		// Each of the Realm's Tiles moves with its hex, so the sync that follows finds each where the new layout looks for it.
+		const centre = tileCentreOn(scene);
 		const moves = scene.tiles.contents.flatMap((tile) => {
 			const kind = realmFlag(tile)?.kind;
-			const hex = kind && kind !== "map" ? hexAt(from, tile._source) : null;
+			const hex = kind && kind !== "map" ? hexAt(from, centre(tile)) : null;
 			if (!hex) return [];
 			const was = hexCentre(from, hex);
 			const now = hexCentre(to, hex);

@@ -11,7 +11,8 @@
  * the Season log is, so the sheet can write one member's line at a time. Pure,
  * so it can be tested without Foundry.
  */
-import { COUNCIL_SEATS, SEATS_TO_FILL, isSameName } from "./dominion.js";
+import { COUNCIL_SEATS, SEATS_TO_FILL, canHoldPost, isSameName, rulingKnightOf } from "./dominion.js";
+import { unworthyOf } from "./glory.js";
 import { trimmedText } from "./text.js";
 
 /** Who serves outside the Council, in the order the book lists them. */
@@ -37,6 +38,8 @@ export const DRAMA_ROLE = "courtier";
  * @property {string} leverage  What hold they have over the ruler, if any (p21).
  * @property {string} note      Anything else about them.
  * @property {number} at        When they joined the Court, to keep the list in the order it was written.
+ * @property {string} knight    The id of the Knight they are, where they were seated as one; blank for
+ *   somebody written in by hand, who is matched to a Knight by name.
  */
 
 /**
@@ -52,7 +55,8 @@ export function normalizeCourtMember(raw) {
 		seat,
 		leverage: trimmedText(raw.leverage),
 		note: trimmedText(raw.note),
-		at: Number.isFinite(raw.at) ? raw.at : 0
+		at: Number.isFinite(raw.at) ? raw.at : 0,
+		knight: typeof raw.knight === "string" ? raw.knight : ""
 	};
 }
 
@@ -96,7 +100,7 @@ export const courtSize = (court) => Object.keys(normalizeCourt(court)).length;
  * @returns {CourtMember|null} Null for a role that isn't the Court's.
  */
 export function newCourtMember(role, at) {
-	return normalizeCourtMember({ role, name: "", seat: "", leverage: "", note: "", at });
+	return normalizeCourtMember({ role, name: "", seat: "", leverage: "", note: "", at, knight: "" });
 }
 
 /**
@@ -167,6 +171,29 @@ export function circleEntries(circle) {
 const looksLikeId = (entry) => /^[a-zA-Z0-9]{16}$/.test(entry);
 
 /**
+ * @template {{name: string}} T
+ * @param {T[]} knights
+ * @param {string} name
+ * @returns {T|null} The one Knight going by the name, or null where none does or several do.
+ */
+function soleNamed(knights, name) {
+	const named = knights.filter((knight) => isSameName(knight.name, name));
+	return named.length === 1 ? named[0] : null;
+}
+
+/**
+ * The Knight somebody of the Court is: the one they were seated as, by id, so
+ * a Knight renamed since is still known; or else the one Knight going by their name.
+ * @template {{id: string, name: string}} T
+ * @param {{name: string, knight?: string}} member
+ * @param {T[]} knights
+ * @returns {T|null}
+ */
+export function courtKnight(member, knights) {
+	return (member.knight && knights.find((knight) => knight.id === member.knight)) || soleNamed(knights, member.name);
+}
+
+/**
  * The Knights sitting in the Circle, each found by id or else by a name only
  * one Knight goes by. A name no Knight answers to is kept as it was written;
  * the id of a Knight who is gone is left out.
@@ -177,8 +204,7 @@ const looksLikeId = (entry) => /^[a-zA-Z0-9]{16}$/.test(entry);
 export function circleKnights(circle, knights) {
 	const seated = new Map();
 	for (const entry of circleEntries(circle)) {
-		const named = knights.filter((knight) => isSameName(knight.name, entry));
-		const knight = knights.find((each) => each.id === entry) ?? (named.length === 1 ? named[0] : null);
+		const knight = knights.find((each) => each.id === entry) ?? soleNamed(knights, entry);
 		if (!knight && looksLikeId(entry)) continue;
 		const key = knight ? knight.id : `name:${entry}`;
 		if (!seated.has(key)) seated.set(key, knight ? { id: knight.id, name: knight.name, legacy: false } : { id: "", name: entry, legacy: true });
@@ -231,4 +257,36 @@ export function councilSeatPlan(system, knights, makeId, now) {
 	const changed = after.length !== before.length || after.some((entry, index) => entry !== before[index]);
 	if (changed || !Array.isArray(council.circle)) updates["system.council.circle"] = after;
 	return updates;
+}
+
+/** The Court's roles that are posts a Knight holds, as a Courtier's office is; a Petitioner only asks. */
+const COURT_POSTS = Object.freeze(["retainer", "courtier"]);
+
+/**
+ * The world's Knights holding a post of this Domain that their Rank isn't
+ * worthy of yet (Worthiness, p6): its ruler, those on its Council, and those in
+ * its Court. Each Knight is named once, for the highest post they hold. A
+ * Squire isn't knighted yet, so has no Rank to weigh, and the slain face no one.
+ * @param {{uuid?: string, system: {ruler?: string, seat?: boolean, council?: object, court?: unknown}}} domain
+ * @param {{id: string, name: string, system: {glory?: number, domain?: string, isSquire?: boolean, slain?: boolean}}[]} knights The world's Knights.
+ * @returns {{name: string, post: string, rank: string}[]} `post` is one of POST_RANKS' keys, `rank` the Rank it asks for.
+ */
+export function unworthyPosts(domain, knights) {
+	const { system } = domain;
+	const knighted = knights.filter(canHoldPost);
+	const posts = new Map();
+	const hold = (knight, post) => {
+		if (knight && !posts.has(knight.id)) posts.set(knight.id, { knight, post });
+	};
+	hold(rulingKnightOf(domain, knighted), system.seat ? "seat" : "holding");
+	// The Circle's Knights come back by their own ids, a Retainer by the id of their place in the Court.
+	const court = normalizeCourt(system.court);
+	for (const seat of ["circle", ...RETAINER_SEATS]) {
+		for (const held of seatHolders(system, seat, knighted)) hold(knighted.find((knight) => knight.id === held.id) ?? courtKnight(court[held.id] ?? held, knighted), "council");
+	}
+	for (const member of courtMembers(court)) if (COURT_POSTS.includes(member.role)) hold(courtKnight(member, knighted), "court");
+	return [...posts.values()].flatMap(({ knight, post }) => {
+		const rank = unworthyOf(knight.system?.glory, post);
+		return rank ? [{ name: knight.name, post, rank }] : [];
+	});
 }

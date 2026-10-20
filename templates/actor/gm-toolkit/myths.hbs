@@ -120,6 +120,9 @@
 			</label>
 
 			<nav class="bastionland-toolbar" aria-label="{{name}}">
+				{{#if own}}
+				<button type="button" data-action="editOwnMyth" data-tooltip="{{localize 'bastionland.ownMyth.editTooltip'}}"><i class="fa-solid fa-pen-nib" inert></i> {{localize "bastionland.ownMyth.edit"}}</button>
+				{{/if}}
 				{{#if table.rows}}
 				<button type="button" data-action="rollMythTable"><i class="fa-solid fa-dice-d6" inert></i> {{localize "bastionland.gmToolkit.myths.rollTable"}}</button>
 				{{/if}}

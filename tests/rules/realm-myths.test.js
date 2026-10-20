@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRandom } from "../../module/rules/random.js";
-import { freeMythRolls, mythRollKey, mythRolls, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../../module/rules/realm-myths.js";
+import { MYTH_COUNT } from "../../module/rules/realm.js";
+import { freeMythRolls, mythRollKey, mythRolls, mythSlots, mythWithRoll, rollFreeMyth, rollMythsAgain } from "../../module/rules/realm-myths.js";
 
 /** A Realm's Myths, numbered 1 up, each in a hex of its own. */
 const fakeMyths = (rolls) => rolls.map(([d6, d12], index) => ({
@@ -13,6 +14,22 @@ const fakeMyths = (rolls) => rolls.map(([d6, d12], index) => ({
 }));
 
 const SIX = fakeMyths([[1, 1], [2, 5], [3, 12], [4, 7], [5, 2], [6, 9]]);
+
+describe("the numbers a Realm's Myths go by", () => {
+	it("are six by the book, whatever is left in the Realm", () => {
+		expect(mythSlots({ myths: [] })).toBe(MYTH_COUNT);
+		expect(mythSlots({ myths: [{ number: 2 }] })).toBe(MYTH_COUNT);
+	});
+
+	it("are as many as a Realm set up by hand was made with", () => {
+		expect(mythSlots({ myths: [{ number: 1 }], setup: { myths: 3 } })).toBe(3);
+		expect(mythSlots({ myths: [], setup: { myths: 0 } })).toBe(0);
+	});
+
+	it("reach any Myth put under a higher number since", () => {
+		expect(mythSlots({ myths: [{ number: 5 }], setup: { myths: 3 } })).toBe(5);
+	});
+});
 
 describe("the Myths table", () => {
 	it("is the book's 72, d6 first then d12", () => {

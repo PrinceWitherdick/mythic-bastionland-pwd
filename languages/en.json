@@ -22,7 +22,7 @@
   "bastionland": {
     "solo": {
       "setting": {
-        "name": "Solo play",
+        "name": "Solo Play",
         "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
       },
       "welcome": {
@@ -50,7 +50,7 @@
     },
     "duplicateKnights": {
       "setting": {
-        "name": "Allow the same Knight twice",
+        "name": "Allow the Same Knight Twice",
         "hint": "Lets more than one character be the same Knight from the book, by rolling, choosing or typing it in. Off, a Knight that a living character already is can’t be taken again; a slain Knight’s can."
       }
     },
@@ -340,6 +340,9 @@
       "unnamed": "Write the Seer who knighted them above, beside “Knighted by”. A Seer from the book fills in their picture and what the book says.",
       "portrait": "Choose the Seer’s picture",
       "infoEmpty": "Filled in from the book once the Seer beside “Knighted by” is one of the book’s and Import PDF has been run.",
+      "make": "Make this Seer",
+      "makeHint": "Bring this Seer into the world as an NPC of their own, from the book’s stat block, or open the one made already.",
+      "noStatBlock": "The book gives this Seer no stat block, or Import PDF hasn’t read it yet.",
       "notes": "Notes"
     },
     "npcPack": {
@@ -726,6 +729,7 @@
       "use": "Use Remedy ({virtue})",
       "intro": "Tick everybody present. Each has their {virtue} restored, and the Remedy is used up.",
       "tagline": "A Remedy used",
+      "passPhase": "Move on a Phase for the Remedy",
       "hint": "A Remedy takes a whole Phase to use, and its Virtue comes back before anything the Phase brings, Omens included.",
       "limit": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. Give it to somebody else to carry.",
       "limitSteed": "{name} already carries a Remedy, and nobody, person or pack beast, can carry two. {steed} could carry it."
@@ -790,15 +794,18 @@
       "knightHint": "All three Feats are known to every Knight.",
       "smite": {
         "name": "Smite",
-        "summary": "A melee Attack gains d12, or Blast."
+        "summary": "A melee Attack gains d12, or Blast.",
+        "where": "Smite is chosen in the Attack window, which makes its Save. Clicking here shows it to the table."
       },
       "focus": {
         "name": "Focus",
-        "summary": "A Gambit that costs no die."
+        "summary": "A Gambit that costs no die.",
+        "where": "Focus is pressed on the Attack card, which makes its Save. Clicking here shows it to the table."
       },
       "deny": {
         "name": "Deny",
-        "summary": "Strike out one die of an Attack on you or an ally beside you."
+        "summary": "Strike out one die of an Attack on you or an ally beside you.",
+        "where": "Deny is pressed on the Attack card, which makes its Save. Clicking here shows it to the table."
       },
       "saveOrFatigue": "{virtue} Save or become Fatigued.",
       "alreadyFatigued": "{name} is Fatigued: no Feats again until they’ve rested.",
@@ -1034,7 +1041,6 @@
       "showOnMap": "Show on the map",
       "ping": "Ping",
       "pingHint": "Show this hex on the map, ringed in green until you next click.",
-      "openPlaces": "Open Places",
       "views": {
         "label": "Pages",
         "places": "Places",
@@ -1182,6 +1188,20 @@
       "readout": "Something stands here",
       "readoutNote": "Something stands here: {note}"
     },
+    "arrival": {
+      "title": "Where the Company Came",
+      "dire": "The weather is dire, and in dire weather the Company can’t leave the Hex. They set out from {hex}.",
+      "stay": "Keep them where they were",
+      "gallop": "Two Hexes this Phase is a Gallop: only on steeds that aren’t Exhausted, and each steed loses d6 VIG.",
+      "gallopButton": "Gallop",
+      "cruise": "Three Hexes this Phase is a Cruise: only afloat, or riding along one of the few true roads.",
+      "beyond": "More than three Hexes in one Phase is further than any way of travelling goes.",
+      "myth": "They came into a Myth’s Hex at {hex}. Entering or exploring it reveals the Myth’s next Omen.",
+      "omen": "Reveal its next Omen",
+      "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
+      "mood": "Local Mood",
+      "realmGone": "That Realm is no longer in this world."
+    },
     "phaseEnd": {
       "title": "The {phase} Ends",
       "where": "The Company stands at {hex}.",
@@ -1189,6 +1209,12 @@
       "spent": "How did the Company spend the {phase}?",
       "ok": "Move On to the {next}",
       "alreadyOpen": "The Phase is already ending. Finish that window first.",
+      "hostileOmen": {
+        "title": "An Omen in the Night",
+        "text": "Camping out, the Company met an Omen. A hostile Omen keeps them from proper sleep, so each loses d6 CLA come the Morning. Was this one hostile?",
+        "hostile": "Hostile: nobody sleeps",
+        "calm": "Not hostile"
+      },
       "modes": {
         "travel": {
           "label": "Travelling or exploring",
@@ -1287,8 +1313,6 @@
       },
       "moveOn": "Move Time On",
       "nextPhase": "Next Phase",
-      "turnSeason": "Turn the Season",
-      "turnAge": "Turn the Age",
       "seasonIntro": "{season} gives way to {next}. Each Knight ticked has their Virtues restored and chooses a pursuit, and any Mutilation Scar settles.",
       "ageIntro": "Age {age} begins in Spring. Each Knight ticked has their Virtues restored, gains 1 Glory and chooses a pursuit. Old Knights lose d12 VIG, and any Mutilation Scar settles.",
       "agePick": {
@@ -1296,7 +1320,7 @@
         "turn": "Turning the Age begins Age {next} in Spring. Each Knight taking part has their Virtues restored, gains 1 Glory and chooses a pursuit, and Old Knights lose d12 VIG.",
         "set": "Set the Age",
         "setHint": "Setting the Age only puts the number right. Nothing that comes between Ages happens.",
-        "change": "Turn the Age, or set it by hand"
+        "change": "A Year Passes, or set the Age by hand"
       },
       "company": "Who takes part",
       "pursuit": "Pursuit",
@@ -1322,6 +1346,8 @@
         }
       },
       "pursuitMakes": {
+        "label": "What came of it",
+        "later": "Ask once the Season turns",
         "service": {
           "question": "What small improvement to the Realm did {name}’s Service make?",
           "dwelling": "A Dwelling added to the map",
@@ -1365,12 +1391,15 @@
       "glory": "Glory {from} → {to}.",
       "oldAge": "Old age: loses {amount} VIG, max VIG {from} → {to}.",
       "diesPeacefully": "At VIG 0, they die peacefully.",
+      "fateOldAge": "Died peacefully of old age",
       "doomLifts": "The Season of their Doom has passed, and a Mortal Wound no longer Slays them.",
       "due": {
         "title": "Due this Season",
         "crisis": "The Crisis Roll for {domains} (p20), from the Referee Toolkit’s Time page or each Domain’s sheet.",
         "drama": "Drama in Court for {domains} (p21), from each Domain’s sheet.",
         "myths": "A new Myth in place of each one resolved: {myths} (p27), from the Referee Toolkit’s Time page.",
+        "replaceMyth": "Roll a Myth to replace {myth}",
+        "mythGone": "That Myth has already been replaced, or isn’t resolved any more.",
         "emptySeats": "{domain} has nobody as {seats} (p20). A Domain runs smoothly only with its seats filled.",
         "designs": "Grand Designs done (p21): {works}. Strike them off each Domain’s sheet."
       },
@@ -1405,7 +1434,7 @@
         "nextIs": "Weeks passing carries the Company on to {event}.",
         "nextIsEnd": "Only {event} is left, which ends the Season, so weeks passing turns the Season.",
         "collected": "Collected by {domains}, whose Stewards may press their Vassals for more to pay for a war or a great work.",
-        "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Turn the Season.",
+        "nothingLeft": "Every event of {season} has come to pass, so only the Season’s end is left. Let Months Pass.",
         "notThisSeason": "{event} isn’t an event of this Season, or has already come to pass.",
         "kinds": {
           "feastOfTheSun": {
@@ -1450,7 +1479,8 @@
         "title": "Travelling by Night",
         "text": "The Company is on the move by night. With no guide and no light they’re travelling blind, rolling for every Hex they try to enter this Night. What the Night costs is taken as it ends.",
         "sighted": "With a guide and light",
-        "blind": "Travelling blind"
+        "blind": "Travelling blind",
+        "landed": "Travelling blind, the Company ends up at {hex}."
       },
       "hardship": {
         "intro": "Tick everybody who suffers it.",
@@ -1481,7 +1511,9 @@
         "title": "Growing Older",
         "intro": "{name} becomes {age}. Roll each Virtue on d12+d6 for it?",
         "oldNpcs": "The Old Grow Frailer",
-        "newAge": "A new Age begins. Tick each character who grows a stage older. Each Virtue is rolled again on d12+d6: someone turning Mature keeps the higher result, someone turning Old the lower (p17).",
+        "grows": "Grows {age}",
+        "growsHint": "A new Age makes them a stage older. Each Virtue is rolled again on d12+d6: turning Mature keeps the higher result, turning Old the lower.",
+        "newAgeOthers": "A new Age begins for the rest of the world too. Tick anybody else given an Age who grows a stage older. Each Virtue is rolled again on d12+d6: someone turning Mature keeps the higher result, someone turning Old the lower (p17).",
         "roll": "Roll Virtues",
         "skip": "Just change Age",
         "mature": "Becoming Mature keeps the higher",
@@ -1493,7 +1525,8 @@
     "domain": {
       "title": "{name} Domain",
       "tabs": {
-        "domain": "Domain",
+        "domain": "Rule",
+        "court": "Court and Crises",
         "timeline": "Timeline",
         "notes": "Notes"
       },
@@ -1502,6 +1535,19 @@
       "lordship": "Lordship",
       "ruler": "Ruler",
       "rulerPlaceholder": "Who rules here",
+      "lands": {
+        "line": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each.",
+        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them: {landmarks}."
+      },
+      "unworthy": {
+        "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
+        "posts": {
+          "seat": "the Seat of Power",
+          "holding": "a Holding",
+          "council": "a seat in Council",
+          "court": "a place at Court"
+        }
+      },
       "arms": {
         "title": "{name}: Arms",
         "choose": "Choose what this Domain shows",
@@ -1536,7 +1582,7 @@
         "byName": "{name}, by its name",
         "none": "Not on the map",
         "away": "Away long",
-        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and turning the Season tick this for a ruler away from the Holding; a Crisis Roll clears it."
+        "awayHint": "Weeks or a Season have passed with the ruler away, so their return brings the Crisis Roll. Weeks Pass and Months Pass tick this for a ruler away from the Holding; a Crisis Roll clears it."
       },
       "homecoming": {
         "title": "Home from a Long Absence",
@@ -1720,11 +1766,17 @@
       },
       "dilemmaTitle": "Dilemma",
       "dilemmaIntro": "{name} must take on one of these Crises.",
+      "dilemmaTake": "Take this Crisis",
       "dilemmaOpen": "No choice was made between {options}. Add the one chosen from the sheet.",
       "misrule": "Misrule",
       "misruleHint": "Vassals rise up, Knights ride away and pretenders press their claims.",
       "misruleDue": "{count} unresolved Crises: if the Season ends like this, the Domain falls into misrule.",
       "fellIntoMisrule": "The Season ended with {count} unresolved Crises, and the Domain falls into misrule.",
+      "misruleEnds": "With fewer than three Crises left, the Domain comes out of misrule.",
+      "rulerSlain": "{name}, who ruled {domain}, is Slain. The Domain passes to their successor: {successor}.",
+      "rulerSlainNobody": "nobody is named yet",
+      "rulerSlainGone": "That Domain is no longer in this world.",
+      "misruleLeave": "{name} has fallen into misrule, and Knights leave. Untick each of its Circle who rides away.",
       "collections": "Increased Collections",
       "collectionsHint": "A Steward presses the Vassals for more, to pay for a war or a great work.",
       "drama": "Drama in Court",
@@ -1892,7 +1944,16 @@
           "hint": "Mature Knights-Gallant with a place in Court. The Company begins at the Seat of Power.",
           "newsTitle": "News at Court",
           "newsTagline": "{name} (p{page})",
-          "newsHint": "Word of the nearest Myth’s first Omen reaches the Court as news (p6). It counts as met."
+          "newsHint": "Word of the nearest Myth’s first Omen reaches the Court as news (p6). It counts as met.",
+          "seatDomain": "The Seat of Power",
+          "courtNote": "A Courtier since the Company began.",
+          "seated": "The Knights have their places at the Court of {domain}.",
+          "allSeated": "Every Knight already has a place at the Court of {domain}.",
+          "later": "There are no Knights yet to take their places at the Court of {seat}. Once they’re made, seat them here.",
+          "seatNow": "Seat the Knights at Court",
+          "noKnights": "There are no Knights to seat yet.",
+          "realmGone": "The Realm these Knights were to be seated in is gone.",
+          "seatGone": "The Seat of Power these Knights were to be seated at is no longer on the map."
         },
         "ruler": {
           "name": "Ruler",
@@ -1904,7 +1965,10 @@
           "influenceHint": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Where the Knights aren’t made yet, found the Domain later from the ruling Knight’s Domain button, ticking the others into the Circle.",
           "domainTitle": "Who Rules?",
           "domainQuestion": "One Knight rules a Holding, with the rest of the Company in their Circle (p6). Which Knight rules?",
-          "domainLater": "Decide Later"
+          "domainWhich": "Which Knight rules",
+          "domainOk": "Found the Domain",
+          "domainLater": "Decide Later",
+          "domainLaterDetail": "Found it later from the ruling Knight’s Domain button, ticking the others into the Circle."
         }
       },
       "begins": "The Company begins at the Seat of Power, {hex}.",
@@ -1949,10 +2013,21 @@
     "hexEdit": {
       "title": "Edit {hex}"
     },
+    "askReferee": {
+      "button": "Ask the Referee: {what}",
+      "hint": "Exploring is the Referee’s to carry out. This tells them what the Company wants to do, with a button that does it.",
+      "asks": "{name} asks the Referee: {what}",
+      "sent": "The Referee has been asked.",
+      "noScene": "The Realm they asked about is gone, and no other is on the map."
+    },
     "hexGm": {
       "heading": "The Lay of the Land",
       "hint": "Only you see this part. A Hex is broad and varied, with room enough for a person never to leave it: roll the Spark Tables for what fills this one and write down what you made of it, so it’s the same Hex when the Company comes back (p19).",
       "wildHint": "Roll the land, its weather and one feature on the Nature Spark Tables, and keep them in this hex.",
+      "ruledFrom": {
+        "holding": "Under the rule of {holding}, the nearest Holding.",
+        "domain": "Under the rule of {holding}, the nearest Holding, and so of {domain}."
+      },
       "tabs": {
         "label": "What to roll for",
         "people": "People",
@@ -2060,11 +2135,11 @@
       "exploreHint": "What the Company can learn of this Hex by asking, searching, and looking about (p19).",
       "settings": {
         "firstArrival": {
-          "name": "Roll a new hex’s land",
+          "name": "Roll a New Hex’s Land",
           "hint": "The first time the Company comes to rest in a Wilderness Hex with nothing written or rolled there, roll its land and one feature on the Nature Spark Tables, keep them in the Hex, and whisper them to the Referee. Holdings are left alone."
         },
         "prompt": {
-          "name": "Reaching a new hex",
+          "name": "Reaching a New Hex",
           "hint": "What to do when the Company comes to rest in a Hex of a Realm you’re looking at. Saved per browser.",
           "modes": {
             "never": "Nothing",
@@ -2087,7 +2162,7 @@
       "openHint": "Open this hex’s Journal entry, making it if it has none: what the Company knows, and your own notes.",
       "none": "This hex has no Journal entry yet. The Referee whose browser keeps the Journals can make it from the hex in Places.",
       "setting": {
-        "name": "Journal entries for hexes",
+        "name": "Journal Entries for Hexes",
         "hint": "Each hex of a Realm that something is rolled, written or named for gets a Journal entry, kept up to date as you roll; any other hex gets one when you click Journal on it in Places. Players can read its What the Company Knows page once they could open the hex in their Places. Its What’s Here page, for you alone, copies what you write in the hex’s What’s here. What was rolled in a hex shows in its Lay of the Land in Places."
       }
     },
@@ -2112,7 +2187,7 @@
       "openHint": "Open this Site’s Journal entry: the whole Site, what the Company has found, and your own notes. Players can’t see it until you share it.",
       "none": "Nothing has been drawn or written on this Site yet, so it has no Journal entry.",
       "setting": {
-        "name": "Journal entries for Sites",
+        "name": "Journal Entries for Sites",
         "hint": "Each Site with something drawn or written on it gets a Journal entry, kept up to date as you draw and reveal. It starts hidden from players. Share it when you like: players then see only its What the Company Found page, never The Site page or your Notes, which are never written over."
       }
     },
@@ -2514,7 +2589,8 @@
         "showArt": "See the picture larger",
         "tableTagline": "{name}’s table (p{page})",
         "tableReading": "Reading this Myth’s table from your rulebook…",
-        "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table."
+        "tableMissing": "Give the world your rulebook (press B), or run Import PDF, to bring in this Myth’s table.",
+        "ownTableTagline": "{name}’s table"
       },
       "cast": {
         "title": "The Cast",
@@ -2839,6 +2915,7 @@
       },
       "title": "Referee Rolls",
       "intro": "Roll a d6 on one of the Referee’s tables. A low roll goes against the players.",
+      "roll": "Roll",
       "odds": {
         "intro": "A Luck Roll leaves it to one d6. High goes the players’ way, low goes against them.",
         "tableHeading": "The Luck Roll table",
@@ -2847,7 +2924,6 @@
         "oddsHelp": "only answer yes or no. Use them when you’ve already told the players how likely it is, as in “a slim chance”. Fortune favours them on the number shown or higher.",
         "notDomain": "The table’s Crisis is a bad turn in the moment, not one of a Domain’s Crises.",
         "question": "Which way will you read it?",
-        "table": "The Luck Roll table",
         "label": "{odds} ({needs}+)",
         "slim": "A slim chance",
         "unlikely": "Unlikely",
@@ -3074,7 +3150,7 @@
       "lastingDrop": "A die for the rest of the fight. Click to drop it.",
       "keepBonus": "Keep the bonus dice for the rest of the fight",
       "keepBonusHint": "They join every Attack this one makes until the Combat ends, as an Ability that grows with each blow says. Each shows among their conditions, with × to drop it.",
-      "keepBonusNone": "Only somebody in a Combat can keep dice for the rest of the fight.",
+      "more": "More for this blow: confined, spearwall, and what else is declared",
       "useAbilityHint": "Ticked, this blow has it, and one of the Ability’s uses is spent.",
       "useAbilityFreeHint": "An Ability with no limit, so it comes ticked. Untick it for a blow it doesn’t help.",
       "useAbilityChosenHint": "Used blow by blow, so it waits to be ticked for the blow it’s used in.",
@@ -3241,9 +3317,11 @@
       "denier": "Who Denies",
       "denyDie": "The die to discard",
       "apply": "Apply Damage",
+      "applyHint": "Takes the Damage as the card has it. A ranged blow, or anything else for the table to judge, opens the Damage window first. Shift-click to open it anyway.",
       "applied": "Damage applied to {names}.",
       "noDenier": "Select the Token of whoever Denies, or give your User a character.",
       "cantDeny": "Nobody you control can Deny this Attack: they are Fatigued, have already Denied it, or don’t know the Feat.",
+      "denyOutOfReach": "Nobody you control is within arm’s reach of a target of this Attack, on their side, so nobody can Deny it.",
       "featUsed": "{name} has already used {feat} on this Attack.",
       "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
       "targetsGone": "The Tokens this Attack targeted are gone.",
@@ -3252,6 +3330,11 @@
       "changeRefused": "The Attack card changed before that could be recorded."
     },
     "damage": {
+      "unhorsed": "{steed} goes down, and {name} is thrown: being dismounted causes d6 Damage.",
+      "unhorsedRoll": "Take the d6",
+      "unhorsedRolled": "{name} takes {damage} from the fall.",
+      "unhorsedCause": "Thrown from their steed",
+      "unhorsedNotYours": "Only the rider’s owner or the Referee can deal this.",
       "lastingMark": "{attacker}’s Smite leaves {name} a lasting mark (p187).",
       "title": "Take Damage",
       "amount": "Damage",
@@ -3269,6 +3352,7 @@
       "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",
       "situationalPiece": "{name} (A{armour}, {when})",
       "trapped": "{name}’s Trap holds their shield, so its Armour doesn’t count",
+      "twoHanded": "Their last blow was two-handed, so their shield isn’t in hand and its Armour doesn’t count",
       "trapOpen": "{name}’s Trap left them open: their Armour doesn’t count",
       "exposed": "Exposed (take it as if at 0 GD)",
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
@@ -3705,6 +3789,10 @@
       "notes": "Traits & Notes"
     },
     "structure": {
+      "tabs": {
+        "structure": "Stat Block",
+        "notes": "Traits & Notes"
+      },
       "kind": "What it is",
       "kinds": {
         "structure": {
@@ -3740,10 +3828,16 @@
       "collide": {
         "title": "Collide",
         "hint": "Roll the Damage this ship takes from colliding with another.",
-        "intro": "{name} collides with another ship. Each takes d12 Damage, except that a much larger ship takes d6.",
-        "similar": "Similar or smaller (d12)",
+        "intro": "{name} collides with another ship. Each takes d12 Damage, except that a much larger ship takes d6. Target the other ship first and it takes its Damage too.",
+        "introWith": "{name} collides with {other}. Each takes d12 Damage, except that a much larger ship takes d6. How does {name} measure against it?",
+        "similar": "Of a size (d12 each)",
         "larger": "Much the larger (d6)",
-        "rolled": "{name} takes d{faces} Damage from the collision: {damage}."
+        "smaller": "Much the smaller (d12)",
+        "size": "This ship beside the other",
+        "roll": "Roll the Damage",
+        "rolled": "{name} takes d{faces} Damage from the collision: {damage}.",
+        "take": "Take the Damage",
+        "notYours": "Only the ship’s owner or the Referee can deal this."
       },
       "convert": {
         "converted": "Made {count} structure NPCs into Structure actors."
@@ -3773,7 +3867,7 @@
     },
     "mythChooser": {
       "title": "The Realm’s Myths",
-      "hint": "Six Myths lie hidden in a Realm (p14), each rolled on the Myths table (p27). Roll one again, roll them all again, or choose one yourself. Every Myth keeps its number and stays in its hex: only which Myth it is changes.",
+      "hint": "Six Myths lie hidden in a Realm (p14), each rolled on the Myths table (p27). Roll one again, roll them all again, or choose one yourself, from the table or from the Myths you have written. Every Myth keeps its number and stays in its hex: only which Myth it is changes. One taken out leaves its number empty, for another Myth in a hex of its own.",
       "inRealm": "In the Realm",
       "table": "The Myths table",
       "noIndex": "Run the Import PDF macro to see the Myths by name and picture. Until then they go by their roll.",
@@ -3786,7 +3880,42 @@
       "already": "This is Myth {number} already.",
       "takenBy": "Myth {number}",
       "search": "Search the Myths…",
-      "noMatch": "No Myth matches."
+      "noMatch": "No Myth matches.",
+      "yours": "Yours",
+      "yoursTooltip": "The Myths you have written",
+      "write": "Write a Myth",
+      "ownReference": "Your own Myth",
+      "remove": "Take this Myth out of the Realm",
+      "removeTitle": "Take a Myth Out of the Realm",
+      "removeConfirm": "<strong>{name}</strong> leaves the Realm, with the Omens met of it, and its hex is left empty. Myth {number} can be given another Myth afterwards, in a remote hex of its own.",
+      "removeYes": "Take It Out",
+      "empty": "No Myth",
+      "emptyWhere": "Not in the Realm",
+      "emptyNote": "It goes in a remote hex, hidden, as the Realm’s Myths were placed. Move it with Edit this hex.",
+      "rollInto": "Roll a Myth for this number"
+    },
+    "ownMyth": {
+      "sheet": "Written Myth",
+      "newMyth": "New Myth",
+      "folder": "Your Myths",
+      "defaultName": "New Myth",
+      "hint": "A Myth of your own, to stand among a Realm’s six. Give it to the Realm in The Realm’s Myths, under Yours. Only Referees see it.",
+      "name": "Name",
+      "verse": "Verse",
+      "verseLine": "Verse, line {number} of {count}",
+      "pickPicture": "Choose a picture",
+      "clearPicture": "No Picture",
+      "omens": "Omens",
+      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table.",
+      "cast": "Cast",
+      "castHint": "A word on who belongs to this Myth. Drag actors onto the Myth in the Referee Toolkit to make them its Cast.",
+      "table": "Table",
+      "tableHint": "Rolled in the Referee Toolkit with a d6 for each column. Leave it empty if the Myth has none.",
+      "tableName": "Table name",
+      "column": "Column {number}",
+      "cell": "Row {row}, {column}",
+      "edit": "Edit this Myth",
+      "editTooltip": "Open the Myth you wrote, to change it"
     },
     "bookArt": {
       "title": "Import PDF",
@@ -4157,7 +4286,7 @@
         "party": "Company’s note: “{note}”",
         "settings": {
           "coordinates": {
-            "name": "Show hex column and row",
+            "name": "Show Hex Column and Row",
             "hint": "Pointing at a hex of a Realm names its column and row, such as (5, 7), before what’s there. Everyone at the table sees them."
           }
         }
@@ -4179,7 +4308,8 @@
           "nearestOmen": "An Omen from the nearest Myth.",
           "landmark": "The hex’s Landmark.",
           "allClear": "All clear.",
-          "noMyths": "This Realm has no Myths, so all is quiet."
+          "noMyths": "This Realm has no Myths, so all is quiet.",
+          "noOmens": "No Myth of this Realm has an Omen left to show, so all is quiet."
         },
         "omen": "Omen {omen} of {count}",
         "omensComplete": "All of its Omens have been seen.",
@@ -4341,7 +4471,7 @@
       },
       "nobody": "Nobody was ticked, so nothing happens here.",
       "monumentIntro": "A Phase spent at the Monument restores {virtue} in full, as a Sacrament would. Tick everybody who takes part.",
-      "monumentHint": "The Phase is spent here, so turn the calendar on when the Company moves.",
+      "monumentHint": "The Phase is spent here, so its end comes next.",
       "hazardWhich": "Pushing through costs d6 of a Virtue, most often VIG. Which does this Hazard take?",
       "goBack": {
         "done": "The Company goes back the way it came, to {hex}. Travelling there takes the Phase as usual.",
@@ -4360,7 +4490,7 @@
         "pending": "A Curse has thrown the Company off course. If they travel in the next Phase, roll Travelling Blind.",
         "live": "This is the Phase the Curse blights. Travel now counts as travelling blind.",
         "roll": "Roll Travelling Blind",
-        "rollHint": "Roll Travelling Blind for the Company, and let the Curse’s blight go.",
+        "rollHint": "Roll Travelling Blind for the Company. Before the Phase the Curse blights, this lets the blight go; during it, each move of the Company Token is rolled for already, so roll here only for travel off the map.",
         "hold": "They Hold Their Course",
         "holdHint": "Let the blight go without rolling, because the Company didn’t travel or found their way regardless."
       }
@@ -4632,6 +4762,11 @@
       }
     },
     "fallen": {
+      "fateSlain": "Slain in battle",
+      "fateSlainBy": "Slain by {name}",
+      "fateUntended": "Died of their wounds, untended",
+      "fateChance": "Lost to the flip of a coin",
+      "fateWarded": "Died in {name}'s place",
       "title": "A Knight Falls",
       "tagline": "{name} is Slain.",
       "text": "Death comes for bold Knights too, often suddenly and without honour. Their player makes another Knight, who joins the Company soon, or takes up a successor, Squire or follower.",
@@ -4649,6 +4784,9 @@
       "tookUp": "{name} takes up the Company\u2019s journey where {fallen} left it.",
       "notYours": "{name} was another player\u2019s Knight. Only their player, or the Referee, says who carries on.",
       "cantCreate": "Making a new Knight creates an actor, so it needs a user who is allowed to create actors. Ask the Referee."
+    },
+    "cardButtons": {
+      "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card."
     },
     "hexTarget": {
       "hint": "Point at it to ring the hex on the map. Click to go there."
@@ -5107,6 +5245,8 @@
         }
       },
       "finish": "Done",
+      "newRealm": "Make Your First Realm",
+      "newRealmHint": "Close the Welcome and make the Realm the Company will explore. New Realm in the Scenes tab makes more.",
       "chat": {
         "import": {
           "title": "Your Rulebook",

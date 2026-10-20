@@ -14,6 +14,7 @@ import { TabRailMixin } from "./tab-rail.js";
 import { afflictTargets } from "../actions/afflictions.js";
 import { changeAge } from "../actions/time.js";
 import { restIfAccepted } from "../actions/recovery.js";
+import { canPatchUp, patchUp } from "../actions/scars.js";
 
 /** Item types the sheet offers to add, in sheet order. It lists every item the NPC has. */
 const ADDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
@@ -41,6 +42,7 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 			setWields: NpcSheet.#onSetWields,
 			toggleFeat: NpcSheet.#onToggleFeat,
 			clearLeader: NpcSheet.#onClearLeader,
+			patchUp: NpcSheet.#onPatchUp,
 			openOwner: NpcSheet.#onOpenOwner,
 			editArmour: NpcSheet.#onEditArmour,
 			rest: NpcSheet.#onRest
@@ -97,6 +99,8 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 			moraleBroken: isMoraleBreak(system.moraleBroken)
 				? { label: t(`morale.broke.${system.moraleBroken}.label`), hint: t("morale.broke.clear") }
 				: null,
+			// A Mortal Wound tended in time (p8).
+			canPatchUp: canPatchUp(this.actor),
 			ownedBy: this.#owner(),
 			leader: system.warband && system.leader ? t("npc.leader.label", { name: fromUuidSync(system.leader)?.name ?? t("npc.leader.missing") }) : null,
 			featChoices: FEATS.map(({ key }) => ({ key, label: t(`feats.${key}.name`), active: system.feats[key] })),
@@ -211,6 +215,11 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 		const { scale } = target.dataset;
 		if (!NPC_SCALES.includes(scale)) return;
 		return this.actor.update({ "system.scale": scale });
+	}
+
+	/** @this {NpcSheet} */
+	static async #onPatchUp() {
+		return patchUp(this.actor);
 	}
 
 	/** @this {NpcSheet} */

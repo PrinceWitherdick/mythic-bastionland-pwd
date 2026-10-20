@@ -116,6 +116,13 @@ export const isDie = (value, faces) => Number.isInteger(value) && value >= 1 && 
 export const isTableRoll = (dice) => Boolean(dice) && isDie(dice.d6, 6) && isDie(dice.d12, 12);
 
 /**
+ * Kept here beside isTableRoll, as realm.js asks both, so it needn't import own-myths.js, which imports it.
+ * @param {{own?: unknown}|null|undefined} myth
+ * @returns {boolean} Whether a Myth of the Realm is one the Referee wrote (own-myths.js), in place of a roll.
+ */
+export const isOwnMyth = (myth) => typeof myth?.own === "string" && myth.own !== "";
+
+/**
  * @param {number} d6
  * @param {number} d12
  * @returns {string} e.g. "1-01", which sorts in book order.

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { replacementEntry } from "../../module/compat.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { replacementEntry, tileCentred } from "../../module/compat.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { LAKE, PICTURE_ROLL, REALM_FLAG, RIVER_SHAPES, TERRAIN, emptyRealm } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
@@ -13,7 +13,9 @@ import {
 	ICON_SCALE,
 	LEVEL_ID,
 	REALM_SORT,
+	TILE_CORNERS_FLAG,
 	hiddenByHand,
+	hiddenTilesIn,
 	isRealmDocument,
 	openingScale,
 	planChanges,
@@ -24,7 +26,8 @@ import {
 	realmSceneData,
 	realmSceneFlag,
 	realmTextures,
-	terrainPicture
+	terrainPicture,
+	tilesSettled
 } from "../../module/rules/realm-documents.js";
 
 const g = realmGeometry();
@@ -339,6 +342,68 @@ describe("realmFromDocuments", () => {
 		snapshot.tiles.push({ _id: "stranger", x: 100, y: 100, flags: {} });
 		expect(isRealmDocument(snapshot.tiles.at(-1))).toBe(false);
 		expect(realmFromDocuments(snapshot, g).problems).toEqual([]);
+	});
+});
+
+describe("a Realm on Foundry v13, which places a Tile by its top-left corner", () => {
+	const textures = realmTextures();
+	beforeEach(() => { globalThis.game = { release: { generation: 13 } }; });
+	afterEach(() => { delete globalThis.game; });
+	/** The Scene's documents as actions/realm.js hands them over, each Tile centred. */
+	const centred = (snapshot) => ({ ...snapshot, tiles: snapshot.tiles.map(tileCentred) });
+
+	it("marks a Realm laid there as standing by its Tiles' corners, which one laid on v14 needs no mark for", () => {
+		const { scene } = onScene();
+		expect(scene.flags[SYSTEM_ID][TILE_CORNERS_FLAG]).toBe(true);
+		expect(tilesSettled(scene.flags)).toBe(true);
+		// A Realm laid on v13 before the system knew has its Tiles' centres in x and y, and is read so.
+		expect(tilesSettled({ [SYSTEM_ID]: { [REALM_FLAG]: {} } })).toBe(false);
+		globalThis.game = { release: { generation: 14 } };
+		expect(onScene().scene.flags[SYSTEM_ID]).not.toHaveProperty(TILE_CORNERS_FLAG);
+		expect(tilesSettled({})).toBe(true);
+	});
+
+	it("puts each Tile's corner half its size up and left of its hex's centre", () => {
+		const { scene } = onScene();
+		// The first hex's ground is the first Tile laid.
+		const terrain = scene.tiles.find((tile) => flagOf(tile).kind === "terrain");
+		const centre = hexCentre(g, { col: 1, row: 1 });
+		expect(terrain.x).toBe(Math.round(centre.x) - Math.floor(terrain.width / 2));
+		expect(terrain.y).toBe(Math.round(centre.y) - Math.floor(terrain.height / 2));
+	});
+
+	it("reads the Realm back as it was made, and writes nothing more", () => {
+		const { realm, snapshot } = onScene();
+		const read = realmFromDocuments(centred(snapshot), g);
+		expect(read.problems).toEqual([]);
+		// v13 Tiles have no name to compare, so none is written.
+		expect(snapshot.tiles.some((tile) => "name" in tile)).toBe(false);
+		expect(read.realm.terrain).toEqual(realm.terrain);
+		expect(read.realm.myths.map((myth) => hexKey(myth.hex))).toEqual(realm.myths.map((myth) => hexKey(myth.hex)));
+		expect(planChanges(planRealmSync(read.realm, g, textures, centred(snapshot)))).toBe(false);
+	});
+
+	it("snaps a dragged icon back by its corner", () => {
+		const { snapshot } = onScene();
+		const holding = snapshot.tiles.find((tile) => flagOf(tile).kind === "holding" && !flagOf(tile).seat);
+		const target = hexCentre(g, { col: 6, row: 6 });
+		const corner = { x: Math.round(target.x) - Math.floor(holding.width / 2), y: Math.round(target.y) - Math.floor(holding.height / 2) };
+		Object.assign(holding, { x: corner.x + 20, y: corner.y - 15 });
+		const { realm } = realmFromDocuments(centred(snapshot), g);
+		expect(planRealmSync(realm, g, textures, centred(snapshot)).Tile.update).toContainEqual(expect.objectContaining({ _id: holding._id, ...corner }));
+	});
+
+	it("finds a hidden Tile's hex by its centre", () => {
+		const { realm, snapshot } = onScene();
+		const seat = realm.holdings.find((holding) => holding.seat);
+		for (const tile of centred(snapshot).tiles) {
+			if (flagOf(tile).kind === "terrain" && hexKey(hexAt(g, tile)) === hexKey(seat.hex)) snapshot.tiles.find(({ _id }) => _id === tile._id).hidden = true;
+		}
+		const hidden = centred(snapshot).tiles.filter((tile) => tile.hidden);
+		const terrain = hidden.filter((tile) => flagOf(tile).kind === "terrain");
+		expect(terrain.length).toBeGreaterThan(0);
+		expect(hiddenByHand(hidden, g, seat.hex)).toMatchObject({ terrain: true });
+		expect(hiddenTilesIn(centred(snapshot).tiles, g, ["terrain"], [seat.hex]).map(({ _id }) => _id)).toEqual(terrain.map(({ _id }) => _id));
 	});
 });
 

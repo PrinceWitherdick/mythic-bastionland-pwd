@@ -4,7 +4,7 @@ import { hiddenTilesIn } from "../rules/realm-documents.js";
 import { soloRealm } from "../rules/solo.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
-import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { centredTiles, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
  * Solo play: the Referee is the Company too, so the Realm's Myths, Landmarks
@@ -37,10 +37,10 @@ export const realmKnown = (realm) => (realm && keptFromMe() ? soloRealm(realm) :
  */
 async function revealMythsReached(scene, hexes) {
 	if (!game.user.isGM || !isSolo() || !isRealmScene(scene) || !hexes?.length) return [];
-	const found = hiddenTilesIn(scene.tiles, sceneGeometry(scene), ["myth"], hexes);
+	const found = hiddenTilesIn(centredTiles(scene), sceneGeometry(scene), ["myth"], hexes);
 	if (!found.length) return [];
-	await scene.updateEmbeddedDocuments("Tile", found.map((tile) => ({ _id: tile.id, hidden: false })));
-	const myths = getRealm(scene)?.realm.myths.filter((myth) => found.some((tile) => tile.id === myth.id)) ?? [];
+	await scene.updateEmbeddedDocuments("Tile", found.map(({ _id }) => ({ _id, hidden: false })));
+	const myths = getRealm(scene)?.realm.myths.filter((myth) => found.some(({ _id }) => _id === myth.id)) ?? [];
 	for (const myth of myths) ui.notifications.info(t("solo.mythFound", { number: myth.number }));
 	return myths;
 }

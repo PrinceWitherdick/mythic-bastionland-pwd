@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SYSTEM_ID } from "../../module/system-id.js";
 
 // Only what reaches past the Damage itself is stubbed: the dialogs, the chat,
 // Morale, Scars and the effects on the map.
@@ -8,12 +9,13 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	postCard: vi.fn(async () => ({ id: "message-1" }))
 }));
 vi.mock("../../module/chat/morale-card.js", () => ({ moralePrompt: () => null, promptGroupMorale: vi.fn(async () => {}) }));
-vi.mock("../../module/chat/gambit-marks.js", () => ({ marksOn: () => [] }));
+vi.mock("../../module/chat/gambit-marks.js", () => ({ SCANNED_MESSAGES: 200, marksOn: () => [] }));
 vi.mock("../../module/actions/attack-fx.js", () => ({ chatIsPublic: () => true, playDamageFx: vi.fn() }));
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(async () => null) }));
 vi.mock("../../module/actions/scars.js", () => ({ offerRevenge: vi.fn(async () => {}), rollScar: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}), calendarLabel: () => "" }));
 vi.mock("../../module/actions/items.js", () => ({ armourConditionText: () => "" }));
+vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineMortalWound: vi.fn(async () => null), timelineWarded: vi.fn(async () => null) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
@@ -276,6 +278,98 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		await takeAttack(dodger, card({ lingers: [{ name: "Lye", damage: "d6", when: "round" }] }));
 		expect(dodger.system.afflictions).toEqual([]);
 	});
+
+	it("writes a blow that Wounds, unhorses, marks and burns in one update, and says each on its card", async () => {
+		const boar = character({ guard: 2, armour: 0 });
+		Object.assign(boar.system, { notes: "<p>Old.</p>", mounted: true });
+		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
+		await takeAttack(boar, card({
+			smiteMark: true,
+			attackerName: "Tal",
+			gambits: [{ key: "dismount" }],
+			lingers: [{ name: "Lye", damage: "d6", when: "round" }, { name: "Lye", damage: "d6", when: "round" }]
+		}));
+		expect(boar.update).toHaveBeenCalledTimes(1);
+		expect(boar.system).toMatchObject({ mounted: false, wounded: true, notes: expect.stringContaining("bastionland.damage.lastingMark") });
+		// The same burn twice is taken once.
+		expect(boar.system.afflictions).toHaveLength(1);
+		expect(postCard.mock.calls.filter((call) => call[1] === "note").map((call) => call[2].icon)).toEqual(["fa-solid fa-eye-slash", "fa-solid fa-fire"]);
+	});
+});
+
+describe("a shield and a two-handed blow (p12)", () => {
+	const shielded = () => {
+		const guard = character({ uuid: "Actor.guard", name: "Guard" });
+		guard.system.armourNote = "mail, shield";
+		return guard;
+	};
+	const attackBy = (attacker, twoHanded, combat = "c1") => ({ flags: { [SYSTEM_ID]: { attack: { attacker, twoHanded, place: { combat, round: 1, turn: 0 } } } } });
+
+	it("leaves the shield out while their last blow in this fight was two-handed", async () => {
+		game.combat = { id: "c1", started: true };
+		game.messages = { contents: [attackBy("Actor.guard", true)] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls[0][0].context.trap).toMatchObject({ label: "bastionland.damage.twoHanded", shielded: true });
+	});
+
+	it("keeps it once they last struck one-handed, or outside the fight it was in", async () => {
+		game.combat = { id: "c1", started: true };
+		game.messages = { contents: [attackBy("Actor.guard", true), attackBy("Actor.guard", false)] };
+		await takeDamage(shielded(), { damage: 3 });
+		game.messages = { contents: [attackBy("Actor.guard", true, "c0")] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap)).toEqual([null, null]);
+	});
+
+	it("goes by their own share of an Attack they joined", async () => {
+		game.combat = { id: "c1", started: true };
+		const joinedBy = (twoHanded) => {
+			const message = attackBy("Actor.knight", false);
+			message.flags[SYSTEM_ID].attack.joined = [{ actor: "Actor.guard", twoHanded }];
+			return message;
+		};
+		game.messages = { contents: [joinedBy(true)] };
+		await takeDamage(shielded(), { damage: 3 });
+		// A one-handed join after a two-handed blow of their own puts the shield back.
+		game.messages = { contents: [attackBy("Actor.guard", true), joinedBy(false)] };
+		await takeDamage(shielded(), { damage: 3 });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap?.label ?? null)).toEqual(["bastionland.damage.twoHanded", null]);
+	});
+
+	it("goes by how they stood when the blow being applied was rolled, not by an Attack of theirs since", async () => {
+		game.combat = { id: "c1", started: true };
+		const blow = { id: "m1", ...attackBy("Actor.boar", false) };
+		game.messages = { contents: [blow, { id: "m2", ...attackBy("Actor.guard", true) }] };
+		await takeDamage(shielded(), { damage: 3, except: ["m1"] });
+		game.messages = { contents: [{ id: "m0", ...attackBy("Actor.guard", true) }, blow, { id: "m2", ...attackBy("Actor.guard", false) }] };
+		await takeDamage(shielded(), { damage: 3, except: ["m1"] });
+		expect(inputDialog.mock.calls.map(([options]) => options.context.trap?.label ?? null)).toEqual([null, "bastionland.damage.twoHanded"]);
+	});
+});
+
+describe("a steed brought down (p10)", () => {
+	it("throws its rider, off it and offered the d6 of the fall", async () => {
+		const horse = character({ uuid: "Actor.horse", name: "Bayard", vig: 4, guard: 0, armour: 0 });
+		const rider = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		Object.assign(rider.system, { steed: "Actor.horse", mounted: true });
+		game.actors.contents.push(rider);
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		await takeDamage(horse, { damage: 20 });
+		expect(rider.update.mock.calls.at(-1)[0]).toEqual({ "system.mounted": false });
+		const thrown = postCard.mock.calls.find(([actor, template]) => actor === rider && template === "note");
+		expect(thrown[2].action.data).toBe("unhorsed");
+		expect(Object.values(thrown[3].flags)[0].unhorsed).toBe("Actor.kay");
+	});
+
+	it("leaves a rider on foot, or a steed only hurt, alone", async () => {
+		const horse = character({ uuid: "Actor.horse", name: "Bayard", vig: 12, guard: 0, armour: 0 });
+		const rider = character({ uuid: "Actor.kay", name: "Ser Kay", type: "knight" });
+		Object.assign(rider.system, { steed: "Actor.horse", mounted: true });
+		game.actors.contents.push(rider);
+		inputDialog.mockResolvedValue({ damage: "2", armour: "0" });
+		await takeDamage(horse, { damage: 2 });
+		expect(rider.update).not.toHaveBeenCalled();
+	});
 });
 
 describe("the Timeline", () => {
@@ -295,6 +389,19 @@ describe("the Timeline", () => {
 		await takeDamage(kay(), { damage: 9, sparring: true, nonLethal: true });
 		await takeDamage(kay(), { damage: 9, nonLethal: true });
 		expect(timeline.timelineMortalWound).not.toHaveBeenCalled();
+	});
+
+	it("writes a slain Knight's Ultimate fate, naming who slew them, unless one is written", async () => {
+		actors["Actor.wolf"] = { name: "The Wolf" };
+		inputDialog.mockResolvedValue({ damage: "20", armour: "0" });
+		const victim = kay();
+		victim.system.fate = "";
+		await takeDamage(victim, { damage: 20, by: "Actor.wolf" });
+		expect(victim.update.mock.calls[0][0]["system.fate"]).toBe("bastionland.fallen.fateSlainBy");
+		const written = kay();
+		written.system.fate = "Lost at sea";
+		await takeDamage(written, { damage: 20 });
+		expect(written.update.mock.calls[0][0]).not.toHaveProperty("system.fate");
 	});
 
 	it("writes a ward in place of the Mortal Wound it spared", async () => {

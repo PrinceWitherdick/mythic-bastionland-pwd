@@ -30,11 +30,23 @@
 	unicode-range: U+006B;
 }
 
+/*
+ * IM Fell stands 0.905em above its baseline and 0.363em below, but its
+ * capitals only 0.688em tall, so the middle of its line box sat 0.07em under
+ * the middle of the capitals, and anything centred by its line box, a flex
+ * button, an icon and its words, a list bullet and its label, came out a
+ * pixel or two high. The same height is shared out so the line box centres on
+ * the capitals: 0.978em above and 0.29em below. Each IM Fell face carries
+ * the pair here and in module/fonts.js, whose faces Foundry adds after these
+ * and so are the ones drawn (tests/styles/icon-centre.test.js).
+ */
 @font-face {
 	font-family: "Bastionland Body";
 	src: url("../assets/fonts/IMFellEnglish-Regular.ttf") format("truetype");
 	font-style: normal;
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 @font-face {
@@ -42,12 +54,16 @@
 	src: url("../assets/fonts/IMFellEnglish-Italic.ttf") format("truetype");
 	font-style: italic;
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 @font-face {
 	font-family: "Bastionland Caps";
 	src: url("../assets/fonts/IMFellEnglishSC-Regular.ttf") format("truetype");
 	font-display: swap;
+	ascent-override: 97.8%;
+	descent-override: 29%;
 }
 
 /*
@@ -81,6 +97,32 @@
 }
 
 /*
+ * Foundry puts a margin under every list entry but the last. A list laid out
+ * as a row spaces its entries with its gap instead, and the margin only made
+ * the row taller than the last entry, which a stretched row then centred lower
+ * than the rest. Every list drawn across is named here, the chat cards' too
+ * (tests/styles/icon-centre.test.js).
+ */
+:is(
+	.bastionland-time__list,
+	.bastionland-conditions,
+	.bastionland-heraldry-painter__recent-list,
+	.bastionland-chooser__groups,
+	.bastionland-travels-chart__legend,
+	.bastionland-realm-drawing__tally,
+	.bastionland-site__tallies,
+	.bastionland-site__legend,
+	.bastionland-dice,
+	.bastionland-card__tally,
+	.bastionland-company-colours,
+	.bastionland-choices--inline,
+	.bastionland-session-end__list--row,
+	.bastionland-timeline__axis
+) > li {
+	margin: 0;
+}
+
+/*
  * Parchment, the book's own colours. Its paper, ink and rule are here; the
  * rest of its colours and its light are in the rule after.
  */
@@ -99,18 +141,6 @@
 	 * not by being shrunk. The floor is for the words penned inside tight
 	 * furniture only: a die chip, a numbered disc, a tally, a tab.
 	 */
-	/*
-	 * A small box centres its line, not its figures. Foundry sets every
-	 * number field's line-height to 2rem, which overflows a box shorter
-	 * than that, and the line it centres is struck from IM Fell, whose deep
-	 * descent (0.363em) hangs under a baseline the shallower EB Garamond
-	 * digits (0.65em tall) never reach: the numbers ride 0.054em above the
-	 * middle. Padding half of that back on at the top drops them into it,
-	 * since the field centres what is left of its content box. Only a box
-	 * that short wants it: the taller Virtue, Guard and Glory boxes hold
-	 * their figures in the middle on their own.
-	 */
-	--bastionland-figure-nudge: 0.11em;
 	--bastionland-font-note: 15px;
 	--bastionland-font-floor: 14px;
 }
@@ -296,6 +326,46 @@
 	--content-link-border-color: var(--color-dark-4);
 	--content-link-icon-color: var(--color-dark-6);
 	--content-link-text-color: var(--color-dark-2);
+}
+
+/* v14 draws a rule from these two; v13 always draws its gold fade, so parchment reads them itself. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) hr {
+	border-top: var(--hr-border);
+	background-image: var(--hr-gradient);
+}
+
+/*
+ * Foundry leaves inline code unpainted, so a host's dark mode (the Forge's
+ * paints it dark purple) would put it under our ink. It's painted on the paper,
+ * and so are the code blocks and keys a note can hold, which Foundry leaves
+ * unpainted too.
+ */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) :is(code, pre, kbd) {
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
+	color: var(--bastionland-ink);
+}
+
+/* Words held off their edge, and on v13, where code is inline, a long path wrapped over two lines boxed on each. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) :is(code, kbd) {
+	padding: 0.05rem 0.3rem;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) pre {
+	padding: 0.4rem 0.6rem;
+}
+
+/* v14 keeps all code on one line, which would run a block's lines together. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) pre code {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	white-space: inherit;
 }
 
 /* An editor's menu bar is themed on the editor itself, so it's held there. */
@@ -1652,10 +1722,14 @@ a.button:focus:not(:focus-visible) {
 	color: var(--bastionland-ink);
 }
 
+/* A rank: plain lines, the Glory beside the name on the same baseline, and a
+   block, so the pill's trim reaches its letters. */
 .bastionland-choice--static {
-	display: flex;
-	align-items: baseline;
-	gap: 0.5rem;
+	display: block;
+}
+
+.bastionland-choice--static .bastionland-choice__glory {
+	margin-left: 0.25rem;
 }
 
 .bastionland-choice__glory {
@@ -1679,10 +1753,9 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-condition {
 	display: inline-block;
-	/* A pill, padded through the pill sums below. Untrimmed, IM Fell leaves
-	   more room under its baseline than over its capitals, so the padding sits
-	   on top to centre the letters in the pill. */
-	padding: var(--pill-padding-top, 0.125rem) 0.6rem var(--pill-padding-bottom, 0);
+	/* A pill, padded through the pill sums below. Untrimmed, IM Fell's line
+	   box already centres on its capitals, so the padding is even. */
+	padding: var(--pill-padding-top, 0.0625rem) 0.6rem var(--pill-padding-bottom, 0.0625rem);
 	border: var(--pill-border, 1px) dashed var(--bastionland-rule);
 	border-radius: 999px;
 	color: var(--bastionland-ink-soft);
@@ -1710,17 +1783,23 @@ a.button:focus:not(:focus-visible) {
 		--pill-padding-bottom: var(--pill-pad, 0.3em);
 	}
 
+	/* Foundry draws every button as a flex box of a set height, which the trim
+	   can't reach, so a button pill's letters sat off the middle. Every one is
+	   a plain block here, whatever page it sits in, and its own rule never sets
+	   a display (tests/styles/icon-centre.test.js). A choice is named in its page
+	   too, to outrank the page's rules for the buttons it sits among. */
+	button.bastionland-pill,
+	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
+		display: inline-block;
+		height: auto;
+		min-height: 0;
+	}
+
 	/* A choice takes its padding here, named in its page, so it still outranks
 	   the page's rules for the buttons it sits among. */
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		padding-top: var(--pill-padding-top, 0);
 		padding-bottom: var(--pill-padding-bottom, 0);
-	}
-
-	:is(.bastionland-page, .bastionland-session-end) button.bastionland-choice {
-		display: inline-block;
-		height: auto;
-		min-height: 0;
 	}
 }
 
@@ -1777,16 +1856,6 @@ a.button:focus:not(:focus-visible) {
 	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice {
 		--pill-border-width: 1.5px;
 		border-width: var(--pill-border, 1.5px);
-	}
-
-	/* A rank is a flex box, which the trim can't reach, so it goes back to
-	   plain lines, the Glory beside the name on the same baseline. */
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static {
-		display: block;
-	}
-
-	:is(.bastionland-page, .bastionland-session-end) .bastionland-choice--static .bastionland-choice__glory {
-		margin-left: 0.25rem;
 	}
 
 	/* A Site chip keeps its set height, rounded, and stays a flex box so its
@@ -2072,16 +2141,27 @@ a.button:focus:not(:focus-visible) {
 	display: flex;
 	gap: 0.1rem;
 	margin-left: auto;
+}
+
+/* Each tool shows as the row is hovered or holds the focus; settling a Scar
+   shows faintly before then, so it's there to be found. The pencil stays hidden
+   till then (the user's call). */
+.bastionland-item__controls > * {
 	opacity: 0;
 	transition: opacity 120ms;
 }
 
-.bastionland-item:is(:hover, :focus-within) .bastionland-item__controls {
+.bastionland-item__controls > .bastionland-item__resting {
+	opacity: 0.45;
+}
+
+/* A Council task and a Grand Design (whose row is styled as a task) show theirs the same way. */
+:is(.bastionland-item, .bastionland-council__task):is(:hover, :focus-within) .bastionland-item__controls > * {
 	opacity: 1;
 }
 
 @media (hover: none) {
-	.bastionland-item__controls {
+	.bastionland-item__controls > * {
 		opacity: 1;
 	}
 }
@@ -2515,13 +2595,27 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-page prose-mirror,
 .bastionland-page .editor-content {
-	display: block;
 	min-height: 6rem;
 	padding: 0.4rem 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
 	color: var(--bastionland-ink);
+}
+
+/*
+ * Foundry stacks an open editor's menu above the container holding the text,
+ * and that container only takes a height down a column. Laid out as a block,
+ * it shrank to nothing and the text opened for editing looked wiped. Opened,
+ * the box grows to leave room to write below the menu.
+ */
+.bastionland-page prose-mirror {
+	display: flex;
+	flex-direction: column;
+}
+
+.bastionland-page prose-mirror.active {
+	min-height: 12rem;
 }
 
 /*
@@ -2609,9 +2703,9 @@ a.button:focus:not(:focus-visible) {
 	border-radius: 4px;
 }
 
-/* Foundry's Reveal button unsets its line height, and IM Fell's deep descent
-   then leaves the word sitting high. It takes the pills' trim instead, which
-   centres the letters between the capitals and the baseline. */
+/* Foundry's Reveal button unsets its line height and lays its word out as a
+   flex box. It takes the pills' trim instead, as a block, which centres the
+   letters between the capitals and the baseline. */
 .bastionland-page section.secret > button.reveal {
 	display: inline-block;
 	padding: var(--pill-padding-top, 0.15rem) 1rem var(--pill-padding-bottom, 0.15rem);
@@ -2638,6 +2732,12 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page--item {
 	gap: 0.75rem;
 	padding: 1rem 1.25rem;
+}
+
+/* A button's flex basis would set its height in the page's column, not its width (an Ability's Read the uses). */
+.bastionland-page--item > .bastionland-button {
+	flex: none;
+	align-self: flex-start;
 }
 
 .bastionland-item-header {
@@ -2993,48 +3093,6 @@ a.button:focus:not(:focus-visible) {
 /* Domain sheet                                                     */
 /* ---------------------------------------------------------------- */
 
-/*
- * Wide, the Domain page's blocks share rows across its two columns so the
- * Council can sit centred beside the Court. Narrow, each column stacks as before.
- */
-@container (min-width: 641px) {
-	.bastionland-domain__columns {
-		grid-template-areas:
-			"ruler crises"
-			"council court"
-			"authority designs";
-	}
-
-	.bastionland-domain__columns > .bastionland-column {
-		display: contents;
-	}
-
-	.bastionland-domain__ruler {
-		grid-area: ruler;
-	}
-
-	.bastionland-domain__crisis-block {
-		grid-area: crises;
-	}
-
-	.bastionland-domain__court {
-		grid-area: court;
-	}
-
-	.bastionland-domain__authority {
-		grid-area: authority;
-	}
-
-	.bastionland-domain__designs {
-		grid-area: designs;
-	}
-
-	.bastionland-domain__council {
-		grid-area: council;
-		align-self: center;
-	}
-}
-
 .bastionland-domain__seats {
 	display: grid;
 	grid-template-columns: max-content minmax(0, 1fr);
@@ -3078,8 +3136,9 @@ a.button:focus:not(:focus-visible) {
 	border-top: 1px solid var(--bastionland-rule);
 }
 
+/* A third of the window's width; the button's fit-content minimum keeps the label whole in a narrow one. */
 .bastionland-page .bastionland-domain__footer .bastionland-button {
-	flex: none;
+	flex: 0 0 calc(100% / 3);
 	padding: 0 1.25rem;
 }
 
@@ -3101,6 +3160,22 @@ a.button:focus:not(:focus-visible) {
 /* Room under the last seat, so the Circle's line isn't crowded by the notice or hint below it. */
 .bastionland-council {
 	margin-bottom: 0.75rem;
+}
+
+/* The Attack dialog's fold of what seldom comes up: a quiet line until opened. */
+.bastionland-attack__more > summary {
+	color: var(--bastionland-ink-soft);
+	cursor: pointer;
+	font-size: 0.95rem;
+}
+
+.bastionland-attack__more[open] > summary {
+	margin-bottom: 0.3rem;
+}
+
+/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other. */
+.bastionland-domain__unworthy {
+	margin-top: 0.5rem;
 }
 
 /* The empty-seats notice sits under the heading, a little above the seats. */
@@ -3299,6 +3374,11 @@ a.button:focus:not(:focus-visible) {
 /* Structure sheet: a ship, wall or siege engine                    */
 /* ---------------------------------------------------------------- */
 
+/* The Stone box gets room of its own between the kind's rules and Carries. */
+.bastionland-structure__stone {
+	padding-block: 0.5rem;
+}
+
 .bastionland-structure__carries {
 	display: flex;
 	flex-direction: column;
@@ -3306,7 +3386,9 @@ a.button:focus:not(:focus-visible) {
 	margin-top: 0.5rem;
 }
 
+/* The blank's 10rem flex basis is a width in a row; in this column it would be its height. */
 .bastionland-page .bastionland-structure__carries input {
+	flex: none;
 	width: 100%;
 	max-width: none;
 }
@@ -5752,6 +5834,7 @@ button.bastionland-dice:focus-visible {
    RealmDrawing, and Place the Company over it, placed by CompanyButton. */
 button.bastionland-realm-drawing__finish,
 button.bastionland-company-button {
+	--map-button-lift: 0 2px 8px rgb(0 0 0 / 45%);
 	position: fixed;
 	z-index: calc(var(--z-index-canvas, 0) + 1);
 	width: auto;
@@ -5761,7 +5844,7 @@ button.bastionland-company-button {
 	border: 1px solid var(--bastionland-ink);
 	border-radius: 6px;
 	background: var(--bastionland-paper);
-	box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+	box-shadow: var(--map-button-lift);
 	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-caps);
 	font-size: 1.2rem;
@@ -5780,6 +5863,61 @@ button.bastionland-company-button:hover,
 button.bastionland-company-button:focus-visible {
 	background: var(--bastionland-ink);
 	color: var(--bastionland-paper);
+}
+
+/* The Company off the map is the one thing standing between the Referee and
+   play, so its button is filled in rubric and a ring swells out from it until
+   it's hovered. The ring is a layer of its own that only grows and fades, so
+   it never repaints over the canvas, and the button's transform (its scale) is
+   left alone. Drawn under the words; the button is a stacking context, being
+   fixed, so the ring stays inside it. */
+button.bastionland-company-button {
+	border-color: var(--bastionland-rubric);
+	background: var(--bastionland-rubric);
+	color: var(--bastionland-paper);
+}
+
+button.bastionland-company-button::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: -1px;
+	border-radius: inherit;
+	background: color-mix(in srgb, var(--bastionland-rubric) 70%, transparent);
+	pointer-events: none;
+	animation: bastionland-company-call 2.2s ease-out infinite;
+}
+
+button.bastionland-company-button:hover,
+button.bastionland-company-button:focus-visible {
+	border-color: var(--bastionland-ink);
+}
+
+button.bastionland-company-button:is(:hover, :focus-visible)::after {
+	content: none;
+}
+
+@keyframes bastionland-company-call {
+	0% {
+		opacity: 1;
+		scale: 1;
+	}
+
+	70%,
+	100% {
+		opacity: 0;
+		scale: 1.12 1.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	button.bastionland-company-button::after {
+		content: none;
+	}
+
+	button.bastionland-company-button {
+		box-shadow: var(--map-button-lift), 0 0 0 3px color-mix(in srgb, var(--bastionland-rubric) 45%, transparent);
+	}
 }
 
 /* While a Realm's picture is slid into place: what to do and the buttons that
@@ -7240,12 +7378,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	cursor: default;
 }
 
-/* Forget What's Kept Here: six kinds at most, so the list stands at full length; each sits under Everything Here. */
-.bastionland-choice-list.bastionland-forget-kept {
-	max-height: none;
-	overflow: visible;
-}
-
+/* Forget What's Kept Here: each kind sits under Everything Here. */
 .bastionland-forget-kept__part {
 	margin-inline-start: 1.6rem;
 }
@@ -7295,26 +7428,6 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 /* A GM's hex holds the Lay of the Land as well, so it takes more of the window. */
 .bastionland-page.bastionland-travels-places:has(.bastionland-travels-hex__gm) {
 	grid-template-columns: minmax(0, 30rem) minmax(20rem, 1fr);
-}
-
-/* The Knight sheet's Travels page: its heading with Open Places beside it. */
-.bastionland-travels-tab__head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-	margin-bottom: 0.45rem;
-}
-
-/* The header carries the heading's bottom margin, so the button centres on the words. */
-.bastionland-travels-tab__head .bastionland-heading {
-	margin: 0;
-}
-
-.bastionland-travels-tab__head button {
-	flex: 0 0 auto;
-	width: auto;
 }
 
 /* The pages, Places, Chart and Journey, as tabs; the count sits on its own line below. */
@@ -7713,6 +7826,21 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	border-color: var(--bastionland-rule);
 }
 
+/* A number with no Myth, since one was taken out: an outline waiting to be filled. */
+.bastionland-myth-chooser__myth.is-empty {
+	border-style: dashed;
+	border-color: var(--bastionland-rule);
+	background: transparent;
+}
+
+.bastionland-myth-chooser__myth.is-empty.is-selected {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-page .bastionland-myth-chooser__remove:hover {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-page .bastionland-myth-chooser__pick {
 	display: flex;
 	flex: 1;
@@ -7876,6 +8004,199 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-myth-chooser__note {
 	flex-basis: 100%;
+}
+
+/* The Referee's own Myths, a word in the row of d6 results. */
+.bastionland-page .bastionland-chooser__group.bastionland-myth-chooser__own-group {
+	width: auto;
+	padding: 0 0.6rem;
+}
+
+/* ---------------------------------------------------------------- */
+/* A Myth the Referee writes (module/apps/OwnMythSheet.js)          */
+/* ---------------------------------------------------------------- */
+
+.bastionland-own-myth-window .window-content {
+	padding: 0;
+}
+
+/* The picture beside the name and verse, as the book sets them over the Omens. */
+.bastionland-own-myth__top {
+	display: grid;
+	grid-template-columns: 12rem minmax(0, 1fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+@container (max-width: 480px) {
+	.bastionland-own-myth__top {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bastionland-own-myth__picture {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* Straight in a flex column, a button would take its flex basis as its height. */
+.bastionland-page .bastionland-own-myth__picture > button {
+	flex: none;
+}
+
+.bastionland-page .bastionland-own-myth__art {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 2 / 1;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 4px;
+	background: var(--bastionland-paper-deep);
+	color: var(--bastionland-rule);
+	font-size: 1.8rem;
+}
+
+.bastionland-page .bastionland-own-myth__art:hover {
+	border-color: var(--bastionland-ink);
+}
+
+.bastionland-own-myth__art img {
+	width: 100%;
+	height: 100%;
+	border: none;
+	object-fit: cover;
+}
+
+.bastionland-own-myth__heading,
+.bastionland-own-myth__field,
+.bastionland-own-myth__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.bastionland-own-myth__heading {
+	gap: 0.6rem;
+}
+
+.bastionland-own-myth__label {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+}
+
+.bastionland-own-myth__verse {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.bastionland-own-myth__verse legend {
+	padding: 0;
+}
+
+.bastionland-page .bastionland-own-myth__name {
+	height: auto;
+	padding: 0 0.3rem;
+	border: none;
+	border-bottom: 1px dashed var(--bastionland-rule);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	font-family: var(--bastionland-font-display);
+	font-size: 1.9rem;
+}
+
+.bastionland-page .bastionland-own-myth__name:focus {
+	border-bottom: 1px solid var(--bastionland-ink);
+	outline: none;
+	background: var(--bastionland-paper-deep);
+}
+
+/* The verse is italic, as the book sets it under the name. */
+.bastionland-page .bastionland-own-myth__verse input {
+	font-style: italic;
+}
+
+.bastionland-page.bastionland-own-myth textarea {
+	width: 100%;
+	min-height: 3.4rem;
+	resize: vertical;
+	font-family: var(--bastionland-font-body);
+	font-size: 0.95rem;
+	line-height: 1.3;
+}
+
+.bastionland-page .bastionland-own-myth__section h3 {
+	margin: 0;
+}
+
+/* Each Omen's number in the margin, on its box's first line. */
+.bastionland-own-myth__omens {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-own-myth__omens > li {
+	display: grid;
+	grid-template-columns: 1.4rem minmax(0, 1fr);
+	gap: 0.4rem;
+	align-items: start;
+	margin: 0;
+}
+
+.bastionland-own-myth__omen-number {
+	padding-top: 0.35rem;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.1rem;
+	font-variant-numeric: lining-nums;
+	text-align: right;
+}
+
+.bastionland-own-myth__table-fold > summary {
+	cursor: pointer;
+}
+
+.bastionland-own-myth__table {
+	width: 100%;
+	margin: 0;
+	border: none;
+	border-collapse: collapse;
+	table-layout: fixed;
+	background: none;
+}
+
+/* Boxes to write in, not a printed table: none of Foundry's heading bar or stripes. */
+.bastionland-own-myth__table :is(thead, tr) {
+	border: none;
+	background: none;
+}
+
+.bastionland-own-myth__table th,
+.bastionland-own-myth__table td {
+	padding: 0.15rem 0.2rem;
+}
+
+.bastionland-own-myth__table :is(thead th:first-child, tbody th) {
+	width: 2rem;
+	font-family: var(--bastionland-font-caps);
+	font-variant-numeric: lining-nums;
+	text-align: center;
+}
+
+.bastionland-page .bastionland-own-myth__table input {
+	width: 100%;
+}
+
+.bastionland-page .bastionland-own-myth__table thead input {
+	font-weight: bold;
 }
 
 /* The Seer chooser (module/apps/SeerChooser.js): the Seers of the players'
@@ -8273,6 +8594,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	color: var(--bastionland-verdigris);
 }
 
+/* The names are a plain list of file names, not boxes: the paper's code box would crowd the tight grid. */
+.bastionland-page .bastionland-realm-appearance__names code {
+	padding: 0;
+	border: 0;
+	background: none;
+}
+
 .bastionland-realm-appearance__preview {
 	display: flex;
 	flex-direction: column;
@@ -8564,6 +8892,7 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-welcome__footer {
 	display: flex;
 	justify-content: flex-end;
+	gap: 0.6rem;
 	padding-top: 0.8rem;
 	border-top: 1px solid var(--bastionland-rule);
 }

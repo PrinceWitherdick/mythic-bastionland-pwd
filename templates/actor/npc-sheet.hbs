@@ -71,6 +71,11 @@
 						</li>
 						{{/if}}
 					</ul>
+					{{#if canPatchUp}}{{#if editable}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-add" data-action="patchUp" data-tooltip="{{localize 'bastionland.scarRoll.patchUpHint'}}"><i class="fa-solid fa-kit-medical" inert></i> {{localize "bastionland.scarRoll.patchUp"}}</button>
+					</div>
+					{{/if}}{{/if}}
 					{{#if leader}}
 					<p class="bastionland-steed">
 						<span class="bastionland-hint">{{leader}}</span>

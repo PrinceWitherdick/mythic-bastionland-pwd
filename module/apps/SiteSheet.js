@@ -1,6 +1,7 @@
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { readSite, siteUpdate } from "../actions/sites.js";
 import { t } from "../chat/cards.js";
+import { isV13 } from "../compat.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { serialWrites } from "../rules/queue.js";
 import { createRandom, randomSeed } from "../rules/random.js";
@@ -419,11 +420,13 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 
 	/**
 	 * Keep a draft typed into a field someone else's change redraws, rather than
-	 * putting back what was saved underneath the typist.
+	 * putting back what was saved underneath the typist. Keep each fold open or
+	 * shut as it was too: v14 does that for a `details[data-sync]` itself, v13 doesn't.
 	 * @override
 	 */
 	_preSyncPartState(partId, newElement, priorElement, state) {
 		super._preSyncPartState(partId, newElement, priorElement, state);
+		if (isV13()) state.folds = Object.fromEntries([...priorElement.querySelectorAll("details[data-sync]")].map((fold) => [fold.dataset.sync, fold.open]));
 		const field = priorElement.querySelector(":is(input, textarea):focus");
 		if (field?.name && field.value !== field.defaultValue) {
 			state.draft = { name: field.name, value: field.value, start: field.selectionStart, end: field.selectionEnd };
@@ -433,6 +436,10 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	/** @override */
 	_syncPartState(partId, newElement, priorElement, state) {
 		super._syncPartState(partId, newElement, priorElement, state);
+		for (const [id, open] of Object.entries(state.folds ?? {})) {
+			const fold = newElement.querySelector(`details[data-sync="${id}"]`);
+			if (fold) fold.open = open;
+		}
 		if (!state.draft) return;
 		const field = [...newElement.querySelectorAll(":is(input, textarea)[name]")].find(({ name }) => name === state.draft.name);
 		if (!field) return;

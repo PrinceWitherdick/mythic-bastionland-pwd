@@ -1,7 +1,8 @@
 import { getCalendar, setCalendar } from "../actions/calendar.js";
 import { waitDialog } from "./ui.js";
 import { awardGlory } from "../actions/glory.js";
-import { clearOffCourse, offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
+import { offCourseNow, rollTravellingBlind } from "../actions/landmarks.js";
+import { clearOffCourse } from "../actions/off-course.js";
 import { eventLabel, markSeasonEvent, seasonEventsNow, stageLabel } from "../actions/season-events.js";
 import { advancePhase, announcePhase, journeyToDistantRealm, turnAge, turnSeason, weeksPass } from "../actions/time.js";
 import { t } from "../chat/cards.js";
@@ -135,7 +136,7 @@ export async function pickAge() {
 			</div>
 			<p class="hint">${t("time.agePick.setHint")}</p>`,
 		buttons: [
-			{ action: "turn", label: t("time.turnAge"), icon: "fa-solid fa-hourglass-end" },
+			{ action: "turn", label: t("time.banner.year"), icon: "fa-solid fa-hourglass-end" },
 			{ action: "set", label: t("time.agePick.set"), icon: "fa-solid fa-pen", default: true, callback: (_event, button) => ({ age: button.form.elements.age.value }) }
 		]
 	});

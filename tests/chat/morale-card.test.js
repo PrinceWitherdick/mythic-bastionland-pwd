@@ -10,7 +10,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 
 const { postCard } = await import("../../module/chat/cards.js");
 const { offerRevenge } = await import("../../module/actions/scars.js");
-const { breakMorale, clearMoraleBreak, registerMoraleCards } = await import("../../module/chat/morale-card.js");
+const { breakMorale, clearMoraleBreak, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
 
 let hooks;
 let warnings;
@@ -90,6 +90,24 @@ beforeEach(() => {
 afterEach(() => {
 	for (const key of ["Hooks", "ui", "game"]) delete globalThis[key];
 	vi.clearAllMocks();
+});
+
+describe("promptGroupMorale", () => {
+	it("asks for the side's Morale when a Knight the Referee plays goes down, as for an NPC (p10)", async () => {
+		const ruler = Object.assign(fakeNpc("Actor.ruler", { type: "knight", vig: 0, slain: true }), { hasPlayerOwner: false });
+		const guard = fakeNpc("Actor.guard");
+		game.combats = [fakeCombat([fakeCombatant("c1", ruler), fakeCombatant("c2", guard)])];
+		await promptGroupMorale(ruler);
+		const group = postCard.mock.calls.find(([, template]) => template === "morale-group");
+		expect(group[3].flags[SYSTEM_ID].moraleGroup.actors).toEqual(["Actor.guard"]);
+	});
+
+	it("asks nothing when a player's Knight goes down", async () => {
+		const kay = Object.assign(fakeNpc("Actor.kay", { type: "knight", vig: 0, slain: true }), { hasPlayerOwner: true });
+		game.combats = [fakeCombat([fakeCombatant("c1", kay), fakeCombatant("c2", fakeNpc("Actor.guard"))])];
+		expect(await promptGroupMorale(kay)).toBeNull();
+		expect(postCard).not.toHaveBeenCalled();
+	});
 });
 
 describe("breakMorale", () => {
@@ -190,5 +208,50 @@ describe("the turn order", () => {
 		const combat = fakeCombat([fakeCombatant("c1", fakeNpc("Actor.ann")), fakeCombatant("c2", fakeNpc("Actor.bo", { moraleBroken: "fled" }))], { turn: 1 });
 		await hooks.combatTurnChange(combat);
 		expect(combat.nextTurn).not.toHaveBeenCalled();
+	});
+});
+
+describe("the Morale buttons on a card", () => {
+	/** Draw a card holding these buttons for this user, as the chat log does. */
+	function render(buttons) {
+		registerMoraleCards();
+		const html = {
+			querySelector: () => buttons[0],
+			querySelectorAll: () => buttons,
+			addEventListener: () => {}
+		};
+		hooks.renderChatMessageHTML({ id: "message-1" }, html);
+		return buttons;
+	}
+
+	const button = (dataset) => ({ dataset, hidden: false });
+
+	it("hides a roll or a broken mark from somebody who doesn't own the NPC", () => {
+		const boar = fakeNpc("Actor.boar", { isOwner: false });
+		const wolf = fakeNpc("Actor.wolf");
+		globalThis.fromUuidSync = (uuid) => ({ "Actor.boar": boar, "Actor.wolf": wolf })[uuid] ?? null;
+		const [roll, broken, mine, group] = render([
+			button({ moraleRoll: "Actor.boar" }),
+			button({ moraleBreak: "fled", actors: "Actor.boar" }),
+			button({ moraleBreak: "fled", actors: "Actor.boar,Actor.wolf" }),
+			button({ moraleGroup: "each" })
+		]);
+		expect(roll.hidden).toBe(true);
+		expect(broken.hidden).toBe(true);
+		expect(mine.hidden).toBe(false);
+		expect(group.hidden).toBe(false);
+		delete globalThis.fromUuidSync;
+	});
+
+	it("keeps the Referee's button for characters who are gone, so its click can say so", () => {
+		globalThis.fromUuidSync = () => null;
+		const [roll, broken] = render([button({ moraleRoll: "Actor.gone" }), button({ moraleBreak: "fled", actors: "Actor.gone" })]);
+		expect(roll.hidden).toBe(false);
+		expect(broken.hidden).toBe(false);
+		game.user.isGM = false;
+		const [theirs] = render([button({ moraleRoll: "Actor.gone" })]);
+		expect(theirs.hidden).toBe(true);
+		game.user.isGM = true;
+		delete globalThis.fromUuidSync;
 	});
 });

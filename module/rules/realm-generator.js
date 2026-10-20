@@ -280,18 +280,46 @@ function uniqueRoll(random, used) {
  */
 function placeMyths(random, g, realm, count) {
 	if (count <= 0) return [];
+	const hexes = spreadOut(random, g, remoteHexes(g, realm, count), count, scaledSpacings(MYTH_SPACINGS, g, count, BOOK_SETUP.myths));
+	const used = new Set();
+	return hexes.map((hex, index) => ({ id: null, hex, number: index + 1, ...uniqueRoll(random, used), omen: 0, revealed: false }));
+}
+
+/**
+ * The hexes remote enough for a Myth (p14): the share of the free hexes
+ * furthest from any Holding, and never fewer than are wanted.
+ * @param {object} g
+ * @param {import("./realm.js").Realm} realm
+ * @param {number} count How many Myths are to go in them.
+ * @returns {{col: number, row: number}[]}
+ */
+function remoteHexes(g, realm, count) {
 	const holdings = realm.holdings.map((holding) => holding.hex);
 	const taken = featureHexes(realm);
 	const remoteness = (hex) => Math.min(...holdings.map((other) => hexDistance(g, other, hex)));
 	const candidates = allHexes(g).filter((hex) => !taken.has(hexKey(hex)));
 	// Without Holdings, nowhere is more remote than anywhere else.
-	const remote = holdings.length
+	return holdings.length
 		? candidates.sort((a, b) => remoteness(b) - remoteness(a)).slice(0, Math.max(count, Math.ceil(candidates.length * REMOTE_SHARE)))
 		: candidates;
+}
 
-	const hexes = spreadOut(random, g, remote, count, scaledSpacings(MYTH_SPACINGS, g, count, BOOK_SETUP.myths));
-	const used = new Set();
-	return hexes.map((hex, index) => ({ id: null, hex, number: index + 1, ...uniqueRoll(random, used), omen: 0, revealed: false }));
+/**
+ * Where one more Myth would go, placed as the Realm's Myths are when it's
+ * made (p14): somewhere remote, on no other feature, and as far from the
+ * Myths it already holds as the spacing allows.
+ * @param {{pick: <T>(list: T[]) => T|undefined}} random
+ * @param {object} g
+ * @param {import("./realm.js").Realm} realm
+ * @returns {{col: number, row: number}|null} Null only on a map with no free hex.
+ */
+export function remoteMythHex(random, g, realm) {
+	const pool = remoteHexes(g, realm, 1);
+	for (const spacing of scaledSpacings(MYTH_SPACINGS, g, realm.myths.length + 1, BOOK_SETUP.myths)) {
+		const apart = pool.filter((hex) => realm.myths.every((myth) => hexDistance(g, myth.hex, hex) >= spacing));
+		if (apart.length) return random.pick(apart) ?? null;
+	}
+	return random.pick(pool) ?? null;
 }
 
 /**

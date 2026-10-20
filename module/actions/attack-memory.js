@@ -7,7 +7,8 @@ import { SYSTEM_ID } from "../system-id.js";
 // duel they're in — is worked out afresh each time, and a declaration made for
 // one blow alone, bonus dice or Smite, is never carried into the next. Charging
 // a spearwall is one of those: it refuses the Attack outright (p10), so it is
-// never rolled with, and it belongs to the turn it was declared on.
+// never rolled with, and it belongs to the turn it was declared on. Engaged and
+// Confined are kept turn to turn but not past the fight's end (FIGHT_TICKS).
 
 /**
  * Client setting holding the choices. A client setting is one record per
@@ -33,7 +34,14 @@ export const REMEMBERED_TICKS = Object.freeze(["engaged", "confined", "mounted",
  * @property {boolean} againstIndividuals
  */
 
-/** Register the setting the choices are kept in. Called during init. */
+/**
+ * What holds only for the fight it was ticked in: being engaged with a foe, and
+ * fighting somewhere confined. The next fight starts in the open, and away
+ * from anybody, until the table says otherwise.
+ */
+const FIGHT_TICKS = Object.freeze(["engaged", "confined"]);
+
+/** Register the setting the choices are kept in, and the fight's end that clears part of them. Called during init. */
 export function registerAttackMemory() {
 	game.settings.register(SYSTEM_ID, CHOICES_SETTING, {
 		scope: "client",
@@ -41,6 +49,25 @@ export function registerAttackMemory() {
 		type: Object,
 		default: {}
 	});
+	// Every client keeps its own choices, so each forgets its own as the Combat goes.
+	Hooks.on("deleteCombat", (combat) => forgetTheFight(combat).catch((error) => console.error(`${SYSTEM_ID} | Couldn't clear the fight from the Attack choices`, error)));
+}
+
+/**
+ * Once a Combat is over, untick what held only for that fight for everybody in it.
+ * @param {Combat} combat
+ * @returns {Promise<void>}
+ */
+export async function forgetTheFight(combat) {
+	const uuids = new Set([...(combat?.combatants ?? [])].map((combatant) => combatant.actor?.uuid).filter(Boolean));
+	const worlds = savedWorlds();
+	const world = worlds[game.world.id];
+	if (!world || !uuids.size) return;
+	const fought = [...uuids].filter((uuid) => FIGHT_TICKS.some((key) => world[uuid]?.[key]));
+	if (!fought.length) return;
+	const unticked = Object.fromEntries(FIGHT_TICKS.map((key) => [key, false]));
+	const kept = { ...world, ...Object.fromEntries(fought.map((uuid) => [uuid, { ...world[uuid], ...unticked }])) };
+	await game.settings.set(SYSTEM_ID, CHOICES_SETTING, { ...worlds, [game.world.id]: kept });
 }
 
 /** @param {Record<string, unknown>|undefined} record */

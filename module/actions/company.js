@@ -41,6 +41,19 @@ export function companyPicture(scene) {
 export const NOT_A_MOVE = "bastionlandNotAMove";
 
 /**
+ * An update option marking a move the Company didn't choose, such as a drift
+ * when travelling blind: it still goes where it's put, but nothing that asks
+ * about a move the Company makes asks about this one.
+ */
+const FORCED_MOVE = "bastionlandForced";
+
+/**
+ * @param {object} [operation] The update that moved a Token.
+ * @returns {boolean} Whether the move was one the Company didn't choose.
+ */
+export const forcedMove = (operation) => Boolean(operation?.[FORCED_MOVE]);
+
+/**
  * Whether a Token's move took it anywhere: not a move taken back, nor one
  * standing it again where the hexes were laid out anew.
  * @param {object|undefined} movement As the moveToken hook gives it.
@@ -156,16 +169,17 @@ function companyTokenData(g, hex, { img, name }) {
  * @param {object} [looks]
  * @param {string} [looks.img]  Only used when the Token is made. Defaults to the picture chosen with the Realm.
  * @param {string} [looks.name] Only used when the Token is made.
+ * @param {boolean} [looks.forced] A move the Company didn't choose, such as a drift when travelling blind.
  * @returns {Promise<TokenDocument|null>}
  */
-export async function setCompanyHex(scene, hex, { img, name } = {}) {
+export async function setCompanyHex(scene, hex, { img, name, forced = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene) || !hex) return null;
 	const g = sceneGeometry(scene);
 	const standing = findCompanyToken(scene);
 
 	if (standing) {
 		const { x, y } = hexTopLeft(g, hex);
-		await standing.update({ x: Math.round(x), y: Math.round(y) });
+		await standing.update({ x: Math.round(x), y: Math.round(y) }, forced ? { [FORCED_MOVE]: true } : {});
 		return standing;
 	}
 

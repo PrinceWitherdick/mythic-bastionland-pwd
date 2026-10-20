@@ -1,9 +1,9 @@
 import { hexLabel } from "./hex-names.js";
 import { inputDialog } from "../apps/ui.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
-import { PHASE_END_MODES, likelyPhaseMode, morningHardships, wildernessDue } from "../rules/phase-end.js";
+import { likelyPhaseMode, morningHardships, PHASE_END_MODES, wildernessDue, wildernessTicked } from "../rules/phase-end.js";
 import { HARDSHIPS, nextPhase } from "../rules/time.js";
-import { SLAIN_UPDATE, downBy } from "../rules/virtues.js";
+import { isDying, slainUpdate } from "../rules/virtues.js";
 import { phaseEndCalls } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
@@ -13,7 +13,7 @@ import { companyMovedThisNight } from "./night-travel.js";
 import { weatherIn } from "./referee-rolls.js";
 import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
-import { companySituation } from "./wilderness.js";
+import { companySituation, omenShownOnEntering } from "./wilderness.js";
 import { keptFromMe } from "./solo.js";
 import { worldKnights } from "./knights.js";
 
@@ -45,13 +45,14 @@ export function registerPhaseEndSettings() {
 /**
  * Everybody still Mortally Wounded: an hour without care is fatal (p8), and a
  * Phase is longer than that. The world's own, and anybody placed
- * on the Scene in view without an actor of their own.
+ * on the Scene in view without an actor of their own. A Warband's Mortal Wound
+ * routs it from the battle rather than leaving it dying (p11), so none is listed.
  * @returns {Actor[]}
  */
 function mortallyWounded() {
 	const loose = (canvas?.scene?.tokens ?? []).filter((token) => !token.actorLink).map((token) => token.actor);
 	// Exhausted at VIG 0 by Virtue Loss, somebody dying is still alive to die of it.
-	return [...game.actors, ...loose].filter((actor) => downBy(actor?.system) === "mortalWound" && actor.system.virtues);
+	return [...game.actors, ...loose].filter((actor) => actor?.system?.virtues && isDying(actor.system));
 }
 
 /**
@@ -127,7 +128,11 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 			spent: t("phaseEnd.spent", { phase }),
 			modes: keyChoices(PHASE_END_MODES, "phaseEnd.modes", { chosen: likely }),
 			wilderness: calls
-				? { line: wildernessLine(soloCalls(calls, standing.situation), atBarrier), offered: calls !== "none", checked: wildernessDue({ calls, mode: likely, atBarrier }) }
+				? {
+					line: wildernessLine(soloCalls(calls, standing.situation), atBarrier),
+					offered: calls !== "none",
+					checked: wildernessTicked({ calls, mode: likely, atBarrier, omenShown: omenShownOnEntering(standing.scene, standing.situation.hex, ending) })
+				}
 				: null,
 			morning: nightEnds
 				? {
@@ -168,9 +173,12 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
  * @returns {Promise<string[]>} Their names.
  */
 export async function dieUntended(dying) {
+	// Anybody slain since the window was answered has fallen already.
+	dying = dying.filter((actor) => !actor.system.slain);
 	if (!game.user.isGM || !dying.length) return [];
 	// World actors and Tokens' own side by side, so each is written for itself.
-	await Promise.all(dying.map((actor) => actor.update(SLAIN_UPDATE, causedBy("damage"))));
+	// A Knight with no Ultimate fate written dies with this one.
+	await Promise.all(dying.map((actor) => actor.update(slainUpdate(actor, t("fallen.fateUntended")), causedBy("damage"))));
 	const names = dying.map((actor) => actor.name);
 	await postCard(null, "report", {
 		title: t("phaseEnd.dying.title"),
@@ -189,16 +197,18 @@ export async function dieUntended(dying) {
  * is remembered for the next Morning. GMs only.
  * @param {PhaseEnd} answers
  * @param {import("../rules/time.js").Calendar} ending The Night that ended.
- * @returns {Promise<object[]>} The card's entries.
+ * @returns {Promise<{section: object, rolls: Roll[]}|null>} The new Phase card's section, or null if nobody lost anything.
  */
 export async function takeMorningLosses({ mode, dire, members }, ending) {
-	if (!game.user.isGM) return [];
+	if (!game.user.isGM) return null;
 	await game.settings.set(SYSTEM_ID, DEPRIVED_SETTING, members.filter(({ deprived }) => deprived).map(({ actor }) => actor.id));
 	const winter = ending.season === "winter";
 	const rolls = [];
 	const entries = [];
 	const updates = [];
 	for (const { actor, noSleep, deprived } of members) {
+		// Who died untended through the Night isn't there by Morning to lose more.
+		if (actor.system.slain) continue;
 		const kinds = morningHardships({ mode, winter, dire }, { noSleep, deprived });
 		if (!kinds.length) continue;
 		const { update, taken } = await rollVirtueLosses(actor, kinds.map((kind) => ({ kind, virtue: HARDSHIPS.find(({ key }) => key === kind).virtue })));
@@ -210,13 +220,7 @@ export async function takeMorningLosses({ mode, dire, members }, ending) {
 		updates.push(actor.update(update, causedBy("hardship")));
 		entries.push({ name: actor.name, lines });
 	}
-	if (!entries.length) return entries;
+	if (!entries.length) return null;
 	await Promise.all(updates);
-	await postCard(null, "report", {
-		title: t("phaseEnd.morning.title"),
-		tagline: calendarLabel(getCalendar()),
-		entries,
-		hint: t("time.hardship.notDamage")
-	}, { rolls });
-	return entries;
+	return { section: { title: t("phaseEnd.morning.title"), entries, hint: t("time.hardship.notDamage") }, rolls };
 }

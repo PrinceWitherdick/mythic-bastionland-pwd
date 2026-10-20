@@ -31,6 +31,29 @@ export const VIRTUE_MAX = 19;
 export const SLAIN_UPDATE = Object.freeze({ "system.virtues.vig.value": 0, "system.slain": true, "system.mortalWound": false });
 
 /**
+ * A Knight's Ultimate fate as they die, where nobody has written one yet.
+ * @param {Actor} actor
+ * @param {string} fate
+ * @returns {object} The update, or nothing to write.
+ */
+export const unwrittenFate = (actor, fate) => (actor.type === "knight" && !actor.system.fate ? { "system.fate": fate } : {});
+
+/**
+ * The update that leaves somebody dead outright, with a Knight's Ultimate fate
+ * where nobody has written one yet.
+ * @param {Actor} actor
+ * @param {string} fate
+ * @returns {object}
+ */
+export const slainUpdate = (actor, fate) => ({ ...SLAIN_UPDATE, ...unwrittenFate(actor, fate) });
+
+/**
+ * @param {{virtues: Record<string, {max: number}>}} system
+ * @returns {object} The update restoring every Virtue to its max.
+ */
+export const fullVirtues = (system) => Object.fromEntries(VIRTUES.map((key) => [`system.virtues.${key}.value`, system.virtues[key].max]));
+
+/**
  * Keep a Virtue inside the range the rules allow.
  * @param {number} value
  * @returns {number}
@@ -80,6 +103,14 @@ export function downBy(system) {
 	if (system?.mortalWound) return "mortalWound";
 	return null;
 }
+
+/**
+ * Whether somebody lies dying of a Mortal Wound, until it's tended (p8). A
+ * Warband's routs it from the battle instead, which no tending undoes (p11).
+ * @param {{slain?: boolean, mortalWound?: boolean, scale?: string}} system
+ * @returns {boolean}
+ */
+export const isDying = (system) => downBy(system) === "mortalWound" && system.scale !== "warband";
 
 /**
  * Whether an update brings a Slain character's VIG back above 0, so the mark

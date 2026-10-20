@@ -214,10 +214,16 @@ const enrich = (html) => (/@|\[\[|https?:\/\//.test(html) ? foundry.applications
 /** A name as a link's label: the brackets a link is written with taken out. */
 const linkLabel = (name) => String(name ?? "").replace(/[[\]{}]/g, "");
 
-/** @returns {Promise<string>} A place as its card shows it: a link when it's a document dropped on the field. */
+/** A link to a document, under its label, or named by the document when the label is empty. */
+const uuidLink = (uuid, label) => (label ? `@UUID[${uuid}]{${label}}` : `@UUID[${uuid}]`);
+
+/**
+ * @returns {Promise<string>} A place as its card shows it: a link when it's a document dropped on the field, named by
+ * the document when no name was typed, or by its UUID once the document is gone (Foundry would call it "Unknown").
+ */
 const placeHtml = ({ place, placeUuid }) => {
 	const uuid = documentUuid(placeUuid);
-	if (uuid) return enrich(`@UUID[${uuid}]{${escapeHTML(linkLabel(place) || uuid)}}`);
+	if (uuid) return enrich(uuidLink(uuid, escapeHTML(linkLabel(place)) || (fromUuidSync(uuid, { strict: false }) ? "" : uuid)));
 	return place ? enrich(escapeHTML(place)) : Promise.resolve("");
 };
 
@@ -501,7 +507,7 @@ function wireEntryDialog(element) {
 	body?.addEventListener("drop", async (event) => {
 		const dropped = await droppedDocument(event);
 		if (!dropped) return;
-		const link = `@UUID[${dropped.uuid}]{${linkLabel(dropped.name)}}`;
+		const link = uuidLink(dropped.uuid, linkLabel(dropped.name));
 		const at = body.selectionStart ?? body.value.length;
 		body.value = `${body.value.slice(0, at)}${link}${body.value.slice(body.selectionEnd ?? at)}`;
 		body.selectionStart = body.selectionEnd = at + link.length;

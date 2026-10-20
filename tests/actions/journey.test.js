@@ -106,6 +106,16 @@ describe("movesAsCompany", () => {
 		monster.parent = realmScene([monster]);
 		expect(movesAsCompany(monster)).toBe(false);
 	});
+
+	it("follows only the first Company Token, not a copy of it pasted beside", () => {
+		const company = token("c", { company: true });
+		const copy = token("c2", { company: true });
+		const scene = realmScene([company, copy]);
+		company.parent = scene;
+		copy.parent = scene;
+		expect(movesAsCompany(company)).toBe(true);
+		expect(movesAsCompany(copy)).toBe(false);
+	});
 });
 
 describe("legHexes", () => {

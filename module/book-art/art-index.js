@@ -1,5 +1,7 @@
+import { ownMythLookup } from "../actions/own-myths.js";
 import { t } from "../chat/cards.js";
 import { ART_ROOT, INDEX_FILE, isTableRoll } from "../rules/book-art.js";
+import { isOwnMyth } from "../rules/own-myths.js";
 import { mythReference, seerReference } from "../rules/realm.js";
 import { SYSTEM_ID } from "../system-id.js";
 
@@ -117,12 +119,15 @@ export function sparkTablesOf(index, key) {
 }
 
 /**
- * A Myth's entry in the art index, with a name to show whether or not the book has been imported.
+ * A Myth's entry in the art index, with a name to show whether or not the book
+ * has been imported. A Myth the Referee wrote has an entry of the same shape,
+ * read from its Journal entry, and no roll or page.
  * @param {object|null} index
- * @param {{d6: number, d12: number}} myth
- * @returns {{roll: string, page: number, entry: object|null, name: string}}
+ * @param {{d6: number, d12: number, own?: string}} myth
+ * @returns {{roll: string|null, page: number|null, entry: object|null, name: string}}
  */
 export function mythEntry(index, myth) {
+	if (isOwnMyth(myth)) return ownMythLookup(myth);
 	const { roll, page } = mythReference(myth);
 	const entry = findByRoll(index?.myths, roll);
 	return { roll, page, entry, name: entry?.name ?? t("realm.key.unnamedMyth", { roll }) };
@@ -136,9 +141,22 @@ export function mythEntry(index, myth) {
  * @returns {{name: string, page: number|null, entry: object|null}}
  */
 export function mythLookup(index, myth) {
-	if (!isTableRoll(myth)) return { name: t("gmToolkit.myths.unrolled", { number: myth.number }), page: null, entry: null };
+	if (!isTableRoll(myth) && !isOwnMyth(myth)) return { name: t("gmToolkit.myths.unrolled", { number: myth.number }), page: null, entry: null };
 	return mythEntry(index, myth);
 }
+
+/**
+ * @param {string} name
+ * @param {number|null} page
+ * @returns {string} The name with its page, or alone for what has no page, such as a Myth the Referee wrote.
+ */
+export const withPage = (name, page) => (page ? t("realm.panel.reference", { name, page }) : name);
+
+/**
+ * @param {number|null} page
+ * @returns {string|null} The page, to go under a name, or null for what has none.
+ */
+export const pageNote = (page) => (page ? t("realm.key.page", { page }) : null);
 
 /**
  * A Seer's entry in the art index, with a name to show whether or not the book has been imported.

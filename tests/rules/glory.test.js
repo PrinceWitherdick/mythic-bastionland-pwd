@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeGlory, nextRank, rankForGlory } from "../../module/rules/glory.js";
+import { changeGlory, nextRank, rankForGlory, unworthyOf } from "../../module/rules/glory.js";
 
 describe("changeGlory", () => {
 	it("adds Glory and names a Rank newly reached", () => {
@@ -40,5 +40,20 @@ describe("nextRank", () => {
 
 	it("is null for a Knight-Radiant", () => {
 		expect(nextRank(12)).toBeNull();
+	});
+});
+
+describe("unworthyOf", () => {
+	it("names the Rank a post asks for where the Glory falls short of it (p6)", () => {
+		expect(unworthyOf(2, "council")).toBe("gallant");
+		expect(unworthyOf(3, "court")).toBeNull();
+		expect(unworthyOf(5, "holding")).toBe("tenant");
+		expect(unworthyOf(6, "holding")).toBeNull();
+		expect(unworthyOf(8, "seat")).toBe("dominant");
+		expect(unworthyOf(9, "seat")).toBeNull();
+	});
+
+	it("asks nothing of a post it doesn't know", () => {
+		expect(unworthyOf(0, "warband")).toBeNull();
 	});
 });

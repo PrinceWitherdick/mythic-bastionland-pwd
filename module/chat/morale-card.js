@@ -1,3 +1,4 @@
+import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
 import { rollMorale } from "../actions/saves.js";
 import { offerRevenge } from "../actions/scars.js";
@@ -23,10 +24,11 @@ const BROKE_FLAG = "moraleBroke";
 const MORALE_BUTTONS = "[data-morale-roll], [data-morale-group], [data-morale-break]";
 
 /**
- * @param {Combatant} combatant
- * @returns {boolean} Whether they belong in a group whose Morale can waver: an NPC who isn't a structure.
+ * @param {Actor|null} actor
+ * @returns {boolean} Whether they belong in a group whose Morale can waver: anybody not the players'
+ *   own who isn't a structure, the Referee's Knights among them.
  */
-const wavers = (combatant) => combatant.actor?.type === "npc" && !combatant.actor.system.structure;
+const wavers = (actor) => Boolean(actor?.system?.virtues) && !playerCharacter(actor) && !actor.system.structure;
 
 /**
  * @param {Combatant} combatant
@@ -38,14 +40,14 @@ function memberOf(combatant) {
 }
 
 /**
- * After an NPC goes down in combat, ask the GM for the group's Morale once half
+ * After an NPC, or a Knight the Referee plays, goes down in combat, ask the GM for the group's Morale once half
  * of those on its side are down. Each side is asked once per combat. GMs only,
  * since only they can mark the combat.
  * @param {Actor} actor Who just took Damage.
  * @returns {Promise<ChatMessage|null>}
  */
 export async function promptGroupMorale(actor) {
-	if (!game.user.isGM || actor.type !== "npc") return null;
+	if (!game.user.isGM || !wavers(actor)) return null;
 	const own = combatantOf(actor);
 	const combat = own?.parent;
 	const disposition = own?.token?.disposition;
@@ -54,7 +56,7 @@ export async function promptGroupMorale(actor) {
 	const prompted = combat.getFlag(SYSTEM_ID, PROMPTED_FLAG) ?? [];
 	if (prompted.includes(disposition)) return null;
 
-	const members = combat.combatants.filter((combatant) => combatant.token?.disposition === disposition && wavers(combatant)).map(memberOf);
+	const members = combat.combatants.filter((combatant) => combatant.token?.disposition === disposition && wavers(combatant.actor)).map(memberOf);
 	const standing = members.filter((member) => !member.down);
 	// Nobody left standing has any Morale left to roll, as when an organised group broke together.
 	if (!groupHalved(members) || !standing.length) return null;
@@ -214,6 +216,14 @@ async function skipBrokenMorale(combat) {
  */
 function activateMoraleButtons(message, html) {
 	if (!html.querySelector(MORALE_BUTTONS)) return;
+	// A Morale roll, or a broken NPC's mark, is only for whoever may change them.
+	for (const button of html.querySelectorAll(MORALE_BUTTONS)) {
+		const uuids = button.dataset.moraleRoll ? [button.dataset.moraleRoll] : actorUuidsOf(button);
+		const actors = uuids.map((uuid) => fromUuidSync(uuid));
+		// The Referee keeps a button whose characters are all gone, so a click says so.
+		const gone = game.user.isGM && actors.every((actor) => !actor);
+		if (uuids.length && !gone && !actors.some((actor) => actor?.isOwner)) button.hidden = true;
+	}
 	onCardClick(html, MORALE_BUTTONS, async (button) => {
 		if (button.dataset.moraleRoll) await rollFor(button.dataset.moraleRoll);
 		else if (GROUP_ORDER.includes(button.dataset.moraleGroup)) await rollGroup(message, button.dataset.moraleGroup);
@@ -222,11 +232,17 @@ function activateMoraleButtons(message, html) {
 }
 
 /**
+ * @param {HTMLElement} button
+ * @returns {string[]} The UUIDs of those a group's button stands for.
+ */
+const actorUuidsOf = (button) => (button.dataset.actors ?? "").split(",").filter(Boolean);
+
+/**
  * Mark whoever a failed Morale card stood for, as its button says.
  * @param {HTMLElement} button
  */
 async function breakFrom(button) {
-	const actors = (button.dataset.actors ?? "").split(",").filter(Boolean).map((uuid) => fromUuidSync(uuid)).filter(Boolean);
+	const actors = actorUuidsOf(button).map((uuid) => fromUuidSync(uuid)).filter(Boolean);
 	if (!actors.length) return warn("morale.gone");
 	return breakMorale(actors, button.dataset.moraleBreak);
 }

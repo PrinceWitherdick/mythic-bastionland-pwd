@@ -217,7 +217,7 @@ export async function rollUpHolding({ scene, hex }) {
 		people: persons.map(({ number, name, traits, known }) => ({
 			label: t("people.holding.personNamed", { name, number, count: folk }),
 			traits,
-			heard: known ? t("people.heardOfPage", { name: midSentence(known.name), page: known.page }) : null
+			heard: known ? t(known.page ? "people.heardOfPage" : "people.heardOf", { name: midSentence(known.name), page: known.page }) : null
 		})),
 		note: myths.length ? null : t("people.holding.noMyths")
 	}, { rolls: [count, roll], mode: "gm" });

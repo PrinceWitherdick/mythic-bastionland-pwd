@@ -88,14 +88,15 @@ describe("wildernessOutcome", () => {
 
 	it("chooses a random Myth by number, and the nearest with its ties shown", () => {
 		const situation = wildernessSituation(realm, g, hex(6, 6));
-		expect(mythChoices(realm, situation, "randomOmen")).toBe(3);
-		expect(wildernessOutcome(realm, situation, { d6: 1, pick: 2 })).toMatchObject({ result: "randomOmen", myth: { number: 3 }, complete: true });
+		// Myth 3 has shown all six of its Omens, so a random Omen chooses between the other two.
+		expect(mythChoices(situation, "randomOmen")).toBe(2);
+		expect(wildernessOutcome(realm, situation, { d6: 1, pick: 1 })).toMatchObject({ result: "randomOmen", myth: { number: 2 }, omen: 1, complete: false });
 
-		expect(mythChoices(realm, situation, "nearestOmen")).toBe(2);
+		expect(mythChoices(situation, "nearestOmen")).toBe(2);
 		const nearest = wildernessOutcome(realm, situation, { d6: 2, pick: 1 });
 		expect(nearest).toMatchObject({ result: "nearestOmen", myth: { number: 2 }, omen: 1 });
 		expect(nearest.tied.map((myth) => myth.number)).toEqual([1, 2]);
-		expect(mythChoices(realm, situation, "landmark")).toBe(1);
+		expect(mythChoices(situation, "landmark")).toBe(1);
 	});
 
 	it("finds the hex's Landmark while travelling, but not while camping", () => {
@@ -111,5 +112,28 @@ describe("companyHex", () => {
 		expect(companyHex([hex(3, 3), hex(3, 3), hex(4, 3), null])).toEqual({ hex: hex(3, 3), split: true });
 		expect(companyHex([hex(5, 5), hex(5, 5)])).toEqual({ hex: hex(5, 5), split: false });
 		expect(companyHex([null])).toEqual({ hex: null, split: false });
+	});
+});
+
+describe("Myths with no Omen left", () => {
+	it("leaves a played-out Myth out of the nearest", () => {
+		const realm = sampleRealm();
+		realm.myths.find((myth) => myth.number === 2).omen = 6;
+		const situation = wildernessSituation(realm, g, hex(6, 6));
+		expect(situation.nearest.map((myth) => myth.number)).toEqual([1]);
+		expect(situation.bearing.map((myth) => myth.number)).toEqual([1]);
+	});
+
+	it("reads as quiet once every Myth has shown all its Omens", () => {
+		const realm = sampleRealm();
+		for (const myth of realm.myths) myth.omen = 6;
+		const situation = wildernessSituation(realm, g, hex(6, 6));
+		expect(wildernessOutcome(realm, situation, { d6: 1 })).toEqual({ result: "noOmens", d6: 1 });
+		expect(wildernessOutcome(realm, situation, { d6: 2 })).toEqual({ result: "noOmens", d6: 2 });
+		// A Realm with no Myths at all still says so.
+		const empty = { ...realm, myths: [] };
+		expect(wildernessOutcome(empty, wildernessSituation(empty, g, hex(6, 6)), { d6: 1 })).toEqual({ result: "noMyths", d6: 1 });
+		// Every Myth resolved: the situation sees none, but the whole Realm had them.
+		expect(wildernessOutcome(realm, wildernessSituation(empty, g, hex(6, 6)), { d6: 1 })).toEqual({ result: "noOmens", d6: 1 });
 	});
 });

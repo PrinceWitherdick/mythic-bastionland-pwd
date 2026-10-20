@@ -1,4 +1,5 @@
-import { findCompanyToken, wentSomewhere } from "../actions/company.js";
+import { wentSomewhere } from "../actions/company.js";
+import { movesAsCompany } from "../actions/journey.js";
 import { hexLorePromptMode, rollFirstArrival, rollsFirstArrivals } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHex } from "../apps/TravelsPlaces.js";
@@ -138,8 +139,7 @@ function noticeArrival(token, movement, operation) {
 	if (!isRealmScene(scene)) return;
 	// With a Company Token on the map that Token alone is the Company. Without
 	// one, any player's Token arriving somewhere counts.
-	const company = findCompanyToken(scene);
-	if (company ? token.id !== company.id : !token.actor?.hasPlayerOwner) return;
+	if (!movesAsCompany(token)) return;
 	// Taking a move back isn't arriving anywhere, and nor is standing again where the hexes were laid out anew.
 	if (!wentSomewhere(movement, operation)) return;
 	// One drag across five hexes arrives once, at the end of it.

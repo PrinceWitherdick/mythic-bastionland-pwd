@@ -1,4 +1,4 @@
-import { chooseDialog } from "../apps/ui.js";
+import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { D6_BANDS, DEFAULT_DIRE_WEATHER_RISK, DIRE_WEATHER_RISKS, LUCK_ODDS, luckAtOdds, readRefereeTable, REFEREE_TABLES, weatherAfter } from "../rules/referee-rolls.js";
 import { readMythTable } from "../rules/gm-toolkit.js";
@@ -78,6 +78,9 @@ export async function rollRefereeTable(key) {
 	return { d6: roll.total, ...read };
 }
 
+/** The odds a Referee may state for a Luck Roll, each with what it needs. */
+const oddsChoices = () => LUCK_ODDS.map(({ key, needs }) => ({ key, label: t("refereeRolls.odds.label", { odds: t(`refereeRolls.odds.${key}`), needs }) }));
+
 /**
  * Ask what the odds are, then make a Luck Roll: on its table, or at the odds
  * the Referee states ("a slim chance", "straight 50/50", p182, p184).
@@ -86,24 +89,24 @@ export async function rollRefereeTable(key) {
  */
 export async function rollLuck(odds) {
 	const luck = REFEREE_TABLES.find(({ key }) => key === "luck");
-	const bands = luck.results.map((result, index) => `<span>${D6_BANDS[index]}</span><span>${t(`refereeRolls.tables.luck.results.${result}`)}</span>`);
-	odds ??= await chooseDialog({
+	odds ??= (await inputDialog({
 		title: t("refereeRolls.tables.luck.name"),
 		icon: "fa-solid fa-dice-d6",
 		classes: ["bastionland-luck-odds"],
-		message: [
-			t("refereeRolls.odds.intro"),
-			`<strong>${t("refereeRolls.odds.tableHeading")}</strong> ${t("refereeRolls.odds.tableHelp")}`,
-			`<span class="bastionland-luck-odds__bands">${bands.join("")}</span>`,
-			`<span class="hint">${t("refereeRolls.odds.notDomain")}</span>`,
-			`<strong>${t("refereeRolls.odds.oddsHeading")}</strong> ${t("refereeRolls.odds.oddsHelp")}`,
-			`<span class="bastionland-luck-odds__question">${t("refereeRolls.odds.question")}</span>`
-		],
-		buttons: [
-			{ action: "table", label: t("refereeRolls.odds.table"), default: true },
-			...LUCK_ODDS.map(({ key, needs }) => ({ action: key, label: t("refereeRolls.odds.label", { odds: t(`refereeRolls.odds.${key}`), needs }) }))
-		]
-	});
+		template: "luck-odds",
+		context: {
+			intro: t("refereeRolls.odds.intro"),
+			question: t("refereeRolls.odds.question"),
+			tableHeading: t("refereeRolls.odds.tableHeading"),
+			tableHelp: t("refereeRolls.odds.tableHelp"),
+			bands: luck.results.map((result, index) => ({ d6: D6_BANDS[index], result: t(`refereeRolls.tables.luck.results.${result}`) })),
+			notDomain: t("refereeRolls.odds.notDomain"),
+			oddsHeading: t("refereeRolls.odds.oddsHeading"),
+			oddsHelp: t("refereeRolls.odds.oddsHelp"),
+			odds: oddsChoices()
+		},
+		ok: { label: t("refereeRolls.roll"), icon: "fa-solid fa-dice-d6" }
+	}))?.odds;
 	if (odds === "table") return rollRefereeTable("luck");
 	if (!LUCK_ODDS.some(({ key }) => key === odds)) return null;
 
@@ -125,17 +128,18 @@ export async function rollLuck(odds) {
  */
 export async function openRefereeRolls() {
 	if (!game.user.isGM) return null;
-	const key = await chooseDialog({
+	const data = await inputDialog({
 		title: t("refereeRolls.title"),
 		icon: "fa-solid fa-dice-d6",
-		classes: ["bastionland-referee-rolls"],
-		message: t("refereeRolls.intro"),
-		buttons: REFEREE_TABLES.map(({ key: action }, index) => ({
-			action,
-			label: t(`refereeRolls.tables.${action}.name`),
-			default: index === 0
-		}))
+		template: "referee-rolls",
+		context: {
+			intro: t("refereeRolls.intro"),
+			tables: REFEREE_TABLES.map(({ key }) => ({ id: key, name: t(`refereeRolls.tables.${key}.name`), detail: t(`refereeRolls.tables.${key}.hint`) }))
+		},
+		ok: { label: t("refereeRolls.roll"), icon: "fa-solid fa-dice-d6" }
 	});
+	const key = data?.table;
+	// The Luck Roll's odds are asked in its own window, the one a Luck Roll opens anywhere.
 	if (key === "luck") return rollLuck();
 	return REFEREE_TABLES.some((table) => table.key === key) ? rollRefereeTable(key) : null;
 }

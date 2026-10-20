@@ -14,7 +14,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
 import { COMPANION_FLAG } from "./property.js";
 import { knightSquire } from "./squires.js";
-import { worldKnights } from "./knights.js";
+import { playersOf, worldKnights } from "./knights.js";
 import { timelineFallen, timelineTookUp } from "./timeline-events.js";
 
 /**
@@ -24,14 +24,6 @@ import { timelineFallen, timelineTookUp } from "./timeline-events.js";
  * by Damage is what the book calls Slain, and there is nothing further to write
  * on them.
  */
-
-/**
- * @param {Actor} actor
- * @returns {string[]} The players who own them, never a GM.
- */
-const playersOf = (actor) => Object.entries(actor.ownership ?? {})
-	.filter(([user, level]) => user !== "default" && level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && !game.users.get(user)?.isGM)
-	.map(([user]) => user);
 
 /**
  * Every actor as rules/fallen.js reads them.

@@ -57,7 +57,7 @@ function installFoundryStubs() {
 			}
 		}
 	};
-	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
+	globalThis.CONFIG = { Actor: { dataModels: {} }, Item: { dataModels: {} }, JournalEntryPage: { dataModels: {} }, Canvas: { layers: {} }, Token: {}, Combatant: { documentClass: class Combatant {} }, Combat: { documentClass: class Combat {} }, Tile: { objectClass: class Tile { get isVisible() { return !this.document.hidden || game.user.isGM; } } }, Drawing: { objectClass: class Drawing {} }, fontDefinitions: {}, queries: {}, TextEditor: { enrichers: [] } };
 	globalThis.canvas = { scene: null };
 	globalThis.game = { settings: { register: vi.fn(), registerMenu: vi.fn(), get: vi.fn() }, keybindings: { register: vi.fn() }, tours: { register: vi.fn() }, system: {}, user: { isGM: false, getFlag: () => undefined } };
 	globalThis.Hooks = {
@@ -193,6 +193,20 @@ describe("system boot", () => {
 			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
 		}
 		expect(hooks.renderJournalDirectory).toBeTypeOf("function");
+	});
+
+	it("opens a written Myth's Journal entry to be written, and offers that sheet to no other entry", async () => {
+		const { OWN_MYTH_SHEET_CLASS } = await import("../module/actions/own-myths.js");
+		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
+		const registered = registerSheet.mock.calls.filter(([registeredClass]) => registeredClass === foundry.documents.JournalEntry);
+		const [, scope, mythSheet, options] = registered.find(([, , sheet]) => sheet.name === "OwnMythSheet");
+		expect(options).toMatchObject({ makeDefault: false, canBeDefault: false, label: "bastionland.ownMyth.sheet" });
+		// Each written Myth's entry stores the sheet by its scope and class name.
+		expect(`${scope}.${mythSheet.name}`).toBe(OWN_MYTH_SHEET_CLASS);
+		for (const part of Object.values(mythSheet.PARTS)) {
+			expect(existsSync(fileForTemplate(part.template)), part.template).toBe(true);
+		}
+		expect(game.system.api.newOwnMyth).toBeTypeOf("function");
 	});
 
 	it("preloads partials that exist on disk", () => {

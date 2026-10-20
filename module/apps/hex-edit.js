@@ -1,6 +1,6 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { editRealm, getRealm, realmUndoState } from "../actions/realm.js";
-import { loadArtIndex, mythEntry, mythLookup, seerEntry } from "../book-art/art-index.js";
+import { loadArtIndex, mythEntry, mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { createRandom, randomSeed } from "../rules/random.js";
 import {
@@ -72,7 +72,8 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 			numbers: [here.myth.number, ...unusedMythNumbers(realm)].sort((a, b) => a - b).map((number) => option(number, number, number === here.myth.number)),
 			d6: here.myth.d6,
 			d12: here.myth.d12,
-			reference: t("realm.panel.reference", { name, page }),
+			// A Myth the Referee wrote has no roll or page: typing a roll makes it one of the book's.
+			reference: withPage(name, page),
 			omens: t("realm.panel.omensSeen", { omen: here.myth.omen, count: OMEN_COUNT }),
 			revealed: here.myth.revealed
 		};

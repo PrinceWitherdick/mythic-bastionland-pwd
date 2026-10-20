@@ -46,6 +46,18 @@ describe("pursuitMakings", () => {
 });
 
 describe("followPursuits", () => {
+	it("carries out what was said beside the pursuit without asking, and asks where nothing was", async () => {
+		const company = [{ actor: knight("Tal"), pursuit: "courtesy", making: "contact" }, { actor: knight("Moss"), pursuit: "service", making: null }, { actor: knight("Ash"), pursuit: "service", making: "favour" }];
+		const entries = [{ lines: [] }, { lines: [] }, { lines: [] }];
+		answers = ["other", "other"];
+		await followPursuits(company, entries, "Winter");
+		expect(asked.map(({ message }) => message)).toEqual([
+			'time.pursuitMakes.service.question {"name":"Moss"}',
+			'time.pursuitMakes.service.question {"name":"Ash"}'
+		]);
+		expect(entries.map(({ lines }) => lines[0])).toEqual(["time.pursuitMakes.courtesy.made.contact", "time.pursuitMakes.service.made.other", "time.pursuitMakes.service.made.other"]);
+	});
+
 	it("asks only those whose pursuit makes something, and says what it made on their entry", async () => {
 		const company = [{ actor: knight("Tal"), pursuit: "pilgrimage" }, { actor: knight("Moss"), pursuit: "courtesy" }];
 		const entries = [{ lines: [] }, { lines: [] }];

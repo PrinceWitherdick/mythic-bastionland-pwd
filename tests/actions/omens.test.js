@@ -26,7 +26,8 @@ vi.mock("../../module/actions/timeline-record.js", () => ({
 vi.mock("../../module/actions/travels.js", () => ({ travelsSources: () => ({}), playersHexView: (_scene, hex) => ({ name: `Hex ${hex.col}.${hex.row}` }) }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null, mythEntry: () => ({ name: "The Myth", page: 40, entry: null }) }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }));
-vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn() }));
+// The Realm's Seat stands on no Tile, so no card is left to seat the Knights later.
+vi.mock("../../module/actions/found-domain.js", () => ({ offerRulerDomain: vi.fn(), seatCourtiers: vi.fn(), seatOfPower: () => null, seatName: (seat) => seat.name }));
 vi.mock("../../module/actions/wilderness.js", () => ({ findCompany: () => ({ hex: { col: 2, row: 2 } }) }));
 vi.mock("../../module/rules/wilderness.js", async (importOriginal) => ({
 	...(await importOriginal()),

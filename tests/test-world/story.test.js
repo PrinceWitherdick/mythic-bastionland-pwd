@@ -95,7 +95,7 @@ vi.mock("../../module/actions/dominion.js", () => ({
 		knight.system.domain = domain.uuid;
 		domain.system.ruler ||= knight.name;
 	}),
-	settleDomains: vi.fn(async () => []),
+	settleDomains: vi.fn(async () => ({ entries: [], fell: [] })),
 	dramaInCourt: vi.fn(async () => "intrigue"),
 	resolveCrisis: vi.fn(async (domain, index) => {
 		const key = domain.system.crises[index];
@@ -193,17 +193,27 @@ vi.mock("../../module/actions/time.js", () => ({
 
 vi.mock("../../module/book-art/art-index.js", async () => {
 	const { rollLabel: label } = await import("../../module/rules/book-art.js");
+	const { SYSTEM_ID: id } = await import("../../module/system-id.js");
+	const { t } = await import("../../module/chat/cards.js");
 	const findByRoll = (list, roll) => list?.find((entry) => entry.roll === roll) ?? null;
 	const lookup = (list, { d6, d12 }) => {
 		const roll = label(d6, d12);
 		const entry = findByRoll(list, roll);
 		return { roll, page: 30, entry, name: entry?.name ?? `Unnamed ${roll}` };
 	};
+	// A Myth the Referee wrote is read from its Journal entry, as actions/own-myths.js reads it.
+	const ownLookup = (myth) => {
+		const entry = world.journal.find((document) => document.id === myth.own);
+		const written = entry?.flags?.[id]?.ownMyth;
+		return { roll: null, page: null, entry: written ? { ...written, path: written.img || null } : null, name: entry?.name ?? `Myth ${myth.number}` };
+	};
 	return {
 		findByRoll,
 		loadArtIndex: async () => world.index,
-		mythEntry: (index, myth) => lookup(index?.myths, myth),
-		seerEntry: (index, seer) => lookup(index?.seers, seer)
+		mythEntry: (index, myth) => (myth?.own ? ownLookup(myth) : lookup(index?.myths, myth)),
+		seerEntry: (index, seer) => lookup(index?.seers, seer),
+		withPage: (name, page) => (page ? t("realm.panel.reference", { name, page }) : name),
+		pageNote: (page) => (page ? t("realm.key.page", { page }) : null)
 	};
 });
 
@@ -295,6 +305,12 @@ class FakeDocument {
 
 	getFlag(scope, key) {
 		return this.flags?.[scope]?.[key];
+	}
+
+	async setFlag(scope, key, value) {
+		this.flags ??= {};
+		(this.flags[scope] ??= {})[key] = value;
+		return this;
 	}
 
 	async unsetFlag(scope, key) {
@@ -682,15 +698,52 @@ describe.each([["with the book imported", true], ["without it", false]])("the te
 		expect(domain.system.crisisRolled).toBe("2-2-spring");
 		expect(domain.system.council.circle).toEqual([knights()["Sir Oswin Hale"].id]);
 		expect(knights()["Dame Isolde Marrow"].system.domain).toBe(domain.uuid);
-		expect(world.journal.map((entry) => entry.flags.core.sheetClass)).toEqual(["mythic-bastionland-pwd.SiteSheet", "mythic-bastionland-pwd.SiteSheet"]);
-		expect(world.journal[0].flags[SYSTEM_ID].site.points).toBeTruthy();
+		const sites = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.SiteSheet");
+		expect(sites).toHaveLength(2);
+		expect(sites[0].flags[SYSTEM_ID].site.points).toBeTruthy();
+	});
+
+	it("files the written Myth in a Your Myths folder the world has already, and leaves that folder be", async () => {
+		const mine = new FakeDocument({ name: "Your Myths", type: "JournalEntry", flags: { [SYSTEM_ID]: { ownMythsFolder: true } } });
+		world.folders.push(mine);
+		await populateTestWorld();
+		const entry = world.journal.find((candidate) => candidate.flags[SYSTEM_ID].ownMyth);
+		expect(entry.folder).toBe(mine.id);
+		expect(mine.flags[SYSTEM_ID].testWorld).toBeUndefined();
+	});
+
+	it("writes a Myth of the Referee's own and makes it the third of the Realm's, met once", async () => {
+		await populateTestWorld();
+		const written = world.journal.filter((entry) => entry.flags.core.sheetClass === "mythic-bastionland-pwd.OwnMythSheet");
+		expect(written).toHaveLength(1);
+		const [entry] = written;
+		expect(entry.name).toBe("The Bell Under the Mere");
+		expect(entry.flags[SYSTEM_ID].testWorld).toBe(true);
+		// Filed with the Referee's own Myths, in the folder New Myth uses, made for it and so removed with the test world.
+		const folder = world.folders.find((candidate) => candidate.id === entry.folder);
+		expect(folder.flags[SYSTEM_ID]).toEqual({ ownMythsFolder: true, testWorld: true });
+		const myth = entry.flags[SYSTEM_ID].ownMyth;
+		expect(myth.omens.filter(Boolean)).toHaveLength(6);
+		expect(myth.table.rows.every((row) => row.every(Boolean))).toBe(true);
+		// Its picture is one of the book's, borrowed from a Myth the Realm doesn't hold, and there's none without the book.
+		const held = world.realm.myths.filter((candidate) => !candidate.own).map(({ d6, d12 }) => `art/myth-${d6}-${String(d12).padStart(2, "0")}.webp`);
+		if (imported) {
+			expect(myth.img).toMatch(/^art\/myth-/);
+			expect(held).not.toContain(myth.img);
+		} else {
+			expect(myth.img).toBe("");
+		}
+		const inRealm = world.realm.myths.filter((candidate) => candidate.own === entry.id);
+		expect(world.folders.filter((candidate) => candidate.flags?.[SYSTEM_ID]?.ownMythsFolder)).toHaveLength(1);
+		expect(inRealm).toHaveLength(1);
+		expect(inRealm[0]).toMatchObject({ d6: null, d12: null, omen: 1 });
 	});
 
 	it("turns Site journals on and makes each Site's at once, and removing it deletes them", async () => {
 		const { deleteSiteJournals, keepSiteJournal } = await import("../../module/actions/site-journals.js");
 		await populateTestWorld();
 		expect(world.settings.siteJournals).toBe(true);
-		expect(keepSiteJournal.mock.calls.map(([entry]) => entry)).toEqual(world.journal);
+		expect(keepSiteJournal.mock.calls.map(([entry]) => entry)).toEqual(world.journal.filter((entry) => entry.flags[SYSTEM_ID].site));
 
 		await populateTestWorld();
 		expect(deleteSiteJournals).toHaveBeenCalledWith(world.journal.map((entry) => entry.id));

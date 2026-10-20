@@ -47,6 +47,17 @@ export const CAST_DETAILS_STEP = "npcCastDetails";
 let filledThisLoad = false;
 
 /**
+ * The words a Seer's NPC is written with, here and wherever else one is made.
+ * @param {(roll: number) => string} folder What their folder is called.
+ * @returns {{folder: Function, knighted: Function, attackName: string}}
+ */
+export const seerWords = (folder) => ({
+	folder,
+	knighted: (knight, page) => t("npcPack.knighted", { knight, page }),
+	attackName: t("attack.title")
+});
+
+/**
  * The compendium's folders: the Seers by d6, the Myths by d6 and then by
  * Myth, and the City Quest.
  * @param {object|null} index
@@ -55,11 +66,7 @@ let filledThisLoad = false;
 function npcFolders(index) {
 	const d6 = (roll) => t(`npcPack.d6.${roll}`);
 	const attackName = t("attack.title");
-	const seers = seerFolders(index, {
-		folder: d6,
-		knighted: (knight, page) => t("npcPack.knighted", { knight, page }),
-		attackName
-	});
+	const seers = seerFolders(index, seerWords(d6));
 	const castWords = {
 		folder: d6,
 		unnamedMyth: (roll) => t("realm.key.unnamedMyth", { roll }),

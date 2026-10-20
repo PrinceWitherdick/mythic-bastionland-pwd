@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { recallAttack, rememberAttack, rememberedChoice, wieldedWith } from "../../module/actions/attack-memory.js";
+import { forgetTheFight, recallAttack, rememberAttack, rememberedChoice, wieldedWith } from "../../module/actions/attack-memory.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
 /** A world whose client settings live in a plain object. */
@@ -104,5 +104,25 @@ describe("recallAttack", () => {
 			throw new Error("not registered");
 		};
 		expect(recallAttack({ uuid: "Actor.one" })).toBeNull();
+	});
+});
+
+describe("forgetTheFight", () => {
+	it("unticks Engaged and Confined for those in the Combat once it's over, keeping the rest", async () => {
+		const tal = { engaged: true, confined: true, mounted: true, source: { sword: true } };
+		const moss = { engaged: true, confined: false };
+		const settings = installWorld({ mythic: { "Actor.tal": tal, "Actor.moss": moss }, other: { "Actor.tal": tal } });
+		await forgetTheFight({ combatants: [{ actor: { uuid: "Actor.tal" } }, { actor: null }] });
+		const stored = settings[`${SYSTEM_ID}.attackChoices`];
+		expect(stored.mythic["Actor.tal"]).toEqual({ engaged: false, confined: false, mounted: true, source: { sword: true } });
+		expect(stored.mythic["Actor.moss"]).toBe(moss);
+		expect(stored.other["Actor.tal"]).toBe(tal);
+	});
+
+	it("writes nothing where nobody in the fight had either ticked", async () => {
+		const settings = installWorld({ mythic: { "Actor.tal": { engaged: false, confined: false } } });
+		const before = settings[`${SYSTEM_ID}.attackChoices`];
+		await forgetTheFight({ combatants: [{ actor: { uuid: "Actor.tal" } }] });
+		expect(settings[`${SYSTEM_ID}.attackChoices`]).toBe(before);
 	});
 });

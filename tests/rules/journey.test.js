@@ -7,6 +7,7 @@ import {
 	forgetVisit,
 	forgetVisits,
 	hexesEntered,
+	lastOfEach,
 	normaliseJourney,
 	recordVisits,
 	visitedNewestFirst,
@@ -98,6 +99,15 @@ describe("normaliseJourney", () => {
 		const raw = { version: 99, next: 2, hexes: { "2,2": { count: 1, first: { order: 7 }, last: { order: 9 } } } };
 		expect(normaliseJourney(raw)).toMatchObject({ version: JOURNEY_VERSION, next: 10 });
 		expect(normaliseJourney({ next: 40, hexes: {} }).next).toBe(40);
+	});
+});
+
+describe("lastOfEach", () => {
+	it("keeps each hex once, where it was last come into, so a move that doubles back ends where it ended", () => {
+		expect(lastOfEach([hex(2, 1), hex(3, 1), hex(2, 1)])).toEqual([hex(3, 1), hex(2, 1)]);
+		expect(lastOfEach([hex(2, 1), hex(1, 1), hex(2, 1)])).toEqual([hex(1, 1), hex(2, 1)]);
+		// Four Knights' Tokens coming into the same hexes together.
+		expect(lastOfEach([hex(2, 1), hex(2, 1), hex(3, 1), hex(3, 1)])).toEqual([hex(2, 1), hex(3, 1)]);
 	});
 });
 

@@ -143,6 +143,23 @@ export function standTogether(a, b, size) {
 }
 
 /**
+ * A Token's box on the map, as standing side by side is measured.
+ * @param {Token} placed
+ * @returns {WallStander["box"]}
+ */
+export const tokenBox = (placed) => ({ x: placed.document.x, y: placed.document.y, w: placed.w, h: placed.h });
+
+/**
+ * Whether one stands within arm's reach of another, on the same side, as Deny
+ * asks of an ally (p10).
+ * @param {{box: WallStander["box"], side: number}} a
+ * @param {{box: WallStander["box"], side: number}} b
+ * @param {number} size One grid space, in pixels.
+ * @returns {boolean}
+ */
+export const withinArmsReach = (a, b, size) => a.side === b.side && standTogether(a.box, b.box, size);
+
+/**
  * The wall formation somebody struck stands in (p10): them, each ally beside
  * them, each ally beside one of those, and so on. 3 or more allies make a
  * wall, which gains a point of Armour when every one has a shield, bucklers aside.

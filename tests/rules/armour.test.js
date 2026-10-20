@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armourCounts, armourTotal, armourWorn, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether } from "../../module/rules/armour.js";
+import { armourCounts, armourTotal, armourWorn, armourUnshielded, displacedArmour, greaterEffects, looksWooden, noteBearing, noteNamesShield, noteWithout, npcArmourUnshielded, shieldwallAround, shieldwallBearing, standTogether, withinArmsReach } from "../../module/rules/armour.js";
 
 const piece = (kind, armour = 1, more = {}) => ({ kind, armour, equipped: true, ...more });
 
@@ -78,6 +78,13 @@ describe("a shieldwall on the map", () => {
 		expect(standTogether(at("a", 0, 0).box, at("b", 1, 0).box, SIZE)).toBe(true);
 		expect(standTogether(at("a", 0, 0).box, at("b", 1, 1).box, SIZE)).toBe(true);
 		expect(standTogether(at("a", 0, 0).box, at("b", 2, 0).box, SIZE)).toBe(false);
+	});
+
+	it("lets an ally beside a target Deny for them, but not a foe or one further off (p10)", () => {
+		const target = { box: at("a", 0, 0).box, side: 1 };
+		expect(withinArmsReach({ box: at("b", 1, 0).box, side: 1 }, target, SIZE)).toBe(true);
+		expect(withinArmsReach({ box: at("b", 1, 0).box, side: -1 }, target, SIZE)).toBe(false);
+		expect(withinArmsReach({ box: at("b", 2, 0).box, side: 1 }, target, SIZE)).toBe(false);
 	});
 
 	it("forms of 3 or more allies in a chain, all bearing shields", () => {

@@ -7,9 +7,10 @@ import { bringInRulebook, importFoundRulebook } from "../rulebook/bring-in.js";
 import { RULEBOOK_DIR, RULEBOOK_HOOK, foundRulebook, rulebookPath } from "../rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hasHadSetup, isSetupDone } from "../world-setup.js";
-import { TOURS_SETTING, showWhereRealmsAreMade, toursShown } from "./realm-tour.js";
+import { TOURS_SETTING, showWhereRealmsAreMade, toursShown, worldHasRealm } from "./realm-tour.js";
 import { chooseLocalFiles, singletonOpener } from "./ui.js";
 import { SOLO_SETTING, isSolo } from "../actions/solo.js";
+import { newRealm } from "../actions/realm.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -97,7 +98,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 			read: Welcome.#onRead,
 			companyStep: Welcome.#onCompanyStep,
 			knightCompany: Welcome.#onKnightCompany,
-			finish: Welcome.#onFinish
+			finish: Welcome.#onFinish,
+			newRealm: Welcome.#onNewRealm
 		}
 	};
 
@@ -148,6 +150,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 			found: foundText(foundRulebook(), this.#busy),
 			busy: this.#busy,
 			solo: isSolo(),
+			// Until the world has a Realm, the Welcome ends by making one.
+			firstRealm: !worldHasRealm(),
 			skipTours: !toursShown(),
 			company: {
 				count: company,
@@ -208,7 +212,8 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 		if (game.settings.get(SYSTEM_ID, SHOW_SETTING)) {
 			game.settings.set(SYSTEM_ID, SHOW_SETTING, false)
 				.catch((error) => console.error(`${SYSTEM_ID} | Couldn't stop the Welcome opening by itself`, error));
-			showWhereRealmsAreMade();
+			// Gone to make the first Realm, there's no need to show where it's made.
+			if (!this.#makingRealm) showWhereRealmsAreMade();
 		}
 	}
 
@@ -297,6 +302,25 @@ export class Welcome extends HandlebarsApplicationMixin(ApplicationV2) {
 	/** @this {Welcome} */
 	static #onFinish() {
 		this.close();
+	}
+
+	/** Whether it was closed to make the first Realm. */
+	#makingRealm = false;
+
+	/** @this {Welcome} */
+	static async #onNewRealm() {
+		// Only a Welcome that opened by itself ends by showing where Realms are made.
+		const welcoming = welcomesThisWorld();
+		this.#makingRealm = true;
+		try {
+			await this.close();
+		} finally {
+			this.#makingRealm = false;
+		}
+		const scene = await newRealm();
+		// Left without a Realm after all, the Referee is still shown where one is made.
+		if (!scene && welcoming) showWhereRealmsAreMade();
+		return scene;
 	}
 }
 

@@ -272,3 +272,54 @@ describe("localization", () => {
 		expect(typeof lookup(key)).toBe("string");
 	});
 });
+
+describe("text that keeps its line breaks", () => {
+	// Foundry v13 compiles templates without preventIndent, so a partial called on a line
+	// of its own has that line's indent put before every line it prints, inside a note
+	// typed with line breaks as well, and inside a textarea's value. Each such partial is called with {{~> }} instead.
+	const KEEPS_BREAKS = ["bastionland-travels-journey__note", "bastionland-travels-hex__note", "bastionland-card__prose", "<textarea"];
+	const main = readFileSync(join(root, "mythic-bastionland.js"), "utf8");
+	const registered = new Map([...main.matchAll(/"(bastionland\.[\w-]+)": templatePath\("([^"]+)"\)/g)]
+		.map(([, name, path]) => [join(root, "templates", path), name]));
+	const sources = new Map(templates.map((file) => [file, readFileSync(file, "utf8")]));
+	// Every partial by the name it's called by: a registered one by its own, and a file's inline ones by file#name.
+	const partials = new Map();
+	for (const [file, source] of sources) {
+		if (registered.has(file)) partials.set(registered.get(file), { file, source });
+		for (const [, name, body] of source.matchAll(/\{\{#\*inline\s+"([^"]+)"\s*\}\}([\s\S]*?)\{\{\/inline\}\}/g)) partials.set(`${file}#${name}`, { file, source: body });
+	}
+	/** What a call names, in the file it's made in: a quoted name is registered, a bare one is that file's inline partial. */
+	const resolve = (file, [, quoted, bare]) => quoted ?? `${file}#${bare}`;
+	const CALL = /\{\{~?>\s*(?:"([^"]+)"|([\w-]+))/g;
+	const keeps = new Set();
+	for (let grew = true; grew;) {
+		grew = false;
+		for (const [name, { file, source }] of partials) {
+			if (keeps.has(name)) continue;
+			if (KEEPS_BREAKS.some((style) => source.includes(style)) || [...source.matchAll(CALL)].some((call) => keeps.has(resolve(file, call)))) {
+				keeps.add(name);
+				grew = true;
+			}
+		}
+	}
+
+	it("finds the partials that print it", () => {
+		expect(keeps).toContain("bastionland.travels-list");
+		expect(keeps).toContain("bastionland.hex-gm");
+		expect(keeps).toContain("bastionland.travels-hex-detail");
+	});
+
+	it("follows a file's inline partials", () => {
+		const list = join(root, "templates", "apps", "parts", "travels-list.hbs");
+		expect(partials.has(`${list}#travels-section`)).toBe(true);
+		expect(resolve(list, [..."{{> travels-section rows=ofNote}}".matchAll(CALL)][0])).toBe(`${list}#travels-section`);
+	});
+
+	it.each(templates.map((file) => [relative(root, file), file]))("%s calls none of them on a line of its own", (_name, file) => {
+		const standalone = sources.get(file).split(/\r?\n/)
+			.map((line) => /^\s*\{\{>\s*(?:"([^"]+)"|([\w-]+))[^}]*\}\}\s*$/.exec(line))
+			.filter((call) => call && keeps.has(resolve(file, call)))
+			.map(([line]) => line.trim());
+		expect(standalone).toEqual([]);
+	});
+});

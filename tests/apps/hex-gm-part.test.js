@@ -280,7 +280,7 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		heldRealm = { ...emptyRealm(g), landmarks: [{ hex, type: "sanctum" }] };
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toEqual({ name: null, roll: "hexGm.seer.roll" });
 		heldRealm.landmarks[0].seer = { d6: 2, d12: 3 };
-		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toEqual({ name: "realm.panel.reference", roll: "hexGm.seer.again" });
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toEqual({ name: "realm.panel.reference", roll: "hexGm.seer.again", make: false });
 		heldRealm.landmarks[0].type = "dwelling";
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).landmark.seer).toBeNull();
 	});

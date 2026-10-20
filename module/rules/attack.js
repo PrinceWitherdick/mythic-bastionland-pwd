@@ -446,6 +446,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {string|null} impairedWeapon A foe's Impair on this weapon of theirs is why.
  * @property {object|null} smite The Smite they declared, as the card shows it.
  * @property {boolean} smiteMark Whether they Smote for a lasting mark.
+ * @property {boolean} [twoHanded] Their share was made with a Long weapon, so they hold no shield (p12).
  * @property {{name: string, reason: string}[]} setAside
  * @property {{uuid: string, name: string}|null} [leader] Whoever leads a joining Warband from the front.
  *
@@ -467,6 +468,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  *   running Combat's turn order the Attack was rolled, so a Gambit's mark knows
  *   when it lapses. Null when no Combat was running.
  * @property {boolean} melee
+ * @property {boolean} [twoHanded] Made with a Long weapon, which takes both hands, so the attacker holds no shield (p12).
  * @property {boolean} impaired
  * @property {string} attacker Actor UUID of whoever rolled it.
  * @property {{uuid: string, name: string}[]} targets The Tokens it was rolled against.
@@ -882,6 +884,8 @@ function joinAttack(attack, change) {
 			impairedWeapon: typeof change.impairedWeapon === "string" && change.impairedWeapon ? change.impairedWeapon : null,
 			smite: change.smite && typeof change.smite === "object" ? change.smite : null,
 			smiteMark: Boolean(change.smiteMark),
+			// Rolled with a Long weapon, so they hold no shield (p12).
+			twoHanded: Boolean(change.twoHanded),
 			setAside,
 			// Whoever leads a joining Warband from the front (p11).
 			leader: typeof change.leader?.uuid === "string" && typeof change.leader.name === "string" ? { uuid: change.leader.uuid, name: change.leader.name } : null

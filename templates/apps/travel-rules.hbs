@@ -65,6 +65,11 @@
 					<i class="fa-solid fa-binoculars" inert></i> {{act.label}}
 				</button>
 				{{/if}}
+				{{#if ask}}
+				<button type="button" class="bastionland-travel-rules__roll" data-action="ask" data-kind="{{ask.kind}}" data-key="{{ask.key}}" data-label="{{ask.label}}" data-tooltip="{{localize 'bastionland.askReferee.hint'}}">
+					<i class="fa-solid fa-hand" inert></i> {{localize "bastionland.askReferee.button" what=ask.label}}
+				</button>
+				{{/if}}
 				{{#if hardship}}
 				<button type="button" class="bastionland-travel-rules__roll bastionland-travel-rules__hardship" data-action="hardship" data-hardship="{{hardship.key}}" data-tooltip="{{hardship.hint}}">
 					<i class="fa-solid fa-person-hiking" inert></i> {{hardship.label}}

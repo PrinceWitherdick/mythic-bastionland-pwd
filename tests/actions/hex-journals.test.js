@@ -179,6 +179,16 @@ describe("syncHexJournals", () => {
 		expect(notes.text.content).toBeUndefined();
 	});
 
+	it("brings only the hexes that changed up to date, when it's told which", async () => {
+		await syncHexJournals(scene);
+		const entry = hexJournalEntry(scene, ruin);
+		lore.hexes["3,3"].note = "A well.";
+		await syncHexJournals(scene, { only: new Set(["5,5"]) });
+		expect(entry.updateEmbeddedDocuments).not.toHaveBeenCalled();
+		await syncHexJournals(scene, { only: new Set(["3,3"]) });
+		expect(entry.updateEmbeddedDocuments).toHaveBeenCalledTimes(1);
+	});
+
 	it("writes nothing the second time, the GM's page as their note changes, and the Company's page once it has been there", async () => {
 		await syncHexJournals(scene);
 		const entry = hexJournalEntry(scene, ruin);

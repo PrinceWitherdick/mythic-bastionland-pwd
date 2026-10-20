@@ -1,10 +1,25 @@
 import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
+import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { acceptAfterTelling } from "./saves.js";
 import { VIRTUES } from "../rules/virtues.js";
-import { chooseCompany } from "./time.js";
+import { advancePhase, chooseCompany } from "./time.js";
+import { askReferee } from "./ask-referee.js";
 import { countAfter, isCounted } from "../rules/restock.js";
+
+/**
+ * Restore one Virtue of each of them to its most, all in one write.
+ * @param {Actor[]} actors
+ * @param {string} virtue
+ * @param {string} cause What the Ledger says did it, as causedBy takes it.
+ * @returns {Promise<{name: string, lines: string[]}[]>} A report card's entry for each.
+ */
+export async function restoreVirtueOfEach(actors, virtue, cause) {
+	const restored = actors.map((actor) => [actor, actor.system.virtues[virtue].max]);
+	await updateActors(restored.map(([actor, value]) => [actor, { [`system.virtues.${virtue}.value`]: value }]), causedBy(cause));
+	return restored.map(([actor, value]) => ({ name: actor.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] }));
+}
 
 /**
  * A Remedy is used up (p9): one of several carried is taken off the count,
@@ -77,7 +92,7 @@ export async function restAfterCombat(combat) {
 	const names = actors.map((actor) => actor.name).join(", ");
 	const confirmed = await confirmDialog({ title: t("recovery.afterCombatTitle"), icon: "fa-solid fa-mug-hot", message: t("recovery.afterCombat", { names: foundry.utils.escapeHTML(names) }) });
 	if (!confirmed) return null;
-	await Promise.all(actors.map((actor) => actor.update(restUpdate(actor), causedBy("recovery"))));
+	await updateActors(actors.map((actor) => [actor, restUpdate(actor)]), causedBy("recovery"));
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text: t("recovery.restedAfterCombat", { names }) });
 	return actors;
 }
@@ -139,12 +154,12 @@ export async function useRemedy(actor, item) {
 	if (!company?.length) return null;
 
 	const name = item.name;
-	const entries = await Promise.all(company.map(async ({ actor: member }) => {
-		const value = member.system.virtues[virtue].max;
-		await member.update({ [`system.virtues.${virtue}.value`]: value }, causedBy("recovery"));
-		return { name: member.name, lines: [t("recovery.restored", { virtue: t(`virtues.${virtue}.label`), value })] };
-	}));
+	const entries = await restoreVirtueOfEach(company.map(({ actor: member }) => member), virtue, "recovery");
 	await spendRemedy(item);
 	await postCard(actor, "report", { title: name, tagline: t("remedy.tagline"), entries, hint: t("remedy.hint") });
+	// Using it takes a whole Phase (p9), restored before anything the Phase brings: the Referee
+	// moves the calendar on, or a player asks them to.
+	if (game.user.isGM) await advancePhase();
+	else await askReferee("roll", "phase", t("remedy.passPhase"));
 	return entries;
 }

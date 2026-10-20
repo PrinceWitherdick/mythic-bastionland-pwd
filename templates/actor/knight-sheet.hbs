@@ -44,6 +44,7 @@
 			<button type="button" data-action="attack"><i class="fa-solid fa-swords" inert></i> <span>{{localize "bastionland.sheet.attack"}}</span></button>
 			<button type="button" data-action="duel" data-tooltip="{{localize 'bastionland.duel.buttonHint'}}"><i class="fa-solid fa-hand-fist" inert></i> <span>{{localize "bastionland.duel.title"}}</span></button>
 			<button type="button" data-action="takeDamage"><i class="fa-solid fa-heart-crack" inert></i> <span>{{localize "bastionland.sheet.takeDamage"}}</span></button>
+			<button type="button" data-action="rollLuck" data-tooltip="{{localize 'bastionland.refereeRolls.tables.luck.hint'}}"><i class="fa-solid fa-dice-d6" inert></i> <span>{{localize "bastionland.refereeRolls.tables.luck.name"}}</span></button>
 		</nav>
 		{{/if}}
 	</header>
@@ -272,6 +273,11 @@
 					</div>
 					{{/if}}
 					{{{enrichedSeerInfo}}}
+					{{#if canMakeSeer}}
+					<div class="bastionland-adds">
+						<button type="button" class="bastionland-add" data-action="makeSeer" data-tooltip="{{localize 'bastionland.seer.makeHint'}}"><i class="fa-solid fa-user-plus" inert></i> {{localize "bastionland.seer.make"}}</button>
+					</div>
+					{{/if}}
 				</div>
 				{{else}}
 				<p class="bastionland-hint">{{localize "bastionland.seer.infoEmpty"}}</p>
@@ -291,7 +297,7 @@
 
 	{{> "bastionland.chronicle-tab" tab="chronicle" heading="bastionland.sheet.chronicle"}}
 
-	{{> "bastionland.travels-tab"}}
+	{{~> "bastionland.travels-tab"}}
 	{{!-- The Timeline page, drawn as a part of its own and put here (module/sheets/timeline-tab.js). --}}
 	{{#if tabs.timeline}}<div data-timeline-slot hidden></div>{{/if}}
 

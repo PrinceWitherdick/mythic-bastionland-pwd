@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { markTheSlain } from "../../module/actions/slain.js";
 
-const someone = (id, vig, slain = false) => ({ id, system: { slain, virtues: { vig: { value: vig } } }, update: vi.fn(async () => {}) });
+const someone = (id, vig, slain = false) => ({ id, isOwner: true, system: { slain, virtues: { vig: { value: vig } } }, update: vi.fn(async () => {}) });
 
 afterEach(() => {
 	delete globalThis.game;
@@ -12,15 +12,16 @@ describe("markTheSlain", () => {
 	it("marks everybody a world has at VIG 0 Slain, as VIG 0 alone used to tell the dead", async () => {
 		const updateDocuments = vi.fn(async () => []);
 		globalThis.Actor = { implementation: { updateDocuments } };
-		const loose = someone("bandit", 0);
+		// An unlinked Token's actor is its own, written through the Token.
+		const loose = { ...someone("bandit", 0), isToken: true };
 		const linked = someone("tal", 0);
 		globalThis.game = {
 			actors: [someone("tal", 0), someone("moss", 6), someone("eve", 0, true), { id: "gate", system: { guard: { value: 0 } } }],
 			scenes: { contents: [{ tokens: [{ actorLink: false, actor: loose }, { actorLink: false, actor: someone("fine", 4) }, { actorLink: true, actor: linked }] }] }
 		};
 		await markTheSlain();
-		expect(updateDocuments).toHaveBeenCalledWith([{ _id: "tal", "system.slain": true }]);
-		expect(loose.update).toHaveBeenCalledWith({ "system.slain": true });
+		expect(updateDocuments).toHaveBeenCalledWith([{ _id: "tal", "system.slain": true }], {});
+		expect(loose.update).toHaveBeenCalledWith({ "system.slain": true }, {});
 		// A linked Token is its world Actor, marked with the rest.
 		expect(linked.update).not.toHaveBeenCalled();
 	});
@@ -32,7 +33,7 @@ describe("markTheSlain", () => {
 		const steed = { ...someone("dun", 0), uuid: "Actor.dun" };
 		globalThis.game = { actors: [knight, steed, { ...someone("bandit", 0), uuid: "Actor.bandit" }], scenes: { contents: [] } };
 		await markTheSlain();
-		expect(updateDocuments).toHaveBeenCalledWith([{ _id: "bandit", "system.slain": true }]);
+		expect(updateDocuments).toHaveBeenCalledWith([{ _id: "bandit", "system.slain": true }], {});
 	});
 
 	it("writes nothing to a world with nobody at VIG 0", async () => {

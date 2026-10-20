@@ -3,7 +3,7 @@ import { findByRoll, loadArtIndex } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
 import { knightTypeKey } from "../rules/creation.js";
-import { domainRuledBy, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
+import { canHoldPost, domainRuledBy, holdingRef, holdingRulers, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
 import { featureAt, holdingName } from "../rules/realm.js";
 import { escapeHTML, searchable } from "../rules/text.js";
 import { knightDomain, linkKnightDomain, worldDomains } from "./dominion.js";
@@ -23,8 +23,16 @@ import { getRealm } from "./realm.js";
  * the NPCs folder, with a Domain there ruling it.
  */
 
-/** @returns {Actor[]} The world's Knights who could rule: not Squires, who aren't knighted yet (p7). */
-const rulingKnights = () => worldKnights((actor) => !actor.system.isSquire);
+/** @returns {Actor[]} The world's Knights who could rule: knighted, so not Squires (p7), and alive. */
+const rulingKnights = () => worldKnights(canHoldPost);
+
+/**
+ * The Domains ruling a Holding.
+ * @param {Scene} scene
+ * @param {{id: string|null}} holding
+ * @returns {Actor[]} Empty for a Holding not yet on the map as a Tile.
+ */
+export const domainsRuling = (scene, holding) => (scene && holding?.id ? holdingRulers(realmHoldings(), worldDomains(), scene.id, holding.id) : []);
 
 /**
  * The Domains ruling a Holding, each with the Knight ruling it.
@@ -33,9 +41,10 @@ const rulingKnights = () => worldKnights((actor) => !actor.system.isSquire);
  * @returns {{domain: Actor, knight: Actor|null}[]} Empty for a Holding not yet on the map as a Tile.
  */
 export function rulersOf(scene, holding) {
-	if (!scene || !holding?.id) return [];
-	const knights = rulingKnights();
-	return holdingRulers(realmHoldings(), worldDomains(), scene.id, holding.id).map((domain) => ({ domain, knight: rulingKnightOf(domain, knights) }));
+	const domains = domainsRuling(scene, holding);
+	// The ruler of record, fallen or not, until the Domain passes to somebody else.
+	const knights = domains.length ? worldKnights() : [];
+	return domains.map((domain) => ({ domain, knight: rulingKnightOf(domain, knights) }));
 }
 
 /**

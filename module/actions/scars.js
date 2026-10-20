@@ -2,6 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { DIE_SIZES } from "../rules/attack.js";
 import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
+import { isDying } from "../rules/virtues.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
@@ -163,7 +164,7 @@ const tendingScars = (actor) => actor.items.filter((item) => item.type === "scar
  * @param {Actor} actor
  * @returns {boolean} Whether patching them up would do anything: a Mortal Wound, or a Scar it settles.
  */
-export const canPatchUp = (actor) => Boolean(actor.system.mortalWound) || tendingScars(actor).length > 0;
+export const canPatchUp = (actor) => isDying(actor.system) || tendingScars(actor).length > 0;
 
 /**
  * Patch someone up (p8): a Mortal Wound tended in a few moments, and any Gouge

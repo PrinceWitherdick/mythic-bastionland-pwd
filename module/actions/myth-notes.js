@@ -1,8 +1,8 @@
-import { MYTH_NOTES_VERSION, normaliseMythNotes, withMythNote } from "../rules/myth-notes.js";
+import { MYTH_NOTES_VERSION, normaliseMythNotes, withMythNote, withoutResolved } from "../rules/myth-notes.js";
 import { serialWrites } from "../rules/queue.js";
 import { setOrDeleteEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { isRealmScene } from "./realm.js";
+import { getRealm, isRealmScene } from "./realm.js";
 
 /**
  * What the GM has written about each Myth of a Realm, and whether the group
@@ -19,6 +19,15 @@ export const MYTH_NOTES_FLAG = "mythNotes";
 export function getMythNotes(scene) {
 	return normaliseMythNotes(isRealmScene(scene) ? scene.getFlag(SYSTEM_ID, MYTH_NOTES_FLAG) : null);
 }
+
+/**
+ * The Realm as its living Myths see it: a resolved Myth shows no Omen and
+ * nobody tells of it, even in its own hex, until another replaces it (p27).
+ * @param {Scene} scene A Realm Scene.
+ * @param {object} [realm] The Realm as already read from it, so it isn't read again.
+ * @returns {object} The Realm, without its resolved Myths.
+ */
+export const liveRealm = (scene, realm = getRealm(scene).realm) => withoutResolved(realm, getMythNotes(scene));
 
 /** Myth note writes, taken one at a time. */
 const queueMythWrite = serialWrites();

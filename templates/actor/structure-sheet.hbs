@@ -1,4 +1,4 @@
-<div class="bastionland-page bastionland-page--structure">
+<div class="bastionland-page bastionland-page--structure bastionland-page--tabbed">
 	{{> "bastionland.npc-header"}}
 
 	{{#if editable}}
@@ -14,76 +14,72 @@
 	</nav>
 	{{/if}}
 
-	<div class="bastionland-columns">
-		<div class="bastionland-column">
-			<section class="bastionland-scores">
-				<div class="bastionland-score">
-					<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.structure.guardHint'}}">{{localize "bastionland.guard.label"}}</span>
-					<input class="bastionland-box" type="number" name="system.guard.value" value="{{system.guard.value}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.current'}}">
-					<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
-				</div>
+	<div class="tab {{tabs.structure.cssClass}}" data-group="primary" data-tab="structure">
+		<div class="bastionland-columns">
+			<div class="bastionland-column">
+				<section class="bastionland-scores">
+					<div class="bastionland-score">
+						<span class="bastionland-score__name bastionland-score__name--word" data-tooltip="{{localize 'bastionland.structure.guardHint'}}">{{localize "bastionland.guard.label"}}</span>
+						<input class="bastionland-box" type="number" name="system.guard.value" value="{{system.guard.value}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.current'}}">
+						<input class="bastionland-box bastionland-box--max" type="number" name="system.guard.max" value="{{system.guard.max}}" min="0" step="1" aria-label="{{localize 'bastionland.guard.label'}} {{localize 'bastionland.sheet.maximum'}}">
+					</div>
 
-				{{!-- Its Armour beside GD, as an NPC's beside VIG: what it is on hover, a click to change either. --}}
-				{{> "bastionland.armour-badge" label="bastionland.structure.armourEdit.title"}}
-			</section>
+					{{!-- Its Armour beside GD, as an NPC's beside VIG: what it is on hover, a click to change either. --}}
+					{{> "bastionland.armour-badge" label="bastionland.structure.armourEdit.title"}}
+				</section>
 
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.structure.kind"}}</h2>
-				<ul class="bastionland-choices bastionland-choices--inline">
-					{{#each kinds}}
-					<li>
-						<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setKind" data-kind="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
-					</li>
-					{{/each}}
-				</ul>
-				<p class="bastionland-hint">{{kindRules}}</p>
-				<label class="bastionland-check" data-tooltip="{{localize 'bastionland.structure.stoneHint'}}">
-					<input type="checkbox" name="system.stone" {{checked system.stone}} {{#unless editable}}disabled{{/unless}}>
-					<span class="bastionland-check__label">{{localize "bastionland.structure.stone"}}</span>
-				</label>
-				{{#if isShip}}
-				<label class="bastionland-structure__carries">
-					<span class="bastionland-heading bastionland-heading--small">{{localize "bastionland.structure.carries"}}</span>
-					<input class="bastionland-blank" type="text" name="system.carries" value="{{system.carries}}" placeholder="{{localize 'bastionland.structure.carriesPlaceholder'}}" autocomplete="off">
-				</label>
-				{{/if}}
-			</section>
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.structure.kind"}}</h2>
+					<ul class="bastionland-choices bastionland-choices--inline">
+						{{#each kinds}}
+						<li>
+							<button type="button" class="bastionland-choice bastionland-pill{{#if active}} is-active{{/if}}" data-action="setKind" data-kind="{{key}}" data-tooltip="{{hint}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}" {{#unless @root.editable}}disabled{{/unless}}>{{label}}</button>
+						</li>
+						{{/each}}
+					</ul>
+					<p class="bastionland-hint">{{kindRules}}</p>
+					<label class="bastionland-check bastionland-structure__stone" data-tooltip="{{localize 'bastionland.structure.stoneHint'}}">
+						<input type="checkbox" name="system.stone" {{checked system.stone}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.structure.stone"}}</span>
+					</label>
+					{{#if isShip}}
+					<label class="bastionland-structure__carries">
+						<span class="bastionland-heading bastionland-heading--small">{{localize "bastionland.structure.carries"}}</span>
+						<input class="bastionland-blank" type="text" name="system.carries" value="{{system.carries}}" placeholder="{{localize 'bastionland.structure.carriesPlaceholder'}}" autocomplete="off">
+					</label>
+					{{/if}}
+				</section>
 
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
-				<ul class="bastionland-conditions">
-					<li>
-						<span class="bastionland-condition bastionland-pill is-derived{{#if system.destroyed}} is-active{{/if}}" data-tooltip="{{localize 'bastionland.structure.destroyed.hint'}}">{{localize "bastionland.structure.destroyed.label"}}</span>
-					</li>
-				</ul>
-			</section>
-		</div>
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
+					<ul class="bastionland-conditions">
+						<li>
+							<span class="bastionland-condition bastionland-pill is-derived{{#if system.destroyed}} is-active{{/if}}" data-tooltip="{{localize 'bastionland.structure.destroyed.hint'}}">{{localize "bastionland.structure.destroyed.label"}}</span>
+						</li>
+					</ul>
+				</section>
+			</div>
 
-		<div class="bastionland-column">
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.structure.items"}}</h2>
-				<ul class="bastionland-items">
-					{{#each items}}
-					{{> "bastionland.item-row"}}
-					{{else}}
-					<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
-					{{/each}}
-				</ul>
-				<div class="bastionland-adds">
-					{{#each addTypes}}
-					{{> "bastionland.add-item"}}
-					{{/each}}
-				</div>
-			</section>
-
-			<section class="bastionland-block">
-				<h2 class="bastionland-heading">{{localize "bastionland.npc.notes"}}</h2>
-				{{#if editable}}
-				<prose-mirror name="system.notes" value="{{system.notes}}" document-uuid="{{actor.uuid}}" toggled="true">{{{enrichedNotes}}}</prose-mirror>
-				{{else}}
-				<div class="editor-content">{{{enrichedNotes}}}</div>
-				{{/if}}
-			</section>
+			<div class="bastionland-column">
+				<section class="bastionland-block">
+					<h2 class="bastionland-heading">{{localize "bastionland.structure.items"}}</h2>
+					<ul class="bastionland-items">
+						{{#each items}}
+						{{> "bastionland.item-row"}}
+						{{else}}
+						<li class="bastionland-empty">{{localize "bastionland.sheet.empty"}}</li>
+						{{/each}}
+					</ul>
+					<div class="bastionland-adds">
+						{{#each addTypes}}
+						{{> "bastionland.add-item"}}
+						{{/each}}
+					</div>
+				</section>
+			</div>
 		</div>
 	</div>
+
+	{{!-- Its notes, a page of their own filling the window, as an NPC's do. --}}
+	{{> "bastionland.chronicle-tab" tab="notes" heading="bastionland.npc.notes"}}
 </div>

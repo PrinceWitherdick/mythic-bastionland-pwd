@@ -1,6 +1,7 @@
 import { chooseDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
-import { postCard, t } from "../chat/cards.js";
+import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { SYSTEM_ID } from "../system-id.js";
 import {
 	CRISES,
 	collectionsResult,
@@ -10,6 +11,7 @@ import {
 	domainRuledBy,
 	dramaResult,
 	isInTurmoil,
+	isMisruleDue,
 	isSameName
 } from "../rules/dominion.js";
 import { dramaCandidates } from "../rules/court.js";
@@ -30,6 +32,23 @@ const crisisName = (key) => t(`domain.crises.${key}.name`);
  * @param {string} key
  */
 export const crisisEntry = (key) => ({ name: crisisName(key), lines: [t(`domain.crises.${key}.flavour`), t(`domain.crises.${key}.resolution`)].filter(Boolean) });
+
+/**
+ * Ask which of some Crises to take, one to a line with how it's resolved.
+ * @param {string[]} keys
+ * @param {{title: string, icon: string, intro: string, ok: string}} options
+ * @returns {Promise<string|null>} The Crisis picked, or null if closed.
+ */
+async function pickCrisis(keys, { title, icon, intro, ok }) {
+	const data = await inputDialog({
+		title,
+		icon,
+		template: "crisis-pick",
+		context: { intro, crises: keys.map((key) => ({ id: key, name: crisisName(key), detail: t(`domain.crises.${key}.resolution`) })) },
+		ok: { label: ok, icon }
+	});
+	return keys.includes(data?.crisis) ? data.crisis : null;
+}
 
 /**
  * @param {Actor} domain Once its Crises are saved.
@@ -82,16 +101,13 @@ export async function crisisRoll(domain) {
 	let added = drawn.crises;
 	const notes = [];
 	if (result === "dilemma" && drawn.crises.length > 1) {
-		const choice = await chooseDialog({
+		const choice = await pickCrisis(drawn.crises, {
 			title: t("domain.dilemmaTitle"),
 			icon: "fa-solid fa-scale-unbalanced",
-			message: [
-				t("domain.dilemmaIntro", { name: escapeHTML(domain.name) }),
-				...drawn.crises.map((key) => `<strong>${crisisName(key)}</strong>: ${t(`domain.crises.${key}.resolution`)}`)
-			],
-			buttons: drawn.crises.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
+			intro: t("domain.dilemmaIntro", { name: domain.name }),
+			ok: t("domain.dilemmaTake")
 		});
-		added = drawn.crises.includes(choice) ? [choice] : [];
+		added = choice ? [choice] : [];
 		if (!added.length) notes.push(t("domain.dilemmaOpen", { options: drawn.crises.map(crisisName).join(", ") }));
 	}
 
@@ -122,14 +138,13 @@ export async function addCrisis(domain) {
 		ui.notifications.info(t("domain.allCrises", { name: domain.name }));
 		return null;
 	}
-	const choice = await chooseDialog({
+	const choice = await pickCrisis(open, {
 		title: t("domain.addCrisis"),
 		icon: "fa-solid fa-fire",
-		classes: ["bastionland-referee-rolls"],
-		message: t("domain.addCrisisIntro", { name: escapeHTML(domain.name) }),
-		buttons: open.map((key, index) => ({ action: key, label: crisisName(key), default: index === 0 }))
+		intro: t("domain.addCrisisIntro", { name: domain.name }),
+		ok: t("domain.addCrisis")
 	});
-	if (!open.includes(choice)) return null;
+	if (!choice) return null;
 
 	await domain.update({ "system.crises": [...domain.system.crises, choice] });
 	await postCard(domain, "report", {
@@ -149,11 +164,15 @@ export async function addCrisis(domain) {
 export async function resolveCrisis(domain, index) {
 	const key = domain.system.crises[index];
 	if (!key) return null;
-	await domain.update({ "system.crises": domain.system.crises.toSpliced(index, 1) });
+	const crises = domain.system.crises.toSpliced(index, 1);
+	// Misrule comes of three Crises left unresolved (p20), so bringing them under three ends it.
+	const orderRestored = domain.system.misrule && !isMisruleDue(crises) && isMisruleDue(domain.system.crises);
+	await domain.update({ "system.crises": crises, ...(orderRestored ? { "system.misrule": false } : {}) });
+	const resolved = t("domain.resolved", { crisis: crisisName(key), name: domain.name });
 	await Promise.all([
 		postCard(domain, "note", {
 			icon: "fa-solid fa-check",
-			text: t("domain.resolved", { crisis: crisisName(key), name: domain.name })
+			text: orderRestored ? `${resolved} ${t("domain.misruleEnds")}` : resolved
 		}),
 		timelineCrisisResolved(domain, key, crisisName(key))
 	]);
@@ -258,10 +277,11 @@ export const worldDomains = () => game.actors.filter((actor) => actor.type === "
  * misrule (p20), and one seized by force that Season settles under its
  * new ruler (p21). GMs only.
  * @param {string} ended The Season that ended, from seasonKey.
- * @returns {Promise<object[]>} Entries for the Season's card.
+ * @returns {Promise<{entries: object[], fell: Actor[]}>} Entries for the Season's card, and the Domains sent into misrule.
  */
 export async function settleDomains(ended) {
 	const domains = worldDomains();
+	const fell = [];
 	const updates = new Map();
 	const lines = new Map();
 	const note = (domain, update, line) => {
@@ -269,13 +289,17 @@ export async function settleDomains(ended) {
 		lines.set(domain, [...(lines.get(domain) ?? []), line]);
 	};
 	for (const domain of domains) {
-		if (domain.system.misruleDue) note(domain, { "system.misrule": true }, t("domain.fellIntoMisrule", { count: domain.system.crises.length }));
+		if (domain.system.misruleDue) {
+			fell.push(domain);
+			note(domain, { "system.misrule": true }, `${t("domain.fellIntoMisrule", { count: domain.system.crises.length })} ${t("domain.misruleHint")}`);
+		}
 		if (isInTurmoil(domain.system.seized, ended)) {
 			note(domain, { "system.seized": "" }, t("domain.conquest.settled", { ruler: domain.system.ruler || t("domain.conquest.someone") }));
 		}
 	}
 	if (updates.size) await Actor.implementation.updateDocuments([...updates.values()]);
-	return [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines, domainId: domain.id }));
+	const entries = [...lines].map(([domain, domainLines]) => ({ name: domain.name, lines: domainLines, domainId: domain.id }));
+	return { entries, fell };
 }
 
 /**
@@ -407,6 +431,44 @@ export async function seizeDomain(domain) {
 		timelineNewRuler(domain, "seized", conqueror, tagline)
 	]);
 	return conqueror;
+}
+
+/**
+ * A Knight who rules a Domain is Slain: tell the Referee the Domain passes on
+ * (p21), with the button that passes it. Their player's ways on are A Knight
+ * Falls's; this is the Domain's own, and the Referee's Knights rule Holdings too.
+ * Heard on the active GM's client alone.
+ * @param {Actor} knight
+ * @param {object} changes
+ * @returns {Promise<ChatMessage|null>}
+ */
+export async function noticeRulerSlain(knight, changes) {
+	if (knight?.type !== "knight" || foundry.utils.getProperty(changes, "system.slain") !== true) return null;
+	if (!game.users.activeGM?.isSelf) return null;
+	const domain = knightDomain(knight);
+	// Only while they still rule it: a Domain passed on already is someone else's.
+	if (!domain || !isSameName(domain.system.ruler, knight.name)) return null;
+	return postCard(domain, "note", {
+		icon: "fa-solid fa-crown",
+		text: t("domain.rulerSlain", { name: knight.name, domain: domain.name, successor: namedSuccessor(domain) || t("domain.rulerSlainNobody") }),
+		action: { data: "pass-on", icon: "fa-solid fa-crown", label: t("domain.passOn.title") }
+	}, { mode: "gm", flags: { [SYSTEM_ID]: { passOn: domain.uuid } } });
+}
+
+/** Follow the deaths of Knights who rule, and wire the button that passes their Domains on. Called during init. */
+export function registerRulerDeaths() {
+	Hooks.on("updateActor", (actor, changes) => {
+		noticeRulerSlain(actor, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't tell of a ruler's death`, error));
+	});
+	registerCardButtons({
+		selector: "[data-pass-on]",
+		gmOnly: true,
+		handler: async (_button, message) => {
+			const domain = fromUuidSync(message?.flags?.[SYSTEM_ID]?.passOn ?? "");
+			if (domain?.type !== "domain") return warn("domain.rulerSlainGone");
+			return passOnDomain(domain);
+		}
+	});
 }
 
 /**

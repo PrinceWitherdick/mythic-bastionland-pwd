@@ -1,9 +1,9 @@
 import { t } from "../chat/cards.js";
-import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
+import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
 import { hexAt, hexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { COMPANY_FLAG, findCompanyToken, wentSomewhere } from "./company.js";
+import { COMPANY_FLAG, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 import { timelineArrivals } from "./timeline-events.js";
@@ -104,9 +104,11 @@ export function movesAsCompany(token) {
 
 /**
  * Called on the active GM's client once a Company's move is gathered, with the
- * Scene and `{entered, ended}`: the hexes it came into, each once, and whether
- * a move ended in a new hex. So each rule that follows the Company hears of a
- * move once, however many Knights' Tokens made it.
+ * Scene and `{entered, ended, from, chosen}`: the hexes it came into, each once
+ * where it was last come into, so the last is where it ended, whether a move ended in a new hex, the hex it set off from, and whether the
+ * Company chose to go, rather than being put there as a blind drift puts it.
+ * So each rule that follows the Company hears of a move once, however many
+ * Knights' Tokens made it.
  */
 export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
 
@@ -114,7 +116,7 @@ export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
  * Hexes come into and waiting to be written, by Scene id, so four Knights'
  * Tokens reaching the same hex together are one write. `entered` holds those
  * moved into rather than placed in.
- * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[], entered: {col: number, row: number}[], ended: boolean}>}
+ * @type {Map<string, {scene: Scene, hexes: {col: number, row: number}[], entered: {col: number, row: number}[], ended: boolean, from: {col: number, row: number}|null, chosen: boolean}>}
  */
 const arriving = new Map();
 
@@ -132,14 +134,14 @@ const onceEach = (hexes) => hexes.filter((hex, index) => index === hexes.findInd
 function writeArrivals() {
 	const waiting = [...arriving.values()];
 	arriving.clear();
-	for (const { scene, hexes, entered, ended } of waiting) {
+	for (const { scene, hexes, entered, ended, from, chosen } of waiting) {
 		const visited = onceEach(hexes);
 		// Read before they're counted: the hexes it comes to for the first time go on the Timeline.
 		const first = visited.filter((hex) => !getHexVisits(scene, hex)?.count);
 		recordHexVisits(scene, visited)
 			.then(() => timelineArrivals(scene, first))
 			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
-		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: onceEach(entered), ended });
+		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen });
 	}
 }
 
@@ -148,14 +150,19 @@ function writeArrivals() {
  * @param {{col: number, row: number}[]} hexes
  * @param {object} [move] Left out for a Company put down rather than moved.
  * @param {boolean} [move.ended] Whether the move ended in a new hex.
+ * @param {{col: number, row: number}|null} [move.from] The hex it set off from.
+ * @param {boolean} [move.forced] Whether it was a move the Company didn't choose.
  */
 function gather(scene, hexes, move = null) {
 	if (!hexes.length && !move?.ended) return;
 	if (!arriving.size) setTimeout(writeArrivals, GATHER);
-	const waiting = arriving.get(scene.id) ?? { scene, hexes: [], entered: [], ended: false };
+	const waiting = arriving.get(scene.id) ?? { scene, hexes: [], entered: [], ended: false, from: null, chosen: false };
 	waiting.hexes.push(...hexes);
 	if (move) waiting.entered.push(...hexes);
 	waiting.ended ||= Boolean(move?.ended);
+	// The first leg's start is where the whole move set off from.
+	waiting.from ??= move?.from ?? null;
+	waiting.chosen ||= Boolean(move) && !move.forced;
 	arriving.set(scene.id, waiting);
 }
 
@@ -210,7 +217,10 @@ function noticeMove(token, movement, operation) {
 	if (!isRealmScene(scene) || !keepsTheJourney()) return;
 	if (!wentSomewhere(movement, operation) || !movesAsCompany(token)) return;
 	const g = sceneGeometry(scene);
-	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g) });
+	const from = movement?.origin ? hexAt(g, token.getCenterPoint(movement.origin)) : null;
+	// Unconstrained Movement is the Referee setting the Company down, as it passes Barriers, not the Company travelling.
+	const forced = forcedMove(operation) || Boolean(movement?.constrainOptions?.ignoreWalls);
+	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g), from, forced });
 }
 
 /**

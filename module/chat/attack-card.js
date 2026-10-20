@@ -5,7 +5,7 @@ import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js"
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout } from "../rules/armour.js";
+import { greaterEffects, npcArmourWithout, tokenBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -284,15 +284,21 @@ function impairOptions(attack) {
 }
 
 /**
- * Show the Gambit window's choice of weapon only while Impair is picked.
+ * Show the Gambit window's choice of weapon only while Impair is picked, and
+ * the foe's Save only while the Gambit gives them one: not for Bolster or Move,
+ * nor a Strong Gambit taken as No Save.
  * @param {foundry.applications.api.DialogV2} dialog
  */
-function watchImpairChoice(dialog) {
+function watchGambitChoice(dialog) {
 	const form = dialog.element.querySelector("form");
-	const row = form?.querySelector("[data-impair-weapon]");
-	if (!row) return;
+	if (!form) return;
+	const weapon = form.querySelector("[data-impair-weapon]");
+	const save = form.querySelector("[data-gambit-save]");
 	const update = () => {
-		row.hidden = form.querySelector("[name='gambit']:checked")?.value !== "impair";
+		const key = form.querySelector("[name='gambit']:checked")?.value;
+		const strong = form.querySelector("[name='strong']:checked")?.value ?? "";
+		if (weapon) weapon.hidden = key !== "impair";
+		if (save) save.hidden = !gambitAllowsSave({ key, strong });
 	};
 	form.addEventListener("change", update);
 	update();
@@ -320,7 +326,7 @@ async function chooseGambit({ source, strong, weapons = [] }) {
 			weapons: weapons.map(({ value, label }) => ({ value, label }))
 		},
 		ok: { label: t("attack.declare") },
-		render: (_event, dialog) => watchImpairChoice(dialog)
+		render: (_event, dialog) => watchGambitChoice(dialog)
 	});
 	if (!data || !GAMBITS.includes(data.gambit)) return null;
 	const chosen = { key: data.gambit, strong: STRONG_GAMBITS.includes(data.strong) ? data.strong : null, saveIn: SAVE_VIRTUES.includes(data.saveIn) ? data.saveIn : SAVE_VIRTUES[0] };
@@ -509,7 +515,27 @@ function denyOptions(attack) {
 		...targetActors(attack),
 		game.user.character
 	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
-	return { pool, able: pool.filter((actor) => canDenyAttack(attack, actor)) };
+	const allowed = pool.filter((actor) => canDenyAttack(attack, actor));
+	if (!allowed.length) return { pool, allowed, able: allowed };
+	const targets = canvas?.ready ? attack.targets.map((target) => fromUuidSync(target.uuid)).filter((token) => token?.object) : [];
+	return { pool, allowed, able: allowed.filter((actor) => inDenyReach(targets, actor)) };
+}
+
+/**
+ * Whether somebody stands where they could Deny (p10): a target of the Attack,
+ * or an ally close enough to touch one. Where the map can't say, with nobody
+ * targeted or the Denier or the targets off it, they're let be.
+ * @param {TokenDocument[]} targets The Attack's targets on the map, none where the map can't say.
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function inDenyReach(targets, actor) {
+	if (!targets.length) return true;
+	if (targets.some((token) => token.actor === actor || token.actor?.uuid === actor.uuid)) return true;
+	const placed = actor.getActiveTokens?.(false, false)?.[0];
+	if (!placed) return true;
+	const denier = { box: tokenBox(placed), side: placed.document.disposition };
+	return targets.some((token) => withinArmsReach(denier, { box: tokenBox(token.object), side: token.disposition }, canvas.grid.size));
 }
 
 /**
@@ -519,17 +545,30 @@ function denyOptions(attack) {
  * @param {import("../rules/attack.js").AttackState} attack
  */
 function refreshDeny(button, attack) {
-	const { pool, able } = denyOptions(attack);
+	const { pool, allowed, able } = denyOptions(attack);
+	// A player with nobody who knows the Feat isn't shown it; a Referee is, to be told to select whoever Denies.
+	button.hidden = !pool.length && !game.user.isGM;
 	button.disabled = !able.length;
 	if (able.length) delete button.dataset.tooltip;
-	else button.dataset.tooltip = t(pool.length ? "attack.cantDeny" : "attack.noDenier");
+	else button.dataset.tooltip = t(denyRefusal(pool, allowed));
+}
+
+/**
+ * Why nobody this user controls can Deny.
+ * @param {Actor[]} pool Those who know the Feat.
+ * @param {Actor[]} allowed Those the Attack still allows to Deny, wherever they stand.
+ * @returns {string} Path below `bastionland.`
+ */
+function denyRefusal(pool, allowed) {
+	if (!pool.length) return "attack.noDenier";
+	return allowed.length ? "attack.denyOutOfReach" : "attack.cantDeny";
 }
 
 /** The target, or an ally close enough to touch, discards one die, paying with a SPI Save. */
 async function onDeny(message) {
 	const attack = attackOf(message);
-	const { pool, able: deniers } = denyOptions(attack);
-	if (!deniers.length) return warn(pool.length ? "attack.cantDeny" : "attack.noDenier");
+	const { pool, allowed, able: deniers } = denyOptions(attack);
+	if (!deniers.length) return warn(denyRefusal(pool, allowed));
 
 	const dice = attack.dice
 		.map((die, index) => ({ index, label: t("attack.dieChoice", { faces: die.faces, result: die.result, label: dieLabel(die) }) }))
@@ -593,7 +632,7 @@ async function confirmApply(attack, actors) {
  * die that caused it. The targets other users own stay waiting for them, and
  * those of a settled card whose Tokens were deleted are closed out.
  */
-async function onApply(message) {
+async function onApply(message, _button, event) {
 	const attack = attackOf(message);
 	const gone = attack.appliedTo.length ? unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid) : [];
 	const waiting = waitingTargets(attack);
@@ -609,7 +648,8 @@ async function onApply(message) {
 	const tokens = [];
 	const actors = [];
 	for (const { actor, token } of owned) {
-		if (!(await takeAttack(actor, attack, { except: [message.id] }))) continue;
+		// Taken as the card has it unless something wants judging; Shift opens the Damage window regardless.
+		if (!(await takeAttack(actor, attack, { except: [message.id], quick: !event?.shiftKey }))) continue;
 		names.push(actor.name);
 		actors.push(actor.uuid);
 		if (token) tokens.push(token);
@@ -858,7 +898,7 @@ function activateAttackCard(message, html) {
 		});
 	}
 
-	onCardClick(card, "[data-attack-action]", (button) => HANDLERS[button.dataset.attackAction]?.(message, button));
+	onCardClick(card, "[data-attack-action]", (button, event) => HANDLERS[button.dataset.attackAction]?.(message, button, event));
 }
 
 /** Called during init. */

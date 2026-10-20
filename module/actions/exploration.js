@@ -21,6 +21,7 @@ import { offerSightings } from "./sighted.js";
 import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
+import { liveRealm } from "./myth-notes.js";
 import { keptFromMe } from "./solo.js";
 import { worldKnights } from "./knights.js";
 
@@ -63,7 +64,9 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 	if (!game.user.isGM) return null;
 	const place = realmAndCompany(scene, hex);
 	if (!place) return null;
-	const { realm, g, where } = place;
+	const { g, where } = place;
+	// Nobody tells of a resolved Myth (p27).
+	const realm = liveRealm(scene, place.realm);
 
 	const data = await inputDialog({
 		title: t("explore.folklore.title"),

@@ -10,7 +10,7 @@ then the die and what it gave under the rule. --}}
 	{{#if d6}}
 	<p class="bastionland-card__outcome"><span class="bastionland-card__roll">{{d6}}</span> {{tagline}}</p>
 	{{/if}}
-	{{#if entries.length}}
+	{{#*inline "entries"}}
 	<ul class="bastionland-card__entries">
 		{{#each entries}}
 		<li>
@@ -21,12 +21,29 @@ then the die and what it gave under the rule. --}}
 		</li>
 		{{/each}}
 	</ul>
-	{{/if}}
+	{{/inline}}
+	{{#if entries.length}}{{> entries}}{{/if}}
+	{{!-- What befell everybody as a Phase began, each under its own heading. --}}
+	{{#each sections}}
+	<div class="bastionland-card__section">
+		<p class="bastionland-card__section-title">{{title}}</p>
+		{{> entries}}
+		{{#if hint}}<p class="bastionland-card__hint">{{hint}}</p>{{/if}}
+	</div>
+	{{/each}}
 	{{#if due.length}}
 	<div class="bastionland-card__due">
 		<p class="bastionland-card__due-title">{{localize "bastionland.time.due.title"}}</p>
 		{{#each due}}
 		<p class="bastionland-card__text">{{this}}</p>
+		{{/each}}
+	</div>
+	{{/if}}
+	{{!-- The Referee's buttons for what's due, such as a new Myth for each resolved one. Players see the card without them. --}}
+	{{#if replaceMyths.length}}
+	<div class="bastionland-card__actions">
+		{{#each replaceMyths}}
+		<button type="button" data-replace-myth="{{number}}" data-replace-myth-scene="{{scene}}"><i class="fa-solid fa-dice" inert></i> {{label}}</button>
 		{{/each}}
 	</div>
 	{{/if}}

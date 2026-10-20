@@ -59,9 +59,10 @@ vi.mock("../../module/actions/landmarks.js", () => ({
 	nameLandmarkFromPrompt: async () => null,
 	strikeOffCourse: vi.fn()
 }));
+vi.mock("../../module/actions/myth-notes.js", () => ({ getMythNotes: () => ({ version: 1, myths: {} }), liveRealm: () => realm }));
 vi.mock("../../module/actions/council-tasks.js", () => ({ tasksDueNotices: () => [] }));
 vi.mock("../../module/actions/knight-tables.js", () => ({ tableRenewalNotices: () => [] }));
-vi.mock("../../module/actions/afflictions.js", () => ({ sufferMorningAfflictions: vi.fn() }));
+vi.mock("../../module/actions/afflictions.js", () => ({ burnMorningAfflictions: vi.fn(), sufferMorningAfflictions: vi.fn() }));
 vi.mock("../../module/actions/ledger.js", () => ({ causedBy: () => ({}) }));
 vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn() }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({
@@ -80,6 +81,8 @@ const { advancePhase } = await import("../../module/actions/time.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { rollRefereeTable } = await import("../../module/actions/referee-rolls.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
+const { burnMorningAfflictions, sufferMorningAfflictions } = await import("../../module/actions/afflictions.js");
+const { chooseDialog } = await import("../../module/apps/ui.js");
 
 /** A Realm Scene with the Company's own Token standing in a hex. */
 function realmScene(id, where) {
@@ -239,7 +242,7 @@ describe("as Morning comes", () => {
 		expect(calendar.phase).toBe("morning");
 	});
 
-	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on one card", async () => {
+	it("takes SPI and CLA for travelling through the Night, and VIG in Winter, on the Morning's own card", async () => {
 		standAt(hex(6, 6));
 		calendar.season = "winter";
 		const alys = knight("Alys");
@@ -247,9 +250,13 @@ describe("as Morning comes", () => {
 		answer = { mode: "travel", "include-0": true };
 		await advancePhase();
 		expect(alys.system.virtues).toEqual({ vig: { value: 5 }, cla: { value: 5 }, spi: { value: 5 } });
-		const morning = cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.morning.title");
-		expect(morning).toHaveLength(1);
-		expect(morning[0][2].entries[0].lines).toHaveLength(3);
+		expect(cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.morning.title")).toEqual([]);
+		const phase = cardsOf("report").filter(([, , context]) => context.sections?.length);
+		expect(phase).toHaveLength(1);
+		const [section] = phase[0][2].sections;
+		expect(section.title).toBe("phaseEnd.morning.title");
+		expect(section.entries[0].lines).toHaveLength(3);
+		expect(phase[0][3].rolls).toHaveLength(3);
 	});
 
 	it("takes each one's own lost sleep and hunger, and remembers who went without", async () => {
@@ -274,6 +281,28 @@ describe("as Morning comes", () => {
 		game.actors = [alys];
 		answer = { mode: "travel", "include-0": false };
 		await advancePhase();
+		expect(alys.update).not.toHaveBeenCalled();
+	});
+
+	it("lets a hostile Omen met camping keep everybody from sleep, as the Referee says (p18)", async () => {
+		standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		vi.mocked(chooseDialog).mockResolvedValueOnce("hostile");
+		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(vi.mocked(chooseDialog).mock.calls.at(-1)[0].title).toBe("phaseEnd.hostileOmen.title");
+		expect(alys.system.virtues.cla.value).toBe(5);
+	});
+
+	it("asks nothing of an Omen when nobody camped, and lets a calm one be", async () => {
+		standAt(hex(8, 6));
+		const alys = knight("Alys");
+		game.actors = [alys];
+		vi.mocked(chooseDialog).mockClear();
+		answer = { mode: "camp", wilderness: true, "include-0": true };
+		await advancePhase();
+		expect(chooseDialog).toHaveBeenCalledTimes(1);
 		expect(alys.update).not.toHaveBeenCalled();
 	});
 
@@ -309,12 +338,48 @@ describe("dying untended", () => {
 		vi.mocked(announceFallenKnight).mockClear();
 		await advancePhase();
 		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Tal", "Moss", "Bandit"]);
-		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true }, {});
+		expect(tal.update).toHaveBeenCalledWith({ "system.virtues.vig.value": 0, "system.mortalWound": false, "system.slain": true, "system.fate": "fallen.fateUntended" }, {});
 		expect(moss.update).not.toHaveBeenCalled();
 		expect(loose.update).toHaveBeenCalled();
-		expect(cardsOf("report").at(-1)[2].entries.map(({ name }) => name)).toEqual(["Tal", "Bandit"]);
+		const died = cardsOf("report").find(([, , context]) => context.title === "phaseEnd.dying.title");
+		expect(died[2].entries.map(({ name }) => name)).toEqual(["Tal", "Bandit"]);
 		expect(announceFallenKnight).toHaveBeenCalledWith(tal, "slain");
 		expect(calendar.phase).toBe("afternoon");
+	});
+
+	it("lets those left to die fall as the Night ends, before the Morning's afflictions, which burn on whoever they found", async () => {
+		calendar.phase = "night";
+		const order = [];
+		const tal = wounded("Tal");
+		tal.update.mockImplementation(async () => order.push("died"));
+		game.actors = [tal];
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": true });
+		const sufferers = [{ name: "Ailing" }];
+		vi.mocked(sufferMorningAfflictions).mockImplementationOnce(async () => {
+			order.push("suffered");
+			return { section: null, rolls: [], sufferers };
+		});
+		vi.mocked(burnMorningAfflictions).mockClear();
+		await advancePhase();
+		expect(order).toEqual(["died", "suffered"]);
+		expect(burnMorningAfflictions).toHaveBeenCalledWith(sufferers);
+		expect(calendar.phase).toBe("morning");
+	});
+
+	it("doesn't kill again anybody slain since the window was answered", async () => {
+		const tal = wounded("Tal");
+		game.actors = [tal];
+		canvas.scene = { tokens: [] };
+		answer = () => {
+			tal.system.slain = true;
+			return { "dying-0": true };
+		};
+		vi.mocked(announceFallenKnight).mockClear();
+		await advancePhase();
+		expect(tal.update).not.toHaveBeenCalled();
+		expect(announceFallenKnight).not.toHaveBeenCalled();
+		expect(cardsOf("report").filter(([, , context]) => context.title === "phaseEnd.dying.title")).toEqual([]);
 	});
 
 	it("asks after somebody dying though Exhausted at VIG 0, who is still alive to die of it (p9)", async () => {
@@ -325,6 +390,17 @@ describe("dying untended", () => {
 		await advancePhase();
 		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Spent"]);
 		expect(spent.update).toHaveBeenCalledWith(expect.objectContaining({ "system.slain": true }), {});
+	});
+
+	it("leaves out a routed Warband, whose Mortal Wound isn't dying (p11)", async () => {
+		const routed = { ...wounded("Militia"), type: "npc" };
+		routed.system.scale = "warband";
+		game.actors = [routed, wounded("Tal")];
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": true });
+		await advancePhase();
+		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Tal"]);
+		expect(routed.update).not.toHaveBeenCalled();
 	});
 
 	it("lists nobody when nobody is dying", async () => {
