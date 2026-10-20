@@ -328,6 +328,46 @@
 	--content-link-text-color: var(--color-dark-2);
 }
 
+/* v14 draws a rule from these two; v13 always draws its gold fade, so parchment reads them itself. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) hr {
+	border-top: var(--hr-border);
+	background-image: var(--hr-gradient);
+}
+
+/*
+ * Foundry leaves inline code unpainted, so a host's dark mode (the Forge's
+ * paints it dark purple) would put it under our ink. It's painted on the paper,
+ * and so are the code blocks and keys a note can hold, which Foundry leaves
+ * unpainted too.
+ */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) :is(code, pre, kbd) {
+	border: 1px solid var(--bastionland-rule);
+	border-radius: 3px;
+	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
+	color: var(--bastionland-ink);
+}
+
+/* Words held off their edge, and on v13, where code is inline, a long path wrapped over two lines boxed on each. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) :is(code, kbd) {
+	padding: 0.05rem 0.3rem;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) pre {
+	padding: 0.4rem 0.6rem;
+}
+
+/* v14 keeps all code on one line, which would run a block's lines together. */
+:is(.bastionland-page, .bastionland-dialog .window-content, .bastionland-card, .bastionland-travel-rules__sheet) pre code {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	white-space: inherit;
+}
+
 /* An editor's menu bar is themed on the editor itself, so it's held there. */
 :is(.bastionland-page, .bastionland-dialog .window-content) :is(prose-mirror, .prosemirror) {
 	--menu-background: rgb(var(--bastionland-shade-rgb) / 0.1);
@@ -8316,6 +8356,13 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 .bastionland-realm-appearance__names li.is-found::before {
 	content: "\2713  ";
 	color: var(--bastionland-verdigris);
+}
+
+/* The names are a plain list of file names, not boxes: the paper's code box would crowd the tight grid. */
+.bastionland-page .bastionland-realm-appearance__names code {
+	padding: 0;
+	border: 0;
+	background: none;
 }
 
 .bastionland-realm-appearance__preview {

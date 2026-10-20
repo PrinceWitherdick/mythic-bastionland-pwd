@@ -1286,11 +1286,6 @@
 }
 
 .bastionland-keep-realm__seed code {
-	padding: 0.05rem 0.3rem;
-	border: 1px solid var(--bastionland-rule);
-	border-radius: 3px;
-	background: rgb(var(--bastionland-sheen-rgb) / calc(0.35 * var(--bastionland-sheen)));
-	color: var(--bastionland-ink);
 	font-family: var(--bastionland-font-body);
 	letter-spacing: 0.12em;
 }

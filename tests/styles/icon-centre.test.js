@@ -202,4 +202,21 @@ describe("centring the letters", () => {
 		const named = new Set(shared[1].split(",").map((one) => one.trim().slice(1)));
 		expect(across.filter((name) => !named.has(name))).toEqual([]);
 	});
+
+	/*
+	 * A code or key box on the paper (the Keep Realm seed, a path, a note's key)
+	 * is centred by its line box alone, as the offline audit measured it: no rule
+	 * may pad it more above than below, set one side, or lay it out as a flex box
+	 * or a grid.
+	 */
+	it("pads every code and key box alike above and below, and never as a flex box or a grid", () => {
+		const boxes = rules.filter(({ selectors }) => selectors.some((selector) => /(?:^|[\s>])(?:code|kbd|:is\([^()]*\b(?:code|kbd)\b[^()]*\))$/.test(selector)));
+		expect(boxes.length).toBeGreaterThan(3);
+		const uneven = boxes.filter(({ body }) => {
+			if (/padding-(top|bottom|block)/.test(body) || /(^|;|\s)display:\s*(inline-)?(flex|grid)/.test(body)) return true;
+			const sides = /(?:^|;|\s)padding:\s*([^;]+)/.exec(body)?.[1].trim().split(/\s+/);
+			return Boolean(sides) && (sides[2] ?? sides[0]) !== sides[0];
+		});
+		expect(uneven.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
 });
