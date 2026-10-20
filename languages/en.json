@@ -3788,6 +3788,10 @@
       "notes": "Traits & Notes"
     },
     "structure": {
+      "tabs": {
+        "structure": "Stat Block",
+        "notes": "Traits & Notes"
+      },
       "kind": "What it is",
       "kinds": {
         "structure": {

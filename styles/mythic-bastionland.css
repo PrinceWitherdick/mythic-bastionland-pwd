@@ -3374,6 +3374,11 @@ a.button:focus:not(:focus-visible) {
 /* Structure sheet: a ship, wall or siege engine                    */
 /* ---------------------------------------------------------------- */
 
+/* The Stone box gets room of its own between the kind's rules and Carries. */
+.bastionland-structure__stone {
+	padding-block: 0.5rem;
+}
+
 .bastionland-structure__carries {
 	display: flex;
 	flex-direction: column;

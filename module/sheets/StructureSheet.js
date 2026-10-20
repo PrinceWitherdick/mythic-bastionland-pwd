@@ -4,12 +4,13 @@ import { t } from "../chat/cards.js";
 import { STRUCTURE_KINDS } from "../rules/structures.js";
 import { templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
+import { TabRailMixin } from "./tab-rail.js";
 
 /** Item types the sheet offers to add, in sheet order: a siege engine's weapons, a ship's cargo. */
 const ADDED_TYPES = Object.freeze(["weapon", "gear"]);
 
 /** A structure's, ship's or siege engine's sheet: GD, Armour, repairs and collisions (Wood and Stone, p11). */
-export class StructureSheet extends BastionlandActorSheet {
+export class StructureSheet extends TabRailMixin(BastionlandActorSheet) {
 	static DEFAULT_OPTIONS = {
 		classes: ["bastionland-structure"],
 		position: { width: 700, height: 680 },
@@ -27,6 +28,19 @@ export class StructureSheet extends BastionlandActorSheet {
 			scrollable: [""]
 		}
 	};
+
+	/** The sheet's pages, picked from the rail hung off the window's edge, as on an NPC's. */
+	static TABS = {
+		primary: {
+			initial: "structure",
+			tabs: [
+				{ id: "structure", icon: "fa-solid fa-dungeon", label: "bastionland.structure.tabs.structure" },
+				{ id: "notes", icon: "fa-solid fa-feather-pointed", label: "bastionland.structure.tabs.notes" }
+			]
+		}
+	};
+
+	static RAIL_ANCHOR = ".bastionland-npc-header";
 
 	static PREVIEWED_ART = ".bastionland-npc-header__img[data-name]";
 
