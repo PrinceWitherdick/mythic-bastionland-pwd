@@ -6,7 +6,7 @@ import { split } from "../mocks/css.js";
 
 const root = join(import.meta.dirname, "..", "..");
 const sheets = Object.fromEntries(
-	["mythic-bastionland.css", "chat.css", "gm-toolkit.css"].map((name) => [
+	["mythic-bastionland.css", "chat.css", "gm-toolkit.css", "timeline.css"].map((name) => [
 		name,
 		readFileSync(join(root, "styles", name), "utf8")
 	])
@@ -218,5 +218,25 @@ describe("centring the letters", () => {
 			return Boolean(sides) && (sides[2] ?? sides[0]) !== sides[0];
 		});
 		expect(uneven.map(({ selectors }) => selectors.join(", "))).toEqual([]);
+	});
+
+	/*
+	 * A shared button's or blank's flex basis (8rem, 10rem) is a width in a row,
+	 * but straight down a column it became the box's height, and the words sat
+	 * in the middle of a box 128px tall. The offline gallery measures these
+	 * (fixture/item-read-uses, fixture/timeline-invite); each keeps its own size.
+	 */
+	it.each([
+		["mythic-bastionland.css", ".bastionland-page--item > .bastionland-button"],
+		["mythic-bastionland.css", ".bastionland-page .bastionland-structure__carries input"],
+		["timeline.css", ".bastionland-timeline__invite > .bastionland-button"]
+	])("keeps %s's %s to its own height in a column", (sheet, selector) => {
+		expect(rule(sheet, selector).flex).toBe("none");
+	});
+
+	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
+	it("lays the Domain's footer button in a row", () => {
+		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");
+		expect(rule("mythic-bastionland.css", ".bastionland-page .bastionland-domain__footer .bastionland-button").flex).toMatch(/^0 0 /);
 	});
 });

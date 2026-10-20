@@ -138,6 +138,11 @@
 	margin: 0;
 }
 
+/* A button's flex basis would set its height in this column, not its width. */
+.bastionland-timeline__invite > .bastionland-button {
+	flex: none;
+}
+
 /* ---------------------------------------------------------------- */
 /* The toolbar's menus: Filter, and the Referee's Colours           */
 /* ---------------------------------------------------------------- */

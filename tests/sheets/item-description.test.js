@@ -38,6 +38,18 @@ describe("the description box on an item sheet", () => {
 		expect(rule(".bastionland-page .bastionland-item-description prose-mirror > .editor-container")).toContain("min-height: 0;");
 	});
 
+	it("keeps Foundry's column on every sheet's editor, so text opened for editing has a height", () => {
+		// A Structure's notes laid out as a block opened with the text clipped to nothing.
+		const from = css.indexOf(".bastionland-page prose-mirror {");
+		const declarations = css.slice(from, css.indexOf("}", from));
+
+		expect(from).toBeGreaterThan(-1);
+		expect(declarations).toContain("display: flex;");
+		expect(declarations).toContain("flex-direction: column;");
+		expect(rule(".bastionland-page .editor-content")).not.toContain("display: block;");
+		expect(rule(".bastionland-page prose-mirror.active")).toMatch(/min-height: \d/);
+	});
+
 	it("scrolls once, in Foundry's text box, not in the frame around it", () => {
 		expect(rule(".bastionland-page .bastionland-item-description prose-mirror")).toContain("overflow: hidden;");
 

@@ -2595,13 +2595,27 @@ a.button:focus:not(:focus-visible) {
 
 .bastionland-page prose-mirror,
 .bastionland-page .editor-content {
-	display: block;
 	min-height: 6rem;
 	padding: 0.4rem 0.6rem;
 	border: 1px solid var(--bastionland-rule);
 	border-radius: 3px;
 	background: rgb(var(--bastionland-sheen-rgb) / calc(0.25 * var(--bastionland-sheen)));
 	color: var(--bastionland-ink);
+}
+
+/*
+ * Foundry stacks an open editor's menu above the container holding the text,
+ * and that container only takes a height down a column. Laid out as a block,
+ * it shrank to nothing and the text opened for editing looked wiped. Opened,
+ * the box grows to leave room to write below the menu.
+ */
+.bastionland-page prose-mirror {
+	display: flex;
+	flex-direction: column;
+}
+
+.bastionland-page prose-mirror.active {
+	min-height: 12rem;
 }
 
 /*
@@ -2718,6 +2732,12 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page--item {
 	gap: 0.75rem;
 	padding: 1rem 1.25rem;
+}
+
+/* A button's flex basis would set its height in the page's column, not its width (an Ability's Read the uses). */
+.bastionland-page--item > .bastionland-button {
+	flex: none;
+	align-self: flex-start;
 }
 
 .bastionland-item-header {
@@ -3116,8 +3136,9 @@ a.button:focus:not(:focus-visible) {
 	border-top: 1px solid var(--bastionland-rule);
 }
 
+/* A third of the window's width; the button's fit-content minimum keeps the label whole in a narrow one. */
 .bastionland-page .bastionland-domain__footer .bastionland-button {
-	flex: none;
+	flex: 0 0 calc(100% / 3);
 	padding: 0 1.25rem;
 }
 
@@ -3360,7 +3381,9 @@ a.button:focus:not(:focus-visible) {
 	margin-top: 0.5rem;
 }
 
+/* The blank's 10rem flex basis is a width in a row; in this column it would be its height. */
 .bastionland-page .bastionland-structure__carries input {
+	flex: none;
 	width: 100%;
 	max-width: none;
 }
