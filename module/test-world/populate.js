@@ -43,6 +43,7 @@ import { deleteHexJournals } from "../actions/hex-journals.js";
 import { SITE_JOURNALS_SETTING, deleteSiteJournals, keepSiteJournal } from "../actions/site-journals.js";
 import { writeSightings } from "../actions/sighted.js";
 import { SITE_FLAG, SITE_SHEET_CLASS } from "../actions/sites.js";
+import { OWN_MYTH_FLAG, OWN_MYTH_SHEET_CLASS, findOwnMythsFolder, ownMythsFolder } from "../actions/own-myths.js";
 import { announcePhase, closeSeason, hardshipFor, passTime, rollAging } from "../actions/time.js";
 import { omensMet, timelineCircle, timelineCrisisRoll, timelineDuel, timelineFounded, timelineGloryAwarded, timelineJoined, timelineLandmarkFound, timelineMortalWound, timelineMustered, timelineScar, timelineSquireTaken } from "../actions/timeline-events.js";
 import { timelineNow } from "../actions/timeline-record.js";
@@ -50,7 +51,7 @@ import { createCustomTag } from "../actions/timeline-tags.js";
 import { ensureTimelineJournal, findTimelineJournal, mutateTrack, timelinePages, trackFor } from "../actions/timeline-store.js";
 import { MUSTERED_FLAG, ORIGIN_FLAG, letWarbandGo, wearWarbandDown } from "../actions/warbands.js";
 import { drawWeather, setWeather } from "../actions/weather.js";
-import { findByRoll, loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
+import { findByRoll, loadArtIndex, mythEntry, pageNote, seerEntry } from "../book-art/art-index.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, t } from "../chat/cards.js";
 import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
@@ -65,6 +66,7 @@ import { chargePath } from "../rules/heraldry-charges.js";
 import { MAX_INLINE_LENGTH, PAINTING_HEIGHT, PAINTING_WIDTH, PAINT_SCALE } from "../rules/heraldry.js";
 import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
+import { normaliseOwnMyth } from "../rules/own-myths.js";
 import { createRandom } from "../rules/random.js";
 import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars.js";
 import { crisisRollsDue } from "../rules/season-log.js";
@@ -170,6 +172,37 @@ const SITE_TEXT = Object.freeze({
 });
 
 const ROUTE_TEXT = Object.freeze({ closed: "Flooded to the ceiling", hidden: "A priest's passage behind the rood screen" });
+
+/**
+ * The Myth the Referee wrote for this Realm, standing as its third Myth: the
+ * bell of the Drowned Chapel. Its picture is borrowed from a Myth of the book
+ * the Realm doesn't hold, where the book has been imported.
+ */
+const OWN_MYTH = Object.freeze({
+	name: "The Bell Under the Mere",
+	verse: ["A bell beneath the water rings", "for every soul the water brings."],
+	omens: [
+		"A bell is heard at dusk from somewhere under the mere. The fish rise to it.",
+		"A fisher's net comes up with a bell-rope in it, wet and new.",
+		"The ferry comes back across the mere at dawn with nobody in it (see opposite).",
+		"Every bell in the nearest Holding cracks in the same night.",
+		"The mere drains in a day, and the chapel's tower stands in the mud, ringing.",
+		"The Bell-Warden walks out of the water and asks who will take the rope."
+	],
+	table: {
+		name: "Who Rows the Ferry",
+		columns: ["Rower", "Carrying"],
+		rows: [
+			["A drowned novice, still in her habit", "Candles that will not light"],
+			["The miller's lost son, grown old", "A coffin with the lid nailed from inside"],
+			["Nobody: the oars move by themselves", "Silt from the chapel floor, by the sackful"],
+			["The Bell-Warden's shadow", "A letter for the Seat, sealed in green wax"],
+			["A Knight in rusted mail", "The Company's own names, carved on a board"],
+			["Saint Brannoc, or someone wearing his face", "The bell's clapper, wrapped in sailcloth"]
+		]
+	},
+	castNote: "The Bell-Warden keeps the rope, and the drowned congregation answer to it. Nobody has given them faces yet: drop actors on the Myth to make them its Cast."
+});
 const ENTRANCE_TEXT = Object.freeze({ open: "The west door, half sunk in the mere", hidden: "A crack behind the altar, just wide enough" });
 
 /** Who serves the Domain outside its Council (p20), in the order they came to Court. */
@@ -300,13 +333,13 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, written Myth, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast, with one Myth the Referee wrote for themselves; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
 			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the Referee Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
@@ -681,6 +714,7 @@ class TestGame {
 		this.here = places.seat?.hex ?? { col: 1, row: 1 };
 		const [first, second, third] = places.myths.map((myth) => myth.number);
 		this.mythNumbers = { first, second, third };
+		await this.makeOwnMyth(third);
 		const name = (place, fallback) => place?.name || fallback;
 		this.names = {
 			seat: name(places.seat, "the Seat of Power"),
@@ -691,6 +725,33 @@ class TestGame {
 			dwelling: name(places.dwelling, "the Dwelling"),
 			monument: name(places.monument, "the Monument")
 		};
+	}
+
+	/**
+	 * Write a Myth of the Referee's own, as New Myth does, and give it to the
+	 * Realm in place of one of its Myths, as The Realm's Myths does.
+	 * @param {number|undefined} number The Myth of the Realm it replaces.
+	 */
+	async makeOwnMyth(number) {
+		const myth = this.myth(number);
+		if (!myth) return;
+		// A Myth of the book the Realm doesn't hold lends its picture, so the picture is nobody else's here.
+		const held = new Set(this.realm.myths.map(({ d6, d12 }) => `${d6}-${d12}`));
+		const img = this.index?.myths?.findLast((entry) => entry.path && !held.has(`${entry.d6}-${entry.d12}`))?.path ?? "";
+		// Filed with the Referee's other Myths, as New Myth files one. A folder made for it goes with the test world.
+		const had = findOwnMythsFolder();
+		const folder = had ?? await ownMythsFolder();
+		if (folder && !had) await folder.setFlag(SYSTEM_ID, TEST_FLAG, true);
+		const entry = await foundry.utils.getDocumentClass("JournalEntry").create({
+			name: OWN_MYTH.name,
+			folder: folder?.id ?? this.folders.JournalEntry.id,
+			flags: {
+				core: { sheetClass: OWN_MYTH_SHEET_CLASS },
+				[SYSTEM_ID]: { [OWN_MYTH_FLAG]: normaliseOwnMyth({ ...OWN_MYTH, img }), [TEST_FLAG]: true }
+			}
+		});
+		if (!entry) return;
+		await editRealm(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", number, own: entry.id, omen: 0, revealed: false }));
 	}
 
 	/**
@@ -941,7 +1002,7 @@ class TestGame {
 		const { name, page, entry } = mythEntry(this.index, myth);
 		await postCard(null, "omen", {
 			title: `${myth.number}. ${name}`,
-			tagline: page ? t("realm.key.page", { page }) : null,
+			tagline: pageNote(page),
 			img: entry?.path ?? null,
 			omen: t("realm.wilderness.omen", { omen, count: OMEN_COUNT }),
 			text: entry?.omens?.[omen - 1] ?? null,
@@ -963,7 +1024,7 @@ class TestGame {
 		const { name, page, entry } = mythEntry(this.index, rolled);
 		await postCard(null, "omen", {
 			title: `${number}. ${name}`,
-			tagline: page ? t("realm.key.page", { page }) : null,
+			tagline: pageNote(page),
 			img: entry?.path ?? null,
 			omen: t("gmToolkit.myths.newMythRolled", { hex: t("realm.hex", myth.hex) }),
 			text: null,
