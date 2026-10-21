@@ -101,7 +101,8 @@ export function squireItems(d6, names) {
 	return [SQUIRE_DAGGER, squireEquipment(d6)].filter(Boolean).map(({ key, type, system }) => ({
 		type,
 		name: names[key],
-		system: { ...system, equipped: true }
+		// A deep copy: Foundry cleans item data in place, and the javelins' quantity is frozen.
+		system: { ...structuredClone(system), equipped: true }
 	}));
 }
 

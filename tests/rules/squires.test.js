@@ -80,6 +80,14 @@ describe("squireItems", () => {
 		expect(squireItems(6, names)[1]).toEqual({ type: "weapon", name: "Javelins", system: { damage: "d6", hefty: true, quantity: { value: 3, max: 3 }, equipped: true } });
 		expect(squireItems(4, names)[1].system.wooden).toBe(true);
 	});
+
+	it("hands out data Foundry can clean in place, nested parts included", () => {
+		// Foundry writes into item data as it cleans it; the javelins' frozen quantity threw on Take a Squire.
+		const javelins = squireItems(6, names)[1].system;
+		expect(Object.isFrozen(javelins.quantity)).toBe(false);
+		javelins.quantity.value = 2;
+		expect(squireItems(6, names)[1].system.quantity.value).toBe(3);
+	});
 });
 
 describe("squireSystem", () => {
