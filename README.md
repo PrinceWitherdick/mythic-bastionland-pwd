@@ -10,6 +10,8 @@ An unofficial [Foundry VTT](https://foundryvtt.com) system for playing [Mythic B
 
 It ships none of the book's text, and none of its art beyond the free Blank Realm sheet's map legend. The rules it shows in the book's own words, and everything else from the book, are read from your own copy of the PDF (see [Art and text from your own book](#art-and-text-from-your-own-book)).
 
+**New here?** The [wiki](https://github.com/PrinceWitherdick/mythic-bastionland-pwd/wiki) shows everything the system does, with pictures, including the tricks that are easy to miss.
+
 ## 🤖 Created in collaboration with AI to facilitate rapid development. Absolutely no image generation was or will be used.
 
 ## Features

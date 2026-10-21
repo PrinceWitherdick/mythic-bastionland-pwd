@@ -15,7 +15,9 @@
     "goods-icons": "node scripts/goods-icons.js",
     "company-icons": "node scripts/company-icons.js",
     "macro-icons": "node scripts/macro-icons.js",
-    "gen:ai-signals": "node scripts/gen-ai-signals.js"
+    "gen:ai-signals": "node scripts/gen-ai-signals.js",
+    "wiki:check": "node scripts/sync-wiki.js",
+    "wiki:publish": "node scripts/sync-wiki.js --publish"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
