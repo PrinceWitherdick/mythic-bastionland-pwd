@@ -4,7 +4,7 @@ import { serialWrites } from "../rules/queue.js";
 import { COMPANY_TRACK, TIMELINE_JOURNAL_FLAG, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { afterBurst } from "./kept-journals.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
 import { isRealmScene } from "./realm.js";
 
 /**
@@ -110,7 +110,7 @@ export function trackFor(target) {
 function worldTracks() {
 	return [
 		trackFor(COMPANY_TRACK),
-		...worldKnights((knight) => knight.hasPlayerOwner).map(trackFor),
+		...worldKnights(inCompany).map(trackFor),
 		...(game.actors?.contents ?? []).filter((actor) => actor.type === "domain").map(trackFor),
 		...(game.scenes?.contents ?? []).map(trackFor)
 	].filter(Boolean);

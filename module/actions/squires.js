@@ -20,11 +20,19 @@ import {
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { worldKnights } from "./knights.js";
+import { COMPANY_KNIGHT_FLAG, inCompany, worldKnights } from "./knights.js";
+import { isSolo } from "./solo.js";
 import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
 
-/** @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir count once. */
+/**
+ * @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir
+ *   count once. Played alone, each living Knight riding with the Company counts, as the Referee owns them all.
+ */
 export function companyKnightCount() {
+	if (isSolo()) {
+		const riding = worldKnights((actor) => inCompany(actor) && !actor.system.slain);
+		return companySize(riding.map((actor) => ({ isSquire: Boolean(actor.system.isSquire), players: [actor.id] })));
+	}
 	const players = game.users.filter((user) => !user.isGM);
 	return companySize(worldKnights().map((actor) => ({
 		isSquire: Boolean(actor.system.isSquire),
@@ -67,7 +75,9 @@ async function recountCompany() {
  * @param {object} [changes] An update's changes; none for a creation or deletion.
  * @returns {boolean} Whether the change could alter the Company's size.
  */
-const changesCompany = (actor, changes) => actor.type === "knight" && (!changes || "ownership" in changes || changes.system?.isSquire !== undefined);
+const changesCompany = (actor, changes) => actor.type === "knight" && (!changes || "ownership" in changes || changes.system?.isSquire !== undefined
+	// Played alone, a Knight joins or leaves the Company by its mark, and a Slain one no longer rides.
+	|| changes.flags?.[SYSTEM_ID]?.[COMPANY_KNIGHT_FLAG] !== undefined || changes.system?.slain !== undefined);
 
 /** Count the Company once the world is ready, then recount it as Knights come and go. */
 export function watchCompanySize() {

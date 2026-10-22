@@ -7,8 +7,8 @@
  * Sanctum the Company might seek out is most often one of theirs.
  */
 import { hexLabel } from "../actions/hex-names.js";
-import { worldKnights } from "../actions/knights.js";
 import { editRealm, getRealm } from "../actions/realm.js";
+import { inCompany, worldKnights } from "../actions/knights.js";
 import { seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
@@ -114,7 +114,7 @@ export class SeerChooser extends BastionlandChooser {
 			};
 		};
 		// The players' Knights' Seers first, then every other.
-		const company = companySeers(worldKnights((actor) => actor.hasPlayerOwner && !actor.system.isSquire), this.index);
+		const company = companySeers(worldKnights((actor) => inCompany(actor) && !actor.system.isSquire), this.index);
 		const theirs = new Set(company.map(({ roll }) => roll));
 
 		return Object.assign(context, {

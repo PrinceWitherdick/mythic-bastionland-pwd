@@ -5,6 +5,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { COMPANY_FLAG, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
+import { sidesWithCompany } from "./knights.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 import { timelineArrivals } from "./timeline-events.js";
 
@@ -93,13 +94,14 @@ export const visitsLabel = (visits) =>
 
 /**
  * Whether a Token stands for the Company on its Realm: the Company Token where
- * the Realm has one (p7), otherwise any player's Token.
+ * the Realm has one (p7), otherwise any player's Token, or a Token of a Knight
+ * riding with the Company, as in solo play.
  * @param {TokenDocument} token
  * @returns {boolean}
  */
 export function movesAsCompany(token) {
 	const company = findCompanyToken(token.parent);
-	return company ? token.id === company.id : Boolean(token.actor?.hasPlayerOwner);
+	return company ? token.id === company.id : sidesWithCompany(token.actor);
 }
 
 /**

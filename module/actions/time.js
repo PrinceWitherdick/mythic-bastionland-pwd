@@ -55,7 +55,7 @@ import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
 import { showedOmen } from "../rules/wilderness.js";
-import { playerCharacter, worldKnights } from "./knights.js";
+import { inCompany, playerCharacter, worldKnights } from "./knights.js";
 import { announceFallenKnight } from "./fallen.js";
 
 /**
@@ -92,7 +92,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	const selected = onlyGiven ? [] : (canvas?.tokens?.controlled ?? []).map((token) => token.actor);
 	for (const actor of [...present, ...selected]) add(actor, true);
 	for (const actor of others) add(actor, false);
-	if (!onlyGiven) for (const actor of worldKnights()) add(actor, actor.hasPlayerOwner);
+	if (!onlyGiven) for (const actor of worldKnights()) add(actor, inCompany(actor));
 
 	// What each pursuit offered could make, one list for every row, shown under the pursuit picked.
 	const makings = pursuits.flatMap((pursuit) => pursuitMakings(pursuit).map((making) => ({

@@ -23,13 +23,14 @@ import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { inCompany, sidesWithCompany } from "./knights.js";
 import { keptFromMe } from "./solo.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 import { liveRealm } from "./myth-notes.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
- * player owner.
+ * player owner, or of a Knight riding with the Company.
  * @param {Scene} scene
  * @param {object} g
  * @param {object} [options]
@@ -43,7 +44,7 @@ export function findCompany(scene, g, { selected: useSelected = true } = {}) {
 	if (company) return { hex: hexAt(g, company.getCenterPoint()), split: false };
 
 	const selected = useSelected && scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
-	const tokens = selected.length ? selected : scene.tokens.filter((token) => token.actor?.hasPlayerOwner);
+	const tokens = selected.length ? selected : scene.tokens.filter((token) => sidesWithCompany(token.actor));
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
 }
 
@@ -200,7 +201,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		d6 = roll.total;
 
 		const result = situationResult(d6, mode, situation);
-		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors), cityOmensSeen());
+		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors.filter(inCompany)), cityOmensSeen());
 		const choices = city ? 1 : mythChoices(situation, result);
 		if (choices > 1) {
 			const choice = await new Roll(`1d${choices}`).evaluate();

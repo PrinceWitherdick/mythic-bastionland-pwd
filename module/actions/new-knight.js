@@ -9,7 +9,7 @@
 import { OFFERED_FLAG, UNCHOSEN_FLAG, isBlankKnightData, ownershipGivenTo, playerHolding } from "../rules/unchosen-knight.js";
 import { SCORES, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
 import { makeCompanions, markCompanions } from "./property.js";
 import { timelineJoined } from "./timeline-events.js";
 
@@ -132,7 +132,7 @@ export async function giveKnightTo(actor, userId) {
  * @param {Actor|null} actor
  */
 export async function knightJoined(actor) {
-	if (actor?.type !== "knight" || actor.system.isSquire || !actor.hasPlayerOwner || isUnchosen(actor)) return;
+	if (actor?.type !== "knight" || actor.system.isSquire || !inCompany(actor) || isUnchosen(actor)) return;
 	await timelineJoined(actor);
 }
 

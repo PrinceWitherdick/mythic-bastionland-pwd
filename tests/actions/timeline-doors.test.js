@@ -9,7 +9,7 @@ let calendar = { age: 1, year: 1, season: "spring", day: 1, phase: "morning" };
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => calendar }));
 vi.mock("../../module/apps/ui.js", () => ({ inputDialog: vi.fn() }));
 vi.mock("../../module/chat/cards.js", () => ({ t: (key) => key }));
-vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
+vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [], inCompany: (actor) => actor?.type === "knight" && Boolean(actor.hasPlayerOwner) }));
 vi.mock("../../module/actions/property.js", () => ({ makeCompanions: vi.fn(), markCompanions: vi.fn() }));
 vi.mock("../../module/actions/timeline-events.js", () => ({
 	timelineDesignBegun: vi.fn(),

@@ -40,7 +40,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 }));
 vi.mock("../../module/apps/ui.js", () => ({ renderWhenIdle: vi.fn() }));
 let knights = [];
-vi.mock("../../module/actions/knights.js", () => ({ worldKnights: (keep = () => true) => knights.filter(keep) }));
+vi.mock("../../module/actions/knights.js", () => ({ worldKnights: (keep = () => true) => knights.filter(keep), inCompany: (actor) => Boolean(actor?.hasPlayerOwner) }));
 
 const { SeerChooser, companySeers, openSeerChooser } = await import("../../module/apps/SeerChooser.js");
 

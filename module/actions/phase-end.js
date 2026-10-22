@@ -15,7 +15,7 @@ import { daySkyTables } from "./sky-weather.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { companySituation, omenShownOnEntering } from "./wilderness.js";
 import { keptFromMe } from "./solo.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
 
 /**
  * The end of a Phase of the day (Travel, p18), asked in one window: how the
@@ -137,7 +137,7 @@ export async function askPhaseEnd(ending, { scene = null, mode = null, atBarrier
 			morning: nightEnds
 				? {
 					rules: morningRules({ winter, dire }),
-					members: knights.map((actor, index) => ({ index, name: actor.name, included: actor.hasPlayerOwner, deprived: deprived.has(actor.id) }))
+					members: knights.map((actor, index) => ({ index, name: actor.name, included: inCompany(actor), deprived: deprived.has(actor.id) }))
 				}
 				: null,
 			sky: Boolean(sky),

@@ -138,9 +138,9 @@ export function replacementGlory(company, startGlory) {
  * @param {object} knight
  * @param {string} knight.type
  * @param {boolean} [knight.isSquire]
- * @param {boolean} [knight.hasPlayerOwner]
+ * @param {boolean} [knight.played] Whether they ride with the Company.
  * @param {string} outcome One of the damage outcomes.
  * @returns {boolean}
  */
-export const knightHasFallen = ({ type, isSquire = false, hasPlayerOwner = false }, outcome) =>
-	outcome === "slain" && type === "knight" && !isSquire && hasPlayerOwner;
+export const knightHasFallen = ({ type, isSquire = false, played = false }, outcome) =>
+	outcome === "slain" && type === "knight" && !isSquire && played;

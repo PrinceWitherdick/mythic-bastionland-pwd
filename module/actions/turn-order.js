@@ -4,7 +4,7 @@
 // among them is only where they start from. Whoever was caught unready still
 // makes the Surprise Save (surprise.js), which passes over their first turn.
 
-import { isSolo } from "./solo.js";
+import { sidesWithCompany } from "./knights.js";
 
 /** Where the players' side stands in the turn order. */
 export const PLAYERS_FIRST = 2;
@@ -14,12 +14,12 @@ export const OTHERS_AFTER = 1;
 
 /**
  * Where a character comes into the turn order. In solo play the Referee plays
- * the Knights too, so a Knight is on the players' side whoever owns it.
+ * the Company too, so a Knight riding with it is on the players' side.
  * @param {Actor|null|undefined} actor
  * @returns {number}
  */
 export function sideInitiative(actor) {
-	return actor?.hasPlayerOwner || (actor?.type === "knight" && isSolo()) ? PLAYERS_FIRST : OTHERS_AFTER;
+	return sidesWithCompany(actor) ? PLAYERS_FIRST : OTHERS_AFTER;
 }
 
 /**

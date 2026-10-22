@@ -107,6 +107,21 @@ describe("movesAsCompany", () => {
 		expect(movesAsCompany(monster)).toBe(false);
 	});
 
+	it("follows a Knight riding with the Company in solo play, where the Referee owns them all", () => {
+		const solo = { type: "knight", hasPlayerOwner: false, getFlag: () => undefined };
+		const theirs = { ...solo, getFlag: () => false };
+		const knight = { ...token("k"), actor: solo };
+		const ruler = { ...token("r"), actor: theirs };
+		const scene = realmScene([knight, ruler]);
+		knight.parent = scene;
+		ruler.parent = scene;
+		expect(movesAsCompany(knight)).toBe(false);
+		game.settings.get = (_scope, key) => (key === "soloPlay" ? true : spring);
+		expect(movesAsCompany(knight)).toBe(true);
+		// A Holding's ruler the Referee marked as theirs isn't the Company.
+		expect(movesAsCompany(ruler)).toBe(false);
+	});
+
 	it("follows only the first Company Token, not a copy of it pasted beside", () => {
 		const company = token("c", { company: true });
 		const copy = token("c2", { company: true });

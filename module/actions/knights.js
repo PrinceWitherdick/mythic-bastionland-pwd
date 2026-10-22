@@ -13,14 +13,37 @@ export const playersOf = (actor) => Object.entries(actor.ownership ?? {})
 	.map(([user]) => user);
 
 /**
+ * The Actor flag a solo Referee clears on a Knight of their own who isn't one
+ * of the Company, such as a Holding's ruler. Unset, a Knight rides with it.
+ */
+export const COMPANY_KNIGHT_FLAG = "companyKnight";
+
+/**
+ * Whether a Knight rides with the Company: one a player owns, or, in solo play,
+ * where the Referee owns them all, any Knight not marked as one of theirs.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+export const inCompany = (actor) => actor?.type === "knight"
+	&& (Boolean(actor.hasPlayerOwner) || (isSolo() && actor.getFlag?.(SYSTEM_ID, COMPANY_KNIGHT_FLAG) !== false));
+
+/**
+ * Whether a character is on the Company's side: anything a player owns, or a
+ * Knight riding with the Company, as in solo play.
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+export const sidesWithCompany = (actor) => Boolean(actor?.hasPlayerOwner) || inCompany(actor);
+
+/**
  * Whether a character is one of the players' own, whom Morale doesn't touch
- * (p10): a Knight or Squire a player owns, a Squire whoever owns them, and in
- * solo play any Knight, since the Referee plays the Company there. The Referee's
- * other Knights, such as a Holding's ruler, are NPCs, and waver as NPCs do.
+ * (p10): a Knight who rides with the Company, and a Squire whoever owns them.
+ * The Referee's other Knights, such as a Holding's ruler, are NPCs, and waver
+ * as NPCs do.
  * @param {Actor} actor
  * @returns {boolean}
  */
-export const playerCharacter = (actor) => actor?.type === "knight" && (Boolean(actor.hasPlayerOwner) || Boolean(actor.system?.isSquire) || isSolo());
+export const playerCharacter = (actor) => actor?.type === "knight" && (inCompany(actor) || Boolean(actor.system?.isSquire));
 
 /**
  * The world's Knights, Squires among them, as the Actors directory holds them:

@@ -25,6 +25,8 @@ describe("sideInitiative", () => {
 		solo = true;
 		expect(sideInitiative(played)).toBe(PLAYERS_FIRST);
 		expect(sideInitiative({ type: "npc", hasPlayerOwner: false })).toBe(OTHERS_AFTER);
+		// A Holding's ruler the Referee marked as one of their own Knights waits with the others.
+		expect(sideInitiative({ ...played, getFlag: () => false })).toBe(OTHERS_AFTER);
 		solo = false;
 	});
 

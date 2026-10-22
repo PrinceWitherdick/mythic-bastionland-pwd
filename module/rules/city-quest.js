@@ -131,10 +131,10 @@ export function cityOmen(d12, seen = []) {
 export const cityQuestOver = (seen) => seen.some((number) => isOmen(number) && number >= CITY_QUEST_END);
 
 /**
- * @param {{type: string, hasPlayerOwner?: boolean, system?: {rank?: string}}[]} actors
- * @returns {boolean} Whether any player's Knight is a Knight-Radiant, ready for the City Quest.
+ * @param {{system?: {rank?: string}}[]} company The Knights who ride with the Company.
+ * @returns {boolean} Whether any of them is a Knight-Radiant, ready for the City Quest.
  */
-export const worthyOfCityQuest = (actors) => actors.some((actor) => actor.type === "knight" && actor.hasPlayerOwner && actor.system?.rank === "radiant");
+export const worthyOfCityQuest = (company) => company.some((knight) => knight.system?.rank === "radiant");
 
 /**
  * Whether a Wilderness Roll meets an Omen of the City in place of a random

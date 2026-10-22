@@ -1,12 +1,13 @@
 import { CALENDAR_HOOK, getCalendar } from "../actions/calendar.js";
 import { knightDomain, linkKnightDomain, openKnightDomain } from "../actions/dominion.js";
-import { allowsDuplicateKnights, knightRows } from "../actions/knights.js";
+import { COMPANY_KNIGHT_FLAG, allowsDuplicateKnights, inCompany, knightRows } from "../actions/knights.js";
 import { fillKnightFromBook, knightTableRenewal, withTableSentences } from "../actions/knight-tables.js";
 import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { makeSeer } from "../actions/seers.js";
+import { keptFromMe } from "../actions/solo.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
@@ -95,6 +96,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
+			toggleCompany: KnightSheet.#onToggleCompany,
 			pickTravelsHex: openTravelsRow,
 			showTravelsHex: showTravelsRow
 		}
@@ -510,6 +512,18 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			tooltip: t(domain ? "domain.openHint" : "domain.foundHint"),
 			muted: !domain
 		});
+		// Played alone the Referee owns every Knight, so they say which of them ride with the Company.
+		// A Knight a player holds rides with it whatever the mark says.
+		if (!isSquire && keptFromMe() && this.isEditable && !this.actor.hasPlayerOwner) {
+			const riding = inCompany(this.actor);
+			buttons.push({
+				action: "toggleCompany",
+				icon: riding ? "fa-solid fa-square-check" : "fa-regular fa-square",
+				label: t("solo.company.label"),
+				tooltip: t(riding ? "solo.company.riding" : "solo.company.notRiding"),
+				muted: !riding
+			});
+		}
 		buttons.push(ledger);
 		return buttons;
 	}
@@ -733,6 +747,15 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onOpenLedger() {
 		return openLedger(this.actor);
+	}
+
+	/**
+	 * Played alone, mark this Knight as riding with the Company or as one of the
+	 * Referee's own, such as a Holding's ruler.
+	 * @this {KnightSheet}
+	 */
+	static #onToggleCompany() {
+		return this.actor.setFlag(SYSTEM_ID, COMPANY_KNIGHT_FLAG, !inCompany(this.actor));
 	}
 
 	/** @this {KnightSheet} */

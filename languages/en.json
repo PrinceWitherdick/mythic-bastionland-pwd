@@ -36,6 +36,11 @@
       "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
       "somethingThere": "something",
       "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away.",
+      "company": {
+        "label": "Rides with the Company",
+        "riding": "This Knight rides with the Company: counted in its pursuits, its mornings, its turn in a fight and its Timeline, and offered the ways on if Slain. Click if they're one of your own Knights instead, such as a Holding's ruler.",
+        "notRiding": "One of your own Knights, not the Company's: they waver as NPCs do and aren't counted with the Company. Click if they ride with the Company."
+      },
       "tag": {
         "label": "Solo Play",
         "hint": "You're playing alone, so the Realm keeps its secrets from you too. Click to read more, or to let friends join.",
