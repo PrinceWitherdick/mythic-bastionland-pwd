@@ -434,6 +434,19 @@ describe("planRealmSync", () => {
 		expect(planRealmSync(realm, g, textures, snapshot).Tile.update).toContainEqual({ _id: myth._id, locked: false });
 	});
 
+	it("gives a Myth brought back, as by Undo, the id its Tile had", () => {
+		const { snapshot } = onScene();
+		const { realm } = realmFromDocuments(snapshot, g);
+		const myth = snapshot.tiles.find((tile) => flagOf(tile).kind === "myth");
+		const without = { ...snapshot, tiles: snapshot.tiles.filter((tile) => tile !== myth) };
+		const plan = planRealmSync(realm, g, textures, without);
+		expect(plan.Tile.create).toContainEqual(expect.objectContaining({ _id: myth._id }));
+		// An id another Tile holds now is left for Foundry to choose afresh.
+		const holder = { ...structuredClone(snapshot.tiles.find((tile) => !flagOf(tile).kind)), _id: myth._id, flags: {} };
+		const taken = planRealmSync(realm, g, textures, { ...without, tiles: [...without.tiles, holder] });
+		expect(taken.Tile.create.some((data) => data._id === myth._id)).toBe(false);
+	});
+
 	it("removes duplicates and what the Realm no longer has, and leaves everything else alone", () => {
 		const { snapshot } = onScene();
 		const terrain = snapshot.tiles.find((tile) => flagOf(tile).kind === "terrain");

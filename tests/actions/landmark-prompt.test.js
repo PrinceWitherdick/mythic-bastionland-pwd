@@ -14,14 +14,18 @@ vi.mock("../../module/chat/cards.js", () => ({
 	postCard: vi.fn(),
 	t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key)
 }));
-vi.mock("../../module/actions/realm.js", () => ({
-	editRealm: vi.fn(async (_scene, edit) => {
+vi.mock("../../module/actions/realm.js", () => {
+	const write = () => vi.fn(async (_scene, edit) => {
 		realm = edit(realm, g);
-	}),
-	getRealm: () => ({ realm }),
-	isRealmScene: (scene) => Boolean(scene?.realm),
-	sceneGeometry: () => g
-}));
+	});
+	return {
+		editRealm: write(),
+		editRealmByHand: write(),
+		getRealm: () => ({ realm }),
+		isRealmScene: (scene) => Boolean(scene?.realm),
+		sceneGeometry: () => g
+	};
+});
 vi.mock("../../module/actions/book-flip.js", () => ({ throwSpread: vi.fn(async () => ({ d6: 2, d12: 7 })) }));
 vi.mock("../../module/actions/company.js", () => ({ companyTokenHex: vi.fn(), setCompanyHex: vi.fn() }));
 vi.mock("../../module/actions/journey.js", () => ({ getJourney: vi.fn() }));
@@ -37,6 +41,7 @@ vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn() }));
 const { nameLandmarkFromPrompt, renameLandmark, rerollLandmarkName } = await import("../../module/actions/landmarks.js");
 const { throwSpread } = await import("../../module/actions/book-flip.js");
 const { mythEntry } = await import("../../module/book-art/art-index.js");
+const { editRealm, editRealmByHand } = await import("../../module/actions/realm.js");
 
 const scene = { id: "realm", realm: true };
 const at = hex(4, 5);
@@ -104,6 +109,18 @@ describe("naming a Landmark the first time it's met", () => {
 		realm.landmarks.push(sanctum);
 		expect(await nameLandmarkFromPrompt(scene, sanctum)).toEqual({ name: "Chiming bells", myth: "Myth 3-9", page: 40 });
 		expect(mythEntry).toHaveBeenCalledWith(expect.anything(), { d6: 3, d12: 9 });
+	});
+
+	it("names it as play, which Undo on the map leaves be, where a reroll is the Referee's own", async () => {
+		const met = { id: "m", type: "dwelling", hex: hex(2, 3), name: "", revealed: true };
+		realm.landmarks.push(met);
+		vi.mocked(editRealm).mockClear();
+		vi.mocked(editRealmByHand).mockClear();
+		await nameLandmarkFromPrompt(scene, met);
+		expect(editRealm).toHaveBeenCalledOnce();
+		expect(editRealmByHand).not.toHaveBeenCalled();
+		await rerollLandmarkName(scene, met.hex);
+		expect(editRealmByHand).toHaveBeenCalledOnce();
 	});
 
 	it("rolls a random spread for a Ruin and leaves its echo to be rolled when asked", async () => {

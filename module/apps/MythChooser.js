@@ -9,7 +9,7 @@
  */
 import { hexLabel } from "../actions/hex-names.js";
 import { newOwnMyth, openOwnMyth, ownMythEntries, readOwnMyth } from "../actions/own-myths.js";
-import { editRealm, getRealm } from "../actions/realm.js";
+import { editRealmByHand, getRealm } from "../actions/realm.js";
 import { mythEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isDie } from "../rules/book-art.js";
@@ -309,7 +309,7 @@ export class MythChooser extends BastionlandChooser {
 	async #edit(edit) {
 		const scene = this.scene;
 		if (!scene) return;
-		await editRealm(scene, edit);
+		await editRealmByHand(scene, edit);
 		if (this.rendered) await this.render();
 	}
 

@@ -83,6 +83,7 @@ async function foundBarriers(scene, edges, name, { company = null, from = null, 
 		ui.notifications.info(t("realm.movement.found", { name, from: hexLabel(from, scene), to: hexLabel(to, scene) }));
 	}
 	if (!write) return;
+	// Found by travelling, so not for Undo on the map to hide again.
 	if (found.length) await editRealm(scene, (realm, g) => found.reduce((next, edge) => setBarrier(next, g, edge, "revealed"), realm));
 	// Each is kept in the players' record of the hex they stood in, which its Journal entry and their Places show.
 	const stood = isHex(from) ? from : isHex(company?.from) ? company.from : null;

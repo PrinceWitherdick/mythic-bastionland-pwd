@@ -35,7 +35,7 @@ import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/real
 import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
 import { relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
-import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
+import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
@@ -273,8 +273,8 @@ async function writeRealm(scene, realm, g, textures, { replacing = false, operat
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
-			// A copy each, as Foundry writes into the options it's handed.
-			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], { ...operation })));
+			// A copy each, as Foundry writes into the options it's handed. Created Tiles keep any id planRealmSync gave them.
+			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], step === "create" ? { ...operation, keepId: true } : { ...operation })));
 	}
 	return true;
 }
@@ -445,10 +445,12 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
  * write whatever that changed.
  * @param {Scene} scene
  * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
- * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @param {object} [options]
+ * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @param {boolean} [options.record] Kept for Undo.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export async function editRealm(scene, edit, operation = {}) {
+async function changeRealm(scene, edit, { operation = {}, record = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const textures = currentRealmTextures(scene);
@@ -457,10 +459,31 @@ export async function editRealm(scene, edit, operation = {}) {
 		const next = edit(realm, g);
 		if (!next || next === realm) return false;
 		const written = await writeRealm(scene, next, g, textures, { operation });
-		if (written) setHistory(scene.id, recordChange(realmHistory(scene.id), realm));
+		// Read back once written, so what the edit made carries the ids its new documents were given.
+		if (written && record) setHistory(scene.id, recordChange(realmHistory(scene.id), { before: realm, after: getRealm(scene)?.realm ?? next }));
 		return written;
 	});
 }
+
+/**
+ * Change a Realm as play brings it about: a Myth found, an Omen met, a
+ * Barrier come up against. Undo on the map doesn't take it back.
+ * @param {Scene} scene
+ * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+export const editRealm = (scene, edit, operation = {}) => changeRealm(scene, edit, { operation });
+
+/**
+ * Change a Realm by the Referee's hand: painting, Edit this hex, a Myth or
+ * Seer chosen, a picture placed. Undo on the map can take it back.
+ * @param {Scene} scene
+ * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] As editRealm's.
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+export const editRealmByHand = (scene, edit, operation = {}) => changeRealm(scene, edit, { operation, record: true });
 
 /** Each Realm Scene's Undo and Redo, by Scene id. This GM's own, until the page reloads. */
 const histories = new Map();
@@ -491,8 +514,22 @@ export function realmUndoState(scene) {
 }
 
 /**
+ * How the things of a Realm are matched between snapshots, as the documents
+ * they're written to are: Tiles by id, Barriers by their edge.
+ * @type {Record<string, (item: object) => string|null>}
+ */
+const REALM_LISTS = Object.freeze({
+	myths: (myth) => myth.id ?? null,
+	landmarks: (landmark) => landmark.id ?? null,
+	holdings: (holding) => holding.id ?? null,
+	barriers: (barrier) => barrier.edge ?? null
+});
+
+/**
  * Take back the last Realm edit on a Scene, or put back the last one taken
- * back: painting, Barriers, and changes made in Edit this hex.
+ * back: painting, Barriers, and changes made in Edit this hex. What play has
+ * brought about since, such as a Myth found or an Omen met, is kept, unless
+ * the edit taken back is what set it.
  * @param {Scene} scene
  * @param {"undo"|"redo"} way
  * @returns {Promise<boolean>} Whether there was anything to take back or put back.
@@ -501,9 +538,12 @@ export async function stepRealmHistory(scene, way) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const { realm } = getRealm(scene);
-		const step = stepHistory(realmHistory(scene.id), way, realm);
+		const step = stepChange(realmHistory(scene.id), way);
 		if (!step) return false;
-		await writeRealm(scene, step.target, sceneGeometry(scene), currentRealmTextures(scene));
+		const { before, after } = step.change;
+		const [to, from] = way === "undo" ? [before, after] : [after, before];
+		const target = carryForward(to, from, realm, REALM_LISTS);
+		await writeRealm(scene, target, sceneGeometry(scene), currentRealmTextures(scene));
 		setHistory(scene.id, step.history);
 		return true;
 	});

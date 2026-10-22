@@ -1,5 +1,5 @@
 import { hexLabel } from "../actions/hex-names.js";
-import { editRealm, getRealm, realmUndoState } from "../actions/realm.js";
+import { editRealmByHand, getRealm, realmUndoState } from "../actions/realm.js";
 import { loadArtIndex, mythEntry, mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { createRandom, randomSeed } from "../rules/random.js";
@@ -129,7 +129,7 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
  * @returns {Promise<boolean>}
  */
 export function writeHexField(scene, hex, field, value) {
-	return editRealm(scene, (realm, g) => {
+	return editRealmByHand(scene, (realm, g) => {
 		switch (field) {
 			case "terrain":
 				return paintTerrain(realm, g, [hex], whole(value), { step: true });
@@ -189,7 +189,7 @@ async function setHexKind(scene, hex, kind) {
 	if (kind !== "myth" || !realm || featureAt(realm, hex).myth || unusedMythNumbers(realm).length) return writeHexField(scene, hex, "kind", kind);
 	const number = await pickMythToMove(scene, hex, realm);
 	if (!number) return false;
-	return editRealm(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));
+	return editRealmByHand(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));
 }
 
 /**
@@ -228,7 +228,7 @@ async function pickMythToMove(scene, hex, realm) {
 export async function rollHexMyth(scene, hex) {
 	const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(scene)?.realm?.myths);
 	if (!roll) return;
-	await editRealm(scene, (realm, g) => {
+	await editRealmByHand(scene, (realm, g) => {
 		const { myth } = featureAt(realm, hex);
 		return myth ? placeFeature(realm, g, hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12 }) : realm;
 	});
@@ -261,7 +261,7 @@ export async function rollHexSeer(scene, hex) {
 	try {
 		const d6 = await new Roll("1d6").evaluate();
 		const d12 = await new Roll("1d12").evaluate();
-		await editRealm(scene, (realm, g) => {
+		await editRealmByHand(scene, (realm, g) => {
 			const { landmark } = featureAt(realm, hex);
 			return landmark ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer: { d6: d6.total, d12: d12.total } }) : realm;
 		});
@@ -280,7 +280,7 @@ export async function stepHexOmen(scene, hex, step) {
 	const by = whole(step) ?? 0;
 	const realm = getRealm(scene)?.realm;
 	const myth = realm ? featureAt(realm, hex).myth : null;
-	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by);
+	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by, { byHand: true });
 }
 
 /**
@@ -289,7 +289,7 @@ export async function stepHexOmen(scene, hex, step) {
  * @param {{col: number, row: number}} hex
  */
 export async function toggleHexReveal(scene, hex) {
-	await editRealm(scene, (realm) => {
+	await editRealmByHand(scene, (realm) => {
 		const { myth, landmark } = featureAt(realm, hex);
 		const hidden = myth ?? landmark;
 		return hidden ? setRevealed(realm, hex, !hidden.revealed) : realm;

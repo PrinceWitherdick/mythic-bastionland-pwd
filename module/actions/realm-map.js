@@ -12,7 +12,7 @@ import { BARE_MAP, MAP_ROLES, MUCH_CROPPED, REALM_MAP_DIR, coveredCrop, laidMapR
 import { realmFlag } from "../rules/realm-documents.js";
 import { setMapPicture, placeMapPicture } from "../rules/realm-edits.js";
 import { BOOK_LAYOUT, normaliseLayout } from "../rules/realm-geometry.js";
-import { editRealm, getRealm, isRealmScene, sceneGeometry, setRealmLayout } from "./realm.js";
+import { editRealmByHand, getRealm, isRealmScene, sceneGeometry, setRealmLayout } from "./realm.js";
 
 /** What a picture's file may be called, once the GM's own name for it is thrown away. */
 const safeExtension = (file) => (String(file?.name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "png";
@@ -173,7 +173,7 @@ export function readMapPictures(data) {
  * @returns {Promise<boolean>} Whether anything changed.
  */
 export function setRealmPicture(scene, picture) {
-	return editRealm(scene, (realm) => {
+	return editRealmByHand(scene, (realm) => {
 		let next = realm;
 		for (const role of MAP_ROLES) {
 			const chosen = picture[role];
@@ -192,7 +192,7 @@ export function setRealmPicture(scene, picture) {
  * @param {{x: number, y: number, width: number, height: number}} rect
  * @returns {Promise<boolean>}
  */
-export const placeRealmPicture = (scene, role, rect) => editRealm(scene, (realm) => placeMapPicture(realm, role, rect));
+export const placeRealmPicture = (scene, role, rect) => editRealmByHand(scene, (realm) => placeMapPicture(realm, role, rect));
 
 /**
  * Refuse to size a Realm's picture with Foundry's own Tile handles or the

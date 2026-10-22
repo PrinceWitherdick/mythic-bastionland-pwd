@@ -7,8 +7,8 @@
  * Sanctum the Company might seek out is most often one of theirs.
  */
 import { hexLabel } from "../actions/hex-names.js";
-import { editRealm, getRealm } from "../actions/realm.js";
 import { inCompany, worldKnights } from "../actions/knights.js";
+import { editRealmByHand, getRealm } from "../actions/realm.js";
 import { seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
@@ -147,7 +147,7 @@ export class SeerChooser extends BastionlandChooser {
 		const scene = this.scene;
 		const hex = this.hex;
 		if (!roll || !scene || !hex) return;
-		await editRealm(scene, (realm, g) => {
+		await editRealmByHand(scene, (realm, g) => {
 			const { landmark } = featureAt(realm, hex);
 			return landmark?.type === "sanctum" ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer: { d6: roll.d6, d12: roll.d12 } }) : realm;
 		});

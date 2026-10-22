@@ -14,7 +14,7 @@ import { getCalendar } from "./calendar.js";
 import { companyTokenHex, setCompanyHex } from "./company.js";
 import { rollFreeMyth } from "./gm-toolkit.js";
 import { getJourney } from "./journey.js";
-import { editRealm, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { editRealm, editRealmByHand, getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollRefereeTable } from "./referee-rolls.js";
 import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
 import { restoreVirtueOfEach } from "./recovery.js";
@@ -218,12 +218,14 @@ export async function echoRuin(scene, hex = null) {
  * @param {string} type The Landmark's type.
  * @param {{d6: number, d12: number}} spread
  * @param {object|null} index The art index.
+ * @param {object} [options]
+ * @param {boolean} [options.byHand=true] False where play names it, which Undo on the map leaves be.
  * @returns {Promise<{name: string, myth: string, page: number}|null>} Null where the page wasn't read.
  */
-async function nameFromSpread(scene, hex, type, spread, index) {
+async function nameFromSpread(scene, hex, type, spread, index, { byHand = true } = {}) {
 	const { prompt, myth, page } = await spreadPrompt(index, spread, type);
 	if (!prompt) return null;
-	await renameLandmark(scene, hex, prompt);
+	await renameLandmark(scene, hex, prompt, { byHand });
 	return { name: prompt, myth, page };
 }
 
@@ -240,7 +242,7 @@ async function nameFromSpread(scene, hex, type, spread, index) {
 export async function nameLandmarkFromPrompt(scene, landmark) {
 	if (!game.user.isGM || !scene || !landmark || landmark.name) return null;
 	const [d6, d12] = await Promise.all([new Roll("1d6").evaluate(), new Roll("1d12").evaluate()]);
-	return nameFromSpread(scene, landmark.hex, landmark.type, { d6: d6.total, d12: d12.total }, await loadArtIndex());
+	return nameFromSpread(scene, landmark.hex, landmark.type, { d6: d6.total, d12: d12.total }, await loadArtIndex(), { byHand: false });
 }
 
 /**
@@ -268,11 +270,13 @@ export async function rerollLandmarkName(scene, hex) {
  * @param {Scene} scene The Realm.
  * @param {{col: number, row: number}} hex
  * @param {string} name
+ * @param {object} [options]
+ * @param {boolean} [options.byHand=true] Whether Undo on the map can take it back: not where play names it.
  * @returns {Promise<void>}
  */
-export async function renameLandmark(scene, hex, name) {
+export async function renameLandmark(scene, hex, name, { byHand = true } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene) || !hex) return;
-	await editRealm(scene, (current, g) => editFeature(current, g, hex, { name }));
+	await (byHand ? editRealmByHand : editRealm)(scene, (current, g) => editFeature(current, g, hex, { name }));
 }
 
 /**

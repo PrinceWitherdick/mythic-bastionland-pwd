@@ -1,6 +1,6 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
-import { drawingCountLabel, editRealm, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
+import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, startCompanyPlacement } from "../canvas/company-placement.js";
@@ -316,7 +316,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {RealmDrawing} */
 	static #onClearRiver() {
-		return editRealm(canvas.scene, clearRiver);
+		return editRealmByHand(canvas.scene, clearRiver);
 	}
 
 	/** @this {RealmDrawing} */

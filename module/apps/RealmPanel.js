@@ -1,4 +1,4 @@
-import { editRealm, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
+import { editRealmByHand, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import {
 	HOLDING_COUNT,
@@ -315,7 +315,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {RealmPanel} */
 	static #onClearRiver() {
-		return editRealm(this.scene, clearRiver);
+		return editRealmByHand(this.scene, clearRiver);
 	}
 
 	/**

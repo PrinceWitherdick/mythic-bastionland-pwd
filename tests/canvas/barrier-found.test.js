@@ -20,6 +20,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => ({ realm }),
 	isRealmScene: (scene) => Boolean(scene),
 	sceneGeometry: () => g,
+	// Found by travelling, so it's written as play, which Undo on the map doesn't take back.
 	editRealm: async (scene, edit) => edits.push(edit(realm, g))
 }));
 /** What the Phase's end answers, the new Phase or null for a window closed, and what it was asked. */

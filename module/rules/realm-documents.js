@@ -673,10 +673,14 @@ export function planRealmSync(realm, g, textures, existing, { replacing = false 
 		const create = [];
 		const update = [];
 		const used = new Set();
+		const taken = new Set(current.map((data) => data._id));
 		for (const { match, data } of wanted) {
 			const found = byMatch.get(match);
 			if (!found || used.has(match)) {
-				create.push(placed(data));
+				// A Tile brought back, as by Undo, keeps the id it had, so Undo's snapshots still know it.
+				const id = !found && match.startsWith("id:") ? match.slice(3) : null;
+				create.push(id && !taken.has(id) ? { ...placed(data), _id: id } : placed(data));
+				if (id) taken.add(id);
 				continue;
 			}
 			used.add(match);

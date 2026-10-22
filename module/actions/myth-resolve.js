@@ -65,6 +65,7 @@ export async function replaceMyth(scene, myth, index = null) {
 	const { realm } = getRealm(scene);
 	const { d6, d12, rolls } = await rollFreeMyth(realm);
 	const rolled = { number: myth.number, d6, d12 };
+	// What resolving a Myth brings about, so not for Undo on the map to take back.
 	const written = await editRealm(scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", ...rolled, omen: 0, revealed: false }));
 	if (!written) return false;
 	// Played alone, the new Myth is met as the others were: by its first Omen.

@@ -1,4 +1,4 @@
-import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
+import { editRealmByHand, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
@@ -530,7 +530,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (this.brush === "barrier") {
 			const found = edgeAt(g, point);
 			if (!found) return;
-			editRealm(scene, (realm, geometry) => {
+			editRealmByHand(scene, (realm, geometry) => {
 				const state = barrierState(realm, found.key);
 				let next;
 				if (erase) next = "none";
@@ -556,7 +556,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			const feature = placeable.build(here);
 			const taking = erase || event.shiftKey || featureStands(realm, hex, feature);
 			if (taking && !placeable.at(here)) return;
-			editRealm(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
+			editRealmByHand(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
 			if (!taking) placeable.laid?.();
 			return;
 		}
@@ -566,13 +566,13 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			return;
 		}
 		if (this.drawsRiver) {
-			if (erase || event.shiftKey) editRealm(scene, (current) => trimRiver(current, hex));
+			if (erase || event.shiftKey) editRealmByHand(scene, (current) => trimRiver(current, hex));
 			return;
 		}
 		if (erase) return;
 		const terrain = RealmPanel.terrain;
 		if (terrainAt(realm, g, hex) !== terrain) {
-			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
+			editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
 			return;
 		}
 		// Clicking a hex of the brush's terrain steps it on to its next picture. Foundry calls the click
@@ -583,7 +583,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		window.addEventListener("pointerup", () => {
 			if (this.#stepping !== stepping) return;
 			this.#stepping = null;
-			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
+			editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
 		}, { once: true, capture: true });
 	}
 
@@ -626,7 +626,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		const drag = this.#drag;
 		this.#drag = null;
 		this.refreshHighlight();
-		if (drag?.ready()) await editRealm(canvas.scene, drag.lay);
+		if (drag?.ready()) await editRealmByHand(canvas.scene, drag.lay);
 	}
 
 	/** @override */

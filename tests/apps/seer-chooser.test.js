@@ -34,7 +34,7 @@ vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key}
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: (hex) => `${hex.col}.${hex.row}` }));
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: (one) => (one === scene ? { realm } : null),
-	editRealm: async (_scene, edit) => {
+	editRealmByHand: async (_scene, edit) => {
 		realm = edit(realm, g);
 	}
 }));

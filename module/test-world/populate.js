@@ -33,7 +33,7 @@ import { editMythNote } from "../actions/myth-notes.js";
 import { resolveMyth } from "../actions/myth-resolve.js";
 import { actorData } from "../actions/npc.js";
 import { resolveScar } from "../actions/scars.js";
-import { createRealmScene, editRealm, getRealm, sceneGeometry } from "../actions/realm.js";
+import { createRealmScene, editRealm, editRealmByHand, getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable, rollSpark } from "../actions/referee-rolls.js";
 import { collectionEntry, markCollection, markSeasonEvent } from "../actions/season-events.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
@@ -695,7 +695,7 @@ class TestGame {
 		if (!this.scene) throw new Error("The Realm couldn't be made");
 		await this.scene.update({ folder: this.folders.Scene.id, flags: testFlags() });
 
-		await editRealm(this.scene, (realm, g) => {
+		await editRealmByHand(this.scene, (realm, g) => {
 			let next = realm;
 			const used = {};
 			const nameFor = (names, kind) => {
@@ -751,7 +751,7 @@ class TestGame {
 			}
 		});
 		if (!entry) return;
-		await editRealm(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", number, own: entry.id, omen: 0, revealed: false }));
+		await editRealmByHand(this.scene, (realm, g) => placeFeature(realm, g, myth.hex, { kind: "myth", number, own: entry.id, omen: 0, revealed: false }));
 	}
 
 	/**
