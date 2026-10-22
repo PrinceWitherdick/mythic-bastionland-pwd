@@ -33,7 +33,7 @@ The window's menu in its title bar has:
 
 If the PDF's page count differs from the edition the system's page numbers come from, the reader warns you when a link opens it at a page, since the page may be the wrong one.
 
-![The rulebook reader window open on a rules page of the book, with the PDF viewer's chapter sidebar open on the left and the eye-shaped Show This Page to Players button in the window's title bar](images/the-rulebook-reader-window.webp)
+![The rulebook reader window open on the book's front cover, with the PDF viewer's chapter sidebar open on the left and the eye-shaped Show This Page to Players button in the window's title bar](images/the-rulebook-reader-window.webp)
 
 ## Showing a page to the table
 
