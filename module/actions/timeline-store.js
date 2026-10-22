@@ -1,7 +1,7 @@
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { serialWrites } from "../rules/queue.js";
-import { COMPANY_TRACK, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
+import { COMPANY_TRACK, TIMELINE_JOURNAL_FLAG, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { afterBurst } from "./kept-journals.js";
 import { worldKnights } from "./knights.js";
@@ -14,9 +14,6 @@ import { isRealmScene } from "./realm.js";
  * of a Knight or Domain no player can see, such as a rival's, is on a page
  * kept for the Referee alone.
  */
-
-/** The flag that marks the Timeline's Journal entry, found by it whatever it's renamed to. */
-const TIMELINE_JOURNAL_FLAG = "timelineJournal";
 
 /** The Timeline's entry's id as last found: a render asks for it many times, and each search goes through every journal. */
 let timelineJournalId = null;

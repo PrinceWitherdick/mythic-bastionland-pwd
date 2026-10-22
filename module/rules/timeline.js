@@ -18,6 +18,9 @@ import { SEASONS, parseSeasonKey, seasonKey } from "./time.js";
 /** The journal page type each thread is kept on. */
 export const TIMELINE_PAGE_TYPE = "timeline";
 
+/** The flag that marks the Timeline's Journal entry, found by it whatever it's renamed to. */
+export const TIMELINE_JOURNAL_FLAG = "timelineJournal";
+
 /** Each kind of thread, in the order the full Timeline lays them out. */
 export const TRACK_KINDS = Object.freeze(["company", "knight", "domain", "realm"]);
 

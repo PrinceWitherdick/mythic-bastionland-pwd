@@ -127,6 +127,7 @@ import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
 import { openHex, openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
+import { registerCoreWindowSkin } from "./module/apps/core-windows.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerWrittenNotices } from "./module/apps/written-notice.js";
@@ -504,6 +505,8 @@ Hooks.once("init", () => {
 
 	// Players may make their own Knights, and Create Actor offers them nothing else.
 	registerPlayerKnightDialog();
+	// Foundry's own windows that come up in play (Create, Delete, User Configuration, hex and Site journals) wear the parchment.
+	registerCoreWindowSkin();
 
 	// Weapons, armour, gear, beasts and structures get a picture their name calls for.
 	registerGoodsPictures();

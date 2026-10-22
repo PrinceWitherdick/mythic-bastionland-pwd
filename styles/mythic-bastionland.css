@@ -295,7 +295,7 @@
 	--input-focus-outline-color: var(--bastionland-verdigris);
 }
 
-:is(.bastionland-page, .bastionland-dialog .window-content) :is(button, a.button) {
+:is(.bastionland-page, .bastionland-dialog .window-content, .mythic-bastionland-journal .journal-sidebar) :is(button, a.button) {
 	--button-background-color: var(--bastionland-paper-deep);
 	--button-border-color: var(--bastionland-ink);
 	--button-text-color: var(--bastionland-ink);
@@ -2801,6 +2801,30 @@ a.button:focus:not(:focus-visible) {
 	font-size: var(--bastionland-font-note);
 }
 
+/* Foundry lays out .form-fields only inside a standard-form, which the item
+   sheet isn't, so the fields that share a row are set on it by name: "1 in 2",
+   "2 of 3" and a die beside its situation. A number box that shares its row
+   keeps to a die's width; one alone is left as it is. */
+.bastionland-page--item .form-fields {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-page--item .form-fields > :is(input, select) {
+	flex: 1 1 8rem;
+	width: auto;
+	min-width: 0;
+}
+
+.bastionland-page--item .form-fields > input[type="number"]:not(:only-child) {
+	flex: 0 0 4.5rem;
+}
+
+.bastionland-page--item .form-fields > span {
+	flex: none;
+}
+
 /*
  * The specialist die and the situation it applies to share a row while there
  * is room for both; the row gap holds the text field clear of the dropdown
@@ -2812,16 +2836,6 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page .bastionland-item-stock .form-fields {
 	flex-wrap: wrap;
 	row-gap: 0.4rem;
-}
-
-/* "Carried 2 of 3", then how often it's restocked. */
-.bastionland-page .bastionland-item-stock input[type="number"] {
-	flex: 0 0 4.5rem;
-}
-
-.bastionland-item-stock__of {
-	flex: none;
-	align-self: center;
 }
 
 /* A weapon's other way to fight: its qualities sit in the fieldset's own frame. */
@@ -6682,17 +6696,27 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: 3.2rem;
 }
 
-/* The Roll button wraps under the two dice boxes in a narrow window, so the row
-   carries a gap of its own rather than letting the button sit on them. */
+/* Foundry lays out .form-group and .form-fields only inside a standard-form,
+   which this window isn't, so they are flex boxes here by name. The Roll button
+   wraps under the two dice boxes in a narrow window, so the row carries a gap
+   of its own rather than letting the button sit on them. Buttons stand as tall
+   as the dice boxes beside them. */
 .bastionland-hex-edit .form-fields {
+	display: flex;
 	flex-wrap: wrap;
 	gap: 0.35rem;
+}
+
+.bastionland-hex-edit .form-fields > button {
+	align-self: stretch;
+	height: auto;
 }
 
 /* The Myth's two dice and its Roll and Choose buttons read as one line: the
    label sits above so the row has the window's whole width, and the buttons
    share what the boxes leave rather than wrapping underneath. */
 .bastionland-hex-edit__myth-roll {
+	display: flex;
 	flex-direction: column;
 	align-items: stretch;
 	gap: 0.15rem;

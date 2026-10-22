@@ -61,7 +61,8 @@
     "styles/chat.css",
     "styles/gm-toolkit.css",
     "styles/settings.css",
-    "styles/timeline.css"
+    "styles/timeline.css",
+    "styles/core-windows.css"
   ],
   "languages": [
     {

@@ -246,6 +246,30 @@ describe("centring the letters", () => {
 		expect(rule(sheet, selector).flex).toBe("none");
 	});
 
+	/*
+	 * Buttons of Foundry's own dressed in the parchment's caps (a journal's Add
+	 * Page and Save), and Edit this hex's buttons stretched to the dice boxes
+	 * beside them, keep Foundry's flex box, which centres the words however tall
+	 * the button grows: no rule on them sets its display, its line height or its
+	 * padding above or below. The offline gallery measures them
+	 * (fixture/hex-journal, fixture/journal-page-edit, fixture/hex-edit).
+	 */
+	it.each([
+		".mythic-bastionland-journal .journal-sidebar button:not(.icon)",
+		".mythic-bastionland-journal .form-footer button",
+		".bastionland-hex-edit .form-fields > button"
+	])("leaves %s centred by Foundry's flex box", (selector) => {
+		const own = rules.filter(({ selectors }) => selectors.includes(selector));
+		expect(own.length, `no ${selector} rule`).toBeGreaterThan(0);
+		const moved = own.filter(({ body }) => /(^|;|\s)(display|line-height|padding|padding-(top|bottom|block)):/.test(body));
+		expect(moved.map(({ body }) => body.trim())).toEqual([]);
+		for (const { body } of own) {
+			const font = /font-family:\s*([^;]+)/.exec(body)?.[1].trim();
+			// The caps and body faces are IM Fell, whose line box is centred on its capitals (above).
+			if (font) expect(["var(--bastionland-font-caps)", "var(--bastionland-font-body)"]).toContain(font);
+		}
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");
