@@ -5,14 +5,14 @@ import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
-import { postCard, t } from "../chat/cards.js";
+import { keyChoices, postCard, t } from "../chat/cards.js";
 import { deletionEntry, scenePaper, tileCentred, tilePlaced } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
 import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
-import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
+import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls } from "../rules/realm-drawing.js";
 import {
 	GRID_ALPHA,
 	LEVEL_ID,
@@ -43,7 +43,8 @@ import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
 import { closeMapSizeWindow, openMapSizeWindow } from "../apps/map-size-window.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
-import { keptFromMe } from "./solo.js";
+import { brushLockedOn, keptFromMe, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
+import { SOLO_SECRETS_FLAG, SOLO_SECRET_WAYS, settleOwnSecrets } from "../rules/solo.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
@@ -526,6 +527,25 @@ const REALM_LISTS = Object.freeze({
 });
 
 /**
+ * Played alone, Undo and Redo leave as they are what the brush and Edit this
+ * hex can't touch once the Realm's secrets are kept: a snapshot from before
+ * they were hidden would lay them, or show them, again.
+ * @param {Scene} scene
+ * @param {object} target The snapshot being stepped to.
+ * @param {object} current As things stand now.
+ * @returns {object}
+ */
+function keepSecretsAsTheyAre(scene, target, current) {
+	const kept = {
+		...(secretsKeptOn(scene) ? { myths: current.myths } : {}),
+		...Object.fromEntries([["holding", "holdings"], ["landmark", "landmarks"], ["barrier", "barriers"]]
+			.filter(([brush]) => brushLockedOn(brush, scene))
+			.map(([, list]) => [list, current[list]]))
+	};
+	return { ...target, ...kept };
+}
+
+/**
  * Take back the last Realm edit on a Scene, or put back the last one taken
  * back: painting, Barriers, and changes made in Edit this hex. What play has
  * brought about since, such as a Myth found or an Omen met, is kept, unless
@@ -542,7 +562,7 @@ export async function stepRealmHistory(scene, way) {
 		if (!step) return false;
 		const { before, after } = step.change;
 		const [to, from] = way === "undo" ? [before, after] : [after, before];
-		const target = carryForward(to, from, realm, REALM_LISTS);
+		const target = keepSecretsAsTheyAre(scene, carryForward(to, from, realm, REALM_LISTS), realm);
 		await writeRealm(scene, target, sceneGeometry(scene), currentRealmTextures(scene));
 		setHistory(scene.id, step.history);
 		return true;
@@ -682,12 +702,15 @@ export async function newRealm() {
 	const [firstStart] = COMPANY_STARTS;
 	const upload = foundry.utils.randomID();
 	// A page to each part of the Realm on the rail down the dialog's left side.
+	// Played alone, a Realm drawn by hand asks who places its secrets, and whether the Referee sees them.
+	const askSecrets = draw && keptFromMe();
 	const pages = [
 		{ key: "realm", icon: "fa-map", label: t("realm.dialog.pages.realm") },
 		...(traced ? [{ key: "picture", icon: "fa-image", label: t("realm.picture.title") }] : []),
 		draw
 			? { key: "setup", icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") }
 			: { key: "setup", icon: "fa-sliders", label: t("realm.setup.title") },
+		...(askSecrets ? [{ key: "secrets", icon: "fa-eye-slash", label: t("solo.secrets.title") }] : []),
 		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
 		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
 	];
@@ -707,7 +730,8 @@ export async function newRealm() {
 		sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
-		startHint: t(`company.starts.${firstStart}.hint`)
+		startHint: t(`company.starts.${firstStart}.hint`),
+		soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
 	}));
 
 	const data = await foundry.applications.api.DialogV2.input({
@@ -761,7 +785,8 @@ export async function newRealm() {
 			img: await resolveCompanyPicture(data)
 		} : null,
 		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
-		review: SETUP_PARTS.some((part) => rules.roll[part])
+		review: SETUP_PARTS.some((part) => rules.roll[part]),
+		soloSecrets: askSecrets ? (SOLO_SECRET_WAYS.includes(data.soloSecrets) ? data.soloSecrets : SOLO_SECRET_WAYS[0]) : null
 	});
 	if (scene && draw) {
 		// Its buttons are shown once it's finished, not while it's still being painted.
@@ -848,7 +873,7 @@ function wireCompanyFields(element) {
  * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false, soloSecrets = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows, layout });
 	const realm = generateRealm({ seed, setup, geometry });
@@ -862,6 +887,8 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 		foundry.utils.expandObject({
 			...lookFlag(look),
 			...(drawing ? drawingFlag(true) : {}),
+			// Played alone, who places the Realm's secrets as it's drawn.
+			...(drawing && soloSecrets ? { [`flags.${SYSTEM_ID}.${SOLO_SECRETS_FLAG}`]: soloSecrets } : {}),
 			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
 			...(company?.start ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: company.start } : {}),
 			// A Realm drawn by hand hears what its Start sets going once it's finished.
@@ -1053,6 +1080,26 @@ export async function startRealmDrawing(scene) {
 const finishing = new Set();
 
 /**
+ * Played alone, as a Realm drawn by hand is first finished, its Myths,
+ * Landmarks and Barriers are settled as the Referee chose: rolled by the
+ * book's rules around what they drew, hidden from them; or those they placed
+ * themselves, hidden or left in view. Not for Undo to take back. A Company
+ * already set down finds the Myth in its hex, as it would have walking in.
+ * @param {Scene} scene
+ * @param {string} way One of SOLO_SECRET_WAYS.
+ * @returns {Promise<void>}
+ */
+async function settleSoloSecrets(scene, way) {
+	await editRealm(scene, (realm, g) => {
+		if (way !== "dice") return settleOwnSecrets(realm, way === "show");
+		const rolled = generateRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), roll: secretRolls() }, geometry: g, base: realm });
+		return { ...realm, myths: rolled.myths, landmarks: rolled.landmarks, barriers: rolled.barriers };
+	});
+	await scene.setFlag(SYSTEM_ID, SOLO_SECRETS_FLAG, null);
+	await revealMythsBeenTo(scene);
+}
+
+/**
  * Finish drawing a Realm by hand: Travel and Exploration come back beside
  * the map, and the GMs get the Realm's key. Where the Realm falls short of
  * what the sheet asks for, the GM is told what's missing and may finish it
@@ -1065,7 +1112,9 @@ export async function finishRealmDrawing(scene) {
 	if (!game.user.isGM || !isDrawingRealm(scene) || finishing.has(scene.id)) return false;
 	finishing.add(scene.id);
 	try {
-		const short = drawingShortfalls(getRealm(scene).realm);
+		const secrets = secretsToSettle(scene);
+		// What the dice will place isn't missing.
+		const short = drawingShortfalls(getRealm(scene).realm, { leave: secrets === "dice" ? SECRET_DRAWING_STEPS : [] });
 		if (short.length) {
 			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
 			const confirmed = await confirmDialog({
@@ -1076,6 +1125,7 @@ export async function finishRealmDrawing(scene) {
 			if (!confirmed) return false;
 		}
 
+		if (secrets) await settleSoloSecrets(scene, secrets);
 		await refreshThumbnail(scene, drawingFlag(false));
 	} finally {
 		finishing.delete(scene.id);

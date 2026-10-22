@@ -60,7 +60,7 @@ export function domainLands(domain, realms = realmHoldings()) {
 	const found = domainHolding(domain, realms);
 	const realm = found ? getRealm(found.scene)?.realm : null;
 	if (!realm || !found.holding.id) return null;
-	const known = game.user.isGM ? realmKnown(realm) : soloRealm(realm);
+	const known = game.user.isGM ? realmKnown(realm, found.scene) : soloRealm(realm);
 	const { hexes, landmarks } = holdingLands(known, sceneGeometry(found.scene), found.holding.id);
 	const named = landmarks.map((landmark) => landmark.name || t(`realm.landmarks.${landmark.type}`));
 	if (!named.length) return t("domain.lands.line", { count: hexes.length });

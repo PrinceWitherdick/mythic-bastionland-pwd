@@ -115,6 +115,13 @@ export function movesAsCompany(token) {
 export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
 
 /**
+ * Called on the active GM's client with the Scene and the hexes the Company
+ * was set down in rather than moved into, such as its Token first put on a
+ * Realm or stood again after it was lost.
+ */
+export const COMPANY_PLACED_HOOK = `${SYSTEM_ID}.companyPlaced`;
+
+/**
  * Hexes come into and waiting to be written, by Scene id, so four Knights'
  * Tokens reaching the same hex together are one write. `entered` holds those
  * moved into rather than placed in.
@@ -144,6 +151,9 @@ function writeArrivals() {
 			.then(() => timelineArrivals(scene, first))
 			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
 		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen });
+		const moved = new Set(entered.map(hexKey));
+		const placed = visited.filter((hex) => !moved.has(hexKey(hex)));
+		if (placed.length) Hooks.callAll(COMPANY_PLACED_HOOK, scene, placed);
 	}
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DRAWING_RULES, bookDrawingGroups, drawingShortfalls, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../../module/rules/realm-drawing.js";
+import { DRAWING_RULES, SECRET_DRAWING_STEPS, bookDrawingGroups, drawingShortfalls, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../../module/rules/realm-drawing.js";
 import { LANDMARK_TYPES, REALM_BRUSHES, REALM_TOOLS, emptyRealm } from "../../module/rules/realm.js";
 
 const hex = (col, row) => ({ col, row });
@@ -120,6 +120,15 @@ describe("drawingTally", () => {
 
 	it("marks every step done for a Realm drawn as the sheet asks", () => {
 		expect(drawingShortfalls(drawnRealm())).toEqual([]);
+	});
+
+	it("leaves out what the dice will place for a Referee playing alone", () => {
+		const realm = drawnRealm();
+		realm.myths = [];
+		realm.landmarks = [];
+		realm.barriers = [];
+		expect(drawingShortfalls(realm).map((entry) => entry.key)).toEqual(["barriers", "myths", ...LANDMARK_TYPES]);
+		expect(drawingShortfalls(realm, { leave: SECRET_DRAWING_STEPS })).toEqual([]);
 	});
 
 	it("wants exactly one Seat of Power", () => {

@@ -205,7 +205,8 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		const choices = city ? 1 : mythChoices(situation, result);
 		if (choices > 1) {
 			const choice = await new Roll(`1d${choices}`).evaluate();
-			rolls.push(choice);
+			// Played alone, its size would count the Myths it chose between.
+			if (!keptFromMe()) rolls.push(choice);
 			pick = choice.total - 1;
 		}
 	}

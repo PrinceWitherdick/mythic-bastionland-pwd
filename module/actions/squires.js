@@ -21,7 +21,7 @@ import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_KNIGHT_FLAG, inCompany, worldKnights } from "./knights.js";
-import { isSolo } from "./solo.js";
+import { SOLO_CHANGED_HOOK, isSolo } from "./solo.js";
 import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
 
 /**
@@ -85,6 +85,7 @@ export function watchCompanySize() {
 	Hooks.on("createActor", (actor) => changesCompany(actor) && recountCompany());
 	Hooks.on("updateActor", (actor, changes) => changesCompany(actor, changes) && recountCompany());
 	Hooks.on("deleteActor", (actor) => changesCompany(actor) && recountCompany());
+	Hooks.on(SOLO_CHANGED_HOOK, () => recountCompany());
 }
 
 /**

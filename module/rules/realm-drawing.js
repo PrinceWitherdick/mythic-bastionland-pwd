@@ -6,6 +6,7 @@
  */
 import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
 import { hexKey } from "./realm-geometry.js";
+import { SETUP_PARTS } from "./realm-setup.js";
 
 /** The Scene flag that marks a Realm Scene still being drawn by hand. */
 export const REALM_DRAWING_FLAG = "drawing";
@@ -216,13 +217,24 @@ export function drawingTally(realm) {
 	};
 }
 
+/** The steps that place a Realm's secrets, which the dice place instead for a solo Referee who asks them to. */
+export const SECRET_DRAWING_STEPS = Object.freeze(["barriers", "myths", "landmarks"]);
+
+/** @returns {Record<string, boolean>} Which parts of a Realm's setup the dice roll when they place only its secrets. */
+export const secretRolls = () => Object.fromEntries(SETUP_PARTS.map((part) => [part, SECRET_DRAWING_STEPS.includes(part)]));
+
 /**
  * What a Realm still lacks against the sheet, for a last word before it's
  * finished. Nothing here stops it being finished: the sheet is a guide.
  * @param {import("./realm.js").Realm} realm
+ * @param {object} [options]
+ * @param {readonly string[]} [options.leave] Steps left out, such as those the dice will place.
  * @returns {DrawingCount[]}
  */
-export const drawingShortfalls = (realm) => Object.values(drawingTally(realm)).flat().filter((entry) => !entry.done);
+export const drawingShortfalls = (realm, { leave = [] } = {}) => Object.entries(drawingTally(realm))
+	.filter(([step]) => !leave.includes(step))
+	.flatMap(([, entries]) => entries)
+	.filter((entry) => !entry.done);
 
 /**
  * Where the Finish button sits, and the window a rolled Realm is looked over

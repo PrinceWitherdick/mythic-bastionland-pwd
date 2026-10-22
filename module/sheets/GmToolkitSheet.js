@@ -55,7 +55,7 @@ import { latestWilderness } from "../rules/hex-lore.js";
 import { isTracked, trackedInOrder } from "../rules/hex-tracked.js";
 import { searchable } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
-import { keptFromMe, realmKnown } from "../actions/solo.js";
+import { mythKeptFromMe, realmKnown, secretsKeptOn } from "../actions/solo.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
@@ -297,7 +297,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const scene = this.scene;
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
-		const realm = realmKnown(entry?.realm ?? null);
+		const realm = realmKnown(entry?.realm ?? null, scene);
 		// The rest is read only when a part being drawn asks for it: most redraws are of a page or two.
 		return Object.assign(context, {
 			realmData: realm && readWhenAsked({ scene, realm, g: sceneGeometry(scene) }, {
@@ -377,7 +377,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		return {
 			myths,
 			// Played alone, which six the Realm holds is left to the dice. With none left, the window is how one is given back.
-			choose: mythSlots(data.realm) > 0 && !keptFromMe(),
+			choose: mythSlots(data.realm) > 0 && !secretsKeptOn(this.scene),
 			// Opening one Myth folds the one open before, so the other five stay a row each.
 			mythGroup: `${this.id}-myths`,
 			missingText: Boolean(myths.length) && !this.#index?.myths?.length,
@@ -411,7 +411,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const kept = mythNoteFor(data.notes, myth);
 		const fold = `myth:${myth.number}`;
 		// Played alone, only the Omens met are read, and a Myth's hex only once the Company has found it.
-		const solo = keptFromMe();
+		const solo = secretsKeptOn(this.scene);
 		const omens = Array.from({ length: OMEN_COUNT }, (_, index) => {
 			const number = index + 1;
 			const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
@@ -1082,6 +1082,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		// A Cast already on the page says which it is; anywhere else on a Myth's card means that Myth's.
 		const fold = element.closest("[data-cast-key]");
 		const myth = fold ? null : this.#mythFrom(element);
+		// Played alone, a Myth not yet met has no Cast to join, and naming it would give it away.
+		if (mythKeptFromMe(myth, this.scene)) return null;
 		const key = fold?.dataset.castKey || (myth && castKey(this.scene, myth));
 		if (!key) return null;
 		return addToCast(actor, key, myth ? mythLookup(this.#index, myth).name : t("cityQuest.title"));

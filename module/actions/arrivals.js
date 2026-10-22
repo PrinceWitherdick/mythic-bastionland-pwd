@@ -13,6 +13,7 @@ import { settleBlindTravel } from "./night-travel.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { liveRealm } from "./myth-notes.js";
 import { getRealm, isRealmScene } from "./realm.js";
+import { realmKnown, revealMythsReached, secretsKeptOn } from "./solo.js";
 import { rollRefereeTable, weatherIn } from "./referee-rolls.js";
 import { gallop } from "./steeds.js";
 import { markOmenOnEntering, wildernessRoll } from "./wilderness.js";
@@ -35,13 +36,14 @@ const ARRIVAL_SELECTOR = "[data-arrival]";
 
 /**
  * The Myths whose hexes the move came into, that have an Omen yet to show:
- * none resolved, since a resolved Myth shows no more (p27).
+ * none resolved, since a resolved Myth shows no more (p27). Played alone,
+ * only those found, so a Company dire weather held back isn't told of one.
  * @param {Scene} scene
  * @param {{col: number, row: number}[]} entered
  * @returns {object[]}
  */
 function mythsEntered(scene, entered) {
-	const realm = liveRealm(scene);
+	const realm = realmKnown(liveRealm(scene), scene);
 	return entered.map((hex) => featureAt(realm, hex).myth).filter((myth) => myth && !nextOmen(myth).complete);
 }
 
@@ -78,6 +80,33 @@ async function uncountPace({ when, paced } = {}) {
 }
 
 /**
+ * @param {{entered?: object[], ended?: boolean, from?: object|null}} move
+ * @param {import("../rules/time.js").Calendar} now
+ * @returns {boolean} Whether dire weather keeps the Company in the hex it set off from (p18).
+ */
+function keptBackByWeather({ entered = [], ended = false, from = null }, now) {
+	const here = entered.at(-1) ?? null;
+	return Boolean(ended && here && from && !sameHex(from, here) && weatherIn(now) === "dire");
+}
+
+/**
+ * What the Referee is told of the Myth hexes come into, and the buttons that show their Omens.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} entered
+ * @returns {{lines: string[], actions: object[]}}
+ */
+function mythNotes(scene, entered) {
+	const lines = [];
+	const actions = [];
+	// Entering a Myth's hex reveals its next Omen (p27).
+	for (const myth of mythsEntered(scene, entered)) {
+		lines.push(t("arrival.myth", { hex: hexLabel(myth.hex, scene) }));
+		actions.push({ key: "omen", hex: hexKey(myth.hex), icon: "fa-solid fa-eye", label: t("arrival.omen") });
+	}
+	return { lines, actions };
+}
+
+/**
  * What the Referee is told of a move, and the buttons that act on it.
  * @param {Scene} scene
  * @param {{entered: object[], ended: boolean, from: object|null}} move
@@ -90,9 +119,11 @@ async function arrivalNotes(scene, { entered, ended, from }, now) {
 	const here = entered.at(-1) ?? null;
 
 	// Dire weather keeps the Company in the hex it's in (p18).
-	if (ended && here && from && !sameHex(from, here) && weatherIn(now) === "dire") {
+	if (keptBackByWeather({ entered, ended, from }, now)) {
 		lines.push(t("arrival.dire", { hex: hexLabel(from, scene) }));
 		actions.push({ key: "stay", hex: hexKey(from), icon: "fa-solid fa-cloud-showers-heavy", label: t("arrival.stay") });
+		// Played alone, what the hexes ahead hold is found only once the Referee lets the Company on into them.
+		if (secretsKeptOn(scene)) actions.push({ key: "onward", icon: "fa-solid fa-person-hiking", label: t("arrival.onward") });
 	}
 
 	// Trek is a hex a Phase; a second is a Gallop, and a third only by boat or road (p18).
@@ -102,11 +133,9 @@ async function arrivalNotes(scene, { entered, ended, from }, now) {
 		if (pace.after === "gallop") actions.push({ key: "gallop", icon: "fa-solid fa-horse", label: t("arrival.gallopButton") });
 	}
 
-	// Entering a Myth's hex reveals its next Omen (p27).
-	for (const myth of mythsEntered(scene, entered)) {
-		lines.push(t("arrival.myth", { hex: hexLabel(myth.hex, scene) }));
-		actions.push({ key: "omen", hex: hexKey(myth.hex), icon: "fa-solid fa-eye", label: t("arrival.omen") });
-	}
+	const myths = mythNotes(scene, entered);
+	lines.push(...myths.lines);
+	actions.push(...myths.actions);
 
 	// A Holding reached has its Local Mood rolled (p18).
 	const holding = ended && here ? featureAt(getRealm(scene).realm, here).holding : null;
@@ -130,8 +159,9 @@ export async function noticeArrival(scene, { entered = [], ended = false, from =
 	const { lines, actions, paced } = await arrivalNotes(scene, { entered, ended, from }, now);
 	if (!lines.length) return null;
 	const here = entered.at(-1);
-	// The Phase it came in and the hexes counted toward its pace, kept for buttons pressed later.
-	const arrived = { when: { ...now }, paced };
+	// The Phase it came in and the hexes counted toward its pace, kept for buttons pressed later,
+	// and the hexes dire weather may have held it back from.
+	const arrived = { when: { ...now }, paced, ...(keptBackByWeather({ entered, ended, from }, now) ? { held: entered } : {}) };
 	return postCard(null, "arrival", {
 		title: t("arrival.title"),
 		target: hexTarget(here, scene),
@@ -156,15 +186,24 @@ function landedMove(moved, landing) {
 
 /**
  * Follow one of the Company's moves: first whether it travelled blind and
- * where that left it, then what coming there calls for, so the card speaks of
- * the hex the Company is in. GMs only.
+ * where that left it, then, played alone, the Myth hexes it really came into
+ * are found, and last what coming there calls for, so the card speaks of the
+ * hex the Company is in. GMs only.
  * @param {Scene} scene
  * @param {object} moved As the journey tells of it.
  * @returns {Promise<ChatMessage|null>}
  */
 async function followMove(scene, moved) {
 	const landing = await settleBlindTravel(scene, moved);
-	return noticeArrival(scene, landedMove(moved, landing));
+	const landed = landedMove(moved, landing);
+	// Dire weather may hold a chosen move back (p18): till the Referee lets it on, the hex it set off toward
+	// isn't found. Chosen to set off from again, the Company plainly stayed there, so the hex it leaves is
+	// found too; not one it was put back from, by Stay or a blind roll, having never been there.
+	const chosen = landed.chosen !== false;
+	const held = chosen && keptBackByWeather(landed, getCalendar());
+	const reached = [...(chosen && landed.from ? [landed.from] : []), ...(held ? [] : (landed.entered ?? []))];
+	await revealMythsReached(scene, reached);
+	return noticeArrival(scene, landed);
 }
 
 /**
@@ -179,6 +218,18 @@ const ARRIVAL_ACTIONS = {
 		const moved = await setCompanyHex(scene, hex, { forced: true });
 		await uncountPace(arrived);
 		return moved;
+	},
+	// Played alone, let on through dire weather: the hexes it came into are found, and any Myth's Omen offered.
+	async onward(scene, _hex, arrived) {
+		const entered = arrived.held ?? [];
+		if (!entered.length) return null;
+		await revealMythsReached(scene, entered);
+		const { lines, actions } = mythNotes(scene, entered);
+		if (!lines.length) return true;
+		return postCard(null, "arrival", { title: t("arrival.title"), target: hexTarget(entered.at(-1), scene), lines, actions }, {
+			mode: "gm",
+			flags: { [SYSTEM_ID]: { arrival: scene.id, arrived: { when: arrived.when, paced: 0 } } }
+		});
 	},
 	gallop: () => gallop(),
 	async omen(scene, hex, arrived) {

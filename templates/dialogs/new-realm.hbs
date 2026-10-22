@@ -152,6 +152,23 @@
 		</section>
 
 		{{!-- A Realm drawn by hand has no hexes to stand in yet: its Company is chosen on the last page of Creating a Realm. --}}
+		{{#if soloSecrets}}
+		{{!-- Played alone and drawn by hand: who places the Myths, Landmarks and Barriers, and whether the Referee sees them. --}}
+		<section class="bastionland-rail-dialog__page" data-rail-page="secrets" hidden>
+			<p>{{localize "bastionland.solo.secrets.intro"}}</p>
+			<fieldset>
+				<legend>{{localize "bastionland.solo.secrets.legend"}}</legend>
+				{{#each soloSecrets}}
+				<label class="bastionland-check" data-tooltip="{{hint}}">
+					<input type="radio" name="soloSecrets" value="{{key}}" {{checked checked}}>
+					<span class="bastionland-check__label">{{label}}</span>
+				</label>
+				{{/each}}
+			</fieldset>
+			<p class="hint">{{localize "bastionland.solo.secrets.later"}}</p>
+		</section>
+		{{/if}}
+
 		{{#unless draw}}
 		<section class="bastionland-rail-dialog__page" data-rail-page="company" hidden>
 			<label class="bastionland-check">

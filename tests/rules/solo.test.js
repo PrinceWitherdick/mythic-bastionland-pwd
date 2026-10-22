@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { realmPlaces } from "../../module/rules/gm-toolkit.js";
 import { emptyRealm, featureAt, hexSummary } from "../../module/rules/realm.js";
 import { realmGeometry } from "../../module/rules/realm-geometry.js";
-import { hidesKind, mythKnown, soloRealm } from "../../module/rules/solo.js";
+import { hidesKind, mythKnown, settleOwnSecrets, soloRealm } from "../../module/rules/solo.js";
+import { generateRealm } from "../../module/rules/realm-generator.js";
+import { secretRolls } from "../../module/rules/realm-drawing.js";
 
 const g = realmGeometry({ cols: 12, rows: 12 });
 const hex = (col, row) => ({ col, row });
@@ -87,5 +89,32 @@ describe("soloRealm", () => {
 		const places = realmPlaces(solo, { hexes: {} });
 		expect(places.landmarks.map((landmark) => landmark.id)).toEqual(["l2"]);
 		expect(places.holdings.map((holding) => holding.id)).toEqual(["h1"]);
+	});
+});
+
+describe("a Realm drawn alone", () => {
+	it("hides or shows every secret placed by hand as it's finished", () => {
+		const realm = { ...realmWith(), barriers: [{ id: "b1", edge: "1,1|2,1", revealed: true }] };
+		realm.myths[0].revealed = true;
+		const hidden = settleOwnSecrets(realm, false);
+		expect([...hidden.myths, ...hidden.landmarks, ...hidden.barriers].every((item) => item.revealed === false)).toBe(true);
+		const shown = settleOwnSecrets(realm, true);
+		expect([...shown.myths, ...shown.landmarks, ...shown.barriers].every((item) => item.revealed === true)).toBe(true);
+		// The Realm given is left as it was.
+		expect(realm.myths[0].revealed).toBe(true);
+		expect(realm.barriers[0].revealed).toBe(true);
+	});
+
+	it("has the dice place only the secrets, around the land and Holdings drawn, all hidden", () => {
+		const drawn = { ...realmWith(), myths: [], landmarks: [], barriers: [] };
+		const rolled = generateRealm({ seed: "alone", setup: { roll: secretRolls() }, geometry: g, base: drawn });
+		expect(rolled.terrain).toEqual(drawn.terrain);
+		expect(rolled.holdings).toEqual(drawn.holdings);
+		expect(rolled.myths).toHaveLength(6);
+		expect(rolled.landmarks.length).toBeGreaterThan(0);
+		expect(rolled.barriers.length).toBeGreaterThan(0);
+		expect([...rolled.myths, ...rolled.landmarks, ...rolled.barriers].every((item) => !item.revealed)).toBe(true);
+		const held = new Set(drawn.holdings.map((holding) => `${holding.hex.col},${holding.hex.row}`));
+		expect(rolled.myths.some((myth) => held.has(`${myth.hex.col},${myth.hex.row}`))).toBe(false);
 	});
 });

@@ -24,7 +24,7 @@ import {
 import { rollFreeMyth } from "../rules/realm-myths.js";
 import { hexKey } from "../rules/realm-geometry.js";
 import { markMythOmen } from "../actions/omens.js";
-import { keptFromMe } from "../actions/solo.js";
+import { secretsKeptOn } from "../actions/solo.js";
 import { openMythChooser } from "./MythChooser.js";
 import { inputDialog } from "./ui.js";
 
@@ -60,7 +60,7 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 	const { canUndo, canRedo } = realmUndoState(scene);
 	// Played alone, the hex is shown as the Company knows it, and what stands in it isn't changed here,
 	// since a hex that looks empty may still hold what's to be found.
-	const solo = keptFromMe();
+	const solo = secretsKeptOn(scene);
 	const here = featureAt(known, hex);
 	const terrain = terrainAt(realm, g, hex);
 	const option = (value, label, selected) => ({ value, label, selected });
@@ -170,7 +170,7 @@ export function writeHexEditField(scene, hex, field) {
 	const { name } = field;
 	if (!HEX_EDIT_FIELDS.includes(name) || !game.user.isGM) return;
 	// Played alone, what stands in a hex isn't changed here: the Myths to move would give away the unfound.
-	if (name === "kind" && keptFromMe()) return;
+	if (name === "kind" && secretsKeptOn(scene)) return;
 	const value = field.type === "checkbox" ? field.checked : field.value;
 	return name === "kind" ? setHexKind(scene, hex, value) : writeHexField(scene, hex, name, value);
 }
@@ -185,6 +185,8 @@ export function writeHexEditField(scene, hex, field) {
  * @returns {Promise<boolean>} Whether the hex changed, which it doesn't if the GM shuts the list.
  */
 async function setHexKind(scene, hex, kind) {
+	// Played alone, the Myths to move would give away the unfound.
+	if (secretsKeptOn(scene)) return false;
 	const realm = getRealm(scene)?.realm;
 	if (kind !== "myth" || !realm || featureAt(realm, hex).myth || unusedMythNumbers(realm).length) return writeHexField(scene, hex, "kind", kind);
 	const number = await pickMythToMove(scene, hex, realm);

@@ -35,11 +35,18 @@ vi.mock("../../module/actions/realm.js", () => ({ getRealm: () => ({ realm }), i
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn(), weatherIn: () => weather }));
 vi.mock("../../module/actions/steeds.js", () => ({ gallop: vi.fn() }));
 vi.mock("../../module/actions/wilderness.js", () => ({ markOmenOnEntering: vi.fn(), wildernessRoll: vi.fn() }));
+// What solo play finds in the hexes reached is solo.js's to work out; here only which hexes it's asked about.
+let solo = false;
+vi.mock("../../module/actions/solo.js", async () => {
+	const { soloRealm } = await import("../../module/rules/solo.js");
+	return { revealMythsReached: vi.fn(async () => []), realmKnown: (realm) => (solo ? soloRealm(realm) : realm), secretsKeptOn: () => solo };
+});
 
 const { noticeArrival } = await import("../../module/actions/arrivals.js");
 const { postCard, registerCardButtons } = await import("../../module/chat/cards.js");
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
+const { revealMythsReached } = await import("../../module/actions/solo.js");
 
 const scene = { id: "realm", realm: true };
 
@@ -81,6 +88,21 @@ describe("noticeArrival", () => {
 		vi.mocked(postCard).mockClear();
 		calendar.phase = "afternoon";
 		expect(await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) })).toBeNull();
+	});
+
+	it("tells a Referee playing alone of a Myth's hex only once it's found", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["stay", "onward"]);
+			realm.myths[0].revealed = true;
+			calendar.phase = "afternoon";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			expect(lastCard().actions.map(({ key }) => key)).toEqual(["stay", "onward", "omen"]);
+		} finally {
+			solo = false;
+		}
 	});
 
 	it("calls a second hex in a Phase a Gallop, once, and a fresh Phase a Trek again", async () => {
@@ -162,6 +184,48 @@ describe("a move followed", () => {
 		calendar.phase = "afternoon";
 		await press("omen", "8,6");
 		expect(markOmenOnEntering).toHaveBeenCalledWith(scene, hex(8, 6), expect.objectContaining({ phase: "morning" }));
+	});
+
+	it("finds a Myth only in the hexes the Company really came into, after a blind roll or dire weather (p18)", async () => {
+		vi.mocked(revealMythsReached).mockClear();
+		landing = hex(2, 2);
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 5), hex(2, 2)]);
+
+		// Dire weather may hold a chosen move back, so only the hex set off from is found.
+		vi.mocked(revealMythsReached).mockClear();
+		landing = null;
+		weather = "dire";
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 5)]);
+
+		// A drift the Company didn't choose has no Stay to press: it is where it drifted. Put there, as by
+		// Stay or a blind roll sending it back, it was never in the hex it was put back from.
+		vi.mocked(revealMythsReached).mockClear();
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5), chosen: false });
+		await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+		expect(revealMythsReached).toHaveBeenLastCalledWith(scene, [hex(8, 6)]);
+	});
+
+	it("finds the hexes dire weather held the Company back from once the Referee lets it go on", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			vi.mocked(revealMythsReached).mockClear();
+			// Found as it's let on, its Myth's Omen is offered on a card of its own.
+			vi.mocked(revealMythsReached).mockImplementationOnce(async () => {
+				realm.myths[0].revealed = true;
+				return [realm.myths[0]];
+			});
+			await press("onward");
+			expect(revealMythsReached).toHaveBeenCalledWith(scene, [hex(8, 6)]);
+			expect(lastCard().actions).toEqual([expect.objectContaining({ key: "omen", hex: "8,6" })]);
+		} finally {
+			solo = false;
+		}
 	});
 
 	it("tells nothing where a blind roll sent the Company back where it set off", async () => {

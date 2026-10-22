@@ -221,7 +221,7 @@ export function updateHexReadout({ force = false } = {}) {
 	shown = hexKey(hex);
 	const handHidden = hexHiddenByHand(scene, hex);
 	// In solo play the Referee reads it as the Company knows it.
-	const summary = hexSummary(realmKnown(entry.realm), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
+	const summary = hexSummary(realmKnown(entry.realm, scene), g, hex, { showHidden: game.user.isGM, hiddenByHand: handHidden });
 	// A mark stands only while something there is still hidden.
 	const sighted = sightedMarkAt(scene, entry.realm, hex, () => handHidden);
 	const visited = Boolean(getHexVisits(scene, hex));

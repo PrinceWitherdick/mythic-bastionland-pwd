@@ -42,3 +42,28 @@ export function soloRealm(realm) {
 		barriers: realm.barriers.filter((barrier) => barrier.revealed)
 	};
 }
+
+/**
+ * How a solo Referee drawing their own Realm has its Myths, Landmarks and
+ * Barriers placed: by the dice, unseen, once the drawing is finished; or by
+ * their own hand, then hidden from them as they finish, or left in view.
+ */
+export const SOLO_SECRET_WAYS = Object.freeze(["dice", "hide", "show"]);
+
+/**
+ * The Scene flag holding which of SOLO_SECRET_WAYS a Realm drawn alone takes,
+ * cleared once its secrets are settled, the first time it's finished.
+ */
+export const SOLO_SECRETS_FLAG = "soloSecrets";
+
+/**
+ * The secrets of a Realm drawn alone as the drawing is first finished: all
+ * hidden, or all in view, as the Referee chose.
+ * @param {import("./realm.js").Realm} realm
+ * @param {boolean} revealed
+ * @returns {import("./realm.js").Realm} A copy.
+ */
+export function settleOwnSecrets(realm, revealed) {
+	const set = (item) => ({ ...item, revealed });
+	return { ...realm, myths: realm.myths.map(set), landmarks: realm.landmarks.map(set), barriers: realm.barriers.map(set) };
+}

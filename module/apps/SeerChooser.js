@@ -9,6 +9,7 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { inCompany, worldKnights } from "../actions/knights.js";
 import { editRealmByHand, getRealm } from "../actions/realm.js";
+import { realmKnown } from "../actions/solo.js";
 import { seerEntry } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { spreads } from "../rules/book-art.js";
@@ -77,10 +78,10 @@ export class SeerChooser extends BastionlandChooser {
 		return t("seerChooser.title");
 	}
 
-	/** @returns {object[]} The Realm's Sanctums. */
+	/** @returns {object[]} The Realm's Sanctums, those found only where solo play keeps the rest. */
 	get #sanctums() {
 		const scene = this.scene;
-		return (scene ? getRealm(scene)?.realm.landmarks ?? [] : []).filter((landmark) => landmark.type === "sanctum");
+		return (scene ? realmKnown(getRealm(scene)?.realm, scene)?.landmarks ?? [] : []).filter((landmark) => landmark.type === "sanctum");
 	}
 
 	/** @returns {object|null} The Sanctum the window was opened for, while it's still one. */

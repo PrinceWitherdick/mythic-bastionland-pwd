@@ -26,7 +26,7 @@
         "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
       },
       "welcome": {
-        "label": "Solo Mode",
+        "label": "Solo Play",
         "hint": "The Realm's Myths, Landmarks and Barriers stay hidden from you too, and turn up as the Company travels. You can change this later in the Toolkit's Settings."
       },
       "unknownMyth": "A Myth not yet met",
@@ -36,6 +36,35 @@
       "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
       "somethingThere": "something",
       "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away.",
+      "realmKeyKept": "The Realm Key is set aside while you play alone, so nothing still to be found is given away.",
+      "exploreElsewhere": "While playing alone, the Company rolls for the Wilderness, asks about and searches only the hex it stands in.",
+      "brushLocked": "While you play alone, the brush won’t place or take away Holdings, Landmarks or Barriers. If it refused only where something is still hidden, that would show you where it is.",
+      "brushDice": "The dice place this Realm’s Landmarks and Barriers, unseen, when you finish drawing it, so this brush lays none.",
+      "secrets": {
+        "title": "Secrets",
+        "intro": "You're playing alone, so you're the Company too. Choose who places the Realm's Myths, Landmarks and Barriers, the things players can't see on their map.",
+        "legend": "The Realm's secrets",
+        "ways": {
+          "dice": {
+            "label": "The dice place them, unseen",
+            "hint": "You draw the land, Holdings and rivers. When you finish, the Myths, Landmarks and Barriers are rolled by the book's rules around what you drew, hidden from you until the Company finds them."
+          },
+          "hide": {
+            "label": "I place them, then they're hidden",
+            "hint": "You place them yourself while drawing, and see them as you do. When you finish, they're hidden from you until the Company finds them, as if someone else had placed them."
+          },
+          "show": {
+            "label": "I place them, and keep them in view",
+            "hint": "You place them yourself and they stay shown when you finish: every Myth is named and its hex known, every Landmark and Barrier found."
+          }
+        },
+        "later": "This is settled the first time you finish drawing the Realm. Drawing it again after that keeps hidden what's still to be found.",
+        "drawing": {
+          "dice": "The dice place these, unseen, when you finish the Realm.",
+          "hide": "You place these yourself. They'll be hidden from you when you finish the Realm.",
+          "show": "You place these yourself, and they'll stay in view when you finish the Realm."
+        }
+      },
       "company": {
         "label": "Rides with the Company",
         "riding": "This Knight rides with the Company: counted in its pursuits, its mornings, its turn in a fight and its Timeline, and offered the ways on if Slain. Click if they're one of your own Knights instead, such as a Holding's ruler.",
@@ -1197,6 +1226,7 @@
       "title": "Where the Company Came",
       "dire": "The weather is dire, and in dire weather the Company can’t leave the Hex. They set out from {hex}.",
       "stay": "Keep them where they were",
+      "onward": "Let them go on",
       "gallop": "Two Hexes this Phase is a Gallop: only on steeds that aren’t Exhausted, and each steed loses d6 VIG.",
       "gallopButton": "Gallop",
       "cruise": "Three Hexes this Phase is a Cruise: only afloat, or riding along one of the few true roads.",
@@ -2237,6 +2267,7 @@
       "missing": "Run Import PDF with your rulebook to bring in the People Spark Tables.",
       "heardOf": "Has heard of {name}",
       "heardOfPage": "Has heard of {name} (p{page})",
+      "heardOfUnmet": "Has heard tell of Myth {number}, {where}",
       "unnamed": "Unnamed",
       "rename": "Name this person",
       "nameLabel": "Name",
@@ -4364,7 +4395,10 @@
           "river": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Right-click or Shift-click a hex of a river to cut it back to there from the nearer end.",
           "barrier": "Click the edge between two hexes to lay a Barrier there, hidden from players, and click it again to take it away, as right-clicking it does. Shift-click a Barrier to reveal it, or to hide it again.",
           "holding": "Choose a Holding, then click a hex to place it. Tick the Seat of Power first and the next Holding you place is the Realm’s Seat. Clicking a hex that already has that Holding takes it away, as right-clicking or Shift-clicking any Holding does, and Alt-click a hex to pick up the Holding that stands there.",
-          "landmark": "Choose a Landmark, then click a hex to place it there, hidden from players. Clicking a hex that already has that Landmark takes it away, as right-clicking or Shift-clicking any Landmark does, and Alt-click a hex to pick up the Landmark that stands there."
+          "landmark": "Choose a Landmark, then click a hex to place it there, hidden from players. Clicking a hex that already has that Landmark takes it away, as right-clicking or Shift-clicking any Landmark does, and Alt-click a hex to pick up the Landmark that stands there.",
+          "soloLocked": "You’re playing alone, so this brush won’t place or take away Holdings, Landmarks or Barriers on this Realm. If it refused only on the hexes where something is still hidden, that would show you where it is. Terrain and rivers still paint as usual.",
+          "besideSolo": "Rivers are beside it. While you play alone, the Realm’s Holdings, Landmarks and Barriers stay as they are, so nothing still hidden is given away.",
+          "soloDice": "The dice place this Realm’s Landmarks and Barriers, unseen, when you finish drawing it, so this brush lays none. Holdings, terrain and rivers paint as usual."
         },
         "river": "River",
         "riverLength": "One river runs through {count} hexes.",

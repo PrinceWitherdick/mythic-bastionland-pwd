@@ -99,6 +99,9 @@
 					<p>{{text}}</p>
 					{{/if}}
 					{{/each}}
+					{{#if secret}}
+					<p class="bastionland-realm-panel__hint bastionland-realm-drawing__hint">{{secret}}</p>
+					{{/if}}
 					{{#if counts}}
 					<ul class="bastionland-realm-drawing__tally">
 						{{#each counts}}

@@ -79,7 +79,7 @@ export class HexEditor extends HandlebarsApplicationMixin(ApplicationV2) {
 			scene,
 			realm: entry.realm,
 			// Played alone, only what the Company has found here.
-			known: realmKnown(entry.realm),
+			known: realmKnown(entry.realm, scene),
 			g: sceneGeometry(scene),
 			hex: this.hex,
 			index: this.#index

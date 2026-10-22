@@ -17,6 +17,7 @@ import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
+import { forcedMove } from "../actions/company.js";
 import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
@@ -45,14 +46,16 @@ import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.j
  * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
  * runs on the mover's own client before the move is sent. A GM with Foundry's
  * Unconstrained Movement on, which lets Tokens through walls, passes Barriers
- * too.
+ * too, as does a move the Company didn't choose, such as a blind drift: it
+ * goes where the rules put it.
  * @param {TokenDocument} token
  * @param {object} movement The pending movement from `preMoveToken`.
+ * @param {object} [operation] The update that moves it.
  * @returns {boolean} False to refuse the move.
  */
-function allowRealmMove(token, movement) {
+function allowRealmMove(token, movement, operation) {
 	const scene = token?.parent;
-	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls) return true;
+	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls || forcedMove(operation)) return true;
 	const entry = getRealm(scene);
 	if (!entry) return true;
 

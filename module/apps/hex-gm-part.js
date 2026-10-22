@@ -21,8 +21,8 @@ import { calendarLabel, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { keptFromMe, realmKnown } from "../actions/solo.js";
-import { wildernessRoll } from "../actions/wilderness.js";
+import { realmKnown, secretsKeptOn } from "../actions/solo.js";
+import { findCompany, wildernessRoll } from "../actions/wilderness.js";
 import { mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { isTableRoll } from "../rules/book-art.js";
@@ -34,7 +34,7 @@ import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
 import { rulingHolding } from "../rules/dominion.js";
 import { OMEN_COUNT, TERRAIN, featureAt, holdingName, seerReference, terrainAt } from "../rules/realm.js";
 import { makeSeer } from "../actions/seers.js";
-import { hexKey } from "../rules/realm-geometry.js";
+import { hexKey, sameHex } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
 import { openHexEditor } from "./HexEditor.js";
@@ -116,7 +116,7 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	const entry = getRealm(scene);
 	if (!entry) return null;
 	// Played alone, only what the Company has found here.
-	const known = realmKnown(entry.realm);
+	const known = realmKnown(entry.realm, scene);
 	const g = sceneGeometry(scene);
 	const record = getHexRecord(scene, hex);
 	const visits = getHexVisits(scene, hex);
@@ -156,6 +156,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 			: null,
 		myth: myth ? mythContext(scene, myth, index) : null,
 		visited: Boolean(visits),
+		// Played alone, the Company rolls, asks and searches only where it stands.
+		explore: !secretsKeptOn(scene) || sameHex(findCompany(scene, g, { selected: false }).hex, hex),
 		note: record?.note ?? "",
 		told: toldContext(record?.note ?? "", view.told),
 		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
@@ -217,7 +219,7 @@ function toldContext(note, told) {
  */
 function mythContext(scene, myth, index) {
 	const { name, page, entry } = mythLookup(index, myth);
-	const solo = keptFromMe();
+	const solo = secretsKeptOn(scene);
 	const { current, next } = omenStage(myth.omen);
 	const omen = (number, label) => number && { label: t(`gmToolkit.myths.${label}`), text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number }) };
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));

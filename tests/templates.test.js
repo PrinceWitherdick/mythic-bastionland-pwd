@@ -205,6 +205,7 @@ describe("localization", () => {
 		...REALM_TOOLS.map((tool) => `realm.tools.${tool}`),
 		...REALM_BRUSHES.map((brush) => `realm.brushes.${brush}`),
 		...REALM_BRUSHES.map((brush) => `realm.panel.hints.${brush}`),
+		...["soloLocked", "besideSolo"].map((key) => `realm.panel.hints.${key}`),
 		...["map", ...SETUP_PARTS].map((part) => `realm.setup.parts.${part}`),
 		...["cols", "rows", "cluster", "lakes"].map((field) => `realm.setup.fields.${field}`),
 		...["rivers", "holdings", "myths", "landmarks", "barriers"].map((part) => `realm.setup.notes.${part}`),

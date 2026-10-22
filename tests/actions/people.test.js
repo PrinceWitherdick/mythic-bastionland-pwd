@@ -50,8 +50,17 @@ vi.mock("../../module/actions/hex-lore.js", () => ({
 }));
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => ({ realm }),
-	isRealmScene: (scene) => Boolean(scene?.realm)
+	isRealmScene: (scene) => Boolean(scene?.realm),
+	sceneGeometry: () => ({})
 }));
+/** Whether the Referee plays alone. */
+let solo = false;
+vi.mock("../../module/actions/solo.js", async () => {
+	const { mythKnown } = await import("../../module/rules/solo.js");
+	return { keptFromMe: () => solo, mythKeptFromMe: (myth) => Boolean(myth) && solo && !mythKnown(myth) };
+});
+// Putting a place into words is told-where.js's; here only that it's asked from the Holding to the Myth.
+vi.mock("../../module/actions/told-where.js", () => ({ toldWhere: (_g, from, to) => `from ${from.col},${from.row} to ${to.col},${to.row}` }));
 
 const { keepHexPerson, peopleTables, postPerson, rollPersonTables, rollUpHolding, saveHexPerson } = await import("../../module/actions/people.js");
 const { postCard, warn } = await import("../../module/chat/cards.js");
@@ -245,6 +254,23 @@ describe("rolling up a Holding", () => {
 		expect(options.rolls[1].dice.at(-1).faces).toBe(3);
 	});
 
+	it("has a person speak of a Myth not yet met by its number and its way, played alone (p19)", async () => {
+		solo = true;
+		realm.myths = [{ number: 2, hex: { col: 9, row: 9 }, omen: 1 }, { number: 5, hex: { col: 1, row: 1 }, omen: 0, revealed: false }];
+		try {
+			thrown = holdingDice(1, [1, 2]);
+			await rollUpHolding({ scene, hex });
+			const [, , context] = vi.mocked(postCard).mock.calls.at(-1);
+			expect(context.people.map(({ heard }) => heard)).toEqual([
+				'people.heardOfPage {"name":"the Myth 2","page":31}',
+				'people.heardOfUnmet {"number":5,"where":"from 4,5 to 1,1"}'
+			]);
+			expect(loreAt(lore, hex).sparks.at(-1).entries.at(-1)).toBe('people.heardOfUnmet {"number":5,"where":"from 4,5 to 1,1"}');
+		} finally {
+			solo = false;
+		}
+	});
+
 	it("gives each person there a name of their own, on the card as well", async () => {
 		thrown = holdingDice(2, [3, 1, 2]);
 		await rollUpHolding({ scene, hex });
@@ -265,7 +291,7 @@ describe("rolling up a Holding", () => {
 		realm.myths = [];
 		thrown = holdingDice(1, []);
 		const made = await rollUpHolding({ scene, hex });
-		expect(made.people.every(({ known }) => known === null)).toBe(true);
+		expect(made.people.every(({ heard }) => heard === null)).toBe(true);
 		expect(vi.mocked(postCard).mock.calls[0][2].note).toBe("people.holding.noMyths");
 		expect(loreAt(lore, hex).sparks.at(-1).entries).toHaveLength(9);
 	});

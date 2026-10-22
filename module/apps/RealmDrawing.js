@@ -2,12 +2,13 @@ import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
+import { secretsToSettle } from "../actions/solo.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, startCompanyPlacement } from "../canvas/company-placement.js";
 import { liningUpMap } from "../canvas/map-alignment.js";
 import { t } from "../chat/cards.js";
 import { markDice, restoreDiceRolls, showDiceRoll } from "../rulebook/dice-in-text.js";
-import { DRAWING_WINDOW, bookDrawingGroups, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../rules/realm-drawing.js";
+import { DRAWING_WINDOW, SECRET_DRAWING_STEPS, bookDrawingGroups, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../rules/realm-drawing.js";
 import { GRID_ALPHA } from "../rules/realm-documents.js";
 import { clearRiver } from "../rules/realm-edits.js";
 import { MAP_ROLES } from "../rules/realm-map.js";
@@ -100,6 +101,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const scene = canvas.scene;
 		const realm = getRealm(scene)?.realm;
 		const tally = realm ? drawingTally(realm) : {};
+		const secrets = secretsToSettle(scene);
 		const text = (key, data) => t(`realmDrawing.${key}`, data);
 		const counts = (key) => (tally[key] ?? []).map((entry) => ({ label: drawingCountLabel(entry), done: entry.done }));
 		// A swatch is marked only while it's what the paint tool lays, not once the GM has put the tool down.
@@ -110,7 +112,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const palette = (step) => (step.brush && swatches ? {
 			swatches: swatches[step.brush],
 			pairs: step.brush === "holding",
-			hint: step.brush === brush ? brushHint(brush) : null,
+			hint: step.brush === brush ? brushHint(brush, scene) : null,
 			clear: step.brush === "river" && !river.none ? river.clear : null
 		} : null);
 		// The Myths are numbered and rolled in Edit this hex, opened from Places, so their step has the tool that opens it.
@@ -125,16 +127,25 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const book = this.#index?.rules?.creatingRealm?.sections;
 		const fromBook = book ? bookDrawingGroups(book) : null;
 		const groups = (fromBook ?? sheetDrawingGroups(text)).map((group) => {
-			const sections = group.parts.map((part) => ({
-				key: part.key,
-				heading: part.heading ?? null,
-				blocks: printedBlocks(part.blocks),
-				counts: part.step ? counts(part.step.key) : null,
-				palette: part.step ? palette(part.step) : null,
-				tool: part.step ? tool(part.step) : null
-			}));
+			const sections = group.parts.map((part) => {
+				// Played alone, a step placing the Realm's secrets says who places them; the dice need no tools.
+				const secret = part.step && secrets && SECRET_DRAWING_STEPS.includes(part.step.key);
+				const step = secret && secrets === "dice" ? null : part.step;
+				return {
+					key: part.key,
+					heading: part.heading ?? null,
+					blocks: printedBlocks(part.blocks),
+					counts: step ? counts(step.key) : null,
+					palette: step ? palette(step) : null,
+					tool: step ? tool(step) : null,
+					secret: secret ? t(`solo.secrets.drawing.${secrets}`) : null,
+					handed: Boolean(secret && !step)
+				};
+			});
 			const tallied = sections.flatMap((section) => section.counts ?? []);
-			return { key: group.key, heading: group.heading, icon: group.icon, sections, done: tallied.length > 0 && tallied.every((count) => count.done) };
+			// A step the dice take on is done as far as the Referee goes.
+			const counted = tallied.length > 0 || sections.some((section) => section.handed);
+			return { key: group.key, heading: group.heading, icon: group.icon, sections, done: counted && tallied.every((count) => count.done) };
 		});
 		const picture = this.#pictureContext(realm);
 		const company = this.#companyContext(scene);

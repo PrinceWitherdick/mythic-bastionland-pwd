@@ -1,4 +1,5 @@
 import { editRealmByHand, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
+import { brushLockedOn, realmKnown, secretsToSettle } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
 import {
 	HOLDING_COUNT,
@@ -150,9 +151,13 @@ export function riverState({ rivers }) {
 
 /**
  * @param {string} brush One of REALM_BRUSHES.
- * @returns {string} How to paint with it.
+ * @param {Scene|null} scene The Realm it paints.
+ * @returns {string} How to paint with it, or, played alone where it lays nothing, why.
  */
-export const brushHint = (brush) => t(`realm.panel.hints.${brush}`);
+export function brushHint(brush, scene) {
+	if (!brushLockedOn(brush, scene)) return t(`realm.panel.hints.${brush}`);
+	return t(secretsToSettle(scene) === "dice" ? "realm.panel.hints.soloDice" : "realm.panel.hints.soloLocked");
+}
 
 /**
  * The palette the GM paints a Realm with, while the paint tool is in hand:
@@ -214,7 +219,8 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const scene = this.scene;
 		const entry = getRealm(scene);
 		if (!entry) return Object.assign(context, { missing: true });
-		const { realm } = entry;
+		// Played alone, what's still to be found isn't counted.
+		const realm = realmKnown(entry.realm, scene);
 		const { canUndo, canRedo } = realmUndoState(scene);
 		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
@@ -226,7 +232,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const landmarks = swatches.landmark.map((swatch) => swatch.tally);
 		return Object.assign(context, {
 			// Only the brush in hand says how to use it, so the palette keeps one line of instructions.
-			hint: [brushHint(brush), ...(brush === "terrain" ? [t("realm.panel.hints.beside")] : [])].join(" "),
+			hint: [brushHint(brush, scene), ...(brush === "terrain" ? [t(brushLockedOn("holding", scene) ? "realm.panel.hints.besideSolo" : "realm.panel.hints.beside")] : [])].join(" "),
 			// A count of the painted hexes, so the Terrain has a line of its own like the rest.
 			terrainTally: tallyLine(
 				t("realm.panel.terrainTally", { count: painted, target: realm.terrain.length }),

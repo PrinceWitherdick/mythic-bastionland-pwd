@@ -109,6 +109,7 @@
 		<button type="button" data-action="rollWildHex" data-tooltip="{{localize "bastionland.hexGm.wildHint"}}"><i class="fa-solid fa-wand-sparkles" inert></i> {{localize "bastionland.hexLore.rollSet"}}</button>
 	</div>
 	{{/unless}}
+	{{#if explore}}
 	<p class="bastionland-hex-lore__hint">{{localize "bastionland.hexLore.exploreHint"}}</p>
 	<div class="bastionland-hex-lore__grid">
 		<button type="button" data-action="wilderness"><i class="fa-solid fa-tree" inert></i> {{localize "bastionland.realm.panel.wildernessHere"}}</button>
@@ -116,6 +117,10 @@
 		<button type="button" data-action="act" data-act="search"><i class="fa-solid fa-magnifying-glass" inert></i> {{localize "bastionland.travelRules.sections.searching.act"}}</button>
 		<button type="button" data-action="act" data-act="vantage"><i class="fa-solid fa-binoculars" inert></i> {{localize "bastionland.travelRules.sections.vision.act"}}</button>
 	</div>
+	{{else}}
+	{{!-- Played alone, these would find what this hex hides without the Company coming here. --}}
+	<p class="bastionland-hex-lore__hint">{{localize "bastionland.solo.exploreElsewhere"}}</p>
+	{{/if}}
 	{{/panel}}
 
 	{{#if landmark}}

@@ -1,5 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JOURNEY_FLAG, forgetHexVisits, getJourney, legHexes, markHexVisited, movesAsCompany, recordHexVisits } from "../../module/actions/journey.js";
+import {
+	COMPANY_MOVED_HOOK,
+	COMPANY_PLACED_HOOK,
+	JOURNEY_FLAG,
+	forgetHexVisits,
+	getJourney,
+	legHexes,
+	markHexVisited,
+	movesAsCompany,
+	recordHexVisits,
+	registerJourneyHooks
+} from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
@@ -9,6 +20,9 @@ const hex = (col, row) => ({ col, row });
 const spring = { age: 1, year: 1, season: "spring", day: 2, phase: "afternoon" };
 
 class ForcedDeletion {}
+
+// What the Timeline makes of the hexes come to is timeline-events.js's to test.
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineArrivals: vi.fn(async () => {}) }));
 
 /** A Realm Scene whose updates land on its own flags, as Foundry's would. */
 function realmScene(tokens = []) {
@@ -159,5 +173,26 @@ describe("legHexes", () => {
 		expect(legHexes(company, { method: "dragging", origin: at(4, 4), passed: { waypoints: [at(4, 4)] } }, g)).toEqual([]);
 		expect(legHexes(company, { method: "dragging", passed: { waypoints: [] } }, g)).toEqual([]);
 		expect(legHexes(company, null, g)).toEqual([]);
+	});
+});
+
+describe("the Company set down", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		delete globalThis.Hooks;
+	});
+
+	it("tells what follows the Company of the hex its Token was first put in, apart from a move", async () => {
+		vi.useFakeTimers();
+		const hooks = new Map();
+		globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
+		registerJourneyHooks();
+		const company = { ...token("c", { company: true }), getCenterPoint: () => hexCentre(g, hex(3, 4)) };
+		company.parent = realmScene([company]);
+
+		hooks.get("createToken")(company);
+		await vi.runAllTimersAsync();
+		expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_PLACED_HOOK, company.parent, [hex(3, 4)]);
+		expect(Hooks.callAll).not.toHaveBeenCalledWith(COMPANY_MOVED_HOOK, expect.anything(), expect.anything());
 	});
 });
