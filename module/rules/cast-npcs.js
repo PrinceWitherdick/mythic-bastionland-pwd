@@ -7,10 +7,37 @@
  */
 import { SYSTEM_ID } from "../system-id.js";
 import { spreads } from "./book-art.js";
+import { fingerprint } from "./book-text.js";
 import { CITY_QUEST_PAGES } from "./city-quest.js";
 import { CAST_FLAG, CITY_CAST } from "./myth-cast.js";
 import { actorFromStatBlock } from "./stat-blocks.js";
 import { escapeHTML, midSentence, paragraphs } from "./text.js";
+
+/**
+ * Cast the Omens only ever send out as warbands, though their stat block's
+ * name doesn't say Warband: one each in the Catacomb, the Mist, the Tree and
+ * the Rock. By Myth roll, a fingerprint of each one's name before the comma,
+ * so no words of the book are kept here.
+ */
+export const WARBAND_CAST = Object.freeze({
+	"5-04": Object.freeze([[11, "szvryo21movh"]]),
+	"6-01": Object.freeze([[16, "nbdcbowbd1cj"]]),
+	"6-06": Object.freeze([[14, "kvoyw7f7krgd"]]),
+	"6-12": Object.freeze([[17, "2d7jlbw5s49k"]])
+});
+
+/**
+ * @param {string} key Which Cast: the Myth's roll, or `CITY_CAST`.
+ * @param {string} name Their name before the comma, as castActor names them.
+ * @param {Record<string, [number, string][]>} [list]
+ * @returns {boolean} Whether the book fields them only as a Warband.
+ */
+export function fieldedAsWarband(key, name, list = WARBAND_CAST) {
+	const prints = list[key];
+	if (!prints?.length) return false;
+	const [length, hash] = fingerprint(name);
+	return prints.some(([each, eachHash]) => each === length && eachHash === hash);
+}
 
 /**
  * @typedef {object} CastNpcWords
@@ -40,6 +67,7 @@ export function castActor(entry, { key, name: castName, page, img = null, note =
 	const printed = String(entry.name ?? "");
 	const block = { name: printed, stats: entry.stats ?? null, lines: entry.lines ?? [] };
 	const { type, name, system, items } = actorFromStatBlock(block, { attackName: words.attackName });
+	if (type === "npc" && fieldedAsWarband(key, name)) system.scale = "warband";
 	return {
 		name: name || printed,
 		type,
@@ -130,8 +158,9 @@ export function eitherUpdates(items, printed) {
 
 /**
  * What a Cast member brought into the world before the book's word on it was
- * kept is still owed: a swarm's scale, and the note on the whole Cast at the
- * foot of their notes. A scale or a note the GM has set already stays.
+ * kept is still owed: a swarm's or a Warband's scale, and the note on the
+ * whole Cast at the foot of their notes. A scale or a note the GM has set
+ * already stays.
  * @param {{type: string, system: {scale?: string, notes?: string}}} actor
  * @param {{system?: {scale?: string}}} printed As its stat block gives it.
  * @param {string|null} [note] What the book says about the whole Cast.
@@ -139,7 +168,8 @@ export function eitherUpdates(items, printed) {
  */
 export function castDetailUpdates(actor, printed, note = null) {
 	const update = {};
-	if (actor.type === "npc" && actor.system.scale === "individual" && printed.system?.scale === "swarm") update["system.scale"] = "swarm";
+	const scale = printed.system?.scale;
+	if (actor.type === "npc" && actor.system.scale === "individual" && (scale === "swarm" || scale === "warband")) update["system.scale"] = scale;
 	const notes = String(actor.system.notes ?? "");
 	if (note?.trim() && !notes.includes(escapeHTML(note))) update["system.notes"] = notes + paragraphs(note);
 	return Object.keys(update).length ? update : null;

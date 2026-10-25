@@ -631,11 +631,13 @@ const WORLD_SETUP = Object.freeze([
 	{ key: POSSESSION_DETAILS_STEP, run: fillPossessionDetails },
 	// Again, for the odds a possession gives (p88), the Virtue it costs should something befall it (p62)
 	// and Damage that burns on (p173), read since.
-	{ key: "possessionOddsAndLosses", run: fillPossessionDetails },
+	{ key: "possessionOddsAndLosses", run: fillPossessionDetails, repeats: POSSESSION_DETAILS_STEP },
 	// Knights made before their Ability's settings, and any weapon it gives, came from their page.
 	{ key: ABILITY_KITS_STEP, run: fillAbilityKits },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
+	// Again, for the Cast the book fields only as Warbands though their names don't say so.
+	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.

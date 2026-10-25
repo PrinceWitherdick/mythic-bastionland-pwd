@@ -1,3 +1,4 @@
+import { updateActors } from "../actions/actor-updates.js";
 import { t } from "../chat/cards.js";
 import { castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../rules/cast-npcs.js";
 import { lingeringUpdates } from "../rules/afflictions.js";
@@ -176,13 +177,17 @@ export function markLingeringAttacks() {
  * in the world is given what it's owed, keeping everything else as it is.
  * @returns {Promise<boolean>} Always done: a world without the book's text has nothing to give.
  */
-export function fillCastDetails() {
+export async function fillCastDetails() {
 	let notes = null;
-	return patchWorldCast(async (actor, data, index) => {
+	const changes = [];
+	const done = await patchWorldCast(async (actor, data, index) => {
 		notes ??= castNotes(index);
 		const update = castDetailUpdates(actor, data, notes.get(actor.getFlag(SYSTEM_ID, CAST_FLAG).myth));
-		if (update) await actor.update(update);
+		if (update) changes.push([actor, update]);
 	});
+	// Every one of a Cast in the world is given what it's owed in one write.
+	if (changes.length) await updateActors(changes);
+	return done;
 }
 
 /**
