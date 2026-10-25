@@ -5,12 +5,12 @@
  * Morning, amber for Afternoon, dark for Night, green for Spring, gold for
  * Harvest, pale blue for Winter. They turn with the calendar on every client,
  * and a GM can press any of them to let down the ways of moving time on under
- * the bar: Weeks Pass, Months Pass and A Year Passes.
+ * the bar: Next Phase, Weeks Pass, Months Pass and A Year Passes.
  */
 import { CALENDAR_HOOK, chronicleLabel, getCalendar, ordinalLabel } from "../actions/calendar.js";
 import { t } from "../chat/cards.js";
 import { TEXT_SIZE_HOOK, read, reducesMotion } from "../client-settings.js";
-import { PHASE_ICONS, SEASON_ICONS } from "../rules/time.js";
+import { PHASE_ICONS, SEASON_ICONS, nextPhase } from "../rules/time.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { PAINTED } from "./ui.js";
 
@@ -40,6 +40,7 @@ let menu = null;
 
 /**
  * @typedef {object} TimeMoves  What the GM's buttons under the bar do, handed in so the banner loads none of it itself.
+ * @property {() => unknown} phase        Next Phase: the Phase ends, through its end-of-Phase window.
  * @property {() => unknown} weeks        Weeks pass: on to the next seasonal event.
  * @property {() => unknown} months       Months pass: the Season turns.
  * @property {() => unknown} year         A year passes: the Age turns, and the new one begins in Spring.
@@ -48,10 +49,11 @@ let menu = null;
  */
 
 /** @type {TimeMoves} */
-let moves = { weeks: () => null, months: () => null, year: () => null, end: () => null, nextEvent: () => null };
+let moves = { phase: () => null, weeks: () => null, months: () => null, year: () => null, end: () => null, nextEvent: () => null };
 
-/** The buttons under the bar: the three ways of moving time on left to right, then End the Session under them. */
+/** The buttons under the bar: Next Phase, most often wanted, over the three longer ways of moving time on, then End the Session under them. */
 const MOVES = Object.freeze([
+	{ move: "phase", icon: "fa-solid fa-sun", label: "time.nextPhase", hint: "time.banner.phaseHint" },
 	{ move: "weeks", icon: "fa-solid fa-forward", label: "time.banner.weeks", hint: "time.banner.weeksHint" },
 	{ move: "months", icon: "fa-solid fa-leaf", label: "time.banner.months", hint: "time.banner.monthsHint" },
 	{ move: "year", icon: "fa-solid fa-hourglass-end", label: "time.banner.year", hint: "time.banner.yearHint" },
@@ -146,8 +148,14 @@ function paint(calendar) {
 	}
 }
 
-/** Say on each button what it will do, the Weeks naming the event they run on to. */
+/** Say on each button what it will do, Next Phase naming the Phase it ends and the Weeks the event they run on to. */
 function labelMoves() {
+	const phase = menu?.querySelector('[data-move="phase"]');
+	if (phase) {
+		const calendar = getCalendar();
+		const name = (key) => t(`time.phases.${key}`);
+		phase.dataset.tooltip = t("time.banner.phaseHint", { phase: name(calendar.phase), next: name(nextPhase(calendar).phase) });
+	}
 	const weeks = menu?.querySelector('[data-move="weeks"]');
 	if (!weeks) return;
 	// Every event of the Season has passed only when the last was marked by hand; Months Pass is all that's left.

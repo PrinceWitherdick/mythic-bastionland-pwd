@@ -1316,6 +1316,7 @@
       "banner": {
         "age": "{age} Age",
         "moves": "Move Time On",
+        "phaseHint": "The {phase} ends; on to the {next}.",
         "weeks": "Weeks Pass",
         "weeksHint": "Continue on to the next seasonal event ({event}).",
         "months": "Months Pass",

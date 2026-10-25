@@ -33,7 +33,7 @@ import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
-import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
+import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
@@ -451,6 +451,7 @@ Hooks.once("init", () => {
 	// for GMs the ways of moving time on and End the Session hanging under it.
 	registerPhaseBanner({
 		moves: {
+			phase: () => advancePhase(),
 			weeks: weeksPass,
 			months: turnSeason,
 			year: turnAge,
