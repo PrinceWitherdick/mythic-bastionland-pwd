@@ -4,13 +4,14 @@
  * next turn.
  */
 
+import { downBy } from "../rules/virtues.js";
 import { updateActors } from "./actor-updates.js";
 import { worldKnights } from "./knights.js";
 
 /**
  * Who might lead a Warband from the front: whoever leads it now, the
  * individuals whose Tokens are selected, this user's character, and the
- * Knights this user can see.
+ * Knights this user can see. The Slain and the dying lead nobody (p8).
  * @param {Actor} warband
  * @returns {Actor[]}
  */
@@ -24,7 +25,7 @@ export function leaderCandidates(warband) {
 	];
 	const seen = new Set();
 	return actors.filter((actor) => {
-		if (!actor?.system?.virtues || actor.uuid === warband.uuid || actor.system.scale === "warband" || seen.has(actor.uuid)) return false;
+		if (!actor?.system?.virtues || actor.uuid === warband.uuid || actor.system.scale === "warband" || downBy(actor.system) || seen.has(actor.uuid)) return false;
 		seen.add(actor.uuid);
 		return true;
 	});

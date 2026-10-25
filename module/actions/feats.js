@@ -6,6 +6,22 @@ import { causedBy } from "./ledger.js";
 import { evaluateSave, saveContext } from "./saves.js";
 
 /**
+ * Why an actor can't perform a Feat now, if they can't.
+ * @param {Actor} actor
+ * @param {string} key "smite", "focus" or "deny".
+ * @returns {[string, object]|null} The notice's key and data, or null if they can.
+ */
+export function featRefusal(actor, key) {
+	// Knights know every Feat. Of everybody else, only those who "Can" perform one do.
+	if (!actor.system.knowsFeat(key)) return ["feats.notKnown", { name: actor.name, feat: t(`feats.${key}.name`) }];
+	// Slain, or down and dying until patched up (p8), they perform nothing.
+	const down = downBy(actor.system);
+	if (down) return [`conditions.${down}.down`, { name: actor.name }];
+	if (actor.system.fatigued) return ["feats.alreadyFatigued", { name: actor.name }];
+	return null;
+}
+
+/**
  * Make a Feat's Save without paying for it yet, for a Feat that only counts
  * once a card has taken it: refuse while Fatigued, otherwise roll the Save.
  * Pay with payFeat once it counts.
@@ -16,25 +32,11 @@ import { evaluateSave, saveContext } from "./saves.js";
 export async function rollFeat(actor, key) {
 	const feat = FEATS.find((candidate) => candidate.key === key);
 	if (!feat) return null;
-
-	// Knights know every Feat. Of everybody else, only those who "Can" perform one do.
-	if (!actor.system.knowsFeat(key)) {
-		ui.notifications.warn(t("feats.notKnown", { name: actor.name, feat: t(`feats.${key}.name`) }));
+	const refusal = featRefusal(actor, key);
+	if (refusal) {
+		ui.notifications.warn(t(...refusal));
 		return null;
 	}
-
-	// Slain, or down and dying until patched up (p8), they perform nothing.
-	const down = downBy(actor.system);
-	if (down) {
-		ui.notifications.warn(t(`conditions.${down}.down`, { name: actor.name }));
-		return null;
-	}
-
-	if (actor.system.fatigued) {
-		ui.notifications.warn(t("feats.alreadyFatigued", { name: actor.name }));
-		return null;
-	}
-
 	return evaluateSave(actor, feat.virtue);
 }
 

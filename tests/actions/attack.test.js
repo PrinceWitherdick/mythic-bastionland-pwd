@@ -300,6 +300,53 @@ describe("joining an Attack (p8)", () => {
 		expect(change.dice.map((die) => die.item ?? null).sort()).toEqual([null, "spear"]);
 	});
 
+	it("takes only what the leader's two hands hold, the hardest-hitting first (p11, p12)", async () => {
+		const aldric = combatant({ uuid: "Actor.aldric", name: "Aldric", type: "knight", items: [
+			weapon("longsword", "Longsword", "2d8", { hefty: true }),
+			weapon("spear", "Spear", "d8", { hefty: true }),
+			{ id: "shield", name: "Shield", type: "armour", system: { equipped: true, kind: "shield", damage: "d4" } },
+			weapon("bow", "Shortbow", "d6", { long: true, ranged: true })
+		] });
+		leaderCandidates.mockReturnValue([aldric]);
+		const raiders = combatant({ uuid: "Actor.raiders", name: "Raiders", scale: "warband", items: [weapon("spear", "Spears", "d8")] });
+		inputDialog.mockResolvedValue({ "source.spear": true, leader: "Actor.aldric" });
+		const { change } = await joinAttack(raiders, card());
+		expect(change.dice.filter((die) => die.label === "Aldric").map((die) => die.faces)).toEqual([8, 8, 4]);
+	});
+
+	it("takes a single d4 from a leader who is Impaired (p8)", async () => {
+		const aldric = combatant({ uuid: "Actor.aldric", name: "Aldric", type: "knight", items: [weapon("longsword", "Longsword", "2d8", { hefty: true })] });
+		aldric.system.conditions.impaired = true;
+		leaderCandidates.mockReturnValue([aldric]);
+		const raiders = combatant({ uuid: "Actor.raiders", name: "Raiders", scale: "warband", items: [weapon("spear", "Spears", "d8")] });
+		inputDialog.mockResolvedValue({ "source.spear": true, leader: "Actor.aldric" });
+		const { change } = await joinAttack(raiders, card());
+		expect(change.dice.filter((die) => die.label === "Aldric").map((die) => die.faces)).toEqual([4]);
+		// The Warband's own share is whole.
+		expect(change.impaired).toBe(false);
+	});
+
+	it("leaves out the leader's weapon a foe's Impair holds, while they have another (p186)", async () => {
+		const aldric = combatant({ uuid: "Actor.aldric", name: "Aldric", type: "knight", items: [weapon("longsword", "Longsword", "2d8", { hefty: true }), weapon("dagger", "Dagger", "d6")] });
+		marksOn.mockImplementation((actor) => (actor === aldric ? [{ key: "impair", weapon: { id: "longsword", name: "Longsword", actor: "Actor.aldric" }, hint: "Longsword Impaired" }] : []));
+		leaderCandidates.mockReturnValue([aldric]);
+		const raiders = combatant({ uuid: "Actor.raiders", name: "Raiders", scale: "warband", items: [weapon("spear", "Spears", "d8")] });
+		inputDialog.mockResolvedValue({ "source.spear": true, leader: "Actor.aldric" });
+		const { change } = await joinAttack(raiders, card());
+		expect(change.dice.filter((die) => die.label === "Aldric").map((die) => die.faces)).toEqual([6]);
+		expect(change.impaired).toBe(false);
+	});
+
+	it("takes a single d4 from a leader whose only weapon a foe's Impair holds (p186)", async () => {
+		const aldric = combatant({ uuid: "Actor.aldric", name: "Aldric", type: "knight", items: [weapon("longsword", "Longsword", "2d8", { hefty: true })] });
+		marksOn.mockImplementation((actor) => (actor === aldric ? [{ key: "impair", weapon: { id: "longsword", name: "Longsword", actor: "Actor.aldric" }, hint: "Longsword Impaired" }] : []));
+		leaderCandidates.mockReturnValue([aldric]);
+		const raiders = combatant({ uuid: "Actor.raiders", name: "Raiders", scale: "warband", items: [weapon("spear", "Spears", "d8")] });
+		inputDialog.mockResolvedValue({ "source.spear": true, leader: "Actor.aldric" });
+		const { change } = await joinAttack(raiders, card());
+		expect(change.dice.filter((die) => die.label === "Aldric").map((die) => die.faces)).toEqual([4]);
+	});
+
 	it("adds no second die for a weakness the card already has (p188)", async () => {
 		tokens["Scene.s.Token.Boar"] = { actor: { ...boar, system: { ...boar.system, weakness: { text: "fire", die: "d10", known: true } } } };
 		await joinAttack(tal(), card());
@@ -462,6 +509,8 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 	});
 
 	it("offers the Referee's Cast every grant, and what a Wound does as one pick (p166)", async () => {
+		// Not a Blast, so at one target (p8).
+		target(combatant({ uuid: "Actor.boar", name: "Boar" }));
 		const actor = knight([]);
 		actor.type = "npc";
 		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.spirit": true, "declare.onWound": "sleep", "declare.drain": true });
@@ -472,6 +521,8 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 	});
 
 	it("lends a Knight nothing ticked by hand that only an Ability lends", async () => {
+		// Not a Blast, so at one target (p8).
+		target(combatant({ uuid: "Actor.boar", name: "Boar" }));
 		inputDialog.mockResolvedValue({ "source.hammer": true, "declare.spirit": true, "declare.onWound": "drain" });
 		await attack(knight([]));
 		expect(state(0)).toMatchObject({ spirit: false, drain: false });
@@ -493,6 +544,8 @@ describe("what's declared for one blow, by an Ability or by hand", () => {
 	});
 
 	it("readies an Ability good once an Attack for this one, then spends it if used", async () => {
+		// Not a Blast, so at one target (p8).
+		target(combatant({ uuid: "Actor.boar", name: "Boar" }));
 		const actor = knight([
 			ability("rally", "Rally", { strongGambits: true }, { value: 0, max: 1 }, "attack"),
 			ability("roar", "Roar", { strongGambits: true }, { value: 0, max: 1 }, "attack")
@@ -662,5 +715,52 @@ describe("dice kept for the rest of the fight", () => {
 		await attack(tal());
 		expect(opened().canKeep).toBe(false);
 		expect(opened().lasting).toEqual([]);
+	});
+});
+
+describe("an Attack at several targets (p8)", () => {
+	const knight = (items = [weapon("sword", "Sword", "d8")]) => {
+		const actor = combatant({ uuid: "Actor.tal", name: "Tal", type: "knight", items });
+		actor.system.knowsFeat = () => true;
+		return actor;
+	};
+	const two = () => target(combatant({ uuid: "Actor.boar", name: "Boar" }), combatant({ uuid: "Actor.wolf", name: "Wolf" }));
+
+	it("rolls nothing at two Tokens unless it's a Blast", async () => {
+		two();
+		inputDialog.mockResolvedValue({ "source.sword": true });
+		expect(await attack(knight())).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.refusals.severalTargets");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("rolls a card for each when a Blast weapon strikes them", async () => {
+		two();
+		inputDialog.mockResolvedValue({ "source.bomb": true });
+		await attack(knight([weapon("bomb", "Firepot", "d6", { blast: true })]));
+		expect(postCard).toHaveBeenCalledTimes(2);
+	});
+
+	it("still rolls at one target, as ever", async () => {
+		target(combatant({ uuid: "Actor.boar", name: "Boar" }));
+		inputDialog.mockResolvedValue({ "source.sword": true });
+		await attack(knight());
+		expect(postCard).toHaveBeenCalledOnce();
+	});
+
+	it("rolls nothing at two Tokens when an Impaired Attack loses the Smite that made it a Blast", async () => {
+		two();
+		marksOn.mockReturnValue([{ key: "impair", weapon: null, hint: "Impaired" }]);
+		inputDialog.mockResolvedValue({ "source.sword": true, smite: "blast" });
+		expect(await attack(knight())).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.refusals.severalTargets");
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("refuses Smite's d12 at a swarm, which a Blast escapes (p61)", async () => {
+		target(combatant({ uuid: "Actor.bats", name: "Bats", scale: "swarm" }));
+		inputDialog.mockResolvedValue({ "source.sword": true, smite: "d12" });
+		expect(await attack(knight())).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.refusals.smiteSwarm");
 	});
 });

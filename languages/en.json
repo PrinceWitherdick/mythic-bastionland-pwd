@@ -3275,7 +3275,9 @@
         "hands": "A weapon or shield fills a hand, so nobody holds more than two.",
         "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
-        "smiteRanged": "Smite is only used before a melee Attack."
+        "smiteRanged": "Smite is only used before a melee Attack.",
+        "severalTargets": "Only a Blast strikes more than one, so target a single Token, or make the Attack a Blast.",
+        "smiteSwarm": "A swarm Impairs any blow that isn’t a Blast, and Smite with it, so Smite for a Blast instead."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
@@ -3325,6 +3327,15 @@
       "denyPrompt": "{names} can still Deny: a SPI Save discards one of these dice.",
       "denyPromptAny": "Whoever this hits, or an ally close enough to touch, can still Deny one of these dice with a SPI Save.",
       "takeBack": "Click a spent die to take its Gambit back.",
+      "takeBackLocked": {
+        "save": "The foe has already made their Save against this Gambit, so only the Referee can take it back.",
+        "greater": "This Gambit’s Greater effect has been carried out, so only the Referee can take it back.",
+        "dismount": "A Dismount’s d6 is rolled as it’s declared, so only the Referee can take it back."
+      },
+      "takeBackAnyway": {
+        "title": "Take the Gambit Back",
+        "ask": "Take it back anyway? Whatever was rolled for it is lost, and anything done to a sheet stays done."
+      },
       "gambitHelp": "What a Gambit can do",
       "unarmed": "Unarmed",
       "deniedBy": "Denied by {name}",
@@ -3342,6 +3353,9 @@
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
       "unspentGambitsOne": "One die still shows 4 or higher and could be spent on a Gambit.",
       "deniableDice": "{names} could still Deny a die.",
+      "unsavedGambits": "{count} Gambits still wait on a Save, which can’t be rolled once the Damage lands.",
+      "unsavedGambitsOne": "One Gambit still waits on a Save, which can’t be rolled once the Damage lands.",
+      "stillWhose": "{name}’s Attack: {line}",
       "applyAnyway": "Apply the Damage anyway?",
       "dismounted": "Being dismounted adds a d6 showing {result} to the dice.",
       "strongGambit": "Strong Gambit",

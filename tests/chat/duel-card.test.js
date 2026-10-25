@@ -13,6 +13,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => ({ outcome: "wounded" })) }));
 vi.mock("../../module/chat/attack-card.js", () => ({
 	attackOf: (message) => message?.attack ?? null,
+	confirmApply: vi.fn(async () => true),
 	saveChange: vi.fn(async () => true)
 }));
 vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(async () => []) }));
@@ -23,6 +24,7 @@ vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDuel: vi.fn(
 const { inputDialog } = await import("../../module/apps/ui.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
+const { confirmApply } = await import("../../module/chat/attack-card.js");
 const { challengeToDuel, duelCardContext } = await import("../../module/actions/duel.js");
 const { registerDuelCards } = await import("../../module/chat/duel-card.js");
 
@@ -171,6 +173,22 @@ describe("a sparring duel's buttons", () => {
 		await renderDuel(duel).press({ duelAction: "resolve" });
 		expect(takeAttack).toHaveBeenCalledTimes(2);
 		for (const call of takeAttack.mock.calls) expect(call[2]).toMatchObject({ scars: false, sparring: true });
+	});
+
+	it("asks first about what's still to be had on both Attacks, and lands nothing if told no", async () => {
+		const duel = sparring();
+		duel.duelists[0].attack = "attack-a";
+		duel.duelists[1].attack = "attack-b";
+		takeAttack.mockClear();
+		confirmApply.mockClear();
+		confirmApply.mockResolvedValueOnce(false);
+		await renderDuel(duel).press({ duelAction: "resolve" });
+		// Each Attack is weighed against the duelist it lands on.
+		expect(confirmApply).toHaveBeenCalledWith([
+			{ attack: game.messages.get("attack-a").attack, actors: [actors["Actor.bram"]] },
+			{ attack: game.messages.get("attack-b").attack, actors: [actors["Actor.ada"]] }
+		]);
+		expect(takeAttack).not.toHaveBeenCalled();
 	});
 
 	it("puts back what the bout cost as it ends, and says so", async () => {

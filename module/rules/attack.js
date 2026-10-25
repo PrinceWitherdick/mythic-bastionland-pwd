@@ -145,9 +145,11 @@ export const ALTERNATE_QUALITIES = Object.freeze(["hefty", "long", "slow", "rang
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
  * a spearwall (p10), more than two hands can hold (p12), every weapon chosen
- * sitting out, or Smite with nothing to strike in melee (p10).
+ * sitting out, Smite with nothing to strike in melee (p10), several targeted
+ * when only a Blast strikes more than one (p8), or Smite's d12 at a swarm that
+ * Impairs the blow (p61).
  */
-export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands", "allSetAside", "smiteRanged"]);
+export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands", "allSetAside", "smiteRanged", "severalTargets", "smiteSwarm"]);
 
 /**
  * @typedef {object} WieldedItem A weapon or shield chosen for an Attack.
@@ -187,10 +189,14 @@ export function heldAs(item, mounted = false) {
  * @param {boolean} [situation.hands]     Hold the items to what two hands can wield, as for a Knight.
  *                                        Stat blocks list a creature's attacks without saying how it holds them.
  * @param {boolean} [situation.smite]     Smite is declared, which only a melee Attack can use.
+ * @param {boolean} [situation.several]   More than one Token is targeted, which only a Blast strikes (p8).
+ * @param {boolean} [situation.blast]     The Attack is a Blast however else it came to be: Smite, an
+ *                                        Ability, or a Warband's at individuals. A Blast weapon chosen is one too.
+ * @param {boolean} [situation.smiteSwarm] Smite's d12 is declared at swarms alone, which Impair a blow that's no Blast (p61).
  * @returns {{refusal: string|null, usable: number[], setAside: {index: number, reason: string}[], impaired: boolean}}
  *   `usable` and `setAside` are indexes into `items`. `impaired` is a Long weapon used in a confined space.
  */
-export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false, smite = false } = {}) {
+export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false, smite = false, several = false, blast = false, smiteSwarm = false } = {}) {
 	const usable = [];
 	const setAside = [];
 	items.forEach((item, index) => {
@@ -217,6 +223,13 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	else if (items.length && !usable.length) refusal = "allSetAside";
 	// Smite is used before rolling a melee Attack.
 	else if (smite && usable.length && usable.every((index) => items[index].ranged)) refusal = "smiteRanged";
+	else {
+		const isBlast = blast || usable.some((index) => items[index].blast);
+		// Only a Blast strikes everybody in its area (p8); any other Attack is at one target.
+		if (several && !isBlast) refusal = "severalTargets";
+		// Smite's d12 at a swarm would be lost to its Impair, which only a Blast escapes (p61).
+		else if (smiteSwarm && !isBlast) refusal = "smiteSwarm";
+	}
 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
 }
@@ -545,6 +558,29 @@ export const gambitSaveVirtue = (gambit) => (SAVE_VIRTUES.includes(gambit?.saveI
  *   nobody has Saved against yet counts until they do.
  */
 export const gambitIgnored = (gambit) => Boolean(gambit.save?.passed);
+
+/**
+ * Whether a Gambit may be made Strong: Bolster and Move give no Save to deny,
+ * and a Greater effect doesn't increase Bolster's Damage (p10), so neither has
+ * anything a Strong Gambit could add.
+ * @param {string} key One of GAMBITS.
+ * @returns {boolean}
+ */
+export const gambitCanBeStrong = (key) => !UNSAVED_GAMBITS.includes(key);
+
+/**
+ * Why a Gambit can no longer simply be taken back: the foe has Saved against it,
+ * its Greater effect was carried out, or it's a Dismount, whose d6 was rolled as
+ * it was declared. Only the Referee may take it back then.
+ * @param {Gambit} gambit
+ * @returns {"save"|"greater"|"dismount"|null} Null while nothing about it is rolled or done.
+ */
+export function withdrawLocked(gambit) {
+	if (gambit?.save) return "save";
+	if (gambit?.greater) return "greater";
+	if (gambit?.key === "dismount") return "dismount";
+	return null;
+}
 
 /**
  * @param {AttackState} attack
@@ -944,7 +980,8 @@ export function canDeny(attack, { uuid, fatigued = false, down = false }) {
  * - `{type: "gambit", die, key, strong, bonus, weapon}` spends a die of 4+ on a Gambit.
  *   A Dismount carries the d6 it adds as `bonus`, and an Impair the one weapon
  *   it holds as `weapon: {id, name, actor}`, or none for the foe's whole next Attack.
- * - `{type: "withdraw", die}` takes back the Gambit a die was spent on.
+ * - `{type: "withdraw", die, force}` takes back the Gambit a die was spent on, while
+ *   withdrawLocked finds nothing about it rolled or done; `force`, the Referee's alone, takes it back regardless.
  * - `{type: "focus", key, actor, bonus, save, weapon}` performs a Gambit without a die,
  *   keeping the CLA Save it cost as `save: {by, total, target, passed}`.
  * - `{type: "join", actor, name, dice, melee, impaired, leader, ...}` pools another
@@ -995,13 +1032,14 @@ export function changeAttack(attack, change) {
 	switch (change?.type) {
 		case "gambit": {
 			if (!GAMBITS.includes(change.key) || !canFundGambit(attack, change.die)) return null;
-			const strong = STRONG_GAMBITS.includes(change.strong) && canFundStrongGambit(attack, change.die) ? change.strong : null;
+			const strong = STRONG_GAMBITS.includes(change.strong) && gambitCanBeStrong(change.key) && canFundStrongGambit(attack, change.die) ? change.strong : null;
 			// Declaring one closes the roll to anybody else joining (p8), even if it's taken back.
 			return { ...attack, declared: true, gambits: [...attack.gambits, { key: change.key, die: change.die, strong, bonus: dismountBonus(change), save: null, dismissed: false, ...saveInOf(change), ...impairedWeaponOf(change) }] };
 		}
 		case "withdraw": {
 			const index = attack.gambits.findIndex((gambit) => gambit.die !== null && gambit.die === change.die);
-			if (index < 0) return null;
+			// Once it's Saved against, carried out or its d6 rolled, only the Referee's `force` takes it back.
+			if (index < 0 || (withdrawLocked(attack.gambits[index]) && change.force !== true)) return null;
 			return { ...attack, gambits: attack.gambits.toSpliced(index, 1) };
 		}
 		case "focus": {
@@ -1011,7 +1049,7 @@ export function changeAttack(attack, change) {
 				...attack,
 				declared: true,
 				// `payer` is whoever Focused, whose mark it is (p10).
-				gambits: [...attack.gambits, { key: change.key, die: null, strong: STRONG_GAMBITS.includes(change.strong) && focusCanBeStrong(attack, change.actor) ? change.strong : null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), payer: change.actor ?? null, ...saveInOf(change), ...impairedWeaponOf(change) }],
+				gambits: [...attack.gambits, { key: change.key, die: null, strong: STRONG_GAMBITS.includes(change.strong) && gambitCanBeStrong(change.key) && focusCanBeStrong(attack, change.actor) ? change.strong : null, bonus: dismountBonus(change), save: null, dismissed: false, focus: focusSave(change.save), payer: change.actor ?? null, ...saveInOf(change), ...impairedWeaponOf(change) }],
 				feats: [...attack.feats, { key: "focus", actor: change.actor }]
 			};
 		}
