@@ -1,4 +1,5 @@
 import { t } from "../chat/cards.js";
+import { renderOpenWindows } from "../apps/ui.js";
 import { read } from "../client-settings.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { hiddenTilesIn } from "../rules/realm-documents.js";
@@ -192,9 +193,7 @@ function redrawSecrets() {
 	for (const layer of [canvas?.tiles, canvas?.drawings]) {
 		for (const placeable of layer?.placeables ?? []) placeable.renderFlags.set({ refreshState: true });
 	}
-	for (const app of foundry.applications.instances.values()) {
-		if (app.rendered && app.options?.classes?.includes(SYSTEM_ID)) app.render();
-	}
+	renderOpenWindows(SYSTEM_ID);
 	// Foundry v14's Tiles and Drawings lists may name a secret.
 	ui.placeables?.render();
 	// A Realm Key already in the log is covered, or uncovered, as it's drawn again.

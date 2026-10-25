@@ -43,7 +43,8 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 		ui.notifications.warn(t("domain.cantCreate"));
 		return null;
 	}
-	const others = worldKnights((actor) => actor !== knight);
+	// Only Knights the founder can see, and any already offered for the Circle.
+	const others = worldKnights((actor) => actor !== knight && (actor.visible || circle.includes(actor)));
 	const data = await inputDialog({
 		title: t("domain.founding.title"),
 		icon: "fa-solid fa-chess-rook",

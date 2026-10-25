@@ -4,6 +4,7 @@
  * Pure, so it can be tested without Foundry.
  */
 import { isCounted } from "./restock.js";
+import { isKnight } from "./knight-types.js";
 
 /** How many Remedies one person or beast of burden can carry. */
 export const REMEDY_LIMIT = 1;
@@ -24,7 +25,7 @@ export function remedyCount(system) {
  * @param {{type: string, system?: {scale?: string}}|null|undefined} actor
  * @returns {boolean}
  */
-export const bearsRemedies = (actor) => actor?.type === "knight" || (actor?.type === "npc" && actor.system?.scale !== "warband");
+export const bearsRemedies = (actor) => isKnight(actor) || (actor?.type === "npc" && actor.system?.scale !== "warband");
 
 /**
  * How many Remedies an actor would carry with one item added or changed.

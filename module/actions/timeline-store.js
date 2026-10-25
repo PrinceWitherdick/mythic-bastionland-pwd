@@ -1,5 +1,6 @@
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
+import { isKnight } from "../rules/knight-types.js";
 import { serialWrites } from "../rules/queue.js";
 import { COMPANY_TRACK, TIMELINE_JOURNAL_FLAG, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -97,8 +98,8 @@ export function trackFor(target) {
 	if (target === COMPANY_TRACK) return { trackId: COMPANY_TRACK, kind: "company", name: globalThis.game?.i18n ? t("timeline.company") : COMPANY_TRACK };
 	if (!target?.id) return null;
 	if (target.documentName === "Scene") return isRealmScene(target) ? { trackId: realmTrackId(target.id), kind: "realm", name: target.name } : null;
-	if (target.type === "knight" || target.type === "domain") return { trackId: target.id, kind: target.type, name: target.name, secret: !seenByPlayers(target) };
-	return null;
+	const kind = isKnight(target) ? "knight" : target.type === "domain" ? "domain" : null;
+	return kind ? { trackId: target.id, kind, name: target.name, secret: !seenByPlayers(target) } : null;
 }
 
 /**
@@ -345,10 +346,12 @@ const syncSoon = afterBurst((ids) => syncTrackPages({ seen: ids.filter(Boolean) 
 /** Keep a page for each new thread, and each page named after its thread. */
 export function registerTimelineStoreHooks() {
 	Hooks.on("createActor", (actor) => {
-		if (actor.type === "knight" || actor.type === "domain") syncSoon();
+		if (isKnight(actor) || actor.type === "domain") syncSoon();
 	});
 	Hooks.on("updateActor", (actor, changes) => {
-		if ((actor.type === "knight" || actor.type === "domain") && ("name" in changes || "ownership" in changes)) syncSoon("ownership" in changes ? actor.id : null);
+		if (!isKnight(actor) && actor.type !== "domain") return;
+		const seenChanged = "ownership" in changes || "type" in changes;
+		if (seenChanged || "name" in changes) syncSoon(seenChanged ? actor.id : null);
 	});
 	Hooks.on("createScene", (scene) => {
 		if (isRealmScene(scene)) syncSoon();

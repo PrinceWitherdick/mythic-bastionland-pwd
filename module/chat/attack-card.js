@@ -41,6 +41,7 @@ import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
+import { KNIGHT_TYPES } from "../rules/knight-types.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -122,7 +123,7 @@ const CHANGE_GUARDS = Object.freeze({
 });
 
 /** The kinds of actor that make Attacks, and so can join one. */
-const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
+const ATTACKER_TYPES = Object.freeze([...KNIGHT_TYPES, "npc", "structure"]);
 
 const attackCard = statefulCard({
 	flag: ATTACK_FLAG,

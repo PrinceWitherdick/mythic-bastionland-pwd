@@ -1,6 +1,8 @@
 import { t } from "../chat/cards.js";
+import { renderOpenWindows } from "../apps/ui.js";
 import { read } from "../client-settings.js";
 import { knightTypeFromName, knightTypeKey, knightTypeTakenBy } from "../rules/creation.js";
+import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { isSolo } from "./solo.js";
 
@@ -13,8 +15,11 @@ export const playersOf = (actor) => Object.entries(actor.ownership ?? {})
 	.map(([user]) => user);
 
 /**
- * The Actor flag a solo Referee clears on a Knight of their own who isn't one
- * of the Company, such as a Holding's ruler. Unset, a Knight rides with it.
+ * The Actor flag a solo Referee once cleared on a Knight of their own who
+ * isn't one of the Company, such as a Holding's ruler. Such Knights are NPC
+ * Knights now: the world setup step made those in the world so, and a Knight
+ * brought in from an older compendium still carrying it is made one as it
+ * comes (convertImportedNpcKnights). A Squire keeps it. Unset, a Knight rides with the Company.
  */
 export const COMPANY_KNIGHT_FLAG = "companyKnight";
 
@@ -24,7 +29,7 @@ export const COMPANY_KNIGHT_FLAG = "companyKnight";
  * @param {Actor|null|undefined} actor
  * @returns {boolean}
  */
-export const inCompany = (actor) => actor?.type === "knight"
+export const inCompany = (actor) => isCompanyKnight(actor)
 	&& (Boolean(actor.hasPlayerOwner) || (isSolo() && actor.getFlag?.(SYSTEM_ID, COMPANY_KNIGHT_FLAG) !== false));
 
 /**
@@ -43,16 +48,19 @@ export const sidesWithCompany = (actor) => Boolean(actor?.hasPlayerOwner) || inC
  * @param {Actor} actor
  * @returns {boolean}
  */
-export const playerCharacter = (actor) => actor?.type === "knight" && (inCompany(actor) || Boolean(actor.system?.isSquire));
+export const playerCharacter = (actor) => isCompanyKnight(actor) && (inCompany(actor) || Boolean(actor.system?.isSquire));
 
 /**
- * The world's Knights, Squires among them, as the Actors directory holds them:
- * not a Token's own copy.
+ * The world's Knights of both kinds, NPC Knights and Squires among them, as
+ * the Actors directory holds them: not a Token's own copy.
  * @param {(knight: Actor) => boolean} [keep] Only those this says yes to.
  * @returns {Actor[]}
  */
 export const worldKnights = (keep = () => true) => (game.actors?.contents ?? Array.from(game.actors ?? []))
-	.filter((actor) => actor.type === "knight" && keep(actor));
+	.filter((actor) => isKnight(actor) && keep(actor));
+
+/** @returns {Actor[]} The world's Company Knights, Squires among them: not NPC Knights. */
+export const companyKnights = () => worldKnights(isCompanyKnight);
 
 /**
  * The world's Knights as rules/creation.js weighs who's taken which of the
@@ -84,11 +92,7 @@ export function registerDuplicateKnights() {
 		type: Boolean,
 		default: false,
 		// An open Knight chooser shows which Knights are taken, or that none is.
-		onChange: () => {
-			for (const app of foundry.applications.instances.values()) {
-				if (app.rendered && app.options?.classes?.includes("bastionland-knight-chooser")) app.render();
-			}
-		}
+		onChange: () => renderOpenWindows("bastionland-knight-chooser")
 	});
 }
 
@@ -104,7 +108,7 @@ const warnTaken = (name, knightType) => ui.notifications?.warn(t("sheet.knightTy
 export function registerDuplicateKnightGuard() {
 	const getProperty = (object, key) => foundry.utils.getProperty(object, key);
 	Hooks.on("preCreateActor", (actor, _data, _options, userId) => {
-		if (userId !== game.user?.id || actor.type !== "knight" || allowsDuplicateKnights()) return;
+		if (userId !== game.user?.id || !isKnight(actor) || allowsDuplicateKnights()) return;
 		const { knightType, slain, isSquire } = actor.system;
 		if (slain || isSquire) return;
 		const takenBy = knightTypeTakenBy(knightRows(), knightType);
@@ -113,7 +117,7 @@ export function registerDuplicateKnightGuard() {
 		actor.updateSource({ "system.knightType": "" });
 	});
 	Hooks.on("preUpdateActor", (actor, changes, _options, userId) => {
-		if (userId !== game.user?.id || actor.type !== "knight" || allowsDuplicateKnights()) return;
+		if (userId !== game.user?.id || !isKnight(actor) || allowsDuplicateKnights()) return;
 		const typed = getProperty(changes, "system.knightType");
 		if (typed === undefined || knightTypeKey(typed) === knightTypeKey(actor.system.knightType)) return;
 		if (getProperty(changes, "system.slain") ?? actor.system.slain) return;

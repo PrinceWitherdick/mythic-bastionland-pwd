@@ -10,6 +10,7 @@ import { knightTypeKey } from "./creation.js";
 import { WHOLE_ASIDE, pointsBelow } from "./property.js";
 import { parentheticals } from "./text.js";
 import { cadencesTurned, isCalendar } from "./time.js";
+import { isKnight } from "./knight-types.js";
 
 export { pointsBelow };
 
@@ -59,7 +60,7 @@ export function tableItemId(items) {
  */
 export function knightTableItemId(actor) {
 	const system = actor?.system;
-	if (actor?.type !== "knight" || system?.isSquire || !hasTable(system.bookTable)) return null;
+	if (!isKnight(actor) || system?.isSquire || !hasTable(system.bookTable)) return null;
 	return tableItemId((actor.items?.contents ?? [])
 		.filter((item) => PROPERTY_TYPES.includes(item.type))
 		.sort((a, b) => a.sort - b.sort));

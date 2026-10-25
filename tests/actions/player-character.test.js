@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { COMPANY_KNIGHT_FLAG, inCompany, playerCharacter } from "../../module/actions/knights.js";
+import { isCompanyKnight } from "../../module/rules/knight-types.js";
 
 /** Whether the world is set to solo play. */
 let solo;
@@ -32,6 +33,24 @@ describe("inCompany", () => {
 		expect(inCompany(knight({}, false, { [COMPANY_KNIGHT_FLAG]: false }))).toBe(false);
 		// A Knight a player holds rides with the Company whatever the mark says.
 		expect(inCompany(knight({}, true, { [COMPANY_KNIGHT_FLAG]: false }))).toBe(true);
+	});
+});
+
+describe("an NPC Knight", () => {
+	const npcKnight = (hasPlayerOwner = false) => ({ ...knight({}, hasPlayerOwner), type: "npcKnight" });
+
+	it("never rides with the Company, alone or with others at the table, and wavers as NPCs do", () => {
+		expect(inCompany(npcKnight())).toBe(false);
+		solo = true;
+		expect(inCompany(npcKnight())).toBe(false);
+		expect(playerCharacter(npcKnight())).toBe(false);
+	});
+
+	it("is never counted in what the whole Company does, though a Knight no player holds yet may be", () => {
+		expect(isCompanyKnight(npcKnight())).toBe(false);
+		expect(isCompanyKnight({ type: "npc", system: {} })).toBe(false);
+		expect(isCompanyKnight(knight())).toBe(true);
+		expect(isCompanyKnight(knight({ isSquire: true }))).toBe(true);
 	});
 });
 

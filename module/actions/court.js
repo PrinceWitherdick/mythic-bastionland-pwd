@@ -282,7 +282,8 @@ export async function removeFromCourt(domain, id) {
 
 /**
  * Choose which Knights sit in a Domain's Circle (p20), from the world's
- * Knights other than its ruler.
+ * Knights other than its ruler that whoever chooses can see. Those already
+ * seated stay offered, so seeing fewer never unseats one.
  * @param {Actor} domain
  * @param {object} [options]
  * @param {string|null} [options.intro] Said in place of the usual line, such as Knights leaving in misrule.
@@ -293,7 +294,8 @@ export async function seatCircle(domain, { intro = null } = {}) {
 	const knights = knightChoices();
 	const seated = circleKnights(domain.system.council.circle, knights);
 	const besides = new Set(knightsBesidesRuler(domain).map((actor) => actor.id));
-	const offered = knights.filter((knight) => besides.has(knight.id) || seated.some((each) => each.id === knight.id));
+	const offered = knights.filter((knight) => (besides.has(knight.id) && game.actors.get(knight.id)?.visible)
+		|| seated.some((each) => each.id === knight.id));
 	// Names written in by hand before the Circle held Knights stay offered, ticked, so they go only when unticked.
 	const written = seated.filter((each) => each.legacy).map((each, index) => ({ key: `written${index}`, name: each.name }));
 	const data = await inputDialog({

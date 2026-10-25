@@ -6,6 +6,7 @@ import { heraldryBadge, pathSteps } from "../rules/token-heraldry.js";
 import { t } from "../chat/cards.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { onCompanyDoubleClick } from "./travels-click.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /** Token flag set when the heraldry badge is hidden on that Token. */
 export const HIDE_HERALDRY_FLAG = "hideHeraldry";
@@ -49,7 +50,7 @@ export class BastionlandToken extends foundry.canvas.placeables.Token {
 	/** The Knight's painting, or "" for anyone else or a Knight who hasn't painted any. */
 	get knightHeraldry() {
 		const actor = this.actor;
-		return actor?.type === "knight" ? (actor.system.heraldry ?? "") : "";
+		return isKnight(actor) ? (actor.system.heraldry ?? "") : "";
 	}
 
 	/** The painting this Token should show: its Knight's, or "" when there's none or it's hidden. */

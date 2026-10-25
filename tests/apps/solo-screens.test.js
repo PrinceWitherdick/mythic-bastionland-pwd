@@ -27,11 +27,16 @@ describe("solo play's secrets on the Referee's own screens", () => {
 		expect(drop.indexOf("if (mythKeptFromMe(myth, this.scene)) return null;")).toBeLessThan(drop.indexOf("addToCast("));
 	});
 
-	it("lets the Referee mark which of their Knights ride with the Company, on a Knight no player holds", () => {
+	it("lets the Referee make a Knight no player holds an NPC Knight, apart from the Company, in any world", () => {
 		const sheet = read("module/sheets/KnightSheet.js");
-		expect(sheet).toContain("if (!isSquire && keptFromMe() && this.isEditable && !this.actor.hasPlayerOwner)");
-		expect(sheet).toContain("toggleCompany: KnightSheet.#onToggleCompany");
-		expect(sheet).toContain("this.actor.setFlag(SYSTEM_ID, COMPANY_KNIGHT_FLAG, !inCompany(this.actor))");
+		expect(sheet).toContain("if (this.isEditable && changesKind(this.actor) && !isUnchosen(this.actor))");
+		expect(sheet).toContain("toggleNpcKnight: KnightSheet.#onToggleNpcKnight");
+		expect(sheet).toContain("const npc = !isNpcKnight(this.actor);");
+		expect(sheet).toContain("return setKnightKind(this.actor, npc);");
+		// Not while a Squire serves them (p7): the switch is barred and says why.
+		expect(sheet).toContain("const barred = !npc && servedBySquire(this.actor);");
+		expect(sheet).toContain("if (npc && servedBySquire(this.actor)) {");
+		expect(read("module/actions/npc-knights.js")).toContain("&& !actor.system?.isSquire && (isNpcKnight(actor) || !actor.hasPlayerOwner);");
 	});
 
 	it("doesn't move a Myth into a hex from Edit this hex", () => {

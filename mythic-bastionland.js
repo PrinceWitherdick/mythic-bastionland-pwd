@@ -32,6 +32,8 @@ import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
+import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights } from "./module/actions/npc-knights.js";
+import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { registerTurnOrder } from "./module/actions/turn-order.js";
@@ -166,6 +168,8 @@ const REFEREE_TOOLS = [
 
 Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
+	// The Referee's own Knights: the same rules and sheet, never one of the Company.
+	CONFIG.Actor.dataModels[NPC_KNIGHT_TYPE] = KnightModel;
 	CONFIG.Actor.dataModels.npc = NpcModel;
 	CONFIG.Actor.dataModels.domain = DomainModel;
 	CONFIG.Actor.dataModels.structure = StructureModel;
@@ -175,7 +179,7 @@ Hooks.once("init", () => {
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
 	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, KnightSheet, {
-		types: ["knight"],
+		types: [...KNIGHT_TYPES],
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});
@@ -656,7 +660,10 @@ const WORLD_SETUP = Object.freeze([
 	// name, and pages the server left with nothing to show get their HTML.
 	{ key: "keptJournalPages", run: tidyKeptJournals },
 	// Worlds from before the toolkit was the Referee's, whose toolkit and macro are still called GM Toolkit.
-	{ key: REFEREE_NAME_STEP, run: renameOldToolkit }
+	{ key: REFEREE_NAME_STEP, run: renameOldToolkit },
+	// Last, so every step before it still finds the Referee's Knights as Knights: worlds from before NPC
+	// Knights were an Actor type, whose Knights in the NPCs folder are played by the Referee.
+	{ key: NPC_KNIGHTS_STEP, run: convertNpcKnights }
 ]);
 
 Hooks.once("ready", async () => {
@@ -670,6 +677,8 @@ Hooks.once("ready", async () => {
 	catchUpBookText();
 	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
 	watchCompanySize();
+	// A Knight brought in from an older compendium, marked as the Referee's own, comes in as an NPC Knight.
+	convertImportedNpcKnights();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
 	// A Knight given to this player while they were away opens for them to choose.

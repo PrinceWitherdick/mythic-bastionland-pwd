@@ -4,11 +4,14 @@
  * can act on it.
  */
 import { carryOnFrom } from "../actions/fallen.js";
+import { registerNpcKnightQueries } from "../actions/npc-knights.js";
 import { FALLEN_PATHS } from "../rules/fallen.js";
 import { registerCardButtons } from "./cards.js";
 
 /** Called during init. */
 export function registerFallenCards() {
+	// A player taking up their NPC Knight asks the Referee to make them one of the Company.
+	registerNpcKnightQueries();
 	registerCardButtons({
 		selector: "[data-fallen-path]",
 		handler: async (button) => {

@@ -55,6 +55,7 @@ import { leaderCandidates } from "./leading.js";
 import { structureHarm } from "../rules/structures.js";
 import { causedBy } from "./ledger.js";
 import { worldKnights } from "./knights.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /** Weapon qualities shown beside each choice in the Attack dialog. */
 const SHOWN_QUALITIES = Object.freeze(["hefty", "long", "slow", "heftyMounted", "ranged", "blast", "trample", "noHand", "lingers"]);
@@ -353,7 +354,7 @@ function movedThisTurn(actor) {
  * @returns {boolean}
  */
 function countsHands(actor) {
-	if (actor.type === "knight") return true;
+	if (isKnight(actor)) return true;
 	if (actor.type !== "npc" || actor.system.scale === "warband") return false;
 	return wieldsInHands(actor.system.wields, [...actor.items]);
 }
@@ -837,7 +838,7 @@ function madeWith({ actor, choice, chosen, picked, check, pool, smite, leader, w
 		// Its Damage never Slays or leaves anybody dying (p173).
 		nonLethal: chosen.length > 0 && chosen.every((item) => item.system.nonLethal),
 		// What a Cast member's weapon does besides its dice, as its stat block says: "sets area alight".
-		notes: actor.type === "knight" ? [] : chosen.map((item) => ({ name: item.name, note: plainNote(item.system.description) })).filter(({ note }) => note),
+		notes: isKnight(actor) ? [] : chosen.map((item) => ({ name: item.name, note: plainNote(item.system.description) })).filter(({ note }) => note),
 		// A Warband's Attack is large-scale, so it can harm another Warband.
 		largeScale: warband,
 		// Fire, a siege weapon or a suitably large creature harms a structure (p11).

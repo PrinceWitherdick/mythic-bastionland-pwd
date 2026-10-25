@@ -88,6 +88,9 @@
       "knight": {
         "htmlFields": ["notes", "seerInfo", "seerNotes"]
       },
+      "npcKnight": {
+        "htmlFields": ["notes", "seerInfo", "seerNotes"]
+      },
       "npc": {
         "htmlFields": ["notes"]
       },

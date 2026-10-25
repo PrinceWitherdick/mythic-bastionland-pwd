@@ -1,5 +1,6 @@
 import { SYSTEM_ID } from "../system-id.js";
 import { t } from "../chat/cards.js";
+import { isCompanyKnight } from "../rules/knight-types.js";
 import { RESTOCK_CADENCES, restockUpdates } from "../rules/restock.js";
 import { CALENDAR_HOOK } from "./calendar.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
@@ -32,14 +33,14 @@ export function watchRestocks() {
 			// Read before the GM's write lands, which is the same moment on every client.
 			const items = updates.map(({ _id }) => actor.items.get(_id)).filter(Boolean);
 			if (game.user === game.users.activeGM) writes.push(actor.updateEmbeddedDocuments("Item", updates));
-			if (actor.isOwner && (!game.user.isGM || actor.type === "knight")) tellRestocked(actor, items);
+			if (actor.isOwner && (!game.user.isGM || isCompanyKnight(actor))) tellRestocked(actor, items);
 		}
 		return Promise.all(writes);
 	});
 	// Uses the GM brought back at a fight's end or on moving on, told on each owner's own client.
 	Hooks.on("updateItem", (item, _changes, options) => {
 		const actor = item.parent;
-		if (!options?.[SYSTEM_ID]?.refreshed || !actor?.isOwner || (game.user.isGM && actor.type !== "knight")) return;
+		if (!options?.[SYSTEM_ID]?.refreshed || !actor?.isOwner || (game.user.isGM && !isCompanyKnight(actor))) return;
 		if (!refreshed.size) queueMicrotask(tellRefreshed);
 		refreshed.set(actor, [...(refreshed.get(actor) ?? []), item]);
 	});

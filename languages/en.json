@@ -2,6 +2,7 @@
   "TYPES": {
     "Actor": {
       "knight": "Knight",
+      "npcKnight": "NPC Knight",
       "npc": "NPC",
       "domain": "Domain",
       "structure": "Structure",
@@ -65,11 +66,6 @@
           "show": "You place these yourself, and they'll stay in view when you finish the Realm.",
           "kept": "These were settled when you first finished the Realm. What's still hidden stays so until the Company finds it."
         }
-      },
-      "company": {
-        "label": "Rides with the Company",
-        "riding": "This Knight rides with the Company: counted in its pursuits, its mornings, its turn in a fight and its Timeline, and offered the ways on if Slain. Click if they're one of your own Knights instead, such as a Holding's ruler.",
-        "notRiding": "One of your own Knights, not the Company's: they waver as NPCs do and aren't counted with the Company. Click if they ride with the Company."
       },
       "tag": {
         "label": "Solo Play",
@@ -509,6 +505,7 @@
       "hint": "Nobody has claimed this Knight yet. Roll or pick one from the book, or fill in the sheet yourself.",
       "hintGM": "Nobody has claimed this Knight yet. Choose one now, or give them to a player to choose.",
       "hintViewer": "Nobody has claimed this Knight yet.",
+      "hintNpc": "Choose this NPC Knight from the book, rolled as a Ruler, or fill in the sheet yourself.",
       "byHand": "Fill in the sheet by hand",
       "player": "Played by",
       "nobody": "Nobody yet"
@@ -3897,6 +3894,19 @@
     },
     "npcFolder": {
       "name": "NPCs"
+    },
+    "npcKnight": {
+      "toggle": {
+        "label": "NPC Knight",
+        "isNpc": "An NPC Knight, played by the Referee: kept out of the Company's rolls, mornings and pursuits, and wavering as NPCs do. Click to make them a Knight of the Company's.",
+        "isCompany": "A Knight of the Company's, or one a player may take up. Click to make them an NPC Knight, played by the Referee, such as a Holding's ruler or a rival to duel.",
+        "hasSquire": "{name} serves this Knight as their Squire, and only the Company’s Knights have Squires. Unlink {name} on the Property page, or Knight them, before making this Knight an NPC Knight."
+      },
+      "noSquire": "{name} is an NPC Knight, and only the Company’s Knights have Squires.",
+      "converted": "{count} of the Referee's Knights are now NPC Knights, kept out of the Company's rolls.",
+      "cantSee": "You can't see that Knight's sheet.",
+      "joinNeedsReferee": "{name} is an NPC Knight. A Referee needs to be logged in to make them a Knight of the Company’s for you.",
+      "joinRefused": "The Referee couldn’t make {name} a Knight of the Company’s, so they weren’t taken up."
     },
     "seerChooser": {
       "title": "Choose the Seer",

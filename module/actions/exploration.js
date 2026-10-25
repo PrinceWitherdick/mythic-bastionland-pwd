@@ -25,7 +25,7 @@ import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
 import { liveRealm } from "./myth-notes.js";
 import { keptFromMe, mythKeptFromMe } from "./solo.js";
-import { worldKnights } from "./knights.js";
+import { companyKnights, inCompany } from "./knights.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -142,7 +142,9 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	if (!place) return null;
 	const { realm, g, where } = place;
 
-	const knights = worldKnights((actor) => actor.system?.virtues);
+	// The Company's own first, so the one picked to begin with rides with it.
+	const knights = companyKnights()
+		.sort((a, b) => Number(inCompany(b)) - Number(inCompany(a)));
 	const data = await inputDialog({
 		title: t("explore.search.title"),
 		icon: "fa-solid fa-magnifying-glass",

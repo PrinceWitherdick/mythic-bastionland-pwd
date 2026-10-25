@@ -55,13 +55,15 @@ import { direWeatherRisk, rollRefereeTable } from "./referee-rolls.js";
 import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
 import { showedOmen } from "../rules/wilderness.js";
-import { inCompany, playerCharacter, worldKnights } from "./knights.js";
+import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
+import { companyKnights, inCompany, playerCharacter } from "./knights.js";
 import { announceFallenKnight } from "./fallen.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
- * present and everybody whose Token is selected are listed ticked, then every
- * Knight, ticked when a player owns them. Players see only the characters they
+ * present and every Knight or Squire whose Token is selected are listed ticked,
+ * then every other, ticked when they ride with the Company. NPCs and NPC
+ * Knights are listed only when given. Players see only the characters they
  * own, since those are all they can change. The Slain take no part, so a Season
  * that restores Virtues doesn't raise them. With pursuits, each picks one too,
  * and says beside it what a pursuit that makes something made (p17). As an Age
@@ -74,7 +76,7 @@ import { announceFallenKnight } from "./fallen.js";
  * @param {Actor[]} [options.present]
  * @param {Actor[]} [options.others] Listed unticked, for the Referee to tick any that take part.
  * @param {string[]} [options.pursuits]
- * @param {boolean} [options.knightsOnly] Leave out selected Tokens that aren't Knights.
+ * @param {boolean} [options.knightsOnly] Leave out those given who aren't Knights.
  * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
  * @param {boolean} [options.onlyGiven] List only those given, not the selected Tokens or the world's Knights.
  * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
@@ -83,16 +85,18 @@ import { announceFallenKnight } from "./fallen.js";
 export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false }) {
 	const candidates = [];
 	const seen = new Set();
-	const add = (actor, included) => {
-		if (!actor?.system?.virtues || actor.system.slain || (knightsOnly && actor.type !== "knight") || seen.has(actor.uuid)) return;
+	const add = (actor, included, given = false) => {
+		if (!actor?.system?.virtues || actor.system.slain || seen.has(actor.uuid)) return;
+		if (given ? knightsOnly && !isKnight(actor) : !isCompanyKnight(actor)) return;
 		if (!game.user.isGM && !actor.isOwner) return;
 		seen.add(actor.uuid);
 		candidates.push({ actor, included });
 	};
 	const selected = onlyGiven ? [] : (canvas?.tokens?.controlled ?? []).map((token) => token.actor);
-	for (const actor of [...present, ...selected]) add(actor, true);
-	for (const actor of others) add(actor, false);
-	if (!onlyGiven) for (const actor of worldKnights()) add(actor, inCompany(actor));
+	for (const actor of present) add(actor, true, true);
+	for (const actor of selected) add(actor, true);
+	for (const actor of others) add(actor, false, true);
+	if (!onlyGiven) for (const actor of companyKnights()) add(actor, inCompany(actor));
 
 	// What each pursuit offered could make, one list for every row, shown under the pursuit picked.
 	const makings = pursuits.flatMap((pursuit) => pursuitMakings(pursuit).map((making) => ({

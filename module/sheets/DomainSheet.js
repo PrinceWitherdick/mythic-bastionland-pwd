@@ -24,6 +24,7 @@ import { seasonKey } from "../rules/time.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
+import { isKnight } from "../rules/knight-types.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -211,7 +212,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	}
 
 	/**
-	 * The Circle: the Knights sitting in it, each opening their sheet.
+	 * The Circle: the Knights sitting in it, each opening their sheet for whoever can see it.
 	 * @param {object} system The Domain's.
 	 * @returns {object}
 	 */
@@ -219,7 +220,10 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		const knights = circleKnights(system.council.circle, knightChoices());
 		return {
 			circle: true,
-			knights: knights.map((knight) => ({ ...knight, uuid: knight.legacy ? "" : game.actors.get(knight.id)?.uuid }))
+			knights: knights.map((knight) => {
+				const actor = knight.legacy ? null : game.actors.get(knight.id);
+				return { ...knight, uuid: actor?.visible ? actor.uuid : "" };
+			})
 		};
 	}
 
@@ -321,6 +325,10 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	 */
 	static #onOpenSheet(_event, target) {
 		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
+		if (actor && !actor.visible) {
+			ui.notifications.warn(t("npcKnight.cantSee"));
+			return null;
+		}
 		actor?.sheet.render({ force: true });
 		return actor;
 	}
@@ -376,7 +384,7 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 	/** @override */
 	_onFirstRender(context, options) {
 		super._onFirstRender(context, options);
-		const redraw = (actor) => actor.type === "knight" && this.render();
+		const redraw = (actor) => isKnight(actor) && this.render();
 		this.#knightHooks = [
 			["updateActor", Hooks.on("updateActor", (actor, changes) => knightChangesArms(changes) && redraw(actor))],
 			["createActor", Hooks.on("createActor", redraw)],

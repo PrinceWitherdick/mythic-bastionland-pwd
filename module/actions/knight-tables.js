@@ -11,6 +11,7 @@ import { CALENDAR_HOOK, getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { applyTableStats } from "./table-stats.js";
 import { worldKnights } from "./knights.js";
+import { isKnight } from "../rules/knight-types.js";
 
 
 /** The flag keeping the calendar when a Knight last rolled on their table, so a table that comes round again knows it's due. */
@@ -174,7 +175,7 @@ const renewalNotice = (knight, renewal) => t("knightTable.renewal.notice", { nam
 export function watchTableRenewals() {
 	Hooks.on(CALENDAR_HOOK, (after, before, turned) => {
 		for (const knight of game.actors) {
-			const parsed = knight.type === "knight" && knightRenewal(knight);
+			const parsed = isKnight(knight) && knightRenewal(knight);
 			if (!parsed) continue;
 			// A table rolled before its roll was dated counts as rolled just before the calendar moved.
 			const undated = !knight.getFlag(SYSTEM_ID, ROLLED_AT) && knight.system.bookTable.rolls.some((roll) => roll > 0);

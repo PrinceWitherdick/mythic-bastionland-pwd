@@ -1,8 +1,10 @@
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { changesKept, keptWith, wantsOwnFolder } from "../rules/knight-folders.js";
+import { isCompanyKnight, isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
+import { npcFolder } from "./npc-knights.js";
 
 /**
  * Each Knight made gets a folder of their own in the Actors directory, named
@@ -65,7 +67,7 @@ async function fileKept(knight) {
 		const actor = fromUuidSync(uuid);
 		if (actor?.documentName !== "Actor" || actor.pack) continue;
 		if (actor.folder?.id !== folder.id) moves.push({ _id: actor.id, folder: folder.id });
-		if (actor.type === "knight") pending.push(...keptWith(actor.system));
+		if (isCompanyKnight(actor)) pending.push(...keptWith(actor.system));
 	}
 	// Whoever is kept with them moves in one go, rather than a write apiece.
 	if (moves.length) await Actor.implementation.updateDocuments(moves);
@@ -93,11 +95,38 @@ async function fileKnight(knight) {
 }
 
 /**
+ * Move an NPC Knight, and the steed kept with them, into the NPCs folder, and
+ * take away the folder of their own they had as one of the Company once it
+ * holds nobody else.
+ * @param {Actor} knight
+ */
+async function fileNpcKnight(knight) {
+	if (!game.actors.has(knight.id)) return;
+	const own = ownFolder(knight);
+	const folder = (await npcFolder())?.id ?? null;
+	// A Squire is still one of the Company, so they and their steed keep the folder, which then stays.
+	const kept = keptWith(knight.system).map((uuid) => fromUuidSync(uuid)).filter((actor) => !isCompanyKnight(actor));
+	const moves = [knight, ...kept]
+		.filter((actor) => actor?.documentName === "Actor" && !actor.pack && (!own || actor.folder?.id === own.id || actor === knight))
+		.filter((actor) => (actor.folder?.id ?? null) !== folder)
+		.map((actor) => ({ _id: actor.id, folder }));
+	if (moves.length) await Actor.implementation.updateDocuments(moves);
+	if (own && !own.contents.length && !own.children?.length) await own.delete();
+}
+
+/**
  * @param {Actor} actor
  * @param {object} changes
  */
 function onUpdate(actor, changes) {
-	if (actor.type !== "knight" || !isKeeper()) return;
+	if (!isKnight(actor) || !isKeeper()) return;
+	// Made an NPC Knight, or brought back into the Company from one.
+	if ("type" in changes) {
+		if (isNpcKnight(actor)) enqueue(() => fileNpcKnight(actor));
+		else if (!actor.system.isSquire) enqueue(() => fileKnight(actor));
+		return;
+	}
+	if (isNpcKnight(actor)) return;
 	const renamed = "name" in changes;
 	const knighted = changes.system?.isSquire === false;
 	// Looking the folder up walks every Actor folder, so only an update worth acting on does.
@@ -117,7 +146,10 @@ export function registerKnightFolderHooks() {
 		if (!options.pack && wantsOwnFolder(actor._source)) actor.updateSource({ [`flags.${SYSTEM_ID}.${WANTS}`]: true });
 	});
 	Hooks.on("createActor", (actor) => {
-		if (isKeeper() && actor.getFlag(SYSTEM_ID, WANTS)) enqueue(() => fileKnight(actor));
+		if (!isKeeper()) return;
+		if (actor.getFlag(SYSTEM_ID, WANTS)) enqueue(() => fileKnight(actor));
+		// An NPC Knight made at the top of the directory is kept with the other NPCs.
+		else if (isNpcKnight(actor) && !actor.folder && !actor.pack) enqueue(() => fileNpcKnight(actor));
 	});
 	Hooks.on("updateActor", onUpdate);
 }

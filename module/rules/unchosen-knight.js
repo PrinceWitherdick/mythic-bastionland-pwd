@@ -1,3 +1,5 @@
+import { isKnight } from "./knight-types.js";
+
 /**
  * A Knight made ahead of the game for a player to pick up (p6): the GM makes
  * them with Create Actor and gives them to a player, who chooses the Knight
@@ -20,7 +22,7 @@ export const OFFERED_FLAG = "offeredTo";
  * @returns {boolean}
  */
 export function isBlankKnightData(data) {
-	return data?.type === "knight" && !data.system && !data.items?.length && !data.effects?.length;
+	return isKnight(data) && !data.system && !data.items?.length && !data.effects?.length;
 }
 
 /**

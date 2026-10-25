@@ -20,9 +20,10 @@ import {
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { COMPANY_KNIGHT_FLAG, inCompany, worldKnights } from "./knights.js";
+import { COMPANY_KNIGHT_FLAG, companyKnights, inCompany, worldKnights } from "./knights.js";
 import { SOLO_CHANGED_HOOK, isSolo } from "./solo.js";
 import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
+import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 
 /**
  * @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir
@@ -34,7 +35,8 @@ export function companyKnightCount() {
 		return companySize(riding.map((actor) => ({ isSquire: Boolean(actor.system.isSquire), players: [actor.id] })));
 	}
 	const players = game.users.filter((user) => !user.isGM);
-	return companySize(worldKnights().map((actor) => ({
+	// An NPC Knight a player holds, such as a rival they run for the Referee, isn't one of the Company.
+	return companySize(companyKnights().map((actor) => ({
 		isSquire: Boolean(actor.system.isSquire),
 		players: players.filter((user) => actor.testUserPermission(user, "OWNER")).map((user) => user.id)
 	})));
@@ -75,7 +77,7 @@ async function recountCompany() {
  * @param {object} [changes] An update's changes; none for a creation or deletion.
  * @returns {boolean} Whether the change could alter the Company's size.
  */
-const changesCompany = (actor, changes) => actor.type === "knight" && (!changes || "ownership" in changes || changes.system?.isSquire !== undefined
+const changesCompany = (actor, changes) => isKnight(actor) && (!changes || "ownership" in changes || "type" in changes || changes.system?.isSquire !== undefined
 	// Played alone, a Knight joins or leaves the Company by its mark, and a Slain one no longer rides.
 	|| changes.flags?.[SYSTEM_ID]?.[COMPANY_KNIGHT_FLAG] !== undefined || changes.system?.slain !== undefined);
 
@@ -97,7 +99,7 @@ export function watchCompanySize() {
  * @returns {Promise<Actor|null>} The Squire.
  */
 export async function takeSquire(knight) {
-	if (knight.type !== "knight" || knight.system.isSquire) return null;
+	if (!isCompanyKnight(knight) || knight.system.isSquire) return null;
 	const existing = knight.system.squire ? fromUuidSync(knight.system.squire) : null;
 	if (existing) {
 		existing.sheet.render({ force: true });
@@ -174,7 +176,7 @@ export async function takeSquire(knight) {
  * @param {Actor} actor
  * @returns {boolean} Whether they're a Squire just Knighted, still to choose which Knight they became.
  */
-export const isChoosingKnight = (actor) => actor?.type === "knight" && !actor.system.isSquire && Boolean(actor.getFlag(SYSTEM_ID, CHOOSING_FLAG));
+export const isChoosingKnight = (actor) => isKnight(actor) && !actor.system.isSquire && Boolean(actor.getFlag(SYSTEM_ID, CHOOSING_FLAG));
 
 /**
  * Open the chooser for a Knighted Squire to choose which Knight they became,

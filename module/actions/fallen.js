@@ -9,6 +9,7 @@ import {
 	squireOf,
 	successorOf
 } from "../rules/fallen.js";
+import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
@@ -37,7 +38,7 @@ const worldCompanions = () => game.actors.map((actor) => ({
 	serves: actor.system?.serves ?? "",
 	companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) ?? "",
 	// Only a Knight can be a successor, so only theirs are counted.
-	players: actor.type === "knight" ? playersOf(actor) : [],
+	players: isKnight(actor) ? playersOf(actor) : [],
 	actor
 }));
 
@@ -238,9 +239,11 @@ async function takeUpFollower(fallen, followers) {
  * @param {Actor} fallen
  * @param {Actor} taken
  * @param {string} icon For the note in chat.
- * @returns {Promise<Actor>}
+ * @returns {Promise<Actor|null>} Null when an NPC Knight couldn't be made one of the Company.
  */
 async function takeUp(fallen, taken, icon) {
+	// An NPC Knight named as successor joins the Company as a Knight of its own, or isn't taken up.
+	if (isNpcKnight(taken) && !(await (await import("./npc-knights.js")).joinCompany(taken))) return null;
 	await handOver(taken, fallen);
 	// They're their own character now, not a line of the dead Knight's Property,
 	// so re-rolling that Knight's gear can never sweep them away.

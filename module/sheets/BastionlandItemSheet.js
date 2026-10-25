@@ -9,6 +9,7 @@ import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { isKnight } from "../rules/knight-types.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -142,7 +143,7 @@ export class BastionlandItemSheet extends HandlebarsApplicationMixin(ItemSheetV2
 	 * @returns {{options: Record<string, string>, selected: string}|null} Null where there's nothing to choose.
 	 */
 	#insteadOf() {
-		if (this.item.type !== "weapon" || !this.item.actor || this.item.actor.type === "knight") return null;
+		if (this.item.type !== "weapon" || !this.item.actor || isKnight(this.item.actor)) return null;
 		const others = this.#otherWeapons();
 		if (!others.length) return null;
 		const { options, selected } = insteadOfOptions({ id: this.item.id, either: this.item.system.either }, others);

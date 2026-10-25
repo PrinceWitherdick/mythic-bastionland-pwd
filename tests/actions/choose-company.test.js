@@ -55,4 +55,23 @@ describe("chooseCompany", () => {
 		expect(asked.context.members.map(({ name }) => name)).toEqual(["Boar"]);
 		expect(asked.render).toBeUndefined();
 	});
+
+	it("leaves out NPCs and NPC Knights, even with their Tokens selected, but keeps a Knight no player holds yet", async () => {
+		const boar = { uuid: "Actor.boar", name: "Boar", type: "npc", isOwner: true, system: { virtues: {} } };
+		const brand = { ...knight("brand", "Sir Brand"), type: "npcKnight", hasPlayerOwner: false };
+		const spare = { ...knight("spare", "Spare"), hasPlayerOwner: false };
+		game.actors.push(brand, spare);
+		canvas.tokens.controlled = [{ actor: boar }, { actor: brand }];
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "" });
+		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Tal", true], ["Moss", true], ["Spare", false]]);
+	});
+
+	it("still lists whoever is named as present, and NPCs given to the Referee to tick", async () => {
+		const carrier = { uuid: "Actor.carrier", name: "Carrier", type: "npc", isOwner: true, system: { virtues: {} } };
+		const brand = { ...knight("brand", "Sir Brand"), type: "npcKnight", hasPlayerOwner: false };
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", present: [carrier], others: [brand] });
+		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Carrier", true], ["Sir Brand", false], ["Tal", true], ["Moss", true]]);
+	});
 });

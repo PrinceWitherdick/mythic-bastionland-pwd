@@ -29,7 +29,7 @@ const { foundDomain, offerRulerDomain, seatCourtiers } = await import("../../mod
 const { addCourtMember } = await import("../../module/actions/court.js");
 const { linkKnightDomain } = await import("../../module/actions/dominion.js");
 
-const knight = (id, name, player = true) => ({ id, name, type: "knight", hasPlayerOwner: player, folder: null, ownership: player ? { default: 0, [`u-${id}`]: 3 } : { default: 0 }, system: {} });
+const knight = (id, name, player = true) => ({ id, name, type: "knight", visible: true, hasPlayerOwner: player, folder: null, ownership: player ? { default: 0, [`u-${id}`]: 3 } : { default: 0 }, system: {} });
 
 beforeEach(() => {
 	formData = null;

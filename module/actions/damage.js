@@ -24,6 +24,7 @@ import { offerRevenge, rollScar } from "./scars.js";
 import { timelineMortalWound, timelineWarded } from "./timeline-events.js";
 import { escapeHTML } from "../rules/text.js";
 import { playerCharacter, worldKnights } from "./knights.js";
+import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -84,7 +85,7 @@ export function wornArmour(actor) {
  *   anybody's but a Knight's is; null for a Knight's, which is the sum of their items.
  */
 export function singleArmour(actor) {
-	return actor.type === "knight" ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
+	return isKnight(actor) ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
 }
 
 /**
@@ -244,7 +245,7 @@ const UNHORSED_SELECTOR = "[data-unhorsed]";
  */
 async function unhorseRiders(steed) {
 	// Nobody rides a Knight.
-	if (steed.type === "knight") return [];
+	if (isKnight(steed)) return [];
 	const as = new Set([steed.uuid, steed.isToken ? steed.token?.baseActor?.uuid : null].filter(Boolean));
 	const riders = worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner);
 	if (!riders.length) return riders;
@@ -556,9 +557,9 @@ function wardensFor(victim) {
 	const base = victim.token?.baseActor ?? victim;
 	const scene = sceneOf(victim);
 	const placed = scene ? tokensOn(victim, scene) : [];
-	const ours = victim.type === "knight" || Boolean(victim.hasPlayerOwner);
-	return (game.actors?.contents ?? []).filter((actor) => {
-		if (actor.type !== "knight" || actor === base || !actor.isOwner || downBy(actor.system)) return false;
+	const ours = isCompanyKnight(victim) || Boolean(victim.hasPlayerOwner);
+	return worldKnights((actor) => {
+		if (actor === base || !actor.isOwner || downBy(actor.system)) return false;
 		if (!abilitiesWith(actor.items.contents, "deathWard").length) return false;
 		if (!scene) return ours;
 		const near = tokensOn(actor, scene);

@@ -159,4 +159,8 @@ describe("canStakeGlory", () => {
 		expect(canStakeGlory([{ type: "knight" }, { type: "npc" }])).toBe(false);
 		expect(canStakeGlory([{ type: "knight" }, { type: "knight", isSquire: true }])).toBe(false);
 	});
+
+	it("lets a Knight stake Glory against the Referee's NPC Knight", () => {
+		expect(canStakeGlory([{ type: "knight" }, { type: "npcKnight" }])).toBe(true);
+	});
 });
