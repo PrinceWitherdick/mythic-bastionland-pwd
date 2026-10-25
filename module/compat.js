@@ -226,31 +226,155 @@ export function paperSceneData(levelId, name, paper) {
 const halfOf = (size) => Math.floor((Number(size) || 0) / 2);
 
 /**
- * A Tile's data with its x and y at its centre. On v14 they already are, since
- * a Tile is placed by the point its texture is anchored on, the middle for every
- * Tile the system draws; on v13 they're its top-left corner.
+ * Half a Tile's width or height rounded up, as v14's upgrade moves a turned
+ * v13 Tile from its corner to its middle.
+ * @param {number} size
+ */
+const halfUp = (size) => Math.ceil((Number(size) || 0) / 2);
+
+/**
+ * How far a v14 Tile's centre lies from its x and y. v14 places a Tile by the
+ * point its texture is anchored on, and turns it about that point.
+ * @param {object} tile
+ * @param {number} tile.width
+ * @param {number} tile.height
+ * @param {number} tile.rotation In degrees clockwise.
+ * @param {number} tile.anchorX 0 at its left edge, 1 at its right.
+ * @param {number} tile.anchorY 0 at its top edge, 1 at its bottom.
+ * @returns {{x: number, y: number}}
+ */
+function centreOffset({ width, height, rotation, anchorX, anchorY }) {
+	const x = Math.floor((0.5 - anchorX) * (Number(width) || 0));
+	const y = Math.floor((0.5 - anchorY) * (Number(height) || 0));
+	if (!rotation || (!x && !y)) return { x, y };
+	const turn = (rotation * Math.PI) / 180;
+	return { x: x * Math.cos(turn) - y * Math.sin(turn), y: x * Math.sin(turn) + y * Math.cos(turn) };
+}
+
+/**
+ * @param {object} [texture] A Tile's texture data.
+ * @param {"anchorX"|"anchorY"} key
+ * @returns {number|undefined} The anchor it says, if it says one.
+ */
+const anchorIn = (texture, key) => (texture?.[key] === undefined || texture[key] === null ? undefined : Number(texture[key]));
+
+/**
+ * A Tile's data with its x and y at its centre. On v14 a Tile is placed by the
+ * point its texture is anchored on: the middle for every Tile the system draws,
+ * but v14's upgrade anchors an unturned v13 Tile on its top-left corner, where
+ * v13 placed it. On v13 they're its top-left corner.
  * @param {object} data Tile source data or a TileDocument.
  * @returns {object} Source data on either version, never the document: read its `_id`, not `id`.
- *   On v13 it's a copy with x and y moved to the centre.
+ *   A copy with x and y moved to the centre where they aren't there already. Its anchor is left
+ *   as it is, so a sync sees one that isn't the middle and writes the Tile again.
  */
 export function tileCentred(data) {
 	const source = data?._source ?? data;
-	if (!isV13() || !source) return source;
-	return { ...source, x: source.x + halfOf(source.width), y: source.y + halfOf(source.height) };
+	if (!source) return source;
+	if (isV13()) return { ...source, x: source.x + halfOf(source.width), y: source.y + halfOf(source.height) };
+	const offset = centreOffset({
+		width: source.width,
+		height: source.height,
+		rotation: source.rotation,
+		anchorX: anchorIn(source.texture, "anchorX") ?? 0.5,
+		anchorY: anchorIn(source.texture, "anchorY") ?? 0.5
+	});
+	if (!offset.x && !offset.y) return source;
+	return { ...source, x: source.x + offset.x, y: source.y + offset.y };
 }
 
 /**
  * Tile data to write, from data whose x and y are its centre: on v13 they're
- * moved to its top-left corner. An update that changes its size or place but
- * not both carries x and y worked out from what the Tile holds now.
+ * moved to its top-left corner, and on v14 to the point it's anchored on. An
+ * update that changes its size or place but not both carries x and y worked
+ * out from what the Tile holds now, and on v14 so does one that anchors it
+ * anew, since its x and y then mean another point.
  * @param {object} data Creation data, or an update's changes.
  * @param {object} [current] The Tile as it is, centred (tileCentred), for an update.
  * @returns {object}
  */
 export function tilePlaced(data, current = {}) {
-	if (!isV13() || !["x", "y", "width", "height"].some((key) => key in data)) return data;
 	const at = (key) => data[key] ?? current[key] ?? 0;
-	return { ...data, x: at("x") - halfOf(at("width")), y: at("y") - halfOf(at("height")) };
+	const moved = ["x", "y", "width", "height"].some((key) => key in data);
+	if (isV13()) {
+		if (!moved) return data;
+		return { ...data, x: at("x") - halfOf(at("width")), y: at("y") - halfOf(at("height")) };
+	}
+	const anchor = (key) => anchorIn(data.texture, key) ?? anchorIn(current.texture, key) ?? 0.5;
+	const anchored = ["anchorX", "anchorY"].some((key) => anchorIn(data.texture, key) !== undefined);
+	const offset = centreOffset({ width: at("width"), height: at("height"), rotation: at("rotation"), anchorX: anchor("anchorX"), anchorY: anchor("anchorY") });
+	// Anchored on its middle, its x and y are its centre already.
+	if (!anchored && !offset.x && !offset.y) return data;
+	if (!anchored && !moved && !("rotation" in data)) return data;
+	return { ...data, x: Math.round(at("x") - offset.x), y: Math.round(at("y") - offset.y) };
+}
+
+/**
+ * @param {object} data Tile source data or a TileDocument.
+ * @returns {boolean} Whether v14's upgrade anchored the Tile on its top-left corner, as it does every unturned v13 Tile.
+ */
+export function tileCornerAnchored(data) {
+	const source = data?._source ?? data;
+	if (isV13() || !source || source.rotation) return false;
+	return anchorIn(source.texture, "anchorX") === 0 && anchorIn(source.texture, "anchorY") === 0;
+}
+
+/**
+ * tileCentred, for a Realm laid on v13 before its Tiles were placed by their
+ * corners (tilesSettled in rules/realm-documents.js), which has each Tile's
+ * centre in its x and y. v14's upgrade leaves an unturned Tile's x and y as
+ * they were, but moves a turned one's on by half its size, as if from its corner.
+ * @param {object} data Tile source data or a TileDocument.
+ * @returns {object} Source data, as tileCentred gives it.
+ */
+export function tileCentredUnsettled(data) {
+	const source = data?._source ?? data;
+	if (isV13() || !source?.rotation) return source;
+	return { ...source, x: source.x - halfUp(source.width), y: source.y - halfUp(source.height) };
+}
+
+/**
+ * tilePlaced, for a Realm laid on v13 before its Tiles were placed by their
+ * corners, written as it was laid until it's settled: so its anchor is kept,
+ * and on v14 a turned Tile's x and y are moved on as the upgrade moved them.
+ * @param {object} data Creation data, or an update's changes.
+ * @param {object} [current] The Tile as it is, centred (tileCentredUnsettled), for an update.
+ * @returns {object}
+ */
+export function tilePlacedUnsettled(data, current = {}) {
+	if (isV13()) return data;
+	let placed = data;
+	if (["anchorX", "anchorY"].some((key) => anchorIn(data.texture, key) !== undefined)) {
+		const texture = { ...data.texture };
+		delete texture.anchorX;
+		delete texture.anchorY;
+		placed = { ...data, texture };
+		if (!Object.keys(texture).length) delete placed.texture;
+	}
+	const at = (key) => data[key] ?? current[key] ?? 0;
+	if (!at("rotation") || !["x", "y", "width", "height", "rotation"].some((key) => key in data)) return placed;
+	return { ...placed, x: at("x") + halfUp(at("width")), y: at("y") + halfUp(at("height")) };
+}
+
+/**
+ * How to read and write a Realm's Tiles, as they stand.
+ * @param {boolean} settled Whether its Tiles are settled (tilesSettled in rules/realm-documents.js).
+ * @returns {{centred: typeof tileCentred, placed: typeof tilePlaced}} tileCentred and tilePlaced,
+ *   or their Unsettled twins for a Realm laid on v13 before its Tiles were placed by their corners.
+ */
+export const tileReading = (settled) => (settled ? { centred: tileCentred, placed: tilePlaced } : { centred: tileCentredUnsettled, placed: tilePlacedUnsettled });
+
+/**
+ * Where to move a Tile of a Realm laid on v13 before its Tiles were placed by
+ * their corners, once, so it stands as this Foundry places a Tile: by its
+ * top-left corner on v13, and on v14 by its middle, anchored there.
+ * @param {object} data Tile source data or a TileDocument.
+ * @returns {{x: number, y: number, texture?: {anchorX: number, anchorY: number}}} The update's changes.
+ */
+export function tileSettling(data) {
+	const { x, y, width, height } = tileCentredUnsettled(data);
+	if (isV13()) return { x: x - halfOf(width), y: y - halfOf(height) };
+	return { x, y, texture: { anchorX: 0.5, anchorY: 0.5 } };
 }
 
 /**

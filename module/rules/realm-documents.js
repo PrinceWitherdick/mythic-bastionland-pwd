@@ -9,7 +9,7 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
-import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileNameData, tilePlaced } from "../compat.js";
+import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileCornerAnchored, tileNameData, tilePlaced, tileReading } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
@@ -141,19 +141,35 @@ export const realmFlag = (data) => data?.flags?.[SYSTEM_ID]?.[REALM_FLAG] ?? nul
 const flagged = (flag) => ({ [SYSTEM_ID]: { [REALM_FLAG]: flag } });
 
 /**
- * The Scene flag of a Realm whose Tiles stand by their top-left corners, as v13
- * places a Tile. A Realm laid on v13 before the system knew that has each
- * Tile's centre in its x and y, and is read that way until its Tiles are moved
- * (settleRealmTiles in actions/realm.js).
+ * The Scene flag of a Realm whose Tiles stand where Foundry places a Tile: by
+ * their top-left corners on v13, and on v14 by the point each is anchored on.
+ * A Realm laid on v13 before the system knew that has each Tile's centre in
+ * its x and y, and is read that way until its Tiles are moved (settleRealmTiles
+ * in actions/realm.js). v14's upgrade keeps them there, but anchors each
+ * unturned Tile on its corner, so it's found by every one of them having that
+ * anchor, and read the same way. One Tile anchored so by hand on a Realm laid
+ * on v14 leaves it settled, since v14 lays every Tile anchored on its middle.
  */
 export const TILE_CORNERS_FLAG = "tileCorners";
 
 /**
  * @param {object} [flags] A Realm Scene's flags.
+ * @param {Iterable<object>} [tiles] Its Tiles, documents or source data. Without them a Realm on v14 is taken as settled.
  * @returns {boolean} Whether its Tiles stand where this Foundry places a Tile, so tileCentred finds their centres:
- *   always on v14, and on v13 once they stand by their corners.
+ *   once flagged so, and on v14 too unless every unturned Tile of the Realm has the corner anchor v14's upgrade gives a v13 Tile.
  */
-export const tilesSettled = (flags) => !isV13() || Boolean(flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]);
+export function tilesSettled(flags, tiles = []) {
+	if (flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return true;
+	if (isV13()) return false;
+	let upgraded = false;
+	for (const tile of tiles) {
+		const source = tile?._source ?? tile;
+		if (!realmFlag(source) || source.rotation) continue;
+		if (!tileCornerAnchored(source)) return true;
+		upgraded = true;
+	}
+	return !upgraded;
+}
 
 /**
  * @returns {object} Tile data with everything this module decides about a Tile.
@@ -451,7 +467,8 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: openingScale(g) },
 		tiles: tiles.map((tile) => tilePlaced(tile.data)),
 		drawings: drawings.map((drawing) => drawing.data),
-		flags: { [SYSTEM_ID]: { [REALM_FLAG]: realmSceneFlag(realm, g), ...(isV13() ? { [TILE_CORNERS_FLAG]: true } : {}) } }
+		// Flagged on v14 too, so a Tile anchored anew by hand is never taken for one laid on v13.
+		flags: { [SYSTEM_ID]: { [REALM_FLAG]: realmSceneFlag(realm, g), [TILE_CORNERS_FLAG]: true } }
 	};
 }
 
@@ -651,7 +668,8 @@ function changesFor(existing, desired) {
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
- * @param {{tiles?: object[], drawings?: object[]}} existing Source data, each with `_id`; Tiles centred (tileCentred).
+ * @param {{tiles?: object[], drawings?: object[], settled?: boolean}} existing Source data, each with `_id`; Tiles centred
+ *   (tileCentred), or as laid (tileCentredUnsettled) with `settled` false for a Realm whose Tiles aren't settled (tilesSettled).
  * @param {object} [options]
  * @param {boolean} [options.replacing] The Realm replaces the Scene's old one, so icons off the map go too.
  * @returns {{Tile: {create: object[], update: object[], delete: string[]}, Drawing: {create: object[], update: object[], delete: string[]}}}
@@ -659,8 +677,9 @@ function changesFor(existing, desired) {
 export function planRealmSync(realm, g, textures, existing, { replacing = false } = {}) {
 	const desired = realmDocuments(realm, g, textures);
 	const plan = (wanted, current, kind) => {
-		// Tiles are compared by their centres, and written back however this Foundry places them.
-		const placed = kind === "tile" ? tilePlaced : (data) => data;
+		// Tiles are compared by their centres, and written back however this Foundry places them, or as they were laid.
+		const placeTile = tileReading(existing.settled !== false).placed;
+		const placed = kind === "tile" ? placeTile : (data) => data;
 		const byMatch = new Map();
 		const deletions = [];
 		for (const data of current) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { replacementEntry, tileCentred } from "../../module/compat.js";
+import { replacementEntry, tileCentred, tileCentredUnsettled, tileSettling } from "../../module/compat.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 import { LAKE, PICTURE_ROLL, REALM_FLAG, RIVER_SHAPES, TERRAIN, emptyRealm } from "../../module/rules/realm.js";
 import { edgeKey, hexAt, hexCentre, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
@@ -352,14 +352,14 @@ describe("a Realm on Foundry v13, which places a Tile by its top-left corner", (
 	/** The Scene's documents as actions/realm.js hands them over, each Tile centred. */
 	const centred = (snapshot) => ({ ...snapshot, tiles: snapshot.tiles.map(tileCentred) });
 
-	it("marks a Realm laid there as standing by its Tiles' corners, which one laid on v14 needs no mark for", () => {
+	it("marks a Realm laid there as standing by its Tiles' corners, and one laid on v14 as standing where v14 places them", () => {
 		const { scene } = onScene();
 		expect(scene.flags[SYSTEM_ID][TILE_CORNERS_FLAG]).toBe(true);
 		expect(tilesSettled(scene.flags)).toBe(true);
 		// A Realm laid on v13 before the system knew has its Tiles' centres in x and y, and is read so.
 		expect(tilesSettled({ [SYSTEM_ID]: { [REALM_FLAG]: {} } })).toBe(false);
 		globalThis.game = { release: { generation: 14 } };
-		expect(onScene().scene.flags[SYSTEM_ID]).not.toHaveProperty(TILE_CORNERS_FLAG);
+		expect(onScene().scene.flags[SYSTEM_ID][TILE_CORNERS_FLAG]).toBe(true);
 		expect(tilesSettled({})).toBe(true);
 	});
 
@@ -404,6 +404,151 @@ describe("a Realm on Foundry v13, which places a Tile by its top-left corner", (
 		expect(terrain.length).toBeGreaterThan(0);
 		expect(hiddenByHand(hidden, g, seat.hex)).toMatchObject({ terrain: true });
 		expect(hiddenTilesIn(centred(snapshot).tiles, g, ["terrain"], [seat.hex]).map(({ _id }) => _id)).toEqual(terrain.map(({ _id }) => _id));
+	});
+});
+
+/** What v14's upgrade does to a v13 Tile (migratePosition in v14's server Tile). */
+function upgraded(tile) {
+	const data = structuredClone(tile);
+	data.texture ??= {};
+	data.texture.anchorX ??= 0.5;
+	data.texture.anchorY ??= 0.5;
+	if (data.rotation === 0) {
+		data.texture.anchorX -= 0.5;
+		data.texture.anchorY -= 0.5;
+	} else {
+		data.x = Math.round((data.x ?? 0) + data.width / 2);
+		data.y = Math.round((data.y ?? 0) + data.height / 2);
+	}
+	return data;
+}
+
+/** A snapshot's Tiles with an update's changes written in, as Foundry merges them. */
+function written(snapshot, updates) {
+	const byId = new Map(updates.map(({ _id, ...changes }) => [_id, changes]));
+	return {
+		...snapshot,
+		tiles: snapshot.tiles.map((tile) => {
+			const changes = byId.get(tile._id);
+			if (!changes) return tile;
+			return { ...tile, ...changes, texture: { ...tile.texture, ...changes.texture } };
+		})
+	};
+}
+
+describe("a Realm laid on v13 and opened on v14, whose upgrade anchors unturned Tiles on their corners", () => {
+	const textures = realmTextures();
+	afterEach(() => { delete globalThis.game; });
+	const v13 = () => { globalThis.game = { release: { generation: 13 } }; };
+	const v14 = () => { globalThis.game = { release: { generation: 14 } }; };
+	/** The Scene's Tiles centred, as actions/realm.js reads them for how they stand (tilesSettled). */
+	const read = (snapshot) => {
+		const settled = tilesSettled(snapshot.flags, snapshot.tiles);
+		return { ...snapshot, settled, tiles: snapshot.tiles.map((tile) => (settled ? tileCentred(tile) : tileCentredUnsettled(tile))) };
+	};
+	/** Each Tile's centre, by id. */
+	const centresOf = (snapshot, centre) => Object.fromEntries(snapshot.tiles.map((tile) => [tile._id, [Math.round(centre(tile).x), Math.round(centre(tile).y)]]));
+
+	it("reads a Realm laid by its Tiles' corners by their anchors, and puts each Tile right once", () => {
+		v13();
+		const { realm, snapshot: laid } = onScene();
+		const meant = centresOf(laid, tileCentred);
+		v14();
+		const snapshot = { ...laid, tiles: laid.tiles.map(upgraded) };
+		expect(snapshot.tiles.some((tile) => tile.rotation === 0 && tile.texture.anchorX === 0)).toBe(true);
+		expect(snapshot.tiles.some((tile) => tile.rotation !== 0)).toBe(true);
+		expect(tilesSettled(snapshot.flags, snapshot.tiles)).toBe(true);
+		const { realm: back, problems } = realmFromDocuments(read(snapshot), g);
+		expect(problems).toEqual([]);
+		expect(back.terrain).toEqual(realm.terrain);
+		expect(back.holdings.map((holding) => hexKey(holding.hex))).toEqual(realm.holdings.map((holding) => hexKey(holding.hex)));
+		expect(back.myths.map((myth) => hexKey(myth.hex))).toEqual(realm.myths.map((myth) => hexKey(myth.hex)));
+		expect(back.landmarks.map((landmark) => hexKey(landmark.hex))).toEqual(realm.landmarks.map((landmark) => hexKey(landmark.hex)));
+
+		// Each Tile anchored on its corner is anchored on its middle again, at its centre.
+		const plan = planRealmSync(back, g, textures, read(snapshot));
+		expect(plan.Tile.create).toEqual([]);
+		expect(plan.Tile.delete).toEqual([]);
+		for (const tile of snapshot.tiles.filter((each) => each.texture.anchorX === 0)) {
+			expect(plan.Tile.update).toContainEqual(expect.objectContaining({
+				_id: tile._id, x: meant[tile._id][0], y: meant[tile._id][1], texture: expect.objectContaining({ anchorX: 0.5, anchorY: 0.5 })
+			}));
+		}
+		// And once written, there's nothing more to write.
+		const after = written(snapshot, plan.Tile.update);
+		expect(centresOf(after, (tile) => tile)).toEqual(meant);
+		expect(planChanges(planRealmSync(back, g, textures, read(after)))).toBe(false);
+	});
+
+	it("keeps a Realm laid on v14 settled when one of its Tiles is anchored on its corner by hand", () => {
+		v14();
+		const { snapshot: laid } = onScene();
+		// Laid on v14 before Realms were marked so.
+		const unmarked = { ...laid, flags: { [SYSTEM_ID]: { [REALM_FLAG]: laid.flags[SYSTEM_ID][REALM_FLAG] } } };
+		const byHand = unmarked.tiles.findIndex((tile) => !tile.rotation);
+		const tiles = unmarked.tiles.map((tile, index) => (index === byHand ? { ...tile, texture: { ...tile.texture, anchorX: 0, anchorY: 0 } } : tile));
+		expect(tilesSettled(unmarked.flags, tiles)).toBe(true);
+	});
+
+	it("reads a Realm laid by its Tiles' centres, before v13 Tiles were settled, as it was laid, then settles it", () => {
+		v13();
+		const { realm, snapshot: corners } = onScene();
+		// Laid before the system knew v13 places a Tile by its corner: each Tile's centre in its x and y, and no mark.
+		const laid = {
+			...corners,
+			flags: { [SYSTEM_ID]: { [REALM_FLAG]: corners.flags[SYSTEM_ID][REALM_FLAG] } },
+			tiles: corners.tiles.map((tile) => ({ ...tile, x: tileCentred(tile).x, y: tileCentred(tile).y }))
+		};
+		const meant = centresOf(laid, (tile) => tile);
+		v14();
+		const snapshot = { ...laid, tiles: laid.tiles.map(upgraded) };
+		expect(tilesSettled(snapshot.flags, snapshot.tiles)).toBe(false);
+		// Without its Tiles to look at, a Realm on v14 is taken as settled, as it was before.
+		expect(tilesSettled(snapshot.flags)).toBe(true);
+		const { realm: back, problems } = realmFromDocuments(read(snapshot), g);
+		expect(problems).toEqual([]);
+		expect(back.terrain).toEqual(realm.terrain);
+		expect(back.myths.map((myth) => hexKey(myth.hex))).toEqual(realm.myths.map((myth) => hexKey(myth.hex)));
+		expect(centresOf(read(snapshot), (tile) => tile)).toEqual(meant);
+
+		// A look tried out before it's settled is written as it was laid: no anchor changes, so it's still read the same way.
+		const unsettledPlan = planRealmSync(back, g, textures, read(snapshot));
+		expect(unsettledPlan.Tile.update.some((update) => update.texture?.anchorX !== undefined)).toBe(false);
+		expect(centresOf(read(written(snapshot, unsettledPlan.Tile.update)), (tile) => tile)).toEqual(meant);
+
+		// Settled, as settleRealmTiles does, each Tile stands at its centre anchored on its middle.
+		const settled = written({ ...snapshot, flags: { [SYSTEM_ID]: { ...snapshot.flags[SYSTEM_ID], [TILE_CORNERS_FLAG]: true } } },
+			snapshot.tiles.map((tile) => ({ _id: tile._id, ...tileSettling(tile) })));
+		expect(tilesSettled(settled.flags, settled.tiles)).toBe(true);
+		expect(centresOf(settled, (tile) => tile)).toEqual(meant);
+		expect(settled.tiles.every((tile) => tile.texture.anchorX === 0.5 && tile.texture.anchorY === 0.5)).toBe(true);
+		// v13 Tiles have no name, which v14 writes; nothing else needs writing.
+		const plan = planRealmSync(back, g, textures, read(settled));
+		expect(plan.Tile.create).toEqual([]);
+		expect(plan.Tile.delete).toEqual([]);
+		expect(plan.Tile.update.every((update) => Object.keys(update).every((key) => ["_id", "name"].includes(key)))).toBe(true);
+	});
+
+	it("takes no notice of a Tile that isn't the Realm's", () => {
+		v14();
+		const stranger = { _id: "stranger", x: 0, y: 0, rotation: 0, texture: { anchorX: 0, anchorY: 0 }, flags: {} };
+		expect(tilesSettled({}, [stranger])).toBe(true);
+	});
+});
+
+describe("a Realm on v13 not yet settled", () => {
+	const textures = realmTextures();
+	beforeEach(() => { globalThis.game = { release: { generation: 13 } }; });
+	afterEach(() => { delete globalThis.game; });
+
+	it("writes a look tried out by its Tiles' centres, as it was laid", () => {
+		const { snapshot: corners } = onScene();
+		const snapshot = { ...corners, settled: false, tiles: corners.tiles.map(tileCentred) };
+		const holding = snapshot.tiles.find((tile) => flagOf(tile).kind === "holding" && !flagOf(tile).seat);
+		const target = { x: holding.x, y: holding.y };
+		Object.assign(holding, { x: holding.x + 20, y: holding.y - 15 });
+		const { realm } = realmFromDocuments(snapshot, g);
+		expect(planRealmSync(realm, g, textures, snapshot).Tile.update).toContainEqual(expect.objectContaining({ _id: holding._id, ...target }));
 	});
 });
 

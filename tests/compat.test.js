@@ -11,8 +11,12 @@ import {
 	replacementEntry,
 	scenePaper,
 	tileCentred,
+	tileCentredUnsettled,
+	tileCornerAnchored,
 	tileNameData,
 	tilePlaced,
+	tilePlacedUnsettled,
+	tileSettling,
 	toolActivated,
 	watchQuerySenders
 } from "../module/compat.js";
@@ -193,6 +197,107 @@ describe("where a Tile stands", () => {
 		expect(tilePlaced({ width: 85 }, current)).toEqual({ width: 85, x: 58, y: 120 });
 		expect(tilePlaced({ x: 300 }, current)).toEqual({ x: 208, y: 120 });
 		expect(tilePlaced({ hidden: true }, current)).toEqual({ hidden: true });
+	});
+});
+
+/** What v14's upgrade does to a v13 Tile (migratePosition in v14's server Tile). */
+function upgraded(tile) {
+	const data = structuredClone(tile);
+	data.texture ??= {};
+	data.texture.anchorX ??= 0.5;
+	data.texture.anchorY ??= 0.5;
+	if (data.rotation === 0) {
+		data.texture.anchorX -= 0.5;
+		data.texture.anchorY -= 0.5;
+	} else {
+		data.x = Math.round((data.x ?? 0) + data.width / 2);
+		data.y = Math.round((data.y ?? 0) + data.height / 2);
+	}
+	return data;
+}
+
+describe("a Tile v14's upgrade has moved", () => {
+	const anchored = { anchorX: 0.5, anchorY: 0.5 };
+
+	it("is read by the point it's anchored on, its anchor left for a sync to see", () => {
+		run(14);
+		// Laid on v13 by its corner, and anchored there by the upgrade.
+		const tile = { x: 8, y: 120, width: 185, height: 160, rotation: 0, texture: { src: "a.svg", anchorX: 0, anchorY: 0 } };
+		expect(tileCentred(tile)).toEqual({ ...tile, x: 100, y: 200 });
+		expect(tileCentred({ _source: tile })).toMatchObject({ x: 100, y: 200, texture: { anchorX: 0, anchorY: 0 } });
+		// One the system laid on v14 is anchored on its middle, and read as it is.
+		const laid = { x: 100, y: 200, width: 185, height: 160, rotation: 0, texture: { src: "a.svg", ...anchored } };
+		expect(tileCentred(laid)).toBe(laid);
+	});
+
+	it("finds the centre of a Tile turned about its corner", () => {
+		run(14);
+		const centre = tileCentred({ x: 0, y: 0, width: 100, height: 50, rotation: 90, texture: { anchorX: 0, anchorY: 0 } });
+		expect(centre.x).toBeCloseTo(-25);
+		expect(centre.y).toBeCloseTo(50);
+	});
+
+	it("is written back at its centre, anchored on its middle", () => {
+		run(14);
+		const current = tileCentred({ x: 8, y: 120, width: 185, height: 160, rotation: 0, texture: { anchorX: 0, anchorY: 0 } });
+		// Anchored anew, its x and y are written with it, though its centre hasn't moved.
+		expect(tilePlaced({ texture: anchored }, current)).toEqual({ texture: anchored, x: 100, y: 200 });
+		// While it's still anchored on its corner, a new size moves that corner.
+		expect(tilePlaced({ width: 85 }, current)).toEqual({ width: 85, x: 58, y: 120 });
+		expect(tilePlaced({ x: 300 }, current)).toEqual({ x: 208, y: 120 });
+		const hidden = { hidden: true };
+		expect(tilePlaced(hidden, current)).toBe(hidden);
+		// A new Tile anchored on its middle is placed by its centre.
+		expect(tilePlaced({ x: 100, y: 200, width: 185, height: 160, texture: anchored })).toEqual({ x: 100, y: 200, width: 185, height: 160, texture: anchored });
+	});
+
+	it("is told by its corner anchor, which only an unturned Tile is given", () => {
+		run(14);
+		expect(tileCornerAnchored({ rotation: 0, texture: { anchorX: 0, anchorY: 0 } })).toBe(true);
+		expect(tileCornerAnchored({ _source: { rotation: 0, texture: { anchorX: 0, anchorY: 0 } } })).toBe(true);
+		expect(tileCornerAnchored({ rotation: 30, texture: { anchorX: 0, anchorY: 0 } })).toBe(false);
+		expect(tileCornerAnchored({ rotation: 0, texture: anchored })).toBe(false);
+		expect(tileCornerAnchored({ rotation: 0 })).toBe(false);
+		run(13);
+		expect(tileCornerAnchored({ rotation: 0, texture: { anchorX: 0, anchorY: 0 } })).toBe(false);
+	});
+
+	it("comes out at the centre it was laid at, turned or not, by its corner on v13", () => {
+		for (const rotation of [0, 30]) {
+			for (const [width, height, near] of [[186, 160, 0], [185, 161, rotation ? 1 : 0]]) {
+				run(13);
+				const laid = { x: 100, y: 200, width, height, rotation, texture: { src: "a.svg", ...anchored } };
+				const placed = { ...laid, ...tilePlaced(laid) };
+				run(14);
+				const centre = tileCentred(upgraded(placed));
+				// The upgrade rounds half an odd size up, so a turned Tile can come out a pixel off, which a sync puts right.
+				expect(Math.abs(centre.x - 100)).toBeLessThanOrEqual(near);
+				expect(Math.abs(centre.y - 200)).toBeLessThanOrEqual(near);
+			}
+		}
+	});
+
+	it("comes out at the centre it was laid at, turned or not, by its centre on v13 before Tiles were settled", () => {
+		for (const rotation of [0, 30]) {
+			run(14);
+			const tile = upgraded({ x: 100, y: 200, width: 185, height: 161, rotation, texture: { src: "a.svg", ...anchored } });
+			expect(tileCentredUnsettled(tile)).toMatchObject({ x: 100, y: 200 });
+			// Written back as it was laid until it's settled: its anchor kept, and a turned Tile moved on as the upgrade moved it.
+			expect(tilePlacedUnsettled({ x: 100, y: 200, texture: { src: "b.svg", ...anchored } }, tileCentredUnsettled(tile)))
+				.toEqual({ x: tile.x, y: tile.y, texture: { src: "b.svg" } });
+			// Settled once: moved to its centre, anchored on its middle.
+			expect(tileSettling(tile)).toEqual({ x: 100, y: 200, texture: anchored });
+		}
+		expect(tilePlacedUnsettled({ texture: anchored }, { rotation: 0 })).toEqual({});
+	});
+
+	it("leaves a v13 Tile laid by its centre as it is till it's settled by its corner", () => {
+		run(13);
+		const tile = { x: 100, y: 200, width: 185, height: 160, rotation: 30 };
+		expect(tileCentredUnsettled(tile)).toBe(tile);
+		const data = { x: 120, width: 85 };
+		expect(tilePlacedUnsettled(data, tile)).toBe(data);
+		expect(tileSettling({ _source: tile })).toEqual({ x: 8, y: 120 });
 	});
 });
 

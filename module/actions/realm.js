@@ -6,7 +6,7 @@ import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { keyChoices, postCard, t } from "../chat/cards.js";
-import { deletionEntry, scenePaper, tileCentred, tilePlaced } from "../compat.js";
+import { deletionEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
@@ -198,46 +198,70 @@ export function hexHiddenByHand(scene, hex) {
  * @param {string} [sceneId] Omit to forget every Realm.
  */
 export function forgetRealm(sceneId) {
-	if (sceneId) realms.delete(sceneId);
-	else realms.clear();
+	if (sceneId) {
+		realms.delete(sceneId);
+		settledScenes.delete(sceneId);
+	} else {
+		realms.clear();
+		settledScenes.clear();
+	}
+}
+
+/** @type {Map<string, boolean>} Whether each unflagged Realm's Tiles are settled, kept until its documents change. */
+const settledScenes = new Map();
+
+/**
+ * tilesSettled for a Scene, its Tiles read once until any of them changes
+ * (forgetRealm), and not at all once the Scene is flagged settled.
+ * @param {Scene|null|undefined} scene
+ * @returns {boolean}
+ */
+export function realmTilesSettled(scene) {
+	if (scene?.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return true;
+	if (!scene?.id) return tilesSettled(scene?.flags, scene?.tiles ?? []);
+	let settled = settledScenes.get(scene.id);
+	if (settled === undefined) settledScenes.set(scene.id, settled = tilesSettled(scene.flags, scene.tiles));
+	return settled;
 }
 
 /**
  * @param {Scene} scene
- * @returns {{tiles: object[], drawings: object[]}} The source data planRealmSync compares against,
- *   each Tile centred, as the Realm's rules read every Tile.
+ * @returns {{tiles: object[], drawings: object[], settled: boolean}} The source data planRealmSync compares against,
+ *   each Tile centred, as the Realm's rules read every Tile, and whether its Tiles are settled (tilesSettled).
  */
-const existingDocuments = (scene) => ({
-	tiles: centredTiles(scene),
-	drawings: scene.drawings.map((drawing) => drawing._source)
-});
+function existingDocuments(scene) {
+	const settled = realmTilesSettled(scene);
+	return { tiles: centredTiles(scene, settled), drawings: scene.drawings.map((drawing) => drawing._source), settled };
+}
 
 /**
  * @param {Scene} scene
- * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand (tilesSettled).
+ * @param {boolean} [settled] Whether its Tiles are settled (tilesSettled), if already known.
+ * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand.
  */
-const tileCentreOn = (scene) => (tilesSettled(scene.flags) ? tileCentred : (tile) => tile._source);
+const tileCentreOn = (scene, settled = realmTilesSettled(scene)) => tileReading(settled).centred;
 
 /**
  * @param {Scene} scene A Realm Scene.
+ * @param {boolean} [settled] Whether its Tiles are settled (tilesSettled), if already known.
  * @returns {object[]} Each of its Tiles' source data, with its `_id` and its centre in x and y, as the Realm's rules read a Tile.
  */
-export const centredTiles = (scene) => scene.tiles.map(tileCentreOn(scene));
+export const centredTiles = (scene, settled) => scene.tiles.map(tileCentreOn(scene, settled));
 
 /**
  * Move each Tile of a Realm laid on v13 before Tiles were placed there by their
- * corners from its centre to its corner, once, so every write after places
- * them all alike. Nothing to do on v14, or on a Realm already moved.
+ * corners to where this Foundry places a Tile, once, so every write after places
+ * them all alike: its corner on v13, its centre anchored there on v14.
+ * A Realm laid on v14 before it was flagged has nothing to move, and is only
+ * flagged, so its Tiles aren't searched again.
  * @param {Scene} scene
  */
 async function settleRealmTiles(scene) {
-	if (tilesSettled(scene.flags)) return;
-	const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => {
-		const { x, y, width, height } = tile._source;
-		const corner = tilePlaced({ x, y, width, height });
-		return { _id: tile.id, x: corner.x, y: corner.y };
-	});
-	if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+	if (scene.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return;
+	if (!realmTilesSettled(scene)) {
+		const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => ({ _id: tile.id, ...tileSettling(tile) }));
+		if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+	}
 	await scene.update({ [`flags.${SYSTEM_ID}.${TILE_CORNERS_FLAG}`]: true });
 }
 
