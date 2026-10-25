@@ -79,14 +79,16 @@ const pieceSize = (g) => ({ width: 2 * g.radius, height: g.size });
  * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean, pictures?: string[]}>,
  *   holding: Record<string, {src: string}>, landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>,
  *   seat: {src: string}, river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
- *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null}} A terrain picture
+ *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null,
+ *   alpha: {holding: number, landmark: number, myth: number}} A terrain picture
  *   is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex
  *   takes its place, as on the Blank Realm sheet. It has `pictures`, its own first, when the skin draws the terrain
  *   more than one way, in pictureOf's order; a GM's own picture is the only one. `lake` is there when the skin joins
- *   its lakes up; a GM's own Lake picture is left as it is.
+ *   its lakes up; a GM's own Lake picture is left as it is. `alpha` is how strongly each icon is drawn, a Seat's crown
+ *   as its Holding.
  */
 export function realmTextures(look = null) {
-	const { skin, palette, custom } = normaliseRealmLook(look);
+	const { skin, palette, custom, fade } = normaliseRealmLook(look);
 	const dir = realmSetDir(skin, palette);
 	const picture = (name) => ({ src: custom.files[name] ?? `${dir}/${name}.svg` });
 	const skinPicture = (name) => ({ src: `${dir}/${name}.svg` });
@@ -120,7 +122,8 @@ export function realmTextures(look = null) {
 			shore: Object.fromEntries(SHORE_SHAPES.map((shape) => [shape, skinPicture(PICTURE_NAME.shore(shape))])),
 			mouth: skinPicture(PICTURE_NAME.mouth)
 		} : null,
-		colours: sceneColours(palette)
+		colours: sceneColours(palette),
+		alpha: fade
 	};
 }
 
@@ -364,6 +367,7 @@ export function realmDocuments(realm, g, textures) {
 		texture: { ...texture, fit: "contain" },
 		sort: REALM_SORT.feature,
 		locked: false,
+		alpha: textures.alpha?.[kind] ?? 1,
 		...extra
 	});
 
@@ -393,6 +397,7 @@ export function realmDocuments(realm, g, textures) {
 				texture: { ...textures.seat, fit: "contain" },
 				sort: REALM_SORT.seat,
 				locked: true,
+				alpha: textures.alpha?.holding ?? 1,
 				flag: { kind: "seat" }
 			})
 		});
@@ -629,15 +634,34 @@ function existingMatch(g, kind, data, replacing) {
 	}
 }
 
-/** Fields planRealmSync keeps as they are on a document that already exists. */
-const KEPT_ON_UPDATE = Object.freeze({ terrain: ["hidden"], river: ["hidden"], shore: ["hidden"], mouth: ["hidden"], seat: ["hidden"], holding: ["hidden"] });
+/**
+ * Fields planRealmSync keeps as they are on a document that already exists. A Referee may fade the icons by hand,
+ * as over a map that draws its own Holdings and Landmarks; the ground and water's fading is the Realm's own.
+ */
+const KEPT_ON_UPDATE = Object.freeze({
+	terrain: ["hidden"],
+	river: ["hidden"],
+	shore: ["hidden"],
+	mouth: ["hidden"],
+	seat: ["hidden", "alpha"],
+	holding: ["hidden", "alpha"],
+	myth: ["alpha"],
+	landmark: ["alpha"]
+});
+
+/** What each kind of Tile is faded with, when its look's fading is changed: a Seat's crown goes with its Holding. */
+const FADED_WITH = Object.freeze({ holding: "holding", seat: "holding", landmark: "landmark", myth: "myth" });
 
 /**
+ * @param {object} existing
+ * @param {object} desired
+ * @param {string[]} [refade] The icons whose fading has just been changed, so a Referee's own fading of them gives way.
  * @returns {object|null} The changes that bring `existing` in line with `desired`, or null when none are needed.
  */
-function changesFor(existing, desired) {
+function changesFor(existing, desired, refade = []) {
 	const kind = realmFlag(desired)?.kind;
-	const kept = KEPT_ON_UPDATE[kind] ?? [];
+	const refaded = refade.includes(FADED_WITH[kind]);
+	const kept = (KEPT_ON_UPDATE[kind] ?? []).filter((key) => !(refaded && key === "alpha"));
 	const changes = {};
 	const differs = (a, b) => (typeof a === "number" && typeof b === "number" ? Math.abs(a - b) > 0.01 : JSON.stringify(a ?? null) !== JSON.stringify(b ?? null));
 
@@ -672,9 +696,10 @@ function changesFor(existing, desired) {
  *   (tileCentred), or as laid (tileCentredUnsettled) with `settled` false for a Realm whose Tiles aren't settled (tilesSettled).
  * @param {object} [options]
  * @param {boolean} [options.replacing] The Realm replaces the Scene's old one, so icons off the map go too.
+ * @param {string[]} [options.refade] Icons (FADED_ICONS in realm-skins.js) drawn at their look's strength even where a Referee faded them by hand.
  * @returns {{Tile: {create: object[], update: object[], delete: string[]}, Drawing: {create: object[], update: object[], delete: string[]}}}
  */
-export function planRealmSync(realm, g, textures, existing, { replacing = false } = {}) {
+export function planRealmSync(realm, g, textures, existing, { replacing = false, refade = [] } = {}) {
 	const desired = realmDocuments(realm, g, textures);
 	const plan = (wanted, current, kind) => {
 		// Tiles are compared by their centres, and written back however this Foundry places them, or as they were laid.
@@ -703,7 +728,7 @@ export function planRealmSync(realm, g, textures, existing, { replacing = false 
 				continue;
 			}
 			used.add(match);
-			const changes = changesFor(found, data);
+			const changes = changesFor(found, data, refade);
 			if (changes) update.push({ _id: found._id, ...placed(changes, found) });
 		}
 		for (const [match, data] of byMatch) {

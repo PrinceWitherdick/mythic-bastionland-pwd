@@ -1,6 +1,6 @@
 import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
-import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
+import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmGridAlpha, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
 import { drawingSecrets, realmKnown } from "../actions/solo.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
@@ -214,7 +214,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 			change: text("change"),
 			gridLabel: text("gridLines"),
 			gridHint: text("gridLinesHint"),
-			grid: Math.round((canvas.scene?.grid?.alpha ?? GRID_ALPHA) * 100)
+			grid: Math.round((realmGridAlpha(canvas.scene) ?? GRID_ALPHA) * 100)
 		};
 	}
 

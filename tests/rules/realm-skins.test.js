@@ -8,6 +8,7 @@ import {
 	REALM_SKINS,
 	customPictureName,
 	defaultRealmLook,
+	lookForNewRealms,
 	matchCustomFiles,
 	normaliseRealmLook,
 	OWN_SKIN_ROOT,
@@ -17,6 +18,7 @@ import {
 	ownSkinSlug,
 	paletteSwatches,
 	readOwnSkin,
+	refadedIcons,
 	realmPalette,
 	realmSetDir,
 	sceneColours,
@@ -59,7 +61,7 @@ describe("normaliseRealmLook", () => {
 	it("fills in the default for anything missing or unknown", () => {
 		expect(normaliseRealmLook(null)).toEqual(defaultRealmLook());
 		expect(normaliseRealmLook({ skin: "chalk", palette: "neon", bookIcons: true, custom: { terrainFit: "stretch", files: { forest: "a.png", "terrain-forest": "", seat: "b.png" } } }))
-			.toEqual({ skin: "sheet", palette: "parchment", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } } });
+			.toEqual({ skin: "sheet", palette: "parchment", custom: { folder: "", terrainFit: "hex", files: { seat: "b.png" } }, fade: { holding: 1, landmark: 1, myth: 1 } });
 	});
 
 	it("reads pictures saved when terrain went by number under the terrain's name", () => {
@@ -68,8 +70,33 @@ describe("normaliseRealmLook", () => {
 	});
 
 	it("keeps a look that's already sound", () => {
-		const look = { skin: "atlas", palette: "ashen", custom: { folder: `${REALM_CUSTOM_DIR}`, terrainFit: "icon", files: { "myth-2": "x.webp" } } };
+		const look = {
+			skin: "atlas",
+			palette: "ashen",
+			custom: { folder: `${REALM_CUSTOM_DIR}`, terrainFit: "icon", files: { "myth-2": "x.webp" } },
+			fade: { holding: 0.25, landmark: 0, myth: 1 }
+		};
 		expect(normaliseRealmLook(look)).toEqual(look);
+	});
+
+	it("keeps each icon's fading between nothing and full, in hundredths, and full where it's unreadable", () => {
+		expect(normaliseRealmLook({ fade: { holding: -2, landmark: 1.5, myth: 0.333, seat: 0, grid: 0 } }).fade).toEqual({ holding: 0, landmark: 1, myth: 0.33 });
+		expect(normaliseRealmLook({ fade: { holding: "0", landmark: null, myth: Number.NaN } }).fade).toEqual({ holding: 1, landmark: 1, myth: 1 });
+		expect(normaliseRealmLook({ fade: "faint" }).fade).toEqual({ holding: 1, landmark: 1, myth: 1 });
+	});
+});
+
+describe("lookForNewRealms", () => {
+	it("starts new Realms with every icon in full, whatever the Realm it was set on faded", () => {
+		const look = { skin: "atlas", palette: "ashen", fade: { holding: 0, landmark: 0.5, myth: 0 } };
+		expect(lookForNewRealms(look)).toEqual({ ...normaliseRealmLook(look), fade: { holding: 1, landmark: 1, myth: 1 } });
+	});
+});
+
+describe("refadedIcons", () => {
+	it("names the icons two looks draw at different strengths", () => {
+		expect(refadedIcons(defaultRealmLook(), { fade: { holding: 0, landmark: 1, myth: 0.5 } })).toEqual(["holding", "myth"]);
+		expect(refadedIcons({ skin: "atlas" }, { skin: "seal" })).toEqual([]);
 	});
 });
 
@@ -140,10 +167,12 @@ describe("skins of the GM's own", () => {
 
 	it("draws with its pictures over its base skin, and is known again in a look", () => {
 		const skin = readOwnSkin({ name: "Inked", base: "woodcut", terrainFit: "icon", files: { seat: "seat.webp" } }, folder);
-		const look = ownSkinLook(skin, "midnight");
-		expect(look).toEqual({ skin: "woodcut", palette: "midnight", custom: { folder, terrainFit: "icon", files: { seat: `${folder}/seat.webp` } } });
+		const look = ownSkinLook(skin, { palette: "midnight" });
+		expect(look).toEqual({ skin: "woodcut", palette: "midnight", custom: { folder, terrainFit: "icon", files: { seat: `${folder}/seat.webp` } }, fade: { holding: 1, landmark: 1, myth: 1 } });
 		expect(ownSkinOf(look, [skin])).toBe(skin);
 		expect(ownSkinOf(defaultRealmLook(), [skin])).toBeNull();
+		// The look it replaces keeps its fading.
+		expect(ownSkinLook(skin, { palette: "midnight", fade: { holding: 0.5, landmark: 1, myth: 1 } }).fade.holding).toBe(0.5);
 	});
 
 	it("puts a saved skin in the list by name, in place of what it was, and takes a removed one out", () => {

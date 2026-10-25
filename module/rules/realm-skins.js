@@ -292,10 +292,54 @@ export const realmSetDir = (skin, paletteKey) => `${REALM_SKIN_ROOT}/${REALM_SKI
  * @property {string} palette
  * @property {{folder: string, terrainFit: string, files: Record<string, string>}} custom Pictures of the GM's own,
  *   by picture name, from `folder`.
+ * @property {RealmFade} fade How strongly each kind of icon is drawn on this Realm, 0 to 1.
  */
 
+/**
+ * @typedef {object} RealmFade  How strongly a Realm's icons are drawn, each 0 to 1: faded, as over a map of the
+ *   Referee's own that already draws them. A Seat's crown goes with its Holding.
+ * @property {number} holding
+ * @property {number} landmark
+ * @property {number} myth
+ */
+
+/** The icons a Realm's look can fade. */
+export const FADED_ICONS = Object.freeze(["holding", "landmark", "myth"]);
+
+/** @returns {RealmFade} Every icon drawn in full. */
+const fullStrength = () => Object.fromEntries(FADED_ICONS.map((kind) => [kind, 1]));
+
 /** @returns {RealmLook} */
-export const defaultRealmLook = () => ({ skin: REALM_SKINS[0], palette: REALM_PALETTES[0].key, custom: { folder: "", terrainFit: "hex", files: {} } });
+export const defaultRealmLook = () => ({
+	skin: REALM_SKINS[0],
+	palette: REALM_PALETTES[0].key,
+	custom: { folder: "", terrainFit: "hex", files: {} },
+	fade: fullStrength()
+});
+
+/**
+ * @param {unknown} value
+ * @returns {number} A strength from 0 to 1, in whole hundredths; full for anything that isn't a number.
+ */
+const strength = (value) => (typeof value === "number" && Number.isFinite(value) ? Math.round(Math.min(1, Math.max(0, value)) * 100) / 100 : 1);
+
+/**
+ * The look a Realm starts with when this one was last applied: its fading belongs to the Realm it was set on, as
+ * a new Realm has no map of the Referee's own under it yet.
+ * @param {object} look
+ * @returns {RealmLook}
+ */
+export const lookForNewRealms = (look) => ({ ...normaliseRealmLook(look), fade: fullStrength() });
+
+/**
+ * @param {object} was
+ * @param {object} now
+ * @returns {string[]} The icons two looks draw at different strengths.
+ */
+export const refadedIcons = (was, now) => {
+	const [before, after] = [normaliseRealmLook(was).fade, normaliseRealmLook(now).fade];
+	return FADED_ICONS.filter((kind) => before[kind] !== after[kind]);
+};
 
 /**
  * A saved look with anything unknown put back to the default.
@@ -319,7 +363,8 @@ export function normaliseRealmLook(look) {
 			folder: typeof custom.folder === "string" ? custom.folder : "",
 			terrainFit: TERRAIN_FITS.includes(custom.terrainFit) ? custom.terrainFit : fallback.custom.terrainFit,
 			files
-		}
+		},
+		fade: Object.fromEntries(FADED_ICONS.map((kind) => [kind, strength(look?.fade?.[kind])]))
 	};
 }
 
@@ -452,14 +497,15 @@ export function readOwnSkin(manifest, folder) {
 }
 
 /**
- * The look that draws with an own skin.
+ * The look that draws with an own skin, keeping the colours and fading of the look it replaces.
  * @param {OwnSkin} skin
- * @param {string} palette
+ * @param {{palette?: string, fade?: object}} [look]
  * @returns {RealmLook}
  */
-export const ownSkinLook = (skin, palette) => normaliseRealmLook({
+export const ownSkinLook = (skin, { palette, fade } = {}) => normaliseRealmLook({
 	skin: skin.base,
 	palette,
+	fade,
 	custom: { folder: skin.folder, terrainFit: skin.terrainFit, files: skin.files }
 });
 

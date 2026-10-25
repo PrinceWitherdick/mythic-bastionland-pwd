@@ -52,6 +52,23 @@
 		</div>
 	</section>
 
+	{{#if fades}}
+	<section class="bastionland-realm-appearance__section">
+		<h3>{{localize "bastionland.realm.look.fade.title"}}</h3>
+		<p class="hint">{{localize "bastionland.realm.look.fade.hint"}}</p>
+		{{!-- The number follows the handle as it's dragged; the map shows the new strength when it's let go. --}}
+		<div class="bastionland-realm-appearance__fades">
+			{{#each fades}}
+			<label class="bastionland-realm-appearance__fade">
+				<span>{{label}}</span>
+				<input type="range" min="0" max="100" step="5" value="{{value}}" data-fade="{{key}}" aria-label="{{label}}">
+				<output>{{value}}%</output>
+			</label>
+			{{/each}}
+		</div>
+	</section>
+	{{/if}}
+
 	<section class="bastionland-realm-appearance__section">
 		<h3>{{localize "bastionland.realm.look.preview"}}</h3>
 		<div class="bastionland-realm-appearance__preview" style="background: {{paper}}">

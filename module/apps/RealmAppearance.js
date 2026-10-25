@@ -1,8 +1,19 @@
 import { loadOwnSkins, removeOwnSkin } from "../actions/own-skins.js";
-import { REALM_LOOK_HOOK, endRealmLookPreview, getRealmLook, isRealmScene, previewRealmLook, setRealmLook } from "../actions/realm.js";
+import {
+	REALM_LOOK_HOOK,
+	endRealmLookPreview,
+	getRealmLook,
+	gridAlphaDiffers,
+	isRealmScene,
+	previewRealmLook,
+	realmGridAlpha,
+	setRealmGridAlpha,
+	setRealmLook
+} from "../actions/realm.js";
 import { t } from "../chat/cards.js";
 import { realmTextures } from "../rules/realm-documents.js";
 import {
+	FADED_ICONS,
 	REALM_PALETTES,
 	REALM_SKINS,
 	normaliseRealmLook,
@@ -29,10 +40,21 @@ const viewedRealm = () => (isRealmScene(canvas?.scene) ? canvas.scene : null);
 const sameLook = (a, b) => JSON.stringify(normaliseRealmLook(a)) === JSON.stringify(normaliseRealmLook(b));
 
 /**
+ * Draw the hex lines of the Realm Scene in view at a strength on this screen alone, as the look's preview does its Tiles.
+ * @param {Scene|null} scene
+ * @param {number|null} alpha
+ */
+function showGridStrength(scene, alpha) {
+	if (alpha === null || !scene || scene !== canvas?.scene) return;
+	const mesh = canvas.interface?.grid?.mesh;
+	if (mesh && !mesh.destroyed) mesh.initialize?.({ alpha });
+}
+
+/**
  * The GM's window for how a Realm Scene looks: a skin, shipped or made of
- * their own pictures, and a colour set. Choices are tried out in the preview, and reach the
- * Realm Scene being viewed when applied. With no Realm Scene in view, they
- * only change the look new Realms start with.
+ * their own pictures, and a colour set, and how strongly its icons and hex lines are drawn.
+ * Choices are tried out in the preview, and reach the Realm Scene being viewed when applied.
+ * With no Realm Scene in view, they only change the look new Realms start with.
  */
 export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(ApplicationV2)) {
 	static DEFAULT_OPTIONS = {
@@ -64,6 +86,15 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** The look being tried out. */
 	#draft = getRealmLook(this.#scene);
 
+	/** @type {number|null} How strongly the hex lines are drawn, being tried out; the Scene keeps it, not the look. */
+	#grid = realmGridAlpha(this.#scene);
+
+	/** @type {number|null} The hex lines' strength as the window took it up, to tell whether it's been tried at another. */
+	#gridTaken = this.#grid;
+
+	/** @type {number|null} */
+	#sceneHook = null;
+
 	/** @type {import("../rules/realm-skins.js").OwnSkin[]} The skins made of GMs' own pictures, on this server. */
 	#ownSkins = [];
 
@@ -81,6 +112,36 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	#takeUpViewedRealm() {
 		this.#scene = viewedRealm();
 		this.#draft = getRealmLook(this.#scene);
+		this.#takeUpGrid();
+	}
+
+	/** Take up the hex lines' strength the Realm Scene has. */
+	#takeUpGrid() {
+		this.#grid = realmGridAlpha(this.#scene);
+		this.#gridTaken = this.#grid;
+	}
+
+	/** @returns {{look: boolean, grid: boolean}} What's being tried out that the Scene doesn't have: another look, hex lines at another strength. */
+	#changes() {
+		return {
+			look: !sameLook(this.#draft, getRealmLook(this.#scene)),
+			grid: gridAlphaDiffers(this.#grid, realmGridAlpha(this.#scene))
+		};
+	}
+
+	/** @returns {boolean} Whether there's anything to apply. */
+	#changed() {
+		const { look, grid } = this.#changes();
+		return look || grid;
+	}
+
+	/**
+	 * Show what's being tried out on the Realm Scene being viewed, for this GM only. A look's colours may draw the
+	 * Scene again, which puts its hex lines back as saved, so their strength is shown once that's done.
+	 */
+	#preview() {
+		const [scene, grid] = [this.#scene, this.#grid];
+		previewRealmLook(this.#draft).then(() => showGridStrength(scene, grid));
 	}
 
 	/** @override */
@@ -123,7 +184,12 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 			paper: textures.colours.paper,
 			groups: realmPictureGroups(draft, textures),
 			target: this.#scene ? t("realm.look.target.scene", { name: this.#scene.name }) : t("realm.look.target.none"),
-			changed: !sameLook(draft, getRealmLook(this.#scene))
+			// Fading belongs to one Realm, so there's none to set for the look new Realms start with.
+			fades: this.#scene ? [
+				...FADED_ICONS.map((kind) => ({ key: kind, label: t(`realm.look.fade.${kind}`), value: Math.round(draft.fade[kind] * 100) })),
+				{ key: "grid", label: t("realm.look.fade.grid"), value: Math.round(this.#grid * 100) }
+			] : null,
+			changed: this.#changed()
 		});
 	}
 
@@ -139,8 +205,16 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		// The window follows the GM to another Scene. Unapplied choices carry over and show there; otherwise it shows that Scene's own look.
 		this.#canvasHook = Hooks.on("canvasReady", () => {
 			const unchanged = sameLook(this.#draft, getRealmLook(this.#scene));
+			const gridUnchanged = this.#grid === this.#gridTaken;
 			this.#scene = viewedRealm();
 			if (unchanged) this.#draft = getRealmLook(this.#scene);
+			if (gridUnchanged || !this.#scene) this.#takeUpGrid();
+			if (this.rendered) this.render();
+		});
+		// Hex lines set elsewhere, as while drawing the Realm, become what's tried here unless they're being tried at another strength.
+		this.#sceneHook = Hooks.on("updateScene", (scene, changes) => {
+			if (scene !== this.#scene || changes.grid?.alpha === undefined || this.#grid !== this.#gridTaken) return;
+			this.#takeUpGrid();
 			if (this.rendered) this.render();
 		});
 	}
@@ -148,8 +222,33 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** @override */
 	_onRender(context, options) {
 		super._onRender(context, options);
-		// What's being tried out shows on the Realm Scene being viewed, for this GM only.
-		previewRealmLook(this.#draft);
+		this.#preview();
+		this.#wireFades();
+	}
+
+	/** The sliders: the number follows the handle, and letting go tries the strength out. */
+	#wireFades() {
+		for (const input of this.element.querySelectorAll("input[data-fade]")) {
+			const output = input.parentElement.querySelector("output");
+			input.addEventListener("input", () => {
+				if (output) output.value = `${input.value}%`;
+			});
+			input.addEventListener("change", () => this.#setFade(input.dataset.fade, Number(input.value) / 100));
+		}
+	}
+
+	/**
+	 * @param {string} kind One of FADED_ICONS, or "grid" for the hex lines.
+	 * @param {number} alpha 0 to 1.
+	 */
+	#setFade(kind, alpha) {
+		if (kind === "grid") this.#grid = alpha;
+		else if (FADED_ICONS.includes(kind)) this.#draft = normaliseRealmLook({ ...this.#draft, fade: { ...this.#draft.fade, [kind]: alpha } });
+		else return;
+		// Only the preview and the Apply button change, so the window isn't drawn again, and the slider keeps the keyboard's focus.
+		this.#preview();
+		const apply = this.element.querySelector("[data-action='apply']");
+		if (apply) apply.disabled = !this.#changed();
 	}
 
 	/** @override */
@@ -157,11 +256,14 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		super._onClose(options);
 		// Whatever wasn't applied is let go, and the Scenes go back to the saved look.
 		this.#takeUpViewedRealm();
-		endRealmLookPreview();
+		const [scene, grid] = [this.#scene, this.#grid];
+		endRealmLookPreview().then(() => showGridStrength(scene, grid));
 		if (this.#hook !== null) Hooks.off(REALM_LOOK_HOOK, this.#hook);
 		if (this.#canvasHook !== null) Hooks.off("canvasReady", this.#canvasHook);
+		if (this.#sceneHook !== null) Hooks.off("updateScene", this.#sceneHook);
 		this.#hook = null;
 		this.#canvasHook = null;
+		this.#sceneHook = null;
 	}
 
 	/** @param {Partial<import("../rules/realm-skins.js").RealmLook>} changes */
@@ -191,7 +293,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 			onSaved: (saved) => {
 				// Put in the list as saved, rather than reading every skin from the server again.
 				this.#ownSkins = withOwnSkin(this.#ownSkins, saved);
-				this.#change(ownSkinLook(saved, this.#draft.palette));
+				this.#change(ownSkinLook(saved, this.#draft));
 			}
 		}).render({ force: true });
 	}
@@ -208,7 +310,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** @this {RealmAppearance} */
 	static #onPickOwnSkin(_event, target) {
 		const skin = this.#ownSkinAt(target);
-		if (skin) this.#change(ownSkinLook(skin, this.#draft.palette));
+		if (skin) this.#change(ownSkinLook(skin, this.#draft));
 	}
 
 	/** @this {RealmAppearance} */
@@ -252,10 +354,13 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 	/** @this {RealmAppearance} */
 	static async #onApply() {
 		const scene = this.#scene;
-		if (sameLook(this.#draft, getRealmLook(scene))) return;
+		const { look: lookChanged, grid: gridChanged } = this.#changes();
+		if (!lookChanged && !gridChanged) return;
 		// The preview only changed this browser's copy, which would make the saved Scene look up to date already.
 		await endRealmLookPreview({ redraw: false });
-		await setRealmLook(scene, this.#draft);
+		// A new look carries the hex lines' strength in its own write of the Scene.
+		if (lookChanged) await setRealmLook(scene, this.#draft, gridChanged ? { gridAlpha: this.#grid } : {});
+		else await setRealmGridAlpha(scene, this.#grid);
 		ui.notifications.info(scene ? t("realm.look.applied", { name: scene.name }) : t("realm.look.appliedDefault"));
 		await this.close();
 	}

@@ -27,7 +27,7 @@ import {
 	realmTextures,
 	tilesSettled
 } from "../rules/realm-documents.js";
-import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
+import { defaultRealmLook, lookForNewRealms, normaliseRealmLook, refadedIcons } from "../rules/realm-skins.js";
 import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
 import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
 import { generateRealm } from "../rules/realm-generator.js";
@@ -86,25 +86,30 @@ export function getRealmLook(scene) {
 const lookFlag = (look) => ({ [`flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`]: normaliseRealmLook(look) });
 
 /**
- * Give a Realm Scene a look of its own and redraw it in that look. The look
- * also becomes the one new Realm Scenes start with; no other Scene changes.
+ * Give a Realm Scene a look of its own and redraw it in that look. The look,
+ * all but its fading, also becomes the one new Realm Scenes start with; no other
+ * Scene changes. Icons whose fading changes are all drawn at the new strength,
+ * even those a Referee faded by hand.
  * @param {Scene|null} scene A Realm Scene, or null to change only what new Realms start with.
  * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @param {object} [options]
+ * @param {number} [options.gridAlpha] A strength for the Scene's hex lines, written with the look.
  * @returns {Promise<void>}
  */
-export async function setRealmLook(scene, look) {
+export async function setRealmLook(scene, look, { gridAlpha } = {}) {
 	if (!game.user.isGM) return;
 	// Scenes still drawn in the old default keep it, rather than drifting to the new one as they're edited.
 	await keepRealmLooks();
 	if (isRealmScene(scene)) {
 		const textures = realmTextures(look);
+		const refade = refadedIcons(getRealmLook(scene), look);
 		await queueRealmWrite(async () => {
-			await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures);
+			await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures, { refade });
 			// The flag rides with the colours, so the Scene is drawn again once.
-			await paintRealmScene(scene, textures.colours, lookFlag(look));
+			await paintRealmScene(scene, textures.colours, { ...lookFlag(look), ...gridAlphaChange(scene, gridAlpha) });
 		});
 	}
-	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, normaliseRealmLook(look));
+	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, lookForNewRealms(look));
 }
 
 /**
@@ -280,12 +285,13 @@ const queueRealmWrite = serialWrites();
  * @param {ReturnType<typeof realmTextures>} textures
  * @param {object} [options]
  * @param {boolean} [options.replacing] Passed to planRealmSync.
+ * @param {string[]} [options.refade] Passed to planRealmSync.
  * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function writeRealm(scene, realm, g, textures, { replacing = false, operation = {} } = {}) {
+async function writeRealm(scene, realm, g, textures, { replacing = false, refade = [], operation = {} } = {}) {
 	await settleRealmTiles(scene);
-	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing });
+	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing, refade });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
 	if (flag) {
@@ -335,9 +341,28 @@ async function paintRealmScene(scene, colours, extra = {}) {
  */
 export async function setRealmGridAlpha(scene, alpha) {
 	if (!game.user.isGM || !isRealmScene(scene)) return;
+	const change = gridAlphaChange(scene, alpha);
+	if (!foundry.utils.isEmpty(change)) await scene.update(change);
+}
+
+/**
+ * @param {Scene|null} scene
+ * @returns {number|null} How strongly a Realm Scene's hex lines are drawn, 0 to 1, as saved; null with no Scene.
+ */
+export const realmGridAlpha = (scene) => (scene ? scene._source.grid?.alpha ?? GRID_ALPHA : null);
+
+/** @returns {boolean} Whether two strengths of hex lines differ by more than a slider can tell. */
+export const gridAlphaDiffers = (a, b) => a !== null && b !== null && Math.abs(a - b) > 0.005;
+
+/**
+ * @param {Scene} scene
+ * @param {number|undefined} alpha
+ * @returns {object} The change that draws the Scene's hex lines at that strength, or none where they already are.
+ */
+function gridAlphaChange(scene, alpha) {
+	if (alpha === undefined) return {};
 	const wanted = Math.min(1, Math.max(0, Number(alpha) || 0));
-	if (Math.abs((scene._source.grid?.alpha ?? GRID_ALPHA) - wanted) < 0.005) return;
-	await scene.update({ "grid.alpha": wanted });
+	return gridAlphaDiffers(realmGridAlpha(scene), wanted) ? { "grid.alpha": wanted } : {};
 }
 
 /**
@@ -405,15 +430,16 @@ export function endRealmLookPreview({ redraw = true } = {}) {
 	});
 }
 
-/** Tiles a look being tried out hides on this client, by Scene id: each Tile's id, and the alpha it had. */
-const previewHidden = new Map();
+/** Tiles a look being tried out hides or fades on this client, by Scene id: each Tile's id, and the alpha it had. */
+const previewAlpha = new Map();
 
 /**
  * Change a Realm Scene's documents to a look in this client's memory only.
  * Some looks draw Tiles others don't, such as the sheet's lake shores: trying
  * a look out hides those it has no use for, and draws those it adds on the
- * canvas alone, with no document behind them. Showing the saved look takes
- * both away again.
+ * canvas alone, with no document behind them. A look fading its icons
+ * otherwise fades them all, those faded by hand too. Showing the saved look
+ * takes all of it away again.
  * @param {Scene} scene
  * @param {import("../rules/realm-skins.js").RealmLook} look
  * @param {{redraw: boolean, preview?: boolean}} options `preview` for a look being tried out, rather than the saved one.
@@ -423,36 +449,41 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
 	const entry = getRealm(scene);
 	if (!entry) return;
 	const onCanvas = scene === canvas?.scene;
-	const changed = [];
+	// Each document changed, and whether only its alpha did, which Foundry shows without drawing the Tile again.
+	const changed = new Map();
+	const note = (document, alphaOnly) => changed.set(document, (changed.get(document) ?? true) && alphaOnly);
 	// What the last look tried hid comes back first, so the plan is made against the Scene as it's saved.
-	for (const [id, alpha] of previewHidden.get(scene.id) ?? []) {
+	for (const [id, alpha] of previewAlpha.get(scene.id) ?? []) {
 		const tile = scene.tiles.get(id);
 		if (!tile) continue;
 		tile.updateSource({ alpha });
-		changed.push(tile);
+		note(tile, true);
 	}
-	previewHidden.delete(scene.id);
+	previewAlpha.delete(scene.id);
 	if (onCanvas) canvas.realm?.clearLookTiles();
 
-	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene));
+	// A look being tried out fades every icon it fades differently from the saved look; each alpha it had is kept to put back.
+	const refade = preview ? refadedIcons(getRealmLook(scene), look) : [];
+	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene), { refade });
+	const was = new Map();
 	for (const [type, writes] of Object.entries(plan)) {
 		for (const { _id, ...changes } of writes.update) {
 			const document = scene.getEmbeddedDocument(type, _id);
 			if (!document) continue;
+			if (preview && type === "Tile" && "alpha" in changes) was.set(_id, document._source.alpha);
 			document.updateSource(changes);
-			changed.push(document);
+			note(document, type === "Tile" && Object.keys(changes).every((key) => key === "alpha"));
 		}
 	}
 	if (preview) {
-		const hidden = new Map();
 		for (const id of plan.Tile.delete) {
 			const tile = scene.tiles.get(id);
 			if (!tile) continue;
-			hidden.set(id, tile._source.alpha);
+			if (!was.has(id)) was.set(id, tile._source.alpha);
 			tile.updateSource({ alpha: 0 });
-			changed.push(tile);
+			note(tile, true);
 		}
-		if (hidden.size) previewHidden.set(scene.id, hidden);
+		if (was.size) previewAlpha.set(scene.id, was);
 	}
 	const { grid, paper, sheet } = sceneColourChanges(scene, textures.colours);
 	if (grid) scene.updateSource({ "grid.color": grid });
@@ -461,7 +492,7 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
 	if (!redraw || !onCanvas) return;
 	// The paper and hex lines are only read as the Scene is drawn.
 	if (grid || paper) await canvas.draw();
-	else for (const document of changed) document.object?.renderFlags.set({ redraw: true });
+	else for (const [document, alphaOnly] of changed) document.object?.renderFlags.set(alphaOnly ? { refreshMesh: true } : { redraw: true });
 	if (preview && plan.Tile.create.length) await canvas.realm?.showLookTiles(plan.Tile.create);
 }
 

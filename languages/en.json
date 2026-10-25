@@ -4576,6 +4576,14 @@
         "preview": "Preview",
         "features": "Holdings, Landmarks and Myths",
         "river": "River",
+        "fade": {
+          "title": "Icons and Hex Lines",
+          "hint": "Fade the system’s icons and hex lines on this Realm, as over a map of your own that already draws them. Each slider sets every icon of its kind, even one you faded by hand. A Landmark or Myth not yet found shows to you at half this. New Realms start at full strength.",
+          "holding": "Holdings and Seats",
+          "landmark": "Landmarks",
+          "myth": "Myths",
+          "grid": "Hex lines"
+        },
         "skins": {
           "sheet": {
             "label": "Blank Realm",

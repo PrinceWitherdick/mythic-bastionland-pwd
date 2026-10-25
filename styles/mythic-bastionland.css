@@ -8563,6 +8563,30 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	margin: 0;
 }
 
+/* Icons and Hex Lines: a name, its slider, and the strength it's at, in three columns down the section. */
+.bastionland-realm-appearance__fades {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr) 3.2rem;
+	gap: 0.35rem 0.75rem;
+	align-items: center;
+}
+
+.bastionland-realm-appearance__fade {
+	display: contents;
+}
+
+.bastionland-realm-appearance__fade input[type="range"] {
+	min-width: 0;
+	margin: 0;
+	accent-color: var(--bastionland-ink);
+}
+
+.bastionland-realm-appearance__fade output {
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
 .bastionland-realm-appearance__skins,
 .bastionland-realm-appearance__palettes {
 	display: grid;

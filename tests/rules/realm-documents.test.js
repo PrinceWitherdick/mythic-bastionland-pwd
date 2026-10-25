@@ -571,6 +571,43 @@ describe("planRealmSync", () => {
 		expect(plan.Tile.update).toContainEqual(expect.objectContaining({ _id: holding._id, x: Math.round(target.x), y: Math.round(target.y) }));
 	});
 
+	it("keeps the Referee's own fading of the icons, as over a map that draws them, but not of the ground", () => {
+		const { snapshot } = onScene();
+		const faded = ["holding", "seat", "myth", "landmark"].map((kind) => snapshot.tiles.find((tile) => flagOf(tile).kind === kind));
+		for (const tile of faded) tile.alpha = 0;
+		const terrain = snapshot.tiles.find((tile) => flagOf(tile).kind === "terrain" && tile.alpha === 1);
+		terrain.alpha = 0;
+		const { realm } = realmFromDocuments(snapshot, g);
+		const { update } = planRealmSync(realm, g, textures, snapshot).Tile;
+		expect(update.filter(({ _id }) => faded.some((tile) => tile._id === _id))).toEqual([]);
+		expect(update).toContainEqual({ _id: terrain._id, alpha: 1 });
+	});
+
+	it("draws each icon at its look's fading, a Seat's crown as its Holding, and leaves the ground to the Realm", () => {
+		const faded = realmTextures({ fade: { holding: 0.2, landmark: 0, myth: 0.6 } });
+		expect(faded.alpha).toEqual({ holding: 0.2, landmark: 0, myth: 0.6 });
+		const { tiles } = realmDocuments(generateRealm({ seed: "faded", geometry: g }), g, faded);
+		const alphas = (kind) => [...new Set(tiles.filter(({ data }) => flagOf(data).kind === kind).map(({ data }) => data.alpha))];
+		expect(alphas("holding")).toEqual([0.2]);
+		expect(alphas("seat")).toEqual([0.2]);
+		expect(alphas("landmark")).toEqual([0]);
+		expect(alphas("myth")).toEqual([0.6]);
+		expect(alphas("terrain")).toContain(1);
+	});
+
+	it("fades every icon of a kind whose fading changed, even those faded by hand, and keeps the rest as they were", () => {
+		const { snapshot } = onScene();
+		const tileOf = (kind) => snapshot.tiles.find((tile) => flagOf(tile).kind === kind);
+		const [holding, seat, landmark] = [tileOf("holding"), tileOf("seat"), tileOf("landmark")];
+		for (const tile of [holding, seat, landmark]) tile.alpha = 0.4;
+		const { realm } = realmFromDocuments(snapshot, g);
+		const faded = realmTextures({ fade: { holding: 0, landmark: 0, myth: 1 } });
+		const { update } = planRealmSync(realm, g, faded, snapshot, { refade: ["holding"] }).Tile;
+		expect(update).toContainEqual({ _id: holding._id, alpha: 0 });
+		expect(update).toContainEqual({ _id: seat._id, alpha: 0 });
+		expect(update.some(({ _id }) => _id === landmark._id)).toBe(false);
+	});
+
 	it("unlocks a hidden Myth someone locked", () => {
 		const { snapshot } = onScene();
 		const myth = snapshot.tiles.find((tile) => flagOf(tile).kind === "myth");
