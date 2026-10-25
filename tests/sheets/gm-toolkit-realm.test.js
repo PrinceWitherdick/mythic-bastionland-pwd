@@ -173,6 +173,14 @@ describe("the Referee Toolkit's Realm", () => {
 		expect(sheet.sceneId).toBe("A");
 	});
 
+	it("doesn't mark an Omen for a click between its linked Scenes", async () => {
+		const sheet = await openSheet();
+		await drawMyths(sheet);
+		const between = { target: { closest: (selector) => (selector === ".bastionland-omen-scenes" ? {} : null) } };
+		await GmToolkitSheet.DEFAULT_OPTIONS.actions.markOmen.call(sheet, between, onMyth(3, { omen: "2" }));
+		expect(markMythOmen).not.toHaveBeenCalled();
+	});
+
 	it("leaves a Scene that isn't a Realm alone", async () => {
 		const sheet = await openSheet();
 		await drawMyths(sheet);

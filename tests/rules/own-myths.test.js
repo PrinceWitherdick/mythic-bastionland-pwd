@@ -61,6 +61,15 @@ describe("a Myth the Referee writes", () => {
 		expect(tableWritten(emptyOwnMyth())).toBe(false);
 	});
 
+	it("keeps the Scenes linked to each Omen, counts them as something written, and carries them to the index", () => {
+		const myth = normaliseOwnMyth({ scenes: [["s1"], [], ["s2", "s2"]] });
+		expect(myth.scenes).toEqual([["s1"], [], ["s2"], [], [], []]);
+		expect(emptyOwnMyth().scenes).toHaveLength(6);
+		expect(isBlankOwnMyth(myth)).toBe(false);
+		expect(ownMythEntry("Linked", myth, fallbacks).omenScenes).toEqual(myth.scenes);
+		expect(ownMythChanged(emptyOwnMyth(), myth)).toBe(true);
+	});
+
 	it("tells when something kept has changed", () => {
 		expect(ownMythChanged(written(), written())).toBe(false);
 		expect(ownMythChanged(written(), normaliseOwnMyth({ ...written(), castNote: "Changed" }))).toBe(true);

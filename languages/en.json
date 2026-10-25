@@ -3957,7 +3957,7 @@
       "pickPicture": "Choose a picture",
       "clearPicture": "No Picture",
       "omens": "Omens",
-      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table.",
+      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table. Drag a Scene from the Scenes sidebar onto an Omen to link it, to activate from the Referee Toolkit when the Omen comes.",
       "cast": "Cast",
       "castHint": "A word on who belongs to this Myth. Drag actors onto the Myth in the Referee Toolkit to make them its Cast.",
       "table": "Table",
@@ -3967,6 +3967,17 @@
       "cell": "Row {row}, {column}",
       "edit": "Edit this Myth",
       "editTooltip": "Open the Myth you wrote, to change it"
+    },
+    "omenScenes": {
+      "linked": "Scenes linked to this Omen",
+      "activateTooltip": "Activate this Scene, taking everyone there",
+      "viewTooltip": "View this Scene yourself, without moving the players",
+      "unlink": "Unlink this Scene from the Omen",
+      "dropHint": "Drag a Scene onto an Omen to link it",
+      "dropOnOmen": "Drop the Scene on one of the Myth’s Omens to link it.",
+      "fromCompendium": "{scene} is in a compendium. Import it into the world first, then link it.",
+      "gone": "That Scene is no longer in the world.",
+      "cardActivate": "Activate {scene}"
     },
     "bookArt": {
       "title": "Import PDF",

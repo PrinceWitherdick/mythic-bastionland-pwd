@@ -85,6 +85,7 @@ import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
+import { registerOmenSceneCards } from "./module/actions/omen-scenes.js";
 import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
@@ -247,6 +248,7 @@ Hooks.once("init", () => {
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.realm-swatch": templatePath("apps/parts/realm-swatch.hbs"),
 		"bastionland.season-events": templatePath("apps/parts/season-events.hbs"),
+		"bastionland.omen-scenes": templatePath("apps/parts/omen-scenes.hbs"),
 		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.track-pin": templatePath("actor/gm-toolkit/track-pin.hbs"),
@@ -332,6 +334,8 @@ Hooks.once("init", () => {
 
 	// A Wilderness card offers what the Landmark it found asks of the Company.
 	registerLandmarkCards();
+	// …and activates the Scenes the Referee linked to the Omen it shows.
+	registerOmenSceneCards();
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();

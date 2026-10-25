@@ -17,6 +17,7 @@ import { CITY_CAST, addToCast, castActors, castKey, couldJoinCast, makeCastMembe
 import { editMythNote, getMythNotes } from "../actions/myth-notes.js";
 import { replaceMyth, resolveMyth, unresolveMyth } from "../actions/myth-resolve.js";
 import { markMythOmen } from "../actions/omens.js";
+import { activateOmenScene, linkOmenScene, linkableScene, omenSceneChips, omenSceneIds, unlinkOmenScene, viewOmenScene } from "../actions/omen-scenes.js";
 import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { rollMythTable } from "../actions/referee-rolls.js";
 import { writeSeasonNotes } from "../actions/season-log.js";
@@ -32,7 +33,7 @@ import { loadArtIndex, mythLookup, pageNote, seerEntry } from "../book-art/art-i
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
-import { postCard, statLabels, t } from "../chat/cards.js";
+import { postCard, statLabels, t, warn } from "../chat/cards.js";
 import { scrollBehavior } from "../client-settings.js";
 import { openRulebook } from "../rulebook/BookReader.js";
 import { openRulebookSetup } from "../rulebook/RulebookSetup.js";
@@ -144,6 +145,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		form: { submitOnChange: true },
 		actions: {
 			markOmen: GmToolkitSheet.#onMarkOmen,
+			activateOmenScene: (_event, target) => activateOmenScene(target.closest("[data-scene-id]")?.dataset.sceneId),
+			viewOmenScene: (_event, target) => viewOmenScene(target.closest("[data-scene-id]")?.dataset.sceneId),
+			unlinkOmenScene: GmToolkitSheet.#onUnlinkOmenScene,
 			mythResolved: GmToolkitSheet.#onMythResolved,
 			mythUnresolved: GmToolkitSheet.#onMythUnresolved,
 			rollCityOmen: () => rollCityOmen(),
@@ -468,6 +472,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const fold = `myth:${myth.number}`;
 		// Played alone, only the Omens met are read, and a Myth's hex only once the Company has found it.
 		const solo = secretsKeptOn(this.scene);
+		const linked = omenSceneIds(data.scene, myth, { entry, notes: data.notes });
 		const omens = Array.from({ length: OMEN_COUNT }, (_, index) => {
 			const number = index + 1;
 			const label = number === current ? t("gmToolkit.myths.current") : number === next ? t("gmToolkit.myths.next") : null;
@@ -483,7 +488,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 				next: number === next,
 				label,
 				cut,
-				mark
+				mark,
+				// The Scenes linked to it, to be activated when it comes.
+				scenes: omenSceneChips(linked[index])
 			};
 		});
 		return {
@@ -1139,6 +1146,26 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	}
 
 	/**
+	 * A Scene dropped on one of a Myth's Omens is linked to it; anything else
+	 * goes the way Foundry sends it, an actor to a Cast.
+	 * @override
+	 */
+	async _onDropDocument(event, document) {
+		if (document?.documentName !== "Scene") return super._onDropDocument(event, document);
+		const element = event.target instanceof HTMLElement ? event.target : null;
+		if (!element || !this.isEditable) return null;
+		const omen = Number(element.closest("[data-omen]")?.dataset.omen);
+		const myth = omen ? this.#mythFrom(element) : null;
+		if (!myth || mythKeptFromMe(myth, this.scene)) {
+			warn("omenScenes.dropOnOmen");
+			return null;
+		}
+		if (!linkableScene(document)) return null;
+		await linkOmenScene(this.scene, myth, omen, document);
+		return document;
+	}
+
+	/**
 	 * Dropping an actor on a Myth counts them among its Cast, and dropping one
 	 * on the City Quest among the City's.
 	 * @override
@@ -1198,7 +1225,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * undone where it was made. Nothing goes to chat, not even to the GMs.
 	 * @this {GmToolkitSheet}
 	 */
-	static #onMarkOmen(_event, target) {
+	static #onMarkOmen(event, target) {
+		// A click that misses a linked Scene's buttons, between them, doesn't mark the Omen.
+		if (event.target?.closest?.(".bastionland-omen-scenes")) return;
 		const myth = this.#mythFrom(target);
 		const number = Number(target.dataset.omen);
 		if (!myth || !Number.isInteger(number)) return;
@@ -1371,6 +1400,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	static #onDropFromCast(_event, target) {
 		const actor = fromUuidSync(target.closest("[data-uuid]")?.dataset.uuid ?? "");
 		return actor ? removeFromCast(actor) : null;
+	}
+
+	/**
+	 * Take a Scene off the Omen it's linked to.
+	 * @this {GmToolkitSheet}
+	 */
+	static #onUnlinkOmenScene(_event, target) {
+		const myth = this.#mythFrom(target);
+		const omen = Number(target.closest("[data-omen]")?.dataset.omen);
+		const id = target.closest("[data-scene-id]")?.dataset.sceneId;
+		return myth && omen && id ? unlinkOmenScene(this.scene, myth, omen, id) : null;
 	}
 
 	/**

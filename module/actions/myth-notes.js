@@ -1,6 +1,6 @@
 import { MYTH_NOTES_VERSION, normaliseMythNotes, withMythNote, withoutResolved } from "../rules/myth-notes.js";
 import { serialWrites } from "../rules/queue.js";
-import { setOrDeleteEntry } from "../compat.js";
+import { deletionEntry, replacementEntry } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getRealm, isRealmScene } from "./realm.js";
 
@@ -39,17 +39,21 @@ const flagPath = (...parts) => `flags.${SYSTEM_ID}.${MYTH_NOTES_FLAG}.${parts.jo
  * Change what's kept about one Myth, writing that Myth's own path. GMs only.
  * @param {Scene} scene
  * @param {{number: number, d6: number, d12: number}} myth
- * @param {{note?: string, resolved?: boolean}} changes
+ * @param {MythNoteChanges|((notes: import("../rules/myth-notes.js").MythNotes) => MythNoteChanges)} changes
+ *   Or what to change, worked out from the notes as the write before left them.
  * @returns {Promise<boolean>} Whether anything was written.
+ * @typedef {{note?: string, resolved?: boolean, scenes?: import("../rules/omen-scenes.js").OmenScenes}} MythNoteChanges
  */
 export function editMythNote(scene, myth, changes) {
 	if (!game.user.isGM || !isRealmScene(scene) || !myth) return Promise.resolve(false);
 	return queueMythWrite(async () => {
 		const before = getMythNotes(scene);
-		const after = withMythNote(before, myth, changes);
+		const after = withMythNote(before, myth, typeof changes === "function" ? changes(before) : changes);
 		if (after === before) return false;
 		const key = String(myth.number);
-		const [path, value] = setOrDeleteEntry(flagPath("myths", key), after.myths[key]);
+		const kept = after.myths[key];
+		// The Myth's record is written over whole, so a part taken out of it, such as an Omen's last linked Scene, goes.
+		const [path, value] = kept ? replacementEntry(flagPath("myths", key), kept) : deletionEntry(flagPath("myths", key));
 		await scene.update({ [flagPath("version")]: MYTH_NOTES_VERSION, [path]: value });
 		return true;
 	});

@@ -1,0 +1,20 @@
+{{!-- The Scenes linked to an Omen, from its `scenes`. With activate, as in the GM Toolkit,
+     each pill takes everyone there and an eye shows it to the Referee alone; without,
+     as in a written Myth's sheet, the pill only shows it. With editable, a cross unlinks it. --}}
+{{#if scenes.length}}
+<ul class="bastionland-omen-scenes" aria-label="{{localize 'bastionland.omenScenes.linked'}}">
+	{{#each scenes}}
+	<li class="bastionland-omen-scenes__scene" data-scene-id="{{id}}">
+		{{#if ../activate}}
+		<button type="button" class="bastionland-pill bastionland-omen-scenes__open" data-action="activateOmenScene" data-tooltip="{{localize 'bastionland.omenScenes.activateTooltip'}}"><i class="fa-solid fa-map" inert></i> {{name}}</button>
+		<button type="button" class="bastionland-omen-scenes__view" data-action="viewOmenScene" data-tooltip="{{localize 'bastionland.omenScenes.viewTooltip'}}" aria-label="{{localize 'bastionland.omenScenes.viewTooltip'}}"><i class="fa-solid fa-eye" inert></i></button>
+		{{else}}
+		<button type="button" class="bastionland-pill bastionland-omen-scenes__open" data-action="viewOmenScene" data-tooltip="{{localize 'bastionland.omenScenes.viewTooltip'}}"><i class="fa-solid fa-map" inert></i> {{name}}</button>
+		{{/if}}
+		{{#if ../editable}}
+		<button type="button" class="bastionland-omen-scenes__unlink" data-action="unlinkOmenScene" data-tooltip="{{localize 'bastionland.omenScenes.unlink'}}" aria-label="{{localize 'bastionland.omenScenes.unlink'}}"><i class="fa-solid fa-xmark" inert></i></button>
+		{{/if}}
+	</li>
+	{{/each}}
+</ul>
+{{/if}}

@@ -32,9 +32,11 @@
 		<p class="bastionland-hint">{{localize "bastionland.ownMyth.omensHint"}}</p>
 		<ol class="bastionland-own-myth__omens">
 			{{#each omens}}
-			<li>
+			{{!-- A Scene dragged onto an Omen is linked to it, to be activated from the GM Toolkit when the Omen comes. --}}
+			<li data-omen="{{number}}" data-omen-drop>
 				<span class="bastionland-own-myth__omen-number" aria-hidden="true">{{number}}</span>
 				<textarea name="{{name}}" rows="2" aria-label="{{label}}" {{#unless @root.editable}}disabled{{/unless}}>{{value}}</textarea>
+				{{> "bastionland.omen-scenes" editable=@root.editable}}
 			</li>
 			{{/each}}
 		</ol>

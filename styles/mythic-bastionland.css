@@ -117,7 +117,8 @@
 	.bastionland-company-colours,
 	.bastionland-choices--inline,
 	.bastionland-session-end__list--row,
-	.bastionland-timeline__axis
+	.bastionland-timeline__axis,
+	.bastionland-omen-scenes
 ) > li {
 	margin: 0;
 }
@@ -8184,6 +8185,75 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	text-align: right;
 }
 
+/* An Omen's linked Scenes sit under its words, in the column they take. */
+.bastionland-own-myth__omens .bastionland-omen-scenes {
+	grid-column: 2;
+}
+
+/* The Scenes linked to an Omen, in the GM Toolkit and a written Myth's sheet:
+   a pill for each, with a quiet eye and cross beside it. */
+.bastionland-omen-scenes {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.6rem;
+	margin: 0.3rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-omen-scenes__scene {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.bastionland-page button.bastionland-omen-scenes__open {
+	--pill-pad: 0.45em;
+	width: auto;
+	max-width: 100%;
+	flex: 0 1 auto;
+	margin: 0;
+	padding: var(--pill-padding-top, 0.15rem) 0.6rem var(--pill-padding-bottom, 0.15rem);
+	overflow: hidden;
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-floor);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-omen-scenes__open:hover {
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page button:is(.bastionland-omen-scenes__view, .bastionland-omen-scenes__unlink) {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	flex: none;
+	margin: 0;
+	padding: 0 0.25rem;
+	border: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+	cursor: pointer;
+}
+
+.bastionland-page button:is(.bastionland-omen-scenes__view, .bastionland-omen-scenes__unlink):hover {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-own-myth__table-fold > summary {
 	cursor: pointer;
 }
@@ -8613,9 +8683,15 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
+/* Font Awesome's check, not the text ✓: the body font has none, and the fallback
+   symbol font drew it 2px above the file name's middle. */
 .bastionland-realm-appearance__names li.is-found::before {
-	content: "\2713  ";
+	content: "\f00c";
+	margin-right: 0.45em;
 	color: var(--bastionland-verdigris);
+	font-family: var(--font-awesome);
+	font-size: 0.7em;
+	font-weight: 900;
 }
 
 /* The names are a plain list of file names, not boxes: the paper's code box would crowd the tight grid. */

@@ -53,7 +53,7 @@
 		</summary>
 
 		<div class="bastionland-gm-toolkit__myth-body">
-			<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}} · {{localize "bastionland.gmToolkit.myths.clickOmen"}}</p>
+			<p class="bastionland-hint">{{#if reference}}{{reference}} · {{/if}}{{seen}} · {{localize "bastionland.gmToolkit.myths.clickOmen"}} · {{localize "bastionland.omenScenes.dropHint"}}</p>
 
 			{{#if resolved}}
 			<p class="bastionland-gm-toolkit__resolved">{{localize "bastionland.gmToolkit.myths.resolvedHint"}}</p>
@@ -70,6 +70,7 @@
 					<div class="bastionland-gm-toolkit__omen-text">
 						{{#if label}}<span class="bastionland-gm-toolkit__omen-label">{{label}}</span>{{/if}}
 						<p>{{> omenText this}}</p>
+						{{> "bastionland.omen-scenes" activate=true editable=true}}
 					</div>
 				</li>
 				{{/each}}

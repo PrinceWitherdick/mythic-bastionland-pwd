@@ -27,6 +27,7 @@ import { inCompany, sidesWithCompany } from "./knights.js";
 import { keptFromMe } from "./solo.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 import { liveRealm } from "./myth-notes.js";
+import { omenSceneChips, omenSceneIds } from "./omen-scenes.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
@@ -263,7 +264,9 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 			img: entry?.path ?? null,
 			complete: outcome.complete,
 			omen: t("realm.wilderness.omen", { omen: outcome.omen, count: OMEN_COUNT }),
-			omenText: outcome.complete ? null : entry?.omens?.[outcome.omen - 1] ?? null
+			omenText: outcome.complete ? null : entry?.omens?.[outcome.omen - 1] ?? null,
+			// The Scenes the Referee linked to the Omen just met, each to be activated from the card.
+			scenes: outcome.complete ? [] : omenSceneChips(omenSceneIds(scene, outcome.myth, { entry })[outcome.omen - 1])
 		};
 	}
 
