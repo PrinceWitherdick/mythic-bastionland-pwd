@@ -33,7 +33,7 @@ import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wire
 import { generateRealm } from "../rules/realm-generator.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
-import { relayRealm } from "../rules/realm-edits.js";
+import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -43,7 +43,7 @@ import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
 import { closeMapSizeWindow, openMapSizeWindow } from "../apps/map-size-window.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
-import { brushLockedOn, keptFromMe, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
+import { brushLockedOn, drawingSecrets, keptFromMe, realmKnown, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
 import { SOLO_SECRETS_FLAG, SOLO_SECRET_WAYS, settleOwnSecrets } from "../rules/solo.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
@@ -649,14 +649,15 @@ export async function rerollRealm(scene) {
 /**
  * Lay a newly rolled Realm over the one a Scene holds, set up as it was, and
  * keeping whatever parts the GM draws by hand. Nothing is asked and nothing is
- * posted: the callers do that.
+ * posted: the callers do that. Played alone, a Company already set down finds
+ * the new Myth in its hex, as it does once a drawn Realm's secrets are settled.
  * @param {Scene} scene
  * @returns {Promise<object>} The Realm now on the Scene.
  */
-function rollRealmAgain(scene) {
+async function rollRealmAgain(scene) {
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
-	return queueRealmWrite(async () => {
+	const rolled = await queueRealmWrite(async () => {
 		// Set up as it was first, keeping what the GM draws by hand.
 		const { realm: current } = getRealm(scene);
 		const realm = generateRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
@@ -666,6 +667,8 @@ function rollRealmAgain(scene) {
 		forgetRealmHistory(scene.id);
 		return realm;
 	});
+	if (secretsKeptOn(scene)) await revealMythsBeenTo(scene);
+	return rolled;
 }
 
 /**
@@ -1006,7 +1009,7 @@ async function fitRealmPicture(picture, g) {
  * @param {Scene} scene
  * @param {string} layout One of REALM_LAYOUTS.
  * @returns {Promise<{relaid: boolean, trimmed: boolean}>} Whether the hexes changed, and whether any river or
- *   Barrier was cut back for no longer joining up.
+ *   Barrier was cut back for no longer joining up: played alone, only a Barrier already found.
  */
 export async function setRealmLayout(scene, layout) {
 	const none = { relaid: false, trimmed: false };
@@ -1046,7 +1049,8 @@ export async function setRealmLayout(scene, layout) {
 		await writeRealm(scene, next, to, currentRealmTextures(scene));
 		// Undo would lay pieces down where the old hexes were.
 		forgetRealmHistory(scene.id);
-		return joined !== realm;
+		// Pictures picked again are no rivers or Barriers cut, and played alone a hidden Barrier lost says nothing.
+		return relayCutBack(realm, joined, { foundOnly: secretsKeptOn(scene) });
 	});
 	await restandCompany(scene, company);
 	return { relaid: true, trimmed };
@@ -1137,8 +1141,8 @@ export async function finishRealmDrawing(scene) {
 	finishing.add(scene.id);
 	try {
 		const secrets = secretsToSettle(scene);
-		// What the dice will place isn't missing.
-		const short = drawingShortfalls(getRealm(scene).realm, { leave: secrets === "dice" ? SECRET_DRAWING_STEPS : [] });
+		// What the dice will place isn't missing, and played alone what's hidden goes uncounted.
+		const short = drawingShortfalls(realmKnown(getRealm(scene).realm, scene), { leave: drawingSecrets(scene).handed ? SECRET_DRAWING_STEPS : [] });
 		if (short.length) {
 			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
 			const confirmed = await confirmDialog({

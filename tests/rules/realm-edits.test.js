@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PICTURE_ROLL, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexDistance, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { PICTURE_ROLL, TERRAIN, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
+import { edgeKey, hexDistance, hexIndex, hexKey, neighbour, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { pictureCount, pictureOf } from "../../module/rules/realm-pictures.js";
 import {
 	barrierState,
@@ -11,6 +11,7 @@ import {
 	paintTerrain,
 	placeFeature,
 	placeMapPicture,
+	relayCutBack,
 	relayRealm,
 	riverEnds,
 	setBarrier,
@@ -467,5 +468,37 @@ describe("relayRealm", () => {
 			{ id: "b2", edge: edgeKey(hex(3, 5), hex(4, 4)), revealed: true }
 		];
 		expect(relayRealm(realm, rows).barriers.map((barrier) => barrier.edge)).toEqual([kept]);
+	});
+});
+
+describe("relayCutBack", () => {
+	const rows = realmGeometry({ layout: "evenRows" });
+
+	it("tells of a river or Barrier cut, and not of pictures only picked again", () => {
+		// The example map's ridge of crags, drawn as one, no longer lies as drawn with pointed tops.
+		const ridge = [hex(3, 5)];
+		for (let step = 0; step < 3; step++) ridge.push(neighbour(g, ridge.at(-1), 0));
+		const crags = paintTerrain({ ...emptyRealm(g, "relay"), variants: new Array(g.cols * g.rows).fill(0) }, g, ridge, TERRAIN.indexOf("crag") + 1, { random: () => 0.5 });
+		const repictured = relayRealm(crags, rows);
+		expect(repictured).not.toBe(crags);
+		expect(relayCutBack(crags, repictured)).toBe(false);
+
+		const river = sampleRealm();
+		river.rivers = [[hex(3, 2), hex(3, 3), hex(3, 4), hex(3, 5), hex(4, 4), hex(4, 3)]];
+		expect(relayCutBack(river, relayRealm(river, rows))).toBe(true);
+	});
+
+	it("counts, for a solo Referee, only the Barriers already found", () => {
+		const realm = sampleRealm();
+		const kept = { id: "b1", edge: edgeKey(hex(5, 5), hex(5, 6)), revealed: true };
+		const hidden = { id: "b2", edge: edgeKey(hex(3, 5), hex(4, 4)), revealed: false };
+		const found = { ...hidden, revealed: true };
+		realm.barriers = [kept, hidden];
+		const relaid = relayRealm(realm, rows);
+		expect(relayCutBack(realm, relaid)).toBe(true);
+		// A hidden Barrier lost tells nothing of it.
+		expect(relayCutBack(realm, relaid, { foundOnly: true })).toBe(false);
+		realm.barriers = [kept, found];
+		expect(relayCutBack(realm, relayRealm(realm, rows), { foundOnly: true })).toBe(true);
 	});
 });

@@ -67,6 +67,20 @@ export const keptFromMe = () => Boolean(game.user?.isGM) && isSolo();
  */
 export const secretsKeptOn = (scene = globalThis.canvas?.scene ?? null) => keptFromMe() && !placingOwnSecrets(scene);
 
+/**
+ * Who has the steps of Creating a Realm that place its Myths, Landmarks and
+ * Barriers, as it's drawn: "dice", "hide" or "show" until a Realm drawn alone
+ * is first finished, then "kept" while what's still hidden is kept from this
+ * client. The dice's and the kept steps are counted by no one, so their
+ * tallies and shortfalls tell nothing of what's hidden.
+ * @param {Scene|null|undefined} scene
+ * @returns {{way: string|null, handed: boolean}} Null where the Referee places them as on any Realm.
+ */
+export function drawingSecrets(scene) {
+	const way = secretsToSettle(scene) ?? (secretsKeptOn(scene) ? "kept" : null);
+	return { way, handed: way === "dice" || way === "kept" };
+}
+
 /** The paint brushes that lay or take away a Holding, a Landmark or a Barrier. */
 export const LOCKED_BRUSHES = Object.freeze(["holding", "landmark", "barrier"]);
 

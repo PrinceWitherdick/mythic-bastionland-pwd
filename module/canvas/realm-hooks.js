@@ -94,10 +94,16 @@ const changedScenes = new Map();
 /** How far each kind of change reaches, the furthest first. */
 const CHANGE_REACH = ["realm", "names", "hex"];
 
+/**
+ * @param {"realm"|"names"|"hex"} kind
+ * @returns {boolean} Whether a change of that kind draws the palette, with its Undo and Redo, again.
+ */
+const redrawsPalette = (kind) => kind !== "hex";
+
 /** Draw the palette, Places, readout and highlight again for the Realms that changed. */
 function showChanges() {
 	for (const [sceneId, { kind, flags }] of changedScenes) {
-		if (kind !== "hex") {
+		if (redrawsPalette(kind)) {
 			refreshRealmPanel(sceneId);
 			refreshRealmDrawing(sceneId);
 			refreshMythChooser(sceneId);
@@ -131,6 +137,15 @@ function showChanges() {
 function realmChanged(sceneId) {
 	forgetRealm(sceneId);
 	showLater(sceneId, "realm");
+}
+
+/**
+ * @param {string} sceneId
+ * @returns {boolean} Whether a Realm change still to be shown will draw the Undo and Redo buttons again.
+ */
+function historyShownLater(sceneId) {
+	const pending = changedScenes.get(sceneId);
+	return Boolean(pending) && redrawsPalette(pending.kind);
 }
 
 /**
@@ -227,9 +242,10 @@ export function registerRealmHooks() {
 		forgetHexArrivals(scene.id);
 	});
 	// The Undo and Redo buttons of the palette, of Edit this hex and of Creating a Realm.
-	// After an edit, the Realm's change still to be shown draws them all anyway.
+	// After an edit, the Realm's change still to be shown draws them all anyway; not one only
+	// to what's kept for its hexes, such as a Journey, which leaves the palette as it was.
 	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => {
-		if (changedScenes.has(sceneId)) return;
+		if (historyShownLater(sceneId)) return;
 		refreshRealmPanel(sceneId);
 		refreshPlaces(sceneId);
 		refreshHexEditor(sceneId);

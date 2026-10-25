@@ -526,3 +526,19 @@ export const relayRealm = mending(function relayRealm(realm, g) {
 		barriers: barriers.map((barrier) => ({ ...barrier }))
 	};
 });
+
+/**
+ * Whether laying a Realm's hexes out anew cut a river back or dropped a
+ * Barrier, rather than only picking some of its pictures again.
+ * @param {import("./realm.js").Realm} before
+ * @param {import("./realm.js").Realm} after What relayRealm made of it.
+ * @param {object} [options]
+ * @param {boolean} [options.foundOnly] Count only the Barriers found, for a solo Referee from whom the rest are kept.
+ * @returns {boolean}
+ */
+export function relayCutBack(before, after, { foundOnly = false } = {}) {
+	const barriers = (realm) => (foundOnly ? realm.barriers.filter((barrier) => barrier.revealed) : realm.barriers).length;
+	return barriers(after) !== barriers(before)
+		|| after.rivers.length !== before.rivers.length
+		|| after.rivers.some((course, index) => course.length !== before.rivers[index].length);
+}

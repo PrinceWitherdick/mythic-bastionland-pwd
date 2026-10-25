@@ -25,7 +25,7 @@ vi.mock("../../module/canvas/hex-readout.js", () => ({ updateHexReadout: vi.fn()
 vi.mock("../../module/actions/places-macro.js", () => ({ ensurePlacesHotbar: vi.fn(async () => {}) }));
 vi.mock("../../module/actions/timeline-macro.js", () => ({ ensureTimelineHotbar: vi.fn(async () => {}) }));
 
-const { SOLO_CHANGED_HOOK, brushLockedOn, brushRefused, isSolo, keptFromMe, mythKeptFromMe, registerSolo, revealMythsReached, secretsKeptOn, secretsToSettle } = await import("../../module/actions/solo.js");
+const { SOLO_CHANGED_HOOK, brushLockedOn, brushRefused, drawingSecrets, isSolo, keptFromMe, mythKeptFromMe, registerSolo, revealMythsReached, secretsKeptOn, secretsToSettle } = await import("../../module/actions/solo.js");
 
 /** A Realm Scene whose Tiles can be shown. */
 const realmScene = (id = "realm") => ({
@@ -130,6 +130,19 @@ describe("a Realm drawn alone", () => {
 		expect(mythKeptFromMe(unmet, drawn({ drawing: true, soloSecrets: "hide" }))).toBe(false);
 		expect(mythKeptFromMe(unmet, drawn({ drawing: false, soloSecrets: null }))).toBe(true);
 		expect(mythKeptFromMe(null, drawn({ drawing: false, soloSecrets: null }))).toBe(false);
+	});
+
+	it("hands its secret steps to the dice, or keeps them uncounted once settled, so drawing it again tells nothing", () => {
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: "dice" }))).toEqual({ way: "dice", handed: true });
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: "hide" }))).toEqual({ way: "hide", handed: false });
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: "show" }))).toEqual({ way: "show", handed: false });
+		// Taken back into drawing after it was first finished: what's still hidden stays uncounted.
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: null }))).toEqual({ way: "kept", handed: true });
+		// With others at the table, the Referee counts them as on any Realm.
+		solo = false;
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: null }))).toEqual({ way: null, handed: false });
+		// A Realm still waiting for the dice has them placed so, solo play on or off.
+		expect(drawingSecrets(drawn({ drawing: true, soloSecrets: "dice" }))).toEqual({ way: "dice", handed: true });
 	});
 
 	it("says how its secrets are to be settled, until they are", () => {

@@ -56,7 +56,8 @@ describe("solo play's secrets on the Referee's own screens", () => {
 		const realm = read("module/actions/realm.js");
 		expect(realm).toContain("const askSecrets = draw && keptFromMe();");
 		const finish = realm.slice(realm.indexOf("export async function finishRealmDrawing("));
-		expect(finish).toContain('drawingShortfalls(getRealm(scene).realm, { leave: secrets === "dice" ? SECRET_DRAWING_STEPS : [] })');
+		// What's hidden goes uncounted, and the dice's steps, or those already kept, aren't missing.
+		expect(finish).toContain("drawingShortfalls(realmKnown(getRealm(scene).realm, scene), { leave: drawingSecrets(scene).handed ? SECRET_DRAWING_STEPS : [] })");
 		// Settled while the Realm is still being drawn, before it's finished and the key would be posted.
 		expect(finish.indexOf("await settleSoloSecrets(scene, secrets);")).toBeLessThan(finish.indexOf("refreshThumbnail(scene, drawingFlag(false))"));
 		const settle = realm.slice(realm.indexOf("async function settleSoloSecrets("));
@@ -66,9 +67,34 @@ describe("solo play's secrets on the Referee's own screens", () => {
 
 	it("gives the dice's steps of a drawn Realm no tools, only a word that the dice place them", () => {
 		const drawing = read("module/apps/RealmDrawing.js");
-		expect(drawing).toContain('const step = secret && secrets === "dice" ? null : part.step;');
+		expect(drawing).toContain("const step = secret && secrets.handed ? null : part.step;");
 		expect(drawing).toContain("tool: step ? tool(step) : null");
+		expect(drawing).toContain("counts: step ? counts(step.key) : null");
 		expect(read("templates/apps/realm-drawing.hbs")).toContain("{{#if secret}}");
+	});
+
+	it("counts nothing hidden as a finished Realm is drawn again, and says why its secret steps have no counts", () => {
+		const drawing = read("module/apps/RealmDrawing.js");
+		const prepare = drawing.slice(drawing.indexOf("async _prepareContext("));
+		expect(prepare).toContain("const realm = realmKnown(getRealm(scene)?.realm ?? null, scene);");
+		expect(prepare.indexOf("realmKnown(")).toBeLessThan(prepare.indexOf("drawingTally(realm)"));
+		expect(prepare).toContain("secret: secret ? t(`solo.secrets.drawing.${secrets.way}`) : null");
+		const lang = JSON.parse(read("languages/en.json"));
+		for (const way of ["dice", "hide", "show", "kept"]) expect(lang.bastionland.solo.secrets.drawing[way]).toEqual(expect.any(String));
+	});
+
+	it("lets a Company already set down find the new Myth in its hex as a Realm is rolled again", () => {
+		const realm = read("module/actions/realm.js");
+		const again = realm.slice(realm.indexOf("async function rollRealmAgain("), realm.indexOf("export function addNewRealmButton("));
+		// After the write, as when a drawn Realm's secrets are settled.
+		expect(again).toMatch(/forgetRealmHistory\(scene\.id\);\s+return realm;\s+\}\);\s+if \(secretsKeptOn\(scene\)\) await revealMythsBeenTo\(scene\);/);
+	});
+
+	it("says Rivers and Barriers were cut back only when some were, and never of a hidden Barrier", () => {
+		const realm = read("module/actions/realm.js");
+		const layout = realm.slice(realm.indexOf("export async function setRealmLayout("));
+		expect(layout).toContain("return relayCutBack(realm, joined, { foundOnly: secretsKeptOn(scene) });");
+		expect(layout).not.toContain("return joined !== realm;");
 	});
 
 	it("lets a move the Company didn't choose pass a Barrier, as Unconstrained Movement does", () => {

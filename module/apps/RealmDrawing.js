@@ -2,7 +2,7 @@ import { hexLabel } from "../actions/hex-names.js";
 import { COMPANY_IMG_FLAG, companyPicture, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { drawingCountLabel, editRealmByHand, finishRealmDrawing, getRealm, isDrawingRealm, realmUndoState, setRealmGridAlpha, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
-import { secretsToSettle } from "../actions/solo.js";
+import { drawingSecrets, realmKnown } from "../actions/solo.js";
 import { ART_INDEX_HOOK, loadArtIndex } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, startCompanyPlacement } from "../canvas/company-placement.js";
 import { liningUpMap } from "../canvas/map-alignment.js";
@@ -99,9 +99,10 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const context = await super._prepareContext(options);
 		if (this.#index === undefined) this.#index = await loadArtIndex();
 		const scene = canvas.scene;
-		const realm = getRealm(scene)?.realm;
+		// Played alone, what's hidden is neither counted nor pictured, as on the palette.
+		const realm = realmKnown(getRealm(scene)?.realm ?? null, scene);
 		const tally = realm ? drawingTally(realm) : {};
-		const secrets = secretsToSettle(scene);
+		const secrets = drawingSecrets(scene);
 		const text = (key, data) => t(`realmDrawing.${key}`, data);
 		const counts = (key) => (tally[key] ?? []).map((entry) => ({ label: drawingCountLabel(entry), done: entry.done }));
 		// A swatch is marked only while it's what the paint tool lays, not once the GM has put the tool down.
@@ -128,9 +129,9 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 		const fromBook = book ? bookDrawingGroups(book) : null;
 		const groups = (fromBook ?? sheetDrawingGroups(text)).map((group) => {
 			const sections = group.parts.map((part) => {
-				// Played alone, a step placing the Realm's secrets says who places them; the dice need no tools.
-				const secret = part.step && secrets && SECRET_DRAWING_STEPS.includes(part.step.key);
-				const step = secret && secrets === "dice" ? null : part.step;
+				// Played alone, a step placing the Realm's secrets says who places them; the dice, or secrets already kept, need no tools or counts.
+				const secret = part.step && secrets.way && SECRET_DRAWING_STEPS.includes(part.step.key);
+				const step = secret && secrets.handed ? null : part.step;
 				return {
 					key: part.key,
 					heading: part.heading ?? null,
@@ -138,7 +139,7 @@ export class RealmDrawing extends HandlebarsApplicationMixin(ApplicationV2) {
 					counts: step ? counts(step.key) : null,
 					palette: step ? palette(step) : null,
 					tool: step ? tool(step) : null,
-					secret: secret ? t(`solo.secrets.drawing.${secrets}`) : null,
+					secret: secret ? t(`solo.secrets.drawing.${secrets.way}`) : null,
 					handed: Boolean(secret && !step)
 				};
 			});

@@ -62,7 +62,8 @@
         "drawing": {
           "dice": "The dice place these, unseen, when you finish the Realm.",
           "hide": "You place these yourself. They'll be hidden from you when you finish the Realm.",
-          "show": "You place these yourself, and they'll stay in view when you finish the Realm."
+          "show": "You place these yourself, and they'll stay in view when you finish the Realm.",
+          "kept": "These were settled when you first finished the Realm. What's still hidden stays so until the Company finds it."
         }
       },
       "company": {
