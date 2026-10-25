@@ -4286,7 +4286,7 @@
         "barrier": "A Barrier blocks the way.",
         "offMap": "That’s past the edge of the Realm.",
         "found": "{name} ran into a hidden Barrier between {from} and {to}. It’s shown on the map now.",
-        "someone": "A player",
+        "needsGM": "A Referee needs to be logged in to hear that a Barrier turned you back.",
         "wasted": {
           "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"

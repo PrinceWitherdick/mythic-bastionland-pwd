@@ -261,3 +261,65 @@ describe("a sparring duel's buttons", () => {
 		expect(bout.message.flags[SYSTEM_ID].duel.ended).toBe(false);
 	});
 });
+
+describe("an Attack recorded on a duel card", () => {
+	let duelMessage;
+	let saveDuelChange;
+	let onDuelQuery;
+
+	/** An Attack card, as attack-card.js keeps its state. */
+	const attackCard = (id, attack) => [id, { id, flags: { [SYSTEM_ID]: { attack: { attacker: "Actor.ada", duel: "duel-1", appliedTo: [], ...attack } } } }];
+
+	beforeEach(async () => {
+		({ saveDuelChange, onDuelQuery } = await import("../../module/actions/duel.js"));
+		globalThis.foundry = { applications: { handlebars: { renderTemplate: async () => "<section></section>" } } };
+		// Ada's player owns Ada, and nobody else.
+		globalThis.fromUuidSync = (uuid) => ({ testUserPermission: (user) => uuid === "Actor.ada" && user.id === "ada-player" });
+		duelMessage = { id: "duel-1", isOwner: true, flags: { [SYSTEM_ID]: { duel: createDuel({ duelists }) } } };
+		duelMessage.update = vi.fn(async (changes) => { duelMessage.flags[SYSTEM_ID].duel = changes[`flags.${SYSTEM_ID}.duel`]; });
+		game.messages = new Map([
+			["duel-1", duelMessage],
+			attackCard("ada-attack", {}),
+			// The Referee's dragon, at somebody else.
+			attackCard("dragon-attack", { attacker: "Actor.dragon", duel: null }),
+			attackCard("ada-old", { appliedTo: ["Bram"] }),
+			attackCard("ada-elsewhere", { duel: "duel-2" })
+		]);
+		game.users = { activeGM: { isSelf: true } };
+	});
+
+	afterEach(() => {
+		for (const key of ["foundry", "fromUuidSync"]) delete globalThis[key];
+	});
+
+	const attackOn = (message) => ({ type: "attack", actor: "Actor.ada", message });
+	const adaAttack = () => duelMessage.flags[SYSTEM_ID].duel.duelists[0].attack;
+
+	it("takes the duelist's own Attack, rolled for this duel and not yet applied", async () => {
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "ada-player" } })).toBe(true);
+		expect(adaAttack()).toBe("ada-attack");
+	});
+
+	it("refuses another card swapped in, asked of the GM", async () => {
+		const ask = (message) => onDuelQuery({ messageId: "duel-1", change: attackOn(message) }, { user: { id: "ada-player" } });
+		for (const message of ["dragon-attack", "ada-old", "ada-elsewhere", "missing", "duel-1"]) expect(await ask(message)).toBe(false);
+		expect(adaAttack()).toBeNull();
+		expect(duelMessage.update).not.toHaveBeenCalled();
+	});
+
+	it("refuses it on the card's own client too", async () => {
+		const warn = vi.fn();
+		globalThis.ui = { notifications: { warn } };
+		expect(await saveDuelChange(duelMessage, attackOn("dragon-attack"))).toBe(false);
+		expect(warn).toHaveBeenCalledWith("bastionland.duel.changeRefused");
+		expect(adaAttack()).toBeNull();
+		expect(await saveDuelChange(duelMessage, attackOn("ada-attack"))).toBe(true);
+		expect(adaAttack()).toBe("ada-attack");
+	});
+
+	it("refuses an Attack for somebody who doesn't own the duelist, or with nobody asking", async () => {
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "bram-player" } })).toBe(false);
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, {})).toBe(false);
+		expect(adaAttack()).toBeNull();
+	});
+});

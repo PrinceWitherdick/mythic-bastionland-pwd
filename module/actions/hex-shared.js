@@ -1,3 +1,4 @@
+import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
 import { queryAsker } from "../compat.js";
 import {
@@ -166,17 +167,12 @@ export async function writePartyNote(scene, hex, text) {
 		await keepPartyNote(scene, hex, text, game.user);
 		return true;
 	}
-	const gm = game.users.activeGM;
-	if (!gm) {
+	if (!game.users.activeGM) {
 		warn("travels.party.needsGM");
 		return false;
 	}
-	try {
-		const saved = await gm.query(PARTY_NOTE_QUERY, { sceneId: scene.id, hex: { col: hex.col, row: hex.row }, text: String(text ?? "") }, { timeout: 10000 });
-		if (saved) return true;
-	} catch (error) {
-		console.warn(`${SYSTEM_ID} | Couldn't write the Company's note`, error);
-	}
+	const note = { sceneId: scene.id, hex: { col: hex.col, row: hex.row }, text: String(text ?? "") };
+	if (await askActiveGM(PARTY_NOTE_QUERY, note, "Couldn't write the Company's note")) return true;
 	warn("travels.party.refused");
 	return false;
 }

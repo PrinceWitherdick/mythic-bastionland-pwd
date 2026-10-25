@@ -34,7 +34,7 @@ import { t } from "../chat/cards.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { listenForTurnedBack, reportTurnedBack } from "./barrier-found.js";
+import { registerTurnedBackQuery, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
@@ -74,7 +74,8 @@ function allowRealmMove(token, movement, operation) {
 		reportTurnedBack(scene, {
 			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
 			from: problem.from,
-			company: movesAsCompany(token) ? { from: problem.from, to: problem.to } : null
+			to: problem.to,
+			company: movesAsCompany(token)
 		});
 	}
 	return false;
@@ -163,8 +164,8 @@ function showRealmRules() {
 /** The hooks Realm Scenes rely on. Called during init. */
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
-	// A player's Token turned back by a Barrier has the GM's client reveal it, and offer the Phase the Company wasted.
-	listenForTurnedBack();
+	// A player's Token turned back by a Barrier has the active GM's client reveal it, and offer the Phase the Company wasted.
+	registerTurnedBackQuery();
 
 	// Whether the hex readout names the column and row as well.
 	registerHexReadoutSetting();

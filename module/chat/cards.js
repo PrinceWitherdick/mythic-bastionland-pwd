@@ -1,5 +1,6 @@
 import { VIRTUES } from "../rules/virtues.js";
-import { applyMessageMode, currentMessageMode } from "../compat.js";
+import { askActiveGM } from "../ask-gm.js";
+import { applyMessageMode, currentMessageMode, queryAsker } from "../compat.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 /**
@@ -119,19 +120,24 @@ export function onCardClick(element, selector, handler) {
  * @param {string} card.selector   What marks its buttons, such as "[data-fallen-path]".
  * @param {boolean} [card.gmOnly]  Whether they're the Referee's alone, as a card whispered to them is:
  *   anybody else who sees the card, such as a player who asked for it, sees it without them.
+ *   They work only on a card a GM posted, so a player can't write one for the Referee to press.
+ * @param {boolean} [card.fromPlayers] Whether the Referee's buttons work on a card a player posted too,
+ *   as Ask the Referee's does.
  * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
  * @param {boolean} [card.once]    Whether each button does its work once only: a press whose handler
  *   returns something truthy is kept on the message, and the button is gone from then on, for everybody.
+ * @param {(message: ChatMessage, user: User) => boolean} [card.mayPress] Whether a user who asks the
+ *   active GM to keep their press could have done its work, such as owning the actor the card names.
  * @returns {void}
  */
-export function registerCardButtons({ selector, gmOnly = false, handler, once = false }) {
+export function registerCardButtons({ selector, gmOnly = false, fromPlayers = false, handler, once = false, mayPress = () => true }) {
 	if (once) {
 		CONFIG.queries[SPEND_QUERY] ??= onSpendQuery;
-		if (!gmOnly) askedSpends.add(selector);
+		if (!gmOnly) askedSpends.set(selector, mayPress);
 	}
 	Hooks.on("renderChatMessageHTML", (message, html) => {
 		if (!html.querySelector(selector)) return;
-		if (gmOnly && !game.user.isGM) return dropButtons(html, selector);
+		if (gmOnly && (!game.user.isGM || !(fromPlayers || message.author?.isGM))) return dropButtons(html, selector);
 		if (!once) return onCardClick(html, selector, (button) => handler(button, message));
 		const spent = spentButtons(message);
 		const keys = new Map([...html.querySelectorAll(selector)].map((button, index) => [button, `${selector}#${index}`]));
@@ -163,19 +169,31 @@ const spentButtons = (message) => message?.flags?.[SYSTEM_ID]?.[SPENT_FLAG] ?? [
  * GM where the presser can't update the card.
  * @param {ChatMessage} message
  * @param {string} key
- * @returns {Promise<unknown>}
+ * @returns {Promise<unknown>} False where the GM couldn't keep it.
  */
-function spendButton(message, key) {
+async function spendButton(message, key) {
 	if (message.isOwner) return message.setFlag(SYSTEM_ID, SPENT_FLAG, [...new Set([...spentButtons(message), key])]);
-	return game.users.activeGM?.query(SPEND_QUERY, { messageId: message.id, key });
+	return askActiveGM(SPEND_QUERY, { messageId: message.id, key }, "Couldn't keep the button pressed");
 }
 
 /**
  * The selectors, as a key begins, of the once-only buttons somebody besides
- * the Referee may press. The Referee can update any card, so never asks.
- * @type {Set<string>}
+ * the Referee may press, each with who may. The Referee can update any card,
+ * so never asks.
+ * @type {Map<string, (message: ChatMessage, user: User) => boolean>}
  */
-const askedSpends = new Set();
+const askedSpends = new Map();
+
+/**
+ * How many of a kind of button a card holds, read from its HTML as posted.
+ * @param {ChatMessage} message
+ * @param {string} selector
+ * @returns {number}
+ */
+function buttonCount(message, selector) {
+	const content = new DOMParser().parseFromString(String(message.content ?? ""), "text/html");
+	return content.querySelectorAll(selector).length;
+}
 
 /**
  * Whether a user sees a card, and so its buttons: a whisper only its author
@@ -189,15 +207,24 @@ const seesCard = (message, user) => !message.whisper?.length || message.author?.
 /**
  * A user's press of a once-only button, kept for them by the active GM. A
  * button only the Referee has is never spent by asking, nor one on a card the
- * asker can't see. Foundry 13 doesn't say who asked, so there only the first holds.
+ * asker can't see, nor one whose work they couldn't have done, nor one the card
+ * doesn't hold.
  * @param {{messageId: string, key: string}} data
- * @param {{user?: User}} [context] Who asked, from Foundry 14.
+ * @param {object} [context]
  * @returns {Promise<boolean>}
  */
-async function onSpendQuery({ messageId, key } = {}, { user } = {}) {
+async function onSpendQuery({ messageId, key } = {}, context = {}) {
+	const user = queryAsker(context);
+	if (!user) return false;
 	const message = game.messages.get(messageId);
-	if (!message || typeof key !== "string" || !askedSpends.has(key.slice(0, key.lastIndexOf("#")))) return false;
-	if (user && !seesCard(message, user)) return false;
+	if (!message || typeof key !== "string") return false;
+	const at = key.lastIndexOf("#");
+	const selector = key.slice(0, at);
+	const index = key.slice(at + 1);
+	const mayPress = askedSpends.get(selector);
+	if (at < 0 || !mayPress || !/^\d{1,3}$/.test(index)) return false;
+	if (!seesCard(message, user) || !mayPress(message, user)) return false;
+	if (Number(index) >= buttonCount(message, selector)) return false;
 	await spendButton(message, key);
 	return true;
 }
@@ -230,8 +257,10 @@ function dropButtons(html, selector, which = () => true) {
  * @param {(change: object) => boolean} [options.queryable] Whether a user may ask the GM for this change.
  * @param {(message: ChatMessage, change: object) => object} [options.alsoUpdate] More of the
  *   message a change updates, such as the rolls another combatant adds to an Attack card.
+ * @param {(message: ChatMessage, change: object) => boolean} [options.fits] Whether the change fits
+ *   what else the world holds, checked on every commit, the card's own client's or the asked GM's.
  */
-export function statefulCard({ flag, query, notices, change, render, queryable = () => true, alsoUpdate = () => ({}) }) {
+export function statefulCard({ flag, query, notices, change, render, queryable = () => true, alsoUpdate = () => ({}), fits = () => true }) {
 	/**
 	 * @param {ChatMessage|undefined} message
 	 * @returns {State|null}
@@ -244,6 +273,7 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 	 * @returns {Promise<boolean>} False if the card no longer allows the change.
 	 */
 	async function commit(message, delta) {
+		if (!fits(message, delta)) return false;
 		const state = change(stateOf(message), delta);
 		if (!state) return false;
 		await message.update({ ...alsoUpdate(message, delta), content: await render(state), [`flags.${SYSTEM_ID}.${flag}`]: state });
@@ -264,7 +294,7 @@ export function statefulCard({ flag, query, notices, change, render, queryable =
 				warn(`${notices}.needsGM`);
 				return false;
 			}
-			saved = await game.users.activeGM.query(query, { messageId: message.id, change: delta });
+			saved = await askActiveGM(query, { messageId: message.id, change: delta }, "Couldn't have the card changed");
 		}
 		if (!saved) warn(`${notices}.changeRefused`);
 		return Boolean(saved);

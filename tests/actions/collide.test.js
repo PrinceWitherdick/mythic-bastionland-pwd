@@ -72,3 +72,21 @@ describe("collide", () => {
 		expect(faces).toEqual([]);
 	});
 });
+
+describe("the collision card's button", () => {
+	it("is kept pressed only for whoever may change the ship", async () => {
+		const { registerCollisions } = await import("../../module/actions/structures.js");
+		const { registerCardButtons } = await import("../../module/chat/cards.js");
+		registerCollisions();
+		const { mayPress } = registerCardButtons.mock.calls.at(-1)[0];
+		globalThis.fromUuidSync = (uuid) => (uuid === "Actor.cog" ? { testUserPermission: (user, level) => level === "OWNER" && user.id === "captain" } : null);
+		try {
+			const card = { flags: { [SYSTEM_ID]: { collision: { ship: "Actor.cog", damage: 3 } } } };
+			expect(mayPress(card, { id: "captain" })).toBe(true);
+			expect(mayPress(card, { id: "stowaway" })).toBe(false);
+			expect(mayPress({ flags: {} }, { id: "captain" })).toBe(false);
+		} finally {
+			delete globalThis.fromUuidSync;
+		}
+	});
+});

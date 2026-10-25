@@ -1,4 +1,5 @@
 import { inputDialog } from "../apps/ui.js";
+import { attackOf } from "../chat/attack-flag.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
 import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, opponentOf, readyToResolve } from "../rules/duel.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
@@ -47,13 +48,28 @@ function renderDuelCard(duel) {
 	return foundry.applications.handlebars.renderTemplate(templatePath("chat/duel.hbs"), duelCardContext(duel));
 }
 
-const duelCard = statefulCard({ flag: "duel", query: DUEL_QUERY, notices: "duel", change: changeDuel, render: renderDuelCard });
+const duelCard = statefulCard({ flag: "duel", query: DUEL_QUERY, notices: "duel", change: changeDuel, render: renderDuelCard, fits: duelChangeFits });
 
 /**
  * @param {ChatMessage|undefined} message
  * @returns {import("../rules/duel.js").DuelState|null}
  */
 export const duelOf = duelCard.stateOf;
+
+/**
+ * Whether a change fits the duel it's made on: an Attack must be an Attack
+ * card the duelist rolled for this duel, and not yet applied, so another card
+ * can't be swapped in to land its Damage on the opponent.
+ * @param {ChatMessage} message The duel card.
+ * @param {object} change See `changeDuel`.
+ * @returns {boolean}
+ */
+function duelChangeFits(message, change) {
+	if (change?.type !== "attack") return true;
+	// The Attack card's state, as attack-card.js keeps it.
+	const attack = attackOf(game.messages.get(change.message));
+	return Boolean(attack) && attack.attacker === change.actor && attack.duel === message.id && !attack.appliedTo?.length;
+}
 
 /**
  * Record a change on a duel card, asking the GM when this user can't.
@@ -79,8 +95,9 @@ export function openDuelFor(actor) {
 
 /**
  * The active GM records a change for a player. An Attack must be the
- * player's own duelist's, and anything else needs them to own both duelists,
- * since they have already applied its Damage or Glory.
+ * player's own duelist's, on a card that duelist rolled for this duel, and
+ * anything else needs them to own both duelists, since they have already
+ * applied its Damage or Glory.
  * @param {{messageId: string, change: object}} data
  * @param {{user: User}} context
  * @returns {Promise<boolean>}

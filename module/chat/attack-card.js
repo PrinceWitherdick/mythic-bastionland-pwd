@@ -33,6 +33,7 @@ import { damageReach } from "../rules/property-tab.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { ATTACK_FLAG, attackOf } from "./attack-flag.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
@@ -119,7 +120,7 @@ const CHANGE_GUARDS = Object.freeze({
 const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
 
 const attackCard = statefulCard({
-	flag: "attack",
+	flag: ATTACK_FLAG,
 	query: CHANGE_QUERY,
 	notices: "attack",
 	change: changeAttack,
@@ -142,11 +143,8 @@ function joinedRolls(message, change) {
 	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
 }
 
-/**
- * @param {ChatMessage|undefined} message
- * @returns {import("../rules/attack.js").AttackState|null}
- */
-export const attackOf = attackCard.stateOf;
+// Read where the card keeps it (attack-flag.js), and offered from here too.
+export { attackOf };
 
 /**
  * Record a change on the card, asking the GM when this user can't.
