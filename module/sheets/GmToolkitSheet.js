@@ -42,7 +42,7 @@ import { CITY_OMEN_COUNT, CITY_QUEST_END, cityQuestOver } from "../rules/city-qu
 import { PLACE_ORDERS, REALM_TABS, TOOLKIT_TABS, askedColumns, omenParts, omenStage, pointsOpposite, realmPlaces, resolvedMyths, tableView } from "../rules/gm-toolkit.js";
 import { rulingKnightOf } from "../rules/dominion.js";
 import { CAST_FLAG, castBlock, gatherCast } from "../rules/myth-cast.js";
-import { mythNoteFor } from "../rules/myth-notes.js";
+import { mythNoteFor, mythRoll } from "../rules/myth-notes.js";
 import { OMEN_COUNT, TERRAIN, featureAt, terrainAt } from "../rules/realm.js";
 import { isOwnMyth, mythWithOwn } from "../rules/own-myths.js";
 import { POINT_KINDS } from "../rules/sites.js";
@@ -201,8 +201,17 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		}
 	};
 
-	/** @type {string|null} The Realm Scene chosen at the top of the sheet. */
+	/**
+	 * @type {string|null} The Realm Scene the pages were drawn from: the one
+	 *   chosen at the top of the sheet, or else the one the canvas showed.
+	 */
 	sceneId = null;
+
+	/** Whether the Realm on show was chosen by hand, so the canvas no longer moves it. */
+	#chosen = false;
+
+	/** @type {string|null} A Realm the canvas has moved to, taken up once every page drawn from the Realm is drawn again. */
+	#follow = null;
 
 	/** @type {object|null|undefined} The art index: undefined until loaded, null if never imported. */
 	#index;
@@ -216,7 +225,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	/** Parts waiting to be redrawn. */
 	#stale = new Set();
 
-	/** @type {Map<number, Record<number, number>>} The row last rolled in each column of a Myth's table, by Myth number. */
+	/** @type {Map<string, Record<number, number>>} The row last rolled in each column of a Myth's table, by `#mythKey`. */
 	#tableRolls = new Map();
 
 	/** @type {Map<string, {img: string|null, members: object[]}>} Each Cast as the page last drew it, so a click knows the stat block it stands for. */
@@ -246,7 +255,10 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		this.#redraw("timeline");
 	}
 
-	/** @returns {Scene|null} The Realm on show: the one chosen, the one on the canvas, or the first there is. */
+	/**
+	 * @returns {Scene|null} The Realm on show: the one the pages were drawn
+	 *   from, or before they're drawn, the one on the canvas or the first there is.
+	 */
 	get scene() {
 		const chosen = game.scenes.get(this.sceneId);
 		if (isRealmScene(chosen)) return chosen;
@@ -265,12 +277,56 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * @param {number} number Its number in the Realm.
 	 */
 	async showMyth(scene, number) {
-		if (scene) this.sceneId = scene.id;
+		// Shown, not chosen: the pages still follow the canvas to the next Realm it shows.
+		if (scene) {
+			this.sceneId = scene.id;
+			this.#follow = null;
+		}
 		for (const fold of this.#folds.keys()) if (fold.startsWith("myth:")) this.#folds.set(fold, false);
 		this.#folds.set(`myth:${number}`, true);
 		await this.render({ force: true, tab: "myths" });
 		const card = this.element?.querySelector(`[data-myth-card][data-number="${number}"]`);
 		if (card) bringIntoView(card);
+	}
+
+	/**
+	 * Show a Realm chosen by hand, which the canvas then leaves alone.
+	 * @param {string} id
+	 */
+	#choose(id) {
+		this.sceneId = id;
+		this.#chosen = true;
+		this.#follow = null;
+	}
+
+	/**
+	 * Fix the Realm this draw is made from, so that between draws every click
+	 * acts on the Realm the page shows, whatever the canvas shows meanwhile. A
+	 * Realm the canvas moved to is taken up only by a draw of every page drawn
+	 * from the Realm, so no page is left showing the one before.
+	 * @param {object} options
+	 * @returns {Scene|null}
+	 */
+	#pinScene(options) {
+		const drawn = options.parts ?? Object.keys(this.constructor.PARTS);
+		if (this.#follow && REALM_PARTS.every((part) => drawn.includes(part))) {
+			if (!this.#chosen && isRealmScene(game.scenes.get(this.#follow))) this.sceneId = this.#follow;
+			this.#follow = null;
+		}
+		// One chosen and then unmade leaves the pages free to follow the canvas again.
+		if (!isRealmScene(game.scenes.get(this.sceneId))) this.#chosen = false;
+		const scene = this.scene;
+		this.sceneId = scene?.id ?? null;
+		return scene;
+	}
+
+	/**
+	 * @param {object} myth
+	 * @returns {string} The Myth in the Realm on show, by its roll rather than
+	 *   its number, so one rolled in its place starts afresh.
+	 */
+	#mythKey(myth) {
+		return `${this.scene?.id ?? ""}:${mythRoll(myth) || myth.number}`;
 	}
 
 	/* -------------------------------------------- */
@@ -294,7 +350,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		const context = Object.assign(await super._prepareContext(options), { actor: this.actor, system: this.actor.system });
 		if (this._drawsTimelineOnly(options)) return context;
 		if (this.#index === undefined) this.#index = await loadArtIndex();
-		const scene = this.scene;
+		const scene = this.#pinScene(options);
 		const entry = scene ? getRealm(scene) : null;
 		// Played alone, the Toolkit knows only what the Company has found.
 		const realm = realmKnown(entry?.realm ?? null, scene);
@@ -522,7 +578,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * @returns {object|null} Null for a Myth whose page there's no way to read.
 	 */
 	#tableContext(myth, page, entry, called) {
-		const fold = `table:${myth.number}`;
+		const fold = `table:${this.#mythKey(myth)}`;
 		const read = peekTable(page);
 		const table = entry?.table ?? read ?? null;
 		if (!table) {
@@ -536,7 +592,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			fold,
 			open: this.#folds.get(fold) ?? called,
 			name: table.name,
-			...tableView(table, this.#tableRolls.get(myth.number), (column) => t("gmToolkit.myths.rollColumn", { column }))
+			...tableView(table, this.#tableRolls.get(this.#mythKey(myth)), (column) => t("gmToolkit.myths.rollColumn", { column }))
 		};
 	}
 
@@ -880,6 +936,13 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			if (isOwnMythEntry(entry) && scene && mythWithOwn(getRealm(scene)?.realm.myths ?? [], entry.id)) this.#redraw(...REALM_TABS, "time");
 		};
 		const onDomain = (actor) => actor.type === "domain" && this.#redraw("time");
+		// Until a Realm is chosen by hand, the pages follow the canvas to the Realm it shows.
+		const onCanvas = () => {
+			const shown = canvas?.scene;
+			if (this.#chosen || !isRealmScene(shown)) return;
+			this.#follow = shown.id === this.sceneId ? null : shown.id;
+			if (this.#follow) renderWhenIdle(this, { parts: REALM_PARTS, busy: BUSY });
+		};
 		// An actor made, deleted, renamed, repictured, put in a Cast or taken out of one changes the Myths page.
 		const onCast = (actor) => couldJoinCast(actor) && this.#redraw("myths");
 		// Only the Cast flag itself, since the system writes plenty of others on an
@@ -905,6 +968,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 				onDomainChange(actor, changes);
 				onCastChange(actor, changes);
 			})],
+			["canvasReady", Hooks.on("canvasReady", onCanvas)],
 			[CALENDAR_HOOK, Hooks.on(CALENDAR_HOOK, () => this.#redraw("header", "time"))],
 			[WEATHER_HOOK, Hooks.on(WEATHER_HOOK, () => this.#redraw("header"))],
 			[RULEBOOK_HOOK, Hooks.on(RULEBOOK_HOOK, () => this.#redraw("header"))]
@@ -984,6 +1048,9 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		for (const [name, id] of this.#hooks) Hooks.off(name, id);
 		this.#hooks = [];
 		this.#stale.clear();
+		// Opened again, the pages show the Realm on the canvas then, unless one was chosen.
+		this.#follow = null;
+		if (!this.#chosen) this.sceneId = null;
 	}
 
 	/**
@@ -1049,7 +1116,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			case "search": return;
 			case "realm":
 				if (!target.value || target.value === this.sceneId) return;
-				this.sceneId = target.value;
+				this.#choose(target.value);
 				return this.render({ parts: REALM_PARTS });
 			case "mythNote": {
 				const myth = this.#mythFrom(target);
@@ -1151,11 +1218,13 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		if (!table) return;
 
 		const columns = askedColumns(table, Number(target.dataset.column));
+		// Taken before the dice roll, while the Realm on show is the one clicked in.
+		const key = this.#mythKey(myth);
 		this.#spinning = true;
 		try {
 			const { roll, results, prompt } = await rollMythTable(table, columns);
-			this.#tableRolls.set(myth.number, {
-				...this.#tableRolls.get(myth.number),
+			this.#tableRolls.set(key, {
+				...this.#tableRolls.get(key),
 				...Object.fromEntries(results.map((result) => [result.index, result.roll]))
 			});
 			// The card goes out at once, so its dice roll while the highlight runs.

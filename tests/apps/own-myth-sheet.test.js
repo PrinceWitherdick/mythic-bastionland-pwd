@@ -47,6 +47,13 @@ describe("the sheet a written Myth opens with", () => {
 		expect(sheet).toContain("#writing = serialWrites();");
 	});
 
+	it("keeps what's typed in the next field while the last change saves, and the table's fold as left", () => {
+		// Each change saves and so draws the sheet again, which would put back the saved value.
+		expect(sheet).toContain("export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {");
+		const [fold] = template.match(/<details class="[^"]*__table-fold"[^>]*>/);
+		expect(fold).toContain('data-sync="table"');
+	});
+
 	it("leaves no empty entry behind when New Myth is closed untouched", () => {
 		expect(actions).toContain("entry.sheet.discardIfBlank = true;");
 		expect(sheet).toContain("if (game.journal.has(entry.id) && isUntouchedOwnMyth(entry) && !heldByARealm(entry.id)) return entry.delete();");

@@ -1,6 +1,7 @@
 import { OWN_MYTH_FLAG, isUntouchedOwnMyth, readOwnMyth } from "../actions/own-myths.js";
 import { getRealm, isRealmScene } from "../actions/realm.js";
 import { filePicker } from "../book-art/files.js";
+import { KeepDraftMixin } from "./keep-draft.js";
 import { t } from "../chat/cards.js";
 import { VERSE_LINES, mythWithOwn, normaliseOwnMyth, ownMythChanged, tableWritten } from "../rules/own-myths.js";
 import { serialWrites } from "../rules/queue.js";
@@ -23,7 +24,9 @@ const FLAG_PATH = `flags.${SYSTEM_ID}.${OWN_MYTH_FLAG}`;
  * six once it's chosen in The Realm's Myths, and the GM Toolkit, the Omen
  * cards and the picture's window read it there as they read the book's.
  */
-export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
+// Each change saves the Myth and draws the sheet again, so what's typed meanwhile
+// in the next field, and the table's fold as it was left, are kept.
+export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-own-myth-window"],
 		position: { width: 620, height: 760 },
