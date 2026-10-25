@@ -11,7 +11,18 @@
  */
 import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileCornerAnchored, tileNameData, tilePlaced, tileReading } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
+import {
+	HOLDING_STYLES,
+	LAKE,
+	LANDMARK_TYPES,
+	MYTH_COUNT,
+	REALM_FLAG,
+	REALM_VERSION,
+	RIVER_SHAPES,
+	TERRAIN,
+	emptyRealm,
+	landmarkExtras
+} from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
 import { emptyVariants, pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
@@ -419,7 +430,7 @@ export function realmDocuments(realm, g, textures) {
 			data: icon("landmark", textures.landmark[landmark.type] ?? textures.landmark.dwelling, landmark.hex, {
 				name: landmark.name ?? "",
 				hidden: !landmark.revealed,
-				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null, ...(landmark.echo ? { echo: landmark.echo } : {}) }
+				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null, ...(landmark.echo ? { echo: landmark.echo } : {}), ...landmarkExtras(landmark) }
 			})
 		});
 	}
@@ -576,7 +587,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				break;
 			case "landmark":
 				if (!hex) problems.push({ kind: "landmark", reason: "offMap", key: where });
-				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden, ...(flag.echo ? { echo: flag.echo } : {}) });
+				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden, ...(flag.echo ? { echo: flag.echo } : {}), ...landmarkExtras(flag) });
 				break;
 			default:
 				break;

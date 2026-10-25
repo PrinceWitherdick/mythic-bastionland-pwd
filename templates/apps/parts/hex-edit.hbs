@@ -109,6 +109,31 @@
 				</select>
 			</div>
 		</div>
+		{{#if landmark.variants}}
+		<div class="form-group">
+			<label for="{{@root.partId}}-variant">{{localize "bastionland.realm.landmarks.variant"}}</label>
+			<div class="form-fields bastionland-hex-edit__pick">
+				<select id="{{@root.partId}}-variant" name="variant">
+					{{#each landmark.variants}}
+					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+				<button type="button" data-action="rollVariant" data-tooltip="{{localize "bastionland.realm.landmarks.rollVariant"}}" aria-label="{{localize "bastionland.realm.landmarks.rollVariant"}}"><i class="fa-solid fa-dice" inert></i></button>
+			</div>
+		</div>
+		{{/if}}
+		{{#if landmark.pairs}}
+		<div class="form-group">
+			<label for="{{@root.partId}}-pair">{{localize "bastionland.realm.landmarks.pairWith"}}</label>
+			<div class="form-fields">
+				<select id="{{@root.partId}}-pair" name="pair">
+					{{#each landmark.pairs}}
+					<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+		{{/if}}
 		{{#if landmark.sanctum}}
 		<div class="form-group">
 			<label for="{{@root.partId}}-seer-d6">{{localize "bastionland.realm.panel.seerRoll"}}</label>

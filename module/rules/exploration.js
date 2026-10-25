@@ -20,7 +20,7 @@
  *
  * Pure, so it can be tested without Foundry; the language file puts words to it.
  */
-import { featureAt, hexSummary, terrainAt, TERRAIN } from "./realm.js";
+import { featureAt, hexSummary, landmarkVariantOf, terrainAt, TERRAIN } from "./realm.js";
 import { edgeDirection, edgeKey, hexDistance, hexLine, neighbours, sameHex } from "./realm-geometry.js";
 
 /** Who the Company can ask, in the order the book lists them. */
@@ -122,6 +122,7 @@ function landmarkKnown(g, home, landmark) {
 	const distance = hexDistance(g, landmark.hex, home);
 	return {
 		type: landmark.type,
+		...landmarkVariantOf(landmark),
 		name: landmark.name ?? "",
 		hex: landmark.hex,
 		distance,

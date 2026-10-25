@@ -137,3 +137,32 @@ describe("Myths with no Omen left", () => {
 		expect(wildernessOutcome(realm, wildernessSituation(empty, g, hex(6, 6)), { d6: 1 })).toEqual({ result: "noOmens", d6: 1 });
 	});
 });
+
+describe("the blog's Landmarks met on a Wilderness Roll", () => {
+	const at = hex(6, 6);
+	const withLandmark = (landmark) => ({ ...sampleRealm(), landmarks: [{ id: "l1", hex: at, name: "", seer: null, revealed: false, ...landmark }] });
+	const roll = (landmark, d6, season = "spring") => {
+		const realm = withLandmark(landmark);
+		return wildernessOutcome(realm, wildernessSituation(realm, g, at), { d6, season }).result;
+	};
+
+	it("finds a Pond only on a 6", () => {
+		expect(roll({ type: "pond" }, 4)).toBe("allClear");
+		expect(roll({ type: "pond" }, 5)).toBe("allClear");
+		expect(roll({ type: "pond" }, 6)).toBe("landmark");
+	});
+
+	it("never finds a Grotto, which only directions lead to", () => {
+		for (const d6 of [4, 5, 6]) expect(roll({ type: "grotto", variant: "past" }, d6)).toBe("allClear");
+	});
+
+	it("finds a Willow only in its own Season", () => {
+		expect(roll({ type: "willow", variant: "harvest" }, 5, "harvest")).toBe("landmark");
+		expect(roll({ type: "willow", variant: "harvest" }, 5, "winter")).toBe("allClear");
+	});
+
+	it("finds a Bridge or a Landmark of the Referee's own as any Landmark", () => {
+		expect(roll({ type: "bridge" }, 4)).toBe("landmark");
+		expect(roll({ type: "other" }, 4)).toBe("landmark");
+	});
+});

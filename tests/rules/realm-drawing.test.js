@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DRAWING_RULES, SECRET_DRAWING_STEPS, bookDrawingGroups, drawingShortfalls, drawingTally, drawingWindowPlacement, finishPlacement, sheetDrawingGroups } from "../../module/rules/realm-drawing.js";
-import { LANDMARK_TYPES, REALM_BRUSHES, REALM_TOOLS, emptyRealm } from "../../module/rules/realm.js";
+import { BOOK_LANDMARK_TYPES, REALM_BRUSHES, REALM_TOOLS, emptyRealm } from "../../module/rules/realm.js";
 
 const hex = (col, row) => ({ col, row });
 
@@ -12,7 +12,7 @@ function drawnRealm() {
 	realm.barriers = Array.from({ length: 24 }, (_, index) => ({ id: null, edge: `e${index}`, revealed: false }));
 	realm.holdings = ["castle", "town", "fortress", "tower"].map((style, index) => ({ id: null, hex: hex(index + 1, 5), style, seat: index === 0, name: "" }));
 	realm.myths = Array.from({ length: 6 }, (_, index) => ({ id: null, hex: hex(index + 1, 8), number: index + 1, d6: 1, d12: 1, omen: 0, revealed: false }));
-	realm.landmarks = LANDMARK_TYPES.flatMap((type, index) => [1, 2, 3].map((n) => ({ id: null, hex: hex(index + 1, 9 + n), type, name: "", seer: null, revealed: false })));
+	realm.landmarks = BOOK_LANDMARK_TYPES.flatMap((type, index) => [1, 2, 3].map((n) => ({ id: null, hex: hex(index + 1, 9 + n), type, name: "", seer: null, revealed: false })));
 	return realm;
 }
 
@@ -102,7 +102,7 @@ describe("sheetDrawingGroups", () => {
 		expect(groups.map((group) => group.key)).toEqual(DRAWING_RULES.map((group) => group.key));
 		expect(groups[0].parts.map((part) => part.blocks)).toEqual(["terrain", "barriers", "river"].map((key) => [{ kind: "paragraph", text: `<sections.${key}.text>` }]));
 		const landmarks = groups.at(-1).parts[0].blocks;
-		expect(landmarks).toHaveLength(1 + LANDMARK_TYPES.length);
+		expect(landmarks).toHaveLength(1 + BOOK_LANDMARK_TYPES.length);
 		expect(landmarks[1]).toEqual({ kind: "term", label: "<sections.landmarks.lines.dwelling.label>", text: "<sections.landmarks.lines.dwelling.text>" });
 	});
 });
@@ -115,7 +115,7 @@ describe("drawingTally", () => {
 		expect(tally.river).toEqual([{ key: "river", count: 0, target: null, done: false, rivers: 0 }]);
 		expect(tally.holdings.map((entry) => [entry.key, entry.target])).toEqual([["holdings", 4], ["seat", 1]]);
 		expect(tally.myths[0].target).toBe(6);
-		expect(tally.landmarks.map((entry) => [entry.key, entry.target])).toEqual(LANDMARK_TYPES.map((type) => [type, 3]));
+		expect(tally.landmarks.map((entry) => [entry.key, entry.target])).toEqual(BOOK_LANDMARK_TYPES.map((type) => [type, 3]));
 	});
 
 	it("marks every step done for a Realm drawn as the sheet asks", () => {
@@ -127,7 +127,7 @@ describe("drawingTally", () => {
 		realm.myths = [];
 		realm.landmarks = [];
 		realm.barriers = [];
-		expect(drawingShortfalls(realm).map((entry) => entry.key)).toEqual(["barriers", "myths", ...LANDMARK_TYPES]);
+		expect(drawingShortfalls(realm).map((entry) => entry.key)).toEqual(["barriers", "myths", ...BOOK_LANDMARK_TYPES]);
 		expect(drawingShortfalls(realm, { leave: SECRET_DRAWING_STEPS })).toEqual([]);
 	});
 

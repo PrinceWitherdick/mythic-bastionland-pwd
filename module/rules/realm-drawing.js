@@ -4,7 +4,7 @@
  * each step. Wording lives in the language file under
  * `bastionland.realmDrawing`. Pure, so it can be tested without Foundry.
  */
-import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
+import { BOOK_LANDMARK_TYPES, HOLDING_COUNT, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount, realmSeats, seatsInOrder } from "./realm.js";
 import { hexKey } from "./realm-geometry.js";
 import { SETUP_PARTS } from "./realm-setup.js";
 
@@ -76,7 +76,7 @@ export const DRAWING_RULES = Object.freeze([
 	},
 	{ key: "holdings", book: "Holdings", icon: "fa-chess-rook", sections: [{ key: "holdings", brush: "holding" }] },
 	{ key: "myths", book: "Myth Hexes", icon: "fa-dragon", sections: [{ key: "myths", tool: "inspect" }] },
-	{ key: "landmarks", book: "Landmarks", icon: "fa-monument", sections: [{ key: "landmarks", brush: "landmark", lines: [...LANDMARK_TYPES] }] }
+	{ key: "landmarks", book: "Landmarks", icon: "fa-monument", sections: [{ key: "landmarks", brush: "landmark", lines: [...BOOK_LANDMARK_TYPES] }] }
 ].map((group) => Object.freeze({ ...group, sections: Object.freeze(group.sections.map((section) => Object.freeze(section))) })));
 
 /**
@@ -213,7 +213,7 @@ export function drawingTally(realm) {
 		river: [{ ...count("river", wet, null, rivers.length > 0), rivers: rivers.length }],
 		holdings: [count("holdings", realm.holdings.length, HOLDING_COUNT), { ...count("seat", seats, 1, seats === 1 || several), ...(disputed ? { disputed } : {}) }],
 		myths: [count("myths", realm.myths.length, MYTH_COUNT)],
-		landmarks: LANDMARK_TYPES.map((type) => count(type, realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE.min))
+		landmarks: BOOK_LANDMARK_TYPES.map((type) => count(type, realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE.min))
 	};
 }
 

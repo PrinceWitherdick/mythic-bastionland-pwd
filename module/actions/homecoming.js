@@ -11,6 +11,7 @@ import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
 import { inCompany, worldKnights } from "./knights.js";
+import { landmarkName } from "../rules/landmarks.js";
 
 /**
  * The Crisis Roll's other time, coming home after a long time away (p20): a
@@ -62,7 +63,7 @@ export function domainLands(domain, realms = realmHoldings()) {
 	if (!realm || !found.holding.id) return null;
 	const known = game.user.isGM ? realmKnown(realm, found.scene) : soloRealm(realm);
 	const { hexes, landmarks } = holdingLands(known, sceneGeometry(found.scene), found.holding.id);
-	const named = landmarks.map((landmark) => landmark.name || t(`realm.landmarks.${landmark.type}`));
+	const named = landmarks.map((landmark) => landmarkName(landmark, t));
 	if (!named.length) return t("domain.lands.line", { count: hexes.length });
 	return t("domain.lands.withLandmarks", { count: hexes.length, landmarks: named.join(", ") });
 }

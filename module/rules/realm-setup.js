@@ -5,7 +5,7 @@
  * for setup gives their own. Either way, any part can be left off the roll to
  * draw by hand. Pure, so it can be tested without Foundry.
  */
-import { HOLDING_COUNT, LANDMARK_TYPES, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount } from "./realm.js";
+import { BOOK_LANDMARK_TYPES, HOLDING_COUNT, LANDMARKS_PER_TYPE, MYTH_COUNT, barrierCount } from "./realm.js";
 import { realmGeometry } from "./realm-geometry.js";
 
 /** The parts of a Realm that are rolled, in the order they're rolled. Each is also the Realm's key for it. */
@@ -152,7 +152,7 @@ export function normaliseRealmSetup(given = null) {
  */
 function landmarkCounts(types) {
 	const given = types && typeof types === "object" ? types : {};
-	return Object.fromEntries(LANDMARK_TYPES
+	return Object.fromEntries(BOOK_LANDMARK_TYPES
 		.filter((type) => !["", null, undefined].includes(given[type]) && Number.isFinite(Number(given[type])))
 		.map((type) => [type, within(given[type], 0, SETUP_LIMITS.landmarks)]));
 }

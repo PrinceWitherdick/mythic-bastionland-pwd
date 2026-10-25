@@ -7,7 +7,7 @@
  * are places rather than demands, and a Sanctum's Seer is already rolled when
  * the Realm is made. Pure, so it can be tested without Foundry.
  */
-import { LANDMARK_TYPES } from "./realm.js";
+import { BOOK_LANDMARK_TYPES, HIDDEN_LANDMARK, LANDMARK_TYPES, PAIRED_LANDMARK, SEASONAL_LANDMARK, isLandmarkVariant } from "./realm.js";
 import { isCalendar, nextPhase, samePhase } from "./time.js";
 
 /** What a Landmark offers the Company, each a button on the card that found it. */
@@ -26,10 +26,8 @@ export const LANDMARK_OFFERS = Object.freeze(["restoreSpirit", "pushThrough", "e
 const effect = ({ offer = null, also = null, virtue = null, offCourse = false, icon = null, alsoIcon = null } = {}) =>
 	Object.freeze({ offer, also, virtue, offCourse, icon, alsoIcon });
 
-/** Each Landmark type's effect, by type. */
-export const LANDMARK_EFFECTS = Object.freeze({
-	dwelling: effect(),
-	sanctum: effect(),
+/** What the Landmarks that ask something of the Company ask. */
+const ASKING = {
 	monument: effect({ offer: "restoreSpirit", virtue: "spi", icon: "fa-solid fa-hands-praying" }),
 	// Pushing through costs d6 of a Virtue, most often VIG, so VIG is offered and the Referee may
 	// choose another, or the Company turns back. Devising a solution is the players' own, with no button.
@@ -42,7 +40,13 @@ export const LANDMARK_EFFECTS = Object.freeze({
 	}),
 	curse: effect({ offCourse: true, icon: "fa-solid fa-eye-low-vision" }),
 	ruin: effect({ offer: "echoMyth", icon: "fa-solid fa-dice" })
-});
+};
+
+/**
+ * Each Landmark type's effect, by type. Dwellings and Sanctums, the Referee's
+ * own, and the blog's six ask nothing the card can do: their notes say what follows.
+ */
+export const LANDMARK_EFFECTS = Object.freeze(Object.fromEntries(LANDMARK_TYPES.map((type) => [type, ASKING[type] ?? effect()])));
 
 /**
  * @param {string} type One of LANDMARK_TYPES.
@@ -57,6 +61,43 @@ export const landmarkEffect = (type) => (LANDMARK_TYPES.includes(type) ? LANDMAR
 export const throwsOffCourse = (type) => Boolean(landmarkEffect(type)?.offCourse);
 
 /**
+ * @param {string} type
+ * @returns {boolean} Whether a Myth's page prompts a name for this kind: only the book's six are along its foot.
+ */
+export const hasBookPrompt = (type) => BOOK_LANDMARK_TYPES.includes(type);
+
+/**
+ * Whether a Wilderness Roll that turns up a Landmark (4 to 6, p18) turns up
+ * this one. The blog's say how they're found: a Pond only on a 6, a Grotto
+ * never, as only a local's directions lead to it, and a Willow only in its own
+ * Season. Every other Landmark is found as the book has it.
+ * @param {{type: string, variant?: string}} landmark
+ * @param {{d6?: number|null, season?: string|null}} [roll]
+ * @returns {boolean}
+ */
+export function landmarkMet(landmark, { d6 = null, season = null } = {}) {
+	if (landmark.type === PAIRED_LANDMARK) return d6 === 6;
+	if (landmark.type === HIDDEN_LANDMARK) return false;
+	if (landmark.type === SEASONAL_LANDMARK) return Boolean(season) && landmark.variant === season;
+	return true;
+}
+
+/**
+ * @param {{type: string, variant?: string}} landmark
+ * @returns {string} The key for what to call it: its variant's name where it
+ *   has one ("Red Fountain"), else its kind's.
+ */
+export const landmarkLabelKey = ({ type, variant }) =>
+	isLandmarkVariant(type, variant) ? `realm.landmarks.variants.${type}.${variant}.label` : `realm.landmarks.${type}`;
+
+/**
+ * @param {{type: string, variant?: string, name?: string}} landmark
+ * @param {(key: string) => string} t The language's words for a key.
+ * @returns {string} The Landmark's name, or what it is where it has none.
+ */
+export const landmarkName = (landmark, t) => landmark.name || t(landmarkLabelKey(landmark));
+
+/**
  * The prompt a Myth's page gives a Landmark of this type: each page prints one
  * of every type along its foot, "Dwelling: Shepherd fields ~ Sanctum: …" (p14).
  * @param {{label: string, value: string}[]|null} prompts From the Myth's page.
@@ -64,7 +105,7 @@ export const throwsOffCourse = (type) => Boolean(landmarkEffect(type)?.offCourse
  * @returns {string|null}
  */
 export function landmarkPrompt(prompts, type) {
-	if (!LANDMARK_TYPES.includes(type) || !Array.isArray(prompts)) return null;
+	if (!hasBookPrompt(type) || !Array.isArray(prompts)) return null;
 	return prompts.find((prompt) => prompt.label?.trim().toLowerCase() === type)?.value?.trim() || null;
 }
 

@@ -6381,6 +6381,22 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: center;
 }
 
+/* Where one of the blog's Landmarks comes from, linked as the Welcome card's
+   modules are: the rubric's red, underlined only under the pointer. */
+.bastionland-hex-lore__credit {
+	margin: 0;
+	font-style: italic;
+}
+
+.bastionland-hex-lore__credit a {
+	color: var(--bastionland-rubric);
+	text-decoration: none;
+}
+
+.bastionland-hex-lore__credit a:hover {
+	text-decoration: underline;
+}
+
 /* Who rules a Holding: the Knight in bold, then their Domain, each opening its
    sheet, read as words rather than drawn as buttons. */
 .bastionland-hex-lore__rulers {
@@ -6739,6 +6755,21 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 	min-width: 0;
 	white-space: nowrap;
+}
+
+/* Which Grotto, Fountain or Willow: the box and the die that fills it on one
+   line, the die on the right. */
+.bastionland-hex-edit .bastionland-hex-edit__pick {
+	flex-wrap: nowrap;
+}
+
+.bastionland-hex-edit .bastionland-hex-edit__pick > select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.bastionland-hex-edit .bastionland-hex-edit__pick > button {
+	flex: none;
 }
 
 .bastionland-hex-edit__row {

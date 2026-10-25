@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeGlory, nextRank, rankForGlory, unworthyOf } from "../../module/rules/glory.js";
+import { GLORY_AWARDS, GLORY_BUTTONS, changeGlory, nextRank, rankForGlory, unworthyOf } from "../../module/rules/glory.js";
 
 describe("changeGlory", () => {
 	it("adds Glory and names a Rank newly reached", () => {
@@ -55,5 +55,14 @@ describe("unworthyOf", () => {
 
 	it("asks nothing of a post it doesn't know", () => {
 		expect(unworthyOf(0, "warband")).toBeNull();
+	});
+});
+
+describe("Glory for a Bridge", () => {
+	it("is an award of its own, given from the Bridge's tick rather than a button", () => {
+		expect(GLORY_AWARDS).toContain("bridge");
+		expect(GLORY_BUTTONS).not.toContain("bridge");
+		expect(GLORY_BUTTONS).not.toContain("myth");
+		expect(GLORY_BUTTONS).toEqual(["tournament", "battle"]);
 	});
 });

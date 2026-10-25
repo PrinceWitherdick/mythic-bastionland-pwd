@@ -61,6 +61,7 @@ import { SETTINGS_TAB_ENTRY, SettingsTabMixin } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
 import { ViewableMixin } from "./viewable.js";
+import { landmarkLabelKey, landmarkName } from "../rules/landmarks.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -768,7 +769,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 		if (landmark) {
 			const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
 			return {
-				...named(landmark.name, t(`realm.landmarks.${landmark.type}`)),
+				...named(landmark.name, t(landmarkLabelKey(landmark))),
 				self: "landmark",
 				status: [
 					seer && { text: t("gmToolkit.places.seer", { name: seer.name }), hidden: false },
@@ -801,7 +802,7 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			features.push({ text: t("gmToolkit.places.myth", { number: myth.number, name }), hidden: !myth.revealed });
 		}
 		if (landmark) {
-			const named = landmark.name || t(`realm.landmarks.${landmark.type}`);
+			const named = landmarkName(landmark, t);
 			const seer = isTableRoll(landmark.seer) ? seerEntry(this.#index, landmark.seer) : null;
 			features.push({ text: seer ? `${named}: ${seer.name}` : named, hidden: !landmark.revealed });
 		}

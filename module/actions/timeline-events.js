@@ -7,6 +7,7 @@ import { sessionRecap } from "../rules/session-end.js";
 import { playerHexView } from "../rules/travels.js";
 import { forgetEverywhere, keptFromPlayers, recordOnTrack, recordOnTracks, timelineNow } from "./timeline-record.js";
 import { playersHexView, travelsSources } from "./travels.js";
+import { landmarkName } from "../rules/landmarks.js";
 
 /**
  * What the game writes on the Timeline by itself, one recorder for each
@@ -256,7 +257,7 @@ function playersSources(scene) {
  */
 function worthNoting(view) {
 	if (view?.holding) return holdingName(view.holding, t);
-	if (view?.landmark) return view.landmark.name || t(`realm.landmarks.${view.landmark.type}`);
+	if (view?.landmark) return landmarkName(view.landmark, t);
 	if (view?.myth) return t("timeline.auto.mythHex", { number: view.myth.number });
 	return null;
 }
@@ -367,7 +368,7 @@ export function timelineWarded(warden, victim, { doomed = false } = {}) {
 }
 
 /**
- * Glory is awarded for a tournament or a battle: on each Knight's thread with
+ * Glory is awarded for a tournament, a battle or a Bridge won: on each Knight's thread with
  * what it did to their Glory, and the Company's naming those the players can
  * see. A Myth's Glory is in the Myth's own row.
  * @param {string} award One of GLORY_AWARDS.

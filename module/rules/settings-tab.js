@@ -40,7 +40,7 @@ export const SETTING_GROUPS = Object.freeze([
 	{
 		id: "referee",
 		title: "bastionland.settingsTab.groups.referee",
-		keys: ["soloPlay", "duplicateKnights", "hexLorePrompt", "hexLoreFirstArrival", "hexJournals", "siteJournals", "hexCoordinates", "direWeather", "rulebookForPlayers", "attackFx", "showTimeline"],
+		keys: ["soloPlay", "duplicateKnights", "blogLandmarks", "hexLorePrompt", "hexLoreFirstArrival", "hexJournals", "siteJournals", "hexCoordinates", "direWeather", "rulebookForPlayers", "attackFx", "showTimeline"],
 		menus: ["realmAppearance", "welcome"],
 		gmOnly: true
 	},

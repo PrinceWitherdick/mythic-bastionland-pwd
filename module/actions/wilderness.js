@@ -14,7 +14,7 @@ import {
 	wildernessOutcome,
 	wildernessSituation
 } from "../rules/wilderness.js";
-import { throwsOffCourse } from "../rules/landmarks.js";
+import { landmarkLabelKey, throwsOffCourse } from "../rules/landmarks.js";
 import { cityOmenReplaces, worthyOfCityQuest } from "../rules/city-quest.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
@@ -194,6 +194,8 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	let pick = 0;
 	// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 	let city = false;
+	// A Willow is found only in its own Season.
+	const { season } = getCalendar();
 	if (calls === "roll") {
 		mode = known ?? (await chooseMode(scene, where));
 		if (!mode) return null;
@@ -201,7 +203,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		rolls.push(roll);
 		d6 = roll.total;
 
-		const result = situationResult(d6, mode, situation);
+		const result = situationResult(d6, mode, situation, season);
 		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors.filter(inCompany)), cityOmensSeen());
 		const choices = city ? 1 : mythChoices(situation, result);
 		if (choices > 1) {
@@ -212,7 +214,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		}
 	}
 	// The whole Realm, so one whose Myths are all resolved has nothing left to show rather than no Myths.
-	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick });
+	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick, season });
 	// No Myth's Omen is spent when the City's stands in for it.
 	const outcome = city ? { result: rolled.result, d6: rolled.d6 } : rolled;
 	const index = loadArtIndex();
@@ -272,21 +274,21 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 
 	let landmark = null;
 	if (outcome.landmark) {
-		const { type, name, seer, hex } = outcome.landmark;
+		const { type, name, seer, hex, variant } = outcome.landmark;
 		let seerLine = null;
 		if (seer) {
 			const reference = seerEntry(index, seer);
 			seerLine = t("realm.wilderness.seer", { seer: reference.name, page: reference.page });
 		}
 		landmark = {
-			type: t(`realm.landmarks.${type}`),
+			type: t(landmarkLabelKey(outcome.landmark)),
 			name: name || null,
 			seer: seerLine,
 			promptFrom: named ? t("realm.landmarks.promptFrom", { myth: named.myth, page: named.page }) : null,
 			key: hexKey(hex),
 			revealed: revealLandmark,
 			// What this sort of Landmark asks of the travellers who found it (p14).
-			...landmarkOfferView(type)
+			...landmarkOfferView(type, variant)
 		};
 	}
 

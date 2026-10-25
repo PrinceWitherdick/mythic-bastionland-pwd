@@ -5,7 +5,7 @@
 import { t } from "../chat/cards.js";
 import { barrierCount } from "../rules/realm.js";
 import { BOOK_SETUP, SETUP_LIMITS, SETUP_PARTS, setupBarriers, within } from "../rules/realm-setup.js";
-import { LANDMARK_TYPES } from "../rules/realm.js";
+import { BOOK_LANDMARK_TYPES } from "../rules/realm.js";
 
 /**
  * The Custom Realm rows: the map's size, then each part the generator rolls,
@@ -33,7 +33,7 @@ export function setupParts() {
 	const notes = ["rivers", "holdings", "myths", "barriers"];
 	// Each type of Landmark may be given a count of its own (p202); left blank, it takes the range above.
 	const more = {
-		landmarks: LANDMARK_TYPES.map((type) => ({ ...field("landmarks", "", `landmarks.types.${type}`, t(`realm.landmarks.${type}`)), placeholder: "—" }))
+		landmarks: BOOK_LANDMARK_TYPES.map((type) => ({ ...field("landmarks", "", `landmarks.types.${type}`, t(`realm.landmarks.${type}`)), placeholder: "—" }))
 	};
 	return [
 		{ key: "map", label: t("realm.setup.parts.map"), rollable: false, note: null, fields: [labelled("cols", BOOK_SETUP.cols), labelled("rows", BOOK_SETUP.rows)] },

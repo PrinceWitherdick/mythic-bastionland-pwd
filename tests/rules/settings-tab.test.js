@@ -111,3 +111,10 @@ describe("settingValue", () => {
 		expect(settingValue(config, "loud")).toBeUndefined();
 	});
 });
+
+describe("the blog's Landmarks setting", () => {
+	it("is offered to the Referee only, beside the other world rules", () => {
+		expect(offersSetting("blogLandmarks", true)).toBe(true);
+		expect(offersSetting("blogLandmarks", false)).toBe(false);
+	});
+});

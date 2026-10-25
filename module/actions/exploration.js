@@ -26,6 +26,7 @@ import { realmAndCompany } from "./wilderness.js";
 import { liveRealm } from "./myth-notes.js";
 import { keptFromMe, mythKeptFromMe } from "./solo.js";
 import { companyKnights, inCompany } from "./knights.js";
+import { landmarkLabelKey } from "../rules/landmarks.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -101,7 +102,7 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 			};
 		}),
 		landmarks: folklore.landmarks.map((known) => ({
-			type: t(`realm.landmarks.${known.type}`),
+			type: t(landmarkLabelKey(known)),
 			name: known.name || null,
 			where: `${capitalise(whereItLies(g, known))}.`,
 			target: hexTarget(known.hex, scene)
@@ -245,7 +246,7 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 		terrain: here.terrain ? t(`realm.terrain.${here.terrain}`) : null,
 		holding: here.holding ? t(here.holding.seat ? "explore.survey.seat" : "explore.survey.holding", { name: here.holding.name || t(`realm.holdings.${here.holding.style}`) }) : null,
 		myth: here.myth ? t("explore.survey.myth", { number: here.myth.number }) : null,
-		landmark: landmark ? t("explore.survey.landmark", { type: t(`realm.landmarks.${landmark.type}`), name: landmark.name || "" }).trim() : null,
+		landmark: landmark ? t("explore.survey.landmark", { type: t(landmarkLabelKey(landmark)), name: landmark.name || "" }).trim() : null,
 		around: survey.around.map((step) => ({
 			direction: directionName(g, step.direction),
 			hex: hexTarget(step.hex, scene),

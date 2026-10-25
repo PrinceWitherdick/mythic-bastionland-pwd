@@ -4,14 +4,17 @@ import {
 	LANDMARK_OFFERS,
 	OFF_COURSE_SHOWN,
 	OFF_COURSE_STATES,
+	hasBookPrompt,
 	landmarkEffect,
+	landmarkLabelKey,
+	landmarkMet,
 	landmarkPrompt,
 	offCourseShown,
 	offCourseState,
 	samePhase,
 	throwsOffCourse
 } from "../../module/rules/landmarks.js";
-import { LANDMARK_TYPES } from "../../module/rules/realm.js";
+import { BOOK_LANDMARK_TYPES, LANDMARK_TYPES } from "../../module/rules/realm.js";
 
 const at = (day, phase, { age = 1, season = "spring" } = {}) => ({ age, season, day, phase });
 
@@ -148,5 +151,39 @@ describe("landmarkPrompt", () => {
 		expect(landmarkPrompt(prompts, "hazard")).toBeNull();
 		expect(landmarkPrompt(prompts, "person")).toBeNull();
 		expect(landmarkPrompt(null, "dwelling")).toBeNull();
+	});
+});
+
+describe("the Referee's own Landmark and the blog's", () => {
+	const added = LANDMARK_TYPES.filter((type) => !BOOK_LANDMARK_TYPES.includes(type));
+
+	it("ask nothing the card can do, and throw nobody off course", () => {
+		for (const type of added) expect(landmarkEffect(type)).toEqual({ offer: null, also: null, virtue: null, offCourse: false, icon: null, alsoIcon: null });
+	});
+
+	it("have no prompt on a Myth's page to be named from", () => {
+		const prompts = added.map((type) => ({ label: type, value: "Somewhere" }));
+		for (const type of added) {
+			expect(hasBookPrompt(type)).toBe(false);
+			expect(landmarkPrompt(prompts, type)).toBeNull();
+		}
+		for (const type of BOOK_LANDMARK_TYPES) expect(hasBookPrompt(type)).toBe(true);
+	});
+
+	it("are found as the post has them: a Pond only on a 6, a Grotto never, a Willow in its own Season", () => {
+		expect(landmarkMet({ type: "pond" }, { d6: 5 })).toBe(false);
+		expect(landmarkMet({ type: "pond" }, { d6: 6 })).toBe(true);
+		expect(landmarkMet({ type: "grotto", variant: "future" }, { d6: 6 })).toBe(false);
+		expect(landmarkMet({ type: "willow", variant: "winter" }, { d6: 4, season: "winter" })).toBe(true);
+		expect(landmarkMet({ type: "willow", variant: "winter" }, { d6: 4, season: "spring" })).toBe(false);
+		expect(landmarkMet({ type: "willow", variant: "winter" }, { d6: 4 })).toBe(false);
+		for (const type of [...BOOK_LANDMARK_TYPES, "other", "bridge", "chapel", "fountain"]) expect(landmarkMet({ type }, { d6: 4 })).toBe(true);
+	});
+
+	it("call one of a few by its sort, and anything else by its kind", () => {
+		expect(landmarkLabelKey({ type: "fountain", variant: "red" })).toBe("realm.landmarks.variants.fountain.red.label");
+		expect(landmarkLabelKey({ type: "fountain" })).toBe("realm.landmarks.fountain");
+		expect(landmarkLabelKey({ type: "fountain", variant: "past" })).toBe("realm.landmarks.fountain");
+		expect(landmarkLabelKey({ type: "dwelling", variant: "red" })).toBe("realm.landmarks.dwelling");
 	});
 });

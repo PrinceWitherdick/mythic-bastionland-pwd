@@ -4,9 +4,9 @@ import { loadArtIndex, mythEntry, pageNote } from "../book-art/art-index.js";
 import { promptsForEntry } from "../book-art/myth-tables.js";
 import { postCard, t } from "../chat/cards.js";
 import { MYTH_PROMPTS_VERSION } from "../rules/book-art.js";
-import { LANDMARK_EFFECTS, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
+import { LANDMARK_EFFECTS, hasBookPrompt, landmarkEffect, landmarkPrompt, offCourseShown, offCourseState, throwsOffCourse } from "../rules/landmarks.js";
 import { cameFrom } from "../rules/journey.js";
-import { featureAt } from "../rules/realm.js";
+import { BLOG_LANDMARKS_URL, GUARDED_LANDMARK, featureAt, isBlogLandmark, isLandmarkVariant } from "../rules/realm.js";
 import { editFeature } from "../rules/realm-edits.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { throwSpread } from "./book-flip.js";
@@ -19,6 +19,7 @@ import { rollRefereeTable } from "./referee-rolls.js";
 import { advancePhase, chooseCompany, virtueLoss } from "./time.js";
 import { restoreVirtueOfEach } from "./recovery.js";
 import { clearOffCourse, getOffCourse, setOffCourse } from "./off-course.js";
+import { awardGloryTo } from "./glory.js";
 
 /**
  * What a Landmark asks of the Company that finds it (p14): a Monument's
@@ -240,7 +241,8 @@ async function nameFromSpread(scene, hex, type, spread, index, { byHand = true }
  *   it has a name already, or no prompt could be read.
  */
 export async function nameLandmarkFromPrompt(scene, landmark) {
-	if (!game.user.isGM || !scene || !landmark || landmark.name) return null;
+	// The Referee's own Landmarks and the blog's have no prompt on a Myth's page, so are called by their kind.
+	if (!game.user.isGM || !scene || !landmark || landmark.name || !hasBookPrompt(landmark.type)) return null;
 	const [d6, d12] = await Promise.all([new Roll("1d6").evaluate(), new Roll("1d12").evaluate()]);
 	return nameFromSpread(scene, landmark.hex, landmark.type, { d6: d6.total, d12: d12.total }, await loadArtIndex(), { byHand: false });
 }
@@ -257,7 +259,7 @@ export async function nameLandmarkFromPrompt(scene, landmark) {
 export async function rerollLandmarkName(scene, hex) {
 	if (!game.user.isGM || !isRealmScene(scene) || !hex) return null;
 	const landmark = featureAt(getRealm(scene).realm, hex).landmark;
-	if (!landmark) return null;
+	if (!landmark || !hasBookPrompt(landmark.type)) return null;
 	const [spread, index] = await Promise.all([throwSpread(), loadArtIndex()]);
 	const named = await nameFromSpread(scene, hex, landmark.type, spread, index);
 	if (!named) ui.notifications.warn(t("realm.landmarks.promptUnread"));
@@ -301,15 +303,44 @@ const OFFER_ACTIONS = Object.freeze({
 
 /**
  * What a Landmark of this type offers, for a card or a page to show: a button
- * for each thing it lets the Company do, none where it asks nothing.
+ * for each thing it lets the Company do, none where it asks nothing. The blog's
+ * kinds say where they come from, and one of a few says which it is.
  * @param {string} type One of LANDMARK_TYPES.
- * @returns {{text: string, offers: {key: string, label: string, icon: string}[], offCourse: boolean}|null}
+ * @param {string} [variant] Which Grotto, Fountain or Willow it is.
+ * @returns {{text: string, variantText: string|null, credit: {text: string, url: string}|null,
+ *   offers: {key: string, label: string, icon: string}[], offCourse: boolean}|null}
  */
-export function landmarkOfferView(type) {
+export function landmarkOfferView(type, variant) {
 	const effect = landmarkEffect(type);
 	if (!effect) return null;
 	const offers = [];
 	if (effect.offer) offers.push({ key: effect.offer, label: t(`realm.landmarks.effects.${type}.offer`), icon: effect.icon });
 	if (effect.also) offers.push({ key: effect.also, label: t(`realm.landmarks.effects.${type}.also`), icon: effect.alsoIcon });
-	return { text: t(`realm.landmarks.effects.${type}.text`), offers, offCourse: throwsOffCourse(type) };
+	return {
+		text: t(`realm.landmarks.effects.${type}.text`),
+		variantText: isLandmarkVariant(type, variant) ? t(`realm.landmarks.variants.${type}.${variant}.text`) : null,
+		credit: isBlogLandmark(type) ? { text: t("realm.landmarks.blog.credit"), url: BLOG_LANDMARKS_URL } : null,
+		offers,
+		offCourse: throwsOffCourse(type)
+	};
+}
+
+/**
+ * Mark a Bridge's Knight beaten, or not. Beating them wins the Company passage
+ * for good and 1 Glory, so marking it won asks the Referee which Knights won
+ * it. Closing that window leaves the mark but gives no Glory, and taking the
+ * mark off takes none back, so a Bridge whose Glory was given never offers it again. GMs only.
+ * @param {Scene} scene The Realm.
+ * @param {{col: number, row: number}} hex Where the Bridge stands.
+ * @param {boolean} won
+ * @returns {Promise<boolean>} Whether anything changed.
+ */
+export async function markBridgeWon(scene, hex, won) {
+	if (!game.user.isGM || !isRealmScene(scene) || !hex) return false;
+	const bridge = featureAt(getRealm(scene).realm, hex).landmark;
+	if (bridge?.type !== GUARDED_LANDMARK || Boolean(bridge.won) === Boolean(won)) return false;
+	await editRealmByHand(scene, (current, g) => editFeature(current, g, hex, { won: Boolean(won) }));
+	if (!won || bridge.gloried) return true;
+	if (await awardGloryTo("bridge")) await editRealmByHand(scene, (current, g) => editFeature(current, g, hex, { gloried: true }));
+	return true;
 }

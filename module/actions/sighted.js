@@ -9,6 +9,7 @@ import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { centredTiles, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
 import { keptFromMe } from "./solo.js";
+import { landmarkLabelKey } from "../rules/landmarks.js";
 
 /**
  * Seen from afar (p183, p197, p199): the Referee marks on the players' map
@@ -71,7 +72,7 @@ export async function writeSightings(scene, { set = {}, drop = [] }) {
  */
 function sightingLabel(g, { direction, hex, landmark, holding }) {
 	const what = [
-		landmark && [t(`realm.landmarks.${landmark.type}`), landmark.name].filter(Boolean).join(": "),
+		landmark && [t(landmarkLabelKey(landmark)), landmark.name].filter(Boolean).join(": "),
 		holding && holdingName(holding, t)
 	].filter(Boolean).join(", ");
 	return t("seenFromAfar.row", {

@@ -66,7 +66,11 @@ const TERRAIN_MARKS = {
 	plains: "M30 44h0.1M62 40h0.1M46 60h0.1M72 64h0.1M28 70h0.1"
 };
 
-const LANDMARK_LETTERS = { dwelling: "D", sanctum: "S", monument: "M", hazard: "H", curse: "C", ruin: "R" };
+const LANDMARK_LETTERS = {
+	dwelling: "D", sanctum: "S", monument: "M", hazard: "H", curse: "C", ruin: "R",
+	// X marks the spot of a Landmark of the Referee's own. The blog's take their initials, the Chapel two to stand apart from the Curse.
+	other: "X", bridge: "B", pond: "P", chapel: "Ch", grotto: "G", fountain: "F", willow: "W"
+};
 
 /** A drawn sign for each Landmark, in a 100 by 100 box, for the skins that don't letter them. */
 const LANDMARK_MARKS = {
@@ -75,7 +79,21 @@ const LANDMARK_MARKS = {
 	monument: "M40 84l4-56 6-10 6 10 4 56zM30 84h40",
 	hazard: "M50 16L88 82H12zM50 40v20M50 70v2",
 	curse: "M62 18a32 32 0 1 0 0 64a26 26 0 1 1 0-64zM72 30l4 8 8 2-8 3-4 8-3-8-8-3 8-2z",
-	ruin: "M22 84V40h14v44M46 84V56l8-6 6 4v30M70 84V48h10v36M16 84h70"
+	ruin: "M22 84V40h14v44M46 84V56l8-6 6 4v30M70 84V48h10v36M16 84h70",
+	// A flag on a stake, marking the spot.
+	other: "M36 86V16M36 18h36l-10 12 10 12H36M24 86h24",
+	// A deck on two piers over an arch, and the water beneath.
+	bridge: "M10 42h80M18 42v30M82 42v30M18 72c6-26 58-26 64 0M8 86c8-5 14 5 22 0s14 5 22 0 14 5 22 0 14 5 20 0",
+	// A still pool among reeds.
+	pond: "M10 62c0-16 80-16 80 0s-80 16-80 0zM28 62h22M44 68h20M70 52l-4-30M76 52l4-26M82 56l10-20",
+	// A small shrine, its door arched, with a beast's antlers over the gable.
+	chapel: "M26 86V50L50 30l24 20v36zM42 86V72a8 8 0 0 1 16 0v14M50 30V18M50 22l-9-9M50 22l9-9",
+	// A cave mouth in a dome of rock.
+	grotto: "M10 84C14 42 32 18 50 18s36 24 40 66zM34 84c0-26 32-26 32 0",
+	// Spray rising from a basin.
+	fountain: "M22 62h56l-8 20H30zM50 62V38M50 38c-6-14-20-14-24 6M50 38c6-14 20-14 24 6M50 38V20",
+	// A willow's crown and the long strands hanging from it.
+	willow: "M50 88V30M20 48C24 22 76 22 80 48M26 40c-5 12-5 28 0 38M38 31c-3 14-3 30 0 42M62 31c3 14 3 30 0 42M74 40c5 12 5 28 0 38"
 };
 
 /**
@@ -658,7 +676,12 @@ const ARMORIAL = Object.freeze({
 		bog: "tree-stump-eradicated", lake: "roundel-barry-wavy-or-fountain", glade: "tree-fructed", plains: "stalk-of-wheat-3"
 	},
 	holding: { castle: "castle-of-three-towers-4", town: "house-3", fortress: "castle-of-one-tower", tower: "tower-16" },
-	landmark: { dwelling: "house-3", sanctum: "church-2", monument: "beacon", hazard: "flame-5", curse: "skull-6", ruin: "arch" },
+	landmark: {
+		dwelling: "house-3", sanctum: "church-2", monument: "beacon", hazard: "flame-5", curse: "skull-6", ruin: "arch",
+		// A Landmark of the Referee's own could be anything, so it keeps the drawn sign.
+		other: null, bridge: "bridge-twin-towered-of-a-single-arch", pond: "swan-3", chapel: "stag-statant-1",
+		grotto: "hourglass-3", fountain: "roundel-barry-wavy-or-fountain", willow: "tree-7"
+	},
 	seat: "eastern-crown-3"
 });
 
@@ -710,7 +733,11 @@ const SKINS = {
 				x: HEX_W / 2, y: HEX_H / 2, scale: variant ? VARIANT_TERRAIN_SCALE : SHEET_TERRAIN_SCALE, ink: p.ink, paper: p.terrain[index]
 			})}</g>`)),
 		holding: (style, p) => svg(BADGE, BADGE, SHEET_CREDIT + sheetArt(PICTURE_NAME.holding(style), { x: 150, y: 150, width: 292, height: 292, ink: p.ink, paper: p.paper })),
-		landmark: (type, p) => svg(BADGE, BADGE, SHEET_CREDIT + sheetArt(PICTURE_NAME.landmark(type), { x: 150, y: 150, width: 292, height: 292, ink: p.accent, paper: p.paper })),
+		// A Landmark the sheet doesn't draw, the Referee's own or the blog's, has its sign inked in the same red pen on a paper halo.
+		landmark: (type, p) => svg(BADGE, BADGE, SHEET_ART[PICTURE_NAME.landmark(type)]
+			? SHEET_CREDIT + sheetArt(PICTURE_NAME.landmark(type), { x: 150, y: 150, width: 292, height: 292, ink: p.accent, paper: p.paper })
+			: mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 230, stroke: p.paper, width: 16 })
+				+ mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 230, stroke: p.accent, width: 7 })),
 		// Myths are the GM's secret, so they're numbered in the red pen the sheet marks Landmarks in.
 		myth: (number, p) => svg(BADGE, BADGE, inkMark(inkNumeral(number), { x: 150, y: 150, size: 290, ink: p.accent, paper: p.paper })),
 		// Ringed as the sheet rings a Myth, but in the crown's gold and left open, so the Holding shows through.
@@ -729,7 +756,13 @@ const SKINS = {
 			+ terrainMark(key, p.ink, 3.2, p.terrain[index])),
 		holding: (style, p) => svg(BADGE, BADGE, holdingMark(style, { x: 150, y: 150, size: 300 }, { fill: p.ink, halo: p.paper, width: 6 })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.accent}" stroke-width="16"/>`
-			+ text(LANDMARK_LETTERS[type], { x: 150, y: 196, size: 140, fill: p.accent, weight: "bold" })),
+			// Two letters are drawn smaller, to fit the roundel.
+			+ text(LANDMARK_LETTERS[type], {
+				x: 150,
+				...(LANDMARK_LETTERS[type].length > 1 ? { y: 185, size: 100 } : { y: 196, size: 140 }),
+				fill: p.accent,
+				weight: "bold"
+			})),
 		myth: (number, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.ink}" stroke="${p.accent}" stroke-width="14"/>`
 			+ text(number, { x: 150, y: 200, size: 150, fill: p.paper, font: NUMERAL_FONT })),
 		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p))
@@ -810,7 +843,9 @@ const SKINS = {
 		holding: (style, p) => svg(BADGE, BADGE, heraldicArt(ARMORIAL.holding[style],
 			{ x: 150, y: 150, width: BADGE * HOLDING_ICON_SHARE, height: BADGE * HOLDING_ICON_SHARE, fill: p.paper, line: p.ink })),
 		landmark: (type, p) => svg(BADGE, BADGE, `<circle cx="150" cy="150" r="130" fill="${p.paper}" stroke="${p.accent}" stroke-width="16"/>`
-			+ heraldicArt(ARMORIAL.landmark[type], { x: 150, y: 150, width: 168, height: 168, fill: p.paper, line: p.ink })),
+			+ (ARMORIAL.landmark[type]
+				? heraldicArt(ARMORIAL.landmark[type], { x: 150, y: 150, width: 168, height: 168, fill: p.paper, line: p.ink })
+				: mark(LANDMARK_MARKS[type], { x: 150, y: 150, size: 150, stroke: p.ink, width: 7 }))),
 		myth: (number, p) => svg(BADGE, BADGE, `<path d="${SHIELD}" fill="${p.accent}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>`
 			+ text(number, { x: 150, y: 186, size: 130, fill: onColour(p.accent, p), font: NUMERAL_FONT })),
 		seat: (p) => svg(BADGE, BADGE, goldRing(126, 12, goldRim(p)) + crown(p, 184)),

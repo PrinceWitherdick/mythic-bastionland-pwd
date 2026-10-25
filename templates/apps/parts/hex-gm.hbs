@@ -128,8 +128,10 @@
 	<div class="form-group bastionland-hex-lore__landmark">
 		<label for="{{@root.partId}}-landmark">{{localize "bastionland.hexGm.landmarkName"}}</label>
 		<div class="form-fields">
-			<input id="{{@root.partId}}-landmark" type="text" name="landmarkName" value="{{landmark.name}}" placeholder="{{localize "bastionland.hexLore.landmark.placeholder"}}">
+			<input id="{{@root.partId}}-landmark" type="text" name="landmarkName" value="{{landmark.name}}" placeholder="{{landmark.placeholder}}">
+			{{#if landmark.reroll}}
 			<button type="button" class="bastionland-icon" data-action="rerollLandmark" data-tooltip="{{localize "bastionland.hexLore.landmark.rerollHint"}}" aria-label="{{localize "bastionland.hexLore.landmark.reroll"}}"><i class="fa-solid fa-dice" inert></i></button>
+			{{/if}}
 		</div>
 	</div>
 	{{#if landmark.from}}<p class="bastionland-hex-lore__hint">{{landmark.from}}</p>{{/if}}
@@ -144,6 +146,7 @@
 	{{/with}}
 	{{#with landmark.offer}}
 	<p class="bastionland-hint">{{text}}</p>
+	{{#if variantText}}<p class="bastionland-hint">{{variantText}}</p>{{/if}}
 	{{#if offers.length}}
 	<div class="bastionland-hex-lore__grid">
 		{{#each offers}}
@@ -151,6 +154,30 @@
 		{{/each}}
 	</div>
 	{{/if}}
+	{{/with}}
+	{{#if landmark.season}}<p class="bastionland-hex-lore__hint">{{landmark.season}}</p>{{/if}}
+	{{!-- A Pond's partner: a chip that rings its hex and goes there, or why there's none. --}}
+	{{#with landmark.pair}}
+	<div class="form-group bastionland-hex-lore__landmark">
+		<label>{{localize "bastionland.realm.landmarks.pairWith"}}</label>
+		<div class="form-fields">
+			{{#if key}}
+			<button type="button" class="bastionland-pill bastionland-hex-target" data-action="showPairedHex" data-pair-hex="{{key}}" data-tooltip="{{localize "bastionland.realm.landmarks.pairHint"}}"><i class="fa-solid fa-crosshairs" inert></i> {{label}}</button>
+			{{else}}
+			<span class="bastionland-hex-lore__hint">{{label}}</span>
+			{{/if}}
+		</div>
+	</div>
+	{{/with}}
+	{{!-- A Bridge's Knight beaten: passage for good, and 1 Glory offered when it's ticked. --}}
+	{{#with landmark.won}}
+	<label class="bastionland-check" data-tooltip="{{localize "bastionland.realm.landmarks.wonHint"}}">
+		<input type="checkbox" name="landmarkWon" {{checked checked}}>
+		<span class="bastionland-check__label">{{localize "bastionland.realm.landmarks.won"}}</span>
+	</label>
+	{{/with}}
+	{{#with landmark.offer.credit}}
+	<p class="bastionland-hex-lore__credit"><a href="{{url}}" target="_blank" rel="noopener">{{text}}</a></p>
 	{{/with}}
 	{{#with landmark.seer}}
 	<div class="bastionland-hex-lore__grid">

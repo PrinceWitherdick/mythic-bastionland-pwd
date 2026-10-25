@@ -11,7 +11,8 @@ import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
-import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
+import { blogLandmarksOn } from "./blog-landmarks.js";
+import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
 import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls } from "../rules/realm-drawing.js";
 import {
 	GRID_ALPHA,
@@ -397,6 +398,12 @@ export async function refreshRealmScenes() {
 	});
 }
 
+/**
+ * Roll a Realm, with the blog's Landmarks while their setting is on.
+ * @param {Parameters<typeof generateRealm>[0]} options
+ */
+const rollRealm = (options) => generateRealm({ ...options, blogLandmarks: blogLandmarksOn() });
+
 /** The look each Realm Scene is previewed in on this client, by Scene id, as normalised JSON. */
 const previews = new Map();
 
@@ -691,7 +698,7 @@ async function rollRealmAgain(scene) {
 	const rolled = await queueRealmWrite(async () => {
 		// Set up as it was first, keeping what the GM draws by hand.
 		const { realm: current } = getRealm(scene);
-		const realm = generateRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
+		const realm = rollRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
 		// The new seed and rivers go into the Scene's flag with the rest.
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		// Undo would lay the old Realm's pieces over the new one.
@@ -934,7 +941,7 @@ function wireCompanyFields(element) {
 export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false, soloSecrets = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows, layout });
-	const realm = generateRealm({ seed, setup, geometry });
+	const realm = rollRealm({ seed, setup, geometry });
 	// The picture lies as large as fits on the map, unstretched, until the GM lines it up against the hexes.
 	const pictures = await fitRealmPicture(normaliseRealmPicture(picture), geometry);
 	if (pictures) realm.picture = pictures;
@@ -1151,7 +1158,7 @@ const finishing = new Set();
 async function settleSoloSecrets(scene, way) {
 	await editRealm(scene, (realm, g) => {
 		if (way !== "dice") return settleOwnSecrets(realm, way === "show");
-		const rolled = generateRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), roll: secretRolls() }, geometry: g, base: realm });
+		const rolled = rollRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), roll: secretRolls() }, geometry: g, base: realm });
 		return { ...realm, myths: rolled.myths, landmarks: rolled.landmarks, barriers: rolled.barriers };
 	});
 	await scene.setFlag(SYSTEM_ID, SOLO_SECRETS_FLAG, null);
@@ -1208,7 +1215,7 @@ export async function finishRealmDrawing(scene) {
  */
 export function drawingCountLabel({ key, count, target, rivers = 0, disputed = false }) {
 	const base = `realmDrawing.tally.${key}`;
-	if (LANDMARK_TYPES.includes(key)) {
+	if (BOOK_LANDMARK_TYPES.includes(key)) {
 		return t("realmDrawing.tally.landmark", { type: t(`realmDrawing.sections.landmarks.lines.${key}.label`), count, min: LANDMARKS_PER_TYPE.min, max: LANDMARKS_PER_TYPE.max });
 	}
 	if (key === "river") return !rivers ? t(`${base}None`) : t(rivers > 1 ? `${base}s` : base, { count, rivers });

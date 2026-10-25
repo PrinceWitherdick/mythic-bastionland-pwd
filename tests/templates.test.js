@@ -10,7 +10,7 @@ import { GLORY_AWARDS, RANKS } from "../module/rules/glory.js";
 import { DIVISIONS, PAINT_TOOLS, TINCTURES } from "../module/rules/heraldry.js";
 import { CHARGE_GROUPS } from "../module/rules/heraldry-charges.js";
 import { SQUIRE_EQUIPMENT } from "../module/rules/squires.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, REALM_BRUSHES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import { HOLDING_STYLES, LANDMARK_TYPES, LANDMARK_VARIANTS, REALM_BRUSHES, REALM_PROBLEMS, REALM_TOOLS, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
 import { BARE_MAP, MAP_ROLES } from "../module/rules/realm-map.js";
 import { REALM_PALETTES, REALM_SKINS, TERRAIN_FITS } from "../module/rules/realm-skins.js";
 import { SETUP_PARTS } from "../module/rules/realm-setup.js";
@@ -192,6 +192,10 @@ describe("localization", () => {
 		...TERRAIN.map((key) => `realm.terrain.${key}`),
 		...HOLDING_STYLES.map((key) => `realm.holdings.${key}`),
 		...LANDMARK_TYPES.map((key) => `realm.landmarks.${key}`),
+		// Each sort of Grotto, Fountain and Willow has a name and a note of its own.
+		...Object.entries(LANDMARK_VARIANTS).flatMap(([type, variants]) => partsOf(`realm.landmarks.variants.${type}`, [...variants], ["label", "text"])),
+		"blogLandmarks.setting.name",
+		"blogLandmarks.setting.hint",
 		...COMPANY_STARTS.flatMap((start) => [`company.starts.${start}.name`, `company.starts.${start}.hint`]),
 		"company.begins",
 		...COMPANY_STARTS.map((start) => `company.choose.${start}`),

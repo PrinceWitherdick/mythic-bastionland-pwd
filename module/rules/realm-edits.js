@@ -6,7 +6,20 @@
  */
 import { isDie } from "./book-art.js";
 import { isOwnMyth } from "./own-myths.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, MYTH_COUNT, OMEN_COUNT, TERRAIN, featureAt, realmSeats } from "./realm.js";
+import {
+	HOLDING_STYLES,
+	LANDMARK_TYPES,
+	LANDMARK_VARIANTS,
+	MYTH_COUNT,
+	OMEN_COUNT,
+	PAIRED_LANDMARK,
+	TERRAIN,
+	featureAt,
+	isLandmarkVariant,
+	isPairNumber,
+	landmarkExtras,
+	realmSeats
+} from "./realm.js";
 import { MAP_ROLES, normaliseRealmPicture } from "./realm-map.js";
 import { hexDistance, hexIndex, hexLine, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
 import { brokenPictures, emptyVariants, mendPictures, paintPictures } from "./realm-pictures.js";
@@ -314,6 +327,12 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 					: before;
 			// The Myth a Ruin echoes, once rolled, stays with it; another type forgets it.
 			const echo = type !== "ruin" ? null : feature.echo === undefined ? here.landmark?.echo ?? null : feature.echo;
+			// What only some kinds carry is kept while the Landmark stays that kind, and forgotten when it becomes another.
+			const same = here.landmark?.type === type;
+			const variant = landmarkVariant(next, type, feature.variant, same ? here.landmark.variant : undefined);
+			const pair = feature.pair !== undefined ? feature.pair : same ? here.landmark.pair : null;
+			const won = feature.won ?? (same ? here.landmark.won : false);
+			const gloried = feature.gloried ?? (same ? here.landmark.gloried : false);
 			next.landmarks.push({
 				id: here.landmark?.id ?? null,
 				hex: { ...hex },
@@ -321,7 +340,8 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 				name: String(feature.name ?? here.landmark?.name ?? ""),
 				seer,
 				revealed: feature.revealed ?? here.landmark?.revealed ?? false,
-				...(echo ? { echo: { d6: echo.d6, d12: echo.d12 } } : {})
+				...(echo ? { echo: { d6: echo.d6, d12: echo.d12 } } : {}),
+				...landmarkExtras({ type, variant, pair, won, gloried })
 			});
 			break;
 		}
@@ -331,6 +351,64 @@ export const placeFeature = mending(function placeFeature(realm, g, hex, feature
 	}
 	return settleDispute(realm, next);
 });
+
+/**
+ * Which of a few a Grotto, Fountain or Willow is: the one asked for, else the
+ * one it was, else the first the Realm doesn't have yet, so a brush laying
+ * three Fountains lays the Red, the Mossy and the Inky.
+ * @param {import("./realm.js").Realm} realm Without the Landmark being laid.
+ * @param {string} type
+ * @param {unknown} asked
+ * @param {unknown} was
+ * @returns {string|null} Null for a kind that isn't one of a few.
+ */
+function landmarkVariant(realm, type, asked, was) {
+	const variants = LANDMARK_VARIANTS[type];
+	if (!variants) return null;
+	if (isLandmarkVariant(type, asked)) return asked;
+	if (isLandmarkVariant(type, was)) return was;
+	const taken = new Set(realm.landmarks.filter((landmark) => landmark.type === type).map((landmark) => landmark.variant));
+	return variants.find((variant) => !taken.has(variant)) ?? variants[0];
+}
+
+/**
+ * Pair the Pond in one hex with the Pond in another, so entering either leads
+ * out of the other. Whatever either was paired with before is left unpaired,
+ * and so leads out of this Realm. No partner leaves the Pond unpaired.
+ * @param {import("./realm.js").Realm} realm
+ * @param {{col: number, row: number}} hex
+ * @param {{col: number, row: number}|null} partnerHex
+ * @returns {import("./realm.js").Realm} Unchanged unless both hexes hold a Pond.
+ */
+export function pairPonds(realm, hex, partnerHex) {
+	const isPond = (at) => featureAt(realm, at).landmark?.type === PAIRED_LANDMARK;
+	if (!isPond(hex) || (partnerHex && (!isPond(partnerHex) || sameHex(hex, partnerHex)))) return realm;
+	const next = copyRealm(realm);
+	const ponds = next.landmarks.filter((landmark) => landmark.type === PAIRED_LANDMARK);
+	const mine = ponds.find((pond) => sameHex(pond.hex, hex));
+	const theirs = partnerHex ? ponds.find((pond) => sameHex(pond.hex, partnerHex)) : null;
+	const freed = new Set([mine.pair, theirs?.pair].filter(isPairNumber));
+	for (const pond of ponds) if (freed.has(pond.pair)) delete pond.pair;
+	if (theirs) {
+		const used = new Set(ponds.map((pond) => pond.pair).filter(isPairNumber));
+		let number = 1;
+		while (used.has(number)) number += 1;
+		mine.pair = number;
+		theirs.pair = number;
+	}
+	return next;
+}
+
+/**
+ * The Pond a Pond leads to.
+ * @param {import("./realm.js").Realm} realm
+ * @param {{hex: {col: number, row: number}, type: string, pair?: number}} pond
+ * @returns {object|null} Null where it has no partner in this Realm.
+ */
+export function pondPartner(realm, pond) {
+	if (pond?.type !== PAIRED_LANDMARK || !isPairNumber(pond.pair)) return null;
+	return realm.landmarks.find((other) => other.type === PAIRED_LANDMARK && other.pair === pond.pair && !sameHex(other.hex, pond.hex)) ?? null;
+}
 
 /**
  * A disputed Seat whose rivals have all lost the crown, or gone, holds it

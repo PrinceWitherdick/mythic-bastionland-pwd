@@ -12,6 +12,7 @@ import { clipText } from "../rules/text.js";
 import { read } from "../client-settings.js";
 import { followMap, hotbarFloor, mapOnScreen, panelScreen } from "../apps/map-screen.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { landmarkLabelKey } from "../rules/landmarks.js";
 
 /** World setting: whether the readout leads with the hex's column and row, for everyone at the table. */
 const COORDINATES_SETTING = "hexCoordinates";
@@ -142,7 +143,7 @@ export function describeHex(summary, { coordinates = false, name = "", sighted =
 	}
 	if (summary.myth) parts.push(t(summary.myth.revealed ? "realm.readout.myth" : "realm.readout.hiddenMyth", { number: summary.myth.number }));
 	if (summary.landmark) {
-		const type = t(`realm.landmarks.${summary.landmark.type}`);
+		const type = t(landmarkLabelKey(summary.landmark));
 		const named = summary.landmark.name ? `${type}: ${summary.landmark.name}` : type;
 		parts.push(summary.landmark.revealed ? named : t("realm.readout.hidden", { name: named }));
 	}

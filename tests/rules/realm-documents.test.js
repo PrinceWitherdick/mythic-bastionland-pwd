@@ -882,3 +882,39 @@ describe("hiddenByHand", () => {
 		expect(hiddenByHand(snapshot.tiles, g, other.hex)).toEqual({ terrain: false, holding: false, seat: false });
 	});
 });
+
+describe("the blog's Landmarks on their Tiles", () => {
+	const g = realmGeometry();
+	const landmark = (col, extra) => ({ id: null, hex: { col, row: 3 }, name: "", seer: null, revealed: false, ...extra });
+	const realm = { ...emptyRealm(g, "blog"), landmarks: [
+		landmark(1, { type: "fountain", variant: "inky" }),
+		landmark(2, { type: "pond", pair: 2 }),
+		landmark(3, { type: "bridge", won: true, gloried: true, revealed: true }),
+		landmark(4, { type: "other", name: "The Hanging Stone" }),
+		landmark(5, { type: "dwelling" })
+	] };
+	realm.terrain.fill(1);
+	const tiles = realmDocuments(realm, g, realmTextures()).tiles.map(({ data }, index) => ({ _id: `tile${index}`, ...data }));
+	const back = (from) => realmFromDocuments({ tiles: from }, g).realm.landmarks;
+
+	it("writes which sort, which pair and whether won, and reads them back", () => {
+		expect(back(tiles).map(({ id: _id, ...rest }) => rest)).toEqual(realm.landmarks.map(({ id: _id, ...rest }) => rest));
+	});
+
+	it("gives each its own picture", () => {
+		const bridge = tiles.find((tile) => flagOf(tile).type === "bridge");
+		expect(bridge.texture.src.endsWith(`${PICTURE_NAME.landmark("bridge")}.svg`)).toBe(true);
+	});
+
+	it("reads back nothing that doesn't belong to the kind", () => {
+		const spoiled = tiles.map((tile) => (flagOf(tile)?.kind === "landmark"
+			? { ...tile, flags: { [SYSTEM_ID]: { [REALM_FLAG]: { ...flagOf(tile), variant: "summer", pair: -1, won: "yes", gloried: 1 } } } }
+			: tile));
+		for (const landmark of back(spoiled)) {
+			expect(landmark).not.toHaveProperty("variant");
+			expect(landmark).not.toHaveProperty("pair");
+			expect(landmark).not.toHaveProperty("won");
+			expect(landmark).not.toHaveProperty("gloried");
+		}
+	});
+});

@@ -79,6 +79,12 @@
         "turnedOff": "Solo play is off. You see the whole Realm as its Referee again."
       }
     },
+    "blogLandmarks": {
+      "setting": {
+        "name": "More Landmarks (Blog)",
+        "hint": "Adds the Bridge, Pond, Chapel, Grotto, Fountain and Willow to new Realms and to the Referee’s pickers. These aren’t from the book: they come from More Landmarks, a post on the blog of Chris McDowall, who made Mythic Bastionland. Landmarks already placed stay either way."
+      }
+    },
     "duplicateKnights": {
       "setting": {
         "name": "Allow the Same Knight Twice",
@@ -346,6 +352,11 @@
           "label": "Battle Won",
           "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
           "hint": "Only a battle big enough for the chronicles earns Glory."
+        },
+        "bridge": {
+          "label": "Bridge Won",
+          "intro": "Tick the Knight who beat the Bridge’s keeper. They gain 1 Glory.",
+          "hint": "Winning gives the Company passage over the Bridge for good."
         }
       }
     },
@@ -4420,7 +4431,9 @@
         "omen": "An Omen count outside 0 to 6",
         "style": "A Holding of no known style",
         "type": "A Landmark of no known type",
-        "seat": "Not exactly one Seat of Power"
+        "seat": "Not exactly one Seat of Power",
+        "variant": "A Grotto, Fountain or Willow not set to which it is",
+        "pair": "More than two Ponds sharing a pair"
       },
       "panel": {
         "title": "Realm",
@@ -4533,7 +4546,35 @@
         "hazard": "Hazard",
         "curse": "Curse",
         "ruin": "Ruin",
+        "other": "Other",
+        "bridge": "Bridge",
+        "pond": "Pond",
+        "chapel": "Chapel",
+        "grotto": "Grotto",
+        "fountain": "Fountain",
+        "willow": "Willow",
       "effects": {
+        "other": {
+          "text": "A Landmark of the Referee’s own. Give it a name, and keep what it holds in the hex’s note."
+        },
+        "bridge": {
+          "text": "A Knight keeps this crossing. Anyone who isn’t a Knight passes freely, but a Knight must first beat its keeper in single combat, fought until one side yields; the keeper yields only when mortally wounded. Beating them gives the Company passage here for good, and 1 Glory."
+        },
+        "pond": {
+          "text": "A still pool like a mirror, found only on a Wilderness Roll of 6. Ponds come in pairs: step into one and you climb out of the other, which may even lie in another Realm. The crossing leaves a traveller reeling, costing d12 CLA, and a pair carries any one person only once a Season."
+        },
+        "chapel": {
+          "text": "A small shrine to the wild, given to one beast and most often kept by a hermit, who shares the beast’s wisdom with those they find worthy and lends them its gifts for a while. Raiders find chapels easy prey: between Seasons, one left unguarded faces a roll for its fate, as any unresolved situation does."
+        },
+        "grotto": {
+          "text": "One of three hidden caves. Wandering never finds it, so the Wilderness Roll doesn’t: only a local’s directions lead here, and the Referee reveals it then. A Knight who sleeps a night alone inside sees a vision too great to bear unharmed, losing d8 CLA. Seers frown on such visits, and scold any Knight who makes one."
+        },
+        "fountain": {
+          "text": "One of three springs in places hard to reach, known from afar only by their spray. Draw one flask: draw a second and the spring runs dry until the Company has gone."
+        },
+        "willow": {
+          "text": "One of three willows, each standing only in its own Season, when the Wilderness Roll can find it. Fresh blood spilt on it opens a door to another world, whose trials keep the Season’s fruit, enough for one."
+        },
         "monument": {
           "offer": "Spend a Phase: Restore SPI"
         },
@@ -4569,7 +4610,40 @@
         "rollHint": "Roll Travelling Blind for the Company. Before the Phase the Curse blights, this lets the blight go; during it, each move of the Company Token is rolled for already, so roll here only for travel off the map.",
         "hold": "They Hold Their Course",
         "holdHint": "Let the blight go without rolling, because the Company didn’t travel or found their way regardless."
-      }
+      },
+      "variants": {
+        "grotto": {
+          "past": { "label": "Grotto of the Past", "text": "Its visions show what has been." },
+          "present": { "label": "Grotto of the Present", "text": "Its visions show what is happening now, far away." },
+          "future": { "label": "Grotto of the Future", "text": "Its visions show what may yet come to pass." }
+        },
+        "fountain": {
+          "red": { "label": "Red Fountain", "text": "Red water: one flask feeds the whole Company, and serves as any Remedy." },
+          "mossy": { "label": "Mossy Fountain", "text": "Mossy water: poured out on the ground, it runs toward whatever the one pouring names." },
+          "inky": { "label": "Inky Fountain", "text": "Inky water: splashed on someone, it takes their senses until they’re wholly dry, about a Phase." }
+        },
+        "willow": {
+          "spring": { "label": "Spring Willow", "text": "Its fruit: reroll CLA and keep the higher." },
+          "harvest": { "label": "Harvest Willow", "text": "Its fruit cures any ailment or curse. Reroll VIG and keep the higher." },
+          "winter": { "label": "Winter Willow", "text": "Its fruit: reroll SPI and keep the higher. The one who eats it dies peacefully as Winter ends, and wakes in Spring as young as they once were." }
+        }
+      },
+      "blog": {
+        "credit": "From More Landmarks, on Chris McDowall’s blog, not the book.",
+        "swatch": "From Chris McDowall’s blog, not the book."
+      },
+      "variant": "Which",
+      "rollVariant": "Roll which it is",
+      "pairWith": "Leads To",
+      "pairNone": "No Pond: it leads out of this Realm",
+      "pairHidden": "A Pond not yet found",
+      "pairHint": "Its hex is ringed on the map while the pointer is over it. Click to go there.",
+      "pairBeyond": "No Pond in this Realm is its pair, so it leads beyond.",
+      "pairUnfound": "Its pair hasn’t been found yet.",
+      "won": "Passage won",
+      "wonHint": "Tick once a Knight has beaten the Bridge’s keeper. You’ll be asked which Knights won it, and each gains 1 Glory.",
+      "inSeason": "It stands this Season.",
+      "outOfSeason": "It isn’t here this Season, so the Wilderness Roll can’t find it."
       },
       "look": {
         "title": "Realm Appearance",

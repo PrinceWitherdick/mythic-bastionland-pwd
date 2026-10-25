@@ -42,7 +42,13 @@ const ARMORIAL_ART = [
 	{ key: "tree-stump-eradicated", name: "Tree Stump Eradicated", svg: "tree/tree-stump-eradicated-1.svg", href: "tree/#tree-stump-eradicated", sources: ["Banners, Standards, and Badges"], artists: ["Thomas Willement"] },
 	{ key: "roundel-barry-wavy-or-fountain", name: "Roundel Barry Wavy, or Fountain", svg: "roundel/roundel-barry-wavy-or-fountain.svg", href: "fountain/#roundel-barry-wavy-or-fountain", sources: ["A Complete Guide to Heraldry"], artists: ["Graham Johnston"] },
 	{ key: "tree-fructed", name: "Tree Fructed", svg: "tree/tree-fructed.svg", href: "tree/#tree-fructed", sources: ["Vocabulaire-Atlas Héraldique"], artists: ["Unknown Illustrator"] },
-	{ key: "stalk-of-wheat-3", name: "Stalk of Wheat", svg: "wheat/wheat-stalk-of-3.svg", href: "wheat/#stalk-of-wheat-3", sources: ["Guillim’s Display of Heraldry"], artists: ["Unknown Illustrator"] }
+	{ key: "stalk-of-wheat-3", name: "Stalk of Wheat", svg: "wheat/wheat-stalk-of-3.svg", href: "wheat/#stalk-of-wheat-3", sources: ["Guillim’s Display of Heraldry"], artists: ["Unknown Illustrator"] },
+	// For the blog's Landmarks: a guarded Bridge, a Pond's swan, a Chapel's beast, a Grotto's visions of time, a Willow.
+	{ key: "bridge-twin-towered-of-a-single-arch", name: "Twin-Towered Bridge Of A Single Arch", svg: "bridge/bridge-twin-towered-of-a-single-arch.svg", href: "bridge/#twin-towered-bridge-of-a-single-arch", sources: ["Two Tudor Books of Arms"], artists: ["Robert Cooke"] },
+	{ key: "swan-3", name: "Swan", svg: "swan/swan-3.svg", href: "swan/#swan-3", sources: ["Some Feudal Lords and Their Seals"], artists: ["Unknown Illustrator"] },
+	{ key: "stag-statant-1", name: "Stag Statant", svg: "stag/stag-statant-1.svg", href: "stag/#stag-statant", sources: ["Guillim’s Display of Heraldry"], artists: ["Unknown Illustrator"] },
+	{ key: "hourglass-3", name: "Hourglass", svg: "hourglass/hourglass-3.svg", href: "hourglass/#hourglass-3", sources: ["L'Ancienne France"], artists: ["Unknown Illustrator"] },
+	{ key: "tree-7", name: "Tree", svg: "tree/tree-7.svg", href: "tree/#tree-7", sources: ["Vocabulaire-Atlas Héraldique"], artists: ["Unknown Illustrator"], adaptedBy: "Mathghamhain Ua Ruadháin" }
 ];
 
 /**
