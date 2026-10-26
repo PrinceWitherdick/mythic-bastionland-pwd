@@ -7,6 +7,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { escapeHTML } from "../rules/text.js";
 import { crisisRoll, worldDomains } from "./dominion.js";
 import { findCompany } from "./wilderness.js";
+import { hexesReached } from "./held-back.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
@@ -166,12 +167,13 @@ export async function welcomeHome(scene, entered) {
 }
 
 /**
- * Notice the Company coming home. Heard on the active GM's client alone.
+ * Notice the Company coming home. Heard on the active GM's client alone. Not
+ * home where dire weather may be keeping it out, played alone, till the Referee lets it on.
  * @param {Scene} scene
  * @param {{entered: {col: number, row: number}[]}} move
  */
-function noticeMove(scene, { entered }) {
-	welcomeHome(scene, entered).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
+function noticeMove(scene, move) {
+	welcomeHome(scene, hexesReached(scene, move)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
 }
 
 /** Follow the Company home. Called during init. */

@@ -31,7 +31,8 @@ vi.mock("../../module/actions/hex-lore.js", () => ({
 	writeHexNote: (...args) => writeHexNote(...args)
 }));
 vi.mock("../../module/actions/hex-journals.js", () => ({ hexJournalsOn: () => true, openHexJournal: vi.fn() }));
-vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: () => null, markHexVisited: vi.fn() }));
+let heldBack = false;
+vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: () => null, heldBackFrom: () => heldBack, markHexVisited: vi.fn() }));
 vi.mock("../../module/actions/landmarks.js", () => ({
 	landmarkOfferView: vi.fn(() => null),
 	renameLandmark: (...args) => renameLandmark(...args),
@@ -284,6 +285,13 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(false);
 		vi.mocked(findCompany).mockReturnValue({ hex: { ...hex }, split: false });
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(true);
+		// Its Token stands there, but dire weather may yet keep it out.
+		heldBack = true;
+		try {
+			expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(false);
+		} finally {
+			heldBack = false;
+		}
 		vi.mocked(findCompany).mockReturnValue({ hex: null, split: false });
 	});
 

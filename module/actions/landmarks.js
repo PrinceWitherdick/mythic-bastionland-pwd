@@ -341,6 +341,7 @@ export async function markBridgeWon(scene, hex, won) {
 	if (bridge?.type !== GUARDED_LANDMARK || Boolean(bridge.won) === Boolean(won)) return false;
 	await editRealmByHand(scene, (current, g) => editFeature(current, g, hex, { won: Boolean(won) }));
 	if (!won || bridge.gloried) return true;
-	if (await awardGloryTo("bridge")) await editRealmByHand(scene, (current, g) => editFeature(current, g, hex, { gloried: true }));
+	// The Glory given is play, not an edit: Undo on the map can take the mark back but not the Glory, so it can't be given twice.
+	if (await awardGloryTo("bridge")) await editRealm(scene, (current, g) => editFeature(current, g, hex, { gloried: true }));
 	return true;
 }

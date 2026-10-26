@@ -1,7 +1,7 @@
 import { changedKey } from "../compat.js";
 import { COMPANY_LAST_HEX_FLAG } from "./company.js";
 import { HEX_LORE_FLAG } from "./hex-lore.js";
-import { JOURNEY_FLAG } from "./journey.js";
+import { HELD_BACK_FLAG, JOURNEY_FLAG } from "./journey.js";
 import { MYTH_NOTES_FLAG } from "./myth-notes.js";
 import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { HEX_SHARED_FLAG } from "../rules/hex-shared.js";
@@ -35,6 +35,7 @@ let hexFlags = null;
 export const hexStoreFlags = () => hexFlags ??= new Map([
 	[HEX_LORE_FLAG, { journal: true, toolkit: ["places"] }],
 	[JOURNEY_FLAG, { journal: true, toolkit: ["places"] }],
+	[HELD_BACK_FLAG, { journal: false, toolkit: ["places"] }],
 	[HEX_SHARED_FLAG, { journal: true, toolkit: ["places"] }],
 	[HEX_NAMES_FLAG, { journal: true, toolkit: ["realm"] }],
 	[SIGHTED_FLAG, { journal: true, toolkit: [] }],

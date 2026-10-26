@@ -56,6 +56,7 @@ vi.mock("../../module/actions/hex-shared.js", () => ({
 	partyNoteBy: () => ""
 }));
 vi.mock("../../module/actions/journey.js", () => ({
+	HELD_BACK_FLAG: "heldBack",
 	JOURNEY_FLAG: "journey",
 	getHexVisits: () => journey.hexes["3,3"] ?? null
 }));

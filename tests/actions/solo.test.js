@@ -10,6 +10,8 @@ const tile = (id, kind, at, hidden = true) => ({ _id: id, hidden, ...hexCentre(g
 
 let tiles;
 let journey;
+/** The hexes dire weather may be keeping the Company from. */
+let heldKeys = new Set();
 
 vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 vi.mock("../../module/actions/realm.js", () => ({
@@ -19,7 +21,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 	isRealmScene: (scene) => Boolean(scene?.realm),
 	sceneGeometry: () => g
 }));
-vi.mock("../../module/actions/journey.js", () => ({ COMPANY_PLACED_HOOK: "placed", getJourney: () => journey }));
+vi.mock("../../module/actions/journey.js", () => ({ COMPANY_PLACED_HOOK: "placed", getJourney: () => journey, heldBack: () => ({ move: null, keys: heldKeys }) }));
 // What turning solo play on asks of the hotbar and the readout is theirs to test.
 vi.mock("../../module/canvas/hex-readout.js", () => ({ updateHexReadout: vi.fn() }));
 vi.mock("../../module/actions/places-macro.js", () => ({ ensurePlacesHotbar: vi.fn(async () => {}) }));
@@ -44,6 +46,7 @@ beforeEach(() => {
 	solo = true;
 	tiles = [tile("m1", "myth", hex(3, 3)), tile("m2", "myth", hex(8, 8)), tile("l1", "landmark", hex(3, 3))];
 	journey = { hexes: {} };
+	heldKeys = new Set();
 	hooks = new Map();
 	registered = null;
 	globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
@@ -184,6 +187,43 @@ describe("registerSolo", () => {
 		await vi.waitFor(() => expect(scene.updateEmbeddedDocuments).toHaveBeenCalledWith("Tile", [{ _id: "m2", hidden: false }]));
 		expect(ui.notifications.info).not.toHaveBeenCalled();
 		expect(Hooks.callAll).toHaveBeenCalledWith(SOLO_CHANGED_HOOK, true);
+	});
+
+	it("finds no Myth in a visited hex dire weather may still be keeping the Company from", async () => {
+		const scene = realmScene();
+		game.scenes = [scene];
+		journey = { hexes: { [hexKey(hex(8, 8))]: { count: 1, last: { order: 1 } } } };
+		heldKeys = new Set([hexKey(hex(8, 8))]);
+		globalThis.foundry = { applications: { instances: new Map() } };
+		globalThis.canvas = {};
+		registered.onChange(true);
+		await vi.waitFor(() => expect(Hooks.callAll).toHaveBeenCalledWith(SOLO_CHANGED_HOOK, true));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(scene.updateEmbeddedDocuments).not.toHaveBeenCalledWith("Tile", [{ _id: "m2", hidden: false }]);
+	});
+
+	it("draws the map again only as what a Realm drawn alone keeps from the Referee changes", () => {
+		const flags = { drawing: true, soloSecrets: "hide" };
+		const scene = { id: "drawnAlone", getFlag: (scope, key) => (scope === SYSTEM_ID ? flags[key] : undefined) };
+		globalThis.foundry = { applications: { instances: new Map() } };
+		globalThis.canvas = { scene };
+		ui.placeables = { render: vi.fn() };
+		const update = (changes) => {
+			Object.assign(flags, changes);
+			hooks.get("updateScene")(scene, { flags: { [SYSTEM_ID]: changes } });
+		};
+		update({ drawing: true });
+		expect(ui.placeables.render).toHaveBeenCalledOnce();
+		// First finished: its secrets are settled and kept, then its drawing ends, which keeps nothing more.
+		update({ soloSecrets: null });
+		expect(ui.placeables.render).toHaveBeenCalledTimes(2);
+		update({ drawing: false });
+		update({ drawing: true });
+		expect(ui.placeables.render).toHaveBeenCalledTimes(2);
+		// Nothing is kept from a player, so nothing is drawn again for them.
+		game.user.isGM = false;
+		update({ soloSecrets: "dice" });
+		expect(ui.placeables.render).toHaveBeenCalledTimes(2);
 	});
 
 	it("reads the setting once the world is ready, and again as it changes", () => {

@@ -21,6 +21,7 @@ import { getCalendar } from "./calendar.js";
 import { samePhase } from "../rules/time.js";
 import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
+import { heldBackFrom } from "./journey.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { inCompany, sidesWithCompany } from "./knights.js";
@@ -69,8 +70,9 @@ export function companyHexOrWarn(scene, g) {
 
 /**
  * The Realm a command acts on, and where the Company stands in it. Everything
- * that acts on the Company's own hex begins here, so a Scene that is no Realm
- * and a Company with no Token on it are answered in the one place.
+ * that acts on the Company's own hex begins here, so a Scene that is no Realm,
+ * a Company with no Token on it, and a hex dire weather may be keeping it out of
+ * are answered in the one place.
  * @param {Scene} scene
  * @param {{col: number, row: number}|null} [hex] Where to act, or the Company's own hex.
  * @returns {{realm: object, g: object, where: object}|null} Null with a word to the Referee.
@@ -83,6 +85,11 @@ export function realmAndCompany(scene, hex = null) {
 	const g = sceneGeometry(scene);
 	const where = hex ?? companyHexOrWarn(scene, g);
 	if (!where) return null;
+	// Played alone, nothing is searched, seen or met in a hex the Company may never have reached till the Referee says.
+	if (heldBackFrom(scene, where)) {
+		ui.notifications.warn(t("realm.wilderness.heldBack", { hex: hexLabel(where, scene) }));
+		return null;
+	}
 	return { realm: getRealm(scene).realm, g, where };
 }
 

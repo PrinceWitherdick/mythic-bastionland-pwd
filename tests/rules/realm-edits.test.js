@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PICTURE_ROLL, TERRAIN, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexDistance, hexIndex, hexKey, neighbour, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { edgeKey, hexDistance, hexIndex, hexKey, neighbour, realmGeometry, sameHex } from "../../module/rules/realm-geometry.js";
 import { pictureCount, pictureOf } from "../../module/rules/realm-pictures.js";
 import {
 	barrierState,
@@ -574,6 +574,21 @@ describe("the blog's Landmarks, edited", () => {
 		expect(pairOf(hex(1, 5))).toBeUndefined();
 		expect(pairOf(hex(3, 5))).toBeUndefined();
 		expect(pondPartner(realm, featureAt(realm, hex(1, 5)).landmark)).toBeNull();
+	});
+
+	it("played alone, unpairs no Pond not yet found", () => {
+		let realm = sampleRealm();
+		for (const col of [1, 2, 3, 4]) realm = lay(realm, hex(col, 5), { type: "pond" });
+		realm = pairPonds(pairPonds(realm, hex(1, 5), hex(2, 5)), hex(3, 5), hex(4, 5));
+		const pondAt = (at) => realm.landmarks.find((landmark) => sameHex(landmark.hex, at));
+		for (const col of [1, 2, 3, 4]) pondAt(hex(col, 5)).revealed = col !== 2;
+		// Pond 1's partner, Pond 2, is still to be found: neither None nor another Pond is taken.
+		expect(pairPonds(realm, hex(1, 5), null, { keepHidden: true })).toBe(realm);
+		expect(pairPonds(realm, hex(1, 5), hex(3, 5), { keepHidden: true })).toBe(realm);
+		// Ponds 3 and 4 are both found, so they can be unpaired.
+		expect(featureAt(pairPonds(realm, hex(3, 5), null, { keepHidden: true }), hex(4, 5)).landmark.pair).toBeUndefined();
+		// Without it, the hidden one is unpaired as any other.
+		expect(featureAt(pairPonds(realm, hex(1, 5), null), hex(2, 5)).landmark.pair).toBeUndefined();
 	});
 
 	it("pairs nothing that isn't a Pond, nor a Pond with itself", () => {

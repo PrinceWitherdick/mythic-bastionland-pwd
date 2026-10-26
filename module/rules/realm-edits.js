@@ -378,9 +378,11 @@ function landmarkVariant(realm, type, asked, was) {
  * @param {import("./realm.js").Realm} realm
  * @param {{col: number, row: number}} hex
  * @param {{col: number, row: number}|null} partnerHex
+ * @param {object} [options]
+ * @param {boolean} [options.keepHidden] Played alone: a Pond not yet found keeps its pair, so nothing is changed that would unpair one.
  * @returns {import("./realm.js").Realm} Unchanged unless both hexes hold a Pond.
  */
-export function pairPonds(realm, hex, partnerHex) {
+export function pairPonds(realm, hex, partnerHex, { keepHidden = false } = {}) {
 	const isPond = (at) => featureAt(realm, at).landmark?.type === PAIRED_LANDMARK;
 	if (!isPond(hex) || (partnerHex && (!isPond(partnerHex) || sameHex(hex, partnerHex)))) return realm;
 	const next = copyRealm(realm);
@@ -388,6 +390,7 @@ export function pairPonds(realm, hex, partnerHex) {
 	const mine = ponds.find((pond) => sameHex(pond.hex, hex));
 	const theirs = partnerHex ? ponds.find((pond) => sameHex(pond.hex, partnerHex)) : null;
 	const freed = new Set([mine.pair, theirs?.pair].filter(isPairNumber));
+	if (keepHidden && ponds.some((pond) => freed.has(pond.pair) && !pond.revealed && pond !== mine && pond !== theirs)) return realm;
 	for (const pond of ponds) if (freed.has(pond.pair)) delete pond.pair;
 	if (theirs) {
 		const used = new Set(ponds.map((pond) => pond.pair).filter(isPairNumber));
@@ -408,6 +411,19 @@ export function pairPonds(realm, hex, partnerHex) {
 export function pondPartner(realm, pond) {
 	if (pond?.type !== PAIRED_LANDMARK || !isPairNumber(pond.pair)) return null;
 	return realm.landmarks.find((other) => other.type === PAIRED_LANDMARK && other.pair === pond.pair && !sameHex(other.hex, pond.hex)) ?? null;
+}
+
+/**
+ * The Pond a Pond leads to as somebody knows the Realm. Played alone, a
+ * partner still to be found is only said to be unfound, not named.
+ * @param {import("./realm.js").Realm} realm The whole Realm.
+ * @param {import("./realm.js").Realm} known The Realm as they know it.
+ * @param {object} pond
+ * @returns {{partner: object|null, unfound: boolean}}
+ */
+export function knownPondPartner(realm, known, pond) {
+	const partner = pondPartner(known, pond);
+	return { partner, unfound: !partner && Boolean(pondPartner(realm, pond)) };
 }
 
 /**

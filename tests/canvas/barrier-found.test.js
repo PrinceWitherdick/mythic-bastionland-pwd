@@ -41,9 +41,13 @@ vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ phase
 vi.mock("../../module/actions/hex-shared.js", () => ({ recordBarriersMet: vi.fn(async () => true) }));
 // Which Token is the Company is journey.js's to test: here it's whichever says so.
 vi.mock("../../module/actions/journey.js", () => ({ movesAsCompany: (token) => Boolean(token.company) }));
+// Whether this Realm's secrets are kept from the Referee is solo.js's to work out: here only what follows from it.
+let kept = false;
+vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: vi.fn(() => kept) }));
 
 const { offerWastedPhase, onBarrierFound, onTurnedBackQuery, registerTurnedBackQuery, reportTurnedBack } = await import("../../module/canvas/barrier-found.js");
 const { advancePhase } = await import("../../module/actions/time.js");
+const { secretsKeptOn } = await import("../../module/actions/solo.js");
 const { recordBarriersMet } = await import("../../module/actions/hex-shared.js");
 
 const alys = { id: "player", name: "Alys" };
@@ -78,6 +82,7 @@ let warn;
 let emit;
 beforeEach(() => {
 	edits.length = 0;
+	kept = false;
 	answer = null;
 	asked = [];
 	scene.tokens = [token(from), token(to, { owners: [] })];
@@ -312,6 +317,33 @@ describe("a Company turned back by a Barrier", () => {
 		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
 		expect(query).not.toHaveBeenCalled();
 		expect(edits).toHaveLength(0);
+	});
+
+	it("played alone, has the Referee's own Company find a hidden Barrier, save on a Realm whose secrets they're placing", async () => {
+		game.user.isGM = true;
+		kept = true;
+		reportTurnedBack(scene, { edges: [hidden], from, to, company: true });
+		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
+		expect(secretsKeptOn).toHaveBeenCalledWith(scene);
+		expect(edits).toHaveLength(1);
+		expect(recordBarriersMet).toHaveBeenCalledWith(scene, [{ hex: from, edges: [hidden] }], game.user.name);
+
+		// Drawing a Realm and placing its secrets by hand, they're in view, so nothing is found.
+		edits.length = 0;
+		kept = false;
+		vi.mocked(advancePhase).mockClear();
+		reportTurnedBack(scene, { edges: [hidden], from, to, company: true });
+		await vi.waitFor(() => expect(advancePhase).toHaveBeenCalled());
+		expect(edits).toHaveLength(0);
+	});
+
+	it("says which failed, the Barrier found or the Phase offered", async () => {
+		game.user.isGM = true;
+		const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.mocked(advancePhase).mockRejectedValueOnce(new Error("no"));
+		reportTurnedBack(scene, { edges: [], from, to, company: true });
+		await vi.waitFor(() => expect(logged).toHaveBeenCalled());
+		expect(logged.mock.calls[0][0]).toContain("Couldn't offer the Phase wasted");
 	});
 
 	it("asks once while the window is still open", async () => {

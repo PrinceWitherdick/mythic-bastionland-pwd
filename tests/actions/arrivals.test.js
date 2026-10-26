@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyRealm } from "../../module/rules/realm.js";
 import { realmGeometry } from "../../module/rules/realm-geometry.js";
 import { companyPace } from "../../module/rules/journey.js";
+import { SYSTEM_ID } from "../../module/system-id.js";
 
 const g = realmGeometry();
 const hex = (col, row) => ({ col, row });
@@ -14,6 +15,9 @@ let weather;
 let settings;
 /** Where a blind roll puts the Company, or null where it stays. */
 let landing;
+/** The move dire weather is holding back, and the hex keys it came into, as the Scene keeps them. */
+let heldMove;
+let heldKeys;
 
 vi.mock("../../module/chat/cards.js", () => ({
 	postCard: vi.fn(async () => ({})),
@@ -25,7 +29,20 @@ vi.mock("../../module/chat/hex-target.js", () => ({ hexTarget: (at) => at }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ ...calendar }) }));
 vi.mock("../../module/actions/company.js", () => ({ setCompanyHex: vi.fn() }));
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: ({ col, row }) => `${col},${row}` }));
-vi.mock("../../module/actions/journey.js", () => ({ COMPANY_MOVED_HOOK: "moved" }));
+vi.mock("../../module/actions/journey.js", () => ({
+	COMPANY_MOVED_HOOK: "moved",
+	forgetMoveVisits: vi.fn(async () => true),
+	heldBack: () => ({ move: heldMove, hexes: new Set(heldKeys), keys: solo ? new Set(heldKeys) : new Set() }),
+	setHeldBack: vi.fn(async (_scene, hexes, { move = null } = {}) => {
+		heldMove = hexes.length ? move : null;
+		heldKeys = hexes.map(({ col, row }) => `${col},${row}`);
+		return true;
+	})
+}));
+// What else follows the Company into a hex, done once the Referee lets it on through dire weather.
+vi.mock("../../module/actions/hex-lore.js", () => ({ rollFirstArrival: vi.fn(async () => []) }));
+vi.mock("../../module/actions/homecoming.js", () => ({ welcomeHome: vi.fn(async () => []) }));
+vi.mock("../../module/actions/sighted.js", () => ({ revealSighted: vi.fn(async () => []) }));
 vi.mock("../../module/actions/night-travel.js", () => ({ settleBlindTravel: vi.fn(async () => landing) }));
 vi.mock("../../module/actions/myth-notes.js", async () => {
 	const { withoutResolved } = await import("../../module/rules/myth-notes.js");
@@ -47,6 +64,11 @@ const { postCard, registerCardButtons } = await import("../../module/chat/cards.
 const { setCompanyHex } = await import("../../module/actions/company.js");
 const { markOmenOnEntering, wildernessRoll } = await import("../../module/actions/wilderness.js");
 const { revealMythsReached } = await import("../../module/actions/solo.js");
+const { forgetMoveVisits, setHeldBack } = await import("../../module/actions/journey.js");
+const { settleBlindTravel } = await import("../../module/actions/night-travel.js");
+const { rollFirstArrival } = await import("../../module/actions/hex-lore.js");
+const { welcomeHome } = await import("../../module/actions/homecoming.js");
+const { revealSighted } = await import("../../module/actions/sighted.js");
 
 const scene = { id: "realm", realm: true };
 
@@ -63,6 +85,11 @@ beforeEach(() => {
 	weather = null;
 	settings = new Map();
 	landing = null;
+	heldMove = null;
+	heldKeys = [];
+	let moves = 0;
+	globalThis.foundry = { utils: { randomID: () => `move${++moves}` } };
+	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
 	globalThis.game = {
 		user: { isGM: true },
 		settings: { get: (_scope, key) => settings.get(key) ?? null, set: vi.fn(async (_scope, key, value) => settings.set(key, value)) }
@@ -172,6 +199,8 @@ describe("a move followed", () => {
 		await press("stay", "5,4");
 		expect(setCompanyHex).toHaveBeenCalledWith(scene, hex(5, 4), { forced: true });
 		expect(settings.get("companyPace").count).toBe(0);
+		// Never come into, so not kept as been to.
+		expect(forgetMoveVisits).toHaveBeenCalledWith(scene, [hex(5, 5)], null);
 
 		weather = null;
 		vi.mocked(postCard).mockClear();
@@ -213,7 +242,8 @@ describe("a move followed", () => {
 		solo = true;
 		try {
 			weather = "dire";
-			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			heldMove = "move9";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) }, { move: "move9" });
 			vi.mocked(revealMythsReached).mockClear();
 			// Found as it's let on, its Myth's Omen is offered on a card of its own.
 			vi.mocked(revealMythsReached).mockImplementationOnce(async () => {
@@ -221,8 +251,141 @@ describe("a move followed", () => {
 				return [realm.myths[0]];
 			});
 			await press("onward");
+			expect(setHeldBack).toHaveBeenLastCalledWith(scene, []);
 			expect(revealMythsReached).toHaveBeenCalledWith(scene, [hex(8, 6)]);
+			// And all else held back from it: what was seen there from afar, its land rolled, a ruler home.
+			expect(revealSighted).toHaveBeenCalledWith(scene, [hex(8, 6)]);
+			expect(rollFirstArrival).toHaveBeenCalledWith({ scene, hex: hex(8, 6) });
+			expect(welcomeHome).toHaveBeenCalledWith(scene, [hex(8, 6)]);
 			expect(lastCard().actions).toEqual([expect.objectContaining({ key: "omen", hex: "8,6" })]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("keeps the move dire weather may hold the Company back on, under its own id, till another move", async () => {
+		weather = "dire";
+		landing = null;
+		vi.mocked(setHeldBack).mockClear();
+		follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		// Played together, kept for its card's sake, with nothing kept from being found.
+		expect(setHeldBack).toHaveBeenLastCalledWith(scene, [hex(8, 6)], { move: "move1", kept: false });
+
+		solo = true;
+		try {
+			vi.mocked(postCard).mockClear();
+			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			// Under the move's own id, which its card keeps.
+			expect(setHeldBack).toHaveBeenLastCalledWith(scene, [hex(8, 6)], { move: "move2", kept: true });
+			expect(vi.mocked(postCard).mock.calls.at(-1)[3].flags[SYSTEM_ID].arrived).toMatchObject({ held: [hex(8, 6)], move: "move2" });
+
+			weather = null;
+			vi.mocked(setHeldBack).mockClear();
+			follow(scene, { entered: [hex(8, 7)], ended: true, from: hex(8, 6) });
+			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalled());
+			expect(setHeldBack).toHaveBeenLastCalledWith(scene, [], { move: null, kept: true });
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("keeps the hexes held back from before travelling blind asks anything", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			let keptWhileAsked = null;
+			vi.mocked(settleBlindTravel).mockImplementationOnce(async () => {
+				keptWhileAsked = heldKeys;
+				return null;
+			});
+			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			expect(keptWhileAsked).toEqual(["8,6"]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("leaves the hexes held back from held as a blind drift on that move puts the Company in them", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+			vi.mocked(setHeldBack).mockClear();
+			vi.mocked(revealMythsReached).mockClear();
+			follow(scene, { entered: [hex(8, 6)], ended: true, from: hex(7, 6), chosen: false });
+			await vi.waitFor(() => expect(revealMythsReached).toHaveBeenCalled());
+			// Still held back, so its Myth isn't found, and Stay or Onward still answers it.
+			expect(revealMythsReached).toHaveBeenLastCalledWith(scene, []);
+			expect(setHeldBack).not.toHaveBeenCalled();
+			expect(heldMove).toBe("move1");
+
+			// Put somewhere else by the Referee, it's settled.
+			follow(scene, { entered: [hex(2, 2)], ended: true, from: hex(8, 6), chosen: false });
+			await vi.waitFor(() => expect(setHeldBack).toHaveBeenCalledWith(scene, []));
+			expect(heldMove).toBeNull();
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("does nothing on an old Stay once the Company has moved since, played together too", async () => {
+		weather = "dire";
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		weather = null;
+		follow(scene, { entered: [hex(5, 6)], ended: true, from: hex(5, 5) });
+		await vi.waitFor(() => expect(heldMove).toBeNull());
+		vi.mocked(setCompanyHex).mockClear();
+		vi.mocked(forgetMoveVisits).mockClear();
+		expect(await press("stay", "5,4")).toBe(true);
+		expect(setCompanyHex).not.toHaveBeenCalled();
+		expect(forgetMoveVisits).not.toHaveBeenCalled();
+		expect(ui.notifications.info).toHaveBeenCalledWith("arrival.movedOn");
+	});
+
+	it("keeps on the card the arrivals the held move made, so Stay forgets those and no later one", async () => {
+		weather = "dire";
+		follow(scene, { entered: [hex(5, 5)], ended: true, from: hex(5, 4), orders: Promise.resolve({ "5,5": 7, "9,9": 3 }) });
+		await vi.waitFor(() => expect(postCard).toHaveBeenCalled());
+		expect(vi.mocked(postCard).mock.calls.at(-1)[3].flags[SYSTEM_ID].arrived.orders).toEqual({ "5,5": 7 });
+		vi.mocked(forgetMoveVisits).mockClear();
+		await press("stay", "5,4");
+		expect(forgetMoveVisits).toHaveBeenCalledWith(scene, [hex(5, 5)], { "5,5": 7 });
+	});
+
+	it("makes Stay and Onward one choice, so pressing either takes both off", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) });
+			const held = lastCard().actions.filter((action) => ["stay", "onward"].includes(action.key));
+			expect(held.map((action) => action.group)).toEqual(["held", "held"]);
+		} finally {
+			solo = false;
+		}
+	});
+
+	it("does nothing on an old card once the Company has moved since, played alone", async () => {
+		solo = true;
+		try {
+			weather = "dire";
+			await noticeArrival(scene, { entered: [hex(8, 6)], ended: true, from: hex(8, 5) }, { move: "old" });
+			heldMove = "newer";
+			vi.mocked(setCompanyHex).mockClear();
+			vi.mocked(setHeldBack).mockClear();
+			vi.mocked(revealMythsReached).mockClear();
+			// Done with, so the buttons go, but nothing is moved, forgotten, found or settled.
+			expect(await press("stay", "8,5")).toBe(true);
+			expect(await press("onward")).toBe(true);
+			expect(setCompanyHex).not.toHaveBeenCalled();
+			expect(revealMythsReached).not.toHaveBeenCalled();
+			expect(setHeldBack).not.toHaveBeenCalled();
+			expect(heldMove).toBe("newer");
+			expect(ui.notifications.info).toHaveBeenCalledWith("arrival.movedOn");
 		} finally {
 			solo = false;
 		}

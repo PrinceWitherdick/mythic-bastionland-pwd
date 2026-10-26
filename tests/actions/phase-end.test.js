@@ -204,6 +204,15 @@ describe("the Phase's end", () => {
 		expect(cardsOf("wilderness")[0][2].result).toBe("realm.wilderness.results.mythHex");
 	});
 
+	it("rolls nothing in a hex dire weather may still be keeping the Company out of, played alone", async () => {
+		const scene = standAt(hex(6, 6));
+		scene.getFlag = (_scope, key) => (key === "heldBack" ? { move: "move1", hexes: ["6,6"] } : undefined);
+		await advancePhase();
+		expect(cardsOf("wilderness")).toHaveLength(0);
+		expect(ui.notifications.warn).toHaveBeenCalledWith(expect.stringMatching(/^realm.wilderness.heldBack/));
+		expect(calendar.phase).toBe("afternoon");
+	});
+
 	it("moves straight on where no Realm shows the Company and no Night ends", async () => {
 		await advancePhase();
 		expect(asked).toHaveLength(0);

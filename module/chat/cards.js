@@ -126,6 +126,7 @@ export function onCardClick(element, selector, handler) {
  * @param {(button: HTMLElement, message: ChatMessage) => unknown} card.handler What a press does.
  * @param {boolean} [card.once]    Whether each button does its work once only: a press whose handler
  *   returns something truthy is kept on the message, and the button is gone from then on, for everybody.
+ *   Buttons sharing a `data-once-group` are one choice: pressing one takes them all off.
  * @param {(message: ChatMessage, user: User) => boolean} [card.mayPress] Whether a user who asks the
  *   active GM to keep their press could have done its work, such as owning the actor the card names.
  * @returns {void}
@@ -147,7 +148,15 @@ export function registerCardButtons({ selector, gmOnly = false, fromPlayers = fa
 			if (spentButtons(message).includes(key)) return;
 			// Nobody could keep it spent, so it would do its work again after a reload.
 			if (!message.isOwner && !game.users.activeGM) return warn("cardButtons.needsGM");
-			if (await handler(button, message)) await spendButton(message, key);
+			// Each button of a choice is spent with the one pressed, so the others can't be pressed after it, nor while it works.
+			const group = button.dataset?.onceGroup;
+			const choice = group ? [...keys.keys()].filter((other) => other.dataset?.onceGroup === group) : [button];
+			for (const other of choice) other.disabled = true;
+			try {
+				if (await handler(button, message)) await spendButtons(message, choice.map((other) => keys.get(other)));
+			} finally {
+				for (const other of choice) other.disabled = false;
+			}
 		});
 	});
 }
@@ -165,15 +174,18 @@ const SPEND_QUERY = `${SYSTEM_ID}.spendButton`;
 const spentButtons = (message) => message?.flags?.[SYSTEM_ID]?.[SPENT_FLAG] ?? [];
 
 /**
- * Keep on a card that one of its buttons has done its work, asking the active
- * GM where the presser can't update the card.
+ * Keep on a card that some of its buttons have done their work, asking the
+ * active GM where the presser can't update the card.
  * @param {ChatMessage} message
- * @param {string} key
- * @returns {Promise<unknown>} False where the GM couldn't keep it.
+ * @param {string[]} keys
+ * @returns {Promise<unknown>} False where the GM couldn't keep one.
  */
-async function spendButton(message, key) {
-	if (message.isOwner) return message.setFlag(SYSTEM_ID, SPENT_FLAG, [...new Set([...spentButtons(message), key])]);
-	return askActiveGM(SPEND_QUERY, { messageId: message.id, key }, "Couldn't keep the button pressed");
+async function spendButtons(message, keys) {
+	if (message.isOwner) return message.setFlag(SYSTEM_ID, SPENT_FLAG, [...new Set([...spentButtons(message), ...keys])]);
+	// One at a time, so each is kept beside the one before rather than written over it.
+	let kept = true;
+	for (const key of keys) kept = (await askActiveGM(SPEND_QUERY, { messageId: message.id, key }, "Couldn't keep the button pressed")) !== false && kept;
+	return kept;
 }
 
 /**
@@ -225,7 +237,7 @@ async function onSpendQuery({ messageId, key } = {}, context = {}) {
 	if (at < 0 || !mayPress || !/^\d{1,3}$/.test(index)) return false;
 	if (!seesCard(message, user) || !mayPress(message, user)) return false;
 	if (Number(index) >= buttonCount(message, selector)) return false;
-	await spendButton(message, key);
+	await spendButtons(message, [key]);
 	return true;
 }
 

@@ -87,6 +87,22 @@ describe("once-only card buttons", () => {
 		expect(again.buttons.map((button) => button.removed)).toEqual([false, true]);
 	});
 
+	it("take every button of one choice off with the one pressed", async () => {
+		const handler = vi.fn(async () => true);
+		registerCardButtons({ selector: "[data-test]", handler, once: true });
+		const message = chatMessage(true, 3);
+		const card = drawnCard(3);
+		card.buttons[0].dataset = { onceGroup: "held" };
+		card.buttons[1].dataset = { onceGroup: "held" };
+		hooks.get("renderChatMessageHTML")(message, card.html);
+		await card.click(card.buttons[1]);
+		expect(message.flags[SYSTEM_ID].spentButtons).toEqual(["[data-test]#0", "[data-test]#1"]);
+		// The other of the choice can't be pressed after it, and the button outside it still can.
+		await card.click(card.buttons[0]);
+		expect(handler).toHaveBeenCalledTimes(1);
+		expect(card.buttons.map((button) => button.disabled)).toEqual([false, false, false]);
+	});
+
 	it("leave a press that came to nothing pressable", async () => {
 		registerCardButtons({ selector: "[data-test]", handler: async () => false, once: true });
 		const message = chatMessage(true);

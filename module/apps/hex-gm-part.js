@@ -14,11 +14,11 @@ import {
 } from "../actions/hex-lore.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { domainsRuling, grantHolding, rulersOf } from "../actions/holding-ruler.js";
-import { getHexVisits, markHexVisited } from "../actions/journey.js";
+import { getHexVisits, heldBackFrom, markHexVisited } from "../actions/journey.js";
 import { landmarkOfferView, markBridgeWon, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
 import { viewAndShowHex } from "../actions/travels.js";
 import { hasBookPrompt, landmarkLabelKey, landmarkMet } from "../rules/landmarks.js";
-import { pondPartner } from "../rules/realm-edits.js";
+import { knownPondPartner } from "../rules/realm-edits.js";
 import { rollUpHolding } from "../actions/people.js";
 import { calendarLabel, getCalendar, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
@@ -173,8 +173,9 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 			: null,
 		myth: myth ? mythContext(scene, myth, index) : null,
 		visited: Boolean(visits),
-		// Played alone, the Company rolls, asks and searches only where it stands.
-		explore: !secretsKeptOn(scene) || sameHex(findCompany(scene, g, { selected: false }).hex, hex),
+		// Played alone, the Company rolls, asks and searches only where it stands, and not where dire weather
+		// may be keeping it out till the Referee lets it on.
+		explore: !secretsKeptOn(scene) || (sameHex(findCompany(scene, g, { selected: false }).hex, hex) && !heldBackFrom(scene, hex)),
 		note: record?.note ?? "",
 		told: toldContext(record?.note ?? "", view.told),
 		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
@@ -412,9 +413,9 @@ function unfound(scene, known, g, hex, view, index) {
  * @returns {{key: string|null, scene?: string, label: string}}
  */
 function pairContext(scene, realm, known, pond) {
-	const partner = pondPartner(known, pond);
+	const { partner, unfound } = knownPondPartner(realm, known, pond);
 	if (partner) return hexTarget(partner.hex, scene);
-	return { key: null, label: t(pondPartner(realm, pond) ? "realm.landmarks.pairUnfound" : "realm.landmarks.pairBeyond") };
+	return { key: null, label: t(unfound ? "realm.landmarks.pairUnfound" : "realm.landmarks.pairBeyond") };
 }
 
 /**

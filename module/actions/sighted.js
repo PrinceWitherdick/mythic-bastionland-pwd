@@ -2,13 +2,15 @@ import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { hiddenTilesIn } from "../rules/realm-documents.js";
-import { directionNames, hexKey } from "../rules/realm-geometry.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { MAX_SIGHTED_NOTE, SIGHTED_FLAG, hiddenThere, normaliseSighted, sightable, sightedAt, sightingChanges } from "../rules/sighted.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { hexesReached } from "./held-back.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { centredTiles, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
 import { keptFromMe } from "./solo.js";
+import { directionName } from "./told-where.js";
 import { landmarkLabelKey } from "../rules/landmarks.js";
 
 /**
@@ -76,7 +78,7 @@ function sightingLabel(g, { direction, hex, landmark, holding }) {
 		holding && holdingName(holding, t)
 	].filter(Boolean).join(", ");
 	return t("seenFromAfar.row", {
-		direction: t(`realm.directions.${directionNames(g)[direction]}`),
+		direction: directionName(g, direction),
 		hex: t("realm.readout.coordinates", hex),
 		// Played alone, the Referee makes out no more than the Company does.
 		what: keptFromMe() ? t("solo.somethingThere") : t("realm.readout.hidden", { name: what })
@@ -156,12 +158,13 @@ export async function revealSighted(scene, hexes) {
 
 /**
  * Notice the Company coming into a hex it saw something in from afar. Heard on
- * the active GM's client alone.
+ * the active GM's client alone. Not one dire weather may be keeping it out of,
+ * played alone, till the Referee lets it on.
  * @param {Scene} scene
  * @param {{entered: {col: number, row: number}[]}} move
  */
-function noticeMove(scene, { entered }) {
-	revealSighted(scene, entered).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show what the Company saw from afar`, error));
+function noticeMove(scene, move) {
+	revealSighted(scene, hexesReached(scene, move)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't show what the Company saw from afar`, error));
 }
 
 /** Follow the Company to what it saw from afar. Called during init. */

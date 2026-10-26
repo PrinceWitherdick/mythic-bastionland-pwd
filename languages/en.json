@@ -1244,7 +1244,8 @@
       "omen": "Reveal its next Omen",
       "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
       "mood": "Local Mood",
-      "realmGone": "That Realm is no longer in this world."
+      "realmGone": "That Realm is no longer in this world.",
+      "movedOn": "The Company has moved since, so that choice no longer applies."
     },
     "phaseEnd": {
       "title": "The {phase} Ends",
@@ -4387,6 +4388,7 @@
         "notRealm": "The Wilderness Roll works on a Realm Scene.",
         "noToken": "Select the Company’s Tokens first.",
         "split": "The Company is spread over more than one hex, so the roll is for {hex}, where most of them stand.",
+        "heldBack": "Dire weather may be keeping the Company out of {hex}. Keep them where they were or let them go on, on their arrival card, first.",
         "chooseMode": "How does the Company end this Phase at {hex}?",
         "modes": {
           "travel": "Travelling",

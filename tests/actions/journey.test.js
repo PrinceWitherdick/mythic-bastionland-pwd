@@ -4,12 +4,16 @@ import {
 	COMPANY_PLACED_HOOK,
 	JOURNEY_FLAG,
 	forgetHexVisits,
+	forgetMoveVisits,
 	getJourney,
+	heldBack,
+	heldBackFrom,
 	legHexes,
 	markHexVisited,
 	movesAsCompany,
 	recordHexVisits,
-	registerJourneyHooks
+	registerJourneyHooks,
+	setHeldBack
 } from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
@@ -100,6 +104,59 @@ describe("recordHexVisits", () => {
 		game.user.isGM = false;
 		await expect(recordHexVisits(scene, [hex(1, 1)])).resolves.toBe(false);
 		expect(scene.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("a move taken back", () => {
+	it("forgets the arrival the move made in each hex, and no later one", async () => {
+		const scene = realmScene();
+		await recordHexVisits(scene, [hex(2, 2), hex(3, 2)]);
+		await recordHexVisits(scene, [hex(2, 2)]);
+		const first = getJourney(scene).hexes["2,2"].first.order;
+		await forgetMoveVisits(scene, [hex(2, 2), hex(3, 2)], { "2,2": first, "3,2": getJourney(scene).hexes["3,2"].last.order });
+		// The later arrival in 2,2 stays; 3,2, come into only on that move, is forgotten.
+		expect(getJourney(scene).hexes["2,2"].count).toBe(1);
+		expect(getJourney(scene).hexes["2,2"].last.order).toBeGreaterThan(first);
+		expect(getJourney(scene).hexes["3,2"]).toBeUndefined();
+		// Without its arrivals, as on an older card, nothing is forgotten: the last may be a later move's.
+		await expect(forgetMoveVisits(scene, [hex(2, 2)])).resolves.toBe(false);
+		expect(getJourney(scene).hexes["2,2"].count).toBe(1);
+	});
+});
+
+describe("heldBack", () => {
+	/** @returns {object} A Realm Scene whose flags can be set and unset. */
+	const flaggedScene = () => {
+		const scene = realmScene();
+		scene.setFlag = vi.fn(async (scope, key, value) => (scene.flags[scope][key] = structuredClone(value)));
+		scene.unsetFlag = vi.fn(async (scope, key) => delete scene.flags[scope][key]);
+		return scene;
+	};
+
+	it("keeps the hexes a move may be held back from under that move, and settles them", async () => {
+		const scene = flaggedScene();
+		await setHeldBack(scene, [hex(4, 4)], { move: "move1" });
+		expect(heldBack(scene)).toEqual({ move: "move1", hexes: new Set(["4,4"]), keys: new Set(["4,4"]) });
+		expect(heldBackFrom(scene, hex(4, 4))).toBe(true);
+		expect(heldBackFrom(scene, hex(4, 5))).toBe(false);
+		// Written only where it changes.
+		await expect(setHeldBack(scene, [hex(4, 4)], { move: "move1" })).resolves.toBe(false);
+		await setHeldBack(scene, []);
+		expect(heldBack(scene)).toEqual({ move: null, hexes: new Set(), keys: new Set() });
+		await expect(setHeldBack(scene, [])).resolves.toBe(false);
+	});
+
+	it("keeps a move held back played together, with nothing kept from being found", async () => {
+		const scene = flaggedScene();
+		await setHeldBack(scene, [hex(4, 4)], { move: "move1", kept: false });
+		expect(heldBack(scene)).toEqual({ move: "move1", hexes: new Set(["4,4"]), keys: new Set() });
+		expect(heldBackFrom(scene, hex(4, 4))).toBe(false);
+	});
+
+	it("still reads the hex keys alone", () => {
+		const scene = realmScene();
+		scene.flags[SYSTEM_ID].heldBack = ["2,3", 7];
+		expect(heldBack(scene)).toEqual({ move: null, hexes: new Set(["2,3"]), keys: new Set(["2,3"]) });
 	});
 });
 

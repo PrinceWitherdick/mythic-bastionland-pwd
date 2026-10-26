@@ -18,6 +18,7 @@ import {
 import {
 	FEATURE_KINDS,
 	editFeature,
+	knownPondPartner,
 	pairPonds,
 	paintTerrain,
 	placeFeature,
@@ -48,6 +49,16 @@ const whole = (value) => (value === "" || value === null || !Number.isFinite(Num
 
 /** The Leads To choice for a Pond whose pair is still to be found, played alone: picking it changes nothing. */
 const UNFOUND_PAIR = "unfound";
+
+/**
+ * @param {object} realm The whole Realm.
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean} Whether the hex holds a Pond whose partner is still to be found.
+ */
+const hidesPartner = (realm, hex) => {
+	const partner = pondPartner(realm, featureAt(realm, hex).landmark);
+	return Boolean(partner && !partner.revealed);
+};
 
 /** The fields of the window, each written on its own as it changes. */
 export const HEX_EDIT_FIELDS = Object.freeze(["terrain", "kind", "seat", "disputed", "number", "d6", "d12", "seerD6", "seerD12", "style", "type", "variant", "pair", "holdingName"]);
@@ -95,23 +106,26 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 		// The kinds offered, and this one's own even where its setting is now off.
 		const offered = offeredLandmarks();
 		const types = offered.includes(kind) ? offered : [...offered, kind];
-		const partner = pondPartner(known, here.landmark);
 		// Played alone, a pair still to be found is kept, and not named.
-		const unfound = !partner && Boolean(pondPartner(realm, here.landmark));
+		const { partner, unfound } = knownPondPartner(realm, known, here.landmark);
 		landmark = {
 			types: types.map((type) => option(type, t(`realm.landmarks.${type}`), type === kind)),
 			// Which Grotto, Fountain or Willow it is.
 			variants: LANDMARK_VARIANTS[kind]?.map((value) => option(value, t(landmarkLabelKey({ type: kind, variant: value })), value === variant)) ?? null,
 			// The Pond it leads to: any other Pond the Referee can see, or none, so it leads out of the Realm.
+			// Played alone, not one whose own partner is still to be found, since pairing it would unpair that one.
 			pairs: kind === PAIRED_LANDMARK
 				? [
 					option("", t("realm.landmarks.pairNone"), !partner && !unfound),
 					...(unfound ? [option(UNFOUND_PAIR, t("realm.landmarks.pairHidden"), true)] : []),
 					...known.landmarks
 						.filter((other) => other.type === PAIRED_LANDMARK && !sameHex(other.hex, hex))
+						.filter((other) => !solo || !knownPondPartner(realm, known, other).unfound)
 						.map((other) => option(hexKey(other.hex), hexLabel(other.hex, scene), Boolean(partner) && sameHex(partner.hex, other.hex)))
 				]
 				: null,
+			// Its pair, and its type, can't be changed without unpairing the one not yet found.
+			pairLocked: unfound,
 			sanctum: kind === "sanctum",
 			seer,
 			reference: reference ? t("realm.panel.reference", { name: reference.name, page: reference.page }) : null,
@@ -174,12 +188,16 @@ export function writeHexField(scene, hex, field, value) {
 				return editFeature(realm, g, hex, { seer: { d6: whole(value) } });
 			case "seerD12":
 				return editFeature(realm, g, hex, { seer: { d12: whole(value) } });
-			case "style":
 			case "type":
+				// Played alone, a Pond whose partner is still to be found stays a Pond, so that one keeps its pair.
+				if (value !== PAIRED_LANDMARK && secretsKeptOn(scene) && hidesPartner(realm, hex)) return realm;
+				return editFeature(realm, g, hex, { type: value });
+			case "style":
 			case "variant":
 				return editFeature(realm, g, hex, { [field]: value });
 			case "pair":
-				return value === UNFOUND_PAIR ? realm : pairPonds(realm, hex, parseHexKey(value));
+				// Played alone, a Pond not yet found is never unpaired from here, as a found one's choice is changed.
+				return value === UNFOUND_PAIR ? realm : pairPonds(realm, hex, parseHexKey(value), { keepHidden: secretsKeptOn(scene) });
 			case "holdingName":
 				return editFeature(realm, g, hex, { name: value });
 			default:

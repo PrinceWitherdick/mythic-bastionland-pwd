@@ -4,10 +4,11 @@ import { read } from "../client-settings.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { hiddenTilesIn } from "../rules/realm-documents.js";
 import { SOLO_SECRETS_FLAG, SOLO_SECRET_WAYS, mythKnown, soloRealm } from "../rules/solo.js";
+import { hexKey } from "../rules/realm-geometry.js";
 import { visitedMarkHexes } from "../rules/travels.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { companyTokenHex } from "./company.js";
-import { COMPANY_PLACED_HOOK, getJourney } from "./journey.js";
+import { COMPANY_PLACED_HOOK, getJourney, heldBack } from "./journey.js";
 import { centredTiles, getRealm, isDrawingRealm, isRealmScene, sceneGeometry } from "./realm.js";
 
 /**
@@ -160,7 +161,10 @@ export async function revealMythsReached(scene, hexes, { quiet = false } = {}) {
  */
 export function revealMythsBeenTo(scene) {
 	const here = companyTokenHex(scene);
-	return revealMythsReached(scene, [...visitedMarkHexes(getJourney(scene)), ...(here ? [here] : [])], { quiet: true });
+	// Not those dire weather may still be keeping it from.
+	const held = heldBack(scene).keys;
+	const been = [...visitedMarkHexes(getJourney(scene)), ...(here ? [here] : [])].filter((hex) => !held.has(hexKey(hex)));
+	return revealMythsReached(scene, been, { quiet: true });
 }
 
 /**
@@ -205,16 +209,24 @@ function redrawSecrets() {
 	import("../canvas/hex-readout.js").then(({ updateHexReadout }) => updateHexReadout({ force: true })).catch(() => {});
 }
 
+/** Each Realm's secrets as last kept from this client, by Scene id, so only a change to them redraws. */
+const keptByScene = new Map();
+
 /**
  * A Realm drawn alone keeps its secrets from the Referee again once its
- * drawing is finished, so the map is drawn again as that happens.
+ * drawing is finished, so the map is drawn again as that happens. Only a
+ * Referee playing alone has anything kept, and only a change to what's kept,
+ * or to how the Realm's secrets are placed, needs a redraw.
  * @param {Scene} scene
  * @param {object} changes
  */
 function noticeDrawingSettled(scene, changes) {
 	const flags = changes?.flags?.[SYSTEM_ID];
-	if (!flags || scene?.id !== canvas?.scene?.id || !isSolo()) return;
-	if (REALM_DRAWING_FLAG in flags || SOLO_SECRETS_FLAG in flags) redrawSecrets();
+	if (!flags || !(REALM_DRAWING_FLAG in flags || SOLO_SECRETS_FLAG in flags) || !keptFromMe()) return;
+	const kept = `${secretsKeptOn(scene)}|${secretsToSettle(scene)}`;
+	const was = keptByScene.get(scene.id);
+	keptByScene.set(scene.id, kept);
+	if (kept !== was && scene.id === canvas?.scene?.id) redrawSecrets();
 }
 
 /** Draw the map again, and the windows that show the Realm, when solo play is turned on or off. */
@@ -247,6 +259,7 @@ export function registerSolo() {
 		default: false,
 		onChange: () => {
 			soloNow = null;
+			keptByScene.clear();
 			redrawForSolo();
 		}
 	});
