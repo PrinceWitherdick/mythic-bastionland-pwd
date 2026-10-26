@@ -1,9 +1,10 @@
-import { OWN_MYTH_FLAG, isUntouchedOwnMyth, readOwnMyth } from "../actions/own-myths.js";
+import { droppedScene, linkOmenScene, omenSceneChips, unlinkOmenScene, viewOmenScene } from "../actions/omen-scenes.js";
+import { OWN_MYTH_FLAG, isUntouchedOwnMyth, ownMythWrites, readOwnMyth } from "../actions/own-myths.js";
 import { getRealm, isRealmScene } from "../actions/realm.js";
 import { filePicker } from "../book-art/files.js";
+import { KeepDraftMixin } from "./keep-draft.js";
 import { t } from "../chat/cards.js";
 import { VERSE_LINES, mythWithOwn, normaliseOwnMyth, ownMythChanged, tableWritten } from "../rules/own-myths.js";
-import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -23,7 +24,9 @@ const FLAG_PATH = `flags.${SYSTEM_ID}.${OWN_MYTH_FLAG}`;
  * six once it's chosen in The Realm's Myths, and the GM Toolkit, the Omen
  * cards and the picture's window read it there as they read the book's.
  */
-export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
+// Each change saves the Myth and draws the sheet again, so what's typed meanwhile
+// in the next field, and the table's fold as it was left, are kept.
+export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-own-myth-window"],
 		position: { width: 620, height: 760 },
@@ -32,7 +35,9 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		form: { handler: OwnMythSheet.#onSubmit, submitOnChange: true, closeOnSubmit: false },
 		actions: {
 			pickPicture: OwnMythSheet.#onPickPicture,
-			clearPicture: OwnMythSheet.#onClearPicture
+			clearPicture: OwnMythSheet.#onClearPicture,
+			viewOmenScene: OwnMythSheet.#onViewScene,
+			unlinkOmenScene: OwnMythSheet.#onUnlinkScene
 		}
 	};
 
@@ -43,8 +48,13 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	/** Set by New Myth: close this with nothing written and the entry is deleted. */
 	discardIfBlank = false;
 
-	/** Each change waits for the one before, so it works from the Myth as that one left it. */
-	#writing = serialWrites();
+	/**
+	 * Each change waits for the one before, so it works from the Myth as that
+	 * one left it, a Scene linked from the GM Toolkit among them.
+	 */
+	get #writing() {
+		return ownMythWrites(this.document.id);
+	}
 
 	/** @override */
 	get title() {
@@ -70,7 +80,8 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 				number: index + 1,
 				name: field("omens", index),
 				value: omen,
-				label: t("myths.omenNumber", { number: index + 1 })
+				label: t("myths.omenNumber", { number: index + 1 }),
+				scenes: omenSceneChips(myth.scenes[index])
 			})),
 			table: {
 				// Folded away until there's something in it, as most Myths can do without one.
@@ -92,6 +103,19 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 			},
 			castNote: myth.castNote
 		});
+	}
+
+	/**
+	 * Each Omen takes a Scene dragged onto it from the Scenes sidebar.
+	 * @override
+	 */
+	async _onRender(context, options) {
+		await super._onRender(context, options);
+		if (!this.isEditable) return;
+		for (const omen of this.element.querySelectorAll("[data-omen-drop]")) {
+			omen.addEventListener("dragover", (event) => event.preventDefault());
+			omen.addEventListener("drop", (event) => this.#onDropScene(event));
+		}
 	}
 
 	/** @override */
@@ -137,7 +161,8 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		const data = foundry.utils.expandObject(formData.object);
 		const name = String(data.name ?? "").trim();
 		const update = name && name !== this.document.name ? { name } : {};
-		return this.#write((myth) => ({ ...data, img: myth.img }), update);
+		// What isn't a field of the form, such as the picture and the linked Scenes, is kept as it is.
+		return this.#write((myth) => ({ ...myth, ...data }), update);
 	}
 
 	/**
@@ -158,5 +183,46 @@ export class OwnMythSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 	static #onClearPicture() {
 		if (!this.isEditable) return;
 		return this.#write((myth) => ({ ...myth, img: "" }));
+	}
+
+	/**
+	 * Show a linked Scene to the Referee alone, to see what's set there.
+	 * @this {OwnMythSheet}
+	 */
+	static #onViewScene(_event, target) {
+		return viewOmenScene(target.closest("[data-scene-id]")?.dataset.sceneId);
+	}
+
+	/**
+	 * Take a Scene off the Omen it's linked to.
+	 * @this {OwnMythSheet}
+	 */
+	static #onUnlinkScene(_event, target) {
+		if (!this.isEditable) return;
+		const id = target.closest("[data-scene-id]")?.dataset.sceneId;
+		const omen = Number(target.closest("[data-omen]")?.dataset.omen);
+		return this.#editScenes((myth) => unlinkOmenScene(null, myth, omen, id));
+	}
+
+	/**
+	 * A Scene dragged from the Scenes sidebar onto an Omen is linked to it.
+	 * @param {DragEvent} event
+	 */
+	async #onDropScene(event) {
+		const omen = Number(event.currentTarget.dataset.omen);
+		const scene = await droppedScene(event);
+		if (!scene || !this.isEditable) return;
+		return this.#editScenes((myth) => linkOmenScene(null, myth, omen, scene));
+	}
+
+	/**
+	 * Link or unlink a Scene the way the GM Toolkit does, which takes its turn
+	 * with the form's saves.
+	 * @param {(myth: {own: string}) => Promise<boolean>} edit
+	 * @returns {Promise<void>}
+	 */
+	#editScenes(edit) {
+		return edit({ own: this.document.id })
+			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't write the Myth ${this.document.name}`, error));
 	}
 }

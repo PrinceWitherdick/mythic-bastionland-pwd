@@ -21,8 +21,9 @@ import { getCalendar } from "./calendar.js";
 import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /** @param {string} key One of CRISES. */
 const crisisName = (key) => t(`domain.crises.${key}.name`);
@@ -317,7 +318,8 @@ export async function settleDomains(ended) {
  * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
  */
 async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null, withoutRuler = false }) {
-	const knights = withoutRuler ? knightsBesidesRuler(domain) : worldKnights();
+	const knights = (withoutRuler ? knightsBesidesRuler(domain) : worldKnights())
+		.filter(seenOrChosen((knight) => name && isSameName(knight.name, name)));
 	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
 	const data = await inputDialog({
 		title,
@@ -443,7 +445,7 @@ export async function seizeDomain(domain) {
  * @returns {Promise<ChatMessage|null>}
  */
 export async function noticeRulerSlain(knight, changes) {
-	if (knight?.type !== "knight" || foundry.utils.getProperty(changes, "system.slain") !== true) return null;
+	if (!isKnight(knight) || foundry.utils.getProperty(changes, "system.slain") !== true) return null;
 	if (!game.users.activeGM?.isSelf) return null;
 	const domain = knightDomain(knight);
 	// Only while they still rule it: a Domain passed on already is someone else's.

@@ -5,6 +5,7 @@
  */
 import { stripHTML } from "./text.js";
 import { countAfter, isCounted, isUsedUp, restockUpdates } from "./restock.js";
+import { isKnight } from "./knight-types.js";
 
 /** How many uses, as a count word or "N times". */
 const COUNTS = Object.freeze({ once: 1, twice: 2, thrice: 3 });
@@ -83,7 +84,7 @@ export const OPEN_GRANTS = Object.freeze(["blast", "ignoresArmour", "strongGambi
  * @returns {readonly string[]} The grants they may declare on their own: a
  *   Knight only OPEN_GRANTS, and the Referee's Cast, who keep no Abilities, any.
  */
-export const declarableBy = (actor) => (actor?.type === "knight" ? OPEN_GRANTS : ATTACK_GRANTS);
+export const declarableBy = (actor) => (isKnight(actor) ? OPEN_GRANTS : ATTACK_GRANTS);
 
 /**
  * Grants that change how one blow is made or lands, so they're chosen blow by

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PICTURE_ROLL, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
-import { edgeKey, hexDistance, hexIndex, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
+import { PICTURE_ROLL, TERRAIN, emptyRealm, featureAt, terrainAt, validateRealm } from "../../module/rules/realm.js";
+import { edgeKey, hexDistance, hexIndex, hexKey, neighbour, realmGeometry, sameHex } from "../../module/rules/realm-geometry.js";
 import { pictureCount, pictureOf } from "../../module/rules/realm-pictures.js";
 import {
 	barrierState,
@@ -9,8 +9,11 @@ import {
 	featureStands,
 	layRiver,
 	paintTerrain,
+	pairPonds,
 	placeFeature,
 	placeMapPicture,
+	pondPartner,
+	relayCutBack,
 	relayRealm,
 	riverEnds,
 	setBarrier,
@@ -467,5 +470,131 @@ describe("relayRealm", () => {
 			{ id: "b2", edge: edgeKey(hex(3, 5), hex(4, 4)), revealed: true }
 		];
 		expect(relayRealm(realm, rows).barriers.map((barrier) => barrier.edge)).toEqual([kept]);
+	});
+});
+
+describe("relayCutBack", () => {
+	const rows = realmGeometry({ layout: "evenRows" });
+
+	it("tells of a river or Barrier cut, and not of pictures only picked again", () => {
+		// The example map's ridge of crags, drawn as one, no longer lies as drawn with pointed tops.
+		const ridge = [hex(3, 5)];
+		for (let step = 0; step < 3; step++) ridge.push(neighbour(g, ridge.at(-1), 0));
+		const crags = paintTerrain({ ...emptyRealm(g, "relay"), variants: new Array(g.cols * g.rows).fill(0) }, g, ridge, TERRAIN.indexOf("crag") + 1, { random: () => 0.5 });
+		const repictured = relayRealm(crags, rows);
+		expect(repictured).not.toBe(crags);
+		expect(relayCutBack(crags, repictured)).toBe(false);
+
+		const river = sampleRealm();
+		river.rivers = [[hex(3, 2), hex(3, 3), hex(3, 4), hex(3, 5), hex(4, 4), hex(4, 3)]];
+		expect(relayCutBack(river, relayRealm(river, rows))).toBe(true);
+	});
+
+	it("counts, for a solo Referee, only the Barriers already found", () => {
+		const realm = sampleRealm();
+		const kept = { id: "b1", edge: edgeKey(hex(5, 5), hex(5, 6)), revealed: true };
+		const hidden = { id: "b2", edge: edgeKey(hex(3, 5), hex(4, 4)), revealed: false };
+		const found = { ...hidden, revealed: true };
+		realm.barriers = [kept, hidden];
+		const relaid = relayRealm(realm, rows);
+		expect(relayCutBack(realm, relaid)).toBe(true);
+		// A hidden Barrier lost tells nothing of it.
+		expect(relayCutBack(realm, relaid, { foundOnly: true })).toBe(false);
+		realm.barriers = [kept, found];
+		expect(relayCutBack(realm, relayRealm(realm, rows), { foundOnly: true })).toBe(true);
+	});
+});
+
+describe("the blog's Landmarks, edited", () => {
+	const lay = (realm, at, feature) => placeFeature(realm, g, at, { kind: "landmark", ...feature });
+
+	it("gives a Grotto, Fountain or Willow laid by the brush the next sort the Realm doesn't have", () => {
+		let realm = sampleRealm();
+		realm = lay(realm, hex(1, 5), { type: "fountain" });
+		realm = lay(realm, hex(2, 5), { type: "fountain" });
+		realm = lay(realm, hex(3, 5), { type: "fountain" });
+		realm = lay(realm, hex(4, 5), { type: "fountain" });
+		expect(realm.landmarks.filter((landmark) => landmark.type === "fountain").map((landmark) => landmark.variant)).toEqual(["red", "mossy", "inky", "red"]);
+	});
+
+	it("keeps the sort, pair and won mark through a rename or a reveal, and drops them for another kind", () => {
+		let realm = lay(sampleRealm(), hex(1, 5), { type: "willow", variant: "winter" });
+		realm = lay(realm, hex(2, 5), { type: "pond", pair: 3 });
+		realm = lay(realm, hex(3, 5), { type: "bridge", won: true });
+		realm = editFeature(realm, g, hex(1, 5), { name: "Old Weeper" });
+		realm = editFeature(realm, g, hex(2, 5), { name: "Glass Water" });
+		realm = setRevealed(realm, hex(3, 5), true);
+		realm = editFeature(realm, g, hex(3, 5), { name: "Grey Span" });
+		expect(featureAt(realm, hex(1, 5)).landmark).toMatchObject({ type: "willow", variant: "winter", name: "Old Weeper" });
+		expect(featureAt(realm, hex(2, 5)).landmark).toMatchObject({ type: "pond", pair: 3 });
+		expect(featureAt(realm, hex(3, 5)).landmark).toMatchObject({ type: "bridge", won: true, revealed: true });
+
+		realm = editFeature(realm, g, hex(1, 5), { type: "grotto" });
+		realm = editFeature(realm, g, hex(2, 5), { type: "chapel" });
+		realm = editFeature(realm, g, hex(3, 5), { type: "pond" });
+		expect(featureAt(realm, hex(1, 5)).landmark.variant).toBe("past");
+		expect(featureAt(realm, hex(2, 5)).landmark).not.toHaveProperty("pair");
+		expect(featureAt(realm, hex(3, 5)).landmark).not.toHaveProperty("won");
+	});
+
+	it("takes a Bridge's won mark off again", () => {
+		const realm = editFeature(lay(sampleRealm(), hex(3, 5), { type: "bridge", won: true }), g, hex(3, 5), { won: false });
+		expect(featureAt(realm, hex(3, 5)).landmark).not.toHaveProperty("won");
+	});
+
+	it("keeps a Bridge's Glory given through its won mark taken off and put back", () => {
+		let realm = editFeature(lay(sampleRealm(), hex(3, 5), { type: "bridge", won: true }), g, hex(3, 5), { gloried: true });
+		realm = editFeature(realm, g, hex(3, 5), { won: false });
+		realm = editFeature(realm, g, hex(3, 5), { won: true });
+		expect(featureAt(realm, hex(3, 5)).landmark).toMatchObject({ won: true, gloried: true });
+		expect(featureAt(editFeature(realm, g, hex(3, 5), { type: "pond" }), hex(3, 5)).landmark).not.toHaveProperty("gloried");
+	});
+
+	it("gives a book Landmark none of them", () => {
+		const realm = editFeature(sampleRealm(), g, hex(9, 9), { name: "Moonwell", variant: "red", pair: 1, won: true });
+		expect(Object.keys(featureAt(realm, hex(9, 9)).landmark).sort()).toEqual(["hex", "id", "name", "revealed", "seer", "type"]);
+	});
+
+	it("pairs two Ponds, leaving their old partners unpaired", () => {
+		let realm = sampleRealm();
+		for (const col of [1, 2, 3, 4]) realm = lay(realm, hex(col, 5), { type: "pond" });
+		realm = pairPonds(realm, hex(1, 5), hex(2, 5));
+		realm = pairPonds(realm, hex(3, 5), hex(4, 5));
+		const pairOf = (at) => featureAt(realm, at).landmark.pair;
+		expect([pairOf(hex(1, 5)), pairOf(hex(2, 5)), pairOf(hex(3, 5)), pairOf(hex(4, 5))]).toEqual([1, 1, 2, 2]);
+		expect(pondPartner(realm, featureAt(realm, hex(1, 5)).landmark).hex).toEqual(hex(2, 5));
+
+		realm = pairPonds(realm, hex(1, 5), hex(3, 5));
+		expect(pairOf(hex(2, 5))).toBeUndefined();
+		expect(pairOf(hex(4, 5))).toBeUndefined();
+		expect(pairOf(hex(1, 5))).toBe(pairOf(hex(3, 5)));
+		expect(validateRealm(realm, g)).toEqual([]);
+
+		realm = pairPonds(realm, hex(1, 5), null);
+		expect(pairOf(hex(1, 5))).toBeUndefined();
+		expect(pairOf(hex(3, 5))).toBeUndefined();
+		expect(pondPartner(realm, featureAt(realm, hex(1, 5)).landmark)).toBeNull();
+	});
+
+	it("played alone, unpairs no Pond not yet found", () => {
+		let realm = sampleRealm();
+		for (const col of [1, 2, 3, 4]) realm = lay(realm, hex(col, 5), { type: "pond" });
+		realm = pairPonds(pairPonds(realm, hex(1, 5), hex(2, 5)), hex(3, 5), hex(4, 5));
+		const pondAt = (at) => realm.landmarks.find((landmark) => sameHex(landmark.hex, at));
+		for (const col of [1, 2, 3, 4]) pondAt(hex(col, 5)).revealed = col !== 2;
+		// Pond 1's partner, Pond 2, is still to be found: neither None nor another Pond is taken.
+		expect(pairPonds(realm, hex(1, 5), null, { keepHidden: true })).toBe(realm);
+		expect(pairPonds(realm, hex(1, 5), hex(3, 5), { keepHidden: true })).toBe(realm);
+		// Ponds 3 and 4 are both found, so they can be unpaired.
+		expect(featureAt(pairPonds(realm, hex(3, 5), null, { keepHidden: true }), hex(4, 5)).landmark.pair).toBeUndefined();
+		// Without it, the hidden one is unpaired as any other.
+		expect(featureAt(pairPonds(realm, hex(1, 5), null), hex(2, 5)).landmark.pair).toBeUndefined();
+	});
+
+	it("pairs nothing that isn't a Pond, nor a Pond with itself", () => {
+		const realm = lay(sampleRealm(), hex(1, 5), { type: "pond" });
+		expect(pairPonds(realm, hex(1, 5), hex(9, 9))).toBe(realm);
+		expect(pairPonds(realm, hex(1, 5), hex(1, 5))).toBe(realm);
+		expect(pairPonds(realm, hex(9, 9), hex(1, 5))).toBe(realm);
 	});
 });

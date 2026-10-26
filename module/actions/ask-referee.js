@@ -66,6 +66,8 @@ export function registerAskReferee() {
 	registerCardButtons({
 		selector: ASK_SELECTOR,
 		gmOnly: true,
+		// A player posts it, asking.
+		fromPlayers: true,
 		// Done once: a second gallop would cost the steeds twice, a second Phase pass the calendar.
 		once: true,
 		handler: async (_button, message) => {

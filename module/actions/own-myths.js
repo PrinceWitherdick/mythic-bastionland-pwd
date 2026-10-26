@@ -1,6 +1,7 @@
 import { addDirectoryButton } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { isBlankOwnMyth, isOwnMyth, normaliseOwnMyth, ownMythEntry } from "../rules/own-myths.js";
+import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
 
@@ -27,6 +28,31 @@ export const isOwnMythEntry = (entry) => Boolean(entry?.flags?.[SYSTEM_ID]?.[OWN
  * @returns {import("../rules/own-myths.js").OwnMyth}
  */
 export const readOwnMyth = (entry) => normaliseOwnMyth(entry?.flags?.[SYSTEM_ID]?.[OWN_MYTH_FLAG]);
+
+/**
+ * Each write to a written Myth waits for the one before, whether from its
+ * sheet or from a Scene linked in the GM Toolkit, so none works from the Myth
+ * as it was before another landed. Called with the Myth's entry id.
+ */
+export const ownMythWrites = keyedSerialWrites();
+
+/**
+ * Change the Scenes linked to a written Myth's Omens, writing only them, so
+ * whatever is being typed in its sheet meanwhile is left alone. GMs only.
+ * @param {JournalEntry} entry
+ * @param {(scenes: import("../rules/omen-scenes.js").OmenScenes) => import("../rules/omen-scenes.js").OmenScenes} change
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+export async function editOwnMythScenes(entry, change) {
+	if (!game.user.isGM || !isOwnMythEntry(entry)) return false;
+	return ownMythWrites(entry.id)(async () => {
+		const before = readOwnMyth(entry).scenes;
+		const after = change(before);
+		if (after === before) return false;
+		await entry.update({ [`flags.${SYSTEM_ID}.${OWN_MYTH_FLAG}.scenes`]: after });
+		return true;
+	});
+}
 
 /**
  * @param {string|null|undefined} id

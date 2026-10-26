@@ -10,7 +10,7 @@
 	{{#if actions.length}}
 	<div class="bastionland-card__actions">
 		{{#each actions}}
-		<button type="button" data-arrival="{{key}}"{{#if hex}} data-arrival-hex="{{hex}}"{{/if}}><i class="{{icon}}" inert></i> {{label}}</button>
+		<button type="button" data-arrival="{{key}}"{{#if hex}} data-arrival-hex="{{hex}}"{{/if}}{{#if group}} data-once-group="{{group}}"{{/if}}><i class="{{icon}}" inert></i> {{label}}</button>
 		{{/each}}
 	</div>
 	{{/if}}

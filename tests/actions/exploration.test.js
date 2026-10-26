@@ -23,6 +23,7 @@ vi.mock("../../module/apps/ui.js", () => ({
 	})
 }));
 vi.mock("../../module/actions/realm.js", () => ({
+	isDrawingRealm: () => false,
 	isRealmScene: (scene) => scene?.isRealm !== false,
 	sceneGeometry: () => g,
 	getRealm: () => ({ realm }),
@@ -194,6 +195,7 @@ describe("gatherFolklore", () => {
 		expect(card.myths).toHaveLength(1);
 		// The d2 fake always rolls 1, so the first Myth by number is named, without its place.
 		expect(card.myths[0].number).toBe(1);
+		expect(ChatMessage.implementation.create.mock.lastCall[0].rolls).toEqual([expect.objectContaining({ formula: "1d2" })]);
 		// Only the Landmark they know of can be marked: they can't place the Myth.
 		expect(card.mark.ids).toBe("landmark-0");
 	});
@@ -211,6 +213,40 @@ describe("gatherFolklore", () => {
 		answer = null;
 		expect(await gatherFolklore({ scene: { id: "scene" } })).toBeNull();
 		expect(cards).toEqual([]);
+	});
+
+	describe("played alone", () => {
+		beforeEach(() => {
+			game.settings.get = (_scope, key) => (key === "soloPlay" ? true : "public");
+		});
+
+		it("tells of a Myth not yet met by its number and its way, not its name (p19)", async () => {
+			answer = { source: "roamer" };
+			await gatherFolklore({ scene: { id: "scene" } });
+			expect(lastCard().myths[0]).toMatchObject({ number: 1, name: null, page: null });
+			expect(lastCard().myths[0].where).toMatch(/, as near as they can say\.$/);
+		});
+
+		it("rolls which Myth a teller names out of sight, since the die's size would count them", async () => {
+			answer = { source: "roamer" };
+			await gatherFolklore({ scene: { id: "scene" } });
+			expect(ChatMessage.implementation.create.mock.lastCall[0].rolls).toEqual([]);
+		});
+
+		it("names a Myth already met by one of its Omens", async () => {
+			realm.myths[0].omen = 1;
+			answer = { source: "roamer" };
+			await gatherFolklore({ scene: { id: "scene" } });
+			expect(lastCard().myths[0]).toMatchObject({ number: 1, name: "The Myth of 1" });
+		});
+
+		it("names a Myth whose place the teller knows, since the Company finds it", async () => {
+			answer = { source: "vassal" };
+			await gatherFolklore({ scene: { id: "scene" } });
+			expect(lastCard().myths[0]).toMatchObject({ number: 1, name: "The Myth of 1" });
+			// Marked on the map at once, rather than offered.
+			expect(lastCard().mark).toBeNull();
+		});
 	});
 
 	it("refuses a Scene that isn't a Realm", async () => {
@@ -245,6 +281,23 @@ describe("searchTheHex", () => {
 		expect(card.around).toHaveLength(6);
 		expect(card.mark.ids.split(",")).toContain("barrier-0");
 		expect(card.around.some((step) => step.barrier)).toBe(true);
+	});
+
+	it("finds a Myth in the Hex the Company sweeps, played alone", async () => {
+		realm = realmWith({ myths: [{ number: 3, hex: hex(6, 6) }], landmarks: [{ type: "monument", hex: hex(6, 6) }] });
+		game.settings.get = (_scope, key) => (key === "soloPlay" ? true : "public");
+		const scene = fakeScene([{ id: "myth-3", hidden: true }, { id: "landmark-0", hidden: true }]);
+		answer = { aim: "sweep", phase: false };
+		await searchTheHex({ scene });
+		expect(scene.held.get("myth-3").hidden).toBe(false);
+		expect(scene.held.get("landmark-0").hidden).toBe(false);
+	});
+
+	it("leaves a Myth in the swept Hex to the Referee to mark, with others at the table", async () => {
+		realm = realmWith({ myths: [{ number: 3, hex: hex(6, 6) }] });
+		answer = { aim: "sweep", phase: false };
+		await searchTheHex({ scene: { id: "scene" } });
+		expect(lastCard().mark).toBeNull();
 	});
 
 	it("leaves the day where it stands when the Phase is unticked", async () => {

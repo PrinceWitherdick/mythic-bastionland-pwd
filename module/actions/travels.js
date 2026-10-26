@@ -48,7 +48,7 @@ export function travelsSources(scene) {
 	if (!entry) return null;
 	const handHidden = (hex) => hexHiddenByHand(scene, hex);
 	return {
-		realm: realmKnown(entry.realm),
+		realm: realmKnown(entry.realm, scene),
 		g: sceneGeometry(scene),
 		journey: getJourney(scene),
 		shared: getHexShared(scene),
@@ -73,7 +73,7 @@ export function playersHexView(scene, hex) {
 	const entry = getRealm(scene);
 	if (!entry) return null;
 	const handHidden = (at) => hexHiddenByHand(scene, at);
-	return hexViewOf({ realm: realmKnown(entry.realm), g: sceneGeometry(scene), handHidden, companyHex: companyTokenHex(scene), gm: false }, hex, {
+	return hexViewOf({ realm: realmKnown(entry.realm, scene), g: sceneGeometry(scene), handHidden, companyHex: companyTokenHex(scene), gm: false }, hex, {
 		visits: getHexVisits(scene, hex),
 		record: getHexSharedRecord(scene, hex),
 		// Read off the whole Realm, as travelsSources' marks are.

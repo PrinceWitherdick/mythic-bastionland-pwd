@@ -18,7 +18,7 @@ describe("the Start a new Knight's chooser opens on", () => {
 	});
 
 	it("is the Start the Realms remember, or the book's \"if unsure\" where none does", () => {
-		expect(app).toContain("this.#start = replacement ? DEFAULT_START : companyStartKey();");
+		expect(app).toContain("this.#start = isNpcKnight(this.actor) ? NPC_KNIGHT_START : replacement ? DEFAULT_START : companyStartKey();");
 		expect(app).toContain(".filter((scene) => scene.getFlag(SYSTEM_ID, COMPANY_START_FLAG))");
 		expect(app).toContain("viewed: scene.id === viewed, active: scene.active");
 		expect(app).toContain("return realmStart(realms) ?? DEFAULT_START;");

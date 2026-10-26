@@ -10,9 +10,10 @@
 import { visitedNewestFirst, visitsAt } from "./journey.js";
 import { hexLabelText, hexNameAt } from "./hex-names.js";
 import { sharedAt } from "./hex-shared.js";
-import { barriersAround, edgeSide, hexSummary, holdingName } from "./realm.js";
+import { barriersAround, edgeSide, hexSummary, holdingName, landmarkVariantOf } from "./realm.js";
 import { hexKey, parseHexKey, sameHex } from "./realm-geometry.js";
 import { compareCalendars, normalizeCalendar, PHASES, seasonKey } from "./time.js";
+import { landmarkLabelKey } from "./landmarks.js";
 
 /**
  * @typedef {object} TravelsSources
@@ -105,7 +106,7 @@ export function hexViewOf(sources, hex, { visits, record, mark, name }) {
 		visits: visits ? { count: visits.count, first: { when: visits.first.when }, last: { when: visits.last.when, order: visits.last.order } } : null,
 		terrain: seen.terrain,
 		holding: seen.holding ? { style: seen.holding.style, name: seen.holding.name, seat: seen.holding.seat } : null,
-		landmark: seen.landmark ? { type: seen.landmark.type, name: seen.landmark.name } : null,
+		landmark: seen.landmark ? { type: seen.landmark.type, name: seen.landmark.name, ...landmarkVariantOf(seen.landmark) } : null,
 		myth: seen.myth ? { number: seen.myth.number } : null,
 		sighted: mark ? { note: mark.note } : null,
 		barriers: barriersAround(realm, g, hex).map((barrier) => barrier.direction),
@@ -350,7 +351,7 @@ export function journeyLog(sources, viewOf = hexViews(sources)) {
  */
 export function viewWords(view, t) {
 	const holding = view.holding && holdingName(view.holding, t);
-	const landmarkType = view.landmark && t(`realm.landmarks.${view.landmark.type}`);
+	const landmarkType = view.landmark && t(landmarkLabelKey(view.landmark));
 	const landmark = view.landmark && (view.landmark.name ? `${landmarkType}: ${view.landmark.name}` : landmarkType);
 	const features = [
 		holding && (view.holding.seat ? t("realm.readout.seat", { name: holding }) : holding),

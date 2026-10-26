@@ -29,6 +29,7 @@ import { hexFlagEditor } from "./hex-flags.js";
 import { recordToldHex } from "./hex-shared.js";
 import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { rollSpark } from "./referee-rolls.js";
+import { landmarkName } from "../rules/landmarks.js";
 
 /** The Scene flag holding what the GM has written about each hex of its Realm. */
 export const HEX_LORE_FLAG = "hexLore";
@@ -77,7 +78,7 @@ export function hexFeatures(scene, realm, g, hex, index, { full = false } = {}) 
 		lines.push({ kind: "myth", text: hidden(full ? `${t("realm.readout.myth", { number: myth.number })}: ${text}` : text, !myth.revealed) });
 	}
 	if (landmark) {
-		const named = landmark.name || t(`realm.landmarks.${landmark.type}`);
+		const named = landmarkName(landmark, t);
 		const seer = landmark.seer && seerEntry(index, landmark.seer);
 		lines.push({ kind: "landmark", text: hidden(seer ? `${named} — ${t("realm.panel.reference", { name: seer.name, page: seer.page })}` : named, !landmark.revealed) });
 	}
@@ -387,7 +388,7 @@ export async function tellPlayersAboutHex({ scene, hex, note, quiet = false }) {
 	const seen = hexSummary(realm, sceneGeometry(scene), hex, { showHidden: false, hiddenByHand: hexHiddenByHand(scene, hex) });
 	const named = [
 		seen.holding && holdingName(seen.holding, t),
-		seen.landmark && (seen.landmark.name || t(`realm.landmarks.${seen.landmark.type}`))
+		seen.landmark && landmarkName(seen.landmark, t)
 	].filter(Boolean);
 	const target = hexTarget(hex, scene);
 	const where = target.label;

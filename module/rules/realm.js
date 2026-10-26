@@ -5,6 +5,7 @@
  */
 import { isDie, isOwnMyth, isTableRoll, rollLabel, spreadPages } from "./book-art.js";
 import { directionNames, edgeDirection, hexDistance, hexIndex, hexKey, inRealm, parseEdgeKey, sameHex } from "./realm-geometry.js";
+import { SEASONS } from "./time.js";
 
 export const REALM_VERSION = 1;
 
@@ -21,7 +22,102 @@ export const LAKE = TERRAIN.indexOf("lake") + 1;
 
 export const HOLDING_STYLES = Object.freeze(["castle", "town", "fortress", "tower"]);
 
-export const LANDMARK_TYPES = Object.freeze(["dwelling", "sanctum", "monument", "hazard", "curse", "ruin"]);
+/** The book's six kinds of Landmark (p14), the only ones a Realm rolls by the book or counts toward 3 or 4 of each. */
+export const BOOK_LANDMARK_TYPES = Object.freeze(["dwelling", "sanctum", "monument", "hazard", "curse", "ruin"]);
+
+/** A Landmark of the Referee's own, which just marks the spot. Placed by hand, never rolled. */
+export const OWN_LANDMARK = "other";
+
+/**
+ * Six more kinds from Chris McDowall's blog post More Landmarks, not the book.
+ * Offered and rolled only while the blogLandmarks setting is on. Each has how
+ * many of it a rolled Realm has: three Grottos, Fountains and Willows, one of
+ * each sort, and a pair of Ponds, as the post has them; it gives no number for
+ * Bridges or Chapels, so two of each. Those that come as one of a few name
+ * them: the three Grottos show the Past, Present or Future, the three Fountains
+ * run with Red, Mossy or Inky water, and the three Willows each stand in one Season.
+ */
+export const BLOG_LANDMARKS = Object.freeze({
+	bridge: Object.freeze({ count: 2 }),
+	pond: Object.freeze({ count: 2 }),
+	chapel: Object.freeze({ count: 2 }),
+	grotto: Object.freeze({ count: 3, variants: Object.freeze(["past", "present", "future"]) }),
+	fountain: Object.freeze({ count: 3, variants: Object.freeze(["red", "mossy", "inky"]) }),
+	willow: Object.freeze({ count: 3, variants: SEASONS })
+});
+
+export const BLOG_LANDMARK_TYPES = Object.freeze(Object.keys(BLOG_LANDMARKS));
+
+/** Where the blog's Landmarks come from. */
+export const BLOG_LANDMARKS_URL = "https://www.bastionland.com/2025/10/more-landmarks.html";
+
+/**
+ * Every kind a Landmark can be. The book's come first and the new ones last, so
+ * anything that falls back to the first kind still falls back to a Dwelling.
+ */
+export const LANDMARK_TYPES = Object.freeze([...BOOK_LANDMARK_TYPES, OWN_LANDMARK, ...BLOG_LANDMARK_TYPES]);
+
+/** The kinds that come as one of a few, and which. */
+export const LANDMARK_VARIANTS = Object.freeze(Object.fromEntries(Object.entries(BLOG_LANDMARKS)
+	.filter(([, kind]) => kind.variants)
+	.map(([type, kind]) => [type, kind.variants])));
+
+/** Ponds come in pairs: entering one leads out of the other. */
+export const PAIRED_LANDMARK = "pond";
+
+/** The Landmark won by beating the Knight who keeps it. */
+export const GUARDED_LANDMARK = "bridge";
+
+/** The Landmark only a local's directions lead to, never a Wilderness Roll. */
+export const HIDDEN_LANDMARK = "grotto";
+
+/** The Landmark that stands only in its own Season. */
+export const SEASONAL_LANDMARK = "willow";
+
+/**
+ * @param {boolean} blog Whether the blogLandmarks setting is on.
+ * @returns {string[]} The kinds the Referee's pickers offer.
+ */
+export const offeredLandmarkTypes = (blog) => (blog ? [...LANDMARK_TYPES] : [...BOOK_LANDMARK_TYPES, OWN_LANDMARK]);
+
+/**
+ * @param {string} type
+ * @returns {boolean} Whether it's one of the blog's kinds.
+ */
+export const isBlogLandmark = (type) => BLOG_LANDMARK_TYPES.includes(type);
+
+/**
+ * @param {string} type
+ * @param {unknown} variant
+ * @returns {boolean} Whether a Landmark of this kind can be this variant.
+ */
+export const isLandmarkVariant = (type, variant) => Boolean(LANDMARK_VARIANTS[type]?.includes(variant));
+
+/**
+ * @param {unknown} pair
+ * @returns {boolean} Whether it's a Pond pair's number.
+ */
+export const isPairNumber = (pair) => Number.isInteger(pair) && pair > 0;
+
+/**
+ * @param {{type: string, variant?: unknown}} landmark
+ * @returns {{variant?: string}} The Landmark's variant, where its kind has one, to spread into what describes it.
+ */
+export const landmarkVariantOf = ({ type, variant }) => (isLandmarkVariant(type, variant) ? { variant } : {});
+
+/**
+ * What only some Landmarks carry, written and read only where it means
+ * something: which Grotto, Fountain or Willow it is, the pair a Pond shares,
+ * and whether a Bridge's Knight is beaten and its Glory given.
+ * @param {{type: string, variant?: unknown, pair?: unknown, won?: unknown, gloried?: unknown}} landmark A Landmark, or its Tile's flag.
+ * @returns {{variant?: string, pair?: number, won?: true, gloried?: true}}
+ */
+export const landmarkExtras = ({ type, variant, pair, won, gloried }) => ({
+	...landmarkVariantOf({ type, variant }),
+	...(type === PAIRED_LANDMARK && isPairNumber(pair) ? { pair } : {}),
+	...(type === GUARDED_LANDMARK && won === true ? { won: true } : {}),
+	...(type === GUARDED_LANDMARK && gloried === true ? { gloried: true } : {})
+});
 
 export const HOLDING_COUNT = 4;
 
@@ -67,7 +163,7 @@ export const REALM_BUTTONS = Object.freeze(["wilderness", "reroll", "appearance"
 
 /** Why part of a Realm needs a second look. */
 export const REALM_PROBLEMS = Object.freeze([
-	"terrain", "offMap", "crowded", "river", "edge", "duplicate", "number", "roll", "omen", "style", "type", "seat"
+	"terrain", "offMap", "crowded", "river", "edge", "duplicate", "number", "roll", "omen", "style", "type", "seat", "variant", "pair"
 ]);
 
 /**
@@ -95,7 +191,9 @@ export const barrierCount = (g) => Math.floor((g.cols * g.rows) / 6);
  * @property {{id: string|null, hex: Hex, number: number, d6: number|null, d12: number|null, own?: string, omen: number, revealed: boolean}[]} myths
  *   `own` is the Journal entry of a Myth the Referee wrote (own-myths.js), which has no roll.
  * @property {{id: string|null, hex: Hex, type: string, name: string, seer: {d6: number, d12: number}|null,
- *   revealed: boolean}[]} landmarks  `seer` is the roll for a Sanctum's Seer on the Knights table (p26).
+ *   revealed: boolean, echo?: object, variant?: string, pair?: number, won?: true, gloried?: true}[]} landmarks  `seer` is the roll for a
+ *   Sanctum's Seer on the Knights table (p26). `variant` is which of LANDMARK_VARIANTS a Grotto, Fountain or Willow is;
+ *   `pair` the number a Pond shares with the Pond it leads to; `won` marks a Bridge whose Knight has been beaten, and `gloried` one whose Glory was given.
  * @property {{id: string|null, edge: string, revealed: boolean}[]} barriers
  * @property {import("./realm-setup.js").RealmSetup} [setup] How it was set up, where that wasn't the book's way.
  * @property {import("./realm-map.js").RealmPicture} [picture] The pictures a Realm traced from a map drawn on paper
@@ -198,7 +296,10 @@ export function hexSummary(realm, g, hex, { showHidden = false, hiddenByHand = {
 				? { style: holding.style, name: holding.name ?? "", seat: Boolean(holding.seat) && (showHidden || !hand.seat), revealed: !hand.holding && !hand.seat }
 				: null,
 		myth: myth && (showHidden || myth.revealed) ? { number: myth.number, revealed: Boolean(myth.revealed) } : null,
-		landmark: landmark && (showHidden || landmark.revealed) ? { type: landmark.type, name: landmark.name ?? "", revealed: Boolean(landmark.revealed) } : null
+		landmark:
+			landmark && (showHidden || landmark.revealed)
+				? { type: landmark.type, name: landmark.name ?? "", revealed: Boolean(landmark.revealed), ...landmarkVariantOf(landmark) }
+				: null
 	};
 }
 
@@ -300,10 +401,19 @@ export function validateRealm(realm, g) {
 		if (!Number.isInteger(myth.omen) || myth.omen < 0 || myth.omen > OMEN_COUNT) report("myth", "omen", myth.number);
 	}
 
+	const pairs = new Map();
 	for (const landmark of realm.landmarks) {
+		const key = hexKey(landmark.hex);
 		place("landmark", landmark.hex);
-		if (!LANDMARK_TYPES.includes(landmark.type)) report("landmark", "type", hexKey(landmark.hex));
-		if (landmark.seer && !isTableRoll(landmark.seer)) report("landmark", "roll", hexKey(landmark.hex));
+		if (!LANDMARK_TYPES.includes(landmark.type)) report("landmark", "type", key);
+		if (landmark.seer && !isTableRoll(landmark.seer)) report("landmark", "roll", key);
+		if (LANDMARK_VARIANTS[landmark.type] && !isLandmarkVariant(landmark.type, landmark.variant)) report("landmark", "variant", key);
+		if (landmark.type === PAIRED_LANDMARK && isPairNumber(landmark.pair)) {
+			const count = (pairs.get(landmark.pair) ?? 0) + 1;
+			pairs.set(landmark.pair, count);
+			// A pair is two Ponds: a third sharing the number leads nowhere certain.
+			if (count > 2) report("landmark", "pair", key);
+		}
 	}
 
 	for (const [key, count] of featuresOnHex) {

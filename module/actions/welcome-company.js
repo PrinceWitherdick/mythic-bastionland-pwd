@@ -4,6 +4,7 @@
  * to choose. See module/rules/welcome-company.js.
  */
 
+import { isCompanyKnight } from "../rules/knight-types.js";
 import { pairKnights, playersAwaitingKnights, unchosenNames } from "../rules/welcome-company.js";
 import { giveKnightTo, knightPlayer } from "./new-knight.js";
 
@@ -11,7 +12,7 @@ import { giveKnightTo, knightPlayer } from "./new-knight.js";
 export function waitingPlayers() {
 	const holding = new Set();
 	for (const actor of game.actors) {
-		if (actor.type !== "knight" || actor.system.isSquire) continue;
+		if (!isCompanyKnight(actor) || actor.system.isSquire) continue;
 		const player = knightPlayer(actor);
 		if (player) holding.add(player);
 	}

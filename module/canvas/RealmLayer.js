@@ -1,5 +1,6 @@
-import { editRealm, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
+import { editRealmByHand, getRealm, isDrawingRealm, isRealmScene, rerollRealm, sceneGeometry, startRealmDrawing, stepRealmHistory } from "../actions/realm.js";
 import { changeRealmPicture } from "../actions/realm-map.js";
+import { brushRefused, realmKnown } from "../actions/solo.js";
 import { wildernessRoll } from "../actions/wilderness.js";
 import { toolActivated } from "../compat.js";
 import { openHex } from "../apps/TravelsPlaces.js";
@@ -530,7 +531,10 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		if (this.brush === "barrier") {
 			const found = edgeAt(g, point);
 			if (!found) return;
-			editRealm(scene, (realm, geometry) => {
+			// Played alone, the brush lays and takes away no Barrier, on any edge: one that held back
+			// only where a Barrier is still to be found would show where it is.
+			if (brushRefused("barrier", scene)) return;
+			editRealmByHand(scene, (realm, geometry) => {
 				const state = barrierState(realm, found.key);
 				let next;
 				if (erase) next = "none";
@@ -548,15 +552,18 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 
 		const placeable = FEATURE_BRUSHES[this.brush];
 		if (placeable) {
-			// Alt picks up the feature under the pointer, as it picks up terrain.
+			// Alt picks up the feature under the pointer, as it picks up terrain: played alone, only one found.
 			if (event.altKey && !erase) {
-				setRealmBrush(placeable.pick(here));
+				setRealmBrush(placeable.pick(featureAt(realmKnown(realm, scene), hex)));
 				return;
 			}
+			// Played alone, the brush leaves every hex as it is, as Edit this hex does: one that held back
+			// only where something is still to be found would show where it is.
+			if (brushRefused(this.brush, scene)) return;
 			const feature = placeable.build(here);
 			const taking = erase || event.shiftKey || featureStands(realm, hex, feature);
 			if (taking && !placeable.at(here)) return;
-			editRealm(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
+			editRealmByHand(scene, (current, geometry) => placeFeature(current, geometry, hex, taking ? null : feature));
 			if (!taking) placeable.laid?.();
 			return;
 		}
@@ -566,13 +573,13 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 			return;
 		}
 		if (this.drawsRiver) {
-			if (erase || event.shiftKey) editRealm(scene, (current) => trimRiver(current, hex));
+			if (erase || event.shiftKey) editRealmByHand(scene, (current) => trimRiver(current, hex));
 			return;
 		}
 		if (erase) return;
 		const terrain = RealmPanel.terrain;
 		if (terrainAt(realm, g, hex) !== terrain) {
-			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
+			editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain));
 			return;
 		}
 		// Clicking a hex of the brush's terrain steps it on to its next picture. Foundry calls the click
@@ -583,7 +590,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		window.addEventListener("pointerup", () => {
 			if (this.#stepping !== stepping) return;
 			this.#stepping = null;
-			editRealm(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
+			editRealmByHand(scene, (current, geometry) => paintTerrain(current, geometry, [hex], terrain, { step: true }));
 		}, { once: true, capture: true });
 	}
 
@@ -626,7 +633,7 @@ export class RealmLayer extends foundry.canvas.layers.InteractionLayer {
 		const drag = this.#drag;
 		this.#drag = null;
 		this.refreshHighlight();
-		if (drag?.ready()) await editRealm(canvas.scene, drag.lay);
+		if (drag?.ready()) await editRealmByHand(canvas.scene, drag.lay);
 	}
 
 	/** @override */

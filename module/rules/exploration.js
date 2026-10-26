@@ -20,7 +20,7 @@
  *
  * Pure, so it can be tested without Foundry; the language file puts words to it.
  */
-import { featureAt, hexSummary, terrainAt, TERRAIN } from "./realm.js";
+import { featureAt, hexSummary, landmarkVariantOf, terrainAt, TERRAIN } from "./realm.js";
 import { edgeDirection, edgeKey, hexDistance, hexLine, neighbours, sameHex } from "./realm-geometry.js";
 
 /** Who the Company can ask, in the order the book lists them. */
@@ -87,6 +87,18 @@ export function landmarksAbout(realm, g, hex) {
 }
 
 /**
+ * Where a hex lies from the one somebody stands in.
+ * @param {object} g
+ * @param {{col: number, row: number}} home Where they're speaking from.
+ * @param {{col: number, row: number}} hex
+ * @returns {{distance: number, direction: number|null, here: boolean}}
+ */
+export function placeFrom(g, home, hex) {
+	const distance = hexDistance(g, hex, home);
+	return { distance, direction: directionFrom(g, home, hex), here: distance === 0 };
+}
+
+/**
  * One Myth as somebody describes it: where it lies if they know that, and
  * which way it lies if they only know the direction.
  * @param {object} g
@@ -96,15 +108,7 @@ export function landmarksAbout(realm, g, hex) {
  * @returns {{number: number, hex: object, distance: number, direction: number|null, precise: boolean, here: boolean}}
  */
 function mythKnown(g, home, myth, precise) {
-	const distance = hexDistance(g, myth.hex, home);
-	return {
-		number: myth.number,
-		hex: myth.hex,
-		distance,
-		direction: directionFrom(g, home, myth.hex),
-		precise,
-		here: distance === 0
-	};
+	return { number: myth.number, hex: myth.hex, ...placeFrom(g, home, myth.hex), precise };
 }
 
 /**
@@ -115,14 +119,12 @@ function mythKnown(g, home, myth, precise) {
  * @param {object} landmark
  */
 function landmarkKnown(g, home, landmark) {
-	const distance = hexDistance(g, landmark.hex, home);
 	return {
 		type: landmark.type,
+		...landmarkVariantOf(landmark),
 		name: landmark.name ?? "",
 		hex: landmark.hex,
-		distance,
-		direction: directionFrom(g, home, landmark.hex),
-		here: distance === 0,
+		...placeFrom(g, home, landmark.hex),
 		revealed: Boolean(landmark.revealed)
 	};
 }

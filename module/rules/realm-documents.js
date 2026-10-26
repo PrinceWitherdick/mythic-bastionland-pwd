@@ -9,9 +9,20 @@
  * documents already there and changes only what differs. Pure, so all of it
  * can be tested without Foundry.
  */
-import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileNameData, tilePlaced } from "../compat.js";
+import { isV13, noFogSceneData, paperSceneData, replacementEntry, tileCornerAnchored, tileNameData, tilePlaced, tileReading } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, MYTH_COUNT, REALM_FLAG, REALM_VERSION, RIVER_SHAPES, TERRAIN, emptyRealm } from "./realm.js";
+import {
+	HOLDING_STYLES,
+	LAKE,
+	LANDMARK_TYPES,
+	MYTH_COUNT,
+	REALM_FLAG,
+	REALM_VERSION,
+	RIVER_SHAPES,
+	TERRAIN,
+	emptyRealm,
+	landmarkExtras
+} from "./realm.js";
 import { PICTURE_NAME, normaliseRealmLook, realmSetDir, sceneColours, skinFeatures, terrainExtraPictures } from "./realm-skins.js";
 import { emptyVariants, pictureOf } from "./realm-pictures.js";
 import { SHORE_SHAPES, lakeWorks, riverCourses, riverNetworkPieces } from "./realm-rivers.js";
@@ -79,14 +90,16 @@ const pieceSize = (g) => ({ width: 2 * g.radius, height: g.size });
  * @returns {{terrain: Record<number, {src: string, icon: boolean, givesWay: boolean, pictures?: string[]}>,
  *   holding: Record<string, {src: string}>, landmark: Record<string, {src: string}>, myth: Record<number, {src: string}>,
  *   seat: {src: string}, river: Record<string, {src: string}>, colours: {paper: string, grid: string, barrier: string},
- *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null}} A terrain picture
+ *   lake: {water: {src: string}, shore: Record<string, {src: string}>, mouth: {src: string}}|null,
+ *   alpha: {holding: number, landmark: number, myth: number}} A terrain picture
  *   is an `icon` when it's drawn inside its hex rather than filling the hex, and `givesWay` when a Holding in its hex
  *   takes its place, as on the Blank Realm sheet. It has `pictures`, its own first, when the skin draws the terrain
  *   more than one way, in pictureOf's order; a GM's own picture is the only one. `lake` is there when the skin joins
- *   its lakes up; a GM's own Lake picture is left as it is.
+ *   its lakes up; a GM's own Lake picture is left as it is. `alpha` is how strongly each icon is drawn, a Seat's crown
+ *   as its Holding.
  */
 export function realmTextures(look = null) {
-	const { skin, palette, custom } = normaliseRealmLook(look);
+	const { skin, palette, custom, fade } = normaliseRealmLook(look);
 	const dir = realmSetDir(skin, palette);
 	const picture = (name) => ({ src: custom.files[name] ?? `${dir}/${name}.svg` });
 	const skinPicture = (name) => ({ src: `${dir}/${name}.svg` });
@@ -120,7 +133,8 @@ export function realmTextures(look = null) {
 			shore: Object.fromEntries(SHORE_SHAPES.map((shape) => [shape, skinPicture(PICTURE_NAME.shore(shape))])),
 			mouth: skinPicture(PICTURE_NAME.mouth)
 		} : null,
-		colours: sceneColours(palette)
+		colours: sceneColours(palette),
+		alpha: fade
 	};
 }
 
@@ -141,19 +155,35 @@ export const realmFlag = (data) => data?.flags?.[SYSTEM_ID]?.[REALM_FLAG] ?? nul
 const flagged = (flag) => ({ [SYSTEM_ID]: { [REALM_FLAG]: flag } });
 
 /**
- * The Scene flag of a Realm whose Tiles stand by their top-left corners, as v13
- * places a Tile. A Realm laid on v13 before the system knew that has each
- * Tile's centre in its x and y, and is read that way until its Tiles are moved
- * (settleRealmTiles in actions/realm.js).
+ * The Scene flag of a Realm whose Tiles stand where Foundry places a Tile: by
+ * their top-left corners on v13, and on v14 by the point each is anchored on.
+ * A Realm laid on v13 before the system knew that has each Tile's centre in
+ * its x and y, and is read that way until its Tiles are moved (settleRealmTiles
+ * in actions/realm.js). v14's upgrade keeps them there, but anchors each
+ * unturned Tile on its corner, so it's found by every one of them having that
+ * anchor, and read the same way. One Tile anchored so by hand on a Realm laid
+ * on v14 leaves it settled, since v14 lays every Tile anchored on its middle.
  */
 export const TILE_CORNERS_FLAG = "tileCorners";
 
 /**
  * @param {object} [flags] A Realm Scene's flags.
+ * @param {Iterable<object>} [tiles] Its Tiles, documents or source data. Without them a Realm on v14 is taken as settled.
  * @returns {boolean} Whether its Tiles stand where this Foundry places a Tile, so tileCentred finds their centres:
- *   always on v14, and on v13 once they stand by their corners.
+ *   once flagged so, and on v14 too unless every unturned Tile of the Realm has the corner anchor v14's upgrade gives a v13 Tile.
  */
-export const tilesSettled = (flags) => !isV13() || Boolean(flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]);
+export function tilesSettled(flags, tiles = []) {
+	if (flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return true;
+	if (isV13()) return false;
+	let upgraded = false;
+	for (const tile of tiles) {
+		const source = tile?._source ?? tile;
+		if (!realmFlag(source) || source.rotation) continue;
+		if (!tileCornerAnchored(source)) return true;
+		upgraded = true;
+	}
+	return !upgraded;
+}
 
 /**
  * @returns {object} Tile data with everything this module decides about a Tile.
@@ -348,6 +378,7 @@ export function realmDocuments(realm, g, textures) {
 		texture: { ...texture, fit: "contain" },
 		sort: REALM_SORT.feature,
 		locked: false,
+		alpha: textures.alpha?.[kind] ?? 1,
 		...extra
 	});
 
@@ -377,6 +408,7 @@ export function realmDocuments(realm, g, textures) {
 				texture: { ...textures.seat, fit: "contain" },
 				sort: REALM_SORT.seat,
 				locked: true,
+				alpha: textures.alpha?.holding ?? 1,
 				flag: { kind: "seat" }
 			})
 		});
@@ -398,7 +430,7 @@ export function realmDocuments(realm, g, textures) {
 			data: icon("landmark", textures.landmark[landmark.type] ?? textures.landmark.dwelling, landmark.hex, {
 				name: landmark.name ?? "",
 				hidden: !landmark.revealed,
-				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null, ...(landmark.echo ? { echo: landmark.echo } : {}) }
+				flag: { kind: "landmark", type: landmark.type, name: landmark.name ?? "", seer: landmark.seer ?? null, ...(landmark.echo ? { echo: landmark.echo } : {}), ...landmarkExtras(landmark) }
 			})
 		});
 	}
@@ -451,7 +483,8 @@ export function realmSceneData({ name, realm, geometry: g, textures, units = "" 
 		initial: { x: Math.round(g.width / 2), y: Math.round(g.height / 2), scale: openingScale(g) },
 		tiles: tiles.map((tile) => tilePlaced(tile.data)),
 		drawings: drawings.map((drawing) => drawing.data),
-		flags: { [SYSTEM_ID]: { [REALM_FLAG]: realmSceneFlag(realm, g), ...(isV13() ? { [TILE_CORNERS_FLAG]: true } : {}) } }
+		// Flagged on v14 too, so a Tile anchored anew by hand is never taken for one laid on v13.
+		flags: { [SYSTEM_ID]: { [REALM_FLAG]: realmSceneFlag(realm, g), [TILE_CORNERS_FLAG]: true } }
 	};
 }
 
@@ -554,7 +587,7 @@ export function realmFromDocuments({ flags = {}, tiles = [], drawings = [] }, g)
 				break;
 			case "landmark":
 				if (!hex) problems.push({ kind: "landmark", reason: "offMap", key: where });
-				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden, ...(flag.echo ? { echo: flag.echo } : {}) });
+				else realm.landmarks.push({ id: tile._id ?? null, hex, type: flag.type, name: flag.name ?? "", seer: flag.seer ?? null, revealed: !tile.hidden, ...(flag.echo ? { echo: flag.echo } : {}), ...landmarkExtras(flag) });
 				break;
 			default:
 				break;
@@ -612,15 +645,34 @@ function existingMatch(g, kind, data, replacing) {
 	}
 }
 
-/** Fields planRealmSync keeps as they are on a document that already exists. */
-const KEPT_ON_UPDATE = Object.freeze({ terrain: ["hidden"], river: ["hidden"], shore: ["hidden"], mouth: ["hidden"], seat: ["hidden"], holding: ["hidden"] });
+/**
+ * Fields planRealmSync keeps as they are on a document that already exists. A Referee may fade the icons by hand,
+ * as over a map that draws its own Holdings and Landmarks; the ground and water's fading is the Realm's own.
+ */
+const KEPT_ON_UPDATE = Object.freeze({
+	terrain: ["hidden"],
+	river: ["hidden"],
+	shore: ["hidden"],
+	mouth: ["hidden"],
+	seat: ["hidden", "alpha"],
+	holding: ["hidden", "alpha"],
+	myth: ["alpha"],
+	landmark: ["alpha"]
+});
+
+/** What each kind of Tile is faded with, when its look's fading is changed: a Seat's crown goes with its Holding. */
+const FADED_WITH = Object.freeze({ holding: "holding", seat: "holding", landmark: "landmark", myth: "myth" });
 
 /**
+ * @param {object} existing
+ * @param {object} desired
+ * @param {string[]} [refade] The icons whose fading has just been changed, so a Referee's own fading of them gives way.
  * @returns {object|null} The changes that bring `existing` in line with `desired`, or null when none are needed.
  */
-function changesFor(existing, desired) {
+function changesFor(existing, desired, refade = []) {
 	const kind = realmFlag(desired)?.kind;
-	const kept = KEPT_ON_UPDATE[kind] ?? [];
+	const refaded = refade.includes(FADED_WITH[kind]);
+	const kept = (KEPT_ON_UPDATE[kind] ?? []).filter((key) => !(refaded && key === "alpha"));
 	const changes = {};
 	const differs = (a, b) => (typeof a === "number" && typeof b === "number" ? Math.abs(a - b) > 0.01 : JSON.stringify(a ?? null) !== JSON.stringify(b ?? null));
 
@@ -651,16 +703,19 @@ function changesFor(existing, desired) {
  * @param {import("./realm.js").Realm} realm
  * @param {object} g
  * @param {ReturnType<typeof realmTextures>} textures
- * @param {{tiles?: object[], drawings?: object[]}} existing Source data, each with `_id`; Tiles centred (tileCentred).
+ * @param {{tiles?: object[], drawings?: object[], settled?: boolean}} existing Source data, each with `_id`; Tiles centred
+ *   (tileCentred), or as laid (tileCentredUnsettled) with `settled` false for a Realm whose Tiles aren't settled (tilesSettled).
  * @param {object} [options]
  * @param {boolean} [options.replacing] The Realm replaces the Scene's old one, so icons off the map go too.
+ * @param {string[]} [options.refade] Icons (FADED_ICONS in realm-skins.js) drawn at their look's strength even where a Referee faded them by hand.
  * @returns {{Tile: {create: object[], update: object[], delete: string[]}, Drawing: {create: object[], update: object[], delete: string[]}}}
  */
-export function planRealmSync(realm, g, textures, existing, { replacing = false } = {}) {
+export function planRealmSync(realm, g, textures, existing, { replacing = false, refade = [] } = {}) {
 	const desired = realmDocuments(realm, g, textures);
 	const plan = (wanted, current, kind) => {
-		// Tiles are compared by their centres, and written back however this Foundry places them.
-		const placed = kind === "tile" ? tilePlaced : (data) => data;
+		// Tiles are compared by their centres, and written back however this Foundry places them, or as they were laid.
+		const placeTile = tileReading(existing.settled !== false).placed;
+		const placed = kind === "tile" ? placeTile : (data) => data;
 		const byMatch = new Map();
 		const deletions = [];
 		for (const data of current) {
@@ -673,14 +728,18 @@ export function planRealmSync(realm, g, textures, existing, { replacing = false 
 		const create = [];
 		const update = [];
 		const used = new Set();
+		const taken = new Set(current.map((data) => data._id));
 		for (const { match, data } of wanted) {
 			const found = byMatch.get(match);
 			if (!found || used.has(match)) {
-				create.push(placed(data));
+				// A Tile brought back, as by Undo, keeps the id it had, so Undo's snapshots still know it.
+				const id = !found && match.startsWith("id:") ? match.slice(3) : null;
+				create.push(id && !taken.has(id) ? { ...placed(data), _id: id } : placed(data));
+				if (id) taken.add(id);
 				continue;
 			}
 			used.add(match);
-			const changes = changesFor(found, data);
+			const changes = changesFor(found, data, refade);
 			if (changes) update.push({ _id: found._id, ...placed(changes, found) });
 		}
 		for (const [match, data] of byMatch) {

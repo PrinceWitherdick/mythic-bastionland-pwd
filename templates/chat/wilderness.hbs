@@ -21,6 +21,14 @@
 		{{/if}}
 		{{/if}}
 	</div>
+	{{!-- The Scenes the Referee linked to this Omen, each activated from here for everyone. --}}
+	{{#if myth.scenes.length}}
+	<div class="bastionland-card__actions">
+		{{#each myth.scenes}}
+		<button type="button" data-omen-scene="{{id}}"><i class="fa-solid fa-map" inert></i> {{localize "bastionland.omenScenes.cardActivate" scene=name}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
 	{{/if}}
 
 	{{#if cityQuest}}
@@ -35,6 +43,9 @@
 	<p><strong>{{landmark.type}}</strong>{{#if landmark.name}}: {{landmark.name}}{{/if}}</p>
 	{{#if landmark.text}}
 	<p class="bastionland-card__text">{{landmark.text}}</p>
+	{{/if}}
+	{{#if landmark.variantText}}
+	<p class="bastionland-card__text">{{landmark.variantText}}</p>
 	{{/if}}
 	{{#if landmark.seer}}
 	<p class="bastionland-card__hint">{{landmark.seer}}</p>

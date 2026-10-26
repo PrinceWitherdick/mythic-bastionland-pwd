@@ -8,6 +8,7 @@ import { getCalendar } from "./calendar.js";
 import { causedBy } from "./ledger.js";
 import { seenName } from "./seen-name.js";
 import { timelineScar, timelineScarSettled } from "./timeline-events.js";
+import { worldKnights } from "./knights.js";
 
 /**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
@@ -206,8 +207,7 @@ export async function resolveScar(actor, item) {
  * @returns {Promise<ChatMessage[]>}
  */
 export async function offerRevenge(foe) {
-	const owed = game.actors
-		.filter((actor) => actor.type === "knight" && actor !== foe)
+	const owed = worldKnights((actor) => actor !== foe)
 		.flatMap((knight) => knight.items.filter((item) => item.type === "scar" && awaitsRevengeOn(item.system, foe)));
 	const cards = [];
 	for (const item of owed) {

@@ -1514,8 +1514,10 @@
 	align-items: flex-start;
 }
 
+/* Centred on the name's line: the body font's line box is centred on its capitals. */
 .bastionland-check:has(.bastionland-check__detail) > input {
-	margin-block-start: 0.15em;
+	line-height: inherit;
+	margin-block-start: calc((1lh - var(--checkbox-size)) / 2);
 }
 
 .bastionland-check__detail {
@@ -1867,7 +1869,7 @@
 	border-right: 1px solid var(--bastionland-rule);
 }
 
-/* Weeks Pass, Months Pass and A Year Passes, with End the Session across the foot, let down under the middle of the bar by a GM's press on it. */
+/* Next Phase across the head, Weeks Pass, Months Pass and A Year Passes, and End the Session across the foot, let down under the middle of the bar by a GM's press on it. */
 .bastionland-time-banner__moves {
 	position: absolute;
 	top: calc(100% + 0.4rem);
@@ -1905,7 +1907,8 @@
 	cursor: pointer;
 }
 
-/* End the Session runs the width of the three above it. */
+/* Next Phase and End the Session each run the width of the three between them. */
+.bastionland-time-banner__moves > [data-move="phase"],
 .bastionland-time-banner__moves > [data-move="end"] {
 	grid-column: 1 / -1;
 	justify-content: center;

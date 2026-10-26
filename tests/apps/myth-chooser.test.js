@@ -140,7 +140,7 @@ describe("taking a Myth out of the Realm, and filling its number again", () => {
 	});
 
 	it("can be opened from the Toolkit with no Myth left in the Realm, unless it was made with none", () => {
-		expect(toolkit).toContain("choose: mythSlots(data.realm) > 0 && !keptFromMe(),");
+		expect(toolkit).toContain("choose: mythSlots(data.realm) > 0 && !secretsKeptOn(this.scene),");
 	});
 });
 

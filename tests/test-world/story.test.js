@@ -39,6 +39,12 @@ vi.mock("../../module/actions/realm.js", async () => {
 			}
 			return true;
 		}),
+		editRealmByHand: vi.fn(async (_scene, edit) => {
+			const next = edit(world.realm, world.g);
+			if (!next || next === world.realm) return false;
+			world.realm = next;
+			return true;
+		}),
 		getRealm: () => ({ realm: world.realm }),
 		sceneGeometry: () => world.g
 	};

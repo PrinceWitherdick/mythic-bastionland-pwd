@@ -26,6 +26,7 @@ import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandChooser } from "./BastionlandChooser.js";
 import { confirmDialog, renderWhenIdle } from "./ui.js";
 import { allowsDuplicateKnights, knightRows, worldKnights } from "../actions/knights.js";
+import { NPC_KNIGHT_START, isKnight, isNpcKnight } from "../rules/knight-types.js";
 
 /** Items a chosen Knight's Property, Ability and Passion replace. Scars stay. */
 const REPLACED_TYPES = Object.freeze([...PROPERTY_TYPES, "ability", "passion"]);
@@ -56,8 +57,9 @@ export class KnightChooser extends BastionlandChooser {
 		this.#knighting = Boolean(this.actor && knighting);
 		this.#companyGlory = companyGlory;
 		// A new Knight joins the Company as it began (p6), but one made in place of
-		// a fallen Knight starts as a Young Knight-Errant in most cases (p195).
-		this.#start = replacement ? DEFAULT_START : companyStartKey();
+		// a fallen Knight starts as a Young Knight-Errant in most cases (p195). An
+		// NPC Knight is rolled as a Ruler, as the Referee's Knights are.
+		this.#start = isNpcKnight(this.actor) ? NPC_KNIGHT_START : replacement ? DEFAULT_START : companyStartKey();
 		// A Squire still named for the Knight they served starts without one, as a Knight made blank does.
 		if (this.#knighting && isSquireName(this.#name, t("squire.name"))) this.#name = "";
 	}
@@ -116,7 +118,7 @@ export class KnightChooser extends BastionlandChooser {
 	#slides = 0;
 
 	/** The Knight's name, as typed or rolled beside Apply. Starts as their own, unless Create Actor only gave them a stand-in. */
-	#name = startingName(this.actor?.name, game.i18n.localize(CONFIG.Actor.typeLabels.knight));
+	#name = startingName(this.actor?.name, game.i18n.localize(CONFIG.Actor.typeLabels[this.actor?.type] ?? CONFIG.Actor.typeLabels.knight));
 
 	/** @type {[string, number][]} The hooks that draw the window again when who's taken which Knight changes. */
 	#hooks = [];
@@ -210,11 +212,11 @@ export class KnightChooser extends BastionlandChooser {
 		// Another player choosing, or a Knight falling, changes which Knights are free. Not under a name being typed.
 		const redraw = () => renderWhenIdle(this);
 		const onUpdate = (actor, changes) => {
-			if (actor.type !== "knight") return;
+			if (!isKnight(actor)) return;
 			const system = changes.system ?? {};
 			if ("knightType" in system || "slain" in system || "isSquire" in system || "name" in changes) redraw();
 		};
-		const onKnight = (actor) => actor.type === "knight" && redraw();
+		const onKnight = (actor) => isKnight(actor) && redraw();
 		this.#hooks = [["updateActor", Hooks.on("updateActor", onUpdate)],
 			["createActor", Hooks.on("createActor", onKnight)],
 			["deleteActor", Hooks.on("deleteActor", onKnight)]];

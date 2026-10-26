@@ -44,12 +44,9 @@ const realmOf = (from) => ({
 	holdings: [{ hex: { col: 5, row: 5 }, seat: true }],
 	myths: [...from.tiles.values()].map((tile) => ({ id: tile.id, ...tile.flags[SYSTEM_ID][REALM_FLAG], hex: { col: 9, row: 9 } }))
 });
-vi.mock("../../module/actions/realm.js", () => ({
-	isRealmScene: (candidate) => Boolean(candidate?.isRealm),
-	sceneGeometry: () => ({}),
-	getRealm: () => ({ realm: realmOf(scene) }),
+vi.mock("../../module/actions/realm.js", () => {
 	// As the real one does: the Realm edited, and each Myth whose count changed written whole, with the options it was given.
-	editRealm: vi.fn(async (target, edit, operation = {}) => {
+	const write = async (target, edit, operation = {}) => {
 		const realm = realmOf(target);
 		const next = edit(realm, {});
 		if (next === realm) return false;
@@ -58,8 +55,15 @@ vi.mock("../../module/actions/realm.js", () => ({
 			.map(({ id, hex: _hex, ...flag }) => ({ _id: id, flags: { [SYSTEM_ID]: { [`==${REALM_FLAG}`]: flag } } }));
 		await target.updateEmbeddedDocuments("Tile", updates, { ...operation });
 		return true;
-	})
-}));
+	};
+	return {
+		isRealmScene: (candidate) => Boolean(candidate?.isRealm),
+		sceneGeometry: () => ({}),
+		getRealm: () => ({ realm: realmOf(scene) }),
+		editRealm: vi.fn(write),
+		editRealmByHand: vi.fn(write)
+	};
+});
 
 const record = await import("../../module/actions/timeline-record.js");
 const { markMythOmen, readOmens, writeOmens } = await import("../../module/actions/omens.js");
@@ -150,6 +154,14 @@ describe("an Omen marked by the Referee", () => {
 		expect(calls(record.recordOnTracks)).toEqual([]);
 		expect(calls(record.forgetEverywhere)).toEqual([]);
 	});
+
+	it("is kept for the map's Undo when stepped in Edit this hex, still written where the Company stands", async () => {
+		const { editRealm, editRealmByHand } = await import("../../module/actions/realm.js");
+		expect(await markMythOmen(scene, 3, 2, { byHand: true })).toBe(true);
+		expect(editRealmByHand).toHaveBeenCalledOnce();
+		expect(editRealm).not.toHaveBeenCalled();
+		expect(calls(record.recordOnTracks)[0][1]).toEqual([expect.objectContaining({ key: "omen:s1.3.2-7:2", place: "Hex 2.2" })]);
+	});
 });
 
 describe("Undo and Redo", () => {
@@ -206,9 +218,9 @@ describe("the Tile hooks", () => {
 		expect(hooks.indexOf(`Hooks.on("updateTile", writeOmens)`)).toBeGreaterThan(hooks.indexOf("Hooks.on(name, onDocument)"));
 		expect(hooks).toContain(`Hooks.on("preUpdateTile", readOmens)`);
 		const realm = source("module/actions/realm.js");
-		expect(realm).toContain("writes[step], { ...operation })");
+		expect(realm).toContain(`writes[step], step === "create" ? { ...operation, keepId: true } : { ...operation })`);
 		expect(realm).toContain("writeRealm(scene, next, g, textures, { operation })");
-		expect(realm).toMatch(/writeRealm\(scene, step\.target, sceneGeometry\(scene\), currentRealmTextures\(scene\)\);/);
+		expect(realm).toMatch(/writeRealm\(scene, target, sceneGeometry\(scene\), currentRealmTextures\(scene\)\);/);
 		expect(realm).not.toContain("REALM_STEPPED_HOOK");
 	});
 });

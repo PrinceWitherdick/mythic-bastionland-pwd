@@ -1,12 +1,14 @@
 import { hexLabel } from "../actions/hex-names.js";
-import { editRealm, getRealm, realmUndoState } from "../actions/realm.js";
+import { editRealmByHand, getRealm, realmUndoState } from "../actions/realm.js";
 import { loadArtIndex, mythEntry, mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
 import { createRandom, randomSeed } from "../rules/random.js";
+import { offeredLandmarks } from "../actions/blog-landmarks.js";
 import {
 	HOLDING_STYLES,
-	LANDMARK_TYPES,
+	LANDMARK_VARIANTS,
 	OMEN_COUNT,
+	PAIRED_LANDMARK,
 	TERRAIN,
 	barriersAround,
 	featureAt,
@@ -16,15 +18,19 @@ import {
 import {
 	FEATURE_KINDS,
 	editFeature,
+	knownPondPartner,
+	pairPonds,
 	paintTerrain,
 	placeFeature,
+	pondPartner,
 	setRevealed,
 	unusedMythNumbers
 } from "../rules/realm-edits.js";
 import { rollFreeMyth } from "../rules/realm-myths.js";
-import { hexKey } from "../rules/realm-geometry.js";
+import { landmarkLabelKey } from "../rules/landmarks.js";
+import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { markMythOmen } from "../actions/omens.js";
-import { keptFromMe } from "../actions/solo.js";
+import { secretsKeptOn } from "../actions/solo.js";
 import { openMythChooser } from "./MythChooser.js";
 import { inputDialog } from "./ui.js";
 
@@ -41,8 +47,21 @@ const kindHere = ({ holding, myth, landmark }) => (holding ? "holding" : myth ? 
 /** @returns {number|undefined} A whole number from a form value, or undefined when there isn't one. */
 const whole = (value) => (value === "" || value === null || !Number.isFinite(Number(value)) ? undefined : Math.trunc(Number(value)));
 
+/** The Leads To choice for a Pond whose pair is still to be found, played alone: picking it changes nothing. */
+const UNFOUND_PAIR = "unfound";
+
+/**
+ * @param {object} realm The whole Realm.
+ * @param {{col: number, row: number}} hex
+ * @returns {boolean} Whether the hex holds a Pond whose partner is still to be found.
+ */
+const hidesPartner = (realm, hex) => {
+	const partner = pondPartner(realm, featureAt(realm, hex).landmark);
+	return Boolean(partner && !partner.revealed);
+};
+
 /** The fields of the window, each written on its own as it changes. */
-export const HEX_EDIT_FIELDS = Object.freeze(["terrain", "kind", "seat", "disputed", "number", "d6", "d12", "seerD6", "seerD12", "style", "type", "holdingName"]);
+export const HEX_EDIT_FIELDS = Object.freeze(["terrain", "kind", "seat", "disputed", "number", "d6", "d12", "seerD6", "seerD12", "style", "type", "variant", "pair", "holdingName"]);
 
 /**
  * What the window shows for one hex.
@@ -60,7 +79,7 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 	const { canUndo, canRedo } = realmUndoState(scene);
 	// Played alone, the hex is shown as the Company knows it, and what stands in it isn't changed here,
 	// since a hex that looks empty may still hold what's to be found.
-	const solo = keptFromMe();
+	const solo = secretsKeptOn(scene);
 	const here = featureAt(known, hex);
 	const terrain = terrainAt(realm, g, hex);
 	const option = (value, label, selected) => ({ value, label, selected });
@@ -82,11 +101,32 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
 	// The Landmark's name is the Lay of the Land's own box, so it isn't asked for twice.
 	let landmark = null;
 	if (here.landmark) {
-		const { seer } = here.landmark;
+		const { seer, type: kind, variant } = here.landmark;
 		const reference = seer && seerEntry(index, seer);
+		// The kinds offered, and this one's own even where its setting is now off.
+		const offered = offeredLandmarks();
+		const types = offered.includes(kind) ? offered : [...offered, kind];
+		// Played alone, a pair still to be found is kept, and not named.
+		const { partner, unfound } = knownPondPartner(realm, known, here.landmark);
 		landmark = {
-			types: LANDMARK_TYPES.map((type) => option(type, t(`realm.landmarks.${type}`), type === here.landmark.type)),
-			sanctum: here.landmark.type === "sanctum",
+			types: types.map((type) => option(type, t(`realm.landmarks.${type}`), type === kind)),
+			// Which Grotto, Fountain or Willow it is.
+			variants: LANDMARK_VARIANTS[kind]?.map((value) => option(value, t(landmarkLabelKey({ type: kind, variant: value })), value === variant)) ?? null,
+			// The Pond it leads to: any other Pond the Referee can see, or none, so it leads out of the Realm.
+			// Played alone, not one whose own partner is still to be found, since pairing it would unpair that one.
+			pairs: kind === PAIRED_LANDMARK
+				? [
+					option("", t("realm.landmarks.pairNone"), !partner && !unfound),
+					...(unfound ? [option(UNFOUND_PAIR, t("realm.landmarks.pairHidden"), true)] : []),
+					...known.landmarks
+						.filter((other) => other.type === PAIRED_LANDMARK && !sameHex(other.hex, hex))
+						.filter((other) => !solo || !knownPondPartner(realm, known, other).unfound)
+						.map((other) => option(hexKey(other.hex), hexLabel(other.hex, scene), Boolean(partner) && sameHex(partner.hex, other.hex)))
+				]
+				: null,
+			// Its pair, and its type, can't be changed without unpairing the one not yet found.
+			pairLocked: unfound,
+			sanctum: kind === "sanctum",
 			seer,
 			reference: reference ? t("realm.panel.reference", { name: reference.name, page: reference.page }) : null,
 			revealed: here.landmark.revealed
@@ -129,7 +169,7 @@ export function hexEditContext({ scene, realm, known, g, hex, index }) {
  * @returns {Promise<boolean>}
  */
 export function writeHexField(scene, hex, field, value) {
-	return editRealm(scene, (realm, g) => {
+	return editRealmByHand(scene, (realm, g) => {
 		switch (field) {
 			case "terrain":
 				return paintTerrain(realm, g, [hex], whole(value), { step: true });
@@ -148,9 +188,16 @@ export function writeHexField(scene, hex, field, value) {
 				return editFeature(realm, g, hex, { seer: { d6: whole(value) } });
 			case "seerD12":
 				return editFeature(realm, g, hex, { seer: { d12: whole(value) } });
-			case "style":
 			case "type":
+				// Played alone, a Pond whose partner is still to be found stays a Pond, so that one keeps its pair.
+				if (value !== PAIRED_LANDMARK && secretsKeptOn(scene) && hidesPartner(realm, hex)) return realm;
+				return editFeature(realm, g, hex, { type: value });
+			case "style":
+			case "variant":
 				return editFeature(realm, g, hex, { [field]: value });
+			case "pair":
+				// Played alone, a Pond not yet found is never unpaired from here, as a found one's choice is changed.
+				return value === UNFOUND_PAIR ? realm : pairPonds(realm, hex, parseHexKey(value), { keepHidden: secretsKeptOn(scene) });
 			case "holdingName":
 				return editFeature(realm, g, hex, { name: value });
 			default:
@@ -170,7 +217,7 @@ export function writeHexEditField(scene, hex, field) {
 	const { name } = field;
 	if (!HEX_EDIT_FIELDS.includes(name) || !game.user.isGM) return;
 	// Played alone, what stands in a hex isn't changed here: the Myths to move would give away the unfound.
-	if (name === "kind" && keptFromMe()) return;
+	if (name === "kind" && secretsKeptOn(scene)) return;
 	const value = field.type === "checkbox" ? field.checked : field.value;
 	return name === "kind" ? setHexKind(scene, hex, value) : writeHexField(scene, hex, name, value);
 }
@@ -185,11 +232,13 @@ export function writeHexEditField(scene, hex, field) {
  * @returns {Promise<boolean>} Whether the hex changed, which it doesn't if the GM shuts the list.
  */
 async function setHexKind(scene, hex, kind) {
+	// Played alone, the Myths to move would give away the unfound.
+	if (secretsKeptOn(scene)) return false;
 	const realm = getRealm(scene)?.realm;
 	if (kind !== "myth" || !realm || featureAt(realm, hex).myth || unusedMythNumbers(realm).length) return writeHexField(scene, hex, "kind", kind);
 	const number = await pickMythToMove(scene, hex, realm);
 	if (!number) return false;
-	return editRealm(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));
+	return editRealmByHand(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));
 }
 
 /**
@@ -228,7 +277,7 @@ async function pickMythToMove(scene, hex, realm) {
 export async function rollHexMyth(scene, hex) {
 	const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(scene)?.realm?.myths);
 	if (!roll) return;
-	await editRealm(scene, (realm, g) => {
+	await editRealmByHand(scene, (realm, g) => {
 		const { myth } = featureAt(realm, hex);
 		return myth ? placeFeature(realm, g, hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12 }) : realm;
 	});
@@ -261,13 +310,26 @@ export async function rollHexSeer(scene, hex) {
 	try {
 		const d6 = await new Roll("1d6").evaluate();
 		const d12 = await new Roll("1d12").evaluate();
-		await editRealm(scene, (realm, g) => {
+		await editRealmByHand(scene, (realm, g) => {
 			const { landmark } = featureAt(realm, hex);
 			return landmark ? placeFeature(realm, g, hex, { kind: "landmark", type: landmark.type, seer: { d6: d6.total, d12: d12.total } }) : realm;
 		});
 	} finally {
 		seersRolling.delete(key);
 	}
+}
+
+/**
+ * Make the Grotto, Fountain or Willow here one of its sorts at random.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}} hex
+ */
+export async function rollHexVariant(scene, hex) {
+	const realm = getRealm(scene)?.realm;
+	const variants = realm ? LANDMARK_VARIANTS[featureAt(realm, hex).landmark?.type] : null;
+	if (!variants) return;
+	const roll = await new Roll(`1d${variants.length}`).evaluate();
+	await editRealmByHand(scene, (current, g) => editFeature(current, g, hex, { variant: variants[roll.total - 1] }));
 }
 
 /**
@@ -280,7 +342,7 @@ export async function stepHexOmen(scene, hex, step) {
 	const by = whole(step) ?? 0;
 	const realm = getRealm(scene)?.realm;
 	const myth = realm ? featureAt(realm, hex).myth : null;
-	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by);
+	if (myth) await markMythOmen(scene, myth.number, (now) => now.omen + by, { byHand: true });
 }
 
 /**
@@ -289,7 +351,7 @@ export async function stepHexOmen(scene, hex, step) {
  * @param {{col: number, row: number}} hex
  */
 export async function toggleHexReveal(scene, hex) {
-	await editRealm(scene, (realm) => {
+	await editRealmByHand(scene, (realm) => {
 		const { myth, landmark } = featureAt(realm, hex);
 		const hidden = myth ?? landmark;
 		return hidden ? setRevealed(realm, hex, !hidden.revealed) : realm;
@@ -304,6 +366,8 @@ export async function toggleHexReveal(scene, hex) {
 export const HEX_FEATURE_ACTIONS = Object.freeze({
 	// Which Seer lives at the Sanctum here (p26).
 	rollSeer: ({ scene, hex }) => rollHexSeer(scene, hex),
+	// Which Grotto, Fountain or Willow this is, at random.
+	rollVariant: ({ scene, hex }) => rollHexVariant(scene, hex),
 	// One more Omen of the Myth here met, or one fewer (p18).
 	omenStep: ({ scene, hex }, target) => stepHexOmen(scene, hex, target.dataset.step),
 	toggleReveal: ({ scene, hex }) => toggleHexReveal(scene, hex)

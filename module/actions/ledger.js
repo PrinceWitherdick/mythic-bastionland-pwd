@@ -1,9 +1,13 @@
 import { t } from "../chat/cards.js";
 import { LEDGER_FLAG, itemChanges, itemListEntry, knightChanges, writeIntoLedger } from "../rules/ledger.js";
+import { isKnight } from "../rules/knight-types.js";
 import { SYSTEM_ID } from "../system-id.js";
 
 /** The Ledger's own writes carry this option, so they aren't logged in turn. */
 const LEDGER_OPTION = "bastionlandLedger";
+
+/** @returns {object} Update options for a write the Ledger leaves out, such as a Knight changing kind. */
+export const withoutLedger = () => ({ [LEDGER_OPTION]: true });
 
 /**
  * Set on an update made by something other than a hand on the sheet, such as
@@ -28,7 +32,7 @@ const PENDING_OPTION = "bastionlandLedgerEntries";
 const LEDGER_PATH = `flags.${SYSTEM_ID}.${LEDGER_FLAG}`;
 
 /** Knights keep a Ledger. */
-const keepsLedger = (actor) => actor?.type === "knight" && actor.documentName === "Actor";
+const keepsLedger = (actor) => isKnight(actor) && actor.documentName === "Actor";
 
 /** @returns {import("../rules/ledger.js").LedgerContext} */
 const ledgerContext = () => ({

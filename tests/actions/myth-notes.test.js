@@ -6,6 +6,12 @@ import { SYSTEM_ID } from "../../module/system-id.js";
 
 class ForcedDeletion {}
 
+class ForcedReplacement {
+	static create(value) {
+		return Object.assign(new ForcedReplacement(), { value });
+	}
+}
+
 const wyvern = { number: 3, d6: 1, d12: 5 };
 
 /** A Realm Scene whose updates land on its own flags, as Foundry's would. */
@@ -19,7 +25,7 @@ function realmScene() {
 				let node = scene.flags[SYSTEM_ID];
 				for (const part of parts.slice(0, -1)) node = node[part] ??= {};
 				if (value instanceof ForcedDeletion) delete node[parts.at(-1)];
-				else node[parts.at(-1)] = structuredClone(value);
+				else node[parts.at(-1)] = structuredClone(value instanceof ForcedReplacement ? value.value : value);
 			}
 		})
 	};
@@ -28,7 +34,7 @@ function realmScene() {
 
 beforeEach(() => {
 	globalThis.game = { user: { isGM: true } };
-	globalThis.foundry = { data: { operators: { ForcedDeletion } } };
+	globalThis.foundry = { data: { operators: { ForcedDeletion, ForcedReplacement } } };
 });
 
 afterEach(() => {
@@ -44,6 +50,8 @@ describe("editMythNote", () => {
 		const [[first]] = scene.update.mock.calls;
 		expect(Object.keys(first).sort()).toEqual([`flags.${SYSTEM_ID}.${MYTH_NOTES_FLAG}.myths.3`, `flags.${SYSTEM_ID}.${MYTH_NOTES_FLAG}.version`]);
 		expect(mythNoteFor(getMythNotes(scene), wyvern)).toEqual({ note: "Nest in the crags.", resolved: true });
+		// Written over whole, so nothing taken out of the record lingers.
+		expect(first[`flags.${SYSTEM_ID}.${MYTH_NOTES_FLAG}.myths.3`]).toBeInstanceOf(ForcedReplacement);
 	});
 
 	it("takes the Myth's key out once nothing is kept about it", async () => {

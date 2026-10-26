@@ -17,6 +17,7 @@ import { HEX_NAMES_FLAG } from "../rules/hex-names.js";
 import { SIGHTED_FLAG } from "../rules/sighted.js";
 import { readOmens, writeOmens } from "../actions/omens.js";
 import { isOwnMythEntry } from "../actions/own-myths.js";
+import { forcedMove } from "../actions/company.js";
 import { JOURNEY_FLAG, movesAsCompany } from "../actions/journey.js";
 import { keepMapPictureSize } from "../actions/realm-map.js";
 import { MAP_ALIGNMENT_HOOK, liningUpMap } from "./map-alignment.js";
@@ -33,7 +34,7 @@ import { t } from "../chat/cards.js";
 import { barriersMet, movePathProblem } from "../rules/realm-movement.js";
 import { REALM_DRAWING_FLAG } from "../rules/realm-drawing.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { listenForTurnedBack, reportTurnedBack } from "./barrier-found.js";
+import { registerTurnedBackQuery, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
@@ -45,14 +46,16 @@ import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.j
  * Refuse a Token's move across a Barrier (p18) or off the edge of a Realm. It
  * runs on the mover's own client before the move is sent. A GM with Foundry's
  * Unconstrained Movement on, which lets Tokens through walls, passes Barriers
- * too.
+ * too, as does a move the Company didn't choose, such as a blind drift: it
+ * goes where the rules put it.
  * @param {TokenDocument} token
  * @param {object} movement The pending movement from `preMoveToken`.
+ * @param {object} [operation] The update that moves it.
  * @returns {boolean} False to refuse the move.
  */
-function allowRealmMove(token, movement) {
+function allowRealmMove(token, movement, operation) {
 	const scene = token?.parent;
-	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls) return true;
+	if (!isRealmScene(scene) || movement?.constrainOptions?.ignoreWalls || forcedMove(operation)) return true;
 	const entry = getRealm(scene);
 	if (!entry) return true;
 
@@ -71,7 +74,8 @@ function allowRealmMove(token, movement) {
 		reportTurnedBack(scene, {
 			edges: barriersMet(g, barriers, problem.from, problem.to).filter((edge) => hidden.has(edge)),
 			from: problem.from,
-			company: movesAsCompany(token) ? { from: problem.from, to: problem.to } : null
+			to: problem.to,
+			company: movesAsCompany(token)
 		});
 	}
 	return false;
@@ -90,10 +94,16 @@ const changedScenes = new Map();
 /** How far each kind of change reaches, the furthest first. */
 const CHANGE_REACH = ["realm", "names", "hex"];
 
+/**
+ * @param {"realm"|"names"|"hex"} kind
+ * @returns {boolean} Whether a change of that kind draws the palette, with its Undo and Redo, again.
+ */
+const redrawsPalette = (kind) => kind !== "hex";
+
 /** Draw the palette, Places, readout and highlight again for the Realms that changed. */
 function showChanges() {
 	for (const [sceneId, { kind, flags }] of changedScenes) {
-		if (kind !== "hex") {
+		if (redrawsPalette(kind)) {
 			refreshRealmPanel(sceneId);
 			refreshRealmDrawing(sceneId);
 			refreshMythChooser(sceneId);
@@ -130,6 +140,15 @@ function realmChanged(sceneId) {
 }
 
 /**
+ * @param {string} sceneId
+ * @returns {boolean} Whether a Realm change still to be shown will draw the Undo and Redo buttons again.
+ */
+function historyShownLater(sceneId) {
+	const pending = changedScenes.get(sceneId);
+	return Boolean(pending) && redrawsPalette(pending.kind);
+}
+
+/**
  * Show what changed of a Realm when this client's Realm writes have landed.
  * @param {string|undefined} sceneId
  * @param {"realm"|"names"|"hex"} kind
@@ -160,8 +179,8 @@ function showRealmRules() {
 /** The hooks Realm Scenes rely on. Called during init. */
 export function registerRealmHooks() {
 	Hooks.on("preMoveToken", allowRealmMove);
-	// A player's Token turned back by a Barrier has the GM's client reveal it, and offer the Phase the Company wasted.
-	listenForTurnedBack();
+	// A player's Token turned back by a Barrier has the active GM's client reveal it, and offer the Phase the Company wasted.
+	registerTurnedBackQuery();
 
 	// Whether the hex readout names the column and row as well.
 	registerHexReadoutSetting();
@@ -223,9 +242,10 @@ export function registerRealmHooks() {
 		forgetHexArrivals(scene.id);
 	});
 	// The Undo and Redo buttons of the palette, of Edit this hex and of Creating a Realm.
-	// After an edit, the Realm's change still to be shown draws them all anyway.
+	// After an edit, the Realm's change still to be shown draws them all anyway; not one only
+	// to what's kept for its hexes, such as a Journey, which leaves the palette as it was.
 	Hooks.on(REALM_HISTORY_HOOK, (sceneId) => {
-		if (changedScenes.has(sceneId)) return;
+		if (historyShownLater(sceneId)) return;
 		refreshRealmPanel(sceneId);
 		refreshPlaces(sceneId);
 		refreshHexEditor(sceneId);

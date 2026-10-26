@@ -2,6 +2,7 @@
   "TYPES": {
     "Actor": {
       "knight": "Knight",
+      "npcKnight": "NPC Knight",
       "npc": "NPC",
       "domain": "Domain",
       "structure": "Structure",
@@ -26,7 +27,7 @@
         "hint": "For playing alone. The Realm keeps its Myths, Landmarks and Barriers from the Referee as it does from players, until the Company finds them. A Myth is named once one of its Omens is met, and its hex shown once the Company stands in it."
       },
       "welcome": {
-        "label": "Solo Mode",
+        "label": "Solo Play",
         "hint": "The Realm's Myths, Landmarks and Barriers stay hidden from you too, and turn up as the Company travels. You can change this later in the Toolkit's Settings."
       },
       "unknownMyth": "A Myth not yet met",
@@ -36,6 +37,36 @@
       "newMythText": "A new Myth stirs in the Realm. It will be known by its first Omen.",
       "somethingThere": "something",
       "panelLocked": "While playing alone, what stands in a hex isn't changed here, so nothing still to be found is given away.",
+      "realmKeyKept": "The Realm Key is set aside while you play alone, so nothing still to be found is given away.",
+      "exploreElsewhere": "While playing alone, the Company rolls for the Wilderness, asks about and searches only the hex it stands in.",
+      "brushLocked": "While you play alone, the brush won’t place or take away Holdings, Landmarks or Barriers. If it refused only where something is still hidden, that would show you where it is.",
+      "brushDice": "The dice place this Realm’s Landmarks and Barriers, unseen, when you finish drawing it, so this brush lays none.",
+      "secrets": {
+        "title": "Secrets",
+        "intro": "You're playing alone, so you're the Company too. Choose who places the Realm's Myths, Landmarks and Barriers, the things players can't see on their map.",
+        "legend": "The Realm's secrets",
+        "ways": {
+          "dice": {
+            "label": "The dice place them, unseen",
+            "hint": "You draw the land, Holdings and rivers. When you finish, the Myths, Landmarks and Barriers are rolled by the book's rules around what you drew, hidden from you until the Company finds them."
+          },
+          "hide": {
+            "label": "I place them, then they're hidden",
+            "hint": "You place them yourself while drawing, and see them as you do. When you finish, they're hidden from you until the Company finds them, as if someone else had placed them."
+          },
+          "show": {
+            "label": "I place them, and keep them in view",
+            "hint": "You place them yourself and they stay shown when you finish: every Myth is named and its hex known, every Landmark and Barrier found."
+          }
+        },
+        "later": "This is settled the first time you finish drawing the Realm. Drawing it again after that keeps hidden what's still to be found.",
+        "drawing": {
+          "dice": "The dice place these, unseen, when you finish the Realm.",
+          "hide": "You place these yourself. They'll be hidden from you when you finish the Realm.",
+          "show": "You place these yourself, and they'll stay in view when you finish the Realm.",
+          "kept": "These were settled when you first finished the Realm. What's still hidden stays so until the Company finds it."
+        }
+      },
       "tag": {
         "label": "Solo Play",
         "hint": "You're playing alone, so the Realm keeps its secrets from you too. Click to read more, or to let friends join.",
@@ -46,6 +77,12 @@
         "turnOff": "Turn Off, Let Friends Join",
         "keep": "Keep Playing Alone",
         "turnedOff": "Solo play is off. You see the whole Realm as its Referee again."
+      }
+    },
+    "blogLandmarks": {
+      "setting": {
+        "name": "More Landmarks (Blog)",
+        "hint": "Adds the Bridge, Pond, Chapel, Grotto, Fountain and Willow to new Realms and to the Referee’s pickers. These aren’t from the book: they come from More Landmarks, a post on the blog of Chris McDowall, who made Mythic Bastionland. Landmarks already placed stay either way."
       }
     },
     "duplicateKnights": {
@@ -315,6 +352,11 @@
           "label": "Battle Won",
           "intro": "Tick every Knight on the victorious side. Each gains 1 Glory.",
           "hint": "Only a battle big enough for the chronicles earns Glory."
+        },
+        "bridge": {
+          "label": "Bridge Won",
+          "intro": "Tick the Knight who beat the Bridge’s keeper. They gain 1 Glory.",
+          "hint": "Winning gives the Company passage over the Bridge for good."
         }
       }
     },
@@ -474,6 +516,7 @@
       "hint": "Nobody has claimed this Knight yet. Roll or pick one from the book, or fill in the sheet yourself.",
       "hintGM": "Nobody has claimed this Knight yet. Choose one now, or give them to a player to choose.",
       "hintViewer": "Nobody has claimed this Knight yet.",
+      "hintNpc": "Choose this NPC Knight from the book, rolled as a Ruler, or fill in the sheet yourself.",
       "byHand": "Fill in the sheet by hand",
       "player": "Played by",
       "nobody": "Nobody yet"
@@ -1192,6 +1235,7 @@
       "title": "Where the Company Came",
       "dire": "The weather is dire, and in dire weather the Company can’t leave the Hex. They set out from {hex}.",
       "stay": "Keep them where they were",
+      "onward": "Let them go on",
       "gallop": "Two Hexes this Phase is a Gallop: only on steeds that aren’t Exhausted, and each steed loses d6 VIG.",
       "gallopButton": "Gallop",
       "cruise": "Three Hexes this Phase is a Cruise: only afloat, or riding along one of the few true roads.",
@@ -1200,7 +1244,8 @@
       "omen": "Reveal its next Omen",
       "holding": "They reached the Holding at {hex}. Roll its Local Mood to see how things stand there.",
       "mood": "Local Mood",
-      "realmGone": "That Realm is no longer in this world."
+      "realmGone": "That Realm is no longer in this world.",
+      "movedOn": "The Company has moved since, so that choice no longer applies."
     },
     "phaseEnd": {
       "title": "The {phase} Ends",
@@ -1280,6 +1325,7 @@
       "banner": {
         "age": "{age} Age",
         "moves": "Move Time On",
+        "phaseHint": "The {phase} ends; on to the {next}.",
         "weeks": "Weeks Pass",
         "weeksHint": "Continue on to the next seasonal event ({event}).",
         "months": "Months Pass",
@@ -2232,6 +2278,7 @@
       "missing": "Run Import PDF with your rulebook to bring in the People Spark Tables.",
       "heardOf": "Has heard of {name}",
       "heardOfPage": "Has heard of {name} (p{page})",
+      "heardOfUnmet": "Has heard tell of Myth {number}, {where}",
       "unnamed": "Unnamed",
       "rename": "Name this person",
       "nameLabel": "Name",
@@ -3238,7 +3285,9 @@
         "hands": "A weapon or shield fills a hand, so nobody holds more than two.",
         "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
-        "smiteRanged": "Smite is only used before a melee Attack."
+        "smiteRanged": "Smite is only used before a melee Attack.",
+        "severalTargets": "Only a Blast strikes more than one, so target a single Token, or make the Attack a Blast.",
+        "smiteSwarm": "A swarm Impairs any blow that isn’t a Blast, and Smite with it, so Smite for a Blast instead."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
       "againstIndividuals": "Against individuals",
@@ -3288,6 +3337,15 @@
       "denyPrompt": "{names} can still Deny: a SPI Save discards one of these dice.",
       "denyPromptAny": "Whoever this hits, or an ally close enough to touch, can still Deny one of these dice with a SPI Save.",
       "takeBack": "Click a spent die to take its Gambit back.",
+      "takeBackLocked": {
+        "save": "The foe has already made their Save against this Gambit, so only the Referee can take it back.",
+        "greater": "This Gambit’s Greater effect has been carried out, so only the Referee can take it back.",
+        "dismount": "A Dismount’s d6 is rolled as it’s declared, so only the Referee can take it back."
+      },
+      "takeBackAnyway": {
+        "title": "Take the Gambit Back",
+        "ask": "Take it back anyway? Whatever was rolled for it is lost, and anything done to a sheet stays done."
+      },
       "gambitHelp": "What a Gambit can do",
       "unarmed": "Unarmed",
       "deniedBy": "Denied by {name}",
@@ -3305,6 +3363,9 @@
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
       "unspentGambitsOne": "One die still shows 4 or higher and could be spent on a Gambit.",
       "deniableDice": "{names} could still Deny a die.",
+      "unsavedGambits": "{count} Gambits still wait on a Save, which can’t be rolled once the Damage lands.",
+      "unsavedGambitsOne": "One Gambit still waits on a Save, which can’t be rolled once the Damage lands.",
+      "stillWhose": "{name}’s Attack: {line}",
       "applyAnyway": "Apply the Damage anyway?",
       "dismounted": "Being dismounted adds a d6 showing {result} to the dice.",
       "strongGambit": "Strong Gambit",
@@ -3846,6 +3907,26 @@
     "npcFolder": {
       "name": "NPCs"
     },
+    "npcKnight": {
+      "toggle": {
+        "label": "NPC Knight",
+        "isNpc": "An NPC Knight, played by the Referee: kept out of the Company's rolls, mornings and pursuits, and wavering as NPCs do. Click to make them a Knight of the Company's.",
+        "isCompany": "A Knight of the Company's, or one a player may take up. Click to make them an NPC Knight, played by the Referee, such as a Holding's ruler or a rival to duel.",
+        "hasSquire": "{name} serves this Knight as their Squire, and only the Company’s Knights have Squires. Unlink {name} on the Property page, or Knight them, before making this Knight an NPC Knight."
+      },
+      "kindChoice": {
+        "legend": "Who plays this Knight?",
+        "player": "A player",
+        "playerDetail": "One of the Company, or one a player may take up.",
+        "referee": "The Referee",
+        "refereeDetail": "An NPC Knight, such as a Holding’s ruler or a rival to duel, kept out of the Company’s rolls."
+      },
+      "noSquire": "{name} is an NPC Knight, and only the Company’s Knights have Squires.",
+      "converted": "{count} of the Referee's Knights are now NPC Knights, kept out of the Company's rolls.",
+      "cantSee": "You can't see that Knight's sheet.",
+      "joinNeedsReferee": "{name} is an NPC Knight. A Referee needs to be logged in to make them a Knight of the Company’s for you.",
+      "joinRefused": "The Referee couldn’t make {name} a Knight of the Company’s, so they weren’t taken up."
+    },
     "seerChooser": {
       "title": "Choose the Seer",
       "intro": "Which Seer lives at the Sanctum in {hex}? Each stands on the Knights table (p26) beside the Knight they knighted.",
@@ -3906,7 +3987,7 @@
       "pickPicture": "Choose a picture",
       "clearPicture": "No Picture",
       "omens": "Omens",
-      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table.",
+      "omensHint": "The Company meets them in order. Write “see opposite” in one to point it at the table. Drag a Scene from the Scenes sidebar onto an Omen to link it, to activate from the Referee Toolkit when the Omen comes.",
       "cast": "Cast",
       "castHint": "A word on who belongs to this Myth. Drag actors onto the Myth in the Referee Toolkit to make them its Cast.",
       "table": "Table",
@@ -3916,6 +3997,17 @@
       "cell": "Row {row}, {column}",
       "edit": "Edit this Myth",
       "editTooltip": "Open the Myth you wrote, to change it"
+    },
+    "omenScenes": {
+      "linked": "Scenes linked to this Omen",
+      "activateTooltip": "Activate this Scene, taking everyone there",
+      "viewTooltip": "View this Scene yourself, without moving the players",
+      "unlink": "Unlink this Scene from the Omen",
+      "dropHint": "Drag a Scene onto an Omen to link it",
+      "dropOnOmen": "Drop the Scene on one of the Myth’s Omens to link it.",
+      "fromCompendium": "{scene} is in a compendium. Import it into the world first, then link it.",
+      "gone": "That Scene is no longer in the world.",
+      "cardActivate": "Activate {scene}"
     },
     "bookArt": {
       "title": "Import PDF",
@@ -4250,7 +4342,7 @@
         "barrier": "A Barrier blocks the way.",
         "offMap": "That’s past the edge of the Realm.",
         "found": "{name} ran into a hidden Barrier between {from} and {to}. It’s shown on the map now.",
-        "someone": "A player",
+        "needsGM": "A Referee needs to be logged in to hear that a Barrier turned you back.",
         "wasted": {
           "text": "The Company tried to cross a Barrier, from {from} to {to}. The {phase} is lost to it, and the Wilderness Roll is still made.",
           "waste": "Waste the {phase}"
@@ -4296,6 +4388,7 @@
         "notRealm": "The Wilderness Roll works on a Realm Scene.",
         "noToken": "Select the Company’s Tokens first.",
         "split": "The Company is spread over more than one hex, so the roll is for {hex}, where most of them stand.",
+        "heldBack": "Dire weather may be keeping the Company out of {hex}. Keep them where they were or let them go on, on their arrival card, first.",
         "chooseMode": "How does the Company end this Phase at {hex}?",
         "modes": {
           "travel": "Travelling",
@@ -4347,7 +4440,9 @@
         "omen": "An Omen count outside 0 to 6",
         "style": "A Holding of no known style",
         "type": "A Landmark of no known type",
-        "seat": "Not exactly one Seat of Power"
+        "seat": "Not exactly one Seat of Power",
+        "variant": "A Grotto, Fountain or Willow not set to which it is",
+        "pair": "More than two Ponds sharing a pair"
       },
       "panel": {
         "title": "Realm",
@@ -4359,7 +4454,10 @@
           "river": "Drag across hexes to lay a river, and draw as many rivers as the Realm needs. Start at a ringed end to carry that river on, partway along a river to branch off it, or anywhere else for a new river. Where the water reaches another river, it joins it. Right-click or Shift-click a hex of a river to cut it back to there from the nearer end.",
           "barrier": "Click the edge between two hexes to lay a Barrier there, hidden from players, and click it again to take it away, as right-clicking it does. Shift-click a Barrier to reveal it, or to hide it again.",
           "holding": "Choose a Holding, then click a hex to place it. Tick the Seat of Power first and the next Holding you place is the Realm’s Seat. Clicking a hex that already has that Holding takes it away, as right-clicking or Shift-clicking any Holding does, and Alt-click a hex to pick up the Holding that stands there.",
-          "landmark": "Choose a Landmark, then click a hex to place it there, hidden from players. Clicking a hex that already has that Landmark takes it away, as right-clicking or Shift-clicking any Landmark does, and Alt-click a hex to pick up the Landmark that stands there."
+          "landmark": "Choose a Landmark, then click a hex to place it there, hidden from players. Clicking a hex that already has that Landmark takes it away, as right-clicking or Shift-clicking any Landmark does, and Alt-click a hex to pick up the Landmark that stands there.",
+          "soloLocked": "You’re playing alone, so this brush won’t place or take away Holdings, Landmarks or Barriers on this Realm. If it refused only on the hexes where something is still hidden, that would show you where it is. Terrain and rivers still paint as usual.",
+          "besideSolo": "Rivers are beside it. While you play alone, the Realm’s Holdings, Landmarks and Barriers stay as they are, so nothing still hidden is given away.",
+          "soloDice": "The dice place this Realm’s Landmarks and Barriers, unseen, when you finish drawing it, so this brush lays none. Holdings, terrain and rivers paint as usual."
         },
         "river": "River",
         "riverLength": "One river runs through {count} hexes.",
@@ -4457,7 +4555,35 @@
         "hazard": "Hazard",
         "curse": "Curse",
         "ruin": "Ruin",
+        "other": "Other",
+        "bridge": "Bridge",
+        "pond": "Pond",
+        "chapel": "Chapel",
+        "grotto": "Grotto",
+        "fountain": "Fountain",
+        "willow": "Willow",
       "effects": {
+        "other": {
+          "text": "A Landmark of the Referee’s own. Give it a name, and keep what it holds in the hex’s note."
+        },
+        "bridge": {
+          "text": "A Knight keeps this crossing. Anyone who isn’t a Knight passes freely, but a Knight must first beat its keeper in single combat, fought until one side yields; the keeper yields only when mortally wounded. Beating them gives the Company passage here for good, and 1 Glory."
+        },
+        "pond": {
+          "text": "A still pool like a mirror, found only on a Wilderness Roll of 6. Ponds come in pairs: step into one and you climb out of the other, which may even lie in another Realm. The crossing leaves a traveller reeling, costing d12 CLA, and a pair carries any one person only once a Season."
+        },
+        "chapel": {
+          "text": "A small shrine to the wild, given to one beast and most often kept by a hermit, who shares the beast’s wisdom with those they find worthy and lends them its gifts for a while. Raiders find chapels easy prey: between Seasons, one left unguarded faces a roll for its fate, as any unresolved situation does."
+        },
+        "grotto": {
+          "text": "One of three hidden caves. Wandering never finds it, so the Wilderness Roll doesn’t: only a local’s directions lead here, and the Referee reveals it then. A Knight who sleeps a night alone inside sees a vision too great to bear unharmed, losing d8 CLA. Seers frown on such visits, and scold any Knight who makes one."
+        },
+        "fountain": {
+          "text": "One of three springs in places hard to reach, known from afar only by their spray. Draw one flask: draw a second and the spring runs dry until the Company has gone."
+        },
+        "willow": {
+          "text": "One of three willows, each standing only in its own Season, when the Wilderness Roll can find it. Fresh blood spilt on it opens a door to another world, whose trials keep the Season’s fruit, enough for one."
+        },
         "monument": {
           "offer": "Spend a Phase: Restore SPI"
         },
@@ -4493,7 +4619,40 @@
         "rollHint": "Roll Travelling Blind for the Company. Before the Phase the Curse blights, this lets the blight go; during it, each move of the Company Token is rolled for already, so roll here only for travel off the map.",
         "hold": "They Hold Their Course",
         "holdHint": "Let the blight go without rolling, because the Company didn’t travel or found their way regardless."
-      }
+      },
+      "variants": {
+        "grotto": {
+          "past": { "label": "Grotto of the Past", "text": "Its visions show what has been." },
+          "present": { "label": "Grotto of the Present", "text": "Its visions show what is happening now, far away." },
+          "future": { "label": "Grotto of the Future", "text": "Its visions show what may yet come to pass." }
+        },
+        "fountain": {
+          "red": { "label": "Red Fountain", "text": "Red water: one flask feeds the whole Company, and serves as any Remedy." },
+          "mossy": { "label": "Mossy Fountain", "text": "Mossy water: poured out on the ground, it runs toward whatever the one pouring names." },
+          "inky": { "label": "Inky Fountain", "text": "Inky water: splashed on someone, it takes their senses until they’re wholly dry, about a Phase." }
+        },
+        "willow": {
+          "spring": { "label": "Spring Willow", "text": "Its fruit: reroll CLA and keep the higher." },
+          "harvest": { "label": "Harvest Willow", "text": "Its fruit cures any ailment or curse. Reroll VIG and keep the higher." },
+          "winter": { "label": "Winter Willow", "text": "Its fruit: reroll SPI and keep the higher. The one who eats it dies peacefully as Winter ends, and wakes in Spring as young as they once were." }
+        }
+      },
+      "blog": {
+        "credit": "From More Landmarks, on Chris McDowall’s blog, not the book.",
+        "swatch": "From Chris McDowall’s blog, not the book."
+      },
+      "variant": "Which",
+      "rollVariant": "Roll which it is",
+      "pairWith": "Leads To",
+      "pairNone": "No Pond: it leads out of this Realm",
+      "pairHidden": "A Pond not yet found",
+      "pairHint": "Its hex is ringed on the map while the pointer is over it. Click to go there.",
+      "pairBeyond": "No Pond in this Realm is its pair, so it leads beyond.",
+      "pairUnfound": "Its pair hasn’t been found yet.",
+      "won": "Passage won",
+      "wonHint": "Tick once a Knight has beaten the Bridge’s keeper. You’ll be asked which Knights won it, and each gains 1 Glory.",
+      "inSeason": "It stands this Season.",
+      "outOfSeason": "It isn’t here this Season, so the Wilderness Roll can’t find it."
       },
       "look": {
         "title": "Realm Appearance",
@@ -4510,6 +4669,14 @@
         "preview": "Preview",
         "features": "Holdings, Landmarks and Myths",
         "river": "River",
+        "fade": {
+          "title": "Icons and Hex Lines",
+          "hint": "Fade the system’s icons and hex lines on this Realm, as over a map of your own that already draws them. Each slider sets every icon of its kind, even one you faded by hand. A Landmark or Myth not yet found shows to you at half this. New Realms start at full strength.",
+          "holding": "Holdings and Seats",
+          "landmark": "Landmarks",
+          "myth": "Myths",
+          "grid": "Hex lines"
+        },
         "skins": {
           "sheet": {
             "label": "Blank Realm",

@@ -5,14 +5,15 @@ import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
-import { postCard, t } from "../chat/cards.js";
-import { deletionEntry, scenePaper, tileCentred, tilePlaced } from "../compat.js";
+import { keyChoices, postCard, t } from "../chat/cards.js";
+import { deletionEntry, scenePaper, tileReading, tileSettling } from "../compat.js";
 import { COMPANY_STARTS, COMPANY_START_FLAG } from "../rules/company.js";
 import { COMPANY_IMAGE } from "../rules/company-icons.js";
 import { companyPictureContext, resolveCompanyPicture, wireCompanyPicture } from "../apps/company-picture.js";
 import { randomSeed } from "../rules/random.js";
-import { LANDMARKS_PER_TYPE, LANDMARK_TYPES, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
-import { REALM_DRAWING_FLAG, drawingShortfalls } from "../rules/realm-drawing.js";
+import { blogLandmarksOn } from "./blog-landmarks.js";
+import { BOOK_LANDMARK_TYPES, LANDMARKS_PER_TYPE, REALM_FLAG, holdingName, validateRealm } from "../rules/realm.js";
+import { REALM_DRAWING_FLAG, SECRET_DRAWING_STEPS, drawingShortfalls, secretRolls } from "../rules/realm-drawing.js";
 import {
 	GRID_ALPHA,
 	LEVEL_ID,
@@ -27,15 +28,15 @@ import {
 	realmTextures,
 	tilesSettled
 } from "../rules/realm-documents.js";
-import { defaultRealmLook, normaliseRealmLook } from "../rules/realm-skins.js";
+import { defaultRealmLook, lookForNewRealms, normaliseRealmLook, refadedIcons } from "../rules/realm-skins.js";
 import { laidMapRect, normaliseRealmPicture } from "../rules/realm-map.js";
 import { mapPictureContext, measurePicture, readMapLayout, readMapPictures, wireMapPictureFields } from "./realm-map.js";
 import { generateRealm } from "../rules/realm-generator.js";
 import { OWN_SIZE_LIMITS, SETUP_PARTS, normaliseRealmSetup } from "../rules/realm-setup.js";
 import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geometry.js";
-import { relayRealm } from "../rules/realm-edits.js";
+import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
-import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
+import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
@@ -43,7 +44,8 @@ import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
 import { closeMapSizeWindow, openMapSizeWindow } from "../apps/map-size-window.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
-import { keptFromMe } from "./solo.js";
+import { LOCKED_BRUSHES, brushLockedOn, drawingSecrets, keptFromMe, realmKnown, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
+import { SOLO_SECRETS_FLAG, SOLO_SECRET_WAYS, settleOwnSecrets } from "../rules/solo.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
 export const REALM_LOOK_SETTING = "realmLook";
@@ -85,25 +87,30 @@ export function getRealmLook(scene) {
 const lookFlag = (look) => ({ [`flags.${SYSTEM_ID}.${REALM_LOOK_FLAG}`]: normaliseRealmLook(look) });
 
 /**
- * Give a Realm Scene a look of its own and redraw it in that look. The look
- * also becomes the one new Realm Scenes start with; no other Scene changes.
+ * Give a Realm Scene a look of its own and redraw it in that look. The look,
+ * all but its fading, also becomes the one new Realm Scenes start with; no other
+ * Scene changes. Icons whose fading changes are all drawn at the new strength,
+ * even those a Referee faded by hand.
  * @param {Scene|null} scene A Realm Scene, or null to change only what new Realms start with.
  * @param {import("../rules/realm-skins.js").RealmLook} look
+ * @param {object} [options]
+ * @param {number} [options.gridAlpha] A strength for the Scene's hex lines, written with the look.
  * @returns {Promise<void>}
  */
-export async function setRealmLook(scene, look) {
+export async function setRealmLook(scene, look, { gridAlpha } = {}) {
 	if (!game.user.isGM) return;
 	// Scenes still drawn in the old default keep it, rather than drifting to the new one as they're edited.
 	await keepRealmLooks();
 	if (isRealmScene(scene)) {
 		const textures = realmTextures(look);
+		const refade = refadedIcons(getRealmLook(scene), look);
 		await queueRealmWrite(async () => {
-			await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures);
+			await writeRealm(scene, getRealm(scene).realm, sceneGeometry(scene), textures, { refade });
 			// The flag rides with the colours, so the Scene is drawn again once.
-			await paintRealmScene(scene, textures.colours, lookFlag(look));
+			await paintRealmScene(scene, textures.colours, { ...lookFlag(look), ...gridAlphaChange(scene, gridAlpha) });
 		});
 	}
-	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, normaliseRealmLook(look));
+	await game.settings.set(SYSTEM_ID, REALM_LOOK_SETTING, lookForNewRealms(look));
 }
 
 /**
@@ -197,25 +204,46 @@ export function hexHiddenByHand(scene, hex) {
  * @param {string} [sceneId] Omit to forget every Realm.
  */
 export function forgetRealm(sceneId) {
-	if (sceneId) realms.delete(sceneId);
-	else realms.clear();
+	if (sceneId) {
+		realms.delete(sceneId);
+		settledScenes.delete(sceneId);
+	} else {
+		realms.clear();
+		settledScenes.clear();
+	}
+}
+
+/** @type {Map<string, boolean>} Whether each unflagged Realm's Tiles are settled, kept until its documents change. */
+const settledScenes = new Map();
+
+/**
+ * tilesSettled for a Scene, its Tiles read once until any of them changes
+ * (forgetRealm), and not at all once the Scene is flagged settled.
+ * @param {Scene|null|undefined} scene
+ * @returns {boolean}
+ */
+export function realmTilesSettled(scene) {
+	if (scene?.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return true;
+	if (!scene?.id) return tilesSettled(scene?.flags, scene?.tiles ?? []);
+	let settled = settledScenes.get(scene.id);
+	if (settled === undefined) settledScenes.set(scene.id, settled = tilesSettled(scene.flags, scene.tiles));
+	return settled;
 }
 
 /**
  * @param {Scene} scene
- * @returns {{tiles: object[], drawings: object[]}} The source data planRealmSync compares against,
- *   each Tile centred, as the Realm's rules read every Tile.
+ * @returns {{tiles: object[], drawings: object[], settled: boolean}} The source data planRealmSync compares against,
+ *   each Tile centred, as the Realm's rules read every Tile, and whether its Tiles are settled (tilesSettled).
  */
-const existingDocuments = (scene) => ({
-	tiles: centredTiles(scene),
-	drawings: scene.drawings.map((drawing) => drawing._source)
-});
+function existingDocuments(scene) {
+	return { tiles: centredTiles(scene), drawings: scene.drawings.map((drawing) => drawing._source), settled: realmTilesSettled(scene) };
+}
 
 /**
  * @param {Scene} scene
- * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand (tilesSettled).
+ * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand.
  */
-const tileCentreOn = (scene) => (tilesSettled(scene.flags) ? tileCentred : (tile) => tile._source);
+const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
 
 /**
  * @param {Scene} scene A Realm Scene.
@@ -225,18 +253,18 @@ export const centredTiles = (scene) => scene.tiles.map(tileCentreOn(scene));
 
 /**
  * Move each Tile of a Realm laid on v13 before Tiles were placed there by their
- * corners from its centre to its corner, once, so every write after places
- * them all alike. Nothing to do on v14, or on a Realm already moved.
+ * corners to where this Foundry places a Tile, once, so every write after places
+ * them all alike: its corner on v13, its centre anchored there on v14.
+ * A Realm laid on v14 before it was flagged has nothing to move, and is only
+ * flagged, so its Tiles aren't searched again.
  * @param {Scene} scene
  */
 async function settleRealmTiles(scene) {
-	if (tilesSettled(scene.flags)) return;
-	const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => {
-		const { x, y, width, height } = tile._source;
-		const corner = tilePlaced({ x, y, width, height });
-		return { _id: tile.id, x: corner.x, y: corner.y };
-	});
-	if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+	if (scene.flags?.[SYSTEM_ID]?.[TILE_CORNERS_FLAG]) return;
+	if (!realmTilesSettled(scene)) {
+		const moves = scene.tiles.contents.filter((tile) => realmFlag(tile)).map((tile) => ({ _id: tile.id, ...tileSettling(tile) }));
+		if (moves.length) await scene.updateEmbeddedDocuments("Tile", moves);
+	}
 	await scene.update({ [`flags.${SYSTEM_ID}.${TILE_CORNERS_FLAG}`]: true });
 }
 
@@ -255,12 +283,13 @@ const queueRealmWrite = serialWrites();
  * @param {ReturnType<typeof realmTextures>} textures
  * @param {object} [options]
  * @param {boolean} [options.replacing] Passed to planRealmSync.
+ * @param {string[]} [options.refade] Passed to planRealmSync.
  * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
  * @returns {Promise<boolean>} Whether anything was written.
  */
-async function writeRealm(scene, realm, g, textures, { replacing = false, operation = {} } = {}) {
+async function writeRealm(scene, realm, g, textures, { replacing = false, refade = [], operation = {} } = {}) {
 	await settleRealmTiles(scene);
-	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing });
+	const plan = planRealmSync(realm, g, textures, existingDocuments(scene), { replacing, refade });
 	const flag = realmFlagChanges(realmFlag(scene), realm, g);
 	if (!planChanges(plan) && !flag) return false;
 	if (flag) {
@@ -273,8 +302,8 @@ async function writeRealm(scene, realm, g, textures, { replacing = false, operat
 	for (const step of ["delete", "update", "create"]) {
 		await Promise.all(Object.entries(plan)
 			.filter(([, writes]) => writes[step].length)
-			// A copy each, as Foundry writes into the options it's handed.
-			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], { ...operation })));
+			// A copy each, as Foundry writes into the options it's handed. Created Tiles keep any id planRealmSync gave them.
+			.map(([type, writes]) => scene[`${step}EmbeddedDocuments`](type, writes[step], step === "create" ? { ...operation, keepId: true } : { ...operation })));
 	}
 	return true;
 }
@@ -310,9 +339,28 @@ async function paintRealmScene(scene, colours, extra = {}) {
  */
 export async function setRealmGridAlpha(scene, alpha) {
 	if (!game.user.isGM || !isRealmScene(scene)) return;
+	const change = gridAlphaChange(scene, alpha);
+	if (!foundry.utils.isEmpty(change)) await scene.update(change);
+}
+
+/**
+ * @param {Scene|null} scene
+ * @returns {number|null} How strongly a Realm Scene's hex lines are drawn, 0 to 1, as saved; null with no Scene.
+ */
+export const realmGridAlpha = (scene) => (scene ? scene._source.grid?.alpha ?? GRID_ALPHA : null);
+
+/** @returns {boolean} Whether two strengths of hex lines differ by more than a slider can tell. */
+export const gridAlphaDiffers = (a, b) => a !== null && b !== null && Math.abs(a - b) > 0.005;
+
+/**
+ * @param {Scene} scene
+ * @param {number|undefined} alpha
+ * @returns {object} The change that draws the Scene's hex lines at that strength, or none where they already are.
+ */
+function gridAlphaChange(scene, alpha) {
+	if (alpha === undefined) return {};
 	const wanted = Math.min(1, Math.max(0, Number(alpha) || 0));
-	if (Math.abs((scene._source.grid?.alpha ?? GRID_ALPHA) - wanted) < 0.005) return;
-	await scene.update({ "grid.alpha": wanted });
+	return gridAlphaDiffers(realmGridAlpha(scene), wanted) ? { "grid.alpha": wanted } : {};
 }
 
 /**
@@ -347,6 +395,12 @@ export async function refreshRealmScenes() {
 	});
 }
 
+/**
+ * Roll a Realm, with the blog's Landmarks while their setting is on.
+ * @param {Parameters<typeof generateRealm>[0]} options
+ */
+const rollRealm = (options) => generateRealm({ ...options, blogLandmarks: blogLandmarksOn() });
+
 /** The look each Realm Scene is previewed in on this client, by Scene id, as normalised JSON. */
 const previews = new Map();
 
@@ -380,15 +434,16 @@ export function endRealmLookPreview({ redraw = true } = {}) {
 	});
 }
 
-/** Tiles a look being tried out hides on this client, by Scene id: each Tile's id, and the alpha it had. */
-const previewHidden = new Map();
+/** Tiles a look being tried out hides or fades on this client, by Scene id: each Tile's id, and the alpha it had. */
+const previewAlpha = new Map();
 
 /**
  * Change a Realm Scene's documents to a look in this client's memory only.
  * Some looks draw Tiles others don't, such as the sheet's lake shores: trying
  * a look out hides those it has no use for, and draws those it adds on the
- * canvas alone, with no document behind them. Showing the saved look takes
- * both away again.
+ * canvas alone, with no document behind them. A look fading its icons
+ * otherwise fades them all, those faded by hand too. Showing the saved look
+ * takes all of it away again.
  * @param {Scene} scene
  * @param {import("../rules/realm-skins.js").RealmLook} look
  * @param {{redraw: boolean, preview?: boolean}} options `preview` for a look being tried out, rather than the saved one.
@@ -398,36 +453,41 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
 	const entry = getRealm(scene);
 	if (!entry) return;
 	const onCanvas = scene === canvas?.scene;
-	const changed = [];
+	// Each document changed, and whether only its alpha did, which Foundry shows without drawing the Tile again.
+	const changed = new Map();
+	const note = (document, alphaOnly) => changed.set(document, (changed.get(document) ?? true) && alphaOnly);
 	// What the last look tried hid comes back first, so the plan is made against the Scene as it's saved.
-	for (const [id, alpha] of previewHidden.get(scene.id) ?? []) {
+	for (const [id, alpha] of previewAlpha.get(scene.id) ?? []) {
 		const tile = scene.tiles.get(id);
 		if (!tile) continue;
 		tile.updateSource({ alpha });
-		changed.push(tile);
+		note(tile, true);
 	}
-	previewHidden.delete(scene.id);
+	previewAlpha.delete(scene.id);
 	if (onCanvas) canvas.realm?.clearLookTiles();
 
-	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene));
+	// A look being tried out fades every icon it fades differently from the saved look; each alpha it had is kept to put back.
+	const refade = preview ? refadedIcons(getRealmLook(scene), look) : [];
+	const plan = planRealmSync(entry.realm, sceneGeometry(scene), textures, existingDocuments(scene), { refade });
+	const was = new Map();
 	for (const [type, writes] of Object.entries(plan)) {
 		for (const { _id, ...changes } of writes.update) {
 			const document = scene.getEmbeddedDocument(type, _id);
 			if (!document) continue;
+			if (preview && type === "Tile" && "alpha" in changes) was.set(_id, document._source.alpha);
 			document.updateSource(changes);
-			changed.push(document);
+			note(document, type === "Tile" && Object.keys(changes).every((key) => key === "alpha"));
 		}
 	}
 	if (preview) {
-		const hidden = new Map();
 		for (const id of plan.Tile.delete) {
 			const tile = scene.tiles.get(id);
 			if (!tile) continue;
-			hidden.set(id, tile._source.alpha);
+			if (!was.has(id)) was.set(id, tile._source.alpha);
 			tile.updateSource({ alpha: 0 });
-			changed.push(tile);
+			note(tile, true);
 		}
-		if (hidden.size) previewHidden.set(scene.id, hidden);
+		if (was.size) previewAlpha.set(scene.id, was);
 	}
 	const { grid, paper, sheet } = sceneColourChanges(scene, textures.colours);
 	if (grid) scene.updateSource({ "grid.color": grid });
@@ -436,7 +496,7 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
 	if (!redraw || !onCanvas) return;
 	// The paper and hex lines are only read as the Scene is drawn.
 	if (grid || paper) await canvas.draw();
-	else for (const document of changed) document.object?.renderFlags.set({ redraw: true });
+	else for (const [document, alphaOnly] of changed) document.object?.renderFlags.set(alphaOnly ? { refreshMesh: true } : { redraw: true });
 	if (preview && plan.Tile.create.length) await canvas.realm?.showLookTiles(plan.Tile.create);
 }
 
@@ -445,10 +505,12 @@ async function showRealmLook(scene, look, { redraw, preview = false }) {
  * write whatever that changed.
  * @param {Scene} scene
  * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
- * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @param {object} [options]
+ * @param {object} [options.operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @param {boolean} [options.record] Kept for Undo.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export async function editRealm(scene, edit, operation = {}) {
+async function changeRealm(scene, edit, { operation = {}, record = false } = {}) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const textures = currentRealmTextures(scene);
@@ -457,10 +519,31 @@ export async function editRealm(scene, edit, operation = {}) {
 		const next = edit(realm, g);
 		if (!next || next === realm) return false;
 		const written = await writeRealm(scene, next, g, textures, { operation });
-		if (written) setHistory(scene.id, recordChange(realmHistory(scene.id), realm));
+		// Read back once written, so what the edit made carries the ids its new documents were given.
+		if (written && record) setHistory(scene.id, recordChange(realmHistory(scene.id), { before: realm, after: getRealm(scene)?.realm ?? next }));
 		return written;
 	});
 }
+
+/**
+ * Change a Realm as play brings it about: a Myth found, an Omen met, a
+ * Barrier come up against. Undo on the map doesn't take it back.
+ * @param {Scene} scene
+ * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] Passed with each write of the Scene's documents, such as where an Omen was met (omensMet).
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+export const editRealm = (scene, edit, operation = {}) => changeRealm(scene, edit, { operation });
+
+/**
+ * Change a Realm by the Referee's hand: painting, Edit this hex, a Myth or
+ * Seer chosen, a picture placed. Undo on the map can take it back.
+ * @param {Scene} scene
+ * @param {(realm: object, g: object) => object} edit Returns the changed Realm.
+ * @param {object} [operation] As editRealm's.
+ * @returns {Promise<boolean>} Whether anything was written.
+ */
+export const editRealmByHand = (scene, edit, operation = {}) => changeRealm(scene, edit, { operation, record: true });
 
 /** Each Realm Scene's Undo and Redo, by Scene id. This GM's own, until the page reloads. */
 const histories = new Map();
@@ -491,8 +574,39 @@ export function realmUndoState(scene) {
 }
 
 /**
+ * How the things of a Realm are matched between snapshots, as the documents
+ * they're written to are: Tiles by id, Barriers by their edge.
+ * @type {Record<string, (item: object) => string|null>}
+ */
+const REALM_LISTS = Object.freeze({
+	myths: (myth) => myth.id ?? null,
+	landmarks: (landmark) => landmark.id ?? null,
+	holdings: (holding) => holding.id ?? null,
+	barriers: (barrier) => barrier.edge ?? null
+});
+
+/**
+ * Played alone, Undo and Redo leave as they are what the brush and Edit this
+ * hex can't touch once the Realm's secrets are kept: a snapshot from before
+ * they were hidden would lay them, or show them, again.
+ * @param {Scene} scene
+ * @param {object} target The snapshot being stepped to.
+ * @param {object} current As things stand now.
+ * @returns {object}
+ */
+function keepSecretsAsTheyAre(scene, target, current) {
+	const kept = {
+		...(secretsKeptOn(scene) ? { myths: current.myths } : {}),
+		...Object.fromEntries(LOCKED_BRUSHES.filter((brush) => brushLockedOn(brush, scene)).map((brush) => [`${brush}s`, current[`${brush}s`]]))
+	};
+	return { ...target, ...kept };
+}
+
+/**
  * Take back the last Realm edit on a Scene, or put back the last one taken
- * back: painting, Barriers, and changes made in Edit this hex.
+ * back: painting, Barriers, and changes made in Edit this hex. What play has
+ * brought about since, such as a Myth found or an Omen met, is kept, unless
+ * the edit taken back is what set it.
  * @param {Scene} scene
  * @param {"undo"|"redo"} way
  * @returns {Promise<boolean>} Whether there was anything to take back or put back.
@@ -501,9 +615,12 @@ export async function stepRealmHistory(scene, way) {
 	if (!game.user.isGM || !isRealmScene(scene)) return false;
 	return queueRealmWrite(async () => {
 		const { realm } = getRealm(scene);
-		const step = stepHistory(realmHistory(scene.id), way, realm);
+		const step = stepChange(realmHistory(scene.id), way);
 		if (!step) return false;
-		await writeRealm(scene, step.target, sceneGeometry(scene), currentRealmTextures(scene));
+		const { before, after } = step.change;
+		const [to, from] = way === "undo" ? [before, after] : [after, before];
+		const target = keepSecretsAsTheyAre(scene, carryForward(to, from, realm, REALM_LISTS), realm);
+		await writeRealm(scene, target, sceneGeometry(scene), currentRealmTextures(scene));
 		setHistory(scene.id, step.history);
 		return true;
 	});
@@ -565,23 +682,26 @@ export async function rerollRealm(scene) {
 /**
  * Lay a newly rolled Realm over the one a Scene holds, set up as it was, and
  * keeping whatever parts the GM draws by hand. Nothing is asked and nothing is
- * posted: the callers do that.
+ * posted: the callers do that. Played alone, a Company already set down finds
+ * the new Myth in its hex, as it does once a drawn Realm's secrets are settled.
  * @param {Scene} scene
  * @returns {Promise<object>} The Realm now on the Scene.
  */
-function rollRealmAgain(scene) {
+async function rollRealmAgain(scene) {
 	const g = sceneGeometry(scene);
 	const textures = currentRealmTextures(scene);
-	return queueRealmWrite(async () => {
+	const rolled = await queueRealmWrite(async () => {
 		// Set up as it was first, keeping what the GM draws by hand.
 		const { realm: current } = getRealm(scene);
-		const realm = generateRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
+		const realm = rollRealm({ seed: randomSeed(), setup: current.setup ?? null, geometry: g, base: current });
 		// The new seed and rivers go into the Scene's flag with the rest.
 		await writeRealm(scene, realm, g, textures, { replacing: true });
 		// Undo would lay the old Realm's pieces over the new one.
 		forgetRealmHistory(scene.id);
 		return realm;
 	});
+	if (secretsKeptOn(scene)) await revealMythsBeenTo(scene);
+	return rolled;
 }
 
 /**
@@ -642,12 +762,15 @@ export async function newRealm() {
 	const [firstStart] = COMPANY_STARTS;
 	const upload = foundry.utils.randomID();
 	// A page to each part of the Realm on the rail down the dialog's left side.
+	// Played alone, a Realm drawn by hand asks who places its secrets, and whether the Referee sees them.
+	const askSecrets = draw && keptFromMe();
 	const pages = [
 		{ key: "realm", icon: "fa-map", label: t("realm.dialog.pages.realm") },
 		...(traced ? [{ key: "picture", icon: "fa-image", label: t("realm.picture.title") }] : []),
 		draw
 			? { key: "setup", icon: "fa-ruler-combined", label: t("realm.setup.sizeTitle") }
 			: { key: "setup", icon: "fa-sliders", label: t("realm.setup.title") },
+		...(askSecrets ? [{ key: "secrets", icon: "fa-eye-slash", label: t("solo.secrets.title") }] : []),
 		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
 		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
 	];
@@ -667,7 +790,8 @@ export async function newRealm() {
 		sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
 		...companyPictureContext(COMPANY_IMAGE),
 		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
-		startHint: t(`company.starts.${firstStart}.hint`)
+		startHint: t(`company.starts.${firstStart}.hint`),
+		soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
 	}));
 
 	const data = await foundry.applications.api.DialogV2.input({
@@ -721,7 +845,8 @@ export async function newRealm() {
 			img: await resolveCompanyPicture(data)
 		} : null,
 		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
-		review: SETUP_PARTS.some((part) => rules.roll[part])
+		review: SETUP_PARTS.some((part) => rules.roll[part]),
+		soloSecrets: askSecrets ? (SOLO_SECRET_WAYS.includes(data.soloSecrets) ? data.soloSecrets : SOLO_SECRET_WAYS[0]) : null
 	});
 	if (scene && draw) {
 		// Its buttons are shown once it's finished, not while it's still being painted.
@@ -808,10 +933,10 @@ function wireCompanyFields(element) {
  * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false, soloSecrets = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows, layout });
-	const realm = generateRealm({ seed, setup, geometry });
+	const realm = rollRealm({ seed, setup, geometry });
 	// The picture lies as large as fits on the map, unstretched, until the GM lines it up against the hexes.
 	const pictures = await fitRealmPicture(normaliseRealmPicture(picture), geometry);
 	if (pictures) realm.picture = pictures;
@@ -822,6 +947,8 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 		foundry.utils.expandObject({
 			...lookFlag(look),
 			...(drawing ? drawingFlag(true) : {}),
+			// Played alone, who places the Realm's secrets as it's drawn.
+			...(drawing && soloSecrets ? { [`flags.${SYSTEM_ID}.${SOLO_SECRETS_FLAG}`]: soloSecrets } : {}),
 			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
 			...(company?.start ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: company.start } : {}),
 			// A Realm drawn by hand hears what its Start sets going once it's finished.
@@ -915,7 +1042,7 @@ async function fitRealmPicture(picture, g) {
  * @param {Scene} scene
  * @param {string} layout One of REALM_LAYOUTS.
  * @returns {Promise<{relaid: boolean, trimmed: boolean}>} Whether the hexes changed, and whether any river or
- *   Barrier was cut back for no longer joining up.
+ *   Barrier was cut back for no longer joining up: played alone, only a Barrier already found.
  */
 export async function setRealmLayout(scene, layout) {
 	const none = { relaid: false, trimmed: false };
@@ -955,7 +1082,8 @@ export async function setRealmLayout(scene, layout) {
 		await writeRealm(scene, next, to, currentRealmTextures(scene));
 		// Undo would lay pieces down where the old hexes were.
 		forgetRealmHistory(scene.id);
-		return joined !== realm;
+		// Pictures picked again are no rivers or Barriers cut, and played alone a hidden Barrier lost says nothing.
+		return relayCutBack(realm, joined, { foundOnly: secretsKeptOn(scene) });
 	});
 	await restandCompany(scene, company);
 	return { relaid: true, trimmed };
@@ -1013,6 +1141,26 @@ export async function startRealmDrawing(scene) {
 const finishing = new Set();
 
 /**
+ * Played alone, as a Realm drawn by hand is first finished, its Myths,
+ * Landmarks and Barriers are settled as the Referee chose: rolled by the
+ * book's rules around what they drew, hidden from them; or those they placed
+ * themselves, hidden or left in view. Not for Undo to take back. A Company
+ * already set down finds the Myth in its hex, as it would have walking in.
+ * @param {Scene} scene
+ * @param {string} way One of SOLO_SECRET_WAYS.
+ * @returns {Promise<void>}
+ */
+async function settleSoloSecrets(scene, way) {
+	await editRealm(scene, (realm, g) => {
+		if (way !== "dice") return settleOwnSecrets(realm, way === "show");
+		const rolled = rollRealm({ seed: randomSeed(), setup: { ...(realm.setup ?? {}), roll: secretRolls() }, geometry: g, base: realm });
+		return { ...realm, myths: rolled.myths, landmarks: rolled.landmarks, barriers: rolled.barriers };
+	});
+	await scene.setFlag(SYSTEM_ID, SOLO_SECRETS_FLAG, null);
+	await revealMythsBeenTo(scene);
+}
+
+/**
  * Finish drawing a Realm by hand: Travel and Exploration come back beside
  * the map, and the GMs get the Realm's key. Where the Realm falls short of
  * what the sheet asks for, the GM is told what's missing and may finish it
@@ -1025,7 +1173,9 @@ export async function finishRealmDrawing(scene) {
 	if (!game.user.isGM || !isDrawingRealm(scene) || finishing.has(scene.id)) return false;
 	finishing.add(scene.id);
 	try {
-		const short = drawingShortfalls(getRealm(scene).realm);
+		const secrets = secretsToSettle(scene);
+		// What the dice will place isn't missing, and played alone what's hidden goes uncounted.
+		const short = drawingShortfalls(realmKnown(getRealm(scene).realm, scene), { leave: drawingSecrets(scene).handed ? SECRET_DRAWING_STEPS : [] });
 		if (short.length) {
 			const items = short.map((entry) => `<li>${foundry.utils.escapeHTML(drawingCountLabel(entry))}</li>`).join("");
 			const confirmed = await confirmDialog({
@@ -1036,6 +1186,7 @@ export async function finishRealmDrawing(scene) {
 			if (!confirmed) return false;
 		}
 
+		if (secrets) await settleSoloSecrets(scene, secrets);
 		await refreshThumbnail(scene, drawingFlag(false));
 	} finally {
 		finishing.delete(scene.id);
@@ -1059,7 +1210,7 @@ export async function finishRealmDrawing(scene) {
  */
 export function drawingCountLabel({ key, count, target, rivers = 0, disputed = false }) {
 	const base = `realmDrawing.tally.${key}`;
-	if (LANDMARK_TYPES.includes(key)) {
+	if (BOOK_LANDMARK_TYPES.includes(key)) {
 		return t("realmDrawing.tally.landmark", { type: t(`realmDrawing.sections.landmarks.lines.${key}.label`), count, min: LANDMARKS_PER_TYPE.min, max: LANDMARKS_PER_TYPE.max });
 	}
 	if (key === "river") return !rivers ? t(`${base}None`) : t(rivers > 1 ? `${base}s` : base, { count, rivers });

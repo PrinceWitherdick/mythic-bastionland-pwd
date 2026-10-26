@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { spreads } from "../../module/rules/book-art.js";
 import { CITY_QUEST_PAGES } from "../../module/rules/city-quest.js";
-import { castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, mythCastFolders } from "../../module/rules/cast-npcs.js";
+import { fingerprint } from "../../module/rules/book-text.js";
+import { WARBAND_CAST, castActor, castDetailUpdates, castNotes, cityCastActors, countDocuments, documentsIn, eitherUpdates, fieldedAsWarband, mythCastFolders } from "../../module/rules/cast-npcs.js";
 import { CITY_CAST } from "../../module/rules/myth-cast.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
@@ -71,6 +72,33 @@ describe("castActor", () => {
 		const actor = castActor(moth.cast[0], { key: "1-01", name: "The Moth", page: 30 }, 100, words);
 		expect(actor).not.toHaveProperty("img");
 		expect(actor).not.toHaveProperty("prototypeToken");
+	});
+});
+
+describe("fieldedAsWarband", () => {
+	const list = { "1-03": [fingerprint("Reed Spears")] };
+
+	it("knows one listed under their Myth, by the name before the comma", () => {
+		expect(fieldedAsWarband("1-03", "Reed Spears", list)).toBe(true);
+		expect(fieldedAsWarband("1-03", "Reed  Spears", list)).toBe(true);
+	});
+
+	it("leaves another name, the same name in another Cast, and Casts with none listed", () => {
+		expect(fieldedAsWarband("1-03", "Reed Bows", list)).toBe(false);
+		expect(fieldedAsWarband("1-04", "Reed Spears", list)).toBe(false);
+		expect(fieldedAsWarband(CITY_CAST, "Reed Spears", list)).toBe(false);
+	});
+
+	it("lists one each in the Catacomb, the Mist, the Tree and the Rock", () => {
+		expect(Object.keys(WARBAND_CAST)).toEqual(["5-04", "6-01", "6-06", "6-12"]);
+		for (const prints of Object.values(WARBAND_CAST)) {
+			expect(prints).toEqual([[expect.any(Number), expect.stringMatching(/^[0-9a-z]{12}$/)]]);
+		}
+	});
+
+	it("leaves the rest of a listed Myth's Cast as they're printed", () => {
+		const of = { key: "5-04", name: "The Marsh", page: pageOf("5-04") };
+		expect(castActor({ name: "Reed Spears, of the Marsh", stats: null, lines: [] }, of, 100, words).system.scale).toBe("individual");
 	});
 });
 
@@ -146,6 +174,11 @@ describe("castDetailUpdates", () => {
 			"system.scale": "swarm",
 			"system.notes": "<p>Bites.</p><p>Bats &amp; more.</p>"
 		});
+	});
+
+	it("gives a Warband brought in before the book's word on it was kept", () => {
+		expect(castDetailUpdates(npc("individual", ""), { system: { scale: "warband" } }, null)).toEqual({ "system.scale": "warband" });
+		expect(castDetailUpdates(npc("swarm", ""), { system: { scale: "warband" } }, null)).toBeNull();
 	});
 
 	it("leaves a scale the GM has set, a note already there, and a Cast with none", () => {

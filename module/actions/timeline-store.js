@@ -1,10 +1,11 @@
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
-import { serialWrites } from "../rules/queue.js";
-import { COMPANY_TRACK, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
+import { isKnight } from "../rules/knight-types.js";
+import { keyedSerialWrites, serialWrites } from "../rules/queue.js";
+import { COMPANY_TRACK, TIMELINE_JOURNAL_FLAG, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { afterBurst } from "./kept-journals.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
 import { isRealmScene } from "./realm.js";
 
 /**
@@ -14,9 +15,6 @@ import { isRealmScene } from "./realm.js";
  * of a Knight or Domain no player can see, such as a rival's, is on a page
  * kept for the Referee alone.
  */
-
-/** The flag that marks the Timeline's Journal entry, found by it whatever it's renamed to. */
-const TIMELINE_JOURNAL_FLAG = "timelineJournal";
 
 /** The Timeline's entry's id as last found: a render asks for it many times, and each search goes through every journal. */
 let timelineJournalId = null;
@@ -100,8 +98,8 @@ export function trackFor(target) {
 	if (target === COMPANY_TRACK) return { trackId: COMPANY_TRACK, kind: "company", name: globalThis.game?.i18n ? t("timeline.company") : COMPANY_TRACK };
 	if (!target?.id) return null;
 	if (target.documentName === "Scene") return isRealmScene(target) ? { trackId: realmTrackId(target.id), kind: "realm", name: target.name } : null;
-	if (target.type === "knight" || target.type === "domain") return { trackId: target.id, kind: target.type, name: target.name, secret: !seenByPlayers(target) };
-	return null;
+	const kind = isKnight(target) ? "knight" : target.type === "domain" ? "domain" : null;
+	return kind ? { trackId: target.id, kind, name: target.name, secret: !seenByPlayers(target) } : null;
 }
 
 /**
@@ -113,7 +111,7 @@ export function trackFor(target) {
 function worldTracks() {
 	return [
 		trackFor(COMPANY_TRACK),
-		...worldKnights((knight) => knight.hasPlayerOwner).map(trackFor),
+		...worldKnights(inCompany).map(trackFor),
 		...(game.actors?.contents ?? []).filter((actor) => actor.type === "domain").map(trackFor),
 		...(game.scenes?.contents ?? []).map(trackFor)
 	].filter(Boolean);
@@ -272,11 +270,7 @@ async function writeEntries(page, entries) {
 }
 
 /** Each thread's writes, one at a time, so a burst of them each reads what the last one wrote. */
-const trackWrites = new Map();
-const queueFor = (trackId) => {
-	if (!trackWrites.has(trackId)) trackWrites.set(trackId, serialWrites());
-	return trackWrites.get(trackId);
-};
+const queueFor = keyedSerialWrites();
 
 /**
  * The one way a thread's entries are written: read the page, run one of
@@ -348,10 +342,12 @@ const syncSoon = afterBurst((ids) => syncTrackPages({ seen: ids.filter(Boolean) 
 /** Keep a page for each new thread, and each page named after its thread. */
 export function registerTimelineStoreHooks() {
 	Hooks.on("createActor", (actor) => {
-		if (actor.type === "knight" || actor.type === "domain") syncSoon();
+		if (isKnight(actor) || actor.type === "domain") syncSoon();
 	});
 	Hooks.on("updateActor", (actor, changes) => {
-		if ((actor.type === "knight" || actor.type === "domain") && ("name" in changes || "ownership" in changes)) syncSoon("ownership" in changes ? actor.id : null);
+		if (!isKnight(actor) && actor.type !== "domain") return;
+		const seenChanged = "ownership" in changes || "type" in changes;
+		if (seenChanged || "name" in changes) syncSoon(seenChanged ? actor.id : null);
 	});
 	Hooks.on("createScene", (scene) => {
 		if (isRealmScene(scene)) syncSoon();

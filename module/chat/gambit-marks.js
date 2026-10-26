@@ -1,5 +1,5 @@
 import { attackMarks, markLapsed } from "../rules/gambit-marks.js";
-import { SYSTEM_ID } from "../system-id.js";
+import { attackOf } from "./attack-flag.js";
 import { t } from "./cards.js";
 
 /**
@@ -95,7 +95,7 @@ function readMarks(actor, now) {
 	const log = game.messages.contents;
 	for (let i = Math.max(0, log.length - SCANNED_MESSAGES); i < log.length; i++) {
 		const message = log[i];
-		const attack = message.flags?.[SYSTEM_ID]?.attack;
+		const attack = attackOf(message);
 		if (!attack?.gambits?.length || !targeted(attack, actor)) continue;
 		// A Trap lapses as its payer's next turn begins, who in a joint Attack may not be the attacker.
 		const turnOf = (uuid) => places.get(uuid) ?? null;
@@ -123,7 +123,7 @@ function readMarks(actor, now) {
  * @param {ChatMessage} message
  */
 function refreshMarked(message) {
-	const attack = message.flags?.[SYSTEM_ID]?.attack;
+	const attack = attackOf(message);
 	if (!attack?.gambits?.length) return;
 	for (const { uuid } of attack.targets ?? []) {
 		const actor = fromUuidSync(uuid)?.actor;

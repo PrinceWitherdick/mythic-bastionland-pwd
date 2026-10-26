@@ -91,8 +91,8 @@ async function chooseLeader(actors) {
 	const data = await foundry.applications.api.DialogV2.input({
 		window: { title: t("morale.group.title"), icon: "fa-solid fa-flag" },
 		classes: ["bastionland-dialog"],
-		content: `<div class="form-group"><label for="bastionland-morale-leader">${t("morale.group.leader")}</label>`
-			+ `<div class="form-fields"><select id="bastionland-morale-leader" name="leader">${options}</select></div></div>`,
+		content: `<div class="bastionland-dialog__body"><div class="form-group"><label for="bastionland-morale-leader">${t("morale.group.leader")}</label>`
+			+ `<div class="form-fields"><select id="bastionland-morale-leader" name="leader">${options}</select></div></div></div>`,
 		ok: { label: t("morale.roll"), icon: "fa-solid fa-dice-d20" },
 		rejectClose: false
 	});

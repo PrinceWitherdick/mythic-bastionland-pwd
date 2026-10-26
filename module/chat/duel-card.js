@@ -8,7 +8,7 @@ import { timelineDuel } from "../actions/timeline-events.js";
 import { confirmDialog } from "../apps/ui.js";
 import { readyToResolve, shakenOff, sparringOpen, stakeChanges } from "../rules/duel.js";
 import { escapeHTML } from "../rules/text.js";
-import { attackOf, saveChange as saveAttackChange } from "./attack-card.js";
+import { attackOf, confirmApply, saveChange as saveAttackChange } from "./attack-card.js";
 import { onCardClick, postCard, t, warn } from "./cards.js";
 
 /**
@@ -37,6 +37,9 @@ async function onResolve(message) {
 	if (!cards.every(attackOf)) return warn("duel.attackGone");
 
 	const blows = cards.map((card, index) => ({ card, attack: attackOf(card), target: actors[1 - index] }));
+	// Unspent dice, a Deny still to make and Saves still to roll are said first, as Apply does on one card.
+	const waiting = blows.filter(({ attack }) => !attack.appliedTo.length).map(({ attack, target }) => ({ attack, actors: [target] }));
+	if (!(await confirmApply(waiting))) return;
 	for (const { card, attack, target } of blows) {
 		if (attack.appliedTo.length) continue;
 		// Only a real fight to the death gives Scars (p9), and sparring's Damage is

@@ -1,5 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JOURNEY_FLAG, forgetHexVisits, getJourney, legHexes, markHexVisited, movesAsCompany, recordHexVisits } from "../../module/actions/journey.js";
+import {
+	COMPANY_MOVED_HOOK,
+	COMPANY_PLACED_HOOK,
+	JOURNEY_FLAG,
+	forgetHexVisits,
+	forgetMoveVisits,
+	getJourney,
+	heldBack,
+	heldBackFrom,
+	legHexes,
+	markHexVisited,
+	movesAsCompany,
+	recordHexVisits,
+	registerJourneyHooks,
+	setHeldBack
+} from "../../module/actions/journey.js";
 import { REALM_FLAG } from "../../module/rules/realm.js";
 import { hexCentre, hexKey, realmGeometry } from "../../module/rules/realm-geometry.js";
 import { SYSTEM_ID } from "../../module/system-id.js";
@@ -9,6 +24,9 @@ const hex = (col, row) => ({ col, row });
 const spring = { age: 1, year: 1, season: "spring", day: 2, phase: "afternoon" };
 
 class ForcedDeletion {}
+
+// What the Timeline makes of the hexes come to is timeline-events.js's to test.
+vi.mock("../../module/actions/timeline-events.js", () => ({ timelineArrivals: vi.fn(async () => {}) }));
 
 /** A Realm Scene whose updates land on its own flags, as Foundry's would. */
 function realmScene(tokens = []) {
@@ -89,6 +107,59 @@ describe("recordHexVisits", () => {
 	});
 });
 
+describe("a move taken back", () => {
+	it("forgets the arrival the move made in each hex, and no later one", async () => {
+		const scene = realmScene();
+		await recordHexVisits(scene, [hex(2, 2), hex(3, 2)]);
+		await recordHexVisits(scene, [hex(2, 2)]);
+		const first = getJourney(scene).hexes["2,2"].first.order;
+		await forgetMoveVisits(scene, [hex(2, 2), hex(3, 2)], { "2,2": first, "3,2": getJourney(scene).hexes["3,2"].last.order });
+		// The later arrival in 2,2 stays; 3,2, come into only on that move, is forgotten.
+		expect(getJourney(scene).hexes["2,2"].count).toBe(1);
+		expect(getJourney(scene).hexes["2,2"].last.order).toBeGreaterThan(first);
+		expect(getJourney(scene).hexes["3,2"]).toBeUndefined();
+		// Without its arrivals, as on an older card, nothing is forgotten: the last may be a later move's.
+		await expect(forgetMoveVisits(scene, [hex(2, 2)])).resolves.toBe(false);
+		expect(getJourney(scene).hexes["2,2"].count).toBe(1);
+	});
+});
+
+describe("heldBack", () => {
+	/** @returns {object} A Realm Scene whose flags can be set and unset. */
+	const flaggedScene = () => {
+		const scene = realmScene();
+		scene.setFlag = vi.fn(async (scope, key, value) => (scene.flags[scope][key] = structuredClone(value)));
+		scene.unsetFlag = vi.fn(async (scope, key) => delete scene.flags[scope][key]);
+		return scene;
+	};
+
+	it("keeps the hexes a move may be held back from under that move, and settles them", async () => {
+		const scene = flaggedScene();
+		await setHeldBack(scene, [hex(4, 4)], { move: "move1" });
+		expect(heldBack(scene)).toEqual({ move: "move1", hexes: new Set(["4,4"]), keys: new Set(["4,4"]) });
+		expect(heldBackFrom(scene, hex(4, 4))).toBe(true);
+		expect(heldBackFrom(scene, hex(4, 5))).toBe(false);
+		// Written only where it changes.
+		await expect(setHeldBack(scene, [hex(4, 4)], { move: "move1" })).resolves.toBe(false);
+		await setHeldBack(scene, []);
+		expect(heldBack(scene)).toEqual({ move: null, hexes: new Set(), keys: new Set() });
+		await expect(setHeldBack(scene, [])).resolves.toBe(false);
+	});
+
+	it("keeps a move held back played together, with nothing kept from being found", async () => {
+		const scene = flaggedScene();
+		await setHeldBack(scene, [hex(4, 4)], { move: "move1", kept: false });
+		expect(heldBack(scene)).toEqual({ move: "move1", hexes: new Set(["4,4"]), keys: new Set() });
+		expect(heldBackFrom(scene, hex(4, 4))).toBe(false);
+	});
+
+	it("still reads the hex keys alone", () => {
+		const scene = realmScene();
+		scene.flags[SYSTEM_ID].heldBack = ["2,3", 7];
+		expect(heldBack(scene)).toEqual({ move: null, hexes: new Set(["2,3"]), keys: new Set(["2,3"]) });
+	});
+});
+
 describe("movesAsCompany", () => {
 	it("follows the Company Token where there is one, and any player's Token where there isn't", () => {
 		const company = token("c", { company: true });
@@ -105,6 +176,21 @@ describe("movesAsCompany", () => {
 		const monster = token("m");
 		monster.parent = realmScene([monster]);
 		expect(movesAsCompany(monster)).toBe(false);
+	});
+
+	it("follows a Knight riding with the Company in solo play, where the Referee owns them all", () => {
+		const solo = { type: "knight", hasPlayerOwner: false, getFlag: () => undefined };
+		const theirs = { ...solo, getFlag: () => false };
+		const knight = { ...token("k"), actor: solo };
+		const ruler = { ...token("r"), actor: theirs };
+		const scene = realmScene([knight, ruler]);
+		knight.parent = scene;
+		ruler.parent = scene;
+		expect(movesAsCompany(knight)).toBe(false);
+		game.settings.get = (_scope, key) => (key === "soloPlay" ? true : spring);
+		expect(movesAsCompany(knight)).toBe(true);
+		// A Holding's ruler the Referee marked as theirs isn't the Company.
+		expect(movesAsCompany(ruler)).toBe(false);
 	});
 
 	it("follows only the first Company Token, not a copy of it pasted beside", () => {
@@ -144,5 +230,26 @@ describe("legHexes", () => {
 		expect(legHexes(company, { method: "dragging", origin: at(4, 4), passed: { waypoints: [at(4, 4)] } }, g)).toEqual([]);
 		expect(legHexes(company, { method: "dragging", passed: { waypoints: [] } }, g)).toEqual([]);
 		expect(legHexes(company, null, g)).toEqual([]);
+	});
+});
+
+describe("the Company set down", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		delete globalThis.Hooks;
+	});
+
+	it("tells what follows the Company of the hex its Token was first put in, apart from a move", async () => {
+		vi.useFakeTimers();
+		const hooks = new Map();
+		globalThis.Hooks = { on: (name, fn) => hooks.set(name, fn), callAll: vi.fn() };
+		registerJourneyHooks();
+		const company = { ...token("c", { company: true }), getCenterPoint: () => hexCentre(g, hex(3, 4)) };
+		company.parent = realmScene([company]);
+
+		hooks.get("createToken")(company);
+		await vi.runAllTimersAsync();
+		expect(Hooks.callAll).toHaveBeenCalledWith(COMPANY_PLACED_HOOK, company.parent, [hex(3, 4)]);
+		expect(Hooks.callAll).not.toHaveBeenCalledWith(COMPANY_MOVED_HOOK, expect.anything(), expect.anything());
 	});
 });

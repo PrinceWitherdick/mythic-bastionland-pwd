@@ -11,6 +11,7 @@ import { ALTERNATE_QUALITIES, SPECIALIST_DICE } from "./attack.js";
 import { countsAsHeftyMounted, parseAttacks, parseStatLine } from "./stat-blocks.js";
 import { capitalise, paragraphs, parentheticals, splitOutside } from "./text.js";
 import { VIRTUES } from "./virtues.js";
+import { isKnight } from "./knight-types.js";
 
 const COMMA = /^,/;
 const JOINER = /^\s+(?:and|or)\s+/i;
@@ -541,7 +542,7 @@ export function ownerOf(actors, { uuid, companionOf } = {}) {
 	// them asks it for each of them in turn.
 	let made = null;
 	for (const actor of actors) {
-		if (actor.type !== "knight") continue;
+		if (!isKnight(actor)) continue;
 		if (uuid && actor.system?.steed === uuid) return actor;
 		if (companionOf && !made && actor.id === companionOf) made = actor;
 	}

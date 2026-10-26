@@ -13,6 +13,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => ({ outcome: "wounded" })) }));
 vi.mock("../../module/chat/attack-card.js", () => ({
 	attackOf: (message) => message?.attack ?? null,
+	confirmApply: vi.fn(async () => true),
 	saveChange: vi.fn(async () => true)
 }));
 vi.mock("../../module/actions/glory.js", () => ({ adjustGlory: vi.fn(async () => []) }));
@@ -23,6 +24,7 @@ vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDuel: vi.fn(
 const { inputDialog } = await import("../../module/apps/ui.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { takeAttack } = await import("../../module/actions/damage.js");
+const { confirmApply } = await import("../../module/chat/attack-card.js");
 const { challengeToDuel, duelCardContext } = await import("../../module/actions/duel.js");
 const { registerDuelCards } = await import("../../module/chat/duel-card.js");
 
@@ -173,6 +175,22 @@ describe("a sparring duel's buttons", () => {
 		for (const call of takeAttack.mock.calls) expect(call[2]).toMatchObject({ scars: false, sparring: true });
 	});
 
+	it("asks first about what's still to be had on both Attacks, and lands nothing if told no", async () => {
+		const duel = sparring();
+		duel.duelists[0].attack = "attack-a";
+		duel.duelists[1].attack = "attack-b";
+		takeAttack.mockClear();
+		confirmApply.mockClear();
+		confirmApply.mockResolvedValueOnce(false);
+		await renderDuel(duel).press({ duelAction: "resolve" });
+		// Each Attack is weighed against the duelist it lands on.
+		expect(confirmApply).toHaveBeenCalledWith([
+			{ attack: game.messages.get("attack-a").attack, actors: [actors["Actor.bram"]] },
+			{ attack: game.messages.get("attack-b").attack, actors: [actors["Actor.ada"]] }
+		]);
+		expect(takeAttack).not.toHaveBeenCalled();
+	});
+
 	it("puts back what the bout cost as it ends, and says so", async () => {
 		Object.assign(actors["Actor.ada"].system, { guard: { value: 0 }, virtues: { vig: { value: 5 } }, wounded: true });
 		actors["Actor.bram"].system.guard.value = 1;
@@ -259,5 +277,67 @@ describe("a sparring duel's buttons", () => {
 		await hooks.calendarChanged();
 		await hooks.deleteCombat(combatOf("Actor.ada"));
 		expect(bout.message.flags[SYSTEM_ID].duel.ended).toBe(false);
+	});
+});
+
+describe("an Attack recorded on a duel card", () => {
+	let duelMessage;
+	let saveDuelChange;
+	let onDuelQuery;
+
+	/** An Attack card, as attack-card.js keeps its state. */
+	const attackCard = (id, attack) => [id, { id, flags: { [SYSTEM_ID]: { attack: { attacker: "Actor.ada", duel: "duel-1", appliedTo: [], ...attack } } } }];
+
+	beforeEach(async () => {
+		({ saveDuelChange, onDuelQuery } = await import("../../module/actions/duel.js"));
+		globalThis.foundry = { applications: { handlebars: { renderTemplate: async () => "<section></section>" } } };
+		// Ada's player owns Ada, and nobody else.
+		globalThis.fromUuidSync = (uuid) => ({ testUserPermission: (user) => uuid === "Actor.ada" && user.id === "ada-player" });
+		duelMessage = { id: "duel-1", isOwner: true, flags: { [SYSTEM_ID]: { duel: createDuel({ duelists }) } } };
+		duelMessage.update = vi.fn(async (changes) => { duelMessage.flags[SYSTEM_ID].duel = changes[`flags.${SYSTEM_ID}.duel`]; });
+		game.messages = new Map([
+			["duel-1", duelMessage],
+			attackCard("ada-attack", {}),
+			// The Referee's dragon, at somebody else.
+			attackCard("dragon-attack", { attacker: "Actor.dragon", duel: null }),
+			attackCard("ada-old", { appliedTo: ["Bram"] }),
+			attackCard("ada-elsewhere", { duel: "duel-2" })
+		]);
+		game.users = { activeGM: { isSelf: true } };
+	});
+
+	afterEach(() => {
+		for (const key of ["foundry", "fromUuidSync"]) delete globalThis[key];
+	});
+
+	const attackOn = (message) => ({ type: "attack", actor: "Actor.ada", message });
+	const adaAttack = () => duelMessage.flags[SYSTEM_ID].duel.duelists[0].attack;
+
+	it("takes the duelist's own Attack, rolled for this duel and not yet applied", async () => {
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "ada-player" } })).toBe(true);
+		expect(adaAttack()).toBe("ada-attack");
+	});
+
+	it("refuses another card swapped in, asked of the GM", async () => {
+		const ask = (message) => onDuelQuery({ messageId: "duel-1", change: attackOn(message) }, { user: { id: "ada-player" } });
+		for (const message of ["dragon-attack", "ada-old", "ada-elsewhere", "missing", "duel-1"]) expect(await ask(message)).toBe(false);
+		expect(adaAttack()).toBeNull();
+		expect(duelMessage.update).not.toHaveBeenCalled();
+	});
+
+	it("refuses it on the card's own client too", async () => {
+		const warn = vi.fn();
+		globalThis.ui = { notifications: { warn } };
+		expect(await saveDuelChange(duelMessage, attackOn("dragon-attack"))).toBe(false);
+		expect(warn).toHaveBeenCalledWith("bastionland.duel.changeRefused");
+		expect(adaAttack()).toBeNull();
+		expect(await saveDuelChange(duelMessage, attackOn("ada-attack"))).toBe(true);
+		expect(adaAttack()).toBe("ada-attack");
+	});
+
+	it("refuses an Attack for somebody who doesn't own the duelist, or with nobody asking", async () => {
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, { user: { id: "bram-player" } })).toBe(false);
+		expect(await onDuelQuery({ messageId: "duel-1", change: attackOn("ada-attack") }, {})).toBe(false);
+		expect(adaAttack()).toBeNull();
 	});
 });

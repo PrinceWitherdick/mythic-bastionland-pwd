@@ -137,3 +137,36 @@ describe("validateRealm", () => {
 		for (const { reason } of validateRealm(realm, g)) expect(REALM_PROBLEMS).toContain(reason);
 	});
 });
+
+describe("validateRealm and the blog's Landmarks", () => {
+	const landmark = (col, extra) => ({ id: null, hex: { col, row: 1 }, name: "", seer: null, revealed: false, ...extra });
+	const problems = (landmarks) => {
+		const realm = emptyRealm(g);
+		realm.terrain.fill(1);
+		realm.landmarks = landmarks;
+		return validateRealm(realm, g).map(({ reason, key }) => `${reason}:${key}`);
+	};
+
+	it("takes the Referee's own Landmark and the blog's as Landmarks", () => {
+		expect(problems([landmark(1, { type: "other" }), landmark(2, { type: "bridge" }), landmark(3, { type: "fountain", variant: "inky" })])).toEqual([]);
+	});
+
+	it("asks which a Grotto, Fountain or Willow is", () => {
+		expect(problems([landmark(1, { type: "grotto" }), landmark(2, { type: "willow", variant: "summer" })])).toEqual(["variant:1,1", "variant:2,1"]);
+	});
+
+	it("allows two Ponds to a pair, not three", () => {
+		expect(problems([landmark(1, { type: "pond", pair: 1 }), landmark(2, { type: "pond", pair: 1 }), landmark(3, { type: "pond", pair: 2 })])).toEqual([]);
+		expect(problems([landmark(1, { type: "pond", pair: 1 }), landmark(2, { type: "pond", pair: 1 }), landmark(3, { type: "pond", pair: 1 })])).toEqual(["pair:3,1"]);
+	});
+
+	it("names each new problem", () => {
+		expect(REALM_PROBLEMS).toEqual(expect.arrayContaining(["variant", "pair"]));
+	});
+
+	it("tells the players which sort a revealed one is", () => {
+		const realm = emptyRealm(g);
+		realm.landmarks = [landmark(1, { type: "fountain", variant: "red", revealed: true })];
+		expect(hexSummary(realm, g, { col: 1, row: 1 }).landmark).toEqual({ type: "fountain", name: "", revealed: true, variant: "red" });
+	});
+});

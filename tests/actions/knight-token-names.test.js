@@ -41,10 +41,13 @@ describe("new Knights", () => {
 		expect(knight.updateSource).not.toHaveBeenCalled();
 	});
 
-	it("leave other actors alone", () => {
+	it("leave other actors alone, the Referee's NPC Knights among them", () => {
 		const foe = fakeActor("npc");
+		const rival = fakeActor("npcKnight");
 		hooks.preCreateActor(foe, {});
+		hooks.preCreateActor(rival, {});
 		expect(foe.updateSource).not.toHaveBeenCalled();
+		expect(rival.updateSource).not.toHaveBeenCalled();
 	});
 });
 

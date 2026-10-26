@@ -29,6 +29,22 @@ function chipTarget(chip) {
 	return { scene, hex: parseHexKey(chip.dataset.hexTarget) };
 }
 
+/**
+ * Ring the hex a chip names on the map while the pointer is over it, for every
+ * such chip inside an element. The ring goes by itself once the pointer leaves.
+ * @param {HTMLElement} element
+ * @param {string} selector The chips.
+ * @param {(chip: HTMLElement) => {scene: Scene|null, hex: {col: number, row: number}|null}} targetOf
+ */
+export function ringHexesOnHover(element, selector, targetOf) {
+	element.addEventListener("pointerover", (event) => {
+		const chip = event.target.closest?.(selector);
+		if (!chip) return;
+		const { scene, hex } = targetOf(chip);
+		if (scene && hex && canvas?.scene?.id === scene.id) ringHoveredHex(scene, hex, chip);
+	});
+}
+
 /** Called during init. */
 export function registerHexTargets() {
 	registerCardButtons({
@@ -40,14 +56,7 @@ export function registerHexTargets() {
 		}
 	});
 
-	// The hover ring goes by itself once the pointer leaves the chip.
 	Hooks.on("renderChatMessageHTML", (_message, html) => {
-		if (!html.querySelector(SELECTOR)) return;
-		html.addEventListener("pointerover", (event) => {
-			const chip = event.target.closest(SELECTOR);
-			if (!chip) return;
-			const { scene, hex } = chipTarget(chip);
-			if (scene && hex && canvas.scene?.id === scene.id) ringHoveredHex(scene, hex, chip);
-		});
+		if (html.querySelector(SELECTOR)) ringHexesOnHover(html, SELECTOR, chipTarget);
 	});
 }

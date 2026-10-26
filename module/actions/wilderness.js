@@ -14,22 +14,25 @@ import {
 	wildernessOutcome,
 	wildernessSituation
 } from "../rules/wilderness.js";
-import { throwsOffCourse } from "../rules/landmarks.js";
+import { landmarkLabelKey, throwsOffCourse } from "../rules/landmarks.js";
 import { cityOmenReplaces, worthyOfCityQuest } from "../rules/city-quest.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { getCalendar } from "./calendar.js";
 import { samePhase } from "../rules/time.js";
 import { cityOmensSeen, rollCityOmen } from "./city-quest.js";
 import { findCompanyToken } from "./company.js";
+import { heldBackFrom } from "./journey.js";
 import { landmarkOfferView, nameLandmarkFromPrompt, strikeOffCourse } from "./landmarks.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { inCompany, sidesWithCompany } from "./knights.js";
 import { keptFromMe } from "./solo.js";
 import { omensMet, timelineLandmarkFound } from "./timeline-events.js";
 import { liveRealm } from "./myth-notes.js";
+import { omenSceneChips, omenSceneIds } from "./omen-scenes.js";
 
 /**
  * Where the Company stands: the selected Tokens, or else every Token with a
- * player owner.
+ * player owner, or of a Knight riding with the Company.
  * @param {Scene} scene
  * @param {object} g
  * @param {object} [options]
@@ -43,7 +46,7 @@ export function findCompany(scene, g, { selected: useSelected = true } = {}) {
 	if (company) return { hex: hexAt(g, company.getCenterPoint()), split: false };
 
 	const selected = useSelected && scene.id === canvas.scene?.id ? canvas.tokens.controlled.map((token) => token.document) : [];
-	const tokens = selected.length ? selected : scene.tokens.filter((token) => token.actor?.hasPlayerOwner);
+	const tokens = selected.length ? selected : scene.tokens.filter((token) => sidesWithCompany(token.actor));
 	return companyHex(tokens.map((token) => hexAt(g, token.getCenterPoint())));
 }
 
@@ -67,8 +70,9 @@ export function companyHexOrWarn(scene, g) {
 
 /**
  * The Realm a command acts on, and where the Company stands in it. Everything
- * that acts on the Company's own hex begins here, so a Scene that is no Realm
- * and a Company with no Token on it are answered in the one place.
+ * that acts on the Company's own hex begins here, so a Scene that is no Realm,
+ * a Company with no Token on it, and a hex dire weather may be keeping it out of
+ * are answered in the one place.
  * @param {Scene} scene
  * @param {{col: number, row: number}|null} [hex] Where to act, or the Company's own hex.
  * @returns {{realm: object, g: object, where: object}|null} Null with a word to the Referee.
@@ -81,6 +85,11 @@ export function realmAndCompany(scene, hex = null) {
 	const g = sceneGeometry(scene);
 	const where = hex ?? companyHexOrWarn(scene, g);
 	if (!where) return null;
+	// Played alone, nothing is searched, seen or met in a hex the Company may never have reached till the Referee says.
+	if (heldBackFrom(scene, where)) {
+		ui.notifications.warn(t("realm.wilderness.heldBack", { hex: hexLabel(where, scene) }));
+		return null;
+	}
 	return { realm: getRealm(scene).realm, g, where };
 }
 
@@ -192,6 +201,8 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 	let pick = 0;
 	// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 	let city = false;
+	// A Willow is found only in its own Season.
+	const { season } = getCalendar();
 	if (calls === "roll") {
 		mode = known ?? (await chooseMode(scene, where));
 		if (!mode) return null;
@@ -199,17 +210,18 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 		rolls.push(roll);
 		d6 = roll.total;
 
-		const result = situationResult(d6, mode, situation);
-		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors), cityOmensSeen());
+		const result = situationResult(d6, mode, situation, season);
+		city = cityOmenReplaces(result, worthyOfCityQuest(game.actors.filter(inCompany)), cityOmensSeen());
 		const choices = city ? 1 : mythChoices(situation, result);
 		if (choices > 1) {
 			const choice = await new Roll(`1d${choices}`).evaluate();
-			rolls.push(choice);
+			// Played alone, its size would count the Myths it chose between.
+			if (!keptFromMe()) rolls.push(choice);
 			pick = choice.total - 1;
 		}
 	}
 	// The whole Realm, so one whose Myths are all resolved has nothing left to show rather than no Myths.
-	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick });
+	const rolled = wildernessOutcome(whole, situation, { mode, d6, pick, season });
 	// No Myth's Omen is spent when the City's stands in for it.
 	const outcome = city ? { result: rolled.result, d6: rolled.d6 } : rolled;
 	const index = loadArtIndex();
@@ -261,27 +273,29 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 			img: entry?.path ?? null,
 			complete: outcome.complete,
 			omen: t("realm.wilderness.omen", { omen: outcome.omen, count: OMEN_COUNT }),
-			omenText: outcome.complete ? null : entry?.omens?.[outcome.omen - 1] ?? null
+			omenText: outcome.complete ? null : entry?.omens?.[outcome.omen - 1] ?? null,
+			// The Scenes the Referee linked to the Omen just met, each to be activated from the card.
+			scenes: outcome.complete ? [] : omenSceneChips(omenSceneIds(scene, outcome.myth, { entry })[outcome.omen - 1])
 		};
 	}
 
 	let landmark = null;
 	if (outcome.landmark) {
-		const { type, name, seer, hex } = outcome.landmark;
+		const { type, name, seer, hex, variant } = outcome.landmark;
 		let seerLine = null;
 		if (seer) {
 			const reference = seerEntry(index, seer);
 			seerLine = t("realm.wilderness.seer", { seer: reference.name, page: reference.page });
 		}
 		landmark = {
-			type: t(`realm.landmarks.${type}`),
+			type: t(landmarkLabelKey(outcome.landmark)),
 			name: name || null,
 			seer: seerLine,
 			promptFrom: named ? t("realm.landmarks.promptFrom", { myth: named.myth, page: named.page }) : null,
 			key: hexKey(hex),
 			revealed: revealLandmark,
 			// What this sort of Landmark asks of the travellers who found it (p14).
-			...landmarkOfferView(type)
+			...landmarkOfferView(type, variant)
 		};
 	}
 

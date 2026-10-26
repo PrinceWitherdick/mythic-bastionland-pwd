@@ -18,7 +18,9 @@ import { featureAt, holdingName } from "../rules/realm.js";
 import { midSentence } from "../rules/text.js";
 import { getCalendar } from "./calendar.js";
 import { getHexRecord, keepHexSparkRecords } from "./hex-lore.js";
-import { getRealm, isRealmScene } from "./realm.js";
+import { toldWhere } from "./told-where.js";
+import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { mythKeptFromMe } from "./solo.js";
 
 /**
  * @typedef {object} RolledPerson
@@ -185,8 +187,20 @@ export async function rollUpHolding({ scene, hex }) {
 		const start = set.length + number * people.tables.length;
 		const traits = personTraits(rolled.slice(start, start + people.tables.length));
 		const myth = myths.length ? heardOfMyth(realm, others[number]) : null;
-		const known = myth ? mythEntry(index, myth) : null;
-		return { number: number + 1, name: names[number], traits, known };
+		// Played alone, a Myth not yet met is heard of by its number and the way it lies, not its name (p19).
+		const unmet = mythKeptFromMe(myth, scene)
+			? t("people.heardOfUnmet", { number: myth.number, where: toldWhere(sceneGeometry(scene), hex, myth.hex) })
+			: null;
+		const known = myth && !unmet ? mythEntry(index, myth) : null;
+		const mythName = known ? midSentence(known.name) : null;
+		return {
+			number: number + 1,
+			name: names[number],
+			traits,
+			// Kept on the hex without its page; told on the card with it.
+			heard: unmet ?? (known ? t("people.heardOf", { name: mythName }) : null),
+			heardPage: unmet ?? (known ? t(known.page ? "people.heardOfPage" : "people.heardOf", { name: mythName, page: known.page }) : null)
+		};
 	});
 
 	const sparks = [
@@ -199,10 +213,10 @@ export async function rollUpHolding({ scene, hex }) {
 			prompt,
 			when
 		})),
-		...persons.map(({ number, name, traits, known }) => personSpark(traits, {
+		...persons.map(({ number, name, traits, heard }) => personSpark(traits, {
 			id: foundry.utils.randomID(),
 			table: t("people.holding.kept", { number, count: folk }),
-			heard: known ? t("people.heardOf", { name: midSentence(known.name) }) : null,
+			heard,
 			when,
 			name
 		}))
@@ -214,10 +228,10 @@ export async function rollUpHolding({ scene, hex }) {
 		lead: t("people.holding.tagline"),
 		target: hexTarget(hex, scene),
 		sparks: place.map(({ table, results, prompt }) => ({ name: table.name, reference, prompt, results: results.filter((result) => result.entry) })),
-		people: persons.map(({ number, name, traits, known }) => ({
+		people: persons.map(({ number, name, traits, heardPage }) => ({
 			label: t("people.holding.personNamed", { name, number, count: folk }),
 			traits,
-			heard: known ? t(known.page ? "people.heardOfPage" : "people.heardOf", { name: midSentence(known.name), page: known.page }) : null
+			heard: heardPage
 		})),
 		note: myths.length ? null : t("people.holding.noMyths")
 	}, { rolls: [count, roll], mode: "gm" });

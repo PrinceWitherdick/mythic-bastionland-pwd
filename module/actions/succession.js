@@ -1,8 +1,9 @@
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineHeirNamed } from "./timeline-events.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * @param {Actor} knight
@@ -10,7 +11,7 @@ import { timelineHeirNamed } from "./timeline-events.js";
  */
 export function heirOf(knight) {
 	const heir = knight.system.successor ? fromUuidSync(knight.system.successor) : null;
-	return heir?.documentName === "Actor" && heir.type === "knight" ? heir : null;
+	return heir?.documentName === "Actor" && isKnight(heir) ? heir : null;
 }
 
 /**
@@ -27,15 +28,15 @@ export async function nameSuccessor(knight, heir, { record = true } = {}) {
 }
 
 /**
- * Name a Knight's successor (Succession, p17): any other Knight in the world,
- * their own Squire offered first.
+ * Name a Knight's successor (Succession, p17): any other Knight in the world
+ * whoever chooses can see, their own Squire offered first.
  * @param {Actor} knight
  * @param {object} [options] As nameSuccessor takes.
  * @returns {Promise<Actor|null>} The successor, or null if closed or left unnamed.
  */
 export async function chooseSuccessor(knight, options) {
 	const current = heirOf(knight) ?? (knight.system.squire ? fromUuidSync(knight.system.squire) : null);
-	const candidates = worldKnights((actor) => actor !== knight);
+	const candidates = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => actor === current));
 	if (!candidates.length) {
 		ui.notifications.info(t("successor.none", { name: knight.name }));
 		return null;

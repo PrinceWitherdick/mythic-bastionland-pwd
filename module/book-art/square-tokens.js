@@ -4,6 +4,8 @@ import { portraitTokens, tokenCrop } from "../rules/knight-tokens.js";
 import { artIndexWritten, loadArtIndex } from "./art-index.js";
 import { ensureDirectories, uploadFile } from "./files.js";
 import { canvasToBlob, imageFormat } from "./pdf.js";
+import { isKnight } from "../rules/knight-types.js";
+import { worldKnights } from "../actions/knights.js";
 
 /**
  * Swap each Knight's portrait for its square token wherever a token still
@@ -16,15 +18,14 @@ export async function useSquareTokens(index) {
 	const squares = portraitTokens(index.knights);
 	if (!squares.size) return { actors: 0, tokens: 0 };
 
-	const actorUpdates = game.actors
-		.filter((actor) => actor.type === "knight" && squares.has(actor.prototypeToken.texture.src))
+	const actorUpdates = worldKnights((actor) => squares.has(actor.prototypeToken.texture.src))
 		.map((actor) => ({ _id: actor.id, "prototypeToken.texture.src": squares.get(actor.prototypeToken.texture.src) }));
 	if (actorUpdates.length) await Actor.implementation.updateDocuments(actorUpdates);
 
 	const sceneUpdates = game.scenes
 		.map((scene) => [scene, scene.tokens
 			// The picture first: reading an unlinked Token's actor makes it a copy of its own.
-			.filter((token) => squares.has(token.texture.src) && token.actor?.type === "knight")
+			.filter((token) => squares.has(token.texture.src) && isKnight(token.actor))
 			.map((token) => ({ _id: token.id, "texture.src": squares.get(token.texture.src) }))])
 		.filter(([, updates]) => updates.length);
 	await Promise.all(sceneUpdates.map(([scene, updates]) => scene.updateEmbeddedDocuments("Token", updates)));

@@ -20,7 +20,8 @@ describe("the sheet a written Myth opens with", () => {
 	it("writes every field the form names under the Myth, and the picture apart from the form", () => {
 		// The form's fields are numbered as the Myth's lists are, so expandObject gives back what normaliseOwnMyth reads.
 		expect(sheet).toContain("const data = foundry.utils.expandObject(formData.object);");
-		expect(sheet).toContain("return this.#write((myth) => ({ ...data, img: myth.img }), update);");
+		// The picture and the linked Scenes aren't fields, so a keystroke must keep them.
+		expect(sheet).toContain("return this.#write((myth) => ({ ...myth, ...data }), update);");
 		const form = {
 			verse: Object.fromEntries(Array.from({ length: VERSE_LINES }, (_, index) => [index, `Line ${index}`])),
 			omens: Object.fromEntries(Array.from({ length: OMEN_COUNT }, (_, index) => [index, `Omen ${index}`])),
@@ -44,7 +45,14 @@ describe("the sheet a written Myth opens with", () => {
 
 	it("writes only what changed, one change after another", () => {
 		expect(sheet).toContain("ownMythChanged(before, after) ? { [FLAG_PATH]: after } : {}");
-		expect(sheet).toContain("#writing = serialWrites();");
+		expect(sheet).toContain("return ownMythWrites(this.document.id);");
+	});
+
+	it("keeps what's typed in the next field while the last change saves, and the table's fold as left", () => {
+		// Each change saves and so draws the sheet again, which would put back the saved value.
+		expect(sheet).toContain("export class OwnMythSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {");
+		const [fold] = template.match(/<details class="[^"]*__table-fold"[^>]*>/);
+		expect(fold).toContain('data-sync="table"');
 	});
 
 	it("leaves no empty entry behind when New Myth is closed untouched", () => {
@@ -62,6 +70,26 @@ describe("the sheet a written Myth opens with", () => {
 	it("says Referee, never GM, to the people reading it", () => {
 		for (const text of Object.values(strings.ownMyth)) expect(text).not.toMatch(/\bGM\b/);
 		for (const key of ["yours", "yoursTooltip", "write", "ownReference"]) expect(strings.mythChooser[key]).not.toMatch(/\bGM\b/);
+	});
+});
+
+describe("Scenes linked to a written Myth's Omens", () => {
+	it("takes a Scene dropped on an Omen, and shows each with a way to view it and to unlink it", () => {
+		expect(template).toContain('<li data-omen="{{number}}" data-omen-drop>');
+		expect(template).toContain('{{> "bastionland.omen-scenes" editable=@root.editable}}');
+		expect(sheet).toMatch(/viewOmenScene: OwnMythSheet\.#onViewScene,\s*unlinkOmenScene: OwnMythSheet\.#onUnlinkScene/);
+		expect(sheet).toContain('this.element.querySelectorAll("[data-omen-drop]")');
+		// The Omen is read before the drop is awaited, while the event still has its target.
+		expect(sheet).toMatch(/const omen = Number\(event\.currentTarget\.dataset\.omen\);\s*const scene = await droppedScene\(event\);/);
+		expect(sheet).toContain("scenes: omenSceneChips(myth.scenes[index])");
+	});
+
+	it("writes only the Scenes when the Toolkit links one, leaving whatever is being typed alone", () => {
+		expect(actions).toContain("await entry.update({ [`flags.${SYSTEM_ID}.${OWN_MYTH_FLAG}.scenes`]: after });");
+	});
+
+	it("says Referee, never GM", () => {
+		for (const text of Object.values(strings.omenScenes)) expect(text).not.toMatch(/\bGM\b/);
 	});
 });
 

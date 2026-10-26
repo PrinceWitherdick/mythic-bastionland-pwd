@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHARGE_LICENCE, HERALDIC_ART, HERALDIC_ART_COPYRIGHT, HERALDIC_ART_ILLUSTRATOR } from "../module/rules/heraldry-charges.js";
-import { HOLDING_STYLES, LANDMARK_TYPES, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
+import { BOOK_LANDMARK_TYPES, HOLDING_STYLES, LANDMARK_TYPES, OWN_LANDMARK, RIVER_SHAPES, TERRAIN } from "../module/rules/realm.js";
 import {
 	PICTURE_NAME,
 	REALM_PALETTES,
@@ -102,8 +102,13 @@ describe("drawRealmSet", () => {
 describe("the Armorial skin", () => {
 	const parchment = realmPalette("parchment");
 	const drawn = drawRealmSet("armorial", "parchment");
-	/** Its pictures drawn from the Book of Traceable Heraldic Art: all but the Valley, the Myths and the rivers. */
-	const heraldic = Object.keys(drawn).filter((name) => !/^(terrain-valley|myth-\d|river-[\w-]+)\.svg$/.test(name));
+	/** Its pictures drawn from the Book of Traceable Heraldic Art: all but the Valley, the Myths, the rivers and the Referee's own Landmark. */
+	const heraldic = Object.keys(drawn).filter((name) => !/^(terrain-valley|myth-\d|river-[\w-]+|landmark-other)\.svg$/.test(name));
+
+	it("draws the Referee's own Landmark with its drawn sign, credited to nobody", () => {
+		expect(drawn[`landmark-${OWN_LANDMARK}.svg`]).not.toContain("<desc>");
+		expect(drawn[`landmark-${OWN_LANDMARK}.svg`]).toContain(`stroke="${parchment.ink}"`);
+	});
 
 	it.each(ARMORIAL_ART_KEYS)("draws %s after a public-domain source", (key) => {
 		const { sources, artists } = ARMORIAL_ART[key];
@@ -207,7 +212,15 @@ describe("the Blank Realm skin", () => {
 		expect(svg).toMatch(/<g clip-path="url\(#hex\)"><polygon [^>]*fill="none" stroke=/);
 	});
 
-	const shadowed = [...HOLDING_STYLES.map(PICTURE_NAME.holding), ...LANDMARK_TYPES.map(PICTURE_NAME.landmark)];
+	const shadowed = [...HOLDING_STYLES.map(PICTURE_NAME.holding), ...BOOK_LANDMARK_TYPES.map(PICTURE_NAME.landmark)];
+	const unsheeted = LANDMARK_TYPES.filter((type) => !BOOK_LANDMARK_TYPES.includes(type)).map(PICTURE_NAME.landmark);
+	it.each(unsheeted)("inks %s, which the sheet doesn't draw, in its red pen on a paper halo, uncredited", (name) => {
+		const svg = blank[`${name}.svg`];
+		const palette = realmPalette("blank");
+		expect(svg).not.toContain("<desc>");
+		expect(svg).toContain(`stroke="${palette.accent}"`);
+		expect(svg).toContain(`stroke="${palette.paper}"`);
+	});
 	it.each(shadowed)("stands %s on the middle of its badge, with the shadow it casts still inside it", (name) => {
 		const art = SHEET_ART[name];
 		const [, left, top, size] = /<g transform="translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)"/.exec(blank[`${name}.svg`]).map(Number);

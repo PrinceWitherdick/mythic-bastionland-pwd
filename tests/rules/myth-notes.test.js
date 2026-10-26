@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MYTH_NOTES_VERSION, emptyMythNotes, mythNoteFor, mythRoll, normaliseMythNotes, withMythNote, withoutResolved } from "../../module/rules/myth-notes.js";
+import { MYTH_NOTES_VERSION, emptyMythNotes, mythNoteFor, mythRoll, mythScenesFor, normaliseMythNotes, withMythNote, withoutResolved } from "../../module/rules/myth-notes.js";
+import { emptyOmenScenes, withOmenScene } from "../../module/rules/omen-scenes.js";
 
 const wyvern = { number: 3, d6: 1, d12: 5 };
 // The same number rolled afresh: a new Myth replacing the old (p27).
@@ -75,6 +76,28 @@ describe("withMythNote", () => {
 		expect(fresh.myths[3]).toEqual({ roll: "4-09", note: "A new terror.", resolved: false });
 		// Clearing a replacement's blank note clears the old one's leftovers too.
 		expect(withMythNote(old, replacement, { note: "" }).myths).toEqual({});
+	});
+
+	it("keeps the Scenes linked to a Myth's Omens, even with nothing written, and forgets them with the last one", () => {
+		const linked = withMythNote(emptyMythNotes(), wyvern, { scenes: withOmenScene(emptyOmenScenes(), 2, "s1") });
+		expect(linked.myths[3]).toEqual({ roll: "1-05", note: "", resolved: false, scenes: { 2: ["s1"] } });
+		expect(mythScenesFor(linked, wyvern)[1]).toEqual(["s1"]);
+		// Writing a note keeps them, and the same Scenes again change nothing.
+		const noted = withMythNote(linked, wyvern, { note: "Nest" });
+		expect(noted.myths[3].scenes).toEqual({ 2: ["s1"] });
+		expect(withMythNote(noted, wyvern, { scenes: mythScenesFor(noted, wyvern) })).toBe(noted);
+		expect(withMythNote(linked, wyvern, { scenes: emptyOmenScenes() }).myths).toEqual({});
+	});
+
+	it("gives a Myth that replaced another none of the old one's Scenes", () => {
+		const linked = withMythNote(emptyMythNotes(), wyvern, { scenes: withOmenScene(emptyOmenScenes(), 1, "s1") });
+		expect(mythScenesFor(linked, replacement)).toEqual(emptyOmenScenes());
+		expect(withMythNote(linked, replacement, { note: "A new terror." }).myths[3].scenes).toBeUndefined();
+	});
+
+	it("reads back kept Scenes, and drops what isn't a list of ids", () => {
+		const notes = normaliseMythNotes({ myths: { 3: { roll: "1-05", scenes: { 1: ["s1", 7], 9: ["s2"] } }, 4: { roll: "2-01", scenes: "x" } } });
+		expect(notes.myths).toEqual({ 3: { roll: "1-05", note: "", resolved: false, scenes: { 1: ["s1"] } } });
 	});
 
 	it("leaves the notes it was given alone", () => {

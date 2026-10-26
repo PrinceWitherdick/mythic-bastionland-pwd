@@ -2,7 +2,7 @@ import { REALM_FLAG } from "../rules/realm.js";
 import { setOmen } from "../rules/realm-edits.js";
 import { completedMythId } from "../rules/season-log.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { editRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { editRealm, editRealmByHand, isRealmScene, sceneGeometry } from "./realm.js";
 import { OMENS_OPTION, omensMet, timelineOmens } from "./timeline-events.js";
 import { findCompany } from "./wilderness.js";
 
@@ -13,12 +13,14 @@ import { findCompany } from "./wilderness.js";
  * @param {Scene} scene The Realm.
  * @param {number} number The Myth's number.
  * @param {number|((myth: object) => number)} omen How many are met now, or how to tell from the Myth as it stands.
+ * @param {object} [options]
+ * @param {boolean} [options.byHand] Stepped in Edit this hex, beside the map's Undo, which can take it back.
  * @returns {Promise<boolean>} Whether anything was written.
  */
-export async function markMythOmen(scene, number, omen) {
+export async function markMythOmen(scene, number, omen, { byHand = false } = {}) {
 	if (!isRealmScene(scene)) return false;
 	const { hex } = findCompany(scene, sceneGeometry(scene), { selected: false });
-	return editRealm(scene, (realm) => {
+	return (byHand ? editRealmByHand : editRealm)(scene, (realm) => {
 		const myth = realm.myths.find((candidate) => candidate.number === number);
 		if (!myth) return realm;
 		const next = setOmen(realm, number, typeof omen === "function" ? omen(myth) : omen);

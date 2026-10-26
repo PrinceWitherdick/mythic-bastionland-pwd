@@ -14,6 +14,7 @@ import { announceFallenKnight } from "./fallen.js";
 import { causedBy } from "./ledger.js";
 import { rollVirtueLosses } from "./virtue-loss.js";
 import { worldKnights } from "./knights.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * What some Abilities do outside an Attack, from their row on the sheet: a
@@ -261,7 +262,7 @@ export async function fillAbilityKits() {
 	if (!index) return;
 	const names = kitWeaponNames();
 	for (const actor of game.actors) {
-		if (actor.type !== "knight" || !actor.canUserModify(game.user, "update")) continue;
+		if (!isKnight(actor) || !actor.canUserModify(game.user, "update")) continue;
 		const entry = knightEntryByType(index, actor.system.knightType);
 		const kit = entry?.ability ? kitForPage(entry.page) : null;
 		if (!kit) continue;

@@ -164,7 +164,7 @@ describe("replacementGlory", () => {
 });
 
 describe("knightHasFallen", () => {
-	const played = { type: "knight", isSquire: false, hasPlayerOwner: true };
+	const played = { type: "knight", isSquire: false, played: true };
 
 	it("is true for a played Knight who is Slain", () => {
 		expect(knightHasFallen(played, "slain")).toBe(true);
@@ -177,6 +177,6 @@ describe("knightHasFallen", () => {
 	it("leaves a Squire's death to their Knight, and an NPC's to the Referee", () => {
 		expect(knightHasFallen({ ...played, isSquire: true }, "slain")).toBe(false);
 		expect(knightHasFallen({ ...played, type: "npc" }, "slain")).toBe(false);
-		expect(knightHasFallen({ ...played, hasPlayerOwner: false }, "slain")).toBe(false);
+		expect(knightHasFallen({ ...played, played: false }, "slain")).toBe(false);
 	});
 });

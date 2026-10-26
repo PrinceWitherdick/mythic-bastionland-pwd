@@ -1,3 +1,5 @@
+import { isKnight } from "./knight-types.js";
+
 /**
  * Virtue rules (Basic Rules, p8). Pure functions so they can be tested
  * without Foundry.
@@ -36,7 +38,7 @@ export const SLAIN_UPDATE = Object.freeze({ "system.virtues.vig.value": 0, "syst
  * @param {string} fate
  * @returns {object} The update, or nothing to write.
  */
-export const unwrittenFate = (actor, fate) => (actor.type === "knight" && !actor.system.fate ? { "system.fate": fate } : {});
+export const unwrittenFate = (actor, fate) => (isKnight(actor) && !actor.system.fate ? { "system.fate": fate } : {});
 
 /**
  * The update that leaves somebody dead outright, with a Knight's Ultimate fate

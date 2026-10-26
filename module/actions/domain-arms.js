@@ -2,7 +2,8 @@ import { inputDialog } from "../apps/ui.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { domainArms, rulingKnightOf } from "../rules/dominion.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * @param {Actor} domain
@@ -16,7 +17,7 @@ export const domainRuler = (domain) => rulingKnightOf(domain, worldKnights());
  */
 function armsKnight(domain) {
 	const knight = domain.system.armsKnight ? fromUuidSync(domain.system.armsKnight) : null;
-	return knight?.documentName === "Actor" && knight.type === "knight" ? knight : null;
+	return knight?.documentName === "Actor" && isKnight(knight) ? knight : null;
 }
 
 /**
@@ -39,8 +40,9 @@ export function domainArmsView(domain) {
  */
 export async function chooseDomainArms(domain) {
 	const ruler = domainRuler(domain);
-	const others = worldKnights().filter((knight) => knight !== ruler).sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
 	const chosen = armsKnight(domain);
+	const others = worldKnights((knight) => knight !== ruler).filter(seenOrChosen((knight) => knight === chosen))
+		.sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
 	const { arms } = domain.system;
 	const data = await inputDialog({
 		title: t("domain.arms.title", { name: domain.name }),

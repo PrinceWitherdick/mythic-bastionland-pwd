@@ -7,10 +7,12 @@ import { SYSTEM_ID } from "../system-id.js";
 import { escapeHTML } from "../rules/text.js";
 import { crisisRoll, worldDomains } from "./dominion.js";
 import { findCompany } from "./wilderness.js";
+import { hexesReached } from "./held-back.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
 import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
 import { holdingName } from "../rules/realm.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
+import { landmarkName } from "../rules/landmarks.js";
 
 /**
  * The Crisis Roll's other time, coming home after a long time away (p20): a
@@ -60,9 +62,9 @@ export function domainLands(domain, realms = realmHoldings()) {
 	const found = domainHolding(domain, realms);
 	const realm = found ? getRealm(found.scene)?.realm : null;
 	if (!realm || !found.holding.id) return null;
-	const known = game.user.isGM ? realmKnown(realm) : soloRealm(realm);
+	const known = game.user.isGM ? realmKnown(realm, found.scene) : soloRealm(realm);
 	const { hexes, landmarks } = holdingLands(known, sceneGeometry(found.scene), found.holding.id);
-	const named = landmarks.map((landmark) => landmark.name || t(`realm.landmarks.${landmark.type}`));
+	const named = landmarks.map((landmark) => landmarkName(landmark, t));
 	if (!named.length) return t("domain.lands.line", { count: hexes.length });
 	return t("domain.lands.withLandmarks", { count: hexes.length, landmarks: named.join(", ") });
 }
@@ -84,9 +86,9 @@ export function holdingOptions(selected, realms = realmHoldings()) {
 
 /**
  * @param {Actor} domain
- * @returns {Actor|null} The Knight ruling it who rides with the Company: one a player owns, linked to it or named as its ruler.
+ * @returns {Actor|null} The Knight ruling it who rides with the Company, linked to it or named as its ruler.
  */
-const rulingKnight = (domain) => rulingKnightOf(domain, worldKnights((actor) => actor.hasPlayerOwner));
+const rulingKnight = (domain) => rulingKnightOf(domain, worldKnights(inCompany));
 
 /**
  * Where the Company stands on a Realm, found quietly: its own Token, or else
@@ -165,12 +167,13 @@ export async function welcomeHome(scene, entered) {
 }
 
 /**
- * Notice the Company coming home. Heard on the active GM's client alone.
+ * Notice the Company coming home. Heard on the active GM's client alone. Not
+ * home where dire weather may be keeping it out, played alone, till the Referee lets it on.
  * @param {Scene} scene
  * @param {{entered: {col: number, row: number}[]}} move
  */
-function noticeMove(scene, { entered }) {
-	welcomeHome(scene, entered).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
+function noticeMove(scene, move) {
+	welcomeHome(scene, hexesReached(scene, move)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
 }
 
 /** Follow the Company home. Called during init. */

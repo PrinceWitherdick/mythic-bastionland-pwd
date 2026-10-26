@@ -1,10 +1,11 @@
 import { t } from "../chat/cards.js";
 import { JOURNEY_VERSION, WALKED_METHODS, forgetVisit, forgetVisits, hexesEntered, lastOfEach, normaliseJourney, normaliseVisits, recordVisits } from "../rules/journey.js";
-import { hexAt, hexKey } from "../rules/realm-geometry.js";
+import { hexAt, hexKey, parseHexKey } from "../rules/realm-geometry.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
 import { COMPANY_FLAG, findCompanyToken, forcedMove, wentSomewhere } from "./company.js";
 import { hexFlagEditor } from "./hex-flags.js";
+import { sidesWithCompany } from "./knights.js";
 import { isRealmScene, sceneGeometry } from "./realm.js";
 import { timelineArrivals } from "./timeline-events.js";
 
@@ -44,12 +45,29 @@ export function getHexVisits(scene, hex) {
 const editJourney = hexFlagEditor({ flag: JOURNEY_FLAG, version: JOURNEY_VERSION, read: getJourney, besides: ({ next }) => ({ next }) });
 
 /**
+ * Count the Company coming into hexes of a Realm, in order, and say which
+ * arrival each became, so one move's arrivals can be forgotten and no other's.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} hexes
+ * @returns {Promise<Record<string, number>|null>} Each hex's arrival order by its key, or null where nothing was written.
+ */
+async function recordArrivals(scene, hexes) {
+	let orders = null;
+	await editJourney(scene, (journey) => {
+		const next = recordVisits(journey, hexes, getCalendar());
+		orders = next === journey ? null : Object.fromEntries(hexes.map((hex, index) => [hexKey(hex), journey.next + index]));
+		return next;
+	});
+	return orders;
+}
+
+/**
  * Count the Company coming into hexes of a Realm, in order.
  * @param {Scene} scene
  * @param {{col: number, row: number}[]} hexes
  * @returns {Promise<boolean>}
  */
-export const recordHexVisits = (scene, hexes) => editJourney(scene, (journey) => recordVisits(journey, hexes, getCalendar()));
+export const recordHexVisits = async (scene, hexes) => Boolean(await recordArrivals(scene, hexes));
 
 /**
  * Count the Company into a hex by hand, such as one it reached before the
@@ -78,6 +96,68 @@ export const forgetHexVisits = (scene, hex) => editJourney(scene, (journey) => f
 export const forgetHexVisit = (scene, hex, order) => editJourney(scene, (journey) => forgetVisit(journey, hex, order));
 
 /**
+ * Forget the times the Company came into some hexes on one move, as when dire
+ * weather turned out to have kept it from them. Each hex's arrival is the one
+ * `orders` names. A hex it doesn't name keeps its arrivals, since the one
+ * that's last may be another move's, or the move's own may never have been written.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} hexes
+ * @param {Record<string, number>|null} [orders] The move's arrival in each hex, by hex key.
+ * @returns {Promise<boolean>}
+ */
+export const forgetMoveVisits = (scene, hexes, orders = null) => editJourney(scene, (journey) => hexes.reduce((next, hex) => {
+	const order = orders?.[hexKey(hex)];
+	return Number.isFinite(order) ? forgetVisit(next, hex, order) : next;
+}, journey));
+
+/**
+ * The Scene flag holding the move dire weather may be holding back, till the
+ * Referee lets it on or keeps it back, or the Company moves again: the move's
+ * own id, the hex keys it came into, and whether, played alone, nothing there
+ * is found meanwhile (`kept`, left out where it is).
+ */
+export const HELD_BACK_FLAG = "heldBack";
+
+/**
+ * @param {Scene|null} scene
+ * @returns {{move: string|null, hexes: Set<string>, keys: Set<string>}} The move dire weather may be holding back,
+ *   the hexes it came into, and those of them kept from being found, played alone, by their keys.
+ */
+export function heldBack(scene) {
+	const flag = isRealmScene(scene) ? scene.getFlag?.(SYSTEM_ID, HELD_BACK_FLAG) : null;
+	const raw = Array.isArray(flag) ? flag : Array.isArray(flag?.hexes) ? flag.hexes : [];
+	const hexes = new Set(raw.filter((key) => typeof key === "string").map(parseHexKey).filter(Boolean).map(hexKey));
+	// Hex keys alone, or with no word of being kept, are from when only a move played alone was written.
+	return { move: typeof flag?.move === "string" ? flag.move : null, hexes, keys: flag?.kept === false ? new Set() : hexes };
+}
+
+/**
+ * @param {Scene|null} scene
+ * @param {{col: number, row: number}|null} hex
+ * @returns {boolean} Whether dire weather may be keeping the Company from the hex, its Token there or not.
+ */
+export const heldBackFrom = (scene, hex) => Boolean(hex) && heldBack(scene).keys.has(hexKey(hex));
+
+/**
+ * Keep the move dire weather may be holding back, or none. Written only where
+ * it changes. GMs only.
+ * @param {Scene} scene
+ * @param {{col: number, row: number}[]} hexes The hexes it came into.
+ * @param {object} [options]
+ * @param {string|null} [options.move] The move's own id, so its arrival card can tell whether it's still the one held back.
+ * @param {boolean} [options.kept] Whether, played alone, nothing in them is found meanwhile.
+ * @returns {Promise<boolean>} Whether it was written.
+ */
+export async function setHeldBack(scene, hexes, { move = null, kept = true } = {}) {
+	if (!game.user.isGM || !isRealmScene(scene)) return false;
+	const now = scene.getFlag(SYSTEM_ID, HELD_BACK_FLAG);
+	const next = hexes.length ? { move, hexes: hexes.map(hexKey), ...(kept ? {} : { kept: false }) } : null;
+	if (JSON.stringify(now ?? null) === JSON.stringify(next)) return false;
+	await (next ? scene.setFlag(SYSTEM_ID, HELD_BACK_FLAG, next) : scene.unsetFlag(SYSTEM_ID, HELD_BACK_FLAG));
+	return true;
+}
+
+/**
  * @param {{count: number, last: {when: object|null}}} visits
  * @returns {string} How often the Company has been to a hex, and when last.
  */
@@ -93,24 +173,33 @@ export const visitsLabel = (visits) =>
 
 /**
  * Whether a Token stands for the Company on its Realm: the Company Token where
- * the Realm has one (p7), otherwise any player's Token.
+ * the Realm has one (p7), otherwise any player's Token, or a Token of a Knight
+ * riding with the Company, as in solo play.
  * @param {TokenDocument} token
  * @returns {boolean}
  */
 export function movesAsCompany(token) {
 	const company = findCompanyToken(token.parent);
-	return company ? token.id === company.id : Boolean(token.actor?.hasPlayerOwner);
+	return company ? token.id === company.id : sidesWithCompany(token.actor);
 }
 
 /**
  * Called on the active GM's client once a Company's move is gathered, with the
- * Scene and `{entered, ended, from, chosen}`: the hexes it came into, each once
- * where it was last come into, so the last is where it ended, whether a move ended in a new hex, the hex it set off from, and whether the
- * Company chose to go, rather than being put there as a blind drift puts it.
+ * Scene and `{entered, ended, from, chosen, orders}`: the hexes it came into, each once
+ * where it was last come into, so the last is where it ended, whether a move ended in a new hex, the hex it set off from, whether the
+ * Company chose to go, rather than being put there as a blind drift puts it, and a promise of the arrival
+ * each hex became once the journey is written (null where it wasn't).
  * So each rule that follows the Company hears of a move once, however many
  * Knights' Tokens made it.
  */
 export const COMPANY_MOVED_HOOK = `${SYSTEM_ID}.companyMoved`;
+
+/**
+ * Called on the active GM's client with the Scene and the hexes the Company
+ * was set down in rather than moved into, such as its Token first put on a
+ * Realm or stood again after it was lost.
+ */
+export const COMPANY_PLACED_HOOK = `${SYSTEM_ID}.companyPlaced`;
 
 /**
  * Hexes come into and waiting to be written, by Scene id, so four Knights'
@@ -138,10 +227,16 @@ function writeArrivals() {
 		const visited = onceEach(hexes);
 		// Read before they're counted: the hexes it comes to for the first time go on the Timeline.
 		const first = visited.filter((hex) => !getHexVisits(scene, hex)?.count);
-		recordHexVisits(scene, visited)
+		const recorded = recordArrivals(scene, visited);
+		recorded
 			.then(() => timelineArrivals(scene, first))
 			.catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep the Company's journey`, error));
-		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen });
+		// Which arrival each hex became, once written, so a move taken back forgets its own and no other's.
+		const orders = recorded.catch(() => null);
+		if (entered.length || ended) Hooks.callAll(COMPANY_MOVED_HOOK, scene, { entered: lastOfEach(entered), ended, from, chosen, orders });
+		const moved = new Set(entered.map(hexKey));
+		const placed = visited.filter((hex) => !moved.has(hexKey(hex)));
+		if (placed.length) Hooks.callAll(COMPANY_PLACED_HOOK, scene, placed);
 	}
 }
 
@@ -206,6 +301,14 @@ export function legHexes(token, movement, g) {
 }
 
 /**
+ * @param {object} movement From the `moveToken` hook.
+ * @param {object} [operation] The update that moved it.
+ * @returns {boolean} Whether the move was one the Company didn't choose: a drift when travelling blind, or the
+ *   Referee setting it down with unconstrained Movement, as it passes Barriers.
+ */
+export const forcedTravel = (movement, operation) => forcedMove(operation) || Boolean(movement?.constrainOptions?.ignoreWalls);
+
+/**
  * Count the hexes the Company comes into as it moves. Taking a move back isn't
  * travelling anywhere, so it counts nothing.
  * @param {TokenDocument} token
@@ -218,9 +321,7 @@ function noticeMove(token, movement, operation) {
 	if (!wentSomewhere(movement, operation) || !movesAsCompany(token)) return;
 	const g = sceneGeometry(scene);
 	const from = movement?.origin ? hexAt(g, token.getCenterPoint(movement.origin)) : null;
-	// Unconstrained Movement is the Referee setting the Company down, as it passes Barriers, not the Company travelling.
-	const forced = forcedMove(operation) || Boolean(movement?.constrainOptions?.ignoreWalls);
-	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g), from, forced });
+	gather(scene, legHexes(token, movement, g), { ended: endsInNewHex(token, movement, g), from, forced: forcedTravel(movement, operation) });
 }
 
 /**

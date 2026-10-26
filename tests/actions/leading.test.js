@@ -4,6 +4,7 @@ vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-up
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 
 const { registerLeadingHooks } = await import("../../module/actions/leading.js");
+const { leaderCandidates } = await import("../../module/actions/leading.js");
 
 /** The hooks registered, by name. */
 let hooks;
@@ -67,5 +68,24 @@ describe("leading from the front (p11)", () => {
 		game.users.activeGM.isSelf = false;
 		await hooks.get("deleteCombat")({ combatants: collection() });
 		expect(led.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("who may lead from the front", () => {
+	it("leaves out the Slain and the dying (p8)", () => {
+		const person = (uuid, extra = {}) => ({ uuid, system: { virtues: {}, ...extra } });
+		globalThis.canvas = { tokens: { controlled: [
+			{ actor: person("Actor.kay") },
+			{ actor: person("Actor.dead", { slain: true }) },
+			{ actor: person("Actor.dying", { mortalWound: true }) }
+		] } };
+		globalThis.fromUuidSync = () => null;
+		game.user = { character: null };
+		try {
+			expect(leaderCandidates({ uuid: "Actor.militia", system: { leader: "" } }).map(({ uuid }) => uuid)).toEqual(["Actor.kay"]);
+		} finally {
+			delete globalThis.canvas;
+			delete globalThis.fromUuidSync;
+		}
 	});
 });

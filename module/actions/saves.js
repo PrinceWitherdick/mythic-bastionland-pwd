@@ -4,6 +4,7 @@ import { abilitiesWith, etchedNumber } from "../rules/ability-uses.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
 import { isSavePassed } from "../rules/virtues.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * @typedef {object} SaveResult
@@ -35,7 +36,7 @@ export async function evaluateSave(actor, virtue) {
  * @returns {Promise<SaveResult>} The Save as it stands once turned, or as rolled.
  */
 async function turnedByRune(actor, save) {
-	if (actor?.type !== "knight" || !actor.isOwner) return save;
+	if (!isKnight(actor) || !actor.isOwner) return save;
 	if (game.user?.isGM && game.users?.some((user) => user.active && !user.isGM && actor.testUserPermission(user, "OWNER"))) return save;
 	const rune = abilitiesWith(actor.items?.contents ?? [], "sigil").find((item) => etchedNumber(item.system) === save.roll.total);
 	if (!rune) return save;

@@ -6,6 +6,7 @@
  * rather than inheriting the old one's. Pure, so it can be tested without Foundry.
  */
 import { isDie, isTableRoll, rollLabel } from "./book-art.js";
+import { anyOmenScene, normaliseOmenScenes, omenScenesByNumber } from "./omen-scenes.js";
 import { ownMythKey } from "./own-myths.js";
 import { MYTH_COUNT } from "./realm.js";
 
@@ -16,6 +17,7 @@ export const MYTH_NOTES_VERSION = 1;
  * @property {string} roll  The Myth's roll on the Myths table (p27), such as "2-07".
  * @property {string} note  In the GM's own words.
  * @property {boolean} resolved
+ * @property {Record<string, string[]>} [scenes] The Scenes linked to its Omens, keyed by Omen number; left out when none is.
  */
 
 /**
@@ -43,7 +45,19 @@ function normaliseNote(raw) {
 	const roll = typeof raw.roll === "string" ? raw.roll : "";
 	const note = typeof raw.note === "string" ? raw.note.trim() : "";
 	const resolved = raw.resolved === true;
+	const scenes = normaliseOmenScenes(raw.scenes);
+	if (anyOmenScene(scenes)) return { roll, note, resolved, scenes: omenScenesByNumber(scenes) };
 	return note || resolved ? { roll, note, resolved } : null;
+}
+
+/**
+ * @param {MythNotes} notes
+ * @param {{number: number}} myth
+ * @returns {object|null} What's kept under the Myth's number, if it was written about this Myth.
+ */
+function keptFor(notes, myth) {
+	const kept = notes?.myths?.[String(myth.number)];
+	return kept && kept.roll === mythRoll(myth) ? kept : null;
 }
 
 /**
@@ -71,10 +85,17 @@ export function normaliseMythNotes(raw) {
  * @returns {{note: string, resolved: boolean}}
  */
 export function mythNoteFor(notes, myth) {
-	const kept = notes?.myths?.[String(myth.number)];
-	if (!kept || kept.roll !== mythRoll(myth)) return { note: "", resolved: false };
-	return { note: kept.note, resolved: kept.resolved };
+	const kept = keptFor(notes, myth);
+	return kept ? { note: kept.note, resolved: kept.resolved } : { note: "", resolved: false };
 }
+
+/**
+ * The Scenes linked to a Myth's Omens, or none if they were linked to a Myth it has since replaced.
+ * @param {MythNotes} notes
+ * @param {{number: number, d6: number, d12: number}} myth
+ * @returns {import("./omen-scenes.js").OmenScenes}
+ */
+export const mythScenesFor = (notes, myth) => normaliseOmenScenes(keptFor(notes, myth)?.scenes);
 
 /**
  * The Realm as the Myths still at work in it see it: a resolved Myth shows no
@@ -92,21 +113,25 @@ export function withoutResolved(realm, notes) {
 /**
  * @param {MythNotes} notes
  * @param {{number: number, d6: number, d12: number}} myth
- * @param {{note?: string, resolved?: boolean}} changes
+ * @param {{note?: string, resolved?: boolean, scenes?: import("./omen-scenes.js").OmenScenes}} changes
  * @returns {MythNotes} Unchanged when nothing would change. A Myth left with
- *   nothing written and not resolved is forgotten.
+ *   nothing written, not resolved and no Scene linked is forgotten.
  */
 export function withMythNote(notes, myth, changes) {
 	const current = mythNoteFor(notes, myth);
+	const scenes = changes.scenes ? normaliseOmenScenes(changes.scenes) : mythScenesFor(notes, myth);
 	const next = {
 		roll: mythRoll(myth),
 		note: typeof changes.note === "string" ? changes.note.trim() : current.note,
-		resolved: typeof changes.resolved === "boolean" ? changes.resolved : current.resolved
+		resolved: typeof changes.resolved === "boolean" ? changes.resolved : current.resolved,
+		...(anyOmenScene(scenes) ? { scenes: omenScenesByNumber(scenes) } : {})
 	};
 	const key = String(myth.number);
 	const kept = notes.myths[key] ?? null;
-	const keep = next.note || next.resolved;
-	if (keep && kept && kept.roll === next.roll && kept.note === next.note && kept.resolved === next.resolved) return notes;
+	const keep = Boolean(next.note || next.resolved || next.scenes);
+	const same = kept && kept.roll === next.roll && kept.note === next.note && kept.resolved === next.resolved
+		&& JSON.stringify(kept.scenes ?? null) === JSON.stringify(next.scenes ?? null);
+	if (keep && same) return notes;
 	if (!keep && !kept) return notes;
 	const myths = { ...notes.myths };
 	if (keep) myths[key] = next;

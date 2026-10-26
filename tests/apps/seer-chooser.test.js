@@ -34,13 +34,13 @@ vi.mock("../../module/chat/cards.js", () => ({ t: (key, data) => (data ? `${key}
 vi.mock("../../module/actions/hex-names.js", () => ({ hexLabel: (hex) => `${hex.col}.${hex.row}` }));
 vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: (one) => (one === scene ? { realm } : null),
-	editRealm: async (_scene, edit) => {
+	editRealmByHand: async (_scene, edit) => {
 		realm = edit(realm, g);
 	}
 }));
 vi.mock("../../module/apps/ui.js", () => ({ renderWhenIdle: vi.fn() }));
 let knights = [];
-vi.mock("../../module/actions/knights.js", () => ({ worldKnights: (keep = () => true) => knights.filter(keep) }));
+vi.mock("../../module/actions/knights.js", () => ({ worldKnights: (keep = () => true) => knights.filter(keep), inCompany: (actor) => Boolean(actor?.hasPlayerOwner) }));
 
 const { SeerChooser, companySeers, openSeerChooser } = await import("../../module/apps/SeerChooser.js");
 

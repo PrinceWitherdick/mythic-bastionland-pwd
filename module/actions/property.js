@@ -5,6 +5,7 @@ import { companionActorData, knightCompanions, nameWithoutOwner, ownerOf, posses
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { worldKnights } from "./knights.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * The world setup step that reads older Knights' Property into weapons and
@@ -174,11 +175,11 @@ export async function retypeKnightProperty() {
  */
 export async function dropOwnerFromCompanionNames() {
 	const actors = game.actors.contents;
-	const knights = actors.filter((actor) => actor.type === "knight");
+	const knights = actors.filter(isKnight);
 	const changes = [];
 	for (const actor of actors) {
 		// Only actors of this world, which can be written in one go.
-		if (actor.type === "knight" || actor.pack || !actor.canUserModify(game.user, "update")) continue;
+		if (isKnight(actor) || actor.pack || !actor.canUserModify(game.user, "update")) continue;
 		const owner = ownerOf(knights, { uuid: actor.uuid, companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) });
 		if (!owner) continue;
 		const name = nameWithoutOwner(actor.name, owner.name);
@@ -206,8 +207,7 @@ export async function dropOwnerFromCompanionNames() {
 export async function fillPossessionDetails() {
 	const index = await loadArtIndex().catch(() => null);
 	if (!index) return;
-	for (const actor of game.actors) {
-		if (actor.type !== "knight" || !actor.canUserModify(game.user, "update")) continue;
+	for (const actor of worldKnights((knight) => knight.canUserModify(game.user, "update"))) {
 		const entry = knightEntryByType(index, actor.system.knightType);
 		if (!entry?.property?.length) continue;
 		const updates = possessionDetails(actor.items.contents, entry.property);

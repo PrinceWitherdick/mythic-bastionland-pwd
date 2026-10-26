@@ -15,6 +15,7 @@ import { afflictTargets } from "../actions/afflictions.js";
 import { changeAge } from "../actions/time.js";
 import { restIfAccepted } from "../actions/recovery.js";
 import { canPatchUp, patchUp } from "../actions/scars.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /** Item types the sheet offers to add, in sheet order. It lists every item the NPC has. */
 const ADDED_TYPES = Object.freeze(["weapon", "armour", "gear"]);
@@ -131,7 +132,7 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 	async _onFirstRender(context, options) {
 		await super._onFirstRender(context, options);
 		const redraw = (actor) => {
-			if (actor.type !== "knight") return;
+			if (!isKnight(actor)) return;
 			if (actor.system?.steed === this.actor.uuid || actor.uuid === this.#ownerUuid) this.render();
 		};
 		this._watchHooks(["updateActor", "deleteActor"], redraw);

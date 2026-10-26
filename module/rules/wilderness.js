@@ -6,6 +6,7 @@
  * camping ignores Landmarks, and a Holding isn't Wilderness. Pure, so it can be
  * tested without Foundry.
  */
+import { landmarkMet } from "./landmarks.js";
 import { OMEN_COUNT, featureAt } from "./realm.js";
 import { hexDistance, hexKey } from "./realm-geometry.js";
 
@@ -83,10 +84,15 @@ export function nextOmen(myth) {
  * @param {number|null} d6
  * @param {"travel"|"camp"} mode
  * @param {ReturnType<typeof wildernessSituation>} situation
+ * @param {string|null} [season] Now, for a Willow, which stands only in its own.
  * @returns {string} As wildernessResult gives it.
  */
-export const situationResult = (d6, mode, situation) =>
-	wildernessResult(d6, { mode, hasLandmark: Boolean(situation.landmark), hasMyths: situation.bearing.length > 0 });
+export const situationResult = (d6, mode, situation, season = null) =>
+	wildernessResult(d6, {
+		mode,
+		hasLandmark: Boolean(situation.landmark) && landmarkMet(situation.landmark, { d6, season }),
+		hasMyths: situation.bearing.length > 0
+	});
 
 /**
  * Everything a Wilderness Roll turned up.
@@ -96,13 +102,14 @@ export const situationResult = (d6, mode, situation) =>
  * @param {"travel"|"camp"} [rolled.mode]
  * @param {number|null} [rolled.d6] Null where no roll was needed.
  * @param {number} [rolled.pick] Which Myth, counted from 0, a random Omen or a tie for nearest falls to.
+ * @param {string|null} [rolled.season] The Season now, which a Willow stands in or doesn't.
  * @returns {{result: string, d6: number|null, myth?: object, omen?: number, complete?: boolean, tied?: object[], landmark?: object}}
  */
-export function wildernessOutcome(realm, situation, { mode = "travel", d6 = null, pick = 0 } = {}) {
+export function wildernessOutcome(realm, situation, { mode = "travel", d6 = null, pick = 0, season = null } = {}) {
 	if (situation.holding) return { result: "holding", d6: null };
 	if (situation.myth) return { result: "mythHex", d6: null, myth: situation.myth, ...nextOmen(situation.myth) };
 
-	const result = situationResult(d6, mode, situation);
+	const result = situationResult(d6, mode, situation, season);
 	// Myths there are, but every one has shown all its Omens or been resolved.
 	if (result === "noMyths" && realm.myths.length) return { result: "noOmens", d6 };
 	if (result === "randomOmen") {

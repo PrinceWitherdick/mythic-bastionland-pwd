@@ -7,7 +7,7 @@
  * and setup roll the same Realm. Pure, so it can be tested without Foundry.
  */
 import { createRandom } from "./random.js";
-import { HOLDING_STYLES, LAKE, LANDMARK_TYPES, TERRAIN, emptyRealm } from "./realm.js";
+import { BLOG_LANDMARKS, BLOG_LANDMARK_TYPES, BOOK_LANDMARK_TYPES, GUARDED_LANDMARK, HOLDING_STYLES, LAKE, LANDMARK_VARIANTS, PAIRED_LANDMARK, TERRAIN, emptyRealm } from "./realm.js";
 import { keptHexes, mendPictures, rollPictures } from "./realm-pictures.js";
 import { BOOK_SETUP, SETUP_PARTS, isBookSetup, normaliseRealmSetup, setupBarriers } from "./realm-setup.js";
 import {
@@ -57,9 +57,10 @@ const BARRIER_TRIES = 2000;
  * @param {object} [options.geometry] From realmGeometry. Omit for the setup's size.
  * @param {import("./realm.js").Realm|null} [options.base] A Realm on the same map whose parts the setup doesn't
  *   roll are kept, such as the one a reroll replaces. Rolled parts keep clear of them.
+ * @param {boolean} [options.blogLandmarks] Whether rolled Landmarks take in the blog's as well as the book's.
  * @returns {import("./realm.js").Realm} Carrying its `setup` unless that's the book's.
  */
-export function generateRealm({ seed, setup = null, geometry = null, base = null }) {
+export function generateRealm({ seed, setup = null, geometry = null, base = null, blogLandmarks = false }) {
 	const rules = normaliseRealmSetup(setup);
 	const g = geometry ?? realmGeometry({ cols: rules.cols, rows: rules.rows });
 	const random = createRandom(seed);
@@ -87,7 +88,25 @@ export function generateRealm({ seed, setup = null, geometry = null, base = null
 	if (rules.roll.myths) realm.myths = placeMyths(random, g, realm, rules.myths);
 	if (rules.roll.landmarks) realm.landmarks = placeLandmarks(random, g, realm, rules.landmarks);
 	if (rules.roll.barriers) realm.barriers = placeBarriers(random, g, realm, setupBarriers({ ...rules, cols: g.cols, rows: g.rows }));
+	// Rolled last and apart from the rest, so the same seed still rolls the same book Realm with them or without.
+	if (rules.roll.landmarks && blogLandmarks) realm.landmarks.push(...placeBlogLandmarks(createRandom(`${seed}:blog`), g, realm, blogShare(g, rules)));
 	return realm;
+}
+
+/**
+ * How much of the blog's counts a Realm takes: all of them on the book's map
+ * with the book's numbers, fewer on a smaller map or in a custom Realm (p202)
+ * set up with fewer Landmarks, and none where it's set up with none.
+ * @param {object} g
+ * @param {import("./realm-setup.js").RealmSetup} rules
+ * @returns {number} From 0 to 1.
+ */
+function blogShare(g, { landmarks: perType }) {
+	const middle = (range) => (range.min + range.max) / 2;
+	const setupMean = BOOK_LANDMARK_TYPES
+		.reduce((sum, type) => sum + (Number.isInteger(perType.types?.[type]) ? perType.types[type] : middle(perType)), 0)
+		/ BOOK_LANDMARK_TYPES.length;
+	return Math.min(1, setupMean / middle(BOOK_SETUP.landmarks), (g.cols * g.rows) / BOOK_HEXES);
 }
 
 /**
@@ -323,6 +342,19 @@ export function remoteMythHex(random, g, realm) {
 }
 
 /**
+ * Of a few hexes picked at random from the pool, the one furthest from those
+ * given, which spreads Landmarks across the map.
+ * @param {{col: number, row: number}[]} pool Not empty.
+ * @param {{col: number, row: number}[]} from
+ * @returns {{col: number, row: number}}
+ */
+function furthestOf(random, g, pool, from) {
+	const distance = (hex) => (from.length ? Math.min(...from.map((other) => hexDistance(g, other, hex))) : 0);
+	const sample = Array.from({ length: Math.min(LANDMARK_SAMPLES, pool.length) }, () => random.pick(pool));
+	return sample.reduce((best, candidate) => (distance(candidate) > distance(best) ? candidate : best));
+}
+
+/**
  * 3 or 4 Landmarks of each kind (p14), in Wilderness hexes
  * without a Holding or Myth, one to a hex, spread across the map. A Sanctum
  * rolls on the Knights table (p26) for its Seer.
@@ -330,7 +362,7 @@ export function remoteMythHex(random, g, realm) {
  */
 function placeLandmarks(random, g, realm, perType) {
 	const taken = featureHexes(realm);
-	const instances = random.shuffle(LANDMARK_TYPES.flatMap((type) => {
+	const instances = random.shuffle(BOOK_LANDMARK_TYPES.flatMap((type) => {
 		// A type given a count of its own in a custom Realm (p202) rolls nothing, so the others roll as they always did.
 		const own = perType.types?.[type];
 		return new Array(Number.isInteger(own) ? own : perType.min - 1 + random.die(perType.max - perType.min + 1)).fill(type);
@@ -341,13 +373,51 @@ function placeLandmarks(random, g, realm, perType) {
 	for (const type of instances) {
 		const open = allHexes(g).filter((hex) => !taken.has(hexKey(hex)));
 		if (!open.length) break;
-		const distanceToOthers = (hex) => (landmarks.length ? Math.min(...landmarks.map((other) => hexDistance(g, other.hex, hex))) : 0);
-		const sample = Array.from({ length: Math.min(LANDMARK_SAMPLES, open.length) }, () => random.pick(open));
-		const hex = sample.reduce((best, candidate) => (distanceToOthers(candidate) > distanceToOthers(best) ? candidate : best));
+		const hex = furthestOf(random, g, open, landmarks.map((other) => other.hex));
 		taken.add(hexKey(hex));
 		landmarks.push({ id: null, hex, type, name: "", seer: type === "sanctum" ? uniqueRoll(random, seers) : null, revealed: false });
 	}
 	return landmarks;
+}
+
+/**
+ * The blog's Landmarks, in Wilderness hexes nothing else stands in, spread
+ * out as the book's are. Bridges stand on the river where there's room, and
+ * the two Ponds of a pair far apart.
+ * @param {number} share Of each kind's count, from `blogShare`; Ponds still come in pairs.
+ * @returns {import("./realm.js").Realm["landmarks"]}
+ */
+function placeBlogLandmarks(random, g, realm, share) {
+	const taken = featureHexes(realm);
+	const placed = [];
+	const open = () => allHexes(g).filter((hex) => !taken.has(hexKey(hex)));
+	const lay = (type, pool, from, extras = {}) => {
+		const hex = furthestOf(random, g, pool, from);
+		taken.add(hexKey(hex));
+		placed.push({ id: null, hex, type, name: "", seer: null, revealed: false, ...extras });
+	};
+	const everyLandmark = () => [...realm.landmarks, ...placed].map((landmark) => landmark.hex);
+
+	for (const type of random.shuffle([...BLOG_LANDMARK_TYPES])) {
+		const variants = LANDMARK_VARIANTS[type];
+		const { count } = BLOG_LANDMARKS[type];
+		const placing = type === PAIRED_LANDMARK ? 2 * Math.round((count / 2) * share) : Math.round(count * share);
+		for (let index = 0; index < placing; index += 1) {
+			const free = open();
+			if (!free.length) return placed;
+			if (type === GUARDED_LANDMARK) {
+				const river = realm.rivers.flat().filter((hex) => !taken.has(hexKey(hex)));
+				lay(type, river.length ? river : free, everyLandmark());
+			} else if (type === PAIRED_LANDMARK) {
+				// The second is put as far from the first as the samples allow.
+				const first = placed.find((landmark) => landmark.type === type);
+				lay(type, free, first ? [first.hex] : everyLandmark(), { pair: 1 });
+			} else {
+				lay(type, free, everyLandmark(), variants ? { variant: variants[index % variants.length] } : {});
+			}
+		}
+	}
+	return placed;
 }
 
 /**

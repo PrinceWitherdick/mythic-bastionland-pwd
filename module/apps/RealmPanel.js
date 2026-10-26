@@ -1,15 +1,18 @@
-import { editRealm, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
+import { editRealmByHand, getRealm, getRealmLook, realmUndoState, stepRealmHistory } from "../actions/realm.js";
+import { brushLockedOn, realmKnown, secretsToSettle } from "../actions/solo.js";
 import { t } from "../chat/cards.js";
+import { offeredLandmarks } from "../actions/blog-landmarks.js";
 import {
+	BOOK_LANDMARK_TYPES,
 	HOLDING_COUNT,
 	HOLDING_STYLES,
-	LANDMARK_TYPES,
 	LANDMARKS_PER_TYPE,
 	REALM_BRUSHES,
 	REALM_TOOL_ICONS,
 	TERRAIN,
 	barrierCount,
 	realmSeats,
+	isBlogLandmark,
 	seatsInOrder
 } from "../rules/realm.js";
 import { realmTextures } from "../rules/realm-documents.js";
@@ -89,7 +92,8 @@ function seatLine(realm) {
 /**
  * The swatches a Realm is painted from, by the brush each belongs to: every
  * terrain, the river, Barriers, each style of Holding with the Seat of Power
- * after them, and each kind of Landmark. The palette shows them all together;
+ * after them, and each kind of Landmark offered: the book's, the Referee's own,
+ * and the blog's while that setting is on. The palette shows them all together;
  * Creating a Realm shows each set beside the step it draws.
  * @param {Scene} scene
  * @param {import("../rules/realm.js").Realm} realm
@@ -124,11 +128,13 @@ export function realmSwatches(scene, realm, brush) {
 			// One Holding is the Seat of Power, so the crown is a tick beside the styles, not a brush of its own.
 			{ action: "toggleSeat", label: t("realm.key.seat"), src: textures.seat.src, wide: true, tooltip: t("realm.panel.seatHint"), active: RealmPanel.seat }
 		],
-		landmark: LANDMARK_TYPES.map((type) => ({
+		landmark: offeredLandmarks().map((type) => ({
 			brush: type,
 			label: t(`realm.landmarks.${type}`),
 			src: textures.landmark[type].src,
-			tally: counted(realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE),
+			// Only the book's kinds have a number to hit, 3 or 4 of each.
+			tally: BOOK_LANDMARK_TYPES.includes(type) ? counted(realm.landmarks.filter((landmark) => landmark.type === type).length, LANDMARKS_PER_TYPE) : null,
+			tooltip: isBlogLandmark(type) ? t("realm.landmarks.blog.swatch") : undefined,
 			active: brush === "landmark" && type === RealmPanel.landmark
 		}))
 	};
@@ -150,9 +156,13 @@ export function riverState({ rivers }) {
 
 /**
  * @param {string} brush One of REALM_BRUSHES.
- * @returns {string} How to paint with it.
+ * @param {Scene|null} scene The Realm it paints.
+ * @returns {string} How to paint with it, or, played alone where it lays nothing, why.
  */
-export const brushHint = (brush) => t(`realm.panel.hints.${brush}`);
+export function brushHint(brush, scene) {
+	if (!brushLockedOn(brush, scene)) return t(`realm.panel.hints.${brush}`);
+	return t(secretsToSettle(scene) === "dice" ? "realm.panel.hints.soloDice" : "realm.panel.hints.soloLocked");
+}
 
 /**
  * The palette the GM paints a Realm with, while the paint tool is in hand:
@@ -187,7 +197,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 	static terrain = 5;
 
 	/** The Landmark the Landmark brush places. */
-	static landmark = LANDMARK_TYPES[0];
+	static landmark = BOOK_LANDMARK_TYPES[0];
 
 	/** The Holding the Holding brush places. */
 	static holding = HOLDING_STYLES[0];
@@ -214,19 +224,22 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 		const scene = this.scene;
 		const entry = getRealm(scene);
 		if (!entry) return Object.assign(context, { missing: true });
-		const { realm } = entry;
+		// Played alone, what's still to be found isn't counted.
+		const realm = realmKnown(entry.realm, scene);
 		const { canUndo, canRedo } = realmUndoState(scene);
 		Object.assign(context, { undoDisabled: !canUndo, redoDisabled: !canRedo });
 
+		// A blog Landmark in hand when the setting went off goes back to the first of the book's.
+		if (!offeredLandmarks().includes(RealmPanel.landmark)) RealmPanel.landmark = BOOK_LANDMARK_TYPES[0];
 		const brush = RealmPanel.brush;
 		const swatches = realmSwatches(scene, realm, brush);
 		const painted = realm.terrain.filter(Boolean).length;
 		// How many Barriers the rules ask this Realm for, which is both the least and the most.
 		const barriers = barrierCount(realm);
-		const landmarks = swatches.landmark.map((swatch) => swatch.tally);
+		const landmarks = swatches.landmark.map((swatch) => swatch.tally).filter(Boolean);
 		return Object.assign(context, {
 			// Only the brush in hand says how to use it, so the palette keeps one line of instructions.
-			hint: [brushHint(brush), ...(brush === "terrain" ? [t("realm.panel.hints.beside")] : [])].join(" "),
+			hint: [brushHint(brush, scene), ...(brush === "terrain" ? [t(brushLockedOn("holding", scene) ? "realm.panel.hints.besideSolo" : "realm.panel.hints.beside")] : [])].join(" "),
 			// A count of the painted hexes, so the Terrain has a line of its own like the rest.
 			terrainTally: tallyLine(
 				t("realm.panel.terrainTally", { count: painted, target: realm.terrain.length }),
@@ -315,7 +328,7 @@ export class RealmPanel extends HandlebarsApplicationMixin(ApplicationV2) {
 
 	/** @this {RealmPanel} */
 	static #onClearRiver() {
-		return editRealm(this.scene, clearRiver);
+		return editRealmByHand(this.scene, clearRiver);
 	}
 
 	/**
@@ -353,7 +366,7 @@ export function openRealmPanel({ scene }) {
 export function setRealmBrush(brush) {
 	// A terrain, Landmark type or Holding style names the brush it belongs to as well as itself.
 	const chooses = Number.isInteger(brush) ? "terrain"
-		: LANDMARK_TYPES.includes(brush) ? "landmark"
+		: offeredLandmarks().includes(brush) ? "landmark"
 			: HOLDING_STYLES.includes(brush) ? "holding" : null;
 	if (chooses) {
 		RealmPanel[chooses] = brush;

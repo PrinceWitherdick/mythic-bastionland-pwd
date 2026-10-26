@@ -14,17 +14,21 @@ import {
 } from "../actions/hex-lore.js";
 import { hexJournalsOn, openHexJournal } from "../actions/hex-journals.js";
 import { domainsRuling, grantHolding, rulersOf } from "../actions/holding-ruler.js";
-import { getHexVisits, markHexVisited } from "../actions/journey.js";
-import { landmarkOfferView, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
+import { getHexVisits, heldBackFrom, markHexVisited } from "../actions/journey.js";
+import { landmarkOfferView, markBridgeWon, renameLandmark, rerollLandmarkName, takeLandmarkOffer } from "../actions/landmarks.js";
+import { viewAndShowHex } from "../actions/travels.js";
+import { hasBookPrompt, landmarkLabelKey, landmarkMet } from "../rules/landmarks.js";
+import { knownPondPartner } from "../rules/realm-edits.js";
 import { rollUpHolding } from "../actions/people.js";
-import { calendarLabel, momentLabel } from "../actions/calendar.js";
+import { calendarLabel, getCalendar, momentLabel } from "../actions/calendar.js";
 import { castActors, castKey } from "../actions/myth-cast.js";
 import { getRealm, sceneGeometry } from "../actions/realm.js";
 import { rollRefereeTable } from "../actions/referee-rolls.js";
-import { keptFromMe, realmKnown } from "../actions/solo.js";
-import { wildernessRoll } from "../actions/wilderness.js";
+import { realmKnown, secretsKeptOn } from "../actions/solo.js";
+import { findCompany, wildernessRoll } from "../actions/wilderness.js";
 import { mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
+import { hexTarget, ringHexesOnHover } from "../chat/hex-target.js";
 import { isTableRoll } from "../rules/book-art.js";
 import { omenStage } from "../rules/gm-toolkit.js";
 import { toldState } from "../rules/hex-shared.js";
@@ -32,9 +36,9 @@ import { MAX_SPARK_NAME, MAX_SPARK_PROMPT, sparkBatches } from "../rules/hex-lor
 import { gatherCast } from "../rules/myth-cast.js";
 import { CIVILISATION_PAGE, PEOPLE_PAGE, personView } from "../rules/people.js";
 import { rulingHolding } from "../rules/dominion.js";
-import { OMEN_COUNT, TERRAIN, featureAt, holdingName, seerReference, terrainAt } from "../rules/realm.js";
+import { GUARDED_LANDMARK, OMEN_COUNT, PAIRED_LANDMARK, SEASONAL_LANDMARK, TERRAIN, featureAt, holdingName, seerReference, terrainAt } from "../rules/realm.js";
 import { makeSeer } from "../actions/seers.js";
-import { hexKey } from "../rules/realm-geometry.js";
+import { hexKey, parseHexKey, sameHex } from "../rules/realm-geometry.js";
 import { HEX_FEATURE_ACTIONS } from "./hex-edit.js";
 import { HEX_FORGET_ACTIONS, hexForgetContext } from "./hex-forget.js";
 import { openHexEditor } from "./HexEditor.js";
@@ -116,7 +120,7 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	const entry = getRealm(scene);
 	if (!entry) return null;
 	// Played alone, only what the Company has found here.
-	const known = realmKnown(entry.realm);
+	const known = realmKnown(entry.realm, scene);
 	const g = sceneGeometry(scene);
 	const record = getHexRecord(scene, hex);
 	const visits = getHexVisits(scene, hex);
@@ -139,6 +143,8 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 	let notice = null;
 	if (!index) notice = t("spark.noIndex");
 	else if (!pages.length) notice = t("spark.noText");
+	const landmarkLabel = landmark ? t(landmarkLabelKey(landmark)) : null;
+	const bookPrompt = Boolean(landmark) && hasBookPrompt(landmark.type);
 	return {
 		// The players' part names the land of a hex they know; a hex they don't is named here.
 		terrain: !view.openable && terrain ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null,
@@ -146,16 +152,30 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		// A Landmark's name, which a random page's prompt for its type can fill (p14), and what it asks of travellers.
 		landmark: landmark
 			? {
-				type: t(`realm.landmarks.${landmark.type}`),
+				type: landmarkLabel,
 				name: landmark.name ?? "",
+				// Only the book's kinds have a prompt on a Myth's page to be named from; the rest are called by their kind.
+				reroll: bookPrompt,
+				placeholder: bookPrompt ? t("hexLore.landmark.placeholder") : landmarkLabel,
 				from: prompted ? t("hexLore.landmark.from", { myth: prompted.myth, page: prompted.page }) : null,
-				offer: landmarkOfferView(landmark.type),
+				offer: landmarkOfferView(landmark.type, landmark.variant),
+				// A Willow stands only in its own Season.
+				season: landmark.type === SEASONAL_LANDMARK && landmark.variant
+					? t(landmarkMet(landmark, { season: getCalendar().season }) ? "realm.landmarks.inSeason" : "realm.landmarks.outOfSeason")
+					: null,
+				// Whether the Bridge's Knight has been beaten, which wins the Company passage and 1 Glory.
+				won: landmark.type === GUARDED_LANDMARK ? { checked: Boolean(landmark.won) } : null,
+				// The Pond this one leads to, as far as the Company knows of it.
+				pair: landmark.type === PAIRED_LANDMARK ? pairContext(scene, entry.realm, known, landmark) : null,
 				// The Seer who lives at a Sanctum (p26).
 				seer: landmark.type === "sanctum" ? seerContext(landmark.seer, index) : null
 			}
 			: null,
 		myth: myth ? mythContext(scene, myth, index) : null,
 		visited: Boolean(visits),
+		// Played alone, the Company rolls, asks and searches only where it stands, and not where dire weather
+		// may be keeping it out till the Referee lets it on.
+		explore: !secretsKeptOn(scene) || (sameHex(findCompany(scene, g, { selected: false }).hex, hex) && !heldBackFrom(scene, hex)),
 		note: record?.note ?? "",
 		told: toldContext(record?.note ?? "", view.told),
 		// Any hex can have a Journal entry, where the setting makes them: one with nothing kept gets it when the GM asks.
@@ -165,7 +185,7 @@ export function hexGmContext({ scene, hex, view, index, state }) {
 		tabs: HEX_GM_TABS.filter(({ key }) => shown[key]).map(({ key, icon }) => ({
 			key,
 			icon,
-			label: key === "landmark" ? t(`realm.landmarks.${landmark.type}`) : t(`hexGm.tabs.${key}`),
+			label: key === "landmark" ? landmarkLabel : t(`hexGm.tabs.${key}`),
 			count: counts[key],
 			active: key === tab
 		})),
@@ -217,7 +237,7 @@ function toldContext(note, told) {
  */
 function mythContext(scene, myth, index) {
 	const { name, page, entry } = mythLookup(index, myth);
-	const solo = keptFromMe();
+	const solo = secretsKeptOn(scene);
 	const { current, next } = omenStage(myth.omen);
 	const omen = (number, label) => number && { label: t(`gmToolkit.myths.${label}`), text: entry?.omens?.[number - 1] ?? t("myths.omenNumber", { number }) };
 	const { members, extras } = gatherCast(entry?.cast, castActors(), castKey(scene, myth));
@@ -384,7 +404,23 @@ function unfound(scene, known, g, hex, view, index) {
 }
 
 /**
- * Write one field of the GM's part as it's changed: the note or the Landmark's name.
+ * Where a Pond leads: a chip for its partner, or why there's none to show.
+ * Played alone, a partner still to be found isn't given away.
+ * @param {Scene} scene
+ * @param {object} realm The whole Realm.
+ * @param {object} known The Realm as the Company knows it.
+ * @param {object} pond
+ * @returns {{key: string|null, scene?: string, label: string}}
+ */
+function pairContext(scene, realm, known, pond) {
+	const { partner, unfound } = knownPondPartner(realm, known, pond);
+	if (partner) return hexTarget(partner.hex, scene);
+	return { key: null, label: t(unfound ? "realm.landmarks.pairUnfound" : "realm.landmarks.pairBeyond") };
+}
+
+/**
+ * Write one field of the GM's part as it's changed: the note, the Landmark's
+ * name, or whether a Bridge's Knight is beaten.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
@@ -394,6 +430,7 @@ export function writeHexGmField(scene, hex, field) {
 	const { name, value } = field;
 	if (name === "note") return writeHexNote(scene, hex, value ?? "");
 	if (name === "landmarkName") return renameLandmark(scene, hex, String(value ?? "").trim());
+	if (name === "landmarkWon") return markBridgeWon(scene, hex, Boolean(field.checked));
 }
 
 /**
@@ -410,6 +447,8 @@ export function wireHexGmPart(root, { scene, hex, state }) {
 	if (!part) return;
 	wireHexGmTabs(part, state);
 	wireToldState(part);
+	// The chip for a Pond's partner rings that hex on the map while the pointer is over it.
+	if (part.querySelector("[data-pair-hex]")) ringHexesOnHover(part, "[data-pair-hex]", (chip) => ({ scene, hex: parseHexKey(chip.dataset.pairHex) }));
 	part.addEventListener("change", (event) => {
 		const field = event.target;
 		if (!field?.name) return;
@@ -538,6 +577,13 @@ export const HEX_GM_ACTIONS = Object.freeze({
 		state.prompted = { key: hexKey(hex), myth: named.myth, page: named.page };
 		// A new name changes the Realm, which draws the hex again; the same name again is drawn here, to show where it came from.
 		if (named.name === before) return redraw();
+	},
+	// Go to the Pond this one leads to: on the map, and in Places.
+	async showPairedHex({ scene }, target) {
+		const at = parseHexKey(target.dataset.pairHex);
+		if (!at) return;
+		// Imported here, as Places draws this part.
+		if (await viewAndShowHex(scene, at)) (await import("./TravelsPlaces.js")).openHex({ scene, hex: at });
 	},
 	// What the Landmark here asks of the Company (p14).
 	landmarkOffer: ({ scene, hex }, target) => takeLandmarkOffer(target.dataset.landmarkOffer, { scene, hex }),

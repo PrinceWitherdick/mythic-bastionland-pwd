@@ -370,6 +370,31 @@ describe("a steed brought down (p10)", () => {
 		await takeDamage(horse, { damage: 2 });
 		expect(rider.update).not.toHaveBeenCalled();
 	});
+
+	it("keeps the fall dealt for whoever owns the rider, and nobody else who asks", async () => {
+		const { registerUnhorsed } = await import("../../module/actions/damage.js");
+		const hooks = {};
+		globalThis.Hooks = { on: (name, fn) => { hooks[name] = fn; } };
+		globalThis.CONFIG = { queries: {} };
+		globalThis.DOMParser = class {
+			parseFromString(html) {
+				return { querySelectorAll: () => ({ length: html.split("data-unhorsed").length - 1 }) };
+			}
+		};
+		try {
+			registerUnhorsed();
+			actors["Actor.kay"] = { testUserPermission: (user, level) => level === "OWNER" && user.id === "kay-player" };
+			const card = { id: "m1", isOwner: true, content: "<button data-unhorsed></button>", flags: { [SYSTEM_ID]: { unhorsed: "Actor.kay" } }, setFlag: vi.fn(async () => {}) };
+			game.messages = new Map([["m1", card]]);
+			const ask = (id) => CONFIG.queries[`${SYSTEM_ID}.spendButton`]({ messageId: "m1", key: "[data-unhorsed]#0" }, { user: { id } });
+			expect(await ask("another-player")).toBe(false);
+			expect(card.setFlag).not.toHaveBeenCalled();
+			expect(await ask("kay-player")).toBe(true);
+			expect(card.setFlag).toHaveBeenCalledWith(SYSTEM_ID, "spentButtons", ["[data-unhorsed]#0"]);
+		} finally {
+			for (const key of ["Hooks", "CONFIG", "DOMParser"]) delete globalThis[key];
+		}
+	});
 });
 
 describe("the Timeline", () => {

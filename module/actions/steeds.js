@@ -5,6 +5,7 @@ import { BREED_FLAG, GALLOP_ROLL, bookSteeds, gallopBlocked, steedBreedShown, st
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { chooseCompany } from "./time.js";
+import { isKnight } from "../rules/knight-types.js";
 
 /**
  * @param {Actor} actor
@@ -87,7 +88,7 @@ export async function renameSteed(steed) {
  * @returns {Promise<Actor|null>} The steed.
  */
 export async function takeSteed(knight) {
-	if (knight.type !== "knight") return null;
+	if (!isKnight(knight)) return null;
 	const existing = steedOf(knight);
 	if (existing) {
 		existing.sheet.render({ force: true });

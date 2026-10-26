@@ -31,7 +31,8 @@ vi.mock("../../module/actions/hex-lore.js", () => ({
 	writeHexNote: (...args) => writeHexNote(...args)
 }));
 vi.mock("../../module/actions/hex-journals.js", () => ({ hexJournalsOn: () => true, openHexJournal: vi.fn() }));
-vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: () => null, markHexVisited: vi.fn() }));
+let heldBack = false;
+vi.mock("../../module/actions/journey.js", () => ({ getHexVisits: () => null, heldBackFrom: () => heldBack, markHexVisited: vi.fn() }));
 vi.mock("../../module/actions/landmarks.js", () => ({
 	landmarkOfferView: vi.fn(() => null),
 	renameLandmark: (...args) => renameLandmark(...args),
@@ -48,8 +49,8 @@ vi.mock("../../module/actions/realm.js", () => ({
 }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollRefereeTable: vi.fn() }));
 let solo = false;
-vi.mock("../../module/actions/solo.js", () => ({ keptFromMe: () => solo, realmKnown: (realm) => realm }));
-vi.mock("../../module/actions/wilderness.js", () => ({ wildernessRoll: vi.fn() }));
+vi.mock("../../module/actions/solo.js", () => ({ secretsKeptOn: () => solo, realmKnown: (realm) => realm }));
+vi.mock("../../module/actions/wilderness.js", () => ({ wildernessRoll: vi.fn(), findCompany: vi.fn(() => ({ hex: null, split: false })) }));
 const stepHexOmen = vi.fn();
 const rollHexSeer = vi.fn(async () => {});
 vi.mock("../../module/apps/hex-edit.js", () => ({
@@ -274,6 +275,24 @@ describe("the Lay of the Land, the GM's part of a hex in Places", () => {
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).myth.omens.map(({ label }) => label)).toEqual(["gmToolkit.myths.current"]);
 		heldRealm.myths[0].omen = 0;
 		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).myth.omens).toEqual([]);
+	});
+
+	it("offers the Company's rolls, questions and searches only where it stands, played alone", async () => {
+		const { findCompany } = await import("../../module/actions/wilderness.js");
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(true);
+		solo = true;
+		vi.mocked(findCompany).mockReturnValue({ hex: { col: hex.col + 1, row: hex.row }, split: false });
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(false);
+		vi.mocked(findCompany).mockReturnValue({ hex: { ...hex }, split: false });
+		expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(true);
+		// Its Token stands there, but dire weather may yet keep it out.
+		heldBack = true;
+		try {
+			expect(hexGmContext({ scene, hex, view, index: null, state: hexGmState() }).explore).toBe(false);
+		} finally {
+			heldBack = false;
+		}
+		vi.mocked(findCompany).mockReturnValue({ hex: null, split: false });
 	});
 
 	it("names a Sanctum's Seer once rolled, and offers the roll", () => {

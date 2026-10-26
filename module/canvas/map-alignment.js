@@ -35,12 +35,12 @@
  */
 import { t } from "../chat/cards.js";
 import { reducesMotion } from "../client-settings.js";
-import { tilePlaced } from "../compat.js";
+import { tileReading } from "../compat.js";
 import { INK_HEX, PAPER_HEX as PAPER, colourNumber } from "../rules/colour.js";
 import { hexCentre } from "../rules/realm-geometry.js";
 import { realmFlag } from "../rules/realm-documents.js";
 import { calibrationHexes, fitToMarks, mapRect, markAt, markedHexOutline, markedHexScale, sizeMapRect, slideMapRect, viewOfPicture } from "../rules/realm-map.js";
-import { getRealm, isRealmScene, sceneGeometry } from "../actions/realm.js";
+import { getRealm, isRealmScene, realmTilesSettled, sceneGeometry } from "../actions/realm.js";
 import { placeRealmPicture } from "../actions/realm-map.js";
 import { followMap, hotbarFloor, mapPanelScale, panelScreen } from "../apps/map-screen.js";
 import { phaseBannerFloor } from "../apps/PhaseBanner.js";
@@ -162,6 +162,22 @@ const mapTile = (scene, role) => scene.tiles.find((tile) => {
 });
 
 /**
+ * The picture's Tile's data with its centre at a rect's, placed as the Scene's
+ * Tiles stand (tilesSettled): a Realm laid on v13 before its Tiles were placed
+ * by their corners keeps its centres until its next write moves them, which
+ * reads the Tile as it's held here.
+ * @param {TileDocument} tile
+ * @param {Rect} rect
+ * @param {boolean} [settled] Whether the Scene's Tiles are settled, if already known.
+ * @returns {object}
+ */
+export function tileDataAt(tile, rect, settled = realmTilesSettled(tile.parent)) {
+	const data = { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) };
+	const { centred, placed } = tileReading(settled);
+	return placed(data, centred(tile));
+}
+
+/**
  * Move the picture's Tile on this screen alone. Nothing is sent to the server
  * until the GM keeps it.
  * @param {TileDocument} tile
@@ -169,9 +185,10 @@ const mapTile = (scene, role) => scene.tiles.find((tile) => {
  * @param {object} [options]
  * @param {boolean} [options.redraw] False to change the Tile's data without drawing it there, so the
  *   picture stays where it's shown until the write that follows moves it.
+ * @param {boolean} [options.settled] Whether the Scene's Tiles are settled, found once as the lining up began.
  */
-function showTileAt(tile, rect, { redraw = true } = {}) {
-	tile.updateSource(tilePlaced({ x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) }));
+function showTileAt(tile, rect, { redraw = true, settled } = {}) {
+	tile.updateSource(tileDataAt(tile, rect, settled));
 	if (redraw && tile.object && !tile.object.destroyed) tile.object.renderFlags.set({ refreshTransform: true });
 }
 
@@ -433,7 +450,7 @@ function endAlignment({ redraw = true } = {}) {
 	showGrid(true);
 	document.body.classList.remove("bastionland-map-sliding");
 	setCursor();
-	showTileAt(was.tile, was.start, { redraw });
+	showTileAt(was.tile, was.start, { redraw, settled: was.settled });
 	return was;
 }
 
@@ -492,7 +509,7 @@ function fitToPins() {
 	}
 	lining.rect = fitted;
 	lining.fitted = true;
-	showTileAt(lining.tile, fitted);
+	showTileAt(lining.tile, fitted, { settled: lining.settled });
 	toggleClicks();
 }
 
@@ -588,7 +605,7 @@ function onPointerMove(event) {
 		return;
 	}
 	lining.rect = slideMapRect(drag.rect, point.x - drag.from.x, point.y - drag.from.y);
-	showTileAt(lining.tile, lining.rect);
+	showTileAt(lining.tile, lining.rect, { settled: lining.settled });
 	drawFrame();
 }
 
@@ -642,7 +659,7 @@ function onKeyDown(event) {
 		return;
 	}
 	lining.rect = slideMapRect(lining.rect, arrow[0] * step, arrow[1] * step);
-	showTileAt(lining.tile, lining.rect);
+	showTileAt(lining.tile, lining.rect, { settled: lining.settled });
 	drawFrame();
 }
 
@@ -665,7 +682,7 @@ function onWheel(event) {
 	const sized = sizeMapRect(sceneGeometry(lining.scene), lining.rect, factor, pointerOnMap(event));
 	if (!sized) return;
 	lining.rect = sized;
-	showTileAt(lining.tile, lining.rect);
+	showTileAt(lining.tile, lining.rect, { settled: lining.settled });
 	drawFrame();
 }
 
@@ -711,6 +728,7 @@ export function startMapAlignment(scene, { role = "players" } = {}) {
 			scene,
 			role,
 			tile,
+			settled: realmTilesSettled(scene),
 			start: { ...rect },
 			rect,
 			mode: bare ? "slide" : "clicks",

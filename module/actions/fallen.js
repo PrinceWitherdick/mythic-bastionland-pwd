@@ -9,12 +9,13 @@ import {
 	squireOf,
 	successorOf
 } from "../rules/fallen.js";
+import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 import { UNCHOSEN_FLAG } from "../rules/unchosen-knight.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { makeFreshKnight } from "./new-knight.js";
 import { COMPANION_FLAG } from "./property.js";
 import { knightSquire } from "./squires.js";
-import { playersOf, worldKnights } from "./knights.js";
+import { inCompany, playersOf, worldKnights } from "./knights.js";
 import { timelineFallen, timelineTookUp } from "./timeline-events.js";
 
 /**
@@ -37,7 +38,7 @@ const worldCompanions = () => game.actors.map((actor) => ({
 	serves: actor.system?.serves ?? "",
 	companionOf: actor.getFlag(SYSTEM_ID, COMPANION_FLAG) ?? "",
 	// Only a Knight can be a successor, so only theirs are counted.
-	players: actor.type === "knight" ? playersOf(actor) : [],
+	players: isKnight(actor) ? playersOf(actor) : [],
 	actor
 }));
 
@@ -76,7 +77,7 @@ export function gloryOfTheCompany(fallen) {
 	return companyGlory(worldKnights((actor) => actor.id !== fallen.id).map((actor) => ({
 		glory: actor.system.glory,
 		isSquire: Boolean(actor.system.isSquire),
-		played: actor.hasPlayerOwner,
+		played: inCompany(actor),
 		// VIG 0 by Damage is Slain (p8), but Virtue Loss to 0 only Exhausts (p9).
 		slain: Boolean(actor.system.slain),
 		unchosen: Boolean(actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG))
@@ -92,7 +93,7 @@ export function gloryOfTheCompany(fallen) {
  * @returns {Promise<ChatMessage|null>} Null for a death the book leaves alone.
  */
 export async function announceFallenKnight(knight, outcome) {
-	if (!knightHasFallen({ type: knight.type, isSquire: knight.system.isSquire, hasPlayerOwner: knight.hasPlayerOwner }, outcome)) return null;
+	if (!knightHasFallen({ type: knight.type, isSquire: knight.system.isSquire, played: inCompany(knight) }, outcome)) return null;
 	const rode = whoRodeWith(knight);
 	const { squire, successor, followers } = rode;
 	// A successor who is their Squire is taken up as their Squire, and named so on that button.
@@ -238,9 +239,11 @@ async function takeUpFollower(fallen, followers) {
  * @param {Actor} fallen
  * @param {Actor} taken
  * @param {string} icon For the note in chat.
- * @returns {Promise<Actor>}
+ * @returns {Promise<Actor|null>} Null when an NPC Knight couldn't be made one of the Company.
  */
 async function takeUp(fallen, taken, icon) {
+	// An NPC Knight named as successor joins the Company as a Knight of its own, or isn't taken up.
+	if (isNpcKnight(taken) && !(await (await import("./npc-knights.js")).joinCompany(taken))) return null;
 	await handOver(taken, fallen);
 	// They're their own character now, not a line of the dead Knight's Property,
 	// so re-rolling that Knight's gear can never sweep them away.

@@ -1,5 +1,6 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { attackOf } from "../chat/attack-flag.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { moralePrompt, promptGroupMorale } from "../chat/morale-card.js";
 import { armourCounts, armourTotal, armourUnshielded, noteBearing, noteNamesShield, npcArmourUnshielded, shieldwallAround, shieldwallBearing, SITUATION_CONDITIONS, tokenBox } from "../rules/armour.js";
@@ -23,6 +24,7 @@ import { offerRevenge, rollScar } from "./scars.js";
 import { timelineMortalWound, timelineWarded } from "./timeline-events.js";
 import { escapeHTML } from "../rules/text.js";
 import { playerCharacter, worldKnights } from "./knights.js";
+import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
 
 /** Outcomes that take VIG, leaving the target Wounded (p8). */
 const WOUNDING_OUTCOMES = Object.freeze(["wounded", "mortal", "slain"]);
@@ -83,7 +85,7 @@ export function wornArmour(actor) {
  *   anybody's but a Knight's is; null for a Knight's, which is the sum of their items.
  */
 export function singleArmour(actor) {
-	return actor.type === "knight" ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
+	return isKnight(actor) ? null : { armour: actor.system.armour, armourNote: actor.system.armourNote };
 }
 
 /**
@@ -145,7 +147,7 @@ function foughtTwoHanded(actor, except = []) {
 	const applied = except.map((id) => log.findIndex((message) => message.id === id)).filter((index) => index >= 0);
 	const end = applied.length ? Math.min(...applied) : log.length;
 	for (let i = end - 1; i >= Math.max(0, end - SCANNED_MESSAGES); i--) {
-		const attack = log[i].flags?.[SYSTEM_ID]?.attack;
+		const attack = attackOf(log[i]);
 		if (!attack) continue;
 		// Their share of it, whether they made the Attack or rolled into another's.
 		const share = attack.attacker === actor.uuid ? attack : attack.joined?.find((entry) => entry.actor === actor.uuid);
@@ -243,7 +245,7 @@ const UNHORSED_SELECTOR = "[data-unhorsed]";
  */
 async function unhorseRiders(steed) {
 	// Nobody rides a Knight.
-	if (steed.type === "knight") return [];
+	if (isKnight(steed)) return [];
 	const as = new Set([steed.uuid, steed.isToken ? steed.token?.baseActor?.uuid : null].filter(Boolean));
 	const riders = worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner);
 	if (!riders.length) return riders;
@@ -256,14 +258,22 @@ async function unhorseRiders(steed) {
 	return riders;
 }
 
+/**
+ * @param {ChatMessage} message An unhorsed rider's card.
+ * @returns {Actor|null} The rider it names.
+ */
+const unhorsedRider = (message) => fromUuidSync(message?.flags?.[SYSTEM_ID]?.unhorsed ?? "");
+
 /** Wire the unhorsed rider's card, which deals the d6 of the fall. Called during init. */
 export function registerUnhorsed() {
 	registerCardButtons({
 		selector: UNHORSED_SELECTOR,
 		// The fall is dealt once, kept on the card so a reload doesn't offer it again.
 		once: true,
+		// Only by whoever may deal it.
+		mayPress: (message, user) => Boolean(unhorsedRider(message)?.testUserPermission?.(user, "OWNER")),
 		handler: async (_button, message) => {
-			const rider = fromUuidSync(message?.flags?.[SYSTEM_ID]?.unhorsed ?? "");
+			const rider = unhorsedRider(message);
 			if (!rider?.isOwner) {
 				warn("damage.unhorsedNotYours");
 				return false;
@@ -547,9 +557,9 @@ function wardensFor(victim) {
 	const base = victim.token?.baseActor ?? victim;
 	const scene = sceneOf(victim);
 	const placed = scene ? tokensOn(victim, scene) : [];
-	const ours = victim.type === "knight" || Boolean(victim.hasPlayerOwner);
-	return (game.actors?.contents ?? []).filter((actor) => {
-		if (actor.type !== "knight" || actor === base || !actor.isOwner || downBy(actor.system)) return false;
+	const ours = isCompanyKnight(victim) || Boolean(victim.hasPlayerOwner);
+	return worldKnights((actor) => {
+		if (actor === base || !actor.isOwner || downBy(actor.system)) return false;
 		if (!abilitiesWith(actor.items.contents, "deathWard").length) return false;
 		if (!scene) return ours;
 		const near = tokensOn(actor, scene);

@@ -1,7 +1,7 @@
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
-import { canDenyAttack, payFeat, postFeat, rollFeat } from "../actions/feats.js";
+import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
 import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
@@ -21,23 +21,27 @@ import {
 	diceShowing,
 	focusCanBeStrong,
 	gambitAllowsSave,
+	gambitCanBeStrong,
 	gambitSaveVirtue,
 	hasUsedFeat,
 	isAttacker,
 	isDieSpent,
 	parseDice,
-	unappliedTargets
+	unappliedTargets,
+	withdrawLocked
 } from "../rules/attack.js";
 import { shownWeapons, weaponShown } from "../rules/gambit-marks.js";
 import { damageReach } from "../rules/property-tab.js";
 import { PICK_BLANK, pickedFrom } from "../rules/pick-list.js";
 import { isAtHand } from "../rules/restock.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { ATTACK_FLAG, attackOf } from "./attack-flag.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
 import { askRuneTurn, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
+import { KNIGHT_TYPES } from "../rules/knight-types.js";
 
 /**
  * Attack cards follow the steps on p8 after the roll: others attacking the
@@ -78,9 +82,11 @@ const CHANGE_GUARDS = Object.freeze({
 		const actors = (Array.isArray(change.actors) ? change.actors : []).map((uuid) => ownedBy(uuid, user)).filter(Boolean);
 		return actors.length ? { type: "applied", names: actors.map((actor) => actor.name) } : null;
 	},
+	// Only a foe the card was aimed at Saves against its Gambits; a card at nobody, whoever its reader picks.
 	gambitSave: (change, attack, user) => {
 		const roller = ownedBy(change.actor, user);
-		return roller && { ...change, by: roller.name };
+		if (!roller || (attack.targets.length && !attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === roller.uuid))) return null;
+		return { ...change, by: roller.name };
 	},
 	// Clearing a mark, or carrying out a Greater effect, is the business of whoever owns the foe.
 	dismissMark: (change, attack, user) => (ownsMarkedFoe(change, attack, user) ? change : null),
@@ -100,7 +106,8 @@ const CHANGE_GUARDS = Object.freeze({
 		return joiner && canJoin(attack) ? { ...change, name: joiner.name } : null;
 	},
 	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
-	withdraw: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
+	// Taking back a Gambit already Saved against, carried out or rolled for is the Referee's alone.
+	withdraw: (change, attack, user) => (ownsAnAttacker(attack, user) ? { type: "withdraw", die: change.die, ...(user.isGM && change.force === true ? { force: true } : {}) } : null),
 	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) ? change : null),
 	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
 	reroll: (change, attack, user) => {
@@ -116,10 +123,10 @@ const CHANGE_GUARDS = Object.freeze({
 });
 
 /** The kinds of actor that make Attacks, and so can join one. */
-const ATTACKER_TYPES = Object.freeze(["knight", "npc", "structure"]);
+const ATTACKER_TYPES = Object.freeze([...KNIGHT_TYPES, "npc", "structure"]);
 
 const attackCard = statefulCard({
-	flag: "attack",
+	flag: ATTACK_FLAG,
 	query: CHANGE_QUERY,
 	notices: "attack",
 	change: changeAttack,
@@ -142,11 +149,8 @@ function joinedRolls(message, change) {
 	return { rolls: [...(message._source?.rolls ?? []), ...rolls.map((roll) => JSON.stringify(roll))] };
 }
 
-/**
- * @param {ChatMessage|undefined} message
- * @returns {import("../rules/attack.js").AttackState|null}
- */
-export const attackOf = attackCard.stateOf;
+// Read where the card keeps it (attack-flag.js), and offered from here too.
+export { attackOf };
 
 /**
  * Record a change on the card, asking the GM when this user can't.
@@ -294,8 +298,18 @@ function watchGambitChoice(dialog) {
 	if (!form) return;
 	const weapon = form.querySelector("[data-impair-weapon]");
 	const save = form.querySelector("[data-gambit-save]");
+	const strongBox = form.querySelector("[data-gambit-strong]");
 	const update = () => {
 		const key = form.querySelector("[name='gambit']:checked")?.value;
+		// Bolster and Move gain nothing from a Strong Gambit (p10), so its choice goes back to none.
+		const strongable = gambitCanBeStrong(key);
+		if (strongBox) {
+			strongBox.hidden = !strongable;
+			if (!strongable) {
+				const none = strongBox.querySelector("[name='strong'][value='']");
+				if (none) none.checked = true;
+			}
+		}
 		const strong = form.querySelector("[name='strong']:checked")?.value ?? "";
 		if (weapon) weapon.hidden = key !== "impair";
 		if (save) save.hidden = !gambitAllowsSave({ key, strong });
@@ -355,11 +369,36 @@ function showDismount(key) {
 	if (key === "dismount") playDismountFx({ whispered: !chatIsPublic() });
 }
 
+/**
+ * Take back the Gambit a die was spent on. Once it's Saved against, carried out, or a
+ * Dismount whose d6 is rolled, only the Referee may, and is asked first, since what
+ * was rolled is thrown away and what was done to a sheet stays done.
+ * @param {ChatMessage} message
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @param {number} die
+ * @returns {Promise<boolean>}
+ */
+async function withdrawGambit(message, gambit, die) {
+	const locked = withdrawLocked(gambit);
+	if (!locked) return saveChange(message, { type: "withdraw", die });
+	if (!game.user.isGM) {
+		warn(`attack.takeBackLocked.${locked}`);
+		return false;
+	}
+	const confirmed = await confirmDialog({
+		title: t("attack.takeBackAnyway.title"),
+		icon: "fa-solid fa-rotate-left",
+		message: [t(`attack.takeBackLocked.${locked}`), t("attack.takeBackAnyway.ask")]
+	});
+	return confirmed ? saveChange(message, { type: "withdraw", die, force: true }) : false;
+}
+
 /** Click a die of 4+ to spend it on a Gambit, or a spent one to take the Gambit back. */
 async function onGambit(message, button) {
 	const attack = attackOf(message);
 	const die = Number(button.dataset.die);
-	if (attack.gambits.some((gambit) => gambit.die === die)) return saveChange(message, { type: "withdraw", die });
+	const spent = attack.gambits.find((gambit) => gambit.die === die);
+	if (spent) return withdrawGambit(message, spent, die);
 	if (!canFundGambit(attack, die)) return;
 
 	const { faces, result } = attack.dice[die];
@@ -384,10 +423,13 @@ async function onFocus(message) {
 	if (!owned.length) return;
 	const unimpaired = owned.filter((actor) => !attackerImpaired(attack, actor.uuid));
 	if (!unimpaired.length) return warn("attack.impaired");
-	const able = unimpaired.filter((actor) => !featUsedOnAttack(attack, "focus", actor.uuid));
-	if (!able.length) {
+	const fresh = unimpaired.filter((actor) => !featUsedOnAttack(attack, "focus", actor.uuid));
+	if (!fresh.length) {
 		return warn("attack.featUsed", { name: unimpaired[0].name, feat: t("feats.focus.name") });
 	}
+	// The Fatigued, the Slain and the dying perform no Feat (p8, p10), so they're not asked for a Gambit first.
+	const able = fresh.filter((actor) => !featRefusal(actor, "focus"));
+	if (!able.length) return warn(...featRefusal(fresh[0], "focus"));
 	const attacker = await chooseActor(able, { title: t("feats.focus.name"), message: t("attack.whoFocuses"), icon: "fa-solid fa-eye" });
 	if (!attacker) return;
 
@@ -607,18 +649,36 @@ async function onDeny(message) {
 }
 
 /**
- * Gambits are declared and Deny used before the Damage lands, and applying it
- * settles the card for good, so whatever is still to be had is said first.
+ * What is still to be had on an Attack before its Damage lands: dice of 4+ unspent,
+ * a Deny somebody could still make, and Gambits whose Save hasn't been rolled,
+ * which can't be once the Damage is applied (p10).
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {Actor[]} actors Who the Damage would land on.
- * @returns {Promise<boolean>}
+ * @returns {string[]} One line each.
  */
-async function confirmApply(attack, actors) {
+function stillToBeHad(attack, actors) {
 	const lines = [];
 	const unspent = attack.dice.filter((_die, index) => canFundGambit(attack, index)).length;
 	if (unspent) lines.push(plural("attack.unspentGambits", unspent));
 	const deniers = actors.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
 	if (deniers.length) lines.push(t("attack.deniableDice", { names: deniers.join(", ") }));
+	const unsaved = attack.gambits.filter((gambit) => gambitAllowsSave(gambit) && !gambit.save).length;
+	if (unsaved) lines.push(plural("attack.unsavedGambits", unsaved));
+	return lines;
+}
+
+/**
+ * Gambits are declared, Deny used and Saves rolled before the Damage lands, and
+ * applying it settles the card for good, so whatever is still to be had is said
+ * first. A duel's two Attacks are asked about together, each named.
+ * @param {{attack: import("../rules/attack.js").AttackState, actors: Actor[]}[]} blows
+ * @returns {Promise<boolean>}
+ */
+export async function confirmApply(blows) {
+	const lines = blows.flatMap(({ attack, actors }) => {
+		const each = stillToBeHad(attack, actors);
+		return blows.length > 1 ? each.map((line) => t("attack.stillWhose", { name: attack.attackerName ?? "", line })) : each;
+	});
 	if (!lines.length) return true;
 	return confirmDialog({
 		title: t("attack.apply"),
@@ -642,7 +702,7 @@ async function onApply(message, _button, event) {
 	}
 	const owned = waiting.filter(({ actor }) => actor.isOwner);
 	if (!owned.length) return warn("attack.cantApply");
-	if (!(await confirmApply(attack, waiting.map(({ actor }) => actor)))) return;
+	if (!(await confirmApply([{ attack, actors: waiting.map(({ actor }) => actor) }]))) return;
 
 	const names = [];
 	const tokens = [];
@@ -877,7 +937,9 @@ function activateAttackCard(message, html) {
 	const attacking = message.isOwner || ownsAnAttacker(attack);
 	for (const button of card.querySelectorAll("[data-attack-action]")) {
 		const { attackAction } = button.dataset;
-		if (["gambit", "focus"].includes(attackAction) && !attacking) button.disabled = true;
+		// A Gambit past taking back is the Referee's alone, who is asked before it goes.
+		const refereesOnly = attackAction === "gambit" && "refereeTakeBack" in button.dataset;
+		if (refereesOnly ? !game.user.isGM : ["gambit", "focus"].includes(attackAction) && !attacking) button.disabled = true;
 		if (attackAction === "deny") denyButton = button;
 		if (attackAction === "join") joinButton = button;
 		if (attackAction === "apply" || attackAction === "greater") {

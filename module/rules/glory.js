@@ -29,15 +29,20 @@ export function rankForGlory(glory) {
  * Glory By Other Means (p6), besides a new Age: a Myth resolved, for every
  * Knight who played a part; a tournament won before significant spectators;
  * and a battle big enough for the chronicles, for every Knight on the winning
- * side. Duels and jousts stake Glory between two Knights.
+ * side. Duels and jousts stake Glory between two Knights. A Bridge's Knight
+ * beaten wins 1 Glory too, as Chris McDowall's blog has it.
  */
-export const GLORY_AWARDS = Object.freeze(["myth", "tournament", "battle"]);
+export const GLORY_AWARDS = Object.freeze(["myth", "tournament", "battle", "bridge"]);
 
 /**
- * The awards given from a Glory button of their own. A Myth's Glory is given
- * from its row in the GM Toolkit instead, as it is marked resolved.
+ * The awards given from where they were won rather than a Glory button of
+ * their own: a Myth's from its row in the GM Toolkit as it is marked resolved,
+ * and a Bridge's from its tick in the Lay of the Land.
  */
-export const GLORY_BUTTONS = Object.freeze(GLORY_AWARDS.filter((key) => key !== "myth"));
+const AWARDED_IN_PLACE = Object.freeze(["myth", "bridge"]);
+
+/** The awards given from a Glory button of their own. */
+export const GLORY_BUTTONS = Object.freeze(GLORY_AWARDS.filter((key) => !AWARDED_IN_PLACE.includes(key)));
 
 /**
  * Add or take away Glory, which never falls below 0.

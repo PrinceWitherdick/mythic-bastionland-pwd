@@ -7,6 +7,7 @@ import { registerJourneyHooks } from "./module/actions/journey.js";
 import { registerNightTravel } from "./module/actions/night-travel.js";
 import { registerSightings } from "./module/actions/sighted.js";
 import { registerSolo } from "./module/actions/solo.js";
+import { registerBlogLandmarks } from "./module/actions/blog-landmarks.js";
 import { registerDuplicateKnightGuard, registerDuplicateKnights } from "./module/actions/knights.js";
 import { registerSkyAndWeather } from "./module/actions/sky-weather.js";
 import { registerHomecoming } from "./module/actions/homecoming.js";
@@ -32,8 +33,10 @@ import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
+import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
+import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
-import { turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
+import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
 import { registerTurnOrder } from "./module/actions/turn-order.js";
 import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
@@ -85,6 +88,7 @@ import { registerHexTargets } from "./module/chat/hex-target.js";
 import { registerFallenCards } from "./module/chat/fallen-card.js";
 import { registerRevengeCards } from "./module/chat/revenge-card.js";
 import { registerLandmarkCards } from "./module/chat/landmark-card.js";
+import { registerOmenSceneCards } from "./module/actions/omen-scenes.js";
 import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
@@ -127,6 +131,7 @@ import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
 import { openHex, openPlaces, reopenablePlaces } from "./module/apps/TravelsPlaces.js";
 import { ensureHotbarOrder } from "./module/actions/hotbar-order.js";
 import { PLAYER_KNIGHTS_STEP, grantPlayerActorCreate, registerPlayerKnightDialog } from "./module/actions/player-knights.js";
+import { registerCoreWindowSkin } from "./module/apps/core-windows.js";
 import { openRulebookSetup } from "./module/rulebook/RulebookSetup.js";
 import { registerPageLinks } from "./module/rulebook/page-links.js";
 import { registerWrittenNotices } from "./module/apps/written-notice.js";
@@ -164,6 +169,8 @@ const REFEREE_TOOLS = [
 
 Hooks.once("init", () => {
 	CONFIG.Actor.dataModels.knight = KnightModel;
+	// The Referee's own Knights: the same rules and sheet, never one of the Company.
+	CONFIG.Actor.dataModels[NPC_KNIGHT_TYPE] = KnightModel;
 	CONFIG.Actor.dataModels.npc = NpcModel;
 	CONFIG.Actor.dataModels.domain = DomainModel;
 	CONFIG.Actor.dataModels.structure = StructureModel;
@@ -173,7 +180,7 @@ Hooks.once("init", () => {
 
 	const { DocumentSheetConfig } = foundry.applications.apps;
 	DocumentSheetConfig.registerSheet(Actor, SYSTEM_ID, KnightSheet, {
-		types: ["knight"],
+		types: [...KNIGHT_TYPES],
 		makeDefault: true,
 		label: "bastionland.sheet.title"
 	});
@@ -246,6 +253,7 @@ Hooks.once("init", () => {
 		"bastionland.realm-count": templatePath("apps/parts/realm-count.hbs"),
 		"bastionland.realm-swatch": templatePath("apps/parts/realm-swatch.hbs"),
 		"bastionland.season-events": templatePath("apps/parts/season-events.hbs"),
+		"bastionland.omen-scenes": templatePath("apps/parts/omen-scenes.hbs"),
 		"bastionland.off-course": templatePath("apps/parts/off-course.hbs"),
 		"bastionland.gm-toolkit-hex": templatePath("actor/gm-toolkit/hex-card.hbs"),
 		"bastionland.track-pin": templatePath("actor/gm-toolkit/track-pin.hbs"),
@@ -331,6 +339,8 @@ Hooks.once("init", () => {
 
 	// A Wilderness card offers what the Landmark it found asks of the Company.
 	registerLandmarkCards();
+	// …and activates the Scenes the Referee linked to the Omen it shows.
+	registerOmenSceneCards();
 	registerExplorationCards();
 	// A hex a card names rings on the map when pointed at, and takes the map there when clicked.
 	registerHexTargets();
@@ -446,6 +456,7 @@ Hooks.once("init", () => {
 	// for GMs the ways of moving time on and End the Session hanging under it.
 	registerPhaseBanner({
 		moves: {
+			phase: () => advancePhase(),
 			weeks: weeksPass,
 			months: turnSeason,
 			year: turnAge,
@@ -498,12 +509,17 @@ Hooks.once("init", () => {
 	registerSolo();
 	// No two characters are the same Knight from the book, unless the Referee says they may be.
 	registerDuplicateKnights();
+	registerBlogLandmarks();
 	registerDuplicateKnightGuard();
 	// A ruler back at their Holding from a long absence makes the Crisis Roll.
 	registerHomecoming();
 
 	// Players may make their own Knights, and Create Actor offers them nothing else.
 	registerPlayerKnightDialog();
+	// A Referee's Create Actor offers NPC Knight as a choice under Knight, not as a type beside NPC.
+	registerNpcKnightCreateChoice();
+	// Foundry's own windows that come up in play (Create, Delete, User Configuration, hex and Site journals) wear the parchment.
+	registerCoreWindowSkin();
 
 	// Weapons, armour, gear, beasts and structures get a picture their name calls for.
 	registerGoodsPictures();
@@ -623,11 +639,13 @@ const WORLD_SETUP = Object.freeze([
 	{ key: POSSESSION_DETAILS_STEP, run: fillPossessionDetails },
 	// Again, for the odds a possession gives (p88), the Virtue it costs should something befall it (p62)
 	// and Damage that burns on (p173), read since.
-	{ key: "possessionOddsAndLosses", run: fillPossessionDetails },
+	{ key: "possessionOddsAndLosses", run: fillPossessionDetails, repeats: POSSESSION_DETAILS_STEP },
 	// Knights made before their Ability's settings, and any weapon it gives, came from their page.
 	{ key: ABILITY_KITS_STEP, run: fillAbilityKits },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
+	// Again, for the Cast the book fields only as Warbands though their names don't say so.
+	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.
@@ -646,7 +664,10 @@ const WORLD_SETUP = Object.freeze([
 	// name, and pages the server left with nothing to show get their HTML.
 	{ key: "keptJournalPages", run: tidyKeptJournals },
 	// Worlds from before the toolkit was the Referee's, whose toolkit and macro are still called GM Toolkit.
-	{ key: REFEREE_NAME_STEP, run: renameOldToolkit }
+	{ key: REFEREE_NAME_STEP, run: renameOldToolkit },
+	// Last, so every step before it still finds the Referee's Knights as Knights: worlds from before NPC
+	// Knights were an Actor type, whose Knights in the NPCs folder are played by the Referee.
+	{ key: NPC_KNIGHTS_STEP, run: convertNpcKnights }
 ]);
 
 Hooks.once("ready", async () => {
@@ -660,6 +681,8 @@ Hooks.once("ready", async () => {
 	catchUpBookText();
 	// Only small Companies may keep Squires: the GMs hear when the Company grows past that.
 	watchCompanySize();
+	// A Knight brought in from an older compendium, marked as the Referee's own, comes in as an NPC Knight.
+	convertImportedNpcKnights();
 	// Knights made while no GM was on get their folders now.
 	fileWaitingKnights();
 	// A Knight given to this player while they were away opens for them to choose.

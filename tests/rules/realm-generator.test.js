@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+	BLOG_LANDMARKS,
+	BLOG_LANDMARK_TYPES,
+	BOOK_LANDMARK_TYPES,
 	HOLDING_COUNT,
 	HOLDING_STYLES,
 	LAKE,
 	LANDMARKS_PER_TYPE,
-	LANDMARK_TYPES,
+	LANDMARK_VARIANTS,
 	MYTH_COUNT,
 	TERRAIN,
 	barrierCount,
@@ -94,7 +97,7 @@ describe("generateRealm", () => {
 
 	it("places 3 or 4 of each hidden Landmark, one to a hex, off Holdings and Myths", () => {
 		for (const realm of realms) {
-			for (const type of LANDMARK_TYPES) {
+			for (const type of BOOK_LANDMARK_TYPES) {
 				const count = realm.landmarks.filter((landmark) => landmark.type === type).length;
 				expect(count).toBeGreaterThanOrEqual(LANDMARKS_PER_TYPE.min);
 				expect(count).toBeLessThanOrEqual(LANDMARKS_PER_TYPE.max);
@@ -144,7 +147,7 @@ describe("generateRealm with a setup of the GM's own", () => {
 		expect(realm.holdings).toHaveLength(6);
 		expect(realm.holdings.filter((holding) => holding.seat)).toHaveLength(1);
 		expect(realm.myths.map((myth) => myth.number)).toEqual([1, 2, 3]);
-		expect(realm.landmarks).toHaveLength(LANDMARK_TYPES.length);
+		expect(realm.landmarks).toHaveLength(BOOK_LANDMARK_TYPES.length);
 		expect(realm.barriers).toHaveLength(10);
 		expect(isConnected(own, new Set(realm.barriers.map((barrier) => barrier.edge)))).toBe(true);
 		expect(realm.rivers).toHaveLength(1);
@@ -154,7 +157,7 @@ describe("generateRealm with a setup of the GM's own", () => {
 	it("gives a type of Landmark its own count, as the Referee on p202 adds an extra Hazard and Curse", () => {
 		const setup = { ignoreRules: true, landmarks: { min: 1, max: 1, types: { hazard: 2, curse: "2", ruin: 0 } } };
 		const { realm } = custom(setup, "island");
-		const counts = Object.fromEntries(LANDMARK_TYPES.map((type) => [type, realm.landmarks.filter((landmark) => landmark.type === type).length]));
+		const counts = Object.fromEntries(BOOK_LANDMARK_TYPES.map((type) => [type, realm.landmarks.filter((landmark) => landmark.type === type).length]));
 		expect(counts).toEqual({ dwelling: 1, sanctum: 1, monument: 1, hazard: 2, curse: 2, ruin: 0 });
 	});
 
@@ -163,7 +166,7 @@ describe("generateRealm with a setup of the GM's own", () => {
 		expect(realm.terrain.every((terrain) => terrain === 0)).toBe(true);
 		expect(realm).toMatchObject({ rivers: [], holdings: [], barriers: [] });
 		expect(realm.myths).toHaveLength(MYTH_COUNT);
-		expect(realm.landmarks.length).toBeGreaterThanOrEqual(LANDMARK_TYPES.length * LANDMARKS_PER_TYPE.min);
+		expect(realm.landmarks.length).toBeGreaterThanOrEqual(BOOK_LANDMARK_TYPES.length * LANDMARKS_PER_TYPE.min);
 		// Terrain still to be drawn isn't a problem.
 		expect(validateRealm(realm, own)).toEqual([]);
 	});
@@ -300,5 +303,73 @@ describe("remoteMythHex", () => {
 			expect(nearestHolding(hex)).toBeGreaterThanOrEqual(Math.min(nearestHolding(gone.hex), 3));
 			expect(rest.every((myth) => hexDistance(g, myth.hex, hex) >= 1)).toBe(true);
 		}
+	});
+});
+
+describe("generateRealm with the blog's Landmarks", () => {
+	const blogSeeds = seeds.slice(0, 12);
+	const pairs = blogSeeds.map((seed) => ({
+		plain: generateRealm({ seed, geometry: g }),
+		blog: generateRealm({ seed, geometry: g, blogLandmarks: true })
+	}));
+
+	it("rolls the same book Realm as without them, with theirs added after the book's", () => {
+		for (const { plain, blog } of pairs) {
+			expect({ ...blog, landmarks: blog.landmarks.slice(0, plain.landmarks.length) }).toEqual(plain);
+			expect(blog.landmarks.slice(plain.landmarks.length).every((landmark) => BLOG_LANDMARK_TYPES.includes(landmark.type))).toBe(true);
+		}
+	});
+
+	it("rolls as many of each as the post has, each sort of Grotto, Fountain and Willow once", () => {
+		for (const { blog } of pairs) {
+			for (const [type, { count }] of Object.entries(BLOG_LANDMARKS)) {
+				const placed = blog.landmarks.filter((landmark) => landmark.type === type);
+				expect(placed).toHaveLength(count);
+				if (LANDMARK_VARIANTS[type]) expect(placed.map((landmark) => landmark.variant).sort()).toEqual([...LANDMARK_VARIANTS[type]].sort());
+			}
+		}
+	});
+
+	it("pairs the two Ponds, hides every one, and leaves the Realm valid with one thing to a hex", () => {
+		for (const { blog } of pairs) {
+			const ponds = blog.landmarks.filter((landmark) => landmark.type === "pond");
+			expect(ponds.map((pond) => pond.pair)).toEqual([1, 1]);
+			expect(blog.landmarks.every((landmark) => !landmark.revealed)).toBe(true);
+			expect(validateRealm(blog, g)).toEqual([]);
+		}
+	});
+
+	it("stands its Bridges on the river", () => {
+		for (const { blog } of pairs) {
+			const river = new Set(blog.rivers.flat().map(hexKey));
+			for (const bridge of blog.landmarks.filter((landmark) => landmark.type === "bridge")) expect(river.has(hexKey(bridge.hex))).toBe(true);
+		}
+	});
+
+	it("rolls the same blog Landmarks from the same seed", () => {
+		expect(generateRealm({ seed: "blog", geometry: g, blogLandmarks: true })).toEqual(generateRealm({ seed: "blog", geometry: g, blogLandmarks: true }));
+	});
+
+	it("rolls none in a custom Realm set up with no Landmarks", () => {
+		const setup = { ignoreRules: true, landmarks: { min: 0, max: 0 } };
+		for (const seed of blogSeeds.slice(0, 4)) expect(generateRealm({ seed, setup, blogLandmarks: true }).landmarks).toEqual([]);
+	});
+
+	it("rolls fewer on a smaller map, keeping the Ponds in pairs", () => {
+		const setup = { ignoreRules: true, cols: 6, rows: 6 };
+		for (const seed of blogSeeds.slice(0, 4)) {
+			const realm = generateRealm({ seed, setup, blogLandmarks: true });
+			const blog = realm.landmarks.filter((landmark) => BLOG_LANDMARK_TYPES.includes(landmark.type));
+			const total = Object.values(BLOG_LANDMARKS).reduce((sum, { count }) => sum + count, 0);
+			expect(blog.length).toBeGreaterThan(0);
+			expect(blog.length).toBeLessThan(total);
+			for (const [type, { count }] of Object.entries(BLOG_LANDMARKS)) expect(blog.filter((landmark) => landmark.type === type).length).toBeLessThanOrEqual(count);
+			expect(blog.filter((landmark) => landmark.type === "pond").length % 2).toBe(0);
+		}
+	});
+
+	it("rolls none where the Landmarks are left to draw by hand", () => {
+		const realm = generateRealm({ seed: "blog", geometry: g, blogLandmarks: true, setup: { roll: { landmarks: false } } });
+		expect(realm.landmarks).toEqual([]);
 	});
 });

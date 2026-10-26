@@ -15,6 +15,11 @@ vi.mock("../../module/actions/hex-lore.js", async (importOriginal) => ({
 	rollFirstArrival: (...args) => rollFirstArrival(...args)
 }));
 
+// Whether dire weather may keep the Company out of a hex is held-back.js's to work out: here it's asked.
+let heldOut = false;
+const reachedOf = vi.fn((_scene, move) => (heldOut ? [] : move.entered));
+vi.mock("../../module/actions/held-back.js", () => ({ hexesReached: (...args) => reachedOf(...args) }));
+
 const { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } = await import("../../module/canvas/hex-prompt.js");
 
 const g = realmGeometry();
@@ -48,6 +53,7 @@ beforeEach(() => {
 	vi.useFakeTimers();
 	openHex.mockClear();
 	rollFirstArrival.mockClear();
+	heldOut = false;
 	globalThis.game = { user: { isGM: true }, settings: { get: () => "open" }, i18n: { localize: (key) => key, format: (key) => key } };
 	globalThis.ui = { notifications: { info: vi.fn(), warn: vi.fn() } };
 	// The GM is looking at the Realm the Company walks across.
@@ -174,5 +180,17 @@ describe("the hex arrival prompt", () => {
 		vi.advanceTimersByTime(GATHER);
 		expect(rollFirstArrival).toHaveBeenCalledOnce();
 		expect(openHex).not.toHaveBeenCalled();
+	});
+
+	it("rolls nothing where dire weather may be keeping the Company out, but still opens the hex", () => {
+		game.users = { activeGM: { isSelf: true } };
+		heldOut = true;
+		const origin = { x: 0, y: 0 };
+		moveToken(tokenIn({ col: 4, row: 3 }), { ...leg(), origin });
+		vi.advanceTimersByTime(GATHER);
+		expect(rollFirstArrival).not.toHaveBeenCalled();
+		expect(openHex).toHaveBeenCalledWith({ scene, hex: { col: 4, row: 3 } });
+		// Asked of the move as it came to rest: where it set off, and that the Company chose it.
+		expect(reachedOf.mock.calls.at(-1)[1]).toEqual({ entered: [{ col: 4, row: 3 }], ended: true, from: { col: 4, row: 3 }, chosen: true });
 	});
 });

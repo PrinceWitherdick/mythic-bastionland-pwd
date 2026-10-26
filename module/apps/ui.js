@@ -1,6 +1,16 @@
 import { searchable } from "../rules/text.js";
 import { templatePath } from "../system-id.js";
 
+/**
+ * Draw again every open window that carries one of these classes.
+ * @param {...string} classNames
+ */
+export function renderOpenWindows(...classNames) {
+	for (const app of foundry.applications.instances.values()) {
+		if (app.rendered && classNames.some((name) => app.options?.classes?.includes(name))) app.render();
+	}
+}
+
 /** Marks something painted in its own light colours, which keeps parchment's inks under a dark Colour Scheme (mythic-bastionland.css). */
 export const PAINTED = "bastionland-painted";
 
@@ -360,8 +370,9 @@ export function filterBySearch(page, term, noMatch = null) {
  * data-action is the window's to handle.
  * @param {HTMLElement|null|undefined} element The window.
  * @param {string} className Marks these buttons apart from Foundry's and other hangers'.
- * @param {{action: string, icon: string, label: string, tooltip?: string, muted?: boolean}[]} buttons None takes them all down.
- *   A muted one is greyed, for what's offered but not yet to hand.
+ * @param {{action: string, icon: string, label: string, tooltip?: string, muted?: boolean, disabled?: boolean}[]} buttons None takes them all down.
+ *   A muted one is greyed, for what's offered but not yet to hand. A disabled one is greyed and says it's barred, but
+ *   still takes a click, so its window can say why.
  */
 export function hangHeaderButtons(element, className, buttons) {
 	const header = element?.querySelector(".window-header");
@@ -369,11 +380,12 @@ export function hangHeaderButtons(element, className, buttons) {
 	header.querySelectorAll(`.${className}`).forEach((button) => button.remove());
 	const doc = header.ownerDocument;
 	const controls = header.querySelector("[data-action=toggleControls], [data-action=close]");
-	for (const { action, icon, label, tooltip, muted } of buttons) {
+	for (const { action, icon, label, tooltip, muted, disabled } of buttons) {
 		const button = doc.createElement("button");
 		button.type = "button";
 		button.classList.add("header-control", "bastionland-header-button", className);
-		button.classList.toggle("bastionland-header-button--muted", Boolean(muted));
+		button.classList.toggle("bastionland-header-button--muted", Boolean(muted || disabled));
+		if (disabled) button.setAttribute("aria-disabled", "true");
 		button.dataset.action = action;
 		if (tooltip) button.dataset.tooltip = tooltip;
 		const glyph = doc.createElement("i");

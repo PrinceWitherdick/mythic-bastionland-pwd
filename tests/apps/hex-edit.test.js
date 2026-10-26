@@ -85,7 +85,7 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 
 	it("moves a Myth here from another hex once all six stand, asking which on a radio list", () => {
 		expect(app).toMatch(/if \(kind !== "myth" \|\| !realm \|\| featureAt\(realm, hex\)\.myth \|\| unusedMythNumbers\(realm\)\.length\) return writeHexField\(scene, hex, "kind", kind\);/);
-		expect(app).toContain('return editRealm(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));');
+		expect(app).toContain('return editRealmByHand(scene, (realm, g) => placeFeature(realm, g, hex, { kind: "myth", number }));');
 		const dialog = read("templates/dialogs/move-myth.hbs");
 		// The book's radio list, with no blank one to choose.
 		expect(dialog).toContain('{{> "bastionland.pick-list" name="myth" choices=myths legend=');

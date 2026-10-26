@@ -1,3 +1,5 @@
+import { KNIGHT_TYPE, isKnight } from "./knight-types.js";
+
 /**
  * When a Knight dies (p8): their player makes another Knight to join the
  * Company soon, or takes up a Squire or follower instead.
@@ -56,7 +58,7 @@ export function squireOf(knight, actors) {
  */
 export function successorOf(knight, actors) {
 	if (!knight?.successor) return null;
-	const heir = actors.find((actor) => actor.uuid === knight.successor && actor.uuid !== knight.uuid && actor.type === "knight");
+	const heir = actors.find((actor) => actor.uuid === knight.successor && actor.uuid !== knight.uuid && isKnight(actor));
 	if (!heir) return null;
 	const theirs = new Set(knight.players ?? []);
 	return (heir.players ?? []).every((player) => theirs.has(player)) ? heir : null;
@@ -138,9 +140,9 @@ export function replacementGlory(company, startGlory) {
  * @param {object} knight
  * @param {string} knight.type
  * @param {boolean} [knight.isSquire]
- * @param {boolean} [knight.hasPlayerOwner]
+ * @param {boolean} [knight.played] Whether they ride with the Company.
  * @param {string} outcome One of the damage outcomes.
  * @returns {boolean}
  */
-export const knightHasFallen = ({ type, isSquire = false, hasPlayerOwner = false }, outcome) =>
-	outcome === "slain" && type === "knight" && !isSquire && hasPlayerOwner;
+export const knightHasFallen = ({ type, isSquire = false, played = false }, outcome) =>
+	outcome === "slain" && type === KNIGHT_TYPE && !isSquire && played;

@@ -67,14 +67,22 @@ async function takeCollision(ship, muchLarger) {
 	return takeDamage(ship, collisionDamage(roll.total));
 }
 
+/**
+ * @param {ChatMessage} message A collision's card.
+ * @returns {Actor|null} The ship it offers the Damage to.
+ */
+const collidedShip = (message) => fromUuidSync(message?.flags?.[SYSTEM_ID]?.collision?.ship ?? "");
+
 /** Wire the card offering a collision's Damage to the other ship. Called during init. */
 export function registerCollisions() {
 	registerCardButtons({
 		selector: COLLISION_SELECTOR,
 		once: true,
+		// Only by whoever may change the ship.
+		mayPress: (message, user) => Boolean(collidedShip(message)?.testUserPermission?.(user, "OWNER")),
 		handler: async (_button, message) => {
-			const { ship: uuid = "", damage } = message?.flags?.[SYSTEM_ID]?.collision ?? {};
-			const ship = fromUuidSync(uuid);
+			const damage = message?.flags?.[SYSTEM_ID]?.collision?.damage;
+			const ship = collidedShip(message);
 			if (!ship?.isOwner || !Number.isFinite(damage)) {
 				warn("structure.collide.notYours");
 				return false;

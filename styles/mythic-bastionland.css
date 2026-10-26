@@ -117,7 +117,8 @@
 	.bastionland-company-colours,
 	.bastionland-choices--inline,
 	.bastionland-session-end__list--row,
-	.bastionland-timeline__axis
+	.bastionland-timeline__axis,
+	.bastionland-omen-scenes
 ) > li {
 	margin: 0;
 }
@@ -295,7 +296,7 @@
 	--input-focus-outline-color: var(--bastionland-verdigris);
 }
 
-:is(.bastionland-page, .bastionland-dialog .window-content) :is(button, a.button) {
+:is(.bastionland-page, .bastionland-dialog .window-content, .mythic-bastionland-journal .journal-sidebar) :is(button, a.button) {
 	--button-background-color: var(--bastionland-paper-deep);
 	--button-border-color: var(--bastionland-ink);
 	--button-text-color: var(--bastionland-ink);
@@ -2801,6 +2802,30 @@ a.button:focus:not(:focus-visible) {
 	font-size: var(--bastionland-font-note);
 }
 
+/* Foundry lays out .form-fields only inside a standard-form, which the item
+   sheet isn't, so the fields that share a row are set on it by name: "1 in 2",
+   "2 of 3" and a die beside its situation. A number box that shares its row
+   keeps to a die's width; one alone is left as it is. */
+.bastionland-page--item .form-fields {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.bastionland-page--item .form-fields > :is(input, select) {
+	flex: 1 1 8rem;
+	width: auto;
+	min-width: 0;
+}
+
+.bastionland-page--item .form-fields > input[type="number"]:not(:only-child) {
+	flex: 0 0 4.5rem;
+}
+
+.bastionland-page--item .form-fields > span {
+	flex: none;
+}
+
 /*
  * The specialist die and the situation it applies to share a row while there
  * is room for both; the row gap holds the text field clear of the dropdown
@@ -2812,16 +2837,6 @@ a.button:focus:not(:focus-visible) {
 .bastionland-page .bastionland-item-stock .form-fields {
 	flex-wrap: wrap;
 	row-gap: 0.4rem;
-}
-
-/* "Carried 2 of 3", then how often it's restocked. */
-.bastionland-page .bastionland-item-stock input[type="number"] {
-	flex: 0 0 4.5rem;
-}
-
-.bastionland-item-stock__of {
-	flex: none;
-	align-self: center;
 }
 
 /* A weapon's other way to fight: its qualities sit in the fieldset's own frame. */
@@ -6366,6 +6381,22 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	align-items: center;
 }
 
+/* Where one of the blog's Landmarks comes from, linked as the Welcome card's
+   modules are: the rubric's red, underlined only under the pointer. */
+.bastionland-hex-lore__credit {
+	margin: 0;
+	font-style: italic;
+}
+
+.bastionland-hex-lore__credit a {
+	color: var(--bastionland-rubric);
+	text-decoration: none;
+}
+
+.bastionland-hex-lore__credit a:hover {
+	text-decoration: underline;
+}
+
 /* Who rules a Holding: the Knight in bold, then their Domain, each opening its
    sheet, read as words rather than drawn as buttons. */
 .bastionland-hex-lore__rulers {
@@ -6682,17 +6713,27 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: 3.2rem;
 }
 
-/* The Roll button wraps under the two dice boxes in a narrow window, so the row
-   carries a gap of its own rather than letting the button sit on them. */
+/* Foundry lays out .form-group and .form-fields only inside a standard-form,
+   which this window isn't, so they are flex boxes here by name. The Roll button
+   wraps under the two dice boxes in a narrow window, so the row carries a gap
+   of its own rather than letting the button sit on them. Buttons stand as tall
+   as the dice boxes beside them. */
 .bastionland-hex-edit .form-fields {
+	display: flex;
 	flex-wrap: wrap;
 	gap: 0.35rem;
+}
+
+.bastionland-hex-edit .form-fields > button {
+	align-self: stretch;
+	height: auto;
 }
 
 /* The Myth's two dice and its Roll and Choose buttons read as one line: the
    label sits above so the row has the window's whole width, and the buttons
    share what the boxes leave rather than wrapping underneath. */
 .bastionland-hex-edit__myth-roll {
+	display: flex;
 	flex-direction: column;
 	align-items: stretch;
 	gap: 0.15rem;
@@ -6703,17 +6744,34 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
-.bastionland-hex-edit__myth-roll > .form-fields {
-	flex: 1 1 auto;
-	flex-wrap: nowrap;
+/* A grid of its own, at a weight no general .form-fields rule outranks: once
+   seen with the buttons stacked under the boxes, squeezed and touching. */
+.bastionland-page.bastionland-hex-edit .bastionland-hex-edit__myth-roll > .form-fields {
+	display: grid;
+	grid-template-columns: 3.2rem 3.2rem repeat(2, minmax(0, 1fr));
+	gap: 0.35rem;
 	width: 100%;
 }
 
 .bastionland-hex-edit__myth-roll button {
-	flex: 1 1 auto;
 	width: auto;
 	min-width: 0;
 	white-space: nowrap;
+}
+
+/* Which Grotto, Fountain or Willow: the box and the die that fills it on one
+   line, the die on the right. */
+.bastionland-hex-edit .bastionland-hex-edit__pick {
+	flex-wrap: nowrap;
+}
+
+.bastionland-hex-edit .bastionland-hex-edit__pick > select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.bastionland-hex-edit .bastionland-hex-edit__pick > button {
+	flex: none;
 }
 
 .bastionland-hex-edit__row {
@@ -8160,6 +8218,75 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	text-align: right;
 }
 
+/* An Omen's linked Scenes sit under its words, in the column they take. */
+.bastionland-own-myth__omens .bastionland-omen-scenes {
+	grid-column: 2;
+}
+
+/* The Scenes linked to an Omen, in the GM Toolkit and a written Myth's sheet:
+   a pill for each, with a quiet eye and cross beside it. */
+.bastionland-omen-scenes {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem 0.6rem;
+	margin: 0.3rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.bastionland-omen-scenes__scene {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.bastionland-page button.bastionland-omen-scenes__open {
+	--pill-pad: 0.45em;
+	width: auto;
+	max-width: 100%;
+	flex: 0 1 auto;
+	margin: 0;
+	padding: var(--pill-padding-top, 0.15rem) 0.6rem var(--pill-padding-bottom, 0.15rem);
+	overflow: hidden;
+	border: var(--pill-border, 1px) solid var(--bastionland-rule);
+	border-radius: 999px;
+	background: var(--bastionland-paper);
+	box-shadow: none;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-body);
+	font-size: var(--bastionland-font-floor);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.bastionland-page button.bastionland-omen-scenes__open:hover {
+	border-color: var(--bastionland-blood);
+	color: var(--bastionland-blood);
+}
+
+.bastionland-page button:is(.bastionland-omen-scenes__view, .bastionland-omen-scenes__unlink) {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	flex: none;
+	margin: 0;
+	padding: 0 0.25rem;
+	border: none;
+	background: none;
+	box-shadow: none;
+	color: var(--bastionland-ink-soft);
+	font-size: var(--bastionland-font-floor);
+	line-height: 1;
+	cursor: pointer;
+}
+
+.bastionland-page button:is(.bastionland-omen-scenes__view, .bastionland-omen-scenes__unlink):hover {
+	color: var(--bastionland-blood);
+}
+
 .bastionland-own-myth__table-fold > summary {
 	cursor: pointer;
 }
@@ -8449,8 +8576,53 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* Realm Appearance: skins, colour sets and the GM's own pictures. */
-.bastionland-realm-appearance {
+/* Two panes: the choices, and a column with the Preview and Apply that stays in view while
+   they scroll. The two share the width alike; a window narrowed by hand wraps the column
+   under the choices, full width. */
+.bastionland-page.bastionland-realm-appearance {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 0.75rem 1.25rem;
+}
+
+.bastionland-realm-appearance__choices,
+.bastionland-realm-appearance__side {
+	display: flex;
+	flex-direction: column;
 	gap: 0.75rem;
+	min-width: 0;
+}
+
+.bastionland-realm-appearance__choices {
+	flex: 1 1 24rem;
+}
+
+.bastionland-realm-appearance__side {
+	flex: 1 1 24rem;
+	position: sticky;
+	top: 0;
+}
+
+/* In the side column the Preview's pictures are drawn larger, and grow to fill each row, edge to edge. */
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group {
+	grid-template-columns: repeat(auto-fill, minmax(3.2rem, 1fr));
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group.is-hexes {
+	grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group.is-hexes img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 3.5 / 3.03;
 }
 
 .bastionland-realm-appearance__section {
@@ -8467,6 +8639,30 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 
 .bastionland-realm-appearance p {
 	margin: 0;
+}
+
+/* Icons and Hex Lines: a name, its slider, and the strength it's at, in three columns down the section. */
+.bastionland-realm-appearance__fades {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr) 3.2rem;
+	gap: 0.35rem 0.75rem;
+	align-items: center;
+}
+
+.bastionland-realm-appearance__fade {
+	display: contents;
+}
+
+.bastionland-realm-appearance__fade input[type="range"] {
+	min-width: 0;
+	margin: 0;
+	accent-color: var(--bastionland-ink);
+}
+
+.bastionland-realm-appearance__fade output {
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
 }
 
 .bastionland-realm-appearance__skins,
@@ -8589,9 +8785,15 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	font-size: var(--bastionland-font-note);
 }
 
+/* Font Awesome's check, not the text ✓: the body font has none, and the fallback
+   symbol font drew it 2px above the file name's middle. */
 .bastionland-realm-appearance__names li.is-found::before {
-	content: "\2713  ";
+	content: "\f00c";
+	margin-right: 0.45em;
 	color: var(--bastionland-verdigris);
+	font-family: var(--font-awesome);
+	font-size: 0.7em;
+	font-weight: 900;
 }
 
 /* The names are a plain list of file names, not boxes: the paper's code box would crowd the tight grid. */

@@ -14,15 +14,15 @@ function walk(dir, extension) {
 }
 
 /**
- * Every `DialogV2.something({ ... })` in a script, as the source of its
- * options object. Brace counting is enough here: the options are object
- * literals, and none of them holds a brace inside a string.
+ * Every `DialogV2.something({ ... })` and `new DialogV2({ ... })` in a script,
+ * as the source of its options object. Brace counting is enough here: the
+ * options are object literals, and none of them holds a brace inside a string.
  * @param {string} source
  * @returns {string[]}
  */
 function dialogOptions(source) {
 	const calls = [];
-	for (const match of source.matchAll(/DialogV2\.\w+\(\s*\{/g)) {
+	for (const match of source.matchAll(/DialogV2(?:\.\w+)?\(\s*\{/g)) {
 		let depth = 0;
 		let index = match.index + match[0].length - 1;
 		do {

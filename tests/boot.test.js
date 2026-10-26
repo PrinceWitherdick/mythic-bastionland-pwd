@@ -128,7 +128,7 @@ describe("system boot", () => {
 		expect(Object.keys(CONFIG.JournalEntryPage.dataModels).sort()).toEqual(Object.keys(manifest.documentTypes.JournalEntryPage).sort());
 	});
 
-	it("registers the Knight, NPC, Domain, Structure and item sheets as defaults", () => {
+	it("registers the Knight, NPC, Domain, Structure and item sheets as defaults, an NPC Knight on the Knight's", () => {
 		const { registerSheet } = foundry.applications.apps.DocumentSheetConfig;
 		const registered = (documentClass, type) => registerSheet.mock.calls
 			.find(([registeredClass, , , options]) => registeredClass === documentClass && options.types.includes(type));
@@ -138,7 +138,8 @@ describe("system boot", () => {
 		const [, , structureSheet, structureOptions] = registered(Actor, "structure");
 		const [, , itemSheet, itemOptions] = registered(Item, "weapon");
 
-		expect(knightOptions).toMatchObject({ types: ["knight"], makeDefault: true });
+		expect(knightOptions).toMatchObject({ types: ["knight", "npcKnight"], makeDefault: true });
+		expect(CONFIG.Actor.dataModels.npcKnight).toBe(CONFIG.Actor.dataModels.knight);
 		expect(npcOptions).toMatchObject({ types: ["npc"], makeDefault: true });
 		expect(domainOptions).toMatchObject({ types: ["domain"], makeDefault: true });
 		expect(structureOptions).toMatchObject({ types: ["structure"], makeDefault: true });

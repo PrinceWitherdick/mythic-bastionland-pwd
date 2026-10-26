@@ -87,7 +87,7 @@ afterEach(() => {
  * Draw the card for this user and hand back its Deny button and a way to click
  * any of them, as `renderChatMessageHTML` does in the chat log.
  */
-function renderCard(state) {
+function renderCard(state, dataset = {}) {
 	const message = {
 		id: "message-1",
 		isOwner: true,
@@ -99,7 +99,7 @@ function renderCard(state) {
 
 	const data = { "gambit-save": { gambit: "0" }, gambit: { die: "0" }, greater: { gambit: "0" } };
 	const buttons = ["deny", "focus", "apply", "gambit-save", "gambit", "join", "greater", "reroll", "sigil"].map((action) => ({
-		dataset: { attackAction: action, ...data[action] },
+		dataset: { attackAction: action, ...data[action], ...dataset[action] },
 		disabled: false,
 		hidden: false,
 		closest: () => null
@@ -117,6 +117,7 @@ function renderCard(state) {
 	return {
 		message,
 		deny: find("deny"),
+		gambit: find("gambit"),
 		join: find("join"),
 		reroll: find("reroll"),
 		sigil: find("sigil"),
@@ -721,5 +722,85 @@ describe("turning a die with a rune (p100)", () => {
 		expect(card.message.update).not.toHaveBeenCalled();
 		expect(await ask(turn)).toBe(true);
 		expect(savedState(card.message).dice.map((die) => die.result)).toEqual([6, 6]);
+	});
+});
+
+describe("combat audit of 2026-10-23", () => {
+	const player = { id: "player-1" };
+	const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
+	/** A Repel the foe has already Saved against, spent from the d8. */
+	const saved = (extra = {}) => attackState({
+		gambits: [{ key: "repel", die: 0, strong: null, bonus: null, save: { by: "Ser Kay", total: 3, target: 12, passed: true }, dismissed: false }],
+		...extra
+	});
+
+	beforeEach(() => {
+		tokens["Actor.foe"] = combatant({ uuid: "Actor.foe", name: "Foe", owners: ["player-1"] });
+		tokens["Scene.s.Token.k"] = { actor: combatant({ uuid: "Actor.k", name: "Ser Kay", owners: ["player-1"] }) };
+		tokens["Actor.k"] = tokens["Scene.s.Token.k"].actor;
+	});
+
+	it("names Gambits still waiting on a Save before the Damage lands", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		const state = attackState({
+			dice: [{ faces: 6, result: 3, label: "d6", deniedBy: null }],
+			gambits: [{ key: "stop", die: null, strong: null, save: null }, { key: "bolster", die: null, strong: null, save: null }]
+		});
+		await renderCard(state).click("apply");
+		// Bolster gives no Save, so only the Stop waits on one.
+		expect(confirmDialog.mock.calls[0][0].message).toEqual(["bastionland.attack.unsavedGambitsOne", "bastionland.attack.applyAnyway"]);
+		expect(takeAttack).not.toHaveBeenCalled();
+	});
+
+	it("won't let a player take back a Gambit the foe has Saved against", async () => {
+		game.user.isGM = false;
+		const card = renderCard(saved());
+		await card.click("gambit");
+		expect(warnings).toEqual(["bastionland.attack.takeBackLocked.save"]);
+		expect(card.message.update).not.toHaveBeenCalled();
+	});
+
+	it("shuts its die to everybody but the Referee", () => {
+		const pastTakeBack = { gambit: { refereeTakeBack: "" } };
+		game.user.isGM = false;
+		expect(renderCard(saved(), pastTakeBack).gambit.disabled).toBe(true);
+		game.user.isGM = true;
+		expect(renderCard(saved(), pastTakeBack).gambit.disabled).toBe(false);
+	});
+
+	it("lets the Referee take it back anyway, once they say so", async () => {
+		game.user.isGM = true;
+		confirmDialog.mockResolvedValueOnce(false);
+		const card = renderCard(saved());
+		await card.click("gambit");
+		expect(card.message.update).not.toHaveBeenCalled();
+		confirmDialog.mockResolvedValueOnce(true);
+		await card.click("gambit");
+		expect(savedState(card.message).gambits).toEqual([]);
+	});
+
+	it("strips a player's force when the GM records a take-back for them", async () => {
+		const card = renderCard(saved());
+		expect(await ask({ type: "withdraw", die: 0, force: true })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+	});
+
+	it("records a Gambit's Save only from a foe the card was aimed at", async () => {
+		tokens["Actor.other"] = combatant({ uuid: "Actor.other", name: "Other", owners: ["player-1"] });
+		const card = renderCard(attackState({ gambits: [{ key: "stop", die: 0, strong: null, save: null }] }));
+		const save = { type: "gambitSave", index: 0, total: 4, target: 10, passed: true };
+		expect(await ask({ ...save, actor: "Actor.other" })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(await ask({ ...save, actor: "Actor.k" })).toBe(true);
+		expect(savedState(card.message).gambits[0].save).toMatchObject({ by: "Ser Kay", passed: true });
+	});
+
+	it("asks a Fatigued attacker for no Gambit before refusing their Focus", async () => {
+		tokens["Actor.foe"] = actor({ uuid: "Actor.foe", name: "Foe", fatigued: true });
+		const card = renderCard(attackState());
+		await card.click("focus");
+		expect(warnings).toEqual(["bastionland.feats.alreadyFatigued"]);
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(rollFeat).not.toHaveBeenCalled();
 	});
 });

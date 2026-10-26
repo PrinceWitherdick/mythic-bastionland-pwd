@@ -12,7 +12,9 @@ import {
 	folkloreToMark,
 	surveyFrom
 } from "../rules/exploration.js";
-import { directionNames, sameHex } from "../rules/realm-geometry.js";
+import { sameHex } from "../rules/realm-geometry.js";
+import { directionName, whereItLies } from "./told-where.js";
+import { featureAt } from "../rules/realm.js";
 import { capitalise } from "../rules/text.js";
 import { VIRTUES, typedD20 } from "../rules/virtues.js";
 import { isRealmScene } from "./realm.js";
@@ -22,8 +24,9 @@ import { fogHidesTheWay } from "./sky-weather.js";
 import { advancePhase } from "./time.js";
 import { realmAndCompany } from "./wilderness.js";
 import { liveRealm } from "./myth-notes.js";
-import { keptFromMe } from "./solo.js";
-import { worldKnights } from "./knights.js";
+import { keptFromMe, mythKeptFromMe } from "./solo.js";
+import { companyKnights, inCompany } from "./knights.js";
+import { landmarkLabelKey } from "../rules/landmarks.js";
 
 /**
  * Exploration (p19): asking the people of a Realm what they know, spending a
@@ -31,24 +34,6 @@ import { worldKnights } from "./knights.js";
  * themselves are in rules/exploration.js; here they are asked for, rolled,
  * whispered to the Referee, and marked on the players' map.
  */
-
-/**
- * @param {object} g The Realm's geometry, which says what each way out of a hex is called.
- * @param {number|null} direction An index into directionNames.
- */
-const directionName = (g, direction) => (direction === null ? null : t(`realm.directions.${directionNames(g)[direction]}`));
-
-/**
- * How far off something lies, as a teller would put it.
- * @param {object} g
- * @param {{distance: number, direction: number|null, here: boolean}} known
- * @returns {string}
- */
-function whereItLies(g, { distance, direction, here }) {
-	if (here) return t("explore.here");
-	const where = directionName(g, direction);
-	return t(distance === 1 ? "explore.awayOne" : "explore.away", { distance, direction: where });
-}
 
 /**
  * Gathering Folklore (p19): ask a Vassal, a roamer or a Seer what they know of
@@ -86,7 +71,8 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 	const choices = folklore?.mythChoices ?? 0;
 	if (choices > 1) {
 		const roll = await new Roll(`1d${choices}`).evaluate();
-		rolls.push(roll);
+		// Played alone, its size would count the Myths the teller chose between.
+		if (!keptFromMe()) rolls.push(roll);
 		// Only a die that fell on another Myth is worth reading the Realm again for.
 		if (roll.total > 1) folklore = folkloreFrom(realm, g, { source: data.source, home: where, pick: roll.total - 1 });
 	}
@@ -102,7 +88,10 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 		home: hexTarget(where, scene),
 		myths: folklore.myths.map((known) => {
 			const myth = realm.myths.find((candidate) => candidate.number === known.number);
-			const { name, page } = myth ? mythEntry(index, myth) : { name: null, page: null };
+			// Played alone, a Myth not yet met is told of by its number and its way, as locals tell of the
+			// Goblin's missing children without knowing it for the Goblin (p19). One whose place they know is found.
+			const named = myth && (known.precise || !mythKeptFromMe(myth, scene));
+			const { name, page } = named ? mythEntry(index, myth) : { name: null, page: null };
 			// Only a teller who knows just where it lies names its hex.
 			return {
 				number: known.number,
@@ -113,7 +102,7 @@ export async function gatherFolklore({ scene = canvas.scene, hex = null } = {}) 
 			};
 		}),
 		landmarks: folklore.landmarks.map((known) => ({
-			type: t(`realm.landmarks.${known.type}`),
+			type: t(landmarkLabelKey(known)),
 			name: known.name || null,
 			where: `${capitalise(whereItLies(g, known))}.`,
 			target: hexTarget(known.hex, scene)
@@ -154,7 +143,9 @@ export async function searchTheHex({ scene = canvas.scene, hex = null } = {}) {
 	if (!place) return null;
 	const { realm, g, where } = place;
 
-	const knights = worldKnights((actor) => actor.system?.virtues);
+	// The Company's own first, so the one picked to begin with rides with it.
+	const knights = companyKnights()
+		.sort((a, b) => Number(inCompany(b)) - Number(inCompany(a)));
 	const data = await inputDialog({
 		title: t("explore.search.title"),
 		icon: "fa-solid fa-magnifying-glass",
@@ -240,7 +231,10 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 	const barriers = barriersSeen(survey);
 	// A vantage point shows the Barriers hemming the Hex in, and a sweep the
 	// Landmark the Hex holds. Neither hands over what hides in the hexes around.
+	// Played alone, a Myth in the Company's own hex is found as it's searched.
+	const myth = here.myth ? featureAt(realm, here.hex).myth : null;
 	const ids = [
+		...(myth && !myth.revealed && keptFromMe() ? [myth.id] : []),
 		...(landmark && !landmark.revealed ? [featureId(realm.landmarks, here.hex, landmark.type)] : []),
 		...realm.barriers.filter((barrier) => !barrier.revealed && barriers.includes(barrier.edge)).map((barrier) => barrier.id)
 	].filter(Boolean);
@@ -252,7 +246,7 @@ async function postSurvey({ scene, realm, g, where, vantage }) {
 		terrain: here.terrain ? t(`realm.terrain.${here.terrain}`) : null,
 		holding: here.holding ? t(here.holding.seat ? "explore.survey.seat" : "explore.survey.holding", { name: here.holding.name || t(`realm.holdings.${here.holding.style}`) }) : null,
 		myth: here.myth ? t("explore.survey.myth", { number: here.myth.number }) : null,
-		landmark: landmark ? t("explore.survey.landmark", { type: t(`realm.landmarks.${landmark.type}`), name: landmark.name || "" }).trim() : null,
+		landmark: landmark ? t("explore.survey.landmark", { type: t(landmarkLabelKey(landmark)), name: landmark.name || "" }).trim() : null,
 		around: survey.around.map((step) => ({
 			direction: directionName(g, step.direction),
 			hex: hexTarget(step.hex, scene),

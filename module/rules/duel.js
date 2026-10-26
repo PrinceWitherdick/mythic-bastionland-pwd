@@ -1,3 +1,5 @@
+import { isKnight } from "./knight-types.js";
+
 /**
  * Duels & Jousts (Specifics of Combat, p10). Two combatants agree to fight, a
  * joust if they're mounted. It goes as any fight does, except both Attacks,
@@ -183,4 +185,4 @@ export function stakeChanges(duel, victor) {
  * @param {{type: string, isSquire?: boolean}[]} actors Both duelists.
  * @returns {boolean} Whether Glory can be staked: only Knights may, and a Squire isn't one yet.
  */
-export const canStakeGlory = (actors) => actors.length === 2 && actors.every((actor) => actor.type === "knight" && !actor.isSquire);
+export const canStakeGlory = (actors) => actors.length === 2 && actors.every((actor) => isKnight(actor) && !actor.isSquire);

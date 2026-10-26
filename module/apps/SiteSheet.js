@@ -1,7 +1,6 @@
 import { hasSiteJournal, openSiteJournal } from "../actions/site-journals.js";
 import { readSite, siteUpdate } from "../actions/sites.js";
 import { t } from "../chat/cards.js";
-import { isV13 } from "../compat.js";
 import { emptyHistory, recordChange, stepHistory } from "../rules/history.js";
 import { serialWrites } from "../rules/queue.js";
 import { createRandom, randomSeed } from "../rules/random.js";
@@ -41,6 +40,7 @@ import {
 } from "../rules/sites.js";
 import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
+import { KeepDraftMixin } from "./keep-draft.js";
 import { confirmDialog, undoRedoKey } from "./ui.js";
 
 const { DocumentSheetV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -71,7 +71,7 @@ const STATE_ICONS = Object.freeze({
  * showing only what they've found, and it follows the Referee's changes
  * because Foundry redraws a sheet whenever its document changes.
  */
-export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
+export class SiteSheet extends KeepDraftMixin(HandlebarsApplicationMixin(DocumentSheetV2)) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-site-window"],
 		position: { width: 1040, height: 800 },
@@ -416,35 +416,6 @@ export class SiteSheet extends HandlebarsApplicationMixin(DocumentSheetV2) {
 		if (!this.isEditable) return;
 		this.#placeBar();
 		this.#showSelectionInKey();
-	}
-
-	/**
-	 * Keep a draft typed into a field someone else's change redraws, rather than
-	 * putting back what was saved underneath the typist. Keep each fold open or
-	 * shut as it was too: v14 does that for a `details[data-sync]` itself, v13 doesn't.
-	 * @override
-	 */
-	_preSyncPartState(partId, newElement, priorElement, state) {
-		super._preSyncPartState(partId, newElement, priorElement, state);
-		if (isV13()) state.folds = Object.fromEntries([...priorElement.querySelectorAll("details[data-sync]")].map((fold) => [fold.dataset.sync, fold.open]));
-		const field = priorElement.querySelector(":is(input, textarea):focus");
-		if (field?.name && field.value !== field.defaultValue) {
-			state.draft = { name: field.name, value: field.value, start: field.selectionStart, end: field.selectionEnd };
-		}
-	}
-
-	/** @override */
-	_syncPartState(partId, newElement, priorElement, state) {
-		super._syncPartState(partId, newElement, priorElement, state);
-		for (const [id, open] of Object.entries(state.folds ?? {})) {
-			const fold = newElement.querySelector(`details[data-sync="${id}"]`);
-			if (fold) fold.open = open;
-		}
-		if (!state.draft) return;
-		const field = [...newElement.querySelectorAll(":is(input, textarea)[name]")].find(({ name }) => name === state.draft.name);
-		if (!field) return;
-		field.value = state.draft.value;
-		field.setSelectionRange?.(state.draft.start, state.draft.end);
 	}
 
 	/** Nudge the bar across so it doesn't hang off either side of the map. */

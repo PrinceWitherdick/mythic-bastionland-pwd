@@ -39,8 +39,9 @@
 		<p class="hint">{{localize "bastionland.attack.saveInHint"}}</p>
 	</div>
 
+	{{!-- Hidden for Bolster and Move, which a Strong Gambit adds nothing to. --}}
 	{{#if strong}}
-	<fieldset>
+	<fieldset data-gambit-strong>
 		<legend>{{localize "bastionland.attack.strongGambit"}}</legend>
 		<label class="bastionland-check">
 			<input type="radio" name="strong" value="" checked>

@@ -9,6 +9,7 @@
  * in place of its roll. Pure, so it can be tested without Foundry.
  */
 import { isOwnMyth } from "./book-art.js";
+import { anyOmenScene, normaliseOmenScenes } from "./omen-scenes.js";
 import { OMEN_COUNT } from "./realm.js";
 
 export { isOwnMyth };
@@ -36,6 +37,7 @@ const OWN_KEY = "own:";
  * @property {{name: string, columns: string[], rows: string[][]}} table
  *   Always TABLE_ROWS rows of TABLE_COLUMNS entries, any of them blank.
  * @property {string} castNote
+ * @property {import("./omen-scenes.js").OmenScenes} scenes The Scenes linked to each Omen, which go wherever the Myth is used.
  */
 
 /**
@@ -79,7 +81,8 @@ export function normaliseOwnMyth(raw) {
 			columns: listOf(table.columns, TABLE_COLUMNS, textOf),
 			rows: listOf(table.rows, TABLE_ROWS, (row) => listOf(row, TABLE_COLUMNS, textOf))
 		},
-		castNote: textOf(data.castNote)
+		castNote: textOf(data.castNote),
+		scenes: normaliseOmenScenes(data.scenes)
 	};
 }
 
@@ -94,7 +97,7 @@ export const tableWritten = (myth) => Boolean(myth.table.name || myth.table.colu
  * @returns {boolean} Whether nothing at all is written or chosen, so an entry
  *   made for it and closed untouched can go again.
  */
-export const isBlankOwnMyth = (myth) => !myth.img && !myth.castNote && !myth.verse.some(Boolean) && !myth.omens.some(Boolean) && !tableWritten(myth);
+export const isBlankOwnMyth = (myth) => !myth.img && !myth.castNote && !myth.verse.some(Boolean) && !myth.omens.some(Boolean) && !tableWritten(myth) && !anyOmenScene(myth.scenes);
 
 /**
  * @param {OwnMyth} before
@@ -113,7 +116,8 @@ export const ownMythChanged = (before, after) => JSON.stringify(before) !== JSON
  * @param {object} fallbacks What to call what the Referee left unnamed.
  * @param {string} fallbacks.table The table, unnamed.
  * @param {(number: number) => string} fallbacks.column A column without a heading, by its number from 1.
- * @returns {object} As an index entry: `{name, verse, omens, path, table, cast, castNote, prompts}`.
+ * @returns {object} As an index entry: `{name, verse, omens, path, table, cast, castNote, prompts}`,
+ *   with the Scenes linked to its Omens as `omenScenes`.
  */
 export function ownMythEntry(name, myth, { table: tableName, column }) {
 	const verse = myth.verse.filter(Boolean);
@@ -133,7 +137,8 @@ export function ownMythEntry(name, myth, { table: tableName, column }) {
 		// Nobody is written up for the Cast: actors dropped on the Myth are its Cast.
 		cast: [],
 		castNote: myth.castNote || null,
-		prompts: null
+		prompts: null,
+		omenScenes: myth.scenes
 	};
 }
 

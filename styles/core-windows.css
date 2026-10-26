@@ -1,0 +1,243 @@
+/*
+ * Foundry's own windows dressed in the parchment (module/apps/core-windows.js).
+ * Create and Delete wear the dialog skin from chat.css as they are; what's here
+ * is what the others need beyond it. Foundry's styles sit in cascade layers and
+ * these don't, so they win without matching its selectors. The frames stay
+ * Foundry's, as the sheets' and dialogs' do.
+ */
+
+/* ---------------------------------------------------------------- */
+/* User Configuration                                               */
+/* ---------------------------------------------------------------- */
+
+/* A form rather than a dialog, so it takes the room a dialog's body would give it. */
+.bastionland-user-config .window-content {
+	gap: 0.7rem;
+	padding: 0.9rem 1rem 0.8rem;
+	background:
+		var(--bastionland-page-sheen),
+		var(--bastionland-paper);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+	font-variant-numeric: lining-nums;
+	line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------- */
+/* Hex and Site journals                                            */
+/* ---------------------------------------------------------------- */
+
+/*
+ * The page list down the side, a shade deeper than the page, as the system's
+ * own rails are. Foundry draws it light on dark.
+ */
+.mythic-bastionland-journal .journal-sidebar {
+	border-right: 1px solid var(--bastionland-rule);
+	border-bottom-left-radius: 6px;
+	background:
+		linear-gradient(rgb(var(--bastionland-shade-rgb) / 0.04), rgb(var(--bastionland-shade-rgb) / 0.04)),
+		var(--bastionland-paper);
+	color: var(--bastionland-ink);
+	color-scheme: var(--bastionland-color-scheme);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+}
+
+/* Only a button with words: the others are Font Awesome glyphs drawn on the button itself. */
+.mythic-bastionland-journal .journal-sidebar button:not(.icon) {
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+}
+
+/* The search row's controls are bare icons, as Foundry draws them. */
+.mythic-bastionland-journal .journal-sidebar search .inline-control {
+	--button-background-color: transparent;
+	--button-border-color: transparent;
+	--button-text-color: var(--bastionland-ink-soft);
+	--button-hover-background-color: transparent;
+	--button-hover-border-color: transparent;
+	--button-hover-text-color: var(--bastionland-rubric);
+}
+
+.mythic-bastionland-journal .journal-sidebar input {
+	--input-background-color: transparent;
+	--input-border-color: transparent;
+	--input-text-color: var(--bastionland-ink);
+	--input-placeholder-color: var(--bastionland-ink-faint);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+}
+
+/* Rows with no rules between them, as the rails have; the page shown is in the rubric's red ochre. */
+.mythic-bastionland-journal .journal-sidebar .toc li:is(.page, .category) {
+	border: none;
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc .page-heading {
+	margin: 1px 0.5rem;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+	transition: background-color 0.12s, color 0.12s;
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc .page-heading:hover {
+	background: color-mix(in srgb, var(--bastionland-rule) 22%, transparent);
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc li.page.active > .page-heading {
+	border-color: color-mix(in srgb, var(--bastionland-rule) 60%, transparent);
+	background: rgb(var(--bastionland-shade-rgb) / 0.06);
+	color: var(--bastionland-rubric);
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc .page-heading :is(.page-index, .page-number) {
+	color: var(--bastionland-ink-soft);
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc li.page.active .page-index {
+	color: var(--bastionland-rubric);
+}
+
+/* Who may see a page reads from the glyph, so it takes the soft ink rather than Foundry's bright colours. */
+.mythic-bastionland-journal .journal-sidebar .toc .page-ownership {
+	color: var(--bastionland-ink-soft);
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc li.category strong {
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-caps);
+	font-size: 1.15rem;
+	font-weight: normal;
+	letter-spacing: 0.04em;
+}
+
+/* A page's headings under it, in the page's own hand. */
+.mythic-bastionland-journal .journal-sidebar .toc .heading-link {
+	color: var(--bastionland-ink-soft);
+	font-family: var(--bastionland-font-body);
+	font-size: 15px;
+}
+
+.mythic-bastionland-journal .journal-sidebar .toc .heading-link:hover {
+	color: var(--bastionland-rubric);
+}
+
+/*
+ * The page itself is a `bastionland-page`, so it takes the sheets' paper, ink,
+ * controls and Foundry's light-theme colours held fast. It keeps Foundry's own
+ * layout, and Text Size grows its writing rather than zooming it, since
+ * Foundry tracks which page and heading are in view from where they sit.
+ */
+.mythic-bastionland-journal .journal-entry-content.bastionland-page {
+	gap: 0;
+	padding: 0;
+	overflow: hidden;
+	zoom: normal;
+	font-size: calc(15px * var(--bastionland-text-size, 1));
+	line-height: 1.4;
+}
+
+/* Written large and bare, as Foundry's is; the page's own input rule would box it. */
+.mythic-bastionland-journal .bastionland-page > .journal-header input.title {
+	--input-background-color: transparent;
+	--input-border-color: transparent;
+	color: var(--bastionland-ink);
+	font-family: var(--bastionland-font-display);
+	font-weight: normal;
+}
+
+/* Headings in the small capitals, none set smaller than the writing under them. */
+.mythic-bastionland-journal .journal-entry-page {
+	--font-h1: var(--bastionland-font-caps);
+	--font-h2: var(--bastionland-font-caps);
+	--font-h3: var(--bastionland-font-caps);
+	--font-h4: var(--bastionland-font-caps);
+	--font-h5: var(--bastionland-font-caps);
+	--font-h6: var(--bastionland-font-caps);
+	--font-h5-size: 1em;
+	--font-h6-size: 1em;
+}
+
+.mythic-bastionland-journal .journal-entry-page :is(h1, h2, h3, h4, h5, h6) {
+	color: var(--bastionland-ink);
+	letter-spacing: 0.03em;
+}
+
+.mythic-bastionland-journal .journal-entry-page :is(h1, h2) {
+	border-bottom-color: var(--bastionland-rule);
+}
+
+/* ---------------------------------------------------------------- */
+/* The window a hex or Site journal's page is edited in             */
+/* ---------------------------------------------------------------- */
+
+/* A `bastionland-page` too, keeping Foundry's layout: a markdown page's editor runs to the window's edges. */
+.mythic-bastionland-journal > .window-content.bastionland-page {
+	gap: 0;
+	padding: 0 1rem;
+	overflow: hidden;
+	zoom: normal;
+}
+
+.mythic-bastionland-journal.text > .window-content.bastionland-page {
+	padding: 0;
+}
+
+/*
+ * A page the system draws itself, such as a thread of the Timeline, is a
+ * `bastionland-page` of its own. Sitting inside the journal's, it would miss
+ * the zoom that Text Size gives a page standing alone (styles/settings.css),
+ * and the journal's page area isn't zoomed, so it takes that zoom here.
+ */
+.mythic-bastionland-journal .bastionland-page .bastionland-page {
+	zoom: var(--bastionland-text-size, 1);
+}
+
+/* In the window it's edited in, the window's own margin is enough. */
+.mythic-bastionland-journal > .window-content.bastionland-page > .bastionland-page {
+	padding-inline: 0;
+}
+
+.mythic-bastionland-journal .journal-header .page-metadata {
+	padding-inline: 1rem;
+}
+
+/* Save in the small capitals, as a dialog's buttons are. */
+.mythic-bastionland-journal .form-footer button {
+	border-radius: 3px;
+	font-family: var(--bastionland-font-caps);
+	font-size: 1rem;
+	letter-spacing: 0.03em;
+}
+
+/* The markdown is written in ink, its marks picked out in the parchment's own inks. */
+.mythic-bastionland-journal code-mirror {
+	--input-background-color: transparent;
+	--input-text-color: var(--bastionland-ink);
+	--input-focus-text-color: var(--bastionland-ink);
+	--input-focus-outline-color: var(--bastionland-verdigris);
+	--active-line-color: rgb(var(--bastionland-shade-rgb) / 0.05);
+	--gutter-background-color: var(--bastionland-paper-deep);
+	--gutter-border-color: var(--bastionland-rule);
+	--gutter-text-color: var(--bastionland-ink-soft);
+	--syntax-keyword-color: var(--bastionland-rubric);
+	--syntax-comment-color: var(--bastionland-ink-soft);
+	--syntax-operator-color: var(--bastionland-ink-soft);
+	--syntax-regexp-color: var(--bastionland-ink-soft);
+	--syntax-var-name-color: var(--bastionland-blood);
+	--syntax-prop-def-color: var(--bastionland-blood);
+	--syntax-func-name-color: var(--bastionland-verdigris);
+	--syntax-local-var-color: var(--bastionland-ink);
+	--syntax-class-name-color: var(--bastionland-rubric);
+	--syntax-boolean-color: var(--bastionland-rubric);
+	--syntax-number-color: var(--bastionland-rubric);
+	--syntax-string-color: var(--bastionland-verdigris);
+	--syntax-code-bg-color: rgb(var(--bastionland-shade-rgb) / 0.06);
+	border-top-color: var(--bastionland-rule);
+	color: var(--bastionland-ink);
+}

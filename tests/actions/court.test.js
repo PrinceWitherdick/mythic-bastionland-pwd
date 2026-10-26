@@ -41,7 +41,8 @@ function fakeDomain(system = {}) {
 	};
 }
 
-const knight = (id, name) => ({ id, name, type: "knight" });
+/** A Knight, seen by a player only when given Limited or better. */
+const knight = (id, name, { type = "knight", seen = true } = {}) => ({ id, name, type, visible: seen });
 
 /** @returns {Actor[]} The world's Actors, looked up by id as Foundry's collection is. */
 const actors = (...list) => Object.assign(list, { get: (id) => list.find((actor) => actor.id === id) });
@@ -52,7 +53,7 @@ beforeEach(() => {
 	confirmed = true;
 	asked = [];
 	updates = [];
-	globalThis.game = { actors: actors(knight("k1", "Tal"), knight("k2", "Moss")) };
+	globalThis.game = { user: { isGM: true }, actors: actors(knight("k1", "Tal"), knight("k2", "Moss")) };
 	globalThis.ui = { notifications: { warn: vi.fn() } };
 	let next = 0;
 	globalThis.foundry = { utils: {
@@ -163,6 +164,26 @@ describe("seatCircle", () => {
 		expect(await seatCircle(fakeDomain())).toBe(true);
 		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss"]);
 		expect(updates[0]).toEqual({ "system.council.circle": ["k2"] });
+	});
+
+	it("offers the Referee's NPC Knights too", async () => {
+		game.actors = actors(knight("k1", "Tal"), knight("k2", "Moss"), knight("n1", "Sir Brand", { type: "npcKnight" }));
+		await seatCircle(fakeDomain());
+		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Sir Brand"]);
+	});
+
+	it("offers a player only the Knights they can see, but keeps those already seated", async () => {
+		game.user = { isGM: false };
+		game.actors = actors(
+			knight("k1", "Tal"),
+			knight("k2", "Moss"),
+			knight("n1", "Sir Brand", { type: "npcKnight", seen: false }),
+			knight("n2", "Dame Ash", { type: "npcKnight", seen: false })
+		);
+		formData = { "circle.k2": true, "circle.n2": true };
+		await seatCircle(fakeDomain({ council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: ["n2"] } }));
+		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Dame Ash"]);
+		expect(updates[0]).toEqual({ "system.council.circle": ["k2", "n2"] });
 	});
 
 	it("changes nothing when the window is closed", async () => {

@@ -742,8 +742,9 @@
 	color: var(--bastionland-paper);
 }
 
-/* An Omen met is struck through, the way a Referee scores off a list. */
-.bastionland-gm-toolkit__omen.is-past .bastionland-gm-toolkit__omen-text {
+/* An Omen met is struck through, the way a Referee scores off a list. Its
+   words only: the Scenes linked to it can still be activated. */
+.bastionland-gm-toolkit__omen.is-past .bastionland-gm-toolkit__omen-text > p {
 	text-decoration: line-through;
 	text-decoration-color: var(--bastionland-ink-soft);
 }

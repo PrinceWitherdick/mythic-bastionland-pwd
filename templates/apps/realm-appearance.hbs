@@ -1,76 +1,98 @@
 <div class="bastionland-page bastionland-realm-appearance">
-	<p class="bastionland-realm-appearance__target"><i class="fa-solid fa-map" inert></i> <strong>{{target}}</strong></p>
-	<p class="hint">{{localize "bastionland.realm.look.intro"}}</p>
+	{{!-- Two panes: the choices on the left, the Preview and Apply in a column on the right. --}}
+	<div class="bastionland-realm-appearance__choices">
+		<p class="bastionland-realm-appearance__target"><i class="fa-solid fa-map" inert></i> <strong>{{target}}</strong></p>
+		<p class="hint">{{localize "bastionland.realm.look.intro"}}</p>
 
-	<section class="bastionland-realm-appearance__section">
-		<h3>{{localize "bastionland.realm.look.skin"}}</h3>
-		<div class="bastionland-realm-appearance__skins">
-			{{#each skins}}
-			<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickSkin" data-skin="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
-				<span class="bastionland-realm-appearance__samples" inert>
-					{{#each samples}}<img src="{{this}}" alt="">{{/each}}
-				</span>
-				<strong>{{label}}</strong>
-				<span class="hint">{{hint}}</span>
-			</button>
-			{{/each}}
-			{{#each ownSkins}}
-			<div class="bastionland-realm-appearance__own bastionland-reveal-host" data-own-skin="{{index}}">
-				<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickOwnSkin" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+		<section class="bastionland-realm-appearance__section">
+			<h3>{{localize "bastionland.realm.look.skin"}}</h3>
+			<div class="bastionland-realm-appearance__skins">
+				{{#each skins}}
+				<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickSkin" data-skin="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
 					<span class="bastionland-realm-appearance__samples" inert>
 						{{#each samples}}<img src="{{this}}" alt="">{{/each}}
 					</span>
 					<strong>{{label}}</strong>
 					<span class="hint">{{hint}}</span>
 				</button>
-				<span class="bastionland-realm-appearance__own-tools bastionland-reveal">
-					<button type="button" class="icon" data-action="editOwnSkin" data-tooltip="bastionland.realm.look.own.edit" aria-label="{{localize "bastionland.realm.look.own.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
-					<button type="button" class="icon" data-action="removeOwnSkin" data-tooltip="bastionland.realm.look.own.remove" aria-label="{{localize "bastionland.realm.look.own.remove"}}"><i class="fa-solid fa-trash" inert></i></button>
-				</span>
+				{{/each}}
+				{{#each ownSkins}}
+				<div class="bastionland-realm-appearance__own bastionland-reveal-host" data-own-skin="{{index}}">
+					<button type="button" class="bastionland-realm-appearance__skin {{#if active}}is-active{{/if}}" data-action="pickOwnSkin" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+						<span class="bastionland-realm-appearance__samples" inert>
+							{{#each samples}}<img src="{{this}}" alt="">{{/each}}
+						</span>
+						<strong>{{label}}</strong>
+						<span class="hint">{{hint}}</span>
+					</button>
+					<span class="bastionland-realm-appearance__own-tools bastionland-reveal">
+						<button type="button" class="icon" data-action="editOwnSkin" data-tooltip="bastionland.realm.look.own.edit" aria-label="{{localize "bastionland.realm.look.own.edit"}}"><i class="fa-solid fa-pen" inert></i></button>
+						<button type="button" class="icon" data-action="removeOwnSkin" data-tooltip="bastionland.realm.look.own.remove" aria-label="{{localize "bastionland.realm.look.own.remove"}}"><i class="fa-solid fa-trash" inert></i></button>
+					</span>
+				</div>
+				{{/each}}
+				<button type="button" class="bastionland-realm-appearance__skin bastionland-realm-appearance__make" data-action="makeSkin">
+					<span class="bastionland-realm-appearance__samples" inert><i class="fa-solid fa-images"></i><i class="fa-solid fa-plus"></i></span>
+					<strong>{{localize "bastionland.realm.look.own.make"}}</strong>
+					<span class="hint">{{localize "bastionland.realm.look.own.makeHint"}}</span>
+				</button>
 			</div>
-			{{/each}}
-			<button type="button" class="bastionland-realm-appearance__skin bastionland-realm-appearance__make" data-action="makeSkin">
-				<span class="bastionland-realm-appearance__samples" inert><i class="fa-solid fa-images"></i><i class="fa-solid fa-plus"></i></span>
-				<strong>{{localize "bastionland.realm.look.own.make"}}</strong>
-				<span class="hint">{{localize "bastionland.realm.look.own.makeHint"}}</span>
-			</button>
-		</div>
-		{{#if looseOwnPictures}}<p class="hint"><i class="fa-solid fa-circle-info" inert></i> {{localize "bastionland.realm.look.own.loose"}}</p>{{/if}}
-	</section>
+			{{#if looseOwnPictures}}<p class="hint"><i class="fa-solid fa-circle-info" inert></i> {{localize "bastionland.realm.look.own.loose"}}</p>{{/if}}
+		</section>
 
-	<section class="bastionland-realm-appearance__section">
-		<h3>{{localize "bastionland.realm.look.palette"}}</h3>
-		<div class="bastionland-realm-appearance__palettes">
-			{{#each palettes}}
-			<button type="button" class="bastionland-realm-appearance__palette {{#if active}}is-active{{/if}}" data-action="pickPalette" data-palette="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
-				<span class="bastionland-realm-appearance__swatches" inert>
-					{{#each swatches}}<span style="background: {{this}}"></span>{{/each}}
-				</span>
-				<span>{{label}}</span>
-			</button>
-			{{/each}}
-		</div>
-	</section>
-
-	<section class="bastionland-realm-appearance__section">
-		<h3>{{localize "bastionland.realm.look.preview"}}</h3>
-		<div class="bastionland-realm-appearance__preview" style="background: {{paper}}">
-			{{#each groups}}
-			<div class="bastionland-realm-appearance__group {{#if hexes}}is-hexes{{/if}}">
-				{{#each pictures}}
-				<figure>
-					<img src="{{src}}" alt="{{label}}" data-name="{{label}}">
-					{{#if own}}<figcaption class="is-own">{{localize "bastionland.realm.look.tags.own"}}</figcaption>{{/if}}
-				</figure>
+		<section class="bastionland-realm-appearance__section">
+			<h3>{{localize "bastionland.realm.look.palette"}}</h3>
+			<div class="bastionland-realm-appearance__palettes">
+				{{#each palettes}}
+				<button type="button" class="bastionland-realm-appearance__palette {{#if active}}is-active{{/if}}" data-action="pickPalette" data-palette="{{key}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">
+					<span class="bastionland-realm-appearance__swatches" inert>
+						{{#each swatches}}<span style="background: {{this}}"></span>{{/each}}
+					</span>
+					<span>{{label}}</span>
+				</button>
 				{{/each}}
 			</div>
-			{{/each}}
-		</div>
-	</section>
+		</section>
 
-	<footer class="bastionland-realm-appearance__buttons">
-		<button type="button" data-action="apply" {{#unless changed}}disabled{{/unless}}>
-			<i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.realm.look.apply"}}
-		</button>
-	</footer>
+		{{#if fades}}
+		<section class="bastionland-realm-appearance__section">
+			<h3>{{localize "bastionland.realm.look.fade.title"}}</h3>
+			<p class="hint">{{localize "bastionland.realm.look.fade.hint"}}</p>
+			{{!-- The number follows the handle as it's dragged; the map shows the new strength when it's let go. --}}
+			<div class="bastionland-realm-appearance__fades">
+				{{#each fades}}
+				<label class="bastionland-realm-appearance__fade">
+					<span>{{label}}</span>
+					<input type="range" min="0" max="100" step="5" value="{{value}}" data-fade="{{key}}" aria-label="{{label}}">
+					<output>{{value}}%</output>
+				</label>
+				{{/each}}
+			</div>
+		</section>
+		{{/if}}
+	</div>
+
+	<aside class="bastionland-realm-appearance__side">
+		<section class="bastionland-realm-appearance__section">
+			<h3>{{localize "bastionland.realm.look.preview"}}</h3>
+			<div class="bastionland-realm-appearance__preview" style="background: {{paper}}">
+				{{#each groups}}
+				<div class="bastionland-realm-appearance__group {{#if hexes}}is-hexes{{/if}}">
+					{{#each pictures}}
+					<figure>
+						<img src="{{src}}" alt="{{label}}" data-name="{{label}}">
+						{{#if own}}<figcaption class="is-own">{{localize "bastionland.realm.look.tags.own"}}</figcaption>{{/if}}
+					</figure>
+					{{/each}}
+				</div>
+				{{/each}}
+			</div>
+		</section>
+
+		<footer class="bastionland-realm-appearance__buttons">
+			<button type="button" data-action="apply" {{#unless changed}}disabled{{/unless}}>
+				<i class="fa-solid fa-paintbrush" inert></i> {{localize "bastionland.realm.look.apply"}}
+			</button>
+		</footer>
+	</aside>
 </div>

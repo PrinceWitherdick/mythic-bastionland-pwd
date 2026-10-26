@@ -10,6 +10,7 @@ import {
 	damageAgainst,
 	harmBarred,
 	isAttacker,
+	isBlastAttack,
 	isIndividual,
 	lastingMarkBy,
 	canFundGambit,
@@ -20,7 +21,9 @@ import {
 	defaultWielded,
 	dismountLanded,
 	gambitAllowsSave,
+	gambitCanBeStrong,
 	gambitIgnored,
+	withdrawLocked,
 	hasDeniableDie,
 	heldAs,
 	isDieSpent,
@@ -333,7 +336,8 @@ describe("changeAttack", () => {
 		const dismounted = changeAttack(attack, { type: "gambit", die: 0, key: "dismount", bonus: 6 });
 		expect(dismounted.gambits[0].bonus).toBe(6);
 		expect(attackDamage(dismounted)).toMatchObject({ highest: 6, damage: 6, die: null, faces: 6 });
-		expect(attackDamage(changeAttack(dismounted, { type: "withdraw", die: 0 }))).toMatchObject({ highest: 5, faces: 8 });
+		expect(changeAttack(dismounted, { type: "withdraw", die: 0 })).toBeNull();
+		expect(attackDamage(changeAttack(dismounted, { type: "withdraw", die: 0, force: true }))).toMatchObject({ highest: 5, faces: 8 });
 
 		const low = changeAttack(rolled([[10, 9], [8, 5]]), { type: "gambit", die: 1, key: "dismount", bonus: 2 });
 		expect(attackDamage(low)).toMatchObject({ highest: 9, die: 0, faces: 10 });
@@ -893,5 +897,109 @@ describe("Gambits made Strong by an Ability", () => {
 		expect(focused.gambits[0].strong).toBe("noSave");
 		const plain = changeAttack(rolled([[8, 6]], { attacker: "Actor.moss" }), { type: "focus", actor: "Actor.moss", key: "repel", strong: "noSave", save: { by: "Moss", total: 4, target: 12, passed: true } });
 		expect(plain.gambits[0].strong).toBeNull();
+	});
+});
+
+describe("taking a Gambit back", () => {
+	const declared = (key = "repel", extra = {}) => changeAttack(rolled([[8, 6], [6, 2]]), { type: "gambit", die: 0, key, ...extra });
+
+	it("takes one back while nothing about it is rolled or done", () => {
+		const gambit = declared();
+		expect(withdrawLocked(gambit.gambits[0])).toBeNull();
+		expect(changeAttack(gambit, { type: "withdraw", die: 0 }).gambits).toEqual([]);
+	});
+
+	it("keeps one the foe has Saved against, so the Save can't be rolled again", () => {
+		const saved = changeAttack(declared(), { type: "gambitSave", index: 0, by: "Boar", total: 3, target: 10, passed: true });
+		expect(withdrawLocked(saved.gambits[0])).toBe("save");
+		expect(changeAttack(saved, { type: "withdraw", die: 0 })).toBeNull();
+		// A failed Save locks it as well.
+		const failed = changeAttack(declared(), { type: "gambitSave", index: 0, by: "Boar", total: 15, target: 10, passed: false });
+		expect(changeAttack(failed, { type: "withdraw", die: 0 })).toBeNull();
+	});
+
+	it("keeps one whose Greater effect was carried out, so it can't be done twice", () => {
+		// A Strong Gambit needs a melee die of 8 or more.
+		const strong = changeAttack(rolled([[10, 9]]), { type: "gambit", die: 0, key: "impair", strong: "greater" });
+		const saved = changeAttack(strong, { type: "gambitSave", index: 0, by: "Boar", total: 15, target: 10, passed: false });
+		const done = changeAttack(saved, { type: "greater", index: 0, text: "Boar loses hold of the spear" });
+		expect(withdrawLocked({ ...done.gambits[0], save: null })).toBe("greater");
+		expect(changeAttack(done, { type: "withdraw", die: 0 })).toBeNull();
+	});
+
+	it("keeps a Dismount, whose d6 is already rolled", () => {
+		const dismount = declared("dismount", { bonus: 4 });
+		expect(withdrawLocked(dismount.gambits[0])).toBe("dismount");
+		expect(changeAttack(dismount, { type: "withdraw", die: 0 })).toBeNull();
+	});
+
+	it("lets the Referee's force take back any of them, freeing the die", () => {
+		const saved = changeAttack(declared(), { type: "gambitSave", index: 0, by: "Boar", total: 3, target: 10, passed: true });
+		const back = changeAttack(saved, { type: "withdraw", die: 0, force: true });
+		expect(back.gambits).toEqual([]);
+		expect(isDieSpent(back, 0)).toBe(false);
+		// Only true counts as force.
+		expect(changeAttack(saved, { type: "withdraw", die: 0, force: "yes" })).toBeNull();
+	});
+});
+
+describe("Strong Gambits on Bolster and Move", () => {
+	it("are never Strong, since neither gives a Save and Greater adds no Damage to Bolster (p10)", () => {
+		expect(gambitCanBeStrong("bolster")).toBe(false);
+		expect(gambitCanBeStrong("move")).toBe(false);
+		expect(gambitCanBeStrong("repel")).toBe(true);
+		for (const key of ["bolster", "move"]) {
+			for (const strong of ["noSave", "greater"]) {
+				expect(changeAttack(rolled([[10, 9]]), { type: "gambit", die: 0, key, strong }).gambits[0].strong).toBeNull();
+			}
+		}
+		expect(changeAttack(rolled([[10, 9]]), { type: "gambit", die: 0, key: "trap", strong: "greater" }).gambits[0].strong).toBe("greater");
+	});
+
+	it("drops Strong from a Focus on Bolster, even where an Ability makes Focus Strong", () => {
+		const attack = rolled([[8, 2]], { attacker: "Actor.k", strongGambits: true });
+		expect(changeAttack(attack, { type: "focus", key: "bolster", strong: "greater", actor: "Actor.k" }).gambits[0].strong).toBeNull();
+		expect(changeAttack(attack, { type: "focus", key: "stop", strong: "noSave", actor: "Actor.k" }).gambits[0].strong).toBe("noSave");
+	});
+});
+
+describe("isBlastAttack", () => {
+	it("finds a Blast in a grant, Smite, a Warband at individuals or a Blast weapon, and none without", () => {
+		expect(isBlastAttack({ granted: true })).toBe(true);
+		expect(isBlastAttack({ smite: "blast" })).toBe(true);
+		expect(isBlastAttack({ smite: "d12" })).toBe(false);
+		expect(isBlastAttack({ againstIndividuals: true })).toBe(true);
+		expect(isBlastAttack({ weapons: [{ blast: false }, { blast: true }] })).toBe(true);
+		expect(isBlastAttack({ weapons: [{}] })).toBe(false);
+		expect(isBlastAttack()).toBe(false);
+	});
+});
+
+describe("checkWielding at several targets", () => {
+	const sword = {};
+	const bomb = { blast: true };
+
+	it("refuses an Attack at several targets that's no Blast (p8)", () => {
+		expect(checkWielding([sword], { several: true }).refusal).toBe("severalTargets");
+		expect(checkWielding([sword], { several: false }).refusal).toBeNull();
+	});
+
+	it("lets a Blast strike several, however it is one", () => {
+		expect(checkWielding([bomb], { several: true }).refusal).toBeNull();
+		expect(checkWielding([sword], { several: true, blast: true }).refusal).toBeNull();
+	});
+
+	it("doesn't count a Blast weapon that sits out the Attack", () => {
+		const slowBlast = { blast: true, slow: true };
+		expect(checkWielding([sword, slowBlast], { several: true, moved: true }).refusal).toBe("severalTargets");
+	});
+
+	it("refuses Smite at a swarm unless the Attack is a Blast (p61)", () => {
+		expect(checkWielding([sword], { smite: true, smiteSwarm: true }).refusal).toBe("smiteSwarm");
+		expect(checkWielding([sword], { smite: true, smiteSwarm: true, blast: true }).refusal).toBeNull();
+	});
+
+	it("names the hands first, where both are wrong", () => {
+		expect(checkWielding([{ hefty: true }, { hefty: true }], { hands: true, several: true }).refusal).toBe("hefty");
 	});
 });

@@ -1,5 +1,6 @@
 import { wentSomewhere } from "../actions/company.js";
-import { movesAsCompany } from "../actions/journey.js";
+import { hexesReached } from "../actions/held-back.js";
+import { forcedTravel, movesAsCompany } from "../actions/journey.js";
 import { hexLorePromptMode, rollFirstArrival, rollsFirstArrivals } from "../actions/hex-lore.js";
 import { isRealmScene, sceneGeometry } from "../actions/realm.js";
 import { openHex } from "../apps/TravelsPlaces.js";
@@ -8,8 +9,9 @@ import { SYSTEM_ID } from "../system-id.js";
 
 /**
  * Where a Company has just come to rest, waiting to be offered to the GM:
- * the hexes of each Scene, by the Scene's id, so a Scene is forgotten in one go.
- * @type {Map<string, Map<string, {scene: Scene, hex: {col: number, row: number}}>>}
+ * the hexes of each Scene, by the Scene's id, so a Scene is forgotten in one go,
+ * each with the move that came to rest there.
+ * @type {Map<string, Map<string, {scene: Scene, hex: {col: number, row: number}, move: object}>>}
  */
 const arrived = new Map();
 
@@ -48,8 +50,10 @@ const watchesArrivals = () => game.user.isGM && (hexLorePromptMode() !== "never"
 function offerArrivals() {
 	const waiting = [...arrived.values()].flatMap((hexes) => [...hexes.values()]);
 	arrived.clear();
-	// Kept whether or not the GM is looking at that Realm, or asked for a window at all.
-	for (const { scene, hex } of waiting) rollFirstArrival({ scene, hex }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't roll the hex the Company reached`, error));
+	// Kept whether or not the GM is looking at that Realm, or asked for a window at all. Played alone, not
+	// where dire weather may be keeping the Company out, till the Referee lets it on (arrivals.js).
+	const reached = waiting.filter(({ scene, move }) => hexesReached(scene, move).length);
+	for (const { scene, hex } of reached) rollFirstArrival({ scene, hex }).catch((error) => console.error(`${SYSTEM_ID} | Couldn't roll the hex the Company reached`, error));
 	if (hexLorePromptMode() === "never") return;
 
 	let opened = false;
@@ -145,10 +149,14 @@ function noticeArrival(token, movement, operation) {
 	// One drag across five hexes arrives once, at the end of it.
 	if (!atRest(movement)) return;
 
-	const hex = hexAt(sceneGeometry(scene), token.getCenterPoint());
+	const g = sceneGeometry(scene);
+	const hex = hexAt(g, token.getCenterPoint());
 	if (!hex) return;
+	// Its last leg is all that's seen here, which is enough to tell whether dire weather may hold it back.
+	const from = movement.origin ? hexAt(g, token.getCenterPoint(movement.origin)) : null;
+	const move = { entered: [hex], ended: true, from, chosen: !forcedTravel(movement, operation) };
 	const hexes = arrived.get(scene.id) ?? new Map();
-	arrived.set(scene.id, hexes.set(hexKey(hex), { scene, hex }));
+	arrived.set(scene.id, hexes.set(hexKey(hex), { scene, hex, move }));
 	offer();
 }
 

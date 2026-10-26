@@ -4,6 +4,7 @@
  * serves them are kept in it. Pure, so it can be tested without Foundry.
  */
 import { LINKED_ACTORS } from "../config.js";
+import { isCompanyKnight } from "./knight-types.js";
 
 /**
  * Whether an actor being made should be given a folder of its own: a Knight,
@@ -12,7 +13,7 @@ import { LINKED_ACTORS } from "../config.js";
  * @param {{type: string, folder?: string|null, system?: {isSquire?: boolean}}} data The new actor's source data.
  * @returns {boolean}
  */
-export const wantsOwnFolder = (data) => data.type === "knight" && !data.system?.isSquire && !data.folder;
+export const wantsOwnFolder = (data) => isCompanyKnight(data) && !data.system?.isSquire && !data.folder;
 
 /** The linked fields whose actor is kept in the Knight's folder. */
 const KEPT = LINKED_ACTORS.filter((link) => link.kept).map((link) => link.key);

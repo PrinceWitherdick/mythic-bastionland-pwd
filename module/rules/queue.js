@@ -27,3 +27,16 @@ export function serialWrites() {
 	queue.settled = () => pending;
 	return queue;
 }
+
+/**
+ * One serialWrites queue for each key, such as a document's id, so writes to
+ * one document wait for each other but not for another's.
+ * @returns {(key: string) => ReturnType<typeof serialWrites>}
+ */
+export function keyedSerialWrites() {
+	const queues = new Map();
+	return (key) => {
+		if (!queues.has(key)) queues.set(key, serialWrites());
+		return queues.get(key);
+	};
+}

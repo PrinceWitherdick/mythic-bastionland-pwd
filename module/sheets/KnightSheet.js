@@ -6,6 +6,7 @@ import { postGambit } from "../actions/gambits.js";
 import { openKnighthood } from "../actions/knighthood.js";
 import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../actions/new-knight.js";
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
+import { changesKind, servedBySquire, setKnightKind } from "../actions/npc-knights.js";
 import { makeSeer } from "../actions/seers.js";
 import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
 import { renameSteed, takeSteed } from "../actions/steeds.js";
@@ -40,6 +41,7 @@ import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
 import { TabRailMixin } from "./tab-rail.js";
 import { TimelineTabMixin } from "./timeline-tab.js";
+import { isKnight, isNpcKnight } from "../rules/knight-types.js";
 
 /**
  * @param {object} changes From `updateActor`, to a steed, Squire, master, Domain or successor.
@@ -95,6 +97,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			showKnighthood: KnightSheet.#onShowKnighthood,
 			openKnightTable: KnightSheet.#onOpenKnightTable,
 			openLedger: KnightSheet.#onOpenLedger,
+			toggleNpcKnight: KnightSheet.#onToggleNpcKnight,
 			pickTravelsHex: openTravelsRow,
 			showTravelsHex: showTravelsRow
 		}
@@ -207,6 +210,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 				: tooLargeForSquires ? t(game.user.isGM ? "squire.largeCompanyHintGM" : "squire.largeCompanyHint", { count: companyCount })
 					: t("squire.empty"),
 			squireBarred: tooLargeForSquires && !game.user.isGM,
+			// A Squire is one of the Company (p7), so an NPC Knight takes none.
+			takesSquire: !isNpcKnight(this.actor),
 			successor: successor && { name: successor.name, img: successor.img },
 			ages: AGES.map((key) => ({ key, label: t(`age.${key}`), active: system.age === key })),
 			ranks: RANKS.map((rank) => ({
@@ -299,9 +304,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	 * @returns {{hint: string, players: {id: string, name: string, selected: boolean}[]}}
 	 */
 	#unchosenContext() {
-		const hint = !this.isEditable ? "unchosen.hintViewer" : game.user.isGM ? "unchosen.hintGM" : "unchosen.hint";
+		const npc = isNpcKnight(this.actor);
+		const hint = !this.isEditable ? "unchosen.hintViewer" : npc ? "unchosen.hintNpc" : game.user.isGM ? "unchosen.hintGM" : "unchosen.hint";
 		const holder = knightPlayer(this.actor);
-		const players = game.user.isGM
+		// An NPC Knight is the Referee's to play, never given to a player to choose.
+		const players = game.user.isGM && !npc
 			? game.users.filter((user) => !user.isGM).map((user) => ({ id: user.id, name: user.name, selected: user.id === holder }))
 			: [];
 		return { hint: t(hint), players };
@@ -330,6 +337,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		if (group !== "primary" || !config) return config;
 		// The empty page is the only one until they're chosen.
 		if (isUnchosen(this.actor)) return { ...config, tabs: [] };
+		// An NPC Knight doesn't travel with the Company, so keeps no record of where it went.
+		if (isNpcKnight(this.actor)) return { ...config, tabs: config.tabs.filter((tab) => tab.id !== "travels") };
 		if (!this.actor.system.isSquire) return config;
 		return { ...config, initial: KnightSheet.SQUIRE_TAB.id, tabs: squireTabs(config.tabs, KnightSheet.SQUIRE_TAB) };
 	}
@@ -337,10 +346,16 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/**
 	 * The Property tab shows what carries the Knight's things: a horse while
 	 * they ride a steed, their Squire while one serves them, else a backpack. A
-	 * Squire carries their own.
+	 * Squire carries their own. A page left open that the rail has lost opens
+	 * the first page in its place.
 	 * @override
 	 */
 	_prepareTabs(group) {
+		// A page the rail no longer has, such as Travels on a Knight just made an NPC Knight, gives way to the first page.
+		const config = this._getTabsConfig(group);
+		const ids = config?.tabs?.map((tab) => tab.id) ?? [];
+		const open = this.tabGroups[group];
+		if (ids.length && open && !ids.includes(open)) this.tabGroups[group] = ids.includes(config.initial) ? config.initial : ids[0];
 		const tabs = super._prepareTabs(group);
 		if (tabs.property) tabs.property.icon = propertyTabIcon({ steed: this.#steed(), squire: !this.actor.system.isSquire && this.#squire() });
 		return tabs;
@@ -510,6 +525,20 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			tooltip: t(domain ? "domain.openHint" : "domain.foundHint"),
 			muted: !domain
 		});
+		// The Referee says which of the Knights no player holds are their own to play.
+		if (this.isEditable && changesKind(this.actor) && !isUnchosen(this.actor)) {
+			const npc = isNpcKnight(this.actor);
+			// A Squire serves only a small Company's Knights (p7), so one serving this Knight keeps them of the Company.
+			const barred = !npc && servedBySquire(this.actor);
+			buttons.push({
+				action: "toggleNpcKnight",
+				icon: npc ? "fa-solid fa-square-check" : "fa-regular fa-square",
+				label: t("npcKnight.toggle.label"),
+				tooltip: t(npc ? "npcKnight.toggle.isNpc" : barred ? "npcKnight.toggle.hasSquire" : "npcKnight.toggle.isCompany", { name: this.#squire()?.name ?? "" }),
+				muted: !npc,
+				disabled: barred
+			});
+		}
 		buttons.push(ledger);
 		return buttons;
 	}
@@ -580,8 +609,8 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			await linkKnightDomain(this.actor, actor);
 			return actor;
 		}
-		const squire = actor.type === "knight" && actor.system.isSquire && !this.actor.system.isSquire;
-		if (actor.type === "knight" && !squire) {
+		const squire = isKnight(actor) && actor.system.isSquire && !this.actor.system.isSquire;
+		if (isKnight(actor) && !squire) {
 			if (this.actor.system.isSquire || actor.pack) return null;
 			await nameSuccessor(this.actor, actor);
 			return actor;
@@ -594,6 +623,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		if (!squire) {
 			await this.actor.update({ "system.steed": actor.uuid });
 			return actor;
+		}
+		// Only a small Company's Knights are given Squires (p7), never the Referee's.
+		if (isNpcKnight(this.actor)) {
+			ui.notifications.warn(t("npcKnight.noSquire", { name: this.actor.name }));
+			return null;
 		}
 		await this.actor.update({ "system.squire": actor.uuid });
 		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
@@ -733,6 +767,20 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onOpenLedger() {
 		return openLedger(this.actor);
+	}
+
+	/**
+	 * Make this Knight an NPC Knight, one of the Referee's own such as a
+	 * Holding's ruler, or bring an NPC Knight into the Company.
+	 * @this {KnightSheet}
+	 */
+	static #onToggleNpcKnight() {
+		const npc = !isNpcKnight(this.actor);
+		if (npc && servedBySquire(this.actor)) {
+			ui.notifications.warn(t("npcKnight.toggle.hasSquire", { name: this.#squire()?.name ?? "" }));
+			return null;
+		}
+		return setKnightKind(this.actor, npc);
 	}
 
 	/** @this {KnightSheet} */

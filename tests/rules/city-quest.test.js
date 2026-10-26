@@ -187,12 +187,11 @@ describe("cityQuestOver", () => {
 });
 
 describe("worthyOfCityQuest", () => {
-	const knight = (rank, hasPlayerOwner = true) => ({ type: "knight", hasPlayerOwner, system: { rank } });
-	it("takes one player's Knight-Radiant", () => {
+	const knight = (rank) => ({ type: "knight", system: { rank } });
+	it("takes one Knight-Radiant of the Company", () => {
 		expect(worthyOfCityQuest([knight("tenant"), knight("radiant")])).toBe(true);
 		expect(worthyOfCityQuest([knight("dominant")])).toBe(false);
-		expect(worthyOfCityQuest([knight("radiant", false)])).toBe(false);
-		expect(worthyOfCityQuest([{ type: "npc", hasPlayerOwner: true, system: { rank: "radiant" } }])).toBe(false);
+		expect(worthyOfCityQuest([])).toBe(false);
 	});
 });
 

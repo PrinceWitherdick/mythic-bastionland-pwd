@@ -9,9 +9,10 @@
 import { OFFERED_FLAG, UNCHOSEN_FLAG, isBlankKnightData, ownershipGivenTo, playerHolding } from "../rules/unchosen-knight.js";
 import { SCORES, clampVirtue } from "../rules/virtues.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { worldKnights } from "./knights.js";
+import { inCompany, worldKnights } from "./knights.js";
 import { makeCompanions, markCompanions } from "./property.js";
 import { timelineJoined } from "./timeline-events.js";
+import { KNIGHT_TYPE, isKnight } from "../rules/knight-types.js";
 
 /**
  * Roll each Virtue in order, then GD, with a Start's dice.
@@ -37,12 +38,13 @@ export async function rollStartScores(start) {
  * @param {object} details.update The Knight's flat update, as knightUpdate gives it.
  * @param {object[]} details.items Their Property, as knightItems gives it.
  * @param {string|null} [details.folder]
+ * @param {string} [details.type] An NPC Knight is made as one.
  * @returns {Promise<Actor|null>}
  */
-export async function createKnightWithCompanions({ name, update, items, folder = null }) {
+export async function createKnightWithCompanions({ name, update, items, folder = null, type = KNIGHT_TYPE }) {
 	const { made, steed, gone } = await makeCompanions(items, { folder });
 	if (steed) update["system.steed"] = steed;
-	const created = await Actor.implementation.create({ name, type: "knight", folder, ...foundry.utils.expandObject(update), items: items.filter((item) => !gone.has(item)) });
+	const created = await Actor.implementation.create({ name, type, folder, ...foundry.utils.expandObject(update), items: items.filter((item) => !gone.has(item)) });
 	if (created) await markCompanions(made, created);
 	return created ?? null;
 }
@@ -77,7 +79,7 @@ export async function makeFreshKnight({ name, ownership = null, companyGlory = n
  * @returns {boolean}
  */
 export function isUnchosen(actor) {
-	return actor?.type === "knight" && !actor.system.isSquire && Boolean(actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG));
+	return isKnight(actor) && !actor.system.isSquire && Boolean(actor.getFlag(SYSTEM_ID, UNCHOSEN_FLAG));
 }
 
 /**
@@ -132,7 +134,7 @@ export async function giveKnightTo(actor, userId) {
  * @param {Actor|null} actor
  */
 export async function knightJoined(actor) {
-	if (actor?.type !== "knight" || actor.system.isSquire || !actor.hasPlayerOwner || isUnchosen(actor)) return;
+	if (!inCompany(actor) || actor.system.isSquire || isUnchosen(actor)) return;
 	await timelineJoined(actor);
 }
 
