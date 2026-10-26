@@ -19,18 +19,18 @@ The last four act at once rather than staying in hand.
 
 ## The palette
 
-![The Realm palette window in its two columns, Terrain swatches with the River below and Barriers on the left, Holdings in pairs with the Seat of Power tick and Landmarks with their count discs on the right, Undo and Redo at the foot and Appe](images/painting-and-editing-the-realm-palette.webp)
+![The Realm palette window in its two columns, Terrain swatches with the River below and Barriers on the left, Holdings in pairs with the Seat of Power tick, then the six Landmarks with their count discs and Other on the right, Undo and Redo at the foot and Appearance in the title bar](images/painting-and-editing-the-realm-palette.webp)
 
 Picking up **Paint the Realm** opens the palette, a window titled **Realm** in two columns: the land on the left, what stands on it on the right.
 
 - **Terrain**: the twelve terrains, then **River** across the foot of them.
 - **Barriers**: the Barrier brush, with a tally against how many the Realm should have (one per six hexes).
 - **Holdings**: Castle, Town, Fortress and Tower in pairs, then the **Seat of Power** tick.
-- **Landmarks**: Dwelling, Sanctum, Monument, Hazard, Curse and Ruin.
+- **Landmarks**: Dwelling, Sanctum, Monument, Hazard, Curse and Ruin, then **Other**, a plain marker for a Landmark of your own. With **More Landmarks (Blog)** turned on in the world settings, Bridge, Pond, Chapel, Grotto, Fountain and Willow follow (see [Exploring the Wilderness](Exploring-the-Wilderness#more-landmarks-from-the-blog)).
 
 **Click a swatch** to take up that brush. A line at the top of the palette says how the brush in hand works.
 
-Each Holding and Landmark swatch carries a count in its corner. It turns green once that kind is as the book asks, and red once there are too many. The tally lines under each heading do the same.
+Each Holding swatch, and each of the book's six Landmarks, carries a count in its corner. It turns green once that kind is as the book asks, and red once there are too many. The tally lines under each heading do the same. Other and the blog's Landmarks have no count, since the book asks for none.
 
 The window can be resized, and keeps the size you give it. The **Appearance** button in its title bar opens Realm Appearance. **Undo** and **Redo** sit at its foot.
 
@@ -97,6 +97,8 @@ Every Realm edit can be taken back: painting, rivers, Barriers, Holdings, Landma
 
 Each Realm Scene keeps its own history, for you alone, until the page reloads. **Reroll the Realm** can't be undone, and it clears the history.
 
+Undo takes back only your own edits. What play has done since stays done: a Myth found, an Omen met, a Barrier run into, a Landmark named as the Company first met it.
+
 ## Edit this hex
 
 ![The Edit window for a Myth hex, with its terrain, In this hex set to Myth, Number 3, Roll and Choose, The Bell Under the Mere, Omens seen with minus and plus, Hidden from players, Barriers and Undo and Redo](images/painting-and-editing-the-realm-edit-hex.webp)
@@ -109,13 +111,13 @@ Each field saves as soon as you change it.
 - **In this hex**: Nothing, Holding, Myth or Landmark.
 - A **Holding** has its **Style**, its **Name**, a **Seat of Power** tick, and **Disputed**, for a Seat another Holding also claims.
 - A **Myth** has its **Number**, the Myth rolled for it with **Roll** and **Choose**, the Omens seen with **-** and **+**, and whether it is revealed to players. **Choose** opens the Realm's Myths window on this one.
-- A **Landmark** has its **Type** and its **Name**. A Sanctum also has its Seer, with **Roll**.
+- A **Landmark** has its **Type** and its **Name**. A Sanctum also has its Seer, with **Roll**. A Grotto, Fountain or Willow has **Which** of its three it is, with a die to roll it. A Pond has **Leads To**: the other Pond it's paired with, or none, so it leads out of this Realm.
 - **Barriers**: each of the hex's six edges, set to None, Hidden or Revealed.
 - **Undo** and **Redo** at the foot.
 
 If you make a hex a Myth when all six of the Realm's Myths already stand on the map, a **Move a Myth Here** window asks which one to move. It keeps its roll and the Omens seen.
 
-In [solo play](Solo-Play), what stands in a hex can't be changed here, so nothing still to be found is given away.
+In [solo play](Solo-Play), what stands in a hex can't be changed here, so nothing still to be found is given away. Nor can a Pond whose partner is still to be found be paired again or made something else.
 
 ## Terrain pictures
 

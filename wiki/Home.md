@@ -38,7 +38,7 @@ This wiki covers what the system does and how to use it, including a lot that's 
 4. **Hover a hex chip** on a chat card to ring that hex on the map; click it to take your own view there.
 5. **Double-click open ground on the Realm** to open that hex in Places. Double-click the Company's Token for the hex it stands in.
 6. **Right-click the footprints button** beside the sidebar to choose how visited hexes are marked.
-7. **Click the time bar** at the top of the screen (Referee) for Weeks Pass, Months Pass, A Year Passes and End the Session.
+7. **Click the time bar** at the top of the screen (Referee) for Next Phase, Weeks Pass, Months Pass, A Year Passes and End the Session.
 8. **Press `C`** (Referee) to open the Referee Toolkit, and **`6`** for the Spark Tables.
 9. **`Shift`-click Apply Damage** on an Attack card to open the Take Damage window instead of taking the card's Damage as it stands.
 10. **Your Settings tab** (last on your own Knight's rail) has colour schemes, text size, typeface and no-italics, for your screen only.

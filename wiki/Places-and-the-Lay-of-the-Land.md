@@ -106,6 +106,7 @@ Under the note, a tab for each kind of thing that can be rolled in the hex. A ta
 
 - Type a **Name**, or press the **die** (**Name it from a random page**) to take the prompt a random page of your book prints for this kind of Landmark. A line under it says which page it came from.
 - The Landmark's offers, as buttons: a Monument's **Spend a Phase: Restore SPI**, a Hazard's **Push Through** and **Go Back**, a Ruin's **Echo a Myth**. See [Exploring the Wilderness](Exploring-the-Wilderness#landmarks).
+- The blog's Landmarks show more here: a Bridge's **Passage won** tick, a Pond's **Leads To** chip, and whether a Willow stands this Season. See [More Landmarks from the blog](Exploring-the-Wilderness#more-landmarks-from-the-blog).
 - A **Sanctum** shows its Seer, with **Roll the Seer**, **Choose the Seer** (pick any of the book's Seers, with your players' Knights' Seers on top), and **Make this Seer** to bring them into the world as an NPC.
 
 #### Myth

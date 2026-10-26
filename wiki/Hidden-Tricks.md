@@ -63,7 +63,7 @@ A cheat sheet of the things you would never find by looking: keys, things you ca
 ## The Referee Toolkit and the time bar
 
 - **Drag an actor onto a Myth's card** in the Toolkit to count them among that Myth's Cast, or onto the City Quest for the City's. [More](Myths-and-Omens)
-- **Click the time bar** at the top of the screen (Referee) for **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. A click elsewhere or `Esc` puts them away. [More](Time-Phases-and-Seasons)
+- **Click the time bar** at the top of the screen (Referee) for **Next Phase**, **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. A click elsewhere or `Esc` puts them away. [More](Time-Phases-and-Seasons)
 
 ## The Campaign Timeline
 

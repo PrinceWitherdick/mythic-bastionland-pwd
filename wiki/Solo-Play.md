@@ -11,9 +11,9 @@ It is a world setting. Turning it on or off redraws the map and every open windo
 
 ## Your Knights
 
-You own every Knight in a solo world, so the system can't tell your Company from the Knights you run as Referee, such as a Holding's ruler, by who owns them. Each Knight's sheet has a **Rides with the Company** tick in its title bar for this. It starts ticked. Untick it on your NPC Knights.
+You own every Knight in a solo world, so the system can't tell your Company from the Knights you run as Referee, such as a Holding's ruler, by who owns them. Make those an **NPC Knight** instead: tick **NPC Knight** in the title bar of their sheet. Every other Knight is one of the Company. See [NPC Knights](NPCs-Structures-and-Compendiums#npc-knights).
 
-A Knight who rides with the Company:
+A Knight of the Company:
 
 - moves as the Company on the map when there is no Company Token;
 - is ticked in the Season's pursuits and the morning's checks;
@@ -33,7 +33,7 @@ This is settled the first time you finish. If you take the Realm back into drawi
 
 ## How the secrets are found
 
-- **Myths.** In the Referee Toolkit, a Myth is listed as **A Myth not yet met** until the Company meets one of its Omens; then it is named. Its hex is shown on the map once the Company stands in it, with a notice that the Company has found it. That's the hex the Company really ends up in: a blind drift lands it elsewhere, and dire weather keeps it where it was. A Company Token first set down in a Myth's hex finds it too, and so does a sweep of the hex with **Search**.
+- **Myths.** In the Referee Toolkit, a Myth is listed as **A Myth not yet met** until the Company meets one of its Omens; then it is named. Its hex is shown on the map once the Company stands in it, with a notice that the Company has found it. That's the hex the Company really ends up in: a blind drift lands it elsewhere, and dire weather keeps it where it was. When dire weather holds the Company back, the Where the Company Came card offers **Keep them where they were** or **Let them go on**; only once you let them go on are the hexes ahead found. Until you choose, Search, Look from a Vantage Point and the Phase's Wilderness Roll can't be made in those hexes. A Company Token first set down in a Myth's hex finds it too, and so does a sweep of the hex with **Search**.
 - **Landmarks** are found the way the book has it: by the Wilderness Roll. A Landmark the roll finds is revealed on the map. Simply walking into its hex doesn't find it.
 - **Barriers.** A hidden Barrier your own Company Token runs into is revealed, as it would be for a player.
 - **Folklore and vantage points.** The cards from Ask Somebody and Look from a Vantage Point mark what they name on the map by themselves, rather than offering a button to do it.
@@ -49,7 +49,7 @@ Everything a Referee would normally see that would give a secret away keeps it i
 - **The hex readout** under the map names only what has been found.
 - **No Realm Key** is whispered when a Realm is made, and **Keep this Realm?** has no **Choose the Myths**: which Myths the Realm holds is left to the dice, unseen.
 - **The Referee Toolkit**'s Myths and Places pages show only what has been found.
-- **Edit this hex** won't change what stands in a hex, so nothing still to be found is given away. Terrain and the rest still can be changed there, and Barriers with the map's brush.
+- **Edit this hex** won't change what stands in a hex, so nothing still to be found is given away. Terrain and the rest still can be changed there, and Barriers with the map's brush. A Pond whose partner is still to be found keeps its **Type** and **Leads To**, and another Pond can't be paired with it.
 - **The paint palette** counts only what has been found, and its brushes leave alone a hex or edge that holds something still to be found.
 - **The Seer chooser** lists only the Sanctums you have found.
 - **Foundry's Tiles and Drawings lists** in the sidebar leave out what's still hidden.

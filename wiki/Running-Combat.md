@@ -21,6 +21,7 @@ Each ticked character makes a CLA Save, and one **Surprise** card in chat shows 
 What differs for you:
 
 - **You own every card.** Any die of 4 or more on an NPC's card can be clicked to spend it on a Gambit, and **Focus** works for the NPC as it does for a Knight.
+- **Taking a Gambit back late.** Once a Gambit has been Saved against or its Greater effect carried out, or for any Dismount, only you can take it back, on any card. You're asked first, since whatever was rolled for it is lost and anything done to a sheet stays done.
 - **Feats for the Cast.** An NPC can only Smite, Focus or Deny if the Feat is marked under **Feats** on its sheet.
 - **Joining an Attack.** To have a second NPC roll into the same Attack, select its Token and press **Join this Attack** on the card. A Referee is offered only the selected Tokens, since you own everybody.
 - **Who sees the card.** The card follows the chat's roll mode. Posted privately, the players can't see it, and so can't Deny on it, and the blows on the map are shown only to Referees.
@@ -71,7 +72,7 @@ Morale only touches those the players don't play: NPCs, and Knights you play you
 An NPC set to the **Warband** scale on its sheet fights as a unit. Mustering one for a Domain is on [Domains and Courts](Domains-and-Courts).
 
 - **Against individuals.** A Warband's Attack dialog has an **Against individuals** box that adds +d12 and makes the Attack a Blast. It ticks itself when everyone targeted is a single person or beast, and unticks when a Warband, swarm or structure is among them. Hover it to see why.
-- **Led from the front.** Pick a leader under **Led from the front by** and their Attack dice join the Warband's roll. Select the leader's Token first to have them listed. Until their next turn they take whatever Damage gets past the Warband's Armour: on their own if you own them, otherwise a note in chat tells their player to apply it. The leader is let go at the start of their next turn, when the Combat ends, or with the × beside their name on the Warband's sheet.
+- **Led from the front.** Pick a leader under **Led from the front by** and the dice of the weapons they would wield join the Warband's roll, or a single d4 if they're Impaired or unarmed. Select the leader's Token first to have them listed. A Slain or dying Knight can't lead. Until their next turn they take whatever Damage gets past the Warband's Armour: on their own if you own them, otherwise a note in chat tells their player to apply it. The leader is let go at the start of their next turn, when the Combat ends, or with the × beside their name on the Warband's sheet.
 - **Hitting a Warband.** Only a Blast or another large-scale Attack harms a Warband. Where the card can't tell, the **Take Damage** window asks. A Warband's own Attack is large-scale, so it can harm another Warband.
 - **Its state.** The sheet shows **Routed** (a Mortal Wound or fleeing), **Broken** (SPI 0) and **Wiped Out** (VIG 0) as they happen. A Warband's Morale card comes when its VIG first drops to half or below, not on every Wound.
 - **Upkeep.** A Warband's sheet has an **Upkeep** button. Pick what has worn them down (**Ill-rested**, **Poorly fed** or **Driven too hard**) and press **Roll SPI Loss**. It takes d6 SPI and posts the result; at SPI 0 the card says they no longer take orders.

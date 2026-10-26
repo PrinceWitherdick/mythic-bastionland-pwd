@@ -34,7 +34,7 @@ The pages hang off the window's edge as a column of icon tabs. Hover an icon for
 
 The banner across the top shows which Realm the pages are about and where the Company is, with the calendar at its right end.
 
-- **The Realm.** With one Realm Scene, its name is shown. With several, it's a dropdown: pick the Realm the Myths and Places pages should show. Until you pick, the pages follow the Realm on the canvas, or else the first Realm.
+- **The Realm.** With one Realm Scene, its name is shown. With several, it's a dropdown: pick the Realm the Myths and Places pages should show. Until you pick, the pages follow the Realm on the canvas, or else the first Realm. Once you pick one, they stay on it whatever the canvas shows, so a click always acts on the Realm the page names.
 - **The Company is in ...** names the hex the Company's Token stands in. **Click it** (**Show on the Map**) to view that Realm, pan to the hex, ping it and ring it in green, and open the hex in Places. The ping and ring are for you alone, so no player learns where anything hidden lies. When the Company's Token isn't on this Realm's map, the banner says so instead.
 - **Click the portrait** to choose a new picture for the Toolkit.
 - **The book icon** opens your rulebook in the reader. While the world has no copy of the rulebook yet, the icon is dimmed and clicking it opens the window that points the world at your PDF. See [The Rulebook Reader](The-Rulebook-Reader).

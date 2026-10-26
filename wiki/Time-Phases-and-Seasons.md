@@ -14,13 +14,12 @@ A bar at the top centre of the screen shows the **Phase**, the **Season** and th
 
 For the Referee, each part of the bar is a button:
 
-- **Click the Phase, Season or Age** to let down the time menu under the bar: **Weeks Pass**, **Months Pass**, **A Year Passes**, and **End the Session** under them.
+- **Click the Phase, Season or Age** to let down the time menu under the bar: **Next Phase** across the top, then **Weeks Pass**, **Months Pass** and **A Year Passes**, and **End the Session** across the foot.
+- **Next Phase** ends the Phase through the same window as the Time page's button (see [below](#next-phase-and-the-phases-end-window)). Hover it to see which Phase ends and which comes next.
 - **Hover Weeks Pass** to see which seasonal event it carries the Company on to.
 - **Click anywhere else, or press Escape,** to put the menu away.
 
-There is no Next Phase on the bar. That button is on the Referee Toolkit's **Time** page, below.
-
-![The bar at the top of the screen reading Morning, Spring and 1st Age in their colours, with the time menu let down under it showing Weeks Pass, Months Pass, A Year Passes and End the Session](images/time-phases-and-seasons-banner.webp)
+![The bar at the top of the screen reading Afternoon, Harvest and 2nd Age in their colours, with the time menu let down under it showing Next Phase across the top, Weeks Pass, Months Pass and A Year Passes in a row, and End the Session across the foot](images/time-phases-and-seasons-banner.webp)
 
 ## The Time page
 
@@ -40,7 +39,7 @@ From the top, the page holds:
 
 ## Next Phase and the Phase's end window
 
-**Click Next Phase** on the Time page to end the Phase. Before the calendar moves, one window asks everything about the Phase that is ending. Its title names it: **The Morning Ends**, **The Afternoon Ends**, **The Night Ends**. Only the parts that apply are shown:
+**Click Next Phase** on the Time page, or in the bar's time menu, to end the Phase. Before the calendar moves, one window asks everything about the Phase that is ending. Its title names it: **The Morning Ends**, **The Afternoon Ends**, **The Night Ends**. Only the parts that apply are shown:
 
 - **Where the Company stands**, read from the Company's Token on the Realm map.
 - **How did the Company spend the Phase?** Pick **Travelling or exploring**, **Camping outdoors** or **Indoors, as guests**. The window guesses for you: indoors in a Holding, camping for a Night spent still, travelling otherwise. Hover each choice for what it costs.

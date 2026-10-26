@@ -37,6 +37,8 @@ The **Custom Realm** page gives every piece of the map its own tick box: **Map**
 - **Untick a part** to leave it off the map and draw it yourself with the Realm tools. The rest is rolled to keep clear of it.
 - **Ignore the rules for setup** unlocks the numbers beside each part: the map's columns and rows (3 to 30 a side), the size of terrain clusters, how many lakes, Holdings and Myths (six at most), Landmarks of each type (or a count for each type), and Barriers. Leave it unticked and every number is the book's.
 
+With **More Landmarks (Blog)** turned on in the world settings, a rolled Realm also gets the blog's six Landmarks, fewer on a smaller map. The book's own Landmarks are rolled just as before, so a seed still gives the same Realm. See [More Landmarks from the blog](Exploring-the-Wilderness#more-landmarks-from-the-blog).
+
 A Realm set up your own way remembers it. **Reroll the Realm** later rolls it the same way and keeps what you draw by hand.
 
 ### Keep this Realm?
@@ -74,7 +76,7 @@ A rail of pages down its left side follows the book's steps. Each page shows the
 | **Wilderness** | Paint terrain, lay Barriers and draw rivers. |
 | **Holdings** | Place the Holdings, then choose which one is your Seat of Power, the Realm's chief Holding. |
 | **Myth Hexes** | Myths are placed with **Inspect hexes**: click a hex, and Edit this hex opens beside Places. |
-| **Landmarks** | Place the six kinds of Landmark. **What each one is** folds out a line on each kind. |
+| **Landmarks** | Place the book's six kinds of Landmark, and **Other** for one of your own (and the blog's six, while **More Landmarks (Blog)** is on). **What each one is** folds out a line on each kind. |
 | Book sections | Once your PDF is imported, the book's other sections of p14 stand between these, in its own words. |
 | **The Company** | Choose the Company's picture and carry it to a hex. Reads **Move the Company** once it stands somewhere. |
 
@@ -143,6 +145,8 @@ Then paint every hex. The first page of Creating a Realm opens with a **Paint ev
 ### Changing the picture later
 
 **Import map** in the Realm tools opens the same picture fields for the Realm on screen. Choosing a different layout lays the Realm's hexes out anew to match, keeping what each hex holds and moving the Company with its hex. A Realm keeps its number of hexes once made: for a different count, make a New Realm from the map.
+
+If your map already draws its Holdings and Landmarks, as a Hex Kit map does, fade the system's own icons and hex lines over it in Realm Appearance. See [Icons and Hex Lines](Realm-Appearance-and-Skins#icons-and-hex-lines).
 
 ## See also
 

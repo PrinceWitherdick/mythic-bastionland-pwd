@@ -1,6 +1,6 @@
 # NPCs, Structures and Compendiums
 
-Everyone the Knights meet who isn't a Knight is an **NPC** actor: hirelings, beasts, Warbands, Seers and the Cast of every Myth. Walls, gates, ships and siege engines are **Structure** actors, which have GD and Armour but no Virtues. Once you have brought in your rulebook, three world compendiums hold the book's NPCs, beasts, Warbands and goods ready made, so you rarely fill in a stat block by hand.
+Everyone the Knights meet who isn't a Knight is an **NPC** actor: hirelings, beasts, Warbands, Seers and the Cast of every Myth. Knights the Referee plays are [NPC Knights](#npc-knights), on the Knight sheet. Walls, gates, ships and siege engines are **Structure** actors, which have GD and Armour but no Virtues. Once you have brought in your rulebook, three world compendiums hold the book's NPCs, beasts, Warbands and goods ready made, so you rarely fill in a stat block by hand.
 
 A new NPC or Structure made from the Actors sidebar opens blank. Fill it in yourself, or drag one in from a compendium (see [The compendiums](#the-compendiums) below).
 
@@ -92,6 +92,19 @@ With **Warband** picked as the Scale, three more states join the conditions. The
 | **Wiped Out** | VIG 0. |
 
 Warbands raised by a Domain are covered in [Domains and Courts](Domains-and-Courts).
+
+## NPC Knights
+
+An **NPC Knight** is a Knight the Referee plays: a Holding's ruler, a rival to duel, a Knight met on the road. It has the whole Knight sheet, with its Property, Ability, Passion and Seer, but it is never one of the Company.
+
+- **Making one.** Create an actor of the type **Knight** from the Actors sidebar and pick **The Referee** under *Who plays this Knight?*, or tick **NPC Knight** in the title bar of a Knight's sheet. Untick it to make them a Knight of the Company again. Only a Referee sees the tick, and a Knight a player holds can't be made one.
+- **Left out of the Company.** Mornings, the Season's pursuits, the end of a Phase, Search, and the Company's size leave NPC Knights out, even when their Tokens are selected. In a fight they make Morale Saves as NPCs do.
+- **No Squire, no Travels.** An NPC Knight takes no Squire, and a Knight a Squire serves can't be made one until the Squire is unlinked or Knighted. The sheet has no Travels page.
+- **Where they're kept.** NPC Knights are filed in the Actors sidebar's NPCs folder, and their Tokens keep Foundry's usual name display.
+- **Made for you.** **Grant to a Knight** on a Holding, picking a Knight not yet in the world, makes them as an NPC Knight rolled as a Ruler. See [Domains and Courts](Domains-and-Courts).
+- **Taken up.** An NPC Knight a player takes up as a successor becomes a Knight of the Company. See [Scars, Death and Successors](Scars-Death-and-Successors).
+
+In a world made before NPC Knights, the Knights in the NPCs folder that no player held became NPC Knights, as did any a solo Referee had marked as not riding with the Company. So does a Knight brought in from an older compendium.
 
 ## The Structure sheet
 

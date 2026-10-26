@@ -65,7 +65,7 @@ A chosen Knight's sheet has **New Knight** in its window title bar. It opens the
 
 ## No two characters are the same Knight
 
-By default no two living characters can be the same Knight from the book, whether player Knights or the Referee's NPC Knights:
+By default no two living characters can be the same Knight from the book, whether player Knights or the Referee's [NPC Knights](NPCs-Structures-and-Compendiums#npc-knights):
 
 - In the chooser a taken Knight's card is greyed, its tooltip says whose Knight it is, and clicking it explains why it can't be picked.
 - **Roll d6 and d12** only ever lands on a free Knight.

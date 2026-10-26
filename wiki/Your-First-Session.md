@@ -77,7 +77,7 @@ The second Tour waits until you have finished placing the Company, so its overla
 
 Once the Realm is on screen:
 
-- The **Phase, Season and Age** hang as one bar at the top of the screen for everyone. For a Referee, clicking it lets down **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. See [Time, Phases and Seasons](Time-Phases-and-Seasons).
+- The **Phase, Season and Age** hang as one bar at the top of the screen for everyone. For a Referee, clicking it lets down **Next Phase**, **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. See [Time, Phases and Seasons](Time-Phases-and-Seasons).
 - **Travel** sits on the left of the map and **Rest and Exploration** on its right, with the rules and the Referee's roll buttons. See [Exploring the Wilderness](Exploring-the-Wilderness).
 - The footprints and **Places** buttons stand just left of the sidebar. See [Places and the Lay of the Land](Places-and-the-Lay-of-the-Land) and, for players, [Travels and Places](Travels-and-Places).
 - The crown in the scene controls holds the Referee's Realm tools. See [Painting and Editing the Realm](Painting-and-Editing-the-Realm).

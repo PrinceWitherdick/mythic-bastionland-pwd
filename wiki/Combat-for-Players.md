@@ -26,7 +26,7 @@ A Slain or Mortally Wounded Knight can't Attack; you're told why.
 
 The dialog remembers, per character, the weapons you ticked, your specialist ticks and the situation boxes, and opens on them next time. Bonus dice and Smite are never remembered: each is for one blow.
 
-If you target several Tokens with a **Blast**, one card is rolled for each target.
+If you target several Tokens with a **Blast**, one card is rolled for each target. Only a Blast strikes more than one, so an Attack at several Tokens that isn't one is refused: target just one, or make it a Blast. Smite for +d12 against a swarm is refused too, since a swarm Impairs any blow that isn't a Blast; Smite for a Blast instead.
 
 ## The Attack card
 
@@ -37,11 +37,11 @@ The card shows every die rolled, the highest marked, and the **Damage** (the hig
 ### Gambits
 
 - **Click a die showing 4 or more** to spend it on a Gambit. A window asks which Gambit, which Save the foe gets (VIG by default; the Referee may rule another), and for Impair, which of their weapons (or their whole next Attack).
-- A melee die of **8 or more** can also make a **Strong Gambit**: **No Save** or a **Greater effect**.
-- **Click a spent die** to take its Gambit back.
+- A melee die of **8 or more** can also make a **Strong Gambit**: **No Save** or a **Greater effect**. Bolster and Move can't be Strong.
+- **Click a spent die** to take its Gambit back. Once the foe has made their Save against it, its Greater effect has been carried out, or it's a Dismount, only the Referee can take it back.
 - **Dismount** rolls its d6 as you declare it.
 
-Each declared Gambit is listed on the card. Where the foe gets a Save, a **VIG Save** button (or whichever Save was picked) sits beside it for the foe's owner or the Referee to roll; a pass strikes the Gambit through. A **Greater effect** has a **Disarm, unhelm or break** button once the Save is settled: pick the foe's weapon to knock away, helm to take off, or wooden thing to break, or write in something else.
+Each declared Gambit is listed on the card. Where the foe gets a Save, a **VIG Save** button (or whichever Save was picked) sits beside it for the foe's owner or the Referee to roll; a pass strikes the Gambit through. Only a foe the Attack was aimed at can make that Save. A **Greater effect** has a **Disarm, unhelm or break** button once the Save is settled: pick the foe's weapon to knock away, helm to take off, or wooden thing to break, or write in something else.
 
 Only the attacker (and anyone who joined) can spend dice and Focus. Clicking any Gambit on your sheet just posts its rule to chat.
 
@@ -70,7 +70,7 @@ Some Abilities add more buttons here, shown only to the Knight who has them: **R
 
 **Apply Damage** is shown to whoever owns a target, and to the Referee.
 
-- **Click Apply Damage** to take the Damage as the card has it. If dice of 4+ are still unspent, or someone could still Deny, you're asked first.
+- **Click Apply Damage** to take the Damage as the card has it. If dice of 4+ are still unspent, a Gambit still waits on its Save, or someone could still Deny, you're asked first. A Save can't be rolled once the Damage lands.
 - A ranged blow, armour that counts only sometimes, a shield a Trap may hold, or anything else the table must judge opens the **Take Damage** window first.
 - **Shift-click Apply Damage** to open the Take Damage window anyway.
 - With several targets owned by different players, each applies their own; the button stays until every target has taken the blow.

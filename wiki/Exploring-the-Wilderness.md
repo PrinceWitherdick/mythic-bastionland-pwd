@@ -89,6 +89,25 @@ The Wilderness card, and the Landmark tab of a hex in Places, carry what each ki
 
 While a Curse holds, the Referee Toolkit's Time page shows **Thrown Off Course**, with **Roll Travelling Blind** and **They Hold Their Course** to let the blight go. During the cursed Phase, each move of the Company Token is rolled for already.
 
+An **Other** Landmark is one of your own. It has no button: give it a name in Places, and keep what it holds in the hex's note.
+
+### More Landmarks from the blog
+
+Chris McDowall, who made Mythic Bastionland, offers six more Landmarks in a post on his blog, More Landmarks. They aren't from the book, so they're off until the Referee turns on **More Landmarks (Blog)** in the world settings (see [World Settings Reference](World-Settings-Reference)). While it's on, they are rolled into new Realms and offered wherever you place a Landmark. Turning it off again leaves those already placed where they are.
+
+Each one's tab in Places says, in the system's own words, what it is and links the post. Some carry more:
+
+| Landmark | In Places | Found by the Wilderness Roll |
+| --- | --- | --- |
+| Bridge | **Passage won**: tick it once a Knight has beaten the Bridge's keeper. You're asked which Knights won it, and each gains 1 Glory. A Bridge gives its Glory only once. | As usual. |
+| Pond | **Leads To**: a hex chip for the Pond it's paired with. Point at it to ring that hex; click it to go there. A Pond with no partner on this Realm leads beyond it. | Only on a 6. |
+| Chapel | | As usual. |
+| Grotto | Which of its three it is. | Never: only a local's directions lead to it, so reveal it yourself in **Edit this hex**. |
+| Fountain | Which of its three it is. | As usual. |
+| Willow | Which of its three it is, and whether it stands this Season. | Only in its own Season. |
+
+A rolled Realm has two Bridges, a pair of Ponds, two Chapels, and three each of Grottos, Fountains and Willows, one of each sort, with fewer on a smaller map. Bridges are laid on a river where there is one.
+
 ## Exploring a hex
 
 Three actions, each from the Rest and Exploration panel or from a hex's Lay of the Land. Their cards are whispered to the Referees.

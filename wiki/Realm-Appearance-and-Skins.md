@@ -12,7 +12,7 @@ Any of these opens the **Realm Appearance** window (Referees only):
 
 A line at the top says which Realm you are changing: the Realm Scene in view, or, with no Realm on screen, the look new Realms start with.
 
-![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Your own pictures), the Colours row and the Preview](images/realm-appearance-and-skins-window.webp)
+![The Realm Appearance window, with the Skin cards (Blank Realm, Roundels, Woodcut, Surveyor's Atlas, Wax Seal, Armorial and Your own pictures), the Colours row, the Icons and Hex Lines sliders and the Preview](images/realm-appearance-and-skins-window.webp)
 
 ## Trying a look
 
@@ -21,6 +21,17 @@ A line at the top says which Realm you are changing: the Realm Scene in view, or
 - **Apply** redraws that Realm Scene for everyone, in the new pictures, with its paper, hex lines and Barriers in the new colours, then closes the window. Other Realms keep their own look.
 
 **Apply** stays greyed until something has changed. New Realms start with the look you last applied.
+
+## Icons and Hex Lines
+
+For a Realm laid over a map of your own that already draws its Holdings and Landmarks, such as a Hex Kit map, the system's icons can be faded so they don't sit on top of yours. This section shows only while a Realm Scene is in view.
+
+- One slider each for **Holdings and Seats**, **Landmarks**, **Myths** and **Hex lines**.
+- **Let go of a slider** to see it on the map, for you only. **Apply** saves it for everyone.
+- Each slider sets every icon of its kind, even one you had faded by hand.
+- A Landmark or Myth not yet found shows to you at half the strength you set.
+
+The fading belongs to that Realm alone. New Realms start at full strength. See [Making a Realm](Making-a-Realm#importing-a-map-you-drew) for laying your own map under the hexes.
 
 ## The skins
 

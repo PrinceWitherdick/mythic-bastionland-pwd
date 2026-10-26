@@ -13,6 +13,12 @@ No. Everything is built in. A few optional modules add 3D dice, Attack animation
 **Does it work on Foundry v13?**
 Yes, v13 and v14 both, with the same features. The one difference you may notice is Foundry's own look: v14 draws its interface dark unless you change it. The system's sheets stay on parchment either way, unless you pick another **Colour Scheme**.
 
+**I moved my world from v13 to v14. Is my Realm still in place?**
+Yes. Foundry's upgrade shifts the Realm's pictures, and the system reads them where they were laid, then sets them right once.
+
+**Some buttons do nothing for my players.**
+Many of the players' buttons ask the Referee's client to do the work, so **a Referee needs to be logged in**. A player who reports running into a Barrier is told when no Referee is.
+
 **Will a system update overwrite my world or my imported book?**
 No. Updates replace the system's own files. Your world's actors, journals, items and settings stay as they are, and what was read from your PDF lives in `mythic-bastionland-art/` in your Foundry data folder, outside the system's folder.
 
@@ -42,7 +48,7 @@ Foundry serves everything in its data folder to anyone signed into the world who
 ## How things look
 
 **The sheets are too dark, or too light.**
-Each person picks their own **Colour Scheme** on the **Settings** tab of their Knight (or the Referee Toolkit): **Parchment**, three dark schemes (**Lamplit**, **Midnight**, **Ashen**), or **Follow Foundry**, which takes Parchment or Lamplit as Foundry's own windows are light or dark. Foundry's own windows follow Foundry's interface setting, not the system's. See [Your Settings and Accessibility](Your-Settings-and-Accessibility).
+Each person picks their own **Colour Scheme** on the **Settings** tab of their Knight (or the Referee Toolkit): **Parchment**, three dark schemes (**Lamplit**, **Midnight**, **Ashen**), or **Follow Foundry**, which takes Parchment or Lamplit as Foundry's own windows are light or dark. The Create and Delete dialogs, User Configuration, and the hex, Site and Timeline journals wear the system's scheme too. Foundry's other windows, such as Configure Settings and the File Picker, follow Foundry's interface setting. See [Your Settings and Accessibility](Your-Settings-and-Accessibility).
 
 **The text is too small, too faint or too fancy.**
 On the same Settings tab: **Text Size** up to 1.40, **High Contrast**, a plainer **Typeface**, and **No Italic Text**.

@@ -43,6 +43,7 @@ The window's title bar carries a few buttons left of Foundry's own:
 
 - **New Knight** rolls or picks a Knight from the book onto this sheet again, replacing their scores, Property, Ability and Passion (Scars and the Chronicle stay). On a Squire it reads **Knight this Squire**, and on a Squire just Knighted who hasn't chosen yet, **Choose Their Knight**. See [Choosing a Knight](Choosing-a-Knight).
 - **Domain** opens the Domain this Knight rules, and reads its name once there is one. Until then it is drawn faded and offers to found one; you can also drag a Domain from the Actors tab onto the sheet. See [Domains and Courts](Domains-and-Courts).
+- **NPC Knight** (Referee only) makes this a Knight the Referee plays, kept out of the Company, or unticked, one of the Company again. A Knight a player holds can't be made one. See [NPC Knights](NPCs-Structures-and-Compendiums#npc-knights).
 - **Ledger** opens every change ever made to the Knight. See [The Ledger](#the-ledger).
 
 ## The Knight page

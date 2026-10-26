@@ -35,6 +35,19 @@ You rarely need to mark Omens by hand: the Wilderness Roll counts them itself wh
 
 Once all six are met, the card says so.
 
+## Scenes linked to an Omen
+
+If you have a Scene ready for an Omen, such as a map of where it plays out, link it to that Omen so it's at hand when the Company gets there.
+
+- **Drag a Scene** from the Scenes sidebar onto an Omen, here or on the sheet of a Myth you wrote. It shows under the Omen as a pill with its name. An Omen can have several.
+- **Click the pill** to activate the Scene, taking everyone there.
+- **Click the eye** to view the Scene yourself, without moving the players.
+- **Click the cross** to unlink it.
+
+When a Wilderness Roll brings that Omen, its card has an **Activate** button for each Scene linked to it.
+
+A book Myth keeps its links only as long as it holds that Myth: roll it again, or replace it, and the new one starts with none. A Myth you wrote keeps its links with it. A Scene still in a compendium can't be linked, so import it into the world first. A Scene you delete drops off by itself.
+
 ## Picture, verse and table
 
 - **Click the Myth's picture** (on the folded row too) to open it larger in a window of its own, with the verse under it. The eye button in that window's title bar, **Show Players**, shows the picture to everyone signed in, with the Myth's name and verse. Use it when the Company meets the Myth; it reveals the name.
@@ -49,6 +62,7 @@ If your world was imported before the tables were read, the Toolkit reads the ta
 Under the Omens, **The Cast** folds the people printed for the Myth, with a count of how many you have made (for example "The Cast, 1 of 3 made").
 
 - **Make Them** creates the person as an actor with the stat block the book prints, wearing the Myth's picture, in an Actors folder named after the Myth. You can rename or move that folder; the system still finds it.
+- Four of the book's Cast are only ever met as a warband, though their names don't say so. They are made as Warbands, and any already in your world are set to the Warband scale. See [Warbands in combat](Running-Combat#warbands-in-combat).
 - Once made, the person's name sits under their entry. **Click the name** to open their sheet, or **click the cross** to take them out of the Cast.
 - **Drag any actor from the Actors directory onto a Myth's card** (open or folded) to count them among its Cast. They show with a **Yours** chip. An actor still in a compendium can't join: import it into the world first.
 

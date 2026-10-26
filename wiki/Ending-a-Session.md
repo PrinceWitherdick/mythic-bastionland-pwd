@@ -9,7 +9,7 @@
 Only a Referee can open it. There are three ways in:
 
 - **The hotbar.** Every Referee gets an **End the Session** macro in the slot labelled **0** at the end of the hotbar. Players don't get it. See [Macros and Hotkeys](Macros-and-Hotkeys).
-- **The Phase banner.** Click any part of the calendar banner at the top of the screen to let down the **Move Time On** buttons: **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. See [Time, Phases and Seasons](Time-Phases-and-Seasons).
+- **The Phase banner.** Click any part of the calendar banner at the top of the screen to let down the **Move Time On** buttons: **Next Phase**, **Weeks Pass**, **Months Pass**, **A Year Passes** and **End the Session**. See [Time, Phases and Seasons](Time-Phases-and-Seasons).
 - **The Referee Toolkit.** The **Time** page has an **End the Session** button among the ways of moving time on. See [The Referee Toolkit](The-Referee-Toolkit).
 
 There is only ever one window. Opening it again while it is open brings the same window forward, so a session can't be ended twice at once.

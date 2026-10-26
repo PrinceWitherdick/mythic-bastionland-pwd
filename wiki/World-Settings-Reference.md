@@ -31,6 +31,7 @@ Only one setting needs a reload: **Campaign Timeline**. Foundry asks you to relo
 | **Journal Entries for Sites** | On | Each Site with something drawn or written on it gets a Journal entry, hidden from players until you share it. See [Sites](Sites). |
 | **Show Hex Column and Row** | On | Pointing at a hex of a Realm names its column and row, such as (5, 7), before what is there. Everyone at the table sees them. |
 | **Dire Weather** | In Winter, as in most Realms | When the Realm suffers dire weather: **Never**, **In Winter, as in most Realms** or **All year round**. Dire Weather is then rolled as each Phase begins, unless the Company is in a Holding. See [Time, Phases and Seasons](Time-Phases-and-Seasons). |
+| **More Landmarks (Blog)** | Off | Adds the Bridge, Pond, Chapel, Grotto, Fountain and Willow from Chris McDowall's blog post More Landmarks to new Realms and to the Referee's Landmark pickers. Landmarks already placed stay either way. See [Exploring the Wilderness](Exploring-the-Wilderness#more-landmarks-from-the-blog). |
 
 ### Weather on the map
 
