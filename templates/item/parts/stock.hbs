@@ -4,7 +4,7 @@
 	<label for="{{rootId}}-{{id}}">{{localize label}}</label>
 	<div class="form-fields">
 		<input id="{{rootId}}-{{id}}" type="number" name="system.quantity.value" value="{{system.quantity.value}}" min="0" step="1" placeholder="–">
-		<span class="bastionland-item-stock__of">{{localize "bastionland.item.quantityOf"}}</span>
+		<span>{{localize "bastionland.item.quantityOf"}}</span>
 		<input type="number" name="system.quantity.max" value="{{system.quantity.max}}" min="0" step="1" placeholder="–" aria-label="{{localize maxLabel}}">
 		<select name="system.restock" aria-label="{{localize restockLabel}}">
 			{{selectOptions options selected=system.restock}}

@@ -119,15 +119,12 @@ function mythKnown(g, home, myth, precise) {
  * @param {object} landmark
  */
 function landmarkKnown(g, home, landmark) {
-	const distance = hexDistance(g, landmark.hex, home);
 	return {
 		type: landmark.type,
 		...landmarkVariantOf(landmark),
 		name: landmark.name ?? "",
 		hex: landmark.hex,
-		distance,
-		direction: directionFrom(g, home, landmark.hex),
-		here: distance === 0,
+		...placeFrom(g, home, landmark.hex),
 		revealed: Boolean(landmark.revealed)
 	};
 }

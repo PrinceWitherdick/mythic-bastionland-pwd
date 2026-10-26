@@ -21,7 +21,7 @@ import { getCalendar } from "./calendar.js";
 import { knightsBesidesRuler } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
 import { heirOf } from "./succession.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
 
@@ -318,9 +318,8 @@ export async function settleDomains(ended) {
  * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
  */
 async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null, withoutRuler = false }) {
-	// Only Knights whoever chooses can see, and the one already named.
 	const knights = (withoutRuler ? knightsBesidesRuler(domain) : worldKnights())
-		.filter((knight) => knight.visible || (name && isSameName(knight.name, name)));
+		.filter(seenOrChosen((knight) => name && isSameName(knight.name, name)));
 	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
 	const data = await inputDialog({
 		title,

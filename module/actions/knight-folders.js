@@ -2,7 +2,9 @@ import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { changesKept, keptWith, wantsOwnFolder } from "../rules/knight-folders.js";
 import { isCompanyKnight, isKnight, isNpcKnight } from "../rules/knight-types.js";
+import { serialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { findFlaggedFolder, flaggedFolder } from "./folders.js";
 import { worldKnights } from "./knights.js";
 import { npcFolder } from "./npc-knights.js";
 
@@ -21,33 +23,17 @@ const WANTS = "wantsFolder";
 const isKeeper = () => Boolean(game.users.activeGM?.isSelf);
 
 /** Filing runs one at a time, so two Knights made together don't make two Company folders. */
-let queue = Promise.resolve();
-const enqueue = (task) => {
-	queue = queue.then(task).catch((error) => console.error(`${SYSTEM_ID} | Couldn't file a Knight in their folder`, error));
-	return queue;
-};
-
-/**
- * @param {string} key
- * @param {*} [value]
- * @returns {Folder|undefined} The Actors folder with that flag.
- */
-const flaggedFolder = (key, value = true) => game.folders.find((folder) => folder.type === "Actor" && folder.getFlag(SYSTEM_ID, key) === value);
+const filing = serialWrites();
+const enqueue = (task) => filing(task).catch((error) => console.error(`${SYSTEM_ID} | Couldn't file a Knight in their folder`, error));
 
 /**
  * @param {Actor} knight
- * @returns {Folder|undefined} The folder made for this Knight.
+ * @returns {Folder|null} The folder made for this Knight.
  */
-const ownFolder = (knight) => flaggedFolder("knight", knight.id);
+const ownFolder = (knight) => findFlaggedFolder("Actor", "knight", knight.id);
 
-/** @returns {Promise<Folder>} The folder every Knight's is kept in, made if it's missing. */
-async function companyFolder() {
-	return flaggedFolder("company") ?? foundry.utils.getDocumentClass("Folder").create({
-		name: t("company.folder"),
-		type: "Actor",
-		flags: { [SYSTEM_ID]: { company: true } }
-	});
-}
+/** @returns {Promise<Folder|null>} The folder every Knight's is kept in, made if it's missing. */
+const companyFolder = () => flaggedFolder("Actor", "company", true, { name: t("company.folder") });
 
 /**
  * Move a Knight's steed and Squire, and the Squire's own steed, into the
@@ -82,14 +68,12 @@ async function fileKnight(knight) {
 	if (!game.actors.has(knight.id)) return;
 	let folder = ownFolder(knight);
 	if (!folder) {
+		// Without the Company's folder the Knight is left unfiled, rather than given one at the top that is never moved in.
 		const company = await companyFolder();
-		folder = await foundry.utils.getDocumentClass("Folder").create({
-			name: knight.name,
-			type: "Actor",
-			folder: company.id,
-			flags: { [SYSTEM_ID]: { knight: knight.id } }
-		});
+		if (!company) return;
+		folder = await flaggedFolder("Actor", "knight", knight.id, { name: knight.name, folder: company.id });
 	}
+	if (!folder) return;
 	await knight.update(Object.fromEntries([["folder", folder.id], deletionEntry(`flags.${SYSTEM_ID}.${WANTS}`)]));
 	await fileKept(knight);
 }

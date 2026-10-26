@@ -17,6 +17,7 @@ import {
 	canJoin,
 	checkWielding,
 	heldAs,
+	isBlastAttack,
 	damageAgainst,
 	defaultWielded,
 	gambitAllowsSave,
@@ -375,9 +376,12 @@ function readWielding(actor, sources, choice, { joining = null, duel = null, off
 	// Read as the Attack will be rolled: whoever is targeted now, or the other duelist where it's a blow in the duel.
 	const targets = aimFor(joining, duel && choice.duel ? duel : null);
 	const warband = actor.system.scale === "warband";
-	// A Blast however it comes, besides a Blast weapon: Smite, an Ability, a Warband at individuals (p8, p10, p11).
-	const blast = choice.smite === "blast" || (warband && Boolean(choice.againstIndividuals))
-		|| Boolean(declaredGrants(choice, offers, declarableBy(actor)).blast);
+	// A Blast however it comes; checkWielding adds a Blast weapon, of those not set aside.
+	const blast = isBlastAttack({
+		granted: declaredGrants(choice, offers, declarableBy(actor)).blast,
+		smite: choice.smite,
+		againstIndividuals: warband && Boolean(choice.againstIndividuals)
+	});
 	const check = checkWielding(chosen.map((item) => item.system), {
 		// A card joined keeps the targets it was rolled at.
 		several: !joining && targets.length > 1,
@@ -736,7 +740,7 @@ async function planAttack(actor, joining = null) {
 	}
 
 	// A Blast declared for an Ability isn't a Feat, so it holds even when the Attack is Impaired.
-	const blast = declared.blast || smite?.mode === "blast" || againstIndividuals || chosen.some((item) => item.system.blast);
+	const blast = isBlastAttack({ granted: declared.blast, smite: smite?.mode, againstIndividuals, weapons: chosen.map((item) => item.system) });
 	// An Attack in a duel is against the other duelist, whatever else is targeted.
 	const inDuel = duel && choice.duel ? duel : null;
 	const targets = aimFor(joining, inDuel);

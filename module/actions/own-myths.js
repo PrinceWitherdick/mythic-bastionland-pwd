@@ -1,7 +1,7 @@
 import { addDirectoryButton } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { isBlankOwnMyth, isOwnMyth, normaliseOwnMyth, ownMythEntry } from "../rules/own-myths.js";
-import { serialWrites } from "../rules/queue.js";
+import { keyedSerialWrites } from "../rules/queue.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { JOURNAL_FOLDER_COLOR, findFlaggedFolder, flaggedFolder } from "./folders.js";
 
@@ -29,21 +29,12 @@ export const isOwnMythEntry = (entry) => Boolean(entry?.flags?.[SYSTEM_ID]?.[OWN
  */
 export const readOwnMyth = (entry) => normaliseOwnMyth(entry?.flags?.[SYSTEM_ID]?.[OWN_MYTH_FLAG]);
 
-/** @type {Map<string, ReturnType<typeof serialWrites>>} Each written Myth's writes, by its entry's id. */
-const ownMythQueues = new Map();
-
 /**
  * Each write to a written Myth waits for the one before, whether from its
  * sheet or from a Scene linked in the GM Toolkit, so none works from the Myth
- * as it was before another landed.
- * @param {string} id The Myth's entry.
- * @returns {ReturnType<typeof serialWrites>}
+ * as it was before another landed. Called with the Myth's entry id.
  */
-export function ownMythWrites(id) {
-	let queue = ownMythQueues.get(id);
-	if (!queue) ownMythQueues.set(id, queue = serialWrites());
-	return queue;
-}
+export const ownMythWrites = keyedSerialWrites();
 
 /**
  * Change the Scenes linked to a written Myth's Omens, writing only them, so

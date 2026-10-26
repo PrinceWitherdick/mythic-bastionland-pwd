@@ -10,6 +10,7 @@ import {
 	damageAgainst,
 	harmBarred,
 	isAttacker,
+	isBlastAttack,
 	isIndividual,
 	lastingMarkBy,
 	canFundGambit,
@@ -959,6 +960,18 @@ describe("Strong Gambits on Bolster and Move", () => {
 		const attack = rolled([[8, 2]], { attacker: "Actor.k", strongGambits: true });
 		expect(changeAttack(attack, { type: "focus", key: "bolster", strong: "greater", actor: "Actor.k" }).gambits[0].strong).toBeNull();
 		expect(changeAttack(attack, { type: "focus", key: "stop", strong: "noSave", actor: "Actor.k" }).gambits[0].strong).toBe("noSave");
+	});
+});
+
+describe("isBlastAttack", () => {
+	it("finds a Blast in a grant, Smite, a Warband at individuals or a Blast weapon, and none without", () => {
+		expect(isBlastAttack({ granted: true })).toBe(true);
+		expect(isBlastAttack({ smite: "blast" })).toBe(true);
+		expect(isBlastAttack({ smite: "d12" })).toBe(false);
+		expect(isBlastAttack({ againstIndividuals: true })).toBe(true);
+		expect(isBlastAttack({ weapons: [{ blast: false }, { blast: true }] })).toBe(true);
+		expect(isBlastAttack({ weapons: [{}] })).toBe(false);
+		expect(isBlastAttack()).toBe(false);
 	});
 });
 

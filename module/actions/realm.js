@@ -44,7 +44,7 @@ import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
 import { closeMapSizeWindow, openMapSizeWindow } from "../apps/map-size-window.js";
 import { wireDialogRail } from "../apps/dialog-rail.js";
-import { brushLockedOn, drawingSecrets, keptFromMe, realmKnown, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
+import { LOCKED_BRUSHES, brushLockedOn, drawingSecrets, keptFromMe, realmKnown, revealMythsBeenTo, secretsKeptOn, secretsToSettle } from "./solo.js";
 import { SOLO_SECRETS_FLAG, SOLO_SECRET_WAYS, settleOwnSecrets } from "../rules/solo.js";
 
 /** The look new Realm Scenes start with: the one last applied. Each Realm Scene keeps its own in a flag. */
@@ -236,23 +236,20 @@ export function realmTilesSettled(scene) {
  *   each Tile centred, as the Realm's rules read every Tile, and whether its Tiles are settled (tilesSettled).
  */
 function existingDocuments(scene) {
-	const settled = realmTilesSettled(scene);
-	return { tiles: centredTiles(scene, settled), drawings: scene.drawings.map((drawing) => drawing._source), settled };
+	return { tiles: centredTiles(scene), drawings: scene.drawings.map((drawing) => drawing._source), settled: realmTilesSettled(scene) };
 }
 
 /**
  * @param {Scene} scene
- * @param {boolean} [settled] Whether its Tiles are settled (tilesSettled), if already known.
  * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand.
  */
-const tileCentreOn = (scene, settled = realmTilesSettled(scene)) => tileReading(settled).centred;
+const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
 
 /**
  * @param {Scene} scene A Realm Scene.
- * @param {boolean} [settled] Whether its Tiles are settled (tilesSettled), if already known.
  * @returns {object[]} Each of its Tiles' source data, with its `_id` and its centre in x and y, as the Realm's rules read a Tile.
  */
-export const centredTiles = (scene, settled) => scene.tiles.map(tileCentreOn(scene, settled));
+export const centredTiles = (scene) => scene.tiles.map(tileCentreOn(scene));
 
 /**
  * Move each Tile of a Realm laid on v13 before Tiles were placed there by their
@@ -600,9 +597,7 @@ const REALM_LISTS = Object.freeze({
 function keepSecretsAsTheyAre(scene, target, current) {
 	const kept = {
 		...(secretsKeptOn(scene) ? { myths: current.myths } : {}),
-		...Object.fromEntries([["holding", "holdings"], ["landmark", "landmarks"], ["barrier", "barriers"]]
-			.filter(([brush]) => brushLockedOn(brush, scene))
-			.map(([, list]) => [list, current[list]]))
+		...Object.fromEntries(LOCKED_BRUSHES.filter((brush) => brushLockedOn(brush, scene)).map((brush) => [`${brush}s`, current[`${brush}s`]]))
 	};
 	return { ...target, ...kept };
 }

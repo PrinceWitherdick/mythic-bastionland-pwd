@@ -2,7 +2,7 @@ import { inputDialog } from "../apps/ui.js";
 import { pickImageInto } from "../book-art/files.js";
 import { t } from "../chat/cards.js";
 import { domainArms, rulingKnightOf } from "../rules/dominion.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
 import { isKnight } from "../rules/knight-types.js";
 
 /**
@@ -41,8 +41,7 @@ export function domainArmsView(domain) {
 export async function chooseDomainArms(domain) {
 	const ruler = domainRuler(domain);
 	const chosen = armsKnight(domain);
-	// Only Knights whoever chooses can see, and the one already shown.
-	const others = worldKnights((knight) => knight !== ruler && (knight.visible || knight === chosen))
+	const others = worldKnights((knight) => knight !== ruler).filter(seenOrChosen((knight) => knight === chosen))
 		.sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
 	const { arms } = domain.system;
 	const data = await inputDialog({

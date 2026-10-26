@@ -176,6 +176,19 @@ export function heldAs(item, mounted = false) {
 }
 
 /**
+ * Whether an Attack is a Blast, however it comes: an Ability's grant, Smite
+ * spent on one, a Warband's at individuals, or a Blast weapon (p8, p10, p11).
+ * @param {object} sources
+ * @param {boolean} [sources.granted]            An Ability declared for it grants a Blast.
+ * @param {string|null} [sources.smite]          How Smite is spent, "blast" for a Blast.
+ * @param {boolean} [sources.againstIndividuals] A Warband's Attack at individuals.
+ * @param {{blast?: boolean}[]} [sources.weapons] The weapons it's made with.
+ * @returns {boolean}
+ */
+export const isBlastAttack = ({ granted = false, smite = null, againstIndividuals = false, weapons = [] } = {}) =>
+	Boolean(granted) || smite === "blast" || Boolean(againstIndividuals) || weapons.some((weapon) => weapon.blast);
+
+/**
  * Check the weapons and shields chosen for an Attack against the situation
  * (Wielding Weapons p12, Ranged Combat p10, Shieldwalls & Spearwalls p10, Exhausted p9).
  * @param {WieldedItem[]} items

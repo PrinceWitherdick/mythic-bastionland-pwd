@@ -59,6 +59,14 @@ export const playerCharacter = (actor) => isCompanyKnight(actor) && (inCompany(a
 export const worldKnights = (keep = () => true) => (game.actors?.contents ?? Array.from(game.actors ?? []))
 	.filter((actor) => isKnight(actor) && keep(actor));
 
+/**
+ * For a list of Knights to choose from: only those whoever chooses can see,
+ * and any already chosen, so seeing fewer never unseats one.
+ * @param {(knight: Actor) => boolean} chosen
+ * @returns {(knight: Actor) => boolean}
+ */
+export const seenOrChosen = (chosen) => (knight) => Boolean(knight.visible) || Boolean(chosen(knight));
+
 /** @returns {Actor[]} The world's Company Knights, Squires among them: not NPC Knights. */
 export const companyKnights = () => worldKnights(isCompanyKnight);
 

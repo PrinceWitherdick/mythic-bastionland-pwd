@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serialWrites } from "../../module/rules/queue.js";
+import { keyedSerialWrites, serialWrites } from "../../module/rules/queue.js";
 
 /** A write that finishes when it's told to, noting when it ran. */
 function deferred(log, name) {
@@ -67,5 +67,22 @@ describe("serialWrites", () => {
 		expect(log).toEqual(["held:start", "free"]);
 		held.release();
 		await other;
+	});
+});
+
+describe("keyedSerialWrites", () => {
+	it("gives each key one queue of its own", async () => {
+		const queueFor = keyedSerialWrites();
+		expect(queueFor("a")).toBe(queueFor("a"));
+		expect(queueFor("a")).not.toBe(queueFor("b"));
+		const log = [];
+		const held = deferred(log, "held");
+		const first = queueFor("a")(held.write);
+		await queueFor("b")(async () => log.push("other key"));
+		const second = queueFor("a")(async () => log.push("same key"));
+		expect(log).toEqual(["held:start", "other key"]);
+		held.release();
+		await Promise.all([first, second]);
+		expect(log.at(-1)).toBe("same key");
 	});
 });

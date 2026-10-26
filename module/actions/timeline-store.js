@@ -1,7 +1,7 @@
 import { t } from "../chat/cards.js";
 import { deletionEntry } from "../compat.js";
 import { isKnight } from "../rules/knight-types.js";
-import { serialWrites } from "../rules/queue.js";
+import { keyedSerialWrites, serialWrites } from "../rules/queue.js";
 import { COMPANY_TRACK, TIMELINE_JOURNAL_FLAG, TIMELINE_PAGE_TYPE, TRACK_KINDS, entriesDiff, isLeftover, readEntries, realmSceneId, realmTrackId, removeByKey } from "../rules/timeline.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { afterBurst } from "./kept-journals.js";
@@ -270,11 +270,7 @@ async function writeEntries(page, entries) {
 }
 
 /** Each thread's writes, one at a time, so a burst of them each reads what the last one wrote. */
-const trackWrites = new Map();
-const queueFor = (trackId) => {
-	if (!trackWrites.has(trackId)) trackWrites.set(trackId, serialWrites());
-	return trackWrites.get(trackId);
-};
+const queueFor = keyedSerialWrites();
 
 /**
  * The one way a thread's entries are written: read the page, run one of

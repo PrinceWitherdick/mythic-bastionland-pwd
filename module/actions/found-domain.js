@@ -8,7 +8,7 @@ import { linkKnightDomain, worldDomains } from "./dominion.js";
 import { holdingOptions, realmHoldings } from "./homecoming.js";
 import { realmSeats } from "../rules/realm.js";
 import { getRealm } from "./realm.js";
-import { inCompany, playersOf, worldKnights } from "./knights.js";
+import { inCompany, playersOf, seenOrChosen, worldKnights } from "./knights.js";
 import { timelineFounded } from "./timeline-events.js";
 
 /**
@@ -43,8 +43,7 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 		ui.notifications.warn(t("domain.cantCreate"));
 		return null;
 	}
-	// Only Knights the founder can see, and any already offered for the Circle.
-	const others = worldKnights((actor) => actor !== knight && (actor.visible || circle.includes(actor)));
+	const others = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => circle.includes(actor)));
 	const data = await inputDialog({
 		title: t("domain.founding.title"),
 		icon: "fa-solid fa-chess-rook",

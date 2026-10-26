@@ -12,7 +12,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { makeCompanions, markCompanions } from "./property.js";
 import { timelineJoined } from "./timeline-events.js";
-import { KNIGHT_TYPE, isCompanyKnight, isKnight } from "../rules/knight-types.js";
+import { KNIGHT_TYPE, isKnight } from "../rules/knight-types.js";
 
 /**
  * Roll each Virtue in order, then GD, with a Start's dice.
@@ -134,7 +134,7 @@ export async function giveKnightTo(actor, userId) {
  * @param {Actor|null} actor
  */
 export async function knightJoined(actor) {
-	if (!isCompanyKnight(actor) || actor.system.isSquire || !inCompany(actor) || isUnchosen(actor)) return;
+	if (!inCompany(actor) || actor.system.isSquire || isUnchosen(actor)) return;
 	await timelineJoined(actor);
 }
 

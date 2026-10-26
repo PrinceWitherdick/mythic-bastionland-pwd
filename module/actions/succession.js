@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import { escapeHTML } from "../rules/text.js";
-import { worldKnights } from "./knights.js";
+import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineHeirNamed } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
 
@@ -36,7 +36,7 @@ export async function nameSuccessor(knight, heir, { record = true } = {}) {
  */
 export async function chooseSuccessor(knight, options) {
 	const current = heirOf(knight) ?? (knight.system.squire ? fromUuidSync(knight.system.squire) : null);
-	const candidates = worldKnights((actor) => actor !== knight && (actor.visible || actor === current));
+	const candidates = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => actor === current));
 	if (!candidates.length) {
 		ui.notifications.info(t("successor.none", { name: knight.name }));
 		return null;
