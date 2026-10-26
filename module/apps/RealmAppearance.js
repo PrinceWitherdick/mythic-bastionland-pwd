@@ -61,7 +61,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		id: "bastionland-realm-appearance",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-realm-appearance-window"],
 		tag: "div",
-		position: { width: 680, height: "auto" },
+		position: { width: 1100, height: "auto" },
 		window: { title: "bastionland.realm.look.title", icon: "fa-solid fa-palette", resizable: true },
 		actions: {
 			pickSkin: RealmAppearance.#onPickSkin,
@@ -359,7 +359,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		// The preview only changed this browser's copy, which would make the saved Scene look up to date already.
 		await endRealmLookPreview({ redraw: false });
 		// A new look carries the hex lines' strength in its own write of the Scene.
-		if (lookChanged) await setRealmLook(scene, this.#draft, gridChanged ? { gridAlpha: this.#grid } : {});
+		if (lookChanged) await setRealmLook(scene, this.#draft, { gridAlpha: this.#grid });
 		else await setRealmGridAlpha(scene, this.#grid);
 		ui.notifications.info(scene ? t("realm.look.applied", { name: scene.name }) : t("realm.look.appliedDefault"));
 		await this.close();

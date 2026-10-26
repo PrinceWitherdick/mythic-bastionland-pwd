@@ -6744,14 +6744,16 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	width: auto;
 }
 
-.bastionland-hex-edit__myth-roll > .form-fields {
-	flex: 1 1 auto;
-	flex-wrap: nowrap;
+/* A grid of its own, at a weight no general .form-fields rule outranks: once
+   seen with the buttons stacked under the boxes, squeezed and touching. */
+.bastionland-page.bastionland-hex-edit .bastionland-hex-edit__myth-roll > .form-fields {
+	display: grid;
+	grid-template-columns: 3.2rem 3.2rem repeat(2, minmax(0, 1fr));
+	gap: 0.35rem;
 	width: 100%;
 }
 
 .bastionland-hex-edit__myth-roll button {
-	flex: 1 1 auto;
 	width: auto;
 	min-width: 0;
 	white-space: nowrap;
@@ -8574,8 +8576,53 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 }
 
 /* Realm Appearance: skins, colour sets and the GM's own pictures. */
-.bastionland-realm-appearance {
+/* Two panes: the choices, and a column with the Preview and Apply that stays in view while
+   they scroll. The two share the width alike; a window narrowed by hand wraps the column
+   under the choices, full width. */
+.bastionland-page.bastionland-realm-appearance {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 0.75rem 1.25rem;
+}
+
+.bastionland-realm-appearance__choices,
+.bastionland-realm-appearance__side {
+	display: flex;
+	flex-direction: column;
 	gap: 0.75rem;
+	min-width: 0;
+}
+
+.bastionland-realm-appearance__choices {
+	flex: 1 1 24rem;
+}
+
+.bastionland-realm-appearance__side {
+	flex: 1 1 24rem;
+	position: sticky;
+	top: 0;
+}
+
+/* In the side column the Preview's pictures are drawn larger, and grow to fill each row, edge to edge. */
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group {
+	grid-template-columns: repeat(auto-fill, minmax(3.2rem, 1fr));
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group.is-hexes {
+	grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+}
+
+.bastionland-realm-appearance__side .bastionland-realm-appearance__group.is-hexes img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 3.5 / 3.03;
 }
 
 .bastionland-realm-appearance__section {
