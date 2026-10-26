@@ -30,7 +30,7 @@ vi.mock("../../module/actions/ledger.js", () => ({ withoutLedger: () => ({ ledge
 vi.mock("../../module/actions/property.js", () => ({ makeCompanions: (...args) => makeCompanions(...args), markCompanions: (...args) => markCompanions(...args) }));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineJoined: () => null }));
 
-const { NPC_FOLDER_FLAG, convertImportedNpcKnights, convertNpcKnights, joinCompany, makeNpcKnight, npcFolder, onJoinQuery, servedBySquire, setKnightKind } = await import("../../module/actions/npc-knights.js");
+const { KNIGHT_KIND_CHOICE, NPC_FOLDER_FLAG, convertImportedNpcKnights, convertNpcKnights, foldNpcKnightType, joinCompany, knightKindChoice, makeNpcKnight, npcFolder, onJoinQuery, servedBySquire, setKnightKind } = await import("../../module/actions/npc-knights.js");
 
 const index = {
 	knights: [{ roll: "3-07", name: "The Silk Knight", path: "silk.webp", property: [], ability: null, passion: null }],
@@ -130,7 +130,9 @@ describe("changing a Knight's kind", () => {
 		expect(await setKnightKind(actor, true)).toBe(true);
 		const [changes, options] = actor.update.mock.calls[0];
 		expect(changes.type).toBe("npcKnight");
-		expect(changes["==system"]).toEqual({ isSquire: false, knightType: "Silk" });
+		// A fresh stamp, so the replaced data always differs and Foundry 14 sends the new type to every client.
+		expect(changes["==system"]).toEqual({ isSquire: false, knightType: "Silk", kindChanged: expect.any(Number) });
+		expect(changes["==system"].kindChanged).toBeGreaterThan(0);
 		expect(changes).toHaveProperty(["flags.mythic-bastionland.-=companyKnight"], null);
 		expect(options).toEqual({ ledgerLeftOut: true });
 	});
@@ -263,5 +265,104 @@ describe("the Referee's Knights from before NPC Knights", () => {
 		expect(createFolder).not.toHaveBeenCalled();
 		expect(world[0].update).not.toHaveBeenCalled();
 		expect(ui.notifications.info).not.toHaveBeenCalled();
+	});
+});
+
+describe("Create Actor's NPC Knight choice", () => {
+	/**
+	 * A Create Actor window, as far as foldNpcKnightType reads it: the type
+	 * select and its options, the name box, and the list it adds.
+	 * @param {string[]} types
+	 * @param {string} [chosen]
+	 */
+	const createWindow = (types, chosen = types[0]) => {
+		const options = types.map((value) => ({ value, selected: value === chosen }));
+		const listeners = { select: [], choice: [] };
+		const select = {
+			options,
+			querySelector: (selector) => options.find((option) => selector === `option[value="${option.value}"]`) ?? null,
+			closest: () => group,
+			addEventListener: (_type, fn) => listeners.select.push(fn)
+		};
+		for (const option of options) option.remove = () => options.splice(options.indexOf(option), 1);
+		let choice = null;
+		const group = {
+			insertAdjacentHTML: (where, html) => {
+				choice = { where, html, style: {}, addEventListener: (_type, fn) => listeners.choice.push(fn) };
+			}
+		};
+		const nameInput = { placeholder: "" };
+		const element = {
+			querySelector: (selector) => ({ 'select[name="type"]': select, "[data-knight-kind]": choice, 'input[name="name"]': nameInput })[selector] ?? null
+		};
+		/** Choose a type in the select, as a click does. */
+		const pick = (value) => {
+			for (const option of options) option.selected = option.value === value;
+			for (const fn of listeners.select) fn();
+		};
+		/** Choose who plays the Knight. */
+		const runBy = (value) => {
+			for (const fn of listeners.choice) fn({ target: { name: KNIGHT_KIND_CHOICE, value } });
+		};
+		const dialog = { setPosition: vi.fn() };
+		return { options, element, dialog, nameInput, pick, runBy, choice: () => choice };
+	};
+
+	beforeEach(() => {
+		globalThis.Actor.implementation.defaultName = ({ type }) => `New ${type}`;
+	});
+
+	it("leaves NPC Knight out of the types, and asks who plays a Knight", () => {
+		const made = createWindow(["domain", "knight", "npc", "npcKnight"], "knight");
+		foldNpcKnightType(made.dialog, made.element);
+		expect(made.options.map((option) => option.value)).toEqual(["domain", "knight", "npc"]);
+		expect(made.choice().where).toBe("afterend");
+		expect(made.choice().html).toContain('value="knight" checked');
+		expect(made.choice().style.display).toBe("");
+	});
+
+	it("makes the Knight an NPC Knight from the start when the Referee is picked, and back again", () => {
+		const made = createWindow(["knight", "npc", "npcKnight"]);
+		foldNpcKnightType(made.dialog, made.element);
+		made.runBy("npcKnight");
+		expect(made.options[0].value).toBe("npcKnight");
+		expect(made.nameInput.placeholder).toBe("New npcKnight");
+		made.runBy("knight");
+		expect(made.options[0].value).toBe("knight");
+		expect(made.nameInput.placeholder).toBe("New knight");
+	});
+
+	it("shows the choice only while Knight is the type", () => {
+		const made = createWindow(["knight", "npc", "npcKnight"]);
+		foldNpcKnightType(made.dialog, made.element);
+		made.pick("npc");
+		expect(made.choice().style.display).toBe("none");
+		made.pick("knight");
+		expect(made.choice().style.display).toBe("");
+		expect(made.dialog.setPosition).toHaveBeenLastCalledWith({ height: "auto" });
+	});
+
+	it("starts on the Referee when the window was opened for an NPC Knight", () => {
+		const made = createWindow(["knight", "npc", "npcKnight"], "npcKnight");
+		foldNpcKnightType(made.dialog, made.element);
+		expect(made.options.map((option) => option.value)).toEqual(["npcKnight", "npc"]);
+		expect(made.options[0].selected).toBe(true);
+		expect(made.choice().html).toContain('value="npcKnight" checked');
+	});
+
+	it("leaves a player's window, and every other window, alone", () => {
+		const player = createWindow(["knight"]);
+		foldNpcKnightType(player.dialog, player.element);
+		expect(player.choice()).toBeNull();
+		expect(() => foldNpcKnightType(null, { querySelector: () => null })).not.toThrow();
+		expect(() => foldNpcKnightType(null, null)).not.toThrow();
+	});
+
+	it("draws the choice as the system's other pick lists", () => {
+		const html = knightKindChoice(false);
+		expect(html).toContain('class="bastionland-choice-list bastionland-choice-list--full"');
+		expect(html).toContain(`name="${KNIGHT_KIND_CHOICE}"`);
+		expect(html).toContain("npcKnight.kindChoice.legend");
+		expect(html).toContain("npcKnight.kindChoice.refereeDetail");
 	});
 });

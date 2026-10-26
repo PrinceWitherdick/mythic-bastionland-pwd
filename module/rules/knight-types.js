@@ -32,6 +32,17 @@ export const isCompanyKnight = (actor) => actor?.type === KNIGHT_TYPE;
 export const isNpcKnight = (actor) => actor?.type === NPC_KNIGHT_TYPE;
 
 /**
+ * The stamp a Knight's `kindChanged` takes as they change between Knight and
+ * NPC Knight: later than the last, even within one millisecond. Both kinds
+ * hold the same data, and Foundry 14 sends other clients a change of type only
+ * when the data replaced with it differs.
+ * @param {number} [previous] The stamp they have now.
+ * @param {number} [now]
+ * @returns {number}
+ */
+export const kindStamp = (previous = 0, now = Date.now()) => Math.max(now, (Number(previous) || 0) + 1);
+
+/**
  * Whether a Knight made before NPC Knights had a type of their own was one
  * the Referee plays, and should become an NPC Knight: one no player owns,
  * kept in the NPCs folder, or one a solo Referee marked as not riding with

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KNIGHT_TYPES, becomesNpcKnight, isCompanyKnight, isKnight, isNpcKnight } from "../../module/rules/knight-types.js";
+import { KNIGHT_TYPES, becomesNpcKnight, isCompanyKnight, isKnight, isNpcKnight, kindStamp } from "../../module/rules/knight-types.js";
 
 describe("the kinds of Knight", () => {
 	it("are the Company's Knight and the Referee's NPC Knight, both following the Knight's rules", () => {
@@ -33,5 +33,16 @@ describe("a Knight from before NPC Knights", () => {
 		expect(becomesNpcKnight({ ...knight, inNpcFolder: true, isSquire: true })).toBe(false);
 		expect(becomesNpcKnight({ ...knight, inNpcFolder: true, hasPlayerOwner: true })).toBe(false);
 		expect(becomesNpcKnight({ ...knight, type: "npcKnight", inNpcFolder: true })).toBe(false);
+	});
+});
+
+describe("the stamp of a change of kind", () => {
+	it("is the time now, or one past the last when that is as late", () => {
+		expect(kindStamp(0, 1000)).toBe(1000);
+		expect(kindStamp(500, 1000)).toBe(1000);
+		expect(kindStamp(1000, 1000)).toBe(1001);
+		expect(kindStamp(2000, 1000)).toBe(2001);
+		expect(kindStamp(undefined, 1000)).toBe(1000);
+		expect(kindStamp("bad", 1000)).toBe(1000);
 	});
 });

@@ -1514,8 +1514,10 @@
 	align-items: flex-start;
 }
 
+/* Centred on the name's line: the body font's line box is centred on its capitals. */
 .bastionland-check:has(.bastionland-check__detail) > input {
-	margin-block-start: 0.15em;
+	line-height: inherit;
+	margin-block-start: calc((1lh - var(--checkbox-size)) / 2);
 }
 
 .bastionland-check__detail {

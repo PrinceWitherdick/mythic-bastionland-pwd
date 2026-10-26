@@ -3,8 +3,9 @@ import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
 import { deletionEntry, queryAsker, replacementEntry } from "../compat.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
-import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight } from "../rules/knight-types.js";
+import { KNIGHT_TYPE, NPC_KNIGHT_START, NPC_KNIGHT_TYPE, becomesNpcKnight, isKnight, isNpcKnight, kindStamp } from "../rules/knight-types.js";
 import { rollKnightName } from "../rules/knight-names.js";
+import { escapeHTML } from "../rules/text.js";
 import { SYSTEM_ID } from "../system-id.js";
 import { kitWeaponNames } from "./abilities.js";
 import { findFlaggedFolder, flaggedFolder } from "./folders.js";
@@ -87,10 +88,13 @@ export function servedBySquire(actor) {
  */
 export async function setKnightKind(actor, npc) {
 	if (!changesKind(actor) || isNpcKnight(actor) === npc || (npc && servedBySquire(actor))) return false;
-	// Foundry changes a document's type only when its system data is replaced whole.
+	// Foundry changes a document's type only when its system data is replaced whole, and v14 sends the change on to
+	// every client only when that data differs, so the replacement carries a fresh stamp.
+	const system = actor.system.toObject();
+	system.kindChanged = kindStamp(system.kindChanged);
 	await actor.update(Object.fromEntries([
 		["type", npc ? NPC_KNIGHT_TYPE : KNIGHT_TYPE],
-		replacementEntry("system", actor.system.toObject()),
+		replacementEntry("system", system),
 		deletionEntry(`flags.${SYSTEM_ID}.${COMPANY_KNIGHT_FLAG}`)
 	]), withoutLedger());
 	return true;
@@ -136,6 +140,74 @@ export async function onJoinQuery(data = {}, context = {}) {
 /** Answer players taking up their NPC Knights. Called during init. */
 export function registerNpcKnightQueries() {
 	CONFIG.queries[JOIN_QUERY] = onJoinQuery;
+}
+
+/**
+ * The name of Create Actor's "who plays this Knight" radios. No Actor has a
+ * field by that name, so Foundry drops it as the Actor is made.
+ */
+export const KNIGHT_KIND_CHOICE = "knightKind";
+
+/**
+ * Create Actor's choice of who plays a new Knight: a player, or the Referee
+ * as an NPC Knight. Laid out as the system's other pick lists.
+ * @param {boolean} npc Whether the Referee's starts chosen.
+ * @returns {string} HTML.
+ */
+export function knightKindChoice(npc) {
+	const choice = (type, key, checked) => `<label class="bastionland-check">
+		<input type="radio" name="${KNIGHT_KIND_CHOICE}" value="${type}"${checked ? " checked" : ""}>
+		<span class="bastionland-check__label">
+			<strong>${escapeHTML(t(`npcKnight.kindChoice.${key}`))}</strong>
+			<span class="bastionland-check__detail">${escapeHTML(t(`npcKnight.kindChoice.${key}Detail`))}</span>
+		</span>
+	</label>`;
+	return `<fieldset class="bastionland-choice-list bastionland-choice-list--full" data-knight-kind>
+	<legend>${escapeHTML(t("npcKnight.kindChoice.legend"))}</legend>
+	${choice(KNIGHT_TYPE, "player", !npc)}
+	${choice(NPC_KNIGHT_TYPE, "referee", npc)}
+</fieldset>`;
+}
+
+/**
+ * Show NPC Knight in a Referee's Create Actor window as a choice under Knight,
+ * rather than as a type of its own beside NPC. Choosing the Referee gives the
+ * Knight entry the NPC Knight type, so the Actor is made as one from the
+ * start. A player's window offers no NPC Knight, so it's left as it is.
+ * @param {foundry.applications.api.ApplicationV2} dialog
+ * @param {HTMLElement} element
+ */
+export function foldNpcKnightType(dialog, element) {
+	const select = element?.querySelector?.('select[name="type"]');
+	const npcOption = select?.querySelector(`option[value="${NPC_KNIGHT_TYPE}"]`);
+	const knightOption = select?.querySelector(`option[value="${KNIGHT_TYPE}"]`);
+	if (!npcOption || !knightOption) return;
+	const npc = npcOption.selected;
+	npcOption.remove();
+	if (npc) knightOption.selected = true;
+	(select.closest(".form-group") ?? select).insertAdjacentHTML("afterend", knightKindChoice(npc));
+	const choice = element.querySelector("[data-knight-kind]");
+	const nameInput = element.querySelector('input[name="name"]');
+	const choose = (type) => {
+		knightOption.value = type;
+		if (nameInput) nameInput.placeholder = Actor.implementation.defaultName({ type });
+	};
+	const show = () => {
+		// The list's own display wins over the hidden attribute, so it's set straight.
+		choice.style.display = knightOption.selected ? "" : "none";
+		dialog?.setPosition?.({ height: "auto" });
+	};
+	if (npc) choose(NPC_KNIGHT_TYPE);
+	show();
+	select.addEventListener("change", show);
+	choice.addEventListener("change", (event) => {
+		if (event.target?.name === KNIGHT_KIND_CHOICE) choose(event.target.value);
+	});
+}
+
+/** Fold NPC Knight into Knight in Create Actor. Called during init. */
+export function registerNpcKnightCreateChoice() {
+	Hooks.on("renderDialogV2", foldNpcKnightType);
 }
 
 /**

@@ -56,6 +56,8 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			domain: textField(),
 			// The UUID of the Knight or Squire named to follow them (Succession and Legacy, p17).
 			successor: textField(),
+			// When they last changed between Knight and NPC Knight (kindStamp), so the change always has data to send.
+			kindChanged: new fields.NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 0 }),
 			...characterFields(),
 			glory: countField()
 		};

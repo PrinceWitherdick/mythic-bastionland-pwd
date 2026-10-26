@@ -270,6 +270,14 @@ describe("centring the letters", () => {
 		}
 	});
 
+	it("centres a radio or tick box on the first line of a two-line choice, with no fixed nudge", () => {
+		// The body font's line box is centred on its capitals, so the box's middle on the line's
+		// middle is its capitals' too. A fixed em nudge set it 2–3px low (measured 2026-10-25).
+		const input = rule("chat.css", ".bastionland-check:has(.bastionland-check__detail) > input");
+		expect(input["line-height"]).toBe("inherit");
+		expect(input["margin-block-start"]).toBe("calc((1lh - var(--checkbox-size)) / 2)");
+	});
+
 	// The Domain's footer is a row, so its button's basis is a width: a third of the window.
 	it("lays the Domain's footer button in a row", () => {
 		expect(rule("mythic-bastionland.css", ".bastionland-domain__footer")["flex-direction"] ?? "row").toBe("row");

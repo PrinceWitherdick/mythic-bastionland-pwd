@@ -3913,6 +3913,13 @@
         "isCompany": "A Knight of the Company's, or one a player may take up. Click to make them an NPC Knight, played by the Referee, such as a Holding's ruler or a rival to duel.",
         "hasSquire": "{name} serves this Knight as their Squire, and only the Company’s Knights have Squires. Unlink {name} on the Property page, or Knight them, before making this Knight an NPC Knight."
       },
+      "kindChoice": {
+        "legend": "Who plays this Knight?",
+        "player": "A player",
+        "playerDetail": "One of the Company, or one a player may take up.",
+        "referee": "The Referee",
+        "refereeDetail": "An NPC Knight, such as a Holding’s ruler or a rival to duel, kept out of the Company’s rolls."
+      },
       "noSquire": "{name} is an NPC Knight, and only the Company’s Knights have Squires.",
       "converted": "{count} of the Referee's Knights are now NPC Knights, kept out of the Company's rolls.",
       "cantSee": "You can't see that Knight's sheet.",

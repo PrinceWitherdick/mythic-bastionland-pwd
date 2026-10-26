@@ -33,7 +33,7 @@ import { watchCompanySize } from "./module/actions/squires.js";
 import { registerSteedNames } from "./module/actions/steeds.js";
 import { COMPANION_NAMES_STEP, KNIGHT_PROPERTY_STEP, POSSESSION_DETAILS_STEP, dropOwnerFromCompanionNames, fillPossessionDetails, retypeKnightProperty } from "./module/actions/property.js";
 import { STRUCTURE_ACTORS_STEP, convertStructureNpcs, registerCollisions } from "./module/actions/structures.js";
-import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights } from "./module/actions/npc-knights.js";
+import { NPC_KNIGHTS_STEP, convertImportedNpcKnights, convertNpcKnights, registerNpcKnightCreateChoice } from "./module/actions/npc-knights.js";
 import { KNIGHT_TYPES, NPC_KNIGHT_TYPE } from "./module/rules/knight-types.js";
 import { addSurpriseOption, registerSurpriseHooks, rollSurprise } from "./module/actions/surprise.js";
 import { advancePhase, turnAge, turnSeason, weeksPass } from "./module/actions/time.js";
@@ -516,6 +516,8 @@ Hooks.once("init", () => {
 
 	// Players may make their own Knights, and Create Actor offers them nothing else.
 	registerPlayerKnightDialog();
+	// A Referee's Create Actor offers NPC Knight as a choice under Knight, not as a type beside NPC.
+	registerNpcKnightCreateChoice();
 	// Foundry's own windows that come up in play (Create, Delete, User Configuration, hex and Site journals) wear the parchment.
 	registerCoreWindowSkin();
 
