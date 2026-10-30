@@ -933,6 +933,28 @@ describe("taking a Gambit back", () => {
 		expect(changeAttack(dismount, { type: "withdraw", die: 0 })).toBeNull();
 	});
 
+	it("reopens those declared before a Deny, which comes first (p8), but not a Greater effect carried out", () => {
+		const deny = { type: "deny", die: 1, actor: "Actor.k", name: "Ser Kay" };
+		const saved = changeAttack(declared(), { type: "gambitSave", index: 0, by: "Boar", total: 3, target: 10, passed: true });
+		const denied = changeAttack(saved, deny);
+		expect(withdrawLocked(denied.gambits[0])).toBeNull();
+		expect(changeAttack(denied, { type: "withdraw", die: 0 }).gambits).toEqual([]);
+		const dismount = changeAttack(declared("dismount", { bonus: 4 }), deny);
+		expect(changeAttack(dismount, { type: "withdraw", die: 0 }).gambits).toEqual([]);
+
+		const strong = changeAttack(rolled([[10, 9], [6, 2]]), { type: "gambit", die: 0, key: "impair", strong: "greater" });
+		const done = changeAttack(changeAttack(strong, { type: "greater", index: 0, text: "Boar loses hold of the spear" }), deny);
+		expect(withdrawLocked(done.gambits[0])).toBe("greater");
+		// A Gambit declared after the Deny is in the book's order, and locks as ever.
+		const after = changeAttack(changeAttack(rolled([[8, 6], [6, 2]]), deny), { type: "gambit", die: 0, key: "dismount", bonus: 4 });
+		expect(withdrawLocked(after.gambits[0])).toBe("dismount");
+		// A Save rolled after the Deny locks one declared before it.
+		const unanswered = changeAttack(declared(), deny);
+		const savedAfter = changeAttack(unanswered, { type: "gambitSave", index: 0, by: "Boar", total: 3, target: 10, passed: true });
+		expect(withdrawLocked(savedAfter.gambits[0])).toBe("save");
+		expect(changeAttack(savedAfter, { type: "withdraw", die: 0 })).toBeNull();
+	});
+
 	it("lets the Referee's force take back any of them, freeing the die", () => {
 		const saved = changeAttack(declared(), { type: "gambitSave", index: 0, by: "Boar", total: 3, target: 10, passed: true });
 		const back = changeAttack(saved, { type: "withdraw", die: 0, force: true });

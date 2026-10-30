@@ -457,6 +457,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {ImpairedWeapon} [weapon] The one weapon an Impair holds, as p186's crocodile has its jaw
  *   Impaired. Without one it holds the foe's whole next Attack.
  * @property {string|null} [payer] UUID of whoever Focused for it. A die's Gambit is paid by whoever rolled the die.
+ * @property {boolean} [beforeDeny] Declared before a Deny, which comes first (p8), so it may be taken back.
  *
  * @typedef {object} ImpairedWeapon
  * @property {string} id    The item's id on the foe's sheet.
@@ -584,13 +585,16 @@ export const gambitCanBeStrong = (key) => !UNSAVED_GAMBITS.includes(key);
 /**
  * Why a Gambit can no longer simply be taken back: the foe has Saved against it,
  * its Greater effect was carried out, or it's a Dismount, whose d6 was rolled as
- * it was declared. Only the Referee may take it back then.
+ * it was declared. Only the Referee may take it back then. A Deny comes before
+ * Gambits (p8), so one that came after it reopens it, unless what it did to a
+ * sheet is done.
  * @param {Gambit} gambit
  * @returns {"save"|"greater"|"dismount"|null} Null while nothing about it is rolled or done.
  */
 export function withdrawLocked(gambit) {
-	if (gambit?.save) return "save";
 	if (gambit?.greater) return "greater";
+	if (gambit?.beforeDeny) return null;
+	if (gambit?.save) return "save";
 	if (gambit?.key === "dismount") return "dismount";
 	return null;
 }
@@ -1074,13 +1078,17 @@ export function changeAttack(attack, change) {
 			if (!gambit || gambit.save || !gambitAllowsSave(gambit)) return null;
 			if (!Number.isInteger(change.total) || !Number.isInteger(change.target)) return null;
 			const save = { by: String(change.by ?? ""), total: change.total, target: change.target, passed: Boolean(change.passed) };
-			return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? { ...entry, save } : entry)) };
+			// A Save rolled after a Deny comes after it, so it locks the Gambit as ever (withdrawLocked).
+			const saved = ({ beforeDeny: _reopened, ...entry }) => ({ ...entry, save });
+			return { ...attack, gambits: attack.gambits.map((entry, index) => (index === change.index ? saved(entry) : entry)) };
 		}
 		case "deny": {
 			if (!attack.dice[change.die] || isDieSpent(attack, change.die) || hasUsedFeat(attack, "deny", change.actor)) return null;
 			return {
 				...attack,
 				declared: true,
+				// Gambits are chosen after any Deny (p8), so those already spent on a die may be chosen again.
+				gambits: attack.gambits.map((gambit) => (gambit.die === null ? gambit : { ...gambit, beforeDeny: true })),
 				dice: attack.dice.map((die, index) => (index === change.die ? { ...die, deniedBy: change.name } : die)),
 				feats: [...attack.feats, { key: "deny", actor: change.actor }]
 			};

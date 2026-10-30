@@ -235,11 +235,30 @@ describe("applying the Damage", () => {
 		await card.click("apply");
 		expect(confirmDialog).toHaveBeenCalledOnce();
 		expect(confirmDialog.mock.calls[0][0].message).toEqual([
-			"bastionland.attack.unspentGambitsOne",
 			"bastionland.attack.deniableDice",
 			"bastionland.attack.applyAnyway"
 		]);
 		expect(takeAttack).not.toHaveBeenCalled();
+	});
+
+	it("doesn't count the die dealing the Damage as one left to spend on a Gambit", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		const dice = [
+			{ faces: 10, result: 9, label: "d10", deniedBy: null },
+			{ faces: 8, result: 7, label: "d8", deniedBy: null },
+			{ faces: 6, result: 6, label: "d6", deniedBy: null }
+		];
+		const both = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }, { key: "move", die: 2 }] }));
+		await both.click("apply");
+		expect(confirmDialog).not.toHaveBeenCalled();
+		expect(takeAttack).toHaveBeenCalledOnce();
+
+		const one = renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1 }] }));
+		await one.click("apply");
+		expect(confirmDialog.mock.calls[0][0].message).toEqual([
+			"bastionland.attack.unspentGambitsOne",
+			"bastionland.attack.applyAnyway"
+		]);
 	});
 
 	it("asks nothing once the target is Fatigued and no die can pay for a Gambit", async () => {
@@ -464,6 +483,8 @@ describe("paying for Focus and Deny", () => {
 	});
 
 	it("Fatigues whoever Focused only once the card takes the Focus (p10)", async () => {
+		// Ser Kay could still Deny, so the attacker is asked first whether to go ahead.
+		confirmDialog.mockResolvedValueOnce(true);
 		const card = renderCard(attackState());
 		await card.click("focus");
 		expect(rollFeat).toHaveBeenCalledWith(tokens["Actor.foe"], "focus");
@@ -474,6 +495,7 @@ describe("paying for Focus and Deny", () => {
 
 	it("costs nothing for a Focus or Deny the GM refuses", async () => {
 		game.users.activeGM = { query: vi.fn(async () => false) };
+		confirmDialog.mockResolvedValueOnce(true);
 		for (const action of ["focus", "deny"]) {
 			const card = renderCard(attackState());
 			card.message.isOwner = false;
@@ -488,7 +510,8 @@ describe("paying for Focus and Deny", () => {
 
 describe("an Impair naming a weapon", () => {
 	beforeEach(() => {
-		const croc = actor({ uuid: "Actor.croc", name: "Crocodile" });
+		// A crocodile Denies nothing, so nobody is asked about Deny before the Gambit.
+		const croc = actor({ uuid: "Actor.croc", name: "Crocodile", knows: false });
 		croc.items = [
 			{ id: "tail", name: "Tail", system: { equipped: true, damage: "d6" } },
 			{ id: "jaw", name: "Jaws", system: { equipped: true, damage: "d10" } },
@@ -802,5 +825,64 @@ describe("combat audit of 2026-10-23", () => {
 		expect(warnings).toEqual(["bastionland.feats.alreadyFatigued"]);
 		expect(inputDialog).not.toHaveBeenCalled();
 		expect(rollFeat).not.toHaveBeenCalled();
+	});
+});
+
+describe("rules check of 2026-10-27", () => {
+	const player = { id: "player-1" };
+	const ask = (change) => CONFIG.queries[`${SYSTEM_ID}.changeAttack`]({ messageId: "message-1", change }, { user: player });
+	/** Somebody who rides, as a Dismount needs (p10). */
+	const riding = (who) => ({ ...who, system: { ...who.system, conditions: { mounted: true } } });
+	const offered = () => inputDialog.mock.calls[0][0].context.gambits.map(({ key }) => key);
+
+	beforeEach(() => {
+		tokens["Actor.foe"] = combatant({ uuid: "Actor.foe", name: "Foe", owners: ["player-1"] });
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", knows: false }) };
+	});
+
+	it("asks before the first Gambit while a target could still Deny, which comes first (p8)", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay" }) };
+		const card = renderCard(attackState());
+		await card.click("gambit");
+		expect(confirmDialog.mock.calls[0][0].message).toEqual(["bastionland.attack.denyFirst", "bastionland.attack.declareAnyway"]);
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(card.message.update).not.toHaveBeenCalled();
+	});
+
+	it("asks nothing once a Gambit is declared, or when nobody could Deny", async () => {
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay" }) };
+		const dice = [{ faces: 8, result: 6, label: "d8", deniedBy: null }, { faces: 6, result: 5, label: "d6", deniedBy: null }];
+		await renderCard(attackState({ dice, gambits: [{ key: "bolster", die: 1, strong: null, save: null }] })).click("gambit");
+		tokens["Scene.s.Token.k"] = { actor: actor({ uuid: "Actor.k", name: "Ser Kay", fatigued: true }) };
+		await renderCard(attackState()).click("gambit");
+		expect(confirmDialog).not.toHaveBeenCalled();
+		expect(inputDialog).toHaveBeenCalledTimes(2);
+	});
+
+	it("names nobody for a card rolled with no targets, whoever is targeted now", async () => {
+		game.user.targets = new Set([{ document: { actor: actor({ uuid: "Actor.k", name: "Ser Kay" }) } }]);
+		await renderCard(attackState({ targets: [] })).click("gambit");
+		expect(confirmDialog).not.toHaveBeenCalled();
+		expect(inputDialog).toHaveBeenCalled();
+	});
+
+	it("offers a Dismount only when a foe it was aimed at is mounted (p10)", async () => {
+		await renderCard(attackState()).click("gambit");
+		expect(offered()).not.toContain("dismount");
+		inputDialog.mockClear();
+		tokens["Scene.s.Token.k"] = { actor: riding(actor({ uuid: "Actor.k", name: "Ser Kay", knows: false })) };
+		await renderCard(attackState()).click("gambit");
+		expect(offered()).toContain("dismount");
+		// Aimed at nobody, the Referee judges.
+		inputDialog.mockClear();
+		await renderCard(attackState({ targets: [] })).click("gambit");
+		expect(offered()).toContain("dismount");
+	});
+
+	it("records no Dismount a player asks for at a foe on foot", async () => {
+		const card = renderCard(attackState());
+		expect(await ask({ type: "gambit", die: 0, key: "dismount", bonus: 4 })).toBe(false);
+		expect(card.message.update).not.toHaveBeenCalled();
+		expect(await ask({ type: "gambit", die: 0, key: "repel" })).toBe(true);
 	});
 });

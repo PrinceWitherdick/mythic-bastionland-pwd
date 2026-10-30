@@ -3363,6 +3363,8 @@
       "unspentGambits": "{count} dice still show 4 or higher and could be spent on Gambits.",
       "unspentGambitsOne": "One die still shows 4 or higher and could be spent on a Gambit.",
       "deniableDice": "{names} could still Deny a die.",
+      "denyFirst": "{names} could still Deny a die, which comes before any Gambit. If they Deny after this, any Gambit spent on a die can be taken back and chosen again.",
+      "declareAnyway": "Declare a Gambit now?",
       "unsavedGambits": "{count} Gambits still wait on a Save, which can’t be rolled once the Damage lands.",
       "unsavedGambitsOne": "One Gambit still waits on a Save, which can’t be rolled once the Damage lands.",
       "stillWhose": "{name}’s Attack: {line}",

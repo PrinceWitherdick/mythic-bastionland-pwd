@@ -105,10 +105,10 @@ const CHANGE_GUARDS = Object.freeze({
 		// A join that arrives after a Deny or Gambit is refused (p8), and changeAttack says so too.
 		return joiner && canJoin(attack) ? { ...change, name: joiner.name } : null;
 	},
-	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) ? change : null),
+	gambit: (change, attack, user) => (ownsAnAttacker(attack, user) && offersGambit(attack, change.key) ? change : null),
 	// Taking back a Gambit already Saved against, carried out or rolled for is the Referee's alone.
 	withdraw: (change, attack, user) => (ownsAnAttacker(attack, user) ? { type: "withdraw", die: change.die, ...(user.isGM && change.force === true ? { force: true } : {}) } : null),
-	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) ? change : null),
+	focus: (change, attack, user) => (isAttacker(attack, change.actor) && ownedBy(change.actor, user) && offersGambit(attack, change.key) ? change : null),
 	// The pool is rolled again by one of those making the Attack, and a die turned by whoever's rune it is.
 	reroll: (change, attack, user) => {
 		const by = ownedBy(change.actor, user);
@@ -319,22 +319,57 @@ function watchGambitChoice(dialog) {
 }
 
 /**
+ * Whether a Gambit can be performed on this Attack: a Dismount needs a mounted foe
+ * among its targets (p10). With nobody targeted, or none of them found, the Referee judges.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {string} key One of GAMBITS.
+ * @returns {boolean}
+ */
+function offersGambit(attack, key) {
+	if (key !== "dismount") return true;
+	const foes = attack.targets.length ? targetActors(attack) : [];
+	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted));
+}
+
+/**
+ * Deny comes before Gambits (p8), so before the first Gambit the attacker is
+ * told who could still Deny, and asked whether to go ahead. A Deny that comes
+ * anyway lets the Gambits be taken back (withdrawLocked).
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @returns {Promise<boolean>}
+ */
+async function confirmBeforeDeny(attack) {
+	if (attack.gambits.length) return true;
+	// Who the Attack was made at, which a card rolled with no targets doesn't know: not whoever is targeted now.
+	const foes = attack.targets.length ? targetActors(attack) : [];
+	const deniers = foes.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
+	if (!deniers.length) return true;
+	return confirmDialog({
+		title: t("gambits.label"),
+		icon: "fa-solid fa-chess-knight",
+		message: [t("attack.denyFirst", { names: deniers.join(", ") }), t("attack.declareAnyway")]
+	});
+}
+
+/**
  * Ask which Gambit to perform.
  * @param {object} options
+ * @param {import("../rules/attack.js").AttackState} options.attack
  * @param {string} options.source   What pays for it, such as "d8 showing 5".
  * @param {boolean} options.strong  Offer the Strong Gambit choices.
- * @param {ReturnType<typeof impairOptions>} [options.weapons] What an Impair could name.
  * @returns {Promise<{key: string, strong: string|null, saveIn: string, weapon?: object}|null>}
  */
-async function chooseGambit({ source, strong, weapons = [] }) {
+async function chooseGambit({ attack, source, strong }) {
+	if (!(await confirmBeforeDeny(attack))) return null;
 	const virtue = (key) => t(`virtues.${key}.abbr`);
+	const weapons = impairOptions(attack);
 	const data = await inputDialog({
 		title: t("gambits.label"),
 		icon: "fa-solid fa-chess-knight",
 		template: "gambit",
 		context: {
 			source,
-			gambits: GAMBITS.map((key) => ({ key, label: t(`gambits.${key}`) })),
+			gambits: GAMBITS.filter((key) => offersGambit(attack, key)).map((key) => ({ key, label: t(`gambits.${key}`) })),
 			strong: strong ? STRONG_GAMBITS.map((key) => ({ key, label: t(`attack.strong.${key}`) })) : null,
 			saves: SAVE_VIRTUES.map((key, index) => ({ key, label: t("attack.saveIn", { virtue: virtue(key) }), selected: index === 0 })),
 			weapons: weapons.map(({ value, label }) => ({ value, label }))
@@ -403,9 +438,9 @@ async function onGambit(message, button) {
 
 	const { faces, result } = attack.dice[die];
 	const choice = await chooseGambit({
+		attack,
 		source: t("attack.dieSource", { faces, result }),
-		strong: canFundStrongGambit(attack, die),
-		weapons: impairOptions(attack)
+		strong: canFundStrongGambit(attack, die)
 	});
 	if (!choice) return;
 	if (await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) })) showDismount(choice.key);
@@ -433,7 +468,7 @@ async function onFocus(message) {
 	const attacker = await chooseActor(able, { title: t("feats.focus.name"), message: t("attack.whoFocuses"), icon: "fa-solid fa-eye" });
 	if (!attacker) return;
 
-	const choice = await chooseGambit({ source: t("attack.focusSource", { name: attacker.name }), strong: focusCanBeStrong(attack, attacker.uuid), weapons: impairOptions(attack) });
+	const choice = await chooseGambit({ attack, source: t("attack.focusSource", { name: attacker.name }), strong: focusCanBeStrong(attack, attacker.uuid) });
 	if (!choice) return;
 	// The CLA Save is rolled now, for the card to keep, but Fatigue follows only once the card takes the Focus.
 	const save = await rollFeat(attacker, "focus");
@@ -651,14 +686,16 @@ async function onDeny(message) {
 /**
  * What is still to be had on an Attack before its Damage lands: dice of 4+ unspent,
  * a Deny somebody could still make, and Gambits whose Save hasn't been rolled,
- * which can't be once the Damage is applied (p10).
+ * which can't be once the Damage is applied (p10). The die dealing the Damage may
+ * be spent too, but isn't one left over, so it isn't counted.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {Actor[]} actors Who the Damage would land on.
  * @returns {string[]} One line each.
  */
 function stillToBeHad(attack, actors) {
 	const lines = [];
-	const unspent = attack.dice.filter((_die, index) => canFundGambit(attack, index)).length;
+	const dealing = damageAgainst(attack, cardTarget(attack)).die;
+	const unspent = attack.dice.filter((_die, index) => index !== dealing && canFundGambit(attack, index)).length;
 	if (unspent) lines.push(plural("attack.unspentGambits", unspent));
 	const deniers = actors.filter((actor) => canDenyAttack(attack, actor)).map((actor) => actor.name);
 	if (deniers.length) lines.push(t("attack.deniableDice", { names: deniers.join(", ") }));
