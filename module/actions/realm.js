@@ -59,6 +59,9 @@ export const REALM_HISTORY_HOOK = `${SYSTEM_ID}.realmHistoryChanged`;
 /** Called on every client when a Realm Scene's look changes, with the Scene's id, or null for the look new Realms start with. */
 export const REALM_LOOK_HOOK = `${SYSTEM_ID}.realmLookChanged`;
 
+/** Called on this client when a look is tried out on a Realm Scene, or the trying out ends, with the Scene's id. */
+export const REALM_PREVIEW_HOOK = `${SYSTEM_ID}.realmLookPreviewed`;
+
 /** Register the Realm look settings. Called during init. */
 export function registerRealmSettings() {
 	game.settings.register(SYSTEM_ID, REALM_LOOK_SETTING, {
@@ -243,7 +246,7 @@ function existingDocuments(scene) {
  * @param {Scene} scene
  * @returns {(tile: TileDocument) => object} A Tile's source data with its centre in x and y, read as the Scene's Tiles stand.
  */
-const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
+export const tileCentreOn = (scene) => tileReading(realmTilesSettled(scene)).centred;
 
 /**
  * @param {Scene} scene A Realm Scene.
@@ -401,7 +404,7 @@ export async function refreshRealmScenes() {
  */
 const rollRealm = (options) => generateRealm({ ...options, blogLandmarks: blogLandmarksOn() });
 
-/** The look each Realm Scene is previewed in on this client, by Scene id, as normalised JSON. */
+/** The look each Realm Scene is previewed in on this client, by Scene id: normalised, and as JSON to compare. */
 const previews = new Map();
 
 /**
@@ -414,10 +417,23 @@ const previews = new Map();
 export function previewRealmLook(look) {
 	const scene = canvas?.scene;
 	if (!game.user.isGM || !isRealmScene(scene)) return Promise.resolve();
-	const key = JSON.stringify(normaliseRealmLook(look));
-	if (key === (previews.get(scene.id) ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
-	previews.set(scene.id, key);
-	return queueRealmWrite(() => showRealmLook(scene, look, { redraw: true, preview: true }));
+	const shown = normaliseRealmLook(look);
+	const key = JSON.stringify(shown);
+	if (key === (previews.get(scene.id)?.key ?? JSON.stringify(getRealmLook(scene)))) return Promise.resolve();
+	previews.set(scene.id, { key, look: shown });
+	return queueRealmWrite(async () => {
+		await showRealmLook(scene, look, { redraw: true, preview: true });
+		Hooks.callAll(REALM_PREVIEW_HOOK, scene.id);
+	});
+}
+
+/**
+ * @param {Scene} scene
+ * @returns {import("../rules/realm-skins.js").RealmLook} The look a Realm Scene shows on this client: one being
+ *   tried out on it, or else its own.
+ */
+export function realmLookShown(scene) {
+	return (scene && previews.get(scene.id)?.look) || getRealmLook(scene);
 }
 
 /**
@@ -430,7 +446,10 @@ export function endRealmLookPreview({ redraw = true } = {}) {
 	const scenes = [...previews.keys()].map((id) => game.scenes.get(id)).filter(Boolean);
 	previews.clear();
 	return queueRealmWrite(async () => {
-		for (const scene of scenes) await showRealmLook(scene, getRealmLook(scene), { redraw });
+		for (const scene of scenes) {
+			await showRealmLook(scene, getRealmLook(scene), { redraw });
+			Hooks.callAll(REALM_PREVIEW_HOOK, scene.id);
+		}
 	});
 }
 

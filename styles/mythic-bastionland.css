@@ -8666,6 +8666,12 @@ body[data-map-slide="crosshair"] #board { cursor: crosshair !important; }
 	text-align: right;
 }
 
+/* Rulers' arms on Holdings: a tick under the sliders, as wide as its words so its tooltip shows over them alone. */
+.bastionland-realm-appearance__arms {
+	align-self: flex-start;
+	margin-block-start: 0.25rem;
+}
+
 .bastionland-realm-appearance__skins,
 .bastionland-realm-appearance__palettes {
 	display: grid;

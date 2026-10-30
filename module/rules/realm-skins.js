@@ -293,6 +293,7 @@ export const realmSetDir = (skin, paletteKey) => `${REALM_SKIN_ROOT}/${REALM_SKI
  * @property {{folder: string, terrainFit: string, files: Record<string, string>}} custom Pictures of the GM's own,
  *   by picture name, from `folder`.
  * @property {RealmFade} fade How strongly each kind of icon is drawn on this Realm, 0 to 1.
+ * @property {boolean} arms Whether each Holding a Domain rules shows its ruler's arms.
  */
 
 /**
@@ -314,7 +315,8 @@ export const defaultRealmLook = () => ({
 	skin: REALM_SKINS[0],
 	palette: REALM_PALETTES[0].key,
 	custom: { folder: "", terrainFit: "hex", files: {} },
-	fade: fullStrength()
+	fade: fullStrength(),
+	arms: true
 });
 
 /**
@@ -364,7 +366,9 @@ export function normaliseRealmLook(look) {
 			terrainFit: TERRAIN_FITS.includes(custom.terrainFit) ? custom.terrainFit : fallback.custom.terrainFit,
 			files
 		},
-		fade: Object.fromEntries(FADED_ICONS.map((kind) => [kind, strength(look?.fade?.[kind])]))
+		fade: Object.fromEntries(FADED_ICONS.map((kind) => [kind, strength(look?.fade?.[kind])])),
+		// Shown unless switched off, so looks saved before there were arms show them.
+		arms: look?.arms !== false
 	};
 }
 
@@ -497,15 +501,14 @@ export function readOwnSkin(manifest, folder) {
 }
 
 /**
- * The look that draws with an own skin, keeping the colours and fading of the look it replaces.
+ * The look that draws with an own skin, keeping everything else of the look it replaces: its colours, fading and arms.
  * @param {OwnSkin} skin
- * @param {{palette?: string, fade?: object}} [look]
+ * @param {Partial<RealmLook>} [look]
  * @returns {RealmLook}
  */
-export const ownSkinLook = (skin, { palette, fade } = {}) => normaliseRealmLook({
+export const ownSkinLook = (skin, look = {}) => normaliseRealmLook({
+	...look,
 	skin: skin.base,
-	palette,
-	fade,
 	custom: { folder: skin.folder, terrainFit: skin.terrainFit, files: skin.files }
 });
 

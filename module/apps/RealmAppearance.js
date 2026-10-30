@@ -189,6 +189,7 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 				...FADED_ICONS.map((kind) => ({ key: kind, label: t(`realm.look.fade.${kind}`), value: Math.round(draft.fade[kind] * 100) })),
 				{ key: "grid", label: t("realm.look.fade.grid"), value: Math.round(this.#grid * 100) }
 			] : null,
+			arms: draft.arms,
 			changed: this.#changed()
 		});
 	}
@@ -224,6 +225,16 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		super._onRender(context, options);
 		this.#preview();
 		this.#wireFades();
+		this.element.querySelector("input[data-arms]")?.addEventListener("change", (event) => this.#setArms(event.currentTarget.checked));
+	}
+
+	/**
+	 * Show or hide the arms each Holding flies, without drawing the window again, so the box keeps the keyboard's focus.
+	 * @param {boolean} arms
+	 */
+	#setArms(arms) {
+		this.#draft = normaliseRealmLook({ ...this.#draft, arms });
+		this.#tried();
 	}
 
 	/** The sliders: the number follows the handle, and letting go tries the strength out. */
@@ -246,6 +257,11 @@ export class RealmAppearance extends ArtPreviewMixin(HandlebarsApplicationMixin(
 		else if (FADED_ICONS.includes(kind)) this.#draft = normaliseRealmLook({ ...this.#draft, fade: { ...this.#draft.fade, [kind]: alpha } });
 		else return;
 		// Only the preview and the Apply button change, so the window isn't drawn again, and the slider keeps the keyboard's focus.
+		this.#tried();
+	}
+
+	/** Show a change being tried out, and whether there's now anything to apply. */
+	#tried() {
 		this.#preview();
 		const apply = this.element.querySelector("[data-action='apply']");
 		if (apply) apply.disabled = !this.#changed();

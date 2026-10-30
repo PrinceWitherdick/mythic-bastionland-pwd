@@ -120,6 +120,28 @@ describe("heraldrySvg", () => {
 		expect(svg).toContain(`fill="${tinctureColor("argent")}"`);
 		expect(svg.match(/<\/svg>/g)).toHaveLength(3);
 	});
+
+	it("counterchanges a charge over a divided field: whole in the first tincture, then each other part in its own", () => {
+		const charge = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><path fill="#f3f3f3" stroke="#000" d="M0 0h200v100z"/></svg>';
+		const svg = heraldrySvg({ division: "perPale", field: ["or", "gules"], charge: { svg: charge, tinctures: ["gules", "or"] } }, size);
+		expect(svg).toContain('<g clip-path="url(#part-0)">');
+		expect(svg).not.toContain("part-1");
+		const whole = svg.indexOf(`fill="${tinctureColor("gules")}"`, svg.indexOf("<svg x="));
+		const part = svg.indexOf(`fill="${tinctureColor("or")}"`, svg.indexOf("part-0"));
+		expect(whole).toBeGreaterThan(0);
+		expect(part).toBeGreaterThan(whole);
+	});
+
+	it("gives each copy of a counterchanged charge its own ids, so each points at its own clip", () => {
+		const charge = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><defs><clipPath id="a"><path d="M0 0h200v100H0Z"/></clipPath></defs><g clip-path="url(#a)"><path fill="#f3f3f3" stroke="#000" d="M0 0h200v100z"/></g></svg>';
+		const svg = heraldrySvg({ division: "perPale", field: ["or", "gules"], charge: { svg: charge, tinctures: ["gules", "or"] } }, size);
+		const ids = [...svg.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(svg).toContain('<clipPath id="charge0-a">');
+		expect(svg).toContain('clip-path="url(#charge0-a)"');
+		expect(svg).toContain('clip-path="url(#charge1-a)"');
+		expect(svg).not.toContain("url(#a)");
+	});
 });
 
 /** A small Realm of open ground, with no lakes, Barriers or features. */

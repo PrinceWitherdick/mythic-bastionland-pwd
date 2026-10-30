@@ -38,6 +38,7 @@ import { registerTurnedBackQuery, reportTurnedBack } from "./barrier-found.js";
 import { forgetHexArrivals, offerWaitingArrival, registerHexPrompt } from "./hex-prompt.js";
 import { attachHexReadout, detachHexReadout, registerHexReadoutSetting, updateHexReadout } from "./hex-readout.js";
 import { drawSightedMarks } from "./sighted-marks.js";
+import { drawHoldingArms, drawHoldingArmsSoon, registerHoldingArmsHooks } from "./holding-arms.js";
 import { registerTravelsClick } from "./travels-click.js";
 import { refreshTravelsButtons } from "./travels-controls.js";
 import { drawVisitedMarks, registerVisitedMarksSetting } from "./visited-marks.js";
@@ -122,6 +123,8 @@ function showChanges() {
 			// and where it has been, which only its Journey changes.
 			if (kind === "realm" || flags.has(SIGHTED_FLAG)) drawSightedMarks();
 			if (kind === "realm" || flags.has(JOURNEY_FLAG)) drawVisitedMarks();
+			// The arms each Holding flies, which a Holding moved, hidden, faded, renamed or granted changes.
+			if (kind === "realm") drawHoldingArmsSoon();
 		}
 	}
 	changedScenes.clear();
@@ -187,6 +190,8 @@ export function registerRealmHooks() {
 
 	// The hexes the Company has been to, marked on the map for whoever wants them shown.
 	registerVisitedMarksSetting();
+	// The arms each Holding flies, kept in step with the Domains and Knights.
+	registerHoldingArmsHooks();
 	// Which mark, and in what colour, chosen in a window of its own.
 	registerVisitedMarksMenu();
 	// A double-click on a hex opens the Company's places with it chosen.
@@ -269,6 +274,7 @@ export function registerRealmHooks() {
 		attachHexReadout();
 		drawSightedMarks();
 		drawVisitedMarks();
+		drawHoldingArms();
 		// Their show-or-hide and the Places window, beside the sidebar.
 		refreshTravelsButtons();
 		showRealmRules();

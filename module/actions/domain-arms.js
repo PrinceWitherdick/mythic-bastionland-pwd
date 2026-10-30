@@ -21,6 +21,14 @@ function armsKnight(domain) {
 }
 
 /**
+ * @param {object} changes A Knight's update.
+ * @returns {boolean} Whether it can change which arms a Domain shows: their painting, which Domain they rule, or their name.
+ */
+export function knightChangesArms(changes) {
+	return "name" in changes || foundry.utils.hasProperty(changes, "system.heraldry") || foundry.utils.hasProperty(changes, "system.domain");
+}
+
+/**
  * What a Domain's sheet shows at its head, ready for the template.
  * @param {Actor} domain
  * @returns {{picture: string}|{heraldry: string, bearer: string, tooltip: string}}

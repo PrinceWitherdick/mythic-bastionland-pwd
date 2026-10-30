@@ -21,7 +21,8 @@ export { armourKind, companionActorData, isSteed, propertyItems } from "../rules
  * @typedef {object} Arms
  * @property {string|null} division One of DIVISIONS' keys, or null for a plain field.
  * @property {string[]} field The tincture of each of the division's groups, in group order.
- * @property {{svg: string, tincture: string}|null} [charge] A charge's file as shipped, and its tincture.
+ * @property {{svg: string, tincture?: string, tinctures?: string[]}|null} [charge] A charge's file as shipped, and
+ *   its tincture, or its tincture over each of the field's groups, as random arms give them.
  */
 
 /**
@@ -40,13 +41,21 @@ export function heraldrySvg({ division = null, field, charge = null }, { width, 
 	let bearing = "";
 	if (charge?.svg) {
 		// The charge fills its box as the painter fits one, centred on the fess point.
-		const tinted = tintCharge(charge.svg, tinctureColor(charge.tincture))
-			.replace(/^<svg\b[^>]*>/, (root) => root.replace(/\swidth="[^"]*"/, ' width="100%"').replace(/\sheight="[^"]*"/, ' height="100%"'));
 		const boxWidth = SHIELD_WIDTH * CHARGE_SCALE;
 		const boxHeight = SHIELD_HEIGHT * CHARGE_SCALE;
 		const x = SHIELD_WIDTH / 2 - boxWidth / 2;
 		const y = SHIELD_HEIGHT * FESS_POINT - boxHeight / 2;
-		bearing = `<svg x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}">${tinted}</svg>`;
+		// Each copy of the charge names its own ids, so one counterchanged over the field points at its own clip.
+		const ownIds = (svg, copy) => svg.replace(/\bid="([^"]+)"/g, `id="charge${copy}-$1"`).replace(/url\(#([^)]+)\)/g, `url(#charge${copy}-$1)`).replace(/href="#([^"]+)"/g, `href="#charge${copy}-$1"`);
+		const tinted = (tincture, copy = 0) => `<svg x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}">`
+			+ ownIds(tintCharge(charge.svg, tinctureColor(tincture)), copy)
+				.replace(/^<svg\b[^>]*>/, (root) => root.replace(/\swidth="[^"]*"/, ' width="100%"').replace(/\sheight="[^"]*"/, ' height="100%"'))
+			+ "</svg>";
+		const tinctures = charge.tinctures ?? [charge.tincture];
+		// Counterchanged, as the painter draws it: whole in the first group's tincture, then over each part of another in that.
+		const over = (parts ?? []).filter(({ group }) => tinctures[group] && tinctures[group] !== tinctures[0]);
+		bearing = tinted(tinctures[0]) + over.map(({ group, points }, index) => `<clipPath id="part-${index}"><polygon points="${points.map(scale).join(" ")}"/></clipPath>`
+			+ `<g clip-path="url(#part-${index})">${tinted(tinctures[group], index + 1)}</g>`).join("");
 	}
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${SHIELD_WIDTH} ${SHIELD_HEIGHT}" preserveAspectRatio="none">`
 		+ `<defs><clipPath id="shield"><path d="${SHIELD_PATH}"/></clipPath></defs>`

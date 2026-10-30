@@ -10,7 +10,7 @@ import {
 	seizeDomain
 } from "../actions/dominion.js";
 import { assignTask, setTaskAside, settleTask, tasksBySeat } from "../actions/council-tasks.js";
-import { chooseDomainArms, domainArmsView } from "../actions/domain-arms.js";
+import { chooseDomainArms, domainArmsView, knightChangesArms } from "../actions/domain-arms.js";
 import { beginDesign, strikeOffDesign } from "../actions/grand-designs.js";
 import { domainLands, holdingChoices, realmHoldings } from "../actions/homecoming.js";
 import { worldKnights } from "../actions/knights.js";
@@ -398,14 +398,6 @@ export class DomainSheet extends TimelineTabMixin(TabRailMixin(HandlebarsApplica
 		for (const [hook, id] of this.#knightHooks) Hooks.off(hook, id);
 		this.#knightHooks = [];
 	}
-}
-
-/**
- * @param {object} changes A Knight's update.
- * @returns {boolean} Whether it can change which arms a Domain shows: their painting, which Domain they rule, or their name.
- */
-function knightChangesArms(changes) {
-	return "name" in changes || foundry.utils.hasProperty(changes, "system.heraldry") || foundry.utils.hasProperty(changes, "system.domain");
 }
 
 /**

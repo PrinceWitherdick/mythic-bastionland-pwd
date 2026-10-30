@@ -48,6 +48,14 @@ The square at the head of the sheet shows the ruling Knight's heraldry as a shie
 
 How to paint arms is on [Heraldry](Heraldry).
 
+### Arms on the Realm map
+
+A Holding a Domain rules flies that Domain's arms on the Realm map, as a small shield at the top right of its icon, the way a lord's banner flew over the gate. It shows whatever the sheet's header shows: the ruler's arms, another Knight's, or the Domain's picture cut to a shield. A Domain with nothing painted flies nothing.
+
+- Everyone sees the shields. A Holding you've hidden from the players keeps its shield hidden from them too, and shows it to you faintly.
+- The shield fades with the **Holdings and Seats** slider, and redraws by itself when a Holding is granted, a Knight repaints their arms, or the Domain's choice changes.
+- Turn them off for one Realm with the **Rulers' arms on Holdings** tick in [Realm Appearance](Realm-Appearance-and-Skins#icons-and-hex-lines).
+
 ## Rule page
 
 ### Lordship

@@ -57,3 +57,12 @@ describe("pathSteps", () => {
 		expect(() => pathSteps("m0 0 l1 1", 1, 0, 0)).toThrow();
 	});
 });
+
+describe("heraldryBadge sizes", () => {
+	it("draws a Token's shield unless told another share", () => {
+		const art = { x: 0, y: 0, width: 100, height: 100 };
+		expect(heraldryBadge(art, 100, {})).toEqual(heraldryBadge(art));
+		const small = heraldryBadge(art, 100, { share: 0.2 });
+		expect(small.height).toBeCloseTo(20);
+	});
+});

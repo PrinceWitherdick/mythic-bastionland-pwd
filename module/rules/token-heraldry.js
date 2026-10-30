@@ -16,16 +16,17 @@ export const BADGE_OVERHANG = 0.1;
  * right of the picture it shows, which can be narrower than the Token.
  * @param {{x: number, y: number, width: number, height: number}} art The picture's box.
  * @param {number} [side] The Token's shorter side, which sizes the shield.
+ * @param {{share?: number}} [size] The shield's height as a share of `side`: a Token's by default.
  * @returns {{scale: number, width: number, height: number,
  *   outline: {x: number, y: number}, field: {x: number, y: number},
  *   painting: {x: number, y: number, width: number, height: number}}}
  *   The scale the shield's paths are drawn at, the shield's size, where the
  *   outline's and the field's paths start, and the painting's box.
  */
-export function heraldryBadge(art, side = Math.min(art.width, art.height)) {
+export function heraldryBadge(art, side = Math.min(art.width, art.height), { share = BADGE_SHARE } = {}) {
 	const outlineWidth = SHIELD_WIDTH + SHIELD_BORDER * 2;
 	const outlineHeight = SHIELD_HEIGHT + SHIELD_BORDER * 2;
-	const scale = (side * BADGE_SHARE) / outlineHeight;
+	const scale = (side * share) / outlineHeight;
 	const overhang = outlineWidth * scale * BADGE_OVERHANG;
 	const outline = { x: art.x + art.width - outlineWidth * scale + overhang, y: art.y - overhang };
 	const field = { x: outline.x + SHIELD_BORDER * scale, y: outline.y + SHIELD_BORDER * scale };

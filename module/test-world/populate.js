@@ -58,13 +58,15 @@ import { postCard, t } from "../chat/cards.js";
 import { TASK_SCOPE_ICONS, newTask } from "../rules/council-tasks.js";
 import { newCourtMember } from "../rules/court.js";
 import { STANDARD_KIT, knightItems, knightUpdate, startFor } from "../rules/creation.js";
-import { crisesDrawn, crisisFor, crisisResult } from "../rules/dominion.js";
+import { crisesDrawn, crisisFor, crisisResult, holdingRef } from "../rules/dominion.js";
 import { createDuel } from "../rules/duel.js";
 import { hasTable } from "../rules/knight-tables.js";
 import { CAST_FLAG } from "../rules/myth-cast.js";
 import { SQUIRE_EQUIPMENT, SQUIRE_GUARD, SQUIRE_IMAGE, SQUIRE_VIRTUE_ROLL, ponySystem, squireEquipment, squireItems, squireSystem } from "../rules/squires.js";
-import { chargePath } from "../rules/heraldry-charges.js";
-import { MAX_INLINE_LENGTH, PAINTING_HEIGHT, PAINTING_WIDTH, PAINT_SCALE } from "../rules/heraldry.js";
+import { CHARGES, chargePath } from "../rules/heraldry-charges.js";
+import { MAX_INLINE_LENGTH, PAINTING_HEIGHT, PAINTING_WIDTH, PAINT_SCALE, randomArms } from "../rules/heraldry.js";
+import { rollKnightName } from "../rules/knight-names.js";
+import { NPC_KNIGHT_TYPE } from "../rules/knight-types.js";
 import { OMEN_COUNT } from "../rules/realm.js";
 import { editFeature, placeFeature, setBarrier, setOmen, setRevealed } from "../rules/realm-edits.js";
 import { normaliseOwnMyth } from "../rules/own-myths.js";
@@ -73,7 +75,7 @@ import { scarDescription, scarForRoll, scarRaisesGuardNow } from "../rules/scars
 import { crisisRollsDue } from "../rules/season-log.js";
 import { COMPANY_TRACK, addEntry } from "../rules/timeline.js";
 import { TIMELINE_TAGS_FLAG } from "../rules/timeline-tags.js";
-import { hexKey } from "../rules/realm-geometry.js";
+import { hexKey, sameHex } from "../rules/realm-geometry.js";
 import { sightable } from "../rules/sighted.js";
 import { emptySite, numberedPoints, revealEntrance, revealPoint, rollSite, SITE_EDGES } from "../rules/sites.js";
 import { HARDSHIPS, PHASES, nextAge, nextSeason, seasonKey } from "../rules/time.js";
@@ -161,6 +163,16 @@ const LANDMARK_NAMES = Object.freeze({
 	curse: ["The Blighted Orchard", "The Silent Village", "The Bleeding Stones", "The Weeping Field"],
 	ruin: ["The Drowned Chapel", "Oldwall", "The Broken Abbey", "Saint Brannoc's Priory"]
 });
+
+/**
+ * The NPC Knights ruling the Realm's other Holdings, so their arms fly on the
+ * map beside Dame Isolde's. Their arms are drawn at random each build.
+ */
+const NEIGHBOURS = Object.freeze([
+	{ name: "Lord Aldric Vane", note: "Holds the Seat, and the Company's places at Court. Cold, careful, and short of money." },
+	{ name: "Dame Mirela Thorne", note: "Holds the tourney town. Unhorsed Corvin once, and reminds him of it." },
+	{ name: "Sir Gaspard Lusk", note: "Holds the march. Says he'd come to Isolde's aid, and hasn't yet." }
+]);
 
 /** Who holds each seat of the Council the Domain was granted with, besides the Circle. */
 const COUNCIL = Object.freeze({ steward: "Maud Fenwick", marshal: "Sir Aldous Crane", sheriff: "Tobin Rook", envoy: "Lady Wren Ashgrove" });
@@ -334,13 +346,13 @@ export async function populateTestWorld() {
 		if (removing) {
 			const confirmed = await confirm("Remove the Test World", [
 				"This world holds the test world this macro made.",
-				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domain, Warband, Realm, Sites, written Myth, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
+				"<strong>Permanently delete</strong> its Knights, Squire, NPCs, Domains, Warband, Realm, Sites, written Myth, folders and chat messages, take what it wrote off the Timeline, and put the calendar, the weather, the City Quest and the Referee Toolkit's notes and Seasons back as they were?"
 			]);
 			if (confirmed) await removeTestWorld();
 			return;
 		}
 		const confirmed = await confirm("Populate the Test World", [
-			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast, with one Myth the Referee wrote for themselves; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
+			`This adds a fake game five Seasons in: three Knights of a Company of Courtiers with their steeds, tables and a Squire; a Domain with its Council, Court, tasks and a Warband; NPC Knights with arms drawn at random ruling the Realm's other Holdings, so each flies its ruler's arms on the map; the Realm of ${REALM_NAME} with its Journey, the Referee's notes and Spark Table rolls on the places the Company has been, what the players were told, their own notes, the Barriers they ran into and what they saw from afar, its Myths, Omens and a Myth's Cast, with one Myth the Referee wrote for themselves; two Sites; a year of chat with its feasts and masses; the Timeline's threads for the Company, each Knight, the Squire, the Domain and the Realm, written as the story goes; and the Referee Toolkit's Seasons and notes filled in.`,
 			"The world's calendar, weather and City Quest move on to where the game has got to. Run the macro again to remove it all and put them and the Referee Toolkit back.",
 			"It takes a minute. Leave Foundry be until it says it's done."
 		]);
@@ -522,7 +534,7 @@ async function rollUntil(formula, wanted) {
 async function paintArms({ division, field, charge }) {
 	try {
 		const bearing = charge
-			? { svg: await (await fetch(foundry.utils.getRoute(chargePath(charge.key)))).text(), tincture: charge.tincture }
+			? { svg: await (await fetch(foundry.utils.getRoute(chargePath(charge.key)))).text(), tincture: charge.tincture, tinctures: charge.tinctures }
 			: null;
 		const size = { width: PAINTING_WIDTH * PAINT_SCALE, height: PAINTING_HEIGHT * PAINT_SCALE };
 		const image = new Image();
@@ -539,6 +551,12 @@ async function paintArms({ division, field, charge }) {
 		return "";
 	}
 }
+
+/**
+ * Arms drawn at random, as the heraldry painter's Randomize draws them, a charge counterchanged over a divided field and all.
+ * @returns {ReturnType<typeof randomArms>}
+ */
+export const randomKnightArms = () => randomArms({ charges: CHARGES.map(({ key }) => key) });
 
 /** @returns {string} A paragraph of HTML for each line. */
 const html = (...lines) => lines.filter(Boolean).map((line) => `<p>${line}</p>`).join("");
@@ -609,6 +627,7 @@ class TestGame {
 		await this.winterOfAgeOne();
 		await this.springOfAgeTwo();
 		await this.harvestOfAgeTwo();
+		await this.makeNeighbours();
 		await this.writeUp();
 		await setWeather(WEATHER_NOW);
 		await this.endSession();
@@ -1524,6 +1543,7 @@ class TestGame {
 		const court = this.court();
 		// Each seat is granted to its holder, who serves in the Court as a Retainer.
 		const council = Object.fromEntries(Object.entries(COUNCIL).map(([seat, name]) => [seat, Object.keys(court).find((id) => court[id].name === name) ?? ""]));
+		const holding = this.realm.holdings.find((each) => sameHex(each.hex, hex));
 		this.domain = await Actor.implementation.create({
 			name: this.names.domain,
 			type: "domain",
@@ -1532,6 +1552,7 @@ class TestGame {
 			flags: testFlags(),
 			ownership: seenByAll(),
 			system: {
+				holding: this.holdingOf(holding),
 				seat: false,
 				successor: oswin.name,
 				council: { ...council, circle: [oswin.id] },
@@ -1571,6 +1592,61 @@ class TestGame {
 		await this.spark(hex, "people", 5);
 		await this.tell(hex);
 		await this.partyNote(hex, "Ours! Well, Isolde's. Walls before Winter. Keep an eye on the steward.");
+	}
+
+	/**
+	 * @param {object|undefined} holding One of the Realm's Holdings.
+	 * @returns {string} Its holdingRef, or "" while it has no Tile, so the Domain finds it by name.
+	 */
+	holdingOf(holding) {
+		return holding?.id ? holdingRef(this.scene.id, holding.id) : "";
+	}
+
+	/**
+	 * The Knights ruling the Realm's other Holdings: an NPC Knight each, with
+	 * arms drawn at random and a Domain granted that Holding, so every Holding
+	 * on the map flies its ruler's arms. Their Crisis Roll and Drama in Court
+	 * are done for this Season, so the Referee isn't told they're owed.
+	 */
+	async makeNeighbours() {
+		const ruled = this.realm.holdings.filter((holding) => !sameHex(holding.hex, this.places.domain?.hex));
+		if (!ruled.length) return;
+		const folder = await foundry.utils.getDocumentClass("Folder").create({
+			name: "Neighbours",
+			type: "Actor",
+			folder: this.folders.Actor.id,
+			flags: testFlags()
+		});
+		const now = seasonKey(getCalendar());
+		const taken = this.company.map((knight) => knight.name);
+		for (const [index, holding] of ruled.entries()) {
+			const spec = NEIGHBOURS[index] ?? { name: rollKnightName(Math.random, taken), note: "" };
+			taken.push(spec.name);
+			const place = holding.name || t("domain.newName", { knight: spec.name });
+			const knight = await Actor.implementation.create({
+				name: spec.name,
+				type: NPC_KNIGHT_TYPE,
+				folder: folder.id,
+				flags: testFlags(),
+				system: { heraldry: await paintArms(randomKnightArms()), notes: html(`Rules ${place}.`, spec.note) }
+			});
+			const domain = await Actor.implementation.create({
+				name: place,
+				type: "domain",
+				img: DOMAIN_IMAGE,
+				folder: folder.id,
+				flags: testFlags(),
+				system: {
+					ruler: knight.name,
+					holding: this.holdingOf(holding),
+					seat: Boolean(holding.seat),
+					crisisRolled: now,
+					dramaRolled: now,
+					notes: html(`Held by ${knight.name}.`, spec.note)
+				}
+			});
+			await linkKnightDomain(knight, domain);
+		}
 	}
 
 	/**

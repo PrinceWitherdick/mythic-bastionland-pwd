@@ -149,6 +149,11 @@
       "chooseKnighted": "Choose Their Knight",
       "chooseKnightedHint": "Roll or choose which Knight this Squire became. Their Virtues, GD and everything they carry stay, and the Knight’s Property, Ability and Passion are added."
     },
+    "tokenShape": {
+      "round": "Round picture",
+      "roundHint": "Crop the picture to a circle. Setting the Shape to Rectangle turns this off.",
+      "roundHintPrototype": "Crop the picture to a circle on the Tokens placed from this one."
+    },
     "heraldry": {
       "title": "Heraldry of {name}",
       "paint": "Paint heraldry",
@@ -4684,6 +4689,10 @@
           "landmark": "Landmarks",
           "myth": "Myths",
           "grid": "Hex lines"
+        },
+        "arms": {
+          "label": "Rulers’ arms on Holdings",
+          "hint": "Each Holding a Domain rules shows that Domain’s arms on a small shield, as a lord’s banner flew over the gate. Everyone sees them, except on a Holding hidden from the players."
         },
         "skins": {
           "sheet": {
