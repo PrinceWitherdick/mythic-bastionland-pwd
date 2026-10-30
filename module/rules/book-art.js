@@ -25,8 +25,9 @@ export const INDEX_FILE = "index.json";
  * 11 added the verse under each Myth's name. 12 added the prompts along the
  * foot of each Myth's page. 13 added the book's words for the rules text the
  * system shows (module/rules/book-text.js). 14 added the verse under each Knight's name.
+ * 15 read the list of choices an Ability or Passion ends on.
  */
-export const INDEX_VERSION = 14;
+export const INDEX_VERSION = 15;
 
 /** The first index version with the prompts along the foot of each Knight's page, kept on their Seer. */
 export const SEER_PROMPTS_VERSION = 7;
@@ -42,6 +43,17 @@ export const MYTH_PROMPTS_VERSION = 12;
 
 /** The first index version with the verse under each Knight's name. */
 export const KNIGHT_VERSE_VERSION = 14;
+
+/** The first index version with the list of choices an Ability or Passion ends on. */
+export const ABILITY_LIST_VERSION = 15;
+
+/**
+ * Whether an Ability or Passion read from the book stops on a colon with no
+ * list after it, as an index from before ABILITY_LIST_VERSION left them.
+ * @param {{text?: string, list?: string[]}|null|undefined} part
+ * @returns {boolean}
+ */
+export const wantsList = (part) => /:\s*$/.test(part?.text ?? "") && !part?.list?.length;
 
 /** Page count of the PDF the layout below was measured against. */
 export const EXPECTED_PAGES = 212;
@@ -307,25 +319,40 @@ const ABILITY_HEADING = /^ability\s*[-–—]\s*(.+)$/i;
 const PASSION_HEADING = /^passion\s*[-–—]\s*(.+)$/i;
 
 /**
+ * How far below the text before it a list may start, in line sizes. The book
+ * leaves about one and a half lines before the bullets an Ability ends on
+ * (p114), and more than two before the next heading.
+ */
+const LIST_GAP = 2;
+
+/**
  * The body under a heading: each following line in the heading's size, until
  * the size changes, a gap opens wider than the line spacing, or the range
  * ends. A Knight's table can start only a few points below their Passion, but
- * it is always set smaller.
+ * it is always set smaller. Text that ends on a colon goes on into the bullets
+ * set a little lower beneath it, as the choices some Abilities offer (p114, p166).
  * @param {ReturnType<typeof textLines>} lines
  * @param {number} headingAt
  * @param {number} endAt
- * @returns {string}
+ * @returns {{text: string, list: string[]}}
  */
 function bodyText(lines, headingAt, endAt) {
 	const heading = lines[headingAt];
 	let text = "";
+	const list = [];
 	let previous = heading;
 	for (const line of lines.slice(headingAt + 1, endAt)) {
-		if (Math.abs(line.size - heading.size) > 0.5 || previous.y - line.y > heading.size * 1.2) break;
-		text = text ? joinLines(text, line.text) : line.text;
+		if (Math.abs(line.size - heading.size) > 0.5) break;
+		const gap = previous.y - line.y;
+		const bullet = BULLET.test(line.text);
+		const listGoesOn = bullet && (list.length || /:$/.test(text)) && gap <= heading.size * LIST_GAP;
+		if (gap > heading.size * 1.2 && !listGoesOn) break;
+		if (bullet && (list.length || /:$/.test(text))) list.push(line.text.replace(BULLET, "").trim());
+		else if (list.length) list.push(joinLines(list.pop(), line.text));
+		else text = text ? joinLines(text, line.text) : line.text;
 		previous = line;
 	}
-	return text;
+	return { text, list };
 }
 
 /**
@@ -349,7 +376,10 @@ export function knightTextFromItems(items) {
 		else property.push(joinLines(property.pop(), text));
 	}
 
-	const section = (at, endAt, pattern) => ({ name: pattern.exec(lines[at].text)[1].trim(), text: bodyText(lines, at, endAt) });
+	const section = (at, endAt, pattern) => {
+		const { text, list } = bodyText(lines, at, endAt);
+		return { name: pattern.exec(lines[at].text)[1].trim(), text, ...(list.length ? { list } : {}) };
+	};
 	const ability = section(abilityAt, passionAt, ABILITY_HEADING);
 	const passion = section(passionAt, lines.length, PASSION_HEADING);
 	if (!property.length || !ability.text || !passion.text) return null;

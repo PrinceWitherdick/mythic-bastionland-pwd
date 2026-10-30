@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ABILITY_KITS, KIT_FLAG, KIT_WEAPON_KEYS, kitCatchUp, kitForPage, kittedAbility, kitWeapons } from "../../module/rules/ability-kits.js";
+import { ABILITY_KITS, KIT_FLAG, KIT_WEAPON_KEYS, LINKED_KIT_FIELDS, LINKED_KIT_PAGES, kitCatchUp, kitForPage, kittedAbility, kitWeapons } from "../../module/rules/ability-kits.js";
 import {
 	ABILITY_POWERS,
 	SIGIL_MAX,
@@ -40,7 +40,7 @@ describe("ABILITY_KITS", () => {
 	});
 
 	it("name every weapon they give", () => {
-		expect(KIT_WEAPON_KEYS).toEqual(["chain", "shockwave", "bite"]);
+		expect(KIT_WEAPON_KEYS).toEqual(["chain", "shockwave", "radiance", "branchJavelin", "branchSpear", "bite"]);
 	});
 
 	it("lay an Ability's settings over what its words gave it", () => {
@@ -96,6 +96,27 @@ describe("kitCatchUp", () => {
 		expect(kitCatchUp(items({ grants: {}, bonusDie: "" }), kitForPage(92), "Odd Gift", SYSTEM_ID).update).toMatchObject({ "system.bonusDie": "d12", "system.grants.alone": true });
 		expect(kitCatchUp(items({ grants: {} }), kitForPage(92), "Something Else", SYSTEM_ID)).toEqual({ update: null, missing: [] });
 	});
+
+	it("fills only the named fields, and no weapon, as the step for fields added since does", () => {
+		// The Referee cleared p38's situational and p98's needs after the first step: they stay cleared.
+		expect(kitCatchUp(items({ grants: { strongGambits: true }, situational: false }), kitForPage(38), "Odd Gift", SYSTEM_ID, { fields: LINKED_KIT_FIELDS, weapons: false }))
+			.toEqual({ update: { _id: "a1", "system.crowd": 3 }, missing: [] });
+		expect(kitCatchUp(items({ grants: {}, needs: "", lastingDie: "d8" }), kitForPage(98), "Odd Gift", SYSTEM_ID, { fields: LINKED_KIT_FIELDS, weapons: false }).update)
+			.toEqual({ _id: "a1", "system.tempers": true });
+		// A radiance the Referee deleted isn't made again.
+		expect(kitCatchUp(items({ grants: {}, weapon: "" }), kitForPage(112), "Odd Gift", SYSTEM_ID, { fields: LINKED_KIT_FIELDS, weapons: false }))
+			.toEqual({ update: { _id: "a1", "system.weapon": "radiance" }, missing: [] });
+		// Run again, nothing more to do.
+		expect(kitCatchUp(items({ grants: {}, weapon: "radiance" }), kitForPage(112), "Odd Gift", SYSTEM_ID, { fields: LINKED_KIT_FIELDS, weapons: false }))
+			.toEqual({ update: null, missing: [] });
+	});
+
+	it("names in LINKED_KIT_FIELDS every field the linked pages' kits use", () => {
+		for (const page of LINKED_KIT_PAGES) {
+			const fields = Object.keys(kitForPage(page).ability ?? {});
+			expect(fields.some((field) => LINKED_KIT_FIELDS.includes(field))).toBe(true);
+		}
+	});
 });
 
 describe("what an Ability offers an Attack", () => {
@@ -103,7 +124,7 @@ describe("what an Ability offers an Attack", () => {
 
 	it("offers one that only adds a die, and says which dice the ticked ones add", () => {
 		const offers = abilityOffers([ability("charge", { bonusDie: "d12", grants: { alone: true } }), ability("odd", { bonusDie: "x" })]);
-		expect(offers).toEqual([{ id: "charge", name: "charge", grants: ["alone"], effects: [], bonusDie: "d12", needs: "", counted: false, chosen: true }]);
+		expect(offers).toEqual([{ id: "charge", name: "charge", grants: ["alone"], effects: [], bonusDie: "d12", needs: "", counted: false, active: false, crowd: 0, chosen: true }]);
 		expect(abilityOffers([ability("gaze", { grants: { ignoresArmour: true } })])[0].chosen).toBe(false);
 		expect(abilityOffers([ability("bite", { grants: { drain: true } })])[0].chosen).toBe(true);
 		const declared = declaredGrants({ ability: { charge: true }, declare: { spirit: true } }, offers);
@@ -129,7 +150,7 @@ describe("what an Ability offers an Attack", () => {
 	});
 
 	it("finds the Abilities that can do something besides", () => {
-		expect(ABILITY_POWERS).toEqual(["rerollPool", "deathWard", "coinFlip", "sigil"]);
+		expect(ABILITY_POWERS).toEqual(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs"]);
 		const items = [ability("ward", { deathWard: true }), ability("plain", {}), { type: "weapon", system: { deathWard: true } }];
 		expect(abilitiesWith(items, "deathWard").map((item) => item.id)).toEqual(["ward"]);
 		expect(abilitiesWith(null, "deathWard")).toEqual([]);

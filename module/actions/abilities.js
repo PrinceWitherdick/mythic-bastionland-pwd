@@ -1,10 +1,14 @@
 import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
+import { knightWithLists } from "../book-art/myth-tables.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
-import { KIT_WEAPON_KEYS, kitCatchUp, kitForPage, kitWeapons } from "../rules/ability-kits.js";
+import { BOOK_EFFECT_PAGES, KIT_WEAPON_KEYS, LINKED_KIT_FIELDS, LINKED_KIT_PAGES, kitCatchUp, kitForPage, kitWeapons } from "../rules/ability-kits.js";
 import { canTurnDie } from "../rules/attack.js";
 import { SIGIL_MAX, abilitiesWith, etchUpdate, fadedUpdate, sigilChoices } from "../rules/ability-uses.js";
 import { knightEntryByType } from "../rules/knight-tables.js";
+import { wantsList } from "../rules/book-art.js";
+import { bookListUpdate } from "../rules/creation.js";
+import { rulebookPath } from "../rulebook/store.js";
 import { countAfter, isCounted } from "../rules/restock.js";
 import { escapeHTML, splitName } from "../rules/text.js";
 import { downBy, slainUpdate } from "../rules/virtues.js";
@@ -27,7 +31,7 @@ import { isKnight } from "../rules/knight-types.js";
  * VIG 0 by more than Virtue Loss, so Slain, with that for a Knight's Ultimate fate if none is written.
  * @param {Actor} actor
  */
-async function slay(actor) {
+export async function slay(actor) {
 	await actor.update(slainUpdate(actor, t("fallen.fateChance")), causedBy("damage"));
 	await announceFallenKnight(actor, "slain");
 }
@@ -244,6 +248,9 @@ export async function rollChance(actor, item) {
 /** The world setup step giving Knights made before ABILITY_KITS what their Ability does. */
 export const ABILITY_KITS_STEP = "abilityKits";
 
+/** The step doing the same for the Knights whose kits came later, BOOK_EFFECT_PAGES. */
+export const BOOK_EFFECT_KITS_STEP = "abilityKitsBookEffects";
+
 /**
  * The names of the weapons Abilities give, by key, as knightItems takes them.
  * @returns {Record<string, string>}
@@ -255,18 +262,24 @@ export const kitWeaponNames = () => Object.fromEntries(KIT_WEAPON_KEYS.map((key)
  * from their page get them, where the Ability is still at the defaults, and
  * any weapon it gives that they don't carry yet, such as a bite. A world that
  * hasn't imported the book has no pages to go by.
+ * @param {object} [options]
+ * @param {readonly number[]} [options.pages] Only the Knights of these pages, as for kits added since,
+ *   so a setting a player turned off on an older kit isn't turned back on.
+ * @param {readonly string[]} [options.fields] Only these Ability fields, as for fields added to a kit since.
+ * @param {boolean} [options.weapons=true] Whether to give the kit weapons they don't carry.
  * @returns {Promise<void>}
  */
-export async function fillAbilityKits() {
+export async function fillAbilityKits({ pages = null, fields = null, weapons: giveWeapons = true } = {}) {
 	const index = await loadArtIndex().catch(() => null);
 	if (!index) return;
 	const names = kitWeaponNames();
 	for (const actor of game.actors) {
 		if (!isKnight(actor) || !actor.canUserModify(game.user, "update")) continue;
 		const entry = knightEntryByType(index, actor.system.knightType);
+		if (pages && !pages.includes(entry?.page)) continue;
 		const kit = entry?.ability ? kitForPage(entry.page) : null;
 		if (!kit) continue;
-		const { update, missing } = kitCatchUp(actor.items.contents, kit, entry.ability.name, SYSTEM_ID);
+		const { update, missing } = kitCatchUp(actor.items.contents, kit, entry.ability.name, SYSTEM_ID, { fields, weapons: giveWeapons });
 		const weapons = kitWeapons({ weapons: (kit.weapons ?? []).filter(({ key }) => missing.includes(key)) }, (key) => names[key] ?? key, SYSTEM_ID);
 		try {
 			if (update) await actor.updateEmbeddedDocuments("Item", [update]);
@@ -275,6 +288,49 @@ export async function fillAbilityKits() {
 			console.error(`${SYSTEM_ID} | Couldn't set up ${actor.uuid}'s Ability`, error);
 		}
 	}
+}
+
+/** A world setup step: fillAbilityKits for the Knights whose kits came later. */
+export const fillBookEffectKits = () => fillAbilityKits({ pages: BOOK_EFFECT_PAGES });
+
+/** The step doing the same for the Knights whose kits were given more since, LINKED_KIT_PAGES. */
+export const LINKED_KITS_STEP = "abilityKitsLinked";
+
+/** A world setup step: fillAbilityKits for LINKED_KIT_PAGES, their new fields only and no weapons. */
+export const fillLinkedKits = () => fillAbilityKits({ pages: LINKED_KIT_PAGES, fields: LINKED_KIT_FIELDS, weapons: false });
+
+/** The world setup step giving Knights made from an older import the list of choices their Ability ends on. */
+export const ABILITY_LISTS_STEP = "abilityLists";
+
+/**
+ * A world setup step. An import from before the lists of choices some
+ * Abilities end on were read left them stopping on a colon (p114, p166). The
+ * Knights holding those get the list, read from the rulebook the world keeps,
+ * where their description is still as that import wrote it. Without the
+ * rulebook it waits for a later load; importing the book again does it too.
+ * @returns {Promise<boolean|void>} False to try again next load.
+ */
+export async function fillAbilityLists() {
+	const index = await loadArtIndex().catch(() => null);
+	if (!index) return;
+	let waiting = false;
+	for (const actor of game.actors) {
+		if (!isKnight(actor) || !actor.canUserModify(game.user, "update")) continue;
+		const stale = knightEntryByType(index, actor.system.knightType);
+		if (!stale || !["ability", "passion"].some((part) => wantsList(stale[part]))) continue;
+		if (!rulebookPath()) {
+			waiting = true;
+			continue;
+		}
+		const entry = await knightWithLists(index, stale);
+		const updates = ["ability", "passion"].map((type) => bookListUpdate(actor.items.contents, type, entry[type])).filter(Boolean);
+		try {
+			if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
+		} catch (error) {
+			console.error(`${SYSTEM_ID} | Couldn't give ${actor.uuid} their Ability's list`, error);
+		}
+	}
+	if (waiting) return false;
 }
 
 /** Called during init. */

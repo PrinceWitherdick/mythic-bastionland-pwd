@@ -1,4 +1,5 @@
 import { findByRoll } from "../book-art/art-index.js";
+import { knightWithLists } from "../book-art/myth-tables.js";
 import { askActiveGM } from "../ask-gm.js";
 import { t, warn } from "../chat/cards.js";
 import { deletionEntry, queryAsker, replacementEntry } from "../compat.js";
@@ -49,7 +50,7 @@ export async function makeNpcKnight(roll, index) {
 	const { scores } = await rollStartScores(start);
 	const update = knightUpdate({ start, virtues: scores, guard: scores.guard, knight, seer });
 	const kitNames = Object.fromEntries(STANDARD_KIT.map(({ key }) => [key, t(`chooser.kit.${key}`)]));
-	const items = knightItems(knight, kitNames, kitWeaponNames());
+	const items = knightItems(await knightWithLists(index, knight), kitNames, kitWeaponNames());
 	const folder = (await npcFolder())?.id ?? null;
 	const name = rollKnightName(Math.random, worldKnights().map((actor) => actor.name));
 	return createKnightWithCompanions({ name, update, items, folder, type: NPC_KNIGHT_TYPE });

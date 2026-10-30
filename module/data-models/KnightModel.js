@@ -1,5 +1,6 @@
 import { AGES } from "../config.js";
 import { armourTotal } from "../rules/armour.js";
+import { stanceOf } from "../rules/stances.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { SCORES, clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
@@ -69,8 +70,10 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 		this.rank = rankForGlory(this.glory);
 		this.nextRank = nextRank(this.glory);
 		this.conditions = conditionsFor(this);
+		// What the stances they've taken up do to their Armour (p40, p78, p82).
+		this.stance = stanceOf(this.parent.items.filter((item) => item.type === "ability"));
 		// One of each type counts, and only while its condition holds (p12).
-		this.armour = armourTotal(this.parent.items.filter((item) => item.type === "armour").map((item) => item.system), this.conditions);
+		this.armour = armourTotal(this.parent.items.filter((item) => item.type === "armour").map((item) => item.system), { ...this.conditions, stance: this.stance });
 	}
 
 	/**

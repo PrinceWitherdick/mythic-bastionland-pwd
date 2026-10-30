@@ -3,6 +3,7 @@ import { ABILITY_NEEDS, ABILITY_POWERS, ATTACK_GRANTS, SIGIL_MAX } from "../rule
 import { AFFLICTION_TIMES } from "../rules/afflictions.js";
 import { RARITIES, specialistRarity } from "../rules/arms-and-goods.js";
 import { ARMOUR_CONDITIONS } from "../rules/armour.js";
+import { STANCE_LAPSES } from "../rules/stances.js";
 import { ALTERNATE_QUALITIES, DIE_SIZES, SPECIALIST_DICE } from "../rules/attack.js";
 import { bearsRemedies, overRemedyLimit } from "../rules/remedies.js";
 import { ABILITY_CADENCES, RESTOCK_CADENCES } from "../rules/restock.js";
@@ -154,7 +155,9 @@ export class GearModel extends PossessionModel {
 			// A poison, as strong as it is rare (p12).
 			poison: booleanField(),
 			// Odds it holds what's wanted, as a bag of tomes that holds it 1 time in 2 (p88). Blank for none.
-			chance: new fields.SchemaField({ in: optionalCount(), of: optionalCount() })
+			chance: new fields.SchemaField({ in: optionalCount(), of: optionalCount() }),
+			// Keeps its bearer in the saddle, so no Dismount throws them, as a fine saddle does (p44).
+			keepsSeat: booleanField()
 		};
 	}
 
@@ -215,12 +218,30 @@ export class AbilityModel extends DescribedModel {
 			grants: new fields.SchemaField(Object.fromEntries(ATTACK_GRANTS.map((key) => [key, booleanField()]))),
 			// A die it adds to an Attack it's used in, as a charge's +d12 (p92).
 			bonusDie: dieField(),
-			// The only kind of Attack it's used in: a melee one (p68), a mounted charge (p92), or any.
+			// Offered unticked in the Attack dialog, since it's only for some blows, as against a known liar (p28).
+			situational: booleanField(),
+			// The only kind of Attack it's used in: a melee one (p68), a mounted charge (p92), any, or another of ABILITY_NEEDS.
 			needs: new fields.StringField({ required: true, blank: true, initial: "", choices: ABILITY_NEEDS }),
 			// A die it gives for the rest of a fight, added to each Attack until the Combat ends.
 			lastingDie: dieField(),
+			// Whether that die is given, by itself, to the weapon each of its Wounds is dealt with (p98).
+			tempers: booleanField(),
+			// Ticked in the Attack dialog once each side of their Combat has this many standing (p38), or 0.
+			crowd: countField(),
+			// The weapon it gave, by its kit key, an Attack with which spends one of its uses (p112).
+			weapon: textField(),
 			// What else it can do: see ABILITY_POWERS.
 			...Object.fromEntries(ABILITY_POWERS.map((key) => [key, booleanField()])),
+			// A stance it's taken up in (module/rules/stances.js): Armour it counts as at least (p40), Armour
+			// it adds (p82), or a shield doubled (p78). Flat, so a kit can catch an older Knight up on each.
+			armourFloor: optionalCount(),
+			armourBonus: countField(),
+			doublesShield: booleanField(),
+			// Whether the stance ends on its own as its Knight's next turn starts, and whether a Gambit spent
+			// on Moving takes it up (p40).
+			lapses: new fields.StringField({ required: true, blank: true, initial: "", choices: STANCE_LAPSES }),
+			onMove: booleanField(),
+			inEffect: booleanField(),
 			// The number its rune is etched for tonight, and last night's, which can't be tonight's (p100).
 			sigilNumber: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: SIGIL_MAX, initial: null }),
 			sigilLast: new fields.NumberField({ required: true, nullable: true, integer: true, min: 1, max: SIGIL_MAX, initial: null })

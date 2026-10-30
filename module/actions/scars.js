@@ -11,6 +11,18 @@ import { timelineScar, timelineScarSettled } from "./timeline-events.js";
 import { worldKnights } from "./knights.js";
 
 /**
+ * The d6 that said where a Scar landed, read back from the place it names.
+ * @param {{key: string, detail?: boolean}} scar The Scar table's entry.
+ * @param {string|null} location
+ * @returns {number|null}
+ */
+function detailOf(scar, location) {
+	if (!scar.detail || !location) return null;
+	const found = [1, 2, 3, 4, 5, 6].find((roll) => t(`scars.${scar.key}.detail.${roll}`) === location);
+	return found ?? null;
+}
+
+/**
  * Re-roll the die that caused a Scar and read the Scar table (p9). When the
  * player agrees, the Scar is recorded on the Knight and its immediate effects
  * are applied: Virtue Loss, and a max GD increase where the entry grants one
@@ -20,6 +32,8 @@ import { worldKnights } from "./knights.js";
  * @param {object} [options]
  * @param {number} [options.faces=6] The die that dealt the Scar, selected in the dialog.
  * @param {string} [options.by] Actor UUID of whoever dealt the blow, when an Attack card knows.
+ * @returns {Promise<{roll: number, key: string, location: string|null, faces: number, apply: boolean}|null>} The
+ *   Scar's table entry, where it landed, the die rolled and whether it was recorded, or null if the dialog was closed.
  */
 export async function rollScar(actor, { faces: caused, by } = {}) {
 	const preset = DIE_SIZES.includes(caused) ? caused : 6;
@@ -37,17 +51,41 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 
 	const scarRoll = await new Roll(`1d${faces}`).evaluate();
 	const scar = scarForRoll(scarRoll.total);
-	const text = (part) => t(`scars.${scar.key}.${part}`);
 	const rolls = [scarRoll];
-	const lines = [];
-	const update = {};
 
 	let location = null;
+	let detail = null;
 	if (scar.detail) {
 		const detailRoll = await new Roll("1d6").evaluate();
 		rolls.push(detailRoll);
-		location = t(`scars.${scar.key}.detail.${detailRoll.total}`);
+		detail = detailRoll.total;
+		location = t(`scars.${scar.key}.detail.${detail}`);
 	}
+	await giveScar(actor, { scar, location, detail, faces, by, apply, rolls });
+	return { ...scar, location, detail, faces, apply };
+}
+
+/**
+ * Give somebody a Scar already rolled: its Virtue Loss and any GD it raises
+ * straight away are rolled for them, it's recorded on them, and a card says
+ * so. Rolled for one and given to another too, as a Scar some Knights give
+ * back to whoever dealt it (p116).
+ * @param {Actor} actor
+ * @param {object} scarred
+ * @param {object} scarred.scar          The Scar table's entry, from scarForRoll.
+ * @param {string|null} [scarred.location] Where it landed, for one that says.
+ * @param {number|null} [scarred.detail] The d6 that said where, read back from the location when not given.
+ * @param {number} scarred.faces         The die that dealt it, for the card.
+ * @param {string} [scarred.by]          Actor UUID of whoever dealt it, owed revenge for a Humiliation.
+ * @param {boolean} [scarred.apply=true] Recorded on them, and its losses taken, or only shown.
+ * @param {Roll[]} [scarred.rolls]       Rolls made for it already, shown on its card.
+ * @returns {Promise<void>}
+ */
+export async function giveScar(actor, { scar, location = null, detail = null, faces, by, apply = true, rolls: rolled = [] }) {
+	const text = (part) => t(`scars.${scar.key}.${part}`);
+	const rolls = [...rolled];
+	const lines = [];
+	const update = {};
 
 	if (scar.loss) {
 		const { virtue, formula } = scar.loss;
@@ -79,6 +117,7 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 			name: location ? `${name} (${location})` : name,
 			system: {
 				roll: scar.roll,
+				detail: detail ?? detailOf(scar, location),
 				// Doom lasts the Season it was taken in.
 				season: seasonKey(getCalendar()),
 				foe: foe?.uuid ?? "",
@@ -100,8 +139,6 @@ export async function rollScar(actor, { faces: caused, by } = {}) {
 			lines
 		}, { rolls })
 	]);
-
-	return scar;
 }
 
 /**

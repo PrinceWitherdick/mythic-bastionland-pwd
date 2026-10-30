@@ -6,6 +6,7 @@
 import { stripHTML } from "./text.js";
 import { countAfter, isCounted, isUsedUp, restockUpdates } from "./restock.js";
 import { isKnight } from "./knight-types.js";
+import { stanceTicks } from "./stances.js";
 
 /** How many uses, as a count word or "N times". */
 const COUNTS = Object.freeze({ once: 1, twice: 2, thrice: 3 });
@@ -65,7 +66,14 @@ export function usesFrom(text) {
  * (p56), and what a Wound from it does besides: the VIG it costs taken back,
  * normal sleep, or a memory shown (p166).
  */
-export const ATTACK_GRANTS = Object.freeze(["blast", "ignoresArmour", "strongGambits", "spirit", "drain", "sleep", "memory", "shatters", "alone", "combine"]);
+export const ATTACK_GRANTS = Object.freeze(["blast", "ignoresArmour", "ignoresImmunity", "strongGambits", "spirit", "drain", "sleep", "memory", "shatters", "alone", "combine", "backlash", "rally"]);
+
+/**
+ * Grants that only an Ability lends, never declared on their own: Damage
+ * taken back should the foe stay up (p54), and the allies' SPI restored should
+ * the foe go down (p74).
+ */
+export const ABILITY_ONLY_GRANTS = Object.freeze(["backlash", "rally"]);
 
 /**
  * What a Wound from a blow can do besides, of which an Ability offering more
@@ -84,7 +92,7 @@ export const OPEN_GRANTS = Object.freeze(["blast", "ignoresArmour", "strongGambi
  * @returns {readonly string[]} The grants they may declare on their own: a
  *   Knight only OPEN_GRANTS, and the Referee's Cast, who keep no Abilities, any.
  */
-export const declarableBy = (actor) => (isKnight(actor) ? OPEN_GRANTS : ATTACK_GRANTS);
+export const declarableBy = (actor) => (isKnight(actor) ? OPEN_GRANTS : ATTACK_GRANTS.filter((key) => !ABILITY_ONLY_GRANTS.includes(key)));
 
 /**
  * Grants that change how one blow is made or lands, so they're chosen blow by
@@ -96,16 +104,19 @@ export const CHOSEN_GRANTS = Object.freeze(["spirit", ...WOUND_EFFECTS, "shatter
 /**
  * What an Ability can do besides lending an Attack something, each a box on
  * its sheet: roll a joint Attack's whole pool again (p62), take an ally's
- * Mortal Wound (p66), flip a coin for a life (p120), and etch a rune for a
- * number at sunset (p100).
+ * Mortal Wound (p66), flip a coin for a life (p120), etch a rune for a
+ * number at sunset (p100), swear a quest that holds GD back (p94), blow a horn
+ * that doubles the VIG lost to Damage (p72), give back a Wound or Scar to
+ * whoever dealt it (p116), and take a limb or a head with a Strong Gambit (p114).
  */
-export const ABILITY_POWERS = Object.freeze(["rerollPool", "deathWard", "coinFlip", "sigil"]);
+export const ABILITY_POWERS = Object.freeze(["rerollPool", "deathWard", "coinFlip", "sigil", "oath", "wildHorn", "mirror", "severs"]);
 
 /**
  * The only kind of Attack an Ability can be used in, as its words say: any, a
- * melee Attack (p68), or a mounted charge (p92).
+ * melee Attack (p68), a mounted charge (p92), a shot (p50), a blow with a
+ * shield (p78), or a melee Attack made without moving this turn (p54).
  */
-export const ABILITY_NEEDS = Object.freeze(["", "melee", "charge"]);
+export const ABILITY_NEEDS = Object.freeze(["", "melee", "charge", "ranged", "shield", "still"]);
 
 /**
  * @typedef {object} AbilityOffer An Ability the Attack dialog offers.
@@ -116,7 +127,10 @@ export const ABILITY_NEEDS = Object.freeze(["", "melee", "charge"]);
  * @property {string} bonusDie A die it adds to the Attack, such as "d12", or "".
  * @property {string} needs One of ABILITY_NEEDS.
  * @property {boolean} counted Whether using it spends one of its uses.
- * @property {boolean} chosen Whether it's used blow by blow, lending a die or one of CHOSEN_GRANTS.
+ * @property {boolean} active Whether a stance it's in adds it to every blow, so it comes ticked (p82).
+ * @property {number} crowd How many must stand on each side of their Combat for it to come ticked (p38), or 0.
+ * @property {boolean} chosen Whether it's used blow by blow: lending a die or one of CHOSEN_GRANTS, or
+ *   marked as only for some blows, as an Ability good against a known liar is (p28).
  */
 
 /**
@@ -146,7 +160,9 @@ export function abilityOffers(items) {
 				bonusDie,
 				needs: ABILITY_NEEDS.includes(item.system?.needs) ? item.system.needs : "",
 				counted: isCounted(item.system),
-				chosen: Boolean(bonusDie) || grants.some((key) => CHOSEN_GRANTS.includes(key))
+				active: stanceTicks(item.system),
+				crowd: Number.isInteger(item.system?.crowd) && item.system.crowd > 0 ? item.system.crowd : 0,
+				chosen: Boolean(bonusDie) || grants.some((key) => CHOSEN_GRANTS.includes(key)) || Boolean(item.system?.situational)
 			};
 		})
 		.filter((offer) => offer.grants.length || offer.bonusDie);
@@ -196,15 +212,85 @@ export function declaredGrants(choice, offers, open = ATTACK_GRANTS) {
 
 /**
  * Why an Ability ticked for a blow can't be used in it, as its words limit it:
- * only in melee (p68), or only on a mounted charge (p92).
+ * only in melee (p68), only on a mounted charge (p92), only with a shot
+ * (p50), only with a shield (p78), or only in melee without having moved (p54).
  * @param {AbilityOffer[]} used
- * @param {{melee: boolean, charging: boolean}} blow How the Attack is made.
+ * @param {{melee: boolean, charging: boolean, shield?: boolean, moved?: boolean}} blow How the Attack is made.
  * @returns {{name: string, needs: string}|null} The first Ability refused, or null.
  */
-export function unmetNeed(used, { melee, charging }) {
-	const refused = used.find(({ needs }) => (needs === "melee" && !melee) || (needs === "charge" && !charging));
+export function unmetNeed(used, { melee, charging, shield = false, moved = false }) {
+	const met = {
+		melee: () => melee,
+		charge: () => charging,
+		ranged: () => !melee,
+		shield: () => melee && shield,
+		still: () => melee && !moved
+	};
+	const refused = used.find(({ needs }) => met[needs] && !met[needs]());
 	return refused ? { name: refused.name, needs: refused.needs } : null;
 }
+
+/**
+ * @typedef {object} SideEntry Somebody in a Combat, as the sides are counted.
+ * @property {number} [disposition] Their Token's, from CONST.TOKEN_DISPOSITIONS. With no Token,
+ *   nothing says whose side they're on, so they aren't counted.
+ * @property {boolean} standing Still fighting: not defeated, Slain or down dying.
+ * @property {boolean} [present] False for somebody on another Scene, or hidden, who isn't
+ *   in sight of this fight. Hidden ambushers counted would give them away.
+ * @property {boolean} [warband] A Warband, which is a crowd on its own (p11).
+ */
+
+/**
+ * Whether a Warband is still in the battle: not routed, surrendered or wiped out (p11).
+ * A broken one is still in it, fighting for itself.
+ * @param {{routed?: boolean, surrendered?: boolean, wipedOut?: boolean}|null|undefined} warband NpcModel's `warband`.
+ * @returns {boolean}
+ */
+export const warbandFighting = (warband) => !(warband?.routed || warband?.surrendered || warband?.wipedOut);
+
+/** How many a Warband counts for as the sides are counted: as many as any Ability asks. */
+const WARBAND_COUNT = 20;
+
+/** CONST.TOKEN_DISPOSITIONS.NEUTRAL: a bystander, on nobody's side. */
+const NEUTRAL = 0;
+
+/** CONST.TOKEN_DISPOSITIONS.SECRET: whose side they're on is hidden. */
+const SECRET = -2;
+
+/** Dispositions that put a Token on neither side. */
+const SIDELESS = Object.freeze([NEUTRAL, SECRET]);
+
+/**
+ * How many stand on each side of a Combat (p38): those whose Tokens share a
+ * disposition with this one, them included, and those against them. Neutral
+ * Tokens are bystanders, and Secret ones keep their side hidden, so neither
+ * counts for anybody, and a Warband counts as a crowd. Somebody Neutral or
+ * Secret themself stands on no side to count.
+ * @param {SideEntry[]} entries Everybody in the Combat but them.
+ * @param {SideEntry} self
+ * @returns {{ours: number, theirs: number}|null} Null when they're on no side.
+ */
+export function sideCounts(entries, self) {
+	if (typeof self?.disposition !== "number" || SIDELESS.includes(self.disposition)) return null;
+	const weight = (entry) => (entry.standing ? (entry.warband ? WARBAND_COUNT : 1) : 0);
+	let ours = weight(self);
+	let theirs = 0;
+	for (const entry of entries) {
+		if (entry.present === false || typeof entry.disposition !== "number") continue;
+		if (entry.disposition === self.disposition) ours += weight(entry);
+		else if (!SIDELESS.includes(entry.disposition)) theirs += weight(entry);
+	}
+	return { ours, theirs };
+}
+
+/**
+ * The Abilities an Attack with these weapons spends a use of, as one that
+ * gives a burst of light is spent each time it's let loose (p112).
+ * @param {{id: string, type: string, system: object}[]} items An actor's items.
+ * @param {string[]} keys The kit keys of the weapons the Attack is made with.
+ * @returns {object[]} Those Abilities.
+ */
+export const linkedAbilities = (items, keys) => (items ?? []).filter((item) => item.type === "ability" && item.system?.weapon && keys.includes(item.system.weapon));
 
 /** The highest number a rune can be etched for: the most a d20 shows. */
 export const SIGIL_MAX = 20;

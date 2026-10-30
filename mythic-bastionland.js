@@ -42,7 +42,8 @@ import { registerAskReferee } from "./module/actions/ask-referee.js";
 import { registerSeatingLater } from "./module/actions/starts.js";
 import { registerReplaceMyth } from "./module/actions/myth-resolve.js";
 import { registerRulerDeaths } from "./module/actions/dominion.js";
-import { registerUnhorsed } from "./module/actions/damage.js";
+import { registerAbilityBlows, registerUnhorsed } from "./module/actions/damage.js";
+import { registerLastingQueries } from "./module/actions/lasting-dice.js";
 import { TEST_WORLD_MACRO_STEP, seedTestWorldMacro, syncTestWorldMacro, populateTestWorld } from "./module/actions/test-world-macro.js";
 import { REFEREE_NAME_STEP, TOOLKIT_MACRO_STEP, ensureToolkitHotbar, renameOldToolkit, seedToolkitMacro } from "./module/actions/toolkit-macro.js";
 import { registerOmenEntered, wildernessRoll } from "./module/actions/wilderness.js";
@@ -93,6 +94,7 @@ import { registerOmenSceneCards } from "./module/actions/omen-scenes.js";
 import { registerOffCourse } from "./module/actions/off-course.js";
 import { registerDuelCards } from "./module/chat/duel-card.js";
 import { registerLeadingHooks } from "./module/actions/leading.js";
+import { registerStanceHooks } from "./module/actions/stances.js";
 import { DomainModel } from "./module/data-models/DomainModel.js";
 import { GmToolkitModel } from "./module/data-models/GmToolkitModel.js";
 import { KnightModel } from "./module/data-models/KnightModel.js";
@@ -149,7 +151,7 @@ import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-s
 import { restAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
-import { ABILITY_KITS_STEP, fillAbilityKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
+import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
 
 const ITEM_MODELS = {
 	weapon: WeaponModel,
@@ -355,6 +357,7 @@ Hooks.once("init", () => {
 
 	// A Warband's leader stops sharing its Damage when their next turn starts.
 	registerLeadingHooks();
+	registerStanceHooks();
 	// The players act first in a fight (p8): nobody rolls initiative.
 	registerTurnOrder();
 	registerSurpriseHooks();
@@ -507,6 +510,9 @@ Hooks.once("init", () => {
 	registerRulerDeaths();
 	// A steed brought down throws its rider, for d6 (p10).
 	registerUnhorsed();
+	registerAbilityBlows();
+	// A weapon tempered by a Wound its owner can't record for the user applying it (p98).
+	registerLastingQueries();
 	registerCollisions();
 	// What the Company saw from afar is found once it gets there.
 	registerSightings();
@@ -647,8 +653,17 @@ const WORLD_SETUP = Object.freeze([
 	// Again, for the odds a possession gives (p88), the Virtue it costs should something befall it (p62)
 	// and Damage that burns on (p173), read since.
 	{ key: "possessionOddsAndLosses", run: fillPossessionDetails, repeats: POSSESSION_DETAILS_STEP },
+	// Again, for a possession that keeps its bearer in the saddle (p44), read since.
+	// Only that detail, so the others a Referee cleared since aren't put back.
+	{ key: "possessionSeats", run: () => fillPossessionDetails({ only: ["keepsSeat"] }), repeats: POSSESSION_DETAILS_STEP },
 	// Knights made before their Ability's settings, and any weapon it gives, came from their page.
 	{ key: ABILITY_KITS_STEP, run: fillAbilityKits },
+	// Knights made from an import that stopped their Ability at the colon before its list of choices.
+	{ key: ABILITY_LISTS_STEP, run: fillAbilityLists },
+	// Again, for the Knights whose Abilities were given settings later, and only those.
+	{ key: BOOK_EFFECT_KITS_STEP, run: fillBookEffectKits, repeats: ABILITY_KITS_STEP },
+	// Again, for the Abilities that count the sides, temper a weapon, or are spent by the weapon they give.
+	{ key: LINKED_KITS_STEP, run: fillLinkedKits, repeats: ABILITY_KITS_STEP },
 	// Worlds that imported the book before a weapon's Damage could burn on each round (p173).
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// Again, for the Cast the book fields only as Warbands though their names don't say so.

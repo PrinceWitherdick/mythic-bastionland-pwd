@@ -28,6 +28,7 @@ import {
 	harmTargetOf,
 	hasDeniableDie,
 	isIndividual,
+	isShieldItem,
 	knownWeakness,
 	parseDice,
 	shareOf,
@@ -41,10 +42,12 @@ import {
 } from "../rules/attack.js";
 import { dieMask } from "../rules/die-shapes.js";
 import { impairedItem, impairsWhole } from "../rules/gambit-marks.js";
-import { countAfter, isAtHand, isCounted } from "../rules/restock.js";
+import { countAfter, isAtHand, isCounted, isUsedUp } from "../rules/restock.js";
 import { stripHTML } from "../rules/text.js";
-import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, readyForAttack, unmetNeed } from "../rules/ability-uses.js";
+import { WOUND_EFFECTS, abilitiesWith, abilityOffers, abilityUpdatesAfterAttack, declarableBy, declaredGrants, etchedNumber, linkedAbilities, readyForAttack, sideCounts, unmetNeed, warbandFighting } from "../rules/ability-uses.js";
+import { KIT_FLAG } from "../rules/ability-kits.js";
 import { combatantOf, keepLastingDice, lastingDiceOf, lastingDieLabel } from "./lasting-dice.js";
+import { diceForBlow } from "../rules/lasting-dice.js";
 import { downBy } from "../rules/virtues.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { chatIsPublic, playBlowFx } from "./attack-fx.js";
@@ -126,7 +129,7 @@ function armedWith(actor) {
 			item,
 			// Both ways of a weapon fought two ways name it, so only one of them is ticked, and
 			// so do attacks printed with "or" between them.
-			system: { ...Object.fromEntries(WIELDED_KEYS.map((key) => [key, item.system[key]])), of: item.system.either || item.id }
+			system: { ...Object.fromEntries(WIELDED_KEYS.map((key) => [key, item.system[key]])), of: item.system.either || item.id, shield: isShieldItem(item) }
 		}));
 }
 
@@ -583,6 +586,8 @@ async function planAttack(actor, joining = null) {
 	// Dice they keep for the rest of the fight.
 	const combatant = combatantOf(actor);
 	const lasting = lastingDiceOf(actor, combatant).map((die) => ({ ...die, label: die.label || t("attack.bonus") }));
+	// How many stand on each side of their Combat, for an Ability that needs a crowd (p38).
+	const sides = offers.some((offer) => offer.crowd) ? sidesAround(combatant) : null;
 
 	const data = await inputDialog({
 		title: joining ? t("attack.joinTitle", { name: joining.attackerName ?? fromUuidSync(joining.attacker)?.name ?? "" }) : t("attack.title"),
@@ -634,9 +639,10 @@ async function planAttack(actor, joining = null) {
 						offer.needs && t(`attack.needs.${offer.needs}Tag`)
 					].filter(Boolean).join(", ")
 				}),
-				hint: t(offer.counted ? "attack.useAbilityHint" : offer.chosen ? "attack.useAbilityChosenHint" : "attack.useAbilityFreeHint"),
-				// One used blow by blow, such as a bite that drinks, waits to be ticked like one with uses.
-				checked: !offer.counted && !offer.chosen,
+				hint: crowdHint(offer, sides) ?? t(offer.counted ? "attack.useAbilityHint" : offer.chosen ? "attack.useAbilityChosenHint" : "attack.useAbilityFreeHint"),
+				// One used blow by blow, such as a bite that drinks, waits to be ticked like one with uses,
+				// unless it's only for a crowd and the crowd is there (p38).
+				checked: offer.active || crowdMet(offer, sides) || (!offer.counted && !offer.chosen),
 				// What a Wound from it does, picked before the blow where it could do more than one thing (p166).
 				effects: offer.effects.map((key, index) => ({ key, label: t(`attack.grant.${key}`), selected: index === 0 }))
 			})),
@@ -665,18 +671,28 @@ async function planAttack(actor, joining = null) {
 		ui.notifications.warn(t("attack.aloneJoin", { name: actor.name }));
 		return null;
 	}
+	// What strikes: those ticked, less any set aside, such as a shield a foe's Trap holds (p10).
+	const chosen = check.usable.map((index) => picked[index]);
 	// An Ability used only in melee (p68), or only on a mounted charge (p92). Without a steed that
 	// tramples there's no charge box, so riding in after moving is the charge.
 	const unmet = unmetNeed(declared.used, {
-		melee: !picked.some((item) => item.system.ranged),
-		charging: mount ? Boolean(choice.charge) : Boolean(choice.mounted && choice.moved)
+		melee: !chosen.some((source) => source.system.ranged),
+		charging: mount ? Boolean(choice.charge) : Boolean(choice.mounted && choice.moved),
+		shield: chosen.some((source) => source.system.shield),
+		moved: Boolean(choice.moved || choice.charge)
 	});
 	if (unmet) {
 		ui.notifications.warn(t(`attack.needs.${unmet.needs}`, { name: unmet.name }));
 		return null;
 	}
 	const riding = Boolean(choice.mounted || choice.charge);
-	const chosen = check.usable.map((index) => picked[index]);
+	// A weapon an Ability gave, such as a burst of light, spends one of its uses (p112).
+	const linked = linkedAbilities(Array.from(actor.items ?? []), chosen.map((source) => source.item.flags?.[SYSTEM_ID]?.[KIT_FLAG]).filter(Boolean));
+	const spent = linked.find((item) => item.system.restock !== "attack" && isUsedUp(item.system));
+	if (spent) {
+		ui.notifications.warn(t("ability.usedUp", { name: spent.name }));
+		return null;
+	}
 	// Leading from the front adds the leader's Attack dice to the Warband's roll (p11).
 	const leader = leaders.find((candidate) => candidate.uuid === choice.leader) ?? null;
 	// What rolls, each group's dice labelled with the item or whoever brings them. The actor's
@@ -710,7 +726,13 @@ async function planAttack(actor, joining = null) {
 
 	const typedBonus = parseDice(choice.bonus).map((faces) => ({ faces, label: t("attack.bonus") }));
 	// Their dice for the rest of the fight, each left out only when unticked.
-	const bonusDice = [...typedBonus, ...lasting.filter((_die, index) => choice.lasting?.[index]).map(({ faces, label }) => ({ faces, label }))];
+	// One kept for melee only sits out a shot (p32, p98).
+	// One given to a weapon joins only a blow made with it, and is that weapon's own die (p98).
+	const keptForBlow = diceForBlow(lasting.filter((_die, index) => choice.lasting?.[index]), {
+		melee: !picked.some((item) => item.system.ranged),
+		items: chosen.map((source) => source.item.id)
+	});
+	const bonusDice = [...typedBonus, ...keptForBlow.map(({ faces, label, item }) => ({ faces, label, ...(item ? { item } : {}) }))];
 	// A specialist weapon's die joins only when it's wielded in the situation it's made for (p12).
 	for (const item of chosen.filter((candidate) => choice.specialist?.[candidate.id])) {
 		const die = specialistDie(item.system);
@@ -769,7 +791,7 @@ async function planAttack(actor, joining = null) {
 		// A charge that shatters the lance it's made with (p92).
 		if (declared.shatters) await shatter(chosen);
 		// An Ability good once an Attack is ready again for this one, and those used here spend a use.
-		const abilities = abilityUpdatesAfterAttack(Array.from(actor.items ?? []), declared.used.map((offer) => offer.id));
+		const abilities = abilityUpdatesAfterAttack(Array.from(actor.items ?? []), [...new Set([...declared.used.map((offer) => offer.id), ...linked.map((item) => item.id)])]);
 		// Bonus dice kept with them for the rest of the fight, as an Ability that grows with each blow says.
 		await Promise.all([
 			abilities.length && actor.isOwner ? actor.updateEmbeddedDocuments("Item", abilities) : null,
@@ -804,13 +826,67 @@ async function planAttack(actor, joining = null) {
 }
 
 /**
+ * What an Ability that tempers its weapon gives a melee blow (p98): its die,
+ * and the weapons the blow is made with, one of which a Wound will temper.
+ * @param {Actor} actor
+ * @param {object[]} chosen The weapons wielded, as attackSources gives them.
+ * @returns {import("../rules/lasting-dice.js").Temper|null}
+ */
+function temperOf(actor, chosen) {
+	const ability = Array.from(actor.items ?? []).find((item) => item.type === "ability" && item.system.tempers && parseDice(item.system.lastingDie).length);
+	// Read off the mode each is wielded in, as a bolt-guisarme is in melee or shot (p98).
+	const weapons = chosen.filter((source) => source.item.type === "weapon" && !source.system.ranged).map(({ item }) => ({ id: item.id, name: item.name }));
+	if (!ability || !weapons.length) return null;
+	return { label: ability.name, faces: parseDice(ability.system.lastingDie)[0], weapons: [...new Map(weapons.map((weapon) => [weapon.id, weapon])).values()] };
+}
+
+/**
+ * How many stand on each side of somebody's Combat (p38).
+ * @param {Combatant|null} combatant Their place in it.
+ * @returns {{ours: number, theirs: number}|null} Null outside a Combat, or with no Token to say whose side they're on.
+ */
+function sidesAround(combatant) {
+	const disposition = combatant?.token?.disposition;
+	if (!combatant?.combat || typeof disposition !== "number") return null;
+	const entry = (each) => ({
+		disposition: each.token?.disposition,
+		present: each.sceneId === combatant.sceneId && !each.hidden && !each.token?.hidden,
+		standing: Boolean(each.actor) && !each.isDefeated && !downBy(each.actor.system) && warbandFighting(each.actor.system.warband),
+		warband: each.actor?.system?.scale === "warband"
+	});
+	return sideCounts([...combatant.combat.combatants].filter((each) => each !== combatant).map(entry), entry(combatant));
+}
+
+/**
+ * @param {import("../rules/ability-uses.js").AbilityOffer} offer
+ * @param {{ours: number, theirs: number}|null} sides
+ * @returns {boolean} Whether enough stand on each side for an Ability that needs a crowd (p38).
+ */
+const crowdMet = (offer, sides) => Boolean(offer.crowd && sides && sides.ours >= offer.crowd && sides.theirs >= offer.crowd);
+
+/**
+ * What an Ability that needs a crowd says of the one there (p38).
+ * @param {import("../rules/ability-uses.js").AbilityOffer} offer
+ * @param {{ours: number, theirs: number}|null} sides
+ * @returns {string|null} Null for any other Ability.
+ */
+function crowdHint(offer, sides) {
+	if (!offer.crowd) return null;
+	if (!sides) return t("attack.crowdUnknown", { count: offer.crowd });
+	return t(crowdMet(offer, sides) ? "attack.crowdMet" : "attack.crowdShort", { count: offer.crowd });
+}
+
+/**
  * What an Attack card says of how the Attack was made, beyond its dice.
  * @param {AttackPlan} plan
  * @returns {object} Part of an AttackState.
  */
 function madeWith({ actor, choice, chosen, picked, check, pool, smite, leader, warband, blast, declared, impairedWeapon }) {
+	const melee = !chosen.some((item) => item.system.ranged);
 	return {
-		melee: !chosen.some((item) => item.system.ranged),
+		melee,
+		// A Wound dealt with one of these weapons gives it a die for the rest of the fight (p98).
+		tempers: melee ? temperOf(actor, chosen) : null,
 		// A Long weapon takes both hands (p12), so no shield is held while it's fought with.
 		twoHanded: chosen.some((item) => !item.system.noHand && heldAs(item.system, Boolean(choice?.mounted || choice?.charge)).long),
 		impaired: pool.impaired,
@@ -823,6 +899,11 @@ function madeWith({ actor, choice, chosen, picked, check, pool, smite, leader, w
 		ignoresArmour: Boolean(declared?.ignoresArmour) || chosen.some((item) => item.system.ignoresArmour),
 		// Gambits from this Attack's dice are Strong without an 8+, as an Ability may make them.
 		strongGambits: Boolean(declared?.strongGambits),
+		// Nothing keeps its target from harm (p54).
+		ignoresImmunity: Boolean(declared?.ignoresImmunity),
+		// Its maker takes d6 should the target stay up (p54), or their allies' SPI comes back should it fall (p74).
+		backlash: Boolean(declared?.backlash),
+		rally: Boolean(declared?.rally),
 		// Its maker takes back the VIG a Wound costs (p166), or its Damage comes off SPI (p68).
 		drain: Boolean(declared?.drain),
 		spirit: Boolean(declared?.spirit),

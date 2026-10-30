@@ -1,3 +1,7 @@
+import { endStanceFromMove, takeStanceOnMove } from "../actions/stances.js";
+import { keepsSeat } from "../rules/property.js";
+import { abilitiesWith } from "../rules/ability-uses.js";
+import { isBladedName } from "../rules/attack-fx.js";
 import { cardTarget, dieLabel, joinAttack, poolRerollers, renderAttackCard, showRolls, sigilHolders } from "../actions/attack.js";
 import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
@@ -6,7 +10,7 @@ import { rollSave } from "../actions/saves.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout, tokenBox, withinArmsReach } from "../rules/armour.js";
+import { greaterEffects, npcArmourWithout, severEffects, tokenBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -40,7 +44,7 @@ import { ATTACK_FLAG, attackOf } from "./attack-flag.js";
 import { queryAsker } from "../compat.js";
 import { onCardClick, plural, statefulCard, t, warn } from "./cards.js";
 import { causedBy } from "../actions/ledger.js";
-import { askRuneTurn, spendUse } from "../actions/abilities.js";
+import { askRuneTurn, slay, spendUse } from "../actions/abilities.js";
 import { worldKnights } from "../actions/knights.js";
 import { KNIGHT_TYPES } from "../rules/knight-types.js";
 
@@ -334,7 +338,8 @@ function watchGambitChoice(dialog) {
 
 /**
  * Whether a Gambit can be performed on this Attack: a Dismount needs a mounted foe
- * among its targets (p10). With nobody targeted, or none of them found, the Referee judges.
+ * among its targets (p10), and one who can be thrown (p44). With nobody targeted,
+ * or none of them found, the Referee judges.
  * @param {import("../rules/attack.js").AttackState} attack
  * @param {string} key One of GAMBITS.
  * @returns {boolean}
@@ -342,7 +347,7 @@ function watchGambitChoice(dialog) {
 function offersGambit(attack, key) {
 	if (key !== "dismount") return true;
 	const foes = attack.targets.length ? targetActors(attack) : [];
-	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted));
+	return !foes.length || foes.some((actor) => Boolean(actor.system.conditions?.mounted) && !keepsSeat(actor.items?.contents ?? []));
 }
 
 /**
@@ -428,6 +433,23 @@ function showDismount(key) {
  * @returns {Promise<boolean>}
  */
 async function withdrawGambit(message, gambit, die) {
+	const taken = await takeBackGambit(message, gambit, die);
+	// A Move taken back ends the stance it took up (p40).
+	if (taken && gambit.key === "move") {
+		const attack = attackOf(message);
+		await endStanceFromMove(fromUuidSync(attack?.dice?.[die]?.actor ?? attack?.attacker ?? ""), { message: message.id, die });
+	}
+	return taken;
+}
+
+/**
+ * withdrawGambit's asking and taking back, without what follows.
+ * @param {ChatMessage} message
+ * @param {import("../rules/attack.js").Gambit} gambit
+ * @param {number} die
+ * @returns {Promise<boolean>}
+ */
+async function takeBackGambit(message, gambit, die) {
 	const locked = withdrawLocked(gambit);
 	if (!locked) return saveChange(message, { type: "withdraw", die });
 	if (!game.user.isGM) {
@@ -457,7 +479,10 @@ async function onGambit(message, button) {
 		strong: canFundStrongGambit(attack, die)
 	});
 	if (!choice) return;
-	if (await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) })) showDismount(choice.key);
+	if (!(await saveChange(message, { type: "gambit", die, ...choice, bonus: await rollDismount(choice.key) }))) return;
+	showDismount(choice.key);
+	// A Gambit spent on Moving may put its maker in a stance (p40).
+	if (choice.key === "move") await takeStanceOnMove(fromUuidSync(attack.dice[die].actor ?? attack.attacker), { message: message.id, die });
 }
 
 /**
@@ -500,6 +525,7 @@ async function onFocus(message) {
 	await payFeat(attacker, save);
 	await postFeat(attacker, "focus", save);
 	showDismount(choice.key);
+	if (choice.key === "move") await takeStanceOnMove(attacker);
 }
 
 /**
@@ -771,13 +797,33 @@ export async function dismissGambitMark(actor, messageId, index) {
  * @param {import("../rules/attack.js").AttackState} attack
  * @returns {({actor: Actor} & import("../rules/armour.js").GreaterEffect)[]}
  */
-function greaterOptions(attack) {
+function greaterOptions(attack, gambit = null) {
+	const cuts = gambit ? cutsFor(attack, gambit) : null;
 	return targetActors(attack)
 		.filter((actor) => actor.isOwner)
 		.flatMap((actor) => {
 			const items = actor.items.map(({ id, name, type, system }) => ({ id, name, type, system }));
-			return greaterEffects(items, singleArmour(actor)).map((effect) => ({ actor, ...effect }));
+			const severed = cuts ? severEffects({ ...cuts, guard: actor.system.guard?.value ?? null }) : [];
+			return [
+				...greaterEffects(items, singleArmour(actor)).map((effect) => ({ actor, ...effect })),
+				...severed.map((effect) => ({ actor, effect, name: "", id: null }))
+			];
 		});
+}
+
+/**
+ * Whether whoever paid for a Gambit can cut with it as an Ability lets them
+ * (p114): they have it, and a die of theirs on the card came from a blade.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {object} gambit
+ * @returns {{severs: boolean, bladed: boolean}}
+ */
+function cutsFor(attack, gambit) {
+	const payer = gambit.payer ?? (gambit.die !== null && gambit.die !== undefined ? attack.dice[gambit.die]?.actor : null) ?? attack.attacker;
+	const actor = payer ? fromUuidSync(payer) : null;
+	const severs = Boolean(actor?.items && abilitiesWith(actor.items.contents, "severs").length);
+	const bladed = attack.dice.some((die) => (die.actor ?? attack.attacker) === payer && isBladedName(die.label));
+	return { severs, bladed };
 }
 
 /** What each Greater effect reads as once done, under `attack.greater.` */
@@ -792,6 +838,17 @@ const GREATER_DONE = Object.freeze({ disarm: "disarmed", unhelm: "unhelmed", bre
  * @returns {{text: string, carryOut: () => Promise<unknown>}} What happens, for the card, and doing it.
  */
 function greaterOutcome({ actor, effect, name, id }) {
+	// A limb taken is the table's to describe; a head taken Slays, if they're still at 0 GD (p114).
+	if (effect === "limb") return { text: t("attack.greater.limbDone", { name: actor.name }), carryOut: async () => {} };
+	if (effect === "head") {
+		return {
+			text: t("attack.greater.headDone", { name: actor.name }),
+			carryOut: async () => {
+				if ((actor.system.guard?.value ?? 0) !== 0) return warn("attack.greater.headGuarded", { name: actor.name });
+				return slay(actor);
+			}
+		};
+	}
 	const said = [t(`attack.greater.${GREATER_DONE[effect]}`, { name: actor.name, item: name })];
 	if (id) {
 		if (effect !== "break") said.push(t(effect === "disarm" ? "attack.greater.pickUp" : "attack.greater.putOn"));
@@ -814,7 +871,7 @@ async function onGreater(message, button) {
 	const gambit = attack.gambits[index];
 	if (!gambit || gambit.strong !== "greater" || gambit.greater) return;
 
-	const options = greaterOptions(attack);
+	const options = greaterOptions(attack, gambit);
 	// Anything else it does, as an Ability may say (p114), is written in by the attacker or the foe.
 	const mayWrite = game.user.isGM || ownsAnAttacker(attack) || targetActors(attack).some((actor) => actor.isOwner);
 	if (!options.length && !mayWrite) return warn("attack.greater.nothing");

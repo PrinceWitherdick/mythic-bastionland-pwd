@@ -143,6 +143,8 @@
       "armourPiece": "{name} A{armour}",
       "armourPieceIdle": "{name} (doesn’t count now)",
       "armourNone": "Armour: none worn",
+      "armourStanceBonus": "{name} +{armour}",
+      "armourStanceFloor": "{name}: counts as A{armour}",
       "rollSave": "Roll a {virtue} Save",
       "newKnight": "New Knight",
       "newKnightHint": "Roll up a Knight from the book on this sheet. The new scores, Property, Ability and Passion replace the ones here. Scars stay.",
@@ -509,6 +511,8 @@
       "afterCombat": "The fight is over. Restore Guard for {names}, and leave them no longer Fatigued or Exposed?",
       "restedAfterCombat": "The danger has passed: {names} restore Guard, and are no longer Fatigued or Exposed.",
       "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed.",
+      "restedSworn": "A moment’s calm: no longer Fatigued or Exposed. GD stays at {value} while their quest is sworn.",
+      "swornHeld": "{names} get no GD back while their quest is sworn.",
       "restTitle": "Rest: {name}",
       "restIntro": "{name} takes a moment’s calm, once the danger has passed (Recovery, p9).",
       "restWhat": "GD returns to full, from {value} to {max}. Fatigue is removed, and they are no longer Exposed. A card in chat says so."
@@ -806,7 +810,17 @@
       "addLasting": "Add {die} for the rest of the fight",
       "usedUp": "{name} has no uses left.",
       "notInCombat": "{name} isn’t in a Combat.",
-      "grantsHint": "Offered in the Attack dialog. One with uses is offered unticked, and spends a use when ticked. One with no limit comes ticked.",
+      "tempers": "Given to the weapon each Wound is dealt with",
+      "tempersHint": "Each Wound a melee blow deals gives the weapon it was dealt with this die, joining every Attack made with that weapon until the Combat ends. Each Wound gives another, so no button is needed.",
+      "tempered": "{ability}: {name}’s {weapon} gains a d{faces} for the rest of the fight.",
+      "crowd": "Ticked when each side has",
+      "crowdHint": "In a Combat, it comes ticked in the Attack dialog once at least this many stand on each side. A Warband counts as a crowd. At 0 it never comes ticked.",
+      "weapon": "Spent by",
+      "weaponHint": "An Attack with this weapon spends one of its uses, and is refused when none are left.",
+      "weaponNone": "No weapon",
+      "grantsHint": "Offered in the Attack dialog. One with uses is offered unticked, and spends a use when ticked. One with no limit comes ticked, unless it adds a die or is only for some blows.",
+      "situational": "Only for some blows",
+      "situationalHint": "Offered unticked in the Attack dialog, to be ticked for the blows it fits, such as against a foe its words name.",
       "readUses": "Read from its description",
       "readUsesHint": "Fill in the uses from words such as “twice per day” in the description.",
       "noUsesRead": "Nothing in {name}’s description says how many uses it has and when they come back.",
@@ -817,7 +831,10 @@
       "needs": {
         "any": "Any Attack",
         "melee": "A melee Attack",
-        "charge": "A mounted charge"
+        "charge": "A mounted charge",
+        "ranged": "A ranged Attack",
+        "shield": "A melee Attack with a shield",
+        "still": "A melee Attack without moving"
       },
       "powersLabel": "Besides an Attack",
       "powers": {
@@ -828,7 +845,30 @@
         "coinFlip": "Flips a coin for a life",
         "coinFlipHint": "Its row has a coin: with one Token targeted, heads it dies, tails this Knight does.",
         "sigil": "Etches a rune for a number",
-        "sigilHint": "Its row has a star: at sunset, pick a number. A die showing it on an Attack card can be turned to another face, as many times as the number, until the next sunset."
+        "sigilHint": "Its row has a star: at sunset, pick a number. A die showing it on an Attack card can be turned to another face, as many times as the number, until the next sunset.",
+        "oath": "Swears a quest",
+        "oathHint": "Its row swears the quest and ends it. While it’s sworn, resting brings back no GD.",
+        "wildHorn": "Blows a horn that doubles VIG loss",
+        "wildHornHint": "In a Combat, its row has a horn: from then until the Combat ends, VIG lost to Damage is doubled for everybody in it.",
+        "mirror": "Gives back Wounds and Scars",
+        "mirrorHint": "When this Knight loses VIG to Damage, whoever dealt it loses as much, as Virtue Loss. When they’re Scarred, the dealer gets the same Scar.",
+        "severs": "Takes limbs and heads",
+        "seversHint": "A Strong Gambit’s Greater effect, made with a bladed weapon, can take a limb, or the head of a foe at 0 GD."
+      },
+      "stance": {
+        "label": "Stance",
+        "bonus": "Armour it adds",
+        "floor": "Armour it counts as at least",
+        "floorHint": "Not added to what’s worn: whichever is higher counts.",
+        "doublesShield": "Doubles the shield’s Armour",
+        "lapsesLabel": "Ends",
+        "lapses": {
+          "never": "When ended from its row",
+          "turn": "As their next turn starts"
+        },
+        "onMove": "Taken up by a Gambit spent on Moving",
+        "inEffect": "In effect now",
+        "hint": "Taken up and ended from its row on the sheet, where the Armour total then shows it. One that ends as their next turn starts ends by itself in a Combat."
       }
     },
     "passion": {
@@ -3174,7 +3214,12 @@
         "armour": "Armour {from} → {to}.",
         "pickUp": "Tick it on the sheet again once it’s back in hand.",
         "putOn": "Tick it on the sheet again once it’s back on.",
-        "npcBack": "Once it’s back, give them the point of Armour and its word in the note again."
+        "npcBack": "Once it’s back, give them the point of Armour and its word in the note again.",
+        "limb": "Take a limb",
+        "head": "Take the head",
+        "limbDone": "{name} loses a limb to the blade. Describe which, and what it leaves.",
+        "headDone": "{name}’s head is taken.",
+        "headGuarded": "{name} has GD again, so their head stays on."
       },
       "smite": "Smite for +d12",
       "smiteMark": "Smite for a lasting mark",
@@ -3201,10 +3246,21 @@
         "alone": "Made alone",
         "aloneHint": "Nobody may join this Attack, and it can’t be made as part of another’s.",
         "combine": "Join dice together",
-        "combineHint": "Before the roll, a window lets you join your dice into bigger ones, as big as their faces together: a d4 and a d8 make a d12. Nothing joins past a d12."
+        "combineHint": "Before the roll, a window lets you join your dice into bigger ones, as big as their faces together: a d4 and a d8 make a d12. Nothing joins past a d12.",
+        "ignoresImmunity": "Ignores immunities",
+        "ignoresImmunityHint": "Its Damage gets past whatever would stop it: a creature’s immunity, a Warband, or a structure.",
+        "backlash": "Costs d6 if they stay up",
+        "backlashHint": "If the target isn’t brought down, its maker takes d6 Damage.",
+        "rally": "Restores allies’ SPI",
+        "rallyHint": "If the target is brought down, a card offers to restore the SPI of the Knights fighting beside its maker."
       },
       "useAbility": "{name}: {grants}",
       "lastingDie": "{label} d{faces}",
+      "lastingDieMelee": "{label} d{faces} (melee)",
+      "lastingDieWeapon": "{label} d{faces} ({weapon})",
+      "crowdMet": "Ticked: at least {count} stand on each side of this Combat.",
+      "crowdShort": "Fewer than {count} stand on one side of this Combat. Tick it if more are fighting than the Combat Tracker shows.",
+      "crowdUnknown": "Outside a Combat the sides can’t be counted. Tick it when at least {count} fight on each side.",
       "lastingHint": "Kept for the rest of the fight. Untick it to leave it out of this blow alone.",
       "lastingDrop": "A die for the rest of the fight. Click to drop it.",
       "keepBonus": "Keep the bonus dice for the rest of the fight",
@@ -3223,7 +3279,13 @@
         "melee": "{name} is used only in a melee Attack, and a ranged weapon is ticked.",
         "meleeTag": "melee only",
         "charge": "{name} is used only on a mounted charge: tick the charge, or Mounted and Moved this turn.",
-        "chargeTag": "mounted charge only"
+        "chargeTag": "mounted charge only",
+        "ranged": "{name} is used only in a ranged Attack: tick a ranged weapon.",
+        "rangedTag": "ranged only",
+        "shield": "{name} is used only in a melee Attack with a shield: tick the shield.",
+        "shieldTag": "with a shield",
+        "still": "{name} is used only in a melee Attack made without moving this turn.",
+        "stillTag": "melee, not having moved"
       },
       "aloneJoin": "{name}’s blow is made alone, so it can’t join another’s Attack.",
       "shattered": "Shattered as it lands: {names}.",
@@ -3410,6 +3472,17 @@
       "unhorsedRolled": "{name} takes {damage} from the fall.",
       "unhorsedCause": "Thrown from their steed",
       "unhorsedNotYours": "Only the rider’s owner or the Referee can deal this.",
+      "backlash": "{target} still stands, so {name}’s strike costs them.",
+      "backlashRoll": "Take d6 Damage",
+      "backlashRolled": "{name} takes {damage} Damage for the strike that failed.",
+      "backlashCause": "A strike that failed",
+      "backlashNotYours": "Only the striker’s owner or the Referee can deal this.",
+      "rally": "{target} falls to {name}, and their allies take heart.",
+      "rallyButton": "Restore the allies’ SPI",
+      "rallyTitle": "Taking Heart",
+      "rallyTagline": "SPI restored to those fighting beside {name}",
+      "rallyNobody": "Nobody fighting beside them that you can change has SPI to restore.",
+      "hornDoubled": "The horn doubles the VIG it costs.",
       "lastingMark": "{attacker}’s Smite leaves {name} a lasting mark (p187).",
       "title": "Take Damage",
       "amount": "Damage",
@@ -3441,6 +3514,9 @@
       "spiritHurt": "Shaken in spirit, but not Wounded.",
       "drained": "{name} takes back {amount} VIG from {victim}: {from} → {to}.",
       "drainedAsk": "{name} takes back up to {amount} VIG from {victim}, for their player to write in.",
+      "mirrored": "{name} loses {amount} VIG as {victim}’s Wound comes back on them: {from} → {to}. Virtue Loss, so it Wounds nobody.",
+      "mirroredAsk": "{name} loses {amount} VIG as {victim}’s Wound comes back on them, for their owner to write in.",
+      "mirrorScarAsk": "{name} gets the same Scar {victim} just took, for their owner to roll its loss and write in.",
       "onWound": {
         "sleep": "{name} falls into a normal sleep.",
         "memory": "{name} is shown one of the attacker’s memories."
@@ -3643,6 +3719,8 @@
       "chanceHint": "A chance it holds what’s wanted, as 1 in 2. Its row gets a die to roll it.",
       "poison": "Poison",
       "poisonHint": "As strong as it is rare: set its Rarity below.",
+      "keepsSeat": "Keeps its bearer in the saddle",
+      "keepsSeatHint": "No Dismount is offered against them, and none throws them or adds its d6 to their Damage.",
       "poisonTag": "{rarity} poison",
       "poisonTagBare": "Poison",
       "condition": "Counts",
@@ -3728,6 +3806,24 @@
       "taken": "{name} takes the Mortal Wound in {victim}’s place.",
       "doomed": "{name} takes the blow in {victim}’s place, and Doom makes it their death."
     },
+    "wildHorn": {
+      "blow": "Blow the horn",
+      "blown": "{name} blows the horn ({ability}). Until the fight ends, VIG lost to Damage is doubled for everybody in it.",
+      "notInCombat": "{name} isn’t in a Combat.",
+      "already": "A horn has already been blown in this fight."
+    },
+    "stance": {
+      "take": "Take up this stance",
+      "end": "End this stance",
+      "swear": "Swear the quest",
+      "fulfil": "End the quest: done, or abandoned",
+      "taken": "{name} takes up {ability}.",
+      "ended": "{name} ends {ability}.",
+      "sworn": "{name} swears a quest ({ability}). No GD comes back until it’s over.",
+      "fulfilled": "{name}’s quest is over ({ability}).",
+      "onMove": "{name} moves, and {ability} holds until their next turn.",
+      "takenBack": "The Gambit spent on Moving is taken back, so {name} no longer has {ability}."
+    },
     "coinFlip": {
       "use": "Flip the coin for the targeted Token",
       "oneTarget": "Target exactly one Token to flip for.",
@@ -3774,7 +3870,10 @@
     "abilityKits": {
       "chain": "Iron chain, lashed with both ends",
       "shockwave": "Shockwave on landing",
-      "bite": "Bite"
+      "bite": "Bite",
+      "radiance": "Burst of light",
+      "branchJavelin": "Branch, thrown",
+      "branchSpear": "Branch, as a greatspear"
     },
     "npc": {
       "tabs": {

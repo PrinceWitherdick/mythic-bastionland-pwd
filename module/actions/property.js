@@ -202,15 +202,17 @@ export async function dropOwnerFromCompanionNames() {
  * brutal plate only counts when Wounded, get it from their book lines, where
  * their items don't say otherwise already. A world that hasn't imported the
  * book has no lines to read, and its Knights were written by hand.
+ * @param {object} [options]
+ * @param {string[]} [options.only] Only these details, as a step for one read since fills in.
  * @returns {Promise<void>}
  */
-export async function fillPossessionDetails() {
+export async function fillPossessionDetails({ only = null } = {}) {
 	const index = await loadArtIndex().catch(() => null);
 	if (!index) return;
 	for (const actor of worldKnights((knight) => knight.canUserModify(game.user, "update"))) {
 		const entry = knightEntryByType(index, actor.system.knightType);
 		if (!entry?.property?.length) continue;
-		const updates = possessionDetails(actor.items.contents, entry.property);
+		const updates = possessionDetails(actor.items.contents, entry.property, { only });
 		if (updates.length) await actor.updateEmbeddedDocuments("Item", updates).catch((error) => {
 			console.error(`${SYSTEM_ID} | Couldn't fill in ${actor.uuid}'s possessions`, error);
 		});

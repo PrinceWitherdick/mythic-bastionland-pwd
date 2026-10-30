@@ -159,6 +159,7 @@ export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays
  * @property {boolean} [ranged]
  * @property {boolean} [heftyMounted] Counts as Hefty rather than Long when mounted, as a lance does (p12).
  * @property {boolean} [noHand]       Fills no hand, as a bite or a shockwave doesn't.
+ * @property {boolean} [shield]       A shield, which a foe's Trap Gambit can hold.
  * @property {string} [of]            The weapon it is one way of fighting with, for a weapon fought two ways,
  *                                    or the attacks printed with "or" between them that it is one of.
  */
@@ -249,6 +250,17 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 
 /** A shield's name, as "kite shield", "redshield" or "bronze buckler". */
 const SHIELD_NAME = /shield|buckler/i;
+
+/**
+ * Whether an item is a shield, which a foe's Trap Gambit can hold (p10): worn
+ * as one, or a stat block's weapon named for one.
+ * @param {{name?: string, type?: string, system?: object}} item
+ * @returns {boolean}
+ */
+export function isShieldItem({ name = "", type = "", system = {} } = {}) {
+	if (type === "armour") return system?.kind === "shield";
+	return type === "weapon" && SHIELD_NAME.test(name);
+}
 
 /**
  * Whether an NPC's gear says it holds its weapons in hands (p12): a Hefty,
@@ -474,6 +486,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {object|null} smite The Smite they declared, as the card shows it.
  * @property {boolean} smiteMark Whether they Smote for a lasting mark.
  * @property {boolean} [twoHanded] Their share was made with a Long weapon, so they hold no shield (p12).
+ * @property {import("./lasting-dice.js").Temper|null} [tempers] What a Wound from their share gives its weapon (p98).
  * @property {{name: string, reason: string}[]} setAside
  * @property {{uuid: string, name: string}|null} [leader] Whoever leads a joining Warband from the front.
  *
@@ -496,6 +509,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  *   when it lapses. Null when no Combat was running.
  * @property {boolean} melee
  * @property {boolean} [twoHanded] Made with a Long weapon, which takes both hands, so the attacker holds no shield (p12).
+ * @property {import("./lasting-dice.js").Temper|null} [tempers] What a Wound from the attacker's share gives its weapon (p98).
  * @property {boolean} impaired
  * @property {string} attacker Actor UUID of whoever rolled it.
  * @property {{uuid: string, name: string}[]} targets The Tokens it was rolled against.
@@ -677,9 +691,11 @@ export function attackDamage(attack, counts = null) {
 
 /**
  * The yes-or-no traits each share of an Attack's dice carries. drain: its maker
- * takes back the VIG a Wound costs; spirit: it harms SPI rather than VIG, as Abilities may say.
+ * takes back the VIG a Wound costs; spirit: it harms SPI rather than VIG, as Abilities may say;
+ * ignoresImmunity: nothing keeps its target from harm, as a patient strike gets past (p54);
+ * backlash and rally: what its maker risks or rouses as it lands (p54, p74), which a joiner brings too.
  */
-const SHARE_TRAITS = Object.freeze(["melee", "ignoresArmour", "nonLethal", "strongGambits", "blast", "largeScale", "drain", "spirit"]);
+const SHARE_TRAITS = Object.freeze(["melee", "ignoresArmour", "nonLethal", "strongGambits", "blast", "largeScale", "drain", "spirit", "ignoresImmunity", "backlash", "rally"]);
 
 /**
  * What a die's share of the Attack was made with: the joiner's own, once
@@ -719,6 +735,8 @@ export const harmTargetOf = (system) => ({
  * @returns {string|null} One of HARM_BARS, or null when it can harm them.
  */
 export function harmBarred(share, { warband = false, structure = false, stone = false } = {}) {
+	// A blow past immunities of any sort reaches a Warband and a structure too (p54).
+	if (share.ignoresImmunity) return null;
 	if (warband && !(share.blast || share.largeScale)) return "warband";
 	if (structure && !harmsStructure(share.structureHarm, stone)) return stone ? "stone" : "structure";
 	return null;
@@ -732,15 +750,18 @@ export function harmBarred(share, { warband = false, structure = false, stone = 
  * harm the target count against it. Whether cover counts (a ranged Attack,
  * p10), Armour is ignored or the blow can't Slay follows the die that counts.
  * When no share can harm them, the whole Attack is weighed and the dialog finds them unharmed.
- * @param {AttackState} attack
- * @param {{warband?: boolean, structure?: boolean, stone?: boolean}} [target]
+ * @param {AttackState} given
+ * @param {{warband?: boolean, structure?: boolean, stone?: boolean, seated?: boolean}} [target] `seated`: they
+ *   can never be dismounted, so a Dismount's d6 isn't added against them (p44).
  * @returns {ReturnType<typeof attackDamage> & {ranged: boolean, ignoresArmour: boolean,
- *   nonLethal: boolean, drain: boolean, spirit: boolean, harm: {warband: boolean, structure: boolean},
+ *   nonLethal: boolean, drain: boolean, spirit: boolean, harm: {warband: boolean, structure: boolean, immunity?: boolean},
  *   unharmed: boolean, dealer: string}}
  */
-export function damageAgainst(attack, { warband = false, structure = false, stone = false } = {}) {
-	const harmsWarband = (share) => share.blast || share.largeScale;
-	const harmsIt = (share) => harmsStructure(share.structureHarm, stone);
+export function damageAgainst(given, { warband = false, structure = false, stone = false, seated = false } = {}) {
+	// Somebody who can't be dismounted takes no d6 from a Dismount (p44, p10).
+	const attack = seated ? withoutDismountDice(given) : given;
+	const harmsWarband = (share) => share.blast || share.largeScale || share.ignoresImmunity;
+	const harmsIt = (share) => harmsStructure(share.structureHarm, stone) || share.ignoresImmunity;
 	const canHarm = (share) => !harmBarred(share, { warband, structure, stone });
 	const shares = attack.dice.map((die) => shareOf(attack, die));
 	const anyHarms = shares.some(canHarm);
@@ -753,12 +774,28 @@ export function damageAgainst(attack, { warband = false, structure = false, ston
 		nonLethal: share.nonLethal,
 		drain: share.drain,
 		spirit: share.spirit,
-		harm: { warband: shares.some(harmsWarband), structure: shares.some(harmsIt) },
+		harm: {
+			warband: shares.some(harmsWarband),
+			structure: shares.some(harmsIt),
+			// What keeps some of the Cast from harm is no bar to the blow that counted (p54).
+			...(share.ignoresImmunity ? { immunity: true } : {})
+		},
 		// Nobody's share can harm them at all.
 		unharmed: !anyHarms,
 		dealer: (counted.die !== null && attack.dice[counted.die].actor) || attack.attacker
 	};
 }
+
+/**
+ * An Attack weighed as though its Dismounts added no d6, for somebody who
+ * can't be thrown (p44). The Gambits still spend their dice.
+ * @param {AttackState} attack
+ * @returns {AttackState}
+ */
+export const withoutDismountDice = (attack) => ({
+	...attack,
+	gambits: attack.gambits.map((gambit) => (gambit.key === "dismount" ? { ...gambit, bonus: null } : gambit))
+});
 
 /**
  * Whether others may still join an Attack card (p8): everybody attacking the
@@ -939,11 +976,24 @@ function joinAttack(attack, change) {
 			smiteMark: Boolean(change.smiteMark),
 			// Rolled with a Long weapon, so they hold no shield (p12).
 			twoHanded: Boolean(change.twoHanded),
+			// A Wound from their share tempers the weapon it was dealt with (p98).
+			tempers: temperEntry(change.tempers),
 			setAside,
 			// Whoever leads a joining Warband from the front (p11).
 			leader: typeof change.leader?.uuid === "string" && typeof change.leader.name === "string" ? { uuid: change.leader.uuid, name: change.leader.name } : null
 		}]
 	};
+}
+
+/**
+ * A temper as a joiner sends it, or null where it isn't one (p98).
+ * @param {unknown} temper
+ * @returns {import("./lasting-dice.js").Temper|null}
+ */
+function temperEntry(temper) {
+	if (!temper || typeof temper !== "object" || !Number.isInteger(temper.faces) || !Array.isArray(temper.weapons)) return null;
+	const weapons = temper.weapons.filter((weapon) => typeof weapon?.id === "string" && weapon.id).map(({ id, name }) => ({ id, name: String(name ?? "") }));
+	return weapons.length ? { label: String(temper.label ?? ""), faces: temper.faces, weapons } : null;
 }
 
 /**

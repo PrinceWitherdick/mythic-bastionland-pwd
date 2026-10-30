@@ -17,12 +17,14 @@ vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({}), ca
 vi.mock("../../module/actions/items.js", () => ({ armourConditionText: () => "" }));
 vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-updates.js"));
 vi.mock("../../module/actions/timeline-events.js", () => ({ timelineMortalWound: vi.fn(async () => null), timelineWarded: vi.fn(async () => null) }));
+vi.mock("../../module/actions/lasting-dice.js", async (importOriginal) => ({ ...(await importOriginal()), temperWeapon: vi.fn(async () => true) }));
 
 const { inputDialog } = await import("../../module/apps/ui.js");
 const timeline = await import("../../module/actions/timeline-events.js");
 const { postCard } = await import("../../module/chat/cards.js");
 const { takeAttack, takeDamage } = await import("../../module/actions/damage.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
+const { temperWeapon } = await import("../../module/actions/lasting-dice.js");
 
 /** Somebody with Virtues, GD and Armour, whose updates land on them. */
 function character({ uuid = "Actor.boar", name = "Boar", type = "npc", vig = 12, spi = 10, guard = 3, armour = 1, items = [] } = {}) {
@@ -259,6 +261,22 @@ describe("an Attack card's Abilities as the Damage lands", () => {
 		const fox = character({ uuid: "Actor.fox", name: "Fox", guard: 10, armour: 0 });
 		await takeAttack(fox, card({ onWound: ["memory"] }));
 		expect(postCard.mock.calls.filter((call) => call[1] === "note")).toEqual([]);
+	});
+
+	it("tempers the weapon a Wound was dealt with, and nothing for a blow GD stops (p98)", async () => {
+		const tal = character({ uuid: "Actor.tal", name: "Tal", type: "knight" });
+		actors["Actor.tal"] = tal;
+		const tempers = { label: "Tempering", faces: 8, weapons: [{ id: "guisarme", name: "Bolt-guisarme" }] };
+		const blow = card({ tempers, dice: [{ faces: 10, result: 8, label: "Bolt-guisarme", deniedBy: null, item: "guisarme" }] });
+		inputDialog.mockResolvedValue({ damage: "8", armour: "0" });
+		await takeAttack(character({ guard: 2, armour: 0 }), blow);
+		expect(temperWeapon).toHaveBeenCalledWith(tal, "guisarme", expect.objectContaining({ uuid: "Actor.boar" }));
+
+		temperWeapon.mockClear();
+		await takeAttack(character({ uuid: "Actor.fox", name: "Fox", guard: 10, armour: 0 }), blow);
+		expect(temperWeapon).not.toHaveBeenCalled();
+		await takeAttack(character({ guard: 2, armour: 0 }), card({ dice: blow.dice }));
+		expect(temperWeapon).not.toHaveBeenCalled();
 	});
 
 	it("takes SPI rather than VIG for a blow that harms SPI", async () => {

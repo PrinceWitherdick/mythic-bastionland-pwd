@@ -28,6 +28,7 @@ export const SITUATION_CONDITIONS = Object.freeze(["only", "except"]);
  * @typedef {object} Wearer
  * @property {boolean} [mounted]
  * @property {boolean} [wounded]
+ * @property {import("./stances.js").Stance} [stance] What the stances they've taken up do (p40, p78, p82).
  */
 
 /**
@@ -49,28 +50,32 @@ export function armourCounts(piece, { mounted = false, wounded = false } = {}) {
 
 /**
  * The Armour a character has on right now. One of each type can be worn at
- * once (p12), so of two coats only the better one counts.
+ * once (p12), so of two coats only the better one counts. A stance may add to
+ * it (p82), or have them count as having some Armour at least, which doesn't
+ * add to their own (p40).
  * @param {ArmourPiece[]} pieces
  * @param {Wearer} [wearer]
  * @returns {number}
  */
 export function armourTotal(pieces, wearer = {}) {
-	return armourWorn(pieces.map((system) => ({ name: "", system })), wearer)
+	const worn = armourWorn(pieces.map((system) => ({ name: "", system })), wearer)
 		.reduce((sum, piece) => sum + (piece.counts ? piece.armour : 0), 0);
+	const { bonus = 0, floor = 0 } = wearer.stance ?? {};
+	return Math.max(worn + bonus, floor);
 }
 
 /**
  * The pieces a character has on, as their Armour total's hover lists them:
  * each worn piece with its Armour, and whether it counts toward the total
  * right now. Of two pieces of one type, only the first of the better counts,
- * as in armourTotal.
+ * as in armourTotal. A shield doubled by a stance (p78) shows its doubled Armour.
  * @param {{name: string, system: ArmourPiece}[]} items Their armour items, in the order to list them.
  * @param {Wearer} [wearer]
  * @returns {{name: string, armour: number, counts: boolean}[]}
  */
 export function armourWorn(items, wearer = {}) {
 	const best = new Map();
-	return items.filter(({ system }) => system?.equipped).map(({ name, system }) => {
+	const worn = items.filter(({ system }) => system?.equipped).map(({ name, system }) => {
 		const armour = Math.max(0, Math.trunc(Number(system.armour)) || 0);
 		const entry = { name, armour, counts: armourCounts(system, wearer) };
 		const rival = best.get(system.kind);
@@ -80,6 +85,9 @@ export function armourWorn(items, wearer = {}) {
 		} else entry.counts = false;
 		return entry;
 	});
+	const shield = best.get("shield");
+	if (shield && wearer.stance?.doublesShield) shield.armour *= 2;
+	return worn;
 }
 
 /**
@@ -148,6 +156,14 @@ export function standTogether(a, b, size) {
  * @returns {WallStander["box"]}
  */
 export const tokenBox = (placed) => ({ x: placed.document.x, y: placed.document.y, w: placed.w, h: placed.h });
+
+/**
+ * A Token's box from its document alone, for a Scene nobody is viewing.
+ * @param {{x: number, y: number, width: number, height: number}} token A TokenDocument.
+ * @param {number} size One grid space on its Scene, in pixels.
+ * @returns {WallStander["box"]}
+ */
+export const tokenDocBox = (token, size) => ({ x: token.x, y: token.y, w: (Number(token.width) || 1) * size, h: (Number(token.height) || 1) * size });
 
 /**
  * Whether one stands within arm's reach of another, on the same side, as Deny
@@ -282,6 +298,23 @@ export function greaterEffects(items, npc = null) {
 		if (helm) effects.push({ effect: "unhelm", name: helm, id: null });
 	}
 	return effects;
+}
+
+/** What a Strong Gambit's Greater effect may take with a blade, where an Ability says so (p114). */
+export const SEVER_EFFECTS = Object.freeze(["limb", "head"]);
+
+/**
+ * The cuts an Ability lets a Greater effect make (p114): a limb, and a head
+ * only of somebody at 0 GD. None without the Ability or a bladed weapon.
+ * @param {object} args
+ * @param {boolean} args.severs Whoever paid for the Gambit has the Ability.
+ * @param {boolean} args.bladed They struck with a bladed weapon.
+ * @param {number|null} [args.guard] The foe's GD, or null for one with none.
+ * @returns {("limb"|"head")[]}
+ */
+export function severEffects({ severs, bladed, guard = null }) {
+	if (!severs || !bladed) return [];
+	return guard === 0 ? ["limb", "head"] : ["limb"];
 }
 
 /** Words that say a weapon is made of wood, and could be broken by a Strong Gambit (p10). */

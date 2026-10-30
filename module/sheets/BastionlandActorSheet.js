@@ -23,6 +23,8 @@ import { ViewableMixin } from "./viewable.js";
 import { afflictionLabel, cureAffliction, sufferAffliction } from "../actions/afflictions.js";
 import { etchRune, rollChance, sufferLoss, throwToChance } from "../actions/abilities.js";
 import { etchedNumber } from "../rules/ability-uses.js";
+import { blowHorn, stanceRowLabel, toggleStance } from "../actions/stances.js";
+import { hasStance } from "../rules/stances.js";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -55,14 +57,19 @@ const ITEM_ROW_ACTIONS = Object.freeze([
 	{
 		key: "addAbilityDie",
 		icon: "fa-dice-d6",
-		// An Ability's die for the fight is offered only while there's a fight.
-		label: ({ type, system }, actor, { fighting }) => (type === "ability" && system.lastingDie && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null),
+		// An Ability's die for the fight is offered only while there's a fight, and not where each
+		// Wound gives it to a weapon by itself (p98).
+		label: ({ type, system }, actor, { fighting }) => (type === "ability" && system.lastingDie && !system.tempers && fighting ? t("ability.addLasting", { die: system.lastingDie }) : null),
 		run: addAbilityDie,
 		fadesUnusable: true
 	},
 	// A coin flipped for a life (p120), and a rune etched at sunset (p100).
 	{ key: "throwToChance", icon: "fa-coins", label: ({ type, system }) => (type === "ability" && system.coinFlip ? t("coinFlip.use") : null), run: throwToChance },
 	{ key: "etchRune", icon: "fa-star", label: ({ type, system }) => (type === "ability" && system.sigil ? sigilRowLabel(system) : null), run: etchRune },
+	// A stance taken up and ended: a shield doubled (p78), deep water (p82), a quest sworn (p94).
+	{ key: "toggleStance", icon: "fa-shield-halved", label: stanceRowLabel, run: toggleStance },
+	// A horn that doubles the VIG lost to Damage, blown only in a fight (p72).
+	{ key: "blowHorn", icon: "fa-bullhorn", label: ({ type, system }, actor, { fighting }) => (type === "ability" && system.wildHorn && fighting ? t("wildHorn.blow") : null), run: blowHorn },
 	{
 		key: "sufferLoss",
 		icon: "fa-heart-crack",
@@ -148,7 +155,8 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 			toggleHolds: BastionlandActorSheet.#onToggleHolds,
 			adjustCount: BastionlandActorSheet.#onAdjustCount,
 			itemAction: BastionlandActorSheet.#onItemAction,
-			dropLastingDie: BastionlandActorSheet.#onDropLastingDie
+			dropLastingDie: BastionlandActorSheet.#onDropLastingDie,
+			endStance: BastionlandActorSheet.#onEndStance
 		}
 	};
 
@@ -207,6 +215,13 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 				index,
 				label: lastingDieLabel(die),
 				hint: t("attack.lastingDrop")
+			}))).concat(actor.items.filter((item) => item.type === "ability" && hasStance(item.system) && item.system.inEffect).map((item) => ({
+				// A stance taken up, ended with its ×.
+				key: `stance-${item.id}`,
+				stance: true,
+				itemId: item.id,
+				label: item.name,
+				hint: t(item.system.oath ? "stance.fulfil" : "stance.end")
 			}))),
 			feats: FEATS.filter(({ key }) => system.knowsFeat(key)).map(({ key, virtue }) => ({
 				key,
@@ -365,10 +380,14 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	 * @returns {string}
 	 */
 	#armourTip() {
-		const pieces = armourWorn(this.#itemsOf(["armour"]).sort(comparePropertyPlace), this.actor.system.conditions ?? {});
-		if (!pieces.length) return t("sheet.armourNone");
+		const stance = this.actor.system.stance;
+		const pieces = armourWorn(this.#itemsOf(["armour"]).sort(comparePropertyPlace), { ...this.actor.system.conditions, stance });
+		// A stance taken up adds to it, or sets what it counts as at least (p40, p82).
+		const lines = (stance?.lines ?? []).filter(({ kind }) => kind !== "doublesShield")
+			.map(({ name, kind, value }) => t(kind === "floor" ? "sheet.armourStanceFloor" : "sheet.armourStanceBonus", { name, armour: value }));
+		if (!pieces.length && !lines.length) return t("sheet.armourNone");
 		return t("sheet.armourTip", {
-			pieces: pieces.map(({ name, armour, counts }) => t(counts ? "sheet.armourPiece" : "sheet.armourPieceIdle", { name, armour })).join(", ")
+			pieces: [...pieces.map(({ name, armour, counts }) => t(counts ? "sheet.armourPiece" : "sheet.armourPieceIdle", { name, armour })), ...lines].join(", ")
 		});
 	}
 
@@ -573,5 +592,10 @@ export class BastionlandActorSheet extends ViewableMixin(ArtPreviewMixin(Handleb
 	/** @this {BastionlandActorSheet} */
 	static #onDropLastingDie(_event, target) {
 		return dropLastingDie(this.actor, Number(target.dataset.index));
+	}
+
+	/** @this {BastionlandActorSheet} */
+	static #onEndStance(_event, target) {
+		return toggleStance(this.actor, this.actor.items.get(target.dataset.item));
 	}
 }

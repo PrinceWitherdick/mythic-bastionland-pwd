@@ -26,6 +26,7 @@ import {
 	spreads,
 	titleFromItems,
 	tokenFile,
+	wantsList,
 	withArticle
 } from "../../module/rules/book-art.js";
 
@@ -475,6 +476,48 @@ describe("knightTextFromItems", () => {
 			return entry;
 		});
 		expect(knightTextFromItems(tight).passion.text).toBe("Restore SPI when you keep watch all night.");
+	});
+
+	/** The page down to the Ability's heading, then what's given, then a Passion well below. */
+	const withAbility = (...lines) => [
+		...page.filter((entry) => entry.transform[5] > 535),
+		...lines,
+		item("PASSION - Vigil", 11, 71, 440.6),
+		item("Restore SPI when you keep watch all night.", 11, 71, 429.6, 200)
+	];
+
+	it("reads the list an Ability ends on, set a little lower beneath its colon", () => {
+		const read = knightTextFromItems(withAbility(
+			item("Pick one of these when the", 11, 71, 529.6),
+			item("wick is trimmed:", 11, 71, 518.6),
+			item("•", 11, 71, 499.6, 6.7),
+			item("Douse a lamp", 11, 89.1, 499.6),
+			item("•", 11, 71, 486.6, 6.7),
+			item("Light a lamp across", 11, 89.1, 486.6),
+			item("the room", 11, 89.1, 475.6)
+		));
+		expect(read.ability).toEqual({
+			name: "Snuff Out",
+			text: "Pick one of these when the wick is trimmed:",
+			list: ["Douse a lamp", "Light a lamp across the room"]
+		});
+		expect(read.passion).toEqual({ name: "Vigil", text: "Restore SPI when you keep watch all night." });
+	});
+
+	it("leaves a bullet past the gap alone when the text before it doesn't end on a colon", () => {
+		const read = knightTextFromItems(withAbility(
+			item("Put out every flame.", 11, 71, 529.6),
+			item("•", 11, 71, 510.6, 6.7),
+			item("A stray line", 11, 89.1, 510.6)
+		));
+		expect(read.ability).toEqual({ name: "Snuff Out", text: "Put out every flame." });
+	});
+
+	it("knows an Ability an older import stopped at its colon", () => {
+		expect(wantsList({ text: "Pick one:" })).toBe(true);
+		expect(wantsList({ text: "Pick one:", list: ["A"] })).toBe(false);
+		expect(wantsList({ text: "Do a thing." })).toBe(false);
+		expect(wantsList(null)).toBe(false);
 	});
 
 	it("gives up when a heading is missing or out of order", () => {
