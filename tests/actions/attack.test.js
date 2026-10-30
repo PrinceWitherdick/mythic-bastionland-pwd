@@ -861,3 +861,108 @@ describe("an Attack at several targets (p8)", () => {
 		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.refusals.smiteSwarm");
 	});
 });
+
+describe("combat audit of 2026-10-29", () => {
+	const shield = { id: "shield", name: "Kite shield", type: "armour", system: { equipped: true, damage: "d4", kind: "shield" } };
+	const mace = weapon("mace", "Mace", "d8", { hefty: true });
+	const foe = () => combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" });
+
+	it("opens without a shield a foe's Trap holds, and rolls no d4 for it ticked anyway (p10)", async () => {
+		marksOn.mockReturnValue([{ key: "trap", hint: "Shield trapped" }]);
+		target(foe());
+		const guard = combatant({ uuid: "Actor.guard", name: "Guard", items: [mace, shield] });
+		guard.system.wields = "hands";
+		await attack(guard);
+		expect(opened().sources.map(({ name, checked }) => `${name}:${checked}`)).toEqual(["Mace:true", "Kite shield:false"]);
+
+		inputDialog.mockClear();
+		inputDialog.mockResolvedValue({ "source.mace": true, "source.shield": true });
+		await attack(guard);
+		const state = postCard.mock.calls.at(-1)[3].flags[SYSTEM_ID].attack;
+		expect(state.dice.map((die) => die.faces)).toEqual([8]);
+		expect(state.setAside).toEqual([{ name: "Kite shield", reason: "trapped" }]);
+	});
+
+	it("holds a Knight who lost their shield arm this Season to one item (p9)", async () => {
+		target(foe());
+		const scar = { id: "scar", name: "Mutilation (Shield Arm)", type: "scar", system: { roll: 10, detail: 3, resolved: false } };
+		const knight = combatant({ uuid: "Actor.ser", name: "Ser Hal", type: "knight", items: [mace, shield, scar] });
+		await attack(knight);
+		expect(opened().sources.map(({ name, checked }) => `${name}:${checked}`)).toEqual(["Mace:true", "Kite shield:false"]);
+
+		// One recorded before Scars kept their detail is read from its name.
+		inputDialog.mockClear();
+		game.i18n.localize = (key) => (key.endsWith("mutilation.detail.3") ? "Shield Arm" : key);
+		knight.items = [mace, shield, { ...scar, system: { roll: 10, resolved: false } }];
+		await attack(knight);
+		expect(opened().sources.map(({ checked }) => checked)).toEqual([true, false]);
+
+		// Settled at the Season's turn, they have learned to get by.
+		inputDialog.mockClear();
+		knight.items = [mace, shield, { ...scar, system: { roll: 10, detail: 3, resolved: true } }];
+		await attack(knight);
+		expect(opened().sources.map(({ checked }) => checked)).toEqual([true, true]);
+	});
+
+	it("makes no Attack for those who fled, surrendered, or are wiped out or destroyed (p10, p11)", async () => {
+		target(foe());
+		for (const system of [{ moraleBroken: "fled" }, { moraleBroken: "surrendered" }, { warband: { wipedOut: true } }, { destroyed: true }]) {
+			const actor = combatant({ uuid: "Actor.x", name: "X", items: [mace] });
+			Object.assign(actor.system, system);
+			expect(await attack(actor)).toBeNull();
+		}
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledTimes(4);
+	});
+
+	it("refuses an Attack at oneself", async () => {
+		const self = combatant({ uuid: "Actor.self", name: "Self", items: [mace] });
+		target(self);
+		expect(await attack(self)).toBeNull();
+		expect(inputDialog).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("bastionland.attack.selfTarget");
+	});
+
+	it("says in the dialog that a target is already Slain", async () => {
+		const dead = foe();
+		dead.system.slain = true;
+		target(dead);
+		await attack(combatant({ uuid: "Actor.x", name: "X", items: [mace] }));
+		expect(opened().marks).toContain("bastionland.attack.targetDown.slain");
+	});
+
+	it("lets a siege weapon's Attack count as large-scale (p11)", async () => {
+		target(combatant({ uuid: "Actor.militia", name: "Militia", scale: "warband" }));
+		const ram = combatant({ uuid: "Actor.ram", name: "Ram", type: "structure", items: [weapon("ram", "Battering Ram", "d12")] });
+		inputDialog.mockResolvedValue({ "source.ram": true });
+		await attack(ram);
+		expect(postCard.mock.calls[0][3].flags[SYSTEM_ID].attack.largeScale).toBe(true);
+	});
+
+	it("spends nothing on an Attack whose card never reached the chat", async () => {
+		target(foe());
+		inputDialog.mockResolvedValue({ "source.mace": true });
+		postCard.mockRejectedValueOnce(new Error("chat down"));
+		await expect(attack(combatant({ uuid: "Actor.x", name: "X", items: [mace] }))).rejects.toThrow("chat down");
+		expect(rememberAttack).not.toHaveBeenCalled();
+	});
+});
+
+describe("moved this turn, on any Scene (combat audit of 2026-10-29)", () => {
+	it("opens Moved ticked from their place in a running Combat, whichever Scene is in view", async () => {
+		const rider = combatant({ uuid: "Actor.rider", name: "Rider", items: [weapon("mace", "Mace", "d8")] });
+		target(combatant({ uuid: "Actor.moss", name: "Moss", type: "knight" }));
+		const place = (moved, started = true) => ({ started, combatants: [{ actor: rider, getFlag: () => null, token: { movementHistory: moved ? [{}] : [] } }] });
+		const collection = (list) => Object.assign([...list], { contents: list });
+		game.combats = collection([place(true)]);
+		await attack(rider);
+		expect(opened().moved).toBe(true);
+
+		for (const combats of [[place(false)], [place(true, false)], []]) {
+			inputDialog.mockClear();
+			game.combats = collection(combats);
+			await attack(rider);
+			expect(opened().moved).toBe(false);
+		}
+	});
+});

@@ -258,7 +258,10 @@ async function unhorseRiders(steed) {
 	// Nobody rides a Knight.
 	if (isKnight(steed)) return [];
 	const as = new Set([steed.uuid, steed.isToken ? steed.token?.baseActor?.uuid : null].filter(Boolean));
-	const riders = worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner);
+	const riders = [
+		...worldKnights((knight) => as.has(knight.system.steed) && knight.system.mounted === true && knight.isOwner),
+		...npcRidersOn(steed)
+	];
 	if (!riders.length) return riders;
 	await updateActors(riders.map((rider) => [rider, { "system.mounted": false }]), causedBy("damage"));
 	await Promise.all(riders.map((rider) => postCard(rider, "note", {
@@ -267,6 +270,38 @@ async function unhorseRiders(steed) {
 		action: { data: "unhorsed", icon: "fa-solid fa-dice-d6", label: t("damage.unhorsedRoll") }
 	}, { flags: { [SYSTEM_ID]: { unhorsed: rider.uuid } } })));
 	return riders;
+}
+
+/**
+ * Whether a Token sits on another: its centre lies within the other's square,
+ * as a rider's Token is laid on their steed's.
+ * @param {{x: number, y: number, w: number, h: number}} rider
+ * @param {{x: number, y: number, w: number, h: number}} steed
+ * @returns {boolean}
+ */
+export function sitsOn(rider, steed) {
+	const x = rider.x + rider.w / 2;
+	const y = rider.y + rider.h / 2;
+	return x > steed.x && x < steed.x + steed.w && y > steed.y && y < steed.y + steed.h;
+}
+
+/**
+ * The NPCs riding a steed. Nothing ties an NPC to its steed but the map, so
+ * it's those marked Mounted whose Token sits on one of the steed's.
+ * @param {Actor} steed
+ * @returns {Actor[]} Those this user can change.
+ */
+function npcRidersOn(steed) {
+	const riders = new Map();
+	for (const placed of steed.getActiveTokens?.() ?? []) {
+		const box = tokenBox(placed);
+		for (const other of placed.layer?.placeables ?? []) {
+			const rider = other.actor;
+			if (other === placed || rider?.type !== "npc" || rider.system.mounted !== true || !rider.isOwner) continue;
+			if (sitsOn(tokenBox(other), box)) riders.set(rider.uuid, rider);
+		}
+	}
+	return [...riders.values()];
 }
 
 /**
@@ -422,8 +457,10 @@ export async function takeDamage(actor, preset = {}) {
 	// scores are written and the card says so, since it's only the map catching up.
 	playDamageFx(actor, result.outcome, { whispered: !chatIsPublic() });
 
+	// Down, a Knight holds no stance taken for the fight's turns. Fetched here, as stances.js reads the horn from this file.
 	// Brought down, or a creature that counts as a structure destroyed (p11).
 	const down = downs(result.outcome, actor);
+	if (down && isKnight(actor)) await (await import("./stances.js")).lapseStances(actor);
 	if (down && !preset.sparring && !dead) {
 		// A steed going down throws whoever rode it (p10).
 		await unhorseRiders(actor);
@@ -1009,13 +1046,18 @@ function lastingMarkUpdate(actor, attacker) {
 
 /**
  * Whoever leads a Warband from the front suffers the same Damage it does
- * (p11), so they take what got past its Armour without their own.
+ * (p11), so they take what got past its Armour without their own. A leader
+ * Slain or dying leads it no longer, and is let go of rather than struck again.
  * @param {Actor} warband
  * @param {number} dealt
  */
 async function shareWithLeader(warband, dealt, { faces, by } = {}) {
 	const leader = fromUuidSync(warband.system.leader);
 	if (!leader?.system?.virtues) return;
+	if (downBy(leader.system)) {
+		if (warband.isOwner) await warband.update({ "system.leader": "" }, causedBy("damage"));
+		return;
+	}
 	if (!leader.isOwner) {
 		await postCard(warband, "note", { icon: "fa-solid fa-flag", text: t("damage.leaderShares", { name: leader.name, warband: warband.name, damage: dealt }) });
 		return;

@@ -1,4 +1,4 @@
-import { takeAttack } from "../actions/damage.js";
+import { landMirrors, takeAttack } from "../actions/damage.js";
 import { DUEL_QUERY, duelistScores, duelOf, onDuelQuery, saveDuelChange } from "../actions/duel.js";
 import { CALENDAR_HOOK } from "../actions/calendar.js";
 import { adjustGlory } from "../actions/glory.js";
@@ -40,18 +40,21 @@ async function onResolve(message) {
 	// Unspent dice, a Deny still to make and Saves still to roll are said first, as Apply does on one card.
 	const waiting = blows.filter(({ attack }) => !attack.appliedTo.length).map(({ attack, target }) => ({ attack, actors: [target] }));
 	if (!(await confirmApply(waiting))) return;
+	// A Wound or Scar given back lands once both blows have, so it can't weigh on the other blow.
+	const mirrors = [];
 	for (const { card, attack, target } of blows) {
 		if (attack.appliedTo.length) continue;
 		// Only a real fight to the death gives Scars (p9), and sparring's Damage is
 		// shaken off afterwards (p188). Both cards' Gambits land together, so neither's Trap
 		// holds a shield against the other's blow.
-		const result = await takeAttack(target, attack, { scars: !duel.bloodless, except: cards.map((each) => each.id), sparring: Boolean(duel.sparring) });
+		const result = await takeAttack(target, attack, { scars: !duel.bloodless, except: cards.map((each) => each.id), sparring: Boolean(duel.sparring), mirrors });
 		if (!result) continue;
 		if (duel.bloodless && result.outcome === "scar") {
 			await postCard(target, "note", { icon: "fa-solid fa-hand-fist", text: t("duel.noScar", { name: target.name }) });
 		}
 		await saveAttackChange(card, { type: "applied", names: [target.name], tokens: (attack.targets ?? []).map(({ uuid }) => uuid) });
 	}
+	await landMirrors(mirrors);
 
 	if (cards.every((card) => attackOf(card)?.appliedTo.length)) await saveDuelChange(message, { type: "resolved" });
 }

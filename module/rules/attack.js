@@ -133,23 +133,37 @@ export function buildAttackPool({ sources = [], bonus = [], impaired = false }) 
 	return { dice: [...weaponDice, ...bonus], impaired: false };
 }
 
-/** Why a chosen weapon sits out an Attack: Slow after moving (p12), or purely ranged when engaged in melee (p10). */
-export const SET_ASIDE_REASONS = Object.freeze(["slow", "ranged"]);
+/**
+ * Why a chosen weapon sits out an Attack: Slow after moving (p12), purely ranged when engaged in
+ * melee (p10), or a shield a foe's Trap Gambit holds (p10).
+ */
+export const SET_ASIDE_REASONS = Object.freeze(["slow", "ranged", "trapped"]);
 
 /** A Knight has two hands, and every weapon or shield fills at least one (p12). */
 export const HANDS = 2;
+
+/**
+ * How many hands a wielding check allows: two where they count, none of a limit where they don't.
+ * @param {boolean|number} hands True for two, false for no limit, or how many are left.
+ * @returns {number|null} Null for no limit.
+ */
+export function handCount(hands) {
+	if (hands === true) return HANDS;
+	if (hands === false || hands === null || hands === undefined) return null;
+	return Math.max(0, Math.min(HANDS, Math.trunc(Number(hands)) || 0));
+}
 
 /** Qualities a weapon's other way to fight can have, as its main one can. */
 export const ALTERNATE_QUALITIES = Object.freeze(["hefty", "long", "slow", "ranged", "blast"]);
 
 /**
  * Why an Attack can't be made as chosen: Exhausted after moving (p9), charging
- * a spearwall (p10), more than two hands can hold (p12), every weapon chosen
- * sitting out, Smite with nothing to strike in melee (p10), several targeted
+ * a spearwall (p10), more than two hands can hold (p12), more than an arm
+ * lost to a Mutilation leaves to hold (p9), every weapon chosen sitting out, Smite with nothing to strike in melee (p10), several targeted
  * when only a Blast strikes more than one (p8), or Smite's d12 at a swarm that
  * Impairs the blow (p61).
  */
-export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands", "allSetAside", "smiteRanged", "severalTargets", "smiteSwarm"]);
+export const ATTACK_REFUSALS = Object.freeze(["exhausted", "spearwall", "twoWays", "hefty", "long", "hands", "armLost", "allSetAside", "smiteRanged", "severalTargets", "smiteSwarm"]);
 
 /**
  * @typedef {object} WieldedItem A weapon or shield chosen for an Attack.
@@ -200,8 +214,10 @@ export const isBlastAttack = ({ granted = false, smite = null, againstIndividual
  * @param {boolean} [situation.exhausted] At VIG 0.
  * @param {boolean} [situation.mounted]   On a steed, so a lance counts as Hefty.
  * @param {boolean} [situation.spearwall] Charged a spearwall this turn.
- * @param {boolean} [situation.hands]     Hold the items to what two hands can wield, as for a Knight.
- *                                        Stat blocks list a creature's attacks without saying how it holds them.
+ * @param {boolean|number} [situation.hands] Hold the items to what two hands can wield, as for a Knight,
+ *                                        or to fewer where an arm is lost (p9). Stat blocks list a
+ *                                        creature's attacks without saying how it holds them.
+ * @param {boolean} [situation.trapped]   A foe's Trap Gambit holds their shield (p10).
  * @param {boolean} [situation.smite]     Smite is declared, which only a melee Attack can use.
  * @param {boolean} [situation.several]   More than one Token is targeted, which only a Blast strikes (p8).
  * @param {boolean} [situation.blast]     The Attack is a Blast however else it came to be: Smite, an
@@ -210,11 +226,13 @@ export const isBlastAttack = ({ granted = false, smite = null, againstIndividual
  * @returns {{refusal: string|null, usable: number[], setAside: {index: number, reason: string}[], impaired: boolean}}
  *   `usable` and `setAside` are indexes into `items`. `impaired` is a Long weapon used in a confined space.
  */
-export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false, smite = false, several = false, blast = false, smiteSwarm = false } = {}) {
+export function checkWielding(items, { moved = false, engaged = false, confined = false, exhausted = false, mounted = false, spearwall = false, hands = false, trapped = false, smite = false, several = false, blast = false, smiteSwarm = false } = {}) {
 	const usable = [];
 	const setAside = [];
+	const limit = handCount(hands);
 	items.forEach((item, index) => {
-		if (heldAs(item, mounted).slow && moved) setAside.push({ index, reason: "slow" });
+		if (trapped && item.shield) setAside.push({ index, reason: "trapped" });
+		else if (heldAs(item, mounted).slow && moved) setAside.push({ index, reason: "slow" });
 		else if (item.ranged && engaged) setAside.push({ index, reason: "ranged" });
 		else usable.push(index);
 	});
@@ -228,10 +246,12 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	else if (spearwall) refusal = "spearwall";
 	// A weapon fought two ways, such as a spear that can be thrown, is fought one way at a time.
 	else if (items.some((item, index) => item.of && items.findIndex((other) => other.of === item.of) !== index)) refusal = "twoWays";
-	else if (hands && held.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
-	else if (hands && held.length > 1 && held.some(isLong)) refusal = "long";
+	else if (limit !== null && held.filter((item) => heldAs(item, mounted).hefty).length > 1) refusal = "hefty";
+	else if (limit !== null && held.length > 1 && held.some(isLong)) refusal = "long";
+	// An arm lost to a Mutilation leaves fewer hands, and a Long weapon needs both (p9, p12).
+	else if (limit !== null && limit < HANDS && (held.length > limit || held.some(isLong))) refusal = "armLost";
 	// Anything else still takes a hand each, and there are only two.
-	else if (hands && held.length > HANDS) refusal = "hands";
+	else if (limit !== null && held.length > HANDS) refusal = "hands";
 	// Weapons chosen and all of them sitting out leave nothing to Attack with,
 	// which is not the same as fighting unarmed.
 	else if (items.length && !usable.length) refusal = "allSetAside";
@@ -248,6 +268,21 @@ export function checkWielding(items, { moved = false, engaged = false, confined 
 	return { refusal, usable, setAside, impaired: confined && usable.some((index) => isLong(items[index])) };
 }
 
+/**
+ * Why somebody standing is out of the fight all the same, and makes no Attack:
+ * a structure or siege engine destroyed at 0GD, a Warband wiped out at VIG 0
+ * (p11), or anybody who fled or surrendered on failing Morale (p10). The Slain
+ * and Mortally Wounded are downBy's.
+ * @param {{destroyed?: boolean, warband?: {wipedOut?: boolean}|null, moraleBroken?: string}} system
+ * @returns {"destroyed"|"wipedOut"|"fled"|"surrendered"|null}
+ */
+export function outOfTheFight(system) {
+	if (system?.destroyed) return "destroyed";
+	if (system?.warband?.wipedOut) return "wipedOut";
+	if (system?.moraleBroken === "fled" || system?.moraleBroken === "surrendered") return system.moraleBroken;
+	return null;
+}
+
 /** A shield's name, as "kite shield", "redshield" or "bronze buckler". */
 const SHIELD_NAME = /shield|buckler/i;
 
@@ -261,6 +296,13 @@ export function isShieldItem({ name = "", type = "", system = {} } = {}) {
 	if (type === "armour") return system?.kind === "shield";
 	return type === "weapon" && SHIELD_NAME.test(name);
 }
+
+/**
+ * Whether a foe's Trap Gambit holds somebody's shield now (p10).
+ * @param {{key: string}[]} marks The Gambit marks on them.
+ * @returns {boolean}
+ */
+export const shieldTrapped = (marks) => (marks ?? []).some((mark) => mark.key === "trap");
 
 /**
  * Whether an NPC's gear says it holds its weapons in hands (p12): a Hefty,
@@ -420,16 +462,18 @@ const damagePotential = (item) => parseDice(item?.damage).reduce((sum, faces) =>
  * @param {WieldedItem[]} items Each also carrying its `damage` notation.
  * @param {object} [situation]
  * @param {boolean} [situation.mounted] On a steed, so a lance counts as Hefty.
- * @param {boolean} [situation.hands]   Hold the items to what two hands can wield, as for a Knight.
+ * @param {boolean|number} [situation.hands] Hold the items to what two hands can wield, as for a Knight, or fewer.
  * @returns {number[]} Indexes into `items`, in the order they were offered.
  */
-export function defaultWielded(items, { mounted = false, hands = false } = {}) {
+export function defaultWielded(items, { mounted = false, hands = false, trapped = false } = {}) {
 	// Between two items that hit equally hard the one listed first is taken.
 	const order = items.map((_item, index) => index)
 		.sort((a, b) => damagePotential(items[b]) - damagePotential(items[a]) || a - b);
 	const kept = [];
 	for (const index of order) {
-		if (hands && items[index].noHand) continue;
+		if (handCount(hands) !== null && items[index].noHand) continue;
+		// A shield a foe's Trap holds isn't taken up (p10).
+		if (trapped && items[index].shield) continue;
 		const tried = [...kept, index].sort((a, b) => a - b);
 		if (checkWielding(tried.map((i) => items[i]), { mounted, hands }).refusal) continue;
 		kept.push(index);
@@ -451,7 +495,7 @@ export function defaultWielded(items, { mounted = false, hands = false } = {}) {
  * @property {boolean} [ignoresArmour] Whether the Attack it came from ignores Armour.
  * @property {boolean} [nonLethal] Whether that Attack never Slays.
  * @property {boolean} [blast]     Whether it was a Blast, which harms a Warband (p11).
- * @property {boolean} [largeScale] Whether it was a Warband's, which harms a Warband.
+ * @property {boolean} [largeScale] Whether it was a Warband's, a siege weapon's or a large creature's, which harms a Warband (p11).
  * @property {object|null} [structureHarm] What in it harms a structure, from structureHarm.
  * @property {boolean} [drain]  Whether its maker takes back the VIG a Wound from it costs the target.
  * @property {boolean} [spirit] Whether its Damage comes off SPI rather than VIG.
@@ -805,7 +849,7 @@ export const withoutDismountDice = (attack) => ({
  * @returns {boolean}
  */
 export function canJoin(attack) {
-	if (!attack || attack.appliedTo.length || attack.duel || attack.declared || attack.alone) return false;
+	if (!attack || isSettled(attack) || attack.duel || attack.declared || attack.alone) return false;
 	// Cards from before `declared` was kept still show what was declared on them.
 	return !attack.gambits.length && !attack.feats.length && !attack.dice.some((die) => die.deniedBy);
 }
@@ -819,7 +863,7 @@ export function canJoin(attack) {
  * @returns {boolean}
  */
 export function canReroll(attack) {
-	if (!attack || attack.appliedTo.length || attack.rerolled || !attack.joined?.length) return false;
+	if (!attack || isSettled(attack) || attack.rerolled || !attack.joined?.length) return false;
 	return !attack.gambits.length && !attack.feats.length && !attack.dice.some((die) => die.deniedBy || die.adjusted);
 }
 
@@ -831,7 +875,7 @@ export function canReroll(attack) {
  * @returns {number[]} Indexes into the card's dice.
  */
 export function diceShowing(attack, number) {
-	if (!attack || attack.appliedTo.length || !Number.isInteger(number)) return [];
+	if (!attack || isSettled(attack) || !Number.isInteger(number)) return [];
 	return attack.dice.flatMap((die, index) => (die.result === number && !isDieSpent(attack, index) ? [index] : []));
 }
 
@@ -1034,7 +1078,7 @@ export function hasDeniableDie(attack) {
  * @returns {boolean}
  */
 export function canDeny(attack, { uuid, fatigued = false, down = false }) {
-	if (!attack || attack.appliedTo.length || fatigued || down) return false;
+	if (!attack || isSettled(attack) || fatigued || down) return false;
 	if (isAttacker(attack, uuid) || hasUsedFeat(attack, "deny", uuid)) return false;
 	return hasDeniableDie(attack);
 }
@@ -1094,7 +1138,7 @@ export function changeAttack(attack, change) {
 	}
 	// The first Damage settles the card; the targets still waiting take theirs after.
 	if (change?.type === "applied") return applyDamage(attack, change);
-	if (attack.appliedTo.length) return null;
+	if (isSettled(attack)) return null;
 
 	switch (change?.type) {
 		case "gambit": {
@@ -1177,8 +1221,24 @@ function applyDamage(attack, change) {
 	const names = (Array.isArray(change.names) ? change.names : []).filter((name) => typeof name === "string" && name);
 	const waiting = new Set(unappliedTargets(attack).map(({ uuid }) => uuid));
 	const tokens = [...new Set(Array.isArray(change.tokens) ? change.tokens : [])].filter((uuid) => waiting.has(uuid));
-	if (attack.appliedTo.length ? !tokens.length : !names.length) return null;
+	// Landing on somebody, or on Tokens since deleted. A card at nobody lands once; a card at
+	// Tokens lands on each of them once.
+	if (!names.length && !tokens.length) return null;
+	if (attack.appliedTo.length && !tokens.length) return null;
 	return { ...attack, appliedTo: [...attack.appliedTo, ...names], appliedTokens: [...(attack.appliedTokens ?? []), ...tokens] };
+}
+
+/**
+ * Whether an Attack is done with: its Damage has landed, or every Token it was
+ * aimed at has been dealt with, by its Damage or by being deleted.
+ * @param {AttackState|null} attack
+ * @returns {boolean}
+ */
+export function isSettled(attack) {
+	if (!attack) return false;
+	if (attack.appliedTo.length) return true;
+	const done = new Set(attack.appliedTokens ?? []);
+	return (attack.targets?.length ?? 0) > 0 && attack.targets.every(({ uuid }) => done.has(uuid));
 }
 
 /**

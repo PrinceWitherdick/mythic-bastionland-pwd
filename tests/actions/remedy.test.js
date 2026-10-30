@@ -8,8 +8,9 @@ vi.mock("../../module/actions/saves.js", () => ({ acceptAfterTelling: vi.fn() })
 vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => null), chooseCompany: vi.fn(async () => company) }));
 vi.mock("../../module/actions/ask-referee.js", () => ({ askReferee: vi.fn(async () => null) }));
 
-const { useRemedy } = await import("../../module/actions/recovery.js");
 const { advancePhase } = await import("../../module/actions/time.js");
+const { useRemedy, warnDyingAfterCombat } = await import("../../module/actions/recovery.js");
+const { postCard } = await import("../../module/chat/cards.js");
 const { askReferee } = await import("../../module/actions/ask-referee.js");
 
 /** Who the Referee ticks as present. */
@@ -49,5 +50,27 @@ describe("useRemedy", () => {
 		company = [];
 		await useRemedy(knight("Alys"), sustenance());
 		expect(advancePhase).not.toHaveBeenCalled();
+	});
+});
+
+describe("warnDyingAfterCombat", () => {
+	const actor = (name, system) => ({ name, system });
+	const fight = (...actors) => ({ started: true, combatants: actors.map((each) => ({ actor: each })) });
+
+	it("names to the Referee alone everybody the fight left dying (p8)", async () => {
+		game.users = { activeGM: { isSelf: true } };
+		const hal = actor("Hal", { mortalWound: true });
+		const named = await warnDyingAfterCombat(fight(hal, hal, actor("Bandit", { mortalWound: false }), actor("Raiders", { mortalWound: true, scale: "warband" }), actor("Corpse", { slain: true, mortalWound: true })));
+		expect(named).toEqual([hal]);
+		expect(postCard).toHaveBeenCalledWith(null, "note", expect.objectContaining({ text: "recovery.dyingAfterCombat" }), { mode: "gm" });
+	});
+
+	it("says nothing when nobody is dying, on another client, or for a fight never begun", async () => {
+		game.users = { activeGM: { isSelf: true } };
+		expect(await warnDyingAfterCombat(fight(actor("Bandit", {})))).toEqual([]);
+		expect(await warnDyingAfterCombat({ ...fight(actor("Hal", { mortalWound: true })), started: false })).toEqual([]);
+		game.users = { activeGM: { isSelf: false } };
+		expect(await warnDyingAfterCombat(fight(actor("Hal", { mortalWound: true })))).toEqual([]);
+		expect(postCard).not.toHaveBeenCalled();
 	});
 });

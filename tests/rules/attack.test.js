@@ -27,6 +27,11 @@ import {
 	hasDeniableDie,
 	heldAs,
 	isDieSpent,
+	isSettled,
+	isShieldItem,
+	outOfTheFight,
+	shieldTrapped,
+	handCount,
 	knownWeakness,
 	parseDice,
 	sortDice,
@@ -455,13 +460,30 @@ describe("changeAttack", () => {
 		expect(unappliedTargets(both)).toEqual([]);
 	});
 
-	it("closes out a settled card's targets with no names, but never settles it without one", () => {
+	it("closes out deleted targets with no names, and settles a card only once every target is dealt with", () => {
 		const targets = [{ uuid: "Token.a", name: "Ser A" }, { uuid: "Token.b", name: "Ser B" }];
-		expect(changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: [], tokens: ["Token.b"] })).toBeNull();
+		// Ser B's Token is deleted before anything lands: closed out, while Ser A still waits.
+		const gone = changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: [], tokens: ["Token.b"] });
+		expect(gone.appliedTo).toEqual([]);
+		expect(unappliedTargets(gone)).toEqual([targets[0]]);
+		expect(isSettled(gone)).toBe(false);
+		expect(changeAttack(gone, { type: "gambit", die: 0, key: "bolster" })).not.toBeNull();
+		// Both deleted: the card settles though the Damage landed on nobody.
+		const allGone = changeAttack(gone, { type: "applied", names: [], tokens: ["Token.a"] });
+		expect(isSettled(allGone)).toBe(true);
+		expect(changeAttack(allGone, { type: "gambit", die: 0, key: "bolster" })).toBeNull();
+		expect(canJoin(allGone)).toBe(false);
 		const first = changeAttack(rolled([[8, 6]], { targets, appliedTokens: [] }), { type: "applied", names: ["Ser A"], tokens: ["Token.a"] });
 		const closed = changeAttack(first, { type: "applied", names: [], tokens: ["Token.b"] });
 		expect(closed.appliedTo).toEqual(["Ser A"]);
 		expect(unappliedTargets(closed)).toEqual([]);
+	});
+
+	it("lands a card at nobody once only", () => {
+		const first = changeAttack(rolled([[8, 6]]), { type: "applied", names: ["Goblin"] });
+		expect(isSettled(first)).toBe(true);
+		expect(changeAttack(first, { type: "applied", names: ["Ogre"] })).toBeNull();
+		expect(changeAttack(rolled([[8, 6]]), { type: "applied", names: [], tokens: [] })).toBeNull();
 	});
 
 	it("counts a card settled before the Tokens were kept as done", () => {
@@ -1023,5 +1045,64 @@ describe("checkWielding at several targets", () => {
 
 	it("names the hands first, where both are wrong", () => {
 		expect(checkWielding([{ hefty: true }, { hefty: true }], { hands: true, several: true }).refusal).toBe("hefty");
+	});
+});
+
+describe("combat audit of 2026-10-29", () => {
+	const sword = { hefty: true };
+	const shield = { shield: true };
+	const poleaxe = { long: true };
+
+	it("sets a shield a foe's Trap holds aside, and never opens with it", () => {
+		expect(checkWielding([sword, shield], { hands: true, trapped: true })).toMatchObject({ refusal: null, usable: [0], setAside: [{ index: 1, reason: "trapped" }] });
+		expect(checkWielding([shield], { hands: true, trapped: true }).refusal).toBe("allSetAside");
+		expect(checkWielding([sword, shield], { hands: true }).usable).toEqual([0, 1]);
+		expect(defaultWielded([{ ...sword, damage: "d8" }, { ...shield, damage: "d4" }], { hands: true, trapped: true })).toEqual([0]);
+	});
+
+	it("knows a shield worn or named in a stat block", () => {
+		expect(isShieldItem({ name: "Kite", type: "armour", system: { kind: "shield" } })).toBe(true);
+		expect(isShieldItem({ name: "Helm", type: "armour", system: { kind: "helm" } })).toBe(false);
+		expect(isShieldItem({ name: "Bronze buckler", type: "weapon", system: {} })).toBe(true);
+		expect(isShieldItem({ name: "Mace", type: "weapon", system: {} })).toBe(false);
+		expect(shieldTrapped([{ key: "trap" }])).toBe(true);
+		expect(shieldTrapped([{ key: "impair" }])).toBe(false);
+	});
+
+	it("holds one who lost an arm to one item and no Long weapon", () => {
+		expect(handCount(true)).toBe(2);
+		expect(handCount(false)).toBeNull();
+		expect(handCount(1)).toBe(1);
+		expect(checkWielding([sword, shield], { hands: 1 }).refusal).toBe("armLost");
+		expect(checkWielding([poleaxe], { hands: 1 }).refusal).toBe("armLost");
+		expect(checkWielding([sword], { hands: 1 }).refusal).toBeNull();
+		expect(checkWielding([sword], { hands: 0 }).refusal).toBe("armLost");
+		expect(checkWielding([{ noHand: true }], { hands: 0 }).refusal).toBeNull();
+		expect(defaultWielded([{ ...sword, damage: "d8" }, { ...shield, damage: "d4" }], { hands: 1 })).toEqual([0]);
+		expect(defaultWielded([{ ...poleaxe, damage: "d10" }, { ...sword, damage: "d8" }], { hands: 1 })).toEqual([1]);
+	});
+
+	it("keeps the destroyed, the wiped out and the routed out of the fight", () => {
+		expect(outOfTheFight({ destroyed: true })).toBe("destroyed");
+		expect(outOfTheFight({ warband: { wipedOut: true } })).toBe("wipedOut");
+		expect(outOfTheFight({ moraleBroken: "fled" })).toBe("fled");
+		expect(outOfTheFight({ moraleBroken: "surrendered" })).toBe("surrendered");
+		// Broken at SPI 0, a Warband still fights for itself (p11).
+		expect(outOfTheFight({ warband: { broken: true, wipedOut: false } })).toBeNull();
+		expect(outOfTheFight({})).toBeNull();
+	});
+
+	it("carries a joiner's backlash and rally on their own dice", () => {
+		const moss = rolled([[8, 6]], { attacker: "Actor.moss", attackerName: "Moss" });
+		const joint = changeAttack(moss, { type: "join", actor: "Actor.tal", name: "Tal", melee: true, backlash: true, rally: true, dice: [{ faces: 8, result: 5, label: "Glaive" }] });
+		const tal = joint.dice.find((die) => die.actor === "Actor.tal");
+		const own = joint.dice.find((die) => die.actor === "Actor.moss");
+		expect(tal).toMatchObject({ backlash: true, rally: true });
+		expect(own).toMatchObject({ backlash: false, rally: false });
+	});
+
+	it("lets a siege weapon's or a large creature's large-scale share harm a Warband", () => {
+		expect(harmBarred({ blast: false, largeScale: true }, { warband: true })).toBeNull();
+		expect(harmBarred({ blast: false, largeScale: false }, { warband: true })).toBe("warband");
 	});
 });

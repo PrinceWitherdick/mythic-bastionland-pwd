@@ -10,7 +10,7 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	postCard: vi.fn(async () => ({ id: "message-1" }))
 }));
 // The duel card's own buttons are under test; the Attack cards and Damage they lean on are stubbed.
-vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => ({ outcome: "wounded" })) }));
+vi.mock("../../module/actions/damage.js", () => ({ takeAttack: vi.fn(async () => ({ outcome: "wounded" })), landMirrors: vi.fn(async () => {}) }));
 vi.mock("../../module/chat/attack-card.js", () => ({
 	attackOf: (message) => message?.attack ?? null,
 	confirmApply: vi.fn(async () => true),
@@ -23,7 +23,7 @@ vi.mock("../../module/actions/timeline-events.js", () => ({ timelineDuel: vi.fn(
 
 const { inputDialog } = await import("../../module/apps/ui.js");
 const { postCard } = await import("../../module/chat/cards.js");
-const { takeAttack } = await import("../../module/actions/damage.js");
+const { landMirrors, takeAttack } = await import("../../module/actions/damage.js");
 const { confirmApply } = await import("../../module/chat/attack-card.js");
 const { challengeToDuel, duelCardContext } = await import("../../module/actions/duel.js");
 const { registerDuelCards } = await import("../../module/chat/duel-card.js");
@@ -75,6 +75,17 @@ describe("the duel dialog", () => {
 		game.user.targets = new Set([{ actor: opponent, document: { uuid: "Token.b", name: "Bram" } }]);
 		return actor;
 	};
+
+	it("refuses a Warband or a structure as either duellist (p10)", async () => {
+		const actor = setUp({ steed: "" });
+		const [{ actor: opponent }] = game.user.targets;
+		opponent.system = { ...opponent.system, scale: "warband" };
+		expect(await challengeToDuel(actor)).toBeNull();
+		opponent.system = { isSquire: false };
+		actor.type = "structure";
+		expect(await challengeToDuel(actor)).toBeNull();
+		expect(inputDialog).not.toHaveBeenCalled();
+	});
 
 	it("opens on a duel, even for a Knight with a steed", async () => {
 		await challengeToDuel(setUp({ steed: "Actor.horse" }));
@@ -173,6 +184,23 @@ describe("a sparring duel's buttons", () => {
 		await renderDuel(duel).press({ duelAction: "resolve" });
 		expect(takeAttack).toHaveBeenCalledTimes(2);
 		for (const call of takeAttack.mock.calls) expect(call[2]).toMatchObject({ scars: false, sparring: true });
+	});
+
+	it("gives back a mirrored Wound only once both blows have landed (p116)", async () => {
+		const duel = sparring();
+		duel.duelists[0].attack = "attack-a";
+		duel.duelists[1].attack = "attack-b";
+		takeAttack.mockClear();
+		const kept = { dealer: "Actor.ada", loss: 2 };
+		takeAttack.mockImplementationOnce(async (_target, _attack, { mirrors }) => {
+			mirrors.push(kept);
+			return { outcome: "wounded" };
+		});
+		await renderDuel(duel).press({ duelAction: "resolve" });
+		const [first, second] = takeAttack.mock.calls.map((call) => call[2].mirrors);
+		expect(first).toBe(second);
+		expect(landMirrors).toHaveBeenCalledWith([kept]);
+		expect(landMirrors.mock.invocationCallOrder[0]).toBeGreaterThan(takeAttack.mock.invocationCallOrder[1]);
 	});
 
 	it("asks first about what's still to be had on both Attacks, and lands nothing if told no", async () => {

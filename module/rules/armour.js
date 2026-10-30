@@ -176,25 +176,43 @@ export const tokenDocBox = (token, size) => ({ x: token.x, y: token.y, w: (Numbe
 export const withinArmsReach = (a, b, size) => a.side === b.side && standTogether(a.box, b.box, size);
 
 /**
- * The wall formation somebody struck stands in (p10): them, each ally beside
- * them, each ally beside one of those, and so on. 3 or more allies make a
- * wall, which gains a point of Armour when every one has a shield, bucklers aside.
+ * Those standing together with somebody: them, each ally beside them, each
+ * ally beside one of those, and so on.
+ * @param {WallStander} first
+ * @param {WallStander[]} allies
+ * @param {number} size One grid space, in pixels.
+ * @returns {WallStander[]}
+ */
+function standingWith(first, allies, size) {
+	const group = [first];
+	const left = [...allies];
+	for (let i = 0; i < group.length; i++) {
+		for (let j = left.length - 1; j >= 0; j--) {
+			if (standTogether(group[i].box, left[j].box, size)) group.push(...left.splice(j, 1));
+		}
+	}
+	return group;
+}
+
+/**
+ * The wall formation somebody struck stands in (p10). 3 or more allies make a
+ * wall, which gains a point of Armour when every one has a shield, bucklers
+ * aside. A shield-bearer's wall is the shield-bearers standing together with
+ * them, so an archer beside it is no part of it and takes nothing from it.
  * @param {WallStander} struck
  * @param {WallStander[]} allies Everybody else on their side.
  * @param {number} size One grid space, in pixels.
  * @returns {{count: number, formed: boolean, unshielded: string[]}} `count` includes whoever
- *   was struck, and `unshielded` names those in it with no shield, or only a buckler.
+ *   was struck. Struck without a shield, `unshielded` names those beside them with no shield,
+ *   or only a buckler, themselves among them.
  */
 export function shieldwallAround(struck, allies, size) {
-	const wall = [struck];
-	const left = [...allies];
-	for (let i = 0; i < wall.length; i++) {
-		for (let j = left.length - 1; j >= 0; j--) {
-			if (standTogether(wall[i].box, left[j].box, size)) wall.push(...left.splice(j, 1));
-		}
+	if (struck.bearing !== "shield") {
+		const group = standingWith(struck, allies, size);
+		return { count: group.length, formed: false, unshielded: group.filter((each) => each.bearing !== "shield").map((each) => each.name) };
 	}
-	const unshielded = wall.filter((each) => each.bearing !== "shield").map((each) => each.name);
-	return { count: wall.length, formed: wall.length >= 3 && !unshielded.length, unshielded };
+	const wall = standingWith(struck, allies.filter((each) => each.bearing === "shield"), size);
+	return { count: wall.length, formed: wall.length >= 3, unshielded: [] };
 }
 
 /**

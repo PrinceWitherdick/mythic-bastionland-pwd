@@ -10,6 +10,7 @@ import {
 	MARK_GAMBITS,
 	markLapsed,
 	nextTurn,
+	placeNow,
 	shownWeapons,
 	weaponShown
 } from "../../module/rules/gambit-marks.js";
@@ -56,10 +57,14 @@ describe("lapsePlace", () => {
 	it("can't say without a turn order, so the mark waits for a hand", () => {
 		expect(lapsePlace("impair", null, { ownTurn: 4 })).toBeNull();
 		expect(lapsePlace("impair", laid, { ownTurn: null })).toBeNull();
-		expect(lapsePlace("trap", laid, { attackerTurn: null })).toBeNull();
-		// The foe's place doesn't date a Trap, nor the attacker's an Impair.
-		expect(lapsePlace("trap", laid, { ownTurn: 4 })).toBeNull();
+		// The attacker's place doesn't date an Impair.
 		expect(lapsePlace("impair", laid, { attackerTurn: 4 })).toBeNull();
+	});
+
+	it("frees a Trapped shield as the next round begins when its trapper has left the fight", () => {
+		expect(lapsePlace("trap", laid, { attackerTurn: null })).toEqual({ round: 2, turn: 0 });
+		// The foe's place doesn't date a Trap.
+		expect(lapsePlace("trap", laid, { ownTurn: 4 })).toEqual({ round: 2, turn: 0 });
 	});
 });
 
@@ -112,6 +117,24 @@ describe("attackMarks", () => {
 		const marks = attackMarks(attack([gambit("impair"), gambit("trap")], { place }), { ownTurn: 4, turnOf: () => 2 });
 		expect(marks[0]).toMatchObject({ key: "impair", combat: "Combat.a", lapse: { round: 1, turn: 5 } });
 		expect(marks[1]).toMatchObject({ key: "trap", combat: "Combat.a", lapse: { round: 2, turn: 2 } });
+	});
+
+	it("finds its turn again after somebody joins the fight ahead of it", () => {
+		// Rolled on Moss's turn at index 2; a newcomer since put Moss at 3.
+		const place = { combat: "Combat.a", round: 1, turn: 2, combatant: "moss" };
+		const turnOfCombatant = (id) => (id === "moss" ? 3 : null);
+		expect(placeNow(place, turnOfCombatant)).toEqual({ ...place, turn: 3 });
+		const marks = attackMarks(attack([gambit("trap")], { place }), { turnOf: () => 3, turnOfCombatant });
+		expect(marks[0].lapse).toEqual({ round: 2, turn: 3 });
+		// The foe at 3 before the newcomer is at 4 now, still to act this round.
+		expect(attackMarks(attack([gambit("stop")], { place }), { ownTurn: 4, turnOfCombatant })[0].lapse).toEqual({ round: 1, turn: 5 });
+	});
+
+	it("keeps the place as kept when its combatant has left, or the card is older", () => {
+		const place = { combat: "Combat.a", round: 1, turn: 2, combatant: "gone" };
+		expect(placeNow(place, () => null)).toBe(place);
+		const older = { combat: "Combat.a", round: 1, turn: 2 };
+		expect(placeNow(older, () => 7)).toBe(older);
 	});
 
 	it("reads a card rolled before attackers were named", () => {

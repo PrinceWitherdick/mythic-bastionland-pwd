@@ -70,6 +70,11 @@
 					<h2 class="bastionland-heading bastionland-heading--small">{{localize "bastionland.conditions.label"}}</h2>
 					<ul class="bastionland-conditions">
 						{{> "bastionland.condition-items"}}
+						{{#if moraleBroken}}
+						<li>
+							<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>
+						</li>
+						{{/if}}
 					</ul>
 				</section>
 

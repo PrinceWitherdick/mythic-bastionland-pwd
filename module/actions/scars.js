@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
-import { DIE_SIZES } from "../rules/attack.js";
-import { awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
+import { DIE_SIZES, HANDS } from "../rules/attack.js";
+import { armsLost, awaitsRevengeOn, isScarPending, scarDescription, scarForRoll, scarRaisesGuardLater, scarRaisesGuardNow, settlesByTending } from "../rules/scars.js";
 import { isDying } from "../rules/virtues.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
@@ -20,6 +20,30 @@ function detailOf(scar, location) {
 	if (!scar.detail || !location) return null;
 	const found = [1, 2, 3, 4, 5, 6].find((roll) => t(`scars.${scar.key}.detail.${roll}`) === location);
 	return found ?? null;
+}
+
+/**
+ * A Scar item's system data with its detail filled in where it was recorded
+ * before Scars kept one, read from the place in its name, as "Mutilation (Sword Arm)".
+ * @param {Item} item A Scar item.
+ * @returns {object}
+ */
+function withDetail(item) {
+	const system = item.system ?? {};
+	if (system.detail || system.roll !== 10) return system;
+	const place = /\(([^)]+)\)\s*$/.exec(item.name ?? "")?.[1] ?? null;
+	return { ...system, detail: detailOf(scarForRoll(10), place) };
+}
+
+/**
+ * How many hands somebody has to fight with: two, less any arm a Mutilation
+ * has taken that they haven't yet learned to get by without (p9).
+ * @param {Actor} actor
+ * @returns {number}
+ */
+export function handsLeft(actor) {
+	const scars = [...(actor.items ?? [])].filter((item) => item.type === "scar").map(withDetail);
+	return Math.max(0, HANDS - armsLost(scars));
 }
 
 /**

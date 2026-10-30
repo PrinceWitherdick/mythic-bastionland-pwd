@@ -1,7 +1,7 @@
 import { inputDialog } from "../apps/ui.js";
 import { attackOf } from "../chat/attack-flag.js";
 import { postCard, statefulCard, t, warn } from "../chat/cards.js";
-import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, opponentOf, readyToResolve } from "../rules/duel.js";
+import { DUEL_KINDS, awaitsAttack, canStakeGlory, changeDuel, createDuel, duelRefusal, opponentOf, readyToResolve } from "../rules/duel.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { queryAsker } from "../compat.js";
 
@@ -158,6 +158,14 @@ export async function challengeToDuel(actor) {
 	}
 	const [target] = targets;
 	const opponent = target.actor;
+	// A duel is between two combatants (p10), which no Warband or structure is.
+	for (const [who, name] of [[actor, actor.name], [opponent, target.document.name]]) {
+		const refusal = duelRefusal(who);
+		if (refusal) {
+			warn(`duel.refused.${refusal}`, { name });
+			return null;
+		}
+	}
 	const stakeable = canStakeGlory([actor, opponent].map(({ type, system }) => ({ type, isSquire: Boolean(system.isSquire) })));
 
 	const data = await inputDialog({

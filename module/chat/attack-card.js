@@ -10,7 +10,7 @@ import { rollSave } from "../actions/saves.js";
 import { chooseActor } from "../apps/actor-pick.js";
 import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
-import { greaterEffects, npcArmourWithout, severEffects, tokenBox, withinArmsReach } from "../rules/armour.js";
+import { greaterEffects, npcArmourWithout, severEffects, tokenDocBox, withinArmsReach } from "../rules/armour.js";
 import {
 	DISMOUNT_FACES,
 	SAVE_VIRTUES,
@@ -68,18 +68,18 @@ const CHANGE_QUERY = `${SYSTEM_ID}.changeAttack`;
 const CHANGE_GUARDS = Object.freeze({
 	deny: (change, attack, user) => {
 		const roller = ownedBy(change.actor, user);
-		return roller && { ...change, name: roller.name };
+		return roller && duelDenier(attack, roller) ? { ...change, name: roller.name } : null;
 	},
 	// Damage is taken only on those the player owns, as their own client takes it, named as the GM sees them.
 	// A settled card's targets whose Tokens are gone are closed out by whoever presses Apply.
 	applied: (change, attack, user) => {
 		if (attack.targets.length) {
 			const asked = new Set(Array.isArray(change.tokens) ? change.tokens : []);
-			const settled = attack.appliedTo.length > 0;
+			// A Token since deleted is nobody's, and any of the table may mark it dealt with.
 			const hit = attack.targets
 				.filter(({ uuid }) => asked.has(uuid))
 				.map(({ uuid }) => ({ uuid, token: fromUuidSync(uuid) }))
-				.filter(({ token }) => (token ? token.actor?.testUserPermission?.(user, "OWNER") : settled));
+				.filter(({ token }) => (token ? token.actor?.testUserPermission?.(user, "OWNER") : true));
 			const names = hit.filter(({ token }) => token).map(({ token }) => token.actor.name);
 			return hit.length ? { type: "applied", names, tokens: hit.map(({ uuid }) => uuid) } : null;
 		}
@@ -614,27 +614,47 @@ function denyOptions(attack) {
 		...targetActors(attack),
 		game.user.character
 	], attack, (actor) => Boolean(actor.system.knowsFeat?.("deny")));
-	const allowed = pool.filter((actor) => canDenyAttack(attack, actor));
+	const allowed = pool.filter((actor) => canDenyAttack(attack, actor) && duelDenier(attack, actor));
 	if (!allowed.length) return { pool, allowed, able: allowed };
-	const targets = canvas?.ready ? attack.targets.map((target) => fromUuidSync(target.uuid)).filter((token) => token?.object) : [];
+	const targets = attack.targets.map((target) => fromUuidSync(target.uuid)).filter(Boolean);
 	return { pool, allowed, able: allowed.filter((actor) => inDenyReach(targets, actor)) };
 }
 
 /**
+ * Whether somebody may Deny a blow in a duel: only the duellist it's aimed at,
+ * since a duel is fought between the two of them (p10). Any Attack else lets
+ * anybody the Feat allows.
+ * @param {import("../rules/attack.js").AttackState} attack
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function duelDenier(attack, actor) {
+	if (!attack.duel) return true;
+	return attack.targets.some(({ uuid }) => fromUuidSync(uuid)?.actor?.uuid === actor.uuid);
+}
+
+/**
  * Whether somebody stands where they could Deny (p10): a target of the Attack,
- * or an ally close enough to touch one. Where the map can't say, with nobody
- * targeted or the Denier or the targets off it, they're let be.
- * @param {TokenDocument[]} targets The Attack's targets on the map, none where the map can't say.
+ * or an ally close enough to touch one, on that target's Scene, whichever Scene
+ * this user is viewing. With nobody targeted, or no Token of theirs anywhere,
+ * they're let be; a Token only on another Scene is out of reach.
+ * @param {TokenDocument[]} targets The Attack's targets' Token documents.
  * @param {Actor} actor
  * @returns {boolean}
  */
 function inDenyReach(targets, actor) {
 	if (!targets.length) return true;
 	if (targets.some((token) => token.actor === actor || token.actor?.uuid === actor.uuid)) return true;
-	const placed = actor.getActiveTokens?.(false, false)?.[0];
-	if (!placed) return true;
-	const denier = { box: tokenBox(placed), side: placed.document.disposition };
-	return targets.some((token) => withinArmsReach(denier, { box: tokenBox(token.object), side: token.disposition }, canvas.grid.size));
+	// Their Tokens on every Scene, as the core keeps them, without making an actor for every Token in the world.
+	const theirs = actor.getDependentTokens?.({ linked: true }) ?? [];
+	// Nowhere on any Scene, the map can't say, so the table judges.
+	if (!theirs.length) return true;
+	return targets.some((target) => {
+		const scene = target.parent;
+		const size = scene?.grid?.size ?? canvas?.grid?.size ?? 100;
+		const box = { box: tokenDocBox(target, size), side: target.disposition };
+		return theirs.some((token) => token.parent === scene && withinArmsReach({ box: tokenDocBox(token, size), side: token.disposition }, box, size));
+	});
 }
 
 /**
@@ -746,14 +766,36 @@ export async function confirmApply(blows) {
 	});
 }
 
+/** Cards whose Damage this client is applying now. */
+const applying = new Set();
+
 /**
  * Take the Damage on each waiting target this user owns, rolling a Scar with the
  * die that caused it. The targets other users own stay waiting for them, and
- * those of a settled card whose Tokens were deleted are closed out.
+ * those whose Tokens were deleted are closed out.
  */
 async function onApply(message, _button, event) {
+	// A second click while the first is still applying would land the blow twice.
+	if (applying.has(message.id)) return;
+	applying.add(message.id);
+	try {
+		await applyFrom(message, event);
+	} finally {
+		applying.delete(message.id);
+	}
+}
+
+/**
+ * Apply an Attack card's Damage to those it waits on that this user owns.
+ * @param {ChatMessage} message
+ * @param {Event} [event]
+ */
+async function applyFrom(message, event) {
 	const attack = attackOf(message);
-	const gone = attack.appliedTo.length ? unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid) : [];
+	// A card at nobody lands once, on whoever its first reader targets.
+	if (!attack.targets.length && attack.appliedTo.length) return warn("attack.alreadyApplied");
+	// Tokens deleted before the Damage reached them are dealt with, so the card can settle.
+	const gone = unappliedTargets(attack).filter(({ uuid }) => !fromUuidSync(uuid)).map(({ uuid }) => uuid);
 	const waiting = waitingTargets(attack);
 	if (!waiting.length) {
 		if (gone.length) await saveChange(message, { type: "applied", names: [], tokens: gone });

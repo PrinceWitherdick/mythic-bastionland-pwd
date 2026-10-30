@@ -56,6 +56,8 @@ export async function rollSurprise(combat = game.combat) {
 			outcome: t(save.passed ? "surprise.acts" : "surprise.misses")
 		}))
 	}, { rolls: results.map(({ save }) => save.roll) });
+	// Rolled once the fight is under way, a surprised Combatant whose turn it already is sits it out now.
+	if (surprised.length) await skipSurprised(combat);
 	return results;
 }
 

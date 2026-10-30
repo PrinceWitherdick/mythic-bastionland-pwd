@@ -12,13 +12,14 @@ import { t } from "./cards.js";
 export const SCANNED_MESSAGES = 200;
 
 /**
- * Where the running Combat stands.
- * @returns {{combat: string, round: number, turn: number}|null} Null when none is running.
+ * Where the running Combat stands, and whose turn it is, so an Attack card
+ * stamped with it finds its turn again after the order changes.
+ * @returns {{combat: string, round: number, turn: number, combatant: string|null}|null} Null when none is running.
  */
 export function combatPlace() {
 	const combat = game.combat;
 	if (!combat?.started) return null;
-	return { combat: combat.id, round: combat.round ?? 0, turn: combat.turn ?? 0 };
+	return { combat: combat.id, round: combat.round ?? 0, turn: combat.turn ?? 0, combatant: combat.combatant?.id ?? null };
 }
 
 /**
@@ -91,6 +92,10 @@ function readMarks(actor, now) {
 	const combat = now ? game.combat : null;
 	const places = turnOrder(combat);
 	const ownTurn = places.get(actor.uuid) ?? null;
+	const turnOfCombatant = (id) => {
+		const index = (combat?.turns ?? []).findIndex((combatant) => combatant.id === id);
+		return index < 0 ? null : index;
+	};
 	const marks = [];
 	const log = game.messages.contents;
 	for (let i = Math.max(0, log.length - SCANNED_MESSAGES); i < log.length; i++) {
@@ -99,7 +104,7 @@ function readMarks(actor, now) {
 		if (!attack?.gambits?.length || !targeted(attack, actor)) continue;
 		// A Trap lapses as its payer's next turn begins, who in a joint Attack may not be the attacker.
 		const turnOf = (uuid) => places.get(uuid) ?? null;
-		for (const mark of attackMarks(attack, { ownTurn, turnOf })) {
+		for (const mark of attackMarks(attack, { ownTurn, turnOf, turnOfCombatant })) {
 			if (markLapsed(mark, now)) continue;
 			// An Impair on one foe's weapon, from a card aimed at several, holds nobody else.
 			if (mark.weapon?.actor && mark.weapon.actor !== actor.uuid) continue;

@@ -885,3 +885,58 @@ describe("rules check of 2026-10-27", () => {
 		expect(await ask({ type: "gambit", die: 0, key: "repel" })).toBe(true);
 	});
 });
+
+describe("Deny, combat audit of 2026-10-29", () => {
+	const kay = () => actor({ uuid: "Actor.k", name: "Ser Kay", isOwner: false });
+	const ban = actor({ uuid: "Actor.ally", name: "Ser Ban" });
+	/** A Scene holding Tokens, as their documents are, grid 100. */
+	const scene = (...placed) => ({ grid: { size: 100 }, tokens: placed });
+	const token = (who, x, side = 1) => ({ actor: who, x, y: 0, width: 1, height: 1, disposition: side });
+
+	function stage({ banAt }) {
+		const kayToken = token(kay(), 0);
+		const here = scene(kayToken);
+		kayToken.parent = here;
+		const elsewhere = scene();
+		const place = (where, x) => {
+			const placed = Object.assign(token(ban, x), { parent: where });
+			where.tokens.push(placed);
+			return placed;
+		};
+		const bans = [];
+		if (banAt === "beside") bans.push(place(here, 100));
+		if (banAt === "far") bans.push(place(here, 900));
+		if (banAt === "otherScene") bans.push(place(elsewhere, 100));
+		// The core keeps an actor's Tokens on every Scene; nobody else's are read.
+		ban.getDependentTokens = ({ linked } = {}) => (linked ? bans : []);
+		tokens["Scene.s.Token.k"] = kayToken;
+		game.scenes = { contents: [here, elsewhere] };
+		canvas.tokens.controlled = [{ actor: ban }];
+	}
+
+	it("lets an ally beside the target Deny, whichever Scene this user is viewing", () => {
+		stage({ banAt: "beside" });
+		expect(renderCard(attackState()).deny.disabled).toBe(false);
+	});
+
+	it("holds an ally out of reach on the same Scene, or only on another", () => {
+		for (const banAt of ["far", "otherScene"]) {
+			stage({ banAt });
+			const { deny } = renderCard(attackState());
+			expect(deny.disabled).toBe(true);
+			expect(deny.dataset.tooltip).toBe("bastionland.attack.denyOutOfReach");
+		}
+	});
+
+	it("leaves it to the table for an ally with no Token anywhere", () => {
+		stage({ banAt: "nowhere" });
+		expect(renderCard(attackState()).deny.disabled).toBe(false);
+	});
+
+	it("lets only the duellist struck Deny a blow in a duel (p10)", () => {
+		stage({ banAt: "beside" });
+		const { deny } = renderCard(attackState({ duel: "duel-1" }));
+		expect(deny.disabled).toBe(true);
+		expect(deny.dataset.tooltip).toBe("bastionland.attack.cantDeny");
+	});
+});

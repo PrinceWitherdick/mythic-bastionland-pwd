@@ -5,6 +5,7 @@ import { dieMask } from "../rules/die-shapes.js";
 import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
 import { isSavePassed } from "../rules/virtues.js";
 import { isKnight } from "../rules/knight-types.js";
+import { playerCharacter } from "./knights.js";
 
 /**
  * @typedef {object} SaveResult
@@ -128,14 +129,21 @@ export async function rollLabelledSave(actor, virtue, { label, outcome, hint = n
 }
 
 /**
+ * Whether a failed Morale Save can mark somebody fled or surrendered: an NPC,
+ * or a Knight the Referee plays. Morale doesn't affect player characters (p10).
+ * @param {Actor|null|undefined} actor
+ * @returns {boolean}
+ */
+export const keepsMoraleMark = (actor) => actor?.type === "npc" || (isKnight(actor) && !playerCharacter(actor));
+
+/**
  * The buttons a failed Morale Save offers, to mark whoever it stood for as
- * fled or surrendered. Only NPCs keep the mark, since Morale doesn't affect
- * player characters (p10).
+ * fled or surrendered. Only those keepsMoraleMark says yes to keep the mark.
  * @param {Actor[]} group
  * @returns {{actors: string, choices: object[]}|null} `actors` their UUIDs, comma-separated. Null with no NPC among them.
  */
 export function moraleBreakButtons(group) {
-	const npcs = group.filter((member) => member?.type === "npc");
+	const npcs = group.filter(keepsMoraleMark);
 	if (!npcs.length) return null;
 	return {
 		actors: npcs.map((member) => member.uuid).join(","),

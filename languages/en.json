@@ -509,6 +509,7 @@
       "restored": "{virtue} restored to {value}.",
       "afterCombatTitle": "The Danger Has Passed",
       "afterCombat": "The fight is over. Restore Guard for {names}, and leave them no longer Fatigued or Exposed?",
+      "dyingAfterCombat": "The fight is over, and {names} still lie Mortally Wounded. Left untended for an hour they die; a few moments patch them up.",
       "restedAfterCombat": "The danger has passed: {names} restore Guard, and are no longer Fatigued or Exposed.",
       "rested": "A moment’s calm: GD restored to {value}, and no longer Fatigued or Exposed.",
       "restedSworn": "A moment’s calm: no longer Fatigued or Exposed. GD stays at {value} while their quest is sworn.",
@@ -1004,6 +1005,10 @@
       "title": "Duel",
       "buttonHint": "Target the one Token you’ve agreed to duel, then press this.",
       "needTarget": "Target the one Token you’ve agreed to duel, then press Duel.",
+      "refused": {
+        "warband": "{name} is a Warband. A duel is fought between two single combatants.",
+        "structure": "{name} is a ship or structure, not a combatant who can duel."
+      },
       "intro": "{name} and {opponent} agree to fight. It goes as any fight does, except both Attacks, Gambits and all, are rolled and settled at once, and either may use Feats first.",
       "kind": "Kind",
       "kinds": {
@@ -3349,7 +3354,8 @@
       "setAside": {
         "slow": "{name} is Slow, so it can’t be used after moving.",
         "ranged": "{name} is purely ranged, so it can’t be used after beginning the turn engaged in melee.",
-        "mountedFoe": "{name}’s trample doesn’t join, since a steed tramples only enemies on foot."
+        "mountedFoe": "{name}’s trample doesn’t join, since a steed tramples only enemies on foot.",
+        "trapped": "{name} is held by a foe’s Trap until that foe’s next turn, so it can’t be used."
       },
       "refusals": {
         "exhausted": "{name} is Exhausted, so they can’t Attack after moving this turn.",
@@ -3357,6 +3363,7 @@
         "hefty": "Two Hefty items can’t be wielded together.",
         "long": "A Long weapon needs both hands, so it can’t be wielded with anything else.",
         "hands": "A weapon or shield fills a hand, so nobody holds more than two.",
+        "armLost": "{name} has lost an arm to a Mutilation and hasn’t yet learned to get by, so they hold fewer items, and no Long weapon, until the next Season.",
         "twoWays": "A weapon is fought one way at a time, and attacks printed with “or” between them are one or the other, so tick only one.",
         "allSetAside": "Every weapon chosen sits out this Attack, so there’s nothing to Attack with.",
         "smiteRanged": "Smite is only used before a melee Attack.",
@@ -3364,6 +3371,20 @@
         "smiteSwarm": "A swarm Impairs any blow that isn’t a Blast, and Smite with it, so Smite for a Blast instead."
       },
       "impaired": "Impaired: rolls a single d4 and gains no bonus dice or Feats.",
+      "outOfTheFight": {
+        "destroyed": "{name} is destroyed, so it makes no Attack until it’s repaired.",
+        "wipedOut": "{name} is wiped out, so it makes no Attack.",
+        "fled": "{name} fled, so they make no Attack.",
+        "surrendered": "{name} surrendered, so they make no Attack."
+      },
+      "smiteImpaired": "This Attack is Impaired, so Smite isn’t made: no Save, no Fatigue, no extra die.",
+      "selfTarget": "{name} can’t make an Attack at themself. Target somebody else.",
+      "targetDown": {
+        "slain": "{name} is already Slain.",
+        "destroyed": "{name} is already destroyed.",
+        "wipedOut": "{name} is already wiped out."
+      },
+      "brokenWarband": "{name} is broken: it follows no orders, and acts only in its own interest.",
       "againstIndividuals": "Against individuals",
       "againstIndividualsHint": "A Warband’s Attack on individuals gets +d12 and causes Blast Damage.",
       "individualsAll": "Ticked, since everybody targeted is an individual: {names}.",
@@ -3462,6 +3483,7 @@
       "featUsed": "{name} has already used {feat} on this Attack.",
       "noTarget": "Target the Tokens this Attack hits, then apply the Damage.",
       "targetsGone": "The Tokens this Attack targeted are gone.",
+      "alreadyApplied": "This Attack’s Damage has already been applied.",
       "cantApply": "Only a Referee or the target’s owner can apply this Damage.",
       "needsGM": "A Referee needs to be logged in to change somebody else’s Attack card.",
       "changeRefused": "The Attack card changed before that could be recorded."
@@ -3494,7 +3516,7 @@
       "shieldwallHint": "3 or more allies in a wall formation, all bearing shields rather than bucklers.",
       "bucklerOnly": "A buckler doesn’t make a shieldwall.",
       "shieldwallFormed": "On the map, {count} of their side stand together, all bearing shields.",
-      "shieldwallFew": "On the map, fewer than 3 of their side stand together.",
+      "shieldwallFew": "On the map, fewer than 3 shield-bearers of their side stand together.",
       "shieldwallUnshielded": "On the map, not everyone standing together bears a shield: {names}.",
       "situational": "Armour that counts only sometimes",
       "situationalHint": "Tick each piece whose Armour counts against this Attack. The Armour above follows.",

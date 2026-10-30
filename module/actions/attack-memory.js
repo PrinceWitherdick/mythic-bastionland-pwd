@@ -8,7 +8,9 @@ import { SYSTEM_ID } from "../system-id.js";
 // one blow alone, bonus dice or Smite, is never carried into the next. Charging
 // a spearwall is one of those: it refuses the Attack outright (p10), so it is
 // never rolled with, and it belongs to the turn it was declared on. Engaged and
-// Confined are kept turn to turn but not past the fight's end (FIGHT_TICKS).
+// a specialist die hold only for the turn they were ticked in (TURN_TICKS), since
+// each turn begins engaged or not afresh (p10) and a specialist die's situation
+// passes. Confined is kept turn to turn but not past the fight's end (FIGHT_TICKS).
 
 /**
  * Client setting holding the choices. A client setting is one record per
@@ -32,7 +34,31 @@ export const REMEMBERED_TICKS = Object.freeze(["engaged", "confined", "mounted",
  * @property {boolean} mounted
  * @property {boolean} charge
  * @property {boolean} againstIndividuals
+ * @property {string|null} [turn] The Combat turn it was rolled in, from turnStamp.
  */
+
+/**
+ * The Combat turn now, as "combat id:round:turn", or null outside a started Combat.
+ * @returns {string|null}
+ */
+export function turnStamp() {
+	const combat = globalThis.game?.combat;
+	if (!combat?.started) return null;
+	return `${combat.id}:${combat.round}:${combat.turn}`;
+}
+
+/**
+ * A remembered choice as it opens now: what held only for the turn it was
+ * ticked in is unticked once that turn has passed. Outside a Combat no turn is
+ * kept, so nothing is unticked.
+ * @param {AttackChoice|null} remembered
+ * @param {string|null} now turnStamp's.
+ * @returns {AttackChoice|null}
+ */
+export function forTurn(remembered, now) {
+	if (!remembered || !remembered.turn || remembered.turn === now) return remembered;
+	return { ...remembered, engaged: false, specialist: {} };
+}
 
 /**
  * What holds only for the fight it was ticked in: being engaged with a foe, and
@@ -82,7 +108,8 @@ export function rememberedChoice(choice = {}) {
 	return {
 		...Object.fromEntries(REMEMBERED_TICKS.map((key) => [key, Boolean(choice[key])])),
 		source: booleans(choice.source),
-		specialist: booleans(choice.specialist)
+		specialist: booleans(choice.specialist),
+		turn: turnStamp()
 	};
 }
 
@@ -133,7 +160,7 @@ function savedWorlds() {
  */
 export function recallAttack(actor) {
 	if (!actor?.uuid) return null;
-	return savedWorlds()[game.world.id]?.[actor.uuid] ?? null;
+	return forTurn(savedWorlds()[game.world.id]?.[actor.uuid] ?? null, turnStamp());
 }
 
 /**

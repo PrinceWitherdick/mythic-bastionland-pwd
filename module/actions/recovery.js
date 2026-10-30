@@ -3,7 +3,7 @@ import { postCard, t } from "../chat/cards.js";
 import { updateActors } from "./actor-updates.js";
 import { causedBy } from "./ledger.js";
 import { acceptAfterTelling } from "./saves.js";
-import { VIRTUES } from "../rules/virtues.js";
+import { VIRTUES, isDying } from "../rules/virtues.js";
 import { advancePhase, chooseCompany } from "./time.js";
 import { askReferee } from "./ask-referee.js";
 import { countAfter, isCounted } from "../rules/restock.js";
@@ -64,6 +64,9 @@ export async function rest(actor) {
 	const held = sworn(actor);
 	const value = held ? actor.system.guard.value : actor.system.guard.max;
 	await actor.update(restUpdate(actor), causedBy("recovery"));
+	// The moment of peace ends a stance held only for the fight (p40, p78). Fetched here, since
+	// stances.js reaches Damage, which reaches back here.
+	await (await import("./stances.js")).lapseStances(actor);
 	await postCard(actor, "note", {
 		icon: "fa-solid fa-mug-hot",
 		text: t(held ? "recovery.restedSworn" : "recovery.rested", { value })
@@ -110,6 +113,25 @@ export async function restAfterCombat(combat) {
 	const text = t("recovery.restedAfterCombat", { names }) + (held.length ? ` ${t("recovery.swornHeld", { names: held.join(", ") })}` : "");
 	await postCard(null, "note", { icon: "fa-solid fa-mug-hot", text });
 	return actors;
+}
+
+/**
+ * Once a fight is over, remind the Referee of everybody it left Mortally
+ * Wounded, whose hour without help is running and whom a quick patching
+ * saves (p8). A routed Warband isn't dying, so it isn't named. Posted only to
+ * the Referee, by the active one, and only when somebody is dying.
+ * @param {Combat} combat The Combat just deleted.
+ * @returns {Promise<Actor[]>} Those named.
+ */
+export async function warnDyingAfterCombat(combat) {
+	if (!game.users.activeGM?.isSelf || !combat?.started) return [];
+	const dying = [];
+	for (const { actor } of combat.combatants ?? []) {
+		if (actor?.system && isDying(actor.system) && !dying.includes(actor)) dying.push(actor);
+	}
+	if (!dying.length) return [];
+	await postCard(null, "note", { icon: "fa-solid fa-hourglass-half", text: t("recovery.dyingAfterCombat", { names: dying.map((actor) => actor.name).join(", ") }) }, { mode: "gm" });
+	return dying;
 }
 
 /**

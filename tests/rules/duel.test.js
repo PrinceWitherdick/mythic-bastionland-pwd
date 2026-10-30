@@ -4,6 +4,7 @@ import {
 	canStakeGlory,
 	changeDuel,
 	createDuel,
+	duelRefusal,
 	opponentOf,
 	readyToResolve,
 	shakenOff,
@@ -162,5 +163,15 @@ describe("canStakeGlory", () => {
 
 	it("lets a Knight stake Glory against the Referee's NPC Knight", () => {
 		expect(canStakeGlory([{ type: "knight" }, { type: "npcKnight" }])).toBe(true);
+	});
+});
+
+describe("duelRefusal", () => {
+	it("refuses Warbands and ships or structures, which are no single combatant (p10)", () => {
+		expect(duelRefusal({ type: "npc", system: { scale: "warband" } })).toBe("warband");
+		expect(duelRefusal({ type: "structure", system: {} })).toBe("structure");
+		expect(duelRefusal({ type: "npc", system: { scale: "individual", structure: true } })).toBe("structure");
+		expect(duelRefusal({ type: "npc", system: { scale: "individual" } })).toBeNull();
+		expect(duelRefusal({ type: "knight", system: {} })).toBeNull();
 	});
 });

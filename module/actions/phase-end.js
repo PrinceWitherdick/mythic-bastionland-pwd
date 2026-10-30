@@ -43,14 +43,29 @@ export function registerPhaseEndSettings() {
  */
 
 /**
+ * Whether an unlinked Token could be somebody dying, read off its saved data so
+ * a Token whose own actor the core hasn't made yet isn't made one for nothing:
+ * one that changes nothing of its actor's Virtues and state is as they are.
+ * @param {TokenDocument} token
+ * @returns {boolean}
+ */
+function mayBeDying(token) {
+	const own = token._source?.delta?.system;
+	if (!token._source || (own && Object.keys(own).length)) return true;
+	const base = token.baseActor?.system;
+	return Boolean(base?.virtues && isDying(base));
+}
+
+/**
  * Everybody still Mortally Wounded: an hour without care is fatal (p8), and a
- * Phase is longer than that. The world's own, and anybody placed
- * on the Scene in view without an actor of their own. A Warband's Mortal Wound
+ * Phase is longer than that. The world's own, and anybody placed on any Scene,
+ * in view or not, without an actor of their own. A Warband's Mortal Wound
  * routs it from the battle rather than leaving it dying (p11), so none is listed.
  * @returns {Actor[]}
  */
 function mortallyWounded() {
-	const loose = (canvas?.scene?.tokens ?? []).filter((token) => !token.actorLink).map((token) => token.actor);
+	const scenes = new Set([...(game.scenes ?? []), canvas?.scene].filter(Boolean));
+	const loose = [...scenes].flatMap((scene) => [...(scene.tokens ?? [])]).filter((token) => !token.actorLink && mayBeDying(token)).map((token) => token.actor);
 	// Exhausted at VIG 0 by Virtue Loss, somebody dying is still alive to die of it.
 	return [...game.actors, ...loose].filter((actor) => actor?.system?.virtues && isDying(actor.system));
 }

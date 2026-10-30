@@ -80,7 +80,14 @@ describe("rollMorale", () => {
 
 describe("moraleBreakButtons", () => {
 	it("marks only NPCs, since Morale doesn't affect player characters", () => {
-		expect(moraleBreakButtons([{ uuid: "Actor.k", type: "knight" }])).toBeNull();
-		expect(moraleBreakButtons([{ uuid: "Actor.k", type: "knight" }, npc("Actor.guard")]).actors).toBe("Actor.guard");
+		const played = { uuid: "Actor.k", type: "knight", hasPlayerOwner: true, system: {} };
+		expect(moraleBreakButtons([played])).toBeNull();
+		expect(moraleBreakButtons([played, npc("Actor.guard")]).actors).toBe("Actor.guard");
+	});
+
+	it("marks a Knight the Referee plays, but never a Squire (p10)", () => {
+		const lord = { uuid: "Actor.lord", type: "npcKnight", system: {} };
+		const squire = { uuid: "Actor.sq", type: "knight", system: { isSquire: true } };
+		expect(moraleBreakButtons([lord, squire]).actors).toBe("Actor.lord");
 	});
 });

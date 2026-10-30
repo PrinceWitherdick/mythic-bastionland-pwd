@@ -356,6 +356,30 @@ describe("dying untended", () => {
 		expect(calendar.phase).toBe("afternoon");
 	});
 
+	it("finds the Mortally Wounded placed on a Scene nobody is looking at", async () => {
+		game.actors = [];
+		const away = { ...wounded("Far bandit"), type: "npc" };
+		game.scenes = Object.assign([{ id: "elsewhere", tokens: [{ actorLink: false, actor: away }] }], { active: null });
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": true });
+		await advancePhase();
+		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Far bandit"]);
+		expect(away.update).toHaveBeenCalled();
+	});
+
+	it("never makes an actor for a placed Token that changes nothing of an actor who isn't dying", async () => {
+		game.actors = [];
+		const base = { name: "Bandit", system: { mortalWound: false, virtues: { vig: { value: 4 } } } };
+		const untouched = { actorLink: false, _source: { delta: { system: {} } }, baseActor: base, get actor() { throw new Error("made an actor"); } };
+		const hurt = { ...wounded("Hurt bandit"), type: "npc" };
+		const changed = { actorLink: false, _source: { delta: { system: { mortalWound: true } } }, baseActor: base, actor: hurt };
+		game.scenes = Object.assign([{ id: "elsewhere", tokens: [untouched, changed] }], { active: null });
+		canvas.scene = { tokens: [] };
+		answer = () => ({ "dying-0": false });
+		await advancePhase();
+		expect(asked[0].context.dying.map(({ name }) => name)).toEqual(["Hurt bandit"]);
+	});
+
 	it("lets those left to die fall as the Night ends, before the Morning's afflictions, which burn on whoever they found", async () => {
 		calendar.phase = "night";
 		const order = [];

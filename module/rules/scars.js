@@ -39,6 +39,20 @@ export const SCARS = Object.freeze([
  */
 export const scarDescription = (flavour, effect) => `${flavour ? `<p><em>${flavour}</em></p>` : ""}<p>${effect}</p>`;
 
+/** The arm a Mutilation's d6 takes, by its number: 3–4 the shield arm, 5–6 the sword arm (p9). */
+export const MUTILATED_ARMS = Object.freeze({ 3: "shield", 4: "shield", 5: "sword", 6: "sword" });
+
+/**
+ * How many arms Mutilations have taken that aren't yet got by: until the next
+ * Season brings a prosthetic or a way of managing (p9), which settles the Scar.
+ * @param {{roll?: number|null, detail?: number|null, resolved?: boolean}[]} scars Scar items' system data.
+ * @returns {number} 0, 1 or 2.
+ */
+export function armsLost(scars) {
+	const arms = new Set((scars ?? []).filter((scar) => scar?.roll === 10 && !scar.resolved).map((scar) => MUTILATED_ARMS[scar.detail]).filter(Boolean));
+	return arms.size;
+}
+
 /**
  * @param {number} roll
  * @returns {object|null} The Scar for that roll, or null outside 1-12.

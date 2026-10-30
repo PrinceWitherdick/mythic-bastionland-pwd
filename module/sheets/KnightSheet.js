@@ -36,6 +36,8 @@ import { renderWhenIdle } from "../apps/ui.js";
 import { BREED_FLAG, steedBreedShown } from "../rules/steeds.js";
 import { compareCalendars } from "../rules/time.js";
 import { SCORES } from "../rules/virtues.js";
+import { isMoraleBreak } from "../rules/morale.js";
+import { clearMoraleBreak } from "../chat/morale-card.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { BastionlandActorSheet } from "./BastionlandActorSheet.js";
 import { SETTINGS_TAB_ENTRY, SettingsTabMixin, isOwnCharacter } from "./settings-tab.js";
@@ -72,6 +74,7 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			rollScar: KnightSheet.#onRollScar,
 			settleScar: KnightSheet.#onSettleScar,
 			patchUp: KnightSheet.#onPatchUp,
+			clearMoraleBreak: KnightSheet.#onClearMoraleBreak,
 			openSteed: KnightSheet.#onOpenSteed,
 			clearSteed: KnightSheet.#onClearSteed,
 			takeSteed: KnightSheet.#onTakeSteed,
@@ -247,6 +250,10 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 			}),
 			// A few moments' care patches them up (p8), which settles a Gouge or Tear too (p9).
 			canPatchUp: canPatchUp(this.actor),
+			// A Knight the Referee plays, fled or surrendered after a failed Morale Save (p10), until the × clears it.
+			moraleBroken: isMoraleBreak(this.actor.system.moraleBroken)
+				? { label: t(`morale.broke.${this.actor.system.moraleBroken}.label`), hint: t("morale.broke.clear") }
+				: null,
 			steed: steed && {
 				name: steed.name,
 				img: steed.img,
@@ -673,6 +680,11 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 	/** @this {KnightSheet} */
 	static #onPatchUp() {
 		return patchUp(this.actor);
+	}
+
+	/** @this {KnightSheet} */
+	static #onClearMoraleBreak() {
+		return clearMoraleBreak(this.actor);
 	}
 
 	/** @this {KnightSheet} */

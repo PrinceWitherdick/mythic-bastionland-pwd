@@ -148,7 +148,7 @@ import { watchQuerySenders } from "./module/compat.js";
 import { RULEBOOK_HOOK, canKeepRulebook, canReadRulebook, findKeptRulebook, hasRulebook, registerRulebookSettings } from "./module/rulebook/store.js";
 import { SYSTEM_ID, templatePath } from "./module/system-id.js";
 import { isSetupDone, registerWorldSetup, runWorldSetup } from "./module/world-setup.js";
-import { restAfterCombat } from "./module/actions/recovery.js";
+import { restAfterCombat, warnDyingAfterCombat } from "./module/actions/recovery.js";
 import { rollHirelingVirtues } from "./module/actions/npc.js";
 import { registerAfflictionHooks } from "./module/actions/afflictions.js";
 import { ABILITY_KITS_STEP, ABILITY_LISTS_STEP, BOOK_EFFECT_KITS_STEP, LINKED_KITS_STEP, fillAbilityKits, fillAbilityLists, fillBookEffectKits, fillLinkedKits, registerAbilityCards, watchSunsets } from "./module/actions/abilities.js";
@@ -367,6 +367,7 @@ Hooks.once("init", () => {
 	// A hireling taken from the book's compendium rolls its Virtues as it's made (p13).
 	Hooks.on("preCreateActor", rollHirelingVirtues);
 	Hooks.on("deleteCombat", (combat) => restAfterCombat(combat));
+	Hooks.on("deleteCombat", (combat) => warnDyingAfterCombat(combat));
 
 	// Each Knight's Ledger of the changes made to them.
 	registerLedgerHooks();

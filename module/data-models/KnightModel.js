@@ -1,6 +1,7 @@
 import { AGES } from "../config.js";
 import { armourTotal } from "../rules/armour.js";
 import { stanceOf } from "../rules/stances.js";
+import { MORALE_BREAKS } from "../rules/morale.js";
 import { nextRank, rankForGlory } from "../rules/glory.js";
 import { SCORES, clearOutgrownMarks, conditionsFor } from "../rules/virtues.js";
 import { booleanField, characterFields, countField, htmlField, textField } from "./fields.js";
@@ -59,6 +60,9 @@ export class KnightModel extends foundry.abstract.TypeDataModel {
 			successor: textField(),
 			// When they last changed between Knight and NPC Knight (kindStamp), so the change always has data to send.
 			kindChanged: new fields.NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 0 }),
+			// "fled" or "surrendered" once a failed Morale Save took a Knight the Referee plays out of the
+			// fight (p10), until cleared. Players' Knights and Squires never make the Save.
+			moraleBroken: new fields.StringField({ required: true, blank: true, initial: "", choices: ["", ...MORALE_BREAKS] }),
 			...characterFields(),
 			glory: countField()
 		};
