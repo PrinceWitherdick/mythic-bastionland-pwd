@@ -1,26 +1,33 @@
-import { chooseDialog, inputDialog } from "../apps/ui.js";
+import { askActiveGM } from "../ask-gm.js";
+import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
 import { loadArtIndex } from "../book-art/art-index.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
+import { queryAsker } from "../compat.js";
 import { SYSTEM_ID } from "../system-id.js";
 import {
 	CRISES,
+	canHoldPost,
 	collectionsResult,
 	crisesDrawn,
 	crisisFor,
 	crisisResult,
+	crisisRolledThisSeason,
 	domainRuledBy,
 	dramaResult,
+	dramaRolledThisSeason,
+	emptySeats,
 	isInTurmoil,
 	isMisruleDue,
-	isSameName
+	isSameName,
+	rulingKnightOf
 } from "../rules/dominion.js";
-import { dramaCandidates } from "../rules/court.js";
+import { courtMembers, dramaCandidates } from "../rules/court.js";
 import { escapeHTML } from "../rules/text.js";
 import { seasonKey } from "../rules/time.js";
 import { getCalendar } from "./calendar.js";
-import { knightsBesidesRuler } from "./court.js";
+import { knightsBesidesRuler, seatCircle } from "./court.js";
 import { rollSpark } from "./referee-rolls.js";
-import { heirOf } from "./succession.js";
+import { namedHeirOf } from "./succession.js";
 import { seenOrChosen, worldKnights } from "./knights.js";
 import { timelineCrisisResolved, timelineCrisisRoll, timelineDrama, timelineNewRuler } from "./timeline-events.js";
 import { isKnight } from "../rules/knight-types.js";
@@ -130,6 +137,37 @@ export async function crisisRoll(domain) {
 }
 
 /**
+ * The Crisis Roll from the Domain's sheet. It's made once as each Season
+ * begins (p20), so a second one this Season is confirmed first: coming home
+ * from a long absence is the usual reason for it.
+ * @param {Actor} domain
+ * @returns {Promise<string[]|null>} The Crises added, or null if not rolled.
+ */
+export async function crisisRollOnce(domain) {
+	if (crisisRolledThisSeason(domain, getCalendar()) && !(await confirmDialog({
+		title: t("domain.crisisRoll"),
+		icon: "fa-solid fa-dice-d6",
+		message: t("domain.crisisRollAgain", { name: escapeHTML(domain.name) })
+	}))) return null;
+	return crisisRoll(domain);
+}
+
+/**
+ * Drama in Court from the Domain's sheet. Every Season brings some (p21), so a
+ * second this Season is confirmed first.
+ * @param {Actor} domain
+ * @returns {Promise<string|null>} One of DRAMA_RESULTS, or null if not rolled.
+ */
+export async function dramaOnce(domain) {
+	if (dramaRolledThisSeason(domain, getCalendar()) && !(await confirmDialog({
+		title: t("domain.drama"),
+		icon: "fa-solid fa-masks-theater",
+		message: t("domain.dramaAgain", { name: escapeHTML(domain.name) })
+	}))) return null;
+	return dramaInCourt(domain);
+}
+
+/**
  * Give a Domain a Crisis the Referee chooses, such as one a failed task brings.
  * @param {Actor} domain
  */
@@ -182,7 +220,9 @@ export async function resolveCrisis(domain, index) {
 
 /**
  * Increased Collections (p21): a Steward squeezes more from the Vassals. It can
- * bring misrule at once, or a Crisis with the coffers filled.
+ * bring misrule at once, or a Crisis with the coffers filled. Misrule sees
+ * Knights leave, as it does at a Season's end (p20), so the Circle is asked
+ * who rides away; and coffers filled can restock a treasury in Debt.
  * @param {Actor} domain
  */
 export async function increasedCollections(domain) {
@@ -191,6 +231,8 @@ export async function increasedCollections(domain) {
 	const rolls = [roll];
 	const update = {};
 	let entries = [];
+	// Debt is resolved by restocking the treasury (p20), which filled coffers do. One drawn by this roll stays.
+	const inDebt = domain.system.crises.includes("debt");
 
 	if (result === "misrule") update["system.misrule"] = true;
 	if (result === "crisis") {
@@ -201,14 +243,29 @@ export async function increasedCollections(domain) {
 	}
 	if (!foundry.utils.isEmpty(update)) await domain.update(update);
 
+	// It's the Steward who squeezes the Vassals (p21), so an empty seat is said.
+	const noSteward = emptySeats(domain.system.council).includes("steward") ? t("domain.collectionsNoSteward") : null;
+	const said = result === "misrule" ? `${t("domain.misruleHint")} ${t("domain.collectionsMisruleEnds")}` : misruleWarning(domain);
 	await postCard(domain, "report", {
 		title: t("domain.collections"),
 		description: t("domain.collectionsHint"),
 		tagline: t(`domain.results.collections.${result}`),
 		d6: roll.total,
 		entries,
-		hint: result === "misrule" ? t("domain.misruleHint") : misruleWarning(domain)
+		hint: [noSteward, said].filter(Boolean).join(" ") || null
 	}, { rolls });
+
+	if (result === "misrule" && domain.system.council?.circle?.length) {
+		await seatCircle(domain, { intro: t("domain.misruleLeave", { name: domain.name }) });
+	}
+	if (result !== "misrule" && inDebt && domain.isOwner && await confirmDialog({
+		title: t("domain.collections"),
+		icon: "fa-solid fa-coins",
+		message: t("domain.collectionsDebt", { name: escapeHTML(domain.name) })
+	})) {
+		const index = domain.system.crises.indexOf("debt");
+		if (index >= 0) await resolveCrisis(domain, index);
+	}
 	return result;
 }
 
@@ -241,18 +298,17 @@ export async function dramaInCourt(domain) {
 		rolls.push(who);
 		member = candidates[who.total - 1];
 		// A report card sets its second slot beside the name, which here carries their role.
+		// Their leverage is the Referee's to know, so it's whispered to them apart (tellLeverage).
 		entries.push({
 			name: member.name,
 			pursuit: t(`domain.court.roles.${member.role}.one`),
-			lines: [
-				member.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : t("domain.court.noLeverage"),
-				...(member.note ? [member.note] : [])
-			]
+			lines: member.note ? [member.note] : []
 		});
 	}
 
 	if (domain.isOwner) await domain.update({ "system.dramaRolled": seasonKey(getCalendar()) });
 	await Promise.all([
+		member ? tellLeverage(domain, member.id) : null,
 		postCard(domain, "report", {
 			title: t("domain.drama"),
 			description: t("domain.dramaHint"),
@@ -268,6 +324,53 @@ export async function dramaInCourt(domain) {
 		})
 	]);
 	return result;
+}
+
+/** The query a player's Drama in Court sends, so the Referee is whispered the courtier's leverage. */
+const LEVERAGE_QUERY = `${SYSTEM_ID}.courtLeverage`;
+
+/**
+ * @param {Actor} domain
+ * @param {string} id The courtier's id in its Court.
+ * @returns {Promise<ChatMessage|null>} The Referee's whisper of what leverage they hold over the ruler (p21).
+ */
+function whisperLeverage(domain, id) {
+	const member = courtMembers(domain.system.court).find((each) => each.id === id);
+	if (!member) return null;
+	const line = member.leverage ? t("domain.court.holdsLeverage", { leverage: member.leverage }) : t("domain.court.noLeverage");
+	return postCard(domain, "note", {
+		icon: "fa-solid fa-user-secret",
+		text: t("domain.court.leverageWhisper", { name: member.name, line })
+	}, { mode: "gm" });
+}
+
+/**
+ * Tell the Referee alone what leverage the courtier at the heart of the Drama
+ * holds. Leverage is the Referee's to know, so a player who rolled asks the
+ * active GM to whisper it, since their own whisper would show it to them.
+ * @param {Actor} domain
+ * @param {string} id The courtier's id in its Court.
+ * @returns {Promise<unknown>}
+ */
+export async function tellLeverage(domain, id) {
+	if (game.user.isGM) return whisperLeverage(domain, id);
+	if (!game.users.activeGM) return null;
+	return askActiveGM(LEVERAGE_QUERY, { domainId: domain.id, memberId: id }, `Couldn't tell the Referee the leverage at ${domain.name}'s Court`);
+}
+
+/**
+ * A player's Drama in Court, whispered to the Referee by the GM who was asked:
+ * only for a Domain the asker owns.
+ * @param {{domainId?: string, memberId?: string}} data
+ * @param {object} context
+ * @returns {Promise<boolean>}
+ */
+export async function onLeverageQuery(data = {}, context = {}) {
+	const asker = queryAsker(context);
+	if (!asker || !game.user.isGM) return false;
+	const domain = game.actors.get(data?.domainId);
+	if (domain?.type !== "domain" || !domain.testUserPermission(asker, "OWNER")) return false;
+	return Boolean(await whisperLeverage(domain, String(data?.memberId ?? "")));
 }
 
 /** @returns {Actor[]} Every Domain in the world. */
@@ -318,7 +421,8 @@ export async function settleDomains(ended) {
  * @returns {Promise<{name: string, knight: Actor|null}|null>} Null if closed or left blank.
  */
 async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = null, withoutRuler = false }) {
-	const knights = (withoutRuler ? knightsBesidesRuler(domain) : worldKnights())
+	// Only a Knight who can rule is offered: knighted, and alive (p7, p21).
+	const knights = (withoutRuler ? knightsBesidesRuler(domain) : worldKnights(canHoldPost))
 		.filter(seenOrChosen((knight) => name && isSameName(knight.name, name)));
 	const named = knights.find((knight) => isSameName(knight.name, name)) ?? null;
 	const data = await inputDialog({
@@ -340,20 +444,88 @@ async function chooseRuler(domain, { title, icon, intro, ok, name = "", hint = n
 	return { name: knight?.name ?? written, knight };
 }
 
+/** The query a player's Pass On or Seize sends, so the Knights' links follow the new ruler. */
+const RULER_QUERY = `${SYSTEM_ID}.domainRuler`;
+
+/**
+ * The Knights' side of a change of ruler: Knights who ruled the Domain no
+ * longer do, and a Knight taking it over now rules it.
+ * @param {Actor} domain
+ * @param {Actor|null} knight The new ruler, where they're one of the world's Knights.
+ * @returns {object[]} Updates for Actor.updateDocuments.
+ */
+function rulerLinkUpdates(domain, knight) {
+	const updates = domainRulers(domain).filter((other) => other !== knight).map((other) => ({ _id: other.id, "system.domain": "" }));
+	if (knight && knight.system.domain !== domain.uuid) updates.push({ _id: knight.id, "system.domain": domain.uuid });
+	return updates;
+}
+
+/**
+ * Move the Knights' links to a Domain's new ruler. A player can't write
+ * Knights they don't own, so where any is somebody else's the active GM is
+ * asked to move them all, as joinCompany asks.
+ * @param {Actor} domain
+ * @param {Actor|null} knight
+ * @returns {Promise<boolean>} Whether every link was moved.
+ */
+async function moveRulerLinks(domain, knight) {
+	const updates = rulerLinkUpdates(domain, knight);
+	if (!updates.length) return true;
+	const owned = (update) => Boolean(game.actors.get(update._id)?.isOwner);
+	if (game.user.isGM || updates.every(owned)) {
+		await Actor.implementation.updateDocuments(updates);
+		return true;
+	}
+	if (game.users.activeGM && await askActiveGM(RULER_QUERY, { domainId: domain.id, knightId: knight?.id ?? null }, `Couldn't move ${domain.name}'s ruler`)) return true;
+	// With no Referee to ask, the Knights this user owns are moved, and the rest wait for the Referee.
+	const mine = updates.filter(owned);
+	if (mine.length) await Actor.implementation.updateDocuments(mine);
+	warn("domain.rulerLinksNeedReferee", { name: domain.name });
+	return false;
+}
+
+/**
+ * A player's new ruler, linked by the GM who was asked: only for a Domain the
+ * asker owns, and only to the Knight it now names as its ruler.
+ * @param {{domainId?: string, knightId?: string|null}} data
+ * @param {object} context
+ * @returns {Promise<boolean>}
+ */
+export async function onRulerQuery(data = {}, context = {}) {
+	const asker = queryAsker(context);
+	if (!asker || !game.user.isGM) return false;
+	const domain = game.actors.get(data?.domainId);
+	if (domain?.type !== "domain" || !domain.testUserPermission(asker, "OWNER")) return false;
+	const knight = data?.knightId ? game.actors.get(data.knightId) : null;
+	if (data?.knightId && (!isKnight(knight) || !isSameName(knight.name, domain.system.ruler))) return false;
+	const updates = rulerLinkUpdates(domain, knight);
+	if (updates.length) await Actor.implementation.updateDocuments(updates);
+	return true;
+}
+
 /**
  * Put a new ruler in charge of a Domain. Knights who ruled it no longer do,
- * and a Knight taking it over now rules it.
+ * a Knight taking it over now rules it, and no longer sits in its Circle,
+ * since the Circle sits alongside its ruler (p20). A Knight's sheet keeps one
+ * Domain, so one who rules another already is warned that their sheet moves
+ * here; the other still names them its ruler.
  * @param {Actor} domain
  * @param {{name: string, knight: Actor|null}} ruler
  * @param {object} update More changes for the Domain.
  */
 async function changeRuler(domain, ruler, update) {
-	const updates = [{ _id: domain.id, "system.ruler": ruler.name, ...update }];
-	for (const knight of domainRulers(domain)) {
-		if (knight !== ruler.knight && knight.isOwner) updates.push({ _id: knight.id, "system.domain": "" });
+	const circle = domain.system.council?.circle ?? [];
+	const seated = circle.filter((entry) => entry !== ruler.knight?.id && !isSameName(entry, ruler.name));
+	const before = ruler.knight ? knightDomain(ruler.knight) : null;
+	await domain.update({
+		"system.ruler": ruler.name,
+		...(seated.length === circle.length ? {} : { "system.council.circle": seated }),
+		...update
+	});
+	await moveRulerLinks(domain, ruler.knight);
+	if (before && before !== domain && isSameName(before.system.ruler, ruler.knight.name)) {
+		warn("domain.rulesAnother", { name: ruler.knight.name, other: before.name, domain: domain.name });
 	}
-	if (ruler.knight?.isOwner && ruler.knight.system.domain !== domain.uuid) updates.push({ _id: ruler.knight.id, "system.domain": domain.uuid });
-	await Actor.implementation.updateDocuments(updates);
 }
 
 /**
@@ -365,16 +537,33 @@ function domainRulers(domain) {
 }
 
 /**
- * The name a Domain's ruler has for their successor: the Domain's own, or else
- * the successor of the Knight who rules it.
+ * Who a Domain passes to: the successor written on the Domain, or else the
+ * successor of the Knight who rules it. A successor who is Slain can't
+ * succeed (p17, p21), so they're given apart, as the heir who fell.
  * @param {Actor} domain
- * @returns {string}
+ * @returns {{name: string, fallen: string}} The living successor's name, blank where there's none,
+ *   and the name of a named successor who is Slain.
  */
-export function namedSuccessor(domain) {
-	if (domain.system.successor.trim()) return domain.system.successor.trim();
+export function domainSuccessor(domain) {
+	const written = domain.system.successor.trim();
+	if (written) {
+		// Written in by name: Slain only where every Knight of the world going by it is.
+		const known = worldKnights((knight) => isSameName(knight.name, written));
+		const fell = known.length > 0 && known.every((knight) => knight.system.slain);
+		return fell ? { name: "", fallen: written } : { name: written, fallen: "" };
+	}
 	const ruler = domainRulers(domain)[0];
-	return (ruler && heirOf(ruler)?.name) ?? "";
+	const heir = ruler ? namedHeirOf(ruler) : null;
+	if (!heir) return { name: "", fallen: "" };
+	return heir.system.slain ? { name: "", fallen: heir.name } : { name: heir.name, fallen: "" };
 }
+
+/**
+ * The name a Domain's ruler has for their successor, while they live.
+ * @param {Actor} domain
+ * @returns {string} Blank where none is named, or the one named is Slain.
+ */
+export const namedSuccessor = (domain) => domainSuccessor(domain).name;
 
 /**
  * Succession (p21): the Domain passes to the successor its ruler named, who
@@ -384,13 +573,15 @@ export function namedSuccessor(domain) {
  */
 export async function passOnDomain(domain) {
 	const before = domain.system.ruler.trim();
+	const heir = domainSuccessor(domain);
+	const succession = t("domain.passOn.hint");
 	const successor = await chooseRuler(domain, {
 		title: t("domain.passOn.title"),
 		icon: "fa-solid fa-crown",
 		intro: t("domain.passOn.intro", { name: escapeHTML(domain.name), ruler: escapeHTML(before || t("domain.conquest.someone")) }),
 		ok: t("domain.passOn.ok"),
-		name: namedSuccessor(domain),
-		hint: t("domain.passOn.hint"),
+		name: heir.name,
+		hint: heir.fallen ? `${t("domain.passOn.heirFell", { heir: heir.fallen })} ${succession}` : succession,
 		withoutRuler: true
 	});
 	if (!successor) return null;
@@ -442,26 +633,75 @@ export async function seizeDomain(domain) {
  * Heard on the active GM's client alone.
  * @param {Actor} knight
  * @param {object} changes
- * @returns {Promise<ChatMessage|null>}
+ * @returns {Promise<ChatMessage[]>} A card for each Domain they ruled.
  */
 export async function noticeRulerSlain(knight, changes) {
-	if (!isKnight(knight) || foundry.utils.getProperty(changes, "system.slain") !== true) return null;
-	if (!game.users.activeGM?.isSelf) return null;
-	const domain = knightDomain(knight);
-	// Only while they still rule it: a Domain passed on already is someone else's.
-	if (!domain || !isSameName(domain.system.ruler, knight.name)) return null;
-	return postCard(domain, "note", {
-		icon: "fa-solid fa-crown",
-		text: t("domain.rulerSlain", { name: knight.name, domain: domain.name, successor: namedSuccessor(domain) || t("domain.rulerSlainNobody") }),
-		action: { data: "pass-on", icon: "fa-solid fa-crown", label: t("domain.passOn.title") }
-	}, { mode: "gm", flags: { [SYSTEM_ID]: { passOn: domain.uuid } } });
+	if (!isKnight(knight) || foundry.utils.getProperty(changes, "system.slain") !== true) return [];
+	if (!game.users.activeGM?.isSelf) return [];
+	return tellRulerGone(knight, "domain.rulerSlain");
 }
 
-/** Follow the deaths of Knights who rule, and wire the button that passes their Domains on. Called during init. */
+/**
+ * A Knight who rules a Domain is deleted from the world: the Domain passes on
+ * as it would at their death. One already Slain was told of then. Heard on
+ * the active GM's client alone.
+ * @param {Actor} knight
+ * @returns {Promise<ChatMessage[]>}
+ */
+export async function noticeRulerDeleted(knight) {
+	if (!isKnight(knight) || knight.system.slain || !game.users.activeGM?.isSelf) return [];
+	return tellRulerGone(knight, "domain.rulerGone");
+}
+
+/**
+ * Every Domain a Knight rules: the one their sheet links to, and any other
+ * still naming them its ruler that no other Knight of the world rules, since a
+ * Knight's sheet keeps only one. Only while it names them: a Domain passed on
+ * already is someone else's.
+ * @param {Actor} knight
+ * @returns {Actor[]}
+ */
+function domainsRuledBy(knight) {
+	const others = worldKnights((actor) => actor !== knight && actor.id !== knight.id);
+	return worldDomains().filter((domain) => isSameName(domain.system.ruler, knight.name)
+		&& ((Boolean(domain.uuid) && domain.uuid === knight.system.domain) || !rulingKnightOf(domain, others)));
+}
+
+/**
+ * Tell the Referee each Domain a Knight ruled passes on (p21), with the button that passes it.
+ * @param {Actor} knight
+ * @param {string} key What befell them: the rulerSlain or rulerGone string.
+ * @returns {Promise<ChatMessage[]>}
+ */
+function tellRulerGone(knight, key) {
+	return Promise.all(domainsRuledBy(knight).map((domain) => {
+		const { name, fallen } = domainSuccessor(domain);
+		// A named successor who is Slain leaves no living heir.
+		const text = fallen
+			? `${t(`${key}Bare`, { name: knight.name, domain: domain.name })} ${t("domain.noLivingHeir", { heir: fallen })}`
+			: t(key, { name: knight.name, domain: domain.name, successor: name || t("domain.rulerSlainNobody") });
+		return postCard(domain, "note", {
+			icon: "fa-solid fa-crown",
+			text,
+			action: { data: "pass-on", icon: "fa-solid fa-crown", label: t("domain.passOn.title") }
+		}, { mode: "gm", flags: { [SYSTEM_ID]: { passOn: domain.uuid } } });
+	}));
+}
+
+/**
+ * Follow the deaths of Knights who rule, and their deletion, and wire the
+ * button that passes their Domains on. Answer players' new rulers and Drama
+ * in Court, which the Referee finishes for them. Called during init.
+ */
 export function registerRulerDeaths() {
 	Hooks.on("updateActor", (actor, changes) => {
 		noticeRulerSlain(actor, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't tell of a ruler's death`, error));
 	});
+	Hooks.on("deleteActor", (actor) => {
+		noticeRulerDeleted(actor).catch((error) => console.error(`${SYSTEM_ID} | Couldn't tell of a ruler's leaving`, error));
+	});
+	CONFIG.queries[RULER_QUERY] = onRulerQuery;
+	CONFIG.queries[LEVERAGE_QUERY] = onLeverageQuery;
 	registerCardButtons({
 		selector: "[data-pass-on]",
 		gmOnly: true,

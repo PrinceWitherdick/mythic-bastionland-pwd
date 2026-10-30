@@ -96,6 +96,10 @@ export class NpcSheet extends TabRailMixin(BastionlandActorSheet) {
 					hint: t(`npc.warband.${key}.hint`)
 				}))
 				: [],
+			// A creature that counts as a structure is destroyed at 0GD (p11), out of the fight until its GD comes back.
+			destroyedState: system.structure
+				? { label: t("npc.destroyed.label"), hint: t("npc.destroyed.hint"), active: Boolean(system.destroyed) }
+				: null,
 			// Fled or surrendered after a failed Morale Save (p10), until the × clears it.
 			moraleBroken: isMoraleBreak(system.moraleBroken)
 				? { label: t(`morale.broke.${system.moraleBroken}.label`), hint: t("morale.broke.clear") }

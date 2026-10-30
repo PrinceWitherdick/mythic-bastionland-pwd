@@ -186,6 +186,20 @@ describe("seatCircle", () => {
 		expect(updates[0]).toEqual({ "system.council.circle": ["k2", "n2"] });
 	});
 
+	it("offers no Squire or Slain Knight, and offers one Slain since they were seated unticked (p7, p20)", async () => {
+		game.actors = actors(
+			knight("k1", "Tal"),
+			knight("k2", "Moss"),
+			{ ...knight("s1", "Pip"), system: { isSquire: true } },
+			{ ...knight("k3", "Brand"), system: { slain: true } },
+			{ ...knight("k4", "Ash"), system: { slain: true } }
+		);
+		await seatCircle(fakeDomain({ council: { steward: "", marshal: "", sheriff: "", envoy: "", circle: ["k4"] } }));
+		const circle = asked[0].context.circle;
+		expect(circle.map(({ id }) => id)).toEqual(["k2", "k4"]);
+		expect(circle[1]).toMatchObject({ checked: false, name: expect.stringContaining("domain.council.circle.slainName") });
+	});
+
 	it("changes nothing when the window is closed", async () => {
 		expect(await seatCircle(fakeDomain())).toBe(false);
 		expect(updates).toEqual([]);

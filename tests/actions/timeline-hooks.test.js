@@ -50,12 +50,14 @@ describe("a Domain", () => {
 
 	it("writes Drama in Court, with the courtier at its heart and what they hold over the ruler", async () => {
 		rolled = [4, 1];
+		globalThis.game = { user: { isGM: true } };
 		const domain = actor({ court: { c1: { role: "courtier", name: "Wren", leverage: "Letters", note: "", at: 1 } } });
 		await dramaInCourt(domain);
 		const [[written, drama]] = vi.mocked(timeline.timelineDrama).mock.calls;
 		expect(written).toBe(domain);
 		expect(drama.who).toBe("timeline.auto.courtier");
 		expect(drama.leverage).toBe("domain.court.holdsLeverage");
+		delete globalThis.game;
 	});
 });
 

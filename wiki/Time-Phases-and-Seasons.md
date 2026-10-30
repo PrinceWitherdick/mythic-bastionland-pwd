@@ -99,7 +99,7 @@ On top of everything a Season's turn does:
 - The new Age begins in Spring.
 - Each ticked Knight gains 1 Glory.
 - The Old lose d12 VIG from their maximum. Anyone it takes to VIG 0 dies peacefully.
-- **Succession** asks the Knight to name a successor, and offers to Knight one who is still a Squire. **Legacy** gives the successor half the Knight's Glory, asking for a successor if none is named. See [Scars, Death and Successors](Scars-Death-and-Successors).
+- **Succession** asks the Knight to name a successor, and offers to Knight one who is still a Squire. **Legacy** gives the successor half the Knight's Glory, asking for a successor if none is named or the named one is Slain. A Squire can't hold Glory, so a Squire successor is offered Knighting first; declined, the Glory is lost. Squires themselves are offered only Duty. See [Scars, Death and Successors](Scars-Death-and-Successors).
 - NPCs and Referee-played Knights who are Old lose their VIG too, on one card.
 - Knights ticked to grow older reroll their Virtues for it. Then a second window offers every NPC with an Age, unticked, so you choose who else grows older.
 

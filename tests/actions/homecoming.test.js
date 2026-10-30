@@ -30,7 +30,7 @@ vi.mock("../../module/actions/realm.js", () => ({
 // A point is the hex it names.
 vi.mock("../../module/rules/realm-geometry.js", async (importOriginal) => ({ ...(await importOriginal()), hexAt: (_g, point) => point }));
 
-const { holdingChoices, markLongAbsences, welcomeHome } = await import("../../module/actions/homecoming.js");
+const { holdingChoices, markLongAbsences, oneDomainPerHolding, seatWithHolding, welcomeHome } = await import("../../module/actions/homecoming.js");
 const { crisisRoll } = await import("../../module/actions/dominion.js");
 
 const HOME = { col: 3, row: 2 };
@@ -128,5 +128,87 @@ describe("holdingChoices", () => {
 		expect(choices.options).toEqual([{ value: "Scene.s1.Tile.t1", label: `Hollowmere realm.readout.coordinates ${JSON.stringify({ col: 3, row: 2 })}`, selected: false }]);
 		expect(choices.blank).toContain("domain.holding.byName");
 		expect(holdingChoices(makeDomain({ holding: "Scene.s1.Tile.t1" })).options[0].selected).toBe(true);
+	});
+});
+
+describe("a ruler away (p14, p20)", () => {
+	it("leaves a Slain ruler out, since theirs is Succession's business", async () => {
+		game.actors = [{ ...eve, system: { domain: "", slain: true } }];
+		const domain = makeDomain();
+		game.actors.push(domain);
+		expect(await markLongAbsences()).toEqual([]);
+	});
+
+	it("marks a ruler leaving for a distant Realm away, though the Company set out from home", async () => {
+		companyAt.s1 = { ...HOME };
+		const domain = makeDomain();
+		game.actors.push(domain);
+		expect(await markLongAbsences({ leaving: true })).toEqual([domain]);
+		expect(domain.system.longAbsence).toBe(true);
+	});
+});
+
+describe("a Holding chosen on the Domain's sheet (p20–21)", () => {
+	const path = (object, key) => key.split(".").reduce((node, part) => node?.[part], object);
+	const seatRealm = { sceneId: "s1", holdings: [{ id: "t1", seat: true }, { id: "t2", seat: false }] };
+
+	beforeEach(() => {
+		globalThis.foundry = {
+			utils: {
+				getProperty: path,
+				hasProperty: (object, key) => path(object, key) !== undefined,
+				setProperty: (object, key, value) => {
+					const keys = key.split(".");
+					const last = keys.pop();
+					keys.reduce((node, part) => (node[part] ??= {}), object)[last] = value;
+				}
+			}
+		};
+		globalThis.Actor = { implementation: { updateDocuments: vi.fn(async () => []) } };
+		game.users = { activeGM: { isSelf: true } };
+	});
+
+	it("makes the Domain a Seat of Power with the Realm's Seat, and not with another Holding", () => {
+		const seat = { system: { holding: "Scene.s1.Tile.t1" } };
+		seatWithHolding({ type: "domain" }, seat, [seatRealm]);
+		expect(seat.system.seat).toBe(true);
+		const other = { system: { holding: "Scene.s1.Tile.t2" } };
+		seatWithHolding({ type: "domain" }, other, [seatRealm]);
+		expect(other.system.seat).toBe(false);
+	});
+
+	it("leaves a change that says for itself whether it's a Seat, a blank Holding, or another kind of actor", () => {
+		const granted = { system: { holding: "Scene.s1.Tile.t2", seat: true } };
+		seatWithHolding({ type: "domain" }, granted, [seatRealm]);
+		expect(granted.system.seat).toBe(true);
+		const blank = { system: { holding: "" } };
+		seatWithHolding({ type: "domain" }, blank, [seatRealm]);
+		expect(blank.system.seat).toBeUndefined();
+		const knight = { system: { holding: "Scene.s1.Tile.t1" } };
+		seatWithHolding({ type: "knight" }, knight, [seatRealm]);
+		expect(knight.system.seat).toBeUndefined();
+	});
+
+	it("has a Domain whose Seat is taken away stop being a Seat of Power, but keeps one ticked by hand", () => {
+		const taken = { system: { holding: "" } };
+		seatWithHolding({ type: "domain", system: { holding: "Scene.s1.Tile.t1", seat: true } }, taken, [seatRealm]);
+		expect(taken.system.seat).toBe(false);
+		const byHand = { system: { holding: "" } };
+		seatWithHolding({ type: "domain", system: { holding: "", seat: true } }, byHand, [seatRealm]);
+		expect(byHand.system.seat).toBeUndefined();
+		const fromOther = { system: { holding: "" } };
+		seatWithHolding({ type: "domain", system: { holding: "Scene.s1.Tile.t2", seat: true } }, fromOther, [seatRealm]);
+		expect(fromOther.system.seat).toBeUndefined();
+	});
+
+	it("has any other Domain naming the Holding give it up, on the active GM's browser alone", async () => {
+		const mine = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d1" };
+		const theirs = { ...makeDomain({ holding: "Scene.s1.Tile.t1" }), id: "d2" };
+		const elsewhere = { ...makeDomain({ holding: "Scene.s1.Tile.t2" }), id: "d3" };
+		game.actors.push(mine, theirs, elsewhere);
+		expect(await oneDomainPerHolding(mine, { system: { holding: "Scene.s1.Tile.t1" } })).toEqual([theirs]);
+		expect(Actor.implementation.updateDocuments).toHaveBeenCalledWith([{ _id: "d2", "system.holding": "" }]);
+		game.users.activeGM.isSelf = false;
+		expect(await oneDomainPerHolding(mine, { system: { holding: "Scene.s1.Tile.t1" } })).toEqual([]);
 	});
 });

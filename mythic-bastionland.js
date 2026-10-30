@@ -669,6 +669,8 @@ const WORLD_SETUP = Object.freeze([
 	{ key: LINGERING_CAST_STEP, run: markLingeringAttacks },
 	// Again, for the Cast the book fields only as Warbands though their names don't say so.
 	{ key: "warbandCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
+	// Again, for the Cast whose stat block has them fight on through a Mortal Wound.
+	{ key: "fightsOnCast", run: fillCastDetails, repeats: CAST_DETAILS_STEP },
 	// After it, so the older steeds it finds are drawn the same as the new.
 	{ key: GOODS_PICTURES_STEP, run: pictureExistingGoods },
 	// Knights made while their Tokens showed their name to no one.

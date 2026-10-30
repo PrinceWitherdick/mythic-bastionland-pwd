@@ -180,3 +180,24 @@ describe("knightHasFallen", () => {
 		expect(knightHasFallen({ ...played, played: false }, "slain")).toBe(false);
 	});
 });
+
+describe("the dead, and those who moved on", () => {
+	it("finds no Squire Slain, Knighted since or now serving another Knight", () => {
+		expect(squireOf(knight, [{ ...squire, slain: true }])).toBeNull();
+		expect(squireOf(knight, [{ ...squire, isSquire: false, serves: "" }])).toBeNull();
+		expect(squireOf(knight, [{ ...squire, serves: "Actor.k2" }])).toBeNull();
+	});
+
+	it("finds a Squire whose own side of the link was never written", () => {
+		expect(squireOf(knight, [{ ...squire, serves: "" }])).toEqual({ ...squire, serves: "" });
+	});
+
+	it("leaves the Slain out of the followers", () => {
+		expect(followersOf(knight, [squire, steed, { ...hireling, slain: true }])).toEqual([]);
+	});
+
+	it("names no Slain successor", () => {
+		const heir = { uuid: "Actor.k2", name: "Sir Ban", type: "knight", slain: true };
+		expect(successorOf({ ...knight, successor: "Actor.k2" }, [heir])).toBeNull();
+	});
+});

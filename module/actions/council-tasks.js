@@ -21,7 +21,7 @@ import { escapeHTML } from "../rules/text.js";
 import { normalizeCalendar } from "../rules/time.js";
 import { VIRTUES } from "../rules/virtues.js";
 import { calendarLabel, getCalendar } from "./calendar.js";
-import { knightChoices, seatLabel } from "./court.js";
+import { knightChoices, seatLabel, slainKnight } from "./court.js";
 import { crisisEntry, inflictCrisis, misruleWarning, worldDomains } from "./dominion.js";
 import { evaluateSave, saveContext } from "./saves.js";
 import { timelineTaskSettled } from "./timeline-events.js";
@@ -35,23 +35,33 @@ import { timelineTaskSettled } from "./timeline-events.js";
  */
 
 /**
+ * Who holds a seat and can still do its work: a Knight of the Circle Slain
+ * since they were seated sits there no longer.
+ * @param {Actor} domain
+ * @param {string} seat One of COUNCIL_SEATS.
+ * @returns {{id: string, name: string, legacy: boolean}[]}
+ */
+const livingHolders = (domain, seat) => seatHolders(domain?.system, seat, knightChoices())
+	.filter((holder) => RETAINER_SEATS.includes(seat) || holder.legacy || !slainKnight(holder.id));
+
+/**
  * @param {Actor} domain
  * @param {string} seat
  * @returns {string} Whoever holds a seat, by name, blank where nobody does.
  */
-const seatHolderNames = (domain, seat) => seatHolders(domain?.system, seat, knightChoices()).map((holder) => holder.name).filter(Boolean).join(", ");
+const seatHolderNames = (domain, seat) => livingHolders(domain, seat).map((holder) => holder.name).filter(Boolean).join(", ");
 
 /**
  * The actor who holds a Council seat, so that a task can be settled with their
- * own Save. A Knight of the Circle is their own sheet; a Retainer has one only
- * where an actor goes by their name. A Circle of several Knights has nobody
- * to make the Save alone.
+ * own Save. A Knight of the Circle is their own sheet, unless they've been
+ * Slain; a Retainer has one only where an actor goes by their name. A Circle
+ * of several living Knights has nobody to make the Save alone.
  * @param {Actor} domain
  * @param {string} seat One of COUNCIL_SEATS.
  * @returns {Actor|null} Null where nobody of that name has a sheet.
  */
 export function councilActor(domain, seat) {
-	const holders = seatHolders(domain?.system, seat, knightChoices());
+	const holders = livingHolders(domain, seat);
 	if (holders.length !== 1) return null;
 	const [{ id, name, legacy }] = holders;
 	// A Knight of the Circle is found by id; a Retainer's id is their place in the Court.
@@ -130,13 +140,15 @@ export async function assignTask(domain, seat) {
 
 	const id = foundry.utils.randomID();
 	await domain.update({ [`system.tasks.${id}`]: task });
+	const taken = t("domain.tasks.taken", {
+		who: holder || seatLabel(seat),
+		what: task.what || t("domain.tasks.whatUnwritten"),
+		scope: t(`domain.tasks.scopes.${task.scope}.takes`)
+	});
 	await postCard(domain, "note", {
 		icon: TASK_SCOPE_ICONS[task.scope],
-		text: t("domain.tasks.taken", {
-			who: holder || seatLabel(seat),
-			what: task.what || t("domain.tasks.whatUnwritten"),
-			scope: t(`domain.tasks.scopes.${task.scope}.takes`)
-		})
+		// The calendar counts no Weeks, so a Week's work is due at the next Morning, where Weeks Pass moves to.
+		text: task.scope === "week" ? `${taken} ${t("domain.tasks.weekDue")}` : taken
 	});
 	return id;
 }
@@ -159,7 +171,7 @@ export async function settleTask(domain, id) {
 	// Luck Roll, which p16 offers in the same breath as the Save.
 	let risk = task.risk;
 	if (isSaveRisk(risk) && !actor) {
-		const several = seatHolders(domain.system, task.seat, knightChoices()).length > 1;
+		const several = livingHolders(domain, task.seat).length > 1;
 		notes.push(several ? t("domain.tasks.noOneSaves") : t("domain.tasks.noSheet", { name: seatHolderNames(domain, task.seat) || seatLabel(task.seat) }));
 		risk = "luck";
 	}

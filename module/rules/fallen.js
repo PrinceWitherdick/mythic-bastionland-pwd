@@ -1,4 +1,5 @@
 import { KNIGHT_TYPE, isKnight } from "./knight-types.js";
+import { stillServes } from "./squires.js";
 
 /**
  * When a Knight dies (p8): their player makes another Knight to join the
@@ -24,7 +25,8 @@ export const FALLEN_PATHS = Object.freeze(["newKnight", "successor", "squire", "
  * @property {string} [type]
  * @property {boolean} [isSquire]
  * @property {string} [serves]      The uuid of the Knight they serve.
- * @property {string} [companionOf] The id of the Knight whose Property made them.
+ * @property {string} [companionOf] The id of the Knight whose Property made them, or who took them on as a follower.
+ * @property {boolean} [slain]
  */
 
 /**
@@ -39,12 +41,13 @@ export const FALLEN_PATHS = Object.freeze(["newKnight", "successor", "squire", "
 /**
  * @param {FallenKnight} knight
  * @param {Companion[]} actors Every actor in the world.
- * @returns {Companion|null} Their Squire, by the sheet's own link or by who they serve.
+ * @returns {Companion|null} Their living Squire, by the sheet's own link or by who they serve. One Knighted since,
+ *   now serving another Knight, or Slain beside them is nobody to take up.
  */
 export function squireOf(knight, actors) {
 	if (!knight) return null;
-	return actors.find((actor) => actor.uuid && actor.uuid === knight.squire)
-		?? actors.find((actor) => actor.isSquire && actor.serves === knight.uuid)
+	return actors.find((actor) => actor.uuid && actor.uuid === knight.squire && stillServes(actor, knight.uuid))
+		?? actors.find((actor) => actor.serves === knight.uuid && stillServes(actor, knight.uuid))
 		?? null;
 }
 
@@ -58,7 +61,7 @@ export function squireOf(knight, actors) {
  */
 export function successorOf(knight, actors) {
 	if (!knight?.successor) return null;
-	const heir = actors.find((actor) => actor.uuid === knight.successor && actor.uuid !== knight.uuid && isKnight(actor));
+	const heir = actors.find((actor) => actor.uuid === knight.successor && actor.uuid !== knight.uuid && isKnight(actor) && !actor.slain);
 	if (!heir) return null;
 	const theirs = new Set(knight.players ?? []);
 	return (heir.players ?? []).every((player) => theirs.has(player)) ? heir : null;
@@ -66,7 +69,8 @@ export function successorOf(knight, actors) {
 
 /**
  * Those who rode with a Knight and could be played in their stead: whoever
- * serves them or was made from their Property. Their steed is left out, and so
+ * serves them, was made from their Property or was taken on as a follower,
+ * and still lives. Their steed is left out, and so
  * is their Squire, who is taken up by a path of their own, and so is their
  * successor, who has one too.
  * @param {FallenKnight} knight
@@ -79,7 +83,8 @@ export function followersOf(knight, actors, theirSquire = undefined, theirSucces
 	if (!knight) return [];
 	const squire = theirSquire === undefined ? squireOf(knight, actors) : theirSquire;
 	return actors.filter((actor) =>
-		actor.uuid !== knight.steed
+		!actor.slain
+		&& actor.uuid !== knight.steed
 		&& actor.uuid !== squire?.uuid
 		&& actor.uuid !== theirSuccessor?.uuid
 		&& (actor.companionOf === knight.id || actor.serves === knight.uuid));

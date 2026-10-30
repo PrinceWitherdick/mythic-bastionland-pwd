@@ -26,7 +26,7 @@ The title is the Domain's name, with "Domain" added if the name doesn't already 
 | **Timeline** | The Domain's own thread of the campaign Timeline. Gone when the world has the Timeline turned off. See [The Campaign Timeline](The-Campaign-Timeline). |
 | **Notes** | A rich-text page that fills the window. |
 
-The header and toolbar stay above every page. The header holds the Domain's arms, its name, and a **Seat of Power** tick box. Tick it for the Holding the whole Realm is ruled from: it raises the Warband limit from 2 to 3 and changes what Seize by Force asks.
+The header and toolbar stay above every page. The header holds the Domain's arms, its name, and a **Seat of Power** tick box. Tick it for the Holding the whole Realm is ruled from: it raises the Warband limit from 2 to 3 and changes what Seize by Force asks. Picking the Seat of Power in the **Holding** list ticks it for you.
 
 The toolbar only shows to someone who can edit the Domain:
 
@@ -61,7 +61,7 @@ A Holding a Domain rules flies that Domain's arms on the Realm map, as a small s
 
 - **Ruler**: who rules, as text. Pass On and Seize by Force fill it for you.
 - **Successor**: whom the ruler names to follow them. Left blank, its placeholder shows the ruling Knight's own named successor from their sheet, and that is who Pass On offers.
-- **Holding**: which Holding on the Realm map this Domain rules. Until one is picked, a Holding with the Domain's exact name counts, and the blank option says so.
+- **Holding**: which Holding on the Realm map this Domain rules. Until one is picked, a Holding with the Domain's exact name counts, and the blank option says so. A Holding is ruled by one Domain: picking one another Domain rules takes it from that Domain.
 
 Under these, a line says how many wilderness hexes the Holding's rule reaches (those nearer it than any other Holding) and names any Landmarks in them you know of. A warning line appears for any Knight holding a post here (ruler, Council seat or place at Court) that their Rank isn't worthy of yet.
 
@@ -72,7 +72,7 @@ The block says how many Warbands the Holding can muster (3 for a Seat of Power, 
 - **Muster a Warband** opens a picker. Once Import PDF has filled the Beasts & Hirelings compendium, it lists the book's Warbands with their stats; otherwise, or as well, pick **A Warband of Your Own** and fill in its stats on its sheet. Then pick the Warband's origin, one of **Loyal Vassals**, **Knights Who Share a Cause** or **Mercenaries**. Press **Muster Them**. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook).
 - The new Warband is made as an NPC beside the Domain in the Actors tab, its sheet opens, and a card goes to chat. A Referee mustering it gives it the Domain's owners.
 - Mustering past the limit asks first rather than refusing, since the Referee may allow it.
-- Each raised Warband gets a row with its picture, name, SPI and origin. **Click the picture or the name** to open its sheet. A Warband that is Broken, Routed, Surrendered or Wiped Out is greyed and says so.
+- Each raised Warband gets a row with its picture, name, SPI and origin. **Click the picture or the name** to open its sheet. A Warband that is Broken, Routed, Surrendered or Wiped Out is greyed and says so. A wiped-out Warband no longer counts towards the limit, and the block says how many were lost.
 - **The walking-figure icon** on a row disbands it, after a confirmation. Their sheet stays in the Actors tab; they just stop being this Domain's.
 
 **Upkeep** lives on the Warband's own sheet, not the Domain's: a Warband-scale NPC has an **Upkeep** button in its toolbar. Pick what wore them down (**Ill-rested**, **Poorly fed** or **Driven too hard**) and press **Roll SPI Loss** to take d6 SPI. The card says when they reach SPI 0 and stop taking orders. See [NPCs, Structures and Compendiums](NPCs-Structures-and-Compendiums).
@@ -82,7 +82,7 @@ The block says how many Warbands the Holding can muster (3 for a Seat of Power, 
 The Council has five seats: **Steward**, **Marshal**, **Sheriff**, **Envoy** and **The Circle**. Hover a seat's name for what it does (from your imported rulebook).
 
 - **The four great seats** each have a drop-down listing the Court's Retainers who don't already hold a seat. You can't type a name in: take somebody into the Court as a Retainer first, then grant them the seat here. With no Retainer free, the list reads **No Retainers Available**.
-- **The Circle** holds Knights, not Retainers. Its Knights' names are links to their sheets. **Click the person-plus icon** to tick which of the world's Knights (other than the ruler) sit in it, then **Seat Them**.
+- **The Circle** holds Knights, not Retainers. Its Knights' names are links to their sheets. **Click the person-plus icon** to tick which of the world's Knights (other than the ruler) sit in it, then **Seat Them**. Slain Knights and Squires aren't offered; a Circle Knight who has since been Slain shows "(Slain)" and leaves when you next seat the Circle.
 - Any of the four great seats left empty gets a warning under the Council heading, and each Season card lists Domains with empty seats.
 
 ### Council tasks
@@ -110,13 +110,15 @@ Settling posts a **Council Task** card: who did it, what it was, the scope, the 
 
 **Seize by Force** sits apart at the foot of the Rule page, to the right of **Pass On**. It asks who takes the Holding (one of the world's Knights from a list, or any name written in) and makes them ruler. The named successor is cleared, a card goes to chat, and the Rule page shows a turmoil notice until the Season turns. When it does, the Season card says the Domain has settled under its new ruler.
 
+Pass On and Seize by Force only offer living Knights. A Slain heir is named as fallen rather than chosen for you. A Knight who already rules another Domain gets a warning, and a new ruler leaves their own Circle. When a player passes the Domain on to a Knight they don't play, the Referee's client moves the Knights' links, so it needs a Referee online.
+
 ## Crises
 
 The **Crises** block on the Court and Crises page lists each Crisis the Domain faces, with the book's lines on it and how it is resolved once the rulebook is imported. **Click the tick** on a row to resolve it; a short card says so.
 
 - **Crisis Roll** rolls a d6: on a 1 two Crises arrive at once, on 2 to 3 two are drawn and a window asks which one the Domain takes (**Take this Crisis**), and on 4 to 6 none. Each Crisis is drawn on its own d6, and a Crisis the Domain already has passes to the next one down the list, so a roll always brings a new one while any are left. If you close the choosing window, the card names both and you add the chosen one with **Add Crisis** later.
 - **Add Crisis** offers only the Crises the Domain doesn't already face.
-- Under the list, a line says whether this Season's Crisis Roll has been made.
+- Under the list, a line says whether this Season's Crisis Roll has been made. Pressing **Crisis Roll** again in the same Season asks first.
 - With three or more Crises a notice warns that ending the Season like this brings misrule.
 
 ### Misrule
@@ -132,18 +134,22 @@ The **Misrule** tick box marks a Domain in misrule. It is ticked for you when a 
 
 A d6: on a 1 the Domain falls into misrule at once (Misrule is ticked), on 2 to 3 the coffers fill but a Crisis is drawn and added, and on 4 to 6 the Vassals pay.
 
+- Misrule from a 1 opens the Circle window, as a Season's misrule does, and stays until you untick **Misrule**.
+- With no Steward seated, the card says so.
+- When the coffers fill and the Domain faces Debt, you're offered to resolve it.
+
 ## The Court
 
-The **Court** block lists everyone serving the ruler, grouped as **Retainer**, **Courtier**, **Petitioner** and **Seer**. Each is one line: the name, the role, and a seat if they hold one (in bold) or serve one. Their note and leverage show underneath in grey when written.
+The **Court** block lists everyone serving the ruler, grouped as **Retainer**, **Courtier**, **Petitioner** and **Seer**. Each is one line: the name, the role, and a seat if they hold one (in bold) or serve one. Their note shows underneath in grey when written, and so does their leverage, to the Referee only.
 
-- **Add to the Court** opens **Take Into the Court**: **Role**, **Name**, **Serves** (Retainers only: the Council member who took them on), **Leverage** (their hold over the ruler) and **Note**. The note's prompt changes with the role. A name is required.
+- **Add to the Court** opens **Take Into the Court**: **Role**, **Name**, **Serves** (Retainers only: the Council member who took them on), **Leverage** (their hold over the ruler, kept from the players) and **Note**. The note's prompt changes with the role. A name is required.
 - **The die beside Name** rolls a name from the ones the book gives on its Knights' pages, never one already in this Court while any are left. It needs the rulebook imported.
 - **Click a member's name** to edit them in the same window. Making a seated Retainer anything else gives up their seat.
 - **The person-× icon** lets them leave the Court, after a confirmation. A seat they held stands empty.
 
 ### Drama in Court
 
-**Drama in Court** rolls a d6 for how the ruler is drawn in: on a 1 directly, on 2 to 3 through someone close, on 4 to 6 not at all. It picks a named Courtier at random to be at the heart of it (anyone named in the Court if there are no Courtiers) and shows their role, leverage and note. With the rulebook imported, it also rolls a prompt from the Drama Spark Table. The roll marks this Season's drama done, so the Season card stops listing it.
+**Drama in Court** rolls a d6 for how the ruler is drawn in: on a 1 directly, on 2 to 3 through someone close, on 4 to 6 not at all. It picks a named Courtier at random to be at the heart of it (anyone named in the Court if there are no Courtiers) and shows their role and note. Their leverage is whispered to the Referee, even when a player rolls. With the rulebook imported, it also rolls a prompt from the Drama Spark Table. The roll marks this Season's drama done, so the Season card stops listing it, and rolling again that Season asks first.
 
 ## Grand Designs
 

@@ -78,6 +78,12 @@ describe("foundDomain", () => {
 		expect(domain.system).toMatchObject({ holding: "", seat: false, council: { circle: [] } });
 	});
 
+	it("offers neither a Squire nor the Slain for its Circle (p7, p20)", async () => {
+		actors.push({ ...knight("s1", "Pip"), system: { isSquire: true } }, { ...knight("k4", "Ash"), system: { slain: true } });
+		await foundDomain(actors[0]);
+		expect(asked[0].context.circle.map(({ name }) => name)).toEqual(["Moss", "Brand"]);
+	});
+
 	it("founds nothing when the window is closed", async () => {
 		expect(await foundDomain(actors[0])).toBeNull();
 		expect(created).toEqual([]);

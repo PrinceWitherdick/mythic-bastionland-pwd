@@ -12,6 +12,10 @@ vi.mock("../../module/apps/ui.js", () => ({
 }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => null), t: (key, data) => (data ? `${key} ${JSON.stringify(data)}` : key) }));
 
+/** Each Knight's steed and followers, by the Knight's id. */
+let riding = {};
+vi.mock("../../module/actions/fallen.js", () => ({ announceFallenKnight: vi.fn(), companionsOf: (actor) => riding[actor.id] ?? [] }));
+
 const { chooseCompany } = await import("../../module/actions/time.js");
 
 const knight = (id, name, age = "young") => ({ id, uuid: `Actor.${id}`, name, type: "knight", hasPlayerOwner: true, isOwner: true, system: { virtues: {}, age } });
@@ -73,5 +77,36 @@ describe("chooseCompany", () => {
 		answer = {};
 		await chooseCompany({ title: "", icon: "", intro: "", ok: "", present: [carrier], others: [brand] });
 		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Carrier", true], ["Sir Brand", false], ["Tal", true], ["Moss", true]]);
+	});
+});
+
+describe("chooseCompany, Squires and companions", () => {
+	afterEach(() => {
+		riding = {};
+	});
+
+	it("offers a Squire no Succession or Legacy as the Age turns (p7, p17)", async () => {
+		game.actors = [knight("tal", "Tal"), { ...knight("ned", "Ned"), system: { virtues: {}, age: "young", isSquire: true } }];
+		answer = { "include-0": true, "pursuit-0": "legacy", "include-1": true, "pursuit-1": "legacy" };
+		const company = await chooseCompany({ title: "", icon: "", intro: "", ok: "", pursuits: ["duty", "succession", "legacy"] });
+		expect(asked.context.members.map(({ pursuits }) => pursuits.map(({ key }) => key))).toEqual([["duty", "succession", "legacy"], ["duty"]]);
+		// A pursuit the Squire wasn't offered isn't taken, however the form came back.
+		expect(company.map(({ pursuit }) => pursuit)).toEqual(["legacy", null]);
+	});
+
+	it("lists each Knight's steed and followers after the Knights, ticked as their Knight is", async () => {
+		const steed = { uuid: "Actor.bayard", name: "Bayard", type: "npc", isOwner: true, system: { virtues: {} } };
+		const guide = { uuid: "Actor.guide", name: "The Guide", type: "npc", isOwner: true, system: { virtues: {} } };
+		riding = { tal: [steed, guide] };
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "", companions: true });
+		expect(asked.context.members.map(({ name, included }) => [name, included])).toEqual([["Tal", true], ["Moss", true], ["Bayard", true], ["The Guide", true]]);
+	});
+
+	it("lists no companions unless asked", async () => {
+		riding = { tal: [{ uuid: "Actor.bayard", name: "Bayard", type: "npc", isOwner: true, system: { virtues: {} } }] };
+		answer = {};
+		await chooseCompany({ title: "", icon: "", intro: "", ok: "" });
+		expect(asked.context.members.map(({ name }) => name)).toEqual(["Tal", "Moss"]);
 	});
 });

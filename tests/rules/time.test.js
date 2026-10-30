@@ -12,6 +12,7 @@ import {
 	nextSeason,
 	normalizeCalendar,
 	olderAge,
+	pursuitsFor,
 	seasonKey
 } from "../../module/rules/time.js";
 
@@ -142,5 +143,17 @@ describe("olderAge", () => {
 		expect(olderAge("mature")).toBe("old");
 		expect(olderAge("old")).toBeNull();
 		expect(olderAge("ancient")).toBeNull();
+	});
+});
+
+describe("pursuitsFor", () => {
+	it("leaves a Squire no Succession or Legacy, but Duty and every Season's pursuit", () => {
+		expect(pursuitsFor(["duty", "succession", "legacy"], { isSquire: true })).toEqual(["duty"]);
+		expect(pursuitsFor(["pilgrimage", "courtesy", "service"], { isSquire: true })).toEqual(["pilgrimage", "courtesy", "service"]);
+	});
+
+	it("leaves a Knight every pursuit", () => {
+		expect(pursuitsFor(["duty", "succession", "legacy"], { isSquire: false })).toEqual(["duty", "succession", "legacy"]);
+		expect(pursuitsFor(["duty"], undefined)).toEqual(["duty"]);
 	});
 });

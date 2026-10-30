@@ -2,8 +2,8 @@ import { confirmDialog } from "../apps/ui.js";
 import { postCard, t } from "../chat/cards.js";
 import { abilitiesWith, etchedNumber } from "../rules/ability-uses.js";
 import { dieMask } from "../rules/die-shapes.js";
-import { BREAK_ICONS, MORALE_BREAKS } from "../rules/morale.js";
-import { isSavePassed } from "../rules/virtues.js";
+import { BREAK_ICONS, MORALE_BREAKS, isMoraleBreak } from "../rules/morale.js";
+import { downBy, isSavePassed } from "../rules/virtues.js";
 import { isKnight } from "../rules/knight-types.js";
 import { playerCharacter } from "./knights.js";
 
@@ -157,9 +157,24 @@ export function moraleBreakButtons(group) {
 }
 
 /**
+ * Whoever leads a Warband from the front, and so makes its Morale Save on
+ * their own SPI: an organised group rolls once using its leader's (p10, p11).
+ * Only a leader still on their feet, and not broken themself, leads it.
+ * @param {Actor} actor
+ * @returns {Actor|null} Null for anybody but a Warband led that way.
+ */
+export function moraleLeaderOf(actor) {
+	if (actor?.system?.scale !== "warband" || !actor.system.leader) return null;
+	const leader = fromUuidSync(actor.system.leader);
+	if (!leader?.system?.virtues?.spi || leader.uuid === actor.uuid || downBy(leader.system) || isMoraleBreak(leader.system.moraleBroken)) return null;
+	return leader;
+}
+
+/**
  * Roll Morale: a SPI Save to stand rather than rout or surrender (Wavering
  * Morale, p10). A failed Save offers to mark who broke as fled or
- * surrendered, which takes them out of the fight until cleared.
+ * surrendered, which takes them out of the fight until cleared. A Warband led
+ * from the front rolls on its leader's SPI, and only the Warband is marked.
  * @param {Actor} actor
  * @param {object} [options]
  * @param {Actor[]} [options.group] Everybody the roll stands for, as an organised group's
@@ -167,10 +182,11 @@ export function moraleBreakButtons(group) {
  * @returns {Promise<SaveResult>}
  */
 export async function rollMorale(actor, { group = [actor] } = {}) {
-	return rollLabelledSave(actor, "spi", {
+	const leader = moraleLeaderOf(actor);
+	return rollLabelledSave(leader ?? actor, "spi", {
 		label: t("morale.title"),
 		outcome: ({ passed }) => t(passed ? "morale.holds" : "morale.breaks"),
-		hint: t("morale.hint")
+		hint: leader ? t("morale.ledHint", { warband: actor.name, leader: leader.name }) : t("morale.hint")
 	}, { extra: ({ passed }) => (passed ? {} : { breaks: moraleBreakButtons(group) }) });
 }
 
@@ -196,13 +212,14 @@ export async function rollReaction(actor) {
  * @param {string} key Where its words are kept: `${key}Title`, `${key}Intro` and `${key}What`.
  * @param {string} icon Font Awesome classes, as its button has.
  * @param {object} values What `${key}What` is filled in with.
+ * @param {string} [what] Another key for what it does, where this time it does something else.
  * @returns {Promise<boolean>}
  */
-export function acceptAfterTelling(actor, key, icon, values) {
+export function acceptAfterTelling(actor, key, icon, values, what = `${key}What`) {
 	return confirmDialog({
 		title: t(`${key}Title`, { name: actor.name }),
 		icon,
-		message: [t(`${key}Intro`, { name: foundry.utils.escapeHTML(actor.name) }), t(`${key}What`, values)],
+		message: [t(`${key}Intro`, { name: foundry.utils.escapeHTML(actor.name) }), t(what, values)],
 		yes: { label: t("sheet.accept") }
 	});
 }
@@ -222,7 +239,12 @@ const acceptedSave = (actor, key, icon) => acceptAfterTelling(actor, `${key}.ask
  * @returns {Promise<SaveResult|null>} Null when it wasn't accepted.
  */
 export async function rollMoraleIfAccepted(actor) {
-	return (await acceptedSave(actor, "morale", "fa-solid fa-flag")) ? rollMorale(actor) : null;
+	// A Warband led from the front rolls on its leader's SPI (p10, p11).
+	const leader = moraleLeaderOf(actor);
+	const accepted = leader
+		? await acceptAfterTelling(actor, "morale.ask", "fa-solid fa-flag", { value: leader.system.virtues.spi.value, leader: foundry.utils.escapeHTML(leader.name) }, "morale.askLedWhat")
+		: await acceptedSave(actor, "morale", "fa-solid fa-flag");
+	return accepted ? rollMorale(actor) : null;
 }
 
 /**

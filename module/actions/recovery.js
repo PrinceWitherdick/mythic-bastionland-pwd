@@ -99,9 +99,10 @@ export async function restAfterCombat(combat) {
 	for (const combatant of combat.combatants) {
 		const { actor } = combatant;
 		const guard = actor?.system?.guard;
-		// A ship or wall doesn't catch its breath: its GD comes back by repair.
+		// A ship or wall doesn't catch its breath: its GD comes back by repair, and so does a
+		// creature that counts as a structure, once destroyed (p11).
 		// The Slain rest no more, but somebody Exhausted at VIG 0 still catches their breath.
-		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain) continue;
+		if (!guard || actor.type === "structure" || actors.includes(actor) || actor.system.slain || actor.system.destroyed) continue;
 		if (guard.value < guard.max || actor.system.fatigued || actor.system.exposed) actors.push(actor);
 	}
 	if (!actors.length) return null;
@@ -171,7 +172,7 @@ export async function indulgePassion(actor, item) {
 
 /**
  * Use a Remedy (p9): everybody present has its Virtue restored, and the Remedy
- * is used up.
+ * is used up. The Knights' steeds and followers are present too.
  * @param {Actor} actor Whoever carries it.
  * @param {Item|undefined} item
  * @returns {Promise<object[]|null>}
@@ -186,7 +187,8 @@ export async function useRemedy(actor, item) {
 		icon: "fa-solid fa-flask",
 		intro: t("remedy.intro", { virtue: abbr }),
 		ok: t("remedy.use", { virtue: abbr }),
-		present: [actor]
+		present: [actor],
+		companions: true
 	});
 	if (!company?.length) return null;
 

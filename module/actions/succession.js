@@ -7,11 +7,21 @@ import { isKnight } from "../rules/knight-types.js";
 
 /**
  * @param {Actor} knight
- * @returns {Actor|null} The Knight or Squire they named to follow them, if they still exist.
+ * @returns {Actor|null} The Knight or Squire they named to follow them, if they still exist, alive or not.
  */
-export function heirOf(knight) {
+export function namedHeirOf(knight) {
 	const heir = knight.system.successor ? fromUuidSync(knight.system.successor) : null;
 	return heir?.documentName === "Actor" && isKnight(heir) ? heir : null;
+}
+
+/**
+ * @param {Actor} knight
+ * @returns {Actor|null} The Knight or Squire they named to follow them, if they still exist and live:
+ *   a Slain heir can't succeed anybody (p17).
+ */
+export function heirOf(knight) {
+	const heir = namedHeirOf(knight);
+	return heir && !heir.system.slain ? heir : null;
 }
 
 /**
@@ -28,15 +38,15 @@ export async function nameSuccessor(knight, heir, { record = true } = {}) {
 }
 
 /**
- * Name a Knight's successor (Succession, p17): any other Knight in the world
- * whoever chooses can see, their own Squire offered first.
+ * Name a Knight's successor (Succession, p17): any other living Knight in
+ * the world whoever chooses can see, their own Squire offered first.
  * @param {Actor} knight
  * @param {object} [options] As nameSuccessor takes.
  * @returns {Promise<Actor|null>} The successor, or null if closed or left unnamed.
  */
 export async function chooseSuccessor(knight, options) {
 	const current = heirOf(knight) ?? (knight.system.squire ? fromUuidSync(knight.system.squire) : null);
-	const candidates = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => actor === current));
+	const candidates = worldKnights((actor) => actor !== knight && !actor.system.slain).filter(seenOrChosen((actor) => actor === current));
 	if (!candidates.length) {
 		ui.notifications.info(t("successor.none", { name: knight.name }));
 		return null;

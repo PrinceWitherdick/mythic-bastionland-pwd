@@ -12,9 +12,14 @@ let answer;
 
 vi.mock("../../module/actions/squires.js", () => ({ knightSquire: vi.fn(async (squire) => { knighted = squire; return {}; }) }));
 vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn(async () => answer) }));
+// The radio list: the only one without asking, else the one whose id is the answer.
+vi.mock("../../module/apps/actor-pick.js", () => ({
+	chooseActor: vi.fn(async (actors) => (actors.length === 1 ? actors[0] : actors.find((one) => one.id === answer) ?? null))
+}));
 vi.mock("../../module/apps/KnightChooser.js", () => ({ openKnightChooser: vi.fn((actor) => { chosen = actor; }) }));
 
-const { announceFallenKnight, carryOnFrom, gloryOfTheCompany, whoRodeWith } = await import("../../module/actions/fallen.js");
+const { announceFallenKnight, carryOnFrom, companionsOf, gloryOfTheCompany, whoRodeWith } = await import("../../module/actions/fallen.js");
+const { chooseActor } = await import("../../module/apps/actor-pick.js");
 const { openKnightChooser } = await import("../../module/apps/KnightChooser.js");
 
 const root = join(import.meta.dirname, "../..");
@@ -329,5 +334,86 @@ describe("carryOnFrom", () => {
 
 	it("does nothing for a path that isn't one of the book's", async () => {
 		expect(await carryOnFrom("ghost", fallenKnight())).toBeNull();
+	});
+});
+
+describe("the dead and the moved on", () => {
+	it("offers no Squire or follower Slain beside the Knight", async () => {
+		const knight = fallenKnight();
+		const squire = actor({ id: "s1", name: "Ned", type: "knight", system: { isSquire: true, serves: knight.uuid, slain: true } });
+		const guide = actor({ id: "g1", name: "The Guide", system: { slain: true }, flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		game.actors = [knight, squire, guide];
+
+		expect(whoRodeWith(knight)).toEqual({ squire: null, successor: null, followers: [] });
+		await announceFallenKnight(knight, "slain");
+		expect(lastCard().paths.map((path) => path.key)).toEqual(["newKnight"]);
+		expect(await carryOnFrom("squire", knight)).toBeNull();
+		expect(knighted).toBeNull();
+	});
+
+	it("offers no Squire Knighted since, whose old Knight still names them", () => {
+		const knight = fallenKnight();
+		const knightedSince = actor({ id: "s1", name: "Sir Ned", type: "knight", system: { isSquire: false, serves: "" } });
+		game.actors = [knight, knightedSince];
+		expect(whoRodeWith(knight).squire).toBeNull();
+	});
+
+	it("offers no Slain successor", async () => {
+		const knight = fallenKnight({ system: { isSquire: false, squire: "", steed: "", successor: "Actor.k2" } });
+		const heir = actor({ id: "k2", name: "Sir Ban", type: "knight", system: { isSquire: false, slain: true } });
+		game.actors = [knight, heir];
+		await announceFallenKnight(knight, "slain");
+		expect(lastCard().paths.map((path) => path.key)).toEqual(["newKnight"]);
+	});
+
+	it("tells a player the Referee hands over a Squire they don't own, before Knighting them", async () => {
+		game.user.isGM = false;
+		const knight = fallenKnight();
+		const squire = actor({ id: "s1", name: "Ned", type: "knight", system: { isSquire: true, serves: knight.uuid }, isOwner: false });
+		game.actors = [knight, squire];
+
+		expect(await carryOnFrom("squire", knight)).toBeNull();
+		expect(knighted).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith(format("bastionland.fallen.successorNotYours", { name: "Ned" }));
+	});
+
+	it("tells a player the Referee hands over a follower they don't own", async () => {
+		game.user.isGM = false;
+		const knight = fallenKnight();
+		const guide = actor({ id: "g1", name: "The Guide", isOwner: false, flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		game.actors = [knight, guide];
+
+		expect(await carryOnFrom("follower", knight)).toBeNull();
+		expect(guide.unsetFlag).not.toHaveBeenCalled();
+	});
+
+	it("asks which follower from a radio list, not a button each", async () => {
+		const knight = fallenKnight();
+		const guide = actor({ id: "g1", name: "The Guide", flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		const archer = actor({ id: "a1", name: "The Archer", flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		game.actors = [knight, guide, archer];
+
+		answer = "g1";
+		expect(await carryOnFrom("follower", knight)).toBe(guide);
+		expect(chooseActor).toHaveBeenCalledWith([guide, archer], expect.objectContaining({ message: format("bastionland.fallen.whichFollower", { name: "Sir Ose" }) }));
+	});
+});
+
+describe("companionsOf", () => {
+	afterEach(() => delete globalThis.fromUuidSync);
+
+	it("gives the living steed and followers, not the Squire, who rides in their own right", () => {
+		const knight = fallenKnight();
+		const squire = actor({ id: "s1", name: "Ned", type: "knight", system: { isSquire: true, serves: knight.uuid } });
+		const steed = actor({ id: "h1", name: "Bayard", system: {} });
+		steed.documentName = "Actor";
+		const guide = actor({ id: "g1", name: "The Guide", flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		const lost = actor({ id: "g2", name: "The Lost", system: { slain: true }, flags: { [`${SYSTEM_ID}.companionOf`]: "k1" } });
+		game.actors = [knight, squire, steed, guide, lost];
+		globalThis.fromUuidSync = (uuid) => game.actors.find((one) => one.uuid === uuid) ?? null;
+
+		expect(companionsOf(knight)).toEqual([steed, guide]);
+		steed.system.slain = true;
+		expect(companionsOf(knight)).toEqual([guide]);
 	});
 });

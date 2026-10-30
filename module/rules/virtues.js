@@ -96,20 +96,38 @@ export function conditionsFor({ virtues, fatigued, exposed, mortalWound, wounded
 
 /**
  * Why somebody can't act at all: Slain, or Mortally Wounded and so down and
- * dying until patched up (p8).
- * @param {{slain?: boolean, mortalWound?: boolean}} system
+ * dying until patched up (p8). One of the Cast whose stat block says it fights
+ * on through a Mortal Wound isn't down by it (`fightsOn`), nor dying of it.
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean}} system
  * @returns {"slain"|"mortalWound"|null} A condition key, or null when they can act.
  */
 export function downBy(system) {
 	if (system?.slain) return "slain";
-	if (system?.mortalWound) return "mortalWound";
+	if (system?.mortalWound && !system.fightsOn) return "mortalWound";
+	return null;
+}
+
+/**
+ * Why somebody is out of the fight for good, whatever their Morale: downBy's
+ * Slain or Mortally Wounded, a ship, structure or creature that counts as one
+ * destroyed at 0GD, or a Warband wiped out at VIG 0 however it got there (p11).
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean, destroyed?: boolean, scale?: string,
+ *   virtues?: {vig?: {value: number}}}} system
+ * @returns {"slain"|"mortalWound"|"destroyed"|"wipedOut"|null}
+ */
+export function outOfFight(system) {
+	const down = downBy(system);
+	if (down) return down;
+	if (system?.destroyed) return "destroyed";
+	if (system?.scale === "warband" && system.virtues?.vig && system.virtues.vig.value <= 0) return "wipedOut";
 	return null;
 }
 
 /**
  * Whether somebody lies dying of a Mortal Wound, until it's tended (p8). A
- * Warband's routs it from the battle instead, which no tending undoes (p11).
- * @param {{slain?: boolean, mortalWound?: boolean, scale?: string}} system
+ * Warband's routs it from the battle instead, which no tending undoes (p11),
+ * and one of the Cast that fights on through it isn't dying of it.
+ * @param {{slain?: boolean, mortalWound?: boolean, fightsOn?: boolean, scale?: string}} system
  * @returns {boolean}
  */
 export const isDying = (system) => downBy(system) === "mortalWound" && system.scale !== "warband";

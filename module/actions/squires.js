@@ -15,7 +15,8 @@ import {
 	ponySystem,
 	squireEquipment,
 	squireItems,
-	squireSystem
+	squireSystem,
+	stillServes
 } from "../rules/squires.js";
 import { escapeHTML } from "../rules/text.js";
 import { VIRTUES } from "../rules/virtues.js";
@@ -23,7 +24,7 @@ import { SYSTEM_ID } from "../system-id.js";
 import { COMPANY_KNIGHT_FLAG, companyKnights, inCompany, worldKnights } from "./knights.js";
 import { SOLO_CHANGED_HOOK, isSolo } from "./solo.js";
 import { timelineKnighted, timelineSquireTaken } from "./timeline-events.js";
-import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
+import { isCompanyKnight, isKnight, isNpcKnight } from "../rules/knight-types.js";
 
 /**
  * @returns {number} Knights in the Company: one for each player who owns a Knight, so a fallen Knight and their heir
@@ -91,6 +92,127 @@ export function watchCompanySize() {
 }
 
 /**
+ * The Squire a Knight's sheet names, while they still serve that Knight: not
+ * Knighted since, nor taken by another Knight, nor, unless the dead are
+ * wanted too, Slain.
+ * @param {Actor} knight
+ * @param {object} [options] As stillServes takes them.
+ * @returns {Actor|null}
+ */
+export function servingSquire(knight, options) {
+	const uuid = knight?.system?.isSquire ? "" : knight?.system?.squire;
+	const squire = uuid ? fromUuidSync(uuid) : null;
+	return squire?.documentName === "Actor" && stillServes(squire.system, knight.uuid, options) ? squire : null;
+}
+
+/**
+ * Only small Companies may take Squires (p7), but the Referee may bend that:
+ * a player is told so, and the Referee asked.
+ * @returns {Promise<boolean>} Whether a Knight may be given a Squire.
+ */
+async function squireAllowed() {
+	const count = companyKnightCount();
+	if (mayTakeSquires(count)) return true;
+	if (!game.user.isGM) {
+		ui.notifications.warn(t("squire.largeCompanyPlayer", { count }));
+		return false;
+	}
+	return confirmDialog({
+		title: t("squire.largeTitle"),
+		icon: "fa-solid fa-people-group",
+		message: t("squire.largeCompany", { count })
+	});
+}
+
+/**
+ * The ownership a Knight's companion is given when the Referee links them:
+ * what they had, raised to whatever the Knight's players have, so a player
+ * can see and play the Squire, steed or follower their Knight was given.
+ * @param {Actor} companion
+ * @param {Actor} knight
+ * @returns {object} An update, empty for a player, who can't hand ownership on.
+ */
+export function sharedOwnership(companion, knight) {
+	if (!game.user.isGM) return {};
+	const ownership = { ...companion.ownership };
+	let changed = false;
+	for (const [user, level] of Object.entries(knight.ownership ?? {})) {
+		if (user === "default" || (ownership[user] ?? 0) >= level) continue;
+		ownership[user] = level;
+		changed = true;
+	}
+	return changed ? { ownership } : {};
+}
+
+/**
+ * Make a Squire already in the world this Knight's (p7), as dropping them on
+ * the Knight's sheet does. The Knight they served lets them go, and a Squire
+ * this Knight had before is let go, so no Squire serves two Knights and no
+ * Knight keeps two. A Knight who had none is held to the Company's size, as
+ * taking a new Squire is. Moving a Squire from another Knight, or replacing
+ * one, is asked first. A player can't move a Squire who serves a Knight they
+ * don't own.
+ * @param {Actor} knight
+ * @param {Actor} squire
+ * @returns {Promise<Actor|null>} The Squire, or null where nothing changed.
+ */
+export async function claimSquire(knight, squire) {
+	if (!isKnight(knight) || knight.system.isSquire || !squire?.system?.isSquire || squire === knight) return null;
+	// Only a small Company's Knights are given Squires (p7), never the Referee's.
+	if (isNpcKnight(knight)) {
+		ui.notifications.warn(t("npcKnight.noSquire", { name: knight.name }));
+		return null;
+	}
+	if (squire.system.slain) {
+		ui.notifications.warn(t("squire.slainServing", { name: squire.name }));
+		return null;
+	}
+	if (knight.system.squire === squire.uuid && squire.system.serves === knight.uuid) return squire;
+
+	const served = squire.system.serves && squire.system.serves !== knight.uuid ? fromUuidSync(squire.system.serves) : null;
+	const master = served?.documentName === "Actor" ? served : null;
+	// Only a link the old Knight still keeps needs undoing on their side.
+	const masterKeeps = master?.system?.squire === squire.uuid;
+	if ((master && !squire.isOwner) || (masterKeeps && !master.isOwner)) {
+		ui.notifications.warn(t("squire.servesAnother", { name: squire.name, knight: master.name }));
+		return null;
+	}
+	// A Knight who has a Squire already, this one or another, has been through the Company's size.
+	const had = servingSquire(knight, { living: false });
+	const before = had && had !== squire ? had : null;
+
+	const asked = [];
+	if (master) asked.push(t("squire.moveFrom", { name: escapeHTML(squire.name), from: escapeHTML(master.name), knight: escapeHTML(knight.name) }));
+	if (before) asked.push(t("squire.replaces", { name: escapeHTML(before.name), knight: escapeHTML(knight.name) }));
+	if (asked.length && !(await confirmDialog({ title: t("squire.claimTitle"), icon: "fa-solid fa-user-plus", message: asked }))) return null;
+	if (!had && !(await squireAllowed())) return null;
+
+	await knight.update({ "system.squire": squire.uuid });
+	if (squire.isOwner) await squire.update({ "system.serves": knight.uuid, ...sharedOwnership(squire, knight) });
+	if (masterKeeps) await master.update({ "system.squire": "" });
+	if (before?.isOwner && before.system.serves === knight.uuid) await before.update({ "system.serves": "" });
+	// On both threads, as taking a new Squire writes it.
+	await timelineSquireTaken(knight, squire);
+	return squire;
+}
+
+/**
+ * Part a Knight and their Squire, from either one's sheet: both sides of the
+ * link go, where this user may write the other one.
+ * @param {Actor} actor The Knight or the Squire.
+ * @returns {Promise<void>}
+ */
+export async function releaseSquire(actor) {
+	const { isSquire } = actor.system;
+	const uuid = isSquire ? actor.system.serves : actor.system.squire;
+	const linked = uuid ? fromUuidSync(uuid) : null;
+	await actor.update({ [isSquire ? "system.serves" : "system.squire"]: "" });
+	if (linked?.documentName !== "Actor" || !linked.isOwner) return;
+	if (isSquire && linked.system.squire === actor.uuid) await linked.update({ "system.squire": "" });
+	if (!isSquire && linked.system.serves === actor.uuid) await linked.update({ "system.serves": "" });
+}
+
+/**
  * Give a Knight a Squire (p7): roll 2d6 for each Virtue and a d6 for their
  * extra equipment, then create the Squire, with a dagger and a pony, beside
  * the Knight in the Actors directory. A Knight who already has one gets that
@@ -100,7 +222,7 @@ export function watchCompanySize() {
  */
 export async function takeSquire(knight) {
 	if (!isCompanyKnight(knight) || knight.system.isSquire) return null;
-	const existing = knight.system.squire ? fromUuidSync(knight.system.squire) : null;
+	const existing = servingSquire(knight);
 	if (existing) {
 		existing.sheet.render({ force: true });
 		return existing;
@@ -109,20 +231,7 @@ export async function takeSquire(knight) {
 		ui.notifications.warn(t("squire.cantCreate"));
 		return null;
 	}
-
-	// Only small Companies may take Squires, but the Referee may bend that.
-	const count = companyKnightCount();
-	if (!mayTakeSquires(count)) {
-		if (!game.user.isGM) {
-			ui.notifications.warn(t("squire.largeCompanyPlayer", { count }));
-			return null;
-		}
-		if (!(await confirmDialog({
-			title: t("squire.largeTitle"),
-			icon: "fa-solid fa-people-group",
-			message: t("squire.largeCompany", { count })
-		}))) return null;
-	}
+	if (!(await squireAllowed())) return null;
 
 	const rolls = [];
 	const virtues = {};
@@ -193,16 +302,23 @@ export async function chooseKnightedSquire(knight) {
 /**
  * Knight a Squire (p7): each Virtue rises by d6, and from then on they can gain
  * Glory and perform Feats. Then they choose which Knight they became, keeping
- * their Virtues and everything they carry.
+ * their Virtues and everything they carry. The dead aren't Knighted: raising
+ * their VIG would bring them back.
  * @param {Actor} squire
+ * @param {object} [options]
+ * @param {string} [options.note] HTML, already escaped: why they're asked, said before the question.
  * @returns {Promise<Record<string, {value: number, max: number}>|null>} Their new Virtues.
  */
-export async function knightSquire(squire) {
+export async function knightSquire(squire, { note } = {}) {
 	if (!squire.system.isSquire) return null;
+	if (squire.system.slain) {
+		ui.notifications.warn(t("squire.slainKnighting", { name: squire.name }));
+		return null;
+	}
 	const confirmed = await confirmDialog({
 		title: t("squire.knightConfirmTitle"),
 		icon: "fa-solid fa-khanda",
-		message: t("squire.knightConfirm", { name: escapeHTML(squire.name) })
+		message: [note, t("squire.knightConfirm", { name: escapeHTML(squire.name) })].filter(Boolean)
 	});
 	if (!confirmed) return null;
 

@@ -514,11 +514,13 @@ export function timelineCrisisResolved(domain, crisis, name) {
 
 /**
  * Drama in a Domain's Court: what came of it, and who of the Court was at its heart.
+ * Their leverage is the Referee's to know (p21), so only a thread kept from the players tells it.
  * @param {Actor} domain
  * @param {{said: string, who?: string|null, leverage?: string|null}} drama
  */
 export function timelineDrama(domain, { said, who = null, leverage = null }) {
-	return recordOnTrack(domain, { source: "drama", key: eachTime("drama"), title: t("domain.drama"), body: lines(said, who, leverage) });
+	const told = keptFromPlayers(domain) ? leverage : null;
+	return recordOnTrack(domain, { source: "drama", key: eachTime("drama"), title: t("domain.drama"), body: lines(said, who, told) });
 }
 
 /**

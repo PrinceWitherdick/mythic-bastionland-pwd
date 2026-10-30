@@ -22,6 +22,16 @@ export const SEASON_ICONS = Object.freeze({ spring: "fa-solid fa-seedling", harv
 export const SEASON_PURSUITS = Object.freeze(["pilgrimage", "courtesy", "service"]);
 export const AGE_PURSUITS = Object.freeze(["duty", "succession", "legacy"]);
 
+/** Pursuits only a Knight can follow: a Squire has no Glory to leave and nobody to name (p7, p17). */
+const KNIGHTS_PURSUITS = Object.freeze(["succession", "legacy"]);
+
+/**
+ * @param {string[]} pursuits Those offered as the Season or Age turns.
+ * @param {{isSquire?: boolean}} [system] Whoever chooses one.
+ * @returns {string[]} Those they may choose.
+ */
+export const pursuitsFor = (pursuits, system) => (system?.isSquire ? pursuits.filter((pursuit) => !KNIGHTS_PURSUITS.includes(pursuit)) : [...pursuits]);
+
 /**
  * What a pursuit between Seasons can make, as the book plays them (p192):
  * Service a Dwelling added to the map or some other small improvement, Courtesy

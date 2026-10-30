@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_ID } from "../../module/system-id.js";
 
-vi.mock("../../module/actions/saves.js", () => ({ rollMorale: vi.fn(async () => ({ passed: false })) }));
+vi.mock("../../module/actions/saves.js", () => ({
+	rollMorale: vi.fn(async () => ({ passed: false })),
+	// An NPC, or a Knight the Referee plays, keeps the mark (actions/saves.js).
+	keepsMoraleMark: (actor) => actor?.type === "npc" || actor?.type === "npcKnight"
+}));
 vi.mock("../../module/actions/scars.js", () => ({ offerRevenge: vi.fn(async () => []) }));
+vi.mock("../../module/actions/leading.js", () => ({ letGoOf: vi.fn(async () => {}) }));
+vi.mock("../../module/ask-gm.js", () => ({ askActiveGM: vi.fn(async () => true) }));
 vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	postCard: vi.fn(async () => ({ id: "message-1" }))
@@ -10,7 +16,9 @@ vi.mock("../../module/chat/cards.js", async (importOriginal) => ({
 
 const { postCard } = await import("../../module/chat/cards.js");
 const { offerRevenge } = await import("../../module/actions/scars.js");
-const { breakMorale, clearMoraleBreak, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
+const { letGoOf } = await import("../../module/actions/leading.js");
+const { askActiveGM } = await import("../../module/ask-gm.js");
+const { breakMorale, clearMoraleBreak, onGroupMoraleQuery, promptGroupMorale, registerMoraleCards } = await import("../../module/chat/morale-card.js");
 
 let hooks;
 let warnings;
@@ -85,10 +93,12 @@ beforeEach(() => {
 		users: { activeGM: { isSelf: true } },
 		i18n: { localize: (key) => key, format: (key) => key }
 	};
+	globalThis.CONFIG = { queries: {} };
+	globalThis.foundry = { utils: { hasProperty: (object, path) => path.split(".").reduce((at, key) => (at && typeof at === "object" ? at[key] : undefined), object) !== undefined } };
 });
 
 afterEach(() => {
-	for (const key of ["Hooks", "ui", "game"]) delete globalThis[key];
+	for (const key of ["Hooks", "ui", "game", "CONFIG", "foundry"]) delete globalThis[key];
 	vi.clearAllMocks();
 });
 
@@ -163,6 +173,11 @@ describe("breakMorale", () => {
 		expect(await breakMorale([fakeNpc("Actor.kay", { type: "knight" })], "fled")).toEqual([]);
 		expect(await breakMorale([fakeNpc("Actor.guard")], "sulked")).toEqual([]);
 		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("marks a Knight the Referee plays as any NPC (p10)", async () => {
+		const lord = fakeNpc("Actor.lord", { type: "npcKnight" });
+		expect(await breakMorale([lord], "surrendered")).toEqual([lord]);
 	});
 });
 
@@ -253,5 +268,154 @@ describe("the Morale buttons on a card", () => {
 		expect(theirs.hidden).toBe(true);
 		game.user.isGM = true;
 		delete globalThis.fromUuidSync;
+	});
+});
+
+describe("who counts toward a side's Morale", () => {
+	it("counts a Warband broken at SPI 0 as down when its side's number is weighed (p11)", async () => {
+		const broken = Object.assign(fakeNpc("Actor.militia"), {});
+		Object.assign(broken.system, { scale: "warband", virtues: { vig: { value: 10 }, spi: { value: 0 } } });
+		const ann = fakeNpc("Actor.ann");
+		const bo = fakeNpc("Actor.bo", { vig: 0, slain: true });
+		const cole = fakeNpc("Actor.cole");
+		game.combats = [fakeCombat([broken, ann, bo, cole].map((actor, index) => fakeCombatant(`c${index}`, actor)))];
+		// Bo alone is one of four; the broken Warband makes it half.
+		await promptGroupMorale(bo);
+		const group = postCard.mock.calls.find(([, template]) => template === "morale-group");
+		expect(group[3].flags[SYSTEM_ID].moraleGroup.actors).toEqual(["Actor.ann", "Actor.cole"]);
+	});
+
+	it("counts a creature that counts as a structure as one of its side, down once destroyed (p11)", async () => {
+		const colossus = fakeNpc("Actor.colossus");
+		Object.assign(colossus.system, { structure: true, destroyed: true });
+		const ann = fakeNpc("Actor.ann");
+		game.combats = [fakeCombat([fakeCombatant("c1", colossus), fakeCombatant("c2", ann)])];
+		await promptGroupMorale(colossus);
+		const group = postCard.mock.calls.find(([, template]) => template === "morale-group");
+		expect(group[3].flags[SYSTEM_ID].moraleGroup.actors).toEqual(["Actor.ann"]);
+	});
+
+	it("doesn't count one of the Cast that fights on through a Mortal Wound as down", async () => {
+		const corpse = fakeNpc("Actor.corpse", { mortalWound: true });
+		corpse.system.fightsOn = true;
+		game.combats = [fakeCombat([fakeCombatant("c1", corpse), fakeCombatant("c2", fakeNpc("Actor.ann"))])];
+		expect(await promptGroupMorale(corpse)).toBeNull();
+	});
+});
+
+describe("a player who brings down one of their own", () => {
+	it("asks the active GM to weigh the side's Morale, since only a GM can mark the Combat", async () => {
+		game.user.isGM = false;
+		const follower = fakeNpc("Actor.follower", { vig: 0, slain: true });
+		game.combats = [fakeCombat([fakeCombatant("c1", follower), fakeCombatant("c2", fakeNpc("Actor.ann"))])];
+		expect(await promptGroupMorale(follower)).toBeNull();
+		expect(askActiveGM).toHaveBeenCalledWith(`${SYSTEM_ID}.groupMorale`, { uuid: "Actor.follower" }, expect.any(String));
+		expect(postCard).not.toHaveBeenCalled();
+	});
+
+	it("asks nobody outside a Combat, or with no GM here", async () => {
+		game.user.isGM = false;
+		await promptGroupMorale(fakeNpc("Actor.follower", { slain: true }));
+		game.users.activeGM = null;
+		game.combats = [fakeCombat([fakeCombatant("c1", fakeNpc("Actor.x"))])];
+		await promptGroupMorale(game.combats[0].combatants[0].actor);
+		expect(askActiveGM).not.toHaveBeenCalled();
+	});
+
+	it("is answered by the GM only for somebody the asker owns", async () => {
+		const follower = fakeNpc("Actor.follower", { vig: 0, slain: true });
+		follower.testUserPermission = (user) => user.id === "player";
+		game.combats = [fakeCombat([fakeCombatant("c1", follower), fakeCombatant("c2", fakeNpc("Actor.ann"))])];
+		globalThis.fromUuidSync = (uuid) => (uuid === "Actor.follower" ? follower : null);
+		expect(await onGroupMoraleQuery({ uuid: "Actor.follower" }, { user: { id: "stranger" } })).toBe(false);
+		expect(await onGroupMoraleQuery({ uuid: "Actor.follower" }, { user: { id: "player" } })).toBe(true);
+		expect(postCard).toHaveBeenCalledWith(null, "morale-group", expect.anything(), expect.anything());
+		delete globalThis.fromUuidSync;
+	});
+});
+
+describe("going down for good", () => {
+	/** Fire the updateActor hook as Foundry would once an update lands. */
+	async function landed(actor, changed) {
+		registerMoraleCards();
+		await hooks.updateActor(actor, changed);
+	}
+
+	it("takes a Slain or Mortally Wounded NPC out of the turn order, and lets go of what they led", async () => {
+		const guard = fakeNpc("Actor.guard", { mortalWound: true });
+		const combatant = fakeCombatant("c1", guard);
+		game.combats = [fakeCombat([combatant])];
+		await landed(guard, { system: { mortalWound: true } });
+		expect(combatant.defeated).toBe(true);
+		expect(combatant.flags[SYSTEM_ID].downed).toBe(true);
+		expect(letGoOf).toHaveBeenCalledWith(guard);
+	});
+
+	it("stands them up again once patched up or healed", async () => {
+		const guard = fakeNpc("Actor.guard", { mortalWound: true });
+		const combatant = fakeCombatant("c1", guard);
+		game.combats = [fakeCombat([combatant])];
+		await landed(guard, { system: { mortalWound: true } });
+		guard.system.mortalWound = false;
+		await landed(guard, { system: { mortalWound: false } });
+		expect(combatant.defeated).toBe(false);
+		expect(combatant.flags[SYSTEM_ID].downed).toBe(false);
+	});
+
+	it("keeps them out once up again if their Morale broke meanwhile, until that's cleared", async () => {
+		const guard = fakeNpc("Actor.guard", { vig: 0, slain: true });
+		const combatant = fakeCombatant("c1", guard);
+		game.combats = [fakeCombat([combatant])];
+		await landed(guard, { system: { slain: true } });
+		guard.system.moraleBroken = "fled";
+		Object.assign(guard.system, { slain: false, virtues: { vig: { value: 4 } } });
+		await landed(guard, { system: { slain: false } });
+		expect(combatant.defeated).toBe(true);
+		await clearMoraleBreak(guard);
+		expect(combatant.defeated).toBe(false);
+	});
+
+	it("takes out a creature destroyed at 0GD, and a Warband wiped out by Virtue Loss (p11)", async () => {
+		const colossus = fakeNpc("Actor.colossus");
+		colossus.system.destroyed = true;
+		const militia = fakeNpc("Actor.militia", { vig: 0 });
+		militia.system.scale = "warband";
+		const combatants = [fakeCombatant("c1", colossus), fakeCombatant("c2", militia)];
+		game.combats = [fakeCombat(combatants)];
+		await landed(colossus, { system: { guard: { value: 0 } } });
+		await landed(militia, { system: { virtues: { vig: { value: 0 } } } });
+		expect(combatants.map((each) => each.defeated)).toEqual([true, true]);
+	});
+
+	it("leaves a player's Knight their turns, and one the Referee marked defeated by hand", async () => {
+		const kay = Object.assign(fakeNpc("Actor.kay", { type: "knight", vig: 0, slain: true }), { hasPlayerOwner: true });
+		const guard = fakeNpc("Actor.guard", { mortalWound: true });
+		const [theirs, byHand] = [fakeCombatant("c1", kay), fakeCombatant("c2", guard, { defeated: true })];
+		game.combats = [fakeCombat([theirs, byHand])];
+		await landed(kay, { system: { slain: true } });
+		await landed(guard, { system: { mortalWound: true } });
+		expect(theirs.defeated).toBe(false);
+		guard.system.mortalWound = false;
+		await landed(guard, { system: { mortalWound: false } });
+		expect(byHand.defeated).toBe(true);
+		// A Knight going down still lets go of a Warband they led.
+		expect(letGoOf).toHaveBeenCalledWith(kay);
+	});
+
+	it("ignores updates that change nothing about it, and is done by the active GM alone", async () => {
+		const guard = fakeNpc("Actor.guard", { mortalWound: true });
+		const combatant = fakeCombatant("c1", guard);
+		game.combats = [fakeCombat([combatant])];
+		await landed(guard, { name: "Renamed" });
+		game.users.activeGM = { isSelf: false };
+		await landed(guard, { system: { mortalWound: true } });
+		expect(combatant.defeated).toBe(false);
+	});
+
+	it("passes over a turn that falls to somebody taken out that way", async () => {
+		registerMoraleCards();
+		const combat = fakeCombat([fakeCombatant("c1", fakeNpc("Actor.ann")), fakeCombatant("c2", fakeNpc("Actor.bo"), { defeated: true, flags: { downed: true } })], { turn: 1 });
+		await hooks.combatTurnChange(combat);
+		expect(combat.nextTurn).toHaveBeenCalledOnce();
 	});
 });

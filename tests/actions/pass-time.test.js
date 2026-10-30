@@ -20,6 +20,9 @@ const { passTime } = await import("../../module/actions/time.js");
 const { recordRankReached } = await import("../../module/actions/glory.js");
 const { settleScars } = await import("../../module/actions/scars.js");
 const { announceFallenKnight } = await import("../../module/actions/fallen.js");
+const { chooseSuccessor } = await import("../../module/actions/succession.js");
+const { knightSquire } = await import("../../module/actions/squires.js");
+const { adjustGlory } = await import("../../module/actions/glory.js");
 
 const virtue = { value: 1, max: 10 };
 
@@ -70,5 +73,34 @@ describe("passTime", () => {
 		actor.system.virtues = { vig: { value: 2, max: 2 }, cla: virtue, spi: virtue };
 		await passTime([{ actor, pursuit: null }], { newAge: true, before: { age: 1, year: 1, season: "winter" } });
 		expect(actor.update.mock.calls[0][0]).not.toHaveProperty("system.fate");
+	});
+});
+
+describe("Legacy to a Squire", () => {
+	/** A Knight with 8 Glory choosing Legacy, so 4 passes on, and the Squire they name. */
+	const legacy = async (knighted) => {
+		const actor = knight();
+		actor.items = [];
+		actor.system.glory = 8;
+		actor.system.gainsGlory = false;
+		const heir = { name: "Ned", isOwner: true, system: { isSquire: true } };
+		vi.mocked(chooseSuccessor).mockResolvedValue(heir);
+		vi.mocked(knightSquire).mockResolvedValue(knighted);
+		vi.mocked(adjustGlory).mockResolvedValue(["glory"]);
+		const { entries } = await passTime([{ actor, pursuit: "legacy" }], { newAge: true, before: { age: 1, year: 1, season: "winter" } });
+		return { heir, lines: entries[0].lines };
+	};
+
+	it("offers Knighting first, saying why, as a Squire gains no Glory (p7)", async () => {
+		const { heir, lines } = await legacy({});
+		expect(knightSquire).toHaveBeenCalledWith(heir, { note: "successor.legacySquire" });
+		expect(adjustGlory).toHaveBeenCalledWith(heir, 4);
+		expect(lines).toContain("successor.knighted");
+	});
+
+	it("says the Glory is lost when they stay a Squire", async () => {
+		const { lines } = await legacy(null);
+		expect(adjustGlory).not.toHaveBeenCalled();
+		expect(lines).toContain("successor.legacyLost");
 	});
 });

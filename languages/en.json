@@ -382,7 +382,26 @@
       "knighted": "{name} is Knighted.",
       "noLegacy": "Legacy: no successor named, so no Glory passes on.",
       "legacy": "Legacy: {name} gains {amount} Glory, half of theirs.",
-      "heirLine": "{name}: {line}"
+      "heirLine": "{name}: {line}",
+      "slain": "{name} is Slain, and can’t be named a successor.",
+      "legacySquire": "{name} is a Squire, and a Squire gains no Glory. Knighted now, they gain the {amount} Glory of this Legacy. Otherwise it’s lost.",
+      "legacyLost": "Legacy: {name} is still a Squire, so the {amount} Glory is lost."
+    },
+    "follower": {
+      "takeTitle": "Take On This Follower?",
+      "dropTitle": "Steed or Follower?",
+      "dropAsk": "What is {name} to {knight}?",
+      "dropOk": "Take Them On",
+      "as": {
+        "steed": "A steed, to ride",
+        "follower": "A follower, who rides with them"
+      },
+      "notYours": "Only the Referee can make {name} a follower, as you don’t own them.",
+      "leaves": "{name} follows {from} now, and would follow {knight} instead.",
+      "noLongerSteed": "{rider} rides {name} now, and would ride them no longer.",
+      "joined": "{name} now rides with {knight} as a follower.",
+      "notWarband": "{name} is a Warband, so neither a steed nor a follower.",
+      "fromDirectory": "Bringing somebody in from a compendium makes them anew, which needs a user who is allowed to create actors. Ask the Referee, or drag them from the Actors tab."
     },
     "seer": {
       "label": "Seer",
@@ -438,6 +457,13 @@
       "knightedTitle": "Knighted",
       "knightedTagline": "{name} is a Squire no longer",
       "knightedValue": "+{gain}, {from} → {to}",
+      "slainKnighting": "{name} is Slain, and can’t be Knighted.",
+      "slainServing": "{name} is Slain, and serves no Knight now.",
+      "servesAnother": "{name} serves {knight}. Only the Referee can move them to another Knight.",
+      "claimTitle": "Take This Squire?",
+      "moveFrom": "{name} serves {from} now, and would serve {knight} instead.",
+      "replaces": "{name} would no longer serve {knight}.",
+      "fromDirectory": "Drag the Squire from the Actors tab rather than a compendium.",
       "equipment": {
         "cudgel": "Cudgel",
         "axe": "Axe",
@@ -770,11 +796,17 @@
         "hint": "Only a steed that isn’t Exhausted can Gallop.",
         "blocked": "Nobody gallops: {names}",
         "noSteed": "{name} rides no steed.",
-        "exhausted": "{name}’s {steed} is Exhausted."
+        "exhausted": "{name}’s {steed} is Exhausted.",
+        "slain": "{name}’s {steed} is Slain."
       },
       "cantCreate": "Taking a steed creates it as an NPC, so it needs a user who is allowed to create actors. Ask the Referee, or drag a steed here from the Actors tab.",
       "clear": "No longer ride this steed",
-      "fromDirectory": "Drag the steed from the Actors tab rather than a compendium, so it can be targeted in combat.",
+      "riddenBy": "{rider} rides {steed}. Only the Referee can take it from them.",
+      "changeTitle": "Change Steeds?",
+      "takeFrom": "{rider} rides {steed} now, and would ride it no longer.",
+      "replaces": "{knight} would no longer ride {steed}.",
+      "leaves": "{steed} goes with {from} now, and would go with {knight} instead.",
+      "ledBy": "{steed} goes with {from}. Only the Referee can take it from them.",
       "trample": "Trample",
       "cannotCreate": "You can’t make new actors, so {names} stayed on the sheet as Property. Ask the Referee to make them NPCs, then drag the steed onto the Steed box."
     },
@@ -958,6 +990,8 @@
       "askTitle": "Morale: {name}",
       "askIntro": "{name} makes a SPI Save to hold firm rather than rout or surrender (Wavering Morale, p10). Roll when Wounded, or when a group loses half its number.",
       "askWhat": "A d20 is rolled against their SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark them Fled or Surrendered, which takes them out of the Combat’s turn order.",
+      "askLedWhat": "Led from the front by {leader}, they roll once on {leader}’s SPI of {value}: {value} or less holds firm. On a failure, the card offers to mark the Warband Fled or Surrendered, which takes it out of the Combat’s turn order.",
+      "ledHint": "{leader} leads {warband} from the front, so the Warband rolls once on {leader}’s SPI.",
       "gone": "That character no longer exists.",
       "notOwner": "Only a Referee or {name}’s owner can roll their Morale.",
       "broke": {
@@ -1700,7 +1734,8 @@
         "hint": "In some Realms it’s not the ruler who chooses, but gathered Seers or Knights-Elector.",
         "tagline": "{name} succeeds {ruler} in {domain}",
         "taglineBare": "{name} takes up the rule of {domain}",
-        "resistance": "Whoever takes the seat meets some resistance, and does well to show their authority quickly."
+        "resistance": "Whoever takes the seat meets some resistance, and does well to show their authority quickly.",
+        "heirFell": "{heir}, the successor named, is Slain: there is no living heir."
       },
       "conquest": {
         "button": "Seize by Force",
@@ -1743,7 +1778,8 @@
           "title": "The Circle",
           "intro": "Which Knights does {name} seat in its Circle?",
           "ok": "Seat Them",
-          "noKnights": "There are no other Knights in this world to seat."
+          "noKnights": "There are no other Knights in this world to seat.",
+          "slainName": "{name} (Slain)"
         }
       },
       "tasks": {
@@ -1756,7 +1792,8 @@
         "whatPlaceholder": "What are they to do?",
         "whatUnwritten": "An unwritten task",
         "scope": "Scope",
-        "scopeHint": "How long the work takes. It can be settled sooner, but it isn’t due until then.",
+        "scopeHint": "How long the work takes. It can be settled sooner, but it isn’t due until then. The calendar counts no Weeks, so a Week’s work falls due at the next Morning, where Weeks Pass moves to.",
+        "weekDue": "The calendar counts no Weeks, so it falls due at the next Morning, where Weeks Pass moves to.",
         "scopes": {
           "phase": {
             "label": "A Phase",
@@ -1871,10 +1908,21 @@
       "misruleEnds": "With fewer than three Crises left, the Domain comes out of misrule.",
       "rulerSlain": "{name}, who ruled {domain}, is Slain. The Domain passes to their successor: {successor}.",
       "rulerSlainNobody": "nobody is named yet",
+      "rulerSlainBare": "{name}, who ruled {domain}, is Slain.",
+      "rulerGone": "{name}, who ruled {domain}, is gone from this world. The Domain passes to their successor: {successor}.",
+      "rulerGoneBare": "{name}, who ruled {domain}, is gone from this world.",
+      "noLivingHeir": "{heir}, the successor they named, is Slain, so there is no living heir. The Referee says who takes up the Domain.",
+      "rulerLinksNeedReferee": "{name} has its new ruler, but only the Referee can change the Knights you don’t own, so their sheets still name the Domain they ruled. Ask the Referee to Pass On again once they’re here.",
+      "rulesAnother": "{name} already rules {other}. A Knight’s sheet keeps one Domain, so theirs opens {domain} now; {other} still names them its ruler.",
+      "crisisRollAgain": "{name} has already made its Crisis Roll this Season. Roll again? Coming home from a long absence calls for another.",
+      "dramaAgain": "{name} has already had its Drama in Court this Season. Roll again?",
       "rulerSlainGone": "That Domain is no longer in this world.",
       "misruleLeave": "{name} has fallen into misrule, and Knights leave. Untick each of its Circle who rides away.",
       "collections": "Increased Collections",
       "collectionsHint": "A Steward presses the Vassals for more, to pay for a war or a great work.",
+      "collectionsNoSteward": "Nobody holds the Steward’s seat, and it’s the Steward who squeezes the Vassals for more.",
+      "collectionsMisruleEnds": "Crises didn’t bring this misrule, so resolving them won’t end it. Untick Misrule on the Court page once the Referee says order is restored.",
+      "collectionsDebt": "The coffers are filled, and {name} is in Debt. Restock the treasury, resolving the Debt?",
       "drama": "Drama in Court",
       "dramaHint": "There’s drama at Court each Season. Roll to see how the ruler is drawn in.",
       "dramaPrompt": "Drama Spark Table: {prompt}",
@@ -1928,6 +1976,7 @@
         "servesSeat": "serves the {seat}",
         "holdsSeat": "Sits on the Council as {seat}",
         "leverageLine": "Leverage: {leverage}",
+        "leverageWhisper": "{name}, at the heart of the Drama in Court. {line}",
         "roles": {
           "retainer": {
             "one": "Retainer",
@@ -3528,6 +3577,7 @@
       "doom": "Doom: a cheated death catches up with them. Slain instead of Mortally Wounded.",
       "nonLethalDown": "Non-lethal: down and out, but not dying.",
       "sparringDown": "Sparring: knocked down, but it’ll be shaken off when the duel ends.",
+      "fightsOn": "Mortally Wounded, but {name} fights on regardless.",
       "apply": "Apply",
       "dealt": "{dealt} Damage after Armour {armour}",
       "guardLine": "GD {from} → {to}",
@@ -3577,7 +3627,8 @@
       },
       "warbandOutcomes": {
         "mortal": "Routed from the field.",
-        "slain": "Wiped out."
+        "slain": "Wiped out.",
+        "scar": "Left at exactly 0 GD. A Warband takes no Scar."
       },
       "structureOutcomes": {
         "evaded": "Holds, for now.",
@@ -3919,6 +3970,12 @@
       "scale": "Scale",
       "structure": "Counts as a structure",
       "structureHint": "So big that it is harmed only as a structure is: by fire, siege weapons or something just as large. Walls and ships are Structure actors.",
+      "fightsOn": "Fights on when Mortally Wounded",
+      "fightsOnHint": "A Mortal Wound doesn’t bring it down: it can still Attack, isn’t counted as down when Morale is weighed, and doesn’t die of the wound untended.",
+      "destroyed": {
+        "label": "Destroyed",
+        "hint": "Counting as a structure, it is destroyed at 0 GD and out of the fight until its GD comes back."
+      },
       "scales": {
         "individual": {
           "label": "Individual",
@@ -4021,6 +4078,8 @@
       "repair": "Repair",
       "repairHint": "A day of repairs restores its GD.",
       "repaired": "A day of repairs: GD restored to {value}.",
+      "repairDestroyedTitle": "Repair {name}?",
+      "repairDestroyed": "{name} was destroyed at 0 GD. Repair it only if there’s enough left to mend: a day of repairs brings all its GD back.",
       "collide": {
         "title": "Collide",
         "hint": "Roll the Damage this ship takes from colliding with another.",
@@ -5001,6 +5060,7 @@
     "warband": {
       "mustered": "{count} of {muster} Warbands raised.",
       "full": "Every Warband this Holding can raise is in the field.",
+      "lost": "{count} wiped out, which no longer count. Disband them to clear the list.",
       "spiritLine": "{abbr} {spi}",
       "cantCreate": "Mustering a Warband creates an actor, so it needs a user who is allowed to create actors. Ask the Referee.",
       "armourAbbr": "A",
@@ -5041,7 +5101,8 @@
       "dismiss": {
         "title": "Disband",
         "confirm": "Disband {name}? Its soldiers leave the service of {domain}. Their sheet stays in the Actors tab.",
-        "went": "{name} is disbanded and leaves the service of {domain}."
+        "went": "{name} is disbanded and leaves the service of {domain}.",
+        "goneHint": "Disband: wiped out, they no longer count against the muster"
       },
       "upkeep": {
         "title": "Upkeep",

@@ -28,8 +28,14 @@ export const COMPANION_NAMES_STEP = "companionNames";
  */
 export const POSSESSION_DETAILS_STEP = "possessionDetails";
 
-/** The flag on an NPC made from a Knight's gear: the Knight's id. */
+/** The flag on an NPC made from a Knight's gear, or taken on as their follower: the Knight's id. */
 export const COMPANION_FLAG = "companionOf";
+
+/**
+ * The flag on an NPC who joined a Knight as a follower rather than being made
+ * from their gear, so replacing that gear never sweeps them away.
+ */
+export const FOLLOWER_FLAG = "follower";
 
 /**
  * @typedef {object} MadeCompanions
@@ -110,12 +116,13 @@ export function markCompanions(made, knight) {
 
 /**
  * Delete the NPCs made for a Knight from their gear, as their gear is replaced.
- * Those this user can't delete stay.
+ * Those this user can't delete stay, and so do followers who joined them.
  * @param {Actor} knight
  * @returns {Promise<string[]>} The uuids of those deleted.
  */
 export async function clearCompanions(knight) {
-	const made = game.actors.filter((npc) => npc.getFlag(SYSTEM_ID, COMPANION_FLAG) === knight.id && npc.canUserModify(game.user, "delete"));
+	const made = game.actors.filter((npc) => npc.getFlag(SYSTEM_ID, COMPANION_FLAG) === knight.id && !npc.getFlag(SYSTEM_ID, FOLLOWER_FLAG)
+		&& npc.canUserModify(game.user, "delete"));
 	if (!made.length) return [];
 	await Actor.implementation.deleteDocuments(made.map((npc) => npc.id));
 	return made.map((npc) => npc.uuid);

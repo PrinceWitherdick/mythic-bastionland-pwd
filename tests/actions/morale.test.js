@@ -76,6 +76,41 @@ describe("rollMorale", () => {
 		expect(cards[0].context.breaks.actors).toBe("Actor.captain,Actor.ann,Actor.bo");
 		expect(cards[0].context.breaks.choices[1].hint).toBe(lookup("bastionland.morale.broke.surrendered.hint"));
 	});
+
+	describe("a Warband led from the front", () => {
+		const warband = (leader) => ({ uuid: "Actor.militia", type: "npc", name: "Militia", system: { scale: "warband", leader, virtues: { spi: { value: 7, max: 7 } } } });
+		const knight = (system = {}) => ({ uuid: "Actor.kay", type: "knight", name: "Kay", system: { virtues: { spi: { value: 15, max: 15 } }, ...system } });
+		let actors;
+
+		beforeEach(() => {
+			actors = {};
+			globalThis.fromUuidSync = (uuid) => actors[uuid] ?? null;
+		});
+
+		afterEach(() => {
+			delete globalThis.fromUuidSync;
+		});
+
+		it("rolls once on its leader's SPI, and marks only the Warband if it fails (p10, p11)", async () => {
+			actors["Actor.kay"] = knight();
+			rolled = [12];
+			const save = await rollMorale(warband("Actor.kay"));
+			// 12 is over the Warband's SPI 7, but within Kay's 15.
+			expect(save.passed).toBe(true);
+			expect(cards[0].context.hint).toBe(format("bastionland.morale.ledHint", { warband: "Militia", leader: "Kay" }));
+			rolled = [17];
+			expect((await rollMorale(warband("Actor.kay"))).passed).toBe(false);
+			expect(cards[1].context.breaks.actors).toBe("Actor.militia");
+		});
+
+		it("rolls on its own SPI once its leader is down, broken or gone", async () => {
+			for (const leader of [knight({ slain: true }), knight({ mortalWound: true }), knight({ moraleBroken: "fled" }), null]) {
+				actors["Actor.kay"] = leader;
+				rolled = [12];
+				expect((await rollMorale(warband("Actor.kay"))).passed).toBe(false);
+			}
+		});
+	});
 });
 
 describe("moraleBreakButtons", () => {

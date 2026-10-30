@@ -54,6 +54,11 @@
 						<input type="checkbox" name="system.structure" {{checked system.structure}} {{#unless editable}}disabled{{/unless}}>
 						<span class="bastionland-check__label">{{localize "bastionland.npc.structure"}}</span>
 					</label>
+					{{!-- One of the Cast that fights on through a Mortal Wound: neither down nor dying of it. --}}
+					<label class="bastionland-check" data-tooltip="{{localize 'bastionland.npc.fightsOnHint'}}">
+						<input type="checkbox" name="system.fightsOn" {{checked system.fightsOn}} {{#unless editable}}disabled{{/unless}}>
+						<span class="bastionland-check__label">{{localize "bastionland.npc.fightsOn"}}</span>
+					</label>
 				</section>
 
 				<section class="bastionland-block">
@@ -65,6 +70,11 @@
 							<span class="bastionland-condition bastionland-pill is-derived{{#if active}} is-active{{/if}}" data-tooltip="{{hint}}">{{label}}</span>
 						</li>
 						{{/each}}
+						{{#if destroyedState}}
+						<li>
+							<span class="bastionland-condition bastionland-pill is-derived{{#if destroyedState.active}} is-active{{/if}}" data-tooltip="{{destroyedState.hint}}">{{destroyedState.label}}</span>
+						</li>
+						{{/if}}
 						{{#if moraleBroken}}
 						<li>
 							<button type="button" class="bastionland-condition bastionland-pill is-mark is-active" data-action="clearMoraleBreak" data-tooltip="{{moraleBroken.hint}}" aria-label="{{moraleBroken.hint}}" {{#unless editable}}disabled{{/unless}}>{{moraleBroken.label}} <i class="fa-solid fa-xmark" inert></i></button>

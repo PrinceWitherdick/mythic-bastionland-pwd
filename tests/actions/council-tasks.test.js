@@ -111,6 +111,14 @@ describe("councilActor", () => {
 		expect(councilActor(fakeDomain({ council: { circle: ["k1"] } }), "circle")).toBe(moss);
 		expect(councilActor(fakeDomain({ council: { circle: ["k1", "k2"] } }), "circle")).toBeNull();
 	});
+
+	it("passes over a Knight of the Circle Slain since they were seated (p17, p20)", () => {
+		const moss = { id: "k1", type: "knight", name: "Moss", system: { virtues: {} } };
+		const brand = { id: "k2", type: "knight", name: "Brand", system: { virtues: {}, slain: true } };
+		game.actors = [moss, brand];
+		expect(councilActor(fakeDomain({ council: { circle: ["k1", "k2"] } }), "circle")).toBe(moss);
+		expect(councilActor(fakeDomain({ council: { circle: ["k2"] } }), "circle")).toBeNull();
+	});
 });
 
 describe("settleTask", () => {

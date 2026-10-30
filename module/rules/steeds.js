@@ -36,21 +36,34 @@ export function steedStatLine(system, items = [], labels) {
 /**
  * @typedef {object} GallopRider
  * @property {string} name
- * @property {{name: string, vig: number}|null} steed What they ride, with its VIG now.
+ * @property {{name: string, vig: number, slain?: boolean}|null} steed What they ride, with its VIG now.
  */
 
 /**
- * Who can't Gallop: every rider needs a steed that isn't Exhausted (VIG 0, p9).
+ * Who can't Gallop: every rider needs a living steed that isn't Exhausted (VIG 0, p9).
  * @param {GallopRider[]} riders
- * @returns {{name: string, reason: "noSteed"|"exhausted", steed?: string}[]}
+ * @returns {{name: string, reason: "noSteed"|"slain"|"exhausted", steed?: string}[]}
  */
 export function gallopBlocked(riders) {
 	return riders.flatMap(({ name, steed }) => {
 		if (!steed) return [{ name, reason: "noSteed" }];
+		if (steed.slain) return [{ name, reason: "slain", steed: steed.name }];
 		if (steed.vig <= 0) return [{ name, reason: "exhausted", steed: steed.name }];
 		return [];
 	});
 }
+
+/**
+ * Whether an NPC dropped on a Knight is plainly a mount, taken to ride without
+ * asking: one taken from the book's steeds, one with a trample, or one whose
+ * name says it's a horse or pony. Anybody else may be a steed or a follower.
+ * @param {object} npc
+ * @param {string} npc.name
+ * @param {string} [npc.breed] The book steed it was taken as.
+ * @param {boolean} [npc.trample] Whether it carries a trample.
+ * @returns {boolean}
+ */
+export const looksLikeSteed = ({ name, breed = "", trample = false }) => Boolean(breed) || trample || isSteed(name);
 
 /**
  * @param {number} vig The steed's VIG before the Gallop.

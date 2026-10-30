@@ -203,11 +203,11 @@ function shieldwallOnMap(actor, bearing) {
 }
 
 /**
- * Outcomes that take somebody out of the fight, which can leave their side at
- * half its number. A Warband meets them differently: a Mortal Wound routs it,
- * and 0 VIG wipes it out (p11).
+ * Outcomes a Warband meets differently: a Mortal Wound routs it, and 0 VIG
+ * wipes it out (p11). Left at exactly 0GD it takes no Scar, which is an
+ * individual's (p9).
  */
-const DOWN_OUTCOMES = Object.freeze(["mortal", "slain"]);
+const WARBAND_WORDED = Object.freeze(["mortal", "slain", "scar"]);
 
 /** Outcomes worded for a ship or structure, which holds or is destroyed (p11). */
 const STRUCTURE_OUTCOMES = Object.freeze(["evaded", "destroyed"]);
@@ -229,7 +229,7 @@ const downs = (outcome, actor) => downingOutcome(outcome, { character: Boolean(a
  * @returns {"outcomes"|"warbandOutcomes"|"structureOutcomes"} A key under `bastionland.damage.`
  */
 function outcomesFor(outcome, { warband = false, structure = false } = {}) {
-	if (warband && DOWN_OUTCOMES.includes(outcome)) return "warbandOutcomes";
+	if (warband && WARBAND_WORDED.includes(outcome)) return "warbandOutcomes";
 	if (structure && STRUCTURE_OUTCOMES.includes(outcome)) return "structureOutcomes";
 	return "outcomes";
 }
@@ -365,8 +365,9 @@ export async function takeDamage(actor, preset = {}) {
 	// Damage to SPI rather than VIG never Wounds, leaves nobody dying, and Slays nobody (p68).
 	const spirit = preset.virtue === "spi" && Boolean(virtues?.spi);
 	const score = spirit ? "spi" : "vig";
-	// The dead can still be struck, but nobody wards a death already died or mourns it twice.
-	const dead = Boolean(actor.system.slain);
+	// The dead can still be struck, but nobody wards a death already died or mourns it twice,
+	// nor the wreck of a creature that counts as a structure, destroyed already (p11).
+	const dead = Boolean(actor.system.slain || actor.system.destroyed);
 	const worn = wornArmour(actor);
 	const { bearing } = worn;
 	// A horn blown in their battle doubles the VIG Damage costs them (p72); SPI lost to a blow isn't VIG.
@@ -449,7 +450,10 @@ export async function takeDamage(actor, preset = {}) {
 			// Non-lethal Damage leaves them down, but not dying.
 			: preset.nonLethal && result.outcome === "mortal" && virtues
 				? t(preset.sparring ? "damage.sparringDown" : "damage.nonLethalDown")
-				: null;
+				// Some of the Cast fight on through a Mortal Wound, as their stat block says.
+				: result.outcome === "mortal" && actor.system.fightsOn
+					? t("damage.fightsOn", { name: actor.name })
+					: null;
 	if (said) card.outcome = said;
 	if (preset.cause) card.cause = preset.cause;
 	await Promise.all([postCard(actor, "damage", card), recorded]);

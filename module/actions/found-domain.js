@@ -43,7 +43,8 @@ export async function foundDomain(knight, { holding = "", circle = [] } = {}) {
 		ui.notifications.warn(t("domain.cantCreate"));
 		return null;
 	}
-	const others = worldKnights((actor) => actor !== knight).filter(seenOrChosen((actor) => circle.includes(actor)));
+	// The Circle seats Knights who could hold a post: knighted and alive (p7, p20).
+	const others = worldKnights((actor) => actor !== knight && canHoldPost(actor)).filter(seenOrChosen((actor) => circle.includes(actor)));
 	const data = await inputDialog({
 		title: t("domain.founding.title"),
 		icon: "fa-solid fa-chess-rook",

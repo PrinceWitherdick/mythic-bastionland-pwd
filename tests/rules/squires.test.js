@@ -16,7 +16,8 @@ import {
 	squireEquipment,
 	squireItems,
 	squireSystem,
-	squireTabs
+	squireTabs,
+	stillServes
 } from "../../module/rules/squires.js";
 
 const names = { dagger: "Dagger", cudgel: "Cudgel", axe: "Axe", hatchet: "Hatchet", shortbow: "Shortbow", shield: "Shield", javelins: "Javelins" };
@@ -228,5 +229,24 @@ describe("itemsGained", () => {
 	it("adds the Knight's own things even where the Squire has one alike, and only the kit they lack", () => {
 		const carried = [{ type: "weapon", name: "dagger" }, { type: "armour", name: "Shield" }, { type: "gear", name: "Rope" }];
 		expect(itemsGained(knight, carried, kit).map((item) => item.name)).toEqual(["Longsword", "Shield", "Glow", "Torches"]);
+	});
+});
+
+describe("stillServes", () => {
+	it("holds while they're a living Squire serving this Knight, or nobody in particular", () => {
+		expect(stillServes({ isSquire: true, serves: "Actor.k1" }, "Actor.k1")).toBe(true);
+		expect(stillServes({ isSquire: true, serves: "" }, "Actor.k1")).toBe(true);
+	});
+
+	it("lets go of one Knighted since, or now serving another Knight", () => {
+		expect(stillServes({ isSquire: false, serves: "" }, "Actor.k1")).toBe(false);
+		expect(stillServes({ isSquire: true, serves: "Actor.k2" }, "Actor.k1")).toBe(false);
+		expect(stillServes(null, "Actor.k1")).toBe(false);
+	});
+
+	it("lets go of the Slain, unless the dead are wanted too", () => {
+		const dead = { isSquire: true, serves: "Actor.k1", slain: true };
+		expect(stillServes(dead, "Actor.k1")).toBe(false);
+		expect(stillServes(dead, "Actor.k1", { living: false })).toBe(true);
 	});
 });

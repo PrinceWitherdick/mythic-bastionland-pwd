@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn(), inputDialog: vi.fn() }));
+vi.mock("../../module/apps/ui.js", () => ({ chooseDialog: vi.fn(), confirmDialog: vi.fn(), inputDialog: vi.fn() }));
 vi.mock("../../module/book-art/art-index.js", () => ({ loadArtIndex: async () => null }));
 vi.mock("../../module/chat/cards.js", () => ({ postCard: vi.fn(async () => ({})), t: (key) => key }));
 vi.mock("../../module/actions/calendar.js", () => ({ getCalendar: () => ({ age: 1, year: 1, season: "spring", day: 1, phase: "morning" }) }));
-vi.mock("../../module/actions/court.js", () => ({ knightsBesidesRuler: () => [] }));
+vi.mock("../../module/actions/court.js", () => ({ knightsBesidesRuler: () => [], seatCircle: vi.fn() }));
 vi.mock("../../module/actions/referee-rolls.js", () => ({ rollSpark: vi.fn() }));
-vi.mock("../../module/actions/succession.js", () => ({ heirOf: () => null }));
+vi.mock("../../module/actions/succession.js", () => ({ namedHeirOf: () => null }));
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 vi.mock("../../module/actions/timeline-events.js", () => ({
 	timelineCrisisResolved: vi.fn(),
@@ -61,7 +61,7 @@ describe("a ruling Knight's death", () => {
 	beforeEach(() => {
 		globalThis.foundry = { utils: { getProperty: (object, path) => path.split(".").reduce((node, key) => node?.[key], object) } };
 		globalThis.fromUuidSync = (uuid) => (uuid === ashford.uuid ? ashford : null);
-		globalThis.game = { users: { activeGM: { isSelf: true } } };
+		globalThis.game = { users: { activeGM: { isSelf: true } }, actors: [ashford] };
 	});
 
 	it("tells the Referee the Domain passes on, with the button that passes it (p21)", async () => {

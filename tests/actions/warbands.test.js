@@ -147,6 +147,22 @@ describe("warbandsOf and musterView", () => {
 		];
 		expect(musterView(domain).state.full).toBe(true);
 	});
+
+	it("lists a wiped-out Warband, greyed, but doesn't count it against the muster (p11, p21)", () => {
+		const domain = fakeDomain({ muster: 2 });
+		const slain = fakeWarband({ id: "w3", vig: 4, flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d1" } });
+		slain.system.slain = true;
+		game.actors = [
+			fakeWarband({ id: "w1", flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d1" } }),
+			fakeWarband({ id: "w2", vig: 0, flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d1" } }),
+			slain
+		];
+		const view = musterView(domain);
+		expect(view.state).toMatchObject({ mustered: 1, muster: 2, full: false });
+		expect(view.lost).toBe(2);
+		expect(view.lines.map((line) => line.gone)).toEqual([false, true, true]);
+		expect(view.lines[2].state).toBe(lookup("bastionland.npc.warband.wipedOut.label"));
+	});
 });
 
 describe("wearWarbandDown", () => {
@@ -257,6 +273,17 @@ describe("musterWarband", () => {
 		expect(inputDialog.mock.calls[0][0].context.warbands).toEqual([]);
 		expect(warband.name).toBe(lookup("bastionland.warband.muster.newName"));
 		expect(warband.flags[SYSTEM_ID]).toEqual({ [MUSTERED_FLAG]: "d1", [ORIGIN_FLAG]: "mercenaries" });
+	});
+
+	it("doesn't call a Holding full for a Warband that was wiped out", async () => {
+		mustered = { warband: "blank", origin: "vassals" };
+		game.actors = [
+			fakeWarband({ id: "w1", flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d1" } }),
+			fakeWarband({ id: "w2", vig: 0, flags: { [`${SYSTEM_ID}.${MUSTERED_FLAG}`]: "d1" } })
+		];
+		const { confirmDialog } = await import("../../module/apps/ui.js");
+		expect(await musterWarband(fakeDomain({ muster: 2 }))).not.toBeNull();
+		expect(confirmDialog).not.toHaveBeenCalled();
 	});
 
 	it("raises nobody when the dialog is closed", async () => {

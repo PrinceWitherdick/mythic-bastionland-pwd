@@ -1,6 +1,6 @@
 import { chooseDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
-import { awayFromHome, cameHome, findDomainHolding, holdingLands, holdingRef, rulingKnightOf } from "../rules/dominion.js";
+import { awayFromHome, cameHome, findDomainHolding, holdingLands, holdingRef, parseHoldingRef, rulingKnightOf } from "../rules/dominion.js";
 import { soloRealm } from "../rules/solo.js";
 import { realmKnown } from "./solo.js";
 import { SYSTEM_ID } from "../system-id.js";
@@ -95,9 +95,10 @@ export function holdingOptions(selected, realms = realmHoldings()) {
 
 /**
  * @param {Actor} domain
- * @returns {Actor|null} The Knight ruling it who rides with the Company, linked to it or named as its ruler.
+ * @returns {Actor|null} The living Knight ruling it who rides with the Company, linked to it or named as
+ *   its ruler. A Slain ruler is away for good, which is Succession's business (p21), not a long absence.
  */
-const rulingKnight = (domain) => rulingKnightOf(domain, worldKnights(inCompany));
+const rulingKnight = (domain) => rulingKnightOf(domain, worldKnights((knight) => inCompany(knight) && !knight.system.slain));
 
 /**
  * Where the Company stands on a Realm, found quietly: its own Token, or else
@@ -110,16 +111,19 @@ const companyHexOn = (scene) => findCompany(scene, sceneGeometry(scene), { selec
 /**
  * Weeks or a Season have passed: every Domain whose ruler rides with a
  * Company that isn't at its Holding now has them back from a long absence
- * when they return. GMs only.
+ * when they return. A Company leaving for a distant Realm is away from every
+ * Holding, wherever on the map it set out from (p14, p20). GMs only.
+ * @param {object} [options]
+ * @param {boolean} [options.leaving] The Company is leaving the Realm, so every ruler riding with it is away.
  * @returns {Promise<Actor[]>} The Domains marked.
  */
-export async function markLongAbsences() {
+export async function markLongAbsences({ leaving = false } = {}) {
 	if (!game.user.isGM) return [];
 	const realms = realmHoldings();
 	const marked = worldDomains().filter((domain) => {
 		if (domain.system.longAbsence || !rulingKnight(domain)) return false;
 		const home = domainHolding(domain, realms);
-		return home && awayFromHome(home.holding.hex, companyHexOn(home.scene));
+		return home && (leaving || awayFromHome(home.holding.hex, companyHexOn(home.scene)));
 	});
 	await Promise.all(marked.map((domain) => domain.update({ "system.longAbsence": true })));
 	return marked;
@@ -185,7 +189,53 @@ function noticeMove(scene, move) {
 	welcomeHome(scene, hexesReached(scene, move)).catch((error) => console.error(`${SYSTEM_ID} | Couldn't welcome the Company home`, error));
 }
 
-/** Follow the Company home. Called during init. */
+/**
+ * A Domain given a Holding on its sheet becomes a Seat of Power when the
+ * Holding is the Realm's Seat, and stops being one when it isn't, so it
+ * musters as many Warbands as it should (p21). Changes that say for
+ * themselves whether it's a Seat, as granting a Holding on the map does, are
+ * left as they are.
+ * @param {Actor} actor
+ * @param {object} changes As preUpdateActor hands them, which may still be changed.
+ * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
+ */
+export function seatWithHolding(actor, changes, realms) {
+	if (actor?.type !== "domain" || foundry.utils.hasProperty(changes, "system.seat") || !foundry.utils.hasProperty(changes, "system.holding")) return;
+	const find = (ref) => (realms ??= realmHoldings()).find((realm) => realm.sceneId === ref.sceneId)?.holdings.find((each) => each.id === ref.holdingId);
+	const ref = parseHoldingRef(foundry.utils.getProperty(changes, "system.holding"));
+	if (ref) {
+		const holding = find(ref);
+		if (holding) foundry.utils.setProperty(changes, "system.seat", Boolean(holding.seat));
+		return;
+	}
+	// Its Holding taken away, by hand or by another Domain given it: a Seat it was given with
+	// the Realm's Seat goes with it. One ticked by hand, with no Holding on a map, stays.
+	const before = actor.system?.seat ? parseHoldingRef(actor.system.holding) : null;
+	if (before && find(before)?.seat) foundry.utils.setProperty(changes, "system.seat", false);
+}
+
+/**
+ * One Domain rules a Holding: another given it, on its sheet, has every
+ * other Domain naming it give it up, as granting it on the map does. Heard on
+ * the active GM's client alone, who can write every Domain.
+ * @param {Actor} actor
+ * @param {object} changes
+ * @returns {Promise<Actor[]>} The Domains that gave it up.
+ */
+export async function oneDomainPerHolding(actor, changes) {
+	if (actor?.type !== "domain" || !game.users.activeGM?.isSelf) return [];
+	const ref = foundry.utils.getProperty(changes, "system.holding");
+	if (!parseHoldingRef(ref)) return [];
+	const others = worldDomains().filter((domain) => domain !== actor && domain.id !== actor.id && domain.system.holding === ref);
+	if (others.length) await Actor.implementation.updateDocuments(others.map((domain) => ({ _id: domain.id, "system.holding": "" })));
+	return others;
+}
+
+/** Follow the Company home, and keep each Holding with one Domain. Called during init. */
 export function registerHomecoming() {
 	Hooks.on(COMPANY_MOVED_HOOK, noticeMove);
+	Hooks.on("preUpdateActor", (actor, changes) => seatWithHolding(actor, changes));
+	Hooks.on("updateActor", (actor, changes) => {
+		oneDomainPerHolding(actor, changes).catch((error) => console.error(`${SYSTEM_ID} | Couldn't keep a Holding with one Domain`, error));
+	});
 }

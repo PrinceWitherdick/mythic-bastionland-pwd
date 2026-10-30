@@ -4,7 +4,7 @@ vi.mock("../../module/actions/actor-updates.js", () => import("../mocks/actor-up
 vi.mock("../../module/actions/knights.js", () => ({ worldKnights: () => [] }));
 
 const { registerLeadingHooks } = await import("../../module/actions/leading.js");
-const { leaderCandidates } = await import("../../module/actions/leading.js");
+const { leaderCandidates, letGoOf } = await import("../../module/actions/leading.js");
 
 /** The hooks registered, by name. */
 let hooks;
@@ -107,5 +107,27 @@ describe("who may lead from the front", () => {
 			delete globalThis.canvas;
 			delete globalThis.fromUuidSync;
 		}
+	});
+});
+
+describe("letGoOf", () => {
+	it("frees every Warband a leader led as they go down for good, unlinked Tokens' and fights' too (p8, p11)", async () => {
+		const led = { ...warband("Actor.militia", "Actor.kay"), isOwner: true };
+		const other = { ...warband("Actor.riders", "Actor.gawain"), isOwner: true };
+		const token = { ...warband("Scene.s.Token.t.Actor.militia", "Actor.kay"), isOwner: true };
+		game.actors = [led, other];
+		game.combats = [{ combatants: collection({ actor: token }) }];
+		await letGoOf({ uuid: "Actor.kay" });
+		expect(led.update).toHaveBeenCalledWith({ "system.leader": "" }, undefined);
+		expect(token.update).toHaveBeenCalledWith({ "system.leader": "" }, undefined);
+		expect(other.update).not.toHaveBeenCalled();
+		delete game.combats;
+	});
+
+	it("leaves a Warband this user can't change", async () => {
+		const theirs = { ...warband("Actor.militia", "Actor.kay"), isOwner: false };
+		game.actors = [theirs];
+		await letGoOf({ uuid: "Actor.kay" });
+		expect(theirs.update).not.toHaveBeenCalled();
 	});
 });

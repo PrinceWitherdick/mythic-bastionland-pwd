@@ -8,12 +8,11 @@ import { fillKnightByHand, giveKnightTo, isUnchosen, knightPlayer } from "../act
 import { canPatchUp, patchUp, resolveScar, rollScar } from "../actions/scars.js";
 import { changesKind, servedBySquire, setKnightKind } from "../actions/npc-knights.js";
 import { makeSeer } from "../actions/seers.js";
-import { companySizeNow, isChoosingKnight, knightSquire, takeSquire } from "../actions/squires.js";
-import { renameSteed, takeSteed } from "../actions/steeds.js";
+import { claimSquire, companySizeNow, isChoosingKnight, knightSquire, releaseSquire, servingSquire, takeSquire } from "../actions/squires.js";
+import { dropCompanion, renameSteed, takeSteed } from "../actions/steeds.js";
 import { chooseSuccessor, heirOf, nameSuccessor } from "../actions/succession.js";
 import { rollLuck } from "../actions/referee-rolls.js";
 import { changeAge } from "../actions/time.js";
-import { timelineSquireTaken } from "../actions/timeline-events.js";
 import { openPortrait } from "../apps/ArtPopout.js";
 import { openKnightChooser } from "../apps/KnightChooser.js";
 import { openKnightTable } from "../apps/KnightTable.js";
@@ -593,15 +592,18 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		return KnightSheet.#linked(this.actor.system.steed);
 	}
 
-	/** @returns {Actor|null} A Knight's Squire, or the Knight a Squire serves, if they still exist. */
+	/**
+	 * @returns {Actor|null} A Knight's Squire, or the Knight a Squire serves, if they still exist. A Squire
+	 *   Knighted since, or now serving another Knight, is no longer this Knight's; a Slain one still is, till let go.
+	 */
 	#squire() {
 		const { system } = this.actor;
-		return KnightSheet.#linked(system.isSquire ? system.serves : system.squire);
+		return system.isSquire ? KnightSheet.#linked(system.serves) : servingSquire(this.actor, { living: false });
 	}
 
 	/**
-	 * Dropping an NPC from the Actors tab makes it the Knight's steed, dropping
-	 * a Squire makes them this Knight's Squire, dropping another Knight names
+	 * Dropping an NPC makes it the Knight's steed or follower, dropping a
+	 * Squire makes them this Knight's Squire, dropping another Knight names
 	 * them this Knight's successor, and dropping a Domain makes it the one they rule.
 	 * @override
 	 */
@@ -619,28 +621,21 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 		const squire = isKnight(actor) && actor.system.isSquire && !this.actor.system.isSquire;
 		if (isKnight(actor) && !squire) {
 			if (this.actor.system.isSquire || actor.pack) return null;
+			// The dead follow nobody (p17).
+			if (actor.system.slain) {
+				ui.notifications.warn(t("successor.slain", { name: actor.name }));
+				return null;
+			}
 			await nameSuccessor(this.actor, actor);
 			return actor;
 		}
-		if (actor.type !== "npc" && !squire) return null;
+		if (actor.type === "npc") return dropCompanion(this.actor, actor);
+		if (!squire) return null;
 		if (actor.pack) {
-			ui.notifications.warn(t("steed.fromDirectory"));
+			ui.notifications.warn(t("squire.fromDirectory"));
 			return null;
 		}
-		if (!squire) {
-			await this.actor.update({ "system.steed": actor.uuid });
-			return actor;
-		}
-		// Only a small Company's Knights are given Squires (p7), never the Referee's.
-		if (isNpcKnight(this.actor)) {
-			ui.notifications.warn(t("npcKnight.noSquire", { name: this.actor.name }));
-			return null;
-		}
-		await this.actor.update({ "system.squire": actor.uuid });
-		if (actor.isOwner) await actor.update({ "system.serves": this.actor.uuid });
-		// On both threads, as taking a new Squire writes it.
-		await timelineSquireTaken(this.actor, actor);
-		return actor;
+		return claimSquire(this.actor, actor);
 	}
 
 	/* -------------------------------------------- */
@@ -817,6 +812,6 @@ export class KnightSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMixin(
 
 	/** @this {KnightSheet} */
 	static #onClearSquire() {
-		return this.actor.update({ [this.actor.system.isSquire ? "system.serves" : "system.squire"]: "" });
+		return releaseSquire(this.actor);
 	}
 }

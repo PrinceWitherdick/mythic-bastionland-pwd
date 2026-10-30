@@ -8,9 +8,9 @@ vi.mock("../../module/actions/saves.js", () => ({ acceptAfterTelling: vi.fn() })
 vi.mock("../../module/actions/time.js", () => ({ advancePhase: vi.fn(async () => null), chooseCompany: vi.fn(async () => company) }));
 vi.mock("../../module/actions/ask-referee.js", () => ({ askReferee: vi.fn(async () => null) }));
 
-const { advancePhase } = await import("../../module/actions/time.js");
 const { useRemedy, warnDyingAfterCombat } = await import("../../module/actions/recovery.js");
 const { postCard } = await import("../../module/chat/cards.js");
+const { advancePhase, chooseCompany } = await import("../../module/actions/time.js");
 const { askReferee } = await import("../../module/actions/ask-referee.js");
 
 /** Who the Referee ticks as present. */
@@ -35,6 +35,13 @@ describe("useRemedy", () => {
 		expect(item.delete).toHaveBeenCalled();
 		expect(advancePhase).toHaveBeenCalledTimes(1);
 		expect(askReferee).not.toHaveBeenCalled();
+	});
+
+	it("offers the Knights' steeds and followers too, as all present benefit (p9)", async () => {
+		const alys = knight("Alys");
+		company = [{ actor: alys }];
+		await useRemedy(alys, sustenance());
+		expect(chooseCompany).toHaveBeenCalledWith(expect.objectContaining({ present: [alys], companions: true }));
 	});
 
 	it("has a player ask the Referee to move the Phase on", async () => {

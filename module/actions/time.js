@@ -1,4 +1,5 @@
 import { chooseDialog, inputDialog } from "../apps/ui.js";
+import { chooseActor } from "../apps/actor-pick.js";
 import { postCard, t } from "../chat/cards.js";
 import { AGES } from "../config.js";
 import { changeGlory } from "../rules/glory.js";
@@ -22,6 +23,7 @@ import {
 	olderAge,
 	legacyGlory,
 	pursuitMakings,
+	pursuitsFor,
 	nextAge,
 	nextDay,
 	nextPhase,
@@ -56,8 +58,9 @@ import { rollSkyAndWeather } from "./sky-weather.js";
 import { atMercyOfWeather } from "../rules/referee-rolls.js";
 import { showedOmen } from "../rules/wilderness.js";
 import { isCompanyKnight, isKnight } from "../rules/knight-types.js";
+import { escapeHTML } from "../rules/text.js";
 import { companyKnights, inCompany, playerCharacter } from "./knights.js";
-import { announceFallenKnight } from "./fallen.js";
+import { announceFallenKnight, companionsOf } from "./fallen.js";
 
 /**
  * Ask who takes part in something the Company does together. Those given as
@@ -66,8 +69,10 @@ import { announceFallenKnight } from "./fallen.js";
  * Knights are listed only when given. Players see only the characters they
  * own, since those are all they can change. The Slain take no part, so a Season
  * that restores Virtues doesn't raise them. With pursuits, each picks one too,
- * and says beside it what a pursuit that makes something made (p17). As an Age
- * turns, each who has a stage of life to grow into is ticked to grow older.
+ * and says beside it what a pursuit that makes something made (p17); a Squire
+ * isn't offered those only a Knight can follow. As an Age turns, each who has a
+ * stage of life to grow into is ticked to grow older. With companions, each
+ * Knight's steed and followers are listed after them, ticked as they are.
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.icon
@@ -79,10 +84,11 @@ import { announceFallenKnight } from "./fallen.js";
  * @param {boolean} [options.knightsOnly] Leave out those given who aren't Knights.
  * @param {boolean} [options.aging] Ask who grows a stage older, as an Age turns.
  * @param {boolean} [options.onlyGiven] List only those given, not the selected Tokens or the world's Knights.
+ * @param {boolean} [options.companions] List each Knight's steed and followers too, from companionsOf.
  * @returns {Promise<{actor: Actor, pursuit: string|null, making: string|null, older: boolean}[]|null>}
  *   Those ticked, or null if closed. `making` is one of the pursuit's PURSUIT_MAKINGS, or null where not said yet.
  */
-export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false }) {
+export async function chooseCompany({ title, icon, intro, ok, present = [], others = [], pursuits = [], knightsOnly = false, aging = false, onlyGiven = false, companions = false }) {
 	const candidates = [];
 	const seen = new Set();
 	const add = (actor, included, given = false) => {
@@ -97,6 +103,11 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 	for (const actor of selected) add(actor, true);
 	for (const actor of others) add(actor, false, true);
 	if (!onlyGiven) for (const actor of companyKnights()) add(actor, inCompany(actor));
+	if (companions) {
+		for (const { actor, included } of candidates.filter(({ actor }) => isKnight(actor))) {
+			for (const companion of companionsOf(actor)) add(companion, included, true);
+		}
+	}
 
 	// What each pursuit offered could make, one list for every row, shown under the pursuit picked.
 	const makings = pursuits.flatMap((pursuit) => pursuitMakings(pursuit).map((making) => ({
@@ -112,7 +123,13 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 			intro,
 			members: candidates.map(({ actor, included }, index) => {
 				const older = aging ? olderAge(actor.system.age) : null;
-				return { index, name: actor.name, included, older: older ? t("time.aging.grows", { age: t(`age.${older}`) }) : null };
+				return {
+					index,
+					name: actor.name,
+					included,
+					pursuits: pursuitsFor(pursuits, actor.system).map((key) => ({ key, label: t(`time.pursuits.${key}.label`) })),
+					older: older ? t("time.aging.grows", { age: t(`age.${older}`) }) : null
+				};
 			}),
 			pursuits: pursuits.map((key) => ({ key, label: t(`time.pursuits.${key}.label`), hint: t(`time.pursuits.${key}.hint`) })),
 			makings
@@ -126,7 +143,7 @@ export async function chooseCompany({ title, icon, intro, ok, present = [], othe
 		.map(({ actor }, index) => ({ actor, included: data[`include-${index}`], pursuit: data[`pursuit-${index}`], making: data[`making-${index}`], older: data[`older-${index}`] }))
 		.filter(({ included }) => included)
 		.map(({ actor, pursuit, making, older }) => {
-			const picked = pursuits.includes(pursuit) ? pursuit : null;
+			const picked = pursuitsFor(pursuits, actor.system).includes(pursuit) ? pursuit : null;
 			return { actor, pursuit: picked, making: pursuitMakings(picked).includes(making) ? making : null, older: Boolean(aging && older) };
 		});
 }
@@ -187,16 +204,25 @@ async function establishSuccessor(knight) {
 
 /**
  * Legacy (Between Ages, p17): a Knight's successor gains half of their current
- * Glory. A Knight who hasn't named one is asked to.
+ * Glory. A Knight who hasn't named one, or whose successor is Slain, is asked
+ * to name one. A Squire gains no Glory (p7), so a successor still a Squire is
+ * offered Knighting first, and without it the Legacy is lost.
  * @param {Actor} knight
  * @param {number} glory Theirs, with the new Age's Glory counted.
  * @returns {Promise<string[]>} Lines for the Age's card.
  */
 async function bequeathGlory(knight, glory) {
-	const heir = heirOf(knight) ?? (await chooseSuccessor(knight, { record: false }));
+	// heirOf passes over a Slain successor, who is asked about again.
+	const heir = heirOf(knight) ?? await chooseSuccessor(knight, { record: false });
 	if (!heir) return [t("successor.noLegacy")];
 	const amount = legacyGlory(glory);
-	const lines = [t("successor.legacy", { name: heir.name, amount })];
+	const lines = [];
+	if (amount && heir.system.isSquire) {
+		const note = t("successor.legacySquire", { name: escapeHTML(heir.name), amount });
+		if (!(heir.isOwner && (await knightSquire(heir, { note })))) return [t("successor.legacyLost", { name: heir.name, amount })];
+		lines.push(t("successor.knighted", { name: heir.name }));
+	}
+	lines.push(t("successor.legacy", { name: heir.name, amount }));
 	if (amount) lines.push(...(await adjustGlory(heir, amount)).map((line) => t("successor.heirLine", { name: heir.name, line })));
 	return lines;
 }
@@ -727,17 +753,15 @@ export async function journeyToDistantRealm() {
 	const realms = game.scenes.filter((scene) => isRealmScene(scene) && !scene.active);
 	let destination = null;
 	if (realms.length) {
-		const choice = await chooseDialog({
+		// One of many, so a radio list with one button. "Elsewhere" is never a Scene, so it travels without one.
+		const elsewhere = { name: t("time.distant.elsewhere") };
+		const choice = await chooseActor([...realms, elsewhere], {
 			title: t("time.distant.title"),
 			icon: "fa-solid fa-route",
-			message: t("time.distant.where"),
-			buttons: [
-				...realms.map((scene, index) => ({ action: scene.id, label: scene.name, default: index === 0 })),
-				{ action: "elsewhere", icon: "fa-solid fa-map", label: t("time.distant.elsewhere") }
-			]
+			message: t("time.distant.where")
 		});
 		if (!choice) return null;
-		destination = realms.find((scene) => scene.id === choice) ?? null;
+		destination = choice === elsewhere ? null : choice;
 	}
 
 	const season = (calendar) => t(`time.seasons.${calendar.season}`);
@@ -754,6 +778,9 @@ export async function journeyToDistantRealm() {
 		turned: (next) => t("time.distant.arrived", { season: season(next) }),
 		note: t("time.distant.note", { realm: where })
 	});
+	// Gone to another Realm, every ruler riding with the Company is away from their Holding, even
+	// one who set out from its hex, and comes home from a long absence (p20).
+	if (after) await markLongAbsences({ leaving: true });
 	if (after && destination) await destination.activate();
 	return after;
 }

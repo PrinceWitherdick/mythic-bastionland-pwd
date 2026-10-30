@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MORALE_BREAKS, groupHalved, isDown, isMoraleBreak, moraleRollers, moraleTrigger, skipsBrokenTurn } from "../../module/rules/morale.js";
+import { MORALE_BREAKS, downOf, downedPlace, groupHalved, isDown, isMoraleBreak, moraleRollers, moraleTrigger, skipsBrokenTurn } from "../../module/rules/morale.js";
 
 describe("moraleTrigger", () => {
 	const wound = { outcome: "wounded", vigourBefore: 10, vigourAfter: 7, vigourMax: 10 };
@@ -78,6 +78,11 @@ describe("skipsBrokenTurn", () => {
 	it("doesn't go round and round once nobody is left who hasn't broken", () => {
 		expect(skipsBrokenTurn(turns("fled", "surrendered"), 0)).toBe(false);
 	});
+
+	it("passes over somebody marked defeated for going down, as for broken Morale", () => {
+		expect(skipsBrokenTurn([{ broken: "" }, { broken: "", down: true }], 1)).toBe(true);
+		expect(skipsBrokenTurn([{ broken: "fled" }, { broken: "", down: true }], 1)).toBe(false);
+	});
 });
 
 describe("groupHalved", () => {
@@ -105,5 +110,46 @@ describe("moraleRollers", () => {
 
 	it("rolls for each member still standing in a disorganised group", () => {
 		expect(moraleRollers(group, { order: "disorganised" }).map((member) => member.name)).toEqual(["Captain", "Ann"]);
+	});
+});
+
+describe("isDown, for the Cast and Warbands", () => {
+	it("leaves one that fights on through a Mortal Wound standing, and counts a destroyed creature down (p11)", () => {
+		expect(isDown({ vigour: 5, mortalWound: true, fightsOn: true })).toBe(false);
+		expect(isDown({ vigour: 5, destroyed: true })).toBe(true);
+	});
+
+	it("counts a Warband broken at SPI 0 as down only when its orders are what's weighed (p11)", () => {
+		const militia = { system: { scale: "warband", virtues: { vig: { value: 10 }, spi: { value: 0 } }, moraleBroken: "" } };
+		expect(downOf(militia)).toBe(false);
+		expect(downOf(militia, { orders: true })).toBe(true);
+		const steady = { system: { ...militia.system, virtues: { vig: { value: 10 }, spi: { value: 4 } } } };
+		expect(downOf(steady, { orders: true })).toBe(false);
+		const broken = { system: { scale: "individual", virtues: { vig: { value: 10 }, spi: { value: 0 } } } };
+		expect(downOf(broken, { orders: true })).toBe(false);
+	});
+
+	it("reads fighting on and being destroyed off the actor", () => {
+		expect(downOf({ system: { virtues: { vig: { value: 4 } }, mortalWound: true, fightsOn: true } })).toBe(false);
+		expect(downOf({ system: { virtues: { vig: { value: 4 } }, destroyed: true } })).toBe(true);
+	});
+});
+
+describe("downedPlace", () => {
+	it("marks a place defeated as they go down, and stands it up as they get up", () => {
+		expect(downedPlace({ defeated: false }, { out: true, broken: false })).toEqual({ defeated: true, downFlag: true });
+		expect(downedPlace({ defeated: true, downFlag: true }, { out: false, broken: false })).toEqual({ defeated: false, downFlag: false });
+	});
+
+	it("does nothing twice, and nothing to a place it didn't mark", () => {
+		expect(downedPlace({ defeated: true, downFlag: true }, { out: true, broken: false })).toBeNull();
+		expect(downedPlace({ defeated: true }, { out: true, broken: false })).toBeNull();
+		expect(downedPlace({ defeated: true }, { out: false, broken: false })).toBeNull();
+		expect(downedPlace({ defeated: false }, { out: false, broken: false })).toBeNull();
+	});
+
+	it("keeps them out for broken Morale, which its own mark then answers for", () => {
+		expect(downedPlace({ defeated: true, brokeFlag: true }, { out: true, broken: true })).toEqual({ downFlag: true });
+		expect(downedPlace({ defeated: true, downFlag: true }, { out: false, broken: true })).toEqual({ defeated: true, downFlag: false, brokeFlag: true });
 	});
 });

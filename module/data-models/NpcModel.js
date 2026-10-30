@@ -22,6 +22,8 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 			scale: new fields.StringField({ required: true, initial: NPC_SCALES[0], choices: NPC_SCALES }),
 			// Counts as a structure: only fire, siege weapons and suitably large creatures harm it (p11).
 			structure: booleanField(),
+			// Fights on through a Mortal Wound, as a few of the Cast do: it isn't down or dying of it.
+			fightsOn: booleanField(),
 			// The UUID of whoever leads this Warband from the front, sharing its Damage until their next turn (p11).
 			leader: textField(),
 			// "fled" or "surrendered" once a failed Morale Save took them out of the fight (p10), until cleared.
@@ -49,6 +51,8 @@ export class NpcModel extends foundry.abstract.TypeDataModel {
 	prepareDerivedData() {
 		super.prepareDerivedData();
 		this.conditions = conditionsFor(this);
+		// A creature that counts as a structure is destroyed at 0GD, as a ship or wall is (p11).
+		this.destroyed = this.structure && this.guard.value === 0;
 		// A Warband is routed by a Mortal Wound or failed Morale, broken at SPI 0 and wiped out at VIG 0 (p10–11).
 		this.warband = this.scale === "warband"
 			? warbandState({ mortalWound: this.mortalWound, spi: this.virtues.spi.value, vig: this.virtues.vig.value, moraleBroken: this.moraleBroken })

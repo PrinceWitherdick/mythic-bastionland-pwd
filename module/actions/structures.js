@@ -1,4 +1,4 @@
-import { inputDialog } from "../apps/ui.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { GOODS_PACKS } from "../book-art/goods-folders.js";
 import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { collisionFaces, isStructureNpc, structureFromNpc } from "../rules/structures.js";
@@ -10,13 +10,22 @@ import { takeDamage } from "./damage.js";
 export const STRUCTURE_ACTORS_STEP = "structureActors";
 
 /**
- * A day of repairs restores a ship's or structure's GD (p11).
+ * A day of repairs restores a ship's or structure's GD (p11). One destroyed at
+ * 0GD may be past mending, so the Referee is asked first.
  * @param {Actor} actor
+ * @returns {Promise<boolean>} Whether it was repaired.
  */
 export async function repair(actor) {
+	if (actor.system.guard.value === 0 && !(await confirmDialog({
+		title: t("structure.repairDestroyedTitle", { name: actor.name }),
+		icon: "fa-solid fa-hammer",
+		message: t("structure.repairDestroyed", { name: foundry.utils.escapeHTML(actor.name) }),
+		yes: { label: t("structure.repair") }
+	}))) return false;
 	const value = actor.system.guard.max;
 	await actor.update({ "system.guard.value": value });
 	await postCard(actor, "note", { icon: "fa-solid fa-hammer", text: t("structure.repaired", { value }) });
+	return true;
 }
 
 /**

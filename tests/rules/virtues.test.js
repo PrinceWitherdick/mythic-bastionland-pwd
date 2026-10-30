@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampVirtue, conditionsFor, downBy, endsMortalWound, healsWound, isSavePassed, revives, typedD20, VIRTUE_MAX } from "../../module/rules/virtues.js";
+import { clampVirtue, conditionsFor, downBy, endsMortalWound, healsWound, isDying, isSavePassed, outOfFight, revives, typedD20, VIRTUE_MAX } from "../../module/rules/virtues.js";
 
 describe("isSavePassed", () => {
 	it("passes on a roll equal to the Virtue", () => {
@@ -83,6 +83,28 @@ describe("downBy", () => {
 		expect(downBy({ mortalWound: true })).toBe("mortalWound");
 		expect(downBy({ fatigued: true })).toBeNull();
 		expect(downBy(undefined)).toBeNull();
+	});
+
+	it("leaves one of the Cast that fights on through a Mortal Wound on their feet, and not dying of it", () => {
+		expect(downBy({ mortalWound: true, fightsOn: true })).toBeNull();
+		expect(isDying({ mortalWound: true, fightsOn: true })).toBe(false);
+		expect(downBy({ slain: true, fightsOn: true })).toBe("slain");
+	});
+});
+
+describe("outOfFight", () => {
+	it("is downBy's first, then destroyed at 0GD, then a Warband wiped out at VIG 0 however it got there (p11)", () => {
+		expect(outOfFight({ slain: true, destroyed: true })).toBe("slain");
+		expect(outOfFight({ mortalWound: true })).toBe("mortalWound");
+		expect(outOfFight({ destroyed: true })).toBe("destroyed");
+		expect(outOfFight({ scale: "warband", virtues: { vig: { value: 0 } } })).toBe("wipedOut");
+	});
+
+	it("leaves somebody Exhausted at VIG 0, a Warband still standing, and the fighting dead", () => {
+		expect(outOfFight({ scale: "individual", virtues: { vig: { value: 0 } } })).toBeNull();
+		expect(outOfFight({ scale: "warband", virtues: { vig: { value: 3 } } })).toBeNull();
+		expect(outOfFight({ mortalWound: true, fightsOn: true })).toBeNull();
+		expect(outOfFight(undefined)).toBeNull();
 	});
 });
 

@@ -15,7 +15,7 @@ import {
 	normalizeCourtMember,
 	seatOf
 } from "../rules/court.js";
-import { COUNCIL_SEATS, isSameName } from "../rules/dominion.js";
+import { COUNCIL_SEATS, canHoldPost, isSameName } from "../rules/dominion.js";
 import { rollFreeName } from "../rules/knight-names.js";
 import { escapeHTML, trimmedText } from "../rules/text.js";
 import { worldKnights } from "./knights.js";
@@ -34,20 +34,30 @@ export const COUNCIL_RETAINERS_STEP = "councilRetainers";
 export const seatLabel = (seat) => t(`domain.council.${seat}.label`);
 
 /**
- * @returns {{id: string, name: string}[]} The world's Knights, as the Circle finds them.
+ * Every Knight of the world, the dead and Squires among them, since a Circle
+ * already seating one must still find them by id.
+ * @returns {{id: string, name: string, canSit: boolean}[]} The world's Knights, as the Circle finds them,
+ *   each saying whether they could take a seat now: knighted and alive (canHoldPost).
  */
-export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id, name: actor.name }));
+export const knightChoices = () => worldKnights().map((actor) => ({ id: actor.id, name: actor.name, canSit: canHoldPost(actor) }));
 
 /**
  * @param {Actor} domain
- * @returns {Actor[]} The world's Knights other than the Domain's ruler, whether
- *   the ruler is linked to it or only named on it.
+ * @returns {Actor[]} The world's Knights who could take the Domain or a seat
+ *   in its Circle (canHoldPost: knighted and alive), other than its ruler,
+ *   whether the ruler is linked to it or only named on it.
  */
 export function knightsBesidesRuler(domain) {
 	const ruler = trimmedText(domain.system.ruler);
 	const rules = (actor) => (Boolean(domain.uuid) && actor.system?.domain === domain.uuid) || Boolean(ruler && isSameName(actor.name, ruler));
-	return worldKnights((actor) => !rules(actor));
+	return worldKnights((actor) => canHoldPost(actor) && !rules(actor));
 }
+
+/**
+ * @param {string} id A Knight's actor id.
+ * @returns {boolean} Whether that Knight is Slain, so no longer sits anywhere.
+ */
+export const slainKnight = (id) => Boolean(id && game.actors.find((actor) => actor.id === id)?.system?.slain);
 
 /**
  * @param {Actor} domain
@@ -100,6 +110,8 @@ async function askAboutMember(member, held, { title, ok, others = [] }) {
 			})),
 			roleHint: t(`domain.court.roles.${member.role}.hint`),
 			name: member.name,
+			// Leverage over the ruler is the Referee's to know (p21): a player's window leaves it out, and keeps it.
+			leverageShown: Boolean(game.user?.isGM),
 			leverage: member.leverage,
 			note: member.note,
 			notePlaceholder: notePlaceholder(member.role),
@@ -178,7 +190,7 @@ function memberFromAnswers(data, member) {
 		role: data.role,
 		name: data.name,
 		seat: data.seat ?? member.seat,
-		leverage: data.leverage,
+		leverage: data.leverage ?? member.leverage,
 		note: data.note,
 		at: member.at,
 		// Still the Knight they were seated as, unless they're renamed as somebody else.
@@ -296,6 +308,8 @@ export async function seatCircle(domain, { intro = null } = {}) {
 	const besides = new Set(knightsBesidesRuler(domain).map((actor) => actor.id));
 	const offered = knights.filter((knight) => (besides.has(knight.id) && game.actors.get(knight.id)?.visible)
 		|| seated.some((each) => each.id === knight.id));
+	// A Knight Slain since they were seated is offered unticked, so saving lets them go from the Circle.
+	const sits = (knight) => seated.some((each) => each.id === knight.id) && !slainKnight(knight.id);
 	// Names written in by hand before the Circle held Knights stay offered, ticked, so they go only when unticked.
 	const written = seated.filter((each) => each.legacy).map((each, index) => ({ key: `written${index}`, name: each.name }));
 	const data = await inputDialog({
@@ -305,7 +319,11 @@ export async function seatCircle(domain, { intro = null } = {}) {
 		context: {
 			intro: intro ?? t("domain.council.circle.intro", { name: domain.name }),
 			circle: [
-				...offered.map((knight) => ({ ...knight, checked: seated.some((each) => each.id === knight.id) })),
+				...offered.map((knight) => ({
+					...knight,
+					name: slainKnight(knight.id) ? t("domain.council.circle.slainName", { name: knight.name }) : knight.name,
+					checked: sits(knight)
+				})),
 				...written.map(({ key, name }) => ({ id: key, name, checked: true }))
 			]
 		},

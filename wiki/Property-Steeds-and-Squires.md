@@ -32,7 +32,7 @@ Hover a row to find these, where the item has them:
 
 | Button | Where | What it does |
 | --- | --- | --- |
-| Flask | A Remedy | **Use Remedy**: restores its Virtue to everyone ticked, and uses it up. |
+| Flask | A Remedy | **Use Remedy**: restores its Virtue to everyone ticked, steeds, ponies and followers included, and uses it up. |
 | Wine glass | A Passion | Indulge it to restore SPI. |
 | Die | An item with odds | Roll its chance (such as 1 in 2) of holding what's wanted. |
 | Broken heart | An item that costs a Virtue | Take the loss when something befalls it. |
@@ -84,8 +84,9 @@ A Knight whose book Property includes a steed or a beast companion (a hawk, a ho
 A Knight in a Company of 2 Knights or fewer may keep a Squire (the book's p7).
 
 - **Click Take a Squire** in the empty Squire box. The system rolls 2d6 for each Virtue, sets GD 1, rolls a d6 for one piece of extra equipment, and makes the Squire with a dagger, that equipment and a pony to ride, named "Squire to (your Knight)". The rolls go to chat and the Squire's sheet opens.
-- **Or drag a Squire** from the Actors tab onto the Knight's sheet.
-- **Click the Squire's name** to open their sheet, or the × to unlink them (the Squire is kept).
+- **Or drag a Squire** from the Actors tab onto the Knight's sheet. If they serve another Knight, or this Knight already has a Squire, it asks first and unlinks the old ones. A Squire dropped by the Referee on a player's Knight goes to that player.
+- **Click the Squire's name** to open their sheet, or the × to unlink them (the Squire is kept). Unlinking clears both sheets.
+- A Slain Squire can't be Knighted.
 
 The Company is counted as one Knight for each player who owns one, so a fallen Knight and their successor count once. In a bigger Company the empty Squire box says so, and **Take a Squire** is greyed out for players. The Referee can still grant one: they're asked to confirm. If a Company grows past 2 while Squires remain, the Referee gets a private note; whether the Squires stay is their call.
 
@@ -106,12 +107,13 @@ A newly Knighted Squire gets a folder of their own in the Actors tab. If their p
 | Drop this | From | What happens |
 | --- | --- | --- |
 | An item | Items tab, compendium, another sheet | A copy is added to the Knight. |
-| An NPC | Actors tab | It becomes the steed the Knight rides. |
+| A horse or pony | Actors tab, compendium | It becomes the steed the Knight rides. Replacing a living steed, or taking another Knight's, asks first. |
+| Any other NPC | Actors tab, compendium | **Steed or Follower?** asks which. A follower rides with the Knight, shares their Remedies, can be taken up if the Knight falls, and stays when the Knight is re-chosen. A Warband is refused; muster it from a Domain. |
 | A Squire | Actors tab | They become this Knight's Squire. |
 | Another Knight | Actors tab | They are named this Knight's successor. |
 | A Domain | Actors tab | The Knight rules it. |
 
-Steeds, Squires and Domains must come from the Actors tab, not a compendium.
+Squires and Domains must come from the Actors tab, not a compendium. A steed or follower dropped from a compendium is brought into the world first. On a Squire's sheet, a dropped NPC is always their steed.
 
 > **Did you know?**
 > - Your steed and Squire are moved into your Knight's folder in the Actors tab as you take them.
