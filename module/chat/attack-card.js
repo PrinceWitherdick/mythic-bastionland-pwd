@@ -126,6 +126,19 @@ const CHANGE_GUARDS = Object.freeze({
 /** The kinds of actor that make Attacks, and so can join one. */
 const ATTACKER_TYPES = Object.freeze([...KNIGHT_TYPES, "npc", "structure"]);
 
+/**
+ * @param {(Actor|null|undefined)[]} actors
+ * @returns {Actor[]} Those this user owns that can make an Attack, each once.
+ */
+export function ownedAttackers(actors) {
+	const seen = new Set();
+	return actors.filter((actor) => {
+		if (!actor?.isOwner || !ATTACKER_TYPES.includes(actor.type) || seen.has(actor.uuid)) return false;
+		seen.add(actor.uuid);
+		return true;
+	});
+}
+
 const attackCard = statefulCard({
 	flag: ATTACK_FLAG,
 	query: CHANGE_QUERY,
@@ -843,12 +856,7 @@ function joinCandidates(attack) {
 		...(canvas?.tokens?.controlled ?? []).map((token) => token.actor),
 		...(game.user.isGM ? [] : [game.user.character, ...worldKnights()])
 	];
-	const seen = new Set();
-	return pool.filter((actor) => {
-		if (!actor?.isOwner || !ATTACKER_TYPES.includes(actor.type) || seen.has(actor.uuid)) return false;
-		seen.add(actor.uuid);
-		return !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid);
-	});
+	return ownedAttackers(pool).filter((actor) => !isAttacker(attack, actor.uuid) && !struck.has(actor.uuid));
 }
 
 /**

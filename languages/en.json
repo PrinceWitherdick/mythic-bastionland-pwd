@@ -3125,6 +3125,12 @@
     },
     "attack": {
       "title": "Attack",
+      "macro": {
+        "name": "Attack",
+        "who": "Who attacks?",
+        "nobody": "Select the Token you attack with. Without a Knight of your own, ask the Referee for one.",
+        "nobodyGM": "Select the Token of whoever attacks."
+      },
       "weapons": "Weapons and shields",
       "noWeapons": "Nothing is worn or wielded, so this Attack is unarmed and Impaired.",
       "bonus": "Bonus dice",

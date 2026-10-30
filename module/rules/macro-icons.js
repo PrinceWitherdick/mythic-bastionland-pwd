@@ -24,6 +24,8 @@ export const MACRO_ICON_CREDITS_FILE = "CREDITS.md";
  */
 export const MACRO_ICONS = Object.freeze([
 	{ key: "luck-roll", name: "Luck Roll", icon: "delapouite/perspective-dice-six-faces-random" },
+	// The same drawing a weapon wears among the goods.
+	{ key: "attack", name: "Attack", icon: "lorc/crossed-swords" },
 	{ key: "new-site", name: "New Site", icon: "delapouite/cave-entrance" },
 	// The Company's places: a map with its way marked.
 	{ key: "places", name: "Places", icon: "lorc/treasure-map" },

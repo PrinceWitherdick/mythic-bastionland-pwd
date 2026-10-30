@@ -125,6 +125,7 @@ import { openRulebook, reopenableReader, toggleRulebook } from "./module/ruleboo
 import { adoptKeptRulebook, bringInRulebook } from "./module/rulebook/bring-in.js";
 import { RULEBOOK_MACRO_STEP, ensureRulebookHotbar, seedRulebookMacro } from "./module/rulebook/macro.js";
 import { LUCK_MACRO_STEP, ensureLuckHotbar, seedLuckMacro } from "./module/actions/luck-macro.js";
+import { ATTACK_MACRO_STEP, attackFromHotbar, ensureAttackHotbar, seedAttackMacro } from "./module/actions/attack-macro.js";
 import { PLACES_MACRO_STEP, ensurePlacesHotbar, seedPlacesMacro } from "./module/actions/places-macro.js";
 import { TIMELINE_MACRO_STEP, ensureTimelineHotbar, seedTimelineMacro } from "./module/actions/timeline-macro.js";
 import { registerHexSharedQuery } from "./module/actions/hex-shared.js";
@@ -558,6 +559,8 @@ Hooks.once("init", () => {
 		openRefereeRolls,
 		rollRefereeTable,
 		rollLuck,
+		// An Attack with whoever's Token is selected, or a player's own Knight, for the Attack macro.
+		attackFromHotbar,
 		openSparkTables,
 		// The Lay of the Land is the GM's part of a hex in Places now; macros that open it open that.
 		openHexLore: openHex,
@@ -613,6 +616,7 @@ const WORLD_SETUP = Object.freeze([
 	{ key: FXMASTER_CARD_STEP, run: () => postFxMasterCard(welcomesThisWorld) },
 	{ key: RULEBOOK_MACRO_STEP, run: seedRulebookMacro },
 	{ key: LUCK_MACRO_STEP, run: seedLuckMacro },
+	{ key: ATTACK_MACRO_STEP, run: seedAttackMacro },
 	{ key: PLACES_MACRO_STEP, run: seedPlacesMacro },
 	{ key: TIMELINE_MACRO_STEP, run: seedTimelineMacro },
 	{ key: SITE_MACRO_STEP, run: seedSiteMacro },
@@ -708,9 +712,9 @@ Hooks.once("ready", async () => {
 		.catch((error) => console.error(`${SYSTEM_ID} | Couldn't take up the kept rulebook`, error));
 	await Promise.all([
 		restoreOpenSheets(),
-		// Once every macro has its slot, the GM Toolkit (a player's Luck Roll) is put in the first,
-		// and a GM's Import PDF and End the Session in the last two.
-		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
+		// Once every macro has its slot, the GM Toolkit (a player's Attack) is put in the first,
+		// a GM's Import PDF and End the Session in the last two, and a player's Luck Roll in the last.
+		Promise.all([ensureImportMacro(), setup.then(ensureToolkitHotbar).then(ensureSessionHotbar).then(ensureRulebookHotbar).then(ensureLuckHotbar).then(ensureAttackHotbar).then(ensurePlacesHotbar).then(ensureTimelineHotbar).then(ensureSiteHotbar)])
 			.then(ensureHotbarOrder),
 		setup.then(syncTestWorldMacro),
 		// Once world setup has decided whether this world is new, which it does by its having no Actors.

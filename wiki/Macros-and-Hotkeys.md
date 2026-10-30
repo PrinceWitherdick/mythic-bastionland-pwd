@@ -28,6 +28,7 @@ The system makes its macros in your world and places them on each user's hotbar 
 | 2 | **Rulebook** | Opens or closes the rulebook, like `B`. |
 | 3 | **New Site** | Starts a new Site map. See [Sites](Sites). |
 | 4 | **Luck Roll** | Asks which way to read the roll (the Luck Roll table, or stated odds such as "Likely"), then rolls it. |
+| 5 | **Attack** | Opens the Attack dialog for the selected Token, as its sheet's **Attack** button does. With several selected, asks which attacks. |
 | 9 | **Import PDF** | Brings in your rulebook PDF. See [Bringing In Your Rulebook](Bringing-In-Your-Rulebook). |
 | 0 | **End the Session** | Opens the end-of-session window. See [Ending a Session](Ending-a-Session). |
 
@@ -37,17 +38,20 @@ With **Solo Play** on, the Referee also gets the players' **Places** and **Timel
 
 | Slot | Macro | What it does |
 |---|---|---|
-| 1 | **Luck Roll** | The same Luck Roll. |
+| 1 | **Attack** | Opens the Attack dialog for your selected Token or, with none selected, your Knight, without opening the sheet. |
 | 2 | **Places** | Opens the Company's record of where it has been. See [Travels and Places](Travels-and-Places). |
 | 3 | **Timeline** | Opens the [Campaign Timeline](The-Campaign-Timeline). Only while the Timeline is turned on. |
+| 0 | **Luck Roll** | The same Luck Roll. |
 
-Players can run the Luck Roll, Places and Timeline macros but not the Referee's. The system keeps each macro's script up to date as it changes, and a name you give a macro is kept.
+Foundry's number keys run the hotbar's slots, so a player targets with `T` and presses `1` to attack, keeping the map in view; the Referee presses `5`.
+
+Players can run the Attack, Luck Roll, Places and Timeline macros but not the Referee's. The system keeps each macro's script up to date as it changes, and a name you give a macro is kept.
 
 ![The Referee's hotbar at the foot of the screen with Referee Toolkit, Rulebook, New Site and Luck Roll in slots 1 to 4, Import PDF in slot 9 and End the Session in slot 0, each a white drawing on a dark square tile](images/macros-and-hotkeys-hotbar.webp)
 
 ## The Mythic Bastionland Macros compendium
 
-The system's **Mythic Bastionland Macros** compendium holds spare copies of **End the Session**, **Referee Toolkit**, **Import PDF**, **Luck Roll**, **New Site** and **Rulebook**. Drag one onto your hotbar if you deleted the world's copy. Only Referees can open it.
+The system's **Mythic Bastionland Macros** compendium holds spare copies of **Attack**, **End the Session**, **Referee Toolkit**, **Import PDF**, **Luck Roll**, **New Site** and **Rulebook**. Drag one onto your hotbar if you deleted the world's copy. Only Referees can open it.
 
 ## The test-world macro
 
@@ -89,6 +93,7 @@ The system's functions for macros are on `game.system.api`. Most of them are for
 | `openRefereeRolls()` | Asks which of the Referee's quick tables to roll (Referee). |
 | `rollRefereeTable(key)` | Rolls one quick table and posts it: `"luck"`, `"passage"`, `"unresolved"`, `"blind"`, `"weather"` or `"mood"`. |
 | `rollLuck(odds)` | The Luck Roll. Asks which way to read it unless given `"table"`, `"high"`, `"likely"`, `"even"`, `"unlikely"` or `"slim"`. |
+| `attackFromHotbar()` | Opens the Attack dialog for the selected Token or, for a player with none selected, their Knight; asks which when there are several. |
 | `openSparkTables({ page })` | Opens the Spark Tables. |
 | `openPlaces()` | Opens the Company's Places window. |
 | `openHexLore({ scene, hex })` | Opens one hex of a Realm in Places, with its Lay of the Land for the Referee. |

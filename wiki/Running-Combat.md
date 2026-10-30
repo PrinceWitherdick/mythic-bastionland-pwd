@@ -16,7 +16,7 @@ Each ticked character makes a CLA Save, and one **Surprise** card in chat shows 
 
 ## Attacking with an NPC
 
-**Target** the Tokens it attacks, then press **Attack** on the NPC's sheet (the first button on its toolbar, beside **Duel** and **Take Damage**). The same Attack dialog opens as for a Knight, with the NPC's own weapons in it. See [Combat for Players](Combat-for-Players) for the dialog and the card.
+**Target** the Tokens it attacks, then press **Attack** on the NPC's sheet (the first button on its toolbar, beside **Duel** and **Take Damage**), or select its Token and press `5` for the **Attack** macro on your hotbar. The same Attack dialog opens as for a Knight, with the NPC's own weapons in it. See [Combat for Players](Combat-for-Players) for the dialog and the card.
 
 What differs for you:
 

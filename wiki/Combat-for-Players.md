@@ -5,7 +5,7 @@ A fight in Mythic Bastionland is a run of Attacks, and in this system each one i
 ## Making an Attack
 
 1. **Target** the Token (or Tokens) you're attacking. Hold `T` over a Token, or use Foundry's target tool.
-2. **Click Attack** on your Knight sheet's action bar.
+2. **Click Attack** on your Knight sheet's action bar, or press `1` for the **Attack** macro on your hotbar, which leaves the sheet shut and the map in view.
 3. **Tick what you attack with**, check the situation, and press **Roll Attack**.
 
 A Slain or Mortally Wounded Knight can't Attack; you're told why.

@@ -4,6 +4,7 @@ Icons from [game-icons.net](https://game-icons.net), shared under [CC BY 3.0](ht
 Each is drawn in white on an ink tile filling the button, the way game icons dot net serves one; the artwork is otherwise unchanged. Each picture carries its credit too.
 
 - `luck-roll.svg`: [Perspective dice six faces random](https://game-icons.net/1x1/delapouite/perspective-dice-six-faces-random.html) by [Delapouite](https://delapouite.com)
+- `attack.svg`: [Crossed swords](https://game-icons.net/1x1/lorc/crossed-swords.html) by [Lorc](https://lorcblog.blogspot.com)
 - `new-site.svg`: [Cave entrance](https://game-icons.net/1x1/delapouite/cave-entrance.html) by [Delapouite](https://delapouite.com)
 - `places.svg`: [Treasure map](https://game-icons.net/1x1/lorc/treasure-map.html) by [Lorc](https://lorcblog.blogspot.com)
 - `timeline.svg`: [Scroll unfurled](https://game-icons.net/1x1/lorc/scroll-unfurled.html) by [Lorc](https://lorcblog.blogspot.com)

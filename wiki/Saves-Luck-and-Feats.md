@@ -18,7 +18,7 @@ Saves are also made for you elsewhere: by the Attack dialog for Smite, by the At
 
 When something comes down to chance, anyone can make the Luck Roll: a single d6, high in the players' favour and low against them.
 
-- **Click Luck Roll** on the Knight sheet's action bar, or **the Luck Roll macro in hotbar slot 1** (every player gets it there).
+- **Click Luck Roll** on the Knight sheet's action bar, or **the Luck Roll macro in hotbar slot 0** (every player gets it there).
 
 A window asks how to read the die:
 
