@@ -1,7 +1,7 @@
 import { CALENDAR_HOOK, calendarLabel, chronicleLabel, getCalendar } from "../actions/calendar.js";
 import { WEATHER_HOOK, pickWeather, weatherButtonShown, weatherView } from "../actions/weather.js";
 import { CITY_QUEST_HOOK, cityOmensSeen, resetCityQuest, rollCityOmen } from "../actions/city-quest.js";
-import { COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
+import { COMPANY_FLAG, NO_COMPANY_FLAG, companyTokenHex, findCompanyToken } from "../actions/company.js";
 import { crisisRoll, worldDomains } from "../actions/dominion.js";
 import { worldKnights } from "../actions/knights.js";
 import { awardGloryTo } from "../actions/glory.js";
@@ -24,6 +24,7 @@ import { writeSeasonNotes } from "../actions/season-log.js";
 import { isOwnMythEntry, openOwnMyth } from "../actions/own-myths.js";
 import { isSiteEntry, newSite, readSite, setSiteTracked, siteTrackedAt } from "../actions/sites.js";
 import { openArt } from "../apps/ArtPopout.js";
+import { showCompanyButton } from "../apps/CompanyButton.js";
 import { changeCompanyPicture } from "../apps/company-picture.js";
 import { openHex } from "../apps/TravelsPlaces.js";
 import { spinTable } from "../apps/roll-spin.js";
@@ -31,6 +32,7 @@ import { IN_USE, filterBySearch, inputDialog, renderWhenIdle } from "../apps/ui.
 import { TIME_ACTIONS, setCalendarByHand, timeContext } from "../apps/time-controls.js";
 import { loadArtIndex, mythLookup, pageNote, seerEntry } from "../book-art/art-index.js";
 import { canReadTablesFromRulebook, peekTable, peekVerseForEntry, tableForEntry } from "../book-art/myth-tables.js";
+import { startCompanyPlacement } from "../canvas/company-placement.js";
 import { pickHexAside } from "../canvas/hex-pick.js";
 import { ringHoveredHex } from "../canvas/shown-hex.js";
 import { postCard, statLabels, t, warn } from "../chat/cards.js";
@@ -178,7 +180,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			untrackHex: GmToolkitSheet.#onTrackHex,
 			trackSite: GmToolkitSheet.#onTrackSite,
 			untrackSite: GmToolkitSheet.#onTrackSite,
-			companyPicture: GmToolkitSheet.#onCompanyPicture
+			companyPicture: GmToolkitSheet.#onCompanyPicture,
+			placeLeftOffCompany: GmToolkitSheet.#onPlaceLeftOffCompany
 		}
 	};
 
@@ -402,7 +405,8 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 			clock: this.#clockContext(),
 			rulebook: { have: hasRulebook(), tooltip: t(hasRulebook() ? "gmToolkit.rulebook" : "gmToolkit.rulebookSetup") },
 			company: data?.companyHex ? { label: hexLabel(data.companyHex, data.scene), key: hexKey(data.companyHex) } : null,
-			noCompany: Boolean(data) && !data.companyHex
+			noCompany: Boolean(data) && !data.companyHex,
+			companyLeftOff: Boolean(data) && !data.companyHex && Boolean(data.scene?.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG))
 		};
 	}
 
@@ -1365,6 +1369,19 @@ export class GmToolkitSheet extends TimelineTabMixin(TabRailMixin(SettingsTabMix
 	 * show every player where a hidden Myth lies, so none is sent.
 	 * @this {GmToolkitSheet}
 	 */
+	/**
+	 * Place the Company on a Realm made with them left off it: the mark is cleared, so the map offers them
+	 * again if they're put down or their Token is deleted, and the Referee is handed them on that Realm.
+	 * @this {GmToolkitSheet}
+	 */
+	static async #onPlaceLeftOffCompany() {
+		const scene = this.scene;
+		if (!scene || findCompanyToken(scene)) return;
+		await scene.unsetFlag(SYSTEM_ID, NO_COMPANY_FLAG);
+		if (canvas.scene?.id !== scene.id) await scene.view();
+		if (!(await startCompanyPlacement(scene))) showCompanyButton();
+	}
+
 	static async #onShowHex(_event, target) {
 		const hex = GmToolkitSheet.#hexFrom(target);
 		const scene = this.scene;

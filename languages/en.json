@@ -1588,7 +1588,7 @@
       "rulerPlaceholder": "Who rules here",
       "lands": {
         "line": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each.",
-        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them: {landmarks}."
+        "withLandmarks": "Its rule reaches {count} hexes of wilderness around the Holding, the nearest Holding to each, and the Landmarks in them:"
       },
       "unworthy": {
         "line": "{name} holds {post} before rising to {rank}, and is sure to face opposition until their worthiness is proven.",
@@ -2600,6 +2600,7 @@
       "companyHere": "The Company is here",
       "companyPictureHint": "Change the picture the Company’s Token carries on the Realm, even before they’re on the map. Right-clicking the Token offers the same.",
       "noCompany": "The Company isn’t on this Realm’s map",
+      "placeLeftOffCompany": "Place the Company on this Realm",
       "showHex": "Show on the Map",
       "wild": "The wilderness as last rolled",
       "wildChip": "{table}: {prompt}",

@@ -3143,10 +3143,11 @@ a.button:focus:not(:focus-visible) {
 	font-size: 1.15rem;
 }
 
-/* Seize by Force sits alone at the foot of the Domain page, under a hairline. */
+/* Pass On and Seize by Force sit side by side at the foot of the Domain page, under a hairline. */
 .bastionland-domain__footer {
 	display: flex;
 	justify-content: center;
+	gap: 0.75rem;
 	margin-top: 1rem;
 	padding: 0.75rem 0 0.5rem;
 	border-top: 1px solid var(--bastionland-rule);
@@ -3189,9 +3190,25 @@ a.button:focus:not(:focus-visible) {
 	margin-bottom: 0.3rem;
 }
 
-/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other. */
-.bastionland-domain__unworthy {
-	margin-top: 0.5rem;
+/* The Landmarks in the Domain's lands, one to a line under the sentence that leads into them. */
+.bastionland-domain__landmarks {
+	padding-left: 1.2rem;
+	list-style: disc;
+}
+
+.bastionland-domain__landmarks > li {
+	margin: 0.1rem 0 0;
+}
+
+/* Each Knight unworthy of their post is named under the Lordship's fields, apart from them and from each other.
+   The section's class outranks the notice's own margin: 0, set further down. */
+.bastionland-domain__ruler .bastionland-domain__unworthy {
+	margin-top: 0.75rem;
+}
+
+/* The Muster button stands a little below the tally, or the Warband list when there is one. */
+.bastionland-domain__muster {
+	margin-top: 0.6rem;
 }
 
 /* The empty-seats notice sits under the heading, a little above the seats. */
@@ -3337,7 +3354,6 @@ a.button:focus:not(:focus-visible) {
  */
 .bastionland-warbands {
 	gap: 0.4rem;
-	margin-bottom: 0.6rem;
 }
 
 .bastionland-warband {

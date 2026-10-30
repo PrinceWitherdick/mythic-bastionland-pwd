@@ -2,17 +2,19 @@
  * The way back onto the map for a Company that isn't on it: a button held over
  * the top edge of a Realm Scene, shown to the Referee alone and only while
  * that Realm has no Company Token — before one has ever been placed, or after
- * the Token was deleted. A Realm being drawn by hand places its Company from
- * the last page of Creating a Realm instead, so the button comes up only once
- * that window is closed. Pressing it hands them the Company to carry under the
+ * the Token was deleted — and never on one made with the Company left off it.
+ * A Realm being drawn by hand places its Company from the last page of
+ * Creating a Realm instead, so the button comes up only once that window is
+ * closed. Pressing it hands them the Company to carry under the
  * pointer and click into a hex, as the Starts the book names no place for do.
  */
-import { findCompanyToken } from "../actions/company.js";
+import { NO_COMPANY_FLAG, findCompanyToken } from "../actions/company.js";
 import { isDrawingRealm, isRealmScene } from "../actions/realm.js";
 import { COMPANY_PLACING_HOOK, isPlacingCompany, startCompanyPlacement } from "../canvas/company-placement.js";
 import { t } from "../chat/cards.js";
 import { companyButtonPlacement } from "../rules/company.js";
 import { followMap, forgetNavigationFloor, mapOnScreen, mapPanelScale, navigationFloor } from "./map-screen.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { phaseBannerFloor } from "./PhaseBanner.js";
 
 /** @type {HTMLButtonElement|null} The one button, while it's up. */
@@ -40,6 +42,8 @@ const DRAWING_WINDOW_ID = "bastionland-realm-drawing";
 function wanted() {
 	if (!game.user?.isGM || !canvas?.ready || !isRealmScene(canvas.scene)) return false;
 	if (findCompanyToken(canvas.scene) || isPlacingCompany()) return false;
+	// Made with the Company left off it, the Realm has no Company for the button to place.
+	if (canvas.scene.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG)) return false;
 	// Known by its id rather than imported, since that window stands Finish beside this button.
 	return !(isDrawingRealm(canvas.scene) && foundry.applications.instances.has(DRAWING_WINDOW_ID));
 }

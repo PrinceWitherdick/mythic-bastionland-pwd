@@ -14,6 +14,9 @@ export const COMPANY_IMG_FLAG = "companyImg";
 /** The Scene flag keeping the hex the Company stood in, so a Token deleted by mistake can be put back. */
 export const COMPANY_LAST_HEX_FLAG = "companyLastHex";
 
+/** The Scene flag on a Realm made with the Company left off it, so the Referee isn't offered to place them. */
+export const NO_COMPANY_FLAG = "noCompany";
+
 /**
  * The Token standing for the Company on a Realm.
  * @param {Scene|null} scene
@@ -185,6 +188,8 @@ export async function setCompanyHex(scene, hex, { img, name, forced = false } = 
 
 	const data = companyTokenData(g, hex, { img: img || companyPicture(scene), name: name || t("company.name") });
 	const [made] = await scene.createEmbeddedDocuments("Token", [data]);
+	// A Company stood on a Realm made without one is on it now, and offered back if its Token goes.
+	if (made && scene.getFlag?.(SYSTEM_ID, NO_COMPANY_FLAG)) await scene.unsetFlag(SYSTEM_ID, NO_COMPANY_FLAG);
 	return made ?? null;
 }
 

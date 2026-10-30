@@ -21,7 +21,7 @@ The title is the Domain's name, with "Domain" added if the name doesn't already 
 
 | Page | What is on it |
 | --- | --- |
-| **Rule** | Lordship, Authority (Warbands), the Council and its tasks, and **Seize by Force** at the foot. The sheet opens here. |
+| **Rule** | Lordship, Authority (Warbands), the Council and its tasks, and **Pass On** and **Seize by Force** at the foot. The sheet opens here. |
 | **Court and Crises** | The Crises, Grand Designs, and the Court. |
 | **Timeline** | The Domain's own thread of the campaign Timeline. Gone when the world has the Timeline turned off. See [The Campaign Timeline](The-Campaign-Timeline). |
 | **Notes** | A rich-text page that fills the window. |
@@ -36,7 +36,6 @@ The toolbar only shows to someone who can edit the Domain:
 | **Add Crisis** | Pick a Crisis yourself, for example one a story event brings. |
 | **Increased Collections** | The Steward presses the Vassals for more. |
 | **Drama in Court** | Rolls how this Season's Court drama draws the ruler in. |
-| **Pass On** | Hands the Domain to a successor. |
 
 ### The Domain's arms
 
@@ -109,7 +108,7 @@ Settling posts a **Council Task** card: who did it, what it was, the scope, the 
 
 ### Seize by Force
 
-**Seize by Force** sits apart at the foot of the Rule page. It asks who takes the Holding (one of the world's Knights from a list, or any name written in) and makes them ruler. The named successor is cleared, a card goes to chat, and the Rule page shows a turmoil notice until the Season turns. When it does, the Season card says the Domain has settled under its new ruler.
+**Seize by Force** sits apart at the foot of the Rule page, to the right of **Pass On**. It asks who takes the Holding (one of the world's Knights from a list, or any name written in) and makes them ruler. The named successor is cleared, a card goes to chat, and the Rule page shows a turmoil notice until the Season turns. When it does, the Season card says the Domain has settled under its new ruler.
 
 ## Crises
 

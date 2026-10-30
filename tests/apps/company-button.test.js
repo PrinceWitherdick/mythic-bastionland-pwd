@@ -125,6 +125,12 @@ describe("the Place the Company button", () => {
 		expect(shown()).toBeUndefined();
 	});
 
+	it("stays down over a Realm made with the Company left off it", () => {
+		scene.getFlag = (scope, key) => scope === SYSTEM_ID && key === "noCompany";
+		showCompanyButton();
+		expect(shown()).toBeUndefined();
+	});
+
 	it("is the Referee's alone, and only over a Realm", () => {
 		game.user.isGM = false;
 		showCompanyButton();

@@ -9,8 +9,8 @@ import { crisisRoll, worldDomains } from "./dominion.js";
 import { findCompany } from "./wilderness.js";
 import { hexesReached } from "./held-back.js";
 import { COMPANY_MOVED_HOOK } from "./journey.js";
-import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
-import { holdingName } from "../rules/realm.js";
+import { getRealm, hexHiddenByHand, isRealmScene, sceneGeometry } from "./realm.js";
+import { OWN_LANDMARK, TERRAIN, holdingName, terrainAt } from "../rules/realm.js";
 import { inCompany, worldKnights } from "./knights.js";
 import { landmarkName } from "../rules/landmarks.js";
 
@@ -56,17 +56,26 @@ export function holdingChoices(domain, realms = realmHoldings()) {
  * a Landmark once it's revealed; a Referee playing alone, once it's found.
  * @param {Actor} domain
  * @param {import("../rules/dominion.js").RealmHoldings[]} [realms]
- * @returns {string|null} Its line on the sheet, or null for a Domain ruling no Holding on a map.
+ * @returns {{line: string, landmarks: {name: string, kind: string}[]}|null} Its line on the sheet and the
+ *   Landmarks listed under it, each with its kind and its hex's terrain, or null for a Domain ruling no Holding on a map.
  */
 export function domainLands(domain, realms = realmHoldings()) {
 	const found = domainHolding(domain, realms);
 	const realm = found ? getRealm(found.scene)?.realm : null;
 	if (!realm || !found.holding.id) return null;
 	const known = game.user.isGM ? realmKnown(realm, found.scene) : soloRealm(realm);
-	const { hexes, landmarks } = holdingLands(known, sceneGeometry(found.scene), found.holding.id);
-	const named = landmarks.map((landmark) => landmarkName(landmark, t));
-	if (!named.length) return t("domain.lands.line", { count: hexes.length });
-	return t("domain.lands.withLandmarks", { count: hexes.length, landmarks: named.join(", ") });
+	const g = sceneGeometry(found.scene);
+	const { hexes, landmarks: inLands } = holdingLands(known, g, found.holding.id);
+	const landmarks = inLands.map((landmark) => {
+		// A Landmark with no name of its own is already called by its kind, so the kind isn't said twice,
+		// and the Referee's own marker has no kind worth saying.
+		const type = landmark.name && landmark.type !== OWN_LANDMARK ? t(`realm.landmarks.${landmark.type}`) : null;
+		// Terrain the Referee has hidden on the map stays hidden from players here too.
+		const terrain = terrainAt(realm, g, landmark.hex);
+		const shown = terrain && (game.user.isGM || !hexHiddenByHand(found.scene, landmark.hex).terrain);
+		return { name: landmarkName(landmark, t), kind: [type, shown ? t(`realm.terrain.${TERRAIN[terrain - 1]}`) : null].filter(Boolean).join(", ") };
+	});
+	return { line: t(landmarks.length ? "domain.lands.withLandmarks" : "domain.lands.line", { count: hexes.length }), landmarks };
 }
 
 /**

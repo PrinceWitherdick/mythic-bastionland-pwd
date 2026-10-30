@@ -37,8 +37,8 @@ import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geo
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
-import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { SYSTEM_ID } from "../system-id.js";
+import { NO_COMPANY_FLAG, companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
@@ -862,6 +862,8 @@ export async function newRealm() {
 			start: COMPANY_STARTS.includes(data.start) ? data.start : firstStart,
 			img: await resolveCompanyPicture(data)
 		} : null,
+		// A Realm drawn by hand places its Company from its own last page instead.
+		companyLeftOff: !draw && !data.placeCompany,
 		// Nothing to look over where nothing was rolled: a Realm drawn by hand, or one whose every part is left to the GM.
 		review: SETUP_PARTS.some((part) => rules.roll[part]),
 		soloSecrets: askSecrets ? (SOLO_SECRET_WAYS.includes(data.soloSecrets) ? data.soloSecrets : SOLO_SECRET_WAYS[0]) : null
@@ -951,7 +953,7 @@ function wireCompanyFields(element) {
  * @param {boolean} [options.review] Show the Referee what was rolled and let them roll again before anything is settled on it.
  * @returns {Promise<Scene|null>}
  */
-export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, review = false, soloSecrets = null }) {
+export async function createRealmScene({ name, seed, setup = null, drawing = false, picture = null, layout = BOOK_LAYOUT, company = null, companyLeftOff = false, review = false, soloSecrets = null }) {
 	const { cols, rows } = normaliseRealmSetup(setup);
 	const geometry = realmGeometry({ cols, rows, layout });
 	const realm = rollRealm({ seed, setup, geometry });
@@ -969,6 +971,8 @@ export async function createRealmScene({ name, seed, setup = null, drawing = fal
 			...(drawing && soloSecrets ? { [`flags.${SYSTEM_ID}.${SOLO_SECRETS_FLAG}`]: soloSecrets } : {}),
 			// Remembered, so a Knight made later opens the chooser on the Start their Company took.
 			...(company?.start ? { [`flags.${SYSTEM_ID}.${COMPANY_START_FLAG}`]: company.start } : {}),
+			// Left off by the Referee, so the map doesn't offer to place them.
+			...(companyLeftOff ? { [`flags.${SYSTEM_ID}.${NO_COMPANY_FLAG}`]: true } : {}),
 			// A Realm drawn by hand hears what its Start sets going once it's finished.
 			...(drawing && company?.start ? { [`flags.${SYSTEM_ID}.${START_DUE_FLAG}`]: company.start } : {})
 		})

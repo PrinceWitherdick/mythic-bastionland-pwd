@@ -31,7 +31,6 @@
 		<button type="button" data-action="addCrisis"><i class="fa-solid fa-fire" inert></i> {{localize "bastionland.domain.addCrisis"}}</button>
 		<button type="button" data-action="collections" data-tooltip="{{localize 'bastionland.domain.collectionsHint'}}"><i class="fa-solid fa-coins" inert></i> {{localize "bastionland.domain.collections"}}</button>
 		<button type="button" data-action="drama" data-tooltip="{{localize 'bastionland.domain.dramaHint'}}"><i class="fa-solid fa-masks-theater" inert></i> {{localize "bastionland.domain.drama"}}</button>
-		<button type="button" data-action="passOn" data-tooltip="{{localize 'bastionland.domain.passOn.buttonHint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.domain.passOn.button"}}</button>
 	</nav>
 	{{/if}}
 
@@ -57,7 +56,14 @@
 							{{/each}}
 						</select>
 					</div>
-					{{#if lands}}<p class="bastionland-hint bastionland-domain__lands">{{lands}}</p>{{/if}}
+					{{#if lands}}
+					<p class="bastionland-hint bastionland-domain__lands">{{lands.line}}</p>
+					{{#if lands.landmarks.length}}
+					<ul class="bastionland-hint bastionland-domain__landmarks">
+						{{#each lands.landmarks}}<li>{{name}}{{#if kind}} – {{kind}}{{/if}}</li>{{/each}}
+					</ul>
+					{{/if}}
+					{{/if}}
 					{{!-- Rank alone grants no post, and a Knight holding one above it faces opposition (p6). --}}
 					{{#each unworthy}}
 					<p class="bastionland-chooser__notice bastionland-domain__unworthy">{{this}}</p>
@@ -92,7 +98,7 @@
 					</ul>
 					{{/if}}
 					{{#if editable}}
-					<button type="button" class="bastionland-button" data-action="muster" data-tooltip="{{localize 'bastionland.warband.muster.hint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.warband.muster.button"}}</button>
+					<button type="button" class="bastionland-button bastionland-domain__muster" data-action="muster" data-tooltip="{{localize 'bastionland.warband.muster.hint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.warband.muster.button"}}</button>
 					{{/if}}
 				</section>
 			</div>
@@ -164,9 +170,10 @@
 			</div>
 		</div>
 
-		{{!-- Seizing a Domain by force is a rare and drastic act, kept apart at the foot of the page. --}}
+		{{!-- Passing a Domain on and seizing it by force are rare and drastic acts, kept apart at the foot of the page. --}}
 		{{#if editable}}
 		<footer class="bastionland-domain__footer">
+			<button type="button" class="bastionland-button" data-action="passOn" data-tooltip="{{localize 'bastionland.domain.passOn.buttonHint'}}"><i class="fa-solid fa-crown" inert></i> {{localize "bastionland.domain.passOn.button"}}</button>
 			<button type="button" class="bastionland-button" data-action="seize" data-tooltip="{{localize 'bastionland.domain.conquest.buttonHint'}}"><i class="fa-solid fa-flag" inert></i> {{localize "bastionland.domain.conquest.button"}}</button>
 		</footer>
 		{{/if}}

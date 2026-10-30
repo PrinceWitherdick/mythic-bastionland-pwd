@@ -64,6 +64,16 @@ describe("setCompanyHex", () => {
 		expect(made.texture.src).toBe("banner.webp");
 	});
 
+	it("takes back a Realm's no-Company mark once a Company stands on it, so a Token deleted later is offered back", async () => {
+		const scene = { ...realmScene(), getFlag: (scope, key) => scope === SYSTEM_ID && key === "noCompany", unsetFlag: vi.fn(async () => {}) };
+		await setCompanyHex(scene, hex, { name: "The Company" });
+		expect(scene.unsetFlag).toHaveBeenCalledWith(SYSTEM_ID, "noCompany");
+
+		const plain = { ...realmScene(), unsetFlag: vi.fn() };
+		await setCompanyHex(plain, hex, { name: "The Company" });
+		expect(plain.unsetFlag).not.toHaveBeenCalled();
+	});
+
 	it("moves the Token already standing to the same corner", async () => {
 		const standing = companyToken();
 		const scene = realmScene([standing]);

@@ -97,7 +97,7 @@ The Referee chooses the Token's picture when the Realm is made, and can change i
 
 ### If the Token goes missing
 
-If the Company Token is deleted, the Referees are whispered **The Company has left the map**, with **Put them back** to stand them where they were. Whenever a Realm has no Company Token, a **Place the Company** button stands over the top edge of the map for the Referee: click it, then click the hex they stand in (right-click or **Escape** to stop).
+If the Company Token is deleted, the Referees are whispered **The Company has left the map**, with **Put them back** to stand them where they were. Whenever a Realm has no Company Token, a **Place the Company** button stands over the top edge of the map for the Referee: click it, then click the hex they stand in (right-click or **Escape** to stop). A Realm made with **Place the Company on the map** unticked shows no such button. To place the Company there later, click **The Company isn’t on this Realm’s map** in the Referee Toolkit's header.
 
 ## Asking the Referee
 
