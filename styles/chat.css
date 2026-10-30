@@ -611,7 +611,10 @@
 	color-scheme: var(--bastionland-color-scheme);
 }
 
+/* Every dialog can be resized from its corner. Made taller, the body takes the
+   room and the buttons stay at the foot; made shorter, the body scrolls. */
 .bastionland-dialog .dialog-form {
+	flex: 1 1 auto;
 	gap: 0.7rem;
 	min-height: 0;
 	padding: 0.9rem 1rem 0.8rem;
@@ -626,6 +629,7 @@
 
 /* The body scrolls, so a long dialog keeps its buttons in reach. */
 .bastionland-dialog .dialog-content {
+	flex: 1 1 auto;
 	gap: 0.7rem;
 	min-height: 0;
 	overflow-y: auto;
@@ -698,6 +702,7 @@
 }
 
 .bastionland-dialog .form-footer {
+	flex: none;
 	gap: 0.5rem;
 	margin: 0;
 	padding-top: 0.6rem;
@@ -915,6 +920,8 @@
 }
 
 .bastionland-rail-dialog-window .dialog-content {
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
 }
 
@@ -925,8 +932,11 @@
 .bastionland-dialog .bastionland-rail-dialog {
 	flex-direction: row;
 	gap: 0;
-	/* One height for every page, so the window holds still as the rail is used. */
+	/* One height for every page, so the window holds still as the rail is used;
+	   resized from its corner, the rail and pages follow the window. */
+	flex: 1 1 auto;
 	height: min(34rem, 70vh);
+	min-height: 0;
 }
 
 .bastionland-rail-dialog__rail {

@@ -10,6 +10,7 @@ import { t } from "../chat/cards.js";
 import { finishPlacement } from "../rules/realm-drawing.js";
 import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { hotbarFloor, mapOnScreen } from "./map-screen.js";
+import { waitDialog } from "./ui.js";
 
 /** What the window is taken for until it's been laid out, so it's placed from the first. */
 const UNMEASURED = Object.freeze({ width: 340, height: 220 });
@@ -116,14 +117,12 @@ export async function askToKeepRealm({ realm, roll, myths = null }) {
 		return rolling;
 	};
 
-	await foundry.applications.api.DialogV2.wait({
+	// Closing the window keeps what's on the map: the Realm is already rolled onto its Scene.
+	await waitDialog({
 		window: { title: t("realm.keep.title"), icon: "fa-solid fa-dice" },
-		classes: ["bastionland-dialog"],
 		position: { width: UNMEASURED.width, ...(placement(UNMEASURED) ?? {}) },
 		content,
 		buttons: [{ action: "keep", label: t("realm.keep.keep"), icon: "fa-solid fa-check", default: true }],
-		// Closing the window keeps what's on the map: the Realm is already rolled onto its Scene.
-		rejectClose: false,
 		render: (_event, dialog) => {
 			const element = dialog.element;
 			const settle = element?.querySelector("[data-keep-myths]");

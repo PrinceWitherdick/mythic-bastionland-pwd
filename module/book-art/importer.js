@@ -1,4 +1,4 @@
-import { confirmDialog } from "../apps/ui.js";
+import { confirmDialog, promptDialog } from "../apps/ui.js";
 import { t } from "../chat/cards.js";
 import {
 	ART_ROOT,
@@ -101,9 +101,9 @@ export async function chooseRulebookPdf() {
 		root: ART_ROOT
 	});
 
-	return foundry.applications.api.DialogV2.prompt({
-		window: { title: t("bookArt.title"), icon: "fa-solid fa-book-open" },
-		classes: ["bastionland-dialog"],
+	return promptDialog({
+		title: t("bookArt.title"),
+		icon: "fa-solid fa-book-open",
 		content,
 		ok: {
 			label: t("bookArt.start"),
@@ -113,8 +113,7 @@ export async function chooseRulebookPdf() {
 				if (!file) ui.notifications.warn(t("bookArt.noFile"));
 				return file ?? null;
 			}
-		},
-		rejectClose: false
+		}
 	});
 }
 

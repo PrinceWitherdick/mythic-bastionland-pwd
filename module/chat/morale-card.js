@@ -1,3 +1,4 @@
+import { chooseActor } from "../apps/actor-pick.js";
 import { playerCharacter } from "../actions/knights.js";
 import { combatantOf } from "../actions/lasting-dice.js";
 import { rollMorale } from "../actions/saves.js";
@@ -85,19 +86,12 @@ async function rollFor(uuid) {
  * @param {Actor[]} actors
  * @returns {Promise<Actor|null>}
  */
-async function chooseLeader(actors) {
-	const { escapeHTML } = foundry.utils;
-	const options = actors.map((actor) => `<option value="${escapeHTML(actor.uuid)}">${escapeHTML(actor.name)}</option>`).join("");
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("morale.group.title"), icon: "fa-solid fa-flag" },
-		classes: ["bastionland-dialog"],
-		content: `<div class="bastionland-dialog__body"><div class="form-group"><label for="bastionland-morale-leader">${t("morale.group.leader")}</label>`
-			+ `<div class="form-fields"><select id="bastionland-morale-leader" name="leader">${options}</select></div></div></div>`,
-		ok: { label: t("morale.roll"), icon: "fa-solid fa-dice-d20" },
-		rejectClose: false
-	});
-	return actors.find((actor) => actor.uuid === data?.leader) ?? null;
-}
+const chooseLeader = (actors) => chooseActor(actors, {
+	title: t("morale.group.title"),
+	message: t("morale.group.leader"),
+	icon: "fa-solid fa-flag",
+	ok: t("morale.roll")
+});
 
 /**
  * Roll a group's Morale: once on its leader's SPI when organised, or for each
@@ -113,7 +107,7 @@ async function rollGroup(message, order) {
 
 	let leader = null;
 	if (order === "organised") {
-		const chosen = standing.length === 1 ? standing[0].actor : await chooseLeader(standing.map((member) => member.actor));
+		const chosen = await chooseLeader(standing.map((member) => member.actor));
 		if (!chosen) return;
 		leader = standing.find((member) => member.actor === chosen);
 	}

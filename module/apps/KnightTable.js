@@ -17,7 +17,7 @@ export class KnightTable extends HandlebarsApplicationMixin(ApplicationV2) {
 	static DEFAULT_OPTIONS = {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-knight-table-window"],
 		position: { width: 480, height: "auto" },
-		window: { icon: "fa-solid fa-dice-d6" },
+		window: { icon: "fa-solid fa-dice-d6", resizable: true },
 		actions: {
 			rollTable: KnightTable.#onRollTable,
 			pickRow: KnightTable.#onPickRow

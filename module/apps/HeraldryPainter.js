@@ -434,7 +434,7 @@ export class HeraldryPainter extends HandlebarsApplicationMixin(ApplicationV2) {
 		classes: [SYSTEM_ID, "bastionland", "bastionland-heraldry-window"],
 		// Wide enough for a row of every tincture beside the shield, for arms.
 		position: { width: 640, height: "auto" },
-		window: { icon: "fa-solid fa-shield-halved" },
+		window: { icon: "fa-solid fa-shield-halved", resizable: true },
 		actions: {
 			setTool: HeraldryPainter.#onSetTool,
 			setColor: HeraldryPainter.#onSetColor,

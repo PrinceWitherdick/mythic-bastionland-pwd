@@ -15,6 +15,7 @@
  * rulebook are read from the GM's own import at run time, and never kept here.
  */
 import { calendarLabel, getCalendar, setCalendar } from "../actions/calendar.js";
+import { confirmDialog } from "../apps/ui.js";
 import { rollCityOmen } from "../actions/city-quest.js";
 import { setCompanyHex } from "../actions/company.js";
 import { settleTask } from "../actions/council-tasks.js";
@@ -359,15 +360,7 @@ export async function populateTestWorld() {
  * @param {string[]} paragraphs HTML.
  * @returns {Promise<boolean>}
  */
-async function confirm(title, paragraphs) {
-	const answer = await foundry.applications.api.DialogV2.confirm({
-		window: { title, icon: "fa-solid fa-flask" },
-		classes: ["bastionland-dialog"],
-		content: paragraphs.map((text) => `<p>${text}</p>`).join(""),
-		rejectClose: false
-	});
-	return answer === true;
-}
+const confirm = (title, paragraphs) => confirmDialog({ title, icon: "fa-solid fa-flask", message: paragraphs });
 
 /**
  * Tag each chat message this browser posts while the test world is built, so

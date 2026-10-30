@@ -222,7 +222,8 @@
 .bastionland-timeline-window .window-content,
 .bastionland-hex-editor-window .window-content,
 .bastionland-realm-panel-window .window-content,
-.bastionland-portrait-frame-window .window-content {
+.bastionland-portrait-frame-window .window-content,
+.bastionland-knight-table-window .window-content {
 	padding: 0;
 	background: var(--bastionland-paper);
 	color: var(--bastionland-ink);

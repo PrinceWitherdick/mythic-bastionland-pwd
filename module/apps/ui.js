@@ -54,7 +54,7 @@ export function addDirectoryButton(element, { className, icon, label, onClick })
 export async function confirmDialog({ title, icon, message, yes, no }) {
 	const paragraphs = Array.isArray(message) ? message : [message];
 	const confirmed = await foundry.applications.api.DialogV2.confirm({
-		window: { title, icon },
+		window: { title, icon, resizable: true },
 		classes: ["bastionland-dialog"],
 		content: paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join(""),
 		...(yes ? { yes: { icon: "fa-solid fa-check", ...yes } } : {}),
@@ -66,13 +66,39 @@ export async function confirmDialog({ title, icon, message, yes, no }) {
 
 /**
  * DialogV2.wait in the system's parchment, at the width its dialogs share:
- * without one, wait() sizes the window to its longest line unwrapped.
+ * without one, wait() sizes the window to its longest line unwrapped. Like
+ * every dialog here, it can be resized from its corner.
  * @param {object} options As DialogV2.wait takes them.
  * @param {string[]} [options.classes] More classes for the window.
  * @returns {Promise<unknown>} What the button pressed gave, or null if closed.
  */
-export function waitDialog({ classes = [], ...options }) {
-	return foundry.applications.api.DialogV2.wait({ position: { width: 400 }, rejectClose: false, ...options, classes: ["bastionland-dialog", ...classes] });
+export function waitDialog({ classes = [], window: frame = {}, ...options }) {
+	return foundry.applications.api.DialogV2.wait({
+		position: { width: 400 },
+		rejectClose: false,
+		...options,
+		window: { resizable: true, ...frame },
+		classes: ["bastionland-dialog", ...classes]
+	});
+}
+
+/**
+ * DialogV2.prompt in the system's parchment: something to read or fill in, and one button.
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} options.icon Font Awesome classes.
+ * @param {string|HTMLElement} options.content An element is shown as it is, skipping Foundry's HTML cleaning.
+ * @param {object} options.ok The button, as DialogV2 takes it.
+ * @returns {Promise<unknown>} What the button gave, or null if closed.
+ */
+export function promptDialog({ title, icon, content, ok }) {
+	return foundry.applications.api.DialogV2.prompt({
+		window: { title, icon, resizable: true },
+		classes: ["bastionland-dialog"],
+		content,
+		ok,
+		rejectClose: false
+	});
 }
 
 /**
@@ -211,7 +237,7 @@ export async function inputDialog({ title, icon, template, context, ok, drawings
 	const html = await foundry.applications.handlebars.renderTemplate(templatePath(`dialogs/${template}.hbs`), context);
 	const content = drawings ? uncleanedContent(html) : html;
 	return foundry.applications.api.DialogV2.input({
-		window: { title, icon },
+		window: { title, icon, resizable: true },
 		classes: ["bastionland-dialog", ...classes],
 		content,
 		ok: { icon: "fa-solid fa-check", ...ok },

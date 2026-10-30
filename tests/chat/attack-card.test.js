@@ -13,7 +13,6 @@ vi.mock("../../module/actions/attack.js", () => ({
 vi.mock("../../module/actions/damage.js", async (importOriginal) => ({ ...(await importOriginal()), takeAttack: vi.fn(async () => true) }));
 vi.mock("../../module/actions/saves.js", () => ({ rollSave: vi.fn() }));
 vi.mock("../../module/apps/ui.js", () => ({
-	chooseDialog: vi.fn(),
 	confirmDialog: vi.fn(async () => false),
 	inputDialog: vi.fn(async () => null)
 }));
@@ -25,7 +24,7 @@ vi.mock("../../module/actions/feats.js", async (importOriginal) => ({
 	postFeat: vi.fn(async () => {})
 }));
 
-const { chooseDialog, confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
+const { confirmDialog, inputDialog } = await import("../../module/apps/ui.js");
 const { payFeat, postFeat, rollFeat } = await import("../../module/actions/feats.js");
 const { joinAttack, poolRerollers, showRolls, sigilHolders } = await import("../../module/actions/attack.js");
 const { rollSave } = await import("../../module/actions/saves.js");
@@ -193,16 +192,16 @@ describe("the Gambit's Save", () => {
 	});
 
 	it("rolls nothing when the window asking who Saves is closed", async () => {
-		chooseDialog.mockResolvedValue(null);
+		inputDialog.mockResolvedValueOnce(null);
 		const card = renderCard(twoTargets());
 		await card.click("gambit-save");
-		expect(chooseDialog).toHaveBeenCalledOnce();
+		expect(inputDialog).toHaveBeenCalledOnce();
 		expect(rollSave).not.toHaveBeenCalled();
 		expect(card.message.update).not.toHaveBeenCalled();
 	});
 
 	it("rolls for whoever was picked", async () => {
-		chooseDialog.mockResolvedValue("1");
+		inputDialog.mockResolvedValueOnce({ actor: "1" });
 		rollSave.mockResolvedValue({ roll: { total: 9 }, value: 12, passed: true });
 		const card = renderCard(twoTargets());
 		await card.click("gambit-save");
@@ -213,7 +212,7 @@ describe("the Gambit's Save", () => {
 		rollSave.mockResolvedValue({ roll: { total: 9 }, value: 12, passed: true });
 		const card = renderCard(attackState({ gambits: [{ key: "dismount", save: null }] }));
 		await card.click("gambit-save");
-		expect(chooseDialog).not.toHaveBeenCalled();
+		expect(inputDialog).not.toHaveBeenCalled();
 		expect(rollSave).toHaveBeenCalledWith(tokens["Scene.s.Token.k"].actor, "vig");
 	});
 
@@ -397,10 +396,10 @@ describe("Join this Attack", () => {
 
 	it("asks which Knight joins when there are several, and joins nobody when the window closes", async () => {
 		game.actors = [combatant({ uuid: "Actor.tal", name: "Tal" }), combatant({ uuid: "Actor.moss", name: "Moss" })];
-		chooseDialog.mockResolvedValue(null);
+		inputDialog.mockResolvedValueOnce(null);
 		const card = renderCard(attackState());
 		await card.click("join");
-		expect(chooseDialog).toHaveBeenCalledOnce();
+		expect(inputDialog).toHaveBeenCalledOnce();
 		expect(joinAttack).not.toHaveBeenCalled();
 	});
 

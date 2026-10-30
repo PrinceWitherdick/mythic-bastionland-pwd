@@ -3,7 +3,8 @@ import { chatIsPublic, playDismountFx } from "../actions/attack-fx.js";
 import { singleArmour, takeAttack } from "../actions/damage.js";
 import { canDenyAttack, featRefusal, payFeat, postFeat, rollFeat } from "../actions/feats.js";
 import { rollSave } from "../actions/saves.js";
-import { chooseDialog, confirmDialog, inputDialog } from "../apps/ui.js";
+import { chooseActor } from "../apps/actor-pick.js";
+import { confirmDialog, inputDialog } from "../apps/ui.js";
 import { GAMBITS } from "../config.js";
 import { greaterEffects, npcArmourWithout, tokenBox, withinArmsReach } from "../rules/armour.js";
 import {
@@ -517,24 +518,6 @@ function answerers(pool, attack, also = () => true) {
 		seen.add(actor.uuid);
 		return true;
 	});
-}
-
-/**
- * Ask which of several actors acts, or take the only one without asking.
- * @param {Actor[]} actors
- * @param {{title: string, message: string, icon?: string}} ask
- * @returns {Promise<Actor|null>}
- */
-async function chooseActor(actors, { title, message, icon = "fa-solid fa-dice-d20" }) {
-	if (actors.length === 1) return actors[0];
-	const action = await chooseDialog({
-		title,
-		icon,
-		message,
-		buttons: actors.map((actor, index) => ({ action: String(index), label: actor.name, default: index === 0 }))
-	});
-	// Closing the window answers with null, which is nobody rather than the first of them.
-	return typeof action === "string" ? actors[Number(action)] ?? null : null;
 }
 
 /**

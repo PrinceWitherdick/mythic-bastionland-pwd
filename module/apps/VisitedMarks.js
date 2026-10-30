@@ -74,7 +74,7 @@ export class VisitedMarks extends HandlebarsApplicationMixin(ApplicationV2) {
 		id: "bastionland-visited-marks",
 		classes: [SYSTEM_ID, "bastionland", "bastionland-dialog", "bastionland-visited-marks-window"],
 		position: { width: 440, height: "auto" },
-		window: { title: "bastionland.travels.marks.title", icon: "fa-solid fa-shoe-prints" },
+		window: { title: "bastionland.travels.marks.title", icon: "fa-solid fa-shoe-prints", resizable: true },
 		actions: {
 			resetColours: VisitedMarks.#onResetColours
 		}

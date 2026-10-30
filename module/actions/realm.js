@@ -1,6 +1,6 @@
 import { hexLabel } from "./hex-names.js";
 import { hexTarget } from "../chat/hex-target.js";
-import { addDirectoryButton, confirmDialog, uncleanedContent } from "../apps/ui.js";
+import { addDirectoryButton, confirmDialog, inputDialog, waitDialog } from "../apps/ui.js";
 import { askToKeepRealm } from "../apps/keep-realm.js";
 import { showRealmButtons } from "../apps/realm-tour.js";
 import { loadArtIndex, mythEntry, seerEntry } from "../book-art/art-index.js";
@@ -37,8 +37,8 @@ import { BOOK_LAYOUT, hexAt, hexCentre, realmGeometry } from "../rules/realm-geo
 import { relayCutBack, relayRealm } from "../rules/realm-edits.js";
 import { serialWrites } from "../rules/queue.js";
 import { carryForward, emptyHistory, recordChange, stepChange } from "../rules/history.js";
-import { SYSTEM_ID, templatePath } from "../system-id.js";
 import { companyTokenHex, placeCompanyAtStart, restandCompany } from "./company.js";
+import { SYSTEM_ID } from "../system-id.js";
 import { announceStart } from "./starts.js";
 import { setupParts, wireSetupFields } from "../apps/realm-setup-fields.js";
 import { wireMapSizeFields } from "../apps/map-size-fields.js";
@@ -727,9 +727,9 @@ const REALM_MAKINGS = Object.freeze(["roll", "draw", "picture"]);
  * @returns {Promise<"roll"|"draw"|"picture"|null>}
  */
 async function chooseRealmMaking() {
-	const choice = await foundry.applications.api.DialogV2.wait({
+	const choice = await waitDialog({
 		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog", "realm-making-dialog"],
+		classes: ["realm-making-dialog"],
 		// Left to size itself, the question's one long line stretches the window across the screen.
 		position: { width: 560 },
 		content: `<p>${t("realm.dialog.chooseMaking")}</p>`,
@@ -737,8 +737,7 @@ async function chooseRealmMaking() {
 			{ action: "roll", label: t("realm.dialog.making.roll"), icon: "fa-solid fa-dice", default: true },
 			{ action: "draw", label: t("realm.dialog.making.draw"), icon: "fa-solid fa-paintbrush" },
 			{ action: "picture", label: t("realm.dialog.making.picture"), icon: "fa-solid fa-image" }
-		],
-		rejectClose: false
+		]
 	});
 	return REALM_MAKINGS.includes(choice) ? choice : null;
 }
@@ -774,38 +773,38 @@ export async function newRealm() {
 		// Drawn by hand, the Company is chosen and placed from the last page of Creating a Realm, once there are hexes to stand in.
 		...(draw ? [] : [{ key: "company", icon: "fa-flag", label: t("company.title") }])
 	];
-	// As an element, so the Import map page's layout drawings (SVG) aren't cleaned away.
-	const content = uncleanedContent(await foundry.applications.handlebars.renderTemplate(templatePath("dialogs/new-realm.hbs"), {
-		draw,
-		traced,
-		pages,
-		firstPage: pages[0],
-		making: t(`realm.dialog.making.${making}`),
-		name: defaultName,
-		seed: randomSeed(),
-		// Drawn by hand, only the map's size is left to set.
-		setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
-		...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
-		// How far a map of the GM's own may run, for the Map size page to say.
-		sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
-		...companyPictureContext(COMPANY_IMAGE),
-		starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
-		startHint: t(`company.starts.${firstStart}.hint`),
-		soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
-	}));
-
-	const data = await foundry.applications.api.DialogV2.input({
-		window: { title: t("realm.dialog.title"), icon: "fa-solid fa-map" },
-		classes: ["bastionland-dialog", "bastionland-rail-dialog-window"],
+	const data = await inputDialog({
+		title: t("realm.dialog.title"),
+		icon: "fa-solid fa-map",
+		template: "new-realm",
+		// So the Import map page's layout drawings (SVG) aren't cleaned away.
+		drawings: true,
+		context: {
+			draw,
+			traced,
+			pages,
+			firstPage: pages[0],
+			making: t(`realm.dialog.making.${making}`),
+			name: defaultName,
+			seed: randomSeed(),
+			// Drawn by hand, only the map's size is left to set.
+			setupParts: draw ? setupParts().filter((part) => !part.rollable) : setupParts(),
+			...(traced ? mapPictureContext(null, { bareHint: t("realm.picture.bare.sizeNext") }) : {}),
+			// How far a map of the GM's own may run, for the Map size page to say.
+			sizeLimits: { side: Math.max(OWN_SIZE_LIMITS.cols.max, OWN_SIZE_LIMITS.rows.max), hexes: OWN_SIZE_LIMITS.hexes },
+			...companyPictureContext(COMPANY_IMAGE),
+			starts: COMPANY_STARTS.map((value) => ({ value, label: t(`company.starts.${value}.name`), selected: value === firstStart })),
+			startHint: t(`company.starts.${firstStart}.hint`),
+			soloSecrets: askSecrets ? keyChoices(SOLO_SECRET_WAYS, "solo.secrets.ways") : null
+		},
+		classes: ["bastionland-rail-dialog-window"],
 		// Wide enough for the rail and the Custom Realm's rows beside it.
 		position: { width: 660 },
-		content,
 		ok: traced
 			? { label: t("realm.dialog.createTraced"), icon: "fa-solid fa-image" }
 			: draw
 				? { label: t("realm.dialog.createBlank"), icon: "fa-solid fa-paintbrush" }
 				: { label: t("realm.dialog.create"), icon: "fa-solid fa-dice" },
-		rejectClose: false,
 		render: (_event, dialog) => {
 			wireDialogRail(dialog.element);
 			wireSetupFields(dialog.element);
