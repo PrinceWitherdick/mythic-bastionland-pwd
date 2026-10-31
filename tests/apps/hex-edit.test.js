@@ -79,7 +79,7 @@ describe("Edit this hex, opened from the pen beside a hex in Places", () => {
 	});
 
 	it("rolls a Myth the Realm hasn't got, and leaves the fields beside the die to set one by hand", () => {
-		expect(app).toContain("const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(scene)?.realm?.myths);");
+		expect(app).toContain("const roll = rollFreeMyth(freshRandom(), getRealm(scene)?.realm?.myths);");
 		expect(template).toContain('<input id="{{@root.partId}}-d6" type="number" name="d6"');
 	});
 

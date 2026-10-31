@@ -53,7 +53,7 @@ vi.mock("../../module/book-art/art-index.js", () => ({
 	mythEntry: (_index, myth) => ({ name: `Myth ${myth.number}`, page: 30, entry: null }),
 	seerEntry: () => ({ name: "Seer", page: 28 })
 }));
-vi.mock("../../module/actions/city-quest.js", () => ({ cityOmensSeen: () => 0, rollCityOmen: vi.fn() }));
+vi.mock("../../module/actions/city-quest.js", () => ({ cityOmensSeen: () => [], rollCityOmen: vi.fn() }));
 vi.mock("../../module/actions/landmarks.js", () => ({
 	landmarkOfferView: () => ({}),
 	nameLandmarkFromPrompt: async () => null,

@@ -194,6 +194,12 @@ Each is an Ability or item setting that can also be ticked by hand. A Knight cho
 - [ ] **T-155** Drag the Company Token on a Realm: beside the distance, Foundry's ruler shows Trek, Gallop, Cruise or "Too far for one Phase", counting the hexes already come into this Phase, and the path's hexes take that pace's ink. A Knight's own Token on a Realm with a Company Token, and Tokens on other Scenes, show Foundry's plain ruler. (p18)
 - [ ] **T-156** Every Company move that stops in a new hex posts the Referee's arrival card with "Hexes travelled this Phase" and **End the Phase**, which opens the Phase's end window ticked as travelling. Closing it leaves the button; a card from an earlier Phase only says the Phase has ended. Not offered while dire weather may be holding the Company back. (p18)
 
+### Myths and Omens audit (2026-10-30)
+- [ ] **T-157** In Edit this hex, a Myth that has shown 3 Omens is rolled again with the die: the new Myth shows 0 of 6 Omens met. Typing a d6 or d12 by hand keeps the 3. (p18, p27)
+- [ ] **T-158** Resolve a Myth from the Referee Toolkit, ticking two Knights for Glory, then mark it unresolved. **Take Back the Glory?** lists those two, ticked. Take It Back leaves each 1 Glory lower and posts a card saying so. Unticking one keeps that Knight's Glory, and closing the window keeps everyone's. A Myth resolved with nobody ticked asks nothing when unresolved. (p27)
+- [ ] **T-159** Ending a Phase in a Myth's own hex posts the Wilderness card with a line saying the Knights catch the Omen before it catches them. The Omen revealed from the arrival card's button, as the Company comes in, has no such line. (p18)
+- [ ] **T-160** A Courtier Start on a Realm whose nearest Myth to the Seat is resolved sends news of the next nearest Myth's Omen instead. (p6, p27)
+
 ### Scars
 - [ ] **T-30** *(was R-8)* A Knight takes a Humiliation Scar from an Attack card. The Scar card says "Revenge on … settles it", and the sheet's row reads "(revenge on …)". Bringing that foe down (Mortal Wound, Slain, or a Warband routed) posts a **Revenge?** card, and **Revenge Is Had** settles the Scar with its d6. A second press only says it's settled, and another player's press is refused. A Scar rolled from the sheet takes the foe's name in its item window, which is matched by name. Renaming the foe there drops the old one. (p9)
 

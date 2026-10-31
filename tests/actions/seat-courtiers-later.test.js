@@ -35,6 +35,9 @@ vi.mock("../../module/actions/realm.js", () => ({
 	getRealm: () => ({ realm: { holdings, myths: [] } })
 }));
 
+// No Myth is resolved, so the Realm as its living Myths see it is the whole Realm.
+vi.mock("../../module/actions/myth-notes.js", () => ({ liveRealm: () => ({ holdings, myths: [] }) }));
+
 const { announceStart, registerSeatingLater } = await import("../../module/actions/starts.js");
 const { seatCourtiers } = await import("../../module/actions/found-domain.js");
 const { warn } = await import("../../module/chat/cards.js");

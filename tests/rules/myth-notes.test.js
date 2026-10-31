@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MYTH_NOTES_VERSION, emptyMythNotes, mythNoteFor, mythRoll, mythScenesFor, normaliseMythNotes, withMythNote, withoutResolved } from "../../module/rules/myth-notes.js";
+import { MYTH_NOTES_VERSION, emptyMythNotes, mythGloryFor, mythNoteFor, mythRoll, mythScenesFor, normaliseMythNotes, withMythNote, withoutResolved } from "../../module/rules/myth-notes.js";
 import { emptyOmenScenes, withOmenScene } from "../../module/rules/omen-scenes.js";
 
 const wyvern = { number: 3, d6: 1, d12: 5 };
@@ -105,6 +105,37 @@ describe("withMythNote", () => {
 		const copy = structuredClone(start);
 		withMythNote(start, wyvern, { note: "Moved" });
 		expect(start).toEqual(copy);
+	});
+});
+
+describe("who was given Glory for a Myth", () => {
+	it("is kept while it's resolved, and forgotten once it isn't", () => {
+		const resolved = withMythNote(emptyMythNotes(), wyvern, { resolved: true, glory: ["k1", "k2", "k1", 7] });
+		expect(resolved.myths[3].glory).toEqual(["k1", "k2"]);
+		expect(mythGloryFor(resolved, wyvern)).toEqual(["k1", "k2"]);
+		// A note written later keeps it.
+		expect(mythGloryFor(withMythNote(resolved, wyvern, { note: "Burnt ground." }), wyvern)).toEqual(["k1", "k2"]);
+		const unresolved = withMythNote(resolved, wyvern, { resolved: false });
+		expect(unresolved.myths).toEqual({});
+		expect(mythGloryFor(unresolved, wyvern)).toEqual([]);
+	});
+
+	it("isn't kept for a Myth that isn't resolved, or given to the Myth that replaced it", () => {
+		expect(withMythNote(emptyMythNotes(), wyvern, { note: "Nest", glory: ["k1"] }).myths[3].glory).toBeUndefined();
+		const resolved = withMythNote(emptyMythNotes(), wyvern, { resolved: true, glory: ["k1"] });
+		expect(mythGloryFor(resolved, replacement)).toEqual([]);
+	});
+
+	it("reads back from the flag, only as ids and only on a resolved Myth", () => {
+		const notes = normaliseMythNotes({ myths: { 3: { roll: "1-05", resolved: true, glory: ["k1", null] }, 4: { roll: "2-01", note: "x", glory: ["k2"] } } });
+		expect(notes.myths[3]).toEqual({ roll: "1-05", note: "", resolved: true, glory: ["k1"] });
+		expect(notes.myths[4]).toEqual({ roll: "2-01", note: "x", resolved: false });
+	});
+
+	it("counts as a change, so the same Glory again changes nothing", () => {
+		const resolved = withMythNote(emptyMythNotes(), wyvern, { resolved: true, glory: ["k1"] });
+		expect(withMythNote(resolved, wyvern, { resolved: true, glory: ["k1"] })).toBe(resolved);
+		expect(withMythNote(resolved, wyvern, { glory: ["k2"] }).myths[3].glory).toEqual(["k2"]);
 	});
 });
 

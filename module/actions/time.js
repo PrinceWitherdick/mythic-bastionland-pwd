@@ -329,7 +329,6 @@ function restoredBySeason(actor, company) {
  * age's toll instead, in the one write (npcsOldAge).
  * @param {Set<Actor>} company Those passTime has restored already.
  * @param {boolean} newAge
- * @returns {Promise<void>}
  */
 async function restoreOthers(company, newAge) {
 	const aging = new Set(newAge ? oldOthers(company) : []);

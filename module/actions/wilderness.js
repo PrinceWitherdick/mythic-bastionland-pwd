@@ -250,7 +250,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 
 	const winter = calendar.season === "winter";
 	await Promise.all([
-		postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }), { rolls, mode: "gm" }),
+		postCard(null, "wilderness", cardContext({ index: await index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named, phaseEnded: Boolean(phase) }), { rolls, mode: "gm" }),
 		recorded
 	]);
 	if (city) await rollCityOmen();
@@ -260,7 +260,7 @@ export async function wildernessRoll({ scene = canvas.scene, hex = null, phase =
 /**
  * @returns {object} What the Wilderness card shows.
  */
-function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named }) {
+function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, winter, scene, city, named, phaseEnded }) {
 	const terrain = terrainAt(realm, g, where);
 
 	let myth = null;
@@ -311,6 +311,8 @@ function cardContext({ index, realm, g, where, mode, outcome, revealLandmark, wi
 		// Played alone, the tie would number Myths not yet met.
 		tied: outcome.tied && !keptFromMe() ? t("realm.wilderness.tied", { numbers: outcome.tied.map((tied) => tied.number).join(", ") }) : null,
 		landmark,
+		// A Phase ended in a Myth's own hex finds the Knights ready for its Omen (p18). Merely coming in doesn't.
+		drop: phaseEnded && outcome.result === "mythHex" && !outcome.complete ? t("realm.wilderness.drop") : null,
 		// Once the Company is worthy of the City Quest, an Omen of the City comes in place of a random Myth's (p172).
 		cityQuest: city ? t("cityQuest.wildernessHint") : null,
 		winter: winter ? t("time.winterReminder") : null

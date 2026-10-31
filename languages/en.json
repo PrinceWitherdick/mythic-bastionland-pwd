@@ -344,6 +344,11 @@
       "rank": "Rank is now {rank}.",
       "squire": "A Squire can’t gain Glory.",
       "nobody": "Nobody was ticked, so no Glory is awarded.",
+      "takeBack": {
+        "title": "Take Back the Glory?",
+        "intro": "Those ticked gained 1 Glory for “{award}”, which is now taken back. Untick anyone who keeps it. Closing this keeps everyone’s Glory.",
+        "ok": "Take It Back"
+      },
       "awards": {
         "myth": {
           "label": "Myth Resolved",
@@ -902,7 +907,9 @@
         "onMove": "Taken up by a Gambit spent on Moving",
         "inEffect": "In effect now",
         "hint": "Taken up and ended from its row on the sheet, where the Armour total then shows it. One that ends as their next turn starts ends by itself in a Combat."
-      }
+      },
+      "temperNeedsGM": "A Referee needs to be logged in to temper {name}’s weapon for you.",
+      "temperRefused": "The Referee couldn’t temper {name}’s weapon."
     },
     "passion": {
       "label": "Passion",
@@ -2387,7 +2394,7 @@
       "nameHint": "Enter keeps the name, Esc leaves it as it was",
       "holding": {
         "roll": "Roll Up This Holding",
-        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and a Myth of the Realm each has heard of, and keep it all in this hex.",
+        "rollHint": "Roll the Holding on the Civilisation Spark Tables, two or three people there, and the Myth nearest here that each has heard of, and keep it all in this hex.",
         "tagline": "Rolled up at",
         "personNamed": "{name}, {number} of {count}",
         "kept": "Someone here, {number} of {count} (p181)",
@@ -2556,6 +2563,9 @@
       "boardEmpty": "Nothing has been written on the Timeline yet.",
       "noJournal": "The Timeline is made the next time a Referee joins the game.",
       "writeFailed": "Couldn't write on the Timeline.",
+      "refereeKeeps": "Only the Referee can change the entries on this thread.",
+      "needsReferee": "Something that happened couldn't go on the Timeline. The Referee needs to be here to write it.",
+      "writeRefused": "Something that happened couldn't go on the Timeline, as only the Referee can write on that thread.",
       "readOnly": "This thread is written from the Timeline window.",
       "entry": {
         "newTitle": "New Entry",
@@ -3223,7 +3233,8 @@
         "situation": "{situation} · {d6}: {result}",
         "glory": "Glory",
         "plans": "Next session",
-        "hint": "Ending a Session (p16)."
+        "hint": "Ending a Session (p16).",
+        "refereeOnly": "For the Referee alone: the table’s card leaves these out."
       }
     },
     "attack": {
@@ -3898,7 +3909,9 @@
       "sworn": "{name} swears a quest ({ability}). No GD comes back until it’s over.",
       "fulfilled": "{name}’s quest is over ({ability}).",
       "onMove": "{name} moves, and {ability} holds until their next turn.",
-      "takenBack": "The Gambit spent on Moving is taken back, so {name} no longer has {ability}."
+      "takenBack": "The Gambit spent on Moving is taken back, so {name} no longer has {ability}.",
+      "needsGM": "A Referee needs to be logged in to change {name}’s stance for you.",
+      "refused": "The Referee couldn’t change {name}’s stance."
     },
     "coinFlip": {
       "use": "Flip the coin for the targeted Token",
@@ -4610,6 +4623,7 @@
         },
         "omen": "Omen {omen} of {count}",
         "omensComplete": "All of its Omens have been seen.",
+        "drop": "They ended the Phase here, so where it can be, the Knights catch this Omen before it catches them.",
         "tied": "Myths {numbers} are equally near, so a roll chose between them.",
         "seer": "Home to {seer}, page {page}",
         "revealed": "Now revealed on the map."
@@ -5166,7 +5180,8 @@
       "needsGM": "A Referee needs to be logged in to use this button on somebody else’s card."
     },
     "hexTarget": {
-      "hint": "Point at it to ring the hex on the map. Click to go there."
+      "hint": "Point at it to ring the hex on the map. Click to go there.",
+      "notShown": "The Referee hasn’t shown you that Realm yet."
     },
     "explore": {
       "here": "in this very Hex",

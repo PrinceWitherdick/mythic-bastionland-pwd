@@ -42,7 +42,7 @@ const flagPath = (...parts) => `flags.${SYSTEM_ID}.${MYTH_NOTES_FLAG}.${parts.jo
  * @param {MythNoteChanges|((notes: import("../rules/myth-notes.js").MythNotes) => MythNoteChanges)} changes
  *   Or what to change, worked out from the notes as the write before left them.
  * @returns {Promise<boolean>} Whether anything was written.
- * @typedef {{note?: string, resolved?: boolean, scenes?: import("../rules/omen-scenes.js").OmenScenes}} MythNoteChanges
+ * @typedef {{note?: string, resolved?: boolean, scenes?: import("../rules/omen-scenes.js").OmenScenes, glory?: string[]}} MythNoteChanges
  */
 export function editMythNote(scene, myth, changes) {
 	if (!game.user.isGM || !isRealmScene(scene) || !myth) return Promise.resolve(false);

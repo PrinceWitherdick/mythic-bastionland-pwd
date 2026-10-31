@@ -2,7 +2,7 @@ import { hexLabel } from "../actions/hex-names.js";
 import { editRealmByHand, getRealm, realmUndoState } from "../actions/realm.js";
 import { loadArtIndex, mythEntry, mythLookup, seerEntry, withPage } from "../book-art/art-index.js";
 import { t } from "../chat/cards.js";
-import { createRandom, randomSeed } from "../rules/random.js";
+import { freshRandom } from "../rules/random.js";
 import { offeredLandmarks } from "../actions/blog-landmarks.js";
 import {
 	HOLDING_STYLES,
@@ -269,17 +269,19 @@ async function pickMythToMove(scene, hex, realm) {
 /**
  * Roll the Myth's d6 and d12 on the Myths table (p27). A Realm never holds
  * the same Myth twice, so a Myth it already has, the one in this hex
- * included, is rolled again. The d6 and d12 fields beside the die still set
- * any roll by hand.
+ * included, is rolled again. The new Myth's Omens start unmet, as in the
+ * Realm's Myths window: they belong to the Myth, not to the place. The d6 and
+ * d12 fields beside the die still set any roll by hand, as a correction, so
+ * they keep the Omens met.
  * @param {Scene} scene
  * @param {{col: number, row: number}} hex
  */
 export async function rollHexMyth(scene, hex) {
-	const roll = rollFreeMyth(createRandom(randomSeed()), getRealm(scene)?.realm?.myths);
+	const roll = rollFreeMyth(freshRandom(), getRealm(scene)?.realm?.myths);
 	if (!roll) return;
 	await editRealmByHand(scene, (realm, g) => {
 		const { myth } = featureAt(realm, hex);
-		return myth ? placeFeature(realm, g, hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12 }) : realm;
+		return myth ? placeFeature(realm, g, hex, { kind: "myth", number: myth.number, d6: roll.d6, d12: roll.d12, omen: 0 }) : realm;
 	});
 }
 

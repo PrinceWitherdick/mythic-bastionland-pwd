@@ -3,7 +3,8 @@ import { postCard, registerCardButtons, t, warn } from "../chat/cards.js";
 import { OMEN_COUNT, REALM_FLAG } from "../rules/realm.js";
 import { nextOmen, wildernessSituation } from "../rules/wilderness.js";
 import { SYSTEM_ID } from "../system-id.js";
-import { getRealm, isRealmScene, sceneGeometry } from "./realm.js";
+import { isRealmScene, sceneGeometry } from "./realm.js";
+import { liveRealm } from "./myth-notes.js";
 import { rollSpark } from "./referee-rolls.js";
 import { offerRulerDomain, seatCourtiers, seatName, seatOfPower } from "./found-domain.js";
 import { omensMet } from "./timeline-events.js";
@@ -75,7 +76,8 @@ export function registerSeatingLater() {
  * @returns {Promise<ChatMessage|null>}
  */
 async function courtNews(scene) {
-	const { realm } = getRealm(scene);
+	// A resolved Myth shows no more Omens, so the Court hears nothing of it (p27).
+	const realm = liveRealm(scene);
 	const seat = realm.holdings.find((holding) => holding.seat);
 	if (!seat || !realm.myths.length) return null;
 	const { nearest } = wildernessSituation(realm, sceneGeometry(scene), seat.hex);
